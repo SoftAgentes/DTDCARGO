@@ -100,7 +100,7 @@ Tres cosas que el portal obliga y que son donde esto se rompe:
 
 ## 4 · La banda contaba a alguien que sí entra (encontrado al verificar)
 
-El founder pidió confirmar que, tras entrar Alejandro, la banda bajara de 4 a 3
+El founder pidió confirmar que, tras entrar la persona de contabilidad con CRM, la banda bajara de 4 a 3
 pendientes. **No bajaba: seguía en 4**, y el cuarto era un falso positivo.
 
 `accessStage` lee `user_tenants.last_login_at`, que escribe un trigger sobre

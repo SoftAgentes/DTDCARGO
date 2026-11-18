@@ -13,12 +13,63 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { validateVeDeliveryCompletionInput } from "@/lib/studio/warehouse-ve-types";
 import { completeVeDeliveryGoverned } from "@/lib/studio/warehouse-ve-queries";
+import { readNormalAssociations, readNormalShipment, normalReadMessage, mutationResult } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, normalFlowError, validateNormalTransition, transitionRpcArgs, validateNormalDelivery,
+  deliveryRpcArgs, invalidMembershipState } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalActionState, NormalMutationResult, NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
 
 type ActionResult = { ok?: boolean; error?: string };
+
+export async function loadVeNormalContextAction(shipmentId: string): Promise<NormalShipmentRead> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "ve");
+  if (denial) return { available: false, error: denial };
+  try { return { available: true, context: await readNormalShipment(supabase, shipmentId) }; }
+  catch (error) { return { available: false, error: normalReadMessage(error) }; }
+}
+
+async function legacyVeDenial(supabase: Awaited<ReturnType<typeof createClient>>, shipmentId: string): Promise<string | null> {
+  try { return (await readNormalAssociations(supabase, { shipmentIds: [shipmentId] })).shipmentIds.length ? LEGACY_COHORT_DENIAL : null; }
+  catch (error) { return normalReadMessage(error); }
+}
+
+/** The DB retains effective VE authority and current 0487 roles; metadata is not a permission. */
+export async function transitionNormalVeShipmentAction(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validation = validateNormalTransition(raw);
+  if (!validation.input) return invalidMembershipState(validation.fieldErrors ?? {});
+  const input = validation.input;
+  if (input.operation === "transit") return { error: "El tránsito manual se confirma desde Tracking." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_transition", transitionRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  const to = input.operation === "release_ve" ? "arrived_destination" : "out_for_delivery";
+  if (!result || result.shipmentId !== input.shipmentId || result.reference !== input.reference || result.from !== input.expectedStatus
+    || result.to !== to || !["transitioned", "replay"].includes(result.outcome)) {
+    return { error: "No se pudo comprobar la confirmación. Conserva la referencia y consulta el envío." };
+  }
+  revalidatePath("/studio/ve"); revalidatePath("/studio/naviera"); revalidatePath(`/studio/tracking/${input.shipmentId}`);
+  return { ok: true, result };
+}
+
+export async function completeNormalVeDeliveryAction(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validation = validateNormalDelivery(raw);
+  if (!validation.input) return invalidMembershipState(validation.fieldErrors ?? {});
+  const input = validation.input; const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_complete_delivery", deliveryRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.shipmentId !== input.shipmentId || result.reference !== input.reference || result.from !== input.expectedStatus
+    || result.to !== "delivered" || !["transitioned", "replay"].includes(result.outcome)) {
+    return { error: "No se pudo comprobar la entrega. Conserva la referencia y consulta el envío." };
+  }
+  revalidatePath("/studio/ve"); revalidatePath(`/studio/tracking/${input.shipmentId}`);
+  return { ok: true, result };
+}
 
 // ─────────────────────────────────────────────────────────────
 // Helper genérico de transición + event
@@ -38,6 +89,9 @@ async function transitionStatus(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "ve");
   if (denial) return { error: denial };
+
+  const cohortDenial = await legacyVeDenial(supabase, shipmentId);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -147,6 +201,9 @@ export async function markDeliveredAction(
     request_ref: raw.requestRef,
   });
   if (!validation.ok) return { error: validation.error };
+
+  const cohortDenial = await legacyVeDenial(supabase, validation.input.shipment_id);
+  if (cohortDenial) return { error: cohortDenial };
 
   try {
     const result = await completeVeDeliveryGoverned(supabase, {

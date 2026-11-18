@@ -83,10 +83,12 @@ function stub(opts: {
           error: null,
         }),
     },
-    rpc: (fn: string) =>
-      fn === "get_portal_client_markbox"
-        ? Promise.resolve({ data: opts.markbox, error: null })
-        : Promise.resolve({ data: null, error: null }),
+    rpc: (fn: string) => {
+      if (fn !== "client_consolidation_portal_read") throw new Error(`RPC inesperada: ${fn}`);
+      return Promise.resolve({ data: { available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: "tenant-1", clientId: "client-1", markbox: opts.markbox },
+        shipments: (opts.shipments ?? []).map((row) => ({ tenant_id: "tenant-1", volume_m3: null, weight_kg: null, normal: null, ...row })) }, error: null });
+    },
     from: (table: string) => {
       touched.push(table);
       if (table === "invoices") return builder(opts.invoices ?? [], opts.invoicesError);

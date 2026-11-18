@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0">
+<title>Cómo se construye Faro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: una maqueta 3D de cinco capas apiladas a la izquierda y una ficha de lectura a la derecha. Un solo look nocturno (azul noche + luz dorada del faro). */
+:root{
+  color-scheme:dark;
+  --bg:#081022; --bg2:#0E1832; --card:#111D3A; --line:#24365F; --fg:#EEF1F8; --muted:#93A0C2;
+  --gold:#FFD166; --amber:#F59E0B; --red:#E5484D; --green:#3DD68C; --blue:#5B8DEF;
+  --f-body:"Inter",system-ui,sans-serif; --f-display:"Space Grotesk","Inter",system-ui,sans-serif;
+}
+html,body{min-height:100%}
+body{background:radial-gradient(120% 80% at 50% -10%,#1A2A55 0%,var(--bg2) 45%,var(--bg) 100%) fixed,var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.page{max-width:1120px;margin:0 auto;padding-block:22px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-size:28px;font-weight:600;margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+button{font-family:inherit;cursor:pointer;color:var(--fg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.modes{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px}
+.modes button{background:none;border:none;border-radius:999px;padding:8px 16px;font-size:14px;color:var(--muted)}
+.modes button[aria-pressed="true"]{background:var(--gold);color:#1F1403;font-weight:600}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.scene{height:500px;perspective:1500px;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;overflow:hidden;border-radius:12px}
+.scene:active{cursor:grabbing}
+.stack{position:relative;width:290px;height:290px;transform-style:preserve-3d;transform:translateY(40px) rotateX(var(--rx,58deg)) rotateZ(var(--rz,-38deg))}
+.plate{position:absolute;inset:0;border-radius:18px;border:1.5px solid #3A5290;background:linear-gradient(135deg,#1C2E5E,#14224A);padding:16px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;
+  transform:translateZ(calc(var(--i) * var(--gap,78px) + var(--lift,0px)));transition:transform .45s ease,opacity .35s ease,border-color .3s,box-shadow .3s,background .3s;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.plate::before{content:"";position:absolute;inset:0;border-radius:18px;background:#0A1430;transform:translateZ(-12px);border:1.5px solid #24365F}
+.plate b{position:relative;font-family:var(--f-display);font-size:22px;font-weight:600;line-height:1.15}
+.plate small{position:relative;font-size:13px;color:var(--muted)}
+.plate .num{position:relative;font-family:var(--f-display);font-size:13px;color:var(--gold)}
+.plate.sel{--lift:26px;border-color:var(--gold);background:linear-gradient(135deg,#2B4186,#1A2C5C);box-shadow:0 0 60px rgba(255,209,102,.55),0 0 0 2px rgba(255,209,102,.5)}
+.plate.ghost{opacity:.16;border-style:dashed}
+.plate.fresh{border-color:var(--green);box-shadow:0 0 44px rgba(61,214,140,.45)}
+.chips{position:relative;display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid #3A5290;background:rgba(255,255,255,.06)}
+.chip.bad{border-color:var(--red);color:#FFB3B5;text-decoration:line-through}
+.chip.on{border-color:var(--gold);background:rgba(255,209,102,.18);color:var(--gold)}
+.ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.ctl input[type=range]{flex:1;min-width:120px;accent-color:var(--gold)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+h2{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0;text-wrap:balance}
+.card p{margin:0;color:#D5DBEC}
+.list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.list li{display:flex;gap:10px;align-items:baseline;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);font-size:14px}
+.tag{flex-shrink:0;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+.tag.new{background:rgba(255,209,102,.16);color:var(--gold)}
+.tag.old{background:rgba(61,214,140,.14);color:var(--green)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:14px}
+.btn.pri{background:var(--gold);border-color:var(--gold);color:#1F1403;font-weight:600}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--muted)}
+.tabs button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(255,209,102,.1)}
+label.sw{display:flex;gap:8px;align-items:center;font-size:14px;color:#D5DBEC}
+label.sw input{accent-color:var(--gold);width:16px;height:16px}
+.bar{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--amber));transition:width .35s ease}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:12px}
+.alert{border:1px solid var(--red);background:rgba(229,72,77,.12);color:#FFD0D1;border-radius:10px;padding:9px 12px;font-size:14px}
+@media (max-width:560px){.scene{height:380px}.stack{width:220px;height:220px}.plate b{font-size:17px}h1{font-size:23px}}
+@media (prefers-reduced-motion:reduce){.plate,.bar i{transition:none}}
+</style>
+
+<div class="page">
+  <header>
+    <div><h1>Cómo se construye Faro</h1><p>El asistente de ayuda del Studio, visto como un edificio de cinco capas. Arrastra la maqueta para girarla.</p></div>
+    <div class="modes" role="group" aria-label="Vista">
+      <button type="button" data-m="estructura" aria-pressed="true">Estructura</button>
+      <button type="button" data-m="recorrido" aria-pressed="false">Recorrido</button>
+      <button type="button" data-m="fases" aria-pressed="false">Fases</button>
+    </div>
+  </header>
+  <div class="grid">
+    <section class="stage" aria-label="Maqueta 3D de las capas de Faro">
+      <div class="scene" id="scene"><div class="stack" id="stack"></div></div>
+      <div class="ctl"><label for="gap">Separar capas</label><input id="gap" type="range" min="34" max="120" step="1" value="78"><button class="btn" id="recentrar" type="button">Recentrar</button></div>
+    </section>
+    <section class="card" id="card" aria-live="polite"></section>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CAPAS=[
+    {id:'bd',n:'Base de datos',s:'Supabase',que:'Donde queda guardado todo lo que pasa con Faro, sin que nadie pueda editarlo ni borrarlo.',
+      p:[['new','Conversaciones y mensajes inalterables'],['new','Alertas para el administrador'],['new','Tope de preguntas por usuario y hora'],['old','Patrón de tabla inalterable (capa legal)'],['old','Permisos por fila y campana de avisos']]},
+    {id:'cont',n:'Guías y catálogo',s:'Texto revisado por ti',que:'Lo único que Faro sabe. Una guía por pantalla, con los nombres exactos de los botones, y un catálogo con los 57 módulos.',
+      p:[['new','Catálogo de los 57 módulos del Studio'],['new','8 a 10 guías para empezar, contabilidad primero'],['new','Prueba que falla si un módulo queda sin entrada'],['old','Lista de módulos del Studio']]},
+    {id:'srv',n:'Servidor de Faro',s:'Portero, recorte, verificador',que:'El cerebro de las reglas. Decide qué guías puede ver cada persona, revisa lo que contesta la IA y detecta los bloqueos.',
+      p:[['new','Portero: sesión y tope por hora'],['new','Recorte por permisos antes de llamar a la IA'],['new','Verificador: bloqueo decidido por el servidor'],['new','Reglas de alerta «solo lo serio»'],['old','Regla de permisos del menú (7 roles)'],['old','Avisos por campana, Telegram y Discord']]},
+    {id:'ia',n:'Cadena de modelos',s:'Cambia sola si una falla',que:'La única capa que habla con una IA externa. Prueba el primer modelo y, si falla, pasa al siguiente sin que el usuario lo note.',
+      p:[['new','Cadena con salto automático y cortacircuitos'],['new','Costo, tiempo y modelo guardados por respuesta'],['old','Conexión a GLM de Z.AI'],['old','Conexión a Claude (Anthropic)'],['old','Reglas de fallo ya aprobadas para la Oficina']]},
+    {id:'ui',n:'Interfaz',s:'Lo que ve el usuario',que:'El botón del faro, el panel de chat y la pantalla donde el administrador lee conversaciones y alertas.',
+      p:[['new','Botón faro arrastrable y panel de chat'],['new','Pantalla «Conversaciones de Faro» con alertas'],['old','Motor de guía que resalta botones en pantalla'],['old','Reportador de errores («Mis reportes»)'],['old','Arrastre a las esquinas']]}
+  ];
+  const IDX=Object.fromEntries(CAPAS.map((c,i)=>[c.id,i]));
+  const FASES=[
+    {n:'SDD',t:'El documento',capas:[],que:'Se escribe la especificación con la arquitectura, el diseño elegido (Faro clásico) y las decisiones pendientes. Tú la apruebas antes de programar.',prueba:'Tu visto bueno al documento.'},
+    {n:'Contenido',t:'Guías y catálogo',capas:['cont'],que:'Se redactan el catálogo y las primeras guías leyendo las pantallas reales. Tú las revisas una por una.',prueba:'Prueba automática: todo módulo tiene entrada. Tu aprobación de las guías.'},
+    {n:'Base de datos',t:'Tablas y permisos',capas:['bd'],que:'Una migración crea las tablas inalterables, las alertas y el tope por hora.',prueba:'Contrato de base de datos: nadie sin permiso lee, nadie escribe desde el navegador, editar y borrar fallan.'},
+    {n:'Servidor',t:'Reglas y cadena de modelos',capas:['srv','ia'],que:'Se programan el portero, el recorte, el verificador, las alertas y la cadena de modelos compartida.',prueba:'Pruebas con los 7 roles: la guía prohibida nunca llega a la IA. Pruebas de salto cuando un modelo falla.'},
+    {n:'Interfaz',t:'Botón, panel y pantalla del administrador',capas:['ui'],que:'Se construye lo que viste en el prototipo y se conecta con el motor de guía para «Muéstrame dónde».',prueba:'Recorrido en teléfono, tableta y escritorio. Prueba de punta a punta con una IA simulada.'},
+    {n:'Evaluación',t:'Medir con preguntas reales',capas:[],que:'Unas 40 preguntas reales por rol contra cada modelo candidato. Sale una tabla de aciertos, filtraciones, tiempo y costo.',prueba:'Al menos 95 % de aciertos y cero filtraciones. Cuesta centavos y se corre con tu permiso.'},
+    {n:'Producción',t:'Salida con tu permiso',capas:[],que:'Revisión independiente, fusión por el portón del Director General y migración a producción.',prueba:'Tu autorización nominal para la migración y una prueba real en producción.'}
+  ];
+  const stack=document.getElementById('stack'), card=document.getElementById('card'), scene=document.getElementById('scene');
+  let modo='estructura', sel='ui', paso=0, fase=0, falla=false, sinAcceso=false, timer=null, rx=58, rz=-38;
+
+  CAPAS.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.className='plate';b.style.setProperty('--i',i);b.dataset.id=c.id;
+    b.innerHTML='<span class="num">Capa '+(i+1)+'</span><span><b>'+c.n+'</b><br><small>'+c.s+'</small></span>'+(c.id==='ia'?'<span class="chips" id="chips"></span>':'');
+    b.addEventListener('click',()=>{if(moved)return;if(modo==='estructura'){sel=c.id;render()}});stack.appendChild(b)});
+
+  function pasos(){return [
+    ['ui','La contadora escribe: «¿Cómo registro un pago de un cliente?»'],
+    ['srv','Portero: comprueba que hay sesión del Studio y que no pasó su tope de preguntas por hora.'],
+    ['bd','Lee los permisos reales de esa persona. El navegador no los envía, así nadie puede falsificarlos.'],
+    ['cont',sinAcceso?'Recorte: este usuario no puede abrir Cobros. Su guía NO entra; a la IA solo le llega una línea «sin acceso».':'Recorte: toma solo las guías de las pantallas que ella puede abrir. Cobros entra.'],
+    ['ia',falla?'El primer modelo no responde a tiempo. La cadena salta sola al segundo y él devuelve la ficha.':'El primer modelo de la cadena responde con una ficha: texto, resultado y pantalla sugerida.'],
+    ['srv',sinAcceso?'Verificador: comprueba con la regla de permisos que la pregunta trata de un módulo prohibido. Es un bloqueo.':'Verificador: revisa la ficha y confirma que la pantalla sugerida está permitida.'],
+    ['bd',sinAcceso?'Guarda pregunta y respuesta, inalterables, y registra el bloqueo.':'Guarda pregunta y respuesta, inalterables, con modelo, tiempo y costo.'],
+    ['ui',sinAcceso?'Faro dice «sin acceso» y ofrece enviar la consulta al administrador. No hay pasos que mostrar.':'Faro muestra los pasos, «Llévame ahí» y «Muéstrame dónde», que resalta el botón en pantalla.']
+  ]}
+  function lista(p){return '<ul class="list">'+p.map(x=>'<li><span class="tag '+x[0]+'">'+(x[0]==='new'?'Nuevo':'Ya existe')+'</span><span>'+x[1]+'</span></li>').join('')+'</ul>'}
+  function chips(){const el=document.getElementById('chips');if(!el)return;const act=modo==='recorrido'&&pasos()[paso][0]==='ia';
+    const st=i=>!act?'':(falla?(i===0?' bad':i===1?' on':''):(i===0?' on':''));
+    el.innerHTML=['1. GLM','2. Claude Haiku','3. OpenRouter'].map((t,i)=>'<span class="chip'+st(i)+'">'+t+'</span>').join('')}
+
+  function render(){
+    document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===modo));
+    const plates=[...stack.children]; let h='';
+    if(modo==='estructura'){
+      const c=CAPAS[IDX[sel]];
+      plates.forEach(p=>{p.className='plate'+(p.dataset.id===sel?' sel':'')});
+      h='<span class="eyebrow">Capa '+(IDX[sel]+1)+' de 5</span><h2>'+c.n+'</h2><p>'+c.que+'</p>'+lista(c.p)
+       +'<div class="tabs">'+CAPAS.map(x=>'<button type="button" data-capa="'+x.id+'" aria-pressed="'+(x.id===sel)+'">'+x.n+'</button>').join('')+'</div>'
+       +'<p class="note">Fuera del edificio: Hermes no participa cuando alguien pregunta. Su papel es leer después las preguntas que quedaron sin guía y proponerte borradores de guías nuevas.</p>';
+    } else if(modo==='recorrido'){
+      const ps=pasos(), a=ps[paso];
+      plates.forEach(p=>{p.className='plate'+(p.dataset.id===a[0]?' sel':'')});
+      const alerta=sinAcceso&&paso>=6?'<div class="alert">Si es una función reservada, o si la persona insiste, al administrador le llega una alerta a la campana con quién preguntó y qué preguntó.</div>':'';
+      h='<span class="eyebrow">Paso '+(paso+1)+' de '+ps.length+' · '+CAPAS[IDX[a[0]]].n+'</span><h2>El viaje de una pregunta</h2><div class="bar"><i style="width:'+Math.round((paso+1)/ps.length*100)+'%"></i></div><p>'+a[1]+'</p>'+alerta
+       +'<div class="row"><button class="btn" type="button" data-act="prev">Anterior</button><button class="btn pri" type="button" data-act="next">Siguiente</button><button class="btn" type="button" data-act="play">'+(timer?'Pausar':'Reproducir')+'</button></div>'
+       +'<label class="sw" for="swFalla"><input id="swFalla" type="checkbox"'+(falla?' checked':'')+'>Simular que el primer modelo está caído</label>'
+       +'<label class="sw" for="swAcc"><input id="swAcc" type="checkbox"'+(sinAcceso?' checked':'')+'>Usuario sin acceso a Cobros</label>';
+    } else {
+      const f=FASES[fase], hechas=new Set(FASES.slice(0,fase+1).flatMap(x=>x.capas));
+      plates.forEach(p=>{const id=p.dataset.id;p.className='plate'+(f.capas.includes(id)?' fresh':hechas.has(id)?'':' ghost')});
+      h='<span class="eyebrow">Fase '+fase+' de '+(FASES.length-1)+'</span><h2>'+f.n+': '+f.t+'</h2><div class="bar"><i style="width:'+Math.round(hechas.size/5*100)+'%"></i></div>'
+       +'<p>'+f.que+'</p><ul class="list"><li><span class="tag old">Cómo se comprueba</span><span>'+f.prueba+'</span></li></ul>'
+       +'<div class="tabs">'+FASES.map((x,i)=>'<button type="button" data-fase="'+i+'" aria-pressed="'+(i===fase)+'">'+i+' · '+x.n+'</button>').join('')+'</div>'
+       +'<p class="note">En verde, lo que se construye en esta fase. En sólido, lo ya construido. Punteado, lo que falta. '+hechas.size+' de 5 capas listas.</p>';
+    }
+    card.innerHTML=h; chips();
+  }
+  function parar(){clearInterval(timer);timer=null}
+  card.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.capa){sel=b.dataset.capa}
+    else if(b.dataset.fase){fase=+b.dataset.fase}
+    else if(b.dataset.act==='next'){parar();paso=(paso+1)%pasos().length}
+    else if(b.dataset.act==='prev'){parar();paso=(paso-1+pasos().length)%pasos().length}
+    else if(b.dataset.act==='play'){if(timer)parar();else{timer=setInterval(()=>{paso=(paso+1)%pasos().length;render()},2600)}}
+    render()});
+  card.addEventListener('change',e=>{if(e.target.id==='swFalla')falla=e.target.checked;if(e.target.id==='swAcc')sinAcceso=e.target.checked;render()});
+  document.querySelector('.modes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;parar();modo=b.dataset.m;if(modo==='recorrido')paso=0;render()});
+
+  const gap=document.getElementById('gap');
+  gap.addEventListener('input',()=>stack.style.setProperty('--gap',gap.value+'px'));
+  function girar(){stack.style.setProperty('--rx',rx+'deg');stack.style.setProperty('--rz',rz+'deg')}
+  let d=null, moved=false;
+  scene.addEventListener('pointerdown',e=>{d={x:e.clientX,y:e.clientY,rx:rx,rz:rz};moved=false});
+  window.addEventListener('pointermove',e=>{if(!d)return;const dx=e.clientX-d.x,dy=e.clientY-d.y;if(Math.abs(dx)+Math.abs(dy)>6)moved=true;if(!moved)return;
+    rz=d.rz+dx*0.4; rx=Math.min(78,Math.max(30,d.rx-dy*0.3)); girar()});
+  window.addEventListener('pointerup',()=>{d=null;setTimeout(()=>{moved=false},0)});
+  document.getElementById('recentrar').addEventListener('click',()=>{rx=58;rz=-38;gap.value=78;stack.style.setProperty('--gap','78px');girar()});
+  girar(); render();
+})();
+</script>
+
+</body>
+</html>

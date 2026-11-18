@@ -146,9 +146,11 @@ describe("el plan se recalcula antes de cada paso", () => {
     ninguna();
   });
 
-  it("si el plan se bloqueó (apareció un asiento vivo), no anula la factura", async () => {
-    planes(conFactura("emitida", true));
-    const r = await ejecutarPasoDeBorradoAction(S, `anular_factura:${F}`, "Embarque de prueba");
+  it("si el plan se bloqueó (apareció un asiento vivo en el borrador), no elimina la factura", async () => {
+    // SDD-0573: una emitida con asiento ya se anula (la 0497 lo revierte); el
+    // bloqueo por asiento vivo queda para el borrador, que el asistente elimina.
+    planes(conFactura("borrador", true));
+    const r = await ejecutarPasoDeBorradoAction(S, `eliminar_borrador_factura:${F}`, "");
     expect(r.ok).toBe(false);
     expect(r).toHaveProperty("plan.estado", "bloqueado");
     ninguna();

@@ -99,12 +99,15 @@ export async function uploadPaymentProof(
     }
     const bucket = admin.storage.from(PROOF_BUCKET);
     try {
-      const { error } = await bucket.upload(path, buffer, {
-        contentType: check.file.type,
-        cacheControl: "0",
-        upsert: false,
-      });
-      if (!error) return { path };
+      // Recovery sólo verifica el objeto original: nunca reconstruye evidencia.
+      if (args.expectedPath === undefined) {
+        const { error } = await bucket.upload(path, buffer, {
+          contentType: check.file.type,
+          cacheControl: "0",
+          upsert: false,
+        });
+        if (!error) return { path };
+      }
     } catch {
       // Puede haberse guardado antes de perder respuesta. Sólo una lectura
       // exacta permite recuperar ese resultado; no basta el código Duplicate.

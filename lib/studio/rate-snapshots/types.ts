@@ -259,12 +259,15 @@ const RATE_ERROR_KEYS: Record<string, I18nKey> = {
 
 /** La clave del mensaje para un error de la RPC, o null si no es uno de los suyos. */
 export function rateErrorKey(error: { message?: string; hint?: string | null } | null | undefined): I18nKey | null {
+  if (error?.hint === "dtd-client-normal" && ["NORMAL_INCOMPATIBLE", "NORMAL_GOVERNED"].includes(String(error.message ?? "").split(":")[0])) {
+    return "warehouse_cn.normal.rate_incompatible";
+  }
   if (!error || error.hint !== "dtd-tarifa") return null;
   const code = String(error.message ?? "").split(":")[0].trim();
   return RATE_ERROR_KEYS[code] ?? null;
 }
 
-/** La tabla o la RPC todavía no existen (0496 sin aplicar). */
+/** La tabla o la RPC no existen: la base no tiene la 0496. */
 export function isMissingRateSchema(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
   return (

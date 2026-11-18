@@ -24,6 +24,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { insertInboundMessage } from "./messages-queries";
 
 // ─────────────────────────────────────────────────────────────
@@ -114,10 +115,12 @@ async function findClientsByEmail(
   const { data, error } = await admin
     .from("clients")
     .select("id, tenant_id, name, email")
-    .ilike("email", email) // case-insensitive exact (sin %)
+    .ilike("email", emailIlikePattern(email))
     .is("deleted_at", null);
   if (error || !data) return [];
-  return data as ClientMatch[];
+  // SDD-0600 · el `From` viene de afuera. Sin esto, `a_b@x.com` entra al hilo del
+  // cliente `a.b@x.com`, y `*` no se puede escapar (ver `email-literal.ts`).
+  return (data as ClientMatch[]).filter((c) => sameEmail(c.email, email));
 }
 
 /**

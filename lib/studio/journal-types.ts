@@ -14,6 +14,7 @@ export type EntryStatus = "borrador" | "asentado" | "anulado";
 export type EntrySource =
   | "manual"
   | "invoice"
+  | "invoice_reversal"
   | "receipt"
   | "supplier_bill"
   | "supplier_payment"
@@ -33,6 +34,30 @@ export type JournalLine = {
   account_name?: string;
 };
 
+/**
+ * Evidencia visible de protección de cabeceras (SDD-0573), no autorización de
+ * escritura ni certificación de líneas, importes o ausencia global bajo RLS.
+ * Un consumidor antiguo que omita el campo sigue siendo NO COMPROBADO.
+ */
+export type JournalEntryProtection =
+  | {
+      state: "no_comprobado";
+      reading: "no_comprobada";
+      relation: "no_comprobado";
+    }
+  | {
+      state: "sin_vinculo_visible";
+      reading: "completa";
+      relation: "ninguno_visible";
+    }
+  | {
+      state: "protegido";
+      reading: "completa" | "no_comprobada";
+      relation: "no_comprobado" | "ninguno_visible" | "original" | "reverso" | "inconsistente";
+      /** Sólo un código efectivamente leído; nunca se fabrica desde el UUID. */
+      counterpartCode?: string;
+    };
+
 export type JournalEntry = {
   id: string;
   tenant_id: string;
@@ -49,6 +74,8 @@ export type JournalEntry = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** Ausente/ilegible bloquea operaciones manuales; la action relee siempre. */
+  protection?: JournalEntryProtection;
   /** Líneas hidratadas (cuando se pide el detalle). */
   lines?: JournalLine[];
 };
@@ -109,6 +136,7 @@ export function entryStatusBadgeTone(
 
 export function entrySourceLabel(source: EntrySource): string {
   if (source === "invoice") return "Factura";
+  if (source === "invoice_reversal") return "Reverso de factura";
   if (source === "receipt") return "Cobro";
   if (source === "supplier_bill") return "Causación CxP";
   if (source === "supplier_payment") return "Pago a proveedor";

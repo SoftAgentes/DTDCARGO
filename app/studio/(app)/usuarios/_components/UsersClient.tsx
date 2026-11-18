@@ -30,10 +30,15 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { InviteUserDrawer } from "./InviteUserDrawer";
 import { InvitationsTable } from "./InvitationsTable";
 import { MembersTable } from "./MembersTable";
+import { AgentesBandeja } from "./AgentesBandeja";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import type { AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 import { UserDetailDrawer } from "./UserDetailDrawer";
 import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
 import { ToolbarPersonas, type FiltroEtapa } from "./personas/ToolbarPersonas";
 import type { RoleModuleOverrides } from "@/lib/studio/rbac";
+import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
+import "./acceso/permisos.css";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
@@ -43,37 +48,80 @@ import {
   invitationStatus,
   roleBadgeTone,
   userDisplayName,
+  type StudioUserRole,
   type UserInvitation,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-type Pestana = "personas" | "roles" | "invitaciones";
-const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones"];
+/** `bandeja` (SDD-0655): «Agentes vinculados», solo con la Bandeja encendida y conectada. */
+type Pestana = "personas" | "roles" | "invitaciones" | "bandeja";
+/** Filtros de excepción (SDD-0622): quién tiene algo más que su rol. */
+type FiltroExtra = "todos" | "con" | "sensible" | "vence";
+const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones", "bandeja"];
 
 export function UsersClient({
   members,
   invitations,
   currentUserId,
   roleModuleOverrides,
+  grants = [],
+  fichasEmpleado,
+  bandejaDisponible = false,
+  agentesBandeja = null,
 }: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
   currentUserId: string;
   roleModuleOverrides: RoleModuleOverrides;
+  /** Accesos extra del tenant (SDD-0622), vigentes y vencidos. */
+  grants?: UserModuleGrantView[];
+  /** SDD-0652: user_id → código EMP-NNNN de su ficha. `undefined` si no se pudo leer. */
+  fichasEmpleado?: Record<string, string>;
+  /** SDD-0655: hay pestaña Bandeja (flag encendido y Bandeja conectada). */
+  bandejaDisponible?: boolean;
+  /** SDD-0655: vínculos Studio ↔ Chatwoot; solo llegan con `?tab=bandeja` (null si no o si la lectura falló). */
+  agentesBandeja?: AgentesBandejaDatos | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
 
   const tabUrl = params.get("tab");
-  const tab: Pestana = PESTANAS.includes(tabUrl as Pestana)
-    ? (tabUrl as Pestana)
-    : "personas";
+  const tab: Pestana =
+    PESTANAS.includes(tabUrl as Pestana) && (tabUrl !== "bandeja" || bandejaDisponible)
+      ? (tabUrl as Pestana)
+      : "personas";
   const etapaUrl = params.get("estado");
   const etapa: FiltroEtapa =
     etapaUrl === "nunca-entro" || etapaUrl === "activo" || etapaUrl === "suspendido"
       ? etapaUrl
       : "todos";
   const personaUrl = params.get("persona");
+  const extraUrl = params.get("extras");
+  const filtroExtra: FiltroExtra =
+    extraUrl === "con" || extraUrl === "sensible" || extraUrl === "vence" ? extraUrl : "todos";
+  const fichaUrl = params.get("ficha");
+
+  const grantsByUser = useMemo(() => {
+    const m: Record<string, UserModuleGrantView[]> = {};
+    for (const g of grants) (m[g.userId] ??= []).push(g);
+    return m;
+  }, [grants]);
+  const nombres = useMemo(() => {
+    const n: Record<string, string> = {};
+    for (const m of members) n[m.user_id] = userDisplayName(m.profile, m.email);
+    return n;
+  }, [members]);
+  const cumpleExtra = useMemo(
+    () =>
+      (userId: string, f: FiltroExtra): boolean => {
+        const gs = grantsByUser[userId] ?? [];
+        if (f === "todos") return true;
+        if (f === "con") return gs.some((g) => !g.expired);
+        if (f === "sensible") return gs.some((g) => !g.expired && g.sensitive);
+        return gs.some((g) => g.expired || g.expiringSoon);
+      },
+    [grantsByUser],
+  );
 
   // El texto buscado vive SÓLO en memoria — ver el docstring.
   const [busqueda, setBusqueda] = useState("");
@@ -88,6 +136,13 @@ export function UsersClient({
     const qs = s.toString();
     router.push(qs ? `/studio/usuarios?${qs}` : "/studio/usuarios", { scroll: false });
   }
+
+  // SDD-0635 §3.4: personas activas por rol (las mismas que cuentan las tarjetas de rol).
+  const personasPorRol = useMemo(() => {
+    const c: Partial<Record<StudioUserRole, number>> = {};
+    for (const m of members) if (accessStage(m) !== "suspendido") c[m.role] = (c[m.role] ?? 0) + 1;
+    return c;
+  }, [members]);
 
   const pendientesInvit = invitations.filter((i) => invitationStatus(i) === "pending");
 
@@ -109,6 +164,7 @@ export function UsersClient({
     return members
       .filter((m) => {
         if (etapa !== "todos" && accessStage(m) !== etapa) return false;
+        if (!cumpleExtra(m.user_id, filtroExtra)) return false;
         if (!q) return true;
         // BUS-01: el alcance declarado en el label tiene que ser el real.
         const campos = [
@@ -120,7 +176,7 @@ export function UsersClient({
         return campos.some((c) => c.toLowerCase().includes(q));
       })
       .sort(compareByAccessStage);
-  }, [members, etapa, busqueda]);
+  }, [members, etapa, busqueda, filtroExtra, cumpleExtra]);
 
   const pendientesAcceso = useMemo(
     () => members.filter((m) => accessStage(m) === "nunca-entro"),
@@ -133,11 +189,11 @@ export function UsersClient({
     ? (members.find((m) => m.user_id === personaUrl) ?? null)
     : null;
 
-  const hayFiltro = busqueda.trim() !== "" || etapa !== "todos";
+  const hayFiltro = busqueda.trim() !== "" || etapa !== "todos" || filtroExtra !== "todos";
 
   function limpiar() {
     setBusqueda("");
-    navegar({ estado: null });
+    navegar({ estado: null, extras: null });
   }
 
   return (
@@ -145,13 +201,8 @@ export function UsersClient({
       <div
         role="tablist"
         aria-label="Secciones de usuarios y roles"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         <Tab activa={tab === "personas"} onClick={() => navegar({ tab: "personas" })} n={members.length}>
           Personas
@@ -166,6 +217,11 @@ export function UsersClient({
         >
           Invitaciones
         </Tab>
+        {bandejaDisponible ? (
+          <Tab activa={tab === "bandeja"} onClick={() => navegar({ tab: "bandeja" })} n={agentesBandeja?.vinculos.length}>
+            Bandeja
+          </Tab>
+        ) : null}
       </div>
 
       {tab === "personas" && (
@@ -184,12 +240,34 @@ export function UsersClient({
             total={members.length}
             onLimpiar={limpiar}
           />
+          <div className="perm-filters" role="group" aria-label="Filtrar por accesos extra">
+            {(
+              [
+                ["todos", "Todos"],
+                ["con", "Con accesos extra"],
+                ["sensible", "Con acceso sensible"],
+                ["vence", "Por vencer o vencidos"],
+              ] as const
+            ).map(([f, etiqueta]) => (
+              <button
+                key={f}
+                type="button"
+                className="perm-filter"
+                aria-pressed={filtroExtra === f}
+                onClick={() => navegar({ extras: f === "todos" ? null : f })}
+              >
+                {etiqueta}
+                <span className="perm-filter-n">{members.filter((m) => cumpleExtra(m.user_id, f)).length}</span>
+              </button>
+            ))}
+          </div>
           <MembersTable
             members={visibles}
             currentUserId={currentUserId}
             onOpenDetail={(m) => navegar({ persona: m.user_id })}
             filtroActivo={hayFiltro}
             onLimpiar={limpiar}
+            grantsByUser={grantsByUser}
           />
         </>
       )}
@@ -256,17 +334,41 @@ export function UsersClient({
             })}
           </div>
 
-          <PermissionsSection initialOverrides={roleModuleOverrides} />
+          <PermissionsSection
+            initialOverrides={roleModuleOverrides}
+            members={members.filter((m) => accessStage(m) !== "suspendido")}
+            grants={grants}
+            nombres={nombres}
+          />
         </>
       )}
 
       {tab === "invitaciones" && <InvitationsTable invitations={invitations} />}
 
+      {tab === "bandeja" ? (
+        agentesBandeja ? (
+          <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+        ) : (
+          <EmptyState
+            title="No pudimos leer los agentes de la Bandeja"
+            description="El servidor de mensajes no respondió. Vuelve a abrir esta pestaña en un momento."
+          />
+        )
+      ) : null}
+
       {fichaAbierta && (
         <UserDetailDrawer
+          key={fichaAbierta.user_id}
           member={fichaAbierta}
           esYo={fichaAbierta.user_id === currentUserId}
-          onClose={() => navegar({ persona: null })}
+          onClose={() => navegar({ persona: null, ficha: null })}
+          grants={grantsByUser[fichaAbierta.user_id] ?? []}
+          overrides={roleModuleOverrides}
+          nombres={nombres}
+          pestana={fichaUrl === "acceso" || fichaUrl === "actividad" ? fichaUrl : "perfil"}
+          personasDelRol={personasPorRol[fichaAbierta.role]}
+          onIrARoles={() => navegar({ tab: "roles", persona: null, ficha: null })}
+          fichaEmpleado={fichasEmpleado === undefined ? undefined : (fichasEmpleado[fichaAbierta.user_id] ?? null)}
         />
       )}
 
@@ -285,7 +387,8 @@ function Tab({
 }: {
   activa: boolean;
   onClick: () => void;
-  n: number;
+  /** Sin dato todavía (pestaña que carga al abrirse, SDD-0655): no se pinta el número. */
+  n?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -298,7 +401,7 @@ function Tab({
       data-activa={activa ? "true" : undefined}
     >
       {children}
-      <span className="studio-tab-n">{n}</span>
+      {n !== undefined ? <span className="studio-tab-n">{n}</span> : null}
     </button>
   );
 }

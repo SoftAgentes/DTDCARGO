@@ -7,14 +7,21 @@
  *     --eta 2026-10-19 --salida "C:\...\DTD-consolidados\59\2026-10-16" \
  *     [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
  *     [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
- *     [--pol NGB] [--tipo 40HC] [--tenant dtd]
+ *     [--pol NGB] [--tipo 40HC] [--tenant dtd] [--correlativo-origen N]
  *
- * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
- * deshacer.sql, purgar.sql, manifiesto.json, resumen.md y SHA256SUMS. Nada de
- * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
+ * `--correlativo-origen N`: el título del packing list trae el correlativo del
+ * almacén de China («CONTENEDOR DTD #61») y el lote es otro número DTD (`--contenedor 64`).
+ * El título tiene que decir exactamente N, y el mapeo queda en el manifiesto y el resumen.
+ *
+ * Escribe en --salida el paquete que sube al servidor (empaque mínimo, 2026-11-14):
+ * previa.sql, aplicar.sql, simulacro.sql, verificar.sql, deshacer.sql y purgar.sql
+ * (sólo en prueba), manifiesto.json (sin nombres de marca, candidatos, remitentes
+ * ni avisos) y SHA256SUMS de esos archivos. En la carpeta hermana `<salida>-local/`
+ * deja resumen.md y manifiesto-completo.json, que NO suben. Nada de esto entra a
+ * Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leerPacking, leerRastreo } from "./leer-excel";
@@ -48,6 +55,12 @@ export interface Argumentos {
   gastoUsuario?: string;
   /** Sólo para pruebas locales: el título del packing list no tiene que coincidir con --contenedor. */
   ignorarTituloPacking: boolean;
+  /**
+   * Correlativo de China que trae el título del packing list cuando no es el número
+   * DTD (`--correlativo-origen 61` con `--contenedor 64`). Tiene que coincidir con el
+   * título; vale en prueba y en producción, y queda en el manifiesto y el resumen.
+   */
+  correlativoOrigen?: number;
 }
 
 const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor <N> --eta YYYY-MM-DD --salida <dir>
@@ -55,7 +68,7 @@ const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor 
       [--gasto-espacio <monto USD> --gasto-usuario <correo del Studio>]
       [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
       [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
-      [--ignorar-titulo-packing]`;
+      [--correlativo-origen <N del título del packing>] [--ignorar-titulo-packing (sólo prueba)]`;
 
 export function parsearArgumentos(argv: string[]): Argumentos {
   const valores = new Map<string, string>();
@@ -111,6 +124,19 @@ export function parsearArgumentos(argv: string[]): Argumentos {
   if (gastoEspacio != null && modalidad !== "mixto") throw new Error("--gasto-espacio sólo aplica a la modalidad mixto");
   const packing = valores.get("packing");
   if (modalidad !== "fcl" && !packing) throw new Error(`--modalidad ${modalidad} exige --packing <xlsx>`);
+  const ignorarTituloPacking = banderas.has("ignorar-titulo-packing");
+  if (ignorarTituloPacking && entorno !== "prueba") {
+    throw new Error("--ignorar-titulo-packing sólo se permite con --entorno prueba; para un correlativo de China usa --correlativo-origen <N>");
+  }
+  let correlativoOrigen: number | undefined;
+  if (valores.has("correlativo-origen")) {
+    const t = valores.get("correlativo-origen")!.trim();
+    correlativoOrigen = /^\d{1,4}$/.test(t) ? Number(t) : NaN;
+    if (!Number.isInteger(correlativoOrigen) || correlativoOrigen <= 0) throw new Error("--correlativo-origen debe ser un entero positivo");
+    if (correlativoOrigen === contenedor) throw new Error("--correlativo-origen es igual a --contenedor: no hace falta");
+    if (!packing) throw new Error("--correlativo-origen exige --packing <xlsx> (es el número de su título)");
+    if (ignorarTituloPacking) throw new Error("--correlativo-origen y --ignorar-titulo-packing no van juntos");
+  }
   return {
     rastreo: req("rastreo"),
     packing,
@@ -135,8 +161,35 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     kgFcl: numOpc("kg-fcl"),
     gastoEspacio,
     gastoUsuario,
-    ignorarTituloPacking: banderas.has("ignorar-titulo-packing"),
+    ignorarTituloPacking,
+    correlativoOrigen,
   };
+}
+
+/**
+ * Contrasta el número del título del packing list con el lote. Sin bandera, el
+ * título tiene que decir el número DTD (`--contenedor`). Con `--correlativo-origen N`,
+ * tiene que decir exactamente N: así un packing de otro contenedor no pasa por
+ * error. Devuelve el aviso para el resumen, o null si no hay nada que avisar.
+ */
+export function revisarTituloPacking(
+  numeroTitulo: number | null,
+  args: Pick<Argumentos, "contenedor" | "correlativoOrigen" | "ignorarTituloPacking">,
+): string | null {
+  if (args.correlativoOrigen != null) {
+    if (numeroTitulo == null) {
+      throw new Error(`Pediste --correlativo-origen ${args.correlativoOrigen}, pero no leo el número del título del packing list («CONTENEDOR DTD #N»)`);
+    }
+    if (numeroTitulo !== args.correlativoOrigen) {
+      throw new Error(`El packing list dice contenedor #${numeroTitulo} y --correlativo-origen dice ${args.correlativoOrigen}`);
+    }
+    return `Correlativo de origen: el título del packing list dice #${numeroTitulo} (correlativo de China); el lote es del contenedor DTD #${args.contenedor} (--correlativo-origen ${args.correlativoOrigen}).`;
+  }
+  if (numeroTitulo == null || numeroTitulo === args.contenedor) return null;
+  if (!args.ignorarTituloPacking) {
+    throw new Error(`El packing list dice contenedor #${numeroTitulo} y pediste el #${args.contenedor}; si es el correlativo de China, usa --correlativo-origen ${numeroTitulo}`);
+  }
+  return `El packing list dice contenedor #${numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`;
 }
 
 export function sha256(ruta: string): string {
@@ -169,7 +222,7 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
 - Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
 - Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente DDP)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
 - Naviera ${m.contenedor.naviera} · ${m.contenedor.pol} → ${m.contenedor.pod} · carga ${m.contenedor.fechaCarga} · recepciones ${m.contenedor.fechaRecepcion} · ETD ${m.contenedor.etd} · ETA ${m.contenedor.eta} · ${m.opciones.containerType}
-- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
+${m.contenedor.correlativoOrigen != null ? `- Correlativo de origen: **${m.contenedor.correlativoOrigen} (China) → ${m.contenedor.numero} (DTD)**: el título del packing list usa el número del almacén de China\n` : ""}- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
 - Generado ${m.generadoEn}
 
 ## Lo que escribe aplicar.sql
@@ -198,18 +251,108 @@ Las marcas sin número (texto del Excel) salen en la evidencia del servidor como
 
 ${avisos.length ? avisos.map((a) => `- ${a}`).join("\n") : "- Ninguno."}
 
-## Cómo se aplica (prueba)
+## Cómo se aplica (${m.entorno === "produccion" ? "producción: runbook cargar-consolidados §2b, con el OK nominal de Sam que cite el id del lote" : "prueba"})
 
-1. \`previa.sql\` (sólo lee): revisar que \`sin_resolver\` sea 0 y los conflictos 0. Si hay marcas sin resolver, mapearlas en \`marcas-mapa.json\` y volver a generar, o usar \`--crear-clientes-faltantes\` (sólo prueba).
+1. \`previa.sql\` (sólo lee): revisar que \`sin_resolver\` sea 0 y los conflictos 0. Si hay marcas sin resolver, mapearlas en \`marcas-mapa.json\` y volver a generar${m.entorno === "produccion" ? " (en producción la previa se corta sola si una marca no resuelve)" : ", o usar \`--crear-clientes-faltantes\` (sólo prueba)"}.
 2. \`simulacro.sql\`: corre todo y deshace; tiene que terminar con el \`raise notice\` del lote y \`ROLLBACK\`.
 3. \`aplicar.sql\`: la carga real, una transacción.
 4. \`verificar.sql\`: PASÓ con los mismos conteos de arriba.
-5. \`deshacer.sql\` para volver atrás (borrado lógico; se niega si alguna factura dejó de ser borrador).
-6. \`purgar.sql\` para el borrado definitivo en prueba (físico, incluidos los clientes y aliados que creó el lote; se niega fuera de la base de prueba y termina con conteo cero).
-`;
+${
+  m.entorno === "produccion"
+    ? "5. Este paquete **no trae** `deshacer.sql` ni `purgar.sql`: revertir o borrar un lote de producción lo corre Sam, con su propio procedimiento.\n"
+    : "5. `deshacer.sql` para volver atrás (borrado lógico; se niega si alguna factura dejó de ser borrador).\n6. `purgar.sql` para el borrado definitivo en prueba (físico, incluidos los clientes y aliados que creó el lote; se niega fuera de la base de prueba y termina con conteo cero).\n"
+}`;
 }
 
-export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
+/** Scripts que sólo viajan en un lote de prueba: revertir o borrar en producción lo corre Sam. */
+export const SOLO_PRUEBA = ["deshacer.sql", "purgar.sql"] as const;
+
+/**
+ * Archivos del paquete, en el orden en que se escriben. Con `--entorno produccion`
+ * no van `deshacer.sql` ni `purgar.sql` (seguimiento de la #534): `aplicar-lote.sh`
+ * ya los niega en producción, y el `deshacer.sql` de producción no trae la guarda
+ * de base de prueba, así que un psql directo lo correría.
+ */
+export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql): Record<string, string> {
+  const archivos: Record<string, string> = {
+    "previa.sql": salida.previa,
+    "simulacro.sql": salida.simulacro,
+    "aplicar.sql": salida.aplicar,
+    "verificar.sql": salida.verificar,
+  };
+  if (entorno === "prueba") {
+    archivos["deshacer.sql"] = salida.deshacer;
+    archivos["purgar.sql"] = salida.purgar;
+  }
+  archivos["manifiesto.json"] = JSON.stringify(manifiestoDelPaquete(salida.manifiesto), null, 2) + "\n";
+  return archivos;
+}
+
+/** Lo que el manifiesto del paquete deja afuera: nombres de marca, candidatos, remitentes y avisos con texto del Excel. */
+export const FUERA_DEL_PAQUETE = ["clientes", "embarques", "avisos"] as const;
+export type ManifiestoDelPaquete = Omit<SalidaSql["manifiesto"], (typeof FUERA_DEL_PAQUETE)[number]>;
+
+/**
+ * Empaque mínimo (SDD-0543, 2026-11-14): el manifiesto que sube al servidor lleva
+ * sólo lo que `aplicar-lote.sh` lee (el id, el entorno y los conteos esperados)
+ * y los datos del contenedor. Los nombres de marca del Excel (`nombreExcel`), los
+ * candidatos, los remitentes y los avisos se quedan en la PC, en el manifiesto completo.
+ */
+export function manifiestoDelPaquete(m: SalidaSql["manifiesto"]): ManifiestoDelPaquete {
+  const { clientes: _c, embarques: _e, avisos: _a, ...paquete } = m;
+  return paquete;
+}
+
+/** Carpeta hermana de `--salida` con lo que no sube: `resumen.md` y el manifiesto completo. */
+export function carpetaLocal(salida: string): string {
+  return `${salida.replace(/[\\/]+$/, "")}-local`;
+}
+
+/** Archivos de la carpeta local: el resumen que cruza etiquetas con nombres y el manifiesto completo. */
+export function archivosLocales(salida: SalidaSql, resumen: string): Record<string, string> {
+  return {
+    "resumen.md": resumen,
+    "manifiesto-completo.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
+  };
+}
+
+/**
+ * `deshacer.sql` o `purgar.sql` que ya estén en la carpeta de salida. Con `lstat`:
+ * un enlace simbólico roto también cuenta (`existsSync` sigue el enlace y diría
+ * que no existe).
+ */
+function existeSinSeguir(ruta: string): boolean {
+  try {
+    lstatSync(ruta);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function sobrantesSoloPrueba(dir: string): string[] {
+  return SOLO_PRUEBA.filter((n) => existeSinSeguir(path.join(dir, n)));
+}
+
+export async function generar(
+  args: Argumentos,
+): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[]; carpetaLocal: string; locales: string[] }> {
+  if (args.entorno === "produccion") {
+    // Antes de leer nada ni escribir nada: un deshacer.sql o purgar.sql de una
+    // corrida anterior quedaría al lado del paquete nuevo (fuera de SHA256SUMS,
+    // pero a mano de un psql directo).
+    const sobrantes = sobrantesSoloPrueba(args.salida);
+    if (sobrantes.length) {
+      throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
+    }
+  }
+  // Empaque mínimo: un resumen.md de una corrida anterior quedaría dentro del
+  // paquete que sube al servidor. Ahora va en la carpeta local.
+  for (const n of ["resumen.md", "manifiesto-completo.json"]) {
+    if (existeSinSeguir(path.join(args.salida, n))) {
+      throw new Error(`La carpeta de salida ya trae ${n}: con el empaque mínimo va en ${carpetaLocal(args.salida)}; usa una carpeta nueva.`);
+    }
+  }
   for (const ruta of [args.rastreo, args.packing].filter((r): r is string => !!r)) {
     if (!existsSync(ruta)) throw new Error(`No existe el archivo ${ruta}`);
   }
@@ -219,12 +362,8 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   if (args.packing) {
     const packing = await leerPacking(args.packing);
     avisosExcel.push(...packing.avisos);
-    if (packing.numeroTitulo != null && packing.numeroTitulo !== args.contenedor) {
-      if (!args.ignorarTituloPacking) {
-        throw new Error(`El packing list dice contenedor #${packing.numeroTitulo} y pediste el #${args.contenedor}`);
-      }
-      avisosExcel.push(`El packing list dice contenedor #${packing.numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`);
-    }
+    const avisoTitulo = revisarTituloPacking(packing.numeroTitulo, args);
+    if (avisoTitulo) avisosExcel.push(avisoTitulo);
     filas = packing.filas;
   }
   const mapa = leerMapa(args.mapa);
@@ -253,20 +392,17 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     vessel: "Por confirmar",
     lote: `carga-consolidado:${args.contenedor}:${huellaLote}`,
     tenantSlug: args.tenant,
+    ...(args.correlativoOrigen != null ? { correlativoOrigen: args.correlativoOrigen } : {}),
   };
   const salida = generarSql(lote, opciones, fuentes);
 
+  // El paquete (lo que sube al servidor) va en --salida, con SHA256SUMS sólo de
+  // sus archivos; el resumen y el manifiesto completo, en la carpeta local hermana.
+  const archivos = archivosDelLote(args.entorno, salida);
+  const locales = archivosLocales(salida, resumenMarkdown(lote, salida, avisosExcel));
+  const dirLocal = carpetaLocal(args.salida);
   mkdirSync(args.salida, { recursive: true });
-  const archivos: Record<string, string> = {
-    "previa.sql": salida.previa,
-    "simulacro.sql": salida.simulacro,
-    "aplicar.sql": salida.aplicar,
-    "verificar.sql": salida.verificar,
-    "deshacer.sql": salida.deshacer,
-    "purgar.sql": salida.purgar,
-    "manifiesto.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
-    "resumen.md": resumenMarkdown(lote, salida, avisosExcel),
-  };
+  mkdirSync(dirLocal, { recursive: true });
   const sumas: string[] = [];
   for (const [nombre, contenido] of Object.entries(archivos)) {
     const ruta = path.join(args.salida, nombre);
@@ -274,18 +410,22 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     sumas.push(`${createHash("sha256").update(contenido).digest("hex")}  ${nombre}`);
   }
   writeFileSync(path.join(args.salida, "SHA256SUMS"), sumas.join("\n") + "\n", { encoding: "utf8" });
-  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"] };
+  for (const [nombre, contenido] of Object.entries(locales)) {
+    writeFileSync(path.join(dirLocal, nombre), contenido, { encoding: "utf8" });
+  }
+  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"], carpetaLocal: dirLocal, locales: Object.keys(locales) };
 }
 
 async function main(): Promise<void> {
   const args = parsearArgumentos(process.argv.slice(2));
-  const { lote, salida, archivos } = await generar(args);
+  const { lote, salida, archivos, carpetaLocal: dirLocal, locales } = await generar(args);
   const m = salida.manifiesto;
   console.log(`Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no}) · ${m.entorno}`);
   console.log(`  modalidad ${m.modalidad}${m.dueno ? ` · dueño ${m.dueno.clave} → ${m.dueno.codigo}` : ""}${m.gastoEspacio ? ` · gasto espacio $${m.gastoEspacio.monto}` : ""}`);
   console.log(`  ${m.esperado.envios} envíos · ${m.esperado.recepciones} recepciones · ${m.esperado.items} items · ${m.esperado.cajas} cajas · ${m.esperado.clientes} clientes · ${m.esperado.facturas} facturas`);
   console.log(`  ${m.esperado.cbm} m³ · ${m.esperado.kg} kg · base $${m.esperado.base.toFixed(2)} (Excel $${lote.totales.totalFacturadoExcel.toFixed(2)})`);
-  console.log(`  avisos: ${lote.avisos.length} · archivos en ${args.salida}: ${archivos.join(", ")}`);
+  console.log(`  avisos: ${lote.avisos.length} · paquete (sube al servidor) en ${args.salida}: ${archivos.join(", ")}`);
+  console.log(`  en la PC, NO sube: ${dirLocal}: ${locales.join(", ")}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -25,6 +25,7 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   assetAccounts: Account[];
@@ -300,20 +301,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           </div>
 
           {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error}
-            </p>
+            <Aviso tono="error" compacto>{state.error}</Aviso>
           )}
 
           {/* Preview de la cédula (navy LIVE) */}

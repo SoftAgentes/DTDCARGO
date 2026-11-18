@@ -1,0 +1,3 @@
+#!/bin/sh
+# SDD-0615: el Auxiliar de ALFRED con Codex. La lógica está en dtd-motor.
+exec /usr/local/libexec/dtd-motor codex "$@"

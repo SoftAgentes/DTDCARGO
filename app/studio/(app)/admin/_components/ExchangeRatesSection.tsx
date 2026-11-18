@@ -9,7 +9,10 @@
  */
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { StatusIcon } from "@/components/StatusIcon";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import { recordExchangeRateAction } from "../exchange-rates-actions";
 import {
   FX_PAIRS,
@@ -17,10 +20,14 @@ import {
   isFxOutOfRange,
   type ExchangeRateActionState,
   type ExchangeRatesOverview,
+  type FxRateLatest,
   type FxPair,
 } from "@/lib/studio/exchange-rates-types";
 
 const INITIAL: ExchangeRateActionState = {};
+
+/** Liga el mensaje «fuera de rango» con el campo «Tasa». */
+const FUERA_DE_RANGO_ID = "fx-rate-fuera-de-rango";
 
 const FUENTE: Record<"bcv" | "manual" | "operacion", string> = {
   bcv: "BCV",
@@ -34,9 +41,16 @@ function fechaCorta(iso: string | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
 }
 
-/** Hoy en Caracas (UTC−4), como AAAA-MM-DD. */
+/** Hoy con el calendario IANA compartido, como AAAA-MM-DD. */
 function hoyEnCaracas(): string {
-  return new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+  return fechaCaracas();
+}
+
+/** Solo datos completos permiten atribuir una fecha y una fuente a una tasa. */
+function metadataDeTasa(last: FxRateLatest | undefined) {
+  if (!last || last.rate == null || !Number.isFinite(last.rate) || last.rate <= 0
+    || !isCalendarDate(last.validOn) || !last.source) return null;
+  return { validOn: last.validOn, source: last.source };
 }
 
 export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) {
@@ -47,6 +61,16 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
   const [rate, setRate] = useState("");
   const [validOn, setValidOn] = useState(hoyEnCaracas);
   const [note, setNote] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const form = formRef.current;
+    // React 19 resetea durante su commit, cuando sus eventos delegados están
+    // suspendidos. El listener nativo conserva estos campos controlados.
+    const keepControlledFields = (event: Event) => event.preventDefault();
+    form?.addEventListener("reset", keepControlledFields);
+    return () => form?.removeEventListener("reset", keepControlledFields);
+  }, []);
 
   const handled = useRef<ExchangeRateActionState | null>(null);
   useEffect(() => {
@@ -60,12 +84,26 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
   const rateNum = Number(rate.replace(",", "."));
   const outOfRange = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && isFxOutOfRange(pair, rateNum);
   const canSubmit = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && validOn !== "";
+  const latestVes = metadataDeTasa(data.latest.find((last) => last.pair === "VES/USD"));
+  const bcvTodayConfirmed = latestVes?.source === "bcv" && latestVes.validOn === hoyEnCaracas();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Últimas tasas */}
       <Card>
         <CardEyebrow>Tasas vigentes</CardEyebrow>
+        {!bcvTodayConfirmed && (
+          // SDD-0603 · menores del Studio: aviso canónico. Es información
+          // (`role="status"`, anuncio cortés): no interrumpe al abrir la sección.
+          <div style={{ marginBottom: "var(--s-4)" }}>
+            <Aviso tono="info" titulo="BCV: no se confirmó una tasa para hoy.">
+              {latestVes
+                ? `Última tasa informada en esta vista: ${fechaCorta(latestVes.validOn)} · ${FUENTE[latestVes.source]}. `
+                : "La información disponible no permite confirmar una fecha y fuente completas. "}
+              Puedes registrar una tasa manual en el formulario.
+            </Aviso>
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
           {data.latest.map((l) => (
             <div key={l.pair} style={{ padding: "var(--s-4)", background: "var(--bg-elevated)", borderRadius: "var(--r-md)" }}>
@@ -76,7 +114,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 {l.rate != null ? l.rate.toLocaleString("es-VE", { maximumFractionDigits: 4 }) : "—"}
               </div>
               <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 6 }}>
-                {l.rate != null && l.source ? `del ${fechaCorta(l.validOn)} · ${FUENTE[l.source]}` : "sin tasa cargada"}
+                {metadataDeTasa(l) && l.source ? `del ${fechaCorta(l.validOn)} · ${FUENTE[l.source]}` : "tasa no confirmada"}
               </div>
             </div>
           ))}
@@ -86,7 +124,11 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       {/* Registrar tasa */}
       <Card>
         <CardEyebrow>Registrar tasa nueva</CardEyebrow>
-        <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form
+          ref={formRef}
+          action={formAction}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--s-3)", alignItems: "end" }}>
             <div>
               <label className="studio-label" htmlFor="fx-pair">Par de moneda</label>
@@ -96,7 +138,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 value={pair}
                 onChange={(e) => setPair(e.target.value as FxPair)}
                 className="studio-input"
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               >
                 {FX_PAIRS.map((p) => (
                   <option key={p} value={p}>
@@ -114,8 +156,9 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 onChange={(e) => setRate(e.target.value)}
                 className="studio-input studio-input-mono"
                 inputMode="decimal"
+                aria-describedby={outOfRange ? FUERA_DE_RANGO_ID : undefined}
                 placeholder={pair === "CNY/USD" ? "7.24" : "40.00"}
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
             </div>
             <div>
@@ -128,7 +171,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 max={hoyEnCaracas()}
                 onChange={(e) => setValidOn(e.target.value)}
                 className="studio-input"
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
             </div>
           </div>
@@ -143,38 +186,34 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
               onChange={(e) => setNote(e.target.value)}
               className="studio-input"
               placeholder="Ej.: BCV del día, o la cotización del banco"
-              style={{ marginTop: 6 }}
+              style={{ marginTop: 6, minHeight: "var(--s-12)" }}
             />
           </div>
 
+          {/* Mensaje del campo «Tasa», no aviso: aparece y desaparece al
+              escribir, así que no va en una región viva. Es texto con icono,
+              ligado al campo por `aria-describedby` (ERR-01 «Campo»). */}
           {outOfRange && (
-            <div
+            <p
+              id={FUERA_DE_RANGO_ID}
               style={{
-                padding: "var(--s-3)",
-                background: "var(--warning-bg)",
-                color: "var(--warning)",
-                borderRadius: "var(--r-md)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "var(--s-2)",
+                margin: 0,
                 font: "600 12.5px/1.4 var(--f-sans)",
+                color: "var(--ink)",
               }}
             >
-              Esa tasa está fuera del rango histórico habitual de {pair}. Revisa que no sea un error de tipeo (se
-              guarda igual si confirmas).
-            </div>
+              <StatusIcon tone="warning" size={16} style={{ marginTop: 1 }} />
+              <span>
+                Esa tasa está fuera del rango histórico habitual de {pair}. Revisa que no sea un error de tipeo (se
+                guarda igual si confirmas).
+              </span>
+            </p>
           )}
 
-          {state?.error && (
-            <div
-              style={{
-                padding: "var(--s-3)",
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                borderRadius: "var(--r-md)",
-                font: "600 13px/1.3 var(--f-sans)",
-              }}
-            >
-              {state.error}
-            </div>
-          )}
+          {state?.error && <Aviso tono="error">{state.error}</Aviso>}
 
           <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             Cada tasa vale para su fecha. Si registras otra del mismo día y moneda, reemplaza a la anterior y el
@@ -183,7 +222,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
           </p>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button type="submit" className="studio-btn studio-btn-primary" disabled={isPending || !canSubmit}>
+            <button type="submit" className="studio-btn studio-btn-primary" style={{ minHeight: "var(--s-12)" }} disabled={isPending || !canSubmit}>
               {isPending ? "Guardando…" : "Registrar tasa"}
             </button>
           </div>

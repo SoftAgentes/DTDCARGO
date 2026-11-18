@@ -16,6 +16,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { coincideIlike } from "@/lib/shared/__tests__/coincide-ilike";
 import { ingestInboundEmail, disambiguateByTenant, emailDomain } from "../inbound-email";
 import {
   mapResendInboundToCore,
@@ -57,6 +58,8 @@ type FakeState = {
   /** Si true, el primer INSERT de conversations lanza 23505 y "aparece" el hilo. */
   raceConvInsert?: boolean;
   refCounter: number;
+  /** Lo que se le pidió a la base con `.ilike`. */
+  patrones?: string[];
 };
 
 function makeFakeAdmin(state: FakeState): {
@@ -81,6 +84,7 @@ function makeFakeAdmin(state: FakeState): {
           return builder;
         },
         ilike(col: string, val: unknown) {
+          state.patrones?.push(String(val));
           ctx.filters.push({ col, val: String(val).toLowerCase(), op: "ilike" });
           return builder;
         },
@@ -197,10 +201,9 @@ function resolveSelect(
 
   if (ctx.table === "clients") {
     const email = get("email");
-    const rows = state.clients.filter(
-      (c) =>
-        (c.email ?? "").toLowerCase() === String(email).toLowerCase() && true, // deleted_at is null modelado por no incluir borrados
-    );
+    // Con los comodines de verdad: comparando exacto, este doble no podría verlos.
+    // deleted_at is null modelado por no incluir borrados.
+    const rows = state.clients.filter((c) => coincideIlike(c.email ?? "", String(email)));
     return { data: mode === "single" ? (rows[0] ?? null) : rows, error: null };
   }
 
@@ -253,6 +256,107 @@ const BASE_INPUT = {
   rfcMessageId: "<orig-message-id@ejemplo.com>",
   sentAt: "2026-06-04T10:00:00.000Z",
 };
+
+describe("ingestInboundEmail · el remitente se compara literal (SDD-0600)", () => {
+  /** El `From` viene de afuera: nadie tiene que controlar el correo del cliente para esto. */
+  function conClientes(...clientes: Array<Pick<ClientRow, "id" | "tenant_id" | "email">>) {
+    return makeFakeAdmin({
+      clients: clientes.map((c) => ({ ...c, name: `Cliente ${c.id}` })),
+      conversations: [],
+      messages: [],
+      refCounter: 0,
+    });
+  }
+
+  it.each([
+    "juan_perez@ejemplo.com",
+    "juan%@ejemplo.com",
+    "%@ejemplo.com",
+    "*@ejemplo.com",
+    "juan*@ejemplo.com",
+  ])("%s no entra al hilo de juan.perez@ejemplo.com", async (remitente) => {
+    const { client, state } = conClientes({
+      id: "cli-1",
+      tenant_id: "ten-1",
+      email: "juan.perez@ejemplo.com",
+    });
+
+    const result = await ingestInboundEmail(client, { ...BASE_INPUT, fromEmail: remitente });
+
+    expect(result).toEqual({ status: "unmatched" });
+    expect(state.conversations).toHaveLength(0);
+    expect(state.messages).toHaveLength(0);
+  });
+
+  it("un `From` con comodines no le pide a la base filas que después hay que descartar", async () => {
+    const { client, state } = makeFakeAdmin({
+      clients: [],
+      conversations: [],
+      messages: [],
+      refCounter: 0,
+      patrones: [],
+    });
+
+    await ingestInboundEmail(client, { ...BASE_INPUT, fromEmail: "juan_%@ejemplo.com" });
+
+    expect(state.patrones).toEqual(["juan\\_\\%@ejemplo.com"]);
+  });
+
+  it("un comodín no vuelve ambiguo lo que no es de nadie", async () => {
+    const { client } = conClientes(
+      { id: "cli-1", tenant_id: "ten-1", email: "ana@ejemplo.com" },
+      { id: "cli-2", tenant_id: "ten-2", email: "luis@ejemplo.com" },
+    );
+
+    const result = await ingestInboundEmail(client, { ...BASE_INPUT, fromEmail: "*@ejemplo.com" });
+
+    expect(result).toEqual({ status: "unmatched" });
+  });
+
+  it.each([
+    ["juan_perez@ejemplo.com", "juan_perez@ejemplo.com"],
+    ["juan+dtd@ejemplo.com", "juan+dtd@ejemplo.com"],
+    ["Juan_Perez@Ejemplo.COM", "juan_perez@ejemplo.com"],
+    ["a*b@ejemplo.com", "a*b@ejemplo.com"],
+    ["a%b@ejemplo.com", "a%b@ejemplo.com"],
+  ])("el cliente real %s sigue recibiendo lo que manda %s", async (guardado, remitente) => {
+    const { client, state } = conClientes({ id: "cli-1", tenant_id: "ten-1", email: guardado });
+
+    const result = await ingestInboundEmail(client, { ...BASE_INPUT, fromEmail: remitente });
+
+    expect(result.status).toBe("ingested");
+    expect(state.conversations[0].client_id).toBe("cli-1");
+  });
+
+  it("un parecido en otro tenant no vuelve ambiguo al cliente real", async () => {
+    const { client, state } = conClientes(
+      { id: "cli-parecido", tenant_id: "ten-otro", email: "juan.perez@ejemplo.com" },
+      { id: "cli-real", tenant_id: "ten-1", email: "juan_perez@ejemplo.com" },
+    );
+
+    const result = await ingestInboundEmail(client, {
+      ...BASE_INPUT,
+      fromEmail: "juan_perez@ejemplo.com",
+    });
+
+    expect(result.status).toBe("ingested");
+    expect(state.conversations[0].client_id).toBe("cli-real");
+  });
+
+  it("el mismo correo exacto en dos tenants sigue siendo ambiguo", async () => {
+    const { client } = conClientes(
+      { id: "cli-1", tenant_id: "ten-1", email: "juan_perez@ejemplo.com" },
+      { id: "cli-2", tenant_id: "ten-2", email: "JUAN_PEREZ@ejemplo.com" },
+    );
+
+    const result = await ingestInboundEmail(client, {
+      ...BASE_INPUT,
+      fromEmail: "juan_perez@ejemplo.com",
+    });
+
+    expect(result).toEqual({ status: "ambiguous", matches: 2 });
+  });
+});
 
 describe("ingestInboundEmail · core", () => {
   it("cliente nuevo sin hilo → crea hilo email + mensaje inbound", async () => {

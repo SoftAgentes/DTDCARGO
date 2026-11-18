@@ -371,6 +371,8 @@ La spec 0569 y el índice. **Cambia el esquema** (la 0495), así que el Director
 
 ## PENDIENTES DE ESTA TAREA
 
+**Actualización, 2026-11-03:** la 0495 está aplicada desde el 2026-10-20. Cierre del runbook §6 en `.agents/handoffs/0569-cierre-0495.md`. Lo que sigue es de antes de eso.
+
 1. **Hecho** con el turno del Director: el contrato en Docker, PGlite con los mutantes, las pruebas de la app, typecheck, eslint y `pnpm verify` (16/17 sin fallos).
 1b. **Pedidos del Director (2026-10-20), hechos:** el aislamiento por tenant de `fx_rate_on` en la consulta y en la RLS, y la auditoría D2 sin la nota ni `set_by`, cada uno con su aserción y su mutante. El tipo `exchange_rate` existe vivo en producción: lo confirmó el Director con la lectura de catálogo.
 2. PR en borrador y aviso al Director.

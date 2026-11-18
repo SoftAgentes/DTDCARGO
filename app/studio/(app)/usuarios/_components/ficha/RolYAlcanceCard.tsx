@@ -46,6 +46,7 @@ import {
   changeUserRoleAction,
   changeWarehouseScopeAction,
 } from "../../actions";
+import "../acceso/permisos.css";
 
 /**
  * Mínimo que exige `d1Reason` para no caer al texto enlatado del servidor.
@@ -58,10 +59,16 @@ export function RolYAlcanceCard({
   member,
   esYo,
   onCambio,
+  personasDelRol,
+  extrasVigentes = [],
 }: {
   member: UserMembershipWithProfile;
   /** El admin se está mirando a sí mismo. */
   esYo?: boolean;
+  /** SDD-0635 §3.4: cuántas personas activas comparten su rol actual. */
+  personasDelRol?: number;
+  /** SDD-0635 §3.5: extras vigentes que conserva si cambia de rol. */
+  extrasVigentes?: string[];
   /** Avisa al contenedor que hubo un cambio confirmado (para refrescar). */
   onCambio?: () => void;
 }) {
@@ -138,39 +145,67 @@ export function RolYAlcanceCard({
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
-        <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
-          <Campo etiqueta="Rol" htmlFor="ficha-rol">
-            <select
-              id="ficha-rol"
-              className="studio-input"
-              value={rol}
+        {/* SDD-0622: el rol base es un selector segmentado (los 7 a la vista,
+            sin abrir una lista). Igual que antes, elegir NO aplica: Aplicar
+            abre el diálogo con motivo. */}
+        <div
+          role="radiogroup"
+          aria-label="Rol"
+          className="perm-seg"
+          onKeyDown={(e) => {
+            if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+            e.preventDefault();
+            const i = STUDIO_USER_ROLES.indexOf(rol);
+            const paso = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+            const sig = STUDIO_USER_ROLES[(i + paso + STUDIO_USER_ROLES.length) % STUDIO_USER_ROLES.length];
+            setRol(sig);
+            const grupo = e.currentTarget;
+            queueMicrotask(() => grupo.querySelector<HTMLButtonElement>(`[data-rol="${sig}"]`)?.focus());
+          }}
+        >
+          {STUDIO_USER_ROLES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              role="radio"
+              data-rol={r}
+              aria-checked={rol === r}
+              tabIndex={rol === r ? 0 : -1}
+              className="perm-seg-btn"
               disabled={pendiente || !!bloqueo}
-              onChange={(e) => setRol(e.target.value as StudioUserRole)}
+              onClick={() => setRol(r)}
             >
-              {STUDIO_USER_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
-          </Campo>
-
-          <Campo etiqueta="Almacén" htmlFor="ficha-scope">
-            <select
-              id="ficha-scope"
-              className="studio-input"
-              value={scope}
-              disabled={pendiente || !!bloqueo || !scopeAplica}
-              onChange={(e) => setScope(e.target.value as WarehouseScope)}
-            >
-              {WAREHOUSE_SCOPES.map((s) => (
-                <option key={s} value={s}>
-                  {WAREHOUSE_SCOPE_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </Campo>
+              {ROLE_LABELS[r]}
+            </button>
+          ))}
         </div>
+
+        {/* SDD-0635 §3.6: el almacén solo se dibuja para los roles con lado
+            geográfico. Para el resto no hay campo gris que confunda; el
+            `warehouse_scope` guardado no se toca. */}
+        {scopeAplica && (
+          <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
+            <Campo etiqueta="Almacén que ve" htmlFor="ficha-scope">
+              <select
+                id="ficha-scope"
+                className="studio-input"
+                value={scope}
+                aria-describedby="ficha-scope-nota"
+                disabled={pendiente || !!bloqueo}
+                onChange={(e) => setScope(e.target.value as WarehouseScope)}
+              >
+                {WAREHOUSE_SCOPES.map((s) => (
+                  <option key={s} value={s}>
+                    {WAREHOUSE_SCOPE_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+              <p id="ficha-scope-nota" className="perm-motivo-aviso" style={{ margin: 0 }}>
+                Solo limita los módulos de almacén (CN o VE).
+              </p>
+            </Campo>
+          </div>
+        )}
 
         <p
           style={{
@@ -182,17 +217,18 @@ export function RolYAlcanceCard({
           {ROLE_DESCRIPTIONS[rol]}
         </p>
 
-        {!scopeAplica && !bloqueo && (
-          <p
-            style={{
-              font: "400 11.5px/1.5 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-            }}
-          >
-            {rol === "admin"
-              ? "El admin ve los dos almacenes; el alcance no lo limita."
-              : `El almacén no aplica a ${ROLE_LABELS[rol]}: sus módulos no tienen lado geográfico.`}
+        {personasDelRol !== undefined && member.role !== "admin" && (
+          <p className="perm-rol-meta">
+            <span className="perm-rol-n">
+              {personasDelRol} {personasDelRol === 1 ? "persona" : "personas"}
+            </span>{" "}
+            {personasDelRol === 1 ? "tiene" : "tienen"} el rol {ROLE_LABELS[member.role]}. El rol es el piso: lo que todas comparten.
+          </p>
+        )}
+
+        {cambioRol && extrasVigentes.length > 0 && !bloqueo && (
+          <p className="perm-rol-meta">
+            Conserva sus extras ({extrasVigentes.join(", ")}); los que el rol nuevo ya da quedarán marcados «sobra».
           </p>
         )}
 
@@ -250,7 +286,9 @@ export function RolYAlcanceCard({
         reasonPlaceholder="Ej: pasa a llevar la conciliación con China"
         initialFocus="reason"
         title="Confirmar cambio de acceso"
-        message={`${nombreCorto(member)}: ${resumen}. Queda registrado en la auditoría con tu nombre y el motivo que escribas.`}
+        message={`${nombreCorto(member)}: ${resumen}. Solo cambia a esta persona.${
+          cambioRol && extrasVigentes.length > 0 ? ` Conserva sus extras: ${extrasVigentes.join(", ")}.` : ""
+        } Queda registrado en la auditoría con tu nombre y el motivo que escribas.`}
         confirmLabel="Aplicar cambio"
         pending={pendiente}
         error={error}

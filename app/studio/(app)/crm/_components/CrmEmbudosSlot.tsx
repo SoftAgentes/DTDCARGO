@@ -1,0 +1,116 @@
+/**
+ * Pestaña «Embudos» del CRM (SDD-0587 · paso 6.3). Server component: resuelve
+ * permisos, lee el tablero y entrega los datos ya ubicados a `CrmEmbudosClient`.
+ * Va dentro de un `<Suspense>` en la página, con `CrmEmbudosCargando` mientras
+ * lee.
+ *
+ * Desde SDD-0614 S0 las pestañas de Kommo están ocultas: Embudos es la pestaña
+ * por defecto del CRM hasta que llegue Resumen (S3).
+ */
+
+import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { listTenantAdvisors } from "@/lib/studio/user-queries";
+import type { CrmVista } from "@/lib/studio/crm-tablero";
+import { canAccessModule } from "@/lib/studio/rbac";
+import { cargarTableroCrm } from "@/lib/studio/crm-tablero-queries";
+import { puedeAbrirBandeja } from "@/lib/studio/crm-chat-acceso";
+import { ChatPermitido } from "./ChatPermitido";
+import { CrmEmbudosClient } from "./CrmEmbudosClient";
+
+export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVista }) {
+  const supabase = await createClient();
+  const access = await getStudioAccess(supabase);
+
+  // La RLS de la 0539 decide con el MISMO acceso que la pantalla (módulo
+  // `kommo`: rol, desvío por rol o acceso adicional de la persona, SDD-0622).
+  if (!canAccessModule(access.role, "kommo", access.overrides, access.grants) || !access.tenantId) {
+    return (
+      <EmptyState
+        eyebrow="CRM propio"
+        title="No tienes acceso al CRM."
+        description="Los embudos de Leads y Clientes los ve quien tiene el módulo CRM. Pídeselo a un administrador."
+      />
+    );
+  }
+
+  const canEdit = (await moduleEditDenial(supabase, "kommo")) === null;
+  const equipo = await listTenantAdvisors(createAdminClient(), access.tenantId);
+  const asesores = new Map<string, string>();
+  for (const m of equipo) if (m.name) asesores.set(m.userId, m.name);
+
+  const datos = await cargarTableroCrm(supabase, { asesores });
+  if (!datos.ok) {
+    return datos.motivo === "sin_modelo" ? (
+      <EmptyState
+        eyebrow="CRM propio"
+        title="Los embudos todavía no están activos."
+        description="Falta aplicar la migración 0506 en esta base."
+      />
+    ) : (
+      <EmptyState
+        eyebrow="CRM propio"
+        title="No se pudo cargar el tablero."
+        description="Puede ser un corte momentáneo. Vuelve a intentarlo; si sigue, avisa a soporte."
+        action={
+          <a href={`/studio/crm?tab=embudos&embudo=${tableroInicial}`} className="studio-btn studio-btn-ghost studio-btn-sm">
+            Reintentar
+          </a>
+        }
+      />
+    );
+  }
+
+  // SDD-0648 §4: «Abrir chat» solo si se puede entrar a la Bandeja.
+  const chat = await puedeAbrirBandeja(supabase);
+
+  return (
+    <ChatPermitido valor={chat}>
+      <CrmEmbudosClient
+        etapas={datos.etapas}
+        tarjetas={datos.tarjetas}
+        ocultas={datos.ocultas}
+        recortado={datos.recortado}
+        canEdit={canEdit}
+        tableroInicial={tableroInicial}
+      />
+    </ChatPermitido>
+  );
+}
+
+/** Lo que se ve mientras el tablero se lee. */
+export function CrmEmbudosCargando() {
+  return (
+    <div role="status" aria-live="polite">
+      <span
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Cargando el tablero…
+      </span>
+      <div aria-hidden style={{ display: "flex", gap: "var(--s-3)", overflow: "hidden" }}>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              flex: "0 0 268px",
+              height: 260,
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-lg)",
+              opacity: 1 - i * 0.18,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

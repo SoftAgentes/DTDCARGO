@@ -287,13 +287,7 @@ export function BitacoraClient({
           <div
             role="tablist"
             aria-label="Vista"
-            style={{
-              display: "inline-flex",
-              gap: "var(--s-1)",
-              padding: "var(--s-1)",
-              background: "var(--bg-elevated)",
-              borderRadius: "var(--r-md)",
-            }}
+            className="studio-tabs"
           >
             {(["tablero", "lista", "actas", "agente"] as View[]).map((v) => {
               const active = view === v;
@@ -303,17 +297,9 @@ export function BitacoraClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => changeView(v)}
-                  style={{
-                    padding: "7px 14px",
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--bg-surface)" : "transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    border: 0,
-                    font: `${active ? "700" : "500"} 12px/1 var(--f-sans)`,
-                    boxShadow: active ? "var(--shadow-xs)" : "none",
-                    cursor: "pointer",
-                  }}
+                  className="studio-tab"
                 >
                   {VIEW_LABELS[v]}
                 </button>

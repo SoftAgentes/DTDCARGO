@@ -32,6 +32,7 @@ import type {
   LegalDoc,
   LegalSection,
 } from "@/lib/studio/legal/types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 /** Etiqueta corta de un doc por key (para badges en la bitácora). */
 function shortKey(key: string): string {
@@ -133,37 +134,15 @@ export function LegalAcceptancesLog({
 
 function GateBanner({ gateHardBlock }: { gateHardBlock: boolean }) {
   return (
-    <div
-      role="status"
-      style={{
-        display: "flex",
-        gap: 10,
-        alignItems: "flex-start",
-        padding: "12px 14px",
-        background: gateHardBlock ? "var(--success-bg)" : "var(--warning-bg)",
-        borderRadius: "var(--r-md)",
-      }}
-    >
-      <span
-        style={{
-          color: gateHardBlock ? "var(--success)" : "var(--warning)",
-          display: "flex",
-          flexShrink: 0,
-          marginTop: 1,
-        }}
-      >
-        {Icon.shield(15)}
-      </span>
-      <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
-        <strong>
-          Gate de facturación DDP:{" "}
-          {gateHardBlock ? "BLOQUEO DURO activo" : "ADVISORY (no bloquea)"}.
-        </strong>{" "}
-        {gateHardBlock
-          ? "Una factura DDP sin aceptación vigente NO se puede emitir (sin override)."
-          : "Si un embarque DDP no tiene aceptación vigente, el operador ve el aviso pero puede emitir igual (queda auditado como override). El flip a bloqueo duro es decisión del founder: 1 línea en lib/studio/legal/gate-config.ts."}
-      </div>
-    </div>
+    <Aviso tono={gateHardBlock ? "exito" : "atencion"} compacto>
+      <strong>
+        Gate de facturación DDP:{" "}
+        {gateHardBlock ? "BLOQUEO DURO activo" : "ADVISORY (no bloquea)"}.
+      </strong>{" "}
+      {gateHardBlock
+        ? "Una factura DDP sin aceptación vigente NO se puede emitir (sin override)."
+        : "Si un embarque DDP no tiene aceptación vigente, el operador ve el aviso pero puede emitir igual (queda auditado como override). El flip a bloqueo duro es decisión del founder: 1 línea en lib/studio/legal/gate-config.ts."}
+    </Aviso>
   );
 }
 
@@ -739,31 +718,11 @@ function DocsView({
       )}
 
       {/* Nota informativa (no AI slop, tono info del sistema). */}
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          padding: "12px 14px",
-          background: "var(--info-bg)",
-          borderRadius: "var(--r-md)",
-        }}
-      >
-        <span
-          style={{
-            color: "var(--info)",
-            display: "flex",
-            flexShrink: 0,
-            marginTop: 1,
-          }}
-        >
-          {Icon.shield(15)}
-        </span>
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
-          Al publicar una nueva versión, las aceptaciones previas conservan su
-          versión histórica (no se reescriben). Los estimados nuevos pedirán
-          aceptar la versión vigente.
-        </div>
-      </div>
+      <Aviso tono="info" compacto>
+        Al publicar una nueva versión, las aceptaciones previas conservan su
+        versión histórica (no se reescriben). Los estimados nuevos pedirán
+        aceptar la versión vigente.
+      </Aviso>
 
       {viewing && <DocModal doc={viewing} onClose={() => setViewing(null)} />}
     </div>

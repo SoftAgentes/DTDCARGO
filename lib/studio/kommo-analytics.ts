@@ -12,6 +12,7 @@
  * SOLO LECTURA: nunca muta Kommo ni el mirror. Sin migración.
  */
 
+import { BILLING_UNAVAILABLE, BILLING_ZERO, billingNumber, sumAnnualBilling, type AnnualBilling, type AnnualBillingRead } from "@/lib/shared/annual-billing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clientAnnualBilling } from "./fidelizacion/queries";
 import { parseContactFields } from "./kommo-convert";
@@ -291,9 +292,10 @@ export type ValueContrastResult = {
   /** Suma de `price` de los leads en Kommo (≈$0 hoy: la ceguera de SDD-0062). */
   kommoPipelineValueUsd: number;
   /** Suma facturada trailing-12m (USD) de los leads ya convertidos a cliente. */
-  erpBilledUsd: number;
-  convertedCount: number;
-  convertedWithBilling: number;
+  erpBilledUsd: number | null;
+  billing: AnnualBillingRead;
+  convertedCount: number | null;
+  convertedWithBilling: number | null;
 };
 
 /**
@@ -302,29 +304,22 @@ export type ValueContrastResult = {
  */
 export function valueContrast(
   leads: AnalyticsLead[],
-  convertedMarkboxByLead: Record<number, string>,
-  billing: Map<string, number>,
+  convertedMarkboxByLead: Record<number, string> | null,
+  billingMap: Map<string, AnnualBilling> | null,
 ): ValueContrastResult {
-  let kommo = 0;
-  for (const l of leads) kommo += l.price || 0;
-
-  let erp = 0;
-  let convertedWithBilling = 0;
-  const convIds = Object.keys(convertedMarkboxByLead);
-  for (const idStr of convIds) {
-    const mb = convertedMarkboxByLead[Number(idStr)];
-    const usd = billing.get(mb) ?? 0;
-    if (usd > 0) {
-      erp += usd;
-      convertedWithBilling++;
-    }
-  }
-
+  const kommo = leads.reduce((total, lead) => total + (lead.price || 0), 0);
+  const keys = Object.values(convertedMarkboxByLead ?? {});
+  const billing = convertedMarkboxByLead === null || billingMap === null ? BILLING_UNAVAILABLE
+    : sumAnnualBilling(keys.map((key) => ({ key, billing: billingMap.get(key) ?? BILLING_ZERO })));
   return {
     kommoPipelineValueUsd: kommo,
-    erpBilledUsd: erp,
-    convertedCount: convIds.length,
-    convertedWithBilling,
+    billing,
+    erpBilledUsd: billingNumber(billing),
+    convertedCount: convertedMarkboxByLead === null ? null : keys.length,
+    convertedWithBilling: convertedMarkboxByLead === null || billingMap === null ? null : keys.filter((key) => {
+      const value = billingMap.get(key) ?? BILLING_ZERO;
+      return value.state === "completo" && value.subtotalUsd !== null && !value.subtotalUsd.startsWith("-") && value.subtotalUsd !== "0.00";
+    }).length,
   };
 }
 
@@ -441,22 +436,23 @@ export async function allConvertedLeads(
       .is("deleted_at", null)
       .order("kommo_lead_id", { ascending: true })
       .range(from, from + ANALYTICS_PAGE - 1);
-    if (error) throw error;
-    const batch =
-      (data as { kommo_lead_id: number | null; markbox: string }[] | null) ?? [];
-    if (batch.length === 0) break;
+    if (error) throw new Error("Cruce de clientes no disponible");
+    if (!Array.isArray(data)) throw new Error("Cruce de clientes no disponible");
+    const batch = data as { kommo_lead_id: number; markbox: string }[];
+    if (batch.length === 0) return map;
     for (const r of batch) {
-      if (r.kommo_lead_id != null) map[Number(r.kommo_lead_id)] = r.markbox;
+      if (!Number.isSafeInteger(r.kommo_lead_id) || !r.markbox || typeof r.markbox !== "string" || Object.hasOwn(map, r.kommo_lead_id)) throw new Error("Cruce de clientes no disponible");
+      map[r.kommo_lead_id] = r.markbox;
     }
     from += batch.length;
   }
-  return map;
+  throw new Error("Cruce de clientes no disponible: lectura incompleta");
 }
 
 export type KommoDireccionData = {
   totals: { leads: number; contacts: number };
   conversion: ConversionResult;
-  convertedCount: number;
+  convertedCount: number | null;
   email: EmailCoverageResult;
   funnel: FunnelResult;
   aging: AgingResult;
@@ -464,8 +460,12 @@ export type KommoDireccionData = {
   value: ValueContrastResult;
   /** leadId → markbox de TODOS los leads convertidos (para el worklist del asesor). */
   convertedMarkboxByLead: Record<number, string>;
-  /** leadId → USD facturado trailing-12m de los leads convertidos (>0; los 0 se omiten). */
-  valueByLead: Record<number, number>;
+  /** Incluye cero, subtotal parcial y error; nunca reemplaza ERP por precio Kommo. */
+  valueByLead: Record<number, AnnualBillingRead>;
+  /** Cruce completo: permite distinguir un no convertido de una identidad desconocida. */
+  convertedAvailable: boolean;
+  /** Lectura anual independiente del cruce de identidad. */
+  billingAvailable: boolean;
   /**
    * `false` si la lectura del espejo se quedó corta (tope de páginas). Todo lo
    * de arriba sería entonces una MUESTRA, no el total — la UI tiene que decirlo
@@ -494,8 +494,8 @@ export async function getKommoAnalytics(
       getContactEmailFlags(supabase),
       listKommoPipelines(supabase),
       listKommoStatuses(supabase),
-      clientAnnualBilling(supabase, now),
-      allConvertedLeads(supabase),
+      clientAnnualBilling(supabase, now).catch(() => null),
+      allConvertedLeads(supabase).catch(() => null),
       // Resiliente: si kommo_users no existe aún (gap deploy↔migración), cae a [].
       listKommoUsers(supabase).catch(() => []),
     ]);
@@ -510,23 +510,24 @@ export async function getKommoAnalytics(
     if (n) nameById.set(u.id, n);
   }
 
-  const valueByLead: Record<number, number> = {};
-  for (const [idStr, mb] of Object.entries(converted)) {
-    const usd = billing.get(mb) ?? 0;
-    if (usd > 0) valueByLead[Number(idStr)] = usd;
+  const valueByLead: Record<number, AnnualBillingRead> = {};
+  for (const [idStr, mb] of Object.entries(converted ?? {})) {
+    valueByLead[Number(idStr)] = billing === null ? BILLING_UNAVAILABLE : billing.get(mb) ?? BILLING_ZERO;
   }
 
   return {
     totals: { leads: leads.length, contacts: contacts.length },
     conversion: conversionStats(leads),
-    convertedCount: Object.keys(converted).length,
+    convertedCount: converted === null ? null : Object.keys(converted).length,
     email: emailCoverage(contacts),
     funnel: funnelHealth(leads, pipelines, statuses),
     aging: agingBuckets(leads, now.getTime()),
     ownership: ownershipDistribution(leads, nameById),
-    value: valueContrast(leads, converted, billing),
-    convertedMarkboxByLead: converted,
+    value: valueContrast(leads, converted, leadsPage.complete ? billing : null),
+    convertedMarkboxByLead: converted ?? {},
     valueByLead,
+    convertedAvailable: converted !== null,
+    billingAvailable: billing !== null,
     complete: leadsPage.complete && contactsPage.complete,
   };
 }

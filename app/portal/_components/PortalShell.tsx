@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import { usePathname } from "next/navigation";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import type { PortalAviso } from "@/lib/portal/portal-avisos";
+import type { PortalVista } from "@/lib/portal/vista-preferida";
 import { PortalSidebar } from "./PortalSidebar";
 import { PortalTopbar } from "./PortalTopbar";
 import { PortalFooter } from "./PortalFooter";
@@ -83,6 +84,7 @@ export function PortalShell({
   sailing,
   sailingDaysToCutoff,
   avisos,
+  vista = null,
   children,
 }: {
   name: string;
@@ -97,6 +99,8 @@ export function PortalShell({
   sailingDaysToCutoff: number | null;
   /** Bandeja de avisos de la campana (SDD-0526). */
   avisos: readonly PortalAviso[];
+  /** Vista elegida (SDD-0654). null = interruptor apagado: todo como antes. */
+  vista?: PortalVista | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -166,6 +170,7 @@ export function PortalShell({
           sailingDaysToCutoff={sailingDaysToCutoff}
           soporteDot={soporteDot}
           avisos={avisos}
+          vista={vista}
           onOpenMenu={() => setMobileState({ path, open: true })}
         />
 

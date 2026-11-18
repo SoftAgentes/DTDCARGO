@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { ETIQUETA_MODO, fechaHoraCaracas, type ModoCierre } from "@/lib/studio/accounting/cierre-excepciones";
 import type { EstadoCierre } from "@/lib/studio/accounting/cierre-queries";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { fijarSuperclaveAction, restablecerSuperclaveAction, setClosingModeAction } from "../actions";
 
 const seccion: React.CSSProperties = {
@@ -25,21 +26,9 @@ const seccion: React.CSSProperties = {
 function MensajeError({ id, msg }: { id: string; msg: string | null }) {
   if (!msg) return null;
   return (
-    <p
-      id={id}
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto id={id}>
       {msg}
-    </p>
+    </Aviso>
   );
 }
 

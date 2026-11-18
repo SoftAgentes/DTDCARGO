@@ -27,6 +27,7 @@ function fixture(options: {
   queryError?: string; quotes?: Row[]; shipments?: Row[];
 } = {}) {
   const touched: string[] = [];
+  const rpcCalls: string[] = [];
   const data: Record<string, Row[]> = {
     client_users: options.memberships ?? (options.membership === null ? [] : [options.membership ?? member()]),
     quotes: options.quotes ?? [
@@ -43,7 +44,22 @@ function fixture(options: {
       error: options.authError ? new Error("synthetic auth failure") : null,
     }) },
     // Contraste legado: el helper devuelve texto sin acreditar cliente vivo/coherente.
-    rpc: async () => ({ data: MARK, error: null }),
+    rpc: async (name: string, args?: Row) => {
+      rpcCalls.push(name);
+      if (name !== "client_consolidation_portal_read" || args !== undefined) throw new Error("RPC inesperada/autoridad browser");
+      const members = data.client_users.filter((m) => m.auth_user_id === (options.user ?? USER) && m.status === "active");
+      const m = members.length === 1 ? members[0] : null;
+      const embedded = m?.clients;
+      const raw = Array.isArray(embedded) ? embedded.length === 1 ? embedded[0] : null : embedded;
+      if (!m || !raw || typeof raw !== "object" || Array.isArray(raw) || !("id" in raw) || !("tenant_id" in raw)
+        || !("deleted_at" in raw) || !("markbox" in raw) || raw.id !== m.client_id || raw.tenant_id !== m.tenant_id
+        || raw.deleted_at !== null || typeof raw.markbox !== "string" || !raw.markbox.trim()) return { data: null, error: null };
+      return { data: { available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: m.tenant_id, clientId: m.client_id, markbox: raw.markbox },
+        shipments: data.shipments.filter((row) => row.tenant_id === m.tenant_id && row.client_markbox === raw.markbox && row.deleted_at === null)
+          .map((row) => ({ shipment_service: "consolidado_lcl", status: "in_transit", origin: null, destination: null, volume_m3: null, weight_kg: null,
+            arrived_destination_at: null, created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z", normal: null, ...row })) }, error: null };
+    },
     from(table: string) {
       touched.push(table);
       let rows = [...(data[table] ?? [])];
@@ -67,7 +83,7 @@ function fixture(options: {
       return b;
     },
   } as unknown as SupabaseClient;
-  return { db, touched };
+  return { db, touched, rpcCalls };
 }
 
 describe("SDD0380 · cotizaciones propias aun con permisos Studio adicionales", () => {
@@ -143,8 +159,9 @@ describe("SDD0380 · cotizaciones propias aun con permisos Studio adicionales", 
     expect(await listMyEstimates(db)).toEqual([]);
   });
   it("no consulta envíos cuando ninguna cotización tiene enlace", async () => {
-    const { db, touched } = fixture();
+    const { db, touched, rpcCalls } = fixture();
     await listMyEstimates(db);
     expect(touched).not.toContain("shipments");
+    expect(rpcCalls).toEqual([]);
   });
 });

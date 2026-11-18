@@ -5092,3 +5092,122 @@ a.svp-it:hover .nm {
     transition: none;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   SDD-0654 fase 2 · Vista simple del portal (§6.3, EXC-0654-01).
+   Solo bajo `.vs` (el contenedor del inicio simple), salvo `.vs-dialogo`, que
+   también usa la comparación de la barra. Ningún color nuevo: mezclas
+   (`color-mix`) de tokens existentes, con el mismo patrón que `.portal-aviso`
+   (`app/portal/claridad.css`).
+   · Tintes de fondo: `--tint-ink`, `--tint-wine`, `--tint-ok`, `--tint-warn`.
+   · Vino claro (EXC-0654-01) en TRES usos y nada más: botón principal
+     (`.vs-btn-principal`), avatar (`.vs-avatar`) y la parte «proveedor» del
+     código (`.vs-codigo-proveedor`). Texto encima SIEMPRE `--on-warning`
+     (#0F1E3D, navy fijo): 4,79:1 sobre `--color-wine-soft` en claro y 7,13:1
+     sobre `--color-wine-text` (#D89AA4) en noche. `--color-ink` no sirve: en
+     noche es crema y mediría 2,03:1.
+   · La selección va en tinta (BD-037): proveedor elegido, parte del código
+     que se explica y el contorno de la guía.
+   ────────────────────────────────────────────────────────────────── */
+.vs {
+  --tint-ink: color-mix(in srgb, var(--color-ink) 6%, var(--color-white));
+  --tint-wine: color-mix(in srgb, var(--color-wine-soft) 18%, var(--color-white));
+  --tint-ok: color-mix(in srgb, var(--color-status-success) 12%, var(--color-white));
+  --tint-warn: color-mix(in srgb, var(--color-status-warning) 14%, var(--color-white));
+  --vs-principal-bg: var(--color-wine-soft);
+  --vs-principal-ink: var(--on-warning);
+}
+[data-portal-theme="dark"] .vs {
+  --tint-wine: color-mix(in srgb, var(--color-wine-text) 16%, var(--color-white));
+  --vs-principal-bg: var(--color-wine-text);
+}
+.vs .vs-bloque {
+  background: var(--color-white);
+}
+.vs .vs-bloque-cabeza,
+.vs .vs-tinte-ink,
+.vs .vs-recuerda {
+  background: var(--tint-ink);
+}
+.vs .vs-bloque-cabeza.vs-tinte-wine {
+  background: var(--tint-wine);
+}
+.vs .vs-glosario {
+  background: var(--tint-ink);
+}
+.vs .vs-mensaje {
+  background: var(--tint-ink);
+  color: var(--color-ink);
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+.vs .vs-btn-principal,
+.vs .vs-btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+.vs .vs-btn-principal {
+  background: var(--vs-principal-bg);
+  color: var(--vs-principal-ink);
+}
+.vs .vs-btn-secundario {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1.5px solid var(--color-ink);
+}
+.vs .vs-btn-secundario:disabled {
+  opacity: 0.5;
+}
+/* Hover sin oscurecer el relleno: oscurecer el vino claro bajaría el texto navy
+   de AA. Un aro del mismo navy marca el estado. */
+.vs .vs-btn-principal:hover {
+  box-shadow: inset 0 0 0 2px var(--vs-principal-ink);
+}
+.vs .vs-btn-secundario:hover:not(:disabled) {
+  background: var(--tint-ink);
+}
+.vs .vs-btn-principal:focus-visible,
+.vs .vs-btn-secundario:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.vs .vs-avatar,
+.vs .vs-codigo-proveedor {
+  background: var(--vs-principal-bg);
+  color: var(--vs-principal-ink);
+}
+.vs .vs-codigo-parte {
+  border: 1.5px solid var(--color-grey-300);
+  color: var(--color-ink);
+}
+.vs .vs-codigo-parte.vs-codigo-compra {
+  border-color: var(--color-ink);
+}
+/* La parte «proveedor» conserva el vino claro con texto navy (tercer uso). */
+.vs .vs-codigo-parte.vs-codigo-proveedor {
+  background: var(--vs-principal-bg);
+  color: var(--vs-principal-ink);
+  border-color: transparent;
+}
+.vs .vs-codigo-parte[aria-pressed="true"] {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 1px;
+}
+.vs .vs-proveedor {
+  border: 1.5px solid var(--color-grey-200);
+}
+.vs .vs-proveedor.vs-proveedor-activo {
+  border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+.vs-dialogo {
+  background: var(--color-white);
+  border: 1.5px solid var(--color-grey-300);
+}

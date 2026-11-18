@@ -35,9 +35,14 @@ import {
   orquestarLoteDeAcceso,
   type BulkAccessResult,
 } from "@/lib/studio/access-link-bulk";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
+import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
+import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
+import { platformAdminCheck } from "@/lib/studio/platform-admin";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
+import { isDiscordUserId } from "@/lib/studio/discord/send-webhook";
 import {
   ROLE_LABELS,
   invitationAcceptPath,
@@ -94,6 +99,33 @@ function mensajeDeError(err: unknown): string {
   }
 }
 
+/**
+ * SDD-0636 · política de roles: solo el superadministrador crea administradores.
+ * Lo aplica la base (migr 0545, disparadores sobre `user_invitations` y
+ * `user_tenants`) con este mensaje y 42501; la acción lo busca en `dbMessage`.
+ */
+const SOLO_SUPERADMIN_CREA_ADMIN = "Solo el superadministrador puede crear o reactivar administradores";
+
+/** Para quien la base dijo que no es superadministrador. */
+const INVITAR_ADMIN_DENIAL =
+  "No eres superadministrador. Invitar a un administrador lo hace solo el superadministrador: invita con otro rol o pídeselo a quien administra el sistema.";
+
+/**
+ * El error de la invitación, por causa. Dos dan `permission_denied` (42501):
+ *  · la política de la 0545: invitar con rol admin sin ser superadministrador;
+ *  · `audit_d1_admin_tenant` (0289): no eres admin activo de este equipo, o la
+ *    sesión se perdió. Decirle «no eres superadministrador» sería falso.
+ */
+function mensajeDeInvitacion(err: unknown): string {
+  if (err instanceof D1OperationError && err.code === "permission_denied") {
+    return err.dbMessage?.includes(SOLO_SUPERADMIN_CREA_ADMIN)
+      ? INVITAR_ADMIN_DENIAL
+      : "No tienes permiso para invitar en este equipo. Si eres su administrador, vuelve a iniciar sesión.";
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return `No se pudo crear la invitación: ${msg}`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // inviteUserAction · crea invitation + devuelve link copy/paste
 // ─────────────────────────────────────────────────────────────
@@ -121,6 +153,13 @@ export async function inviteUserAction(
 
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+
+  // SDD-0636: invitar con rol admin es del superadministrador. Se avisa antes
+  // cuando la base contesta que no lo eres; si no se pudo preguntar, decide la
+  // base y el catch muestra el mismo aviso.
+  if (input.role === "admin" && (await platformAdminCheck(supabase)) === "no") {
+    return { error: INVITAR_ADMIN_DENIAL };
+  }
 
   // Guard: si el email ya es miembro del tenant (activo o desactivado), la
   // invitación es un callejón sin salida — el accept no puede completarse con
@@ -232,8 +271,7 @@ export async function inviteUserAction(
       invitationLink: link,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { error: `No se pudo crear la invitación: ${msg}` };
+    return { error: mensajeDeInvitacion(err) };
   }
 }
 
@@ -267,6 +305,9 @@ export async function changeUserRoleAction(
         "Cambio de rol sin motivo declarado",
       ),
     });
+    // SDD-0585 (2.5): si el rol nuevo no ve la Bandeja, su agente sale de
+    // Chatwoot. No lanza ni cambia este resultado; el cron diario reintenta.
+    await sincronizarAgenteDeUsuario(targetUserId).catch(() => undefined);
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
   } catch (err) {
@@ -314,6 +355,30 @@ export async function changeWarehouseScopeAction(
   return { ok: true, userId: targetUserId };
 }
 
+/**
+ * SDD-0633 · Suspender o reactivar a OTRO administrador lo reserva el
+ * superadministrador (0355). La base lo niega recién en la confirmación, después
+ * de banear en Auth, y la compensación lo deshace: la persona leía «Auth cambió,
+ * pero la confirmación falló…» sin saber que el motivo era su permiso, y el otro
+ * admin quedaba baneado unos instantes.
+ *
+ * `target_role` llega del formulario de la ficha. Es solo una pista para avisar
+ * antes: si miente, el flujo es el de siempre y la base sigue siendo el freno.
+ * Por la misma razón, si no se pudo preguntar (`error`, como el 403 de antes de
+ * la 0542) no se corta: decide la base, que en `studio_set_user_disabled`
+ * (DEFINER, vía audit_d1_auth_transition, 0289:1144) no depende del grant.
+ */
+async function superadminParaOtroAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  targetUserId: string,
+  actorId: string,
+): Promise<string | null> {
+  if (formData.get("target_role") !== "admin" || targetUserId === actorId) return null;
+  if ((await platformAdminCheck(supabase)) !== "no") return null;
+  return "No eres superadministrador. Suspender o reactivar a otro administrador lo hace solo el superadministrador: pídeselo a quien administra el sistema.";
+}
+
 // ─────────────────────────────────────────────────────────────
 // disableUserAction / enableUserAction · vía RPC studio_set_user_disabled
 // (migr 0200) + ban/unban en Supabase Auth.
@@ -338,6 +403,8 @@ export async function disableUserAction(
 
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+  const superadmin = await superadminParaOtroAdmin(supabase, formData, targetUserId, userResp.user.id);
+  if (superadmin) return { error: superadmin };
 
   const result = await executeAuthLifecycle(
     supabase,
@@ -364,6 +431,9 @@ export async function disableUserAction(
     };
   }
 
+  // SDD-0585 (2.5): el agente de Chatwoot del suspendido sale de la cuenta.
+  // No lanza ni cambia este resultado; el cron diario reintenta.
+  await sincronizarAgenteDeUsuario(targetUserId).catch(() => undefined);
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
 }
@@ -378,6 +448,13 @@ export async function enableUserAction(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "users");
   if (denial) return { error: denial };
+  if (formData.get("target_role") === "admin") {
+    const { data: actorResp } = await supabase.auth.getUser();
+    const superadmin = await superadminParaOtroAdmin(
+      supabase, formData, targetUserId, actorResp.user?.id ?? "",
+    );
+    if (superadmin) return { error: superadmin };
+  }
 
   const result = await executeAuthLifecycle(
     supabase,
@@ -698,11 +775,11 @@ export async function sendAccessLinkBulkAction(
 // sucesión de un puesto: el `user_id` NO cambia, así que todo lo que ya está
 // registrado sigue siendo de la MISMA persona.
 //
-// ⚠️ SI SE VA ALEJANDRO Y ENTRA PEDRO, ESTE NO ES EL GESTO. Todo el rastro del
+// ⚠️ SI SE VA UNA PERSONA Y ENTRA OTRA, ESTE NO ES EL GESTO. Todo el rastro del
 // ERP se guarda contra `user_id` (append_audit_event, created_by de facturas y
 // embarques), no contra el correo. Reescribirle el correo a la fila haría que
-// cada factura y cada evento que registró Alejandro apareciera, hacia atrás y
-// en silencio, como hecho por Pedro. La sucesión es: desactivar a quien se va +
+// cada factura y cada evento que registró quien se fue apareciera, hacia atrás y
+// en silencio, como hecho por quien llega. La sucesión es: desactivar a quien se va +
 // invitar a quien llega; lo que se hereda es el rol y el alcance, que con
 // SDD-0252 viven por rol y no por persona. Ver §Sucesión de la spec.
 //
@@ -1116,4 +1193,345 @@ export async function unlinkTelegramAccountAction(): Promise<{
 
   revalidatePath("/studio");
   return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ID de Discord del perfil (SDD-0606)
+//
+// Los avisos por persona pasan de un chat privado de Telegram a una MENCIÓN en
+// el canal de Discord. Para mencionar hace falta el ID de usuario de Discord,
+// que cada quien pega en su perfil. No es una credencial; sí es un dato
+// personal, y por eso sólo lo edita su dueño, sobre su propia fila.
+//
+// Las dos acciones toleran que la columna no exista (una base sin la migración
+// 0514; producción la tiene desde el 2026-11-07): leer devuelve
+// `disponible: false` y guardar da un aviso claro.
+// ─────────────────────────────────────────────────────────────
+
+export async function getMyDiscordUserIdAction(): Promise<{
+  discordUserId: string | null;
+  /** false = el Studio no puede guardar el ID (a la base le falta la migración 0514). */
+  disponible: boolean;
+}> {
+  const supabase = await createClient();
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { discordUserId: null, disponible: false };
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("discord_user_id")
+    .eq("user_id", acceso.userId)
+    .maybeSingle<{ discord_user_id: string | null }>();
+
+  if (error) return { discordUserId: null, disponible: false };
+  return { discordUserId: data?.discord_user_id ?? null, disponible: true };
+}
+
+export async function saveMyDiscordUserIdAction(formData: FormData): Promise<{
+  ok?: boolean;
+  error?: string;
+  discordUserId?: string | null;
+}> {
+  const raw = ((formData.get("discord_user_id") as string | null) ?? "").trim();
+  if (raw && !isDiscordUserId(raw)) {
+    return {
+      error:
+        "El ID de Discord es un número de 17 a 20 dígitos. No es tu nombre de usuario.",
+    };
+  }
+
+  const supabase = await createClient();
+  const acceso = await getStudioAccess(supabase); // miembro ACTIVO del Studio; falla cerrado ante disabled_at
+  if (!acceso.role || !acceso.userId) return { error: "Inicia sesión primero." };
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      discord_user_id: raw || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", acceso.userId);
+
+  if (error) {
+    // Sin el texto de la base: puede traer nombres de columnas y no le sirve a
+    // quien lo lee.
+    console.error("[usuarios] guardar discord_user_id falló:", error.code);
+    return { error: "No se pudo guardar tu ID de Discord. Intenta de nuevo más tarde." };
+  }
+
+  return { ok: true, discordUserId: raw || null };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Accesos adicionales por persona (SDD-0622 · migr 0538).
+//
+// Solo un admin del tenant (`tenantAdminGate`) y SOLO por las RPC de la 0538:
+// la tabla no tiene escritura para authenticated. La RPC repite cada candado
+// (rol admin de la base, nada a uno mismo, doble aviso en sensibles, R2), así
+// que esta capa existe para dar mensajes claros, no para ser la única puerta.
+// ─────────────────────────────────────────────────────────────
+
+export interface GrantModuleInput {
+  targetUserId: string;
+  moduleId: string;
+  canEdit: boolean;
+  reason: string;
+  /** `YYYY-MM-DD` (fin de ese día, hora de Caracas) o null. */
+  expiresOn: string | null;
+  /** El admin marcó «Entiendo…» en el doble aviso. */
+  confirmSensitive: boolean;
+}
+
+const UUID_PERMISOS = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Traduce los errores de las RPC de la 0538 a algo legible. */
+function mensajeDeAcceso(err: { code?: string; message?: string }): string {
+  const msg = err.message ?? "";
+  if (msg.includes("doble aviso")) return "Confirma el doble aviso para conceder un módulo sensible.";
+  if (msg.includes("superadministrador")) return "Ese módulo solo lo concede el superadministrador.";
+  if (msg.includes("a ti mismo")) return "No puedes concederte accesos a ti mismo.";
+  if (msg.includes("ya tiene todos")) return "Un administrador ya tiene todos los módulos.";
+  if (msg.includes("miembro activo")) return "La persona no está activa en tu equipo.";
+  if (msg.includes("solo para ver")) return "Ese módulo se concede solo para ver.";
+  if (msg.includes("motivo")) return "Escribe el motivo (entre 5 y 500 caracteres).";
+  if (msg.includes("vencimiento")) return "El vencimiento tiene que ser una fecha futura.";
+  if (err.code === "42501") return "No tienes permiso para cambiar accesos.";
+  if (err.code === "PGRST202" || msg.includes("does not exist")) {
+    return "Los accesos adicionales todavía no están activos en esta base.";
+  }
+  return "No se pudo guardar el acceso. Intenta de nuevo.";
+}
+
+export async function grantUserModuleAction(
+  input: GrantModuleInput,
+): Promise<{ ok?: true; error?: string }> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+
+  if (!UUID_PERMISOS.test(input.targetUserId ?? "")) return { error: "Persona inválida." };
+  if (!isKnownModule(input.moduleId)) return { error: "Módulo desconocido." };
+  const motivo = (input.reason ?? "").trim();
+  const errMotivo = reasonError(motivo);
+  if (errMotivo) return { error: errMotivo };
+  if (moduleCoverage(input.moduleId) !== "covered") {
+    return { error: "Ese módulo todavía no se puede conceder: su base no lo acepta." };
+  }
+  let expiresAt: string | null = null;
+  if (input.expiresOn) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expiresOn)) return { error: "Fecha de vencimiento inválida." };
+    // Fin del día en Caracas (UTC−4).
+    expiresAt = new Date(`${input.expiresOn}T23:59:59-04:00`).toISOString();
+    if (Date.parse(expiresAt) <= Date.now()) return { error: "El vencimiento tiene que ser una fecha futura." };
+  }
+  const sensible = isSensitiveModule(input.moduleId);
+  if (sensible && !input.confirmSensitive) {
+    return { error: "Confirma el doble aviso para conceder un módulo sensible." };
+  }
+
+  const { error } = await supabase.rpc("studio_grant_user_module", {
+    p_user_id: input.targetUserId,
+    p_module_id: input.moduleId,
+    p_can_view: true,
+    p_can_edit: Boolean(input.canEdit),
+    p_reason: motivo,
+    p_expires_at: expiresAt,
+    p_confirm_sensitive: sensible ? input.confirmSensitive === true : false,
+    p_effects_version: sensible ? SENSITIVE_MODULE_EFFECTS_VERSION : null,
+  });
+  if (error) return { error: mensajeDeAcceso(error) };
+  revalidatePath("/studio/usuarios");
+  return { ok: true };
+}
+
+export async function revokeUserModuleGrantAction(input: {
+  targetUserId: string;
+  moduleId: string;
+  reason: string;
+}): Promise<{ ok?: true; error?: string }> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+
+  if (!UUID_PERMISOS.test(input.targetUserId ?? "")) return { error: "Persona inválida." };
+  if (!isKnownModule(input.moduleId)) return { error: "Módulo desconocido." };
+  const motivo = (input.reason ?? "").trim();
+  const errMotivo = reasonError(motivo);
+  if (errMotivo) return { error: errMotivo };
+
+  const { error } = await supabase.rpc("studio_revoke_user_module_grant", {
+    p_user_id: input.targetUserId,
+    p_module_id: input.moduleId,
+    p_reason: motivo,
+  });
+  if (error) return { error: mensajeDeAcceso(error) };
+  revalidatePath("/studio/usuarios");
+  return { ok: true };
+}
+
+/**
+ * Un evento de la pestaña «Actividad» de la ficha (sin datos personales).
+ * SDD-0635 §3.7: junta extras, rol, almacén y suspensiones de UNA persona.
+ *   extra         → `entity_audit_log`, entidad `studio_user_module_grant` (0538), con motivo.
+ *   rol / almacen → `entity_audit_log`, entidad `membership` (D1, 0289), con motivo.
+ *   estado        → `user_role_audit` (0201), `disable` / `enable`, sin motivo.
+ */
+export interface AccessActivityEvent {
+  id: string;
+  kind: "extra" | "rol" | "almacen" | "estado";
+  event: "created" | "updated" | "revoked" | "role_changed" | "scope_changed" | "disabled" | "enabled";
+  /** Solo en los extras. */
+  moduleId: string | null;
+  canEdit: boolean | null;
+  /** Rol o almacén de antes y de después (códigos, no etiquetas). */
+  before: string | null;
+  after: string | null;
+  reason: string | null;
+  actorId: string | null;
+  occurredAt: string;
+}
+
+/** Columnas de la bitácora que pinta la pestaña «Actividad»; nada más. */
+const ACCESS_ACTIVITY_COLUMNS =
+  "id, event_type, reason, actor_id, before_data, after_data, occurred_at";
+/** Tope de filas de la pestaña. */
+const ACCESS_ACTIVITY_LIMIT = 50;
+
+/**
+ * Rastro de acceso de UNA persona: concesiones, cambios y revocaciones de
+ * extras (entity_audit_log, entidad `studio_user_module_grant`) y, desde la
+ * SDD-0635, sus cambios de rol y de almacén (entidad `membership`) y sus
+ * suspensiones (`user_role_audit`), en una sola línea de tiempo.
+ *
+ * Desde la 0270 `authenticated` no tiene SELECT sobre `entity_audit_log`, así
+ * que con la sesión esta lectura salía siempre vacía. Lee con el cliente de
+ * servicio, y por eso los candados van todos aquí, antes de leer:
+ *   1. ver el módulo `users` (`moduleViewDenial`, el equivalente para acciones
+ *      de `requireModuleView`) y ser admin del tenant (`tenantAdminGate`, el
+ *      mismo de `grantUserModuleAction`);
+ *   2. el tenant sale de la sesión (`gate.tenantId`), nunca del cliente, y la
+ *      persona destino tiene que ser miembro de ese tenant en `user_tenants`;
+ *   3. filtros fijos: `tenant_id`, `entity_type` y `entity_id` (la 0538 guarda
+ *      el evento con `p_entity_id = p_user_id`), solo las columnas que se
+ *      pintan y un tope de filas.
+ */
+export async function listUserAccessActivityAction(
+  targetUserId: string,
+): Promise<{ ok: true; events: AccessActivityEvent[] } | { error: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "users");
+  if (denial) return { error: denial };
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { error: gate.denied };
+  if (!UUID_PERMISOS.test(targetUserId ?? "")) return { error: "Persona inválida." };
+
+  const admin = createAdminClient();
+  const { data: miembro, error: errMiembro } = await admin
+    .from("user_tenants")
+    .select("user_id")
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (errMiembro) return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  if (!miembro) return { error: "La persona no es parte de tu equipo." };
+
+  const [extras, membresia, estado] = await Promise.all([
+    admin
+      .from("entity_audit_log")
+      .select(ACCESS_ACTIVITY_COLUMNS)
+      .eq("tenant_id", gate.tenantId)
+      .eq("entity_type", "studio_user_module_grant")
+      .eq("entity_id", targetUserId)
+      .order("occurred_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+    // D1 guarda el cambio de rol y de almacén con `p_target_id` = la persona
+    // (0289, `membership.role_change` / `membership.scope_change`). La
+    // revocación de invitación usa el id de la invitación: queda fuera.
+    admin
+      .from("entity_audit_log")
+      .select(ACCESS_ACTIVITY_COLUMNS)
+      .eq("tenant_id", gate.tenantId)
+      .eq("entity_type", "membership")
+      .eq("entity_id", targetUserId)
+      .in("event_type", ["membership_role_changed", "membership_scope_changed"])
+      .order("occurred_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+    // Suspensión y reactivación: solo las deja el trigger de la 0201. Sus
+    // `role_change` / `scope_change` repiten lo de D1 sin motivo: no se leen.
+    admin
+      .from("user_role_audit")
+      .select("id, action, actor_user_id, created_at")
+      .eq("tenant_id", gate.tenantId)
+      .eq("target_user_id", targetUserId)
+      .in("action", ["disable", "enable"])
+      .order("created_at", { ascending: false })
+      .limit(ACCESS_ACTIVITY_LIMIT),
+  ]);
+  if (extras.error || membresia.error || estado.error) {
+    return { error: "No se pudo cargar la actividad. Intenta de nuevo." };
+  }
+
+  type Datos = { module_id?: string; can_edit?: boolean; role?: string; warehouse_scope?: string };
+  type Fila = {
+    id: string;
+    event_type: string;
+    reason: string | null;
+    actor_id: string | null;
+    before_data: Datos | null;
+    after_data: Datos | null;
+    occurred_at: string;
+  };
+  const deExtras: AccessActivityEvent[] = ((extras.data ?? []) as Fila[]).map((f) => {
+    const datos = f.after_data ?? f.before_data ?? {};
+    const event: AccessActivityEvent["event"] = f.event_type.endsWith("_revoked")
+      ? "revoked"
+      : f.event_type.endsWith("_updated")
+        ? "updated"
+        : "created";
+    return {
+      id: f.id,
+      kind: "extra",
+      event,
+      moduleId: datos.module_id ?? "—",
+      canEdit: typeof datos.can_edit === "boolean" ? datos.can_edit : null,
+      before: null,
+      after: null,
+      reason: f.reason,
+      actorId: f.actor_id,
+      occurredAt: f.occurred_at,
+    };
+  });
+  const deMembresia: AccessActivityEvent[] = ((membresia.data ?? []) as Fila[]).map((f) => {
+    const rol = f.event_type === "membership_role_changed";
+    const campo = rol ? "role" : "warehouse_scope";
+    return {
+      id: f.id,
+      kind: rol ? "rol" : "almacen",
+      event: rol ? "role_changed" : "scope_changed",
+      moduleId: null,
+      canEdit: null,
+      before: f.before_data?.[campo] ?? null,
+      after: f.after_data?.[campo] ?? null,
+      reason: f.reason,
+      actorId: f.actor_id,
+      occurredAt: f.occurred_at,
+    };
+  });
+  type FilaEstado = { id: string; action: string; actor_user_id: string | null; created_at: string };
+  const deEstado: AccessActivityEvent[] = ((estado.data ?? []) as FilaEstado[]).map((f) => ({
+    id: f.id,
+    kind: "estado",
+    event: f.action === "disable" ? "disabled" : "enabled",
+    moduleId: null,
+    canEdit: null,
+    before: null,
+    after: null,
+    reason: null,
+    actorId: f.actor_user_id,
+    occurredAt: f.created_at,
+  }));
+  const events = [...deExtras, ...deMembresia, ...deEstado]
+    .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+    .slice(0, ACCESS_ACTIVITY_LIMIT);
+  return { ok: true, events };
 }

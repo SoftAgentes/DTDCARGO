@@ -24,7 +24,6 @@
 .gstack
 .vscode
 .obsidian
-.graphifyignore
 .gitattributes
 .gitignore
 .dockerignore

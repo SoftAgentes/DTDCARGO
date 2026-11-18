@@ -10,7 +10,7 @@
  *  - normalizeLines
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   calcInvoiceTotals,
   canEmit,
@@ -26,6 +26,22 @@ import {
   validateInvoiceInput,
   type InvoiceInput,
 } from "../invoice-types";
+
+afterEach(() => vi.useRealTimers());
+
+describe("C1 · vencimiento por día Caracas", () => {
+  it.each(["2026-10-21T02:30:00Z", "2026-10-21T03:59:59.999Z"])("no adelanta vencimiento a %s", (instant) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(instant));
+    expect(displayStatus({ due_date: "2026-10-20", status: "emitida" })).toBe("emitida");
+  });
+  it("cambia al alcanzar medianoche Caracas y conserva la fecha explícita", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T04:00:00Z"));
+    expect(isOverdue({ due_date: "2026-10-20", status: "emitida" })).toBe(true);
+    expect(isOverdue({ due_date: "2026-10-20", status: "emitida" }, "2026-10-20")).toBe(false);
+  });
+});
 
 describe("calcInvoiceTotals", () => {
   it("aplica IVA cuando ivaOn=true (criterio de aceptación)", () => {

@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Wrapper client del detalle de factura (SDD-0021).
  *
@@ -15,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -58,8 +61,11 @@ export function InvoiceDetailClient({
   defaultIvaMode = "sin_iva",
   ivaRateGeneral = 16,
   cashAccounts,
+  cobrosVivos = 0,
 }: {
   invoice: Invoice;
+  /** SDD-0573: los recibos vivos de la factura. Con alguno, no se anula. */
+  cobrosVivos?: number;
   ivaOn: boolean;
   fiscalModuleEnabled?: boolean;
   defaultIvaMode?: InvoiceIvaMode;
@@ -166,7 +172,26 @@ export function InvoiceDetailClient({
           </button>
         )}
 
-        {canVoid(invoice.status) && (
+        {canVoid(invoice.status) && cobrosVivos > 0 && (
+          // SDD-0573: con cobros vivos la base no anula. Se dice por qué y dónde.
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-2)" }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              disabled
+              aria-describedby="inv-anular-bloqueo"
+            >
+              Anular
+            </button>
+            <span
+              id="inv-anular-bloqueo"
+              style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
+            >
+              {`Tiene ${cobrosVivos} cobro(s) vivo(s): para anularla, anúlalos primero en Cobranzas.`}
+            </span>
+          </span>
+        )}
+        {canVoid(invoice.status) && cobrosVivos === 0 && (
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -231,135 +256,51 @@ export function InvoiceDetailClient({
       </div>
 
       {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "0 0 12px",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
-          {error}
-        </p>
+        <div style={{ margin: "0 0 12px" }}>
+          <Aviso tono="error">{error}</Aviso>
+        </div>
       )}
 
       {voidWarning && (
-        <div
-          role="alert"
-          style={{
-            margin: "0 0 var(--s-3)",
-            padding: "var(--s-3) var(--s-4)",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-md)",
-            display: "flex",
-            gap: "var(--s-3)",
-            alignItems: "flex-start",
-          }}
-        >
-          <span
-            style={{
-              color: "var(--warning)",
-              display: "flex",
-              flexShrink: 0,
-              marginTop: 1,
-            }}
-          >
-            {Icon.warn(16)}
-          </span>
-          <div>
-            <div
-              style={{
-                font: "700 12.5px/1.3 var(--f-sans)",
-                color: "var(--ink)",
-                marginBottom: "var(--s-1)",
-              }}
-            >
-              {voidReferralRevertTitle(voidWarning)}
-            </div>
-            <p
-              style={{
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-                margin: 0,
-              }}
-            >
-              {voidWarning}
-            </p>
-          </div>
+        <div style={{ margin: "0 0 var(--s-3)" }}>
+          <Aviso tono="atencion" urgente titulo={voidReferralRevertTitle(voidWarning)}>
+            {voidWarning}
+          </Aviso>
         </div>
       )}
 
       {legalAck && (
-        <div
-          role="alert"
-          style={{
-            margin: "0 0 12px",
-            padding: "12px 14px",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-md)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <span
-              style={{ color: "var(--warning)", display: "flex", flexShrink: 0, marginTop: 1 }}
-            >
-              {Icon.warn(16)}
-            </span>
-            <div>
-              <div
-                style={{
-                  font: "700 12.5px/1.3 var(--f-sans)",
-                  color: "var(--ink)",
-                  marginBottom: 4,
-                }}
+        <div style={{ margin: "0 0 12px" }}>
+          <Aviso tono="atencion" urgente titulo="Falta la aceptación de T&C del cliente">
+            <p style={{ margin: 0 }}>
+              {legalAck} Si emites, queda registrado en la auditoría de la
+              factura como emisión sin aceptación vigente.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                onClick={() => setLegalAck(null)}
               >
-                Falta la aceptación de T&C del cliente
-              </div>
-              <p
-                style={{
-                  font: "500 12px/1.5 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  margin: 0,
+                Cancelar
+              </button>
+              <ActionButton
+                variant="warning"
+                size="sm"
+                idleLabel="Emitir igual (sin aceptación)"
+                loadingLabel="Emitiendo…"
+                successLabel="Factura emitida"
+                idleIcon={Icon.check(14)}
+                successIcon={Icon.check(14)}
+                onAction={async () => {
+                  setError(null);
+                  return emitInvoice(invoice.id, true);
                 }}
-              >
-                {legalAck} Si emites, queda registrado en la auditoría de la
-                factura como emisión sin aceptación vigente.
-              </p>
+                onSuccess={onEmitSuccess}
+                onError={setError}
+              />
             </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-sm"
-              onClick={() => setLegalAck(null)}
-            >
-              Cancelar
-            </button>
-            <ActionButton
-              variant="warning"
-              size="sm"
-              idleLabel="Emitir igual (sin aceptación)"
-              loadingLabel="Emitiendo…"
-              successLabel="Factura emitida"
-              idleIcon={Icon.check(14)}
-              successIcon={Icon.check(14)}
-              onAction={async () => {
-                setError(null);
-                return emitInvoice(invoice.id, true);
-              }}
-              onSuccess={onEmitSuccess}
-              onError={setError}
-            />
-          </div>
+          </Aviso>
         </div>
       )}
 
@@ -383,7 +324,7 @@ export function InvoiceDetailClient({
         holdToConfirm
         initialFocus="reason"
         title="Anular factura"
-        message={`La factura ${invoice.invoice_code} quedará anulada en el historial. Indica el motivo.`}
+        message={`La factura ${invoice.invoice_code} quedará anulada en el historial y su asiento de venta se revierte con un contra-asiento en el período abierto. Indica el motivo.`}
         confirmLabel="Anular factura"
         holdLabel="Mantén presionado para anular"
         holdAlternativeLabel="Entiendo que la factura quedará anulada y prefiero confirmar con un clic"
@@ -454,7 +395,7 @@ function PaymentModal({
   onPaid: (amount: number, fullyPaid: boolean, receiptCode?: string) => void;
   onError: (msg: string) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
@@ -646,20 +587,9 @@ function PaymentModal({
         </div>
 
         {localError && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {localError}
-          </p>
+          </Aviso>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>

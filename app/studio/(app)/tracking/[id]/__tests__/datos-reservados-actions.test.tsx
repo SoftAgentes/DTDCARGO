@@ -42,6 +42,8 @@ import { updateShipment } from "../actions";
 import { updateShipmentSinUbicacion } from "../datos-reservados-actions";
 import { ShipmentDataPanel } from "../_components/ShipmentDataPanel";
 import type { Shipment } from "@/lib/studio/shipment-types";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
+const LEGACY_S1: NormalShipmentRead = { available: true, context: { shipmentId: "s1", cohort: false, complete: true, group: null, manifest: null } };
 
 const OTRO = { id: "s0", destination_gps: "8.0000, -66.0000" };
 const ESTE = { id: "s1", destination_gps: "10.1620, -68.0077" };
@@ -168,7 +170,7 @@ async function guardarCambioDeNotas() {
 describe("ShipmentDataPanel", () => {
   it("con los nombres ocultos guarda por la puerta que conserva la ubicación", async () => {
     sembrar([ESTE]);
-    render(<ShipmentDataPanel shipment={ENVIO} nombresOcultos />);
+    render(<ShipmentDataPanel shipment={ENVIO} nombresOcultos normal={LEGACY_S1} />);
     await guardarCambioDeNotas();
     expect(vi.mocked(updateShipmentSinUbicacion)).toHaveBeenCalled();
     // Y la ubicación llegó a updateShipment desde el servidor, no del formulario.
@@ -181,10 +183,16 @@ describe("ShipmentDataPanel", () => {
     render(
       <ShipmentDataPanel
         shipment={{ ...ENVIO, client_name: "María Pérez", destination_gps: "10.1620, -68.0077" }}
+        normal={LEGACY_S1}
       />,
     );
     await guardarCambioDeNotas();
     expect(vi.mocked(updateShipmentSinUbicacion)).not.toHaveBeenCalled();
     expect(h.recibido!.campos).toContainEqual(["destination_gps", "10.1620, -68.0077"]);
+  });
+  it("metadata desconocida no abre un formulario legacy ni delega una escritura", () => {
+    render(<ShipmentDataPanel shipment={ENVIO} nombresOcultos normal={{ available: false, error: "Pertenencia no disponible" }} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Pertenencia no disponible");
+    expect(screen.queryByLabelText("Notas")).toBeNull(); expect(updateShipment).not.toHaveBeenCalled();
   });
 });

@@ -95,7 +95,7 @@ export async function advanceOdAction(
 export async function splitPackageP2Action(
   _prev: MobileActionState,
   formData: FormData,
-): Promise<MobileActionState> {
+): Promise<MobileActionState & { retryable?: true }> {
   const auth = await requireBodegueroSession();
   if ("error" in auth) return { error: auth.error };
 
@@ -122,6 +122,15 @@ export async function splitPackageP2Action(
     p_split_reason_text: input!.split_reason_text,
   });
 
+  // The new cohort row-lock guard rejects this entire command atomically.
+  // Only this identified server denial is retryable; an ambiguous transport or
+  // a legacy P0013 must retain its existing handling. Never trust a form flag.
+  if (error?.code === "P0001" && error.message === "NORMAL_CONFLICT" && error.hint === "dtd-client-normal") {
+    return {
+      error: "El despacho está cambiando. No se fraccionó este paquete. Revisa la orden e inténtalo de nuevo.",
+      retryable: true,
+    };
+  }
   if (error) return { error: humanizeRpcError(error.message) };
 
   revalidatePath("/m/ve/bodeguero");

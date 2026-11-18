@@ -1,0 +1,32 @@
+# Traefik de PRUEBA LOCAL para la PoC del iframe (SDD-0585, paso 2.1). Nunca en el VPS.
+#
+# Igual que pruebas/compose.traefik-prueba.yml (misma imagen y los middlewares de archivo
+# de producción), con una diferencia: delante va frente.mjs, que termina TLS como lo
+# hace Cloudflare en producción y manda X-Forwarded-Proto: https. Para que Rails, con
+# FORCE_SSL=true como en el VPS, vea esa cabecera, el entrypoint confía en los
+# X-Forwarded-* que recibe. Solo escucha en 127.0.0.1.
+
+name: chatwoot-traefik-poc
+
+services:
+  traefik:
+    image: traefik:v3.7.14
+    command:
+      - --log.level=INFO
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.websecure.address=:80
+      - --entrypoints.websecure.forwardedHeaders.insecure=true
+    ports:
+      - "127.0.0.1:18080:80"
+    networks:
+      - chatwoot_edge_poc
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../../../ops/traefik/dynamic:/etc/traefik/dynamic:ro
+
+networks:
+  chatwoot_edge_poc:
+    external: true

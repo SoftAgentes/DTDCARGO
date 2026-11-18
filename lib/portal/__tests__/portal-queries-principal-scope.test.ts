@@ -71,7 +71,7 @@ function document(id: string, tenantId: string, markbox = MARKBOX): Row {
     content_type: "application/pdf",
     size_bytes: 10,
     created_at: "2026-10-05T00:00:00.000Z",
-    shipment_id: `ship-${id}`,
+    shipment_id: id === "doc-a" ? "ship-a1" : id === "doc-b" ? "ship-b-activo" : "ship-a-otro-cliente",
     shipments: { code: `ENVIO-${id}` },
     deleted_at: null,
   };
@@ -103,7 +103,14 @@ function tables(over: Record<string, Row[]> = {}): Record<string, Row[]> {
 }
 
 function arrange(options: PortalDoubleOptions = {}) {
-  return portalDouble({ tables: tables(), rpc: LEGACY_RPC, ...options });
+  // Local RPC transport only. The SQL/RLS policy remains a separate oracle.
+  const double = portalDouble({ tables: tables(), ...options, rpc: { ...LEGACY_RPC, ...options.rpc,
+    client_consolidation_portal_read: () => ({ available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+      principal: { tenantId: TENANT_A, clientId: CLIENT_A, markbox: MARKBOX },
+      shipments: (double.store.shipments ?? []).filter((row) => row.tenant_id === TENANT_A && row.client_markbox === MARKBOX && row.deleted_at === null)
+        .map((row) => ({ ...row, normal: null })) }),
+  } });
+  return double;
 }
 
 describe("SDD-0552 · envíos del Portal por principal y tenant", () => {
@@ -138,7 +145,7 @@ describe("SDD-0552 · envíos del Portal por principal y tenant", () => {
   it("el próximo arribo tampoco es el de otro cliente del mismo tenant", async () => {
     // El envío activo del otro cliente del tenant A va PRIMERO: sin el filtro
     // por Shipping Mark, la consulta lo elige a él.
-    const { db } = portalDouble({
+    const { db } = arrange({
       tables: tables({
         shipments: [
           shipment("ship-a-otro-cliente", TENANT_A, "DTD-0002-01", { client_markbox: OTRO_MARKBOX }),
@@ -160,7 +167,7 @@ describe("SDD-0552 · documentos del Portal por principal y tenant", () => {
 
 describe("SDD-0552 · activación del Portal por principal y tenant", () => {
   it("los envíos del tenant B con el mismo Shipping Mark no activan la cuenta", async () => {
-    const { db } = portalDouble({
+    const { db } = arrange({
       tables: tables({
         shipments: [
           shipment("ship-b", TENANT_B, "DTD-0001-B1"),
@@ -178,7 +185,7 @@ describe("SDD-0552 · activación del Portal por principal y tenant", () => {
   });
 
   it("la aprobación se lee con el id del cliente del principal", async () => {
-    const { db, on } = portalDouble({
+    const { db, on } = arrange({
       tables: tables({
         clients: [{ id: CLIENT_A, tenant_id: TENANT_A, markbox: MARKBOX, portal_approved_at: "2026-10-01T00:00:00.000Z", deleted_at: null }],
       }),

@@ -40,6 +40,9 @@
  *   9. welcome email SIN la clave (reusa sendWelcomeEmail · template welcome_markbox)
  *  10. aviso interno al equipo (best-effort)
  *
+ * Después de responder, con after(): la tarjeta del CRM (SDD-0587, paso 6c) y el
+ * push a Kommo (paso 11). Ninguno de los dos puede tocar el alta.
+ *
  * Todo el alta corre con el admin client (service_role): el registrante es
  * anónimo y necesita bypassear RLS para insertar clients/client_users. Sin
  * SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
@@ -64,6 +67,8 @@ import {
   type RegisterInput,
 } from "@/lib/portal/register-types";
 import { normalizarOrigen } from "@/lib/public/registro-origen";
+import { normalizarAtribucion } from "@/lib/public/registro-atribucion";
+import { altaTarjetaWeb, altaWebSinKommo } from "@/lib/studio/crm-alta-web";
 
 // ── Anti-abuso (SDD-0042 §10): honeypot + throttle por IP en DB ──────────────
 // Honeypot: campo trampa oculto del form (RegisterForm.tsx). Un humano nunca lo
@@ -338,6 +343,21 @@ export async function registerClientAction(
     console.error("[registerClientAction] link de referido falló:", refErr);
   }
 
+  // 6c. SDD-0587 (6.4) — tarjeta del CRM propio, con el origen y los UTM. Aquí y no
+  //     al final: la ficha ya existe, y los pasos que siguen pueden volver antes
+  //     con un aviso. FIRE-AND-FORGET con after(): no le agrega tiempo a la
+  //     inscripción y un fallo no la toca. Sin request scope, after() lanza y la
+  //     tarjeta se omite, igual que el push a Kommo del paso 11.
+  try {
+    const origen = normalizarOrigen(formData.get("origen") as string | null);
+    const atribucion = normalizarAtribucion((campo) => formData.get(campo));
+    after(() =>
+      altaTarjetaWeb(admin, { tenantId, clientId: clientRow.id, origen, atribucion }),
+    );
+  } catch {
+    // Mismo caso que el catch del paso 11.
+  }
+
   // 7. Crear la cuenta de auth con una contraseña ALEATORIA fuerte. NUNCA la
   //    cédula/RIF: el documento es semi-público (facturas, proveedores, docs
   //    legales) y usarlo de clave dejaría el portal abierto a quien lo conozca.
@@ -444,22 +464,25 @@ export async function registerClientAction(
   //     Best-effort: un fallo nunca afecta el alta (el cliente ya quedó con su MARKBOX). La Edge
   //     Function corre con el service key del admin client y lee el token de Kommo desde Vault —
   //     el token NUNCA entra a este runtime (modelo de seguridad SDD-0043).
+  //     SDD-0587 D7: el interruptor CRM_ALTA_WEB_SIN_KOMMO lo corta; apagado por defecto.
   try {
-    after(async () => {
-      try {
-        const { error: kommoErr } = await admin.functions.invoke("kommo-push-client", {
-          body: { tenant_id: tenantId, client_id: clientRow.id },
-        });
-        if (kommoErr) {
-          console.warn(
-            "[registerClientAction] push a Kommo falló (best-effort):",
-            kommoErr.message,
-          );
+    if (!altaWebSinKommo()) {
+      after(async () => {
+        try {
+          const { error: kommoErr } = await admin.functions.invoke("kommo-push-client", {
+            body: { tenant_id: tenantId, client_id: clientRow.id },
+          });
+          if (kommoErr) {
+            console.warn(
+              "[registerClientAction] push a Kommo falló (best-effort):",
+              kommoErr.message,
+            );
+          }
+        } catch (kommoErr) {
+          console.warn("[registerClientAction] push a Kommo lanzó (best-effort):", kommoErr);
         }
-      } catch (kommoErr) {
-        console.warn("[registerClientAction] push a Kommo lanzó (best-effort):", kommoErr);
-      }
-    });
+      });
+    }
   } catch {
     // after() solo es válido dentro de un request scope (el server action real). Fuera de él
     // (p.ej. un test unitario que llama la action directo) lanza al registrar el callback → lo

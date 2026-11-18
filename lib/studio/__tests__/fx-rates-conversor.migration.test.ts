@@ -304,13 +304,11 @@ describe("SDD-0569 · 0495 conversor a USD y tabla de tasas (PGlite)", () => {
     expect(result.error).toBe("0495 abortado: intención de tasa o versión de factura ya existe; revisar instalación parcial");
   }, SLOW);
 
-  it("la 0495 espera en pendingBelowCutoff, MIGRATE-FIRST y con OK nominal de Sam", () => {
+  it("aplicada al servidor propio el 2026-10-20: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const espera = baseline.pendingBelowCutoff["0495_fx_rates_conversor_usd"];
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("Requiere OK nominal de Sam");
+    expect(baseline.pendingBelowCutoff["0495_fx_rates_conversor_usd"]).toBeUndefined();
     expect(FILE_0495).toContain(
       "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff",
     );

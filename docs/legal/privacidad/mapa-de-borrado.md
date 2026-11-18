@@ -187,6 +187,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | `public_track_log` | — | 🔴 IP de quien consulta un envío |
 | `operario_pin_attempts` | — | 🟢 BORRA — huella anti-abuso; purga técnica a 48 h |
 | `public_verify_throttle` | — | 🟢 BORRA — IP en claro de `/verificar`; purga técnica de filas con más de 60 min en el cron diario (SDD-0455) |
+| `discord_consultas_clientes` (SDD-0608, migración 0516 **sin aplicar**) | — | Purga técnica a **180 días** en cada registro (`supabase/migrations/0516_discord_consulta_clientes.sql`). Guarda el ID de Discord de quien preguntó, su usuario del Studio y el **término buscado, que puede ser el nombre de un cliente**. 🔴 Supresión a pedido del titular (borrar las filas cuyo término sea su nombre antes de los 180 días): **sin decidir** — decide Sam |
 | `outbox_push_events` | 0 | 🟢 BORRA — transitoria por diseño |
 | `kommo_writeback_outbox` | — | 🔴 payloads con datos del cliente |
 | `sync_logs` · `user_role_audit` | — | 🔴 sin revisar |
@@ -196,12 +197,14 @@ personales, pero se encontró acá y conviene mirarlo.
 | Tercero | Qué tiene | Quién lo borra |
 |---|---|---|
 | **Kommo** | Contactos y leads (el original del espejo) | 🔴 API, hoy sin usar |
+| **Respaldo del historial de Kommo** (SDD-0590, 5.1): `/srv/backups/kommo/kommo-<stamp>/` en el VPS propio, cifrado con `age` para las claves de Sam y de emergencia | Conversaciones, mensajes (texto libre), contactos, leads, notas, tareas, usuarios y adjuntos de Kommo, completos | 🔵 **CONSERVA** con plazo (Sam, 2026-10-31): archivo frío hasta **corte + 12 meses** y después se borra (`docs/specs/0590-kommo-historial-e5/spec.md` §6.3; la fecha concreta se escribe al fijar el corte, E8). Borrar a una persona antes exige descifrar en tmpfs, quitar sus filas y adjuntos y volver a empaquetar. Primera corrida: `kommo-20261030T233814Z` (2026-10-31: 4.715 conversaciones, 54.187 mensajes, 4.237 contactos, 3.577 adjuntos, 2,1 GB cifrados) |
 | **Resend** | Correos enviados con nombre y dirección | 🔴 retención no verificada |
 | **Cloudflare Workers AI** | Audio de reuniones procesado | 🔴 política no leída |
 | **Anthropic / OpenRouter** | Contenido de conversaciones | 🔴 política no leída |
 | **Google (GA4)** | Sin PII — verificado | 🟢 no aplica |
 | **Nominatim** | Direcciones enviadas a geocodificar | 🔴 sin contrato |
 | **Supabase / Vercel** | Todo / logs de request | 🔴 retención no verificada |
+| **Discord** (SDD-0608, `/cliente`, propuesto) | Respuestas efímeras con nombre, Shipping Mark y enlace de hasta 10 clientes, más el término que escribió quien preguntó | 🔴 retención de Discord no verificada; el Studio no puede borrar una respuesta efímera |
 
 > ⚠️ **Nota del 2026-10-19:** desde el corte del 2026-10-14 (02:00Z) los datos
 > vivos están en el servidor propio de Contabo. La fila de Supabase / Vercel
@@ -390,3 +393,32 @@ que aparezca una tabla, un bucket o un proveedor nuevo. No es asesoría legal.*
   - la FK `on delete cascade` la borra si se borra físicamente el cliente.
 - **Facturas emitidas:** conservan el titular sellado (nombre, documento, tipo y domicilio fiscal). Es obligación fiscal, no se reescribe, y el plazo lo fija la abogada (§3 B).
 - **Intentos bloqueados** (`client_profile_blocked_attempts`): se purgan a los 90 días con el cron `purge-throttle`. El DELETE lo da la 0466, aplicada a producción el 2026-09-19; la purga corre desde que se despliega el cron de SDD-0487.
+
+## 12 · Foto del empleado (SDD-0652 fase 2)
+
+> La migración 0555 está **en espera**: hasta que se aplique, ni la columna ni el
+> bucket existen en producción y nada de esto corre. Lo que sigue describe el
+> código, no una comprobación contra la base real.
+
+- **Dónde vive:** `nomina_employees.photo_path` (la referencia) y un objeto en el
+  bucket privado `employee-photos`, en `{tenant}/{ficha}/{uuid}.webp`. La ruta
+  lleva ids, no nombres ni cédulas.
+- **Quitar la foto** («Quitar» en la ficha): la referencia queda en `null` en el
+  momento y se deja `photo_removed`. 🟢 **BORRA** la referencia; el objeto lo
+  borra después la reconciliación.
+- **Cambiar la foto:** la ficha apunta al archivo nuevo; el anterior queda sin
+  referencia y lo borra la reconciliación.
+- **Ficha borrada** (`deleted_at`): su foto deja de contar como referida y entra
+  en la misma reconciliación.
+- **Reconciliación** (`/api/cron/purge-employee-photo-orphans`, diaria): borra
+  del bucket lo que ninguna ficha viva referencia y tiene más de un día. **Nace
+  apagada** (`PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED`): mientras no se encienda,
+  los archivos sin referencia **siguen en el bucket**. Si no puede leer las
+  referencias, no borra nada.
+- **Lo que no se borra:** los eventos `photo_set` y `photo_removed` (sin imagen
+  ni ruta) y los `bank_account_revealed`, `user_linked` y `user_unlinked` de
+  la ficha. 🔵 **CONSERVA** 2 años, clase `security` del calendario v1.0.
+- **Egresado:** la foto se conserva y no se puede cambiar. 🔴 **SIN FUNDAMENTO**
+  el plazo: es el mismo pendiente que el de toda la ficha (§3 B).
+- **NO VERIFICABLE** en producción hasta aplicar la 0555 con OK nominal y
+  encender la reconciliación después de leer sus conteos.

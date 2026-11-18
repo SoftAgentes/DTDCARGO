@@ -49,6 +49,24 @@ describe("el control de etapa está en las dos vistas", () => {
 });
 
 /**
+ * El encabezado es el mismo en todas las pestañas. Decía «solo lectura» y «todavía
+ * no modifica nada» con Embudos ya guardando: quien atiende podía creer que mover
+ * una tarjeta no queda.
+ */
+describe("el encabezado del CRM no niega lo que la pantalla hace (SDD-0587)", () => {
+  const codigo = read(`${DIR}/KommoClient.tsx`).replace(/\s+/g, " ");
+
+  it("no dice que es de solo lectura ni que no modifica nada", () => {
+    expect(codigo).not.toContain("<strong>solo lectura</strong>");
+    expect(codigo).not.toContain("no modifica nada. </p>");
+  });
+
+  it("dice dónde queda lo que se hace en Embudos", () => {
+    expect(codigo).toContain("En Embudos, lo que mueves o guardas queda en Studio.");
+  });
+});
+
+/**
  * El permiso de la PANTALLA y el de la ACCIÓN salen del mismo predicado.
  *
  * Si la vista se inventa su propia regla ("es admin", "el rol no es support"),

@@ -254,7 +254,7 @@ Esa salida es solo para la conversación. La prueba recorre `docs/` y `.agents/`
 El paso no toca `LEDGER_ONLY`. Sus consumidores leen solo ese bloque y no cambian:
 
 - `scripts/qa/cobro-factura-race.mjs:49`;
-- `infra/ops/consolidados/validar-lote-local.sh:60`;
+- `infra/ops/consolidados/validar-lote-local.sh:95`;
 - `infra/ops/staging/resetear-base-prueba.sh:115`;
 - `infra/ops/tests/prueba-scripts-entorno-prueba.sh:213`;
 - `scripts/verify.mjs:504`, que lo ejecuta;

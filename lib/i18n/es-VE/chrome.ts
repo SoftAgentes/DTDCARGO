@@ -77,6 +77,7 @@ export const chrome = {
   "chrome.sidebar.quotes": "Estimados",
   "chrome.sidebar.clients": "Clientes",
   "chrome.sidebar.crm": "CRM",
+  "chrome.sidebar.inbox": "Bandeja",
   "chrome.sidebar.suppliers_cn": "PreAlertas de servicios",
   "chrome.sidebar.rates": "Tarifas",
   // FINANZAS

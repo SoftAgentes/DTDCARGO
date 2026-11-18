@@ -22,27 +22,54 @@ import { ClientDrawer } from "./ClientDrawer";
 export function ClientDetailClient({
   client,
   canViewStatement,
+  quotesHref = null,
+  chatHref = null,
+  encabezado = null,
   children,
 }: {
+  /**
+   * SDD-0669: identidad del cliente (Shipping Mark, nombre, tipo, nivel, asesor).
+   * Con encabezado, ella y las acciones forman la franja fija de la ficha.
+   */
+  encabezado?: ReactNode;
   client: Client;
   /** SDD-0558: el rol abre el estado de cuenta (módulo `invoices`). */
   canViewStatement: boolean;
+  /** SDD-0650 F1: cotizaciones del cliente; null si el rol no abre `quotes`. */
+  quotesHref?: string | null;
+  /** SDD-0650 F1: su conversación más reciente en la Bandeja; null sin Bandeja o sin chats. */
+  chatHref?: string | null;
   children: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
 
-  return (
-    <>
-      {/* Cross-links + botón editar */}
+  const acciones = (
       <div
+        className="studio-ficha-acciones"
         style={{
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "center",
+          flexWrap: "wrap",
           gap: 8,
-          marginBottom: 12,
+          marginBottom: encabezado ? 0 : 12,
         }}
       >
+        {/* SDD-0650 F1: acciones rápidas. Solo las que el rol puede abrir. */}
+        {chatHref ? (
+          <Link href={chatHref} className="studio-btn studio-btn-ghost studio-btn-sm">
+            Abrir chat
+          </Link>
+        ) : null}
+        {quotesHref ? (
+          <Link
+            href={quotesHref}
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            title="Las cotizaciones de este cliente"
+          >
+            Cotizaciones
+          </Link>
+        ) : null}
         {/* SDD-0281 · deja de ser un placeholder. Lee el MISMO ledger que ve el
             cliente en su portal — si el ERP tuviera su propio cálculo, el asesor
             y el cliente podrían mirar dos saldos distintos de la misma cuenta,
@@ -72,6 +99,19 @@ export function ClientDetailClient({
           Editar cliente
         </button>
       </div>
+  );
+
+  return (
+    <>
+      {encabezado ? (
+        // SDD-0669: la franja fija. La identidad a la izquierda, las acciones a la derecha.
+        <div className="studio-ficha-franja">
+          <div className="studio-ficha-identidad">{encabezado}</div>
+          {acciones}
+        </div>
+      ) : (
+        acciones
+      )}
 
       {children}
 

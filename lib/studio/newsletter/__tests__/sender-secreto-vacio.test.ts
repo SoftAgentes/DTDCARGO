@@ -13,7 +13,10 @@ import type { NewsletterCampaign } from "../types";
 const { sendEmailMock } = vi.hoisted(() => ({ sendEmailMock: vi.fn() }));
 
 vi.mock("@/lib/studio/mail/send-email", () => ({ sendEmail: sendEmailMock }));
-vi.mock("@/lib/studio/mail/resend-api", () => ({ resendBatchSend: vi.fn() }));
+vi.mock("@/lib/studio/mail/resend-api", () => ({
+  resendBatchSend: vi.fn(),
+  RESEND_SIMULADO_PRUEBA: "app_env_staging",
+}));
 
 import { sendNewsletterTest } from "../sender";
 

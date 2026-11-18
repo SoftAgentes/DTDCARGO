@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type ReactElement,
 } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 /**
  * Field con label ASOCIADO al control (a11y). Espejo del helper de la Academia
@@ -45,19 +46,8 @@ export function Field({
 
 export function FormError({ message }: { message: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto>
       {message}
-    </p>
+    </Aviso>
   );
 }

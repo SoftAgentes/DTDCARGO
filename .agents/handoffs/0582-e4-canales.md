@@ -1,0 +1,441 @@
+# SDD-0582 E4: pasos 4.4 Messenger, 4.6 Instagram y 4.7 TikTok (handoff del Worker)
+
+Rama `codex/0582-e4-canales`, con base `main` desde el 2026-11-05 (antes, apilada sobre la #333).
+Solo docs. No lleva tokens, secretos, IDs ni datos personales. Etiquetas: **D** documentado por la fuente, **R**
+comprobado aquí, **I** inferencia, **NV** no verificado.
+
+**Encargo (Director, 2026-10-30).** Sam eligió los canales con un selector, ante la pregunta
+«¿Qué otros canales, además de WhatsApp, conectamos a Chatwoot?». Respuesta literal: «Correo
+(info@), Instagram, Messenger, TikTok». A esta tarea le tocan 4.4, 4.6 y 4.7. El correo es 4.8 y
+los «canales» del portal son 10.5; no son de aquí.
+
+**Límites.** Igual que en 4.9:
+- Nada que escriba en Meta o en TikTok sin el OK nominal de Sam en esta sesión: agregar páginas
+  o cuentas, suscribir apps, enviar a revisión, OAuth.
+- Nada sobre la cuenta principal de WhatsApp.
+- Pruebas solo en bandejas de prueba.
+
+## Lo que pide Chatwoot 4.19.1 (R, leído en el contenedor del VPS)
+
+Los tres canales están habilitados en la cuenta 1 (`channel_facebook`, `channel_instagram` y
+`channel_tiktok` = true). Ninguno tenía credenciales el 2026-10-30: `FB_APP_ID`, `INSTAGRAM_APP_ID`
+y `TIKTOK_APP_ID` estaban vacíos en `GlobalConfigService`. Se cargan en `/super_admin/app_config`
+(detrás de Cloudflare Access) o como variables de entorno. Los de Messenger e Instagram se cargaron
+el 2026-10-31 (puerta P3).
+
+| Canal | Configuración de Chatwoot | Permisos que pide en el OAuth (código) | Webhook / callback |
+|---|---|---|---|
+| Messenger | `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` (`FACEBOOK_API_VERSION`) | `pages_manage_metadata`, `business_management`, `pages_messaging`, `pages_show_list`, `pages_read_engagement` (`facebookScopes.js`) | `POST/GET /bot` |
+| Instagram (Instagram Business Login, el recomendado desde la v4.1) | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_VERIFY_TOKEN` (`INSTAGRAM_API_VERSION`, `ENABLE_INSTAGRAM_CHANNEL_HUMAN_AGENT`) | `instagram_business_basic`, `instagram_business_manage_messages` (`Instagram::IntegrationHelper::REQUIRED_SCOPES`) | `/webhooks/instagram`; redirect `/instagram/callback` |
+| TikTok | `TIKTOK_APP_ID`, `TIKTOK_APP_SECRET` (`TIKTOK_API_VERSION` = v1.3) | `user.info.basic`, `user.info.username`, `user.info.stats`, `user.info.profile`, `user.account.type`, `user.insights`, `message.list.read`, `message.list.send`, `message.list.manage` (`Tiktok::AuthClient::REQUIRED_SCOPES`). Si falta uno, el callback falla con `ungranted_scopes` | `/webhooks/tiktok` (se registra con `Tiktok::AuthClient.update_webhook_callback`); redirect `/tiktok/callback` |
+
+**Rutas desde fuera (R, 2026-10-30):**
+- `/bot` con un token falso responde «Error; wrong verify token».
+- `/webhooks/instagram` responde 401 con un token falso.
+- `POST /webhooks/tiktok` sin firma responde 401.
+- `/instagram/callback` y `/tiktok/callback` dan 500 sin parámetros, porque todavía no tienen
+  configuración.
+
+Las rutas llegan a Chatwoot y Traefik no hay que tocarlo.
+
+**Datos públicos de DTD (R):**
+- Instagram `@dtdcargo.ve` y TikTok `@dtdcargo.ve` (los dos en `lib/design-tokens.ts`).
+- El sitio no enlaza ninguna página de Facebook: falta confirmarla en Business Suite (puerta P0).
+- `https://dtdcargo.com/privacidad` y `/terminos` responden 200. Son las URL que piden la App
+  Review de Meta y la app de TikTok.
+
+## P0: página e Instagram del portafolio (R, Business Suite, 2026-10-30, solo lectura)
+
+Sam inició sesión en Facebook en el navegador integrado y yo solo leí. Aquí no van nombres de
+personas ni IDs.
+- **Página de Facebook: una sola, «Importador de China»** (página principal de la empresa).
+  - Es del portafolio «Importador de China».
+  - Tiene 2 personas con acceso total, una de ellas Sam, y 1 con acceso parcial: el perfil de
+    Instagram, con «Mensajes y llamadas».
+  - Tiene 1 activo conectado: el Instagram `@importadechinaavzla`.
+  - Seguidores en Facebook: 4.
+- **Instagram: un solo perfil en el portafolio, `@importadechinaavzla`.**
+  - Es propiedad de «Importador de China».
+  - Sam tiene acceso parcial, que incluye Mensajes.
+  - Business Suite pide «Es necesario que inicies sesión» en Instagram para ver las demás
+    configuraciones.
+  - Seguidores: 16.
+- **`@dtdcargo.ve`, el Instagram que enlaza dtdcargo.com, no está en el portafolio.** No se
+  puede saber desde aquí si es cuenta profesional ni quién la administra (NV). El portafolio
+  tampoco tiene ninguna página de Facebook «DTD Cargo».
+
+**Decisión P0-b, tomada por Sam el 2026-10-30.** La tomó en la sesión del Director, con un
+selector, y el Director me la pasó con la cita literal. A la pregunta «¿Qué cuentas de Instagram
+y Facebook conectamos a Chatwoot?», Sam respondió **«Las dos marcas»**. Es una decisión de
+alcance, no un OK de escritura: cada paso que escriba en Meta o en Chatwoot sigue pidiendo el OK
+de Sam en esta sesión.
+- ~~**Importador de China:** la página «Importador de China» y `@importadechinaavzla`. Ya están
+  en el portafolio, así que esta marca se puede preparar ya, desde P2.~~ **Fuera del piloto
+  desde el 2026-10-31.** Ver la decisión de abajo.
+
+**Cambio de decisión de Sam, en esta sesión, el 2026-10-31.**
+- Sam preguntó si convenía renombrar la página «Importador de China» a «DTD Cargo».
+- Yo recomendé no hacerlo:
+  - habría dos páginas «DTD Cargo» de dueños distintos;
+  - la página comparte portafolio con el negocio verificado, el WhatsApp y la app;
+  - ese día ya hubo varios cambios en esa app.
+- Sam respondió, literal: «No vamos a avanzar nada con lo de [cuenta A], quedémonos así.» El
+  nombre de la persona va reemplazado por la etiqueta de la cuenta.
+- Queda **solo la marca DTD Cargo**: página «DTD Cargo» y `@dtdcargo.ve`, de la cuenta B.
+- La página «Importador de China», `@importadechinaavzla`, sus portafolios y sus nombres no se
+  tocan, no se renombran y no se conectan a Chatwoot.
+- **DTD Cargo:** `@dtdcargo.ve` y una página de Facebook «DTD Cargo». Antes hacen falta los tres
+  pasos previos de Sam que están abajo. Yo no escribo en Meta.
+
+**Dato nuevo de Sam en esta sesión (2026-10-30):** «El Instagram está conectado a otro Facebook.
+Me avisas y yo te paso la conexión.» Entonces `@dtdcargo.ve` ya está vinculado a un Facebook que
+no es el de este portafolio. Todavía no sé si es una página o un perfil personal (NV). Lo leo
+cuando Sam entre con esa cuenta en el navegador integrado. De eso depende el paso 3: traer la
+página que ya existe o crear una nueva.
+
+### Lectura del otro Facebook (R, Business Suite, 2026-10-31, solo lectura)
+
+Sam inició sesión con la otra cuenta de Meta en su Chrome y yo solo leí. Aquí no van nombres de
+personas, correos, teléfonos ni IDs.
+- **Existe un segundo portafolio, «DTD Cargo»,** distinto de «Importador de China».
+- **Página de Facebook «DTD Cargo»:**
+  - Es propiedad del portafolio «DTD Cargo».
+  - Esa cuenta tiene acceso total.
+  - El Instagram tiene acceso parcial, que incluye «Mensajes y llamadas».
+- **Instagram `@dtdcargo.ve`:**
+  - Es propiedad del portafolio «DTD Cargo».
+  - Tiene un activo conectado: la página «DTD Cargo».
+  - Esa cuenta tiene acceso parcial, que incluye Mensajes.
+- Que `@dtdcargo.ve` sea cuenta profesional se deduce de que es un perfil de Instagram de un
+  portafolio con una página conectada (I).
+- **Mensajes de Instagram (R, 2026-10-31):** la bandeja de Business Suite de la página «DTD
+  Cargo» carga las conversaciones de Instagram Direct sin ningún aviso de permiso. No leí las
+  conversaciones. De ahí se deduce que «Permitir acceso a los mensajes» está activado, porque
+  la bandeja de Meta lo necesita igual que la API (I). La prueba definitiva es que el webhook
+  de Instagram reciba el primer mensaje en P5.
+- Instagram en el navegador pide un captcha al iniciar sesión. No lo resuelvo; Sam lo resuelve
+  o lo revisa en el teléfono.
+- La cuenta de Meta de Sam con la que se hizo P0 no tiene vinculado `@dtdcargo.ve` ni administra
+  la página «DTD Cargo» (R).
+
+**Qué cambia en la guía:**
+- El paso 3 ya está hecho: la página existe y está vinculada.
+- El paso 1 también parece hecho (I): la bandeja de Business Suite ya recibe los mensajes de
+  Instagram.
+- El paso 2, pasar `@dtdcargo.ve` al portafolio «Importador de China», **ya no es necesario**.
+
+La app «Whats DTD» puede pedir acceso a la página y al Instagram de otro portafolio por OAuth (D).
+La condición es que quien inicie sesión en Chatwoot tenga control de esos activos. En Standard
+Access, además, esa persona necesita un rol en la app. Las dos rutas:
+- **(A) Recomendada:** dejar la marca DTD Cargo en su portafolio.
+  - La cuenta que administra «DTD Cargo» recibe un rol en la app Whats DTD: tester o
+    desarrollador. Es una escritura en Meta que hace Sam con OK.
+  - En P4, esa misma cuenta hace el OAuth de Messenger.
+  - Para Instagram, el OAuth lo hace `@dtdcargo.ve` con su propio usuario.
+  - No se mueve ningún activo.
+- **(B):** compartir o mover la página y el Instagram al portafolio «Importador de China».
+  - Es más cambio y mezcla dos marcas en un portafolio.
+  - Solo conviene si Sam quiere administrar todo desde uno.
+
+**Decisión de Sam, en esta sesión, el 2026-10-31.** A la pregunta «¿Por qué ruta conectamos DTD
+Cargo?», respondió **«el rol en la app.»** La ruta elegida es la A. La decisión no autoriza
+escribir en Meta: cada escritura lleva su OK nominal en esta sesión.
+
+Escrituras que pide la ruta A, en orden:
+1. **Rol de Facebook.** En la app Whats DTD, *Roles de la app* → *Agregar personas* → **Tester**,
+   con el Facebook que administra «DTD Cargo». Tester es el rol mínimo que alcanza para el OAuth
+   en Standard Access (D). Ese Facebook acepta la invitación en
+   `developers.facebook.com/requests`, y quizá Meta le pida registrarse como desarrollador (D).
+   - **Hecho el 2026-10-31.** OK de Sam en esta sesión, literal: **«Autorizo invitarlo»**. Más
+     tarde precisó: «Haces tú todo y yo solamente le doy al botón».
+     - La invitación se mandó desde la cuenta que administra la app con el rol **Evaluador**, que
+       es el tester en la interfaz en español.
+     - Releí *Roles de la aplicación* (R): la cuenta B figura como «Evaluador · Pendiente». Las
+       demás filas no cambiaron: un administrador y el usuario del sistema de Chatwoot como
+       desarrollador.
+     - Para que no se mezclen las cuentas, aquí van con letra. **Cuenta A** administra la app y
+       el WhatsApp. **Cuenta B** administra el portafolio «DTD Cargo» y `@dtdcargo.ve`. Sam lo
+       recordó así: el número está en una cuenta y el portafolio de Instagram en la otra.
+     - La cuenta B no era desarrolladora de Meta (R): `developers.facebook.com` la mandaba a la
+       portada. Sam la registró (crear la cuenta le toca a él).
+     - La invitación de antes del registro nunca le llegó (R: «No tienes solicitudes de
+       desarrolladores pendientes»). Dentro del mismo OK, quité la fila pendiente y la volví a
+       mandar como Evaluador. Esta vez el buscador sí encontró a la cuenta B.
+     - **Aceptada el 2026-10-31.** Sam la aceptó desde la cuenta B («listo llego y acepte») y
+       Meta mostró «Aceptaste la solicitud de Whats DTD». Al releer *Roles de la aplicación* (R),
+       la cuenta B figura como **Evaluador sin «Pendiente»**. El administrador y el usuario del
+       sistema de Chatwoot no cambiaron.
+2. **Rol de Instagram.** Va después de P2, cuando la app ya tiene el producto de Instagram.
+   - En *Roles de la app* → *Testers de Instagram* se agrega `@dtdcargo.ve`.
+   - La cuenta acepta en Instagram: *Configuración* → *Apps y sitios web* → *Invitaciones de
+     tester*.
+   - Instagram Business Login lo exige mientras la app esté en modo de desarrollo o en
+     Standard Access (D).
+
+### Guía para Sam: tres pasos previos para la marca DTD Cargo (escrita antes de la lectura de arriba; vale la nota «Qué cambia»)
+
+Estos tres pasos los hace Sam con sus cuentas. Yo solo leo después que quedaron bien. Los
+nombres de los menús son de la interfaz en español de octubre de 2026 y pueden variar un poco (D).
+
+1. **Que `@dtdcargo.ve` sea cuenta profesional y deje entrar a las apps a los mensajes.**
+   - En la app de Instagram, con la sesión de `@dtdcargo.ve`, ve a Perfil → menú ☰ →
+     *Configuración y actividad* → *Tipo de cuenta y herramientas*.
+   - Si aparece *Cambiar a cuenta profesional*, tócalo y elige **Empresa**.
+   - Si aparece *Cambiar a cuenta personal*, no lo toques: la cuenta ya es profesional.
+   - Luego ve a *Configuración y actividad* → *Mensajes y respuestas a historias* →
+     *Controles de mensajes* (o *Herramientas conectadas*). Activa **«Permitir acceso a los
+     mensajes»**. Sin esto, la API de Instagram no entrega los mensajes a Chatwoot (D).
+2. **Agregar `@dtdcargo.ve` al portafolio «Importador de China».**
+   - En `business.facebook.com` → *Configuración* → *Cuentas* → *Perfiles de Instagram* →
+     *Agregar*.
+   - Inicia sesión con `@dtdcargo.ve` cuando lo pida.
+   - Al terminar, `@dtdcargo.ve` aparece en la lista junto a `@importadechinaavzla`.
+3. **Página «DTD Cargo» vinculada a `@dtdcargo.ve`.** Cuál camino toca lo decide la lectura del
+   otro Facebook:
+   - **3a. Si el otro Facebook ya tiene una página de DTD:**
+     - Desde ese Facebook, dale a tu Facebook personal **control total** de la página: en la
+       página, *Configuración* → *Acceso a la página* → *Agregar persona nueva*.
+     - Después, en el portafolio: *Cuentas* → *Páginas* → *Agregar* → **Reclamar una página**.
+   - **3b. Si es un perfil personal y no una página:**
+     - En el portafolio: *Cuentas* → *Páginas* → *Agregar* → **Crear una página nueva** con el
+       nombre «DTD Cargo».
+     - En la página nueva: *Configuración* → *Cuentas vinculadas* → *Instagram* → *Conectar
+       cuenta*, con `@dtdcargo.ve`.
+     - Si Instagram dice que la cuenta ya está vinculada a otra página, primero hay que
+       desvincularla desde el otro Facebook.
+
+Cuando estén los tres, leo el portafolio y anoto en esta sección lo que quedó.
+
+## 4.4 Messenger: acceso, permisos y demostración
+
+**Acceso de Meta (D, documentación de Meta y de Chatwoot):**
+- **Standard Access** es el nivel inicial. El canal funciona, pero solo con conversaciones de
+  personas que tienen rol en la app, la página o el negocio.
+- Con conversaciones de cualquier persona, Meta no entrega los mensajes nuevos hasta tener
+  **Advanced Access**. Chatwoot lo dice así: «Until the application is approved for production,
+  Facebook wouldn't send the new messages».
+- **Advanced Access** exige App Review y la verificación del negocio. El portafolio ya está
+  verificado: la lectura de 4.9 dio `business_verification_status=verified` (R).
+
+**Permisos que van a revisión** (Chatwoot, «Going into production»):
+- `pages_messaging`
+- `pages_show_list`
+- `pages_manage_metadata`
+- `business_management`
+- `pages_read_engagement`
+- la función «Business Asset User Profile Access», para mostrar el nombre y la foto de quien
+  escribe.
+
+**Decisión propuesta: usar la app «Whats DTD».** Ya está publicada, es del tipo empresa y su
+negocio está verificado. Una sola app concentra la revisión. Chatwoot usa `FB_APP_ID` solo para
+Messenger y para Instagram por Facebook Login, y la bandeja manual de WhatsApp no lo lee (I, del
+código de 4.9). Así, cargarlo no toca las bandejas de WhatsApp.
+
+**Demostración (piloto), sin App Review:**
+1. Sam pasa la puerta P2 (Messenger en la app) y la P3 (configuración en Chatwoot).
+2. Sam crea en Chatwoot la bandeja de Facebook con OAuth y elige la página de DTD (P4).
+3. En «Messenger → Configuración» de la app suscribe la página a `messages`,
+   `messaging_postbacks`, `message_deliveries`, `message_reads` y `message_echoes`.
+4. Desde su cuenta personal, que tiene rol en la app, Sam escribe a la página. El mensaje tiene
+   que entrar a la bandeja y la respuesta desde Chatwoot tiene que llegarle.
+5. Yo leo solo conteos y estados, como en 4.3.
+
+## 4.6 Instagram: demostración y expediente (sin enviarlo)
+
+**Ruta:** Instagram Business Login. Requisitos:
+- **Producto «Instagram API with Instagram Login»** en la app, con su app ID y secreto propios de
+  Instagram.
+- **Webhooks:** `messages`, `messaging_seen` y `message_reactions`, apuntando a
+  `/webhooks/instagram`.
+- **Redirect:** `/instagram/callback`.
+- **`@dtdcargo.ve` como cuenta profesional** (empresa o creador, NV), con «Permitir acceso a los
+  mensajes» activado en la app de Instagram (Configuración → Mensajes → Herramientas
+  conectadas, NV en la cuenta).
+
+**Acceso:**
+- En Standard Access solo funciona con cuentas que tienen el rol «Instagram Tester» en la app.
+  **Corregido el 2026-11-05:** era premisa nuestra y entra el público. Ver «2026-11-05 · Instagram
+  recibe al público sin App Review», al final.
+  La demostración se hace así: Sam agrega su cuenta personal como tester y escribe a
+  `@dtdcargo.ve`.
+- Para atender a cualquiera hace falta Advanced Access de `instagram_business_basic` y
+  `instagram_business_manage_messages` (App Review + negocio verificado, D).
+- La función «Human Agent», que alarga la ventana a 7 días, es opcional y también va a
+  revisión. Se deja para después.
+
+**Expediente para App Review (borrador; Sam lo envía con su OK, nunca esta tarea):**
+- **Datos de la app:**
+  - nombre «Whats DTD»;
+  - política de privacidad `https://dtdcargo.com/privacidad`;
+  - términos `https://dtdcargo.com/terminos`;
+  - categoría «Negocios y páginas»;
+  - ícono de DTD Cargo.
+- **Texto de uso común (ES/EN):** «DTD Cargo es una empresa de envíos China → Venezuela. Usamos
+  Chatwoot autohospedado en chat.dtdcargo.com como bandeja de atención: los agentes de DTD leen y
+  responden los mensajes que los clientes mandan a nuestra cuenta de Instagram y a nuestra página
+  de Facebook. No hacemos envíos masivos ni mensajes promocionales por estas vías; solo
+  respondemos a quien nos escribe, dentro de la ventana que permite Meta.»
+- **Por permiso:**
+  - `instagram_business_basic`: para identificar la cuenta conectada (nombre de usuario, foto) y
+    mostrarla en la bandeja.
+  - `instagram_business_manage_messages`: para recibir los DM de los clientes en Chatwoot y
+    responderlos desde ahí.
+  - `pages_messaging`: para responder desde Chatwoot a quien escribe a la página.
+  - `pages_show_list`: para elegir la página al conectar la bandeja.
+  - `pages_manage_metadata`: para suscribir la página al webhook de Chatwoot.
+  - `pages_read_engagement` y Business Asset User Profile Access: para mostrar el nombre del
+    remitente.
+  - `business_management`: es dependencia de `pages_messaging` en Meta.
+- **Video (uno por plataforma, 1–2 min, en inglés o subtitulado):**
+  1. login en chat.dtdcargo.com;
+  2. «Agregar bandeja» y el OAuth con los permisos visibles;
+  3. un tester escribe un DM;
+  4. el mensaje aparece en Chatwoot;
+  5. el agente responde;
+  6. la respuesta llega al teléfono.
+- **Capturas:**
+  - la pantalla de permisos del OAuth;
+  - la bandeja con la conversación, con los datos de prueba tapados;
+  - la configuración del webhook.
+- **Tratamiento de datos (cuestionario de Meta):**
+  - Los mensajes se guardan en el servidor de DTD, en el VPS propio con respaldo cifrado (E1).
+  - No se venden ni se comparten con terceros.
+  - El acceso es por agente con su usuario.
+  - El borrado sigue la política de `/privacidad`.
+- Antes de enviarlo, revisar con `revisar-datos-ve` que lo que se declara coincida con la
+  política publicada (I).
+
+**Orden recomendado:** Messenger primero, porque es el piloto (4.4). Instagram reutiliza la misma
+app, el mismo expediente y el mismo video base. Se envía un solo paquete a revisión con los
+permisos de las dos plataformas, si Sam lo autoriza.
+
+## 4.7 TikTok: elegibilidad
+
+**Hallazgo (D, documentación de TikTok y de Chatwoot, 2026-10-30):**
+- La Business Messaging API está en **Open Beta en APAC, LATAM, METAP y Norteamérica**. Venezuela
+  es LATAM (I). Las únicas exclusiones explícitas son el EEE, Suiza y el Reino Unido.
+- **No es elegible para descartar.** El paso queda en espera de TikTok, no «descartado».
+
+**Requisitos (D):**
+- Una **TikTok Business Account** (no personal) registrada en una región elegible, con Advanced
+  Access o como Verified Business Account. Que `@dtdcargo.ve` sea Business Account es NV.
+- La cuenta tiene que aceptar mensajes directos de todos. Si no, hay que aceptar cada mensaje a
+  mano en la app.
+- **Cuenta de desarrollador** en developers.tiktok.com y **app** en
+  business-api.tiktok.com/portal/apps, con URL de términos y de privacidad (ya las tenemos).
+- **Solicitud de acceso a la Business Messaging API** con el caso de uso y el manejo de datos.
+  TikTok la aprueba después de su revisión de seguridad y privacidad de datos; Chatwoot calcula
+  «unos días».
+- Después: el permiso «TikTok Accounts», la redirect `https://chat.dtdcargo.com/tiktok/callback`,
+  `TIKTOK_APP_ID` y `TIKTOK_APP_SECRET` en Chatwoot y `Tiktok::AuthClient.update_webhook_callback`.
+
+**Límites del canal (D, de terceros):**
+- Ventana de 48 h para responder.
+- No hay mensajes iniciados por la empresa.
+- Que el beta tenga funciones distintas por región es NV.
+
+**Salida, si TikTok rechaza o no aprueba en un plazo razonable:** el paso pasa a «descartado con
+evidencia», con la respuesta de TikTok. El costo es cero, porque Chatwoot ya trae el canal.
+
+## Puertas (cada escritura en Meta, TikTok o Chatwoot lleva el OK nominal de Sam en esta sesión)
+
+| Puerta | Quién | Qué | ¿Escribe? |
+|---|---|---|---|
+| P0 | Sam (yo leo) | **Hecha** el 2026-10-30: ver la sección «P0». Decisión P0-b: «Las dos marcas» (Sam, 2026-10-30) | No |
+| P0-c | Sam | Marca DTD Cargo. Lectura **hecha** el 2026-10-31: portafolio propio «DTD Cargo», con la página «DTD Cargo» conectada a `@dtdcargo.ve`. Los mensajes de Instagram ya entran a la bandeja de Business Suite (I: el permiso de mensajes está activo). Ruta elegida por Sam (2026-10-31): «el rol en la app.», es decir la A. La cuenta B ya es Evaluador aceptado de Whats DTD (2026-10-31). Falta el tester de Instagram, `@dtdcargo.ve`, después de P2 y con su OK | Meta (lo hace Sam) |
+| P1 | Sam | En TikTok: si `@dtdcargo.ve` es Business Account y si acepta DM de todos | No |
+| P2 | Sam, con OK | En la app Whats DTD: agregar los productos **Messenger** e **Instagram API with Instagram Login**; dominio `chat.dtdcargo.com`; Facebook Login for Business con `https://chat.dtdcargo.com`. **P2-a hecha el 2026-10-31**, con el OK de Sam en esta sesión, literal «Autorizo agregarlos». En *Casos de uso* → *Añadir casos de uso* se marcaron solo «Interactúa con los clientes en Messenger from Meta» y «Administrar mensajes y contenido en Instagram». Antes de marcarlos, «Guardar» estaba desactivado: no había nada seleccionado. Al releer (R), la app tiene tres casos de uso: el de WhatsApp, que no cambió, Messenger e Instagram. **P2-b hecha el 2026-10-31**, con el OK de Sam en esta sesión, literal «Autorizo configurarlos». Cada punto se releyó después de recargar (R): (1) en Instagram, *Configuración de la API con el inicio de sesión de Instagram*: la URL de redireccionamiento del inicio de sesión de empresa es `https://chat.dtdcargo.com/instagram/callback` (la página copió el enlace de inicio de sesión al portapapeles de Sam; es un enlace, no una clave); (2) en el paso 1, «Add all required permissions» agregó `instagram_business_basic`, `instagram_business_manage_messages` e `instagram_business_manage_comments`, porque Meta los agrupa como requeridos; en App Review solo se piden los dos primeros; (3) en *Roles* → *Evaluadores de Instagram*, `@dtdcargo.ve` quedó «Pendiente»: se acepta en Instagram → *Apps y sitios web* → *Invitaciones de tester*; (4) en *Información básica*, *Dominios de la aplicación* = `chat.dtdcargo.com`; (5) en *Inicio de sesión con Facebook para empresas*, se activó «Iniciar sesión con el SDK de JavaScript» y se agregaron `https://chat.dtdcargo.com/` a los dominios del SDK y a las URI de redireccionamiento válidas. Los demás interruptores no cambiaron: OAuth de cliente y web sí, HTTPS sí y modo estricto sí. **Queda para P3–P4:** el webhook de Instagram en el paso 3, con su URL y verify token, que primero tienen que existir en Chatwoot; el webhook de Messenger; y las credenciales en Chatwoot. **No se tocó:** el caso de uso de WhatsApp, los roles existentes ni la clave secreta, que no se mostró | Meta |
+| P3 | Sam, con OK | Cargar en Chatwoot `FB_APP_ID`, `FB_APP_SECRET`, `FB_VERIFY_TOKEN` y los tres de Instagram. Hay dos formas: Sam los pega en `/super_admin/app_config` (detrás de Access), o un guion `read -rs` que los guarda con `rails runner` sin mostrarlos. Los verify tokens los genera el guion. **Hecha el 2026-10-31**, con el OK de Sam en esta sesión, literal «Autorizo cargarlas». (1) Guion `cargar-credenciales-canales-0582.sh` (notas compartidas y `/root`): Sam pegó las dos claves secretas con `read -rs`; Meta aceptó la de Facebook (HTTP 200 en `client_credentials`); la de Instagram tiene forma correcta y se prueba al conectar `@dtdcargo.ve`; se generaron los dos verify tokens; el respaldo está en `secretos/canales-0582.env` (0600) y en `/srv/ops/notas-0582/canales-20261031T180627Z.age`. (2) El paso 5 falló sin cargar nada: al subir el `.rb`, un `sed "s/\r$//"` mal escapado le quitó la última «r» a cada línea (`valor` → `valo`). Se volvió a subir sin esa limpieza (MD5 igual al local, 0 CR) y se cargó desde el respaldo con `cargar-credenciales-desde-respaldo-0582.sh`, sin pedirle nada a Sam. (3) Lectura (R): las seis claves están en `InstallationConfig` y `GlobalConfigService` las devuelve iguales (FB_APP_ID 15, FB_APP_SECRET 32, FB_VERIFY_TOKEN 48, INSTAGRAM_APP_ID 16, INSTAGRAM_APP_SECRET 32, INSTAGRAM_VERIFY_TOKEN 48); `WHATSAPP_APP_SECRET` quedó igual (vacío). (4) Prueba de verificación (`probar-verify-canales-0582.sh`, tokens en el archivo de curl, nunca en pantalla): `/webhooks/instagram` responde 200 con el token bueno y 401 con uno falso; `/bot` responde 200 **con los dos**. Ver FUERA DE ALCANCE | Chatwoot |
+| P4 | Sam, con OK | Webhooks de la app: Messenger → `/bot` con `FB_VERIFY_TOKEN`; Instagram → `/webhooks/instagram` con `INSTAGRAM_VERIFY_TOKEN`. Crear las bandejas por OAuth (Sam inicia sesión y elige la página o la cuenta) y suscribir la página a los cinco campos. **P4-a, los webhooks, hecha el 2026-10-31**, con el OK de Sam en esta sesión, literal «Autorizo seguir». (1) Instagram: yo escribí la URL `https://chat.dtdcargo.com/webhooks/instagram`; Sam pegó el verify token desde `mostrar-verify-canales-0582.sh`, que borra la pantalla al terminar y yo no leí; Meta verificó a las 18:25:38Z y Chatwoot respondió «Instagram webhook verified» con 200 (R, log de rails). Meta ya trae suscritos `comments`, `live_comments`, `message_edit`, `message_reactions`, `messages`, `messaging_postbacks`, `messaging_referral` y `messaging_seen`. (2) Messenger: URL `https://chat.dtdcargo.com/bot`; Sam pegó el token y Meta llamó a las 18:38:08Z. Como `/bot` acepta cualquier token (ver FUERA DE ALCANCE), esa llamada no prueba que el token sea el correcto. Suscribí a nivel de app solo `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads` y `message_echoes`; al recargar (R) quedan esos cinco de 71. **P4-b Messenger, hecha el 2026-10-31.** En Chrome, con la sesión de Facebook de la cuenta B, Sam pulsó «Continue with Facebook» y en el diálogo de Meta eligió «Activar solo las páginas actuales» con la página «DTD Cargo». `POST /api/v1/accounts/1/callbacks/facebook_pages` respondió 200 (R). Lectura de la base (R): la bandeja **4 «DTD Cargo»** es `Channel::FacebookPage`, el `page_id` coincide con la página «DTD Cargo», tiene token de página y no tiene Instagram vinculado. Agentes que eligió Sam: «Servicio DTD Studio» (usuario 1, administrador) y Sam (usuario 3). Las bandejas 1–3 no cambiaron. **P4-b Instagram, hecha el 2026-10-31.** Sam aceptó en Instagram, con `@dtdcargo.ve`, la invitación de evaluador de «Whats DTD-IG»; en *Apps y sitios web* quedó «Autorizado por ti el 31 de octubre de 2026» (R). Después pulsó «Continue with Instagram» en Chatwoot y autorizó. Lectura de la base (R): la bandeja **5 «dtdcargo.ve»** es `Channel::Instagram`, su `instagram_id` coincide con `@dtdcargo.ve` y tiene 2 agentes. Las bandejas 1–4 no cambiaron. **Lo que no está probado:** que entre un mensaje. Eso es P5, con cuentas que tengan rol en la app. Para Messenger sirve la cuenta A, que es administradora. Para Instagram hace falta otra cuenta de Instagram como evaluador, porque `@dtdcargo.ve` no puede escribirse a sí misma. Con la app «Publicada» en Standard Access, Meta solo entrega mensajes de personas con rol (D, documentación de Meta; no se probó con una persona ajena) | Meta y Chatwoot |
+| P5 | Sam | Demostración: escribir a la página y a `@dtdcargo.ve` desde cuentas con rol en la app. Yo leo conteos y estados. **PENDIENTE hasta que Meta apruebe**, por decisión de Sam en esta sesión el 2026-10-31, literal: «Ahorita con las pruebas, no las podemos probar hasta que nos aprueben. Deja un pendiente para probarlas más adelante, ya que queden aprobadas.» Línea base (R, 2026-10-31): bandejas 4 y 5 con 0 conversaciones y 0 mensajes. Cuando se retome: `bash /root/conteos-canales-0582.sh` (en el VPS y en las notas compartidas) da conteos por tipo y estado sin contenido. Riesgo (D): App Review suele pedir un video del flujo funcionando, y ese video solo se puede grabar con cuentas que tengan rol. Si Meta lo pide en P6, la prueba con cuentas con rol tendría que adelantarse. **Después de esa decisión**, Sam dijo, literal: «OK AVANZMEOS CON LA PRUEBA», que reactivaba P5 con cuentas con rol; sin fecha propia, y no llegó a un commit de esta rama. El 2026-11-03 dijo «Mantener la espera» (relayado por el Director General), y esa es la vigente. **Medido el 2026-11-05 (R, solo conteos, sin contenido):** bandeja 4, 0 entrantes; bandeja 5, 10 entrantes, el último a las 00:54:17Z. Quién escribió y si tiene rol: NV | No (prueba) |
+| P6 | Sam, con OK | **Enviar** el paquete de App Review con el expediente de arriba. **Preparación del 2026-10-31**, con el OK de Sam en esta sesión, literal «Sí, prepáralo». (1) *Información básica* (R, releída al recargar): términos `https://dtdcargo.com/terminos`; eliminación de datos «URL de las instrucciones» → `https://dtdcargo.com/privacidad`, cuya sección 8 explica cómo borrar; categoría «Empresa y páginas»; ícono `docs/design/studio/_norte/app-icon/icon-master-1024.png`, que subió Sam porque el navegador integrado no sube archivos. Desapareció el aviso «No cumple los requisitos para enviarse a revisión». (2) Lectura del borrador de envío, sin enviar ni escribir nada (R): Meta ya armó un borrador con `instagram_manage_comments`, `instagram_business_basic`, `instagram_business_manage_messages`, `pages_show_list`, `pages_manage_metadata` y `pages_messaging`. **Para cada permiso pide** una descripción, un **video del uso real**, «llamadas de prueba a la API» y la confirmación de uso permitido. El paso «Instrucciones para el revisor» exige antes agregar una plataforma (sitio web) a la app. Meta avisa que revisa **la app completa**, incluido el acceso actual (el de WhatsApp), y que un envío no se puede editar ni cancelar. (3) **Choque con la decisión de P5:** sin la prueba con cuentas con rol no hay video ni llamadas de prueba, así que no se puede enviar. Se lo planteé a Sam con la pregunta «¿Hacemos ya las pruebas con cuentas con rol para grabar los videos?». Respondió en esta sesión, el 2026-10-31, literal: «No me interesa; las pruebas las hacemos cuando Facebook apruebe.» **P6 queda en espera por decisión de Sam.** No se envía y no se graba nada. Consecuencia (R, por lo que pide el formulario): sin video ni llamadas de prueba Meta no recibe el envío. Las bandejas 4 y 5 siguen en Standard Access y solo reciben mensajes de cuentas con rol en la app. Si Sam cambia de idea, el orden es: prueba con cuentas con rol, video, quitar `instagram_manage_comments`, plataforma web, instrucciones y envío con su OK. (4) Sobra `instagram_manage_comments`, que no lo usa Chatwoot con Instagram Login: hay que quitarlo del envío antes de mandar. Faltaría evaluar si conviene pedir también `pages_read_engagement` y Business Asset User Profile Access, para que salgan los nombres de los clientes (I) | Meta |
+| P7 | Sam, con OK | TikTok: cuenta de desarrollador, app y solicitud de acceso a la Business Messaging API | TikTok |
+
+## Integración en `main` (2026-11-05)
+
+Base cambiada de `codex/0582-e4-meta` (#333, fusionada) a `main`, con el turno que dio el Director
+General. El merge se hizo en `DTD-worktrees/0582-e4-canales-integra`, sin conflictos, y el push a
+esta rama es avance rápido. `infra/chatwoot/compose.yml` no tiene diferencias con `main`: regla,
+revocación, `/register` y correos siguen como están.
+
+`DTD-worktrees/0582-e4-canales` no se tocó: conserva sin commit una línea de este handoff (la
+frase de Sam que recoge P5), y su rama local queda atrás de la remota.
+
+El avance del checklist sigue en 47,0 %: estos pasos están `en curso` y solo cuenta lo aceptado. El
+esfuerzo real pasa de 16,53 d a 17,33 d y el restante de 58,05 d a 57,25 d.
+
+## 2026-11-05 · Instagram recibe al público sin App Review
+
+**Corrige lo de arriba.** §4.6, P5 y P6 dicen que en Standard Access solo escriben cuentas con rol.
+Esa regla era premisa nuestra, sacada de blogs y de una frase de Chatwoot sobre Messenger. Meta no
+la respalda para Instagram Login. Lo de arriba queda como estaba, fechado.
+
+**Medido** (conteos del Director General, sin nombres ni contenido): la bandeja 5 tiene entrantes
+de 9 remitentes distintos desde 2026-10-31 22:36Z, sin App Review enviada. El primer entrante real
+después del corte de `rails` llegó el 2026-11-05 a las 00:29:48Z, `incoming` y no eco (SDD-0587).
+
+**Decisiones de Sam, por el Director General:**
+- A «¿Quién escribió por Instagram?»: «Son clientes». Lo dice él; no está medido.
+- A «Instagram ya recibe clientes reales sin la revisión de Meta. ¿Cómo queda?»: «Dejarlo
+  conectado (Recommended)».
+- «Por ahorita, el Instagram está conectado a Kommo también, así que hay que tener precaución de
+  no contestar ahora porque no hemos hecho la migración. Cuando terminemos la migración al 100% y
+  estemos listos, vamos a pasar el otro número que tenemos de la empresa para acá.»
+- **«Mantener la espera» sigue vigente** para Messenger y para el envío a App Review: Sam no ha
+  dicho otra cosa.
+
+**Lo que se infiere, sin medir:** Meta parece aplicar Standard Access a la cuenta profesional que
+recibe y no al que escribe. En la documentación de Instagram Platform, `app-review` pone
+«Standard Access | Not required» para una app que solo usa el negocio dueño. `overview` separa
+al usuario de la app de los «Instagram users who interact». En contra, la tabla de
+`webhooks/setup` pone Advanced para Instagram Login. Meta no lo dice para mensajes. **El nivel de
+cada permiso en el panel de Whats DTD sigue sin leerse.** No se extiende a Messenger: la bandeja 4
+con 0 entrantes no prueba nada.
+
+**Lo que no está probado:**
+- **La salida por la API.** Las respuestas reales de la bandeja 5 son ecos de fuera de Chatwoot, y
+  los otros salientes son notas privadas. Ninguna salió por la API. Nadie contesta Instagram desde
+  Chatwoot por ahora, y la salida no se prueba con un cliente real.
+- **Las conversaciones «sin respuesta» no son un pendiente:** el conteo de Chatwoot no ve lo que se
+  contesta por Kommo.
+- **El token.** Ningún job lo renueva: Chatwoot 4.19.1 lo renueva al leerlo, a menos de 10 días
+  de vencer. **Vence el 2026-12-30**, según el Director General, y la ventana abre el 2026-12-20.
+  Si vence, se pueden perder mensajes sin aviso. Van un cron diario que lo lea y una alarma en
+  `vigilar.sh` antes del 2026-12-20, con OK de Sam. No se ha hecho.
+
+## FUERA DE ALCANCE DETECTADO
+
+- **Chatwoot 4.19.1: `/bot` acepta cualquier verify token (R, 2026-10-31).** En
+  `config/initializers/facebook_messenger.rb`, `ChatwootFbProvider#valid_verify_token?(_verify_token)`
+  ignora el argumento y devuelve `GlobalConfigService.load('FB_VERIFY_TOKEN', '')`. Mientras
+  estaba vacío, el GET devolvía «Error; wrong verify token». Desde P3 el valor es verdadero, así
+  que `GET /bot?hub.challenge=X&hub.verify_token=<cualquiera>` devuelve 200 con `X` en el cuerpo.
+  - La respuesta no lleva `Content-Type` y sí lleva `x-content-type-options: nosniff` (R, con
+    curl).
+  - Los POST siguen protegidos por la firma con `FB_APP_SECRET`: `check_integrity` de la gema
+    facebook-messenger 2.0.1.
+  - El riesgo es que una URL del dominio devuelva texto ajeno. No permite meter eventos falsos (I).
+  - Propuesta: un override `zz_dtd_*`, como el de SDD-0584, que compare el token recibido. Es
+    código para producción y va con SDD, prueba y OK de Sam; no lo hice aquí.
+  - **Decisión de Sam, dada al Director el 2026-10-31.** El Director preguntó «¿Sumo el arreglo
+    de /bot a las decisiones del sábado?» y Sam respondió «Sí, súmalo». El arreglo entra en la
+    lista de decisiones del sábado, después del cierre de 1.6, y ese día se elige SDD y
+    responsable. La decisión no autoriza implementar ni tocar Chatwoot o Meta ahora.
+  - Lectura independiente del Director:
+    - (R) El código ignora `_verify_token`.
+    - (R) Con curl y un token falso, `/bot` responde 200, repite el challenge, no trae
+      `Content-Type` y trae `nosniff`.
+    - (I) Los navegadores no deberían interpretarla como HTML; no se probó.
+
+- **Allowlist.** La de SDD-0582 no nombra los handoffs de E4 (`0582-e4-meta.md`,
+  `0582-e4-canales.md`) ni un archivo de investigación propio. Por eso la investigación de esta
+  tarea vive aquí. El Director decide si se agrega a la allowlist.
+- **«Canales» del portal del cliente como tickets** (nota de Sam): es 10.5 de E10.
+- **Correo `info@`**: es 4.8.
+- **Instagram y la privacidad.** Al conectar Instagram y Facebook entran nombres y fotos de
+  personas a Chatwoot. La política `/privacidad` debería nombrar esos canales antes de pasar a
+  producción. Pasa por `revisar-datos-ve` (I).
+  - **Medido el 2026-11-05 (R):** `app/privacidad/page.tsx` habla de «WhatsApp u otro canal de
+    chat» para los mensajes, pero entre los proveedores nombra a Meta solo por WhatsApp, e
+    Instagram no aparece. La bandeja 5 ya recibe entrantes. Sam aprobó ese texto palabra por
+    palabra, así que cambiarlo se le pregunta a Sam; aquí no se tocó.

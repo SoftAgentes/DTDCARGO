@@ -19,7 +19,7 @@ function repoPath(absolutePath) {
 
 function parsePolicy(file, content) {
   const heading = content.match(
-    /^#\s+([A-Z][A-Z0-9]{1,5}-[0-9]{2})\s+v([0-9]+\.[0-9]+)\b/m,
+    /^#\s+([A-Z][A-Z0-9]{1,5}(?:-[A-Z0-9]{1,5})*-[0-9]{2})\s+v([0-9]+\.[0-9]+)\b/m,
   );
   const state = content.match(/^\|\s*Estado\s*\|\s*([^|]+?)\s*\|$/im);
   const approval =

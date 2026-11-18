@@ -31,6 +31,7 @@ type Operation = {
 
 let currentMembership: Membership | null;
 let operations: Operation[];
+let rpcCalls: Array<{ name: string; args: Record<string, unknown> }>;
 
 function membership(clientTenant = "tenant-a"): Membership {
   return {
@@ -58,10 +59,15 @@ function database() {
     auth: {
       getUser: async () => ({ data: { user: { id: "portal-user" } }, error: null }),
     },
-    rpc: async (name: string) => ({
-      data: name === "get_portal_client_markbox" ? "DTD-LEGACY" : null,
-      error: null,
-    }),
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      rpcCalls.push({ name, args });
+      if (name !== "client_consolidation_portal_events" || !currentMembership) throw new Error("RPC no preparada");
+      return { data: {
+        available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: currentMembership.tenant_id, clientId: currentMembership.client_id, markbox: currentMembership.clients.markbox },
+        view: args.p_shipment_id === null ? "recent" : "history", shipmentId: args.p_shipment_id, limit: args.p_limit, events: [],
+      }, error: null };
+    },
     from(table: string) {
       const operation = { table, filters: [] as Array<[string, unknown]> };
       operations.push(operation);
@@ -93,17 +99,10 @@ function domainOperations() {
   return operations.filter((item) => item.table !== "client_users");
 }
 
-function expectEventScope(operation: Operation) {
-  expect(operation.filters).toEqual(expect.arrayContaining([
-    ["tenant_id", "tenant-a"],
-    ["shipments.tenant_id", "tenant-a"],
-    ["shipments.client_markbox", "DTD-0001"],
-  ]));
-}
-
 beforeEach(() => {
   currentMembership = membership();
   operations = [];
+  rpcCalls = [];
 });
 
 describe("SDD0390 · lecturas Portal por principal y tenant", () => {
@@ -113,6 +112,7 @@ describe("SDD0390 · lecturas Portal por principal y tenant", () => {
     await expect(listMyShipmentEvents(database() as never, "ship-1")).resolves.toEqual([]);
     await expect(listMyRecentActivity(database() as never)).resolves.toEqual([]);
     expect(domainOperations()).toEqual([]);
+    expect(rpcCalls).toEqual([]);
   });
 
   it("reportes fijan tenant + Shipping Mark del principal", async () => {
@@ -125,13 +125,15 @@ describe("SDD0390 · lecturas Portal por principal y tenant", () => {
     ]));
   });
 
-  it("hitos fijan tenant del evento/envío + Shipping Mark", async () => {
+  it("hitos usan principal real y RPC de historia con selector exacto, sin consulta genérica", async () => {
     await listMyShipmentEvents(database() as never, "ship-1");
-    expectEventScope(domainOperations()[0]);
+    expect(rpcCalls).toEqual([{ name: "client_consolidation_portal_events", args: { p_shipment_id: "ship-1", p_limit: null } }]);
+    expect(domainOperations()).toEqual([]);
   });
 
   it("actividad reciente fija el mismo scope canónico", async () => {
     await listMyRecentActivity(database() as never, 4);
-    expectEventScope(domainOperations()[0]);
+    expect(rpcCalls).toEqual([{ name: "client_consolidation_portal_events", args: { p_shipment_id: null, p_limit: 4 } }]);
+    expect(domainOperations()).toEqual([]);
   });
 });

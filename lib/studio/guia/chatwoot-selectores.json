@@ -1,0 +1,49 @@
+{
+  "version": "v4.19.1-ce",
+  "medido": "Código fuente de chatwoot/chatwoot en la etiqueta v4.19.1, leído el 2026-11-06. No medido en el panel vivo (NV): lo confirma infra/chatwoot/pruebas/smoke-guia.mjs.",
+  "anclas": {
+    "bandeja.composer": {
+      "css": [".conversation-details-wrap .reply-box", ".reply-box"],
+      "obligatoria": true,
+      "condicion": "una conversación abierta",
+      "fuente": "app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue (raíz div.reply-box)"
+    },
+    "bandeja.nota-privada": {
+      "css": [".reply-box > div:first-child > button:first-child"],
+      "obligatoria": true,
+      "condicion": "una conversación abierta",
+      "fuente": "WootWriter/ReplyTopPanel.vue y WootWriter/EditorModeToggle.vue (el botón Responder / Nota privada es el primero del panel superior)"
+    },
+    "bandeja.plantillas": {
+      "css": [".reply-box .left-wrap .i-ph-whatsapp-logo"],
+      "cerca": "button",
+      "obligatoria": false,
+      "condicion": "una conversación de una bandeja de WhatsApp (v-if enableWhatsAppTemplates)",
+      "fuente": "WootWriter/ReplyBottomPanel.vue (NextButton con icon i-ph-whatsapp-logo)"
+    },
+    "bandeja.buscar": {
+      "css": ["a[href$='/search']"],
+      "obligatoria": true,
+      "condicion": "el panel cargado",
+      "fuente": "components-next/sidebar/Sidebar.vue (RouterLink a la ruta search)"
+    },
+    "bandeja.filtro-canal": {
+      "css": ["#toggleConversationFilterButton"],
+      "obligatoria": true,
+      "condicion": "la lista de conversaciones a la vista",
+      "fuente": "components/ChatListHeader.vue (NextButton id toggleConversationFilterButton)"
+    },
+    "bandeja.asignar": {
+      "css": ["[class*='md:w-[320px]'] .relative.w-full.mb-2 > button"],
+      "obligatoria": false,
+      "condicion": "una conversación abierta con el panel del contacto a la vista",
+      "fuente": "routes/dashboard/conversation/ConversationAction.vue (primer MultiselectDropdown, el del agente) dentro de ConversationSidebar.vue"
+    },
+    "ficha.panel": {
+      "css": [".conversation-details-wrap ul > li:nth-child(2) > a"],
+      "obligatoria": false,
+      "condicion": "una conversación abierta y la Dashboard App «Ficha DTD» registrada",
+      "fuente": "widgets/conversation/ConversationBox.vue (woot-tabs de las Dashboard Apps; la primera pestaña es la conversación) y ui/Tabs/TabsItem.vue"
+    }
+  }
+}

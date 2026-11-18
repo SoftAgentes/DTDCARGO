@@ -1,0 +1,63 @@
+{% comment %}SDD-0583 · aviso a agentes. Por minimización (revisar-datos-ve) no lleva el nombre del contacto ni el texto de los mensajes: se leen en el chat. Generado por correo/generar-avisos.sh.{% endcomment %}
+<tr>
+  <td style="padding: 0 0 16px;">
+    <span style="display: inline-block; padding: 6px 12px; border-radius: 999px; background-color: #F2F0EC; color: #7F0F1A; font-size: 12px; line-height: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Mención</span>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 14px;">
+    <h1 class="dtd-titulo" style="margin: 0; font-size: 32px; line-height: 38px; font-weight: 800; color: #0F1E3D;">Te mencionaron en una conversación</h1>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 10px;">
+    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #0F1E3D;">Hola, {{ user.available_name | escape }}:</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 20px;">
+    <p style="margin: 0; font-size: 15px; line-height: 23px; color: #333333;">Un compañero te mencionó en una nota interna. Ábrela en el chat para leerla.</p>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E8E6E2; border-radius: 16px; background-color: #FBFAF7;" bgcolor="#FBFAF7">
+      <tr>
+        <td style="padding: 16px 18px;">
+          <p style="margin: 0 0 4px; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B;">Te mencionó</p>
+          <p style="margin: 0; font-size: 15px; line-height: 21px; font-weight: 600; color: #0F1E3D;">{{ message.sender_display_name | escape }}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 16px 18px; border-top: 1px solid #E8E6E2;">
+          <p style="margin: 0 0 4px; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B;">Conversación</p>
+          <p style="margin: 0; font-size: 15px; line-height: 21px; font-weight: 600; color: #0F1E3D;">#{{ conversation.display_id }}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 16px 18px; border-top: 1px solid #E8E6E2;">
+          <p style="margin: 0 0 4px; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B;">Bandeja</p>
+          <p style="margin: 0; font-size: 15px; line-height: 21px; font-weight: 600; color: #0F1E3D;">{{ inbox.name | escape }}</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+{% if action_url != nil and action_url != '' %}
+<tr>
+  <td style="padding: 0 0 20px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; margin: 0;">
+      <tr>
+        <td bgcolor="#7F0F1A" style="border-radius: 14px; background-color: #7F0F1A;">
+          <a href="{{ action_url }}" style="display: block; width: 100%; box-sizing: border-box; padding: 14px 24px; font-size: 15px; line-height: 20px; font-weight: 700; color: #FFFFFF; text-align: center; text-decoration: none; border-radius: 14px;">Ver mención</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 20px;">
+    <p style="margin: 0; font-size: 14px; line-height: 21px; color: #6B6B6B;">Si el botón no funciona, abre <a href="{{ action_url }}" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">este enlace seguro</a>.</p>
+  </td>
+</tr>
+{% endif %}

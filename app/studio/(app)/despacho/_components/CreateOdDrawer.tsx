@@ -9,8 +9,10 @@
  * Submit con HTML5 form id + DrawerFooter.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useActionState, useState } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { createDispatchOrderAction } from "../actions";
 import {
   DISPATCH_HUB_OPTIONS,
@@ -284,7 +286,7 @@ export function CreateOdDrawer({
             </div>
             <CapBar pct={usage.kg_pct} label="Peso" used={`${usage.kg_used.toFixed(0)} kg`} total={`${capacity.capacity_kg} kg`} />
             <div style={{ height: 8 }} />
-            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${usage.cbm_used.toFixed(1)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
+            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${formatCbm(usage.cbm_used)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
             {usage.overflow && (
               <div
                 style={{
@@ -301,31 +303,16 @@ export function CreateOdDrawer({
 
         {/* Partials warning + reason picker */}
         {partials.length > 0 && (
-          <div
-            style={{
-              padding: 14,
-              background: "var(--warning-bg)",
-              border: "1px solid var(--warning)",
-              borderRadius: "var(--r-md)",
-            }}
+          <Aviso
+            tono="atencion"
+            compacto
+            titulo={
+              <>
+                Hay {partials.length} {partials.length === 1 ? "paquete" : "paquetes"} con carga fraccionada
+              </>
+            }
           >
-            <div
-              style={{
-                font: "700 12px/1.2 var(--f-sans)",
-                color: "var(--warning)",
-                marginBottom: 6,
-                letterSpacing: "0.02em",
-              }}
-            >
-              Hay {partials.length} {partials.length === 1 ? "paquete" : "paquetes"} con carga fraccionada
-            </div>
-            <p
-              style={{
-                font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "0 0 12px",
-              }}
-            >
+            <p style={{ margin: "0 0 12px" }}>
               Cada paquete parcial requiere un motivo. La porción que queda en bodega
               se genera como OD nueva en estado <code>creada</code>.
             </p>
@@ -368,22 +355,14 @@ export function CreateOdDrawer({
                 );
               })}
             </div>
-          </div>
+          </Aviso>
         )}
 
         {/* Server feedback */}
         {state?.error && (
-          <div
-            style={{
-              padding: 12,
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.3 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
       </form>
 
@@ -419,7 +398,7 @@ function CapBar({
           justifyContent: "space-between",
           marginBottom: 4,
           font: "600 10.5px/1 var(--f-mono)",
-          color: "var(--ink-inv-soft)",
+          color: "var(--ink-side-soft)",
         }}
       >
         <span>{label}</span>
@@ -430,7 +409,10 @@ function CapBar({
       <div
         style={{
           height: 6,
-          background: "var(--ink-inv-mute)",
+          // Pista sobre --bg-sidebar, que es oscuro en los dos temas: va con
+          // la tinta de barra lateral (5,82:1 en claro, 5,32:1 en oscuro). La
+          // tinta invertida voltea con el tema y en oscuro medía 1,07:1.
+          background: "var(--ink-side-soft)",
           borderRadius: 999,
           overflow: "hidden",
         }}

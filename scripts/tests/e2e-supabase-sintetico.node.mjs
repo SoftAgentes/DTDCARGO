@@ -9,6 +9,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { createClient } from "@supabase/supabase-js";
+
 import {
   ANON_KEY_SINTETICA,
   RUTA_SALUD_SINTETICO,
@@ -154,6 +156,31 @@ test("el deny-only: salud 200, OPTIONS 204 y todo lo demás 503 sin eco del pedi
     assert.doesNotMatch(r.texto, /persona@|clients|token/);
     assert.equal(r.headers["cache-control"], "no-store");
   }
+});
+
+test("una lectura de postgrest contra el deny-only falla sin esperar el backoff", async (t) => {
+  const servidor = crearServidorDenyOnly();
+  let pedidos = 0;
+  servidor.prependListener("request", () => {
+    pedidos += 1;
+  });
+  await new Promise((r) => servidor.listen(0, "127.0.0.1", r));
+  t.after(() => new Promise((r) => servidor.close(r)));
+  const { port } = servidor.address();
+
+  const cliente = createClient(`http://127.0.0.1:${port}`, "anon-sintetica", {
+    auth: { persistSession: false },
+  });
+  const inicio = performance.now();
+  const { data, status } = await cliente.from("ve_locality_catalog").select("city");
+  const milisegundos = performance.now() - inicio;
+
+  assert.equal(status, 503);
+  assert.equal(data, null);
+  // Prueba que el cliente sí reintenta: con 1 solo pedido, el límite no mediría nada.
+  assert.equal(pedidos, 4);
+  // El backoff sin `Retry-After` suma 7 s; nunca baja de ahí, ni en una máquina rápida.
+  assert.ok(milisegundos < 5_000, `tardó ${Math.round(milisegundos)} ms`);
 });
 
 test("el deny-only valida su puerto y no lee cabeceras ni cuerpos", async () => {

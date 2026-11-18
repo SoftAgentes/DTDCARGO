@@ -20,6 +20,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 let rol: string | null = "support";
 /** Tablas de DOMINIO que la ruta llegó a tocar, con su operación. */
 const tocadas: string[] = [];
+/** La lectura de ámbito nueva no es una escritura ni se mezcla con dominio. */
+const scopeCalls: Record<string, unknown>[] = [];
 
 /**
  * Doble de PostgREST acotado a lo que estas rutas piden. Registra las tablas de
@@ -29,9 +31,16 @@ const tocadas: string[] = [];
 function makeClient() {
   const client = {
     auth: { getUser: async () => ({ data: { user: { id: "u-support" } } }) },
-    rpc: async (fn: string) => {
+    rpc: async (fn: string, args?: Record<string, unknown>) => {
       if (fn === "get_user_tenant_id") return { data: "t-1", error: null };
-      return { data: null, error: null };
+      if (fn === "client_consolidation_scope") {
+        if (!args) return { data: null, error: { code: "22023", message: "Falta ámbito" } };
+        expect(args).toEqual({ p_shipment_ids: ["s-1"], p_receipt_ids: [], p_container_ids: [], p_box_ids: [] });
+        scopeCalls.push(args);
+        return { data: { available: true, complete: true, checked: { shipmentIds: ["s-1"], receiptIds: [], containerIds: [], boxIds: [] },
+          shipmentIds: [], receiptIds: [], containerIds: [], boxIds: [] }, error: null };
+      }
+      return { data: null, error: { code: "PGRST202", message: "RPC no preparada por esta fixture" } };
     },
     from(table: string) {
       const chain: Record<string, unknown> = {};
@@ -88,6 +97,7 @@ const params = { params: Promise.resolve({ id: "s-1" }) };
 describe("POST shipments/[id]/events · gate de edición de tracking", () => {
   beforeEach(() => {
     tocadas.length = 0;
+    scopeCalls.length = 0;
     rol = "support";
   });
 
@@ -98,6 +108,7 @@ describe("POST shipments/[id]/events · gate de edición de tracking", () => {
       error: "No tienes permiso para realizar esta acción.",
     });
     expect(tocadas).toEqual([]);
+    expect(scopeCalls).toEqual([]);
   });
 
   it("sin membership activa → 403 y el envío NO se toca", async () => {
@@ -105,6 +116,7 @@ describe("POST shipments/[id]/events · gate de edición de tracking", () => {
     const res = await POST(req({ status: "shipped" }), params);
     expect(res.status).toBe(403);
     expect(tocadas).toEqual([]);
+    expect(scopeCalls).toEqual([]);
   });
 
   it("operations (sí edita tracking) → pasa el gate y llega al envío", async () => {
@@ -115,6 +127,7 @@ describe("POST shipments/[id]/events · gate de edición de tracking", () => {
     // con el rol correcto la misma petición sí alcanza el dominio.
     expect(tocadas).toContain("shipments:select");
     expect(tocadas).toContain("shipment_events:insert");
+    expect(scopeCalls).toEqual([{ p_shipment_ids: ["s-1"], p_receipt_ids: [], p_container_ids: [], p_box_ids: [] }]);
   });
 
   it("estado inválido → 400 antes de cualquier cosa (no lo cambia el gate)", async () => {
@@ -122,5 +135,6 @@ describe("POST shipments/[id]/events · gate de edición de tracking", () => {
     const res = await POST(req({ status: "inventado" }), params);
     expect(res.status).toBe(400);
     expect(tocadas).toEqual([]);
+    expect(scopeCalls).toEqual([]);
   });
 });

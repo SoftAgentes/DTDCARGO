@@ -20,6 +20,7 @@ import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { getAcceptanceEvidence } from "@/lib/studio/legal/queries";
 import { PrintButton } from "./PrintButton";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Expediente de aceptación · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -63,6 +64,10 @@ export default async function EvidencePrintPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("legal");
+
   const { code: raw } = await params;
   const code = decodeURIComponent(raw ?? "").trim();
 

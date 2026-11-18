@@ -35,6 +35,11 @@ export type Client = {
   id: string;
   tenant_id: string;
   markbox: string;
+  /**
+   * SDD-0664 · Solo en resultados de búsqueda: el Shipping Mark anterior del
+   * cliente que coincidió con lo buscado. No es una columna de `clients`.
+   */
+  codigo_anterior?: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -252,7 +257,8 @@ const VALID_TIERS: ClientTier[] = ["regular", "vip", "premium"];
 export type ClientActionState = {
   ok?: boolean;
   error?: string;
-  fieldErrors?: Partial<Record<keyof ClientInput, string>>;
+  // `markbox`: el código escrito a mano en el alta (SDD-0646).
+  fieldErrors?: Partial<Record<keyof ClientInput | "markbox", string>>;
   /** En create, el server devuelve el markbox autogenerado. */
   createdMarkbox?: string;
   /**

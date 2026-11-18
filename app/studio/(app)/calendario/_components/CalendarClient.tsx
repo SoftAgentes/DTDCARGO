@@ -143,12 +143,8 @@ export function CalendarClient({
       <div
         role="tablist"
         aria-label="Secciones del calendario"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 18,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((t) => {
           const active = tab === t.v;
@@ -158,32 +154,13 @@ export function CalendarClient({
               type="button"
               role="tab"
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t.v)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "10px 4px",
-                margin: "0 8px",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
               {typeof t.count === "number" && (
-                <span
-                  style={{
-                    font: "700 10.5px/1 var(--f-mono)",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  {t.count}
-                </span>
+                <span className="studio-tab-n">{t.count}</span>
               )}
             </button>
           );
@@ -258,13 +235,7 @@ export function CalendarClient({
               <div
                 role="tablist"
                 aria-label="Vista del calendario"
-                style={{
-                  display: "inline-flex",
-                  padding: 3,
-                  background: "var(--bg-elevated)",
-                  borderRadius: 8,
-                  gap: 2,
-                }}
+                className="studio-tabs"
               >
                 {VIEW_OPTS.map((o) => (
                   <button
@@ -272,8 +243,9 @@ export function CalendarClient({
                     type="button"
                     role="tab"
                     aria-selected={view === o.v}
+                    data-activa={view === o.v ? "true" : undefined}
                     onClick={() => setView(o.v)}
-                    className="studio-cal-viewbtn"
+                    className="studio-tab"
                   >
                     {o.icon()} {o.label}
                   </button>

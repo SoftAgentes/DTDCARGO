@@ -17,7 +17,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { SERVICE_LABELS } from "@/lib/shared/shipment-public";
 import type { ShipmentService } from "@/lib/shared/shipment-public";
 
@@ -77,9 +77,20 @@ export async function notifyCotizacionRequestToAdmin(
     }
 
     // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
-    await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
-      logTag: "cotizacion-request-notify",
-    });
+    await dispatchAlert(
+      supabaseAdmin,
+      tenantId,
+      "equipo",
+      {
+        telegramText,
+        discord: {
+          titulo: "Solicitud de cotización del portal",
+          codigo: payload.code,
+          url: studioUrl,
+        },
+      },
+      { logTag: "cotizacion-request-notify" },
+    );
   } catch (err) {
     console.error(
       "[cotizacion-request-notify] notifyCotizacionRequestToAdmin falló:",

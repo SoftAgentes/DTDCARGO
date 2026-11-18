@@ -1,0 +1,14 @@
+# Overlay de la PRUEBA del correo automático (SDD-0582 4.8, P4). Nunca en el VPS.
+#
+# prueba-correo-sistema.sh corre la sonda con `rails runner` en `prepare`, que solo está en la
+# red `interna` (internal: true): sin salida a internet. Monta el inicializador
+# correo/zz_dtd_correo_sistema.rb donde lo montaría el compose real al instalarlo, para que cargue
+# al arrancar Rails, y las pruebas en /tmp/pruebas.
+#
+# El control usa compose.correo-sistema-control.yml: las mismas pruebas, sin el inicializador.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas:/tmp/pruebas:ro
+      - ./correo/zz_dtd_correo_sistema.rb:/app/config/initializers/zz_dtd_correo_sistema.rb:ro

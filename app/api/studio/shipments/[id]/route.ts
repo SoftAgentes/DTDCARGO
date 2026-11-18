@@ -32,6 +32,9 @@ import {
   shipmentDeleteBlockReason,
 } from "@/lib/studio/borrado/reglas";
 import { eliminarEmbarques } from "@/lib/studio/borrado/servidor";
+import { readNormalAssociations, readNormalShipment, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
 
 async function requireStudioSession() {
   const supabase = await createClient();
@@ -86,9 +89,14 @@ export async function GET(
       return NextResponse.json({ error: "Envío no encontrado." }, { status: 404 });
     }
     const events = await getShipmentEvents(supabase, id);
+    let normal: NormalShipmentRead;
+    try { normal = { available: true, context: await readNormalShipment(supabase, id) }; }
+    catch (error) { normal = { available: false, error: normalReadMessage(error) }; }
+    const canSeeNames = await readCanSeeClientNames(supabase);
     return NextResponse.json({
-      shipment: segunVisibilidad(shipment, await readCanSeeClientNames(supabase)),
+      shipment: segunVisibilidad(shipment, canSeeNames),
       events,
+      normal: segunVisibilidad(normal, canSeeNames),
     });
   } catch (err) {
     return apiError("No pudimos leer el envío.", err, 500, "shipments:get");
@@ -120,6 +128,10 @@ export async function PATCH(
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Sin cambios para guardar." }, { status: 400 });
   }
+  try {
+    const scope = await readNormalAssociations(supabase, { shipmentIds: [id] });
+    if (scope.shipmentIds.length) return NextResponse.json({ error: LEGACY_COHORT_DENIAL }, { status: 409 });
+  } catch (error) { return NextResponse.json({ error: normalReadMessage(error) }, { status: 503 }); }
 
   // Validar tipos numericos
   if (update.weight_kg !== undefined && update.weight_kg !== null) {
@@ -184,6 +196,10 @@ export async function DELETE(
     typeof body === "object" && body !== null ? (body as { reason?: unknown }).reason : undefined,
   );
   if (!motivo.ok) return NextResponse.json({ error: motivo.error }, { status: 400 });
+  try {
+    const scope = await readNormalAssociations(supabase, { shipmentIds: [id] });
+    if (scope.shipmentIds.length) return NextResponse.json({ error: LEGACY_COHORT_DENIAL }, { status: 409 });
+  } catch (error) { return NextResponse.json({ error: normalReadMessage(error) }, { status: 503 }); }
 
   const resultado = await eliminarEmbarques(supabase, lote.ids, motivo.reason);
   if (resultado.estado === "eliminado") return NextResponse.json({ ok: true });

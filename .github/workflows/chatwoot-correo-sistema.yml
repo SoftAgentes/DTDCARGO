@@ -1,0 +1,62 @@
+name: Correo automático en Chatwoot
+
+# SDD-0582 4.8, P4: prueba del inicializador correo/zz_dtd_correo_sistema.rb (rebotes y respuestas
+# automáticas con la etiqueta «sistema» y resueltas) con datos INVENTADOS, sobre la imagen real de
+# Chatwoot (v4.19.1-ce, fijada por digest en infra/chatwoot/compose.yml) con su Postgres y su Redis.
+# Corre T (con el inicializador), el control C (sin él: el rebote tiene que quedar abierto, como en
+# PC-1), el control M0 y 7 mutantes, y los casos V del guion de PC-3 (correo/bandeja-vzla.rb) con sus
+# 2 mutantes (prueba-correo-sistema.sh).
+#
+# Sin secretos ni variables del repositorio. Rails corre en `prepare`, que vive en la red `interna`
+# (internal: true) del compose: ningún correo sale ni entra. No instala nada en el VPS.
+# No reemplaza a «Calidad continua» (quality.yml), que corre solo contra main.
+
+on:
+  pull_request:
+    paths:
+      - "infra/chatwoot/correo/zz_dtd_correo_sistema.rb"
+      - "infra/chatwoot/correo/bandeja-vzla.rb"
+      - "infra/chatwoot/pruebas/prueba-correo-sistema.sh"
+      - "infra/chatwoot/pruebas/sonda-correo-sistema.rb"
+      - "infra/chatwoot/pruebas/sonda-bandeja-vzla.rb"
+      - "infra/chatwoot/pruebas/compose.correo-sistema.yml"
+      - "infra/chatwoot/pruebas/compose.correo-sistema-control.yml"
+      - "infra/chatwoot/pruebas/compose.local.yml"
+      - "infra/chatwoot/compose.yml"
+      - "infra/chatwoot/rails/**"
+      - ".github/workflows/chatwoot-correo-sistema.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatwoot-correo-sistema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  correo-sistema:
+    name: Correo automático (datos inventados)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CI: "true"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Inicializador con la imagen real, control y mutantes
+        run: bash infra/chatwoot/pruebas/prueba-correo-sistema.sh
+
+      - name: Salidas de la prueba (sin datos reales)
+        if: always()
+        run: |
+          d="${TEMP:-/tmp}/cw-correo-sistema"
+          for f in "$d"/resumen.txt "$d"/prepare.txt "$d"/caso-*.txt; do
+            [ -f "$f" ] || continue
+            echo "::group::$(basename "$f")"
+            tail -n 120 "$f"
+            echo "::endgroup::"
+          done

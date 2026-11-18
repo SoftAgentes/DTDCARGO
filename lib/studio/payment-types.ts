@@ -1,3 +1,4 @@
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 /**
  * Tipos TypeScript del módulo Cobranzas (SDD-0041 + SDD-0068).
  * Matchea schema de supabase/migrations/0079_cobranzas.sql
@@ -429,8 +430,8 @@ export function validatePaymentInput(
     ? (input.method as PaymentMethod)
     : "transferencia";
 
-  const receivedAt = (input.receivedAt ?? "").trim();
-  if (receivedAt && !/^\d{4}-\d{2}-\d{2}$/.test(receivedAt)) {
+  const receivedAt = input.receivedAt === undefined ? fechaCaracas() : input.receivedAt;
+  if (!isCalendarDate(receivedAt)) {
     errors.receivedAt = "Fecha de cobro inválida (YYYY-MM-DD).";
   }
 
@@ -467,7 +468,7 @@ export function validatePaymentInput(
       amount,
       cashAccountId,
       method,
-      receivedAt: receivedAt || new Date().toISOString().slice(0, 10),
+      receivedAt,
       reference: input.reference?.trim() || null,
       notes: input.notes?.trim() || null,
       payerKind,
@@ -546,13 +547,18 @@ export function validateUnidentifiedPaymentInput(
   if (currency === "VES" && !fxRate) {
     errors.fxRate = "Indica la tasa BCV para registrar un pago en bolívares.";
   }
+  // SDD-0572 (decisión del Director, 2026-10-20): sin tasa no se asienta, así
+  // que el cobro en yuanes también la exige.
+  if (currency === "CNY" && !fxRate) {
+    errors.fxRate = "Indica la tasa para registrar un pago en yuanes.";
+  }
 
   const method: PaymentMethod = VALID_METHODS.has(input.method ?? "")
     ? (input.method as PaymentMethod)
     : "transferencia";
 
-  const receivedAt = (input.receivedAt ?? "").trim();
-  if (receivedAt && !/^\d{4}-\d{2}-\d{2}$/.test(receivedAt)) {
+  const receivedAt = input.receivedAt === undefined ? fechaCaracas() : input.receivedAt;
+  if (!isCalendarDate(receivedAt)) {
     errors.receivedAt = "Fecha de recepción inválida (YYYY-MM-DD).";
   }
 
@@ -567,7 +573,7 @@ export function validateUnidentifiedPaymentInput(
       fxRate,
       cashAccountId,
       method,
-      receivedAt: receivedAt || new Date().toISOString().slice(0, 10),
+      receivedAt,
       reference: input.reference?.trim() || null,
       notes: input.notes?.trim() || null,
     },

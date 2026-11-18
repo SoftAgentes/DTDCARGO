@@ -14,6 +14,8 @@ import type { Contractor } from "@/lib/studio/nomina/contractor-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createContractorPaymentAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "pago-prestador-form";
 const initial: NominaActionState = {};
@@ -45,7 +47,7 @@ export function PagoPrestadorDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",
@@ -69,7 +71,7 @@ export function PagoPrestadorDrawer({
         </Field>
 
         <Field label="Fecha del pago" error={state.fieldErrors?.paid_on}>
-          <input name="paid_on" type="date" className="studio-input" defaultValue={today} />
+          <DateField name="paid_on" defaultValue={today} />
         </Field>
 
         <Field label="Concepto" error={state.fieldErrors?.concept} required>

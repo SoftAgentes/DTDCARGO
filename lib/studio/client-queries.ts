@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { clientesPorCodigoViejo, nucleoDeCodigo } from "./client-codigo-viejo";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import type { Client, ClientTier } from "./client-types";
 // SDD-0265: los topes viven en `client-types` porque el componente client los
@@ -89,6 +90,8 @@ function construirQuery(
   filters: ClientFilters,
   limite: number,
   conTotal: boolean,
+  /** SDD-0664 · clientes que coinciden por un código anterior (historial o fusión). */
+  idsPorCodigoViejo: readonly string[] = [],
 ) {
   const base = supabase.from("clients");
   // SDD-0509: la RLS NO oculta a los eliminados — "clients by tenant" (0456)
@@ -116,15 +119,23 @@ function construirQuery(
     const term = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
     // SDD-0106: cédula primero, Shipping Mark después. Para un match exacto
     // tolerante a formato usá getClientByCedula(); esta búsqueda libre es ilike.
-    query = query.or(
-      [
-        `rif.ilike.%${term}%`,
-        `name.ilike.%${term}%`,
-        `markbox.ilike.%${term}%`,
-        `email.ilike.%${term}%`,
-        `phone.ilike.%${term}%`,
-      ].join(","),
-    );
+    const condiciones = [
+      `rif.ilike.%${term}%`,
+      `name.ilike.%${term}%`,
+      `markbox.ilike.%${term}%`,
+      `email.ilike.%${term}%`,
+      `phone.ilike.%${term}%`,
+    ];
+    // SDD-0664: «dtd 8901» o «DTD8901» también encuentran a DTD-8901, y un
+    // código anterior (historial o fusión) trae al cliente que hoy lo reemplaza.
+    const nucleo = nucleoDeCodigo(term);
+    if (nucleo && nucleo.toLowerCase() !== term.toLowerCase()) {
+      condiciones.push(`markbox.ilike.%${nucleo}%`);
+    }
+    if (idsPorCodigoViejo.length > 0) {
+      condiciones.push(`id.in.(${idsPorCodigoViejo.join(",")})`);
+    }
+    query = query.or(condiciones.join(","));
   }
 
   return query;
@@ -143,9 +154,22 @@ export async function listClients(
   filters: ClientFilters = {},
 ): Promise<Client[]> {
   const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
-  const { data, error } = await construirQuery(supabase, filters, limite, false);
+  const viejos = await clientesPorCodigoViejo(supabase, filters.q);
+  const { data, error } = await construirQuery(supabase, filters, limite, false, [...viejos.keys()]);
   if (error) throw error;
-  return (data as Client[] | null) ?? [];
+  return conCodigoAnterior((data as Client[] | null) ?? [], viejos);
+}
+
+/** SDD-0664 · Marca en cada cliente el código anterior por el que apareció. */
+export function conCodigoAnterior(
+  clients: Client[],
+  viejos: ReadonlyMap<string, string>,
+): Client[] {
+  if (viejos.size === 0) return clients;
+  return clients.map((c) => {
+    const anterior = viejos.get(c.id);
+    return anterior ? { ...c, codigo_anterior: anterior } : c;
+  });
 }
 
 /**
@@ -164,10 +188,13 @@ export async function listClientsPage(
   filters: ClientFilters = {},
 ): Promise<ClientsPage> {
   const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
-  const { data, error, count } = await construirQuery(supabase, filters, limite, true);
+  const viejos = await clientesPorCodigoViejo(supabase, filters.q);
+  const { data, error, count } = await construirQuery(supabase, filters, limite, true, [
+    ...viejos.keys(),
+  ]);
   if (error) throw error;
 
-  const clients = (data as Client[] | null) ?? [];
+  const clients = conCodigoAnterior((data as Client[] | null) ?? [], viejos);
   // Si PostgREST no devuelve `count`, NO inventamos un total: usamos lo que
   // trajimos, que es lo único que sabemos de verdad.
   const total = count ?? clients.length;
@@ -239,6 +266,93 @@ export async function listShipmentsByMarkbox(
     )
     .is("deleted_at", null)
     .eq("client_markbox", markbox)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Tope de saltos de la cadena de fusiones, el mismo de `resolve_markbox` (0341/0367). */
+const MAX_SALTOS_FUSION = 10;
+
+/**
+ * SDD-0650 F1 · Todos los códigos de una ficha: el vigente primero, después su
+ * historial (0367), y los de las fichas fusionadas en ella (0341,
+ * `merged_into_client_id`, hasta 10 saltos) con sus propios historiales. Es la
+ * misma familia de códigos con la que `client_outstanding` (0492) arma el saldo:
+ * sin esto, la ficha sumaba la deuda de un código viejo pero escondía sus
+ * embarques.
+ *
+ * Comparación exacta, igual que `listShipmentsByMarkbox`. La RLS aísla el
+ * tenant y se filtra igual. Lanza si una lectura falla: quien llama decide.
+ */
+export async function listCodigosDeLaFicha(
+  supabase: SupabaseClient,
+  client: { id: string; tenant_id: string; markbox: string },
+  historial: readonly string[],
+): Promise<string[]> {
+  const codigos: string[] = [client.markbox, ...historial];
+  const vistos = new Set<string>([client.id]);
+  let frontera = [client.id];
+
+  for (let salto = 0; salto < MAX_SALTOS_FUSION && frontera.length > 0; salto++) {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("id, markbox")
+      .eq("tenant_id", client.tenant_id)
+      .in("merged_into_client_id", frontera);
+    if (error) throw error;
+    frontera = [];
+    for (const fila of (data ?? []) as { id: string; markbox: string | null }[]) {
+      if (vistos.has(fila.id)) continue;
+      vistos.add(fila.id);
+      frontera.push(fila.id);
+      if (fila.markbox) codigos.push(fila.markbox);
+    }
+  }
+
+  const fusionadas = [...vistos].filter((id) => id !== client.id);
+  if (fusionadas.length > 0) {
+    const { data, error } = await supabase
+      .from("client_markbox_history")
+      .select("markbox")
+      .in("client_id", fusionadas);
+    if (error) throw error;
+    for (const fila of (data ?? []) as { markbox: string | null }[]) {
+      if (fila.markbox) codigos.push(fila.markbox);
+    }
+  }
+
+  const unicos: string[] = [];
+  for (const c of codigos) {
+    const limpio = c.trim();
+    if (limpio !== "" && !unicos.includes(limpio)) unicos.push(limpio);
+  }
+  return unicos;
+}
+
+/**
+ * SDD-0650 F1 · Los embarques vivos de TODOS los códigos de la ficha
+ * (`listCodigosDeLaFicha`). Trae `client_markbox` para que la ficha marque los
+ * que llegaron con un código anterior. Mismo filtro de eliminados (SDD-0509),
+ * orden y tope que `listShipmentsByMarkbox`. El tenant se filtra además de la
+ * RLS, como defensa en profundidad: un código puede repetirse entre tenants.
+ */
+export async function listShipmentsDeLaFicha(
+  supabase: SupabaseClient,
+  tenantId: string,
+  codigos: readonly string[],
+) {
+  if (codigos.length === 0) return [];
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(
+      "id, code, origin, destination, shipment_service, status, created_at, client_markbox",
+    )
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null)
+    .in("client_markbox", [...codigos])
     .order("created_at", { ascending: false })
     .limit(200);
 

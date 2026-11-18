@@ -18,6 +18,19 @@ import { isBoxCode } from "@/lib/studio/etiquetas-qr";
 import { isZoneInLayout, type ZoneCoord, type ZoneLayout } from "@/lib/studio/naviera/zones";
 import { isContainerTypeCode } from "@/lib/studio/naviera/types";
 import { notifyConsolidationRequestToOffice } from "@/lib/studio/naviera/consolidation-request-notify";
+import { fetchAllPaged, fetchAllByIds } from "@/lib/db/paginate";
+import { readNormalMobileContext, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { normalFlowError } from "@/lib/studio/client-consolidation/normal-flow";
+
+async function physicalReview(admin: ReturnType<typeof createAdminClient>, operarioId: string, containerId: string, expectedRevision?: number | null) {
+  try {
+    const context = await readNormalMobileContext(admin, operarioId, containerId);
+    if (context.cohort && (!Number.isSafeInteger(expectedRevision) || expectedRevision !== context.revision)) {
+      return { error: "La carga cambió. Actualiza y vuelve a revisar el lote antes de estibar." };
+    }
+    return { context };
+  } catch (error) { return { error: normalReadMessage(error) }; }
+}
 
 export type StuffBoxActionState = {
   ok?: boolean;
@@ -98,6 +111,7 @@ export async function stuffBoxAction(
   zone: ZoneCoord,
   layout: ZoneLayout,
   manual: boolean,
+  expectedRevision?: number | null,
 ): Promise<StuffBoxActionState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
@@ -113,7 +127,12 @@ export async function stuffBoxAction(
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("stuff_box_as_operario", {
+  const review = await physicalReview(admin, auth.session.operario_id, consolidationId, expectedRevision);
+  if (!review.context) return { error: review.error };
+  const { data, error } = review.context.cohort ? await admin.rpc("client_consolidation_physical", {
+    p_operario_id: auth.session.operario_id, p_container_id: consolidationId, p_operation: "stow_box",
+    p_expected_revision: expectedRevision, p_code: trimmed, p_zone: zone, p_manual: manual,
+  }) : await admin.rpc("stuff_box_as_operario", {
     p_operario_id: auth.session.operario_id,
     p_consolidation_id: consolidationId,
     p_code: trimmed,
@@ -123,7 +142,7 @@ export async function stuffBoxAction(
     p_manual: manual,
   });
 
-  if (error) return { error: humanizeStuffError(error.message) };
+  if (error) return { error: (review.context.cohort || error.hint === "dtd-client-normal") ? normalFlowError(error) : humanizeStuffError(error.message) };
 
   const result = (data ?? {}) as {
     code?: string;
@@ -155,6 +174,7 @@ export async function stuffBoxAction(
 export async function unstuffBoxAction(
   consolidationId: string,
   code: string,
+  expectedRevision?: number | null,
 ): Promise<StuffBoxActionState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
@@ -165,12 +185,17 @@ export async function unstuffBoxAction(
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("unstuff_box_as_operario", {
+  const review = await physicalReview(admin, auth.session.operario_id, consolidationId, expectedRevision);
+  if (!review.context) return { error: review.error };
+  const { data, error } = review.context.cohort ? await admin.rpc("client_consolidation_physical", {
+    p_operario_id: auth.session.operario_id, p_container_id: consolidationId, p_operation: "unstow_box",
+    p_expected_revision: expectedRevision, p_code: trimmed,
+  }) : await admin.rpc("unstuff_box_as_operario", {
     p_operario_id: auth.session.operario_id,
     p_code: trimmed,
   });
 
-  if (error) return { error: humanizeStuffError(error.message) };
+  if (error) return { error: (review.context.cohort || error.hint === "dtd-client-normal") ? normalFlowError(error) : humanizeStuffError(error.message) };
 
   const result = (data ?? {}) as { code?: string; stuffed_count?: number };
   revalidatePath(`/m/cn/estibar/${consolidationId}`);
@@ -190,10 +215,11 @@ export type LotLookup = {
   clientMarkbox: string | null;
   clientName: string | null;
   lotSize: number; // cajas recibidas de esa compra, sin montar
+  review?: { cohort: boolean; revision: number | null };
 };
 export type LotLookupState = LotLookup | { found: false; error: string };
 
-export async function lookupLotAction(code: string): Promise<LotLookupState> {
+export async function lookupLotAction(code: string, consolidationId?: string): Promise<LotLookupState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { found: false, error: auth.error ?? "Sesión inválida." };
 
@@ -203,6 +229,13 @@ export async function lookupLotAction(code: string): Promise<LotLookupState> {
   }
 
   const admin = createAdminClient();
+  let reviewed: LotLookup["review"];
+  if (consolidationId) {
+    try {
+      const context = await readNormalMobileContext(admin, auth.session.operario_id, consolidationId);
+      reviewed = { cohort: context.cohort, revision: context.revision };
+    } catch (error) { return { found: false, error: normalReadMessage(error) }; }
+  }
   const { data: box } = await admin
     .from("warehouse_boxes")
     .select("code, status, prealerta_id")
@@ -222,32 +255,27 @@ export async function lookupLotAction(code: string): Promise<LotLookupState> {
     return { found: false, error: `La caja ${trimmed} no viene de una compra.` };
   }
 
-  const { data: pre } = await admin
+  const { data: pre, error: preError } = await admin
     .from("prealertas")
     .select("code, client_markbox")
     .eq("id", box.prealerta_id)
+    .eq("tenant_id", auth.session.tenant_id)
     .maybeSingle<{ code: string; client_markbox: string }>();
 
   // El lote = cajas recibidas de esa compra que todavía no están montadas.
-  const { data: lotRows } = await admin
-    .from("warehouse_boxes")
-    .select("id")
-    .eq("tenant_id", auth.session.tenant_id)
-    .eq("prealerta_id", box.prealerta_id)
-    .eq("status", "recibida")
-    .is("deleted_at", null);
-
-  // Descontar las que ya tienen posición viva.
-  let lotSize = lotRows?.length ?? 0;
-  if (lotRows && lotRows.length > 0) {
-    const ids = lotRows.map((r) => (r as { id: string }).id);
-    const { data: live } = await admin
-      .from("consolidation_box_positions")
-      .select("box_id")
-      .in("box_id", ids)
-      .is("unstuffed_at", null);
-    lotSize -= live?.length ?? 0;
-  }
+  if (preError || !pre) return { found: false, error: "No se pudo comprobar la compra del lote." };
+  let lotSize: number;
+  try {
+    const lotRows = await fetchAllPaged<{ id: string }>((from, to) => admin.from("warehouse_boxes").select("id")
+      .eq("tenant_id", auth.session.tenant_id).eq("prealerta_id", box.prealerta_id!).eq("status", "recibida")
+      .is("deleted_at", null).order("id", { ascending: true }).range(from, to));
+    if (!lotRows.complete) return { found: false, error: "No se pudo leer el lote completo. Actualiza antes de confirmar." };
+    const live = await fetchAllByIds<{ box_id: string }>(lotRows.rows.map((row) => row.id), (ids, from, to) => admin
+      .from("consolidation_box_positions").select("box_id").in("box_id", ids).is("unstuffed_at", null)
+      .order("box_id", { ascending: true }).range(from, to));
+    if (!live.complete) return { found: false, error: "No se pudo leer la estiba completa del lote." };
+    lotSize = lotRows.rows.length - new Set(live.rows.map((position) => position.box_id)).size;
+  } catch { return { found: false, error: "No se pudo comprobar la cantidad del lote. Vuelve a consultar." }; }
 
   return {
     found: true,
@@ -258,6 +286,7 @@ export async function lookupLotAction(code: string): Promise<LotLookupState> {
     // Shipping Mark. Redacción server-side: nunca se envía el nombre real.
     clientName: null,
     lotSize: Math.max(lotSize, 0),
+    review: reviewed,
   };
 }
 
@@ -273,6 +302,8 @@ export type StuffLotState = {
   prealertaCode?: string;
   clientName?: string | null;
   clientMarkbox?: string | null;
+  warning?: string;
+  normalRevision?: number;
 };
 
 export async function stuffLotAction(
@@ -287,6 +318,7 @@ export async function stuffLotAction(
    */
   planId?: string | null,
   siguioPlan?: boolean | null,
+  expectedRevision?: number | null,
 ): Promise<StuffLotState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
@@ -305,7 +337,12 @@ export async function stuffLotAction(
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("stuff_lot_as_operario", {
+  const review = await physicalReview(admin, auth.session.operario_id, consolidationId, expectedRevision);
+  if (!review.context) return { error: review.error };
+  const { data, error } = review.context.cohort ? await admin.rpc("client_consolidation_physical", {
+    p_operario_id: auth.session.operario_id, p_container_id: consolidationId, p_operation: "stow_lot",
+    p_expected_revision: expectedRevision, p_code: trimmed, p_width: width, p_count: cnt,
+  }) : await admin.rpc("stuff_lot_as_operario", {
     p_operario_id: auth.session.operario_id,
     p_consolidation_id: consolidationId,
     p_scanned_code: trimmed,
@@ -313,7 +350,7 @@ export async function stuffLotAction(
     p_count: cnt,
   });
 
-  if (error) return { error: humanizeStuffError(error.message) };
+  if (error) return { error: (review.context.cohort || error.hint === "dtd-client-normal") ? normalFlowError(error) : humanizeStuffError(error.message) };
 
   const r = (data ?? {}) as {
     stuffed?: number;
@@ -324,7 +361,13 @@ export async function stuffLotAction(
     prealerta_code?: string;
     client_name?: string | null;
     client_markbox?: string | null;
+    normal_revision?: number;
   };
+  if (review.context.cohort && (r.normal_revision !== expectedRevision || !Number.isSafeInteger(r.stuffed) || (r.stuffed ?? 0) < 1
+    || !Number.isSafeInteger(r.load_order) || !Number.isSafeInteger(r.remaining))) {
+    return { error: "No se pudo comprobar la estiba. Consulta el contenedor antes de intentar montarla otra vez." };
+  }
+  let warning: string | undefined;
   // SDD-0184 · Fase 4: marcar el lote recién montado contra el plan.
   //
   // Se hace con un UPDATE posterior y NO agregándole parámetros al RPC: con
@@ -336,7 +379,16 @@ export async function stuffLotAction(
   // se pierde la traza del plan. Fallar del otro lado (abortar la estiba porque
   // no se pudo anotar el plan) sería peor para el operario que está en el galpón.
   if (planId && r.load_order != null) {
-    const { error: markError } = await admin
+    if (review.context.cohort) {
+      try {
+        const { data: trace, error: markError } = await admin.rpc("client_consolidation_annotate_plan", {
+          p_operario_id: auth.session.operario_id, p_container_id: consolidationId, p_load_order: r.load_order,
+          p_plan_id: planId, p_expected_revision: expectedRevision, p_followed: siguioPlan ?? null,
+        });
+        if (markError || trace?.ok !== true) warning = "La estiba quedó registrada; no se pudo vincular al plan vigente. Actualiza sin repetirla.";
+      } catch { warning = "La estiba quedó registrada; la traza del plan no se pudo comprobar. Actualiza sin repetirla."; }
+    } else {
+      const { error: markError } = await admin
       .from("consolidation_box_positions")
       .update({ plan_id: planId, siguio_plan: siguioPlan ?? null })
       .eq("consolidation_id", consolidationId)
@@ -344,6 +396,7 @@ export async function stuffLotAction(
       .is("unstuffed_at", null);
     if (markError) {
       console.error("[estibar] no se pudo marcar el plan del lote", markError);
+    }
     }
   }
 
@@ -359,21 +412,28 @@ export async function stuffLotAction(
     prealertaCode: r.prealerta_code,
     clientName: null, // privacidad · hallazgo H-7
     clientMarkbox: r.client_markbox ?? null,
+    ...(warning ? { warning } : {}),
+    ...(review.context.cohort ? { normalRevision: r.normal_revision } : {}),
   };
 }
 
 export async function unstuffLotAction(
   consolidationId: string,
+  expectedRevision?: number | null,
 ): Promise<StuffLotState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("unstuff_lot_as_operario", {
+  const review = await physicalReview(admin, auth.session.operario_id, consolidationId, expectedRevision);
+  if (!review.context) return { error: review.error };
+  const { data, error } = review.context.cohort ? await admin.rpc("client_consolidation_physical", {
+    p_operario_id: auth.session.operario_id, p_container_id: consolidationId, p_operation: "unstow_lot", p_expected_revision: expectedRevision,
+  }) : await admin.rpc("unstuff_lot_as_operario", {
     p_operario_id: auth.session.operario_id,
     p_consolidation_id: consolidationId,
   });
-  if (error) return { error: humanizeStuffError(error.message) };
+  if (error) return { error: (review.context.cohort || error.hint === "dtd-client-normal") ? normalFlowError(error) : humanizeStuffError(error.message) };
 
   const r = (data ?? {}) as { unstuffed?: number; load_order?: number };
   revalidatePath(`/m/cn/estibar/${consolidationId}`);

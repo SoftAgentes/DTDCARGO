@@ -16,6 +16,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   WITHHOLDING_TYPES,
   computeWithholdingAmount,
@@ -24,6 +25,7 @@ import {
   type WithholdingType,
 } from "@/lib/studio/fiscal/withholding-types";
 import { createWithholdingAction } from "../actions";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "withholding-drawer-form";
 const initialState: WithholdingActionState = {};
@@ -102,19 +104,9 @@ export function WithholdingDrawer({
         }}
       >
         {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
 
         {/* Período (oculto: lo fija el selector de mes del listado). */}
@@ -163,13 +155,7 @@ export function WithholdingDrawer({
             <label style={labelStyle} htmlFor="wh-date">
               Fecha
             </label>
-            <input
-              id="wh-date"
-              name="op_date"
-              type="date"
-              className="studio-input studio-input-mono"
-              style={fieldStyle}
-            />
+            <DateField id="wh-date" name="op_date" />
             {fe.opDate && <div style={errStyle}>{fe.opDate}</div>}
           </div>
         </div>

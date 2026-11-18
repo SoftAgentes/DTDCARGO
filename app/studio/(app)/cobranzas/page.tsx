@@ -19,11 +19,17 @@ import {
   receivablesQueue,
 } from "@/lib/studio/payment-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
+import { tasasVesPorFecha } from "@/lib/studio/fx-rates";
 import { CobranzasClient } from "./_components/CobranzasClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Cobranzas" };
 
 export default async function CobranzasPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("collections");
+
   const supabase = await createClient();
 
   // SDD-0558: «hoy» es la fecha de Caracas, la misma de `client_outstanding`
@@ -41,6 +47,15 @@ export default async function CobranzasPage() {
       fundsSeparationSummary(supabase, { from: monthStart, to: today }),
     ]);
 
+  // SDD-0629 · la tasa de bolívares de hoy (Caracas), solo para la vista del
+  // equivalente en Bs del saldo abierto. El tenant es el de la cola, que la RLS
+  // ya acotó al del usuario; sin casos abiertos no hay vista ni lectura. Sin
+  // tasa, null: «tasa no disponible».
+  const tenantId = queue[0]?.invoice.tenant_id;
+  const tasas = tenantId
+    ? await tasasVesPorFecha(supabase, tenantId, [today])
+    : new Map();
+
   return (
     <CobranzasClient
       receivables={queue}
@@ -52,6 +67,8 @@ export default async function CobranzasPage() {
       }))}
       unidentified={unidentified}
       separation={separation}
+      hoy={today}
+      tasaHoy={tasas.get(today) ?? null}
     />
   );
 }

@@ -15,6 +15,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
@@ -92,20 +93,9 @@ export function ReferralDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {/* Timeline */}
@@ -348,17 +338,12 @@ export function ReferralDrawer({
               . Se registró como descuento sobre la venta.
             </div>
             {referral.sale_voided_at && (
-              <div
-                role="status"
-                style={{
-                  marginTop: 8,
-                  font: "600 12px/1.5 var(--f-sans)",
-                  color: "var(--warning)",
-                }}
-              >
-                La venta del referido que acreditó este crédito se anuló el{" "}
-                {referral.sale_voided_at.slice(0, 10)}. El crédito no se revirtió
-                solo: revísalo con contabilidad.
+              <div style={{ marginTop: 8 }}>
+                <Aviso tono="atencion" compacto>
+                  La venta del referido que acreditó este crédito se anuló el{" "}
+                  {referral.sale_voided_at.slice(0, 10)}. El crédito no se revirtió
+                  solo: revísalo con contabilidad.
+                </Aviso>
               </div>
             )}
           </div>

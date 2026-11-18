@@ -11,13 +11,15 @@
  * guantes y apurado, montar el lote entero con un escaneo es lo que pidió el founder.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { QrScanner } from "@/app/m/_components/QrScanner";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import type { NormalMobileContext } from "@/lib/studio/client-consolidation/types";
 import { LOT_WIDTH_LABELS } from "@/lib/studio/naviera/zones";
 import { parseScannedLabel } from "@/lib/studio/etiquetas-qr";
 import {
@@ -36,6 +38,7 @@ export type SugerenciaPlan = {
   /** markbox → { lado, frase } */
   porCliente: Record<string, { lado: number; frase: string }>;
   totalLotes: number;
+  manifestRevision: number | null;
 };
 
 type Props = {
@@ -48,6 +51,7 @@ type Props = {
   lotsCount: number;
   /** null = no hay plan calculado; la estiba funciona igual que antes. */
   sugerencia: SugerenciaPlan | null;
+  normalRead: { available: true; context: NormalMobileContext } | { available: false; error: string };
 };
 
 export function EstibaClient({
@@ -59,6 +63,7 @@ export function EstibaClient({
   initialStuffedCount,
   lotsCount,
   sugerencia,
+  normalRead,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
@@ -71,8 +76,19 @@ export function EstibaClient({
   const [stuffedCount, setStuffedCount] = useState(initialStuffedCount);
   const [lots, setLots] = useState(lotsCount);
   const [busy, setBusy] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const busyRef = useRef(false); const epoch = useRef(0); const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; epoch.current++; }; }, []);
+  useEffect(() => {
+    epoch.current++; setLot(null); setScanning(false); setCount(""); setWidth(null); setNeedsRefresh(false);
+    setStuffedCount(initialStuffedCount); setLots(lotsCount);
+  }, [normalRead, initialStuffedCount, lotsCount]);
 
-  const closed = status !== "consolidando";
+  const context = normalRead.available ? normalRead.context : null;
+  const closed = status !== "consolidando" || !context || context.sealed || needsRefresh;
+  const plan = context && !needsRefresh && sugerencia && (context.cohort
+    ? sugerencia.planId === context.plan?.id && sugerencia.manifestRevision === context.revision
+    : sugerencia.manifestRevision === null) ? sugerencia : null;
 
   function reset() {
     setLot(null);
@@ -82,6 +98,7 @@ export function EstibaClient({
   }
 
   async function onDetected(raw: string) {
+    if (busyRef.current || closed) return;
     const parsed = parseScannedLabel(raw);
     if (parsed.kind === "verify_url") {
       setScanning(false);
@@ -96,17 +113,23 @@ export function EstibaClient({
       return;
     }
     setBusy(true);
+    busyRef.current = true;
+    const requestEpoch = ++epoch.current;
     setError(null);
-    const res = await lookupLotAction(parsed.code);
-    setBusy(false);
-    setScanning(false);
-    if (!res.found) {
-      setError(res.error);
-      return;
+    try {
+      const res = await lookupLotAction(parsed.code, consolidationId);
+      if (!mounted.current || epoch.current !== requestEpoch) return;
+      setScanning(false);
+      if (!res.found) { setError(res.error); return; }
+      if (!res.review || res.review.cohort !== context?.cohort || res.review.revision !== context.revision) {
+        setError("La carga cambió durante la consulta. Actualiza y vuelve a escanear."); setNeedsRefresh(true); router.refresh(); return;
+      }
+      setLot(res); setCount(String(res.lotSize)); setWidth(null);
+    } catch { if (mounted.current && epoch.current === requestEpoch) setError("No se pudo consultar el lote. Vuelve a escanear."); }
+    finally {
+      busyRef.current = false;
+      if (mounted.current) setBusy(false);
     }
-    setLot(res);
-    setCount(String(res.lotSize));
-    setWidth(null);
   }
 
   return (
@@ -167,17 +190,17 @@ export function EstibaClient({
             flexShrink: 0,
             textAlign: "right",
           }}
-          aria-label={`${stuffedCount} cajas montadas en ${lots} lotes`}
+          aria-label={!context || needsRefresh ? "Cobertura no disponible" : `${stuffedCount} cajas montadas en ${lots} lotes`}
         >
-          {stuffedCount}
+          {!context || needsRefresh ? "Por comprobar" : stuffedCount}
           <span style={{ color: "var(--ink-side-soft)", font: "500 10px/1 var(--f-sans)" }}>
             {" "}
-            cajas · {lots} {lots === 1 ? "lote" : "lotes"}
+            {context && !needsRefresh ? <>cajas · {lots} {lots === 1 ? "lote" : "lotes"}</> : " · actualiza el contenedor"}
           </span>
         </div>
       </header>
 
-      {closed && (
+      {status !== "consolidando" && (
         <p
           style={{
             margin: 14,
@@ -194,6 +217,9 @@ export function EstibaClient({
       )}
 
       <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+        {!normalRead.available && <p role="alert">{normalRead.error} No se puede confirmar carga sin comprobar su ámbito.</p>}
+        {context?.cohort && <p>Manifiesto por cliente · revisión {context.revision} · {context.expectedBoxIds.length} cajas previstas · {context.missingBoxIds.length} pendientes de estiba{context.sealed ? " · sellado" : ""}.</p>}
+        {needsRefresh && <p role="status">Actualiza la cobertura antes de continuar. Una estiba ya registrada no debe repetirse.</p>}
         {error && (
           <p
             role="alert"
@@ -227,7 +253,7 @@ export function EstibaClient({
               setError(null);
               setScanning(true);
             }}
-            disabled={closed}
+            disabled={closed || busy}
             style={{
               border: "1.5px dashed var(--border-inv)",
               borderRadius: "var(--r-md)",
@@ -253,31 +279,45 @@ export function EstibaClient({
             setCount={setCount}
             width={width}
             setWidth={setWidth}
-            propuesta={sugerencia?.porCliente[lot.clientMarkbox ?? ""] ?? null}
+            propuesta={plan?.porCliente[lot.clientMarkbox ?? ""] ?? null}
+            cohort={context?.cohort === true}
             onCancel={reset}
             onConfirm={async () => {
+              if (busyRef.current || closed || !context || !lot.review || lot.review.revision !== context.revision || lot.review.cohort !== context.cohort) {
+                return { error: "Vuelve a revisar el lote y la cobertura antes de confirmar." };
+              }
               if (width == null) return { error: "Elige izquierda, centro o derecha." };
               const cnt = count.trim() === "" ? null : Number(count);
-              const propuesta = sugerencia?.porCliente[lot.clientMarkbox ?? ""] ?? null;
-              const res = await stuffLotAction(
+              const propuesta = plan?.porCliente[lot.clientMarkbox ?? ""] ?? null;
+              busyRef.current = true; setBusy(true); const requestEpoch = epoch.current;
+              try {
+                const res = await stuffLotAction(
                 consolidationId,
                 lot.boxCode,
                 width,
                 cnt,
-                sugerencia?.planId ?? null,
+                plan?.planId ?? null,
                 propuesta ? width === propuesta.lado : null,
+                context.revision,
               );
-              if (!res.ok) return { error: res.error ?? "Error" };
-              setStuffedCount((n) => n + (res.stuffed ?? 0));
-              setLots((n) => n + 1);
+              if (!mounted.current || epoch.current !== requestEpoch) { if (res.ok) router.refresh(); return undefined; }
+              if (!res.ok) {
+                if (context.cohort) { setNeedsRefresh(true); router.refresh(); }
+                return { error: res.error ?? "No se pudo comprobar la estiba." };
+              }
+              if (context.cohort) setNeedsRefresh(true);
+              else { setStuffedCount((n) => n + (res.stuffed ?? 0)); setLots((n) => n + 1); }
               toast.success(
                 `Lote montado · ${res.stuffed} ${res.stuffed === 1 ? "caja" : "cajas"}${
                   res.remaining && res.remaining > 0 ? ` · quedan ${res.remaining}` : ""
                 }`,
               );
               reset();
+              if (res.warning) setError(res.warning);
               router.refresh();
               return undefined;
+              } catch { setNeedsRefresh(true); return { error: "No se pudo comprobar el resultado. Consulta el contenedor antes de repetir la estiba." }; }
+              finally { busyRef.current = false; if (mounted.current) setBusy(false); }
             }}
           />
         )}
@@ -291,13 +331,22 @@ export function EstibaClient({
             loadingLabel="Deshaciendo…"
             successLabel="Lote deshecho"
             onAction={async () => {
-              const res = await unstuffLotAction(consolidationId);
-              if (!res.ok) return { error: res.error };
-              setStuffedCount((n) => Math.max(0, n - (res.stuffed ?? 0)));
-              setLots((n) => Math.max(0, n - 1));
+              if (busyRef.current || !context) return { error: "Espera la operación en curso." };
+              busyRef.current = true; setBusy(true); const requestEpoch = epoch.current;
+              try {
+              const res = await unstuffLotAction(consolidationId, context.revision);
+              if (!mounted.current || epoch.current !== requestEpoch) { if (res.ok) router.refresh(); return undefined; }
+              if (!res.ok) {
+                if (context.cohort) { setNeedsRefresh(true); router.refresh(); }
+                return { error: res.error };
+              }
+              if (context.cohort) setNeedsRefresh(true);
+              else { setStuffedCount((n) => Math.max(0, n - (res.stuffed ?? 0))); setLots((n) => Math.max(0, n - 1)); }
               toast.success(`Lote deshecho · ${res.stuffed} cajas vuelven al almacén`);
               router.refresh();
               return undefined;
+              } catch { setNeedsRefresh(true); return { error: "No se pudo comprobar el resultado. Actualiza antes de deshacer otra vez." }; }
+              finally { busyRef.current = false; if (mounted.current) setBusy(false); }
             }}
             onError={setError}
           />
@@ -318,6 +367,7 @@ function LotCard({
   onCancel,
   onConfirm,
   propuesta,
+  cohort,
 }: {
   lot: LotLookup;
   count: string;
@@ -328,6 +378,7 @@ function LotCard({
   onConfirm: () => Promise<{ error: string } | undefined>;
   /** SDD-0184: lo que el plan propone para este cliente. null = sin plan. */
   propuesta: { lado: number; frase: string } | null;
+  cohort: boolean;
 }) {
   const partial = count.trim() !== "" && Number(count) < lot.lotSize;
   return (
@@ -370,30 +421,19 @@ function LotCard({
       >
         Cuántas montas ahora
       </label>
-      <input
-        type="number"
-        inputMode="numeric"
+      <NumericInput
+        type="count"
+        unit="cajas"
         min={1}
         max={lot.lotSize}
-        value={count}
-        onChange={(e) => setCount(e.target.value)}
+        value={count.trim() === "" ? null : Number(count)}
+        onChange={(value) => setCount(value === null ? "" : String(value))}
         aria-label="Cantidad de cajas a montar"
-        style={{
-          width: "100%",
-          marginTop: 6,
-          padding: "12px 14px",
-          borderRadius: "var(--r-md)",
-          background: "var(--surface-inv-soft)",
-          border: "1px solid var(--border-inv)",
-          color: "var(--ink-side-strong)",
-          font: "800 22px/1 var(--f-mono)",
-          textAlign: "center",
-        }}
       />
       {partial && (
         <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-side-soft)", margin: "6px 0 0" }}>
-          Lote partido: las {lot.lotSize - Number(count)} que faltan quedan en el
-          almacén para el próximo contenedor.
+          {cohort ? `Estiba parcial: quedan ${lot.lotSize - Number(count)} cajas por revisar y montar. Las cajas de este manifiesto conservan su envío y contenedor.`
+            : `Lote partido: las ${lot.lotSize - Number(count)} que faltan quedan en el almacén para el próximo contenedor.`}
         </p>
       )}
 

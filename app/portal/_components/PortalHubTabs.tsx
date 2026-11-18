@@ -9,8 +9,11 @@ import { usePathname } from "next/navigation";
  * dentro" de un destino (Norte: Proveedores/Documentos dentro de Mis envíos;
  * Mensajes/Reclamos dentro de Soporte) se alcanzan por estas pestañas.
  *
- * Client (estado activo por `usePathname`). Clases theme-aware (mismas que
- * `PortalNav`) → sirve en el portal claro y en el tema oscuro del Norte.
+ * Client (estado activo por `usePathname`). La forma vive en
+ * `app/portal/claridad.css` (SDD-0603 · tramo 3, BD-037): un control con
+ * partes, la activa rellena de tinta y anunciada con `aria-current="page"`
+ * (son enlaces de navegación, no `tablist`). Envuelve en pantallas angostas en
+ * vez de esconder pestañas con scroll. Sirve en claro y en oscuro.
  */
 type SubTab = { href: string; label: string; match: (p: string) => boolean };
 
@@ -19,7 +22,7 @@ function SubTabs({ tabs, ariaLabel }: { tabs: SubTab[]; ariaLabel: string }) {
   return (
     <nav
       aria-label={ariaLabel}
-      className="mb-7 flex items-center gap-1 border-b border-grey-200 overflow-x-auto no-scrollbar"
+      className="portal-subtabs mb-7"
     >
       {tabs.map((t) => {
         const active = t.match(pathname);
@@ -28,11 +31,7 @@ function SubTabs({ tabs, ariaLabel }: { tabs: SubTab[]; ariaLabel: string }) {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`flex-shrink-0 whitespace-nowrap text-[13px] font-semibold px-3 py-2.5 border-b-2 -mb-px transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-              active
-                ? "border-wine text-ink"
-                : "border-transparent text-grey-500 hover:text-ink"
-            }`}
+            className="portal-subtab"
           >
             {t.label}
           </Link>

@@ -3,26 +3,24 @@
  * módulo Costing & Margen (SDD-0053 · Slice B).
  *
  * Cubre Acceptance §5 Slice B:
- *  - resolveDisplayRate / DEFAULT_VES_RATE: fallback cuando no hay fx_rate.
+ *  - resolveDisplayRate: SDD-0572, sin tasa válida null (el selector de VES se apaga).
  *  - asRankingSort / sortRanking: orden por margen %, margen $ y revenue.
  *  - topAndWorst: top·peores sin solaparse; ignora revenue 0.
  *  - breakdownRows: % sobre costo total (0 si costo 0, sin NaN).
  *  - costPctOfRevenue: clamp 0..100, 0 si revenue 0.
- *  - latestVesFxRate: toma el fx_rate más reciente de una factura en VES.
  */
 
 import { describe, it, expect } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   asRankingSort,
   breakdownRows,
+  buildCostingCsv,
+  costingCsvRow,
   costPctOfRevenue,
-  DEFAULT_VES_RATE,
   resolveDisplayRate,
   sortRanking,
   topAndWorst,
 } from "../ui";
-import { latestVesFxRate } from "../queries";
 import { shipmentEconomics, type CostAmounts } from "../types";
 import type { CostingRow, CostingTotals } from "../queries";
 import type { Shipment } from "@/lib/studio/shipment-types";
@@ -80,12 +78,14 @@ describe("resolveDisplayRate", () => {
     expect(resolveDisplayRate(40.5)).toBe(40.5);
   });
 
-  it("cae al default con null / 0 / negativo / NaN", () => {
-    expect(resolveDisplayRate(null)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(undefined)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(0)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(-5)).toBe(DEFAULT_VES_RATE);
-    expect(resolveDisplayRate(Number.NaN)).toBe(DEFAULT_VES_RATE);
+  // SDD-0572 (decisión 1 de Sam y del Director, 2026-10-20): sin tasa, nunca un
+  // valor fijo. Antes caía a 36,45.
+  it("sin tasa válida (null / 0 / negativo / NaN) devuelve null", () => {
+    expect(resolveDisplayRate(null)).toBeNull();
+    expect(resolveDisplayRate(undefined)).toBeNull();
+    expect(resolveDisplayRate(0)).toBeNull();
+    expect(resolveDisplayRate(-5)).toBeNull();
+    expect(resolveDisplayRate(Number.NaN)).toBeNull();
   });
 });
 
@@ -125,10 +125,33 @@ describe("sortRanking", () => {
     sortRanking(rows, "margin-pct-asc");
     expect(rows).toEqual(copy);
   });
+
+  it.each(["margin-pct-desc", "margin-pct-asc", "margin-abs-desc", "revenue-desc"] as const)(
+    "0572 · %s deja incompletos al final en su orden original",
+    (sort) => {
+      const partialHigh = { ...row("P", 100000, 1), facturasSinTasa: 1 };
+      const partialLow = { ...row("Q", 1, 20000), facturasSinTasa: 2 };
+      const input = [partialHigh, rows[1], partialLow, rows[0], rows[2]];
+      const before = [...input];
+      const sorted = sortRanking(input, sort);
+      expect(sorted.slice(0, 3)).toEqual(sortRanking(rows, sort));
+      expect(sorted.slice(3)).toEqual([partialHigh, partialLow]);
+      expect(input).toEqual(before);
+    },
+  );
 });
 
 // ── topAndWorst ───────────────────────────────────────────────
 describe("topAndWorst", () => {
+  it.each([10, 200])("0572 · no clasifica margen parcial con costo %s", (cost) => {
+    const partial = { ...row("P", 100, cost), facturasSinTasa: 1 };
+    const unknown = { ...row("Q", 0, 30), facturasSinTasa: 1 };
+    const a = row("A", 100, 50);
+    const b = row("B", 100, 110);
+    const { top, worst } = topAndWorst([partial, a, unknown, b], 1);
+    expect(top).toEqual([a]);
+    expect(worst).toEqual([b]);
+  });
   it("top = más rentables, worst = peores, sin solaparse", () => {
     const rows = [
       row("A", 10000, 5000), // margin 5000
@@ -156,6 +179,23 @@ describe("topAndWorst", () => {
   });
 });
 
+describe("0572 · CSV conserva completitud", () => {
+  it("retiene subtotal y contador; margen desconocido vacío y cero conocido 0", () => {
+    const partial = { ...row("P", 100, 10), facturasSinTasa: 2 };
+    const zero = { ...row("Z", 0, 0), facturasSinTasa: 0 };
+    const cells = costingCsvRow(partial);
+    expect(cells[5]).toBe(100);
+    expect(cells[13]).toBe(10);
+    expect(cells.slice(14, 16)).toEqual(["", ""]);
+    expect(cells.slice(16)).toEqual(["Subtotal parcial", 2]);
+    expect(costingCsvRow(zero).slice(14)).toEqual([0, 0, "Completo", 0]);
+    const lines = buildCostingCsv([partial, zero]).split("\r\n");
+    expect(lines[0]).toContain("Estado de conversión,Facturas sin tasa");
+    expect(lines[1]).toMatch(/,10,,,Subtotal parcial,2$/);
+    expect(lines[2]).toMatch(/,0,0,0,Completo,0$/);
+  });
+});
+
 // ── breakdownRows / costPctOfRevenue ──────────────────────────
 function totals(over: Partial<CostingTotals> = {}): CostingTotals {
   return {
@@ -165,6 +205,7 @@ function totals(over: Partial<CostingTotals> = {}): CostingTotals {
     avgMarginPct: 0,
     profitable: 0,
     losing: 0,
+    sinTasa: 0,
     catTotals: {
       freight: 0,
       customs: 0,
@@ -224,50 +265,5 @@ describe("costPctOfRevenue", () => {
   });
   it("clamp a 100 cuando el costo supera el revenue", () => {
     expect(costPctOfRevenue(totals({ revenue: 1000, cost: 2000 }))).toBe(100);
-  });
-});
-
-// ── latestVesFxRate ───────────────────────────────────────────
-function stubInvoices(rows: Record<string, unknown>[]): SupabaseClient {
-  return {
-    from() {
-      const chain: Record<string, unknown> = {
-        select: () => chain,
-        eq: () => chain,
-        not: () => chain,
-        order: () => chain,
-        limit: () => chain,
-        then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
-          Promise.resolve({ data: rows, error: null }).then(resolve),
-      };
-      return chain;
-    },
-  } as unknown as SupabaseClient;
-}
-
-describe("latestVesFxRate", () => {
-  it("devuelve el primer fx_rate positivo (más reciente primero)", async () => {
-    const rate = await latestVesFxRate(
-      stubInvoices([
-        { fx_rate: 41.2, issued_at: "2026-05-10", created_at: "2026-05-10" },
-        { fx_rate: 38.0, issued_at: "2026-04-10", created_at: "2026-04-10" },
-      ]),
-    );
-    expect(rate).toBe(41.2);
-  });
-
-  it("salta fx_rate 0/negativo/no-numérico y toma el primero válido", async () => {
-    const rate = await latestVesFxRate(
-      stubInvoices([
-        { fx_rate: 0 },
-        { fx_rate: "abc" },
-        { fx_rate: 39.5 },
-      ]),
-    );
-    expect(rate).toBe(39.5);
-  });
-
-  it("sin facturas VES → null (la UI cae al default)", async () => {
-    expect(await latestVesFxRate(stubInvoices([]))).toBeNull();
   });
 });

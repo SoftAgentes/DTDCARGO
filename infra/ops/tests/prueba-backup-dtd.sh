@@ -30,7 +30,7 @@ mkdir -p "${P}" "${O}" "${T}/web/latido" "${T}/out" "${T}/rc"
 cp "${BK}" "${P}/backup.sh"; chmod 700 "${P}/backup.sh"
 echo "age1prueba" > "${T}/rec"
 # Dobles: anotan los argumentos y el largo de PGPASSWORD; salen según ${T}/rc-<nombre>.
-for s in pg-dump-to-s3.sh config-backup.sh; do
+for s in pg-dump-to-s3.sh config-backup.sh storage-backup.sh; do
   cat > "${O}/${s}" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" > "${T}/args-${s}"
@@ -98,6 +98,9 @@ cargs="$(cat "${T}/args-config-backup.sh" 2>/dev/null)"
 [ "${rc}" = 0 ] && grep -q 'RESULTADO: PASÓ' "${T}/salida.log" && [ "$(latidos)" = 1 ] && ok "dump y configuración en 0: PASÓ y un latido" || { ko "completa rc=${rc} latidos $(latidos)"; tail -3 "${T}/salida.log"; }
 [[ "${cargs}" == *"--project-dir ${P} "* && "${cargs}" == *"--volume ${NOMBRE}_db-config "* && "${cargs}" == *"--remote zz:prueba/db "* ]] && ok "la configuración recibe el directorio del proyecto, el volumen y el remoto" || ko "argumentos de config: ${cargs}"
 [ "$(cat "${T}/pw-config-backup.sh")" = 0 ] && ok "config-backup.sh corre sin PGPASSWORD en el entorno" || ko "PGPASSWORD llegó a config-backup"
+sargs="$(cat "${T}/args-storage-backup.sh" 2>/dev/null)"
+[[ "${sargs}" == *"--source ${P}/data/storage "* && "${sargs}" == *"--remote b2:dtdcargo-respaldos/storage "* && "${sargs}" == *"--age-recipients ${T}/rec "* ]]   && ok "el Storage recibe la carpeta de DTD_DATA_DIR, su remoto y los destinatarios (SDD-0620)" || ko "argumentos del Storage: ${sargs}"
+[ "$(cat "${T}/pw-storage-backup.sh")" = 0 ] && ok "storage-backup.sh corre sin PGPASSWORD en el entorno" || ko "PGPASSWORD llegó a storage-backup"
 
 echo 1 > "${T}/rc-pg-dump-to-s3.sh"
 rc=$(correr)
@@ -106,7 +109,10 @@ rc=$(correr)
 rm -f "${T}/rc-pg-dump-to-s3.sh"; echo 1 > "${T}/rc-config-backup.sh"
 rc=$(correr)
 [ "${rc}" = 1 ] && grep -q 'config-backup.sh salió 1' "${T}/salida.log" && [ "$(latidos)" = 1 ] && ok "configuración en 1: FALLÓ y no late" || { ko "config en 1 rc=${rc}"; tail -3 "${T}/salida.log"; }
-rm -f "${T}/rc-config-backup.sh"
+rm -f "${T}/rc-config-backup.sh"; echo 1 > "${T}/rc-storage-backup.sh"
+rc=$(correr)
+[ "${rc}" = 1 ] && grep -q 'storage-backup.sh salió 1' "${T}/salida.log" && [ "$(latidos)" = 1 ] && ok "Storage en 1: FALLÓ y no late" || ko "storage en 1 rc=${rc}"
+rm -f "${T}/rc-storage-backup.sh"
 
 echo; echo "== sin monitor y con latido roto =="
 sed -i 's#^BACKUP_HEARTBEAT_URL=.*#BACKUP_HEARTBEAT_URL=#' "${P}/.env"

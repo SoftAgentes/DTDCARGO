@@ -4,14 +4,13 @@
  * Cubre:
  *  - `stepDatesFromEvents` (puro): mapa status → fecha del PRIMER evento (el más
  *    antiguo gana; entrada en orden ascendente).
- *  - AISLAMIENTO: `listMyShipmentEvents` resuelve el markbox PRIMERO y filtra
- *    explícito por shipment_id + `shipments.client_markbox`; sin markbox → [] sin
- *    tocar la tabla.
+ *  - AISLAMIENTO: resolver real auth/client_users y RPC propia, selector exacto;
+ *    sin principal → [] sin RPC/tabla de dominio. No prueba aislamiento SQL.
  *  - `isClientNotifiableMilestone`: el set de hitos que avisan al cliente
  *    (decisión founder) — el arribo NO está (ya avisa por su template).
  */
-import { describe, it, expect, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { describe, it, expect } from "vitest";
+import { portalDouble, portalMembership, CLIENT_A, TENANT_A } from "./portal-tenant-double";
 import {
   stepDatesFromEvents,
   listMyShipmentEvents,
@@ -19,45 +18,18 @@ import {
 } from "../shipment-events-queries";
 import { isClientNotifiableMilestone } from "@/lib/studio/shipment-milestone-notify";
 
-vi.mock("../portal-queries", () => ({
-  getPortalClientPrincipal: async (supabase: SupabaseClient) => {
-    const { data } = await supabase.rpc("get_portal_client_markbox");
-    if (!data) return null;
-    return {
-      userId: "portal-user",
-      tenantId: "tenant-1",
-      client: { markbox: String(data) },
-    };
-  },
-}));
-
-function stub(opts: { markbox: string | null; rows?: Record<string, unknown>[] }) {
-  const eqCalls: [string, unknown][] = [];
-  let touchedTable: string | null = null;
-  const builder: Record<string, unknown> = {};
-  Object.assign(builder, {
-    select: () => builder,
-    eq: (col: string, val: unknown) => {
-      eqCalls.push([col, val]);
-      return builder;
-    },
-    is: () => builder,
-    order: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
-    limit: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
-  });
-  const supabase = {
-    rpc: (fn: string) =>
-      fn === "get_portal_client_markbox"
-        ? Promise.resolve({ data: opts.markbox, error: null })
-        : Promise.resolve({ data: null, error: null }),
-    from: (table: string) => {
-      touchedTable = table;
-      return builder;
-    },
-  } as unknown as SupabaseClient;
-  return { supabase, eqCalls, touchedTable: () => touchedTable };
+function stub(opts: { markbox: string | null }) {
+  const member = portalMembership();
+  if (typeof member.clients !== "object" || member.clients === null || Array.isArray(member.clients)) throw new Error("fixture principal");
+  const double = portalDouble({ tables: { client_users: opts.markbox === null ? [] : [
+    { ...member, clients: { ...member.clients, markbox: opts.markbox } },
+  ] }, rpc: { client_consolidation_portal_events: (args: Record<string, unknown>) => ({
+    available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+    principal: { tenantId: TENANT_A, clientId: CLIENT_A, markbox: opts.markbox },
+    view: "history", shipmentId: args.p_shipment_id, limit: args.p_limit, events: [],
+  }) } });
+  return double;
 }
-
 describe("stepDatesFromEvents", () => {
   it("mapea status → fecha del primer evento (el más antiguo gana)", () => {
     const events: PortalShipmentEvent[] = [
@@ -78,21 +50,23 @@ describe("stepDatesFromEvents", () => {
 });
 
 describe("listMyShipmentEvents · aislamiento", () => {
-  it("filtra por shipment_id + markbox del cliente", async () => {
-    const { supabase, eqCalls, touchedTable } = stub({ markbox: "DTD-0007", rows: [] });
-    await listMyShipmentEvents(supabase, "ship-1");
-    expect(touchedTable()).toBe("shipment_events");
-    expect(eqCalls).toContainEqual(["shipment_id", "ship-1"]);
-    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
-    expect(eqCalls).toContainEqual(["shipments.tenant_id", "tenant-1"]);
-    expect(eqCalls).toContainEqual(["shipments.client_markbox", "DTD-0007"]);
+  it("resuelve el principal real y pide historia del selector exacto", async () => {
+    const double = stub({ markbox: "DTD-0007" });
+    await expect(listMyShipmentEvents(double.db, "ship-1")).resolves.toEqual([]);
+    expect(double.rpcCalls).toEqual([{ name: "client_consolidation_portal_events", args: { p_shipment_id: "ship-1", p_limit: null } }]);
+    expect(double.on("client_users")[0].filters).toEqual(expect.arrayContaining([
+      { column: "auth_user_id", op: "eq", value: "11111111-1111-4111-8111-111111111111" },
+      { column: "status", op: "eq", value: "active" },
+    ]));
+    expect(double.on("shipment_events")).toEqual([]);
   });
 
   it("sin markbox → [] sin tocar la tabla", async () => {
-    const { supabase, touchedTable } = stub({ markbox: null });
-    const res = await listMyShipmentEvents(supabase, "ship-1");
+    const double = stub({ markbox: null });
+    const res = await listMyShipmentEvents(double.db, "ship-1");
     expect(res).toEqual([]);
-    expect(touchedTable()).toBeNull();
+    expect(double.rpcCalls).toEqual([]);
+    expect(double.on("shipment_events")).toEqual([]);
   });
 });
 

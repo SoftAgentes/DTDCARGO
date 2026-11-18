@@ -1,7 +1,7 @@
 # /etc/systemd/system/dtd-cargo-backup.service — respaldo diario de DTD Cargo (SDD-0505).
 # Lo dispara dtd-cargo-backup.timer; a mano: systemctl start dtd-cargo-backup.service
 [Unit]
-Description=Respaldo cifrado de DTD Cargo (base + configuración) a Backblaze
+Description=Respaldo cifrado de DTD Cargo (base, configuración y archivos del Storage) a Backblaze
 Documentation=file:///srv/dtd-cargo/README.md
 After=docker.service network-online.target
 Wants=network-online.target

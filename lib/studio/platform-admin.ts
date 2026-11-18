@@ -4,12 +4,13 @@
  * Un nivel POR ENCIMA de `admin`, ortogonal a los 7 roles del tenant. Guarda
  * las "llaves del sistema": lo que ni siquiera un director debería poder tocar.
  *
- * ⭐ EL CONTROL REAL VIVE EN LA BASE, NO ACÁ. La migración 0355 mete
- * `is_platform_admin()` dentro de `studio_set_user_disabled`,
- * `studio_change_user_role` y la policy de `feature_flags`. Esos RPC están
- * concedidos a `authenticated`, o sea que son invocables como endpoint desde
- * PostgREST — gatear sólo la server action dejaría el mismo hueco un nivel más
- * abajo, que es el error que SDD-0085 ya cometió una vez.
+ * EL CONTROL VIVE EN LA BASE para usuarios: la 0355 mete `is_platform_admin()`
+ * dentro de `studio_set_user_disabled` y `studio_change_user_role` (DEFINER,
+ * invocables por PostgREST). Para los feature flags, el control es el disparador
+ * `feature_flags_exige_superadmin` (migr 0543, SDD-0634): la escritura va por
+ * `audit_d1_execute` (0289:632-650), DEFINER, que la policy de `feature_flags`
+ * (0355) no alcanzaba. Crear o reactivar un administrador lo exigen los
+ * disparadores de `user_invitations` y `user_tenants` (migr 0545, SDD-0636).
  *
  * Este módulo es para que la UI pueda DECIRLO: sin él, un admin que aprieta el
  * interruptor de un feature flag vería la RLS descartar su UPDATE en silencio y
@@ -36,14 +37,34 @@ type StudioClient = Awaited<ReturnType<typeof createClient>>;
  * abre porque la red falló no es una llave.
  */
 export async function isPlatformAdmin(supabase: StudioClient): Promise<boolean> {
+  return (await platformAdminCheck(supabase)) === "si";
+}
+
+/**
+ * Lo mismo, sin aplanar el fallo: «no» es la respuesta de la base; «error» es
+ * que no se pudo preguntar (red, o la RPC negada, como el 403 que dejó la 0211
+ * hasta la 0542 · SDD-0633). Los dos niegan, pero solo se le puede decir «no
+ * eres superadministrador» a quien la base contestó que no.
+ */
+export async function platformAdminCheck(
+  supabase: StudioClient,
+): Promise<"si" | "no" | "error"> {
   try {
     const { data, error } = await supabase.rpc("is_platform_admin");
-    if (error) return false;
-    return data === true;
+    if (error) return "error";
+    return data === true ? "si" : "no";
   } catch {
-    return false;
+    return "error";
   }
 }
+
+/** La denegación de una llave del sistema, para quien la base dijo que no. */
+export const SUPERADMIN_DENIAL =
+  "No eres superadministrador. Esta acción la reserva el superadministrador: pídesela a quien administra el sistema.";
+
+/** No se pudo comprobar el permiso: fail-closed, pero sin acusar a nadie. */
+export const SUPERADMIN_CHECK_FAILED =
+  "No pudimos comprobar si eres superadministrador, así que no se hizo el cambio. Intenta de nuevo; si sigue pasando, avísale a quien administra el sistema.";
 
 /**
  * Guard para server actions, mismo contrato que `moduleEditDenial`: devuelve el
@@ -55,7 +76,7 @@ export async function isPlatformAdmin(supabase: StudioClient): Promise<boolean> 
 export async function platformAdminDenial(
   supabase: StudioClient,
 ): Promise<string | null> {
-  const ok = await isPlatformAdmin(supabase);
-  if (ok) return null;
-  return "Esta acción la reserva el superadministrador. Pídesela a quien administra el sistema.";
+  const check = await platformAdminCheck(supabase);
+  if (check === "si") return null;
+  return check === "no" ? SUPERADMIN_DENIAL : SUPERADMIN_CHECK_FAILED;
 }

@@ -41,6 +41,7 @@ function stub(opts: {
 }) {
   const eqCalls: [string, unknown][] = [];
   const touched: string[] = [];
+  const rpcCalls: string[] = [];
   const membership = opts.markbox
     ? {
         client_id: "client-1",
@@ -93,16 +94,20 @@ function stub(opts: {
           error: null,
         }),
     },
-    rpc: (fn: string) =>
-      fn === "get_portal_client_markbox"
-        ? Promise.resolve({ data: opts.markbox, error: null })
-        : Promise.resolve({ data: null, error: null }),
+    rpc: (fn: string, args?: Record<string, unknown>) => {
+      rpcCalls.push(fn);
+      if (fn !== "client_consolidation_portal_read" || args !== undefined) throw new Error("RPC inesperada o autoridad browser");
+      return Promise.resolve({ data: { available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: "tenant-1", clientId: "client-1", markbox: opts.markbox },
+        shipments: (opts.rows ?? []).map((row) => ({ tenant_id: "tenant-1", volume_m3: null, weight_kg: null, arrived_destination_at: null,
+          created_at: "2026-05-01T00:00:00Z", normal: null, ...row })) }, error: null });
+    },
     from: (table: string) => {
       touched.push(table);
       return builder(table);
     },
   } as unknown as SupabaseClient;
-  return { supabase, eqCalls, touched };
+  return { supabase, eqCalls, touched, rpcCalls };
 }
 
 describe("formatInvoiceAmount", () => {
@@ -210,7 +215,7 @@ describe("aislamiento — listMyShipments endurecido", () => {
     expect(touched).toEqual([]);
   });
 
-  it("con markbox → filtra EXPLÍCITO por client_markbox", async () => {
+  it("con principal → RPC propia sin autoridad browser y sin lectura genérica de shipments", async () => {
     const SROW = {
       id: "s-1",
       code: "DTD-2026-0401",
@@ -220,9 +225,10 @@ describe("aislamiento — listMyShipments endurecido", () => {
       destination: "Valencia",
       updated_at: "2026-05-20T00:00:00.000Z",
     };
-    const { supabase, eqCalls } = stub({ markbox: "DTD-1004", rows: [SROW] });
+    const { supabase, rpcCalls, touched } = stub({ markbox: "DTD-1004", rows: [SROW] });
     const rows = await listMyShipments(supabase);
-    expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
+    expect(rpcCalls).toEqual(["client_consolidation_portal_read"]);
+    expect(touched).not.toContain("shipments");
     expect(rows[0]?.code).toBe("DTD-2026-0401");
   });
 });

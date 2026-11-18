@@ -9,7 +9,8 @@
 
 import { createClient } from "@/lib/db/server";
 import { getStudioAccess, requireModuleView } from "@/lib/studio/rbac-guard";
-import { canSpecial } from "@/lib/studio/rbac";
+import { canAccessModule, canSpecial } from "@/lib/studio/rbac";
+import { readNormalAssociations } from "@/lib/studio/client-consolidation/queries";
 import { leerInfoRecepciones } from "@/lib/studio/borrado/servidor";
 import { listClients } from "@/lib/studio/client-queries";
 import {
@@ -28,6 +29,7 @@ import {
   AlmacenCnClient,
   type EliminacionRecepciones,
   type TarifasCn,
+  type CohorteCn,
 } from "./_components/AlmacenCnClient";
 import { HeaderActions } from "./_components/HeaderActions";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
@@ -77,7 +79,7 @@ export default async function CnPage({
 
   // SDD-0522: eliminar recepciones es de admin. A quien puede se le lee qué
   // bloquea cada una, con la misma regla que aplica el borrado.
-  const { role } = await getStudioAccess(supabase);
+  const { role, overrides } = await getStudioAccess(supabase);
   const puedeEliminar = canSpecial(role, "delete_warehouse_receipts");
 
   const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
@@ -103,6 +105,16 @@ export default async function CnPage({
     : { disponible: false, porRecepcion: {} };
   const puedeCongelarTarifas =
     role === "admin" || role === "operations" || role === "warehouse" || role === "accounting";
+
+  // Only these visible IDs are classified here. This capped general CN list
+  // is not a complete manifest or a source for selecting all candidate cargo.
+  let cohorte: CohorteCn = { available: false, receiptIds: [], canOpenNaviera: canAccessModule(role, "naviera", overrides) };
+  try {
+    const membership = await readNormalAssociations(supabase, { receiptIds: receipts.map((r) => r.id) });
+    cohorte = { ...cohorte, available: true, receiptIds: membership.receiptIds };
+  } catch {
+    // The UI says unavailable; mutation actions independently fail closed.
+  }
 
   let eliminacion: EliminacionRecepciones | undefined;
   if (puedeEliminar) {
@@ -185,6 +197,7 @@ export default async function CnPage({
         eliminacion={eliminacion}
         tarifas={tarifas}
         puedeCongelarTarifas={puedeCongelarTarifas}
+        cohorte={cohorte}
       />
     </div>
   );

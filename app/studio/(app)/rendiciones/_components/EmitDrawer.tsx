@@ -15,6 +15,7 @@ import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { fmtAmount } from "@/lib/studio/renditions/printable";
 import type { QuincenaCard } from "../page";
 import { emitRenditionAction } from "../actions";
@@ -79,6 +80,16 @@ export function EmitDrawer({
             />
           </div>
         </div>
+
+        {(preview.recibosSinTasa ?? 0) + (preview.facturasLocalesSinTasa ?? 0) > 0 && (
+          <p
+            role="status"
+            data-testid="rendicion-sin-tasa"
+            style={{ margin: 0, font: "500 12.5px/1.45 var(--f-sans)", color: "var(--ink)" }}
+          >
+            {`No se puede emitir: ${preview.recibosSinTasa ?? 0} cobro(s) y ${preview.facturasLocalesSinTasa ?? 0} factura(s) local(es) no tienen tasa. Cárgala y vuelve a revisar.`}
+          </p>
+        )}
 
         {/* Detalle de recibos */}
         <div>
@@ -186,7 +197,7 @@ export function EmitDrawer({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {fmtAmount(l.amountUsd)}
+                      {l.amountUsd === null ? "sin tasa" : fmtAmount(l.amountUsd)}
                     </td>
                   </tr>
                 ))}
@@ -207,18 +218,9 @@ export function EmitDrawer({
         </p>
 
         {error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 14px",
-              borderRadius: "var(--r-md)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              font: "600 12px/1.4 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </div>
+          </Aviso>
         )}
       </div>
 
@@ -242,6 +244,7 @@ export function EmitDrawer({
         </button>
         <ActionButton
           variant="primary"
+          disabled={(preview.recibosSinTasa ?? 0) + (preview.facturasLocalesSinTasa ?? 0) > 0}
           idleLabel="Emitir rendición"
           loadingLabel="Emitiendo…"
           successLabel="Rendición emitida"

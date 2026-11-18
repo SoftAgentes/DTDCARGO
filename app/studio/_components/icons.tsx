@@ -198,6 +198,17 @@ export const Icon = {
       </>
     ),
 
+  // Burbuja de chat: la Bandeja de Chatwoot (SDD-0585).
+  chat: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <P d="M4 5h16a1 1 0 011 1v10a1 1 0 01-1 1h-9l-5 4v-4H4a1 1 0 01-1-1V6a1 1 0 011-1z" />
+        <P d="M8 10h8" />
+        <P d="M8 13h5" />
+      </>
+    ),
+
   // ── Actions ──────────────────────────────────────────────────
   plus: (s: Size = 14) => wrap(s, <P d="M12 5v14M5 12h14" />),
   search: (s: Size = 16) =>

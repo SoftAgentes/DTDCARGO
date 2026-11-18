@@ -2,7 +2,7 @@
  * searchGlobalAction — buscador global ⌘K del Studio (SDD-0135).
  *
  * Flujo (spec §4):
- *   1. Resolver rol del user (`getStudioRole`).
+ *   1. Resolver rol, desvíos y extras del user (`getStudioAccess`).
  *   2. Clasificar el término (monto / fecha / cédula-RIF / código / texto).
  *   3. Armar el set de facetas en scope según la clasificación.
  *   4. Filtrar por permiso derivado de la matriz RBAC (`canRunFacet`) →
@@ -22,7 +22,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/db/server";
-import { getStudioRole } from "@/lib/studio/rbac-guard";
+import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { normalizeCedula } from "@/lib/studio/person-types";
 import { getClientByCedula, listClients } from "@/lib/studio/client-queries";
@@ -88,7 +88,13 @@ async function runClients(
 ): Promise<GlobalSearchHit[]> {
   const hits: GlobalSearchHit[] = [];
   const seen = new Set<string>();
-  const push = (c: { id: string; markbox: string; name: string; rif: string | null }) => {
+  const push = (c: {
+    id: string;
+    markbox: string;
+    name: string;
+    rif: string | null;
+    codigo_anterior?: string | null;
+  }) => {
     if (seen.has(c.id) || hits.length >= LIMIT) return;
     seen.add(c.id);
     hits.push({
@@ -96,7 +102,10 @@ async function runClients(
       id: c.id,
       code: c.markbox,
       title: c.name,
-      subtitle: c.rif ?? undefined,
+      // SDD-0664: si apareció por un Shipping Mark anterior, se dice cuál.
+      subtitle: c.codigo_anterior
+        ? [`antes ${c.codigo_anterior}`, c.rif].filter(Boolean).join(" · ")
+        : (c.rif ?? undefined),
       href: `/studio/clientes/${encodeURIComponent(c.markbox)}`,
     });
   };
@@ -245,7 +254,10 @@ export async function searchGlobalAction(
   if (term.length < 2) return { term, kind, groups: [], locked: [] };
 
   const supabase = await createClient();
-  const role: StudioUserRole | null = await getStudioRole(supabase);
+  // Rol + desvíos + extras de la persona (SDD-0622): las mismas facetas que el
+  // sidebar y que el gate de cada módulo.
+  const access = await getStudioAccess(supabase);
+  const role: StudioUserRole | null = access.role;
 
   // Scope del término → facetas relevantes; el chip lo estrecha a una.
   let scopeIds = facetsInScope(kind, term);
@@ -254,11 +266,11 @@ export async function searchGlobalAction(
   // Candado: facetas de dinero en scope que el rol NO puede correr. Derivado
   // SOLO de la matriz (canRunFacet) — nunca se consulta una tabla financiera.
   const locked: LockedFacet[] = MONEY_FACETS.filter(
-    (id) => scopeIds.includes(id) && !canRunFacet(role, getFacet(id)),
+    (id) => scopeIds.includes(id) && !canRunFacet(role, getFacet(id), access),
   ).map((facet) => ({ facet }));
 
   // Facetas que efectivamente se ejecutan: en scope Y permitidas.
-  const toRun = scopeIds.filter((id) => canRunFacet(role, getFacet(id)));
+  const toRun = scopeIds.filter((id) => canRunFacet(role, getFacet(id), access));
 
   try {
     const results = await Promise.all(

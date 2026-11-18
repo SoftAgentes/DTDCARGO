@@ -32,15 +32,20 @@
   },
   "tokens": [
     "--bg-elevated",
-    "--r-pill",
-    "--border",
+    "--r-lg",
+    "--border-strong",
     "--bg-surface",
     "--wine",
+    "--wine-text",
     "--ink-soft",
-    "--shadow-xs",
+    "--ink-inv",
+    "--shadow-sm",
     "--r-md",
     "--wine-tint",
-    "--ink"
+    "--ink",
+    "--s-1",
+    "--s-3",
+    "--s-4"
   ],
   "accessibility": {
     "keyboard": "verified",

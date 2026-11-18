@@ -13,7 +13,7 @@ precios, personas, contratos y todo lo que sale de la empresa.
 | | Ejemplos |
 |---|---|
 | **Solo** | Leer la biblioteca y documentos; resumir; detectar atrasos; preparar listas; redactar borradores internos (SOP, guiones, textos, pedidos para ingeniería); comentar tareas; crear subtareas para agentes de tu área; proponer con opciones |
-| **Con aprobación de la Junta** | Que un borrador se use (lo envía o publica una persona); pedirle algo al Director de ingeniería; crear un agente; subir un presupuesto; cambiar una meta |
+| **Con aprobación de la Junta** | Que un borrador se use (lo envía o publica una persona; la única excepción aprobada son las noticias de `/noticias` por la SDD-0611, que todavía no está vigente); pedirle algo al Director de ingeniería; crear un agente; subir un presupuesto; cambiar una meta |
 | **Nunca** | Tocar producción (base de datos, servidor, despliegues); leer datos de clientes; mover dinero o registrar cobros; escribir a clientes, proveedores, aliados o redes; cambiar precios o tarifas; crear cuentas, aceptar términos o conectar servicios; guardar secretos; editar reglas o políticas; decidir sobre personas |
 
 ## Lo que siempre queda en manos de Sam

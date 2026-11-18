@@ -20,7 +20,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { MAIL_HEALTH_SOURCE, type MailFailure } from "./mail-health";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -82,10 +82,24 @@ export async function notifyMailHealth(
 
     // Telegram: independiente de Resend. Si el correo está roto, este llega.
     // UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
-    const tg = await dispatchTelegramAlert(admin, tenantId, "equipo", telegramText, {
-      logTag: "mail-health",
-    });
-    result.telegramAttempted = tg.chatIds.length;
+    const tg = await dispatchAlert(
+      admin,
+      tenantId,
+      "equipo",
+      {
+        telegramText,
+        // Sin destinatarios ni asuntos: sólo cuántos y dónde verlos (SDD-0606).
+        discord: {
+          titulo: "Correos que no llegaron",
+          conteos: [{ etiqueta: "Correos fallidos", valor: failures.length }],
+          url: `${SITE_URL}/studio/mailing`,
+        },
+      },
+      { logTag: "mail-health" },
+    );
+    // Nombre histórico: cuenta los destinos de mensajería intentados
+    // (canal de Discord o chats de Telegram).
+    result.telegramAttempted = tg.intentados;
   } catch (err) {
     console.error("[mail-health] notifyMailHealth falló:", err);
   }

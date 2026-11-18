@@ -1,0 +1,3 @@
+#!/bin/sh
+# SDD-0615: ALFRED con Claude Code. La lógica está en dtd-motor.
+exec /usr/local/libexec/dtd-motor claude "$@"

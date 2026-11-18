@@ -29,6 +29,8 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type CityOption = { slug: string; label: string };
 
@@ -56,7 +58,7 @@ export function TariffDrawer({
   const [state, formAction, isPending] = useActionState(saveTariffAction, initialState);
   const toast = useToast();
   const router = useRouter();
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const [citySlug, setCitySlug] = useState(tariff?.citySlug ?? "");
   const [costo, setCosto] = useState<number | null>(tariff?.costUsdCbm ?? null);
@@ -87,9 +89,11 @@ export function TariffDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
+  // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
+  // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (state.error) errorRef.current?.focus();
-  }, [state.error]);
+    if (!isPending && state.error) enfocarAviso(errorRef.current);
+  }, [state, isPending]);
 
   const margen = costo != null && venta != null ? Math.round((venta - costo) * 100) / 100 : null;
   const tono = margen == null ? null : margenTone(margen);
@@ -367,23 +371,15 @@ export function TariffDrawer({
               <label className="studio-label" htmlFor="tariff-from">
                 Vigente desde
               </label>
-              <input
-                id="tariff-from"
-                name="validFrom"
-                type="date"
-                className="studio-input"
-                defaultValue={tariff?.validFrom ?? ""}
-              />
+              <DateField id="tariff-from" name="validFrom" defaultValue={tariff?.validFrom ?? ""} />
             </div>
             <div>
               <label className="studio-label" htmlFor="tariff-to">
                 Vigente hasta
               </label>
-              <input
+              <DateField
                 id="tariff-to"
                 name="validTo"
-                type="date"
-                className="studio-input"
                 defaultValue={tariff?.validTo ?? ""}
                 aria-invalid={state.fieldErrors?.validTo ? true : undefined}
               />
@@ -394,22 +390,11 @@ export function TariffDrawer({
         </Grupo>
 
         {state.error && (
-          <p
-            ref={errorRef}
-            role="alert"
-            tabIndex={-1}
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            {state.error}
-          </p>
+          <div ref={errorRef}>
+            <Aviso tono="error" compacto>
+              {state.error}
+            </Aviso>
+          </div>
         )}
 
         <div style={{ flex: 1, minHeight: 12 }} />
@@ -487,6 +472,14 @@ function Hint({ children, tone }: { children: React.ReactNode; tone?: "warning" 
       <span>{children}</span>
     </p>
   );
+}
+
+/** `Aviso` no recibe ref: el foco va a su franja (`role="alert"`), que se vuelve enfocable aquí. */
+function enfocarAviso(contenedor: HTMLElement | null) {
+  const franja = contenedor?.querySelector<HTMLElement>('[role="alert"]');
+  if (!franja) return;
+  franja.tabIndex = -1;
+  franja.focus();
 }
 
 function FieldError({ msg }: { msg: string }) {

@@ -25,6 +25,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
@@ -103,19 +104,9 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
         }}
       >
         {noClients && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--warning-bg)",
-              border: "1px solid var(--warning)",
-              borderRadius: "var(--r-sm)",
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
+          <Aviso tono="atencion" compacto urgente>
             No hay clientes cargados. Crea un cliente antes de registrar un reclamo.
-          </div>
+          </Aviso>
         )}
 
         {/* Cliente */}
@@ -281,20 +272,9 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
         </div>
 
         {state.error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </p>
+          </Aviso>
         )}
       </form>
 

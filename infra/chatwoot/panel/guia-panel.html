@@ -1,0 +1,171 @@
+<!--
+  DTD Cargo · SDD-0589, paso 9.4 · La guía de Studio dentro del panel de Chatwoot.
+
+  Va en Chatwoot › Super Admin › Settings › «Dashboard Scripts»
+  (`DASHBOARD_SCRIPTS`), DEBAJO del contenido de `dashboard-scripts.html`.
+  Chatwoot 4.19.1 lo pone al final del <body> de cada página del panel.
+
+  Qué hace: SOLO MIDE. La tarjeta de la guía la dibuja Studio, encima del marco
+  de la Bandeja. Studio le manda por postMessage las anclas con sus selectores
+  (`lib/studio/guia/chatwoot-selectores.json`) y el script le devuelve dónde está
+  cada una:
+    1. al cargar, avisa {"evento":"dtd:guia:listo"} a Studio;
+    2. con {"evento":"dtd:guia:mirar","anclas":{...}} mide cada ancla y contesta
+       {"evento":"dtd:guia:cajas","cajas":{...}}; vuelve a contestar solo cuando
+       algo cambia (DOM, scroll o tamaño);
+    3. con {"evento":"dtd:guia:mostrar","ancla":"...","suave":true} lleva esa
+       ancla a la vista;
+    4. con {"evento":"dtd:guia:parar"} deja de observar.
+  Acepta mensajes SOLO de Studio y de la ventana que lo enmarca, y contesta solo a
+  ese origen. No lee texto, valores, cookies ni almacenamiento: solo rectángulos.
+  Sin pedido no observa nada.
+
+  Desplegarlo es una puerta con OK de Sam. Marcha atrás: volver a pegar solo
+  `dashboard-scripts.html`; las tarjetas de Chatwoot pasan al marco de la Bandeja.
+  Lo prueba `lib/studio/chatwoot/__tests__/guia-panel.test.ts`, que lee este archivo.
+-->
+<script>
+(function () {
+  var STUDIO = ["https://dtdcargo.com", "https://www.dtdcargo.com"];
+  var ANCLA = /^[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  var CERCA = /^[a-z][a-z0-9-]{0,39}$/;
+  var MAX_ANCLAS = 20;
+  var MAX_SELECTORES = 4;
+  var MAX_LARGO = 200;
+
+  if (window.parent === window) return;
+
+  var pedido = null;
+  var destino = null;
+  var ultimo = "";
+  var pendiente = false;
+  var observador = null;
+
+  function enviar(datos) {
+    if (!destino) return;
+    window.parent.postMessage(JSON.stringify(datos), destino);
+  }
+
+  function limpiar(anclas) {
+    if (!anclas || typeof anclas !== "object") return null;
+    var salida = {};
+    var n = 0;
+    for (var ancla in anclas) {
+      if (!Object.prototype.hasOwnProperty.call(anclas, ancla)) continue;
+      if (n >= MAX_ANCLAS) break;
+      if (!ANCLA.test(ancla)) continue;
+      var a = anclas[ancla];
+      if (!a || !a.css || typeof a.css.length !== "number") continue;
+      var css = [];
+      for (var i = 0; i < a.css.length && css.length < MAX_SELECTORES; i += 1) {
+        if (typeof a.css[i] === "string" && a.css[i].length > 0 && a.css[i].length <= MAX_LARGO) css.push(a.css[i]);
+      }
+      if (css.length === 0) continue;
+      salida[ancla] = { css: css, cerca: typeof a.cerca === "string" && CERCA.test(a.cerca) ? a.cerca : null };
+      n += 1;
+    }
+    return n > 0 ? salida : null;
+  }
+
+  function buscar(a) {
+    for (var i = 0; i < a.css.length; i += 1) {
+      var el = null;
+      try {
+        el = document.querySelector(a.css[i]);
+      } catch (x) {
+        el = null;
+      }
+      if (el && a.cerca) el = el.closest(a.cerca) || el;
+      if (el && el.getClientRects().length > 0) return el;
+    }
+    return null;
+  }
+
+  function medir() {
+    pendiente = false;
+    if (!pedido) return;
+    var cajas = {};
+    for (var ancla in pedido) {
+      var el = buscar(pedido[ancla]);
+      if (!el) {
+        cajas[ancla] = null;
+        continue;
+      }
+      var r = el.getBoundingClientRect();
+      cajas[ancla] = {
+        top: Math.round(r.top),
+        left: Math.round(r.left),
+        width: Math.round(r.width),
+        height: Math.round(r.height)
+      };
+    }
+    var texto = JSON.stringify(cajas);
+    if (texto === ultimo) return;
+    ultimo = texto;
+    enviar({ evento: "dtd:guia:cajas", cajas: cajas });
+  }
+
+  function programar() {
+    if (pendiente || !pedido) return;
+    pendiente = true;
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(medir);
+    else window.setTimeout(medir, 16);
+  }
+
+  function observar() {
+    if (observador) return;
+    if (typeof window.MutationObserver === "function") {
+      observador = new window.MutationObserver(programar);
+      observador.observe(document.body, { childList: true, subtree: true, attributes: true });
+    }
+    window.addEventListener("scroll", programar, true);
+    window.addEventListener("resize", programar);
+  }
+
+  function parar() {
+    pedido = null;
+    ultimo = "";
+    pendiente = false;
+    if (observador) observador.disconnect();
+    observador = null;
+    window.removeEventListener("scroll", programar, true);
+    window.removeEventListener("resize", programar);
+  }
+
+  window.addEventListener("message", function (e) {
+    if (STUDIO.indexOf(e.origin) < 0) return;
+    if (e.source !== window.parent) return;
+    var datos;
+    try {
+      datos = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+    } catch (x) {
+      return;
+    }
+    if (!datos || typeof datos.evento !== "string") return;
+
+    if (datos.evento === "dtd:guia:mirar") {
+      var anclas = limpiar(datos.anclas);
+      if (!anclas) return;
+      destino = e.origin;
+      pedido = anclas;
+      ultimo = "";
+      observar();
+      medir();
+    } else if (datos.evento === "dtd:guia:mostrar") {
+      // Solo un ancla propia del pedido: `__proto__` o `constructor` vienen de Object.
+      if (!pedido || typeof datos.ancla !== "string" || !Object.prototype.hasOwnProperty.call(pedido, datos.ancla)) return;
+      var el = buscar(pedido[datos.ancla]);
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ block: "center", inline: "nearest", behavior: datos.suave === true ? "smooth" : "auto" });
+      }
+      programar();
+    } else if (datos.evento === "dtd:guia:parar") {
+      parar();
+    }
+  });
+
+  for (var i = 0; i < STUDIO.length; i += 1) {
+    window.parent.postMessage(JSON.stringify({ evento: "dtd:guia:listo" }), STUDIO[i]);
+  }
+})();
+</script>

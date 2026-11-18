@@ -18,11 +18,11 @@ vi.mock("@/lib/public/servicios-queries", async () => ({
 }));
 
 const ANTERIORES = new Map([
-  ["¿Cómo me registro y qué obtengo al instante?", "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar."],
-  ["¿Cómo entro a mi portal de cliente y qué puedo hacer ahí?", "Tu portal es tu panel privado en dtdcargo.com/portal: entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso."],
+  ["¿Cómo me registro y qué obtengo al instante?", "Regístrate gratis en dtdcargo.com/registro y en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar."],
+  ["¿Cómo entro a mi portal de cliente y qué puedo hacer ahí?", "Tu portal es tu panel privado en dtdcargo.com/portal y entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso."],
   ["¿Cada cuánto sale el barco y dónde veo cómo va mi envío?", "El barco sale cada 15 a 21 días. Si ya eres cliente, en tu portal ves en qué etapa va cada uno de tus envíos, actualizado a medida que avanza. Si todavía no eres cliente, escríbenos por WhatsApp y un asesor te confirma la próxima salida para tu carga."],
-  ["¿Puedo hacerle seguimiento a mi envío para saber dónde va?", "Sí. El seguimiento se hace entrando a tu portal del cliente en dtdcargo.com/portal: ahí ves los eventos de cada envío en vivo, con su BL (Bill of Lading) y su código DTDU. Entras con un enlace que te llega a tu correo, sin contraseña. Si no tienes acceso a la mano, escríbenos por WhatsApp y te ayudamos a entrar."],
-  ["¿Puedo rastrear con el número que me dio mi proveedor chino?", "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD entra a tu portal del cliente en dtdcargo.com/portal: ahí aparece el embarque con el código que te damos al abrirlo."],
+  ["¿Puedo hacerle seguimiento a mi envío para saber dónde va?", "Sí. El seguimiento se hace entrando a tu portal del cliente en dtdcargo.com/portal y ahí ves los eventos de cada envío en vivo, con su BL (Bill of Lading) y su código DTDU. Entras con un enlace que te llega a tu correo, sin contraseña. Si no tienes acceso a la mano, escríbenos por WhatsApp y te ayudamos a entrar."],
+  ["¿Puedo rastrear con el número que me dio mi proveedor chino?", "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD entra a tu portal del cliente en dtdcargo.com/portal y ahí aparece el embarque con el código que te damos al abrirlo."],
 ]);
 const PROMESA = /eventos.{0,40}en vivo|tiempo real|portal de seguimiento|envíos y pre-alertas paso a paso|en tu portal ves en qué etapa|para seguir tu envío con DTD entra|muy pronto|en todo momento/i;
 const plano = (s: string | null) => (s ?? "").replace(/\s+/g, " ").trim();
@@ -139,6 +139,26 @@ describe("fuentes estáticas alineadas y privacidad", () => {
     expect(plano(container.textContent)).toContain("El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.");
     expect(plano(container.textContent)).not.toContain("El código de rastreo que introduces");
     expect(plano(container.textContent)).toContain("cotizar, coordinar y dar seguimiento a tus envíos puerta a puerta.");
-    expect(plano(container.textContent)).toContain("13 de octubre de 2026");
+    // SDD-0587: la fecha se movió al nombrar Instagram entre los canales de chat y en la fila de Meta.
+    // SDD-0606/0608: y otra vez el 2026-11-06, con la mensajería interna del equipo que aprobó Sam.
+    // SDD-0586 (T4): y el 2026-11-08, con el chat de Soporte del portal (T2 y T3, aprobados por Sam).
+    expect(plano(container.textContent)).toContain("8 de noviembre de 2026");
+  });
+
+  // SDD-0587, 2026-11-05: lo que lee la persona, ya renderizado. Texto aprobado por Sam.
+  it("privacidad se lee como Sam aprobó en la fila de Meta, el proveedor de gestión de clientes y §5", async () => {
+    const { default: Page } = await import("@/app/privacidad/page");
+    const { container } = render(<Page />);
+    const leido = plano(container.textContent);
+    expect(leido).toContain(
+      "Meta (WhatsApp e Instagram), que transporta los mensajes que nos envías y te enviamos por esos canales.",
+    );
+    expect(leido).toContain(
+      "Proveedor de gestión de clientes, que todavía usamos para llevar el seguimiento de clientes y atender parte de las conversaciones por WhatsApp e Instagram. Recibe tu nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te atendemos como cliente o te preparamos un estimado, también puede recibir tu Shipping Mark, el valor del estimado y las notas de seguimiento. Estamos pasando esa atención a nuestro propio sistema, alojado en nuestro servidor.",
+    );
+    expect(leido).toContain(
+      "Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países.",
+    );
+    expect(leido).not.toMatch(/kommo/i);
   });
 });

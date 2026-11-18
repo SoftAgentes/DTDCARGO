@@ -43,7 +43,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findMissing } from "../../../scripts/check-migrations-applied.mjs";
 
-export const IMAGEN = "hailuwaycom-sketch/dtdcargo";
+export const IMAGEN = "softagentes/dtdcargo";
 export const ETIQUETA = "publicable";
 export const VENTANA = 20;
 

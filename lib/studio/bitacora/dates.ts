@@ -1,26 +1,22 @@
+import { CARACAS_TIME_ZONE, fechaCaracas } from "@/lib/shared/fechas-caracas";
 /**
  * Fechas en zona Venezuela para Bitácora (SDD-0146).
  *
  * "Hoy" SIEMPRE se calcula server-side en America/Caracas: si el server corre
  * en UTC, entre las 20:00 y las 00:00 VE el día del server ya es "mañana" y la
- * agrupación Atrasadas/Para hoy se corre un día. VE = UTC-4 fijo (sin DST).
+ * agrupación Atrasadas/Para hoy se corre un día. La zona IANA conserva sus cambios históricos.
  *
  * Función pura (recibe `now` inyectable) → testeable sin mocks de reloj.
  */
 
-export const VE_TIME_ZONE = "America/Caracas";
+export const VE_TIME_ZONE = CARACAS_TIME_ZONE;
 
 /**
  * Fecha de HOY en Caracas como `YYYY-MM-DD` (ISO date, sin hora).
- * `sv-SE` formatea exactamente `YYYY-MM-DD` — cero manipulación de strings.
+ * Compatibilidad pública: delega en la primitiva compartida C1.
  */
 export function todayCaracasISO(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: VE_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
+  return fechaCaracas(now);
 }
 
 /**

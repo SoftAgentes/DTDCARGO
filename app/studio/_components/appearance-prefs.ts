@@ -10,6 +10,9 @@
  * `applyTheme`/`applyDensity` disparan un `CustomEvent` en `window` para que
  * cualquier control montado (topbar) refleje el cambio en vivo sin recargar.
  *
+ * Predeterminados: oscuro y compacto (BD-037, SDD-0603). Quien ya eligió otra cosa
+ * la conserva. Tienen que coincidir con el script de `app/studio/layout.tsx`.
+ *
  * Client-only de facto (usa `localStorage` / `document` / `window`); llamar
  * solo desde componentes "use client" o dentro de effects/handlers.
  */
@@ -21,6 +24,9 @@ export const APPEARANCE_EVENT = "studio:appearance";
 export type StudioTheme = "light" | "dark";
 export type StudioDensity = "compact" | "normal" | "spacious";
 
+export const DEFAULT_THEME: StudioTheme = "dark";
+export const DEFAULT_DENSITY: StudioDensity = "compact";
+
 export interface AppearanceDetail {
   theme?: StudioTheme;
   density?: StudioDensity;
@@ -28,18 +34,18 @@ export interface AppearanceDetail {
 
 export function readTheme(): StudioTheme {
   try {
-    return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+    return localStorage.getItem(THEME_KEY) === "light" ? "light" : DEFAULT_THEME;
   } catch {
-    return "light";
+    return DEFAULT_THEME;
   }
 }
 
 export function readDensity(): StudioDensity {
   try {
     const d = localStorage.getItem(DENSITY_KEY);
-    return d === "compact" || d === "spacious" ? d : "normal";
+    return d === "normal" || d === "spacious" ? d : DEFAULT_DENSITY;
   } catch {
-    return "normal";
+    return DEFAULT_DENSITY;
   }
 }
 

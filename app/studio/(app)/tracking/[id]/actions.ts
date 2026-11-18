@@ -7,6 +7,8 @@
  * - transitionShipment: cambio de estado por boton → update status + event
  * - addShipmentEvent: agregar evento manual (status + nota + occurred_at)
  * - changeDestination: cambia destino del envio + registra fee en timeline (SDD-0009)
+ * - previewReassignShipmentClient / reassignShipmentClient: pasar a otro cliente,
+ *   con vista previa y motivo (RPC de la 0551, SDD-0645)
  *
  * Todas validan sesion via Supabase. RLS filtra por tenant_id automaticamente.
  */
@@ -16,7 +18,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   mensajeResultadoEmbarques,
@@ -32,6 +34,16 @@ import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { scheduleClientNotifications } from "@/lib/studio/notifications/schedule-client-notifications";
 import { statusEvent } from "@/lib/studio/notifications/client-notification-types";
+import { readNormalAssociations, mutationResult, normalReadMessage } from "@/lib/studio/client-consolidation/queries";
+import { LEGACY_COHORT_DENIAL, invalidMembershipState, normalFlowError, noteRpcArgs, transitionRpcArgs,
+  validateNormalNote, validateNormalTransition } from "@/lib/studio/client-consolidation/normal-flow";
+import type { NormalActionState, NormalMutationResult } from "@/lib/studio/client-consolidation/types";
+import {
+  faltaLaFuncion,
+  mensajeErrorReasignar,
+  parseReasignarResultado,
+  type ReasignarResultado,
+} from "@/lib/studio/reasignar-embarque";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -41,6 +53,60 @@ export type ActionState = {
   error?: string;
   fieldErrors?: Record<string, string>;
 };
+
+async function legacyShipmentMutationDenial(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<string | null> {
+  try {
+    const scope = await readNormalAssociations(supabase, { shipmentIds: [id] });
+    return scope.shipmentIds.length ? LEGACY_COHORT_DENIAL : null;
+  } catch (error) { return normalReadMessage(error); }
+}
+
+/** Typed cohort writers: DB derives authority and distinguishes fresh write/replay. */
+export async function transitionClientShipment(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validated = validateNormalTransition(raw);
+  if (!validated.input) return invalidMembershipState(validated.fieldErrors ?? {});
+  const input = validated.input;
+  if (input.operation !== "transit") return { error: "La liberación y el reparto se confirman desde Almacén VE." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_transition", transitionRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.reference !== input.reference || result.shipmentId !== input.shipmentId
+    || !["transitioned", "replay"].includes(result.outcome) || result.from !== input.expectedStatus || result.to !== "in_transit") {
+    return { error: "No se pudo comprobar el tránsito. Conserva la referencia y consulta el estado actual." };
+  }
+  let warning: string | undefined;
+  if (result.outcome === "transitioned") {
+    try {
+      const tenantId = await getUserTenantId();
+      const { data: shipment, error: readError } = await supabase.from("shipments")
+        .select("code, client_markbox, client_name").eq("id", input.shipmentId).maybeSingle();
+      if (!tenantId || readError || !shipment) throw new Error("notification context unavailable");
+      await scheduleClientNotifications(createAdminClient(), tenantId, {
+        ancla: { kind: "shipment", shipmentId: input.shipmentId, shipmentCode: shipment.code },
+        clientMarkbox: shipment.client_markbox, clientName: shipment.client_name,
+        event: statusEvent("in_transit"), eventTime: new Date(result.occurredAt),
+      });
+    } catch { warning = "El tránsito quedó registrado; no se pudo comprobar la programación de su aviso."; }
+  }
+  revalidatePath(`/studio/tracking/${input.shipmentId}`); revalidatePath("/studio/tracking"); revalidatePath("/studio/naviera");
+  return { ok: true, result, ...(warning ? { warning } : {}) };
+}
+
+export async function recordClientShipmentNote(raw: unknown): Promise<NormalActionState<NormalMutationResult>> {
+  const validated = validateNormalNote(raw);
+  if (!validated.input) return invalidMembershipState(validated.fieldErrors ?? {});
+  const input = validated.input; const supabase = await createClient();
+  const { data, error } = await supabase.rpc("client_consolidation_note", noteRpcArgs(input));
+  if (error) return { error: normalFlowError(error) };
+  const result = mutationResult(data);
+  if (!result || result.reference !== input.reference || result.shipmentId !== input.shipmentId
+    || !["recorded", "replay"].includes(result.outcome) || result.status !== input.expectedStatus) {
+    return { error: "No se pudo comprobar la nota. Conserva la referencia y consulta el estado actual." };
+  }
+  revalidatePath(`/studio/tracking/${input.shipmentId}`);
+  return { ok: true, result };
+}
 
 function parseIsoInstant(value: FormDataEntryValue | null): string | null {
   const raw = String(value ?? "").trim();
@@ -68,6 +134,9 @@ export async function updateShipmentPlan(
   if (reason.length < 4) {
     return { error: "Indica un motivo de al menos 4 caracteres." };
   }
+
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { error } = await supabase.rpc("update_shipment_plan", {
     p_shipment_id: id,
@@ -119,7 +188,8 @@ export async function updateShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   // Leer el shipment para conocer su servicio (validacion vehicle_category)
   const { data: current, error: readError } = await supabase
@@ -193,6 +263,9 @@ export async function deleteShipment(
   const motivo = validateAuditReason(reason);
   if (!motivo.ok) return { error: motivo.error };
 
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
+
   const resultado = await eliminarEmbarques(supabase, lote.ids, motivo.reason);
   if (resultado.estado === "eliminado") {
     for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
@@ -230,6 +303,9 @@ export async function cancelShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
+
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const user = await getUser();
 
@@ -282,7 +358,9 @@ export async function transitionShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  // Resolve protocol before the global TS applicability hint (e.g. last_mile).
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
@@ -381,6 +459,9 @@ export async function addShipmentEvent(
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
 
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
+
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
     .select("shipment_service")
@@ -451,7 +532,8 @@ export async function changeDestination(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
-
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, id);
+  if (cohortDenial) return { error: cohortDenial };
 
   // 1) Leer envío actual (destino actual + status)
   const { data: shipment, error: readError } = await supabase
@@ -524,10 +606,104 @@ export async function lookupRateForNewDestination(
   if (!destination?.trim()) return { rate: null };
 
   const supabase = await createClient();
+  // SDD-0622: cambiar el destino es editar el envío, y la tarifa es precio.
+  // Pide editar Tracking y, además, ver el Cotizador O la CN: el mismo criterio
+  // con que la RLS de `rates` (0540) deja leer tarifas (la CN las lee para la
+  // propuesta de la recepción). Así Almacén conserva la tarifa sugerida que ya
+  // recibía, y quien no ve ninguno de los dos (p. ej. marketing) no la recibe.
+  if (await moduleEditDenial(supabase, "tracking")) return { rate: null };
+  const sinPrecio =
+    (await moduleViewDenial(supabase, "quotes")) !== null &&
+    (await moduleViewDenial(supabase, "cn")) !== null;
+  if (sinPrecio) return { rate: null };
   try {
     const rate = await findRateForDestination(supabase, service, destination);
     return { rate };
   } catch {
     return { rate: null };
   }
+}
+
+// ─── Pasar a otro cliente (SDD-0645) ────────────────────────────────────────
+
+export type ReasignarActionResult =
+  | { ok: true; resultado: ReasignarResultado }
+  | { ok: false; error: string; noDisponible?: boolean };
+
+/** SDD-0578: por qué no se puede pasar un embarque de cohorte a otro cliente. */
+const REASIGNAR_COHORTE_DENIAL =
+  "Este embarque está en un contenedor con envíos por cliente (manifiesto por cliente). No se puede pasar a otro cliente desde aquí: el cliente quedó fijado al formar el envío.";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function llamarReasignar(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string,
+  clientId: string,
+  reason: string | null,
+  dryRun: boolean,
+): Promise<ReasignarActionResult> {
+  // SDD-0578 (decisión a confirmar con Sam): un embarque de cohorte del camino
+  // normal no se pasa a otro cliente; el trigger de la 0561 también lo corta.
+  const cohortDenial = await legacyShipmentMutationDenial(supabase, shipmentId);
+  if (cohortDenial) {
+    return { ok: false, error: cohortDenial === LEGACY_COHORT_DENIAL ? REASIGNAR_COHORTE_DENIAL : cohortDenial };
+  }
+  const { data, error } = await supabase.rpc("reassign_shipment_client", {
+    p_shipment_id: shipmentId,
+    p_client_id: clientId,
+    p_reason: reason,
+    p_dry_run: dryRun,
+  });
+  if (error?.hint === "dtd-client-normal") return { ok: false, error: REASIGNAR_COHORTE_DENIAL };
+  if (error) {
+    return { ok: false, error: mensajeErrorReasignar(error), noDisponible: faltaLaFuncion(error) || undefined };
+  }
+  const resultado = parseReasignarResultado(data);
+  if (!resultado) return { ok: false, error: "No pudimos leer la respuesta. Recarga la página." };
+  return { ok: true, resultado };
+}
+
+/**
+ * Vista previa de «Pasar a otro cliente»: lo mismo que decidiría el cambio
+ * (qué se mueve y qué lo bloquea), sin escribir. La RPC de la 0551 repite el
+ * rol y el tenant.
+ */
+export async function previewReassignShipmentClient(
+  shipmentId: string,
+  clientId: string,
+): Promise<ReasignarActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "reassign_shipment_owner");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  return llamarReasignar(supabase, shipmentId, clientId, null, true);
+}
+
+/**
+ * Pasa el embarque (y sus recepciones, borradores, consolidación, documentos
+ * y avisos pendientes) a otro cliente, con motivo. Todo o nada en la 0551.
+ */
+export async function reassignShipmentClient(
+  shipmentId: string,
+  clientId: string,
+  reason: string,
+): Promise<ReasignarActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "reassign_shipment_owner");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) return { ok: false, error: motivo.error };
+
+  const res = await llamarReasignar(supabase, shipmentId, clientId, motivo.reason, false);
+  if (res.ok && res.resultado.outcome === "reassigned") {
+    revalidatePath(`/studio/tracking/${shipmentId}`);
+    for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+  }
+  return res;
 }

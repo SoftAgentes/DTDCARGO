@@ -35,8 +35,8 @@ huella() { sha256sum < "$1" | cut -c1-64; }
 
 SHA_A="0123456789abcdef0123456789abcdef01234567"
 SHA_B="89abcdef0123456789abcdef0123456789abcdef"
-IMG_A="ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}"
-IMG_B="ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_B}"
+IMG_A="ghcr.io/softagentes/dtdcargo:prueba-sha-${SHA_A}"
+IMG_B="ghcr.io/softagentes/dtdcargo:prueba-sha-${SHA_B}"
 P=zz540-staging
 PD="${T}/srv/${P}"
 EV="${T}/evid"
@@ -69,8 +69,11 @@ grep -qF -- "$(val "${PD}/.env" POSTGRES_PASSWORD)" "${T}/envp.log" && ko "la sa
 antes="$(huella "${PD}/.env")"
 bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${PD}/.env" --image "${IMG_A}" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 3 && "$(huella "${PD}/.env")" == "${antes}" ]] && ok "sin --force no pisa un .env (3)" || ko "pisó el .env rc=${rc}"
-bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_A}" > /dev/null 2>&1; rc=$?
+bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_A}" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 2 && ! -e "${T}/otro.env" ]] && ok "imagen sha-* (de producción): rechaza (2)" || ko "aceptó una imagen sha-* rc=${rc}"
+# La dirección de antes del cambio de nombre del perfil da «manifest unknown».
+bash "${S}/staging/env-prueba.sh" --example "${PD}/.env.example" --out "${T}/otro.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 2 && ! -e "${T}/otro.env" ]] && ok "prueba-sha de la dirección vieja: rechaza (2)" || ko "aceptó la dirección vieja rc=${rc}"
 
 echo "== 2. verificar-aislamiento.sh: limpio da 0, una clave de producción copiada falla"
 cat > "${T}/prod/.env" <<EOF
@@ -104,10 +107,12 @@ fijar() { # $1 archivo, $2 línea completa CLAVE=valor
   local k="${2%%=*}"; grep -vE "^${k}=" "$1" > "$1.t"; printf '%s\n' "$2" >> "$1.t"; mv "$1.t" "$1"
 }
 fijar "${T}/limpio.env" "PRUEBA_WEB_USUARIOS='sam:\$2a\$10\$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0'"
+# Por defecto el bundle de los dobles trae GA/Ads solo fuera de static (lo normal en la Fase 2).
+export DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0"
 va() { bash "${S}/staging/verificar-aislamiento.sh" --env "$1" --prod-env "${T}/prod/.env" --project "${P}" --example "${PD}/.env.example" "${@:2}"; }
 va "${T}/limpio.env" > "${T}/va-limpio.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q '· 0 FALLÓ ·' "${T}/va-limpio.log" && ok "limpio → 0 ($(grep RESULTADO "${T}/va-limpio.log"))" || { ko "limpio rc=${rc}"; grep FALLÓ "${T}/va-limpio.log"; }
-grep -q 'AVISO · bundle del navegador con Google Analytics' "${T}/va-limpio.log" && ok "GA y Ads en el bundle del navegador salen como AVISO (Fase 2)" || ko "sin aviso de GA"
+grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-limpio.log" && ok "limpio: static sin GA ni Ads pasa por defecto" || ko "sin PASÓ de GA"
 cp "${T}/limpio.env" "${T}/rojo.env"; fijar "${T}/rojo.env" "SUPABASE_SERVICE_ROLE_KEY=$(val "${T}/prod/.env" SERVICE_ROLE_KEY)"
 va "${T}/rojo.env" > "${T}/va-rojo.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · valores iguales a un secreto de producción (por sha256): SUPABASE_SERVICE_ROLE_KEY' "${T}/va-rojo.log" \
@@ -120,6 +125,23 @@ va "${T}/rojo3.env" > "${T}/va-rojo3.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'integraciones con valor en prueba: RESEND_API_KEY' "${T}/va-rojo3.log" && ok "una integración encendida → falla" || ko "integración rc=${rc}"
 va "${T}/rojo3.env" --permitir RESEND_API_KEY > "${T}/va-perm.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q 'AVISO · RESEND_API_KEY tiene valor y está permitida' "${T}/va-perm.log" && ok "con --permitir pasa como AVISO" || ko "--permitir rc=${rc}"
+# Chatwoot: prueba tiene su propia cuenta, nunca la real (runbook chatwoot-bandeja).
+cp "${T}/limpio.env" "${T}/cw.env"
+printf 'CHATWOOT_URL=https://chat.dtdcargo.com\nCHATWOOT_ACCOUNT_ID=2\nCHATWOOT_PLATFORM_TOKEN=token-solo-de-prueba-0585\nWHATSAPP_NUMERO_CLIENTES=15555550100\n' >> "${T}/cw.env"
+va "${T}/cw.env" > "${T}/va-cw.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · cuenta de Chatwoot propia de prueba' "${T}/va-cw.log" && ok "Chatwoot con su propia cuenta y el .env.example de la rama → pasa" || { ko "Chatwoot propio rc=${rc}"; grep FALLÓ "${T}/va-cw.log"; }
+cp "${T}/cw.env" "${T}/cw-rojo.env"; fijar "${T}/cw-rojo.env" "CHATWOOT_ACCOUNT_ID=1"
+va "${T}/cw-rojo.env" > "${T}/va-cw-rojo.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'CHATWOOT_ACCOUNT_ID es la cuenta real' "${T}/va-cw-rojo.log" && ok "control rojo: la cuenta real de Chatwoot, sin dato en producción → falla" || ko "cuenta real rc=${rc}"
+mkdir -p "${T}/prod-cw"; cp "${T}/prod/.env" "${T}/prod-cw/.env"
+printf "CHATWOOT_ACCOUNT_ID=2\nCHATWOOT_PLATFORM_TOKEN='token-solo-de-prueba-0585'\nWHATSAPP_NUMERO_CLIENTES=15555550100\n" >> "${T}/prod-cw/.env"
+bash "${S}/staging/verificar-aislamiento.sh" --env "${T}/cw.env" --prod-env "${T}/prod-cw/.env" --project "${P}" --example "${PD}/.env.example" > "${T}/va-cw-prod.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'CHATWOOT_ACCOUNT_ID es la cuenta real' "${T}/va-cw-prod.log" && ok "control rojo: la misma cuenta que producción → falla" || ko "misma cuenta rc=${rc}"
+grep -q 'valores iguales a un secreto de producción (por sha256): CHATWOOT_PLATFORM_TOKEN' "${T}/va-cw-prod.log" && ok "control rojo: el token de producción copiado → falla y lo nombra" || ko "token de producción sin nombrar"
+grep -q 'WHATSAPP_NUMERO_CLIENTES es el número real' "${T}/va-cw-prod.log" && ok "control rojo: el número real de clientes → falla" || ko "número real sin nombrar"
+cp "${T}/cw.env" "${T}/cw-d7.env"; printf 'CRM_ALTA_WEB_SIN_KOMMO=1\n' >> "${T}/cw-d7.env"
+va "${T}/cw-d7.env" > "${T}/va-cw-d7.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'integraciones con valor en prueba: CRM_ALTA_WEB_SIN_KOMMO' "${T}/va-cw-d7.log" && ok "CRM_ALTA_WEB_SIN_KOMMO sigue prohibida → falla" || ko "D7 rc=${rc}"
 cp "${T}/limpio.env" "${T}/rojo4.env"; printf 'IDENTITY_CNE_PROVIDER=\n' >> "${T}/rojo4.env"
 va "${T}/rojo4.env" > "${T}/va-rojo4.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'líneas X= vacías' "${T}/va-rojo4.log" && ok "una línea X= vacía → falla" || ko "vacía rc=${rc}"
@@ -130,8 +152,10 @@ va "${T}/rojo5.env" > "${T}/va-rojo5.log" 2>&1; rc=$?
 cp "${T}/limpio.env" "${T}/rojo6.env"; fijar "${T}/rojo6.env" "APP_ENV=production"
 va "${T}/rojo6.env" > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && ok "APP_ENV=production → falla" || ko "APP_ENV rc=${rc}"
-va "${T}/limpio.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
+va "${T}/limpio.env" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'la imagen no es' "${T}/va-img.log" && ok "imagen sha-* → falla" || ko "imagen sha-* rc=${rc}"
+va "${T}/limpio.env" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_A}" > "${T}/va-img.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'la imagen no es' "${T}/va-img.log" && ok "prueba-sha de la dirección vieja → falla" || ko "dirección vieja rc=${rc}"
 DOBLE_VAULT=1 va "${T}/limpio.env" > "${T}/va-vault.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'Vault de prueba: 1' "${T}/va-vault.log" && ok "Vault con una clave de Kommo → falla" || ko "Vault rc=${rc}"
 DOBLE_BUNDLE="3 2 0 0 0 1 1" va "${T}/limpio.env" > "${T}/va-bundle.log" 2>&1; rc=$?
@@ -141,17 +165,25 @@ DOBLE_BUNDLE="3 0 0 2 1 0 1" va "${T}/limpio.env" > "${T}/va-anon.log" 2>&1; rc=
 DOBLE_BUNDLE="3 0 0 2 1 1 0" va "${T}/limpio.env" > "${T}/va-cookie.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'bundle sin la cookie de este .env' "${T}/va-cookie.log" && ok "imagen construida con otra cookie → falla" || ko "cookie rc=${rc}"
 grep -qF -- "$(val "${T}/limpio.env" NEXT_PUBLIC_SUPABASE_ANON_KEY)" "${DOBLE_DIR}/docker.log" && ko "la anon viajó en los argumentos de docker run" || ok "la anon viaja a docker run por entorno"
-va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga con GA en el bundle → falla" || ko "--exigir-sin-ga rc=${rc}"
-# Fase 2 (SDD-0544): decide .next/static, lo que llega al navegador.
-DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0" va "${T}/limpio.env" --exigir-sin-ga > "${T}/va-sin-ga.log" 2>&1; rc=$?
-[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-sin-ga.log" \
-  && grep -q 'AVISO · el servidor (.next fuera de static) nombra GA' "${T}/va-sin-ga.log" \
-  && ok "--exigir-sin-ga: GA solo en el servidor → pasa con aviso" || ko "sin GA en static rc=${rc}"
+# Fase 2 (SDD-0544): decide .next/static, lo que llega al navegador; exigir 0 es el valor por defecto.
+DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" va "${T}/limpio.env" > "${T}/va-ga-static.log" 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · bundle del navegador con Google Analytics (1) o Ads (0)' "${T}/va-ga-static.log"   && ok "GA en .next/static → FALLÓ por defecto" || ko "GA en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 0 1" va "${T}/limpio.env" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "Ads en .next/static → FALLÓ por defecto" || ko "Ads en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0" va "${T}/limpio.env" > "${T}/va-ga-server.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-ga-server.log"   && grep -q 'AVISO · el servidor (.next fuera de static) nombra GA' "${T}/va-ga-server.log"   && ok "GA solo en servidor/.map (fuera de static) → PASÓ con aviso" || ko "GA solo en servidor rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1" va "${T}/limpio.env" > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "sin las cuentas de static decide con todo .next (más estricto) → FALLÓ" || ko "sin cuentas de static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 1 1" va "${T}/limpio.env" --tolerar-ga > "${T}/va-tolerar.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'AVISO · bundle del navegador con Google Analytics (1) y Ads (1): tolerado con --tolerar-ga' "${T}/va-tolerar.log"   && ok "--tolerar-ga: GA en static → AVISO explícito" || ko "--tolerar-ga rc=${rc}"
 DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga: GA en .next/static → falla" || ko "GA en static rc=${rc}"
-DOBLE_BUNDLE="3 0 0 2 1 1 1" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
-[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga sin las cuentas de static decide con todo .next (más estricto) → falla" || ko "sin cuentas de static rc=${rc}"
+[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga (alias) sigue aceptado y falla con GA en static" || ko "alias --exigir-sin-ga rc=${rc}"
+grep -qE 'G-25CD7BZH98|AW-561290482' "${T}"/va-ga-*.log "${T}/va-tolerar.log" && ko "la salida de GA imprime un ID" || ok "la salida de GA no imprime los IDs"
+# Control rojo: el script anterior (GA en static = AVISO por defecto) no falla en el mismo caso.
+if [[ -n "${VA_ANTERIOR-}" && -f "${VA_ANTERIOR}" ]]; then
+  DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" bash "${VA_ANTERIOR}" --env "${T}/limpio.env" --prod-env "${T}/prod/.env" --project "${P}" --example "${PD}/.env.example" > /dev/null 2>&1; rc=$?
+  [[ ${rc} -eq 0 ]] && ok "control rojo: la versión anterior deja pasar GA en static (rc=0); la nueva falla" || ko "control rojo: la versión anterior rc=${rc}"
+fi
 va "${PD}/.env" --sin-base > "${T}/va-marcador.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q 'AVISO · puerta del web cerrada con el marcador' "${T}/va-marcador.log" && ok "--sin-base: el marcador de la puerta es AVISO" || ko "marcador --sin-base rc=${rc}"
 va "${PD}/.env" > /dev/null 2>&1; rc=$?
@@ -260,11 +292,12 @@ dobles_limpiar_log
 dp() { bash "${S}/staging/desplegar-prueba.sh" --project-dir "${PD}" --prod-env "${T}/prod/.env" --evidence-dir "${EV}" "$@"; }
 dp --project dtd-cargo --sha "${SHA_B}" --image "${IMG_B}" > /dev/null 2>&1; r1=$?
 dp --project zz540 --sha "${SHA_B}" --image "${IMG_B}" > /dev/null 2>&1; r2=$?
-dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:sha-${SHA_B}" > /dev/null 2>&1; r3=$?
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/softagentes/dtdcargo:sha-${SHA_B}" > /dev/null 2>&1; r3=$?
 dp --project "${P}" --sha "${SHA_B}" --image "${IMG_A}" > /dev/null 2>&1; r4=$?
-dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:main" > /dev/null 2>&1; r5=$?
-[[ ${r1} -eq 3 && ${r2} -eq 3 && ${r3} -eq 3 && ${r4} -eq 3 && ${r5} -eq 3 && "$(dobles_llamadas)" == 0 ]] \
-  && ok "rechaza dtd-cargo, sin -staging, sha-*, la imagen de otro SHA y :main (3), sin llamar a docker" || ko "guardas de desplegar ${r1} ${r2} ${r3} ${r4} ${r5}"
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/softagentes/dtdcargo:main" > /dev/null 2>&1; r5=$?
+dp --project "${P}" --sha "${SHA_B}" --image "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${SHA_B}" > /dev/null 2>&1; r6=$?
+[[ ${r1} -eq 3 && ${r2} -eq 3 && ${r3} -eq 3 && ${r4} -eq 3 && ${r5} -eq 3 && ${r6} -eq 3 && "$(dobles_llamadas)" == 0 ]] \
+  && ok "rechaza dtd-cargo, sin -staging, sha-*, la imagen de otro SHA, :main y la dirección vieja (3), sin llamar a docker" || ko "guardas de desplegar ${r1} ${r2} ${r3} ${r4} ${r5} ${r6}"
 antes="$(huella "${PD}/.env")"
 dp --project "${P}" --sha "${SHA_B}" --image "${IMG_B}" --dry-run > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 0 && "$(dobles_llamadas)" == 0 && "$(huella "${PD}/.env")" == "${antes}" ]] && ok "--dry-run no toca nada" || ko "desplegar dry-run rc=${rc}"
@@ -307,7 +340,7 @@ cr --project zz541-staging --confirm zz541-staging --bundle "${T}/no-existe" > "
 cr --project zz541-staging --confirm zz541-staging > "${T}/cr.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 && -f "${PN}/.env" && -f "${PN}/secretos/clave-web.txt" && -f "${PN}/secretos/cuentas-prueba.txt" ]] && grep -q 'base lista' "${T}/cr.log" \
   && ! grep -q 'up -d api-gw' "${DOBLE_DIR}/docker.log" && ok "sin --con-dns: .env, base, semilla y clave; no levanta api-gw" || { ko "crear rc=${rc}"; cat "${T}/cr.log"; }
-[[ "$(val "${PN}/.env" DTD_WEB_IMAGE)" == "ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-${FXSHA}" ]] && ok "imagen de prueba del SHA de main" || ko "imagen de crear"
+[[ "$(val "${PN}/.env" DTD_WEB_IMAGE)" == "ghcr.io/softagentes/dtdcargo:prueba-sha-${FXSHA}" ]] && ok "imagen de prueba del SHA de main" || ko "imagen de crear"
 DOBLE_IP=10.9.9.9 cr --project zz541-staging --confirm zz541-staging --solo-arrancar --con-dns > "${T}/cr-dns.log" 2>&1; rc=$?
 [[ ${rc} -eq 6 ]] && ! grep -q 'up -d api-gw' "${DOBLE_DIR}/docker.log" && ok "DNS que no resuelve al VPS: sale 6 y no levanta api-gw" || ko "DNS malo rc=${rc}"
 cr --project zz541-staging --confirm zz541-staging --solo-arrancar --con-dns > "${T}/cr-dns2.log" 2>&1; rc=$?

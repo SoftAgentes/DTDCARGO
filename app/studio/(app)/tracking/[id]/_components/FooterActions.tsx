@@ -24,6 +24,7 @@ import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { AsistenteBorrado } from "@/app/studio/(app)/embarques/_components/AsistenteBorrado";
+import type { NormalShipmentRead } from "@/lib/studio/client-consolidation/types";
 
 const MODAL_BACKDROP: React.CSSProperties = {
   position: "fixed",
@@ -46,6 +47,17 @@ const MODAL_BOX: React.CSSProperties = {
 };
 
 export function FooterActions({
+  normal, ...props
+}: { shipmentId: string; shipmentCode: string; status: ShipmentStatus; canDelete?: boolean; normal?: NormalShipmentRead }) {
+  if (!normal?.available) return <p role="alert">{normal?.error ?? "Pertenencia no disponible. Actualiza antes de cancelar o eliminar."}</p>;
+  if (!normal.context.complete || normal.context.shipmentId !== props.shipmentId || !normal.context.cohort && (normal.context.group || normal.context.manifest)) {
+    return <p role="alert">La pertenencia del envío está incompleta. Actualiza antes de operar.</p>;
+  }
+  if (normal.context.cohort) return <p>Este envío conserva su pertenencia confirmada al contenedor. El camino normal no ofrece cancelación, borrado, retiro ni reapertura.</p>;
+  return <LegacyFooterActions {...props} />;
+}
+
+function LegacyFooterActions({
   shipmentId,
   shipmentCode,
   status,

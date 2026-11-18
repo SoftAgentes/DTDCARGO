@@ -11,6 +11,7 @@ import { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Icon } from "@/app/studio/_components/icons";
 import { resendStuckMailAction } from "../actions";
 import type {
@@ -127,14 +128,8 @@ export function MailingClient({
       <div
         role="tablist"
         aria-label="Mailing"
-        style={{
-          display: "inline-flex",
-          background: "var(--bg-elevated, #F2F0EC)",
-          borderRadius: 8,
-          padding: 4,
-          gap: 2,
-          marginBottom: 20,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 20 }}
       >
         {TABS.map((t) => (
           <button
@@ -142,23 +137,9 @@ export function MailingClient({
             type="button"
             role="tab"
             aria-selected={tab === t.value}
+            data-activa={tab === t.value ? "true" : undefined}
             onClick={() => changeTab(t.value)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              background:
-                tab === t.value ? "var(--bg-surface, #FFFFFF)" : "transparent",
-              color: tab === t.value ? "var(--ink)" : "var(--ink-soft)",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: tab === t.value ? 600 : 500,
-              boxShadow: tab === t.value ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-              transition:
-                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
-              whiteSpace: "nowrap",
-            }}
+            className="studio-tab"
           >
             {t.label}
           </button>
@@ -242,18 +223,8 @@ function LogsView({
   return (
     <>
       {resendError && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 12,
-            padding: "8px 12px",
-            borderRadius: 6,
-            fontSize: 13,
-            color: "var(--danger)",
-            background: "var(--danger-soft, #FBEAEA)",
-          }}
-        >
-          {resendError}
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{resendError}</Aviso>
         </div>
       )}
       {/* Filters */}

@@ -11,6 +11,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
 import { TransportistasPanel } from "../TransportistasPanel";
 
+// El Scheduler de React avanza con `setImmediate` y RTL cierra cada `findBy*` con
+// `setTimeout(0)`: cuál corre primero depende de la carga, y una aserción que corre
+// antes de un efecto pasivo falla sólo a veces. Con este retraso el Scheduler llega
+// después, y esa aserción falla de forma repetible. Va antes de que cargue React.
+vi.hoisted(() => {
+  const lento = (fn: (...a: unknown[]) => void, ...a: unknown[]) => setTimeout(fn, 15, ...a);
+  (globalThis as { setImmediate: unknown }).setImmediate = lento;
+});
+
 const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   remove: vi.fn(),
@@ -178,6 +187,28 @@ describe("editar una ciudad", () => {
     expect(enviado().get("priceUsdCbm")).toBe("111");
   });
 
+  it("un segundo error con el mismo texto devuelve el foco al aviso, y escribir no se lo quita a la persona", async () => {
+    mocks.save.mockResolvedValue({ error: "Esa ruta ya no está activa con este transportista." });
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
+    const panel = dialogo("Editar Valencia");
+    const guardar = within(panel).getByRole("button", { name: "Guardar cambios" });
+    fireEvent.click(guardar);
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    // Lo que hace el navegador al hacer clic: el foco pasa al botón.
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    const venta = campo(panel, /^Venta \/m³/);
+    venta.focus();
+    escribir(venta, "111");
+    expect(venta).toHaveFocus();
+  });
+
   it("muestra los errores por campo del servidor", async () => {
     mocks.save.mockResolvedValueOnce({
       fieldErrors: { costUsdCbm: "No puede ser negativo.", dispatchFrequencyDays: "Días enteros, mayor que cero." },
@@ -189,6 +220,25 @@ describe("editar una ciudad", () => {
     expect(await within(panel).findByText("No puede ser negativo.")).toBeVisible();
     expect(within(panel).getByText("Días enteros, mayor que cero.")).toBeVisible();
     expect(dialogo("Editar Valencia")).toBeVisible();
+  });
+
+  it("con errores sólo por campo, al terminar el envío el foco va al primer campo con error (SDD-0592)", async () => {
+    let resolve!: (value: { fieldErrors: Record<string, string> }) => void;
+    mocks.save.mockImplementationOnce(() => new Promise((r) => { resolve = r; }));
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
+    const panel = dialogo("Editar Valencia");
+    const guardar = within(panel).getByRole<HTMLButtonElement>("button", { name: "Guardar cambios" });
+    guardar.focus();
+    fireEvent.click(guardar);
+    await waitFor(() => expect(guardar).toBeDisabled());
+    // El navegador suelta el foco de un botón que se deshabilita. jsdom no, e ignora
+    // `blur()` en un control deshabilitado: se habilita sólo para soltarlo.
+    guardar.disabled = false;
+    guardar.blur();
+    guardar.disabled = true;
+    await act(async () => resolve({ fieldErrors: { costUsdCbm: "No puede ser negativo." } }));
+    await waitFor(() => expect(campo(panel, /^Costo \/m³/)).toHaveFocus());
   });
 
   it("avisa si la venta en ft³ de referencia quedó desfasada de la venta por m³", () => {
@@ -372,10 +422,29 @@ describe("cambio en lote", () => {
 
     const alerta = await within(panel).findByRole("alert");
     expect(alerta).toHaveTextContent("No se cambió ninguna");
-    expect(alerta).toHaveFocus();
+    // El foco lo mueve un efecto pasivo, que React corre en otra tarea después
+    // del commit que pinta el aviso: existir y tener el foco no son un mismo instante.
+    await waitFor(() => expect(alerta).toHaveFocus());
     expect(mocks.toast.success).not.toHaveBeenCalled();
     fireEvent.click(within(panel).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(barra()).toHaveTextContent("1 ciudad seleccionada");
+  });
+
+  it("el diálogo no le quita el foco al aviso cuando el panel se vuelve a pintar", async () => {
+    mocks.bulk.mockResolvedValueOnce({ error: "No se cambió ninguna." });
+    const { rerender } = montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    escribir(campo(panel, /^Venta nueva/), "130");
+    fireEvent.click(within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" }));
+
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+    // Props nuevas del servidor: `onClose` cambia, pero el foco inicial del panel es sólo al abrir.
+    rerender(<TransportistasPanel carriers={CARRIERS} tariffs={[...TARIFAS]} cities={CITIES} isAdmin />);
+    expect(alerta).toHaveFocus();
   });
 
   it("si el servidor cambió menos de las elegidas, el aviso dice cuántas", async () => {
@@ -392,6 +461,30 @@ describe("cambio en lote", () => {
     expect(mocks.toast.warning).toHaveBeenCalledWith(
       "Precios actualizados en 1 de 2 ciudades de Benito. Las demás ya no estaban activas.",
     );
+  });
+
+  it("un segundo error con el mismo texto devuelve el foco al aviso, y escribir no se lo quita a la persona", async () => {
+    mocks.bulk.mockResolvedValue({ error: "No se cambió ninguna." });
+    montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    const venta = campo(panel, /^Venta nueva/);
+    escribir(venta, "130");
+    const aplicar = within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" });
+    fireEvent.click(aplicar);
+    const alerta = await within(panel).findByRole("alert");
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    // Lo que hace el navegador al hacer clic: el foco pasa al botón.
+    aplicar.focus();
+    fireEvent.click(aplicar);
+    await waitFor(() => expect(mocks.bulk).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(alerta).toHaveFocus());
+
+    venta.focus();
+    escribir(venta, "131");
+    expect(venta).toHaveFocus();
   });
 
   it("la casilla del encabezado marca sólo las ciudades visibles por la búsqueda", () => {

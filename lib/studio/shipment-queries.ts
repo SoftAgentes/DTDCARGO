@@ -8,6 +8,7 @@
  * automaticamente. No se pasa tenant_id como param.
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isShipmentService } from "./shipment-types";
 import type {
@@ -50,7 +51,8 @@ const DETAIL_COLUMNS =
 
 /**
  * Lista de envios vivos con filtros opcionales. RLS filtra por tenant.
- * Devuelve hasta 100 mas recientes.
+ * Devuelve hasta 100 mas recientes (`opts.limit` cambia el tope; SDD-0643:
+ * Embarques pide más para no cortar un contenedor a la mitad).
  *
  * SDD-0509: la RLS NO excluye los eliminados — la 0230 sacó `deleted_at is
  * null` de la policy FOR ALL porque bloqueaba el propio soft delete. El
@@ -59,13 +61,14 @@ const DETAIL_COLUMNS =
 export async function listShipments(
   supabase: SupabaseClient,
   filters: ShipmentFilters = {},
+  opts: { limit?: number } = {},
 ) {
   let query = supabase
     .from("shipments")
     .select(LIST_COLUMNS)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(opts.limit ?? 100);
 
   if (filters.service && filters.service !== "all") {
     query = query.eq("shipment_service", filters.service);
@@ -421,7 +424,7 @@ export function computeClientStats(rows: ShipmentListRow[]): ClientGroupStats {
     count: rows.length,
     activeCount,
     alertCount,
-    totalCbm: Math.round(totalCbm * 1000) / 1000,
+    totalCbm: roundCbm(totalCbm),
     totalWeight: Math.round(totalWeight * 100) / 100,
   };
 }

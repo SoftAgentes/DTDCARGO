@@ -1,6 +1,6 @@
 /**
  * Lecturas de la tarifa congelada (SDD-0571). RLS filtra por tenant y rol: no
- * se pasa tenant_id. Si la 0496 todavía no está aplicada, las lecturas lo dicen
+ * se pasa tenant_id. En una base sin la 0496, las lecturas lo dicen
  * (`disponible: false`) en vez de romper el Almacén CN.
  */
 

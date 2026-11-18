@@ -6,12 +6,12 @@
  * El contrato `supabase/tests/0496_tarifa_congelada_por_embarque.test.sql` corre
  * en `verify` con Docker, pero el CI de calidad no tiene Docker. PGlite corre ese
  * MISMO contrato, con el `.sql` real de la migración inlineado: lo que se prueba
- * es el texto que el runbook aplicará a producción, no un doble.
+ * es el texto que el runbook aplicó a producción, no un doble.
  *
  * CONTROL ROJO: sin 0496 el contrato falla en la primera aserción. MUTANTES: sin
  * cada regla, el contrato cae en la aserción de esa regla y no en otra. Además:
- * el preflight aborta con un cuerpo ajeno, la reaplicación aborta y la espera
- * está declarada.
+ * el preflight aborta con un cuerpo ajeno, la reaplicación aborta y la 0496 ya
+ * no es una espera.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -456,13 +456,11 @@ describe("SDD-0571 · 0496 tarifa congelada por recepción (PGlite)", () => {
     }
   }, SLOW);
 
-  it("la espera está declarada en el baseline y la migración lo dice", () => {
+  it("aplicada al servidor propio el 2026-11-03 con el OK nominal de Sam: ya no es una espera y la cabecera «NO APLICADA» no se corrige", () => {
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       pendingBelowCutoff: Record<string, string>;
     };
-    const espera = baseline.pendingBelowCutoff["0496_tarifa_congelada_por_embarque"];
-    expect(espera).toMatch(/^PENDIENTE DE APLICAR — SDD-0571/);
-    expect(espera).toContain("MIGRATE-FIRST");
+    expect(baseline.pendingBelowCutoff["0496_tarifa_congelada_por_embarque"]).toBeUndefined();
     expect(FILE_0496).toContain("⚠️ NO APLICADA A PRODUCCIÓN");
   });
 });

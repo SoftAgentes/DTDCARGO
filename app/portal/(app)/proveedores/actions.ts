@@ -49,6 +49,11 @@ import {
 } from "@/lib/studio/prealertas/addons";
 import { reconcileServiceRequests } from "@/lib/portal/purchase-order-lines";
 import {
+  isClientRequestConflict,
+  isMissingClientRequestColumn,
+  readClientRequestId,
+} from "@/lib/shared/client-request";
+import {
   listActivePrealertaAddons,
   getPrealertaByCode,
 } from "@/lib/studio/prealertas/queries";
@@ -151,8 +156,20 @@ async function uploadPrealertaDocsFromForm(args: {
 
   try {
     const admin = createAdminClient();
+    // Un reintento no sube otra vez lo que el primer envío ya dejó (SDD-0599).
+    const { data: existentes } = await admin
+      .from("prealerta_documents")
+      .select("doc_type, file_name, size_bytes")
+      .eq("prealerta_id", args.prealertaId)
+      .is("deleted_at", null);
+    const yaEstan = new Set(
+      (existentes ?? []).map((d) => `${d.doc_type}|${d.file_name}|${d.size_bytes}`),
+    );
+    const nuevos = files.filter(
+      ({ docType, file }) => !yaEstan.has(`${docType}|${file.name.slice(0, 200)}|${file.size}`),
+    );
     await Promise.all(
-      files.map(({ docType, file }) =>
+      nuevos.map(({ docType, file }) =>
         uploadPrealertaDoc(admin, {
           tenantId: args.tenantId,
           prealertaId: args.prealertaId,
@@ -510,6 +527,52 @@ export async function deleteSupplierAction(
 
 const MAX_CODE_RETRIES = 5;
 
+/** La compra que ya creó este intento. Sin 0512 la columna no existe, y sigue como un envío nuevo. */
+async function findPrealertaByRequest(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: { tenantId: string; markbox: string; requestId: string },
+): Promise<{ id: string; code: string; share_token: string | null } | null> {
+  const { data, error } = await supabase
+    .from("prealertas")
+    .select("id, code, share_token")
+    .eq("tenant_id", args.tenantId)
+    .eq("client_markbox", args.markbox)
+    .eq("client_request_id", args.requestId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string; code: string; share_token: string | null }>();
+  return error ? null : data;
+}
+
+/**
+ * Un reintento del mismo envío: la compra ya existe, con sus cajas. Responde lo mismo que el
+ * primero y completa lo que un corte pudo dejar a medias. Adjuntos y servicios no se duplican:
+ * los primeros se comparan y los segundos tienen índice único.
+ */
+async function replayPrealerta(args: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  formData: FormData;
+  tenantId: string;
+  markbox: string;
+  existing: { id: string; code: string; share_token: string | null };
+}): Promise<PrealertaActionState> {
+  const { supabase, formData, tenantId, markbox, existing } = args;
+  await uploadPrealertaDocsFromForm({ formData, tenantId, prealertaId: existing.id, markbox });
+  await insertPrealertaServiceRequestsFromForm({
+    supabase,
+    formData,
+    tenantId,
+    prealertaId: existing.id,
+    markbox,
+  });
+  revalidatePortal();
+  return {
+    ok: true,
+    prealertaCode: existing.code,
+    shareToken: existing.share_token ?? undefined,
+    replayed: true,
+  };
+}
+
 export async function createPrealertaAction(
   _prev: PrealertaActionState,
   formData: FormData,
@@ -545,6 +608,13 @@ export async function createPrealertaAction(
   if (!scope) return { error: "Tu sesión expiró. Vuelve a entrar." };
   const { tenantId, markbox } = scope;
 
+  // Antes de gastar un correlativo: si este intento ya creó la compra, no crea otra.
+  const requestId = readClientRequestId(formData);
+  if (requestId) {
+    const existing = await findPrealertaByRequest(supabase, { tenantId, markbox, requestId });
+    if (existing) return replayPrealerta({ supabase, formData, tenantId, markbox, existing });
+  }
+
   // El supplier_seq del proveedor (para armar el code). Scopeado por tenant +
   // Shipping Mark: un proveedor de otro tenant no es válido para esta compra.
   const { data: supRow, error: supErr } = await supabase
@@ -576,24 +646,34 @@ export async function createPrealertaAction(
     const orderSeq = Number(orderData);
     const code = buildPrealertaCode(markbox, supplierSeq, orderSeq);
 
-    const { data: insRow, error: insErr } = await supabase
-      .from("prealertas")
-      .insert({
-        tenant_id: tenantId,
-        client_markbox: markbox,
-        supplier_id: input.supplierId,
-        code,
-        description: input.description,
-        tracking_cn: input.trackingCn,
-        boxes: input.boxes,
-        est_value_usd: input.estValueUsd,
-        status: "anunciada",
-        // Nota del cliente sobre ESTA compra (paso 1 · migr 0269, aplicada
-        // 2026-07-29).
-        client_note: normalizeClientNote(formData.get("clientNote")),
-      })
-      .select("id, share_token")
-      .single<{ id: string; share_token: string | null }>();
+    const row = {
+      tenant_id: tenantId,
+      client_markbox: markbox,
+      supplier_id: input.supplierId,
+      code,
+      description: input.description,
+      tracking_cn: input.trackingCn,
+      boxes: input.boxes,
+      est_value_usd: input.estValueUsd,
+      status: "anunciada",
+      // Nota del cliente sobre ESTA compra (paso 1 · migr 0269, aplicada
+      // 2026-07-29).
+      client_note: normalizeClientNote(formData.get("clientNote")),
+    };
+    const insertar = (fila: typeof row & { client_request_id?: string }) =>
+      supabase
+        .from("prealertas")
+        .insert(fila)
+        .select("id, share_token")
+        .single<{ id: string; share_token: string | null }>();
+
+    let { data: insRow, error: insErr } = await insertar(
+      requestId ? { ...row, client_request_id: requestId } : row,
+    );
+    // Sin 0512 la columna no existe: la compra entra sin candado, como antes.
+    if (isMissingClientRequestColumn(insErr)) {
+      ({ data: insRow, error: insErr } = await insertar(row));
+    }
 
     if (!insErr && insRow) {
       // WeChat/WhatsApp del proveedor (número o ID): si lo cargó, lo guardamos en
@@ -633,7 +713,13 @@ export async function createPrealertaAction(
         shareToken: insRow.share_token ?? undefined,
       };
     }
-    if (insErr.code === "23505") {
+    if (requestId && isClientRequestConflict(insErr)) {
+      // Otro intento del mismo envío ganó la carrera: esa es la compra.
+      const existing = await findPrealertaByRequest(supabase, { tenantId, markbox, requestId });
+      if (existing) return replayPrealerta({ supabase, formData, tenantId, markbox, existing });
+      return { error: "No pudimos registrar la compra. Prueba de nuevo." };
+    }
+    if (insErr?.code === "23505") {
       // Choque de código → otra compra ganó la carrera; reintentamos.
       lastError = "Reintentando…";
       continue;

@@ -44,47 +44,15 @@ export function ConversationsIndicator({
       aria-label={
         count > 0 ? `${label} · ${count} sin leer` : label
       }
-      style={{
-        position: "relative",
-        width: 36,
-        height: 36,
-        borderRadius: "var(--r-md)",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--ink-soft)",
-        background: "transparent",
-        cursor: "pointer",
-        transition: "background var(--dur-fast) var(--ease)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = "var(--bg-elevated)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = "transparent";
-      }}
+      className="studio-icono-btn"
+      style={{ position: "relative" }}
     >
       {Icon.mail(16)}
       {count > 0 && (
         <span
           aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 4,
-            right: 3,
-            minWidth: 16,
-            height: 16,
-            padding: "0 4px",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 8,
-            background: "var(--wine)",
-            color: "var(--ink-side-strong)",
-            font: "800 9px/1 var(--f-mono)",
-            boxShadow: "0 0 0 2px var(--bg-surface)",
-            pointerEvents: "none",
-          }}
+          className="studio-contador-icono"
+          data-tono="vino"
         >
           {count > 9 ? "9+" : count}
         </span>

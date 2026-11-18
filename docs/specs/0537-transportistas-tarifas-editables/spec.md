@@ -4,7 +4,7 @@ title: "Tarifario de transportistas editable por ciudad, con rutas y auditoría"
 status: in-progress
 author: "Sam (founder) + Claude Code"
 created: 2026-10-15
-updated: 2026-10-15
+updated: 2026-11-02
 supersedes: null
 superseded_by: null
 related: ["0236", "0237", "0498", "0174"]
@@ -157,6 +157,11 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
 - `supabase/migrations-baseline.json` (espera declarada de 0490)
 - `docs/specs/0537-transportistas-tarifas-editables/spec.md`, `docs/specs/README.md`
 - `.agents/handoffs/0537-transportistas-tarifas-editables.md`
+- `app/studio/(app)/admin/_components/calculator/__tests__/CityDrawer.test.tsx` (corrección del 2026-11-02)
+- `.agents/handoffs/sdd-0537-foco-error-repetido-20261102.md` (corrección del 2026-11-02)
+
+`CityDrawer.tsx` entra en la allowlist sólo por su efecto de foco del aviso. Es de
+la misma sección y la fila FRM-01 / ERR-01 de esta spec lo toma como patrón.
 
 ## Aceptación
 
@@ -234,3 +239,24 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
 - **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0537-transportistas-tarifas-editables.md` (rol admin, `/studio/admin?section=calculadora&tab=transportistas` y `/tarifas`). En el lote, probar con una o dos ciudades y devolverlas a su precio.
   - **Corrección del Director (2026-10-16):** la versión anterior de este registro decía «probar también con las 169 ciudades seleccionadas». Es un error: el lote pone el mismo valor en todas las elegidas, así que esa prueba en producción cambiaría el precio de las 169. Se le avisó a Sam. La prueba de tamaño con muchas ciudades se hace en el entorno de prueba (SDD-0540), con datos sintéticos.
 - **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.
+
+## Corrección del 2026-11-02: foco con un error repetido
+
+**Pedido:** Sam, 2026-11-02, literal: «Haz esta tarea aquí: "Devolver el foco al aviso con un error repetido"».
+
+**Defecto, medido en un navegador real** (Chrome 152 del panel de Claude Desktop, con ratón y teclado reales, los componentes reales y acciones simuladas; sin producción ni base). En `BulkPriceDrawer`, `TariffDrawer` y `CityDrawer`, tras un segundo error con el mismo texto:
+
+- El foco queda en `body`, fuera del panel: el botón se deshabilita durante el envío y lo suelta, y el efecto dependía de `[state.error]`, que no cambia.
+- El aviso no recibe ninguna mutación, así que un `role="alert"` no tiene nada nuevo que anunciar. Que un lector de pantalla calle es inferencia: no se probó con uno.
+- Tab lleva a controles que están detrás del modal.
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| ERR-01 | **no conformidad → corregida** | «El primer error bloqueante recibe foco» (`err-01.md:28`): cada intento fallido bloquea. La fila FRM-01 / ERR-01 de arriba decía cumplimiento porque sólo se probó el primer error. |
+| A11Y-01 | **no conformidad → corregida en este caso** | Punto 9, «Errores se identifican, describen y reciben foco/resumen cuando bloquean» (`a11y-01.md:24`). |
+
+**Decisión:** el efecto pasa a `if (!isPending && state.error) errorRef.current?.focus()` con dependencias `[state, isPending]`, el mismo patrón de `PortalAddresses.tsx:282-284` y `PaymentReportForm.tsx:76-82`. No cambia el texto, la apariencia ni la acción.
+
+**Después del arreglo**, en el mismo navegador: el foco vuelve al aviso en el segundo y el tercer intento, Tab sigue dentro del panel y escribir después del error no le quita el foco al campo.
+
+**No cubierto aquí:** una respuesta sólo con errores por campo también deja el foco en `body` y Tab sale del modal, ya desde el primer intento (medido en `TariffDrawer` y `CityDrawer`). Queda como hallazgo aparte: el origen está en el botón deshabilitado y en la trampa de foco de `useDialogA11y`, que no cubre un foco fuera del panel.

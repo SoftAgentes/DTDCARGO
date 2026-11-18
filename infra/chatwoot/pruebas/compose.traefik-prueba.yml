@@ -1,0 +1,53 @@
+# Traefik de PRUEBA LOCAL para infra/chatwoot (SDD-0583). Nunca en el VPS.
+#
+# Reproduce lo que importa del Traefik de producción (infra/ops/traefik/compose.yml):
+# misma imagen, mismos middlewares de archivo (security-headers, tailscale-only),
+# access log JSON y el entrypoint `websecure`, aquí en HTTP plano (sin certificados).
+#
+# Dos redes para probar la lista de IP del panel de administración:
+#   · chatwoot_edge_prueba  subred 100.64.250.0/24, dentro de 100.64.0.0/10: un
+#                           cliente aquí se ve como si viniera por Tailscale.
+#   · internet_prueba       subred normal de Docker: un cliente aquí es «internet».
+# Las crea pruebas/ensayo-local.sh antes de levantar esto.
+#
+# `whoami` es el control del access log: su host SÍ debe aparecer en el log.
+
+name: chatwoot-traefik-prueba
+
+services:
+  traefik:
+    image: traefik:v3.7.14
+    command:
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.format=json
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.websecure.address=:80
+    ports:
+      - "127.0.0.1:18080:80"
+    networks:
+      - chatwoot_edge_prueba
+      - internet_prueba
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../../ops/traefik/dynamic:/etc/traefik/dynamic:ro
+
+  whoami:
+    image: traefik/whoami:v1.11.0
+    networks:
+      - internet_prueba
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=internet_prueba"
+      - "traefik.http.routers.whoami-prueba.rule=Host(`whoami.prueba.test`)"
+      - "traefik.http.routers.whoami-prueba.entrypoints=websecure"
+      - "traefik.http.services.whoami-prueba.loadbalancer.server.port=80"
+
+networks:
+  chatwoot_edge_prueba:
+    external: true
+  internet_prueba:
+    external: true

@@ -36,6 +36,7 @@ import {
   updateBugAdminAction,
 } from "../actions";
 import type { ReporterProfile } from "@/lib/studio/bug-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface Props {
   bug: BugReport;
@@ -253,13 +254,9 @@ export function BugDrawer({
         {/* Tab strip */}
         <div
           role="tablist"
-          style={{
-            display: "flex",
-            gap: 2,
-            padding: "8px 22px 0",
-            borderBottom: "1px solid var(--border)",
-            background: "var(--bg-surface)",
-          }}
+          aria-label="Secciones del bug"
+          className="studio-tabs"
+          style={{ margin: "8px 22px 0" }}
         >
           {(["conv", "tech", "act"] as Tab[]).map((t) => (
             <button
@@ -267,20 +264,9 @@ export function BugDrawer({
               type="button"
               role="tab"
               aria-selected={tab === t}
+              data-activa={tab === t ? "true" : undefined}
               onClick={() => setTab(t)}
-              style={{
-                padding: "10px 16px",
-                border: "none",
-                background: "transparent",
-                color: tab === t ? "var(--wine)" : "var(--ink-soft)",
-                borderBottom:
-                  tab === t ? "2px solid var(--wine)" : "2px solid transparent",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: tab === t ? 600 : 500,
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t === "conv" ? "Conversación" : t === "tech" ? "Datos técnicos" : "Acciones"}
             </button>
@@ -460,12 +446,12 @@ function ConversationTab({
             }}
           />
           {replyState.error && (
-            <span style={{ color: "var(--danger)", fontSize: 12 }}>{replyState.error}</span>
+            <Aviso tono="error" compacto>{replyState.error}</Aviso>
           )}
           {replyState.ok && (
-            <span style={{ color: "var(--success, #1F8A5B)", fontSize: 12 }}>
+            <Aviso tono="exito" compacto>
               Mensaje enviado.
-            </span>
+            </Aviso>
           )}
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
@@ -726,9 +712,11 @@ function ActionsTab({
           )}
         </div>
         {(stateState.error || takeState.error) && (
-          <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>
-            {stateState.error || takeState.error}
-          </p>
+          <div style={{ marginTop: 8 }}>
+            <Aviso tono="error" compacto>
+              {stateState.error || takeState.error}
+            </Aviso>
+          </div>
         )}
       </section>
 
@@ -842,12 +830,12 @@ function ActionsTab({
           </FormField>
 
           {updState.error && (
-            <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{updState.error}</p>
+            <Aviso tono="error" compacto>{updState.error}</Aviso>
           )}
           {updState.ok && (
-            <p style={{ color: "var(--success, #1F8A5B)", fontSize: 12, margin: 0 }}>
+            <Aviso tono="exito" compacto>
               Guardado.
-            </p>
+            </Aviso>
           )}
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>

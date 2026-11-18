@@ -5,7 +5,7 @@
 # compose con los tres archivos, la espera de contenedores y el smoke de la
 # puerta del web. Quien lo carga define antes `die`, `refuse` y `log`.
 
-PRUEBA_IMAGE_REPO="ghcr.io/hailuwaycom-sketch/dtdcargo"
+PRUEBA_IMAGE_REPO="ghcr.io/softagentes/dtdcargo"
 PRUEBA_PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 
 # El proyecto: nunca producción y siempre `*-staging` (lo que habilita las

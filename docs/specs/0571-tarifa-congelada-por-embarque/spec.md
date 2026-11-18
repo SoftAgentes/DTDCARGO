@@ -4,7 +4,7 @@ title: "Tarifa congelada por embarque: el precio por CBM queda guardado al recib
 status: in-progress
 author: "founder + Claude Opus 5.5"
 created: 2026-10-20
-updated: 2026-10-25
+updated: 2026-11-03
 supersedes: null
 superseded_by: null
 related: ["0008", "0016", "0061", "0072", "0269", "0476", "0543", "0567"]
@@ -305,3 +305,25 @@ Se mantiene in-progress, 0496 PENDIENTE y MIGRATE-FIRST. CI y revisión del SHA,
 validación visual/canónica y autorización nominal de aplicación siguen
 pendientes. No se consultó ni aplicó producción, no se modifica otra PR ni se
 declara completado el plan contable. Handoff nuevo conserva evidencia y límites.
+
+## 2026-11-03 · La 0496 aplicada en producción: cierre del runbook §6
+
+Aplicada en el servidor propio, en lote con la 0497 (SDD-0573). Lo que antes en esta spec dice «0496 PENDIENTE» es de su fecha. Los valores vienen de la salida del apply, copiados del mensaje del Director General. Este cierre no consultó producción. El md5 y los bytes sí se comprobaron contra el archivo. Detalle en `.agents/handoffs/0571-0573-cierre-0496-0497.md`.
+
+| Dato | Valor |
+|---|---|
+| COMMIT | 2026-11-03T11:48:37.814Z |
+| `version` del ledger | `20261103114837` |
+| md5 y bytes | `075eab7fae8d9dfb2b06f88335087f8d`, 45610 |
+| Filas del ledger, después del lote | 501 |
+| Evidencia | `/srv/ops/evidencias/apply-0496-dtd-cargo-20261103T114836Z` |
+| OK literal de Sam | «OK, de día» y «Arranca, páralos tú». No cubre el timer ni el desarme |
+| Merge | la #307, 2026-10-26T03:05:53Z, `f43669b06`, antes del apply |
+| Publicación | `publicar-web-20261103T114923Z-publicar-dac99762`, PUBLICADA 11:49:50Z, 14 PASÓ y 0 FALLÓ. `CONGELADO` puesto y timer apagado |
+| Ventana | `/srv/ops/evidencias/ventana-publicacion-20261103T113712Z` |
+| Compose | `compose-softagentes-20261103T113937Z` |
+| Respaldo | `dtd-cargo-20261103T114123Z` |
+| Imágenes | `/srv/ops/respaldos/imagen-web-929cabf51` e `imagen-storage-node-24.22.1` |
+| Sello en el candado | sha256 `1856b60aae8f4d382e3b4ad618ec51fe0c70a5041a0ad1d3db7973e4d4718755`, `ledger` exacta |
+
+La 0496 salió de `pendingBelowCutoff` y de las declaraciones de símbolos. Su cabecera «NO APLICADA A PRODUCCIÓN» no se corrige: la identidad se prueba por md5. La columna «Tarifa» sigue diciendo «No disponible» en una base sin la 0496; ese camino no se quitó.

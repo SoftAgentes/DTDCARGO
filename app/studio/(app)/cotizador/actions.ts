@@ -17,7 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   enqueueKommoWriteback,
@@ -640,6 +640,9 @@ export async function lookupSuggestedRate(
 ): Promise<SugerenciaTarifa> {
   if (!destination?.trim()) return SIN_TARIFA;
   const supabase = await createClient();
+  // SDD-0622: lo que devuelve es precio; solo para quien ve el cotizador
+  // (rol, desvío o acceso adicional). Sin módulo, sin sugerencia.
+  if (await moduleViewDenial(supabase, "quotes")) return SIN_TARIFA;
 
   try {
     const clientId = clientMarkbox

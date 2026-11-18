@@ -37,6 +37,11 @@ const mocks = vi.hoisted(() => ({
   fromCalls: [] as string[],
 }));
 
+// SDD-0622: los accesos adicionales de la persona se leen aparte, como los
+// desvíos por rol; aquí no son el objeto de la prueba.
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => ({}),
+}));
 vi.mock("next/cache", () => ({
   revalidatePath: (p: string) => mocks.revalidatePath(p),
 }));

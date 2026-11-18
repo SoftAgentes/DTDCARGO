@@ -23,6 +23,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   changeReceiptPaymentStatusAction,
   changeReceiptStatusAction,
@@ -51,6 +52,8 @@ interface Props {
   currentPaymentStatus?: PaymentStatus;
   /** SDD-0072 Fase 3: instante de verificación para auto-facturar (null = no verificada). */
   invoiceVerifiedAt?: string | null;
+  normalMembership?: "legacy" | "cohort" | "unavailable";
+  canOpenNaviera?: boolean;
 }
 
 type View = "menu" | "consolidate-form";
@@ -77,6 +80,8 @@ export function ReceiptRowActions({
   currentDestinationCity = null,
   currentPaymentStatus = "pendiente",
   invoiceVerifiedAt = null,
+  normalMembership = "legacy",
+  canOpenNaviera = false,
 }: Props) {
   const router = useRouter();
   const t = useT();
@@ -345,7 +350,19 @@ export function ReceiptRowActions({
               >
                 {t("warehouse_cn.row.action_change_status")}
               </div>
-              {RECEIPT_STATUS_OPTIONS.map((opt) => {
+              {normalMembership !== "legacy" && (
+                <>
+                  <p role="status" style={{ margin: 0, padding: "var(--s-2)", color: "var(--ink-soft)", maxWidth: "40ch" }}>
+                    {t(normalMembership === "unavailable" ? "warehouse_cn.normal.unavailable" : "warehouse_cn.normal.manage_hint")}
+                  </p>
+                  {normalMembership === "cohort" && canOpenNaviera && (
+                    <Link href="/studio/naviera" role="menuitem" tabIndex={-1} className="studio-btn studio-btn-ghost studio-btn-sm" onClick={() => closeMenu()}>
+                      {t("warehouse_cn.normal.open_naviera")}
+                    </Link>
+                  )}
+                </>
+              )}
+              {normalMembership === "legacy" && RECEIPT_STATUS_OPTIONS.map((opt) => {
                 const isCurrent = opt.value === currentStatus;
                 return (
                   <button

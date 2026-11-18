@@ -35,11 +35,11 @@ final**, aunque su número no se publique (el catálogo solo ayuda a quien ya ti
 
 | # | Teléfono | Responsable | Perfil completo | Catálogo de servicios | Respuestas auto |
 |---|---|---|---|---|---|
-| 1 | `+58 412 166 8021` CRM | **Alejandro** (cuenta API, la atiende él) | ✅ completo (público #1) | ✅ **Sí** ⭐ | ✅ Sí |
+| 1 | `+58 412 166 8021` CRM | **Persona de contabilidad con CRM** (cuenta API, la atiende esa persona) | ✅ completo (público #1) | ✅ **Sí** ⭐ | ✅ Sí |
 | 2 | `+58 241 414 7886` Administración | **Yoli** | ✅ completo (público #2) | ✅ **Sí** | ✅ Sí |
 | 8 | `+58 412 454 5325` Asesor de ventas | **José** | ✅ completo | ✅ **Sí** ⭐ | ✅ Sí |
 | 4 | `+58 414 888 8805` Logística | Alberto | 🟦 básico | ⚪ opcional | ✅ Sí (operativa) |
-| 3 | `+58 414 887 0000` Contabilidad | **Alejandro** | 🟦 básico | ❌ No | ✅ Sí (operativa) |
+| 3 | `+58 414 887 0000` Contabilidad | **Persona de contabilidad con CRM** | 🟦 básico | ❌ No | ✅ Sí (operativa) |
 | 5 | `+58 424 950 8848` Transporte ⚠️ | Javier | 🟦 básico | ❌ No | ✅ Sí (operativa) |
 | 6 | `+58 414 884 0000` CEO + Dir. Compras | Sam | 🟦 básico | ❌ No | ⚪ opcional |
 | 7 | `+58 412 160 5202` Redes sociales | **Fátima** (gestión) · **Fiorella** (cámara) | 🟦 básico | ❌ No | ⚪ opcional |
@@ -67,15 +67,15 @@ final**, aunque su número no se publique (el catálogo solo ayuda a quien ya ti
 
 ### Quién es quién (founder 2026-07-30)
 
-- **Alejandro** lleva **dos** números: CRM (#1) y Contabilidad (#3). Su puesto **sigue siendo
+- **La persona de contabilidad con CRM** lleva **dos** números: CRM (#1) y Contabilidad (#3). Su puesto **sigue siendo
   operaciones** — no cambia. Usa el sistema en el perfil de clientes y en el de empleados, y se
   encarga de revisar que los datos del cliente estén correctos.
 - **Contabilidad no es un puesto contable.** La contabilidad la hace el **sistema**; la parte
-  **fiscal** la lleva un **contador externo** (informativo, fuera del ERP). Alejandro toma el rol
+  **fiscal** la lleva un **contador externo** (informativo, fuera del ERP). Esta persona toma el rol
   porque es quien **confirma los pagos** — por eso el número de Contabilidad es suyo.
 - **Yoli** pasa de Contabilidad a **Administración** (#2) como administradora. **Administración
   maneja los datos bancarios y confirma con el banco que el dinero entró** — esa validación no
-  es de Alejandro. Queda separado a propósito: Alejandro revisa al cliente y marca el pago en el
+  es de la persona de contabilidad con CRM. Queda separado a propósito: esa persona revisa al cliente y marca el pago en el
   sistema, Administración confirma contra el banco que el dinero llegó de verdad.
 - **José** es el asesor de ventas (#8).
 

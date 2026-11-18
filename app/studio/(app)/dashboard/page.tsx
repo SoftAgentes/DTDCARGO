@@ -11,9 +11,10 @@
  * usuario sin Nómina no recibe ni valores ni widget de nómina.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { createClient } from "@/lib/db/server";
+import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
-import type { StudioUserRole } from "@/lib/studio/user-types";
 import {
   getClientCount,
   getOperationalCounts,
@@ -25,8 +26,7 @@ import { getDashboardConfig } from "@/lib/studio/dashboard/dashboard-prefs-queri
 import {
   accessibleCatalog,
   defaultConfigForAccess,
-  isEmptyConfig,
-  validateDashboardConfigInput,
+  resolverConfigDashboard,
 } from "@/lib/studio/dashboard/dashboard-types";
 import { KPI_CATALOG } from "@/lib/studio/dashboard/dashboard-catalog";
 import {
@@ -92,25 +92,30 @@ type UserTenantWithTenant = { role: string | null; tenants: TenantRow | null };
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [userResp, link] = await Promise.all([
+  const [userResp, link, access] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from("user_tenants")
       .select("role, tenants(display_name, base_currency)")
       .maybeSingle<UserTenantWithTenant>()
       .then((r) => r.data ?? null),
+    // SDD-0622: el rol, los desvíos por rol y los accesos adicionales salen de
+    // la MISMA resolución que el sidebar y los gates (membresía activa).
+    getStudioAccess(supabase),
   ]);
 
   const userId = userResp.data.user?.id ?? "";
-  const role = (link?.role as StudioUserRole | null) ?? null;
+  const role = access.role;
   const tenant = link?.tenants ?? null;
-  const canAccess = (moduleId: string | null) => (moduleId === null ? true : canAccessModule(role, moduleId));
+  const canAccess = (moduleId: string | null) =>
+    moduleId === null ? true : canAccessModule(role, moduleId, access.overrides, access.grants);
 
-  // Config del usuario (DB manda) → filtrada por RBAC. Vacía / usuario nuevo → default.
+  // Config del usuario (DB manda) → filtrada por RBAC y por lo oculto. Vacía /
+  // usuario nuevo → default. Sin KPI por un KPI oculto → los KPI del default del
+  // rol (SDD-0614 S0b-bis). Solo lectura: la fila de `user_dashboard_prefs` no se toca.
   const rawConfig = userId ? await getDashboardConfig(supabase, userId) : null;
-  let config = validateDashboardConfigInput(rawConfig, canAccess);
+  const config = resolverConfigDashboard(rawConfig, canAccess);
   const defaultConfig = defaultConfigForAccess(canAccess);
-  if (isEmptyConfig(config)) config = defaultConfig;
 
   // Catálogo accesible (para el editor) + qué fuentes de datos hacen falta.
   const { kpis: accessibleKpis, widgets: accessibleWidgets } = accessibleCatalog(canAccess);
@@ -181,7 +186,7 @@ export default async function DashboardPage() {
           };
         break;
       case "cbmInTransit":
-        if (naviera) kpiValues[k.id] = { value: `${naviera.looseCbm.toFixed(1)} CBM`, sub: "carga en almacén CN", tone: "neutral" };
+        if (naviera) kpiValues[k.id] = { value: `${formatCbm(naviera.looseCbm)} CBM`, sub: "carga en almacén CN", tone: "neutral" };
         break;
       case "cnStock":
         if (naviera) kpiValues[k.id] = { value: String(naviera.looseCount), sub: "embarques en almacén CN", tone: "neutral" };
@@ -263,7 +268,7 @@ export default async function DashboardPage() {
     alerts.push({
       tone: "info",
       title: `${naviera.looseCount} embarque(s) por consolidar`,
-      meta: `${naviera.looseCbm.toFixed(1)} CBM sueltos en CN`,
+      meta: `${formatCbm(naviera.looseCbm)} CBM sueltos en CN`,
       href: "/studio/naviera",
     });
 
@@ -294,6 +299,7 @@ export default async function DashboardPage() {
           mono-light, .055) es decorativa y va detrás del texto (el contenido va en
           un wrapper relative/zIndex:1). */}
       <div
+        data-guia="dashboard.bienvenida"
         style={{
           position: "relative",
           overflow: "hidden",

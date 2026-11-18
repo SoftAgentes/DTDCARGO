@@ -2,11 +2,12 @@
 
 /** SDD-0365: comandos auditados por sesión; admin sólo para contexto y Storage. */
 import { revalidatePath } from "next/cache";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { countPendingReports, isAtPendingLimit } from "@/lib/portal/payment-report-queries";
-import { validatePaymentReportInput, type PaymentReportFieldErrors } from "@/lib/portal/payment-report-types";
+import { validatePaymentReportInput, type PaymentCreationContext, type PaymentReportFieldErrors } from "@/lib/portal/payment-report-types";
 import { validateProofFile, uploadPaymentProof } from "@/lib/portal/payment-proof";
 import { runPaymentReportCommand, type PaymentCommandReceipt } from "@/lib/portal/payment-report-commands";
 import { notifyPaymentReportToAdmin } from "@/lib/studio/payment-report-notify";
@@ -35,15 +36,11 @@ export async function reportPaymentAction(
   _prev: PaymentReportFormState,
   formData: FormData,
 ): Promise<PaymentReportFormState> {
+  const businessDay = fechaCaracas();
   const requestId = formData.get("request_id");
   const reportId = formData.get("report_id");
   if (!uuid(requestId) || !uuid(reportId) || !validCode(invoiceCode)) return { error: INPUT_ERROR };
   const code = invoiceCode.trim();
-  const { input, fieldErrors } = validatePaymentReportInput({
-    amount: formData.get("amount"), method: formData.get("method"),
-    paidAt: formData.get("paid_at"), note: formData.get("note"),
-  }, new Date().toISOString().slice(0, 10));
-  if (!input || fieldErrors) return { fieldErrors: fieldErrors ?? {} };
   const proof = validateProofFile(formData.get("proof"));
   if (!proof.ok) return { fieldErrors: { proof: proof.error } };
 
@@ -68,6 +65,13 @@ export async function reportPaymentAction(
       .maybeSingle<{ id: string; proof_path: string | null }>();
     if (lookupError) return { error: CONSULT_ERROR };
     if (existing && !existing.proof_path) return { error: "No pudimos verificar el comprobante original. Revisa el reporte con tu asesor. Código: PAGO-COMPROBANTE." };
+    const context: PaymentCreationContext = existing
+      ? { kind: "recovery-candidate" } : { kind: "new", businessDay };
+    const { input, fieldErrors } = validatePaymentReportInput({
+      amount: formData.get("amount"), method: formData.get("method"),
+      paidAt: formData.get("paid_at"), note: formData.get("note"),
+    }, context);
+    if (!input || fieldErrors) return { fieldErrors: fieldErrors ?? {} };
     if (!existing) {
       if (["borrador", "pagada", "anulada"].includes(invoice.status)) {
         return { error: "Esta factura no admite nuevos reportes de pago. Revisa su estado con tu asesor. Código: PAGO-ESTADO." };
@@ -84,7 +88,7 @@ export async function reportPaymentAction(
 
     const result = await runPaymentReportCommand(session, {
       verb: "create", requestId, reportId, invoiceId: invoice.id,
-      invoiceCode: code, input, proofPath: uploaded.path,
+      invoiceCode: code, input, proofPath: uploaded.path, context,
     });
     if (!result.ok) return result;
     // Best-effort: perder el aviso no invalida la transacción ya confirmada.

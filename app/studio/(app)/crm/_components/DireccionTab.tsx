@@ -1,3 +1,4 @@
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 /**
  * Tablero CRM · pestaña Dirección (SDD-0078).
  *
@@ -8,6 +9,7 @@
  */
 
 import type { ReactNode } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -269,22 +271,14 @@ export function DireccionTab({
           Decirlo es el punto — un tablero que subcuenta en silencio es peor
           que uno que no carga (el 2026-08-11 mostró 1.000 de 3.145 sin avisar). */}
       {!data.complete && (
-        <div
-          role="alert"
-          style={{
-            border: "1px solid var(--warning)",
-            background: "var(--warning-bg)",
-            borderRadius: "var(--r-md)",
-            padding: "var(--s-3) var(--s-4)",
-            font: "500 12.5px/1.45 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <strong>Estos números son parciales.</strong> No se pudo leer el espejo
+        // SDD-0603 tramo 5d: franja de `Aviso`. Es un banner que llega con la
+        // página, no la respuesta a una acción: va en status, no en alert.
+        <Aviso tono="atencion" titulo="Estos números son parciales.">
+          No se pudo leer el espejo
           completo, así que los totales, el embudo, la antigüedad y la cartera
           salen de una muestra. No los uses para decidir hasta que la
           sincronización vuelva a completarse.
-        </div>
+        </Aviso>
       )}
 
       {/* KPIs */}
@@ -315,7 +309,7 @@ export function DireccionTab({
           sub={`${conversion.won} ganados · ${conversion.lost} perdidos · ${conversion.open} abiertos`}
         />
         <KpiCard
-          value={convertedCount}
+          value={convertedCount ?? "—"}
           label="Convertidos a cliente"
           valueColor="var(--wine-text)"
           sub="Leads que ya son cliente DTD"
@@ -327,10 +321,11 @@ export function DireccionTab({
           sub={`${email.withEmail} de ${email.total} contactos`}
         />
         <KpiCard
-          value={fmtUsd(value.erpBilledUsd)}
-          label="Valor real ERP"
-          valueColor="var(--success)"
-          sub="Facturado (12m) de leads convertidos"
+          value={formatAnnualUsd(value.billing.subtotalUsd)}
+          label="Facturación ERP atribuida"
+          valueColor={value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)"}
+          sub={billingStatus(value.billing)}
+          style={{ overflowWrap: "anywhere" }}
         />
       </div>
 
@@ -471,16 +466,16 @@ export function DireccionTab({
                   Σ price de los leads
                 </div>
               </div>
-              <div style={{ flex: "1 1 130px" }}>
+              <div style={{ flex: "1 1 130px", minWidth: 0, overflowWrap: "anywhere" }}>
                 <div
                   style={{
                     font: "900 26px/1 var(--f-display)",
                     fontVariantNumeric: "tabular-nums",
-                    color: "var(--success)",
+                    color: value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)",
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {fmtUsd(value.erpBilledUsd)}
+                  {formatAnnualUsd(value.billing.subtotalUsd)}
                 </div>
                 <div
                   style={{
@@ -491,10 +486,10 @@ export function DireccionTab({
                     marginTop: 6,
                   }}
                 >
-                  Facturado en el ERP
+                  {billingStatus(value.billing)}
                 </div>
                 <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-                  {value.convertedWithBilling} de {value.convertedCount} leads convertidos facturan
+                  {value.convertedWithBilling ?? "—"} de {value.convertedCount ?? "—"} leads convertidos tienen facturación positiva completa. Atribución por lead; no es facturación única del tenant.
                 </div>
               </div>
             </div>

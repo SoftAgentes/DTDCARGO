@@ -15,7 +15,7 @@
  *  - formato de los códigos PRV-/CXP-/OP-.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { Account } from "../../account-types";
 import {
   buildPayablesQueue,
@@ -44,6 +44,37 @@ import {
 } from "../../accounting/supplier-payment-posting";
 
 const TODAY = "2026-06-01";
+
+afterEach(() => vi.useRealTimers());
+describe("C1 · fechas CxP y pago", () => {
+  const payable = { supplierId: "s1", expenseAccountId: "cost", totalAmount: 10.25, dueDate: "2026-11-20" };
+  const payment = { amount: 10.25, cashAccountId: "cash" };
+  it("omisión programática toma Caracas", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    expect(validateBillInput(payable).input).toMatchObject({ issueDate: "2026-10-20", totalAmount: 10.25 });
+    expect(validatePaymentInput(payment, 100).input).toMatchObject({ paidAt: "2026-10-20", amount: 10.25 });
+  });
+  it("vencidos sin today explícito cambian al llegar medianoche Caracas", () => {
+    vi.useFakeTimers({ toFake:["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+    const pending=bill({id:"today",due_date:"2026-10-20",total_amount:10.25});
+    expect(daysOverdue(pending.due_date)).toBe(0);
+    expect(derivedStage({totalAmount:10.25,paidAmount:0,balance:10.25,dueDate:pending.due_date})).toBe("por_vencer");
+    expect(buildPayablesQueue([pending])[0]).toMatchObject({stage:"por_vencer",daysOverdue:0,balanceUsd:10.25});
+    vi.setSystemTime(new Date("2026-10-21T04:00:00Z"));
+    expect(daysOverdue(pending.due_date)).toBe(1);
+    expect(buildPayablesQueue([pending])[0]).toMatchObject({stage:"vencida",daysOverdue:1,balanceUsd:10.25});
+  });
+  it.each(["", "2026-02-30", "2025-02-29"])("rechaza fecha explícita inválida %j", (date) => {
+    expect(validateBillInput({ ...payable, issueDate: date }).fieldErrors?.issueDate).toEqual(expect.any(String));
+    expect(validatePaymentInput({ ...payment, paidAt: date }, 100).fieldErrors?.paidAt).toEqual(expect.any(String));
+  });
+  it("conserva emisión y pago explícitos", () => {
+    expect(validateBillInput({ ...payable, issueDate: "2024-02-29" }).input?.issueDate).toBe("2024-02-29");
+    expect(validatePaymentInput({ ...payment, paidAt: "2024-02-29" }, 100).input?.paidAt).toBe("2024-02-29");
+  });
+});
 
 function bill(partial: Partial<SupplierBill> & { id: string }): SupplierBill {
   return {
@@ -329,8 +360,10 @@ describe("billAmountUsd", () => {
     // 3600 CNY a 7.2 CNY/USD = 500 USD
     expect(billAmountUsd(3600, "CNY", 7.2)).toBe(500);
   });
-  it("sin fx_rate → amount tal cual (fallback)", () => {
-    expect(billAmountUsd(500, "VES", null)).toBe(500);
+  // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte; nunca el monto tal cual.
+  it("sin fx_rate → null (la CxP no se asienta)", () => {
+    expect(billAmountUsd(500, "VES", null)).toBeNull();
+    expect(billAmountUsd(500, "CNY", undefined)).toBeNull();
   });
 });
 

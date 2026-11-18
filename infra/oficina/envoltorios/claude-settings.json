@@ -1,0 +1,24 @@
+{
+  "$comment": "SDD-0615: configuración de usuario de Claude Code para ALFRED (~agentes-alfred/.claude/settings.json, root:agentes-alfred 640). Defensa en profundidad: la barrera real es el usuario aparte.",
+  "permissions": {
+    "deny": [
+      "WebSearch",
+      "WebFetch",
+      "Read(//home/agentes/**)",
+      "Read(//home/agentes-run/**)",
+      "Read(//home/agentes-auxiliar/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/paperclip.env)",
+      "Read(**/auth.json)",
+      "Bash(sudo:*)",
+      "Bash(su:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)"
+    ]
+  },
+  "autoUpdates": false
+}

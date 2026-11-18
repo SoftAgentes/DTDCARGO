@@ -12,6 +12,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 
 const initialState: TmsActionState = {};
@@ -218,6 +219,7 @@ export function FieldText({
 }) {
   const cls = mono ? "studio-input studio-input-mono" : "studio-input";
   const isNumeric = type === "number";
+  const errorProps = fieldErrorProps(name, error);
   return (
     <div>
       <label className="studio-label" htmlFor={`tms-${name}`}>
@@ -233,6 +235,7 @@ export function FieldText({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           style={{ resize: "vertical" }}
+          {...errorProps}
         />
       ) : isNumeric ? (
         <NumericInput
@@ -242,6 +245,7 @@ export function FieldText({
           placeholder={placeholder}
           value={value === "" ? null : Number(value)}
           onChange={(v) => onChange(v != null ? String(v) : "")}
+          {...errorProps}
         />
       ) : (
         <input
@@ -252,9 +256,10 @@ export function FieldText({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          {...errorProps}
         />
       )}
-      {error && <FieldError msg={error} />}
+      {error && <FieldError id={`tms-${name}-error`} msg={error} />}
     </div>
   );
 }
@@ -285,6 +290,7 @@ export function FieldSelect({
         className="studio-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        {...fieldErrorProps(name, error)}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -292,14 +298,20 @@ export function FieldSelect({
           </option>
         ))}
       </select>
-      {error && <FieldError msg={error} />}
+      {error && <FieldError id={`tms-${name}-error`} msg={error} />}
     </div>
   );
 }
 
-export function FieldError({ msg }: { msg: string }) {
+/** `aria-invalid` es lo que `useDialogA11y` usa para llevarle el foco al primer campo con error. */
+function fieldErrorProps(name: string, error?: string) {
+  return error ? { "aria-invalid": true, "aria-describedby": `tms-${name}-error` } : {};
+}
+
+export function FieldError({ msg, id }: { msg: string; id?: string }) {
   return (
     <p
+      id={id}
       style={{
         font: "500 11px/1.3 var(--f-sans)",
         color: "var(--danger)",
@@ -313,19 +325,8 @@ export function FieldError({ msg }: { msg: string }) {
 
 export function FormError({ msg }: { msg: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto>
       {msg}
-    </p>
+    </Aviso>
   );
 }

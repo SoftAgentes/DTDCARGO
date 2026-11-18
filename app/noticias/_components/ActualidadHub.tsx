@@ -201,10 +201,12 @@ export function ActualidadHub({ posts }: { posts: NewsPostRow[] }) {
 function FeatureCard({ post }: { post: NewsPostRow }) {
   const image = editorialImageOf(post);
   return (
-    <article className="actual-feature-card">
-      <Link href={`/noticias/${post.slug}`} className="actual-feature-image" tabIndex={-1} aria-hidden="true">
-        <Image src={image.src} alt="" fill loading="eager" sizes="(max-width: 900px) 100vw, 58vw" />
-      </Link>
+    <article className={image ? "actual-feature-card" : "actual-feature-card is-sin-foto"}>
+      {image && (
+        <Link href={`/noticias/${post.slug}`} className="actual-feature-image" tabIndex={-1} aria-hidden="true">
+          <Image src={image.src} alt="" fill loading="eager" sizes="(max-width: 900px) 100vw, 58vw" />
+        </Link>
+      )}
       <div className="actual-feature-copy">
         <span className="actual-kind">{CONTENT_KIND_LABELS[contentKindOf(post)]}</span>
         <h2><Link href={`/noticias/${post.slug}`}>{post.title}</Link></h2>
@@ -228,8 +230,8 @@ function LatestRow({ post }: { post: NewsPostRow }) {
 function ArchiveRow({ post }: { post: NewsPostRow }) {
   const image = editorialImageOf(post);
   return (
-    <Link className="actual-archive-row" href={`/noticias/${post.slug}`}>
-      <Image src={image.src} alt="" width={160} height={104} />
+    <Link className={image ? "actual-archive-row" : "actual-archive-row is-sin-foto"} href={`/noticias/${post.slug}`}>
+      {image && <Image src={image.src} alt="" width={160} height={104} />}
       <span className="actual-archive-copy">
         <em>{CONTENT_KIND_LABELS[contentKindOf(post)]} · {getCategoryInfo(post.categoria).label}</em>
         <strong>{post.title}</strong>

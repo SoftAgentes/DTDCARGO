@@ -23,8 +23,9 @@ function stub(opts: {
   markbox: string | null;
   quotes?: Record<string, unknown>[];
   shipments?: Record<string, unknown>[];
-}): { supabase: SupabaseClient; touched: () => string[] } {
+}): { supabase: SupabaseClient; touched: () => string[]; rpcCalls: string[] } {
   const touched: string[] = [];
+  const rpcCalls: string[] = [];
   function builder(rows: Record<string, unknown>[]) {
     const b: Record<string, unknown> = {};
     Object.assign(b, {
@@ -43,10 +44,15 @@ function stub(opts: {
   }
   const supabase = {
     auth: { getUser: async () => ({ data: { user: { id: "portal-fixture" } }, error: null }) },
-    rpc: (fn: string) =>
-      fn === "get_portal_client_markbox"
-        ? Promise.resolve({ data: opts.markbox, error: null })
-        : Promise.resolve({ data: null, error: null }),
+    rpc: (fn: string) => {
+      rpcCalls.push(fn);
+      if (fn !== "client_consolidation_portal_read") throw new Error(`RPC inesperada: ${fn}`);
+      return Promise.resolve({ data: { available: true, complete: true, observedAt: "2026-10-21T12:00:00Z",
+        principal: { tenantId: "tenant-fixture", clientId: "client-fixture", markbox: opts.markbox },
+        shipments: (opts.shipments ?? []).map((row) => ({ tenant_id: "tenant-fixture", shipment_service: "consolidado_lcl", status: "in_transit",
+          origin: null, destination: null, volume_m3: null, weight_kg: null, arrived_destination_at: null,
+          created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z", normal: null, ...row })) }, error: null });
+    },
     from: (table: string) => {
       touched.push(table);
       if (table === "client_users") {
@@ -60,7 +66,7 @@ function stub(opts: {
       );
     },
   } as unknown as SupabaseClient;
-  return { supabase, touched: () => touched };
+  return { supabase, touched: () => touched, rpcCalls };
 }
 
 function quoteRow(over: Record<string, unknown>): Record<string, unknown> {
@@ -131,23 +137,25 @@ describe("listMyEstimates", () => {
 
   /** SDD-0075 §1 Slice C: el estimado convertido enlaza a SU envío (por código). */
   it("resuelve el código del envío de un estimado ya convertido", async () => {
-    const { supabase, touched } = stub({
+    const { supabase, touched, rpcCalls } = stub({
       markbox: "DTD-9001",
       quotes: [quoteRow({ converted_to_shipment_id: "s-1" })],
       shipments: [{ id: "s-1", code: "S-2026-0042" }],
     });
     const rows = await listMyEstimates(supabase);
-    expect(touched()).toContain("shipments");
+    expect(rpcCalls).toEqual(["client_consolidation_portal_read"]);
+    expect(touched()).not.toContain("shipments");
     expect(rows[0].convertedToShipmentCode).toBe("S-2026-0042");
   });
 
   it("no consulta shipments si ningún estimado se convirtió", async () => {
-    const { supabase, touched } = stub({
+    const { supabase, touched, rpcCalls } = stub({
       markbox: "DTD-9001",
       quotes: [quoteRow({ converted_to_shipment_id: null })],
     });
     const rows = await listMyEstimates(supabase);
     expect(touched()).not.toContain("shipments");
+    expect(rpcCalls).toEqual([]);
     expect(rows[0].convertedToShipmentCode).toBeNull();
   });
 

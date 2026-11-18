@@ -1,0 +1,11 @@
+# SDD-0564 fase B y SDD-0615: Paperclip (agentes) lanza las CLI de los agentes con su usuario.
+# agentes-run: los agentes de Hermes (GLM). agentes-alfred: ALFRED con Claude Code.
+# agentes-auxiliar: el Auxiliar con Codex. Ninguno puede leer los archivos de los otros.
+Defaults!/usr/local/libexec/dtd-agente-run env_reset
+# Variables nombradas una por una (las que usan las skills de Paperclip y el adaptador de Hermes). Nunca
+# PAPERCLIP_*: el servidor tiene PAPERCLIP_AGENT_JWT_SECRET y PAPERCLIP_TOOL_ACTION_SIGNING_SECRET.
+# HERMES_EPHEMERAL_SYSTEM_PROMPT: desde Paperclip 1023 trae las instrucciones de los GLM (PR #409, §2.5).
+Defaults!/usr/local/libexec/dtd-agente-run env_keep = "PAPERCLIP_API_URL PAPERCLIP_API_BASE PAPERCLIP_API_KEY PAPERCLIP_AGENT_ID PAPERCLIP_COMPANY_ID PAPERCLIP_RUN_ID PAPERCLIP_TASK_ID PAPERCLIP_WAKE_REASON PAPERCLIP_WAKE_COMMENT_ID PAPERCLIP_WAKE_PAYLOAD_JSON PAPERCLIP_APPROVAL_ID PAPERCLIP_APPROVAL_STATUS PAPERCLIP_LINKED_ISSUE_IDS PAPERCLIP_HELPER_STATE_DIR HERMES_EPHEMERAL_SYSTEM_PROMPT DTD_PERFIL CLAUDE_CODE_OAUTH_TOKEN TERM LANG LC_ALL LC_CTYPE"
+# El prompt viaja como argumento: que sudo no copie la línea de comandos al registro.
+Defaults!/usr/local/libexec/dtd-agente-run !log_allowed
+agentes ALL=(agentes-run, agentes-alfred, agentes-auxiliar) NOPASSWD: /usr/local/libexec/dtd-agente-run

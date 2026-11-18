@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { cancelDispatchOrderAction } from "../actions";
 import type { DispatchOrderRow } from "@/lib/studio/dispatch-types";
 
@@ -80,20 +81,11 @@ export function CancelOdDrawer({
           gap: 16,
         }}
       >
-        <div
-          style={{
-            padding: 14,
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-md)",
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
+        <Aviso tono="atencion" compacto>
           Esta OD pasa a estado <strong>cancelada</strong> (terminal). Los paquetes
           quedan disponibles en la cola para asignar a una OD nueva. Esta acción no se
           puede revertir.
-        </div>
+        </Aviso>
 
         <div>
           <label className="studio-label" htmlFor="reason-input">
@@ -126,18 +118,9 @@ export function CancelOdDrawer({
         </div>
 
         {error && !confirming && (
-          <div
-            role="alert"
-            style={{
-              padding: 12,
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              borderRadius: "var(--r-md)",
-              font: "600 13px/1.3 var(--f-sans)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </div>
+          </Aviso>
         )}
       </div>
 

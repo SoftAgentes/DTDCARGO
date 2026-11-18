@@ -4,7 +4,9 @@
  *
  * AISLAMIENTO (defensa en profundidad): además de la RLS del portal, estas
  * queries resuelven el principal Portal de la sesión (`getPortalClientPrincipal`)
- * y filtran EXPLÍCITO por su `tenant_id` y su `client_markbox`. Sin ese filtro,
+ * y filtran EXPLÍCITO por su `tenant_id` y su identidad propia. Los envíos
+ * legacy usan Shipping Mark; la cohorte SDD-0578 usa client_id inmutable.
+ * Sin ese filtro,
  * un principal que sea a la vez user de equipo y cliente del portal (tiene row en
  * `user_tenants` Y en `client_users`) recibiría TODO el tenant: la policy
  * "<tabla> by tenant" es permissive (OR) y, sola, no aísla. Y el Shipping Mark
@@ -40,6 +42,7 @@ import {
 } from "./portal-types";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import { esAnuladaSinEmitir, resumenDeCuenta } from "./saldo-de-cuenta";
+import { isShipmentService, STATUS_LABELS } from "@/lib/shared/shipment-public";
 
 /**
  * Tenant, Shipping Mark e id de cliente del principal Portal de la sesión, o null
@@ -59,6 +62,72 @@ async function portalScope(
     markbox: principal.client.markbox,
     clientId: principal.client.id,
   };
+}
+
+export type PortalNormalGroup = {
+  clientId: string; containerId: string; containerRef: string | null; groupRevision: number; containerRevision: number; sealed: boolean;
+};
+type PortalShipmentSource = {
+  id: string; tenant_id: string; code: string; shipment_service: ShipmentService; status: ShipmentStatus;
+  origin: string | null; destination: string | null; volume_m3: number | null; weight_kg: number | null;
+  arrived_destination_at: string | null; created_at: string; updated_at: string; normal: PortalNormalGroup | null;
+};
+export class PortalShipmentsUnavailableError extends Error {
+  constructor() { super("PORTAL_ENVIOS_NO_DISPONIBLES"); this.name = "PortalShipmentsUnavailableError"; }
+}
+function portalObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function portalDate(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+/**
+ * A dedicated server snapshot is necessary for a hybrid Studio/Portal session:
+ * team RLS rights must never replace this reader's client principal. Complete
+ * cohort rows are independent of the old 100/50-row presentation bounds.
+ */
+async function readPortalOwnedShipments(
+  supabase: SupabaseClient, scope: { tenantId: string; markbox: string; clientId?: string },
+): Promise<PortalShipmentSource[]> {
+  const { data, error } = await supabase.rpc("client_consolidation_portal_read").then(
+    (response) => response,
+    () => { throw new PortalShipmentsUnavailableError(); },
+  );
+  if (error || !portalObject(data) || data.available !== true || data.complete !== true || !portalObject(data.principal)
+    || data.principal.tenantId !== scope.tenantId || data.principal.markbox !== scope.markbox
+    || typeof data.principal.clientId !== "string" || !data.principal.clientId
+    || (scope.clientId !== undefined && data.principal.clientId !== scope.clientId) || !portalDate(data.observedAt) || !Array.isArray(data.shipments)) {
+    throw new PortalShipmentsUnavailableError();
+  }
+  const clientId = data.principal.clientId;
+  const seen = new Set<string>();
+  for (const row of data.shipments) {
+    if (!portalObject(row) || typeof row.code !== "string" || !row.code || !isShipmentService(row.shipment_service)
+      || typeof row.status !== "string" || !Object.prototype.hasOwnProperty.call(STATUS_LABELS, row.status) || !portalDate(row.created_at) || !portalDate(row.updated_at)
+      || typeof row.id !== "string" || !row.id || seen.has(row.id) || row.tenant_id !== scope.tenantId
+      || !["origin", "destination"].every((key) => row[key] === null || typeof row[key] === "string")
+      || !(row.arrived_destination_at === null || portalDate(row.arrived_destination_at))
+      || !["weight_kg", "volume_m3"].every((key) => { const value = row[key]; return value === null || typeof value === "number" && Number.isFinite(value) && value >= 0; })
+      || row.normal !== null && (!portalObject(row.normal) || row.normal.clientId !== clientId || typeof row.normal.containerId !== "string" || !row.normal.containerId
+        || !(row.normal.containerRef === null || typeof row.normal.containerRef === "string") || typeof row.normal.sealed !== "boolean"
+        || typeof row.normal.groupRevision !== "number" || !Number.isSafeInteger(row.normal.groupRevision) || row.normal.groupRevision < 1
+        || typeof row.normal.containerRevision !== "number" || !Number.isSafeInteger(row.normal.containerRevision) || row.normal.containerRevision < 1)) {
+      throw new PortalShipmentsUnavailableError();
+    }
+    seen.add(row.id);
+  }
+  return (data.shipments as PortalShipmentSource[]).sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.id.localeCompare(b.id));
+}
+function portalShipmentDetail(row: PortalShipmentSource): PortalShipmentDetail & { normal: PortalNormalGroup | null } {
+  return { id: row.id, code: row.code, service: row.shipment_service, status: row.status, origin: row.origin, destination: row.destination,
+    volumeM3: row.volume_m3, weightKg: row.weight_kg, arrivedDestinationAt: row.arrived_destination_at,
+    createdAt: row.created_at, updatedAt: row.updated_at, normal: row.normal };
+}
+function portalShipmentView(rows: PortalShipmentSource[], legacyLimit: number): PortalShipmentSource[] {
+  // Keep the existing legacy display bound while retaining EVERY owned normal
+  // group. This is a view, not proof that all legacy history was listed.
+  return [...rows.filter((row) => row.normal === null).slice(0, legacyLimit), ...rows.filter((row) => row.normal !== null)]
+    .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at) || a.id.localeCompare(b.id));
 }
 
 export type PortalClientPrincipal = {
@@ -174,36 +243,19 @@ export async function getPortalAdvisor(
 }
 
 /**
- * Envíos del cliente logueado (filtrados EXPLÍCITO por el tenant y el markbox
- * del principal), recientes primero. Hasta 100; paginación real en una fase
- * siguiente si hace falta.
+ * Envíos propios del principal, recientes primero: tenant+marca para legacy,
+ * tenant+client_id para cohorte. Conserva la ventana de 100 legacy y añade
+ * TODOS los grupos propios de la cohorte, sin usar la ventana como cobertura.
  */
 export async function listMyShipments(
   supabase: SupabaseClient,
-): Promise<PortalShipmentRow[]> {
+): Promise<Array<PortalShipmentRow & { normal: PortalNormalGroup | null }>> {
   const scope = await portalScope(supabase);
   if (!scope) return [];
 
-  const { data, error } = await supabase
-    .from("shipments")
-    .select("id, code, shipment_service, status, origin, destination, updated_at")
-    .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(100);
-
-  if (error || !data) return [];
-
-  return data.map((r) => ({
-    id: r.id as string,
-    code: r.code as string,
-    service: r.shipment_service as PortalShipmentRow["service"],
-    status: r.status as PortalShipmentRow["status"],
-    origin: (r.origin as string | null) ?? null,
-    destination: (r.destination as string | null) ?? null,
-    updatedAt: r.updated_at as string,
-  }));
+  const rows = portalShipmentView(await readPortalOwnedShipments(supabase, scope), 100);
+  return rows.map((row) => ({ id: row.id, code: row.code, service: row.shipment_service, status: row.status, origin: row.origin,
+    destination: row.destination, updatedAt: row.updated_at, normal: row.normal }));
 }
 
 /**
@@ -216,36 +268,12 @@ export async function listMyShipments(
 export async function getMyShipment(
   supabase: SupabaseClient,
   code: string,
-): Promise<PortalShipmentDetail | null> {
+): Promise<(PortalShipmentDetail & { normal: PortalNormalGroup | null }) | null> {
   const scope = await portalScope(supabase);
   if (!scope) return null;
 
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(
-      "id, code, shipment_service, status, origin, destination, volume_m3, weight_kg, arrived_destination_at, created_at, updated_at",
-    )
-    .eq("code", code)
-    .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return {
-    id: data.id as string,
-    code: data.code as string,
-    service: data.shipment_service as PortalShipmentDetail["service"],
-    status: data.status as PortalShipmentDetail["status"],
-    origin: (data.origin as string | null) ?? null,
-    destination: (data.destination as string | null) ?? null,
-    volumeM3: (data.volume_m3 as number | null) ?? null,
-    weightKg: (data.weight_kg as number | null) ?? null,
-    arrivedDestinationAt: (data.arrived_destination_at as string | null) ?? null,
-    createdAt: data.created_at as string,
-    updatedAt: data.updated_at as string,
-  };
+  const matches = (await readPortalOwnedShipments(supabase, scope)).filter((row) => row.code === code);
+  return matches.length === 1 ? portalShipmentDetail(matches[0]) : null;
 }
 
 /**
@@ -444,29 +472,36 @@ export async function getMyInvoiceForPrincipal(
 /**
  * TODOS los documentos del cliente logueado (sección GLOBAL "Documentos" del
  * portal · SDD-0042 Fase 3b), recientes primero, con el código del envío al que
- * pertenecen (embed `shipments(code)`). Filtra EXPLÍCITO por tenant y markbox
- * del principal (defensa en profundidad, como el resto del portal). Hasta 200.
+ * pertenecen (embed `shipments(code)`). Autoriza primero el envío propio por
+ * el snapshot Portal. En legacy conserva también la marca del documento;
+ * en cohorte manda el client_id del envío. Ventana de presentación: 200.
  */
 export async function listMyDocuments(
   supabase: SupabaseClient,
 ): Promise<PortalDocument[]> {
   const scope = await portalScope(supabase);
   if (!scope) return [];
+  const owned = new Map((await readPortalOwnedShipments(supabase, scope)).map((row) => [row.id, row]));
+  const shipmentIds = [...owned.keys()];
+  if (shipmentIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from("shipment_documents")
     .select(
-      "id, doc_type, storage_path, file_name, content_type, size_bytes, created_at, shipment_id, shipments(code)",
+      "id, doc_type, storage_path, file_name, content_type, size_bytes, created_at, shipment_id, client_markbox, shipments(code)",
     )
     .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
+    .in("shipment_id", shipmentIds)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
 
   if (error || !data) return [];
 
-  return data.map((r) => {
+  return data.filter((r) => {
+    const shipment = owned.get(r.shipment_id);
+    return shipment !== undefined && (shipment.normal !== null || r.client_markbox === scope.markbox);
+  }).map((r) => {
     const ship = Array.isArray(r.shipments)
       ? (r.shipments[0] as { code: string | null } | undefined)
       : (r.shipments as { code: string | null } | null);
@@ -494,7 +529,7 @@ export async function listMyDocuments(
  * además de la policy "quotes portal self read" (0428). Hasta 100.
  */
 type PortalQuoteKind = "estimado" | "cotizacion";
-type PortalQuoteScope = { tenantId: string; markbox: string };
+type PortalQuoteScope = { tenantId: string; markbox: string; clientId: string };
 
 /** No reutilizar un Shipping Mark aislado como autoridad. Tampoco heredar el
  * ámbito Studio de una sesión híbrida: este contexto pertenece sólo al Portal. */
@@ -520,7 +555,7 @@ async function portalQuoteScope(supabase: SupabaseClient): Promise<PortalQuoteSc
         typeof row.client_id !== "string" || !row.client_id.trim() ||
         c.id !== row.client_id || c.tenant_id !== row.tenant_id ||
         c.deleted_at !== null || typeof c.markbox !== "string" || !c.markbox.trim()) return null;
-    return { tenantId: row.tenant_id, markbox: c.markbox };
+    return { tenantId: row.tenant_id, markbox: c.markbox, clientId: row.client_id };
   } catch {
     // Transporte/identidad no verificable: no consultar cotizaciones ni usar admin.
     return null;
@@ -595,18 +630,8 @@ async function attachShipmentCodes(
   ];
   if (ids.length === 0) return;
 
-  const { data, error } = await supabase
-    .from("shipments")
-    .select("id, code")
-    .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
-    .in("id", ids)
-    .is("deleted_at", null);
-  if (error || !data) return;
-
-  const byId = new Map(
-    data.map((s) => [s.id as string, (s.code as string | null) ?? null]),
-  );
+  const wanted = new Set(ids);
+  const byId = new Map((await readPortalOwnedShipments(supabase, scope)).filter((row) => wanted.has(row.id)).map((row) => [row.id, row.code]));
   for (const r of rows) {
     if (r.convertedToShipmentId) {
       r.convertedToShipmentCode = byId.get(r.convertedToShipmentId) ?? null;
@@ -659,14 +684,7 @@ export async function getPortalActivation(
   }
 
   // ¿Tiene al menos 1 envío? (auto-desbloqueo por primera carga real)
-  const { count, error: countErr } = await supabase
-    .from("shipments")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
-    .is("deleted_at", null);
-
-  if (!countErr && (count ?? 0) >= 1) {
+  if ((await readPortalOwnedShipments(supabase, scope)).length >= 1) {
     return { activated: true, reason: "has_shipments" };
   }
 
@@ -808,19 +826,7 @@ export async function getNextArrival(
   const scope = await portalScope(supabase);
   if (!scope) return null;
 
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(
-      "id, code, shipment_service, status, origin, destination, arrived_destination_at, created_at",
-    )
-    .eq("tenant_id", scope.tenantId)
-    .eq("client_markbox", scope.markbox)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(50);
-
-  if (error || !data) return null;
-
+  const data = portalShipmentView(await readPortalOwnedShipments(supabase, scope), 50);
   const next = data.find((r) =>
     isActiveShipmentStatus(r.status as ShipmentStatus),
   );

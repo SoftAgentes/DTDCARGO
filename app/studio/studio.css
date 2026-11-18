@@ -222,11 +222,13 @@
    ─────────────────────────────────────────────────────────── */
 .studio-input {
   width: 100%;
+  min-height: 40px;
   padding: 10px 12px;
   background: var(--bg-surface);
-  border: 1px solid var(--studio-border-strong);
-  border-radius: 6px;
-  font: 500 13.5px/1.2 var(--f-sans);
+  /* SDD-0603: --border-strong medía 1,48:1 contra la tarjeta (mínimo 3:1). */
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  font: 500 14px/1.2 var(--f-sans);
   color: var(--studio-ink);
   outline: none;
   box-sizing: border-box;
@@ -240,17 +242,18 @@
   border-color: var(--studio-ink);
 }
 .studio-input:focus-visible {
-  border-color: var(--studio-wine);
-  box-shadow: 0 0 0 3px rgba(127, 15, 26, 0.18);
+  border-color: var(--wine-text);
+  box-shadow: 0 0 0 1px var(--wine-text);
 }
 .studio-input[aria-invalid="true"] {
   border-color: var(--danger);
 }
 .studio-input[aria-invalid="true"]:focus-visible {
   border-color: var(--danger);
-  box-shadow: 0 0 0 3px var(--danger-bg);
+  box-shadow: 0 0 0 1px var(--danger);
 }
 .studio-input:disabled {
+  border-style: dashed;
   background: var(--studio-paper-2);
   color: var(--studio-text-muted);
   cursor: not-allowed;
@@ -284,7 +287,7 @@
   border-radius: 6px;
   background: var(--bg-elevated);
   color: var(--studio-ink);
-  font: 600 12px/1 var(--f-sans);
+  font: 700 12px/1 var(--f-sans);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -333,10 +336,8 @@
 
 /* Label uppercase tracked (acompaña a los inputs) */
 .studio-label {
-  font: 600 10.5px/1 var(--f-sans);
-  color: var(--studio-text-muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 600 13.5px/1.2 var(--f-sans);
+  color: var(--studio-ink);
   display: block;
   margin-bottom: 6px;
 }
@@ -356,26 +357,39 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px 22px;
-  font: 800 13px/1 var(--f-sans);
-  /* +0.01em vs el tracking base: Nunito 800 no pega tan brutal como la vieja
-     Archivo Black; este pelo extra le devuelve autoridad al CTA sin tocar
-     fuente ni peso (ajuste fino post-port tipográfico, founder 2026-06-11). */
-  letter-spacing: 0.06em;
-  border-radius: 8px;
-  border: 0;
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  font: 700 14px/1 var(--f-sans);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  /* SDD-0603, enmienda de elevación: la sombra sale de dos piezas. --btn-lift es
+     el nivel (spec, «Niveles por control») y --btn-edge el borde propio de los
+     controles con relleno en oscuro (--ctl-edge-hi). Cada variante cambia solo
+     las piezas, no la sombra entera. */
+  --btn-edge: 0 0 0 0 transparent;
+  --btn-lift: var(--shadow-sm);
+  box-shadow: var(--btn-edge), var(--btn-lift);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
 }
+.studio-btn:hover:not(:disabled) {
+  --btn-lift: var(--shadow-md);
+}
+.studio-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  --btn-lift: var(--shadow-xs);
+}
 .studio-btn:disabled {
-  /* Deshabilitado por validación (ej: "Analizar con IA" sin suficiente texto):
-     not-allowed comunica "no disponible todavía" (NO wait/reloj, que se leía
-     como colgado); opacity 0.5 lo DISTINGUE claro del activo sin borrar el texto. */
+  /* Deshabilitado por validación: la raya y el fondo plano lo distinguen del activo
+     sin borrar el texto. not-allowed comunica "no disponible todavía". */
+  background: var(--studio-paper-2);
+  border: 1px dashed var(--ink-soft);
+  box-shadow: none;
+  color: var(--ink-soft);
   cursor: not-allowed;
-  opacity: 0.5;
 }
 /* Estado "cargando" (aria-busy="true"): el botón puede estar disabled MIENTRAS
    trabaja (spinner + "Analizando…/Enviando…/Procesando…"). No es "prohibido"
@@ -385,19 +399,23 @@
    (ej: ActionButton), y el selector plano cubre aria-busy sin disabled. */
 .studio-btn[aria-busy="true"],
 .studio-btn[aria-busy="true"]:disabled {
+  border-style: solid;
+  color: var(--ink);
   cursor: progress;
-  opacity: 0.9;
 }
 
 .studio-btn-primary {
   background: var(--studio-wine);
-  color: #FFFFFF;
+  color: var(--ink-side-strong);
+  --btn-edge: var(--ctl-edge-hi);
+  --btn-lift: var(--shadow-md);
 }
 .studio-btn-primary:hover:not(:disabled) {
   background: var(--studio-wine-deep);
+  --btn-lift: var(--shadow-lg);
 }
 .studio-btn-primary:active:not(:disabled) {
-  transform: translateY(1px);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-primary:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
@@ -407,61 +425,51 @@
 .studio-btn-dark {
   background: var(--ink);
   color: var(--ink-inv);
-}
-.studio-btn-dark:hover:not(:disabled) {
-  background: #1F1F1F;
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-dark:focus-visible {
   outline: 2px solid var(--studio-wine-soft);
   outline-offset: 2px;
 }
 
-/* Dark theme: --ink se invierte a paper, así que el botón "dark" debe usar
-   un fondo elevado del theme con texto principal (color-aware via tokens). */
-[data-theme="dark"] .studio-btn-dark {
-  background: var(--bg-elevated);
-  color: var(--ink);
-  border: 1px solid var(--border-strong);
-}
-[data-theme="dark"] .studio-btn-dark:hover:not(:disabled) {
-  background: var(--bg-surface);
-  border-color: var(--ink-soft);
-}
-
+/* SDD-0603: el secundario deja de ser blanco sobre blanco. Contorno de tinta
+   (16,49:1 en claro, 13,08:1 en oscuro) y, al pasar el cursor, se invierte.
+   Enmienda de elevación: contorno de 1,5 px y nivel 1 (--shadow-xs). */
 .studio-btn-ghost {
   background: var(--bg-surface);
-  border: 1px solid var(--studio-border-strong);
-  color: var(--studio-ink);
-  font-family: var(--f-sans);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  border: 1.5px solid var(--ctl-border);
+  color: var(--ink);
+  --btn-lift: var(--shadow-xs);
 }
 .studio-btn-ghost:hover:not(:disabled) {
-  border-color: var(--studio-ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-btn-ghost:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--wine-text);
   outline-offset: 2px;
 }
 
 .studio-btn-sm {
-  padding: 9px 16px;
-  font-size: 11.5px;
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  font-size: 13.5px;
 }
 
+/* 32 px: mínimo táctil del estándar de botones (app/studio/CLAUDE.md, regla 6). */
 .studio-btn-xs {
-  padding: 6px 12px;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: 13px;
 }
 
 /* Variant warning (gold) — para acciones de atencion */
+/* BRAND ♿: sobre --warning va --on-warning; el blanco medía 3,14:1. */
 .studio-btn-warning {
   background: var(--studio-gold);
-  color: #FFFFFF;
-}
-.studio-btn-warning:hover:not(:disabled) {
-  background: #9C7330;
+  color: var(--on-warning);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-warning:focus-visible {
   outline: 2px solid var(--studio-gold);
@@ -469,29 +477,152 @@
 }
 
 /* Variant danger (red) — para acciones destructivas */
+/* --ink-inv sobre --danger: 6,31:1 en claro y 5,61:1 en oscuro. */
 .studio-btn-danger {
   background: var(--studio-red);
-  color: #FFFFFF;
-}
-.studio-btn-danger:hover:not(:disabled) {
-  background: #A02830;
+  color: var(--ink-inv);
+  --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-danger:focus-visible {
   outline: 2px solid var(--studio-red);
   outline-offset: 2px;
 }
 
-/* Variant success (verde) — confirmación post-acción exitosa (transitorio
-   típico 2-3s, después el revalidate del server cambia el render).
-   color: var(--ink-inv) se invierte por theme · cream sobre verde oscuro
-   en light, navy sobre verde claro en dark · mantiene WCAG AA en ambos. */
-.studio-btn-success {
-  background: var(--success);
+/* Variant success — confirmación post-acción (transitorio típico 2-3s). BRAND
+   §Estados: icono verde y texto neutro, sin recolorear la acción. */
+.studio-btn-success,
+.studio-btn-success:disabled {
+  background: var(--bg-surface);
+  border: 1px solid var(--success);
+  box-shadow: none;
+  color: var(--ink);
+  cursor: default;
+}
+.studio-btn-success svg {
+  color: var(--success);
+}
+
+/* Controles de icono de la barra superior y cierre de paneles: contorno, como
+   cualquier otro control (SDD-0603). */
+.studio-icono-btn,
+.studio-cerrar-panel,
+.studio-densidad {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-width: 36px;
+  height: 36px;
+  background: var(--bg-surface);
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: 700 13.5px/1 var(--f-sans);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-cerrar-panel,
+.studio-densidad {
+  padding: 0 var(--s-3);
+}
+.studio-icono-btn:hover,
+.studio-cerrar-panel:hover:not(:disabled),
+.studio-densidad:hover,
+.studio-densidad[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--ink-inv);
 }
-.studio-btn-success:disabled {
-  opacity: 1;
-  cursor: default;
+.studio-cerrar-panel svg {
+  flex-shrink: 0;
+}
+
+/* Contador sobre el icono (conversaciones, campana): va en la esquina superior
+   derecha, montado sobre el borde del botón, para no tapar el sobre ni la campana. */
+.studio-contador-icono {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--ink-inv);
+  font: 800 9px/1 var(--f-mono);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+  pointer-events: none;
+}
+.studio-contador-icono[data-tono="vino"] {
+  background: var(--wine);
+  color: var(--ink-side-strong);
+}
+.studio-contador-icono[data-tono="peligro"] {
+  background: var(--danger);
+}
+
+/* Menú lateral cerrado: el nombre sale al instante (sin el aviso nativo de ~1 s) y el
+   icono se corre un poco. Con el foco del teclado pasa igual. */
+.studio-sb-icono {
+  transition: transform var(--dur-fast) var(--ease);
+}
+.studio-sb-link--cerrado:hover .studio-sb-icono,
+.studio-sb-link--cerrado:focus-visible .studio-sb-icono {
+  transform: translateX(3px);
+}
+.studio-sb-tip {
+  position: fixed;
+  z-index: 80;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  color: var(--ink-inv);
+  box-shadow: var(--shadow-md);
+  font: 700 12.5px/1.2 var(--f-sans);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: studio-sb-tip-in 90ms var(--ease) both;
+}
+@keyframes studio-sb-tip-in {
+  from {
+    opacity: 0;
+    margin-left: -4px;
+  }
+  to {
+    opacity: 1;
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-sb-icono {
+    transition: none;
+  }
+  .studio-sb-link--cerrado:hover .studio-sb-icono,
+  .studio-sb-link--cerrado:focus-visible .studio-sb-icono {
+    transform: none;
+  }
+  .studio-sb-tip {
+    animation: none;
+  }
+}
+@media (max-width: 767px) {
+  .studio-densidad__texto {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-btn {
+    transition: none;
+  }
+  .studio-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* Spinner inline para estados de loading dentro de un botón. */
@@ -687,16 +818,25 @@
   }
 }
 
-/* Hover de ghost con background paper-2 para mejor feedback */
-.studio-btn-ghost:hover:not(:disabled) {
-  background: var(--studio-paper-2);
-}
-
 /* ───────────────────────────────────────────────────────────
    Tracking — filas clickeables del listado
    ─────────────────────────────────────────────────────────── */
 .studio-tracking-row {
+  position: relative;
   transition: background 0.12s;
+}
+/* SDD-0603: flecha fija en el margen derecho de la fila que se abre. Va por fuera
+   de la grilla, así que no corre las columnas. */
+.studio-tracking-row::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: var(--s-1);
+  width: var(--s-4);
+  transform: translateY(-50%);
+  color: var(--ink);
+  font: 800 20px/1 var(--f-sans);
+  text-align: center;
 }
 .studio-tracking-row:hover {
   background: var(--studio-paper-2);
@@ -738,14 +878,18 @@
 }
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
+/* SDD-0603: subrayado siempre, para que se vea que se abre sin pasar el cursor. */
 .studio-link-quiet {
   color: var(--ink);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-soft);
+  text-underline-offset: 3px;
 }
 .studio-link-quiet:hover,
 .studio-link-quiet:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--wine-text);
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
 }
 /* Hover de fila NO clickeable: feedback de posición en tablas densas sin
    prometer que la fila entera es un target (no cambia el cursor). */
@@ -788,20 +932,66 @@
   white-space: nowrap;
 }
 
-/* ───────────────────────────────────────────────────────────
-   Tracking — grid del detalle (2 cols desktop, 1 col mobile)
-   ─────────────────────────────────────────────────────────── */
-.studio-detail-grid {
+/* Ficha del embarque (SDD-0662) · ancho completo en tres zonas.
+   Angosto: una columna. Mediano: datos a la izquierda, operación y seguimiento
+   apiladas a la derecha. Ancho: las tres en fila. */
+.studio-ficha-embarque-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "datos" "operacion" "seguimiento";
+  gap: var(--s-6);
   align-items: start;
 }
-@media (max-width: 900px) {
-  .studio-detail-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+.studio-ficha-embarque-zona {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.studio-ficha-embarque-zona[data-zona="datos"] { grid-area: datos; }
+.studio-ficha-embarque-zona[data-zona="operacion"] { grid-area: operacion; }
+.studio-ficha-embarque-zona[data-zona="seguimiento"] { grid-area: seguimiento; }
+@media (min-width: 901px) {
+  .studio-ficha-embarque-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-areas: "datos operacion" "datos seguimiento";
+    /* La zona de datos ocupa las dos filas: la segunda absorbe lo que sobre. */
+    grid-template-rows: auto 1fr;
   }
+}
+@media (min-width: 1600px) {
+  .studio-ficha-embarque-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "datos operacion seguimiento";
+    grid-template-rows: auto;
+  }
+}
+/* Franja «Cliente»: Shipping Mark, aviso y la acción de cambiarlo. */
+.studio-ficha-embarque-franja {
+  margin-bottom: var(--s-5);
+}
+.studio-ficha-embarque-cliente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+}
+.studio-ficha-embarque-cliente .studio-eyebrow {
+  margin-bottom: var(--s-1);
+}
+.studio-ficha-embarque-cliente-marca {
+  font: 700 14px/1.2 var(--f-mono);
+  color: var(--ink);
+}
+.studio-ficha-embarque-cliente .studio-aviso {
+  flex: 1 1 18rem;
+}
+.studio-ficha-embarque-cliente > .studio-btn {
+  margin-left: auto;
 }
 
 /* Icon button (logout, eye toggle, etc.) */
@@ -842,6 +1032,483 @@
     grid-template-columns: 1fr;
     gap: 24px;
   }
+}
+
+/* ── Tracking por contenedor (SDD-0659) ────────────────────────────────────
+   Columna de contenedores + panel con mapa centrado en el Pacífico. Solo
+   tokens: el mapa cambia con el tema igual que el resto del Studio. */
+.studio-tracking-ops-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.studio-tracking-ops-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.studio-tracking-ops-filtros .studio-chip {
+  text-decoration: none;
+}
+.studio-tracking-ops-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.studio-tracking-ops-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  color: var(--ink);
+  text-decoration: none;
+}
+.studio-tracking-ops-card[data-active="true"] {
+  border-color: var(--ctl-border);
+  background: var(--bg-elevated);
+}
+.studio-tracking-ops-card:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
+.studio-tracking-ops-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.studio-tracking-ops-card-name {
+  font: 800 13px/1.2 var(--f-mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.studio-tracking-ops-card-meta {
+  font: 500 12.5px/1.3 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-bar {
+  display: block;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--bg-base);
+  overflow: hidden;
+}
+.studio-tracking-ops-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--wine-text);
+}
+.studio-tracking-ops-bar > span[data-alerta="true"] {
+  background: var(--warning);
+}
+.studio-tracking-ops-card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  font: 600 12px/1 var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-card-foot b {
+  color: var(--ink);
+}
+.studio-tracking-ops-vacio {
+  margin: 0;
+  padding: var(--s-6) var(--s-4);
+  text-align: center;
+  color: var(--ink-soft);
+  font: 500 13px/1.5 var(--f-sans);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+}
+
+.studio-tracking-ops-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.studio-tracking-ops-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5) var(--s-3);
+}
+.studio-tracking-ops-panel-head h2 {
+  margin: 6px 0 0;
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.studio-tracking-ops-panel-head h2 code {
+  font: inherit;
+}
+.studio-tracking-ops-panel-head p {
+  margin: 4px 0 0;
+  font: 500 12.5px/1.4 var(--f-mono);
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-eyebrow {
+  color: var(--wine-text);
+}
+.studio-tracking-ops-aviso {
+  padding: 0 var(--s-5) var(--s-3);
+}
+.studio-tracking-ops-nota {
+  margin: 0;
+  padding: var(--s-2) var(--s-5);
+  font: 500 12.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-nota[data-borde="true"] {
+  border-top: 1px solid var(--border);
+}
+
+/* Mapa */
+.studio-tracking-ops-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-top: 1px solid var(--border);
+}
+.studio-tracking-ops-map-sea {
+  fill: var(--bg-base);
+}
+.studio-tracking-ops-map-land {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 0.6;
+}
+.studio-tracking-ops-map-geo {
+  fill: var(--ink-soft);
+  font: 800 13px var(--f-display);
+  letter-spacing: 0.22em;
+}
+.studio-tracking-ops-map-ocean {
+  fill: var(--ink-soft);
+  font: 600 12px var(--f-sans);
+  letter-spacing: 0.3em;
+}
+.studio-tracking-ops-map-route {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+  stroke-dasharray: 3 6;
+}
+.studio-tracking-ops-map-done {
+  fill: none;
+  stroke: var(--wine-text);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.studio-tracking-ops-map-port {
+  fill: var(--bg-base);
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+.studio-tracking-ops-map-place,
+.studio-tracking-ops-map-place-soft,
+.studio-tracking-ops-map-label {
+  paint-order: stroke;
+  stroke: var(--bg-base);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.studio-tracking-ops-map-place {
+  fill: var(--ink);
+  font: 700 11px var(--f-sans);
+}
+.studio-tracking-ops-map-place-soft {
+  fill: var(--ink-soft);
+  font: 500 10px var(--f-sans);
+}
+.studio-tracking-ops-map-label {
+  fill: var(--ink);
+  font: 700 11px var(--f-mono);
+}
+.studio-tracking-ops-map-halo {
+  fill: var(--wine-text);
+  opacity: 0.22;
+}
+.studio-tracking-ops-map-core {
+  fill: var(--ink-soft);
+  stroke: var(--bg-base);
+  stroke-width: 1.5;
+}
+.studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-core {
+  fill: var(--wine);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-halo {
+  fill: var(--wine);
+  opacity: 0.4;
+}
+.studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-label {
+  font-size: 13px;
+}
+.studio-tracking-ops-map-marker[data-alerta="true"] .studio-tracking-ops-map-core {
+  stroke: var(--warning);
+}
+.studio-tracking-ops-map a {
+  cursor: pointer;
+}
+.studio-tracking-ops-map a:focus-visible .studio-tracking-ops-map-halo {
+  opacity: 0.7;
+  stroke: var(--info);
+  stroke-width: 2;
+}
+
+/* Indicadores */
+.studio-tracking-ops-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--border);
+}
+.studio-tracking-ops-kpis > div {
+  padding: var(--s-3) var(--s-5);
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+.studio-tracking-ops-kpis dt {
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-kpis dd {
+  margin: 6px 0 0;
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.studio-tracking-ops-kpis dd[data-acento="true"] {
+  color: var(--wine-text);
+}
+.studio-tracking-ops-kpis dd[data-mono="true"] {
+  font: 800 16px/1.2 var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.studio-tracking-ops-kpis dd.studio-tracking-ops-kpi-sub,
+.studio-tracking-ops-kpi-sub {
+  margin-top: 3px;
+  font: 500 12px/1.3 var(--f-sans);
+  color: var(--ink-soft);
+}
+
+/* Hitos */
+.studio-tracking-ops-hitos {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: var(--s-4) var(--s-3) var(--s-3);
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+}
+.studio-tracking-ops-hitos li {
+  position: relative;
+  flex: 1;
+  min-width: 96px;
+  padding: 0 var(--s-1);
+  text-align: center;
+  font: 500 12px/1.3 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-hitos li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: var(--border-strong);
+}
+.studio-tracking-ops-hitos li:first-child::before {
+  display: none;
+}
+.studio-tracking-ops-hitos li[data-estado="done"]::before,
+.studio-tracking-ops-hitos li[data-estado="active"]::before {
+  background: var(--wine-text);
+}
+.studio-tracking-ops-hito-punto {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0 auto var(--s-2);
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+}
+li[data-estado="done"] > .studio-tracking-ops-hito-punto {
+  background: var(--wine-text);
+  border-color: var(--wine-text);
+}
+li[data-estado="active"] > .studio-tracking-ops-hito-punto {
+  background: var(--wine);
+  border-color: var(--ink);
+}
+li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.studio-tracking-ops-hitos b {
+  display: block;
+  font-weight: 600;
+}
+.studio-tracking-ops-hitos li[data-estado="done"] b,
+.studio-tracking-ops-hitos li[data-estado="active"] b {
+  color: var(--ink);
+  font-weight: 700;
+}
+.studio-tracking-ops-hito-fecha {
+  display: block;
+  margin-top: 3px;
+  font: 500 11.5px/1.2 var(--f-mono);
+}
+
+/* Quién viene adentro */
+.studio-tracking-ops-quien {
+  border-top: 1px solid var(--border);
+}
+.studio-tracking-ops-quien > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding: var(--s-3) var(--s-5);
+  cursor: pointer;
+  list-style: none;
+  font: 700 14px/1.2 var(--f-sans);
+  color: var(--ink);
+}
+.studio-tracking-ops-quien > summary::-webkit-details-marker {
+  display: none;
+}
+.studio-tracking-ops-quien > summary:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: -2px;
+}
+.studio-tracking-ops-quien-sub {
+  display: block;
+  margin-top: 3px;
+  font: 500 12.5px/1.3 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-tabla {
+  overflow-x: auto;
+}
+.studio-tracking-ops-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 500 13px/1.3 var(--f-sans);
+  color: var(--ink);
+}
+.studio-tracking-ops-tabla th {
+  padding: var(--s-2) var(--s-4);
+  border-top: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+  font: 700 11px/1 var(--f-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.studio-tracking-ops-tabla td {
+  padding: var(--s-2) var(--s-4);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+}
+.studio-tracking-ops-tabla [data-num="true"] {
+  text-align: right;
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.studio-tracking-ops-tabla code {
+  font: 600 12.5px/1 var(--f-mono);
+}
+.studio-tracking-ops-tabla tr[data-resaltado="true"] td {
+  background: var(--wine-tint);
+}
+
+/* Buscador */
+.studio-tracking-ops-buscador {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+.studio-tracking-ops-buscador form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+.studio-tracking-ops-buscador .studio-input {
+  flex: 1 1 260px;
+  max-width: 520px;
+}
+.studio-tracking-ops-buscador .studio-tracking-ops-nota {
+  padding-inline: 0;
+}
+.studio-tracking-ops-resultados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+}
+.studio-tracking-ops-resultados h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-1);
+  font: 700 14px/1.2 var(--f-sans);
+  color: var(--ink);
+}
+.studio-tracking-ops-resultados h3 code {
+  font: 600 12px/1 var(--f-mono);
+  color: var(--wine-text);
+}
+.studio-tracking-ops-resultados ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.studio-tracking-ops-resultados li a {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr auto;
+  gap: var(--s-3);
+  align-items: center;
+  min-height: 32px;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  text-decoration: none;
+  font: 500 13px/1.3 var(--f-sans);
+}
+.studio-tracking-ops-resultados li a:hover {
+  background: var(--bg-elevated);
+}
+.studio-tracking-ops-resultados li a:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+.studio-tracking-ops-resultados li a code {
+  font: 700 12.5px/1 var(--f-mono);
+}
+.studio-tracking-ops-resultados li a > span:nth-child(2) {
+  color: var(--ink-soft);
 }
 
 /* Cards de la sidebar de tracking ops */
@@ -956,33 +1623,6 @@
   outline-offset: -2px;
 }
 
-/* Selector de vista Mes/Semana/Agenda + tabs nivel-1 del calendario */
-.studio-cal-viewbtn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--ink-soft);
-  font: 500 12.5px/1 var(--f-sans);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.studio-cal-viewbtn:hover:not([aria-selected="true"]) {
-  color: var(--ink);
-}
-.studio-cal-viewbtn[aria-selected="true"] {
-  background: var(--bg-surface);
-  color: var(--ink);
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
-}
-.studio-cal-viewbtn:focus-visible {
-  outline: 2px solid var(--wine);
-  outline-offset: 2px;
-}
 .studio-cal-filterrow {
   transition: background var(--dur) var(--ease);
 }
@@ -1298,6 +1938,156 @@ details[open] > .calc-why-summary .calc-why-chev {
   }
 }
 
+/* ───────────────────────────────────────────────────────────
+   Matriz «Roles y permisos» legible (SDD-0635 §3.8)
+   Encabezado, columna, grupo y leyenda fijos dentro de un contenedor
+   con desplazamiento propio. Sombras de borde fijo = BD-070.
+   ─────────────────────────────────────────────────────────── */
+.studio-mx-page { display: flex; flex-direction: column; gap: var(--s-3); }
+.studio-mx-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-3); }
+.studio-mx-band {
+  flex: 1 1 420px; display: flex; gap: var(--s-3); align-items: flex-start;
+  padding: var(--s-3); border-radius: var(--r-md);
+  background: var(--warning-bg); color: var(--ink);
+}
+.studio-mx-band p { margin: 0; font: 400 12.5px/1.5 var(--f-sans); }
+.studio-mx-band b { font-weight: 700; }
+.studio-mx-band-ic {
+  flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--warning); color: var(--on-warning); font: 700 11px/1 var(--f-sans);
+}
+.studio-mx-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.studio-mx-search input { width: 220px; }
+
+.studio-mx-wrap {
+  position: relative; overflow: auto;
+  max-height: calc(100vh - 240px); min-height: 360px;
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface);
+}
+.studio-mx-wrap:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
+.studio-mx th, .studio-mx td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
+/* Fila de roles fija arriba */
+.studio-mx thead th {
+  position: sticky; top: 0; z-index: 3; height: 60px;
+  padding: var(--s-2) 6px; text-align: center; vertical-align: bottom;
+  background: var(--bg-elevated); border-bottom: 1px solid var(--border-strong);
+}
+.studio-mx-rn { display: block; font: 700 12.5px/1.2 var(--f-sans); color: var(--ink); }
+.studio-mx-rc { display: block; margin-top: 3px; font: 500 11.5px/1.2 var(--f-sans); color: var(--ink-soft); }
+/* Columna de módulos fija a la izquierda */
+.studio-mx th[scope="row"], .studio-mx thead th:first-child {
+  position: sticky; left: 0; z-index: 2; min-width: 200px;
+  padding: 0 var(--s-3); text-align: left; border-right: 1px solid var(--border-strong);
+}
+.studio-mx thead th:first-child {
+  z-index: 5; padding-bottom: 10px;
+  font: 600 11px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft);
+}
+.studio-mx th[scope="row"] { height: 50px; font: 600 12.5px/1.25 var(--f-sans); color: var(--ink); }
+.studio-mx-lk { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--ink-soft); }
+/* Grupo fijo bajo los roles mientras dura su sección. `--mx-head-h` es el alto
+   real de la fila de roles (lo mide PermissionsSection con ResizeObserver): un
+   rol en dos líneas no queda tapado. */
+.studio-mx-grp th {
+  position: sticky; top: var(--mx-head-h, 60px); z-index: 4; height: 32px;
+  padding: 0 var(--s-3); text-align: left;
+  background: var(--bg-base); border-bottom: 1px solid var(--border-strong);
+  font: 700 11px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink);
+}
+.studio-mx-grp th small { margin-left: var(--s-2); font: 500 11.5px/1 var(--f-sans); letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
+/* Sombras: hay contenido escondido arriba o a la izquierda */
+.studio-mx-wrap[data-y="true"] .studio-mx thead th,
+.studio-mx-wrap[data-y="true"] .studio-mx-grp th { box-shadow: var(--shadow-sticky-top); }
+.studio-mx-wrap[data-x="true"] .studio-mx th[scope="row"],
+.studio-mx-wrap[data-x="true"] .studio-mx thead th:first-child { box-shadow: var(--shadow-sticky-left); }
+.studio-mx td { padding: 6px; text-align: center; }
+.studio-mx td.studio-mx-adm { background: var(--bg-base); }
+.studio-mx-vacio { padding: var(--s-6) !important; text-align: left !important; font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); }
+
+/* Celda: ícono + palabra */
+.studio-mx-st {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-width: 104px; min-height: 32px; padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm); border: 1px solid transparent;
+  font: 600 12px/1.15 var(--f-sans); white-space: nowrap;
+}
+.studio-mx-st svg { flex: none; }
+.studio-mx-st[data-n="edit"] { background: var(--success-bg); color: var(--ink); }
+.studio-mx-st[data-n="edit"] svg { color: var(--success); }
+.studio-mx-st[data-n="view"] { background: var(--neutral-bg); color: var(--ink); }
+.studio-mx-st[data-n="none"] { background: transparent; color: var(--ink-soft); border-color: var(--border); }
+.studio-mx-st[data-n="all"] { background: var(--wine-tint); color: var(--wine-text); }
+button.studio-mx-st { cursor: pointer; }
+button.studio-mx-st:hover:not(:disabled) { border-color: var(--border-strong); }
+button.studio-mx-st[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
+.studio-mx-st[data-locked="true"] { border-style: dashed; border-color: var(--border-strong); }
+.studio-mx-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
+.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--wine-text); }
+.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--wine); }
+
+/* Leyenda en el pie fijo, siempre a la vista */
+.studio-mx-legend {
+  position: sticky; bottom: 0; left: 0; z-index: 6;
+  display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center;
+  padding: 10px var(--s-3);
+  background: var(--bg-surface); border-top: 1px solid var(--border-strong);
+  font: 500 12px/1.3 var(--f-sans); color: var(--ink-soft);
+}
+.studio-mx-lg { display: inline-flex; align-items: center; gap: 6px; }
+.studio-mx-lg-end { margin-left: auto; }
+.studio-mx-legend .studio-mx-st { min-width: 0; min-height: 24px; padding: 2px 7px; }
+.studio-mx-legend .studio-mx-ws { display: none !important; }
+.studio-mx-legend .studio-mx-w { display: inline !important; }
+.studio-mx-lg-long { display: none; }
+/* Forma corta en pantallas angostas; la leyenda la traduce */
+.studio-mx-ws { display: none; }
+@media (max-width: 1180px) {
+  .studio-mx .studio-mx-st .studio-mx-w { display: none; }
+  .studio-mx .studio-mx-st .studio-mx-ws { display: inline; }
+  .studio-mx .studio-mx-st { min-width: 62px; }
+  .studio-mx { min-width: 780px; }
+  .studio-mx-legend .studio-mx-ws { display: inline !important; }
+  .studio-mx-legend .studio-mx-w { display: none !important; }
+  .studio-mx-lg-long { display: inline; }
+}
+
+/* Panel de una celda */
+.studio-mx-pop {
+  position: fixed; z-index: 900; width: 340px; max-width: calc(100vw - 24px);
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  background: var(--bg-surface); color: var(--ink);
+  border: 1px solid var(--border-strong); border-radius: var(--r-md); box-shadow: var(--shadow-pop);
+}
+.studio-mx-pop h3 { margin: 0; font: 700 14px/1.3 var(--f-sans); }
+.studio-mx-afecta { margin: 0; font: 500 12px/1.45 var(--f-sans); }
+.studio-mx-afecta b { font-weight: 700; }
+.studio-mx-opts { display: grid; gap: 6px; }
+.studio-mx-opt {
+  display: flex; flex-direction: column; gap: 3px; min-height: 44px; padding: var(--s-2) 10px;
+  text-align: left; cursor: pointer;
+  border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--ink);
+}
+.studio-mx-opt b { font: 650 12.5px/1.2 var(--f-sans); }
+.studio-mx-opt span { font: 400 11.5px/1.35 var(--f-sans); color: var(--ink-soft); }
+.studio-mx-opt:hover:not(:disabled) { border-color: var(--ink); }
+.studio-mx-opt:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-opt[aria-checked="true"] { border-color: var(--wine); background: var(--wine-tint); }
+.studio-mx-opt[aria-checked="true"] b { color: var(--wine-text); }
+.studio-mx-opt:disabled { cursor: not-allowed; opacity: .6; }
+.studio-mx-fab { margin: 0; padding: var(--s-2) 10px; border-radius: var(--r-sm); background: var(--bg-elevated); font: 400 12px/1.45 var(--f-sans); }
+.studio-mx-fab b { font-weight: 700; }
+.studio-mx-link {
+  display: inline; padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px;
+}
+.studio-mx-link:hover:not(:disabled) { color: var(--wine-text); }
+.studio-mx-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-aviso { margin: 0; font: 400 11.5px/1.45 var(--f-sans); color: var(--ink-soft); }
+.studio-mx-actions { display: flex; justify-content: flex-end; gap: var(--s-2); }
+
 /* ── Fila de tabla que abre su detalle (SDD-0274) ──────────────────────────
    La fila entera es el enlace a la ficha: hover y foco tienen que verse en
    TODA la fila, no en una celda. El foco va con outline hacia adentro porque
@@ -1337,11 +2127,11 @@ details[open] > .calc-why-summary .calc-why-chev {
   gap: 7px;
   padding: 8px 12px;
   min-height: 32px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--ink-soft);
   border-radius: var(--r-pill, 999px);
   background: var(--bg-surface);
-  color: var(--ink-soft);
-  font: 600 12.5px/1 var(--f-sans);
+  color: var(--ink);
+  font: 600 13.5px/1 var(--f-sans);
   cursor: pointer;
   transition: background 0.14s, color 0.14s, border-color 0.14s;
 }
@@ -1354,9 +2144,9 @@ details[open] > .calc-why-summary .calc-why-chev {
   outline-offset: 2px;
 }
 .studio-chip[data-activo="true"] {
-  background: var(--wine-tint);
-  border-color: var(--wine-text);
-  color: var(--ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-chip-n {
   font: 700 11px/1 var(--f-mono);
@@ -1364,39 +2154,70 @@ details[open] > .calc-why-summary .calc-why-chev {
   color: var(--ink-soft);
 }
 .studio-chip[data-activo="true"] .studio-chip-n {
-  color: var(--wine-text);
+  color: var(--ink-inv);
 }
 
-/* ── Pestañas de módulo (SDD-0274) ────────────────────────────────────────
-   Secciones hermanas del mismo módulo, con su cantidad al lado. El subrayado
-   vino marca la activa; `aria-selected` lleva el estado real. */
+/* ── Pestañas de módulo (SDD-0274, SDD-0603) ──────────────────────────────
+   Secciones hermanas del mismo módulo, con su cantidad al lado. El relleno de tinta
+   marca la activa (BD-037). `aria-selected` o `aria-pressed` lleva el estado real;
+   `data-activa` solo pinta. El contenedor envuelve: sin recorte en zoom ni en
+   pantallas angostas (A11Y-01 §13). */
+.studio-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+}
 .studio-tab {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 10px var(--s-4);
+  min-height: 36px;
+  padding: 0 var(--s-3);
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--r-md);
   background: transparent;
-  color: var(--ink-soft);
-  font: 600 13px/1 var(--f-sans);
+  color: var(--ink);
+  font: 600 14px/1 var(--f-sans);
   white-space: nowrap;
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s;
 }
-.studio-tab:hover {
-  color: var(--ink);
+.studio-tab:hover:not(:disabled):not([data-activa="true"]) {
+  background: var(--bg-elevated);
 }
+/* Dentro del contenedor el fondo ya es --bg-elevated: el hover sube a la tarjeta. */
+.studio-tabs .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
+  background: var(--bg-surface);
+}
+/* El anillo va por fuera, separado 2 px: así se ve también sobre la activa, que va
+   rellena con --ink, igual que el anillo (WCAG 2.4.7). El relleno del contenedor
+   (--s-1) le deja lugar. */
 .studio-tab:focus-visible {
   outline: 2px solid var(--info);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 .studio-tab[data-activa="true"] {
-  color: var(--ink);
-  border-bottom-color: var(--wine);
+  background: var(--ink);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-inv);
+  font-weight: 800;
+}
+.studio-tab:disabled {
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+.studio-tab-n[data-alerta="true"] {
+  color: var(--wine-text);
+  font-weight: 800;
 }
 .studio-tab-n {
-  font: 600 10.5px/1 var(--f-mono);
+  font: 600 12px/1 var(--f-mono);
   font-variant-numeric: tabular-nums;
   background: var(--bg-elevated);
   color: var(--ink-soft);
@@ -1404,8 +2225,8 @@ details[open] > .calc-why-summary .calc-why-chev {
   border-radius: var(--r-pill, 999px);
 }
 .studio-tab[data-activa="true"] .studio-tab-n {
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: transparent;
+  color: var(--ink-inv);
 }
 
 /* ───────────────────────────────────────────────────────────
@@ -1448,4 +2269,308 @@ details[open] > .calc-why-summary .calc-why-chev {
   .studio-col-resize::before {
     transition: none;
   }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Vista compacta · SDD-0603
+   Los espacios los reducen los tokens de tokens.css. Aquí van las alturas de los
+   controles. Menos aire, misma letra legible. Nada baja de 32 px.
+   ─────────────────────────────────────────────────────────── */
+[data-density="compact"] .studio-btn {
+  min-height: 36px;
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-btn-sm {
+  min-height: 32px;
+  font-size: 13px;
+}
+[data-density="compact"] .studio-btn-xs {
+  min-height: 32px;
+  padding: 0 var(--s-2);
+  font-size: 12.5px;
+}
+[data-density="compact"] .studio-label {
+  margin-bottom: var(--s-1);
+  font-size: 13px;
+}
+[data-density="compact"] .studio-input {
+  min-height: 36px;
+  padding: var(--s-1) var(--s-3);
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-tab {
+  min-height: 32px;
+  font-size: 13.5px;
+}
+[data-density="compact"] .studio-tracking-row {
+  padding-block: var(--s-2);
+}
+[data-density="compact"] .studio-icono-btn,
+[data-density="compact"] .studio-cerrar-panel,
+[data-density="compact"] .studio-densidad {
+  min-width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+/* ── Aviso · SDD-0628 (tramo 4a de SDD-0603) ─────────────────────────────
+   BD-037: lo que avisa es una franja plana con icono, sin contorno ni sombra.
+   BRAND §Estados: el texto va siempre en tinta neutra (`--ink`); el tono lo
+   dan el fondo suave y el icono. Cero colores nuevos: solo tokens existentes.
+   Atención en claro: el dorado (`--warning`) mide 2,49-2,79:1 sobre su franja,
+   bajo el 3:1 de un icono; por eso el icono va en tinta y el dorado queda en
+   el fondo (BRAND §Estados: el acento que no alcanza es decorativo). En
+   oscuro el dorado sí alcanza (4,87:1 o más) y vuelve al icono, solo en
+   pantalla: al imprimir los tokens vuelven a claro.
+   Lo vigila `avisos-contract.test.ts`. */
+.studio-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-2) var(--s-3);
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  border: 0;
+  border-radius: var(--r-md);
+  box-shadow: none;
+  background: var(--info-bg);
+  color: var(--ink);
+  font: 500 14px/1.45 var(--f-sans);
+}
+.studio-aviso > svg {
+  margin-top: 0.15em;
+  color: var(--info);
+}
+.studio-aviso-cuerpo {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.studio-aviso-titulo {
+  display: block;
+  font-weight: 700;
+}
+.studio-aviso-accion {
+  flex-shrink: 0;
+  align-self: center;
+}
+.studio-aviso-compacto {
+  padding: var(--s-2) var(--s-3);
+  font-size: 13px;
+}
+.studio-aviso[data-tono="atencion"] {
+  background: var(--warning-bg);
+}
+.studio-aviso[data-tono="atencion"] > svg {
+  color: var(--ink);
+}
+.studio-aviso[data-tono="exito"] {
+  background: var(--success-bg);
+}
+.studio-aviso[data-tono="exito"] > svg {
+  color: var(--success);
+}
+.studio-aviso[data-tono="error"] {
+  background: var(--danger-bg);
+}
+.studio-aviso[data-tono="error"] > svg {
+  color: var(--danger-text);
+}
+@media screen {
+  [data-theme="dark"] .studio-aviso[data-tono="atencion"] > svg {
+    color: var(--warning);
+  }
+}
+
+/* ─── Ficha del cliente · franja, pestañas y conversaciones (SDD-0669) ────
+   Sustituye a las tres columnas de la SDD-0650 F1, que dejaban una columna
+   larguísima y movían las conversaciones según el ancho.
+   · Franja: identidad y acciones, fija bajo la barra del Studio. No es fija en
+     pantallas bajas (< 700 px de alto) ni en móvil, donde la barra pasa a dos
+     filas y su alto ya no es `--topbar-h`.
+   · Cuerpo: las pestañas y, con acceso a la Bandeja, las conversaciones a la
+     derecha en todas las pestañas (360 px, fijas al bajar). Por debajo de
+     1024 px de ventana van debajo de las pestañas, a todo el ancho. */
+.studio-ficha-franja {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-4);
+  margin: 0 0 var(--s-5);
+  padding: var(--s-3) 0;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border);
+}
+.studio-ficha-identidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+  flex: 1 1 420px;
+}
+@media (max-height: 700px), (max-width: 767px) {
+  .studio-ficha-franja { position: static; }
+}
+.studio-ficha-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: var(--s-5) 0 0;
+}
+.studio-ficha-nota { white-space: pre-line; overflow-wrap: anywhere; }
+.studio-ficha-nota[data-plegada="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.studio-ficha-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--s-6);
+  align-items: start;
+  margin-top: var(--s-6);
+}
+.studio-ficha-cuerpo--sin-panel { grid-template-columns: minmax(0, 1fr); }
+.studio-ficha-principal { min-width: 0; }
+.studio-ficha-conversaciones {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--s-4));
+  min-width: 0;
+}
+@media (max-width: 1023px) {
+  .studio-ficha-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .studio-ficha-conversaciones { position: static; }
+}
+.studio-ficha-pestanas .studio-tabs { margin-bottom: var(--s-5); }
+/* En móvil las pestañas se desplazan en horizontal en vez de partirse. */
+@media (max-width: 767px) {
+  .studio-ficha-pestanas .studio-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+  }
+}
+.studio-ficha-col,
+.studio-ficha-configuracion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  min-width: 0;
+}
+.studio-ficha-resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-6);
+  align-items: start;
+}
+.studio-ficha-resumen-ancho { grid-column: 1 / -1; min-width: 0; }
+@media (max-width: 900px) {
+  .studio-ficha-resumen { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── SDD-0648 · CRM › Embudos ─────────────────────────────────────────────
+   Tope de ancho del contenido. Una pantalla que marca `[data-ancho-completo]`
+   (el tablero del CRM) lo levanta: sus columnas se reparten la ventana. */
+.studio-content { max-width: var(--content-max); }
+.studio-content:has([data-ancho-completo]) { max-width: none; }
+
+/* Isólogo DTD del canal «Canales DTD»: primary en claro, reverse en oscuro
+   (BRAND §Logo, nunca primary sobre navy). */
+.crm-logo-dtd-oscuro { display: none; }
+[data-theme="dark"] .crm-logo-dtd-claro { display: none; }
+[data-theme="dark"] .crm-logo-dtd-oscuro { display: block; }
+@media print {
+  [data-theme="dark"] .crm-logo-dtd-claro { display: block; }
+  [data-theme="dark"] .crm-logo-dtd-oscuro { display: none; }
+}
+
+/* ── Campo de fecha <DateField> (SDD-0660) ────────────────────────────────
+   El formato `dd/mm/aaaa` se pinta en gris DETRÁS del texto, con la misma
+   letra monoespaciada: lo escrito tapa su parte y el resto queda a la vista.
+   La caja lleva el fondo porque el campo es transparente. */
+.studio-date-field__box {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--r-md);
+}
+.studio-date-field__box[data-disabled] {
+  background: var(--studio-paper-2);
+}
+.studio-date-field__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  /* 12 px de padding del campo + 1 px de su borde. */
+  padding: 0 13px;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  white-space: pre;
+  color: var(--studio-text-soft);
+  pointer-events: none;
+  overflow: hidden;
+}
+.studio-input.studio-date-field__input {
+  position: relative;
+  background: transparent;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  padding-right: 40px;
+}
+.studio-input.studio-date-field__input:disabled {
+  background: transparent;
+}
+[data-density="compact"] .studio-date-field__ghost,
+[data-density="compact"] .studio-input.studio-date-field__input {
+  font-size: 13.5px;
+}
+.studio-date-field__trigger {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.studio-date-field__trigger:hover:not(:disabled) {
+  background: var(--wine-tint);
+  color: var(--ink);
+}
+.studio-date-field__trigger:disabled {
+  cursor: not-allowed;
+}
+.studio-date-field__error {
+  margin-top: 4px;
+  font: 500 12px/1.3 var(--f-sans);
+  color: var(--danger-text);
+}
+.studio-date-field__btn:hover {
+  border-color: var(--ink-soft);
+}
+.studio-date-field__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.studio-date-field__btn:focus-visible,
+.studio-date-field__cell:focus-visible,
+.studio-date-field__trigger:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+.studio-date-field__cell:hover:not([aria-disabled="true"]):not([aria-pressed]) {
+  background: var(--wine-tint);
 }

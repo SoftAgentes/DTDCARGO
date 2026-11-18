@@ -29,21 +29,27 @@ import {
 const RAIZ = process.cwd();
 const MIGRACIONES = join(RAIZ, "supabase", "migrations");
 
-/** Lee el cuerpo de `feature_flag_catalog()` y devuelve key → default. */
+const DEFINE_CATALOGO = "create or replace function public.feature_flag_catalog";
+
+/**
+ * Lee el cuerpo de la ÚLTIMA definición de `feature_flag_catalog()` y devuelve
+ * key → default. Nació en 0337; un flag nuevo la redefine en su propia
+ * migración (0503, SDD-0585), porque una migración aplicada no se edita. Lo que
+ * vale en la base es la última que corrió, así que es la que se compara.
+ */
 function catalogoSql(): Map<string, boolean> {
-  const archivo = readdirSync(MIGRACIONES).find((f) =>
-    f.startsWith("0337_feature_flags_seed_and_trigger"),
-  );
+  const archivo = readdirSync(MIGRACIONES)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .filter((f) => readFileSync(join(MIGRACIONES, f), "utf8").includes(DEFINE_CATALOGO))
+    .at(-1);
   if (!archivo) {
-    throw new Error(
-      "No encontré la migración 0337 del catálogo de feature flags. " +
-        "Si se renumeró, actualizá este contrato.",
-    );
+    throw new Error("Ninguna migración define feature_flag_catalog(); debería ser al menos 0337.");
   }
   const sql = readFileSync(join(MIGRACIONES, archivo), "utf8");
 
-  const desde = sql.indexOf("create or replace function public.feature_flag_catalog");
-  expect(desde, "0337 debe definir feature_flag_catalog()").toBeGreaterThan(-1);
+  const desde = sql.indexOf(DEFINE_CATALOGO);
+  expect(desde, `${archivo} debe definir feature_flag_catalog()`).toBeGreaterThan(-1);
   const hasta = sql.indexOf("$$;", desde);
   const cuerpo = sql.slice(desde, hasta);
 
@@ -69,7 +75,7 @@ describe("Catálogo de feature flags · TS ↔ SQL (SDD-0240)", () => {
       `Estas keys existen en FEATURE_FLAG_DEFAULTS pero NINGUNA migración las ` +
         `siembra: ${faltantes.join(", ")}. La RPC de toggle (0289) hace UPDATE, ` +
         `no UPSERT: sin fila el interruptor levanta invalid_state y falla para ` +
-        `siempre. Agregalas a feature_flag_catalog() en 0337.`,
+        `siempre. Agrégalas a feature_flag_catalog() en una migración nueva que la redefina desde su última definición.`,
     ).toEqual([]);
   });
 
@@ -190,6 +196,48 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
     return out;
   })();
 
+  /**
+   * Consumo desde el servidor sin pantalla propia (SDD-0586, 10.5): una cola, un cron o
+   * un manejador en `lib/**` o `app/api/**` que lee `flags.<key>` después de
+   * `listFeatureFlags`. Sin esto, `chatwoot_portal` —que detiene la ida del chat del portal
+   * a Chatwoot— habría que marcarlo "ninguno", y el panel diría que nada lo consulta.
+   */
+  const enServidor = (() => {
+    const out = new Set<string>();
+    const caminar = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name !== "__tests__" && e.name !== "node_modules") caminar(p);
+        } else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          const src = sinComentarios(readFileSync(p, "utf8"));
+          if (!src.includes("listFeatureFlags")) continue;
+          for (const k of FEATURE_FLAG_KEYS) {
+            if (new RegExp(`flags\\.${k.replace(/\./g, "\\.")}\\b`).test(src)) out.add(k);
+          }
+        }
+      }
+    };
+    caminar(join(RAIZ, "lib"));
+    caminar(join(RAIZ, "app", "api"));
+    return out;
+  })();
+
+  it("todo flag marcado 'servidor' lo lee de verdad el servidor", () => {
+    const sinConsumo = FEATURE_FLAG_KEYS.filter(
+      (k) => FEATURE_FLAG_EFFECT[k] === "servidor" && !enServidor.has(k),
+    );
+    expect(
+      sinConsumo,
+      `Estos flags dicen que detienen algo del servidor y nada de lib/ ni app/api los ` +
+        `lee: ${sinConsumo.join(", ")}.`,
+    ).toEqual([]);
+  });
+
+  it("el detector del servidor encuentra chatwoot_portal (anti-falso-verde)", () => {
+    expect(enServidor.has("chatwoot_portal")).toBe(true);
+  });
+
   it("todo flag marcado 'movil' lo consume de verdad la PWA", () => {
     const sinConsumo = FEATURE_FLAG_KEYS.filter(
       (k) => FEATURE_FLAG_EFFECT[k] === "movil" && !enMovil.has(k),
@@ -205,7 +253,7 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
     const mentirosos = FEATURE_FLAG_KEYS.filter(
       (k) =>
         FEATURE_FLAG_EFFECT[k] === "ninguno" &&
-        (guardsDeRuta.has(k) || enSidebar.has(k) || enMovil.has(k)),
+        (guardsDeRuta.has(k) || enSidebar.has(k) || enMovil.has(k) || enServidor.has(k)),
     );
     expect(
       mentirosos,

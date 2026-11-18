@@ -31,6 +31,11 @@ const GESTIONES = [{ id: "ca-1", kind: "contacto", body: "Llamado al cliente" }]
 
 const listReceiptsMock = vi.fn();
 const listActivitiesMock = vi.fn();
+// SDD-0622: los accesos adicionales de la persona se leen aparte, como los
+// desvíos por rol; aquí no son el objeto de la prueba.
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({
+  getMyModuleGrants: async () => ({}),
+}));
 vi.mock("@/lib/studio/payment-queries", () => ({
   listReceipts: (...a: unknown[]) => listReceiptsMock(...a),
   listActivities: (...a: unknown[]) => listActivitiesMock(...a),

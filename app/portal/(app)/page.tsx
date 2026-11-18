@@ -28,6 +28,10 @@ import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
 import { PortalAdvisorCard } from "./_components/PortalAdvisorCard";
 import { PortalPushOptIn } from "../_components/PortalPushOptIn";
+import { getMyPortalVista, isPortalVistaSimpleEnabled } from "@/lib/portal/vista-preferida";
+import { cargarInicioSimple } from "@/lib/portal/simple/cargar";
+import { armarInicioSimple } from "@/lib/portal/simple/bloques";
+import { InicioSimple } from "./_simple/InicioSimple";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -53,6 +57,16 @@ export default async function PortalHomePage() {
   const activation = await getPortalActivation(supabase);
   if (!activation.activated) {
     return <PortalPending name={client.name} markbox={client.markbox} />;
+  }
+
+  // SDD-0654 · Vista simple: solo con el interruptor encendido y si la persona
+  // la eligió. Apagado, ni se consulta y el inicio es el de siempre (AC-1).
+  if (isPortalVistaSimpleEnabled()) {
+    const preferida = await getMyPortalVista(supabase, principal.userId);
+    if (preferida.vista === "simple") {
+      const datos = armarInicioSimple(await cargarInicioSimple(supabase, principal));
+      return <InicioSimple datos={datos} guiaVista={preferida.guiaVista} />;
+    }
   }
 
   const [kpis, rawNextArrival, rawShipments, profile, activity] = await Promise.all([
