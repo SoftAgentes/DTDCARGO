@@ -24,7 +24,7 @@ drop function if exists public.portal_email_check_estado(uuid[]);
 drop function if exists public.portal_email_check_revisar(uuid);
 drop function if exists public.portal_email_check_confirm(uuid, uuid);
 drop function if exists public.portal_email_check_claim(text, uuid);
-drop function if exists public.portal_email_check_peek(text);
+drop function if exists public.portal_email_check_peek(text, uuid);
 drop function if exists public.portal_email_check_issue(uuid, text);
 drop function if exists public.portal_email_check_auth_interno(uuid);
 drop function if exists public.portal_email_check_prepare(uuid);

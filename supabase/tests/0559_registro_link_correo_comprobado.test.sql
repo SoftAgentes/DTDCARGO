@@ -245,7 +245,7 @@ begin
     'public.portal_email_sin_comprobar(text)',
     'public.portal_email_check_auth_interno(uuid)',
     'public.portal_email_check_issue(uuid,text)',
-    'public.portal_email_check_peek(text)',
+    'public.portal_email_check_peek(text,uuid)',
     'public.portal_email_check_claim(text,uuid)',
     'public.portal_email_check_confirm(uuid,uuid)',
     'public.portal_email_check_release(uuid,boolean)',
@@ -407,22 +407,28 @@ begin
   assert r.expires_at between now() + interval '6 days 23 hours' and now() + interval '7 days 1 hour',
     'el enlace de comprobación no vence a los 7 días';
 
-  select * into r from public.portal_email_check_peek(repeat('e', 64));
+  select * into r from public.portal_email_check_peek(repeat('e', 64), null);
   assert r.markbox = 'DTD-8001', 'mirar no devolvió el código';
+  -- ⭐ El correo por comprobar sólo lo ve el titular, con su sesión.
+  assert r.pending_email is null, 'mirar le mostró el correo a quien no tiene sesión';
+  select * into r from public.portal_email_check_peek(repeat('e', 64), '00000000-0000-0000-0000-0000000000f1');
+  assert r.markbox = 'DTD-8001' and r.pending_email is null, 'mirar le mostró el correo a la sesión de otra cuenta';
+  select * into r from public.portal_email_check_peek(repeat('e', 64), '00000000-0000-0000-0000-0000000000c1');
+  assert r.pending_email = 'ana@example.test', 'mirar no le mostró al titular qué correo confirma';
   assert (select array_agg(a.attname order by a.attnum)
             from pg_catalog.pg_proc p,
                  lateral unnest(p.proargnames, p.proargmodes) with ordinality as a(attname, mode, attnum)
-           where p.oid = 'public.portal_email_check_peek(text)'::regprocedure
-             and a.mode = 't') = array['markbox']::text[],
-    'mirar devuelve algo más que el código';
+           where p.oid = 'public.portal_email_check_peek(text,uuid)'::regprocedure
+             and a.mode = 't') = array['markbox', 'pending_email']::text[],
+    'mirar devuelve algo más que el código y el correo del titular';
   -- Mirar no gasta (un filtro de correo abre el enlace con GET).
   assert (select token_used_at from public.client_email_checks where id = ch.id) is null, 'mirar gastó el enlace';
   assert (select verified_at from public.client_email_checks where id = ch.id) is null, 'mirar comprobó el correo';
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('0', 64))), 'un token inventado abre algo';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('0', 64), null)), 'un token inventado abre algo';
 
   -- Emitir otro reemplaza el anterior.
   perform public.portal_email_check_issue(ch.id, repeat('f', 64));
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('e', 64))), 'el enlace reemplazado sigue sirviendo';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('e', 64), null)), 'el enlace reemplazado sigue sirviendo';
   assert not exists (select 1 from public.portal_email_check_claim(repeat('e', 64), '00000000-0000-0000-0000-0000000000c1')), 'el enlace reemplazado se pudo reclamar';
 
   -- ═══════════════════════════════════════════════════════════════════════════
@@ -447,12 +453,14 @@ begin
     'un intento sin la sesión del titular gastó el enlace';
   assert (select verified_at from public.client_email_checks where id = ch.id) is null,
     'un intento sin la sesión del titular comprobó el correo';
-  assert exists (select 1 from public.portal_email_check_peek(repeat('f', 64))),
+  assert exists (select 1 from public.portal_email_check_peek(repeat('f', 64), null)),
     'un intento sin la sesión del titular mató el enlace';
 
   -- Vencido no sirve.
   update public.client_email_checks set token_expires_at = now() - interval '1 minute' where id = ch.id;
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64))), 'un enlace vencido todavía abre';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64), null)), 'un enlace vencido todavía abre';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')),
+    'un enlace vencido le muestra el correo al titular';
   assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')), 'un enlace vencido se pudo reclamar';
   update public.client_email_checks set token_expires_at = now() + interval '7 days' where id = ch.id;
 
@@ -460,7 +468,7 @@ begin
   assert r.outcome = 'ok' and r.check_id = ch.id and r.pending_email = 'ana@example.test', 'reclamar no devolvió la cuenta';
   -- Un solo uso.
   assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')), 'el enlace se reclamó dos veces';
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64))), 'un enlace reclamado sigue abriendo';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64), null)), 'un enlace reclamado sigue abriendo';
   -- Reclamar no comprueba: falta que el correo pase a la cuenta.
   assert (select verified_at from public.client_email_checks where id = ch.id) is null, 'reclamar marcó comprobado';
   begin
@@ -612,7 +620,7 @@ begin
   -- No se fusionó nada.
   assert (select auth_user_id from public.client_users where client_id = ch.client_id)
          = '00000000-0000-0000-0000-0000000000c4', 'el choque cambió la cuenta del cliente';
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('5', 64))), 'un enlace en choque sigue abriendo';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('5', 64), null)), 'un enlace en choque sigue abriendo';
   -- Soltar como choque (cuando lo detecta Auth y no la base) deja la misma marca.
   update public.client_email_checks set conflict_at = null where id = ch.id;
   perform public.portal_email_check_release(ch.id, true);
@@ -749,7 +757,7 @@ begin
     'en revisión y todavía dice que la cuenta lleva la dirección interna';
   assert (select token_used_at from public.client_email_checks where id = v_check) is not null,
     'dejar para revisión soltó el enlace';
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('7', 64))), 'un enlace en revisión sigue abriendo';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('7', 64), null)), 'un enlace en revisión sigue abriendo';
   assert not exists (select 1 from public.portal_email_check_claim(repeat('7', 64), '00000000-0000-0000-0000-0000000000c4')),
     'un enlace en revisión se pudo reclamar';
   begin
@@ -785,7 +793,7 @@ begin
   assert (select review_needed_at from public.client_email_checks where id = v_check) is null,
     'la revisión no se limpió al normalizar la cuenta';
   perform public.portal_email_check_issue(v_check, repeat('6', 64));
-  assert exists (select 1 from public.portal_email_check_peek(repeat('6', 64))), 'el enlace nuevo no abre';
+  assert exists (select 1 from public.portal_email_check_peek(repeat('6', 64), null)), 'el enlace nuevo no abre';
 end $$;
 reset role;
 update public.client_users set status = 'invited', auth_user_id = null, email = 'luis.bueno@example.test'
@@ -796,7 +804,7 @@ declare r record;
 begin
   select * into r from public.portal_email_sin_comprobar('luis.bueno@example.test');
   assert not r.bloquea, 'bloqueó a un cliente que el equipo volvió a invitar por correo';
-  assert not exists (select 1 from public.portal_email_check_peek(repeat('6', 64))),
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('6', 64), null)),
     'el enlace de una cuenta que ya no es la del cliente sigue abriendo';
   assert not exists (select 1 from public.portal_email_check_claim(repeat('6', 64), '00000000-0000-0000-0000-0000000000c4')),
     'el enlace de una cuenta que ya no es la del cliente se pudo reclamar';

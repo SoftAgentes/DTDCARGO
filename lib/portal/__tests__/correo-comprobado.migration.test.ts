@@ -111,6 +111,22 @@ rollback;`);
     await expect(correr(m)).rejects.toThrow(/0559 abortado: portal_registration_link_bind/);
   }, SLOW);
 
+  it("⭐ mutante: mirar le muestra el correo a quien no es el titular", async () => {
+    const m = mutar(
+      "         case when p_session_user_id is not null and p_session_user_id = ch.auth_user_id\n              then ch.pending_email end",
+      "         ch.pending_email",
+    );
+    await expect(correr(m)).rejects.toThrow(/mirar le mostró el correo a quien no tiene sesión/);
+  }, SLOW);
+
+  it("⭐ mutante: mirar le muestra el correo a la sesión de otra cuenta", async () => {
+    const m = mutar(
+      "case when p_session_user_id is not null and p_session_user_id = ch.auth_user_id",
+      "case when p_session_user_id is not null",
+    );
+    await expect(correr(m)).rejects.toThrow(/mirar le mostró el correo a la sesión de otra cuenta/);
+  }, SLOW);
+
   it("mutante: bind enlaza una cuenta con otro correo", async () => {
     const m = mutar(
       "if v_email is null or (not v_interno and v_email is distinct from v_real) then",

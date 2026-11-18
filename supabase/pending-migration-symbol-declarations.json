@@ -234,7 +234,7 @@
           "name": "portal_email_check_peek",
           "kind": "function",
           "callSites": [
-            "app/registro/correo/[token]/page.tsx:46"
+            "app/registro/correo/[token]/page.tsx:59"
           ]
         },
         {
@@ -272,7 +272,7 @@
             "app/registro/correo/[token]/actions.ts:153",
             "app/registro/link/[token]/actions.ts:190",
             "app/studio/(app)/clientes/actions.ts:481",
-            "lib/studio/portal/correo-comprobacion.ts:136"
+            "lib/studio/portal/correo-comprobacion.ts:149"
           ]
         }
       ],
@@ -283,9 +283,9 @@
           "degradation": "Sin la 0559 no hay cuentas sin comprobar: correoSinComprobar devuelve «sin-migracion» y /entrar y la invitación por correo siguen como siempre."
         },
         {
-          "site": "lib/studio/portal/correo-comprobacion.ts:141",
-          "contains": "if (error || !data?.auth_user_id) return null;",
-          "degradation": "Sin la tabla, direccionInternaDelCliente devuelve null y el acceso por WhatsApp acuña con el correo de la ficha, como antes."
+          "site": "lib/studio/portal/correo-comprobacion.ts:156",
+          "contains": "if (error.code === \"42P01\" || error.code === \"PGRST205\") return { estado: \"ficha\" };",
+          "degradation": "Sin la tabla, direccionInternaDelCliente devuelve «ficha» y el acceso por WhatsApp acuña con el correo de la ficha, como antes. Cualquier otro error de lectura falla cerrado: no hay entrada."
         },
         {
           "site": "lib/studio/portal/correo-comprobacion.ts:104",
@@ -303,7 +303,7 @@
           "degradation": "Sin la 0559 el vínculo de la 0552 rechaza la cuenta con dirección interna: la ficha queda guardada, se anota access_error y el cliente lee «te contactamos por WhatsApp». Si el vínculo pasó pero no hay fila, se avisa en el log y el cliente entra igual."
         },
         {
-          "site": "app/registro/correo/[token]/page.tsx:50",
+          "site": "app/registro/correo/[token]/page.tsx:67",
           "contains": "markbox = row?.markbox ?? null;",
           "degradation": "Sin la 0559 portal_email_check_peek no existe: la página muestra «Enlace no disponible» (no llega ningún enlace de estos sin la migración)."
         },

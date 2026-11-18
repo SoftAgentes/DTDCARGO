@@ -438,18 +438,23 @@ grant execute on function public.portal_email_check_issue(uuid, text) to service
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. Mirar el enlace (ruta pública, GET). Sólo lee: un robot de vista previa o
---    un filtro de correo que abra el enlace no lo gasta. Devuelve sólo el
---    código, y sólo si el enlace sirve.
+--    un filtro de correo que abra el enlace no lo gasta. Devuelve el código, y
+--    sólo si el enlace sirve. El correo por comprobar lo devuelve SOLO si la
+--    sesión del portal (la saca el servidor, no el visitante) es la de la cuenta
+--    titular: así el cliente ve qué correo confirma antes de confirmarlo. Sin
+--    sesión o con la de otra cuenta, el correo sale nulo.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-create function public.portal_email_check_peek(p_token_hash text)
-returns table (markbox text)
+create function public.portal_email_check_peek(p_token_hash text, p_session_user_id uuid)
+returns table (markbox text, pending_email text)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select c.markbox
+  select c.markbox,
+         case when p_session_user_id is not null and p_session_user_id = ch.auth_user_id
+              then ch.pending_email end
     from public.client_email_checks ch
     join public.clients c on c.id = ch.client_id
    where ch.token_hash = p_token_hash
@@ -467,8 +472,8 @@ as $$
      );
 $$;
 
-revoke all on function public.portal_email_check_peek(text) from public, anon, authenticated;
-grant execute on function public.portal_email_check_peek(text) to service_role;
+revoke all on function public.portal_email_check_peek(text, uuid) from public, anon, authenticated;
+grant execute on function public.portal_email_check_peek(text, uuid) to service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Confirmar (ruta pública, POST), en tres pasos
