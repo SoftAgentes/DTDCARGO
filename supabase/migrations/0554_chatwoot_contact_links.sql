@@ -26,10 +26,13 @@
 --      llaman el webhook (origen webhook, cuando el teléfono cruzó con UNA ficha,
 --      0504) y el relleno único del Archivo Kommo (origen kommo, en el VPS, con
 --      el client_id que dejó el cargador). Nunca pisa una unión que ya existe.
---    · chatwoot_unir_contacto_manual(ficha, contacto, motivo): «Unir este chat a
---      la ficha». authenticated que EDITA la Bandeja; auditada.
---    · chatwoot_quitar_union(ficha, contacto, motivo): deshace una unión
---      equivocada. Igual permiso; auditada.
+--    · chatwoot_unir_contacto_manual(tenant, actor, ficha, contacto, motivo):
+--      «Unir este chat a la ficha». SOLO service_role: la llama el ERP después
+--      de su candado, y la base vuelve a comprobar que el actor tiene membresía
+--      activa en ese tenant y edita la Bandeja (chatwoot_contact_links_actor_puede);
+--      auditada con el actor real.
+--    · chatwoot_quitar_union(tenant, actor, ficha, contacto, motivo): deshace una
+--      unión equivocada. Igual; auditada.
 -- 3. Al borrar la ficha (borrado físico) sus uniones se van en cascada; al
 --    borrarla lógicamente (deleted_at, SDD-0509) un disparador las borra y deja
 --    UNA fila de auditoría con los ids de los contactos. Restaurar la ficha NO
@@ -40,9 +43,11 @@
 -- La cuenta de Chatwoot es una y pertenece a un tenant (CHATWOOT_TENANT_ID, en
 -- el entorno del servidor). La base no lo sabe: no hay tabla con ese dato, y
 -- crearla para esto sería otra fuente de verdad que puede divergir del entorno.
--- Por eso el acotamiento al tenant dueño vive en la app (chatwootFichaConfigPara
+-- Por eso la elección del tenant dueño vive en la app (chatwootFichaConfigPara
 -- y las acciones de unir y quitar), y la base pone lo que sí puede: la RLS por
--- tenant y la llave por contacto (un contacto no se une en dos tenants).
+-- tenant, la llave por contacto (un contacto no se une en dos tenants) y que
+-- ninguna sesión escriba uniones: unir y quitar son solo de service_role, así
+-- que nadie de otro tenant las llama directo por la API saltándose el ERP.
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
 -- Ninguna fila existente. Ni chatwoot_conversations ni chatwoot_registrar_evento
@@ -54,7 +59,9 @@
 --
 -- ── Idempotente ─────────────────────────────────────────────
 -- create table if not exists, create or replace, drop … if exists antes de
--- cada policy y disparador, y el catálogo con on conflict.
+-- cada policy y disparador, y el catálogo con on conflict. Como la tabla usa
+-- «if not exists» y su llave cambió entre versiones de la PR, el preflight
+-- aborta si la tabla ya existe con otra llave primaria que (chatwoot_contact_id).
 --
 -- ── Deshacer ────────────────────────────────────────────────
 -- supabase/desarmes/0554_desarme.sql (sin número; usarlo exige OK nominal de
@@ -84,6 +91,16 @@ begin
     where attrelid = 'public.clients'::regclass and attname = 'deleted_at' and not attisdropped
   ) then
     raise exception '0554 requiere clients.deleted_at (SDD-0509)';
+  end if;
+  -- La llave cambió entre versiones de la PR: una tabla vieja no se reusa en silencio.
+  if to_regclass('public.chatwoot_contact_links') is not null
+     and coalesce((
+       select pg_catalog.string_agg(a.attname, ',' order by a.attname)
+       from pg_catalog.pg_index i
+       join pg_catalog.pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
+       where i.indrelid = to_regclass('public.chatwoot_contact_links') and i.indisprimary
+     ), '') <> 'chatwoot_contact_id' then
+    raise exception '0554: chatwoot_contact_links ya existe con otra llave primaria (se espera solo chatwoot_contact_id). Es de una versión anterior de la PR: quitarla con el desarme y volver a aplicar.';
   end if;
 end;
 $preflight$;
@@ -206,8 +223,62 @@ comment on function public.chatwoot_unir_contactos(uuid, text, jsonb) is
 revoke all on function public.chatwoot_unir_contactos(uuid, text, jsonb) from public, anon, authenticated;
 grant execute on function public.chatwoot_unir_contactos(uuid, text, jsonb) to service_role;
 
--- ─── 4. «Unir este chat a la ficha» (manual, auditada) ────────────────────
-create or replace function public.chatwoot_unir_contacto_manual(p_client_id uuid, p_contact_id bigint, p_motivo text)
+-- ─── 4. ¿Este actor puede unir o quitar en este tenant? ───────────────────
+-- Las dos funciones de abajo son SOLO de service_role (acotar por tenant en la
+-- base): las llama el ERP después de su candado, con el actor y el tenant
+-- explícitos, y la base no le cree al llamador. Comprueba que el actor tiene una
+-- membresía ACTIVA en ese tenant y que, evaluado COMO ese actor, edita la
+-- Bandeja: la misma decisión de user_has_module (0538: rol, desvíos por rol,
+-- extras por persona y su vencimiento), sin copiarla. Para eso fija
+-- request.jwt.claim.sub al actor durante la consulta y lo devuelve como estaba
+-- (la postcondición verifica que auth.uid() lo lee).
+create or replace function public.chatwoot_contact_links_actor_puede(p_tenant_id uuid, p_actor_user_id uuid)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_antes text := pg_catalog.current_setting('request.jwt.claim.sub', true);
+  v_ok    boolean;
+begin
+  if p_tenant_id is null or p_actor_user_id is null then
+    return false;
+  end if;
+  if not exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = p_actor_user_id and ut.tenant_id = p_tenant_id and ut.disabled_at is null
+  ) then
+    return false;
+  end if;
+
+  perform pg_catalog.set_config('request.jwt.claim.sub', p_actor_user_id::text, true);
+  begin
+    v_ok := (select auth.uid()) = p_actor_user_id
+            and (select public.get_user_tenant_id()) = p_tenant_id
+            and (select public.user_has_module('bandeja', true));
+  exception when others then
+    perform pg_catalog.set_config('request.jwt.claim.sub', coalesce(v_antes, ''), true);
+    raise;
+  end;
+  perform pg_catalog.set_config('request.jwt.claim.sub', coalesce(v_antes, ''), true);
+  return coalesce(v_ok, false);
+end;
+$fn$;
+
+comment on function public.chatwoot_contact_links_actor_puede(uuid, uuid) is
+  'SDD-0650 F2: ¿el actor tiene membresía activa en el tenant y edita la Bandeja (user_has_module evaluado como él)? Solo la usan chatwoot_unir_contacto_manual y chatwoot_quitar_union.';
+
+revoke all on function public.chatwoot_contact_links_actor_puede(uuid, uuid) from public, anon, authenticated, service_role;
+
+-- ─── 5. «Unir este chat a la ficha» (manual, auditada) ────────────────────
+-- Las firmas de versiones anteriores de esta PR (nunca aplicadas) se quitan por si acaso.
+drop function if exists public.chatwoot_unir_contacto_manual(uuid, bigint, text);
+
+create or replace function public.chatwoot_unir_contacto_manual(
+  p_tenant_id uuid, p_actor_user_id uuid, p_client_id uuid, p_contact_id bigint, p_motivo text
+)
 returns text
 language plpgsql
 volatile
@@ -215,13 +286,11 @@ security definer
 set search_path = ''
 as $fn$
 declare
-  v_uid    uuid := (select auth.uid());
-  v_tenant uuid := (select public.get_user_tenant_id());
   v_motivo text := pg_catalog.btrim(coalesce(p_motivo, ''));
   v_actual uuid;
 begin
-  if v_uid is null or v_tenant is null or not (select public.user_has_module('bandeja', true)) then
-    raise exception 'chatwoot_unir_contacto_manual: sin permiso' using errcode = '42501';
+  if not public.chatwoot_contact_links_actor_puede(p_tenant_id, p_actor_user_id) then
+    raise exception 'No tienes permiso para realizar esta acción.' using errcode = '42501';
   end if;
   if p_contact_id is null or p_contact_id <= 0 then
     raise exception 'chatwoot_unir_contacto_manual: contacto inválido' using errcode = '22023';
@@ -231,14 +300,14 @@ begin
   end if;
   if not exists (
     select 1 from public.clients c
-    where c.id = p_client_id and c.tenant_id = v_tenant and c.deleted_at is null
+    where c.id = p_client_id and c.tenant_id = p_tenant_id and c.deleted_at is null
   ) then
     raise exception 'chatwoot_unir_contacto_manual: ficha inexistente' using errcode = 'P0002';
   end if;
 
   select l.client_id into v_actual
   from public.chatwoot_contact_links l
-  where l.tenant_id = v_tenant and l.chatwoot_contact_id = p_contact_id;
+  where l.tenant_id = p_tenant_id and l.chatwoot_contact_id = p_contact_id;
   if v_actual = p_client_id then
     return 'ya_estaba';
   elsif v_actual is not null then
@@ -248,10 +317,10 @@ begin
   -- Si el contacto está unido en OTRO tenant, la llave lo rechaza con el mismo 23505
   -- que «otra ficha»: no se distingue un caso del otro.
   insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
-  values (v_tenant, p_client_id, p_contact_id, 'manual', v_uid);
+  values (p_tenant_id, p_client_id, p_contact_id, 'manual', p_actor_user_id);
 
   perform public.append_audit_event(
-    v_tenant, 'chatwoot_contact_link', p_client_id, 'user', v_uid,
+    p_tenant_id, 'chatwoot_contact_link', p_client_id, 'user', p_actor_user_id,
     'chatwoot_contact_linked', 'studio', 'succeeded', v_motivo,
     null,
     pg_catalog.jsonb_build_object('chatwoot_contact_id', p_contact_id, 'origen', 'manual'),
@@ -264,14 +333,18 @@ begin
 end;
 $fn$;
 
-comment on function public.chatwoot_unir_contacto_manual(uuid, bigint, text) is
-  'SDD-0650 F2 (D4): «Unir este chat a la ficha». Quien edita la Bandeja, en su tenant, con motivo; auditada. No mueve un chat unido a otra ficha.';
+comment on function public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text) is
+  'SDD-0650 F2 (D4): «Unir este chat a la ficha». Solo service_role (el ERP, después de su candado): la base comprueba otra vez al actor (membresía activa en el tenant y edición de la Bandeja) y que la ficha sea de ese tenant y esté viva; motivo; auditada con el actor real. No mueve un chat unido a otra ficha.';
 
-revoke all on function public.chatwoot_unir_contacto_manual(uuid, bigint, text) from public, anon;
-grant execute on function public.chatwoot_unir_contacto_manual(uuid, bigint, text) to authenticated;
+revoke all on function public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text) from public, anon, authenticated;
+grant execute on function public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text) to service_role;
 
--- ─── 5. Quitar una unión equivocada (auditada) ────────────────────────────
-create or replace function public.chatwoot_quitar_union(p_client_id uuid, p_contact_id bigint, p_motivo text)
+-- ─── 6. Quitar una unión equivocada (auditada) ────────────────────────────
+drop function if exists public.chatwoot_quitar_union(uuid, bigint, text);
+
+create or replace function public.chatwoot_quitar_union(
+  p_tenant_id uuid, p_actor_user_id uuid, p_client_id uuid, p_contact_id bigint, p_motivo text
+)
 returns boolean
 language plpgsql
 volatile
@@ -279,27 +352,25 @@ security definer
 set search_path = ''
 as $fn$
 declare
-  v_uid    uuid := (select auth.uid());
-  v_tenant uuid := (select public.get_user_tenant_id());
   v_motivo text := pg_catalog.btrim(coalesce(p_motivo, ''));
   v_fila   public.chatwoot_contact_links;
 begin
-  if v_uid is null or v_tenant is null or not (select public.user_has_module('bandeja', true)) then
-    raise exception 'chatwoot_quitar_union: sin permiso' using errcode = '42501';
+  if not public.chatwoot_contact_links_actor_puede(p_tenant_id, p_actor_user_id) then
+    raise exception 'No tienes permiso para realizar esta acción.' using errcode = '42501';
   end if;
   if pg_catalog.char_length(v_motivo) not between 4 and 1000 then
     raise exception 'chatwoot_quitar_union: el motivo va de 4 a 1000 caracteres' using errcode = '22023';
   end if;
 
   delete from public.chatwoot_contact_links l
-  where l.tenant_id = v_tenant and l.client_id = p_client_id and l.chatwoot_contact_id = p_contact_id
+  where l.tenant_id = p_tenant_id and l.client_id = p_client_id and l.chatwoot_contact_id = p_contact_id
   returning l.* into v_fila;
   if not found then
     return false;
   end if;
 
   perform public.append_audit_event(
-    v_tenant, 'chatwoot_contact_link', p_client_id, 'user', v_uid,
+    p_tenant_id, 'chatwoot_contact_link', p_client_id, 'user', p_actor_user_id,
     'chatwoot_contact_unlinked', 'studio', 'succeeded', v_motivo,
     pg_catalog.jsonb_build_object('chatwoot_contact_id', v_fila.chatwoot_contact_id, 'origen', v_fila.origen),
     null,
@@ -312,13 +383,13 @@ begin
 end;
 $fn$;
 
-comment on function public.chatwoot_quitar_union(uuid, bigint, text) is
-  'SDD-0650 F2 (D4): deshace una unión chat ↔ ficha de cualquier origen. Quien edita la Bandeja, en su tenant, con motivo; auditada.';
+comment on function public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text) is
+  'SDD-0650 F2 (D4): deshace una unión chat ↔ ficha de cualquier origen. Solo service_role, con la misma comprobación del actor que unir; motivo; auditada con el actor real.';
 
-revoke all on function public.chatwoot_quitar_union(uuid, bigint, text) from public, anon;
-grant execute on function public.chatwoot_quitar_union(uuid, bigint, text) to authenticated;
+revoke all on function public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text) from public, anon, authenticated;
+grant execute on function public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text) to service_role;
 
--- ─── 6. Ficha borrada → sin uniones ───────────────────────────────────────
+-- ─── 7. Ficha borrada → sin uniones ───────────────────────────────────────
 create or replace function public.chatwoot_contact_links_al_borrar_ficha()
 returns trigger
 language plpgsql
@@ -378,5 +449,35 @@ begin
   if pg_catalog.has_function_privilege('authenticated', 'public.chatwoot_unir_contactos(uuid,text,jsonb)', 'EXECUTE') then
     raise exception '0554: chatwoot_unir_contactos quedó abierta a authenticated';
   end if;
+  if pg_catalog.has_function_privilege('authenticated', 'public.chatwoot_unir_contacto_manual(uuid,uuid,uuid,bigint,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('authenticated', 'public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('anon', 'public.chatwoot_unir_contacto_manual(uuid,uuid,uuid,bigint,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('anon', 'public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'EXECUTE') then
+    raise exception '0554: unir o quitar a mano quedó abierta a una sesión (solo service_role)';
+  end if;
+  if pg_catalog.has_function_privilege('authenticated', 'public.chatwoot_contact_links_actor_puede(uuid,uuid)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('service_role', 'public.chatwoot_contact_links_actor_puede(uuid,uuid)', 'EXECUTE') then
+    raise exception '0554: chatwoot_contact_links_actor_puede quedó ejecutable fuera de las funciones';
+  end if;
+  if pg_catalog.to_regprocedure('public.chatwoot_unir_contacto_manual(uuid,bigint,text)') is not null
+     or pg_catalog.to_regprocedure('public.chatwoot_quitar_union(uuid,bigint,text)') is not null then
+    raise exception '0554: quedó una firma vieja de unir o quitar';
+  end if;
 end;
 $post$;
+
+-- La comprobación del actor fija request.jwt.claim.sub: auth.uid() tiene que leerlo.
+do $post_uid$
+declare
+  v_antes  text := pg_catalog.current_setting('request.jwt.claim.sub', true);
+  v_prueba uuid := '00000000-0000-4000-8000-000000000554';
+  v_leido  uuid;
+begin
+  perform pg_catalog.set_config('request.jwt.claim.sub', v_prueba::text, true);
+  v_leido := (select auth.uid());
+  perform pg_catalog.set_config('request.jwt.claim.sub', coalesce(v_antes, ''), true);
+  if v_leido is distinct from v_prueba then
+    raise exception '0554: auth.uid() no lee request.jwt.claim.sub; la comprobación del actor no serviría';
+  end if;
+end;
+$post_uid$;

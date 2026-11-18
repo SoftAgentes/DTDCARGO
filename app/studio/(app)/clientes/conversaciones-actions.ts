@@ -5,22 +5,26 @@
  * de conversaciones de la ficha del cliente.
  *
  *  1. `moduleEditGate(supabase, "bandeja")` al tope: Admin y Comercial (Soporte es
- *     de solo lectura). La RPC lo repite con `user_has_module('bandeja', true)`.
+ *     de solo lectura).
  *  1b. Solo el tenant dueño de la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`): la cuenta
- *     de servicio ve TODA la cuenta, así que otro tenant recibe el mismo «no tienes
- *     permiso» que un rol sin la Bandeja, antes de tocar Chatwoot o la base. La base no
- *     puede comprobarlo: el tenant de Chatwoot vive en el entorno del servidor, no en
- *     una tabla (revisión de la F2).
+ *     de servicio ve TODA la cuenta, así que otro tenant recibe el mismo texto que da
+ *     `moduleEditGate` a un rol sin la Bandeja, antes de tocar Chatwoot o la base. El
+ *     tenant de Chatwoot vive en el entorno del servidor, no en una tabla.
  *  2. Unir: el número de conversación se traduce a su contacto con la cuenta de
  *     servicio (D2). Del contacto solo se usa el id: el nombre y el teléfono que trae
  *     la respuesta no se guardan ni se devuelven.
- *  3. Escriben SOLO por las RPC de la 0554, con el cliente de SESIÓN: tenant, ficha
- *     viva, motivo y auditoría los pone la base.
+ *  3. Escriben SOLO por las RPC de la 0554, que son de service_role (acotar por tenant
+ *     en la base: ninguna sesión las llama directo por la API). El cliente de servicio
+ *     se crea DESPUÉS de 1 y 1b, y la RPC recibe explícitos el tenant y el actor de la
+ *     sesión; la base vuelve a comprobar que el actor tiene membresía activa en ese
+ *     tenant y edita la Bandeja, que la ficha es de ese tenant y está viva, el motivo,
+ *     y audita con el actor real.
  *
  * Sin la 0554 o sin la cuenta de servicio, dicen qué falta y no escriben nada.
  */
 import { revalidatePath } from "next/cache";
 
+import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { chatwootFichaConfigPara, chatwootTenantId } from "@/lib/studio/chatwoot/config";
 import { obtenerConversacionYContacto } from "@/lib/studio/chatwoot/router-api";
@@ -35,12 +39,17 @@ function errorDeLaBase(code: string | undefined): string {
   if (code && SIN_0554.has(code)) return "Falta la migración 0554: todavía no se pueden unir chats.";
   if (code === "23505") return "Ese chat ya está unido a otra ficha.";
   if (code === "P0002") return "La ficha no existe o fue borrada.";
-  if (code === "42501") return "No tienes permiso para unir chats.";
+  if (code === "42501") return SIN_PERMISO;
   if (code === "22023") return "Revisa el motivo: va de 4 a 1.000 caracteres.";
   return "No se pudo guardar. Intenta de nuevo.";
 }
 
-const SIN_PERMISO = "No tienes permiso para editar esto.";
+/**
+ * El mismo texto que devuelve `moduleEditGate` (editDenial, `lib/studio/rbac-guard.ts`) y que
+ * levanta la base con el 42501: un tenant ajeno no se distingue de un rol sin permiso. Lo
+ * prueba `conversaciones-actions.test.ts` contra el guard real.
+ */
+const SIN_PERMISO = "No tienes permiso para realizar esta acción.";
 
 /** ¿La sesión es del tenant dueño de la cuenta de Chatwoot? Sin `CHATWOOT_TENANT_ID`, no. */
 function esElTenantDeChatwoot(tenantSesion: string): boolean {
@@ -82,7 +91,9 @@ export async function unirChatAction(
   const contactoId = r.data.contacto.contactoId;
   if (!contactoId) return { ok: false, error: "Esa conversación no tiene contacto." };
 
-  const { data, error } = await supabase.rpc("chatwoot_unir_contacto_manual", {
+  const { data, error } = await createAdminClient().rpc("chatwoot_unir_contacto_manual", {
+    p_tenant_id: gate.tenantId,
+    p_actor_user_id: gate.userId,
     p_client_id: clientId,
     p_contact_id: contactoId,
     p_motivo: m,
@@ -110,7 +121,9 @@ export async function quitarUnionAction(
   if (!Number.isSafeInteger(contactoId) || contactoId <= 0) return { ok: false, error: "Contacto inválido." };
   if (!m) return { ok: false, error: "Escribe el motivo (4 caracteres o más)." };
 
-  const { data, error } = await supabase.rpc("chatwoot_quitar_union", {
+  const { data, error } = await createAdminClient().rpc("chatwoot_quitar_union", {
+    p_tenant_id: gate.tenantId,
+    p_actor_user_id: gate.userId,
     p_client_id: clientId,
     p_contact_id: contactoId,
     p_motivo: m,

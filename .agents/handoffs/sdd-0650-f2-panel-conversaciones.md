@@ -5,6 +5,7 @@
 - Encargo del Director General (2026-11-17), con las decisiones D2, D3, D4 y D5 de Sam (2026-11-16).
 - **La F2 no ejecuta ninguna puerta de producción.** Todo nace apagado: sin la 0554, sin `CHATWOOT_FICHA_TOKEN`, sin `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID` o sin `CHATWOOT_TENANT_ID` la ficha se ve como en la F1; sin `CHATWOOT_FICHA_UNIR=1` el webhook no escribe uniones.
 - Revisión de Opus (CHANGES_REQUESTED sobre `c312e60f4`) atendida: A1 i18n, A2 acotar por tenant (F2-11), M1 interruptor del webhook (F2-12), M2 pendiente de Sam en la spec, B1 a B5.
+- 2ª ronda (sobre `9c2e5e91f`): N1 acotar por tenant en la base (unir y quitar solo service_role, con actor comprobado en la base), N2 el texto real de «sin permiso», N3 la llave de una tabla vieja en el preflight.
 
 ## Qué hace
 
@@ -18,7 +19,7 @@
 
 Orden recomendado. Ninguna se hizo.
 
-1. **Aplicar la 0554** con `docs/runbooks/aplicar-migraciones-prod.md`, `name` exacto `0554_chatwoot_contact_links`, md5 del archivo en la PR. Después, retirar su entrada de `pendingBelowCutoff` y de `pending-migration-symbol-declarations.json` (ids `0554-*`). Aplicada sola no escribe nada: el webhook sigue apagado hasta `CHATWOOT_FICHA_UNIR=1`.
+1. **Aplicar la 0554** con `docs/runbooks/aplicar-migraciones-prod.md`, `name` exacto `0554_chatwoot_contact_links`, md5 del archivo en la PR. La llave de `chatwoot_contact_links` cambió entre versiones de la PR (de `tenant_id, chatwoot_contact_id` a solo `chatwoot_contact_id`): si en el entorno ya existe la tabla de una versión anterior (un ensayo), el preflight aborta con «ya existe con otra llave primaria»; se quita con el desarme y se vuelve a aplicar. En producción no debe existir: comprobarlo antes con `select to_regclass('public.chatwoot_contact_links')` (nulo). Después, retirar su entrada de `pendingBelowCutoff` y de `pending-migration-symbol-declarations.json` (ids `0554-*`). Aplicada sola no escribe nada: el webhook sigue apagado hasta `CHATWOOT_FICHA_UNIR=1`.
 1b. **Encender la unión por webhook** (`CHATWOOT_FICHA_UNIR=1`, otro OK). Desde ahí une contacto y ficha cuando el teléfono cruzó con una sola (escribe en producción, solo ids). **Una unión no se reevalúa** si después el teléfono cambia de dueño (otra persona con ese número, o la ficha corrige su teléfono): queda unida hasta que alguien la quite con «Quitar» en el panel (Admin o Comercial, con motivo, auditado) o con `chatwoot_quitar_union`.
 2. **Crear la cuenta de servicio de Chatwoot** para la ficha (D2): un usuario de servicio **administrador** de la cuenta (un agente solo ve las conversaciones de sus bandejas: medido en la A1 de la 0649), su token de acceso en el entorno del ERP como `CHATWOOT_FICHA_TOKEN` (nunca en Git ni con `NEXT_PUBLIC_`) y el id de la bandeja «Archivo Kommo» en `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID`. Comprobar que `CHATWOOT_TENANT_ID` es el tenant dueño de la cuenta: sin él, o con otro, el panel queda apagado. Reiniciar el contenedor del ERP. Alternativa a decidir con Sam: reusar el usuario de servicio de E1 en vez de crear otro (menos cuentas; mezcla permisos).
 3. **Relleno único desde el Archivo Kommo** (en el VPS, sale con solo ids). Los contactos que creó el cargador llevan `additional_attributes.client_id` (`infra/ops/kommo-historial/cargar-archivo-kommo.rb:186-197`). Pasos propuestos, a ensayar primero en el entorno de prueba de la 0590:
@@ -47,9 +48,9 @@ Resumen: 4 CORRECTO, 0 ENCONTRADO, 3 NO VERIFICABLE. Sin datos sensibles (el tex
 
 | Dato | Estado | Evidencia |
 |---|---|---|
-| Texto del último mensaje | CORRECTO | No se guarda: no hay columna (`0554_chatwoot_contact_links.sql:92`); 160 caracteres (`ficha-conversaciones.ts:19`); nota interna sin texto (`:92`); región (`:147`); sin caché (`router-api.ts:64`); logs con código (`ficha-panel.ts:70`, `:109`) |
+| Texto del último mensaje | CORRECTO | No se guarda: no hay columna (`0554_chatwoot_contact_links.sql:109`); 160 caracteres (`ficha-conversaciones.ts:19`); nota interna sin texto (`:92`); región (`:147`); sin caché (`router-api.ts:64`); logs con código (`ficha-panel.ts:70`, `:109`) |
 | Nombre del contacto | CORRECTO | Solo si la ficha no tiene nombre y la región lo permite (`ficha-conversaciones.ts:159`, `page.tsx:318`); nunca teléfono/correo (`nombreVisibleDe`) |
-| Unión chat ↔ ficha | CORRECTO (contrato) | RLS `0554…sql:119`; cascada `:94`; ficha borrada `:363`; negativos en el contrato §3 |
+| Unión chat ↔ ficha | CORRECTO (contrato) | RLS `0554…sql:136`; cascada `:111`; ficha borrada `:434`; negativos en el contrato §3 |
 | Auditoría | CORRECTO (contrato) | `entity_audit_log` sin nombres (contrato §4j y §5g) |
 | Borrado de punta a punta en una base real | NO VERIFICABLE | Solo en PGlite y Postgres de CI; la 0554 no está aplicada en ningún entorno |
 | Lo que Chatwoot registra de las lecturas de la cuenta de servicio | NO VERIFICABLE | Configuración del VPS (logs de Rails); fuera del repo |

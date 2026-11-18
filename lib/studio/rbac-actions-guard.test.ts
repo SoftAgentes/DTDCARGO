@@ -402,8 +402,9 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
   // pasa a `office_revisar_borrador_v2`.
   // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (479 → 481):
-  // `moduleEditDenial(supabase, "bandeja")` al tope; escriben SOLO por las RPC `chatwoot_unir_contacto_manual` y
-  // `chatwoot_quitar_union` (0554), que repiten `user_has_module('bandeja', true)`, el tenant y la auditoría.
+  // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
+  // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
+  // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
     expect(reportes.length).toBe(481);
   });

@@ -3,8 +3,9 @@
  * SDD-0650 F2 · La migración 0554 (lista de uniones chat ↔ ficha, D4) corrida de verdad sobre PostgreSQL
  * embebido, con el contrato `supabase/tests/0554_…test.sql` y el `.sql` real inlineado (dos veces: idempotencia).
  *
- * CONTROL ROJO: sin la 0554 el contrato falla. MUTANTES: cada uno quita una barrera de la 0554 (módulo, tenant,
- * ficha borrada, no pisar, autor, disparador) y el contrato tiene que caer en la aserción que la cuida. El mismo
+ * CONTROL ROJO: sin la 0554 el contrato falla. MUTANTES (16): cada uno quita una barrera de la 0554 (módulo, tenant,
+ * actor, ficha borrada, no pisar, autor, disparador, privilegios) y el contrato tiene que caer en la aserción que la
+ * cuida. Además: una tabla de una versión anterior con otra llave aborta en el preflight. El mismo
  * contrato corre en Postgres 17 con Docker en «Contratos SQL».
  */
 import { readFileSync } from "node:fs";
@@ -84,20 +85,44 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
       "3a",
     ],
     [
-      "la unión manual no pide editar la Bandeja",
+      "el actor no tiene que editar la Bandeja",
+      mutar("\n            and (select public.user_has_module('bandeja', true));", ";"),
+      "4b",
+    ],
+    [
+      "no se comprueba la membresía del actor en ESE tenant",
+      (sql) =>
+        mutar("            and (select public.get_user_tenant_id()) = p_tenant_id\n", "")(
+          mutar(
+            "  if not exists (\n    select 1 from public.user_tenants ut\n    where ut.user_id = p_actor_user_id and ut.tenant_id = p_tenant_id and ut.disabled_at is null\n  ) then\n    return false;\n  end if;\n",
+            "",
+          )(sql),
+        ),
+      "4e",
+    ],
+    [
+      "la comprobación del actor no devuelve request.jwt.claim.sub",
       mutar(
-        "  if v_uid is null or v_tenant is null or not (select public.user_has_module('bandeja', true)) then\n    raise exception 'chatwoot_unir_contacto_manual",
-        "  if v_uid is null or v_tenant is null then\n    raise exception 'chatwoot_unir_contacto_manual",
+        "  perform pg_catalog.set_config('request.jwt.claim.sub', coalesce(v_antes, ''), true);\n  return coalesce(v_ok, false);",
+        "  return coalesce(v_ok, false);",
       ),
-      "4a",
+      "4p",
     ],
     [
       "la unión manual acepta fichas de otro tenant",
       mutar(
-        "    where c.id = p_client_id and c.tenant_id = v_tenant and c.deleted_at is null\n  ) then\n    raise exception 'chatwoot_unir_contacto_manual",
+        "    where c.id = p_client_id and c.tenant_id = p_tenant_id and c.deleted_at is null\n  ) then\n    raise exception 'chatwoot_unir_contacto_manual",
         "    where c.id = p_client_id and c.deleted_at is null\n  ) then\n    raise exception 'chatwoot_unir_contacto_manual",
       ),
-      "4d",
+      "4e2",
+    ],
+    [
+      "unir a mano abierta a las sesiones (llamada directa por la API)",
+      mutar(
+        "grant execute on function public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text) to service_role;",
+        "grant execute on function public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text) to service_role, authenticated;",
+      ),
+      "0554: unir o quitar a mano quedó abierta",
     ],
     [
       "la unión automática acepta fichas de otro tenant o borradas",
@@ -117,9 +142,12 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
     ],
     [
       "el mismo contacto en dos tenants (llave por tenant, como antes de la revisión)",
+      // El preflight de la llave también se ajusta: si no, lo que cae es la segunda aplicación, no la aserción.
       (sql) =>
-        mutar("    on conflict (chatwoot_contact_id) do nothing;", "    on conflict (tenant_id, chatwoot_contact_id) do nothing;")(
-          mutar("  constraint chatwoot_contact_links_pkey primary key (chatwoot_contact_id),", "  constraint chatwoot_contact_links_pkey primary key (tenant_id, chatwoot_contact_id),")(sql),
+        mutar("     ), '') <> 'chatwoot_contact_id' then", "     ), '') <> 'chatwoot_contact_id,tenant_id' then")(
+          mutar("    on conflict (chatwoot_contact_id) do nothing;", "    on conflict (tenant_id, chatwoot_contact_id) do nothing;")(
+            mutar("  constraint chatwoot_contact_links_pkey primary key (chatwoot_contact_id),", "  constraint chatwoot_contact_links_pkey primary key (tenant_id, chatwoot_contact_id),")(sql),
+          ),
         ),
       "2e",
     ],
@@ -131,10 +159,10 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
     [
       "quitar no filtra el tenant",
       mutar(
-        "  where l.tenant_id = v_tenant and l.client_id = p_client_id and l.chatwoot_contact_id = p_contact_id\n  returning l.* into v_fila;",
+        "  where l.tenant_id = p_tenant_id and l.client_id = p_client_id and l.chatwoot_contact_id = p_contact_id\n  returning l.* into v_fila;",
         "  where l.client_id = p_client_id and l.chatwoot_contact_id = p_contact_id\n  returning l.* into v_fila;",
       ),
-      "5b",
+      "5c2",
     ],
     [
       "sin el disparador, borrar la ficha deja las uniones",
@@ -178,6 +206,15 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
     }, 120_000);
   }
 
+  it("preflight: una tabla de una versión anterior (llave por tenant y contacto) aborta con mensaje claro", async () => {
+    const vieja =
+      "create table if not exists public.chatwoot_contact_links (tenant_id uuid not null, client_id uuid not null, " +
+      "chatwoot_contact_id bigint not null, origen text not null, created_by uuid, created_at timestamptz not null default now(), " +
+      "primary key (tenant_id, chatwoot_contact_id));\n";
+    const error = await run(inline({ migracion: (sql) => vieja + sql }));
+    expect(error).toContain("ya existe con otra llave primaria");
+  }, 120_000);
+
   it("desarme: quita la tabla, las funciones y el disparador, deja las fichas, y repetirlo no falla", async () => {
     const contrato = inline();
     // El contrato termina en rollback: se corta antes y se sigue en la misma transacción.
@@ -188,8 +225,9 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
       leer("supabase/desarmes/0554_desarme.sql"),
       `do $c$ begin
         if to_regclass('public.chatwoot_contact_links') is not null
-           or to_regprocedure('public.chatwoot_unir_contacto_manual(uuid, bigint, text)') is not null
-           or to_regprocedure('public.chatwoot_quitar_union(uuid, bigint, text)') is not null
+           or to_regprocedure('public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text)') is not null
+           or to_regprocedure('public.chatwoot_contact_links_actor_puede(uuid, uuid)') is not null
+           or to_regprocedure('public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text)') is not null
            or exists (select 1 from pg_trigger where tgname = 'chatwoot_contact_links_al_borrar_ficha') then
           raise exception 'DESARME: quedó algo de la 0554';
         end if;

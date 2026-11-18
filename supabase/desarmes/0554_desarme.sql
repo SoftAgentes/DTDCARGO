@@ -5,7 +5,7 @@
 -- Ensayo: supabase/tests/0554_chatwoot_contact_links.test.sql y
 --   lib/studio/__tests__/chatwoot-contact-links.migration.test.ts.
 --
--- QUITA el disparador de clients, las cuatro funciones y la tabla (se pierden las uniones; las fichas,
+-- QUITA el disparador de clients, las cinco funciones y la tabla (se pierden las uniones; las fichas,
 -- las conversaciones y la auditoría quedan). El tipo de auditoría chatwoot_contact_link queda como
 -- 'deprecated': entity_audit_log es de solo agregar y sus filas lo referencian.
 -- Sin la 0554 el código vuelve solo a la tarjeta de la F1 (lo detecta por PGRST205/42P01/PGRST202).
@@ -14,8 +14,9 @@ set local statement_timeout = '30s';
 
 drop trigger if exists chatwoot_contact_links_al_borrar_ficha on public.clients;
 drop function if exists public.chatwoot_contact_links_al_borrar_ficha();
-drop function if exists public.chatwoot_quitar_union(uuid, bigint, text);
-drop function if exists public.chatwoot_unir_contacto_manual(uuid, bigint, text);
+drop function if exists public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text);
+drop function if exists public.chatwoot_unir_contacto_manual(uuid, uuid, uuid, bigint, text);
+drop function if exists public.chatwoot_contact_links_actor_puede(uuid, uuid);
 drop function if exists public.chatwoot_unir_contactos(uuid, text, jsonb);
 drop table if exists public.chatwoot_contact_links;
 

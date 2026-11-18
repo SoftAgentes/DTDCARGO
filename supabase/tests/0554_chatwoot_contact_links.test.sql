@@ -12,8 +12,9 @@
 --   · append_audit_event (0294): tipo de entidad activo y motivo de 4 a 1000.
 --
 -- Negativos que pide el DG: un rol sin Bandeja no lee uniones; otro tenant
--- tampoco; nadie escribe la tabla directo; la función automática no es de
--- authenticated. Se aplica DOS veces (idempotencia).
+-- tampoco; nadie escribe la tabla directo; ninguna sesión ejecuta las funciones
+-- que escriben (todas son de service_role) y la base vuelve a comprobar al actor
+-- que le pasa el ERP. Se aplica DOS veces (idempotencia).
 --
 -- CONTROL ROJO: sin la 0554 cae en la primera aserción (la tabla no existe).
 -- Termina siempre en ROLLBACK. Solo ids sintéticos.
@@ -238,8 +239,18 @@ select pg_temp.assert_true(not has_table_privilege('authenticated', 'public.chat
   '1e: authenticated no escribe la tabla');
 select pg_temp.assert_true(not has_function_privilege('authenticated', 'public.chatwoot_unir_contactos(uuid,text,jsonb)', 'execute'),
   '1f: authenticated no ejecuta la unión automática');
-select pg_temp.assert_true(not has_function_privilege('anon', 'public.chatwoot_unir_contacto_manual(uuid,bigint,text)', 'execute'),
-  '1g: anon no ejecuta la unión manual');
+select pg_temp.assert_true(
+  not has_function_privilege('anon', 'public.chatwoot_unir_contacto_manual(uuid,uuid,uuid,bigint,text)', 'execute')
+  and not has_function_privilege('authenticated', 'public.chatwoot_unir_contacto_manual(uuid,uuid,uuid,bigint,text)', 'execute')
+  and not has_function_privilege('anon', 'public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'execute')
+  and not has_function_privilege('authenticated', 'public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'execute')
+  and has_function_privilege('service_role', 'public.chatwoot_unir_contacto_manual(uuid,uuid,uuid,bigint,text)', 'execute')
+  and has_function_privilege('service_role', 'public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'execute'),
+  '1g: unir y quitar a mano son solo de service_role (acotar por tenant en la base)');
+select pg_temp.assert_true(
+  not has_function_privilege('authenticated', 'public.chatwoot_contact_links_actor_puede(uuid,uuid)', 'execute')
+  and not has_function_privilege('service_role', 'public.chatwoot_contact_links_actor_puede(uuid,uuid)', 'execute'),
+  '1g2: la comprobación del actor no se llama sola');
 select pg_temp.assert_true(
   (select count(*) from public.audit_entity_types where entity_type = 'chatwoot_contact_link' and status = 'active') = 1,
   '1h: tipo de auditoría registrado una vez');
@@ -311,69 +322,111 @@ select pg_temp.falla(pg_temp.u('b1'), $q$insert into public.chatwoot_contact_lin
 select pg_temp.falla(pg_temp.u('a1'), $q$delete from public.chatwoot_contact_links$q$,
   '42501', '3k: admin no borra directo');
 
--- ── 4. Unión manual ──────────────────────────────────────────────────────
-select pg_temp.falla(pg_temp.u('d1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('a2')),
-  '42501', '4a: soporte (solo lectura) no une');
-select pg_temp.falla(pg_temp.u('e1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('a2')),
-  '42501', '4b: operaciones no une');
-select pg_temp.falla(pg_temp.u('f1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('a2')),
-  '42501', '4c: desactivado no une');
-select pg_temp.falla(pg_temp.u('f3'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('a2')),
-  'P0002', '4d: comercial T2 no une a una ficha de T1');
-select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('ab')),
-  'P0002', '4e: no se une a una ficha borrada');
-select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 501, '  ok ')$q$, pg_temp.k('a2')),
-  '22023', '4f: motivo de menos de 4 caracteres');
-select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 0, 'Es su chat de leads')$q$, pg_temp.k('a2')),
-  '22023', '4g: contacto inválido');
-select pg_temp.assert_true(pg_temp.valor(pg_temp.u('b1'),
-  format($q$public.chatwoot_unir_contacto_manual(%L, 501, 'Es su chat de leads')$q$, pg_temp.k('a2'))) = 'unido',
-  '4h: comercial une');
+-- ── 4. Unión manual: solo service_role, y la base vuelve a comprobar al actor ──
+-- Llamada como la hace el ERP: tenant y actor explícitos.
+create function pg_temp.unir(p_tenant text, p_actor text, p_ficha text, p_contacto bigint, p_motivo text) returns text language sql as $$
+  select format('select public.chatwoot_unir_contacto_manual(%L, %L, %L, %s, %L)',
+    case p_tenant when 'T1' then '11111111-1111-1111-1111-111111111111' else '11111111-1111-1111-1111-111111111112' end,
+    pg_temp.u(p_actor), pg_temp.k(p_ficha), p_contacto, p_motivo);
+$$;
+create function pg_temp.quitar(p_tenant text, p_actor text, p_ficha text, p_contacto bigint, p_motivo text) returns text language sql as $$
+  select format('select public.chatwoot_quitar_union(%L, %L, %L, %s, %L)',
+    case p_tenant when 'T1' then '11111111-1111-1111-1111-111111111111' else '11111111-1111-1111-1111-111111111112' end,
+    pg_temp.u(p_actor), pg_temp.k(p_ficha), p_contacto, p_motivo);
+$$;
+-- Valor de una llamada como service_role (sin el «select» del frente).
+create function pg_temp.servicio(p_sql text) returns text language sql as $$
+  select pg_temp.valor(null, substring(p_sql from 8));
+$$;
+
+-- Ninguna sesión las ejecuta, ni del tenant dueño ni de otro.
+select pg_temp.falla(pg_temp.u('b1'), pg_temp.unir('T1', 'b1', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4a: comercial del tenant dueño no la llama con su sesión');
+select pg_temp.falla(pg_temp.u('a1'), pg_temp.unir('T1', 'a1', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4a2: ni el admin del tenant dueño');
+select pg_temp.falla(pg_temp.u('f3'), pg_temp.unir('T2', 'f3', 'b1', 501, 'Es su chat de leads'),
+  '42501', '4a3: ni alguien de otro tenant (no acapara contactos)');
+-- service_role con un actor que no puede.
+select pg_temp.falla(null, pg_temp.unir('T1', 'd1', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4b: actor soporte (solo lectura) no une');
+select pg_temp.falla(null, pg_temp.unir('T1', 'e1', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4c: actor sin Bandeja no une');
+select pg_temp.falla(null, pg_temp.unir('T1', 'f1', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4d: actor desactivado no une');
+select pg_temp.falla(null, pg_temp.unir('T1', 'f3', 'a2', 501, 'Es su chat de leads'),
+  '42501', '4e: actor de otro tenant no une en T1');
+select pg_temp.falla(null, pg_temp.unir('T2', 'f2', 'a2', 501, 'Es su chat de leads'),
+  'P0002', '4e2: actor de T2 no une a una ficha de T1');
+select pg_temp.falla(null, pg_temp.unir('T1', 'b1', 'ab', 501, 'Es su chat de leads'),
+  'P0002', '4f: no se une a una ficha borrada');
+select pg_temp.falla(null, pg_temp.unir('T1', 'b1', 'a2', 501, '  ok '),
+  '22023', '4g: motivo de menos de 4 caracteres');
+select pg_temp.falla(null, pg_temp.unir('T1', 'b1', 'a2', 0, 'Es su chat de leads'),
+  '22023', '4g2: contacto inválido');
+select pg_temp.assert_true(not exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 501),
+  '4g3: ningún intento rechazado dejó la unión');
+select pg_temp.assert_true(pg_temp.servicio(pg_temp.unir('T1', 'b1', 'a2', 501, 'Es su chat de leads')) = 'unido',
+  '4h: el ERP une por un comercial del tenant');
 select pg_temp.assert_true(exists (
   select 1 from public.chatwoot_contact_links
   where chatwoot_contact_id = 501 and client_id = pg_temp.k('a2') and origen = 'manual' and created_by = pg_temp.u('b1')
-), '4i: queda manual y con autor');
+), '4i: queda manual y con el actor real de autor');
 select pg_temp.assert_true(exists (
   select 1 from public.entity_audit_log
   where entity_type = 'chatwoot_contact_link' and entity_id = pg_temp.k('a2') and actor_id = pg_temp.u('b1')
-    and event_type = 'chatwoot_contact_linked' and reason = 'Es su chat de leads'
+    and actor_type = 'user' and event_type = 'chatwoot_contact_linked' and reason = 'Es su chat de leads'
     and after_data = jsonb_build_object('chatwoot_contact_id', 501, 'origen', 'manual')
     and correlation_id is not null
-), '4j: la unión manual deja evento con motivo y sin datos personales');
-select pg_temp.assert_true(pg_temp.valor(pg_temp.u('b1'),
-  format($q$public.chatwoot_unir_contacto_manual(%L, 501, 'Otra vez la misma')$q$, pg_temp.k('a2'))) = 'ya_estaba',
+), '4j: la auditoría registra al actor real, con motivo y sin datos personales');
+select pg_temp.assert_true(pg_temp.servicio(pg_temp.unir('T1', 'b1', 'a2', 501, 'Otra vez la misma')) = 'ya_estaba',
   '4k: repetir devuelve ya_estaba');
 select pg_temp.assert_true((select count(*) from public.entity_audit_log where event_type = 'chatwoot_contact_linked') = 1,
   '4l: repetir no deja otro evento');
-select pg_temp.falla(pg_temp.u('a1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 102, 'Mover el chat')$q$, pg_temp.k('a2')),
+select pg_temp.falla(null, pg_temp.unir('T1', 'a1', 'a2', 102, 'Mover el chat'),
   '23505', '4m: un chat unido a otra ficha no se mueve');
-select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 401, 'Es de este cliente')$q$, pg_temp.k('a2')),
+select pg_temp.falla(null, pg_temp.unir('T1', 'b1', 'a2', 401, 'Es de este cliente'),
   '23505', '4n: un chat unido en OTRO tenant falla igual que «otra ficha»');
 select pg_temp.assert_true((select tenant_id from public.chatwoot_contact_links where chatwoot_contact_id = 401) = '11111111-1111-1111-1111-111111111112',
   '4o: y sigue en su tenant');
+-- La comprobación del actor devuelve request.jwt.claim.sub como estaba.
+create function pg_temp.sub_tras_unir() returns text language plpgsql as $$
+declare v text;
+begin
+  set local role service_role;
+  perform public.chatwoot_unir_contacto_manual('11111111-1111-1111-1111-111111111111', pg_temp.u('b1'), pg_temp.k('a2'), 501, 'Otra vez la misma');
+  v := coalesce(current_setting('request.jwt.claim.sub', true), '');
+  reset role;
+  return v;
+end;
+$$;
+select pg_temp.assert_true(pg_temp.sub_tras_unir() = '', '4p: deja request.jwt.claim.sub como estaba');
 
--- ── 5. Quitar una unión ──────────────────────────────────────────────────
-select pg_temp.falla(pg_temp.u('d1'), format($q$select public.chatwoot_quitar_union(%L, 501, 'Fue un error')$q$, pg_temp.k('a2')),
-  '42501', '5a: soporte no quita');
-select pg_temp.assert_true(not pg_temp.valor(pg_temp.u('f2'),
-  format($q$public.chatwoot_quitar_union(%L, 501, 'Fue un error')$q$, pg_temp.k('a2')))::boolean,
-  '5b: admin de T2 no quita una unión de T1');
+-- ── 5. Quitar una unión: igual ───────────────────────────────────────────
+select pg_temp.falla(pg_temp.u('b1'), pg_temp.quitar('T1', 'b1', 'a2', 501, 'Fue un error'),
+  '42501', '5a: comercial del tenant dueño no la llama con su sesión');
+select pg_temp.falla(pg_temp.u('f2'), pg_temp.quitar('T2', 'f2', 'a2', 501, 'Fue un error'),
+  '42501', '5a2: ni alguien de otro tenant');
+select pg_temp.falla(null, pg_temp.quitar('T1', 'd1', 'a2', 501, 'Fue un error'),
+  '42501', '5b: actor soporte no quita');
+select pg_temp.falla(null, pg_temp.quitar('T1', 'f2', 'a2', 501, 'Fue un error'),
+  '42501', '5c: actor de otro tenant no quita en T1');
+select pg_temp.assert_true(not pg_temp.servicio(pg_temp.quitar('T2', 'f2', 'a2', 501, 'Fue un error'))::boolean,
+  '5c2: con su propio tenant no alcanza una unión de T1');
 select pg_temp.assert_true(exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 501),
-  '5c: la unión sigue después del intento de otro tenant');
-select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_quitar_union(%L, 501, 'no')$q$, pg_temp.k('a2')),
+  '5c3: la unión sigue después de los intentos');
+select pg_temp.falla(null, pg_temp.quitar('T1', 'b1', 'a2', 501, 'no'),
   '22023', '5d: quitar exige motivo');
-select pg_temp.assert_true(pg_temp.valor(pg_temp.u('b1'),
-  format($q$public.chatwoot_quitar_union(%L, 501, 'Fue un error')$q$, pg_temp.k('a2')))::boolean,
-  '5e: comercial quita');
-select pg_temp.assert_true(not exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 501
-  and tenant_id = '11111111-1111-1111-1111-111111111111'), '5f: la unión ya no está');
+select pg_temp.assert_true(pg_temp.servicio(pg_temp.quitar('T1', 'b1', 'a2', 501, 'Fue un error'))::boolean,
+  '5e: el ERP quita por un comercial del tenant');
+select pg_temp.assert_true(not exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 501),
+  '5f: la unión ya no está');
 select pg_temp.assert_true(exists (
   select 1 from public.entity_audit_log
   where event_type = 'chatwoot_contact_unlinked' and entity_id = pg_temp.k('a2') and reason = 'Fue un error'
+    and actor_id = pg_temp.u('b1') and actor_type = 'user'
     and before_data = jsonb_build_object('chatwoot_contact_id', 501, 'origen', 'manual')
-), '5g: quitar deja evento con el antes');
-select pg_temp.assert_true(not pg_temp.valor(pg_temp.u('b1'),
-  format($q$public.chatwoot_quitar_union(%L, 501, 'Otra vez igual')$q$, pg_temp.k('a2')))::boolean,
+), '5g: quitar deja evento con el antes y el actor real');
+select pg_temp.assert_true(not pg_temp.servicio(pg_temp.quitar('T1', 'b1', 'a2', 501, 'Otra vez igual'))::boolean,
   '5h: quitar lo que no hay devuelve false');
 
 -- ── 6. Borrar la ficha borra sus uniones ─────────────────────────────────

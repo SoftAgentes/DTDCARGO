@@ -247,20 +247,20 @@
           "name": "chatwoot_unir_contacto_manual",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:85"
+            "app/studio/(app)/clientes/conversaciones-actions.ts:94"
           ]
         },
         {
           "name": "chatwoot_quitar_union",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:113"
+            "app/studio/(app)/clientes/conversaciones-actions.ts:124"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:35",
+          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:39",
           "contains": "if (code && SIN_0554.has(code)) return \"Falta la migración 0554",
           "degradation": "Sin la 0554 las dos acciones devuelven «Falta la migración 0554» y no escriben nada. Además solo se ofrecen dentro del panel en vivo, que sin la 0554 no se muestra."
         }
