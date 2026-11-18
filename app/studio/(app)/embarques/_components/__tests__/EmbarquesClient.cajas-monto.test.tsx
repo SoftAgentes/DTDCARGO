@@ -97,7 +97,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(c64).toContain("2 clientes");
     expect(c64).toContain("3 envíos");
     expect(c64).toContain("1.235 cajas");
-    expect(c64).toContain("3.00 m³");
+    expect(c64).toContain("3 m³");
     expect(c64).not.toMatch(/cobr|\$/i);
   });
 
@@ -108,13 +108,13 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(franja.textContent).toContain("Clientes2");
     expect(franja.textContent).toContain("Cajas1.235");
     expect(franja.textContent).toContain("Cajas recibidas1.200");
-    expect(franja.textContent).toContain("CBM total3.00 m³");
+    expect(franja.textContent).toContain("CBM total3 m³");
     expect(screen.queryByText(/Por cobrar|Cobrado|Sin facturar/)).toBeNull();
 
     const tabla = within(region("DDP 64")).getByRole("table");
-    expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2.00", "Sin peso"]);
-    expect(fila(tabla, /Cliente Dos/)).toEqual(["1", "1", "0", "1.00", "Sin peso"]);
-    expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3.00", "Sin peso"]);
+    expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2", "Sin peso"]);
+    expect(fila(tabla, /Cliente Dos/)).toEqual(["1", "1", "0", "1", "Sin peso"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3", "Sin peso"]);
   });
 
   it("un contenedor sin recepción dice «Sin recepción» en recibidas, no 0", async () => {
@@ -123,7 +123,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
     expect(franja.textContent).toContain("Cajas recibidasSin recepción");
     const tabla = within(region("DDP 65")).getByRole("table");
-    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1.00", "Sin peso"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1", "Sin peso"]);
   });
 
   it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {
