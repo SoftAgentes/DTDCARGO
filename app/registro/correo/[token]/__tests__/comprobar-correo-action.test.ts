@@ -35,6 +35,8 @@ let claimResult: { data: unknown; error: Err };
 let authErrors: Err[] = [];
 let confirmError: Err = null;
 let filaError: Err = null;
+/** Lo que la base dice de la fila al releerla después de un error de confirmar. */
+let filaVerificada: string | null = null;
 let releaseError: Err = null;
 let sessionUser: { id: string } | null = { id: "auth-1" };
 let sessionThrows = false;
@@ -54,7 +56,9 @@ const admin = {
       select: () => chain,
       eq: () => chain,
       maybeSingle: async () =>
-        filaError ? { data: null, error: filaError } : { data: { internal_email: INTERNA }, error: null },
+        filaError
+          ? { data: null, error: filaError }
+          : { data: { internal_email: INTERNA, verified_at: filaVerificada }, error: null },
     };
     return chain;
   },
@@ -112,6 +116,7 @@ beforeEach(() => {
   authErrors = [];
   confirmError = null;
   filaError = null;
+  filaVerificada = null;
   releaseError = null;
   sessionUser = { id: "auth-1" };
   sessionThrows = false;
@@ -320,6 +325,17 @@ describe("comprobarCorreoAction · la vuelta cuando la base no marca comprobado"
     expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });
     expect(nombres()).not.toContain("portal_email_check_release");
     expect(calls.at(-1)).toEqual({ name: "portal_email_check_revisar", args: { p_check_id: "chk-1" } });
+  });
+
+  it("⭐ si la confirmación quedó hecha aunque la respuesta volvió con error, es un éxito y no se revierte", async () => {
+    filaVerificada = "2026-11-17T12:00:00Z";
+    const res = await comprobarCorreoAction({}, form());
+    expect(res).toEqual({ ok: true });
+    // La cuenta se queda con el correo comprobado: no hay vuelta ni se suelta nada.
+    const cambios = calls.filter((c) => c.name === "updateUserById").map((c) => c.args.email);
+    expect(cambios).toEqual(["ana@example.test"]);
+    expect(nombres()).not.toContain("portal_email_check_release");
+    expect(nombres()).not.toContain("portal_email_check_revisar");
   });
 
   it("⭐ si no se puede leer la dirección interna, tampoco se suelta: queda para revisión", async () => {

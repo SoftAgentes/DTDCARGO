@@ -123,7 +123,14 @@ describe("corrida única de las cuentas ya creadas", () => {
    */
   function admin(
     filas: Fila[],
-    opts: { correoActual?: string; authError?: unknown; anotarNoHaceNada?: boolean } = {},
+    opts: {
+      correoActual?: string;
+      authError?: unknown;
+      anotarNoHaceNada?: boolean;
+      /** auth_user_id de cuentas que ya no existen en Auth (404). */
+      sinCuenta?: string[];
+      leerError?: unknown;
+    } = {},
   ) {
     const escrituras: Array<[string, unknown]> = [];
     const anotadas = new Set<string>();
@@ -167,10 +174,13 @@ describe("corrida única de las cuentas ya creadas", () => {
         },
         auth: {
           admin: {
-            getUserById: async () => ({
-              data: { user: { email: opts.correoActual ?? "ana@example.test" } },
-              error: null,
-            }),
+            getUserById: async (id: string) => {
+              if (opts.sinCuenta?.includes(id)) {
+                return { data: { user: null }, error: { status: 404, message: "User not found" } };
+              }
+              if (opts.leerError) return { data: { user: null }, error: opts.leerError };
+              return { data: { user: { email: opts.correoActual ?? "ana@example.test" } }, error: null };
+            },
             updateUserById: async (id: string, attrs: unknown) => {
               escrituras.push(["updateUserById", { id, attrs }]);
               return { data: null, error: opts.authError ?? null };
@@ -249,6 +259,39 @@ describe("corrida única de las cuentas ya creadas", () => {
     const a = admin([fila], { authError: { status: 500, message: "ana@example.test ya existe" } });
     await pasarCuentas(a.client, { aplicar: true, log: (m: string) => mensajes.push(m) });
     expect(mensajes.join(" ")).not.toMatch(/@/);
+  });
+
+  it("⭐ una fila cuya cuenta de Auth ya no existe: aparte, sin tocarla, y no cuenta como pendiente", async () => {
+    const a = admin([fila], { sinCuenta: ["auth-1"] });
+    const r = await pasarCuentas(a.client, { aplicar: true });
+    expect(r).toMatchObject({ pendientes: 0, pasadas: 0, fallidas: 0, huerfanas: 1, quedan: 0 });
+    expect(a.escrituras).toEqual([]);
+    expect(codigoDeSalida(r)).toBe(4);
+  });
+
+  it("⭐ la corrida llega a su fin con huérfanas mezcladas: pasa las demás y sale con 4, no con 3", async () => {
+    const otra = { ...fila, id: "chk-2", auth_user_id: "auth-2" };
+    const a = admin([fila, otra], { sinCuenta: ["auth-1"] });
+    const r = await pasarCuentas(a.client, { aplicar: true });
+    expect(r).toMatchObject({ pendientes: 1, pasadas: 1, huerfanas: 1, fallidas: 0, quedan: 0 });
+    expect(codigoDeSalida(r)).toBe(4);
+    expect(a.escrituras.map(([n]) => n)).toEqual(["updateUserById", "portal_email_check_auth_interno"]);
+  });
+
+  it("el ensayo también las detecta, sin escribir nada", async () => {
+    const a = admin([fila], { sinCuenta: ["auth-1"] });
+    const r = await pasarCuentas(a.client, { aplicar: false });
+    expect(r).toMatchObject({ pendientes: 0, huerfanas: 1, quedan: 0 });
+    expect(a.escrituras).toEqual([]);
+    expect(codigoDeSalida(r)).toBe(4);
+  });
+
+  it("⭐ un error al leer la cuenta que no es «no existe» es un problema, no una huérfana", async () => {
+    const a = admin([fila], { leerError: { status: 500, message: "boom" } });
+    const r = await pasarCuentas(a.client, { aplicar: true });
+    expect(r).toMatchObject({ huerfanas: 0, fallidas: 1 });
+    expect(a.escrituras).toEqual([]);
+    expect(codigoDeSalida(r)).toBe(1);
   });
 
   it("una dirección interna con forma rara no se toca", async () => {

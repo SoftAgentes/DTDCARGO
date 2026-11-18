@@ -29,8 +29,14 @@
  * Idempotente: una cuenta que ya lleva su dirección interna no se toca; volver
  * a correrlo sólo procesa las que falten. Recorre todas las filas por lotes.
  *
- * Código de salida: 0 sólo si no queda ninguna pendiente y ninguna falló;
- * 1 si alguna falló; 3 si después de aplicar siguen quedando pendientes.
+ * Una fila cuya cuenta de Auth ya no existe («huérfana») no tiene nada que
+ * pasar: se cuenta aparte, no se toca, no se borra y no cuenta como pendiente.
+ * El ensayo también las detecta (sólo lee).
+ *
+ * Código de salida: 0 sólo si no queda ninguna pendiente, ninguna falló y no
+ * hay huérfanas; 1 si alguna falló; 3 si después de aplicar siguen quedando
+ * pendientes; 4 si lo único que queda son huérfanas (la corrida terminó; esas
+ * filas se le informan al equipo y no se reintentan).
  */
 
 import { resolve } from "node:path";
@@ -76,23 +82,32 @@ async function recorrer(admin, cada) {
  * corrida sólo está completa con `quedan === 0` y `fallidas === 0`.
  */
 export async function pasarCuentas(admin, { aplicar, log = () => {} }) {
-  const resumen = { pendientes: 0, pasadas: 0, yaEstaban: 0, fallidas: 0, quedan: 0, aplicar };
+  const resumen = { pendientes: 0, pasadas: 0, yaEstaban: 0, fallidas: 0, huerfanas: 0, quedan: 0, aplicar };
+  const huerfanas = new Set();
 
   await recorrer(admin, async (fila) => {
-    resumen.pendientes += 1;
     if (!CORREO_INTERNO.test(fila.internal_email ?? "")) {
+      resumen.pendientes += 1;
       resumen.fallidas += 1;
       log(`fila ${fila.id}: dirección interna con forma inesperada; no se toca`);
       return;
     }
-    if (!aplicar) return;
 
+    // Leer la cuenta no escribe nada: también en el ensayo.
     const { data: cuenta, error: leerErr } = await admin.auth.admin.getUserById(fila.auth_user_id);
-    if (leerErr || !cuenta?.user) {
-      resumen.fallidas += 1;
-      log(`fila ${fila.id}: no se pudo leer la cuenta`);
+    if (leerErr?.status === 404 || (!leerErr && !cuenta?.user)) {
+      resumen.huerfanas += 1;
+      huerfanas.add(fila.id);
+      log(`fila ${fila.id}: la cuenta de Auth ya no existe; no se toca (revisión del equipo)`);
       return;
     }
+    resumen.pendientes += 1;
+    if (leerErr) {
+      resumen.fallidas += 1;
+      log(`fila ${fila.id}: no se pudo leer la cuenta (${leerErr.status ?? "sin estado"})`);
+      return;
+    }
+    if (!aplicar) return;
     const yaInterna = (cuenta.user.email ?? "").toLowerCase() === fila.internal_email;
     if (!yaInterna) {
       const { error: authErr } = await admin.auth.admin.updateUserById(fila.auth_user_id, {
@@ -119,8 +134,8 @@ export async function pasarCuentas(admin, { aplicar, log = () => {} }) {
 
   // Se vuelve a contar lo que quedó: no se da por hecho.
   if (aplicar) {
-    await recorrer(admin, async () => {
-      resumen.quedan += 1;
+    await recorrer(admin, async (fila) => {
+      if (!huerfanas.has(fila.id)) resumen.quedan += 1;
     });
   } else {
     resumen.quedan = resumen.pendientes;
@@ -133,6 +148,7 @@ export async function pasarCuentas(admin, { aplicar, log = () => {} }) {
 export function codigoDeSalida(resumen) {
   if (resumen.fallidas > 0) return 1;
   if (resumen.aplicar && resumen.quedan > 0) return 3;
+  if (resumen.huerfanas > 0) return 4;
   return 0;
 }
 
@@ -156,9 +172,14 @@ async function main() {
     console.log("Ensayo: no se cambió nada. Para aplicar, vuelve a correr con --aplicar.");
   }
   console.log(`Con problema (no se tocaron): ${r.fallidas}`);
+  console.log(`Su cuenta de Auth ya no existe (no se tocaron ni se borraron; no cuentan como pendientes): ${r.huerfanas}`);
   if (r.aplicar) console.log(`Siguen pendientes después de la corrida: ${r.quedan}`);
   const codigo = codigoDeSalida(r);
-  if (codigo !== 0) console.log("LA CORRIDA NO ESTÁ COMPLETA. Revisa lo anterior y vuelve a correrla.");
+  if (codigo === 4) {
+    console.log("La corrida terminó. Sólo quedan filas cuya cuenta ya no existe: pásale sus ids al equipo; no se reintentan.");
+  } else if (codigo !== 0) {
+    console.log("LA CORRIDA NO ESTÁ COMPLETA. Revisa lo anterior y vuelve a correrla.");
+  }
   process.exit(codigo);
 }
 

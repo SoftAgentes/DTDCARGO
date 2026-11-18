@@ -121,16 +121,29 @@ export async function emitirYEnviarComprobacion(
 }
 
 /**
- * La dirección con la que se acuña la entrada de un cliente cuya cuenta por
- * link sigue sin comprobar (acceso por WhatsApp, SDD-0253). Se le pregunta a
- * Auth qué lleva la cuenta en este momento, en vez de suponerlo: así la entrada
- * siempre se acuña para la cuenta del cliente, esté el paso que esté. `null` =
- * no es una cuenta de esas (o falta la migración): se usa el correo de siempre.
+ * La dirección con la que se acuña la entrada de un cliente (acceso por
+ * WhatsApp, SDD-0253) cuando hay una cuenta por link sin comprobar.
+ *
+ *   ficha  → no hay cuenta por link sin comprobar (o falta la migración), o la
+ *            cuenta del link ya no es su acceso porque el equipo volvió a
+ *            invitarlo por correo: se usa el correo de la ficha, como siempre.
+ *   cuenta → la cuenta del link sigue siendo su acceso activo: la entrada se
+ *            acuña para lo que lleva esa cuenta en Auth en este momento (se le
+ *            pregunta, no se supone).
+ *   error  → hay (o no se puede descartar que haya) una cuenta sin comprobar y
+ *            no se pudo leer lo necesario; o el cliente no tiene ningún acceso
+ *            activo. FALLA CERRADO: no se acuña nada. Caer al correo de la ficha
+ *            crearía una cuenta confirmada con un correo que nadie comprobó.
  */
+export type DireccionDeEntrada =
+  | { estado: "ficha" }
+  | { estado: "cuenta"; email: string }
+  | { estado: "error" };
+
 export async function direccionInternaDelCliente(
   admin: SupabaseClient,
   clientId: string,
-): Promise<string | null> {
+): Promise<DireccionDeEntrada> {
   try {
     const { data, error } = await admin
       .from("client_email_checks")
@@ -138,12 +151,33 @@ export async function direccionInternaDelCliente(
       .eq("client_id", clientId)
       .is("verified_at", null)
       .maybeSingle<{ auth_user_id: string }>();
-    if (error || !data?.auth_user_id) return null;
+    if (error) {
+      // Sólo «la tabla no existe» (falta la 0559) descarta la cuenta por link.
+      if (error.code === "42P01" || error.code === "PGRST205") return { estado: "ficha" };
+      return { estado: "error" };
+    }
+    if (!data) return { estado: "ficha" };
+    if (!data.auth_user_id) return { estado: "error" };
+
+    // ¿La cuenta del link sigue siendo el acceso activo del cliente? (lo mismo
+    // que mira la 0559 para el estado). Si el equipo revocó y volvió a invitar
+    // por correo, el acceso activo es otro y la cuenta vieja no recibe entrada.
+    const { data: accesos, error: accesosErr } = await admin
+      .from("client_users")
+      .select("auth_user_id")
+      .eq("client_id", clientId)
+      .eq("status", "active");
+    if (accesosErr || !Array.isArray(accesos)) return { estado: "error" };
+    const activos = (accesos as { auth_user_id: string | null }[]).map((a) => a.auth_user_id);
+    if (!activos.includes(data.auth_user_id)) {
+      return activos.length > 0 ? { estado: "ficha" } : { estado: "error" };
+    }
+
     const { data: cuenta, error: cuentaErr } = await admin.auth.admin.getUserById(data.auth_user_id);
     const email = cuenta?.user?.email?.trim().toLowerCase();
-    if (cuentaErr || !email) return null;
-    return email;
+    if (cuentaErr || !email) return { estado: "error" };
+    return { estado: "cuenta", email };
   } catch {
-    return null;
+    return { estado: "error" };
   }
 }

@@ -66,6 +66,14 @@ export const COMPROBAR_CORREO_NO_SIRVE =
 export const COMPROBAR_CORREO_ENTRA_PRIMERO =
   "Para comprobar tu correo, entra primero a tu portal y vuelve a abrir este enlace en el mismo navegador. Si no tienes cómo entrar, pídele a tu asesor de DTD Cargo un acceso por WhatsApp.";
 
+/**
+ * «No es mi correo»: no confirma nada (no hay POST) y le dice cómo corregirlo.
+ * El equipo corrige el correo en la ficha; el correo nuevo nace sin comprobar y
+ * «Reenviar comprobación» le manda su enlace.
+ */
+export const COMPROBAR_CORREO_NO_ES_MIO =
+  "No lo confirmes. Escríbele a tu asesor de DTD Cargo por WhatsApp con el correo correcto: lo corrige en tu ficha y te llega un enlace nuevo a ese correo. Este enlace no cambió nada.";
+
 /** Fallo pasajero: el enlace se soltó y se puede volver a intentar. */
 export const COMPROBAR_CORREO_REINTENTA =
   "No pudimos comprobar tu correo en este momento. Intenta de nuevo en un minuto.";

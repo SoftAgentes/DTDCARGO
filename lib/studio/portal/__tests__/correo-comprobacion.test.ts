@@ -214,10 +214,12 @@ describe("emitirYEnviarComprobacion", () => {
 });
 
 describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
+  type Acceso = { auth_user_id: string | null };
   function make(
     check: { auth_user_id: string } | null,
     checkError: unknown = null,
     cuenta: { email: string | null; error?: unknown } = { email: null },
+    accesos: { data: Acceso[] | null; error?: unknown } = { data: [{ auth_user_id: "auth-1" }] },
   ) {
     const filtros: Array<[string, string, unknown]> = [];
     const leidas: string[] = [];
@@ -245,12 +247,15 @@ describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
             table === "clients"
               ? { data: { name: "Ana", email: "ana@example.test" }, error: null }
               : { data: check, error: checkError },
+          then: (ok: (v: unknown) => unknown) =>
+            ok(table === "client_users" ? { data: accesos.data, error: accesos.error ?? null } : { data: null, error: null }),
         };
         return chain;
       },
     } as never;
     return { admin, filtros, leidas };
   }
+  const FICHA = { name: "Ana", email: "ana@example.test" };
 
   it("⭐ la entrada se acuña para la dirección que lleva la cuenta, no para el correo de la ficha", async () => {
     const interna = `c-${"c".repeat(32)}@sin-comprobar.invalid`;
@@ -259,6 +264,9 @@ describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
     // Sólo cuentas por link sin comprobar; la dirección se le pregunta a Auth.
     expect(filtros).toContainEqual(["client_email_checks", "is:verified_at", null]);
     expect(filtros).toContainEqual(["client_email_checks", "eq:client_id", "c-1"]);
+    // Y sólo si esa cuenta sigue siendo el acceso activo del cliente.
+    expect(filtros).toContainEqual(["client_users", "eq:client_id", "c-1"]);
+    expect(filtros).toContainEqual(["client_users", "eq:status", "active"]);
     expect(leidas).toEqual(["auth-1"]);
   });
 
@@ -267,21 +275,54 @@ describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
     await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual({ name: "Ana", email: "otra@example.test" });
   });
 
-  it("si Auth no responde, cae al correo de la ficha (como antes)", async () => {
+  it("⭐ si Auth no responde, falla cerrado: no hay entrada (ni cae al correo de la ficha)", async () => {
     const { admin } = make({ auth_user_id: "auth-1" }, null, { email: null, error: { message: "boom" } });
-    await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual({ name: "Ana", email: "ana@example.test" });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
+  });
+
+  it("⭐ si Auth no devuelve la cuenta, también falla cerrado", async () => {
+    const { admin } = make({ auth_user_id: "auth-1" }, null, { email: null });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
+  });
+
+  it("⭐ un error al leer la comprobación que no es «la tabla no existe» falla cerrado", async () => {
+    for (const code of ["57014", "PGRST301", "08006", undefined]) {
+      const { admin, leidas } = make(null, { code, message: "boom" });
+      await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
+      expect(leidas).toEqual([]);
+    }
+  });
+
+  it("⭐ si no se pueden leer los accesos del cliente, falla cerrado", async () => {
+    const { admin, leidas } = make({ auth_user_id: "auth-1" }, null, { email: "x@example.test" }, {
+      data: null,
+      error: { code: "57014" },
+    });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
+    expect(leidas).toEqual([]);
+  });
+
+  it("⭐ revocado y reinvitado por correo: la cuenta vieja del link no recibe la entrada", async () => {
+    const { admin, leidas } = make({ auth_user_id: "auth-1" }, null, { email: "vieja@example.test" }, {
+      data: [{ auth_user_id: "auth-2" }],
+    });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toEqual(FICHA);
+    expect(leidas).toEqual([]);
+  });
+
+  it("⭐ revocado y sin ningún acceso activo: falla cerrado (no crea una cuenta con el correo sin comprobar)", async () => {
+    const { admin } = make({ auth_user_id: "auth-1" }, null, { email: "vieja@example.test" }, { data: [] });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
   });
 
   it("un cliente de otro camino (o sin la migración) entra con su correo de siempre", async () => {
-    await expect(loadAccessTarget(make(null).admin, "c-1")).resolves.toEqual({
-      name: "Ana",
-      email: "ana@example.test",
-    });
-    await expect(loadAccessTarget(make(null, { code: "42P01" }).admin, "c-1")).resolves.toEqual({
-      name: "Ana",
-      email: "ana@example.test",
-    });
-    await expect(direccionInternaDelCliente({} as never, "c-1")).resolves.toBeNull();
+    await expect(loadAccessTarget(make(null).admin, "c-1")).resolves.toEqual(FICHA);
+    await expect(loadAccessTarget(make(null, { code: "42P01" }).admin, "c-1")).resolves.toEqual(FICHA);
+    await expect(loadAccessTarget(make(null, { code: "PGRST205" }).admin, "c-1")).resolves.toEqual(FICHA);
+  });
+
+  it("si algo explota, falla cerrado", async () => {
+    await expect(direccionInternaDelCliente({} as never, "c-1")).resolves.toEqual({ estado: "error" });
   });
 });
 

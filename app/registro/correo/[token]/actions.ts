@@ -151,9 +151,12 @@ export async function comprobarCorreoAction(
   console.error("[comprobarCorreoAction] confirmar falló:", confirmErr.code);
   const { data: fila, error: filaErr } = await admin
     .from("client_email_checks")
-    .select("internal_email")
+    .select("internal_email, verified_at")
     .eq("id", claim.check_id)
-    .maybeSingle<{ internal_email: string }>();
+    .maybeSingle<{ internal_email: string; verified_at: string | null }>();
+  // La confirmación pudo quedar hecha aunque la respuesta volviera con error.
+  // Si la base ya dice «comprobado», no se deshace nada: es un éxito.
+  if (!filaErr && fila?.verified_at) return { ok: true };
   if (filaErr || !fila?.internal_email) {
     await dejarParaRevision(admin, claim.check_id, "leer la dirección interna");
     return { error: COMPROBAR_CORREO_NO_SIRVE };

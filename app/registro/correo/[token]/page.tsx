@@ -24,10 +24,13 @@ export const dynamic = "force-dynamic";
  * al cliente (lección de la SDD-0253). Se gasta en el POST del botón
  * (`./actions.ts`).
  *
- * De la ficha muestra SOLO el Shipping Mark (el mismo que ya va en el correo).
- * Este enlace comprueba un correo, no abre el portal: mira si ya hay una sesión
- * (sólo para decirle a quien no la tiene que entre primero) y no crea ninguna.
- * El POST vuelve a exigir la sesión, y que sea la del titular.
+ * De la ficha muestra el Shipping Mark (el mismo que ya va en el correo). El
+ * correo por comprobar lo muestra SOLO al titular: la base lo devuelve cuando
+ * el usuario de la sesión (lo lee el servidor, no el visitante) es el de la
+ * cuenta, para que el cliente vea qué correo confirma antes de confirmarlo.
+ * Sin sesión o con la de otra cuenta, no sale el correo y se le pide entrar
+ * primero. Este enlace comprueba un correo, no abre el portal: no crea ninguna
+ * sesión. El POST vuelve a exigir la sesión, y que sea la del titular.
  *
  * Ruta pública respaldada por la base, igual que `app/registro`: usa el admin
  * client con el visitante anónimo y el token como control.
@@ -40,28 +43,33 @@ export default async function ComprobarCorreoPage({
   const { token } = await params;
 
   let markbox: string | null = null;
+  let correo: string | null = null;
   if (isRegistroTokenShape(token)) {
+    // ¿De quién es la sesión del portal en este navegador? Sólo lectura.
+    let sessionUserId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
+      sessionUserId = data.user?.id ?? null;
+    } catch {
+      sessionUserId = null;
+    }
     try {
       const admin = createAdminClient();
       const { data } = await admin.rpc("portal_email_check_peek", {
         p_token_hash: hashRegistroToken(token),
+        p_session_user_id: sessionUserId,
       });
-      const row = (Array.isArray(data) ? data[0] : data) as { markbox?: string } | null | undefined;
+      const row = (Array.isArray(data) ? data[0] : data) as
+        | { markbox?: string; pending_email?: string | null }
+        | null
+        | undefined;
       markbox = row?.markbox ?? null;
+      // La base sólo lo devuelve al titular; si no hay sesión, ni se mira.
+      correo = markbox && sessionUserId ? (row?.pending_email ?? null) : null;
     } catch {
       markbox = null;
-    }
-  }
-
-  // ¿Hay sesión del portal en este navegador? Sólo lectura, sólo para el texto.
-  let conSesion = false;
-  if (markbox) {
-    try {
-      const supabase = await createClient();
-      const { data } = await supabase.auth.getUser();
-      conSesion = Boolean(data.user);
-    } catch {
-      conSesion = false;
+      correo = null;
     }
   }
 
@@ -70,7 +78,7 @@ export default async function ComprobarCorreoPage({
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
         {markbox ? (
-          <ComprobarCorreoForm token={token} markbox={markbox} conSesion={conSesion} />
+          <ComprobarCorreoForm token={token} markbox={markbox} correo={correo} />
         ) : (
           <section className="mx-auto max-w-[560px] px-4 py-16 sm:py-24">
             <h1

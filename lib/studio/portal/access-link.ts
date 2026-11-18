@@ -248,8 +248,10 @@ export async function loadAccessTarget(
   // SDD-0646 D-1: una cuenta por link sin comprobar no lleva el correo de la
   // ficha, lleva una dirección interna. La entrada se acuña para ESA cuenta;
   // acuñarla con el correo de la ficha abriría una cuenta suelta, sin portal.
-  const interna = await direccionInternaDelCliente(admin, clientId);
-  return interna ? { ...data, email: interna } : data;
+  // Si no se puede saber, no hay entrada: falla cerrado (error genérico arriba).
+  const dir = await direccionInternaDelCliente(admin, clientId);
+  if (dir.estado === "error") return null;
+  return dir.estado === "cuenta" ? { ...data, email: dir.email } : data;
 }
 
 /**
