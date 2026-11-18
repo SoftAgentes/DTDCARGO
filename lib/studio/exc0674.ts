@@ -96,6 +96,10 @@ export function mensajeErrorExc0674(mensaje: string | null | undefined): string 
       return `El monto no es válido${quien}: mayor que 0 y con dos decimales como máximo.`;
     case "cliente_sin_embarques":
       return `Ese cliente no tiene embarques en este contenedor${quien}.`;
+    case "cliente_ambiguo":
+      return `Hay más de una ficha de cliente con ese Shipping Mark${quien}. Avisa a Contabilidad para corregirla; no se emitió ninguna factura.`;
+    case "aliado_ciclo":
+      return `La cadena de aliados de ese cliente está mal armada${quien}. Avisa a Contabilidad; no se emitió ninguna factura.`;
     case "cliente_inexistente":
     case "titular_inexistente":
       return `No se encontró la ficha del cliente a facturar${quien}.`;

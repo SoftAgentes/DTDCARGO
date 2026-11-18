@@ -25,6 +25,20 @@ Fecha: 2026-11-18. Datos de la tarea:
   - N4 y N5 dejan de aplicar: se quitó la RLS de `operations` en las tres tablas, su rol en la RPC, la
     prop en Embarques y la nota de la frontera 0357. Las pruebas por rol rechazan a `operations`.
   - Si otro rol debe facturar, será una decisión nueva de Sam.
+- **Revisión Opus de `df8e20648`: CHANGES_REQUESTED.** Lo atiende la cabeza siguiente:
+  - B1: `moduleEditDenial(supabase, "invoices")` al tope de la action, más `rolFacturaExc0674`; inventario
+    de `rbac-actions-guard` 488 → 489. La página lee `facturacion` solo si
+    `moduleViewDenial(supabase, "invoices") === null`. Hay pruebas del override, en la action y en la página;
+  - B2: `exc0674-queries.ts` filtra `anulada_at is null` y ordena. Hay prueba con una fila anulada;
+  - decisión del DG sobre el punto 1: también por cliente van dos pantallas («¿Estás seguro de los datos?»
+    y «Confirmado»). Están alineados la spec (§7 punto 3 y §7.3), `FacturarContenedor.tsx` y su prueba;
+  - 2: el desarme se ensaya en el contrato (CONTRATO 18);
+  - 4: «cinco vigentes»;
+  - 5: un Shipping Mark con dos fichas vivas da `exc0674:cliente_ambiguo` (CONTRATO 16);
+  - 7: guarda contra ciclos en la cadena de aliados, con `exc0674:aliado_ciclo` (CONTRATO 17). No puse
+    `set local statement_timeout` dentro de la RPC: en Postgres, cambiarlo a mitad de la llamada no
+    rearma el timer de la sentencia que ya corre. El tope lo pone el `statement_timeout` del rol
+    `authenticated` (PostgREST), y la guarda corta el único bucle sin fin.
 - **Código:**
   - el primer commit de implementación (`09356665d`) es anterior a la spec corregida;
   - `6339c2902` y la cabeza siguiente lo alinean con la spec.
@@ -109,8 +123,10 @@ Fecha: 2026-11-18. Datos de la tarea:
      frontera 0357;
    - `pnpm typecheck` y eslint de lo tocado.
 3. `/ui-check` de `FacturarContenedor.tsx`.
-4. La re-revisión de la cabeza nueva, que lanza el DG.
-5. Después de fusionar, y solo con el OK nominal de Sam:
+4. Los puntos 3 y 6 de la revisión de `df8e20648` van aquí como límites conocidos; le pedí el texto al
+   DG.
+5. La re-revisión de la cabeza nueva, que lanza el DG.
+6. Después de fusionar, y solo con el OK nominal de Sam:
    - aplicar la 0564 por el runbook;
    - agregar el 64 a la lista con `service_role` y `dtd.audit_reason`.
 

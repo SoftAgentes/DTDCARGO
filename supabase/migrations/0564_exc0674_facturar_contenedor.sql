@@ -324,6 +324,8 @@ declare
   v_post      jsonb;
   v_outcome   text;
   v_vistos    text[] := array[]::text[];
+  v_n_fichas  integer;
+  v_cadena    uuid[];
   v_salida    jsonb := '[]'::jsonb;
 begin
   if v_uid is null or v_tenant is null then
@@ -412,20 +414,36 @@ begin
     end if;
 
     -- A quién se factura: al cliente o, si es de un aliado, al aliado raíz (SDD-0543).
+    -- Si dos fichas vivas comparten el Shipping Mark normalizado, no se adivina: error explícito.
+    select pg_catalog.count(*)::integer into v_n_fichas
+      from public.clients c
+     where c.tenant_id = v_tenant and pg_catalog.upper(pg_catalog.btrim(c.markbox)) = v_mb
+       and c.deleted_at is null;
+    if v_n_fichas > 1 then
+      raise exception 'exc0674:cliente_ambiguo:%', v_mb using errcode = '22023';
+    end if;
+    v_client := null;
+    v_aliado := null;
     select c.id, c.aliado_id into v_client, v_aliado
       from public.clients c
      where c.tenant_id = v_tenant and pg_catalog.upper(pg_catalog.btrim(c.markbox)) = v_mb
-       and c.deleted_at is null
-     limit 1;
+       and c.deleted_at is null;
     if v_client is null then
       raise exception 'exc0674:cliente_inexistente:%', v_mb using errcode = '22023';
     end if;
     v_root := v_client;
     if v_aliado is not null then
+      -- Guarda contra ciclos en la cadena de aliados: un aliado repetido (o más de 32 saltos) aborta.
+      v_cadena := array[v_aliado];
       loop
+        v_padre := null;
         select a.parent_aliado_id, a.client_id into v_padre, v_root
           from public.aliados a where a.id = v_aliado and a.tenant_id = v_tenant;
         exit when v_padre is null;
+        if v_padre = any(v_cadena) or pg_catalog.cardinality(v_cadena) >= 32 then
+          raise exception 'exc0674:aliado_ciclo:%', v_mb using errcode = '22023';
+        end if;
+        v_cadena := v_cadena || v_padre;
         v_aliado := v_padre;
       end loop;
       if v_root is null then v_root := v_client; end if;

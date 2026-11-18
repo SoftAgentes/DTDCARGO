@@ -15,6 +15,7 @@ const estado = vi.hoisted(() => ({
   rol: "commercial" as string,
   tablas: [] as string[],
   sinMigracion: false,
+  sinFacturacion: false,
 }));
 
 function supabaseDoble() {
@@ -25,7 +26,9 @@ function supabaseDoble() {
       if (tabla === "exc0674_contenedores") filas = [{ consolidation_id: "c64" }];
       if (tabla === "exc0674_facturas") {
         filas = [
-          { consolidation_id: "c64", client_markbox: "DTD-T001", invoice_code: "F-TEST-1", total_usd: "116.00", billed_markbox: "DTD-T001" },
+          { consolidation_id: "c64", client_markbox: "DTD-T001", invoice_code: "F-TEST-1", total_usd: "116.00", billed_markbox: "DTD-T001", anulada_at: null },
+          // Anulada en Facturación: no cuenta y el cliente se puede volver a facturar.
+          { consolidation_id: "c64", client_markbox: "DTD-T002", invoice_code: "F-TEST-0", total_usd: "50.00", billed_markbox: "DTD-T002", anulada_at: "2026-11-18T12:00:00Z" },
         ];
       }
       const error =
@@ -35,7 +38,10 @@ function supabaseDoble() {
       const q = {
         select: () => q,
         in: () => q,
-        is: () => q,
+        is: (col: string, val: unknown) => {
+          filas = filas.filter((f) => ((f as Record<string, unknown>)[col] ?? null) === val);
+          return q;
+        },
         neq: () => q,
         not: () => q,
         order: () => q,
@@ -53,7 +59,9 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   requireModuleView: async () => undefined,
   getStudioAccess: async () => ({ role: estado.rol }),
   moduleViewDenial: async (_s: unknown, mod: string) =>
-    canAccessModule(estado.rol as StudioUserRole, mod) ? null : "No tienes permiso para ver esto.",
+    (mod === "invoices" && estado.sinFacturacion) || !canAccessModule(estado.rol as StudioUserRole, mod)
+      ? "No tienes permiso para ver esto."
+      : null,
 }));
 vi.mock("@/lib/studio/shipment-queries", () => ({
   listShipments: async () => [{ id: "s1" }],
@@ -87,6 +95,7 @@ async function propsDe(rol: string): Promise<Record<string, unknown>> {
 beforeEach(() => {
   estado.tablas = [];
   estado.sinMigracion = false;
+  estado.sinFacturacion = false;
 });
 
 describe("Embarques · «Facturar» de la EXC-0674 por rol (SDD-0674)", () => {
@@ -113,6 +122,13 @@ describe("Embarques · «Facturar» de la EXC-0674 por rol (SDD-0674)", () => {
     const props = await propsDe("operations");
     expect("facturacion" in props).toBe(false);
     expect("montos" in props).toBe(false);
+  });
+
+  it("accounting sin la puerta de Facturación (override) no consulta ni recibe facturacion", async () => {
+    estado.sinFacturacion = true;
+    const props = await propsDe("accounting");
+    expect(estado.tablas.filter((t) => t.startsWith("exc0674_"))).toEqual([]);
+    expect("facturacion" in props).toBe(false);
   });
 
   it("sin la 0564 la prop dice no_disponible y no rompe la página", async () => {

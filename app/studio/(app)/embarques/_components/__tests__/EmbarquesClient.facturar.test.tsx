@@ -1,9 +1,9 @@
 /**
  * SDD-0674 · EXC-0674 — render de «Facturar» en Embarques.
  *  - Solo aparece en un contenedor de la lista y solo si la página pasó `facturacion`.
- *  - Por cliente: «Facturar» abre UNA pantalla con el monto grande, cajas y CBM, y el aviso de que
- *    va al portal del cliente y a contabilidad. Nada se emite hasta «Confirmado».
- *  - Contenedor completo: dos confirmaciones seguidas («Sí, los datos están bien» y «Confirmado»).
+ *  - Por cliente y contenedor completo: dos confirmaciones seguidas. La primera, «¿Estás seguro de
+ *    los datos?», con el monto grande, cajas y CBM; la segunda los vuelve a mostrar con el aviso de
+ *    que va al portal del cliente y a contabilidad. Nada se emite hasta «Confirmado».
  *  - Un monto inválido no abre la confirmación. Un cliente ya facturado muestra su factura.
  * Datos inventados.
  */
@@ -103,13 +103,21 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
     expect(screen.queryByRole("button", { name: "Facturar" })).toBeNull();
   });
 
-  it("por cliente: una confirmación con el monto grande y el aviso; nada se emite antes de «Confirmado»", async () => {
+  it("por cliente: dos confirmaciones con los datos; nada se emite antes de «Confirmado»", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "1.234,56");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
 
-    const dialogo = screen.getByRole("dialog");
+    let dialogo = screen.getByRole("dialog");
+    expect(within(dialogo).getByRole("heading").textContent).toBe("¿Estás seguro de los datos?");
+    expect(within(dialogo).getByTestId("monto-grande").textContent).toBe("$1,234.56");
+    expect(dialogo.textContent).toContain("2 envíos · 15 cajas · 3.00 m³");
+    expect(within(dialogo).queryByRole("button", { name: "Confirmado" })).toBeNull();
+
+    await userEvent.click(within(dialogo).getByRole("button", { name: "Sí, los datos están bien" }));
+    dialogo = screen.getByRole("dialog");
+    expect(within(dialogo).getByRole("heading").textContent).toBe("Confirma la factura");
     expect(within(dialogo).getByTestId("monto-grande").textContent).toBe("$1,234.56");
     expect(dialogo.textContent).toContain("2 envíos · 15 cajas · 3.00 m³");
     expect(dialogo.textContent).toContain("Va al portal del cliente y a la contabilidad");
@@ -183,6 +191,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "100");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sí, los datos están bien" }));
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmado" }));
     expect(screen.getByRole("dialog").textContent).toContain("ya está facturado");
   });

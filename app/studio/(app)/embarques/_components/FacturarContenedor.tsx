@@ -5,11 +5,11 @@
  *
  * Solo se pinta si la página pasó `facturacion`, que lee en el servidor solo para accounting y
  * admin. Aquí no se decide ningún permiso. Decisiones de Sam (2026-11-18):
- *   · Por cliente: «Facturar» en la fila de cada cliente abre UNA pantalla con los datos (el monto
- *     grande, las cajas y el CBM) y el aviso de que va al portal del cliente y a la contabilidad.
- *     Nada se emite hasta oprimir «Confirmado».
- *   · Contenedor completo: «Facturar contenedor» pasa por DOS confirmaciones seguidas de la misma
- *     persona. Primero «Sí, los datos están bien» y después, con el aviso, «Confirmado».
+ *   · Por cliente y por contenedor completo, DOS confirmaciones seguidas de la misma persona («por
+ *     embarque con doble confirmación que muestre los datos»): la primera, «¿Estás seguro de los
+ *     datos?», con todo visible (el monto grande, las cajas y el CBM) y «Sí, los datos están bien»;
+ *     la segunda vuelve a mostrar los datos, avisa que va al portal del cliente y a la contabilidad, y
+ *     emite con «Confirmado». Nada se emite antes.
  *   · El monto lo teclea la persona: el TOTAL CON IVA en USD, mayor que 0 y con dos decimales como
  *     máximo. Se factura al aliado raíz si el cliente tiene uno (lo resuelve la base).
  */
@@ -98,7 +98,7 @@ export function FacturarContenedor({
     const centavos = leerMonto(c);
     if (centavos === null) return;
     setErrorAccion(undefined);
-    setPedido({ modo: "cliente", filas: [{ cliente: c, centavos }], paso: 2 });
+    setPedido({ modo: "cliente", filas: [{ cliente: c, centavos }], paso: 1 });
   }
 
   function pedirContenedor() {

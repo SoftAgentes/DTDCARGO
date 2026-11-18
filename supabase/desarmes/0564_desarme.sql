@@ -2,7 +2,8 @@
 -- ⚠️ NO ES UNA MIGRACIÓN TODAVÍA. Vive fuera de supabase/migrations/ y sin número, para que nada lo
 --    aplique ni lo empaquete. Usarlo exige el OK nominal de Sam: se copia a supabase/migrations/ con el
 --    siguiente número libre y se aplica con el runbook de producción.
--- Ensayo: supabase/tests/0564_exc0674_facturar_contenedor.test.sql.
+-- Ensayo: supabase/tests/0564_exc0674_facturar_contenedor.test.sql (CONTRATO 18: se niega con facturas
+-- de la regla y, sin ellas, no deja ningún objeto de la 0564).
 -- Se NIEGA si ya hay facturas emitidas por esta regla: esas facturas son reales, se anulan por el
 -- camino normal de Facturación y su rastro (exc0674_facturas) no se borra. Sin facturas, borra la
 -- función y las dos tablas (la lista transitoria se pierde; hoy solo tiene el 64).

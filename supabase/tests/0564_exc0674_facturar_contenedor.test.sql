@@ -33,6 +33,9 @@
 --  14. Anular la factura en Facturación marca la fila y el cliente se puede volver a facturar (índice
 --      parcial).
 --  15. operations no factura ni ve el rastro, el vínculo ni la lista (Sam, 2026-11-18).
+--  16. Dos fichas vivas con el mismo Shipping Mark: error explícito (no limit 1).
+--  17. Un ciclo en la cadena de aliados aborta con error, no cuelga.
+--  18. El desarme se ensaya: se niega con facturas de la regla y, sin ellas, quita todo.
 --  13. El vínculo factura ↔ envío ↔ cliente real (para la 0574) cubre todos los embarques del cliente,
 --      con su Shipping Mark y no el del aliado. La vista es security_invoker y deja de contar una
 --      factura borrada.
@@ -317,6 +320,31 @@ begin
   if v is distinct from 'exc0674:datos' then raise exception 'CONTRATO 6: monto como texto pasó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T002","total_usd":10}]');
   if v is distinct from 'exc0674:cliente_sin_embarques:DTD-T002' then raise exception 'CONTRATO 5: cliente sin embarques en K64 pasó (%)', v; end if;
+  -- 16. Dos fichas vivas con el mismo Shipping Mark normalizado: error explícito, no la primera que salga.
+  begin
+    insert into public.clients (id, tenant_id, markbox, name) values
+      ('00000000-0000-4000-8000-0000000c0a99', '00000000-0000-4000-8000-0000000000a0', ' dtd-t001', 'Ficha Duplicada');
+    v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, uno);
+    raise exception 'deshacer:%', coalesce(v, 'facturó');
+  exception when others then
+    if sqlerrm is distinct from 'deshacer:exc0674:cliente_ambiguo:DTD-T001' then
+      raise exception 'CONTRATO 16: Shipping Mark ambiguo (%)', sqlerrm;
+    end if;
+  end;
+  -- 17. Un ciclo en la cadena de aliados aborta, no cuelga.
+  begin
+    insert into public.aliados values
+      ('00000000-0000-4000-8000-0000000a1003', '00000000-0000-4000-8000-0000000000a0', null, '00000000-0000-4000-8000-0000000a1004'),
+      ('00000000-0000-4000-8000-0000000a1004', '00000000-0000-4000-8000-0000000000a0', null, '00000000-0000-4000-8000-0000000a1003');
+    update public.clients set aliado_id = '00000000-0000-4000-8000-0000000a1003'
+     where id = '00000000-0000-4000-8000-0000000c0a03';
+    v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, uno);
+    raise exception 'deshacer:%', coalesce(v, 'facturó');
+  exception when others then
+    if sqlerrm is distinct from 'deshacer:exc0674:aliado_ciclo:DTD-T001' then
+      raise exception 'CONTRATO 17: ciclo de aliados (%)', sqlerrm;
+    end if;
+  end;
   if exists (select 1 from public.invoices) or exists (select 1 from public.exc0674_facturas) then
     raise exception 'CONTRATO 4-6: un rechazo dejó una factura o un rastro';
   end if;
@@ -561,5 +589,38 @@ begin
   reset role;
 end
 $privilegios$;
+
+-- ─── 18. Ensayo del desarme (supabase/desarmes/0564_desarme.sql) ─────────
+do $desarme$
+declare
+  v_sql text := pg_catalog.pg_read_file('/sb/desarmes/0564_desarme.sql');
+begin
+  -- Con facturas de la regla, se niega y no quita nada.
+  begin
+    execute v_sql;
+    raise exception 'CONTRATO 18: el desarme corrió con facturas de la regla';
+  exception when others then
+    if sqlerrm not like '0564 desarme: hay facturas%' then raise; end if;
+  end;
+  if pg_catalog.to_regprocedure('public.exc0674_facturar(uuid,jsonb,text)') is null
+     or pg_catalog.to_regclass('public.exc0674_facturas') is null then
+    raise exception 'CONTRATO 18: el desarme que se negó quitó algo';
+  end if;
+  -- Sin facturas de la regla, quita todo: RPC, trigger, vista, tablas y la función del trigger de la lista.
+  delete from public.exc0674_factura_envios;
+  delete from public.exc0674_facturas;
+  execute v_sql;
+  if pg_catalog.to_regprocedure('public.exc0674_facturar(uuid,jsonb,text)') is not null
+     or pg_catalog.to_regclass('public.exc0674_envios_cubiertos') is not null
+     or pg_catalog.to_regclass('public.exc0674_factura_envios') is not null
+     or pg_catalog.to_regclass('public.exc0674_facturas') is not null
+     or pg_catalog.to_regclass('public.exc0674_contenedores') is not null
+     or pg_catalog.to_regprocedure('public.exc0674_contenedores_auditar()') is not null
+     or pg_catalog.to_regprocedure('public.exc0674_marcar_anulada()') is not null
+     or exists (select 1 from pg_catalog.pg_trigger where tgname = 'exc0674_marcar_anulada') then
+    raise exception 'CONTRATO 18: el desarme dejó objetos de la 0564';
+  end if;
+end
+$desarme$;
 
 rollback;

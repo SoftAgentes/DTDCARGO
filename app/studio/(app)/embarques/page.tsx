@@ -76,16 +76,16 @@ export default async function EmbarquesPage() {
   // Las cajas recibidas (recepción VE) son carga, no dinero: para todos.
   const { role } = await getStudioAccess(supabase);
   const rolLeeFacturas = role === "accounting" || role === "admin";
+  // SDD-0674: la puerta de Facturación decide también «Facturar». Una sola consulta para las dos.
+  const veFacturacion =
+    (rolLeeFacturas || rolFacturaExc0674(role)) && (await moduleViewDenial(supabase, "invoices")) === null;
   let montos: MontosDeContenedores | undefined;
   let facturacion: FacturacionExc0674 | undefined;
   if (contenedores) {
     const [recibidas, leidos, exc0674] = await Promise.all([
       leerRecibidasDeContenedores(supabase, contenedores.contenedores),
-      (async () =>
-        rolLeeFacturas && (await moduleViewDenial(supabase, "invoices")) === null
-          ? leerMontosDeContenedores(supabase, contenedores)
-          : undefined)(),
-      rolFacturaExc0674(role)
+      rolLeeFacturas && veFacturacion ? leerMontosDeContenedores(supabase, contenedores) : undefined,
+      rolFacturaExc0674(role) && veFacturacion
         ? leerFacturacionExc0674(supabase, contenedores.contenedores.map((c) => c.id))
         : undefined,
     ]);

@@ -13,6 +13,7 @@ const estado = vi.hoisted(() => ({
   llamadas: [] as { fn: string; args: Record<string, unknown> }[],
   respuesta: { data: null as unknown, error: null as null | { message: string } },
   correos: [] as unknown[],
+  denegado: null as string | null,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
@@ -27,6 +28,7 @@ vi.mock("@/lib/db/server", () => ({
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/studio/rbac-guard", () => ({
   getStudioAccess: async () => ({ role: estado.rol, tenantId: estado.tenantId }),
+  moduleEditDenial: async (_s: unknown, mod: string) => (mod === "invoices" ? estado.denegado : "módulo equivocado"),
 }));
 vi.mock("@/lib/studio/mail/mail-rule-engine", () => ({
   fireMailEvent: async (_a: unknown, _t: unknown, input: unknown) => {
@@ -43,6 +45,7 @@ beforeEach(() => {
   estado.tenantId = "t1";
   estado.llamadas = [];
   estado.correos = [];
+  estado.denegado = null;
   estado.respuesta = {
     data: {
       version: 1,
@@ -63,6 +66,13 @@ describe("facturarExc0674Action", () => {
     estado.rol = rol;
     const r = await facturarExc0674Action(C64, [{ clientMarkbox: "DTD-T001", total: "116" }], "Confirmado");
     expect(r.ok).toBe(false);
+    expect(estado.llamadas).toEqual([]);
+  });
+
+  it("accounting sin edición de Facturación (override) no llama a la RPC", async () => {
+    estado.denegado = "No tienes permiso para editar esto.";
+    const r = await facturarExc0674Action(C64, [{ clientMarkbox: "DTD-T001", total: "116" }], "Confirmado");
+    expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
     expect(estado.llamadas).toEqual([]);
   });
 

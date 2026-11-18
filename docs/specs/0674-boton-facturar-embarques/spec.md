@@ -322,9 +322,10 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 2. El monto lo teclea la persona como total con IVA. El servidor rechaza un monto vacío, en cero, negativo,
    con más de dos decimales o en una moneda que no sea USD. Lo rechazan la acción y la RPC.
 3. Confirmación, siempre del mismo usuario:
-   - **por cliente:** una pantalla con el monto grande, las cajas y el CBM, y el aviso de que va al
-     portal del cliente y a contabilidad;
-   - **contenedor completo:** dos pantallas seguidas, «Sí, los datos están bien» y «Confirmado»;
+   - **por cliente y contenedor completo, dos pantallas seguidas** (decisión del DG sobre lo que pidió
+     Sam, «por embarque con doble confirmación que muestre los datos»): la primera, «¿Estás seguro de los
+     datos?», con todo visible (monto grande, cajas y CBM) y «Sí, los datos están bien»; la segunda vuelve
+     a mostrar los datos, avisa que va al portal del cliente y a contabilidad, y emite con «Confirmado»;
    - sin «Confirmado» no se escribe nada. La RPC exige el texto exacto.
 4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque vigente y
    `shipmentCode` en cada línea. Todo va en una transacción, con su rastro (quién tecleó el monto y
@@ -381,6 +382,7 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 - `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.facturar.test.tsx`
 - `scripts/__tests__/invoice-read-boundary.test.mjs` (solo la nota EXC-0674, +0 llamadas)
+- `lib/studio/rbac-actions-guard.test.ts` (solo el inventario de acciones, 488 → 489, con su comentario)
 - `docs/governance/README.md` (filas SGE-00, MP-01 y BTN-01: enlace a la excepción)
 - `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`
 
@@ -419,7 +421,7 @@ Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
 | # | Política afectada | Qué se aparta | Motivo |
 |---|---|---|---|
 | 1 | SGE-00.01 | La etiqueta es «Facturar», no el verbo reservado «Emitir factura» | Es la palabra de la oficina y de Sam, y el resultado se escribe antes de ejecutar |
-| 2 | SGE-00.09 | Diálogo propio en vez de `ConfirmDialog` | La confirmación lista clientes con montos, cajas y CBM (decisión de Sam) |
+| 2 | SGE-00.09 | Diálogo propio en vez de `ConfirmDialog` | Dos pantallas seguidas, por cliente y por contenedor, que listan clientes con montos, cajas y CBM (decisión de Sam; §7 punto 3) |
 | 3 | BTN-01 §3 | «Facturar» y «Confirmado» en vez de «Emitir factura» y «Confirmar» | Decisión de Sam (§4, preguntas 1 y 6) |
 | 4 | MP-01 §3 | Una acción R3 sin motivo tecleado | La doble confirmación con datos es la fricción que eligió Sam. El audit lleva un motivo fijo |
 | 5 | — | **Retirada.** Era la EXC-0674 de montos para `operations` | Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.» |

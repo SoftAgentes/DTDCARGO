@@ -35,7 +35,11 @@ export async function leerFacturacionExc0674(
   const hechas = await supabase
     .from("exc0674_facturas")
     .select("consolidation_id, client_markbox, invoice_code, total_usd, billed_markbox")
-    .in("consolidation_id", contenedores);
+    .in("consolidation_id", contenedores)
+    // Una factura anulada en Facturación deja de contar: el cliente se puede volver a facturar.
+    .is("anulada_at", null)
+    .order("consolidation_id")
+    .order("client_markbox");
   if (hechas.error) return { estado: "no_disponible" };
 
   const facturados: Record<string, Record<string, FacturadoExc0674>> = {};

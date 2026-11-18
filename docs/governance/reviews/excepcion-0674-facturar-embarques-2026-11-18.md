@@ -9,7 +9,7 @@ comportamiento lleva la política afectada, el motivo, el alcance, la mitigació
 de revisión. Se registra como L3 (§7 del índice). Las filas de SGE-00, MP-01 y BTN-01 del registro maestro
 enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/spec.md` (§4, §7.2 y §8).
 
-## Alcance común a las cuatro vigentes
+## Alcance común a las cinco vigentes
 
 - **Una sola acción:** «Facturar» (un cliente del contenedor) y «Facturar contenedor» (todos los clientes
   pendientes) en `/studio/embarques`.
@@ -59,7 +59,7 @@ enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/s
 - **Mitigación:**
   - el evento de auditoría (`invoice_emitted_exc0674`) lleva un **motivo fijo** que nombra la excepción;
   - la pantalla muestra el monto grande, las cajas y el CBM;
-  - el contenedor completo pasa por dos confirmaciones seguidas;
+  - por cliente y por contenedor completo, dos confirmaciones seguidas con los datos a la vista;
   - la factura se corrige por el camino normal: se anula en Facturación (P3).
 
 ## 5. Retirada · EXC-0674 de montos a `operations`

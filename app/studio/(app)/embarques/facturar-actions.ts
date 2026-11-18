@@ -18,7 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getStudioAccess } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import {
@@ -54,6 +54,9 @@ export async function facturarExc0674Action(
   confirmacion: string,
 ): Promise<ResultadoFacturarExc0674> {
   const supabase = await createClient();
+  // Candado RBAC de Facturación: un accounting al que le quitaron «invoices» por override no emite.
+  const denegado = await moduleEditDenial(supabase, "invoices");
+  if (denegado) return { ok: false, error: denegado };
   const { role, tenantId } = await getStudioAccess(supabase);
   if (!rolFacturaExc0674(role) || !tenantId) {
     return { ok: false, error: "Tu rol no puede facturar desde Embarques." };
