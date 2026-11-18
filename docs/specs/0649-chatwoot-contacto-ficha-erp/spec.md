@@ -87,6 +87,7 @@ D1 (a), D2 (a), D3 (a), D4 (b) y D5 (a). D4 queda en (b) porque la condición de
 | 5 | Pruebas | `lib/studio/chatwoot/__tests__/contacto-erp.test.ts` (nuevo); `lib/studio/chatwoot/__tests__/aviso-unico-por-evento.test.ts` (la lista de nombres de los manejadores) |
 | 6 | Runbook: crear los atributos, encender, comprobar y apagar | `docs/runbooks/chatwoot-bandeja.md` |
 | 7 | Puertas: despliegue, atributos en Chatwoot y la variable, cada una con OK nominal | Director General |
+| 8 | Smoke previo al encendido (2026-11-17, OK de Sam por el Director General: «Sí, mídelo»): `GET`/`PATCH` de `custom_attributes` y qué ve un Agente, contra un Chatwoot 4.19.1 efímero, sin producción | `lib/studio/chatwoot/__tests__/contacto-erp.poc.test.ts` (nuevo); `infra/chatwoot/pruebas/portal/sonda-portal-poc.rb` (un agente sin bandejas) y `prueba-portal-poc.sh`; `.github/workflows/chatwoot-portal-poc.yml` (la ruta de la prueba) |
 
 No hay migración. Fuera de esta lista no se toca nada.
 
