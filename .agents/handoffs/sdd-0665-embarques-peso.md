@@ -37,12 +37,29 @@ Pedido de Sam en la reunión del 2026-11-18, por el DG. Spec:
 | eslint de lo tocado | PASÓ |
 | `pnpm verify` | NO EJECUTADO (el portón es el CI) |
 
+## Revisión independiente
+
+APPROVED sobre `6615df8a7`, sin bloqueantes.
+
+**Notas de la revisión independiente (2026-11-18, sobre `6615df8a7`, no bloqueantes; sin código nuevo
+en esta PR):**
+
+1. Formatos mezclados en la misma tabla: m³ usa `toFixed` («2.00») y kg usa `es-VE` («1.234,5 kg»).
+   Unificar en una PR siguiente.
+2. Un peso cargado como 0 explícito muestra «0 kg», no «Sin peso». Decisión para la oficina.
+3. Un contenedor sin ningún peso dice «Sin peso», pero no dice cuántos envíos son.
+4. Comprobado leyendo el código: `grupo.embarques` es `lista.length`, y `groupShipmentsByClient(lista)`
+   pone cada envío en exactamente un cliente, sin filtrar. La suma de `enviosSinPeso` de los clientes se
+   compara entonces contra los mismos envíos, y «Sin peso» solo sale cuando ninguno tiene peso.
+
 ## Pendientes de esta tarea
 
 - Decisión de Sam sobre la fuente del peso y sobre «peso recibido» (spec §3).
-- Pruebas con turno, traer main (entra la tanda #675) y abrir la PR.
+- Traer main cuando entre la #675, repetir lo afectado y marcar la #678 lista para revisión.
 
 ## FUERA DE ALCANCE DETECTADO
+
+- Notas 1-3 de la revisión: para una PR siguiente o una decisión de la oficina.
 
 - Las «cajas recibidas» de la 0661 dependen de que exista la recepción VE del contenedor (se crea en
   `warehouse-receipt-ve-queries.ts`). Si la oficina no crea esa recepción al llegar el contenedor, la

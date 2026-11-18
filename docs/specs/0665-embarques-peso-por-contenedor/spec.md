@@ -70,6 +70,17 @@ Las dos cosas quedan **pendientes de la decisión de Sam**. El DG dio la propues
   contenedor» también suma el peso.
 - Formato: kg con punto de miles y hasta dos decimales (`es-VE`).
 
+**Notas de la revisión independiente (2026-11-18, sobre `6615df8a7`, no bloqueantes; sin código nuevo
+en esta PR):**
+
+1. Formatos mezclados en la misma tabla: m³ usa `toFixed` («2.00») y kg usa `es-VE` («1.234,5 kg»).
+   Unificar en una PR siguiente.
+2. Un peso cargado como 0 explícito muestra «0 kg», no «Sin peso». Decisión para la oficina.
+3. Un contenedor sin ningún peso dice «Sin peso», pero no dice cuántos envíos son.
+4. Comprobado leyendo el código: `grupo.embarques` es `lista.length`, y `groupShipmentsByClient(lista)`
+   pone cada envío en exactamente un cliente, sin filtrar. La suma de `enviosSinPeso` de los clientes se
+   compara entonces contra los mismos envíos, y «Sin peso» solo sale cuando ninguno tiene peso.
+
 ## 5. Fuera de alcance
 
 - Sin migraciones. Pesar en Venezuela sería otra spec, con migración y OK de Sam.
