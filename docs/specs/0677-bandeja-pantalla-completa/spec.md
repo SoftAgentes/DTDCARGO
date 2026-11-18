@@ -23,7 +23,7 @@ Dos partes: (1) por qué falla a veces; (2) la Bandeja a pantalla completa y que
 
 ## Etiquetas de evidencia
 
-- **C**: leído en el código de este repo (archivo:línea, en `main` a `bab0dafcc`).
+- **C**: leído en el código de este repo, en `main` a `bab0dafcc`. Se cita por archivo y símbolo (función, clave o bloque), no por línea, para que la cita no se venza al fusionar. Lo que esta spec cambia se marca «antes de 0677».
 - **R**: resultado medido antes, citado de otra spec con su ID.
 - **I**: inferencia. No se probó.
 - **NV**: no verificado. Hace falta mirar los logs del VPS o de Chatwoot, con permiso del DG.
@@ -34,29 +34,29 @@ No se leyó producción, ni filas de negocio, ni los logs del VPS.
 
 ### Cómo abre hoy la Bandeja a Chatwoot
 
-1. La página decide el estado en el servidor. Si existe la marca `dtd_cw_sso` y es del usuario, pasa `inicioUrl = panelUrl`: el iframe abre el panel **sin SSO** y confía en que la sesión de Chatwoot del navegador sigue viva. (C: `app/studio/(app)/bandeja/page.tsx:60-62`; `lib/studio/chatwoot/sso-cookie.ts:25-27`)
-2. Sin marca, el cliente pide un enlace SSO de un solo uso por server action y lo pone en el iframe. El servidor deja la marca. (C: `app/studio/(app)/bandeja/_components/BandejaClient.tsx:64-87`; `app/studio/(app)/bandeja/actions.ts:86-116`)
-3. La marca es una cookie de sesión del navegador, sin `maxAge`. Solo la borra `signOut`. (C: `sso-cookie.ts:11`, `sso-cookie.ts:17-22`; `app/studio/(app)/actions.ts:23-24`)
-4. El pedido del enlace es **un solo intento**. Cualquier falla de red, timeout o 5xx de Chatwoot termina en el código `service`. (C: `lib/studio/chatwoot/platform-api.ts:70-80`; `actions.ts:103-107`)
-5. Con `service`, la Bandeja muestra «No pudimos abrir la bandeja / El servidor de mensajes no respondió» y un botón «Reintentar». No reintenta sola. (C: `BandejaClient.tsx:133-147`; `lib/i18n/es-VE/bandeja.ts:22-24`, `:112`)
-6. Cuando el iframe carga, Studio lo da por «abierto» con el `onLoad`, sea el panel, la pantalla de inicio de sesión de Chatwoot, la de «demasiadas sesiones» o una página de error del proxy. El marco es de otro origen y Studio no puede leer qué cargó. (C: `BandejaClient.tsx:163`)
-7. El script del panel (`DASHBOARD_SCRIPTS`) solo responde a `dtd:cerrar-sesion` y a la guía. No avisa a Studio si el panel quedó sin sesión. (C: `infra/chatwoot/panel/dashboard-scripts.html:42-56`)
+1. La página decide el estado en el servidor. Si existe la marca `dtd_cw_sso` y es del usuario, pasa `inicioUrl = panelUrl`: el iframe abre el panel **sin SSO** y confía en que la sesión de Chatwoot del navegador sigue viva. (C: `app/studio/(app)/bandeja/page.tsx` › `BandejaPage`, el cálculo de `inicioUrl`; `lib/studio/chatwoot/sso-cookie.ts` › `ssoVigentePara`)
+2. Sin marca, el cliente pide un enlace SSO de un solo uso por server action y lo pone en el iframe. El servidor deja la marca. (C: `app/studio/(app)/bandeja/_components/BandejaClient.tsx` › `pedir` y el efecto «un solo pedido automático por montaje», antes de 0677; `app/studio/(app)/bandeja/actions.ts` › `pedirEnlaceSso`)
+3. La marca es una cookie de sesión del navegador, sin `maxAge`. Solo la borra `signOut`. (C: `sso-cookie.ts` › `SSO_COOKIE_OPTIONS`; `app/studio/(app)/actions.ts` › `signOut`)
+4. El pedido del enlace es **un solo intento**. Cualquier falla de red, timeout o 5xx de Chatwoot termina en el código `service`. (C: `lib/studio/chatwoot/platform-api.ts` › `obtenerEnlaceSso` y `pedir`; `actions.ts` › `pedirEnlaceSso`, la rama `!enlace.ok`)
+5. Con `service`, la Bandeja muestra «No pudimos abrir la bandeja / El servidor de mensajes no respondió» y un botón «Reintentar». No reintenta sola. (C: `BandejaClient.tsx`, la rama `fase.tipo === "error"`, antes de 0677; `lib/i18n/es-VE/bandeja.ts`, las claves `bandeja.state.error.*` (retiradas por esta spec) y `bandeja.error.service`)
+6. Cuando el iframe carga, Studio lo da por «abierto» con el `onLoad`, sea el panel, la pantalla de inicio de sesión de Chatwoot, la de «demasiadas sesiones» o una página de error del proxy. El marco es de otro origen y Studio no puede leer qué cargó. (C: `BandejaClient.tsx`, el `onLoad` del iframe)
+7. El script del panel (`DASHBOARD_SCRIPTS`) solo responde a `dtd:cerrar-sesion` y a la guía. No avisa a Studio si el panel quedó sin sesión. (C: `infra/chatwoot/panel/dashboard-scripts.html`, el escuchador de `message` que atiende `dtd:cerrar-sesion`)
 
 Las cabeceras no son la causa:
-- Studio manda `frame-src` del chat solo en `/studio/bandeja`. (C: `next.config.ts:329-341`)
-- Traefik borra el `X-Frame-Options` de Chatwoot y pone `frame-ancestors 'self' <Studio>`. (C: `infra/chatwoot/compose.yml:248-252`)
-- `www` redirige a la raíz antes de llegar a Studio, así que el marco siempre se pide desde `https://dtdcargo.com`. (C: `infra/dtd-cargo/compose.yml:104`; R: E2-T2)
+- Studio manda `frame-src` del chat solo en `/studio/bandeja`. (C: `next.config.ts` › `headers()`, el bloque «Bandeja de Chatwoot (SDD-0585, E2-D2/E2-D14)»)
+- Traefik borra el `X-Frame-Options` de Chatwoot y pone `frame-ancestors 'self' <Studio>`. (C: `infra/chatwoot/compose.yml`, el middleware `${COMPOSE_PROJECT_NAME}-marco`)
+- `www` redirige a la raíz antes de llegar a Studio, así que el marco siempre se pide desde `https://dtdcargo.com`. (C: `infra/dtd-cargo/compose.yml`, el middleware `-www-a-raiz`; R: E2-T2)
 - Las cookies no son de terceros: `chat.dtdcargo.com` dentro de `dtdcargo.com` es el mismo sitio, y las cookies `Lax` viajan. (R: E2-R2, E2-D1, E2-D29)
 
 ### Causas, de más a menos probable
 
 | # | Causa | Qué ve Sam | Evidencia | Etiqueta |
 |---|---|---|---|---|
-| H1 | **Sesiones acumuladas: el 409 de Chatwoot.** Con `MAX_USER_SESSIONS=5`, el sexto login de navegador da 409 y Chatwoot muestra, **dentro del iframe**, la pantalla para elegir qué sesión cerrar. Cada SSO es un login nuevo. La marca vive solo mientras el navegador no se cierre, así que cada vez que se abre el navegador, se usa otra PC o se entra desde otro navegador, hay otro SSO y otra sesión. Las sesiones viejas duran hasta 2 meses (`token_lifespan`). El cierre de sesión en el navegador (E2-D48) solo cierra la sesión si la persona sale con «Cerrar sesión» de Studio, y depende del script del panel instalado en el VPS. Quien solo cierra el navegador deja la sesión viva. | Una pantalla de Chatwoot con un error o una lista de sesiones, sin que Studio diga nada | C: `infra/chatwoot/compose.yml:67`, `sso-cookie.ts:4-11`; R: E2-R7, E2-C3, E2-D13, E2-D48 | C + R; que pase en producción: **NV** |
-| H2 | **Marca vieja con la sesión del panel ya muerta.** Si la marca existe, Studio abre el panel sin SSO. Si la sesión de Chatwoot de ese navegador ya no existe, el panel cae en su pantalla de inicio de sesión. Puede morir porque un login sin «Mozilla» en el agente (la app móvil, por ejemplo) desaloja la sesión más vieja en silencio, porque la sesión venció, o por una baja y alta del agente. | La pantalla de inicio de sesión de Chatwoot dentro de la Bandeja | C: `page.tsx:60-62`; R: E2-C3 (desalojo sin «Mozilla») | C + R; que pase en producción: **NV** |
-| H3 | **Chatwoot reiniciándose o lento.** El enlace se pide una sola vez, con timeout. Si Chatwoot se está reiniciando (actualización de versión, `docker restart`, memoria del VPS), sale el error `service` y no hay reintento automático. Si Chatwoot responde el enlace pero no carga el panel, el proxy pinta su propia página de error dentro del marco. | «No pudimos abrir la bandeja. El servidor de mensajes no respondió», o una página de error dentro del marco | C: `platform-api.ts:70-80`, `actions.ts:103-107`, `BandejaClient.tsx:133-147` | C; cuándo reinicia: **NV** (logs del VPS) |
+| H1 | **Sesiones acumuladas: el 409 de Chatwoot.** Con `MAX_USER_SESSIONS=5`, el sexto login de navegador da 409 y Chatwoot muestra, **dentro del iframe**, la pantalla para elegir qué sesión cerrar. Cada SSO es un login nuevo. La marca vive solo mientras el navegador no se cierre, así que cada vez que se abre el navegador, se usa otra PC o se entra desde otro navegador, hay otro SSO y otra sesión. Las sesiones viejas duran hasta 2 meses (`token_lifespan`). El cierre de sesión en el navegador (E2-D48) solo cierra la sesión si la persona sale con «Cerrar sesión» de Studio, y depende del script del panel instalado en el VPS. Quien solo cierra el navegador deja la sesión viva. | Una pantalla de Chatwoot con un error o una lista de sesiones, sin que Studio diga nada | C: `infra/chatwoot/compose.yml` › `x-entorno`, `MAX_USER_SESSIONS`; el comentario de cabecera de `sso-cookie.ts`; R: E2-R7, E2-C3, E2-D13, E2-D48 | C + R; que pase en producción: **NV** |
+| H2 | **Marca vieja con la sesión del panel ya muerta.** Si la marca existe, Studio abre el panel sin SSO. Si la sesión de Chatwoot de ese navegador ya no existe, el panel cae en su pantalla de inicio de sesión. Puede morir porque un login sin «Mozilla» en el agente (la app móvil, por ejemplo) desaloja la sesión más vieja en silencio, porque la sesión venció, o por una baja y alta del agente. | La pantalla de inicio de sesión de Chatwoot dentro de la Bandeja | C: `page.tsx` › `BandejaPage`, `inicioUrl`; R: E2-C3 (desalojo sin «Mozilla») | C + R; que pase en producción: **NV** |
+| H3 | **Chatwoot reiniciándose o lento.** El enlace se pide una sola vez, con timeout. Si Chatwoot se está reiniciando (actualización de versión, `docker restart`, memoria del VPS), sale el error `service` y no hay reintento automático. Si Chatwoot responde el enlace pero no carga el panel, el proxy pinta su propia página de error dentro del marco. | «No pudimos abrir la bandeja. El servidor de mensajes no respondió», o una página de error dentro del marco | C: `platform-api.ts` › `obtenerEnlaceSso`; `actions.ts` › `pedirEnlaceSso`; la rama de error de `BandejaClient.tsx` antes de 0677 | C; cuándo reinicia: **NV** (logs del VPS) |
 | H4 | **Tope de logins de rack-attack.** Chatwoot corta a 5 `POST /auth/sign_in` por IP cada 5 minutos. Si detrás de Cloudflare la IP que ve es la de Cloudflare, o si toda la oficina sale por la misma IP, cinco aperturas juntas de varias personas bastan para que la sexta reciba 429. | Un error de «demasiados intentos» dentro del marco | R: E2-C4; I: E2-I3 | I, **NV** |
-| H5 | **Enlace de un solo uso reusado.** El enlace solo entra una vez (R: E2-R2, S3). Hoy el iframe se monta con `key={src}` y el enlace no se reusa al recargar la página, porque al recargar la marca ya existe y se abre el panel sin token. **No es la causa** con el código actual, pero el rediseño no debe volver a montar el iframe al cambiar de modo, o reusaría un enlace ya gastado. | — | C: `BandejaClient.tsx:156-157`, `page.tsx:60-62` | C (descartada) |
+| H5 | **Enlace de un solo uso reusado.** El enlace solo entra una vez (R: E2-R2, S3). Hoy el iframe se monta con `key={src}` y el enlace no se reusa al recargar la página, porque al recargar la marca ya existe y se abre el panel sin token. **No es la causa** con el código actual, pero el rediseño no debe volver a montar el iframe al cambiar de modo, o reusaría un enlace ya gastado. | — | C: `BandejaClient.tsx`, el `key={src}` del iframe; `page.tsx` › `BandejaPage`, `inicioUrl` | C (descartada) |
 
 ### El arreglo anterior que recuerda Sam
 
@@ -80,7 +80,7 @@ Lo que se corrigió antes fue en SDD-0585:
 |---|---|---|---|
 | M1 · Sesiones vivas por agente | H1: un agente de la Bandeja con 5 sesiones o más está en el 409 o al borde | Una consulta de solo lectura en la base de Chatwoot, con OK del DG: el histograma de `count(*)` de `user_sessions` (o de tokens vivos) agrupado por usuario. El resultado sale en números, sin ids ni correos (por ejemplo: «3 agentes con 1, 1 con 5») | DG, en el VPS |
 | M2 · Lo que ve Studio al abrir | H2: con la marca, el panel cayó en el inicio de sesión | Requiere (c): el script del panel le avisa a Studio su estado al cargar, y Studio cuenta `abrio_con_marca`, `sin_sesion` y `demasiadas_sesiones` en un log sin usuario ni enlace | PR de seguimiento + puerta del VPS |
-| M3 · Código del SSO | H3 y fallas de la Platform API | Studio ya registra `[bandeja] SSO no disponible: <código>` (C: `actions.ts:105`), sin enlace ni correo. Contar esas líneas en los logs de Studio por día | DG |
+| M3 · Código del SSO | H3 y fallas de la Platform API | Studio ya registra `[bandeja] SSO no disponible: <código>` (C: `actions.ts` › `pedirEnlaceSso`, el `console.warn` del SSO), sin enlace ni correo. Contar esas líneas en los logs de Studio por día | DG |
 | M4 · 409 y 429 de `/auth/sign_in` | H1 y H4 en el momento del login | Lo pide el navegador a Chatwoot, y Studio no lo ve. Hace falta un access log de Traefik para `chat.` filtrado a esa ruta y a esos códigos, guardando solo conteos. Es config del VPS. **Medido por el DG (2026-11-18):** Traefik no deja el access log en `docker logs` (0 líneas con `/auth/sign_in` en 7 días), así que hoy no hay medida por ahí; habría que encender el access log | DG, con OK de Sam |
 
 El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG se la pide a Sam junto con las opciones a, b y c), y después M3. M2 y M4 dependen de las decisiones de abajo. No se tocan ni la config ni el compose de Chatwoot desde esta spec.
@@ -100,19 +100,27 @@ El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG 
 - **Foco y teclado:**
   - al ampliar con el botón, el foco va al título de la franja; al reducir, vuelve al botón «Pantalla completa». La primera apertura no mueve el foco;
   - Esc funciona mientras el foco está en Studio. Dentro del panel, el teclado es de Chatwoot, y por eso «Reducir» siempre está a la vista;
-  - no hay trampa de foco, porque el panel tiene que poder recibirlo con Tab;
+  - no hay trampa de foco: el panel tiene que poder recibirlo con Tab. El fondo queda `inert` (D3), así que Tab recorre solo la franja y el panel;
   - el fondo no se desplaza mientras está ampliada;
-  - la capa es `role="region"` con nombre, no un diálogo modal: es la página misma, más grande.
+  - la capa es una `<section>` con nombre (`aria-labelledby`), no un diálogo modal: es la página misma, más grande.
 - Los avisos del admin (portal, descartados) quedan en la vista compacta, debajo del panel.
 
 ### D2 · Recuperación del error
 
+> **Esto no resuelve H1.** Mientras no se apliquen (a) y (c) (ver más abajo), un agente con 5 sesiones vivas sigue cayendo en el 409. Lo de aquí hace que Studio no lo empeore y que la persona sepa qué hacer.
+
 1. **Reintento automático del enlace.** Con `service`, el cliente reintenta dos veces más, a los 1,5 s y a los 4 s. Pedir el enlace no gasta un login de rack-attack: el login lo hace el navegador al cargar el enlace (R: E2-C2, E2-C4). Mientras reintenta muestra «Conectando con la bandeja… (intento 2 de 3)».
-2. **Vigilante de carga.** Si el marco no termina de cargar en 20 s, se muestra el aviso de recuperación.
-3. **Aviso de recuperación, sin error crudo.** Título «La bandeja no abrió», una explicación corta según la causa conocida y los botones «Abrir de nuevo» (principal) y «Abrir en pestaña aparte». «Abrir de nuevo» pide un SSO nuevo.
-4. **Ayuda visible para lo que Studio no puede ver** (H1, H2, H4). Debajo de la franja va una línea fija y discreta: «¿Ves la pantalla de inicio de Chatwoot o un error? Oprime “Abrir de nuevo”.»
-5. **Freno contra el tope de logins.** Si en 5 minutos se oprime «Abrir de nuevo» tres veces, el tercero no pide otro SSO. Explica: «Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.» Así Studio no empeora un 429 (H4) ni suma sesiones (H1).
-6. Los errores que no son pasajeros (`denied`, `unlinked`, `unconfigured`) no se reintentan y conservan su mensaje.
+2. **Vigilante de carga.** Si el marco no termina de cargar en 20 s, se muestra el aviso de recuperación. El marco sigue montado por si termina.
+3. **Aviso de recuperación, sin error crudo.** Es un `<Aviso>` con el título «La bandeja no abrió», una explicación corta según el caso y los botones «Abrir en pestaña aparte» y «Abrir de nuevo» (el principal, a la derecha). «Abrir de nuevo» pide un SSO nuevo. El texto no atribuye la falla a un reinicio de Chatwoot: la medición del DG lo hace improbable (H3).
+4. **Con `error`, el iframe se desmonta**, porque no hay un enlace válido que mostrar. Con «lento» y con el freno sigue montado. Si termina de cargar, el `onLoad` limpia el aviso, también el del freno.
+5. **Ayuda solo después de un fallo** (H1, H2, H4: lo que Studio no ve). Si hubo un error, el vigilante saltó, actuó el freno o la persona reabrió a mano, aparece en la franja: «¿Ves la pantalla de inicio de Chatwoot o un error? Oprime «Abrir de nuevo» una vez. Si vuelve a pasar, avísale al equipo de sistemas.» No se muestra junto al aviso, para no repetirlo. Antes de un fallo no hay ayuda fija, para no empujar a repetir el login que en H1 vuelve a fallar.
+6. **Freno por navegador.** Como mucho **3 aperturas por SSO cada 5 minutos**, sumando las automáticas (al montar sin marca) y las manuales. Una apertura que termina en `service` cuenta una vez, no una por reintento. Las marcas son solo horas en milisegundos, en `localStorage` (`dtd.bandeja.sso`), dentro de un try/catch: sobreviven a recargar, se comparten entre pestañas y, sin almacenamiento, quedan en la memoria de la página. Con el tope lleno no se pide SSO, ni siquiera el automático, y el aviso dice: «Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.» Así Studio no empeora un 429 (H4) ni suma sesiones (H1).
+7. Los errores que no son pasajeros (`denied`, `unlinked`, `unconfigured`) no se reintentan y conservan su mensaje.
+
+### D3 · Fondo inerte y sin destello
+
+- **`inert` en el fondo.** En pantalla completa, los hermanos de cada ancestro de la capa reciben `inert`, hasta el hijo directo de `body` (sin incluirlo). Así Tab no cae en el menú ni en la cabecera de detrás. Los hijos directos de `body` (avisos, guía y drawers en portal) siguen vivos. Lo que ya tenía `inert` no se toca, y al reducir se devuelve todo. **Respaldo seguro:** en un navegador sin `inert`, el atributo no hace nada y la capa sigue funcionando; solo Tab podría llegar al fondo.
+- **Hidratación.** La preferencia se lee después de montar, con una lectura diferida y cancelable, como `useColumnConfig`. Hasta entonces la capa está en modo «pendiente», oculta con `visibility: hidden`: el marco ya carga, pero no se pinta en un modo para después saltar al otro.
 
 ### Fuera de este cambio (decisiones para Sam y el DG)
 
@@ -134,14 +142,29 @@ El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG 
 
 ## Aceptación
 
-1. La spec trae la causa con archivo:línea y separa lo probado de lo que no (sección 1).
-2. Con la Bandeja lista, el panel ocupa toda la ventana. «Reducir» y Esc vuelven a la vista compacta, y «Pantalla completa» amplía otra vez. El `src` del iframe y el elemento son los mismos antes y después (prueba).
-3. El foco va al título al ampliar y vuelve al botón al reducir (prueba).
-4. Con `service`, el enlace se reintenta dos veces antes de mostrar el aviso. Con `denied`, no se reintenta (prueba).
-5. Si el marco no carga en 20 s, aparece el aviso con «Abrir de nuevo», y oprimirlo pide un SSO nuevo (prueba).
-6. El tercer «Abrir de nuevo» en 5 minutos no pide SSO y muestra el aviso del freno (prueba).
-7. Los textos en es-VE y zh-CN, sin claves sueltas.
-8. `/ui-check` del diff.
+1. La spec trae la causa citada por archivo y símbolo, y separa lo probado de lo que no (sección 1).
+2. Con la Bandeja lista, el panel ocupa toda la ventana. «Reducir» y Esc vuelven a la vista compacta, y «Pantalla completa» amplía otra vez. Solo Escape reduce, y no con un diálogo de Studio abierto encima. El `src` del iframe y el elemento son los mismos antes y después (prueba).
+3. El foco va al título al ampliar y vuelve al botón al reducir, también con Esc (prueba).
+4. En pantalla completa el fondo queda `inert` y se devuelve al reducir. Antes de leer la preferencia no se pinta ningún modo (prueba).
+5. Con `service`, el enlace se reintenta dos veces antes del aviso. Con `denied`, no se reintenta. Con `error`, el marco se desmonta (prueba).
+6. Si el marco no carga en 20 s, aparece el aviso con «Abrir de nuevo», y oprimirlo pide un SSO nuevo. La ayuda sale solo después de un fallo y nunca junto al aviso (prueba).
+7. Freno: 3 aperturas cada 5 minutos por navegador, automáticas y manuales. Sobrevive al remonte, una apertura con `service` cuenta una vez, la ventana vence a los 5 minutos exactos, funciona sin almacenamiento y el `onLoad` limpia el aviso (prueba).
+8. Los textos en es-VE y zh-CN, sin claves sueltas ni «se está reiniciando».
+9. `/ui-check` del diff, con su evidencia (abajo).
+
+## Evidencia de `/ui-check` (advisory, 2026-11-18)
+
+Se revisaron `BandejaClient.tsx` y los textos contra `BRAND.md` (color, controles BD-037, estados y tono) y las reglas de `app/studio/CLAUDE.md`:
+
+| # | Prioridad | Hallazgo | Estado |
+|---|---|---|---|
+| 1 ⭐ | alta | Fondo de la capa con `var(--bg)`, un token que no existe en `app/studio/tokens.css` | Corregido: `var(--bg-base)` |
+| 2 | media | Un aviso armado a mano (div con borde rojo a la izquierda) en vez de `<Aviso>`; BD-037 pide la franja plana del sistema | Corregido: `<Aviso tono="error" o "atencion" urgente>` |
+| 3 | media | Una clase `studio-btn-secondary` que no existe | Corregido: `studio-btn-ghost`, variante oficial |
+| 4 | baja | «Abriendo la bandeja…» en `--ink-mute` (#9B9B9B sobre blanco, por debajo de 4,5:1) | Corregido: `--ink-soft` |
+| 5 | baja | El primario va a la derecha (regla 8) y los objetivos son de 32 px o más (`studio-btn-sm`) | Cumple |
+
+Sin hex nuevos, sin AI slop y en tuteo. Los anchos no son fijos: no hay nada que medir.
 
 ## Alcance de archivos
 

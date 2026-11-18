@@ -52,6 +52,54 @@ El pedido de Sam: que la Bandeja sea compacta y se amplíe a toda la pantalla al
 | `pnpm verify` | NO EJECUTADO: el turno cubría install, vitest, tsc y eslint. Queda el CI de GitHub |
 | Logs del VPS (DG) | Ningún contenedor se reinició (H3 improbable). Los logs no registran los 409 ni los 429: H1 y H2 quedan como hipótesis, con medición propuesta en la spec |
 
+## Revisión independiente de aee991191 (CHANGES_REQUESTED) y qué se hizo
+
+1. **Freno persistente.** Las marcas ahora van en `localStorage` (`dtd.bandeja.sso`, solo horas en ms), dentro de un try/catch y con un respaldo en memoria. El tope es de 3 aperturas por SSO cada 5 minutos por navegador, sumando automáticas y manuales. Una apertura con `service` cuenta una vez. Con el tope lleno no se pide SSO, ni siquiera el automático.
+2. **Ayuda solo después de un fallo** (error, vigilante, freno o una reapertura manual), nunca junto al aviso. El texto ahora es «una vez… si vuelve a pasar, avísale al equipo de sistemas». La spec dice que H1 no se resuelve hasta (a) y (c).
+3. **`inert`** en los hermanos de cada ancestro, hasta el hijo de `body` sin incluirlo, para que los portales sigan vivos. No toca lo que ya tenía `inert`, se devuelve al reducir y, sin soporte, no hace nada (respaldo seguro).
+4. **Pruebas nuevas:**
+   - la ventana que vence a los 5 minutos exactos;
+   - `service` que cuenta una vez;
+   - el remonte con 1 marca;
+   - el tope lleno al remontar;
+   - el freno sin almacenamiento;
+   - el `onLoad` que limpia el freno;
+   - el `error` que desmonta el marco;
+   - solo Escape reduce;
+   - el foco que vuelve tras Esc;
+   - `marcasVigentes`.
+
+   Se quitó `vi.useRealTimers()` a mitad de prueba: el bloque de recuperación entero corre con relojes falsos.
+5. **Menores:**
+   - el estado inicial ahora es neutro (`pendiente`, oculto), sin destello;
+   - el `onLoad` limpia el freno;
+   - se quitó «se está reiniciando» de es-VE y zh-CN;
+   - la spec cita por archivo y símbolo y trae la evidencia de `/ui-check`;
+   - quedó escrito que con `error` el iframe se desmonta.
+
+**Mutantes** (un script en el scratchpad que reescribe el componente y lo restaura): **23/23 en rojo**, y el control inofensivo en verde.
+- Esc: cualquier tecla, sin chequear el diálogo y sin reducir.
+- Foco: al botón y al título.
+- Ventana: `<=`, sin vencimiento y aceptando futuras.
+- Tope: `>`.
+- Freno: sin persistencia, una reserva por intento y sin contar la automática.
+- Sin reintento, sin vigilante y sin bloqueo del desplazamiento.
+- El iframe que se vuelve a montar.
+- Sin `inert` y sin devolverlo.
+- La ayuda siempre y la ayuda junto al aviso.
+- El `onLoad` que no limpia el freno, la hidratación en `true` y el error que deja el marco.
+
+En la primera vuelta, el control salió en rojo por una carrera. La prueba de `denied` consultaba roles con la capa todavía oculta. Se corrigió esperando el modo, y la suite dio 3 de 3 en verde seguidas.
+
+| Comprobación (turno corto del DG) | Estado |
+|---|---|
+| vitest de `BandejaClient.test.tsx` | PASÓ 32/32, tres corridas seguidas |
+| vitest de la Bandeja, `_components/__tests__`, guía y `lib/i18n` | PASÓ 529/529 |
+| `tsc --noEmit` | PASÓ |
+| eslint de los 4 archivos | PASÓ, sin avisos |
+| `docs:check` y `git diff --check` | PASÓ |
+| `pnpm verify` | NO EJECUTADO: queda el CI |
+
 ## Pendientes de esta tarea
 
 1. La PR #690 está lista para que el DG lance la revisión independiente.
