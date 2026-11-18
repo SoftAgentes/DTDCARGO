@@ -117,13 +117,13 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3.00"]);
   });
 
-  it("un contenedor sin recepción dice «—» en recibidas, no 0", async () => {
+  it("un contenedor sin recepción dice «Sin recepción» en recibidas, no 0", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(cabecera("DDP 65"));
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
-    expect(franja.textContent).toContain("Cajas recibidas—");
+    expect(franja.textContent).toContain("Cajas recibidasSin recepción");
     const tabla = within(region("DDP 65")).getByRole("table");
-    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "—", "1.00"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1.00"]);
   });
 
   it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {

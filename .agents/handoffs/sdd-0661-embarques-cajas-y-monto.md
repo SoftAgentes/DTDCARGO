@@ -17,7 +17,7 @@ Excel», maqueta con datos inventados que pasó el DG). Spec:
   la carga de consolidados.
 - **Cajas recibidas:** recepción VE (`warehouse_receipts_ve` por ISO del contenedor →
   `warehouse_receipt_ve_boxes` escaneadas, por Shipping Mark). Sin recepción, o si la lectura falla,
-  dice «—». **Fuente pendiente de confirmar** (se le preguntó al DG).
+  dice «Sin recepción». Fuente y textos: decisión de Sam (2026-11-18, por el DG).
 - **Por cobrar / cobrado:** de `invoices` vivas no anuladas por `shipment_id` (`total_amount` /
   `paid_amount` en USD; los borradores cuentan). En la franja y como columnas. «Sin facturar» si no hay
   facturas; «No disponible» si la lectura falla.
@@ -42,10 +42,10 @@ Excel», maqueta con datos inventados que pasó el DG). Spec:
   commercial, operations, support, warehouse y marketing no consultan `invoices` ni reciben `montos`;
   accounting y admin sí.
 - `lib/studio/__tests__/embarques-cajas-y-monto.test.ts`: cajas vigentes; sumas por cliente y por
-  contenedor; filtro; FCL con 0; recibidas (0 contra «—»); lectura VE por ISO, recepciones borradas,
+  contenedor; filtro; FCL con 0; recibidas (0 contra «Sin recepción»); lectura VE por ISO, recepciones borradas,
   sin escanear y fallas; montos por embarque (USD, borradores, anuladas, otra moneda, cobrado).
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.cajas-monto.test.tsx`: render de la
-  cabecera cerrada, la franja y la tabla, con y sin montos, «Sin facturar», «No disponible» y «—».
+  cabecera cerrada, la franja y la tabla, con y sin montos, «Sin facturar», «No disponible» y «Sin recepción».
 
 ## Impacto documental
 
@@ -54,7 +54,7 @@ Spec nueva 0661 e índice regenerado. Sin cambios en BRAND ni Norte: se reutiliz
 
 ## Pendientes de esta tarea
 
-- Confirmar la fuente de «cajas recibidas» (§3 de la spec).
+- (Hecho) Fuente de «cajas recibidas» y definición de por cobrar/cobrado: decisiones de Sam en la spec §3 y §4.2.
 - Correr vitest y `pnpm verify` con turno del DG; publicar la rama y abrir la PR.
 - Revisión independiente (la lanza el DG).
 

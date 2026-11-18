@@ -1146,9 +1146,9 @@ function textoCajas(n: number): string {
   return `${n.toLocaleString("es-VE")} ${n === 1 ? "caja" : "cajas"}`;
 }
 
-/** SDD-0661: cajas recibidas; sin recepción, «—» (no 0). */
+/** SDD-0661: cajas recibidas; sin recepción, «Sin recepción» (decisión de Sam: nunca 0). */
 function textoRecibidas(n: number | null): string {
-  return n == null ? "—" : n.toLocaleString("es-VE");
+  return n == null ? "Sin recepción" : n.toLocaleString("es-VE");
 }
 
 /**

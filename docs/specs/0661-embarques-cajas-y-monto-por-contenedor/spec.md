@@ -58,15 +58,15 @@ Vocabulario: «contenedor 64», «DDP 64»; nunca «lote». Todo en dólares.
 - **Modelo:** `ContenedoresDeEmbarques.recibidasPorContenedor[contenedor][Shipping Mark]`. Por cliente
   es la cifra de su Shipping Mark en ese contenedor (0 si el contenedor tiene recepción y el cliente no
   tiene cajas recibidas). Por contenedor es la suma de sus clientes.
-- **Sin recepción:** si el contenedor no tiene recepción, la franja, la columna y el total dicen «—»,
+- **Sin recepción:** si el contenedor no tiene recepción, la franja, la columna y el total dicen «Sin recepción»,
   nunca 0.
-- **Fuente (implementada; pendiente de confirmar con Sam o el DG):** las cajas escaneadas en la
+- **Fuente (decisión de Sam, 2026-11-18, por el DG: «escaneadas en el almacén de Venezuela al llegar el contenedor»; sin recepción, «sin recepción», nunca 0):** las cajas escaneadas en la
   recepción del almacén de Venezuela de ese contenedor. Son las `warehouse_receipt_ve_boxes` con
   `scanned_at` no nulo del `warehouse_receipts_ve` vivo cuyo `container_code` es el ISO del contenedor
   (comparado sin guiones ni espacios), contadas por `markbox` (`leerRecibidasDeContenedores`, paginada
   con `fetchAllPaged`). Se descartó `warehouse_receipts_cn.boxes`: la carga del Excel la iguala a las
   cajas y nunca diferiría.
-- **Lectura fallida o cortada:** no hay datos de recibidas y todo dice «—»; no se muestra un número que
+- **Lectura fallida o cortada:** no hay datos de recibidas y todo dice «Sin recepción»; no se muestra un número que
   no cuadre.
 - Las cajas recibidas son carga, no dinero: se leen para todos los roles.
 
@@ -98,7 +98,7 @@ viaja al navegador. No basta con ocultarlo en la UI.
   `shipment_id`. Se suman por embarque y después por cliente y por contenedor.
 - **Qué se excluye:** `deleted_at is not null` y `status = 'anulada'`. Los borradores **sí** cuentan:
   son lo que se va a cobrar (la carga del 65 deja sus facturas en borrador).
-- **Por cobrar:** `total_amount` (base + IVA), lo facturado. **Cobrado:** `paid_amount`. Ambos solo de
+- **Decisión de Sam (2026-11-18, por el DG):** «por cobrar» = total facturado; «cobrado» = lo pagado. **Por cobrar:** `total_amount` (base + IVA), lo facturado. **Cobrado:** `paid_amount`. Ambos solo de
   las facturas en `USD`.
 - **Otra moneda:** el sistema trabaja en dólares. Una factura en otra moneda no se convierte aquí: no se
   suma y la franja dice cuántas quedaron fuera.
@@ -133,7 +133,7 @@ y no inventa un número.
    abrir aparecen la franja y el detalle por cliente con la fila de total.
 2. Las cajas por cliente y por contenedor son la suma de `consolidation_items.pieces` vigentes de sus
    embarques visibles.
-3. Las cajas recibidas siguen §3; sin recepción dicen «—».
+3. Las cajas recibidas siguen §3; sin recepción dicen «Sin recepción».
 4. Un rol sin vista de `invoices` (p. ej. `commercial`) no dispara ninguna lectura de `invoices` y la
    página no le pasa montos al componente cliente (prueba del servidor).
 5. Con vista de `invoices`, por cobrar y cobrado siguen §4.2; sin facturas dicen «Sin facturar».

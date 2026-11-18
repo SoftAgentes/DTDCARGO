@@ -193,9 +193,9 @@ function isoComparable(v: string | null | undefined): string {
  * SDD-0661 · Cajas recibidas por contenedor y Shipping Mark: las cajas
  * escaneadas (`scanned_at` no nulo) en la recepción del almacén de Venezuela
  * (`warehouse_receipts_ve` vivo) cuyo `container_code` es el ISO del
- * contenedor. Un contenedor sin recepción no tiene entrada (la vista dice «—»).
+ * contenedor. Un contenedor sin recepción no tiene entrada (la vista dice «Sin recepción»).
  *
- * Devuelve `null` si una lectura falla o llega cortada: la vista dice «—» en
+ * Devuelve `null` si una lectura falla o llega cortada: la vista dice «Sin recepción» en
  * vez de un número que no cuadra.
  */
 export async function leerRecibidasDeContenedores(

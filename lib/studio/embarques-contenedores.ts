@@ -53,7 +53,7 @@ export type ContenedoresDeEmbarques = {
   cajasPorEmbarque?: Record<string, number>;
   /**
    * SDD-0661: cajas recibidas por contenedor y Shipping Mark. Un contenedor sin
-   * entrada = sin recepción todavía: la vista dice «—», no 0.
+   * entrada = sin recepción todavía: la vista dice «Sin recepción», no 0.
    */
   recibidasPorContenedor?: Record<string, Record<string, number>>;
 };
@@ -62,6 +62,8 @@ export type ContenedoresDeEmbarques = {
 export type ClienteDeContenedor = ClientShipmentGroup & {
   /** Suma de cajas de sus embarques. `null` en «Sin contenedor» (no hay carga). */
   cajas: number | null;
+  /** Cajas recibidas. `null` = el contenedor no tiene recepción (o es «Sin contenedor»). */
+  recibidas: number | null;
 };
 
 /**
