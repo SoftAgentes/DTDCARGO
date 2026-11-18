@@ -40,10 +40,25 @@ webhook = Webhook.create!(account: cuenta, url: ENV.fetch("WEBHOOK_URL"), subscr
 token = usuario.reload.access_token&.token
 raise "el administrador no tiene token de acceso" if token.blank?
 
+# SDD-0649: un usuario con rol AGENTE que NO es miembro de ninguna bandeja, para medir qué ve de un contacto
+# (sus custom_attributes) y de sus conversaciones. Inventado, y solo en esta instancia efímera.
+agente = User.new(
+  name: "SINT-Agente",
+  email: "sint-agente-#{SecureRandom.hex(4)}@example.test",
+  password: "Sint-#{SecureRandom.hex(12)}A1!"
+)
+agente.skip_confirmation!
+agente.save!
+AccountUser.create!(account: cuenta, user: agente, role: :agent)
+token_agente = agente.reload.access_token&.token
+raise "el agente no tiene token de acceso" if token_agente.blank?
+raise "el agente no debe ser miembro de ninguna bandeja" if InboxMember.exists?(user: agente)
+
 File.write(salida, <<~FIN)
   cuenta=#{cuenta.id}
   bandeja=#{bandeja.id}
   token=#{token}
+  token_agente=#{token_agente}
   usuario=#{usuario.id}
   webhook=#{webhook.id}
   webhook_url_del_canal=#{canal.webhook_url.presence ? "si" : "no"}

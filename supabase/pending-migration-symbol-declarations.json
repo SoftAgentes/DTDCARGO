@@ -119,40 +119,28 @@
     {
       "id": "0549-pagina-de-revision",
       "migration": "0549_oficina_revisiones_envio",
-      "primarySymbol": "office_revisar_borrador",
+      "primarySymbol": "office_borradores_pendientes",
       "symbols": [
         {
           "name": "office_borradores_pendientes",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/revisiones.ts:83"
+            "lib/studio/oficina/revisiones.ts:105"
           ]
         },
         {
           "name": "office_conteo_revisiones",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/revisiones.ts:103"
-          ]
-        },
-        {
-          "name": "office_revisar_borrador",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/oficina/revisiones.ts:140"
+            "lib/studio/oficina/revisiones.ts:125"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/oficina/revisiones.ts:71",
+          "site": "lib/studio/oficina/revisiones.ts:93",
           "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
           "degradation": "Sin la 0549 leerPendientes y leerConteo devuelven «sin_migracion» y /studio/admin/oficina (solo is_platform_admin) muestra «Falta la migración 0549» en vez de romper."
-        },
-        {
-          "site": "lib/studio/oficina/revisiones.ts:142",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_migracion\" };",
-          "degradation": "guardarRevision devuelve «sin_migracion»: la acción vuelve a la página con el aviso, sin escribir nada."
         }
       ]
     },
@@ -264,6 +252,51 @@
           "site": "lib/studio/dispatch-mobile-types.ts:147",
           "contains": "photo_path: string;",
           "degradation": "Homónimo, no depende de la 0555: CamioneroPodInput.photo_path es la ruta de la foto del POD en el bucket receipt-photos (dispatch_pods), no la foto del empleado."
+        }
+      ]
+    },
+    {
+      "id": "0558-revision-tres-estados-y-cierres",
+      "migration": "0558_oficina_casillas_tres_estados",
+      "primarySymbol": "office_revisar_borrador_v2",
+      "symbols": [
+        {
+          "name": "office_revisar_borrador_v2",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:182"
+          ]
+        },
+        {
+          "name": "office_conversaciones_por_cerrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:214"
+          ]
+        },
+        {
+          "name": "office_registrar_cierre",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:236"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/revisiones.ts:185",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
+          "degradation": "Sin la 0558 guardarRevision devuelve «sin_0558»: la página dice «Falta la migración 0558» y no guarda nada (ni con la función vieja de la 0549)."
+        },
+        {
+          "site": "lib/studio/oficina/revisiones.ts:93",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
+          "degradation": "Sin la 0558 leerPorCerrar devuelve «sin_migracion» y la sección «Conversaciones por cerrar» muestra «Falta la migración 0558»."
+        },
+        {
+          "site": "lib/studio/oficina/revisiones.ts:243",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
+          "degradation": "Sin la 0558 registrarCierre devuelve «sin_0558»: la acción vuelve a la página con el aviso, sin escribir nada."
         }
       ]
     }

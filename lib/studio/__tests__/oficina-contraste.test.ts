@@ -13,6 +13,7 @@ const TOKENS = readFileSync(join(RAIZ, "app/studio/tokens.css"), "utf8");
 const ARCHIVOS = [
   "app/studio/(app)/admin/oficina/_components/TarjetaBorrador.tsx",
   "app/studio/(app)/admin/oficina/page.tsx",
+  "app/studio/(app)/admin/oficina/_components/TarjetaCierre.tsx",
 ];
 
 function bloque(selector: string): Record<string, string> {
