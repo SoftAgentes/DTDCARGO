@@ -244,6 +244,24 @@ RLS `for all` por `tenant_id = get_user_tenant_id() and nomina_can_access()`. Gr
 `authenticated`. Seed: **1 ruleset DEMO ficticio** vigente para el tenant `dtd` (valores VE plausibles,
 NO asesoría fiscal — el contador los valida).
 
+**Ampliación (SDD-0653 A2b, migración 0556, EN ESPERA — no aplicada a ningún entorno):** la tabla gana 13 columnas, todas nullable salvo las
+dos monedas, y la función `nomina_guardar_reglas(jsonb)`. Detalle y decisiones en
+[la spec 0653](../0653-nomina-reglas-ley-y-faro/spec.md#5-migración-0556-fase-a2b).
+
+| Columna nueva | Tipo | Nota |
+|---|---|---|
+| `vigente_desde` | date null | informativa (D11); las filas nuevas toman hoy en Caracas, las existentes quedan en NULL |
+| `fuente_legal` | text null | ≤ 200 caracteres |
+| `ingreso_minimo_integral_usd` | numeric(14,2) null | anuncio, no obligación (D3b); sin default |
+| `cestaticket_moneda`, `bono_guerra_moneda` | text not null default `'VES'` | `check in ('VES','USD')`; las filas existentes siguen en bolívares |
+| `sso_patronal_pct`, `rpe_patronal_pct`, `faov_patronal_pct`, `inces_patronal_pct` | numeric(5,2) null | aportes del patrono, de 0 a 100; sin default («sin configurar» no es cero) |
+| `inces_utilidades_pct` | numeric(5,2) null | retención al trabajador sobre utilidades, de 0 a 100 |
+| `pension_contrib_pct` | numeric(5,2) null | de 0 a 15 (tope legal, Art. 7) |
+| `vacaciones_extra_max`, `bono_vacacional_max_days` | int null | de 0 a 365; escala por antigüedad (Arts. 190 y 192) |
+
+Además un CHECK sobre `utilidades_days` (30 a 120). Guardar una versión nueva, con la 0556, es `nomina_guardar_reglas`: archiva la vigente e
+inserta la siguiente en una sola transacción.
+
 ### 8.2 Capa de datos · `lib/studio/nomina/payroll-rules-{types,queries}.ts`
 
 - **types:** `PayrollRules` (números llegan como string de `numeric` → coercer con `num()`), enums
