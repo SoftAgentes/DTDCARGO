@@ -6,9 +6,9 @@
 
 ## Hecho
 - `lib/shared/cbm.ts`: `formatCbm` (máx. 4 decimales, sin ceros de relleno, es-VE con coma), `roundCbm`, `cbmPlano` (CSV). Pruebas en `lib/shared/__tests__/cbm.test.ts`.
-- Usada en todos los sitios que formateaban CBM/m³: Embarques (franja, tabla, total, lista, detalle), Tracking, Almacén CN/VE, KPIs CN, Inventario, Despacho, Club, Reportes, drawer de tarifa congelada, móvil, packing list público y portal (estos dos con punto decimal, como sus kg/USD), cotización, CSV.
+- Usada en los sitios de Studio, móvil y portal que formateaban CBM/m³: Embarques, Tracking, Cotizador, Almacén CN/VE, KPIs CN, Inventario, Despacho, Club, Reportes, Costing, Proveedores, Dashboard, Dirección, tarifa congelada, móvil, packing list público y portal (estos con punto decimal, como sus kg/USD), cotización. Los CSV no se tocaron (revisión 1: bloqueante 3).
 - `NumericInput type="volume"`: la vista previa ya muestra los decimales reales (el valor enviado no se truncaba).
-- Totales de pantalla: `Math.round(x*100|1000)/…` de CBM → `roundCbm`. Se revirtió el de `despacho/actions.ts` porque ese sí se escribe en la base.
+- Se afinan agregados de pantalla de 2–3 a 4 decimales con `roundCbm`. Se revirtió el de `despacho/actions.ts` porque ese sí se escribe en la base.
 - Tests actualizados al formato nuevo (Embarques «3 m³», Tracking «4 m³»); nueva prueba de `metrosCubicos`.
 - Spec `docs/specs/0667-cbm-cuatro-decimales/spec.md` con la investigación del Excel (§3) y la decisión para Sam (§4).
 
@@ -24,7 +24,8 @@
 ## FUERA DE ALCANCE DETECTADO
 - Cargador de consolidados: redondea el envío a 3 decimales (`round3`) y `shipments.volume_m3` es `numeric(10,3)`; el total puede diferir del Excel hasta 0,0005 m³ por envío.
 - Calculadora pública: `roundCBM` con `Math.ceil` a 3 decimales; decide cuánto se cobra una carga pequeña.
-- RPC de partición de paquetes del bodeguero (3 decimales) y Naviera con 1 decimal.
+- RPC de partición de paquetes del bodeguero (3 decimales).
+- Naviera (KPIs, ocupación y plan de carga con 1 decimal) y los CSV de exportación quedan fuera por decisión; ver spec §5.
 
 ## Impacto documental
 Spec 0667 nuevo; el formato queda descrito en la cabecera de `lib/shared/cbm.ts`.

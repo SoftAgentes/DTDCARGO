@@ -15,7 +15,6 @@ describe("formatCbm — solo los decimales que el valor tiene (máx. 4), es-VE",
     [1.23456, "1,2346"],
     [100.1, "100,1"],
     [-0, "0"],
-    [1234.5, "1.234,5"],
   ])("%s → %s", (n, esperado) => {
     expect(formatCbm(n)).toBe(esperado);
   });

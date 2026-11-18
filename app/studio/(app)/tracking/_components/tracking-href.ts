@@ -7,6 +7,8 @@
  *  - `q`  búsqueda.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
+
 export type ParametrosDeTracking = {
   g?: string | null;
   c?: string | null;
@@ -55,5 +57,4 @@ export function textoDeDias(dias: number | null): string {
 
 export function metrosCubicos(n: number): string {
   return formatCbm(n, { unit: true });
-}import { formatCbm } from "@/lib/shared/cbm";
-
+}

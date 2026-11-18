@@ -28,17 +28,14 @@ dato en la base, ni los cálculos de tarifa.
 ## 2. Qué se hizo
 
 - **Un solo formateador:** `lib/shared/cbm.ts` → `formatCbm(n, { unit, fallback, locale })`, `roundCbm` (4
-  decimales, solo para totales de pantalla) y `cbmPlano` (CSV: punto, sin miles). Por defecto `es-VE`; el
+  decimales, solo para totales de pantalla) y `cbmPlano` (disponible para archivos; **los CSV no se tocaron**). Por defecto `es-VE`; el
   packing list público del proveedor y el portal de facturas conservan el punto decimal (`en-US`) porque su
   kg y USD ya lo usan. La vista previa de `NumericInput type="volume"` conserva su convención `en-US`.
-- **Sitios que ya usan la función** (todos los que formateaban CBM/m³): Embarques (franja, tabla por cliente,
-  fila de total, lista de envíos y detalle), Tracking (`metrosCubicos`), Almacén CN y VE, KPIs de CN,
-  Inventario, Despacho, Club, Reportes (embarques sin facturar), drawer de tarifa congelada, móvil (operario CN,
-  bodeguero, camionero), packing list público, cotización (texto), CSV comercial y aceptación/portal de
-  facturas.
+- **Sitios que ya usan la función** (Studio, móvil y portal): Embarques (franja, tabla por cliente, fila de total, lista y detalle), Tracking (`metrosCubicos`), Cotizador (detalle y tabla), Almacén CN y VE, KPIs de CN, Inventario, Despacho (cola, órdenes activas y drawer), Club, Reportes (incluido embarques sin facturar), Costing, Proveedores, Dashboard, Dirección, drawer de tarifa congelada, móvil (operario CN, bodeguero, camionero), packing list público, cotización (texto) y aceptación, detalle de envío y pendiente de factura del portal (estos con punto decimal, como sus kg y USD).
 - **Captura:** todos los campos de CBM usan `NumericInput`, que guarda el texto tal cual (no trunca); solo su
   vista previa mostraba 2 decimales y ahora muestra los reales.
-- **Totales de pantalla:** los `Math.round(x*100|1000)/…` de CBM pasan a `roundCbm` (4).
+- **Totales de pantalla:** se afinan agregados de pantalla (inventario, club, CN, costing, shipment-queries, embarques-contenedores) de 2–3 a 4 decimales con `roundCbm`. No toca nada que se guarde: el de `despacho/actions.ts`, que se escribe en la base, quedó como estaba.
+- **CSV:** `comercial-csv.ts` y `operativo-csv.ts` quedan exactamente como estaban (`toFixed(3)`); unificarlos iría aparte y con OK.
 
 ## 3. Cómo se guarda el CBM al cargar el Excel (medido en el código, sin leer producción)
 
@@ -76,12 +73,12 @@ Mientras Sam elige, la pantalla muestra lo guardado, sin ceros de relleno.
 
 - Cómo se guarda y se redondea el dato en la base; el cargador de consolidados; la calculadora pública
   (`roundCBM` con `Math.ceil` a 3, que decide cuánto se cobra una carga pequeña: decisión comercial de Sam);
-  Naviera/plan de carga (agregados con 1 decimal) y la RPC de partición de paquetes del bodeguero (3 decimales).
+  la RPC de partición de paquetes del bodeguero (3 decimales); los CSV de exportación; y **Naviera** (`NavieraClient`, `AssignCargoDrawer`, `ConsolidationDrawer`, `ContainerPlanView`: KPIs, ocupación y plan de carga con 1 decimal, que son agregados de capacidad con `cbm_capacity` del contenedor), más los porcentajes de capacidad (`toFixed(0)`) de Despacho y Naviera, que no son CBM.
 
 ## 6. Aceptación
 
 1. `formatCbm` muestra solo los decimales reales (máx. 4), con coma, y tiene pruebas (0,0012 / 1,5 / 2 / 0,12).
-2. Ningún sitio formatea CBM con `toFixed` ni con decimales fijos; todos usan la función compartida.
+2. Ningún sitio de Studio, móvil o portal formatea el CBM de un registro con `toFixed` ni con decimales fijos; todos usan la función compartida. Excepciones nombradas en §5 (Naviera, CSV, calculadora pública).
 3. `NumericInput` volumen muestra 4 decimales en su vista previa y envía el texto tal cual.
 4. Sin cambios en base, migraciones ni cálculos de tarifa.
 
