@@ -21,6 +21,9 @@ import {
   PAY_FREQUENCY_OPTIONS,
   DAY_METHOD_OPTIONS,
   PAYROLL_RULES_DEFAULTS,
+  AJUSTES_LIQUIDACION_BASE,
+  METODO_PRESTACIONES_OPTIONS,
+  resolverAjustesLiquidacion,
   hoyCaracas,
   VIGENTE_DESDE_MIN,
   type PayrollRules,
@@ -170,6 +173,11 @@ export function ReglasDrawer({
 }) {
   const [state, formAction, isPending] = useActionState(savePayrollRulesAction, initial);
   const hoy = useMemo(() => hoyCaracas(), []);
+  // SDD-0658: lo de la versión vigente (o los valores de fábrica de la 0179 si no los trae).
+  const ajustes = resolverAjustesLiquidacion(
+    { prestaciones_method: null, prestaciones_interest_pct: null, ajena_78_incluye_92: null },
+    rules,
+  );
   const espera = !ampliada;
 
   /** Un número de la 0556: deshabilitado mientras la migración esté en espera. */
@@ -537,6 +545,49 @@ export function ReglasDrawer({
           etiqueta="escalas por antigüedad"
           disabled={espera}
         />
+
+        {/* Liquidación (SDD-0658 · columnas de la 0179): siempre se envían, con lo de la versión vigente. */}
+        <GroupTitle>Liquidación (finiquito)</GroupTitle>
+        <Row>
+          <Field label="Cómo se calculan las prestaciones" error={state.fieldErrors?.prestaciones_method}>
+            <select name="prestaciones_method" className="studio-input" defaultValue={ajustes.prestaciones_method}>
+              {METODO_PRESTACIONES_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Interés sobre prestaciones (%)" error={state.fieldErrors?.prestaciones_interest_pct}>
+            <input
+              name="prestaciones_interest_pct"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              className="studio-input studio-input-mono"
+              defaultValue={String(ajustes.prestaciones_interest_pct)}
+            />
+          </Field>
+          <Field
+            label="Despido por causa ajena (Art. 78): ¿suma la indemnización del Art. 92?"
+            error={state.fieldErrors?.ajena_78_incluye_92}
+          >
+            <select
+              name="ajena_78_incluye_92"
+              className="studio-input"
+              defaultValue={ajustes.ajena_78_incluye_92 ? "true" : "false"}
+            >
+              <option value="false">No</option>
+              <option value="true">Sí</option>
+            </select>
+          </Field>
+        </Row>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
+          Se usan al calcular un finiquito y quedan congelados en él. El interés se aplica una vez sobre el total de
+          prestaciones. Los valores de fábrica son «el mayor de los dos», {AJUSTES_LIQUIDACION_BASE.prestaciones_interest_pct} % de
+          interés y sin Art. 92: confírmalos con el contador antes del próximo finiquito.
+        </p>
 
         <Field label="Notas">
           <textarea
