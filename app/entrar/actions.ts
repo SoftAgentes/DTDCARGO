@@ -12,6 +12,7 @@ import { sendPortalMagicLinkEmail } from "@/lib/studio/portal/magic-link-email";
 import { correoSinComprobar } from "@/lib/studio/portal/correo-comprobacion";
 import { buscarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso";
 import { avisarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso-aviso";
+import { emitirLinkAutoservicio } from "@/lib/studio/portal/autoservicio-link";
 import type { EntrarResultado } from "@/lib/portal/entrar-resultado";
 import { esperarTiempoMinimo } from "@/lib/portal/tiempo-minimo";
 
@@ -137,8 +138,11 @@ function throttled(result: Exclude<ThrottleResult, "ok">, email: string): Portal
  * (decisión de Sam, 2026-11-18). Cuatro resultados:
  *
  *  - `enlace` → tiene acceso; salió el enlace de entrada.
- *  - `sin_portal` → es cliente del ERP, pero sin acceso al portal. Se avisa al
- *    equipo y al cliente (SDD-0279), como antes.
+ *  - `crear_portal` → es cliente del ERP sin acceso al portal, y le salió a su
+ *    correo el enlace de autoservicio para crearlo (entrega 2, migración 0562).
+ *  - `sin_portal` → es cliente del ERP sin acceso al portal y el enlace de
+ *    autoservicio no aplica (o no salió). Se avisa al equipo y al cliente
+ *    (SDD-0279), como antes.
  *  - `sin_comprobar` → es el correo de una cuenta que nació del link de registro
  *    y su dueño todavía no lo comprobó (SDD-0646 D-1). No sale ningún enlace.
  *  - `sin_cuenta` → no lo encontramos. No sale ningún correo: es lo que impide
@@ -246,6 +250,12 @@ async function resolverPedido(
     // Sin poder preguntar, decir «no encontramos una cuenta» engañaría a un cliente.
     if (busqueda.estado === "error") return { error: NO_PUDIMOS_ATENDER, email };
     if (busqueda.cliente) {
+      // SDD-0672 entrega 2 · si la base lo permite (migración 0562), le llega a su
+      // correo un enlace para crear su portal, con la guarda de cédula o WhatsApp.
+      // Si no aplica, falta la migración o el correo no sale, queda el aviso al
+      // equipo de la SDD-0279, como en la entrega 1.
+      const link = await emitirLinkAutoservicio(admin, busqueda.cliente, email);
+      if (link.estado === "enviado") return conResultado(prev, "crear_portal", email);
       const aviso = await avisarClienteSinAcceso(admin, busqueda.cliente, email);
       return {
         ...conResultado(prev, "sin_portal", email),
