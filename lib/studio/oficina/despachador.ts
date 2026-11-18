@@ -30,7 +30,7 @@ import { ErrorDeLectura, type MensajeLeido, conversacionDeReferencia } from "./c
 import { type ConfigDespachador, costoDeLlamada } from "./despachador-config";
 import { type AlmacenDespachador, SinMigracion, type TareaTomada, textoSeguro } from "./despachador-almacen";
 import { avisarUnaVez } from "./escritura";
-import { revisarRespuesta } from "./eval-automatico";
+import { type CodigoEval, revisarRespuesta } from "./eval-automatico";
 import { GUIONES_SOPORTE, type Guion, VERSION_GUIONES } from "./guiones-soporte";
 import { ErrorDelRuntime, type RespuestaAgente } from "./runtime-cliente";
 import { type SalidaAgente, interpretarSalida } from "./salida-agente";
@@ -80,9 +80,25 @@ function instrucciones(guiones: readonly Guion[]): string {
     "Responde SOLO con un objeto JSON, sin texto antes ni después y sin bloque de código:",
     '{"respuesta":{"acuse":"<primera frase de texto>","texto":"<mensaje completo>","guion":"<id>"}} o',
     '{"escalado":{"motivo":"<por qué, sin datos personales>","prioridad":3|2|1}}.',
+    REGLA_DEL_ACUSE,
     `Guiones v${VERSION_GUIONES}: ${guiones.map((g) => g.id).join(", ")}.`,
   ].join("\n");
 }
+
+/**
+ * Ficha 0.3 (18/11/2026). La forma `{acuse, texto}` repite el acuse a propósito, y la línea de arriba sola
+ * («primera frase de texto») dejaba al agente partir el mensaje en dos: el acuse en un campo y el resto en el otro.
+ * En la etapa 1 un saludo simple escaló así (`eval:sin_acuse`). El ejemplo es el guion `acuse-general` tal cual.
+ */
+export const REGLA_DEL_ACUSE = [
+  '"texto" es el mensaje COMPLETO que va a leer el cliente y EMPIEZA con la frase de "acuse", copiada tal cual:',
+  'el acuse va en los dos campos, nunca partido entre ellos. Ejemplo de la forma:',
+  '{"respuesta":{"acuse":"¡Hola! Gracias por escribirle a DTD Cargo.","texto":"¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto. Cuéntame un poco más de lo que necesitas.","guion":"acuse-general"}}',
+].join("\n");
+
+/** Lo que se le agrega a las instrucciones en el ÚNICO reintento por `sin_acuse`. No lleva nada del borrador. */
+export const CORRECCION_DEL_ACUSE =
+  'Tu respuesta anterior no se guardó: "texto" no empezaba con la frase de "acuse". Vuelve a responder con la misma forma; "texto" tiene que empezar con esa frase, copiada tal cual.';
 
 function esAborto(e: unknown, signal: AbortSignal): boolean {
   return signal.aborted || (e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError"));
@@ -166,6 +182,10 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
     const sistema = instrucciones(guiones);
 
     let salida: SalidaAgente | null = null;
+    // Lo que el eval automático le encontró a la respuesta que quedó (vacío = pasa).
+    let codigos: CodigoEval[] = [];
+    // Solo en el reintento por `sin_acuse`: una línea más en las instrucciones.
+    let correccion: string | null = null;
     for (let intento = 1; intento <= 2 && !salida; intento += 1) {
       if (llamadas >= config.porCorrida.llamadas) throw new Escalar("tope_llamadas");
       paso();
@@ -173,7 +193,13 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
       const sesionId = `cable-${tarea.runId}-${intento}`;
       let r: RespuestaAgente;
       try {
-        r = await deps.llamar({ sesionId, idempotencia: `${tarea.runId}:${intento}`, sistema, usuario, signal: control.signal });
+        r = await deps.llamar({
+          sesionId,
+          idempotencia: `${tarea.runId}:${intento}`,
+          sistema: correccion ? `${sistema}\n${correccion}` : sistema,
+          usuario,
+          signal: control.signal,
+        });
       } catch (e) {
         if (esAborto(e, control.signal)) throw e;
         throw new Escalar(`runtime:${e instanceof ErrorDelRuntime ? e.codigo : "error"}`);
@@ -205,8 +231,26 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
       // AC-5: el tope del mes se mira después de cada gasto. Al 80 % la base pausa; la vigía aborta lo que siga.
       await almacen.autopausar(config.topeMensualUsd, config.umbralAutopausa);
       if (tokens > config.porCorrida.tokens) throw new Escalar("tope_tokens");
-      if (interpretada.ok) salida = interpretada.salida;
-      else if (intento === 2) throw new Escalar("json_invalido");
+      if (!interpretada.ok) {
+        if (intento === 2) throw new Escalar("json_invalido");
+        continue;
+      }
+      salida = interpretada.salida;
+      if (salida.tipo !== "respuesta") break;
+      codigos = revisarRespuesta(salida, guiones);
+      // Ficha 0.3: si lo ÚNICO que falla es el acuse (un desliz de forma, no un dato), se le pide una vez más al
+      // agente, dentro del tope de llamadas de la corrida. Cualquier otro código escala al momento, como siempre:
+      // un dato inventado, un dato personal o un enlace no se «corrigen» pidiéndolo otra vez.
+      const soloElAcuse = codigos.length === 1 && codigos[0] === "sin_acuse";
+      if (soloElAcuse && intento === 1 && llamadas < config.porCorrida.llamadas) {
+        await anotar(
+          "eval.reintento",
+          ACTOR_DESPACHADOR,
+          "El borrador no empezaba con su acuse: se le pide una vez más al agente. El borrador no se guardó.",
+        );
+        correccion = CORRECCION_DEL_ACUSE;
+        salida = null;
+      }
     }
     if (!salida) throw new Escalar("json_invalido");
 
@@ -214,7 +258,6 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
     if (salida.tipo === "escalado") {
       return await escalar(`agente:${salida.motivo}`, salida.prioridad);
     }
-    const codigos = revisarRespuesta(salida, guiones);
     if (codigos.length > 0) throw new Escalar(`eval:${codigos.join(",")}`);
     const ok = await almacen.entregar({
       taskId: tarea.taskId,

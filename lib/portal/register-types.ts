@@ -167,6 +167,14 @@ export function isValidEmail(raw: string): boolean {
 export type DuplicateMatch = "documento" | "correo" | "telefono";
 
 /**
+ * Qué hacer cuando la cédula, el RIF o el WhatsApp ya son de un cliente
+ * (SDD-0672). No se entra con el Shipping Mark ni con contraseña: se entra con el
+ * correo. Y si no sabe con qué correo quedó, lo resuelve un humano.
+ */
+export const REGISTRO_YA_ERES_CLIENTE =
+  "Si eres tú, no crees otra: entra a tu portal con tu correo desde «Entrar», sin contraseña. Si no sabes qué correo registraste, escríbenos por WhatsApp.";
+
+/**
  * Arma el aviso de "esta cuenta ya existe" EN EL CAMPO QUE CORRESPONDE.
  *
  * Por qué importa el campo: hasta SDD-0246 el dedup sólo miraba el documento, así
@@ -177,15 +185,21 @@ export type DuplicateMatch = "documento" | "correo" | "telefono";
  *
  * PRIVACIDAD: nunca decimos de QUIÉN es la cuenta — sólo que existe y por dónde
  * la reconocimos. El visitante ya conoce el dato que acaba de escribir.
+ *
+ * SDD-0672 · la salida es «Entrar» con el correo: el portal no tiene contraseña
+ * ni se entra con el Shipping Mark (SDD-0094). El texto anterior mandaba a esas
+ * dos puertas, que no existen, y el cliente se quedaba trancado aquí.
  */
 export function duplicateFieldError(
   kind: ClientKind,
   matchedBy: DuplicateMatch | string,
 ): NonNullable<RegisterActionState["fieldErrors"]> {
-  const recupera =
-    "Si eres tú, entra con tu Shipping Mark o pide recuperar tu contraseña.";
+  const recupera = REGISTRO_YA_ERES_CLIENTE;
   if (matchedBy === "correo") {
-    return { email: `Este correo ya tiene una cuenta en DTD Cargo. ${recupera}` };
+    return {
+      email:
+        "Este correo ya tiene una cuenta en DTD Cargo. Si es tuyo, no crees otra: entra a tu portal con él desde «Entrar», sin contraseña.",
+    };
   }
   if (matchedBy === "telefono") {
     return {
