@@ -38,6 +38,7 @@ import type { ActiveAlertRow } from "@/lib/studio/expense-alerts-types";
 import { resolveExpenseAlertAction, exportExpensesCsvAction } from "../actions";
 import { ExpenseDrawer } from "./ExpenseDrawer";
 import { ExpenseRowActions } from "./ExpenseRowActions";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   expenses: Expense[];
@@ -237,12 +238,11 @@ export function GastosClient({
           <label className="studio-label" htmlFor="ex-month">
             {t("expenses.filter.month_label")}
           </label>
-          <input
+          <DateField
             id="ex-month"
-            type="month"
-            className="studio-input"
+            mode="month"
             value={month ?? ""}
-            onChange={(e) => pushParams({ month: e.target.value })}
+            onChange={(v) => pushParams({ month: v })}
           />
         </div>
         <button

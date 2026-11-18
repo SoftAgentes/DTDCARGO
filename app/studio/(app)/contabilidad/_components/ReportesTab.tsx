@@ -34,6 +34,7 @@ import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { StatusIcon } from "@/components/StatusIcon";
 import { fmtAmount } from "./format";
 import { IngresoDelPeriodoCard } from "./IngresoDelPeriodoCard";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export function ReportesTab({
   reportes,
@@ -93,10 +94,8 @@ function FiltroDelPeriodo({ filtro }: { filtro: FiltroReportes }) {
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <label style={{ display: "flex", flexDirection: "column" }}>
           <span className="studio-label">Desde</span>
-          <input
-            type="date"
+          <DateField
             name="desde"
-            className="studio-input"
             defaultValue={filtro.desde}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}
@@ -105,10 +104,8 @@ function FiltroDelPeriodo({ filtro }: { filtro: FiltroReportes }) {
         </label>
         <label style={{ display: "flex", flexDirection: "column" }}>
           <span className="studio-label">Hasta (corte)</span>
-          <input
-            type="date"
+          <DateField
             name="hasta"
-            className="studio-input"
             defaultValue={filtro.hasta}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}

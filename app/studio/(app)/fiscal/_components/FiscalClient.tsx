@@ -54,6 +54,7 @@ import type { TaxWithholding } from "@/lib/studio/fiscal/withholding-types";
 import { postFiscalBookAction, voidFiscalBookAction } from "../actions";
 import { FiscalConfig } from "./FiscalConfig";
 import { WithholdingsView } from "./WithholdingsView";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type FiscalTab = "config" | "ventas" | "compras" | "retenciones";
 
@@ -480,14 +481,12 @@ function MonthSelector({
       >
         ←
       </button>
-      <input
-        type="month"
+      <DateField
+        mode="month"
         value={period}
-        onChange={(e) => {
-          const v = e.target.value;
+        onChange={(v) => {
           if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
         }}
-        className="studio-input studio-input-mono"
         style={{ width: 160 }}
         aria-label="Período fiscal"
       />

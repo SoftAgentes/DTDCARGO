@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { WithholdingDrawer } from "./WithholdingDrawer";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", {
@@ -147,14 +148,12 @@ export function WithholdingsView({
           >
             ←
           </button>
-          <input
-            type="month"
+          <DateField
+            mode="month"
             value={period}
-            onChange={(e) => {
-              const v = e.target.value;
+            onChange={(v) => {
               if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
             }}
-            className="studio-input studio-input-mono"
             style={{ width: 160 }}
             aria-label="Período fiscal"
           />

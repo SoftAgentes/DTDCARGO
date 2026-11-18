@@ -25,6 +25,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { emitirAmonestacionAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "amonestacion-form";
 const initial: NominaActionState = {};
@@ -204,12 +205,7 @@ export function AmonestacionDrawer({
                 </select>
               </Field>
               <Field label="Fecha de emisión" error={state.fieldErrors?.issued_on}>
-                <input
-                  type="date"
-                  className="studio-input"
-                  value={issuedOn}
-                  onChange={(e) => setIssuedOn(e.target.value)}
-                />
+                <DateField value={issuedOn} onChange={setIssuedOn} />
               </Field>
             </Row>
           </>
