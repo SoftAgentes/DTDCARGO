@@ -1,9 +1,11 @@
 /**
  * Vista detalle de envio.
  *
- * Layout 2 columnas en desktop, stack en mobile.
- * Columna izquierda: datos editables (ShipmentDataPanel).
- * Columna derecha: estado actual + acciones + customer preview + timeline.
+ * Ancho completo (SDD-0662). Tres zonas: datos (datos del envío y documentos),
+ * operación (acciones, plan, legal) y seguimiento (cambios de cliente, lo que ve
+ * el cliente y timeline). Tres columnas en pantallas anchas, dos en medianas y
+ * una en angostas (`.studio-ficha-embarque-grid`).
+ * Arriba, la franja «Cliente» con el cambio de cliente (ClienteDelEmbarque).
  * Footer: cancelar + eliminar.
  *
  * Server component lee shipment + events via lib/studio/shipment-queries.
@@ -23,7 +25,7 @@ import { ShipmentPlanPanel } from "./_components/ShipmentPlanPanel";
 import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
-import { ReassignClientPanel } from "./_components/ReassignClientPanel";
+import { ClienteDelEmbarque } from "./_components/ClienteDelEmbarque";
 import { ClienteCambiado } from "./_components/ClienteCambiado";
 import { createAdminClient } from "@/lib/db/admin";
 import { listarCambiosDeCliente } from "@/lib/studio/reasignar-historial";
@@ -141,7 +143,7 @@ export default async function ShipmentDetailPage({
   }
 
   return (
-    <div style={{ maxWidth: 1200 }}>
+    <div>
       <ShipmentHeader shipment={shipment} nombresOcultos={!puedeVerNombres} />
 
       {/* Cancellation reason banner — solo si el envio esta cancelado */}
@@ -227,9 +229,21 @@ export default async function ShipmentDetailPage({
         </div>
       )}
 
-      <div className="studio-detail-grid">
-        {/* Columna izquierda — datos editables + documentos */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* SDD-0662 · el cambio de cliente va arriba. SDD-0645: operations, commercial y
+          admin (D2). El equipo de China (SDD-0531) no recibe el buscador: muestra nombres. */}
+      <div className="studio-ficha-embarque-franja">
+        <ClienteDelEmbarque
+          shipmentId={shipment.id}
+          shipmentCode={shipment.code}
+          markbox={shipment.client_markbox}
+          puedeVerNombres={puedeVerNombres}
+          puedeReasignar={canSpecial(roleRow?.role, "reassign_shipment_owner")}
+        />
+      </div>
+
+      <div className="studio-ficha-embarque-grid">
+        {/* Zona de datos — datos editables + documentos */}
+        <div className="studio-ficha-embarque-zona" data-zona="datos">
           <section
             style={{
               background: "var(--bg-surface)",
@@ -276,8 +290,8 @@ export default async function ShipmentDetailPage({
           </section>
         </div>
 
-        {/* Columna derecha — operación */}
-        <aside style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* Zona de operación — acciones, plan y legal */}
+        <div className="studio-ficha-embarque-zona" data-zona="operacion">
           <section
             style={{
               background: "var(--bg-surface)",
@@ -342,21 +356,13 @@ export default async function ShipmentDetailPage({
             </section>
           )}
 
+        </div>
+
+        {/* Zona de seguimiento — cambios de cliente, lo que ve el cliente y timeline */}
+        <aside className="studio-ficha-embarque-zona" data-zona="seguimiento">
           {cambiosDeCliente.length > 0 && (
             <section>
               <ClienteCambiado shipmentCode={shipment.code} cambios={cambiosDeCliente} />
-            </section>
-          )}
-
-          {/* SDD-0645 · operations, commercial y admin (D2). No para el equipo de China (SDD-0531):
-              el buscador muestra nombres de clientes. */}
-          {puedeVerNombres && canSpecial(roleRow?.role, "reassign_shipment_owner") && (
-            <section>
-              <ReassignClientPanel
-                shipmentId={shipment.id}
-                shipmentCode={shipment.code}
-                currentMarkbox={shipment.client_markbox}
-              />
             </section>
           )}
 

@@ -140,6 +140,7 @@ function Clientes({
           <b>Quién viene adentro</b>
           <span className="studio-tracking-ops-quien-sub">
             {c.clientes === 1 ? "1 cliente" : `${c.clientes} clientes`} ·{" "}
+            {c.items.length === 1 ? "1 carga" : `${c.items.length} cargas`} ·{" "}
             {metrosCubicos(c.usedCbm)}
           </span>
         </span>

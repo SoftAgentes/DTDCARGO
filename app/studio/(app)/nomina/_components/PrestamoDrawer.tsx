@@ -17,6 +17,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createLoanAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "prestamo-form";
 const initial: NominaActionState = {};
@@ -105,7 +106,7 @@ export function PrestamoDrawer({
             />
           </Field>
           <Field label="Fecha de otorgamiento" error={state.fieldErrors?.granted_on}>
-            <input name="granted_on" type="date" className="studio-input" defaultValue={today} />
+            <DateField name="granted_on" defaultValue={today} />
           </Field>
         </Row>
 

@@ -10,6 +10,10 @@
  *   3. pide el motivo (4 a 1000) y confirma con el Shipping Mark nuevo en el botón.
  * Sólo lo monta quien tiene la acción `reassign_shipment_owner`; la base repite
  * el candado. Sin la migración, dice que la acción todavía no está disponible.
+ *
+ * SDD-0662 · con `sinCliente` (embarque en el Shipping Mark comodín) el panel lo
+ * dice y el botón pasa a ser la acción principal, «Asignar cliente». El modal es
+ * el mismo.
  */
 
 import { useRef, useState, useTransition } from "react";
@@ -35,11 +39,15 @@ export function ReassignClientPanel({
   shipmentId,
   shipmentCode,
   currentMarkbox,
+  sinCliente = false,
 }: {
   shipmentId: string;
   shipmentCode: string;
   currentMarkbox: string | null;
+  /** El embarque todavía no tiene dueño: se pide asignarlo. */
+  sinCliente?: boolean;
 }) {
+  const verbo = sinCliente ? "Asignar cliente" : "Pasar a otro cliente";
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -88,33 +96,24 @@ export function ReassignClientPanel({
 
   return (
     <>
-      <div
-        style={{
-          background: "var(--bg-elevated)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: "var(--s-4) var(--s-5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--s-3)",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="studio-ficha-embarque-cliente">
         <div>
-          <div className="studio-eyebrow" style={{ marginBottom: 6 }}>
-            Cliente
-          </div>
-          <span style={{ font: "700 14px/1.2 var(--f-mono)", color: "var(--ink)" }}>
+          <div className="studio-eyebrow">Cliente</div>
+          <strong className="studio-ficha-embarque-cliente-marca">
             {currentMarkbox ?? "Sin Shipping Mark"}
-          </span>
+          </strong>
         </div>
+        {sinCliente && (
+          <Aviso tono="atencion" compacto>
+            Este embarque no tiene cliente asignado.
+          </Aviso>
+        )}
         <button
           type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
+          className={`studio-btn ${sinCliente ? "studio-btn-primary" : "studio-btn-ghost"} studio-btn-sm`}
           onClick={() => setOpen(true)}
         >
-          Pasar a otro cliente
+          {verbo}
         </button>
       </div>
 
@@ -155,7 +154,7 @@ export function ReassignClientPanel({
           >
             <div>
               <h2 id="reasignar-titulo" className="studio-display" style={{ fontSize: 18, margin: 0 }}>
-                Pasar a otro cliente
+                {verbo}
               </h2>
               <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "6px 0 0" }}>
                 El embarque <strong style={{ fontFamily: "var(--f-mono)" }}>{shipmentCode}</strong> conserva su
