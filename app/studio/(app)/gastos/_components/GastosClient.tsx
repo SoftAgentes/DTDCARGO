@@ -80,6 +80,9 @@ export function GastosClient({
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [exporting, startExport] = useTransition();
+  // SDD-0660: a medio escribir el filtro conserva el mes anterior; exportar espera
+  // a que lo escrito sirva, para no bajar un mes distinto del que se ve en el campo.
+  const [monthValid, setMonthValid] = useState(true);
   const flashClassFor = useRowHighlight();
   const toast = useToast();
 
@@ -243,13 +246,14 @@ export function GastosClient({
             mode="month"
             value={month ?? ""}
             onChange={(v) => pushParams({ month: v })}
+            onValidityChange={setMonthValid}
           />
         </div>
         <button
           type="button"
           className="studio-btn studio-btn-ghost"
           style={{ marginLeft: "auto" }}
-          disabled={exporting || expenses.length === 0}
+          disabled={exporting || expenses.length === 0 || !monthValid}
           onClick={onExport}
         >
           {Icon.download(14)}{" "}

@@ -620,6 +620,9 @@ migrar un archivo, bórralo de la lista.
   vaciar o con una fecha imposible; a medio escribir no avisa. `form.reset()`
   lo devuelve a `defaultValue`.
 - Fecha imposible (31/02) no se corrige sola: se explica y bloquea el envío.
+- Fuera de un `<form>` nada bloquea una fecha a medio escribir y el padre se
+  queda con la última válida: la acción que usa el valor espera a
+  `onValidityChange` (ver Activos fijos, Fiscal y Gastos).
 - La etiqueta va con `htmlFor` + `id`, no envolviendo el campo: dentro de un
   `<label>` la ayuda del formato se sumaría al nombre del campo.
 

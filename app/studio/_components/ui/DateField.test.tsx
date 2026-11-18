@@ -337,6 +337,31 @@ describe("<DateField> · accesibilidad y control", () => {
     expect(screen.getByRole("status")).toHaveTextContent("2026-02-01");
   });
 
+  it("controlado: una fecha imposible escrita ENCIMA de una válida queda escrita aunque el padre guarde vacío (N1)", async () => {
+    function Padre() {
+      const [v, setV] = useState("2026-11-18");
+      return (
+        <>
+          <DateField aria-label="Fecha" value={v} onChange={setV} />
+          <output>{v || "vacío"}</output>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Padre />);
+    const input = screen.getByLabelText("Fecha") as HTMLInputElement;
+    // Escribe encima de todo lo seleccionado, sin vaciar antes. user-event 14 no
+    // reemplaza una selección en un campo lleno hasta su maxLength (el navegador
+    // sí): el cambio se entrega tal como lo manda el navegador.
+    await user.click(input);
+    fireEvent.change(input, { target: { value: "31022026" } });
+    expect(screen.getByRole("status")).toHaveTextContent("vacío");
+    expect(input).toHaveValue("31/02/2026");
+    await user.tab();
+    expect(screen.getByRole("alert")).toHaveTextContent("Ese día no existe");
+    expect(input.checkValidity()).toBe(false);
+  });
+
   it("controlado: si el padre vacía el valor con algo a medio escribir, el campo se limpia (I3)", async () => {
     function Padre() {
       const [v, setV] = useState("2026-11-18");

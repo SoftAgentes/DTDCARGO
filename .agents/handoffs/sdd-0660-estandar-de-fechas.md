@@ -33,6 +33,13 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 - **I2** A medio escribir `onChange` no avisa (Gastos ya no navega con el filtro vacío al reescribir el mes).
 - **I3** Controlado: si el padre cambia la prop a `""`, el campo se limpia aunque haya texto a medio escribir.
 
+### Segunda revisión sobre `f076196fe`
+
+- **N1** El efecto controlado reescribía con el eco de lo propio: «31022026» encima de una fecha válida avisaba "", el padre guardaba "" y el texto desaparecía sin error (Estado de cuenta perdía la línea). Ahora el eco (`incoming === lastEmitted`, fijado en `apply` antes de avisar) no reescribe. Prueba controlada escribiendo encima sin vaciar; la prueba mata al mutante sin la guarda.
+- **N2** Campos fuera de un `<form>`: revisé los 8 consumidores controlados. Dentro de un formulario (Club, Estado de cuenta, Amonestación) la validez del campo bloquea el envío. Fuera: Activos fijos («Depreciar mes»), Fiscal («Asentar período», «Anular asiento», CSV y PDF) y Gastos («Exportar») esperan a `onValidityChange`; Retenciones solo navega. Pruebas: `activos-fijos-mes`, `fiscal/periodo-a-medio-escribir`, `GastosClient.mes`.
+- **Menor** El reset escucha el formulario del atributo `form` si lo hay.
+- Nota de pruebas: user-event 14 no reemplaza una selección en un campo lleno hasta su `maxLength`; la prueba de N1 entrega el cambio con `fireEvent.change`, como el navegador.
+
 ## VALIDACIÓN (turno de PC del DG, 2026-11-18)
 
 | Comprobación | Resultado |
@@ -50,6 +57,8 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 | Tras la revisión: Nómina, Reportes, Documentos, Tarifas, Gastos, contrato y máscara | PASÓ 97/97 (11 archivos) |
 | Tras la revisión: eslint de lo tocado | PASÓ |
 | Tras la revisión: typecheck | NO EJECUTADO localmente (la PC la tenía Embarques); lo cubre el CI de la PR |
+| Segunda revisión: 20 archivos (componente, máscara, contrato, Fiscal, Gastos, Activos, Reportes, Nómina, Documentos, Tarifas, fechas Caracas) | PASÓ 164/164 |
+| Segunda revisión: eslint de lo tocado | PASÓ |
 | `pnpm verify`, e2e | NO EJECUTADO (el DG no dio turno para verify) |
 
 ## PENDIENTES DE ESTA TAREA

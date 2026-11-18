@@ -53,6 +53,9 @@ export function ActivosFijosTab({
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState(thisMonth());
+  // SDD-0660: el campo no vive en un <form>; a medio escribir `period` conserva el
+  // último mes válido, así que «Depreciar mes» espera a que lo escrito sirva.
+  const [periodValid, setPeriodValid] = useState(true);
 
   const asOf = todayISO();
   const activos = assets.filter((a) => a.status === "activo");
@@ -161,6 +164,8 @@ export function ActivosFijosTab({
           mode="month"
           value={period}
           onChange={setPeriod}
+          onValidityChange={setPeriodValid}
+          required
           style={{ width: 150 }}
           aria-label="Mes a depreciar"
         />
@@ -171,7 +176,7 @@ export function ActivosFijosTab({
           loadingLabel="Posteando…"
           successLabel="Depreciado"
           idleIcon={Icon.check(14)}
-          disabled={activos.length === 0}
+          disabled={activos.length === 0 || !periodValid}
           onAction={async () => {
             setError(null);
             const r = await postDepreciationAction(period);

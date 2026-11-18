@@ -120,7 +120,7 @@ export function DateField({
   required,
   disabled,
   autoFocus,
-  form,
+  form: formId,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   "aria-describedby": ariaDescribedBy,
@@ -154,12 +154,16 @@ export function DateField({
 
   // Valor controlado: el texto se reescribe solo cuando el padre CAMBIA la
   // prop a otra fecha (o la vacía, aunque haya algo a medio escribir). Si la
-  // prop no cambia, lo que se está escribiendo se respeta.
+  // prop no cambia, lo que se está escribiendo se respeta. Y si lo que llega es
+  // el eco de lo que este campo acaba de avisar (`apply` fija `lastEmitted`
+  // antes de llamar a `onChange`), tampoco: un «31/02/2026» avisa "" y el padre
+  // devuelve "", pero la fecha imposible tiene que quedar escrita (DAT-01).
   const prevValue = useRef(value);
   useEffect(() => {
     if (!isControlled || value === prevValue.current) return;
     prevValue.current = value;
     const incoming = normalizeIso(value, mode) ?? "";
+    if (incoming === lastEmitted.current) return;
     lastEmitted.current = incoming;
     if (incoming !== "" && incoming === currentIso) return;
     // Sincronización deliberada del texto con la fuente controlada.
@@ -174,7 +178,9 @@ export function DateField({
     defaultRef.current = defaultValue;
   });
   useEffect(() => {
-    const form = inputRef.current?.form;
+    // Con `form="…"` el valor viaja en ESE formulario: es el que se escucha.
+    const target = formId ? document.getElementById(formId) : inputRef.current?.form;
+    const form = target instanceof HTMLFormElement ? target : null;
     if (!form || isControlled) return;
     const onReset = () => {
       const display = isoToDisplay(defaultRef.current, mode);
@@ -185,7 +191,7 @@ export function DateField({
     };
     form.addEventListener("reset", onReset);
     return () => form.removeEventListener("reset", onReset);
-  }, [isControlled, mode]);
+  }, [isControlled, mode, formId]);
 
   // Validez hacia el padre (formularios por pasos).
   const acceptable = parsed.status === "valid" || (parsed.status === "empty" && !required);
@@ -397,7 +403,7 @@ export function DateField({
           type="hidden"
           name={name}
           value={hiddenValue}
-          form={form}
+          form={formId}
           disabled={disabled}
           // Informativos: el oculto no valida, pero deja leer los límites del campo.
           min={min}
