@@ -442,6 +442,7 @@ declare
   antes timestamptz;
   ajena  uuid;
   propia uuid;
+  ev     uuid;
 begin
   lead := pg_temp.del_contacto(500);
   antes := lead.ultima_actividad_at;
@@ -475,11 +476,15 @@ begin
   perform pg_temp.assert_true(pg_temp.evento('message_created:3001', 71, '4125550202', 100, 500) = pg_temp.k('01'),
     '4g la unión manda sobre el teléfono');
   -- Sin contacto y sin teléfono (reproceso) se conserva el cruce anterior.
-  perform pg_temp.assert_true(pg_temp.evento('message_created:3002', 70, null, 101) is null
+  -- El evento se registra ANTES de mirar la tabla: dentro de una misma expresión, Postgres
+  -- puede leer la subconsulta primero y ver el estado de antes.
+  ev := pg_temp.evento('message_created:3002', 70, null, 101);
+  perform pg_temp.assert_true(ev is null
     and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 70) = pg_temp.k('01'),
     '4h sin contacto ni teléfono el cruce guardado se conserva');
   -- Un contacto SIN unión y sin teléfono no hereda el cruce de otro.
-  perform pg_temp.assert_true(pg_temp.evento('message_created:3003', 70, null, 102, 501) is null
+  ev := pg_temp.evento('message_created:3003', 70, null, 102, 501);
+  perform pg_temp.assert_true(ev is null
     and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 70) is null,
     '4i un contacto sin unión ni teléfono deja la conversación sin ficha');
   -- Sin unión, el teléfono cruza como siempre.
