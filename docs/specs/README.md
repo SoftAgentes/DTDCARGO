@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 652 specs)
+### Índice de specs (generado · 653 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -689,7 +689,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
 | 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
 | 0671 | CRM: tarjetas sin botón Abrir y Bandeja visible para la oficina | proposed | interno |
+| 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
 | 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0668, 0670, 0672, 0673, 0674, 0675 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0668, 0670, 0673, 0674, 0675 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
