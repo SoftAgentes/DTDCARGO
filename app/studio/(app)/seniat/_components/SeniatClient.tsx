@@ -166,13 +166,9 @@ export function SeniatClient({
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 2,
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-          overflowX: "auto",
-        }}
+        aria-label="Secciones de SENIAT"
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {tabs.map((t) => {
           const active = tab === t.value;
@@ -182,37 +178,13 @@ export function SeniatClient({
               role="tab"
               type="button"
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => changeTab(t.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "var(--s-2)",
-                marginBottom: -1,
-                transition:
-                  "color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
-              }}
+              className="studio-tab"
             >
               {t.label}
               {t.count != null && (
-                <span
-                  style={{
-                    font: "700 11px/1 var(--f-mono)",
-                    color: active ? "var(--wine)" : "var(--ink-mute)",
-                    padding: "2px 7px",
-                    background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                    borderRadius: "var(--r-sm)",
-                  }}
-                >
-                  {t.count}
-                </span>
+                <span className="studio-tab-n">{t.count}</span>
               )}
             </button>
           );

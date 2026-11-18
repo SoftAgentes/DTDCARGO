@@ -11,6 +11,8 @@
  *  - `evaluarSalud`: alerta si Chatwoot no responde, si la cuenta no tiene un
  *    admin humano, si falta el id del usuario de servicio o si hay vínculos a
  *    agentes que ya no están en la cuenta (el SSO entraría a una cuenta vacía).
+ *    Desde la 10.5 (SDD-0586, PR 1b) suma las alertas del webhook de cuenta, que mide
+ *    `webhook-salud.ts` aparte porque pide la red.
  */
 
 import type { StudioUserRole } from "@/lib/studio/user-types";
@@ -40,7 +42,12 @@ export type AlertaSalud =
   | "baja_bloqueada"
   | "cierre_pendiente"
   | "degradacion_bloqueada"
-  | "matriz_incompleta";
+  | "matriz_incompleta"
+  // SDD-0586 (10.5, PR 1b): el webhook de cuenta (`webhook-salud.ts`).
+  | "webhook_falta"
+  | "webhook_sin_mensajes"
+  | "webhook_sin_ip_publica"
+  | "webhook_no_medido";
 
 export interface SaludBandeja {
   alertas: AlertaSalud[];

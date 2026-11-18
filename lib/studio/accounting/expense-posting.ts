@@ -21,6 +21,7 @@
  */
 
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import type { ExpenseMethod } from "@/lib/studio/expense-types";
 
 /**
@@ -112,6 +113,7 @@ export async function postExpenseJournalEntry(
   input: ExpensePostingInput,
 ): Promise<ExpensePostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     // 1. Idempotencia: ¿ya hay asiento vivo (no anulado) para este gasto?
@@ -170,7 +172,6 @@ export async function postExpenseJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 5. Insertar el asiento (asentado) + sus 2 líneas.
     const { data: insertedEntry, error: entryErr } = await admin

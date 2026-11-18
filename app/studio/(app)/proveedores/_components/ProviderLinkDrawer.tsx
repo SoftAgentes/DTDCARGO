@@ -13,6 +13,7 @@
 import { useActionState, useState, useSyncExternalStore } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   setPrealertaShareActiveAction,
@@ -217,16 +218,11 @@ export function ProviderLinkDrawer({
                   : "Reactívalo para que el proveedor vuelva a poder usar el mismo enlace."}
               </p>
               {state.error && (
-                <p
-                  role="alert"
-                  style={{
-                    font: "600 12px/1.4 var(--f-sans)",
-                    color: "var(--danger)",
-                    margin: "12px 0 0",
-                  }}
-                >
-                  {state.error}
-                </p>
+                <div style={{ marginTop: 12 }}>
+                  <Aviso tono="error" compacto>
+                    {state.error}
+                  </Aviso>
+                </div>
               )}
             </form>
           </div>

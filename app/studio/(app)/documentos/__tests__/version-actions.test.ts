@@ -17,7 +17,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockCreateClient = vi.fn();
 const mockRevalidate = vi.fn();
 const mockListVersions = vi.fn();
+// SDD-0624: las dos acciones pasan ahora por el gate central del módulo.
+const mockEditDenial = vi.fn(async () => null as string | null);
+const mockViewDenial = vi.fn(async () => null as string | null);
 
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  moduleEditDenial: (...a: unknown[]) => mockEditDenial(...(a as [])),
+  moduleViewDenial: (...a: unknown[]) => mockViewDenial(...(a as [])),
+}));
 vi.mock("@/lib/db/server", () => ({
   createClient: () => mockCreateClient(),
 }));
@@ -236,6 +243,17 @@ describe("addDocumentVersion", () => {
     expect(res.error).toMatch(/tenant/i);
     expect(uploads).toHaveLength(0);
   });
+
+  it("SDD-0624: sin edición del módulo (p. ej. support) no sube ni llama la RPC", async () => {
+    const { supabase, uploads, rpcCalls } = makeSupabase({});
+    mockCreateClient.mockResolvedValue(supabase);
+    mockEditDenial.mockResolvedValueOnce("No tienes permiso para realizar esta acción.");
+    const res = await addDocumentVersion(ROOT, fd(pdfFile()));
+    expect(res.error).toMatch(/permiso/i);
+    expect(mockEditDenial).toHaveBeenCalledWith(supabase, "documents");
+    expect(uploads).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
+  });
 });
 
 describe("listDocumentVersionsAction", () => {
@@ -246,6 +264,16 @@ describe("listDocumentVersionsAction", () => {
     const res = await listDocumentVersionsAction(ROOT);
     expect(mockListVersions).toHaveBeenCalledWith(supabase, ROOT);
     expect(res).toHaveLength(1);
+  });
+
+  it("SDD-0624: sin vista del módulo → [] sin tocar la query", async () => {
+    const { supabase } = makeSupabase({});
+    mockCreateClient.mockResolvedValue(supabase);
+    mockViewDenial.mockResolvedValueOnce("No tienes permiso para ver esto.");
+    const res = await listDocumentVersionsAction(ROOT);
+    expect(res).toEqual([]);
+    expect(mockViewDenial).toHaveBeenCalledWith(supabase, "documents");
+    expect(mockListVersions).not.toHaveBeenCalled();
   });
 
   it("rootId inválido → [] sin tocar la query", async () => {

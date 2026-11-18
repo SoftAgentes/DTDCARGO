@@ -56,6 +56,51 @@ export async function getHiddenPortalStatusesForPortal(
 }
 
 /**
+ * SDD-0654 FC-14 · Lectura ESTRICTA de los statuses ocultos del Portal.
+ *
+ * La misma RPC que `getHiddenPortalStatusesForPortal`, pero sin la degradación
+ * «ante error, muestra todo»: devuelve `{ ok: false }` y quien la llama decide
+ * no dibujar hitos. La usan la Vista simple (bloque «¿Dónde está tu carga?») y,
+ * en la fase 3, Faro del cliente, que no pueden nombrar un hito que el tenant
+ * ocultó. La función de arriba no cambia.
+ */
+export type HiddenPortalStatusesStrict =
+  | { ok: true; ocultos: Set<ShipmentStatus> }
+  | { ok: false };
+
+export async function getHiddenPortalStatusesStrict(
+  db: SupabaseClient,
+): Promise<HiddenPortalStatusesStrict> {
+  try {
+    const { data, error } = await db.rpc("get_portal_hidden_shipment_statuses");
+    if (error || !Array.isArray(data)) {
+      console.error(
+        "[client-notif] getHiddenPortalStatusesStrict falló:",
+        errorLabel(error, "respuesta sin lista"),
+      );
+      return { ok: false };
+    }
+    const ocultos = new Set<ShipmentStatus>();
+    for (const row of data) {
+      const status = String((row as { status?: unknown } | null)?.status ?? "").trim();
+      if (!status) {
+        // Una fila sin nombre no se puede interpretar: estricto = no confiar.
+        console.error("[client-notif] getHiddenPortalStatusesStrict falló:", "fila sin status");
+        return { ok: false };
+      }
+      ocultos.add(status as ShipmentStatus);
+    }
+    return { ok: true, ocultos };
+  } catch (err) {
+    console.error(
+      "[client-notif] getHiddenPortalStatusesStrict falló:",
+      errorLabel(err, "excepción sin detalle"),
+    );
+    return { ok: false };
+  }
+}
+
+/**
  * Sólo el código o el mensaje del error, nunca el objeto completo: el log no
  * vuelca detalles, ids de cliente o tenant ni datos de la sesión.
  */

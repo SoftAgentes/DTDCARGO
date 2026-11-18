@@ -7,6 +7,7 @@
  * funciones. Mantiene la lógica fuera del JSX para poder testearla.
  */
 
+import { tasaValida } from "@/lib/shared/fx";
 import type { CostingRow, CostingTotals } from "./queries";
 import {
   matchTemplate,
@@ -18,22 +19,14 @@ import {
 import type { Quote } from "@/lib/studio/quote-types";
 
 // ── Tasa BCV de display (USD↔VES, display-only) ───────────────
-/**
- * Fallback de la tasa BCV cuando no hay ninguna factura en VES con fx_rate
- * (todavía no existe la pantalla de Tasas, SDD-0030). Mismo número que el mock
- * del Norte (`costing.jsx`), para no inventar otro.
- */
-export const DEFAULT_VES_RATE = 36.45;
 
 /**
- * Resuelve la tasa BCV a usar para el toggle VES (display-only). Toma el
- * `fx_rate` más reciente provisto (el de la última factura en VES), o el
- * fallback si no hay ninguno válido. NUNCA persiste — solo convierte para
- * mostrar (los costos viven en USD canónico).
+ * Resuelve la tasa a usar para el toggle VES (display-only). SDD-0572: la tasa
+ * vigente de `fx_rates` (`ultimaTasa("VES")`); sin ella, null y el selector de
+ * bolívares se apaga (antes caía a 36,45 fijos). NUNCA persiste.
  */
-export function resolveDisplayRate(rawRate: number | null | undefined): number {
-  const n = Number(rawRate);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_VES_RATE;
+export function resolveDisplayRate(rawRate: number | null | undefined): number | null {
+  return tasaValida(rawRate);
 }
 
 // ── Orden del Ranking ─────────────────────────────────────────
@@ -66,6 +59,11 @@ export function sortRanking(
 ): CostingRow[] {
   const copy = [...rows];
   copy.sort((a, b) => {
+    const incompleteA = (a.facturasSinTasa ?? 0) > 0;
+    const incompleteB = (b.facturasSinTasa ?? 0) > 0;
+    // Un subtotal no compite con un total. Entre incompletos se conserva el
+    // orden recibido, independientemente del criterio elegido.
+    if (incompleteA || incompleteB) return Number(incompleteA) - Number(incompleteB);
     if (sort === "margin-pct-asc") return a.eco.marginPct - b.eco.marginPct;
     if (sort === "margin-abs-desc") return b.eco.margin - a.eco.margin;
     if (sort === "revenue-desc") return b.eco.revenue - a.eco.revenue;
@@ -84,10 +82,10 @@ export type TopWorst = {
 /**
  * Top N más rentables (margen $ desc) y N peores (margen $ asc), sin solaparse
  * cuando hay pocas filas. Solo considera embarques con revenue > 0 (sin revenue
- * no hay "margen" significativo para rankear). PURA.
+ * no hay "margen" significativo para rankear) y conversión completa. PURA.
  */
 export function topAndWorst(rows: CostingRow[], n = 3): TopWorst {
-  const withRevenue = rows.filter((r) => r.eco.revenue > 0);
+  const withRevenue = rows.filter((r) => r.eco.revenue > 0 && (r.facturasSinTasa ?? 0) === 0);
   const byMargin = [...withRevenue].sort((a, b) => b.eco.margin - a.eco.margin);
   const top = byMargin.slice(0, n);
   const worst = [...byMargin]
@@ -305,6 +303,8 @@ export const COSTING_CSV_HEADERS = [
   "Costo total USD",
   "Margen USD",
   "Margen %",
+  "Estado de conversión",
+  "Facturas sin tasa",
 ] as const;
 
 /** Redondea a 2 decimales (números de plata estables en el CSV). */
@@ -316,6 +316,7 @@ function round2(n: number): number {
 export function costingCsvRow(row: CostingRow): (string | number)[] {
   const e = row.eco;
   const s = row.shipment;
+  const sinTasa = row.facturasSinTasa ?? 0;
   return [
     s.code ?? "",
     s.client_name ?? "",
@@ -331,8 +332,10 @@ export function costingCsvRow(row: CostingRow): (string | number)[] {
     round2(e.commission),
     round2(e.other),
     round2(e.totalCost),
-    round2(e.margin),
-    round2(e.marginPct),
+    sinTasa > 0 ? "" : round2(e.margin),
+    sinTasa > 0 ? "" : round2(e.marginPct),
+    sinTasa > 0 ? "Subtotal parcial" : "Completo",
+    sinTasa,
   ];
 }
 

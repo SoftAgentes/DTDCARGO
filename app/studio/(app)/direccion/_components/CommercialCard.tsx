@@ -5,6 +5,9 @@
  *
  * V1 = solo pipeline + leads activos. Las mini-barras de tiers / referidos
  * (Fidelización) quedan FUERA (§8): el módulo no existe aún. Solo tokens var(--*).
+ *
+ * SDD-0614 S0b (D-6.6-1): con Kommo oculto del Studio, el resumen llega
+ * `oculto` y la tarjeta no se pinta. Su código se conserva hasta 8.7.
  */
 
 import Link from "next/link";
@@ -18,6 +21,7 @@ export function CommercialCard({
 }: {
   commercial: CommercialSummary;
 }) {
+  if (commercial.oculto) return null;
   return (
     <div
       style={{

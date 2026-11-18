@@ -18,6 +18,7 @@ import {
 } from "@/lib/studio/accounting/cierre-excepciones";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { CamposExcepcionCierre, excepcionCompleta } from "./CamposExcepcionCierre";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const TITULO: Record<Exclude<OperacionCierre, "crear">, string> = {
   asentar: "Asentar en período cerrado",
@@ -138,21 +139,7 @@ export function ExcepcionCierreDialog({
         />
 
         {error && (
-          <p
-            id={errorId}
-            role="alert"
-            style={{
-              margin: 0,
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            {error}
-          </p>
+          <Aviso tono="error" compacto id={errorId}>{error}</Aviso>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>

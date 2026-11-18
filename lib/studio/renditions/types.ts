@@ -94,6 +94,15 @@ export type RenditionLine = {
 };
 
 /**
+ * SDD-0572: la línea de la PREVIA. Un cobro sin tasa lleva `amountUsd` null: no
+ * suma y la rendición no se emite así, de modo que una rendición emitida (su
+ * `RenditionLine`) siempre tiene el monto en USD.
+ */
+export type RenditionPreviewLine = Omit<RenditionLine, "amountUsd"> & {
+  amountUsd: number | null;
+};
+
+/**
  * Preview de una rendición ANTES de emitir (decisión #5): los 3 totales con su
  * base + la lista de recibos elegibles. Calculado en vivo (no se guarda hasta
  * que María pulsa "Emitir"). Cada total declara SU base (el handoff mezcla
@@ -110,8 +119,11 @@ export type RenditionPreview = {
   netToOperadoraUsd: number;
   /** Cantidad de recibos elegibles. */
   receiptCount: number;
+  /** SDD-0572: recibos sin tasa y facturas locales sin tasa del período. */
+  recibosSinTasa?: number;
+  facturasLocalesSinTasa?: number;
   /** Detalle: un row por recibo elegible (third_party + aplicado + en rango). */
-  lines: RenditionLine[];
+  lines: RenditionPreviewLine[];
 };
 
 // ── Helpers de elegibilidad (PUROS) ───────────────────────────

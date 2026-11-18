@@ -11,7 +11,7 @@ Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
 | **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
-| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (56 módulos en `lib/studio/modules.ts`) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
+| **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (57 módulos en `lib/studio/modules.ts`) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
 
@@ -101,6 +101,8 @@ node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres 
 node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (el script cuenta solo)
 node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
 ```
+**En el CI**, los contratos de SQL (`supabase/tests/*.test.sql`) los corre el job «Contratos SQL» (`.github/workflows/sql-tests.yml`) en cada PR que toque `supabase/migrations/**`, `supabase/tests/**` o su runner. Ahí un SKIP da rojo (`scripts/ci-sql-tests.sh`), y un paso de control comprueba antes que un contrato roto también da rojo. Desde el 2026-11-07; antes solo corrían en `pnpm verify`.
+
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
 
 ### ⚠️ Las Edge Functions viven FUERA de `tsc` — las chequea Deno
@@ -108,23 +110,6 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 `supabase/functions` está en el `exclude` de `tsconfig.json`, así que **`pnpm typecheck` no las mira**, y Vitest sólo ejecuta los módulos puros de `_shared/` *transpilando sin chequear tipos*. Hasta el 2026-08-11 eso dejaba sin ninguna verificación estática al código que escribe a Kommo (`kommo-writeback`, LIVE) y al que **poda embudos y etapas del espejo** (`kommo-sync`). Lo cierra el paso **`edge-functions`** de `verify.mjs` (`scripts/check-edge-functions.mjs`): corre `deno check` sobre las 4 entradas `supabase/functions/*/index.ts` y, por el grafo de imports, cubre de rebote los 5 módulos de `_shared/`. Usa el `deno` del PATH si existe; si no, `npx --yes deno@2` (no instala nada permanente). **Sin poder obtener Deno → SKIP, nunca rojo**; `VERIFY_SKIP_EDGE=1` lo omite a pedido.
 
 Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `deno.lock` en la raíz del repo) y **`--node-modules-dir=none`** (si no, Deno ve el `package.json`, se cree un proyecto Node y baja el árbol entero de dependencias a `node_modules/.deno` de *cada* worktree — 42 s la primera vez). Hueco conocido que **no** cubre: `_shared/__tests__/*.test.ts`, cuyos imports van sin extensión (ilegal en Deno) y no los alcanza ninguna entrada.
-
-## Vista visual del conocimiento
-
-Archify 2.16.0 está fijado para el piloto de diez componentes de Director, Graphify
-y Obsidian. Su JSON es una explicación autoral revisable basada en código y documentos;
-no convierte inferencias del grafo en hechos. knowledge:visual valida el runtime oficial,
-las fuentes y el HTML/SVG, y knowledge:status informa la vigencia antes de publicar
-la bóveda compartida. Sigue el runbook de conocimiento y el mapa de arquitectura.
-
-## Mapa del repo (graphify) — exploración para agentes
-
-`graphify-out/graph.json` = grafo de conocimiento del repo (AST: god nodes, comunidades por dominio, edges de llamadas/imports). Sirve para "¿qué llama a X?", "¿qué se rompe si toco Y?", trazar flujos — sin re-escanear todo.
-
-- **Consultar:** `/graphify query "<pregunta>"` · `/graphify path "A" "B"` · `/graphify explain "X"` (basta con que exista `graph.json`).
-- **MCP** (server `graphify` en `.mcp.json`, local y gitignored): expone tools `query_graph`/`get_node`/`get_neighbors`/`god_nodes`/`shortest_path`. Requiere el extra `graphifyy[mcp]` instalado.
-- **Refrescar (0.9.61):** `graphify update .` actualiza estructura de código y documentos; no demuestra extracción semántica. Para documentos pendientes usa la skill `$graphify . --update` en Codex. El MCP opcional detecta cambios del grafo por mtime/tamaño y recarga; no exige reiniciar Claude por cada update. Sigue el [runbook de conocimiento](../runbooks/knowledge-graphify-obsidian.md) y comprueba `pnpm knowledge:status`.
-- **Windows:** leer `graphify-out/.graphify_root` y `.graphify_python` con `utf-8-sig` (PowerShell les mete BOM y rompe el walk); los scripts que llaman `extract()` necesitan guard `if __name__ == '__main__':`.
 
 ## Variables de entorno (ver `.env.example`)
 
@@ -356,7 +341,7 @@ Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisa
 
 - **Identidad / nombres / NAP** → fuente única [`docs/marketing/identidad.md`](../../docs/marketing/identidad.md). Marca pública = **DTD Cargo** · sello de herencia + nombre del ERP interno = **DoorTuDoor** · handles **@dtdcargo.ve** (IG/TikTok) y **@dtdcargo** (YouTube) — ⚠️ **`@doortudoor_` ya NO existe**, las redes migraron (verificado 2026-08-04); el sello "DoorTuDoor" y el dominio `doortudoor.com` sí siguen vivos. La **razón social (INVERSIONES DTD SERVICES, C.A) y el RIF (J-50648869-8) van SOLO en el schema** (`legalName`/`taxID`), **nunca en texto visible**. Excepciones aprobadas por Sam, solo en los documentos que el cliente le pasa a su contador: la factura (SDD-0297, 2026-08-25) y el estado de cuenta en PDF (SDD-0556, 2026-10-18: a «¿pongo la razón social y el RIF de DTD bajo el logo, como ya los lleva la factura?», Sam respondió «Sí, como la factura»). Versión-máquina = `@graph` en [`app/layout.tsx`](../../app/layout.tsx) (`#organization` + `#website`); datos desde `CONTACT` en `lib/design-tokens.ts`.
 - **Estrategia / misión-visión / valores / ventas** → [`docs/marketing/estrategia.md`](../../docs/marketing/estrategia.md) + [`docs/marketing/ventas.md`](../../docs/marketing/ventas.md). Misión/visión/valores son **canónicos** (reemplazan los de 2020). Norte **interno** = **2 contenedores/mes** (umbral de equilibrio, **no se publica**) vía mayoristas recurrentes + aliados white-label.
-- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-20):** **2008** = empezamos a trabajar con China y sustenta la **experiencia**, no la fundación; **2010** = abrimos la primera oficina propia en China, tampoco es el año de fundación; **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema y todo copy de "opera/operando desde"). Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015."* Los años de experiencia se calculan con `aniosComercioChina()`: nunca escribir un total fijo. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 56 módulos registrados) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
+- **Negocio:** logística + trading puerta a puerta China↔Venezuela; equipo propio en Yiwu y Valencia. **Cronología (founder 2026-07-20):** **2008** = empezamos a trabajar con China y sustenta la **experiencia**, no la fundación; **2010** = abrimos la primera oficina propia en China, tampoco es el año de fundación; **2015** = **fundación e inauguración en Venezuela = EL año de fundación** (`foundingDate` del schema y todo copy de "opera/operando desde"). Frase modelo: *"En el comercio con China desde 2008, con oficina propia en China desde 2010 y operando en Venezuela desde 2015."* Los años de experiencia se calculan con `aniosComercioChina()`: nunca escribir un total fijo. El trading propio es **interno** (la web vende el servicio). El ERP (Studio "DoorTuDoor", 57 módulos registrados) apunta a **cerrar el loop comercial** (recompra día 30/45 + alertas de cadencia + KPI 2 cont./mes + white-label aliados); **no es greenfield**.
 - **Trato con el founder (Sam):** español **venezolano neutro, TUTEO, CERO voseo** (regla dura, no negociable). Usar **"tú tienes / puedes / quieres / necesitas / mira"**; **NUNCA** "vos tenés / podés / querés / necesitás / mirá" ni imperativos voseo ("cotizá", "pagás", "escribinos", "dale"). El voseo es argentino, **no se habla en Venezuela** — si lo uso es un bug. Además: directo, sin relleno ni adulación; salidas listas para copiar con rutas explícitas; opciones por prioridad con **⭐ en la #1**; preguntas cortas; decir "Fase 5", no "F5". **Verificar la rama antes de commit; NO hacer push sin su OK; commits selectivos si hay varias ventanas.**
 
 ## Organización · ISO 9001 §7.5 → detalle en `docs/README.md`

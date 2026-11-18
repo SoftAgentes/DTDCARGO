@@ -17,6 +17,7 @@
  *    contra mayor, sobre los saldos vivos.
  */
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
 import {
   accountBalances,
@@ -56,6 +57,7 @@ import type { FixedAsset } from "@/lib/studio/accounting/fixed-asset-types";
 import { ContabilidadClient } from "./_components/ContabilidadClient";
 import { getExchangeRatesOverview } from "@/lib/studio/exchange-rates-queries";
 import type { ExchangeRatesOverview } from "@/lib/studio/exchange-rates-types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Contabilidad" };
 
@@ -75,6 +77,11 @@ export default async function ContabilidadPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("accounting");
+
+  const hoy = fechaCaracas();
   const raw = await searchParams;
   const single = (k: string): string | undefined => {
     const v = raw[k];
@@ -95,8 +102,6 @@ export default async function ContabilidadPage({
       : "plan";
   const ledgerAccountId = single("cuenta") ?? null;
   const statementId = single("extracto") ?? null;
-  // Las fechas se graban en UTC (issued_at, entry_date): el «hoy» va igual.
-  const hoy = new Date().toISOString().slice(0, 10);
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();

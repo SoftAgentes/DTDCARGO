@@ -1,5 +1,7 @@
 "use client";
 
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
+
 /**
  * Orquestador client de Fidelización & Referidos (SDD-0051, Slice B).
  *
@@ -17,6 +19,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -74,6 +77,7 @@ function tierColor(tone: BadgeTone): string {
 export function FidelizacionClient({
   clients,
   tierCounts,
+  portfolioAvailable = true,
   referrals,
   stats,
   topReferrers,
@@ -86,6 +90,7 @@ export function FidelizacionClient({
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
+  portfolioAvailable?: boolean;
   referrals: Referral[];
   stats: ProgramStats;
   topReferrers: TopReferrer[];
@@ -170,12 +175,10 @@ export function FidelizacionClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Secciones de fidelización"
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
@@ -187,43 +190,14 @@ export function FidelizacionClient({
             <button
               key={tDef.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(tDef.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: active
-                  ? "700 13px/1 var(--f-sans)"
-                  : "500 13px/1 var(--f-sans)",
-                cursor: "pointer",
-                marginBottom: -1,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-              }}
+              className="studio-tab"
             >
               {tDef.label}
               {count != null && (
-                <span
-                  style={{
-                    minWidth: 18,
-                    height: 18,
-                    padding: "0 5px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: 9,
-                    background: "var(--bg-elevated)",
-                    color: "var(--ink-soft)",
-                    font: "700 10px/1 var(--f-mono)",
-                  }}
-                >
-                  {count}
-                </span>
+                <span className="studio-tab-n">{count}</span>
               )}
             </button>
           );
@@ -232,6 +206,7 @@ export function FidelizacionClient({
 
       {tab === "dashboard" && (
         <DashboardTab
+          totalClients={portfolioAvailable ? clients.length : null}
           tierCounts={tierCounts}
           stats={stats}
           topReferrers={topReferrers}
@@ -240,7 +215,10 @@ export function FidelizacionClient({
           onGoNiveles={() => setTab("niveles")}
         />
       )}
-      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} />}
+      {(!portfolioAvailable || clients.some((c) => !c.tier)) && <p role="status" style={{ color: "var(--ink-soft)", font: "500 13px/1.5 var(--f-sans)" }}>
+        {!portfolioAvailable ? "Cartera y facturación anual no disponibles." : `${clients.filter((c) => !c.tier).length} clientes con nivel Por revisar. La distribución solo incluye niveles verificables.`}
+      </p>}
+      {tab === "niveles" && <NivelesTab tierCounts={tierCounts} portfolioAvailable={portfolioAvailable} />}
       {tab === "referidos" && (
         <ReferidosTab
           referrals={referrals}
@@ -249,7 +227,7 @@ export function FidelizacionClient({
         />
       )}
       {tab === "clientes" && (
-        <ClientesTab clients={clients} referrals={referrals} />
+        <ClientesTab clients={clients} referrals={referrals} portfolioAvailable={portfolioAvailable} />
       )}
 
       {/* Drawers */}
@@ -288,6 +266,10 @@ export function FidelizacionClient({
  * encontrarse sin buscarlo. Quien abre Fidelización para otra cosa es
  * exactamente quien hoy no se entera.
  *
+ * Es `status`, no `alert` (decisión de Sam, 2026-11-15, BD-037): el aviso se
+ * deriva del estado al abrir la pantalla y no responde a una acción, igual que
+ * el de la factura anulada. Lo persistente es `status`.
+ *
  * No nombra la factura: este módulo lo ven commercial y support, y el código de
  * factura es dato del módulo de dinero. El `referral_code` alcanza para
  * coordinar, y es el mismo handle que ve el lado de facturación.
@@ -307,43 +289,10 @@ function StrandedCreditsBanner({
     : `${complete ? "" : "Al menos "}${credits.length} créditos de referido quedaron sin liberar`;
 
   return (
-    <section
-      role="alert"
-      style={{
-        margin: "0 0 var(--s-5)",
-        padding: "var(--s-3) var(--s-4)",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-md)",
-        display: "flex",
-        gap: "var(--s-3)",
-        alignItems: "flex-start",
-      }}
-    >
-      <span
-        style={{
-          color: "var(--warning)",
-          display: "flex",
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        {Icon.warn(16)}
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            font: "700 13px/1.3 var(--f-sans)",
-            color: "var(--ink)",
-            marginBottom: "var(--s-2)",
-          }}
-        >
-          {titulo}
-        </div>
+    <div style={{ margin: "0 0 var(--s-5)" }}>
+      <Aviso tono="atencion" titulo={titulo}>
         <p
           style={{
-            font: "500 12.5px/1.55 var(--f-sans)",
-            color: "var(--ink-soft)",
             margin: "0 0 var(--s-2)",
             maxWidth: "76ch",
           }}
@@ -393,8 +342,8 @@ function StrandedCreditsBanner({
             </span>
           )}
         </div>
-      </div>
-    </section>
+      </Aviso>
+    </div>
   );
 }
 
@@ -424,6 +373,7 @@ function programSteps(referredReward: number, referrerReward: number) {
 }
 
 function DashboardTab({
+  totalClients,
   tierCounts,
   stats,
   topReferrers,
@@ -437,12 +387,12 @@ function DashboardTab({
   referralSettings: ReferralSettingsInput;
   onGoReferidos: () => void;
   onGoNiveles: () => void;
+  totalClients: number | null;
 }) {
   const PROGRAM_STEPS = programSteps(
     referralSettings.referredRewardUsd,
     referralSettings.referrerRewardUsd,
   );
-  const totalClients = tierCounts.reduce((s, c) => s + c.count, 0);
   const platinum = tierCounts.find((c) => c.tier.id === "platinum")?.count ?? 0;
   const gold = tierCounts.find((c) => c.tier.id === "gold")?.count ?? 0;
 
@@ -457,7 +407,7 @@ function DashboardTab({
         }}
       >
         <KpiCard
-          value={totalClients}
+          value={totalClients ?? "—"}
           label="Clientes activos"
           sub={`${platinum} Platinum · ${gold} Gold`}
         />
@@ -757,9 +707,9 @@ function DashboardTab({
 // Tab: Niveles
 // ════════════════════════════════════════════════════════════════
 
-function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
+function NivelesTab({ tierCounts, portfolioAvailable }: { tierCounts: TierCount[]; portfolioAvailable: boolean }) {
   const countOf = (id: Tier["id"]) =>
-    tierCounts.find((c) => c.tier.id === id)?.count ?? 0;
+    portfolioAvailable ? tierCounts.find((c) => c.tier.id === id)?.count ?? 0 : null;
 
   return (
     <div
@@ -801,7 +751,7 @@ function NivelesTab({ tierCounts }: { tierCounts: TierCount[] }) {
                 {t.label}
               </span>
               <Badge tone={t.tone} size="sm">
-                {count} {count === 1 ? "cliente" : "clientes"}
+                {count === null ? "Cartera no disponible" : `${count} ${count === 1 ? "cliente" : "clientes"}`}
               </Badge>
             </div>
             <div
@@ -1067,14 +1017,16 @@ function ReferidosTab({
 // Tab: Clientes
 // ════════════════════════════════════════════════════════════════
 
-const CLIENT_GRID = "1fr 110px 130px 1.3fr 120px 90px";
+const CLIENT_GRID = "minmax(180px, 1fr) 110px minmax(200px, 1fr) minmax(160px, 1.3fr) 120px 90px";
 
 function ClientesTab({
   clients,
   referrals,
+  portfolioAvailable,
 }: {
   clients: ClientWithTier[];
   referrals: Referral[];
+  portfolioAvailable: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -1101,6 +1053,16 @@ function ClientesTab({
     );
   }, [clients, search]);
 
+  if (!portfolioAvailable) {
+    return (
+      <EmptyState
+        eyebrow="Cartera no disponible"
+        title="No se pudo cargar la cartera de clientes."
+        description="No se puede confirmar si hay clientes para clasificar. La información de referidos y créditos sigue disponible."
+      />
+    );
+  }
+
   if (clients.length === 0) {
     return (
       <EmptyState
@@ -1124,17 +1086,21 @@ function ClientesTab({
       </div>
 
       <div
+        role="region"
+        aria-label="Facturación y niveles de clientes"
+        tabIndex={0}
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
-          overflow: "hidden",
+          overflowX: "auto",
         }}
       >
         <div
           style={{
             display: "grid",
             gridTemplateColumns: CLIENT_GRID,
+            minWidth: 970,
             gap: 14,
             padding: "var(--s-3) var(--s-5)",
             background: "var(--bg-elevated)",
@@ -1164,7 +1130,7 @@ function ClientesTab({
           </div>
         ) : (
           rows.map((c, i) => {
-            const prog = tierProgress(c.billedUsd);
+            const prog = c.billedUsd === null ? null : tierProgress(c.billedUsd);
             const agg = byReferrer.get(c.markbox);
             const credits = agg?.credits ?? 0;
             const refs = agg?.count ?? 0;
@@ -1186,6 +1152,7 @@ function ClientesTab({
                 style={{
                   display: "grid",
                   gridTemplateColumns: CLIENT_GRID,
+                  minWidth: 970,
                   gap: 14,
                   padding: "14px 20px",
                   borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -1215,8 +1182,8 @@ function ClientesTab({
                   </code>
                 </div>
                 <span>
-                  <Badge tone={c.tier.tone} size="sm">
-                    {c.tier.label}
+                  <Badge tone={c.tier?.tone ?? "warning"} size="sm">
+                    {c.tier?.label ?? "Por revisar"}
                   </Badge>
                 </span>
                 <span
@@ -1224,12 +1191,14 @@ function ClientesTab({
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
                     color: "var(--ink)",
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
                   }}
                 >
-                  {fmtUsd(c.billedUsd)}
+                  {formatAnnualUsd(c.billing.subtotalUsd)}<small style={{ display: "block", marginTop: 6, lineHeight: 1.4 }}>{billingStatus(c.billing)}</small>
                 </span>
                 <div>
-                  {prog.next ? (
+                  {!prog ? <span>Por revisar</span> : prog.next ? (
                     <>
                       <ProgressBar
                         pct={prog.pct}

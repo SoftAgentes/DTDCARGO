@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * Los dos embudos del CRM propio, Leads y Clientes (SDD-0587 · paso 6.3).
+ * Los embudos del CRM propio (SDD-0587 · paso 6.3), vistos por segmento
+ * (SDD-0647): Clientes, Leads y Leads con código (`CRM_VISTAS`).
  *
- * El tablero de cada tarjeta no lo elige nadie: sale del segmento calculado en
- * el momento (regla de Sam en 0.8). Aquí solo se elige qué embudo mirar, se
- * busca y se mueve de etapa dentro del embudo.
+ * La vista de cada tarjeta no la elige nadie: sale del segmento calculado en
+ * el momento y de si su ficha tiene Shipping Mark. Aquí solo se elige qué vista
+ * mirar, se busca y se mueve de etapa dentro del embudo de esa vista.
  *
  * Mover = `crm_mover_etapa` por `moverTarjetaAction`. Una etapa de cierre
  * (Perdido) pide motivo con `ConfirmDialog`, igual que la RPC. Mientras viaja,
@@ -21,15 +22,18 @@ import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   CRM_TABLERO_CAP,
-  CRM_TABLEROS,
+  CRM_VISTAS,
   armarColumnas,
   coincideBusqueda,
+  contarPorVista,
+  vistaDef,
   type CrmEtapa,
-  type CrmTablero,
   type CrmTarjetaTablero,
+  type CrmVista,
 } from "@/lib/studio/crm-tablero";
 import { moverTarjetaAction } from "../tarjeta-actions";
-import { CrmTableroKanban, nombreTarjeta } from "./CrmTableroKanban";
+import { nombreTarjeta } from "./CrmTableroKanban";
+import { CrmVistaEmbudo } from "./CrmVistaEmbudo";
 import { TarjetaFichaDrawer } from "./TarjetaFichaDrawer";
 
 export function CrmEmbudosClient({
@@ -45,13 +49,15 @@ export function CrmEmbudosClient({
   ocultas: number;
   recortado: boolean;
   canEdit: boolean;
-  tableroInicial: CrmTablero;
+  tableroInicial: CrmVista;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [, startRefresh] = useTransition();
   const [, startMove] = useTransition();
-  const [tablero, setTablero] = useState<CrmTablero>(tableroInicial);
+  const [vista, setVista] = useState<CrmVista>(tableroInicial);
+  const def = vistaDef(vista);
+  const tablero = def.tablero;
   const [busqueda, setBusqueda] = useState("");
   // Etapa que se pinta mientras el movimiento viaja (id → clave de destino).
   // Es optimista: al terminar la transición vuelve a lo que diga el servidor,
@@ -74,24 +80,20 @@ export function CrmEmbudosClient({
     [tarjetas, enVuelo],
   );
 
-  const conteo = useMemo(() => {
-    const c: Record<CrmTablero, number> = { leads: 0, clientes: 0 };
-    for (const t of tarjetas) c[t.tablero] += 1;
-    return c;
-  }, [tarjetas]);
+  const conteo = useMemo(() => contarPorVista(tarjetas), [tarjetas]);
 
   const filtradas = useMemo(
     () => vistas.filter((t) => coincideBusqueda(t, busqueda)),
     [vistas, busqueda],
   );
   const columnas = useMemo(
-    () => armarColumnas(etapas, filtradas, tablero),
-    [etapas, filtradas, tablero],
+    () => armarColumnas(etapas, filtradas, tablero, def),
+    [etapas, filtradas, tablero, def],
   );
-  const enEsteTablero = filtradas.filter((t) => t.tablero === tablero).length;
+  const enEsteTablero = filtradas.filter((t) => t.tablero === tablero && def.incluye(t)).length;
 
-  const elegirTablero = (k: CrmTablero) => {
-    setTablero(k);
+  const elegirVista = (k: CrmVista) => {
+    setVista(k);
     router.replace(`/studio/crm?tab=embudos&embudo=${k}`, { scroll: false });
   };
 
@@ -152,12 +154,12 @@ export function CrmEmbudosClient({
           marginBottom: "var(--s-4)",
         }}
       >
-        <SegmentedControl<CrmTablero>
+        <SegmentedControl<CrmVista>
           variant="pills"
-          ariaLabel="Embudo"
-          value={tablero}
-          onChange={elegirTablero}
-          options={CRM_TABLEROS.map((o) => ({
+          ariaLabel="Segmento"
+          value={vista}
+          onChange={elegirVista}
+          options={CRM_VISTAS.map((o) => ({
             value: o.key,
             label: `${o.label} (${conteo[o.key]})`,
           }))}
@@ -186,11 +188,12 @@ export function CrmEmbudosClient({
             margin: "0 0 var(--s-3)",
           }}
         >
-          Ninguna tarjeta de {tablero === "leads" ? "Leads" : "Clientes"} coincide con la búsqueda.
+          Ninguna tarjeta de {def.nombre} coincide con la búsqueda.
         </p>
       )}
 
-      <CrmTableroKanban
+      {/* SDD-0648 §3-§4: vista Tablero | Lista y aviso del chat que no se pudo abrir. */}
+      <CrmVistaEmbudo
         tablero={tablero}
         columnas={columnas}
         etapas={etapas}
@@ -211,9 +214,10 @@ export function CrmEmbudosClient({
         {canEdit
           ? "Arrastra una tarjeta a otra columna o usa «Mover a…». "
           : "Vista de lectura: tu permiso no mueve tarjetas. "}
-        Nadie elige el embudo: una tarjeta pasa sola a Clientes cuando su ficha tiene un envío
-        vivo o carga recibida en China, y vuelve a Leads, en «Registrado / recontacto», si los
-        pierde.
+        Nadie elige el segmento: una tarjeta pasa sola a Clientes cuando su ficha tiene un envío
+        (aunque ya esté entregado; no cuentan borradores ni cancelados) o carga recibida en
+        China. Sin carga, va a Leads con código si su ficha tiene Shipping Mark, y a Leads si no.
+        Una cotización sola no la hace cliente.
         {ocultas > 0 &&
           ` ${ocultas} ${ocultas === 1 ? "tarjeta está escondida porque su ficha está borrada" : "tarjetas están escondidas porque sus fichas están borradas"}.`}
         {recortado &&

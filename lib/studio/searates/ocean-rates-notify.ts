@@ -18,9 +18,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import type { OceanRatesAlert } from "./ocean-rates-alert";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com").replace(/\/+$/, "");
 
 export type OceanRatesNotifyResult = {
   emailSent: number;
@@ -60,10 +62,23 @@ export async function notifyOceanRatesHealth(
     }
 
     // Telegram es independiente de Resend: si el correo está roto, este llega.
-    const tg = await dispatchTelegramAlert(admin, tenantId, "equipo", alert.text, {
-      logTag: "searates-refresh",
-    });
-    result.telegramAttempted = tg.chatIds.length;
+    const tg = await dispatchAlert(
+      admin,
+      tenantId,
+      "equipo",
+      {
+        telegramText: alert.text,
+        // Aviso técnico, sin datos de personas; el detalle está en Debug.
+        discord: {
+          titulo: "Tarifas de fletes: el refresco falló o volvió incompleto",
+          url: `${SITE_URL}/studio/debug`,
+        },
+      },
+      { logTag: "searates-refresh" },
+    );
+    // Nombre histórico: cuenta los destinos de mensajería intentados
+    // (canal de Discord o chats de Telegram).
+    result.telegramAttempted = tg.intentados;
   } catch (err) {
     console.error("[searates-refresh] notifyOceanRatesHealth falló:", err);
   }

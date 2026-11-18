@@ -22,6 +22,7 @@
 
 import React, { useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { copyToClipboard } from "./copy";
 import { MarkdownLite } from "./MarkdownLite";
 import {
@@ -278,29 +279,16 @@ export function Step3Article({
 
             {/* Markers VERIFICAR */}
             {score.verifyMarkers.length > 0 && (
-              <div
-                style={{
-                  background: "var(--warning-bg, rgba(184,137,58,0.10))",
-                  border: "1px solid var(--warning, #B8893A)",
-                  borderRadius: 8,
-                  padding: "10px 12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                }}
+              <Aviso
+                tono="atencion"
+                compacto
+                titulo={
+                  <>
+                    {score.verifyMarkers.length} dato
+                    {score.verifyMarkers.length === 1 ? "" : "s"} sin verificar
+                  </>
+                }
               >
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: "var(--warning, #B8893A)",
-                  }}
-                >
-                  ⚠ {score.verifyMarkers.length} dato
-                  {score.verifyMarkers.length === 1 ? "" : "s"} sin verificar
-                </div>
                 <ul
                   style={{
                     margin: 0,
@@ -312,40 +300,19 @@ export function Step3Article({
                   }}
                 >
                   {score.verifyMarkers.slice(0, 5).map((m, i) => (
-                    <li
-                      key={i}
-                      style={{
-                        fontSize: 12,
-                        color: "var(--ink, #0F1E3D)",
-                        lineHeight: 1.35,
-                      }}
-                    >
+                    <li key={i} style={{ lineHeight: 1.35 }}>
                       • {m.length > 60 ? `${m.slice(0, 60)}…` : m}
                     </li>
                   ))}
                   {score.verifyMarkers.length > 5 && (
-                    <li
-                      style={{
-                        fontSize: 11.5,
-                        color: "var(--ink-soft, #6B6B6B)",
-                      }}
-                    >
-                      +{score.verifyMarkers.length - 5} más
-                    </li>
+                    <li>+{score.verifyMarkers.length - 5} más</li>
                   )}
                 </ul>
-                <p
-                  style={{
-                    fontSize: 11.5,
-                    color: "var(--ink-soft, #6B6B6B)",
-                    margin: "var(--s-1) 0 0 0",
-                    lineHeight: 1.4,
-                  }}
-                >
+                <p style={{ margin: "var(--s-1) 0 0 0", lineHeight: 1.4 }}>
                   Resuélvelos en el artículo (edita el markdown) antes de
                   publicar.
                 </p>
-              </div>
+              </Aviso>
             )}
           </aside>
         )}
@@ -405,11 +372,7 @@ export function Step3Article({
             </button>
           )}
         </div>
-        {error && (
-          <p className="text-[13px] text-[color:var(--color-status-danger)]">
-            {error}
-          </p>
-        )}
+        {error && <Aviso tono="error">{error}</Aviso>}
       </div>
     </div>
   );

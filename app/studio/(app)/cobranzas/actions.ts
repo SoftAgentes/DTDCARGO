@@ -60,10 +60,11 @@ export async function registerCollection(
   receiptCode?: string;
   fullyPaid?: boolean;
 }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerCollectionFor(supabase, invoiceId, payload);
+  const result = await registerCollectionFor(supabase, invoiceId, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -87,10 +88,11 @@ export async function registerCollection(
 export async function registerUnidentifiedPayment(
   payload: Partial<UnidentifiedPaymentInput>,
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string }> {
+  const receivedAt = payload?.receivedAt === undefined ? todayCaracasISO() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "collections");
   if (denial) return { error: denial };
-  const result = await registerUnidentifiedPaymentFor(supabase, payload);
+  const result = await registerUnidentifiedPaymentFor(supabase, { ...payload, receivedAt });
 
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -211,11 +213,13 @@ export async function voidReceipt(
  * cerró SDD-0494. Era la única de las ocho acciones de este archivo sin gate,
  * mientras las otras siete llaman `moduleEditDenial(supabase, "collections")`.
  * El `requireModuleView("collections")` del layout protege la PÁGINA, no esta
- * action —endpoint invocable directo, SDD-0085 §Seguridad—, y la RLS no compensa:
- * `payment_receipts_team_select` (0470:186-191) y `"collection_activities by
- * tenant"` (0079:151-155) sólo comparan `tenant_id`, sin predicado de rol. Sin
- * este candado, cualquier miembro del tenant leía monto, fecha, método y banco
- * de los cobros de un módulo de DINERO que la matriz reserva a `accounting`.
+ * action —endpoint invocable directo, SDD-0085 §Seguridad—. Antes de la 0528 la
+ * RLS no compensaba: `payment_receipts_team_select` (0470:186-191) sólo
+ * comparaba `tenant_id`, y cualquier miembro del tenant leía monto, fecha,
+ * método y banco de los cobros. Desde la 0528 (SDD-0624) los recibos los lee
+ * `payment_receipts_money_select` (tenant + `studio_can_read_money()`), pero
+ * `"collection_activities by tenant"` (0079:151-155) sigue comparando sólo
+ * `tenant_id`, y la base puede no tener la 0528 todavía: el candado se queda.
  *
  * Es el de VISTA, no el de edición: no muta nada, pero expone dinero.
  */
@@ -235,6 +239,21 @@ export async function getReceivableHistory(invoiceId: string): Promise<{
     listActivities(supabase, invoiceId),
   ]);
   return { receipts, activities };
+}
+
+/**
+ * SDD-0630 · Reportes de pago del portal sin revisar de una factura, para el
+ * aviso del cobro. Misma puerta de VISTA que el historial. null = no se pudo leer.
+ */
+export async function getPendingPaymentReports(invoiceId: string): Promise<{
+  pending: import("@/lib/studio/payment-queries").PendingReportsSummary | null;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "collections");
+  if (denial) return { pending: null, error: denial };
+  const { pendingReportsForInvoice } = await import("@/lib/studio/payment-queries");
+  return { pending: await pendingReportsForInvoice(supabase, invoiceId) };
 }
 
 // ─────────────────────────────────────────────────────────────

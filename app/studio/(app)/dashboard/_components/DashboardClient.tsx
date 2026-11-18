@@ -228,7 +228,7 @@ export function DashboardClient({
                   ? "Guardado ✓"
                   : ""}
           </span>
-          <button type="button" className="studio-btn studio-btn-dark studio-btn-sm" onClick={() => setEditorOpen(true)}>
+          <button type="button" data-guia="dashboard.configurar" className="studio-btn studio-btn-dark studio-btn-sm" onClick={() => setEditorOpen(true)}>
             {Icon.cog(14)} Configurar
           </button>
         </div>
@@ -262,6 +262,7 @@ export function DashboardClient({
           {/* KPI grid */}
           {visibleKpis.length > 0 && (
             <div
+              data-guia="dashboard.kpis"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -291,6 +292,7 @@ export function DashboardClient({
           {/* Widgets */}
           {(hasLeft || hasRight) && (
             <div
+              data-guia="dashboard.paneles"
               style={{
                 display: "grid",
                 gridTemplateColumns: hasLeft && hasRight ? "minmax(0, 2fr) minmax(0, 1fr)" : "minmax(0, 1fr)",

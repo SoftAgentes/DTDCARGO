@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -322,11 +323,7 @@ export function RateSnapshotDrawer({
         onSubmit={onSubmit}
         style={{ flex: 1, overflow: "auto", padding: "18px 22px", display: "flex", flexDirection: "column", gap: "var(--s-5)" }}
       >
-        {loadError && (
-          <p role="alert" style={{ margin: 0, font: "600 12.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
-            {mensaje(loadError)}
-          </p>
-        )}
+        {loadError && <Aviso tono="error" compacto>{mensaje(loadError)}</Aviso>}
         {!data && !loadError && (
           <p role="status" style={{ margin: 0, font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
             {t("warehouse_cn.rate.drawer.loading")}
@@ -347,22 +344,12 @@ export function RateSnapshotDrawer({
                     {t("warehouse_cn.rate.drawer.frozen_at", { date: fmtFecha(live.frozen_at) })}
                   </p>
                   {cbmCambio(live, data.currentCbm) && (
-                    <p
-                      role="status"
-                      style={{
-                        margin: 0,
-                        font: "600 12px/1.4 var(--f-sans)",
-                        color: "var(--ink)",
-                        background: "var(--warning-bg)",
-                        padding: "8px 10px",
-                        borderRadius: "var(--r-sm)",
-                      }}
-                    >
+                    <Aviso tono="atencion" compacto>
                       {t("warehouse_cn.rate.drawer.cbm_changed", {
                         frozen: fmtCbm(live.cbm),
                         now: data.currentCbm == null ? "—" : fmtCbm(data.currentCbm),
                       })}
-                    </p>
+                    </Aviso>
                   )}
                 </>
               ) : (
@@ -520,9 +507,9 @@ export function RateSnapshotDrawer({
               )}
 
               {/* Quedaría así */}
+              {/* SDD-0603 · tramo 5c: la vista previa cambia al escribir el
+                  precio, así que no es región viva (BD-037). */}
               <div
-                role="status"
-                aria-live="polite"
                 aria-busy={previewPendiente}
                 style={{
                   border: "1px solid var(--border)",
@@ -546,11 +533,7 @@ export function RateSnapshotDrawer({
                 )}
               </div>
 
-              {submitError && (
-                <p role="alert" style={{ margin: 0, font: "600 12.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
-                  {submitError}
-                </p>
-              )}
+              {submitError && <Aviso tono="error" compacto>{submitError}</Aviso>}
             </section>
 
             {/* Historial */}

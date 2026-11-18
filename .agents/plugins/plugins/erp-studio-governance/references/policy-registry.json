@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "104c15f2230755d1c9c911f52d4518d692b43e2a",
+  "sourceCommit": "ea7e243332d534518c6e124d091ae0e0d8b2b272",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -166,6 +166,13 @@
       "path": "docs/governance/policies/sge-00.md"
     },
     {
+      "code": "SGE-AG-01",
+      "version": "0.2",
+      "state": "aprobada (cambio 2026-11-12)",
+      "approvedAt": "2026-11-12",
+      "path": "docs/governance/policies/sge-ag-01.md"
+    },
+    {
       "code": "TBL-01",
       "version": "1.0",
       "state": "aprobada — adopción pendiente",
@@ -230,6 +237,38 @@
           "code": "CMP-01",
           "version": "1.1",
           "path": "docs/governance/policies/cmp-01.md"
+        }
+      ],
+      "replacement": null
+    },
+    {
+      "id": "aviso",
+      "name": "Aviso",
+      "status": "proposed",
+      "implementation": {
+        "path": "app/studio/_components/ui/Aviso.tsx",
+        "exportName": "Aviso"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "ERR-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/err-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "VIS-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/vis-01.md"
         }
       ],
       "replacement": null

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 582 specs)
+### Índice de specs (generado · 640 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -496,7 +496,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0468 | Portal: rediseño del enlace del proveedor (Factura + Packing … | in-progress | interno |
 | 0469 | Borrar un cliente deja un evento de auditoría atómico y se co… | in-progress | interno |
 | 0470 | El e2e de verify sin Supabase público: omite con motivo lo qu… | done | interno |
-| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | in-progress | interno |
+| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | superseded | interno |
 | 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
 | 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
 | 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
@@ -596,18 +596,23 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0569 | Un solo conversor a USD, que falla cerrado, y una tabla de ta… | in-progress | interno |
 | 0570 | Pruebas PGlite sin initdb por caso: plantilla del cluster rec… | in-progress | interno |
 | 0571 | Tarifa congelada por embarque: el precio por CBM queda guarda… | in-progress | interno |
+| 0572 | Los 13 conversores a USD pasan a uno solo, que falla cerrado | in-progress | interno |
 | 0573 | Anular una factura revierte su asiento de venta, en la misma … | in-progress | interno |
 | 0574 | Embarques sin facturar: el reporte y las tarjetas en Dirección | in-progress | interno |
+| 0576 | Fechas Caracas — operaciones, anuales y móvil — C1/C2/C3 | in-progress | interno |
 | 0577 | Reintento de borrado disponible y consultas de archivos del P… | in-progress | interno |
 | 0579 | Promesas de seguimiento coherentes en FAQ y fuentes locales | done | interno |
 | 0580 | Shipping Mark CTA: altura intrínseca y recorrido móvil | done | interno |
 | 0581 | Diagnóstico local de medición Ads y CSP | done | interno |
 | 0582 | Programa Kommo → Chatwoot dentro de Studio, con checklist y a… | proposed | interno |
 | 0583 | Chatwoot CE en el VPS del ERP (etapa E1 del programa SDD-0582) | in-progress | interno |
+| 0584 | Protección de /register y /deregister de WhatsApp en Chatwoot… | in-progress | interno |
 | 0585 | Bandeja de Chatwoot dentro de Studio, usuarios y permisos (et… | in-progress | interno |
 | 0586 | Enrutamiento por segmento desde el ERP (etapa E10 del program… | in-progress | interno |
 | 0587 | Contrato de sistema maestro por objeto y fase: Studio, Chatwo… | approved | interno |
 | 0588 | Actualizaciones de Chatwoot desde Studio (etapa E3 del progra… | in-progress | interno |
+| 0589 | Motor de guía propio y liviano en Studio (E9 del programa SDD… | in-progress | interno |
+| 0590 | Historial de Kommo: respaldo cifrado fuera de Git y medición … | in-progress | interno |
 | 0591 | Cambiar el plan de cuentas queda para accounting y admin | in-progress | interno |
 | 0592 | El foco no se sale del modal durante el envío ni con errores … | in-progress | interno |
 | 0593 | Escribir asientos queda para accounting y admin; las cuentas … | in-progress | interno |
@@ -620,6 +625,59 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0600 | Un correo no se compara como patrón: correo entrante, invitac… | in-progress | interno |
 | 0601 | Aviso del cobro no registrado: por qué y a quién acudir | in-progress | interno |
 | 0602 | Las redirecciones propias no mandan a la dirección donde escu… | in-progress | interno |
+| 0603 | Claridad de controles: qué se oprime, qué avisa y qué solo se… | in-progress | interno |
+| 0604 | SEO, GEO y AEO: fase A, mejoras estáticas del sitio público | in-progress | interno |
+| 0605 | Reestructura de la oficina de agentes: 13 agentes, marketing … | proposed | interno |
+| 0606 | Avisos del Studio: de Telegram a Discord | in-progress | interno |
+| 0607 | Puente de ALFRED en el repositorio y corte de la oficina a Di… | proposed | interno |
+| 0608 | Consulta de clientes desde Discord: /cliente | in-progress | interno |
+| 0609 | Avisos del servidor: de Telegram a Discord | in-progress | interno |
+| 0610 | Resumen semanal agregado del CRM para marketing, sin datos pe… | proposed | interno |
+| 0611 | Publicación automática de noticias en /noticias, con filtros | in-progress | interno |
+| 0612 | Avisos de Paperclip a #actividad-oficina y resumen diario de … | proposed | interno |
+| 0613 | SEO, GEO y AEO: fase B, revisión en servidor, Search Console … | proposed | interno |
+| 0614 | Reemplazos de Kommo en el ERP: vista CRM nueva, ficha desde l… | draft | interno |
+| 0615 | ALFRED con Claude Code, un crítico con Codex y envoltorios ai… | proposed | interno |
+| 0616 | Carga de leads, etapas, tareas, asesores e IDs de Kommo al CR… | draft | interno |
+| 0617 | Reemplazo de los 15 Salesbots de Kommo y costo de los «Ping 2… | draft | interno |
+| 0618 | dtd-bot: el bot propio de Chatwoot, apagado de nacimiento (E7… | draft | interno |
+| 0619 | Inventario para la limpieza de Kommo (paso 8.10 de la SDD-0582) | draft | interno |
+| 0620 | Respaldo cifrado de los archivos del Storage de Studio | in-progress | interno |
+| 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
+| 0622 | Rol base + accesos adicionales por persona en Studio | approved | interno |
+| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | superseded | interno |
+| 0624 | Endurecimiento de permisos: dinero, gastos y deuda RBAC | in-progress | interno |
+| 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
+| 0626 | Oficina-runtime — El Cable Vertical | approved | interno |
+| 0627 | Seguimiento estimado: ETA desde el zarpe y avisos por hito | in-progress | interno |
+| 0628 | Aviso: componente único de avisos del Studio (tramo 4a de SDD… | in-progress | interno |
+| 0629 | Equivalente en bolívares, solo como vista, con su tasa, fecha… | in-progress | interno |
+| 0630 | Confirmar un reporte de pago crea su recibo de cobro | in-progress | interno |
+| 0631 | CxP ligada a un contenedor y a un embarque, con su costo en e… | in-progress | interno |
+| 0632 | Retiro de Graphify, Archify y la publicación a Obsidian | in-progress | interno |
+| 0633 | Superadmin: devolver el EXECUTE de is_platform_admin() y avis… | in-progress | interno |
+| 0634 | Feature flags: el superadministrador por cualquier camino, ta… | in-progress | interno |
+| 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
+| 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
+| 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
+| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
+| 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
+| 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
+| 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
+| 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
+| 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
+| 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
+| 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
+| 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
+| 0648 | CRM › Embudos: tarjeta compacta, logo por canal, ancho comple… | in-progress | interno |
+| 0649 | Shipping Mark y segmento del ERP en el contacto de Chatwoot | in-progress | interno |
+| 0650 | Ficha 360° del cliente en el Studio | in-progress | interno |
+| 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
+| 0652 | Ficha 360° del empleado en el Studio: datos, nómina, acceso, … | in-progress | interno |
+| 0653 | Nómina: reglas al día con la ley a noviembre de 2026 y un est… | in-progress | interno |
+| 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
+| 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
+| 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0572, 0575, 0576, 0578, 0584, 0589, 0590 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

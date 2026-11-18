@@ -64,6 +64,22 @@ const CHECK_DE_EXITO = 'path[d="m7 12 3 3 7-7"]';
 
 const ERROR_AL_REVES = "El rango está al revés: «desde» (2025-03-10) es posterior a «hasta» (2025-03-01).";
 
+describe("0572 · tarjeta compartida de ingreso incompleto", () => {
+  it("retiene subtotal conocido sin éxito ni diferencia total y explica la tasa faltante", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+    const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+    const ingreso = resumirIngreso([usd, cny], RANGO_MES, control(1000, 1000, true, ["u1"]));
+    const { container } = render(<IngresoDelPeriodoCard ingreso={ingreso} />);
+    expect(screen.getByTestId("ingreso-facturado")).toHaveTextContent("$1,000.00");
+    expect(screen.getByText(/subtotal convertido/i)).toBeInTheDocument();
+    expect(screen.getByTestId("ingreso-control")).toHaveAttribute("data-estado", "conversion_incompleta");
+    expect(screen.getByTestId("ingreso-control")).toHaveAttribute("data-tono", "neutral");
+    expect(screen.getByText(/1 factura no suma/)).toBeInTheDocument();
+    expect(screen.queryByText(/Cuadra/)).not.toBeInTheDocument();
+    expect(container.querySelector(CHECK_DE_EXITO)).toBeNull();
+  });
+});
+
 describe("ReportesTab", () => {
   it("rango al revés: muestra el error, conserva lo tecleado y no calcula reportes", () => {
     render(
@@ -117,7 +133,7 @@ describe("ReportesTab", () => {
     const linea = screen.getByTestId("ingreso-control");
     expect(linea).toHaveAttribute("data-estado", "no_comparable");
     expect(linea).toHaveAttribute("data-tono", "neutral");
-    expect(linea).toHaveTextContent(/No comparable: 3 facturas del período están en bolívares o yuanes/);
+    expect(linea).toHaveTextContent(/No comparable: 4 facturas del período están en bolívares o yuanes/);
     expect(linea).toHaveTextContent(/fase 2 del plan de trabajo de contabilidad/);
     expect(linea).not.toHaveTextContent(/tarea 2\.3|plan contable/);
     expect(linea).not.toHaveTextContent(/más que lo facturado|menos que lo facturado/);

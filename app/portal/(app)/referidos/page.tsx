@@ -1,3 +1,4 @@
+import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import {
@@ -39,7 +40,9 @@ export default async function PortalReferralsPage() {
     return <PortalVerifyGate module="referidos" profile={profile} />;
   }
 
-  const program = await getMyReferralProgram(supabase);
+  let program: PortalReferralProgram | null;
+  try { program = await getMyReferralProgram(supabase); }
+  catch { return <div role="status"><h1>Referidos</h1><p>Programa de referidos no disponible. Intenta de nuevo más tarde.</p></div>; }
   if (!program) return null;
 
   return (
@@ -264,6 +267,14 @@ function HowItWorks({ program }: { program: PortalReferralProgram }) {
 
 /** Nivel actual + barra de progreso al siguiente (derivado de la facturación). */
 function TierCard({ program }: { program: PortalReferralProgram }) {
+  if (!program.tier) return (
+    <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7" role="status">
+      <h2>Tu nivel · Por revisar</h2>
+      <p>{billingStatus(program.billing)}</p>
+      <p>{program.billing.state === "completo" ? "Facturado" : "Subtotal conocido"}: {formatAnnualUsd(program.billing.subtotalUsd)}</p>
+      <p>El nivel y el progreso estarán disponibles cuando la facturación esté completa y pueda calcularse con precisión.</p>
+    </div>
+  );
   const { tier, next, pct, toNext } = program.tier;
   return (
     <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
@@ -299,6 +310,7 @@ function TierCard({ program }: { program: PortalReferralProgram }) {
           ))}
         </div>
       </div>
+      <p className="mt-4 text-[12.5px] text-grey-700">Facturado anual: {formatAnnualUsd(program.billing.subtotalUsd)} · {billingStatus(program.billing)}</p>
       {next ? (
         <div className="mt-5">
           <div className="h-2 rounded-full bg-grey-100 overflow-hidden">

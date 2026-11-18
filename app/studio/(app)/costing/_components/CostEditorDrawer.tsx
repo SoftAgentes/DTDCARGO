@@ -14,7 +14,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
-import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   COST_CATEGORIES,
   emptyCosts,
@@ -198,37 +198,14 @@ export function CostEditorDrawer({
         </div>
 
         {/* Nota de ayuda */}
-        <div
-          style={{
-            padding: "10px 14px",
-            background: "var(--info-bg)",
-            borderRadius: "var(--r-md)",
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-          }}
-        >
-          <span style={{ color: "var(--info)", flexShrink: 0 }}>{Icon.info(13)}</span>
-          <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
-            Los costos van en USD · el margen se recalcula arriba al instante.
-          </div>
-        </div>
+        <Aviso tono="info" compacto>
+          Los costos van en USD · el margen se recalcula arriba al instante.
+        </Aviso>
 
         {state.error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </p>
+          </Aviso>
         )}
       </form>
 

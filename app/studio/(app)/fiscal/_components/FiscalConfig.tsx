@@ -35,6 +35,7 @@ import {
 import { saveFiscalSettingsAction } from "../actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const initialState: FiscalSettingsActionState = {};
 
@@ -352,12 +353,9 @@ export function FiscalConfig({
         </div>
 
         {!dirty && state.error && (
-          <p
-            role="alert"
-            style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)", margin: "var(--s-5) 0 0" }}
-          >
-            {state.error}
-          </p>
+          <div style={{ marginTop: "var(--s-5)" }}>
+            <Aviso tono="error">{state.error}</Aviso>
+          </div>
         )}
 
         <div

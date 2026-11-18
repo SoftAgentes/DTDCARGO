@@ -43,6 +43,7 @@ let rpcs: { rpc: string; args: Record<string, unknown> }[] = [];
 let vigente: { data: unknown; error: unknown } = { data: null, error: null };
 let guardada: Record<string, unknown> = {};
 let antesDeEscribir: (() => Promise<void>) | null = null;
+let despuesDeAutorizar: (() => void) | null = null;
 
 function fila() {
   return {
@@ -59,7 +60,7 @@ function fila() {
 
 function makeClient() {
   return {
-    auth: { getUser: async () => ({ data: { user: { id: "u1" } }, error: null }) },
+    auth: { getUser: async () => { despuesDeAutorizar?.(); return { data: { user: { id: "u1" } }, error: null }; } },
     rpc: async (rpc: string, args: Record<string, unknown>) => {
       rpcs.push({ rpc, args });
       if (rpc === "next_invoice_code") return { data: "F-2026-0570", error: null };
@@ -116,7 +117,7 @@ function makeClient() {
   };
 }
 
-vi.mock("@/lib/db/server", () => ({ createClient: async () => makeClient() }));
+vi.mock("@/lib/db/server", () => ({ createClient: async () => { despuesDeAutorizar?.(); return makeClient(); } }));
 
 const { createInvoice, updateInvoice, emitInvoice, duplicateInvoice } = await import("../actions");
 
@@ -135,15 +136,40 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 const escritura = (kind: "update" | "insert") => writes.find((w) => w.table === "invoices" && w.kind === kind);
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
   writes = [];
   rpcs = [];
   asientos.length = 0;
   vigente = { data: null, error: null };
   guardada = {};
   antesDeEscribir = null;
+  despuesDeAutorizar = null;
   vi.mocked(fireMailEvent).mockClear();
 });
 afterEach(() => vi.useRealTimers());
+
+describe("C1 · ancla anterior a los awaits de factura", () => {
+  it.each(["create", "emit", "update", "duplicate"] as const)("%s conserva el día de inicio aunque la sesión cruce medianoche Caracas", async operation => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-21T03:59:59.999Z"));
+    despuesDeAutorizar = () => vi.setSystemTime(new Date("2026-10-21T04:00:00Z"));
+    guardada = { currency: "VES" };
+    vigente = { data: [{ rate: 40, source: "manual", valid_on: "2026-10-20" }], error: null };
+    const form = borrador("VES");
+    form.set("emit_on_create", "true");
+    const result = operation === "create" ? await createInvoice({}, form)
+      : operation === "emit" ? await emitInvoice("inv-0569")
+      : operation === "update" ? await updateInvoice("inv-0569", {}, form)
+      : await duplicateInvoice("inv-0569");
+    expect(result).toMatchObject({ ok: true });
+    expect(rpcs.find(r => r.rpc === "fx_rate_on")?.args.p_on).toBe("2026-10-20");
+    if (operation === "create" || operation === "emit") {
+      expect(writes[0].values.issued_at).toBe("2026-10-20");
+      expect(asientos[0]).toMatchObject({ entryDate: "2026-10-20" });
+    }
+  });
+});
 
 describe("updateInvoice · la tasa congelada", () => {
   it("CNY sin tasa escrita: toma la vigente y guarda su fuente y su fecha", async () => {

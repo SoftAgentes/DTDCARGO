@@ -20,6 +20,9 @@
  *    de Studio que ve la Bandeja: crea (o adopta por correo) su usuario, lo mete
  *    en la cuenta como agente y guarda el vínculo. La baja la hacen Usuarios y
  *    el cron `chatwoot-agentes` (`lib/studio/chatwoot/agentes-ciclo.ts`).
+ *  - `destrabarPortal`: solo admin (SDD-0586, 10.5, PR 1b, §10.5.20). «Reintentar los
+ *    atascados» de la ida del chat del portal a Chatwoot. La RPC vuelve a exigir admin con
+ *    la sesión y toma el tenant de ella.
  *
  * Nunca se registra el enlace, el token ni un correo.
  */
@@ -54,6 +57,9 @@ import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/cli
 import { getClientAccountState } from "@/lib/studio/client-queries";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 
+/** SDD-0655: «Agentes vinculados» se pinta en Usuarios › Bandeja; esa página se revalida también. */
+const RUTA_AGENTES_VINCULADOS_PAGINA = "/studio/usuarios";
+
 /** Códigos de error; el cliente los traduce con `bandeja.error.<código>`. */
 export type BandejaErrorCode =
   | "denied"
@@ -66,13 +72,16 @@ export type BandejaErrorCode =
   | "unconfigured"
   | "unlinked"
   | "sin_bandeja"
-  | "service";
+  | "service"
+  | "base";
 
 export type EnlaceSsoResult = { ok: true; url: string } | { ok: false; error: BandejaErrorCode };
 
 export type VinculoState = { ok: boolean; error: BandejaErrorCode | null };
 
 export type ReconciliarResult = { ok: true; aplicadas: number } | { ok: false; error: BandejaErrorCode };
+
+export type DestrabarState = { ok: boolean; error: BandejaErrorCode | null; destrabados?: number };
 
 export async function pedirEnlaceSso(conversacion?: number): Promise<EnlaceSsoResult> {
   const supabase = await createClient();
@@ -197,6 +206,7 @@ export async function vincularAgente(_prev: VinculoState, formData: FormData): P
   }
   await despuesDelVinculo(admin, gate.tenantId, userId, chatwootUserId);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -235,6 +245,7 @@ export async function desvincularAgente(_prev: VinculoState, formData: FormData)
     .eq("user_id", userId);
   if (error) return { ok: false, error: "service" };
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -330,6 +341,7 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
   await despuesDelVinculo(admin, gate.tenantId, userId, creado.data);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -377,7 +389,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const agente = idDeContexto(agenteId);
   if (conversacion === null || agente === null) return { ok: false, error: "invalid" };
 
-  const { tenantId, userId, role, overrides } = await getStudioAccess(supabase);
+  const { tenantId, userId, role, overrides, grants } = await getStudioAccess(supabase);
   if (!tenantId || !userId) return { ok: false, error: "denied" };
   const cfg = chatwootConfig();
   if (!cfg) return { ok: false, error: "unconfigured" };
@@ -386,7 +398,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const vinculo = await getVinculoPropio(supabase, tenantId, userId);
   if (!vinculo) return { ok: false, error: "unlinked" };
   if (vinculo.chatwoot_user_id !== agente) return { ok: false, error: "otro_agente" };
-  if (!canAccessModule(role, "clients", overrides)) return { ok: false, error: "sin_clientes" };
+  if (!canAccessModule(role, "clients", overrides, grants)) return { ok: false, error: "sin_clientes" };
 
   // E2-D30 (4): Chatwoot decide si ese agente ve esa conversación. El token se
   // usa acá y se descarta.
@@ -438,7 +450,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     codigosConocidos = [];
   }
   const cuenta = await getClientAccountState(supabase, cliente, {
-    puedeVerSaldo: puedeVerSaldoCliente(role, overrides),
+    puedeVerSaldo: puedeVerSaldoCliente(role, overrides, grants),
     codigosConocidos,
   });
   return {
@@ -451,4 +463,22 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     },
     costo,
   };
+}
+
+/**
+ * «Reintentar los atascados» del chat del portal (SDD-0586, 10.5, PR 1b, §10.5.20). Cada uno
+ * vuelve a la cola ahora, verificando antes si ya había llegado, con un plazo nuevo de 24 h.
+ * Solo admin: aquí y otra vez en `chatwoot_portal_destrabar`, con la sesión del admin.
+ */
+export async function destrabarPortal(): Promise<DestrabarState> {
+  const supabase = await createClient();
+  const gate = await tenantAdminGate(supabase);
+  if (!gate.ok) return { ok: false, error: "denied" };
+  const { data, error } = await supabase.rpc("chatwoot_portal_destrabar");
+  if (error) {
+    console.warn(`[bandeja] chatwoot_portal_destrabar: ${error.code ?? "sin código"}`);
+    return { ok: false, error: error.code === "42501" ? "denied" : "base" };
+  }
+  revalidatePath("/studio/bandeja");
+  return { ok: true, error: null, destrabados: Number(data ?? 0) };
 }

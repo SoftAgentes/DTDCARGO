@@ -20,11 +20,16 @@ import {
 } from "@/lib/studio/comments/comments-queries";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { MentionsInboxClient } from "./_components/MentionsInboxClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Menciones · DTD Studio" };
 export const dynamic = "force-dynamic";
 
 export default async function MencionesPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("mentions");
+
   const user = await getUser();
   if (!user) redirect("/studio/login");
 

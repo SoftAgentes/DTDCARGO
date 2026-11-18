@@ -15,7 +15,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial, getStudioRole } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateClaimInput,
   validateClaimFinancialsInput,
@@ -434,8 +434,11 @@ export async function updateClaimFinancialsAction(
 ): Promise<ClaimActionState> {
   const supabase = await createClient();
 
-  const role = await getStudioRole(supabase);
-  if (role !== "accounting" && role !== "admin") {
+  // SDD-0624: la regla de producto es «sólo Contabilidad edita la resolución
+  // financiera»; el gate central de edición del módulo `accounting` la expresa
+  // tal cual (accounting + admin, módulo bajo candado: sin overrides), y además
+  // respeta `disabled_at` y el segundo candado por la misma vía que el resto.
+  if (await moduleEditDenial(supabase, "accounting")) {
     return { error: "Solo Contabilidad puede editar la resolución financiera." };
   }
 

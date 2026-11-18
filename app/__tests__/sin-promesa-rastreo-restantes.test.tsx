@@ -266,7 +266,9 @@ describe("public/llms.txt (SDD-0528)", () => {
 
   it("el enlace al Portal dice algo cierto con el interruptor en las dos posiciones", () => {
     const aPortal = llms.split(/\r?\n/).filter((l) => l.includes("https://dtdcargo.com/portal"));
-    expect(aPortal).toEqual(["- Portal del cliente: https://dtdcargo.com/portal"]);
+    // Formato de enlace Markdown desde la auditoría SEO 2026-11-07 (estándar llms.txt);
+    // la etiqueta, que es lo que esta prueba protege, no cambia.
+    expect(aPortal).toEqual(["- [Portal del cliente](https://dtdcargo.com/portal)"]);
   });
 
   it("no promete rastreo en ninguna parte", () => {

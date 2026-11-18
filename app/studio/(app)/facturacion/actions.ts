@@ -25,10 +25,11 @@
 
 "use server";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
 import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
@@ -340,6 +341,7 @@ export async function createInvoice(
   _prev: InvoiceActionState,
   formData: FormData,
 ): Promise<InvoiceActionState> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -348,7 +350,6 @@ export async function createInvoice(
   const { tenantId, error: tErr } = await resolveTenant(supabase);
   if (tErr || !tenantId) return { error: tErr };
 
-  const today = new Date().toISOString().slice(0, 10);
   const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
   // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
   const tasa = await tasaDelDocumento(
@@ -460,6 +461,7 @@ export async function updateInvoice(
   _prev: InvoiceActionState,
   formData: FormData,
 ): Promise<InvoiceActionState> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -489,7 +491,7 @@ export async function updateInvoice(
   // Cambiar moneda invalida esa preservación, aunque el número coincida.
   const mismaMoneda = normalizarMoneda(current.currency) === normalizarMoneda(partial.currency ?? "USD");
   const tasa = await tasaDelDocumento(
-    supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, new Date().toISOString().slice(0, 10),
+    supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, today,
     mismaMoneda
       ? {
           fxRate: tasaPersistible(current.fx_rate), fxRateSource: current.fx_rate_source,
@@ -562,6 +564,7 @@ export async function emitInvoice(
   needsLegalAck?: boolean;
   warning?: string;
 }> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -630,7 +633,6 @@ export async function emitInvoice(
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
 
   // Solo un override documental expreso se conserva. La fuente manual del
   // catálogo no significa override. VES automática exige fecha exacta; CNY
@@ -740,6 +742,7 @@ export async function registerPayment(
     notes?: string | null;
   },
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string; fullyPaid?: boolean }> {
+  const receivedAt = payload?.receivedAt === undefined ? fechaCaracas() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -756,7 +759,7 @@ export async function registerPayment(
     amount: payload.amount,
     cashAccountId: payload.cashAccountId,
     method: payload.method,
-    receivedAt: payload.receivedAt,
+    receivedAt,
     reference: payload.reference ?? null,
     notes: payload.notes ?? null,
   });
@@ -999,6 +1002,7 @@ export async function softDeleteInvoice(
 export async function duplicateInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string; code?: string }> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -1018,7 +1022,7 @@ export async function duplicateInvoice(
   // SDD-0569 (revisión, hallazgo 4): la copia es un documento nuevo; resuelve su
   // tasa hoy, antes de consumir correlativo. No hereda la del original.
   const tasa = await tasaDelDocumento(
-    supabase, tenantId, String(original.currency ?? "USD"), null, new Date().toISOString().slice(0, 10),
+    supabase, tenantId, String(original.currency ?? "USD"), null, today,
   );
   if (!tasa.ok) return { error: tasa.error };
   const { data: codeData, error: codeErr } = await supabase.rpc(
@@ -1071,9 +1075,11 @@ export async function lookupShipmentForInvoice(code: string): Promise<{
     client_markbox: string | null;
   } | null;
 }> {
+  const supabase = await createClient();
+  // SDD-0624: la búsqueda es de la pantalla de facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return { shipment: null };
   const trimmed = code?.trim();
   if (!trimmed) return { shipment: null };
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code, client_name, client_markbox")
@@ -1101,9 +1107,11 @@ export async function lookupInvoiceBillingOptions(
   markbox: string,
   invoiceId?: string | null,
 ): Promise<(InvoiceBillingOptions & { current: BillingKind | null }) | null> {
+  const supabase = await createClient();
+  // SDD-0624: datos de facturación del cliente → sólo quien ve facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return null;
   const mb = markbox?.trim();
   if (!mb) return null;
-  const supabase = await createClient();
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, name, rif, doc_kind")

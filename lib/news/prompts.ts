@@ -465,7 +465,7 @@ ESTRUCTURA EDITORIAL OBLIGATORIA:
 3. Cada sección con un H2 en Markdown (## Título). Title exacto = el del outline elegido.
 4. Transiciones naturales entre secciones (no inicies cada sección con "En esta sección…").
 5. Conclusión al final con H2 "## Conclusión" (o equivalente apropiado).
-6. SI Y SOLO SI hay pain points declarados (ver bloque KEYWORD PRINCIPAL abajo): después de la conclusión, agrega una sección "## Preguntas frecuentes" con 2-4 Q+A derivadas de los pain points. Formato EXACTO obligatorio para que el sitio genere FAQPage schema.org automáticamente:
+6. SI Y SOLO SI hay pain points declarados (ver bloque KEYWORD PRINCIPAL abajo): después de la conclusión, agrega una sección "## Preguntas frecuentes" con 2-4 Q+A derivadas de los pain points. Formato EXACTO obligatorio:
 
 ## Preguntas frecuentes
 

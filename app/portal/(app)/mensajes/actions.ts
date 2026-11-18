@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { pedirEnvioPortal } from "@/lib/studio/chatwoot/portal";
 import { notifyConversationInbound } from "@/lib/studio/conversation-inbound-notify";
 import { readClientRequestId } from "@/lib/shared/client-request";
 
@@ -16,6 +17,10 @@ import { readClientRequestId } from "@/lib/shared/client-request";
  *
  * SDD-0148: tras el post, avisa al equipo (best-effort) para que responda — el
  * chat no sirve si nadie se entera de que el cliente escribió.
+ *
+ * SDD-0586 (10.5, E10-D34): y pide el envío del hilo a Chatwoot, sin esperarlo
+ * (`after()`). El mensaje ya quedó guardado: si Chatwoot no responde, lo manda el
+ * cron. Con el flag `chatwoot_portal` apagado o sin configuración, no hace nada.
  */
 
 export type PortalMessageState = {
@@ -74,6 +79,15 @@ export async function sendPortalMessageAction(
       conversationId,
       body,
     });
+  }
+
+  // La cola no duplica: un reintento también lo pide, por si el primero no llegó.
+  if (typeof conversationId === "string") {
+    try {
+      pedirEnvioPortal(conversationId);
+    } catch {
+      // El mensaje del cliente nunca falla por Chatwoot (E10-D24).
+    }
   }
 
   revalidatePath("/portal/soporte");

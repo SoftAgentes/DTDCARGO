@@ -12,7 +12,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
-import { tenantAdminGate } from "@/lib/studio/rbac-guard";
+import { requireModuleView, tenantAdminGate } from "@/lib/studio/rbac-guard";
 import { listarPedidos, ultimaRevision } from "@/lib/studio/chatwoot/versiones-queries";
 import { ultimoAnalisis } from "@/lib/studio/chatwoot/analisis-queries";
 import { ActualizacionesPanel } from "./_components/ActualizacionesPanel";
@@ -32,6 +32,10 @@ function formatear(iso: string, formato: Intl.DateTimeFormat): string {
 }
 
 export default async function ActualizacionesPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("admin");
+
   const supabase = await createClient();
   const gate = await tenantAdminGate(supabase);
   const revision = gate.ok ? await ultimaRevision(supabase, gate.tenantId) : null;

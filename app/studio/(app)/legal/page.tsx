@@ -8,9 +8,14 @@
  */
 
 import { redirect } from "next/navigation";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const dynamic = "force-dynamic";
 
-export default function LegalPage() {
+export default async function LegalPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("legal");
+
   redirect("/studio/admin?section=legal-docs");
 }

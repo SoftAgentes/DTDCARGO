@@ -1,3 +1,4 @@
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 /**
  * Tipos TypeScript del módulo Facturación (SDD-0021).
  * Matchea schema de supabase/migrations/0077_invoices.sql.
@@ -263,7 +264,7 @@ export function computeBalance(
  */
 export function isOverdue(
   inv: Pick<Invoice, "due_date" | "status">,
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = fechaCaracas(),
 ): boolean {
   if (!inv.due_date) return false;
   if (inv.status === "pagada" || inv.status === "anulada") return false;

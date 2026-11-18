@@ -28,6 +28,7 @@ import {
   netToOperadora,
   type Rendition,
   type RenditionLine,
+  type RenditionPreviewLine,
   type RenditionPreview,
   type RenditionReceipt,
   type RenditionStatus,
@@ -56,6 +57,8 @@ export type LocalRevenueInvoiced = {
   localRevenueUsd: number;
   /** Cantidad de facturas que entraron. */
   invoiceCount: number;
+  /** SDD-0572: facturas locales sin tasa, fuera del total. */
+  sinTasa?: number;
   from: string; // YYYY-MM-DD inclusive
   to: string; // YYYY-MM-DD inclusive
 };
@@ -84,21 +87,25 @@ export function computeLocalRevenueInvoiced(
 ): LocalRevenueInvoiced {
   let localRevenueUsd = 0;
   let invoiceCount = 0;
+  let sinTasa = 0;
   for (const inv of invoices) {
     if (inv.fund_class !== "local_revenue") continue;
     if (!LOCAL_REVENUE_STATUSES.has(inv.status)) continue;
     const issued = inv.issued_at ? String(inv.issued_at) : "";
     if (!issued || issued < range.from || issued > range.to) continue;
-    localRevenueUsd += receiptAmountUsd(
-      inv.total_amount,
-      inv.currency,
-      inv.fx_rate,
-    );
+    const usd = receiptAmountUsd(inv.total_amount, inv.currency, inv.fx_rate);
+    // SDD-0572: sin tasa no suma; la rendición no se emite hasta cargarla.
+    if (usd === null) {
+      sinTasa += 1;
+      continue;
+    }
+    localRevenueUsd += usd;
     invoiceCount += 1;
   }
   return {
     localRevenueUsd: round2(localRevenueUsd),
     invoiceCount,
+    sinTasa,
     from: range.from,
     to: range.to,
   };
@@ -177,10 +184,12 @@ export function buildRenditionLines(
   receipts: EligibleReceiptRow[],
   invoiceCodeById: Map<string, string>,
   range: { from: string; to: string },
-): RenditionLine[] {
-  const lines: RenditionLine[] = [];
+): RenditionPreviewLine[] {
+  const lines: RenditionPreviewLine[] = [];
   for (const r of receipts) {
     if (!isReceiptEligible(r, range)) continue;
+    // SDD-0572: sin tasa, el recibo va al detalle sin monto en USD (null) y la
+    // rendición no se emite hasta cargarle la tasa.
     const amountUsd = receiptAmountUsd(r.amount, r.currency, r.fx_rate);
     lines.push({
       receiptId: String(r.id),
@@ -190,7 +199,7 @@ export function buildRenditionLines(
       reference: r.invoice_id ? invoiceCodeById.get(r.invoice_id) ?? null : null,
       amount: num(r.amount),
       currency: String(r.currency),
-      amountUsd: round2(amountUsd),
+      amountUsd: amountUsd === null ? null : round2(amountUsd),
       receivedAt: String(r.received_at),
     });
   }
@@ -215,12 +224,12 @@ export function buildRenditionLines(
  * CAJA). El neto = terceros − local facturado (DEVENGADO).
  */
 export function buildRenditionPreview(
-  lines: RenditionLine[],
+  lines: RenditionPreviewLine[],
   localRevenueInvoicedUsd: number,
   range: { from: string; to: string },
 ): RenditionPreview {
   const thirdPartyUsd = round2(
-    lines.reduce((sum, l) => sum + l.amountUsd, 0),
+    lines.reduce((sum, l) => sum + (l.amountUsd ?? 0), 0),
   );
   const local = round2(localRevenueInvoicedUsd);
   return {
@@ -230,6 +239,7 @@ export function buildRenditionPreview(
     localRevenueInvoicedUsd: local,
     netToOperadoraUsd: netToOperadora(thirdPartyUsd, local),
     receiptCount: lines.length,
+    recibosSinTasa: lines.filter((l) => l.amountUsd === null).length,
     lines,
   };
 }
@@ -324,7 +334,7 @@ export async function previewRendition(
   // 3 + 4.
   const lines = buildRenditionLines(receipts, invoiceCodeById, range);
   const local = await localRevenueInvoicedSummary(supabase, range);
-  return buildRenditionPreview(lines, local.localRevenueUsd, range);
+  return { ...buildRenditionPreview(lines, local.localRevenueUsd, range), facturasLocalesSinTasa: local.sinTasa ?? 0 };
 }
 
 // ── Historial de rendiciones ──────────────────────────────────

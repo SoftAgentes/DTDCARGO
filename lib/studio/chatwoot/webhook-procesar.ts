@@ -4,8 +4,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
+import { marcarContactoErp } from "./contacto-erp-manejador";
 import { clasificarContacto } from "./enrutar";
 import { entrarLead } from "./entrada-leads";
+import { estadoAlPortal, responderAlPortal, type MensajePortal } from "./portal-manejadores";
+import { unirContactoAFicha } from "./union-ficha-manejador";
 import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
@@ -16,7 +19,8 @@ import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./we
  * 2. Después corre la lista de manejadores: el aviso push y, desde E10
  *    (SDD-0586, 10.2 y 10.3), `clasificarContacto`, que etiqueta, asigna equipo
  *    y redirige al cliente, y desde 6.4 (SDD-0587) `entrarLead`, que crea o
- *    completa la tarjeta del CRM. Ninguno toca la ruta.
+ *    completa la tarjeta del CRM, y desde 10.5 (SDD-0586, PR 1b) `responderAlPortal`,
+ *    que lleva la respuesta del equipo al hilo del portal. Ninguno toca la ruta.
  * 3. `chatwoot_cerrar_evento` lo cierra: «procesado» si todos salieron bien,
  *    «fallido» si alguno falló. Un fallido se vuelve a procesar en la próxima
  *    entrega (hallazgo de la revisión de Codex: cerrarlo antes perdía el
@@ -37,6 +41,12 @@ export interface ContextoChatwoot {
   tenantId: string;
   /** Del payload del webhook. No viene en el reproceso, que lo lee de Chatwoot. */
   contacto?: ContactoEntrada;
+  /**
+   * SDD-0586 (10.5): la respuesta del equipo en la bandeja del portal, leída por la ruta solo
+   * para esa bandeja (`salientePortalDelPayload`). `null`: la ruta miró y no es una. Ausente en
+   * el reproceso, que la relee de Chatwoot. Solo la lee `responderAlPortal`.
+   */
+  salientePortal?: MensajePortal | null;
 }
 
 export type ManejadorEvento = (ctx: ContextoChatwoot, evento: EventoChatwoot, registro: Registro) => Promise<void>;
@@ -125,13 +135,28 @@ async function yaAvisados(ctx: ContextoChatwoot, clave: string): Promise<Set<str
   return new Set(((data ?? []) as { target_id: string }[]).map((f) => f.target_id));
 }
 
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead];
+// SDD-0586 1c-2: `estadoAlPortal` lleva el estado del espejo al hilo del portal (E10-D39).
+// SDD-0649: `marcarContactoErp` escribe el segmento y el Shipping Mark en el contacto.
+// SDD-0650 F2: `unirContactoAFicha` une el contacto con la ficha cuando el teléfono cruzó con una (0554).
+export const MANEJADORES: readonly ManejadorEvento[] = [
+  avisarPorPush,
+  clasificarContacto,
+  entrarLead,
+  marcarContactoErp,
+  responderAlPortal,
+  estadoAlPortal,
+  unirContactoAFicha,
+];
 
 /** Nombres explícitos: en el build de producción `fn.name` queda minificado (`f`, `i`). */
 const NOMBRE_MANEJADOR: ReadonlyMap<ManejadorEvento, string> = new Map([
   [avisarPorPush, "avisarPorPush"],
   [clasificarContacto, "clasificarContacto"],
   [entrarLead, "entrarLead"],
+  [marcarContactoErp, "marcarContactoErp"],
+  [responderAlPortal, "responderAlPortal"],
+  [estadoAlPortal, "estadoAlPortal"],
+  [unirContactoAFicha, "unirContactoAFicha"],
 ]);
 
 export function nombreManejador(manejador: ManejadorEvento): string {

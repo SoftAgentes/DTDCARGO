@@ -65,6 +65,8 @@ import {
   type NewsDialecto,
 } from "@/lib/news/prompts";
 import { slugify, dedupSlug } from "@/lib/news/slugify";
+import { tieneMarca } from "@/lib/news/autopublicar/marcas";
+import { extraerExtracto, tiempoDeLectura } from "@/lib/news/derivados";
 import {
   getNextWriter,
   getActiveWriters,
@@ -1023,32 +1025,10 @@ export async function saveDraft(
 
 // ── Helpers de publishPost ────────────────────────────────────
 
-/** Extrae primer párrafo (no heading) del markdown como excerpt. */
-function extractExcerpt(markdown: string, maxLen = 200): string {
-  const lines = markdown.split(/\n+/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed.startsWith("#")) continue;
-    if (trimmed.startsWith(">")) continue;
-    if (trimmed.startsWith("```")) continue;
-    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) continue;
-    // Strip básico de inline markdown (bold/italic/links)
-    const clean = trimmed
-      .replace(/\*\*(.+?)\*\*/g, "$1")
-      .replace(/\*(.+?)\*/g, "$1")
-      .replace(/\[(.+?)\]\([^)]+\)/g, "$1");
-    if (clean.length > maxLen) return clean.slice(0, maxLen - 1) + "…";
-    return clean;
-  }
-  return "";
-}
-
-/** Estima tiempo de lectura en minutos a 200 wpm. */
-function calcReadTime(markdown: string): number {
-  const words = markdown.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.round(words / 200));
-}
+// extractExcerpt y calcReadTime viven en lib/news/derivados.ts (SDD-0611): la
+// vía automática deriva lo mismo del mismo texto.
+const extractExcerpt = extraerExtracto;
+const calcReadTime = tiempoDeLectura;
 
 // ── Action 7 · Preview del publish (writer asignado + opciones) ─
 
@@ -1111,6 +1091,15 @@ export async function publishPost(
   }
   if (!NEWS_CATEGORIES_V4[input.categoria]) {
     return { ok: false, error: `Categoría inválida: ${input.categoria}` };
+  }
+  // SDD-0611 §3 y criterio 3: el servidor no publica una marca [VERIFICAR, en
+  // ninguna forma (vacía, en minúsculas, en un enlace…). Antes la regla vivía
+  // solo en el navegador y una llamada directa a esta acción la saltaba.
+  if (tieneMarca(cleanHeadline, cleanMarkdown)) {
+    return {
+      ok: false,
+      error: "Quedan marcas [VERIFICAR] sin resolver: corrígelas antes de publicar",
+    };
   }
 
   // ── Slug · base del titular, dedupe contra DB ──

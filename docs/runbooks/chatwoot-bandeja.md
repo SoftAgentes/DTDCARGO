@@ -121,6 +121,47 @@ Medidas en el VPS el 2026-11-03. Van después de la 0505, en `/srv/dtd-cargo/.en
 
 Las tres situaciones están probadas de punta a punta, con la 0504 real en PGlite, en `lib/studio/chatwoot/__tests__/caida-webhook.scenario.test.ts`.
 
+## El webhook de cuenta y el chat del portal (SDD-0586, 10.5, PR 1b)
+
+Las respuestas al chat del portal llegan solo por el webhook de cuenta, y Chatwoot 4.19.1 no entrega a un host sin IP pública («has no public ip addresses», su protección contra SSRF). Por eso la salud de la Bandeja, en el cron diario `chatwoot-agentes` y al abrir la página, revisa ese webhook y avisa a los admins:
+
+| Alerta | Qué significa | Qué hacer |
+|---|---|---|
+| Falta el webhook de cuenta | Ningún webhook de cuenta apunta a `/api/chatwoot/webhook` | Crearlo en Chatwoot (paso 6), con `message_created` |
+| No recibe los mensajes | El webhook existe, pero sin `message_created` | Agregarle el evento en Chatwoot |
+| Servidor sin IP pública | El host de la URL no resuelve a ninguna IP pública, y Chatwoot no le entrega | Usar la URL pública de Studio |
+| No se pudo revisar | Falta `CHATWOOT_SERVICE_USER_ID` o Chatwoot no respondió | Variables del paso 3; si Chatwoot está caído, sale «el servidor de mensajes no responde» y esta no se repite |
+
+**Límite conocido.** La salud reconoce el webhook por su ruta, no por el host: un webhook a `/api/chatwoot/webhook` de otro sitio, como otro entorno, también cuenta. Además, el DNS lo resuelve el servidor de Studio, no la red de Chatwoot, y si las dos resuelven distinto, la alerta puede no coincidir con lo que hace Chatwoot. La entrega real se comprueba en la punta a punta en prueba.
+
+**Portal → Chatwoot** (tarjeta de la Bandeja, solo admin, con la bandeja del portal configurada) muestra cuántos mensajes del portal llevan más de 15 minutos sin llegar a Chatwoot y cuántos están atascados. Un atascado detiene su conversación. «Reintentar los atascados» los devuelve a la cola: antes de mandarlos se revisa si ya habían llegado, y tienen 24 h nuevas. Arreglar antes la causa: si no, se vuelven a atascar.
+
+## Segmento y Shipping Mark en el contacto (SDD-0649)
+
+Con cada mensaje entrante en las bandejas de WhatsApp (leads y clientes), Studio escribe en el contacto de Chatwoot dos atributos: `dtd_segmento` (`cliente`, `lead_registrado` o `lead_nuevo`) y `dtd_shipping_mark`. Usa la misma regla de la 0505: hace falta una sola ficha viva con ese teléfono. Si la persona deja de tener ficha única, el código se borra. Solo escribe si algo cambió. Los contactos que no vuelven a escribir, el Archivo Kommo incluido, quedan sin atributos.
+
+**Quién los ve** (medido el 2026-11-17 contra Chatwoot 4.19.1 efímero, SDD-0649 §4):
+- Cualquier usuario de la cuenta ve los dos atributos de **todos** los contactos, al abrirlos y en el buscador (medido por la API, `GET contacts/:id` y `contacts/search`), también un **Agente** que no es miembro de ninguna bandeja.
+- Ese Agente editó el Shipping Mark en la prueba; el segmento usa el mismo `PATCH`, pero no se midió por separado. No puede crear atributos (401); borrarlos no se midió.
+- En la lista de conversaciones de un contacto (`GET contacts/:id/conversations`, el único endpoint medido), el Agente no ve las de bandejas en las que no está.
+
+Hoy todos los usuarios son Administradores. **Antes de pasar a alguien a rol Agente**, Sam acepta que esa persona vea el segmento y el Shipping Mark de todos los contactos y que pueda editarlos, también los del Archivo Kommo. Si un Agente cambia uno a mano, Studio lo corrige con el siguiente mensaje de esa persona.
+
+**Encender** (cada paso con OK nominal de Sam):
+
+1. En Chatwoot, **Ajustes → Atributos personalizados → Agregar**, modelo **Contacto**:
+   - nombre visible «Segmento DTD», clave `dtd_segmento`, tipo **Lista**, con los valores `cliente`, `lead_registrado` y `lead_nuevo`;
+   - nombre visible «Shipping Mark», clave `dtd_shipping_mark`, tipo **Texto**.
+2. En el `.env` de `web`, `CHATWOOT_ATRIBUTOS_CONTACTO=1`, y recrear `web`. Hacen falta también `CHATWOOT_ROUTER_TOKEN`, `CHATWOOT_INBOX_LEADS_ID`, `CHATWOOT_INBOX_CLIENTES_ID` y el resto de la configuración de E10.
+
+**Comprobar** con el número de prueba, desde un teléfono que sea de una ficha de prueba:
+
+- escribir y abrir el contacto en Chatwoot: deben verse el segmento y el Shipping Mark;
+- escribir desde un número sin ficha: «lead_nuevo» y Shipping Mark vacío;
+- los logs de `web` solo muestran códigos de error, nunca un teléfono ni un código.
+
+**Apagar:** quitar la variable o dejarla distinta de `1`, y recrear `web`. Los atributos ya escritos quedan en Chatwoot; para retirarlos, se borran en **Ajustes → Atributos personalizados**.
+
 ## Apagar
 
 - **Flag `chatwoot_inbox` apagado:** desaparecen la Bandeja, el contador y los avisos, y Chatwoot sigue funcionando solo.

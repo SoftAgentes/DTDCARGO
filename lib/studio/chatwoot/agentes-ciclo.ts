@@ -238,6 +238,10 @@ const TEXTO_ALERTA: Record<AlertaSalud, string> = {
   cierre_pendiente: "una baja salió de la cuenta pero sus sesiones siguen abiertas",
   degradacion_bloqueada: "un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador",
   matriz_incompleta: "no se pudieron aplicar todos los permisos de la matriz",
+  webhook_falta: "falta el webhook de cuenta hacia el Studio",
+  webhook_sin_mensajes: "el webhook de cuenta no recibe los mensajes",
+  webhook_sin_ip_publica: "el webhook de cuenta apunta a un servidor sin IP pública",
+  webhook_no_medido: "no se pudo revisar el webhook de cuenta",
 };
 
 /** Push a los admins activos del tenant. Sin datos personales: solo qué revisar. */

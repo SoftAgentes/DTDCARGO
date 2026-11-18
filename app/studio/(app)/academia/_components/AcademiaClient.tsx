@@ -37,6 +37,7 @@ import { EnrollmentDrawer } from "./EnrollmentDrawer";
 import { CourseDrawer } from "./CourseDrawer";
 import { CourseEditorDrawer } from "./CourseEditorDrawer";
 import { emitDiplomasAction, toggleAttendanceAction } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 type Tab = "catalogo" | "cohortes";
 
@@ -153,12 +154,8 @@ export function AcademiaClient({
       <div
         role="tablist"
         aria-label="Vistas de la Academia"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          marginBottom: 18,
-          borderBottom: "1px solid var(--border)",
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 18 }}
       >
         {TABS.map((tDef) => {
           const active = tab === tDef.value;
@@ -170,22 +167,10 @@ export function AcademiaClient({
               id={`academia-tab-${tDef.value}`}
               aria-selected={active}
               aria-controls={`academia-panel-${tDef.value}`}
+              data-activa={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
               onClick={() => setTab(tDef.value)}
-              style={{
-                padding: "10px 16px",
-                background: "transparent",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: active
-                  ? "700 13px/1 var(--f-sans)"
-                  : "500 13px/1 var(--f-sans)",
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {tDef.label}
             </button>
@@ -590,20 +575,11 @@ function CohortDetailView({
         </div>
 
         {emitError && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: "14px 0 0",
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            {emitError}
-          </p>
+          <div style={{ marginTop: 14 }}>
+            <Aviso tono="error" compacto>
+              {emitError}
+            </Aviso>
+          </div>
         )}
       </div>
 

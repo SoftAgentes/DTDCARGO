@@ -32,20 +32,22 @@ describe("NorteTab · banner de limitación OBLIGATORIO (mode-aware)", () => {
   it("en web (production) avisa snapshot + links 'Abrir ↗' no funcionan", () => {
     render(<NorteTab env="production" />);
     const banner = screen.getByRole("status");
-    expect(banner).toHaveAttribute("data-norte-mode", "web");
+    expect(banner.closest("[data-norte-mode]")).toHaveAttribute("data-norte-mode", "web");
+    expect(banner).toHaveAttribute("data-tono", "atencion");
     expect(within(banner).getByText(/Snapshot del último deploy/)).toBeInTheDocument();
     expect(within(banner).getByText(/no funcionan/)).toBeInTheDocument();
   });
 
   it("en web (preview) también es modo web (snapshot)", () => {
     render(<NorteTab env="preview" />);
-    expect(screen.getByRole("status")).toHaveAttribute("data-norte-mode", "web");
+    expect(screen.getByRole("status").closest("[data-norte-mode]")).toHaveAttribute("data-norte-mode", "web");
   });
 
   it("en local el banner es suave (snapshot local, regenerar)", () => {
     render(<NorteTab env="local" />);
     const banner = screen.getByRole("status");
-    expect(banner).toHaveAttribute("data-norte-mode", "local");
+    expect(banner.closest("[data-norte-mode]")).toHaveAttribute("data-norte-mode", "local");
+    expect(banner).toHaveAttribute("data-tono", "info");
     expect(within(banner).getByText(/Snapshot local/)).toBeInTheDocument();
     // En local NO se muestra la advertencia de links rotos (eso es solo web).
     expect(within(banner).queryByText(/no funcionan/)).toBeNull();

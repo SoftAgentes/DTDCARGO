@@ -271,12 +271,11 @@ export function ContabilidadClient({
 
       {/* Tabs */}
       <div
+        role="group"
+        aria-label="Secciones de contabilidad"
+        className="studio-tabs"
         style={{
-          display: "flex",
-          gap: 4,
           marginBottom: 20,
-          borderBottom: "1px solid var(--border)",
-          flexWrap: "wrap",
           opacity: isPending ? 0.6 : 1,
           transition: "opacity var(--dur-fast) var(--ease)",
         }}
@@ -287,17 +286,10 @@ export function ContabilidadClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => goToTab(t.value)}
-              style={{
-                padding: "8px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>

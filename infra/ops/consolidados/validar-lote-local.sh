@@ -25,6 +25,16 @@
 #              B_viejo → verificar → purgar A_nuevo aborta → purgar B_nuevo] →
 #              purgar A_nuevo → línea base. Prueba que el purgar nuevo reconoce las
 #              filas que creó una versión anterior del generador.
+#   produccion: un lote generado con --entorno produccion (sin deshacer ni purgar,
+#              con el corte de la previa; extensión F2). previa SIN los dueños
+#              (debe ABORTAR: «sin resolver a un cliente vivo») → semilla de
+#              clientes SINTÉTICOS con las marcas dadas → previa → simulacro (las
+#              tablas no cambian) → aplicar («0 clientes creados») → verificar
+#              («verificar: PASÓ») → aplicar (aborta en el preflight) → clientes y
+#              aliados sin cambio y exactamente un contenedor más; el resto de las
+#              tablas se informa como delta. La evidencia va FUERA de la carpeta del
+#              paquete (`<padre>/ensayos-local/`), para que un `scp -r` del paquete
+#              no la suba. Reemplaza al ensayo ad hoc del lote 63.
 #
 # Reglas: contenedor con nombre propio, sin puerto publicado, sin volumen con
 # nombre, borrado con `docker rm -fv` al final (nada de prune global). Docker es
@@ -34,6 +44,9 @@
 # Uso:
 #   infra/ops/consolidados/validar-lote-local.sh <lote> [<lote que depende>]
 #   infra/ops/consolidados/validar-lote-local.sh --cruzado <A viejo> <A nuevo> [<B viejo> <B nuevo>]
+#   infra/ops/consolidados/validar-lote-local.sh --produccion <lote> <marca>[,<marca>…]
+# Los modos normal y cruzado se niegan con un lote de producción, y --produccion con
+# uno de prueba (2).
 # Variables: REPO (checkout con supabase/, por defecto el del script), CONTENEDOR (dtd-0543-local).
 set -uo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"   # Git Bash no debe convertir /sb/... a rutas de Windows
@@ -46,11 +59,33 @@ if [[ "${1-}" == "--cruzado" ]]; then
   VIEJO_A="${1:?carpeta del lote A viejo}"; NUEVO_A="${2:?carpeta del lote A nuevo}"; VIEJO_B="${3-}"; NUEVO_B="${4-}"
   [[ -z "${VIEJO_B}" || -n "${NUEVO_B}" ]] || { echo "falta la carpeta del lote B nuevo" >&2; exit 2; }
   LOTE="${NUEVO_A}"; LOTE2="${NUEVO_B}"
+elif [[ "${1-}" == "--produccion" ]]; then
+  MODO=produccion
+  LOTE="${2:?carpeta del lote de producción}"; MARCAS="${3:?marcas de los dueños, separadas por coma (p. ej. DTD-9038)}"; LOTE2=""
+  [[ "${MARCAS}" =~ ^[A-Za-z0-9-]+(,[A-Za-z0-9-]+)*$ ]] || { echo "marcas inválidas: ${MARCAS} (letras, dígitos y guiones, separadas por coma)" >&2; exit 2; }
 else
   LOTE="${1:?carpeta del lote}"; LOTE2="${2-}"
 fi
 C="${CONTENEDOR:-dtd-0543-local}"
-OUT="${LOTE}/local-${MODO/normal/}$( [[ ${MODO} == cruzado ]] && printf -- '-' )$(date -u +%Y%m%dT%H%M%SZ)"
+LOTE="${LOTE%/}"
+es_produccion() { grep -qE '"entorno":[[:space:]]*"produccion"' "$1/manifiesto.json"; }
+for d in "${LOTE}" ${LOTE2:+"${LOTE2}"} ${VIEJO_A:+"${VIEJO_A}"} ${VIEJO_B:+"${VIEJO_B}"}; do
+  [[ -f "${d}/manifiesto.json" ]] || { echo "${d} no tiene manifiesto.json" >&2; exit 2; }
+  if [[ ${MODO} == produccion ]]; then
+    es_produccion "${d}" || { echo "${d} no es un lote de producción: usa el modo normal" >&2; exit 2; }
+    for f in deshacer.sql purgar.sql; do
+      [[ ! -e "${d}/${f}" && ! -L "${d}/${f}" ]] || { echo "el paquete de producción ${d} trae ${f}: regenera el lote en una carpeta nueva" >&2; exit 2; }
+    done
+  else
+    ! es_produccion "${d}" || { echo "${d} es un lote de producción: usa --produccion <lote> <marcas>" >&2; exit 2; }
+  fi
+done
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+case "${MODO}" in
+  normal) OUT="${LOTE}/local-${TS}" ;;
+  cruzado) OUT="${LOTE}/local-cruzado-${TS}" ;;
+  produccion) OUT="$(dirname -- "${LOTE}")/ensayos-local/$(basename -- "${LOTE}")-local-produccion-${TS}" ;;
+esac
 mkdir -p "${OUT}"
 log() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "${OUT}/corrida.log"; }
 tapar() { sed -E 's/«[^»]*»/«…»/g' | cut -c1-220; }
@@ -116,6 +151,42 @@ linea_base() { # $1 línea base, $2 ahora, $3 puertos antes, $4 puertos ahora
 }
 
 A="$(lote_id "${LOTE}")"
+
+if [[ ${MODO} == produccion ]]; then
+  # delta <tabla> <antes> <ahora>: diferencia de conteo de una tabla entre dos tablas().
+  delta() { local a b; a="$(grep -oE "(^| )$1=[0-9]+" <<<"$2" | cut -d= -f2)"; b="$(grep -oE "(^| )$1=[0-9]+" <<<"$3" | cut -d= -f2)"; echo $(( ${b:-0} - ${a:-0} )); }
+  aviso_de() { grep -E 'NOTICE' "${OUT}/$(basename "${LOTE}")-$1.err" | tail -1; }
+  # 1. Sin los dueños en la base, el corte de la previa aborta (no crea clientes).
+  debe_abortar "${LOTE}" previa "sin resolver a un cliente vivo"
+  # 2. Un cliente SINTÉTICO por marca (sin datos reales).
+  i=0; semilla=""
+  for m in ${MARCAS//,/ }; do
+    i=$((i + 1))
+    semilla+="insert into public.clients (id, tenant_id, markbox, name, notes) select ('05430000-0000-4000-8000-' || lpad('${i}', 12, '0'))::uuid, t.id, '${m}', 'Cliente SINTÉTICO ${i} (validación local)', 'Ensayo local SDD-0543 F2, modo producción (sin datos reales)' from public.tenants t where t.slug = 'dtd';"$'
+'
+  done
+  docker exec -i "${C}" psql -U postgres -q -v ON_ERROR_STOP=1 <<<"${semilla}" > "${OUT}/semilla.out" 2>&1 || { log "FALLÓ semilla: $(grep -m1 ERROR "${OUT}/semilla.out" | tapar)"; exit 5; }
+  BASE="$(tablas)"; PUERTOS_BASE="$(puertos)"
+  log "línea base tomada (${i} cliente(s) sintético(s)): ${BASE} · ${PUERTOS_BASE}"
+  # 3-6.
+  paso "${LOTE}" previa ROLLBACK && { aviso_de previa | grep -q "todas las marcas resuelven" || { log "FALLÓ previa: no dijo «todas las marcas resuelven»"; fallos=$((fallos + 1)); }; }
+  paso "${LOTE}" simulacro ROLLBACK
+  [[ "$(tablas)" == "${BASE}" ]] && log "PASÓ el simulacro no dejó filas" || { log "FALLÓ el simulacro dejó filas: $(tablas)"; fallos=$((fallos + 1)); }
+  paso "${LOTE}" aplicar COMMIT && { aviso_de aplicar | grep -q " 0 clientes creados" && log "PASÓ aplicar no creó clientes" || { log "FALLÓ aplicar creó clientes o no lo dijo"; fallos=$((fallos + 1)); }; }
+  paso "${LOTE}" verificar ROLLBACK && { aviso_de verificar | grep -q "verificar: PASÓ" || { log "FALLÓ verificar: no dijo «verificar: PASÓ»"; fallos=$((fallos + 1)); }; }
+  # 7. Idempotencia: el preflight frena un segundo aplicar.
+  debe_abortar "${LOTE}" aplicar "preflight:"
+  # 8. Producción no crea clientes ni aliados; un lote es un contenedor.
+  DESPUES="$(tablas)"; log "después: ${DESPUES} · $(puertos)"
+  for t in clients aliados; do [[ "$(delta "${t}" "${BASE}" "${DESPUES}")" == 0 ]] && log "PASÓ ${t} sin cambio" || { log "FALLÓ ${t} cambió en $(delta "${t}" "${BASE}" "${DESPUES}")"; fallos=$((fallos + 1)); }; done
+  [[ "$(delta consolidations "${BASE}" "${DESPUES}")" == 1 ]] && log "PASÓ consolidations +1" || { log "FALLÓ consolidations cambió en $(delta consolidations "${BASE}" "${DESPUES}") (se esperaba +1)"; fallos=$((fallos + 1)); }
+  d=""; for t in invoices receipts receipt_items boxes shipments shipment_events consolidation_items sailings bookings carriers expenses; do d+="${t} +$(delta "${t}" "${BASE}" "${DESPUES}") · "; done
+  log "delta (informativo; los conteos los comprueba verificar): ${d% · }"
+  limpiar; trap - EXIT
+  log "docker ps -a (${C}): $(docker ps -a --format '{{.Names}}' | grep -c "^${C}$" || true) · docker volume ls (${C}): $(docker volume ls -q | grep -c "${C}" || true)"
+  log "fin · ${fallos} FALLÓ · evidencia local sin nombres en ${OUT}"
+  [[ ${fallos} -eq 0 ]]; exit
+fi
 
 # Control de la guarda de base de prueba: ANTES de la semilla no existe el cliente
 # sintético, así que aplicar.sql (el regenerado) tiene que abortar sin escribir nada

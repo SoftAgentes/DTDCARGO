@@ -99,11 +99,14 @@ export function NewsArticleJsonLd({ post }: Props) {
       "@id": `${siteUrl}/#organization`,
       name: "DTD Cargo",
       url: siteUrl,
+      // Mismas medidas que el `logo` del #organization en `app/layout.tsx`: el
+      // isólogo primary mide 741×764. Declararlo 512×512 le daba a la misma
+      // entidad dos logos con medidas distintas (auditoría SEO 2026-11-07).
       logo: {
         "@type": "ImageObject",
         url: logoUrl,
-        width: 512,
-        height: 512,
+        width: 741,
+        height: 764,
       },
     },
     articleSection,

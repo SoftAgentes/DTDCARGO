@@ -27,6 +27,7 @@ import {
   reportPaymentAction,
 } from "@/app/portal/(app)/facturas/[code]/reportar/actions";
 import { countPendingReports } from "../payment-report-queries";
+import { uploadPaymentProof } from "../payment-proof";
 
 const CLIENT_ID = "11000000-0000-4000-8000-000000000001";
 const TENANT_ID = "22000000-0000-4000-8000-000000000001";
@@ -72,6 +73,7 @@ function setupIo(
     cancellationReply?: DbReply;
     insertReply?: DbReply;
     insertTransportError?: Error;
+    existingReport?: { id: string; proof_path: string | null };
   } = {},
 ) {
   const state = {
@@ -104,7 +106,7 @@ function setupIo(
       if (name === "create_portal_payment_report") {
         // También representa COMMIT seguido de respuesta perdida. El objeto
         // debe sobrevivir; no se simula rollback de la frontera remota.
-        state.insertedReports.push({ id: args.p_report_id, tenant_id: TENANT_ID, invoice_id: INVOICE_ID,
+        if (!options.existingReport) state.insertedReports.push({ id: args.p_report_id, tenant_id: TENANT_ID, invoice_id: INVOICE_ID,
           client_markbox: MARKBOX, amount: args.p_amount, currency: "USD", status: "reportado", proof_path: args.p_proof_path });
         if (options.insertTransportError) throw options.insertTransportError;
         return options.insertReply ?? { data: commandReceipt(), error: null };
@@ -144,10 +146,13 @@ function setupIo(
       throw new Error(`Tabla de sesión no simulada: ${table}`);
     },
   } as unknown as SupabaseClient;
-  const upload = vi.fn(async (path: string) => {
+  const objects = new Map<string, Buffer>();
+  const upload = vi.fn(async (path: string, bytes: Buffer) => {
     state.uploadedObjects.push(path);
+    objects.set(path, Buffer.from(bytes));
     return { data: { path }, error: null };
   });
+  const download = vi.fn(async (path: string) => ({ data: objects.has(path) ? new Blob([new Uint8Array(objects.get(path)!)]) : null, error: null }));
   const remove = vi.fn(async (paths: string[]) => {
     state.uploadedObjects = state.uploadedObjects.filter((path) => !paths.includes(path));
     return { data: [], error: null };
@@ -168,7 +173,7 @@ function setupIo(
           return pending;
         });
         // El lookup exacto de replay no es una consulta de cupo.
-        counter.maybeSingle = () => Promise.resolve({ data: null, error: null });
+        counter.maybeSingle = () => Promise.resolve({ data: options.existingReport ?? null, error: null });
         return {
           ...counter,
           insert: async (row: Record<string, unknown>) => {
@@ -186,13 +191,13 @@ function setupIo(
     storage: {
       from: (bucket: string) => {
         if (bucket !== "payment-proofs") throw new Error(`Bucket no simulado: ${bucket}`);
-        return { upload, remove };
+        return { upload, download, remove };
       },
     },
   } as unknown as SupabaseClient;
   mocks.createClient.mockResolvedValue(session);
   mocks.createAdminClient.mockReturnValue(admin);
-  return { admin, state, upload, remove };
+  return { admin, state, upload, download, objects, remove };
 }
 
 function validPaymentForm(): FormData {
@@ -225,6 +230,51 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("C1 · nueva creación y día Caracas", () => {
+  it("rechaza mañana Caracas antes de subir evidencia aunque sea hoy UTC", async () => {
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    const io = setupIo();
+    const form = validPaymentForm();
+    form.set("paid_at", "2026-10-21");
+    const result = await reportPaymentAction(INVOICE_CODE, {}, form);
+    expect(result.ok).not.toBe(true);
+    expect(result.fieldErrors?.paidAt).toEqual(expect.any(String));
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.state.commands).toEqual([]);
+    expect(io.state.insertedReports).toEqual([]);
+  });
+  it("recupera un recibo previo con fecha ahora futura sin subir evidencia ni repetir aviso", async () => {
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
+    const options = { existingReport: { id: REPORT_ID, proof_path: null as string | null }, insertReply: { data: { ...commandReceipt(), replayed: true }, error: null } };
+    const io = setupIo(undefined, options);
+    const form = validPaymentForm();
+    form.set("paid_at", "2026-10-21");
+    const saved = await uploadPaymentProof(io.admin, { tenantId: TENANT_ID, invoiceId: INVOICE_ID, reportId: REPORT_ID, file: form.get("proof") as File });
+    options.existingReport.proof_path = saved.path!;
+    io.upload.mockClear();
+    const result = await reportPaymentAction(INVOICE_CODE, {}, form);
+    expect(result).toMatchObject({ ok: true, receipt: { replayed: true } });
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.download).toHaveBeenCalledOnce();
+    expect(io.state.insertedReports).toEqual([]);
+    expect(io.state.commands).toHaveLength(1);
+    expect(mocks.notifyPaymentReportToAdmin).not.toHaveBeenCalled();
+    expect(io.state.commands[0].args).not.toHaveProperty("context");
+  });
+  it("una bandera del formulario o estado anterior no habilita recuperación", async () => {
+    vi.setSystemTime(new Date("2026-10-21T02:30:00Z"));
+    const io = setupIo();
+    const form = validPaymentForm();
+    form.set("paid_at", "2026-10-21");
+    form.set("context", "recovery-candidate");
+    form.set("recovery", "true");
+    const result = await reportPaymentAction(INVOICE_CODE, { uncertain: true }, form);
+    expect(result.ok).not.toBe(true);
+    expect(io.upload).not.toHaveBeenCalled();
+    expect(io.state.commands).toEqual([]);
+  });
 });
 
 describe("cancelPaymentReportAction · resultado comprobable tras retirar UPDATE", () => {

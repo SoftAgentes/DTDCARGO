@@ -1,3 +1,4 @@
+import { decodeAnnualBilling, BILLING_ZERO, BILLING_UNAVAILABLE, type AnnualBilling } from "@/lib/shared/annual-billing";
 /**
  * Tests de las funciones PURAS del Tablero CRM (SDD-0078).
  *
@@ -224,9 +225,9 @@ describe("valueContrast", () => {
       lead({ id: 3, price: 50 }),
     ];
     const convertedMarkboxByLead = { 1: "DTD-0001", 2: "DTD-0002", 3: "DTD-0003" };
-    const billing = new Map<string, number>([
-      ["DTD-0001", 1000],
-      ["DTD-0002", 0], // convertido pero sin facturación
+    const billing = new Map<string, AnnualBilling>([
+      ["DTD-0001", { state: "completo", subtotalUsd: "1000.00", sinTasaCount: 0 }],
+      ["DTD-0002", BILLING_ZERO], // convertido pero sin facturación
       // DTD-0003 ausente → 0
     ]);
     const r = valueContrast(leads, convertedMarkboxByLead, billing);
@@ -234,5 +235,24 @@ describe("valueContrast", () => {
     expect(r.erpBilledUsd).toBe(1000);
     expect(r.convertedCount).toBe(3);
     expect(r.convertedWithBilling).toBe(1);
+  });
+});
+
+describe("0572-b · contraste ERP", () => {
+  it("subtotal repetido por atribución no duplica el contador del cliente", () => {
+    const partial = decodeAnnualBilling({ subtotal_usd: "100.01", sin_tasa_count: 2, conversion_state: "sin_tasa" });
+    const result = valueContrast([lead({ price: 999 })], { 1: "A", 2: "A" }, new Map([["A", partial]]));
+    expect(result.billing).toEqual({ state: "sin_tasa", subtotalUsd: "200.02", sinTasaCount: 2 });
+    expect(result.erpBilledUsd).toBeNull();
+    expect(result.kommoPipelineValueUsd).toBe(999);
+    expect(result.convertedWithBilling).toBe(0);
+  });
+  it("fallo de cruce o RPC conserva el CRM y declara ERP no disponible", () => {
+    for (const [cross, map] of [[null, new Map<string, AnnualBilling>()], [{ 1: "A" }, null]] as const) {
+      const result = valueContrast([lead({ price: 35 })], cross, map);
+      expect(result.billing).toEqual(BILLING_UNAVAILABLE);
+      expect(result.erpBilledUsd).toBeNull();
+      expect(result.kommoPipelineValueUsd).toBe(35);
+    }
   });
 });

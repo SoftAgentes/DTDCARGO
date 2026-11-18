@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "version": "2.16.0",
-  "release": "https://github.com/tt-a1i/archify/releases/tag/v2.16.0",
-  "archiveSha256": "4c59fa6557a2385beaaef8c7219cc414573acc9f0c30a932d5053b0b20689a46",
-  "runtimeTreeSha256": "a1c035262b493ff4506d4bdd6b703ce0dfe08c99e4ad540a399ab236ef450148",
-  "specPath": "docs/architecture/knowledge-lifecycle.archify.json"
-}

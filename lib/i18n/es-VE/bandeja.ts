@@ -27,6 +27,9 @@ export const bandeja = {
 
   // ── Vínculos (solo admin) ────────────────────────────────
   "bandeja.links.title": "Agentes vinculados",
+  // SDD-0655: los vínculos viven en Usuarios › Bandeja; «what» dice qué hacen y «manage» es el enlace desde la Bandeja.
+  "bandeja.links.what": "Vincula tu usuario del Studio con tu agente de Chatwoot para abrir la Bandeja con tu sesión.",
+  "bandeja.links.manage": "Agentes vinculados",
   "bandeja.links.help":
     "Vincula cada usuario de Studio con su agente de la bandeja. El correo del agente tiene que ser el mismo del usuario.",
   "bandeja.links.empty": "Todavía no hay usuarios vinculados.",
@@ -55,6 +58,39 @@ export const bandeja = {
   "bandeja.status.pending": "Pendiente",
   "bandeja.status.snoozed": "En pausa",
   "bandeja.status.resolved": "Resuelta",
+
+  // ── Panel de conversaciones de la ficha (SDD-0650 F2) ────
+  "bandeja.ficha.panel_loading": "Cargando conversaciones…",
+  "bandeja.ficha.unreachable": "Chatwoot no responde: no se pudieron leer las conversaciones.",
+  "bandeja.ficha.empty": "Los chats unidos a esta ficha no tienen conversaciones.",
+  "bandeja.ficha.restricted": "Hay conversaciones que tu rol no abre.",
+  "bandeja.ficha.incomplete": "Algunos chats no se pudieron leer: la lista puede estar incompleta.",
+  "bandeja.ficha.chat_name": "Nombre en el chat",
+  "bandeja.ficha.author.cliente": "Cliente",
+  "bandeja.ficha.author.equipo": "Equipo DTD",
+  "bandeja.ficha.author.bot": "Bot",
+  "bandeja.ficha.author.nota_interna": "Nota interna",
+  "bandeja.ficha.no_text": "Sin texto",
+  "bandeja.ficha.hidden_text": "El texto no se muestra en tu región.",
+  "bandeja.ficha.archivo": "Archivo Kommo",
+  "bandeja.ficha.links_title": "Chats unidos a la ficha",
+  "bandeja.ficha.origin.webhook": "por teléfono",
+  "bandeja.ficha.origin.kommo": "del Archivo Kommo",
+  "bandeja.ficha.origin.manual": "unido a mano",
+  "bandeja.ficha.contact": "Contacto #{n}",
+  "bandeja.ficha.unlink": "Quitar",
+  "bandeja.ficha.unlink_title": "¿Quitar este chat de la ficha?",
+  "bandeja.ficha.unlink_body": "Sus conversaciones dejan de verse aquí. Queda registrado quién lo quitó y por qué.",
+  "bandeja.ficha.unlink_done": "Chat quitado de la ficha",
+  "bandeja.ficha.link_title": "Unir un chat a esta ficha",
+  "bandeja.ficha.link_conversation": "Número de conversación",
+  "bandeja.ficha.link_reason": "Motivo",
+  "bandeja.ficha.link_reason_placeholder": "Por qué este chat es de este cliente",
+  "bandeja.ficha.link_submit": "Unir chat",
+  "bandeja.ficha.link_submitting": "Uniendo…",
+  "bandeja.ficha.link_done": "Chat unido",
+  "bandeja.ficha.reason": "Motivo",
+  "bandeja.ficha.cancel": "Cancelar",
 
   // ── Eventos descartados (2.3, v3; solo admin) ────────────
   "bandeja.discarded.title": "Eventos que no se pudieron procesar",
@@ -133,9 +169,25 @@ export const bandeja = {
   "bandeja.salud.alerta.cierre_pendiente": "Una baja salió de la cuenta, pero sus sesiones siguen abiertas: el próximo cron lo reintenta.",
   "bandeja.salud.alerta.degradacion_bloqueada": "Un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador.",
   "bandeja.salud.alerta.matriz_incompleta": "No se pudieron aplicar todos los permisos de la matriz: el próximo cron lo reintenta.",
+  // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
+  "bandeja.salud.alerta.webhook_falta": "Falta el webhook de cuenta hacia el Studio (/api/chatwoot/webhook): no llegan los avisos ni las respuestas al portal.",
+  "bandeja.salud.alerta.webhook_sin_mensajes": "El webhook de cuenta no tiene el evento de mensajes nuevos: no llegan las respuestas al portal.",
+  "bandeja.salud.alerta.webhook_sin_ip_publica": "El webhook de cuenta apunta a un servidor sin IP pública, y el servidor de mensajes no le entrega nada.",
+  "bandeja.salud.alerta.webhook_no_medido": "No se pudo revisar el webhook de cuenta: falta el usuario de servicio o el servidor de mensajes no respondió.",
   "bandeja.salir.cerrando": "Cerrando tu sesión…",
   "bandeja.salir.marco": "Cierre de la sesión del chat",
   "bandeja.badge.aria": "{n} sin leer",
+  // SDD-0586 (10.5, PR 1b): la ida del chat del portal a Chatwoot, para el admin (§10.5.20).
+  "bandeja.error.base": "No se pudo guardar. Vuelve a intentarlo.",
+  "bandeja.portal.title": "Portal → Chatwoot",
+  "bandeja.portal.help": "Los mensajes del chat del portal que van a la bandeja «Conversaciones del portal». Un mensaje atascado detiene su conversación hasta que se reintenta.",
+  "bandeja.portal.off": "Apagado: el chat del portal no va a Chatwoot.",
+  "bandeja.portal.sin_llegar": "Sin llegar hace más de 15 min",
+  "bandeja.portal.atascados": "Atascados",
+  "bandeja.portal.retry": "Reintentar los atascados",
+  "bandeja.portal.retrying": "Reintentando…",
+  "bandeja.portal.none": "No hay mensajes atascados.",
+  "bandeja.portal.retried": "Vuelven a la cola {n} mensaje(s). Antes de mandarlos se revisa si ya habían llegado.",
 } as const satisfies Record<string, string>;
 
 export type BandejaDict = Record<keyof typeof bandeja, string>;

@@ -1,7 +1,9 @@
 # infra/ops/uptime-kuma/compose.yml — monitor de disponibilidad (SDD-0505).
 #
 # Uptime Kuma vigila desde el propio VPS las URLs públicas de cada proyecto
-# (/, /api/cron/* con HEAD, el gateway de Supabase) y avisa por Telegram/correo.
+# (/, /api/cron/* con HEAD, el gateway de Supabase) y avisa por su notificación
+# nativa de Discord al canal #salud (SDD-0609; antes Telegram). Cómo apuntarla:
+# infra/ops/uptime-kuma/README.md.
 # Vive en la red edge para que Traefik lo publique en UPTIME_KUMA_HOST; no toca
 # el socket de Docker ni las redes internas. Los monitores se configuran en su
 # UI (primer arranque: crea el usuario admin de inmediato, antes de abrirlo a

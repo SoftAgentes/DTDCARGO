@@ -157,7 +157,10 @@ export function cuadreSubdiario(e: EntradaSubdiario): SubdiarioContraMayor {
     if (saldo === 0) continue;
     docsProv += 1;
     if (sinTasaProveedor(b.currency, b.fx_rate)) sinTasa += 1;
-    subProv += billAmountUsd(saldo, b.currency, b.fx_rate == null ? null : num(b.fx_rate));
+    // SDD-0572: una CxP sin tasa ya no se asienta, pero desde la 0569 toda CxP
+    // nueva en otra moneda trae tasa: las sin tasa son históricas, asentadas al
+    // nominal. Para cuadrar con su asiento, el subdiario las sigue sumando así.
+    subProv += billAmountUsd(saldo, b.currency, b.fx_rate == null ? null : num(b.fx_rate)) ?? round2(saldo);
   }
   subProv = round2(subProv);
   // Sin «no comparable»: el lado de CxP convierte con la regla del asiento (G8).

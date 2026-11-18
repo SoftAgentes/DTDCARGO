@@ -28,6 +28,8 @@ import { expenses as expensesES } from "./es-VE/expenses";
 import { expenses as expensesCN } from "./zh-CN/expenses";
 import { bandeja as bandejaES } from "./es-VE/bandeja";
 import { bandeja as bandejaCN } from "./zh-CN/bandeja";
+import { guide as guideES } from "./es-VE/guide";
+import { guide as guideCN } from "./zh-CN/guide";
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
 
@@ -41,6 +43,7 @@ const dicts = {
     ...usersES,
     ...expensesES,
     ...bandejaES,
+    ...guideES,
   },
   "zh-CN": {
     ...chromeCN,
@@ -51,10 +54,19 @@ const dicts = {
     ...usersCN,
     ...expensesCN,
     ...bandejaCN,
+    ...guideCN,
   },
 } as const;
 
 export type I18nKey = keyof typeof dicts["es-VE"];
+
+/**
+ * ¿Existe la key en el dict base? Para claves armadas en runtime (la guía
+ * de SDD-0589 deriva `.before` de una clave base y lo omite si no existe).
+ */
+export function hasI18nKey(key: string): key is I18nKey {
+  return Object.prototype.hasOwnProperty.call(dicts[DEFAULT_LOCALE], key);
+}
 
 /**
  * Devuelve el string traducido para el locale dado.

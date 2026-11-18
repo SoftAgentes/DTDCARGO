@@ -12,8 +12,11 @@ import { getPublicFclRoutes } from "@/lib/public/rates-queries";
 const DESC =
   "Calcula tu flete de contenedor completo (FCL) China → Venezuela al instante: elige la ruta y cuántos contenedores. Estimado con nuestra propia tarifa; el precio en firme lo cierra un asesor por WhatsApp.";
 
+/** El mismo título va en `metadata` y en el nodo `WebPage`. */
+const TITLE = "Calculadora de flete FCL — contenedor completo China a Venezuela";
+
 export const metadata: Metadata = {
-  title: "Calculadora de flete FCL — contenedor completo China a Venezuela",
+  title: TITLE,
   description: DESC,
   keywords: [
     "flete FCL China Venezuela",
@@ -49,7 +52,7 @@ export default async function FclCalcPage() {
           { name: "Flete FCL", path: "/fcl" },
         ]}
       />
-      <WebPageJsonLd path="/fcl" speakableSelectors={["#respuesta-rapida"]} />
+      <WebPageJsonLd path="/fcl" name={TITLE} description={DESC} speakableSelectors={["#respuesta-rapida"]} />
       <main className="bg-paper min-h-screen">
         <section className="py-16 lg:py-24">
           <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-10 lg:gap-16 items-start">

@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   }),
 };
 
+// ISR: sin esto Next prerrenderiza /noticias estática en `next build` y, si la
+// consulta falla en ese momento, el estado vacío queda horneado (listPublishedPosts
+// atrapa el error y devuelve []). Con 300 s se regenera con la base viva.
+export const revalidate = 300;
+
 export default async function NoticiasPage() {
   const posts = await listPublishedPosts();
 

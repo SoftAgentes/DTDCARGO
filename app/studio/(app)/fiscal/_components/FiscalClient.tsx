@@ -28,6 +28,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   invoiceIvaModeLabel,
@@ -172,14 +173,8 @@ export function FiscalClient({
         role="tablist"
         aria-label="Secciones del módulo fiscal"
         aria-orientation="horizontal"
-        style={{
-          display: "flex",
-          flexWrap: "nowrap",
-          gap: 4,
-          overflowX: "auto",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 24,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 24 }}
       >
         {TABS.map((t, index) => {
           const active = t.id === tab;
@@ -194,23 +189,11 @@ export function FiscalClient({
               id={`fiscal-tab-${t.id}`}
               aria-controls={`fiscal-panel-${t.id}`}
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
               onClick={() => go({ tab: t.id })}
               onKeyDown={(event) => handleTabKey(event, index)}
-              className="studio-btn studio-btn-ghost"
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                padding: "10px 14px",
-                font: `${active ? 700 : 600} 13.5px/1 var(--f-sans)`,
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                cursor: "pointer",
-                marginBottom: -1,
-                flexShrink: 0,
-                whiteSpace: "nowrap",
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>
@@ -584,30 +567,14 @@ function CurrencyNote({ currencies }: { currencies: string[] }) {
         Moneda: <span style={{ fontFamily: "var(--f-mono)", color: "var(--ink-soft)" }}>{currencies.join(" · ")}</span>
       </div>
       {mixed && (
-        <div
-          role="note"
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-start",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-md)",
-            padding: "10px 12px",
-            font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          <span aria-hidden style={{ color: "var(--warning)", fontWeight: 700, lineHeight: 1.5 }}>!</span>
-          <span>
-            Este período tiene operaciones en{" "}
-            <strong style={{ color: "var(--ink)" }}>más de una moneda</strong> (
-            {currencies.join(", ")}). Los totales suman los montos{" "}
-            <strong style={{ color: "var(--ink)" }}>sin convertir</strong> con el tipo
-            de cambio — revisa cada fila por su moneda. La normalización por tasa BCV
-            queda para una versión futura.
-          </span>
-        </div>
+        <Aviso tono="atencion">
+          Este período tiene operaciones en{" "}
+          <strong style={{ color: "var(--ink)" }}>más de una moneda</strong> (
+          {currencies.join(", ")}). Los totales suman los montos{" "}
+          <strong style={{ color: "var(--ink)" }}>sin convertir</strong> con el tipo
+          de cambio — revisa cada fila por su moneda. La normalización por tasa BCV
+          queda para una versión futura.
+        </Aviso>
       )}
     </div>
   );

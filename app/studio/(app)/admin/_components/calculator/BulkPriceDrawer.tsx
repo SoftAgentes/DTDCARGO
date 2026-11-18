@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const initialState: BulkPriceActionState = {};
 const FORM_ID = "bulk-price-form";
@@ -52,7 +53,7 @@ export function BulkPriceDrawer({
   const [state, formAction, isPending] = useActionState(bulkUpdateTariffPricesAction, initialState);
   const toast = useToast();
   const router = useRouter();
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const [costo, setCosto] = useState<number | null>(null);
   const [venta, setVenta] = useState<number | null>(null);
 
@@ -79,7 +80,7 @@ export function BulkPriceDrawer({
   // Depende de `isPending` y no de `state.error`: un segundo error con el mismo
   // texto no lo cambia, y el botón deshabilitado ya soltó el foco fuera del panel.
   useEffect(() => {
-    if (!isPending && state.error) errorRef.current?.focus();
+    if (!isPending && state.error) enfocarAviso(errorRef.current);
   }, [state, isPending]);
 
   const filas = tariffs.map((t) => {
@@ -175,21 +176,12 @@ export function BulkPriceDrawer({
             Antes y después
           </h3>
           {negativos > 0 && (
-            <p
-              role="status"
-              style={{
-                margin: "0 0 8px",
-                padding: "8px 10px",
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {negativos} ciudad{negativos === 1 ? "" : "es"} quedaría{negativos === 1 ? "" : "n"} con
-              la venta por debajo del costo.
-            </p>
+            <div style={{ marginBottom: 8 }}>
+              <Aviso tono="atencion" compacto>
+                {negativos} ciudad{negativos === 1 ? "" : "es"} quedaría{negativos === 1 ? "" : "n"} con
+                la venta por debajo del costo.
+              </Aviso>
+            </div>
           )}
           <div
             style={{
@@ -236,22 +228,11 @@ export function BulkPriceDrawer({
         </div>
 
         {state.error && (
-          <p
-            ref={errorRef}
-            role="alert"
-            tabIndex={-1}
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            {state.error}
-          </p>
+          <div ref={errorRef}>
+            <Aviso tono="error" compacto>
+              {state.error}
+            </Aviso>
+          </div>
         )}
       </form>
 
@@ -358,6 +339,14 @@ function Td({
       {children}
     </td>
   );
+}
+
+/** `Aviso` no recibe ref: el foco va a su franja (`role="alert"`), que se vuelve enfocable aquí. */
+function enfocarAviso(contenedor: HTMLElement | null) {
+  const franja = contenedor?.querySelector<HTMLElement>('[role="alert"]');
+  if (!franja) return;
+  franja.tabIndex = -1;
+  franja.focus();
 }
 
 function FieldError({ msg }: { msg: string }) {

@@ -371,8 +371,9 @@ services:
       STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?SUPABASE_PUBLIC_URL falta en .env}
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
       FILE_SIZE_LIMIT: 52428800
-      # Backend en disco por defecto; compose.supabase.s3.yml lo cambia a R2/B2
-      # (lo que el runbook de backup da por sentado para producción).
+      # Backend en disco: así corre producción (medido el 2026-11-09). Los archivos
+      # y sus xattrs user.supabase.* se respaldan con storage-backup.sh (SDD-0620).
+      # compose.supabase.s3.yml lo cambiaría a R2/B2; hoy no está activo.
       STORAGE_BACKEND: file
       GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET:-stub}
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage

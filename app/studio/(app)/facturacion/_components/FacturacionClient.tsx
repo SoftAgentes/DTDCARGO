@@ -189,13 +189,10 @@ export function FacturacionClient({
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 16,
-          borderBottom: "1px solid var(--border)",
-          flexWrap: "wrap",
-        }}
+        role="group"
+        aria-label="Facturas por estado"
+        className="studio-tabs"
+        style={{ marginBottom: 16 }}
       >
         {TABS.map((t) => {
           const active = activeTab === t.value;
@@ -203,27 +200,13 @@ export function FacturacionClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => pushFilters({ q, tab: t.value })}
-              style={{
-                padding: "8px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}{" "}
-              <span
-                style={{
-                  font: "700 11px/1 var(--f-mono)",
-                  color: active ? "var(--wine)" : "var(--ink-soft)",
-                }}
-              >
-                {counts[t.value]}
-              </span>
+              <span className="studio-tab-n">{counts[t.value]}</span>
             </button>
           );
         })}

@@ -11,8 +11,10 @@
  * factura pagada. MUTANTES: sin cada regla (o con `>=` en el saldo) el contrato
  * falla en la aserción de esa regla, no en otra.
  *
- * L14: 0422 y 0423 esperan en pendingBelowCutoff. Con 0464 aplicada antes,
- * entre ellas o después, sus contratos completos siguen en verde.
+ * L14: 0422 y 0423 se aplicaron en producción el 2026-11-14, después de la 0464
+ * (registro §6.3 en SDD-0365 y SDD-0366). Se conservan los tres órdenes —0464
+ * antes, entre ellas o después— porque prueban que sus contratos completos siguen
+ * en verde con cualquier orden, incluido el que se usó en producción.
  *
  * PGlite tiene UNA conexión: la carrera de dos confirmaciones se prueba con
  * sesiones reales en `scripts/qa/payment-report-confirm-race.mjs`.

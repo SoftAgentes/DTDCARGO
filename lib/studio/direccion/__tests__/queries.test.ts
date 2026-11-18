@@ -28,6 +28,7 @@ import {
   deriveAlerts,
   firstOfMonth,
   getDireccionData,
+  resumenComercialKommo,
   textosFinancieros,
   type ForecastBill,
 } from "../queries";
@@ -303,11 +304,33 @@ function makeClient(opts: {
   } as unknown as SupabaseClient;
 }
 
+/**
+ * Envuelve un cliente de prueba y anota cada tabla que se consulta. Sirve para
+ * afirmar que una lectura NO ocurre (SDD-0614 S0b: `kommo_leads`).
+ */
+function registrarTablas(cliente: SupabaseClient): { client: SupabaseClient; leidas: string[] } {
+  const leidas: string[] = [];
+  const base = cliente as unknown as {
+    from: (t: string) => unknown;
+    rpc: (fn: string) => unknown;
+  };
+  return {
+    leidas,
+    client: {
+      from: (t: string) => {
+        leidas.push(t);
+        return base.from(t);
+      },
+      rpc: (fn: string) => base.rpc(fn),
+    } as unknown as SupabaseClient,
+  };
+}
+
 describe("getDireccionData — composición (smoke)", () => {
   const today = "2026-06-03";
 
   it("compone finanzas, salud, operación, comercial, forecast y alertas", async () => {
-    const client = makeClient({
+    const base = makeClient({
       tables: {
         // Plan de cuentas: ingreso (4), ventas (4.5, la que acredita la
         // factura), caja (1.1.1).
@@ -373,7 +396,8 @@ describe("getDireccionData — composición (smoke)", () => {
         consolidation_items: { data: [] },
         shipments: { data: [] },
         sailings: { count: 2, data: [{ id: "s1", tenant_id: "t", vessel: "MSC", pol: "X", pod: "Y", status: "abierto", space: "alta", cutoff: "2026-06-05" }] },
-        // Comercial (kommo).
+        // Comercial (kommo): el espejo tiene leads, pero desde SDD-0614 S0b
+        // el tablero no lo lee (ver abajo).
         kommo_leads: {
           data: [
             { id: 1, name: "L1", price: 1500, closed_at: null },
@@ -391,6 +415,7 @@ describe("getDireccionData — composición (smoke)", () => {
         },
       },
     });
+    const { client, leidas } = registrarTablas(base);
 
     const data = await getDireccionData(client, today);
 
@@ -418,9 +443,13 @@ describe("getDireccionData — composición (smoke)", () => {
     // cut-off 2026-06-05 vs hoy 06-03 → 2 días.
     expect(data.ops.cutoffDays).toBe(2);
 
-    // Comercial: solo el lead abierto cuenta.
-    expect(data.commercial.leadsActivos).toBe(1);
-    expect(data.commercial.pipeline).toBe(1500);
+    // Comercial (SDD-0614 S0b, D-6.6-1): Kommo está oculto del Studio. Aunque
+    // el espejo tenga leads, el tablero no lo lee y no trae sus cifras. La
+    // cuenta de antes sigue probada en `resumenComercialKommo`, abajo.
+    expect(data.commercial).toEqual({ pipeline: 0, leadsActivos: 0, oculto: true });
+    expect(leidas).not.toContain("kommo_leads");
+    // Control: el registro de tablas sí ve las lecturas que ocurren.
+    expect(leidas).toContain("supplier_bills");
 
     // Forecast: la CxP de 6000 vence en sem1 (+9d).
     expect(data.forecast[1].usd).toBe(6000);
@@ -461,6 +490,26 @@ describe("getDireccionData — composición (smoke)", () => {
   });
 });
 
+/**
+ * La cuenta del pipeline de Kommo se conserva (ocultar no es borrar,
+ * SDD-0614 §2.1): queda sin consumidor hasta 8.7, con la misma regla de
+ * antes. Solo cuentan los leads abiertos.
+ */
+describe("resumenComercialKommo (sin consumidor desde SDD-0614 S0b)", () => {
+  it("solo el lead abierto cuenta, como antes de S0b", () => {
+    expect(
+      resumenComercialKommo([
+        { price: 1500, closed_at: null },
+        { price: 9999, closed_at: "2026-05-30" },
+      ]),
+    ).toEqual({ pipeline: 1500, leadsActivos: 1, oculto: false });
+  });
+
+  it("sin leads: ceros", () => {
+    expect(resumenComercialKommo([])).toEqual({ pipeline: 0, leadsActivos: 0, oculto: false });
+  });
+});
+
 describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
   const PLAN_DIR = [
     { id: "inc", tenant_id: "t", code: "4", name: "Ingresos", type: "I", parent_id: null, is_postable: false },
@@ -477,17 +526,19 @@ describe("getDireccionData · ingreso oficial (SDD-0557)", () => {
     const client = makeClient({
       tables: {
         accounts: { data: PLAN_DIR },
-        // je1 trae las líneas; F2, F6 y F7 tienen su asiento de factura vivo
+        // je1 trae las líneas; F2, F6, F7 y F9 tienen su asiento de factura vivo
         // (sin líneas), así cuentan en «no comparable» (decisión 7).
         journal_entries: {
           data: [{ id: "je1", tenant_id: "t", entry_date: "2025-03-05", reverses_entry_id: null, status: "asentado", source: "invoice", deleted_at: null, invoice_id: "f1" }, ...ASIENTOS_EN_OTRA_MONEDA],
         },
         journal_lines: {
           data: [
-            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1497 },
+            // 4.5 = 1500: je1 aporta 1496 y cada uno de los cuatro asientos en otra
+            // moneda (F2, F6, F7 y F9 desde la 0572) aporta 1.
+            { id: "je1-v", entry_id: "je1", account_id: "ven", debit: 0, credit: 1496 },
             { id: "je1-fx", entry_id: "je1", account_id: "fx", debit: 0, credit: 200 },
             { id: "je1-g", entry_id: "je1", account_id: "g1", debit: 700, credit: 0 },
-            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 997, credit: 0 },
+            { id: "je1-ar", entry_id: "je1", account_id: "ar", debit: 996, credit: 0 },
             ...ASIENTOS_EN_OTRA_MONEDA.flatMap(a => [
               { id: `${a.id}-ar`, entry_id: a.id, account_id: "ar", debit: 1, credit: 0 },
               { id: `${a.id}-v`, entry_id: a.id, account_id: "ven", debit: 0, credit: 1 },
@@ -550,6 +601,17 @@ describe("textosFinancieros · los KPI de ingreso y utilidad (SDD-0557)", () => 
     resumirIngreso(facturas, RANGO_MES, ctl);
   const textos = (i: ReturnType<typeof ingreso>, utilidad = 400, margenPct = 40) =>
     textosFinancieros({ ingreso: i, utilidad, margenPct });
+
+  it("0572 · USD conocido y CNY sin tasa: conserva cifra oficial y avisa subtotal sin decir cuadra", () => {
+    const usd = { id: "u1", status: "emitida", issued_at: "2025-03-04", currency: "USD", fx_rate: null, base_amount: 1000 };
+    const cny = { ...usd, id: "c1", currency: "CNY", base_amount: 700 };
+    const t = textos(ingreso([usd, cny], control(1000, 1000, true, ["u1"])));
+    expect(t.ingreso.valor).toBe("$1,000.00");
+    expect(t.ingreso.periodo).toMatch(/subtotal/i);
+    expect(t.ingreso.detalle).toMatch(/1 sin convertir/);
+    expect(t.ingreso.detalle).not.toMatch(/cuadra|no comparable/);
+    expect(t.utilidad.sub).not.toMatch(/nominal/);
+  });
 
   it("«sin IVA» con el rango y «libro» en la utilidad", () => {
     const t = textos(ingreso(FACTURAS_EN_USD, control(1000)));

@@ -29,6 +29,8 @@
  * (nunca se agendó en Vercel). En el servidor va semanal, lunes 06:00 UTC, antes de
  * que abra la jornada en Caracas (02:00 VET) y dentro del presupuesto de 100 consultas
  * mensuales de SeaRates (20 rutas × ≤5 lunes).
+ * `bcv-rates` va una vez por hora, en el minuto 5: 24 invocaciones nominales al
+ * día. La agenda no habilita su flag ni garantiza una cuota global de requests.
  *
  * DETERMINISTA: misma `vercel.json` ⇒ mismos bytes. Se conserva el orden de
  * `vercel.json` (no se reordena) para que un diff del crontab se lea igual que el
@@ -58,6 +60,48 @@ export const EXTRA_CRONS = [
     schedule: "0 6 * * 1",
     reason:
       "semanal, lunes 06:00 UTC · no está en vercel.json · 20 rutas/corrida caben en el plan gratis de SeaRates (100/mes)",
+  },
+  {
+    path: "/api/cron/bcv-rates",
+    schedule: "5 * * * *",
+    reason:
+      "cada hora, minuto 5 UTC · 24 invocaciones nominales/día · requiere flag y scope explícitos; no activa la carga",
+  },
+  {
+    path: "/api/cron/oficina-filtro",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 §3.3 · filtro nivel 1 de la bandeja del cable (hasta 20/hora a triaje) · nace APAGADO: sin OFICINA_WEBHOOK_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/oficina-vaciado",
+    schedule: "15 4 * * *",
+    reason:
+      "diario, 04:15 UTC · SDD-0626 §3.1 · vacía task_events.resumen a los 90 días (privacidad, decisión A de Sam) · corre aunque la oficina esté pausada · nace APAGADO: sin OFICINA_VACIADO_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/noticias-purga-actor",
+    schedule: "45 4 * * *",
+    reason:
+      "diario, 04:45 UTC · SDD-0611 §11.4.1 · vacía el uuid de las 4 columnas actor_id de noticias a los 12 meses (privacidad, decisión de Sam 2026-11-14) · no borra filas · nace APAGADO: sin NOTICIAS_PURGA_ACTOR_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/purge-employee-photo-orphans",
+    schedule: "20 5 * * *",
+    reason:
+      "diario, 05:20 UTC · SDD-0652 fase 2 · borra del bucket privado employee-photos las fotos que ninguna ficha viva referencia (cambio, quite o ficha borrada), con más de 1 día · nace APAGADO: sin PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED=true solo cuenta",
+  },
+  {
+    path: "/api/cron/oficina-despachador",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 §3.4 (Paso 3a) · una tanda de ticks cada 10 s; el agente redacta y NADA se envía · una tanda a la vez (turno en la base) · nace APAGADO: sin OFICINA_DESPACHADOR_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/oficina-envio",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 Paso 3b · envía a Chatwoot SOLO lo que Sam aprobó, SOLO a la bandeja de prueba, una vez por borrador (mira otra vez la pausa y la huella) · nace APAGADO: sin OFICINA_ENVIO_ACTIVO no llama a la base",
   },
 ];
 

@@ -196,6 +196,48 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
     return out;
   })();
 
+  /**
+   * Consumo desde el servidor sin pantalla propia (SDD-0586, 10.5): una cola, un cron o
+   * un manejador en `lib/**` o `app/api/**` que lee `flags.<key>` después de
+   * `listFeatureFlags`. Sin esto, `chatwoot_portal` —que detiene la ida del chat del portal
+   * a Chatwoot— habría que marcarlo "ninguno", y el panel diría que nada lo consulta.
+   */
+  const enServidor = (() => {
+    const out = new Set<string>();
+    const caminar = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name !== "__tests__" && e.name !== "node_modules") caminar(p);
+        } else if (/\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) {
+          const src = sinComentarios(readFileSync(p, "utf8"));
+          if (!src.includes("listFeatureFlags")) continue;
+          for (const k of FEATURE_FLAG_KEYS) {
+            if (new RegExp(`flags\\.${k.replace(/\./g, "\\.")}\\b`).test(src)) out.add(k);
+          }
+        }
+      }
+    };
+    caminar(join(RAIZ, "lib"));
+    caminar(join(RAIZ, "app", "api"));
+    return out;
+  })();
+
+  it("todo flag marcado 'servidor' lo lee de verdad el servidor", () => {
+    const sinConsumo = FEATURE_FLAG_KEYS.filter(
+      (k) => FEATURE_FLAG_EFFECT[k] === "servidor" && !enServidor.has(k),
+    );
+    expect(
+      sinConsumo,
+      `Estos flags dicen que detienen algo del servidor y nada de lib/ ni app/api los ` +
+        `lee: ${sinConsumo.join(", ")}.`,
+    ).toEqual([]);
+  });
+
+  it("el detector del servidor encuentra chatwoot_portal (anti-falso-verde)", () => {
+    expect(enServidor.has("chatwoot_portal")).toBe(true);
+  });
+
   it("todo flag marcado 'movil' lo consume de verdad la PWA", () => {
     const sinConsumo = FEATURE_FLAG_KEYS.filter(
       (k) => FEATURE_FLAG_EFFECT[k] === "movil" && !enMovil.has(k),
@@ -211,7 +253,7 @@ describe("Catálogo de feature flags · el efecto declarado es verdad", () => {
     const mentirosos = FEATURE_FLAG_KEYS.filter(
       (k) =>
         FEATURE_FLAG_EFFECT[k] === "ninguno" &&
-        (guardsDeRuta.has(k) || enSidebar.has(k) || enMovil.has(k)),
+        (guardsDeRuta.has(k) || enSidebar.has(k) || enMovil.has(k) || enServidor.has(k)),
     );
     expect(
       mentirosos,

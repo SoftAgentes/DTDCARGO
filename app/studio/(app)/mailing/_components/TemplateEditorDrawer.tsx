@@ -13,6 +13,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   buildSampleVars,
   renderTemplateClient,
@@ -87,12 +88,8 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
       <div
         role="tablist"
         aria-label="Vista template"
-        style={{
-          padding: "12px 24px 0",
-          display: "flex",
-          gap: 4,
-          background: "var(--bg-surface)",
-        }}
+        className="studio-tabs"
+        style={{ margin: "12px 24px 0" }}
       >
         {(["editor", "preview"] as const).map((v) => (
           <button
@@ -100,21 +97,9 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             type="button"
             role="tab"
             aria-selected={view === v}
+            data-activa={view === v ? "true" : undefined}
             onClick={() => setView(v)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              background:
-                view === v ? "var(--bg-elevated, #F2F0EC)" : "transparent",
-              color: view === v ? "var(--ink)" : "var(--ink-soft)",
-              borderRadius: "6px 6px 0 0",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: view === v ? 600 : 500,
-              transition:
-                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out)",
-            }}
+            className="studio-tab"
           >
             {v === "editor" ? "Editor" : "Preview"}
           </button>
@@ -247,20 +232,10 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             gap: 12,
           }}
         >
-          <div
-            style={{
-              padding: "10px 12px",
-              background: "var(--info-bg, #E5EEF9)",
-              border: "1px solid var(--info, #2A6FDB)",
-              borderRadius: 6,
-              fontSize: 11,
-              color: "var(--ink)",
-              lineHeight: 1.5,
-            }}
-          >
+          <Aviso tono="info" compacto>
             Preview literal del HTML con sample vars · clientes de email (Gmail,
             Outlook) renderizan distinto. Para test real, usa &ldquo;Mandar prueba&rdquo;.
-          </div>
+          </Aviso>
 
           {/* Subject preview */}
           <div
@@ -374,26 +349,18 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             {testPending ? "Enviando…" : "Mandar prueba"}
           </button>
           {testState.error && (
-            <span
-              style={{
-                marginLeft: 12,
-                color: "var(--danger)",
-                fontSize: 12,
-              }}
-            >
-              {testState.error}
-            </span>
+            <div style={{ marginTop: 8 }}>
+              <Aviso tono="error" compacto>
+                {testState.error}
+              </Aviso>
+            </div>
           )}
           {testState.ok && testState.message && (
-            <span
-              style={{
-                marginLeft: 12,
-                color: "var(--success)",
-                fontSize: 12,
-              }}
-            >
-              ✓ {testState.message}
-            </span>
+            <div style={{ marginTop: 8 }}>
+              <Aviso tono="exito" compacto>
+                {testState.message}
+              </Aviso>
+            </div>
           )}
         </form>
 
@@ -547,35 +514,16 @@ function TextareaField({
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div
-      role="alert"
-      style={{
-        padding: "10px 12px",
-        background: "var(--danger-bg, #FCEDED)",
-        border: "1px solid var(--danger, #A8323E)",
-        borderRadius: 6,
-        color: "var(--danger, #A8323E)",
-        fontSize: 13,
-      }}
-    >
+    <Aviso tono="error" compacto>
       {message}
-    </div>
+    </Aviso>
   );
 }
 
 function SuccessBanner({ message }: { message: string }) {
   return (
-    <div
-      style={{
-        padding: "10px 12px",
-        background: "var(--success-bg, #E5F4ED)",
-        border: "1px solid var(--success, #1F8A5B)",
-        borderRadius: 6,
-        color: "var(--success, #1F8A5B)",
-        fontSize: 13,
-      }}
-    >
-      ✓ {message}
-    </div>
+    <Aviso tono="exito" compacto>
+      {message}
+    </Aviso>
   );
 }

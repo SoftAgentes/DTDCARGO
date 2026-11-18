@@ -49,7 +49,7 @@
 | Inspecciones | 0066, 0233 | `app/studio/(app)/inspecciones/` | `lib/studio/inspecciones/` · `supabase/migrations/{0176,0323}` (retiro R3 gobernado; Storage retenido) |
 | Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
 | Gastos | 0039, 0077, 0079, 0080, 0243 (`in-progress`) | `app/studio/(app)/gastos/` + `app/m/erp/` | `lib/studio/expense-*`, `accounting/expense-posting` · `supabase/migrations/0340_expense_void_governance.sql` local, no aplicada |
-| Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
+| Tesorería | 0044, 0631 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions, cost-link-queries), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` · 0631: CxP ligada a contenedor/embarque, `0536_cxp_ligada_contenedor.sql` aplicada en producción el 2026-11-14; margen por contenedor en `lib/studio/costing/cxp-ligadas.ts` |
 | Financiero China | 0059, 0110, 0115, 0227 | `app/studio/(app)/financiero-china/` | `lib/studio/partner-finance/` · `supabase/migrations/{0114,0115,0178,0317}` (pago R3 de cruce gobernado) |
 | Despacho | 0029, 0030, 0234 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` · `supabase/migrations/{0024,0324}` (cancelación R3 gobernada) |
 | Naviera & Consolidación | 0047, 0232 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` · `supabase/migrations/{0096,0249,0322}` (autorización R3 gobernada) |

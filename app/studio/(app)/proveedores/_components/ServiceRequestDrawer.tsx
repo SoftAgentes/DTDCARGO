@@ -15,6 +15,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   PSR_STATUSES,
   defaultAddon,
@@ -243,16 +244,11 @@ export function ServiceRequestDrawer({
             </div>
 
             {state.error && (
-              <p
-                role="alert"
-                style={{
-                  font: "600 12px/1.4 var(--f-sans)",
-                  color: "var(--danger)",
-                  margin: "14px 0 0",
-                }}
-              >
-                {state.error}
-              </p>
+              <div style={{ marginTop: 14 }}>
+                <Aviso tono="error" compacto>
+                  {state.error}
+                </Aviso>
+              </div>
             )}
           </form>
         </div>

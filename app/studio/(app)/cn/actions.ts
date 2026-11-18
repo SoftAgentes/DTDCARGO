@@ -591,7 +591,7 @@ export async function changeReceiptStatusAction(
           tenant_id: link.tenant_id,
           receipt_id: receiptId,
           event_type: "note",
-          description: `No se facturó automáticamente: ${inv.reason}`,
+          description: inv.invoiceEmitted ? inv.reason : `No se facturó automáticamente: ${inv.reason}`,
         });
       }
     } catch (e) {

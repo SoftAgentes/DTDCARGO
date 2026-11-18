@@ -32,6 +32,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     markbox: "DTD-1004",
     billed_usd: 0,
+    billing_v2: { version: 2, subtotal_usd: "0.00", sin_tasa_count: 0, conversion_state: "completo" },
     referrer_reward_usd: 80,
     referred_reward_usd: 60,
     referrals: [],
@@ -58,44 +59,45 @@ describe("getMyReferralProgram", () => {
   });
 
   it("deriva el nivel de la facturación trailing-12m USD", async () => {
-    const { db } = stub(snapshot({ billed_usd: 60000 }));
+    const { db } = stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "60000.00", sin_tasa_count: 0, conversion_state: "completo" } }));
     const p = await getMyReferralProgram(db);
     expect(p?.billedUsd).toBe(60000);
-    expect(p?.tier.tier.id).toBe("silver");
-    expect(p?.tier.next?.id).toBe("gold");
-    expect(p?.tier.toNext).toBe(90000);
+    expect(p?.tier?.tier.id).toBe("silver");
+    expect(p?.tier?.next?.id).toBe("gold");
+    expect(p?.tier?.toNext).toBe(90000);
   });
 
   it("sin facturación → Bronze", async () => {
-    const { db } = stub(snapshot({ billed_usd: 0 }));
+    const { db } = stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "0.00", sin_tasa_count: 0, conversion_state: "completo" } }));
     const p = await getMyReferralProgram(db);
     expect(p?.billedUsd).toBe(0);
-    expect(p?.tier.tier.id).toBe("bronze");
+    expect(p?.tier?.tier.id).toBe("bronze");
   });
 
   it("toma la facturación ya filtrada por la RPC (borradores y ventana 12m) sin leer invoices", async () => {
     // Contrato 0404 ($own_program): 100 USD emitida + 3700 VES / 37 = 200; el
     // borrador, la factura de hace 400 días y la del otro tenant quedan fuera.
-    const { db, rpc, from } = stub(snapshot({ billed_usd: 7000 }));
+    const { db, rpc, from } = stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "7000.00", sin_tasa_count: 0, conversion_state: "completo" } }));
     const p = await getMyReferralProgram(db);
     expect(p?.billedUsd).toBe(7000);
     expect(rpc).toHaveBeenCalledExactlyOnceWith("get_portal_referral_program");
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("normaliza montos del snapshot: la conversión VES/CNY es de la RPC; TS sólo acepta números ≥ 0", async () => {
+  it("normaliza montos del snapshot: la conversión VES/CNY es de la RPC; TS conserva signo y rechaza formas inválidas", async () => {
     const texto = await getMyReferralProgram(
-      stub(snapshot({ billed_usd: "100.50" })).db,
+      stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "100.50", sin_tasa_count: 0, conversion_state: "completo" } })).db,
     );
     expect(texto?.billedUsd).toBe(100.5);
     const negativo = await getMyReferralProgram(
-      stub(snapshot({ billed_usd: -50 })).db,
+      stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "-50.00", sin_tasa_count: 0, conversion_state: "completo" } })).db,
     );
-    expect(negativo?.billedUsd).toBe(0);
+    expect(negativo?.billedUsd).toBe(-50);
     const invalido = await getMyReferralProgram(
-      stub(snapshot({ billed_usd: "abc" })).db,
+      stub(snapshot({ billing_v2: { version: 2, subtotal_usd: "abc", sin_tasa_count: 0, conversion_state: "completo" } })).db,
     );
-    expect(invalido?.billedUsd).toBe(0);
+    expect(invalido?.billedUsd).toBeNull();
+    expect(invalido?.billing.state).toBe("no_disponible");
   });
 
   it("créditos: ganados = Σ acreditados; en camino = $80 por cada uno en pipeline", async () => {

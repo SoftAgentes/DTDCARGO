@@ -33,6 +33,11 @@ import {
   scheduleConsolidationEvent,
   scheduleSailingEvent,
 } from "@/lib/studio/notifications/schedule-fanout";
+import {
+  ensayarAvisosCargaEnCamino,
+  programarAvisosCargaEnCamino,
+  type EnsayoAvisosHito,
+} from "@/lib/studio/notifications/avisos-por-hito";
 import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
 import {
   trackingQuotaConfig,
@@ -602,6 +607,16 @@ async function avanzarContenedor(
         evento,
       );
     }
+    // SDD-0627 · al zarpar, `carga_en_camino` por cliente. Apagado detrás de
+    // AVISOS_POR_HITO_LIVE: con la bandera en false no lee ni escribe nada.
+    if (to === "zarpado") {
+      const hito = await programarAvisosCargaEnCamino(
+        admin,
+        resultado.tenantId,
+        consolidationId,
+      );
+      if (hito.programados > 0) avisados = (avisados ?? 0) + hito.programados;
+    }
   }
 
   revalidate();
@@ -649,6 +664,42 @@ export async function changeConsolidationStatus(
   // cliente, y un envío sin regla activa no genera aviso. La pantalla dice
   // este número o no dice ninguno — no inventa uno plausible.
   return { ok: true, avisados };
+}
+
+/**
+ * SDD-0627 · ENSAYO EN SECO del aviso `carga_en_camino` de un contenedor:
+ * cuenta envíos y destinatarios (un aviso por cliente) y dice qué haría la
+ * regla del tenant. No programa ni envía nada, y funciona con la bandera
+ * apagada. Devuelve sólo números: ningún Shipping Mark ni nombre.
+ */
+export async function ensayarAvisosZarpe(
+  consolidationId: string,
+): Promise<Result & { ensayo?: EnsayoAvisosHito }> {
+  if (typeof consolidationId !== "string" || !consolidationId.trim()) {
+    return { error: "Falta el contenedor." };
+  }
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El contenedor tiene que ser del tenant de la sesión (lectura con RLS).
+  const { data: cont } = await supabase
+    .from("consolidations")
+    .select("id")
+    .eq("id", consolidationId)
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  if (!cont) return { error: "No encontramos ese contenedor." };
+
+  const ensayo = await ensayarAvisosCargaEnCamino(
+    createAdminClient(),
+    tenantId,
+    consolidationId,
+  );
+  return { ok: true, ensayo };
 }
 
 /** Cerrar contenedor: consolidando → cerrado (atajo de changeConsolidationStatus). */

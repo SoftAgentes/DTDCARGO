@@ -14,17 +14,22 @@
  * - `conversacion`: el SSO lleva la conversación y Chatwoot redirige a ella.
  * - Sin `sandbox`: el panel necesita scripts, su origen, formularios, ventanas
  *   emergentes y descargas, y un sandbox con todo eso no protege nada.
+ * - SDD-0655: es una pestaña de CRM. La cabecera y la barra las pinta la página;
+ *   aquí quedan las acciones del panel. Los vínculos se mudaron a Usuarios: al
+ *   admin le queda el enlace «Agentes vinculados».
  */
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { origenDe, usePuenteChatwoot } from "@/app/studio/_components/guia/usePuenteChatwoot";
 import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
-import { VinculosAdmin, type MiembroOpcion, type VinculoFila } from "./VinculosAdmin";
+import { PortalChatwoot } from "./PortalChatwoot";
+import type { ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
-import type { SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
 
 export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
 
@@ -34,7 +39,13 @@ interface Props {
   inicioUrl: string | null;
   /** `?c=N`: conversación a abrir (E2-D24). */
   conversacion?: number | null;
-  admin: { vinculos: VinculoFila[]; miembros: MiembroOpcion[]; descartados?: EventoDescartado[]; salud?: SaludBandeja | null } | null;
+  admin: {
+    descartados?: EventoDescartado[];
+    /** SDD-0586 (10.5, PR 1b): la ida del chat del portal; null sin la bandeja del portal configurada. */
+    portal?: ResumenPortal | null;
+    /** SDD-0655: enlace a Usuarios › Bandeja, donde viven los vínculos. */
+    agentesHref?: string;
+  } | null;
 }
 
 type Fase = { tipo: "pidiendo" } | { tipo: "abriendo" } | { tipo: "abierto" } | { tipo: "error"; codigo: BandejaErrorCode };
@@ -45,6 +56,10 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const [fase, setFase] = useState<Fase>(inicioUrl ? { tipo: "abriendo" } : { tipo: "pidiendo" });
   const pidioAlMontar = useRef(false);
   const reconcilio = useRef(false);
+  // Guía dentro del panel (SDD-0589, 9.4): el marco es el ancla de respaldo y el
+  // puente le pregunta al script del panel dónde está cada ancla de Chatwoot.
+  const marcoRef = useRef<HTMLIFrameElement | null>(null);
+  usePuenteChatwoot(marcoRef, origenDe(panelUrl));
 
   const pedir = useCallback(async () => {
     setFase({ tipo: "pidiendo" });
@@ -82,30 +97,34 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
     </a>
   ) : null;
 
+  const agentes = admin?.agentesHref ? (
+    <Link href={admin.agentesHref} className="studio-btn studio-btn-ghost studio-btn-sm">
+      {t("bandeja.links.manage")}
+    </Link>
+  ) : null;
+  const accionesPanel = estado === "listo" && fase.tipo !== "error";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
-      <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--s-4)", flexWrap: "wrap" }}>
-        <div>
-          <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--wine-text)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: "var(--s-2)" }}>
-            {t("bandeja.page.eyebrow")}
-          </div>
-          <h1 style={{ font: "900 24px/1.15 var(--f-display)", color: "var(--ink)", margin: 0 }}>{t("bandeja.page.title")}</h1>
+      {accionesPanel || agentes ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "var(--s-2)", flexWrap: "wrap" }}>
+          {agentes}
+          {accionesPanel ? (
+            <>
+              <ActionButton
+                variant="ghost"
+                size="sm"
+                idleLabel={t("bandeja.action.relogin")}
+                loadingLabel={t("bandeja.state.loading")}
+                successLabel={null}
+                disabled={fase.tipo === "pidiendo"}
+                onAction={pedir}
+              />
+              {abrirEnPestana}
+            </>
+          ) : null}
         </div>
-        {estado === "listo" && fase.tipo !== "error" ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
-            <ActionButton
-              variant="ghost"
-              size="sm"
-              idleLabel={t("bandeja.action.relogin")}
-              loadingLabel={t("bandeja.state.loading")}
-              successLabel={null}
-              disabled={fase.tipo === "pidiendo"}
-              onAction={pedir}
-            />
-            {abrirEnPestana}
-          </div>
-        ) : null}
-      </header>
+      ) : null}
 
       {estado === "sin_configurar" ? (
         <EmptyState title={t("bandeja.state.unconfigured.title")} description={t("bandeja.state.unconfigured.body")} />
@@ -136,6 +155,8 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
           {src ? (
             <iframe
               key={src}
+              ref={marcoRef}
+              data-guia="bandeja.marco"
               src={src}
               title={t("bandeja.frame.title")}
               allow="microphone"
@@ -143,7 +164,8 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
               style={{
                 display: "block",
                 width: "100%",
-                height: "calc(100dvh - 180px)",
+                // SDD-0655: arriba van la cabecera y la barra del CRM. Estimado, sin medir: se mide en el smoke.
+                height: "calc(100dvh - 300px)",
                 minHeight: 480,
                 border: "1px solid var(--border)",
                 borderRadius: "var(--r-lg)",
@@ -154,7 +176,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         </div>
       )}
 
-      {admin ? <VinculosAdmin vinculos={admin.vinculos} miembros={admin.miembros} salud={admin.salud} /> : null}
+      {admin?.portal ? <PortalChatwoot resumen={admin.portal} /> : null}
       {admin?.descartados?.length ? (
         <section
           aria-labelledby="bandeja-descartados"

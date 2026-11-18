@@ -2,14 +2,17 @@
 # infra/dtd-cargo/backup.sh — respaldo diario CIFRADO de DTD Cargo en el servidor (SDD-0505).
 #
 # Lo corre el timer de systemd (systemd/dtd-cargo-backup.timer, 06:00 UTC = 02:00
-# en Caracas) desde /srv/dtd-cargo. Envuelve los dos scripts de /srv/ops/backup
+# en Caracas) desde /srv/dtd-cargo. Envuelve los tres scripts de /srv/ops/backup
 # con los valores del `.env` que está al lado:
 #   1. pg-dump-to-s3.sh: dump de la base + roles + permisos de public, cifrados
 #      con age para la clave pública de Sam, al bucket de Backblaze; retención
 #      30 días en el bucket y 7 en el disco.
 #   2. config-backup.sh: este .env + la clave raíz de pgsodium/Vault, cifrados,
 #      solo cuando cambiaron.
-#   3. Si los dos salieron 0 y BACKUP_HEARTBEAT_URL está en el .env, manda el
+#   3. storage-backup.sh: los ARCHIVOS del Storage (data/storage con
+#      STORAGE_BACKEND=file; el dump solo trae su metadata), tar | age sin copia
+#      en claro, a su propio prefijo del bucket (SDD-0620).
+#   4. Si los tres salieron 0 y BACKUP_HEARTBEAT_URL está en el .env, manda el
 #      latido a Uptime Kuma. Un respaldo que falla no late: así se nota.
 #
 # Antes del corte, producción está apagada y existe la marca
@@ -22,6 +25,10 @@
 #   POSTGRES_PASSWORD        obligatorio; viaja por el entorno, nunca por argumento
 #   BACKUP_RCLONE_REMOTE     b2:dtdcargo-respaldos/db
 #   BACKUP_HEARTBEAT_URL     vacío = sin latido
+#   BACKUP_STORAGE_RCLONE_REMOTE  b2:dtdcargo-respaldos/storage
+#   BACKUP_STORAGE_DIR       por omisión <DTD_DATA_DIR>/storage (el bind de storage-api)
+#   BACKUP_STORAGE_MIN_FILES 1: con menos archivos el respaldo falla (carpeta equivocada)
+#   BACKUP_STORAGE_KEEP_LOCAL 2 respaldos del Storage en disco local
 #   OPS_DIR / BACKUP_DIR / RCLONE_CONFIG_DIR / BACKUP_AGE_RECIPIENTS_FILE /
 #   BACKUP_RETENTION_DAYS / BACKUP_LOCAL_RETENTION_DAYS / BACKUP_DB_CONFIG_VOLUME
 #
@@ -54,6 +61,7 @@ proyecto="$(valor PROYECTO dtd-cargo)"
 ops_dir="$(valor OPS_DIR /srv/ops)"
 dump_script="${ops_dir}/backup/pg-dump-to-s3.sh"
 config_script="${ops_dir}/backup/config-backup.sh"
+storage_script="${ops_dir}/backup/storage-backup.sh"
 remote="$(valor BACKUP_RCLONE_REMOTE b2:dtdcargo-respaldos/db)"
 recipients="$(valor BACKUP_AGE_RECIPIENTS_FILE /srv/ops/backup/age-recipients.txt)"
 rclone_dir="$(valor RCLONE_CONFIG_DIR /srv/ops/backup/rclone)"
@@ -68,7 +76,7 @@ if [[ -f "${marca}" ]] && (( ! dry_run )); then
   log "producción apagada (existe $(basename "${marca}")): no hay nada que respaldar. RESULTADO: APAGADO"
   exit 0
 fi
-for s in "${dump_script}" "${config_script}"; do
+for s in "${dump_script}" "${config_script}" "${storage_script}"; do
   [[ -x "${s}" ]] || die "no encuentro ${s} (OPS_DIR=${ops_dir}); ¿está desplegado infra/ops?"
 done
 password="$(envget POSTGRES_PASSWORD)"
@@ -114,6 +122,23 @@ if (( dry_run )); then log "dry-run: no se respalda la configuración ni se mand
   --age-recipients "${recipients}" \
   --rclone-config "${rclone_dir}" || rc=$?
 (( rc == 0 )) || die "config-backup.sh salió ${rc}"
+
+# Los archivos del Storage, después de la base: un archivo subido entre las dos
+# copias queda huérfano (inofensivo). La carpeta sale del mismo DTD_DATA_DIR que
+# usa compose para el bind de storage-api.
+datos="$(valor DTD_DATA_DIR ./data)"
+[[ "${datos}" == /* ]] || datos="${here}/${datos#./}"
+"${storage_script}" \
+  --project "${proyecto}" \
+  --source "$(valor BACKUP_STORAGE_DIR "${datos%/}/storage")" \
+  --remote "$(valor BACKUP_STORAGE_RCLONE_REMOTE b2:dtdcargo-respaldos/storage)" \
+  --out "${out_dir}" \
+  --age-recipients "${recipients}" \
+  --rclone-config "${rclone_dir}" \
+  --retention-days "$(valor BACKUP_RETENTION_DAYS 30)" \
+  --keep-local "$(valor BACKUP_STORAGE_KEEP_LOCAL 2)" \
+  --min-files "$(valor BACKUP_STORAGE_MIN_FILES 1)" || rc=$?
+(( rc == 0 )) || die "storage-backup.sh salió ${rc}"
 
 if [[ -n "${heartbeat}" ]]; then
   if curl -fsS -m 15 --retry 3 --retry-delay 5 -o /dev/null "${heartbeat}"; then

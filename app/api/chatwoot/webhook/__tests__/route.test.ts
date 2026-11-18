@@ -159,3 +159,47 @@ describe("POST /api/chatwoot/webhook (SDD-0585)", () => {
     espia.mockRestore();
   });
 });
+
+describe("SDD-0586 (10.5, PR 1b) · la ruta le pasa a la vuelta solo lo saliente de la bandeja del portal", () => {
+  const PORTAL = 9;
+  const saliente = (extra: Record<string, unknown> = {}) =>
+    mensajeCreado({
+      message_type: "outgoing",
+      sender: { id: 7, name: "Agente Sintético", type: "user" },
+      inbox: { id: PORTAL },
+      conversation: conversacionSintetica({ inbox_id: PORTAL }),
+      ...extra,
+    });
+  const ctx = () => (m.procesar.mock.calls[0] as [Record<string, unknown>])[0];
+
+  beforeEach(() => {
+    vi.stubEnv("CHATWOOT_ROUTER_TOKEN", "tok-router-sintetico");
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", String(PORTAL));
+  });
+
+  it("una respuesta en la bandeja del portal llega al contexto con su texto, y la respuesta HTTP no lo lleva", async () => {
+    const r = await POST(peticion(saliente()));
+    expect(r.status).toBe(200);
+    expect(await r.text()).not.toContain(TEXTO_SINTETICO);
+    expect(ctx().salientePortal).toMatchObject({ id: 101, tipo: "outgoing", texto: TEXTO_SINTETICO, agenteId: 7 });
+  });
+
+  it("un entrante del portal o una respuesta en otra bandeja: null (la ruta miró y no hay nada)", async () => {
+    await POST(peticion(saliente({ message_type: "incoming" })));
+    expect(ctx().salientePortal).toBeNull();
+    m.procesar.mockClear();
+    await POST(peticion(saliente({ inbox: { id: 3 }, conversation: conversacionSintetica({ inbox_id: 3 }) })));
+    expect(ctx().salientePortal).toBeNull();
+  });
+
+  it("sin la bandeja del portal configurada, la ruta no lee nada para la vuelta", async () => {
+    vi.stubEnv("CHATWOOT_INBOX_PORTAL_ID", "");
+    await POST(peticion(saliente()));
+    expect(ctx()).not.toHaveProperty("salientePortal");
+  });
+
+  it("otro evento no lleva nada para la vuelta", async () => {
+    await POST(peticion(estadoCambiado()));
+    expect(ctx()).not.toHaveProperty("salientePortal");
+  });
+});

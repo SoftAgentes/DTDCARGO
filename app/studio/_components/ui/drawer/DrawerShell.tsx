@@ -28,6 +28,7 @@ export function DrawerShell({
   closeLabel,
   variant = "drawer",
   titleAccessory,
+  closeOnBackdrop = true,
 }: {
   title: string;
   subtitle?: React.ReactNode;
@@ -41,6 +42,11 @@ export function DrawerShell({
   variant?: "drawer" | "centered";
   /** Nodo inline a la derecha del título (ej. un badge de estado). */
   titleAccessory?: React.ReactNode;
+  /**
+   * `false` = un clic en el fondo no cierra: solo el botón cerrar o Escape
+   * (SDD-0648, D8: la ficha del CRM se cerraba por error). Default `true`.
+   */
+  closeOnBackdrop?: boolean;
 }) {
   const t = useT();
   const titleId = useId();
@@ -52,7 +58,7 @@ export function DrawerShell({
 
   return (
     <div
-      onClick={() => !pending && onClose()}
+      onClick={() => closeOnBackdrop && !pending && onClose()}
       style={{
         position: "fixed",
         inset: 0,
@@ -130,19 +136,11 @@ export function DrawerShell({
             onClick={onClose}
             disabled={pending}
             aria-label={closeLabel ?? t("chrome.action.close")}
-            style={{
-              width: 32,
-              height: 32,
-              display: "grid",
-              placeItems: "center",
-              borderRadius: "var(--r-sm)",
-              color: "var(--ink-soft)",
-              background: "transparent",
-              border: 0,
-              cursor: pending ? "wait" : "pointer",
-            }}
+            className="studio-cerrar-panel"
+            style={{ cursor: pending ? "wait" : undefined }}
           >
             {Icon.close(14)}
+            {closeLabel ?? t("chrome.action.close")}
           </button>
         </header>
         {children}

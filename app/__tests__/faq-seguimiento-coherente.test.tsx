@@ -139,7 +139,26 @@ describe("fuentes estáticas alineadas y privacidad", () => {
     expect(plano(container.textContent)).toContain("El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.");
     expect(plano(container.textContent)).not.toContain("El código de rastreo que introduces");
     expect(plano(container.textContent)).toContain("cotizar, coordinar y dar seguimiento a tus envíos puerta a puerta.");
-    // SDD-0587 (6.4): la fecha se movió al sumar la campaña por la que llegó quien se registra.
-    expect(plano(container.textContent)).toContain("4 de noviembre de 2026");
+    // SDD-0587: la fecha se movió al nombrar Instagram entre los canales de chat y en la fila de Meta.
+    // SDD-0606/0608: y otra vez el 2026-11-06, con la mensajería interna del equipo que aprobó Sam.
+    // SDD-0586 (T4): y el 2026-11-08, con el chat de Soporte del portal (T2 y T3, aprobados por Sam).
+    expect(plano(container.textContent)).toContain("8 de noviembre de 2026");
+  });
+
+  // SDD-0587, 2026-11-05: lo que lee la persona, ya renderizado. Texto aprobado por Sam.
+  it("privacidad se lee como Sam aprobó en la fila de Meta, el proveedor de gestión de clientes y §5", async () => {
+    const { default: Page } = await import("@/app/privacidad/page");
+    const { container } = render(<Page />);
+    const leido = plano(container.textContent);
+    expect(leido).toContain(
+      "Meta (WhatsApp e Instagram), que transporta los mensajes que nos envías y te enviamos por esos canales.",
+    );
+    expect(leido).toContain(
+      "Proveedor de gestión de clientes, que todavía usamos para llevar el seguimiento de clientes y atender parte de las conversaciones por WhatsApp e Instagram. Recibe tu nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te atendemos como cliente o te preparamos un estimado, también puede recibir tu Shipping Mark, el valor del estimado y las notas de seguimiento. Estamos pasando esa atención a nuestro propio sistema, alojado en nuestro servidor.",
+    );
+    expect(leido).toContain(
+      "Mientras terminamos ese cambio, lo que pasa por ese proveedor también se guarda en sus servidores y en los de quienes le prestan servicio, que pueden estar en Estados Unidos o en otros países.",
+    );
+    expect(leido).not.toMatch(/kommo/i);
   });
 });

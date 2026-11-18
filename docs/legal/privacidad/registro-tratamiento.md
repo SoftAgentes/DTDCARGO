@@ -53,10 +53,15 @@
 | Tabla · campo | Qué es | Sensible | Finalidad | Base | Conservación |
 |---|---|:-:|---|---|---|
 | `nomina_employees.*` | Nombre, nacimiento, banco, salario | no | Nómina | Obligación legal laboral | ⬜ |
-| `nomina_employee_registrations.*` | + cédula y foto de **candidatos** | no | Alta de personal | ⬜ | 🔴 **indefinida por diseño**, incluso si se rechaza |
+| `nomina_employee_registrations.*` (desde SDD-0652 fase 2 la bandeja del Studio no lee la cédula, la cuenta ni la foto; la cédula y la cuenta enmascarada se ven solo al revisar una solicitud pendiente) | + cédula y foto de **candidatos** | no | Alta de personal | ⬜ | 🔴 **indefinida por diseño**, incluso si se rechaza |
+| `nomina_employees.photo_path` + archivo en `employee-photos` (SDD-0652 fase 2, **migración 0555 en espera: todavía no existe en producción**) | **Foto de la persona** (imagen, CRBV art. 60). Se guarda reescalada a 512 px, en WebP y **sin metadatos EXIF** | 🟠 imagen | Reconocer a la persona en Nómina. La ven solo `admin` y `accounting` (D4), con URL firmada de 10 minutos | ⬜ (abogado; el consentimiento del empleado llega con el autoservicio C1) | Mientras la ficha viva. Al cambiarla o quitarla, el archivo anterior lo borra la reconciliación `purge-employee-photo-orphans` (nace apagada) |
+| `nomina_employees.auth_user_id` (ya existía, 0181) | Unión de la ficha con su usuario del Studio | no | Ver el acceso de la persona desde su ficha. Desde la fase 2 lo enlaza un admin **a mano, con motivo**; aprobar una solicitud ya no reutiliza una cuenta existente | ⬜ | La de la ficha |
+| `nomina_employees.bank_account` · consulta completa (SDD-0652 fase 2) | Cuenta bancaria. **Viaja enmascarada**; el número completo solo sale con «Mostrar», con motivo | 🟠 financiero | Pagar la nómina | Obligación legal laboral | La de la ficha. Cada consulta deja `bank_account_revealed` (quién, cuándo, motivo; **sin el número**), clase `security`, 2 años. Excepción a AUD-02 §3: [`excepcion-aud-02-revelado-cuenta-nomina-2026-11-17.md`](../../governance/reviews/excepcion-aud-02-revelado-cuenta-nomina-2026-11-17.md) |
+| Eventos `user_linked`, `user_unlinked`, `photo_set`, `photo_removed` en `entity_audit_log` (SDD-0652 fase 2) | Quién enlazó, desenlazó o cambió la foto, y cuándo. Sin la imagen, sin la ruta y sin el correo | no | Trazabilidad | ⬜ | Clase `security`, 2 años (calendario v1.0) |
 | `tms_drivers.cedula`, `address` | Identidad del chofer | no | Operación de flota | Contrato laboral | ⬜ |
 | `tms_drivers.emergency_contact` | **Nombre y teléfono de un familiar** | no | Emergencias | 🔴 **el titular nunca consintió** | ⬜ |
 | `tms_drivers.rating` | Calificación 0.0–5.0 | no | ⬜ no evidente | ⬜ | ⬜ |
+| `asistente_conversaciones`, `asistente_mensajes`, `asistente_eventos` (SDD-0637 Faro, **propuesto, todavía sin tablas ni datos**) | Preguntas del equipo al asistente de ayuda, con su identidad, depuradas de documentos, teléfonos y correos; respuestas; feedback y alertas | ⚠️ texto libre | Ayuda dentro del Studio; auditoría; alertas de seguridad | ⬜ (abogado) | 180 días; alertas 2 años sin texto (D-6, Sam 2026-11-16). Revisión: `docs/specs/0637-faro-asistente-ayuda/privacidad.md` |
 | `tms_truck_locations.lat/lng` | **Rastreo del chofer** | 🔴 geolocalización | Seguimiento de flota | ⬜ | 🔴 **ninguna** |
 
 ## 4 · Los 12 buckets
@@ -73,6 +78,7 @@
 | `prealerta-docs` | Facturas, packing, fotos y capturas de proveedor | 🟠 | ⬜ | borrado integral NO VERIFICABLE |
 | `expense-receipts` | Recibos de Gastos | 🟠 | ⬜ | Studio conserva; móvil elimina: comportamiento contradictorio |
 | `bug-replays` | Replays técnicos comprimidos | ⚠️ puede contener datos | ⬜ | creación/policies no trazadas en migraciones; NO VERIFICABLE |
+| `employee-photos` (SDD-0652 fase 2; **lo crea la migración 0555, en espera: no existe todavía en producción**, por eso el conteo de 12 de abajo no lo incluye) | Foto del empleado, WebP de 512 px sin EXIF, en `{tenant}/{ficha}/{uuid}.webp` | 🟠 imagen | Mientras la ficha la referencie | Privado, 2 MB, solo JPEG/PNG/WebP, **sin policies**: sube y firma el servidor. Los huérfanos los borra `purge-employee-photo-orphans` (apagado por omisión) |
 
 ✅ Los 12 observados en Producción son `public = false`.
 
@@ -116,6 +122,15 @@ A diferencia de las huellas de §4.2, esta IP se guarda en claro: el throttle
 cuenta por su texto exacto (`lib/public/verify-throttle.ts`). Base de licitud y
 aviso: ⬜.
 
+## 4.4 · Consulta de clientes desde Discord (SDD-0608, sin activar)
+
+| Destino | Dato | Minimización | Retención | Estado |
+|---|---|---|---|---|
+| Respuesta de `/cliente` en Discord | Nombre, Shipping Mark y enlace de hasta 10 clientes | la función de la base devuelve sólo `markbox` y `name`; respuesta efímera, sólo a quien tiene enlace y permiso de clientes en el Studio | la de Discord, **NO VERIFICABLE** | código en la PR #387; aplicación de Discord sin crear |
+| `discord_consultas_clientes` | ID de Discord de quien preguntó, su usuario del Studio, término buscado, resultado y hora | no guarda qué clientes se mostraron; finalidad documentada por columna (`comment on column`) | purga técnica a 180 días en cada registro | migración 0516 **sin aplicar** |
+
+Base de licitud y aviso: ⬜ (la línea de `/privacidad` la decide Sam; propuesta en `docs/specs/0608-discord-consulta-clientes/privacidad.md`).
+
 ## 5 · Titulares que no son usuarios
 
 | Quién | Qué se le captura | ¿Se le avisa? | ¿Cómo ejerce sus derechos? |
@@ -126,6 +141,8 @@ aviso: ⬜.
 | Referido | contacto que da un cliente | ✅ parcial (`/privacidad` §1) | ⬜ |
 | Pagador tercero | nombre y relación | ❌ (solo Acuerdo cl. 7.4) | ⬜ |
 | Quien escanea un QR en `/verificar` (almacén, destinatario) | IP y hora de la consulta (§4.3) | ⚠️ solo la política general: el pie de `/verificar` enlaza `/privacidad`, que menciona la IP «para prevenir usos indebidos» | ⬜ |
+| Miembro del servidor de Discord sin cuenta del Studio que prueba `/cliente` | su ID de Discord, el término y la hora (§4.4) | ❌ | ⬜ |
+| Persona cuyo nombre se busca sin ser cliente | el término, hasta 180 días (§4.4) | ❌ | ⬜ |
 
 ## 6 · A dónde van
 

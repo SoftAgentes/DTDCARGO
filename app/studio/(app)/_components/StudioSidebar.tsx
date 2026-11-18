@@ -42,9 +42,11 @@ import {
   canAccessModule,
   scopeAllowsModule,
   type RoleModuleOverrides,
+  type UserModuleGrants,
 } from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { BandejaBadge } from "./BandejaBadge";
+import { accesoCrm, destinoCrm, esRutaCrm } from "@/lib/studio/crm-acceso";
 import type { ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
@@ -69,8 +71,9 @@ interface Props {
   /** Alertas de gastos activas (badge en el item "Gastos"). */
   expenseAlertCount?: number;
   /**
-   * Conversaciones de Chatwoot abiertas con no leídos (SDD-0585, E2-D21): badge del
-   * item "Bandeja", vivo por Realtime. Solo se pinta si el item se ve (rol + flag).
+   * Conversaciones de Chatwoot abiertas con no leídos (SDD-0585, E2-D21), vivo por
+   * Realtime. Desde SDD-0655 la Bandeja es una pestaña de CRM: el badge cuelga del
+   * item «CRM» y solo se pinta si quien mira ve la Bandeja (rol + flag).
    */
   bandeja?: { tenantId: string | null; initial: ConversacionNoLeida[] };
   /**
@@ -90,6 +93,8 @@ interface Props {
    * ya lo deje entrar (y viceversa con uno revocado).
    */
   overrides?: RoleModuleOverrides;
+  /** Accesos adicionales de la persona (SDD-0622): suman módulos al rol. */
+  grants?: UserModuleGrants;
 }
 
 export function StudioSidebar({
@@ -99,6 +104,7 @@ export function StudioSidebar({
   role = null,
   warehouseScope = "all",
   overrides,
+  grants,
 }: Props = {}) {
   const pathname = usePathname();
   const t = useT();
@@ -281,6 +287,13 @@ export function StudioSidebar({
   const isActive = (slug: string) =>
     pathname === slug || pathname.startsWith(slug + "/");
 
+  // SDD-0655: «CRM» (id `kommo`) reúne Embudos y la Bandeja. El ítem se ve si se
+  // ve alguna de las dos, lleva a la primera visible y queda activo en ambas.
+  const crm = accesoCrm(role, flags, overrides, grants);
+  const crmDestino = destinoCrm(crm);
+  const hrefDe = (m: ModuleDef) => (m.id === "kommo" ? (crmDestino ?? m.slug) : m.slug);
+  const activoEn = (m: ModuleDef) => (m.id === "kommo" ? esRutaCrm(pathname) : isActive(m.slug));
+
   // ── Unidades de una sección: hoja (módulo suelto) o cluster (parent + hijos) ──
   // El cluster se emite en la posición del PRIMER hijo, juntando a todos sus
   // hermanos. No toca routing ni RBAC: los hijos ya vienen filtrados.
@@ -310,27 +323,29 @@ export function StudioSidebar({
 
   // Render de un ítem-hoja (módulo). `indent` = sangría px para hijos anidados.
   const renderLeaf = (m: ModuleDef, indent = 0) => {
-    const active = isActive(m.slug);
+    const active = activoEn(m);
     const moduleLabel = m.labelKey ? t(m.labelKey) : m.label;
     return (
       <Link
         key={m.id}
-        href={m.slug}
+        href={hrefDe(m)}
+        aria-current={active ? "page" : undefined}
         title={collapsed ? moduleLabel : undefined}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: collapsed ? "10px 0" : `9px 12px 9px ${12 + indent}px`,
+          padding: collapsed ? "10px 0" : `var(--sb-item-y) 12px var(--sb-item-y) ${12 + indent}px`,
           justifyContent: collapsed ? "center" : "flex-start",
-          background: active ? "var(--bg-sidebar-active)" : "transparent",
-          color: active ? "var(--ink-side-strong)" : "var(--ink-side)",
+          // SDD-0603: blanco con tinta fija, el mayor contraste de la paleta en los dos
+          // temas. --wine sobre navy mide 1,56:1 (BD-017), por eso el vino va en el icono.
+          background: active ? "var(--ink-side-strong)" : "transparent",
+          color: active ? "var(--on-warning)" : "var(--ink-side-strong)",
           borderRadius: "var(--r-md)",
-          font: `500 ${indent && !collapsed ? "12.5" : "13"}px/1 var(--f-sans)`,
+          font: `${active ? 800 : 600} ${indent && !collapsed ? "13.5" : "14"}px/1.15 var(--f-sans)`,
           textDecoration: "none",
-          boxShadow:
-            active && !collapsed ? "inset 3px 0 0 var(--wine-soft)" : "none",
+          boxShadow: active ? "var(--shadow-sm)" : "none",
           transition:
             "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
         }}
@@ -344,7 +359,7 @@ export function StudioSidebar({
       >
         <span
           style={{
-            color: active ? "var(--wine-soft)" : "var(--ink-side-soft)",
+            color: active ? "var(--wine)" : "var(--ink-side)",
             flexShrink: 0,
             display: "inline-flex",
           }}
@@ -364,7 +379,7 @@ export function StudioSidebar({
             {moduleLabel}
           </span>
         )}
-        {!collapsed && m.id === "bandeja" && bandeja?.tenantId ? (
+        {!collapsed && m.id === "kommo" && crm.bandeja && bandeja?.tenantId ? (
           <BandejaBadge tenantId={bandeja.tenantId} initial={bandeja.initial} />
         ) : null}
         {!collapsed && m.id === "expenses" && expenseAlertCount > 0 && (
@@ -396,7 +411,7 @@ export function StudioSidebar({
   const renderParent = (parent: ParentDef, children: ModuleDef[]) => {
     if (collapsed) return children.map((c) => renderLeaf(c, 0));
     const pid = parent.id;
-    const childActive = children.some((c) => isActive(c.slug));
+    const childActive = children.some((c) => activoEn(c));
     const pOpen = childActive || openParents[pid] === true;
     const parentLabel = parent.labelKey ? t(parent.labelKey) : parent.label;
     return (
@@ -410,13 +425,13 @@ export function StudioSidebar({
             display: "flex",
             alignItems: "center",
             gap: 12,
-            padding: "9px 12px",
+            padding: "var(--sb-item-y) 12px",
             borderRadius: "var(--r-md)",
             background: childActive ? "var(--bg-sidebar-hover)" : "transparent",
-            color: childActive ? "var(--ink-side-strong)" : "var(--ink-side)",
+            color: "var(--ink-side-strong)",
             border: "none",
             cursor: "pointer",
-            font: "600 13px/1 var(--f-sans)",
+            font: "600 14px/1.15 var(--f-sans)",
             transition:
               "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
           }}
@@ -430,7 +445,7 @@ export function StudioSidebar({
         >
           <span
             style={{
-              color: childActive ? "var(--wine-soft)" : "var(--ink-side-soft)",
+              color: "var(--ink-side)",
               flexShrink: 0,
               display: "inline-flex",
             }}
@@ -452,7 +467,7 @@ export function StudioSidebar({
             aria-hidden
             style={{
               display: "inline-flex",
-              color: "var(--ink-side-soft)",
+              color: "var(--ink-side)",
               transform: `rotate(${pOpen ? 0 : -90}deg)`,
               transition: "transform var(--dur-fast) var(--ease)",
             }}
@@ -470,11 +485,14 @@ export function StudioSidebar({
   // el filtro de rol usa la matriz ROLE_MODULE_ACCESS (admin ve todo,
   // fail-closed para roles nulos); el scope esconde el lado no asignado
   // (SDD-0139; admin no se filtra por scope).
+  // SDD-0655: el ítem «CRM» se ve con Embudos O con la Bandeja (ver `accesoCrm`).
   const visibleModules = MODULES.filter(
     (m) =>
       !m.hidden &&
-      isModuleEnabled(m.id, flags) &&
-      canAccessModule(role, m.id, overrides) &&
+      !m.dentroDe && // SDD-0655: una pestaña de otro módulo no es ítem del menú
+      (m.id === "kommo"
+        ? crmDestino !== null
+        : isModuleEnabled(m.id, flags) && canAccessModule(role, m.id, overrides, grants)) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
 
@@ -615,10 +633,10 @@ export function StudioSidebar({
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 8,
-                  padding: "8px 10px 6px",
-                  font: "700 9.5px/1 var(--f-sans)",
-                  color: "var(--ink-side-soft)",
-                  letterSpacing: "0.16em",
+                  padding: "10px 12px",
+                  font: "800 12px/1 var(--f-sans)",
+                  color: "var(--ink-side)",
+                  letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   background: "transparent",
                   border: "none",
@@ -629,7 +647,7 @@ export function StudioSidebar({
                   e.currentTarget.style.color = "var(--ink-side-strong)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--ink-side-soft)";
+                  e.currentTarget.style.color = "var(--ink-side)";
                 }}
               >
                 <span

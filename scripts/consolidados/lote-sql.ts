@@ -810,8 +810,47 @@ select count(*) as marcas,
          select 1 from unnest(m.candidatos) cand(marca)
           cross join lateral public.resolve_markbox((select id from tenant), cand.marca) r)) as sin_resolver
   from marcas m;
-
+${o.entorno === "produccion" ? cortePreviaProduccion(o, candidatos) : ""}
 rollback;
+`;
+}
+
+/**
+ * En producción el lote nunca crea clientes ni aliados: una marca que no
+ * resuelve corta la previa (psql sale ≠ 0 y aplicar-lote.sh no sigue). El
+ * error cita sólo el conteo y las etiquetas `PREFIJO-#n`/códigos, nunca texto
+ * del Excel: termina en la evidencia del servidor. Las tablas de arriba ya
+ * quedaron impresas.
+ */
+function cortePreviaProduccion(o: OpcionesSql, candidatos: string): string {
+  return `
+\\echo === producción: toda marca tiene que resolver a un cliente vivo (el lote no crea clientes ni aliados)
+do $corte$
+declare
+  v_faltan text;
+  v_n int;
+begin
+  with marcas(clave, candidatos) as (values
+    ${candidatos}
+  ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+  resueltas as (
+    select m.clave,
+           (select r.client_id
+              from unnest(m.candidatos) with ordinality as cand(marca, pos)
+              cross join lateral public.resolve_markbox((select id from tenant), cand.marca) r
+             order by cand.pos limit 1) as client_id
+      from marcas m
+  )
+  select count(*), string_agg(x.clave, ', ' order by x.clave) into v_n, v_faltan
+    from resueltas x
+    left join public.clients cl on cl.id = x.client_id
+   where x.client_id is null or cl.deleted_at is not null;
+  if v_n > 0 then
+    raise exception 'previa: % marca(s) sin resolver a un cliente vivo en producción (%): mapéalas en marcas-mapa.json y regenera; el lote no crea clientes', v_n, v_faltan;
+  end if;
+  raise notice 'previa: todas las marcas resuelven a un cliente vivo';
+end
+$corte$;
 `;
 }
 

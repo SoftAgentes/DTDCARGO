@@ -38,6 +38,7 @@
  * `voidBillFor`: anula la CxP sin pagos (status='anulada' + anula su asiento).
  */
 
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { tasaDelDocumento } from "@/lib/studio/fx-rates";
@@ -52,11 +53,34 @@ import {
 import {
   billBalance,
   validateBillInput,
+  validateBillCostLink,
   validatePaymentInput,
+  type BillCostLink,
   type BillInput,
   type PaymentMethod,
   type SupplierPaymentInput,
 } from "./types";
+import { isMissingCostLinkColumns, shipmentInContainer } from "./cost-link-queries";
+
+/** SDD-0631: mensaje cuando la base todavía no tiene la 0536. */
+export const COST_LINK_UNAVAILABLE =
+  "La base todavía no tiene el vínculo de CxP con contenedor (migración 0536).";
+
+/** El embarque elegido tiene que estar asignado al contenedor elegido. */
+async function costLinkError(
+  supabase: SupabaseClient,
+  link: BillCostLink,
+): Promise<string | null> {
+  if (!link.consolidationId || !link.shipmentId) return null;
+  const inside = await shipmentInContainer(supabase, link.consolidationId, link.shipmentId);
+  return inside ? null : "Ese embarque no está asignado al contenedor elegido.";
+}
+
+/** Las columnas de la 0536, solo si hay vínculo: sin él, la base vieja sigue sirviendo. */
+function costLinkColumns(link: BillCostLink): Record<string, string | null> {
+  if (!link.consolidationId && !link.shipmentId) return {};
+  return { consolidation_id: link.consolidationId, cost_category: link.costCategory };
+}
 
 /** Lo que devuelven las RPC de pagos de 0468 (jsonb). */
 type PaymentOrderRpcResult = {
@@ -120,6 +144,9 @@ export async function createBillFor(
   supabase: SupabaseClient,
   raw: Partial<BillInput>,
 ): Promise<CreateBillResult> {
+  const businessDay = fechaCaracas();
+  const issueDate = raw?.issueDate === undefined ? businessDay : raw.issueDate;
+  if (!isCalendarDate(issueDate)) return { fieldErrors: { issueDate: "Fecha de emisión inválida (YYYY-MM-DD)." } };
   const tenantId = await resolveTenantId(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -127,11 +154,11 @@ export async function createBillFor(
   // congelada en la CxP con su fuente y su fecha.
   const tasa = await tasaDelDocumento(
     supabase, tenantId, raw.currency ?? "USD", raw.fxRate ?? null,
-    raw.issueDate || new Date().toISOString().slice(0, 10),
+    issueDate,
   );
   if (!tasa.ok) return { fieldErrors: { fxRate: tasa.error } };
   const { input, fieldErrors } = validateBillInput(
-    tasa.tasa.fxRate !== null ? { ...raw, fxRate: tasa.tasa.fxRate } : raw,
+    { ...raw, issueDate, ...(tasa.tasa.fxRate !== null ? { fxRate: tasa.tasa.fxRate } : {}) },
   );
   if (fieldErrors) return { fieldErrors };
 
@@ -142,6 +169,14 @@ export async function createBillFor(
     .eq("id", input!.supplierId)
     .maybeSingle<{ id: string; name: string }>();
   if (supErr || !supplier) return { error: "Proveedor no encontrado." };
+
+  const link: BillCostLink = {
+    consolidationId: input!.consolidationId ?? null,
+    shipmentId: input!.shipmentId,
+    costCategory: input!.costCategory ?? null,
+  };
+  const linkErr = await costLinkError(supabase, link);
+  if (linkErr) return { fieldErrors: { shipmentId: linkErr } };
 
   // Generar bill_code atómico.
   const { data: codeData, error: codeErr } = await supabase.rpc(
@@ -177,6 +212,7 @@ export async function createBillFor(
       due_date: input!.dueDate,
       reference: input!.reference,
       shipment_id: input!.shipmentId,
+      ...costLinkColumns(link),
       notes: input!.notes,
     })
     // SDD-0569 (revisión, hallazgo 6): la tasa que quedó guardada (numeric(20,8)),
@@ -184,6 +220,7 @@ export async function createBillFor(
     .select("id, fx_rate")
     .single<{ id: string; fx_rate: number | string | null }>();
   if (insErr || !insertedBill) {
+    if (isMissingCostLinkColumns(insErr?.message)) return { error: COST_LINK_UNAVAILABLE };
     return { error: `No se pudo crear la CxP: ${insErr?.message}` };
   }
   const tasaGuardada = insertedBill.fx_rate == null ? null : Number(insertedBill.fx_rate);
@@ -219,6 +256,56 @@ export async function createBillFor(
   }
 
   return { ok: true, billCode };
+}
+
+// ── SDD-0631 · Ligar una CxP existente a contenedor/embarque ───
+
+/**
+ * Liga, cambia o quita el vínculo de costo de una CxP no anulada. No toca el
+ * asiento ni el saldo: solo a qué contenedor/embarque pertenece el costo.
+ * RLS (0470) exige accounting o admin; el trigger de la 0536 repite la regla.
+ */
+export async function linkBillCostFor(
+  supabase: SupabaseClient,
+  billId: string,
+  raw: { consolidationId?: string | null; shipmentId?: string | null; costCategory?: string | null },
+): Promise<{ ok?: boolean; error?: string }> {
+  const { link, error } = validateBillCostLink(raw);
+  if (error || !link) return { error: error ?? "Vínculo inválido." };
+
+  const { data: bill, error: readErr } = await supabase
+    .from("supplier_bills")
+    .select("id, status, deleted_at")
+    .eq("id", billId)
+    .maybeSingle<{ id: string; status: string; deleted_at: string | null }>();
+  if (readErr || !bill || bill.deleted_at) return { error: "CxP no encontrada." };
+  if (bill.status === "anulada") return { error: "Una CxP anulada no se liga a un contenedor." };
+
+  const linkErr = await costLinkError(supabase, link);
+  if (linkErr) return { error: linkErr };
+
+  const { data: updated, error: updErr } = await supabase
+    .from("supplier_bills")
+    .update({
+      consolidation_id: link.consolidationId,
+      shipment_id: link.shipmentId,
+      cost_category: link.costCategory,
+    })
+    .eq("id", billId)
+    // La lectura de arriba no bloquea: si la anularon o la borraron en el medio,
+    // no se liga.
+    .neq("status", "anulada")
+    .is("deleted_at", null)
+    .select("id");
+  if (updErr) {
+    if (isMissingCostLinkColumns(updErr.message)) return { error: COST_LINK_UNAVAILABLE };
+    return { error: "No se pudo ligar la CxP. Revisa el contenedor y el embarque." };
+  }
+  // RLS sin permiso de escritura no da error: devuelve cero filas.
+  if (!updated || updated.length === 0) {
+    return { error: "No se ligó: tu rol no puede cambiar esta CxP o la anularon mientras tanto." };
+  }
+  return { ok: true };
 }
 
 // ── Anular CxP (solo sin pagos) ────────────────────────────────
@@ -309,6 +396,7 @@ export async function registerPaymentFor(
   billId: string,
   raw: Partial<SupplierPaymentInput>,
 ): Promise<RegisterPaymentResult> {
+  const paidAt = raw?.paidAt === undefined ? fechaCaracas() : raw.paidAt;
   // 1. Leer la CxP (RLS la acota al tenant). Sólo para el mensaje y el saldo
   // del formulario: la RPC vuelve a validar con la CxP bloqueada.
   const { data: bill, error: readErr } = await supabase
@@ -329,7 +417,7 @@ export async function registerPaymentFor(
     paid_amount: Number(bill.paid_amount),
   });
 
-  const { input, fieldErrors } = validatePaymentInput(raw, balance);
+  const { input, fieldErrors } = validatePaymentInput({ ...raw, paidAt }, balance);
   if (fieldErrors) return { fieldErrors };
 
   // 2. Pago atómico (0468): CxP FOR UPDATE, saldo estricto, payment_code

@@ -11,6 +11,8 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 | `uptime-kuma/` | Monitor de disponibilidad con avisos | `louislam/uptime-kuma:2.5.5` |
 | `backup/pg-dump-to-s3.sh` | Dump diario + roles + permisos de `public` con su huella, **cifrados con age** (claros solo en `/dev/shm`), copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`, `age` del host |
 | `backup/config-backup.sh` | `.env` + clave raíz de pgsodium/Vault (volumen `db-config`), cifrados, solo cuando cambian | ídem |
+| `backup/storage-backup.sh` | Archivos del Storage (`data/storage`, backend `file`) con sus xattrs `user.*`: un `tar` por tuberías a `age`, sin copia en claro, con lista por archivo cifrada (`lib/storage-lista.py`) y manifiesto sin rutas; copy + check a B2, guarda contra un borrado masivo y retención (SDD-0620) | `rclone/rclone:1.75.1`, `age`, GNU tar y `python3` del host |
+| `backup/storage-restore.sh` | Comprueba (`--verificar`, sin escribir) o restaura (`--destino` vacío) un respaldo del Storage: sha256 de los cifrados antes de descifrar, huella del flujo y lista por archivo con xattrs | `age`, GNU tar y `python3` del host |
 | `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria; iguala los permisos de `public` a los del origen y los compara por huella (sale 8 si difieren); recrea `ensure_rls` y compara los event triggers con el índice del dump (sale 9 si falta alguno) | `supabase/postgres:17.6.1.136` |
 | `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs; `--dr` ensaya sobre la base `postgres` de la imagen; falla si faltan event triggers o si una tabla nueva nace sin RLS | ídem |
 | `lib/acl.sh` | SQL de permisos de `public` (igualar y huella), compartido por el import y los respaldos; se carga con `source` | — |
@@ -74,7 +76,10 @@ dejarían de verse desde fuera).
 
 Monitores mínimos por proyecto: `GET https://<app>/` (200), `GET https://<api>/rest/v1/`
 con la `apikey` anon (200), y un `HEAD` a una ruta de cron (403 es la respuesta
-sana: exige el Bearer). Avisos por Telegram al mismo chat que usa la app.
+sana: exige el Bearer). Avisos por la notificación de Discord de Kuma al canal
+`#salud` (SDD-0609, [uptime-kuma/README.md](uptime-kuma/README.md)); hasta el
+2026-11-05 iban por Telegram al chat de la app. Los de cada publicación de la web
+salen a `#publicaciones` por `web/aviso-discord.sh`.
 
 ## Backups
 
@@ -94,6 +99,16 @@ esa corrida.
 `config-backup.sh` respalda el `.env` y el volumen `<proyecto>_db-config` (la
 clave raíz de Vault, `pgsodium_root.key`; **no** es `VAULT_ENC_KEY`, que es de
 Supavisor) en `<remoto>/<proyecto>-config/`, cifrados, y solo cuando cambiaron.
+
+`storage-backup.sh` respalda los **archivos** del Storage (con `STORAGE_BACKEND=file`
+viven en `/srv/<proyecto>/data/storage`; el dump solo trae `storage.objects`) en
+`b2:dtdcargo-respaldos/storage/<proyecto>/`: un solo `tar` alimenta por tuberías a
+`age` (el `.tar.age`), a la lista por archivo (sha256, bytes y ruta, también
+cifrada, con la huella de los xattrs `user.supabase.*` de storage-api) y a la huella
+del flujo. Nada en claro toca el disco y el log no trae rutas. Sin archivos en el
+origen falla (carpeta equivocada); si el conteo cae a menos de la mitad, sube el
+respaldo pero no aplica la retención y sale 1 hasta que alguien lo acepte. `storage-restore.sh` lo comprueba o lo restaura.
+Diseño y límites: `docs/specs/0620-respaldo-storage-studio/spec.md`.
 
 Cada proyecto los llama desde su `backup.sh` (lee `.env`). DTD Cargo lo agenda
 con un timer de systemd a las 06:00 UTC (`infra/dtd-cargo/systemd/`, zona

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { Icon } from "@/app/studio/_components/icons";
 import {
   computeReporterBugSummary,
   listBugsForReporter,
@@ -19,6 +20,7 @@ import {
   BUG_STATE_LABELS,
   type BugState,
 } from "@/lib/studio/bug-types";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Mis reportes · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -26,6 +28,10 @@ export const dynamic = "force-dynamic";
 const KPI_STATES: BugState[] = ["nuevo", "triaje", "espera", "progreso", "resuelto"];
 
 export default async function MisBugsPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("mis-bugs");
+
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");
@@ -104,13 +110,30 @@ export default async function MisBugsPage() {
           }}
         >
           {bugs.map((bug) => (
-            <Link
+            // SDD-0603 · tramo 5e: la tarjeta sigue abriendo con el ratón, pero
+            // sale del orden de Tab; la parada de teclado es «Abrir».
+            <div
               key={bug.id}
-              href={`/studio/mis-bugs/${bug.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
+              style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)", minWidth: 0 }}
             >
-              <BugCard bug={bug} />
-            </Link>
+              <Link
+                href={`/studio/mis-bugs/${bug.id}`}
+                tabIndex={-1}
+                style={{ textDecoration: "none", color: "inherit", display: "block", flex: 1 }}
+              >
+                <BugCard bug={bug} />
+              </Link>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Link
+                  href={`/studio/mis-bugs/${bug.id}`}
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  aria-label={`Abrir reporte ${bug.folio}`}
+                >
+                  Abrir
+                  {Icon.chevR(14)}
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

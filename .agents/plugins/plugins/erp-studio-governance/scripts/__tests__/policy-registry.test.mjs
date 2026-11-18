@@ -17,7 +17,7 @@ describe("PLG-01 policy registry", () => {
   it("sólo contiene fuentes aprobadas y es read-only", async () => {
     const registry = await buildPolicyRegistry();
     expect(registry.readOnly).toBe(true);
-    expect(registry.policies).toHaveLength(28);
+    expect(registry.policies).toHaveLength(29);
     expect(
       registry.policies.every(({ state }) =>
         /\b(?:aprobada|implementada|verificada)\b/i.test(state),
@@ -34,7 +34,8 @@ describe("PLG-01 policy registry", () => {
     ).toBe(true);
     // 5 desde SDD-0263: `action-menu` entra `proposed`. La cápsula del plugin
     // es un derivado read-only del registro, así que refleja el alta.
-    expect(registry.components).toHaveLength(5);
+    // 6 desde SDD-0628: `aviso` entra `proposed`.
+    expect(registry.components).toHaveLength(6);
     const numericInput = registry.components.find(
       ({ id }) => id === "numeric-input",
     );

@@ -1,5 +1,7 @@
 "use client";
 
+import { BILLING_UNAVAILABLE, billingStatus, formatAnnualUsd, type AnnualBillingRead } from "@/lib/shared/annual-billing";
+
 /**
  * Tablero CRM Kommo (SDD-0078) — orquestador client con 2 pestañas.
  *
@@ -7,6 +9,11 @@
  * - Pestañas (?tab=): **Dirección** (slot server con el diagnóstico + cruce ERP)
  *   y **Asesor** (worklist accionable: tabla de leads + filtros + convertir).
  * - SOLO LECTURA del espejo: esta pantalla no modifica nada en Kommo.
+ *
+ * SDD-0614 · S0 (D-6.6-1): las pestañas de Kommo están ocultas (ver
+ * `kommo-tabs.shared.ts`). Con `overview` nulo el encabezado no pinta el estado
+ * de conexión ni el último sync del espejo. Las ramas de Kommo quedan sin uso,
+ * no borradas, hasta 8.7.
  */
 
 import Link from "next/link";
@@ -33,7 +40,8 @@ import {
   type KommoPipelineRow,
   type KommoStatusRow,
 } from "@/lib/studio/kommo-types";
-import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
+import { pestanasCrm, type KommoTabKey } from "./kommo-tabs.shared";
+import { CrmCabecera, CrmPestanas } from "./CrmPestanas";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { LeadActionsButton } from "./LeadActionsButton";
 import { StageControl } from "./StageControl";
@@ -102,13 +110,18 @@ export function KommoClient({
   filters,
   convertedLeads,
   valueByLead,
+  convertedAvailable,
+  billingAvailable,
   contactByLead,
   pendingOpsByLead,
   staleOpsByLead,
   canEdit,
   responsibleUsers,
+  bandeja = false,
 }: {
   tab: KommoTabKey;
+  /** SDD-0655: quien mira ve la Bandeja (rol + flag) → la barra suma su pestaña. */
+  bandeja?: boolean;
   /** Slot server-renderizado con el tablero Dirección. */
   direccion: ReactNode;
   /** Slot server-renderizado con el Tablero kanban del embudo. */
@@ -117,7 +130,8 @@ export function KommoClient({
   recuperacion: ReactNode;
   /** Slot server-renderizado con los embudos del CRM propio (SDD-0587 · 6.3). */
   embudos: ReactNode;
-  overview: KommoOverview;
+  /** Estado del espejo de Kommo. `null` con Kommo oculto (SDD-0614 S0): no se lee. */
+  overview: KommoOverview | null;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
   leads: KommoLeadRow[];
@@ -125,7 +139,9 @@ export function KommoClient({
   /** kommo_lead_id → markbox de los leads ya convertidos en cliente. */
   convertedLeads: Record<number, string>;
   /** kommo_lead_id → USD facturado (12m) de los leads convertidos. */
-  valueByLead: Record<number, number>;
+  valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
+  billingAvailable: boolean;
   /** kommo_lead_id → contacto principal (nombre + teléfono). Vacío si no hay vínculo. */
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que aún no llegaron a Kommo (chip "en camino"). */
@@ -220,13 +236,6 @@ export function KommoClient({
     return () => clearTimeout(t);
   }, [params, q]);
 
-  const goTab = (key: KommoTabKey) => {
-    if (key === tab) return;
-    startTransition(() => {
-      router.push(key === "direccion" ? "/studio/crm" : `/studio/crm?tab=${key}`);
-    });
-  };
-
   const statusName = new Map<string, string>(
     statuses.map((s) => [`${s.pipeline_id}:${s.id}`, s.name ?? `#${s.id}`]),
   );
@@ -238,97 +247,24 @@ export function KommoClient({
   const hasFilters = Boolean(filters.q) || Boolean(pipeline) || Boolean(asesor) || Boolean(aged);
 
   return (
-    <div style={{ maxWidth: 1280 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">Comercial · Integración</span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
-          >
-            CRM.
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "64ch",
-            }}
-          >
-            Embudo comercial, cruzado con la plata real del ERP. Dirección,
-            Tablero, Asesor y Recuperación se sincronizan una vez al día. En
-            Embudos, lo que mueves o guardas queda en Studio.
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 6,
-          }}
-        >
-          <Badge tone={connTone(overview.connStatus)}>
-            {connLabel(overview.connStatus)}
-          </Badge>
-          <span
-            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
-          >
-            Último sync: {fmtDateTime(overview.lastSyncAt)}
-          </span>
-        </div>
-      </div>
-
-      {/* Pestañas */}
-      <div
-        role="tablist"
-        aria-label="Tablero CRM"
-        style={{
-          display: "flex",
-          gap: "var(--s-2)",
-          flexWrap: "wrap",
-          borderBottom: "1px solid var(--border)",
-          paddingBottom: "var(--s-2)",
-          marginBottom: 20,
-          opacity: isPending ? 0.7 : 1,
-        }}
-      >
-        {KOMMO_TABS.map((t) => {
-          const isActive = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              data-tab={t.key}
-              onClick={() => goTab(t.key)}
-              className="studio-btn studio-btn-sm"
-              style={{
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: isActive
-                  ? "1px solid var(--border)"
-                  : "1px solid transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                fontWeight: isActive ? 700 : 500,
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+    // SDD-0648 §3: Embudos usa todo el ancho; las pestañas de Kommo conservan su tope.
+    <div style={{ maxWidth: tab === "embudos" ? "none" : 1280 }}>
+      {/* Cabecera y pestañas compartidas con la Bandeja (SDD-0655). */}
+      <CrmCabecera
+        bajada="Leads y clientes, por etapa. En Embudos, lo que mueves o guardas queda en Studio."
+        extra={
+          // Estado del espejo: solo en las pestañas de Kommo, ocultas desde SDD-0614 S0.
+          overview ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+              <Badge tone={connTone(overview.connStatus)}>{connLabel(overview.connStatus)}</Badge>
+              <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
+                Último sync: {fmtDateTime(overview.lastSyncAt)}
+              </span>
+            </div>
+          ) : null
+        }
+      />
+      <CrmPestanas pestanas={pestanasCrm({ embudos: true, bandeja })} activa={tab} />
 
       {/* Contenido */}
       {tab === "direccion" ? (
@@ -473,9 +409,11 @@ export function KommoClient({
                 leads={leads}
                 statuses={statuses}
                 statusName={statusName}
-                subdomain={overview.subdomain}
+                subdomain={overview?.subdomain ?? null}
                 converted={converted}
                 valueByLead={valueByLead}
+                convertedAvailable={convertedAvailable}
+                billingAvailable={billingAvailable}
                 contactByLead={contactByLead}
                 pendingOps={pendingOpsByLead}
                 staleOps={staleOpsByLead}
@@ -520,6 +458,8 @@ function LeadsTable({
   subdomain,
   converted,
   valueByLead,
+  convertedAvailable,
+  billingAvailable,
   contactByLead,
   pendingOps,
   staleOps,
@@ -533,7 +473,9 @@ function LeadsTable({
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
-  valueByLead: Record<number, number>;
+  valueByLead: Record<number, AnnualBillingRead>;
+  convertedAvailable: boolean;
+  billingAvailable: boolean;
   /** leadId → contacto principal. Vacío si el vínculo aún no está espejado. */
   contactByLead: Record<number, KommoLeadContactInfo>;
   /** leadId → ops encoladas que todavía no llegaron a Kommo. */
@@ -567,7 +509,7 @@ function LeadsTable({
       }}
     >
       {/* Scroll de rescate en anchos chicos: la fila de acción no se aplasta. */}
-      <div style={{ overflowX: "auto" }}>
+      <div role="region" aria-label="Leads y facturación ERP" tabIndex={0} style={{ overflowX: "auto" }}>
         <div role="table" aria-label="Leads del CRM" style={{ minWidth: 800 }}>
           {/* Header */}
           <div
@@ -614,7 +556,9 @@ function LeadsTable({
             const waHref = contacto?.phone ? buildProspectWaLink(contacto.phone) : null;
             const markbox = converted[l.id];
             const days = daysSince(l.kommo_updated_at);
-            const erpVal = valueByLead[l.id];
+            const erpVal = !convertedAvailable ? BILLING_UNAVAILABLE
+              : converted[l.id] ? (billingAvailable ? valueByLead[l.id] ?? BILLING_UNAVAILABLE : BILLING_UNAVAILABLE)
+              : undefined;
             const kommoPrice = Number(l.price) || 0;
 
             const nameStyle: CSSProperties = {
@@ -697,7 +641,6 @@ function LeadsTable({
                         style={{
                           display: "block",
                           font: "500 12px/1.3 var(--f-mono)",
-                          color: "var(--wine-text)",
                           fontVariantNumeric: "tabular-nums",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -757,18 +700,19 @@ function LeadsTable({
                 </span>
                 <span
                   role="cell"
-                  style={{ textAlign: "right" }}
+                    style={{ textAlign: "right", minWidth: 0, overflowWrap: "anywhere" }}
                   title={
                     erpVal != null
-                      ? "Facturado en el ERP (12m)"
+                      ? billingStatus(erpVal)
                       : kommoPrice > 0
                         ? "Valor en el CRM"
                         : "Sin valor"
                   }
                 >
                   {erpVal != null ? (
-                    <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--success)" }}>
-                      {fmtUsd(erpVal)}
+                    <span style={{ font: "700 12px/1 var(--f-mono)", color: erpVal.state === "completo" ? "var(--success)" : "var(--ink-soft)" }}>
+                      {formatAnnualUsd(erpVal.subtotalUsd)}
+                      <small style={{ display: "block", lineHeight: 1.4, font: "500 11px/1.4 var(--f-sans)", marginTop: 5 }}>{billingStatus(erpVal)}</small>
                     </span>
                   ) : kommoPrice > 0 ? (
                     <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>

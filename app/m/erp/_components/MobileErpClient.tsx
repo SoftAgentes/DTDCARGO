@@ -7,7 +7,7 @@
  * 5 screens: Home · Tracking · Clientes · Gastos (placeholder) · Más.
  */
 
-import { startTransition, useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
@@ -1524,6 +1524,7 @@ function ExpenseRow({
 }) {
   const date = new Date(e.occurred_at);
   const dateLabel = date.toLocaleDateString("es-VE", {
+    timeZone: "America/Caracas",
     day: "2-digit",
     month: "short",
   });
@@ -1762,6 +1763,10 @@ function NewExpenseModal({
     createExpenseAction,
     INITIAL_EXPENSE_STATE,
   );
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.error) errorRef.current?.focus();
+  }, [state]);
 
   const toast = useToast();
 
@@ -1779,7 +1784,7 @@ function NewExpenseModal({
 
   return (
     <div
-      onClick={onClose}
+      onClick={isPending ? undefined : onClose}
       style={{
         position: "fixed",
         inset: 0,
@@ -1790,7 +1795,14 @@ function NewExpenseModal({
       }}
     >
       <form
-        action={(fd) => startTransition(() => formAction(fd))}
+        onSubmit={(event) => {
+          // React resetea los campos nativos tras resolver un form action,
+          // incluso con rechazo. Conserva este form y su File para reintentar.
+          event.preventDefault();
+          if (isPending) return;
+          const data = new FormData(event.currentTarget);
+          startTransition(() => formAction(data));
+        }}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
@@ -1837,6 +1849,7 @@ function NewExpenseModal({
           <button
             type="button"
             onClick={onClose}
+            disabled={isPending}
             style={{
               background: "transparent",
               border: 0,
@@ -2148,6 +2161,9 @@ function NewExpenseModal({
 
         {state?.error && (
           <div
+            ref={errorRef}
+            role="alert"
+            tabIndex={-1}
             style={{
               padding: 10,
               background: "var(--danger-bg)",
@@ -2654,6 +2670,10 @@ function EditExpenseSheet({
     updateBound,
     INITIAL_EXPENSE_STATE,
   );
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.error) errorRef.current?.focus();
+  }, [state]);
 
   if (state?.ok) {
     setTimeout(() => {
@@ -2715,7 +2735,12 @@ function EditExpenseSheet({
       }}
     >
       <form
-        action={(fd) => startTransition(() => formAction(fd))}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (isPending || isVoiding) return;
+          const data = new FormData(event.currentTarget);
+          startTransition(() => formAction(data));
+        }}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
@@ -3191,6 +3216,9 @@ function EditExpenseSheet({
 
         {state?.error && (
           <div
+            ref={errorRef}
+            role="alert"
+            tabIndex={-1}
             style={{
               padding: 10,
               background: "var(--danger-bg)",

@@ -23,9 +23,9 @@
  *  - Tamaño touch ≥24px (WCAG 2.2 SC 2.5.8)
  *
  * Tokens (light + dark via data-theme):
- *  - active   → var(--wine) text + bg paper + border wine
- *  - inactive → var(--ink-soft) text + bg transparent + border var(--border)
- *  - hover    → border var(--wine) sin commit visual
+ *  - pills:  activo con relleno de tinta; inactivo con texto de tinta (SDD-0603)
+ *  - cards:  activo con contorno vino; inactivo con contorno --ink-soft
+ *  - hover   → border var(--wine) sin commit visual
  */
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
@@ -103,11 +103,11 @@ export function SegmentedControl<T extends string>({
         style={{
           display: "inline-flex",
           alignItems: "stretch",
-          padding: 3,
-          background: "var(--bg-elevated, rgba(15,30,61,0.04))",
-          borderRadius: "var(--r-pill, 999px)",
-          border: "1px solid var(--border, rgba(15,30,61,0.10))",
-          gap: 2,
+          padding: "var(--s-1)",
+          background: "var(--bg-elevated)",
+          borderRadius: "var(--r-lg)",
+          border: "1px solid var(--border-strong)",
+          gap: "var(--s-1)",
         }}
       >
         {options.map((opt, i) => {
@@ -132,22 +132,18 @@ export function SegmentedControl<T extends string>({
                 alignItems: "center",
                 gap: 6,
                 padding:
-                  size === "default" ? "8px 16px" : "6px 12px",
-                fontSize: size === "default" ? 14 : 12.5,
-                fontWeight: 600,
+                  size === "default" ? "0 var(--s-4)" : "0 var(--s-3)",
+                fontSize: size === "default" ? 14.5 : 14,
+                fontWeight: isActive ? 800 : 600,
                 lineHeight: 1.2,
-                minHeight: 28,
-                borderRadius: "var(--r-pill, 999px)",
+                minHeight: 32,
+                borderRadius: "var(--r-md)",
                 border: "none",
-                background: isActive
-                  ? "var(--bg-surface, #FFFFFF)"
-                  : "transparent",
-                color: isActive
-                  ? "var(--wine, #7F0F1A)"
-                  : "var(--ink-soft, #4B5563)",
+                background: isActive ? "var(--ink)" : "transparent",
+                color: isActive ? "var(--ink-inv)" : "var(--ink)",
                 cursor: isDisabled ? "not-allowed" : "pointer",
                 opacity: isDisabled ? 0.4 : 1,
-                boxShadow: isActive ? "var(--shadow-xs)" : "none",
+                boxShadow: isActive ? "var(--shadow-sm)" : "none",
                 transition:
                   "background 120ms ease, color 120ms ease, box-shadow 120ms ease",
               }}
@@ -206,9 +202,7 @@ export function SegmentedControl<T extends string>({
               padding: "12px 14px",
               borderRadius: "var(--r-md, 10px)",
               border: `1px solid ${
-                isActive
-                  ? "var(--wine, #7F0F1A)"
-                  : "var(--border, rgba(15,30,61,0.12))"
+                isActive ? "var(--wine-text)" : "var(--ink-soft)"
               }`,
               background: isActive
                 ? "var(--wine-tint, rgba(127,15,26,0.06))"
@@ -230,8 +224,7 @@ export function SegmentedControl<T extends string>({
             }}
             onMouseLeave={(e) => {
               if (!isActive && !isDisabled) {
-                e.currentTarget.style.borderColor =
-                  "var(--border, rgba(15,30,61,0.12))";
+                e.currentTarget.style.borderColor = "var(--ink-soft)";
               }
             }}
             onFocus={(e) => {

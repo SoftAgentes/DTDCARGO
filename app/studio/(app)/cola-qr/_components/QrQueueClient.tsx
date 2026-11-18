@@ -111,13 +111,9 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
       {/* Tabs */}
       <div
         role="tablist"
-        style={{
-          display: "flex",
-          gap: 2,
-          marginTop: "var(--s-5)",
-          marginBottom: 14,
-          borderBottom: "1px solid var(--border)",
-        }}
+        aria-label="Secciones de la cola de QR"
+        className="studio-tabs"
+        style={{ marginTop: "var(--s-5)", marginBottom: 14 }}
       >
         {tabsConfig.map((t) => {
           const active = filters.tab === t.value;
@@ -126,19 +122,10 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
               key={t.value}
               role="tab"
               type="button"
+              aria-selected={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => changeTab(t.value)}
-              style={{
-                padding: "12px 18px",
-                background: "transparent",
-                border: 0,
-                borderBottom: active
-                  ? "2px solid var(--wine)"
-                  : "2px solid transparent",
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                cursor: "pointer",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>

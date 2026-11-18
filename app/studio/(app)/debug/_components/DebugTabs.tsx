@@ -32,6 +32,7 @@ import {
   type DebugTabKey,
   type DebugTabMode,
 } from "./debug-tabs.shared";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export { DEBUG_TABS, isDebugTab, modeDotColor, resolveDebugTab };
 export type { DebugTabKey, DebugTabMode };
@@ -78,14 +79,8 @@ export function DebugTabs({
       <div
         role="tablist"
         aria-label="Torre de control"
-        style={{
-          display: "flex",
-          gap: "var(--s-2)",
-          flexWrap: "wrap",
-          borderBottom: "1px solid var(--border)",
-          paddingBottom: "var(--s-2)",
-          opacity: isPending ? 0.7 : 1,
-        }}
+        className="studio-tabs"
+        style={{ opacity: isPending ? 0.7 : 1 }}
       >
         {DEBUG_TABS.map((t) => {
           const isActive = t.key === active;
@@ -97,19 +92,9 @@ export function DebugTabs({
               aria-selected={isActive}
               data-tab={t.key}
               data-active={isActive ? "true" : "false"}
+              data-activa={isActive ? "true" : undefined}
               onClick={() => go(t.key)}
-              className="studio-btn studio-btn-sm"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: isActive ? "var(--bg-elevated)" : "transparent",
-                border: isActive
-                  ? "1px solid var(--border)"
-                  : "1px solid transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-soft)",
-                fontWeight: isActive ? 700 : 500,
-              }}
+              className="studio-tab"
             >
               {t.label}
               <span
@@ -149,18 +134,8 @@ function ModeBanner({ active }: { active: DebugTabKey }) {
   const meta = DEBUG_TABS.find((t) => t.key === active);
   if (!meta) return null;
 
-  const accent =
-    meta.mode === "vivo"
-      ? "var(--success)"
-      : meta.mode === "snapshot"
-        ? "var(--warning)"
-        : "var(--ink-mute)";
-  const bg =
-    meta.mode === "vivo"
-      ? "var(--success-bg)"
-      : meta.mode === "snapshot"
-        ? "var(--warning-bg)"
-        : "var(--neutral-bg)";
+  // Snapshot es una limitación real (atención); vivo y local solo informan.
+  const tono = meta.mode === "snapshot" ? "atencion" : "info";
 
   const text =
     meta.mode === "vivo"
@@ -170,35 +145,10 @@ function ModeBanner({ active }: { active: DebugTabKey }) {
         : "El Radar no corre en la web · se ejecuta solo en local con /radar en Claude Code. Llega en la Slice C.";
 
   return (
-    <div
-      role="status"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--s-3)",
-        background: bg,
-        border: `1px solid ${accent}`,
-        borderRadius: "var(--r-md)",
-        padding: "var(--s-3) var(--s-4)",
-        fontSize: 12.5,
-        color: "var(--ink-soft)",
-      }}
-    >
-      <span
-        aria-hidden
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: accent,
-          flexShrink: 0,
-        }}
-      />
-      <span>
-        <strong style={{ color: "var(--ink)" }}>Modo {meta.modeLabel}</strong>
-        {" · "}
-        {text}
-      </span>
-    </div>
+    <Aviso tono={tono} compacto>
+      <strong>Modo {meta.modeLabel}</strong>
+      {" · "}
+      {text}
+    </Aviso>
   );
 }

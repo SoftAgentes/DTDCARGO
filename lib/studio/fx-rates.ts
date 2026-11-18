@@ -131,3 +131,28 @@ export async function ultimaTasa(
   const rate = tasaPersistible(fila.rate);
   return rate === null ? null : { rate, validOn: fila.valid_on, source: fila.source };
 }
+
+/**
+ * SDD-0629 · La tasa de bolívares vigente en cada fecha (AAAA-MM-DD), para la
+ * vista «equivalente en Bs». Una lectura de `fx_rate_on` por fecha distinta;
+ * sin tasa (o con cualquier error) la fecha queda en null: la pantalla dice
+ * «tasa no disponible», nunca un cero. Solo lectura: no toca montos.
+ */
+export async function tasasVesPorFecha(
+  supabase: SupabaseClient,
+  tenantId: string,
+  fechas: readonly (string | null | undefined)[],
+): Promise<Map<string, TasaVigente | null>> {
+  const unicas = [...new Set(fechas.filter((f): f is string => !!f).map((f) => f.slice(0, 10)))];
+  const resultado = new Map<string, TasaVigente | null>();
+  await Promise.all(
+    unicas.map(async (f) => {
+      try {
+        resultado.set(f, await tasaVigente(supabase, tenantId, "VES", f));
+      } catch {
+        resultado.set(f, null);
+      }
+    }),
+  );
+  return resultado;
+}

@@ -16,8 +16,8 @@
     "el archivo del repo, no lo que guardó el ledger.",
     "",
     "QUÉ ENTRÓ AL CREARLO (2026-10-19, origin/main 3f3a52cc): todas las migraciones del repo",
-    "hasta la 0491, menos las esperas de pendingBelowCutoff (0422 y 0423), que no están",
-    "aplicadas. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
+    "hasta la 0491, menos las esperas de entonces en pendingBelowCutoff (0422 y 0423),",
+    "que se aplicaron y sellaron después, el 2026-11-14. Se sellaron los archivos tal como estaban en main. El mismo día el Director",
     "leyó el ledger de producción en solo lectura y se marcaron con `ledger` las que",
     "coinciden (conteos y método en la SDD-0561).",
     "",
@@ -2500,6 +2500,24 @@
         "forma": "exacta"
       }
     },
+    "0422_payment_report_command_boundary": {
+      "sha256": "0c412460c42a45e32c6d09f84bf1293094588e147de551930334cf12320f894c",
+      "md5": "e3e019590fac56315b971b4ce703ea96",
+      "bytes": 8673,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0423_payment_report_historical_identity": {
+      "sha256": "7a63c499d468451ad0ae0732ffaf42be5b78f4bb8f0e2e2e76651a553a0e235e",
+      "md5": "2d3d0cc9c2e299563add83c51f910f60",
+      "bytes": 8612,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
     "0424_portal_club_principal_tenant": {
       "sha256": "bfbce7469dc90e2b82310e1e24886fa13224fcbbdbd5c9a6a785d0a53327f046",
       "md5": "7dc9f0fa324ac8b1892b97b4f09a139c",
@@ -3175,6 +3193,339 @@
       "bytes": 20623,
       "ledger": {
         "fecha": "2026-11-04",
+        "forma": "exacta"
+      }
+    },
+    "0514_user_profiles_discord_user_id": {
+      "sha256": "f2a0317f7b3646761e051b1d5e39a50784bf2b814b9a45b51f86b95be0c4a7cb",
+      "md5": "fb6d4d68b0ed528ab4803ae974571966",
+      "bytes": 3766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
+    "0515_studio_alert_outbox": {
+      "sha256": "24add6f0e259301b9ca4f346eecf0a051645748bf7f8a083f50cf058974621b7",
+      "md5": "1ae7c1ac3cfbd9381285595e82f8a3e3",
+      "bytes": 5766,
+      "ledger": {
+        "fecha": "2026-11-07",
+        "forma": "exacta"
+      }
+    },
+    "0516_discord_consulta_clientes": {
+      "sha256": "5a77cf078d9de7598fdbc086b97d6673231d20614a11695f0d1329e06a3286d5",
+      "md5": "e65bdf2c5a4226b344f147019453631a",
+      "bytes": 12090,
+      "ledger": {
+        "fecha": "2026-11-09",
+        "forma": "exacta"
+      }
+    },
+    "0517_user_guide_prefs": {
+      "sha256": "ab7e09eae3ae17295cd1b40f7e02419301df4fe39eb801a5a15807bba2766d24",
+      "md5": "22769e1bb0280481c5fd0b7b201a314f",
+      "bytes": 3676,
+      "ledger": {
+        "fecha": "2026-11-06",
+        "forma": "exacta"
+      }
+    },
+    "0518_noticias_publicacion_automatica": {
+      "sha256": "b68cb178485a149cbd23055b5f86644013ce6207e4ba2b097e7a09e480aa49c9",
+      "md5": "c692dfa9c4ad31e3352721400c3e3ceb",
+      "bytes": 44672,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0519_chatwoot_portal": {
+      "sha256": "a04fc76c9e51e6ce11da036319a206983db84fea0685f02cbba1fb835c6143a2",
+      "md5": "f613559d5ca34b2932995c8ff051e97e",
+      "bytes": 30710,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0520_chatwoot_portal_vuelta": {
+      "sha256": "5814f9a905a03222460c399e70c867b05a04adfa7aa8ba41e0f867f374aeb80a",
+      "md5": "03bcee54616204644a6981d33ec7764c",
+      "bytes": 12500,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0521_chatwoot_portal_estado": {
+      "sha256": "a5fdd44d901ce5a1716db55db12e6ea35a6e00c3dac0c074b2a6be43c0146836",
+      "md5": "9613db9ca81059c4f6b308a0d84cb6e5",
+      "bytes": 18458,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0522_chatwoot_bot": {
+      "sha256": "26afe93ac4604dbb7b72776171189ca41f61d58a425c8d836995bb7cf42b81a7",
+      "md5": "042eacc23862df84138ddbbd7f02503a",
+      "bytes": 35074,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0523_chatwoot_portal_carga": {
+      "sha256": "07b8a71086c6e45b9a38c6cb0b37f8fc4181cbc22a305f15e6295594d04fb0f3",
+      "md5": "83b016e0ac8aa2fe24172ae07642a60c",
+      "bytes": 23960,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0524_chatwoot_portal_puerta4": {
+      "sha256": "a73023c3b62818883e5c0e4528ace39547eae7d9625929dc9be89cfca8f70d65",
+      "md5": "8891e2a4cda6197eec57653ec178d40a",
+      "bytes": 22764,
+      "ledger": {
+        "fecha": "2026-11-08",
+        "forma": "exacta"
+      }
+    },
+    "0525_noticias_ajustes_antes_de_encender": {
+      "sha256": "faaf59b29ad9080e542cc4af27d51d8397b093113ede4ff967b898bd8e126efb",
+      "md5": "03698ca2155e4f2f03623f2a39901b6e",
+      "bytes": 8957,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0526_noticias_anon_solo_columnas_publicas": {
+      "sha256": "1baa79e38e6eac85349d63386c580490ef7f3ecc36ec30791cad37a484e68855",
+      "md5": "f58d4595160b45559882f1adb5ee909a",
+      "bytes": 6731,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0527_annual_billing_fx_v2": {
+      "sha256": "492bc473269f81e2d8bb5eb10e709be2da62cae3bab4a12decf1e57eb6739229",
+      "md5": "422a371de0ae02c74c1ad46c4f83ed28",
+      "bytes": 12529,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0528_rls_lectura_dinero_y_gastos": {
+      "sha256": "64c2882948fc4d6fa09d5178a4a3aa5f0e1cba4eaaa9b050dbfd28fa95fea8d5",
+      "md5": "112f3178f116613a9c784fcfe0a1eb54",
+      "bytes": 23082,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0532_noticias_edicion_auditada": {
+      "sha256": "4e6dc6d380c4fc12805da663f4b125381cb53c947e36a2afaba3fa0f3df8b9c9",
+      "md5": "bd81ad586d236fd165af6f7efdb73c58",
+      "bytes": 11203,
+      "ledger": {
+        "fecha": "2026-11-11",
+        "forma": "exacta"
+      }
+    },
+    "0533_fechas_caracas_operaciones": {
+      "sha256": "da9343c22d38a2cffce7d7118c090a8e6c412ae0956979d2dc315754cc1e85e0",
+      "md5": "ef1805bd799471fe4c453276639c7b27",
+      "bytes": 42657,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0534_annual_billing_caracas": {
+      "sha256": "4ea257be32704d24b4ed06871c50a86cce6bac9f8d1c8f63ca4bbc923e5c7c45",
+      "md5": "9b16d8aaf26282e4db3ddf4930e64981",
+      "bytes": 14183,
+      "ledger": {
+        "fecha": "2026-11-13",
+        "forma": "exacta"
+      }
+    },
+    "0535_bcv_rates_system_audit": {
+      "sha256": "5966336a166a140db7b4044c73a043230cf3b82d8441ad017cc078448f6f1a75",
+      "md5": "414b694a36160a4ded7c64d872c723f8",
+      "bytes": 15455,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0536_cxp_ligada_contenedor": {
+      "sha256": "6941af4f08e29042163d32c50d17422624089cdd3596ee9f0a640d5654f4b6f5",
+      "md5": "bf7b3204624423d5a576404c59bbf087",
+      "bytes": 7708,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0537_recibo_al_confirmar_reporte": {
+      "sha256": "4ca12d8a561e7e50ed4c86a0ec6ec2cc55e7b50d9bab6d48d6ad51a99b7cbe65",
+      "md5": "0a8205477a1c66722918789483877eab",
+      "bytes": 36185,
+      "ledger": {
+        "fecha": "2026-11-14",
+        "forma": "exacta"
+      }
+    },
+    "0538_studio_user_module_grants": {
+      "sha256": "d6fe8db8bca2291b9e337b401c9ff23f010a75fd0b3f378a5bc559ddd89971f9",
+      "md5": "1deed08847cda609f150b95ed50d0b2c",
+      "bytes": 31624,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0539_comercial_acepta_accesos_por_persona": {
+      "sha256": "927508300e2d5c85e8f865fe03f87d30121745772aad6f4d6bec507f07255d4e",
+      "md5": "565d7607876eca42f7b54eb39cfe506e",
+      "bytes": 16774,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0540_comercial_rls_por_modulo": {
+      "sha256": "3ff0c3ec3e43da7a0cf902e70ab47ff250b7d2c50bf2912da42435a37713e636",
+      "md5": "8ae2c0c52dacebbf7164fbdffbe66acb",
+      "bytes": 25190,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0541_oficina_cable_tablas": {
+      "sha256": "361cc810386f9e38b8433a67939a0fce80827f2cdfbe65bbb03593e37e494cc6",
+      "md5": "e43598906754dd582fa3fb4162b012e2",
+      "bytes": 31004,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0542_is_platform_admin_execute_authenticated": {
+      "sha256": "9c4a84028e9cda7207d562663f323f313ea05f11df0303fcdb7a3f503323040c",
+      "md5": "e6f1c9b137ba7eda3e7ca79e0b144da7",
+      "bytes": 6855,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0543_feature_flags_exige_superadmin": {
+      "sha256": "38316b9cde785f4961e56514c26eac829d3732e66f1735feea192d6ec4a79c73",
+      "md5": "c44c34f2aeba188ba18194ee29b135f3",
+      "bytes": 12953,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0544_oficina_filtro_bandeja": {
+      "sha256": "7517d7e6d5367d27c884bc55d206c37fc724d82dfaf015295636fa2e102f2630",
+      "md5": "fd984a13dd2056bcaa6d1665b27b2094",
+      "bytes": 8897,
+      "ledger": {
+        "fecha": "2026-11-15",
+        "forma": "exacta"
+      }
+    },
+    "0545_solo_superadmin_crea_admin": {
+      "sha256": "300f6f6bc72de0dca32e591646826aa7d73d358a615e8805b5aef915dca44598",
+      "md5": "e0dba88d4e317fc8da3f9af3d295f640",
+      "bytes": 21106,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0546_noticias_purga_actor_id": {
+      "sha256": "446d0ede22642f8c0a24d4e648a485d2a832455b829c62ba582f8d3a878fac7d",
+      "md5": "5e28082b08b95a5db4c46bd9c2847178",
+      "bytes": 15793,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0547_noticias_portada_licencia": {
+      "sha256": "91e515ef79bec540d2357b760b495f6f439b98c3f4c28702a99a1774ccb89e14",
+      "md5": "038c5b567758666d2fe30a9a1406e9a7",
+      "bytes": 16914,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0548_oficina_despachador": {
+      "sha256": "0ef7605f8bb1ef682038c760abb506fb9ab16581ba62a81568f9cd5c98fda15a",
+      "md5": "ee02f470301985260fdf56a5cb232d73",
+      "bytes": 28173,
+      "ledger": {
+        "fecha": "2026-11-16",
+        "forma": "exacta"
+      }
+    },
+    "0550_faro_registro": {
+      "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
+      "md5": "20ab1801d8b0b68f0f397d82f3912817",
+      "bytes": 28560,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0551_pasar_embarque_a_otro_cliente": {
+      "sha256": "6bedb8869c073a194d47d093f6b8e9d114466e3be47a0ada9ad3fffa82531abd",
+      "md5": "176bfd515507ba1e51d36384578ce1f4",
+      "bytes": 26210,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0552_registro_portal_por_link": {
+      "sha256": "75e116578669d547d8d9cf3451054d9e195d144cff75808d87f63bb5cee9c521",
+      "md5": "09ca8cc1d33ef4f417c856e61be4f976",
+      "bytes": 43842,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0553_crm_tarjetas_clientes_con_carga": {
+      "sha256": "4b579d09859f6bfa1de3b1fe41835d34269631bd0139f5209c988ab2c62fc7b2",
+      "md5": "ce792ec6e9bce0aab8ffd9cab3d1522b",
+      "bytes": 7909,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0557_portal_vista_preferida": {
+      "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
+      "md5": "fe1c8d05334658e1502a90676986c67d",
+      "bytes": 14921,
+      "ledger": {
+        "fecha": "2026-11-17",
         "forma": "exacta"
       }
     }
