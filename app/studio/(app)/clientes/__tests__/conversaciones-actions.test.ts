@@ -20,7 +20,10 @@ const h = vi.hoisted(() => ({
   rpcServicio: vi.fn(),
   adminCreado: vi.fn(),
   chatwoot: vi.fn(),
+  limpiar: vi.fn(),
   revalidar: vi.fn(),
+  /** SDD-0676: la fila de la unión que ve la sesión al quitar (su canal). */
+  union: null as { canal_chat: string | null } | null,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: h.revalidar }));
@@ -29,9 +32,28 @@ vi.mock("@/lib/db/server", () => ({
   createClient: async () => {
     const fila = { role: h.rol, tenant_id: h.tenant, warehouse_scope: "all" };
     const q = { select: () => q, eq: () => q, is: () => q, limit: () => q, maybeSingle: async () => ({ data: fila, error: null }) };
+    // La unión filtra de verdad por tenant, ficha y contacto: solo la de T1, FICHA y 77 existe.
+    const uniones = () => {
+      const filtros: Record<string, unknown> = {};
+      const u = {
+        select: () => u,
+        eq: (col: string, v: unknown) => ((filtros[col] = v), u),
+        maybeSingle: async () => ({
+          data:
+            h.union &&
+            filtros.tenant_id === "11111111-1111-1111-1111-111111111111" &&
+            filtros.client_id === "c0000000-0000-0000-0000-0000000000a1" &&
+            filtros.chatwoot_contact_id === 77
+              ? h.union
+              : null,
+          error: null,
+        }),
+      };
+      return u;
+    };
     return {
       auth: { getUser: async () => ({ data: { user: { id: ACTOR } } }) },
-      from: () => q,
+      from: (tabla: string) => (tabla === "chatwoot_contact_links" ? uniones() : q),
       rpc: h.rpcSesion,
     };
   },
@@ -45,7 +67,10 @@ vi.mock("@/lib/db/admin", () => ({
 vi.mock("@/lib/studio/role-module-overrides-queries", () => ({ getRoleModuleOverrides: async () => ({}) }));
 vi.mock("@/lib/studio/user-module-grants-queries", () => ({ getMyModuleGrants: async () => ({}) }));
 vi.mock("@/lib/studio/platform-admin", () => ({ isPlatformAdmin: async () => false }));
-vi.mock("@/lib/studio/chatwoot/router-api", () => ({ obtenerConversacionYContacto: h.chatwoot }));
+vi.mock("@/lib/studio/chatwoot/router-api", () => ({
+  obtenerConversacionYContacto: h.chatwoot,
+  escribirAtributosContacto: h.limpiar,
+}));
 
 import { moduleEditGate } from "@/lib/studio/rbac-guard";
 import { createClient } from "@/lib/db/server";
@@ -75,13 +100,15 @@ beforeEach(() => {
   h.rol = "commercial";
   h.tenant = T1;
   h.rpcSesion.mockReset();
-  h.rpcServicio.mockReset().mockResolvedValue({ data: "unido", error: null });
+  h.rpcServicio.mockReset().mockResolvedValue({ data: { resultado: "unido", tarjeta_absorbida: false }, error: null });
   h.adminCreado.mockReset();
   h.chatwoot.mockReset().mockResolvedValue({
     ok: true,
     data: { conversacion: { id: 31 }, contacto: { contactoId: 77, nombre: "SINT Nombre", canal: null, asignadoEsBot: false } },
   });
   h.revalidar.mockReset();
+  h.limpiar.mockReset().mockResolvedValue({ ok: true, data: null });
+  h.union = null;
   vi.stubEnv("CHATWOOT_FICHA_TOKEN", "token-sintetico");
   vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
   vi.stubEnv("CHATWOOT_INBOX_ARCHIVO_KOMMO_ID", "9");
@@ -112,12 +139,16 @@ describe("unirChatAction", () => {
   it("comercial une: por el cliente de servicio, con tenant y actor explícitos y solo ids", async () => {
     const r = await unirChatAction(FICHA, "DTD-0001", 31, "  Es su chat de leads  ");
     expect(r).toEqual({ ok: true, mensaje: "Chat unido a la ficha." });
-    expect(h.rpcServicio).toHaveBeenCalledWith("chatwoot_unir_contacto_manual", {
+    // SDD-0676: une por la RPC nueva, sin mover y con el canal del contacto (aquí no vino).
+    expect(h.rpcServicio).toHaveBeenCalledTimes(1);
+    expect(h.rpcServicio).toHaveBeenCalledWith("chatwoot_vincular_contacto", {
       p_tenant_id: T1,
       p_actor_user_id: ACTOR,
       p_client_id: FICHA,
       p_contact_id: 77,
+      p_canal: null,
       p_motivo: "Es su chat de leads",
+      p_mover: false,
     });
     expect(h.rpcSesion).not.toHaveBeenCalled();
     expect(JSON.stringify(h.rpcServicio.mock.calls)).not.toContain("SINT Nombre");
@@ -135,9 +166,35 @@ describe("unirChatAction", () => {
     expect(await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat")).toEqual({ ok: false, error: await textoRealSinPermiso() });
     h.rpcServicio.mockResolvedValueOnce({ data: null, error: { code: "23505" } });
     expect(await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat")).toEqual({ ok: false, error: "Ese chat ya está unido a otra ficha." });
-    h.rpcServicio.mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } });
+    // Ni la RPC nueva ni la de la 0554 existen.
+    h.rpcServicio
+      .mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } })
+      .mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } });
     const r = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat");
     expect(r.ok === false && r.error).toMatch(/0554/);
+  });
+
+  it("SDD-0676 · el canal sale del tipo de bandeja de Chatwoot, no del navegador", async () => {
+    h.chatwoot.mockResolvedValueOnce({
+      ok: true,
+      data: { conversacion: { id: 31 }, contacto: { contactoId: 77, nombre: "SINT Nombre", canal: "Channel::Instagram", asignadoEsBot: false } },
+    });
+    await unirChatAction(FICHA, "DTD-0001", 31, "Es su Instagram");
+    expect(h.rpcServicio).toHaveBeenCalledWith("chatwoot_vincular_contacto", expect.objectContaining({ p_canal: "instagram", p_mover: false }));
+  });
+
+  it("SDD-0676 · sin la migración nueva (PGRST202) une con la RPC de la 0554, sin canal", async () => {
+    h.rpcServicio
+      .mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } })
+      .mockResolvedValueOnce({ data: "unido", error: null });
+    expect(await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat")).toEqual({ ok: true, mensaje: "Chat unido a la ficha." });
+    expect(h.rpcServicio).toHaveBeenLastCalledWith("chatwoot_unir_contacto_manual", {
+      p_tenant_id: T1,
+      p_actor_user_id: ACTOR,
+      p_client_id: FICHA,
+      p_contact_id: 77,
+      p_motivo: "Es su chat",
+    });
   });
 
   it("entradas inválidas no salen del servidor", async () => {
@@ -174,5 +231,66 @@ describe("quitarUnionAction", () => {
       p_motivo: "Fue un error",
     });
     expect(h.rpcSesion).not.toHaveBeenCalled();
+    // Sin canal conocido no se toca el contacto en Chatwoot.
+    expect(h.limpiar).not.toHaveBeenCalled();
+  });
+
+  describe("SDD-0676 · limpia el contacto desvinculado", () => {
+    beforeEach(() => {
+      h.rol = "admin";
+      h.rpcServicio.mockResolvedValue({ data: true, error: null });
+      vi.stubEnv("CHATWOOT_URL", "https://chat.ejemplo.test");
+      vi.stubEnv("CHATWOOT_ROUTER_TOKEN", "tok-router-sintetico");
+      vi.stubEnv("CHATWOOT_INBOX_LEADS_ID", "3");
+      vi.stubEnv("CHATWOOT_INBOX_CLIENTES_ID", "7");
+      vi.stubEnv("CHATWOOT_TEAM_CLIENTES_ID", "21");
+      vi.stubEnv("CHATWOOT_TEAM_LEADS_ID", "22");
+      vi.stubEnv("WHATSAPP_NUMERO_CLIENTES", "584125550999");
+      vi.stubEnv("CHATWOOT_ATRIBUTOS_CONTACTO", "1");
+    });
+
+    it("Instagram: borra el segmento y el Shipping Mark de ESE contacto", async () => {
+      h.union = { canal_chat: "instagram" };
+      expect((await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).ok).toBe(true);
+      expect(h.limpiar).toHaveBeenCalledTimes(1);
+      expect(h.limpiar).toHaveBeenCalledWith(expect.anything(), 77, { dtd_segmento: "lead_nuevo", dtd_shipping_mark: null });
+    });
+
+    it("WhatsApp: no limpia (lo corrige el siguiente mensaje)", async () => {
+      h.union = { canal_chat: "whatsapp" };
+      expect((await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).ok).toBe(true);
+      expect(h.limpiar).not.toHaveBeenCalled();
+    });
+
+    it("la unión de OTRA ficha no presta su canal: el filtro por ficha se aplica", async () => {
+      h.union = { canal_chat: "instagram" };
+      const OTRA = "c0000000-0000-0000-0000-0000000000a2";
+      await quitarUnionAction(OTRA, "DTD-0002", 77, "Fue un error");
+      expect(h.limpiar).not.toHaveBeenCalled();
+    });
+
+    it("con los atributos apagados no escribe en Chatwoot", async () => {
+      vi.stubEnv("CHATWOOT_ATRIBUTOS_CONTACTO", "");
+      h.union = { canal_chat: "instagram" };
+      expect((await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).ok).toBe(true);
+      expect(h.limpiar).not.toHaveBeenCalled();
+    });
+
+    it("si la unión ya no estaba, no limpia", async () => {
+      h.union = { canal_chat: "instagram" };
+      h.rpcServicio.mockResolvedValueOnce({ data: false, error: null });
+      expect((await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).ok).toBe(false);
+      expect(h.limpiar).not.toHaveBeenCalled();
+    });
+
+    it("si Chatwoot falla al limpiar, la unión igual queda quitada y el log lleva solo el código", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      h.union = { canal_chat: "instagram" };
+      h.limpiar.mockResolvedValueOnce({ ok: false, error: "http_500" });
+      expect(await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).toEqual({ ok: true, mensaje: "Unión quitada." });
+      expect(warn.mock.calls.flat().join(" ")).toMatch(/http_500/);
+      expect(warn.mock.calls.flat().join(" ")).not.toMatch(/DTD-0001|77/);
+      warn.mockRestore();
+    });
   });
 });

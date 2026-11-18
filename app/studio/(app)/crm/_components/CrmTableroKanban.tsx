@@ -354,6 +354,10 @@ function TarjetaCard({
       >
         <span style={{ display: "flex", alignItems: "center", gap: "var(--s-1)", minWidth: 0 }}>
           {canal && <CanalLogo canal={canal} />}
+          {/* SDD-0676: los otros canales vinculados a la ficha del cliente. */}
+          {(t.canalesExtra ?? []).map((c) => (
+            <CanalLogo key={c} canal={c} />
+          ))}
           <span
             style={{
               minWidth: 0,

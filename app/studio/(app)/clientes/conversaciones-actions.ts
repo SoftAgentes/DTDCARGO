@@ -21,13 +21,26 @@
  *     y audita con el actor real.
  *
  * Sin la 0554 o sin la cuenta de servicio, dicen qué falta y no escriben nada.
+ *
+ * SDD-0676 · «Vincular otra red»: unir pasa por `vincularContacto`, que guarda el canal
+ * del contacto y absorbe su tarjeta de lead (sin esa migración, une como la 0554). Al
+ * quitar la unión de un contacto que NO es de WhatsApp se limpian su segmento y su
+ * Shipping Mark en Chatwoot (SDD-0649): fuera de WhatsApp nadie más los corregiría.
  */
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
-import { chatwootFichaConfigPara, chatwootTenantId } from "@/lib/studio/chatwoot/config";
-import { obtenerConversacionYContacto } from "@/lib/studio/chatwoot/router-api";
+import { canalDeChatwoot, esCanalUnion } from "@/lib/studio/chatwoot/canal-union";
+import {
+  chatwootAtributosContactoActivos,
+  chatwootFichaConfigPara,
+  chatwootRouterConfig,
+  chatwootTenantId,
+} from "@/lib/studio/chatwoot/config";
+import { ATRIBUTO_SEGMENTO, ATRIBUTO_SHIPPING_MARK, SIN_FICHA } from "@/lib/studio/chatwoot/contacto-erp";
+import { escribirAtributosContacto, obtenerConversacionYContacto } from "@/lib/studio/chatwoot/router-api";
+import { vincularContacto } from "@/lib/studio/chatwoot/vincular";
 import { moduleEditGate } from "@/lib/studio/rbac-guard";
 
 export type ResultadoUnion = { ok: true; mensaje: string } | { ok: false; error: string };
@@ -91,18 +104,20 @@ export async function unirChatAction(
   const contactoId = r.data.contacto.contactoId;
   if (!contactoId) return { ok: false, error: "Esa conversación no tiene contacto." };
 
-  const { data, error } = await createAdminClient().rpc("chatwoot_unir_contacto_manual", {
-    p_tenant_id: gate.tenantId,
-    p_actor_user_id: gate.userId,
-    p_client_id: clientId,
-    p_contact_id: contactoId,
-    p_motivo: m,
+  const unido = await vincularContacto(createAdminClient(), {
+    tenantId: gate.tenantId,
+    actorId: gate.userId,
+    clientId,
+    contactoId,
+    canal: canalDeChatwoot(r.data.contacto.canal),
+    motivo: m,
+    mover: false,
   });
-  if (error) return { ok: false, error: errorDeLaBase(error.code) };
+  if (!unido.ok) return { ok: false, error: errorDeLaBase(unido.codigo) };
 
   const ruta = rutaDeLaFicha(markbox);
   if (ruta) revalidatePath(ruta);
-  return { ok: true, mensaje: data === "ya_estaba" ? "Ese chat ya estaba unido a esta ficha." : "Chat unido a la ficha." };
+  return { ok: true, mensaje: unido.resultado === "ya_estaba" ? "Ese chat ya estaba unido a esta ficha." : "Chat unido a la ficha." };
 }
 
 export async function quitarUnionAction(
@@ -121,6 +136,18 @@ export async function quitarUnionAction(
   if (!Number.isSafeInteger(contactoId) || contactoId <= 0) return { ok: false, error: "Contacto inválido." };
   if (!m) return { ok: false, error: "Escribe el motivo (4 caracteres o más)." };
 
+  // SDD-0676: el canal se lee ANTES de quitar, con el cliente de sesión (RLS de la 0554).
+  // Sin la columna (42703) o sin fila, no se sabe el canal y no se limpia nada.
+  const { data: union } = await supabase
+    .from("chatwoot_contact_links")
+    .select("canal_chat")
+    .eq("tenant_id", gate.tenantId)
+    .eq("client_id", clientId)
+    .eq("chatwoot_contact_id", contactoId)
+    .maybeSingle<{ canal_chat: string | null }>();
+  const canalGuardado = union?.canal_chat;
+  const canal = esCanalUnion(canalGuardado) ? canalGuardado : null;
+
   const { data, error } = await createAdminClient().rpc("chatwoot_quitar_union", {
     p_tenant_id: gate.tenantId,
     p_actor_user_id: gate.userId,
@@ -132,5 +159,26 @@ export async function quitarUnionAction(
 
   const ruta = rutaDeLaFicha(markbox);
   if (ruta) revalidatePath(ruta);
-  return data === true ? { ok: true, mensaje: "Unión quitada." } : { ok: false, error: "Esa unión ya no estaba." };
+  if (data !== true) return { ok: false, error: "Esa unión ya no estaba." };
+  await limpiarContactoDesvinculado(contactoId, canal);
+  return { ok: true, mensaje: "Unión quitada." };
+}
+
+/**
+ * SDD-0676 · Al quitar la unión de un contacto de Instagram, Messenger u otro canal que
+ * no es WhatsApp, se le borran el segmento y el Shipping Mark que Studio le había puesto
+ * en Chatwoot (SDD-0649). En WhatsApp no hace falta: `marcarContactoErp` lo corrige con
+ * el siguiente mensaje. Mejor esfuerzo: si falla, la unión ya quedó quitada y solo se
+ * anota el código (sin datos del contacto).
+ */
+async function limpiarContactoDesvinculado(contactoId: number, canal: string | null): Promise<void> {
+  if (canal === null || canal === "whatsapp") return;
+  if (!chatwootAtributosContactoActivos()) return;
+  const cfg = chatwootRouterConfig();
+  if (!cfg) return;
+  const r = await escribirAtributosContacto(cfg, contactoId, {
+    [ATRIBUTO_SEGMENTO]: SIN_FICHA.segmento,
+    [ATRIBUTO_SHIPPING_MARK]: SIN_FICHA.shippingMark,
+  });
+  if (!r.ok) console.warn(`[ficha] limpiar atributos del contacto desvinculado: ${r.error}`);
 }

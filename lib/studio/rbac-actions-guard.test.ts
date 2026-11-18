@@ -258,13 +258,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
   // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
   // de la ficha.
-  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0676 sumó `bandeja/vincular-actions.ts` (85 → 86, con prefijo 25 → 26): buscar un cliente y vincularle el
+  // chat desde la Ficha DTD.
+  it("la superficie escaneada es la esperada (86 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 85,
+      total: 86,
       exactos: 60,
-      conPrefijo: 25,
+      conPrefijo: 26,
     });
   });
 
@@ -424,8 +426,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
+  // SDD-0676 sumó `bandeja/vincular-actions.ts::buscarClientesParaVincular` y `::vincularContactoDeConversacion`
+  // (488 → 490): `moduleEditGate(supabase, "bandeja")` al tope y, después, el módulo encendido, el módulo Clientes y
+  // el tenant dueño de la cuenta de Chatwoot. Buscar lee con el cliente de sesión (RLS de `clients`). Vincular escribe
+  // SOLO por la RPC `chatwoot_vincular_contacto` (solo service_role), llamada con el cliente de servicio después de los
+  // candados, que vuelve a comprobar al actor, el tenant y la ficha, y audita.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(488);
+    expect(reportes.length).toBe(490);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
