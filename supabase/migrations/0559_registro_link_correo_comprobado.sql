@@ -18,9 +18,10 @@
 -- El link de registro llega por WhatsApp: prueba quién es la persona, no que el
 -- correo que escribió sea suyo. Decisión de Sam (2026-11-17): el cliente sigue
 -- entrando directo al terminar el formulario, pero ese correo no sirve para
--- obtener ni recuperar acceso hasta que su dueño lo confirme con un enlace de
--- un solo uso que llega a ese mismo correo y que SOLO comprueba (no abre
--- sesión).
+-- obtener ni recuperar acceso hasta que el propio cliente, con su sesión del
+-- portal abierta, lo confirme con un enlace de un solo uso que llega a ese
+-- mismo correo y que SOLO comprueba (no abre sesión). El enlace solo, sin la
+-- sesión del titular, no comprueba nada.
 --
 -- ── Dónde vive «comprobado» y por qué ───────────────────────────────────────
 -- En una tabla propia, `client_email_checks`, una fila por cliente registrado
@@ -45,15 +46,17 @@
 -- cuenta y recién ahí queda habilitado.
 --
 -- ── Qué trae ────────────────────────────────────────────────────────────────
---   1. `client_email_checks` (RLS: el equipo lee su tenant; nadie escribe por
---      PostgREST).
+--   1. `client_email_checks` (RLS sin policies: nadie la lee ni la escribe por
+--      PostgREST; el equipo ve SOLO el estado, por `portal_email_check_estado`).
 --   2. `portal_registration_link_bind` (cuerpo de la 0552, md5 9dc4862d…):
 --      ahora acepta la cuenta con dirección interna y anota la fila «sin
 --      comprobar». Sigue aceptando la cuenta de antes (correo real) para no
 --      romper la app anterior entre la migración y la publicación.
 --   3. Las RPC del enlace de comprobación: emitir, mirar (GET), reclamar,
---      confirmar y soltar (POST); todas solo `service_role`. Y la que prepara
---      el reenvío desde Studio (equipo, rol y tenant).
+--      confirmar, soltar y dejar para revisión (POST); todas solo
+--      `service_role`. Reclamar y confirmar reciben el usuario de la sesión y
+--      exigen que sea el titular. Y la que prepara el reenvío desde Studio
+--      (equipo, rol y tenant).
 --   4. `portal_email_sin_comprobar(correo)`: la pregunta que hacen los caminos
 --      que mandan un enlace de entrada.
 --   5. Un trigger en `clients`: si cambia el correo de la ficha, la fila vuelve
@@ -116,6 +119,10 @@ create table public.client_email_checks (
   -- Al confirmar, ese correo ya tenía otra cuenta. No se fusiona nada: lo
   -- resuelve el equipo.
   conflict_at      timestamptz,
+  -- Una confirmación quedó a medias y no se pudo deshacer sola. El enlace
+  -- queda gastado y el equipo lo ve en «Registros por link»; reenviar la
+  -- comprobación lo normaliza.
+  review_needed_at timestamptz,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
@@ -129,16 +136,13 @@ create index client_email_checks_link_idx on public.client_email_checks (link_id
 create index client_email_checks_pending_idx
   on public.client_email_checks (pending_email) where verified_at is null;
 
+-- RLS encendida y SIN policies: ni anon ni un usuario con sesión leen o
+-- escriben la tabla. El hash del token y el correo por comprobar no salen por
+-- PostgREST. El equipo ve sólo el estado (`portal_email_check_estado`, abajo);
+-- el correo lo ve donde ya lo veía: en la ficha, con sus permisos de siempre.
 alter table public.client_email_checks enable row level security;
 
-create policy client_email_checks_select
-  on public.client_email_checks
-  for select
-  to authenticated
-  using (tenant_id = public.get_user_tenant_id());
-
 revoke all on public.client_email_checks from public, anon, authenticated;
-grant select on public.client_email_checks to authenticated;
 
 -- Dirección interna nueva: id aleatorio, dominio reservado que no recibe correo.
 create function public.portal_email_interno_nuevo()
@@ -158,7 +162,7 @@ revoke all on function public.portal_email_interno_nuevo() from public, anon, au
 -- Cuerpo de la 0552 más dos cosas: acepta la cuenta que lleva la dirección
 -- interna, y deja la fila de `client_email_checks`. La cuenta con el correo
 -- real (app anterior) se sigue aceptando y queda anotada con
--- `auth_interno = false`: la app la pasa a la dirección interna después.
+-- `auth_interno = false`: la app completa el paso después.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create or replace function public.portal_registration_link_bind(
@@ -219,7 +223,7 @@ begin
          auth_interno = excluded.auth_interno,
          token_hash = null, token_expires_at = null, token_used_at = null,
          sent_at = null, sent_count = 0,
-         verified_at = null, conflict_at = null,
+         verified_at = null, conflict_at = null, review_needed_at = null,
          updated_at = now();
 
   update public.client_registration_links x set access_error = null where x.id = l.id;
@@ -357,7 +361,7 @@ begin
   end if;
 
   update public.client_email_checks x
-     set auth_interno = true, updated_at = now()
+     set auth_interno = true, review_needed_at = null, updated_at = now()
    where x.id = ch.id;
   update public.client_users u
      set email = ch.internal_email
@@ -419,6 +423,7 @@ begin
          token_expires_at = v_expires,
          token_used_at = null,
          conflict_at = null,
+         review_needed_at = null,
          sent_at = now(),
          sent_count = x.sent_count + 1,
          updated_at = now()
@@ -452,6 +457,7 @@ as $$
      and ch.token_expires_at > now()
      and ch.verified_at is null
      and ch.conflict_at is null
+     and ch.review_needed_at is null
      and ch.auth_interno
      and c.deleted_at is null
      and exists (
@@ -467,6 +473,13 @@ grant execute on function public.portal_email_check_peek(text) to service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Confirmar (ruta pública, POST), en tres pasos
 --
+-- EL ENLACE SOLO NO COMPRUEBA. Tener el enlace prueba que se lee ese buzón, no
+-- que quien lo lee sea el cliente. Por eso reclamar y confirmar reciben el
+-- usuario de la sesión del portal (lo saca el servidor de la sesión, no del
+-- formulario) y exigen que sea la cuenta titular de la comprobación. Sin
+-- sesión, o con la sesión de otra cuenta, no se confirma y el enlace NO se
+-- gasta.
+--
 --   claim   → reclama el enlace (un solo uso, atómico). Si ese correo ya tiene
 --             otra cuenta de Auth, lo marca como choque y lo dice; no fusiona.
 --   (la app pasa el correo real a la cuenta con la API de Auth)
@@ -474,10 +487,12 @@ grant execute on function public.portal_email_check_peek(text) to service_role;
 --             correo: sin el paso de Auth no hay «comprobado».
 --   release → si el paso de Auth falló: suelta el enlace para reintentar, o lo
 --             deja marcado como choque.
+--   revisar → si la confirmación quedó a medias y no se pudo deshacer: el
+--             enlace queda gastado y el equipo lo ve.
 -- Ninguno abre sesión ni devuelve nada con qué abrirla.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-create function public.portal_email_check_claim(p_token_hash text)
+create function public.portal_email_check_claim(p_token_hash text, p_session_user_id uuid)
 returns table (check_id uuid, auth_user_id uuid, pending_email text, outcome text)
 language plpgsql
 security definer
@@ -495,6 +510,7 @@ begin
    where x.token_hash = p_token_hash for update;
   if ch.id is null or ch.token_used_at is not null or ch.token_expires_at <= now()
      or ch.verified_at is not null or ch.conflict_at is not null
+     or ch.review_needed_at is not null
      or not ch.auth_interno or ch.pending_email is null
      or not exists (
        select 1 from public.clients c where c.id = ch.client_id and c.deleted_at is null
@@ -504,6 +520,13 @@ begin
         where u.tenant_id = ch.tenant_id and u.client_id = ch.client_id
           and u.auth_user_id = ch.auth_user_id and u.status = 'active'
      ) then
+    return;
+  end if;
+
+  -- La sesión tiene que ser la del titular. Si no lo es, no se gasta nada y no
+  -- se devuelve ningún dato de la cuenta.
+  if p_session_user_id is null or p_session_user_id is distinct from ch.auth_user_id then
+    return query select null::uuid, null::uuid, null::text, 'sin_sesion_del_titular'::text;
     return;
   end if;
 
@@ -523,10 +546,10 @@ begin
 end;
 $$;
 
-revoke all on function public.portal_email_check_claim(text) from public, anon, authenticated;
-grant execute on function public.portal_email_check_claim(text) to service_role;
+revoke all on function public.portal_email_check_claim(text, uuid) from public, anon, authenticated;
+grant execute on function public.portal_email_check_claim(text, uuid) to service_role;
 
-create function public.portal_email_check_confirm(p_check_id uuid)
+create function public.portal_email_check_confirm(p_check_id uuid, p_session_user_id uuid)
 returns void
 language plpgsql
 security definer
@@ -537,8 +560,12 @@ declare
 begin
   select * into ch from public.client_email_checks x where x.id = p_check_id for update;
   if ch.id is null or ch.token_used_at is null or ch.verified_at is not null
-     or ch.conflict_at is not null or ch.pending_email is null then
+     or ch.conflict_at is not null or ch.review_needed_at is not null
+     or ch.pending_email is null then
     raise exception 'enlace_invalido' using errcode = 'P0002';
+  end if;
+  if p_session_user_id is null or p_session_user_id is distinct from ch.auth_user_id then
+    raise exception 'sin_sesion_del_titular' using errcode = '42501';
   end if;
   if not exists (
     select 1 from auth.users au
@@ -557,8 +584,8 @@ begin
 end;
 $$;
 
-revoke all on function public.portal_email_check_confirm(uuid) from public, anon, authenticated;
-grant execute on function public.portal_email_check_confirm(uuid) to service_role;
+revoke all on function public.portal_email_check_confirm(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.portal_email_check_confirm(uuid, uuid) to service_role;
 
 create function public.portal_email_check_release(p_check_id uuid, p_conflicto boolean)
 returns void
@@ -577,6 +604,83 @@ $$;
 
 revoke all on function public.portal_email_check_release(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.portal_email_check_release(uuid, boolean) to service_role;
+
+-- La confirmación quedó a medias y no se pudo deshacer. El enlace NO se suelta
+-- (queda gastado), la fila queda marcada para el equipo y `auth_interno` pasa a
+-- falso: no se sabe qué lleva la cuenta, así que el próximo reenvío la vuelve a
+-- poner en su dirección interna antes de emitir.
+create function public.portal_email_check_revisar(p_check_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.client_email_checks x
+     set review_needed_at = now(),
+         auth_interno = false,
+         updated_at = now()
+   where x.id = p_check_id
+     and x.verified_at is null;
+$$;
+
+revoke all on function public.portal_email_check_revisar(uuid) from public, anon, authenticated;
+grant execute on function public.portal_email_check_revisar(uuid) to service_role;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 8b. El estado, para el equipo (Studio)
+--
+-- Devuelve SOLO el estado y la fecha del último envío de los clientes del
+-- tenant del usuario: ni el correo, ni el hash del token, ni la dirección
+-- interna. Sólo para quien es del equipo de ese tenant.
+--
+--   comprobado       → el titular lo confirmó.
+--   sin_comprobar    → todavía no; la regla aplica a la cuenta del cliente.
+--   choque           → al confirmar, ese correo ya tenía otra cuenta.
+--   revisar          → una confirmación quedó a medias; reenviar la normaliza.
+--   nunca_comprobado → la cuenta del link ya no es la del cliente (el equipo
+--                      revocó y volvió a invitar por correo) y ese correo
+--                      nunca se comprobó. La regla ya no aplica, pero el equipo
+--                      lo sigue viendo.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create function public.portal_email_check_estado(p_client_ids uuid[])
+returns table (client_id uuid, link_id uuid, estado text, sent_at timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  -- Sólo el equipo: un cliente del portal no tiene tenant de equipo.
+  if public.get_user_tenant_id() is null then
+    raise exception 'No tienes permiso para realizar esta acción' using errcode = '42501';
+  end if;
+
+  return query
+  select ch.client_id, ch.link_id,
+         case
+           when ch.verified_at is not null then 'comprobado'
+           when not exists (
+             select 1 from public.client_users u
+              where u.tenant_id = ch.tenant_id and u.client_id = ch.client_id
+                and u.auth_user_id = ch.auth_user_id and u.status = 'active'
+           ) then 'nunca_comprobado'
+           when ch.review_needed_at is not null then 'revisar'
+           when ch.conflict_at is not null then 'choque'
+           else 'sin_comprobar'
+         end,
+         ch.sent_at
+    from public.client_email_checks ch
+   where ch.client_id = any(p_client_ids)
+     and ch.tenant_id = public.get_user_tenant_id();
+end;
+$$;
+
+comment on function public.portal_email_check_estado(uuid[]) is
+  'SDD-0646 D-1: estado del correo de las cuentas por link del tenant del usuario. Sólo el estado y la fecha del último envío; nunca el correo ni el hash del token.';
+
+revoke all on function public.portal_email_check_estado(uuid[]) from public, anon, service_role;
+grant execute on function public.portal_email_check_estado(uuid[]) to authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 9. Si cambia el correo de la ficha, vuelve a «sin comprobar»
@@ -616,6 +720,8 @@ begin
            updated_at = now()
      where ch.client_id = new.id
        and ch.pending_email is distinct from v_new;
+    -- La marca de revisión no se limpia aquí: sólo cuando la app vuelve a poner
+    -- la cuenta en su dirección interna.
   end if;
   return new;
 end;
@@ -631,10 +737,10 @@ create trigger clients_email_vuelve_sin_comprobar_t
 -- 10. Las cuentas por link que ya existen quedan «sin comprobar»
 --
 -- Una fila por cliente con un link usado y acceso activo vinculado desde ese
--- registro. `auth_interno = false`: la cuenta de Auth todavía lleva el correo
--- real; pasarla a la dirección interna necesita la API de Auth (el botón
--- «Reenviar comprobación» o la corrida única de infra/ops). Pocas filas, sin
--- locks largos.
+-- registro. `auth_interno = false`: falta el paso que hace la app con la API
+-- de Auth (el botón «Reenviar comprobación» o la corrida única de infra/ops,
+-- que se corre inmediatamente después de publicar, en la misma ventana). Pocas
+-- filas, sin locks largos.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 insert into public.client_email_checks

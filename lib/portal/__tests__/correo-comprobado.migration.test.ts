@@ -85,7 +85,8 @@ ${desarme}
 select
   (select md5(prosrc) from pg_proc where oid = 'public.portal_registration_link_bind(uuid,uuid)'::regprocedure) as bind,
   to_regclass('public.client_email_checks') is null as sin_tabla,
-  to_regprocedure('public.portal_email_check_claim(text)') is null as sin_claim,
+  to_regprocedure('public.portal_email_check_claim(text,uuid)') is null as sin_claim,
+  to_regprocedure('public.portal_email_check_estado(uuid[])') is null as sin_estado,
   to_regprocedure('public.portal_email_sin_comprobar(text)') is null as sin_pregunta,
   to_regprocedure('public.portal_registration_link_email_status(uuid[])') is not null as con_heuristica,
   not exists (select 1 from pg_trigger where tgname = 'clients_email_vuelve_sin_comprobar_t') as sin_trigger;
@@ -95,6 +96,7 @@ rollback;`);
         bind: "9dc4862d3d6d1a9fe43726203322b2cd",
         sin_tabla: true,
         sin_claim: true,
+        sin_estado: true,
         sin_pregunta: true,
         con_heuristica: true,
         sin_trigger: true,
@@ -138,7 +140,7 @@ rollback;`);
     await expect(correr(m)).rejects.toThrow(/bloqueó a un cliente que el equipo volvió a invitar por correo/);
   }, SLOW);
 
-  it("mutante: se emite el enlace con la cuenta todavía en el correo real", async () => {
+  it("mutante: se emite el enlace sin que la cuenta lleve su dirección interna", async () => {
     const m = mutar(
       `  if not ch.auth_interno then
     raise exception 'La cuenta todavía no lleva la dirección interna' using errcode = '22023';
@@ -146,7 +148,7 @@ rollback;`);
   if ch.pending_email is null`,
       "  if ch.pending_email is null",
     );
-    await expect(correr(m)).rejects.toThrow(/emitió el enlace con la cuenta todavía en el correo real/);
+    await expect(correr(m)).rejects.toThrow(/emitió el enlace sin que la cuenta lleve su dirección interna/);
   }, SLOW);
 
   it("mutante: la base anota la dirección interna sin mirar la cuenta", async () => {
@@ -225,6 +227,87 @@ rollback;`);
       "  select * into ch from public.client_email_checks x where x.link_id = p_link_id for update;",
     );
     await expect(correr(m)).rejects.toThrow(/un rol sin permiso preparó el reenvío/);
+  }, SLOW);
+
+  it("⭐ mutante: el enlace solo, sin la sesión del titular, comprueba", async () => {
+    const m = mutar(
+      `  if p_session_user_id is null or p_session_user_id is distinct from ch.auth_user_id then
+    return query select null::uuid, null::uuid, null::text, 'sin_sesion_del_titular'::text;
+    return;
+  end if;`,
+      "",
+    );
+    await expect(correr(m)).rejects.toThrow(/reclamó sin sesión/);
+  }, SLOW);
+
+  it("⭐ mutante: la sesión de OTRA cuenta alcanza para reclamar", async () => {
+    const m = mutar(
+      "  if p_session_user_id is null or p_session_user_id is distinct from ch.auth_user_id then\n    return query",
+      "  if p_session_user_id is null then\n    return query",
+    );
+    await expect(correr(m)).rejects.toThrow(/reclamó con la sesión de otra cuenta/);
+  }, SLOW);
+
+  it("⭐ mutante: un intento sin la sesión del titular gasta el enlace", async () => {
+    const m = mutar(
+      "    return query select null::uuid, null::uuid, null::text, 'sin_sesion_del_titular'::text;\n    return;",
+      "    update public.client_email_checks x set token_used_at = now() where x.id = ch.id;\n    return query select null::uuid, null::uuid, null::text, 'sin_sesion_del_titular'::text;\n    return;",
+    );
+    await expect(correr(m)).rejects.toThrow(/un intento sin la sesión del titular gastó el enlace/);
+  }, SLOW);
+
+  it("⭐ mutante: confirmar no mira la sesión", async () => {
+    const m = mutar(
+      `  if p_session_user_id is null or p_session_user_id is distinct from ch.auth_user_id then
+    raise exception 'sin_sesion_del_titular' using errcode = '42501';
+  end if;`,
+      "",
+    );
+    await expect(correr(m)).rejects.toThrow(/confirmó sin sesión/);
+  }, SLOW);
+
+  it("mutante: el equipo puede leer la tabla (hash del token y correo por comprobar)", async () => {
+    const m = mutar(
+      "revoke all on public.client_email_checks from public, anon, authenticated;\n",
+      "revoke all on public.client_email_checks from public, anon, authenticated;\ngrant select on public.client_email_checks to authenticated;\n",
+    );
+    await expect(correr(m)).rejects.toThrow(/un usuario con sesión puede leer la tabla/);
+  }, SLOW);
+
+  it("mutante: el estado para el equipo devuelve también el correo", async () => {
+    const m = mutar(
+      "returns table (client_id uuid, link_id uuid, estado text, sent_at timestamptz)",
+      "returns table (client_id uuid, link_id uuid, estado text, sent_at timestamptz, correo text)",
+    ).replace("         ch.sent_at\n    from public.client_email_checks ch", "         ch.sent_at, ch.pending_email\n    from public.client_email_checks ch");
+    await expect(correr(m)).rejects.toThrow(/el estado para el equipo devuelve algo más que el estado/);
+  }, SLOW);
+
+  it("mutante: un cliente del portal ve el estado del correo", async () => {
+    const m = mutar(
+      `  if public.get_user_tenant_id() is null then
+    raise exception 'No tienes permiso para realizar esta acción' using errcode = '42501';
+  end if;`,
+      "",
+    );
+    await expect(correr(m)).rejects.toThrow(/un cliente del portal vio el estado del correo/);
+  }, SLOW);
+
+  it("mutante: una confirmación a medias suelta el enlace", async () => {
+    const m = mutar(
+      `     set review_needed_at = now(),
+         auth_interno = false,
+         updated_at = now()`,
+      `     set review_needed_at = now(),
+         auth_interno = false,
+         token_used_at = null,
+         updated_at = now()`,
+    );
+    await expect(correr(m)).rejects.toThrow(/dejar para revisión soltó el enlace/);
+  }, SLOW);
+
+  it("mutante: revocar y volver a invitar borra la señal de «nunca comprobado»", async () => {
+    const m = mutar("           ) then 'nunca_comprobado'", "           ) then 'sin_comprobar'");
+    await expect(correr(m)).rejects.toThrow(/el equipo dejó de ver que el correo nunca se comprobó/);
   }, SLOW);
 
   it("mutante: las cuentas por link que ya existían nacen comprobadas", async () => {

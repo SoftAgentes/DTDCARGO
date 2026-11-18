@@ -11,15 +11,19 @@
 --   H. Las cuentas por link que ya existían quedan «sin comprobar»; las de
 --      otros caminos no cambian. Un correo sin comprobar no recibe enlace de
 --      entrada.
---   I. No se emite el enlace mientras la cuenta lleve un correo real.
+--   I. No se emite el enlace mientras la cuenta no lleve su dirección interna.
 --   J. Emitir y mirar: mirar no gasta; emitir otro reemplaza el anterior.
---   K. Reclamar es de un solo uso y no comprueba; confirmar exige que el
---      correo ya esté en la cuenta; vencido, usado o inventado no sirven.
+--   K. Reclamar y confirmar exigen la sesión del titular: sin ella no se
+--      confirma ni se gasta el enlace. Reclamar es de un solo uso y no
+--      comprueba; confirmar exige que el correo ya esté en la cuenta; vencido,
+--      usado o inventado no sirven.
 --   L. El registro nuevo nace con la dirección interna; si el correo ya tiene
 --      otra cuenta, queda en choque y no se fusiona nada.
 --   M. Corregir el correo lo devuelve a «sin comprobar».
 --   N. Reenviar desde Studio exige rol y tenant.
---   P. Revocar y volver a invitar por correo saca al cliente de la regla.
+--   P. Revocar y volver a invitar por correo saca al cliente de la regla,
+--      pero el equipo sigue viendo «nunca comprobado».
+--   Q. Una confirmación a medias queda para revisión, con el enlace gastado.
 
 begin;
 
@@ -201,7 +205,7 @@ insert into public.client_users (tenant_id, client_id, email, auth_user_id, stat
   ('00000000-0000-0000-0000-00000000d7d1', '00000000-0000-0000-0000-00000000c003',
    'ocupado@example.test', '00000000-0000-0000-0000-0000000000f1', 'active', now());
 
--- c1 se registra por link con la app de ANTES: la cuenta lleva el correo real.
+-- c1 se registra por link con la app de ANTES (cuenta sin dirección interna).
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
 do $$ begin
@@ -242,9 +246,10 @@ begin
     'public.portal_email_check_auth_interno(uuid)',
     'public.portal_email_check_issue(uuid,text)',
     'public.portal_email_check_peek(text)',
-    'public.portal_email_check_claim(text)',
-    'public.portal_email_check_confirm(uuid)',
+    'public.portal_email_check_claim(text,uuid)',
+    'public.portal_email_check_confirm(uuid,uuid)',
     'public.portal_email_check_release(uuid,boolean)',
+    'public.portal_email_check_revisar(uuid)',
     'public.portal_registration_link_bind(uuid,uuid)'
   ] loop
     assert not has_function_privilege('anon', f, 'EXECUTE'), 'anon puede ejecutar ' || f;
@@ -265,6 +270,22 @@ begin
     'el equipo puede escribir el estado del correo a mano';
   assert not has_table_privilege('anon', 'public.client_email_checks', 'SELECT'),
     'anon puede leer el estado del correo';
+  -- Ni el hash del token ni el correo por comprobar salen por PostgREST.
+  assert not has_table_privilege('authenticated', 'public.client_email_checks', 'SELECT'),
+    'un usuario con sesión puede leer la tabla (hash del token y correo por comprobar)';
+  assert not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'client_email_checks'),
+    'la tabla tiene policies: alguien la lee o la escribe por PostgREST';
+  assert has_function_privilege('authenticated', 'public.portal_email_check_estado(uuid[])', 'EXECUTE'),
+    'el equipo no puede ver el estado del correo';
+  assert not has_function_privilege('anon', 'public.portal_email_check_estado(uuid[])', 'EXECUTE'),
+    'anon puede ver el estado del correo';
+  -- El estado no devuelve ni el correo ni el hash.
+  assert (select array_agg(a.attname order by a.attnum)
+            from pg_catalog.pg_proc p,
+                 lateral unnest(p.proargnames, p.proargmodes) with ordinality as a(attname, mode, attnum)
+           where p.oid = 'public.portal_email_check_estado(uuid[])'::regprocedure
+             and a.mode = 't') = array['client_id', 'link_id', 'estado', 'sent_at']::text[],
+    'el estado para el equipo devuelve algo más que el estado';
   assert to_regprocedure('public.portal_registration_link_email_status(uuid[])') is null,
     'la heurística de la 0552 sigue viva';
 end $$;
@@ -304,17 +325,35 @@ end $$;
 -- El equipo lee el estado de su tenant; el de otro tenant, no.
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
-do $$ begin
-  assert (select count(*) from public.client_email_checks) = 1, 'el equipo no ve el estado del correo de su tenant';
+do $$
+declare r record;
+begin
+  select * into r from public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c001']::uuid[]);
+  assert r.estado = 'sin_comprobar', 'el equipo no ve el estado del correo de su tenant';
+  begin
+    perform 1 from public.client_email_checks;
+    raise exception 'CONTRATO ROTO: el equipo leyó la tabla directamente';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e1';
 do $$ begin
-  assert (select count(*) from public.client_email_checks) = 0, 'otro tenant ve el estado del correo';
+  assert not exists (select 1 from public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c001']::uuid[])),
+    'otro tenant ve el estado del correo';
+end $$;
+-- Un cliente del portal (sin tenant de equipo) no ve el estado de nadie.
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000c1';
+do $$ begin
+  begin
+    perform public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c001']::uuid[]);
+    raise exception 'CONTRATO ROTO: un cliente del portal vio el estado del correo';
+  exception when insufficient_privilege then null;
+  end;
 end $$;
 reset role;
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- I. No hay enlace de comprobación mientras la cuenta lleve un correo real
+-- I. No hay enlace de comprobación mientras la cuenta no lleve su dirección interna
 -- ═════════════════════════════════════════════════════════════════════════════
 set local role service_role;
 set local request.jwt.claim.sub = '';
@@ -323,7 +362,7 @@ declare v_check uuid := (select id from public.client_email_checks where client_
 begin
   begin
     perform public.portal_email_check_issue(v_check, repeat('e', 64));
-    raise exception 'CONTRATO ROTO: emitió el enlace con la cuenta todavía en el correo real';
+    raise exception 'CONTRATO ROTO: emitió el enlace sin que la cuenta lleve su dirección interna';
   exception when invalid_parameter_value then null;
   end;
   -- La base no acepta «ya lleva la dirección interna» si Auth no la tiene.
@@ -384,36 +423,55 @@ begin
   -- Emitir otro reemplaza el anterior.
   perform public.portal_email_check_issue(ch.id, repeat('f', 64));
   assert not exists (select 1 from public.portal_email_check_peek(repeat('e', 64))), 'el enlace reemplazado sigue sirviendo';
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('e', 64))), 'el enlace reemplazado se pudo reclamar';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('e', 64), '00000000-0000-0000-0000-0000000000c1')), 'el enlace reemplazado se pudo reclamar';
 
   -- ═══════════════════════════════════════════════════════════════════════════
   -- K. Reclamar, confirmar, soltar
   -- ═══════════════════════════════════════════════════════════════════════════
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('0', 64))), 'reclamó un token inventado';
-  assert not exists (select 1 from public.portal_email_check_claim('no-es-un-hash')), 'reclamó algo que no es un hash';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('0', 64), '00000000-0000-0000-0000-0000000000c1')), 'reclamó un token inventado';
+  assert not exists (select 1 from public.portal_email_check_claim('no-es-un-hash', '00000000-0000-0000-0000-0000000000c1')), 'reclamó algo que no es un hash';
+
+  -- ⭐ El enlace solo no comprueba. Sin sesión, o con la sesión de otra cuenta,
+  --    no confirma, no gasta el enlace y no devuelve nada de la cuenta.
+  select * into r from public.portal_email_check_claim(repeat('f', 64), null);
+  assert r.outcome = 'sin_sesion_del_titular', 'reclamó sin sesión';
+  assert r.check_id is null and r.auth_user_id is null and r.pending_email is null,
+    'sin sesión del titular devolvió datos de la cuenta';
+  assert (select token_used_at from public.client_email_checks where id = ch.id) is null,
+    'un intento sin la sesión del titular gastó el enlace';
+  select * into r from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000f1');
+  assert r.outcome = 'sin_sesion_del_titular', 'reclamó con la sesión de otra cuenta';
+  assert r.check_id is null and r.auth_user_id is null and r.pending_email is null,
+    'la sesión de otra cuenta recibió datos de la cuenta';
+  assert (select token_used_at from public.client_email_checks where id = ch.id) is null,
+    'un intento sin la sesión del titular gastó el enlace';
+  assert (select verified_at from public.client_email_checks where id = ch.id) is null,
+    'un intento sin la sesión del titular comprobó el correo';
+  assert exists (select 1 from public.portal_email_check_peek(repeat('f', 64))),
+    'un intento sin la sesión del titular mató el enlace';
 
   -- Vencido no sirve.
   update public.client_email_checks set token_expires_at = now() - interval '1 minute' where id = ch.id;
   assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64))), 'un enlace vencido todavía abre';
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64))), 'un enlace vencido se pudo reclamar';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')), 'un enlace vencido se pudo reclamar';
   update public.client_email_checks set token_expires_at = now() + interval '7 days' where id = ch.id;
 
-  select * into r from public.portal_email_check_claim(repeat('f', 64));
+  select * into r from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1');
   assert r.outcome = 'ok' and r.check_id = ch.id and r.pending_email = 'ana@example.test', 'reclamar no devolvió la cuenta';
   -- Un solo uso.
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64))), 'el enlace se reclamó dos veces';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')), 'el enlace se reclamó dos veces';
   assert not exists (select 1 from public.portal_email_check_peek(repeat('f', 64))), 'un enlace reclamado sigue abriendo';
   -- Reclamar no comprueba: falta que el correo pase a la cuenta.
   assert (select verified_at from public.client_email_checks where id = ch.id) is null, 'reclamar marcó comprobado';
   begin
-    perform public.portal_email_check_confirm(ch.id);
+    perform public.portal_email_check_confirm(ch.id, '00000000-0000-0000-0000-0000000000c1');
     raise exception 'CONTRATO ROTO: marcó comprobado sin que la cuenta lleve el correo';
   exception when invalid_parameter_value then null;
   end;
 
   -- Soltar (fallo pasajero): el mismo enlace vuelve a servir.
   perform public.portal_email_check_release(ch.id, false);
-  select * into r from public.portal_email_check_claim(repeat('f', 64));
+  select * into r from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1');
   assert r.outcome = 'ok', 'el enlace soltado no se pudo volver a reclamar';
 end $$;
 reset role;
@@ -428,7 +486,20 @@ declare
   r record;
 begin
   select * into ch from public.client_email_checks where client_id = '00000000-0000-0000-0000-00000000c001';
-  perform public.portal_email_check_confirm(ch.id);
+  -- ⭐ Confirmar también exige la sesión del titular, aunque la cuenta ya lleve el correo.
+  begin
+    perform public.portal_email_check_confirm(ch.id, null);
+    raise exception 'CONTRATO ROTO: confirmó sin sesión';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.portal_email_check_confirm(ch.id, '00000000-0000-0000-0000-0000000000f1');
+    raise exception 'CONTRATO ROTO: confirmó con la sesión de otra cuenta';
+  exception when insufficient_privilege then null;
+  end;
+  assert (select verified_at from public.client_email_checks where id = ch.id) is null,
+    'quedó comprobado sin la sesión del titular';
+  perform public.portal_email_check_confirm(ch.id, '00000000-0000-0000-0000-0000000000c1');
   select * into ch from public.client_email_checks where id = ch.id;
   assert ch.verified_at is not null, 'confirmar no marcó comprobado';
   assert not ch.auth_interno, 'comprobado y todavía dice que la cuenta lleva la dirección interna';
@@ -438,9 +509,9 @@ begin
   select * into r from public.portal_email_sin_comprobar('ana@example.test');
   assert not r.bloquea and not r.pendiente, 'un correo comprobado sigue bloqueado';
   -- El enlace ya no sirve para nada.
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64))), 'el enlace se usó después de comprobar';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('f', 64), '00000000-0000-0000-0000-0000000000c1')), 'el enlace se usó después de comprobar';
   begin
-    perform public.portal_email_check_confirm(ch.id);
+    perform public.portal_email_check_confirm(ch.id, '00000000-0000-0000-0000-0000000000c1');
     raise exception 'CONTRATO ROTO: confirmó dos veces';
   exception when no_data_found then null;
   end;
@@ -528,13 +599,13 @@ declare
   r record;
 begin
   select * into ch from public.client_email_checks where client_id = '00000000-0000-0000-0000-00000000c004';
-  select * into r from public.portal_email_check_claim(repeat('5', 64));
+  select * into r from public.portal_email_check_claim(repeat('5', 64), '00000000-0000-0000-0000-0000000000c4');
   assert r.outcome = 'conflicto', 'no avisó que el correo ya tiene otra cuenta';
   select * into ch from public.client_email_checks where id = ch.id;
   assert ch.conflict_at is not null, 'el choque no quedó marcado para el equipo';
   assert ch.verified_at is null, 'el choque quedó comprobado';
   begin
-    perform public.portal_email_check_confirm(ch.id);
+    perform public.portal_email_check_confirm(ch.id, '00000000-0000-0000-0000-0000000000c4');
     raise exception 'CONTRATO ROTO: confirmó un correo en choque';
   exception when no_data_found then null;
   end;
@@ -550,6 +621,18 @@ begin
   assert (select token_used_at from public.client_email_checks where id = ch.id) is not null,
     'soltar como choque dejó el enlace vivo';
 end $$;
+
+-- El equipo ve el choque.
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $$ begin
+  assert (select estado from public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c004']::uuid[]))
+         = 'choque', 'el equipo no ve el choque';
+end $$;
+reset role;
+set local role service_role;
+set local request.jwt.claim.sub = '';
 reset role;
 do $$ begin
   assert (select count(*) from auth.users) = (select n from public._conteo), 'el choque tocó las cuentas';
@@ -650,8 +733,57 @@ update public.clients set email = 'luis.bueno@example.test' where id = '00000000
 set local role service_role;
 set local request.jwt.claim.sub = '';
 do $$
+declare
+  v_check uuid := (select id from public.client_email_checks where client_id = '00000000-0000-0000-0000-00000000c004');
+  r record;
+begin
+  -- Q. Una confirmación que quedó a medias: el enlace queda gastado, la fila
+  --    marcada para el equipo y no se sabe qué lleva la cuenta.
+  perform public.portal_email_check_issue(v_check, repeat('7', 64));
+  select * into r from public.portal_email_check_claim(repeat('7', 64), '00000000-0000-0000-0000-0000000000c4');
+  assert r.outcome = 'ok', 'no reclamó antes de dejarlo para revisión';
+  perform public.portal_email_check_revisar(v_check);
+  assert (select review_needed_at from public.client_email_checks where id = v_check) is not null,
+    'no quedó marcado para revisión';
+  assert not (select auth_interno from public.client_email_checks where id = v_check),
+    'en revisión y todavía dice que la cuenta lleva la dirección interna';
+  assert (select token_used_at from public.client_email_checks where id = v_check) is not null,
+    'dejar para revisión soltó el enlace';
+  assert not exists (select 1 from public.portal_email_check_peek(repeat('7', 64))), 'un enlace en revisión sigue abriendo';
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('7', 64), '00000000-0000-0000-0000-0000000000c4')),
+    'un enlace en revisión se pudo reclamar';
+  begin
+    perform public.portal_email_check_confirm(v_check, '00000000-0000-0000-0000-0000000000c4');
+    raise exception 'CONTRATO ROTO: confirmó una comprobación en revisión';
+  exception when no_data_found then null;
+  end;
+  -- No se emite otro enlace hasta que la cuenta vuelve a su dirección interna.
+  begin
+    perform public.portal_email_check_issue(v_check, repeat('8', 64));
+    raise exception 'CONTRATO ROTO: emitió con la cuenta en revisión';
+  exception when invalid_parameter_value then null;
+  end;
+end $$;
+reset role;
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $$ begin
+  assert (select estado from public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c004']::uuid[]))
+         = 'revisar', 'el equipo no ve la comprobación que quedó a medias';
+end $$;
+reset role;
+
+-- Reenviar la normaliza: la cuenta vuelve a su dirección interna (aquí ya la
+-- lleva) y la marca se limpia.
+set local role service_role;
+set local request.jwt.claim.sub = '';
+do $$
 declare v_check uuid := (select id from public.client_email_checks where client_id = '00000000-0000-0000-0000-00000000c004');
 begin
+  perform public.portal_email_check_auth_interno(v_check);
+  assert (select review_needed_at from public.client_email_checks where id = v_check) is null,
+    'la revisión no se limpió al normalizar la cuenta';
   perform public.portal_email_check_issue(v_check, repeat('6', 64));
   assert exists (select 1 from public.portal_email_check_peek(repeat('6', 64))), 'el enlace nuevo no abre';
 end $$;
@@ -666,8 +798,17 @@ begin
   assert not r.bloquea, 'bloqueó a un cliente que el equipo volvió a invitar por correo';
   assert not exists (select 1 from public.portal_email_check_peek(repeat('6', 64))),
     'el enlace de una cuenta que ya no es la del cliente sigue abriendo';
-  assert not exists (select 1 from public.portal_email_check_claim(repeat('6', 64))),
+  assert not exists (select 1 from public.portal_email_check_claim(repeat('6', 64), '00000000-0000-0000-0000-0000000000c4')),
     'el enlace de una cuenta que ya no es la del cliente se pudo reclamar';
+end $$;
+reset role;
+
+-- La regla ya no aplica, pero el equipo sigue viendo que ese correo nunca se comprobó.
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+do $$ begin
+  assert (select estado from public.portal_email_check_estado(array['00000000-0000-0000-0000-00000000c004']::uuid[]))
+         = 'nunca_comprobado', 'el equipo dejó de ver que el correo nunca se comprobó';
 end $$;
 
 reset role;
