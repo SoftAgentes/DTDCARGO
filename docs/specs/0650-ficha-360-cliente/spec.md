@@ -95,7 +95,7 @@ Comparación de códigos exacta, igual que antes. Normalizar mayúsculas y espac
 | ID | Decisión | Por qué |
 |---|---|---|
 | F2-1 | El panel carga **siempre** aparte (`<Suspense>`), sin esperar la medida | Cumple la regla de los 400 ms en los dos casos. La medida queda en el smoke M de `ficha-conversaciones.poc.test.ts` (Chatwoot 4.19.1 efímero en CI), no en el entorno de la 0590: leer ahí es una puerta |
-| F2-2 | Un contacto es de **una** ficha por tenant (llave `tenant_id, chatwoot_contact_id`); una ficha puede tener varios contactos | Un chat en dos fichas muestra conversaciones de una persona en la ficha de otra. Mover un chat exige quitarlo primero |
+| F2-2 | Un contacto es de **una** ficha y de **un** tenant (llave `chatwoot_contact_id`: hay una sola cuenta de Chatwoot, F2-11); una ficha puede tener varios contactos | Un chat en dos fichas muestra conversaciones de una persona en la ficha de otra. Mover un chat exige quitarlo primero |
 | F2-3 | Ni el webhook ni el relleno pisan una unión existente; «Unir este chat» no mueve un chat unido a otra ficha | Una unión manual (auditada) no la deshace un cruce automático |
 | F2-4 | «Quitar la unión», auditada | Una unión equivocada expone conversaciones ajenas: tiene que poder deshacerse sin una migración |
 | F2-5 | Unir y quitar piden **editar** la Bandeja (Admin y Comercial); Soporte solo ve. Lo comprueban el ERP y la base | Soporte es de solo lectura en el Studio (`user_has_module` de la 0538) |
@@ -176,7 +176,7 @@ Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.
 
 | Archivo | Cambio |
 |---|---|
-| `supabase/migrations/0554_chatwoot_contact_links.sql` | Tabla, RLS, cuatro funciones, disparador y tipo de auditoría (en espera) |
+| `supabase/migrations/0554_chatwoot_contact_links.sql` | Tabla, RLS, cinco funciones (unir automática, comprobación del actor, unir y quitar a mano, disparador de ficha borrada), el disparador y el tipo de auditoría (en espera) |
 | `supabase/desarmes/0554_desarme.sql` | Desarme sin número |
 | `supabase/tests/0554_chatwoot_contact_links.test.sql` | Contrato: RLS por Bandeja y tenant, unir, quitar, borrar, idempotencia |
 | `lib/studio/__tests__/chatwoot-contact-links.migration.test.ts` | El contrato en PGlite, control rojo, 16 mutantes, la llave de una tabla vieja y el desarme |

@@ -69,6 +69,14 @@ Marco: CRBV art. 28 (acceso y finalidad) y 60 (intimidad) como referencia; PIPL 
 - Restaurar la ficha **no** restaura las uniones: se vuelven a unir por el webhook (con `CHATWOOT_FICHA_UNIR=1`), el relleno o «Unir este chat».
 - Borrado físico: la cascada desde `clients` las borra sin fila de auditoría (el Studio no borra fichas físicamente; SDD-0509).
 
+## Mejoras opcionales de la 0554 (revisión de Opus, 3ª ronda)
+
+Para cuando se vuelva a tocar el SQL antes de aplicarla; no bloquean (la PR está aprobada así):
+
+1. El caso 4p del contrato no prueba que `request.jwt.claim.sub` quede igual cuando la función **falla**, ni mata un mutante que restaure siempre `''` en vez del valor anterior.
+2. La postcondición no revisa `anon` en `chatwoot_contact_links_actor_puede` (sí `authenticated` y `service_role`).
+3. **Condición de mantenimiento:** la comprobación del actor fija solo `request.jwt.claim.sub`. Si `user_has_module` (0538) o `get_user_tenant_id` llegan a depender de `auth.jwt()` o `auth.role()`, hay que revisar `chatwoot_contact_links_actor_puede`.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - Las uniones de una ficha fusionada no se mueven al fusionar: va en la SDD-0651 (fusión v2).
