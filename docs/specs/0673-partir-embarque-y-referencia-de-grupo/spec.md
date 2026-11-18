@@ -1,7 +1,7 @@
 ---
 sdd: "0673"
 title: "Partir un embarque en dos, corregir sus medidas y anotar la referencia del grupo"
-status: proposed
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-18
 updated: 2026-11-18
@@ -16,7 +16,7 @@ confidencialidad: interno
 > **El problema.** Un embarque que ya va cargado en un contenedor puede traer la carga de dos clientes. Hoy no hay forma gobernada de:
 > - separarlo en dos;
 > - corregir sus cajas, CBM y peso sin que se desalineen las tablas;
-> - anotar la referencia del grupo de WhatsApp o WeChat con el proveedor.
+> - anotar la referencia del grupo de WeChat con el proveedor en China.
 >
 > **La propuesta.** Dos funciones gobernadas en la base y un campo de texto libre en el embarque.
 
@@ -24,13 +24,13 @@ confidencialidad: interno
 
 Sam, 2026-11-18, en la conciliación de un contenedor (por el DG).
 
-Un embarque cargado en un contenedor mezcla la carga de dos clientes. Su «código» era la referencia del grupo de WhatsApp con el proveedor, no la de un cliente.
+Un embarque cargado en un contenedor mezcla la carga de dos clientes. Su «código» era la referencia del grupo de WeChat con el proveedor en China, no la de un cliente (corrección de Sam por el DG, 2026-11-18: es WeChat, no WhatsApp).
 
 Ejemplo inventado: el embarque `DTD-9001` lleva 29 cajas y 1,78 m³. De eso, 21 cajas y 1,38 m³ son del cliente A, y 8 cajas y 0,40 m³ son del cliente B.
 
 Sam pidió dos cosas:
 1. un camino para partir ese embarque;
-2. un lugar en el embarque para anotar el «grupo de WhatsApp».
+2. un lugar en el embarque para anotar el «grupo de WeChat», coherente con lo que pidió antes para la ficha del cliente.
 
 Sam también confirmó que en ese contenedor hay que corregir dos CBM y una caja para que cuadren con el Excel. Eso exige un camino gobernado para corregir medidas, que hoy tampoco existe (§2.3).
 
@@ -200,7 +200,8 @@ Reglas:
 ## 6. Referencia del grupo
 
 - **Columna:** `shipments.group_reference text`, nula por defecto, con `check` de 1 a 120 caracteres después de quitar espacios.
-- **Para qué sirve:** es texto libre. Guarda el nombre o la referencia del grupo de WhatsApp o WeChat con el proveedor (ejemplo inventado: «Grupo Yiwu juguetes 9001»).
+- **Para qué sirve:** es texto libre. Guarda el nombre o la referencia del grupo de WeChat con el proveedor en China (ejemplo inventado: «Grupo Yiwu juguetes 9001»).
+- **Etiqueta visible:** «Grupo de WeChat». La columna tiene nombre genérico, pero la pantalla dice WeChat.
 - **Qué no es:** no es el dueño. No decide el cliente, no entra en la facturación ni en el Shipping Mark, y no se usa para asignar nada solo.
 - **Al partir:** si el original no tenía referencia, las dos partes quedan con el `code` original como referencia. Así se lee que vienen del mismo grupo. Si ya tenía, la parte nueva la hereda.
 - **Quién la ve:** solo el Studio. **El Portal no la muestra**, porque un grupo compartido revela que hay otro cliente. Ver D5.
@@ -208,7 +209,7 @@ Reglas:
 
 ## 7. Decisiones
 
-D1, D2 y D3 se necesitan antes de escribir la migración. Cada una trae la recomendación de esta spec.
+**Decididas por el DG el 2026-11-18, con la recomendación de esta spec: D1, D2 y D3.** Sam puede cambiarlas. D4 a D6 quedan con la recomendación hasta que Sam diga otra cosa.
 
 | # | Decisión | Recomendación |
 |---|---|---|
@@ -247,7 +248,8 @@ Pruebas de la aplicación (F2):
 
 ## 9. Migración y orden
 
-- **Una migración:** dos funciones, una columna con su `check` y un comentario. El número lo da el DG; no se escribe antes.
+- **Una migración: `0563_partir_embarque_y_medidas`** (número del DG, 2026-11-18): dos funciones, una columna con su `check` y un comentario.
+- **Prioridad del DG:** primero `correct_shipment_measures`, que se necesita para corregir dos embarques reales; después `split_shipment` y `group_reference`.
 - **Orden: MIGRATE-FIRST,** igual que 0551.
   - Con la migración aplicada y la app de antes, no cambia nada visible.
   - Con la app nueva y sin la migración, los modales dicen que la acción todavía no está disponible.
@@ -261,8 +263,8 @@ Pruebas de la aplicación (F2):
 
 ## 10. Allowlist (F1 y F2)
 
-- `supabase/migrations/NNNN_partir_embarque_y_medidas.sql` (número del DG) y `supabase/migrations-baseline.json` (espera)
-- `supabase/tests/NNNN_partir_embarque_y_medidas.test.sql` y `lib/studio/__tests__/partir-embarque.migration.test.ts`
+- `supabase/migrations/0563_partir_embarque_y_medidas.sql` y `supabase/migrations-baseline.json` (espera)
+- `supabase/tests/0563_partir_embarque_y_medidas.test.sql` y `lib/studio/__tests__/partir-embarque.migration.test.ts`
 - `app/studio/(app)/tracking/[id]/actions.ts`, `page.tsx` y `_components/` (modales nuevos, y `ShipmentDataPanel.tsx` en solo lectura)
 - `app/studio/(app)/embarques/_components/ShipmentDetailDrawer.tsx`
 - `lib/studio/embarques/partir.ts` y `lib/studio/embarques/medidas.ts` (nuevos), y sus pruebas
