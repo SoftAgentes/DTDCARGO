@@ -33,8 +33,10 @@ Excel», maqueta con datos inventados que pasó el DG). Spec:
 | `node scripts/check-numbering.mjs` | PASÓ (choques históricos 0342/0394 conocidos) |
 | `git diff --check` | PASÓ |
 | `/ui-check` | OK (montos y cifras con `nowrap`; tokens; `Badge`; `fmtUsd`) |
-| vitest de Embarques + lib | ver abajo |
-| `pnpm verify` | ver abajo |
+| vitest Embarques + lib (12 archivos, `--pool=threads --maxWorkers=1`) | PASÓ (151 pruebas) |
+| `pnpm typecheck` | PASÓ |
+| eslint de los archivos tocados | PASÓ |
+| `pnpm verify` completo, Docker, e2e | NO EJECUTADO (turno del DG cubrió install, pruebas, typecheck y lint; el portón es el CI) |
 
 ## Pruebas nuevas
 
@@ -55,7 +57,7 @@ Spec nueva 0661 e índice regenerado. Sin cambios en BRAND ni Norte: se reutiliz
 ## Pendientes de esta tarea
 
 - (Hecho) Fuente de «cajas recibidas» y definición de por cobrar/cobrado: decisiones de Sam en la spec §3 y §4.2.
-- Correr vitest y `pnpm verify` con turno del DG; publicar la rama y abrir la PR.
+- CI de la PR y revisión independiente.
 - Revisión independiente (la lanza el DG).
 
 ## FUERA DE ALCANCE DETECTADO
