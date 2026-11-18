@@ -559,7 +559,20 @@ select * from public.office_cierres_correcciones order by orden;
 commit;
 ```
 
-Después, Sam ve el conteo nuevo en la página de revisión (`office_conteo_revisiones(1)`).
+Sam ve el conteo nuevo en la página de revisión (`office_conteo_revisiones(1)`) **recién después del `commit`**:
+antes, la página sigue mostrando el conteo viejo.
+
+**Antes de aplicar la 0567**, en la misma sesión del runbook, medir los cuerpos vivos en el catálogo (solo lectura):
+
+```sql
+select p.proname, md5(p.prosrc) from pg_proc p
+ where p.oid in ('public.office_conteo_revisiones(smallint)'::regprocedure,
+                 'public.office_conversaciones_por_cerrar(smallint)'::regprocedure);
+```
+
+Lo esperado: el conteo en `a936f1ab6c7dd3a58a4c14ce58f9af36` (0560) y la lista de por cerrar en
+`7bc6356c6e653c2109cca49cbecba9b3` (0558). Si cualquiera de los dos es distinto, no se aplica: el preflight de la
+0567 abortaría igual. En ese caso, avisar al DG.
 
 ### El primer lote (tanda 1 de la etapa 1, 18/11/2026; espera el OK de Sam)
 

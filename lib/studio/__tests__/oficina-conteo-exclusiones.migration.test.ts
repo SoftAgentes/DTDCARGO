@@ -124,6 +124,11 @@ describe("0567 · exclusiones del conteo y corrección de cierres (PGlite)", () 
       "CONTRATO 1",
     ],
     [
+      "por cerrar mira las exclusiones de todas las etapas",
+      mutar("where e.conversacion = x.conv and e.etapa = p_etapa)", "where e.conversacion = x.conv)"),
+      "CONTRATO 1",
+    ],
+    [
       "el conteo no mira las correcciones de cierre",
       mutar(
         "where k2.conversacion = p.conv and k2.etapa = p_etapa",

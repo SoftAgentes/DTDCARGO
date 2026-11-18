@@ -169,6 +169,9 @@ begin
   values ('41', 2, 'Exclusión de otra etapa (contrato).', 'contrato 0567');
   c := public.t_conteo();
   if c <> '2/2/0' then raise exception 'CONTRATO 1: una exclusión de la etapa 2 sacó la conversación de la etapa 1 (%)', c; end if;
+  if public.t_por_cerrar() <> '41,42' then
+    raise exception 'CONTRATO 1: una exclusión de la etapa 2 sacó la conversación de por cerrar en la etapa 1 (%)', public.t_por_cerrar();
+  end if;
 end;
 $uno$;
 
@@ -327,6 +330,18 @@ begin
   end if;
 end;
 $cuatro$;
+
+-- 4b. Una corrección sobre una conversación excluida: la conversación sigue sin contar (manda la exclusión).
+do $cuatro_b$
+declare
+  c text;
+begin
+  perform public.t_cierre('40', false);
+  perform public.office_corregir_cierre('40', 1::smallint, true, 'Corrección sobre una excluida (contrato).', 'contrato 0567');
+  c := public.t_conteo();
+  if c <> '4/3/0' then raise exception 'CONTRATO 4b: una corrección devolvió al conteo una conversación excluida (%)', c; end if;
+end;
+$cuatro_b$;
 
 -- 5. Otra vez encima: no falla y el conteo no cambia.
 \ir ../migrations/0567_oficina_conteo_exclusiones.sql
