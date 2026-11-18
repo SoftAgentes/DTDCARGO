@@ -125,6 +125,14 @@ En la primera vuelta, el control salió en rojo por una carrera. La prueba de `d
 | eslint de `BandejaClient`, su prueba, `page.tsx` y `(app)/layout.tsx` | PASÓ, sin avisos |
 | `pnpm verify` | NO EJECUTADO: queda el CI |
 
+## Re-revisión del delta: APPROVED sobre 88080d521
+
+Hay dos hallazgos bajos, que no bloquean y quedan para una PR de seguimiento:
+1. **Una apertura cancelada mientras espera el candado ya gastó su marca.** Si la página se desmonta o se pide otra apertura con la reserva dentro de `navigator.locks`, la marca queda escrita aunque no se pida SSO. Efecto: el freno puede saltar un intento antes. Arreglo posible: reservar y pedir dentro de la misma corrida, o devolver la marca si `mia !== corrida.current`.
+2. **Con el JSON de `localStorage` corrupto, toda la página pasa a memoria y el valor no se repara.** `JSON.parse` falla, la lectura marca `almacenamientoRoto` y ya no escribe. Efecto: el freno vale solo en esa pestaña hasta recargar, y el dato corrupto sigue ahí. Arreglo posible: separar «no se puede leer o escribir» de «valor inválido» y sobrescribir el valor inválido con `[]`.
+
+**Integración:** entra al tren después de la cola del 64 (#684, #689 y #686). Cuando le toque, el DG avisa si hay que traer main. La #686 choca en `lib/i18n/*/bandeja.ts` y en el índice.
+
 ## Pendientes de esta tarea
 
 1. La PR #690 está lista para que el DG lance la revisión independiente.
