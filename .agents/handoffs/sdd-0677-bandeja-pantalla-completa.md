@@ -100,6 +100,31 @@ En la primera vuelta, el control salió en rojo por una carrera. La prueba de `d
 | `docs:check` y `git diff --check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: queda el CI |
 
+## Re-revisión de f5fc4580e (CHANGES_REQUESTED) y qué se hizo
+
+1. **BLOQUEANTE, `inert`.** Antes apagaba los toasts, el BugFAB y la guía, porque son hermanos del shell dentro de `div.studio-sys`, sin portal. Ahora solo quedan inertes las ramas `data-capa-fondo`: el menú y la barra en `(app)/layout.tsx` con `display: contents`, la cabecera del CRM en `bandeja/page.tsx` y lo del admin en `BandejaClient`. La prueba usa la estructura real y comprueba que el toast, el BugFAB y la guía no quedan inertes, ni al ampliar ni al reducir.
+2. **Almacenamiento roto.** Si `setItem` o `getItem` falla, se marca `almacenamientoRoto` y desde ahí manda la memoria. Hay una prueba para cada uno por separado.
+3. **Entre pestañas.** La reserva corre bajo `navigator.locks`, con respaldo sin exclusión, y el límite está documentado en la spec. Las marcas futuras cuentan; solo se descarta lo que está a más de una ventana en el futuro (spec D2.6).
+4. `reiniciarFrenoEnMemoria()` corre en el `beforeEach`.
+
+**Mutantes:** 30/30 en rojo y el control en verde. Además de los 23 anteriores:
+- futuras que no cuentan y futuras lejanas que cuentan;
+- `setItem` roto que no pasa a memoria y `getItem` roto que no pasa a memoria;
+- locks sin usar;
+- `inert` que pisa lo que ya era inert;
+- `inert` a todos los hermanos (la versión vieja).
+
+**Choque anunciado:** la #686 también toca `lib/i18n/es-VE/bandeja.ts`, `zh-CN/bandeja.ts` y `docs/specs/README.md`. La que entre segunda va a tener un conflicto de texto. Se resuelve conservando las claves de las dos y regenerando el índice.
+
+| Comprobación (turno corto) | Estado |
+|---|---|
+| vitest de `BandejaClient.test.tsx` | PASÓ 38/38 |
+| vitest de la Bandeja, `_components/__tests__`, guía, `lib/i18n` y `(app)/__tests__` | PASÓ 566/566 |
+| vitest de las pruebas que leen `layout.tsx` (CRM, rbac, oficina y flags) | PASÓ 172/172 y 139/139 |
+| `tsc --noEmit` | PASÓ |
+| eslint de `BandejaClient`, su prueba, `page.tsx` y `(app)/layout.tsx` | PASÓ, sin avisos |
+| `pnpm verify` | NO EJECUTADO: queda el CI |
+
 ## Pendientes de esta tarea
 
 1. La PR #690 está lista para que el DG lance la revisión independiente.

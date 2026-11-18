@@ -114,12 +114,21 @@ El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG 
 3. **Aviso de recuperación, sin error crudo.** Es un `<Aviso>` con el título «La bandeja no abrió», una explicación corta según el caso y los botones «Abrir en pestaña aparte» y «Abrir de nuevo» (el principal, a la derecha). «Abrir de nuevo» pide un SSO nuevo. El texto no atribuye la falla a un reinicio de Chatwoot: la medición del DG lo hace improbable (H3).
 4. **Con `error`, el iframe se desmonta**, porque no hay un enlace válido que mostrar. Con «lento» y con el freno sigue montado. Si termina de cargar, el `onLoad` limpia el aviso, también el del freno.
 5. **Ayuda solo después de un fallo** (H1, H2, H4: lo que Studio no ve). Si hubo un error, el vigilante saltó, actuó el freno o la persona reabrió a mano, aparece en la franja: «¿Ves la pantalla de inicio de Chatwoot o un error? Oprime «Abrir de nuevo» una vez. Si vuelve a pasar, avísale al equipo de sistemas.» No se muestra junto al aviso, para no repetirlo. Antes de un fallo no hay ayuda fija, para no empujar a repetir el login que en H1 vuelve a fallar.
-6. **Freno por navegador.** Como mucho **3 aperturas por SSO cada 5 minutos**, sumando las automáticas (al montar sin marca) y las manuales. Una apertura que termina en `service` cuenta una vez, no una por reintento. Las marcas son solo horas en milisegundos, en `localStorage` (`dtd.bandeja.sso`), dentro de un try/catch: sobreviven a recargar, se comparten entre pestañas y, sin almacenamiento, quedan en la memoria de la página. Con el tope lleno no se pide SSO, ni siquiera el automático, y el aviso dice: «Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.» Así Studio no empeora un 429 (H4) ni suma sesiones (H1).
+6. **Freno por navegador.** Como mucho **3 aperturas por SSO cada 5 minutos**, sumando las automáticas (al montar sin marca) y las manuales. Una apertura que termina en `service` cuenta una vez, no una por reintento. Las marcas son solo horas en milisegundos, en `localStorage` (`dtd.bandeja.sso`), dentro de un try/catch: sobreviven a recargar y se comparten entre pestañas. Si el almacenamiento falla al leer **o al escribir**, desde ese momento la página usa solo la memoria. Así el freno no queda en cero leyendo un `localStorage` que ya no se actualiza.
+   - **Entre pestañas:** leer y escribir las marcas corre dentro de `navigator.locks` (`dtd.bandeja.sso`), así que dos pestañas no pasan el tope a la vez. Sin `navigator.locks`, o si falla, se reserva igual sin exclusión, y el límite queda en «3 por navegador, salvo carrera entre pestañas».
+   - **Marcas futuras:** cuentan. Un reloj que se atrasó no abre el freno. Solo se descarta una marca a más de una ventana (5 min) en el futuro, porque si contara cerraría el freno para siempre. Con el tope lleno no se pide SSO, ni siquiera el automático, y el aviso dice: «Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.» Así Studio no empeora un 429 (H4) ni suma sesiones (H1).
 7. Los errores que no son pasajeros (`denied`, `unlinked`, `unconfigured`) no se reintentan y conservan su mensaje.
 
 ### D3 · Fondo inerte y sin destello
 
-- **`inert` en el fondo.** En pantalla completa, los hermanos de cada ancestro de la capa reciben `inert`, hasta el hijo directo de `body` (sin incluirlo). Así Tab no cae en el menú ni en la cabecera de detrás. Los hijos directos de `body` (avisos, guía y drawers en portal) siguen vivos. Lo que ya tenía `inert` no se toca, y al reducir se devuelve todo. **Respaldo seguro:** en un navegador sin `inert`, el atributo no hace nada y la capa sigue funcionando; solo Tab podría llegar al fondo.
+- **`inert` en el fondo, solo en ramas explícitas.** En pantalla completa reciben `inert` las ramas marcadas con `data-capa-fondo` que no contienen la capa:
+  - el menú lateral y la barra superior del shell (`app/studio/(app)/layout.tsx`, envueltos en `display: contents` para no cambiar el flex);
+  - la cabecera y las pestañas del CRM (`bandeja/page.tsx`);
+  - lo del admin debajo del panel (`BandejaClient.tsx`).
+
+  **No** se apaga «todo lo de al lado»: el shell cuelga de `div.studio-sys` (`app/studio/layout.tsx`), y `ToastProvider`, `DeniedToast`, el BugFAB y `GuiaStudio` se pintan como hermanos, sin portal. Con el criterio de los hermanos quedaban inertes (lo vio la re-revisión de `f5fc4580e`). Lo que ya tenía `inert` no se toca, y al reducir se devuelve todo.
+
+  **Respaldo seguro:** en un navegador sin `inert`, el atributo no hace nada y la capa sigue funcionando; solo Tab podría llegar al fondo.
 - **Hidratación.** La preferencia se lee después de montar, con una lectura diferida y cancelable, como `useColumnConfig`. Hasta entonces la capa está en modo «pendiente», oculta con `visibility: hidden`: el marco ya carga, pero no se pinta en un modo para después saltar al otro.
 
 ### Fuera de este cambio (decisiones para Sam y el DG)
@@ -145,10 +154,17 @@ El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG 
 1. La spec trae la causa citada por archivo y símbolo, y separa lo probado de lo que no (sección 1).
 2. Con la Bandeja lista, el panel ocupa toda la ventana. «Reducir» y Esc vuelven a la vista compacta, y «Pantalla completa» amplía otra vez. Solo Escape reduce, y no con un diálogo de Studio abierto encima. El `src` del iframe y el elemento son los mismos antes y después (prueba).
 3. El foco va al título al ampliar y vuelve al botón al reducir, también con Esc (prueba).
-4. En pantalla completa el fondo queda `inert` y se devuelve al reducir. Antes de leer la preferencia no se pinta ningún modo (prueba).
+4. En pantalla completa quedan `inert` solo las ramas `data-capa-fondo`. Con la estructura real (`div.studio-sys` > shell, toast, BugFAB y guía), el toast, el BugFAB y la guía no quedan inertes, ni al ampliar ni al reducir, y todo se devuelve al reducir. Antes de leer la preferencia no se pinta ningún modo (prueba).
 5. Con `service`, el enlace se reintenta dos veces antes del aviso. Con `denied`, no se reintenta. Con `error`, el marco se desmonta (prueba).
 6. Si el marco no carga en 20 s, aparece el aviso con «Abrir de nuevo», y oprimirlo pide un SSO nuevo. La ayuda sale solo después de un fallo y nunca junto al aviso (prueba).
-7. Freno: 3 aperturas cada 5 minutos por navegador, automáticas y manuales. Sobrevive al remonte, una apertura con `service` cuenta una vez, la ventana vence a los 5 minutos exactos, funciona sin almacenamiento y el `onLoad` limpia el aviso (prueba).
+7. Freno: 3 aperturas cada 5 minutos por navegador, automáticas y manuales. Las pruebas cubren:
+   - que sobrevive al remonte;
+   - que una apertura con `service` cuenta una vez;
+   - que la ventana vence a los 5 minutos exactos;
+   - que las marcas futuras cuentan;
+   - que funciona sin almacenamiento, y también con solo `setItem` o solo `getItem` roto;
+   - que la reserva corre bajo `navigator.locks`, con respaldo si falla;
+   - que el `onLoad` limpia el aviso.
 8. Los textos en es-VE y zh-CN, sin claves sueltas ni «se está reiniciando».
 9. `/ui-check` del diff, con su evidencia (abajo).
 
@@ -169,6 +185,7 @@ Sin hex nuevos, sin AI slop y en tuteo. Los anchos no son fijos: no hay nada que
 ## Alcance de archivos
 
 - `app/studio/(app)/bandeja/_components/BandejaClient.tsx`
+- `app/studio/(app)/bandeja/page.tsx` y `app/studio/(app)/layout.tsx`: solo los envoltorios `data-capa-fondo`
 - `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`
 - `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`
 - esta spec, el índice de specs y el handoff
