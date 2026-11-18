@@ -7,5 +7,67 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0563-corregir-medidas-y-partir",
+      "migration": "0563_partir_embarque_y_medidas",
+      "primarySymbol": "correct_shipment_measures",
+      "symbols": [
+        {
+          "name": "correct_shipment_measures",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:674",
+            "app/studio/(app)/tracking/[id]/actions.ts:696",
+            "app/studio/(app)/tracking/[id]/actions.ts:712",
+            "app/studio/(app)/tracking/[id]/page.tsx:259",
+            "lib/studio/rbac.ts:337"
+          ]
+        },
+        {
+          "name": "split_shipment",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:738",
+            "app/studio/(app)/tracking/[id]/actions.ts:763",
+            "app/studio/(app)/tracking/[id]/actions.ts:779",
+            "app/studio/(app)/tracking/[id]/page.tsx:260",
+            "lib/studio/rbac.ts:338"
+          ]
+        },
+        {
+          "name": "shipments.group_reference",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/tracking/[id]/actions.ts:813",
+            "lib/studio/medidas-embarque-queries.ts:69",
+            "lib/studio/medidas-embarque-queries.ts:71",
+            "lib/studio/medidas-embarque-queries.ts:73"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/tracking/[id]/actions.ts:683",
+          "contains": "faltaLaFuncionMedidas(error)",
+          "degradation": "Sin la 0563 PostgREST responde PGRST202 (o 42883): la vista previa y la corrección devuelven «Esta acción todavía no está disponible.» con noDisponible y el modal no ofrece confirmar. No se escribe nada."
+        },
+        {
+          "site": "app/studio/(app)/tracking/[id]/actions.ts:749",
+          "contains": "faltaLaFuncionMedidas(error)",
+          "degradation": "Sin la 0563 la vista previa y el partir devuelven «Esta acción todavía no está disponible.» con noDisponible y el modal no ofrece confirmar. No se escribe nada."
+        },
+        {
+          "site": "lib/studio/medidas-embarque-queries.ts:72",
+          "contains": "if (error) return undefined;",
+          "degradation": "Sin la columna group_reference la lectura falla y devuelve undefined: la ficha no muestra el campo «Grupo de WeChat». El resto de la ficha se lee por DETAIL_COLUMNS, que no la nombra."
+        },
+        {
+          "site": "app/studio/(app)/tracking/[id]/actions.ts:817",
+          "contains": "PGRST204",
+          "degradation": "Si alguien guarda el grupo sin la columna, PostgREST responde PGRST204 (o 42703) y la acción dice «Esta acción todavía no está disponible.» sin escribir."
+        }
+      ]
+    }
+  ]
 }

@@ -94,8 +94,8 @@ Las pantallas leen así:
    - función `correct_shipment_measures` (§5);
    - columna `shipments.group_reference` (§6).
 2. **F2 (aplicación, misma spec, con la migración ya aplicada):**
-   - en la ficha del embarque y en el panel de Embarques: «Partir embarque» y «Corregir medidas» como modales con vista previa;
-   - el campo «Referencia del grupo»;
+   - en la ficha del embarque, una franja «Carga» con «Corregir medidas» y «Partir embarque» como modales con vista previa (el panel de Embarques queda para una PR siguiente);
+   - el campo «Grupo de WeChat»;
    - en un embarque que está en un contenedor, los campos de peso y CBM de la ficha pasan a solo lectura, con un botón a «Corregir medidas». Así se cierra el desalineamiento de §2.3.3.
 
 **Fuera de alcance:**
@@ -205,7 +205,8 @@ Reglas:
 - **Qué no es:** no es el dueño. No decide el cliente, no entra en la facturación ni en el Shipping Mark, y no se usa para asignar nada solo.
 - **Al partir:** si el original no tenía referencia, las dos partes quedan con el `code` original como referencia. Así se lee que vienen del mismo grupo. Si ya tenía, la parte nueva la hereda.
 - **Quién la ve:** solo el Studio. **El Portal no la muestra**, porque un grupo compartido revela que hay otro cliente. Ver D5.
-- **Edición y búsqueda:** se edita en la ficha del embarque con el permiso de editar Tracking, sin motivo, porque es una nota. Cada cambio deja `shipment_group_reference_changed` con antes y después. Se puede buscar por ella en Embarques y en Tracking.
+- **Edición:** se edita en la franja «Carga» de la ficha con el permiso de editar Tracking, sin motivo y sin evento, igual que las notas del embarque.
+- **Búsqueda:** buscar por el grupo en Embarques y en Tracking queda para una PR siguiente.
 
 ## 7. Decisiones
 
@@ -265,8 +266,10 @@ Pruebas de la aplicación (F2):
 
 - `supabase/migrations/0563_partir_embarque_y_medidas.sql` y `supabase/migrations-baseline.json` (espera)
 - `supabase/tests/0563_partir_embarque_y_medidas.test.sql` y `lib/studio/__tests__/partir-embarque.migration.test.ts`
-- `app/studio/(app)/tracking/[id]/actions.ts`, `page.tsx` y `_components/` (modales nuevos, y `ShipmentDataPanel.tsx` en solo lectura)
-- `app/studio/(app)/embarques/_components/ShipmentDetailDrawer.tsx`
-- `lib/studio/embarques/partir.ts` y `lib/studio/embarques/medidas.ts` (nuevos), y sus pruebas
+- `supabase/desarmes/0563_desarme.sql` y `supabase/pending-migration-symbol-declarations.json`
+- `app/studio/(app)/tracking/[id]/actions.ts`, `page.tsx`, `_components/CargaDelEmbarque.tsx` (nuevo) y `_components/ShipmentDataPanel.tsx` (peso y CBM en solo lectura dentro de un contenedor)
+- `app/studio/studio.css` (clases `.studio-ficha-embarque-carga*`, `-modal*`, `-medidas`)
+- `lib/studio/rbac.ts` (acciones `correct_shipment_measures` y `split_shipment`)
+- `lib/studio/medidas-embarque.ts` y `lib/studio/medidas-embarque-queries.ts` (nuevos), y sus pruebas
 - `docs/specs/0673-partir-embarque-y-referencia-de-grupo/`, `docs/specs/README.md`
 - `.agents/handoffs/partir-embarque-0673.md`
