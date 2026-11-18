@@ -38,6 +38,8 @@ let filaError: Err = null;
 /** Lo que la base dice de la fila al releerla después de un error de confirmar. */
 let filaVerificada: string | null = null;
 let releaseError: Err = null;
+/** Lo que `getUserById` dice de la cuenta (para la respuesta perdida). */
+let cuentaActual: { email: string | null; error?: Err } = { email: null };
 let sessionUser: { id: string } | null = { id: "auth-1" };
 let sessionThrows = false;
 const INTERNA = `c-${"a".repeat(32)}@sin-comprobar.invalid`;
@@ -63,9 +65,15 @@ const admin = {
     return chain;
   },
   auth: {
-    // A propósito: SÓLO `updateUserById`. Nada que cree una sesión, un usuario
-    // o un enlace de entrada existe en este doble.
+    // A propósito: SÓLO `updateUserById` y `getUserById` (leer). Nada que cree
+    // una sesión, un usuario o un enlace de entrada existe en este doble.
     admin: {
+      getUserById: async (id: string) => {
+        calls.push({ name: "getUserById", args: { id } });
+        return cuentaActual.error
+          ? { data: { user: null }, error: cuentaActual.error }
+          : { data: { user: cuentaActual.email ? { id, email: cuentaActual.email } : null }, error: null };
+      },
       updateUserById: async (id: string, attrs: Record<string, unknown>) => {
         calls.push({ name: "updateUserById", args: { id, ...attrs } });
         const error = authErrors.shift() ?? null;
@@ -118,6 +126,7 @@ beforeEach(() => {
   filaError = null;
   filaVerificada = null;
   releaseError = null;
+  cuentaActual = { email: null };
   sessionUser = { id: "auth-1" };
   sessionThrows = false;
   claimResult = ok();
@@ -317,6 +326,64 @@ describe("comprobarCorreoAction · con la sesión del titular", () => {
     const res = await comprobarCorreoAction({}, form());
     expect(res).toEqual({ error: COMPROBAR_CORREO_REINTENTA });
     expect(calls.at(-1)?.args).toEqual({ p_check_id: "chk-1", p_conflicto: false });
+  });
+
+  describe("⭐ la respuesta de Auth se perdió (sin status o status 0): se relee la cuenta", () => {
+    for (const perdida of [{ message: "fetch failed" }, { status: 0, message: "fetch failed" }]) {
+      it(`si ya tiene el correo real, sigue a marcar comprobado (${JSON.stringify(perdida)})`, async () => {
+        authErrors = [perdida];
+        cuentaActual = { email: "ANA@example.test" };
+        const res = await comprobarCorreoAction({}, form());
+        expect(res).toEqual({ ok: true });
+        expect(nombres()).toEqual([
+          "portal_email_check_claim",
+          "updateUserById",
+          "getUserById",
+          "portal_email_check_confirm",
+        ]);
+        expect(calls.find((c) => c.name === "getUserById")?.args).toEqual({ id: "auth-1" });
+      });
+
+      it(`si sigue con su dirección interna, se suelta para reintentar (${JSON.stringify(perdida)})`, async () => {
+        authErrors = [perdida];
+        cuentaActual = { email: INTERNA };
+        const res = await comprobarCorreoAction({}, form());
+        expect(res).toEqual({ error: COMPROBAR_CORREO_REINTENTA });
+        expect(calls.at(-1)).toEqual({
+          name: "portal_email_check_release",
+          args: { p_check_id: "chk-1", p_conflicto: false },
+        });
+        expect(nombres()).not.toContain("portal_email_check_confirm");
+      });
+
+      it(`si no se puede leer la cuenta, queda para revisión sin soltar (${JSON.stringify(perdida)})`, async () => {
+        authErrors = [perdida];
+        cuentaActual = { email: null, error: { status: 500, message: "boom" } };
+        const res = await comprobarCorreoAction({}, form());
+        expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });
+        expect(nombres()).not.toContain("portal_email_check_release");
+        expect(nombres()).not.toContain("portal_email_check_confirm");
+        expect(calls.at(-1)).toEqual({ name: "portal_email_check_revisar", args: { p_check_id: "chk-1" } });
+      });
+    }
+
+    it("si Auth no devuelve la cuenta, o lleva otro correo, también queda para revisión", async () => {
+      for (const email of [null, "otra@example.test"]) {
+        calls = [];
+        authErrors = [{ message: "fetch failed" }];
+        cuentaActual = { email };
+        const res = await comprobarCorreoAction({}, form());
+        expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });
+        expect(nombres()).not.toContain("portal_email_check_release");
+        expect(calls.at(-1)?.name).toBe("portal_email_check_revisar");
+      }
+    });
+
+    it("con un status de verdad no se relee: un 429 se suelta sin preguntar", async () => {
+      authErrors = [{ status: 429, message: "slow down" }];
+      await comprobarCorreoAction({}, form());
+      expect(nombres()).not.toContain("getUserById");
+    });
   });
 
   it("un fallo pasajero de Auth suelta el enlace para reintentar y no marca comprobado", async () => {

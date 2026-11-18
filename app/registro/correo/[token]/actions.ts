@@ -33,6 +33,7 @@ import {
   COMPROBAR_CORREO_ENTRA_PRIMERO,
   COMPROBAR_CORREO_NO_SIRVE,
   COMPROBAR_CORREO_REINTENTA,
+  esCorreoInterno,
   type ComprobarCorreoState,
 } from "@/lib/portal/correo-comprobacion";
 import { hashRegistroToken } from "@/lib/portal/registro-link";
@@ -148,15 +149,38 @@ export async function comprobarCorreoAction(
   if (authErr) {
     const ocupado = esCorreoOcupado(authErr);
     console.error("[comprobarCorreoAction] Auth no tomó el correo:", authErr.status, authErr.code);
-    // Un error del servidor de Auth que no es el choque: no se sabe en qué quedó
-    // la cuenta. El enlace no se suelta y queda para revisión del equipo.
-    if (!ocupado && typeof authErr.status === "number" && authErr.status >= 500) {
+    const sinRespuesta = !ocupado && (typeof authErr.status !== "number" || authErr.status === 0);
+    if (sinRespuesta) {
+      // La respuesta se perdió (red caída, sin status): el cambio pudo haberse
+      // aplicado. Se le pregunta a Auth en qué quedó la cuenta antes de decidir.
+      let actual: string | null = null;
+      try {
+        const { data: cuenta, error: leerErr } = await admin.auth.admin.getUserById(claim.auth_user_id);
+        actual = leerErr ? null : (cuenta?.user?.email?.trim().toLowerCase() ?? null);
+      } catch {
+        actual = null;
+      }
+      if (actual === claim.pending_email) {
+        // Ya lo tomó: se sigue a marcar comprobado.
+      } else if (actual && esCorreoInterno(actual)) {
+        // No lo tomó: sigue con su dirección interna. Se suelta para reintentar.
+        const suelto = await soltar(admin, claim.check_id, false);
+        return { error: suelto ? COMPROBAR_CORREO_REINTENTA : COMPROBAR_CORREO_NO_SIRVE };
+      } else {
+        // No se puede leer, o lleva otra cosa: para revisión, sin soltar.
+        await dejarParaRevision(admin, claim.check_id, "no se supo en qué quedó la cuenta");
+        return { error: COMPROBAR_CORREO_NO_SIRVE };
+      }
+    } else if (!ocupado && (authErr.status ?? 0) >= 500) {
+      // Un error del servidor de Auth que no es el choque: no se sabe en qué
+      // quedó la cuenta. El enlace no se suelta y queda para revisión del equipo.
       await dejarParaRevision(admin, claim.check_id, "Auth falló al tomar el correo");
       return { error: COMPROBAR_CORREO_NO_SIRVE };
+    } else {
+      const suelto = await soltar(admin, claim.check_id, ocupado);
+      // Si no se pudo soltar, el enlace quedó gastado: que pida uno nuevo.
+      return { error: ocupado || !suelto ? COMPROBAR_CORREO_NO_SIRVE : COMPROBAR_CORREO_REINTENTA };
     }
-    const suelto = await soltar(admin, claim.check_id, ocupado);
-    // Si no se pudo soltar, el enlace quedó gastado: que pida uno nuevo.
-    return { error: ocupado || !suelto ? COMPROBAR_CORREO_NO_SIRVE : COMPROBAR_CORREO_REINTENTA };
   }
 
   // 3. Marcar comprobado. La base exige que la cuenta ya lleve ese correo y que
