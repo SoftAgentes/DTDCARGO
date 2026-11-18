@@ -147,7 +147,7 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
     - Es el enlace de Auth (PKCE): se abre en el mismo navegador que lo pidió. En otro, cae en el aviso «Abriste el enlace en un navegador distinto». `/abrir` no se ejercita por este camino.
     - Un segundo pedido antes de 60 s (`GOTRUE_SMTP_MAX_FREQUENCY`) no sale. Mailpit se queda con el anterior.
     - Solo recibe enlace quien ya tiene `auth.users`. El cliente de la semilla lo tiene; uno recién invitado desde el Studio, no: Auth responde 422.
-    - La pantalla es la misma haya salido o no, a propósito. Para saber qué pasó, mira `/correo/`, o busca en el log del web `[entrar] Auth no mandó el enlace:`, que trae el código (429, 422).
+    - Desde la [SDD-0672](../specs/0672-entrar-reconoce-el-correo/spec.md) la pantalla dice qué pasó: «Revisa tu correo» solo si salió; si Auth no lo mandó, «No pudimos enviarte el enlace». El código (429, 422) está en el log del web, en `[entrar] Auth no mandó el enlace:`, y el correo en `/correo/`.
 
 ## 3 · Subir una rama a prueba
 
