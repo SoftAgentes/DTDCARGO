@@ -1,7 +1,9 @@
 "use client";
 
 /**
- * Ficha 360° del empleado (SDD-0652 F1). Vista de lectura con pestañas.
+ * Ficha 360° del empleado (SDD-0652). Vista con pestañas. La fase 2 suma la
+ * foto, el enlace con un usuario, «Mostrar» la cuenta y los eventos de la
+ * línea de tiempo; cada acción vive en su componente y pasa por el servidor.
  *
  * Todo lo que llega aquí ya pasó por el servidor: el control de rol
  * (`getFichaEmpleadoAccess`), la cuenta enmascarada y el corte de lo que es
@@ -15,7 +17,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -30,13 +31,13 @@ import {
   correosDistintos,
   etiquetaAcceso,
   fmtUsdFicha,
-  iniciales,
   resumenAsistencia,
   saldoPrestamo,
   saldoPrestamos,
   type AccesoStudio,
   type AsistenciaDia,
   type Bloque,
+  type CandidatoEnlace,
   type Hecho,
   type NivelFicha,
   type PrestamoFicha,
@@ -50,6 +51,9 @@ import type {
 import { ROLE_LABELS } from "@/lib/studio/user-types";
 import { ActividadAcceso } from "@/app/studio/(app)/usuarios/_components/acceso/ActividadAcceso";
 import { EmpleadoDrawer } from "@/app/studio/(app)/nomina/_components/EmpleadoDrawer";
+import { EnlazarConUsuario, ID_MOTIVO_ENLACE, QuitarEnlace } from "./EnlaceUsuario";
+import { FotoEmpleado } from "./FotoEmpleado";
+import { MostrarCuenta } from "./MostrarCuenta";
 import { ReintentarCarga } from "./ReintentarCarga";
 import "./ficha-empleado.css";
 
@@ -70,9 +74,17 @@ export type FichaEmpleadoProps = {
   cambioBanco: Bloque<boolean>;
   /** Línea de tiempo laboral ya unida, más las fuentes que no se pudieron leer. */
   linea: { hechos: Hecho[]; fallaron: string[] };
-  /** Solo admin: nombres de quienes cambiaron el acceso. */
+  /** Nombres de quienes cambiaron el acceso (pestaña Acceso, solo admin). */
   nombres: Record<string, string>;
+  /** URL firmada y corta de la foto, o null (sin foto o no se pudo firmar). */
+  fotoUrl: string | null;
+  /** Solo admin y solo sin enlace: miembros del Studio sin ficha. A Contabilidad no le llega. */
+  candidatos: Bloque<CandidatoEnlace[]> | null;
+  /** Solo admin: el candidato cuyo correo de acceso es el de contacto de la ficha. Propone, no enlaza. */
+  sugerencia: CandidatoEnlace | null;
 };
+
+type EnlaceProps = { elegido: string; onElegir: (userId: string) => void };
 
 type Pestana = "resumen" | "linea" | "acceso";
 
@@ -122,6 +134,7 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
   ];
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [editando, setEditando] = useState(false);
+  const [elegido, setElegido] = useState("");
   const router = useRouter();
   const titulo = useRef<HTMLHeadingElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -156,7 +169,12 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
 
       {/* ── Cabecera ─────────────────────────────────────────── */}
       <header className="ficha-emp-cabecera">
-        <Avatar initials={iniciales(e.full_name)} size={56} />
+        <FotoEmpleado
+          employeeId={e.id}
+          nombre={e.full_name}
+          fotoUrl={p.fotoUrl}
+          puedeCambiar={!!p.positions && e.status !== "egresado"}
+        />
         <div className="ficha-emp-cabecera-id">
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", flexWrap: "wrap" }}>
             <h1
@@ -233,6 +251,24 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
             antes del próximo pago.
           </Aviso>
         )}
+        {p.sugerencia && acceso.nivel === "admin" && !acceso.cuentaEnlazada && e.status !== "egresado" && (
+          <Aviso
+            tono="info"
+            titulo="Puede ser la misma persona"
+            accion={{
+              etiqueta: "Elegir para enlazar",
+              onClick: () => {
+                // Propone, no enlaza: deja elegida a la persona y el foco en el motivo.
+                setElegido(p.sugerencia!.userId);
+                setPestana("resumen");
+                setTimeout(() => document.getElementById(ID_MOTIVO_ENLACE)?.focus(), 0);
+              },
+            }}
+          >
+            El correo de contacto de esta ficha es el correo de acceso de {p.sugerencia.nombre}. Si es la misma persona,
+            enlázala con su motivo.
+          </Aviso>
+        )}
         {acceso.nivel === "admin" && acceso.cuentaEnlazada && acceso.suspendido && (
           <Aviso tono="info" titulo="Acceso al Studio suspendido">
             Su cuenta está suspendida en el Studio. Ojo: eso no le cierra la app del empleado.
@@ -266,7 +302,7 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
 
       {pestana === "resumen" && (
         <div role="tabpanel" id="ficha-emp-panel-resumen" aria-labelledby="ficha-emp-tab-resumen">
-          <Resumen {...p} />
+          <Resumen {...p} elegido={elegido} onElegir={setElegido} />
         </div>
       )}
       {pestana === "linea" && (
@@ -300,7 +336,7 @@ export function FichaEmpleadoVista(p: FichaEmpleadoProps) {
 }
 
 // ── Resumen ─────────────────────────────────────────────────────
-function Resumen(p: FichaEmpleadoProps) {
+function Resumen(p: FichaEmpleadoProps & EnlaceProps) {
   const { employee: e, acceso } = p;
   const conAcceso = acceso.nivel === "admin";
   const saldo = p.prestamos.ok ? saldoPrestamos(p.prestamos.data) : null;
@@ -347,8 +383,9 @@ function Resumen(p: FichaEmpleadoProps) {
             <dl style={{ margin: 0 }}>
               <Dato label="Banco" value={e.bank_name} />
               <Dato label="Tipo de cuenta" value={e.bank_account_type ? bankAccountTypeLabel(e.bank_account_type) : null} />
-              <Dato label="Cuenta" value={e.bank_account_masked} mono />
+              {!e.bank_account_masked && <Dato label="Cuenta" value={null} mono />}
             </dl>
+            {e.bank_account_masked && <MostrarCuenta employeeId={e.id} enmascarada={e.bank_account_masked} />}
           </section>
           {e.notes && (
             <section className="ficha-emp-card" aria-labelledby="ficha-emp-notas">
@@ -447,9 +484,17 @@ function Resumen(p: FichaEmpleadoProps) {
                 Acceso al Studio
               </h2>
               {!acceso.cuentaEnlazada ? (
-                <p style={{ margin: 0, font: "400 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-                  Sin cuenta enlazada. El enlace explícito con un usuario llega en la siguiente fase.
-                </p>
+                p.candidatos ? (
+                  <EnlazarConUsuario
+                    employeeId={e.id}
+                    egresado={e.status === "egresado"}
+                    candidatos={p.candidatos}
+                    elegido={p.elegido}
+                    onElegir={p.onElegir}
+                  />
+                ) : (
+                  <p className="ficha-emp-nota">Sin cuenta enlazada.</p>
+                )
               ) : (
                 <>
                   {acceso.error && (
@@ -471,6 +516,9 @@ function Resumen(p: FichaEmpleadoProps) {
                       Ver ficha de usuario
                     </Link>
                   )}
+                  <div style={{ marginTop: "var(--s-4)", display: "flex", justifyContent: "flex-end" }}>
+                    <QuitarEnlace employeeId={e.id} nombre={e.full_name} />
+                  </div>
                 </>
               )}
             </section>
@@ -566,6 +614,7 @@ const FUENTE: Record<string, string> = {
   recibos: "recibos",
   finiquitos: "finiquitos",
   comunicaciones: "comunicaciones",
+  eventos: "cambios registrados (enlace, foto, consultas de la cuenta)",
 };
 
 function LineaDeTiempo({ linea }: { linea: FichaEmpleadoProps["linea"] }) {
@@ -575,7 +624,8 @@ function LineaDeTiempo({ linea }: { linea: FichaEmpleadoProps["linea"] }) {
         Hechos laborales
       </h2>
       <p style={{ margin: "0 0 var(--s-3)", font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
-        Ingreso, préstamos, recibos, comunicaciones, amonestaciones y finiquito, del más reciente al más antiguo. Los
+        Ingreso, préstamos, recibos, comunicaciones, amonestaciones y finiquito, del más reciente al más antiguo. También
+        el enlace con su usuario, los cambios de foto y cada consulta de la cuenta completa, desde que se registran. Los
         cambios de sueldo, banco o estado todavía no quedan registrados.
       </p>
       {linea.fallaron.length > 0 && (

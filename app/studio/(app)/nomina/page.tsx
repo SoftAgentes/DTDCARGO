@@ -33,6 +33,9 @@ import {
 } from "@/lib/studio/nomina/registration-queries";
 import { listAllComms } from "@/lib/studio/nomina/comms-queries";
 import { computeEmployeeKpis, toEmployeeListItem } from "@/lib/studio/nomina/employee-types";
+import { createAdminClient } from "@/lib/db/admin";
+import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
+import { firmarFotos, rutasDeFoto } from "@/lib/studio/nomina/employee-photo";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
 import { computeWarningKpis } from "@/lib/studio/nomina/warning-types";
@@ -88,6 +91,26 @@ export default async function NominaPage({
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
   const loans = await listLoansWithBalance(supabase, employees);
 
+  // SDD-0652 fase 2: fotos de la fila. Solo para rol admin o accounting activo
+  // (D4); se firman aquí, en el servidor, con vida corta. La ruta del bucket no
+  // viaja. Sin la migración 0555 aplicada no hay columna y nadie tiene foto.
+  const fotos = new Map<string, string>();
+  const accesoFicha = await getFichaEmpleadoAccess(supabase);
+  if (accesoFicha.ok && employees.length > 0) {
+    const rutas = await rutasDeFoto(
+      supabase,
+      accesoFicha.tenantId,
+      employees.filter((e) => e.tenant_id === accesoFicha.tenantId).map((e) => e.id),
+    );
+    if (rutas.size > 0) {
+      const firmadas = await firmarFotos(createAdminClient(), [...rutas.values()]);
+      for (const [id, ruta] of rutas) {
+        const url = firmadas.get(ruta);
+        if (url) fotos.set(id, url);
+      }
+    }
+  }
+
   const employeeKpis = computeEmployeeKpis(employees);
   const contractorKpis = computeContractorKpis(contractors, payments);
   const loanKpis = computeLoanKpis(loans);
@@ -122,8 +145,10 @@ export default async function NominaPage({
       <NominaClient
         // SDD-0652 F1: al navegador va la proyección de lista, sin cédula,
         // sueldo, nacimiento, teléfono ni cuenta. La fila completa se queda en
-        // el servidor (KPIs y préstamos se calculan aquí arriba).
-        employees={employees.map(toEmployeeListItem)}
+        // el servidor (KPIs y préstamos se calculan aquí arriba). Las solicitudes
+        // (fase 2, N2) también llegan como proyección: `listRegistrations` ni
+        // siquiera lee la cédula ni la cuenta.
+        employees={employees.map((e) => toEmployeeListItem(e, fotos.get(e.id) ?? null))}
         initialTab={initialTab}
         positions={positions}
         contractors={contractors}

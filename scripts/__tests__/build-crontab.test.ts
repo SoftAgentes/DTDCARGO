@@ -82,14 +82,16 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
       expect.objectContaining({ path: "/api/cron/oficina-filtro", schedule: "* * * * *" }),
       expect.objectContaining({ path: "/api/cron/oficina-vaciado", schedule: "15 4 * * *" }),
       expect.objectContaining({ path: "/api/cron/noticias-purga-actor", schedule: "45 4 * * *" }),
+      expect.objectContaining({ path: "/api/cron/purge-employee-photo-orphans", schedule: "20 5 * * *" }),
       expect.objectContaining({ path: "/api/cron/oficina-despachador", schedule: "* * * * *" }),
       expect.objectContaining({ path: "/api/cron/oficina-envio", schedule: "* * * * *" }),
     ]);
     expect(jobs[vercelCrons.length]).toBe(`0 6 * * 1 ${CURL_PREFIX}/api/cron/searates-refresh`);
-    expect(jobs.at(-6)).toBe(`5 * * * * ${CURL_PREFIX}/api/cron/bcv-rates`);
-    expect(jobs.at(-5)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-filtro`);
-    expect(jobs.at(-4)).toBe(`15 4 * * * ${CURL_PREFIX}/api/cron/oficina-vaciado`);
-    expect(jobs.at(-3)).toBe(`45 4 * * * ${CURL_PREFIX}/api/cron/noticias-purga-actor`);
+    expect(jobs.at(-7)).toBe(`5 * * * * ${CURL_PREFIX}/api/cron/bcv-rates`);
+    expect(jobs.at(-6)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-filtro`);
+    expect(jobs.at(-5)).toBe(`15 4 * * * ${CURL_PREFIX}/api/cron/oficina-vaciado`);
+    expect(jobs.at(-4)).toBe(`45 4 * * * ${CURL_PREFIX}/api/cron/noticias-purga-actor`);
+    expect(jobs.at(-3)).toBe(`20 5 * * * ${CURL_PREFIX}/api/cron/purge-employee-photo-orphans`);
     expect(jobs.at(-2)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-despachador`);
     expect(jobs.at(-1)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-envio`);
     expect(jobs.filter((line) => line.endsWith("/api/cron/bcv-rates"))).toHaveLength(1);
