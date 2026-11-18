@@ -41,3 +41,10 @@ Fecha: 2026-11-18 · Rama: `claude/admiring-saha-bfeb23` · PR #676 (borrador) �
 - B8: aceptación y allowlist por fase.
 - N1: el dominio de marca blanca no se escribe en las specs ni en este handoff.
 - N2–N6: relaciones 0531, 0664 y 0674; líneas sin embarque o de otra cuenta; usuarios múltiples con auditoría e invitación de un solo uso; anti-enumeración, Storage por aliado y sin SVG; misma app sin romper fronteras.
+
+## Segunda ronda (re-revisión de f0c0e5eef, CHANGES_REQUESTED)
+
+- H1: 0663 §3.4: antes de calificar como alta, el generador busca `<cadena del subaliado>-<número>` por valor; el cliente que ya existe resuelve sin alta. Caso de aceptación nuevo en F2.
+- H2: 0666 §4.3: tabla L1–L9 con cada lectura con el cliente admin (consolidaciones, naviera, rastreo, próximo arribo, próximo zarpe y su tarjeta, club, referidos, academia, facturas y finanzas), y una prueba por lectura en P0.
+- H3: 0663 §3.4: riesgo aceptado y revisión de impacto L2; la línea base es la fila MP-01 de `docs/governance/README.md` §4, nombrada en la allowlist de F2.
+- No bloqueantes: guion y prueba del lote en la allowlist de F2; nota de cambio de la SDD-0336 en F3 y P5; D2 como recomendación pendiente de Sam; D-2 citada por 0637 mientras la #606 no se fusione; allowlist base de la 0666 completa por fase.

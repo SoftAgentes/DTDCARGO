@@ -128,7 +128,14 @@ Hereda `requireModuleView("clients")` del layout. Reutiliza `listAliadoOptions`,
 
 **Alcance exacto (el de Sam):** solo los códigos de un **subaliado ya conocido**, es decir, un prefijo que ya existe como subaliado vivo (con `parent_aliado_id`) porque alguien lo asignó antes por la vía del §3.3. No aplica a aliados raíz ni a prefijos que no estén registrados como subaliados.
 
-**Qué cambia en el generador de lotes:** si una marca no resuelve y su forma es exactamente `<prefijo de subaliado>-<dígitos>` o la insignia pelada de ese subaliado, la previa y `aplicar.sql` no abortan por esa marca: la marcan como «alta de cliente de subaliado» y `aplicar.sql` crea el cliente con la cadena completa (o usa la ficha ancla si solo vienen las letras). Cualquier otra marca desconocida sigue cortando la previa, como hoy.
+**Qué cambia en el generador de lotes**, en este orden:
+
+1. **Primero se busca el cliente que ya existe.** El cliente de un subaliado se guarda con la cadena completa (`AA-MD-0012`) y `resolve_markbox` compara el código exacto (migr 0367), así que los candidatos de hoy (`MD-0012` y sus rellenos, `scripts/consolidados/modelo.ts`, `interpretarMarca`) nunca lo encuentran. Si el prefijo es de un subaliado conocido, el generador busca además `<cadena del subaliado>-<número>`, comparando el número **por valor** (`MD-012`, `MD-0012` y `MD-12` son el mismo cliente), igual que el §3.3 paso 4. Si existe, la marca **resuelve a ese cliente y no es alta**.
+2. **Solo si no existe**, y la forma es exactamente `<prefijo de subaliado>-<dígitos>`, la marca es «alta de cliente de subaliado»: la previa y `aplicar.sql` no abortan por ella y `aplicar.sql` crea el cliente con la cadena completa.
+3. La insignia pelada del subaliado (`MD`) resuelve a su ficha ancla, que ya existe; nunca es alta.
+4. Cualquier otra marca desconocida sigue cortando la previa, como hoy.
+
+Así, la segunda carga del mismo código resuelve al cliente creado en la primera: no choca con `unique (tenant_id, markbox)` (migr 0006), no duplica y no descuadra el número de altas de `AUTORIZACION.txt`.
 
 **Salvaguardas:**
 
@@ -136,7 +143,7 @@ Hereda `requireModuleView("clients")` del layout. Reutiliza `listAliadoOptions`,
 2. **Normalización.** Solo califica una marca que cumple la forma estricta del código. Una marca o remitente con texto de nombre no califica: va al mapa de marcas de Sam, como exige la SDD-0543, y no llega a `shipments.code` ni al log.
 3. **Autorización.** La previa lista las altas que va a hacer (cuántas y qué códigos, sin nombres). `AUTORIZACION.txt` tiene que citar, además del id del lote, el número de altas de subaliado; si no coincide con la previa, `aplicar` se niega.
 4. **Antecedente MG.** Un código con forma `XX-NNN` puede ser el proveedor de un cliente y no un subaliado. Por eso solo califican prefijos que alguien ya asignó a mano como subaliado; un prefijo nuevo nunca se crea en un lote.
-5. **Pruebas.** `consolidados-previa-corte.test.ts` gana dos casos: «código de subaliado conocido pasa como alta» y «código de un prefijo que no es subaliado corta». Los tres casos actuales se conservan.
+5. **Pruebas.** `consolidados-previa-corte.test.ts` gana tres casos: «código nuevo de subaliado conocido pasa como alta», «código de cliente de subaliado que ya existe resuelve, sin alta» (también con otro relleno del número) y «código de un prefijo que no es subaliado corta». Los tres casos actuales se conservan.
 
 **Registro formal (índice de gobernanza §5 y §7, protocolo L3):**
 
@@ -150,11 +157,24 @@ Hereda `requireModuleView("clients")` del layout. Reutiliza `listAliadoOptions`,
 | Revisión | 2027-02-18, o antes si una alta automática termina en un cliente equivocado |
 | Cómo se retira | Quitar la rama del generador; la previa vuelve a cortar |
 
+**Riesgo aceptado.** Una marca mal escrita en China con el prefijo de un subaliado (por ejemplo, un dígito equivocado) crea un cliente que no existe, en vez de cortar la carga. El embarque queda bajo el subaliado correcto pero con un cliente de más. Sam lo acepta porque el embarque sigue en la cuenta del aliado que corresponde, la previa lista cada alta antes de aplicar y la oficina lo corrige con «Pasar a otro cliente» (SDD-0645). El cliente de más queda con nombre de marcador y sin datos personales.
+
+**Revisión de impacto (L2 dentro de L3):**
+
+| Área | Impacto | Mitigación |
+|---|---|---|
+| Legal y privacidad | El cliente nace sin datos personales: solo código y nombre de marcador. La normalización de la SDD-0543 sigue impidiendo que un nombre llegue a `shipments.code` o al log append-only | Forma estricta del código (salvaguarda 2) |
+| Contable | El cliente nuevo no factura: las facturas de lote van al aliado raíz (SDD-0543, SDD-0674). Un cliente de más no cambia el monto ni el saldo del aliado; solo puede cambiar en qué trabajo cae una línea | El embarque queda en el subaliado correcto; reasignación con SDD-0645 |
+| Permisos | El lote corre con el permiso del cargador y con `AUTORIZACION.txt` de Sam. No crea aliados ni subaliados, que siguen exigiendo `reassign_shipment_owner` y edición en Clientes (§3.3) | Número de altas en `AUTORIZACION.txt` |
+| Auditoría | Cada alta queda en el log de auditoría del lote con el id del lote, igual que el resto de la carga | La previa y la evidencia del lote listan las altas |
+| Móvil | La PWA de recepción (`/m/cn`, `/m/ve`) ve el cliente nuevo como cualquier otro; no muestra nombres al equipo de China (SDD-0531) | Sin cambio |
+| Accesibilidad | Sin interfaz nueva: es un cambio del generador de lotes | No aplica |
+
 **Cómo queda escrita en la SDD-0543** (se agrega en la PR de F2, sin reescribir el texto original): debajo del párrafo «Un lote de producción no crea clientes ni aliados», una nota:
 
 > **Excepción EXC-0663 (Sam, 2026-11-18; revisión 2027-02-18).** Un lote de producción sí crea el cliente de un **subaliado ya conocido** cuando la marca tiene la forma estricta `<prefijo>-<dígitos>` o es la insignia del subaliado. La previa lista esas altas y `AUTORIZACION.txt` cita su número. Cualquier otra marca desconocida sigue cortando la previa. Detalle en la SDD-0663 §3.4 y en `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md`.
 
-El documento de la excepción en `docs/governance/reviews/` y su entrada en la línea base (§9 del índice de gobernanza) se crean en la PR de F2.
+En la PR de F2 se crean el documento de la excepción, `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md`, y su entrada en la línea base: la fila **MP-01** (matriz de permanencia) del registro maestro, `docs/governance/README.md` §4, que enlaza al documento con dueño y fecha de revisión, como hace la fila de AUD-02 con su excepción.
 
 ### 3.5 La marca de un subaliado es la de su aliado raíz (cambio a la SDD-0336)
 
@@ -219,7 +239,8 @@ Aceptación:
 - [ ] Un prefijo de otro aliado, o que choca con otra ficha, no asigna y no deja nada escrito.
 - [ ] Sin `reassign_shipment_owner` o sin edición en Clientes, la RPC rechaza (pruebas negativas por rol).
 - [ ] La ficha ancla nace sin correo.
-- [ ] En el generador, un código de subaliado conocido pasa como alta y un prefijo que no es subaliado sigue cortando.
+- [ ] En el generador, un código nuevo de subaliado conocido pasa como alta y un prefijo que no es subaliado sigue cortando.
+- [ ] Un código de cliente de subaliado que ya existe resuelve, sin alta, también con otro relleno del número; cargar dos veces el mismo código no choca ni duplica.
 - [ ] `AUTORIZACION.txt` sin el número de altas hace negar `aplicar`.
 - [ ] Contrato SQL de la RPC con mutantes en rojo.
 - [ ] Nota EXC-0663 en la SDD-0543 y documento de la excepción en `docs/governance/reviews/`.
@@ -232,9 +253,10 @@ Allowlist:
 - `app/studio/(app)/tracking/[id]/actions.ts` (acciones de vista previa y asignar a aliado)
 - `lib/studio/reasignar-embarque.ts` y su prueba
 - `scripts/consolidados/lote-sql.ts`, `scripts/consolidados/modelo.ts`, `scripts/consolidados/generar-lote.ts` y `scripts/__tests__/consolidados-previa-corte.test.ts`
-- `infra/ops/` solo el guion de lote, si la comprobación de `AUTORIZACION.txt` vive ahí
+- `infra/ops/consolidados/aplicar-lote.sh` (comprobación del número de altas en `AUTORIZACION.txt`) e `infra/ops/tests/prueba-aplicar-lote.sh`
 - `docs/specs/0543-consolidados-en-camino/spec.md` (solo la nota EXC-0663)
-- `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md` (nuevo) y la entrada de la línea base
+- `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md` (nuevo)
+- `docs/governance/README.md` (solo la fila MP-01 de §4)
 - `supabase/migrations-baseline.json` (solo la espera de la migración)
 - `.agents/handoffs/0663-subaliados-como-jobs.md`
 
@@ -254,6 +276,7 @@ Allowlist:
 - `app/studio/(app)/clientes/[markbox]/estado-de-cuenta/page.tsx` y `pdf/route.ts`
 - `lib/studio/pdf/estado-de-cuenta-pdf.tsx`
 - `lib/studio/aliados/brand-resolve.ts` (marca del raíz) y su prueba
+- `docs/specs/0336-marca-portal-por-principal/spec.md` (solo la nota de cambio: la marca del Studio sube al aliado raíz, SDD-0663 §3.5)
 - `.agents/handoffs/0663-subaliados-como-jobs.md`
 
 ## 5. Datos personales

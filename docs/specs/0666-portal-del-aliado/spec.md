@@ -116,7 +116,21 @@ Sobre la versión simple del portal: Inicio, Mis envíos, Prealertas, Etiquetas 
 ### 4.3 La restricción va en los datos, no en el menú
 
 - `client_users` gana un rol: `cliente` (hoy), `aliado` (usuario del aliado) y `cliente_final` (cliente de un aliado).
-- **Las lecturas que muestran contenedor, buque y naviera** (`lib/portal/consolidation-queries.ts`, que hoy lee con el cliente admin) **dejan de devolver esos campos** cuando el rol es `cliente_final`. Igual las de facturas, estado de cuenta, club, referidos y academia: el servidor responde vacío o 404, no solo esconde el enlace.
+- **Cada lectura con el cliente admin que muestra contenedor, buque, naviera, zarpe o rastreo deja de devolver esos datos** cuando el rol es `cliente_final`. Son estas (leídas en el código):
+
+| # | Lectura | Dónde se usa | Qué muestra hoy |
+|---|---|---|---|
+| L1 | `getConsolidationsForShipments` (`lib/portal/consolidation-queries.ts:75-93`) | `app/portal/(app)/envios/page.tsx` y `lib/portal/seguimiento.ts` | Contenedor, buque y naviera de cada envío |
+| L2 | `getShipmentNaviera` (`lib/studio/naviera-tracking/queries.ts`) | `app/portal/(app)/envios/[code]/page.tsx:105-108` | Naviera del envío |
+| L3 | `getShipmentTrackingSnapshot` | `app/portal/(app)/envios/[code]/page.tsx:105-108` | Rastreo de la naviera, con posición |
+| L4 | `getShipmentNaviera` del próximo arribo | `app/portal/(app)/page.tsx:111` | Naviera del envío que llega primero |
+| L5 | `lib/portal/next-sailing-queries.ts` (`PortalSailing`) | `app/portal/(app)/layout.tsx`, `app/portal/(app)/page.tsx`, `app/portal/(app)/envios/page.tsx`, `PortalShell.tsx`, `PortalTopbar.tsx`, `PortalDashboardNorte.tsx` y `PortalNextSailingCard.tsx:119` («Buque») | Próximo zarpe y buque |
+| L6 | Club | `app/portal/(app)/club/page.tsx` | Programa de fidelización de DTD |
+| L7 | Referidos | `app/portal/(app)/referidos/page.tsx` y `actions.ts` | Programa de referidos de DTD |
+| L8 | Academia | `app/portal/(app)/academia/**` | Cursos de DTD |
+| L9 | Facturas y estado de cuenta | `app/portal/(app)/facturas/**`, `app/portal/(app)/finanzas/page.tsx` | Dinero con DTD |
+
+  Con rol `cliente_final`: L1 a L5 no consultan esos datos o los devuelven en `null`; L6 a L9 responden 404 en el servidor. No basta con esconder el enlace.
 - Las políticas RLS del portal no se reescriben. Lo del aliado va por RPC `security definer` que derivan la identidad de `auth.uid()` (patrón de `get_portal_brand()`): listar mis clientes, registrar cliente, registrar subaliado, editar nombre y teléfono, crear prealerta a nombre de, leer envíos de mis clientes y leer la cuenta por trabajo. Cada una comprueba el rol y que el cliente cuelga de la cadena del aliado que llama.
 - El aliado no reporta pagos ni cambia direcciones de entrega de sus clientes (SDD-0255 §8.4).
 
@@ -170,7 +184,15 @@ Dependen de la SDD-0663 F1 a F3. Cada fase tiene su allowlist exacta; se escribe
 Aceptación por fase:
 
 - **M**: Sam aprueba la maqueta.
-- **P0**: con rol `cliente_final`, la lectura de envíos no trae contenedor, buque ni naviera, y facturas y estado de cuenta responden vacío; prueba por cada lectura. Un cliente directo ve lo mismo que hoy.
+- **P0**: una prueba por cada lectura del §4.3, con rol `cliente_final`:
+  - L1: la lista de envíos no trae contenedor, buque ni naviera;
+  - L2 y L3: el detalle del envío no trae naviera ni rastreo;
+  - L4: el inicio no trae la naviera del próximo arribo;
+  - L5: ni el inicio, ni la barra, ni la lista de envíos traen próximo zarpe ni buque, y `PortalNextSailingCard` no se monta;
+  - L6, L7 y L8: club, referidos y academia responden 404 en el servidor;
+  - L9: facturas y finanzas responden 404 en el servidor.
+  
+  Un cliente directo ve lo mismo que hoy en las nueve.
 - **P1**: la RPC devuelve solo la cuenta del aliado que llama; otro aliado o un cliente final reciben rechazo.
 - **P2**: el aliado registra un cliente y obtiene un código de su cadena; no puede registrar bajo otro aliado; el choque de prefijo da el mensaje neutro; editar no cambia el código; contrato SQL con mutantes.
 - **P3**: la prealerta queda a nombre del cliente elegido y solo de un cliente de su cadena; el proveedor sigue sin ver nombre ni teléfono.
@@ -179,7 +201,14 @@ Aceptación por fase:
 - **P6**: el cliente final entra por invitación de un solo uso y ve solo lo del §4.2; no ve nada de dinero.
 - **P7**: un SVG o un archivo grande se rechazan; un color sin contraste se corrige; «restablecer marca» funciona.
 
-Allowlist base (se detalla por fase antes de programarla): `app/portal/(app)/**` de las secciones nuevas, `lib/portal/consolidation-queries.ts`, `lib/portal/**` de las RPC nuevas, `app/portal/(app)/layout.tsx`, `proxy.ts`, `lib/studio/etiquetas-qr.ts`, los cuatro usos de `SITE_URL`, `lib/studio/aliados/brand-resolve.ts`, las migraciones con número del DG y sus contratos SQL, y el handoff.
+Allowlist base (se detalla por fase antes de programarla):
+
+- P0: las lecturas L1 a L9 del §4.3 (`lib/portal/consolidation-queries.ts`, `lib/studio/naviera-tracking/queries.ts` solo si hace falta, `lib/portal/next-sailing-queries.ts`, `app/portal/(app)/page.tsx`, `app/portal/(app)/layout.tsx`, `app/portal/(app)/envios/**`, `app/portal/(app)/club/page.tsx`, `app/portal/(app)/referidos/**`, `app/portal/(app)/academia/**`, `app/portal/(app)/facturas/**`, `app/portal/(app)/finanzas/page.tsx`, `app/portal/_components/PortalShell.tsx`, `app/portal/_components/PortalTopbar.tsx`, `app/portal/(app)/_components/PortalDashboardNorte.tsx`, `app/portal/(app)/_components/PortalNextSailingCard.tsx`) y la migración del rol.
+- P1 a P3 y P6: `app/portal/(app)/**` de las secciones nuevas, `lib/portal/**` de las RPC nuevas, `app/portal/(app)/compras/**` (paso «¿Para quién es?») y las migraciones con número del DG y sus contratos SQL.
+- P4: la migración de `client_users`, el amarre del primer ingreso, la pantalla de usuarios del aliado y, en el Studio, la **recuperación del último usuario** del aliado.
+- P5: `proxy.ts`; `app/portal/(app)/layout.tsx`; los cuatro usos de `SITE_URL` (`app/entrar/actions.ts`, `lib/portal/correo-comprobacion.ts`, `lib/portal/registro-link-types.ts`, `app/portal/(app)/referidos/actions.ts`); `app/p/[token]/**`; `app/verificar/**`; `lib/studio/etiquetas-qr.ts`; `lib/studio/aliados/brand-resolve.ts`; la **migración que cambia `get_portal_brand()`** (marca del raíz y por dirección); y `docs/specs/0336-marca-portal-por-principal/spec.md` (solo la nota de cambio).
+- P7: la pantalla «Mi marca», el bucket de Storage por aliado y, en el Studio, **«restablecer marca»**.
+- Todas: el handoff.
 
 ## 6. Datos personales (revisar-datos-ve, corrida el 2026-11-18 sobre el diseño)
 
@@ -201,11 +230,11 @@ Los clientes finales son **titulares que no son usuarios de DTD** (punto 12 del 
 | # | Punto | Estado | Detalle |
 |---|---|---|---|
 | D1 | 3 · Consentimiento (CRBV 28 y 60; SC 332/2001, autonomía) | **ENCONTRADO** | No hay base para tratar datos de un tercero que carga el aliado. Hace falta la cláusula de la SDD-0255 §8.5: el aliado declara que tiene el consentimiento del cliente final y que responde por él. Sin eso, P2, P3 y P6 no salen |
-| D2 | 2 · Minimización | Diseño | Solo nombre y teléfono; el teléfono se pide solo si el aliado eligió «DTD entrega al cliente final». Sin cédula, correo ni dirección |
+| D2 | 2 · Minimización | **Recomendación pendiente de Sam** | Sam decidió «nombre y teléfono» (§2.1). La recomendación es pedir el teléfono solo cuando el aliado eligió «DTD entrega al cliente final», porque es el único caso en que DTD lo usa. Sin cédula, correo ni dirección en ningún caso. Hasta que Sam decida, rige su decisión |
 | D3 | 4 y 5 · Supresión | **ENCONTRADO** | El aliado no borra (decisión de Sam) y no hay solicitud de supresión desde el portal (`app/privacidad/page.tsx:438-454`). **Quién la atiende:** el aliado la pide a la oficina, que borra con `softDeleteClientAction` (lógico, revoca el portal, auditoría sin datos: `mapa-de-borrado.md:324-333`). El cliente final puede pedirla al aliado o al correo de privacidad. El borrado definitivo del nombre y el teléfono queda **NO VERIFICABLE** hasta que el mapa de borrado lo cubra |
 | D4 | 12 · Titulares que no son usuarios | **ENCONTRADO** | El cliente final no ve ninguna política de DTD (decisión: ningún término de DTD). El aviso le toca al aliado; el acuerdo con el aliado tiene que obligarlo |
 | D5 | 9 · Transferencia a China | **CORRECTO** | El proveedor en `/p/[token]` no ve nombre ni teléfono (`lib/studio/prealertas/queries.ts:361-364`); el QR solo lleva el Shipping Mark y la caja (`lib/studio/etiquetas-qr.ts:31-41`); el equipo de China no ve nombres (`lib/studio/privacidad-cn.ts:92-158`). Con la marca blanca, `/p` mostrará la marca del aliado en vez de la de DTD; no agrega datos personales |
-| D6 | 9 · Regla D-2 | No aplica | La D-2 prohíbe enviar datos de clientes a un proveedor de IA chino (SDD-0639 §4, citada en `docs/specs/0637-faro-asistente-ayuda/privacidad.md:145`). Esta spec no usa IA |
+| D6 | 9 · Regla D-2 | No aplica | La D-2 prohíbe enviar datos de clientes a un proveedor de IA chino. Se cita por `docs/specs/0637-faro-asistente-ayuda/privacidad.md:145` mientras la SDD-0639 (PR #606) no se fusione. Esta spec no usa IA. **Si el cliente final llega a tener Faro** u otro asistente en su portal, la D-2 pasa a aplicar y se revisa antes |
 | D7 | Seguridad | **ENCONTRADO** | La ocultación del equipo de China no es frontera de base de datos (`lib/studio/privacidad-cn.ts:19-23`). Las RPC nuevas del aliado no deben devolver nombre ni teléfono a un usuario de región `cn` |
 | D8 | Verificación contra datos | **NO VERIFICABLE** | No se probó ningún borrado contra una base real |
 
