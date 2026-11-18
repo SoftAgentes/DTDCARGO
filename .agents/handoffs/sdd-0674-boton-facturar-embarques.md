@@ -106,27 +106,23 @@ Fecha: 2026-11-18. Datos de la tarea:
 | Comprobación | Resultado |
 |---|---|
 | docs:check / sdd:check / governance:check / git diff --check | PASÓ |
-| check-pending-migration-symbols | PASÓ: 0 ROJO, 3 AMARILLO declarados |
-| Contratos SQL (CI) sobre `aaf25d169` y `6339c2902` | FALLÓ: uuid inválido `…cdel` en el fixture. Corregido en `91dd1e4a8` (`…c0d1`) |
-| Contratos SQL (CI) sobre la cabeza nueva | NO EJECUTADO todavía: lo corre el CI al subir |
-| vitest de lo tocado | NO EJECUTADO: espera el turno de PC del DG |
-| `pnpm typecheck` / eslint de lo tocado | NO EJECUTADO: espera el turno |
+| check-pending-migration-symbols | PASÓ: 0 ROJO, 3 AMARILLO declarados (líneas de evidencia corregidas tras el merge) |
+| `pnpm install --frozen-lockfile` (turno del DG, autorización de Sam) | PASÓ |
+| vitest (`--pool=threads --maxWorkers=1`): Embarques, exc0674, rate-snapshots (0574), frontera 0357, rbac-actions-guard, rbac-view-guard, rbac | PASÓ: 24 archivos, 881 pruebas (el conteo de la superficie RBAC, 85 → 86, se corrigió y se volvió a correr: 494/494) |
+| `pnpm typecheck` | PASÓ |
+| eslint de los archivos tocados | PASÓ |
+| Contratos SQL en Docker (`run-sql-tests.mjs`, postgres:17 efímero con `--rm`) | PASÓ: 310 de 310, incluidos la 0564 y su carrera |
 | `/ui-check` de `FacturarContenedor.tsx` | NO EJECUTADO |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI |
 
 ## Pendientes de esta tarea
 
-1. Que el CI corra los contratos SQL sobre la cabeza nueva, y corregir lo que salga.
-2. Con el turno del DG:
-   - `pnpm install`;
-   - vitest de los archivos de la allowlist y de las pruebas existentes de Embarques, de la 0574 y de la
-     frontera 0357;
-   - `pnpm typecheck` y eslint de lo tocado.
-3. `/ui-check` de `FacturarContenedor.tsx`.
-4. Los puntos 3 y 6 de la revisión de `df8e20648` van aquí como límites conocidos; le pedí el texto al
+1. Que el CI pase sobre la cabeza nueva.
+2. `/ui-check` de `FacturarContenedor.tsx`.
+3. Los puntos 3 y 6 de la revisión de `df8e20648` van aquí como límites conocidos; le pedí el texto al
    DG.
-5. La re-revisión de la cabeza nueva, que lanza el DG.
-6. Después de fusionar, y solo con el OK nominal de Sam:
+4. La re-revisión de la cabeza nueva, que lanza el DG.
+5. Después de fusionar, y solo con el OK nominal de Sam:
    - aplicar la 0564 por el runbook;
    - agregar el 64 a la lista con `service_role` y `dtd.audit_reason`.
 
