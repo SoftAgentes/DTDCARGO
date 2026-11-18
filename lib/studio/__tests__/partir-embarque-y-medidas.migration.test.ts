@@ -25,7 +25,7 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0563_partir_embarque_y_medidas.te
 const M0563 = "0563_partir_embarque_y_medidas.sql";
 const FILE_0563 = readFileSync(resolve(ROOT, "supabase/migrations", M0563), "utf8");
 const SLOW = 300_000;
-const ASERCIONES = 86;
+const ASERCIONES = 91;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
