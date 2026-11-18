@@ -16,6 +16,7 @@ import {
   PENSION_CONTRIB_MAX_PCT,
   UTILIDADES_MAX_DAYS,
   MONTO_MAX,
+  VIGENTE_DESDE_MIN,
   hoyCaracas,
 } from "./payroll-rules-types";
 
@@ -244,6 +245,14 @@ describe("validatePayrollRulesInput · SDD-0653 A2b (migración 0556)", () => {
     expect(validatePayrollRulesInput({ ...base, vigente_desde: "2026-01-15" }, HOY).fieldErrors).toBeUndefined();
     expect(validatePayrollRulesInput({ ...base, vigente_desde: "2026-11-18" }, HOY).fieldErrors?.vigente_desde).toMatch(/posterior a hoy/);
     expect(validatePayrollRulesInput({ ...base, vigente_desde: "2027-01-01" }, HOY).fieldErrors?.vigente_desde).toBeTruthy();
+  });
+
+  it("la vigencia tiene piso en 2000-01-01, igual que la función de la 0556: 1999 es error del campo", () => {
+    expect(VIGENTE_DESDE_MIN).toBe("2000-01-01");
+    expect(validatePayrollRulesInput({ ...base, vigente_desde: "2000-01-01" }, HOY).fieldErrors).toBeUndefined();
+    expect(validatePayrollRulesInput({ ...base, vigente_desde: "1999-12-31" }, HOY).fieldErrors?.vigente_desde).toMatch(
+      /no puede ser anterior a 2000-01-01/,
+    );
   });
 
   it("hoyCaracas usa la hora de Caracas (UTC-4), no la UTC", () => {

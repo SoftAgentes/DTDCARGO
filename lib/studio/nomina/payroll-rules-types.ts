@@ -340,6 +340,9 @@ const ESCALA_LABEL: Record<Escala, string> = {
 };
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Piso de «Rige desde»: la misma regla que la función `nomina_guardar_reglas` de la 0556 (2000-01-01). */
+export const VIGENTE_DESDE_MIN = "2000-01-01";
 /** ¿Es una fecha real AAAA-MM-DD (no 2026-02-31)? */
 export function isFechaIso(v: unknown): v is string {
   if (typeof v !== "string" || !FECHA_ISO.test(v)) return false;
@@ -496,6 +499,7 @@ export function validatePayrollRulesInput(
   const vigenteRaw = strOrNull(raw.vigente_desde);
   if (vigenteRaw !== null) {
     if (!isFechaIso(vigenteRaw)) errors.vigente_desde = "Fecha de vigencia inválida (AAAA-MM-DD).";
+    else if (vigenteRaw < VIGENTE_DESDE_MIN) errors.vigente_desde = `La fecha de vigencia no puede ser anterior a ${VIGENTE_DESDE_MIN}.`;
     else if (vigenteRaw > hoy) errors.vigente_desde = "La fecha de vigencia no puede ser posterior a hoy.";
   }
   const fuenteRaw = strOrNull(raw.fuente_legal);

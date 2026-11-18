@@ -11,7 +11,7 @@
  * salen deshabilitados con un aviso y no se guardan (`ampliada: false`).
  */
 
-import { useActionState, useEffect, useMemo } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   DrawerShell,
@@ -22,6 +22,7 @@ import {
   DAY_METHOD_OPTIONS,
   PAYROLL_RULES_DEFAULTS,
   hoyCaracas,
+  VIGENTE_DESDE_MIN,
   type PayrollRules,
 } from "@/lib/studio/nomina/payroll-rules-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
@@ -78,7 +79,11 @@ function UsarPropuesta({ campos, etiqueta, disabled }: { campos: Campo0556[]; et
           if (!form) return;
           for (const name of campos) {
             const el = form.elements.namedItem(name);
-            if (el instanceof HTMLInputElement && el.value.trim() === "") el.value = propuesta(name);
+            if (el instanceof HTMLInputElement && el.value.trim() === "") {
+              el.value = propuesta(name);
+              // Asignar `value` no dispara nada: el evento hace que el texto «Sin configurar» se actualice.
+              el.dispatchEvent(new Event("input", { bubbles: true }));
+            }
           }
         }}
       >
@@ -92,6 +97,50 @@ const MONEDA_OPCIONES = [
   { value: "USD", label: "USD" },
   { value: "VES", label: "Bs" },
 ];
+
+/**
+ * Un número de la 0556. Si el campo está vacío y hay propuesta de la norma, un texto VISIBLE debajo dice
+ * «Sin configurar · propuesta: N» y queda enlazado con `aria-describedby` (no se depende del color del
+ * placeholder). El texto desaparece en cuanto el campo tiene un valor.
+ */
+function Numero0556({
+  name,
+  label,
+  inicial,
+  espera,
+  error,
+  step,
+  min,
+  max,
+}: {
+  name: Campo0556;
+  label: string;
+  inicial: string;
+  espera: boolean;
+  error?: string;
+  step?: string;
+  min?: string;
+  max?: string;
+}) {
+  const [vacio, setVacio] = useState(inicial.trim() === "");
+  const p = propuesta(name);
+  const ayuda = !espera && vacio && p !== "" ? `Sin configurar · propuesta: ${p}` : undefined;
+  return (
+    <Field label={label} error={error} ayuda={ayuda}>
+      <input
+        name={name}
+        type="number"
+        step={step ?? "0.01"}
+        min={min ?? "0"}
+        max={max}
+        disabled={espera}
+        className="studio-input studio-input-mono"
+        defaultValue={espera ? "" : inicial}
+        onInput={(e) => setVacio(e.currentTarget.value.trim() === "")}
+      />
+    </Field>
+  );
+}
 
 function GroupTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -129,19 +178,16 @@ export function ReglasDrawer({
     label: string,
     opts: { step?: string; min?: string; max?: string } = {},
   ) => (
-    <Field label={label} error={state.fieldErrors?.[name]}>
-      <input
-        name={name}
-        type="number"
-        step={opts.step ?? "0.01"}
-        min={opts.min ?? "0"}
-        max={opts.max}
-        disabled={espera}
-        className="studio-input studio-input-mono"
-        placeholder={propuesta(name)}
-        defaultValue={espera ? "" : valor0556(rules, name)}
-      />
-    </Field>
+    <Numero0556
+      name={name}
+      label={label}
+      inicial={valor0556(rules, name)}
+      espera={espera}
+      error={state.fieldErrors?.[name]}
+      step={opts.step}
+      min={opts.min}
+      max={opts.max}
+    />
   );
   const moneda0556 = (name: "cestaticket_moneda" | "bono_guerra_moneda", label: string) => (
     <Field label={label} error={state.fieldErrors?.[name]}>
@@ -200,7 +246,7 @@ export function ReglasDrawer({
         <GroupTitle>Vigencia de esta versión</GroupTitle>
         <Row>
           <Field label="Rige desde (informativa)" error={state.fieldErrors?.vigente_desde}>
-            <input name="vigente_desde" type="date" max={hoy} disabled={espera} className="studio-input" defaultValue={hoy} />
+            <input name="vigente_desde" type="date" min={VIGENTE_DESDE_MIN} max={hoy} disabled={espera} className="studio-input" defaultValue={hoy} />
           </Field>
           <Field label="Fuente legal" error={state.fieldErrors?.fuente_legal}>
             <input
@@ -333,7 +379,7 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           El INCES sobre utilidades lo retiene el patrono al trabajador (es una retención, no un aporte del patrono).
-          El campo nace vacío: el valor gris es la propuesta de la norma, por confirmar con el contador.
+          Si esta versión no lo tenía configurado, el campo queda vacío y debajo se muestra la propuesta de la norma, por confirmar con el contador.
         </p>
         <UsarPropuesta campos={["inces_utilidades_pct"]} etiqueta="INCES sobre utilidades" disabled={espera} />
 
@@ -424,8 +470,9 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Solo para calcular el costo de la nómina: no se descuentan al trabajador. La contribución de pensiones tiene un tope
-          legal de 15 %. Los campos nacen vacíos: el valor gris es la propuesta de la norma conocida, por confirmar con el
-          contador. «Usar la propuesta» la copia a los campos vacíos; si no lo haces, quedan «sin configurar» y se guardan vacíos.
+          legal de 15 %. Los campos que la versión no tenía configurados quedan vacíos y debajo muestran la propuesta de la
+          norma conocida, por confirmar con el contador. «Usar la propuesta» la copia a los campos vacíos; si no lo haces, se guardan
+          vacíos («sin configurar»).
         </p>
         <UsarPropuesta
           campos={["sso_patronal_pct", "rpe_patronal_pct", "faov_patronal_pct", "inces_patronal_pct", "pension_contrib_pct"]}
@@ -483,7 +530,7 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Utilidades: entre 30 y 120 días (LOTTT Art. 131). Los máximos son los de la escala por antigüedad (Arts. 190 y 192).
-          Nacen vacíos: el valor gris es la propuesta, por confirmar con el contador.
+          Si no están configurados quedan vacíos; debajo se muestra la propuesta, por confirmar con el contador.
         </p>
         <UsarPropuesta
           campos={["vacaciones_extra_max", "bono_vacacional_max_days"]}

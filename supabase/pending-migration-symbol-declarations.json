@@ -206,8 +206,8 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:550",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:146",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:291",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:192",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:337",
             "lib/studio/nomina/ley/parametros.ts:122",
             "lib/studio/nomina/payroll-rules-queries.ts:48",
             "lib/studio/nomina/payroll-rules-queries.ts:117",
@@ -216,10 +216,10 @@
             "lib/studio/nomina/payroll-rules-types.ts:153",
             "lib/studio/nomina/payroll-rules-types.ts:201",
             "lib/studio/nomina/payroll-rules-types.ts:249",
-            "lib/studio/nomina/payroll-rules-types.ts:489",
-            "lib/studio/nomina/payroll-rules-types.ts:490",
             "lib/studio/nomina/payroll-rules-types.ts:492",
-            "lib/studio/nomina/payroll-rules-types.ts:534"
+            "lib/studio/nomina/payroll-rules-types.ts:493",
+            "lib/studio/nomina/payroll-rules-types.ts:495",
+            "lib/studio/nomina/payroll-rules-types.ts:538"
           ]
         },
         {
@@ -227,9 +227,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:558",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:444",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:482",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:489",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:491",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:529",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:536",
             "lib/studio/nomina/ley/parametros.ts:86",
             "lib/studio/nomina/ley/parametros.ts:116",
             "lib/studio/nomina/ley/parametros.ts:507",
@@ -241,7 +241,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:257",
             "lib/studio/nomina/payroll-rules-types.ts:335",
             "lib/studio/nomina/payroll-rules-types.ts:339",
-            "lib/studio/nomina/payroll-rules-types.ts:542"
+            "lib/studio/nomina/payroll-rules-types.ts:546"
           ]
         },
         {
@@ -249,8 +249,8 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:549",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:146",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:290",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:192",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:336",
             "lib/studio/nomina/ley/parametros.ts:121",
             "lib/studio/nomina/payroll-rules-queries.ts:47",
             "lib/studio/nomina/payroll-rules-queries.ts:116",
@@ -259,10 +259,10 @@
             "lib/studio/nomina/payroll-rules-types.ts:152",
             "lib/studio/nomina/payroll-rules-types.ts:200",
             "lib/studio/nomina/payroll-rules-types.ts:248",
-            "lib/studio/nomina/payroll-rules-types.ts:483",
-            "lib/studio/nomina/payroll-rules-types.ts:484",
             "lib/studio/nomina/payroll-rules-types.ts:486",
-            "lib/studio/nomina/payroll-rules-types.ts:533"
+            "lib/studio/nomina/payroll-rules-types.ts:487",
+            "lib/studio/nomina/payroll-rules-types.ts:489",
+            "lib/studio/nomina/payroll-rules-types.ts:537"
           ]
         },
         {
@@ -270,9 +270,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:553",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:411",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:419",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:431",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:457",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:465",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
             "lib/studio/nomina/ley/parametros.ts:81",
             "lib/studio/nomina/ley/parametros.ts:111",
             "lib/studio/nomina/ley/parametros.ts:556",
@@ -284,7 +284,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:252",
             "lib/studio/nomina/payroll-rules-types.ts:288",
             "lib/studio/nomina/payroll-rules-types.ts:296",
-            "lib/studio/nomina/payroll-rules-types.ts:537"
+            "lib/studio/nomina/payroll-rules-types.ts:541"
           ]
         },
         {
@@ -292,8 +292,8 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:547",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:205",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:207",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:251",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:253",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:368",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:370",
             "lib/studio/nomina/payroll-rules-queries.ts:45",
@@ -302,9 +302,9 @@
             "lib/studio/nomina/payroll-rules-types.ts:147",
             "lib/studio/nomina/payroll-rules-types.ts:196",
             "lib/studio/nomina/payroll-rules-types.ts:242",
-            "lib/studio/nomina/payroll-rules-types.ts:501",
-            "lib/studio/nomina/payroll-rules-types.ts:503",
-            "lib/studio/nomina/payroll-rules-types.ts:531"
+            "lib/studio/nomina/payroll-rules-types.ts:505",
+            "lib/studio/nomina/payroll-rules-types.ts:507",
+            "lib/studio/nomina/payroll-rules-types.ts:535"
           ]
         },
         {
@@ -312,9 +312,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:554",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:412",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:422",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:431",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:458",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:468",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
             "lib/studio/nomina/ley/parametros.ts:82",
             "lib/studio/nomina/ley/parametros.ts:112",
             "lib/studio/nomina/ley/parametros.ts:571",
@@ -326,7 +326,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:253",
             "lib/studio/nomina/payroll-rules-types.ts:289",
             "lib/studio/nomina/payroll-rules-types.ts:297",
-            "lib/studio/nomina/payroll-rules-types.ts:538"
+            "lib/studio/nomina/payroll-rules-types.ts:542"
           ]
         },
         {
@@ -334,9 +334,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:555",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:297",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:332",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:338",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:343",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:378",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:384",
             "lib/studio/nomina/ley/parametros.ts:83",
             "lib/studio/nomina/ley/parametros.ts:113",
             "lib/studio/nomina/ley/parametros.ts:373",
@@ -348,7 +348,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:254",
             "lib/studio/nomina/payroll-rules-types.ts:290",
             "lib/studio/nomina/payroll-rules-types.ts:298",
-            "lib/studio/nomina/payroll-rules-types.ts:539"
+            "lib/studio/nomina/payroll-rules-types.ts:543"
           ]
         },
         {
@@ -356,8 +356,8 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:548",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:256",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:292",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:302",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:338",
             "lib/studio/nomina/ley/parametros.ts:78",
             "lib/studio/nomina/ley/parametros.ts:108",
             "lib/studio/nomina/ley/parametros.ts:236",
@@ -368,11 +368,11 @@
             "lib/studio/nomina/payroll-rules-types.ts:151",
             "lib/studio/nomina/payroll-rules-types.ts:198",
             "lib/studio/nomina/payroll-rules-types.ts:247",
-            "lib/studio/nomina/payroll-rules-types.ts:459",
-            "lib/studio/nomina/payroll-rules-types.ts:460",
-            "lib/studio/nomina/payroll-rules-types.ts:461",
+            "lib/studio/nomina/payroll-rules-types.ts:462",
             "lib/studio/nomina/payroll-rules-types.ts:463",
-            "lib/studio/nomina/payroll-rules-types.ts:532"
+            "lib/studio/nomina/payroll-rules-types.ts:464",
+            "lib/studio/nomina/payroll-rules-types.ts:466",
+            "lib/studio/nomina/payroll-rules-types.ts:536"
           ]
         },
         {
@@ -380,9 +380,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:556",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:413",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:423",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:431",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:459",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:469",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
             "lib/studio/nomina/ley/parametros.ts:84",
             "lib/studio/nomina/ley/parametros.ts:114",
             "lib/studio/nomina/ley/parametros.ts:586",
@@ -392,10 +392,10 @@
             "lib/studio/nomina/payroll-rules-types.ts:161",
             "lib/studio/nomina/payroll-rules-types.ts:209",
             "lib/studio/nomina/payroll-rules-types.ts:255",
-            "lib/studio/nomina/payroll-rules-types.ts:449",
-            "lib/studio/nomina/payroll-rules-types.ts:450",
             "lib/studio/nomina/payroll-rules-types.ts:452",
-            "lib/studio/nomina/payroll-rules-types.ts:540"
+            "lib/studio/nomina/payroll-rules-types.ts:453",
+            "lib/studio/nomina/payroll-rules-types.ts:455",
+            "lib/studio/nomina/payroll-rules-types.ts:544"
           ]
         },
         {
@@ -403,9 +403,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:552",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:410",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:418",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:431",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:456",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:464",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
             "lib/studio/nomina/ley/parametros.ts:80",
             "lib/studio/nomina/ley/parametros.ts:110",
             "lib/studio/nomina/ley/parametros.ts:540",
@@ -417,7 +417,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:251",
             "lib/studio/nomina/payroll-rules-types.ts:287",
             "lib/studio/nomina/payroll-rules-types.ts:295",
-            "lib/studio/nomina/payroll-rules-types.ts:536"
+            "lib/studio/nomina/payroll-rules-types.ts:540"
           ]
         },
         {
@@ -425,9 +425,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:551",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:409",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:417",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:431",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:455",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:463",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
             "lib/studio/nomina/ley/parametros.ts:79",
             "lib/studio/nomina/ley/parametros.ts:109",
             "lib/studio/nomina/ley/parametros.ts:523",
@@ -439,7 +439,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:250",
             "lib/studio/nomina/payroll-rules-types.ts:286",
             "lib/studio/nomina/payroll-rules-types.ts:294",
-            "lib/studio/nomina/payroll-rules-types.ts:535"
+            "lib/studio/nomina/payroll-rules-types.ts:539"
           ]
         },
         {
@@ -447,9 +447,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:557",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:443",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:481",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:489",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:490",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:528",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:536",
             "lib/studio/nomina/ley/parametros.ts:85",
             "lib/studio/nomina/ley/parametros.ts:115",
             "lib/studio/nomina/ley/parametros.ts:473",
@@ -461,7 +461,7 @@
             "lib/studio/nomina/payroll-rules-types.ts:256",
             "lib/studio/nomina/payroll-rules-types.ts:335",
             "lib/studio/nomina/payroll-rules-types.ts:338",
-            "lib/studio/nomina/payroll-rules-types.ts:541"
+            "lib/studio/nomina/payroll-rules-types.ts:545"
           ]
         },
         {
@@ -469,8 +469,8 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/nomina/actions.ts:546",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:202",
-            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:203",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:248",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:249",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:359",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:361",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:363",
@@ -480,10 +480,11 @@
             "lib/studio/nomina/payroll-rules-types.ts:145",
             "lib/studio/nomina/payroll-rules-types.ts:195",
             "lib/studio/nomina/payroll-rules-types.ts:241",
-            "lib/studio/nomina/payroll-rules-types.ts:496",
-            "lib/studio/nomina/payroll-rules-types.ts:498",
             "lib/studio/nomina/payroll-rules-types.ts:499",
-            "lib/studio/nomina/payroll-rules-types.ts:530"
+            "lib/studio/nomina/payroll-rules-types.ts:501",
+            "lib/studio/nomina/payroll-rules-types.ts:502",
+            "lib/studio/nomina/payroll-rules-types.ts:503",
+            "lib/studio/nomina/payroll-rules-types.ts:534"
           ]
         }
       ],
@@ -504,7 +505,7 @@
           "degradation": "Sin la 0556 upsertPayrollRules no tiene la función ni las columnas nuevas: archiva la versión vigente, inserta la siguiente solo con las columnas de la 0162 (ampliada=false) y, si el insert falla, vuelve a dejar vigente la archivada; si ni eso se pudo, el error lo dice. Guardar una versión nueva funciona como en la fase A2a y el tenant no se queda sin versión vigente, salvo que el proceso se corte entre archivar e insertar (la restauración es de mejor esfuerzo); un insert que choca por una guarda simultánea (23505) no restaura nada y dice que otra persona guardó al mismo tiempo."
         },
         {
-          "site": "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:124",
+          "site": "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:173",
           "contains": "const espera = !ampliada;",
           "degradation": "Sin la 0556 el formulario de Reglas deshabilita los campos nuevos (vigencia, fuente, monedas, ingreso mínimo integral, aportes del patrono y escalas) y muestra el aviso «Campos nuevos en espera»; al no enviarse, la escritura no los guarda."
         },

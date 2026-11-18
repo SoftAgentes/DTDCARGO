@@ -80,6 +80,13 @@ const CAMPOS_PROPUESTA: Record<string, string> = {
   bono_vacacional_max_days: "30",
 };
 
+/** El texto de ayuda enlazado con aria-describedby de un campo (null si no tiene). */
+function ayudaDe(name: string): string | null {
+  const ids = (campo(name).getAttribute("aria-describedby") ?? "").split(/\s+/).filter(Boolean);
+  const textos = ids.map((id) => document.getElementById(id)?.textContent ?? "").filter((t) => t.startsWith("Sin configurar"));
+  return textos.length ? textos[0] : null;
+}
+
 /** Envía el formulario y devuelve el FormData que recibió la acción. */
 async function enviar(): Promise<FormData> {
   fireEvent.submit(screen.getByRole("dialog").querySelector("form") as HTMLFormElement);
@@ -109,6 +116,11 @@ describe("ReglasDrawer · sin la 0556 (ampliada = false)", () => {
     expect((campo("sso_patronal_pct") as HTMLInputElement).value).toBe("");
   });
 
+  it("sin la 0556 no hay texto «Sin configurar»: los campos están deshabilitados", () => {
+    render(<ReglasDrawer rules={reglas()} ampliada={false} onClose={cerrar} />);
+    expect(screen.queryByText(/^Sin configurar/)).toBeNull();
+  });
+
   it("los botones «Usar la propuesta» también quedan deshabilitados", () => {
     render(<ReglasDrawer rules={reglas()} ampliada={false} onClose={cerrar} />);
     for (const b of screen.getAllByRole("button", { name: /^Usar la propuesta/ })) expect(b).toBeDisabled();
@@ -122,7 +134,7 @@ describe("ReglasDrawer · con la 0556 (ampliada = true)", () => {
     expect(screen.queryByText("Campos nuevos en espera")).toBeNull();
   });
 
-  it("M1: lo que la versión no configuró (null) nace VACÍO, con la propuesta de la norma solo como placeholder", () => {
+  it("M1: lo que la versión no configuró (null) nace VACÍO, y un texto visible dice «Sin configurar · propuesta: N»", () => {
     render(
       <ReglasDrawer
         rules={reglas({
@@ -142,9 +154,47 @@ describe("ReglasDrawer · con la 0556 (ampliada = true)", () => {
     for (const [name, propuesta] of Object.entries(CAMPOS_PROPUESTA)) {
       const el = campo(name) as HTMLInputElement;
       expect(el.value, name).toBe("");
-      expect(el.placeholder, name).toBe(propuesta);
+      // Texto visible (no el gris de un placeholder), enlazado con aria-describedby.
+      expect(ayudaDe(name), name).toBe(`Sin configurar · propuesta: ${propuesta}`);
+      expect(el.placeholder, name).toBe("");
     }
     expect(screen.queryByText(/· propuesto/)).toBeNull();
+    expect(screen.getAllByText(/^Sin configurar · propuesta:/)).toHaveLength(8);
+  });
+
+  it("A11Y: el texto «Sin configurar» desaparece con un valor y vuelve al vaciar el campo", () => {
+    render(<ReglasDrawer rules={reglas()} ampliada onClose={cerrar} />);
+    const el = campo("sso_patronal_pct") as HTMLInputElement;
+    expect(ayudaDe("sso_patronal_pct")).toBe("Sin configurar · propuesta: 9");
+    fireEvent.input(el, { target: { value: "10" } });
+    expect(ayudaDe("sso_patronal_pct")).toBeNull();
+    expect(el.hasAttribute("aria-describedby")).toBe(false);
+    fireEvent.input(el, { target: { value: "" } });
+    expect(ayudaDe("sso_patronal_pct")).toBe("Sin configurar · propuesta: 9");
+  });
+
+  it("A11Y: «Usar la propuesta» también quita el texto «Sin configurar» de los campos que llena", () => {
+    render(<ReglasDrawer rules={reglas()} ampliada onClose={cerrar} />);
+    fireEvent.click(screen.getByRole("button", { name: "Usar la propuesta: escalas por antigüedad" }));
+    expect(ayudaDe("vacaciones_extra_max")).toBeNull();
+    expect(ayudaDe("bono_vacacional_max_days")).toBeNull();
+    // Los de otros grupos siguen sin configurar.
+    expect(ayudaDe("sso_patronal_pct")).toBe("Sin configurar · propuesta: 9");
+  });
+
+  it("A11Y: una versión que ya tenía el valor no muestra «Sin configurar» (ni siquiera cero)", () => {
+    render(<ReglasDrawer rules={reglas({ sso_patronal_pct: 10, rpe_patronal_pct: 0 })} ampliada onClose={cerrar} />);
+    expect(ayudaDe("sso_patronal_pct")).toBeNull();
+    expect(ayudaDe("rpe_patronal_pct")).toBeNull();
+    expect(screen.getAllByText(/^Sin configurar · propuesta:/)).toHaveLength(6);
+  });
+
+  it("A11Y: las notas no dicen «el valor gris» ni afirman que el campo siempre nace vacío", () => {
+    render(<ReglasDrawer rules={reglas({ inces_utilidades_pct: 0.5 })} ampliada onClose={cerrar} />);
+    const texto = screen.getByRole("dialog").textContent ?? "";
+    expect(texto).not.toMatch(/valor gris/);
+    expect(texto).not.toMatch(/El campo nace vacío/);
+    expect(texto).toMatch(/Si esta versión no lo tenía configurado/);
   });
 
   it("M1: una versión anterior a la 0556 (campos que no trae) también nace vacía", () => {
@@ -205,17 +255,18 @@ describe("ReglasDrawer · con la 0556 (ampliada = true)", () => {
     expect(screen.getByLabelText("RPE del patrono")).toHaveValue(0);
   });
 
-  it("el ingreso mínimo integral no tiene propuesta: queda vacío y sin placeholder", () => {
+  it("el ingreso mínimo integral no tiene propuesta: queda vacío y sin texto de ayuda", () => {
     render(<ReglasDrawer rules={reglas({ ingreso_minimo_integral_usd: null })} ampliada onClose={cerrar} />);
     const el = screen.getByLabelText("Ingreso mínimo integral (USD)");
     expect(el).toHaveValue(null);
-    expect(el).toHaveAttribute("placeholder", "");
+    expect(el).not.toHaveAttribute("placeholder");
+    expect(ayudaDe("ingreso_minimo_integral_usd")).toBeNull();
   });
 
   it("sin versión previa, los campos también nacen vacíos y las monedas de los bonos arrancan en USD", () => {
     render(<ReglasDrawer rules={null} ampliada onClose={cerrar} />);
     expect(screen.getByLabelText("IVSS del patrono")).toHaveValue(null);
-    expect(screen.getByLabelText("IVSS del patrono")).toHaveAttribute("placeholder", "9");
+    expect(ayudaDe("sso_patronal_pct")).toBe("Sin configurar · propuesta: 9");
     expect(campo("cestaticket_moneda").value).toBe("USD");
     expect(campo("bono_guerra_moneda").value).toBe("USD");
   });
@@ -231,6 +282,7 @@ describe("ReglasDrawer · con la 0556 (ampliada = true)", () => {
     const hoy = hoyCaracas();
     const fecha = campo("vigente_desde") as HTMLInputElement;
     expect(fecha.max).toBe(hoy);
+    expect(fecha.min).toBe("2000-01-01");
     expect(fecha.value).toBe(hoy);
     expect(screen.getByText(/Es informativa/)).toBeInTheDocument();
   });
