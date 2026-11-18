@@ -105,6 +105,17 @@ Comprobado en local después de estos cambios y de traer `main` (`bab0dafcc`), c
 - **5.** «Lo que no se revierte: phone_last10 y el asesor heredado no vuelven al deshacer (0566 :232, :221-227).»
 - **3.** De acuerdo con el Director General: queda hecho, sin prueba concurrente.
 
+## Segunda revisión (2026-11-18): APROBADO sobre `252dab687`
+
+Texto del Director General por mensaje entre sesiones: B1, B2, 3, 4, 6 y 7 resueltos y sin regresiones. La PR queda en cola de fusión; no se le suben commits. La 0566 se aplica solo con el OK nominal de Sam.
+
+**Menores que quedan para después** (no bloquean; van en una PR posterior):
+
+- La aserción 10d del contrato cuenta la auditoría del contacto 950 sin filtrar por `tenant_id`. Conviene acotarla al tenant.
+- En la rama de carrera de `chatwoot_vincular_contacto` (doble clic, 23505 con la misma ficha) se responde «ya_estaba» sin completar `canal_chat` si la fila que ganó no lo traía. La rama normal de «ya_estaba» sí lo completa.
+
+Esta nota se escribió después de la aprobación y está en un commit local sin subir, para no mover la cabeza aprobada.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - `chatwoot_unir_contacto_manual` (0554) queda sin llamadores cuando la 0566 esté aplicada; se puede retirar en una migración posterior.
