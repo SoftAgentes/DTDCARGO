@@ -46,5 +46,13 @@ Fecha: 2026-11-18 · Rama: `claude/admiring-saha-bfeb23` · PR #676 (borrador) �
 
 - H1: 0663 §3.4: antes de calificar como alta, el generador busca `<cadena del subaliado>-<número>` por valor; el cliente que ya existe resuelve sin alta. Caso de aceptación nuevo en F2.
 - H2: 0666 §4.3: tabla L1–L9 con cada lectura con el cliente admin (consolidaciones, naviera, rastreo, próximo arribo, próximo zarpe y su tarjeta, club, referidos, academia, facturas y finanzas), y una prueba por lectura en P0.
-- H3: 0663 §3.4: riesgo aceptado y revisión de impacto L2; la línea base es la fila MP-01 de `docs/governance/README.md` §4, nombrada en la allowlist de F2.
+- H3: 0663 §3.4: riesgo aceptado y revisión de impacto L2. (Corregido en la tercera ronda: la línea base no es MP-01; ver abajo.)
 - No bloqueantes: guion y prueba del lote en la allowlist de F2; nota de cambio de la SDD-0336 en F3 y P5; D2 como recomendación pendiente de Sam; D-2 citada por 0637 mientras la #606 no se fusione; allowlist base de la 0666 completa por fase.
+
+## Tercera ronda (re-revisión de 71058ccd9, CHANGES_REQUESTED)
+
+- Sam autorizó nombrar `hailuway.com` en el repo público (respuesta «si» en el chat del DG, 2026-11-18, relayada por el DG). La 0666 lo vuelve a escribir.
+- H2: 0666 §4.3 suma L10 (órdenes por aceptar), L11 (documentos firmados, con el BL), L12 (historial de avisos; las plantillas no nombran buque, texto editado NV), L13 y L14 (cotizaciones y estimados, 404). Descartadas por escrito: compras/[code], layout:70 y soporte (que igual responde 404 para el cliente final). Una prueba por lectura en P0 y archivos en la allowlist de P0.
+- H3: la línea base de EXC-0663 es una `docs/governance/BASELINE-<fecha>.md` nueva en F2, sin tocar README §4.
+- N1: candidatos por valor con `resolve_markbox`; fusionado sigue al vivo; borrado corta; dos rellenos cortan.
+- Fecha estimada sin naviera: la de la oficina. Usos de `SITE_URL` U1–U12. L1 sin `seguimiento.ts`.

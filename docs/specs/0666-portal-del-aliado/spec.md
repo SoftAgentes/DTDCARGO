@@ -13,11 +13,11 @@ confidencialidad: interno
 
 # SDD-0666 — Portal del aliado
 
-> El aliado tiene un portal con extras: registra a sus clientes y subaliados, les hace prealertas y ve su cuenta por trabajo. Sus clientes finales tienen su propio portal con la marca del aliado, sin nada de DTD, en un dominio de marca blanca.
+> El aliado tiene un portal con extras: registra a sus clientes y subaliados, les hace prealertas y ve su cuenta por trabajo. Sus clientes finales tienen su propio portal con la marca del aliado, sin nada de DTD, en el dominio de marca blanca `hailuway.com`.
 > **Estado:** `proposed`. Solo spec: sin código ni migración. **El primer entregable es una maqueta navegable** que Sam aprueba antes de programar. Los números de migración los da el Director General.
 > **Hermana:** la parte del Studio (sección Aliados, asignar códigos, estado de cuenta por trabajo) está en la [SDD-0663](../0663-subaliados-como-jobs/spec.md).
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
-> Los ejemplos usan nombres genéricos: «aliado A» (prefijo `AA`) y «subaliado M» (prefijo `MD`). El dominio de marca blanca no se escribe en el repo hasta que Sam lo decida: aquí es «el dominio de marca blanca».
+> Los ejemplos usan nombres genéricos: «aliado A» (prefijo `AA`) y «subaliado M» (prefijo `MD`). El dominio de marca blanca es `hailuway.com`: Sam autorizó nombrarlo en el repo público (respuesta «si» en el chat del Director General, 2026-11-18).
 
 ## 1. Pedido
 
@@ -48,12 +48,12 @@ Es la pieza que el programa «Aliados DTD» dejó prevista en julio de 2026 (`do
 
 | Tema | Decisión |
 |---|---|
-| Dominio | Un dominio de marca blanca de Sam, en Cloudflare, sin nada montado y sin enlace visible con DTD Cargo. **Cuál, pendiente de Sam**: no se escribe en el repo hasta que lo decida |
-| Dirección de cada aliado | Las letras de su código delante del dominio de marca blanca (subdominio). Forma exacta: por confirmar con Sam |
+| Dominio | `hailuway.com`, de Sam, en Cloudflare, sin nada montado y sin enlace visible con DTD Cargo |
+| Dirección de cada aliado | Las letras de su código delante de `hailuway.com` (subdominio, por ejemplo `aa.hailuway.com`). Forma exacta: por confirmar con Sam |
 | Quién entra por ahí | El aliado, sus usuarios y sus clientes finales. Los clientes directos de DTD siguen en el portal de DTD |
 | Subaliado | Usa la marca y la dirección del aliado principal |
 | Dominio sin letras | Página neutra de ingreso, sin marca de DTD |
-| Correo de ingreso | Sale del dominio de marca blanca, con el nombre del aliado |
+| Correo de ingreso | Sale de `hailuway.com`, con el nombre del aliado |
 | QR de etiquetas y link del proveedor | Apuntan a la dirección del aliado |
 | Más adelante | El dominio propio del aliado, que da acceso para configurarlo |
 
@@ -63,7 +63,7 @@ Es la pieza que el programa «Aliados DTD» dejó prevista en julio de 2026 (`do
 |---|---|
 | Qué personaliza el aliado | Logo, nombre y un color principal, cargados por él en su portal. El sistema corrige el color si no contrasta |
 | Diseño base del cliente final | La versión simple del portal (SDD-0654), sin dinero ni nada de DTD |
-| Seguimiento del cliente final | Etapas y fecha estimada; sin contenedor, buque, naviera ni mapa |
+| Seguimiento del cliente final | Etapas y fecha estimada; sin contenedor, buque, naviera ni mapa. Sin los datos de la naviera (L2 y L3 del §4.3), la fecha estimada es la que carga la oficina en el envío, no la del rastreo de la naviera |
 | Inicio del aliado | Resumen: clientes, cargas en camino por contenedor, prealertas pendientes y saldo con DTD, con accesos a registrar cliente y hacer prealerta |
 | Pie de página | Solo el nombre del aliado |
 | Etiquetas de cajas | Solo código corto y QR, sin logo de nadie |
@@ -86,7 +86,7 @@ Es la pieza que el programa «Aliados DTD» dejó prevista en julio de 2026 (`do
 | No hay solicitud de supresión desde el portal; se pide por correo | `app/privacidad/page.tsx:438-454` | C |
 | Invitación por link: un solo uso, vence a los 14 días, token guardado como sha256 | `0552_registro_portal_por_link.sql:13,85-86,109,234,382`; SDD-0646 | C, D |
 | `proxy.ts` no mira el host; `/portal` solo refresca sesión; la protección está en `app/portal/(app)/layout.tsx:49` | `proxy.ts:29-31,139-203` | C |
-| La URL base (`NEXT_PUBLIC_SITE_URL`) arma links de ingreso, comprobación de correo, registro por link y referidos | `app/entrar/actions.ts`, `lib/portal/correo-comprobacion.ts`, `lib/portal/registro-link-types.ts`, `app/portal/(app)/referidos/actions.ts` | C |
+| La URL base (`NEXT_PUBLIC_SITE_URL`) arma los links que recibe o abre un cliente: ingreso, enlace mágico, código de acceso, invitación, comprobación de correo, registro por link, referidos, bienvenida, avisos de hitos, cola de avisos y resolución de pagos | Lista U1 a U12 del §4.7 | C |
 | La marca se resuelve por el usuario autenticado y toma el aliado directo | SDD-0336; `get_portal_brand()` (0401, 0451) | D, C |
 | No existe la cláusula de tratamiento de datos para aliados | SDD-0255 §8.5 | D |
 
@@ -120,7 +120,7 @@ Sobre la versión simple del portal: Inicio, Mis envíos, Prealertas, Etiquetas 
 
 | # | Lectura | Dónde se usa | Qué muestra hoy |
 |---|---|---|---|
-| L1 | `getConsolidationsForShipments` (`lib/portal/consolidation-queries.ts:75-93`) | `app/portal/(app)/envios/page.tsx` y `lib/portal/seguimiento.ts` | Contenedor, buque y naviera de cada envío |
+| L1 | `getConsolidationsForShipments` (`lib/portal/consolidation-queries.ts:75-93`) | `app/portal/(app)/envios/page.tsx` | Contenedor, buque y naviera de cada envío |
 | L2 | `getShipmentNaviera` (`lib/studio/naviera-tracking/queries.ts`) | `app/portal/(app)/envios/[code]/page.tsx:105-108` | Naviera del envío |
 | L3 | `getShipmentTrackingSnapshot` | `app/portal/(app)/envios/[code]/page.tsx:105-108` | Rastreo de la naviera, con posición |
 | L4 | `getShipmentNaviera` del próximo arribo | `app/portal/(app)/page.tsx:111` | Naviera del envío que llega primero |
@@ -129,8 +129,27 @@ Sobre la versión simple del portal: Inicio, Mis envíos, Prealertas, Etiquetas 
 | L7 | Referidos | `app/portal/(app)/referidos/page.tsx` y `actions.ts` | Programa de referidos de DTD |
 | L8 | Academia | `app/portal/(app)/academia/**` | Cursos de DTD |
 | L9 | Facturas y estado de cuenta | `app/portal/(app)/facturas/**`, `app/portal/(app)/finanzas/page.tsx` | Dinero con DTD |
+| L10 | Órdenes por aceptar: `loadPendingAcceptanceForClient` (`lib/portal/pending-acceptance.ts:56`, con cliente admin) | `app/portal/(app)/page.tsx:103`; inicio simple, `lib/portal/simple/cargar.ts:74` (`pendingAcceptanceCodes`, `:112`); `app/portal/(app)/envios/[code]/page.tsx:141` (`loadPendingAcceptance`) | Facturas de DTD por aceptar, con montos |
+| L11 | Documentos firmados con cliente admin: `signDocumentUrls` en `app/portal/(app)/envios/[code]/page.tsx:66-70` y en `lib/portal/signed-portal-documents.ts:26` | Detalle del envío y `app/portal/(app)/documentos/` | Documentos del envío, entre ellos el BL, que trae contenedor, buque y naviera |
+| L12 | Historial de avisos: `listShipmentNotificationHistory` (`lib/studio/notifications/notification-history-queries.ts:52`, con cliente admin) | `app/portal/(app)/envios/[code]/page.tsx:89-92` | Título y cuerpo de cada aviso enviado (`payload.title`, `payload.body`). Las plantillas no nombran buque, contenedor ni zarpe (`lib/studio/notifications/client-notification-types.ts`); un texto editado por la oficina podría hacerlo (NV) |
+| L13 | Cotizaciones | `app/portal/(app)/cotizaciones/**` | Tarifas de DTD |
+| L14 | Estimados | `app/portal/(app)/estimados/**` | Tarifas de DTD |
 
-  Con rol `cliente_final`: L1 a L5 no consultan esos datos o los devuelven en `null`; L6 a L9 responden 404 en el servidor. No basta con esconder el enlace.
+  Con rol `cliente_final`:
+
+  - L1 a L5 no consultan esos datos o los devuelven en `null`.
+  - L6 a L9, L13 y L14 responden 404 en el servidor. Cotizaciones y estimados son tarifas de DTD: el cliente final no las ve (§4.2); le cotiza su aliado.
+  - L10 no se consulta: el cliente final no acepta facturas de DTD; las acepta el aliado.
+  - L11: el cliente final no ve documentos de DTD; `documentos/` responde 404 y el detalle del envío no firma URLs.
+  - L12 no se consulta: el cliente final no recibe avisos (§2.1), así que no tiene historial.
+
+  No basta con esconder el enlace.
+
+  **Revisadas y descartadas** (no entregan datos del viaje ni dinero):
+
+  - `app/portal/(app)/compras/[code]/**`: las lecturas con cliente admin (`etiquetas/page.tsx:60,69,82,127`) son la compuerta y la presentación de la etiqueta. La etiqueta del cliente final solo lleva código y QR (§2.3).
+  - `app/portal/(app)/layout.tsx:70`: `getPortalLastReplyAt` solo trae la hora del último mensaje de soporte.
+  - `app/portal/(app)/soporte/`: no lee datos del viaje. Para el cliente final el contacto es su aliado (§4.2), así que la sección de soporte de DTD no se muestra y responde 404.
 - Las políticas RLS del portal no se reescriben. Lo del aliado va por RPC `security definer` que derivan la identidad de `auth.uid()` (patrón de `get_portal_brand()`): listar mis clientes, registrar cliente, registrar subaliado, editar nombre y teléfono, crear prealerta a nombre de, leer envíos de mis clientes y leer la cuenta por trabajo. Cada una comprueba el rol y que el cliente cuelga de la cadena del aliado que llama.
 - El aliado no reporta pagos ni cambia direcciones de entrega de sus clientes (SDD-0255 §8.4).
 
@@ -155,14 +174,28 @@ Dónde guardaría el aliado su precio por cliente o por envío, separado de las 
 
 ### 4.7 Marca blanca técnica
 
-- **La misma aplicación.** El dominio de marca blanca sirve la misma app Next.js, sin copiarla. Las fronteras del repo no cambian: el sitio público sigue sin importar `@/lib/studio`, `@/lib/db` ni `@supabase/*`, y el Studio no se publica en el dominio de marca blanca.
+- **La misma aplicación.** `hailuway.com` sirve la misma app Next.js, sin copiarla. Las fronteras del repo no cambian: el sitio público sigue sin importar `@/lib/studio`, `@/lib/db` ni `@supabase/*`, y el Studio no se publica en el dominio de marca blanca.
 - **Marca por dirección**: el aliado se resuelve por el host antes del login, además de `get_portal_brand()` después.
 - **La marca sube al aliado raíz** (SDD-0663 §3.5). Aquí cambia `get_portal_brand()`.
 - **Antes del login, sin enumeración**: la página de ingreso de una dirección desconocida responde igual que la de una existente (página neutra), sin revelar si el aliado existe. El logo se sirve por una URL que no deja listar otros.
-- **URL base por petición**: los cuatro usos de `SITE_URL`, el link del proveedor, `/verificar` y el QR toman la dirección del aliado.
-- **Sesión**: las cookies no cruzan dominios; el ingreso y el callback de Supabase Auth necesitan el dominio de marca blanca y sus direcciones en la lista de redirecciones permitidas.
+- **URL base por petición**: el link del proveedor, `/verificar` y cada uso de `SITE_URL` que llega a un usuario del aliado toman la dirección del aliado. Los usos, leídos en el código:
+  - U1 `app/entrar/actions.ts:15,70` (ingreso);
+  - U2 `lib/studio/portal/magic-link.ts:48,77` (enlace mágico);
+  - U3 `lib/studio/portal/access-link.ts:97` (código de acceso);
+  - U4 `lib/studio/portal-invite-email.ts:33,54` (invitación);
+  - U5 `lib/portal/correo-comprobacion.ts:15` (comprobación de correo);
+  - U6 `lib/portal/registro-link-types.ts:24` (registro por link);
+  - U7 `app/portal/(app)/referidos/actions.ts:62` (referidos; el cliente final no los tiene, L7);
+  - U8 `lib/studio/welcome-email.ts:56` (bienvenida);
+  - U9 `lib/studio/shipment-milestone-notify.ts:103` (avisos de hitos);
+  - U10 `lib/studio/notifications/drain-client-notifications.ts:247` (cola de avisos);
+  - U11 `lib/studio/payment-report-resolution-notify.ts:190` (resolución de pagos);
+  - U12 `lib/studio/etiquetas-qr.ts:16-17` (QR).
+
+  Los avisos (U9 a U11) van solo al aliado (§2.1), pero el link que llevan tiene que abrir en su dirección.
+- **Sesión**: las cookies no cruzan dominios; el ingreso y el callback de Supabase Auth necesitan `hailuway.com` y sus direcciones en la lista de redirecciones permitidas.
 - **Marca que sube el aliado**: PNG, JPG o WebP con tamaño máximo; **sin SVG** (o saneado si Sam lo pide); Storage separado por aliado; color con contraste suficiente. La oficina tiene «restablecer marca» en el Studio.
-- **Infraestructura** (tarea de ops con OK de Sam, fuera de esta spec): registro comodín en Cloudflare hacia el servidor, certificado comodín y envío de correo desde el dominio de marca blanca (SPF y DKIM).
+- **Infraestructura** (tarea de ops con OK de Sam, fuera de esta spec): registro comodín en Cloudflare hacia el servidor, certificado comodín y envío de correo desde `hailuway.com` (SPF y DKIM).
 - **Dominio propio del aliado**, más adelante: el mismo mecanismo, con una tabla de hosts por aliado.
 
 ## 5. Fases, aceptación y allowlist
@@ -177,7 +210,7 @@ Dependen de la SDD-0663 F1 a F3. Cada fase tiene su allowlist exacta; se escribe
 | P2 | Mis clientes y registrar cliente o subaliado | Sí (RPC) | **Sí** |
 | P3 | Prealerta a nombre de un cliente | Sí (RPC) | **Sí** |
 | P4 | Varios usuarios por aliado | Sí | No |
-| P5 | Dominio de marca blanca: marca por dirección, amarre en los dos sentidos, URL base, correo | Posible | No |
+| P5 | `hailuway.com`: marca por dirección, amarre en los dos sentidos, URL base, correo | Posible | No |
 | P6 | Portal del cliente final e invitación por link | Sí | **Sí** |
 | P7 | Mi marca (logo, nombre, color) | Sí (Storage) | No |
 
@@ -190,9 +223,14 @@ Aceptación por fase:
   - L4: el inicio no trae la naviera del próximo arribo;
   - L5: ni el inicio, ni la barra, ni la lista de envíos traen próximo zarpe ni buque, y `PortalNextSailingCard` no se monta;
   - L6, L7 y L8: club, referidos y academia responden 404 en el servidor;
-  - L9: facturas y finanzas responden 404 en el servidor.
-  
-  Un cliente directo ve lo mismo que hoy en las nueve.
+  - L9: facturas y finanzas responden 404 en el servidor;
+  - L10: ni el inicio completo, ni el inicio simple (`pendingAcceptanceCodes` vacío), ni el detalle del envío consultan órdenes por aceptar;
+  - L11: `documentos/` responde 404 y el detalle del envío no firma URLs de documentos;
+  - L12: el detalle del envío no consulta el historial de avisos;
+  - L13 y L14: cotizaciones y estimados responden 404 en el servidor;
+  - soporte responde 404.
+
+  Un cliente directo ve lo mismo que hoy en las catorce.
 - **P1**: la RPC devuelve solo la cuenta del aliado que llama; otro aliado o un cliente final reciben rechazo.
 - **P2**: el aliado registra un cliente y obtiene un código de su cadena; no puede registrar bajo otro aliado; el choque de prefijo da el mensaje neutro; editar no cambia el código; contrato SQL con mutantes.
 - **P3**: la prealerta queda a nombre del cliente elegido y solo de un cliente de su cadena; el proveedor sigue sin ver nombre ni teléfono.
@@ -203,10 +241,10 @@ Aceptación por fase:
 
 Allowlist base (se detalla por fase antes de programarla):
 
-- P0: las lecturas L1 a L9 del §4.3 (`lib/portal/consolidation-queries.ts`, `lib/studio/naviera-tracking/queries.ts` solo si hace falta, `lib/portal/next-sailing-queries.ts`, `app/portal/(app)/page.tsx`, `app/portal/(app)/layout.tsx`, `app/portal/(app)/envios/**`, `app/portal/(app)/club/page.tsx`, `app/portal/(app)/referidos/**`, `app/portal/(app)/academia/**`, `app/portal/(app)/facturas/**`, `app/portal/(app)/finanzas/page.tsx`, `app/portal/_components/PortalShell.tsx`, `app/portal/_components/PortalTopbar.tsx`, `app/portal/(app)/_components/PortalDashboardNorte.tsx`, `app/portal/(app)/_components/PortalNextSailingCard.tsx`) y la migración del rol.
+- P0: las lecturas L1 a L14 del §4.3 y soporte (`lib/portal/consolidation-queries.ts`, `lib/studio/naviera-tracking/queries.ts` solo si hace falta, `lib/portal/next-sailing-queries.ts`, `lib/portal/pending-acceptance.ts`, `lib/portal/simple/cargar.ts`, `lib/portal/signed-portal-documents.ts`, `app/portal/(app)/page.tsx`, `app/portal/(app)/layout.tsx`, `app/portal/(app)/envios/**`, `app/portal/(app)/documentos/**`, `app/portal/(app)/club/page.tsx`, `app/portal/(app)/referidos/**`, `app/portal/(app)/academia/**`, `app/portal/(app)/facturas/**`, `app/portal/(app)/finanzas/page.tsx`, `app/portal/(app)/cotizaciones/**`, `app/portal/(app)/estimados/**`, `app/portal/(app)/soporte/**`, `app/portal/_components/PortalShell.tsx`, `app/portal/_components/PortalTopbar.tsx`, `app/portal/(app)/_components/PortalDashboardNorte.tsx`, `app/portal/(app)/_components/PortalNextSailingCard.tsx`), con una prueba por lectura, y la migración del rol.
 - P1 a P3 y P6: `app/portal/(app)/**` de las secciones nuevas, `lib/portal/**` de las RPC nuevas, `app/portal/(app)/compras/**` (paso «¿Para quién es?») y las migraciones con número del DG y sus contratos SQL.
 - P4: la migración de `client_users`, el amarre del primer ingreso, la pantalla de usuarios del aliado y, en el Studio, la **recuperación del último usuario** del aliado.
-- P5: `proxy.ts`; `app/portal/(app)/layout.tsx`; los cuatro usos de `SITE_URL` (`app/entrar/actions.ts`, `lib/portal/correo-comprobacion.ts`, `lib/portal/registro-link-types.ts`, `app/portal/(app)/referidos/actions.ts`); `app/p/[token]/**`; `app/verificar/**`; `lib/studio/etiquetas-qr.ts`; `lib/studio/aliados/brand-resolve.ts`; la **migración que cambia `get_portal_brand()`** (marca del raíz y por dirección); y `docs/specs/0336-marca-portal-por-principal/spec.md` (solo la nota de cambio).
+- P5: `proxy.ts`; `app/portal/(app)/layout.tsx`; los usos U1 a U12 de `SITE_URL` del §4.7; `app/p/[token]/**`; `app/verificar/**`; `lib/studio/etiquetas-qr.ts`; `lib/studio/aliados/brand-resolve.ts`; la **migración que cambia `get_portal_brand()`** (marca del raíz y por dirección); y `docs/specs/0336-marca-portal-por-principal/spec.md` (solo la nota de cambio).
 - P7: la pantalla «Mi marca», el bucket de Storage por aliado y, en el Studio, **«restablecer marca»**.
 - Todas: el handoff.
 
@@ -242,11 +280,11 @@ Los clientes finales son **titulares que no son usuarios de DTD** (punto 12 del 
 
 - La cláusula de la SDD-0255 §8.5 y el acuerdo con el aliado (abogado de Sam).
 - La supresión del cliente final escrita en `docs/legal/privacidad/mapa-de-borrado.md`.
-- La infraestructura del dominio de marca blanca, con OK de Sam.
+- La infraestructura de `hailuway.com`, con OK de Sam.
 
 ## 7. Por confirmar con Sam
 
-- El dominio de marca blanca y la forma exacta de la dirección de cada aliado.
+- La forma exacta de la dirección de cada aliado (`aa.hailuway.com`).
 
 ## 8. Fuera de alcance
 
@@ -260,6 +298,5 @@ Los clientes finales son **titulares que no son usuarios de DTD** (punto 12 del 
 
 - [ ] Sam aprueba la spec.
 - [ ] Sam aprueba la maqueta navegable (fase M).
-- [ ] Sam decide el dominio de marca blanca.
 - [ ] Existe la cláusula de la SDD-0255 §8.5 antes de P2, P3 y P6 en producción.
 - [ ] El Director General asigna las fases y los números de migración.

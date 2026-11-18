@@ -130,7 +130,10 @@ Hereda `requireModuleView("clients")` del layout. Reutiliza `listAliadoOptions`,
 
 **Qué cambia en el generador de lotes**, en este orden:
 
-1. **Primero se busca el cliente que ya existe.** El cliente de un subaliado se guarda con la cadena completa (`AA-MD-0012`) y `resolve_markbox` compara el código exacto (migr 0367), así que los candidatos de hoy (`MD-0012` y sus rellenos, `scripts/consolidados/modelo.ts`, `interpretarMarca`) nunca lo encuentran. Si el prefijo es de un subaliado conocido, el generador busca además `<cadena del subaliado>-<número>`, comparando el número **por valor** (`MD-012`, `MD-0012` y `MD-12` son el mismo cliente), igual que el §3.3 paso 4. Si existe, la marca **resuelve a ese cliente y no es alta**.
+1. **Primero se busca el cliente que ya existe.** El cliente de un subaliado se guarda con la cadena completa (`AA-MD-0012`) y `resolve_markbox` compara el código exacto (migr 0367), así que los candidatos de hoy (`MD-0012` y sus rellenos, `scripts/consolidados/modelo.ts`, `interpretarMarca`) nunca lo encuentran. Si el prefijo es de un subaliado conocido, el generador busca además `<cadena del subaliado>-<número>`, comparando el número **por valor** (`MD-012`, `MD-0012` y `MD-12` son el mismo cliente), igual que el §3.3 paso 4. Si existe, la marca **resuelve a ese cliente y no es alta**. Cada candidato por valor pasa por `resolve_markbox` y por el mismo corte de cliente vivo de hoy:
+   - un cliente **fusionado** se sigue hasta el vivo, como ya hace `resolve_markbox`;
+   - un cliente **borrado** (`deleted_at`) no resuelve y **tampoco califica como alta**: su código sigue ocupando `unique (tenant_id, markbox)`, así que la previa se corta, igual que el caso actual «cliente borrado corta»;
+   - si hay **dos** clientes con el mismo número y distinto relleno (`AA-MD-012` y `AA-MD-0012`), la previa se corta: no se elige uno por suposición.
 2. **Solo si no existe**, y la forma es exactamente `<prefijo de subaliado>-<dígitos>`, la marca es «alta de cliente de subaliado»: la previa y `aplicar.sql` no abortan por ella y `aplicar.sql` crea el cliente con la cadena completa.
 3. La insignia pelada del subaliado (`MD`) resuelve a su ficha ancla, que ya existe; nunca es alta.
 4. Cualquier otra marca desconocida sigue cortando la previa, como hoy.
@@ -174,7 +177,7 @@ Así, la segunda carga del mismo código resuelve al cliente creado en la primer
 
 > **Excepción EXC-0663 (Sam, 2026-11-18; revisión 2027-02-18).** Un lote de producción sí crea el cliente de un **subaliado ya conocido** cuando la marca tiene la forma estricta `<prefijo>-<dígitos>` o es la insignia del subaliado. La previa lista esas altas y `AUTORIZACION.txt` cita su número. Cualquier otra marca desconocida sigue cortando la previa. Detalle en la SDD-0663 §3.4 y en `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md`.
 
-En la PR de F2 se crean el documento de la excepción, `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md`, y su entrada en la línea base: la fila **MP-01** (matriz de permanencia) del registro maestro, `docs/governance/README.md` §4, que enlaza al documento con dueño y fecha de revisión, como hace la fila de AUD-02 con su excepción.
+En la PR de F2 se crean el documento de la excepción, `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md`, y su entrada en la línea base. La regla exceptuada es de la SDD-0543, que no tiene fila en el registro maestro (§4), así que, según el §9 del índice de gobernanza, F2 crea una **línea base nueva**, `docs/governance/BASELINE-<fecha de la PR de F2>.md`, que supersede a la vigente, registra EXC-0663 con dueño, fecha de revisión y alcance, y enlaza el documento de reviews. No se toca `docs/governance/README.md` §4 (el §10 prohíbe editar el índice a mano).
 
 ### 3.5 La marca de un subaliado es la de su aliado raíz (cambio a la SDD-0336)
 
@@ -256,7 +259,7 @@ Allowlist:
 - `infra/ops/consolidados/aplicar-lote.sh` (comprobación del número de altas en `AUTORIZACION.txt`) e `infra/ops/tests/prueba-aplicar-lote.sh`
 - `docs/specs/0543-consolidados-en-camino/spec.md` (solo la nota EXC-0663)
 - `docs/governance/reviews/excepcion-0663-lote-crea-cliente-subaliado-2026-11-18.md` (nuevo)
-- `docs/governance/README.md` (solo la fila MP-01 de §4)
+- `docs/governance/BASELINE-<fecha de la PR de F2>.md` (nuevo; registra EXC-0663)
 - `supabase/migrations-baseline.json` (solo la espera de la migración)
 - `.agents/handoffs/0663-subaliados-como-jobs.md`
 
