@@ -228,14 +228,15 @@ Reglas comunes a todas las oleadas:
 | **Qué** | `@types/node` a ^24 (24.19.2); TypeScript 6.0.3; ESLint 9.39.5 (sin cambiar de major); Vitest 5.1.0 con `@vitest/ui`; `jsdom` 30 con `@types/jsdom` 30; pnpm 11.28.12 (sin cambiar de major) en el `Dockerfile` y los 3 workflows |
 | **Allowlist** | `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `eslint.config.mjs`, `vitest.config.ts`, `vitest.setup.ts`, `Dockerfile` (pnpm), `.github/workflows/{quality,sql-tests,chatwoot-portal-poc}.yml` (pnpm), `scripts/verify.mjs` si cambia la salida de Vitest, los archivos de código o de prueba que pida el compilador o el linter (sin debilitar pruebas), y el handoff |
 | **Pruebas** | `pnpm verify`. Comparar el **número de pruebas** de Vitest antes y después: un reporter o un patrón `include` que cambie puede dar un verde falso con menos pruebas. `pnpm harness:test` y `node scripts/check-build.mjs`. No necesita prueba manual en producción más allá de la prueba rápida, porque no cambia nada en tiempo de ejecución |
-| **Pendiente que viene de la A2** | Hoy `expectPdfIntegro`, en `recibo-pdf.test.ts` y `finiquito-pdf.test.ts`, pasa si ningún `/Length` hace match. Hay que exigir que el número de streams con `/Length` sea igual al número de `stream`. Es una recomendación de la revisión de #643 y no bloqueó esa PR |
+| **Pendiente que viene de la A2** | `expectPdfIntegro`, en `recibo-pdf.test.ts` y `finiquito-pdf.test.ts`, pasaba si ningún `/Length` hacía match. Ahora exige que el número de streams con `/Length` sea igual al número de `stream`. Era una recomendación de la revisión de #643; se hizo en la PR de seguimiento (rama `claude/0656-seguimiento-docs`) |
+| **Lo que salió de la B** | jsdom 30 no entró: con él fallaban 27 pruebas. Los fixtures de `MobileErpClient.fechas-caracas` (18) y `payment-report-ui` (8) llenan el FileList con el símbolo interno `impl`, que la 30 ya no tiene, y tampoco existe `DataTransfer`. En `CommentsThread` (1), el motor de CSS nuevo no reporta `flex` ni `minWidth`. Por decisión del DG, la B se cerró con jsdom ^29.1.1 y la 30 pasa a la oleada C |
 | **Esfuerzo** | 4 a 8 h; depende de cuántos errores nuevos destape TypeScript o ESLint |
 
 ### Oleada C — Majors con cambio de API
 
 | | |
 |---|---|
-| **Qué** | `@supabase/ssr` 0.12.7, incluidas las cabeceras de caché en `setAll`; y en PR aparte cada una: `@anthropic-ai/sdk` 1.x, `@uppy/core`/`@uppy/tus` 6, pnpm 12 y, si se decide, TypeScript 7 |
+| **Qué** | `@supabase/ssr` 0.12.7, incluidas las cabeceras de caché en `setAll`; y en PR aparte cada una: `@anthropic-ai/sdk` 1.x, `@uppy/core`/`@uppy/tus` 6, pnpm 12, jsdom 30 (viene de la B: reescribir los fixtures de FileList y revisar `CommentsThread`, sin debilitar pruebas) y, si se decide, TypeScript 7 |
 | **Allowlist (`ssr`)** | `package.json`, `pnpm-lock.yaml`, `proxy.ts`, `lib/db/server.ts`, `lib/db/client.ts`, `lib/db/__tests__/session-cookie.test.ts` (solo para ampliarlo) y el handoff |
 | **Pruebas (`ssr`)** | `pnpm verify` y una prueba nueva de compatibilidad: una cookie escrita con el formato de 0.5.2 se lee con 0.12.7. A mano en la prueba (no en producción): entrar con la imagen vieja, cambiar a la nueva y confirmar que la sesión sigue en el Studio, el portal, `/invitar` y el móvil; cerrar sesión, y volver a entrar |
 | **Esfuerzo** | `ssr`: 4 a 6 h, más una prueba manual de 30 min con Sam. Cada uno de los demás: 2 a 6 h |
@@ -299,8 +300,9 @@ Reglas comunes a todas las oleadas:
 | A1 complemento: Node 24.22.3 en Chatwoot y el cable | Hecha y fusionada | [#639](https://github.com/SoftAgentes/DTDCARGO/pull/639) |
 | `agentRules: false` (efecto de Next 16.4 sobre `AGENTS.md`) | Hecha y fusionada | [#644](https://github.com/SoftAgentes/DTDCARGO/pull/644) |
 | A2 (minors y patches) | Hecha y fusionada | [#643](https://github.com/SoftAgentes/DTDCARGO/pull/643) |
-| B (tipos y herramientas) | En curso | — |
-| C (majors con cambio de API) | Pendiente; `@supabase/ssr` con la prueba de D7 | — |
+| B (tipos y herramientas) | Hecha y fusionada, con jsdom 29 | [#650](https://github.com/SoftAgentes/DTDCARGO/pull/650) |
+| Seguimiento: pin de pnpm en la plantilla, `expectPdfIntegro` y notas | En revisión | rama `claude/0656-seguimiento-docs` |
+| C (majors con cambio de API) | Pendiente; `@supabase/ssr` con la prueba de D7; incluye jsdom 30 | — |
 
 ## Criterios de aceptación de esta SDD (fase de análisis)
 
