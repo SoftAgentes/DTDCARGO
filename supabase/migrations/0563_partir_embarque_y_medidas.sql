@@ -366,6 +366,15 @@ begin
       v_blockers := v_blockers || pg_catalog.jsonb_build_object('cajas_desalineadas', v_n);
     elsif p_boxes > v_rec.boxes then
       v_warnings := v_warnings || pg_catalog.jsonb_build_object('cajas_nuevas_sin_etiqueta', p_boxes - v_rec.boxes);
+      -- El trigger numera las nuevas desde el seq vivo más alto: una caja borrada
+      -- con seq mayor chocaría con warehouse_boxes_receipt_seq_key (0240).
+      select pg_catalog.count(*) into v_n from public.warehouse_boxes b
+       where b.receipt_id = v_rec.id and b.deleted_at is not null
+         and b.seq > (select coalesce(pg_catalog.max(b2.seq), 0) from public.warehouse_boxes b2
+                       where b2.receipt_id = v_rec.id and b2.deleted_at is null);
+      if v_n > 0 then
+        v_blockers := v_blockers || pg_catalog.jsonb_build_object('cajas_borradas', v_n);
+      end if;
       select pg_catalog.count(*) into v_n
         from public.warehouse_boxes b
         join public.warehouse_receipt_ve_boxes vb on vb.code = b.code

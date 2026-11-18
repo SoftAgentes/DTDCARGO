@@ -19,6 +19,7 @@ export type MedidasBloqueo =
   | "recepciones"
   | "cajas_desalineadas"
   | "cajas_estibadas"
+  | "cajas_borradas"
   | "caja_en_recepcion_ve"
   | "caja_escaneada_ve"
   | "caja_ajena"
@@ -163,6 +164,8 @@ export function textoBloqueoMedidas(tipo: string, v: string | number): string {
       return `Su recepción tiene ${plural(n, "caja física", "cajas físicas")} y otro conteo. Revísala en el Almacén CN.`;
     case "cajas_estibadas":
       return `${plural(n, "caja ya está estibada", "cajas ya están estibadas")}: no se pueden quitar.`;
+    case "cajas_borradas":
+      return `Su recepción tiene ${plural(n, "caja borrada", "cajas borradas")} con número más alto: agregar cajas chocaría. Revísala en el Almacén CN.`;
     case "caja_en_recepcion_ve":
       return `${plural(n, "caja que se quitaría ya está", "cajas que se quitarían ya están")} en una recepción de Venezuela.`;
     case "caja_escaneada_ve":

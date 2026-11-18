@@ -368,6 +368,11 @@ begin
       where receipt_id = pg_temp.fid('WR-DTD-9002') and deleted_at is null) = v_codigos[1:4],
     'bajar cajas no borró las de seq más alto');
 
+  -- Volver a subir tras bajar: el trigger de 0240 numeraría encima de una caja borrada.
+  v_r := pg_temp.corregir('operations-A', 'DTD-9002', 5, null, null, 'Vuelve la caja');
+  perform pg_temp.afirmar(v_r -> 'r' -> 'blockers' = '{"cajas_borradas": 2}'::jsonb,
+    'subir cajas tras borrar no quedó bloqueado: ' || v_r::text);
+
   v_r := pg_temp.corregir('operations-A', 'DTD-9002', 4, 1.800, 310.50, 'Lo mismo otra vez');
   perform pg_temp.afirmar(v_r ->> 'sqlstate' = '22023', 'aceptó corregir a las mismas medidas: ' || v_r::text);
 end;
