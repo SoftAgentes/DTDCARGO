@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.5 (Paso 3b: la revisión de Sam y el envío desde el ERP; D2 y D4) · 16/11/2026**
+**Versión 0.7 (Paso 3b y etapa 1: «Acuse» en los escalados, 0560) · 17/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -338,7 +338,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 **Seguimiento de la prueba F: la 0558 (casillas con tres estados y cierre por conversación).** La prueba F (17/11/2026,
 cerrada en verde) dejó dos hallazgos del criterio de conteo. Los decidió el DG por delegación de Sam («ponle los
 criterios que tú creas»), revisable por Sam. La 0549 ya está en producción y no se toca: todo va en la migración
-**0558** (sin aplicar).
+**0558** (aplicada en producción el 2026-11-17 a las 22:21Z, con el OK nominal de Sam).
 - **H2 · «Sin marcar» no es «no cumple».** Cada criterio tiene tres estados: «cumple» (`true`), «falló» (`false`) y «no
   evaluado» (`null`). La pantalla dice **«marca lo que falló»**, con «Falló» y «No evaluado» por criterio; guardar sin
   marcas significa «revisé y cumple», y la pantalla lo dice junto a los botones. Aprobar una respuesta sigue exigiendo
@@ -366,6 +366,34 @@ criterios que tú creas»), revisable por Sam. La 0549 ya está en producción y
 - `app/studio/(app)/admin/oficina/` (página, acciones, `TarjetaBorrador` y `TarjetaCierre`)
 - `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones: suma `registrarCierreAction`)
 - `supabase/migrations-baseline.json` (la espera) y `supabase/pending-migration-symbol-declarations.json`
+- esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
+
+**Etapa 1: «Acuse» en los escalados (la 0560).** Un escalado no lleva respuesta al cliente, así que «Acuse en la
+primera respuesta» no ocurre, y marcarlo «cumple» ensuciaría el dato que decide el paso de etapa. Con la 0558, un
+«No evaluado» en cualquier criterio hace incorrecta la conversación, y los escalados bien hechos (dinero, intento de
+sacar datos, enlace, fuera de guion) no podían contar. Lo decidió el DG por delegación de Sam (17/11/2026). Va en la
+migración **0560** (sin aplicar):
+- **El conteo, por tipo de borrador.** En un **escalado**, «Acuse» en «No evaluado» no cuenta en contra: la
+  conversación es correcta si las otras tres casillas están en «cumple» y «Acuse» está en «cumple» o «No evaluado».
+  «Acuse» marcado como «Falló» sigue contando como fallo. En una **respuesta** nada cambia: las cuatro en «cumple». El
+  tipo lo decide la base (`office_revisiones.tipo_borrador`, copiado del borrador), nunca el cliente.
+- **Aprobar un escalado no depende de «Acuse»**: lo exigido para aprobar (cero inventados y sin datos personales en
+  «cumple») vale solo para las respuestas, como en la 0558.
+- **La pantalla.** En un escalado, «Acuse» nace en «No evaluado» y una línea lo explica: «En un escalado no hay
+  respuesta al cliente: deja «Acuse» en «No evaluado»; no cuenta en contra.» El aviso junto a los botones pasa a
+  decir: «Guardar sin marcas significa «revisé y cumple». Con algo en «No evaluado», la conversación no cuenta como
+  correcta, salvo «Acuse» en un escalado.» (frases aprobadas por el DG).
+- **Supuesto: no hace falta una regla 3.** En producción todavía no hay revisiones de criterio 2 (la etapa 1 no empezó).
+  El preflight lo comprueba con lo único que cambiaría de resultado (criterio 2, escalado, «Acuse» en null): si hay
+  alguna, la 0560 no se aplica y solo dice cuántas.
+
+**Archivos de la 0560 (allowlist):**
+- `supabase/migrations/0560_oficina_acuse_en_escalados.sql`, `supabase/desarmes/0560_desarme.sql` y
+  `supabase/tests/0560_oficina_acuse_en_escalados.test.sql`
+- `lib/studio/__tests__/oficina-acuse-escalado.migration.test.ts` y
+  `lib/studio/oficina/__tests__/acuse-escalado-pantalla.test.ts`
+- `app/studio/(app)/admin/oficina/_components/TarjetaBorrador.tsx`
+- `supabase/migrations-baseline.json` (la espera)
 - esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
 
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
@@ -509,7 +537,8 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (sin aplicar) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
+| 0.7 | 17/11/2026 | **Etapa 1: «Acuse» en los escalados** (decisión del DG por delegación de Sam): §3.5 suma la **0560** (sin aplicar) y su allowlist: en un escalado, «Acuse» en «No evaluado» no cuenta en contra; en una respuesta nada cambia; la pantalla deja «Acuse» en «No evaluado» en los escalados y el aviso junto a los botones dice lo que de verdad hace el conteo. La 0558, aplicada en producción el 2026-11-17 a las 22:21Z |
+| 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (aplicada en producción el 2026-11-17 a las 22:21Z) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
 | 0.5 | 16/11/2026 | **Paso 3b** (pedido de Hermes «PASO 3b», tras la #598): cómo se construyó y allowlist en §3.5 (migración 0549, sin aplicar): `office_revisiones` (D2, solo agregar), la consulta de conteo de AC-1 y AC-7, la página solo para `is_platform_admin` con el texto plano (D4), el aviso de Discord sin texto, el envío desde el ERP (`OFICINA_ENVIO_ACTIVO`, solo la bandeja de prueba, otra vez la pausa y la huella) y los pendientes del 3a (enlaces, dinero = 3 y escalado sin llamar al agente, sesión abortada borrada al momento). AC-1, AC-7 y §9: `agent_approvals` → `office_revisiones` (D2); fila «Envío» en §9. `privacidad.md`: hallazgos 19 y 20 |
 | 0.4 | 16/11/2026 | **Paso 3a** (Sam: «Sí a todo» a D1–D6 y «Sí, lánzalo», 16/11/2026): decisiones D1 a D6 en §3.5; el mapa de pasos parte el Paso 3 en 3a y 3b (D6); cómo se construyó §3.4 y §3.5 y su allowlist (migración 0548, sin aplicar); filas Despachador y Kill switch de §9 con lo probado en CI; Anexo A sin herramientas (ficha 0.2). `privacidad.md`: hallazgos 12 (el borrador) y 13 (los mensajes salen hacia los cerebros: dónde, cuánto tiempo y qué guarda Hermes) |
 | 0.3.2 | 16/11/2026 | **Paso 2b con la «Opción 3: puente»** (Sam, 15/11/2026): mapa de pasos, cómo se construyó, allowlist del Paso 2b (`infra/ops/cable-oficina/puente-prueba.*` y `infra/ops/tests/cable-oficina-puente.test.mjs`) y su fila en §9. La entrada real del webhook desde fuera queda NO VERIFICADA. Prueba en staging el 16/11/2026 de 01:26 a 01:29Z (cuenta 2 reactivada y vuelta a suspender, token del puente rotado). `privacidad.md`: hallazgo 11, el puente |
