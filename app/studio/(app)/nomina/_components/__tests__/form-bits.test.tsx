@@ -43,6 +43,25 @@ describe("Field", () => {
     expect(campo).toHaveAccessibleDescription("Debe ser mayor que cero.");
   });
 
+  it("una ayuda visible queda ligada al control sin marcarlo como inválido; con error, las dos van en la descripción", () => {
+    const { rerender } = render(
+      <Field label="Monto" ayuda="Sin configurar · propuesta: 9">
+        <input />
+      </Field>,
+    );
+    const campo = screen.getByLabelText("Monto");
+    expect(screen.getByText("Sin configurar · propuesta: 9")).toBeVisible();
+    expect(campo).toHaveAccessibleDescription("Sin configurar · propuesta: 9");
+    expect(campo).not.toHaveAttribute("aria-invalid");
+    rerender(
+      <Field label="Monto" ayuda="Sin configurar · propuesta: 9" error="Debe ser mayor que cero.">
+        <input />
+      </Field>,
+    );
+    expect(screen.getByLabelText("Monto")).toHaveAccessibleDescription("Sin configurar · propuesta: 9 Debe ser mayor que cero.");
+    expect(screen.getByLabelText("Monto")).toHaveAttribute("aria-invalid", "true");
+  });
+
   it("respeta el id del control y su descripción previa", () => {
     render(
       <>

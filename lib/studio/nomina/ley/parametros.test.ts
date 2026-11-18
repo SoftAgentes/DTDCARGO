@@ -6,6 +6,7 @@ import {
   PARAMETROS_LEY,
   GRUPOS_LEY,
   UNIDAD_CAMPO,
+  unidadDelCampo,
   NOTA_NO_VERIFICADO,
   compararParametro,
   compararConLey,
@@ -50,6 +51,26 @@ function reglas(over: Partial<PayrollRules> = {}): PayrollRules {
     deleted_at: null,
     ...over,
   };
+}
+
+/** Una versión guardada con la migración 0556: trae todos los campos nuevos, en los valores de la ley. */
+function reglas0556(over: Partial<PayrollRules> = {}): PayrollRules {
+  return reglas({
+    vigente_desde: "2026-11-17",
+    fuente_legal: "Decreto de prueba",
+    ingreso_minimo_integral_usd: 240,
+    cestaticket_moneda: "USD",
+    bono_guerra_moneda: "USD",
+    sso_patronal_pct: 9,
+    rpe_patronal_pct: 2,
+    faov_patronal_pct: 2,
+    inces_patronal_pct: 2,
+    inces_utilidades_pct: 0.5,
+    pension_contrib_pct: 9,
+    vacaciones_extra_max: 15,
+    bono_vacacional_max_days: 30,
+    ...over,
+  });
 }
 
 const porId = (id: string): ParametroLey => {
@@ -132,6 +153,7 @@ describe("PARAMETROS_LEY · qué significa cada grado", () => {
     const verificados = [
       "salario-minimo", "hora-extra", "bono-nocturno", "dia-feriado",
       "utilidades", "vacaciones", "bono-vacacional", "contribucion-pensiones",
+      "vacaciones-adicionales", "bono-vacacional-maximo",
     ];
     const porConfirmar = [
       "sso-trabajador", "sso-tope", "sso-patrono", "rpe-trabajador", "rpe-tope", "rpe-patrono",
@@ -177,8 +199,90 @@ describe("compararParametro", () => {
     expect(compararParametro(porId("salario-minimo"), null).estado).toBe("falta");
   });
 
-  it("sin campo en las reglas, falta", () => {
+  it("sin el campo en las reglas (la base no tiene la 0556), falta", () => {
     expect(compararParametro(porId("contribucion-pensiones"), reglas()).estado).toBe("falta");
+    expect(compararParametro(porId("sso-patrono"), reglas()).estado).toBe("falta");
+    expect(compararParametro(porId("ingreso-minimo-integral"), reglas()).estado).toBe("falta");
+  });
+
+  it("con la 0556, cada norma nueva se compara con su campo", () => {
+    expect(compararParametro(porId("contribucion-pensiones"), reglas0556()).estado).toBe("al-dia");
+    expect(compararParametro(porId("contribucion-pensiones"), reglas0556({ pension_contrib_pct: 12 })).estado).toBe("difiere");
+    expect(compararParametro(porId("rpe-patrono"), reglas0556()).estado).toBe("al-dia");
+    expect(compararParametro(porId("faov-patrono"), reglas0556({ faov_patronal_pct: 1 })).estado).toBe("difiere");
+    expect(compararParametro(porId("inces-patrono"), reglas0556()).estado).toBe("al-dia");
+    expect(compararParametro(porId("inces-trabajador"), reglas0556()).estado).toBe("al-dia");
+    expect(compararParametro(porId("vacaciones-adicionales"), reglas0556()).estado).toBe("al-dia");
+    expect(compararParametro(porId("bono-vacacional-maximo"), reglas0556({ bono_vacacional_max_days: 15 })).estado).toBe("difiere");
+  });
+
+  it("un campo «sin configurar» (null) falta: nunca se lee como cero ni queda «al día»", () => {
+    const sinConfigurar = reglas0556({
+      pension_contrib_pct: null,
+      sso_patronal_pct: null,
+      rpe_patronal_pct: null,
+      faov_patronal_pct: null,
+      inces_patronal_pct: null,
+      inces_utilidades_pct: null,
+      vacaciones_extra_max: null,
+      bono_vacacional_max_days: null,
+      ingreso_minimo_integral_usd: null,
+    });
+    for (const id of [
+      "contribucion-pensiones",
+      "sso-patrono",
+      "rpe-patrono",
+      "faov-patrono",
+      "inces-patrono",
+      "inces-trabajador",
+      "vacaciones-adicionales",
+      "bono-vacacional-maximo",
+      "ingreso-minimo-integral",
+    ]) {
+      expect(compararParametro(porId(id), sinConfigurar).estado, id).toBe("falta");
+    }
+  });
+
+  it("un cero configurado SÍ es un valor: difiere de la ley, no «falta»", () => {
+    expect(compararParametro(porId("contribucion-pensiones"), reglas0556({ pension_contrib_pct: 0 })).estado).toBe("difiere");
+    expect(compararParametro(porId("rpe-patrono"), reglas0556({ rpe_patronal_pct: 0 })).estado).toBe("difiere");
+  });
+
+  it("IVSS del patrono: 9, 10 u 11 según el riesgo; fuera de ese rango difiere", () => {
+    for (const pct of [9, 10, 11]) {
+      expect(compararParametro(porId("sso-patrono"), reglas0556({ sso_patronal_pct: pct })).estado, String(pct)).toBe("al-dia");
+    }
+    expect(compararParametro(porId("sso-patrono"), reglas0556({ sso_patronal_pct: 8 })).estado).toBe("difiere");
+    expect(compararParametro(porId("sso-patrono"), reglas0556({ sso_patronal_pct: 12 })).estado).toBe("difiere");
+  });
+
+  it("ingreso mínimo integral: se compara en USD con su campo propio", () => {
+    const c = compararParametro(porId("ingreso-minimo-integral"), reglas0556());
+    expect(c.estado).toBe("al-dia");
+    expect(c.unidadRegla).toBe("USD");
+    expect(compararParametro(porId("ingreso-minimo-integral"), reglas0556({ ingreso_minimo_integral_usd: 0 })).estado).toBe("difiere");
+  });
+
+  it("cestaticket y bono dicen su moneda: en USD se comparan con la referencia; en Bs, otra moneda (D4)", () => {
+    const enUsd = compararParametro(porId("cestaticket"), reglas0556({ cestaticket: 40 }));
+    expect(enUsd.unidadRegla).toBe("USD");
+    expect(enUsd.estado).toBe("al-dia");
+    const enBs = compararParametro(porId("cestaticket"), reglas0556({ cestaticket: 40, cestaticket_moneda: "VES" }));
+    expect(enBs.unidadRegla).toBe("VES");
+    expect(enBs.estado).toBe("unidad");
+    const bono = compararParametro(porId("bono-guerra"), reglas0556({ bono_guerra: 200 }));
+    expect(bono.unidadRegla).toBe("USD");
+    expect(bono.estado).toBe("al-dia");
+  });
+
+  it("unidadDelCampo: los bonos leen su moneda; sin la 0556, bolívares; el resto, la fija", () => {
+    expect(unidadDelCampo("cestaticket", reglas0556())).toBe("USD");
+    expect(unidadDelCampo("bono_guerra", reglas0556({ bono_guerra_moneda: "VES" }))).toBe("VES");
+    expect(unidadDelCampo("cestaticket", reglas())).toBe("VES");
+    expect(unidadDelCampo("cestaticket", null)).toBe("VES");
+    expect(unidadDelCampo("min_salary", reglas0556())).toBe("VES");
+    expect(unidadDelCampo("ingreso_minimo_integral_usd", null)).toBe("USD");
+    expect(unidadDelCampo("pension_contrib_pct", null)).toBe("pct");
   });
 
   it("igual: coincide o difiere", () => {
@@ -220,16 +324,46 @@ describe("obligaciones y referencias", () => {
 
   it("el resumen cuenta solo obligaciones; las referencias van aparte", () => {
     const r = resumenComparacion(compararConLey(reglas()));
+    // Sin la 0556 faltan los aportes del patrono, la contribución, el INCES de utilidades y las dos escalas.
     expect(r).toEqual({
-      obligaciones: 18,
+      obligaciones: 20,
       obligacionesAlDia: 12,
       porRevisar: 0,
-      faltan: 6,
+      faltan: 8,
       referencias: 3,
       noVerificados: 13,
     });
     expect(r.obligaciones + r.referencias).toBe(PARAMETROS_LEY.length);
     expect(r.obligacionesAlDia + r.porRevisar + r.faltan).toBe(r.obligaciones);
+  });
+
+  it("con una versión de la 0556 en los valores de la ley, ninguna obligación falta", () => {
+    const r = resumenComparacion(compararConLey(reglas0556()));
+    expect(r).toEqual({
+      obligaciones: 20,
+      obligacionesAlDia: 20,
+      porRevisar: 0,
+      faltan: 0,
+      referencias: 3,
+      noVerificados: 13,
+    });
+  });
+
+  it("una versión de la 0556 sin configurar aportes ni escalas: faltan 8 y ninguno cuenta como al día", () => {
+    const sinConfigurar = reglas0556({
+      pension_contrib_pct: null,
+      sso_patronal_pct: null,
+      rpe_patronal_pct: null,
+      faov_patronal_pct: null,
+      inces_patronal_pct: null,
+      inces_utilidades_pct: null,
+      vacaciones_extra_max: null,
+      bono_vacacional_max_days: null,
+    });
+    const r = resumenComparacion(compararConLey(sinConfigurar));
+    expect(r.faltan).toBe(8);
+    expect(r.obligacionesAlDia).toBe(12);
+    expect(r.porRevisar).toBe(0);
   });
 
   it("cargar el bono anunciado no sube la cuenta de obligaciones al día", () => {

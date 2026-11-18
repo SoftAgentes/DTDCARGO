@@ -134,6 +134,7 @@ export function NominaClient({
   contractors,
   payments,
   rules,
+  reglasAmpliada,
   attendance,
   holidays,
   loans,
@@ -161,6 +162,8 @@ export function NominaClient({
   contractors: Contractor[];
   payments: ContractorPayment[];
   rules: PayrollRules | null;
+  /** SDD-0653 A2b: ¿la base tiene la migración 0556? Sin ella, los campos nuevos del formulario esperan. */
+  reglasAmpliada: boolean;
   attendance: Attendance[];
   holidays: Holiday[];
   loans: LoanWithBalance[];
@@ -409,7 +412,7 @@ export function NominaClient({
         />
       )}
       {reglasOpen && (
-        <ReglasDrawer rules={rules} onClose={() => setReglasOpen(false)} />
+        <ReglasDrawer rules={rules} ampliada={reglasAmpliada} onClose={() => setReglasOpen(false)} />
       )}
       {prestamoOpen && (
         <PrestamoDrawer

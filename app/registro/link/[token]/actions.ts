@@ -15,9 +15,13 @@
  *   2. `portal_registration_link_complete` — todo o nada en la base: completa la
  *      ficha, gasta el link, guarda antes/después y marca el duplicado sin
  *      fusionar. Un correo con cuenta se rechaza ANTES de gastar el link.
- *   3. cuenta de auth con contraseña aleatoria (nunca la cédula)
- *   4. `portal_registration_link_bind` → client_users activo
- *   5. aviso al correo (D-1) y magic-link recién acuñado → «Entrar a mi portal»
+ *   3. cuenta de auth con contraseña aleatoria (nunca la cédula) y con una
+ *      DIRECCIÓN INTERNA que no recibe correo (D-1, opción C): el correo que
+ *      escribió el cliente no entra a la cuenta hasta que su dueño lo compruebe
+ *   4. `portal_registration_link_bind` → client_users activo y el correo
+ *      anotado «sin comprobar»
+ *   5. correo con el enlace de comprobación (sólo comprueba, no abre sesión) y
+ *      magic-link recién acuñado para la cuenta → «Entrar a mi portal»
  * Si 3 o 4 fallan, la ficha ya quedó completa: se anota `access_error` para que
  * el equipo lo vea en «Registros por link» y al cliente se le dice que lo
  * contactamos.
@@ -27,7 +31,10 @@ import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { generatePortalAccessLink } from "@/lib/studio/portal-invite-email";
-import { sendRegistroLinkAvisoEmail } from "@/lib/studio/registro-link-aviso-email";
+import {
+  emitirYEnviarComprobacion,
+  nuevoCorreoInterno,
+} from "@/lib/studio/portal/correo-comprobacion";
 import { validateRegisterInput, type RegisterInput } from "@/lib/portal/register-types";
 import { hashRegistroToken } from "@/lib/portal/registro-link";
 import {
@@ -144,11 +151,13 @@ export async function registerByLinkAction(
     "Tus datos quedaron guardados, pero no pudimos activar tu acceso al portal. Te contactamos por WhatsApp para resolverlo.";
 
   // 3. Cuenta de auth con contraseña ALEATORIA (el cliente entra por enlace).
-  //    SDD-0646 D-1: el correo NO nace confirmado. El link de WhatsApp prueba
-  //    quién es la persona, no que el correo sea suyo. (Abrir el magic-link del
-  //    paso 5 lo marca confirmado en Auth: por eso además va el aviso del 4b.)
+  //    SDD-0646 D-1 (opción C): el link de WhatsApp prueba quién es la persona,
+  //    no que el correo sea suyo. La cuenta nace con una dirección interna que
+  //    no recibe correo; el correo que escribió queda en la ficha, sin
+  //    comprobar, y pasa a la cuenta cuando su dueño lo confirma.
+  const correoInterno = nuevoCorreoInterno();
   const { data: authResp, error: authErr } = await admin.auth.admin.createUser({
-    email: row.email,
+    email: correoInterno,
     password: randomBytes(24).toString("base64url"),
     email_confirm: false,
     user_metadata: { portal_markbox: row.markbox, tenant: "dtd-cargo" },
@@ -174,17 +183,23 @@ export async function registerByLinkAction(
     return { ok: true, markbox: row.markbox, portalUrl: null, warning: pendiente };
   }
 
-  // 4b. Aviso al correo (D-1, decisión del DG: opción A): si el correo es de otra
-  //     persona, se entera y nos escribe. Con el Shipping Mark, sin nombre y sin
-  //     enlace de entrada. Best-effort: no frena la entrada.
-  const aviso = await sendRegistroLinkAvisoEmail(admin, row.tenant_id, {
-    email: row.email,
-    markbox: row.markbox,
-  });
-  if (!aviso.ok) console.warn("[registerByLinkAction] aviso al correo no salió:", aviso.error);
+  // 4b. Enlace de comprobación al correo que escribió (D-1, opción C). Sólo
+  //     comprueba el correo: no abre sesión. Si no sale, no frena la entrada:
+  //     el equipo lo reenvía desde «Registros por link».
+  const { data: check } = await admin
+    .from("client_email_checks")
+    .select("id")
+    .eq("link_id", row.link_id)
+    .maybeSingle<{ id: string }>();
+  if (check?.id) {
+    const envio = await emitirYEnviarComprobacion(admin, check.id);
+    if (!envio.ok) console.warn("[registerByLinkAction] la comprobación no salió");
+  } else {
+    console.warn("[registerByLinkAction] el registro no quedó anotado para comprobar");
+  }
 
-  // 5. Un clic y adentro. Si el enlace no se pudo acuñar, el login por correo
-  //    sigue sirviendo: ya tiene cuenta con ese correo.
-  const portalUrl = await generatePortalAccessLink(admin, row.email);
-  return { ok: true, markbox: row.markbox, portalUrl };
+  // 5. Un clic y adentro: el enlace se acuña para la cuenta (su dirección
+  //    interna) y se entrega en esta misma página; no sale por correo.
+  const portalUrl = await generatePortalAccessLink(admin, correoInterno);
+  return { ok: true, markbox: row.markbox, portalUrl, correoPorComprobar: true };
 }
