@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ErrorDeLectura, conversacionDeReferencia, leerConversacion } from "../chatwoot-lectura";
 import { costoDeLlamada } from "../despachador-config";
-import { revisarRespuesta } from "../eval-automatico";
+import { empiezaConAcuse, revisarRespuesta } from "../eval-automatico";
 import { GUIONES_SOPORTE } from "../guiones-soporte";
 import { ErrorDelRuntime, borrarSesion, llamarAgente } from "../runtime-cliente";
 import { interpretarSalida } from "../salida-agente";
@@ -46,6 +46,26 @@ describe("revisarRespuesta (eval.md automatizable)", () => {
   it("sin acuse al inicio o con un guion que no existe: falla", () => {
     expect(revisarRespuesta(r("Se la paso al equipo. Entiendo tu consulta."), GUIONES_SOPORTE)).toContain("sin_acuse");
     expect(revisarRespuesta(r("Entiendo tu consulta.", "Entiendo tu consulta.", "inventado"), GUIONES_SOPORTE)).toContain("guion_desconocido");
+  });
+  // Ficha 0.3 (18/11/2026): el acuse se compara por palabras, no por signos.
+  it("el acuse al inicio pasa aunque cambie un signo, una tilde o una mayúscula entre los dos campos", () => {
+    const guion = "acuse-general";
+    const texto = "¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto.";
+    for (const acuse of ["¡Hola! Gracias por escribirle a DTD Cargo.", "Hola, gracias por escribirle a DTD Cargo", "hola gracias por escribirle a dtd cargo", "¡Hola!"]) {
+      expect(revisarRespuesta(r(texto, acuse, guion), GUIONES_SOPORTE), acuse).toEqual([]);
+    }
+    expect(empiezaConAcuse("Entiendo tu consulta.", "Entiendo tu consulta.")).toBe(true);
+  });
+  it("sigue siendo «sin acuse»: partido entre los campos, más adelante en el texto, solo signos, o media palabra", () => {
+    // El caso de la etapa 1: el acuse en un campo y el resto en el otro.
+    expect(empiezaConAcuse("Ya vi tu mensaje y te ayudo con gusto.", "¡Hola! Gracias por escribirle a DTD Cargo.")).toBe(false);
+    expect(empiezaConAcuse("Se la paso al equipo. Entiendo tu consulta.", "Entiendo tu consulta.")).toBe(false);
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "¡!")).toBe(false);
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "   ")).toBe(false);
+    // «Hola» no es el inicio de «Holanda»: tiene que coincidir la palabra entera.
+    expect(empiezaConAcuse("Holanda queda lejos.", "Hola")).toBe(false);
+    // Otro acuse que el del texto.
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "Entiendo tu consulta.")).toBe(false);
   });
   it.each([
     "Entiendo tu consulta. Tu envío llega en 3 días.",
