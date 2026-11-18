@@ -12,6 +12,10 @@
  * consolidations → sailings → carriers, con la sesión y su RLS) y la vista
  * empieza por los contenedores. El tope sube a 500 embarques para no cortar
  * un consolidado; si se llega al tope, la vista lo dice.
+ *
+ * SDD-0661: las cajas salen con los contenedores. El monto a cobrar sólo se
+ * lee si la persona ve Facturación (módulo de dinero `invoices`): si no, no se
+ * consulta y la prop no existe, así no viaja al navegador.
  */
 
 import { createClient } from "@/lib/db/server";
@@ -21,7 +25,11 @@ import { listShipments, type ShipmentListRow } from "@/lib/studio/shipment-queri
 import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
 import { conteosPorId } from "@/lib/studio/documents/adjuntos";
 import { leerInfoEmbarques } from "@/lib/studio/borrado/servidor";
-import { leerContenedoresDeEmbarques } from "@/lib/studio/embarques-contenedores-queries";
+import {
+  leerContenedoresDeEmbarques,
+  leerMontosDeContenedores,
+} from "@/lib/studio/embarques-contenedores-queries";
+import type { MontosDeContenedores } from "@/lib/studio/embarques-contenedores";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
@@ -50,6 +58,13 @@ export default async function EmbarquesPage() {
     })(),
   ]);
 
+  // SDD-0661: el monto es dinero. Se decide aquí, en el servidor, con la misma
+  // comprobación que abre Facturación; sin permiso no se lee `invoices`.
+  let montos: MontosDeContenedores | undefined;
+  if (contenedores && (await moduleViewDenial(supabase, "invoices")) === null) {
+    montos = await leerMontosDeContenedores(supabase, contenedores);
+  }
+
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
   // bloqueos falla (por ejemplo, sin la 0476), se dice y no se ofrece borrar.
   const { role } = await getStudioAccess(supabase);
@@ -68,6 +83,7 @@ export default async function EmbarquesPage() {
       adjuntos={adjuntos}
       eliminacion={eliminacion}
       contenedores={contenedores}
+      {...(montos ? { montos } : {})}
       tope={shipments.length >= TOPE_EMBARQUES ? TOPE_EMBARQUES : undefined}
     />
   );

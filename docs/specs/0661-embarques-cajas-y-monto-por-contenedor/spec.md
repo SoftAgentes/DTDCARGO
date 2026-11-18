@@ -89,11 +89,12 @@ cabecera dice «monto no disponible» y no inventa un número.
 
 ## 4. Pantalla
 
-- Cabecera del contenedor (`emb-cont-header`), en la línea de detalle: `N clientes · N envíos · N cajas`
-  y, a la derecha, los m³ de siempre. Con permiso de dinero, debajo de los m³: «A cobrar $ 12.345,00»,
-  «sin facturar» o «monto no disponible».
+- Cabecera del contenedor (`emb-cont-header`), junto a los conteos: `N clientes · N envíos · N cajas`
+  y los m³ de siempre. Con permiso de dinero, debajo de los m³: «A cobrar $12,345.00», «Sin facturar» o
+  «Monto no disponible».
 - Cliente dentro del contenedor: «N envíos · N cajas» además de los m³.
-- Números con formato `es-VE` (punto de miles), montos en `$` con dos decimales.
+- Cajas con punto de miles (`es-VE`). El monto usa `fmtUsd` de `lib/money.ts`, el formato único de
+  plata del ERP (decisión del founder 2026-08-11: `$1,234.50`).
 
 ## 5. Fuera de alcance
 

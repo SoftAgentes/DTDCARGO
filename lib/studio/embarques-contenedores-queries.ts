@@ -9,15 +9,21 @@
  *   3. `sailings` de esos contenedores (ETA).
  *   4. `carriers` de esos zarpes (naviera).
  *
+ * SDD-0661: de la asignación vigente sale también `pieces` (las cajas que
+ * escribe la carga de consolidados, SDD-0543), en `cajasPorEmbarque`.
+ *
  * Devuelve `null` si alguna lectura falla: la vista lo dice y no agrupa, en vez
  * de mandar todo a «Sin contenedor» sin ser cierto.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  montosPorContenedor,
   numeroDtdDeNotas,
   type ContenedorDeEmbarques,
   type ContenedoresDeEmbarques,
+  type FacturaDeEmbarque,
+  type MontosDeContenedores,
 } from "./embarques-contenedores";
 
 /** 100 UUID son ~3,7 KB de URL por `.in(...)`, como en adjuntos-queries. */
@@ -56,21 +62,23 @@ export async function leerContenedoresDeEmbarques(
     const items = await porTramos(ids, (t) =>
       supabase
         .from("consolidation_items")
-        .select("shipment_id, consolidation_id, created_at")
+        .select("shipment_id, consolidation_id, created_at, pieces")
         .in("shipment_id", t)
         .order("created_at", { ascending: false }),
     );
     if (items === null) return null;
 
     // Entre tramos el orden global se pierde: se elige la más reciente a mano.
-    const vigente = new Map<string, { cid: string; at: string }>();
+    const vigente = new Map<string, { cid: string; at: string; cajas: number }>();
     for (const it of items) {
       const sid = str(it.shipment_id);
       const cid = str(it.consolidation_id);
       const at = str(it.created_at) ?? "";
       if (!sid || !cid) continue;
+      const piezas = Number(it.pieces);
+      const cajas = Number.isFinite(piezas) && piezas > 0 ? Math.trunc(piezas) : 0;
       const previo = vigente.get(sid);
-      if (!previo || at > previo.at) vigente.set(sid, { cid, at });
+      if (!previo || at > previo.at) vigente.set(sid, { cid, at, cajas });
     }
     const consIds = unicos([...vigente.values()].map((v) => v.cid));
     if (consIds.length === 0) return { contenedores: [], porEmbarque: {} };
@@ -124,12 +132,52 @@ export async function leerContenedoresDeEmbarques(
 
     const vivos = new Set(contenedores.map((c) => c.id));
     const porEmbarque: Record<string, string> = {};
+    const cajasPorEmbarque: Record<string, number> = {};
     for (const [sid, v] of vigente) {
       // Un contenedor eliminado no agrupa: su embarque va a «Sin contenedor».
-      if (vivos.has(v.cid)) porEmbarque[sid] = v.cid;
+      if (!vivos.has(v.cid)) continue;
+      porEmbarque[sid] = v.cid;
+      cajasPorEmbarque[sid] = v.cajas;
     }
-    return { contenedores, porEmbarque };
+    return { contenedores, porEmbarque, cajasPorEmbarque };
   } catch {
     return null;
+  }
+}
+
+/**
+ * SDD-0661 · Monto a cobrar por contenedor. Lee `invoices` con la sesión (RLS
+ * por tenant): las facturas vivas no anuladas cuyo `shipment_id` es uno de los
+ * embarques con contenedor.
+ *
+ * ⚠️ Quien llama decide el permiso ANTES (`moduleViewDenial(…, "invoices")`):
+ * esta función consulta dinero. La página no la llama si la persona no ve
+ * Facturación, así el dato ni se consulta ni viaja al navegador.
+ */
+export async function leerMontosDeContenedores(
+  supabase: SupabaseClient,
+  datos: ContenedoresDeEmbarques,
+): Promise<MontosDeContenedores> {
+  const ids = Object.keys(datos.porEmbarque);
+  if (ids.length === 0) return { estado: "lista", porContenedor: {} };
+  try {
+    const filas = await porTramos(ids, (t) =>
+      supabase
+        .from("invoices")
+        .select("shipment_id, currency, total_amount, status")
+        .in("shipment_id", t)
+        .is("deleted_at", null)
+        .neq("status", "anulada"),
+    );
+    if (filas === null) return { estado: "no_disponible" };
+    const facturas: FacturaDeEmbarque[] = filas.map((f) => ({
+      shipment_id: str(f.shipment_id),
+      currency: str(f.currency),
+      total_amount: (f.total_amount as number | string | null) ?? null,
+      status: str(f.status),
+    }));
+    return { estado: "lista", porContenedor: montosPorContenedor(facturas, datos.porEmbarque) };
+  } catch {
+    return { estado: "no_disponible" };
   }
 }

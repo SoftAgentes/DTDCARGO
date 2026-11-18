@@ -18,6 +18,9 @@
  *   control interactivo dentro de otro no es HTML válido ni accesible.
  * - SDD-0560: junto al motivo de una fila bloqueada, «Ver los pasos» abre el
  *   asistente de borrado de ese embarque (`AsistenteBorrado`).
+ * - SDD-0661: la cabecera de cada contenedor dice sus cajas y cada cliente las
+ *   suyas. El monto a cobrar sólo se pinta si la página lo pasó: la página
+ *   lo lee sólo para quien ve Facturación, así que aquí no se decide permiso.
  */
 
 import Link from "next/link";
@@ -64,9 +67,12 @@ import {
   clienteCoincide,
   contenedorCoincide,
   formatFecha,
+  type ClienteDeContenedor,
   type ContenedoresDeEmbarques,
   type GrupoContenedor,
+  type MontosDeContenedores,
 } from "@/lib/studio/embarques-contenedores";
+import { fmtUsd } from "@/lib/money";
 import { CONTAINER_STATUS, type ContainerStatus } from "@/lib/studio/naviera/types";
 
 /** Sin datos de contenedores (p. ej., en pruebas): todo va a «Sin contenedor». */
@@ -137,6 +143,7 @@ export function EmbarquesClient({
   adjuntos,
   eliminacion,
   contenedores = SIN_CONTENEDORES,
+  montos,
   tope,
 }: {
   shipments: ShipmentListRow[];
@@ -154,6 +161,11 @@ export function EmbarquesClient({
    * se dice y la lista se agrupa sólo por cliente, como antes.
    */
   contenedores?: ContenedoresDeEmbarques | null;
+  /**
+   * SDD-0661: monto a cobrar por contenedor. Sólo llega si quien mira ve
+   * Facturación (lo decide la página en el servidor); `undefined` = no se pinta.
+   */
+  montos?: MontosDeContenedores;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
 }) {
@@ -658,6 +670,7 @@ export function EmbarquesClient({
           grupos={grupos}
           abiertos={abiertos}
           toggleContenedor={toggleContenedor}
+          montos={montos}
           renderClientes={(g) => (
             <GroupedTable
               groups={g.clientes}
@@ -943,11 +956,13 @@ function ListaDeContenedores({
   grupos,
   abiertos,
   toggleContenedor,
+  montos,
   renderClientes,
 }: {
   grupos: GrupoContenedor[];
   abiertos: Set<string>;
   toggleContenedor: (key: string) => void;
+  montos?: MontosDeContenedores;
   renderClientes: (g: GrupoContenedor) => ReactNode;
 }) {
   return (
@@ -1062,15 +1077,30 @@ function ListaDeContenedores({
                 <Badge tone="neutral" size="sm">
                   {g.embarques} {g.embarques === 1 ? "envío" : "envíos"}
                 </Badge>
+                {g.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(g.cajas)}
+                  </Badge>
+                )}
                 <span
                   style={{
-                    font: "600 11.5px/1 var(--f-mono)",
-                    color: "var(--ink-soft)",
+                    display: "inline-flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 4,
                     minWidth: 80,
-                    textAlign: "right",
                   }}
                 >
-                  {g.totalCbm.toFixed(2)} m³
+                  <span
+                    style={{
+                      font: "600 11.5px/1 var(--f-mono)",
+                      color: "var(--ink-soft)",
+                      textAlign: "right",
+                    }}
+                  >
+                    {g.totalCbm.toFixed(2)} m³
+                  </span>
+                  {montos && c && <MontoDeContenedor montos={montos} contenedorId={c.id} />}
                 </span>
               </span>
             </button>
@@ -1104,6 +1134,42 @@ function ListaDeContenedores({
   );
 }
 
+/** SDD-0661: «1 caja» · «1.234 cajas». */
+function textoCajas(n: number): string {
+  return `${n.toLocaleString("es-VE")} ${n === 1 ? "caja" : "cajas"}`;
+}
+
+/**
+ * SDD-0661: «A cobrar $12,345.00», «sin facturar» o «monto no disponible».
+ * Sin facturas nunca dice $0.00: el contenedor 64 se cargó sin facturas.
+ */
+function MontoDeContenedor({
+  montos,
+  contenedorId,
+}: {
+  montos: MontosDeContenedores;
+  contenedorId: string;
+}) {
+  const estilo = { font: "600 12px/1.2 var(--f-sans)", textAlign: "right" as const };
+  if (montos.estado === "no_disponible") {
+    return <span style={{ ...estilo, color: "var(--ink-soft)" }}>Monto no disponible</span>;
+  }
+  const m = montos.porContenedor[contenedorId];
+  if (!m || m.facturas === 0) {
+    return <span style={{ ...estilo, color: "var(--ink-soft)" }}>Sin facturar</span>;
+  }
+  return (
+    <span style={{ ...estilo, color: "var(--ink)" }}>
+      A cobrar <span style={{ fontFamily: "var(--f-mono)" }}>{fmtUsd(m.totalUsd)}</span>
+      {m.otraMoneda > 0 && (
+        <span style={{ display: "block", color: "var(--ink-soft)", fontWeight: 500, marginTop: 2 }}>
+          + {m.otraMoneda} {m.otraMoneda === 1 ? "factura" : "facturas"} en otra moneda
+        </span>
+      )}
+    </span>
+  );
+}
+
 function GroupedTable({
   groups,
   expanded,
@@ -1112,7 +1178,8 @@ function GroupedTable({
   adjuntos,
   seleccionable,
 }: {
-  groups: ReturnType<typeof groupShipmentsByClient>;
+  /** SDD-0661: dentro de un contenedor, cada cliente trae sus cajas. */
+  groups: (ReturnType<typeof groupShipmentsByClient>[number] & Partial<Pick<ClienteDeContenedor, "cajas">>)[];
   expanded: Set<string>;
   toggleGroup: (key: string) => void;
   onRowClick: (shipmentId: string) => void;
@@ -1242,6 +1309,11 @@ function GroupedTable({
                   {group.stats.count}{" "}
                   {group.stats.count === 1 ? "envío" : "envíos"}
                 </Badge>
+                {group.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(group.cajas)}
+                  </Badge>
+                )}
               </div>
               <span
                 style={{

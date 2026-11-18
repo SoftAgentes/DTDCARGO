@@ -45,7 +45,66 @@ export type ContenedorDeEmbarques = {
 export type ContenedoresDeEmbarques = {
   contenedores: ContenedorDeEmbarques[];
   porEmbarque: Record<string, string>;
+  /**
+   * SDD-0661: cajas de cada embarque en su contenedor vigente
+   * (`consolidation_items.pieces`, lo que escribe la carga de consolidados).
+   * Sin dato para un embarque, ese embarque suma 0.
+   */
+  cajasPorEmbarque?: Record<string, number>;
 };
+
+/** SDD-0661: un cliente dentro de un contenedor, con sus cajas. */
+export type ClienteDeContenedor = ClientShipmentGroup & {
+  /** Suma de cajas de sus embarques. `null` en «Sin contenedor» (no hay carga). */
+  cajas: number | null;
+};
+
+/**
+ * SDD-0661 · Monto a cobrar de un contenedor: facturas vivas no anuladas cuyo
+ * `shipment_id` es un embarque del contenedor. `totalUsd` suma `total_amount`
+ * de las que están en USD; `otraMoneda` cuenta las que no se sumaron.
+ * `facturas === 0` → «sin facturar» (nunca un 0 inventado).
+ */
+export type MontoContenedor = { facturas: number; totalUsd: number; otraMoneda: number };
+
+/**
+ * Lo que la página le pasa a la vista SOLO si la persona ve Facturación.
+ * `no_disponible` = la lectura falló.
+ */
+export type MontosDeContenedores =
+  | { estado: "lista"; porContenedor: Record<string, MontoContenedor> }
+  | { estado: "no_disponible" };
+
+/** Una factura tal como la necesita la suma (sin cliente, sin líneas). */
+export type FacturaDeEmbarque = {
+  shipment_id: string | null;
+  currency: string | null;
+  total_amount: number | string | null;
+  status: string | null;
+};
+
+/**
+ * Suma las facturas por contenedor. Excluye anuladas (la consulta ya excluye
+ * las borradas); los borradores cuentan, son lo que se va a cobrar.
+ */
+export function montosPorContenedor(
+  facturas: readonly FacturaDeEmbarque[],
+  porEmbarque: Readonly<Record<string, string>>,
+): Record<string, MontoContenedor> {
+  const out: Record<string, MontoContenedor> = {};
+  for (const f of facturas) {
+    if (!f.shipment_id || f.status === "anulada") continue;
+    const cid = porEmbarque[f.shipment_id];
+    if (!cid) continue;
+    const m = (out[cid] ??= { facturas: 0, totalUsd: 0, otraMoneda: 0 });
+    m.facturas += 1;
+    const total = Number(f.total_amount);
+    if (f.currency === "USD" && Number.isFinite(total)) m.totalUsd += total;
+    else m.otraMoneda += 1;
+  }
+  for (const m of Object.values(out)) m.totalUsd = Math.round(m.totalUsd * 100) / 100;
+  return out;
+}
 
 export type TipoContenedor = "fcl" | "consolidado";
 
@@ -60,9 +119,11 @@ export type GrupoContenedor = {
   tipo: TipoContenedor | null;
   /** «DDP 64», «FCL 63» o «Sin contenedor». */
   nombre: string;
-  clientes: ClientShipmentGroup[];
+  clientes: ClienteDeContenedor[];
   embarques: number;
   totalCbm: number;
+  /** SDD-0661: suma de las cajas de sus clientes. `null` en «Sin contenedor». */
+  cajas: number | null;
   alertas: number;
 };
 
@@ -183,6 +244,16 @@ export function clienteCoincide(r: ShipmentListRow, consulta: string): boolean {
   );
 }
 
+/** SDD-0661: cajas de unos embarques; sin dato, el embarque suma 0. */
+export function sumarCajas(
+  filas: readonly Pick<ShipmentListRow, "id">[],
+  cajasPorEmbarque: Readonly<Record<string, number>>,
+): number {
+  let total = 0;
+  for (const r of filas) total += cajasPorEmbarque[r.id] ?? 0;
+  return total;
+}
+
 /**
  * Arma los tres niveles. Orden de los contenedores: los que tienen alertas
  * primero; después por número DTD descendente (el más nuevo arriba); los que
@@ -223,17 +294,22 @@ export function agruparPorContenedor(
     // pase un `todas` que no la contenga; entonces se cae a `lista`.
     const base = completas.get(key) ?? lista;
     const tipo = contenedor ? tipoDeContenedor(base) : null;
-    const clientes = groupShipmentsByClient(lista).map((g) => ({
+    const cajasDe = datos.cajasPorEmbarque ?? {};
+    const clientes: ClienteDeContenedor[] = groupShipmentsByClient(lista).map((g) => ({
       ...g,
       // La misma persona puede estar en dos contenedores: la llave del
       // acordeón del cliente tiene que ser única en toda la pantalla.
       groupKey: `${key}::${g.groupKey}`,
+      // SDD-0661: «Sin contenedor» no tiene carga de la que salgan cajas.
+      cajas: contenedor ? sumarCajas(g.shipments, cajasDe) : null,
     }));
     let totalCbm = 0;
     let alertas = 0;
+    let cajas = 0;
     for (const g of clientes) {
       totalCbm += g.stats.totalCbm;
       alertas += g.stats.alertCount;
+      cajas += g.cajas ?? 0;
     }
     grupos.push({
       key,
@@ -249,6 +325,7 @@ export function agruparPorContenedor(
       clientes,
       embarques: lista.length,
       totalCbm: Math.round(totalCbm * 1000) / 1000,
+      cajas: contenedor ? cajas : null,
       alertas,
     });
   }
