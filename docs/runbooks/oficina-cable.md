@@ -381,7 +381,11 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
   `envio.fallido`, `envio.bloqueado`.
 - El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño. Con la 0558:
   correcta = aprobada con los 4 criterios en «cumple» y sin un cierre que falló; dato inventado = «Cero datos
-  inventados» en `false` explícito; en la etapa 2 solo cuentan las conversaciones con cierre. Las revisiones de la
+  inventados» en `false` explícito; en la etapa 2 solo cuentan las conversaciones con cierre. **Con la 0560** (sin
+  aplicar): en un escalado, «Acuse» en «No evaluado» no cuenta en contra (en «Falló» sí); en una respuesta, las cuatro
+  en «cumple». **Requisito duro de orden: la 0560 se aplica en producción ANTES de fusionar su PR y de publicar el
+  web.** Esa pantalla deja «Acuse» en «No evaluado» en los escalados, justo las filas que harían abortar el preflight
+  de la 0560 si llegara después. Las revisiones de la
   prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1.
 - En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
 
