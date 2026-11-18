@@ -71,7 +71,8 @@ describe("quedoAlDia (SDD-0675)", () => {
 
   it.each([
     ["omitido", { omitido: true as const }],
-    ["sin el estado de Studio", { sinEstado: true as const, matriz: undefined }],
+    // Con la matriz presente: si se quitara `|| r.sinEstado`, este caso daría true y caería.
+    ["sin el estado de Studio", { sinEstado: true as const }],
     ["una baja fallida", { fallidas: 1 }],
     ["una baja bloqueada", { bloqueadas: 1 }],
     ["un cierre de sesiones pendiente", { cierresPendientes: 1 }],

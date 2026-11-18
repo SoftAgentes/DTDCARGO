@@ -82,6 +82,24 @@ Evidencia, con turno de PC y `node_modules` reinstalado (next 16.4.6):
 - Merge con origin/main: solo chocó el índice de specs; `docs:check` dio 652 specs y `sdd:check` sin números
   repetidos.
 
+### Mutantes a mano de la guarda `sinEstado` (pedido de la re-revisión de 2784ae2ce)
+
+Se corrieron con `node node_modules/vitest/vitest.mjs run --pool=forks`. Un script cambia el fuente, corre la
+prueba y lo restaura. **Control sin mutar: PASÓ**, `agentes-ciclo` y `agentes-usuario` con 53 de 53.
+
+- **M1.** Se quitó la guarda de bajas (`agentes-ciclo.ts:176-179`). **Rojo**: 2 de 37 en `agentes-ciclo.test.ts:450`,
+  en los dos casos (`user_tenants` y `studio_role_module_overrides`): `expected { revisados: 4, bajas: 3 … }`
+  y `bajas: 2 …` `to match object { bajas: 0, sinEstado: true }`.
+- **M2.** Se quitó `&& estadoLeido` de la matriz (`agentes-ciclo.ts:244`). **Rojo**: 2 de 37 en
+  `agentes-ciclo.test.ts:455`, `expected "vi.fn()" to not be called at all, but actually been called 1 times`.
+  Es la aserción de `m.matriz`.
+- **M3.** Se quitó `|| r.sinEstado` de `quedoAlDia` (`agentes-usuario.ts:43`). **Rojo**: 1 de 16 en
+  `agentes-usuario.test.ts:75`, «con sin el estado de Studio queda pendiente», `expected true to be false`.
+  Para que muera, ese caso ahora lleva `sinEstado: true` con la matriz presente.
+- Después de las tres corridas, `git diff` de `agentes-ciclo.ts` y de `agentes-usuario.ts` quedó vacío.
+- Una primera tanda dio `exit 1` falso: se invocaba `node` sobre el script de shell de `.bin/vitest` y salía
+  `SyntaxError`, sin correr ninguna prueba. Se descartó y se repitió con el control.
+
 ## Pendiente de esta tarea
 
 - CI de GitHub y revisión independiente de la #686.
@@ -94,3 +112,6 @@ Evidencia, con turno de PC y `node_modules` reinstalado (next 16.4.6):
   bandejas (spec §3, última fila).
 - Un comercial que necesita también Clientes no se resuelve con «siempre las dos»: hace falta la elección por
   persona.
+- `avisarSaludAAdmins` (`agentes-ciclo.ts:326-333`) busca a los admins en `user_tenants`. Si esa tabla falla, la
+  alerta `miembros_no_leidos` queda en la respuesta del cron, pero no sale ningún push, porque no hay a quién
+  mandárselo. Hace falta otro canal (o un destinatario fijo) para esa alerta.
