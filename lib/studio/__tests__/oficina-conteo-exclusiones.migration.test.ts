@@ -178,7 +178,7 @@ describe("0567 · exclusiones del conteo y corrección de cierres (PGlite)", () 
     }, 120_000);
   }
 
-  it("MUTANTE de postflight: sin él, authenticated excluiría y el contrato lo ve", async () => {
+  it("MUTANTE de postflight: sin él, un EXECUTE de más para authenticated lo ve el contrato", async () => {
     const sinPostflight = (sql: string) =>
       mutar(
         "      if pg_catalog.has_function_privilege(v_rol, v_firma, 'EXECUTE') then\n",

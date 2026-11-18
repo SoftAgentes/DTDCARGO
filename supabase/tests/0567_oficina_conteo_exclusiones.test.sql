@@ -263,8 +263,13 @@ do $cuatro$
 declare
   v_rol text;
 begin
-  -- Sin EXECUTE para la API, ni siendo Sam.
+  -- Sin EXECUTE para la API, ni siendo Sam. Dos candados: el EXECUTE y, aunque se diera, la función corre con los
+  -- derechos de quien llama, que no escribe las tablas.
   foreach v_rol in array array['anon', 'authenticated', 'service_role'] loop
+    if has_function_privilege(v_rol, 'public.office_excluir_conversacion(text, smallint, text, text)', 'EXECUTE')
+       or has_function_privilege(v_rol, 'public.office_corregir_cierre(text, smallint, boolean, text, text)', 'EXECUTE') then
+      raise exception 'CONTRATO 4: % tiene EXECUTE sobre la vía de escritura', v_rol;
+    end if;
     perform public.t_sam();
     begin
       execute format('set local role %I', v_rol);
