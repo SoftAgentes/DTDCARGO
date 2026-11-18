@@ -142,8 +142,8 @@ Validaciones (22023):
 | `warehouse_receipts_cn` | `boxes`, `total_cbm` y `total_weight_kg` quedan con el resto | Recepción nueva `<código de la recepción original>-B` (sufijo libre siguiente si ya existe), mismo almacén, estado y `received_at` |
 | `warehouse_boxes` | Conserva las cajas que no se van | Se le **mueven** (`receipt_id`, Shipping Mark y nombre) las cajas de `p_box_codes`, o, si no se pasan, las `p_boxes` de `seq` más alto. Se conserva el código físico de cada caja, porque puede tener la etiqueta impresa |
 | `warehouse_receipt_items` | Quedan todas | Sin filas, salvo D4 |
-| `shipment_events` | Evento interno «Embarque partido: N cajas pasaron a <código nuevo>» | Se copian los estados ya vividos por el original (estado, nota y `occurred_at`), para que su dueño vea en el Portal la misma línea de tiempo. Se agrega «Nace de partir <código original>» |
-| `entity_audit_log` | `shipment_split_out` con antes y después de las medidas y el id nuevo | `shipment_split_in` con el id del original. Más `warehouse_receipt_cn_split` en las dos recepciones |
+| `shipment_events` | Sin cambios: una nota nueva se vería en el Portal del dueño original | Se copian los estados ya vividos por el original (estado, nota y `occurred_at`), para que su dueño vea en el Portal la misma línea de tiempo. El evento inicial que crea la 0003 queda como «Nace de partir <código original>» |
+| `entity_audit_log` | `shipment_split_out` con antes y después de las medidas, el id y el código nuevos, la recepción nueva y los códigos de caja | `shipment_split_in` con el id y el código del original |
 | `warehouse_receipt_ve_boxes` | — | Si hay recepción en Venezuela **sin escanear**, las cajas movidas cambian de Shipping Mark y de nombre. Si alguna está escaneada, se bloquea (§4.5) |
 
 Orden dentro de la transacción, para que el trigger de 0240 no cree ni borre cajas:
@@ -230,7 +230,7 @@ Pruebas de la migración (PGlite, `.test.sql`), con datos inventados:
    - el contenedor suma lo mismo que antes;
    - las 8 cajas movidas conservan su código.
 2. Las dos recepciones tienen tantas cajas vivas como dice `boxes`, y el trigger de 0240 no creó ni borró ninguna.
-3. Hay eventos `shipment_split_out`, `shipment_split_in` y `warehouse_receipt_cn_split` con el motivo. La parte nueva tiene la línea de tiempo copiada.
+3. Hay eventos `shipment_split_out` y `shipment_split_in` con el motivo. La parte nueva tiene la línea de tiempo copiada.
 4. Cada bloqueo de §4.5 da `blocked` sin escribir: entregado, factura emitida, caja escaneada en Venezuela, medidas desalineadas, sin contenedor, caja ajena, `p_boxes` igual al total y escala de más.
 5. La vista previa no escribe ni bloquea filas.
 6. Sin rol (42501), sin motivo (22023) y desde otro tenant (P0002).

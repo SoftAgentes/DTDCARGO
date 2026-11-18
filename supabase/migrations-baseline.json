@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0563_partir_embarque_y_medidas": "PENDIENTE DE APLICAR — SDD-0673 (corregir medidas, partir un embarque y grupo de WeChat). Crea correct_shipment_measures(uuid, integer, numeric, numeric, text, boolean) y split_shipment(uuid, uuid, integer, numeric, numeric, text, text[], boolean): SECURITY DEFINER, search_path vacío, EXECUTE sólo authenticated, operations o admin activo, motivo 4-1000, vista previa y todo o nada, con los eventos shipment_measures_corrected, shipment_split_out y shipment_split_in. Agrega shipments.group_reference (text nula, check 1-120 NOT VALID + VALIDATE): ADD COLUMN sin default, lock ACCESS EXCLUSIVE breve de catálogo con lock_timeout 5s. Sin backfill. MIGRATE-FIRST: sin ella los modales dicen que no está disponible. Desarme: supabase/desarmes/0563_desarme.sql. Producción: OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG. Aplicar individualmente con name exacto 0563_partir_embarque_y_medidas. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }
