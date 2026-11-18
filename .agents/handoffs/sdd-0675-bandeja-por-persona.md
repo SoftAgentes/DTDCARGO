@@ -32,6 +32,33 @@ Migración asignada: 0565 (en espera; `pendingBelowCutoff`).
 - ESLint de los 15 archivos `.ts`/`.tsx` del diff: **PASÓ**.
 - Gate `pending-migration-symbols`: **PASÓ** (0 rojo, 0 amarillo).
 - `pnpm verify`: **NO EJECUTADO** (sin turno; el portón es la CI de GitHub).
+
+### Revisión de la #686 (APPROVED en 3ae205ef3, con 7 puntos)
+
+1. Si falla la lectura de accesos, el ciclo aplica igual las bajas `desactivado` y `fuera_del_tenant`. Deja en
+   espera las `sin_bandeja` (`sinBandejaEnEspera`), no corre la matriz y levanta la alerta de salud
+   `accesos_no_leidos` (textos en es-VE y zh-CN).
+2. Al conceder o revocar `bandeja`, si Chatwoot no queda al día, la acción guarda y devuelve «Guardado;
+   Chatwoot quedó pendiente hasta el próximo ciclo.». La pestaña Acceso lo muestra. `sincronizarAgenteDeUsuario`
+   ahora devuelve `boolean` (`quedoAlDia`).
+3. El preflight revisa los 8 módulos de la 0538, uno por uno, y que la función no tenga ningún literal de más.
+4. El postflight comprueba también EXECUTE de `service_role`.
+5. El postflight rechaza cualquier módulo de más, comparando los literales del cuerpo.
+6. El mutante «pierde un módulo» ya no acepta la alternativa `|TEST 0565`. Se suman los mutantes «módulo de
+   más» y «sin EXECUTE de service_role», y dos pruebas de preflight.
+7. El desarme va entre `begin` y `commit`. Además se ensaya en PGlite: aborta con un acceso vigente y devuelve
+   la lista de la 0538 sin accesos.
+
+Además:
+- `AccesoPanel.test.tsx` tenía el contrato viejo de la 0622 («Bandeja no se puede dar»); se enmendó.
+- «Todo Comercial» ya no suma la Bandeja; el DG lo aceptó.
+
+Evidencia, con turno de PC (2026-11-18):
+- Vitest de 9 archivos (los 8 de antes más `AccesoPanel.test.tsx`): **PASÓ**, 208 de 208.
+- `AgentesBandeja` y `UserDetailDrawer`: **PASÓ**, 13 de 13.
+- ESLint de los 20 archivos `.ts`/`.tsx` del diff: **PASÓ**.
+- `tsc --noEmit`: **FALLÓ** solo en `next.config.ts:226` (`agentRules`). Ese archivo es idéntico al de main, no
+  es de esta tarea y no hay ningún error en los archivos de la tarea.
 - No se leyeron ni escribieron datos de producción.
 
 ## Pendiente de esta tarea
