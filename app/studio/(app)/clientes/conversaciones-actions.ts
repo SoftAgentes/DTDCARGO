@@ -6,6 +6,10 @@
  *
  *  1. `moduleEditGate(supabase, "bandeja")` al tope: Admin y Comercial (Soporte es
  *     de solo lectura).
+ *  1a. Además hay que VER Clientes (SDD-0676, `puedeVincularContacto`): unir y quitar ya
+ *     no solo escriben la unión, también absorben y sueltan la tarjeta del CRM de esa
+ *     ficha. Un desvío de rol (SDD-0252) o un acceso por persona (SDD-0622) puede dar la
+ *     edición de la Bandeja sin Clientes; ese caso recibe el mismo «sin permiso».
  *  1b. Solo el tenant dueño de la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`): la cuenta
  *     de servicio ve TODA la cuenta, así que otro tenant recibe el mismo texto que da
  *     `moduleEditGate` a un rol sin la Bandeja, antes de tocar Chatwoot o la base. El
@@ -36,12 +40,11 @@ import {
   chatwootAtributosContactoActivos,
   chatwootFichaConfigPara,
   chatwootRouterConfig,
-  chatwootTenantId,
 } from "@/lib/studio/chatwoot/config";
 import { ATRIBUTO_SEGMENTO, ATRIBUTO_SHIPPING_MARK, SIN_FICHA } from "@/lib/studio/chatwoot/contacto-erp";
 import { escribirAtributosContacto, obtenerConversacionYContacto } from "@/lib/studio/chatwoot/router-api";
-import { vincularContacto } from "@/lib/studio/chatwoot/vincular";
-import { moduleEditGate } from "@/lib/studio/rbac-guard";
+import { puedeVincularContacto, vincularContacto } from "@/lib/studio/chatwoot/vincular";
+import { getStudioAccess, moduleEditGate } from "@/lib/studio/rbac-guard";
 
 export type ResultadoUnion = { ok: true; mensaje: string } | { ok: false; error: string };
 
@@ -64,10 +67,16 @@ function errorDeLaBase(code: string | undefined): string {
  */
 const SIN_PERMISO = "No tienes permiso para realizar esta acción.";
 
-/** ¿La sesión es del tenant dueño de la cuenta de Chatwoot? Sin `CHATWOOT_TENANT_ID`, no. */
-function esElTenantDeChatwoot(tenantSesion: string): boolean {
-  const dueño = chatwootTenantId();
-  return dueño !== null && dueño.toLowerCase() === tenantSesion.toLowerCase();
+type Sesion = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * El segundo candado de unir y quitar (el primero, `moduleEditGate`, va al tope): editar
+ * la Bandeja, VER Clientes y ser del tenant dueño de la cuenta de Chatwoot. Es la misma
+ * regla que usa «Vincular a cliente» en la Ficha DTD.
+ */
+async function puedeTocarUniones(supabase: Sesion): Promise<boolean> {
+  const { role, tenantId, overrides, grants } = await getStudioAccess(supabase);
+  return puedeVincularContacto({ role, tenantId, overrides, grants });
 }
 
 function motivoValido(motivo: unknown): string | null {
@@ -88,7 +97,7 @@ export async function unirChatAction(
   const supabase = await createClient();
   const gate = await moduleEditGate(supabase, "bandeja");
   if (!gate.ok) return { ok: false, error: gate.denied };
-  if (!esElTenantDeChatwoot(gate.tenantId)) return { ok: false, error: SIN_PERMISO };
+  if (!(await puedeTocarUniones(supabase))) return { ok: false, error: SIN_PERMISO };
 
   const m = motivoValido(motivo);
   if (!UUID.test(String(clientId))) return { ok: false, error: "Ficha inválida." };
@@ -129,7 +138,7 @@ export async function quitarUnionAction(
   const supabase = await createClient();
   const gate = await moduleEditGate(supabase, "bandeja");
   if (!gate.ok) return { ok: false, error: gate.denied };
-  if (!esElTenantDeChatwoot(gate.tenantId)) return { ok: false, error: SIN_PERMISO };
+  if (!(await puedeTocarUniones(supabase))) return { ok: false, error: SIN_PERMISO };
 
   const m = motivoValido(motivo);
   if (!UUID.test(String(clientId))) return { ok: false, error: "Ficha inválida." };

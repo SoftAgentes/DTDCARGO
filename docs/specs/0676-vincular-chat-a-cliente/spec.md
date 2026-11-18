@@ -116,7 +116,7 @@ El código tolera su falta: el cruce vuelve solo al teléfono, el tablero se lee
 
 Con los roles de hoy eso deja a **Admin y Comercial** (decisión 1 de Sam); Soporte ve la Bandeja y no la edita.
 
-Lo que la base **no** repite: «ve Clientes». Esa parte vive solo en el servidor de Studio. Hoy no hay un rol que edite la Bandeja sin ver Clientes; si se crea uno (o un acceso por persona, SDD-0675), la base lo dejaría vincular y el servidor no. Es un límite conocido, no un hueco abierto: las funciones no se pueden llamar desde el navegador (ver abajo).
+Lo que la base **no** repite: «ve Clientes». Esa parte vive solo en el servidor de Studio, y **sí hay** formas de editar la Bandeja sin ver Clientes: un desvío de rol (SDD-0252, `studio_role_module_overrides`) o un acceso adicional por persona (SDD-0622; la SDD-0675 propone usarlo para la Bandeja). Por eso las **cuatro** acciones que vinculan o desvinculan pasan por `puedeVincularContacto`: las dos de la Ficha DTD (`buscarClientesParaVincular`, `vincularContactoDeConversacion`) y las dos de la ficha del cliente (`unirChatAction`, `quitarUnionAction`, en `app/studio/(app)/clientes/conversaciones-actions.ts`). Estas dos últimas solo exigían editar la Bandeja hasta la revisión del 2026-11-18; como ahora también absorben y sueltan la tarjeta del CRM, se les sumó el mismo candado, con pruebas (desvío de rol y acceso por persona). Queda como límite conocido que la base no lo repite: las funciones no se pueden llamar desde el navegador (ver abajo), así que el único camino es el servidor de Studio.
 
 **Quién puede llamar a las funciones.** Todas las de la 0566 quitan el permiso a `public`, `anon` y `authenticated`. Las que usa el servidor (`chatwoot_vincular_contacto`, `chatwoot_quitar_union`, `chatwoot_ficha_de_contacto`, `chatwoot_registrar_evento`, `crm_entrada_chatwoot`, `crm_asesor_desde_chatwoot`) quedan solo para `service_role`. Las internas (`crm_absorber_tarjeta_de_contacto`, `crm_soltar_tarjeta_de_contacto`) no quedan para nadie: solo las llaman las anteriores, que son `security definer` con `search_path` vacío. El servidor crea el cliente de servicio **después** del candado y pasa explícitos el tenant y el actor de la sesión; la función los vuelve a comprobar. El contrato lo prueba con un admin con sesión que llama directo por la API y recibe `42501` (bloque 9).
 
@@ -127,14 +127,22 @@ Lo que la base **no** repite: «ve Clientes». Esa parte vive solo en el servido
 - Cruce de tenant: `chatwoot_ficha_de_contacto` filtra por tenant; el contrato comprueba que el mismo contacto visto desde otro tenant no es de nadie (4l), y que vincular a una ficha de otro tenant falla.
 - «A qué ficha estaba unido» se lee con el cliente **de la sesión**, no con el de servicio: si esa persona no puede ver la otra ficha, el aviso no la nombra.
 
+**Auditoría y carreras (revisión del 2026-11-18).**
+
+- Vincular un contacto que **ya estaba unido** a esa ficha (por el webhook, por Kommo o a mano) y cuya tarjeta de lead seguía suelta responde «ya_estaba», absorbe la tarjeta y **lo audita** con el actor, el motivo y la tarjeta (`solo_absorcion` en el detalle). Si no había nada que absorber, no escribe auditoría: repetirlo no la duplica (contrato, bloque 10).
+- **Doble clic:** dos llamadas a la vez no ven la fila de la otra; la segunda espera en la llave única. Si la primera unió a esa misma ficha, la segunda responde «ya_estaba» en vez de «unido a otra ficha». NO VERIFICABLE con una sola conexión: ni el contrato ni PGlite abren dos transacciones a la vez, así que esa rama está leída, no ejercida.
+- **Ficha borrada:** el evento de auditoría lleva los ids de los contactos (como en la 0554) y ahora también los de las tarjetas que se soltaron (`tarjetas_soltadas`; contrato 8d).
+
 **Desarme** (`0566_desarme`, en `supabase/desarmes/`; no es una migración y no se aplica sola).
 
 - Devuelve a su cuerpo anterior, copiado literal, `chatwoot_registrar_evento` (0504, 13 parámetros), `crm_entrada_chatwoot` y `crm_asesor_desde_chatwoot` (0513), `chatwoot_quitar_union` y el disparador de ficha borrada (0554).
 - Suelta primero las tarjetas absorbidas (vuelven a su tablero) y después quita las funciones nuevas, las dos columnas de `crm_tarjetas` y `canal_chat`.
-- No toca las uniones ni la auditoría. No repone el `phone_last10` que se le quitó a una tarjeta al absorberla (lo repone su siguiente mensaje) ni el canal guardado (se pierde con la columna).
+- No toca las uniones ni la auditoría. No repone el `phone_last10` que se le quitó a una tarjeta al absorberla (lo repone su siguiente mensaje).
+- **Se niega si hay uniones con canal guardado**: el canal se pierde con la columna y no se puede reconstruir. Para aceptarlo hay que escribir, en la misma transacción y antes del desarme, `set local dtd.desarme_0566_perder_canal = 'si';`. Las uniones siguen; solo dejan de mostrar el logo.
+- Restaura los comentarios (`comment on function`) de las cuatro funciones que vuelven a su cuerpo anterior, copiados literal de la 0554, la 0513 y la 0504.
 - Es repetible: correrlo dos veces no falla.
 - Orden: el web de esta PR tolera la falta de la 0566, así que se puede desarmar sin despublicar. Un web **anterior** a esta PR llama a `chatwoot_registrar_evento` con 13 parámetros, que la 0566 sigue aceptando (4k).
-- Ensayo: `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` aplica la 0566, desarma y comprueba que las funciones vuelven a la firma anterior y que no quedan tarjetas absorbidas. Usarlo en producción exige OK nominal de Sam.
+- Ensayo: `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` aplica la 0566, desarma dos veces y comprueba que las funciones vuelven a la firma y al comentario anteriores, que no quedan tarjetas absorbidas y que, sin aceptar la pérdida del canal, el desarme se niega. Usarlo en producción exige OK nominal de Sam.
 
 ## 5. Datos personales (`revisar-datos-ve`)
 
@@ -158,8 +166,8 @@ No hay datos sensibles ni archivos. No entra al ERP el id ni el usuario de la re
 | Minimización de la búsqueda | CORRECTO | Solo código, nombre y cuatro dígitos: `app/studio/(app)/bandeja/vincular-actions.ts:107`, `lib/studio/chatwoot/canal-union.ts:63`. Tope y mínimo: `vincular-actions.ts:71` y `:72` |
 | Quién puede buscar y vincular | CORRECTO | Edición de la Bandeja al tope de las dos acciones: `vincular-actions.ts:90` y `:132`. Módulo encendido, módulo Clientes y tenant de Chatwoot: `vincular-actions.ts:82`, `lib/studio/chatwoot/vincular.ts:33`. La base repite al actor: `0566_chatwoot_vincular_canal.sql:292` |
 | El contacto no lo elige el navegador | CORRECTO | Sale de la conversación leída con el token del agente: `vincular-actions.ts:160`; el agente del contexto es el de la sesión: `vincular-actions.ts:152`; solo salen el id y el tipo de bandeja: `lib/studio/chatwoot/account-api.ts:92` |
-| Auditoría de vincular, mover y quitar | CORRECTO | `0566_chatwoot_vincular_canal.sql:354` (vincular) y el bloque de mover sobre la ficha anterior; quitar conserva la de la 0554 y suma la tarjeta restaurada. Sin nombres: contrato `supabase/tests/0566_chatwoot_vincular_canal.test.sql`, aserción 3j |
-| No mover sin confirmación | CORRECTO | `0566_chatwoot_vincular_canal.sql:326`; el motivo escrito lo exige la acción: `vincular-actions.ts:145` y su validación previa |
+| Auditoría de vincular, mover y quitar | CORRECTO | `0566_chatwoot_vincular_canal.sql:382` (vincular), `:327` (absorción de una unión que ya existía) y el bloque de mover sobre la ficha anterior; quitar conserva la de la 0554 y suma la tarjeta restaurada. Sin nombres: contrato `supabase/tests/0566_chatwoot_vincular_canal.test.sql`, aserción 3j |
+| No mover sin confirmación | CORRECTO | `0566_chatwoot_vincular_canal.sql:342`; el motivo escrito lo exige la acción: `vincular-actions.ts:145` y su validación previa |
 | A qué ficha estaba unido | CORRECTO | Se lee con la sesión (RLS de la 0554 y de `clients`) y con el tenant: `vincular-actions.ts:194`. Si esta persona no la ve, no se nombra |
 | Logs | CORRECTO | Solo códigos: `vincular-actions.ts:112`, `:157`, `:163` y `:183`; `conversaciones-actions.ts:173` |
 | Vincular a la ficha equivocada revela datos de otra persona | CORRECTO (mitigado) | Confirmación con código y nombre: `app/studio/(panel)/ficha-chat/_components/VincularCliente.tsx:126`. Se deshace desde la ficha: `ConversacionesFichaCard.tsx:264`. Al quitar se limpian los atributos del contacto: `conversaciones-actions.ts:173`. El bot nunca afirma «eres cliente» (SDD-0586) |

@@ -319,6 +319,22 @@ begin
     set canal_chat = coalesce(l.canal_chat, p_canal)
     where l.tenant_id = p_tenant_id and l.chatwoot_contact_id = p_contact_id;
     v_tarjeta := public.crm_absorber_tarjeta_de_contacto(p_tenant_id, p_client_id, p_contact_id);
+    if v_tarjeta is not null then
+      -- La unión ya existía (webhook, Kommo o a mano) y la tarjeta del lead seguía suelta:
+      -- absorberla ahora saca una tarjeta del tablero, así que queda con el actor y el motivo.
+      perform public.append_audit_event(
+        p_tenant_id, 'chatwoot_contact_link', p_client_id, 'user', p_actor_user_id,
+        'chatwoot_contact_linked', 'studio', 'succeeded', v_motivo,
+        null,
+        pg_catalog.jsonb_build_object(
+          'chatwoot_contact_id', p_contact_id, 'origen', v_origen, 'canal', p_canal,
+          'tarjeta_absorbida', v_tarjeta),
+        pg_catalog.jsonb_build_object('solo_absorcion', true),
+        pg_catalog.concat('chatwoot-contact-absorb:', p_client_id::text, ':', p_contact_id::text, ':', pg_catalog.txid_current()::text),
+        1,
+        'internal'
+      );
+    end if;
     return pg_catalog.jsonb_build_object('resultado', 'ya_estaba', 'tarjeta_absorbida', v_tarjeta is not null);
   end if;
 
@@ -344,8 +360,20 @@ begin
 
   -- Si el contacto está unido en OTRO tenant, la llave lo rechaza con el mismo
   -- 23505 que «otra ficha» sin p_mover: no se distingue un caso del otro.
-  insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
-  values (p_tenant_id, p_client_id, p_contact_id, 'manual', p_actor_user_id, p_canal);
+  -- Doble clic: dos llamadas a la vez no ven la fila de la otra; la segunda espera en
+  -- la llave y recibe el 23505. Si la que ganó unió a ESTA ficha, es «ya_estaba».
+  begin
+    insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+    values (p_tenant_id, p_client_id, p_contact_id, 'manual', p_actor_user_id, p_canal);
+  exception when unique_violation then
+    select l.client_id into v_actual
+    from public.chatwoot_contact_links l
+    where l.tenant_id = p_tenant_id and l.chatwoot_contact_id = p_contact_id;
+    if v_actual is distinct from p_client_id then
+      raise exception 'chatwoot_vincular_contacto: ese chat ya está unido a otra ficha' using errcode = '23505';
+    end if;
+    return pg_catalog.jsonb_build_object('resultado', 'ya_estaba', 'tarjeta_absorbida', false);
+  end;
 
   v_tarjeta := public.crm_absorber_tarjeta_de_contacto(p_tenant_id, p_client_id, p_contact_id);
 
@@ -433,6 +461,7 @@ as $fn$
 declare
   v_uid       uuid := (select auth.uid());
   v_contactos bigint[];
+  v_tarjetas  uuid[];
 begin
   if new.deleted_at is not null and old.deleted_at is null then
     with borradas as (
@@ -443,17 +472,23 @@ begin
 
     if v_contactos is not null then
       -- SDD-0676: las tarjetas de lead que absorbió vuelven a su tablero.
-      update public.crm_tarjetas t
-      set absorbida_en = null, absorbida_at = null
-      where t.tenant_id = new.tenant_id
-        and t.chatwoot_contact_id = any (v_contactos)
-        and t.absorbida_en is not null;
+      with sueltas as (
+        update public.crm_tarjetas t
+        set absorbida_en = null, absorbida_at = null
+        where t.tenant_id = new.tenant_id
+          and t.chatwoot_contact_id = any (v_contactos)
+          and t.absorbida_en is not null
+        returning t.id
+      )
+      select pg_catalog.array_agg(s.id order by s.id) into v_tarjetas from sueltas s;
 
       perform public.append_audit_event(
         new.tenant_id, 'chatwoot_contact_link', new.id,
         case when v_uid is null then 'system' else 'user' end, v_uid,
         'chatwoot_contact_unlinked', 'rpc', 'succeeded', 'Ficha borrada: sus chats dejan de estar unidos',
-        pg_catalog.jsonb_build_object('chatwoot_contact_ids', pg_catalog.to_jsonb(v_contactos), 'motivo', 'ficha_borrada'),
+        pg_catalog.jsonb_build_object(
+          'chatwoot_contact_ids', pg_catalog.to_jsonb(v_contactos), 'motivo', 'ficha_borrada',
+          'tarjetas_soltadas', coalesce(pg_catalog.to_jsonb(v_tarjetas), '[]'::jsonb)),
         null,
         '{}'::jsonb,
         pg_catalog.concat('chatwoot-contact-unlink:', new.id::text, ':ficha-borrada:', pg_catalog.txid_current()::text),

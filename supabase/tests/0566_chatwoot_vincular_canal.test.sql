@@ -613,6 +613,13 @@ begin
   ficha := public.chatwoot_ficha_de_contacto(pg_temp.t1(), 800);
   reset role;
   perform pg_temp.assert_true(ficha is null, '8c un contacto de una ficha borrada no es de nadie');
+  perform pg_temp.assert_true(exists (
+    select 1 from public.entity_audit_log a
+    where a.tenant_id = pg_temp.t1() and a.entity_type = 'chatwoot_contact_link' and a.entity_id = pg_temp.k('04')
+      and a.event_type = 'chatwoot_contact_unlinked'
+      and a.before_data ->> 'motivo' = 'ficha_borrada'
+      and a.before_data -> 'tarjetas_soltadas' = pg_catalog.jsonb_build_array(lead.id)),
+    '8d la auditoría del borrado de la ficha nombra la tarjeta que se soltó');
 end;
 $borrada$;
 
@@ -634,6 +641,45 @@ begin
   perform pg_temp.assert_true(v_estado = '42501', '9a un admin con sesión no llama vincular directo por la API');
 end;
 $sesiones$;
+
+-- ─── 10. Unión que ya existía con la tarjeta del lead suelta ─────────────────
+-- El caso de una unión del webhook o de Kommo (0554): el contacto ya es de la ficha,
+-- pero su tarjeta de lead sigue en el tablero. Vincular responde «ya_estaba», la
+-- absorbe y lo deja auditado con el actor y el motivo.
+do $pendiente$
+declare
+  v    jsonb;
+  lead public.crm_tarjetas;
+begin
+  perform pg_temp.entrada(950, null, 'Lead Pendiente', null, 'message_created:7000', now());
+  insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
+  values (pg_temp.t1(), pg_temp.k('02'), 950, 'webhook', null);
+
+  v := pg_temp.vincular(pg_temp.u('02'), pg_temp.k('02'), 950);
+  lead := pg_temp.del_contacto(950);
+  perform pg_temp.assert_true(v ->> 'resultado' = 'ya_estaba' and (v ->> 'tarjeta_absorbida')::boolean
+    and lead.absorbida_en is not null,
+    '10a una unión que ya existía absorbe la tarjeta del lead que seguía suelta');
+  perform pg_temp.assert_true((
+    select count(*) from public.entity_audit_log a
+    where a.tenant_id = pg_temp.t1() and a.entity_type = 'chatwoot_contact_link' and a.entity_id = pg_temp.k('02')
+      and a.event_type = 'chatwoot_contact_linked' and a.actor_id = pg_temp.u('02')
+      and (a.after_data ->> 'chatwoot_contact_id')::bigint = 950
+      and (a.after_data ->> 'tarjeta_absorbida')::uuid = lead.id
+      and a.after_data ->> 'origen' = 'webhook'
+      and a.reason = 'Vinculado desde la conversación 9') = 1,
+    '10b esa absorción queda auditada con el actor, el motivo y la tarjeta');
+  perform pg_temp.assert_true((
+    select origen from public.chatwoot_contact_links where tenant_id = pg_temp.t1() and chatwoot_contact_id = 950) = 'webhook',
+    '10c la unión conserva su origen');
+
+  v := pg_temp.vincular(pg_temp.u('02'), pg_temp.k('02'), 950);
+  perform pg_temp.assert_true(v ->> 'resultado' = 'ya_estaba' and not (v ->> 'tarjeta_absorbida')::boolean
+    and (select count(*) from public.entity_audit_log a
+         where a.event_type = 'chatwoot_contact_linked' and (a.after_data ->> 'chatwoot_contact_id')::bigint = 950) = 1,
+    '10d repetirlo no absorbe ni audita otra vez');
+end;
+$pendiente$;
 
 select 'TEST 0566 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

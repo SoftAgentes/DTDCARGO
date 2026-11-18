@@ -24,6 +24,9 @@ const h = vi.hoisted(() => ({
   revalidar: vi.fn(),
   /** SDD-0676: la fila de la unión que ve la sesión al quitar (su canal). */
   union: null as { canal_chat: string | null } | null,
+  /** Desvíos de rol (SDD-0252) y accesos por persona (SDD-0622) que ve el guard real. */
+  overrides: {} as Record<string, { view: boolean; edit: boolean }>,
+  grants: {} as Record<string, { view: boolean; edit: boolean }>,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: h.revalidar }));
@@ -64,8 +67,8 @@ vi.mock("@/lib/db/admin", () => ({
     return { rpc: h.rpcServicio };
   },
 }));
-vi.mock("@/lib/studio/role-module-overrides-queries", () => ({ getRoleModuleOverrides: async () => ({}) }));
-vi.mock("@/lib/studio/user-module-grants-queries", () => ({ getMyModuleGrants: async () => ({}) }));
+vi.mock("@/lib/studio/role-module-overrides-queries", () => ({ getRoleModuleOverrides: async () => h.overrides }));
+vi.mock("@/lib/studio/user-module-grants-queries", () => ({ getMyModuleGrants: async () => h.grants }));
 vi.mock("@/lib/studio/platform-admin", () => ({ isPlatformAdmin: async () => false }));
 vi.mock("@/lib/studio/chatwoot/router-api", () => ({
   obtenerConversacionYContacto: h.chatwoot,
@@ -109,6 +112,8 @@ beforeEach(() => {
   h.revalidar.mockReset();
   h.limpiar.mockReset().mockResolvedValue({ ok: true, data: null });
   h.union = null;
+  h.overrides = {};
+  h.grants = {};
   vi.stubEnv("CHATWOOT_FICHA_TOKEN", "token-sintetico");
   vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
   vi.stubEnv("CHATWOOT_INBOX_ARCHIVO_KOMMO_ID", "9");
@@ -127,6 +132,24 @@ describe("unirChatAction", () => {
     h.tenant = T2;
     const r = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat de leads");
     expect(r).toEqual({ ok: false, error: await textoRealSinPermiso() });
+    nadaSeTocó();
+  });
+
+  it("SDD-0676 · con un desvío de rol que quita Clientes, quien edita la Bandeja no une", async () => {
+    h.overrides = { "commercial:clients": { view: false, edit: false } };
+    const r = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat de leads");
+    expect(r).toEqual({ ok: false, error: await textoRealSinPermiso() });
+    nadaSeTocó();
+  });
+
+  it("SDD-0676 · almacén con la Bandeja prestada por persona (SDD-0622), sin Clientes, no une", async () => {
+    // Almacén no ve Clientes ni la Bandeja por rol; el extra le da SOLO la Bandeja.
+    h.rol = "warehouse";
+    h.grants = { bandeja: { view: true, edit: true } };
+    // El primer candado (editar la Bandeja) lo deja pasar: el que corta es Clientes.
+    expect((await moduleEditGate((await createClient()) as never, "bandeja")).ok).toBe(true);
+    const r = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat de leads");
+    expect(r.ok).toBe(false);
     nadaSeTocó();
   });
 
@@ -209,6 +232,13 @@ describe("quitarUnionAction", () => {
   it("soporte no quita", async () => {
     h.rol = "support";
     expect(await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).toEqual({ ok: false, error: await textoRealSinPermiso() });
+    nadaSeTocó();
+  });
+
+  it("SDD-0676 · con un desvío de rol que quita Clientes, quien edita la Bandeja no quita", async () => {
+    h.overrides = { "commercial:clients": { view: false, edit: false } };
+    const r = await quitarUnionAction(FICHA, "DTD-0001", 77, "Se unió por error");
+    expect(r).toEqual({ ok: false, error: await textoRealSinPermiso() });
     nadaSeTocó();
   });
 

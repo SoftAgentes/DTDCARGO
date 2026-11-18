@@ -74,6 +74,26 @@ En esta PC no se corrió `pnpm install`, typecheck, vitest ni build: piden turno
 
 Tabla completa en la spec, §5: 0 ENCONTRADO, 9 CORRECTO, 4 NO VERIFICABLE. Los NO VERIFICABLE son el borrado contra una base real, la retención del nombre visible de la tarjeta absorbida, los atributos viejos tras borrar una ficha y lo que ve un Agente de Chatwoot. No es asesoría legal.
 
+## Revisión independiente del 2026-11-18 (Opus, lanzada por el Director General sobre `0e5b0c9ff`): CHANGES_REQUESTED
+
+Texto recibido del Director General por mensaje entre sesiones; no leí el informe completo.
+
+| Punto | Qué pedía | Estado |
+|---|---|---|
+| B1 (bloqueante) | `unirChatAction` y `quitarUnionAction` solo exigían editar la Bandeja; con un desvío de rol alguien podía vincular sin ver Clientes | Corregido: las dos pasan por `puedeVincularContacto`. Pruebas nuevas: desvío de rol (unir y quitar) y acceso por persona. Spec §4.8 corregida |
+| B2 (bloqueante) | En «ya_estaba» se absorbía la tarjeta sin auditar | Corregido en la 0566: audita con actor, motivo y tarjeta. Contrato, bloque 10 (10a a 10d), y mutante nuevo |
+| 3 | Doble clic: el 23505 de la llave con la misma ficha debe responder «ya_estaba» | Hecho en la 0566. **Sin prueba**: hacen falta dos transacciones a la vez y ni el contrato ni PGlite las abren |
+| 4 | La auditoría del borrado de ficha incluye las tarjetas soltadas | Hecho (`tarjetas_soltadas`). Contrato 8d y mutante nuevo |
+| 6 | El desarme se niega si hay uniones con canal, salvo override explícito | Hecho: `set local dtd.desarme_0566_perder_canal = 'si'`. Ensayo nuevo que comprueba que se niega |
+| 7 | El desarme restaura los `comment on function` | Hecho, copia literal de la 0554, la 0513 y la 0504. El ensayo lo comprueba |
+| 1 y 5 | Quedan como límites, no como cambios | Anotados abajo con el texto del Director General |
+
+**Límites aceptados por la revisión** (texto del Director General, 2026-11-18; las líneas que cita son de la cabeza revisada, `0e5b0c9ff`, y la 0566 cambió después):
+
+- **1.** «La base no repite "ve Clientes" ni la edición del CRM. chatwoot_contact_links_actor_puede (0554:235-265) solo mira la Bandeja, y la absorción cambia crm_tarjetas sin crm_puede_editar. Desde el navegador no se pueden llamar: las RPC son solo de service_role y el postflight lo verifica. Enumerar fichas por PostgREST ya existía y esta PR no lo empeora.»
+- **5.** «Lo que no se revierte: phone_last10 y el asesor heredado no vuelven al deshacer (0566 :232, :221-227).»
+- **3.** De acuerdo con el Director General: queda hecho, sin prueba concurrente.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - `chatwoot_unir_contacto_manual` (0554) queda sin llamadores cuando la 0566 esté aplicada; se puede retirar en una migración posterior.

@@ -12,10 +12,33 @@
 -- chatwoot_contact_links.canal_chat.
 -- NO toca las uniones (chatwoot_contact_links) ni la auditoría. El teléfono que se le quitó a una tarjeta
 -- al absorberla no vuelve: lo repone el siguiente mensaje de esa persona.
+-- CANAL GUARDADO: el desarme borra chatwoot_contact_links.canal_chat y ese dato NO se puede
+-- reconstruir (sale del tipo de bandeja en el momento de vincular). Si hay uniones con canal,
+-- el desarme SE NIEGA. Para aceptar la pérdida, en la MISMA transacción y antes de este archivo:
+--     set local dtd.desarme_0566_perder_canal = 'si';
+-- Las uniones siguen; solo dejan de mostrar el logo de su canal.
 -- ORDEN: primero publicar el web anterior (o uno que tolere su falta: el de esta PR la tolera) y después
 -- el desarme. El web de esta PR, sin estas piezas, vuelve solo al cruce por teléfono.
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
+
+do $guarda$
+declare
+  v_con_canal bigint := 0;
+begin
+  -- Repetible: la segunda vez la columna ya no está y no hay nada que cuidar.
+  if exists (
+    select 1 from pg_catalog.pg_attribute
+    where attrelid = 'public.chatwoot_contact_links'::regclass and attname = 'canal_chat' and not attisdropped
+  ) then
+    execute 'select count(*) from public.chatwoot_contact_links where canal_chat is not null' into v_con_canal;
+  end if;
+  if v_con_canal > 0
+     and coalesce(pg_catalog.current_setting('dtd.desarme_0566_perder_canal', true), '') <> 'si' then
+    raise exception 'desarme 0566: hay % unión(es) con canal guardado y el desarme lo borra. Para aceptarlo: set local dtd.desarme_0566_perder_canal = ''si''', v_con_canal;
+  end if;
+end;
+$guarda$;
 
 do $soltar$
 begin
@@ -356,6 +379,19 @@ $fn$;
 
 revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) from public, anon, authenticated;
 grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) to service_role;
+
+-- ─── Los comentarios de antes (copia literal de la 0554, la 0513 y la 0504) ──
+comment on function public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text) is
+  'SDD-0650 F2 (D4): deshace una unión chat ↔ ficha de cualquier origen. Solo service_role, con la misma comprobación del actor que unir; motivo; auditada con el actor real.';
+
+comment on function public.crm_entrada_chatwoot(uuid, bigint, text, text, text, text, bigint, text, timestamptz) is
+  'SDD-0587 (6.4, §5.1, §5.2): crea o completa la tarjeta de quien entra por Chatwoot. Idempotente: llave única de §4.1 y on conflict do nothing. Fuente y atribución fijas; la etapa solo se mueve si estaba en «Perdido» y escribió. Solo service_role.';
+
+comment on function public.crm_asesor_desde_chatwoot(uuid, bigint, text, text, bigint) is
+  'SDD-0587 (6.4, §5.4): conversation_updated con asignado. Da asesor solo a la tarjeta que no lo tiene y no crea tarjetas. Idempotente. Solo service_role.';
+
+comment on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) is
+  'SDD-0585 E2-D18/E2-D19/E2-D22: registra un evento de Chatwoot (idempotente por event_key) y aplica el estado de la conversación si no es más viejo que lo guardado. event_key nulo = reconciliación por API. Solo service_role.';
 
 -- ─── Las piezas nuevas ────────────────────────────────────────────────────
 drop function if exists public.crm_absorber_tarjeta_de_contacto(uuid, uuid, bigint);

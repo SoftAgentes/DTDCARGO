@@ -17,9 +17,9 @@
           "name": "chatwoot_contact_links.canal_chat",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:143",
-            "app/studio/(app)/clientes/conversaciones-actions.ts:147",
-            "app/studio/(app)/clientes/conversaciones-actions.ts:148",
+            "app/studio/(app)/clientes/conversaciones-actions.ts:152",
+            "app/studio/(app)/clientes/conversaciones-actions.ts:156",
+            "app/studio/(app)/clientes/conversaciones-actions.ts:157",
             "lib/studio/chatwoot/ficha-panel.ts:73",
             "lib/studio/chatwoot/ficha-panel.ts:80",
             "lib/studio/chatwoot/ficha-panel.ts:84",
@@ -41,7 +41,7 @@
           "degradation": "canalesVinculados es un adorno del tablero: si la lectura falla (columna ausente incluida) devuelve un mapa vacío y las tarjetas salen solo con el logo de su fuente."
         },
         {
-          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:149",
+          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:158",
           "contains": "const canal = esCanalUnion(canalGuardado) ? canalGuardado : null;",
           "degradation": "Sin la columna la lectura previa a quitar no trae fila: canal queda en null, no se limpia ningún atributo en Chatwoot y la unión se quita igual por chatwoot_quitar_union (0554)."
         }

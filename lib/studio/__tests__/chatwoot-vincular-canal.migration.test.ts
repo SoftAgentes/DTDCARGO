@@ -165,8 +165,18 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     ],
     [
       "borrar la ficha no suelta la tarjeta del lead",
-      () => mutar("        and t.chatwoot_contact_id = any (v_contactos)\n", "        and false\n"),
+      () => mutar("          and t.chatwoot_contact_id = any (v_contactos)\n", "          and false\n"),
       "TEST 0566: 8b",
+    ],
+    [
+      "la auditoría del borrado de ficha no nombra las tarjetas soltadas",
+      () => mutar("          'tarjetas_soltadas', coalesce(pg_catalog.to_jsonb(v_tarjetas), '[]'::jsonb)),", "          'tarjetas_soltadas', '[]'::jsonb),"),
+      "TEST 0566: 8d",
+    ],
+    [
+      "la absorción de una unión que ya existía no se audita",
+      () => mutar("    if v_tarjeta is not null then\n      -- La unión ya existía", "    if false then\n      -- La unión ya existía"),
+      "TEST 0566: 10b",
     ],
     [
       "vincular abierta a las sesiones (llamada directa por la API)",
@@ -213,6 +223,8 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
         end if;
       end $c$;`,
       "create temporary table antes_del_desarme as select count(*) as uniones from public.chatwoot_contact_links;",
+      // Hay uniones con canal: el desarme solo corre si se acepta perderlo (ver la prueba de abajo).
+      "set local dtd.desarme_0566_perder_canal = 'si';",
       DESARME,
       DESARME,
       `do $c$
@@ -223,6 +235,19 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
         end if;
         if not exists (select 1 from public.crm_tarjetas where chatwoot_contact_id = 700) then
           raise exception 'DESARME: perdió la tarjeta del lead';
+        end if;
+        -- Los comentarios vuelven a ser los de antes (0554, 0513 y 0504), sin rastro de esta SDD.
+        if exists (
+          select 1 from (values
+            ('public.chatwoot_quitar_union(uuid,uuid,uuid,bigint,text)', 'SDD-0650 F2 (D4)%'),
+            ('public.crm_entrada_chatwoot(uuid,bigint,text,text,text,text,bigint,text,timestamptz)', 'SDD-0587 (6.4, §5.1, §5.2)%'),
+            ('public.crm_asesor_desde_chatwoot(uuid,bigint,text,text,bigint)', 'SDD-0587 (6.4, §5.4)%'),
+            ('public.chatwoot_registrar_evento(uuid,text,text,bigint,bigint,text,integer,bigint,text,timestamptz,double precision,bigint,boolean)', 'SDD-0585 E2-D18%')
+          ) as f(firma, empieza)
+          where coalesce(obj_description(f.firma::regprocedure, 'pg_proc'), '') not like f.empieza
+             or obj_description(f.firma::regprocedure, 'pg_proc') like '%0676%'
+        ) then
+          raise exception 'DESARME: un comentario no volvió al de antes';
         end if;
         -- El evento vuelve a cruzar solo por teléfono, con los 13 parámetros de la 0504.
         select * into r from public.chatwoot_registrar_evento(
@@ -242,5 +267,14 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     ].join("\n");
     const r = await correr(sql);
     expect(r.error).toBeNull();
+  }, SLOW);
+
+  it("desarme: con uniones que guardan canal se niega, salvo que se acepte perderlo", async () => {
+    const contrato = inline();
+    const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
+    const r = await correr([sinCierre, DESARME, "rollback;"].join("
+"));
+    expect(r.error).toContain("desarme 0566: hay");
+    expect(r.error).toContain("dtd.desarme_0566_perder_canal");
   }, SLOW);
 });
