@@ -336,8 +336,10 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 ## 11 · Paso 3b: la revisión de Sam y el envío (SDD-0626 D2 y D4 · AC-1 etapa 1)
 
 **Qué hace.** El despachador deja cada borrador en «aprobación» y avisa a Discord «hay N pendientes» (solo el número).
-Sam revisa en **`/studio/admin/oficina`** (solo `is_platform_admin`): ve el borrador en texto plano, marca las 5 casillas
-de eval.md, escribe el motivo y aprueba o rechaza. Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
+Sam revisa en **`/studio/admin/oficina`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
+falló** en los 4 criterios de eval.md (por criterio, «Falló» o «No evaluado»; sin marca = cumple), escribe el motivo y
+aprueba o rechaza. El quinto criterio («Cierre o escalado en 3 intercambios o menos») lo registra una vez por
+conversación, al cerrarla o escalarla, en «Conversaciones por cerrar» (desde la 0558). Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
 solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 3b».
 
 ### Las variables (solo en el `.env` del entorno; nombres en `.env.example`, sin valores)
@@ -352,13 +354,19 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
 
 ### Requisitos para encenderlo (con OK de Sam y aviso al DG)
 
-1. La migración **0549** aplicada en esa base (sin ella el envío responde `sin_migracion` y la página lo dice).
+1. La migración **0549** aplicada en esa base (sin ella el envío responde `sin_migracion` y la página lo dice) y, para
+   revisar con la regla de tres estados, la **0558** (sin ella la página dice «Falta la migración 0558» y no guarda
+   revisiones ni cierres; el envío de lo ya aprobado no cambia).
 2. Lo del Paso 3a encendido (§10) para que haya borradores.
 3. El token de escritura en el `.env` sin pasar por el chat; recrear el web; después `OFICINA_ENVIO_ACTIVO=1`.
 
 ### Qué revisar
 
-- `office_revisiones`: una fila por borrador revisado (veredicto, 5 casillas, motivo, revisor, hora). Solo se agregan filas.
+- `office_revisiones`: una fila por borrador revisado (veredicto, casillas, motivo, revisor, hora). Solo se agregan filas.
+  Columna `regla_casillas`: 1 = la regla de la 0549 (5 casillas booleanas); 2 = la de la 0558 (4 criterios: `true` cumple,
+  `false` falló, `null` no evaluado; `c_cierre_3` queda `null`). El conteo solo mira criterio 2.
+- `office_cierres` (0558): el cierre de cada conversación (cumple o no, motivo, revisor, hora, etapa), uno por
+  conversación y etapa. Solo se agregan filas.
 - `office_envios`: `enviando` → `enviado` (con el id del mensaje de Chatwoot) o `fallido`; o `bloqueado` (con su código:
   `borrador_cambio`, `conversacion_cambio`, `aprobacion_vencida`, `otra_bandeja`, `ya_contestada`, `cliente_escribio`,
   `forma_desconocida`). Nada de eso se reintenta solo.
@@ -371,7 +379,10 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
   - **`bloqueado`:** la tarea ya terminó. Si el cliente volvió a escribir, su mensaje abre una tarea nueva.
 - `task_events`: `revision.aprobada` / `revision.rechazada` (actor `persona:<uuid>`), `envio.reservado`, `envio.hecho`,
   `envio.fallido`, `envio.bloqueado`.
-- El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño.
+- El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño. Con la 0558:
+  correcta = aprobada con los 4 criterios en «cumple» y sin un cierre que falló; dato inventado = «Cero datos
+  inventados» en `false` explícito; en la etapa 2 solo cuentan las conversaciones con cierre. Las revisiones de la
+  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1.
 - En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
 
 ### Cómo se apaga

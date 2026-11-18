@@ -9,11 +9,12 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/db/server";
-import { etapaActual, leerConteo, leerPendientes } from "@/lib/studio/oficina/revisiones";
+import { etapaActual, leerConteo, leerPendientes, leerPorCerrar } from "@/lib/studio/oficina/revisiones";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/TarjetaBorrador";
-import { revisarBorradorAction } from "./actions";
+import { TarjetaCierre } from "./_components/TarjetaCierre";
+import { registrarCierreAction, revisarBorradorAction } from "./actions";
 
 export const metadata = { title: "Oficina · revisión · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,13 @@ const AVISOS: Record<string, string> = {
   motivo_con_datos: "El motivo parece llevar datos personales (correo, teléfono, cédula…). Escríbelo sin ellos.",
   ya_revisado: "Ese borrador ya tenía su revisión.",
   no_en_aprobacion: "Esa tarea ya no está esperando revisión.",
-  no_aprobable: "No se aprueba un envío con datos inventados o datos personales repetidos: márcalo como rechazado.",
+  no_aprobable:
+    "No se aprueba un envío sin evaluar, o con datos inventados o datos personales repetidos: «Cero datos inventados» y «No repite datos personales» tienen que cumplir. Si fallaron, recházalo.",
+  rechazo_sin_fallo: "Para rechazar, marca «Falló» en al menos un criterio.",
+  marcas_cruzadas: "Un criterio no puede estar a la vez en «Falló» y en «No evaluado».",
+  ok_cierre: "Cierre registrado.",
+  ya_cerrada: "Esa conversación ya tenía su cierre.",
+  sin_0558: "Falta la migración 0558 en esta base: todavía no se puede revisar ni cerrar con la regla nueva.",
   invalido: "La revisión llegó incompleta. Vuelve a intentarlo.",
   sin_migracion: "Falta la migración 0549 en esta base: todavía no se puede revisar.",
   error: "No se pudo guardar la revisión. Intenta de nuevo.",
@@ -41,8 +48,16 @@ export default async function OficinaRevisionPage({
   await requireModuleView("admin");
   const supabase = await createClient();
   const etapa = etapaActual();
-  const [pendientes, conteo, sp] = await Promise.all([leerPendientes(supabase), leerConteo(supabase, etapa), searchParams]);
+  const [pendientes, conteo, porCerrar, sp] = await Promise.all([
+    leerPendientes(supabase),
+    leerConteo(supabase, etapa),
+    leerPorCerrar(supabase, etapa),
+    searchParams,
+  ]);
   const r = typeof sp.r === "string" ? sp.r : null;
+  // Con la 0549 y sin la 0558, office_conteo_revisiones es todavía el de la 0549 (la regla vieja): se avisa junto al
+  // conteo. La señal es la misma que da la sección de cierres: office_conversaciones_por_cerrar (0558) no existe.
+  const sin0558 = conteo.ok && !porCerrar.ok && porCerrar.motivo === "sin_migracion";
 
   return (
     <div style={{ maxWidth: 920 }}>
@@ -68,6 +83,7 @@ export default async function OficinaRevisionPage({
           Conteo de la etapa {conteo.datos.etapa}: {conteo.datos.conversaciones} de {conteo.datos.minimo} conversaciones,{" "}
           {conteo.datos.correctas} correctas (hacen falta {conteo.datos.minimoCorrectas}), {conteo.datos.conInventados} con datos
           inventados. {conteo.datos.cumple ? "Cumple el conteo (Sam firma el paso)." : "Todavía no cumple."}
+          {sin0558 ? ` ${AVISOS.sin_0558} Este conteo usa la regla vieja de la 0549.` : null}
         </p>
       ) : null}
       {!pendientes.ok ? (
@@ -76,6 +92,20 @@ export default async function OficinaRevisionPage({
         <p style={texto}>No hay borradores pendientes.</p>
       ) : (
         pendientes.datos.map((b) => <TarjetaBorrador key={b.borradorId} b={b} accion={revisarBorradorAction} />)
+      )}
+      <h2 className="studio-display" style={{ fontSize: 20, margin: "24px 0 8px", color: "var(--ink)" }}>
+        Conversaciones por cerrar
+      </h2>
+      <p style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 16px", maxWidth: "76ch" }}>
+        Cuando una conversación revisada se cierra o se escala, registra una vez si cerró o escaló en 3 intercambios o
+        menos. {etapa === 2 ? "En la etapa 2 solo cuentan las conversaciones con su cierre." : "En la etapa 1 un cierre que falló hace incorrecta la conversación."}
+      </p>
+      {!porCerrar.ok ? (
+        <p style={texto}>{porCerrar.motivo === "sin_migracion" ? AVISOS.sin_0558 : (AVISOS[porCerrar.motivo] ?? AVISOS.error)}</p>
+      ) : porCerrar.datos.length === 0 ? (
+        <p style={texto}>No hay conversaciones por cerrar.</p>
+      ) : (
+        porCerrar.datos.map((c) => <TarjetaCierre key={c.conversacion} c={c} accion={registrarCierreAction} />)
       )}
     </div>
   );
