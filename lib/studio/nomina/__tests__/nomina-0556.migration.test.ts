@@ -8,6 +8,8 @@
  * es el texto que se aplicará.
  *
  * CONTROL ROJO: sin la 0556 el contrato cae.
+ * ATOMICIDAD: nomina_guardar_reglas deja intacta la versión vigente ante un fallo a mitad (CHECK, desborde
+ * de numeric, dato que falta, fecha futura) y hereda la moneda de la vigente; respeta la RLS.
  * PREFLIGHT: aborta con utilidades fuera de 30 a 120 y sin la policy de la 0162.
  * DESARME: la vuelta vive solo aquí (el control C4 del CI no copia supabase/desarmes/): se mete el desarme
  * REAL antes del cierre del contrato y otra aserción prueba que la 0556 se puede volver a aplicar.
@@ -96,10 +98,20 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     sql: () =>
       once(
         FILE_0556,
-        "alter column vigente_desde set default current_date;",
-        "alter column vigente_desde set default current_date;\nupdate public.nomina_payroll_rules set vigente_desde = created_at::date;",
+        "alter column vigente_desde set default ((pg_catalog.now() at time zone 'America/Caracas')::date);",
+        "alter column vigente_desde set default ((pg_catalog.now() at time zone 'America/Caracas')::date);\nupdate public.nomina_payroll_rules set vigente_desde = created_at::date;",
       ),
     cae: "TEST 0556: la migración tocó una fila existente",
+  },
+  {
+    nombre: "vigente_desde nace con current_date (la zona de la sesión) y no con la fecha de Caracas",
+    sql: () =>
+      once(
+        FILE_0556,
+        "alter column vigente_desde set default ((pg_catalog.now() at time zone 'America/Caracas')::date);",
+        "alter column vigente_desde set default current_date;",
+      ),
+    cae: "TEST 0556: el default de vigente_desde no es la fecha de Caracas",
   },
   {
     nombre: "las monedas anteriores se reinterpretan como USD",
@@ -112,14 +124,64 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0556: una versión anterior no quedó en bolívares",
   },
   {
-    nombre: "los aportes patronales con otro default",
+    nombre: "los aportes del patrono nacen con un default inventado (las versiones existentes quedarían configuradas)",
     sql: () =>
       once(
         FILE_0556,
-        "add column if not exists sso_patronal_pct            numeric(5,2) not null default 9",
-        "add column if not exists sso_patronal_pct            numeric(5,2) not null default 11",
+        "add column if not exists sso_patronal_pct            numeric(5,2),",
+        "add column if not exists sso_patronal_pct            numeric(5,2) default 9,",
       ),
-    cae: "TEST 0556: los defaults de aportes y escalas no son los de la spec",
+    cae: "TEST 0556: una versión anterior quedó con aportes o escalas inventados",
+  },
+  {
+    nombre: "el CHECK de monedas deja pasar cualquier texto",
+    sql: () =>
+      once(FILE_0556, "'check (cestaticket_moneda in (''VES'', ''USD''))'", "'check (cestaticket_moneda is not null)'"),
+    cae: "el CHECK aceptó «moneda de cestaticket EUR»",
+  },
+  {
+    nombre: "el CHECK de rangos de los aportes acepta hasta 1000",
+    sql: () =>
+      once(
+        FILE_0556,
+        "'check (sso_patronal_pct between 0 and 100 and rpe_patronal_pct between 0 and 100 '",
+        "'check (sso_patronal_pct between 0 and 1000 and rpe_patronal_pct between 0 and 1000 '",
+      ),
+    cae: "el CHECK aceptó «aporte del IVSS en 101»",
+  },
+  {
+    nombre: "guardar NO es atómico: un insert que falla se traga y el archivado queda",
+    sql: () =>
+      once(
+        once(
+          FILE_0556,
+          "  insert into public.nomina_payroll_rules (\n    tenant_id, version, status, pay_frequency, day_method,",
+          "  begin\n  insert into public.nomina_payroll_rules (\n    tenant_id, version, status, pay_frequency, day_method,",
+        ),
+        "  returning id into v_id;\n\n  return v_id;",
+        "  returning id into v_id;\n  exception when others then v_id := null;\n  end;\n\n  return v_id;",
+      ),
+    cae: "TEST 0556: nomina_guardar_reglas aceptó el caso",
+  },
+  {
+    nombre: "guardar impone USD a la moneda que no llega, en vez de heredar la de la vigente",
+    sql: () =>
+      once(
+        FILE_0556,
+        "coalesce(p_datos ->> 'cestaticket_moneda', v_prev.cestaticket_moneda, 'VES')",
+        "coalesce(p_datos ->> 'cestaticket_moneda', 'USD')",
+      ),
+    cae: "TEST 0556: la versión guardada no tiene la forma esperada",
+  },
+  {
+    nombre: "guardar acepta una fecha de vigencia posterior a hoy",
+    sql: () => once(FILE_0556, "if v_desde is not null and v_desde > v_hoy then", "if false then"),
+    cae: "TEST 0556: nomina_guardar_reglas aceptó el caso «fecha-futura»",
+  },
+  {
+    nombre: "guardar pasa a SECURITY DEFINER (lo atrapa el postflight de la migración)",
+    sql: () => once(FILE_0556, "security invoker", "security definer"),
+    cae: "0556 postflight: nomina_guardar_reglas no es SECURITY INVOKER",
   },
   {
     nombre: "una policy abierta: cualquier admin ve todos los tenants",
@@ -156,10 +218,13 @@ begin
                                   'vacaciones_extra_max', 'bono_vacacional_max_days')) then
     raise exception 'TEST 0556 (Z): el desarme dejó columnas de la 0556';
   end if;
+  if to_regprocedure('public.nomina_guardar_reglas(jsonb)') is not null then
+    raise exception 'TEST 0556 (Z): el desarme dejó la función nomina_guardar_reglas';
+  end if;
   if exists (select 1 from pg_constraint where conrelid = 'public.nomina_payroll_rules'::regclass
               and conname in ('nomina_payroll_rules_fuente_legal_corta', 'nomina_payroll_rules_imi_no_negativo',
                               'nomina_payroll_rules_cestaticket_moneda', 'nomina_payroll_rules_bono_guerra_moneda',
-                              'nomina_payroll_rules_aportes_patronales_rango', 'nomina_payroll_rules_pension_contrib_tope',
+                              'nomina_payroll_rules_porcentajes_rango', 'nomina_payroll_rules_pension_contrib_tope',
                               'nomina_payroll_rules_escalas_no_negativas', 'nomina_payroll_rules_utilidades_rango')) then
     raise exception 'TEST 0556 (Z): el desarme dejó restricciones de la 0556';
   end if;
@@ -180,6 +245,9 @@ begin
   if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'nomina_payroll_rules'
                   and column_name = 'vigente_desde') then
     raise exception 'TEST 0556 (Z): la 0556 no se pudo volver a aplicar tras el desarme';
+  end if;
+  if to_regprocedure('public.nomina_guardar_reglas(jsonb)') is null then
+    raise exception 'TEST 0556 (Z): la función no volvió con la 0556';
   end if;
 end;
 $reaplicada$;`;

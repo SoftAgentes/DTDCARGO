@@ -1,10 +1,13 @@
 \set ON_ERROR_STOP on
 -- SDD-0653 fase A2b · contrato de la 0556 (reglas de nómina con vigencia, monedas, aportes patronales y escalas).
 -- Migraciones reales (0160, 0162 y 0556); fixtures sintéticos. Nunca conecta a producción.
--- Cubre: (1) las filas que ya existían no se tocan (vigente_desde NULL, monedas en VES, mismo updated_at);
--- (2) las filas nuevas nacen con la fecha de hoy y los defaults; (3) cada CHECK rechaza lo suyo;
--- (4) reaplicar no cambia nada; (5) la RLS por tenant Y rol sigue igual: otro tenant, un rol sin acceso,
--- un admin deshabilitado y anon no ven ni escriben; (6) el catálogo (policy única, grants) no cambió.
+-- Cubre: (1) las filas que ya existían no se tocan (vigente_desde NULL, monedas en VES, aportes y escalas en
+-- NULL = «sin configurar», mismo updated_at); (2) las filas nuevas nacen con la fecha de HOY EN CARACAS;
+-- (3) cada CHECK rechaza lo suyo; (4) reaplicar no cambia nada; (5) la RLS por tenant Y rol sigue igual: otro
+-- tenant, un rol sin acceso, un admin deshabilitado y anon no ven ni escriben; (6) el catálogo (policy única,
+-- grants, función) no cambió; (7) nomina_guardar_reglas es ATÓMICA: un fallo a mitad (CHECK, desborde de
+-- numeric, dato que falta, fecha futura) deja la versión vigente intacta; hereda la moneda de la vigente;
+-- respeta la RLS (operador, sin membership y anon fallan; cada tenant toca solo lo suyo).
 begin;
 do $roles$
 begin
@@ -81,14 +84,17 @@ begin
     raise exception 'TEST 0556: una versión anterior quedó con fecha o fuente inventadas';
   end if;
   if exists (select 1 from public.nomina_payroll_rules
-              where cestaticket_moneda <> 'VES' or bono_guerra_moneda <> 'VES' or ingreso_minimo_integral_usd <> 0) then
-    raise exception 'TEST 0556: una versión anterior no quedó en bolívares y sin ingreso mínimo integral';
+              where cestaticket_moneda <> 'VES' or bono_guerra_moneda <> 'VES') then
+    raise exception 'TEST 0556: una versión anterior no quedó en bolívares';
   end if;
+  -- Lo que se configura queda SIN CONFIGURAR (NULL), no con un valor inventado.
   if exists (select 1 from public.nomina_payroll_rules
-              where sso_patronal_pct <> 9 or rpe_patronal_pct <> 2 or faov_patronal_pct <> 2
-                 or inces_patronal_pct <> 2 or inces_utilidades_pct <> 0.5 or pension_contrib_pct <> 9
-                 or vacaciones_extra_max <> 15 or bono_vacacional_max_days <> 30) then
-    raise exception 'TEST 0556: los defaults de aportes y escalas no son los de la spec';
+              where ingreso_minimo_integral_usd is not null or sso_patronal_pct is not null
+                 or rpe_patronal_pct is not null or faov_patronal_pct is not null
+                 or inces_patronal_pct is not null or inces_utilidades_pct is not null
+                 or pension_contrib_pct is not null or vacaciones_extra_max is not null
+                 or bono_vacacional_max_days is not null) then
+    raise exception 'TEST 0556: una versión anterior quedó con aportes o escalas inventados (deben ser NULL)';
   end if;
 end;
 $existentes$;
@@ -97,18 +103,30 @@ $existentes$;
 do $nuevas$
 declare
   v_id uuid;
+  v_hoy_caracas date := (now() at time zone 'America/Caracas')::date;
 begin
+  -- El default de la fecha es la de Caracas, no current_date (que sigue la zona de la sesión).
+  if (select pg_get_expr(d.adbin, d.adrelid) from pg_attrdef d
+       join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
+      where d.adrelid = 'public.nomina_payroll_rules'::regclass and a.attname = 'vigente_desde') not like '%America/Caracas%' then
+    raise exception 'TEST 0556: el default de vigente_desde no es la fecha de Caracas';
+  end if;
   update public.nomina_payroll_rules set status = 'archivada'
    where tenant_id = '10000000-0653-0000-0000-000000000001' and status = 'vigente';
   insert into public.nomina_payroll_rules (tenant_id, version, status, fuente_legal, ingreso_minimo_integral_usd,
                                            cestaticket_moneda, bono_guerra_moneda, sso_patronal_pct)
   values ('10000000-0653-0000-0000-000000000001', 2, 'vigente', 'G.O. 6.691 Ext., Decreto 4.653', 240, 'USD', 'USD', 10)
   returning id into v_id;
-  if (select vigente_desde from public.nomina_payroll_rules where id = v_id) is distinct from current_date then
-    raise exception 'TEST 0556: una versión nueva no nació con vigente_desde = hoy';
+  if (select vigente_desde from public.nomina_payroll_rules where id = v_id) is distinct from v_hoy_caracas then
+    raise exception 'TEST 0556: una versión nueva no nació con vigente_desde = hoy en Caracas';
   end if;
   if (select cestaticket_moneda || bono_guerra_moneda || sso_patronal_pct::text from public.nomina_payroll_rules where id = v_id) <> 'USDUSD10.00' then
     raise exception 'TEST 0556: la versión nueva no guardó monedas y aporte';
+  end if;
+  -- Sin valores, una versión nueva tampoco inventa: aportes y escalas en NULL.
+  if (select rpe_patronal_pct is not null or pension_contrib_pct is not null or vacaciones_extra_max is not null
+        from public.nomina_payroll_rules where id = v_id) then
+    raise exception 'TEST 0556: una versión nueva sin valores no quedó en NULL';
   end if;
   -- Una sola versión vigente por tenant sigue valiendo.
   begin
@@ -239,6 +257,16 @@ begin
   if has_table_privilege('authenticated', 'public.nomina_payroll_rules', 'TRUNCATE') then
     raise exception 'TEST 0556: authenticated puede TRUNCATE nomina_payroll_rules';
   end if;
+  -- La función de guardado: invoker, search_path vacío, solo authenticated.
+  if not exists (select 1 from pg_proc where oid = to_regprocedure('public.nomina_guardar_reglas(jsonb)')
+                   and not prosecdef and proconfig @> array['search_path=""']::text[]) then
+    raise exception 'TEST 0556: nomina_guardar_reglas no es SECURITY INVOKER con search_path vacío';
+  end if;
+  if not has_function_privilege('authenticated', 'public.nomina_guardar_reglas(jsonb)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.nomina_guardar_reglas(jsonb)', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.nomina_guardar_reglas(jsonb)', 'EXECUTE') then
+    raise exception 'TEST 0556: EXECUTE de nomina_guardar_reglas no es solo de authenticated';
+  end if;
 end;
 $catalogo$;
 
@@ -260,7 +288,7 @@ begin
    where tenant_id = '20000000-0653-0000-0000-000000000002';
   if v_n <> 0 then raise exception 'TEST 0556: el admin del tenant 1 ve filas del tenant 2'; end if;
   select count(*) into v_n from public.nomina_payroll_rules
-   where vigente_desde is not null or fuente_legal is not null or ingreso_minimo_integral_usd >= 0;
+   where cestaticket_moneda in ('VES', 'USD') and bono_guerra_moneda in ('VES', 'USD');
   if v_n <> 2 then raise exception 'TEST 0556: el admin no lee las columnas nuevas de sus filas'; end if;
 
   -- No escribe en el tenant 2: ni insertar, ni modificar (0 filas), ni borrar (0 filas).
@@ -301,6 +329,133 @@ begin
 end;
 $despues_admin$;
 
+-- ── (7) nomina_guardar_reglas: atómica, hereda la moneda y respeta la RLS ────
+do $guardar$
+declare
+  v_base jsonb := jsonb_build_object(
+    'pay_frequency', 'mensual', 'day_method', '30', 'min_salary', 130, 'cestaticket', 40, 'bono_guerra', 200,
+    'sso_pct', 4, 'rpe_pct', 0.5, 'faov_pct', 1, 'sso_cap_sm', 5, 'rpe_cap_sm', 10,
+    'overtime_pct', 50, 'night_pct', 30, 'holiday_pct', 50,
+    'utilidades_days', 30, 'bono_vacacional_days', 15, 'vacaciones_days', 15,
+    'salarial_bonuses', '[]'::jsonb);
+  v_t1 constant uuid := '10000000-0653-0000-0000-000000000001';
+  v_t2 constant uuid := '20000000-0653-0000-0000-000000000002';
+  v_hoy date := (now() at time zone 'America/Caracas')::date;
+  v_vigente uuid;
+  v_versiones int;
+  v_id uuid;
+  v_malo jsonb;
+  v_caso text;
+begin
+  -- La vigente del tenant 1 (versión 3, la del bloque anterior) con el bono en USD y el cestaticket en Bs.
+  update public.nomina_payroll_rules set bono_guerra_moneda = 'USD', cestaticket_moneda = 'VES'
+   where tenant_id = v_t1 and status = 'vigente';
+  select id into v_vigente from public.nomina_payroll_rules where tenant_id = v_t1 and status = 'vigente';
+  select count(*) into v_versiones from public.nomina_payroll_rules where tenant_id = v_t1;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', 'aaaaaaaa-0653-0000-0000-000000000001', true);
+
+  -- Fallos a mitad: cada uno revierte el archivado y deja la vigente intacta.
+  foreach v_caso in array array['pension', 'desborde', 'falta-dato', 'fecha-futura', 'no-objeto', 'moneda'] loop
+    v_malo := case v_caso
+      when 'pension'      then v_base || jsonb_build_object('pension_contrib_pct', 20)
+      when 'desborde'     then v_base || jsonb_build_object('ingreso_minimo_integral_usd', 1000000000000000)
+      when 'falta-dato'   then v_base - 'min_salary'
+      when 'fecha-futura' then v_base || jsonb_build_object('vigente_desde', (v_hoy + 1)::text)
+      when 'no-objeto'    then '[1,2]'::jsonb
+      when 'moneda'       then v_base || jsonb_build_object('cestaticket_moneda', 'EUR')
+    end;
+    begin
+      perform public.nomina_guardar_reglas(v_malo);
+      raise exception 'TEST 0556: nomina_guardar_reglas aceptó el caso «%»', v_caso;
+    exception
+      when check_violation or numeric_value_out_of_range or not_null_violation or invalid_parameter_value then null;
+    end;
+    if (select id from public.nomina_payroll_rules where tenant_id = v_t1 and status = 'vigente') is distinct from v_vigente then
+      raise exception 'TEST 0556: el caso «%» dejó al tenant sin su versión vigente', v_caso;
+    end if;
+    if (select count(*) from public.nomina_payroll_rules where tenant_id = v_t1) <> v_versiones then
+      raise exception 'TEST 0556: el caso «%» dejó una versión a medias', v_caso;
+    end if;
+  end loop;
+
+  -- Un guardado bueno: archiva la vigente, inserta la siguiente, la fecha es hoy en Caracas y las monedas se heredan.
+  v_id := public.nomina_guardar_reglas(
+    v_base || jsonb_build_object('tenant_id', v_t2, 'fuente_legal', '  Decreto de prueba  ', 'sso_patronal_pct', 9));
+  if (select status from public.nomina_payroll_rules where id = v_vigente) <> 'archivada' then
+    raise exception 'TEST 0556: el guardado no archivó la versión vigente';
+  end if;
+  if not exists (select 1 from public.nomina_payroll_rules
+                  where id = v_id and tenant_id = v_t1 and status = 'vigente' and version = 4
+                    and vigente_desde = v_hoy and fuente_legal = 'Decreto de prueba'
+                    and sso_patronal_pct = 9 and rpe_patronal_pct is null and pension_contrib_pct is null
+                    and bono_guerra_moneda = 'USD' and cestaticket_moneda = 'VES'
+                    and created_by = 'aaaaaaaa-0653-0000-0000-000000000001') then
+    raise exception 'TEST 0556: la versión guardada no tiene la forma esperada (o tomó el tenant del payload)';
+  end if;
+  -- Con moneda explícita manda la explícita; una fecha pasada vale.
+  v_id := public.nomina_guardar_reglas(
+    v_base || jsonb_build_object('cestaticket_moneda', 'USD', 'vigente_desde', '2026-01-15'));
+  if not exists (select 1 from public.nomina_payroll_rules
+                  where id = v_id and cestaticket_moneda = 'USD' and bono_guerra_moneda = 'USD'
+                    and vigente_desde = date '2026-01-15' and version = 5) then
+    raise exception 'TEST 0556: la moneda explícita o la fecha pasada no se respetaron';
+  end if;
+  if (select count(*) from public.nomina_payroll_rules where tenant_id = v_t1 and status = 'vigente') <> 1 then
+    raise exception 'TEST 0556: el tenant 1 no quedó con exactamente una versión vigente';
+  end if;
+  reset role;
+
+  -- Cada tenant toca solo lo suyo: el contador del tenant 2 guarda su versión 2 y el tenant 1 no se mueve.
+  select count(*) into v_versiones from public.nomina_payroll_rules where tenant_id = v_t1;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', 'bbbbbbbb-0653-0000-0000-000000000001', true);
+  v_id := public.nomina_guardar_reglas(v_base);
+  reset role;
+  if not exists (select 1 from public.nomina_payroll_rules where id = v_id and tenant_id = v_t2 and version = 2) then
+    raise exception 'TEST 0556: el contador del tenant 2 no guardó la versión 2 de su tenant';
+  end if;
+  if (select count(*) from public.nomina_payroll_rules where tenant_id = v_t1) <> v_versiones then
+    raise exception 'TEST 0556: el guardado del tenant 2 movió el tenant 1';
+  end if;
+end;
+$guardar$;
+
+-- Sin acceso a la función: operador, admin deshabilitado, sin membership y anon.
+do $guardar_sin_acceso$
+declare
+  v_sub text;
+  v_antes int;
+begin
+  select count(*) into v_antes from public.nomina_payroll_rules;
+  foreach v_sub in array array[
+    'aaaaaaaa-0653-0000-0000-000000000002',
+    'aaaaaaaa-0653-0000-0000-000000000003',
+    'cccccccc-0653-0000-0000-000000000009'
+  ] loop
+    begin
+      set local role authenticated;
+      perform set_config('request.jwt.claim.sub', v_sub, true);
+      perform public.nomina_guardar_reglas('{"pay_frequency":"mensual"}'::jsonb);
+      raise exception 'TEST 0556: % ejecutó nomina_guardar_reglas', v_sub;
+    exception when insufficient_privilege then null;
+    end;
+    reset role;
+  end loop;
+  begin
+    set local role anon;
+    perform public.nomina_guardar_reglas('{}'::jsonb);
+    raise exception 'TEST 0556: anon ejecutó nomina_guardar_reglas';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  if (select count(*) from public.nomina_payroll_rules) <> v_antes then
+    raise exception 'TEST 0556: un llamador sin acceso cambió las versiones';
+  end if;
+end;
+$guardar_sin_acceso$;
+
 -- Sin acceso: operador, admin deshabilitado, sin membership y anon.
 do $sin_acceso$
 declare
@@ -333,7 +488,8 @@ begin
   select count(*) into v_n from public.nomina_payroll_rules where tenant_id = '10000000-0653-0000-0000-000000000001';
   if v_n <> 0 then raise exception 'TEST 0556: el contador del tenant 2 ve versiones del tenant 1'; end if;
   select count(*) into v_n from public.nomina_payroll_rules;
-  if v_n <> 1 then raise exception 'TEST 0556: el contador del tenant 2 no ve exactamente su versión'; end if;
+  -- Sus dos versiones (la de arranque, archivada por el guardado, y la nueva) y ninguna del tenant 1.
+  if v_n <> 2 then raise exception 'TEST 0556: el contador del tenant 2 no ve exactamente sus dos versiones'; end if;
   reset role;
 
   -- anon: ni leer ni escribir (la tabla nunca se le concedió).

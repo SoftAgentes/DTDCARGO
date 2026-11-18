@@ -12,10 +12,12 @@
  * de reglas que usó.
  *
  * SDD-0653 A2b · migración 0556 (EN ESPERA): la tabla gana vigencia, fuente legal,
- * monedas, aportes del patrono y escalas. Sin la 0556 esas columnas no existen:
- * la lectura reintenta sin ellas y la escritura las omite, y el módulo sigue
- * como en la fase A2a (`ampliada: false`). Con la 0556 aplicada se leen y se
- * guardan solas, sin otro cambio de código.
+ * monedas, aportes del patrono y escalas, y la función `nomina_guardar_reglas`,
+ * que guarda una versión nueva en UNA transacción. Sin la 0556 esas columnas y esa
+ * función no existen: la lectura reintenta sin ellas y la escritura usa los dos
+ * pasos de siempre (archivar, insertar) con restauración, y el módulo sigue como en
+ * la fase A2a (`ampliada: false`). Con la 0556 aplicada se usan solas, sin otro
+ * cambio de código.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -66,9 +68,16 @@ export function faltaColumna(error: { code?: string | null; message?: string | n
   );
 }
 
-/** Un `numeric` opcional: undefined si la columna no vino (sin la 0556). */
-function numOpt(v: unknown): number | undefined {
-  return v === undefined ? undefined : num(v);
+/** Un `numeric` opcional: undefined si la columna no vino (sin la 0556); null = «sin configurar», nunca cero. */
+function numOpt(v: unknown): number | null | undefined {
+  if (v === undefined) return undefined;
+  return v === null ? null : num(v);
+}
+
+/** Un entero opcional, con la misma regla que `numOpt`. */
+function intOpt(v: unknown): number | null | undefined {
+  const n = numOpt(v);
+  return n === undefined || n === null ? n : Math.trunc(n);
 }
 
 /** Coacciona la fila cruda (numeric→number) a PayrollRules tipado. */
@@ -102,9 +111,8 @@ function rowToPayrollRules(row: Record<string, unknown>): PayrollRules {
     rules.inces_patronal_pct = numOpt(row.inces_patronal_pct);
     rules.inces_utilidades_pct = numOpt(row.inces_utilidades_pct);
     rules.pension_contrib_pct = numOpt(row.pension_contrib_pct);
-    rules.vacaciones_extra_max = row.vacaciones_extra_max === undefined ? undefined : Math.trunc(num(row.vacaciones_extra_max));
-    rules.bono_vacacional_max_days =
-      row.bono_vacacional_max_days === undefined ? undefined : Math.trunc(num(row.bono_vacacional_max_days));
+    rules.vacaciones_extra_max = intOpt(row.vacaciones_extra_max);
+    rules.bono_vacacional_max_days = intOpt(row.bono_vacacional_max_days);
     const monedaCestaticket = row.cestaticket_moneda;
     const monedaBono = row.bono_guerra_moneda;
     rules.cestaticket_moneda = isMonedaMonto(monedaCestaticket) ? monedaCestaticket : "VES";
@@ -159,64 +167,23 @@ export async function getVigentePayrollRules(
   return (await getVigentePayrollRulesConEstado(supabase)).rules;
 }
 
-/** Los campos de la 0556 para el insert; vigente_desde solo si vino (si no, manda el default de la base). */
-function camposDeLa0556(input: PayrollRulesInput): Record<string, unknown> {
-  return {
-    ...(input.vigente_desde ? { vigente_desde: input.vigente_desde } : {}),
-    fuente_legal: input.fuente_legal,
-    ingreso_minimo_integral_usd: input.ingreso_minimo_integral_usd,
-    cestaticket_moneda: input.cestaticket_moneda,
-    bono_guerra_moneda: input.bono_guerra_moneda,
-    sso_patronal_pct: input.sso_patronal_pct,
-    rpe_patronal_pct: input.rpe_patronal_pct,
-    faov_patronal_pct: input.faov_patronal_pct,
-    inces_patronal_pct: input.inces_patronal_pct,
-    inces_utilidades_pct: input.inces_utilidades_pct,
-    pension_contrib_pct: input.pension_contrib_pct,
-    vacaciones_extra_max: input.vacaciones_extra_max,
-    bono_vacacional_max_days: input.bono_vacacional_max_days,
-  };
+/** ¿El error es «esa función no existe» (la base todavía no tiene la 0556)? */
+export function faltaFuncion(error: { code?: string | null; message?: string | null } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "42883" ||
+    error.code === "PGRST202" ||
+    /could not find the function|function .* does not exist/i.test(error.message ?? "")
+  );
 }
 
 /**
- * Guarda una nueva versión del ruleset: archiva el vigente y crea la versión
- * siguiente como `vigente`. El índice parcial único de la migración garantiza
- * un solo vigente por tenant; por eso se archiva ANTES de insertar.
- *
- * Transacción lógica (sin RPC): si el insert falla tras archivar, la función
- * devuelve el error y el llamador no revalida. El índice único protege la
- * carrera (2.º insert concurrente → 23505).
- *
- * Sin la 0556 (`ampliada: false`) el insert omite las columnas nuevas; si la base
- * las perdiera entre la lectura y el insert (un desarme), se reintenta sin ellas.
+ * Los datos que recibe `nomina_guardar_reglas`: los de siempre y los de la 0556. Lo que no llegó
+ * no se manda: la moneda se hereda de la versión vigente y la fecha de vigencia es hoy en Caracas
+ * (lo resuelve la función). Sin tenant ni autor: la función los toma de la sesión.
  */
-export async function upsertPayrollRules(
-  supabase: SupabaseClient,
-  tenantId: string,
-  input: PayrollRulesInput,
-  userId: string | null,
-): Promise<{ data: PayrollRules | null; error: string | null; ampliada: boolean }> {
-  // 1) Versión actual (si hay vigente) y si la base tiene la 0556.
-  const { rules: current, ampliada } = await getVigentePayrollRulesConEstado(supabase);
-  const nextVersion = current ? current.version + 1 : 1;
-
-  // 2) Archivar el vigente (libera el índice único parcial).
-  if (current) {
-    const { error: archiveErr } = await supabase
-      .from("nomina_payroll_rules")
-      .update({ status: "archivada" })
-      .eq("id", current.id)
-      .eq("status", "vigente");
-    if (archiveErr) {
-      return { data: null, error: `No se pudo archivar la versión vigente: ${archiveErr.message}`, ampliada };
-    }
-  }
-
-  // 3) Insertar la versión nueva como vigente.
-  const base = {
-    tenant_id: tenantId,
-    version: nextVersion,
-    status: "vigente",
+export function datosParaGuardar(input: PayrollRulesInput): Record<string, unknown> {
+  return {
     pay_frequency: input.pay_frequency,
     day_method: input.day_method,
     min_salary: input.min_salary,
@@ -235,26 +202,134 @@ export async function upsertPayrollRules(
     vacaciones_days: input.vacaciones_days,
     salarial_bonuses: input.salarial_bonuses,
     notes: input.notes,
-    created_by: userId,
+    ...(input.vigente_desde ? { vigente_desde: input.vigente_desde } : {}),
+    ...(input.cestaticket_moneda ? { cestaticket_moneda: input.cestaticket_moneda } : {}),
+    ...(input.bono_guerra_moneda ? { bono_guerra_moneda: input.bono_guerra_moneda } : {}),
+    fuente_legal: input.fuente_legal,
+    ingreso_minimo_integral_usd: input.ingreso_minimo_integral_usd,
+    sso_patronal_pct: input.sso_patronal_pct,
+    rpe_patronal_pct: input.rpe_patronal_pct,
+    faov_patronal_pct: input.faov_patronal_pct,
+    inces_patronal_pct: input.inces_patronal_pct,
+    inces_utilidades_pct: input.inces_utilidades_pct,
+    pension_contrib_pct: input.pension_contrib_pct,
+    vacaciones_extra_max: input.vacaciones_extra_max,
+    bono_vacacional_max_days: input.bono_vacacional_max_days,
   };
+}
 
-  let usadas = ampliada;
-  let res = await supabase
+/**
+ * Guarda una nueva versión del ruleset: archiva el vigente y crea la versión siguiente como
+ * `vigente`. El índice parcial único garantiza un solo vigente por tenant.
+ *
+ * Con la 0556 lo hace `nomina_guardar_reglas`, **en una sola transacción** (SECURITY INVOKER, con la
+ * RLS de quien llama): si el insert falla (un CHECK, un desborde de numeric, un dato mal formado) el
+ * archivado se deshace y el tenant conserva su versión vigente.
+ *
+ * Sin la 0556 (`ampliada: false`) son los dos pasos de siempre, ahora con restauración: se archiva la
+ * vigente, se inserta la nueva con las columnas de la 0162 y, si el insert falla, se vuelve a dejar
+ * vigente la archivada. Si ni eso se pudo, el error lo dice con todas sus letras.
+ */
+export async function upsertPayrollRules(
+  supabase: SupabaseClient,
+  tenantId: string,
+  input: PayrollRulesInput,
+  userId: string | null,
+): Promise<{ data: PayrollRules | null; error: string | null; ampliada: boolean }> {
+  const { rules: current, ampliada } = await getVigentePayrollRulesConEstado(supabase);
+
+  // 1) Con la 0556: una función, una transacción.
+  if (ampliada) {
+    const rpc = await supabase.rpc("nomina_guardar_reglas", { p_datos: datosParaGuardar(input) });
+    if (!faltaFuncion(rpc.error)) {
+      if (rpc.error) {
+        return {
+          data: null,
+          error: `No se pudo guardar las reglas: ${rpc.error.message}. La versión vigente no cambió.`,
+          ampliada: true,
+        };
+      }
+      const leida = await supabase
+        .from("nomina_payroll_rules")
+        .select(COLUMNAS_AMPLIADAS)
+        .eq("id", rpc.data as string)
+        .single();
+      if (leida.error || !leida.data) {
+        return {
+          data: null,
+          error: "Las reglas se guardaron, pero no se pudo leer la versión nueva. Recarga la pantalla.",
+          ampliada: true,
+        };
+      }
+      return { data: rowToPayrollRules(leida.data as unknown as Record<string, unknown>), error: null, ampliada: true };
+    }
+    // La función no está (un desarme): se sigue con los dos pasos, sin las columnas nuevas.
+  }
+
+  // 2) Sin la 0556: archivar, insertar y, si falla, restaurar.
+  const nextVersion = current ? current.version + 1 : 1;
+  if (current) {
+    const { error: archiveErr } = await supabase
+      .from("nomina_payroll_rules")
+      .update({ status: "archivada" })
+      .eq("id", current.id)
+      .eq("status", "vigente");
+    if (archiveErr) {
+      return { data: null, error: `No se pudo archivar la versión vigente: ${archiveErr.message}`, ampliada: false };
+    }
+  }
+
+  const { data, error } = await supabase
     .from("nomina_payroll_rules")
-    .insert(ampliada ? { ...base, ...camposDeLa0556(input) } : base)
-    .select(ampliada ? COLUMNAS_AMPLIADAS : COLUMNAS_BASE)
+    .insert({
+      tenant_id: tenantId,
+      version: nextVersion,
+      status: "vigente",
+      pay_frequency: input.pay_frequency,
+      day_method: input.day_method,
+      min_salary: input.min_salary,
+      cestaticket: input.cestaticket,
+      bono_guerra: input.bono_guerra,
+      sso_pct: input.sso_pct,
+      rpe_pct: input.rpe_pct,
+      faov_pct: input.faov_pct,
+      sso_cap_sm: input.sso_cap_sm,
+      rpe_cap_sm: input.rpe_cap_sm,
+      overtime_pct: input.overtime_pct,
+      night_pct: input.night_pct,
+      holiday_pct: input.holiday_pct,
+      utilidades_days: input.utilidades_days,
+      bono_vacacional_days: input.bono_vacacional_days,
+      vacaciones_days: input.vacaciones_days,
+      salarial_bonuses: input.salarial_bonuses,
+      notes: input.notes,
+      created_by: userId,
+    })
+    .select(COLUMNAS_BASE)
     .single();
-  if (ampliada && faltaColumna(res.error)) {
-    usadas = false;
-    res = await supabase.from("nomina_payroll_rules").insert(base).select(COLUMNAS_BASE).single();
-  }
 
-  if (res.error) {
-    return { data: null, error: `No se pudo guardar las reglas: ${res.error.message}`, ampliada: usadas };
+  if (error || !data) {
+    const motivo = error?.message ?? "sin respuesta";
+    if (current) {
+      const restaurada = await supabase
+        .from("nomina_payroll_rules")
+        .update({ status: "vigente" })
+        .eq("id", current.id)
+        .eq("status", "archivada");
+      if (restaurada.error) {
+        return {
+          data: null,
+          error: `No se pudo guardar las reglas (${motivo}) y tampoco se pudo restaurar la versión ${current.version}: avisa a soporte antes de volver a guardar.`,
+          ampliada: false,
+        };
+      }
+      return {
+        data: null,
+        error: `No se pudo guardar las reglas: ${motivo}. La versión ${current.version} sigue vigente.`,
+        ampliada: false,
+      };
+    }
+    return { data: null, error: `No se pudo guardar las reglas: ${motivo}`, ampliada: false };
   }
-  return {
-    data: rowToPayrollRules(res.data as unknown as Record<string, unknown>),
-    error: null,
-    ampliada: usadas,
-  };
+  return { data: rowToPayrollRules(data as unknown as Record<string, unknown>), error: null, ampliada: false };
 }

@@ -21,6 +21,7 @@ import {
   PAY_FREQUENCY_OPTIONS,
   DAY_METHOD_OPTIONS,
   PAYROLL_RULES_DEFAULTS,
+  hoyCaracas,
   type PayrollRules,
 } from "@/lib/studio/nomina/payroll-rules-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
@@ -43,9 +44,23 @@ function val(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULT
   return String(v);
 }
 
-/** Hoy en Caracas (AAAA-MM-DD): la vigencia por omisión de una versión nueva. */
-function hoyCaracas(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
+/**
+ * Valor de un campo que agregó la 0556: el de la versión; y si la versión no lo configuró (null) o no
+ * lo trae (undefined), la PROPUESTA de la norma, que el formulario marca «propuesto» (por confirmar).
+ */
+function val0556(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): string {
+  const v = rules ? (rules as unknown as Record<string, unknown>)[key] : undefined;
+  if (v === null || v === undefined) {
+    const propuesta = PAYROLL_RULES_DEFAULTS[key];
+    return propuesta == null ? "" : String(propuesta);
+  }
+  return String(v);
+}
+
+/** ¿Este campo de la 0556 está mostrando la propuesta de la norma (la versión no lo configuró)? */
+function esPropuesta(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): boolean {
+  const v = rules ? (rules as unknown as Record<string, unknown>)[key] : undefined;
+  return v === null || v === undefined;
 }
 
 const MONEDA_OPCIONES = [
@@ -89,7 +104,7 @@ export function ReglasDrawer({
     label: string,
     opts: { step?: string; min?: string; max?: string } = {},
   ) => (
-    <Field label={label} error={state.fieldErrors?.[name]}>
+    <Field label={!espera && esPropuesta(rules, name) && val0556(rules, name) !== "" ? `${label} · propuesto` : label} error={state.fieldErrors?.[name]}>
       <input
         name={name}
         type="number"
@@ -98,7 +113,7 @@ export function ReglasDrawer({
         max={opts.max}
         disabled={espera}
         className="studio-input studio-input-mono"
-        defaultValue={val(rules, name)}
+        defaultValue={espera ? "" : val0556(rules, name)}
       />
     </Field>
   );
@@ -158,8 +173,8 @@ export function ReglasDrawer({
         {/* Vigencia y fuente legal (D2) */}
         <GroupTitle>Vigencia de esta versión</GroupTitle>
         <Row>
-          <Field label="Rige desde" error={state.fieldErrors?.vigente_desde}>
-            <input name="vigente_desde" type="date" disabled={espera} className="studio-input" defaultValue={hoy} />
+          <Field label="Rige desde (informativa)" error={state.fieldErrors?.vigente_desde}>
+            <input name="vigente_desde" type="date" max={hoy} disabled={espera} className="studio-input" defaultValue={hoy} />
           </Field>
           <Field label="Fuente legal" error={state.fieldErrors?.fuente_legal}>
             <input
@@ -174,7 +189,9 @@ export function ReglasDrawer({
           </Field>
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
-          Cada cambio legal es una versión nueva: la anterior se conserva y los cortes ya hechos no cambian.
+          «Rige desde» es la fecha desde la que rige esta versión de las reglas. Es informativa: el corte de nómina usa siempre
+          la versión vigente, y la fecha no puede ser posterior a hoy. Cada cambio legal es una versión nueva: la anterior se
+          conserva y los cortes ya hechos no cambian.
         </p>
 
         {/* Frecuencia y método de días */}
@@ -251,7 +268,7 @@ export function ReglasDrawer({
 
         {/* Deducciones (%) */}
         <GroupTitle>Deducciones del empleado (%)</GroupTitle>
-        <PistaLey campos={["sso_pct", "rpe_pct", "faov_pct"]} />
+        <PistaLey campos={["sso_pct", "rpe_pct", "faov_pct", "inces_utilidades_pct"]} />
         <Row>
           <Field label="SSO / IVSS" error={state.fieldErrors?.sso_pct}>
             <input
@@ -286,7 +303,11 @@ export function ReglasDrawer({
               defaultValue={val(rules, "faov_pct")}
             />
           </Field>
+          {num0556("inces_utilidades_pct", "INCES sobre utilidades", { max: "100" })}
         </Row>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
+          El INCES sobre utilidades lo retiene el patrono al trabajador (es una retención, no un aporte del patrono).
+        </p>
 
         {/* Topes (nº de SM) */}
         <GroupTitle>Topes de cotización (nº de salarios mínimos)</GroupTitle>
@@ -361,7 +382,6 @@ export function ReglasDrawer({
             "rpe_patronal_pct",
             "faov_patronal_pct",
             "inces_patronal_pct",
-            "inces_utilidades_pct",
             "pension_contrib_pct",
           ]}
         />
@@ -372,12 +392,12 @@ export function ReglasDrawer({
         </Row>
         <Row>
           {num0556("inces_patronal_pct", "INCES del patrono", { max: "100" })}
-          {num0556("inces_utilidades_pct", "INCES sobre utilidades", { max: "100" })}
           {num0556("pension_contrib_pct", "Contribución de pensiones", { max: "15" })}
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Solo para calcular el costo de la nómina: no se descuentan al trabajador. La contribución de pensiones tiene un tope
-          legal de 15 %.
+          legal de 15 %. Los campos marcados «propuesto» muestran el valor de la norma conocida, por confirmar con el contador:
+          si no lo confirmas, déjalos vacíos y quedan «sin configurar».
         </p>
 
         {/* Provisiones (días) */}

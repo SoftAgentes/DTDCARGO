@@ -216,6 +216,38 @@ describe("compararParametro", () => {
     expect(compararParametro(porId("bono-vacacional-maximo"), reglas0556({ bono_vacacional_max_days: 15 })).estado).toBe("difiere");
   });
 
+  it("un campo «sin configurar» (null) falta: nunca se lee como cero ni queda «al día»", () => {
+    const sinConfigurar = reglas0556({
+      pension_contrib_pct: null,
+      sso_patronal_pct: null,
+      rpe_patronal_pct: null,
+      faov_patronal_pct: null,
+      inces_patronal_pct: null,
+      inces_utilidades_pct: null,
+      vacaciones_extra_max: null,
+      bono_vacacional_max_days: null,
+      ingreso_minimo_integral_usd: null,
+    });
+    for (const id of [
+      "contribucion-pensiones",
+      "sso-patrono",
+      "rpe-patrono",
+      "faov-patrono",
+      "inces-patrono",
+      "inces-trabajador",
+      "vacaciones-adicionales",
+      "bono-vacacional-maximo",
+      "ingreso-minimo-integral",
+    ]) {
+      expect(compararParametro(porId(id), sinConfigurar).estado, id).toBe("falta");
+    }
+  });
+
+  it("un cero configurado SÍ es un valor: difiere de la ley, no «falta»", () => {
+    expect(compararParametro(porId("contribucion-pensiones"), reglas0556({ pension_contrib_pct: 0 })).estado).toBe("difiere");
+    expect(compararParametro(porId("rpe-patrono"), reglas0556({ rpe_patronal_pct: 0 })).estado).toBe("difiere");
+  });
+
   it("IVSS del patrono: 9, 10 u 11 según el riesgo; fuera de ese rango difiere", () => {
     for (const pct of [9, 10, 11]) {
       expect(compararParametro(porId("sso-patrono"), reglas0556({ sso_patronal_pct: pct })).estado, String(pct)).toBe("al-dia");
@@ -315,6 +347,23 @@ describe("obligaciones y referencias", () => {
       referencias: 3,
       noVerificados: 13,
     });
+  });
+
+  it("una versión de la 0556 sin configurar aportes ni escalas: faltan 8 y ninguno cuenta como al día", () => {
+    const sinConfigurar = reglas0556({
+      pension_contrib_pct: null,
+      sso_patronal_pct: null,
+      rpe_patronal_pct: null,
+      faov_patronal_pct: null,
+      inces_patronal_pct: null,
+      inces_utilidades_pct: null,
+      vacaciones_extra_max: null,
+      bono_vacacional_max_days: null,
+    });
+    const r = resumenComparacion(compararConLey(sinConfigurar));
+    expect(r.faltan).toBe(8);
+    expect(r.obligacionesAlDia).toBe(12);
+    expect(r.porRevisar).toBe(0);
   });
 
   it("cargar el bono anunciado no sube la cuenta de obligaciones al día", () => {

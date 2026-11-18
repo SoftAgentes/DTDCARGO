@@ -102,7 +102,7 @@ export function isMonedaMonto(v: unknown): v is MonedaMonto {
   return typeof v === "string" && (MONEDAS_MONTO as string[]).includes(v);
 }
 
-/** Tope legal de la contribución especial para las pensiones (Ley de Protección de las Pensiones, Art. 9). */
+/** Tope legal de la contribución especial para las pensiones (Ley de Protección de las Pensiones, Art. 7). */
 export const PENSION_CONTRIB_MAX_PCT = 15;
 /** LOTTT Art. 131: mínimo y máximo de días de utilidades. */
 export const UTILIDADES_MAX_DAYS = 120;
@@ -145,20 +145,23 @@ export type PayrollRules = {
   vigente_desde?: string | null;
   /** La norma que respalda esta versión, texto corto. */
   fuente_legal?: string | null;
+  // Lo que se configura: undefined = la base no tiene la 0556; null = la versión existe pero NO LO CONFIGURÓ
+  // («sin configurar»; no cuenta como cumplido y nunca se lee como cero).
   /** Ingreso mínimo integral, en USD (D4). */
-  ingreso_minimo_integral_usd?: number;
+  ingreso_minimo_integral_usd?: number | null;
   cestaticket_moneda?: MonedaMonto;
   bono_guerra_moneda?: MonedaMonto;
   // Aportes del patrono (%), solo para el costo de la nómina (D5): no se descuentan al trabajador.
-  sso_patronal_pct?: number;
-  rpe_patronal_pct?: number;
-  faov_patronal_pct?: number;
-  inces_patronal_pct?: number;
-  inces_utilidades_pct?: number;
-  pension_contrib_pct?: number;
+  sso_patronal_pct?: number | null;
+  rpe_patronal_pct?: number | null;
+  faov_patronal_pct?: number | null;
+  inces_patronal_pct?: number | null;
+  /** Retención al TRABAJADOR (no es un aporte del patrono): 0,5 % de las utilidades para el INCES. */
+  inces_utilidades_pct?: number | null;
+  pension_contrib_pct?: number | null;
   // Escalas por antigüedad (D10).
-  vacaciones_extra_max?: number;
-  bono_vacacional_max_days?: number;
+  vacaciones_extra_max?: number | null;
+  bono_vacacional_max_days?: number | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -188,24 +191,33 @@ export type PayrollRulesInput = {
   vacaciones_days: number;
   salarial_bonuses: SalarialBonus[];
   // SDD-0653 A2b: solo se persisten si la base tiene la 0556 (payroll-rules-queries.ts).
-  /** AAAA-MM-DD; null = que la base ponga hoy. */
+  /** AAAA-MM-DD, no posterior a hoy en Caracas; null = que la base ponga hoy en Caracas. */
   vigente_desde: string | null;
   fuente_legal: string | null;
-  ingreso_minimo_integral_usd: number;
-  cestaticket_moneda: MonedaMonto;
-  bono_guerra_moneda: MonedaMonto;
-  sso_patronal_pct: number;
-  rpe_patronal_pct: number;
-  faov_patronal_pct: number;
-  inces_patronal_pct: number;
-  inces_utilidades_pct: number;
-  pension_contrib_pct: number;
-  vacaciones_extra_max: number;
-  bono_vacacional_max_days: number;
+  /** null = sin configurar. */
+  ingreso_minimo_integral_usd: number | null;
+  /** null = no llegó: la versión nueva hereda la de la vigente (nunca se impone USD). */
+  cestaticket_moneda: MonedaMonto | null;
+  bono_guerra_moneda: MonedaMonto | null;
+  // null = sin configurar.
+  sso_patronal_pct: number | null;
+  rpe_patronal_pct: number | null;
+  faov_patronal_pct: number | null;
+  inces_patronal_pct: number | null;
+  /** Retención al trabajador sobre sus utilidades. */
+  inces_utilidades_pct: number | null;
+  pension_contrib_pct: number | null;
+  vacaciones_extra_max: number | null;
+  bono_vacacional_max_days: number | null;
   notes: string | null;
 };
 
-/** Defaults LOTTT plausibles (espejo de los DEFAULTs de la migración 0162). */
+/**
+ * Defaults LOTTT plausibles (espejo de los DEFAULTs de la migración 0162) y, para lo que agregó la
+ * 0556, las PROPUESTAS de la norma que el formulario muestra al crear una versión nueva, marcadas
+ * «por confirmar». La base no tiene default para esos campos: una versión que no los trae queda
+ * «sin configurar», y el validador no los rellena.
+ */
 export const PAYROLL_RULES_DEFAULTS: PayrollRulesInput = {
   pay_frequency: "mensual",
   day_method: "30",
@@ -224,10 +236,12 @@ export const PAYROLL_RULES_DEFAULTS: PayrollRulesInput = {
   bono_vacacional_days: 15,
   vacaciones_days: 15,
   salarial_bonuses: [],
-  // Todo en dólares (D4): una versión nueva nace con los bonos en USD; el salario mínimo sigue en Bs.
+  // Todo en dólares (D4): el formulario propone USD para los bonos cuando no hay versión de la cual heredar.
+  // El validador NO usa esto: una moneda que no llega se hereda de la vigente.
   vigente_desde: null,
   fuente_legal: null,
-  ingreso_minimo_integral_usd: 0,
+  // El ingreso mínimo integral es un anuncio sin Gaceta: no se propone ningún valor.
+  ingreso_minimo_integral_usd: null,
   cestaticket_moneda: "USD",
   bono_guerra_moneda: "USD",
   sso_patronal_pct: 9,
@@ -252,11 +266,6 @@ const PCT_FIELDS = [
   "overtime_pct",
   "night_pct",
   "holiday_pct",
-  "sso_patronal_pct",
-  "rpe_patronal_pct",
-  "faov_patronal_pct",
-  "inces_patronal_pct",
-  "inces_utilidades_pct",
 ] as const;
 type PctField = (typeof PCT_FIELDS)[number];
 
@@ -267,12 +276,29 @@ const PCT_LABEL: Record<PctField, string> = {
   overtime_pct: "% hora extra",
   night_pct: "% bono nocturno",
   holiday_pct: "% día feriado",
+};
+
+// Porcentajes que agregó la 0556 (0–100): opcionales, vacío = «sin configurar» (null).
+const PCT_OPCIONALES = [
+  "sso_patronal_pct",
+  "rpe_patronal_pct",
+  "faov_patronal_pct",
+  "inces_patronal_pct",
+  "inces_utilidades_pct",
+] as const;
+type PctOpcional = (typeof PCT_OPCIONALES)[number];
+const PCT_OPCIONAL_LABEL: Record<PctOpcional, string> = {
   sso_patronal_pct: "% IVSS del patrono",
   rpe_patronal_pct: "% RPE del patrono",
   faov_patronal_pct: "% FAOV del patrono",
   inces_patronal_pct: "% INCES del patrono",
-  inces_utilidades_pct: "% INCES sobre utilidades",
+  inces_utilidades_pct: "% INCES sobre utilidades (retención al trabajador)",
 };
+
+/** Un campo opcional sin valor (vacío, ausente o null) = «sin configurar». */
+function sinValor(v: unknown): boolean {
+  return v === undefined || v === null || String(v).trim() === "";
+}
 
 // Topes (≥ 0) expresados en nº de salarios mínimos.
 const CAP_FIELDS = ["sso_cap_sm", "rpe_cap_sm"] as const;
@@ -283,27 +309,29 @@ const CAP_LABEL: Record<CapField, string> = {
 };
 
 // Montos base (≥ 0). El salario mínimo va en Bs; cestaticket y bono, en la moneda que diga su campo
-// *_moneda; el ingreso mínimo integral, en USD (D4).
-const MONEY_FIELDS = ["min_salary", "cestaticket", "bono_guerra", "ingreso_minimo_integral_usd"] as const;
+// *_moneda; el ingreso mínimo integral, en USD (D4, opcional). Tope: numeric(14,2) = 12 enteros y 2 decimales;
+// pasarlo desbordaría la columna y la base rechazaría el guardado entero.
+const MONEY_FIELDS = ["min_salary", "cestaticket", "bono_guerra"] as const;
 type MoneyField = (typeof MONEY_FIELDS)[number];
 const MONEY_LABEL: Record<MoneyField, string> = {
   min_salary: "Salario mínimo",
   cestaticket: "Cestaticket",
   bono_guerra: "Bono de guerra",
-  ingreso_minimo_integral_usd: "Ingreso mínimo integral",
 };
+export const MONTO_MAX = 999_999_999_999.99;
 
-// Días de provisiones y escalas por antigüedad (enteros ≥ 0; utilidades extra: 30 a 120).
-const DAY_FIELDS = [
-  "bono_vacacional_days",
-  "vacaciones_days",
-  "vacaciones_extra_max",
-  "bono_vacacional_max_days",
-] as const;
+// Días de provisiones (enteros ≥ 0; utilidades: 30 a 120).
+const DAY_FIELDS = ["bono_vacacional_days", "vacaciones_days"] as const;
 type DayField = (typeof DAY_FIELDS)[number];
 const DAY_LABEL: Record<DayField, string> = {
   bono_vacacional_days: "Días de bono vacacional",
   vacaciones_days: "Días de vacaciones",
+};
+
+// Escalas por antigüedad que agregó la 0556 (enteros 0–365): opcionales, vacío = «sin configurar» (null).
+const ESCALAS = ["vacaciones_extra_max", "bono_vacacional_max_days"] as const;
+type Escala = (typeof ESCALAS)[number];
+const ESCALA_LABEL: Record<Escala, string> = {
   vacaciones_extra_max: "Máximo de días adicionales de vacaciones",
   bono_vacacional_max_days: "Máximo de días de bono vacacional",
 };
@@ -318,6 +346,11 @@ export function isFechaIso(v: unknown): v is string {
 export const FUENTE_LEGAL_MAX = 200;
 /** Tope de las escalas por antigüedad (el CHECK de la 0556: 365). */
 export const DIAS_ESCALA_MAX = 365;
+
+/** Hoy en Caracas (AAAA-MM-DD): el día contra el que se compara la vigencia. No depende de la zona del equipo. */
+export function hoyCaracas(ahora: Date = new Date()): string {
+  return ahora.toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
+}
 
 function parseSalarialBonuses(v: unknown): SalarialBonus[] | false {
   if (v == null || v === "") return [];
@@ -335,6 +368,8 @@ function parseSalarialBonuses(v: unknown): SalarialBonus[] | false {
 
 export function validatePayrollRulesInput(
   raw: Partial<Record<string, unknown>>,
+  /** Hoy en Caracas (AAAA-MM-DD); por omisión, el reloj. Solo para probar. */
+  hoy: string = hoyCaracas(),
 ): { input: PayrollRulesInput | null; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
 
@@ -370,6 +405,8 @@ export function validatePayrollRulesInput(
     const n = Number(raw[f] ?? PAYROLL_RULES_DEFAULTS[f]);
     if (!Number.isFinite(n) || n < 0) {
       errors[f] = `${MONEY_LABEL[f]} no puede ser negativo.`;
+    } else if (n > MONTO_MAX) {
+      errors[f] = `${MONEY_LABEL[f]} no puede pasar de ${MONTO_MAX.toLocaleString("es-VE")}.`;
     }
     money[f] = round2(n);
   }
@@ -380,8 +417,6 @@ export function validatePayrollRulesInput(
     const n = Number(raw[f] ?? PAYROLL_RULES_DEFAULTS[f]);
     if (!Number.isInteger(n) || n < 0) {
       errors[f] = `${DAY_LABEL[f]} debe ser un entero ≥ 0.`;
-    } else if (n > DIAS_ESCALA_MAX && (f === "vacaciones_extra_max" || f === "bono_vacacional_max_days")) {
-      errors[f] = `${DAY_LABEL[f]} no puede pasar de ${DIAS_ESCALA_MAX}.`;
     }
     days[f] = Math.trunc(num(n));
   }
@@ -394,23 +429,71 @@ export function validatePayrollRulesInput(
     errors.utilidades_days = `Días de utilidades: máximo legal ${UTILIDADES_MAX_DAYS}.`;
   }
 
-  // Contribución para las pensiones: 0 a 15 % (tope legal, Art. 9).
-  const pensionRaw = Number(raw.pension_contrib_pct ?? PAYROLL_RULES_DEFAULTS.pension_contrib_pct);
-  if (!Number.isFinite(pensionRaw) || pensionRaw < 0 || pensionRaw > PENSION_CONTRIB_MAX_PCT) {
-    errors.pension_contrib_pct = `Contribución para las pensiones: entre 0 y ${PENSION_CONTRIB_MAX_PCT} % (tope legal).`;
+  // Lo que agregó la 0556: todo opcional; vacío = «sin configurar» (null), nunca un valor inventado.
+  const opcional: Record<PctOpcional, number | null> = {} as Record<PctOpcional, number | null>;
+  for (const f of PCT_OPCIONALES) {
+    if (sinValor(raw[f])) {
+      opcional[f] = null;
+      continue;
+    }
+    const n = Number(raw[f]);
+    if (!Number.isFinite(n) || n < 0 || n > 100) errors[f] = `${PCT_OPCIONAL_LABEL[f]} debe estar entre 0 y 100.`;
+    opcional[f] = round2(n);
   }
-  const pension = round2(pensionRaw);
 
-  // Monedas de los bonos (D4).
-  const cestaticketMoneda = String(raw.cestaticket_moneda ?? PAYROLL_RULES_DEFAULTS.cestaticket_moneda).trim();
-  if (!isMonedaMonto(cestaticketMoneda)) errors.cestaticket_moneda = "Moneda del cestaticket inválida (Bs o USD).";
-  const bonoMoneda = String(raw.bono_guerra_moneda ?? PAYROLL_RULES_DEFAULTS.bono_guerra_moneda).trim();
-  if (!isMonedaMonto(bonoMoneda)) errors.bono_guerra_moneda = "Moneda del bono de guerra inválida (Bs o USD).";
+  // Contribución para las pensiones: 0 a 15 % (tope legal, Art. 7).
+  let pension: number | null = null;
+  if (!sinValor(raw.pension_contrib_pct)) {
+    const n = Number(raw.pension_contrib_pct);
+    if (!Number.isFinite(n) || n < 0 || n > PENSION_CONTRIB_MAX_PCT) {
+      errors.pension_contrib_pct = `Contribución para las pensiones: entre 0 y ${PENSION_CONTRIB_MAX_PCT} % (tope legal).`;
+    }
+    pension = round2(n);
+  }
 
-  // Vigencia y fuente legal (D2): opcionales; vacío = que la base ponga hoy / sin fuente.
+  // Ingreso mínimo integral (USD): opcional, ≥ 0 y dentro de numeric(14,2).
+  let ingresoMinimo: number | null = null;
+  if (!sinValor(raw.ingreso_minimo_integral_usd)) {
+    const n = Number(raw.ingreso_minimo_integral_usd);
+    if (!Number.isFinite(n) || n < 0) errors.ingreso_minimo_integral_usd = "Ingreso mínimo integral no puede ser negativo.";
+    else if (n > MONTO_MAX) {
+      errors.ingreso_minimo_integral_usd = `Ingreso mínimo integral no puede pasar de ${MONTO_MAX.toLocaleString("es-VE")}.`;
+    }
+    ingresoMinimo = round2(n);
+  }
+
+  // Escalas por antigüedad: enteros de 0 a 365, opcionales.
+  const escala: Record<Escala, number | null> = {} as Record<Escala, number | null>;
+  for (const f of ESCALAS) {
+    if (sinValor(raw[f])) {
+      escala[f] = null;
+      continue;
+    }
+    const n = Number(raw[f]);
+    if (!Number.isInteger(n) || n < 0) errors[f] = `${ESCALA_LABEL[f]} debe ser un entero ≥ 0.`;
+    else if (n > DIAS_ESCALA_MAX) errors[f] = `${ESCALA_LABEL[f]} no puede pasar de ${DIAS_ESCALA_MAX}.`;
+    escala[f] = Math.trunc(num(n));
+  }
+
+  // Monedas de los bonos (D4): si no llegan, la versión nueva hereda la de la vigente (null aquí).
+  let cestaticketMoneda: MonedaMonto | null = null;
+  if (!sinValor(raw.cestaticket_moneda)) {
+    const m = String(raw.cestaticket_moneda).trim();
+    if (isMonedaMonto(m)) cestaticketMoneda = m;
+    else errors.cestaticket_moneda = "Moneda del cestaticket inválida (Bs o USD).";
+  }
+  let bonoMoneda: MonedaMonto | null = null;
+  if (!sinValor(raw.bono_guerra_moneda)) {
+    const m = String(raw.bono_guerra_moneda).trim();
+    if (isMonedaMonto(m)) bonoMoneda = m;
+    else errors.bono_guerra_moneda = "Moneda del bono de guerra inválida (Bs o USD).";
+  }
+
+  // Vigencia (informativa) y fuente legal (D2): opcionales; la vigencia no puede ser posterior a hoy en Caracas.
   const vigenteRaw = strOrNull(raw.vigente_desde);
-  if (vigenteRaw !== null && !isFechaIso(vigenteRaw)) {
-    errors.vigente_desde = "Fecha de vigencia inválida (AAAA-MM-DD).";
+  if (vigenteRaw !== null) {
+    if (!isFechaIso(vigenteRaw)) errors.vigente_desde = "Fecha de vigencia inválida (AAAA-MM-DD).";
+    else if (vigenteRaw > hoy) errors.vigente_desde = "La fecha de vigencia no puede ser posterior a hoy.";
   }
   const fuenteRaw = strOrNull(raw.fuente_legal);
   if (fuenteRaw !== null && fuenteRaw.length > FUENTE_LEGAL_MAX) {
@@ -443,17 +526,17 @@ export function validatePayrollRulesInput(
       salarial_bonuses: bonuses === false ? [] : bonuses,
       vigente_desde: vigenteRaw,
       fuente_legal: fuenteRaw,
-      ingreso_minimo_integral_usd: money.ingreso_minimo_integral_usd,
-      cestaticket_moneda: cestaticketMoneda as MonedaMonto,
-      bono_guerra_moneda: bonoMoneda as MonedaMonto,
-      sso_patronal_pct: pct.sso_patronal_pct,
-      rpe_patronal_pct: pct.rpe_patronal_pct,
-      faov_patronal_pct: pct.faov_patronal_pct,
-      inces_patronal_pct: pct.inces_patronal_pct,
-      inces_utilidades_pct: pct.inces_utilidades_pct,
+      ingreso_minimo_integral_usd: ingresoMinimo,
+      cestaticket_moneda: cestaticketMoneda,
+      bono_guerra_moneda: bonoMoneda,
+      sso_patronal_pct: opcional.sso_patronal_pct,
+      rpe_patronal_pct: opcional.rpe_patronal_pct,
+      faov_patronal_pct: opcional.faov_patronal_pct,
+      inces_patronal_pct: opcional.inces_patronal_pct,
+      inces_utilidades_pct: opcional.inces_utilidades_pct,
       pension_contrib_pct: pension,
-      vacaciones_extra_max: days.vacaciones_extra_max,
-      bono_vacacional_max_days: days.bono_vacacional_max_days,
+      vacaciones_extra_max: escala.vacaciones_extra_max,
+      bono_vacacional_max_days: escala.bono_vacacional_max_days,
       notes: strOrNull(raw.notes),
     },
   };

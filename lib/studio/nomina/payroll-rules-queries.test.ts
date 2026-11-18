@@ -1,15 +1,17 @@
 // @vitest-environment node
 /**
  * SDD-0653 A2b · Las consultas de las reglas con y sin la migración 0556 (EN ESPERA).
- * Un Supabase de mentira que se comporta como PostgREST: sin la 0556, pedir una columna
- * nueva responde «columna inexistente» (42703). Lo que se prueba es la degradación: la
- * pantalla tiene que seguir funcionando como en la fase A2a.
+ * Un Supabase de mentira que se comporta como PostgREST: sin la 0556, pedir una columna o llamar a la
+ * función responde «inexistente» (42703 / 42883). Lo que se prueba es la degradación (la pantalla sigue
+ * como en la fase A2a) y que guardar una versión nueva nunca deja al tenant sin versión vigente.
  */
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   COLUMNAS_0556,
+  datosParaGuardar,
   faltaColumna,
+  faltaFuncion,
   getVigentePayrollRules,
   getVigentePayrollRulesConEstado,
   upsertPayrollRules,
@@ -18,10 +20,11 @@ import { PAYROLL_RULES_DEFAULTS, type PayrollRulesInput } from "./payroll-rules-
 
 type Fila = Record<string, unknown>;
 
-const FALTA = { code: "42703", message: 'column nomina_payroll_rules.vigente_desde does not exist' };
+const FALTA_COLUMNA = { code: "42703", message: "column nomina_payroll_rules.vigente_desde does not exist" };
+const FALTA_FUNCION = { code: "42883", message: "function public.nomina_guardar_reglas(jsonb) does not exist" };
 
-/** La fila vigente tal como la devuelve PostgREST: los numeric, como texto. */
-function filaVigente(conCampos0556: boolean): Fila {
+/** La fila vigente tal como la devuelve PostgREST: los numeric, como texto; lo no configurado, null. */
+function filaVigente(conCampos0556: boolean, over: Fila = {}): Fila {
   const base: Fila = {
     id: "r-1",
     tenant_id: "t-1",
@@ -50,7 +53,7 @@ function filaVigente(conCampos0556: boolean): Fila {
     updated_at: "2026-11-16T12:00:00Z",
     deleted_at: null,
   };
-  if (!conCampos0556) return base;
+  if (!conCampos0556) return { ...base, ...over };
   return {
     ...base,
     vigente_desde: "2026-11-01",
@@ -66,40 +69,69 @@ function filaVigente(conCampos0556: boolean): Fila {
     pension_contrib_pct: "9.00",
     vacaciones_extra_max: 15,
     bono_vacacional_max_days: 30,
+    ...over,
   };
 }
 
-function falso(cfg: { ampliada: boolean; vigente: boolean; insertFalla?: boolean }) {
-  const log = { selects: [] as string[], inserts: [] as Fila[], updates: [] as Fila[] };
-  const fila = cfg.vigente ? filaVigente(cfg.ampliada) : null;
+interface Config {
+  ampliada: boolean;
+  vigente: boolean;
+  /** Error que devuelve la función (null = guarda bien). */
+  rpcError?: { code?: string; message: string } | null;
+  /** El insert de los dos pasos falla con este error. */
+  insertError?: { code?: string; message: string } | null;
+  /** El update que restaura la versión archivada falla. */
+  restauraFalla?: boolean;
+  over?: Fila;
+}
+
+function falso(cfg: Config) {
+  const log = {
+    selects: [] as string[],
+    inserts: [] as Fila[],
+    updates: [] as { set: Fila; filtros: [string, unknown][] }[],
+    rpcs: [] as { nombre: string; args: Fila }[],
+  };
+  const fila = cfg.vigente ? filaVigente(cfg.ampliada, cfg.over) : null;
   const cliente = {
+    rpc: async (nombre: string, args: Fila) => {
+      log.rpcs.push({ nombre, args });
+      if (!cfg.ampliada) return { data: null, error: FALTA_FUNCION };
+      if (cfg.rpcError) return { data: null, error: cfg.rpcError };
+      return { data: "r-nueva", error: null };
+    },
     from: () => ({
       select(cols: string) {
         log.selects.push(cols);
         const pideNuevas = cols.includes("vigente_desde");
-        const res = pideNuevas && !cfg.ampliada ? { data: null, error: FALTA } : { data: fila, error: null };
+        const res = pideNuevas && !cfg.ampliada ? { data: null, error: FALTA_COLUMNA } : { data: fila, error: null };
         const q: Record<string, unknown> = {};
         q.eq = () => q;
         q.is = () => q;
         q.maybeSingle = async () => res;
+        q.single = async () => ({ data: filaVigente(pideNuevas, { id: "r-nueva", version: 3 }), error: null });
         return q;
       },
-      update(v: Fila) {
-        log.updates.push(v);
+      update(set: Fila) {
+        const entrada = { set, filtros: [] as [string, unknown][] };
+        log.updates.push(entrada);
         const q: Record<string, unknown> = {};
-        q.eq = () => q;
-        q.then = (resolve: (r: { error: null }) => void) => resolve({ error: null });
+        q.eq = (col: string, v: unknown) => {
+          entrada.filtros.push([col, v]);
+          return q;
+        };
+        q.then = (resolve: (r: { error: { message: string } | null }) => void) =>
+          resolve({ error: cfg.restauraFalla && set.status === "vigente" ? { message: "sin conexión" } : null });
         return q;
       },
       insert(v: Fila) {
         log.inserts.push(v);
         return {
-          select: (cols: string) => ({
-            single: async () => {
-              const traeNuevas = "vigente_desde" in v || "sso_patronal_pct" in v;
-              if (traeNuevas && (!cfg.ampliada || cfg.insertFalla)) return { data: null, error: FALTA };
-              return { data: { ...filaVigente(cols.includes("vigente_desde")), version: v.version }, error: null };
-            },
+          select: () => ({
+            single: async () =>
+              cfg.insertError
+                ? { data: null, error: cfg.insertError }
+                : { data: filaVigente(false, { id: "r-nueva", version: v.version }), error: null },
           }),
         };
       },
@@ -111,6 +143,8 @@ function falso(cfg: { ampliada: boolean; vigente: boolean; insertFalla?: boolean
 const entrada = (over: Partial<PayrollRulesInput> = {}): PayrollRulesInput => ({
   ...PAYROLL_RULES_DEFAULTS,
   min_salary: 130,
+  cestaticket_moneda: null,
+  bono_guerra_moneda: null,
   ...over,
 });
 
@@ -130,10 +164,36 @@ describe("lectura de las reglas vigentes", () => {
       cestaticket_moneda: "USD",
       bono_guerra_moneda: "USD",
       sso_patronal_pct: 9,
+      inces_utilidades_pct: 0.5,
       pension_contrib_pct: 9,
       vacaciones_extra_max: 15,
       bono_vacacional_max_days: 30,
     });
+  });
+
+  it("una versión que no configuró los aportes y escalas los lee como null, nunca como cero", async () => {
+    const sinConfigurar = {
+      ingreso_minimo_integral_usd: null,
+      sso_patronal_pct: null,
+      rpe_patronal_pct: null,
+      faov_patronal_pct: null,
+      inces_patronal_pct: null,
+      inces_utilidades_pct: null,
+      pension_contrib_pct: null,
+      vacaciones_extra_max: null,
+      bono_vacacional_max_days: null,
+      vigente_desde: null,
+      cestaticket_moneda: "VES",
+      bono_guerra_moneda: "VES",
+    };
+    const { supabase } = falso({ ampliada: true, vigente: true, over: sinConfigurar });
+    const { rules } = await getVigentePayrollRulesConEstado(supabase);
+    for (const c of COLUMNAS_0556) {
+      if (c === "fuente_legal" || c.endsWith("_moneda")) continue;
+      expect(rules, c).toHaveProperty(c, null);
+    }
+    expect(rules?.cestaticket_moneda).toBe("VES");
+    expect(rules?.bono_guerra_moneda).toBe("VES");
   });
 
   it("SIN la 0556 reintenta con las columnas de siempre: la pantalla funciona como en la fase A2a", async () => {
@@ -148,8 +208,7 @@ describe("lectura de las reglas vigentes", () => {
 
   it("sin la 0556 y sin versión guardada sabe igual que la base no está ampliada", async () => {
     const { supabase } = falso({ ampliada: false, vigente: false });
-    const r = await getVigentePayrollRulesConEstado(supabase);
-    expect(r).toEqual({ rules: null, ampliada: false });
+    expect(await getVigentePayrollRulesConEstado(supabase)).toEqual({ rules: null, ampliada: false });
   });
 
   it("un error que no es de columna no reintenta ni inventa reglas", async () => {
@@ -179,87 +238,174 @@ describe("lectura de las reglas vigentes", () => {
   });
 
   it("una moneda desconocida en la base se lee como bolívares, sin fecha inventada", async () => {
-    const fila = { ...filaVigente(true), cestaticket_moneda: "EUR", bono_guerra_moneda: null, vigente_desde: null };
-    const cliente = {
-      from: () => ({
-        select: () => {
-          const q: Record<string, unknown> = {};
-          q.eq = () => q;
-          q.is = () => q;
-          q.maybeSingle = async () => ({ data: fila, error: null });
-          return q;
-        },
-      }),
-    } as unknown as SupabaseClient;
-    const { rules } = await getVigentePayrollRulesConEstado(cliente);
+    const { supabase } = falso({
+      ampliada: true,
+      vigente: true,
+      over: { cestaticket_moneda: "EUR", bono_guerra_moneda: null, vigente_desde: null },
+    });
+    const { rules } = await getVigentePayrollRulesConEstado(supabase);
     expect(rules?.cestaticket_moneda).toBe("VES");
     expect(rules?.bono_guerra_moneda).toBe("VES");
     expect(rules?.vigente_desde).toBeNull();
   });
 });
 
-describe("guardar una versión nueva", () => {
-  it("con la 0556 archiva la vigente e inserta la versión 3 con vigencia, fuente, monedas y aportes", async () => {
+describe("guardar una versión nueva (con la 0556: una función, una transacción)", () => {
+  it("llama a nomina_guardar_reglas con los datos y lee la versión nueva; no archiva ni inserta por su cuenta", async () => {
     const { supabase, log } = falso({ ampliada: true, vigente: true });
     const r = await upsertPayrollRules(
       supabase,
       "t-1",
-      entrada({ vigente_desde: "2026-12-01", fuente_legal: "Decreto de prueba", ingreso_minimo_integral_usd: 240 }),
+      entrada({ vigente_desde: "2026-11-10", fuente_legal: "Decreto de prueba", ingreso_minimo_integral_usd: 240 }),
       "u-1",
     );
     expect(r.error).toBeNull();
     expect(r.ampliada).toBe(true);
-    expect(log.updates).toEqual([{ status: "archivada" }]);
-    expect(log.inserts).toHaveLength(1);
-    expect(log.inserts[0]).toMatchObject({
-      version: 3,
-      vigente_desde: "2026-12-01",
+    expect(r.data?.version).toBe(3);
+    expect(log.rpcs).toHaveLength(1);
+    expect(log.rpcs[0].nombre).toBe("nomina_guardar_reglas");
+    expect(log.rpcs[0].args.p_datos).toMatchObject({
+      min_salary: 130,
+      vigente_desde: "2026-11-10",
       fuente_legal: "Decreto de prueba",
       ingreso_minimo_integral_usd: 240,
-      cestaticket_moneda: "USD",
       sso_patronal_pct: 9,
       pension_contrib_pct: 9,
-      vacaciones_extra_max: 15,
     });
-    for (const c of COLUMNAS_0556) expect(log.inserts[0], c).toHaveProperty(c);
+    expect(log.updates).toHaveLength(0);
+    expect(log.inserts).toHaveLength(0);
   });
 
-  it("sin vigente_desde deja que la base ponga la fecha de hoy (no manda null)", async () => {
-    const { supabase, log } = falso({ ampliada: true, vigente: true });
-    await upsertPayrollRules(supabase, "t-1", entrada({ vigente_desde: null }), null);
-    expect(log.inserts[0]).not.toHaveProperty("vigente_desde");
-    expect(log.inserts[0]).toHaveProperty("fuente_legal", null);
+  it("los datos no llevan tenant, autor ni versión: la función los toma de la sesión", () => {
+    const datos = datosParaGuardar(entrada());
+    for (const c of ["tenant_id", "created_by", "version", "status", "id"]) expect(datos, c).not.toHaveProperty(c);
   });
 
-  it("SIN la 0556 inserta solo las columnas de siempre y avisa que no está ampliada", async () => {
+  it("una moneda que no llega NO se manda (la función hereda la de la vigente); nunca se impone USD", () => {
+    const sin = datosParaGuardar(entrada({ cestaticket_moneda: null, bono_guerra_moneda: null }));
+    expect(sin).not.toHaveProperty("cestaticket_moneda");
+    expect(sin).not.toHaveProperty("bono_guerra_moneda");
+    const con = datosParaGuardar(entrada({ cestaticket_moneda: "VES", bono_guerra_moneda: "USD" }));
+    expect(con).toMatchObject({ cestaticket_moneda: "VES", bono_guerra_moneda: "USD" });
+  });
+
+  it("editar una versión en VES sin tocar la moneda conserva VES: el payload no la cambia a USD", () => {
+    // El formulario manda la moneda de la versión que se edita (VES); y si no la mandara, no se manda nada.
+    expect(datosParaGuardar(entrada({ cestaticket_moneda: "VES" })).cestaticket_moneda).toBe("VES");
+    expect(datosParaGuardar(entrada({ cestaticket_moneda: null }))).not.toHaveProperty("cestaticket_moneda");
+  });
+
+  it("sin vigente_desde no manda la fecha: la función pone hoy en Caracas (no la fecha del servidor)", () => {
+    expect(datosParaGuardar(entrada({ vigente_desde: null }))).not.toHaveProperty("vigente_desde");
+  });
+
+  it("lo no configurado viaja como null, no como cero", () => {
+    const datos = datosParaGuardar(entrada({ sso_patronal_pct: null, vacaciones_extra_max: null, ingreso_minimo_integral_usd: null }));
+    expect(datos).toMatchObject({ sso_patronal_pct: null, vacaciones_extra_max: null, ingreso_minimo_integral_usd: null });
+  });
+
+  it("si la función falla (un CHECK, un desborde) devuelve el error y dice que la versión vigente no cambió", async () => {
+    const { supabase, log } = falso({
+      ampliada: true,
+      vigente: true,
+      rpcError: { code: "23514", message: 'new row violates check constraint "nomina_payroll_rules_pension_contrib_tope"' },
+    });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(r.data).toBeNull();
+    expect(r.error).toContain("pension_contrib_tope");
+    expect(r.error).toContain("La versión vigente no cambió");
+    // La app no archivó nada por su cuenta: la atomicidad es de la función.
+    expect(log.updates).toHaveLength(0);
+  });
+
+  it("una versión guardada que no se puede releer lo dice", async () => {
+    const cliente = {
+      rpc: async () => ({ data: "r-9", error: null }),
+      from: () => ({
+        select(cols: string) {
+          const q: Record<string, unknown> = {};
+          q.eq = () => q;
+          q.is = () => q;
+          q.maybeSingle = async () => ({ data: filaVigente(true), error: null });
+          q.single = async () => ({ data: null, error: { message: "boom", code: cols ? "XX000" : "" } });
+          return q;
+        },
+      }),
+    } as unknown as SupabaseClient;
+    const r = await upsertPayrollRules(cliente, "t-1", entrada(), null);
+    expect(r.data).toBeNull();
+    expect(r.error).toContain("se guardaron");
+  });
+});
+
+describe("guardar una versión nueva SIN la 0556 (dos pasos, con restauración)", () => {
+  it("archiva, inserta solo las columnas de siempre y avisa que no está ampliada", async () => {
     const { supabase, log } = falso({ ampliada: false, vigente: true });
     const r = await upsertPayrollRules(supabase, "t-1", entrada({ fuente_legal: "no se guarda" }), "u-1");
     expect(r.error).toBeNull();
     expect(r.ampliada).toBe(false);
+    expect(log.rpcs).toHaveLength(0);
+    expect(log.updates[0]).toMatchObject({ set: { status: "archivada" } });
     for (const c of COLUMNAS_0556) expect(log.inserts[0], c).not.toHaveProperty(c);
-    expect(log.inserts[0]).toMatchObject({ version: 3, min_salary: 130, status: "vigente" });
+    expect(log.inserts[0]).toMatchObject({ version: 3, min_salary: 130, status: "vigente", created_by: "u-1" });
   });
 
   it("la primera versión (sin vigente) es la 1 y no archiva nada", async () => {
-    const { supabase, log } = falso({ ampliada: true, vigente: false });
+    const { supabase, log } = falso({ ampliada: false, vigente: false });
     const r = await upsertPayrollRules(supabase, "t-1", entrada(), null);
     expect(r.error).toBeNull();
     expect(log.updates).toHaveLength(0);
     expect(log.inserts[0]).toMatchObject({ version: 1 });
   });
 
-  it("si la base pierde las columnas entre la lectura y el insert (un desarme), reintenta sin ellas", async () => {
-    const { supabase, log } = falso({ ampliada: true, vigente: true, insertFalla: true });
-    const r = await upsertPayrollRules(supabase, "t-1", entrada({ vigente_desde: "2026-12-01" }), null);
+  it("si el insert falla RESTAURA la versión archivada: el tenant no se queda sin vigente", async () => {
+    const { supabase, log } = falso({
+      ampliada: false,
+      vigente: true,
+      insertError: { code: "23514", message: "violates check constraint" },
+    });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), null);
+    expect(r.data).toBeNull();
+    expect(r.error).toContain("violates check constraint");
+    expect(r.error).toContain("La versión 2 sigue vigente");
+    expect(log.updates).toHaveLength(2);
+    expect(log.updates[0].set).toEqual({ status: "archivada" });
+    expect(log.updates[1].set).toEqual({ status: "vigente" });
+    expect(log.updates[1].filtros).toContainEqual(["id", "r-1"]);
+    expect(log.updates[1].filtros).toContainEqual(["status", "archivada"]);
+  });
+
+  it("si ni la restauración se pudo, el error lo dice con todas sus letras", async () => {
+    const { supabase } = falso({
+      ampliada: false,
+      vigente: true,
+      insertError: { message: "numeric field overflow" },
+      restauraFalla: true,
+    });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), null);
+    expect(r.error).toContain("numeric field overflow");
+    expect(r.error).toContain("tampoco se pudo restaurar la versión 2");
+  });
+
+  it("sin versión previa y con el insert fallido no hay nada que restaurar", async () => {
+    const { supabase, log } = falso({ ampliada: false, vigente: false, insertError: { message: "boom" } });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), null);
+    expect(r.error).toContain("boom");
+    expect(log.updates).toHaveLength(0);
+  });
+
+  it("si la base tenía las columnas pero perdió la función (un desarme parcial), sigue con los dos pasos", async () => {
+    const { supabase, log } = falso({ ampliada: true, vigente: true, rpcError: FALTA_FUNCION });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
     expect(r.error).toBeNull();
     expect(r.ampliada).toBe(false);
-    expect(log.inserts).toHaveLength(2);
-    expect(log.inserts[0]).toHaveProperty("vigente_desde", "2026-12-01");
-    expect(log.inserts[1]).not.toHaveProperty("vigente_desde");
+    expect(log.rpcs).toHaveLength(1);
+    expect(log.inserts).toHaveLength(1);
+    for (const c of COLUMNAS_0556) expect(log.inserts[0], c).not.toHaveProperty(c);
   });
 });
 
-describe("COLUMNAS_0556 y faltaColumna", () => {
+describe("COLUMNAS_0556, faltaColumna y faltaFuncion", () => {
   it("son 13, sin repetidas", () => {
     expect(COLUMNAS_0556).toHaveLength(13);
     expect(new Set(COLUMNAS_0556).size).toBe(13);
@@ -273,5 +419,14 @@ describe("COLUMNAS_0556 y faltaColumna", () => {
     expect(faltaColumna({ code: "42501", message: "permission denied for table nomina_payroll_rules" })).toBe(false);
     expect(faltaColumna({ code: "23505", message: "duplicate key" })).toBe(false);
     expect(faltaColumna(null)).toBe(false);
+  });
+
+  it("reconoce «función inexistente» y no confunde un error de la función con que falte", () => {
+    expect(faltaFuncion({ code: "42883", message: "x" })).toBe(true);
+    expect(faltaFuncion({ code: "PGRST202", message: "x" })).toBe(true);
+    expect(faltaFuncion({ code: null, message: "Could not find the function public.nomina_guardar_reglas(p_datos) in the schema cache" })).toBe(true);
+    expect(faltaFuncion({ code: "23514", message: "violates check constraint" })).toBe(false);
+    expect(faltaFuncion({ code: "42501", message: "sin acceso a las reglas de nómina" })).toBe(false);
+    expect(faltaFuncion(null)).toBe(false);
   });
 });

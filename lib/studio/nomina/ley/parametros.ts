@@ -661,8 +661,13 @@ export function compararParametro(p: ParametroLey, rules: PayrollRules | null): 
   if (!p.campo || !rules) {
     return { parametro: p, valorRegla: null, unidadRegla: null, estado: "falta" };
   }
-  const valorRegla = Number(rules[p.campo]);
+  const bruto = rules[p.campo];
   const unidadRegla = unidadDelCampo(p.campo, rules);
+  // Sin la 0556 (undefined) o «sin configurar» (null): falta. Un null NUNCA se lee como cero.
+  if (bruto === null || bruto === undefined) {
+    return { parametro: p, valorRegla: null, unidadRegla, estado: "falta" };
+  }
+  const valorRegla = Number(bruto);
   if (!Number.isFinite(valorRegla)) {
     return { parametro: p, valorRegla: null, unidadRegla, estado: "falta" };
   }

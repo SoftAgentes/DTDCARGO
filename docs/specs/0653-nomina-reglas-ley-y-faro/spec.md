@@ -82,7 +82,7 @@ medio que cita una Gaceta no cuenta como V, y tampoco una Gaceta que no está en
 | 9 | FAOV, trabajador | `faov_pct` = 1 %, sin tope — `0162:46` | **1 %**, sin tope. Una fuente lo calcula sobre el **salario integral**; el motor usa el sueldo base | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | R (1 %) / N (base) | Revisar la base con el contador |
 | 10 | FAOV, patrono | **No existe** | **2 %** | Ley del Régimen Prestacional de Vivienda y Hábitat; BANAVIH | R | **Sí: falta el campo** |
 | 11 | INCES, patrono | **No existe** | **2 %** del salario normal, si hay **5 o más** trabajadores. Trimestral | Ley del INCES (Decreto de 2008, Art. 14 num. 1-2 y 15; Decreto de 2014, Arts. 49-50), según una sentencia del TSJ que los transcribe | R | **Sí: falta el campo** |
-| 12 | INCES, trabajador | **No existe** | **0,5 %** de las utilidades anuales, que retiene el patrono | Ley del INCES, mismos artículos | R | **Sí: falta el campo** |
+| 12 | INCES, trabajador | **No existe** | **0,5 %** de las utilidades anuales, que retiene el patrono | Ley del INCES, mismos artículos. Es una **retención al trabajador**: en el formulario va con las deducciones del empleado, no con los aportes del patrono | R | **Sí: falta el campo** |
 | 13 | Contribución especial para las pensiones | **No existe** | **9 %** de todo lo pagado a los trabajadores (salario **y** bonos no salariales). Base mínima por trabajador: el IMI. Mensual, ante el SENIAT. Solo personas jurídicas. La paga la empresa, no el trabajador | Ley de Protección de las Pensiones de Seguridad Social, G.O. 6.806 Ext., 08-05-2024, Arts. 6, 7 y 9 (tope legal 15 %). Decreto N° 4.952, G.O. 42.880, 16-05-2024 (fija 9 %). Providencia SNAT/2024/000042, G.O. 42.881, 17-05-2024 (declaración y pago) | V | **Sí: falta el campo** |
 | 14 | Recargo de hora extra diurna | `overtime_pct` = 50 % — `0162:53` | **50 %** | LOTTT Art. 118 (G.O. 6.076 Ext., 07-05-2012) | V | No |
 | 15 | Bono nocturno | `night_pct` = 30 % — `0162:54` | **30 %** | LOTTT Art. 117 | V | No |
@@ -274,7 +274,7 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 |---|---|---|---|
 | A1 | Esta spec | — | `docs:check` y `sdd:check` |
 | A2a | **Hecho en esta PR, sin migración.** Estante legal `lib/studio/nomina/ley/parametros.ts` con grado y fuente por norma; pestaña Reglas rediseñada: versión y fecha de actualización, barra «obligaciones al día» (no cuenta anuncios ni referencias), columnas «tus reglas» y «ley», asterisco en lo no verificado que abre la ficha legal con la fuente y la nota de consultar a un abogado; pistas «según la ley» en el formulario | Instrucción de Sam | Pruebas del módulo y de contratos del Studio, typecheck y lint |
-| A2b | **Hecho en la rama `claude/0653-a2b-vigencia`, migración 0556 EN ESPERA.** Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
+| A2b | **Hecho en la rama `claude/0653-a2b-vigencia` (PR #660), migración 0556 EN ESPERA.** Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
 | A3 | **Hecho en la rama `claude/0653-a3-tope-motor`, sin migración.** Arreglo del tope en el motor (§2.3): tope en Bs a USD con la tasa del corte, prorrateado al período, tasa congelada en el snapshot, falla cerrado sin tasa | D6; el contador valida la tasa | Pruebas con mes, quincena, semana, tasa distinta, sin tasa y sin topes |
 | A4 | Carga de los valores en producción, como nueva versión de las reglas | A2 en `main`, D8 y OK nominal de Sam | El contador valida en pantalla; runbook de producción |
 | B1 | Estante «Ley» en el minicerebro, con sus pruebas (importaciones, fuentes completas, vigencia) | D1, D7, D8, D9 | Pruebas unitarias; revisión del contador |
@@ -284,27 +284,37 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 
 Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vigencia_y_aportes`. **Existe en la rama de la fase A2b y está EN ESPERA:** no se aplicó a ningún entorno; se declara en el baseline como pendiente y aplicarla pide el OK nominal de Sam y el runbook de producción. Es aditiva, sobre `nomina_payroll_rules`:
 
-- `vigente_desde date` **nullable** con `default current_date` para las filas nuevas, y `fuente_legal text` (texto corto: «G.O. 6.691 Ext.»).
-  *Cambio respecto de la propuesta original (NOT NULL):* con filas existentes y sin `update`, NOT NULL obligaba a rellenarlas con la
-  fecha en que se aplica la migración, que sería una fecha de vigencia inventada. Las versiones anteriores quedan en NULL = «sin
-  fecha de vigencia registrada», y la pantalla lo dice así.
-- `ingreso_minimo_integral_usd numeric(14,2) not null default 0`.
-- Unidad explícita: `cestaticket_moneda` y `bono_guerra_moneda text check (in ('VES','USD'))`, con el valor actual
-  en `'VES'` para no reinterpretar filas existentes. El contador corrige el monto al crear la nueva versión (D4).
-- Aportes patronales: `sso_patronal_pct` (default 9), `rpe_patronal_pct` (2), `faov_patronal_pct` (2),
-  `inces_patronal_pct` (2), `inces_utilidades_pct` (0,5), `pension_contrib_pct` (9), con `check` de 0 a 100 y la
-  contribución de pensiones con tope legal de 15.
-- Escalas: `vacaciones_extra_max` (15) y `bono_vacacional_max_days` (30).
+- `vigente_desde date` **nullable** y `fuente_legal text` (texto corto: «G.O. 6.691 Ext.», hasta 200 caracteres). Las filas nuevas toman por
+  omisión **hoy en Caracas** (`(now() at time zone 'America/Caracas')::date`), no la fecha del servidor en UTC; las versiones anteriores
+  quedan en NULL = «sin fecha de vigencia registrada», y la pantalla lo dice así (NOT NULL obligaba a inventar una fecha). Por D11 la fecha
+  es **informativa**: el corte usa siempre la versión vigente; el validador y la función rechazan una fecha posterior a hoy en Caracas.
+- `ingreso_minimo_integral_usd numeric(14,2)` **nullable, sin default**: es un anuncio (D3b), no una obligación, y «sin configurar» no es cero.
+- Unidad explícita: `cestaticket_moneda` y `bono_guerra_moneda` `text not null default 'VES' check (in ('VES','USD'))`: las filas
+  existentes quedan en bolívares para no reinterpretar sus montos, y quien edita una versión en VES la conserva en VES. El contador corrige
+  el monto al crear la nueva versión (D4).
+- Aportes patronales: `sso_patronal_pct`, `rpe_patronal_pct`, `faov_patronal_pct`, `inces_patronal_pct`, `pension_contrib_pct`
+  (`numeric(5,2)` **nullable, sin default**, con CHECK de 0 a 100 y la contribución de pensiones con tope de 15, Art. 7). Una columna sin
+  configurar no se lee nunca como cero: la comparación con la ley dice «falta». Los valores de la norma conocida (9, 2, 2, 2 y 9) los
+  propone el **formulario**, marcados «propuesto» y por confirmar con el contador; no son un default de la base.
+- `inces_utilidades_pct` (0,5 % de las utilidades) es una **retención al trabajador**: misma forma que los aportes, pero el formulario la
+  agrupa con las deducciones del empleado.
+- Escalas: `vacaciones_extra_max` y `bono_vacacional_max_days` (`integer` nullable, sin default, de 0 a 365); propuestas 15 y 30.
 - Validador de `utilidades_days` entre 30 y 120 (CHECK, y el preflight aborta si una versión ya está fuera, contando filas sin leerlas).
-- **Idempotente** (ADD COLUMN IF NOT EXISTS y restricciones con guarda), con postflight que comprueba la forma de cada columna, los 8
-  CHECK, y que la RLS y los grants quedaron intactos. Con desarme en `supabase/desarmes/` (sin número; pierde lo guardado en las
-  columnas nuevas).
-- **Degradación:** sin la 0556 la pestaña Reglas lee y guarda solo las columnas de la 0162 y la 0179 (como en la fase A2a) y el
-  formulario deshabilita los campos nuevos con un aviso (`payroll-rules-queries.ts`: la lectura reintenta sin ellas y la escritura las omite).
-  La degradación está declarada en `supabase/pending-migration-symbol-declarations.json`.
+- **Guardado atómico:** la función `public.nomina_guardar_reglas(p_datos jsonb) returns uuid` (SECURITY INVOKER, `search_path = ''`,
+  EXECUTE solo para `authenticated`) archiva la versión vigente y crea la siguiente **en una sola transacción**, con la RLS de quien llama:
+  el tenant sale de la sesión, bloquea la fila vigente, y si el insert falla (un CHECK, un desborde, una fecha futura) el archivado se
+  deshace y la versión vigente queda intacta. Reemplaza los dos pasos de la app, que podían dejar un tenant sin versión vigente.
+- **Idempotente** (ADD COLUMN IF NOT EXISTS, `create or replace function` y restricciones con guarda), con postflight que comprueba la forma
+  de cada columna, los 8 CHECK, la función (invoker, search_path y grants), y que la RLS y los grants de la tabla quedaron intactos. Con
+  desarme en `supabase/desarmes/` (sin número; borra la función y pierde lo guardado en las columnas nuevas).
+- **Degradación:** sin la 0556 la pestaña Reglas lee y guarda solo las columnas de la 0162 (como en la fase A2a) y el formulario deshabilita
+  los campos nuevos con un aviso (`payroll-rules-queries.ts`: la lectura reintenta sin ellas; la escritura usa los dos pasos de siempre y,
+  si el insert falla, **restaura** la versión archivada). La degradación está declarada en
+  `supabase/pending-migration-symbol-declarations.json`. Las columnas de la 0179 (método de prestaciones, interés, Art. 78) no las lee ni las
+  guarda esta pantalla, ni antes ni ahora: es un hallazgo fuera de alcance, anotado en el handoff.
 - Sin `update` de filas existentes. El histórico ya lo da el versionado (`0162:80-83`): cada cambio legal crea una
   versión nueva con su `vigente_desde`, y los cortes viejos conservan su snapshot (`0175:54`).
-- Sin cambios a RLS ni grants: hereda `nomina_can_access()`.
+- Sin cambios a RLS ni grants de la tabla: hereda `nomina_can_access()`.
 
 El estante legal no necesita tabla si D1 elige archivos en Git.
 
@@ -352,6 +362,7 @@ Lo que esta aprobación **no** es:
 - No da por verificado lo que el sistema marca «por confirmar» o «solo anuncio». Según D3a y D8, el monto del
   cestaticket y los textos legales los confirma el contador o un abogado laboral antes de usarse.
 - No arranca fases: A2b, A3, B1 y B2 esperan la asignación del DG.
+- **D11 sigue abierta** (ver la tabla): la decisión de Sam sobre si «Rige desde» elige la versión de un corte está pendiente.
 
 | D | Pregunta | Opciones | Recomendada |
 |---|---|---|---|
@@ -366,6 +377,7 @@ Lo que esta aprobación **no** es:
 | D8 | ¿Quién aprueba los textos y valores legales? | (a) El contador (o un abogado laboral) y Sam, por PR. (b) Solo Sam | **(a)**: hay valores marcados O, R y N que necesitan ojo profesional |
 | D9 | Aviso de las respuestas legales | (a) «Información general de la ley vigente al {fecha}. No es asesoría para tu caso.» (b) Otro texto | **(a)** |
 | D10 | Escala de vacaciones y bono vacacional por antigüedad | (a) Agregarla en A2 (Arts. 190 y 192). (b) Dejar los 15 días fijos | **(a)**: los 15 fijos subpagan desde el segundo año |
+| D11 | **PENDIENTE DE SAM.** ¿La fecha «Rige desde» elige la versión de las reglas que usa un corte? | (a) No: es informativa; el corte usa siempre la versión vigente y la fecha no puede ser posterior a hoy. (b) Sí: el corte usa la versión cuyo «Rige desde» no pasa del fin del período, y se podrán programar cambios futuros | **(a)** por ahora, como la fijó el DG para esta fase: (b) cambia el motor de cálculo y los cortes ya hechos, y necesita su propia spec y al contador |
 
 ## 7 bis. Clasificación de gobernanza (AGENT-BRIEF, paso 4)
 
@@ -373,7 +385,10 @@ Superficie: Studio, módulo Nómina, pestaña Reglas. Riesgo: lectura; no muta d
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| SGE-00, MP-01, AUD-01, AUD-02 | no aplica | La pestaña y la ficha legal solo leen; guardar reglas sigue en `ReglasDrawer`, sin cambios de comportamiento |
+| SGE-00 | cumplimiento parcial | Un guardado que falla dice qué pasó y que la versión vigente no cambió; lo escrito se conserva (`conservar-lo-escrito.test.tsx`, con y sin la 0556); lo que la base todavía no admite se avisa en pantalla. Parcial: el formulario hereda las no conformidades de FRM-01 |
+| MP-01 | cumplimiento | Nada se borra: guardar archiva la versión vigente y crea la siguiente, en una transacción; los cortes viejos conservan su snapshot. El desarme solo existe para revertir la migración antes de aplicarla |
+| AUD-01 | **no conformidad heredada** | Guardar reglas no emite un evento auditable propio (ni antes ni después de la 0556): el rastro es la versión misma (`version`, `created_by`, `created_at`, estado). Seguimiento S-0653-2 en el handoff |
+| AUD-02 | no aplica | No hay consulta, exportación ni retención de auditoría nueva en esta fase |
 | BTN-01 | cumplimiento | Una sola acción primaria («Editar reglas»); el asterisco y el nombre son botones con nombre accesible y área de 32 px |
 | A11Y-01 | cumplimiento | Todo se abre con teclado; la ficha usa `useDialogA11y` (foco, Escape, retorno del foco); el estado va en texto e icono (`Badge`); el asterisco decorativo se oculta al lector y hay texto equivalente (`studio-sr-only`) |
 | MOT-01 | cumplimiento | Solo `--dur-fast`, `--dur` y `--dur-slow` con `--ease`; nada se repite; con movimiento reducido no hay escala ni desplazamiento. Lo vigila `ReglasTab.test.tsx` |
@@ -381,12 +396,12 @@ Superficie: Studio, módulo Nómina, pestaña Reglas. Riesgo: lectura; no muta d
 | ICO-01 | cumplimiento | Iconos del catálogo (`Icon.close`, `Icon.check`); el botón de cerrar lleva nombre accesible y `title` |
 | NUM-01 | cumplimiento parcial | Cada valor muestra su unidad o moneda (USD o Bs según el campo; los bonos dicen la suya); «—» distingue lo que no existe de un cero. Los campos del formulario son `type="number"`, no `NumericInput` (heredado, ver FRM-01) |
 | CMP-01 | cumplimiento | Usa los canónicos `Badge`, `Aviso`, `EmptyState`, `SegmentedControl` y `useDialogA11y`. `ReglasTab` y `PistaLey` son piezas del módulo, no componentes compartidos nuevos |
-| FRM-01 | **no conformidad heredada, ampliada en A2b** | El formulario de Reglas (anterior a esta spec) usa `<input type="number">` y valida al enviar, sin el ciclo progresivo. La fase A2b le suma campos con el mismo patrón en vez de rehacerlo. Labels persistentes, grupos por decisión y validación completa en servidor (que repite los rangos de la base). Seguimiento: migrarlo a `NumericInput` y al ciclo pristine→blur→invalid es otra tarea |
+| FRM-01 | **no conformidad heredada, ampliada en A2b** | El formulario de Reglas (anterior a esta spec) usa `<input type="number">` y valida al enviar, sin el ciclo progresivo. La fase A2b le suma campos con el mismo patrón en vez de rehacerlo. Labels persistentes, grupos por decisión y validación completa en servidor (que repite los rangos de la base). Seguimiento S-0653-1 (sitio: `app/studio/(app)/nomina/_components/ReglasDrawer.tsx`): migrarlo a `NumericInput` y al ciclo pristine→blur→invalid es otra tarea |
 | ERR-01 | cumplimiento parcial | Cada campo nuevo muestra su error junto al campo con qué corregir («entre 0 y 15 % (tope legal)», «Fecha de vigencia inválida (AAAA-MM-DD)»); sin la 0556 el motivo se dice en un aviso, no con un error genérico |
 | IA-01 | no aplica en esta PR | La parte de Faro es diseño (§3); al implementarla aplica entera, junto con privacidad |
 | TBL-01 | no aplica | La comparación es una ficha de lectura de 21 filas en tarjetas, no un listado operativo de módulo |
 
-Ninguna no conformidad conocida. `pnpm governance:check` y `pnpm components:check`: PASAN.
+Dos no conformidades heredadas, con seguimiento propio y sin resolver en esta fase: FRM-01 (S-0653-1) y AUD-01 (S-0653-2). `pnpm governance:check` y `pnpm components:check`: PASAN.
 
 ## 8. Fuera de alcance
 
