@@ -541,7 +541,7 @@
 
 /* Contador sobre el icono (conversaciones, campana): va en la esquina superior
    derecha, montado sobre el borde del botón, para no tapar el sobre ni la campana. */
-.studio-icono-btn__contador {
+.studio-contador-icono {
   position: absolute;
   top: -7px;
   right: -7px;
@@ -557,11 +557,11 @@
   box-shadow: 0 0 0 2px var(--bg-surface);
   pointer-events: none;
 }
-.studio-icono-btn__contador[data-tono="vino"] {
+.studio-contador-icono[data-tono="vino"] {
   background: var(--wine);
   color: var(--ink-side-strong);
 }
-.studio-icono-btn__contador[data-tono="peligro"] {
+.studio-contador-icono[data-tono="peligro"] {
   background: var(--danger);
 }
 

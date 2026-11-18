@@ -294,6 +294,21 @@ export function StudioSidebar({
     if (collapsed) return;
     queueMicrotask(() => setTip(null));
   }, [collapsed]);
+  // WCAG 1.4.13: el tooltip se puede descartar con Escape, y se cierra al hacer scroll
+  // del menú (si no, quedaría flotando donde estaba el enlace).
+  useEffect(() => {
+    if (!tip) return;
+    const cerrar = () => setTip(null);
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") cerrar();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("scroll", cerrar, true);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("scroll", cerrar, true);
+    };
+  }, [tip]);
 
   // Match active: exacto o prefijo + "/"
   const isActive = (slug: string) =>
@@ -369,7 +384,10 @@ export function StudioSidebar({
         }}
         onMouseLeave={(e) => {
           if (!active) e.currentTarget.style.background = "transparent";
-          setTip(null);
+          // Con el foco de teclado en este enlace el nombre se queda hasta que salga.
+          const conFoco =
+            document.activeElement === e.currentTarget && e.currentTarget.matches(":focus-visible");
+          if (!conFoco) setTip(null);
         }}
         onFocus={(e) => {
           if (collapsed && e.currentTarget.matches(":focus-visible"))
@@ -731,7 +749,7 @@ export function StudioSidebar({
       </nav>
 
       {tip && collapsed && (
-        <span role="presentation" className="studio-sb-tip" style={{ top: tip.top, left: tip.left }}>
+        <span aria-hidden="true" className="studio-sb-tip" style={{ top: tip.top, left: tip.left }}>
           {tip.label}
         </span>
       )}

@@ -23,7 +23,7 @@ describe("ConversationsIndicator · contador", () => {
       />,
     );
     const enlace = screen.getByRole("link", { name: "Conversaciones · 2 sin leer" });
-    const contador = enlace.querySelector(".studio-icono-btn__contador") as HTMLElement;
+    const contador = enlace.querySelector(".studio-contador-icono") as HTMLElement;
     expect(contador.textContent).toBe("2");
     expect(contador.style.top).toBe("");
     expect(contador.style.right).toBe("");
@@ -32,6 +32,6 @@ describe("ConversationsIndicator · contador", () => {
 
   it("sin no leídas no pinta contador", () => {
     render(<ConversationsIndicator tenantId="t" initial={[{ id: "a", unread_count: 0 }]} />);
-    expect(document.querySelector(".studio-icono-btn__contador")).toBeNull();
+    expect(document.querySelector(".studio-contador-icono")).toBeNull();
   });
 });

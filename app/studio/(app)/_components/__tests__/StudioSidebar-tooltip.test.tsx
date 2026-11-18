@@ -65,6 +65,33 @@ describe("menú lateral cerrado: nombre al instante", () => {
     matches.mockRestore();
   });
 
+  it("Escape cierra el tooltip (WCAG 1.4.13) y el tooltip no se lee doble", async () => {
+    const enlace = await abrirCerrado();
+    fireEvent.mouseEnter(enlace);
+    const tip = document.querySelector(".studio-sb-tip");
+    expect(tip?.getAttribute("aria-hidden")).toBe("true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".studio-sb-tip")).toBeNull();
+  });
+
+  it("el scroll del menú cierra el tooltip", async () => {
+    const enlace = await abrirCerrado();
+    fireEvent.mouseEnter(enlace);
+    expect(document.querySelector(".studio-sb-tip")).not.toBeNull();
+    fireEvent.scroll(document.querySelector("nav") as HTMLElement);
+    expect(document.querySelector(".studio-sb-tip")).toBeNull();
+  });
+
+  it("con el foco de teclado en el enlace, salir con el mouse no borra el tooltip", async () => {
+    const enlace = await abrirCerrado();
+    vi.spyOn(enlace, "matches").mockReturnValue(true);
+    enlace.focus();
+    fireEvent.focus(enlace);
+    fireEvent.mouseEnter(enlace);
+    fireEvent.mouseLeave(enlace);
+    expect(document.querySelector(".studio-sb-tip")).not.toBeNull();
+  });
+
   it("abierto no pinta tooltip ni la clase de cerrado", () => {
     render(<StudioSidebar role="admin" featureFlags={FEATURE_FLAG_DEFAULTS} />);
     expect(document.querySelector(".studio-sb-link--cerrado")).toBeNull();
@@ -83,7 +110,7 @@ describe("studio.css: tooltip del menú y contador de iconos", () => {
   });
 
   it("el contador queda en la esquina superior derecha, montado sobre el borde", () => {
-    const bloque = css.match(/\.studio-icono-btn__contador\s*\{[^}]*\}/)?.[0] ?? "";
+    const bloque = css.match(/\.studio-contador-icono\s*\{[^}]*\}/)?.[0] ?? "";
     expect(bloque).toMatch(/top:\s*-\d+px/);
     expect(bloque).toMatch(/right:\s*-\d+px/);
     const btn = css.match(/\.studio-icono-btn,\s*\n\.studio-cerrar-panel,\s*\n\.studio-densidad\s*\{[^}]*\}/)?.[0] ?? "";
