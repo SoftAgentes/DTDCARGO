@@ -53,8 +53,11 @@ describe("proyecciones para el navegador", () => {
   it("la lista no lleva cédula, sueldo, nacimiento, teléfono, banco ni el id de la cuenta", () => {
     const item = toEmployeeListItem(FILA);
     expect(Object.keys(item).sort()).toEqual(
-      ["department", "email", "employee_code", "full_name", "has_account", "id", "position_id", "position_label", "status"].sort(),
+      // `photo_url` (fase 2) es la URL firmada y corta, nunca la ruta del bucket.
+      ["department", "email", "employee_code", "full_name", "has_account", "id", "photo_url", "position_id", "position_label", "status"].sort(),
     );
+    expect(item.photo_url).toBeNull();
+    expect(toEmployeeListItem(FILA, "https://firmada.example.test/x").photo_url).toBe("https://firmada.example.test/x");
     const texto = JSON.stringify(item);
     for (const sensible of ["V-00000000", "4321", "321", "1990-05-05", "0000-0000000", FILA.auth_user_id!]) {
       expect(texto).not.toContain(sensible);

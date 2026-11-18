@@ -202,8 +202,8 @@ describe("SDD-0626 · webhook, filtro y vaciado (esquema real en PGlite)", () =>
       ["interruptor apagado", () => entregar(mensaje({ conv: 1, msg: 1 }), {}, config({ activo: false })), 200, "apagado"],
       ["bandeja de prueba vacía (se rechaza todo)", () => entregar(mensaje({ conv: 1, msg: 1 }), {}, config({ bandejaPrueba: null })), 503],
       ["sin secreto configurado", () => entregar(mensaje({ conv: 1, msg: 1 }), {}, config({ secreto: null })), 503],
-      // Paso 3a (opcional del DG): sin CHATWOOT_ACCOUNT_ID no entra ningún aviso, de ninguna cuenta.
-      ["sin CHATWOOT_ACCOUNT_ID (se rechaza todo)", () => entregar(mensaje({ conv: 1, msg: 1 }), {}, config({ cuenta: null })), 503],
+      // Paso 3a (opcional del DG): sin OFICINA_CHATWOOT_ACCOUNT_ID no entra ningún aviso, de ninguna cuenta.
+      ["sin OFICINA_CHATWOOT_ACCOUNT_ID (se rechaza todo)", () => entregar(mensaje({ conv: 1, msg: 1 }), {}, config({ cuenta: null })), 503],
     ];
     for (const [nombre, correr, status, motivo] of casos) {
       it(`${nombre}: ${status} y la bandeja queda vacía`, async () => {

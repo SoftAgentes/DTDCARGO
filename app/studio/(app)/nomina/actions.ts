@@ -115,7 +115,12 @@ import {
 } from "@/lib/studio/accounting/period-queries";
 import { validateInviteInput } from "@/lib/studio/nomina/invite-types";
 import { validatePositionInput } from "@/lib/studio/nomina/position-types";
-import { validateApproveRegistrationInput } from "@/lib/studio/nomina/registration-types";
+import {
+  toRegistrationReview,
+  validateApproveRegistrationInput,
+  type RegistrationReview,
+} from "@/lib/studio/nomina/registration-types";
+import { discardCreatedAuthUser, ensureEmployeeAuthUser } from "@/lib/studio/nomina/employee-auth-user";
 import { getRegistration } from "@/lib/studio/nomina/registration-queries";
 import { validateSendCommInput } from "@/lib/studio/nomina/comms-types";
 import { createAdminClient } from "@/lib/db/admin";
@@ -1825,6 +1830,31 @@ export async function revokeInviteAction(
 // ╚═══════════════════════════════════════════════════════════╝
 
 /**
+ * Lo que ve quien revisa una solicitud (SDD-0652 fase 2, N2). La bandeja ya no
+ * trae la cédula ni la cuenta: el panel las pide aquí, al abrirse, y solo para
+ * una solicitud **pendiente**. La cuenta sale enmascarada. Una solicitud ya
+ * aprobada o rechazada no devuelve nada: sus datos viven en la ficha.
+ */
+export async function getRegistrationReviewAction(
+  registrationId: string,
+): Promise<{ ok: true; registration: RegistrationReview } | { error: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+  // Rol admin/accounting activo: un acceso extra a `nomina` no alcanza (§2.2).
+  const acceso = await getFichaEmpleadoAccess(supabase);
+  if (!acceso.ok) return { error: "No tienes permiso para revisar solicitudes." };
+  if (!/^[0-9a-f-]{36}$/i.test(registrationId ?? "")) return { error: "Solicitud inválida." };
+
+  const reg = await getRegistration(supabase, registrationId);
+  if (!reg || reg.tenant_id !== acceso.tenantId) {
+    return { error: "No se pudo cargar la solicitud. Intenta de nuevo." };
+  }
+  if (reg.status !== "pendiente") return { error: "La solicitud ya fue revisada." };
+  return { ok: true, registration: toRegistrationReview(reg) };
+}
+
+/**
  * Aprueba una solicitud: MATERIALIZA la ficha nomina_employees con los datos del
  * candidato + el **sueldo que define la empresa** (NO el que pidió el candidato),
  * genera EMP-NNNN, y enlaza la solicitud (status='aprobada', employee_id). El
@@ -1866,14 +1896,16 @@ export async function approveRegistrationAction(
 
   const { data: userResp } = await supabase.auth.getUser();
 
-  // 0) Crea/enlaza el login del empleado (auth.users real, patrón Portal Cliente).
-  //    Es el paso que faltaba en Slice A. Usa el admin client (service_role) para
-  //    crear el usuario por email; si ya existe (re-aprobación / colisión) lo
-  //    reusa buscándolo por email. El auth_user_id se setea en la ficha (único).
-  const authUserId = await ensureEmployeeAuthUser(reg.email);
-  if (!authUserId) {
-    return { error: "No se pudo crear el acceso del empleado (auth). Revisa el correo." };
+  // 0) Cuenta de acceso del empleado (SDD-0652 §4 punto 6). Solo se enlaza una
+  //    cuenta CREADA aquí. Si el correo ya tiene cuenta, de quien sea, no se
+  //    reutiliza: la ficha nace sin acceso y el admin la enlaza a mano. Ante
+  //    cualquier otro error, no se crea nada (falla cerrado).
+  const admin = createAdminClient();
+  const cuenta = await ensureEmployeeAuthUser(admin, reg.email);
+  if (cuenta.kind === "error") {
+    return { error: "No se pudo comprobar el acceso del empleado. No se creó nada: intenta de nuevo." };
   }
+  const authUserId = cuenta.kind === "created" ? cuenta.userId : null;
 
   // 1) Materializa la ficha con el sueldo de la empresa.
   const { data: empData, error: empErr } = await supabase
@@ -1900,6 +1932,8 @@ export async function approveRegistrationAction(
     .single();
 
   if (empErr || !empData) {
+    // La cuenta recién creada no se queda suelta si la ficha no nació.
+    if (authUserId) await discardCreatedAuthUser(admin, authUserId);
     if (empErr?.code === "23505" && /national_id/.test(empErr.message)) {
       return { error: "Ya existe un empleado con esa cédula. Revisa antes de aprobar." };
     }
@@ -1927,6 +1961,14 @@ export async function approveRegistrationAction(
   }
 
   revalidatePath(PATH);
+  if (cuenta.kind === "exists") {
+    return {
+      ok: true,
+      createdCode: employeeCode,
+      accessWarning:
+        "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si esa cuenta es de un usuario del Studio y es la misma persona, enlázala desde la ficha. Si es solo de la app del empleado, todavía no se puede enlazar desde la ficha: pídeselo a quien administra el sistema.",
+    };
+  }
   return { ok: true, createdCode: employeeCode };
 }
 
@@ -1961,50 +2003,6 @@ export async function rejectRegistrationAction(
 
   revalidatePath(PATH);
   return { ok: true };
-}
-
-/**
- * Crea o reutiliza el auth.users del empleado por email (login propio de /m/emp).
- * service_role: crea el usuario con email confirmado (el empleado entra con magic
- * link / reset de contraseña). Si ya existe (re-aprobación), lo busca y lo reusa.
- * Devuelve el auth user id o null si falló de forma irrecuperable.
- */
-async function ensureEmployeeAuthUser(email: string): Promise<string | null> {
-  const admin = createAdminClient();
-  const normalized = email.trim().toLowerCase();
-
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: normalized,
-    email_confirm: true,
-    user_metadata: { role: "employee", app: "m-emp" },
-  });
-  if (!createErr && created?.user?.id) return created.user.id;
-
-  // Ya existe (email_exists / 422). Reusar SOLO si el auth.user NO está ya tomado
-  // por otra identidad — evita apropiarse de un usuario ajeno por colisión de
-  // email (M-1): un auth.user enlazado a otra ficha de empleado viva, o un
-  // usuario de Studio (miembro de user_tenants), NO se reutiliza. Si está tomado,
-  // devolvemos null → la aprobación crea la ficha sin login (reintentable con otro
-  // correo); nunca enlazamos PII de un tenant al user de otra persona.
-  const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === normalized);
-  if (!found?.id) return null;
-
-  const { data: linkedEmp } = await admin
-    .from("nomina_employees")
-    .select("id")
-    .eq("auth_user_id", found.id)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (linkedEmp?.id) return null; // ya es de otro empleado vivo → no apropiar
-
-  const { count: studioMember } = await admin
-    .from("user_tenants")
-    .select("user_id", { count: "exact", head: true })
-    .eq("user_id", found.id);
-  if ((studioMember ?? 0) > 0) return null; // usuario de Studio (otra identidad)
-
-  return found.id;
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
