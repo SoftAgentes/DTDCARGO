@@ -17,9 +17,14 @@
 |---|---|
 | `docs:check`, `sdd:check` (node directo) | PASÓ |
 | `check-pending-migration-symbols` (node directo) | PASÓ: 0 rojos, 1 amarillo declarado |
-| Contrato `supabase/tests/0563_…test.sql` en PGlite y mutantes (`lib/studio/__tests__/partir-embarque-y-medidas.migration.test.ts`) | NO EJECUTADO todavía: espera turno de PC (`pnpm install` en el worktree). `ASERCIONES` queda en 0 hasta la primera corrida verde |
-| `lib/studio/__tests__/medidas-embarque.test.ts` | NO EJECUTADO (mismo turno) |
-| typecheck, lint y build | NO EJECUTADO (mismo turno) |
+| Contrato `supabase/tests/0563_…test.sql` en PGlite: verde (86 aserciones), rojo sin la 0563 y 20 mutantes (`lib/studio/__tests__/partir-embarque-y-medidas.migration.test.ts`) | PASÓ (22/22) |
+| `lib/studio/__tests__/medidas-embarque.test.ts` | PASÓ (6/6) |
+| `rbac-actions-guard` (inventario 488 → 493) y pruebas de `tracking/` | PASÓ |
+| Contratos del Studio (`vitest run contract`, 34 archivos) | PASÓ |
+| `tsc --noEmit` | PASÓ |
+| ESLint de los archivos tocados | PASÓ |
+| `pnpm build` y `pnpm verify` completos | NO EJECUTADO (turno de PC acotado a pruebas); queda para el CI |
+| Contrato en Postgres real con Docker | NO EJECUTADO |
 | Revisión independiente en Opus | Pendiente: la lanza el DG |
 
 ## Para el contenedor real
@@ -30,7 +35,7 @@
 
 ## Pendientes de esta tarea
 
-- Correr el contrato, los mutantes, las pruebas puras, typecheck y build; fijar `ASERCIONES`.
+- Build y CI de la PR.
 - Revisión `/ui-check` de la franja «Carga».
 
 ## FUERA DE ALCANCE DETECTADO

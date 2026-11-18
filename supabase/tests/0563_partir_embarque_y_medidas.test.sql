@@ -298,7 +298,7 @@ returns jsonb language sql volatile as $$
 $$;
 create function pg_temp.huella() returns text language sql volatile as $$
   select md5(string_agg(x, '|' order by x)) from (
-    select to_jsonb(s)::text as x from (select id, code, client_markbox, volume_m3, weight_kg, group_reference from public.shipments) s
+    select (to_jsonb(s) - 'updated_at')::text as x from public.shipments s
     union all select to_jsonb(e)::text from (select id, shipment_id, note from public.shipment_events) e
     union all select to_jsonb(r)::text from (select id, boxes, total_cbm, total_weight_kg from public.warehouse_receipts_cn) r
     union all select to_jsonb(b)::text from (select id, receipt_id, markbox, deleted_at from public.warehouse_boxes) b

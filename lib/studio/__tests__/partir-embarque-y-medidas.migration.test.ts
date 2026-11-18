@@ -25,7 +25,7 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0563_partir_embarque_y_medidas.te
 const M0563 = "0563_partir_embarque_y_medidas.sql";
 const FILE_0563 = readFileSync(resolve(ROOT, "supabase/migrations", M0563), "utf8");
 const SLOW = 300_000;
-const ASERCIONES = 0;
+const ASERCIONES = 86;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -169,7 +169,7 @@ describe("0563 · corregir medidas y partir un embarque (contrato en PGlite)", (
     ["partir usa -B aunque esté ocupado",
       "where not exists (select 1 from public.shipments s\n                        where s.tenant_id = v_tenant and s.code = v_ship.code || '-' || x.l)\n       and not exists",
       "where true\n       and not exists",
-      "operaciones no pudo partir"],
+      "la vista previa de partir no calculó las dos partes"],
     ["partir sin evento de salida",
       "v_actor, 'shipment_split_out'", "v_actor, 'shipment_split_otro'",
       "falta el evento shipment_split_out"],
