@@ -145,6 +145,51 @@
       ]
     },
     {
+      "id": "0558-revision-tres-estados-y-cierres",
+      "migration": "0558_oficina_casillas_tres_estados",
+      "primarySymbol": "office_revisar_borrador_v2",
+      "symbols": [
+        {
+          "name": "office_revisar_borrador_v2",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:182"
+          ]
+        },
+        {
+          "name": "office_conversaciones_por_cerrar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:214"
+          ]
+        },
+        {
+          "name": "office_registrar_cierre",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/revisiones.ts:236"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/revisiones.ts:185",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
+          "degradation": "Sin la 0558 guardarRevision devuelve «sin_0558»: la página dice «Falta la migración 0558» y no guarda nada (ni con la función vieja de la 0549)."
+        },
+        {
+          "site": "lib/studio/oficina/revisiones.ts:93",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
+          "degradation": "Sin la 0558 leerPorCerrar devuelve «sin_migracion» y la sección «Conversaciones por cerrar» muestra «Falta la migración 0558»."
+        },
+        {
+          "site": "lib/studio/oficina/revisiones.ts:243",
+          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
+          "degradation": "Sin la 0558 registrarCierre devuelve «sin_0558»: la acción vuelve a la página con el aviso, sin escribir nada."
+        }
+      ]
+    },
+    {
       "id": "0555-ficha-acciones",
       "migration": "0555_nomina_ficha_empleado_identidad_foto",
       "primarySymbol": "nomina_link_employee_user",
@@ -256,47 +301,147 @@
       ]
     },
     {
-      "id": "0558-revision-tres-estados-y-cierres",
-      "migration": "0558_oficina_casillas_tres_estados",
-      "primarySymbol": "office_revisar_borrador_v2",
+      "id": "0559-correo-comprobado-del-registro-por-link",
+      "migration": "0559_registro_link_correo_comprobado",
+      "primarySymbol": "client_email_checks",
       "symbols": [
         {
-          "name": "office_revisar_borrador_v2",
+          "name": "portal_email_check_auth_interno",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/revisiones.ts:182"
+            "lib/studio/portal/correo-comprobacion.ts:80"
           ]
         },
         {
-          "name": "office_conversaciones_por_cerrar",
+          "name": "portal_email_check_claim",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/revisiones.ts:214"
+            "app/registro/correo/[token]/actions.ts:122"
           ]
         },
         {
-          "name": "office_registrar_cierre",
+          "name": "portal_email_check_confirm",
           "kind": "function",
           "callSites": [
-            "lib/studio/oficina/revisiones.ts:236"
+            "app/registro/correo/[token]/actions.ts:188"
+          ]
+        },
+        {
+          "name": "portal_email_check_estado",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/clientes/actions.ts:648",
+            "lib/studio/registro-link-queries.ts:72"
+          ]
+        },
+        {
+          "name": "portal_email_check_issue",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/correo-comprobacion.ts:100"
+          ]
+        },
+        {
+          "name": "portal_email_check_peek",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/page.tsx:59"
+          ]
+        },
+        {
+          "name": "portal_email_check_prepare",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/clientes/actions.ts:864"
+          ]
+        },
+        {
+          "name": "portal_email_check_release",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:80"
+          ]
+        },
+        {
+          "name": "portal_email_check_revisar",
+          "kind": "function",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:91"
+          ]
+        },
+        {
+          "name": "portal_email_sin_comprobar",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/correo-comprobacion.ts:50"
+          ]
+        },
+        {
+          "name": "client_email_checks",
+          "kind": "table",
+          "callSites": [
+            "app/registro/correo/[token]/actions.ts:198",
+            "app/registro/link/[token]/actions.ts:190",
+            "app/studio/(app)/clientes/actions.ts:481",
+            "lib/studio/portal/correo-comprobacion.ts:149"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/oficina/revisiones.ts:185",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
-          "degradation": "Sin la 0558 guardarRevision devuelve «sin_0558»: la página dice «Falta la migración 0558» y no guarda nada (ni con la función vieja de la 0549)."
+          "site": "lib/studio/portal/correo-comprobacion.ts:52",
+          "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") return { estado: \"sin-migracion\" };",
+          "degradation": "Sin la 0559 no hay cuentas sin comprobar: correoSinComprobar devuelve «sin-migracion» y /entrar y la invitación por correo siguen como siempre."
         },
         {
-          "site": "lib/studio/oficina/revisiones.ts:93",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
-          "degradation": "Sin la 0558 leerPorCerrar devuelve «sin_migracion» y la sección «Conversaciones por cerrar» muestra «Falta la migración 0558»."
+          "site": "lib/studio/portal/correo-comprobacion.ts:156",
+          "contains": "if (error.code === \"42P01\" || error.code === \"PGRST205\") return { estado: \"ficha\" };",
+          "degradation": "Sin la tabla, direccionInternaDelCliente devuelve «ficha» y el acceso por WhatsApp acuña con el correo de la ficha, como antes. Cualquier otro error de lectura falla cerrado: no hay entrada."
         },
         {
-          "site": "lib/studio/oficina/revisiones.ts:243",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
-          "degradation": "Sin la 0558 registrarCierre devuelve «sin_0558»: la acción vuelve a la página con el aviso, sin escribir nada."
+          "site": "lib/studio/portal/correo-comprobacion.ts:104",
+          "contains": "if (error) return { ok: false, error: `emitir: ${error.message}` };",
+          "degradation": "emitirYEnviarComprobacion no tira: devuelve ok:false y quien llama sigue (el registro deja entrar al cliente; Studio muestra el error)."
+        },
+        {
+          "site": "lib/studio/portal/correo-comprobacion.ts:83",
+          "contains": "if (error) return { ok: false, error: `base: ${error.code ?? \"sin código\"}` };",
+          "degradation": "pasarCuentaADireccionInterna devuelve ok:false si la base no anota; sólo se llega aquí después de portal_email_check_prepare o de leer la tabla, que sin la 0559 ya cortaron antes."
+        },
+        {
+          "site": "app/registro/link/[token]/actions.ts:198",
+          "contains": "console.warn(\"[registerByLinkAction] el registro no quedó anotado para comprobar\");",
+          "degradation": "Sin la 0559 el vínculo de la 0552 rechaza la cuenta con dirección interna: la ficha queda guardada, se anota access_error y el cliente lee «te contactamos por WhatsApp». Si el vínculo pasó pero no hay fila, se avisa en el log y el cliente entra igual."
+        },
+        {
+          "site": "app/registro/correo/[token]/page.tsx:67",
+          "contains": "markbox = row?.markbox ?? null;",
+          "degradation": "Sin la 0559 portal_email_check_peek no existe: la página muestra «Enlace no disponible» (no llega ningún enlace de estos sin la migración)."
+        },
+        {
+          "site": "app/registro/correo/[token]/actions.ts:127",
+          "contains": "console.error(\"[comprobarCorreoAction] reclamar falló:\", error.code);",
+          "degradation": "Sin la 0559 reclamar falla: la acción responde «intenta de nuevo» y no toca Auth; confirmar, soltar, marcar para revisión y leer la tabla sólo corren después de reclamar."
+        },
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:494",
+          "contains": "if (error.code === \"42P01\" || error.code === \"PGRST205\") return \"nada\";",
+          "degradation": "Al corregir el correo en la ficha, sin la tabla no hay cuenta por link que tocar: la ficha se guarda como siempre."
+        },
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:869",
+          "contains": "return { error: \"Esta acción todavía no está disponible.\" };",
+          "degradation": "«Reenviar comprobación» sin la 0559 (PGRST202 o 42883) lo dice y no usa service_role."
+        },
+        {
+          "site": "app/studio/(app)/clientes/actions.ts:651",
+          "contains": "const sinMigracion = estadoErr?.code === \"PGRST202\" || estadoErr?.code === \"42883\";",
+          "degradation": "Sin la 0559 la función de estado no existe: invitar por correo desde la ficha sigue como siempre, sin pedir confirmación."
+        },
+        {
+          "site": "lib/studio/registro-link-queries.ts:75",
+          "contains": "if (!estadoErr) {",
+          "degradation": "Sin la función de estado, «Registros por link» deja correoEstado en null y la tarjeta dice que todavía no se puede saber si el correo está comprobado."
         }
       ]
     }
