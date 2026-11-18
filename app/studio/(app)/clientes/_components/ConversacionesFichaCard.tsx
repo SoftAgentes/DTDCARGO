@@ -82,7 +82,7 @@ export function ConversacionesFichaCargando() {
   return (
     <Marco>
       <p style={TENUE} role="status" aria-live="polite">
-        {t("bandeja.ficha.loading")}
+        {t("bandeja.ficha.panel_loading")}
       </p>
     </Marco>
   );

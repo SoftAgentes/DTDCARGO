@@ -60,9 +60,8 @@ export const bandeja = {
   "bandeja.status.resolved": "Resuelta",
 
   // ── Panel de conversaciones de la ficha (SDD-0650 F2) ────
-  "bandeja.ficha.loading": "Cargando conversaciones…",
+  "bandeja.ficha.panel_loading": "Cargando conversaciones…",
   "bandeja.ficha.unreachable": "Chatwoot no responde: no se pudieron leer las conversaciones.",
-  "bandeja.ficha.retry": "Reintentar",
   "bandeja.ficha.empty": "Los chats unidos a esta ficha no tienen conversaciones.",
   "bandeja.ficha.restricted": "Hay conversaciones que tu rol no abre.",
   "bandeja.ficha.incomplete": "Algunos chats no se pudieron leer: la lista puede estar incompleta.",

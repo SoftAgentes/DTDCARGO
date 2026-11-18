@@ -55,9 +55,8 @@ export const bandeja: BandejaDict = {
   "bandeja.status.resolved": "已解决",
 
   // ── 客户档案的会话面板（SDD-0650 F2）──────────────────────
-  "bandeja.ficha.loading": "正在加载会话…",
+  "bandeja.ficha.panel_loading": "正在加载会话…",
   "bandeja.ficha.unreachable": "Chatwoot 无响应：无法读取会话。",
-  "bandeja.ficha.retry": "重试",
   "bandeja.ficha.empty": "关联到该档案的聊天没有会话。",
   "bandeja.ficha.restricted": "有些会话你的角色无法打开。",
   "bandeja.ficha.incomplete": "部分聊天无法读取：列表可能不完整。",
