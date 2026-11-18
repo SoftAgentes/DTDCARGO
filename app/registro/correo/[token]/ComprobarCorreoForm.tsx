@@ -90,7 +90,7 @@ export function ComprobarCorreoForm({
                 type="button"
                 disabled={isPending}
                 onClick={() => setNoEsMio(true)}
-                className="inline-flex h-12 items-center rounded-[10px] border border-grey-300 bg-white px-6 text-ink text-[15px] font-bold hover:bg-grey-100disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+                className="inline-flex h-12 items-center rounded-[10px] border border-grey-300 bg-white px-6 text-ink text-[15px] font-bold hover:bg-grey-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
               >
                 No es mi correo
               </button>

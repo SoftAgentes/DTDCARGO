@@ -66,8 +66,9 @@ El diseño lo fijó el DG en dos rondas: primero ocho condiciones de diseño, y 
 |---|---|---|
 | A | El titular ve qué correo confirma | `portal_email_check_peek(p_token_hash, p_session_user_id)` devuelve el correo por comprobar solo si la sesión es la del titular. La página lee la sesión en el servidor, muestra el correo completo («¿Es este tu correo?», «Revísalo letra por letra…») y ofrece «No es mi correo», que no confirma nada. Contrato §J; `comprobar-correo-page.test.tsx` |
 | B | El acceso por WhatsApp falla cerrado | `direccionInternaDelCliente` devuelve ficha, cuenta o error; con error, `loadAccessTarget` devuelve `null` y `/entrar/[code]` responde el error genérico sin acuñar nada. Solo «la tabla no existe» cae a la ficha |
-| C | La cuenta vieja del link no recibe la entrada | solo si sigue siendo el acceso activo del cliente (lo mismo que mira el estado de la 0559). Revocado y reinvitado: el correo de la ficha. Revocado y sin ningún acceso activo: falla cerrado |
+| C | La cuenta vieja del link no recibe la entrada | solo si sigue siendo el acceso activo del cliente (lo mismo que mira el estado de la 0559). Revocado y reinvitado, con la invitación ya aceptada: el correo de la ficha. Reinvitado sin aceptar todavía, o revocado sin reinvitar (ningún acceso activo): falla cerrado |
 | D | Confirmación hecha con respuesta de error | antes de dar la vuelta se relee la fila; si ya está comprobada, es un éxito y no se revierte |
+| INFO | Desarme de la 0559 | su cabecera exige, antes de usarlo, devolver el correo a las cuentas que siguen con dirección interna o desactivar su acceso por WhatsApp |
 | E | Fila cuya cuenta de Auth ya no existe | la corrida única la cuenta aparte, no la toca ni la borra, no la cuenta como pendiente y sale con 4; el ensayo también la detecta. README con la tabla de códigos |
 
 ## DECISIONES TOMADAS

@@ -354,7 +354,9 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
     sin comprobar y no se puede leer lo necesario, o el cliente no tiene ningún acceso activo, no se
     acuña ni se crea nada. — `correo-comprobacion.test.ts`.
 27. La entrada por WhatsApp se acuña para la cuenta del link solo si sigue siendo el acceso activo del
-    cliente; revocado y reinvitado por correo, la cuenta vieja no la recibe. — `correo-comprobacion.test.ts`.
+    cliente. Revocado y reinvitado por correo, con la invitación ya aceptada: la cuenta vieja no la recibe
+    y se usa el correo de la ficha. Mientras la invitación no se acepta (sin ningún acceso activo), o si
+    se revocó sin reinvitar, el acceso por WhatsApp falla cerrado. — `correo-comprobacion.test.ts`.
 28. Si la confirmación quedó hecha aunque la respuesta volvió con error, no se deshace. —
     `comprobar-correo-action.test.ts`.
 29. En la corrida única, una fila cuya cuenta de Auth ya no existe se cuenta aparte, no se toca y no

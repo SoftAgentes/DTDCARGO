@@ -310,6 +310,16 @@ describe("acceso por WhatsApp de una cuenta sin comprobar (SDD-0253)", () => {
     expect(leidas).toEqual([]);
   });
 
+  it("⭐ reinvitado, sin aceptar: la invitación sigue pendiente (ningún acceso activo) y falla cerrado", async () => {
+    // La fila nueva de la invitación está en `invited`: la consulta sólo trae los accesos activos.
+    const { admin, filtros, leidas } = make({ auth_user_id: "auth-1" }, null, { email: "vieja@example.test" }, {
+      data: [],
+    });
+    await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();
+    expect(filtros).toContainEqual(["client_users", "eq:status", "active"]);
+    expect(leidas).toEqual([]);
+  });
+
   it("⭐ revocado y sin ningún acceso activo: falla cerrado (no crea una cuenta con el correo sin comprobar)", async () => {
     const { admin } = make({ auth_user_id: "auth-1" }, null, { email: "vieja@example.test" }, { data: [] });
     await expect(loadAccessTarget(admin, "c-1")).resolves.toBeNull();

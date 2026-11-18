@@ -10,9 +10,11 @@
 -- NO DESHACE DATOS NI CUENTAS, Y ESO IMPORTA: las cuentas de Auth que llevan su dirección interna
 -- la SIGUEN llevando, y client_users.email de esas cuentas sigue siendo la dirección interna. Con la
 -- tabla borrada ya no se sabe cuál era el correo por comprobar de cada una (queda en la ficha del
--- cliente, clients.email). Antes de usar este desarme hay que decidir qué pasa con esas cuentas:
--- exportar client_email_checks y devolverles su correo con la API de Auth, o dejarlas entrando sólo
--- por el acceso de WhatsApp. Este archivo no lo hace.
+-- cliente, clients.email). ANTES de usar este desarme, para cada cuenta que siga con su
+-- dirección interna, hay que hacer UNA de estas dos cosas:
+--   · exportar client_email_checks y devolverle su correo con la API de Auth; o
+--   · desactivar el acceso por WhatsApp (SDD-0253) de esos clientes.
+-- Sin una de las dos, el desarme no se aplica. Este archivo no lo hace.
 -- El cuerpo de portal_registration_link_bind de abajo es copia exacta de la 0552 (md5 9dc4862d…).
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
