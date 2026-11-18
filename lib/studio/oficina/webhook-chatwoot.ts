@@ -5,7 +5,7 @@
  * nada en Chatwoot. Orden de las puertas; cada una corta y ninguna escribe antes de la última:
  *   1. Interruptor `OFICINA_WEBHOOK_ACTIVO`. Apagado → 200 `ignorado: apagado`, sin leer el cuerpo ni
  *      crear el almacén (no toca la base).
- *   2. Configuración: sin secreto, sin bandeja de prueba o sin `CHATWOOT_ACCOUNT_ID` → 503, se rechaza todo
+ *   2. Configuración: sin secreto, sin bandeja de prueba o sin `OFICINA_CHATWOOT_ACCOUNT_ID` → 503, se rechaza todo
  *      (Paso 3a: la cuenta es obligatoria; un aviso de otra cuenta se ignora en el paso 5).
  *   3. Tope de tamaño (256 KiB) ANTES de la firma → 413.
  *   4. Firma HMAC de Chatwoot 4.19.1 sobre el cuerpo crudo, con anti-replay y comparación en tiempo
@@ -77,7 +77,8 @@ export async function procesarWebhookOficina(
   const registrar = deps.registrar ?? ((m: string) => console.error(m));
 
   if (!config.activo) return ignorado("apagado");
-  // Paso 3a (opcional del DG): sin CHATWOOT_ACCOUNT_ID no se acepta ningún aviso; con él, solo los de esa cuenta.
+  // Sin OFICINA_CHATWOOT_ACCOUNT_ID (la cuenta propia del cable, nunca la del ERP) no se acepta ningún aviso;
+  // con ella, solo los de esa cuenta.
   if (!config.secreto || config.bandejaPrueba === null || config.cuenta === null) {
     return responder(503, { ok: false, error: "no_configurado" });
   }
