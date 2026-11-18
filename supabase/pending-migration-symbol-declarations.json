@@ -188,6 +188,309 @@
           "degradation": "Sin la 0558 registrarCierre devuelve «sin_0558»: la acción vuelve a la página con el aviso, sin escribir nada."
         }
       ]
+    },
+    {
+      "id": "0556-reglas-vigencia-y-aportes",
+      "migration": "0556_nomina_reglas_vigencia_y_aportes",
+      "primarySymbol": "nomina_payroll_rules.vigente_desde",
+      "symbols": [
+        {
+          "name": "nomina_payroll_rules.bono_guerra_moneda",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:549",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:105",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:248",
+            "lib/studio/nomina/ley/parametros.ts:122",
+            "lib/studio/nomina/payroll-rules-queries.ts:46",
+            "lib/studio/nomina/payroll-rules-queries.ts:109",
+            "lib/studio/nomina/payroll-rules-queries.ts:111",
+            "lib/studio/nomina/payroll-rules-queries.ts:169",
+            "lib/studio/nomina/payroll-rules-types.ts:151",
+            "lib/studio/nomina/payroll-rules-types.ts:196",
+            "lib/studio/nomina/payroll-rules-types.ts:232",
+            "lib/studio/nomina/payroll-rules-types.ts:407",
+            "lib/studio/nomina/payroll-rules-types.ts:408",
+            "lib/studio/nomina/payroll-rules-types.ts:448"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.bono_vacacional_max_days",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:557",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:391",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:429",
+            "lib/studio/nomina/ley/parametros.ts:86",
+            "lib/studio/nomina/ley/parametros.ts:116",
+            "lib/studio/nomina/ley/parametros.ts:507",
+            "lib/studio/nomina/payroll-rules-queries.ts:54",
+            "lib/studio/nomina/payroll-rules-queries.ts:106",
+            "lib/studio/nomina/payroll-rules-queries.ts:107",
+            "lib/studio/nomina/payroll-rules-queries.ts:177",
+            "lib/studio/nomina/payroll-rules-types.ts:161",
+            "lib/studio/nomina/payroll-rules-types.ts:204",
+            "lib/studio/nomina/payroll-rules-types.ts:240",
+            "lib/studio/nomina/payroll-rules-types.ts:301",
+            "lib/studio/nomina/payroll-rules-types.ts:308",
+            "lib/studio/nomina/payroll-rules-types.ts:383",
+            "lib/studio/nomina/payroll-rules-types.ts:456"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.cestaticket_moneda",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:548",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:105",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:247",
+            "lib/studio/nomina/ley/parametros.ts:121",
+            "lib/studio/nomina/payroll-rules-queries.ts:45",
+            "lib/studio/nomina/payroll-rules-queries.ts:108",
+            "lib/studio/nomina/payroll-rules-queries.ts:110",
+            "lib/studio/nomina/payroll-rules-queries.ts:168",
+            "lib/studio/nomina/payroll-rules-types.ts:150",
+            "lib/studio/nomina/payroll-rules-types.ts:195",
+            "lib/studio/nomina/payroll-rules-types.ts:231",
+            "lib/studio/nomina/payroll-rules-types.ts:405",
+            "lib/studio/nomina/payroll-rules-types.ts:406",
+            "lib/studio/nomina/payroll-rules-types.ts:447"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.faov_patronal_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:552",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:362",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:371",
+            "lib/studio/nomina/ley/parametros.ts:81",
+            "lib/studio/nomina/ley/parametros.ts:111",
+            "lib/studio/nomina/ley/parametros.ts:556",
+            "lib/studio/nomina/payroll-rules-queries.ts:49",
+            "lib/studio/nomina/payroll-rules-queries.ts:101",
+            "lib/studio/nomina/payroll-rules-queries.ts:172",
+            "lib/studio/nomina/payroll-rules-types.ts:155",
+            "lib/studio/nomina/payroll-rules-types.ts:199",
+            "lib/studio/nomina/payroll-rules-types.ts:235",
+            "lib/studio/nomina/payroll-rules-types.ts:257",
+            "lib/studio/nomina/payroll-rules-types.ts:272",
+            "lib/studio/nomina/payroll-rules-types.ts:451"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.fuente_legal",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:546",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:164",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:166",
+            "app/studio/(app)/nomina/_components/ReglasTab.tsx:368",
+            "app/studio/(app)/nomina/_components/ReglasTab.tsx:370",
+            "lib/studio/nomina/payroll-rules-queries.ts:43",
+            "lib/studio/nomina/payroll-rules-queries.ts:113",
+            "lib/studio/nomina/payroll-rules-queries.ts:166",
+            "lib/studio/nomina/payroll-rules-types.ts:147",
+            "lib/studio/nomina/payroll-rules-types.ts:193",
+            "lib/studio/nomina/payroll-rules-types.ts:229",
+            "lib/studio/nomina/payroll-rules-types.ts:415",
+            "lib/studio/nomina/payroll-rules-types.ts:417",
+            "lib/studio/nomina/payroll-rules-types.ts:445"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.inces_patronal_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:553",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:363",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:374",
+            "lib/studio/nomina/ley/parametros.ts:82",
+            "lib/studio/nomina/ley/parametros.ts:112",
+            "lib/studio/nomina/ley/parametros.ts:571",
+            "lib/studio/nomina/payroll-rules-queries.ts:50",
+            "lib/studio/nomina/payroll-rules-queries.ts:102",
+            "lib/studio/nomina/payroll-rules-queries.ts:173",
+            "lib/studio/nomina/payroll-rules-types.ts:156",
+            "lib/studio/nomina/payroll-rules-types.ts:200",
+            "lib/studio/nomina/payroll-rules-types.ts:236",
+            "lib/studio/nomina/payroll-rules-types.ts:258",
+            "lib/studio/nomina/payroll-rules-types.ts:273",
+            "lib/studio/nomina/payroll-rules-types.ts:452"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.inces_utilidades_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:554",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:364",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:375",
+            "lib/studio/nomina/ley/parametros.ts:83",
+            "lib/studio/nomina/ley/parametros.ts:113",
+            "lib/studio/nomina/ley/parametros.ts:373",
+            "lib/studio/nomina/payroll-rules-queries.ts:51",
+            "lib/studio/nomina/payroll-rules-queries.ts:103",
+            "lib/studio/nomina/payroll-rules-queries.ts:174",
+            "lib/studio/nomina/payroll-rules-types.ts:157",
+            "lib/studio/nomina/payroll-rules-types.ts:201",
+            "lib/studio/nomina/payroll-rules-types.ts:237",
+            "lib/studio/nomina/payroll-rules-types.ts:259",
+            "lib/studio/nomina/payroll-rules-types.ts:274",
+            "lib/studio/nomina/payroll-rules-types.ts:453"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.ingreso_minimo_integral_usd",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:547",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:213",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:249",
+            "lib/studio/nomina/ley/parametros.ts:78",
+            "lib/studio/nomina/ley/parametros.ts:108",
+            "lib/studio/nomina/ley/parametros.ts:236",
+            "lib/studio/nomina/payroll-rules-queries.ts:44",
+            "lib/studio/nomina/payroll-rules-queries.ts:97",
+            "lib/studio/nomina/payroll-rules-queries.ts:98",
+            "lib/studio/nomina/payroll-rules-queries.ts:167",
+            "lib/studio/nomina/payroll-rules-types.ts:149",
+            "lib/studio/nomina/payroll-rules-types.ts:194",
+            "lib/studio/nomina/payroll-rules-types.ts:230",
+            "lib/studio/nomina/payroll-rules-types.ts:287",
+            "lib/studio/nomina/payroll-rules-types.ts:293",
+            "lib/studio/nomina/payroll-rules-types.ts:446"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.pension_contrib_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:555",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:365",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:376",
+            "lib/studio/nomina/ley/parametros.ts:84",
+            "lib/studio/nomina/ley/parametros.ts:114",
+            "lib/studio/nomina/ley/parametros.ts:586",
+            "lib/studio/nomina/payroll-rules-queries.ts:52",
+            "lib/studio/nomina/payroll-rules-queries.ts:104",
+            "lib/studio/nomina/payroll-rules-queries.ts:175",
+            "lib/studio/nomina/payroll-rules-types.ts:158",
+            "lib/studio/nomina/payroll-rules-types.ts:202",
+            "lib/studio/nomina/payroll-rules-types.ts:238",
+            "lib/studio/nomina/payroll-rules-types.ts:398",
+            "lib/studio/nomina/payroll-rules-types.ts:400",
+            "lib/studio/nomina/payroll-rules-types.ts:454"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.rpe_patronal_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:551",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:361",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:370",
+            "lib/studio/nomina/ley/parametros.ts:80",
+            "lib/studio/nomina/ley/parametros.ts:110",
+            "lib/studio/nomina/ley/parametros.ts:540",
+            "lib/studio/nomina/payroll-rules-queries.ts:48",
+            "lib/studio/nomina/payroll-rules-queries.ts:100",
+            "lib/studio/nomina/payroll-rules-queries.ts:171",
+            "lib/studio/nomina/payroll-rules-types.ts:154",
+            "lib/studio/nomina/payroll-rules-types.ts:198",
+            "lib/studio/nomina/payroll-rules-types.ts:234",
+            "lib/studio/nomina/payroll-rules-types.ts:256",
+            "lib/studio/nomina/payroll-rules-types.ts:271",
+            "lib/studio/nomina/payroll-rules-types.ts:450"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.sso_patronal_pct",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:550",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:360",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:369",
+            "lib/studio/nomina/ley/parametros.ts:79",
+            "lib/studio/nomina/ley/parametros.ts:109",
+            "lib/studio/nomina/ley/parametros.ts:523",
+            "lib/studio/nomina/payroll-rules-queries.ts:47",
+            "lib/studio/nomina/payroll-rules-queries.ts:99",
+            "lib/studio/nomina/payroll-rules-queries.ts:170",
+            "lib/studio/nomina/payroll-rules-types.ts:153",
+            "lib/studio/nomina/payroll-rules-types.ts:197",
+            "lib/studio/nomina/payroll-rules-types.ts:233",
+            "lib/studio/nomina/payroll-rules-types.ts:255",
+            "lib/studio/nomina/payroll-rules-types.ts:270",
+            "lib/studio/nomina/payroll-rules-types.ts:449"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.vacaciones_extra_max",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:556",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:390",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:428",
+            "lib/studio/nomina/ley/parametros.ts:85",
+            "lib/studio/nomina/ley/parametros.ts:115",
+            "lib/studio/nomina/ley/parametros.ts:473",
+            "lib/studio/nomina/payroll-rules-queries.ts:53",
+            "lib/studio/nomina/payroll-rules-queries.ts:105",
+            "lib/studio/nomina/payroll-rules-queries.ts:176",
+            "lib/studio/nomina/payroll-rules-types.ts:160",
+            "lib/studio/nomina/payroll-rules-types.ts:203",
+            "lib/studio/nomina/payroll-rules-types.ts:239",
+            "lib/studio/nomina/payroll-rules-types.ts:300",
+            "lib/studio/nomina/payroll-rules-types.ts:307",
+            "lib/studio/nomina/payroll-rules-types.ts:383",
+            "lib/studio/nomina/payroll-rules-types.ts:455"
+          ]
+        },
+        {
+          "name": "nomina_payroll_rules.vigente_desde",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/nomina/actions.ts:545",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:161",
+            "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:162",
+            "app/studio/(app)/nomina/_components/ReglasTab.tsx:359",
+            "app/studio/(app)/nomina/_components/ReglasTab.tsx:361",
+            "app/studio/(app)/nomina/_components/ReglasTab.tsx:363",
+            "lib/studio/nomina/payroll-rules-queries.ts:42",
+            "lib/studio/nomina/payroll-rules-queries.ts:112",
+            "lib/studio/nomina/payroll-rules-queries.ts:165",
+            "lib/studio/nomina/payroll-rules-types.ts:145",
+            "lib/studio/nomina/payroll-rules-types.ts:192",
+            "lib/studio/nomina/payroll-rules-types.ts:228",
+            "lib/studio/nomina/payroll-rules-types.ts:411",
+            "lib/studio/nomina/payroll-rules-types.ts:413",
+            "lib/studio/nomina/payroll-rules-types.ts:444"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/nomina/payroll-rules-queries.ts:136",
+          "contains": "ampliada = false;",
+          "degradation": "Sin la 0556 PostgREST responde columna inexistente (42703 o PGRST204) al pedir las 13 columnas nuevas: getVigentePayrollRulesConEstado reintenta con las columnas de la 0162 y la 0179, devuelve las reglas sin los campos nuevos y ampliada=false; loguea solo el código y el mensaje y no lanza. La pantalla sigue como en la fase A2a. faltaColumna reconoce solo «columna inexistente»: cualquier otro error no reintenta."
+        },
+        {
+          "site": "lib/studio/nomina/payroll-rules-queries.ts:248",
+          "contains": "usadas = false;",
+          "degradation": "Sin la 0556 upsertPayrollRules inserta solo las columnas de la 0162 (ampliada=false, camposDeLa0556 no se envía); si la base las perdiera entre la lectura y el insert (un desarme), el insert falla con columna inexistente y se reintenta sin ellas. Guardar una versión nueva funciona igual que en la fase A2a."
+        },
+        {
+          "site": "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:84",
+          "contains": "const espera = !ampliada;",
+          "degradation": "Sin la 0556 el formulario de Reglas deshabilita los campos nuevos (vigencia, fuente, monedas, ingreso mínimo integral, aportes del patrono y escalas) y muestra el aviso «Campos nuevos en espera»; al no enviarse, la acción usa los defaults y la escritura no los guarda."
+        },
+        {
+          "site": "app/studio/(app)/nomina/_components/ReglasTab.tsx:359",
+          "contains": "rules.vigente_desde !== undefined",
+          "degradation": "Sin la 0556 la versión no trae vigente_desde (undefined): la pestaña Reglas no muestra la línea «Rige desde … · Fuente …», y la comparación con la ley marca «No están en tus reglas» las normas que dependen de columnas nuevas, igual que en la fase A2a."
+        }
+      ]
     }
   ]
 }

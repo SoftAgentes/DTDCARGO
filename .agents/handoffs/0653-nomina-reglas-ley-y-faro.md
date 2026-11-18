@@ -2,9 +2,10 @@
 
 - Rama de la fase A2a: `claude/0653-nomina-ley-faro-0b4370` · PR #631 (fusionada) · Worker 0653 · 2026-11-17
 - Rama de la fase A3: `claude/0653-a3-tope-motor` · PR #640 (fusionada, CI verde, revisión APPROVED)
-- Cierre del handoff: 2026-11-17. A2a y A3 en `main`; A2b, A4, B1 y B2 esperan la asignación del DG.
+- Rama de la fase A2b: `claude/0653-a2b-vigencia` (worktree propio, desde `main` 725e2ef81) · PR: ver GitHub · asignada por el DG el 2026-11-17.
+- A2a y A3 en `main`; A4, B1 y B2 esperan la asignación del DG.
 - Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`in-progress`).
-- Migración reservada por el DG: **0556** (no creada; es de la fase A2b).
+- Migración **0556** `nomina_reglas_vigencia_y_aportes` (reservada por el DG): creada en la rama A2b, **EN ESPERA** (no aplicada a ningún entorno).
 
 ## Instrucción de Sam que amplió el encargo (2026-11-16)
 
@@ -17,6 +18,25 @@ al tocarlo; y volver a comprobar las dudas contra las Gacetas.
 Sam aprobó las decisiones recomendadas. Literal, en el chat del Director General, a «¿Apruebas las decisiones
 recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas». Lo transmitió el DG; esta sesión no lo
 presenció. Quedan decididas D1, D2, D3a, D3b y D4 a D10 con la opción (a). No autoriza producción ni arranca fases.
+
+## Fase A2b (2026-11-17) — migración 0556 y pestaña Reglas con vigencia, aportes y escalas
+
+Asignada por el DG («Sam autorizó anoche avanzar todo el roadmap en bloque»); las decisiones D1 a D5 y D10 ya estaban aprobadas.
+
+**Qué entrega** (sin leer ni escribir producción):
+
+- **Migración 0556**, aditiva y idempotente, sobre `nomina_payroll_rules`: 13 columnas (vigencia, fuente legal, ingreso mínimo integral en USD, moneda de cestaticket y bono, 6 aportes del patrono y 2 escalas), 8 CHECK (utilidades 30 a 120, pensiones máx. 15, rangos). Preflight que aborta con datos fuera de rango (cuenta, no lee) y postflight de forma, RLS y grants. Cabecera «NO APLICADA A PRODUCCIÓN». Desarme en `supabase/desarmes/`.
+- **Espera declarada** en `supabase/migrations-baseline.json` y **degradación declarada** en `supabase/pending-migration-symbol-declarations.json`: sin la 0556 la pantalla sigue como en A2a (la lectura reintenta sin las columnas nuevas, la escritura las omite y el formulario deshabilita los campos con un aviso).
+- **Contrato** `supabase/tests/` (migraciones reales 0160, 0162 y 0556): filas existentes intactas, filas nuevas con fecha de hoy, 17 rechazos de CHECK y 10 límites válidos, reaplicar no cambia nada, RLS por tenant Y rol (otro tenant, operador, admin deshabilitado, sin membership y anon no ven ni escriben) y catálogo sin cambios. Ensayado en PGlite con control rojo, preflights, desarme, 8 mutantes y una prueba gemela columnas del SQL = columnas del código.
+- **Código:** tipos y validador (monedas, aportes 0 a 100, pensiones tope 15, utilidades 30 a 120, escalas, vigencia y fuente), consultas con degradación, estante legal enlazado a las columnas nuevas (2 normas más: vacaciones adicionales y bono vacacional máximo; unidad del bono según su moneda), formulario de Reglas con los campos nuevos y pestaña Reglas con «Rige desde … · Fuente …».
+
+**Decisiones que tomé (para el DG y Sam):**
+
+1. **`vigente_desde` nullable** (la spec decía NOT NULL). Con filas existentes y sin UPDATE, NOT NULL las llenaba con la fecha de aplicación, una vigencia inventada. Las versiones anteriores quedan en NULL = «sin fecha de vigencia registrada».
+2. **Defaults de los aportes patronales** = la norma conocida (9, 2, 2, 2, 0,5 y 9). Quedan «por confirmar» en el estante legal; el contador los confirma antes de usarlos (D8). No se cargan valores nuevos: eso es la A4.
+3. **Formulario:** una versión nueva nace con los bonos en USD (D4, «todo en dólares»); la vigencia por omisión es hoy en Caracas; la fuente legal no se hereda de la versión anterior (una fuente vieja en una versión nueva engaña más que un campo vacío).
+4. **Sin guía ni novedad de Faro de nómina:** `nomina` sigue reservada en el minicerebro y `novedades/` no existe en `main` (D-10 de la 0637 pendiente).
+5. **No se valida** que una vigencia nueva no sea anterior a la de la versión vigente: el orden lo da el número de versión; la fecha es informativa.
 
 ## Fase A3 (2026-11-17) — tope de SSO y RPE en el motor
 

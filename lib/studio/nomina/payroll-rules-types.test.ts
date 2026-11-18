@@ -11,6 +11,10 @@ import {
   payrollRulesStatusLabel,
   payrollRulesStatusTone,
   isPayrollRulesStatus,
+  isFechaIso,
+  isMonedaMonto,
+  PENSION_CONTRIB_MAX_PCT,
+  UTILIDADES_MAX_DAYS,
 } from "./payroll-rules-types";
 
 describe("validatePayrollRulesInput", () => {
@@ -132,6 +136,117 @@ describe("validatePayrollRulesInput", () => {
   it("normaliza notas vacías a null", () => {
     const { input } = validatePayrollRulesInput({ ...base, notes: "   " });
     expect(input!.notes).toBeNull();
+  });
+});
+
+describe("validatePayrollRulesInput · SDD-0653 A2b (migración 0556)", () => {
+  const base = { pay_frequency: "mensual", day_method: "30" };
+
+  it("sin los campos nuevos usa los defaults: aportes de la ley, bonos en USD, sin vigencia ni fuente", () => {
+    const { input, fieldErrors } = validatePayrollRulesInput({ ...base });
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toMatchObject({
+      vigente_desde: null,
+      fuente_legal: null,
+      ingreso_minimo_integral_usd: 0,
+      cestaticket_moneda: "USD",
+      bono_guerra_moneda: "USD",
+      sso_patronal_pct: 9,
+      rpe_patronal_pct: 2,
+      faov_patronal_pct: 2,
+      inces_patronal_pct: 2,
+      inces_utilidades_pct: 0.5,
+      pension_contrib_pct: 9,
+      vacaciones_extra_max: 15,
+      bono_vacacional_max_days: 30,
+    });
+  });
+
+  it("acepta y normaliza vigencia, fuente, monedas, ingreso mínimo, aportes y escalas", () => {
+    const { input, fieldErrors } = validatePayrollRulesInput({
+      ...base,
+      vigente_desde: "2026-12-01",
+      fuente_legal: "  G.O. 6.691 Ext., Decreto 4.653  ",
+      ingreso_minimo_integral_usd: "240",
+      cestaticket_moneda: "VES",
+      bono_guerra_moneda: "USD",
+      sso_patronal_pct: "10",
+      pension_contrib_pct: "15",
+      vacaciones_extra_max: "10",
+      bono_vacacional_max_days: "25",
+    });
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toMatchObject({
+      vigente_desde: "2026-12-01",
+      fuente_legal: "G.O. 6.691 Ext., Decreto 4.653",
+      ingreso_minimo_integral_usd: 240,
+      cestaticket_moneda: "VES",
+      sso_patronal_pct: 10,
+      pension_contrib_pct: 15,
+      vacaciones_extra_max: 10,
+      bono_vacacional_max_days: 25,
+    });
+  });
+
+  it("rechaza una fecha de vigencia que no existe", () => {
+    for (const v of ["2026-02-31", "01/12/2026", "2026-13-01", "ayer"]) {
+      expect(validatePayrollRulesInput({ ...base, vigente_desde: v }).fieldErrors?.vigente_desde, v).toBeTruthy();
+    }
+  });
+
+  it("la fuente legal admite hasta 200 caracteres", () => {
+    expect(validatePayrollRulesInput({ ...base, fuente_legal: "x".repeat(200) }).fieldErrors).toBeUndefined();
+    expect(validatePayrollRulesInput({ ...base, fuente_legal: "x".repeat(201) }).fieldErrors?.fuente_legal).toBeTruthy();
+  });
+
+  it("rechaza una moneda que no sea VES ni USD", () => {
+    expect(validatePayrollRulesInput({ ...base, cestaticket_moneda: "EUR" }).fieldErrors?.cestaticket_moneda).toBeTruthy();
+    expect(validatePayrollRulesInput({ ...base, bono_guerra_moneda: "usd" }).fieldErrors?.bono_guerra_moneda).toBeTruthy();
+  });
+
+  it("la contribución de pensiones tiene el tope legal de 15 %", () => {
+    expect(PENSION_CONTRIB_MAX_PCT).toBe(15);
+    expect(validatePayrollRulesInput({ ...base, pension_contrib_pct: "15" }).fieldErrors).toBeUndefined();
+    expect(validatePayrollRulesInput({ ...base, pension_contrib_pct: "15.01" }).fieldErrors?.pension_contrib_pct).toBeTruthy();
+    expect(validatePayrollRulesInput({ ...base, pension_contrib_pct: "-1" }).fieldErrors?.pension_contrib_pct).toBeTruthy();
+  });
+
+  it("los aportes del patrono van de 0 a 100", () => {
+    for (const campo of ["sso_patronal_pct", "rpe_patronal_pct", "faov_patronal_pct", "inces_patronal_pct", "inces_utilidades_pct"]) {
+      expect(validatePayrollRulesInput({ ...base, [campo]: "100" }).fieldErrors, campo).toBeUndefined();
+      expect(validatePayrollRulesInput({ ...base, [campo]: "100.5" }).fieldErrors?.[campo], campo).toBeTruthy();
+      expect(validatePayrollRulesInput({ ...base, [campo]: "-1" }).fieldErrors?.[campo], campo).toBeTruthy();
+    }
+  });
+
+  it("utilidades: mínimo 30 y máximo 120 (LOTTT Art. 131)", () => {
+    expect(UTILIDADES_MAX_DAYS).toBe(120);
+    expect(validatePayrollRulesInput({ ...base, utilidades_days: "120" }).fieldErrors).toBeUndefined();
+    expect(validatePayrollRulesInput({ ...base, utilidades_days: "121" }).fieldErrors?.utilidades_days).toMatch(/máximo legal 120/);
+    expect(validatePayrollRulesInput({ ...base, utilidades_days: "29" }).fieldErrors?.utilidades_days).toMatch(/mínimo legal 30/);
+  });
+
+  it("las escalas por antigüedad son enteros de 0 a 365", () => {
+    for (const campo of ["vacaciones_extra_max", "bono_vacacional_max_days"]) {
+      expect(validatePayrollRulesInput({ ...base, [campo]: "365" }).fieldErrors, campo).toBeUndefined();
+      expect(validatePayrollRulesInput({ ...base, [campo]: "366" }).fieldErrors?.[campo], campo).toBeTruthy();
+      expect(validatePayrollRulesInput({ ...base, [campo]: "-1" }).fieldErrors?.[campo], campo).toBeTruthy();
+      expect(validatePayrollRulesInput({ ...base, [campo]: "1.5" }).fieldErrors?.[campo], campo).toBeTruthy();
+    }
+  });
+
+  it("el ingreso mínimo integral no puede ser negativo", () => {
+    expect(validatePayrollRulesInput({ ...base, ingreso_minimo_integral_usd: "-1" }).fieldErrors?.ingreso_minimo_integral_usd).toBeTruthy();
+  });
+
+  it("isFechaIso e isMonedaMonto", () => {
+    expect(isFechaIso("2026-11-17")).toBe(true);
+    expect(isFechaIso("2024-02-29")).toBe(true);
+    expect(isFechaIso("2026-02-29")).toBe(false);
+    expect(isFechaIso(20261117)).toBe(false);
+    expect(isMonedaMonto("VES")).toBe(true);
+    expect(isMonedaMonto("USD")).toBe(true);
+    expect(isMonedaMonto("EUR")).toBe(false);
   });
 });
 

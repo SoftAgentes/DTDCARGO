@@ -5,9 +5,14 @@
  * Es CONFIG, no cálculo: solo lee/guarda params. Form HTML5 (form="id" + submit
  * en el footer, sin requestSubmit). useActionState + fieldErrors del validador.
  * Guardar archiva el ruleset vigente y crea una versión nueva (lo hace la action).
+ *
+ * SDD-0653 A2b (migración 0556): vigencia y fuente legal, monedas de los bonos, ingreso
+ * mínimo integral, aportes del patrono y escalas por antigüedad. Sin la 0556 esos campos
+ * salen deshabilitados con un aviso y no se guardan (`ampliada: false`).
  */
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   DrawerShell,
   DrawerFooter,
@@ -30,11 +35,23 @@ const initial: NominaActionState = {};
 /** Valor por defecto del campo: el del ruleset vigente o el default LOTTT. */
 function val(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): string {
   const fallback = PAYROLL_RULES_DEFAULTS[key];
-  const v = rules ? (rules as unknown as Record<string, unknown>)[key] : fallback;
+  let v = rules ? (rules as unknown as Record<string, unknown>)[key] : fallback;
+  // Un campo de la 0556 que la versión no trae (se guardó antes de la migración): el default.
+  if (v === undefined) v = fallback;
   if (v == null) return "";
   if (Array.isArray(v)) return "";
   return String(v);
 }
+
+/** Hoy en Caracas (AAAA-MM-DD): la vigencia por omisión de una versión nueva. */
+function hoyCaracas(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Caracas" });
+}
+
+const MONEDA_OPCIONES = [
+  { value: "USD", label: "USD" },
+  { value: "VES", label: "Bs" },
+];
 
 function GroupTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -54,12 +71,48 @@ function GroupTitle({ children }: { children: React.ReactNode }) {
 
 export function ReglasDrawer({
   rules,
+  ampliada,
   onClose,
 }: {
   rules: PayrollRules | null;
+  /** ¿La base tiene la migración 0556? Sin ella, los campos nuevos no se guardan. */
+  ampliada: boolean;
   onClose: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(savePayrollRulesAction, initial);
+  const hoy = useMemo(hoyCaracas, []);
+  const espera = !ampliada;
+
+  /** Un número de la 0556: deshabilitado mientras la migración esté en espera. */
+  const num0556 = (
+    name: keyof typeof PAYROLL_RULES_DEFAULTS,
+    label: string,
+    opts: { step?: string; min?: string; max?: string } = {},
+  ) => (
+    <Field label={label} error={state.fieldErrors?.[name]}>
+      <input
+        name={name}
+        type="number"
+        step={opts.step ?? "0.01"}
+        min={opts.min ?? "0"}
+        max={opts.max}
+        disabled={espera}
+        className="studio-input studio-input-mono"
+        defaultValue={val(rules, name)}
+      />
+    </Field>
+  );
+  const moneda0556 = (name: "cestaticket_moneda" | "bono_guerra_moneda", label: string) => (
+    <Field label={label} error={state.fieldErrors?.[name]}>
+      <select name={name} className="studio-input" disabled={espera} defaultValue={val(rules, name) || "USD"}>
+        {MONEDA_OPCIONES.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
 
   useEffect(() => {
     if (state.ok) onClose();
@@ -95,6 +148,35 @@ export function ReglasDrawer({
           consume después.
         </p>
 
+        {espera && (
+          <Aviso tono="info" titulo="Campos nuevos en espera" compacto>
+            La base todavía no tiene la migración 0556: la vigencia, la fuente, las monedas de los bonos, el ingreso mínimo
+            integral, los aportes del patrono y las escalas no se guardan hasta que se aplique.
+          </Aviso>
+        )}
+
+        {/* Vigencia y fuente legal (D2) */}
+        <GroupTitle>Vigencia de esta versión</GroupTitle>
+        <Row>
+          <Field label="Rige desde" error={state.fieldErrors?.vigente_desde}>
+            <input name="vigente_desde" type="date" disabled={espera} className="studio-input" defaultValue={hoy} />
+          </Field>
+          <Field label="Fuente legal" error={state.fieldErrors?.fuente_legal}>
+            <input
+              name="fuente_legal"
+              type="text"
+              maxLength={200}
+              disabled={espera}
+              placeholder="G.O. N° 6.691 Ext., Decreto 4.653"
+              className="studio-input"
+              defaultValue=""
+            />
+          </Field>
+        </Row>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
+          Cada cambio legal es una versión nueva: la anterior se conserva y los cortes ya hechos no cambian.
+        </p>
+
         {/* Frecuencia y método de días */}
         <GroupTitle>Frecuencia y días</GroupTitle>
         <Row>
@@ -126,11 +208,11 @@ export function ReglasDrawer({
           </Field>
         </Row>
 
-        {/* Montos base (Bs) */}
-        <GroupTitle>Montos base (Bs)</GroupTitle>
-        <PistaLey campos={["min_salary", "cestaticket", "bono_guerra"]} />
+        {/* Montos base: el salario mínimo en Bs; los bonos, en la moneda que elijas (D4) */}
+        <GroupTitle>Montos base</GroupTitle>
+        <PistaLey campos={["min_salary", "ingreso_minimo_integral_usd", "cestaticket", "bono_guerra"]} />
         <Row>
-          <Field label="Salario mínimo" error={state.fieldErrors?.min_salary}>
+          <Field label="Salario mínimo (Bs)" error={state.fieldErrors?.min_salary}>
             <input
               name="min_salary"
               type="number"
@@ -160,6 +242,11 @@ export function ReglasDrawer({
               defaultValue={val(rules, "bono_guerra")}
             />
           </Field>
+        </Row>
+        <Row>
+          {moneda0556("cestaticket_moneda", "Moneda del cestaticket")}
+          {moneda0556("bono_guerra_moneda", "Moneda del bono de guerra")}
+          {num0556("ingreso_minimo_integral_usd", "Ingreso mínimo integral (USD)")}
         </Row>
 
         {/* Deducciones (%) */}
@@ -266,9 +353,44 @@ export function ReglasDrawer({
           </Field>
         </Row>
 
+        {/* Aportes del patrono (%): costo de la nómina, no se descuentan al trabajador (D5) */}
+        <GroupTitle>Aportes del patrono (%)</GroupTitle>
+        <PistaLey
+          campos={[
+            "sso_patronal_pct",
+            "rpe_patronal_pct",
+            "faov_patronal_pct",
+            "inces_patronal_pct",
+            "inces_utilidades_pct",
+            "pension_contrib_pct",
+          ]}
+        />
+        <Row>
+          {num0556("sso_patronal_pct", "IVSS del patrono", { max: "100" })}
+          {num0556("rpe_patronal_pct", "RPE del patrono", { max: "100" })}
+          {num0556("faov_patronal_pct", "FAOV del patrono", { max: "100" })}
+        </Row>
+        <Row>
+          {num0556("inces_patronal_pct", "INCES del patrono", { max: "100" })}
+          {num0556("inces_utilidades_pct", "INCES sobre utilidades", { max: "100" })}
+          {num0556("pension_contrib_pct", "Contribución de pensiones", { max: "15" })}
+        </Row>
+        <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
+          Solo para calcular el costo de la nómina: no se descuentan al trabajador. La contribución de pensiones tiene un tope
+          legal de 15 %.
+        </p>
+
         {/* Provisiones (días) */}
         <GroupTitle>Provisiones / prestaciones (días)</GroupTitle>
-        <PistaLey campos={["utilidades_days", "bono_vacacional_days", "vacaciones_days"]} />
+        <PistaLey
+          campos={[
+            "utilidades_days",
+            "bono_vacacional_days",
+            "vacaciones_days",
+            "vacaciones_extra_max",
+            "bono_vacacional_max_days",
+          ]}
+        />
         <Row>
           <Field label="Utilidades" error={state.fieldErrors?.utilidades_days}>
             <input
@@ -276,6 +398,7 @@ export function ReglasDrawer({
               type="number"
               step="1"
               min="30"
+              max="120"
               className="studio-input studio-input-mono"
               defaultValue={val(rules, "utilidades_days")}
             />
@@ -301,8 +424,12 @@ export function ReglasDrawer({
             />
           </Field>
         </Row>
+        <Row>
+          {num0556("vacaciones_extra_max", "Vacaciones: máx. días adicionales", { step: "1" })}
+          {num0556("bono_vacacional_max_days", "Bono vacacional: máx. de días", { step: "1" })}
+        </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
-          Utilidades: mínimo legal 30 días (LOTTT Art. 131).
+          Utilidades: entre 30 y 120 días (LOTTT Art. 131). Los máximos son los de la escala por antigüedad (Arts. 190 y 192).
         </p>
 
         <Field label="Notas">

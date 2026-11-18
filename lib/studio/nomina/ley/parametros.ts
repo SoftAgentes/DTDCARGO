@@ -74,9 +74,22 @@ export type CampoRegla = Extract<
   | "utilidades_days"
   | "bono_vacacional_days"
   | "vacaciones_days"
+  // SDD-0653 A2b · migración 0556: sin ella la base no trae estos campos y la comparación dice «falta».
+  | "ingreso_minimo_integral_usd"
+  | "sso_patronal_pct"
+  | "rpe_patronal_pct"
+  | "faov_patronal_pct"
+  | "inces_patronal_pct"
+  | "inces_utilidades_pct"
+  | "pension_contrib_pct"
+  | "vacaciones_extra_max"
+  | "bono_vacacional_max_days"
 >;
 
-/** Unidad en que la pantalla de Reglas guarda cada campo (los montos, en Bs). */
+/**
+ * Unidad en que la pantalla de Reglas guarda cada campo por omisión (cestaticket y bono, en Bs).
+ * Con la 0556 cada bono lleva su moneda: usa `unidadDelCampo`, que la lee de la versión.
+ */
 export const UNIDAD_CAMPO: Record<CampoRegla, UnidadLey> = {
   min_salary: "VES",
   cestaticket: "VES",
@@ -92,7 +105,23 @@ export const UNIDAD_CAMPO: Record<CampoRegla, UnidadLey> = {
   utilidades_days: "dias",
   bono_vacacional_days: "dias",
   vacaciones_days: "dias",
+  ingreso_minimo_integral_usd: "USD",
+  sso_patronal_pct: "pct",
+  rpe_patronal_pct: "pct",
+  faov_patronal_pct: "pct",
+  inces_patronal_pct: "pct",
+  inces_utilidades_pct: "pct",
+  pension_contrib_pct: "pct",
+  vacaciones_extra_max: "dias",
+  bono_vacacional_max_days: "dias",
 };
+
+/** La unidad real de un campo en una versión de las reglas: los bonos dicen su moneda (D4). */
+export function unidadDelCampo(campo: CampoRegla, rules: PayrollRules | null): UnidadLey {
+  if (campo === "cestaticket") return rules?.cestaticket_moneda ?? UNIDAD_CAMPO.cestaticket;
+  if (campo === "bono_guerra") return rules?.bono_guerra_moneda ?? UNIDAD_CAMPO.bono_guerra;
+  return UNIDAD_CAMPO[campo];
+}
 
 export interface ParametroLey {
   readonly id: string;
@@ -204,7 +233,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "ingreso-minimo-integral",
     grupo: "montos",
     etiqueta: "Ingreso mínimo integral",
-    campo: null,
+    campo: "ingreso_minimo_integral_usd",
     valor: 240,
     unidad: "USD",
     comparacion: "igual",
@@ -341,7 +370,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "inces-trabajador",
     grupo: "deducciones",
     etiqueta: "INCES sobre utilidades",
-    campo: null,
+    campo: "inces_utilidades_pct",
     valor: 0.5,
     unidad: "pct",
     comparacion: "igual",
@@ -433,7 +462,23 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     vigenteDesde: "2012-05-07",
     grado: "verificado",
     alcance: "obliga",
-    detalle: "Las reglas guardan un número fijo: todavía no suman el día por año de antigüedad.",
+    detalle:
+      "Las reglas guardan los 15 días base y, con la migración 0556, el máximo de días adicionales. El cálculo por antigüedad de cada empleado no está en esta fase.",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
+  },
+  {
+    id: "vacaciones-adicionales",
+    grupo: "provisiones",
+    etiqueta: "Vacaciones: días adicionales",
+    campo: "vacaciones_extra_max",
+    valor: 15,
+    unidad: "dias",
+    comparacion: "igual",
+    texto: "Un día hábil adicional por cada año de servicio, hasta un máximo de 15 días hábiles adicionales.",
+    fuente: LOTTT("Art. 190"),
+    vigenteDesde: "2012-05-07",
+    grado: "verificado",
+    alcance: "obliga",
     comprobadoEn: EN_FACSIMIL_LOTTT,
   },
   {
@@ -451,18 +496,35 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     vigenteDesde: "2012-05-07",
     grado: "verificado",
     alcance: "obliga",
-    detalle: "Las reglas guardan un número fijo: todavía no suman el día por año de antigüedad.",
+    detalle:
+      "Las reglas guardan los 15 días base y, con la migración 0556, el máximo con la antigüedad. El cálculo por antigüedad de cada empleado no está en esta fase.",
     comprobadoEn: EN_FACSIMIL_LOTTT,
   },
-  // ── Aportes del patrono (las reglas todavía no los tienen) ─
+  {
+    id: "bono-vacacional-maximo",
+    grupo: "provisiones",
+    etiqueta: "Bono vacacional: máximo",
+    campo: "bono_vacacional_max_days",
+    valor: 30,
+    unidad: "dias",
+    comparacion: "igual",
+    texto: "El bono vacacional crece un día por año de servicio y no pasa de 30 días en total.",
+    fuente: LOTTT("Art. 192"),
+    vigenteDesde: "2012-05-07",
+    grado: "verificado",
+    alcance: "obliga",
+    comprobadoEn: EN_FACSIMIL_LOTTT,
+  },
+  // ── Aportes del patrono (con la migración 0556 las reglas los guardan) ─
   {
     id: "sso-patrono",
     grupo: "patrono",
     etiqueta: "IVSS del patrono",
-    campo: null,
+    campo: "sso_patronal_pct",
     valor: 9,
     unidad: "pct",
     comparacion: "minimo",
+    maximo: 11,
     texto:
       "El patrono aporta 9 % (riesgo mínimo), 10 % (riesgo medio) u 11 % (riesgo máximo) al Seguro Social, hasta 5 salarios mínimos.",
     fuente: SEGURO_SOCIAL,
@@ -475,7 +537,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "rpe-patrono",
     grupo: "patrono",
     etiqueta: "RPE del patrono",
-    campo: null,
+    campo: "rpe_patronal_pct",
     valor: 2,
     unidad: "pct",
     comparacion: "igual",
@@ -491,7 +553,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "faov-patrono",
     grupo: "patrono",
     etiqueta: "FAOV del patrono",
-    campo: null,
+    campo: "faov_patronal_pct",
     valor: 2,
     unidad: "pct",
     comparacion: "igual",
@@ -506,7 +568,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "inces-patrono",
     grupo: "patrono",
     etiqueta: "INCES del patrono",
-    campo: null,
+    campo: "inces_patronal_pct",
     valor: 2,
     unidad: "pct",
     comparacion: "igual",
@@ -521,7 +583,7 @@ export const PARAMETROS_LEY: readonly ParametroLey[] = [
     id: "contribucion-pensiones",
     grupo: "patrono",
     etiqueta: "Contribución para las pensiones",
-    campo: null,
+    campo: "pension_contrib_pct",
     valor: 9,
     unidad: "pct",
     comparacion: "igual",
@@ -600,7 +662,7 @@ export function compararParametro(p: ParametroLey, rules: PayrollRules | null): 
     return { parametro: p, valorRegla: null, unidadRegla: null, estado: "falta" };
   }
   const valorRegla = Number(rules[p.campo]);
-  const unidadRegla = UNIDAD_CAMPO[p.campo];
+  const unidadRegla = unidadDelCampo(p.campo, rules);
   if (!Number.isFinite(valorRegla)) {
     return { parametro: p, valorRegla: null, unidadRegla, estado: "falta" };
   }

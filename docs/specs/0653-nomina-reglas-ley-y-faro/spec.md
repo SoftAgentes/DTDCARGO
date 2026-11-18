@@ -274,17 +274,20 @@ El estante no lleva datos de clientes ni de empleados. Aun así:
 |---|---|---|---|
 | A1 | Esta spec | — | `docs:check` y `sdd:check` |
 | A2a | **Hecho en esta PR, sin migración.** Estante legal `lib/studio/nomina/ley/parametros.ts` con grado y fuente por norma; pestaña Reglas rediseñada: versión y fecha de actualización, barra «obligaciones al día» (no cuenta anuncios ni referencias), columnas «tus reglas» y «ley», asterisco en lo no verificado que abre la ficha legal con la fuente y la nota de consultar a un abogado; pistas «según la ley» en el formulario | Instrucción de Sam | Pruebas del módulo y de contratos del Studio, typecheck y lint |
-| A2b | Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
+| A2b | **Hecho en la rama `claude/0653-a2b-vigencia`, migración 0556 EN ESPERA.** Lo de A2 que sí necesita base de datos: estante legal (`lib/studio/nomina/ley/parametros.ts` o el de Faro, según D1), migración **0556**, reglas con fecha de vigencia, aportes patronales y escalas; pestaña Reglas con columna «según la ley» | D1-D5, D10 | Pruebas de tipos y de la migración en PGlite; ensayo de la migración en local |
 | A3 | **Hecho en la rama `claude/0653-a3-tope-motor`, sin migración.** Arreglo del tope en el motor (§2.3): tope en Bs a USD con la tasa del corte, prorrateado al período, tasa congelada en el snapshot, falla cerrado sin tasa | D6; el contador valida la tasa | Pruebas con mes, quincena, semana, tasa distinta, sin tasa y sin topes |
 | A4 | Carga de los valores en producción, como nueva versión de las reglas | A2 en `main`, D8 y OK nominal de Sam | El contador valida en pantalla; runbook de producción |
 | B1 | Estante «Ley» en el minicerebro, con sus pruebas (importaciones, fuentes completas, vigencia) | D1, D7, D8, D9 | Pruebas unitarias; revisión del contador |
 | B2 | `fuentesLey` en la ficha, verificador y tarjeta con la cita | Fase 3 de la 0637 (motor) | Pruebas del verificador: id inexistente, sin cita, pregunta personal |
 
-## 5. Migración 0556 (propuesta, fase A2)
+## 5. Migración 0556 (fase A2b)
 
-Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vigencia_y_aportes`. **Todavía no existe:** se crea en la fase A2b. Es aditiva, sobre `nomina_payroll_rules`:
+Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vigencia_y_aportes`. **Existe en la rama de la fase A2b y está EN ESPERA:** no se aplicó a ningún entorno; se declara en el baseline como pendiente y aplicarla pide el OK nominal de Sam y el runbook de producción. Es aditiva, sobre `nomina_payroll_rules`:
 
-- `vigente_desde date not null default current_date`, y `fuente_legal text` (texto corto: «G.O. 6.691 Ext.»).
+- `vigente_desde date` **nullable** con `default current_date` para las filas nuevas, y `fuente_legal text` (texto corto: «G.O. 6.691 Ext.»).
+  *Cambio respecto de la propuesta original (NOT NULL):* con filas existentes y sin `update`, NOT NULL obligaba a rellenarlas con la
+  fecha en que se aplica la migración, que sería una fecha de vigencia inventada. Las versiones anteriores quedan en NULL = «sin
+  fecha de vigencia registrada», y la pantalla lo dice así.
 - `ingreso_minimo_integral_usd numeric(14,2) not null default 0`.
 - Unidad explícita: `cestaticket_moneda` y `bono_guerra_moneda text check (in ('VES','USD'))`, con el valor actual
   en `'VES'` para no reinterpretar filas existentes. El contador corrige el monto al crear la nueva versión (D4).
@@ -292,7 +295,13 @@ Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vige
   `inces_patronal_pct` (2), `inces_utilidades_pct` (0,5), `pension_contrib_pct` (9), con `check` de 0 a 100 y la
   contribución de pensiones con tope legal de 15.
 - Escalas: `vacaciones_extra_max` (15) y `bono_vacacional_max_days` (30).
-- Validador de `utilidades_days` entre 30 y 120.
+- Validador de `utilidades_days` entre 30 y 120 (CHECK, y el preflight aborta si una versión ya está fuera, contando filas sin leerlas).
+- **Idempotente** (ADD COLUMN IF NOT EXISTS y restricciones con guarda), con postflight que comprueba la forma de cada columna, los 8
+  CHECK, y que la RLS y los grants quedaron intactos. Con desarme en `supabase/desarmes/` (sin número; pierde lo guardado en las
+  columnas nuevas).
+- **Degradación:** sin la 0556 la pestaña Reglas lee y guarda solo las columnas de la 0162 y la 0179 (como en la fase A2a) y el
+  formulario deshabilita los campos nuevos con un aviso (`payroll-rules-queries.ts`: la lectura reintenta sin ellas y la escritura las omite).
+  La degradación está declarada en `supabase/pending-migration-symbol-declarations.json`.
 - Sin `update` de filas existentes. El histórico ya lo da el versionado (`0162:80-83`): cada cambio legal crea una
   versión nueva con su `vigente_desde`, y los cortes viejos conservan su snapshot (`0175:54`).
 - Sin cambios a RLS ni grants: hereda `nomina_can_access()`.
@@ -312,6 +321,11 @@ regenerado), `.agents/handoffs/0653-nomina-reglas-ley-y-faro.md`, `lib/studio/no
 `lib/studio/nomina/payroll-rules-types.ts`, `payroll-rules-types.test.ts`, `payroll-rules-queries.ts`;
 `app/studio/(app)/nomina/actions.ts`, `_components/ReglasDrawer.tsx`, `_components/NominaClient.tsx`; la guía de
 Faro de nómina y su novedad si la pantalla cambia (D-10 de la 0637).
+
+**A2b (ampliada):** además de lo de arriba, `lib/studio/nomina/payroll-rules-queries.test.ts` (nuevo), `app/studio/(app)/nomina/page.tsx`,
+`_components/ReglasTab.tsx` y su prueba, `supabase/tests/` (el contrato de la 0556), `supabase/desarmes/` (el desarme), `supabase/migrations-baseline.json`
+(la espera) y `supabase/pending-migration-symbol-declarations.json` (la degradación). La guía y la novedad de Faro de nómina **no**
+entran: `nomina` sigue reservada en el minicerebro y `novedades/` no existe en `main` (D-10 de la 0637 queda para cuando exista).
 
 **A3:** `lib/studio/nomina/payroll-run-types.ts` y `payroll-run-types.test.ts`; `lib/studio/nomina/tope-fx.ts` y `tope-fx.test.ts`
 (nuevos: la tasa de los topes y lo que se congela); `app/studio/(app)/nomina/actions.ts` (solo el corte: resolver la tasa
@@ -365,9 +379,10 @@ Superficie: Studio, módulo Nómina, pestaña Reglas. Riesgo: lectura; no muta d
 | MOT-01 | cumplimiento | Solo `--dur-fast`, `--dur` y `--dur-slow` con `--ease`; nada se repite; con movimiento reducido no hay escala ni desplazamiento. Lo vigila `ReglasTab.test.tsx` |
 | VIS-01, VIS-02 | cumplimiento | Solo tokens; cabecera en tinta con texto invertido (los dos tokens se invierten juntos en oscuro); `dark-theme-contrast-contract` pasa |
 | ICO-01 | cumplimiento | Iconos del catálogo (`Icon.close`, `Icon.check`); el botón de cerrar lleva nombre accesible y `title` |
-| NUM-01 | cumplimiento | Cada valor muestra su unidad o moneda; «—» distingue lo que no existe de un cero |
+| NUM-01 | cumplimiento parcial | Cada valor muestra su unidad o moneda (USD o Bs según el campo; los bonos dicen la suya); «—» distingue lo que no existe de un cero. Los campos del formulario son `type="number"`, no `NumericInput` (heredado, ver FRM-01) |
 | CMP-01 | cumplimiento | Usa los canónicos `Badge`, `Aviso`, `EmptyState`, `SegmentedControl` y `useDialogA11y`. `ReglasTab` y `PistaLey` son piezas del módulo, no componentes compartidos nuevos |
-| FRM-01, ERR-01 | no aplica | El formulario de Reglas no cambia de campos ni de validación; solo gana un texto informativo |
+| FRM-01 | **no conformidad heredada, ampliada en A2b** | El formulario de Reglas (anterior a esta spec) usa `<input type="number">` y valida al enviar, sin el ciclo progresivo. La fase A2b le suma campos con el mismo patrón en vez de rehacerlo. Labels persistentes, grupos por decisión y validación completa en servidor (que repite los rangos de la base). Seguimiento: migrarlo a `NumericInput` y al ciclo pristine→blur→invalid es otra tarea |
+| ERR-01 | cumplimiento parcial | Cada campo nuevo muestra su error junto al campo con qué corregir («entre 0 y 15 % (tope legal)», «Fecha de vigencia inválida (AAAA-MM-DD)»); sin la 0556 el motivo se dice en un aviso, no con un error genérico |
 | IA-01 | no aplica en esta PR | La parte de Faro es diseño (§3); al implementarla aplica entera, junto con privacidad |
 | TBL-01 | no aplica | La comparación es una ficha de lectura de 21 filas en tarjetas, no un listado operativo de módulo |
 

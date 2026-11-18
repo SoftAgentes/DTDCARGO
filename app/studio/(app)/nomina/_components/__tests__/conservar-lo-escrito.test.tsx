@@ -80,7 +80,7 @@ const PANELES: [string, ReactElement][] = [
   ["PrestadorDrawer", <PrestadorDrawer key="j" contractor={null} onClose={cerrar} />],
   ["PrestamoDrawer", <PrestamoDrawer key="k" employees={EMPLEADOS} onClose={cerrar} />],
   ["PuestoDrawer", <PuestoDrawer key="l" position={null} onClose={cerrar} />],
-  ["ReglasDrawer", <ReglasDrawer key="m" rules={null} onClose={cerrar} />],
+  ["ReglasDrawer", <ReglasDrawer key="m" rules={null} ampliada onClose={cerrar} />],
   ["RevisarSolicitudDrawer, al aprobar", <RevisarSolicitudDrawer key="n" registration={SOLICITUD} onClose={cerrar} />],
 ];
 

@@ -1,0 +1,351 @@
+\set ON_ERROR_STOP on
+-- SDD-0653 fase A2b · contrato de la 0556 (reglas de nómina con vigencia, monedas, aportes patronales y escalas).
+-- Migraciones reales (0160, 0162 y 0556); fixtures sintéticos. Nunca conecta a producción.
+-- Cubre: (1) las filas que ya existían no se tocan (vigente_desde NULL, monedas en VES, mismo updated_at);
+-- (2) las filas nuevas nacen con la fecha de hoy y los defaults; (3) cada CHECK rechaza lo suyo;
+-- (4) reaplicar no cambia nada; (5) la RLS por tenant Y rol sigue igual: otro tenant, un rol sin acceso,
+-- un admin deshabilitado y anon no ven ni escriben; (6) el catálogo (policy única, grants) no cambió.
+begin;
+do $roles$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+end;
+$roles$;
+grant usage on schema public to anon, authenticated, service_role;
+create schema auth;
+grant usage on schema auth to anon, authenticated, service_role;
+create table auth.users (id uuid primary key, email text);
+create function auth.uid() returns uuid language sql stable set search_path = '' as $$
+  select nullif(pg_catalog.current_setting('request.jwt.claim.sub', true), '')::uuid
+$$;
+create table public.tenants (id uuid primary key, slug text unique);
+create table public.user_tenants (
+  user_id uuid primary key, tenant_id uuid not null, role text not null, disabled_at timestamptz
+);
+create function public.get_user_tenant_id() returns uuid
+language sql stable security definer set search_path = '' as $$
+  select ut.tenant_id from public.user_tenants ut
+  where ut.user_id = (select auth.uid()) and ut.disabled_at is null limit 1
+$$;
+create function public.touch_updated_at() returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end;
+$$;
+
+insert into public.tenants (id, slug) values
+  ('10000000-0653-0000-0000-000000000001', 'dtd'),
+  ('20000000-0653-0000-0000-000000000002', 'otro');
+insert into auth.users (id) values
+  ('aaaaaaaa-0653-0000-0000-000000000001'), -- admin del tenant 1
+  ('aaaaaaaa-0653-0000-0000-000000000002'), -- operador del tenant 1 (sin acceso a nómina)
+  ('aaaaaaaa-0653-0000-0000-000000000003'), -- admin deshabilitado del tenant 1
+  ('bbbbbbbb-0653-0000-0000-000000000001'), -- contador del tenant 2
+  ('cccccccc-0653-0000-0000-000000000009'); -- sin membership
+insert into public.user_tenants (user_id, tenant_id, role, disabled_at) values
+  ('aaaaaaaa-0653-0000-0000-000000000001', '10000000-0653-0000-0000-000000000001', 'admin', null),
+  ('aaaaaaaa-0653-0000-0000-000000000002', '10000000-0653-0000-0000-000000000001', 'operator', null),
+  ('aaaaaaaa-0653-0000-0000-000000000003', '10000000-0653-0000-0000-000000000001', 'admin', now()),
+  ('bbbbbbbb-0653-0000-0000-000000000001', '20000000-0653-0000-0000-000000000002', 'accounting', null);
+
+-- nomina_can_access() sale de la 0160; las reglas (con su siembra demo del tenant dtd) de la 0162.
+\ir ../migrations/0160_nomina_employees.sql
+\ir ../migrations/0162_nomina_payroll_rules.sql
+
+-- Una versión del tenant 2 (el otro tenant), con valores propios, para los negativos de aislamiento.
+insert into public.nomina_payroll_rules (tenant_id, version, status, min_salary, notes)
+values ('20000000-0653-0000-0000-000000000002', 1, 'vigente', 111.00, 'version de otro tenant');
+
+-- Foto de las filas ANTES de la 0556: ni una sola puede cambiar.
+create temp table foto as
+  select id, ctid as fila, updated_at, version, min_salary, cestaticket, bono_guerra, utilidades_days
+    from public.nomina_payroll_rules;
+
+\ir ../migrations/0556_nomina_reglas_vigencia_y_aportes.sql
+
+-- ── (1) Las filas existentes: intactas, con la lectura conservadora ──────────
+do $existentes$
+begin
+  if (select count(*) from public.nomina_payroll_rules) <> 2 then
+    raise exception 'TEST 0556: cambió el número de filas';
+  end if;
+  if exists (
+    select 1 from public.nomina_payroll_rules r join foto f on f.id = r.id
+    where r.ctid <> f.fila or r.updated_at <> f.updated_at or r.version <> f.version
+       or r.min_salary <> f.min_salary or r.cestaticket <> f.cestaticket
+       or r.bono_guerra <> f.bono_guerra or r.utilidades_days <> f.utilidades_days
+  ) then
+    raise exception 'TEST 0556: la migración tocó una fila existente';
+  end if;
+  if exists (select 1 from public.nomina_payroll_rules where vigente_desde is not null or fuente_legal is not null) then
+    raise exception 'TEST 0556: una versión anterior quedó con fecha o fuente inventadas';
+  end if;
+  if exists (select 1 from public.nomina_payroll_rules
+              where cestaticket_moneda <> 'VES' or bono_guerra_moneda <> 'VES' or ingreso_minimo_integral_usd <> 0) then
+    raise exception 'TEST 0556: una versión anterior no quedó en bolívares y sin ingreso mínimo integral';
+  end if;
+  if exists (select 1 from public.nomina_payroll_rules
+              where sso_patronal_pct <> 9 or rpe_patronal_pct <> 2 or faov_patronal_pct <> 2
+                 or inces_patronal_pct <> 2 or inces_utilidades_pct <> 0.5 or pension_contrib_pct <> 9
+                 or vacaciones_extra_max <> 15 or bono_vacacional_max_days <> 30) then
+    raise exception 'TEST 0556: los defaults de aportes y escalas no son los de la spec';
+  end if;
+end;
+$existentes$;
+
+-- ── (2) Una versión NUEVA nace con la fecha de hoy ───────────────────────────
+do $nuevas$
+declare
+  v_id uuid;
+begin
+  update public.nomina_payroll_rules set status = 'archivada'
+   where tenant_id = '10000000-0653-0000-0000-000000000001' and status = 'vigente';
+  insert into public.nomina_payroll_rules (tenant_id, version, status, fuente_legal, ingreso_minimo_integral_usd,
+                                           cestaticket_moneda, bono_guerra_moneda, sso_patronal_pct)
+  values ('10000000-0653-0000-0000-000000000001', 2, 'vigente', 'G.O. 6.691 Ext., Decreto 4.653', 240, 'USD', 'USD', 10)
+  returning id into v_id;
+  if (select vigente_desde from public.nomina_payroll_rules where id = v_id) is distinct from current_date then
+    raise exception 'TEST 0556: una versión nueva no nació con vigente_desde = hoy';
+  end if;
+  if (select cestaticket_moneda || bono_guerra_moneda || sso_patronal_pct::text from public.nomina_payroll_rules where id = v_id) <> 'USDUSD10.00' then
+    raise exception 'TEST 0556: la versión nueva no guardó monedas y aporte';
+  end if;
+  -- Una sola versión vigente por tenant sigue valiendo.
+  begin
+    insert into public.nomina_payroll_rules (tenant_id, version, status)
+    values ('10000000-0653-0000-0000-000000000001', 3, 'vigente');
+    raise exception 'TEST 0556: dos versiones vigentes en el mismo tenant';
+  exception when unique_violation then null;
+  end;
+end;
+$nuevas$;
+
+-- ── (3) Cada CHECK rechaza lo suyo (y acepta el límite) ──────────────────────
+do $checks$
+declare
+  v_caso record;
+  v_malos int := 0;
+  v_buenos int := 0;
+begin
+  for v_caso in
+    select * from (values
+      ('fuente vacía',                        'fuente_legal = ''   '''),
+      ('fuente de 201 caracteres',            'fuente_legal = repeat(''x'', 201)'),
+      ('ingreso mínimo negativo',             'ingreso_minimo_integral_usd = -1'),
+      ('moneda de cestaticket EUR',           'cestaticket_moneda = ''EUR'''),
+      ('moneda de bono en minúscula',         'bono_guerra_moneda = ''usd'''),
+      ('aporte del IVSS en 101',              'sso_patronal_pct = 101'),
+      ('aporte del RPE negativo',             'rpe_patronal_pct = -0.01'),
+      ('aporte del FAOV en 100,01',           'faov_patronal_pct = 100.01'),
+      ('aporte del INCES en 101',             'inces_patronal_pct = 101'),
+      ('INCES de utilidades en 101',          'inces_utilidades_pct = 101'),
+      ('contribución de pensiones en 15,01',  'pension_contrib_pct = 15.01'),
+      ('contribución de pensiones negativa',  'pension_contrib_pct = -1'),
+      ('vacaciones extra negativas',          'vacaciones_extra_max = -1'),
+      ('vacaciones extra en 366',             'vacaciones_extra_max = 366'),
+      ('bono vacacional máximo negativo',     'bono_vacacional_max_days = -1'),
+      ('utilidades en 29',                    'utilidades_days = 29'),
+      ('utilidades en 121',                   'utilidades_days = 121')
+    ) as t(caso, asignacion)
+  loop
+    begin
+      execute pg_catalog.format(
+        'update public.nomina_payroll_rules set %s where tenant_id = %L and status = %L',
+        v_caso.asignacion, '10000000-0653-0000-0000-000000000001', 'vigente');
+      raise exception 'TEST 0556: el CHECK aceptó «%»', v_caso.caso;
+    exception when check_violation then
+      v_malos := v_malos + 1;
+    end;
+  end loop;
+  if v_malos <> 17 then
+    raise exception 'TEST 0556: se esperaban 17 rechazos y hubo %', v_malos;
+  end if;
+
+  -- Los límites que SÍ valen.
+  for v_caso in
+    select * from (values
+      ('fuente de 200 caracteres',  'fuente_legal = repeat(''x'', 200)'),
+      ('aporte en 0',               'sso_patronal_pct = 0'),
+      ('aporte en 100',             'rpe_patronal_pct = 100'),
+      ('pensiones en 15',           'pension_contrib_pct = 15'),
+      ('pensiones en 0',            'pension_contrib_pct = 0'),
+      ('escalas en 365',            'vacaciones_extra_max = 365, bono_vacacional_max_days = 365'),
+      ('utilidades en 30',          'utilidades_days = 30'),
+      ('utilidades en 120',         'utilidades_days = 120'),
+      ('moneda USD',                'cestaticket_moneda = ''USD'''),
+      ('fuente nula',               'fuente_legal = null')
+    ) as t(caso, asignacion)
+  loop
+    execute pg_catalog.format(
+      'update public.nomina_payroll_rules set %s where tenant_id = %L and status = %L',
+      v_caso.asignacion, '10000000-0653-0000-0000-000000000001', 'vigente');
+    v_buenos := v_buenos + 1;
+  end loop;
+  if v_buenos <> 10 then
+    raise exception 'TEST 0556: los límites válidos no corrieron todos';
+  end if;
+end;
+$checks$;
+
+-- ── (4) Reaplicar no cambia nada ─────────────────────────────────────────────
+create temp table forma_antes as
+  select (select string_agg(column_name || ':' || data_type || ':' || is_nullable || ':' || coalesce(column_default, ''), ',' order by column_name)
+            from information_schema.columns where table_schema = 'public' and table_name = 'nomina_payroll_rules') as columnas,
+         (select string_agg(conname || ':' || pg_get_constraintdef(oid), ',' order by conname)
+            from pg_constraint where conrelid = 'public.nomina_payroll_rules'::regclass) as restricciones,
+         (select string_agg(id::text || version::text, ',' order by id) from public.nomina_payroll_rules) as filas;
+
+\ir ../migrations/0556_nomina_reglas_vigencia_y_aportes.sql
+
+do $idempotente$
+begin
+  if (select columnas from forma_antes) is distinct from
+     (select string_agg(column_name || ':' || data_type || ':' || is_nullable || ':' || coalesce(column_default, ''), ',' order by column_name)
+        from information_schema.columns where table_schema = 'public' and table_name = 'nomina_payroll_rules') then
+    raise exception 'TEST 0556: reaplicar cambió las columnas';
+  end if;
+  if (select restricciones from forma_antes) is distinct from
+     (select string_agg(conname || ':' || pg_get_constraintdef(oid), ',' order by conname)
+        from pg_constraint where conrelid = 'public.nomina_payroll_rules'::regclass) then
+    raise exception 'TEST 0556: reaplicar cambió las restricciones';
+  end if;
+  if (select filas from forma_antes) is distinct from (select string_agg(id::text || version::text, ',' order by id) from public.nomina_payroll_rules) then
+    raise exception 'TEST 0556: reaplicar cambió las filas';
+  end if;
+end;
+$idempotente$;
+
+-- ── (6) El catálogo no cambió: una policy, los grants de la 0162 ─────────────
+do $catalogo$
+declare
+  v_priv text;
+begin
+  if (select count(*) from pg_policy where polrelid = 'public.nomina_payroll_rules'::regclass) <> 1
+     or not exists (select 1 from pg_policy where polrelid = 'public.nomina_payroll_rules'::regclass
+                      and polname = 'nomina_payroll_rules by tenant and role') then
+    raise exception 'TEST 0556: la policy de nomina_payroll_rules cambió';
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.nomina_payroll_rules'::regclass) then
+    raise exception 'TEST 0556: se apagó la RLS';
+  end if;
+  foreach v_priv in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
+    if not has_table_privilege('authenticated', 'public.nomina_payroll_rules', v_priv) then
+      raise exception 'TEST 0556: authenticated perdió % sobre nomina_payroll_rules', v_priv;
+    end if;
+    if has_table_privilege('anon', 'public.nomina_payroll_rules', v_priv) then
+      raise exception 'TEST 0556: anon ganó % sobre nomina_payroll_rules', v_priv;
+    end if;
+  end loop;
+  if has_table_privilege('authenticated', 'public.nomina_payroll_rules', 'TRUNCATE') then
+    raise exception 'TEST 0556: authenticated puede TRUNCATE nomina_payroll_rules';
+  end if;
+end;
+$catalogo$;
+
+-- ── (5) RLS por tenant Y rol, con las columnas nuevas ────────────────────────
+-- Admin del tenant 1: ve su tenant (incluidas las columnas nuevas) y nada del otro.
+do $admin$
+declare
+  v_n int;
+  v_filas int;
+  v_ajena uuid;
+begin
+  select id into v_ajena from public.nomina_payroll_rules where tenant_id = '20000000-0653-0000-0000-000000000002';
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', 'aaaaaaaa-0653-0000-0000-000000000001', true);
+
+  select count(*) into v_n from public.nomina_payroll_rules;
+  if v_n <> 2 then raise exception 'TEST 0556: el admin del tenant 1 ve % filas (esperaba las 2 suyas)', v_n; end if;
+  select count(*) into v_n from public.nomina_payroll_rules
+   where tenant_id = '20000000-0653-0000-0000-000000000002';
+  if v_n <> 0 then raise exception 'TEST 0556: el admin del tenant 1 ve filas del tenant 2'; end if;
+  select count(*) into v_n from public.nomina_payroll_rules
+   where vigente_desde is not null or fuente_legal is not null or ingreso_minimo_integral_usd >= 0;
+  if v_n <> 2 then raise exception 'TEST 0556: el admin no lee las columnas nuevas de sus filas'; end if;
+
+  -- No escribe en el tenant 2: ni insertar, ni modificar (0 filas), ni borrar (0 filas).
+  begin
+    insert into public.nomina_payroll_rules (tenant_id, version, status)
+    values ('20000000-0653-0000-0000-000000000002', 9, 'archivada');
+    raise exception 'TEST 0556: el admin del tenant 1 insertó una versión en el tenant 2';
+  exception when insufficient_privilege then null;
+  end;
+  update public.nomina_payroll_rules set fuente_legal = 'intento ajeno' where id = v_ajena;
+  get diagnostics v_filas = row_count;
+  if v_filas <> 0 then raise exception 'TEST 0556: el admin del tenant 1 modificó una fila del tenant 2'; end if;
+  delete from public.nomina_payroll_rules where id = v_ajena;
+  get diagnostics v_filas = row_count;
+  if v_filas <> 0 then raise exception 'TEST 0556: el admin del tenant 1 borró una fila del tenant 2'; end if;
+
+  -- Sí escribe en el suyo, con los campos nuevos: nueva versión con vigencia y fuente (D2).
+  update public.nomina_payroll_rules set status = 'archivada'
+   where tenant_id = '10000000-0653-0000-0000-000000000001' and status = 'vigente';
+  insert into public.nomina_payroll_rules (tenant_id, version, status, vigente_desde, fuente_legal, pension_contrib_pct)
+  values ('10000000-0653-0000-0000-000000000001', 3, 'vigente', '2026-12-01', 'Decreto de prueba', 9);
+  reset role;
+end;
+$admin$;
+
+do $despues_admin$
+begin
+  if (select fuente_legal from public.nomina_payroll_rules where tenant_id = '20000000-0653-0000-0000-000000000002') is not null then
+    raise exception 'TEST 0556: la fila del tenant 2 quedó modificada';
+  end if;
+  if (select count(*) from public.nomina_payroll_rules where tenant_id = '20000000-0653-0000-0000-000000000002') <> 1 then
+    raise exception 'TEST 0556: cambió el número de versiones del tenant 2';
+  end if;
+  if (select vigente_desde from public.nomina_payroll_rules
+       where tenant_id = '10000000-0653-0000-0000-000000000001' and version = 3) <> date '2026-12-01' then
+    raise exception 'TEST 0556: la versión nueva no guardó vigente_desde';
+  end if;
+end;
+$despues_admin$;
+
+-- Sin acceso: operador, admin deshabilitado, sin membership y anon.
+do $sin_acceso$
+declare
+  v_sub text;
+  v_n int;
+begin
+  foreach v_sub in array array[
+    'aaaaaaaa-0653-0000-0000-000000000002',  -- operador: rol sin acceso a nómina
+    'aaaaaaaa-0653-0000-0000-000000000003',  -- admin deshabilitado
+    'cccccccc-0653-0000-0000-000000000009'   -- sin membership
+  ] loop
+    begin
+      set local role authenticated;
+      perform set_config('request.jwt.claim.sub', v_sub, true);
+      select count(*) into v_n from public.nomina_payroll_rules;
+      if v_n <> 0 then raise exception 'TEST 0556: % ve % versiones de reglas', v_sub, v_n; end if;
+      begin
+        insert into public.nomina_payroll_rules (tenant_id, version, status)
+        values ('10000000-0653-0000-0000-000000000001', 50, 'archivada');
+        raise exception 'TEST 0556: % insertó una versión de reglas', v_sub;
+      exception when insufficient_privilege then null;
+      end;
+      reset role;
+    end;
+  end loop;
+
+  -- El contador del tenant 2 ve la suya y no las del tenant 1.
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', 'bbbbbbbb-0653-0000-0000-000000000001', true);
+  select count(*) into v_n from public.nomina_payroll_rules where tenant_id = '10000000-0653-0000-0000-000000000001';
+  if v_n <> 0 then raise exception 'TEST 0556: el contador del tenant 2 ve versiones del tenant 1'; end if;
+  select count(*) into v_n from public.nomina_payroll_rules;
+  if v_n <> 1 then raise exception 'TEST 0556: el contador del tenant 2 no ve exactamente su versión'; end if;
+  reset role;
+
+  -- anon: ni leer ni escribir (la tabla nunca se le concedió).
+  begin
+    set local role anon;
+    perform 1 from public.nomina_payroll_rules limit 1;
+    raise exception 'TEST 0556: anon leyó nomina_payroll_rules';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+end;
+$sin_acceso$;
+
+rollback;
+select to_regclass('public.nomina_payroll_rules') is null as nomina_0556_fixture_rolled_back;
