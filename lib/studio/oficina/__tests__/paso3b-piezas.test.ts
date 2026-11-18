@@ -100,7 +100,7 @@ describe("configuración del envío: nace apagado", () => {
     OFICINA_ENVIO_ACTIVO: "1",
     OFICINA_CHATWOOT_TOKEN_ENVIO: "token-de-envio-de-prueba",
     OFICINA_CHATWOOT_API_URL: "http://chatwoot.prueba:3000",
-    CHATWOOT_ACCOUNT_ID: "2",
+    OFICINA_CHATWOOT_ACCOUNT_ID: "2",
     OFICINA_CHATWOOT_INBOX_PRUEBA: "11",
   };
 
@@ -117,7 +117,7 @@ describe("configuración del envío: nace apagado", () => {
 
   it("sin token de escritura, sin cuenta o con una bandeja del ERP no hay a dónde enviar (un solo contestador)", () => {
     expect(configEnvio({ ...ENV, OFICINA_CHATWOOT_TOKEN_ENVIO: "" }).chatwoot).toBeNull();
-    expect(configEnvio({ ...ENV, CHATWOOT_ACCOUNT_ID: "" }).chatwoot).toBeNull();
+    expect(configEnvio({ ...ENV, OFICINA_CHATWOOT_ACCOUNT_ID: "" }).chatwoot).toBeNull();
     for (const v of ["CHATWOOT_INBOX_PORTAL_ID", "CHATWOOT_INBOX_CLIENTES_ID", "CHATWOOT_INBOX_LEADS_ID"]) {
       expect(configEnvio({ ...ENV, [v]: "11" }).chatwoot).toBeNull();
     }
@@ -152,13 +152,20 @@ describe("la página de revisión muestra el borrador como texto plano (D4)", ()
     expect(html).not.toContain("<img");
     expect(html).toContain("**negrita** [enlace](http://x.y)");
     expect(html).not.toContain("<strong>");
-    for (const c of CASILLAS) expect(html).toContain(`name="${c.clave}"`);
+    // 0558: por criterio, «Falló» y «No evaluado»; sin marcas = cumple, y la pantalla lo dice junto a los botones.
+    expect(CASILLAS).toHaveLength(4);
+    for (const c of CASILLAS) {
+      expect(html).toContain(`name="falla_${c.clave}"`);
+      expect(html).toContain(`name="sin_${c.clave}"`);
+    }
+    expect(html).toContain("Guardar sin marcas significa «revisé y cumple»");
+    expect(html).not.toContain('name="cierre_3"');
     expect(html).toContain('value="aprobado"');
     expect(html).toContain('value="rechazado"');
   });
 
   it("ningún archivo de la página usa dangerouslySetInnerHTML", () => {
-    for (const f of ["page.tsx", "_components/TarjetaBorrador.tsx", "layout.tsx", "actions.ts"]) {
+    for (const f of ["page.tsx", "_components/TarjetaBorrador.tsx", "_components/TarjetaCierre.tsx", "layout.tsx", "actions.ts"]) {
       expect(readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina", f), "utf8")).not.toMatch(/dangerouslySetInnerHTML\s*=|from ["'][^"']*(?:marked|markdown|remark|rehype)/i);
     }
   });

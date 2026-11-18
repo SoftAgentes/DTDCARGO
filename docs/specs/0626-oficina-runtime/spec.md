@@ -4,7 +4,7 @@ title: "Oficina-runtime — El Cable Vertical"
 status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-16
+updated: 2026-11-17
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -253,9 +253,13 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   gasto (16/11/2026; después, respaldo deepseek-chat); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
-- **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta `CHATWOOT_ACCOUNT_ID` e ignora los avisos de
+- **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta la cuenta del cable e ignora los avisos de
   otra cuenta (sigue respondiendo 422 a un texto rechazado); el puente de prueba tiene las pruebas que le faltaban (O4)
   y pagina conversaciones y mensajes (O5).
+- **La cuenta del cable es propia (DG, 17/11/2026).** En producción `CHATWOOT_ACCOUNT_ID` es la cuenta real del ERP y la
+  bandeja de prueba vive en la cuenta de prueba. Por eso el cable (webhook, despachador, lectura y envío) toma la cuenta
+  SOLO de `OFICINA_CHATWOOT_ACCOUNT_ID`, sin caída a la del ERP: si falta o no es un entero positivo, el webhook rechaza
+  todo y lo demás responde `sin_config`. La Bandeja del ERP sigue con `CHATWOOT_ACCOUNT_ID`. Encendido: runbook §12.
 
 **Archivos del Paso 3a (allowlist):**
 - `supabase/migrations/0548_oficina_despachador.sql`, `supabase/desarmes/0548_desarme.sql` y
@@ -334,6 +338,39 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 - `supabase/migrations-baseline.json` (la espera), `supabase/pending-migration-symbol-declarations.json`,
   `.env.example` e `infra/dtd-cargo/.env.example`
 - esta spec, `privacidad.md`, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
+
+**Seguimiento de la prueba F: la 0558 (casillas con tres estados y cierre por conversación).** La prueba F (17/11/2026,
+cerrada en verde) dejó dos hallazgos del criterio de conteo. Los decidió el DG por delegación de Sam («ponle los
+criterios que tú creas»), revisable por Sam. La 0549 ya está en producción y no se toca: todo va en la migración
+**0558** (sin aplicar).
+- **H2 · «Sin marcar» no es «no cumple».** Cada criterio tiene tres estados: «cumple» (`true`), «falló» (`false`) y «no
+  evaluado» (`null`). La pantalla dice **«marca lo que falló»**, con «Falló» y «No evaluado» por criterio; guardar sin
+  marcas significa «revisé y cumple», y la pantalla lo dice junto a los botones. Aprobar una respuesta sigue exigiendo
+  «cumple» en «Cero datos inventados» y en «No repite datos personales» (null no basta). **Un rechazo exige al menos un
+  «Falló»** y el motivo. Solo un `false` explícito en «Cero datos inventados» cuenta como dato inventado.
+- **H3 · El cierre se juzga por conversación, no por mensaje.** Cada mensaje se revisa con 4 criterios. «Cierre o
+  escalado en 3 intercambios o menos» se registra **una vez por conversación**, al cerrarla o escalarla, en
+  `office_cierres` (solo se agregan filas). Etapa 1: una conversación sin cierre cuenta por sus 4 criterios, y un cierre
+  que falló la hace incorrecta. **Etapa 2 (AC-7): solo cuentan las conversaciones con su cierre registrado**, y el cierre
+  tiene que cumplir.
+- **Filas viejas.** La 0558 no toca ninguna fila: la columna nueva `regla_casillas` deja las de la 0549 en 1 y las nuevas van
+  con 2. El conteo solo mira las de criterio 2. Las 3 revisiones de la prueba F (staging) quedan fuera, y además **la F
+  no cuenta para la etapa 1**: los clics los hizo el DG, no Sam. Las 10 conversaciones de la etapa 1 exigen que Sam
+  pulse él mismo.
+- **Correr la etapa 1 en producción** (la bandeja de prueba, con Sam entrando como él mismo) es una decisión aparte de
+  Sam: es encender algo en producción. Esta PR deja el envío apagado por defecto (`OFICINA_ENVIO_ACTIVO`).
+- **Sin la 0558** la página lo dice («Falta la migración 0558») y no guarda revisiones ni cierres con la regla vieja;
+  el envío y el despachador no cambian.
+
+**Archivos de la 0558 (allowlist):**
+- `supabase/migrations/0558_oficina_casillas_tres_estados.sql`, `supabase/desarmes/0558_desarme.sql` y
+  `supabase/tests/0558_oficina_casillas_tres_estados.test.sql`
+- `lib/studio/oficina/revisiones.ts` y `lib/studio/oficina/__tests__/` (casillas-0558, paso3b-piezas)
+- `lib/studio/__tests__/oficina-casillas.migration.test.ts` y `lib/studio/__tests__/oficina-contraste.test.ts`
+- `app/studio/(app)/admin/oficina/` (página, acciones, `TarjetaBorrador` y `TarjetaCierre`)
+- `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones: suma `registrarCierreAction`)
+- `supabase/migrations-baseline.json` (la espera) y `supabase/pending-migration-symbol-declarations.json`
+- esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
 
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
 un contestador automático. `soporte-chatwoot` y el `dtd-bot` de la SDD-0618
@@ -438,8 +475,8 @@ de suscripción 2×día · modo degradado de dos vías.
 | Despachador | prueba de caída del proceso → reinicia y retoma del último tick. **Paso 3a, en CI con el modelo simulado:** la corrida a medias se escala sin repetirse, el turno viejo bloquea hasta vencer y la tanda nueva retoma; JSON inválido y cifra inventada escalan; ninguna fila ni log guarda el texto del cliente; con el interruptor apagado o sin la 0548 no hace nada (`lib/studio/__tests__/oficina-despachador.test.ts`, contra las funciones reales de la 0548) |
 | Kill switch | drill: activar y verificar pausa + aborto en vuelo (AC-3). **Paso 3a, en CI:** con un agente lento, la llamada en vuelo se aborta en ≤ 10 s y la tarea vuelve a «listo»; la auto-pausa al 80 % con un tope de juguete pausa la oficina y nunca despausa |
 | Prueba real | AC-1 (etapas 1 y 2) y AC-2..AC-6 con Sam presente |
-| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `office_revisiones`, contada con `office_conteo_revisiones`, la misma consulta de AC-7), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
-| Paso a etapa 3 | AC-7: conteo de las 20 conversaciones con `office_conteo_revisiones(2)` y `task_events`; Sam firma el paso |
+| Paso a etapa 2 | la regla de AC-1: 10 conversaciones internas, 9 o más correctas (revisión de Sam anotada en `office_revisiones`, con los clics de Sam, contada con `office_conteo_revisiones`, la misma consulta de AC-7; desde la 0558, solo revisiones de criterio 2, «no evaluado» ≠ «falló» y el cierre por conversación en `office_cierres`), cero datos inventados, AC-3, AC-4, AC-5 completo (gasto por corrida y simulacro de auto-pausa al 80 % con un tope de prueba) y AC-6 superados; Sam firma el paso |
+| Paso a etapa 3 | AC-7: conteo de las 20 conversaciones con `office_conteo_revisiones(2)` y `task_events` (desde la 0558, solo las conversaciones con su cierre registrado); Sam firma el paso |
 | Envío (Paso 3b) | **En CI con dobles:** sin aprobación no sale nada; con la oficina pausada, una huella cambiada, otra bandeja, una conversación ya contestada o en la que el cliente volvió a escribir, otra conversación que la aprobada, una aprobación de más de 24 h o una forma de Chatwoot que no se reconoce, no se envía; un envío que pudo haber llegado queda «enviando», nunca «fallido»; `crearChatwootEnvio` se prueba con la forma real de Chatwoot 4.19.1; un borrador sale una sola vez; 3 conversaciones con 2 aprobadas y 1 rechazada dan 2 salientes en la bandeja 11 (`lib/studio/__tests__/oficina-paso3b.test.ts`). **Prueba F en staging (con OK de Sam):** lo mismo con Chatwoot real; 0 salientes en las demás bandejas |
 
 ## 10 · Riesgos y qué NO es
@@ -476,6 +513,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (sin aplicar) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
 | 0.5 | 16/11/2026 | **Paso 3b** (pedido de Hermes «PASO 3b», tras la #598): cómo se construyó y allowlist en §3.5 (migración 0549, sin aplicar): `office_revisiones` (D2, solo agregar), la consulta de conteo de AC-1 y AC-7, la página solo para `is_platform_admin` con el texto plano (D4), el aviso de Discord sin texto, el envío desde el ERP (`OFICINA_ENVIO_ACTIVO`, solo la bandeja de prueba, otra vez la pausa y la huella) y los pendientes del 3a (enlaces, dinero = 3 y escalado sin llamar al agente, sesión abortada borrada al momento). AC-1, AC-7 y §9: `agent_approvals` → `office_revisiones` (D2); fila «Envío» en §9. `privacidad.md`: hallazgos 19 y 20 |
 | 0.4 | 16/11/2026 | **Paso 3a** (Sam: «Sí a todo» a D1–D6 y «Sí, lánzalo», 16/11/2026): decisiones D1 a D6 en §3.5; el mapa de pasos parte el Paso 3 en 3a y 3b (D6); cómo se construyó §3.4 y §3.5 y su allowlist (migración 0548, sin aplicar); filas Despachador y Kill switch de §9 con lo probado en CI; Anexo A sin herramientas (ficha 0.2). `privacidad.md`: hallazgos 12 (el borrador) y 13 (los mensajes salen hacia los cerebros: dónde, cuánto tiempo y qué guarda Hermes) |
 | 0.3.2 | 16/11/2026 | **Paso 2b con la «Opción 3: puente»** (Sam, 15/11/2026): mapa de pasos, cómo se construyó, allowlist del Paso 2b (`infra/ops/cable-oficina/puente-prueba.*` y `infra/ops/tests/cable-oficina-puente.test.mjs`) y su fila en §9. La entrada real del webhook desde fuera queda NO VERIFICADA. Prueba en staging el 16/11/2026 de 01:26 a 01:29Z (cuenta 2 reactivada y vuelta a suspender, token del puente rotado). `privacidad.md`: hallazgo 11, el puente |
