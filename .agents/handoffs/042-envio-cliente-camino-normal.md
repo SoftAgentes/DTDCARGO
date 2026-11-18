@@ -1733,3 +1733,50 @@ FUERA DE ALCANCE DETECTADO: ninguno nuevo.
   decisión a confirmar con Sam; (b) la prueba local debe demostrar que un cliente
   del portal sigue viendo SUS envíos y no los de otro, con `client_users` de la
   0552/0557, tras la nueva policy «shipments portal self read».
+
+## Ejecución 2026-11-18 (tarea abierta por Sam: «Sí, ábrela»)
+
+GO del Director: 0502 → **0561**, fusible retirado en commit, turno de PC por
+corrida. PR en BORRADOR; sin push hasta que Postgres real dé PASÓ.
+
+### Evidencia hasta 214dae108
+
+| Comprobación | Estado |
+|---|---|
+| vitest de los 30 archivos de la PR + reasignar | PASÓ 459/459 (tras corregir 4 pruebas que nunca corrieron) |
+| normal-path.migration (PGlite, 175 aserciones + 8 mutantes) | PASÓ 48/48 en f27c50a60; NO EJECUTADO tras 214dae108 |
+| rbac-actions-guard | PASÓ 501/501 |
+| schema:rebuild:supabase (0001–0561 reales) | FALLÓ ×2 → corregido (enum user_region; huella 0539); NO EJECUTADO tras corrección |
+| Portal en Postgres real (cada cliente ve lo suyo) | NO EJECUTADO (guion listo; espera turno) |
+| pending-migration-symbols | FALLÓ: 702 sitios; decisión de método pedida al DG |
+| e2e, runner de concurrencia, matriz A1–A18 | NO EJECUTADO |
+
+### Las 6 EXCEPCIONES nuevas de rbac-actions-guard (las decide la revisión independiente)
+
+Las seis escriben SOLO por su RPC de la 0561 y no tienen `moduleEditDenial` al
+tope a propósito: la spec (§3 y §4) exige que una **repetición exacta** de la
+misma referencia devuelva el resultado ya escrito con permiso de lectura
+vigente, y un candado de edición en la app la rompería. La base repite rol
+activo, tenant de la sesión y módulo con `dtd_client_normal.module_allowed`
+(ahora también con los accesos por persona de la 0538/0539), y el contrato SQL
+mide `NORMAL_FORBIDDEN` por rol.
+
+| Acción | RPC | Módulo que exige la base |
+|---|---|---|
+| `naviera/actions.ts::confirmClientShipmentsAction` | `client_consolidation_confirm` | cn + naviera + tracking (edición) para formar/extender |
+| `naviera/actions.ts::closeClientManifestAction` | `client_consolidation_close` | naviera (edición) |
+| `tracking/[id]/actions.ts::transitionClientShipment` | `client_consolidation_transition` | naviera/tracking según la operación |
+| `tracking/[id]/actions.ts::recordClientShipmentNote` | `client_consolidation_note` | tracking (edición) |
+| `ve/actions.ts::transitionNormalVeShipmentAction` | `client_consolidation_transition` | ve (edición) |
+| `ve/actions.ts::completeNormalVeDeliveryAction` | `client_consolidation_complete_delivery` | ve (edición) |
+
+Si la revisión prefiere candado en la app, la alternativa es `moduleViewDenial`
+al tope (no rompe la repetición) y dejar la edición a la base.
+
+### Choques con main resueltos en esta tarea
+
+- `rename_client_markbox` (0552): `rename_follows` en cuatro guards, con
+  sincronización de `groups.client_markbox` y `member_boxes.fixed_data`.
+- Accesos por persona (0538/0539) en `module_allowed`.
+- «Pasar a otro cliente» (0551/0645): bloqueado con error claro; **decisión a
+  confirmar con Sam** en la spec.
