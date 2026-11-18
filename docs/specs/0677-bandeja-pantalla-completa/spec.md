@@ -69,7 +69,21 @@ Lo que se corrigió antes fue en SDD-0585:
 - La misma marca causa H2: Studio cree que hay sesión, y no la hay.
 - Ninguno de los dos arreglos tocó la recuperación: un intento, un error genérico y un «Reintentar» manual (H3). Studio no tiene forma de saber qué pantalla cargó el marco.
 
-Para confirmar H1 a H4 hacen falta los logs de Chatwoot del VPS (códigos 409 y 429 en `/auth/sign_in`, reinicios del contenedor). Se le pide permiso al DG. No se tocan ni la config ni el compose de Chatwoot.
+### Medición en el VPS (DG, 2026-11-18, solo conteos y sin datos personales)
+
+- **Reinicios:** `RestartCount=0` en todos los contenedores de Chatwoot. `rails` corre desde el 2026-11-07, `sidekiq` desde el 11-05 y el acceso desde el 11-17. **H3 es improbable en los últimos días**, salvo que el error coincida con un relevo manual.
+- **Logs de rails:** en 7 días hay 2 líneas con «sign_in» y ninguna con el código de respuesta. Los 409 y 429 no quedan registrados, así que **por logs no se puede confirmar ni descartar H1, H2 ni H4**.
+
+### H1 y H2 son hipótesis medibles: cómo medirlas
+
+| Medida | Qué confirma | Cómo, sin datos personales | Quién |
+|---|---|---|---|
+| M1 · Sesiones vivas por agente | H1: un agente de la Bandeja con 5 sesiones o más está en el 409 o al borde | Una consulta de solo lectura en la base de Chatwoot, con OK del DG: el histograma de `count(*)` de `user_sessions` (o de tokens vivos) agrupado por usuario. El resultado sale en números, sin ids ni correos (por ejemplo: «3 agentes con 1, 1 con 5») | DG, en el VPS |
+| M2 · Lo que ve Studio al abrir | H2: con la marca, el panel cayó en el inicio de sesión | Requiere (c): el script del panel le avisa a Studio su estado al cargar, y Studio cuenta `abrio_con_marca`, `sin_sesion` y `demasiadas_sesiones` en un log sin usuario ni enlace | PR de seguimiento + puerta del VPS |
+| M3 · Código del SSO | H3 y fallas de la Platform API | Studio ya registra `[bandeja] SSO no disponible: <código>` (C: `actions.ts:105`), sin enlace ni correo. Contar esas líneas en los logs de Studio por día | DG |
+| M4 · 409 y 429 de `/auth/sign_in` | H1 y H4 en el momento del login | Lo pide el navegador a Chatwoot, y Studio no lo ve. Hace falta un access log de Traefik para `chat.` filtrado a esa ruta y a esos códigos, guardando solo conteos. Es config del VPS | DG, con OK de Sam |
+
+El orden que conviene es M1 primero (una consulta y ninguna instalación), y después M3. M2 y M4 dependen de las decisiones de abajo. No se tocan ni la config ni el compose de Chatwoot desde esta spec.
 
 ## 2. Diseño
 

@@ -43,17 +43,19 @@ El pedido de Sam: que la Bandeja sea compacta y se amplíe a toda la pantalla al
 | `node scripts/build-docs-index.mjs` | PASÓ (índice regenerado) |
 | `node scripts/check-numbering.mjs` | PASÓ |
 | `git diff --check` | PASÓ |
-| `pnpm install` + vitest de la Bandeja | NO EJECUTADO: espera el turno de PC del DG; hoy la PC está con el contenedor 64 |
-| `pnpm verify` | NO EJECUTADO, por el mismo motivo. Queda el CI de GitHub |
-| Logs del VPS o de Chatwoot (confirmar H1 a H4) | NO EJECUTADO: hace falta el permiso del DG |
-
-**Riesgo conocido de la prueba sin correr:** si jsdom dispara `load` en el iframe solo, el caso del vigilante («no carga en 20 s») fallaría y habría que cambiar cómo simula la carga. Se ve en la primera corrida.
+| `pnpm install --frozen-lockfile` (turno del DG) | PASÓ |
+| vitest `app/studio/(app)/bandeja` (6 archivos) | PASÓ 94/94; BandejaClient 21/21 |
+| Mutantes: sin reintento, sin freno, sin vigilante, sin bloqueo del desplazamiento, iframe que se vuelve a montar al cambiar de modo | 5/5 en rojo; el control inofensivo, en verde |
+| vitest de contratos y guía (`app/studio/_components/__tests__`, `guia`, `Aviso`, `(app)/__tests__`, `crm/__tests__`, `lib/i18n`) | PASÓ 651/651 |
+| `tsc --noEmit` | PASÓ (también después del ajuste de lint) |
+| eslint de los 4 archivos | PASÓ, sin avisos |
+| `pnpm verify` | NO EJECUTADO: el turno cubría install, vitest, tsc y eslint. Queda el CI de GitHub |
+| Logs del VPS (DG) | Ningún contenedor se reinició (H3 improbable). Los logs no registran los 409 ni los 429: H1 y H2 quedan como hipótesis, con medición propuesta en la spec |
 
 ## Pendientes de esta tarea
 
-1. Correr vitest de `app/studio/(app)/bandeja` y de las pruebas de i18n con turno, y corregir lo que salga.
-2. Publicar la rama, abrir la PR y pasarla a lista para que el DG lance la revisión independiente.
-3. Smoke en el navegador: pantalla completa, Esc con el foco fuera del marco, y el nivel de capas con la guía (z 85, debajo de la guía 89/90).
+1. La PR #690 está lista para que el DG lance la revisión independiente.
+2. Smoke en el navegador: pantalla completa, Esc con el foco fuera del marco, y el nivel de capas con la guía (z 85, debajo de la guía 89/90).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -63,6 +65,7 @@ El pedido de Sam: que la Bandeja sea compacta y se amplíe a toda la pantalla al
   - que `DASHBOARD_SCRIPTS` avise `dtd:sin-sesion` o `dtd:demasiadas-sesiones` para reabrir solo.
 
   Las tres son puertas del VPS o necesitan el OK de Sam.
+- **Medir H1 y H2** (spec §1, M1 a M4): M1 (sesiones por agente, solo números) es la primera.
 - **H4:** medir `req.ip` de rack-attack detrás de Cloudflare (E2-I3).
 - Los textos de color `--ink-mute` en párrafos de otras pantallas tienen el mismo problema de contraste. No se tocaron.
 
