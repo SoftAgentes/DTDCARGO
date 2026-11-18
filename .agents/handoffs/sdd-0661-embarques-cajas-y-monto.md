@@ -21,9 +21,13 @@ Excel», maqueta con datos inventados que pasó el DG). Spec:
 - **Por cobrar / cobrado:** de `invoices` vivas no anuladas por `shipment_id` (`total_amount` /
   `paid_amount` en USD; los borradores cuentan). En la franja y como columnas. «Sin facturar» si no hay
   facturas; «No disponible» si la lectura falla.
-- **Permiso en el servidor:** `page.tsx` lee `invoices` solo si `moduleViewDenial(supabase, "invoices")
-  === null` (accounting + admin + extra SDD-0622). Sin permiso no hay consulta y no existe la prop
-  `montos`. El DG confirmó el criterio el 2026-11-18.
+- **Permiso en el servidor:** `page.tsx` lee `invoices` solo si el rol es accounting o admin Y
+  `moduleViewDenial(supabase, "invoices") === null`. Sin permiso no hay consulta y no existe la prop
+  `montos`. El DG confirmó la puerta el 2026-11-18. La condición del rol se agregó al registrar la
+  lectura en la frontera SDD-0357: la RLS `invoices_accounting_select` (0414) solo deja leer a esos dos
+  roles, y un extra de la 0622 vería «Sin facturar» sin ser cierto.
+- **Frontera SDD-0357:** `lib/studio/embarques-contenedores-queries.ts`: 1 en el inventario de
+  `scripts/__tests__/invoice-read-boundary.test.mjs` (21 → 22 archivos, 46 → 47 lecturas).
 
 ## Evidencia
 
@@ -33,7 +37,7 @@ Excel», maqueta con datos inventados que pasó el DG). Spec:
 | `node scripts/check-numbering.mjs` | PASÓ (choques históricos 0342/0394 conocidos) |
 | `git diff --check` | PASÓ |
 | `/ui-check` | OK (montos y cifras con `nowrap`; tokens; `Badge`; `fmtUsd`) |
-| vitest Embarques + lib (12 archivos, `--pool=threads --maxWorkers=1`) | PASÓ (151 pruebas) |
+| vitest Embarques + lib + frontera de facturas (13 archivos, `--pool=threads --maxWorkers=1`) | PASÓ (156 pruebas) |
 | `pnpm typecheck` | PASÓ |
 | eslint de los archivos tocados | PASÓ |
 | `pnpm verify` completo, Docker, e2e | NO EJECUTADO (turno del DG cubrió install, pruebas, typecheck y lint; el portón es el CI) |

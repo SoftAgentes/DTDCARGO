@@ -60,15 +60,22 @@ export default async function EmbarquesPage() {
     })(),
   ]);
 
-  // SDD-0661: el monto es dinero. Se decide aquí, en el servidor, con la misma
-  // comprobación que abre Facturación; sin permiso no se lee `invoices`.
+  // SDD-0661: el monto es dinero. Se decide aquí, en el servidor; sin permiso no
+  // se lee `invoices` y la prop no existe. Hacen falta las DOS cosas:
+  //  - la puerta de Facturación (`moduleViewDenial(…, "invoices")`), y
+  //  - el rol que deja leer la tabla: `invoices_accounting_select` (0414) sólo
+  //    abre el SELECT a accounting y admin. Un acceso extra de la SDD-0622 pasa
+  //    la puerta pero no la RLS: leería cero facturas y diría «Sin facturar»
+  //    sin ser cierto. Por eso no se le muestra dinero.
   // Las cajas recibidas (recepción VE) son carga, no dinero: para todos.
+  const { role } = await getStudioAccess(supabase);
+  const rolLeeFacturas = role === "accounting" || role === "admin";
   let montos: MontosDeContenedores | undefined;
   if (contenedores) {
     const [recibidas, leidos] = await Promise.all([
       leerRecibidasDeContenedores(supabase, contenedores.contenedores),
       (async () =>
-        (await moduleViewDenial(supabase, "invoices")) === null
+        rolLeeFacturas && (await moduleViewDenial(supabase, "invoices")) === null
           ? leerMontosDeContenedores(supabase, contenedores)
           : undefined)(),
     ]);
@@ -78,7 +85,6 @@ export default async function EmbarquesPage() {
 
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
   // bloqueos falla (por ejemplo, sin la 0476), se dice y no se ofrece borrar.
-  const { role } = await getStudioAccess(supabase);
   let eliminacion: EliminacionEmbarques | undefined;
   if (canSpecial(role, "delete_shipments")) {
     const info = await leerInfoEmbarques(

@@ -14,6 +14,8 @@ import type { StudioUserRole } from "@/lib/studio/user-types";
 const estado = vi.hoisted(() => ({
   rol: "commercial" as string,
   tablas: [] as string[],
+  /** Módulos que esta persona ve por un acceso extra (SDD-0622). */
+  extras: [] as string[],
 }));
 
 // Un doble de Supabase que anota cada tabla que se consulta y devuelve una
@@ -46,7 +48,9 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   requireModuleView: async () => undefined,
   getStudioAccess: async () => ({ role: estado.rol }),
   moduleViewDenial: async (_s: unknown, mod: string) =>
-    canAccessModule(estado.rol as StudioUserRole, mod) ? null : "No tienes permiso para ver esto.",
+    canAccessModule(estado.rol as StudioUserRole, mod) || estado.extras.includes(mod)
+      ? null
+      : "No tienes permiso para ver esto.",
 }));
 
 vi.mock("@/lib/studio/shipment-queries", () => ({
@@ -85,6 +89,7 @@ async function propsDe(rol: string): Promise<Record<string, unknown>> {
 
 beforeEach(() => {
   estado.tablas = [];
+  estado.extras = [];
 });
 
 describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
@@ -109,5 +114,12 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
       estado: "lista",
       porEmbarque: { s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0 } },
     });
+  });
+
+  it("un acceso extra a Facturación sin el rol no lee invoices: la RLS (0414) le daría cero filas", async () => {
+    estado.extras = ["invoices"];
+    const props = await propsDe("commercial");
+    expect(estado.tablas).not.toContain("invoices");
+    expect("montos" in props).toBe(false);
   });
 });

@@ -78,12 +78,24 @@ El criterio de dinero del Studio es el módulo **`invoices`** (Facturación), qu
 (`lib/studio/rbac.ts`, candado SDD-0139). Por rol lo ven `accounting` y `admin` (admin ve todo por
 diseño, SDD-0085). `commercial`, `operations`, `support`, `warehouse` y `marketing` no lo ven. Desde la
 SDD-0622 una persona puede tener un acceso adicional a un módulo bloqueado, con doble aviso, motivo y
-auditoría; ese extra abre Facturación y por eso también abre estos montos.
+auditoría; ese extra abre la puerta de Facturación, pero no la RLS de la tabla (ver abajo).
 
-**Decisión:** los montos se muestran si y solo si `moduleViewDenial(supabase, "invoices") === null`, la
-misma comprobación que abre `/studio/facturacion`. Es lo más restrictivo coherente con el sistema: no se
-inventa un criterio nuevo («solo `accounting`» dejaría fuera a administración, que ya ve toda la
-facturación) y no se abre a nadie que hoy no vea las facturas.
+**Decisión:** los montos se muestran si y solo si se cumplen las dos condiciones:
+
+1. `moduleViewDenial(supabase, "invoices") === null`, la misma comprobación que abre
+   `/studio/facturacion`;
+2. el rol es `accounting` o `admin`, que es lo que deja leer la tabla: `invoices_accounting_select`
+   (migr 0414) solo abre el SELECT a esos dos roles del propio tenant.
+
+Es lo más restrictivo coherente con el sistema: no se inventa un criterio nuevo («solo `accounting`»
+dejaría fuera a administración, que ya ve toda la facturación) y no se abre a nadie que hoy no vea las
+facturas. La condición 2 se agregó al registrar la lectura en la frontera SDD-0357, el 2026-11-18. Sin
+ella, una persona con el extra de la 0622 pasaría la puerta, leería cero filas y vería «Sin facturar» sin
+ser cierto. Esa persona no ve dinero aquí; abrírselo exige cambiar la RLS, con migración y OK de Sam.
+
+**Frontera de lectura de facturas (SDD-0357):** la lectura está registrada en el inventario de
+`scripts/__tests__/invoice-read-boundary.test.mjs`
+(`lib/studio/embarques-contenedores-queries.ts`: 1) con su candado, su tenant y su uso.
 
 **En el servidor:** `app/studio/(app)/embarques/page.tsx` evalúa el permiso. Sin permiso **no se
 consulta** `invoices` y la prop `montos` no existe en el payload del componente cliente: el dato no
