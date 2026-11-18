@@ -56,6 +56,15 @@ vi.mock("../../actions", () => {
     savePayrollRulesAction: a,
     approveRegistrationAction: a,
     rejectRegistrationAction: a,
+    // SDD-0652 fase 2 (N2): el panel pide los datos de la revisión al abrirse.
+    getRegistrationReviewAction: async () => ({
+      ok: true,
+      registration: {
+        id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", status: "pendiente", created_at: "2026-11-17T00:00:00Z",
+        national_id: "V-1", phone: "0", cargo: "Operario", start_date: null, bank_name: "B", bank_account_type: null,
+        bank_account_masked: "••••",
+      },
+    }),
   };
 });
 vi.mock("@/lib/i18n", () => ({ useT: () => (key: string) => key }));
@@ -65,7 +74,7 @@ const cerrar = () => {};
 const EMPLEADOS = [{ id: "e1", full_name: "Ana Pérez", employee_code: "E-1" }] as never;
 const PRESTADORES = [{ id: "c1", full_name: "Luis Díaz", contractor_code: "P-1" }] as never;
 const PRESTAMO = { id: "l1", employee_name: "Ana Pérez", employee_code: "E-1", installment_usd: 25, balance_usd: 300 } as never;
-const SOLICITUD = { id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", phone: "0", national_id: "V-1", cargo: "Operario", bank_name: "B", bank_account: "1" } as never;
+const SOLICITUD = { id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", status: "pendiente", created_at: "2026-11-17T00:00:00Z" } as never;
 
 const PANELES: [string, ReactElement][] = [
   ["AsistenciaDrawer", <AsistenciaDrawer key="a" record={null} employees={EMPLEADOS} employeeName={null} onClose={cerrar} />],
@@ -121,7 +130,12 @@ beforeEach(() => {
 describe("una respuesta con errores conserva lo escrito", () => {
   it.each(PANELES)("%s", async (_nombre, panel) => {
     render(panel);
-    const form = formulario();
+    // El panel de solicitudes carga sus datos antes de mostrar el formulario.
+    const form = await waitFor(() => {
+      const f = formulario();
+      if (!f) throw new Error("todavía sin formulario");
+      return f;
+    });
     llenar(form);
     const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
     expect(escrito.length).toBeGreaterThan(0);
@@ -136,7 +150,7 @@ describe("una respuesta con errores conserva lo escrito", () => {
 
   it("RevisarSolicitudDrawer, al rechazar", async () => {
     render(<RevisarSolicitudDrawer registration={SOLICITUD} onClose={cerrar} />);
-    fireEvent.click(screen.getByRole("button", { name: /^Rechazar/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Rechazar/ }));
     const form = screen.getByRole("dialog").querySelector("#rechazar-solicitud-form") as HTMLFormElement;
     llenar(form);
     const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
