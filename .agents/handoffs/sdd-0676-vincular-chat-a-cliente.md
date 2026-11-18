@@ -88,6 +88,17 @@ Texto recibido del Director General por mensaje entre sesiones; no leí el infor
 | 7 | El desarme restaura los `comment on function` | Hecho, copia literal de la 0554, la 0513 y la 0504. El ensayo lo comprueba |
 | 1 y 5 | Quedan como límites, no como cambios | Anotados abajo con el texto del Director General |
 
+Comprobado en local después de estos cambios y de traer `main` (`bab0dafcc`), con turno del Director General, 2026-11-18:
+
+| Comprobación | Resultado |
+|---|---|
+| Vitest: `conversaciones-actions`, `rbac-actions-guard`, `spec-migration-refs`, `crm-tablero-vinculos` y la carpeta `app/studio/(app)/crm` (`main` tocó `CrmTableroKanban.tsx`) | PASÓ: 22 archivos, 778 pruebas |
+| Vitest: `chatwoot-vincular-canal.migration.test.ts` (contrato con los bloques 8d y 10, 17 mutantes, ensayo del desarme y su negativa) | FALLÓ la primera vez por una cadena partida en la propia prueba (error mío al editar); corregida, PASÓ: 20 pruebas |
+| `tsc --noEmit` | FALLÓ la primera vez por la misma cadena; PASÓ después |
+| ESLint | FALLÓ la primera vez por lo mismo (1 error); PASÓ después: 0 errores, 37 avisos, ninguno en archivos de la tarea |
+| Vitest completo, build y Contratos SQL en Postgres 17 | NO EJECUTADO en local: CI |
+| Rama del doble clic (punto 3) | NO EJECUTADO: sin prueba concurrente |
+
 **Límites aceptados por la revisión** (texto del Director General, 2026-11-18; las líneas que cita son de la cabeza revisada, `0e5b0c9ff`, y la 0566 cambió después):
 
 - **1.** «La base no repite "ve Clientes" ni la edición del CRM. chatwoot_contact_links_actor_puede (0554:235-265) solo mira la Bandeja, y la absorción cambia crm_tarjetas sin crm_puede_editar. Desde el navegador no se pueden llamar: las RPC son solo de service_role y el postflight lo verifica. Enumerar fichas por PostgREST ya existía y esta PR no lo empeora.»

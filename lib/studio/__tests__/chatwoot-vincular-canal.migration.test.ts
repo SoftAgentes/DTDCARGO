@@ -272,8 +272,7 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
   it("desarme: con uniones que guardan canal se niega, salvo que se acepte perderlo", async () => {
     const contrato = inline();
     const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
-    const r = await correr([sinCierre, DESARME, "rollback;"].join("
-"));
+    const r = await correr([sinCierre, DESARME, "rollback;"].join("\n"));
     expect(r.error).toContain("desarme 0566: hay");
     expect(r.error).toContain("dtd.desarme_0566_perder_canal");
   }, SLOW);
