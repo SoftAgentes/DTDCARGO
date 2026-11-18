@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0560_oficina_acuse_en_escalados": "PENDIENTE DE APLICAR — NO APLICADA A PRODUCCIÓN — SDD-0626, etapa 1 (decisión del DG por delegación de Sam, 17/11/2026): «Acuse» en los escalados. REQUIERE la 0558 (su preflight para si falta); la 0558 no se toca. Solo REEMPLAZA office_conteo_revisiones (misma firma y columnas; search_path vacío, SECURITY DEFINER, EXECUTE solo authenticated, is_platform_admin() adentro): en una revisión de criterio 2 de un ESCALADO (tipo_borrador, que la base copia del borrador) «Acuse» en null no cuenta en contra; en false sí; en una RESPUESTA nada cambia (las cuatro en true). Preflight: si ya hay revisiones de criterio 2 de escalados con «Acuse» en null (las únicas cuyo resultado cambiaría) aborta y solo dice cuántas; si el cuerpo vivo del conteo es exactamente el de la 0560 (md5 de prosrc), no vuelve a mirar. Supuesto: en producción no hay revisiones de criterio 2 todavía (la etapa 1 no empezó), así que no hace falta una regla 3. No toca filas, tablas ni checks. lock_timeout 5 s. Idempotente. REQUISITO DURO DE ORDEN: aplicar la 0560 ANTES de fusionar la PR y de publicar el web; la pantalla de esa PR deja «Acuse» en «No evaluado» en los escalados, justo las filas que harían abortar el preflight si la 0560 llegara después. Desarme: supabase/desarmes/0560_desarme.sql (vuelve el conteo de la 0558). Producción: OK nominal de Sam para este archivo y docs/runbooks/aplicar-migraciones-prod.md, con el DG. Aplicar individualmente con name exacto 0560_oficina_acuse_en_escalados. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
+  }
 }

@@ -16,7 +16,15 @@ export const estiloTextoPlano: React.CSSProperties = {
   margin: 0,
 };
 
+/**
+ * En un escalado no hay respuesta al cliente: «Acuse» nace en «No evaluado» y, con la 0560, no cuenta en contra (la
+ * base lo decide por el tipo del borrador, no por esta marca).
+ */
+const ACUSE_NO_EVALUADO_EN_ESCALADO =
+  "En un escalado no hay respuesta al cliente: deja «Acuse» en «No evaluado»; no cuenta en contra.";
+
 export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (formData: FormData) => void | Promise<void> }) {
+  const escalado = b.tipo === "escalado";
   return (
     <article
       style={{ background: "var(--bg-surface)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 12, padding: "var(--s-4, 16px)", marginBottom: "var(--s-4, 16px)" }}
@@ -42,8 +50,13 @@ export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (
                 <input type="checkbox" name={`falla_${c.clave}`} /> Falló
               </label>
               <label style={{ color: "var(--ink-soft)" }}>
-                <input type="checkbox" name={`sin_${c.clave}`} /> No evaluado
+                <input type="checkbox" name={`sin_${c.clave}`} defaultChecked={escalado && c.clave === "acuse"} /> No evaluado
               </label>
+              {escalado && c.clave === "acuse" ? (
+                <span style={{ flexBasis: "100%", font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }} data-testid="acuse-escalado">
+                  {ACUSE_NO_EVALUADO_EN_ESCALADO}
+                </span>
+              ) : null}
             </div>
           ))}
           <p style={{ margin: "6px 0 0", font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -55,8 +68,8 @@ export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (
           <textarea name="motivo" required maxLength={500} rows={2} style={{ display: "block", width: "100%", marginTop: 4 }} />
         </label>
         <p style={{ margin: "8px 0 0", font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }} data-testid="aviso-sin-marcas">
-          Guardar sin marcas significa «revisé y cumple». «No evaluado» no cuenta ni bien ni mal. Rechazar exige marcar al
-          menos un «Falló».
+          Guardar sin marcas significa «revisé y cumple». Con algo en «No evaluado», la conversación no cuenta como
+          correcta, salvo «Acuse» en un escalado. Rechazar exige marcar al menos un «Falló».
         </p>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <button type="submit" name="veredicto" value="aprobado" className="studio-btn studio-btn-primary">
