@@ -8,6 +8,7 @@
  * editar cajas a despachar (P1) → P2 se genera al confirmar.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   SCORE_LEVEL_COLORS,
@@ -208,7 +209,7 @@ export function DispatchQueueTable({
                     }}
                   >
                     <div>{p.weight_kg.toFixed(0)} kg</div>
-                    <div style={{ color: "var(--ink-soft)" }}>{p.cbm.toFixed(1)} cbm</div>
+                    <div style={{ color: "var(--ink-soft)" }}>{formatCbm(p.cbm)} cbm</div>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
                     <Badge tone={DISPATCH_PAYMENT_TONES[p.pay]} size="sm">
