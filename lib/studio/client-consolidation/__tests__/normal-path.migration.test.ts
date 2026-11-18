@@ -169,7 +169,7 @@ describe("dedicated complete reader", () => {
 });
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
-const migrationName = "0502_consolidacion_cliente_camino_normal.sql";
+const migrationName = "0561_consolidacion_cliente_camino_normal.sql";
 const migrationFile = resolve(root, "supabase/migrations", migrationName);
 const contractFile = resolve(root, "supabase/tests/consolidacion_cliente_normal.test.sql");
 
@@ -201,8 +201,8 @@ async function executeRealContract(migration: string): Promise<{ error: string |
   } finally { await db.close(); }
 }
 
-describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral connection", () => {
-  it("runs real0502 with the actual0496/0477/VE/POD guards and rolls synthetic data back", async () => {
+describe("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral connection", () => {
+  it("runs real0561 with the actual0496/0477/VE/POD guards and rolls synthetic data back", async () => {
     const result = await executeRealContract(readFileSync(migrationFile, "utf8"));
     expect(result.error).toBeNull(); expect(result.completed).toBe(true);
   }, 300_000);
@@ -211,7 +211,7 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     const anchor = /create trigger aa_client_normal_scope_00_key_update before update of id,tenant_id,warehouse_id on dtd_client_normal\.scopes\r?\nfor each row execute function dtd_client_normal\.guard_scope_configuration\('key_columns_gate'\);\r?\n/g;
     expect(source.match(anchor)).toHaveLength(1);
     const result = await executeRealContract(source.replace(anchor, ""));
-    expect(result.completed).toBe(false); expect(result.error).toContain("0502: conjunto de guardas incompleto");
+    expect(result.completed).toBe(false); expect(result.error).toContain("0561: conjunto de guardas incompleto");
   }, 300_000);
   it("rejects a syntactic-key prepass ordered after the general trigger", async () => {
     const source = readFileSync(migrationFile, "utf8");
@@ -221,7 +221,7 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     // condition, rather than merely failing a count/name mismatch. Catalog
     // mutation only: actual lock behavior belongs to the real PG runner.
     const result = await executeRealContract(source.split(name).join("zz_client_normal_scope_00_key_update"));
-    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+    expect(result.completed).toBe(false); expect(result.error).toContain("0561: contrato de prepaso scope incompleto");
   }, 300_000);
   it("rejects WHEN on the key prepass while retaining its name, columns, arguments and order", async () => {
     const source = readFileSync(migrationFile, "utf8");
@@ -231,7 +231,7 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
       "for each row when (old.id is distinct from new.id) execute function dtd_client_normal.guard_scope_configuration('key_columns_gate');"));
     // Only the absence-of-WHEN contract must kill this catalog mutant. A fuse,
     // parser error or any other installation failure does not satisfy it.
-    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+    expect(result.completed).toBe(false); expect(result.error).toContain("0561: contrato de prepaso scope incompleto");
   }, 300_000);
   it("rejects WHEN on the general guard independently of the unchanged key prepass", async () => {
     const source = readFileSync(migrationFile, "utf8");
@@ -239,7 +239,7 @@ describe.sequential("SDD0578 real migration/ACL/RLS/AUD contract, one ephemeral 
     expect(source.split(anchor)).toHaveLength(2);
     const result = await executeRealContract(source.replace(anchor,
       "for each row when (false) execute function dtd_client_normal.guard_scope_configuration();"));
-    expect(result.completed).toBe(false); expect(result.error).toContain("0502: contrato de prepaso scope incompleto");
+    expect(result.completed).toBe(false); expect(result.error).toContain("0561: contrato de prepaso scope incompleto");
   }, 300_000);
   it("kills the material0321 collision mutant instead of losing the second group AUD", async () => {
     const source = readFileSync(migrationFile, "utf8");

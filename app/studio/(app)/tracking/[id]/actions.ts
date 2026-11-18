@@ -640,7 +640,7 @@ async function llamarReasignar(
   dryRun: boolean,
 ): Promise<ReasignarActionResult> {
   // SDD-0578: un embarque de cohorte cambia sólo por sus escritores tipados;
-  // el trigger de la 0502 también lo corta en la base.
+  // el trigger de la 0561 también lo corta en la base.
   const cohortDenial = await legacyShipmentMutationDenial(supabase, shipmentId);
   if (cohortDenial) return { ok: false, error: cohortDenial };
   const { data, error } = await supabase.rpc("reassign_shipment_client", {

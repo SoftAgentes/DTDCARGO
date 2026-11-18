@@ -184,7 +184,10 @@ create table public.operario_pins(id uuid primary key default gen_random_uuid(),
   region text not null,role text not null default 'bodeguero',roles text[] not null default array['bodeguero'],active boolean not null default true,
   warehouse_id uuid references public.warehouses_cn(id),display_name text,driver_id uuid);
 alter table public.warehouse_receipts_cn add column created_by_operario_id uuid references public.operario_pins(id),
-  add column prealerta_id uuid, add column description text,add column sales_order_id uuid;
+  add column prealerta_id uuid, add column description text,add column sales_order_id uuid,
+  add column destination_city text, -- 0044 (fixture 2026-11-18)
+  add column payment_status text not null default 'pendiente' check (payment_status in ('pagado','parcial','pendiente')), -- 0044
+  add column invoice_verified_at timestamptz, add column invoice_verified_by uuid; -- 0129
 
 -- Copia literal: supabase/tests/_0496_tarifa_congelada_schema.sql · table aliados · desde línea81
 create table public.aliados (
@@ -289,6 +292,11 @@ as $$
 $$;
 
 
+-- Fixture (2026-11-18, primera ejecución): 0244 crea una policy de portal que
+-- nombra estos helpers de 0080/0105. Stubs fail-closed (NULL = ninguna fila);
+-- el lector de cohorte del portal se prueba con su propia función de 0561.
+create function public.get_portal_client_tenant() returns uuid language plpgsql stable as $$ begin return null; end $$;
+create function public.get_portal_client_markbox() returns text language plpgsql stable as $$ begin return null; end $$;
 create table public.suppliers_cn(id uuid primary key default gen_random_uuid(),name text);
 create table public.prealertas(id uuid primary key default gen_random_uuid(),tenant_id uuid not null references public.tenants(id),
   code text,client_markbox text,supplier_id uuid references public.suppliers_cn(id),boxes integer not null default 0,
@@ -1824,6 +1832,14 @@ revoke all on function public.create_receipt_as_operario(uuid,uuid,boolean,text,
 grant execute on function public.create_receipt_as_operario(uuid,uuid,boolean,text,text,text,text,text,text,integer,numeric,numeric,date,text,jsonb,boolean,text,text),
   public.operario_action(uuid,text,jsonb),public.receive_prealerta_boxes_as_operario(uuid,text,text[]),
   public.camionero_pod(uuid,uuid,uuid,text,text,text,text,text,numeric,numeric,numeric,text) to service_role;
+-- Fixture (2026-11-18): las cuatro RPC de estiba también son service_role-only
+-- (0296 lo exige en su postcondición).
+revoke all on function public.stuff_box_as_operario(uuid,uuid,text,integer,integer,integer,boolean),
+  public.unstuff_box_as_operario(uuid,text),public.stuff_lot_as_operario(uuid,uuid,text,integer,integer),
+  public.unstuff_lot_as_operario(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.stuff_box_as_operario(uuid,uuid,text,integer,integer,integer,boolean),
+  public.unstuff_box_as_operario(uuid,text),public.stuff_lot_as_operario(uuid,uuid,text,integer,integer),
+  public.unstuff_lot_as_operario(uuid,uuid) to service_role;
 -- Estado efectivo de path de la reparación0288 anterior a0296, sin cambiar cuerpos.
 alter function public.operario_action(uuid,text,jsonb) set search_path=pg_catalog,public;
 alter function public.stuff_box_as_operario(uuid,uuid,text,integer,integer,integer,boolean) set search_path=pg_catalog,public;

@@ -160,7 +160,7 @@ describe("NavieraClient · zarpe con sus envíos", () => {
     render(vista("cerrado", normal));
     expect(screen.queryByRole("button", { name: "Marcar zarpado" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Asignar carga" })).not.toBeInTheDocument();
-    expect(screen.getByText("Pertenencia no disponible")).toBeInTheDocument();
+    expect(screen.getByText(/· Pertenencia no disponible$/)).toBeInTheDocument();
     expect(mocks.change).not.toHaveBeenCalled(); expect(mocks.toastSuccess).not.toHaveBeenCalled();
   });
 });

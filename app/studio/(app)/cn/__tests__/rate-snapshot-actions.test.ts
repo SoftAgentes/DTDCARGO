@@ -98,8 +98,11 @@ describe("SDD-0578 · binding de tarifa: sólo transporte y mensajes, no persist
     let count = 0;
     estado.rpcRespuesta = (args) => ++count === 1 ? { data: [fila(String(args.p_receipt_id))], error: null }
       : { data: null, error: { code: "P0001", hint: "dtd-client-normal", message: "NORMAL_GOVERNED" } };
-    expect(await freezePendingRatesAction([RID(1), RID(2)]))
-      .toEqual({ ok: false, errorKey: "warehouse_cn.normal.rate_incompatible", frozen: 1 });
+    // Conteo parcial honesto (spec fila 49): el lote no se corta por un miembro
+    // de cohorte; lo congelado queda contado y el rechazado sale con su motivo.
+    const r = await freezePendingRatesAction([RID(1), RID(2)]);
+    expect(r).toMatchObject({ ok: true, frozen: 1, alreadyFrozen: 0 });
+    expect(r.ok && r.skipped).toEqual([{ code: expect.any(String), reasonKey: "warehouse_cn.normal.rate_incompatible" }]);
     expect(estado.rpcCalls).toHaveLength(2); expect(revalidatePath).toHaveBeenCalledWith("/studio/cn");
   });
 });

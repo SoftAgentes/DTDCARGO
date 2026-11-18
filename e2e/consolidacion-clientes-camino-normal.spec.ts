@@ -31,7 +31,7 @@ function fixture(): Fixture {
   if (data.kind !== "sdd0578-owned-ephemeral" || data.owner !== "worker-0578normal-01a15a4e-ddf0-7d82-8656-d9dc56b58468"
     || !data.studioEmail.endsWith("@synthetic.invalid") || !/^[0-9]{4}$/.test(data.operarioPin)) throw new Error("SDD0578 fixture ownership/identity invalid");
   loopback(data.supabaseUrl); loopback(process.env.BASE_URL ?? "");
-  const source = readFileSync(resolve("supabase/migrations/0502_consolidacion_cliente_camino_normal.sql"), "utf8");
+  const source = readFileSync(resolve("supabase/migrations/0561_consolidacion_cliente_camino_normal.sql"), "utf8");
   if (source.includes("do $authoring_fuse$") || createHash("sha256").update(source).digest("hex") !== data.migrationSha256) {
     throw new Error("SDD0578 reviewed migration/fuse precondition not met");
   }

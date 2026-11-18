@@ -11,7 +11,7 @@
     {
       "id": "sdd-0578-envios-cliente-camino-normal",
       "primarySymbol": "client_consolidation_confirm",
-      "migration": "0502_consolidacion_cliente_camino_normal",
+      "migration": "0561_consolidacion_cliente_camino_normal",
       "symbols": [
         {
           "name": "client_consolidation_annotate_plan",
@@ -152,7 +152,7 @@
         {
           "site": "lib/studio/client-consolidation/queries.ts:230",
           "contains": "if (isMissingNormalSchema(error)) throw new NormalReadError(normalFlowError(error), \"missing_schema\");",
-          "degradation": "Sin0502 o caché PostgREST pendiente, el scope no acredita legacy. Lectores de Naviera/CN/Tracking/VE y API bloquean la mutación y muestran indisponibilidad; complete/checked exige identidad exacta. OFF explícito detiene altas y no desmarca miembros. MIGRATE-FIRST revisado, drain de callers antiguos y activación nominal futura; no aplicado ni probado por esta declaración."
+          "degradation": "Sin0561 o caché PostgREST pendiente, el scope no acredita legacy. Lectores de Naviera/CN/Tracking/VE y API bloquean la mutación y muestran indisponibilidad; complete/checked exige identidad exacta. OFF explícito detiene altas y no desmarca miembros. MIGRATE-FIRST revisado, drain de callers antiguos y activación nominal futura; no aplicado ni probado por esta declaración."
         },
         {
           "site": "app/studio/(app)/cn/actions.ts:180",

@@ -3,7 +3,7 @@
  *
  * `shipment_events` (SDD-0013) la puebla la operación (auto por cambio de status
  * + manual/backdated). La lectura propia resuelve el principal Portal y usa la
- * proyección atómica0502: legacy por tenant+marca; cohorte por tenant+client_id
+ * proyección atómica0561: legacy por tenant+marca; cohorte por tenant+client_id
  * del grupo Y envío. Los derechos Studio de una sesión híbrida no amplían esta
  * vista; un helper Studio NULL tampoco invalida un principal Portal-only.
  */

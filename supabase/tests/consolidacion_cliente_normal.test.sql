@@ -1,10 +1,10 @@
 -- SDD-0578 · AUTHORED P1, NOT EXECUTED. Disposable PostgreSQL only.
--- The real0502 fuse intentionally aborts until Director grants the local GO
+-- The real0561 fuse intentionally aborts until Director grants the local GO
 -- and its reviewed removal. Never strip the fuse in this runner/fixture.
 -- No production, no backfill, no caller/flagPODv2 activation, no finance4.3.
 \set ON_ERROR_STOP on
 \ir _consolidacion_cliente_normal_schema.sql
-\ir ../migrations/0502_consolidacion_cliente_camino_normal.sql
+\ir ../migrations/0561_consolidacion_cliente_camino_normal.sql
 begin;
 create schema sdd0578_fixture;
 create table sdd0578_fixture.state(label text primary key,id uuid,value jsonb);
@@ -513,8 +513,8 @@ begin
   -- Events inserted only through the typed current-state note command; no
   -- fabricated private protocol context or direct bypass of guard_event.
   for i in 1..1105 loop
-    perform sdd0578_fixture.run_as('operations-A',format('select public.client_consolidation_note(%L::uuid,%L,2,2,%L::uuid,%L)',
-      v_ship,'out_for_delivery',sdd0578_fixture.id('history-'||i),'Nota sintética de historia completa'));
+    perform sdd0578_fixture.run_as('operations-A',format('select public.client_consolidation_note(%L::uuid,%L,2,2,%L::uuid,%L,%L)',
+      v_ship,'out_for_delivery',sdd0578_fixture.id('history-'||i),'Nota sintética de historia completa','Motivo sintético de la nota'));
   end loop;
   perform sdd0578_fixture.check(sdd0578_fixture.run_as('portal-A','select to_jsonb(public.get_user_tenant_id() is null)')='true'::jsonb,'Portal-only helper Studio NULL is valid');
   v_history:=sdd0578_fixture.run_as('portal-A',format('select public.client_consolidation_portal_events(%L::uuid,null)',v_ship));

@@ -22,7 +22,7 @@ if (scopeMutant !== null) {
   assert.equal(args[2], "--scope-mutant"); assert.equal(scopeMutant, "try-universal");
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const migrationFile = resolve(root, "supabase/migrations/0502_consolidacion_cliente_camino_normal.sql");
+const migrationFile = resolve(root, "supabase/migrations/0561_consolidacion_cliente_camino_normal.sql");
 let effectiveMigration = null;
 const database = `sdd0578_${randomUUID().replaceAll("-", "")}`;
 const sessions = [];

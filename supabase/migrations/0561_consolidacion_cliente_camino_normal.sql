@@ -3,8 +3,8 @@
 -- 042-activacion-worker-0578-director.md
 -- SHA256 1939a04752338b66bc5187961f8a1a216093dc6101fdb28771bec2efae607be4.
 --
--- BORRADOR EN AUTORÍA P1, NO VALIDADO; NO APLICAR.
--- El fusible explícito impide ejecutar este cuerpo incompleto durante autoría.
+-- EN EJECUCIÓN LOCAL (SDD-0578, 2026-11-18); NO APLICAR EN STAGING NI PRODUCCIÓN.
+-- Sin fusible: la validación local decide si se propone para integrar.
 -- Se redacta en el worktree/owner exclusivo SDD-0578 y conservará:
 -- cohorte prospectiva LCL/DDP OFF; legacy y 0496 inmutables por alcance;
 -- formación/extensión/sello/estiba/plan/estados y reserva mínima de códigos;
@@ -13,15 +13,15 @@
 -- PENDIENTE DE APLICAR: declarar espera por basename exacto en
 -- supabase/migrations-baseline.json; aplicación productiva requiere OK nominal
 -- de Sam y docs/runbooks/aplicar-migraciones-prod.md, en una autorización aparte.
--- 0495 no se repite y 0496/0502 no se aplican por este encargo local.
+-- 0495 no se repite y 0496/0561 no se aplican por este encargo local.
 -- Instalación/DB/tests/verify esperan turno explícito; no hay resultados aquí.
 
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
-do $authoring_fuse$ begin
-  raise exception '0502: borrador SDD-0578 en autoría; NO EJECUTAR';
-end $authoring_fuse$;
+-- Fusible de autoría retirado el 2026-11-18 con GO del Director (tarea de
+-- ejecución pedida por Sam). Número 0561 asignado por el Director; antes se
+-- redactó como 0561. Aplicar en producción sigue exigiendo el OK nominal.
 
 do $preflight$
 declare v_name text;
@@ -34,21 +34,21 @@ begin
     'public.client_users', 'public.dispatch_city_catalog', 'public.expense_alerts'
   ] loop
     if pg_catalog.to_regclass(v_name) is null then
-      raise exception '0502: prerrequisito ausente: %', v_name;
+      raise exception '0561: prerrequisito ausente: %', v_name;
     end if;
   end loop;
   if pg_catalog.to_regprocedure('public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)') is null
      or pg_catalog.to_regprocedure('public.naviera_avance_module_authorized(uuid,text)') is null
      or pg_catalog.to_regprocedure('public.congelar_tarifa_recepcion(uuid,text,uuid,uuid,numeric,numeric,public.shipment_service,integer,text,boolean)') is null then
-    raise exception '0502 requiere AUD-01, 0477 y el contrato 0496';
+    raise exception '0561 requiere AUD-01, 0477 y el contrato 0496';
   end if;
   if pg_catalog.to_regnamespace('dtd_client_normal') is not null then
-    raise exception '0502: el protocolo ya existe; no reejecutar ni sobrescribir';
+    raise exception '0561: el protocolo ya existe; no reejecutar ni sobrescribir';
   end if;
   -- Last effective D1 definition is 0453 (not the older 0012/0200 helper).
   if not exists(select 1 from pg_catalog.pg_proc where oid=to_regprocedure('public.get_user_tenant_id()')
     and prosecdef and pg_get_userbyid(proowner)='postgres' and md5(replace(prosrc,E'\r\n',E'\n'))='5ff0c51c26a49419c34abc78f1d95c37') then
-    raise exception '0502: helper de tenant0453 distinto'; end if;
+    raise exception '0561: helper de tenant0453 distinto'; end if;
 end $preflight$;
 
 -- No API role can enrol a tenant or forge a transaction context. No seed/ON row.
@@ -296,16 +296,16 @@ declare v_old_tenant uuid; v_old_warehouse uuid; v_new_tenant uuid; v_new_wareho
 begin
   if tg_relid<>'dtd_client_normal.scopes'::regclass or tg_table_schema<>'dtd_client_normal'
     or tg_table_name<>'scopes' or tg_when<>'BEFORE' or tg_level<>'ROW' then
-    raise exception '0502: contexto de trigger scope inesperado';
+    raise exception '0561: contexto de trigger scope inesperado';
   end if;
   if tg_name='aa_client_normal_scope_00_key_update' then
     if tg_op<>'UPDATE' or tg_nargs<>1 or tg_argv[0] is distinct from 'key_columns_gate' then
-      raise exception '0502: modo de prepaso scope inesperado';
+      raise exception '0561: modo de prepaso scope inesperado';
     end if;
     v_gate_only:=true;
   elsif tg_name<>'aa_client_normal_scope_configuration' or tg_nargs<>0
     or tg_op not in('INSERT','UPDATE','DELETE') then
-    raise exception '0502: modo de guarda scope inesperado';
+    raise exception '0561: modo de guarda scope inesperado';
   end if;
   if tg_op<>'INSERT' then v_old_tenant:=old.tenant_id; v_old_warehouse:=old.warehouse_id; end if;
   if tg_op<>'DELETE' then v_new_tenant:=new.tenant_id; v_new_warehouse:=new.warehouse_id; end if;
@@ -501,9 +501,9 @@ declare v_proc pg_catalog.pg_proc; v_body_md5 text;
 begin
   select * into v_proc from pg_catalog.pg_proc where oid=pg_catalog.to_regprocedure(p_signature);
   if not found or not v_proc.prosecdef or pg_catalog.pg_get_userbyid(v_proc.proowner)<>'postgres'
-    or pg_catalog.has_function_privilege('anon',v_proc.oid,'EXECUTE') then raise exception '0502: contrato de función inesperado: %',p_signature; end if;
+    or pg_catalog.has_function_privilege('anon',v_proc.oid,'EXECUTE') then raise exception '0561: contrato de función inesperado: %',p_signature; end if;
   v_body_md5:=md5(replace(v_proc.prosrc,E'\r\n',E'\n'));
-  if v_body_md5<>p_expected_md5 then raise exception '0502: cuerpo base distinto: %',p_signature; end if;
+  if v_body_md5<>p_expected_md5 then raise exception '0561: cuerpo base distinto: %',p_signature; end if;
   insert into dtd_client_normal.function_contracts(signature,private_name,body_md5,owner_oid,acl,argument_names,argument_types,result_type,returns_set,default_count,default_definition)
     values(p_signature,p_private_name,v_body_md5,v_proc.proowner,v_proc.proacl,v_proc.proargnames,v_proc.proargtypes,v_proc.prorettype,v_proc.proretset,v_proc.pronargdefaults,
       pg_get_expr(v_proc.proargdefaults,0));
@@ -2130,7 +2130,7 @@ declare v_oid oid:='dtd_client_normal.legacy_camionero_pod_v2(uuid,uuid,uuid,tex
   v_def text; v_anchor text:=E'    -- Ya entregado: idempotente, no es error (dos PODs de la misma OD).';
 begin
   v_def:=pg_get_functiondef(v_oid);
-  if (length(v_def)-length(replace(v_def,v_anchor,'')))/length(v_anchor)<>1 then raise exception '0502: ancla POD0336 distinta'; end if;
+  if (length(v_def)-length(replace(v_def,v_anchor,'')))/length(v_anchor)<>1 then raise exception '0561: ancla POD0336 distinta'; end if;
   v_def:=replace(v_def,v_anchor,E'    if exists(select 1 from dtd_client_normal.groups g where g.shipment_id=v_shipment.id) then continue; end if;\n'||v_anchor);
   execute v_def;
   update dtd_client_normal.function_contracts set composed_body_md5=(select md5(replace(prosrc,E'\r\n',E'\n')) from pg_proc where oid=v_oid)
@@ -2275,7 +2275,7 @@ begin
         and policyname=v_table||' by tenant' and cmd='ALL')<>1
       or exists(select 1 from pg_policies where schemaname='public' and tablename=v_table and cmd in('ALL','SELECT')
         and ('authenticated'=any(roles) or 'public'=any(roles)) and policyname not in(v_table||' portal self read',v_table||' by tenant')) then
-      raise exception '0502: policies Portal0416 distintas: %',v_table;
+      raise exception '0561: policies Portal0416 distintas: %',v_table;
     end if;
   end loop;
   -- 0439 replaced the document ALL policy with four module-authorized ones.
@@ -2294,10 +2294,10 @@ begin
     or exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents'
         and policyname not in('shipment_documents portal self read','shipment_documents by tenant read','shipment_documents by tenant insert',
           'shipment_documents by tenant update','shipment_documents by tenant delete') and ('authenticated'=any(roles) or 'public'=any(roles))) then
-    raise exception '0502: policies/autoridad documental0439/0444 distintas'; end if;
+    raise exception '0561: policies/autoridad documental0439/0444 distintas'; end if;
   if not exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents'
     and policyname='shipment_documents by tenant read' and cmd='SELECT' and qual like '%''shipment''%''view''%') then
-    raise exception '0502: lectura documental efectiva distinta'; end if;
+    raise exception '0561: lectura documental efectiva distinta'; end if;
   insert into dtd_client_normal.policy_contracts(table_name,policy_name,definition)
     select tablename,policyname,to_jsonb(p) from pg_policies p where schemaname='public'
       and tablename in('shipments','shipment_events','shipment_documents') and policyname<>tablename||' portal self read';
@@ -2393,11 +2393,11 @@ begin
       or v_proc.prorettype<>v_contract.result_type or v_proc.proretset<>v_contract.returns_set
       or v_proc.pronargdefaults<>v_contract.default_count or pg_get_expr(v_proc.proargdefaults,0) is distinct from v_contract.default_definition
       or not v_proc.prosecdef or v_proc.proconfig is distinct from array['search_path=""']::text[] then
-      raise exception '0502: ABI/security del wrapper distinta: %',v_contract.signature; end if;
+      raise exception '0561: ABI/security del wrapper distinta: %',v_contract.signature; end if;
     execute format('alter function %s owner to %I',v_proc.oid::regprocedure,pg_get_userbyid(v_contract.owner_oid));
     execute format('revoke all on function %s from public,anon,authenticated,service_role',v_proc.oid::regprocedure);
     for v_grant in select * from aclexplode(coalesce(v_contract.acl,acldefault('f',v_contract.owner_oid))) loop
-      if v_grant.privilege_type<>'EXECUTE' then raise exception '0502: ACL original inesperada'; end if;
+      if v_grant.privilege_type<>'EXECUTE' then raise exception '0561: ACL original inesperada'; end if;
       v_role:=case when v_grant.grantee=0 then 'PUBLIC' else quote_ident(pg_get_userbyid(v_grant.grantee)) end;
       execute format('grant execute on function %s to %s%s',v_proc.oid::regprocedure,v_role,
         case when v_grant.is_grantable then ' with grant option' else '' end);
@@ -2418,7 +2418,7 @@ begin
   for v_proc in select p.oid,p.proname,p.prosecdef,p.proowner,p.proconfig from pg_proc p
     join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'client_consolidation_%' loop
     if not v_proc.prosecdef or pg_get_userbyid(v_proc.proowner)<>'postgres' or v_proc.proconfig is distinct from array['search_path=""']::text[] then
-      raise exception '0502: nueva RPC sin owner/search_path esperados: %',v_proc.proname; end if;
+      raise exception '0561: nueva RPC sin owner/search_path esperados: %',v_proc.proname; end if;
     v_role:=case when v_proc.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
       then 'service_role' else 'authenticated' end;
     execute format('revoke all on function %s from public,anon,authenticated,service_role',v_proc.oid::regprocedure);
@@ -2431,14 +2431,14 @@ declare v_contract dtd_client_normal.function_contracts; v_public pg_proc; v_pri
 begin
   if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.proname like 'client_consolidation_%')<>20 then
-    raise exception '0502: conjunto de nuevas firmas inesperado'; end if;
+    raise exception '0561: conjunto de nuevas firmas inesperado'; end if;
   if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
     and p.proname like 'client_consolidation_%' and (has_function_privilege('anon',p.oid,'EXECUTE')
       or not has_function_privilege(case when p.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
         then 'service_role' else 'authenticated' end,p.oid,'EXECUTE')
       or has_function_privilege(case when p.proname in('client_consolidation_operario_read','client_consolidation_physical','client_consolidation_annotate_plan')
         then 'authenticated' else 'service_role' end,p.oid,'EXECUTE'))) then
-    raise exception '0502: ACL de nuevas firmas inesperada'; end if;
+    raise exception '0561: ACL de nuevas firmas inesperada'; end if;
   for v_contract in select * from dtd_client_normal.function_contracts loop
     select * into strict v_public from pg_proc where oid=to_regprocedure(v_contract.signature);
     select p.* into strict v_private from pg_proc p join pg_namespace n on n.oid=p.pronamespace
@@ -2449,7 +2449,7 @@ begin
         from aclexplode(coalesce(v_public.proacl,acldefault('f',v_public.proowner)))) is distinct from
         (select jsonb_agg(jsonb_build_array(grantee,privilege_type,is_grantable) order by grantee,privilege_type,is_grantable)
         from aclexplode(coalesce(v_contract.acl,acldefault('f',v_contract.owner_oid)))) then
-      raise exception '0502: contrato original/ACL no conservados: %',v_contract.signature; end if;
+      raise exception '0561: contrato original/ACL no conservados: %',v_contract.signature; end if;
   end loop;
   foreach v_role in array array['anon','authenticated','service_role'] loop
     if has_schema_privilege(v_role,'dtd_client_normal','USAGE') or has_schema_privilege(v_role,'dtd_client_normal','CREATE')
@@ -2457,24 +2457,24 @@ begin
         and has_function_privilege(v_role,p.oid,'EXECUTE')) or exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname='dtd_client_normal' and c.relkind in('r','p') and
           (has_table_privilege(v_role,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))) then
-      raise exception '0502: acceso API al protocolo privado: %',v_role; end if;
+      raise exception '0561: acceso API al protocolo privado: %',v_role; end if;
   end loop;
   if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='dtd_client_normal'
     and c.relkind in('r','p') and (not c.relrowsecurity or pg_get_userbyid(c.relowner)<>'postgres')) then
-    raise exception '0502: tabla privada sin RLS/owner'; end if;
+    raise exception '0561: tabla privada sin RLS/owner'; end if;
   if exists(select 1 from dtd_client_normal.scopes) or exists(select 1 from dtd_client_normal.scope_fences)
     or exists(select 1 from dtd_client_normal.receipts)
     or exists(select 1 from dtd_client_normal.groups) or exists(select 1 from dtd_client_normal.code_reservations)
     or exists(select 1 from dtd_client_normal.contexts) or exists(select 1 from dtd_client_normal.intakes) then
-    raise exception '0502: rollout/backfill/contexto inesperado'; end if;
+    raise exception '0561: rollout/backfill/contexto inesperado'; end if;
   for v_policy in select * from dtd_client_normal.policy_contracts loop
     if (select to_jsonb(p) from pg_policies p where p.schemaname='public' and p.tablename=v_policy.table_name and p.policyname=v_policy.policy_name)
-      is distinct from v_policy.definition then raise exception '0502: policy de equipo alterada: %.%',v_policy.table_name,v_policy.policy_name; end if;
+      is distinct from v_policy.definition then raise exception '0561: policy de equipo alterada: %.%',v_policy.table_name,v_policy.policy_name; end if;
   end loop;
   if (select count(*) from pg_policies where schemaname='public' and
     (tablename,policyname) in (('shipments','client_normal_shipment_read'),('shipment_events','client_normal_event_read'),
       ('shipment_documents','client_normal_document_read')) and permissive='RESTRICTIVE' and cmd='SELECT' and roles=array['authenticated']::name[])<>3 then
-    raise exception '0502: falta frontera SELECT de cohorte'; end if;
+    raise exception '0561: falta frontera SELECT de cohorte'; end if;
   if (select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>20
     or (select count(*) from (values
@@ -2501,7 +2501,7 @@ begin
       join pg_trigger t on t.tgrelid=to_regclass(expected.relation_name) and t.tgname=expected.trigger_name
       join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='dtd_client_normal' and not t.tgisinternal and t.tgenabled='O')<>20 then
-    raise exception '0502: conjunto de guardas incompleto'; end if;
+    raise exception '0561: conjunto de guardas incompleto'; end if;
   if not exists(select 1 from pg_trigger t where t.tgrelid='dtd_client_normal.scopes'::regclass
       and t.tgname='aa_client_normal_scope_00_key_update' and t.tgtype=19 and t.tgenabled='O' and not t.tgisinternal
       and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgqual is null and t.tgnargs=1
@@ -2511,14 +2511,14 @@ begin
       and t.tgname='aa_client_normal_scope_configuration' and t.tgtype=31 and t.tgenabled='O' and not t.tgisinternal
       and t.tgfoid='dtd_client_normal.guard_scope_configuration()'::regprocedure and t.tgqual is null and t.tgnargs=0
       and t.tgattr=''::int2vector and t.tgargs=decode('','hex')) then
-    raise exception '0502: contrato de prepaso scope incompleto'; end if;
+    raise exception '0561: contrato de prepaso scope incompleto'; end if;
   if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='dtd_client_normal'
     and ((p.proname='fence_scope' and p.proargtypes='2950 2950 16'::oidvector)
       or (p.proname='guard_scope_configuration' and p.pronargs=0)) and p.prosecdef and p.provolatile='v'
     and pg_get_userbyid(p.proowner)='postgres' and p.proconfig=array['search_path=""']::text[])<>2
     or not exists(select 1 from pg_constraint where conrelid='dtd_client_normal.scope_fences'::regclass
       and contype='p' and conkey=array[1,2]::smallint[]) then
-    raise exception '0502: fence de ámbito sin clave/owner/search_path esperados'; end if;
+    raise exception '0561: fence de ámbito sin clave/owner/search_path esperados'; end if;
 end $postflight$;
 
 -- Rollback: this transaction aborts entirely on any pre/postflight/AUD error.
