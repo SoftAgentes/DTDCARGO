@@ -158,3 +158,70 @@
 @media (max-width: 480px) {
   .ficha-emp-linea > li { grid-template-columns: minmax(0, 1fr); gap: var(--s-1); }
 }
+
+/* ── Fase 2: foto, enlace y «Mostrar» la cuenta ─────────────────────────── */
+.ficha-emp-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  max-width: 220px;
+}
+.ficha-emp-foto-img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-pill);
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--neutral-bg);
+  flex-shrink: 0;
+}
+.ficha-emp-foto-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+/* El input sigue en el árbol de accesibilidad; lo abre el botón de al lado. */
+.ficha-emp-foto-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ficha-emp-foto-ayuda {
+  flex-basis: 100%;
+  margin: 0;
+  font: 400 11.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-foto-estado {
+  flex-basis: 100%;
+  font: 500 11.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-foto-estado:empty { display: none; }
+
+.ficha-emp-nota {
+  margin: 0;
+  font: 400 12.5px/1.5 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.ficha-emp-form .studio-input { width: 100%; }
+
+/* La fila de la cuenta vive en su propia lista, pegada a la de Banco. */
+.ficha-emp-row.ficha-emp-row--sigue:first-of-type { border-top: 1px solid var(--border); }
+.ficha-emp-cuenta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--s-2);
+}
