@@ -3556,6 +3556,15 @@
         "forma": "exacta"
       }
     },
+    "0559_registro_link_correo_comprobado": {
+      "sha256": "9723e29d0f4286b8227a05351e27524aed8b05593958ae5c6d0026d65bd781d2",
+      "md5": "ced040575315354b54ad0fb8e2a295f2",
+      "bytes": 38715,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
     "0560_oficina_acuse_en_escalados": {
       "sha256": "f5949e34dcea1644844048910c098f3486444fe67638c2a1a7ff42161862728f",
       "md5": "fb276a12571eaeb7ece938117909f5c8",
