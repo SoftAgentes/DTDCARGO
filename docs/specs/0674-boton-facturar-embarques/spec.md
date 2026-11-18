@@ -101,8 +101,78 @@ no viaja al navegador.
 - **Que el cliente vea solo al facturar.** Es un cambio de la regla del portal (§2.1) y lleva migración.
   Si basta con que la factura **aparezca** en el portal (los envíos ya se ven), no hace falta tocar la
   regla.
-- **Emitir una factura DDP.** Choca con el gate legal AUT-04 si el cliente no aceptó los términos. Sam
-  decide si el botón se para ahí o deja el borrador.
+- **Emitir una factura DDP.** Choca con el gate legal AUT-04 si el cliente no aceptó los términos (ver §3.1). Sam
+  decide cómo se resuelve (§3.1 a).
+
+### 3.1 Qué dispara emitir (medido en `emitInvoice` y en los triggers de `invoices`, base `9434cc4f6`)
+
+Sam decidió que el botón cree la factura **real y emitida** (pregunta 3). Esto es lo que pasa hoy al emitir,
+y cómo queda cada punto para el botón:
+
+**(a) Gate legal AUT-04: riesgo bloqueante, decide Sam.**
+- `emitInvoice` llama a `evaluateLegalGate`. Si el envío de la factura es `puerta_a_puerta_DDP`, el gate
+  exige una aceptación vigente de T&C (`hasValidAcceptanceForMarkbox`). Esa aceptación tiene que cuadrar
+  con el Shipping Mark, el CBM, el peso, el total (`base_amount`) y la orden (`shipment_code`).
+- Con `LEGAL_GATE_HARD_BLOCK = true`, si no hay aceptación **no se emite y no hay override**.
+- La carga de consolidados escribe los envíos DDP como `puerta_a_puerta_DDP` (`lote-sql.ts:583`), y esos
+  clientes no pasaron por una cotización aceptada en el portal. Por lo medido, **el botón quedaría
+  bloqueado para todos los clientes del DDP 64**. Además, el monto se teclea a mano: aunque hubiera una
+  aceptación, el total tendría que coincidir con lo que el cliente aceptó.
+- El botón **no** salta el gate en silencio. Sam tiene que elegir una de estas tres opciones:
+  1. **Cumplirlo.** El cliente acepta los términos en el portal antes de facturar. Hoy no existe un flujo
+     de aceptación para envíos que entraron por la carga de consolidados.
+  2. **Excepción explícita y auditada**, solo para los contenedores de la lista transitoria (§4.5). Cada
+     factura queda marcada como emitida sin aceptación por esta regla, con quién la emitió.
+  3. **Quedar bloqueado.** El botón deja la factura en borrador con el aviso del gate hasta que haya
+     aceptación. En ese caso no cumple la decisión 3.
+
+  *Recomiendo la opción 2*, acotada a la lista y con su rastro, porque la regla ya es transitoria. Bajar
+  `LEGAL_GATE_HARD_BLOCK` para todos **no** es una opción.
+
+**(b) Lo que se dispara al emitir:**
+- **Numeración.** `next_invoice_code(p_tenant_id)` da el correlativo atómico al **crear** la factura, no
+  al emitir. Un intento que falle después de pedir el código deja un hueco en la numeración. Por eso la
+  RPC tiene que hacer todo en una transacción.
+- **Titular.** El trigger `invoices_seal_billing_titular` (0466) sella el titular de facturación al pasar
+  a `emitida`, y desde ahí no cambia. La carga de consolidados factura al aliado raíz cuando el cliente
+  tiene uno: falta decidir a quién va esta factura (§4, pregunta 3).
+- **Asiento contable.** `post_invoice_journal_entry_atomic` (SDD-0040) registra DR Clientes / CR
+  Ingresos [+ IVA]. Hoy es *best-effort* y corre con el cliente admin, después de emitir. En la RPC nueva
+  conviene que el asiento ocurra en la misma transacción, o que se diga en la spec que puede faltar.
+- **Guarda contable.** El trigger `i3_invoice_guard` (0497) vigila todo INSERT o UPDATE de `invoices`, y
+  la RPC tiene que pasarlo.
+- **Referidos.** El trigger `invoices_accredit_referral` (0197) acredita al referidor en la **primera
+  factura** emitida de un cliente referido. Facturar los 4 contenedores puede acreditar referidos de una
+  vez.
+- **Correo.** `fireMailEvent("invoice_emitted")` avisa según las reglas activas del tenant en Mailing,
+  que pueden incluir al cliente.
+- **Portal.** La factura emitida aparece en `/portal/facturas` del cliente (policy 0452) y entra en su
+  estado de cuenta.
+- **Vencimiento.** `due_date` es hoy + 30 días si la factura no trae una fecha.
+
+**(c) Fronteras de lectura:**
+- **SDD-0357.** Si la pantalla de confirmación o la RPC leen `invoices` (por ejemplo, para no facturar
+  dos veces al mismo cliente del contenedor), cada lectura literal nueva se registra en
+  `invoice-read-boundary` sin aflojar la prueba, igual que en la 0661.
+- **SDD-0574.** Ahí un borrador no cuenta como facturado. Como el botón emite, sus facturas sí cuentan: la
+  recepción de ese cliente sale del reporte «Embarques sin facturar» porque hay una factura viva del mismo
+  envío y Shipping Mark. Ojo: la carga crea **una** factura con `shipment_id` = el primer embarque del
+  cliente, así que los demás embarques de ese cliente seguirían en el reporte. La RPC tiene que resolver
+  eso, por ejemplo con una factura por cliente que cubra todos sus envíos, o el reporte tiene que
+  reconocer la regla transitoria.
+
+**(d) Quién emite.** La RLS 0407 deja INSERT y UPDATE de `invoices` solo a `accounting` y `admin`. El rol
+de Embarques no puede emitir con su sesión. Hace falta una **RPC `security definer` acotada**:
+- tenant del usuario;
+- rol permitido;
+- contenedor en la lista transitoria;
+- cliente del contenedor sin factura viva;
+- monto mayor que 0, con 2 decimales, en USD;
+- la doble confirmación o la doble aprobación de la pregunta 6;
+- y todo en una transacción.
+
+Lleva **migración**: el número se le pide al DG cuando Sam cierre las preguntas 4 y 5. No se usa el
+cliente admin desde una action.
 
 ## 4. Preguntas para Sam (cada una con la recomendación del Worker)
 
@@ -137,12 +207,18 @@ no viaja al navegador.
      pregunta 4 queda respondida en la práctica: Embarques ve el monto que escribe. Falta que Sam diga
      quién es «la oficina» en el Studio.
 
-3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?**
-   *Recomiendo una factura del ERP en USD, que nace en `borrador` y la emite Contabilidad.* Respeta la
-   decisión 9 (la fiscal sale al llegar a Venezuela) y el gate legal. Hay que tener en cuenta que el
-   borrador **no se ve en el portal** (0452). Si Sam quiere que el cliente vea el monto al oprimir, la
-   factura tiene que quedar **emitida**, y entonces el botón emite y choca con el gate legal. Si no, hace
-   falta un estado o una vista nueva de «pre-factura» en el portal, con su migración.
+3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?** — **DECIDIDO por Sam (2026-11-18, por
+   el DG):** «Factura en dólares»; «ya es una factura que se va a facturar en contabilidad, en todo».
+   - El botón crea la factura **real y emitida en USD**, no un borrador. Va por cliente dentro del
+     contenedor y con el monto que escribe la oficina.
+   - La pre-factura («valor sin facturar») es otra cosa: existe antes de montar el Excel y no se factura.
+   - Lo que esto dispara y sus riesgos están en el §3.1. El gate legal AUT-04 bloquea hoy esta emisión, y
+     hace falta que Sam decida.
+   - Faltan dos cosas por decidir:
+     - **¿El monto tecleado es la base o el total con IVA?** Recomiendo el total, porque es lo que el
+       cliente paga; la base y el IVA se derivan con la tasa del tenant.
+     - **¿A quién se factura cuando el cliente tiene un aliado raíz?** Recomiendo lo mismo que la carga de
+       consolidados: al aliado raíz.
 
 4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?**
    *Recomendación actualizada tras la decisión 1: sí, pero solo en la pantalla de confirmación de estos
