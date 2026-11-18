@@ -8,8 +8,13 @@ Fecha: 2026-11-18. Datos de la tarea:
 - Base: `origin/main` `9434cc4f6`.
 - Número de SDD asignado por el DG.
 
-Encargo del DG, por pedido de Sam en la reunión del 2026-11-18: **solo una spec en borrador, sin código**.
-Contiene las cinco preguntas para Sam, cada una con su recomendación.
+Encargo del DG, por pedido de Sam en la reunión del 2026-11-18. Empezó como una spec en borrador con las
+preguntas para Sam. Sam contestó las seis preguntas y aprobó las tres decisiones del §7. La spec está
+`approved`, y el DG asignó la migración 0564 y pidió implementar.
+
+La revisión independiente (Opus) de la spec en `a166d07fe` dio CHANGES_REQUESTED, con 7 bloqueantes. Las
+decisiones del DG del 2026-11-18 están en la spec: §3.1, §7, §8 y la tabla del §9. La que importa: la 0574
+se resuelve en esta PR, con el vínculo factura ↔ envío.
 
 ## Medición (spec §2, en código y migraciones; no se leyó producción)
 

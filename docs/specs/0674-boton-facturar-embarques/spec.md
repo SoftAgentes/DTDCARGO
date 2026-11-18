@@ -7,7 +7,7 @@ created: 2026-11-18
 updated: 2026-11-18
 supersedes: null
 superseded_by: null
-related: ["0054", "0407", "0414", "0514", "0543", "0549", "0552", "0553", "0556", "0571", "0574", "0661"]
+related: ["0040", "0054", "0197", "0294", "0357", "0407", "0414", "0466", "0497", "0514", "0543", "0549", "0552", "0553", "0556", "0571", "0574", "0661"]
 confidencialidad: interno
 ---
 
@@ -21,7 +21,11 @@ confidencialidad: interno
 > el valor a facturar.
 >
 > **Aprobada por Sam el 2026-11-18.** Contestó las seis preguntas del §4 y aprobó las tres decisiones del
-> §7. Alcance: solo el contenedor 64. Migración: 0564.
+> §3.1 (a) y del §4, pregunta 3. Alcance: solo el contenedor 64. Migración: 0564.
+>
+> **Revisión independiente (Opus) sobre `a166d07fe`: CHANGES_REQUESTED, 7 bloqueantes.** El DG decidió cómo
+> resolverlos el 2026-11-18. Están corregidos en el §3.1, el §7 y el §8 (contrato de implementación), y el
+> §9 dice dónde quedó cada uno.
 
 ## 1. Por qué es transitorio
 
@@ -62,7 +66,10 @@ botón agrega es la factura y su monto en el portal y en la contabilidad.
 
 - **Studio, `createInvoice`** (`app/studio/(app)/facturacion/actions.ts`):
   - Pasa la puerta `moduleEditDenial(supabase, "invoices")`.
-  - Pide el código a la RPC `next_invoice_code(p_tenant_id)`, que da un correlativo atómico por tenant.
+  - Pide el código a `next_invoice_code(p_tenant_id)` (0077:63-83). **No es atómico.** Calcula
+    `max + 1` sobre los `invoice_code` del año sin tomar ningún lock, y solo lo protege el
+    `unique (tenant_id, invoice_code)` de la 0077:48. Dos emisiones simultáneas del mismo tenant pueden pedir
+    el mismo número, y la segunda falla al insertar. El riesgo es esa concurrencia, no un hueco.
   - Inserta la factura en `borrador`.
 - **Emisión, `emitInvoice`.** La pasa de `borrador` a `emitida`, pone `issued_at` y `due_date` (+30 días
   si no tenía) y pasa el gate legal AUT-04.
@@ -91,20 +98,15 @@ Por la SDD-0661, «Por cobrar» y «Cobrado» de la franja y del detalle por cli
 **solo** si el rol es `accounting` o `admin` y la puerta del módulo `invoices` deja pasar. Si no, el dato
 no viaja al navegador.
 
-## 3. Lo que implicaría el botón, según cómo responda Sam
+## 3. Lo que implica el botón (decidido)
 
-- **Escribir `invoices` con el rol de Embarques.** La RLS 0407 no lo deja. Hay dos caminos:
-  - una RPC `security definer` acotada, por ejemplo «facturar cliente del contenedor», con candado de
-    tenant, rol, contenedor permitido y estado;
-  - ampliar la policy.
-
-  Los dos llevan **migración**, y el número se le pide al DG. No se usa el cliente admin desde una action
-  para saltarse la RLS: rompe la frontera SDD-0357.
-- **Que el cliente vea solo al facturar.** Es un cambio de la regla del portal (§2.1) y lleva migración.
-  Si basta con que la factura **aparezca** en el portal (los envíos ya se ven), no hace falta tocar la
-  regla.
-- **Emitir una factura DDP.** Choca con el gate legal AUT-04 si el cliente no aceptó los términos (ver §3.1). Sam
-  decide cómo se resuelve (§3.1 a).
+- **Escribir `invoices` con el rol de Embarques.** La RLS 0407 no lo deja, y no se amplía. Lo hace una RPC
+  `security definer` acotada, `exc0674_facturar` (migración 0564, §8). No se usa el cliente admin desde
+  una action para escribir o leer `invoices`: rompería la frontera SDD-0357.
+- **Que el cliente vea solo al facturar.** No hace falta: el portal ya muestra los envíos (§2.1). La
+  factura emitida aparece en el portal, y la regla del portal no cambia.
+- **Emitir una factura DDP.** Choca con el gate legal AUT-04. Sam eligió una excepción explícita y
+  auditada, solo para la lista (§3.1 a).
 
 ### 3.1 Qué dispara emitir (medido en `emitInvoice` y en los triggers de `invoices`, base `9434cc4f6`)
 
@@ -131,56 +133,72 @@ y cómo queda cada punto para el botón:
   **DECIDIDO por Sam (2026-11-18, chat del DG: «Sí, las tres»): la opción 2.** La excepción es explícita y
   auditada, y aplica solo a la lista transitoria, que hoy es el contenedor 64.
   - `LEGAL_GATE_HARD_BLOCK` sigue igual para todo lo demás.
-  - La RPC de la 0564 no consulta el gate para los clientes de la lista. En el audit de cada factura deja
-    `legal_ack = "exc_0674"` junto con quién la emitió, para que se vea que salió por esta regla y no por
-    una aceptación.
+  - La RPC de la 0564 no consulta el gate para los clientes de la lista. Cada factura deja la marca
+    `legal_ack = 'exc_0674'` en dos lugares:
+    - en `exc0674_facturas`;
+    - en `entity_audit_log`, por `append_audit_event` dentro de la misma transacción: entidad `invoice`,
+      evento `invoice_emitted_exc0674`, actor `user` con el id de la sesión, fuente `rpc`, y un motivo que
+      nombra la excepción.
+
+    Así se ve que la factura salió por esta regla y no por una aceptación. Si el evento no se puede
+    escribir, no se factura (AUD-01 §1).
+  - La RPC rechaza en el servidor un contenedor fuera de la lista, aunque la pantalla no muestre el botón.
 
 **(b) Lo que se dispara al emitir:**
-- **Numeración.** `next_invoice_code(p_tenant_id)` da el correlativo atómico al **crear** la factura, no
-  al emitir. Un intento que falle después de pedir el código deja un hueco en la numeración. Por eso la
-  RPC tiene que hacer todo en una transacción.
+- **Numeración.** `next_invoice_code` no toma lock (§2.2). La RPC toma primero
+  `pg_advisory_xact_lock` por tenant, con la misma llave que cualquier llamador de esta regla. Así dos
+  facturaciones simultáneas del mismo tenant salen en fila y no piden el mismo número. Contra un
+  `createInvoice` del Studio que corra a la vez, sigue mandando el `unique` de la 0077:48: si choca, la
+  transacción entera se deshace y la pantalla dice que se intente otra vez. Hay una prueba concurrente
+  (§8.6).
 - **Titular.** El trigger `invoices_seal_billing_titular` (0466) sella el titular de facturación al pasar
-  a `emitida`, y desde ahí no cambia. La carga de consolidados factura al aliado raíz cuando el cliente
-  tiene uno: falta decidir a quién va esta factura (§4, pregunta 3).
-- **Asiento contable.** `post_invoice_journal_entry_atomic` (SDD-0040) registra DR Clientes / CR
-  Ingresos [+ IVA]. Hoy es *best-effort* y corre con el cliente admin, después de emitir. En la RPC nueva
-  conviene que el asiento ocurra en la misma transacción, o que se diga en la spec que puede faltar.
+  a `emitida`, y desde ahí no cambia. Decidido (§4, pregunta 3): se factura al aliado raíz cuando el
+  cliente tiene uno, como en la carga de consolidados.
+- **Asiento contable.** `post_invoice_journal_entry_atomic` (SDD-0040, cuerpo de la 0497:608-735) **no
+  lanza error**: devuelve `outcome` = `posted`, `already_posted` o `not_posted`, con un `reason`. Además
+  exige READ COMMITTED. La RPC lo llama en la misma transacción y **aborta todo** (sin factura, sin
+  correlativo usado, sin rastro) si el `outcome` no es `posted` ni `already_posted`. Hay prueba.
 - **Guarda contable.** El trigger `i3_invoice_guard` (0497) vigila todo INSERT o UPDATE de `invoices`, y
   la RPC tiene que pasarlo.
 - **Referidos.** El trigger `invoices_accredit_referral` (0197) acredita al referidor en la **primera
   factura** emitida de un cliente referido. Facturar el contenedor puede acreditar referidos de una
   vez.
-- **Correo.** `fireMailEvent("invoice_emitted")` avisa según las reglas activas del tenant en Mailing,
-  que pueden incluir al cliente.
+- **Correo.** Decisión del DG: sale igual que en una emisión normal. La server action llama a
+  `fireMailEvent("invoice_emitted")` **después** de que la RPC hizo commit, por la vía existente de
+  Mailing, y respeta sus reglas e interruptores: sin una regla activa no sale nada. Es best-effort: si el
+  correo falla, la factura ya quedó emitida. El cliente admin se usa **solo** para ese correo, como en
+  `emitInvoice`, y nunca para leer ni escribir `invoices`.
 - **Portal.** La factura emitida aparece en `/portal/facturas` del cliente (policy 0452) y entra en su
   estado de cuenta.
 - **Vencimiento.** `due_date` es hoy + 30 días si la factura no trae una fecha.
 
 **(c) Fronteras de lectura:**
-- **SDD-0357.** Si la pantalla de confirmación o la RPC leen `invoices` (por ejemplo, para no facturar
-  dos veces al mismo cliente del contenedor), cada lectura literal nueva se registra en
-  `invoice-read-boundary` sin aflojar la prueba, igual que en la 0661.
-- **SDD-0574.** Ahí un borrador no cuenta como facturado. Como el botón emite, sus facturas sí cuentan: la
-  recepción de ese cliente sale del reporte «Embarques sin facturar» porque hay una factura viva del mismo
-  envío y Shipping Mark. Ojo: la carga crea **una** factura con `shipment_id` = el primer embarque del
-  cliente, así que los demás embarques de ese cliente seguirían en el reporte. La RPC tiene que resolver
-  eso, por ejemplo con una factura por cliente que cubra todos sus envíos, o el reporte tiene que
-  reconocer la regla transitoria.
+- **SDD-0357.** La app no agrega ningún `.from("invoices")` literal.
+  - Embarques lee el rastro `exc0674_facturas`.
+  - El reporte de la 0574 lee la vista `exc0674_envios_cubiertos`. Es `security_invoker`, así que la RLS
+    0414 de `invoices` sigue mandando: solo accounting y admin ven filas.
+  - Las dos lecturas quedan registradas con el nombre EXC-0674 en el inventario de
+    `invoice-read-boundary`, con +0 llamadas y sin aflojar la prueba.
+  - Una prueba de migración congela la firma, el `security definer`, el `search_path` y los grants de la
+    RPC y de la vista, que es por donde `operations` llega a `invoices` (§8.6).
+- **SDD-0574. Decisión del DG: se resuelve en esta PR.** `sin-facturar.ts:176-196` reconoce lo facturado
+  por `shipment_id|client_markbox` de la factura. Con aliado raíz, la factura lleva el Shipping Mark del
+  aliado (como en `lote-sql.ts:705`), y una factura por cliente solo apunta a su primer embarque. Por eso:
+  - la 0564 guarda **qué envíos cubre cada factura**: la tabla de vínculo `exc0674_factura_envios`
+    (factura ↔ envío ↔ Shipping Mark del cliente real del contenedor), escrita por la RPC en la misma
+    transacción;
+  - la vista `exc0674_envios_cubiertos` une ese vínculo con la factura viva y su estado;
+  - `reporteSinFacturar` suma esas filas a las facturas que ya lee, con la llave
+    `shipment_id|client_markbox` del cliente real. Así cada embarque facturado por esta regla sale del
+    reporte, y uno de una factura anulada vuelve a aparecer;
+  - la función pura `clasificarSinFacturar` no cambia;
+  - sin la 0564, la vista no existe y el reporte queda como hoy. Es una degradación declarada.
 
 **(d) Quién emite.** La RLS 0407 deja INSERT y UPDATE de `invoices` solo a `accounting` y `admin`. El rol
-de Embarques no puede emitir con su sesión. Hace falta una **RPC `security definer` acotada**:
-- tenant del usuario;
-- rol permitido;
-- contenedor en la lista transitoria;
-- cliente del contenedor sin factura viva;
-- monto mayor que 0, con 2 decimales, en USD;
-- la doble confirmación o la doble aprobación de la pregunta 6;
-- y todo en una transacción.
+de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` de la migración **0564**
+(número asignado por el DG), con el contrato del §8. No se usa el cliente admin desde una action.
 
-Lleva **migración**: el número se le pide al DG cuando Sam cierre las preguntas 4 y 5. No se usa el
-cliente admin desde una action.
-
-## 4. Preguntas para Sam (cada una con la recomendación del Worker)
+## 4. Decisiones de Sam (las seis preguntas, contestadas el 2026-11-18)
 
 1. **¿Se factura por cliente dentro del contenedor o por embarque?** — **DECIDIDO por Sam (2026-11-18,
    por el DG):** hay dos modos.
@@ -207,8 +225,8 @@ cliente admin desde una action.
    - **Revisión antes de «Confirmado»:** como lo teclea una persona, la pantalla de doble confirmación lo
      muestra **bien grande**, con `fmtUsd` (`$1,234.50`), junto a las cajas y el CBM de ese cliente en el
      contenedor. Así se ve de un golpe si el monto no cuadra con la carga.
-   - **Rastro:** la factura guarda quién escribió el monto y cuándo, porque no tiene otro origen que la
-     persona. Si eso no cabe en las columnas actuales de `invoices`, se suma al costo de migración del §3.
+   - **Rastro:** el monto no tiene otro origen que la persona, así que `exc0674_facturas` guarda quién lo
+     tecleó (`tecleado_por`, el usuario de la sesión) y cuándo (`confirmado_at`) (§8.1).
    - Quién teclea el monto: el rol de Embarques, `accounting` o `admin` (pregunta 4, EXC-0674).
 
 3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?** — **DECIDIDO por Sam (2026-11-18, por
@@ -216,8 +234,8 @@ cliente admin desde una action.
    - El botón crea la factura **real y emitida en USD**, no un borrador. Va por cliente dentro del
      contenedor y con el monto que escribe la oficina.
    - La pre-factura («valor sin facturar») es otra cosa: existe antes de montar el Excel y no se factura.
-   - Lo que esto dispara y sus riesgos están en el §3.1. El gate legal AUT-04 bloquea hoy esta emisión, y
-     hace falta que Sam decida.
+   - Lo que esto dispara está en el §3.1. El gate legal AUT-04 se resuelve con la excepción explícita que
+     eligió Sam (§3.1 a).
    - **DECIDIDO por Sam (2026-11-18, «Sí, las tres»):**
      - **El monto tecleado es el total con IVA.** La base y el IVA se derivan con la tasa de IVA del
        tenant: `base = round(total / (1 + iva/100), 2)` e `iva = total − base`, así que `base + iva` da
@@ -245,17 +263,13 @@ cliente admin desde una action.
    - **Cómo se lee y escribe.** Con su sesión, `operations` no puede leer ni escribir `invoices` (RLS 0414
      y 0407), y la excepción **no** abre esas policies. Lo hace una RPC `security definer` acotada:
      - verifica el rol, el tenant y que el contenedor esté en la lista;
-     - para el modo contenedor completo, devuelve solo lo que necesita la confirmación: los clientes que
-       ya tienen factura de esta regla y su monto;
-     - y es la que crea y emite la factura.
+     - es la que crea y emite la factura.
 
-     No se usa el cliente admin desde una action.
-   - **Inventario SDD-0357.** La lectura nueva entra en `scripts/__tests__/invoice-read-boundary.test.mjs`
-     con un comentario de contrato que nombra EXC-0674: candado de rol y tenant, la lista transitoria y
-     para qué se usa. El inventario congela las llamadas que **existen en el código**, así que la entrada
-     se agrega en la PR de implementación, junto con la llamada. Agregarla hoy pondría la prueba en rojo.
-     Si la lectura pasa por la RPC y no por un `.from("invoices")` literal, el comentario lo dice y la
-     prueba de la frontera agrega la RPC a su lista.
+     Lo ya facturado se lee del rastro `exc0674_facturas`, con RLS para los tres roles, y no de
+     `invoices`. No se usa el cliente admin desde una action.
+   - **Inventario SDD-0357.** Va como nota EXC-0674 en `scripts/__tests__/invoice-read-boundary.test.mjs`,
+     con +0 llamadas literales: la RPC, el rastro y la vista de la 0574 (§3.1 c). Si una versión futura
+     lee `invoices` con un literal, entra ahí con su número.
    - **Cierre:** cuando se vacía la lista transitoria, la excepción deja de aplicar. Se retira en la misma
      PR que cierre la regla.
 
@@ -284,11 +298,15 @@ cliente admin desde una action.
   spec, salvo que cambie la regla de lectura del portal (§3).
 - **0549, 0552, 0553 y 0556.** Lecturas del portal por principal y tenant, y facturas anuladas fuera. Si
   cambia qué ve el cliente, se tocan sus lecturas y sus pruebas de frontera.
-- **0357.** La frontera de lecturas de `invoices`. La lectura nueva entra en el inventario con el
-  nombre de la excepción EXC-0674 (§4, pregunta 4), en la PR de implementación.
+- **0357.** La frontera de lecturas de `invoices`. La nota EXC-0674 del inventario dice por dónde llega
+  cada rol (§3.1 c).
+- **0040 / 0497.** El asiento atómico y su guarda i3. La RPC los usa dentro de su transacción.
+- **0466.** El sello del titular al emitir.
+- **0197 / 0494.** El crédito del referidor en la primera factura emitida.
+- **0294.** `append_audit_event` para el evento con `legal_ack`.
 - **0054 / AUT-04.** Gate legal al emitir una factura DDP.
 - **0574 / 0571.** Flujo definitivo, embarques sin facturar y tarifa congelada. Este botón no los
-  reemplaza.
+  reemplaza. El reporte de la 0574 reconoce los envíos cubiertos por esta regla (§3.1 c).
 
 ## 6. Fuera de alcance
 
@@ -300,43 +318,212 @@ cliente admin desde una action.
 
 1. En `/studio/embarques`, el botón «Facturar» (por cliente) y «Facturar contenedor» aparecen **solo** en
    el contenedor 64 (lista transitoria) y **solo** para el rol de Embarques (`operations`), `accounting` y
-   `admin` (EXC-0674). Para `commercial` y los demás roles no se lee ni se envía ningún monto, con una
-   prueba de servidor por rol, como en la 0661. La franja y el detalle de la 0661 no cambian.
-2. El monto lo teclea la persona. El servidor rechaza vacío, cero, negativo, más de dos decimales y
-   cualquier moneda que no sea USD.
-3. La doble confirmación es del mismo usuario:
-   - la segunda pantalla muestra el monto grande, las cajas y el CBM de cada cliente;
-   - avisa que va al portal del cliente y a contabilidad;
-   - sin «Confirmado» no se escribe nada.
-4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque vigente
-   (`shipmentCode` en cada línea, como en la carga de consolidados). Correlativo, emisión, titular y asiento
-   van en una transacción, con su rastro: quién tecleó el monto, quién confirmó y cuándo.
-   *Límite medido en la implementación:* la 0574 reconoce una factura solo por su `shipment_id` (el primer
-   embarque) y su Shipping Mark, que es el del aliado raíz cuando lo hay. Los demás embarques del cliente
-   seguirían en «Embarques sin facturar». Con la carga de consolidados pasa lo mismo. Arreglarlo es cambiar
-   la regla de la 0574 (Reportes, accounting), así que queda **fuera de esta PR** y se propone aparte.
-5. Un cliente del contenedor que ya tiene una factura viva de esta regla no se factura dos veces.
-6. El gate legal AUT-04 se resuelve según la decisión de Sam del §3.1 (a). No se salta en silencio.
-7. Las pruebas cubren: servidor por rol, validación del monto, doble confirmación, factura por cliente con
-   sus líneas, no duplicar, la frontera SDD-0357 y el render; además se pasa `/ui-check`.
+   `admin` (EXC-0674). A `commercial`, `warehouse`, `support` y `marketing` no se les lee ni se les envía
+   ningún monto. Lo prueba el servidor por rol, como en la 0661. La franja y el detalle de la 0661 no
+   cambian.
+2. El monto lo teclea la persona como total con IVA. El servidor rechaza un monto vacío, en cero, negativo,
+   con más de dos decimales o en una moneda que no sea USD. Lo rechazan la acción y la RPC.
+3. Confirmación, siempre del mismo usuario:
+   - **por cliente:** una pantalla con el monto grande, las cajas y el CBM, y el aviso de que va al
+     portal del cliente y a contabilidad;
+   - **contenedor completo:** dos pantallas seguidas, «Sí, los datos están bien» y «Confirmado»;
+   - sin «Confirmado» no se escribe nada. La RPC exige el texto exacto.
+4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque vigente y
+   `shipmentCode` en cada línea. Todo va en una transacción, con su rastro (quién tecleó el monto y
+   cuándo):
+   - el correlativo, con lock por tenant;
+   - la emisión;
+   - el titular;
+   - el asiento, que tiene que quedar `posted` o `already_posted`;
+   - el vínculo con los envíos;
+   - el evento de auditoría.
+5. Un cliente del contenedor se factura **una sola vez** por esta regla. Lo garantizan:
+   - la marca de la regla, que es la fila de `exc0674_facturas`;
+   - su índice único (tenant, contenedor, cliente);
+   - el lock por (tenant, contenedor, cliente).
 
-8. La lectura nueva queda registrada en el inventario SDD-0357 como EXC-0674, en la misma PR que la
-   implementa.
+   Un doble clic o dos pestañas no crean dos facturas.
+6. El gate legal AUT-04 no se consulta para la lista, y cada factura queda auditada con
+   `legal_ack = 'exc_0674'`. Fuera de la lista, el gate sigue en bloqueo duro.
+7. Con aliado raíz, la factura sale a nombre del aliado. `base + iva = total` exacto.
+8. El reporte «Embarques sin facturar» (0574) deja de mostrar todos los embarques cubiertos por una
+   factura de esta regla, también con aliado raíz. Si la factura se anula, vuelven a aparecer.
+9. La lista transitoria **solo cambia por migración o por una operación auditada con el OK nominal de
+   Sam**. No hay interfaz ni RLS de escritura para ningún rol del Studio. Cada alta o baja deja un evento
+   con su motivo. Hay prueba.
+10. El correo `invoice_emitted` sale después del commit, por Mailing y respetando sus reglas. El cliente
+    admin solo se usa para el correo.
+11. Pruebas, en estos niveles:
+    - contrato SQL: rechazos, todo o nada, asiento no `posted`, reparto, aliado raíz, no duplicar,
+      privilegios, RLS, la lista sin escritura, el vínculo y la vista;
+    - carrera: dos facturaciones simultáneas del mismo tenant;
+    - migración: firma, `security definer`, `search_path` y grants congelados;
+    - servidor: por rol y la acción;
+    - render, la 0574 y la frontera SDD-0357;
+    - `/ui-check`.
 
-9. Con aliado raíz, la factura sale a nombre del aliado. El monto tecleado es el total con IVA, y
-   `base + iva = total` exacto.
-10. Las facturas de la lista no pasan por el gate AUT-04 y quedan auditadas como `exc_0674`. Fuera de la
-    lista el gate sigue en bloqueo duro.
+### 7.1 Allowlist exacta (archivos que esta PR puede tocar)
 
-Sam aprobó las tres decisiones del §3.1 y el §4 el 2026-11-18, en el chat del DG: «Sí, las tres».
+- `docs/specs/0674-boton-facturar-embarques/spec.md` · `docs/specs/README.md` (índice generado)
+- `.agents/handoffs/sdd-0674-boton-facturar-embarques.md`
+- `supabase/migrations/0564_exc0674_facturar_contenedor.sql`
+- `supabase/desarmes/0564_desarme.sql`
+- `supabase/tests/0564_exc0674_facturar_contenedor.test.sql`
+- `supabase/tests/0564_exc0674_facturar_contenedor_carrera.test.sql`
+- `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json`
+- `lib/studio/exc0674.ts` · `lib/studio/exc0674-queries.ts`
+- `lib/studio/__tests__/exc0674.test.ts` · `lib/studio/__tests__/exc0674.migration.test.ts`
+- `lib/studio/rate-snapshots/sin-facturar.ts` · `lib/studio/rate-snapshots/__tests__/sin-facturar-exc0674.test.ts`
+- `app/studio/(app)/embarques/page.tsx` · `app/studio/(app)/embarques/facturar-actions.ts`
+- `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
+- `app/studio/(app)/embarques/_components/FacturarContenedor.tsx`
+- `app/studio/(app)/embarques/__tests__/page-exc0674-por-rol.test.ts`
+- `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.facturar.test.tsx`
+- `scripts/__tests__/invoice-read-boundary.test.mjs` (solo la nota EXC-0674, +0 llamadas)
 
-**Migración 0564** (número asignado por el DG). Incluye:
-- la lista transitoria en configuración;
-- la RPC transaccional, que hace en una sola transacción el correlativo, el insert ya emitido, el
-  titular, el asiento contable y el audit.
+### 7.2 Clasificación de gobernanza (AGENT-BRIEF: acción, permanencia, auditoría)
 
-Se implementa en el worktree y no se aplica en producción ni en staging.
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| SGE-00.01 predecible | excepción | Las etiquetas «Facturar» y «Confirmado» son las palabras de Sam. El resultado (emitir una factura real) está escrito en la pantalla antes de ejecutar. |
+| SGE-00.02 sin pérdida silenciosa | cumplimiento | Los montos tecleados quedan en el campo si se oprime «Volver» o si la base rechaza. El error queda en el diálogo. |
+| SGE-00.03 riesgo → fricción | excepción (ver MP-01) | Emitir una factura es R3. Hay consecuencia visible y doble confirmación, sin motivo tecleado. |
+| SGE-00.04 auditoría | cumplimiento | `append_audit_event` va en la misma transacción. El rastro `exc0674_facturas` y la auditoría d2 de `invoices` quedan además. |
+| SGE-00.05 permisos y tenant | cumplimiento | Rol, tenant y lista se comprueban en la acción, en la RPC y en la RLS. Hay pruebas negativas por rol, tenant ajeno y contenedor fuera de la lista. |
+| SGE-00.06 prevenir errores | cumplimiento | El monto se valida antes de abrir la confirmación, y la acción y la RPC lo vuelven a validar. |
+| SGE-00.07 estado verdadero | cumplimiento | «Emitiendo…» con `aria-busy` y botones bloqueados. El éxito se anuncia solo después de la RPC. El doble clic no duplica (§7, punto 5). |
+| SGE-00.08 frecuencia | no aplica | Es una operación transitoria y rara (un contenedor). |
+| SGE-00.09 patrón | excepción | `ConfirmDialog` solo admite un mensaje de texto, y la confirmación necesita la lista de clientes con montos. Se usa `useDialogA11y`, la misma base de foco y Esc. Si se repite, se propone una variante de `ConfirmDialog`. |
+| SGE-00.10 accesible | cumplimiento | `role=dialog`, `aria-modal`, foco inicial en «Volver», Esc, una etiqueta por campo de monto y error con `role=alert`. |
+| SGE-00.11 lenguaje | cumplimiento | La consecuencia («va al portal del cliente y a la contabilidad») queda escrita, y cada error dice qué pasó y que no se emitió nada. |
+| SGE-00.12 IA | no aplica | No hay IA. |
+| MP-01 | cumplimiento con excepción | Permanencia P3: la factura se corrige anulándola en Facturación. Fricción R3 sin motivo obligatorio: excepción de Sam (2026-11-18). La mitigan los datos visibles, la doble confirmación, el motivo fijo de la regla en el audit y que solo aplica a la lista. Responsable: Sam. Vence cuando se vacíe la lista o el 2027-01-31, lo que pase primero. |
+| BTN-01 | cumplimiento con excepción | Excepción de vocabulario: Sam pidió «Facturar» y «Confirmado» en lugar de «Emitir factura» y «Confirmar». Se cumple el resto: «Volver» sale de la interacción a la izquierda, la primaria va a la derecha, `type="button"`, «Emitiendo…» con `aria-busy` e idempotencia en el servidor (§9 de BTN-01). El botón se oculta, en vez de deshabilitarse, para los roles sin permiso. Contrato `GovernedAction` en el §8.7. |
+| AUD-01 | cumplimiento | La mutación y el evento son una sola operación, porque si el evento falla, no se factura. El actor es `user` con el id de la sesión. Lleva el motivo de la regla, `source = rpc` y `result = succeeded`. Las altas y bajas de la lista quedan auditadas con motivo obligatorio. |
+| AUD-02 | no aplica | No hay consulta, exportación ni lectura del log nueva. El evento sigue la conservación y el acceso que ya existen. |
 
-## 8. Evidencia
+## 8. Contrato de implementación (migración 0564)
+
+### 8.1 Objetos
+
+- **`exc0674_contenedores`** (tenant, consolidación): la lista transitoria.
+  - Nace vacía.
+  - Tiene RLS de SELECT para operations, accounting y admin de su tenant.
+  - **Sin** INSERT, UPDATE ni DELETE para `authenticated`. Solo la cambian una migración o una operación
+    con `service_role` y el OK nominal de Sam.
+  - Un trigger escribe un evento de auditoría (entidad `consolidation`, `exc0674_lista_alta` o
+    `exc0674_lista_baja`) y **exige** un motivo en `dtd.audit_reason`. Sin motivo, la operación falla.
+- **`exc0674_facturas`**: la **marca de la regla**. Una fila por cliente del contenedor facturado, con
+  factura, código, total tecleado, `tecleado_por` (el usuario de la sesión), `confirmado_at`, titular y
+  `legal_ack = 'exc_0674'`.
+  - Tiene índice único (tenant, contenedor, cliente) y `invoice_id` único.
+  - RLS de SELECT para los tres roles, sin escritura para `authenticated`.
+- **`exc0674_factura_envios`**: el vínculo factura ↔ envío ↔ Shipping Mark del cliente real. Una fila por
+  embarque cubierto, con unique (factura, envío). Tiene la misma RLS.
+- **`exc0674_envios_cubiertos`**: vista `security_invoker` que une el vínculo con la factura viva y su
+  estado. La lee el reporte de la 0574, y la RLS de `invoices` (0414) decide quién ve filas.
+- **`exc0674_facturar(p_consolidation_id uuid, p_montos jsonb, p_confirmacion text)`**:
+  - `security definer` con `search_path` vacío;
+  - EXECUTE solo para `authenticated`; ni `anon` ni `service_role`.
+
+### 8.2 Orden dentro de la transacción (todo o nada)
+
+1. Sesión, rol (`operations`, `accounting` o `admin`), `p_confirmacion = 'Confirmado'` y forma de
+   `p_montos` (1 a 500 clientes, sin repetidos).
+2. El contenedor está vivo, es del tenant y está en la lista. Si no, rechaza.
+3. **Lock de numeración por tenant:** `pg_advisory_xact_lock` con la llave
+   `exc0674:numeracion:<tenant>`.
+4. **Orden de bloqueo por cliente:** los clientes se ordenan por Shipping Mark y se toma
+   `pg_advisory_xact_lock` por (tenant, contenedor, cliente) en ese orden. Dos llamadas con clientes
+   cruzados no se bloquean entre sí.
+5. Por cada cliente:
+   - valida el monto (> 0, dos decimales, < 10¹²);
+   - comprueba que no esté facturado;
+   - toma sus embarques vigentes en el contenedor (la asignación más reciente);
+   - resuelve el aliado raíz;
+   - deriva la base y el IVA (16 % si `tenants.iva_enabled`, si no 0, como la carga);
+   - reparte las líneas por CBM;
+   - pide el correlativo e inserta la factura `emitida`;
+   - pasa el asiento, que tiene que quedar `posted` o `already_posted`;
+   - escribe el vínculo con cada envío, la marca y el evento de auditoría.
+6. Si algo falla en cualquier cliente, no queda nada de ninguno.
+
+### 8.3 Campos de la factura
+
+- `currency = 'USD'`;
+- `status = 'emitida'`;
+- `issued_at` = hoy en Caracas;
+- `due_date` = +30 días;
+- `fund_class = 'third_party'`, porque es un servicio DDP: `deriveFundClass` da `third_party` a todo
+  envío que no sea `transporte_terrestre`;
+- `shipment_id` y `shipment_code` = el primer embarque por código;
+- `lines` = una por embarque vigente (`Flete DDP · <código> · <m³> · contenedor <ref>`, qty 1, precio
+  repartido por CBM, `shipmentCode`);
+- `notes` = `EXC-0674 · contenedor … · cliente … · embarques: …`, más «facturado al aliado raíz» cuando
+  aplica.
+
+### 8.4 Lo que la RPC no hace
+
+- No consulta el gate AUT-04 (excepción de Sam).
+- No baja `LEGAL_GATE_HARD_BLOCK`.
+- No abre la RLS de `invoices`.
+- No manda correo: lo manda la acción, después del commit.
+
+### 8.5 Degradación sin la 0564
+
+Embarques no pinta el botón. El reporte de la 0574 queda como hoy. Está declarado en
+`pending-migration-symbol-declarations.json`.
+
+### 8.6 Pruebas de base
+
+- **Contrato SQL** (`supabase/tests/0564_….test.sql`, en CI por `sql-tests.yml`). Cubre §7, puntos 2 a
+  9, incluido el asiento `not_posted` que deshace todo.
+- **Carrera** (`0564_…_carrera.test.sql`, con dblink). Dos facturaciones del mismo tenant a la vez: la
+  segunda espera el lock de numeración y sale con otro correlativo. Además, dos facturaciones del mismo
+  cliente: una gana y la otra recibe `ya_facturado`.
+- **Migración** (`lib/studio/__tests__/exc0674.migration.test.ts`). Congela el texto de la firma, el
+  `security definer`, el `search_path` vacío y los grants de la RPC; el `security_invoker` de la vista; y
+  que no haya policies de escritura en las tablas.
+
+### 8.7 Contrato de la acción (BTN-01 §8)
+
+| Campo | Por cliente | Contenedor completo |
+|---|---|---|
+| actionKey | `shipments.exc0674.facturar_cliente` | `shipments.exc0674.facturar_contenedor` |
+| verb / outcome | Facturar / se emite 1 factura real en USD | Facturar contenedor / se emiten N facturas reales en USD |
+| role / risk | primary / critical | primary / critical |
+| permanence / friction | P3 / R3 (excepción de motivo, §7.2) | P3 / R3 (excepción de motivo, §7.2) |
+| permission | operations, accounting, admin + contenedor en la lista | igual |
+| preconditions | monto válido; cliente sin factura de esta regla | todos los pendientes con monto válido |
+| buttonType | button | button |
+| idle / loading / success | Facturar / Emitiendo… / «Factura F-… emitida.» | Facturar contenedor / Emitiendo… / «N facturas emitidas.» |
+| errorRecovery | el error queda en el diálogo; no se emitió nada; corregir o volver | igual |
+| audit | sí: `invoice_emitted_exc0674` | sí, uno por factura |
+| afterSuccess | refresh-context (la fila muestra «Facturada F-…») | refresh-context |
+| undo | no: se anula en Facturación | no |
+
+## 9. Respuesta a la revisión independiente (`a166d07fe`)
+
+| # | Bloqueante | Dónde quedó |
+|---|---|---|
+| 1 | Numeración sin lock | §2.2, §3.1 b, §8.2 paso 3 y la prueba de carrera del §8.6 |
+| 2 | 0574 sin resolver | §3.1 c, `exc0674_factura_envios` y la vista (§8.1), §7 punto 8 y la allowlist con `sin-facturar.ts` |
+| 3 | Asiento que no lanza | §3.1 b, §8.2 paso 5 y la prueba del contrato SQL |
+| 4 | Duplicados y doble clic | marca = `exc0674_facturas` con índice único y locks (§8.1, §8.2 paso 4, §7 punto 5) |
+| 5 | Lista transitoria | §8.1: sin escritura para el Studio, solo migración u operación auditada con motivo, y prueba (§7 punto 9) |
+| 6 | Correo | §3.1 b y §7 punto 10: después del commit, por Mailing; el cliente admin solo para el correo |
+| 7 | Allowlist y clasificación | §7.1 y §7.2, más el contrato de la acción en el §8.7 |
+
+Los no bloqueantes también quedaron atendidos:
+- lectura de `operations` por la RPC, con la prueba de migración del §8.6;
+- texto viejo de los §3, §3.1 y §4 actualizado;
+- `legal_ack` en `entity_audit_log` (§3.1 a) y contenedor fuera de la lista rechazado en el servidor;
+- `tecleado_por`;
+- todo o nada con orden de bloqueo (§8.2);
+- `fund_class` (§8.3);
+- `related` ampliado.
+
+## 10. Evidencia
 
 Se registra en `.agents/handoffs/sdd-0674-boton-facturar-embarques.md`.
