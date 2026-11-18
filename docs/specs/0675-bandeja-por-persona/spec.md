@@ -72,7 +72,10 @@ lo hace.
    deja de contar y la siguiente pasada del cron diario lo da de baja. **Si esa lectura falla** (revisión
    de la #686): las bajas por `desactivado` y `fuera_del_tenant` se aplican igual; las de `sin_bandeja`
    esperan (`sinBandejaEnEspera`), la matriz no corre (sacaría de sus bandejas a quien entra por un extra) y
-   la salud levanta la alerta `accesos_no_leidos`, que el cron le avisa a los admins.
+   la salud levanta la alerta `accesos_no_leidos`, que el cron le avisa a los admins. **Si falla la de los
+   miembros (`user_tenants`) o la de los desvíos por rol** (re-revisión de la #686; absorbe la SDD-0677): no
+   se aplica ninguna baja ni la matriz (`sinEstado`), porque un mapa vacío daría a todos por
+   `fuera_del_tenant`, y la salud levanta `miembros_no_leidos`.
 3. **F3. Bandejas por acceso adicional.** `AgenteMatriz` suma `porAcceso: boolean`: verdadero cuando la
    Bandeja le llega por acceso adicional y no por rol. `destinosDe` queda así:
    - `admin` → Clientes y Leads (igual que hoy);

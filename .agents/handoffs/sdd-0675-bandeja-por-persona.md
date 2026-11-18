@@ -57,9 +57,23 @@ Evidencia, con turno de PC (2026-11-18):
 - Vitest de 9 archivos (los 8 de antes más `AccesoPanel.test.tsx`): **PASÓ**, 208 de 208.
 - `AgentesBandeja` y `UserDetailDrawer`: **PASÓ**, 13 de 13.
 - ESLint de los 20 archivos `.ts`/`.tsx` del diff: **PASÓ**.
-- `tsc --noEmit`: **FALLÓ** solo en `next.config.ts:226` (`agentRules`). Ese archivo es idéntico al de main, no
-  es de esta tarea y no hay ningún error en los archivos de la tarea.
+- `tsc --noEmit`: falló solo en `next.config.ts:226` (`agentRules`). **Corrección:** la causa era el
+  `node_modules` viejo de este worktree (next 16.2.11 contra 16.4.6 del lockfile), no el código. Se reinstaló
+  con `pnpm install --frozen-lockfile` y se repitió más abajo.
 - No se leyeron ni escribieron datos de producción.
+
+### Re-revisión de 714e9cf24 (bloqueante y un punto nuevo)
+
+- `agentes-usuario.test.ts` esperaba `undefined`; ahora espera `false`. Se suman pruebas directas de
+  `quedoAlDia`, una por cada causa de «pendiente».
+- **Absorbe la SDD-0677** (decisión del DG). Si falla la lectura de `user_tenants` o de
+  `studio_role_module_overrides`, el ciclo no aplica ninguna baja ni la matriz y devuelve `sinEstado`. Levanta la
+  alerta `miembros_no_leidos` (código fijo, sin PII). Antes, un mapa vacío habría dado de baja a todos como
+  `fuera_del_tenant`. Las pruebas usan dobles que devuelven un error real y un control con el estado leído.
+- El ensayo del desarme sin accesos revisa los 8 módulos de la 0538.
+
+Evidencia, con turno de PC y `node_modules` reinstalado (next 16.4.6):
+- Vitest de 11 archivos (los 9 de antes, más `agentes-usuario` y `AgentesBandeja`): **PASÓ**, 236 de 236.
 
 ## Pendiente de esta tarea
 

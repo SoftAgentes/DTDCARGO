@@ -40,7 +40,7 @@ export async function sincronizarAgenteDeUsuario(userId: string): Promise<boolea
 
 /** ¿La corrida dejó a Chatwoot como dice Studio? Puro, para probarlo sin red. */
 export function quedoAlDia(r: Awaited<ReturnType<typeof sincronizarAgentes>>): boolean {
-  if (r.omitido) return false;
+  if (r.omitido || r.sinEstado) return false;
   if (r.fallidas > 0 || r.bloqueadas > 0 || r.cierresPendientes > 0) return false;
   if ((r.sinBandejaEnEspera ?? 0) > 0) return false;
   if (!r.matriz || r.matriz.fallidas > 0 || r.matriz.bloqueadas > 0) return false;

@@ -70,6 +70,12 @@ export interface ResultadoSincronizacion {
    * accesos adicionales. Las de «desactivado» y «fuera_del_tenant» sí se aplican.
    */
   sinBandejaEnEspera?: number;
+  /**
+   * SDD-0675 (absorbe la SDD-0677): no se pudieron leer los miembros
+   * (`user_tenants`) o los desvíos por rol. Sin eso todos parecerían fuera del
+   * tenant o con los permisos por defecto: no se aplica ninguna baja ni la matriz.
+   */
+  sinEstado?: true;
 }
 
 type FilaVinculo = { user_id: string; chatwoot_user_id: number };
@@ -82,11 +88,15 @@ type FilaOverride = { role: string; module_id: string; can_view: boolean; can_ed
  * `canAccessModule` en la pantalla. Si esa lectura falla, `accesosLeidos` es
  * false: el ciclo aplica igual las bajas que no dependen del acceso
  * (desactivado, fuera del tenant) y deja en espera las «sin_bandeja».
+ *
+ * Si falla la lectura de los miembros o de los desvíos por rol, `estadoLeido`
+ * es false: un mapa vacío haría que todos parecieran «fuera_del_tenant» (baja
+ * masiva) y sin desvíos se decidiría con los permisos por defecto.
  */
 async function estadoEnStudio(
   ctx: ContextoAgentes,
-): Promise<{ mapa: Map<string, EstadoMiembroStudio>; accesosLeidos: boolean }> {
-  const [{ data: miembros }, { data: overridesFilas }, accesos] = await Promise.all([
+): Promise<{ mapa: Map<string, EstadoMiembroStudio>; accesosLeidos: boolean; estadoLeido: boolean }> {
+  const [{ data: miembros, error: errorMiembros }, { data: overridesFilas, error: errorOverrides }, accesos] = await Promise.all([
     ctx.admin.from("user_tenants").select("user_id, role, disabled_at").eq("tenant_id", ctx.tenantId),
     ctx.admin.from("studio_role_module_overrides").select("role, module_id, can_view, can_edit").eq("tenant_id", ctx.tenantId),
     ctx.admin
@@ -95,6 +105,12 @@ async function estadoEnStudio(
       .eq("tenant_id", ctx.tenantId)
       .eq("module_id", "bandeja"),
   ]);
+  const estadoLeido = !errorMiembros && !errorOverrides;
+  if (!estadoLeido) {
+    console.warn(
+      `[chatwoot-agentes] estado de Studio no disponible: miembros ${errorMiembros?.code ?? "ok"}, desvíos ${errorOverrides?.code ?? "ok"}`,
+    );
+  }
   const accesosLeidos = !accesos.error;
   if (accesos.error) {
     console.warn(`[chatwoot-agentes] accesos por persona no disponibles: ${accesos.error.code ?? "sin código"}`);
@@ -117,7 +133,7 @@ async function estadoEnStudio(
       porAcceso: conAcceso && !porRol,
     });
   }
-  return { mapa, accesosLeidos };
+  return { mapa, accesosLeidos, estadoLeido };
 }
 
 export async function sincronizarAgentes(
@@ -143,7 +159,10 @@ export async function sincronizarAgentes(
     userId: f.user_id,
     chatwootUserId: f.chatwoot_user_id,
   }));
-  const [{ mapa: estado, accesosLeidos }, cuenta] = await Promise.all([estadoEnStudio(ctx), listarMiembrosCuenta(ctx.cfg)]);
+  const [{ mapa: estado, accesosLeidos, estadoLeido }, cuenta] = await Promise.all([
+    estadoEnStudio(ctx),
+    listarMiembrosCuenta(ctx.cfg),
+  ]);
   let miembrosCuenta: MiembroCuenta[] = cuenta.ok ? [...cuenta.data] : [];
   const quedan: VinculoAgente[] = [];
   let bajas = 0;
@@ -153,6 +172,11 @@ export async function sincronizarAgentes(
   let sinBandejaEnEspera = 0;
 
   for (const v of vinculos) {
+    // Sin el estado de Studio no se decide ninguna baja: todos se quedan.
+    if (!estadoLeido) {
+      quedan.push(v);
+      continue;
+    }
     const motivo = decidirBaja(estado.get(v.userId));
     if (motivo === null) {
       quedan.push(v);
@@ -216,7 +240,8 @@ export async function sincronizarAgentes(
 
   let matriz: ResultadoMatriz | undefined;
   // Sin los accesos, la matriz sacaría de sus bandejas a quien entra por un extra: espera.
-  if (cuenta.ok && accesosLeidos) {
+  // Ni sin el estado de Studio: degradaría roles con datos incompletos.
+  if (cuenta.ok && accesosLeidos && estadoLeido) {
     const agentes = await agentesDeLaMatriz(ctx, opciones.soloUsuario ? null : quedan, estado);
     if (agentes) {
       matriz = await aplicarMatriz(ctx, agentes, miembrosCuenta);
@@ -233,7 +258,8 @@ export async function sincronizarAgentes(
   if (cierresPendientes > 0) salud.alertas.push("cierre_pendiente");
   if (matriz && matriz.bloqueadas > 0) salud.alertas.push("degradacion_bloqueada");
   if (matriz && matriz.fallidas > 0) salud.alertas.push("matriz_incompleta");
-  if (!accesosLeidos) salud.alertas.push("accesos_no_leidos");
+  if (!estadoLeido) salud.alertas.push("miembros_no_leidos");
+  else if (!accesosLeidos) salud.alertas.push("accesos_no_leidos");
   const resumenMatriz = matriz
     ? { roles: matriz.roles, bloqueadas: matriz.bloqueadas, bandejas: matriz.bandejas, equipos: matriz.equipos, fallidas: matriz.fallidas }
     : undefined;
@@ -245,7 +271,8 @@ export async function sincronizarAgentes(
     cierresPendientes,
     matriz: resumenMatriz,
     salud,
-    ...(accesosLeidos ? {} : { sinBandejaEnEspera }),
+    ...(accesosLeidos || !estadoLeido ? {} : { sinBandejaEnEspera }),
+    ...(estadoLeido ? {} : { sinEstado: true as const }),
   };
 }
 
@@ -288,6 +315,7 @@ const TEXTO_ALERTA: Record<AlertaSalud, string> = {
   degradacion_bloqueada: "un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador",
   matriz_incompleta: "no se pudieron aplicar todos los permisos de la matriz",
   accesos_no_leidos: "no se pudieron leer los accesos adicionales de la Bandeja",
+  miembros_no_leidos: "no se pudieron leer los usuarios o los permisos por rol del Studio",
   webhook_falta: "falta el webhook de cuenta hacia el Studio",
   webhook_sin_mensajes: "el webhook de cuenta no recibe los mensajes",
   webhook_sin_ip_publica: "el webhook de cuenta apunta a un servidor sin IP pública",

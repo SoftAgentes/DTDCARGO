@@ -435,6 +435,44 @@ describe("sincronizarAgentes con acceso adicional de Bandeja (SDD-0675)", () => 
     expect(r.salud.alertas).toContain("accesos_no_leidos");
   });
 
+  // SDD-0675 (absorbe la SDD-0677): sin miembros o sin desvíos, ninguna baja ni matriz.
+  it.each(["user_tenants", "studio_role_module_overrides"])(
+    "si falla la lectura de %s: ninguna baja ni matriz, alerta miembros_no_leidos",
+    async (tabla) => {
+      conPepa([]);
+      // Hay bajas que con el estado leído sí se aplicarían: LUIS desactivado, PEPA sin acceso.
+      tablas.user_tenants = tablas.user_tenants.map((f) =>
+        f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+      );
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      admin = doble(tablas, { tabla });
+      const r = await sincronizarAgentes(ctx());
+      expect(r).toMatchObject({ bajas: 0, sinEstado: true });
+      expect(r.omitido).toBeUndefined();
+      expect(r.sinBandejaEnEspera).toBeUndefined();
+      expect(m.quitar).not.toHaveBeenCalled();
+      expect(m.cerrar).not.toHaveBeenCalled();
+      expect(m.matriz).not.toHaveBeenCalled();
+      expect(admin.borrados).toEqual([]);
+      expect(r.salud.alertas).toContain("miembros_no_leidos");
+      expect(r.salud.alertas).not.toContain("accesos_no_leidos");
+      // El aviso lleva solo códigos, ni ids ni correos.
+      expect(JSON.stringify(warn.mock.calls)).not.toMatch(/20000000-/);
+      warn.mockRestore();
+    },
+  );
+
+  it("control: con el estado leído, esas mismas bajas sí se aplican", async () => {
+    conPepa([]);
+    tablas.user_tenants = tablas.user_tenants.map((f) =>
+      f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+    );
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(2);
+    expect(r.sinEstado).toBeUndefined();
+    expect(r.salud.alertas).not.toContain("miembros_no_leidos");
+  });
+
   it("con los accesos leídos no hay alerta ni sinBandejaEnEspera", async () => {
     conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null }]);
     const r = await sincronizarAgentes(ctx());

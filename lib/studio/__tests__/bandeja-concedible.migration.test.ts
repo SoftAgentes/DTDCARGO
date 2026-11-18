@@ -169,7 +169,11 @@ ${DESARME}
 do $d$
 begin
   if public.studio_module_is_grantable('bandeja') then raise exception 'D1: bandeja sigue concedible'; end if;
-  if not (public.studio_module_is_grantable('kommo') and public.studio_module_is_grantable('suppliers')) then
+  if exists (
+    select 1
+    from unnest(array['kommo', 'clients', 'quotes', 'sales-orders', 'purchase-orders', 'conversaciones', 'rates', 'suppliers']) as m(id)
+    where not public.studio_module_is_grantable(m.id)
+  ) then
     raise exception 'D2: se perdió un módulo de la 0538';
   end if;
 end;
