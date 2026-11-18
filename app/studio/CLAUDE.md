@@ -598,11 +598,34 @@ donde el user podrá elegir formato VE (`12.323,50`) vs US
 
 ### Cuándo NO usar `<NumericInput>`
 
-- Inputs de date/time (usar `<input type="date">` nativo).
+- Inputs de fecha o mes (usar `<DateField>`, sección siguiente).
 - Inputs de tracking codes / MARKBOX / RIF (alfanuméricos · no son
   numéricos puros).
 - Counters de UI internos (paginación, etc.) · ahí está bien
   `<input type="number">` simple.
+
+## Fechas · usa `<DateField>` (SDD-0660)
+
+Todo campo de fecha o de mes del Studio usa
+`app/studio/_components/ui/DateField.tsx`, nunca `<input type="date">`,
+`type="month"` ni `type="datetime-local"` (cada navegador los pinta distinto).
+Lo vigila `fechas-contract.test.ts`, con la lista de pendientes congelada: al
+migrar un archivo, bórralo de la lista.
+
+- Se ve `dd/mm/aaaa` (meses `mm/aaaa`) en gris y se escribe con los números
+  seguidos; T (o H) = hoy en Caracas; + y − = un día (o un mes); Alt+↓ o el
+  icono abren el calendario. El doble clic selecciona el texto, no abre nada.
+- Al formulario viaja ISO (`AAAA-MM-DD` / `AAAA-MM`) en un oculto con el `name`:
+  validadores y server actions no cambian. `onChange` entrega ISO o `""`.
+- Fecha imposible (31/02) no se corrige sola: se explica y bloquea el envío.
+
+```tsx
+<label className="studio-label" htmlFor="pay-date">Fecha de pago</label>
+<DateField id="pay-date" name="paid_at" defaultValue={hoy} required />
+<DateField mode="month" value={period} onChange={setPeriod} aria-label="Período" />
+```
+
+Fecha y hora todavía no tiene componente (tanda 3 de la SDD-0660).
 
 ## Convenciones operativas
 
