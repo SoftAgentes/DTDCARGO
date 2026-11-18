@@ -25,6 +25,14 @@
 --   8. Un embarque reasignado después a otro contenedor no cuenta.
 --   9. Privilegios: anon y service_role no ejecutan la RPC, y authenticated no escribe las tablas.
 --      RLS: otro tenant y commercial no ven filas.
+--  10. Asiento 'already_posted' se acepta; uno 'not_posted' deshace todo.
+--  11. Auditoría: cada factura deja un evento invoice_emitted_exc0674 con legal_ack exc_0674 y el
+--      actor real. Si el evento no se puede escribir, no se factura nada.
+--  12. La lista transitoria: sin motivo (dtd.audit_reason) no se agrega ni se quita nada, no se
+--      edita, y cada alta queda auditada.
+--  13. El vínculo factura ↔ envío ↔ cliente real (para la 0574) cubre todos los embarques del cliente,
+--      con su Shipping Mark y no el del aliado. La vista es security_invoker y deja de contar una
+--      factura borrada.
 
 begin;
 
@@ -84,9 +92,19 @@ create table public.invoices (
   status text not null, issued_at date, due_date date, lines jsonb not null, notes text,
   fund_class text not null, deleted_at timestamptz, unique (tenant_id, invoice_code)
 );
-create sequence public.t_correlativo;
-create function public.next_invoice_code(p_tenant_id uuid) returns text language sql volatile
-as $$ select 'F-TEST-' || pg_catalog.nextval('public.t_correlativo')::text $$;
+-- Copia del cuerpo de la 0077 (63-83): max+1 sin lock. La carrera 0564 lo necesita así.
+create function public.next_invoice_code(p_tenant_id uuid) returns text language plpgsql volatile
+security definer set search_path = public as $$
+declare
+  v_year int := extract(year from current_date);
+  v_max int;
+begin
+  select coalesce(max((regexp_match(invoice_code, '^F-\d{4}-(\d+)$'))[1]::int), 0) + 1
+    into v_max
+    from public.invoices
+   where tenant_id = p_tenant_id and invoice_code like 'F-' || v_year || '-%';
+  return 'F-' || v_year || '-' || lpad(v_max::text, 4, '0');
+end $$;
 create table public.t_asientos (invoice_id uuid not null);
 create function public.post_invoice_journal_entry_atomic(p_tenant_id uuid, p_invoice_id uuid) returns jsonb
 language plpgsql volatile as $$
@@ -94,10 +112,37 @@ begin
   if coalesce(current_setting('test.post', true), '') = 'falla' then
     return jsonb_build_object('version', 1, 'outcome', 'not_posted', 'reason', 'sin_cuentas');
   end if;
+  if coalesce(current_setting('test.post', true), '') = 'raro' then
+    return jsonb_build_object('version', 1, 'outcome', 'otro');
+  end if;
+  if coalesce(current_setting('test.post', true), '') = 'ya' then
+    return jsonb_build_object('version', 1, 'outcome', 'already_posted', 'reason', 'already_posted');
+  end if;
   insert into public.t_asientos (invoice_id) values (p_invoice_id);
   return jsonb_build_object('version', 1, 'outcome', 'posted', 'reason', 'posted');
 end $$;
+create table public.t_audit (
+  tenant_id uuid, entity_type text, entity_id uuid, actor_type text, actor_id uuid, event_type text,
+  source text, result text, reason text, after_data jsonb
+);
+create function public.append_audit_event(
+  p_tenant_id uuid, p_entity_type text, p_entity_id uuid, p_actor_type text, p_actor_id uuid,
+  p_event_type text, p_source text, p_result text default 'succeeded', p_reason text default null,
+  p_before_data jsonb default null, p_after_data jsonb default null, p_payload jsonb default '{}'::jsonb,
+  p_correlation_id text default null, p_schema_version integer default 1, p_sensitivity text default 'internal'
+) returns uuid language plpgsql volatile as $$
+begin
+  if coalesce(current_setting('test.audit', true), '') = 'falla' then
+    raise exception 'audit: falla de prueba';
+  end if;
+  insert into public.t_audit values (p_tenant_id, p_entity_type, p_entity_id, p_actor_type, p_actor_id,
+    p_event_type, p_source, p_result, p_reason, p_after_data);
+  return gen_random_uuid();
+end $$;
 revoke all on function public.next_invoice_code(uuid), public.post_invoice_journal_entry_atomic(uuid, uuid) from public;
+revoke all on function public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text) from public;
+-- Para que la vista security_invoker lea en esta base de prueba (la réplica de invoices no tiene la RLS 0414).
+grant select on public.invoices to authenticated;
 
 \ir ../migrations/0564_exc0674_facturar_contenedor.sql
 -- 1. Aplicarla otra vez no falla.
@@ -129,6 +174,13 @@ insert into public.clients (id, tenant_id, markbox, name, aliado_id) values
   ('00000000-0000-4000-8000-0000000c0a02', '00000000-0000-4000-8000-0000000000a0', 'AR-S-0001', 'Cliente de Subaliado', '00000000-0000-4000-8000-0000000a1002'),
   ('00000000-0000-4000-8000-0000000c0a03', '00000000-0000-4000-8000-0000000000a0', 'DTD-T001', 'Cliente Directo Uno', null),
   ('00000000-0000-4000-8000-0000000c0a04', '00000000-0000-4000-8000-0000000000a0', 'DTD-T002', 'Cliente Directo Dos', null);
+-- Para la carrera (0564_…_carrera.test.sql): un cliente por escenario, cada uno con un embarque en K64,
+-- y uno del tenant B en su contenedor.
+insert into public.clients (id, tenant_id, markbox, name)
+select md5('0564-c' || n)::uuid, '00000000-0000-4000-8000-0000000000a0', 'DTD-C00' || n, 'Cliente Carrera ' || n
+  from generate_series(1, 6) as n;
+insert into public.clients (id, tenant_id, markbox, name) values
+  ('00000000-0000-4000-8000-0000000c0b01', '00000000-0000-4000-8000-0000000000b0', 'DTD-B001', 'Cliente Tenant B');
 
 -- Contenedores: K64 (en la lista), K65 (fuera de la lista), KDEL (en la lista pero borrado) y KB (tenant B).
 insert into public.consolidations values
@@ -136,10 +188,46 @@ insert into public.consolidations values
   ('00000000-0000-4000-8000-00000000c065', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-65', null),
   ('00000000-0000-4000-8000-00000000cdel', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-DEL', now()),
   ('00000000-0000-4000-8000-00000000cb64', '00000000-0000-4000-8000-0000000000b0', 'TEST-CONSOL-B', null);
+-- 12. Sin motivo no entra nada a la lista.
+do $sin_motivo$
+begin
+  begin
+    insert into public.exc0674_contenedores (tenant_id, consolidation_id)
+    values ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064');
+    raise exception 'CONTRATO 12: la lista aceptó un alta sin motivo';
+  exception when others then
+    if sqlerrm <> 'exc0674:lista_sin_motivo' then raise; end if;
+  end;
+end
+$sin_motivo$;
+select set_config('dtd.audit_reason', 'Contrato 0564: lista de prueba con OK ficticio', true);
 insert into public.exc0674_contenedores (tenant_id, consolidation_id) values
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064'),
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000cdel'),
   ('00000000-0000-4000-8000-0000000000b0', '00000000-0000-4000-8000-00000000cb64');
+
+select set_config('dtd.audit_reason', '', true);
+do $lista$
+begin
+  if (select count(*) from public.t_audit where event_type = 'exc0674_lista_alta' and entity_type = 'consolidation'
+        and reason like 'Contrato 0564%') <> 3 then
+    raise exception 'CONTRATO 12: las altas de la lista no quedaron auditadas';
+  end if;
+  begin
+    update public.exc0674_contenedores set nota = 'x';
+    raise exception 'CONTRATO 12: la lista se pudo editar';
+  exception when others then
+    if sqlerrm <> 'exc0674:lista_inmutable' then raise; end if;
+  end;
+  begin
+    delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000cdel';
+    raise exception 'CONTRATO 12: la lista aceptó una baja sin motivo';
+  exception when others then
+    if sqlerrm <> 'exc0674:lista_sin_motivo' then raise; end if;
+  end;
+  delete from public.t_audit;
+end
+$lista$;
 
 -- Embarques: AR-S-0001 tiene 3 en K64 (CBM 1, 2 y 0,5). Uno más se reasignó después al K65 y no cuenta.
 -- DTD-T001 tiene 1 en K64; DTD-T002 tiene 1 en K65.
@@ -158,6 +246,17 @@ insert into public.consolidation_items (tenant_id, consolidation_id, shipment_id
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c065', '00000000-0000-4000-8000-0000000e0004', now() - interval '1 day'),
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064', '00000000-0000-4000-8000-0000000e0005', now() - interval '2 days'),
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c065', '00000000-0000-4000-8000-0000000e0006', now() - interval '2 days');
+insert into public.shipments (id, tenant_id, code, client_markbox, volume_m3)
+select md5('0564-e' || n)::uuid, '00000000-0000-4000-8000-0000000000a0', 'DTD-C00' || n || '-01', 'DTD-C00' || n, 1
+  from generate_series(1, 6) as n;
+insert into public.consolidation_items (tenant_id, consolidation_id, shipment_id, created_at)
+select '00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064', md5('0564-e' || n)::uuid,
+       now() - interval '2 days'
+  from generate_series(1, 6) as n;
+insert into public.shipments (id, tenant_id, code, client_markbox, volume_m3) values
+  ('00000000-0000-4000-8000-0000000e0b01', '00000000-0000-4000-8000-0000000000b0', 'DTD-B001-01', 'DTD-B001', 1);
+insert into public.consolidation_items (tenant_id, consolidation_id, shipment_id, created_at) values
+  ('00000000-0000-4000-8000-0000000000b0', '00000000-0000-4000-8000-00000000cb64', '00000000-0000-4000-8000-0000000e0b01', now() - interval '2 days');
 
 -- Ayuda: llama a la RPC como un usuario y devuelve el mensaje del error (o null si no falló).
 create function public.t_intento(p_uid text, p_cons uuid, p_montos jsonb, p_conf text default 'Confirmado')
@@ -175,6 +274,8 @@ begin
   return v_err;
 end $$;
 grant execute on function public.t_intento(text, uuid, jsonb, text) to authenticated;
+
+-- ── Aserciones (aquí termina el fixture que reusa la carrera) ──
 
 -- ─── 4 y 6. Rechazos antes de facturar nada ──────────────────
 do $rechazos$
@@ -235,9 +336,20 @@ begin
   v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
   perform set_config('test.post', '', true);
   if v is distinct from 'exc0674:asiento:sin_cuentas' then raise exception 'CONTRATO 7: asiento fallido (%)', v; end if;
+  -- 10. Un outcome desconocido también deshace todo.
+  perform set_config('test.post', 'raro', true);
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  perform set_config('test.post', '', true);
+  if v is distinct from 'exc0674:asiento:desconocido' then raise exception 'CONTRATO 10: outcome raro (%)', v; end if;
+  -- 11. Si el evento de auditoría no se puede escribir, no se factura.
+  perform set_config('test.audit', 'falla', true);
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  perform set_config('test.audit', '', true);
+  if v is distinct from 'audit: falla de prueba' then raise exception 'CONTRATO 11: auditoría fallida (%)', v; end if;
   if exists (select 1 from public.invoices) or exists (select 1 from public.exc0674_facturas)
-     or exists (select 1 from public.t_asientos) then
-    raise exception 'CONTRATO 7: quedó una factura, un rastro o un asiento a medias';
+     or exists (select 1 from public.t_asientos) or exists (select 1 from public.exc0674_factura_envios)
+     or exists (select 1 from public.t_audit) then
+    raise exception 'CONTRATO 7: quedó una factura, un rastro, un vínculo, un evento o un asiento a medias';
   end if;
 end
 $todo_o_nada$;
@@ -293,18 +405,45 @@ begin
     raise exception 'CONTRATO 2: rastro incompleto';
   end if;
 
+  -- 13. El vínculo cubre los 3 embarques vigentes con el Shipping Mark del cliente real, no el del aliado.
+  if (select count(*) from public.exc0674_factura_envios
+       where invoice_id = i.id and client_markbox = 'AR-S-0001'
+         and consolidation_id = k64) <> 3
+     or exists (select 1 from public.exc0674_factura_envios where shipment_id = '00000000-0000-4000-8000-0000000e0004') then
+    raise exception 'CONTRATO 13: el vínculo factura ↔ envío no es el esperado';
+  end if;
+  if (select count(*) from public.exc0674_envios_cubiertos where client_markbox = 'AR-S-0001' and status = 'emitida') <> 3 then
+    raise exception 'CONTRATO 13: la vista no muestra los envíos cubiertos';
+  end if;
+  -- 11. Evento de auditoría con legal_ack y actor real.
+  if (select count(*) from public.t_audit
+       where entity_type = 'invoice' and entity_id = i.id and event_type = 'invoice_emitted_exc0674'
+         and actor_type = 'user' and actor_id = '00000000-0000-4000-8000-00000000a001' and source = 'rpc'
+         and after_data ->> 'legal_ack' = 'exc_0674' and reason like 'EXC-0674%') <> 1 then
+    raise exception 'CONTRATO 11: falta el evento de auditoría con legal_ack';
+  end if;
+
   -- 3. Otra vez el mismo cliente, ahora con accounting: no se factura dos veces.
   v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"AR-S-0001","total_usd":406}]');
   if v is distinct from 'exc0674:ya_facturado:AR-S-0001' then raise exception 'CONTRATO 3: (%)', v; end if;
   if (select pg_catalog.count(*) from public.invoices) <> 1 then raise exception 'CONTRATO 3: segunda factura'; end if;
 
-  -- 4. admin sí factura (cliente directo, se le factura a él mismo).
+  -- 4. admin sí factura (cliente directo, se le factura a él mismo). 10: con asiento 'already_posted'.
+  perform set_config('test.post', 'ya', true);
   v := public.t_intento('00000000-0000-4000-8000-00000000a006', k64, '[{"client_markbox":"DTD-T001","total_usd":0.01}]');
+  perform set_config('test.post', '', true);
   if v is not null then raise exception 'CONTRATO 4: admin no pudo facturar (%)', v; end if;
   select * into i from public.invoices where client_markbox = 'DTD-T001';
   if i.total_amount <> 0.01 or i.base_amount + i.iva_amount <> 0.01 then
     raise exception 'CONTRATO 2: el total mínimo no cuadra (% + %)', i.base_amount, i.iva_amount;
   end if;
+
+  -- 13. Una factura borrada sale de la vista (sus envíos vuelven a «sin facturar»).
+  update public.invoices set deleted_at = now() where id = i.id;
+  if exists (select 1 from public.exc0674_envios_cubiertos where invoice_id = i.id) then
+    raise exception 'CONTRATO 13: la vista cuenta una factura borrada';
+  end if;
+  update public.invoices set deleted_at = null where id = i.id;
 end
 $por_cliente$;
 
@@ -313,6 +452,10 @@ do $privilegios$
 declare
   n integer;
 begin
+  if not exists (select 1 from pg_catalog.pg_class c where c.oid = 'public.exc0674_envios_cubiertos'::regclass
+                   and c.reloptions @> array['security_invoker=true']) then
+    raise exception 'CONTRATO 13: la vista no es security_invoker';
+  end if;
   if pg_catalog.has_function_privilege('anon', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
      or pg_catalog.has_function_privilege('service_role', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE') then
     raise exception 'CONTRATO 9: anon o service_role ejecutan la RPC';
@@ -328,6 +471,12 @@ begin
   begin
     delete from public.exc0674_facturas;
     raise exception 'CONTRATO 9: authenticated borró el rastro';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into public.exc0674_factura_envios (tenant_id, invoice_id, shipment_id, consolidation_id, client_markbox)
+    select tenant_id, invoice_id, shipment_id, consolidation_id, 'DTD-T009' from public.exc0674_factura_envios limit 1;
+    raise exception 'CONTRATO 9: authenticated escribió el vínculo';
   exception when insufficient_privilege then null;
   end;
   select pg_catalog.count(*) into n from public.exc0674_facturas;

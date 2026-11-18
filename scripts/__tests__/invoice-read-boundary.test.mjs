@@ -105,6 +105,11 @@ const BASELINE = {
   //   · uso: al cliente cruzan, por cliente del contenedor de la lista, el
   //     código, el total tecleado y el titular. commercial/warehouse/support
   //     no reciben la prop. La franja y el detalle de la 0661 no cambian.
+  //   · 0574: `reporteSinFacturar` lee además la vista `exc0674_envios_cubiertos`
+  //     (security_invoker sobre invoices: la RLS 0414 deja ver solo a accounting
+  //     y admin) con código y estado de las facturas de esta regla por envío.
+  //     No es un literal de `invoices`; el contrato está congelado en
+  //     lib/studio/__tests__/exc0674.migration.test.ts.
   // Si una versión futura lee `invoices` para esto, entra aquí con su número.
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que

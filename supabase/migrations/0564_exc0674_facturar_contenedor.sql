@@ -26,11 +26,20 @@
 --    · La migración la deja VACÍA. El 64 se agrega aparte, con el OK de Sam, en un insert de una
 --      fila que se ejecuta después de aplicarla (ver el runbook en el handoff de la SDD-0674).
 --    · SELECT solo para authenticated de su tenant con rol operations, accounting o admin.
---    · Sin escritura para authenticated. service_role conserva acceso total.
+--    · Sin escritura para authenticated. Solo la cambia una migración o una operación con
+--      service_role y el OK nominal de Sam.
+--    · Un trigger audita cada alta y baja (entity_audit_log, entidad consolidation) y EXIGE un
+--      motivo en dtd.audit_reason: sin motivo, la operación falla.
 -- 2. public.exc0674_facturas: una fila por cliente facturado del contenedor (es el rastro).
 --    · Columnas: factura, total tecleado, quién lo tecleó, cuándo y a quién se facturó.
 --    · La llave única (tenant, contenedor, cliente) impide facturar dos veces.
 --    · Mismo SELECT que la lista y sin escritura para authenticated.
+-- 2b. public.exc0674_factura_envios: qué envíos cubre cada factura, con el Shipping Mark del cliente
+--     real del contenedor (con aliado raíz, la factura lleva el del aliado). Misma RLS y sin escritura
+--     para authenticated.
+-- 2c. public.exc0674_envios_cubiertos: vista security_invoker que une ese vínculo con la factura viva
+--     y su estado. La lee «Embarques sin facturar» (SDD-0574). La RLS 0414 de invoices decide quién ve
+--     filas: accounting y admin.
 -- 3. public.exc0674_facturar(p_consolidation_id, p_montos jsonb, p_confirmacion text):
 --    · SECURITY DEFINER con search_path vacío; EXECUTE solo para authenticated.
 --    · Recibe p_montos = [{"client_markbox": "...", "total_usd": 123.45}, …]: un elemento en el
@@ -38,14 +47,17 @@
 --    · TODO O NADA, en una transacción, y por cada cliente:
 --        - comprueba rol, tenant, contenedor en la lista, cliente con embarques vigentes en el
 --          contenedor, total > 0 con 2 decimales y que el cliente no esté facturado ya;
+--        - toma el lock de numeración del tenant (next_invoice_code calcula max+1 sin lock; lo
+--          protege solo el unique de la 0077) y un lock por cliente, en orden de Shipping Mark;
 --        - resuelve el aliado raíz (como la carga de consolidados, SDD-0543);
 --        - base = round(total / (1 + iva/100), 2), iva = total − base, con la tasa del tenant
 --          (16 % si tenants.iva_enabled, si no 0, igual que la carga);
 --        - arma una línea por embarque, con el monto repartido por CBM;
 --        - pide el correlativo next_invoice_code e inserta la factura en 'emitida';
---        - hace el asiento con post_invoice_journal_entry_atomic (si no sale 'posted', no se
---          factura nada);
---        - escribe la fila de exc0674_facturas.
+--        - hace el asiento con post_invoice_journal_entry_atomic, que NO lanza: devuelve un
+--          outcome; si no es 'posted' ni 'already_posted', no se factura nada;
+--        - escribe el vínculo con cada envío, la fila de exc0674_facturas y el evento de
+--          auditoría con legal_ack = exc_0674 (append_audit_event, en la misma transacción).
 --    · p_confirmacion tiene que ser exactamente 'Confirmado': la segunda confirmación de la
 --      pantalla también la exige la base.
 --
@@ -88,7 +100,9 @@ begin
       ('function public.current_studio_role()', pg_catalog.to_regprocedure('public.current_studio_role()') is not null),
       ('function public.next_invoice_code(uuid)', pg_catalog.to_regprocedure('public.next_invoice_code(uuid)') is not null),
       ('function public.post_invoice_journal_entry_atomic(uuid,uuid)',
-        pg_catalog.to_regprocedure('public.post_invoice_journal_entry_atomic(uuid,uuid)') is not null)
+        pg_catalog.to_regprocedure('public.post_invoice_journal_entry_atomic(uuid,uuid)') is not null),
+      ('function public.append_audit_event(…)', pg_catalog.to_regprocedure(
+        'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)') is not null)
   ) as required(object_name, present)
   where not required.present;
   if v_missing is not null then
@@ -128,6 +142,43 @@ revoke all on public.exc0674_contenedores from public, anon, authenticated;
 grant select on public.exc0674_contenedores to authenticated;
 grant all on public.exc0674_contenedores to service_role;
 
+-- Cada alta o baja de la lista queda auditada, y sin motivo no se hace (AUD-01).
+create or replace function public.exc0674_contenedores_auditar()
+returns trigger
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $function$
+declare
+  v_motivo text := nullif(pg_catalog.btrim(pg_catalog.current_setting('dtd.audit_reason', true)), '');
+  v_uid    uuid := (select auth.uid());
+  v_fila   public.exc0674_contenedores%rowtype;
+begin
+  if tg_op = 'UPDATE' then
+    raise exception 'exc0674:lista_inmutable' using errcode = '42501';
+  end if;
+  if v_motivo is null or pg_catalog.char_length(v_motivo) < 4 then
+    raise exception 'exc0674:lista_sin_motivo' using errcode = '22023';
+  end if;
+  if tg_op = 'DELETE' then v_fila := old; else v_fila := new; end if;
+  perform public.append_audit_event(
+    v_fila.tenant_id, 'consolidation', v_fila.consolidation_id,
+    case when v_uid is null then 'system' else 'user' end, v_uid,
+    case when tg_op = 'INSERT' then 'exc0674_lista_alta' else 'exc0674_lista_baja' end,
+    'rpc', 'succeeded', v_motivo, null,
+    pg_catalog.jsonb_build_object('regla', 'EXC-0674', 'operacion', pg_catalog.lower(tg_op)),
+    '{}'::jsonb, null, 1, 'internal');
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$function$;
+revoke all on function public.exc0674_contenedores_auditar() from public, anon, authenticated, service_role;
+drop trigger if exists exc0674_contenedores_auditar on public.exc0674_contenedores;
+create trigger exc0674_contenedores_auditar
+  before insert or update or delete on public.exc0674_contenedores
+  for each row execute function public.exc0674_contenedores_auditar();
+
 -- ─── 2. El rastro de cada cliente facturado ──────────────────
 create table if not exists public.exc0674_facturas (
   id               uuid primary key default gen_random_uuid(),
@@ -157,6 +208,46 @@ create policy exc0674_facturas_select on public.exc0674_facturas
 revoke all on public.exc0674_facturas from public, anon, authenticated;
 grant select on public.exc0674_facturas to authenticated;
 grant all on public.exc0674_facturas to service_role;
+
+-- ─── 2b. Qué envíos cubre cada factura ───────────────────────
+create table if not exists public.exc0674_factura_envios (
+  tenant_id        uuid not null references public.tenants(id) on delete cascade,
+  invoice_id       uuid not null references public.invoices(id) on delete restrict,
+  shipment_id      uuid not null references public.shipments(id) on delete restrict,
+  consolidation_id uuid not null references public.consolidations(id) on delete restrict,
+  client_markbox   text not null check (client_markbox = pg_catalog.upper(pg_catalog.btrim(client_markbox)) and client_markbox <> ''),
+  primary key (invoice_id, shipment_id)
+);
+create index if not exists exc0674_factura_envios_envio_idx
+  on public.exc0674_factura_envios (tenant_id, shipment_id);
+comment on table public.exc0674_factura_envios is
+  'SDD-0674 · EXC-0674: cada envío que cubre una factura de esta regla, con el Shipping Mark del cliente real del contenedor. «Embarques sin facturar» (0574) lo lee por la vista exc0674_envios_cubiertos. Solo la escribe exc0674_facturar().';
+
+alter table public.exc0674_factura_envios enable row level security;
+drop policy if exists exc0674_factura_envios_select on public.exc0674_factura_envios;
+create policy exc0674_factura_envios_select on public.exc0674_factura_envios
+  for select to authenticated
+  using (
+    tenant_id = (select public.get_user_tenant_id())
+    and (select public.current_studio_role()) in ('operations', 'accounting', 'admin')
+  );
+revoke all on public.exc0674_factura_envios from public, anon, authenticated;
+grant select on public.exc0674_factura_envios to authenticated;
+grant all on public.exc0674_factura_envios to service_role;
+
+-- ─── 2c. La vista para la 0574 ───────────────────────────────
+create or replace view public.exc0674_envios_cubiertos
+  with (security_invoker = true)
+as
+select l.tenant_id, l.shipment_id, l.client_markbox, l.invoice_id, i.invoice_code, i.status::text as status
+  from public.exc0674_factura_envios l
+  join public.invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
+ where i.deleted_at is null;
+comment on view public.exc0674_envios_cubiertos is
+  'SDD-0674 · EXC-0674: envíos cubiertos por una factura viva de esta regla, con el Shipping Mark del cliente real y el estado de la factura. security_invoker: la RLS de invoices (0414) decide quién ve filas.';
+revoke all on public.exc0674_envios_cubiertos from public, anon, authenticated;
+grant select on public.exc0674_envios_cubiertos to authenticated;
+grant select on public.exc0674_envios_cubiertos to service_role;
 
 -- ─── 3. La RPC ───────────────────────────────────────────────
 create or replace function public.exc0674_facturar(
@@ -199,6 +290,7 @@ declare
   v_nombre    text;
   v_titular   text;
   v_post      jsonb;
+  v_outcome   text;
   v_vistos    text[] := array[]::text[];
   v_salida    jsonb := '[]'::jsonb;
 begin
@@ -229,7 +321,18 @@ begin
   select coalesce(t.iva_enabled, false) into v_iva_on from public.tenants t where t.id = v_tenant;
   v_iva_rate := case when v_iva_on then 16 else 0 end;
 
-  for v_item in select * from pg_catalog.jsonb_array_elements(p_montos) loop
+  -- next_invoice_code (0077) calcula max+1 sin lock: dos llamadas simultáneas del mismo tenant
+  -- pedirían el mismo número. Esta regla factura en fila por tenant. Contra un createInvoice del
+  -- Studio que corra a la vez manda el unique (tenant_id, invoice_code) y se deshace todo.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('exc0674:numeracion:' || v_tenant::text, 0));
+
+  -- Los clientes se procesan (y se bloquean) en orden de Shipping Mark.
+  for v_item in
+    select e.value
+      from pg_catalog.jsonb_array_elements(p_montos) as e
+     order by pg_catalog.upper(pg_catalog.btrim(e.value ->> 'client_markbox')) nulls first
+  loop
     if pg_catalog.jsonb_typeof(v_item) <> 'object'
        or pg_catalog.jsonb_typeof(v_item -> 'client_markbox') <> 'string'
        or pg_catalog.jsonb_typeof(v_item -> 'total_usd') <> 'number' then
@@ -355,16 +458,47 @@ begin
     returning id, client_name, client_markbox into v_inv, v_nombre, v_titular;
 
     -- El asiento va en la misma transacción: si no sale, no se factura nada.
+    -- post_invoice_journal_entry_atomic NO lanza: devuelve outcome posted | already_posted |
+    -- not_posted (0497). Cualquier otra cosa deshace todo.
     v_post := public.post_invoice_journal_entry_atomic(v_tenant, v_inv);
-    if coalesce(v_post ->> 'outcome', '') <> 'posted' then
+    v_outcome := coalesce(v_post ->> 'outcome', '');
+    if v_outcome not in ('posted', 'already_posted') then
       raise exception 'exc0674:asiento:%', coalesce(v_post ->> 'reason', 'desconocido') using errcode = '55000';
     end if;
+
+    -- Qué envíos cubre la factura (para «Embarques sin facturar», SDD-0574).
+    with vigente as (
+      select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id
+        from public.consolidation_items ci
+       where ci.tenant_id = v_tenant and ci.shipment_id is not null
+       order by ci.shipment_id, ci.created_at desc, ci.id desc
+    )
+    insert into public.exc0674_factura_envios (tenant_id, invoice_id, shipment_id, consolidation_id, client_markbox)
+    select v_tenant, v_inv, s.id, p_consolidation_id, v_mb
+      from vigente v
+      join public.shipments s on s.id = v.shipment_id and s.tenant_id = v_tenant and s.deleted_at is null
+     where v.consolidation_id = p_consolidation_id
+       and pg_catalog.upper(pg_catalog.btrim(s.client_markbox)) = v_mb;
 
     insert into public.exc0674_facturas
       (tenant_id, consolidation_id, client_markbox, invoice_id, invoice_code, billed_markbox,
        total_usd, tecleado_por)
     values
       (v_tenant, p_consolidation_id, v_mb, v_inv, v_code, v_titular, v_total, v_uid);
+
+    -- AUD-01: el evento y la mutación son una sola operación. legal_ack = exc_0674 dice que esta
+    -- factura salió sin el gate AUT-04, por la excepción de Sam.
+    perform public.append_audit_event(
+      v_tenant, 'invoice', v_inv, 'user', v_uid, 'invoice_emitted_exc0674', 'rpc', 'succeeded',
+      'EXC-0674: factura emitida desde Embarques sin el gate AUT-04 (excepción de Sam, 2026-11-18)',
+      null,
+      pg_catalog.jsonb_build_object(
+        'invoice_code', v_code, 'status', 'emitida', 'currency', 'USD', 'total_amount', v_total,
+        'base_amount', v_base, 'iva_amount', v_iva, 'billed_markbox', v_titular,
+        'client_markbox', v_mb, 'consolidation_id', p_consolidation_id, 'consolidation_ref', v_ref,
+        'legal_ack', 'exc_0674', 'tecleado_por', v_uid, 'asiento', v_outcome),
+      pg_catalog.jsonb_build_object('regla', 'EXC-0674', 'sdd', '0674'),
+      null, 1, 'internal');
 
     v_salida := v_salida || pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
       'client_markbox', v_mb, 'invoice_id', v_inv, 'invoice_code', v_code,
@@ -411,8 +545,32 @@ begin
     raise exception '0564 postflight: anon puede leer las tablas de la EXC-0674';
   end if;
   if not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.exc0674_facturas'::pg_catalog.regclass)
-     or not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.exc0674_contenedores'::pg_catalog.regclass) then
+     or not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.exc0674_contenedores'::pg_catalog.regclass)
+     or not (select c.relrowsecurity from pg_catalog.pg_class c where c.oid = 'public.exc0674_factura_envios'::pg_catalog.regclass) then
     raise exception '0564 postflight: RLS apagada en las tablas de la EXC-0674';
+  end if;
+  if pg_catalog.has_table_privilege('authenticated', 'public.exc0674_factura_envios', 'INSERT,UPDATE,DELETE')
+     or pg_catalog.has_table_privilege('anon', 'public.exc0674_factura_envios', 'SELECT')
+     or pg_catalog.has_table_privilege('anon', 'public.exc0674_envios_cubiertos', 'SELECT') then
+    raise exception '0564 postflight: privilegios del vínculo o de la vista no son los esperados';
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_class c
+     where c.oid = 'public.exc0674_envios_cubiertos'::pg_catalog.regclass
+       and c.reloptions @> array['security_invoker=true']
+  ) then
+    raise exception '0564 postflight: la vista exc0674_envios_cubiertos no es security_invoker';
+  end if;
+  if exists (select 1 from pg_catalog.pg_policies
+              where schemaname = 'public'
+                and tablename in ('exc0674_contenedores', 'exc0674_facturas', 'exc0674_factura_envios')
+                and cmd <> 'SELECT') then
+    raise exception '0564 postflight: hay policies de escritura en las tablas de la EXC-0674';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_trigger
+                  where tgrelid = 'public.exc0674_contenedores'::pg_catalog.regclass
+                    and tgname = 'exc0674_contenedores_auditar' and not tgisinternal) then
+    raise exception '0564 postflight: falta el trigger que audita la lista';
   end if;
 end
 $postflight$;

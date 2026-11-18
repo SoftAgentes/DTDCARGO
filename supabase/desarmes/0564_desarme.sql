@@ -19,7 +19,12 @@ end
 $guarda$;
 
 drop function if exists public.exc0674_facturar(uuid, jsonb, text);
+drop view if exists public.exc0674_envios_cubiertos;
+drop table if exists public.exc0674_factura_envios;
 drop table if exists public.exc0674_facturas;
+-- La baja de la lista se audita y exige motivo: el desarme lo pone.
+select pg_catalog.set_config('dtd.audit_reason', 'Desarme 0564 (SDD-0674) con OK nominal de Sam', true);
 drop table if exists public.exc0674_contenedores;
+drop function if exists public.exc0674_contenedores_auditar();
 
 notify pgrst, 'reload schema';

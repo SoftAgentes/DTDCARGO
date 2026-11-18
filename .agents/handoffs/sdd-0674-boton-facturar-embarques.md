@@ -70,6 +70,13 @@ Spec `approved`. Migración asignada por el DG: 0564.
   - `_components/FacturarContenedor.tsx`: la interfaz y las confirmaciones.
   - `page.tsx` y `EmbarquesClient.tsx`: pasan y pintan la prop solo para operations, accounting y admin.
 - Frontera 0357: nota EXC-0674 en el inventario, con +0 llamadas a `invoices`.
+- Correcciones por la revisión, según las decisiones del DG del 2026-11-18:
+  - lock de numeración por tenant y locks por cliente ordenados;
+  - asiento `posted`/`already_posted` o se aborta;
+  - `exc0674_factura_envios`, la vista `exc0674_envios_cubiertos` y `sin-facturar.ts`, para la 0574;
+  - trigger que audita la lista y exige motivo;
+  - `append_audit_event` con `legal_ack`.
+- Pruebas nuevas por la revisión: la carrera `0564_…_carrera.test.sql`, `exc0674.migration.test.ts` y `sin-facturar-exc0674.test.ts`.
 - Pruebas nuevas:
   - `lib/studio/__tests__/exc0674.test.ts`;
   - `embarques/__tests__/page-exc0674-por-rol.test.ts`;
@@ -84,7 +91,7 @@ Spec `approved`. Migración asignada por el DG: 0564.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La regla de la 0574 reconoce una factura solo por el primer embarque y el Shipping Mark de la factura. Con aliado raíz o con varios embarques por cliente, quedan embarques en «sin facturar». Pasa igual con la carga de consolidados. Se propone en una PR aparte.
+- La 0574 sigue sin reconocer las facturas en borrador de la carga de consolidados (`lote-sql.ts`) por cada embarque. Esto es aparte de esta regla, que ya se resuelve con el vínculo.
 - Facturar de nuevo a un cliente cuya factura EXC-0674 se anuló: la llave única del rastro lo impide. Hoy haría falta service_role con OK de Sam.
 
 - La 0668 está en la PR #680, sin fusionar. Según el DG no cruza con esta spec, salvo que cambie la regla del portal.

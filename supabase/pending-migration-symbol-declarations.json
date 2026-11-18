@@ -66,6 +66,28 @@
           "degradation": "Sin la 0564 la RPC no existe y la acción devuelve un error sin emitir nada. Además no es alcanzable: el botón no se pinta sin la lista (0564-lista-y-rastro)."
         }
       ]
+    },
+    {
+      "id": "0564-reporte-sin-facturar",
+      "migration": "0564_exc0674_facturar_contenedor",
+      "primarySymbol": "exc0674_envios_cubiertos",
+      "symbols": [
+        {
+          "name": "exc0674_envios_cubiertos",
+          "kind": "view",
+          "callSites": [
+            "lib/studio/rate-snapshots/sin-facturar.ts:346",
+            "lib/studio/rate-snapshots/sin-facturar.ts:370"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/rate-snapshots/sin-facturar.ts:371",
+          "contains": "if (sinVista) {",
+          "degradation": "Sin la 0564 PostgREST responde PGRST205 (o 42P01): leerEnviosCubiertosExc0674 devuelve vacío y completo, y «Embarques sin facturar» queda como hoy. Cualquier otro error se lanza, como las demás lecturas del reporte."
+        }
+      ]
     }
   ]
 }
