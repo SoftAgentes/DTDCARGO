@@ -429,15 +429,31 @@ propia del cable) también publicada. El `cron` ya tiene `oficina-despachador` y
 | `OFICINA_ENVIO_ACTIVO` | `1` | |
 | `OFICINA_ETAPA` | sin definir | Vale 1 |
 
+`OFICINA_RUNTIME_URL` y `OFICINA_RUNTIME_TOKEN` ya están desde el Paso 0 (§3): no se tocan.
+
+**Antes de recrear:** comprobar, por nombre y sin imprimir los valores, que `OFICINA_CHATWOOT_ACCOUNT_ID` es
+**distinta** de `CHATWOOT_ACCOUNT_ID` en producción (por ejemplo, comparando los dos valores dentro de un script que solo
+imprima «iguales» o «distintas»). Si son iguales, no se sigue. El código no lo exige, porque staging usa la misma cuenta
+de prueba para las dos.
+
 Después, recrear **solo** el `web`.
 
 ### En Chatwoot y en la base
 
 1. **Reactivar la cuenta de prueba** con `rails runner` y `Account#update!` (nunca `compose up`), con motivo, hora y
    evidencia root-600.
-2. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
-3. Despausar la oficina: `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
-4. Sam entra en `/studio/admin/oficina` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
+2. **Crear el webhook en la cuenta de prueba** (no en la cuenta real): URL `https://<dominio del ERP>/api/oficina/webhook-chatwoot`,
+   evento `message_created`. Su «secret» va al `.env` como `OFICINA_WEBHOOK_SECRET`, de archivo a archivo.
+3. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
+4. Despausar la oficina: `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
+5. **Verificar, después de encender:**
+   - un aviso firmado de **otra cuenta** (la del ERP) al webhook del cable responde `{"ok":true,"ignorado":"cuenta"}` y no
+     escribe;
+   - un mensaje de prueba en la bandeja de prueba queda como una fila en la bandeja del cable (la prueba del webhook real
+     antes de la conversación 1);
+   - `curl` de los crons con la llave: `oficina-despachador` responde `estado` `hecha` u `ocupado` (nunca `sin_config`
+     ni `sin_vaciado`); `oficina-envio` responde `hecho` o `pausada` (nunca `apagado` ni `sin_config`).
+6. Sam entra en `/studio/admin/oficina` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
 
 ### Vuelta atrás y cierre
 
@@ -445,7 +461,10 @@ Después, recrear **solo** el `web`.
   dentro de la reserva; el despachador, en cada tanda.
 - **Solo el envío:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el `web`. Lo aprobado queda esperando.
 - **Todo el cable:** además `OFICINA_DESPACHADOR_ACTIVO` y `OFICINA_WEBHOOK_ACTIVO` vacíos, recrear el `web`; o borrar
-  o pausar el webhook en Chatwoot. Quitar `OFICINA_CHATWOOT_ACCOUNT_ID` también apaga todo el cable (falla hacia apagado).
+  o pausar el webhook en Chatwoot.
+- **Quitar `OFICINA_CHATWOOT_ACCOUNT_ID`** (y recrear el `web`) apaga el webhook (503), el despachador y el envío
+  (`sin_config`). El cron `oficina-filtro` sigue procesando las filas que ya están en la base: no llama a Chatwoot. Para
+  pararlo también, `OFICINA_WEBHOOK_ACTIVO` vacío.
 - **Al cerrar la etapa (o si algo sale mal):** volver a **suspender la cuenta de prueba** (`Account#update!`, con
   motivo, hora y evidencia), **rotar los dos tokens** (lectura y envío) y borrarlos del `.env`, y dejar la oficina
   pausada. La base no se toca: no hay desarme, las filas solo se agregan.

@@ -57,13 +57,17 @@ PR chica y aparte, desde `origin/main`: no va sobre la rama de la #652, que sigu
 | Typecheck del proyecto entero | NO EJECUTADO en local (es pesado, sin turno de PC; lo corre el CI) |
 | Suite amplia | NO EJECUTADO en local (sin turno de PC; la corre el CI) |
 | Staging y producción | NO EJECUTADO: fuera de esta PR |
+| Revisión de seguridad con Opus sobre f7c69cd7f | PASÓ, sin altas ni medias. Bajos corregidos: B1, B2 y B3 en el runbook §12 y B5 en la prueba del despachador; B4 (el barrido se puede burlar) queda como está, por decisión del DG |
+| Prueba extra: con las dos variables, el cable ve la 2 y la Bandeja del ERP sigue en la 1 | PASÓ |
 
 ## Fuera de alcance detectado
 
 - **Staging:** hay que definir `OFICINA_CHATWOOT_ACCOUNT_ID` (la cuenta de prueba) en el `.env` de staging antes de la
   próxima prueba ahí. Sin ella, el cable de staging queda apagado (503 / `sin_config`). Esta PR no toca staging.
 - **`infra/ops/staging/verificar-aislamiento.sh`** revisa que `CHATWOOT_ACCOUNT_ID` de staging no sea la cuenta real,
-  pero todavía no revisa `OFICINA_CHATWOOT_ACCOUNT_ID`. Conviene sumarlo en otra PR.
+  pero todavía no revisa `OFICINA_CHATWOOT_ACCOUNT_ID`. Queda FUERA DE ALCANCE (revisión de seguridad, B1): otra PR.
+- **Que la cuenta del cable sea distinta de la del ERP en producción** no lo exige el código (staging usa la misma
+  cuenta de prueba para las dos): es un paso a mano del runbook §12, por nombre y sin imprimir valores.
 - **El puente de prueba** (`infra/ops/cable-oficina/puente-prueba.mjs`) tiene la cuenta 2 fija en el código, no la toma
   del entorno. No cambia con esto.
 - **La #652 también toca el runbook y la spec.** Los cambios no se pisan (§12 va al final del runbook y la nota de la

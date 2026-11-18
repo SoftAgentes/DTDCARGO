@@ -28,7 +28,10 @@ beforeEach(() => {
   vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
   vi.stubEnv("OFICINA_CHATWOOT_INBOX_PRUEBA", "11");
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 describe("GET /api/cron/oficina-despachador", () => {
   it("sin la llave del cron (o con una mala): 403 y sin tocar la base", async () => {
@@ -88,7 +91,6 @@ describe("GET /api/cron/oficina-despachador", () => {
       expect(m.admins).toBe(0);
       expect(m.rpc).not.toHaveBeenCalled();
       expect(fetch).not.toHaveBeenCalled();
-      vi.unstubAllGlobals();
     },
   );
 });
