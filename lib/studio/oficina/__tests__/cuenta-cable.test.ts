@@ -9,7 +9,9 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { chatwootConfig, chatwootWebhookConfig } from "@/lib/studio/chatwoot/config";
 
 import { configWebhookOficina } from "../config";
 import { configDespachador } from "../despachador-config";
@@ -67,6 +69,32 @@ describe("la cuenta del cable: OFICINA_CHATWOOT_ACCOUNT_ID, nunca CHATWOOT_ACCOU
       expect(configDespachador(env).chatwoot).toBeNull();
       expect(configEnvio(env).chatwoot).toBeNull();
     }
+  });
+});
+
+describe("con las dos variables puestas, cada uno ve solo la suya", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("cable = 2 (OFICINA_CHATWOOT_ACCOUNT_ID) y la Bandeja del ERP = 1 (CHATWOOT_ACCOUNT_ID)", () => {
+    vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
+    vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+    vi.stubEnv("CHATWOOT_PLATFORM_TOKEN", "token-sintetico-erp");
+    vi.stubEnv("CHATWOOT_WEBHOOK_SECRET", "secreto-sintetico-erp");
+    vi.stubEnv("CHATWOOT_TENANT_ID", "00000000-0000-4000-8000-000000000001");
+    const env = { ...BASE, OFICINA_CHATWOOT_ACCOUNT_ID: "2" };
+    expect(configWebhookOficina(env).cuenta).toBe(2);
+    expect(configDespachador(env).chatwoot?.cuenta).toBe(2);
+    expect(configEnvio(env).chatwoot?.cuenta).toBe(2);
+    // La Bandeja del ERP no se entera de la variable del cable.
+    expect(chatwootConfig()?.accountId).toBe(1);
+    expect(chatwootWebhookConfig()?.accountId).toBe(1);
+  });
+
+  it("la Bandeja del ERP no cae a la variable del cable cuando falta la suya", () => {
+    vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
+    vi.stubEnv("CHATWOOT_ACCOUNT_ID", "");
+    vi.stubEnv("CHATWOOT_PLATFORM_TOKEN", "token-sintetico-erp");
+    expect(chatwootConfig()).toBeNull();
   });
 });
 
