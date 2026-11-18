@@ -24,8 +24,14 @@ export function ClientDetailClient({
   canViewStatement,
   quotesHref = null,
   chatHref = null,
+  encabezado = null,
   children,
 }: {
+  /**
+   * SDD-0669: identidad del cliente (Shipping Mark, nombre, tipo, nivel, asesor).
+   * Con encabezado, ella y las acciones forman la franja fija de la ficha.
+   */
+  encabezado?: ReactNode;
   client: Client;
   /** SDD-0558: el rol abre el estado de cuenta (módulo `invoices`). */
   canViewStatement: boolean;
@@ -37,17 +43,16 @@ export function ClientDetailClient({
 }) {
   const [editing, setEditing] = useState(false);
 
-  return (
-    <>
-      {/* Cross-links + botón editar */}
+  const acciones = (
       <div
+        className="studio-ficha-acciones"
         style={{
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "center",
           flexWrap: "wrap",
           gap: 8,
-          marginBottom: 12,
+          marginBottom: encabezado ? 0 : 12,
         }}
       >
         {/* SDD-0650 F1: acciones rápidas. Solo las que el rol puede abrir. */}
@@ -94,6 +99,19 @@ export function ClientDetailClient({
           Editar cliente
         </button>
       </div>
+  );
+
+  return (
+    <>
+      {encabezado ? (
+        // SDD-0669: la franja fija. La identidad a la izquierda, las acciones a la derecha.
+        <div className="studio-ficha-franja">
+          <div className="studio-ficha-identidad">{encabezado}</div>
+          {acciones}
+        </div>
+      ) : (
+        acciones
+      )}
 
       {children}
 

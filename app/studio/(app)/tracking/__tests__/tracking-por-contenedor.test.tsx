@@ -188,7 +188,12 @@ describe("/studio/tracking por contenedor", () => {
     const panel = screen.getByRole("region", { name: "Contenedor DTD-CONSOL-0064" });
     expect(within(panel).getByText(/DTDU6400183 · 40HC · Buque de prueba/)).toBeInTheDocument();
     expect(within(panel).getByText("según el itinerario")).toBeInTheDocument();
-    expect(within(panel).getByText("4,0 m³")).toBeInTheDocument();
+    expect(within(panel).getByText("4 m³")).toBeInTheDocument();
+
+    // «Quién viene adentro» dice clientes y cargas por separado.
+    expect(panel.querySelector(".studio-tracking-ops-quien-sub")?.textContent).toBe(
+      "2 clientes · 2 cargas · 4 m³",
+    );
 
     const filas = [...panel.querySelectorAll<HTMLElement>("tbody tr")];
     expect(filas).toHaveLength(2);

@@ -27,6 +27,7 @@ import { fmtAmount } from "./format";
 import { AssetDrawer } from "./AssetDrawer";
 import { disposeAsset, postDepreciationAction } from "../assets-actions";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -52,6 +53,9 @@ export function ActivosFijosTab({
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState(thisMonth());
+  // SDD-0660: el campo no vive en un <form>; a medio escribir `period` conserva el
+  // último mes válido, así que «Depreciar mes» espera a que lo escrito sirva.
+  const [periodValid, setPeriodValid] = useState(true);
 
   const asOf = todayISO();
   const activos = assets.filter((a) => a.status === "activo");
@@ -156,11 +160,12 @@ export function ActivosFijosTab({
             {closingDate && ` Período cerrado al ${closingDate}.`}
           </div>
         </div>
-        <input
-          type="month"
-          className="studio-input"
+        <DateField
+          mode="month"
           value={period}
-          onChange={(e) => setPeriod(e.target.value)}
+          onChange={setPeriod}
+          onValidityChange={setPeriodValid}
+          required
           style={{ width: 150 }}
           aria-label="Mes a depreciar"
         />
@@ -171,7 +176,7 @@ export function ActivosFijosTab({
           loadingLabel="Posteando…"
           successLabel="Depreciado"
           idleIcon={Icon.check(14)}
-          disabled={activos.length === 0}
+          disabled={activos.length === 0 || !periodValid}
           onAction={async () => {
             setError(null);
             const r = await postDepreciationAction(period);

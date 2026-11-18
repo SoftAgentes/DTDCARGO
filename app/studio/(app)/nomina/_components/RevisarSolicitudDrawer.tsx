@@ -26,6 +26,7 @@ import type { RegistrationListItem, RegistrationReview } from "@/lib/studio/nomi
 import { approveRegistrationAction, getRegistrationReviewAction, rejectRegistrationAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const initial: NominaActionState = {};
 
@@ -194,7 +195,7 @@ export function RevisarSolicitudDrawer({
                     <input name="salary_usd" type="number" min={0} step="0.01" className="studio-input studio-input-mono" placeholder="0.00" required />
                   </Field>
                   <Field label="Fecha de ingreso" error={aState.fieldErrors?.hire_date}>
-                    <input name="hire_date" type="date" className="studio-input" defaultValue={datos.start_date ?? undefined} />
+                    <DateField name="hire_date" defaultValue={datos.start_date ?? undefined} />
                   </Field>
                 </Row>
                 {aState.error && <ErrorBox>{aState.error}</ErrorBox>}

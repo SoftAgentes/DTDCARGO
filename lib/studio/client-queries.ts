@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { clientesPorCodigoViejo, nucleoDeCodigo } from "./client-codigo-viejo";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import type { Client, ClientTier } from "./client-types";
 // SDD-0265: los topes viven en `client-types` porque el componente client los
@@ -89,6 +90,8 @@ function construirQuery(
   filters: ClientFilters,
   limite: number,
   conTotal: boolean,
+  /** SDD-0664 · clientes que coinciden por un código anterior (historial o fusión). */
+  idsPorCodigoViejo: readonly string[] = [],
 ) {
   const base = supabase.from("clients");
   // SDD-0509: la RLS NO oculta a los eliminados — "clients by tenant" (0456)
@@ -116,15 +119,23 @@ function construirQuery(
     const term = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
     // SDD-0106: cédula primero, Shipping Mark después. Para un match exacto
     // tolerante a formato usá getClientByCedula(); esta búsqueda libre es ilike.
-    query = query.or(
-      [
-        `rif.ilike.%${term}%`,
-        `name.ilike.%${term}%`,
-        `markbox.ilike.%${term}%`,
-        `email.ilike.%${term}%`,
-        `phone.ilike.%${term}%`,
-      ].join(","),
-    );
+    const condiciones = [
+      `rif.ilike.%${term}%`,
+      `name.ilike.%${term}%`,
+      `markbox.ilike.%${term}%`,
+      `email.ilike.%${term}%`,
+      `phone.ilike.%${term}%`,
+    ];
+    // SDD-0664: «dtd 8901» o «DTD8901» también encuentran a DTD-8901, y un
+    // código anterior (historial o fusión) trae al cliente que hoy lo reemplaza.
+    const nucleo = nucleoDeCodigo(term);
+    if (nucleo && nucleo.toLowerCase() !== term.toLowerCase()) {
+      condiciones.push(`markbox.ilike.%${nucleo}%`);
+    }
+    if (idsPorCodigoViejo.length > 0) {
+      condiciones.push(`id.in.(${idsPorCodigoViejo.join(",")})`);
+    }
+    query = query.or(condiciones.join(","));
   }
 
   return query;
@@ -143,9 +154,22 @@ export async function listClients(
   filters: ClientFilters = {},
 ): Promise<Client[]> {
   const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
-  const { data, error } = await construirQuery(supabase, filters, limite, false);
+  const viejos = await clientesPorCodigoViejo(supabase, filters.q);
+  const { data, error } = await construirQuery(supabase, filters, limite, false, [...viejos.keys()]);
   if (error) throw error;
-  return (data as Client[] | null) ?? [];
+  return conCodigoAnterior((data as Client[] | null) ?? [], viejos);
+}
+
+/** SDD-0664 · Marca en cada cliente el código anterior por el que apareció. */
+export function conCodigoAnterior(
+  clients: Client[],
+  viejos: ReadonlyMap<string, string>,
+): Client[] {
+  if (viejos.size === 0) return clients;
+  return clients.map((c) => {
+    const anterior = viejos.get(c.id);
+    return anterior ? { ...c, codigo_anterior: anterior } : c;
+  });
 }
 
 /**
@@ -164,10 +188,13 @@ export async function listClientsPage(
   filters: ClientFilters = {},
 ): Promise<ClientsPage> {
   const limite = Math.min(filters.limite ?? CLIENTS_PAGE, CLIENTS_MAX);
-  const { data, error, count } = await construirQuery(supabase, filters, limite, true);
+  const viejos = await clientesPorCodigoViejo(supabase, filters.q);
+  const { data, error, count } = await construirQuery(supabase, filters, limite, true, [
+    ...viejos.keys(),
+  ]);
   if (error) throw error;
 
-  const clients = (data as Client[] | null) ?? [];
+  const clients = conCodigoAnterior((data as Client[] | null) ?? [], viejos);
   // Si PostgREST no devuelve `count`, NO inventamos un total: usamos lo que
   // trajimos, que es lo único que sabemos de verdad.
   const total = count ?? clients.length;

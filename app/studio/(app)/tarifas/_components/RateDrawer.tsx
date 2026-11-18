@@ -41,6 +41,7 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   mode: "create" | "edit";
@@ -394,13 +395,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_from">
                 Válida desde
               </label>
-              <input
-                id="valid_from"
-                name="valid_from"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_from ?? ""}
-              />
+              <DateField id="valid_from" name="valid_from" defaultValue={rate?.valid_from ?? ""} />
               {state.fieldErrors?.valid_from && (
                 <FieldError msg={state.fieldErrors.valid_from} />
               )}
@@ -409,13 +404,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_until">
                 Válida hasta
               </label>
-              <input
-                id="valid_until"
-                name="valid_until"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_until ?? ""}
-              />
+              <DateField id="valid_until" name="valid_until" defaultValue={rate?.valid_until ?? ""} />
               {state.fieldErrors?.valid_until && (
                 <FieldError msg={state.fieldErrors.valid_until} />
               )}

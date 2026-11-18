@@ -105,3 +105,12 @@ Rama publicada. PR abierta contra `main`, sin fusionar.
 ## HANDOFF AL DIRECTOR
 
 Turno de PC liberado. No hay migraciones ni cambios fuera de la allowlist de la spec, salvo este handoff.
+
+## Corrección posterior: el contador de clientes (2026-11-18)
+
+Rama `claude/tracking-conteo-clientes`, desde `origin/main` `82caee939` (la #667 ya fusionada).
+
+- **Error.** La tarjeta y el panel decían «N clientes» con el número de ítems del contenedor (`clientes.length` en `armarContenedor`). Un cliente con varias cargas contaba varias veces; Embarques daba otro número para el mismo contenedor.
+- **Arreglo.** `contarClientes` cuenta clientes distintos con la misma llave que Embarques: Shipping Mark o, si falta, el nombre. La tabla «Quién viene adentro» sigue listando una fila por carga.
+- **Validación.** vitest de `lib/studio/__tests__/tracking-contenedores.test.ts` y `app/studio/(app)/tracking/__tests__`: PASÓ (70 pruebas, 4 archivos). Sin el arreglo la prueba nueva falla («expected 6 to be 3»): PASÓ. tsc, eslint y `pnpm verify`: NO EJECUTADO en local (quedan para el CI). No se leyó producción.
+- **Cargas en el subtítulo.** Sam, 2026-11-18, ante la pregunta de si el subtítulo de «Quién viene adentro» debía decir también cuántas cargas: «Sí, que diga también cuántas cargas». Ahora dice «N clientes · M cargas · m³». La prueba de la página que lo comprueba: NO EJECUTADA en local (sin turno); queda para el CI.
