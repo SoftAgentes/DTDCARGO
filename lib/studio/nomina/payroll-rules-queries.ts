@@ -177,6 +177,17 @@ export function faltaFuncion(error: { code?: string | null; message?: string | n
   );
 }
 
+/** Lo que se le dice a quien guarda cuando la base cambia mientras tanto (B1). */
+export const MSG_BASE_ACTUALIZANDO = "La base se está actualizando; recarga e inténtalo de nuevo.";
+/** Lo que se le dice cuando otra persona guardó una versión al mismo tiempo (B4). */
+export const MSG_GUARDADO_CONCURRENTE = "Otra persona guardó al mismo tiempo; recarga.";
+
+/** ¿El error es una violación de unicidad (23505): dos guardados simultáneos chocaron en la versión vigente? */
+export function esConflictoConcurrente(error: { code?: string | null; message?: string | null } | null): boolean {
+  if (!error) return false;
+  return error.code === "23505" || /duplicate key value/i.test(error.message ?? "");
+}
+
 /**
  * Los datos que recibe `nomina_guardar_reglas`: los de siempre y los de la 0556. Lo que no llegó
  * no se manda: la moneda se hereda de la versión vigente y la fecha de vigencia es hoy en Caracas
@@ -226,9 +237,14 @@ export function datosParaGuardar(input: PayrollRulesInput): Record<string, unkno
  * RLS de quien llama): si el insert falla (un CHECK, un desborde de numeric, un dato mal formado) el
  * archivado se deshace y el tenant conserva su versión vigente.
  *
+ * Si la lectura dijo `ampliada` y aun así la función no existe (un desarme parcial o una caché de esquema
+ * vieja), NO se degrada a los dos pasos: se devuelve un error y no se guarda nada (B1). Dos guardados
+ * simultáneos (23505) dicen que otra persona guardó al mismo tiempo (B4).
+ *
  * Sin la 0556 (`ampliada: false`) son los dos pasos de siempre, ahora con restauración: se archiva la
  * vigente, se inserta la nueva con las columnas de la 0162 y, si el insert falla, se vuelve a dejar
- * vigente la archivada. Si ni eso se pudo, el error lo dice con todas sus letras.
+ * vigente la archivada. Si ni eso se pudo, el error lo dice con todas sus letras. Esa restauración
+ * es de mejor esfuerzo: un corte del proceso entre archivar e insertar la deja sin hacer.
  */
 export async function upsertPayrollRules(
   supabase: SupabaseClient,
@@ -241,29 +257,35 @@ export async function upsertPayrollRules(
   // 1) Con la 0556: una función, una transacción.
   if (ampliada) {
     const rpc = await supabase.rpc("nomina_guardar_reglas", { p_datos: datosParaGuardar(input) });
-    if (!faltaFuncion(rpc.error)) {
-      if (rpc.error) {
-        return {
-          data: null,
-          error: `No se pudo guardar las reglas: ${rpc.error.message}. La versión vigente no cambió.`,
-          ampliada: true,
-        };
-      }
-      const leida = await supabase
-        .from("nomina_payroll_rules")
-        .select(COLUMNAS_AMPLIADAS)
-        .eq("id", rpc.data as string)
-        .single();
-      if (leida.error || !leida.data) {
-        return {
-          data: null,
-          error: "Las reglas se guardaron, pero no se pudo leer la versión nueva. Recarga la pantalla.",
-          ampliada: true,
-        };
-      }
-      return { data: rowToPayrollRules(leida.data as unknown as Record<string, unknown>), error: null, ampliada: true };
+    // B1: la lectura vio las columnas nuevas pero la función no está (desarme parcial o caché de esquema
+    // vieja). No se degrada a los dos pasos: no se guarda nada y se pide recargar.
+    if (faltaFuncion(rpc.error)) {
+      return { data: null, error: MSG_BASE_ACTUALIZANDO, ampliada: true };
     }
-    // La función no está (un desarme): se sigue con los dos pasos, sin las columnas nuevas.
+    if (rpc.error) {
+      // B4: dos guardados simultáneos chocan en el índice de una sola versión vigente.
+      if (esConflictoConcurrente(rpc.error)) {
+        return { data: null, error: MSG_GUARDADO_CONCURRENTE, ampliada: true };
+      }
+      return {
+        data: null,
+        error: `No se pudo guardar las reglas: ${rpc.error.message}. La versión vigente no cambió.`,
+        ampliada: true,
+      };
+    }
+    const leida = await supabase
+      .from("nomina_payroll_rules")
+      .select(COLUMNAS_AMPLIADAS)
+      .eq("id", rpc.data as string)
+      .single();
+    if (leida.error || !leida.data) {
+      return {
+        data: null,
+        error: "Las reglas se guardaron, pero no se pudo leer la versión nueva. Recarga la pantalla.",
+        ampliada: true,
+      };
+    }
+    return { data: rowToPayrollRules(leida.data as unknown as Record<string, unknown>), error: null, ampliada: true };
   }
 
   // 2) Sin la 0556: archivar, insertar y, si falla, restaurar.
@@ -309,6 +331,10 @@ export async function upsertPayrollRules(
     .single();
 
   if (error || !data) {
+    // B4: otra persona guardó en medio. Ya hay una versión vigente (la suya): no se restaura nada.
+    if (esConflictoConcurrente(error)) {
+      return { data: null, error: MSG_GUARDADO_CONCURRENTE, ampliada: false };
+    }
     const motivo = error?.message ?? "sin respuesta";
     if (current) {
       const restaurada = await supabase

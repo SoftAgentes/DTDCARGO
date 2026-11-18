@@ -295,7 +295,7 @@ Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vige
 - Aportes patronales: `sso_patronal_pct`, `rpe_patronal_pct`, `faov_patronal_pct`, `inces_patronal_pct`, `pension_contrib_pct`
   (`numeric(5,2)` **nullable, sin default**, con CHECK de 0 a 100 y la contribución de pensiones con tope de 15, Art. 7). Una columna sin
   configurar no se lee nunca como cero: la comparación con la ley dice «falta». Los valores de la norma conocida (9, 2, 2, 2 y 9) los
-  propone el **formulario**, marcados «propuesto» y por confirmar con el contador; no son un default de la base.
+  propone el **formulario solo como placeholder** (los campos nacen vacíos y la propuesta no viaja al guardar), por confirmar con el contador; un botón explícito «Usar la propuesta» la copia a los campos vacíos del grupo. No son un default de la base.
 - `inces_utilidades_pct` (0,5 % de las utilidades) es una **retención al trabajador**: misma forma que los aportes, pero el formulario la
   agrupa con las deducciones del empleado.
 - Escalas: `vacaciones_extra_max` y `bono_vacacional_max_days` (`integer` nullable, sin default, de 0 a 365); propuestas 15 y 30.
@@ -304,12 +304,17 @@ Migración **0556** en `supabase/migrations/`, con el nombre `nomina_reglas_vige
   EXECUTE solo para `authenticated`) archiva la versión vigente y crea la siguiente **en una sola transacción**, con la RLS de quien llama:
   el tenant sale de la sesión, bloquea la fila vigente, y si el insert falla (un CHECK, un desborde, una fecha futura) el archivado se
   deshace y la versión vigente queda intacta. Reemplaza los dos pasos de la app, que podían dejar un tenant sin versión vigente.
+  Comprueba además, de forma explícita, que haya tenant y acceso a nómina (no depende solo de la RLS), y exige `vigente_desde` como
+  AAAA-MM-DD, desde 2000-01-01 y no posterior a hoy en Caracas (rechaza `epoch`, `-infinity`, `today` y otros formatos que el cast aceptaría).
+  Si la lectura vio las columnas pero la función no existe (desarme parcial o caché de esquema vieja), la app **no degrada**: dice «La base
+  se está actualizando; recarga e inténtalo de nuevo» y no guarda nada. Dos guardados simultáneos dicen «Otra persona guardó al mismo
+  tiempo; recarga».
 - **Idempotente** (ADD COLUMN IF NOT EXISTS, `create or replace function` y restricciones con guarda), con postflight que comprueba la forma
   de cada columna, los 8 CHECK, la función (invoker, search_path y grants), y que la RLS y los grants de la tabla quedaron intactos. Con
   desarme en `supabase/desarmes/` (sin número; borra la función y pierde lo guardado en las columnas nuevas).
 - **Degradación:** sin la 0556 la pestaña Reglas lee y guarda solo las columnas de la 0162 (como en la fase A2a) y el formulario deshabilita
   los campos nuevos con un aviso (`payroll-rules-queries.ts`: la lectura reintenta sin ellas; la escritura usa los dos pasos de siempre y,
-  si el insert falla, **restaura** la versión archivada). La degradación está declarada en
+  si el insert falla, **restaura** la versión archivada; es de mejor esfuerzo: un corte del proceso entre archivar e insertar la deja sin hacer). La degradación está declarada en
   `supabase/pending-migration-symbol-declarations.json`. Las columnas de la 0179 (método de prestaciones, interés, Art. 78) no las lee ni las
   guarda esta pantalla, ni antes ni ahora: es un hallazgo fuera de alcance, anotado en el handoff.
 - Sin `update` de filas existentes. El histórico ya lo da el versionado (`0162:80-83`): cada cambio legal crea una

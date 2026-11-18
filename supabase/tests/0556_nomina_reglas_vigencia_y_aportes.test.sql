@@ -357,7 +357,11 @@ begin
   perform set_config('request.jwt.claim.sub', 'aaaaaaaa-0653-0000-0000-000000000001', true);
 
   -- Fallos a mitad: cada uno revierte el archivado y deja la vigente intacta.
-  foreach v_caso in array array['pension', 'desborde', 'falta-dato', 'fecha-futura', 'no-objeto', 'moneda'] loop
+  foreach v_caso in array array[
+    'pension', 'desborde', 'falta-dato', 'fecha-futura', 'no-objeto', 'moneda',
+    'fecha-epoch', 'fecha-menos-infinito', 'fecha-infinito', 'fecha-today', 'fecha-sin-ceros', 'fecha-compacta',
+    'fecha-numero', 'fecha-vacia', 'fecha-anterior-a-2000', 'fecha-inexistente'
+  ] loop
     v_malo := case v_caso
       when 'pension'      then v_base || jsonb_build_object('pension_contrib_pct', 20)
       when 'desborde'     then v_base || jsonb_build_object('ingreso_minimo_integral_usd', 1000000000000000)
@@ -365,12 +369,24 @@ begin
       when 'fecha-futura' then v_base || jsonb_build_object('vigente_desde', (v_hoy + 1)::text)
       when 'no-objeto'    then '[1,2]'::jsonb
       when 'moneda'       then v_base || jsonb_build_object('cestaticket_moneda', 'EUR')
+      -- B2: solo AAAA-MM-DD, desde 2000-01-01; el cast a date aceptaría muchas otras cosas.
+      when 'fecha-epoch'           then v_base || jsonb_build_object('vigente_desde', 'epoch')
+      when 'fecha-menos-infinito'  then v_base || jsonb_build_object('vigente_desde', '-infinity')
+      when 'fecha-infinito'        then v_base || jsonb_build_object('vigente_desde', 'infinity')
+      when 'fecha-today'           then v_base || jsonb_build_object('vigente_desde', 'today')
+      when 'fecha-sin-ceros'       then v_base || jsonb_build_object('vigente_desde', '2026-1-5')
+      when 'fecha-compacta'        then v_base || jsonb_build_object('vigente_desde', '20260105')
+      when 'fecha-numero'          then v_base || jsonb_build_object('vigente_desde', 20260105)
+      when 'fecha-vacia'           then v_base || jsonb_build_object('vigente_desde', '')
+      when 'fecha-anterior-a-2000' then v_base || jsonb_build_object('vigente_desde', '1999-12-31')
+      when 'fecha-inexistente'     then v_base || jsonb_build_object('vigente_desde', '2026-02-31')
     end;
     begin
       perform public.nomina_guardar_reglas(v_malo);
       raise exception 'TEST 0556: nomina_guardar_reglas aceptó el caso «%»', v_caso;
     exception
-      when check_violation or numeric_value_out_of_range or not_null_violation or invalid_parameter_value then null;
+      when check_violation or numeric_value_out_of_range or not_null_violation or invalid_parameter_value
+        or datetime_field_overflow then null;
     end;
     if (select id from public.nomina_payroll_rules where tenant_id = v_t1 and status = 'vigente') is distinct from v_vigente then
       raise exception 'TEST 0556: el caso «%» dejó al tenant sin su versión vigente', v_caso;
@@ -402,6 +418,19 @@ begin
                     and vigente_desde = date '2026-01-15' and version = 5) then
     raise exception 'TEST 0556: la moneda explícita o la fecha pasada no se respetaron';
   end if;
+  -- Los límites de la fecha valen: el piso (2000-01-01), hoy en Caracas y un null explícito (= hoy).
+  v_id := public.nomina_guardar_reglas(v_base || jsonb_build_object('vigente_desde', '2000-01-01'));
+  if not exists (select 1 from public.nomina_payroll_rules where id = v_id and vigente_desde = date '2000-01-01' and version = 6) then
+    raise exception 'TEST 0556: la fecha piso 2000-01-01 no se aceptó';
+  end if;
+  v_id := public.nomina_guardar_reglas(v_base || jsonb_build_object('vigente_desde', v_hoy::text));
+  if not exists (select 1 from public.nomina_payroll_rules where id = v_id and vigente_desde = v_hoy and version = 7) then
+    raise exception 'TEST 0556: la fecha de hoy en Caracas no se aceptó';
+  end if;
+  v_id := public.nomina_guardar_reglas(v_base || '{"vigente_desde": null}'::jsonb);
+  if not exists (select 1 from public.nomina_payroll_rules where id = v_id and vigente_desde = v_hoy and version = 8) then
+    raise exception 'TEST 0556: un vigente_desde null no quedó en hoy';
+  end if;
   if (select count(*) from public.nomina_payroll_rules where tenant_id = v_t1 and status = 'vigente') <> 1 then
     raise exception 'TEST 0556: el tenant 1 no quedó con exactamente una versión vigente';
   end if;
@@ -423,10 +452,14 @@ end;
 $guardar$;
 
 -- Sin acceso a la función: operador, admin deshabilitado, sin membership y anon.
+-- B5: la comprobación EXPLÍCITA de la función (tenant y nomina_can_access()) se prueba por sí sola: el rechazo
+-- tiene que ser el de la función («sin acceso a las reglas de nómina», 42501) y no el que daría la RLS al insertar
+-- («new row violates row-level security policy», también 42501) ni un NOT NULL por un tenant vacío.
 do $guardar_sin_acceso$
 declare
   v_sub text;
   v_antes int;
+  v_msg text;
 begin
   select count(*) into v_antes from public.nomina_payroll_rules;
   foreach v_sub in array array[
@@ -439,7 +472,11 @@ begin
       perform set_config('request.jwt.claim.sub', v_sub, true);
       perform public.nomina_guardar_reglas('{"pay_frequency":"mensual"}'::jsonb);
       raise exception 'TEST 0556: % ejecutó nomina_guardar_reglas', v_sub;
-    exception when insufficient_privilege then null;
+    exception when insufficient_privilege then
+      get stacked diagnostics v_msg = message_text;
+      if v_msg <> 'sin acceso a las reglas de nómina' then
+        raise exception 'TEST 0556: % fue rechazado por otra cosa que la comprobación de la función: %', v_sub, v_msg;
+      end if;
     end;
     reset role;
   end loop;

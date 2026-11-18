@@ -240,6 +240,9 @@ export const PAYROLL_RULES_DEFAULTS: PayrollRulesInput = {
   // El validador NO usa esto: una moneda que no llega se hereda de la vigente.
   vigente_desde: null,
   fuente_legal: null,
+  // Los aportes, el INCES de utilidades, las pensiones y las escalas de abajo son PROPUESTAS de la norma conocida,
+  // por confirmar con el contador: el formulario las muestra como placeholder y solo se guardan si quien edita
+  // pulsa «Usar la propuesta». Nada de esto es un default del validador ni de la base.
   // El ingreso mínimo integral es un anuncio sin Gaceta: no se propone ningún valor.
   ingreso_minimo_integral_usd: null,
   cestaticket_moneda: "USD",

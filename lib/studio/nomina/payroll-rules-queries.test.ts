@@ -11,7 +11,10 @@ import {
   COLUMNAS_0556,
   datosParaGuardar,
   faltaColumna,
+  esConflictoConcurrente,
   faltaFuncion,
+  MSG_BASE_ACTUALIZANDO,
+  MSG_GUARDADO_CONCURRENTE,
   getVigentePayrollRules,
   getVigentePayrollRulesConEstado,
   upsertPayrollRules,
@@ -394,14 +397,57 @@ describe("guardar una versión nueva SIN la 0556 (dos pasos, con restauración)"
     expect(log.updates).toHaveLength(0);
   });
 
-  it("si la base tenía las columnas pero perdió la función (un desarme parcial), sigue con los dos pasos", async () => {
-    const { supabase, log } = falso({ ampliada: true, vigente: true, rpcError: FALTA_FUNCION });
+  it("B1: si la lectura vio las columnas pero la función no está (desarme parcial o caché vieja), NO degrada: error y no guarda nada", async () => {
+    for (const rpcError of [FALTA_FUNCION, { code: "PGRST202", message: "Could not find the function public.nomina_guardar_reglas(p_datos) in the schema cache" }]) {
+      const { supabase, log } = falso({ ampliada: true, vigente: true, rpcError });
+      const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+      expect(r.data).toBeNull();
+      expect(r.error).toBe(MSG_BASE_ACTUALIZANDO);
+      expect(r.error).toBe("La base se está actualizando; recarga e inténtalo de nuevo.");
+      expect(r.ampliada).toBe(true);
+      expect(log.rpcs).toHaveLength(1);
+      // Ni archivó ni insertó: la versión vigente no se tocó.
+      expect(log.updates).toHaveLength(0);
+      expect(log.inserts).toHaveLength(0);
+    }
+  });
+
+  it("B4: dos guardados simultáneos (23505 de la función) dicen que otra persona guardó al mismo tiempo", async () => {
+    const { supabase, log } = falso({
+      ampliada: true,
+      vigente: true,
+      rpcError: { code: "23505", message: 'duplicate key value violates unique constraint "nomina_payroll_rules_one_vigente"' },
+    });
     const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
-    expect(r.error).toBeNull();
-    expect(r.ampliada).toBe(false);
-    expect(log.rpcs).toHaveLength(1);
-    expect(log.inserts).toHaveLength(1);
-    for (const c of COLUMNAS_0556) expect(log.inserts[0], c).not.toHaveProperty(c);
+    expect(r.data).toBeNull();
+    expect(r.error).toBe(MSG_GUARDADO_CONCURRENTE);
+    expect(r.error).toBe("Otra persona guardó al mismo tiempo; recarga.");
+    expect(log.updates).toHaveLength(0);
+    expect(log.inserts).toHaveLength(0);
+  });
+
+  it("B4: sin la 0556, un insert que choca (23505) dice lo mismo y NO intenta restaurar (ya hay una vigente: la de la otra persona)", async () => {
+    const { supabase, log } = falso({
+      ampliada: false,
+      vigente: true,
+      insertError: { code: "23505", message: "duplicate key value violates unique constraint" },
+    });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(r.data).toBeNull();
+    expect(r.error).toBe(MSG_GUARDADO_CONCURRENTE);
+    // Solo el archivado propio; nada de volver a dejar vigente la archivada.
+    expect(log.updates).toHaveLength(1);
+    expect(log.updates[0].set).toEqual({ status: "archivada" });
+  });
+});
+
+describe("esConflictoConcurrente", () => {
+  it("reconoce la violación de unicidad por código o por mensaje, y nada más", () => {
+    expect(esConflictoConcurrente({ code: "23505", message: "x" })).toBe(true);
+    expect(esConflictoConcurrente({ code: null, message: 'duplicate key value violates unique constraint "x"' })).toBe(true);
+    expect(esConflictoConcurrente({ code: "23514", message: "violates check constraint" })).toBe(false);
+    expect(esConflictoConcurrente({ code: "42501", message: "sin acceso a las reglas de nómina" })).toBe(false);
+    expect(esConflictoConcurrente(null)).toBe(false);
   });
 });
 

@@ -35,15 +35,18 @@
 --   pensiones pension_contrib_pct (tope legal 15, Art. 7 de la Ley de Protección
 --   de las Pensiones); y las escalas por antigüedad (D10) vacaciones_extra_max
 --   (LOTTT Art. 190) y bono_vacacional_max_days (Art. 192). Son configuración para
---   el costo de la nómina; no se descuentan al trabajador. La pantalla propone los
---   valores de la norma al crear una versión nueva, marcados «por confirmar» (D8).
+--   el costo de la nómina; no se descuentan al trabajador. La pantalla muestra los
+--   valores de la norma solo como placeholder (por confirmar, D8): no se guardan salvo
+--   que quien edita pulse «Usar la propuesta».
 -- · inces_utilidades_pct es una RETENCIÓN AL TRABAJADOR (el patrono retiene 0,5 %
 --   de las utilidades anuales para el INCES), no un aporte del patrono; también
 --   NULL = sin configurar.
 -- · CHECK utilidades_days entre 30 y 120 (LOTTT Art. 131).
 -- · nomina_guardar_reglas(jsonb): guarda una versión nueva ATÓMICAMENTE (archiva la
 --   vigente e inserta la siguiente en una sola transacción). SECURITY INVOKER: corre
---   con la RLS de quien llama. Si el insert falla (un CHECK, un desborde de numeric,
+--   con la RLS de quien llama y comprueba además, de forma explícita, que haya tenant
+--   y acceso a nómina. «vigente_desde» llega como AAAA-MM-DD, desde 2000-01-01 y no
+--   posterior a hoy en Caracas. Si el insert falla (un CHECK, un desborde de numeric,
 --   un dato mal formado) el archivado se deshace y el tenant conserva su versión
 --   vigente. Sin esta función la app archiva y luego inserta en dos pasos y, si el
 --   segundo falla, restaura la versión archivada.
@@ -57,9 +60,11 @@
 --
 -- ── Locks ───────────────────────────────────────────────────────────────────
 -- ALTER TABLE sobre nomina_payroll_rules: ACCESS EXCLUSIVE breve (tabla chica: una
--- versión vigente y su historial por tenant). Los defaults son constantes o la
--- fecha de Caracas (estable, se evalúa una vez al agregarla), así que no hay
--- reescritura. El CHECK de utilidades valida la tabla entera dentro del mismo lock.
+-- versión vigente y su historial por tenant). Las columnas nuevas nacen sin default
+-- (NULL) o con una constante ('VES'), así que no hay reescritura. El default de
+-- vigente_desde (hoy en Caracas) se agrega aparte, después de la columna: se evalúa
+-- en CADA insert y NO rellena las filas que ya existen (quedan en NULL). El CHECK de
+-- utilidades valida la tabla entera dentro del mismo lock.
 -- lock_timeout 5 s, statement_timeout 30 s.
 --
 -- ── Idempotencia ────────────────────────────────────────────────────────────
@@ -215,10 +220,20 @@ begin
     raise exception 'datos de reglas no válidos' using errcode = '22023';
   end if;
 
-  -- «Rige desde» no puede ser posterior a hoy en Caracas (es informativa).
-  v_desde := (p_datos ->> 'vigente_desde')::date;
-  if v_desde is not null and v_desde > v_hoy then
-    raise exception 'la fecha de vigencia no puede ser posterior a hoy' using errcode = '22023';
+  -- «Rige desde» es informativa: llega como AAAA-MM-DD (nada de 'epoch', '-infinity', 'today' ni otros
+  -- formatos que el cast a date aceptaría), desde 2000-01-01 y no posterior a hoy en Caracas.
+  if p_datos ? 'vigente_desde' and pg_catalog.jsonb_typeof(p_datos -> 'vigente_desde') <> 'null' then
+    if pg_catalog.jsonb_typeof(p_datos -> 'vigente_desde') <> 'string'
+       or (p_datos ->> 'vigente_desde') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
+      raise exception 'la fecha de vigencia debe ser AAAA-MM-DD' using errcode = '22023';
+    end if;
+    v_desde := (p_datos ->> 'vigente_desde')::date;
+    if v_desde < date '2000-01-01' then
+      raise exception 'la fecha de vigencia no puede ser anterior a 2000-01-01' using errcode = '22023';
+    end if;
+    if v_desde > v_hoy then
+      raise exception 'la fecha de vigencia no puede ser posterior a hoy' using errcode = '22023';
+    end if;
   end if;
 
   -- La versión vigente del tenant, bloqueada; la RLS la limita a su tenant.
@@ -270,7 +285,7 @@ grant execute on function public.nomina_guardar_reglas(jsonb) to authenticated;
 
 -- ── 4. Comentarios ───────────────────────────────────────────────────────────
 comment on function public.nomina_guardar_reglas(jsonb) is
-  'SDD-0653 · 0556: guarda una versión nueva de las reglas del tenant del caller en UNA transacción (archiva la vigente e inserta la siguiente; si el insert falla, el archivado se deshace). SECURITY INVOKER: la RLS de nomina_payroll_rules y nomina_can_access() mandan. Una moneda que no llega se hereda de la versión vigente; vigente_desde no puede ser posterior a hoy en Caracas y, si no llega, es hoy en Caracas. Devuelve el id de la versión nueva.';
+  'SDD-0653 · 0556: guarda una versión nueva de las reglas del tenant del caller en UNA transacción (archiva la vigente e inserta la siguiente; si el insert falla, el archivado se deshace). SECURITY INVOKER: la RLS de nomina_payroll_rules y nomina_can_access() mandan. Una moneda que no llega se hereda de la versión vigente; vigente_desde llega como AAAA-MM-DD, desde 2000-01-01 y no posterior a hoy en Caracas; si no llega, es hoy en Caracas. Devuelve el id de la versión nueva.';
 comment on column public.nomina_payroll_rules.vigente_desde is
   'SDD-0653 · 0556: desde cuándo rige esta versión de las reglas (AAAA-MM-DD, informativa: el corte usa siempre la versión vigente). Default: hoy en Caracas. NULL = versión anterior a la 0556, sin fecha de vigencia registrada. Cada cambio legal es una versión nueva (D2); los cortes viejos conservan su rules_snapshot.';
 comment on column public.nomina_payroll_rules.fuente_legal is

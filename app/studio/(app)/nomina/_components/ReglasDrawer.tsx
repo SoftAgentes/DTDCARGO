@@ -45,22 +45,47 @@ function val(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULT
 }
 
 /**
- * Valor de un campo que agregó la 0556: el de la versión; y si la versión no lo configuró (null) o no
- * lo trae (undefined), la PROPUESTA de la norma, que el formulario marca «propuesto» (por confirmar).
+ * Lo que la versión guardó en un campo de la 0556; vacío si no lo configuró (null) o no lo trae
+ * (undefined). NUNCA la propuesta de la norma: lo que no se confirma no viaja como valor (SDD-0653 A2b).
  */
-function val0556(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): string {
+function valor0556(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): string {
   const v = rules ? (rules as unknown as Record<string, unknown>)[key] : undefined;
-  if (v === null || v === undefined) {
-    const propuesta = PAYROLL_RULES_DEFAULTS[key];
-    return propuesta == null ? "" : String(propuesta);
-  }
-  return String(v);
+  return v === null || v === undefined ? "" : String(v);
 }
 
-/** ¿Este campo de la 0556 está mostrando la propuesta de la norma (la versión no lo configuró)? */
-function esPropuesta(rules: PayrollRules | null, key: keyof typeof PAYROLL_RULES_DEFAULTS): boolean {
-  const v = rules ? (rules as unknown as Record<string, unknown>)[key] : undefined;
-  return v === null || v === undefined;
+/** La propuesta de la norma conocida para un campo de la 0556 (vacía si no hay: el ingreso mínimo es un anuncio). */
+function propuesta(key: keyof typeof PAYROLL_RULES_DEFAULTS): string {
+  const p = PAYROLL_RULES_DEFAULTS[key];
+  return p === null || p === undefined ? "" : String(p);
+}
+
+type Campo0556 = keyof typeof PAYROLL_RULES_DEFAULTS;
+
+/**
+ * «Usar la propuesta»: copia la propuesta de la norma a los campos VACÍOS del grupo. Es la única forma de que
+ * esos valores se guarden como confirmados: sin pulsarlo, los campos se envían vacíos (null = sin configurar).
+ */
+function UsarPropuesta({ campos, etiqueta, disabled }: { campos: Campo0556[]; etiqueta: string; disabled: boolean }) {
+  return (
+    <div>
+      <button
+        type="button"
+        className="studio-btn studio-btn-ghost studio-btn-xs"
+        disabled={disabled}
+        aria-label={`Usar la propuesta: ${etiqueta}`}
+        onClick={(e) => {
+          const form = e.currentTarget.form;
+          if (!form) return;
+          for (const name of campos) {
+            const el = form.elements.namedItem(name);
+            if (el instanceof HTMLInputElement && el.value.trim() === "") el.value = propuesta(name);
+          }
+        }}
+      >
+        Usar la propuesta
+      </button>
+    </div>
+  );
 }
 
 const MONEDA_OPCIONES = [
@@ -104,7 +129,7 @@ export function ReglasDrawer({
     label: string,
     opts: { step?: string; min?: string; max?: string } = {},
   ) => (
-    <Field label={!espera && esPropuesta(rules, name) && val0556(rules, name) !== "" ? `${label} · propuesto` : label} error={state.fieldErrors?.[name]}>
+    <Field label={label} error={state.fieldErrors?.[name]}>
       <input
         name={name}
         type="number"
@@ -113,7 +138,8 @@ export function ReglasDrawer({
         max={opts.max}
         disabled={espera}
         className="studio-input studio-input-mono"
-        defaultValue={espera ? "" : val0556(rules, name)}
+        placeholder={propuesta(name)}
+        defaultValue={espera ? "" : valor0556(rules, name)}
       />
     </Field>
   );
@@ -307,7 +333,9 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           El INCES sobre utilidades lo retiene el patrono al trabajador (es una retención, no un aporte del patrono).
+          El campo nace vacío: el valor gris es la propuesta de la norma, por confirmar con el contador.
         </p>
+        <UsarPropuesta campos={["inces_utilidades_pct"]} etiqueta="INCES sobre utilidades" disabled={espera} />
 
         {/* Topes (nº de SM) */}
         <GroupTitle>Topes de cotización (nº de salarios mínimos)</GroupTitle>
@@ -396,9 +424,14 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Solo para calcular el costo de la nómina: no se descuentan al trabajador. La contribución de pensiones tiene un tope
-          legal de 15 %. Los campos marcados «propuesto» muestran el valor de la norma conocida, por confirmar con el contador:
-          si no lo confirmas, déjalos vacíos y quedan «sin configurar».
+          legal de 15 %. Los campos nacen vacíos: el valor gris es la propuesta de la norma conocida, por confirmar con el
+          contador. «Usar la propuesta» la copia a los campos vacíos; si no lo haces, quedan «sin configurar» y se guardan vacíos.
         </p>
+        <UsarPropuesta
+          campos={["sso_patronal_pct", "rpe_patronal_pct", "faov_patronal_pct", "inces_patronal_pct", "pension_contrib_pct"]}
+          etiqueta="aportes del patrono"
+          disabled={espera}
+        />
 
         {/* Provisiones (días) */}
         <GroupTitle>Provisiones / prestaciones (días)</GroupTitle>
@@ -450,7 +483,13 @@ export function ReglasDrawer({
         </Row>
         <p style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "-8px 0 0" }}>
           Utilidades: entre 30 y 120 días (LOTTT Art. 131). Los máximos son los de la escala por antigüedad (Arts. 190 y 192).
+          Nacen vacíos: el valor gris es la propuesta, por confirmar con el contador.
         </p>
+        <UsarPropuesta
+          campos={["vacaciones_extra_max", "bono_vacacional_max_days"]}
+          etiqueta="escalas por antigüedad"
+          disabled={espera}
+        />
 
         <Field label="Notas">
           <textarea

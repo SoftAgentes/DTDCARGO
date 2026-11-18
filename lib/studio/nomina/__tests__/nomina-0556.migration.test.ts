@@ -175,8 +175,23 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
   },
   {
     nombre: "guardar acepta una fecha de vigencia posterior a hoy",
-    sql: () => once(FILE_0556, "if v_desde is not null and v_desde > v_hoy then", "if false then"),
+    sql: () => once(FILE_0556, "if v_desde > v_hoy then", "if false then"),
     cae: "TEST 0556: nomina_guardar_reglas aceptó el caso «fecha-futura»",
+  },
+  {
+    nombre: "guardar acepta cualquier formato de fecha que el cast a date entienda (sin la comprobación AAAA-MM-DD)",
+    sql: () => once(FILE_0556, "or (p_datos ->> 'vigente_desde') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then", "then"),
+    cae: "TEST 0556: nomina_guardar_reglas aceptó el caso «fecha-",
+  },
+  {
+    nombre: "guardar acepta fechas anteriores a 2000-01-01 (sin el piso)",
+    sql: () => once(FILE_0556, "if v_desde < date '2000-01-01' then", "if false then"),
+    cae: "TEST 0556: nomina_guardar_reglas aceptó el caso «fecha-",
+  },
+  {
+    nombre: "guardar sin la comprobación explícita de tenant y acceso (solo quedaría la RLS)",
+    sql: () => once(FILE_0556, "if v_tenant is null or not public.nomina_can_access() then", "if false then"),
+    cae: "fue rechazado por otra cosa que la comprobación de la función",
   },
   {
     nombre: "guardar pasa a SECURITY DEFINER (lo atrapa el postflight de la migración)",
