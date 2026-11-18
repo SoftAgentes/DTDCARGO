@@ -14,6 +14,18 @@
  * devuelva). Sin esa evidencia positiva la referencia se exige: el gate falla
  * cerrado. Funciones, tablas y vistas siguen asociándose por nombre.
  *
+ * Esquemas que la API no expone (SDD-0578): la app sólo alcanza por nombre suelto
+ * lo que PostgREST publica (`PGRST_DB_SCHEMAS`). Un símbolo nacido en otro
+ * esquema (p. ej. `dtd_client_normal.groups`, privado y sin grants a la API)
+ * cuenta únicamente donde el código lo nombra CALIFICADO (`esquema.nombre`);
+ * una columna de una relación así cuenta donde se nombra la relación
+ * calificada. La lista de expuestos se lee de la config versionada del
+ * PostgREST propio (`readExposedSchemas`): el default de `PGRST_DB_SCHEMAS` en
+ * `infra/dtd-cargo/compose.supabase.yml` y su valor en
+ * `infra/dtd-cargo/.env.example`, unidos (si discrepan, gana el más amplio) y
+ * siempre con `public`. Si no se encuentra ninguna, se tratan TODOS los
+ * esquemas como expuestos: falla cerrado, igual que antes de esta regla.
+ *
  * Uso: node scripts/check-pending-migration-symbols.mjs
  * Exit: 0 = sin rojos (puede haber amarillos declarados) · 1 = rojo · 2 = error del contrato/check
  */
@@ -745,10 +757,29 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export function findSymbolReferences(sourceFiles, symbol) {
+/** ¿La API publica este esquema? Sin lista conocida, todos (falla cerrado). */
+export function isExposedSchema(schema, exposedSchemas) {
+  return !exposedSchemas || exposedSchemas.has(schema);
+}
+
+/**
+ * Patrón de referencia. Esquema expuesto: el nombre suelto (como siempre).
+ * Esquema no expuesto: `esquema.nombre` (o `esquema.relación` para una
+ * columna), con espacios o comillas dobles opcionales alrededor del punto.
+ */
+function referencePattern(symbol, exposedSchemas) {
+  const edge = "(^|[^A-Za-z0-9_$])";
+  const end = "(?=$|[^A-Za-z0-9_$])";
+  if (isExposedSchema(symbol.schema, exposedSchemas)) {
+    return new RegExp(`${edge}${escapeRegExp(symbol.referenceName ?? symbol.name)}${end}`, "i");
+  }
+  const target = symbol.kind === "column" ? symbol.relation : symbol.name;
+  return new RegExp(`${edge}"?${escapeRegExp(symbol.schema)}"?\\s*\\.\\s*"?${escapeRegExp(target)}"?${end}`, "i");
+}
+
+export function findSymbolReferences(sourceFiles, symbol, exposedSchemas) {
   const sources = asSourceMap(sourceFiles);
-  const token = symbol.referenceName ?? symbol.name;
-  const regexp = new RegExp(`(^|[^A-Za-z0-9_$])${escapeRegExp(token)}(?=$|[^A-Za-z0-9_$])`, "i");
+  const regexp = referencePattern(symbol, exposedSchemas);
   const references = [];
 
   for (const [file, source] of sources) {
@@ -880,6 +911,7 @@ export function analyzeRepositoryData({
   sourceFiles,
   declarations,
   entrypoints,
+  exposedSchemas,
 }) {
   const pendingOnlySymbols = findPendingOnlySymbols(migrations, pendingMigrationNames);
   const { reachable, imports, importers } = findReachableGraph(sourceFiles, entrypoints);
@@ -888,12 +920,16 @@ export function analyzeRepositoryData({
     ? createColumnAssociation({ migrations, sourceFiles, imports, importers })
     : null;
   const analyses = pendingOnlySymbols.map((symbol) => {
-    const references = findSymbolReferences(sourceFiles, symbol);
+    const references = findSymbolReferences(sourceFiles, symbol, exposedSchemas);
     const reachableReferences = [];
     const homonymReferences = [];
     for (const reference of references) {
       if (!reachable.has(reference.file)) continue;
-      const verdict = symbol.kind === "column" ? association.classify(symbol, reference.file) : { counted: true };
+      // La asociación por relación (SDD-0464) sólo aplica a nombres sueltos: una
+      // columna de un esquema no expuesto ya exigió la relación calificada.
+      const verdict = symbol.kind === "column" && isExposedSchema(symbol.schema, exposedSchemas)
+        ? association.classify(symbol, reference.file)
+        : { counted: true };
       if (verdict.counted) reachableReferences.push(reference);
       else homonymReferences.push({ ...reference, relation: verdict.relation });
     }
@@ -965,7 +1001,47 @@ export function loadRepositoryData(root = process.cwd()) {
     pendingMigrationNames,
     sourceFiles: collectSourceFiles(root),
     declarations: readJson(declarationsFile),
+    exposedSchemas: readExposedSchemas(root),
   };
+}
+
+/** Archivos versionados que fijan `PGRST_DB_SCHEMAS` del PostgREST propio. */
+export const EXPOSED_SCHEMA_SOURCES = ["infra/dtd-cargo/compose.supabase.yml", "infra/dtd-cargo/.env.example"];
+
+/**
+ * Esquemas que nombra `PGRST_DB_SCHEMAS` en un texto de compose o de .env:
+ * `PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-a,b}`, `PGRST_DB_SCHEMAS: a,b` o
+ * `PGRST_DB_SCHEMAS=a,b`. Una variable sin default no aporta nada.
+ */
+export function parseExposedSchemas(text) {
+  const found = new Set();
+  for (const line of text.split(/\r?\n/)) {
+    if (/^\s*#/.test(line)) continue;
+    const match = line.match(/^\s*PGRST_DB_SCHEMAS\s*[:=]\s*["']?(.*?)["']?\s*$/);
+    if (!match) continue;
+    let value = match[1];
+    const expansion = value.match(/^\$\{PGRST_DB_SCHEMAS(?::?-([^}]*))?\}$/);
+    if (expansion) value = expansion[1] ?? "";
+    if (value.includes("$")) continue;
+    for (const schema of value.split(",")) {
+      const name = normalizeIdentifier(schema.trim());
+      if (name) found.add(name);
+    }
+  }
+  return found;
+}
+
+/** Unión de las fuentes, con `public`; null si ninguna fija la lista. */
+export function readExposedSchemas(root = process.cwd()) {
+  const found = new Set();
+  for (const file of EXPOSED_SCHEMA_SOURCES) {
+    const absolute = path.join(root, file);
+    if (!fs.existsSync(absolute)) continue;
+    for (const schema of parseExposedSchemas(fs.readFileSync(absolute, "utf8"))) found.add(schema);
+  }
+  if (found.size === 0) return null;
+  found.add("public");
+  return found;
 }
 
 export function auditRepository(root = process.cwd()) {
