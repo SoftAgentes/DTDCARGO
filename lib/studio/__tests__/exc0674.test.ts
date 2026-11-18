@@ -52,6 +52,8 @@ describe("mensajeErrorExc0674", () => {
     expect(mensajeErrorExc0674("exc0674:contenedor_fuera_de_lista")).toContain("lista");
     expect(mensajeErrorExc0674("exc0674:asiento:sin_cuentas")).toContain("asiento");
     expect(mensajeErrorExc0674("exc0674:monto:AR-1")).toContain("AR-1");
+    expect(mensajeErrorExc0674("exc0674:cliente_ambiguo:DTD-T001")).toContain("más de una ficha de cliente con ese Shipping Mark (DTD-T001)");
+    expect(mensajeErrorExc0674("exc0674:aliado_ciclo:DTD-T001")).toContain("cadena de aliados de ese cliente está mal armada (DTD-T001)");
   });
   it("un error desconocido dice que no se emitió nada", () => {
     expect(mensajeErrorExc0674("boom")).toContain("No se emitió ninguna factura");
