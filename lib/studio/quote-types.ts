@@ -3,6 +3,7 @@
  * Matchea schema de supabase/migrations/0007_quotes.sql.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import type { ShipmentService } from "./shipment-types";
 import { SERVICE_LABELS } from "./shipment-types";
 import { fmtAmount } from "@/lib/money";
@@ -354,7 +355,7 @@ export function buildQuoteBreakdown(quote: Quote): QuoteBreakdownRow[] {
 
   if (mode === "per_cbm") {
     if (quote.cbm != null) {
-      rows.push({ label: "Volumen", value: `${Number(quote.cbm).toFixed(3)} m³` });
+      rows.push({ label: "Volumen", value: `${formatCbm(Number(quote.cbm))} m³` });
     }
     if (quote.rate_per_cbm != null) {
       rows.push({ label: "Tarifa", value: `$${fmtAmount(quote.rate_per_cbm)}/CBM` });

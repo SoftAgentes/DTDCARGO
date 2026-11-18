@@ -17,6 +17,7 @@
  * texto. Sin DB, sin `Date.now()` salvo donde el propio dominio lo pide.
  */
 
+import { cbmPlano } from "@/lib/shared/cbm";
 import { buildCsv, type CsvRow } from "./csv";
 import type { Invoice } from "@/lib/studio/invoice-types";
 import {
@@ -85,7 +86,7 @@ export function buildEstimadosCsv(quotes: readonly Quote[]): string {
     quoteServiceLabel(q.service),
     q.origin,
     q.destination,
-    q.cbm == null ? "" : Number(q.cbm).toFixed(3),
+    q.cbm == null ? "" : cbmPlano(q.cbm),
     montoOVacio(q.weight_kg),
     q.boxes ?? "",
     packagingLabel(q.packaging),

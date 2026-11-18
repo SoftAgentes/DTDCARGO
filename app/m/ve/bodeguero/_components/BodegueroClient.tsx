@@ -16,6 +16,7 @@
  * ciudad (cada ciudad es una "parada").
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -409,7 +410,7 @@ function OdList({
             >
               <span>{od.package_count} pkg</span>
               <span>{od.total_kg.toFixed(0)} kg</span>
-              <span>{od.total_cbm.toFixed(1)} cbm</span>
+              <span>{formatCbm(od.total_cbm)} cbm</span>
             </div>
           </button>
         );
@@ -538,7 +539,7 @@ function OdDetail({
         >
           <span>{od.package_count} pkg</span>
           <span>{od.total_kg.toFixed(0)} kg</span>
-          <span>{od.total_cbm.toFixed(1)} cbm</span>
+          <span>{formatCbm(od.total_cbm)} cbm</span>
         </div>
 
         {/* Sprint 2 · capacity progress bars · solo si snapshot existe */}

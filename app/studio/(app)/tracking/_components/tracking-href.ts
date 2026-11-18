@@ -53,8 +53,7 @@ export function textoDeDias(dias: number | null): string {
   return dias === -1 ? "hace 1 día" : `hace ${-dias} días`;
 }
 
-const M3 = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
 export function metrosCubicos(n: number): string {
-  return `${M3.format(n)} m³`;
-}
+  return formatCbm(n, { unit: true });
+}import { formatCbm } from "@/lib/shared/cbm";
+
