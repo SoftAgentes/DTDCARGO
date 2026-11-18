@@ -4,6 +4,7 @@
  * Orquestador client del módulo Estimados (ex-Cotizador · SDD-0011, renombrado en SDD-0061).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useEffectEvent, useState, useTransition } from "react";
@@ -439,7 +440,7 @@ function QuotesTable({
                   textAlign: "right",
                 }}
               >
-                {quote.cbm != null ? quote.cbm.toFixed(2) : "—"}
+                {quote.cbm != null ? formatCbm(quote.cbm) : "—"}
               </span>
               <span
                 style={{
