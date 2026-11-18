@@ -316,7 +316,7 @@
           "name": "nomina_payroll_rules.bono_guerra_moneda",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:550",
+            "app/studio/(app)/nomina/actions.ts:555",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:192",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:337",
             "lib/studio/nomina/ley/parametros.ts:122",
@@ -337,7 +337,7 @@
           "name": "nomina_payroll_rules.bono_vacacional_max_days",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:558",
+            "app/studio/(app)/nomina/actions.ts:563",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:491",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:529",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:536",
@@ -359,7 +359,7 @@
           "name": "nomina_payroll_rules.cestaticket_moneda",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:549",
+            "app/studio/(app)/nomina/actions.ts:554",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:192",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:336",
             "lib/studio/nomina/ley/parametros.ts:121",
@@ -380,7 +380,7 @@
           "name": "nomina_payroll_rules.faov_patronal_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:553",
+            "app/studio/(app)/nomina/actions.ts:558",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:457",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:465",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
@@ -402,7 +402,7 @@
           "name": "nomina_payroll_rules.fuente_legal",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:547",
+            "app/studio/(app)/nomina/actions.ts:552",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:251",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:253",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:368",
@@ -422,7 +422,7 @@
           "name": "nomina_payroll_rules.inces_patronal_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:554",
+            "app/studio/(app)/nomina/actions.ts:559",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:458",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:468",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
@@ -444,7 +444,7 @@
           "name": "nomina_payroll_rules.inces_utilidades_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:555",
+            "app/studio/(app)/nomina/actions.ts:560",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:343",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:378",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:384",
@@ -466,7 +466,7 @@
           "name": "nomina_payroll_rules.ingreso_minimo_integral_usd",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:548",
+            "app/studio/(app)/nomina/actions.ts:553",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:302",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:338",
             "lib/studio/nomina/ley/parametros.ts:78",
@@ -490,7 +490,7 @@
           "name": "nomina_payroll_rules.pension_contrib_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:556",
+            "app/studio/(app)/nomina/actions.ts:561",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:459",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:469",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
@@ -513,7 +513,7 @@
           "name": "nomina_payroll_rules.rpe_patronal_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:552",
+            "app/studio/(app)/nomina/actions.ts:557",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:456",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:464",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
@@ -535,7 +535,7 @@
           "name": "nomina_payroll_rules.sso_patronal_pct",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:551",
+            "app/studio/(app)/nomina/actions.ts:556",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:455",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:463",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:478",
@@ -557,7 +557,7 @@
           "name": "nomina_payroll_rules.vacaciones_extra_max",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:557",
+            "app/studio/(app)/nomina/actions.ts:562",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:490",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:528",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:536",
@@ -579,7 +579,7 @@
           "name": "nomina_payroll_rules.vigente_desde",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/nomina/actions.ts:546",
+            "app/studio/(app)/nomina/actions.ts:551",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:248",
             "app/studio/(app)/nomina/_components/ReglasDrawer.tsx:249",
             "app/studio/(app)/nomina/_components/ReglasTab.tsx:359",
