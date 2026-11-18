@@ -101,7 +101,7 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 
 ## 5. Coordinación
 
-- **SDD-0664 (Tracking en vivo):** fusionada (#677). Su Fase 3 no toca la ficha. Esta SDD mueve `ShippingMarkChip` de sitio sin cambiar su contenido; avisado a esa sesión.
+- **SDD-0664 (Tracking en vivo):** fusionada (#677). Su Fase 3 no toca la ficha. Esta SDD mueve `ShippingMarkChip` de sitio sin cambiar su contenido; esa sesión está de acuerdo y esta entra primero (2026-11-18). Lo que la 0664 tocará después, sin fecha: el contenido de `ShippingMarkChip.tsx` (no sus props ni dónde se monta), `listMarkboxHistory` (mismo tipo, menos filas), `client-codigo-viejo.ts` y una prueba de la redirección en `page.tsx`. No toca la franja ni las pestañas; avisará antes de abrir rama y traerá main con esta SDD.
 - **SDD-0650 F2:** la columna de conversaciones es la de la F2; con su interruptor apagado se ve la tarjeta de la F1.
 
 ## 6. Archivos previstos
