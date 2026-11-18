@@ -26,6 +26,8 @@ import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
 import { ClienteDelEmbarque } from "./_components/ClienteDelEmbarque";
+import { CargaDelEmbarque } from "./_components/CargaDelEmbarque";
+import { leerCargaDelEmbarque, leerGrupoDelEmbarque } from "@/lib/studio/medidas-embarque-queries";
 import { ClienteCambiado } from "./_components/ClienteCambiado";
 import { createAdminClient } from "@/lib/db/admin";
 import { listarCambiosDeCliente } from "@/lib/studio/reasignar-historial";
@@ -72,6 +74,13 @@ export default async function ShipmentDetailPage({
   const shipment = segunVisibilidad(leido, puedeVerNombres);
 
   const events = await getShipmentEvents(supabase, id);
+
+  // SDD-0673 · la carga de su línea del contenedor y el grupo de WeChat (sin la
+  // 0563 el grupo no se lee y el campo no se muestra).
+  const [carga, grupo] = await Promise.all([
+    leerCargaDelEmbarque(supabase, id),
+    leerGrupoDelEmbarque(supabase, id),
+  ]);
 
   // Documentos del envío (SDD-0042 Fase 3b) + signed URLs (user client del
   // equipo: storage RLS por tenant le permite leer del bucket shipment-docs).
@@ -239,6 +248,18 @@ export default async function ShipmentDetailPage({
           puedeVerNombres={puedeVerNombres}
           puedeReasignar={canSpecial(roleRow?.role, "reassign_shipment_owner")}
         />
+        <CargaDelEmbarque
+          shipmentId={shipment.id}
+          shipmentCode={shipment.code}
+          carga={carga}
+          cbmEmbarque={shipment.volume_m3 ?? null}
+          pesoEmbarque={shipment.weight_kg ?? null}
+          grupo={grupo}
+          puedeEditarGrupo={canEditTracking}
+          puedeCorregir={canSpecial(roleRow?.role, "correct_shipment_measures")}
+          puedePartir={canSpecial(roleRow?.role, "split_shipment")}
+          puedeVerNombres={puedeVerNombres}
+        />
       </div>
 
       <div className="studio-ficha-embarque-grid">
@@ -255,6 +276,7 @@ export default async function ShipmentDetailPage({
             <ShipmentDataPanel
               shipment={shipment}
               nombresOcultos={!puedeVerNombres}
+              enContenedor={carga.enContenedor}
             />
           </section>
           <section
