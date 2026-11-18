@@ -19,6 +19,8 @@ end
 $guarda$;
 
 drop function if exists public.exc0674_facturar(uuid, jsonb, text);
+drop trigger if exists exc0674_marcar_anulada on public.invoices;
+drop function if exists public.exc0674_marcar_anulada();
 drop view if exists public.exc0674_envios_cubiertos;
 drop table if exists public.exc0674_factura_envios;
 drop table if exists public.exc0674_facturas;

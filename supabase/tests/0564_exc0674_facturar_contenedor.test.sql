@@ -30,6 +30,9 @@
 --      actor real. Si el evento no se puede escribir, no se factura nada.
 --  12. La lista transitoria: sin motivo (dtd.audit_reason) no se agrega ni se quita nada, no se
 --      edita, y cada alta queda auditada.
+--  14. Anular la factura en Facturación marca la fila y el cliente se puede volver a facturar (índice
+--      parcial).
+--  15. operations ve el rastro solo mientras el contenedor siga en la lista; accounting lo sigue viendo.
 --  13. El vínculo factura ↔ envío ↔ cliente real (para la 0574) cubre todos los embarques del cliente,
 --      con su Shipping Mark y no el del aliado. La vista es security_invoker y deja de contar una
 --      factura borrada.
@@ -186,7 +189,7 @@ insert into public.clients (id, tenant_id, markbox, name) values
 insert into public.consolidations values
   ('00000000-0000-4000-8000-00000000c064', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-64', null),
   ('00000000-0000-4000-8000-00000000c065', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-65', null),
-  ('00000000-0000-4000-8000-00000000cdel', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-DEL', now()),
+  ('00000000-0000-4000-8000-00000000c0d1', '00000000-0000-4000-8000-0000000000a0', 'TEST-CONSOL-DEL', now()),
   ('00000000-0000-4000-8000-00000000cb64', '00000000-0000-4000-8000-0000000000b0', 'TEST-CONSOL-B', null);
 -- 12. Sin motivo no entra nada a la lista.
 do $sin_motivo$
@@ -203,7 +206,7 @@ $sin_motivo$;
 select set_config('dtd.audit_reason', 'Contrato 0564: lista de prueba con OK ficticio', true);
 insert into public.exc0674_contenedores (tenant_id, consolidation_id) values
   ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064'),
-  ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000cdel'),
+  ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c0d1'),
   ('00000000-0000-4000-8000-0000000000b0', '00000000-0000-4000-8000-00000000cb64');
 
 select set_config('dtd.audit_reason', '', true);
@@ -220,7 +223,7 @@ begin
     if sqlerrm <> 'exc0674:lista_inmutable' then raise; end if;
   end;
   begin
-    delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000cdel';
+    delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000c0d1';
     raise exception 'CONTRATO 12: la lista aceptó una baja sin motivo';
   exception when others then
     if sqlerrm <> 'exc0674:lista_sin_motivo' then raise; end if;
@@ -297,7 +300,7 @@ begin
   v := public.t_intento('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000c065',
                         '[{"client_markbox":"DTD-T002","total_usd":10}]');
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: K65 fuera de la lista se facturó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000cdel', uno);
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000c0d1', uno);
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: contenedor borrado se facturó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000b001', k64, uno);
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: el tenant B facturó el K64 de A (%)', v; end if;
@@ -447,6 +450,35 @@ begin
 end
 $por_cliente$;
 
+-- ─── 14. Anular y volver a facturar ──────────────────────────
+do $refacturar$
+declare
+  k64 constant uuid := '00000000-0000-4000-8000-00000000c064';
+  v text;
+  v_vieja uuid;
+begin
+  select invoice_id into v_vieja from public.exc0674_facturas where client_markbox = 'DTD-T001';
+  -- Mientras está viva, no se refactura.
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
+  if v is distinct from 'exc0674:ya_facturado:DTD-T001' then raise exception 'CONTRATO 14: refacturó una viva (%)', v; end if;
+  -- Facturación la anula (como voidInvoice): el trigger marca la fila.
+  update public.invoices set status = 'anulada' where id = v_vieja;
+  if (select anulada_at from public.exc0674_facturas where invoice_id = v_vieja) is null then
+    raise exception 'CONTRATO 14: anular no marcó el rastro';
+  end if;
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
+  if v is not null then raise exception 'CONTRATO 14: no se pudo volver a facturar después de anular (%)', v; end if;
+  if (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-T001') <> 2
+     or (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-T001' and anulada_at is null) <> 1 then
+    raise exception 'CONTRATO 14: el rastro no quedó con una anulada y una viva';
+  end if;
+  -- La vista sigue mostrando la anulada con su estado (la 0574 no la cuenta como facturada).
+  if not exists (select 1 from public.exc0674_envios_cubiertos where invoice_id = v_vieja and status = 'anulada') then
+    raise exception 'CONTRATO 14: la vista no trae el estado anulada';
+  end if;
+end
+$refacturar$;
+
 -- ─── 9. Privilegios y RLS ────────────────────────────────────
 do $privilegios$
 declare
@@ -480,7 +512,7 @@ begin
   exception when insufficient_privilege then null;
   end;
   select pg_catalog.count(*) into n from public.exc0674_facturas;
-  if n <> 2 then raise exception 'CONTRATO 9: operations de A ve % filas del rastro (esperaba 2)', n; end if;
+  if n <> 3 then raise exception 'CONTRATO 9: operations de A ve % filas del rastro (esperaba 3)', n; end if;
   reset role;
 
   perform set_config('test.uid', '00000000-0000-4000-8000-00000000a002', true);
@@ -497,6 +529,26 @@ begin
   if n <> 0 then raise exception 'CONTRATO 9: el tenant B ve el rastro de A'; end if;
   select pg_catalog.count(*) into n from public.exc0674_contenedores;
   if n <> 1 then raise exception 'CONTRATO 9: el tenant B ve % contenedores (esperaba el suyo)', n; end if;
+  reset role;
+
+  -- 15. El K64 sale de la lista (con motivo): operations deja de ver su rastro; accounting no.
+  perform set_config('dtd.audit_reason', 'Contrato 0564: baja de prueba con OK ficticio', true);
+  delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000c064';
+  perform set_config('dtd.audit_reason', '', true);
+  if not exists (select 1 from public.t_audit where event_type = 'exc0674_lista_baja') then
+    raise exception 'CONTRATO 12: la baja de la lista no quedó auditada';
+  end if;
+  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a001', true);
+  set local role authenticated;
+  select pg_catalog.count(*) into n from public.exc0674_facturas;
+  if n <> 0 then raise exception 'CONTRATO 15: operations ve el rastro de un contenedor fuera de la lista'; end if;
+  select pg_catalog.count(*) into n from public.exc0674_factura_envios;
+  if n <> 0 then raise exception 'CONTRATO 15: operations ve el vínculo de un contenedor fuera de la lista'; end if;
+  reset role;
+  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a005', true);
+  set local role authenticated;
+  select pg_catalog.count(*) into n from public.exc0674_facturas;
+  if n <> 3 then raise exception 'CONTRATO 15: accounting dejó de ver el rastro (% filas)', n; end if;
   reset role;
 end
 $privilegios$;

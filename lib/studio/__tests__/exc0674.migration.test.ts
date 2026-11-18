@@ -69,6 +69,10 @@ describe("migración 0564 · contrato congelado", () => {
     }
     expect(SQL).not.toMatch(/grant (insert|update|delete|all)[^;]*to authenticated/i);
     expect(SQL).toContain("create trigger exc0674_contenedores_auditar");
+    expect(SQL).toMatch(/create unique index if not exists exc0674_facturas_un_cliente_vivo\s+on public\.exc0674_facturas \(tenant_id, consolidation_id, client_markbox\)\s+where anulada_at is null;/);
+    expect(SQL).toContain("create trigger exc0674_marcar_anulada");
+    // operations ve el rastro solo con el contenedor en la lista.
+    expect(SQL.match(/= 'operations'\s+and exists \(select 1 from public\.exc0674_contenedores l/g)).toHaveLength(2);
     expect(SQL).toContain("exc0674:lista_sin_motivo");
   });
 });

@@ -145,12 +145,13 @@ y cómo queda cada punto para el botón:
   - La RPC rechaza en el servidor un contenedor fuera de la lista, aunque la pantalla no muestre el botón.
 
 **(b) Lo que se dispara al emitir:**
-- **Numeración.** `next_invoice_code` no toma lock (§2.2). La RPC toma primero
-  `pg_advisory_xact_lock` por tenant, con la misma llave que cualquier llamador de esta regla. Así dos
-  facturaciones simultáneas del mismo tenant salen en fila y no piden el mismo número. Contra un
-  `createInvoice` del Studio que corra a la vez, sigue mandando el `unique` de la 0077:48: si choca, la
-  transacción entera se deshace y la pantalla dice que se intente otra vez. Hay una prueba concurrente
-  (§8.6).
+- **Numeración.** `next_invoice_code` no toma lock (§2.2). Antes de pedir el número, la RPC toma un
+  `pg_advisory_xact_lock` con la llave `exc0674:numeracion:<tenant>`, que se suelta al terminar la
+  transacción. Dos llamadas a `exc0674_facturar` del mismo tenant esperan una a la otra, y la segunda ve
+  el número que confirmó la primera. El lock solo ordena las llamadas de esta RPC: `createInvoice` y
+  `duplicateInvoice` del Studio no lo toman. Contra ellas sigue mandando el `unique` de la 0077:48: si dos
+  piden el mismo número, la segunda falla, su transacción se deshace entera y la pantalla dice que se
+  intente otra vez. Hay una prueba de carrera (§8.6).
 - **Titular.** El trigger `invoices_seal_billing_titular` (0466) sella el titular de facturación al pasar
   a `emitida`, y desde ahí no cambia. Decidido (§4, pregunta 3): se factura al aliado raíz cuando el
   cliente tiene uno, como en la carga de consolidados.
@@ -337,12 +338,14 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
    - el asiento, que tiene que quedar `posted` o `already_posted`;
    - el vínculo con los envíos;
    - el evento de auditoría.
-5. Un cliente del contenedor se factura **una sola vez** por esta regla. Lo garantizan:
+5. Un cliente del contenedor tiene **una sola factura viva** de esta regla. Lo garantizan:
    - la marca de la regla, que es la fila de `exc0674_facturas`;
-   - su índice único (tenant, contenedor, cliente);
+   - su índice único **parcial** (tenant, contenedor, cliente) `where anulada_at is null`;
    - el lock por (tenant, contenedor, cliente).
 
-   Un doble clic o dos pestañas no crean dos facturas.
+   Un doble clic o dos pestañas no crean dos facturas. **Decisión del DG (N1):** si la factura se anula en
+   Facturación, un trigger marca `anulada_at` y el cliente se puede volver a facturar por la misma RPC,
+   que también cubre la excepción AUT-04. Hay prueba.
 6. El gate legal AUT-04 no se consulta para la lista, y cada factura queda auditada con
    `legal_ack = 'exc_0674'`. Fuera de la lista, el gate sigue en bloqueo duro.
 7. Con aliado raíz, la factura sale a nombre del aliado. `base + iva = total` exacto.
@@ -381,27 +384,49 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 - `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.facturar.test.tsx`
 - `scripts/__tests__/invoice-read-boundary.test.mjs` (solo la nota EXC-0674, +0 llamadas)
+- `docs/governance/README.md` (filas SGE-00, MP-01 y BTN-01: enlace a la excepción)
+- `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`
 
 ### 7.2 Clasificación de gobernanza (AGENT-BRIEF: acción, permanencia, auditoría)
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| SGE-00.01 predecible | excepción | Las etiquetas «Facturar» y «Confirmado» son las palabras de Sam. El resultado (emitir una factura real) está escrito en la pantalla antes de ejecutar. |
+| SGE-00.01 predecible | excepción | Ver el registro formal (§7.3, punto 1). «Facturar» y «Confirmado» son las palabras de Sam. El resultado (emitir una factura real) está escrito en la pantalla antes de ejecutar. |
 | SGE-00.02 sin pérdida silenciosa | cumplimiento | Los montos tecleados quedan en el campo si se oprime «Volver» o si la base rechaza. El error queda en el diálogo. |
-| SGE-00.03 riesgo → fricción | excepción (ver MP-01) | Emitir una factura es R3. Hay consecuencia visible y doble confirmación, sin motivo tecleado. |
+| SGE-00.03 riesgo → fricción | excepción | Ver MP-01 (§7.3, punto 4). Emitir una factura es R3. Hay consecuencia visible y doble confirmación, sin motivo tecleado. |
 | SGE-00.04 auditoría | cumplimiento | `append_audit_event` va en la misma transacción. El rastro `exc0674_facturas` y la auditoría d2 de `invoices` quedan además. |
 | SGE-00.05 permisos y tenant | cumplimiento | Rol, tenant y lista se comprueban en la acción, en la RPC y en la RLS. Hay pruebas negativas por rol, tenant ajeno y contenedor fuera de la lista. |
 | SGE-00.06 prevenir errores | cumplimiento | El monto se valida antes de abrir la confirmación, y la acción y la RPC lo vuelven a validar. |
 | SGE-00.07 estado verdadero | cumplimiento | «Emitiendo…» con `aria-busy` y botones bloqueados. El éxito se anuncia solo después de la RPC. El doble clic no duplica (§7, punto 5). |
 | SGE-00.08 frecuencia | no aplica | Es una operación transitoria y rara (un contenedor). |
-| SGE-00.09 patrón | excepción | `ConfirmDialog` solo admite un mensaje de texto, y la confirmación necesita la lista de clientes con montos. Se usa `useDialogA11y`, la misma base de foco y Esc. Si se repite, se propone una variante de `ConfirmDialog`. |
+| SGE-00.09 patrón | excepción | Ver el §7.3, punto 2. `ConfirmDialog` solo admite un mensaje de texto, y la confirmación necesita la lista de clientes con montos. Se usa `useDialogA11y`, la misma base de foco y Esc. |
 | SGE-00.10 accesible | cumplimiento | `role=dialog`, `aria-modal`, foco inicial en «Volver», Esc, una etiqueta por campo de monto y error con `role=alert`. |
 | SGE-00.11 lenguaje | cumplimiento | La consecuencia («va al portal del cliente y a la contabilidad») queda escrita, y cada error dice qué pasó y que no se emitió nada. |
 | SGE-00.12 IA | no aplica | No hay IA. |
-| MP-01 | cumplimiento con excepción | Permanencia P3: la factura se corrige anulándola en Facturación. Fricción R3 sin motivo obligatorio: excepción de Sam (2026-11-18). La mitigan los datos visibles, la doble confirmación, el motivo fijo de la regla en el audit y que solo aplica a la lista. Responsable: Sam. Vence cuando se vacíe la lista o el 2027-01-31, lo que pase primero. |
-| BTN-01 | cumplimiento con excepción | Excepción de vocabulario: Sam pidió «Facturar» y «Confirmado» en lugar de «Emitir factura» y «Confirmar». Se cumple el resto: «Volver» sale de la interacción a la izquierda, la primaria va a la derecha, `type="button"`, «Emitiendo…» con `aria-busy` e idempotencia en el servidor (§9 de BTN-01). El botón se oculta, en vez de deshabilitarse, para los roles sin permiso. Contrato `GovernedAction` en el §8.7. |
+| MP-01 | excepción | Ver el §7.3, punto 4. Permanencia P3: la factura se corrige anulándola en Facturación. Fricción R3 sin motivo tecleado, mitigada por los datos visibles, la doble confirmación, el motivo fijo de la regla en el audit y el alcance de la lista. |
+| BTN-01 | excepción | Ver el §7.3, punto 3 (vocabulario). Se cumple el resto: «Volver» sale de la interacción a la izquierda, la primaria va a la derecha, `type="button"`, «Emitiendo…» con `aria-busy` e idempotencia en el servidor (§9 de BTN-01). El botón se oculta, en vez de deshabilitarse, para los roles sin permiso. Contrato `GovernedAction` en el §8.7. |
 | AUD-01 | cumplimiento | La mutación y el evento son una sola operación, porque si el evento falla, no se factura. El actor es `user` con el id de la sesión. Lleva el motivo de la regla, `source = rpc` y `result = succeeded`. Las altas y bajas de la lista quedan auditadas con motivo obligatorio. |
 | AUD-02 | no aplica | No hay consulta, exportación ni lectura del log nueva. El evento sigue la conservación y el acceso que ya existen. |
+| Regla de montos solo para Contabilidad (0661, RLS 0414, frontera SDD-0357) | excepción | EXC-0674 (§7.3, punto 5). |
+| Gate legal AUT-04 (SDD-0054) | excepción | §7.3, punto 6. |
+
+### 7.3 Registro formal de las excepciones (índice de gobernanza §5 y §7, protocolo L3)
+
+Todas están aprobadas por Sam el 2026-11-18, con Sam como responsable. La **fecha de revisión es
+2027-01-31**, o antes si se vacía la lista transitoria. El alcance común es solo la acción «Facturar», solo
+los contenedores de la lista (hoy el 64) y solo `operations`, `accounting` y `admin`. La decisión escrita,
+con la mitigación completa, está en
+[`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`](../../governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md).
+Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
+
+| # | Política afectada | Qué se aparta | Motivo |
+|---|---|---|---|
+| 1 | SGE-00.01 | La etiqueta es «Facturar», no el verbo reservado «Emitir factura» | Es la palabra de la oficina y de Sam, y el resultado se escribe antes de ejecutar |
+| 2 | SGE-00.09 | Diálogo propio en vez de `ConfirmDialog` | La confirmación lista clientes con montos, cajas y CBM (decisión de Sam) |
+| 3 | BTN-01 §3 | «Facturar» y «Confirmado» en vez de «Emitir factura» y «Confirmar» | Decisión de Sam (§4, preguntas 1 y 6) |
+| 4 | MP-01 §3 | Una acción R3 sin motivo tecleado | La doble confirmación con datos es la fricción que eligió Sam. El audit lleva un motivo fijo |
+| 5 | EXC-0674 (montos solo para Contabilidad) | `operations` ve y teclea el monto | Decisión de Sam: «Ve el monto». El OK explícito de `operations` lo pide el DG (N5) |
+| 6 | AUT-04 (SDD-0054) | Facturas de la lista sin aceptación de T&C | Sin la excepción el botón queda bloqueado para todo el 64. Opción 2 de Sam |
 
 ## 8. Contrato de implementación (migración 0564)
 
@@ -417,12 +442,22 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 - **`exc0674_facturas`**: la **marca de la regla**. Una fila por cliente del contenedor facturado, con
   factura, código, total tecleado, `tecleado_por` (el usuario de la sesión), `confirmado_at`, titular y
   `legal_ack = 'exc_0674'`.
-  - Tiene índice único (tenant, contenedor, cliente) y `invoice_id` único.
-  - RLS de SELECT para los tres roles, sin escritura para `authenticated`.
+  - Tiene `invoice_id` único y un índice único **parcial** (tenant, contenedor, cliente)
+    `where anulada_at is null`.
+  - El trigger `exc0674_marcar_anulada` (AFTER UPDATE OF status en `invoices`) pone `anulada_at` cuando
+    la factura pasa a `anulada`. No toca la factura ni su reverso contable (0497).
+  - RLS de SELECT (N4):
+    - `accounting` y `admin` de su tenant ven todas las filas;
+    - `operations` las ve **solo mientras el contenedor siga en la lista**;
+    - sin escritura para `authenticated`.
 - **`exc0674_factura_envios`**: el vínculo factura ↔ envío ↔ Shipping Mark del cliente real. Una fila por
-  embarque cubierto, con unique (factura, envío). Tiene la misma RLS.
-- **`exc0674_envios_cubiertos`**: vista `security_invoker` que une el vínculo con la factura viva y su
-  estado. La lee el reporte de la 0574, y la RLS de `invoices` (0414) decide quién ve filas.
+  embarque cubierto, con unique (factura, envío). Tiene la misma RLS que el rastro, también condicionada a
+  la lista para `operations`.
+- **`exc0674_envios_cubiertos`**: vista `security_invoker` (N3). Hace un **inner join** del vínculo con
+  `invoices` vivas (`deleted_at is null`) y expone solo `tenant_id`, `shipment_id`, `client_markbox`,
+  `invoice_id`, `invoice_code` y `status`, **sin montos**. La lee el reporte de la 0574. Como es
+  `security_invoker`, la RLS de `invoices` (0414) decide quién ve filas: accounting y admin. Una factura
+  anulada sigue apareciendo con `status = 'anulada'`, y la 0574 no la cuenta como facturada.
 - **`exc0674_facturar(p_consolidation_id uuid, p_montos jsonb, p_confirmacion text)`**:
   - `security definer` con `search_path` vacío;
   - EXECUTE solo para `authenticated`; ni `anon` ni `service_role`.
@@ -467,7 +502,7 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 
 - No consulta el gate AUT-04 (excepción de Sam).
 - No baja `LEGAL_GATE_HARD_BLOCK`.
-- No abre la RLS de `invoices`.
+- No abre la RLS de `invoices`. Lo único que suma sobre `invoices` es el trigger `exc0674_marcar_anulada`, que solo escribe `exc0674_facturas`.
 - No manda correo: lo manda la acción, después del commit.
 
 ### 8.5 Degradación sin la 0564
@@ -515,7 +550,18 @@ Embarques no pinta el botón. El reporte de la 0574 queda como hoy. Está declar
 | 6 | Correo | §3.1 b y §7 punto 10: después del commit, por Mailing; el cliente admin solo para el correo |
 | 7 | Allowlist y clasificación | §7.1 y §7.2, más el contrato de la acción en el §8.7 |
 
-Los no bloqueantes también quedaron atendidos:
+**Re-revisión (Opus) sobre `aaf25d169`:** los 7 quedaron resueltos en el diseño, y el 7 estaba parcial.
+Los arreglos de esta vuelta:
+- **B1:** registro formal de las excepciones (§7.3), el documento en `docs/governance/reviews/`, las filas
+  del registro maestro y la tabla del §7.2 con solo las cuatro clasificaciones;
+- **B2:** el handoff, alineado con esta spec;
+- **N1:** índice parcial con `anulada_at` y refacturar después de anular;
+- **N2:** la frase de los locks (§3.1 b);
+- **N3:** inner join y vista sin montos (§8.1);
+- **N4:** RLS de `operations` condicionada a la lista (§8.1);
+- **N5:** el OK de `operations` lo pide el DG.
+
+Los no bloqueantes de la primera revisión también quedaron atendidos:
 - lectura de `operations` por la RPC, con la prueba de migración del §8.6;
 - texto viejo de los §3, §3.1 y §4 actualizado;
 - `legal_ack` en `entity_audit_log` (§3.1 a) y contenedor fuera de la lista rechazado en el servidor;

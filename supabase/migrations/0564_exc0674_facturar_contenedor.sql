@@ -32,8 +32,11 @@
 --      motivo en dtd.audit_reason: sin motivo, la operación falla.
 -- 2. public.exc0674_facturas: una fila por cliente facturado del contenedor (es el rastro).
 --    · Columnas: factura, total tecleado, quién lo tecleó, cuándo y a quién se facturó.
---    · La llave única (tenant, contenedor, cliente) impide facturar dos veces.
---    · Mismo SELECT que la lista y sin escritura para authenticated.
+--    · Índice único PARCIAL (tenant, contenedor, cliente) donde anulada_at es null: no se factura dos
+--      veces, pero después de anular la factura en Facturación se puede volver a facturar. Un trigger
+--      AFTER UPDATE OF status en invoices marca anulada_at cuando la factura pasa a 'anulada'.
+--    · SELECT: accounting y admin de su tenant; operations solo mientras el contenedor siga en la
+--      lista. Sin escritura para authenticated.
 -- 2b. public.exc0674_factura_envios: qué envíos cubre cada factura, con el Shipping Mark del cliente
 --     real del contenedor (con aliado raíz, la factura lleva el del aliado). Misma RLS y sin escritura
 --     para authenticated.
@@ -68,7 +71,8 @@
 --
 -- ── Qué NO toca ─────────────────────────────────────────────
 -- Ninguna fila existente. Ni la RLS de invoices (0407/0414), ni sus grants, ni
--- LEGAL_GATE_HARD_BLOCK, ni la carga de consolidados.
+-- LEGAL_GATE_HARD_BLOCK, ni la carga de consolidados. Sobre invoices solo agrega el trigger
+-- exc0674_marcar_anulada (AFTER UPDATE OF status), que escribe únicamente exc0674_facturas.
 --
 -- ── Locks ───────────────────────────────────────────────────
 -- Solo CREATE TABLE, CREATE FUNCTION, policies y grants nuevos. lock_timeout 5 s.
@@ -192,8 +196,13 @@ create table if not exists public.exc0674_facturas (
   tecleado_por     uuid not null,
   confirmado_at    timestamptz not null default pg_catalog.now(),
   legal_ack        text not null default 'exc_0674' check (legal_ack = 'exc_0674'),
-  unique (tenant_id, consolidation_id, client_markbox)
+  anulada_at       timestamptz
 );
+-- Una factura viva de esta regla por cliente del contenedor. La anulada no cuenta: se puede volver a
+-- facturar.
+create unique index if not exists exc0674_facturas_un_cliente_vivo
+  on public.exc0674_facturas (tenant_id, consolidation_id, client_markbox)
+  where anulada_at is null;
 comment on table public.exc0674_facturas is
   'SDD-0674 · EXC-0674: una fila por cliente del contenedor facturado desde Embarques. Rastro del monto tecleado (total con IVA, USD), de quién lo tecleó y de la excepción al gate AUT-04 (legal_ack = exc_0674). Solo la escribe exc0674_facturar().';
 
@@ -203,11 +212,41 @@ create policy exc0674_facturas_select on public.exc0674_facturas
   for select to authenticated
   using (
     tenant_id = (select public.get_user_tenant_id())
-    and (select public.current_studio_role()) in ('operations', 'accounting', 'admin')
+    and (
+      (select public.current_studio_role()) in ('accounting', 'admin')
+      or ((select public.current_studio_role()) = 'operations'
+          and exists (select 1 from public.exc0674_contenedores l
+                       where l.tenant_id = exc0674_facturas.tenant_id
+                         and l.consolidation_id = exc0674_facturas.consolidation_id))
+    )
   );
 revoke all on public.exc0674_facturas from public, anon, authenticated;
 grant select on public.exc0674_facturas to authenticated;
 grant all on public.exc0674_facturas to service_role;
+
+-- Al anular en Facturación una factura de esta regla, su marca deja de contar y el cliente se puede
+-- volver a facturar (índice parcial). No toca la factura ni su reverso contable (0497).
+create or replace function public.exc0674_marcar_anulada()
+returns trigger
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $function$
+begin
+  update public.exc0674_facturas f
+     set anulada_at = pg_catalog.now()
+   where f.invoice_id = new.id and f.tenant_id = new.tenant_id and f.anulada_at is null;
+  return null;
+end;
+$function$;
+revoke all on function public.exc0674_marcar_anulada() from public, anon, authenticated, service_role;
+drop trigger if exists exc0674_marcar_anulada on public.invoices;
+create trigger exc0674_marcar_anulada
+  after update of status on public.invoices
+  for each row
+  when (new.status::text = 'anulada' and old.status::text is distinct from 'anulada')
+  execute function public.exc0674_marcar_anulada();
 
 -- ─── 2b. Qué envíos cubre cada factura ───────────────────────
 create table if not exists public.exc0674_factura_envios (
@@ -229,7 +268,13 @@ create policy exc0674_factura_envios_select on public.exc0674_factura_envios
   for select to authenticated
   using (
     tenant_id = (select public.get_user_tenant_id())
-    and (select public.current_studio_role()) in ('operations', 'accounting', 'admin')
+    and (
+      (select public.current_studio_role()) in ('accounting', 'admin')
+      or ((select public.current_studio_role()) = 'operations'
+          and exists (select 1 from public.exc0674_contenedores l
+                       where l.tenant_id = exc0674_factura_envios.tenant_id
+                         and l.consolidation_id = exc0674_factura_envios.consolidation_id))
+    )
   );
 revoke all on public.exc0674_factura_envios from public, anon, authenticated;
 grant select on public.exc0674_factura_envios to authenticated;
@@ -354,7 +399,7 @@ begin
       pg_catalog.hashtextextended('exc0674:' || v_tenant::text || ':' || p_consolidation_id::text || ':' || v_mb, 0));
     if exists (select 1 from public.exc0674_facturas f
                 where f.tenant_id = v_tenant and f.consolidation_id = p_consolidation_id
-                  and f.client_markbox = v_mb) then
+                  and f.client_markbox = v_mb and f.anulada_at is null) then
       raise exception 'exc0674:ya_facturado:%', v_mb using errcode = '23505';
     end if;
 
@@ -571,6 +616,16 @@ begin
                   where tgrelid = 'public.exc0674_contenedores'::pg_catalog.regclass
                     and tgname = 'exc0674_contenedores_auditar' and not tgisinternal) then
     raise exception '0564 postflight: falta el trigger que audita la lista';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_trigger
+                  where tgrelid = 'public.invoices'::pg_catalog.regclass
+                    and tgname = 'exc0674_marcar_anulada' and not tgisinternal) then
+    raise exception '0564 postflight: falta el trigger que marca la factura anulada';
+  end if;
+  if not exists (select 1 from pg_catalog.pg_indexes
+                  where schemaname = 'public' and indexname = 'exc0674_facturas_un_cliente_vivo'
+                    and indexdef like '%UNIQUE%' and indexdef like '%anulada_at IS NULL%') then
+    raise exception '0564 postflight: falta el índice único parcial del rastro';
   end if;
 end
 $postflight$;
