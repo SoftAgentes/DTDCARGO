@@ -3555,6 +3555,15 @@
         "fecha": "2026-11-18",
         "forma": "exacta"
       }
+    },
+    "0560_oficina_acuse_en_escalados": {
+      "sha256": "f5949e34dcea1644844048910c098f3486444fe67638c2a1a7ff42161862728f",
+      "md5": "fb276a12571eaeb7ece938117909f5c8",
+      "bytes": 10398,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
     }
   }
 }
