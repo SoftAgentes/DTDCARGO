@@ -383,6 +383,7 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.facturar.test.tsx`
 - `scripts/__tests__/invoice-read-boundary.test.mjs` (solo la nota EXC-0674, +0 llamadas)
 - `lib/studio/rbac-actions-guard.test.ts` (solo el inventario de acciones, 488 → 489, con su comentario)
+- `scripts/ci-sql-tests-control.sh` (solo copiar `supabase/desarmes/` en el control C4, como `cargas/`)
 - `docs/governance/README.md` (filas SGE-00, MP-01 y BTN-01: enlace a la excepción)
 - `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`
 

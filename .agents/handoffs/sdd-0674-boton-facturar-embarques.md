@@ -112,17 +112,40 @@ Fecha: 2026-11-18. Datos de la tarea:
 | `pnpm typecheck` | PASÓ |
 | eslint de los archivos tocados | PASÓ |
 | Contratos SQL en Docker (`run-sql-tests.mjs`, postgres:17 efímero con `--rm`) | PASÓ: 310 de 310, incluidos la 0564 y su carrera |
-| `/ui-check` de `FacturarContenedor.tsx` | NO EJECUTADO |
+| `/ui-check` de `FacturarContenedor.tsx` | PASÓ, con ajustes menores no bloqueantes (ver «UI-check») |
 | `pnpm verify` | NO EJECUTADO: el portón es el CI |
+
+## UI-check (`FacturarContenedor.tsx`, advisory)
+
+- [media] `FacturarContenedor.tsx:315` y `:340`: el respaldo del scrim y la sombra llevan `rgba` literales.
+  Son los mismos valores de `ConfirmDialog.tsx:253/282`, el diálogo canónico, así que se dejan iguales.
+  Si se tokeniza, se hace en los dos.
+- [baja] `:322`, `:341` y `:344`: padding 16/22 y gap 14 fuera de la escala de 4 px. Copian
+  `ConfirmDialog`, igual que el punto anterior.
+- [baja] `:223`: input de 140 px. El peor caso real («1.234.567,89», en la fuente del `studio-input`) cabe
+  holgado; el monto grande del diálogo usa `whiteSpace: nowrap`.
+- Bien: solo tokens de color y tipografía del Studio (Sora/Nunito/mono), labels `studio-sr-only`
+  clicables, foco inicial en «Volver», `aria-busy`, botón oculto (no deshabilitado) para roles sin
+  permiso, tuteo sin voseo y CTAs con verbo. No hay AI slop.
+- Veredicto: OK con ajustes menores (no bloqueante).
+
+## Límites conocidos (revisión de `df8e20648`, texto del DG)
+
+- **3.** El lock por cliente (0564:385-386) siempre queda cubierto por el lock de numeración del tenant
+  (:359-360). Ningún mutante lo prueba por separado. No hace daño, pero en la escena «REAL 2» de la
+  carrera gana el lock del tenant, no este.
+- **6.** Cambio de año: `issued_at` usa la fecha de Caracas (:303) y `next_invoice_code` usa
+  `current_date` de la base (UTC). El 31 de diciembre después de las 20:00 VET saldría un F-2027 con
+  fecha 2026-12-31. Ya pasa con la numeración de hoy.
+- `statement_timeout`: no se pone dentro de la RPC. Cambiarlo a mitad de la llamada no rearma el timer
+  de la sentencia que ya corre. El tope lo pone el rol `authenticated`, y la guarda contra ciclos corta el
+  único bucle sin fin. El DG lo aceptó.
 
 ## Pendientes de esta tarea
 
 1. Que el CI pase sobre la cabeza nueva.
-2. `/ui-check` de `FacturarContenedor.tsx`.
-3. Los puntos 3 y 6 de la revisión de `df8e20648` van aquí como límites conocidos; le pedí el texto al
-   DG.
-4. La re-revisión de la cabeza nueva, que lanza el DG.
-5. Después de fusionar, y solo con el OK nominal de Sam:
+2. La re-revisión de la cabeza nueva, que lanza el DG.
+3. Después de fusionar, y solo con el OK nominal de Sam:
    - aplicar la 0564 por el runbook;
    - agregar el 64 a la lista con `service_role` y `dtd.audit_reason`.
 
