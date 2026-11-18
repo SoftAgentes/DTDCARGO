@@ -79,6 +79,10 @@ export function WithholdingsView({
   const router = useRouter();
   const totals = useMemo(() => withholdingTotals(rows), [rows]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // SDD-0660: el selector de mes no vive en un <form>; a medio escribir `period`
+  // se queda en el último mes válido. Exportar y «Nuevo comprobante» (que manda el
+  // período en un oculto que el drawer no muestra) esperan a un mes válido.
+  const [periodValid, setPeriodValid] = useState(true);
   const [pending, startTransition] = useTransition();
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [confirmVoidId, setConfirmVoidId] = useState<string | null>(null);
@@ -154,6 +158,8 @@ export function WithholdingsView({
             onChange={(v) => {
               if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
             }}
+            onValidityChange={setPeriodValid}
+            required
             style={{ width: 160 }}
             aria-label="Período fiscal"
           />
@@ -171,7 +177,7 @@ export function WithholdingsView({
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={exportCsv}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || !periodValid}
           >
             {Icon.doc(14)} Exportar CSV
           </button>
@@ -179,7 +185,7 @@ export function WithholdingsView({
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={() => window.print()}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || !periodValid}
           >
             Exportar PDF
           </button>
@@ -188,6 +194,7 @@ export function WithholdingsView({
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setDrawerOpen(true)}
+              disabled={!periodValid}
             >
               {Icon.plus(14)} Nuevo comprobante
             </button>
@@ -245,6 +252,7 @@ export function WithholdingsView({
                 type="button"
                 className="studio-btn studio-btn-primary studio-btn-sm"
                 onClick={() => setDrawerOpen(true)}
+                disabled={!periodValid}
               >
                 Nuevo comprobante
               </button>

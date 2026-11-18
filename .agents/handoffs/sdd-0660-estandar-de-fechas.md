@@ -36,7 +36,12 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 ### Segunda revisión sobre `f076196fe`
 
 - **N1** El efecto controlado reescribía con el eco de lo propio: «31022026» encima de una fecha válida avisaba "", el padre guardaba "" y el texto desaparecía sin error (Estado de cuenta perdía la línea). Ahora el eco (`incoming === lastEmitted`, fijado en `apply` antes de avisar) no reescribe. Prueba controlada escribiendo encima sin vaciar; la prueba mata al mutante sin la guarda.
-- **N2** Campos fuera de un `<form>`: revisé los 8 consumidores controlados. Dentro de un formulario (Club, Estado de cuenta, Amonestación) la validez del campo bloquea el envío. Fuera: Activos fijos («Depreciar mes»), Fiscal («Asentar período», «Anular asiento», CSV y PDF) y Gastos («Exportar») esperan a `onValidityChange`; Retenciones solo navega. Pruebas: `activos-fijos-mes`, `fiscal/periodo-a-medio-escribir`, `GastosClient.mes`.
+- **N2** Campos fuera de un `<form>`: dentro de un formulario (Club, Estado de cuenta, Amonestación) la validez del campo bloquea el envío. Fuera: Activos fijos («Depreciar mes»), Fiscal («Asentar período», «Anular asiento», CSV y PDF) y Gastos («Exportar») esperan a `onValidityChange`. Pruebas: `activos-fijos-mes`, `fiscal/periodo-a-medio-escribir`, `GastosClient.mes`.
+
+### Tercera revisión sobre `b447e564b`
+
+- **Bloqueante** Retenciones (el noveno consumidor controlado) quedó sin guarda: mi nota decía «Retenciones solo navega» y estaba mal. Con el mes a medio escribir o imposible seguían «Exportar CSV», «Exportar PDF» y los dos «Nuevo comprobante», y el comprobante se habría registrado en el período anterior (el drawer lo manda en un oculto que no muestra). Ahora el campo es obligatorio y esos cuatro botones esperan a `onValidityChange`. Prueba: `fiscal/_components/retenciones-periodo.test.tsx` (10/202, 13/2026 y estado vacío).
+- Repaso con un script sobre `git grep "<DateField"`: 9 consumidores controlados; Club y Estado de cuenta envían con `type="submit"` dentro de su `<form>` (la validez del campo bloquea), y los otros 7 llevan `onValidityChange`. Los no controlados viajan todos dentro de un formulario.
 - **Menor** El reset escucha el formulario del atributo `form` si lo hay.
 - Nota de pruebas: user-event 14 no reemplaza una selección en un campo lleno hasta su `maxLength`; la prueba de N1 entrega el cambio con `fireEvent.change`, como el navegador.
 
@@ -59,6 +64,7 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 | Tras la revisión: typecheck | NO EJECUTADO localmente (la PC la tenía Embarques); lo cubre el CI de la PR |
 | Segunda revisión: 20 archivos (componente, máscara, contrato, Fiscal, Gastos, Activos, Reportes, Nómina, Documentos, Tarifas, fechas Caracas) | PASÓ 164/164 |
 | Segunda revisión: eslint de lo tocado | PASÓ |
+| Tercera revisión: `app/studio/(app)/fiscal` (5 archivos, incluida la prueba nueva de Retenciones) | PASÓ 17/17 |
 | `pnpm verify`, e2e | NO EJECUTADO (el DG no dio turno para verify) |
 
 ## PENDIENTES DE ESTA TAREA
@@ -69,6 +75,12 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 - Tanda 3: `<DateTimeField>` para los 4 `datetime-local`, con la prueba de zona de CAL-01.
 - Tanda 4: `AuditLogSection`, `inspecciones/builder-fields` y `components/document-import`.
 - `readOnly` en `<DateField>` para `AsistenciaDrawer`.
+
+### No bloqueantes de la tercera revisión (pendientes, sin arreglar en esta PR)
+
+- **Carrera de navegación en Gastos:** si llegan dos navegaciones seguidas, la vieja puede cambiar la prop `month` después de que la persona ya escribió otra cosa y reescribir el texto actual.
+- **Gastos con un mes imposible** (13/2026): avisa `""` y el filtro pasa a «todos los meses», aunque el campo muestra el error.
+- **Limpieza externa repetida con `""`:** si el padre ya tenía `""` y vuelve a poner `""` (por ejemplo, un «Limpiar» pulsado dos veces con algo a medio escribir), la prop no cambia y el texto no se limpia.
 
 ## FUERA DE ALCANCE DETECTADO
 
