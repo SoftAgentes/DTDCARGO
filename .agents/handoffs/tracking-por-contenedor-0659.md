@@ -38,7 +38,7 @@ Es consecuencia directa de la decisión 4 de Sam del 2026-11-18 (tracking por co
 
 **Lo que sigue igual.** El equipo de China (SDD-0531) no recibe nombres: se ocultan en el servidor y la consulta por nombre no se hace. Lo que esos roles ya veían en Tracking (los envíos activos con su cliente) no cambia.
 
-**Si se quisiera restringir**, la decisión es de Sam y el Director: mostrar «Quién viene adentro» y el buscador solo a los roles con acceso a Naviera es un cambio de aplicación, sin migración.
+**Decisión de Sam (2026-11-18).** Se le preguntó en esta sesión si comercial, bodega y soporte pueden ver qué lleva cada contenedor, con dos opciones: dejarlo visible o restringirlo a quienes tienen acceso a Naviera. Respondió: «Sí, que lo vean». La PR queda como está; no se restringe nada.
 
 ## Cambios tras la revisión independiente (sobre `324ce69f1`)
 
