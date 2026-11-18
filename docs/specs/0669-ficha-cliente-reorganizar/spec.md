@@ -1,7 +1,7 @@
 ---
 sdd: "0669"
 title: "Ficha del cliente: reorganizar la presentación"
-status: proposed
+status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-18
 updated: 2026-11-18
@@ -42,12 +42,11 @@ Sam, 2026-11-18, en la reunión con la oficina: «Sí, pásalo». Lo trae el Dir
 │ FRANJA FIJA (sticky bajo la barra del Studio)                                        │
 │ [DTD-0000 ▾] Antes: DTD-Z000   Cliente de prueba          Persona · Nivel  Asesor: … │
 │                                         [Abrir chat] [Cotizaciones] [Estado] [Editar]│
-│ Saldo  —        Vencido  —        Último pago  —        En curso  —                   │
 └──────────────────────────────────────────────────────────────────────────────────────┘
+ Saldo  —        Vencido  —        Último pago  —        En curso  —   (cabecera de la 0558)
  AVISOS (franjas planas, solo si hay)
  ▌ Solicitud de cambio de datos pendiente …                         [Revisar]
  ▌ Nota: PENDIENTE: asignar cliente …                                [Ver nota]
- ▌ Perfil 5/8: faltan cédula, foto y dirección                        [Completar]
 
  [ Resumen ] [ Envíos 12 ] [ Documentos 7 ] [ Configuración ]  ┌ Conversaciones ──────┐
  ─────────────────────────────────────────────────────────────  │ (panel F2 o tarjeta  │
@@ -68,8 +67,8 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 
 | Zona | Contenido | De dónde sale hoy |
 |---|---|---|
-| Franja fija | Shipping Mark con sus códigos anteriores (sin cambios: es de la 0664), nombre o «Sin nombre», tipo, nivel, **asesor asignado** (solo el nombre; se cambia en Configuración), acciones rápidas y, en una segunda línea compacta, los cuatro indicadores de la cuenta | Cabecera de `page.tsx`, `ClientDetailClient`, `ClientAccountHeader`, `AdvisorAssignCard` (el nombre) |
-| Avisos | Franjas planas (`Aviso`), arriba de las pestañas y a la vista en todas: la solicitud de cambio pendiente (0151), **las notas de la ficha** (dos líneas y «Ver nota») y el perfil incompleto (n/total con un enlace a Configuración). Sin avisos, la zona no ocupa nada | `ChangeRequestCard`, `client.notes`, `clientCompleteness` |
+| Franja fija | Shipping Mark con sus códigos anteriores (sin cambios: es de la 0664), nombre o «Sin nombre», tipo, nivel, **asesor asignado** (solo el nombre; se cambia en Configuración), acciones rápidas. Debajo, sin fijar, la cabecera de cuenta de la 0558 tal cual (sus tarjetas de 260 px no caben en una línea compacta sin rehacerla) | Cabecera de `page.tsx`, `ClientDetailClient`, `ClientAccountHeader`, `AdvisorAssignCard` (el nombre) |
+| Avisos | Franjas planas (`Aviso`), arriba de las pestañas y a la vista en todas: la solicitud de cambio pendiente (0151), **las notas de la ficha** (dos líneas y «Ver nota completa» si es larga). El perfil incompleto sigue en su tarjeta del Resumen, que se ve al abrir. Sin avisos, la zona no ocupa nada | `ChangeRequestCard`, `client.notes` |
 | Resumen | Datos del cliente, perfil del cliente y los últimos 5 envíos con «Ver todos» a la pestaña Envíos | Las mismas tarjetas de hoy |
 | Envíos (N) | El historial de envíos completo de todos los códigos de la ficha (0650 F1), sin cambios | Sección «Historial de envíos» |
 | Documentos (N) | **Un solo bloque**: arriba los de la ficha, con sus acciones de hoy (abrir, versiones, borrar) y el botón «Subir documento» que despliega el formulario; debajo, los de sus embarques agrupados por embarque, sin repetir los de la ficha | `DocsPanel` (formulario plegado) y `TodosLosAdjuntos` sin el grupo de la ficha |
@@ -79,7 +78,7 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 ### 3.3 Comportamiento
 
 1. **Pestañas.** Las del Studio (`.studio-tabs`, `role="tablist"`, flechas para moverse, `aria-controls`). La activa va en la URL (`?pestana=envios`): se puede enlazar, recargar y volver. Por defecto, Resumen. Cambiar de pestaña no recarga la página: el servidor pinta todas y las inactivas van con `hidden`.
-2. **Conversaciones.** Con acceso a la Bandeja: columna de 360 px a la derecha desde 1024 px, fija al bajar. Por debajo de 1024 px, se apila dentro de Resumen, después de «Últimos envíos». Sin Bandeja no hay columna y las pestañas toman todo el ancho. Con la F2 apagada por su interruptor, la columna muestra la tarjeta de la F1, como hoy.
+2. **Conversaciones.** Con acceso a la Bandeja: columna de 360 px a la derecha desde 1024 px, fija al bajar. Por debajo de 1024 px va debajo de las pestañas, a todo el ancho (pintarla dentro de Resumen la leería dos veces de Chatwoot). Sin Bandeja no hay columna y las pestañas toman todo el ancho. Con la F2 apagada por su interruptor, la columna muestra la tarjeta de la F1, como hoy.
 3. **El salto «N adjuntos · ver todos»** de la cabecera lleva a `?pestana=documentos`.
 4. **Franja fija.** `position: sticky` bajo la barra del Studio. En pantallas de menos de 700 px de alto no es fija (no se come la pantalla).
 5. **Móvil (< 768 px).** Las pestañas se desplazan en horizontal; la franja queda en dos líneas y los indicadores en una rejilla de 2 × 2.
@@ -110,7 +109,9 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 |---|---|
 | `app/studio/(app)/clientes/[markbox]/page.tsx` | Arma la franja, los avisos, las pestañas y la columna; lee `searchParams.pestana` |
 | `app/studio/(app)/clientes/_components/FichaPestanas.tsx` (nuevo) | Pestañas del lado del cliente: estado en la URL, teclado, `hidden` |
-| `app/studio/(app)/clientes/_components/FichaAvisos.tsx` (nuevo) | Nota, solicitud pendiente y perfil incompleto como franjas planas |
+| `app/studio/(app)/clientes/_components/NotaDeLaFicha.tsx` (nuevo) | La nota como franja plana (`Aviso`), plegable |
+| `app/studio/(app)/clientes/_components/ClientDetailClient.tsx` | Prop `encabezado`: identidad y acciones forman la franja fija |
+| `lib/studio/ficha-cliente.ts` | `pestanaDeLaFicha`: la URL solo elige entre las pestañas del rol |
 | `app/studio/_components/documents/DocsPanel.tsx` | Prop opcional para plegar el formulario tras «Subir documento»; por defecto, igual que hoy (lo usan otras pantallas) |
 | `app/studio/(app)/clientes/_components/TodosLosAdjuntos.tsx` | Prop opcional para omitir el grupo de la ficha |
 | `app/studio/studio.css` | La rejilla nueva (contenido + columna) en lugar de `.studio-ficha-grid` de tres columnas; franja fija |

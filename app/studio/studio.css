@@ -2381,48 +2381,97 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   }
 }
 
-/* ─── Ficha del cliente · tres columnas (SDD-0650 F1) ─────────────────────
-   Datos · operación · conversaciones. Sin acceso a la Bandeja no hay panel y
-   quedan dos columnas. Por debajo de 1440 px de ventana (con el menú lateral, la
-   columna central bajaba a ~430 px y la fila de envíos se cortaba) las
-   conversaciones bajan a todo el ancho; por debajo de 900 px, una sola columna. */
-.studio-ficha-grid {
+/* ─── Ficha del cliente · franja, pestañas y conversaciones (SDD-0669) ────
+   Sustituye a las tres columnas de la SDD-0650 F1, que dejaban una columna
+   larguísima y movían las conversaciones según el ancho.
+   · Franja: identidad y acciones, fija bajo la barra del Studio. No es fija en
+     pantallas bajas (< 700 px de alto) ni en móvil, donde la barra pasa a dos
+     filas y su alto ya no es `--topbar-h`.
+   · Cuerpo: las pestañas y, con acceso a la Bandeja, las conversaciones a la
+     derecha en todas las pestañas (360 px, fijas al bajar). Por debajo de
+     1024 px de ventana van debajo de las pestañas, a todo el ancho. */
+.studio-ficha-franja {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-4);
+  margin: 0 0 var(--s-5);
+  padding: var(--s-3) 0;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border);
+}
+.studio-ficha-identidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+  flex: 1 1 420px;
+}
+@media (max-height: 700px), (max-width: 767px) {
+  .studio-ficha-franja { position: static; }
+}
+.studio-ficha-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: var(--s-5) 0 0;
+}
+.studio-ficha-nota { white-space: pre-line; overflow-wrap: anywhere; }
+.studio-ficha-nota[data-plegada="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.studio-ficha-cuerpo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
-  grid-template-areas: "datos operacion conversaciones";
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--s-6);
   align-items: start;
+  margin-top: var(--s-6);
 }
-.studio-ficha-grid--sin-panel {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-  grid-template-areas: "datos operacion";
+.studio-ficha-cuerpo--sin-panel { grid-template-columns: minmax(0, 1fr); }
+.studio-ficha-principal { min-width: 0; }
+.studio-ficha-conversaciones {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--s-4));
+  min-width: 0;
 }
-.studio-ficha-col {
+@media (max-width: 1023px) {
+  .studio-ficha-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .studio-ficha-conversaciones { position: static; }
+}
+.studio-ficha-pestanas .studio-tabs { margin-bottom: var(--s-5); }
+/* En móvil las pestañas se desplazan en horizontal en vez de partirse. */
+@media (max-width: 767px) {
+  .studio-ficha-pestanas .studio-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+  }
+}
+.studio-ficha-col,
+.studio-ficha-configuracion {
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
   min-width: 0;
 }
-.studio-ficha-col--datos { grid-area: datos; }
-.studio-ficha-col--operacion { grid-area: operacion; }
-.studio-ficha-col--conversaciones { grid-area: conversaciones; }
-/* `:not(--sin-panel)`: esta regla es posterior y de igual especificidad; sin la
-   exclusión, pisaba la de dos columnas sin panel y dejaba una fila vacía. */
-@media (max-width: 1440px) {
-  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-    grid-template-areas:
-      "datos operacion"
-      "conversaciones conversaciones";
-  }
+.studio-ficha-resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-6);
+  align-items: start;
 }
+.studio-ficha-resumen-ancho { grid-column: 1 / -1; min-width: 0; }
 @media (max-width: 900px) {
-  /* Misma especificidad que la regla de 1440 px (0,2,0) y posterior: gana. */
-  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel),
-  .studio-ficha-grid.studio-ficha-grid--sin-panel {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "operacion" "conversaciones" "datos";
-  }
+  .studio-ficha-resumen { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── SDD-0648 · CRM › Embudos ─────────────────────────────────────────────
