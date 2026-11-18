@@ -32,21 +32,17 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
+// `scroll` se quita: no es un atributo de <a>.
 vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    scroll: _scroll,
-    ...rest
-  }: {
-    href: string;
-    children: unknown;
-    scroll?: boolean;
-  }) => (
-    <a href={href} {...(rest as object)}>
-      {children as never}
-    </a>
-  ),
+  default: ({ href, children, ...rest }: { href: string; children: unknown; scroll?: boolean }) => {
+    const dom: Record<string, unknown> = { ...rest };
+    delete dom.scroll;
+    return (
+      <a href={href} {...dom}>
+        {children as never}
+      </a>
+    );
+  },
 }));
 vi.mock("@/lib/studio/documents/adjuntos-queries", () => ({
   contarAdjuntosDeEmbarques: async () => null,

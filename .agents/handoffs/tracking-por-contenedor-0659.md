@@ -40,10 +40,12 @@ Rediseñar `/studio/tracking`. Sam eligió la opción A («Mesa de control») en
 | `governance:check` (node directo) | PASÓ |
 | `git diff --check` | PASÓ |
 | Proyección del mapa (corrida suelta con node sobre `proyeccion.ts`) | PASÓ: coincide con d3-geo en Ningbo y La Guaira |
-| `tsc` / typecheck | NO EJECUTADO: el worktree no tiene `node_modules`; falta turno para `pnpm install` |
-| `eslint` | NO EJECUTADO (misma razón) |
-| `vitest` de los archivos nuevos y de tracking | NO EJECUTADO (misma razón) |
-| `pnpm verify` | NO EJECUTADO: requiere turno |
+| `pnpm install --frozen-lockfile --prefer-offline` (turno del Director) | PASÓ, sin cambios en el repo |
+| `tsc --noEmit` | PASÓ |
+| `eslint` sobre tracking y los módulos nuevos | PASÓ, sin errores ni advertencias |
+| `vitest` de tracking, de los módulos nuevos y de los contratos de `app/studio/_components/__tests__` | PASÓ en dos corridas (406 pruebas en 32 archivos, más la repetición de los que no arrancaron). Incluye `ocultar-nombres-cn` sin cambios. |
+| `claridad-t5d-contract` y `claridad-t5e-contract` | NO EJECUTADO: el proceso de prueba no arrancó en tres intentos por carga de la PC. No leen archivos de tracking ni `studio.css`; quedan para el CI. |
+| `pnpm verify` | NO EJECUTADO: el Director indicó que el CI es el portón |
 | `/ui-check` | NO EJECUTADO: requiere la app corriendo |
 | Vista en navegador | NO EJECUTADO |
 
@@ -55,15 +57,14 @@ Rediseñar `/studio/tracking`. Sam eligió la opción A («Mesa de control») en
 
 ## PR / BRANCH
 
-Rama publicada con el commit de la spec. Los dos commits de código están locales hasta correr typecheck y pruebas. PR todavía no abierta.
+Rama publicada. PR abierta contra `main`, sin fusionar.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Turno para `pnpm install --frozen-lockfile`, typecheck, lint y vitest; corregir lo que salga.
-2. `pnpm verify` con turno, `/ui-check` y revisión en navegador (oscuro y claro, compacto, ancho angosto).
-3. Abrir la PR sin fusionar y reportar la cabeza exacta al Director.
-4. Preguntas abiertas para Sam (están en la spec): dónde va «Avisar a los clientes»; qué referencia da el proveedor tercero en un consolidado parcial; si los entregados se ven en un filtro.
-5. Fase 2 (consolidado parcial) y Fase 3 (avisos de ETA movida) necesitan migración y OK aparte.
+1. Leer el CI de la PR y corregir lo que marque.
+2. `/ui-check` y revisión en navegador (oscuro y claro, compacto, ancho angosto): nadie ha visto la pantalla corriendo.
+3. Preguntas abiertas para Sam (están en la spec): dónde va «Avisar a los clientes»; qué referencia da el proveedor tercero en un consolidado parcial; si los entregados se ven en un filtro.
+4. Fase 2 (consolidado parcial) y Fase 3 (avisos de ETA movida) necesitan migración y OK aparte.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -77,4 +78,4 @@ Rama publicada con el commit de la spec. Los dos commits de código están local
 
 ## HANDOFF AL DIRECTOR
 
-Pendiente de turno para instalar y probar. No hay migraciones ni cambios fuera de la allowlist de la spec, salvo este handoff.
+Turno de PC liberado. No hay migraciones ni cambios fuera de la allowlist de la spec, salvo este handoff.

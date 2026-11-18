@@ -39,7 +39,10 @@ export function fechaCorta(iso: string | null): string {
   if (!iso) return "—";
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "—";
-  return new Date(t).toLocaleDateString("es-VE", FECHA_CORTA);
+  // es-VE devuelve «09-nov.»: se arma a mano para que quede «09 nov».
+  const partes = new Intl.DateTimeFormat("es-VE", FECHA_CORTA).formatToParts(new Date(t));
+  const de = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${de("day")} ${de("month").replace(/\.$/, "")}`;
 }
 
 /** «en 7 días», «hoy», «hace 2 días». null = sin fecha. */
