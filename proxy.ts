@@ -122,6 +122,19 @@ export async function proxy(request: NextRequest) {
     return p === "/studio/login";
   }
 
+  /**
+   * La Ficha DTD (SDD-0585, paso 2.4, E2-D29) vive en un iframe de Chatwoot:
+   * redirigirla al login deja el marco en blanco, porque el login no se deja
+   * enmarcar. Sin sesión, la página dice «Inicia sesión en Studio» y no lee
+   * nada; la server action repite el candado. Solo la ruta exacta.
+   *
+   * `/studio/cerrar-chat` (paso 2.7, E2-D13) es el paso de salida: `signOut`
+   * manda ahí ya sin sesión, para cerrar también la del chat. No lee nada.
+   */
+  function rendersOwnSignedOutState(p: string): boolean {
+    return p === "/studio/ficha-chat" || p === "/studio/cerrar-chat";
+  }
+
   // ─── /studio/** ─────────────────────────────────────────────
   if (pathname.startsWith("/studio")) {
     // Sin sesión y NO en una puerta de entrada → redirect a login.
@@ -132,7 +145,7 @@ export async function proxy(request: NextRequest) {
     // el enlace de acceso muere antes de llegar al handler y el usuario
     // termina otra vez en el login sin saber por qué — exactamente el
     // síntoma que este trabajo viene a eliminar.
-    if (!user && !isStudioEntryPoint(pathname)) {
+    if (!user && !isStudioEntryPoint(pathname) && !rendersOwnSignedOutState(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/studio/login";
       return NextResponse.redirect(url);

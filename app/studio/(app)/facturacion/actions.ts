@@ -25,10 +25,11 @@
 
 "use server";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
 import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
@@ -54,6 +55,15 @@ import {
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  nombreDeLaMoneda,
+  tasaDelDocumento,
+  tasaVigente,
+  type FuenteTasa,
+  type IntencionTasa,
+  type TasaDelDocumento,
+} from "@/lib/studio/fx-rates";
+import { necesitaTasa, normalizarMoneda, tasaPersistible } from "@/lib/shared/fx";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
@@ -95,6 +105,32 @@ function parseLines(formData: FormData): InvoiceLine[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * SDD-0569 · Las columnas de la tasa congelada (0495). Solo en VES o CNY: en USD
+ * y USDT no hay tasa, y no se nombran las columnas nuevas.
+ */
+function columnasDeTasa(tasa: TasaDelDocumento): Record<string, unknown> {
+  return tasa.fxRateSource ? {
+    fx_rate_source: tasa.fxRateSource,
+    fx_rate_valid_on: tasa.fxRateValidOn,
+    fx_rate_is_override: tasa.fxRateIsOverride,
+  } : {};
+}
+
+function intencionDeTasa(formData: FormData): IntencionTasa {
+  const intent = formData.get("fx_rate_intent");
+  if (intent === "preserve" || intent === "manual" || intent === "catalog") return intent;
+  // Otros consumidores que envían una cifra explícita también indican intención;
+  // una entrada inválida no debe desaparecer al parsearla ni consultar catálogo.
+  return String(formData.get("fx_rate") ?? "").trim() === "" ? "catalog" : "manual";
+}
+
+const CONFLICTO_FACTURA = "La factura cambió mientras trabajabas. Recarga y revisa los datos antes de volver a intentar.";
+
+function faltaTasaDeEmision(currency: string, today: string): string {
+  return `No se puede emitir: falta la tasa de ${nombreDeLaMoneda(currency)} para el ${today}. Cárgala en Admin › Tasas o escríbela en el borrador.`;
 }
 
 function inputFromFormData(formData: FormData): Partial<InvoiceInput> {
@@ -305,17 +341,30 @@ export async function createInvoice(
   _prev: InvoiceActionState,
   formData: FormData,
 ): Promise<InvoiceActionState> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
 
   const partial = inputFromFormData(formData);
+  const { tenantId, error: tErr } = await resolveTenant(supabase);
+  if (tErr || !tenantId) return { error: tErr };
+
+  const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
+  // SDD-0569: en VES o CNY, la tasa escrita o la vigente de fx_rates.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, partial.currency ?? "USD", partial.fx_rate, today, null, intencionDeTasa(formData),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (emitNowRequested && partial.currency === "VES" && !tasa.tasa.fxRateIsOverride
+      && tasa.tasa.fxRateValidOn !== today) {
+    return { fieldErrors: { fx_rate: faltaTasaDeEmision("VES", today) } };
+  }
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
+
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
-
-  const { tenantId, error: tErr } = await resolveTenant(supabase);
-  if (tErr || !tenantId) return { error: tErr };
 
   const iva = await resolveIva(supabase, tenantId, input!.iva_mode);
   const totals = calcInvoiceTotals({
@@ -333,9 +382,6 @@ export async function createInvoice(
     return { error: "No se pudo generar el código de factura." };
   }
   const invoice_code = String(codeData);
-
-  const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
-  const today = new Date().toISOString().slice(0, 10);
 
   // Gate legal AUT-04 (SDD-0054). Se evalúa ANTES del insert para decidir si el
   // create-and-emit de un DDP puede realmente emitir.
@@ -366,7 +412,9 @@ export async function createInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
+      // SDD-0569: en USD y USDT, null aunque el campo oculto traiga una vieja.
+      fx_rate: tasa.tasa.fxRate,
+      ...columnasDeTasa(tasa.tasa),
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -413,21 +461,47 @@ export async function updateInvoice(
   _prev: InvoiceActionState,
   formData: FormData,
 ): Promise<InvoiceActionState> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("status, invoice_code, tenant_id")
+    .select("status, invoice_code, tenant_id, currency, fx_rate, fx_rate_source, fx_rate_valid_on, fx_rate_is_override, write_version")
     .eq("id", id)
-    .maybeSingle<{ status: string; invoice_code: string; tenant_id: string }>();
+    .maybeSingle<{
+      status: string;
+      invoice_code: string;
+      tenant_id: string;
+      currency: string;
+      fx_rate: number | string | null;
+      fx_rate_source: FuenteTasa | null;
+      fx_rate_valid_on: string | null;
+      fx_rate_is_override: boolean;
+      write_version: number | string;
+    }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status !== "borrador") {
     return { error: "Solo las facturas en borrador pueden editarse." };
   }
 
   const partial = inputFromFormData(formData);
+  // SDD-0569: preservar es una intención expresa del formulario precargado.
+  // Cambiar moneda invalida esa preservación, aunque el número coincida.
+  const mismaMoneda = normalizarMoneda(current.currency) === normalizarMoneda(partial.currency ?? "USD");
+  const tasa = await tasaDelDocumento(
+    supabase, current.tenant_id, partial.currency ?? "USD", partial.fx_rate, today,
+    mismaMoneda
+      ? {
+          fxRate: tasaPersistible(current.fx_rate), fxRateSource: current.fx_rate_source,
+          fxRateValidOn: current.fx_rate_valid_on, fxRateIsOverride: current.fx_rate_is_override,
+        }
+      : null,
+    !mismaMoneda && intencionDeTasa(formData) === "preserve" ? "catalog" : intencionDeTasa(formData),
+  );
+  if (!tasa.ok) return { fieldErrors: { fx_rate: tasa.error } };
+  if (tasa.tasa.fxRate !== null) partial.fx_rate = tasa.tasa.fxRate;
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
   const billTo = parseBillToKind(formData);
@@ -439,7 +513,7 @@ export async function updateInvoice(
     ivaOn: iva.ivaOn,
   });
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("invoices")
     .update({
       client_markbox: input!.client_markbox,
@@ -447,7 +521,11 @@ export async function updateInvoice(
       shipment_id: input!.shipment_id,
       shipment_code: input!.shipment_code,
       currency: input!.currency,
-      fx_rate: input!.fx_rate,
+      // SDD-0569: las tres siempre; en USD y USDT van a null (lo promete la 0495).
+      fx_rate: tasa.tasa.fxRate,
+      fx_rate_source: tasa.tasa.fxRateSource,
+      fx_rate_valid_on: tasa.tasa.fxRateValidOn,
+      fx_rate_is_override: tasa.tasa.fxRateIsOverride,
       iva_rate: iva.ivaRate,
       iva_mode: iva.ivaMode,
       base_amount: totals.base,
@@ -460,9 +538,17 @@ export async function updateInvoice(
       // del cliente). Sólo si el selector estaba en pantalla.
       ...billToUpdatePatch(billTo),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", current.tenant_id)
+    .eq("write_version", current.write_version)
+    .eq("status", "borrador")
+    .eq("currency", current.currency)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!updated) return { error: CONFLICTO_FACTURA };
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
@@ -478,6 +564,7 @@ export async function emitInvoice(
   needsLegalAck?: boolean;
   warning?: string;
 }> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -485,7 +572,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, fx_rate_source, fx_rate_valid_on, fx_rate_is_override, write_version, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -497,6 +584,10 @@ export async function emitInvoice(
       client_name: string;
       currency: string;
       fx_rate: number | null;
+      fx_rate_source: FuenteTasa | null;
+      fx_rate_valid_on: string | null;
+      fx_rate_is_override: boolean;
+      write_version: number | string;
       shipment_id: string | null;
       shipment_code: string | null;
       due_date: string | null;
@@ -542,12 +633,34 @@ export async function emitInvoice(
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { error } = await supabase
+
+  // Solo un override documental expreso se conserva. La fuente manual del
+  // catálogo no significa override. VES automática exige fecha exacta; CNY
+  // conserva la regla histórica <= día, por decisión del Director.
+  let tasaDeEmision: Record<string, unknown> = {};
+  if (necesitaTasa(current.currency)) {
+    if (current.fx_rate_is_override) {
+      if (current.fx_rate_source !== "manual" || !current.fx_rate_valid_on || tasaPersistible(current.fx_rate) === null) {
+        return { error: "No se puede emitir: revisa la tasa manual del borrador; debe conservar un valor mayor que 0 con 8 decimales." };
+      }
+    } else {
+      const vigente = await tasaVigente(supabase, current.tenant_id, current.currency, today);
+      if (!vigente || (normalizarMoneda(current.currency) === "VES" && vigente.validOn !== today)) {
+        return { error: faltaTasaDeEmision(current.currency, today) };
+      }
+      tasaDeEmision = {
+        fx_rate: vigente.rate, fx_rate_source: vigente.source, fx_rate_valid_on: vigente.validOn,
+        fx_rate_is_override: false,
+      };
+    }
+  }
+
+  const { data: emitted, error } = await supabase
     .from("invoices")
     .update({
       status: "emitida",
       issued_at: today,
+      ...tasaDeEmision,
       due_date: current.due_date ?? addDaysISO(today, 30),
       // SDD-0068: re-derivar la clase de fondos al emitir (el shipment pudo
       // cambiar mientras era borrador). Solo escribe la columna — el asiento
@@ -556,9 +669,17 @@ export async function emitInvoice(
       // SDD-0298/0487: el titular lo sella la base en este UPDATE (trigger
       // 0466): borrador → emitida. Desde ahora el papel ya no cambia.
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", current.tenant_id)
+    .eq("write_version", current.write_version)
+    .eq("status", "borrador")
+    .eq("currency", current.currency)
+    .is("deleted_at", null)
+    .select("id, fx_rate")
+    .maybeSingle<{ id: string; fx_rate: number | null }>();
 
   if (error) return { error: error.message };
+  if (!emitted) return { error: CONFLICTO_FACTURA };
 
   // SDD-0040: asiento automático de venta (DR Clientes / CR Ingresos [+ IVA]).
   // Best-effort: si la contabilidad falla, la factura se emite igual.
@@ -584,7 +705,7 @@ export async function emitInvoice(
     await fireMailEvent(createAdminClient(), current.tenant_id, {
       event: "invoice_emitted",
       vars: varsDeFacturaEmitida(
-        current,
+        { ...current, fx_rate: emitted.fx_rate },
         today,
         current.due_date ?? addDaysISO(today, 30),
       ),
@@ -621,6 +742,7 @@ export async function registerPayment(
     notes?: string | null;
   },
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string; fullyPaid?: boolean }> {
+  const receivedAt = payload?.receivedAt === undefined ? fechaCaracas() : payload.receivedAt;
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -637,7 +759,7 @@ export async function registerPayment(
     amount: payload.amount,
     cashAccountId: payload.cashAccountId,
     method: payload.method,
-    receivedAt: payload.receivedAt,
+    receivedAt,
     reference: payload.reference ?? null,
     notes: payload.notes ?? null,
   });
@@ -670,16 +792,17 @@ export async function voidInvoice(
   if (denial) return { error: denial };
 
   // Anular es accounting/admin: gate del módulo "invoices" (SDD-0085) — resuelve
-  // el viejo TODO de permisos.
+  // el viejo TODO de permisos. La RPC (0497) vuelve a exigirlo en la base.
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("id, tenant_id, status, invoice_code")
+    .select("id, tenant_id, status, invoice_code, paid_amount")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       tenant_id: string;
       status: string;
       invoice_code: string;
+      paid_amount: number | string | null;
     }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status === "pagada") {
@@ -687,6 +810,59 @@ export async function voidInvoice(
   }
   if (current.status === "anulada") {
     return { error: "Esta factura ya está anulada." };
+  }
+
+  // SDD-0573: con cobros vivos la base no la anula. Se mira ANTES de revertir el
+  // crédito, para no liberarlo en una anulación que igual se va a rechazar. La
+  // RPC lo vuelve a contar bajo el lock de la factura, que es lo que manda.
+  // Un conteo desconocido no habilita efectos; sólo cuentan los recibos del tenant actual.
+  const { count: recibosVivos, error: recibosError } = await supabase
+    .from("payment_receipts")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", current.tenant_id)
+    .eq("invoice_id", id)
+    .is("deleted_at", null);
+  if (recibosError || recibosVivos == null) {
+    return {
+      error:
+        "No se pudieron comprobar los cobros de esta factura. Intenta de nuevo antes de anularla.",
+    };
+  }
+  if (recibosVivos > 0) {
+    return { error: `La factura tiene ${recibosVivos} cobro(s) vivo(s): anúlalos primero en Cobranzas.` };
+  }
+
+  // SDD-0573: la base no anula una factura con abono sin recibo (decisión del
+  // Director, 2026-10-20). El abono de un crédito de referido se revierte
+  // PRIMERO, por la RPC revert_referral_credits (0471, factura FOR UPDATE), que
+  // no exige la factura anulada. Antes (SDD-0137 §3.6 y 0495/0496) la reversión
+  // corría después de anular y era best-effort; ahora, si el crédito no vuelve,
+  // la factura no se anula: no queda un crédito pegado a una anulada.
+  let warning: string | undefined;
+  let liberados = 0;
+  if (Number(current.paid_amount ?? 0) > 0) {
+    const revert = await revertReferralCreditsForInvoice(
+      supabase,
+      current.tenant_id,
+      current.id,
+    );
+    if (!revert.ok) {
+      console.error(
+        `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
+        revert.error,
+      );
+      if (revert.failure !== "entries") {
+        return {
+          error:
+            "No se pudo liberar el crédito de referido aplicado a esta factura, así que no se anuló. Intenta de nuevo; si sigue, pásaselo a contabilidad con el código de la factura.",
+        };
+      }
+      // "entries": la plata volvió entera; lo que quedó vivo es el asiento del
+      // crédito. La anulación sigue, con su aviso (SDD-0496).
+      warning = voidReferralRevertWarning(revert.failure);
+    }
+    liberados = revert.reverted;
+    if (liberados > 0 || warning) revalidatePath("/studio/fidelizacion");
   }
 
   const { data: changed, error } = await supabase.rpc(
@@ -697,49 +873,32 @@ export async function voidInvoice(
     },
   );
 
-  if (error) return { error: error.message };
-  if (!changed) return { error: "La factura ya no admite anulación." };
-
-  // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
-  // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no
-  // se "quema" por una factura anulada. Best-effort: no bloquea la anulación.
-  // SDD-0496: la reversión va por la RPC revert_referral_credits (0471), con la
-  // factura FOR UPDATE, y corre con el cliente del usuario (ya pasó el gate de
-  // dinero de "invoices", que es el mismo accounting/admin que la RPC exige).
-  const revert = await revertReferralCreditsForInvoice(
-    supabase,
-    current.tenant_id,
-    current.id,
-  );
-  let warning: string | undefined;
-  if (!revert.ok) {
-    console.error(
-      `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
-      revert.error,
-    );
-    // SDD-0495: el log era lo ÚNICO que pasaba. Quien anulaba veía un éxito
-    // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
-    // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
-    // y la de Fidelización) porque sus roles no se solapan.
-    //
-    // SDD-0496: el aviso se elige por QUÉ falló, no por cuántos se liberaron.
-    // Cuando la 0495 lo escribió, la reversión recorría los créditos de a uno y
-    // `reverted > 0` con `ok: false` quería decir «unos sí y otros no». Ahora es
-    // UNA transacción (revert_referral_credits, migr 0471): todos o ninguno. Lo
-    // que `reverted > 0` significa hoy con `ok: false` es lo CONTRARIO —la plata
-    // volvió entera y lo que quedó colgado es el asiento—, así que elegir por el
-    // conteo diría que hay créditos varados justo cuando no queda ninguno.
-    warning = voidReferralRevertWarning(revert.failure);
-    // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
-    // el crédito varado: las dos vistas dependen del estado que acaba de
-    // quedar inconsistente, así que las dos se revalidan.
-    revalidatePath("/studio/fidelizacion");
-  } else if (revert.reverted > 0) {
-    revalidatePath("/studio/fidelizacion");
+  // SDD-0573: solo los mensajes propios de la 0497 (hint dtd-anular) y el del
+  // motivo; nunca el texto crudo de la base (ERR-01).
+  const yaLiberado = liberados > 0
+    ? " El crédito de referido que tenía aplicado ya volvió a estar disponible."
+    : "";
+  if (error) {
+    if (error.hint === "dtd-anular" && error.message) return { error: error.message + yaLiberado };
+    if (error.code === "22023" && error.message?.startsWith("audit: reason")) {
+      return { error: "El motivo debe tener entre 4 y 1000 caracteres." + yaLiberado };
+    }
+    console.error("[facturacion] anular:", error.code, error.message);
+    return { error: "No se pudo anular la factura. Intenta de nuevo." + yaLiberado };
   }
+  // Sólo null en el transporte y un booleano acreditan el ACK. Un valor
+  // inesperado no demuestra rechazo ni permite afirmar que no hubo efectos.
+  if (error !== null || (changed !== true && changed !== false)) {
+    return {
+      error:
+        "No se pudo confirmar la anulación de la factura. Revisa su estado antes de volver a intentar." + yaLiberado,
+    };
+  }
+  if (changed === false) return { error: "La factura ya no admite anulación." + yaLiberado };
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
+  revalidatePath("/studio/contabilidad");
   return warning ? { ok: true, warning } : { ok: true };
 }
 
@@ -843,6 +1002,7 @@ export async function softDeleteInvoice(
 export async function duplicateInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string; code?: string }> {
+  const today = fechaCaracas();
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
@@ -859,6 +1019,12 @@ export async function duplicateInvoice(
   if (!original) return { error: "No se encontró la factura a duplicar." };
 
   const tenantId = original.tenant_id as string;
+  // SDD-0569 (revisión, hallazgo 4): la copia es un documento nuevo; resuelve su
+  // tasa hoy, antes de consumir correlativo. No hereda la del original.
+  const tasa = await tasaDelDocumento(
+    supabase, tenantId, String(original.currency ?? "USD"), null, today,
+  );
+  if (!tasa.ok) return { error: tasa.error };
   const { data: codeData, error: codeErr } = await supabase.rpc(
     "next_invoice_code",
     { p_tenant_id: tenantId },
@@ -877,7 +1043,8 @@ export async function duplicateInvoice(
     shipment_id: shipmentId,
     shipment_code: original.shipment_code,
     currency: original.currency,
-    fx_rate: original.fx_rate,
+    fx_rate: tasa.tasa.fxRate,
+    ...columnasDeTasa(tasa.tasa),
     iva_rate: original.iva_rate,
     iva_mode: original.iva_mode,
     base_amount: original.base_amount,
@@ -908,9 +1075,11 @@ export async function lookupShipmentForInvoice(code: string): Promise<{
     client_markbox: string | null;
   } | null;
 }> {
+  const supabase = await createClient();
+  // SDD-0624: la búsqueda es de la pantalla de facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return { shipment: null };
   const trimmed = code?.trim();
   if (!trimmed) return { shipment: null };
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code, client_name, client_markbox")
@@ -938,9 +1107,11 @@ export async function lookupInvoiceBillingOptions(
   markbox: string,
   invoiceId?: string | null,
 ): Promise<(InvoiceBillingOptions & { current: BillingKind | null }) | null> {
+  const supabase = await createClient();
+  // SDD-0624: datos de facturación del cliente → sólo quien ve facturación.
+  if (await moduleViewDenial(supabase, "invoices")) return null;
   const mb = markbox?.trim();
   if (!mb) return null;
-  const supabase = await createClient();
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, name, rif, doc_kind")

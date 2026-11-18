@@ -17,11 +17,12 @@ Cómo se crea, se usa, se resetea y se destruye el entorno de prueba del VPS. Es
 - **Puerta (D4).** El web y el buzón `/correo/` piden una clave (basicAuth de Traefik). La API queda como en producción: sin `apikey` responde 401. Los dos hosts mandan `X-Robots-Tag: noindex, nofollow`.
 - **Lista de IP en los dos hosts (desde el 2026-10-16).** Sam autorizó datos reales de los consolidados en prueba («autorizo cargar datos reales de los consolidados en prueba», excepción D2) y eligió «Solo desde mis IP». Los tres routers (web, buzón y API) pasan primero por `ipallowlist` con `STAGING_ALLOWED_IPS` (la IP de Sam) y `STAGING_INTERNAL_IPS` (el propio VPS). Cualquier otra IP recibe 403, y la clave del web sigue además. Sin esas dos variables, el compose no arranca. Las escribe `ips-prueba.sh` (§2.1) y nunca van al repo ni al chat.
 - **Sin integraciones (D8 y D9).** No hay Resend, Telegram, Kommo, VAPID, Anthropic, SeaRates ni R2. Los correos de Auth caen en Mailpit; los de la app quedan en modo mock.
+- **La excepción es Chatwoot (2026-11-03):** prueba usa su propia cuenta en el mismo chat, sin datos reales, según [chatwoot-bandeja](chatwoot-bandeja.md). `verificar-aislamiento.sh` acepta sus variables y falla si `CHATWOOT_ACCOUNT_ID` es la cuenta real, si un token es el de producción o si `WHATSAPP_NUMERO_CLIENTES` es el número real. `CRM_ALTA_WEB_SIN_KOMMO` sigue prohibida.
 - **Un despliegue a prueba no necesita el OK de Sam (D5).** Producción sí lo necesita, y cada migración en producción también.
 - **No es producción.** Nada de aquí escribe en `dtd-cargo`. Todos los scripts rechazan el proyecto `dtd-cargo` y cualquier proyecto que no termine en `-staging`.
 
 Fase 2 ([SDD-0544](../specs/0544-prueba-producto-minimo/spec.md)), desde una imagen construida con ese código:
-- **Sin Google Analytics ni Ads.** `build-image-prueba.yml` construye con `NEXT_PUBLIC_GA_ID=off` y falla si `.next/static` nombra `G-25CD7BZH98` o `AW-561290482`. El smoke lo comprueba con `--sin-ga` (§3) y `verificar-aislamiento.sh --exigir-sin-ga` lo exige en `.next/static`. Una imagen construida antes de la Fase 2 todavía trae GA: sale AVISO, o FALLÓ con `--exigir-sin-ga`.
+- **Sin Google Analytics ni Ads.** `build-image-prueba.yml` construye con `NEXT_PUBLIC_GA_ID=off` y falla si `.next/static` nombra `G-25CD7BZH98` o `AW-561290482`. El smoke lo comprueba con `--sin-ga` (§3) y `verificar-aislamiento.sh` lo exige por defecto en `.next/static`. Una imagen construida antes de la Fase 2 todavía trae GA: sale FALLÓ; `--tolerar-ga` lo baja a AVISO (`--exigir-sin-ga` sigue aceptado como alias sin efecto).
 - **Aviso «Entorno de prueba»** arriba de cada pantalla (sitio público, Studio, Portal y `/m`), con `APP_ENV=staging`. El workflow también lo manda al build (`APP_ENV=staging`) para las páginas que se prerenderizan.
 - **Correos de la app simulados aunque haya llave**: con `APP_ENV=staging`, `resendSend` no llama a Resend y el `mail_log` queda en `queued` con `no_key`. La consulta de cédulas usa un provider simulado y la ficha cae al piso manual.
 
@@ -142,6 +143,12 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
     - Realtime;
     - service worker y manifiesto de la PWA detrás de la clave.
 
+    Cómo llega el enlace del Portal: con `APP_ENV=staging` Resend no puede enviar, así que `/entrar` no acuña nada y le pide el enlace a Auth, que lo deja en Mailpit. Antes de la [SDD-0597](../specs/0597-entrar-no-promete-envio/spec.md) acuñaba primero, y el `/otp` siguiente daba 429: el buzón se quedaba vacío. Lo que cambia frente a producción:
+    - Es el enlace de Auth (PKCE): se abre en el mismo navegador que lo pidió. En otro, cae en el aviso «Abriste el enlace en un navegador distinto». `/abrir` no se ejercita por este camino.
+    - Un segundo pedido antes de 60 s (`GOTRUE_SMTP_MAX_FREQUENCY`) no sale. Mailpit se queda con el anterior.
+    - Solo recibe enlace quien ya tiene `auth.users`. El cliente de la semilla lo tiene; uno recién invitado desde el Studio, no: Auth responde 422.
+    - La pantalla es la misma haya salido o no, a propósito. Para saber qué pasó, mira `/correo/`, o busca en el log del web `[entrar] Auth no mandó el enlace:`, que trae el código (429, 422).
+
 ## 3 · Subir una rama a prueba
 
 1. **Director.** Construye la imagen del head:
@@ -154,8 +161,10 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
 2. **Contabo.** Despliega:
 
    ```bash
-   /srv/ops/staging/desplegar-prueba.sh --project dtd-cargo-staging --sha <sha> --image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha> --pr <número> --quien "<sesión>"
+   /srv/ops/staging/desplegar-prueba.sh --project dtd-cargo-staging --sha <sha> --image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha> --pr <número> --quien "<sesión>"
    ```
+
+   El paquete `ghcr.io/softagentes/dtdcargo` es **privado** (medido el 2026-11-02, ver el [handoff A4](../../.agents/handoffs/a4-ghcr-visibilidad.md)): el `pull` necesita que el servidor ya tenga hecho `docker login ghcr.io` con un token de solo lectura (`read:packages`). Si el `pull` da `denied` o `unauthorized`, el login falta o venció: lo rehace Sam, no el script.
 
    El script hace, en orden:
    - `pull`;
@@ -177,7 +186,7 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
    - `--sin-ga` invierte la regla de Google Analytics. La imagen de prueba (Fase 2, SDD-0544) se construye con `NEXT_PUBLIC_GA_ID=off`, así que se exige que ni el HTML ni los chunks de la portada traigan GA, Ads ni googletagmanager.
    - `--supabase-host supabase-prueba.dtdcargo.com` es el host que tiene que nombrar la CSP en `connect-src`, en lugar del de producción.
 
-   `verificar-aislamiento.sh --exigir-sin-ga` decide con `/app/.next/static`, que es lo que llega al navegador. Si solo el código del servidor nombra el ID, sale PASÓ con aviso, y el `--sin-ga` del smoke lo confirma en el HTML.
+   `verificar-aislamiento.sh` decide con `/app/.next/static`, que es lo que llega al navegador. Si solo el código del servidor nombra el ID, sale PASÓ con aviso, y el `--sin-ga` del smoke lo confirma en el HTML.
 4. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
 
 Una sola ranura: prueba muestra una rama a la vez y el Director decide el turno.

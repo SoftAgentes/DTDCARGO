@@ -1,0 +1,17 @@
+# Renovación diaria del token de Instagram de Chatwoot (SDD-0583).
+# Se instala en /etc/systemd/system/ con su .timer (docs/runbooks/chatwoot-vigilancia.md §2b).
+# Deja el estado en /var/lib/chatwoot-vigilancia/ (StateDirectory); lo lee vigilar.sh.
+[Unit]
+Description=Renovación del token de Instagram de Chatwoot
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+StateDirectory=chatwoot-vigilancia
+ExecStart=/srv/chatwoot/renovar-instagram.sh --project chatwoot --estado /var/lib/chatwoot-vigilancia/instagram-token.estado
+StandardOutput=append:/var/log/chatwoot-instagram-token.log
+StandardError=append:/var/log/chatwoot-instagram-token.log
+# `rails runner` carga toda la aplicación (~10 s y mucha memoria): prioridad baja frente a DTD.
+Nice=10
+IOSchedulingClass=idle

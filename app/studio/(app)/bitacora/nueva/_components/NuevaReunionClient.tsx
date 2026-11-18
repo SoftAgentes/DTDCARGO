@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import type { AssignableProfile } from "@/lib/studio/bitacora/bitacora-queries";
@@ -198,13 +199,7 @@ export function NuevaReunionClient({
           <div
             role="tablist"
             aria-label="Tipo de conversación"
-            style={{
-              display: "inline-flex",
-              gap: "var(--s-1)",
-              padding: "var(--s-1)",
-              background: "var(--bg-elevated)",
-              borderRadius: "var(--r-md)",
-            }}
+            className="studio-tabs"
           >
             {(
               [
@@ -219,17 +214,9 @@ export function NuevaReunionClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => setTipo(v)}
-                  style={{
-                    padding: "var(--s-2) var(--s-4)",
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--bg-surface)" : "transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    border: 0,
-                    font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                    boxShadow: active ? "var(--shadow-xs)" : "none",
-                    cursor: "pointer",
-                  }}
+                  className="studio-tab"
                 >
                   {label}
                 </button>
@@ -284,13 +271,7 @@ export function NuevaReunionClient({
           <div
             role="tablist"
             aria-label="Cómo aportar la conversación"
-            style={{
-              display: "inline-flex",
-              gap: "var(--s-1)",
-              padding: "var(--s-1)",
-              background: "var(--bg-elevated)",
-              borderRadius: "var(--r-md)",
-            }}
+            className="studio-tabs"
           >
             {(
               [
@@ -305,17 +286,9 @@ export function NuevaReunionClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  data-activa={active ? "true" : undefined}
                   onClick={() => setMode(v)}
-                  style={{
-                    padding: "var(--s-2) var(--s-4)",
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--bg-surface)" : "transparent",
-                    color: active ? "var(--ink)" : "var(--ink-soft)",
-                    border: 0,
-                    font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
-                    boxShadow: active ? "var(--shadow-xs)" : "none",
-                    cursor: "pointer",
-                  }}
+                  className="studio-tab"
                 >
                   {label}
                 </button>
@@ -676,20 +649,10 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
   // Transcripción apagada: aviso claro, el flujo de pegar texto sigue vivo.
   if (transcriptionOff) {
     return (
-      <div
-        role="note"
-        style={{
-          font: "600 12px/1.5 var(--f-sans)",
-          color: "var(--warning)",
-          background: "var(--warning-bg)",
-          border: "1px solid var(--warning)",
-          borderRadius: "var(--r-md)",
-          padding: "12px 14px",
-        }}
-      >
+      <Aviso tono="atencion" compacto>
         La transcripción de audio no está activada todavía — pega el texto por
         ahora (pestaña «Pegar transcripción»).
-      </div>
+      </Aviso>
     );
   }
 
@@ -843,16 +806,9 @@ function AudioCapture({ tenantId, meetingId, onTranscribed }: AudioCaptureProps)
       )}
 
       {audioError && (
-        <p
-          role="alert"
-          style={{
-            font: "600 11.5px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: 0,
-          }}
-        >
+        <Aviso tono="error" compacto>
           {audioError}
-        </p>
+        </Aviso>
       )}
     </div>
   );

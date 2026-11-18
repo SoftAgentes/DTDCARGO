@@ -12,10 +12,11 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import type { NominaActionState, Employee } from "@/lib/studio/nomina/employee-types";
+import type { NominaActionState, EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import { COMM_TYPES, commTypeLabel, commTypeRequiresAck } from "@/lib/studio/nomina/comms-types";
 import { sendCommAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 
 const FORM_ID = "enviar-comunicacion-form";
 const initial: NominaActionState = {};
@@ -25,7 +26,7 @@ export function EnviarComunicacionDrawer({
   presetEmployeeId,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   presetEmployeeId?: string;
   onClose: () => void;
 }) {
@@ -58,7 +59,7 @@ export function EnviarComunicacionDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{ flex: 1, overflow: "auto", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}
       >
         <Field label="Empleado" error={state.fieldErrors?.employee_id}>

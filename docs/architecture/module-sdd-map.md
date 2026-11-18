@@ -49,7 +49,7 @@
 | Inspecciones | 0066, 0233 | `app/studio/(app)/inspecciones/` | `lib/studio/inspecciones/` · `supabase/migrations/{0176,0323}` (retiro R3 gobernado; Storage retenido) |
 | Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
 | Gastos | 0039, 0077, 0079, 0080, 0243 (`in-progress`) | `app/studio/(app)/gastos/` + `app/m/erp/` | `lib/studio/expense-*`, `accounting/expense-posting` · `supabase/migrations/0340_expense_void_governance.sql` local, no aplicada |
-| Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
+| Tesorería | 0044, 0631 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions, cost-link-queries), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` · 0631: CxP ligada a contenedor/embarque, `0536_cxp_ligada_contenedor.sql` aplicada en producción el 2026-11-14; margen por contenedor en `lib/studio/costing/cxp-ligadas.ts` |
 | Financiero China | 0059, 0110, 0115, 0227 | `app/studio/(app)/financiero-china/` | `lib/studio/partner-finance/` · `supabase/migrations/{0114,0115,0178,0317}` (pago R3 de cruce gobernado) |
 | Despacho | 0029, 0030, 0234 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` · `supabase/migrations/{0024,0324}` (cancelación R3 gobernada) |
 | Naviera & Consolidación | 0047, 0232 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` · `supabase/migrations/{0096,0249,0322}` (autorización R3 gobernada) |
@@ -64,6 +64,7 @@
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
 | Nómina / RRHH (empleados + prestadores) | 0103, 0109, 0226 | `app/studio/(app)/nomina/` | `lib/studio/nomina/` · `supabase/migrations/{0160,0161,0179,0316}` (anulación R3 de finiquito gobernada) |
 | Bitácora (actas IA + tareas del equipo) | 0146, 0210 | `app/studio/(app)/bitacora/` + `app/m/erp/bitacora/` | `lib/studio/bitacora/` · `supabase/migrations/{0214,0215,0216}` |
+| Bandeja de Chatwoot (iframe + SSO, programa Kommo → Chatwoot) | 0582, 0583, 0585 | `app/studio/(app)/bandeja/` | `lib/studio/chatwoot/` · `lib/runtime/chatwoot-origin.ts` · `supabase/migrations/0503` · `infra/chatwoot/` |
 
 ## Móvil PWA (operario)
 

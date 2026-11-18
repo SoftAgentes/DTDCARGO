@@ -1,0 +1,15 @@
+# Respaldo conjunto diario de Chatwoot (SDD-0583 · paso 1.5).
+# Se instala en /etc/systemd/system/ con su .timer (docs/runbooks/chatwoot-respaldo-restauracion.md §2).
+[Unit]
+Description=Respaldo conjunto cifrado de Chatwoot (base, adjuntos y claves)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/srv/chatwoot/respaldo.sh --dir /srv/chatwoot --out /srv/backups/chatwoot
+StandardOutput=append:/var/log/chatwoot-respaldo.log
+StandardError=append:/var/log/chatwoot-respaldo.log
+# Prioridad baja frente a DTD: el respaldo nunca compite con la producción por CPU ni disco.
+Nice=10
+IOSchedulingClass=idle

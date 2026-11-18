@@ -27,6 +27,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { createCityAction } from "../actions";
 import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import type { VeLocalityEntry } from "@/lib/studio/ve-catalog-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface CityPickerProps {
   label: string;
@@ -498,17 +499,9 @@ export function CityPicker({
               />
 
               {addError && (
-                <div
-                  style={{
-                    padding: 8,
-                    background: "var(--danger-bg)",
-                    color: "var(--danger)",
-                    borderRadius: "var(--r-sm)",
-                    font: "600 11.5px/1.3 var(--f-sans)",
-                  }}
-                >
+                <Aviso tono="error" compacto>
                   {addError}
-                </div>
+                </Aviso>
               )}
 
               <div
@@ -540,27 +533,12 @@ export function CityPicker({
                 </button>
               </div>
 
-              <div
-                style={{
-                  marginTop: 4,
-                  padding: "8px 10px",
-                  background: "var(--info-bg)",
-                  color: "var(--info)",
-                  borderRadius: "var(--r-sm)",
-                  font: "500 10.5px/1.4 var(--f-sans)",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 6,
-                }}
-              >
-                <span style={{ marginTop: 1, flexShrink: 0, display: "inline-flex" }}>
-                  {Icon.info(11)}
-                </span>
-                <span>
+              <div style={{ marginTop: 4 }}>
+                <Aviso tono="info" compacto>
                   Quedará agregada al{" "}
                   <b>Catálogo per-tenant</b>. Podrás editar el estado HQ y
                   desactivarla desde la pestaña Configurable por ciudad.
-                </span>
+                </Aviso>
               </div>
             </div>
           )}

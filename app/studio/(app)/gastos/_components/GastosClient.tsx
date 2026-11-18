@@ -1,5 +1,7 @@
 "use client";
 
+import { CARACAS_TIME_ZONE } from "@/lib/shared/fechas-caracas";
+
 /**
  * GastosClient — orquestador del módulo Gastos (SDD-0039 · Parte B).
  *
@@ -14,12 +16,12 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   useT,
   useLocale,
-  formatDate,
   formatNumber,
   formatCurrency,
   resolveErrorMessage,
@@ -36,6 +38,7 @@ import type { ActiveAlertRow } from "@/lib/studio/expense-alerts-types";
 import { resolveExpenseAlertAction, exportExpensesCsvAction } from "../actions";
 import { ExpenseDrawer } from "./ExpenseDrawer";
 import { ExpenseRowActions } from "./ExpenseRowActions";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   expenses: Expense[];
@@ -77,6 +80,9 @@ export function GastosClient({
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [exporting, startExport] = useTransition();
+  // SDD-0660: a medio escribir el filtro conserva el mes anterior; exportar espera
+  // a que lo escrito sirva, para no bajar un mes distinto del que se ve en el campo.
+  const [monthValid, setMonthValid] = useState(true);
   const flashClassFor = useRowHighlight();
   const toast = useToast();
 
@@ -189,12 +195,10 @@ export function GastosClient({
 
       {/* Tabs por scope */}
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 16,
-          borderBottom: "1px solid var(--border)",
-        }}
+        role="group"
+        aria-label="Tipo de gasto"
+        className="studio-tabs"
+        style={{ marginBottom: 16 }}
       >
         <ScopeTab
           active={scope === "shipment"}
@@ -237,19 +241,19 @@ export function GastosClient({
           <label className="studio-label" htmlFor="ex-month">
             {t("expenses.filter.month_label")}
           </label>
-          <input
+          <DateField
             id="ex-month"
-            type="month"
-            className="studio-input"
+            mode="month"
             value={month ?? ""}
-            onChange={(e) => pushParams({ month: e.target.value })}
+            onChange={(v) => pushParams({ month: v })}
+            onValidityChange={setMonthValid}
           />
         </div>
         <button
           type="button"
           className="studio-btn studio-btn-ghost"
           style={{ marginLeft: "auto" }}
-          disabled={exporting || expenses.length === 0}
+          disabled={exporting || expenses.length === 0 || !monthValid}
           onClick={onExport}
         >
           {Icon.download(14)}{" "}
@@ -336,19 +340,10 @@ function ScopeTab({
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-pressed={active}
-      style={{
-        padding: "10px 16px",
-        background: "transparent",
-        border: 0,
-        borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
-        marginBottom: -1,
-        cursor: "pointer",
-        font: `${active ? 700 : 600} 13px/1 var(--f-sans)`,
-        color: active ? "var(--wine)" : "var(--ink-soft)",
-        transition: "color var(--dur-fast) var(--ease)",
-      }}
+      data-activa={active ? "true" : undefined}
+      onClick={onClick}
+      className="studio-tab"
     >
       {label}
     </button>
@@ -359,7 +354,8 @@ function ScopeTab({
 // Banner de alertas de consolidado
 // ─────────────────────────────────────────────────────────────
 
-function AlertBanner({
+/** Exportado para su prueba (`GastosClient.alertas.test.tsx`). */
+export function AlertBanner({
   alerts,
   onLoad,
 }: {
@@ -386,44 +382,26 @@ function AlertBanner({
     });
   };
 
+  // SDD-0603 · menores del Studio: la región viva lleva solo la frase fija
+  // (título y subtítulo). La lista va fuera, debajo: si estuviera dentro, al
+  // cerrar una alerta el lector releería todas las que quedan.
   return (
-    <div
-      style={{
-        marginBottom: 16,
-        padding: "14px 16px",
-        background: "var(--warning-bg)",
-        border: "1px solid var(--warning)",
-        borderRadius: "var(--r-lg)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ color: "var(--warning)", display: "inline-flex" }}>
-          {Icon.bell(15)}
-        </span>
-        <span
-          className="studio-display"
-          style={{ fontSize: 14, color: "var(--ink)" }}
-        >
-          {alerts.length === 1
+    <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+      <Aviso
+        tono="atencion"
+        titulo={
+          alerts.length === 1
             ? t("expenses.alert.banner_title_one")
-            : t("expenses.alert.banner_title_many", { count: alerts.length })}
-        </span>
-      </div>
-      <p
-        style={{
-          font: "500 12px/1.4 var(--f-sans)",
-          color: "var(--ink-soft)",
-          margin: 0,
-        }}
+            : t("expenses.alert.banner_title_many", { count: alerts.length })
+        }
       >
         {t("expenses.alert.banner_sub")}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      </Aviso>
+      <ul
+        style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}
+      >
         {alerts.map((a) => (
-          <div
+          <li
             key={a.id}
             style={{
               display: "flex",
@@ -448,9 +426,10 @@ function AlertBanner({
               → {a.destination ?? t("expenses.alert.no_destination")}
             </span>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              {/* El vino es de «Nuevo gasto», la acción principal de la pantalla. */}
               <button
                 type="button"
-                className="studio-btn studio-btn-primary studio-btn-xs"
+                className="studio-btn studio-btn-ghost studio-btn-xs"
                 onClick={() => onLoad(a.shipment_id)}
               >
                 {Icon.plus(12)} {t("expenses.alert.load_btn")}
@@ -466,9 +445,9 @@ function AlertBanner({
                   : t("expenses.alert.close_btn")}
               </button>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
@@ -605,7 +584,7 @@ function ExpenseRow({
           {row.expense_code}
         </code>
         <span style={{ font: "500 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
-          {formatDate(row.occurred_at, locale, "short")}
+          {new Intl.DateTimeFormat(locale, { timeZone: CARACAS_TIME_ZONE, year: "numeric", month: "short", day: "numeric" }).format(new Date(row.occurred_at))}
         </span>
       </div>
 

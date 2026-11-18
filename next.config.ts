@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 // Import RELATIVO a propósito: el loader de `next.config.ts` corre antes del
 // bundler y no resuelve el alias `@/`.
 import { originFromEnv } from "./lib/runtime/supabase-origin";
+import { chatwootOriginFromEnv } from "./lib/runtime/chatwoot-origin";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -218,6 +219,11 @@ const nextConfig: NextConfig = {
   output: process.env.DTD_STANDALONE === "1" ? "standalone" : undefined,
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
+  // Next 16.4 escribe por su cuenta un bloque «nextjs-agent-rules» en AGENTS.md
+  // cuando `next dev` detecta un agente de IA, y lo repone si se borra.
+  // AGENTS.md es gobernanza del repo: sus reglas no las escribe una dependencia
+  // (SDD-0656). La opción está en next/dist/server/config-shared.d.ts.
+  agentRules: false,
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {
@@ -277,9 +283,25 @@ const nextConfig: NextConfig = {
     // como data-URI leído de `public/brand/` por fs → trazarlo para prod (si el
     // fs falla, el reporte degrada al wordmark de texto, sin romper).
     "/api/studio/bitacora/export": ["./public/brand/**"],
+    // Packing list pre-llenado del proveedor (SDD-0602): el GET lee la plantilla
+    // de `public/templates/` por fs → trazarla para prod.
+    "/p/[token]/packlist": ["./public/templates/dtd-packing-list-invoice.xlsx"],
+    // PDF confirmado de Packing List + Factura y etiquetas (SDD-0473): el
+    // renderer lee las TTF estáticas con fs desde process.cwd(). El tracer no las
+    // ve solo porque la ruta se arma en runtime: hay que declararlas.
+    "/api/document-import": ["./lib/font-files/pdf/**"],
     // Documentos de Marketing en el Studio (SDD-0158): el lector lee los `.md`
     // de docs/marketing por fs en runtime → deben viajar en el bundle en prod.
     "/studio/marketing/docs": ["./docs/marketing/**/*.md"],
+    // «Analizar con IA» de Actualizaciones (SDD-0588, paso 3.4) lee la superficie
+    // propia de DTD por fs (lib/studio/chatwoot/analisis-superficie.ts). Solo esas
+    // carpetas, sin subcarpetas: nunca `.env*`, `secretos/` ni `pruebas/`.
+    "/studio/admin/actualizaciones": [
+      "./infra/chatwoot/rails/*.rb",
+      "./infra/chatwoot/compose.yml",
+      "./infra/chatwoot/panel/*.html",
+      "./lib/studio/chatwoot/*.ts",
+    ],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
@@ -304,6 +326,39 @@ const nextConfig: NextConfig = {
       "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
     const ppStudioBitacora =
       "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    // Bandeja de Chatwoot (SDD-0585, E2-D2/E2-D14): el panel va en un iframe de
+    // `chat.dtdcargo.com` y graba notas de voz. Hacen falta las DOS cosas: la
+    // CSP con `frame-src` del chat (sin ella el marco cae a `default-src 'self'`)
+    // y el micrófono delegado al origen del chat (con `microphone=()` el iframe
+    // recibe NotAllowedError aunque lleve `allow="microphone"`). Medido en la
+    // PoC 2.1 (I3, M2, M3). Mismo gotcha que Bitácora: la regla queda SOLA para
+    // su URL y el catch-all la excluye.
+    const chatwootOrigin = chatwootOriginFromEnv();
+    const ppStudioBandeja = `camera=(), microphone=(self "${chatwootOrigin}"), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()`;
+    const bandejaHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy"
+        ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` }
+        : h.key === "Permissions-Policy"
+          ? { key: h.key, value: ppStudioBandeja }
+          : h,
+    );
+    // Ficha DTD (SDD-0585, paso 2.4, E2-D28): la Dashboard App que Chatwoot
+    // enmarca al lado de cada conversación. SOLO el chat puede enmarcarla:
+    // `frame-ancestors <chat>` y sin `X-Frame-Options` (no sabe nombrar un
+    // origen; con DENY el navegador la bloquearía). El resto, la CSP estricta.
+    const fichaChatHeaders = securityHeaders
+      .filter((h) => h.key !== "X-Frame-Options")
+      .map((h) =>
+        h.key === "Content-Security-Policy"
+          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
+          : h,
+      );
+    // Salida de Studio (SDD-0585, paso 2.7, E2-D13): `/studio/cerrar-chat` abre
+    // el chat en un marco oculto para cerrar su sesión. Solo suma `frame-src`
+    // del chat; Studio sigue sin dejarse enmarcar y sin micrófono.
+    const cerrarChatHeaders = securityHeaders.map((h) =>
+      h.key === "Content-Security-Policy" ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` } : h,
+    );
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
@@ -387,6 +442,22 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: ppStudioBitacora },
         ],
       },
+      // Bandeja de Chatwoot: CSP con frame-src del chat + micrófono delegado.
+      // Se excluye del catch-all de abajo.
+      {
+        source: "/studio/bandeja/:path*",
+        headers: bandejaHeaders,
+      },
+      // Ficha DTD: solo la ruta exacta, sin subrutas. Se excluye del catch-all.
+      {
+        source: "/studio/ficha-chat",
+        headers: fichaChatHeaders,
+      },
+      // Salida de Studio: solo la ruta exacta. Se excluye del catch-all.
+      {
+        source: "/studio/cerrar-chat",
+        headers: cerrarChatHeaders,
+      },
       // Las CUATRO reglas de `/marca` son MUTUAMENTE EXCLUYENTES a propósito: si
       // dos matchearan, Next emite dos `Content-Security-Policy` y el navegador
       // aplica la intersección — el standalone quedaría bloqueado por la estricta.
@@ -449,7 +520,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];
@@ -457,12 +528,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // Red de seguridad del 301 de dominio doortudoor.com → dtdcargo.com.
-      // El 301 REAL vive en el DNS/hosting externo (Hostinger) — pero ya se
-      // cayó una vez (clientHold, ver memoria project_dominio_clienthold).
-      // Estos redirects host-based son INERTES mientras el externo funcione;
-      // si algún día doortudoor.com se apunta a este deployment de Vercel, el
-      // 301 path-preserving sigue vivo desde código. Regla SEO #1: nunca
-      // quitar este redirect (docs/marketing/seo.md).
+      // El 301 REAL vive en Cloudflare desde 2026-11-18 (SDD-0657): la zona
+      // doortudoor.com está proxied y sus Single Redirect rules mandan cada
+      // ruta a dtdcargo.com conservando el path y el query; una regla WAF
+      // responde 403 al spam del WordPress hackeado. Antes vivía en
+      // Hostinger/Vercel y ya se cayó dos veces (clientHold y cuenta Vercel
+      // impaga). Estos redirects host-based son INERTES mientras Cloudflare
+      // funcione, porque Traefik solo enruta los host de dtdcargo.com; si
+      // algún día doortudoor.com apunta a este servidor, el 301
+      // path-preserving sigue vivo desde código. Regla SEO #1: nunca quitar
+      // este redirect (docs/marketing/seo.md).
       {
         source: "/:path*",
         has: [{ type: "host", value: "doortudoor.com" }],
@@ -481,6 +556,14 @@ const nextConfig: NextConfig = {
       // guardado. Los PNG estáticos en `public/brand/*` siguen sirviéndose
       // (el sitio los usa en nav/footer/og/favicon) — el redirect es exacto a
       // `/brand`, no afecta `/brand/<archivo>.png`.
+      // SDD-0657 · Los navegadores y Googlebot piden `/favicon.ico` en la
+      // raíz aunque el `<link rel="icon">` apunte a `/brand/favicon.ico`, y
+      // Search Console lo contaba entre los 404 del rastreo.
+      {
+        source: "/favicon.ico",
+        destination: "/brand/favicon.ico",
+        permanent: true,
+      },
       {
         source: "/brand",
         destination: "/",

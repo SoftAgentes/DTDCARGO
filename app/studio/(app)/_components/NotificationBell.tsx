@@ -209,49 +209,15 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
             : t("chrome.topbar.notifications")
         }
         aria-expanded={open}
-        style={{
-          position: "relative",
-          width: 36,
-          height: 36,
-          borderRadius: "var(--r-md)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--ink-soft)",
-          background: open ? "var(--bg-elevated)" : "transparent",
-          cursor: "pointer",
-          transition: "background var(--dur-fast) var(--ease)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--bg-elevated)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = open
-            ? "var(--bg-elevated)"
-            : "transparent";
-        }}
+        className="studio-icono-btn"
+        style={{ position: "relative" }}
       >
         {Icon.bell(16)}
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: 4,
-              right: 3,
-              minWidth: 16,
-              height: 16,
-              padding: "0 4px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 8,
-              background: "var(--danger)",
-              color: "var(--ink-inv)",
-              font: "800 9px/1 var(--f-mono)",
-              boxShadow: "0 0 0 2px var(--bg-surface)",
-              pointerEvents: "none",
-            }}
+            className="studio-contador-icono"
+            data-tono="peligro"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>

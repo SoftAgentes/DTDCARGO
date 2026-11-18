@@ -38,6 +38,11 @@ export type NavieraSnapshot = {
   etd: string | null;
   /** ETA real del arribo (date YYYY-MM-DD). */
   eta: string | null;
+  /**
+   * Días de tránsito del zarpe (`sailings.transit_days`, SDD-0627). Opcional:
+   * sólo viene cuando el itinerario lo tiene cargado.
+   */
+  transitDays?: number | null;
 };
 
 /** ¿El snapshot tiene data naviera útil que mostrar (más que solo el ref)? */

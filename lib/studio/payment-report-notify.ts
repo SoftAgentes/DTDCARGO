@@ -16,7 +16,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 import {
   paymentMethodLabel,
   type PaymentReportMethod,
@@ -83,9 +83,21 @@ export async function notifyPaymentReportToAdmin(
     }
 
     // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
-    await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
-      logTag: "payment-report-notify",
-    });
+    await dispatchAlert(
+      supabaseAdmin,
+      tenantId,
+      "equipo",
+      {
+        telegramText,
+        // Sin monto, método ni nombre: sólo el código de la factura (SDD-0606).
+        discord: {
+          titulo: "Reporte de pago del portal",
+          codigo: payload.invoiceCode,
+          url: studioUrl,
+        },
+      },
+      { logTag: "payment-report-notify" },
+    );
   } catch (err) {
     console.error(
       "[payment-report-notify] notifyPaymentReportToAdmin falló:",

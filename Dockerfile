@@ -17,7 +17,7 @@
 #     --build-arg NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com \
 #     --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon> .
 #   (el resto de NEXT_PUBLIC_* es opcional: ver ARG más abajo)
-ARG NODE_IMAGE=node:24.21.0-bookworm-slim
+ARG NODE_IMAGE=node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 
 # ─── deps ───────────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS deps
@@ -27,7 +27,7 @@ WORKDIR /app
 # con pnpm 11 y otra major podría reinterpretarlo. Corepack viene con Node 24;
 # `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` evita el prompt interactivo de descarga.
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 
 # Solo los manifiestos: si no cambian, esta capa (la más lenta) se reutiliza.
 # `pnpm-workspace.yaml` trae `allowBuilds` y los `overrides`; `.npmrc`, los
@@ -39,7 +39,7 @@ RUN pnpm install --frozen-lockfile
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 

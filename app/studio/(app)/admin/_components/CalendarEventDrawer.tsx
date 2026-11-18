@@ -16,6 +16,7 @@ import {
   type CalendarActionState,
   type CalendarEvent,
 } from "@/lib/studio/op-calendar-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 const FORM_ID = "cal-event-form";
 const INITIAL: CalendarActionState = {};
@@ -182,8 +183,8 @@ function FieldError({ msg }: { msg?: string }) {
 
 function FormError({ msg }: { msg: string }) {
   return (
-    <div style={{ padding: "var(--s-3)", background: "var(--danger-bg)", color: "var(--danger)", borderRadius: "var(--r-md)", font: "600 13px/1.3 var(--f-sans)" }}>
+    <Aviso tono="error">
       {msg}
-    </div>
+    </Aviso>
   );
 }

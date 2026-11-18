@@ -20,7 +20,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -87,11 +87,15 @@ export async function notifyNewClientToAdmin(
     // comparten el mismo telegram_chat_id, el alta llegaba dos veces al mismo
     // hilo. El correo sí sigue saliendo uno por admin: ahí los destinatarios
     // son distintos de verdad.
-    await dispatchTelegramAlert(
+    await dispatchAlert(
       supabaseAdmin,
       tenantId,
       "registro",
-      telegramText,
+      {
+        telegramText,
+        // A Discord sólo el Shipping Mark y el enlace a la ficha (SDD-0606).
+        discord: { titulo: "Cliente nuevo", codigo: payload.markbox, url: clientUrl },
+      },
       { logTag: "new-client-notify" },
     );
   } catch (err) {

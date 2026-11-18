@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 interface RunResponse {
   run_id: string;
@@ -199,19 +200,9 @@ export function RunAgentModal({
           </div>
 
           {error && (
-            <div
-              role="alert"
-              style={{
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-                color: "var(--danger)",
-                font: "500 12px/1.4 var(--f-sans)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {error}
-            </div>
+            </Aviso>
           )}
 
           {result && <RunResultView result={result} />}

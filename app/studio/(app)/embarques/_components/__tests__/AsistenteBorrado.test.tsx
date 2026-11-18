@@ -176,6 +176,31 @@ describe("paso a paso hasta eliminar", () => {
     expect(m.ejecutar).toHaveBeenLastCalledWith(S, `eliminar_embarque:${S}`, "Embarque de prueba");
   });
 
+  it("la advertencia de un paso va como alerta y el panel deja una sola región status", async () => {
+    const user = userEvent.setup();
+    m.ejecutar.mockResolvedValueOnce({
+      ok: true,
+      hecho: "Factura F-2026-0007 anulada.",
+      aviso: "No se pudo revertir el crédito del referido.",
+      eliminado: false,
+      plan: soloEmbarque(),
+    });
+    abrir();
+    await user.click(await within(panel()).findByRole("button", { name: "Anular factura…" }));
+    const dialogo = screen.getAllByRole("dialog")[1];
+    await user.type(within(dialogo).getByLabelText(/Motivo/), "Embarque de prueba");
+    await user.click(within(dialogo).getByRole("button", { name: "Anular factura" }));
+    await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
+
+    // Una sola región `status`: el anuncio. La advertencia no abre una segunda.
+    const regiones = within(panel()).getAllByRole("status");
+    expect(regiones).toHaveLength(1);
+    expect(regiones[0].textContent).toBe("Listo: Factura F-2026-0007 anulada.");
+    const alerta = within(panel()).getByRole("alert");
+    expect(alerta.textContent).toBe("No se pudo revertir el crédito del referido.");
+    expect(alerta).toHaveAttribute("data-tono", "atencion");
+  });
+
   it("el borrador de factura (R2) se confirma sin motivo", async () => {
     const user = userEvent.setup();
     m.leer.mockResolvedValue({ ok: true, plan: plan({ invoices: 1 }, { facturas: [{ ...FACTURA, estado: "borrador" }] }) });
@@ -264,11 +289,22 @@ describe("lo que el asistente no resuelve", () => {
     expect(enlace).toHaveAttribute("href", "/studio/reclamos");
   });
 
-  it("asiento vivo (B1): bloqueado, con el porqué", async () => {
+  it("un borrador con asiento vivo: bloqueado, con el porqué (SDD-0573)", async () => {
+    // Una emitida con asiento ya se anula (la 0497 revierte el asiento); el
+    // bloqueo queda para el borrador, que el asistente elimina y no revierte.
+    m.leer.mockResolvedValue({
+      ok: true,
+      plan: plan({ invoices: 1 }, { facturas: [{ ...FACTURA, estado: "borrador", asientoVivo: true }] }),
+    });
+    abrir();
+    expect(await within(panel()).findByText("El borrador F-2026-0007 tiene un asiento vivo")).toBeTruthy();
+    expect(within(panel()).queryByRole("button", { name: /Eliminar|Anular/ })).toBeNull();
+  });
+
+  it("una emitida con asiento vivo: se ofrece anularla (SDD-0573)", async () => {
     m.leer.mockResolvedValue({ ok: true, plan: plan({ invoices: 1 }, { facturas: [{ ...FACTURA, asientoVivo: true }] }) });
     abrir();
-    expect(await within(panel()).findByText("La factura F-2026-0007 tiene su asiento de venta vivo")).toBeTruthy();
-    expect(within(panel()).queryByRole("button", { name: "Anular factura…" })).toBeNull();
+    expect(await within(panel()).findByRole("button", { name: "Anular factura…" })).toBeTruthy();
   });
 
   it("un paso de otro módulo: abre el módulo en otra pestaña y revisa de nuevo al volver", async () => {

@@ -25,6 +25,109 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-11-18 · doortudoor.com en Cloudflare, buscadores avisados y enlaces internos (SDD-0657)
+
+**Qué pasó.** doortudoor.com estaba caído: su DNS apuntaba a Vercel, y la cuenta de Vercel, impaga, respondía 402. El 301 a dtdcargo.com no funcionaba y el traslado de dominio de Search Console (activo desde 2026-06-07) se quedaba sin destino.
+
+**Hecho fuera del código el 2026-11-18:**
+
+- **Cloudflare, zona doortudoor.com:**
+  - DNS proxied;
+  - Single Redirect rules: un 301 general que conserva ruta y query, más 9 reglas para URL viejas de WordPress que llevan a su página equivalente;
+  - regla WAF 403 para el spam del hackeo, como `/202-2/` y `/najti-rabotajuschee-…`. Ese spam queda excluido del 301 general.
+- **Vercel:** se quitaron las entradas de doortudoor.com y dtdcargo.com.
+- **Cloudflare, zona dtdcargo.com:**
+  - Bot Fight Mode apagado, porque bloqueaba a PerplexityBot, ClaudeBot, Claude-SearchBot y DuckAssistBot;
+  - ofuscación de correos apagada, con lo que se cierra la **P-a**.
+- **Buscadores:**
+  - IndexNow recibió las 48 URL del sitemap (`node scripts/indexnow-enviar.mjs --enviar`, respuesta 200);
+  - Google aceptó la solicitud de indexación de 11 páginas: `/puerta-a-puerta`, `/servicios/puerta-a-puerta`, `/servicios/fcl`, `/servicios/lcl`, `/shipping-mark`, `/pre-alertas`, `/llenado`, `/importar-de-china`, y Puerto Ordaz, Maturín y San Cristóbal;
+  - **Bing Webmaster Tools** quedó registrado por importación desde Search Console (con la cuenta de Google dueña de la propiedad), con el sitemap de dtdcargo.com enviado.
+
+**La causa de la falta de indexación es interna** ([SDD-0657](../specs/0657-seo-enlaces-indexacion/spec.md)):
+
+- cuatro páginas del sitemap no tenían ningún enlace interno;
+- el grupo `/importar-de-china` solo se enlazaba a sí mismo;
+- las ciudades comparten entre el 82 % y el 87 % del texto.
+
+La SDD agrega:
+
+- enlaces en el pie y dentro del contenido;
+- títulos que nombran el trayecto;
+- descripciones de 160 caracteres o menos;
+- un 301 de `/favicon.ico`.
+
+También quita el 404 de `/registro:` que salía de una FAQ.
+
+**Pendiente de Sam:**
+
+- dar datos locales reales para diferenciar las ciudades;
+- decidir si se fusionan `/puerta-a-puerta` y `/servicios/puerta-a-puerta`, con datos de Search Console de 3 o 4 semanas.
+
+### 2026-11-07 · Auditoría técnica de SEO, GEO y AEO (PR #422, en main desde el tren #483)
+
+Medida sobre el sitio publicado (43 URL del sitemap y 9 rutas fuera de él) y en el código. El detalle, los scripts y las tablas completas están en [`.agents/handoffs/seo-auditoria-tecnica-20261107.md`](../../.agents/handoffs/seo-auditoria-tecnica-20261107.md).
+
+**Sano, sin acción:**
+- un `<title>`, una descripción y un canónico propios en las 43 páginas indexables;
+- `og:*` completos y sitemap con las 43 URL en 200;
+- `robots.txt` correcto;
+- JSON-LD que parsea, sin huecos en las migas y con `FAQPage` donde corresponde;
+- SEO de Lighthouse en 100 en las 7 páginas medidas.
+
+**Arreglado en la PR, cada arreglo con una prueba que falló antes:**
+1. El nodo **`WebPage` en JSON-LD** de `/`, `/tarifas`, `/fcl`, `/puerta-a-puerta` y `/shipping-mark` ahora lleva `name` y `description`. Salen de la `metadata` de cada página; la portada los toma de `lib/public/site-meta.ts`.
+2. El **logo del `NewsArticle`** declara 741×764, las medidas reales del PNG, igual que el `#organization` del layout. Antes decía 512×512.
+3. **`llms.txt`** lleva sus 10 enlaces en formato Markdown (`- [etiqueta](url)`), con las mismas etiquetas. Lighthouse marcaba «no contiene ningún vínculo».
+4. El **menú móvil cerrado** lleva `inert` además de `aria-hidden`, para que sus enlaces invisibles no reciban el foco. La prueba (`components/Nav.drawer-inert.test.tsx`) mide los atributos, no el orden de tabulación en un navegador.
+
+**Core Web Vitals de laboratorio** (Lighthouse 13.6, 2026-11-07):
+
+| Página | Rendimiento móvil / escritorio | LCP móvil | CLS |
+|---|---|---|---|
+| `/` | 94 / 100 | 2,1 s | 0 |
+| `/tarifas` | 96 / 100 | 1,7 s | 0 |
+| `/puerta-a-puerta` | 96 / 100 | 1,7 s | 0 |
+| `/servicios` | 93 / 98 | 2,3 s | 0 |
+| `/faq` | 100 / 100 | 1,2 s | 0 |
+| `/importar-de-china/caracas` | 98 / 100 | 1,7 s | 0 |
+| `/noticias` | 99 / 94 | 1,7 s | 0 |
+
+- La accesibilidad móvil queda en 92–93 por el menú, que ya está arreglado, y por el contraste del pie (P-c).
+- `/fcl` no se pudo medir.
+- Datos de campo: CrUX dice «No hay datos» en todas las páginas, así que no hay INP ni LCP reales que afirmar.
+
+**Propuestas sin hacer:** cada una espera a Sam, al Director General o a su propia tarea.
+- ~~P-a: apagar la ofuscación de correos de Cloudflare. Su enlace da 404 sin JavaScript en 45 páginas.~~ Hecho el 2026-11-18 (ver arriba).
+- P-b: `/enlaces` no tiene `h1`.
+- P-c: el contraste del pie.
+- P-d: títulos largos.
+- P-e: descripciones largas (13 de 43).
+- P-f: migas en `/cookies`, `/registro` y `/brochure`.
+- P-g: el `publisher` del `VideoObject` redeclara `#organization`.
+- P-h: `/portal` responde 307 sin sesión.
+- P-i: JavaScript sin usar.
+- P-j: `NewsArticle` sin medir en vivo, porque no hay noticias publicadas.
+- P-k: `inLanguage` es `es` en `NewsArticle` y `es-VE` en `WebPage`.
+
+La corrección de las rutas de `WebPageJsonLd` en «Arquitectura SEO» de arriba es la P4 de la [SDD-0613](../specs/0613-seo-fase-b/spec.md) y queda para ella.
+
+### 2026-11-05 · SEO, GEO y AEO: fase A (SDD-0604, local)
+
+- `llms.txt` sin razón social ni RIF, con 2015 como fundación, «puerta a puerta (DDP)» y sin hablar de seguimiento de envíos.
+- Nueva `/llms-full.txt`, armada con los servicios, las FAQ y el glosario del código, sin precios.
+- `/privacidad` y `/cookies` entran al sitemap. Faltaban porque el contrato de cobertura leía la palabra `noindex` en comentarios; ya los ignora.
+- Los posts usan `updated_at` como `lastModified`. `robots.ts` nombra más agentes de IA; no cambia el acceso, que `*` ya permitía.
+- Clave de IndexNow publicada en `public/` y `scripts/indexnow-enviar.mjs`, sin envío real todavía.
+- **Pendiente fuera del repo:** enviar a IndexNow cuando la clave esté en producción (`node scripts/indexnow-enviar.mjs --enviar`), dar de alta el sitio en Bing Webmaster Tools y crear en GA4 el segmento de tráfico desde chatgpt.com, perplexity.ai, gemini.google.com y copilot.microsoft.com.
+- Sin promesa de ranking ni de citas: es corrección de señales. El plan del agente está en [`agente-seo-noticias.md`](agente-seo-noticias.md).
+
+### 2026-10-23 · Promesas de seguimiento coherentes (SDD-0579, local)
+
+Cinco FAQ del sitio dejan de prometer eventos en vivo o etapas visibles en el Portal mientras `TRACKING_EN_CONSTRUCCION` siga encendido. `/faq` y `/shipping-mark` reutilizan las mismas respuestas en UI y FAQPage JSON-LD; `/puerta-a-puerta` conserva su selección. La fuente markdown de Kommo, el beneficio fuente de la infografía de pre-alerta y una referencia factual de privacidad se alinean sin alterar otras condiciones.
+
+La frase «Te avisaremos apenas esté activo» ya estaba aprobada en SDD-0521: no agrega fecha, canal ni automatización. Es una corrección de expectativas, sin garantía de ranking o conversión. [Spec y matriz](../specs/0579-promesas-seguimiento-web-kommo/spec.md) · [QA](../specs/0579-promesas-seguimiento-web-kommo/qa.md). Preparación e implementación locales; integración, publicación y subida a Kommo **NO EJECUTADAS**. La KB es estática y requerirá revisión separada al activar seguimiento.
+
 ### 2026-10-08 · Acarigua con tarifa de entrega (SDD-0504)
 
 Por decisión de Sam, Acarigua deja de tener entrega nacional incluida. Se conserva la tarifa vigente/respaldo existente por metro cúbico, y las otras siete ciudades con inclusión no cambian. `lib/geo-zonas.ts` alinea el mensaje de la landing de Acarigua; la calculadora principal y el embed respetan la bandera persistida y combinan el mismo tarifario. La guía del equipo y el prompt de infografías actualizan su lista a siete ciudades. [PR #193](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193) conserva la evidencia de integración y publicación comprobadas por Director; esta nota describe el cambio autorizado.

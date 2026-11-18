@@ -44,6 +44,15 @@ function envioSimulado(): { ok: false; error: string; code?: string } | null {
   return null;
 }
 
+/**
+ * ¿Un envío de este proceso puede salir por Resend? `false` sin llave y en el
+ * entorno de prueba. Sirve para decidirlo ANTES de gastar algo que no se recupera:
+ * `app/entrar/actions.ts` no acuña un enlace que nadie va a poder mandar.
+ */
+export function resendPuedeEnviar(): boolean {
+  return envioSimulado() === null;
+}
+
 export type ResendSendInput = {
   from: string;          // "DTD Cargo <noreply@dtdcargo.com>"
   to: string | string[];

@@ -40,6 +40,8 @@ import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   mode: "create" | "edit";
@@ -212,20 +214,10 @@ export function RateDrawer({
             <input type="hidden" name="price_book_id" value={priceBookId} />
           )}
           {mode === "create" && priceBookId && !priceBookEsCasa && (
-            <p
-              style={{
-                font: "500 12.5px/1.45 var(--f-sans)",
-                color: "var(--ink)",
-                background: "var(--info-bg)",
-                border: "1px solid var(--info)",
-                borderRadius: "var(--r-sm)",
-                padding: "8px 10px",
-                margin: "0 0 var(--s-4)",
-              }}
-            >
+            <Aviso tono="info" compacto>
               Esta tarifa entra en <b>{priceBookName}</b> — sólo la ven sus
               clientes. No sale en la calculadora del sitio.
-            </p>
+            </Aviso>
           )}
           {/* Servicio */}
           <div>
@@ -403,13 +395,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_from">
                 Válida desde
               </label>
-              <input
-                id="valid_from"
-                name="valid_from"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_from ?? ""}
-              />
+              <DateField id="valid_from" name="valid_from" defaultValue={rate?.valid_from ?? ""} />
               {state.fieldErrors?.valid_from && (
                 <FieldError msg={state.fieldErrors.valid_from} />
               )}
@@ -418,13 +404,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_until">
                 Válida hasta
               </label>
-              <input
-                id="valid_until"
-                name="valid_until"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_until ?? ""}
-              />
+              <DateField id="valid_until" name="valid_until" defaultValue={rate?.valid_until ?? ""} />
               {state.fieldErrors?.valid_until && (
                 <FieldError msg={state.fieldErrors.valid_until} />
               )}
@@ -564,28 +544,9 @@ export function RateDrawer({
 
           {/* Error general */}
           {(state.error || createError) && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              <StatusIcon
-                tone="danger"
-                style={{
-                  color: "var(--danger-text)",
-                  display: "inline",
-                  marginRight: "var(--s-1)",
-                }}
-              />
+            <Aviso tono="error" compacto>
               {state.error ?? createError}
-            </p>
+            </Aviso>
           )}
 
           {/* Spacer para que el footer no quede pegado */}

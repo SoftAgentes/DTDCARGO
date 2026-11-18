@@ -27,6 +27,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   LOCKED_MODULES,
@@ -112,7 +113,7 @@ function psql(file: string, vars: Record<string, string> = {}, replace: Record<s
 async function contract(options: { applyFix?: boolean; migration?: string } = {}) {
   const replace: Record<string, string> = options.migration ? { [M0477]: options.migration } : {};
   const sql = psql(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, replace);
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
@@ -267,7 +268,7 @@ describe("SDD-0530 · 0477 zarpe y arribo con sus envíos (PGlite)", () => {
 const ALL_STATUSES = Object.keys(STATUS_LABELS) as ShipmentStatus[];
 
 async function openFixture() {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   await db.exec(psql(CONTRACT, { fixture_only: "true" }));
   return db;
 }

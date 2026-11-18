@@ -75,7 +75,7 @@ export async function getShipmentNaviera(
   if (c.sailing_id) {
     const { data: s } = await supabase
       .from("sailings")
-      .select("vessel, voyage, pol, pod, etd, eta, carrier_id")
+      .select("vessel, voyage, pol, pod, etd, eta, transit_days, carrier_id")
       .eq("id", c.sailing_id as string)
       .maybeSingle();
     if (s) {
@@ -85,6 +85,11 @@ export async function getShipmentNaviera(
       snap.pod = str(s.pod);
       snap.etd = str(s.etd);
       snap.eta = str(s.eta);
+      // SDD-0627 · días de mar del zarpe, para estimar desde el zarpe real.
+      // Sólo se pone cuando viene: los snapshots sin él quedan iguales.
+      if (typeof s.transit_days === "number" && Number.isFinite(s.transit_days)) {
+        snap.transitDays = s.transit_days;
+      }
       sailingCarrierId = str(s.carrier_id);
     }
   }

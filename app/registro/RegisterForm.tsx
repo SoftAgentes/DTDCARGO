@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { actionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import Link from "next/link";
 import {
   ArrowIcon,
@@ -22,6 +23,7 @@ import type { RegisterCity } from "@/lib/portal/register-cities";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { buildMarkboxWhatsAppMessage } from "@/lib/public/markbox-whatsapp";
+import { CAMPOS_UTM, type AtribucionUtm } from "@/lib/public/registro-atribucion";
 import { trackLead } from "@/components/Analytics";
 import { registerClientAction } from "./actions";
 
@@ -148,6 +150,7 @@ export function RegisterForm({
   est,
   refCode,
   origen,
+  atribucion,
   cities = [],
 }: {
   est?: string;
@@ -155,10 +158,18 @@ export function RegisterForm({
   refCode?: string;
   /** Puerta por la que entró (SDD-0474) — ya normalizada en la page. */
   origen?: string;
+  /** UTM con los que llegó (SDD-0587) — ya normalizados en la page. */
+  atribucion?: AtribucionUtm;
   /** Catálogo de ciudades del paso 2 (migr 0348). Vacío → texto libre. */
   cities?: RegisterCity[];
 }) {
-  const [state, action, pending] = useActionState(registerClientAction, initial);
+  const [state, action, pending] = useActionState(
+    actionKeepingDraft(
+      registerClientAction,
+      "No pudimos confirmar si tu cuenta se creó. Tus datos siguen aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
+    ),
+    initial,
+  );
   const [data, setData] = useState<FormData0>(EMPTY);
   const [step, setStep] = useState(0); // 0..3 (paso 5 = éxito, vía state.markbox)
   // Campo a enfocar tras saltar de paso desde el resumen de errores. Va en un
@@ -447,6 +458,11 @@ export function RegisterForm({
             <input type="hidden" name="est" value={est ?? ""} />
             <input type="hidden" name="ref" value={refCode ?? ""} />
             <input type="hidden" name="origen" value={origen ?? ""} />
+            {CAMPOS_UTM.map((campo) =>
+              atribucion?.[campo] ? (
+                <input key={campo} type="hidden" name={campo} value={atribucion[campo]} />
+              ) : null,
+            )}
             {/* email_optin se parsea por PRESENCIA (!= null) en el action → solo
                 se incluye cuando el cliente marca el opt-in (semántica de checkbox). */}
             {data.emailOptin && <input type="hidden" name="email_optin" value="on" />}
@@ -1387,7 +1403,7 @@ function Obligatorio() {
  * abre texto libre para ambos: perder el lead de un pueblo pequeño sería peor
  * que guardar un texto sin normalizar.
  */
-function CiudadEntrega({
+export function CiudadEntrega({
   cities,
   city,
   state,
@@ -1521,7 +1537,7 @@ function CiudadEntrega({
 }
 
 /** Explica el asterisco. Un símbolo sin leyenda no informa a nadie. */
-function LeyendaObligatorio() {
+export function LeyendaObligatorio() {
   return (
     <p className="text-[11.5px] text-grey-500 leading-[1.4] -mt-1">
       Los campos con <span className="text-wine font-semibold">*</span> son obligatorios.
@@ -1529,7 +1545,7 @@ function LeyendaObligatorio() {
   );
 }
 
-function Field({
+export function Field({
   id,
   label,
   value,
@@ -1597,7 +1613,7 @@ function Field({
 const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
-function CedulaInput({
+export function CedulaInput({
   id,
   value,
   onChange,
@@ -1699,7 +1715,7 @@ const COUNTRY_CODES: { c: string; dial: string }[] = [
   { c: "CN", dial: "+86" },
 ];
 
-function PhoneInput({
+export function PhoneInput({
   id,
   label,
   onChange,
@@ -1793,7 +1809,7 @@ function PhoneInput({
   );
 }
 
-function TypeCard({
+export function TypeCard({
   active,
   label,
   desc,

@@ -32,8 +32,13 @@ const h = vi.hoisted(() => {
     ids: vi.fn(),
     share: vi.fn(),
     notify: vi.fn(),
+    leerPlantilla: vi.fn(),
   };
 });
+vi.mock("node:fs/promises", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs/promises")>()),
+  readFile: h.leerPlantilla,
+}));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => h.admin }));
 vi.mock("@/lib/studio/prealertas/queries", () => ({ getPrealertaIdsByToken: h.ids, getProviderShareByToken: h.share }));
 vi.mock("@/lib/studio/packing-list-notify", () => ({ notifyPackingListToAdmin: h.notify }));
@@ -64,7 +69,8 @@ beforeEach(() => {
   h.share.mockResolvedValue({ code: "SYN-0001", markbox: "SYN-001" });
   h.state.rpc.mockResolvedValue({ data: { folio: "PL-1", version_no: 1 }, error: null });
   // Sin plantilla: la descarga que sigue de largo termina en 502, no en el 503 del documento.
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+  h.leerPlantilla.mockRejectedValue(new Error("ENOENT"));
+  vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("fetch failed"); }));
   vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
 });
 afterEach(() => {
@@ -109,5 +115,41 @@ describe("GET del proveedor con el cotizador encendido (SDD-0473)", () => {
     expect((await descargar()).status).toBe(502);
     vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
     expect((await descargar()).status).toBe(503);
+  });
+});
+
+/**
+ * SDD-0602 · En el contenedor, `req.nextUrl.origin` es `https://0.0.0.0:3000`. Traer
+ * la plantilla por ahí era hablarle TLS a un puerto HTTP: `fetch` lanzaba y el
+ * proveedor se llevaba un 500 en vez de su Excel. Medido sobre la imagen real.
+ */
+describe("GET del proveedor con req.url en 0.0.0.0:3000 (SDD-0602)", () => {
+  const descargarEnContenedor = () => GET(new NextRequest(`https://0.0.0.0:3000/p/${TOKEN}/packlist`), params);
+
+  beforeEach(() => {
+    h.state.workspace = { data: null, error: null };
+  });
+
+  it("baja el Excel lleno, leyendo la plantilla real del disco y sin salir a la red", async () => {
+    const reales = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+    h.leerPlantilla.mockImplementation(reales.readFile);
+
+    const res = await descargarEnContenedor();
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("spreadsheetml");
+    expect(res.headers.get("content-disposition")).toContain("PackingList-SYN-0001.xlsx");
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    // Un .xlsx es un zip: arranca con «PK». Una página de error no pasa esto.
+    expect(String.fromCharCode(bytes[0], bytes[1])).toBe("PK");
+    expect(fetch).not.toHaveBeenCalled();
+    const ruta = String(h.leerPlantilla.mock.calls[0][0]).split("\\").join("/");
+    expect(ruta).toBe(`${process.cwd().split("\\").join("/")}/public/templates/dtd-packing-list-invoice.xlsx`);
+  });
+
+  it("si la plantilla no se puede leer, responde 502 con su aviso, no un 500", async () => {
+    const res = await descargarEnContenedor();
+    expect(res.status).toBe(502);
+    expect(await res.text()).toBe("Template no disponible");
   });
 });

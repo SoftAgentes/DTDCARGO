@@ -11,8 +11,10 @@
  * factura pagada. MUTANTES: sin cada regla (o con `>=` en el saldo) el contrato
  * falla en la aserción de esa regla, no en otra.
  *
- * L14: 0422 y 0423 esperan en pendingBelowCutoff. Con 0464 aplicada antes,
- * entre ellas o después, sus contratos completos siguen en verde.
+ * L14: 0422 y 0423 se aplicaron en producción el 2026-11-14, después de la 0464
+ * (registro §6.3 en SDD-0365 y SDD-0366). Se conservan los tres órdenes —0464
+ * antes, entre ellas o después— porque prueban que sus contratos completos siguen
+ * en verde con cualquier orden, incluido el que se usó en producción.
  *
  * PGlite tiene UNA conexión: la carrera de dos confirmaciones se prueba con
  * sesiones reales en `scripts/qa/payment-report-confirm-race.mjs`.
@@ -23,6 +25,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -112,7 +115,7 @@ function psql(file: string, { vars = {}, inject = {}, replace = {} }: Options = 
 const contract = (name: string) => resolve(TESTS, name + ".test.sql");
 
 async function run(sql: string): Promise<{ error: string | null; notices: string[] }> {
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   const notices: string[] = [];
   try {
     await db.exec(sql, { onNotice: (notice) => notices.push(notice.message ?? "") });
@@ -261,7 +264,7 @@ $after_l14$;
 describe("0464 · preflight y locks sobre la fixture de 0421 (PGlite)", () => {
   /** Un caso por transacción sobre la misma fixture confirmada; siempre rollback. */
   async function withFixture(check: (attempt: (sql: string) => Promise<string | null>, db: PGlite) => Promise<void>) {
-    const db = new PGlite({ extensions: { pgcrypto } });
+    const db = await pgliteLimpio({ pgcrypto });
     try {
       await db.exec(psql(contract("0421_payment_report_commands"), { vars: { fixture_only: "true" } }));
       const attempt = async (sql: string) => {

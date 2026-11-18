@@ -21,6 +21,7 @@
 
 import type { ReactNode } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import { AGING_BUCKETS } from "@/lib/studio/reports/types";
 import {
@@ -194,22 +195,12 @@ export function ClientAccountHeader({
   if (estado.tipo === "eliminado") {
     return (
       <Seccion>
-        <div
-          role="status"
-          style={{
-            gridColumn: "1 / -1",
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-lg)",
-            padding: "var(--s-4) var(--s-5)",
-            font: "500 13px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <strong style={{ display: "block", marginBottom: "var(--s-1)" }}>Cliente eliminado</strong>
-          {estado.eliminadoEl ? `Se eliminó el ${fechaCorta(estado.eliminadoEl)}, así que ` : "Como está eliminado, "}
-          la ficha no calcula su saldo.
-          {canViewStatement ? " Sus documentos siguen en el estado de cuenta." : ""}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <Aviso tono="info" titulo="Cliente eliminado">
+            {estado.eliminadoEl ? `Se eliminó el ${fechaCorta(estado.eliminadoEl)}, así que ` : "Como está eliminado, "}
+            la ficha no calcula su saldo.
+            {canViewStatement ? " Sus documentos siguen en el estado de cuenta." : ""}
+          </Aviso>
         </div>
         <EmbarquesEnCurso total={estado.embarquesEnCurso} codigos={estado.markboxes.length} />
       </Seccion>
@@ -219,21 +210,11 @@ export function ClientAccountHeader({
   if (estado.tipo === "error") {
     return (
       <Seccion>
-        <div
-          role="status"
-          style={{
-            gridColumn: "1 / -1",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-lg)",
-            padding: "var(--s-4) var(--s-5)",
-            font: "500 13px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <strong style={{ display: "block", marginBottom: "var(--s-1)" }}>No se pudo calcular el saldo.</strong>
-          Recarga la página en unos minutos. Si sigue igual, avísale a soporte con la referencia{" "}
-          <code style={{ font: "600 12px/1 var(--f-mono)" }}>{estado.referencia}</code>.
+        <div style={{ gridColumn: "1 / -1" }}>
+          <Aviso tono="atencion" titulo="No se pudo calcular el saldo.">
+            Recarga la página en unos minutos. Si sigue igual, avísale a soporte con la referencia{" "}
+            <code style={{ font: "600 12px/1 var(--f-mono)" }}>{estado.referencia}</code>.
+          </Aviso>
         </div>
         <EmbarquesEnCurso total={estado.embarquesEnCurso} codigos={estado.markboxes.length} />
       </Seccion>

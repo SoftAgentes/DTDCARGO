@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer del receivable (SDD-0041): datos de la factura + acciones de gestión
  * (contacto/promesa/nota) + registrar cobro + historial de recibos y gestiones.
@@ -12,11 +14,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PendingReportsNotice } from "./PendingReportsNotice";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
   applicationStatusLabel,
@@ -36,6 +40,8 @@ import {
   type PaymentReceipt,
 } from "@/lib/studio/payment-types";
 import type { Receivable } from "@/lib/studio/payment-queries";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
+import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   getReceivableHistory,
@@ -57,10 +63,15 @@ function fmt(n: number): string {
 export function CobranzaDrawer({
   receivable,
   cashAccounts,
+  hoy,
+  tasaHoy = null,
   onClose,
 }: {
   receivable: Receivable;
   cashAccounts: CashAccountOption[];
+  /** SDD-0629 · «hoy» en Caracas y su tasa VES, para el equivalente en Bs. */
+  hoy?: string;
+  tasaHoy?: TasaReferencial | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -128,20 +139,9 @@ export function CobranzaDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {/* Estado + saldo */}
@@ -208,8 +208,20 @@ export function CobranzaDrawer({
             >
               ${fmt(receivable.balance)}
             </div>
+            {hoy && receivable.balance > 0 && (
+              <EquivalenteBs
+                eq={equivalenteEnBs({
+                  amount: receivable.balance,
+                  currency: inv.currency,
+                  tasa: tasaHoy,
+                  fechaPedida: hoy,
+                })}
+              />
+            )}
           </div>
         </div>
+
+        <PendingReportsNotice invoiceId={inv.id} invoiceCode={inv.invoice_code} currency={inv.currency} />
 
         {/* Cobro */}
         {!showCobro ? (
@@ -462,7 +474,7 @@ function CobroForm({
   onDone: (receiptCode: string | undefined, fullyPaid: boolean) => void;
 }) {
   const balance = receivable.balance;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [amount, setAmount] = useState<string>(String(balance));
   const [cashAccountId, setCashAccountId] = useState<string>(
     cashAccounts[0]?.id ?? "",
@@ -858,7 +870,7 @@ function PromiseForm({
     promisedAmount: number | null,
   ) => Promise<boolean>;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [date, setDate] = useState<string>(today);
   const [amount, setAmount] = useState<string>("");
 

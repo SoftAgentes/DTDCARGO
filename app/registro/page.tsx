@@ -6,6 +6,7 @@ import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { listRegisterCities } from "@/lib/portal/register-cities";
 import { normalizarOrigen } from "@/lib/public/registro-origen";
+import { normalizarAtribucion } from "@/lib/public/registro-atribucion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -69,6 +70,9 @@ export default async function RegistroPage({
   // contra un allowlist porque acaba en clients.registration_channel, que NO
   // tiene CHECK; lo que no reconocemos cae a 'portal'.
   const origen = normalizarOrigen(raw.origen);
+  // SDD-0587 (6.4): los UTM viajan ocultos en el form y la action los vuelve a
+  // validar. Terminan en la tarjeta del CRM.
+  const atribucion = normalizarAtribucion((campo) => raw[campo]);
 
   // Catálogo de ciudades del paso 2 (migr 0348). Si falla, viene [] y el form
   // degrada a texto libre — nunca bloquea el alta.
@@ -78,7 +82,7 @@ export default async function RegistroPage({
     <>
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
-        <RegisterForm est={est} refCode={refCode} origen={origen} cities={cities} />
+        <RegisterForm est={est} refCode={refCode} origen={origen} atribucion={atribucion} cities={cities} />
       </main>
       <Footer />
       <WhatsAppFAB />

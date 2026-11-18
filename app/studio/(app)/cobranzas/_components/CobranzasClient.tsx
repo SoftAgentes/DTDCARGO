@@ -18,9 +18,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
+import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   applicationStatusLabel,
@@ -64,7 +67,8 @@ const STAGE_FILTERS: { value: StageFilter; label: string }[] = [
   })),
 ];
 
-const GRID = "130px 1.4fr 110px 130px 1fr 120px";
+// SDD-0603 · tramo 5c: la última columna es «Abrir», sin rótulo propio.
+const GRID = "130px 1.4fr 110px 130px 1fr 120px 92px";
 
 export function CobranzasClient({
   receivables,
@@ -72,12 +76,18 @@ export function CobranzasClient({
   cashAccounts,
   unidentified,
   separation,
+  hoy,
+  tasaHoy = null,
 }: {
   receivables: Receivable[];
   kpis: CollectionKpis;
   cashAccounts: CashAccountOption[];
   unidentified: PaymentReceipt[];
   separation: FundsSeparation;
+  /** SDD-0629 · «hoy» en Caracas, para la tasa del saldo abierto. */
+  hoy?: string;
+  /** SDD-0629 · tasa VES de hoy (o la última anterior); null si no hay. */
+  tasaHoy?: TasaReferencial | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -198,6 +208,16 @@ export function CobranzasClient({
         />
       </div>
 
+      {/* SDD-0629 · equivalente en Bs del saldo abierto, solo vista. */}
+      {hoy && kpis.casos > 0 && (
+        <BsPorCobrar
+          porCobrarUsd={kpis.porCobrarUsd}
+          casosSinTasa={kpis.casosSinTasa}
+          hoy={hoy}
+          tasaHoy={tasaHoy}
+        />
+      )}
+
       {/* Separación de fondos del mandato (SDD-0068 · insumo de SDD-D) */}
       <FundsSeparationCard separation={separation} />
 
@@ -264,6 +284,8 @@ export function CobranzasClient({
         <CobranzaDrawer
           receivable={selected}
           cashAccounts={cashAccounts}
+          hoy={hoy}
+          tasaHoy={tasaHoy}
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -322,11 +344,63 @@ export function CobranzasClient({
 }
 
 /**
+ * SDD-0629 · El saldo abierto en USD y su equivalente en Bs con la tasa del día.
+ * Solo vista: no cambia la cola, los KPI ni nada contable.
+ */
+function BsPorCobrar({
+  porCobrarUsd,
+  casosSinTasa,
+  hoy,
+  tasaHoy,
+}: {
+  porCobrarUsd: number;
+  casosSinTasa: number;
+  hoy: string;
+  tasaHoy: TasaReferencial | null;
+}) {
+  const eq = equivalenteEnBs({ amount: porCobrarUsd, currency: "USD", tasa: tasaHoy, fechaPedida: hoy });
+  return (
+    <section
+      aria-label="Saldo por cobrar en bolívares"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "var(--s-3) var(--s-4)",
+        marginBottom: 20,
+        display: "flex",
+        gap: 24,
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+      }}
+    >
+      <div>
+        <div style={{ font: "700 9.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Por cobrar en USD
+        </div>
+        <div style={{ font: "700 18px/1.2 var(--f-mono)", color: "var(--ink)", marginTop: 4 }}>
+          ${fmtAmount(porCobrarUsd)}
+        </div>
+        {casosSinTasa > 0 && (
+          <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
+            {casosSinTasa} caso{casosSinTasa === 1 ? "" : "s"} sin tasa fuera de este total.
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <EquivalenteBs eq={eq} leyenda />
+      </div>
+    </section>
+  );
+}
+
+/**
  * Card de separación de fondos (SDD-0068): lo recaudado del período por
  * clase — fondos de terceros (Operadora) vs ingreso local (DTD Services) —
  * normalizado a USD. Insumo directo de la rendición quincenal (SDD-D).
  */
 function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
+  const sinTasa = separation.sinTasaCount ?? 0;
   return (
     <section
       style={{
@@ -337,6 +411,9 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
         marginBottom: 20,
       }}
     >
+      {sinTasa > 0 && <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
+        Conversión incompleta · subtotales conocidos · {sinTasa} cobro{sinTasa === 1 ? "" : "s"} sin tasa.
+      </p>}
       <div
         style={{
           display: "flex",
@@ -387,7 +464,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: "var(--success)",
+              color: sinTasa > 0 ? "var(--ink)" : "var(--success)",
             }}
           >
             ${fmtAmount(separation.localRevenueUsd)}
@@ -442,43 +519,19 @@ function UnidentifiedSection({
     <section
       style={{
         background: "var(--bg-surface)",
-        border: "1px solid var(--warning)",
+        border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
         overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div
-        style={{
-          padding: "var(--s-3) var(--s-5)",
-          background: "var(--warning-bg)",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <span
-          style={{
-            font: "700 11px/1 var(--f-sans)",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--ink)",
-          }}
-        >
-          Sin identificar · {receipts.length}
-        </span>
-        <span
-          style={{
-            font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
+      {/* SDD-0603 · tramo 5c (BD-037): lo que avisa es una franja plana; la
+          bandeja deja el contorno dorado y su encabezado pasa a <Aviso>. */}
+      <div style={{ borderBottom: "1px solid var(--border)" }}>
+        <Aviso tono="atencion" compacto titulo={`Sin identificar · ${receipts.length}`}>
           Fondos en cuenta sin cruce — no liberan ni suspenden plazos hasta
           identificarse (cláusula 7.3).
-        </span>
+        </Aviso>
       </div>
       {receipts.map((r, i) => (
         <div
@@ -584,6 +637,7 @@ function ReceivablesTable({
         <span>Vencimiento</span>
         <span>Última gestión</span>
         <span style={{ textAlign: "right" }}>Estado</span>
+        <span aria-hidden="true" />
       </div>
 
       {rows.map((r, i) => {
@@ -599,17 +653,13 @@ function ReceivablesTable({
             ? "studio-tracking-row studio-row-overdue"
             : "studio-tracking-row";
         return (
+          // SDD-0603 · tramo 5c: la fila sigue abriendo con el ratón, pero
+          // sale del orden de Tab; la parada de teclado es «Abrir».
           <div
             key={inv.id}
-            role="button"
-            tabIndex={0}
+            data-row-id={inv.invoice_code}
+            tabIndex={-1}
             onClick={() => onSelect(inv.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onSelect(inv.id);
-              }
-            }}
             className={rowClass}
             style={{
               display: "grid",
@@ -726,6 +776,19 @@ function ReceivablesTable({
                 {stageLabel(r.stage)}
               </Badge>
             </span>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              aria-label={`Abrir factura ${inv.invoice_code}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(inv.id);
+              }}
+              style={{ justifySelf: "end" }}
+            >
+              Abrir
+              {Icon.chevR(14)}
+            </button>
           </div>
         );
       })}

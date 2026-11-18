@@ -40,6 +40,12 @@
       "significa": "SDD-0514, SDD-0516, SDD-0517, SDD-0519, SDD-0521, SDD-0524 y SDD-0528. El Portal muestra el aviso «Seguimiento en construcción» («Te avisaremos apenas esté activo») en la portada, Envíos y los detalles de envío y de compra, porque la bodega de China todavía registra en Excel. Además, el detalle de una compra sin recepciones y la tarjeta de notificaciones de la portada dejan de prometer el aviso de llegada a bodega, el paso Contacto del registro público (/registro) deja de prometer avisos por WhatsApp, la ficha de pre-alerta de /servicios deja de prometer el aviso de llegada a bodega y que ves el estado de tu compra en todo momento, y la web pública deja de prometer rastreo: pie de página, /enlaces (tarjeta y metadatos), botón de la 404, Actualidad, /verificar, /brochure, /shipping-mark, /pre-alertas, la puerta de acceso /entrar (beneficios y panel lateral) y los términos DTDU y POD de /glosario (ficha y JSON-LD). En false el aviso desaparece de todas esas pantallas a la vez y vuelven esos textos, salvo el del registro, que desde SDD-0524 dice que los avisos llegan por correo y push (no por WhatsApp): apágalo cuando la bodega registre en el sistema. public/llms.txt no lee la bandera: dice «Portal del cliente» en las dos posiciones."
     },
     {
+      "name": "AVISOS_POR_HITO_LIVE",
+      "file": "lib/studio/notifications/avisos-por-hito-flag.ts",
+      "value": false,
+      "significa": "SDD-0627. En false no sale ningún aviso por hito del seguimiento estimado: al zarpar el contenedor no se programa `carga_en_camino` y las reglas ancladas en ETA no usan la ETA estimada desde el zarpe. En true, al marcar zarpado sale un `carga_en_camino` por cliente y contenedor (correo o push según la regla del tenant) y las reglas ancladas en ETA usan la estimada cuando no hay ETA de la naviera ni de la bodega. Encenderla es decisión de Sam, con el ensayo en seco corrido antes sobre el contenedor real."
+    },
+    {
       "name": "LEGAL_GATE_HARD_BLOCK",
       "file": "lib/studio/legal/gate-config.ts",
       "value": true,

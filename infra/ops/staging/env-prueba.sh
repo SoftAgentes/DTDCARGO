@@ -15,7 +15,7 @@
 #
 # Uso (en el VPS):
 #   env-prueba.sh --example /srv/dtd-cargo-staging/.env.example --out /srv/dtd-cargo-staging/.env \
-#       --image ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha> [--sets prueba.sets] [--force]
+#       --image ghcr.io/softagentes/dtdcargo:prueba-sha-<sha> [--sets prueba.sets] [--force]
 #
 # Códigos: 0 listo · 2 uso inválido · 3 el destino ya existe (usa --force: regenera
 # TODOS los secretos) · 4 new-env.sh falló.
@@ -47,7 +47,7 @@ done
 [[ -f "${EXAMPLE}" ]] || die "--example no existe: '${EXAMPLE}'"
 [[ -f "${SETS}" ]] || die "--sets no existe: '${SETS}'"
 [[ -n "${OUT}" ]] || die "--out es obligatorio"
-[[ "${IMAGE}" =~ ^ghcr\.io/hailuwaycom-sketch/dtdcargo:prueba-sha-[0-9a-f]{40}$ ]] || die "--image tiene que ser ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<40 hex>"
+[[ "${IMAGE}" =~ ^ghcr\.io/softagentes/dtdcargo:prueba-sha-[0-9a-f]{40}$ ]] || die "--image tiene que ser ghcr.io/softagentes/dtdcargo:prueba-sha-<40 hex>"
 if [[ -e "${OUT}" && ${FORCE} -eq 0 ]]; then
   echo "env-prueba: ${OUT} ya existe; no lo piso (con --force se regeneran TODOS los secretos de prueba)" >&2
   exit 3

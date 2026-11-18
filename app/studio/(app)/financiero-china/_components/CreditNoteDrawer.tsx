@@ -15,6 +15,7 @@ import {
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import type { SupplierChargeWithNet } from "@/lib/studio/partner-finance/types";
 import { addCreditNoteAction } from "../actions";
 
@@ -85,17 +86,7 @@ export function CreditNoteDrawer({
         }}
       >
         {error && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--r-md)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              font: "600 12px/1.4 var(--f-sans)",
-            }}
-          >
-            {error}
-          </div>
+          <Aviso tono="error" compacto>{error}</Aviso>
         )}
 
         {/* Resumen del cargo original */}

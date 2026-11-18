@@ -13,6 +13,7 @@ import {
   ShieldIcon,
   TruckIcon,
 } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { GuiaAlibabaCard } from "@/components/GuiaAlibabaCard";
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
@@ -31,6 +32,7 @@ import type {
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { PrealertaServiceGallery } from "../../_components/PrealertaAddons";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
@@ -155,21 +157,15 @@ export function SuppliersClient({
         </div>
       </div>
 
-      {/* ── Mensaje clave ── */}
-      <div
-        className="mt-5 rounded-[12px] border-l-[3px] px-4 py-3.5 flex items-start gap-3"
-        style={{
-          background: "var(--color-paper)",
-          borderColor: "var(--color-status-success)",
-        }}
-      >
-        <span
-          className="w-5 h-5 rounded-full grid place-items-center flex-shrink-0 mt-0.5"
-          style={{ background: "var(--color-status-success)", color: "#fff" }}
-        >
-          <CheckIcon size={13} />
+      {/* ── Mensaje clave ──
+          SDD-0603 · T4e (BD-037): franja plana de información. Antes, borde y
+          círculo verdes en línea; el verde es para un resultado, y esto es una
+          indicación (BRAND §Estados). */}
+      <div className="portal-aviso mt-5 rounded-[12px] px-4 py-3.5" data-tono="info">
+        <span className="portal-aviso-icono">
+          <StatusIcon tone="info" size={16} />
         </span>
-        <p className="text-[13px] text-grey-700 leading-[1.5]">
+        <p className="portal-aviso-cuerpo text-[13px] text-grey-700 leading-[1.5]">
           Copia el código y envíaselo SOLO al proveedor — a nosotros nos llega
           automático al registrarlo.
         </p>
@@ -350,9 +346,10 @@ function EditSupplierForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     updateSupplierAction,
     supplierInitial,
+    "No pudimos confirmar si los cambios se guardaron. Lo que escribiste sigue aquí. Intenta de nuevo.",
   );
   const uid = useId();
 
@@ -362,7 +359,7 @@ function EditSupplierForm({
 
   return (
     <form
-      action={action}
+      {...formProps}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <input type="hidden" name="supplierId" value={supplier.id} />
@@ -449,9 +446,10 @@ function AddSupplierForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createSupplierAction,
     supplierInitial,
+    "No pudimos confirmar si el proveedor se guardó. Lo que escribiste sigue aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
   );
   const uid = useId();
 
@@ -461,7 +459,7 @@ function AddSupplierForm({
 
   return (
     <form
-      action={action}
+      {...formProps}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col gap-3"
     >
       <FieldLabel htmlFor={`${uid}-name`}>Nombre del proveedor</FieldLabel>

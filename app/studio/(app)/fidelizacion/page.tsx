@@ -17,7 +17,7 @@ import {
   clientsWithTier,
   listReferrals,
   programStats,
-  tierCounts,
+  tierCountsFromClients,
   topReferrers,
 } from "@/lib/studio/fidelizacion/queries";
 import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
@@ -31,10 +31,9 @@ export default async function FidelizacionPage() {
 
   const supabase = await createClient();
 
-  const [clients, counts, referrals, stats, top, referralSettings, stranded] =
+  const [portfolio, referrals, stats, top, referralSettings, stranded] =
     await Promise.all([
-      clientsWithTier(supabase),
-      tierCounts(supabase),
+      clientsWithTier(supabase).catch(() => null),
       listReferrals(supabase),
       programStats(supabase),
       topReferrers(supabase, 5),
@@ -46,6 +45,9 @@ export default async function FidelizacionPage() {
       // de dinero, y acá hay roles que no lo tienen.
       strandedReferralCredits(supabase),
     ]);
+
+  const clients = portfolio ?? [];
+  const counts = tierCountsFromClients(clients);
 
   // Aplicar un crédito MUEVE PLATA (SDD-0137): solo lo puede hacer quien edita
   // el módulo de dinero "accounting" (accounting/admin). El botón de la UI se
@@ -61,6 +63,7 @@ export default async function FidelizacionPage() {
   return (
     <FidelizacionClient
       clients={clients}
+      portfolioAvailable={portfolio !== null}
       tierCounts={counts}
       referrals={referrals}
       stats={stats}

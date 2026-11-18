@@ -23,7 +23,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
+import { pgliteLimpio } from "../../../vitest/pglite-limpio.ts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as P from "../migraciones/preparar.mjs";
 import { retirarEspera } from "../migraciones/retirar-espera.mjs";
@@ -184,7 +184,7 @@ describe("SDD-0546 · paridad con infra/ops/lib/migracion.sh", { timeout: BAJO_C
 
 /** PGlite con lo mínimo de Supabase que tocan los scripts: el ledger y dos roles. */
 async function baseNueva() {
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   await db.exec(`
     create schema supabase_migrations;
     create table supabase_migrations.schema_migrations (
@@ -209,7 +209,7 @@ describe("SDD-0546 · el cuerpo que extrae node es el prosrc de Postgres (migrac
   it(
     "en las funciones de 0400 en adelante que se pueden crear sin su esquema, md5(prosrc) = md5 del cuerpo extraído",
     async () => {
-      const db = new PGlite();
+      const db = await pgliteLimpio();
       await db.exec("set check_function_bodies = off;");
       let comparadas = 0;
       for (const f of readdirSync(MIGS).filter((x) => x.endsWith(".sql") && x >= "0400").sort()) {

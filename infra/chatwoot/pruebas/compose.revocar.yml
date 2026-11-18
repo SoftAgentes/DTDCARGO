@@ -1,0 +1,10 @@
+# Overlay de la PRUEBA de revocación de sesiones (SDD-0585, paso 2.7). Nunca en el VPS.
+#
+# prueba-revocar-sesiones.sh corre la sonda con `rails runner` en el servicio `prepare`,
+# que solo está en la red `interna` (sin salida a internet). Monta la sonda; el
+# inicializador ya lo monta compose.yml.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas/sonda-revocar.rb:/tmp/sonda-revocar.rb:ro

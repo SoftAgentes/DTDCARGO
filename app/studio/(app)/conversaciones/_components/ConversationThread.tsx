@@ -10,9 +10,10 @@
  * (useActionState) + toast de trazabilidad.
  */
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -38,6 +39,7 @@ import {
   type ConversationStatus,
 } from "@/lib/studio/conversaciones/conversations-types";
 import type { ConversationDigest } from "@/lib/studio/conversaciones/conversations-queries";
+import type { EstadoTrabaPortal } from "@/lib/studio/chatwoot/portal-solo-lectura";
 import { SaldoPendienteContexto } from "./SaldoPendienteContexto";
 
 const EMPTY_STATE: ConversationActionState = {};
@@ -46,7 +48,8 @@ const selectStyle: React.CSSProperties = {
   height: 32,
   padding: "0 10px",
   background: "var(--bg-surface)",
-  border: "1px solid var(--border)",
+  // SDD-0603 tramo 5d: contorno de campo ≥ 3:1, como `.studio-input`.
+  border: "1px solid var(--ink-soft)",
   borderRadius: "var(--r-md)",
   font: "600 12px/1 var(--f-sans)",
   color: "var(--ink)",
@@ -59,6 +62,14 @@ interface Props {
   agents: ConversationAgent[];
   /** Cambia en cada evento Realtime de conversation_messages del tenant (ver ConversacionesClient). */
   realtimeTick?: number;
+  /**
+   * SDD-0586 1c-1: traba de los hilos del portal en el tenant. Con «activa» (o «no_se_sabe»,
+   * fail-closed) un hilo del portal no se responde ni cambia de estado desde aquí: las acciones
+   * lo rechazan en el servidor y la pantalla lo dice.
+   */
+  trabaPortal?: EstadoTrabaPortal;
+  /** SDD-0586 1c-1b: sin acceso a la Bandeja (rol o `chatwoot_inbox`), el aviso va sin enlace. */
+  puedeVerBandeja?: boolean;
 }
 
 function fmtTime(iso: string): string {
@@ -88,13 +99,23 @@ function fmtPeriod(iso: string): string {
   }
 }
 
-export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
+export function ConversationThread({
+  conv,
+  agents,
+  realtimeTick = 0,
+  trabaPortal = "apagada",
+  puedeVerBandeja = false,
+}: Props) {
   const router = useRouter();
   const toast = useToast();
+  const avisoId = useId();
+  const soloLectura = conv.channel === "portal" && trabaPortal !== "apagada";
 
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [context, setContext] = useState<ConversationClientContext | null>(null);
   const [digests, setDigests] = useState<ConversationDigest[]>([]);
+  /** Número de la conversación en Chatwoot (solo hilos del portal; null si aún no hay). */
+  const [bandeja, setBandeja] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [showQuick, setShowQuick] = useState(false);
@@ -114,11 +135,13 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
           messages: ConversationMessage[];
           context: ConversationClientContext | null;
           digests?: ConversationDigest[];
+          bandeja?: number | null;
         }) => {
           if (cancelled) return;
           setMessages(data.messages ?? []);
           setContext(data.context ?? null);
           setDigests(data.digests ?? []);
+          setBandeja(typeof data.bandeja === "number" ? data.bandeja : null);
         },
       )
       .catch(() => {
@@ -126,6 +149,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
           setMessages([]);
           setContext(null);
           setDigests([]);
+          setBandeja(null);
         }
       })
       .finally(() => {
@@ -175,6 +199,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
   };
 
   const onChangeStatus = (status: ConversationStatus) => {
+    if (soloLectura) return;
     const fd = new FormData();
     fd.set("conversation_id", conv.id);
     fd.set("status", status);
@@ -245,7 +270,8 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", marginTop: 5 }}>
               <Link
                 href={`/studio/clientes?q=${encodeURIComponent(conv.markbox)}`}
-                style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
+                className="studio-link-quiet"
+                style={{ font: "600 11.5px/1 var(--f-mono)" }}
               >
                 {conv.markbox}
               </Link>
@@ -264,7 +290,9 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
             </div>
           </div>
 
-          {/* Acciones */}
+          {/* Acciones · SDD-0603 tramo 5d: «Caso» es un control con contorno de
+              tinta y, marcado, relleno de tinta. El rojo queda para el `Badge`
+              «Caso» del encabezado. */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
             <button
               type="button"
@@ -272,19 +300,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
               title={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
               aria-label={conv.is_case ? "Quitar marca de caso" : "Marcar como caso"}
               aria-pressed={conv.is_case}
-              style={{
-                height: 32,
-                padding: "0 10px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                borderRadius: "var(--r-md)",
-                cursor: "pointer",
-                font: "600 12px/1 var(--f-sans)",
-                background: conv.is_case ? "var(--danger-bg)" : "var(--bg-elevated)",
-                color: conv.is_case ? "var(--danger)" : "var(--ink-soft)",
-                border: `1px solid ${conv.is_case ? "var(--danger)" : "var(--border)"}`,
-              }}
+              className={`studio-btn ${conv.is_case ? "studio-btn-dark" : "studio-btn-ghost"} studio-btn-xs`}
             >
               {Icon.warn(14)} Caso
             </button>
@@ -304,8 +320,11 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
             <select
               value={conv.status}
               onChange={(e) => onChangeStatus(e.target.value as ConversationStatus)}
-              style={selectStyle}
+              style={soloLectura ? { ...selectStyle, cursor: "not-allowed", opacity: 0.55 } : selectStyle}
               aria-label="Estado de la conversación"
+              disabled={soloLectura}
+              aria-describedby={soloLectura ? avisoId : undefined}
+              title={soloLectura ? "El estado de este hilo se cambia en la Bandeja de Chatwoot." : undefined}
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -399,8 +418,38 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
           })}
         </div>
 
+        {/* SDD-0586 1c-1: hilo del portal con la traba puesta → aviso en lugar de la caja */}
+        {soloLectura && (
+          // SDD-0603 tramo 5d: franja de `Aviso` (status). Solo el texto fijo va
+          // dentro de la región viva; el enlace, que depende de la carga del
+          // hilo, queda fuera para que nada se vuelva a anunciar con cada mensaje.
+          <div
+            style={{
+              padding: "12px 14px",
+              borderTop: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--s-3)",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <Aviso id={avisoId} tono={trabaPortal === "activa" ? "info" : "atencion"}>
+                {trabaPortal === "activa"
+                  ? "Este hilo del portal se responde desde la Bandeja de Chatwoot. El estado también se cambia allá."
+                  : "No se pudo comprobar si este hilo del portal se responde desde la Bandeja de Chatwoot. Recarga la página para volver a intentar."}
+              </Aviso>
+            </div>
+            {puedeVerBandeja && bandeja !== null && (
+              <Link href={`/studio/bandeja?c=${bandeja}`} className="studio-btn studio-btn-ghost studio-btn-sm">
+                Responder en la Bandeja →
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* Quick replies */}
-        {showQuick && (
+        {!soloLectura && showQuick && (
           <div
             style={{
               padding: "10px 14px",
@@ -420,15 +469,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
                   setShowQuick(false);
                 }}
                 title={q.text}
-                style={{
-                  padding: "6px 11px",
-                  borderRadius: "var(--r-pill)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border)",
-                  font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  cursor: "pointer",
-                }}
+                className="studio-chip"
               >
                 {q.label}
               </button>
@@ -437,82 +478,53 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
         )}
 
         {/* Composer */}
-        <form
-          action={submitReply}
-          style={{
-            padding: "12px 14px",
-            borderTop: "1px solid var(--border)",
-            display: "flex",
-            alignItems: "flex-end",
-            gap: 10,
-          }}
-        >
-          <input type="hidden" name="conversation_id" value={conv.id} />
-          <button
-            type="button"
-            onClick={() => setShowQuick((s) => !s)}
-            title="Respuestas rápidas"
-            aria-label="Respuestas rápidas"
-            aria-expanded={showQuick}
+        {!soloLectura && (
+          <form
+            action={submitReply}
             style={{
-              width: 38,
-              height: 38,
-              flexShrink: 0,
-              borderRadius: "var(--r-md)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              background: showQuick ? "var(--wine-tint)" : "var(--bg-elevated)",
-              color: showQuick ? "var(--wine)" : "var(--ink-soft)",
-              border: `1px solid ${showQuick ? "var(--wine)" : "var(--border)"}`,
+              padding: "12px 14px",
+              borderTop: "1px solid var(--border)",
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 10,
             }}
           >
-            {Icon.spark(16)}
-          </button>
-          <textarea
-            name="body"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={`Responder por ${channelLabel(ch)}…`}
-            rows={1}
-            disabled={replyPending}
-            style={{
-              flex: 1,
-              resize: "none",
-              minHeight: 38,
-              maxHeight: 120,
-              padding: "9px 12px",
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-md)",
-              font: "500 13px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-              outline: "none",
-              opacity: replyPending ? 0.6 : 1,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!draft.trim() || replyPending}
-            style={{
-              height: 38,
-              padding: "0 16px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              borderRadius: "var(--r-md)",
-              border: "none",
-              cursor: !draft.trim() || replyPending ? "not-allowed" : "pointer",
-              opacity: !draft.trim() || replyPending ? 0.55 : 1,
-              background: "var(--wine)",
-              color: "var(--ink-side-strong)",
-              font: "700 13px/1 var(--f-sans)",
-            }}
-          >
-            {Icon.arrowR(14)} {replyPending ? "Enviando…" : "Enviar"}
-          </button>
-        </form>
+            <input type="hidden" name="conversation_id" value={conv.id} />
+            <button
+              type="button"
+              onClick={() => setShowQuick((s) => !s)}
+              title="Respuestas rápidas"
+              aria-label="Respuestas rápidas"
+              aria-expanded={showQuick}
+              className="studio-icono-btn"
+            >
+              {Icon.spark(16)}
+            </button>
+            <textarea
+              name="body"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={`Responder por ${channelLabel(ch)}…`}
+              rows={1}
+              disabled={replyPending}
+              className="studio-input"
+              style={{
+                flex: 1,
+                width: "auto",
+                resize: "none",
+                maxHeight: 120,
+                font: "500 13px/1.4 var(--f-sans)",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!draft.trim() || replyPending}
+              className="studio-btn studio-btn-primary"
+            >
+              {Icon.arrowR(14)} {replyPending ? "Enviando…" : "Enviar"}
+            </button>
+          </form>
+        )}
       </div>
 
       {/* Panel de contexto del cliente */}

@@ -8,7 +8,7 @@ solo guarda plantillas, nunca el `.env` ni los datos.
 ```
 compose.yml               app: web (imagen de GHCR), cron, auth-templates · redes
 compose.supabase.yml      overlay Supabase (db, api-gw, auth, rest, realtime, storage, imgproxy, functions; studio/meta y supavisor por perfil)
-compose.supabase.s3.yml   overlay Storage sobre R2/B2 (producción)
+compose.supabase.s3.yml   overlay Storage sobre R2/B2 (NO activo en producción: medido el 2026-11-09, storage corre en `file`; SDD-0620)
 compose.staging.yml       overlay del entorno de prueba con datos sintéticos (SDD-0540): clave en el web, noindex, Mailpit, ≤ 3.072 MiB · docs/runbooks/entorno-prueba.md
 .env.example              TODAS las variables, solo nombres y placeholders
 cron/                     imagen crond+curl y el crontab GENERADO (scripts/build-crontab.mjs)
@@ -33,7 +33,7 @@ staging contra la copia). Las variables críticas llevan `${VAR:?...}`: sin
 `.env` el compose se niega a arrancar en vez de levantar una app a medias.
 
 Desplegar una versión nueva = fijar `DTD_WEB_IMAGE` en `.env`
-(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>`) y
+(`ghcr.io/softagentes/dtdcargo:sha-<sha>`) y
 `docker compose pull web && docker compose up -d web cron`.
 
 ## Claves JWT (ANON_KEY / SERVICE_ROLE_KEY)

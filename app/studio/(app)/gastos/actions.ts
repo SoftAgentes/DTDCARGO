@@ -8,13 +8,18 @@
  * de 0074) decide qué ve/crea cada rol. Auth normal (auth.uid()).
  *
  * Diferencia vs mobile m/erp: maneja scope (shipment/external) + moneda
- * dual (amount_usd + fx_rate) + tenant_fx_history. Reusa next_expense_code
+ * dual (amount_usd + fx_rate); desde la SDD-0569 ya no escribe tenant_fx_history. Reusa next_expense_code
  * RPC + bucket expense-receipts.
  */
 
 import { revalidatePath } from "next/cache";
+import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  capabilityDenial,
+  moduleEditDenial,
+  moduleViewDenial,
+} from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   autoResolveAlertForShipment,
@@ -30,12 +35,10 @@ import {
   voidExpenseEntriesForExpense,
 } from "@/lib/studio/accounting/expense-posting";
 import {
-  getAccountingSettings,
   isPeriodClosed,
 } from "@/lib/studio/accounting/period-queries";
 import {
   validateExpenseInput,
-  currencyPair,
   categoryLabel,
   METHOD_LABEL_KEYS,
   type CreateExpenseInput,
@@ -98,10 +101,29 @@ function parseExpenseForm(formData: FormData): Partial<CreateExpenseInput> {
   };
 }
 
+type ExpenseOrigin = {
+  id: string; tenant_id: string; deleted_at: null; expense_code: string;
+  amount_usd: number; account_id: string | null; method: ExpenseMethod; occurred_at: string;
+};
+const HISTORY_UNAVAILABLE = "No pudimos comprobar el origen, el cierre o los asientos del gasto. No cambiamos el gasto ni su asiento. Reintenta o consulta a contabilidad. Código: GASTO-HISTORIA.";
+
+/** Cero filas sólo es apertura tras lectura completa válida; un error no lo es. */
+async function strictClosingDate(supabase: Awaited<ReturnType<typeof createClient>>, tenantId: string): Promise<string | null> {
+  const { data, error } = await supabase.from("accounting_settings")
+    .select("tenant_id, closing_date").eq("tenant_id", tenantId).limit(2);
+  if (error || !Array.isArray(data) || data.length > 1) throw new Error(HISTORY_UNAVAILABLE);
+  if (data.length === 0) return null;
+  const row = data[0];
+  if (!row || row.tenant_id !== tenantId || (row.closing_date !== null && !isCalendarDate(row.closing_date))) throw new Error(HISTORY_UNAVAILABLE);
+  return row.closing_date;
+}
+
 export async function createExpenseAction(
   _prev: ExpenseActionState,
   formData: FormData,
 ): Promise<ExpenseActionState> {
+  const occurredAt = new Date().toISOString();
+  const businessDay = fechaCaracas(occurredAt);
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "expenses");
   if (denial) return { error: denial };
@@ -121,10 +143,12 @@ export async function createExpenseAction(
   // Guard de período cerrado (SDD-0080): el gasto se fecha hoy (occurred_at =
   // now); si el período de hoy está cerrado, no se carga (su asiento sería
   // rechazado por el trigger). Se valida antes de gastar correlativo/subir foto.
-  const accSettings = await getAccountingSettings(supabase);
-  if (isPeriodClosed(accSettings.closing_date, new Date().toISOString())) {
+  let closingDate: string | null;
+  try { closingDate = await strictClosingDate(supabase, link.tenant_id); }
+  catch { return { error: HISTORY_UNAVAILABLE }; }
+  if (isPeriodClosed(closingDate, businessDay)) {
     return {
-      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes cargar gastos en un período cerrado.`,
+      error: `Período contable cerrado al ${closingDate}: no puedes cargar gastos en un período cerrado.`,
     };
   }
 
@@ -172,6 +196,7 @@ export async function createExpenseAction(
     .from("expenses")
     .insert({
       tenant_id: link.tenant_id,
+      occurred_at: occurredAt,
       user_id: userResp.user.id,
       expense_code: expenseCode,
       amount: input!.amount,
@@ -205,19 +230,12 @@ export async function createExpenseAction(
     accountId,
     amountUsd: input!.amount_usd,
     method: input!.method,
-    entryDate: String(insertedExp.occurred_at).slice(0, 10),
+    entryDate: businessDay,
   });
 
-  // Registrar el fx usado en el historial del tenant (prefill futuro).
-  const pair = currencyPair(input!.currency);
-  if (pair && input!.fx_rate > 0) {
-    await supabase.from("tenant_fx_history").insert({
-      tenant_id: link.tenant_id,
-      currency_pair: pair,
-      rate: input!.fx_rate,
-      set_by: userResp.user.id,
-    });
-  }
+  // SDD-0569: la tasa de un gasto queda en el gasto. Ya no se copia a
+  // tenant_fx_history: mezclaba tasas operativas con la del admin, y las tasas
+  // del tenant viven en fx_rates (Admin › Tasas).
 
   // Auto-cerrar la alerta del contenedor: la contadora cargó un gasto del
   // shipment → su parte está hecha (SDD-0039 B.8, cierre 'auto'). Side-effect
@@ -251,33 +269,58 @@ export async function updateExpenseAction(
     .from("user_tenants")
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
-  const accountId = link?.tenant_id
-    ? await resolveExpenseAccountId(supabase, link.tenant_id, input!.category)
-    : null;
-
-  // Estado contable previo (para re-sincronizar el asiento solo si cambió algo
-  // relevante: monto, cuenta o método · SDD-0079).
-  const { data: oldExp } = await supabase
-    .from("expenses")
-    .select("expense_code, amount_usd, account_id, method, occurred_at")
-    .eq("id", id)
-    .maybeSingle<{
-      expense_code: string;
-      amount_usd: number;
-      account_id: string | null;
-      method: ExpenseMethod;
-      occurred_at: string;
-    }>();
-
-  // Guard de período cerrado (SDD-0080): no editar un gasto de período cerrado.
-  if (oldExp) {
-    const accSettings = await getAccountingSettings(supabase);
-    if (isPeriodClosed(accSettings.closing_date, oldExp.occurred_at)) {
-      return {
-        error: `Período contable cerrado al ${accSettings.closing_date}: no puedes editar un gasto de período cerrado.`,
-      };
+  if (!link?.tenant_id) return { errorCode: "tenant_unresolved" };
+  const tenantId = link.tenant_id;
+  const accountId = await resolveExpenseAccountId(supabase, tenantId, input!.category);
+  let oldExp: ExpenseOrigin;
+  let entryDate: string;
+  let changed: boolean;
+  try {
+    const { data: origins, error: originError } = await supabase.from("expenses")
+      .select("id, tenant_id, deleted_at, expense_code, amount_usd, account_id, method, occurred_at")
+      .eq("id", id).eq("tenant_id", tenantId).is("deleted_at", null).limit(2);
+    if (originError || !Array.isArray(origins) || origins.length !== 1) return { error: HISTORY_UNAVAILABLE };
+    const origin = origins[0];
+    if (!origin || origin.id !== id || origin.tenant_id !== tenantId || origin.deleted_at !== null
+      || typeof origin.expense_code !== "string"
+      || (typeof origin.amount_usd !== "number" && typeof origin.amount_usd !== "string")
+      || (typeof origin.amount_usd === "string" && origin.amount_usd.trim() === "")
+      || !Number.isFinite(Number(origin.amount_usd))
+      || (origin.account_id !== null && typeof origin.account_id !== "string")
+      || !["cash", "card", "transfer", "usdt"].includes(origin.method)
+      || typeof origin.occurred_at !== "string") return { error: HISTORY_UNAVAILABLE };
+    oldExp = origin as ExpenseOrigin;
+    entryDate = fechaCaracas(oldExp.occurred_at);
+    const closingDate = await strictClosingDate(supabase, tenantId);
+    if (isPeriodClosed(closingDate, entryDate)) {
+      return { error: "Período contable cerrado al " + closingDate + ": no puedes editar un gasto de período cerrado." };
     }
-  }
+    changed = (oldExp.account_id ?? null) !== (accountId ?? null)
+      || Number(oldExp.amount_usd) !== Number(input!.amount_usd) || oldExp.method !== input!.method;
+    if (changed) {
+      // SDD-0624: desde la 0528 operaciones y almacén no leen journal_entries;
+      // con su sesión verían 0 filas y la comprobación pasaría en falso. El gasto
+      // ya se leyó con la sesión (tenant y RLS de expenses); el asiento se lee
+      // con el cliente de servicio, el mismo que después lo anula y lo reasienta.
+      const { data: entries, error: entriesError } = await createAdminClient().from("journal_entries")
+        .select("id, tenant_id, expense_id, source, entry_date, status, deleted_at")
+        .eq("tenant_id", tenantId).eq("expense_id", id).eq("status", "asentado").is("deleted_at", null).limit(2);
+      if (entriesError || !Array.isArray(entries) || entries.length > 1) return { error: HISTORY_UNAVAILABLE };
+      const live = entries[0];
+      if (entries.length === 1) {
+        if (!live || typeof live !== "object" || Array.isArray(live)
+          || typeof live.id !== "string" || !live.id || live.tenant_id !== tenantId || live.expense_id !== id
+          || live.source !== "expense" || live.status !== "asentado" || live.deleted_at !== null
+          || !isCalendarDate(live.entry_date)) return { error: HISTORY_UNAVAILABLE };
+        if (isPeriodClosed(closingDate, live.entry_date)) {
+          return { error: "El asiento del gasto pertenece a un período cerrado al " + closingDate + ". No cambiamos el gasto ni su asiento." };
+        }
+        if (live.entry_date !== entryDate) {
+          return { error: "La edición cambiaría la fecha contable histórica de " + live.entry_date + " a " + entryDate + ". No cambiamos el gasto ni su asiento. Solicita la corrección por la vía gobernada de contabilidad." };
+        }
+      }
+    }
+  } catch { return { error: HISTORY_UNAVAILABLE }; }
 
   const { error } = await supabase
     .from("expenses")
@@ -296,16 +339,12 @@ export async function updateExpenseAction(
       account_id: accountId,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id).eq("tenant_id", tenantId).is("deleted_at", null);
 
   if (error) return { errorCode: "internal_error", error: error.message };
 
   // Re-sincronizar el asiento si cambió monto, cuenta o método (anula + repostea).
   if (link?.tenant_id && oldExp) {
-    const changed =
-      (oldExp.account_id ?? null) !== (accountId ?? null) ||
-      Number(oldExp.amount_usd) !== Number(input!.amount_usd) ||
-      oldExp.method !== input!.method;
     if (changed) {
       await voidExpenseEntriesForExpense(link.tenant_id, id);
       await syncExpenseEntry({
@@ -315,7 +354,7 @@ export async function updateExpenseAction(
         accountId,
         amountUsd: input!.amount_usd,
         method: input!.method,
-        entryDate: String(oldExp.occurred_at).slice(0, 10),
+        entryDate,
       });
     }
   }
@@ -354,6 +393,11 @@ export async function resolveExpenseAlertAction(
   alertId: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  // SDD-0624: cerrar una alerta es editar gastos (accounting, operations y
+  // warehouse —el equipo CN que la atiende— + admin). Antes bastaba la sesión.
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -394,7 +438,13 @@ function csvCell(v: string | number | boolean | null | undefined): string {
 export async function exportExpensesCsvAction(
   month?: string,
 ): Promise<ExportResult> {
+  const exportMonth = month ?? fechaCaracas().slice(0, 7);
   const supabase = await createClient();
+  // SDD-0624: una exportación es tan invocable como una mutación; exige ver
+  // el módulo de gastos.
+  const denial = await moduleViewDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -418,7 +468,7 @@ export async function exportExpensesCsvAction(
 
   let rows;
   try {
-    rows = await listMonthExpensesForExport(supabase, month);
+    rows = await listMonthExpensesForExport(supabase, exportMonth);
   } catch (e) {
     return {
       errorCode: "internal_error",
@@ -439,7 +489,7 @@ export async function exportExpensesCsvAction(
     lines.push(
       [
         csvCell(r.expense_code),
-        csvCell(r.occurred_at.slice(0, 10)),
+        csvCell(fechaCaracas(r.occurred_at)),
         csvCell(r.scope),
         csvCell(r.shipment_code),
         csvCell(categoryLabel(r.category, locale)),
@@ -456,6 +506,5 @@ export async function exportExpensesCsvAction(
     );
   }
   const csv = "﻿" + lines.join("\r\n");
-  const monthLabel = month ?? new Date().toISOString().slice(0, 7);
-  return { ok: true, filename: `gastos-${monthLabel}.csv`, csv };
+  return { ok: true, filename: `gastos-${exportMonth}.csv`, csv };
 }

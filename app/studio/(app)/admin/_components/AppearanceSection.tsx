@@ -21,6 +21,8 @@ import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import {
+  DEFAULT_DENSITY,
+  DEFAULT_THEME,
   applyDensity,
   applyTheme,
   APPEARANCE_EVENT,
@@ -51,12 +53,12 @@ export function AppearanceSection() {
   const theme = useSyncExternalStore<StudioTheme>(
     subscribeAppearance,
     readTheme,
-    () => "light",
+    () => DEFAULT_THEME,
   );
   const density = useSyncExternalStore<StudioDensity>(
     subscribeAppearance,
     readDensity,
-    () => "normal",
+    () => DEFAULT_DENSITY,
   );
 
   const onTheme = (next: StudioTheme) => {

@@ -26,6 +26,7 @@ vi.mock("@/lib/studio/fiscal/queries", () => ({
 type Write = { table: string; values: Record<string, unknown>; conds: [string, unknown][] };
 let writes: Write[] = [];
 let status = "borrador";
+let version = 0;
 
 function makeClient() {
   return {
@@ -37,21 +38,33 @@ function makeClient() {
           if (pending) pending.conds.push([col, val]);
           return chain;
         },
+        is(col: string, val: unknown) {
+          if (pending) pending.conds.push([col, val]);
+          return chain;
+        },
         update(values: Record<string, unknown>) {
           pending = { table, values, conds: [] };
-          writes.push(pending);
           return chain;
         },
         maybeSingle: async () => {
           if (table === "invoices") {
-            return { data: { status, invoice_code: "F-2026-0555", tenant_id: "t1" }, error: null };
+            const fila: Record<string, unknown> = {
+              id: "inv-0555", status, invoice_code: "F-2026-0555", tenant_id: "t1",
+              currency: "USD", write_version: version, deleted_at: null,
+              fx_rate: null, fx_rate_source: null, fx_rate_valid_on: null, fx_rate_is_override: false,
+            };
+            if (pending) {
+              if (pending.conds.some(([key, value]) => fila[key] !== value)) {
+                return { data: null, error: null };
+              }
+              writes.push(pending);
+              version += 1;
+              return { data: { id: fila.id }, error: null };
+            }
+            return { data: fila, error: null };
           }
           if (table === "tenants") return { data: { iva_enabled: false }, error: null };
           throw new Error(`lectura inesperada en ${table}`);
-        },
-        // El UPDATE se espera directo (`await supabase.from().update().eq()`).
-        then(resolve: (v: { error: null }) => void) {
-          resolve({ error: null });
         },
       };
       return chain;
@@ -84,6 +97,7 @@ function formDelDrawer(): FormData {
 beforeEach(() => {
   writes = [];
   status = "borrador";
+  version = 0;
 });
 
 describe("updateInvoice · líneas con embarque", () => {
@@ -93,6 +107,11 @@ describe("updateInvoice · líneas con embarque", () => {
 
     const update = writes.find((w) => w.table === "invoices");
     expect(update?.conds).toContainEqual(["id", "inv-0555"]);
+    expect(update?.conds).toContainEqual(["tenant_id", "t1"]);
+    expect(update?.conds).toContainEqual(["write_version", 0]);
+    expect(update?.conds).toContainEqual(["status", "borrador"]);
+    expect(update?.conds).toContainEqual(["currency", "USD"]);
+    expect(version).toBe(1);
     const lines = update?.values.lines as Record<string, unknown>[];
     expect(lines.map((l) => l.shipmentCode)).toEqual([
       "ENV-PRUEBA-01",

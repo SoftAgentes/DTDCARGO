@@ -48,12 +48,8 @@ export function CalculatorSection({
       <div
         role="tablist"
         aria-label="Secciones del calculador"
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          marginBottom: 22,
-          borderBottom: "1px solid var(--border)",
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 22 }}
       >
         <TabButton
           id="tab-calc-parametros"
@@ -136,19 +132,9 @@ function TabButton({
       id={id}
       aria-controls={controls}
       aria-selected={active}
+      data-activa={active ? "true" : undefined}
       onClick={onClick}
-      style={{
-        appearance: "none",
-        background: "transparent",
-        border: 0,
-        padding: "10px 14px",
-        marginBottom: -1,
-        cursor: "pointer",
-        font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
-        color: active ? "var(--ink)" : "var(--ink-soft)",
-        borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-        transition: "color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",
-      }}
+      className="studio-tab"
     >
       {label}
     </button>

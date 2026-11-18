@@ -16,7 +16,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
-import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { VersionChip } from "@/app/studio/_components/documents/DocsPanel";
 import { firmarAdjuntoAction } from "../adjuntos-actions";
 import {
@@ -98,25 +98,10 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
       </p>
 
       {datos === null ? (
-        <div
-          role="alert"
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-            padding: 14,
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-md)",
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <span aria-hidden="true" style={{ color: "var(--danger)", display: "inline-flex" }}>
-            {Icon.warn(16)}
-          </span>
+        <Aviso tono="error">
           No se pudieron cargar los adjuntos. Recarga la página; si sigue igual,
           avísale a soporte.
-        </div>
+        </Aviso>
       ) : datos.total === 0 ? (
         <div
           style={{
@@ -262,9 +247,9 @@ function Fila({ adjunto: a }: { adjunto: Adjunto }) {
         </button>
       </div>
       {fallo && (
-        <p role="alert" style={{ margin: 0, font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+        <Aviso tono="error" compacto>
           No se pudo abrir el archivo. Intenta de nuevo o ábrelo desde su panel.
-        </p>
+        </Aviso>
       )}
     </li>
   );

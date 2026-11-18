@@ -11,6 +11,8 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { resumirIngresoConContexto as resumirIngreso, datosReversoGo1, lectorReversoGo1, controlReversoGo1, RANGOS_REVERSO_GO1 } from "@/lib/studio/accounting/__tests__/ingreso-fixture";
+import { ingresoDelPeriodo } from "@/lib/studio/accounting/libro-control-queries";
 import {
   asPeriod,
   buildAgingSide,
@@ -29,7 +31,7 @@ import {
   vistaDelEstado,
   type ReportShipment,
 } from "../types";
-import { resumirIngreso } from "@/lib/studio/accounting/ingreso-periodo";
+import { resumirIngreso as resumirIngresoSinContexto } from "@/lib/studio/accounting/ingreso-periodo";
 import type { ShipmentService } from "@/lib/shared/shipment-public";
 
 // ── periodRange ───────────────────────────────────────────────
@@ -478,5 +480,23 @@ describe("vistaDelEstado", () => {
   it("con movimiento en el mayor → completo", () => {
     expect(vistaDelEstado({ income: 1000, netIncome: 400, ingreso: ingreso(2000) })).toBe("completo");
     expect(vistaDelEstado({ income: 0, netIncome: -300, ingreso: ingreso(0) })).toBe("completo");
+  });
+});
+
+describe("I2 · actividad e incidencias del Estado de resultados", () => {
+  it.each([false, true])("neto cero con corrupción=%s conserva vista completa", async corrupto => {
+    const d = datosReversoGo1(); const rango = RANGOS_REVERSO_GO1.combinado;
+    if (corrupto) d.journal_lines = d.journal_lines.filter(l => l.id !== "reverso-ar-go1");
+    const ingreso = await ingresoDelPeriodo(lectorReversoGo1(d).client, rango, { mayor: controlReversoGo1(d, rango) });
+    expect(vistaDelEstado({ income: 0, netIncome: 0, ingreso })).toBe("completo");
+    expect(ingreso.controlI2.hayActividad).toBe(true);
+    if (corrupto) expect(ingreso.diferenciaUsd).toBeNull();
+    else expect(ingreso.diferenciaUsd).toBe(0);
+  });
+  it("sin contexto no transforma un cero desconocido en vacío o sólo-facturado", () => {
+    const ingreso = resumirIngresoSinContexto([], { from: "2026-09-01", to: "2026-10-31" },
+      { ventas: 0, ingresos: 0, ventasConMovimiento: false, facturasConAsiento: new Set<string>() });
+    expect(vistaDelEstado({ income: 0, netIncome: 0, ingreso })).toBe("completo");
+    expect(ingreso.controlI2.verificacion).toBe("no_leida");
   });
 });

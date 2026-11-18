@@ -24,6 +24,8 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   bankAccounts: Account[];
@@ -239,12 +241,11 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
               <label className="studio-label" htmlFor="stmt-period">
                 Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
-              <input
+              <DateField
                 id="stmt-period"
-                type="month"
-                className="studio-input"
+                mode="month"
                 value={periodLabel}
-                onChange={(e) => setPeriodLabel(e.target.value)}
+                onChange={setPeriodLabel}
               />
               {state.fieldErrors?.period_label && (
                 <FieldError msg={state.fieldErrors.period_label} />
@@ -345,13 +346,9 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                     alignItems: "start",
                   }}
                 >
-                  <input
-                    type="date"
-                    className="studio-input"
+                  <DateField
                     value={l.line_date}
-                    onChange={(e) =>
-                      updateLine(idx, { line_date: e.target.value })
-                    }
+                    onChange={(iso) => updateLine(idx, { line_date: iso })}
                     aria-label={`Fecha movimiento ${idx + 1}`}
                   />
                   <input
@@ -417,20 +414,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           </div>
 
           {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error}
-            </p>
+            <Aviso tono="error" compacto>{state.error}</Aviso>
           )}
 
           {/* Tira de saldos LIVE (navy) */}

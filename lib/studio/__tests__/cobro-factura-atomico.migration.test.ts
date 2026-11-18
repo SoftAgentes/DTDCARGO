@@ -17,8 +17,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -86,7 +86,7 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
 async function contract(options: { applyFix?: boolean; migration?: string } = {}) {
   const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) },
     options.migration ? { [M0467]: options.migration } : {});
-  const db = new PGlite({ extensions: { pgcrypto } });
+  const db = await pgliteLimpio({ pgcrypto });
   try {
     const results = await db.exec(sql);
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);

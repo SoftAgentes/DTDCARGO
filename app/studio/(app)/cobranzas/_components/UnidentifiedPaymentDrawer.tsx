@@ -1,5 +1,7 @@
 "use client";
 
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
+
 /**
  * Drawer "+ Pago sin identificar" (SDD-0068 #2 · cláusula 7.3 del Acuerdo).
  *
@@ -13,6 +15,7 @@ import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { INVOICE_CURRENCY_OPTIONS, type InvoiceCurrency } from "@/lib/studio/invoice-types";
 import {
@@ -32,7 +35,7 @@ export function UnidentifiedPaymentDrawer({
   onClose: () => void;
   onDone: (receiptCode: string | undefined) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = fechaCaracas();
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>("");
   const [currency, setCurrency] = useState<InvoiceCurrency>("USD");
@@ -71,46 +74,15 @@ export function UnidentifiedPaymentDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {/* Aviso COPY §3 — lo que el cliente ve mientras el pago no cruza. */}
-        <div
-          style={{
-            padding: "12px 14px",
-            background: "var(--warning-bg)",
-            borderRadius: "var(--r-md)",
-            font: "500 11.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <span
-            style={{
-              font: "700 9.5px/1.3 var(--f-sans)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--ink-soft)",
-              display: "block",
-              marginBottom: 4,
-            }}
-          >
-            El cliente ve
-          </span>
+        <Aviso tono="atencion" compacto titulo="El cliente ve">
           “{UNIDENTIFIED_CLIENT_NOTICE}”
-        </div>
+        </Aviso>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>

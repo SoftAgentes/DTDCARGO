@@ -44,7 +44,7 @@ services:
     # La construye CI (.github/workflows/build-image.yml): `sha-<sha>` por commit
     # y `main` como alias móvil. Desplegar = fijar DTD_WEB_IMAGE en .env y
     # `docker compose pull web && docker compose up -d web cron`.
-    image: ${DTD_WEB_IMAGE:-ghcr.io/hailuwaycom-sketch/dtdcargo:main}
+    image: ${DTD_WEB_IMAGE:-ghcr.io/softagentes/dtdcargo:main}
     restart: unless-stopped
     logging: *logging
     env_file:
@@ -58,7 +58,7 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       # Entorno explícito (lib/runtime/app-env.ts): sin APP_ENV, NODE_ENV=production
-      # ya cierra el candado del bot de deploy, pero se declara igual.
+      # ya resuelve a producción (fallo cerrado), pero se declara igual.
       APP_ENV: ${APP_ENV:?APP_ENV (production|staging) falta en .env}
       APP_URL: ${APP_URL:?APP_URL (https://dtdcargo.com) falta en .env}
       # Header con la IP real que fija Traefik (x-real-ip). Detrás de Cloudflare

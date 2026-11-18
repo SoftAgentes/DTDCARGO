@@ -12,6 +12,7 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   createMailRuleAction,
   deleteMailRuleAction,
@@ -166,34 +167,14 @@ export function RuleEditorDrawer({
         </label>
 
         {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg, #FCEDED)",
-              border: "1px solid var(--danger)",
-              borderRadius: 6,
-              color: "var(--danger)",
-              fontSize: 13,
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </div>
+          </Aviso>
         )}
         {deleteState.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "10px 12px",
-              background: "var(--danger-bg, #FCEDED)",
-              border: "1px solid var(--danger)",
-              borderRadius: 6,
-              color: "var(--danger)",
-              fontSize: 13,
-            }}
-          >
+          <Aviso tono="error" compacto>
             {deleteState.error}
-          </div>
+          </Aviso>
         )}
       </form>
 

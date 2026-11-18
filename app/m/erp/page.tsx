@@ -22,6 +22,7 @@ import {
   listShipments,
 } from "@/lib/studio/shipment-queries";
 import {
+  getLastFxRate,
   listMyExpenses,
   signReceiptUrls,
   sumMyExpensesTodayUsd,
@@ -59,7 +60,7 @@ export default async function MobileErpPage({
       : undefined;
 
   // Fetch profile + tenant + data de las tabs reales en paralelo
-  const [profileRes, linkRes, shipments, clients, expenses, todaySum, bitacoraOpenCount] =
+  const [profileRes, linkRes, shipments, clients, expenses, todaySum, bitacoraOpenCount, fxVes, fxCny] =
     await Promise.all([
       supabase
         .from("user_profiles")
@@ -85,6 +86,9 @@ export default async function MobileErpPage({
       // Badge del tab Bitácora (SDD-0146): count barato head-only; degrada a 0
       // hasta que el founder aplique la migración 0212.
       countMyOpenTasks(supabase, userResp.user.id),
+      // SDD-0569: la última tasa del Studio (fx_rates) para precargar el gasto en VES o CNY.
+      getLastFxRate(supabase, "VES/USD"),
+      getLastFxRate(supabase, "CNY/USD"),
     ]);
   const profile = profileRes.data;
   const link = linkRes.data;
@@ -182,6 +186,7 @@ export default async function MobileErpPage({
       operatingLng={profile?.operating_lng ?? null}
       bitacoraOpenCount={bitacoraOpenCount}
       initialTab={initialTab}
+      fxPrefill={{ ...(fxVes ? { VES: fxVes.rate } : {}), ...(fxCny ? { CNY: fxCny.rate } : {}) }}
     />
   );
 }

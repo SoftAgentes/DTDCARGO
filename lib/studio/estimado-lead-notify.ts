@@ -22,7 +22,7 @@ import {
   resolveAdminEntries,
   escapeHtml,
 } from "@/lib/studio/new-client-notify";
-import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { dispatchAlert } from "@/lib/studio/alerts/dispatch-alert";
 
 export interface EstimadoLeadPayload {
   prospectName: string;
@@ -78,9 +78,18 @@ export async function notifyEstimadoLeadToAdmin(
   }
 
   // Telegram: UNA vez por CHAT, no una por admin (SDD-0271).
-  await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
-    logTag: "estimado-lead-notify",
-  });
+  await dispatchAlert(
+    supabaseAdmin,
+    tenantId,
+    "equipo",
+    {
+      telegramText,
+      // Un estimado web no queda en el ERP: el detalle va en el correo al
+      // equipo. A Discord, sólo que llegó (SDD-0606).
+      discord: { titulo: "Estimado nuevo desde la web · detalle en el correo del equipo" },
+    },
+    { logTag: "estimado-lead-notify" },
+  );
 
   return { ok: emailedOk };
 }

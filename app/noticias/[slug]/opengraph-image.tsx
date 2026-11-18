@@ -20,10 +20,9 @@
  * (sans-serif neutral). Si algún día se versiona un Archivo-*.ttf en el repo,
  * cargarlo aquí con fs.readFile + option `fonts`.
  *
- * Datos: getPostBySlug usa createClient() → cookies() de next/headers. Esta
- * file convention compila a un route handler request-scoped, donde cookies()
- * es válido (igual que en page.tsx, que no pre-genera params). Igual va en
- * try/catch: si la query falla o el post no existe → card genérica de marca.
+ * Datos: getPostBySlug usa el cliente anon de lib/public/supabase-anon.ts, sin
+ * sesión ni cookies(). Va en try/catch: si la query falla o el post no existe
+ * → card genérica de marca.
  */
 
 import { ImageResponse } from "next/og";

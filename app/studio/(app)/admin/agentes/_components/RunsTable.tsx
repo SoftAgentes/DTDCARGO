@@ -19,8 +19,9 @@ import {
   runStatusLabel,
   triggerLabel,
   type AgentRunWithAgent,
-} from "@/lib/studio/agent-types";
+} from "@/lib/studio/agent-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
   const [selected, setSelected] = useState<AgentRunWithAgent | null>(null);
@@ -278,22 +279,18 @@ function RunDetailModal({
         >
           {run.error && (
             <Section title="Error">
-              <pre
-                role="alert"
-                style={{
-                  margin: 0,
-                  padding: "12px 14px",
-                  background: "var(--danger-bg)",
-                  border: "1px solid var(--danger)",
-                  borderRadius: "var(--r-sm)",
-                  color: "var(--danger)",
-                  font: "500 12px/1.4 var(--f-mono)",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {run.error}
-              </pre>
+              <Aviso tono="error" compacto>
+                <pre
+                  style={{
+                    margin: 0,
+                    font: "500 12px/1.4 var(--f-mono)",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {run.error}
+                </pre>
+              </Aviso>
             </Section>
           )}
 

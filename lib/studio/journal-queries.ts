@@ -5,20 +5,169 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchAllPaged } from "@/lib/db/paginate";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   normalSide,
   type Account,
   type AcctType,
 } from "./account-types";
-import type {
-  EntryStatus,
-  JournalEntry,
-  JournalLine,
+import {
+  ENTRY_CODE_RE,
+  type EntryStatus,
+  type JournalEntry,
+  type JournalEntryProtection,
+  type JournalLine,
 } from "./journal-types";
 
 const ENTRY_COLUMNS =
   "id, tenant_id, entry_code, entry_date, memo, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, posted_at, created_at, updated_at, deleted_at";
+
+const PROTECTION_COLUMNS =
+  "id, tenant_id, entry_code, source, status, deleted_at, invoice_id, reverses_entry_id";
+const HEADER_FIELDS = ["id", "tenant_id", "entry_code", "source", "status", "deleted_at", "invoice_id", "reverses_entry_id"] as const;
+const KNOWN_SOURCES = ["manual", "invoice", "invoice_reversal", "receipt", "supplier_bill", "supplier_payment", "expense", "depreciacion"];
+type RawEntry = Record<string, unknown>;
+const isRecord = (value: unknown): value is RawEntry =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const knownId = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0 && value.trim() === value;
+const nullableId = (value: unknown): boolean => value === null || knownId(value);
+const knownSource = (value: unknown): boolean => typeof value === "string" && KNOWN_SOURCES.includes(value);
+const knownStatus = (value: unknown): boolean => value === "borrador" || value === "asentado" || value === "anulado";
+const positiveProtection = (row: RawEntry): boolean =>
+  row.source === "invoice" || row.source === "invoice_reversal" ||
+  (row.reverses_entry_id !== undefined && row.reverses_entry_id !== null);
+const knownBase = (row: RawEntry, tenant: string): boolean =>
+  knownId(row.id) && row.tenant_id === tenant && knownSource(row.source) && knownStatus(row.status) &&
+  (row.deleted_at === null || knownId(row.deleted_at)) && nullableId(row.invoice_id);
+const knownHeader = (row: RawEntry, tenant: string): boolean =>
+  knownBase(row, tenant) && nullableId(row.reverses_entry_id);
+
+async function visibleEntryRows(
+  query: PromiseLike<{ data: unknown; error: unknown }>, message: string,
+): Promise<RawEntry[]> {
+  try {
+    const { data, error } = await query;
+    if (error !== null || !Array.isArray(data) || !data.every(isRecord)) throw new Error(message);
+    return data;
+  } catch { throw new Error(message); }
+}
+
+/** Contexto de la misma sesión, sin importar módulos server/auth/RBAC en este lector client-safe. */
+async function visibleJournalTenant(supabase: SupabaseClient): Promise<string | null> {
+  const session = await supabase.auth.getUser();
+  if (session.error !== null || !knownId(session.data?.user?.id)) return null;
+  const userId = session.data.user.id;
+  const { data, error } = await supabase.from("user_tenants")
+    .select("tenant_id, user_id, disabled_at").eq("user_id", userId).is("disabled_at", null).limit(1).maybeSingle();
+  if (error !== null || !isRecord(data) || data.user_id !== userId || data.disabled_at !== null || !knownId(data.tenant_id)) return null;
+  return data.tenant_id;
+}
+
+/**
+ * Protección de cabeceras raw: lotes/páginas completos en ambos sentidos,
+ * incluidos vínculos anulado/borrado/fuera del listado. El tercer argumento
+ * sólo lo aporta la action desde moduleEditGate; no es un permiso del cliente.
+ * RLS delimita lo visible y REST no aporta snapshot ni bloqueo transaccional.
+ */
+export async function journalEntryProtections(
+  supabase: SupabaseClient,
+  entries: readonly RawEntry[],
+  trustedTenant?: string,
+): Promise<JournalEntryProtection[]> {
+  const observed: RawEntry[] = [...entries];
+  const uncertain = (entry: RawEntry): JournalEntryProtection =>
+    positiveProtection(entry) || observed.some((row) => knownId(entry.id) &&
+      (row.reverses_entry_id === entry.id || (row.id === entry.id && positiveProtection(row))))
+      ? { state: "protegido", reading: "no_comprobada", relation: "no_comprobado" }
+      : { state: "no_comprobado", reading: "no_comprobada", relation: "no_comprobado" };
+  if (entries.length === 0) return [];
+  try {
+    const tenant = trustedTenant === undefined ? await visibleJournalTenant(supabase) : trustedTenant;
+    if (!knownId(tenant)) return entries.map(uncertain);
+    const ids = [...new Set(entries.filter((row) => row.tenant_id === tenant).map((row) => row.id).filter(knownId))];
+    const read = async (column: "id" | "reverses_entry_id", values: string[]): Promise<RawEntry[]> => {
+      const result = await fetchAllByIds<RawEntry>(values, async (batch, from, to) => {
+        const response = await supabase.from("journal_entries").select(PROTECTION_COLUMNS)
+          .eq("tenant_id", tenant).in(column, batch).order("id", { ascending: true }).range(from, to);
+        // Validar ANTES de PageResult: el paginador compartido no valida shape.
+        if (response.error !== null || !Array.isArray(response.data)) throw new Error("Lectura de protección no comprobable.");
+        for (const row of response.data) {
+          if (!isRecord(row)) throw new Error("Cabecera ilegible.");
+          observed.push(row); // Evidencia positiva no se pierde si otra fila falla.
+          if (!knownId(row.id) || row.tenant_id !== tenant || !batch.includes(row[column] as string)) throw new Error("Contexto de cabecera no comprobable.");
+        }
+        return { data: response.data, error: null };
+      });
+      if (!result.complete) throw new Error("Lectura de protección incompleta.");
+      return result.rows;
+    };
+    const own = await read("id", ids);
+    const parents = [...new Set([...entries, ...own].map((row) => row.reverses_entry_id).filter(knownId))];
+    await read("id", parents.filter((id) => !ids.includes(id)));
+    const roots = [...new Set([...ids, ...parents])];
+    const incoming = await read("reverses_entry_id", roots);
+    // También observar referencias hacia el reverso candidato, sin N+1.
+    const extra = [...new Set(incoming.map((row) => row.id).filter(knownId))].filter((id) => !roots.includes(id));
+    await read("reverses_entry_id", extra);
+    const header = (id: string): { row?: RawEntry; incomplete: boolean; contradictory: boolean } => {
+      const rows = observed.filter((row) => row.id === id);
+      // La fila base no proyecta aún reverses_entry_id; las lecturas auxiliares sí.
+      const full = rows.filter((row) => Object.prototype.hasOwnProperty.call(row, "reverses_entry_id"));
+      const row = full[0];
+      const incomplete = !row || rows.some((r) => !knownBase(r, tenant)) || full.some((r) => !knownHeader(r, tenant));
+      const contradictory = rows.some((r) => knownId(r.tenant_id) && r.tenant_id !== tenant) ||
+        (row !== undefined && rows.some((r) => HEADER_FIELDS.some((key) =>
+          r[key] !== undefined && row[key] !== undefined && r[key] !== row[key])));
+      return { row, incomplete, contradictory };
+    };
+    const inverse = (id: string): string[] => [...new Set(observed
+      .filter((row) => row.reverses_entry_id === id).map((row) => row.id).filter(knownId))];
+    const incoherent = (): JournalEntryProtection => ({ state: "protegido", reading: "completa", relation: "inconsistente" });
+    return entries.map((entry) => {
+      if (!knownId(entry.id) || entry.tenant_id !== tenant) return uncertain(entry);
+      if (!own.some((row) => row.id === entry.id)) return uncertain(entry);
+      const current = header(entry.id);
+      const related = inverse(entry.id);
+      const positive = positiveProtection(entry) || observed.some((row) => row.id === entry.id && positiveProtection(row)) || related.length > 0;
+      if (current.contradictory) return positive ? incoherent() : uncertain(entry);
+      if (!knownBase(entry, tenant) || current.incomplete || !current.row) return uncertain(entry);
+      const row = current.row;
+      if (!positive) {
+        return row.reverses_entry_id === null && knownSource(row.source)
+          ? { state: "sin_vinculo_visible", reading: "completa", relation: "ninguno_visible" }
+          : uncertain(entry);
+      }
+      if (row.source === "invoice" && row.reverses_entry_id === null && related.length === 0) {
+        return { state: "protegido", reading: "completa", relation: "ninguno_visible" };
+      }
+      const originalId = row.source === "invoice" ? entry.id : row.reverses_entry_id;
+      if (!knownId(originalId)) return incoherent();
+      const original = header(originalId);
+      const reversals = inverse(originalId);
+      if (original.contradictory || reversals.length !== 1) return incoherent();
+      if (!original.row || original.incomplete) return { state: "protegido", reading: "no_comprobada", relation: "no_comprobado" };
+      const reversal = header(reversals[0]);
+      if (reversal.contradictory) return incoherent();
+      if (!reversal.row || reversal.incomplete) return { state: "protegido", reading: "no_comprobada", relation: "no_comprobado" };
+      const o = original.row;
+      const r = reversal.row;
+      if (o.id === r.id || o.source !== "invoice" || r.source !== "invoice_reversal" ||
+          r.reverses_entry_id !== o.id || o.reverses_entry_id !== null || !knownId(o.invoice_id) || r.invoice_id !== o.invoice_id ||
+          o.status !== "asentado" || r.status !== "asentado" || o.deleted_at !== null || r.deleted_at !== null ||
+          inverse(r.id as string).length > 0 || (row.source !== "invoice" && row.id !== r.id)) return incoherent();
+      const counterpart = row.id === o.id ? r : o;
+      return {
+        state: "protegido", reading: "completa", relation: row.id === o.id ? "original" : "reverso",
+        ...(typeof counterpart.entry_code === "string" && ENTRY_CODE_RE.test(counterpart.entry_code)
+          ? { counterpartCode: counterpart.entry_code } : {}),
+      };
+    });
+  } catch {
+    // Incluye columna0497 ausente, shape, permiso, timeout y corte: nada habilita.
+    return entries.map(uncertain);
+  }
+}
 
 /**
  * Tope DECLARADO de la pantalla del libro diario (SDD-0557). Pintar miles de
@@ -113,12 +262,13 @@ export async function listEntries(
     );
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-
-  return ((data as Record<string, unknown>[] | null) ?? []).map((row) => {
+  const data = await visibleEntryRows(query, "No se pudo cargar el libro diario. Recarga la página.");
+  const protections = await journalEntryProtections(supabase, data);
+  return data.map((row, index) => {
     const entry = coerceEntry(row);
+    entry.protection = protections[index];
     const rawLines = (row.journal_lines as Record<string, unknown>[] | null) ?? [];
+    if (!Array.isArray(rawLines) || !rawLines.every(isRecord)) throw new Error("No se pudo cargar el libro diario. Recarga la página.");
     entry.lines = rawLines.map(coerceLine);
     return entry;
   });
@@ -152,23 +302,24 @@ export async function getEntryByCode(
   supabase: SupabaseClient,
   code: string,
 ): Promise<JournalEntry | null> {
-  const { data, error } = await supabase
-    .from("journal_entries")
-    .select(
-      `${ENTRY_COLUMNS}, journal_lines ( id, entry_id, account_id, debit, credit, line_memo, accounts ( code, name ) )`,
-    )
-    .eq("entry_code", code)
-    .is("deleted_at", null)
-    .maybeSingle();
+  // Un cap HTTP1 puede ocultar la segunda fila de un código ambiguo: completar
+  // hasta página vacía, en vez de confundir limit/maybeSingle con unicidad.
+  const detail = await fetchAllPaged<RawEntry>(async (from, to) => ({
+    data: await visibleEntryRows(supabase.from("journal_entries")
+      .select(`${ENTRY_COLUMNS}, journal_lines ( id, entry_id, account_id, debit, credit, line_memo, accounts ( code, name ) )`)
+      .eq("entry_code", code).is("deleted_at", null).order("id", { ascending: true }).range(from, to),
+    "No se pudo comprobar el asiento. Recarga la página."),
+    error: null,
+  }));
+  const data = detail.rows;
 
-  if (error) {
-    if (error.code === "PGRST116") return null;
-    throw error;
-  }
-  if (!data) return null;
-  const row = data as Record<string, unknown>;
+  if (!detail.complete || data.length > 1) throw new Error("No se pudo comprobar el asiento. Recarga la página.");
+  if (data.length === 0) return null;
+  const row = data[0];
   const entry = coerceEntry(row);
+  [entry.protection] = await journalEntryProtections(supabase, [row]);
   const rawLines = (row.journal_lines as Record<string, unknown>[] | null) ?? [];
+  if (!Array.isArray(rawLines) || !rawLines.every(isRecord)) throw new Error("No se pudo comprobar el asiento. Recarga la página.");
   entry.lines = rawLines.map(coerceLine);
   return entry;
 }

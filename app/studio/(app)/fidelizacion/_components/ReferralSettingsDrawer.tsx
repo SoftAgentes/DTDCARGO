@@ -22,6 +22,7 @@ import {
   type ReferralSettingsActionState,
   type ReferralSettingsInput,
 } from "@/lib/studio/fidelizacion/referral-settings-types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { saveReferralSettingsAction } from "../actions";
 
 const INITIAL: ReferralSettingsActionState = {};
@@ -106,19 +107,10 @@ export function ReferralSettingsDrawer({
         ))}
 
         {/* Aviso: solo afecta a futuros; los ya acreditados quedan congelados. */}
-        <div
-          style={{
-            padding: "12px 14px",
-            background: "var(--info-bg)",
-            borderLeft: "3px solid var(--info)",
-            borderRadius: "var(--r-md)",
-            font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
+        <Aviso tono="info" compacto>
           Cambiar estos montos afecta solo a los referidos <strong>nuevos</strong>.
           Los que ya se acreditaron conservan el monto con el que se registraron.
-        </div>
+        </Aviso>
       </form>
 
       <DrawerFooter
@@ -178,19 +170,8 @@ function Field({
 
 function FormError({ message }: { message: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto>
       {message}
-    </p>
+    </Aviso>
   );
 }

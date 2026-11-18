@@ -9,16 +9,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getQuoteByCode } from "@/lib/studio/quote-queries";
-import { findKommoContactsByPhone } from "@/lib/studio/kommo-convert";
 import {
   isExpired,
-  isUnlinkedWebEstimate,
   packagingLabel,
   statusBadgeTone,
   statusLabel,
 } from "@/lib/studio/quote-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { QuoteDetailClient } from "../_components/QuoteDetailClient";
 
 export const metadata = { title: "Detalle estimado" };
@@ -44,15 +43,10 @@ export default async function QuoteDetailPage({
 
   const expired = isExpired(quote);
   const displayStatus = expired ? "expired" : quote.status;
-  const unlinkedWeb = isUnlinkedWebEstimate(quote);
 
-  // SDD-0061 Slice 4 — para un estimado web sin vincular, cruzar el teléfono del
-  // prospecto con el espejo de Kommo (advisory; evita abrir bandeja duplicada).
-  const kommoMatches = unlinkedWeb
-    ? await findKommoContactsByPhone(supabase, quote.prospect_whatsapp).catch(
-        () => [],
-      )
-    : [];
+  // SDD-0614 S0 (D-6.6-1, H13): el detalle ya no cruza el teléfono del prospecto
+  // con los contactos del espejo de Kommo (era SDD-0061 Slice 4). En S2, R3 pone
+  // aquí la línea de la tarjeta del CRM propio.
 
   // Teléfono para el botón de WhatsApp: el del prospecto (estimado web) o el del
   // cliente vinculado (por Shipping Mark). RLS filtra por tenant.
@@ -87,7 +81,7 @@ export default async function QuoteDetailPage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <QuoteDetailClient quote={quote} kommoMatches={kommoMatches} contactPhone={contactPhone} />
+      <QuoteDetailClient quote={quote} contactPhone={contactPhone} />
 
       {/* Header */}
       <div
@@ -125,33 +119,26 @@ export default async function QuoteDetailPage({
 
       {/* Link al shipment si se convirtió */}
       {quote.converted_to_shipment_id && (
-        <div
-          style={{
-            marginBottom: 20,
-            padding: "var(--s-3) var(--s-4)",
-            background: "var(--success-bg)",
-            border: "1px solid var(--success)",
-            borderRadius: "var(--r-sm)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 14,
-          }}
-        >
-          <span
-            style={{
-              font: "500 13px/1.4 var(--f-sans)",
-              color: "var(--ink)",
-            }}
-          >
-            ✓ Este estimado ya fue convertido a un embarque.
-          </span>
-          <Link
-            href={`/studio/tracking/${quote.converted_to_shipment_id}`}
-            className="studio-btn studio-btn-dark studio-btn-sm"
-          >
-            Ver embarque →
-          </Link>
+        <div style={{ marginBottom: 20 }}>
+          <Aviso tono="exito">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <span>Este estimado ya fue convertido a un embarque.</span>
+              <Link
+                href={`/studio/tracking/${quote.converted_to_shipment_id}`}
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+              >
+                Ver embarque →
+              </Link>
+            </div>
+          </Aviso>
         </div>
       )}
 

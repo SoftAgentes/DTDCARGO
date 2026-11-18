@@ -1,0 +1,9 @@
+# Overlay de la PRUEBA de /register (SDD-0584). Nunca en el VPS.
+#
+# prueba-register.sh corre la sonda con `rails runner` en el servicio `prepare`, que
+# solo está en la red `interna` (internal: true): sin salida a internet ni a Meta.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas/sonda-register.rb:/tmp/sonda-register.rb:ro

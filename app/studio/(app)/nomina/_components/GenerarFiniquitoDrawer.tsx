@@ -14,7 +14,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { PayrollRules } from "@/lib/studio/nomina/payroll-rules-types";
 import {
   TERMINATION_CAUSES,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/studio/nomina/settlement-types";
 import { generarFiniquitoAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "generar-finiquito-form";
 const initial: NominaActionState = {};
@@ -36,7 +38,7 @@ export function GenerarFiniquitoDrawer({
   rules,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   rules: PayrollRules | null;
   onClose: () => void;
 }) {
@@ -59,7 +61,7 @@ export function GenerarFiniquitoDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",
@@ -123,13 +125,7 @@ export function GenerarFiniquitoDrawer({
         </Field>
 
         <Field label="Fecha de egreso" error={state.fieldErrors?.termination_date} required>
-          <input
-            name="termination_date"
-            type="date"
-            className="studio-input"
-            defaultValue={todayIso()}
-            required
-          />
+          <DateField name="termination_date" defaultValue={todayIso()} required />
         </Field>
 
         <div

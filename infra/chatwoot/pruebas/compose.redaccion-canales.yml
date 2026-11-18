@@ -1,0 +1,10 @@
+# Overlay de la PRUEBA de redacción de los canales (SDD-0583). Nunca en el VPS.
+#
+# prueba-redaccion-canales.sh corre la sonda con `rails runner` y los mutantes con
+# `bundle exec ruby` en el servicio `prepare`, que solo está en la red `interna`
+# (internal: true): sin salida a internet ni a Meta.
+
+services:
+  prepare:
+    volumes:
+      - ./pruebas:/tmp/pruebas:ro

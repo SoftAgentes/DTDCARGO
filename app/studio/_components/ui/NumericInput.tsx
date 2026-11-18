@@ -93,6 +93,8 @@ interface NumericInputProps {
   max?: number;
   "aria-invalid"?: boolean;
   "aria-label"?: string;
+  /** Una ayuda propia del campo; se suma a la vista previa (SDD-0569). */
+  "aria-describedby"?: string;
 }
 
 const SYMBOL_BY_CURRENCY: Record<Currency, string> = {
@@ -134,6 +136,7 @@ export function NumericInput({
   max,
   "aria-invalid": ariaInvalid,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: NumericInputProps) {
   const isControlled = value !== undefined;
   const autoId = useId();
@@ -342,7 +345,7 @@ export function NumericInput({
           disabled={disabled}
           required={required}
           aria-invalid={ariaInvalid || showLocalError}
-          aria-describedby={previewId}
+          aria-describedby={ariaDescribedBy ? `${ariaDescribedBy} ${previewId}` : previewId}
           aria-label={ariaLabel}
           data-numeric-status={parsed.status}
         />

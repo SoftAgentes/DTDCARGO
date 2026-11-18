@@ -127,6 +127,14 @@ Viven en `app/studio/_components/ui/`:
 - `KpiCard` · número grande + label + sub
 - `drawer/DrawerShell` · shell + footer compartidos
 - `ActionButton` · anti-double-submit + feedback visual (ver sección debajo)
+- `Aviso` · franja plana con icono para todo aviso (SDD-0628, BD-037): tonos
+  `info` / `atencion` / `exito` / `error`, `titulo` y `accion` opcionales
+  (la acción es el botón secundario existente), `urgente`, `compacto`. Error o
+  urgente es `role="alert"`; el resto, `role="status"`. Color en `studio.css`
+  (`.studio-aviso*`), nunca en línea. `ErrorAlert` ya lo usa. **Para un aviso
+  nuevo usa `<Aviso>`**; no lo uses para pastillas de estado (`Badge`), toasts
+  ni mensajes de campo. Lo vigila `avisos-contract.test.ts`. Acepta `tabIndex`
+  y `ref`, para llevarle el foco por programa (SDD-0603, menores del Studio).
 
 Icons en `app/studio/_components/icons.tsx` (objeto `Icon` con métodos por nombre).
 
@@ -231,6 +239,7 @@ inline via `.studio-spin` (keyframe `studio-spin` definido en `studio.css`).
 - `.studio-label` · label estándar de form
 - `.studio-display` · Archivo Black para títulos
 - `.studio-eyebrow` · uppercase tracking-wide
+- `.studio-aviso` + `data-tono` · la franja de `<Aviso>`; no se pone a mano
 - `.studio-row-flash` · highlight transitorio de row tras mutación (ver
   sección "Trazabilidad visual" debajo)
 
@@ -366,18 +375,23 @@ cumplirlas todas.
 |---|---|---|
 | `primary` (wine) | Acción principal de la pantalla. **Una sola** por contexto. | "Enviar cotización", "Crear cliente", "Convertir a embarque" |
 | `dark` (navy) | Acción secundaria importante pero no destructive. | "Marcar despachado", "Asignar ruta" |
-| `ghost` (outline) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
+| `ghost` (contorno de tinta) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
 | `danger` (red) | Acciones destructivas o de rechazo. | "Eliminar", "Rechazar", "Cancelar embarque" |
 | `warning` (gold) | Requiere atención · no destructiva pero significativa. | "Marcar excepción", "On hold" |
 | `success` (green) | **NUNCA como idle** · solo flash transitorio post-éxito. | (estado interno de ActionButton) |
 
+**Elevación (SDD-0603, enmienda del 2026-11-12).** La sombra de `.studio-btn` sale de dos piezas: `--btn-lift` (el nivel) y `--btn-edge` (el borde propio en oscuro). Una variante cambia esas piezas, nunca `box-shadow` entero. Niveles: `primary` `--shadow-md` (hover `--shadow-lg`); `dark`, `warning` y `danger` `--shadow-sm`; `ghost` `--shadow-xs` con contorno de 1,5 px en `--ctl-border`. Los rellenos llevan `--btn-edge: var(--ctl-edge-hi)`. Deshabilitado y `success` van planos. Verbos en peso 700 o más. Lo vigila `claridad-controles-contract.test.ts`.
+
 ### Regla 2 · Tamaños y proporciones
 
-- `default` · botones primarios del header de página.
-- `sm` · botones en drawers, modals, tablas, listados.
-- `xs` · chips, badges interactivas, micro-acciones en cells.
+- `default` (40 px, 36 en compacto) · botones primarios del header de página.
+- `sm` (36 px, 32 en compacto) · botones en drawers, modals, tablas, listados.
+- `xs` (32 px) · chips, badges interactivas, micro-acciones en cells.
 - `min-width: max-content` para evitar reflow entre estados.
-- `gap: 6px` entre icono y label.
+- `gap: var(--s-2)` entre icono y label.
+- Densidad: el Studio abre compacto y oscuro por defecto; el botón «Compacto» de la
+  barra superior (`DensityToggle`) y el del tema cambian la preferencia del usuario.
+  Nada que se oprima baja de 32 px (SDD-0603).
 
 ### Regla 3 · Estados (anti-doble-submit + feedback)
 
@@ -584,11 +598,41 @@ donde el user podrá elegir formato VE (`12.323,50`) vs US
 
 ### Cuándo NO usar `<NumericInput>`
 
-- Inputs de date/time (usar `<input type="date">` nativo).
+- Inputs de fecha o mes (usar `<DateField>`, sección siguiente).
 - Inputs de tracking codes / MARKBOX / RIF (alfanuméricos · no son
   numéricos puros).
 - Counters de UI internos (paginación, etc.) · ahí está bien
   `<input type="number">` simple.
+
+## Fechas · usa `<DateField>` (SDD-0660)
+
+Todo campo de fecha o de mes del Studio usa
+`app/studio/_components/ui/DateField.tsx`, nunca `<input type="date">`,
+`type="month"` ni `type="datetime-local"` (cada navegador los pinta distinto).
+Lo vigila `fechas-contract.test.ts`, con la lista de pendientes congelada: al
+migrar un archivo, bórralo de la lista.
+
+- Se ve `dd/mm/aaaa` (meses `mm/aaaa`) en gris y se escribe con los números
+  seguidos; T (o H) = hoy en Caracas; + y − = un día (o un mes); Alt+↓ o el
+  icono abren el calendario. El doble clic selecciona el texto, no abre nada.
+- Al formulario viaja ISO (`AAAA-MM-DD` / `AAAA-MM`) en un oculto con el `name`:
+  validadores y server actions no cambian. `onChange` entrega ISO, o `""` al
+  vaciar o con una fecha imposible; a medio escribir no avisa. `form.reset()`
+  lo devuelve a `defaultValue`.
+- Fecha imposible (31/02) no se corrige sola: se explica y bloquea el envío.
+- Fuera de un `<form>` nada bloquea una fecha a medio escribir y el padre se
+  queda con la última válida: la acción que usa el valor espera a
+  `onValidityChange` (ver Activos fijos, Fiscal y Gastos).
+- La etiqueta va con `htmlFor` + `id`, no envolviendo el campo: dentro de un
+  `<label>` la ayuda del formato se sumaría al nombre del campo.
+
+```tsx
+<label className="studio-label" htmlFor="pay-date">Fecha de pago</label>
+<DateField id="pay-date" name="paid_at" defaultValue={hoy} required />
+<DateField mode="month" value={period} onChange={setPeriod} aria-label="Período" />
+```
+
+Fecha y hora todavía no tiene componente (tanda 3 de la SDD-0660).
 
 ## Convenciones operativas
 

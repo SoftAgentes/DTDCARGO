@@ -19,8 +19,34 @@ const DESC =
 // el registro pasó a pedir ciudad y estado de entrega (migr 0348) y el texto
 // todavía decía que la dirección se agregaba después, en el Portal. El
 // 2026-09-19 (SDD-0487) el Portal empezó a recoger la empresa para facturar y
-// la foto de perfil pasó a guardarse sin metadatos.
-const UPDATED = "13 de octubre de 2026";
+// la foto de perfil pasó a guardarse sin metadatos. El 2026-10-30 (SDD-0585,
+// paso 2.6) se sumaron los mensajes por WhatsApp y chat: el seguimiento del
+// lead (SDD-0587), el BSUID y la respuesta automática (SDD-0586) con sus plazos.
+// SDD-0587, paso 6.4, suma a «Registro de cliente» la campaña por la que llegó.
+// OJO: este texto describe tablas y crons que entran con las PR de E2, E6 y E10.
+// Sam aprobó este texto exacto el 2026-11-03: si cambia una palabra, se le vuelve
+// a preguntar. Sale solo con la tanda A y esas piezas en producción: lo publicado
+// obliga por haberse publicado.
+// El 2026-11-05 Sam aprobó, por el Director General, nombrar Instagram y lo que el
+// canal entrega del perfil, en los mensajes y en la fila de Meta: entraban clientes
+// por ahí desde el 2026-10-31. Sale con la tanda C. Vale lo mismo: si cambia una palabra, se le vuelve a preguntar.
+// El 2026-11-05 Sam aprobó, por el Director General, el punto del proveedor de
+// gestión de clientes y la frase de §5, sin nombrarlo: Instagram y parte de WhatsApp
+// siguen atendiéndose por ahí y Studio le escribe de verdad (lectura L3, SDD-0587).
+// Sale con la tanda D. Esta fecha lleva el día de publicar: si no sale el 5, se mueve.
+// Si `KOMMO_PUSH_DRY_RUN` pasa a "false", el proveedor recibe además cédula o RIF y
+// este texto ya no alcanza: eso vuelve a Sam antes de cambiar ese valor.
+// El 2026-11-06 Sam aprobó, por el Director General, el párrafo «Mensajería interna
+// del equipo» de §4 y la frase final del primer párrafo de §5 (SDD-0606 avisos a
+// Discord y SDD-0608 `/cliente`). Los avisos y `/cliente` no se encienden hasta que
+// esto esté publicado. Esta fecha lleva el día de publicar: si no sale el 6, se mueve.
+// El 2026-11-07 (04:48Z) Sam aprobó, por el Director General, los textos T1 a T4 de la
+// 10.5 (SDD-0586 §10.5.12), palabra por palabra: «Apruebo los cuatro». T2 cierra la fila
+// «Portal del Cliente» y T3 amplía la finalidad «Gestionar tu cuenta», porque el chat de
+// Soporte del portal pasa a leerse y responderse en nuestro propio sistema de atención.
+// Ese chat no se conecta hasta que esto esté publicado (E10-D42). Si cambia una palabra,
+// se le vuelve a preguntar. Esta fecha lleva el día de publicar: si no sale el 8, se mueve.
+const UPDATED = "8 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -44,20 +70,24 @@ const CAPTURA: [string, string][] = [
     "Nombre, correo, teléfono/WhatsApp y el mensaje que escribes.",
   ],
   [
+    "Mensajes por WhatsApp y chat",
+    "Si nos escribes por WhatsApp, Instagram u otro canal de chat: tu nombre y tu usuario o teléfono tal como aparecen en ese canal, los datos de tu perfil que ese canal nos entrega (en Instagram, por ejemplo: un código de tu cuenta, tu foto, tu número de seguidores y si sigues nuestra cuenta) y el contenido de la conversación. Si no muestras tu teléfono, WhatsApp nos da en su lugar un código anónimo de tu cuenta (BSUID). Si todavía no eres cliente, guardamos tu nombre visible y, si lo tenemos, los últimos 10 dígitos de tu teléfono para dar seguimiento a tu consulta.",
+  ],
+  [
     "Estimado / Calculadora",
     "Datos del envío (tipo de carga, volumen/peso, origen-destino) y el contacto que dejas para enviarte el estimado (EST-XXXX).",
   ],
   [
     "Registro de cliente",
-    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
+    "Nombre, documento de identidad (cédula o RIF), correo, teléfono y la ciudad y el estado a donde entregamos tu mercancía. También guardamos la campaña por la que llegaste, si el enlace la trae. Al registrarte se genera tu número de cliente (Shipping Mark). La dirección detallada (calle, edificio, punto de referencia) la agregas después, en tu perfil del Portal.",
   ],
   [
     "Portal del Cliente",
-    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo.",
+    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo. Todos los mensajes del chat de Soporte, con tu nombre, quedan también en nuestro propio sistema de atención, alojado en nuestro servidor, donde nuestro equipo los lee y te responde.",
   ],
   [
     "Seguimiento de envío",
-    "El código de rastreo que introduces para consultar el estado de tu carga.",
+    "El Shipping Mark o el número de envío que nos indicas al consultar con nuestro equipo el estado de tu carga.",
   ],
   [
     "Navegación",
@@ -172,13 +202,23 @@ export default function PrivacidadPage() {
                   comprobantes o facturas.
                 </li>
                 <li>
+                  <strong>Atender tus mensajes por WhatsApp y chat:</strong>{" "}
+                  saber si ya eres cliente para que te atienda el equipo que
+                  corresponde, darle seguimiento a tu consulta y, al primer
+                  mensaje, enviarte una respuesta automática. Guardamos un registro
+                  de esas respuestas automáticas para no repetirlas.
+                </li>
+                <li>
                   <strong>Facturarte a tu nombre o al de tu empresa:</strong> si
                   agregas una empresa en tu perfil, usamos su razón social, su RIF
                   y, si lo cargas, su domicilio fiscal para emitir las facturas que
                   elijas a su nombre. Esos datos quedan en cada factura emitida.
                 </li>
                 <li>
-                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente.
+                  <strong>Gestionar tu cuenta</strong> en el Portal del Cliente y
+                  atender lo que nos escribes por su chat de Soporte: saber si ya
+                  eres cliente para que te atienda el equipo que corresponde y
+                  darle seguimiento a tu consulta.
                 </li>
                 <li>
                   <strong>Cumplir obligaciones</strong> administrativas, contables
@@ -233,6 +273,20 @@ export default function PrivacidadPage() {
                   transaccionales (bienvenida, estimados, facturas).
                 </li>
                 <li>
+                  <strong>Meta (WhatsApp e Instagram)</strong>, que transporta los
+                  mensajes que nos envías y te enviamos por esos canales.
+                </li>
+                <li>
+                  <strong>Proveedor de gestión de clientes</strong>, que todavía
+                  usamos para llevar el seguimiento de clientes y atender parte
+                  de las conversaciones por WhatsApp e Instagram. Recibe tu
+                  nombre, tu correo, tu teléfono o usuario y esos mensajes. Si te
+                  atendemos como cliente o te preparamos un estimado, también
+                  puede recibir tu Shipping Mark, el valor del estimado y las
+                  notas de seguimiento. Estamos pasando esa atención a nuestro
+                  propio sistema, alojado en nuestro servidor.
+                </li>
+                <li>
                   <strong>Herramientas de analítica y publicidad</strong>{" "}
                   (Google), <strong>solo si aceptas</strong> las cookies
                   opcionales y de forma anonimizada.
@@ -251,6 +305,26 @@ export default function PrivacidadPage() {
                   <strong>Autoridades</strong>, únicamente cuando la ley lo exija.
                 </li>
               </ul>
+              {/* SDD-0606 y SDD-0608 · texto exacto aprobado por Sam el 2026-11-06.
+                  Ese mismo día, al sumar la búsqueda por código a /cliente, Sam
+                  aprobó cambiar «por su nombre» por «por su nombre o por su
+                  Shipping Mark» («Sí, cámbialo»).
+                  Va fuera de la lista: la lista promete «obligación de
+                  confidencialidad» y con esta herramienta no hay contrato que la
+                  respalde. Si cambia una palabra, se le vuelve a preguntar. */}
+              <p className={P}>
+                <strong>Mensajería interna del equipo.</strong> Nuestro equipo
+                usa una herramienta de mensajería con servidores en Estados
+                Unidos. Ahí recibe avisos internos con tu Shipping Mark y un
+                enlace a nuestro sistema, sin tu nombre ni tus datos de contacto.
+                Cuando alguien del equipo con permiso para ver clientes busca un
+                cliente por su nombre o por su Shipping Mark, la herramienta le
+                muestra solo a esa persona el nombre y el Shipping Mark de los
+                clientes que
+                coinciden. Tus datos de contacto, tus envíos y tus pagos se
+                consultan solo en nuestro sistema. Esa herramienta se rige por
+                sus propios términos de servicio.
+              </p>
               <p className={P}>
                 No compartimos la información de tu Portal con plataformas de
                 publicidad. La analítica del sitio y tus datos de cliente están{" "}
@@ -268,7 +342,12 @@ export default function PrivacidadPage() {
                 operados por un proveedor de infraestructura. Las copias de
                 respaldo se guardan <strong>cifradas</strong> en otro proveedor,
                 también en Estados Unidos: solo nosotros tenemos la clave para
-                abrirlas.
+                abrirlas. Mientras terminamos ese cambio, lo que pasa por ese
+                proveedor también se guarda en sus servidores y en los de quienes
+                le prestan servicio, que pueden estar en Estados Unidos o en otros
+                países. El nombre y el Shipping Mark que ve nuestro equipo en su
+                herramienta de mensajería interna también pasan por servidores en
+                Estados Unidos.
               </p>
               <p className={P}>
                 Nuestro equipo en China trabaja con tu{" "}
@@ -296,6 +375,18 @@ export default function PrivacidadPage() {
                   Los datos de <strong>contacto/consultas</strong> que no derivan
                   en servicio se conservan solo lo necesario para atenderte y luego
                   se eliminan o anonimizan.
+                </li>
+                <li>
+                  Si nos escribiste por <strong>WhatsApp o chat</strong> y no
+                  llegaste a ser cliente, cuando tu consulta queda cerrada sin
+                  servicio <strong>anonimizamos</strong> sus datos de seguimiento
+                  (nombre, teléfono, identificadores del chat y notas) a los{" "}
+                  <strong>12 meses sin actividad</strong>.
+                </li>
+                <li>
+                  El <strong>código anónimo de WhatsApp (BSUID)</strong> se borra
+                  al <strong>año sin actividad</strong>, y el registro de las
+                  respuestas automáticas, a los <strong>30 días</strong>.
                 </li>
                 <li>
                   Las <strong>copias de respaldo</strong> se conservan{" "}

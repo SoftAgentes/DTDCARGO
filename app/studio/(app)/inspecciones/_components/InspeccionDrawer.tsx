@@ -30,6 +30,8 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "inspection-drawer-form";
 const initialState: InspectionActionState = {};
@@ -204,13 +206,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
             <label className="studio-label" htmlFor="ins-date">
               Fecha de inspección
             </label>
-            <input
-              id="ins-date"
-              name="inspection_date"
-              type="date"
-              className="studio-input"
-              defaultValue={report?.inspection_date ?? ""}
-            />
+            <DateField id="ins-date" name="inspection_date" defaultValue={report?.inspection_date ?? ""} />
             {state.fieldErrors?.inspection_date && (
               <FieldError msg={state.fieldErrors.inspection_date} />
             )}
@@ -336,20 +332,9 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         </p>
 
         {state.error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {state.error}
-          </p>
+          </Aviso>
         )}
       </form>
 

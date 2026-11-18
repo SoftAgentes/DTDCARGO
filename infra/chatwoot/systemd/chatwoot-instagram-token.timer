@@ -1,0 +1,13 @@
+# 07:15 UTC con la zona explícita: el reloj del VPS está en Europe/Berlin. Después del respaldo
+# de DTD (06:00 UTC) y del de Chatwoot (06:30 UTC), para que `rails runner` no compita con ellos.
+# Persistent: si el VPS estuvo apagado a esa hora, corre al arrancar. vigilar.sh avisa si pasan
+# más de 26 h (UMBRAL_INSTAGRAM_HORAS) sin una corrida.
+[Unit]
+Description=Renovación diaria del token de Instagram de Chatwoot
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

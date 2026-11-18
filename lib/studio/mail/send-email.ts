@@ -18,6 +18,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { esDominioInterno } from "@/lib/portal/correo-comprobacion";
 import { renderTemplate } from "./render-template";
 import { resendSend, type ResendSendInput } from "./resend-api";
 
@@ -62,6 +63,12 @@ export async function sendEmail(
     return { ok: false, error: "destinatario vacío" };
   }
   const toEmail = input.to.trim().toLowerCase();
+
+  // SDD-0646 D-1: la dirección interna de una cuenta sin comprobar no es un
+  // buzón. Ningún envío la toma como destinatario, venga de donde venga.
+  if (esDominioInterno(toEmail)) {
+    return { ok: false, error: "destinatario sin correo comprobado" };
+  }
 
   // 1. Read tenant mail_config
   const { data: config } = await supabaseAdmin

@@ -27,6 +27,7 @@ import {
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import { CommentsThread } from "@/app/studio/(app)/_components/comments/CommentsThread";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
@@ -373,16 +374,11 @@ export function TaskCollabSection({
         )}
 
         {uploadError && (
-          <p
-            role="alert"
-            style={{
-              color: "var(--danger)",
-              font: "500 11.5px/1.4 var(--f-sans)",
-              margin: "8px 0 0",
-            }}
-          >
-            {uploadError}
-          </p>
+          <div style={{ marginTop: 8 }}>
+            <Aviso tono="error" compacto>
+              {uploadError}
+            </Aviso>
+          </div>
         )}
       </section>
 

@@ -36,7 +36,10 @@
  *
  * SDD-0139 dejó cláusula de reapertura para la matriz en DB ("revisar recién
  * con el 'empleado 4-5' o el primer pedido real del founder, como spec propia");
- * los overrides por usuario exigen una spec que supersede a 0139.
+ * los overrides por usuario exigían una spec que supersede a 0139. Esa spec es
+ * la SDD-0622 (2026-11-11): reemplaza SOLO el punto D. Ahora hay accesos
+ * adicionales por PERSONA (migr 0538, `UserModuleGrants` más abajo) que solo
+ * suman al rol, con motivo, vencimiento opcional y auditoría.
  *
  * El test anti-drift (`rbac.test.ts`) garantiza que la matriz y el registro de
  * módulos (`modules.ts`) nunca se desincronicen.
@@ -89,6 +92,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   quotes: ["commercial", "operations", "accounting", "support"],
   clients: ["commercial", "operations", "accounting", "support"],
   conversaciones: ["commercial", "operations", "support"],
+  // Bandeja de Chatwoot (SDD-0585, E2-D8): quien atiende. Verla no edita nada en
+  // Studio; lo que cada persona puede hacer adentro lo decide su rol de Chatwoot.
+  bandeja: ["commercial", "support"],
   // CRM (id interno "kommo", rótulo visible "CRM"). El placeholder vacío
   // "CRM · Leads" se eliminó en el rebrand del 2026-08-11; `support` no hereda
   // su acceso — ampliarle el alcance es una decisión de permisos aparte, no un
@@ -203,6 +209,62 @@ export const SUPERADMIN_ONLY_MODULES: ReadonlySet<string> = new Set([
   "renditions",
 ]);
 
+/**
+ * Doble aviso de SDD-0622 §5.1 regla 2: lo que una persona PODRÁ HACER si se le
+ * concede un módulo sensible. La pantalla lo muestra antes de confirmar y la RPC
+ * registra en auditoría la versión que se mostró (`SENSITIVE_MODULE_EFFECTS_VERSION`).
+ * Cambiar un texto = subir la versión. Ningún efecto incluye capabilities: anular,
+ * borrar o aprobar siguen atadas al rol.
+ */
+export const SENSITIVE_MODULE_EFFECTS_VERSION = "2026-11-11.1";
+
+export const SENSITIVE_MODULE_EFFECTS: Readonly<Record<string, readonly string[]>> = {
+  invoices: [
+    "Verá todas las facturas emitidas y sus montos.",
+    "Podrá crear y editar facturas (con edición).",
+    "No podrá anular facturas: eso sigue siendo de contabilidad.",
+  ],
+  accounting: [
+    "Verá el plan de cuentas, los asientos y los saldos contables.",
+    "Podrá registrar y editar asientos (con edición).",
+  ],
+  collections: [
+    "Verá las cuentas por cobrar de todos los clientes.",
+    "Podrá registrar cobros y gestiones de cobranza (con edición).",
+  ],
+  treasury: [
+    "Verá los saldos de bancos y cajas y sus movimientos.",
+    "Podrá registrar movimientos de dinero (con edición).",
+  ],
+  fiscal: [
+    "Verá los libros fiscales, las retenciones y las declaraciones.",
+    "Podrá editar datos fiscales (con edición).",
+  ],
+  costing: ["Verá los costos y márgenes de cada operación."],
+  reports: ["Verá los reportes financieros de la empresa."],
+  nomina: [
+    "Verá los salarios y los datos personales de todo el personal.",
+    "Podrá editar la nómina (con edición). No podrá anular finiquitos.",
+  ],
+  users: [
+    "Verá la gestión de usuarios: nombres, correos, roles y accesos de todo el equipo.",
+    "No podrá invitar, cambiar roles, desactivar ni conceder accesos: eso sigue siendo del administrador.",
+  ],
+  admin: [
+    "Verá el panel de administración y la configuración de la empresa.",
+    "No podrá cambiar la configuración: el acceso es solo para ver.",
+  ],
+  direccion: ["Verá el tablero ejecutivo con las cifras de toda la empresa."],
+  mailing: [
+    "Verá las reglas de correo a clientes.",
+    "Podrá cambiar qué correos reciben los clientes (con edición).",
+  ],
+  renditions: ["Verá y gestionará las rendiciones de gastos (solo con superadministrador)."],
+  "financiero-china": ["Verá los movimientos de dinero con China (solo con superadministrador)."],
+  legal: ["Verá los términos legales y las aceptaciones (solo con superadministrador)."],
+  "no-olvidar": ["Verá la recuperación de acceso custodiada (solo con superadministrador)."],
+};
+
 // ─── Capabilities: acciones peligrosas con gate explícito (SDD-0139) ─────
 // "Delete/Approve no son CRUD genérico, son reglas de negocio" (Codex). Una
 // capability nombra el ACTO (no el módulo) y lista los roles no-admin que lo
@@ -259,6 +321,14 @@ export const CAPABILITIES = {
    * candado: `congelar_tarifa_recepcion` (migr 0496) exige admin o accounting.
    */
   fix_frozen_rate: ["accounting"],
+  /**
+   * Pasar un embarque a otro cliente (SDD-0645): operations + commercial + admin
+   * implícito (D2 de Sam, 2026-11-16: «estamos en start»; lo que importa es el registro).
+   * La base repite el candado: la RPC de la migr 0551 exige
+   * `operations`, `commercial` o `admin` activo en user_tenants. Agregar un rol acá sin una
+   * migración sólo mostraría el botón a quien la base igual rechaza.
+   */
+  reassign_shipment_owner: ["operations", "commercial"],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;
@@ -322,6 +392,58 @@ function overrideKey(role: string, moduleId: string): string {
   return `${role}:${moduleId}`;
 }
 
+// ─── Accesos adicionales por persona (SDD-0622, migr 0538) ──────────────
+// Reemplaza SOLO el punto D de la SDD-0139 («overrides por usuario: no»). El
+// rol sigue siendo la plantilla; una persona puede tener extras que SOLO
+// SUMAN, por módulo (ver / ver y editar), con motivo y vencimiento opcional.
+// Las capabilities (`CAPABILITIES`) no se conceden por esta vía.
+
+/** Un acceso adicional vigente de la persona sobre un módulo. */
+export interface ModuleGrant {
+  view: boolean;
+  edit: boolean;
+  /** ISO. `null`/ausente = sin vencimiento. Vencido = no cuenta. */
+  expiresAt?: string | null;
+}
+
+/** Extras de UNA persona, por `moduleId`. Se hidratan en `rbac-guard.ts`. */
+export type UserModuleGrants = Readonly<Record<string, ModuleGrant>>;
+
+/**
+ * R1 (SDD-0622 §8): un extra sobre la gestión de usuarios o el panel de
+ * administración es de solo lectura efectiva. La tabla y la RPC lo repiten.
+ */
+export const READ_ONLY_GRANT_MODULES: ReadonlySet<string> = new Set(["users", "admin"]);
+
+/** ¿El extra de la persona deja ver/editar el módulo? Vencido o ausente = no. */
+function grantAllows(
+  grants: UserModuleGrants | undefined,
+  moduleId: string,
+  edit: boolean,
+): boolean {
+  const g = grants?.[moduleId];
+  if (!g) return false;
+  if (g.expiresAt && Date.parse(g.expiresAt) <= Date.now()) return false;
+  if (edit) return g.edit && g.view && !READ_ONLY_GRANT_MODULES.has(moduleId);
+  return g.view;
+}
+
+/** Lo que da el ROL solo (default de código + desvío por rol), sin extras. */
+function roleAllows(
+  role: StudioUserRole,
+  moduleId: string,
+  overrides: RoleModuleOverrides | undefined,
+  edit: boolean,
+): boolean {
+  if (overrides && !LOCKED_MODULES.has(moduleId)) {
+    const o = overrides[overrideKey(role, moduleId)];
+    if (o) return edit ? o.edit : o.view;
+  }
+  const allowed = ROLE_MODULE_ACCESS[moduleId];
+  if (!allowed) return false; // fail-closed
+  return allowed.includes(role);
+}
+
 /**
  * ¿El rol puede VER el módulo? `admin` siempre; rol nulo/desconocido = no.
  * Fail-closed: un módulo sin entrada en la matriz solo lo ve admin.
@@ -331,40 +453,72 @@ function overrideKey(role: string, moduleId: string): string {
  * cualquier override — el candado de gobernanza no se abre desde la matriz,
  * ni siquiera si una fila se coló por fuera del RPC (mismo candado que el
  * CHECK de la tabla, en la otra punta).
+ *
+ * `grants` (SDD-0622) también es opcional: los extras de ESTA persona. Solo
+ * suman después de lo que da el rol; sobre un módulo LOCKED sí valen, porque la
+ * tabla exige la confirmación del doble aviso para que exista la fila. Pásalos
+ * solo cuando evalúas a la persona de la sesión: nunca a un tercero.
  */
 export function canAccessModule(
   role: StudioUserRole | null | undefined,
   moduleId: string,
   overrides?: RoleModuleOverrides,
+  grants?: UserModuleGrants,
 ): boolean {
   if (role === "admin") return true;
   if (!role) return false;
-  if (overrides && !LOCKED_MODULES.has(moduleId)) {
-    const o = overrides[overrideKey(role, moduleId)];
-    if (o) return o.view;
-  }
-  const allowed = ROLE_MODULE_ACCESS[moduleId];
-  if (!allowed) return false; // fail-closed
-  return allowed.includes(role);
+  if (roleAllows(role, moduleId, overrides, false)) return true;
+  if (!ROLE_MODULE_ACCESS[moduleId]) return false; // módulo desconocido
+  return grantAllows(grants, moduleId, false);
 }
 
 /**
  * ¿El rol puede EDITAR (mutar) en el módulo? = puede ver Y no es `support`
- * (read-only V1, inmutable — la matriz NO lo cambia). `admin` siempre.
+ * (read-only V1, inmutable — ni la matriz ni un extra lo cambian). `admin`
+ * siempre. Un extra de solo ver NO da edición.
  */
 export function canEditModule(
   role: StudioUserRole | null | undefined,
   moduleId: string,
   overrides?: RoleModuleOverrides,
+  grants?: UserModuleGrants,
 ): boolean {
   if (role === "admin") return true;
   if (role === "support") return false; // read-only V1
   if (!role) return false;
-  if (overrides && !LOCKED_MODULES.has(moduleId)) {
-    const o = overrides[overrideKey(role, moduleId)];
-    if (o) return o.edit;
-  }
-  return canAccessModule(role, moduleId, overrides);
+  if (roleAllows(role, moduleId, overrides, true)) return true;
+  if (!ROLE_MODULE_ACCESS[moduleId]) return false; // módulo desconocido
+  return grantAllows(grants, moduleId, true);
+}
+
+/** De dónde sale el permiso de la persona sobre un módulo (pantalla «Lo que puede ver»). */
+export type ModuleAccessSource = "admin" | "role" | "grant" | "none";
+
+export interface EffectiveModuleAccess {
+  view: boolean;
+  edit: boolean;
+  /** La fuente de la VISTA: el rol, un extra o nada. */
+  source: ModuleAccessSource;
+  /** El rol solo ya deja ver (aunque haya extra). */
+  viewByRole: boolean;
+  /** El rol solo ya deja editar. */
+  editByRole: boolean;
+}
+
+/** Acceso efectivo con su fuente, sin repetir la lógica de los dos predicados. */
+export function effectiveModuleAccess(
+  role: StudioUserRole | null | undefined,
+  moduleId: string,
+  overrides?: RoleModuleOverrides,
+  grants?: UserModuleGrants,
+): EffectiveModuleAccess {
+  const view = canAccessModule(role, moduleId, overrides, grants);
+  const edit = canEditModule(role, moduleId, overrides, grants);
+  if (role === "admin") return { view, edit, source: "admin", viewByRole: true, editByRole: true };
+  const viewByRole = canAccessModule(role, moduleId, overrides);
+  const editByRole = canEditModule(role, moduleId, overrides);
+  const source: ModuleAccessSource = viewByRole ? "role" : view ? "grant" : "none";
+  return { view, edit, source, viewByRole, editByRole };
 }
 
 /**

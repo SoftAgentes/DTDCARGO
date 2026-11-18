@@ -13,6 +13,7 @@ import {
   type DeletedCommentsCursor,
 } from "@/lib/studio/comments/lifecycle-types";
 import type { CommentEntityType } from "@/lib/studio/comments/types";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function DeletedCommentsPanel({
   entityType,
@@ -131,9 +132,9 @@ export function DeletedCommentsPanel({
           {loading && comments.length === 0 ? (
             <p style={messageStyle}>Cargando comentarios eliminados…</p>
           ) : error ? (
-            <div role="alert" style={errorStyle}>
+            <Aviso tono="error" compacto>
               {error}
-            </div>
+            </Aviso>
           ) : comments.length === 0 ? (
             <p style={messageStyle}>No hay comentarios eliminados en este registro.</p>
           ) : (
@@ -276,15 +277,6 @@ const messageStyle: CSSProperties = {
 const metaStyle: CSSProperties = {
   font: "500 11px/1.3 var(--f-sans)",
   color: "var(--ink-soft)",
-};
-
-const errorStyle: CSSProperties = {
-  padding: "var(--s-2) var(--s-3)",
-  border: "1px solid var(--danger)",
-  borderRadius: "var(--r-sm)",
-  background: "var(--danger-bg)",
-  color: "var(--danger)",
-  font: "500 12px/1.45 var(--f-sans)",
 };
 
 function formatDeletedAt(value: string | null): string {

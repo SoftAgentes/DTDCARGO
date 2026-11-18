@@ -295,13 +295,7 @@ export function BoardList({
         <div
           role="tablist"
           aria-label="Modo de la lista"
-          style={{
-            display: "inline-flex",
-            gap: "var(--s-1)",
-            padding: "var(--s-1)",
-            background: "var(--bg-elevated)",
-            borderRadius: "var(--r-md)",
-          }}
+          className="studio-tabs"
         >
           {(
             [
@@ -316,17 +310,9 @@ export function BoardList({
                 type="button"
                 role="tab"
                 aria-selected={active}
+                data-activa={active ? "true" : undefined}
                 onClick={() => changeMode(o.v)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "var(--r-sm)",
-                  background: active ? "var(--bg-surface)" : "transparent",
-                  color: active ? "var(--ink)" : "var(--ink-soft)",
-                  border: 0,
-                  font: `${active ? "700" : "500"} 12px/1 var(--f-sans)`,
-                  boxShadow: active ? "var(--shadow-xs)" : "none",
-                  cursor: "pointer",
-                }}
+                className="studio-tab"
               >
                 {o.label}
               </button>

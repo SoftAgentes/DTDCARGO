@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -223,36 +224,29 @@ export function OvDrawer({
             Trazabilidad
           </div>
           {so.quote_id ? (
-            <div
-              style={{
-                padding: "10px 12px",
-                borderRadius: "var(--r-sm)",
-                background: "var(--info-bg)",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink)",
-                marginBottom: "var(--s-3)",
-              }}
-            >
-              {so.quote_code ? (
-                <>
-                  Viene del estimado{" "}
-                  <code
-                    style={{
-                      font: "700 12px/1.2 var(--f-mono)",
-                      color: "var(--wine-text)",
-                    }}
-                  >
-                    {so.quote_code}
-                  </code>
-                  .{" "}
-                </>
-              ) : (
-                <>
-                  Viene de un <strong>Estimado</strong> aceptado.{" "}
-                </>
-              )}
-              El snapshot se copió al convertir y se puede editar mientras la OV
-              esté confirmada.
+            <div style={{ marginBottom: "var(--s-3)" }}>
+              <Aviso tono="info" compacto>
+                {so.quote_code ? (
+                  <>
+                    Viene del estimado{" "}
+                    <code
+                      style={{
+                        font: "700 12px/1.2 var(--f-mono)",
+                        color: "var(--wine-text)",
+                      }}
+                    >
+                      {so.quote_code}
+                    </code>
+                    .{" "}
+                  </>
+                ) : (
+                  <>
+                    Viene de un <strong>Estimado</strong> aceptado.{" "}
+                  </>
+                )}
+                El snapshot se copió al convertir y se puede editar mientras la OV
+                esté confirmada.
+              </Aviso>
             </div>
           ) : (
             <div
@@ -998,20 +992,9 @@ export function ConvertEstimateDrawer({
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <p
-      role="alert"
-      style={{
-        font: "500 12px/1.4 var(--f-sans)",
-        color: "var(--danger)",
-        margin: 0,
-        padding: "10px 12px",
-        background: "var(--danger-bg)",
-        border: "1px solid var(--danger)",
-        borderRadius: "var(--r-sm)",
-      }}
-    >
+    <Aviso tono="error" compacto>
       {message}
-    </p>
+    </Aviso>
   );
 }
 

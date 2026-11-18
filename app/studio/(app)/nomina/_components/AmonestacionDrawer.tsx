@@ -20,10 +20,12 @@ import {
   warningSeverityLabel,
   type WarningSeverity,
 } from "@/lib/studio/nomina/warning-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { emitirAmonestacionAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
+import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "amonestacion-form";
 const initial: NominaActionState = {};
@@ -37,7 +39,7 @@ export function AmonestacionDrawer({
   employees,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   onClose: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(emitirAmonestacionAction, initial);
@@ -48,6 +50,9 @@ export function AmonestacionDrawer({
   const [cause, setCause] = useState<string>(ART79_CAUSES[0]?.value ?? "");
   const [severity, setSeverity] = useState<WarningSeverity>("leve");
   const [issuedOn, setIssuedOn] = useState<string>(todayISO());
+  // SDD-0660: el campo se desmonta al avanzar; su validez se exige aquí para que una
+  // fecha a medio escribir o imposible no viaje como la última válida (o vacía).
+  const [issuedOnValid, setIssuedOnValid] = useState(true);
   const [narrative, setNarrative] = useState<string>("");
   const [witnesses, setWitnesses] = useState<string>("");
 
@@ -66,7 +71,7 @@ export function AmonestacionDrawer({
 
   const canNext =
     step === 0
-      ? !!employeeId && !!cause.trim()
+      ? !!employeeId && !!cause.trim() && issuedOnValid && !!issuedOn
       : step === 1
         ? !!narrative.trim()
         : true;
@@ -90,7 +95,7 @@ export function AmonestacionDrawer({
     >
       <form
         id={FORM_ID}
-        action={formAction}
+        onSubmit={submitKeepingDraft(formAction, isPending)}
         style={{
           flex: 1,
           overflow: "auto",
@@ -203,12 +208,7 @@ export function AmonestacionDrawer({
                 </select>
               </Field>
               <Field label="Fecha de emisión" error={state.fieldErrors?.issued_on}>
-                <input
-                  type="date"
-                  className="studio-input"
-                  value={issuedOn}
-                  onChange={(e) => setIssuedOn(e.target.value)}
-                />
+                <DateField value={issuedOn} onChange={setIssuedOn} onValidityChange={setIssuedOnValid} required />
               </Field>
             </Row>
           </>

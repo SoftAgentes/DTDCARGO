@@ -230,6 +230,7 @@ describe("remate 5 · sitemap con lastModified honesto", () => {
 
   it("los posts SÍ conservan su fecha real", () => {
     const sm = read("app/sitemap.ts");
-    expect(sm).toContain("lastModified: new Date(post.date)");
+    // SDD-0604: la última edición real; sin ella, la fecha de publicación.
+    expect(sm).toContain("lastModified: new Date(post.updated_at ?? post.date)");
   });
 });

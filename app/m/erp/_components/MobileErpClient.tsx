@@ -7,7 +7,7 @@
  * 5 screens: Home · Tracking · Clientes · Gastos (placeholder) · Más.
  */
 
-import { startTransition, useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
@@ -91,6 +91,8 @@ interface Props {
   bitacoraOpenCount?: number;
   /** Tab inicial (deep-link `/m/erp?tab=…` desde las rutas hermanas). */
   initialTab?: Tab;
+  /** SDD-0569 · La última tasa del Studio por moneda (fx_rates), para precargar el gasto. */
+  fxPrefill?: Partial<Record<"VES" | "CNY", number>>;
 }
 
 export function MobileErpClient({
@@ -104,6 +106,7 @@ export function MobileErpClient({
   operatingLng,
   bitacoraOpenCount = 0,
   initialTab,
+  fxPrefill = {},
 }: Props) {
   const [tab, setTab] = useState<Tab>(initialTab ?? "home");
   const [expenseModal, setExpenseModal] = useState(false);
@@ -160,12 +163,13 @@ export function MobileErpClient({
       />
 
       {expenseModal && (
-        <NewExpenseModal onClose={() => setExpenseModal(false)} />
+        <NewExpenseModal fxPrefill={fxPrefill} onClose={() => setExpenseModal(false)} />
       )}
 
       {editingExpense && (
         <EditExpenseSheet
           expense={editingExpense}
+          fxPrefill={fxPrefill}
           canVoid={user.role === "accounting" || user.role === "admin"}
           receiptUrl={
             editingExpense.receipt_path
@@ -1520,6 +1524,7 @@ function ExpenseRow({
 }) {
   const date = new Date(e.occurred_at);
   const dateLabel = date.toLocaleDateString("es-VE", {
+    timeZone: "America/Caracas",
     day: "2-digit",
     month: "short",
   });
@@ -1672,10 +1677,64 @@ function ExpenseRow({
 
 const INITIAL_EXPENSE_STATE: ExpenseActionState = {};
 
-function NewExpenseModal({ onClose }: { onClose: () => void }) {
+/**
+ * SDD-0569 · La tasa de un gasto en VES o CNY: precargada con la última del
+ * Studio (fx_rates) y editable, como en escritorio. Sin ella el gasto no se
+ * guarda (el validador la exige fuera de USD).
+ */
+function CampoTasaGasto({
+  id,
+  currency,
+  value,
+  onChange,
+}: {
+  id: string;
+  currency: ExpenseCurrency;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (currency === "USD") return null;
+  return (
+    <div>
+      <label className="studio-label" htmlFor={id} style={{ marginBottom: 6, display: "block" }}>
+        Tasa (1 USD = ? {currency})
+      </label>
+      <input
+        id={id}
+        name="fx_rate"
+        type="number"
+        inputMode="decimal"
+        step="any"
+        min="0"
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-describedby={`${id}-ayuda`}
+        className="studio-input studio-input-mono"
+        style={{ width: "100%", height: 48, fontSize: 18, textAlign: "right", paddingRight: 14 }}
+      />
+      <span id={`${id}-ayuda`} style={{ display: "block", marginTop: 4, font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+        {value ? "Precargada con la última tasa del Studio. Puedes cambiarla." : "No hay tasa cargada en el Studio: escríbela."}
+      </span>
+    </div>
+  );
+}
+
+function NewExpenseModal({
+  fxPrefill,
+  onClose,
+}: {
+  fxPrefill: Partial<Record<"VES" | "CNY", number>>;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<ExpenseCurrency>("USD");
+  const [currency, setCurrencyState] = useState<ExpenseCurrency>("USD");
+  const [fxRate, setFxRate] = useState("");
+  const setCurrency = (c: ExpenseCurrency) => {
+    setCurrencyState(c);
+    setFxRate(c === "VES" || c === "CNY" ? String(fxPrefill[c] ?? "") : "");
+  };
   const [category, setCategory] = useState<ExpenseCategory>("otro");
   const [method, setMethod] = useState<ExpenseMethod>("cash");
   const [note, setNote] = useState("");
@@ -1704,6 +1763,10 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
     createExpenseAction,
     INITIAL_EXPENSE_STATE,
   );
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.error) errorRef.current?.focus();
+  }, [state]);
 
   const toast = useToast();
 
@@ -1721,7 +1784,7 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      onClick={onClose}
+      onClick={isPending ? undefined : onClose}
       style={{
         position: "fixed",
         inset: 0,
@@ -1732,7 +1795,14 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <form
-        action={(fd) => startTransition(() => formAction(fd))}
+        onSubmit={(event) => {
+          // React resetea los campos nativos tras resolver un form action,
+          // incluso con rechazo. Conserva este form y su File para reintentar.
+          event.preventDefault();
+          if (isPending) return;
+          const data = new FormData(event.currentTarget);
+          startTransition(() => formAction(data));
+        }}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
@@ -1779,6 +1849,7 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
+            disabled={isPending}
             style={{
               background: "transparent",
               border: 0,
@@ -1839,6 +1910,7 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
         </div>
+        <CampoTasaGasto id="exp-fx-rate" currency={currency} value={fxRate} onChange={setFxRate} />
 
         {/* Category chips */}
         <div>
@@ -2089,6 +2161,9 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
 
         {state?.error && (
           <div
+            ref={errorRef}
+            role="alert"
+            tabIndex={-1}
             style={{
               padding: 10,
               background: "var(--danger-bg)",
@@ -2554,18 +2629,27 @@ function QuickAction({
 
 function EditExpenseSheet({
   expense,
+  fxPrefill,
   canVoid,
   receiptUrl,
   onClose,
 }: {
   expense: Expense;
+  fxPrefill: Partial<Record<"VES" | "CNY", number>>;
   canVoid: boolean;
   receiptUrl?: string;
   onClose: () => void;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState(String(expense.amount));
-  const [currency, setCurrency] = useState<ExpenseCurrency>(expense.currency);
+  const [currency, setCurrencyState] = useState<ExpenseCurrency>(expense.currency);
+  // La tasa propia del gasto, o la última del Studio si cambia de moneda.
+  const [fxRate, setFxRate] = useState(expense.currency === "USD" ? "" : String(expense.fx_rate ?? ""));
+  const setCurrency = (c: ExpenseCurrency) => {
+    setCurrencyState(c);
+    if (c === expense.currency) setFxRate(c === "USD" ? "" : String(expense.fx_rate ?? ""));
+    else setFxRate(c === "VES" || c === "CNY" ? String(fxPrefill[c] ?? "") : "");
+  };
   const [category, setCategory] = useState<ExpenseCategory>(expense.category);
   const [method, setMethod] = useState<ExpenseMethod>(expense.method);
   const [note, setNote] = useState(expense.note ?? "");
@@ -2586,6 +2670,10 @@ function EditExpenseSheet({
     updateBound,
     INITIAL_EXPENSE_STATE,
   );
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.error) errorRef.current?.focus();
+  }, [state]);
 
   if (state?.ok) {
     setTimeout(() => {
@@ -2647,7 +2735,12 @@ function EditExpenseSheet({
       }}
     >
       <form
-        action={(fd) => startTransition(() => formAction(fd))}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (isPending || isVoiding) return;
+          const data = new FormData(event.currentTarget);
+          startTransition(() => formAction(data));
+        }}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
@@ -2772,6 +2865,7 @@ function EditExpenseSheet({
             </select>
           </div>
         </div>
+        <CampoTasaGasto id="exp-edit-fx-rate" currency={currency} value={fxRate} onChange={setFxRate} />
 
         {/* Category chips */}
         <div>
@@ -3122,6 +3216,9 @@ function EditExpenseSheet({
 
         {state?.error && (
           <div
+            ref={errorRef}
+            role="alert"
+            tabIndex={-1}
             style={{
               padding: 10,
               background: "var(--danger-bg)",

@@ -28,6 +28,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   invoiceIvaModeLabel,
@@ -53,6 +54,7 @@ import type { TaxWithholding } from "@/lib/studio/fiscal/withholding-types";
 import { postFiscalBookAction, voidFiscalBookAction } from "../actions";
 import { FiscalConfig } from "./FiscalConfig";
 import { WithholdingsView } from "./WithholdingsView";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type FiscalTab = "config" | "ventas" | "compras" | "retenciones";
 
@@ -172,14 +174,8 @@ export function FiscalClient({
         role="tablist"
         aria-label="Secciones del módulo fiscal"
         aria-orientation="horizontal"
-        style={{
-          display: "flex",
-          flexWrap: "nowrap",
-          gap: 4,
-          overflowX: "auto",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: 24,
-        }}
+        className="studio-tabs"
+        style={{ marginBottom: 24 }}
       >
         {TABS.map((t, index) => {
           const active = t.id === tab;
@@ -194,23 +190,11 @@ export function FiscalClient({
               id={`fiscal-tab-${t.id}`}
               aria-controls={`fiscal-panel-${t.id}`}
               aria-selected={active}
+              data-activa={active ? "true" : undefined}
               tabIndex={active ? 0 : -1}
               onClick={() => go({ tab: t.id })}
               onKeyDown={(event) => handleTabKey(event, index)}
-              className="studio-btn studio-btn-ghost"
-              style={{
-                appearance: "none",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                padding: "10px 14px",
-                font: `${active ? 700 : 600} 13.5px/1 var(--f-sans)`,
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                cursor: "pointer",
-                marginBottom: -1,
-                flexShrink: 0,
-                whiteSpace: "nowrap",
-              }}
+              className="studio-tab"
             >
               {t.label}
             </button>
@@ -292,6 +276,7 @@ function PostingBar({
   liveRowCount,
   liveBase,
   liveIva,
+  periodValid = true,
 }: {
   period: FiscalPeriod;
   bookType: PostedBookType;
@@ -300,6 +285,8 @@ function PostingBar({
   liveRowCount: number;
   liveBase: number;
   liveIva: number;
+  /** SDD-0660: falso mientras el selector de mes tiene algo a medio escribir o imposible. */
+  periodValid?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -400,7 +387,7 @@ function PostingBar({
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
               onClick={() => setVoidOpen(true)}
-              disabled={pending}
+              disabled={pending || !periodValid}
             >
               {pending ? "Procesando…" : "Anular asiento"}
             </button>
@@ -409,7 +396,7 @@ function PostingBar({
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setConfirmPost(true)}
-              disabled={pending}
+              disabled={pending || !periodValid}
             >
               {pending ? "Asentando…" : "Asentar período"}
             </button>
@@ -483,9 +470,11 @@ function FiscalDisabled({
 function MonthSelector({
   period,
   onPeriod,
+  onValidityChange,
 }: {
   period: FiscalPeriod;
   onPeriod: (p: FiscalPeriod) => void;
+  onValidityChange?: (valid: boolean) => void;
 }) {
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -497,14 +486,14 @@ function MonthSelector({
       >
         ←
       </button>
-      <input
-        type="month"
+      <DateField
+        mode="month"
         value={period}
-        onChange={(e) => {
-          const v = e.target.value;
+        onChange={(v) => {
           if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
         }}
-        className="studio-input studio-input-mono"
+        onValidityChange={onValidityChange}
+        required
         style={{ width: 160 }}
         aria-label="Período fiscal"
       />
@@ -526,11 +515,16 @@ function BookToolbar({
   onPeriod,
   onCsv,
   hasRows,
+  periodValid = true,
+  onPeriodValidity,
 }: {
   period: FiscalPeriod;
   onPeriod: (p: FiscalPeriod) => void;
   onCsv: () => void;
   hasRows: boolean;
+  /** SDD-0660: con el mes a medio escribir, exportar esperaría al mes que se ve en el campo. */
+  periodValid?: boolean;
+  onPeriodValidity?: (valid: boolean) => void;
 }) {
   return (
     <div
@@ -543,13 +537,13 @@ function BookToolbar({
         flexWrap: "wrap",
       }}
     >
-      <MonthSelector period={period} onPeriod={onPeriod} />
+      <MonthSelector period={period} onPeriod={onPeriod} onValidityChange={onPeriodValidity} />
       <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
           className="studio-btn studio-btn-ghost studio-btn-sm"
           onClick={onCsv}
-          disabled={!hasRows}
+          disabled={!hasRows || !periodValid}
         >
           {Icon.doc(14)} Exportar CSV
         </button>
@@ -557,7 +551,7 @@ function BookToolbar({
           type="button"
           className="studio-btn studio-btn-primary studio-btn-sm"
           onClick={() => window.print()}
-          disabled={!hasRows}
+          disabled={!hasRows || !periodValid}
         >
           Exportar PDF
         </button>
@@ -584,30 +578,14 @@ function CurrencyNote({ currencies }: { currencies: string[] }) {
         Moneda: <span style={{ fontFamily: "var(--f-mono)", color: "var(--ink-soft)" }}>{currencies.join(" · ")}</span>
       </div>
       {mixed && (
-        <div
-          role="note"
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-start",
-            background: "var(--warning-bg)",
-            border: "1px solid var(--warning)",
-            borderRadius: "var(--r-md)",
-            padding: "10px 12px",
-            font: "500 12px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          <span aria-hidden style={{ color: "var(--warning)", fontWeight: 700, lineHeight: 1.5 }}>!</span>
-          <span>
-            Este período tiene operaciones en{" "}
-            <strong style={{ color: "var(--ink)" }}>más de una moneda</strong> (
-            {currencies.join(", ")}). Los totales suman los montos{" "}
-            <strong style={{ color: "var(--ink)" }}>sin convertir</strong> con el tipo
-            de cambio — revisa cada fila por su moneda. La normalización por tasa BCV
-            queda para una versión futura.
-          </span>
-        </div>
+        <Aviso tono="atencion">
+          Este período tiene operaciones en{" "}
+          <strong style={{ color: "var(--ink)" }}>más de una moneda</strong> (
+          {currencies.join(", ")}). Los totales suman los montos{" "}
+          <strong style={{ color: "var(--ink)" }}>sin convertir</strong> con el tipo
+          de cambio — revisa cada fila por su moneda. La normalización por tasa BCV
+          queda para una versión futura.
+        </Aviso>
       )}
     </div>
   );
@@ -716,6 +694,9 @@ function SalesBookView({
 }) {
   // Totales del VIVO (para detectar drift contra el snapshot).
   const liveTotals = useMemo(() => salesTotals(rows), [rows]);
+  // SDD-0660: el selector de mes no vive en un <form>; con algo a medio escribir el
+  // libro sigue mostrando el mes anterior, así que asentar y exportar esperan.
+  const [periodValid, setPeriodValid] = useState(true);
   // Si está asentado, la tabla muestra el SNAPSHOT (no el vivo).
   const displayRows = useMemo(
     () => (postedBook ? postedToSalesRows(postedBook) : rows),
@@ -738,7 +719,14 @@ function SalesBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
+      <BookToolbar
+        period={period}
+        onPeriod={onPeriod}
+        onCsv={exportCsv}
+        hasRows={displayRows.length > 0}
+        periodValid={periodValid}
+        onPeriodValidity={setPeriodValid}
+      />
 
       {(displayRows.length > 0 || canPost) && (
         <PostingBar
@@ -749,6 +737,7 @@ function SalesBookView({
           liveRowCount={liveTotals.rows}
           liveBase={liveTotals.base}
           liveIva={liveTotals.iva}
+          periodValid={periodValid}
         />
       )}
 
@@ -849,6 +838,9 @@ function PurchaseBookView({
   onPeriod: (p: FiscalPeriod) => void;
 }) {
   const liveTotals = useMemo(() => purchaseTotals(rows), [rows]);
+  // SDD-0660: el selector de mes no vive en un <form>; con algo a medio escribir el
+  // libro sigue mostrando el mes anterior, así que asentar y exportar esperan.
+  const [periodValid, setPeriodValid] = useState(true);
   const displayRows = useMemo(
     () => (postedBook ? postedToPurchaseRows(postedBook) : rows),
     [postedBook, rows],
@@ -871,7 +863,14 @@ function PurchaseBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
+      <BookToolbar
+        period={period}
+        onPeriod={onPeriod}
+        onCsv={exportCsv}
+        hasRows={displayRows.length > 0}
+        periodValid={periodValid}
+        onPeriodValidity={setPeriodValid}
+      />
 
       {(displayRows.length > 0 || canPost) && (
         <PostingBar
@@ -882,6 +881,7 @@ function PurchaseBookView({
           liveRowCount={liveTotals.rows}
           liveBase={liveTotals.base}
           liveIva={liveTotals.iva}
+          periodValid={periodValid}
         />
       )}
 

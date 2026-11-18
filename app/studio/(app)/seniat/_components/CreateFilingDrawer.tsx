@@ -17,6 +17,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { createFilingAction } from "../actions";
 import { CostHelpers } from "./CostHelpers";
 import type {
@@ -148,21 +149,12 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
               Shipment <span style={{ color: "var(--wine-text)" }}>*</span>
             </label>
             {shipments.length === 0 ? (
-              <div
-                style={{
-                  padding: "10px 12px",
-                  background: "var(--warning-bg)",
-                  border: "1px solid var(--warning)",
-                  borderRadius: "var(--r-sm)",
-                  font: "500 12px/1.4 var(--f-sans)",
-                  color: "var(--ink)",
-                }}
-              >
+              <Aviso tono="atencion" compacto>
                 No hay shipments elegibles. Solo se pueden crear trámites
                 para shipments en estado <strong>in_customs</strong> o{" "}
                 <strong>arrived_destination</strong> que aún no tengan
                 trámite asignado.
-              </div>
+              </Aviso>
             ) : (
               <select
                 id="cf-shipment"
@@ -424,20 +416,9 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           </div>
 
           {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
+            <Aviso tono="error" compacto>
               {state.error}
-            </p>
+            </Aviso>
           )}
 
           <div style={{ flex: 1, minHeight: 12 }} />

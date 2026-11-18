@@ -151,12 +151,12 @@ const SECTIONS: AdminSection[] = [
   {
     id: "telegram-alerts",
     group: "BÁSICO",
-    label: "Alertas de Telegram",
+    label: "Alertas del equipo",
     icon: "bell",
     description:
-      "A qué chat de Telegram llega cada aviso INTERNO (no al cliente: al equipo). Registro de clientes, conversaciones del portal, bugs, el reporte diario de operaciones y el resto de avisos, cada uno a su destino. Un chat se enlaza mandándole /start al bot.",
+      "A dónde llega cada aviso INTERNO (no al cliente: al equipo). Registro de clientes, conversaciones del portal, bugs, el reporte diario de operaciones y el resto de avisos: cada uno a su canal de Discord. Telegram está retirado.",
     href: "/studio/admin/alertas-telegram",
-    sddRef: "SDD-0271",
+    sddRef: "SDD-0606",
   },
   {
     id: "masterdata",
@@ -173,7 +173,7 @@ const SECTIONS: AdminSection[] = [
     label: "Tasas de cambio",
     icon: "invoice",
     description:
-      "BCV, paralelo y CNY. Historial diario y configuración de qué tasa usa cada flujo (facturación, costing, estado de cuenta).",
+      "Bolívares y yuanes: la tasa de cada día, con su fuente. Las facturas y las cuentas por pagar toman la vigente y la guardan.",
     sddRef: "SDD-0126",
   },
   {
@@ -359,6 +359,7 @@ const SECTIONS: AdminSection[] = [
     sddRef: "SDD-0020",
     href: "/studio/admin/agentes",
   },
+  { id: "chatwoot-updates", group: "PRO", label: "Actualizaciones de Chatwoot", icon: "refresh", description: "Versión instalada de la Bandeja, la publicada y qué trae cada una. Pedir una actualización la deja registrada; no instala nada.", href: "/studio/admin/actualizaciones", sddRef: "SDD-0588" },
 ];
 
 const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "MARCA", "INTERMEDIO", "PRO"];

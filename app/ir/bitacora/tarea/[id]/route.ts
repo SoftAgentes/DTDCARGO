@@ -7,7 +7,8 @@
  * auth (el destino ya exige sesión). NO importa @/lib/studio (frontera intacta).
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+import { localRedirect } from "@/lib/http/local-redirect";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,5 @@ export async function GET(
       ? `/m/erp/bitacora/tarea/${id}`
       : `/studio/bitacora?task=${id}`;
 
-  return NextResponse.redirect(new URL(dest, req.url));
+  return localRedirect(dest);
 }

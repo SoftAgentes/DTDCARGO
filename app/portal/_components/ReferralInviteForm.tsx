@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 import { CheckIcon } from "@/components/Icon";
 import {
   inviteReferralAction,
@@ -21,7 +22,11 @@ const initial: InviteReferralState = {};
  * en la tarjeta de créditos y en "Cómo funciona" de la página.
  */
 export function ReferralInviteForm() {
-  const [state, action, pending] = useActionState(inviteReferralAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    inviteReferralAction,
+    initial,
+    "No pudimos confirmar si la invitación salió. Lo que escribiste sigue aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
+  );
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [handledState, setHandledState] = useState(state);
@@ -64,7 +69,7 @@ export function ReferralInviteForm() {
         </div>
       )}
 
-      <form action={action} className="mt-4 flex flex-col gap-4">
+      <form {...formProps} className="mt-4 flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">

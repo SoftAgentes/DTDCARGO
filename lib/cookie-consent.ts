@@ -62,10 +62,16 @@ export function readCookieConsentServer(): CookieConsent | null {
  */
 export function readCookieConsent(): CookieConsent | null {
   if (typeof document === "undefined") return null;
-  const m = document.cookie.match(
-    /(?:^|;\s*)dtd_cookie_consent=(granted|denied)/,
-  );
-  return (m?.[1] as CookieConsent | undefined) ?? null;
+  // Nombre y valor completos. Una coincidencia parcial no es una decisión:
+  // cookies ajenas con prefijo o `granted-sufijo` nunca conceden permiso.
+  // Dos cookies visibles del mismo nombre (paths/domain distintos) son ambiguas.
+  const choices = document.cookie
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .filter((cookie) => cookie.startsWith(`${COOKIE_CONSENT_NAME}=`));
+  if (choices.length !== 1) return null;
+  const value = choices[0].slice(COOKIE_CONSENT_NAME.length + 1);
+  return value === "granted" || value === "denied" ? value : null;
 }
 
 /** Guarda la decisión (6 meses) y avisa a los suscriptores. Añade `Secure` en https. */

@@ -1,0 +1,40 @@
+# Overlay de PRUEBA LOCAL de infra/chatwoot (SDD-0583). Nunca en el VPS.
+#
+# ensayo-local.sh lo copia como compose.override.yml en una carpeta temporal junto a
+# compose.yml, igual que /srv/chatwoot en el servidor. Cambia solo lo que la prueba
+# local necesita:
+#   · volúmenes nombrados en lugar de carpetas del host (en Windows, PGDATA sobre
+#     NTFS es lento y choca con los permisos);
+#   · Mailpit como servidor SMTP: ningún correo sale a internet.
+# Todo lo demás (imagen, límites, redes, labels, entorno, redacción) es el compose real.
+
+services:
+  prepare:
+    volumes:
+      - storage:/app/storage
+  rails:
+    volumes:
+      - storage:/app/storage
+  sidekiq:
+    volumes:
+      - storage:/app/storage
+  postgres:
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  redis:
+    volumes:
+      - redis:/data
+
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    networks:
+      - interna
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+volumes:
+  storage:
+  postgres:
+  redis:

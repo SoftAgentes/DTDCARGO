@@ -65,14 +65,36 @@ const BASELINE = {
   //     facturas no borrador para «Por contabilizar» (Contabilidad, layout
   //     `accounting`). Al cliente cruzan código, fecha, moneda y monto; sin
   //     nombre ni RIF del cliente.
-  "lib/studio/accounting/libro-control-queries.ts": 2,
-  "lib/studio/costing/queries.ts": 2,
+  // SDD-0573 I2: +1 metadata por IDs fuera de emisión en contextoDelIngreso,
+  // llamado siempre por ingresoDelPeriodo con mayor (también precalculado).
+  // Sesión/RLS, tenant en documentos/headers/cuentas y validación relacional;
+  // layouts accounting/reports y Dirección admin-only. Sólo agregados al cliente.
+  "lib/studio/accounting/libro-control-queries.ts": 3,
+  // SDD-0572: −1 al eliminar latestVesFxRate (display desde facturas).
+  // Revenue conserva cliente de sesión, candados de Costing y RLS del tenant.
+  // El display usa ultimaTasa/fx_rates con ese mismo cliente, nunca admin.
+  "lib/studio/costing/queries.ts": 1,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
+  // SDD-0661: +1 archivo y +1 lectura. `leerMontosDeContenedores` (Embarques
+  // por contenedor) lee `shipment_id, currency, total_amount, paid_amount,
+  // status` de las facturas vivas (`deleted_at is null`) y no anuladas de los
+  // embarques que van en un contenedor, para «Por cobrar» y «Cobrado».
+  // Revisión del contrato:
+  //   · candado: la llama SOLO `app/studio/(app)/embarques/page.tsx`, y solo si
+  //     el rol es accounting o admin Y `moduleViewDenial(…, "invoices")` deja
+  //     pasar. Sin eso no se consulta y la prop `montos` no existe;
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: solo lectura; al cliente cruzan sumas por embarque (facturas,
+  //     por cobrar, cobrado, cuántas en otra moneda), sin código, id, cliente
+  //     ni RIF de la factura.
+  "lib/studio/embarques-contenedores-queries.ts": 1,
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
   // avisa la pantalla de Fidelización).
   //
-  // Es el ÚNICO caller de este inventario que lee con el CLIENTE ADMIN, y la
+  // En SDD-0495 era el único caller que leía con el CLIENTE ADMIN (SDD-0576
+  // incorpora abajo el readback acotado de Warehouse), y la
   // razón es este mismo contrato: al exigir revisar «el guard y el tenant»
   // apareció que `invoices_accounting_select` (migr 0414) niega el SELECT a
   // `commercial` y `support`, que son justo los roles de esa pantalla — con el
@@ -120,6 +142,13 @@ const BASELINE = {
   "lib/studio/rate-snapshots/sin-facturar.ts": 1,
   "lib/studio/renditions/queries.ts": 3,
   "lib/studio/reports/queries.ts": 4,
+  // SDD-0576: cliente ADMIN ya recibido por el motor Warehouse, detrás de sus
+  // gates y de RPC outcome=invoiced con UUID válido. Solo si issued_at está
+  // AUSENTE: select id/tenant_id/issued_at de esa factura, tenant confiable y
+  // deleted_at IS NULL; limit 2 detecta ambigüedad, se exige exactamente 1 fila
+  // coherente y calendario válido. Error no habilita poster, reloj ni otra RPC.
+  // No cambia el guard/RLS ni autoriza lecturas generales de facturas.
+  "lib/studio/sales-orders/actions.ts": 1,
 };
 
 function filesUnder(root) {
@@ -195,7 +224,9 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0557: 19 → 20. Entra `lib/studio/accounting/libro-control-queries.ts`.
     // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
     // SDD-0574: 19 → 20. Entra `lib/studio/rate-snapshots/sin-facturar.ts`.
-    expect(Object.keys(actual)).toHaveLength(20);
+    // SDD-0576: 20 → 21 por el readback de fecha persistida de Warehouse.
+    // SDD-0661: 21 → 22. Entra `lib/studio/embarques-contenedores-queries.ts`.
+    expect(Object.keys(actual)).toHaveLength(22);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -211,7 +242,11 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0558: 45 → 44. La lectura de Kommo pasó a la 0492; recalculado sobre
     // origin/main bb6bb3e4 con la 0555, la 0556, la 0557 y la 0560 ya fusionadas.
     // SDD-0574: 44 → 45 por la lectura de `reporteSinFacturar`.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
+    // SDD-0573 I2: una lectura literal de metadata adicional, mismas 20 rutas del compuesto.
+    // SDD-0572: 46 → 45, solo sale la lectura de display latestVesFxRate.
+    // SDD-0576: 45 → 46, exclusivamente issued_at ausente tras emisión real.
+    // SDD-0661: 46 → 47 por `leerMontosDeContenedores` (Embarques por contenedor).
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(47);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

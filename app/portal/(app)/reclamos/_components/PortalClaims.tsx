@@ -7,7 +7,7 @@
  * claims-types (el portal no está bajo la frontera público↔ERP).
  */
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CLAIM_TYPE_OPTIONS,
@@ -23,6 +23,7 @@ import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { createPortalClaimAction, type PortalClaimState } from "../actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { StatusIcon } from "@/components/StatusIcon";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initial: PortalClaimState = {};
 
@@ -54,9 +55,11 @@ export function PortalClaims({
    *  propio y con el formulario "Nuevo caso" colapsable. `false` = pantalla suelta. */
   embedded?: boolean;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     createPortalClaimAction,
     initial,
+    "No pudimos confirmar si tu reclamo se registró. Lo que escribiste sigue aquí. Intenta de nuevo: no se registrará dos veces.",
+    { requestId: true },
   );
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -114,7 +117,7 @@ export function PortalClaims({
           Cuéntanos qué pasó. El monto y la cobertura los evalúa tu asesor.
         </p>
 
-        <form ref={formRef} action={action} className="mt-4 flex flex-col gap-3.5">
+        <form ref={formRef} {...formProps} className="mt-4 flex flex-col gap-3.5">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
               Tipo de problema
@@ -212,6 +215,11 @@ export function PortalClaims({
             role="status"
           >
             Reclamo {justSent} enviado. Tu asesor lo va a revisar y te confirma la resolución.
+            {state.replayed && (
+              <span className="block mt-1.5 text-[12.5px] text-grey-700">
+                Ya estaba registrado desde tu primer envío. Si cambiaste algo después, escríbele a tu asesor.
+              </span>
+            )}
             {state.evidenceSkipped && (
               <span className="block mt-1.5 text-[12.5px] text-grey-700">
                 Algunos archivos no se adjuntaron (deben ser JPG/PNG/PDF y pesar

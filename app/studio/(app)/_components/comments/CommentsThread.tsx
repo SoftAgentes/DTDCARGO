@@ -40,6 +40,7 @@ import {
   deleteComment,
   restoreComment,
 } from "@/app/studio/(app)/_actions/comments";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 
 export function CommentsThread({
   entityType,
@@ -300,19 +301,10 @@ export function CommentsThread({
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 10,
-            padding: "var(--s-2) var(--s-3)",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: 10 }}>
+          <Aviso tono="error" compacto>
+            {error}
+          </Aviso>
         </div>
       )}
 

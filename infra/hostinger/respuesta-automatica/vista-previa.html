@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!--
+  SDD-0583 · respuesta automática del buzón notificaciones@dtdcargo.com (Hostinger Mail).
+  El editor de Hostinger acepta «texto enriquecido o sin formato» y no admite emojis; no
+  documenta HTML, imágenes ni límite de largo (ver README.md). Por eso la versión con formato
+  usa solo párrafos, negritas, color y enlaces, que es lo que un editor enriquecido suele
+  conservar al pegar. Los hex van literales por la misma razón que en
+  infra/chatwoot/correo/views/layouts/mailer/base.liquid: wine #7F0F1A, ink #0F1E3D,
+  secundario #6B6B6B. La firma usa los datos de CONTACT (lib/design-tokens.ts).
+-->
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respuesta automática DTD</title>
+    <style>
+      :root {
+        --base: #FBFAF7; --elevated: #F2F0EC; --borde: #E8E6E2;
+        --ink: #0F1E3D; --secundario: #6B6B6B; --wine: #7F0F1A; --wine-deep: #5E0A12;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--base); color: var(--ink); font: 15px/23px Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+      main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+      h1 { font-size: 24px; line-height: 30px; margin: 0 0 6px; }
+      h2 { font-size: 17px; line-height: 24px; margin: 36px 0 10px; }
+      .nota { color: var(--secundario); margin: 0 0 20px; }
+      .etiqueta { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--wine); margin-bottom: 8px; }
+      .bandeja { border: 1px solid var(--borde); border-radius: 16px; background: #FFFFFF; overflow: hidden; }
+      .bandeja-cabecera { background: var(--elevated); border-bottom: 1px solid var(--borde); padding: 12px 20px; font-size: 13px; line-height: 20px; color: var(--secundario); }
+      .bandeja-cabecera b { color: var(--ink); font-weight: 600; }
+      .bandeja-cuerpo { padding: 24px 28px 28px; }
+      .acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 0; }
+      button { font: inherit; font-weight: 700; font-size: 14px; border-radius: 10px; padding: 10px 16px; cursor: pointer; border: 1px solid var(--wine); background: var(--wine); color: #FFFFFF; }
+      button:hover { background: var(--wine-deep); }
+      button.secundario { background: #FFFFFF; color: var(--wine); }
+      button.secundario:hover { background: var(--elevated); }
+      .aviso { font-size: 13px; color: var(--secundario); }
+      pre { margin: 0; white-space: pre-wrap; font: 14px/22px ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+      ol { padding-left: 22px; }
+      li { margin-bottom: 6px; }
+      code { font: 13px ui-monospace, Consolas, monospace; background: var(--elevated); padding: 1px 5px; border-radius: 4px; }
+      @media (max-width: 600px) { .bandeja-cuerpo { padding: 20px 18px 22px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Respuesta automática de notificaciones@</h1>
+      <p class="nota">Lo que recibe quien le escribe a <b>notificaciones@dtdcargo.com</b>. Hostinger la manda una vez por remitente cada 24 horas.</p>
+
+      <span class="etiqueta">Asunto</span>
+      <div class="bandeja"><div class="bandeja-cuerpo"><pre id="asunto">DTD Cargo | Este buzón solo envía avisos</pre></div></div>
+      <div class="acciones"><button class="secundario" data-copiar="asunto">Copiar asunto</button></div>
+
+      <h2><span class="etiqueta">Opción A</span><br>Con formato (la recomendada)</h2>
+      <p class="nota">Aplicada el 2026-10-31. El editor de Hostinger (CKEditor 5) borra los colores, los tamaños y el logo al pegar. Quedan el título, los párrafos, las negritas y los enlaces.</p>
+      <div class="bandeja">
+        <div class="bandeja-cabecera"><b>DTD Cargo</b> &lt;notificaciones@dtdcargo.com&gt; · DTD Cargo | Este buzón solo envía avisos</div>
+        <div class="bandeja-cuerpo">
+          <!-- Desde aquí hasta «fin del mensaje» es lo que se copia y se pega en Hostinger. -->
+          <div id="mensaje" style="font-family: Archivo, Arial, Helvetica, sans-serif; color: #0F1E3D; font-size: 15px; line-height: 23px;">
+            <p style="margin: 0 0 20px;"><img src="https://chat.dtdcargo.com/dtd-marca/dtdcargo-isologo-correo.png" width="56" height="56" alt="DTD Cargo" style="display: block; width: 56px; height: 56px; border: 0;"></p>
+            <p style="margin: 0 0 14px; font-size: 21px; line-height: 28px; font-weight: 800; color: #0F1E3D;">Este buzón solo envía avisos</p>
+            <p style="margin: 0 0 12px;">Hola, gracias por escribirnos.</p>
+            <p style="margin: 0 0 12px;">Este correo, <b>notificaciones@dtdcargo.com</b>, solo envía avisos de DTD Cargo y no lee respuestas. Por eso tu mensaje no llega a nuestro equipo.</p>
+            <p style="margin: 0 0 24px;">Para escribirnos, usa <a href="mailto:vzla@dtdcargo.com" style="color: #7F0F1A; font-weight: 700; text-decoration: underline;">vzla@dtdcargo.com</a>. Allí te atiende nuestro equipo.</p>
+            <p style="margin: 0 0 2px; font-size: 16px; line-height: 22px; font-weight: 800;"><span style="color: #7F0F1A;">DTD</span> <span style="color: #0F1E3D;">Cargo</span></p>
+            <p style="margin: 0 0 10px; font-size: 13px; line-height: 19px;"><span style="color: #7F0F1A;">Con Confianza,</span> <span style="color: #0F1E3D;">de China a tu puerta.</span></p>
+            <p style="margin: 0 0 2px; font-size: 13px; line-height: 19px; color: #6B6B6B;">Teléfono <a href="tel:+582414147886" style="color: #0F1E3D; font-weight: 600; text-decoration: none;">+58&nbsp;241&nbsp;414&nbsp;7886</a> · WhatsApp <a href="https://wa.me/584121668021" style="color: #7F0F1A; font-weight: 600; text-decoration: none;">+58&nbsp;412&nbsp;166&nbsp;8021</a> · <a href="https://dtdcargo.com" style="color: #0F1E3D; font-weight: 600; text-decoration: none;">www.dtdcargo.com</a></p>
+            <p style="margin: 0; font-size: 13px; line-height: 19px; color: #6B6B6B;">Torre Profesional Kokuy, Calle 151, Valencia, Carabobo, Venezuela</p>
+          </div>
+          <!-- fin del mensaje -->
+        </div>
+      </div>
+      <div class="acciones">
+        <button data-copiar="mensaje" data-formato="html">Copiar mensaje con formato</button>
+        <span class="aviso" id="estado-mensaje"></span>
+      </div>
+
+      <h2><span class="etiqueta">Opción B</span><br>Solo texto (si Hostinger borra el formato)</h2>
+      <div class="bandeja">
+        <div class="bandeja-cabecera"><b>DTD Cargo</b> &lt;notificaciones@dtdcargo.com&gt; · DTD Cargo | Este buzón solo envía avisos</div>
+        <div class="bandeja-cuerpo"><pre id="texto">Este buzón solo envía avisos
+
+Hola, gracias por escribirnos.
+
+Este correo (notificaciones@dtdcargo.com) solo envía avisos de DTD Cargo y no lee respuestas. Por eso tu mensaje no llega a nuestro equipo.
+
+Para escribirnos, usa vzla@dtdcargo.com. Allí te atiende nuestro equipo.
+
+--
+DTD Cargo
+Con Confianza, de China a tu puerta.
+
+Teléfono: +58 241 414 7886
+WhatsApp: +58 412 166 8021
+www.dtdcargo.com
+Torre Profesional Kokuy, Calle 151, Valencia, Carabobo, Venezuela</pre></div>
+      </div>
+      <div class="acciones">
+        <button class="secundario" data-copiar="texto">Copiar solo texto</button>
+        <span class="aviso" id="estado-texto"></span>
+      </div>
+
+      <h2>Cómo pegarlo en Hostinger</h2>
+      <ol>
+        <li>Abre esta página en Chrome (doble clic en el archivo) y entra a hPanel: <b>Emails → dtdcargo.com → Administrar → Respuesta automática</b>.</li>
+        <li>En <b>Administrar respuestas automáticas</b>, abre el menú <b>⋮</b> de la de <code>notificaciones@dtdcargo.com</code> y elige <b>Editar</b>.</li>
+        <li><b>Asunto:</b> borra el actual, pulsa «Copiar asunto» aquí y pégalo.</li>
+        <li><b>Mensaje:</b> borra todo el texto actual. Pulsa «Copiar mensaje con formato» aquí y pega con <b>Ctrl+V</b> (no con Ctrl+Shift+V, que quita el formato).</li>
+        <li>Revisa lo pegado en el editor: el título, las negritas y el enlace a vzla@. El logo y los colores no aparecen porque el editor los borra; el texto queda completo. Si el editor muestra todo sin formato, borra y usa la opción B.</li>
+        <li>Deja las fechas como están (empieza el 2026-10-29, sin fecha límite) y pulsa <b>Guardar</b>. Si no guarda, cambia los «·» del mensaje por «|» y prueba otra vez.</li>
+        <li>Para probarla, escribe a <code>notificaciones@dtdcargo.com</code> desde un correo que no le haya escrito en las últimas 24 horas y mira cómo llega.</li>
+      </ol>
+    </main>
+    <script>
+      function aviso(id, texto) {
+        var nodo = document.getElementById('estado-' + id);
+        if (nodo) nodo.textContent = texto;
+      }
+      function copiarSeleccion(nodo) {
+        var rango = document.createRange();
+        rango.selectNodeContents(nodo);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(rango);
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        sel.removeAllRanges();
+        return ok;
+      }
+      document.querySelectorAll('[data-copiar]').forEach(function (boton) {
+        boton.addEventListener('click', function () {
+          var id = boton.getAttribute('data-copiar');
+          var nodo = document.getElementById(id);
+          var conFormato = boton.getAttribute('data-formato') === 'html';
+          var listo = function () { aviso(id, 'Copiado. Ahora pégalo en Hostinger con Ctrl+V.'); };
+          var fallo = function () { aviso(id, copiarSeleccion(nodo) ? 'Copiado. Ahora pégalo en Hostinger con Ctrl+V.' : 'No se pudo copiar: selecciónalo con el mouse y usa Ctrl+C.'); };
+          try {
+            if (conFormato && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+              navigator.clipboard.write([new ClipboardItem({
+                'text/html': new Blob([nodo.outerHTML], { type: 'text/html' }),
+                'text/plain': new Blob([nodo.innerText], { type: 'text/plain' })
+              })]).then(listo, fallo);
+            } else if (!conFormato && navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(nodo.innerText).then(listo, fallo);
+            } else {
+              fallo();
+            }
+          } catch (e) { fallo(); }
+        });
+      });
+    </script>
+  </body>
+</html>

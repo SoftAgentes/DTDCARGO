@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   buildQuoteWhatsappText,
@@ -22,7 +23,6 @@ import {
   quoteWhatsappHref,
   type Quote,
 } from "@/lib/studio/quote-types";
-import type { KommoContactPick } from "@/lib/studio/kommo-convert";
 import {
   convertQuoteToShipment,
   duplicateQuote,
@@ -37,11 +37,9 @@ const SENT_SUCCESS_MS = 2500;
 
 export function QuoteDetailClient({
   quote,
-  kommoMatches = [],
   contactPhone = null,
 }: {
   quote: Quote;
-  kommoMatches?: KommoContactPick[];
   contactPhone?: string | null;
 }) {
   const router = useRouter();
@@ -131,42 +129,12 @@ export function QuoteDetailClient({
             </button>
           </div>
 
-          {kommoMatches.length > 0 && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                background: "var(--bg-elevated)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-sm)",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              <strong style={{ color: "var(--ink)" }}>
-                Coincide con el CRM:
-              </strong>{" "}
-              este teléfono ya figura en {kommoMatches.length} contacto
-              {kommoMatches.length > 1 ? "s" : ""} del CRM
-              {" ("}
-              {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
-              {kommoMatches.length > 3 ? "…" : ""}
-              {"). "}
-              Revisa antes de crear un cliente duplicado.
-            </div>
-          )}
-
           {linkError && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: "var(--s-3) 0 0",
-              }}
-            >
-              {linkError}
-            </p>
+            <div style={{ marginTop: "var(--s-3)" }}>
+              <Aviso tono="error" compacto>
+                {linkError}
+              </Aviso>
+            </div>
           )}
         </section>
       )}
@@ -384,20 +352,9 @@ export function QuoteDetailClient({
       </div>
 
       {error && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            margin: "0 0 12px",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
-          {error}
-        </p>
+        <div style={{ marginBottom: 12 }}>
+          <Aviso tono="error">{error}</Aviso>
+        </div>
       )}
 
       {editing && (

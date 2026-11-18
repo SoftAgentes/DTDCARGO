@@ -19,7 +19,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -100,7 +100,7 @@ function psql(file: string, { vars = {}, replace = {} }: Options = {}): string {
 }
 
 async function run(sql: string): Promise<{ error: string | null; notices: string[] }> {
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   const notices: string[] = [];
   try {
     await db.exec(sql, { onNotice: (notice) => notices.push(notice.message ?? "") });
@@ -190,7 +190,7 @@ describe("0479 · bandeja de avisos del Portal (PGlite)", () => {
 
   it("locks: sólo los que declara la cabecera sobre las tablas que ya existen", async () => {
     const fixture = psql(CONTRACT, { vars: { en_transaccion: "false", solo_fixture: "true" } });
-    const db = new PGlite();
+    const db = await pgliteLimpio();
     try {
       await db.exec(fixture);
       await db.exec("begin;\n" + FILE_0479);

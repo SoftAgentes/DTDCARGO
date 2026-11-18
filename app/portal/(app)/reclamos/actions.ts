@@ -28,8 +28,14 @@ import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { isClaimType } from "@/lib/studio/reclamos/claims-types";
 import {
   collectEvidenceFiles,
+  evidenceNotYetUploaded,
   uploadClaimEvidenceBatch,
 } from "@/lib/studio/reclamos/claim-evidence";
+import {
+  isClientRequestConflict,
+  isMissingClientRequestColumn,
+  readClientRequestId,
+} from "@/lib/shared/client-request";
 
 export type PortalClaimState = {
   ok?: boolean;
@@ -38,7 +44,50 @@ export type PortalClaimState = {
   createdCode?: string;
   /** true si algún archivo adjunto se descartó (inválido) o no pudo subir. */
   evidenceSkipped?: boolean;
+  /** El reclamo ya existía: un reintento del mismo envío (SDD-0599). */
+  replayed?: boolean;
 };
+
+type ExistingClaim = { id: string; claim_code: string };
+
+/** El reclamo que ya creó este intento. Sin 0512 la columna no existe, y sigue como un envío nuevo. */
+async function findClaimByRequest(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { tenantId: string; markbox: string; requestId: string },
+): Promise<ExistingClaim | null> {
+  const { data, error } = await admin
+    .from("client_claims")
+    .select("id, claim_code")
+    .eq("tenant_id", args.tenantId)
+    .eq("client_markbox", args.markbox)
+    .eq("client_request_id", args.requestId)
+    .is("deleted_at", null)
+    .maybeSingle<ExistingClaim>();
+  return error ? null : data;
+}
+
+/** Un reintento del mismo envío responde lo mismo que el primero, y sube sólo la evidencia que faltó. */
+async function replayClaim(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { tenantId: string; existing: ExistingClaim; formData: FormData; uploadedBy: string },
+): Promise<PortalClaimState> {
+  const { files, skipped } = collectEvidenceFiles(args.formData);
+  const faltan = await evidenceNotYetUploaded(admin, { claimId: args.existing.id, files });
+  const { uploaded } = await uploadClaimEvidenceBatch(admin, {
+    tenantId: args.tenantId,
+    claimId: args.existing.id,
+    files: faltan,
+    source: "portal",
+    uploadedBy: args.uploadedBy,
+  });
+  revalidatePath("/portal/soporte");
+  return {
+    ok: true,
+    createdCode: args.existing.claim_code,
+    evidenceSkipped: skipped > 0 || uploaded < faltan.length,
+    replayed: true,
+  };
+}
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v == null) return null;
@@ -76,6 +125,14 @@ export async function createPortalClaimAction(
 
   const admin = createAdminClient();
 
+  // Antes de gastar un correlativo: si este intento ya creó el reclamo, no crea otro.
+  const requestId = readClientRequestId(formData);
+  const scope = { tenantId, markbox: client.markbox };
+  if (requestId) {
+    const existing = await findClaimByRequest(admin, { ...scope, requestId });
+    if (existing) return replayClaim(admin, { tenantId, existing, formData, uploadedBy: principal.userId });
+  }
+
   // Embarque opcional: solo se vincula si es del propio cliente (tenant del
   // principal + markbox). El admin no tiene RLS: sin el tenant, un envío de otro
   // tenant con el mismo Shipping Mark pasaba la comparación de abajo.
@@ -106,29 +163,40 @@ export async function createPortalClaimAction(
   const claimCode = String(codeData);
 
   // Insert con campos CONTROLADOS por el servidor (el cliente no los provee).
-  const { data: inserted, error } = await admin
-    .from("client_claims")
-    .insert({
-      tenant_id: tenantId,
-      claim_code: claimCode,
-      client_id: client.id,
-      client_markbox: client.markbox,
-      client_name: client.name,
-      shipment_id: shipmentRefId,
-      shipment_code: shipmentCode,
-      container_code: null,
-      claim_type: claimType,
-      description,
-      amount_usd: 0,
-      insured: false,
-      status: "reportado",
-      source: "portal",
-      created_by: principal.userId,
-    })
-    .select("id")
-    .maybeSingle<{ id: string }>();
+  const fila = {
+    tenant_id: tenantId,
+    claim_code: claimCode,
+    client_id: client.id,
+    client_markbox: client.markbox,
+    client_name: client.name,
+    shipment_id: shipmentRefId,
+    shipment_code: shipmentCode,
+    container_code: null,
+    claim_type: claimType,
+    description,
+    amount_usd: 0,
+    insured: false,
+    status: "reportado",
+    source: "portal",
+    created_by: principal.userId,
+  };
+  const insertar = (row: typeof fila & { client_request_id?: string }) =>
+    admin.from("client_claims").insert(row).select("id").maybeSingle<{ id: string }>();
+
+  let { data: inserted, error } = await insertar(
+    requestId ? { ...fila, client_request_id: requestId } : fila,
+  );
+  // Sin 0512 la columna no existe: el reclamo entra sin candado, como antes.
+  if (isMissingClientRequestColumn(error)) {
+    ({ data: inserted, error } = await insertar(fila));
+  }
 
   if (error) {
+    if (requestId && isClientRequestConflict(error)) {
+      // Otro intento del mismo envío ganó la carrera: ese es el reclamo.
+      const existing = await findClaimByRequest(admin, { ...scope, requestId });
+      if (existing) return replayClaim(admin, { tenantId, existing, formData, uploadedBy: principal.userId });
+    }
     if (error.code === "23505") {
       return { error: "Hubo un cruce al registrar. Intenta de nuevo." };
     }

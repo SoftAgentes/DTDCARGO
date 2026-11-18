@@ -24,7 +24,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/studio/contabilidad",
   useSearchParams: () => new URLSearchParams("tab=diario"),
 }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), info: vi.fn(), error: vi.fn() }));
+const toast = vi.hoisted(() => ({ success: vi.fn(), info: vi.fn(), error: vi.fn(), show: vi.fn() }));
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({ useToast: () => toast }));
 
 import { LibroDiarioTab } from "../_components/LibroDiarioTab";
@@ -42,6 +42,7 @@ const asiento = (id: string, status: JournalEntry["status"], entry_date: string)
   memo: null,
   status,
   source: "manual",
+  protection: { state: "sin_vinculo_visible", reading: "completa", relation: "ninguno_visible" },
   invoice_id: null,
   receipt_id: null,
   bill_id: null,
@@ -72,6 +73,7 @@ function montar(entries: JournalEntry[], avisoCierre: AvisoCierre | null = CON_C
 beforeEach(() => {
   for (const f of Object.values(acciones)) f.mockReset();
   toast.success.mockReset();
+  toast.show.mockReset();
 });
 
 describe("SDD-0566 · el Libro diario con un período cerrado", () => {
@@ -108,7 +110,14 @@ describe("SDD-0566 · el Libro diario con un período cerrado", () => {
     fireEvent.click(enviar);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(acciones.postEntry).toHaveBeenCalledWith("cerrado", { superclave: CLAVE, motivo: "Faltaba asentar" });
-    expect(toast.success).toHaveBeenCalledWith("Asiento A-cerrado asentado con excepción al cierre");
+    expect(toast.show).toHaveBeenCalledWith({
+      message: "Asiento A-cerrado asentado con excepción al cierre",
+      eventKey: "accounting:journal-entry:closing-exception-applied",
+      tone: "success",
+      priority: "normal",
+      scope: "module",
+      dedupeKey: "accounting:journal-entry:closing-exception-applied:asentar:cerrado",
+    });
   });
 
   it("si la clave es mala, muestra el error y vacía la superclave (el motivo queda)", async () => {

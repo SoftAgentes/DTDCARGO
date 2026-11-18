@@ -24,6 +24,7 @@ import { Avatar } from "@/app/studio/_components/ui/Avatar";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   MAIL_SIGNATURE_LANGS,
@@ -433,31 +434,17 @@ function SignatureEditor({
           </form>
 
           {state.error && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                borderRadius: "var(--r-md)",
-                font: "500 12px/1.4 var(--f-sans)",
-              }}
-            >
-              {state.error}
+            <div style={{ marginTop: 14 }}>
+              <Aviso tono="error" compacto>
+                {state.error}
+              </Aviso>
             </div>
           )}
           {state.ok && state.message && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                background: "var(--success-bg)",
-                color: "var(--success)",
-                borderRadius: "var(--r-md)",
-                font: "500 12px/1.4 var(--f-sans)",
-              }}
-            >
-              {state.message}
+            <div style={{ marginTop: 14 }}>
+              <Aviso tono="exito" compacto>
+                {state.message}
+              </Aviso>
             </div>
           )}
 
@@ -512,29 +499,11 @@ function SignatureEditor({
             // externo sin sanitizar.
             dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
-          <div
-            style={{
-              marginTop: 12,
-              padding: "10px 12px",
-              background: "var(--info-bg)",
-              borderRadius: "var(--r-md)",
-              display: "flex",
-              gap: 8,
-              alignItems: "flex-start",
-            }}
-          >
-            <span style={{ color: "var(--info)", flexShrink: 0 }}>
-              {Icon.info(13)}
-            </span>
-            <div
-              style={{
-                font: "500 11.5px/1.4 var(--f-sans)",
-                color: "var(--ink)",
-              }}
-            >
+          <div style={{ marginTop: 12 }}>
+            <Aviso tono="info" compacto>
               La firma se aplica al final de cada correo que envíes desde el ERP.
               Puedes sobreescribirla manualmente en Envío manual.
-            </div>
+            </Aviso>
           </div>
         </Card>
       </div>

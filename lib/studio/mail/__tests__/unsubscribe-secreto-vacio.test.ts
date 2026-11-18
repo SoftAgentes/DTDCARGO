@@ -119,14 +119,14 @@ describe("ruta de baja con EMAIL_UNSUBSCRIBE_SECRET vacía", () => {
     stubSecrets({ dedicated, serviceRole: SERVICE_ROLE });
     const falsificado = signUnsubscribeToken(PAYLOAD, dedicated);
 
-    expect(await visit(falsificado)).toBe("https://preview.example/email/baja?estado=invalido");
+    expect(await visit(falsificado)).toBe("/email/baja?estado=invalido");
     expect(updates).toHaveLength(0);
   });
 
   it("rechaza un token HMAC histórico firmado con la clave vacía", async () => {
     stubSecrets({ dedicated: "", serviceRole: SERVICE_ROLE });
 
-    expect(await visit(legacyToken(""))).toBe("https://preview.example/email/baja?estado=invalido");
+    expect(await visit(legacyToken(""))).toBe("/email/baja?estado=invalido");
     expect(updates).toHaveLength(0);
   });
 
@@ -134,7 +134,7 @@ describe("ruta de baja con EMAIL_UNSUBSCRIBE_SECRET vacía", () => {
     stubSecrets({ dedicated: "", serviceRole: SERVICE_ROLE });
     const token = signUnsubscribeToken(PAYLOAD, SERVICE_ROLE);
 
-    expect(await visit(token)).toBe("https://preview.example/email/baja?estado=actualidad");
+    expect(await visit(token)).toBe("/email/baja?estado=actualidad");
     expect(updates).toHaveLength(1);
   });
 
@@ -142,7 +142,7 @@ describe("ruta de baja con EMAIL_UNSUBSCRIBE_SECRET vacía", () => {
     stubSecrets({ dedicated: "  ", serviceRole: SERVICE_ROLE });
 
     expect(await visit(legacyToken(SERVICE_ROLE))).toBe(
-      "https://preview.example/email/baja?estado=actualidad",
+      "/email/baja?estado=actualidad",
     );
     expect(updates).toHaveLength(1);
   });
@@ -151,10 +151,10 @@ describe("ruta de baja con EMAIL_UNSUBSCRIBE_SECRET vacía", () => {
     stubSecrets({ dedicated: DEDICADO, serviceRole: SERVICE_ROLE });
 
     expect(await visit(signUnsubscribeToken(PAYLOAD, SERVICE_ROLE))).toBe(
-      "https://preview.example/email/baja?estado=invalido",
+      "/email/baja?estado=invalido",
     );
     expect(await visit(signUnsubscribeToken(PAYLOAD, DEDICADO))).toBe(
-      "https://preview.example/email/baja?estado=actualidad",
+      "/email/baja?estado=actualidad",
     );
     expect(updates).toHaveLength(1);
   });
@@ -181,9 +181,9 @@ describe("sin ningún secreto la baja falla cerrada", () => {
     const clave = env.dedicated ?? "";
 
     expect(await visit(signUnsubscribeToken(PAYLOAD, clave))).toBe(
-      "https://preview.example/email/baja?estado=error",
+      "/email/baja?estado=error",
     );
-    expect(await visit(legacyToken(clave))).toBe("https://preview.example/email/baja?estado=error");
+    expect(await visit(legacyToken(clave))).toBe("/email/baja?estado=error");
 
     const token = signUnsubscribeToken(PAYLOAD, clave);
     const post = await postLegacy(

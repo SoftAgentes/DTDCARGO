@@ -175,7 +175,24 @@ async function intentar(
 
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec(SCHEMA + "\n" + FILE_0496 + "\n" + FIXTURE);
+  // FICTICIO / NO CANÓNICO: sólo satisface las dependencias del guard de 0496.
+  // Los previews no deben invocar al escritor: cualquier llamada hace fallar el caso.
+  const AUDITORIA_DRY_RUN_FICTICIA = `
+create table public.entity_audit_log (id uuid primary key);
+create table public.audit_entity_types (entity_type text primary key, status text not null);
+insert into public.audit_entity_types (entity_type, status)
+  values ('warehouse_receipt_cn', 'active');
+create function public.append_audit_event(
+  uuid, text, uuid, text, uuid, text, text, text, text,
+  jsonb, jsonb, jsonb, text, integer, text
+) returns uuid language plpgsql set search_path = '' as $paridad_audit_ficticio$
+begin
+  raise exception 'FICTICIO_PARIDAD_DRY_RUN: append_audit_event no debe ejecutarse'
+    using errcode = 'P0001';
+end;
+$paridad_audit_ficticio$;
+`;
+  await db.exec(SCHEMA + "\n" + AUDITORIA_DRY_RUN_FICTICIA + "\n" + FILE_0496 + "\n" + FIXTURE);
 }, SLOW);
 
 afterAll(async () => {

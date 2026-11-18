@@ -17,6 +17,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
 import { listNotificationsForUser } from "@/lib/studio/bug-queries";
 import { listUnreadConversationsForBadge } from "@/lib/studio/conversaciones/conversations-queries";
+import { listNoLeidasBandeja, type ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
@@ -24,12 +25,16 @@ import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
+import { getMyModuleGrants } from "@/lib/studio/user-module-grants-queries";
+import { canAccessModule } from "@/lib/studio/rbac";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 import { Suspense } from "react";
 import { DeniedToast } from "./_components/DeniedToast";
+import { GuiaStudio } from "../_components/guia/GuiaStudio";
+import { leerEstadoGuia } from "@/lib/studio/guia/estado-queries";
 
 export default async function StudioAppLayout({
   children,
@@ -142,6 +147,9 @@ export default async function StudioAppLayout({
     initialNotifications,
     initialUnreadConversations,
     roleModuleOverrides,
+    myModuleGrants,
+    bandejaNoLeidas,
+    estadoGuia,
   ] = await Promise.all([
     listFeatureFlags(supabase),
     countActiveAlerts(supabase),
@@ -158,6 +166,17 @@ export default async function StudioAppLayout({
     // Matriz editable (SDD-0252, migr 0357): sólo importa para no-admin — el
     // sidebar sólo ESCONDE módulos (UX), el gate real es requireModuleView.
     role && role !== "admin" ? getRoleModuleOverrides(supabase) : Promise.resolve({}),
+    // Accesos adicionales de la persona (SDD-0622, migr 0538): el sidebar muestra
+    // también los módulos que solo tiene por extra. Mismo carácter: solo UX.
+    role && role !== "admin" ? getMyModuleGrants(supabase, user.id) : Promise.resolve({}),
+    // Badge de la Bandeja de Chatwoot (SDD-0585, E2-D21). RLS scopea al tenant;
+    // el sidebar solo lo pinta si el item se ve. Best-effort.
+    tenantLink?.tenant_id
+      ? listNoLeidasBandeja(supabase, tenantLink.tenant_id).catch(() => [] as ConversacionNoLeida[])
+      : Promise.resolve([] as ConversacionNoLeida[]),
+    // Estado de la guía por usuario (SDD-0589, 9.3). Nunca lanza: sin la 0517
+    // devuelve null y la guía sigue como en 9.2.
+    leerEstadoGuia(supabase, user.id),
   ]);
 
   return (
@@ -177,9 +196,11 @@ export default async function StudioAppLayout({
             <StudioSidebar
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
+              bandeja={{ tenantId: tenantLink?.tenant_id ?? null, initial: bandejaNoLeidas }}
               role={role}
               warehouseScope={warehouseScope}
               overrides={roleModuleOverrides}
+              grants={myModuleGrants}
             />
 
             <main
@@ -196,12 +217,15 @@ export default async function StudioAppLayout({
                 initialNotifications={initialNotifications}
                 conversationsTenantId={tenantLink?.tenant_id ?? null}
                 initialUnreadConversations={initialUnreadConversations}
+                showConversations={canAccessModule(role, "conversaciones", roleModuleOverrides, myModuleGrants)}
               />
+              {/* El tope de ancho vive en `.studio-content` (studio.css) para que una
+                  pantalla que lo pide (SDD-0648: Embudos del CRM) use todo el ancho. */}
               <div
+                className="studio-content"
                 style={{
                   flex: 1,
                   padding: "var(--s-6) var(--s-8)",
-                  maxWidth: "var(--content-max)",
                   width: "100%",
                   margin: "0 auto",
                 }}
@@ -219,6 +243,10 @@ export default async function StudioAppLayout({
           {/* RBAC: aviso cuando requireModuleView redirige por falta de acceso. */}
           <Suspense fallback={null}>
             <DeniedToast />
+          </Suspense>
+          {/* Guía «Antes en Kommo → Ahora aquí» · SDD-0589 (9.2 a 9.5). */}
+          <Suspense fallback={null}>
+            <GuiaStudio estadoInicial={estadoGuia} rol={role} />
           </Suspense>
         </WiringProvider>
       </ToastProvider>

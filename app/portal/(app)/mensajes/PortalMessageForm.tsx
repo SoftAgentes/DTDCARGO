@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   sendPortalMessageAction,
   type PortalMessageState,
 } from "./actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initial: PortalMessageState = {};
 
@@ -19,7 +20,12 @@ const initial: PortalMessageState = {};
  * "Actualizar mis datos" en Mi perfil → abre el chat con la consulta ya escrita).
  */
 export function PortalMessageForm({ prefill }: { prefill?: string }) {
-  const [state, action, pending] = useActionState(sendPortalMessageAction, initial);
+  const [state, formProps, pending] = useActionKeepingDraft(
+    sendPortalMessageAction,
+    initial,
+    "No pudimos confirmar si tu mensaje llegó. Sigue aquí. Intenta de nuevo: no se enviará dos veces.",
+    { requestId: true },
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
@@ -31,7 +37,7 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
   }, [state, router]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-3">
+    <form ref={formRef} {...formProps} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
           Tu mensaje
@@ -48,6 +54,12 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
         />
       </label>
       {state.error && <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>}
+      {state.replayed && (
+        <p role="status" className="text-[13px] text-grey-700 leading-[1.5]">
+          Tu mensaje ya había llegado en tu primer envío. Si lo cambiaste después, envía el cambio en
+          otro mensaje.
+        </p>
+      )}
       <div className="flex justify-end">
         <button
           type="submit"

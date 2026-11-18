@@ -1,0 +1,20 @@
+Autorización de Sam para aplicar la 0517 (SDD-0589, paso 9.3 de SDD-0582), en prueba y en producción.
+
+Migración: 0517_user_guide_prefs (supabase/migrations/0517_user_guide_prefs.sql), PR #384.
+
+Pregunta del Director General a Sam, por el selector de su chat, el 2026-11-06 hacia las 17:35Z:
+«¿Autorizas aplicar la 0517?», después de explicarle que la guía se abre sola la primera vez a cada
+usuario, con «No volver a mostrar». La opción elegida decía: «Primero en prueba, con lectura previa;
+después en producción, con respaldo».
+
+Respuesta literal de Sam: «Prueba y producción (Recomendado)».
+
+La autorización se la dio Sam al Director General. El Director General la relayó a la sesión del
+Subdirector de Chatwoot (eeeb0433-bf95-4b6b-8cdc-d201699e5f95) hacia las 17:40Z y le encargó el ensayo
+en prueba, la lectura previa y los SQL de control. La aplicación en producción la hace el Director
+General, con respaldo, en una ventana corta.
+
+Fusión, que es otro OK: a «¿Autorizas fusionar a main la #383 (los correos de Chatwoot como pieza propia
+en el control de versiones) y la #384 (estado de la guía por usuario, paso 9.3)? Fusionar no aplica
+ninguna migración ni publica la web.», Sam respondió «Sí, las dos (Recomendado)». Orden: primero la 0517
+y después la publicación de la web que trae la guía (migrate-first).

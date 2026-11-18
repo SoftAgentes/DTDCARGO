@@ -19,6 +19,36 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
+import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
+import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com").replace(/\/+$/, "");
+
+/**
+ * El reporte diario para Discord (SDD-0606): conteos del día y el enlace al
+ * Studio. SIN montos —los gastos van como cantidad de registros, no como
+ * total— y sin el texto redactado por el modelo, que sí trae cifras de dinero.
+ */
+export function buildDiscordBrief(kpis?: CeoBriefKpis): MinimalAlert {
+  const base: MinimalAlert = {
+    titulo: "Reporte diario de operaciones",
+    url: `${SITE_URL}/studio`,
+  };
+  if (!kpis) return base;
+  return {
+    ...base,
+    codigo: kpis.date_iso,
+    conteos: [
+      { etiqueta: "Recepciones en China", valor: kpis.receipts_cn_count },
+      { etiqueta: "Recepciones con incidencia", valor: kpis.receipts_cn_incidents },
+      { etiqueta: "Despachos listos", valor: kpis.od_lista },
+      { etiqueta: "Despachos en ruta", valor: kpis.od_en_ruta },
+      { etiqueta: "Despachos entregados", valor: kpis.od_entregada },
+      { etiqueta: "Gastos cargados", valor: kpis.expenses_count },
+      { etiqueta: "Incidencias sin resolver", valor: kpis.incidents_open },
+    ],
+  };
+}
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -90,7 +120,7 @@ export async function fetchCeoBriefKpis(
     // Gastos del día
     supabase
       .from("expenses")
-      .select("amount, currency", { count: "exact" })
+      .select("amount_usd", { count: "exact" })
       .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .gte("created_at", startIso)
@@ -124,21 +154,11 @@ export async function fetchCeoBriefKpis(
   const odBreakdown: Record<string, number> = {};
   for (const row of odRows) odBreakdown[row.status] = (odBreakdown[row.status] ?? 0) + 1;
 
-  // Aggregate expenses (convertir todo a USD)
-  // Tasas hardcoded V1 — para producción mejor leer de mail_config o un settings.
-  const VES_TO_USD = 1 / 36.5;
-  const CNY_TO_USD = 1 / 7.18;
-  const expenses = (expensesRes.data ?? []) as {
-    amount: number;
-    currency: string;
-  }[];
+  // SDD-0572: sumar `amount_usd`, que cada gasto guarda con su tasa (antes se
+  // convertía con 36,5 y 7,18 fijos).
+  const expenses = (expensesRes.data ?? []) as { amount_usd: number | string | null }[];
   const expensesCount = expensesRes.count ?? expenses.length;
-  const expensesUsd = expenses.reduce((s, e) => {
-    if (e.currency === "USD") return s + e.amount;
-    if (e.currency === "VES") return s + e.amount * VES_TO_USD;
-    if (e.currency === "CNY") return s + e.amount * CNY_TO_USD;
-    return s;
-  }, 0);
+  const expensesUsd = expenses.reduce((s, e) => s + (Number(e.amount_usd) || 0), 0);
 
   return {
     tenant_id: tenantId,
@@ -248,7 +268,24 @@ export async function sendCeoBriefToTenant(
   supabase: SupabaseClient,
   tenantId: string,
   brief: string,
+  kpis?: CeoBriefKpis,
 ): Promise<{ ok: boolean; sentTo?: string; error?: string }> {
+  // SDD-0606 · Discord primero. Si entrega, el texto con montos no sale por
+  // ningún lado: a Discord van sólo los conteos.
+  const enDiscord = await sendDiscordCategoryAlert(
+    supabase,
+    tenantId,
+    "reportes",
+    buildDiscordBrief(kpis),
+    { logTag: "ceo-brief" },
+  );
+  if (enDiscord.handled) {
+    return {
+      ok: true,
+      sentTo: enDiscord.outcome === "en-cola" ? "discord (en cola)" : "discord",
+    };
+  }
+
   const routed = await dispatchTelegramAlert(
     supabase,
     tenantId,

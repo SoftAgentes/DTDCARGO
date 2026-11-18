@@ -193,7 +193,16 @@ export function computePayrollRunKpis(
 export type CalcRules = {
   pay_frequency: PayFrequency;
   day_method: DayMethod;
-  min_salary: number; // SML de referencia para los topes (en nº de SM)
+  /** Salario mínimo en BOLÍVARES (así lo guarda payroll_rules). Base de los topes. */
+  min_salary: number;
+  /**
+   * Bolívares por 1 USD (tasa BCV del día del corte). Los topes de SSO y RPE son
+   * mensuales y en Bs; con esta tasa pasan a USD, que es la moneda del sueldo
+   * (SDD-0653, D6). Sin ella, y con topes activos, el motor se niega a calcular.
+   */
+  ves_per_usd?: number | null;
+  /** Qué tasa es, para el renglón del recibo: «BCV del 2026-11-17» o «PROVISIONAL BCV del …». */
+  ves_tasa_nota?: string | null;
   sso_pct: number;
   rpe_pct: number;
   faov_pct: number;
@@ -232,6 +241,23 @@ export type CalcReciboResult = {
   breakdown: ReciboBreakdownRow[];
 };
 
+/** ¿Hay algún tope de SSO o RPE activo (cap > 0 y salario mínimo > 0)? Entonces hace falta la tasa. */
+export function topesNecesitanTasa(
+  r: Pick<CalcRules, "min_salary" | "sso_cap_sm" | "rpe_cap_sm">,
+): boolean {
+  return num(r.min_salary) > 0 && (num(r.sso_cap_sm) > 0 || num(r.rpe_cap_sm) > 0);
+}
+
+/** El motor no calcula un tope en Bs contra un sueldo en USD sin tasa: falla cerrado. */
+export class FaltaTasaParaTopeError extends Error {
+  constructor() {
+    super(
+      "Falta la tasa de bolívares para convertir el tope de SSO y RPE (salario mínimo en Bs) a USD.",
+    );
+    this.name = "FaltaTasaParaTopeError";
+  }
+}
+
 /** Días del período del corte según la frecuencia de pago (base 30/mes). */
 export function periodDaysForFrequency(
   freq: PayFrequency,
@@ -262,9 +288,11 @@ export function periodDaysForFrequency(
  *  - valor hora: `base / 30 / 8` (jornada de 8 h, divisor LOTTT mecánico).
  *  - hora extra diurna: `horas × valor_hora × (1 + overtime_pct/100)` (recargo).
  *  - bono nocturno: `horas × valor_hora × (night_pct/100)` (recargo sobre normal).
- *  - deducciones SSO/RPE/FAOV: sobre el SUELDO BASE prorrateado, con tope =
- *    `cap_sm × min_salary` (en SM). FAOV sin tope. (HANDOFF §3: «las deducciones
- *    se calculan SOLO sobre el sueldo base» — NO se suman bonos salariales.)
+ *  - deducciones SSO/RPE/FAOV: sobre el SUELDO BASE prorrateado. El tope es
+ *    mensual y está en Bs (`cap_sm × min_salary`); se pasa a USD con la tasa del
+ *    día del corte (`ves_per_usd`) y se prorratea al período (días / 30), igual
+ *    que el sueldo. FAOV sin tope. (HANDOFF §3: «las deducciones se calculan SOLO
+ *    sobre el sueldo base» — NO se suman bonos salariales.) SDD-0653 D6.
  *  - cuota de préstamo: `min(installment, saldo)` (no descuenta de más).
  *
  * IMPORTANTE — frontera: este motor NO consume `rules.salarial_bonuses`; esa
@@ -324,13 +352,21 @@ export function calcReciboDraft(args: CalcReciboArgs): CalcReciboResult {
 
   // 3) Deducciones SSO/RPE/FAOV sobre el sueldo base prorrateado, con topes en SM.
   //    NO se suman bonos salariales (criterio del contador → no se consume aquí).
+  //    El tope mensual en Bs pasa a USD con la tasa del corte y se prorratea al
+  //    período con los mismos días que el sueldo (SDD-0653 D6).
   const minSalary = Math.max(0, num(r.min_salary));
-  const ssoCap = num(r.sso_cap_sm) > 0 && minSalary > 0
-    ? round2(num(r.sso_cap_sm) * minSalary)
-    : Infinity;
-  const rpeCap = num(r.rpe_cap_sm) > 0 && minSalary > 0
-    ? round2(num(r.rpe_cap_sm) * minSalary)
-    : Infinity;
+  const vesPerUsd = num(r.ves_per_usd);
+  if (topesNecesitanTasa(r) && !(vesPerUsd > 0)) throw new FaltaTasaParaTopeError();
+  const capMensualUsd = (capSm: number): number =>
+    num(capSm) > 0 && minSalary > 0 ? (num(capSm) * minSalary) / vesPerUsd : Infinity;
+  const ssoCapMes = capMensualUsd(r.sso_cap_sm);
+  const rpeCapMes = capMensualUsd(r.rpe_cap_sm);
+  const ssoCap = Number.isFinite(ssoCapMes) ? round2((ssoCapMes * effectiveDays) / 30) : Infinity;
+  const rpeCap = Number.isFinite(rpeCapMes) ? round2((rpeCapMes * effectiveDays) / 30) : Infinity;
+  const notaTope = (capSm: number, capMes: number): string =>
+    Number.isFinite(capMes)
+      ? `tope ${capSm} SM = Bs ${round2(num(capSm) * minSalary)} ≈ USD ${round2(capMes)}/mes a Bs ${vesPerUsd}/USD, tasa ${r.ves_tasa_nota ?? "sin fecha"}`
+      : "sin tope";
 
   const ssoBase = Math.min(salaryPeriod, ssoCap);
   const rpeBase = Math.min(salaryPeriod, rpeCap);
@@ -342,10 +378,10 @@ export function calcReciboDraft(args: CalcReciboArgs): CalcReciboResult {
   const statutory = round2(ssoDed + rpeDed + faovDed);
 
   if (ssoDed > 0) {
-    breakdown.push({ label: "SSO / IVSS", amount_usd: -ssoDed, note: `${r.sso_pct}% (tope ${r.sso_cap_sm} SM)` });
+    breakdown.push({ label: "SSO / IVSS", amount_usd: -ssoDed, note: `${r.sso_pct}% (${notaTope(r.sso_cap_sm, ssoCapMes)})` });
   }
   if (rpeDed > 0) {
-    breakdown.push({ label: "RPE", amount_usd: -rpeDed, note: `${r.rpe_pct}% (tope ${r.rpe_cap_sm} SM)` });
+    breakdown.push({ label: "RPE", amount_usd: -rpeDed, note: `${r.rpe_pct}% (${notaTope(r.rpe_cap_sm, rpeCapMes)})` });
   }
   if (faovDed > 0) {
     breakdown.push({ label: "FAOV", amount_usd: -faovDed, note: `${r.faov_pct}% (sin tope)` });
@@ -382,7 +418,10 @@ export function calcReciboDraft(args: CalcReciboArgs): CalcReciboResult {
   };
 }
 
-/** Extrae el subconjunto mecánico de reglas que calcReciboDraft consume. */
+/**
+ * Extrae el subconjunto mecánico de reglas que calcReciboDraft consume.
+ * `vesPerUsd`: la tasa del corte para convertir los topes (SDD-0653 D6).
+ */
 export function calcRulesFrom(
   rules: Pick<
     PayrollRules,
@@ -397,11 +436,15 @@ export function calcRulesFrom(
     | "overtime_pct"
     | "night_pct"
   >,
+  vesPerUsd: number | null = null,
+  tasaNota: string | null = null,
 ): CalcRules {
   return {
     pay_frequency: rules.pay_frequency,
     day_method: rules.day_method,
     min_salary: num(rules.min_salary),
+    ves_per_usd: vesPerUsd !== null && num(vesPerUsd) > 0 ? num(vesPerUsd) : null,
+    ves_tasa_nota: tasaNota,
     sso_pct: num(rules.sso_pct),
     rpe_pct: num(rules.rpe_pct),
     faov_pct: num(rules.faov_pct),

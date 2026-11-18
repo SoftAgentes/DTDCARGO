@@ -13,6 +13,7 @@ import {
   accountBalances,
   computeBalances,
   listAccounts,
+  listAccountsComplete,
   type AccountBalanceMap,
 } from "@/lib/studio/account-queries";
 import type { Account } from "@/lib/studio/account-types";
@@ -25,6 +26,7 @@ import {
   type FacturaDeIngreso,
   type IngresoPeriodo,
   type RangoFechas,
+  type ContextoControlI2,
 } from "./ingreso-periodo";
 import {
   asientosPorDocumento,
@@ -48,6 +50,53 @@ import { cuadreSubdiario, type SaldoDeCuenta } from "./subdiario";
 
 type Fila = Record<string, unknown>;
 type Pagina = Parameters<typeof fetchAllPaged>[0];
+
+class ColumnaDeReversoAusente extends Error {}
+
+/**
+ * Los asientos del cruce de «Por contabilizar». Solo los orígenes documentales:
+ * un `referral_credit` también guarda `invoice_id` y no es el asiento de venta.
+ * SDD-0562: más `receipt_reclass`, para saber si un recibo identificado ya toca
+ * 1.1.2 (el cruce de «sin asiento» no la usa: filtra por origen). SDD-0573: más
+ * `invoice_reversal` y su `reverses_entry_id`, para saber qué asiento de venta
+ * tiene su contra-asiento (cuenta como anulado).
+ *
+ * Sin la 0497 la columna no existe (42703): se vuelve a leer sin ella y la
+ * pantalla degrada a lo de antes (sin reversos), en vez de no cargar.
+ */
+async function leerAsientosDelCruce(supabase: SupabaseClient): Promise<Fila[]> {
+  const leer = (columnas: string, conVinculo: boolean) =>
+    leerCompleto<Fila>("Por contabilizar · asientos", async (d, h) => {
+      const respuesta = await supabase
+        .from("journal_entries")
+        .select(columnas)
+        .is("deleted_at", null)
+        .in("status", ["asentado", "anulado"])
+        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass", "invoice_reversal"])
+        .order("id", { ascending: true })
+        .range(d, h);
+      if (respuesta.error) {
+        // El code nativo se reconoce antes de que fetchAllPaged lo pierda.
+        if (conVinculo && respuesta.error.code === "42703"
+          && /^column (?:(?:journal_entries|"journal_entries")\.)?(?:reverses_entry_id|"reverses_entry_id") does not exist$/.test(respuesta.error.message)) {
+          throw new ColumnaDeReversoAusente();
+        }
+        return respuesta;
+      }
+      if (!Array.isArray(respuesta.data)
+        || respuesta.data.some(a => !a || typeof a !== "object" || Array.isArray(a))) {
+        throw new Error("Por contabilizar · asientos: respuesta de página ilegible.");
+      }
+      return respuesta;
+    });
+  const base = "id, tenant_id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at";
+  try {
+    return await leer(`${base}, reverses_entry_id`, true);
+  } catch (e) {
+    if (!(e instanceof ColumnaDeReversoAusente)) throw e;
+    return await leer(base, false);
+  }
+}
 
 /** Lee completo o lanza con el nombre de lo que no se pudo leer. */
 async function leerCompleto<T>(nombre: string, page: Pagina): Promise<T[]> {
@@ -90,13 +139,16 @@ export async function saldosDeFacturas(
   rango: RangoFechas,
   accounts: Account[],
 ): Promise<AsientosDeFactura> {
+  // SDD-0573: con su contra-asiento (`invoice_reversal`), que resta en la fecha
+  // en que se anuló. El par suma cero; si el original cae en un período y el
+  // reverso en otro, cada uno muestra lo que pasó en el suyo.
   const asientos = await leerCompleto<Fila>("Control del mayor · asientos de factura", (d, h) =>
     supabase
       .from("journal_entries")
       .select("id, status, source, deleted_at, invoice_id")
       .eq("status", "asentado")
       .is("deleted_at", null)
-      .eq("source", ORIGEN_POR_TIPO.factura)
+      .in("source", [ORIGEN_POR_TIPO.factura, "invoice_reversal"])
       .gte("entry_date", rango.from)
       .lte("entry_date", rango.to)
       .order("id", { ascending: true })
@@ -104,10 +156,15 @@ export async function saldosDeFacturas(
   );
   const vivos = asientos.filter(
     (a) =>
-      a.status === "asentado" && a.deleted_at == null && a.source === ORIGEN_POR_TIPO.factura,
+      a.status === "asentado" && a.deleted_at == null
+      && (a.source === ORIGEN_POR_TIPO.factura || a.source === "invoice_reversal"),
   );
+  // Las facturas con asiento de venta: el reverso no hace comparable a una.
   const facturas = new Set(
-    vivos.map((a) => strOrNull(a.invoice_id)).filter((id): id is string => id != null),
+    vivos
+      .filter((a) => a.source === ORIGEN_POR_TIPO.factura)
+      .map((a) => strOrNull(a.invoice_id))
+      .filter((id): id is string => id != null),
   );
   const ids = vivos.map((a) => str(a.id));
   if (ids.length === 0) return { saldos: computeBalances(accounts, []), facturas };
@@ -153,6 +210,96 @@ export async function controlDelPeriodo(
   return controlDelMayor(accounts, balances, deFacturas.saldos, deFacturas.facturas);
 }
 
+/** Evidencia del puente I2. Fecha sólo para candidatos; extremos y metadata
+ * se resuelven por identidad sin convertirlos en ingreso oficial del rango.
+ * El cliente sigue siendo el de sesión/RLS, también con mayor precalculado.
+ */
+async function contextoDelIngreso(
+  supabase: SupabaseClient, rango: RangoFechas, facturas: readonly FacturaDeIngreso[],
+): Promise<ContextoControlI2> {
+  const columnas = "id, tenant_id, status, source, deleted_at, invoice_id, entry_date, reverses_entry_id";
+  // El paginador compartido tolera data:null. I2 necesita acreditar cada
+  // página antes de interpretar una ausencia; el dominio sigue en el puente.
+  async function paginaI2(nombre: string, pagina: PromiseLike<unknown>) {
+    const respuesta = await pagina;
+    if (!respuesta || typeof respuesta !== "object" || Array.isArray(respuesta)
+      || !("data" in respuesta) || !("error" in respuesta)) {
+      throw new Error(`${nombre}: respuesta de transporte ilegible.`);
+    }
+    if (respuesta.error !== null) {
+      // Conserva la identidad, código y causa del error nativo antes del paginador.
+      if (respuesta.error && typeof respuesta.error === "object" && !Array.isArray(respuesta.error)) {
+        throw respuesta.error;
+      }
+      throw new Error(`${nombre}: respuesta de error ilegible.`);
+    }
+    if (!Array.isArray(respuesta.data)) {
+      throw new Error(`${nombre}: la página no contiene un array de filas.`);
+    }
+    const filas: unknown[] = respuesta.data;
+    const legible = (fila: unknown): fila is Fila => {
+      if (!fila || typeof fila !== "object" || Array.isArray(fila) || !("id" in fila)
+        || typeof fila.id !== "string" || !fila.id.trim()) return false;
+      return Object.values(fila).every(v => v === null || typeof v === "string" || typeof v === "number");
+    };
+    if (!filas.every(legible)) {
+      throw new Error(`${nombre}: la página contiene una fila ilegible.`);
+    }
+    return { data: filas, error: null };
+  }
+  async function porIds(nombre: string, ids: string[], pagina: Parameters<typeof fetchAllByIds>[1]) {
+    const { rows, complete } = await fetchAllByIds<Fila>([...new Set(ids)],
+      (lote, d, h) => paginaI2(nombre, pagina(lote, d, h)));
+    if (!complete) throw new Error(`${nombre}: la lectura supera el tope; el control no se puede calcular completo.`);
+    return rows;
+  }
+  const asientos = await leerCompleto<Fila>("Ingreso I2 · candidatos del período", (d, h) => paginaI2(
+    "Ingreso I2 · candidatos del período",
+    supabase.from("journal_entries").select(columnas)
+      .in("source", ["invoice", "invoice_reversal"])
+      .gte("entry_date", rango.from).lte("entry_date", rango.to)
+      .order("id", { ascending: true }).range(d, h)));
+  const documentosIniciales = [...new Set([
+    ...asientos.map(a => str(a.invoice_id)),
+    ...facturas.filter(f => f.status === "anulada").map(f => f.id),
+  ].filter(Boolean))];
+  asientos.push(...await porIds("Ingreso I2 · asientos por documento", documentosIniciales,
+    (ids, d, h) => supabase.from("journal_entries").select(columnas)
+      .in("invoice_id", ids).in("source", ["invoice", "invoice_reversal"])
+      .order("id", { ascending: true }).range(d, h)));
+  asientos.push(...await porIds("Ingreso I2 · originales por vínculo",
+    asientos.map(a => str(a.reverses_entry_id)).filter(Boolean),
+    (ids, d, h) => supabase.from("journal_entries").select(columnas).in("id", ids)
+      .order("id", { ascending: true }).range(d, h)));
+  // Encuentra también reversos mal vinculados a otra factura, sin esconderlos
+  // tras el filtro por invoice_id ni por estado/borrado/origen.
+  asientos.push(...await porIds("Ingreso I2 · reversos por vínculo",
+    asientos.filter(a => a.source === "invoice").map(a => str(a.id)),
+    (ids, d, h) => supabase.from("journal_entries").select(columnas).in("reverses_entry_id", ids)
+      .order("id", { ascending: true }).range(d, h)));
+  const documentos = await porIds("Ingreso I2 · metadata documental",
+    [...documentosIniciales, ...asientos.map(a => str(a.invoice_id)).filter(Boolean)],
+    (ids, d, h) => supabase.from("invoices")
+      .select("id, tenant_id, status, issued_at, currency, fx_rate, base_amount, fund_class, deleted_at")
+      .in("id", ids).order("id", { ascending: true }).range(d, h));
+  const lineas = await porIds("Ingreso I2 · líneas de los extremos", asientos.map(a => str(a.id)),
+    (ids, d, h) => supabase.from("journal_lines").select("id, entry_id, account_id, debit, credit")
+      .in("entry_id", ids).order("id", { ascending: true }).range(d, h));
+  const cuentas: Fila[] = [];
+  const solicitadas = new Set<string>();
+  let pendientes = [...new Set(lineas.map(l => str(l.account_id)).filter(Boolean))];
+  while (pendientes.length) {
+    for (const id of pendientes) solicitadas.add(id);
+    const lote = await porIds("Ingreso I2 · cuentas y ascendencia", pendientes,
+      (ids, d, h) => supabase.from("accounts").select("id, tenant_id, code, type, parent_id")
+        .in("id", ids).order("id", { ascending: true }).range(d, h));
+    cuentas.push(...lote);
+    pendientes = [...new Set(lote.map(c => str(c.parent_id))
+      .filter(id => id && !solicitadas.has(id)))];
+  }
+  return { completo: true, documentos, asientos, lineas, cuentas };
+}
+
 /**
  * La cifra oficial de ingreso del período (ingreso-periodo.ts). El filtro va en
  * SQL por eficiencia y la regla lo repite en memoria. Trae también las
@@ -184,13 +331,12 @@ export async function ingresoDelPeriodo(
 
   let mayor = opts.mayor;
   if (mayor === undefined) {
-    const [accounts, balances] = await Promise.all([
-      listAccounts(supabase),
-      accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }),
-    ]);
+    const accounts = await listAccountsComplete(supabase);
+    const balances = await accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }, accounts);
     mayor = await controlDelPeriodo(supabase, rango, accounts, balances);
   }
-  return resumirIngreso(facturas, rango, mayor);
+  const contexto = mayor == null ? undefined : await contextoDelIngreso(supabase, rango, facturas);
+  return resumirIngreso(facturas, rango, mayor, contexto);
 }
 
 /**
@@ -201,10 +347,10 @@ export async function reportesDelLibro(
   supabase: SupabaseClient,
   rango: RangoFechas,
 ): Promise<ReportesDelLibro> {
-  const [accounts, delPeriodo, alCorte] = await Promise.all([
-    listAccounts(supabase),
-    accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }),
-    accountBalances(supabase, { upToDate: rango.to }),
+  const accounts = await listAccountsComplete(supabase);
+  const [delPeriodo, alCorte] = await Promise.all([
+    accountBalances(supabase, { fromDate: rango.from, upToDate: rango.to }, accounts),
+    accountBalances(supabase, { upToDate: rango.to }, accounts),
   ]);
   const ingreso = await ingresoDelPeriodo(supabase, rango, {
     mayor: await controlDelPeriodo(supabase, rango, accounts, delPeriodo),
@@ -273,20 +419,7 @@ export async function cuadreDelLibro(
         .order("id", { ascending: true })
         .range(d, h),
     ),
-    // Solo los orígenes documentales: un `referral_credit` también guarda
-    // `invoice_id` y no es el asiento de venta.
-    leerCompleto<Fila>("Por contabilizar · asientos", (d, h) =>
-      supabase
-        .from("journal_entries")
-        .select("id, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, deleted_at")
-        .is("deleted_at", null)
-        .in("status", ["asentado", "anulado"])
-        // SDD-0562: más `receipt_reclass`, para saber si un recibo identificado
-        // ya toca 1.1.2. El cruce de «sin asiento» no la usa: filtra por origen.
-        .in("source", [...Object.values(ORIGEN_POR_TIPO), "receipt_reclass"])
-        .order("id", { ascending: true })
-        .range(d, h),
-    ),
+    leerAsientosDelCruce(supabase),
   ]);
 
   const docs: DocumentoContable[] = [
@@ -330,16 +463,34 @@ export async function cuadreDelLibro(
       journal_entry_id: strOrNull(p.journal_entry_id),
     })),
   ];
-  const vinculos: AsientoDeDocumento[] = asientos.map((a) => ({
-    id: str(a.id),
-    status: str(a.status),
-    source: str(a.source),
-    deleted_at: strOrNull(a.deleted_at),
-    invoice_id: strOrNull(a.invoice_id),
-    receipt_id: strOrNull(a.receipt_id),
-    bill_id: strOrNull(a.bill_id),
-    supplier_payment_id: strOrNull(a.supplier_payment_id),
-  }));
+  const vinculos: AsientoDeDocumento[] = asientos.map((a) => {
+    if (a.source !== "invoice" && a.source !== "invoice_reversal") {
+      // Transporte legado completo; no aporta tenant para certificar un par.
+      return {
+        id: str(a.id),
+        status: str(a.status),
+        source: str(a.source),
+        deleted_at: strOrNull(a.deleted_at),
+        invoice_id: strOrNull(a.invoice_id),
+        receipt_id: strOrNull(a.receipt_id),
+        bill_id: strOrNull(a.bill_id),
+        supplier_payment_id: strOrNull(a.supplier_payment_id),
+        reverses_entry_id: strOrNull(a.reverses_entry_id),
+      };
+    }
+    return {
+      id: typeof a.id === "string" ? a.id : "",
+      tenant_id: typeof a.tenant_id === "string" ? a.tenant_id : undefined,
+      status: typeof a.status === "string" ? a.status : "",
+      source: typeof a.source === "string" ? a.source : "",
+      deleted_at: a.deleted_at === null ? null : typeof a.deleted_at === "string" ? a.deleted_at : undefined,
+      invoice_id: typeof a.invoice_id === "string" ? a.invoice_id : null,
+      receipt_id: strOrNull(a.receipt_id),
+      bill_id: strOrNull(a.bill_id),
+      supplier_payment_id: strOrNull(a.supplier_payment_id),
+      reverses_entry_id: a.reverses_entry_id === null ? null : typeof a.reverses_entry_id === "string" ? a.reverses_entry_id : undefined,
+    };
+  });
 
   const porDocumento = asientosPorDocumento(docs, vinculos);
   // SDD-0562 · Solo los recibos que tocan 1.1.2 (con factura y, si se

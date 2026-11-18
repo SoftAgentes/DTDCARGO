@@ -25,6 +25,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+import { sendDiscordMentionToUser } from "@/lib/studio/alerts/user-alert";
 import { getBugDetail } from "@/lib/studio/bug-queries";
 import {
   BUG_STATE_LABELS,
@@ -201,6 +202,22 @@ async function drainEmailOutbox(
   return { processed: data.length, delivered, failed };
 }
 
+/** Tenant activo de un usuario, para las filas sin bug. `null` si no se sabe. */
+async function tenantOfUser(admin: SupabaseClient, userId: string): Promise<string | null> {
+  try {
+    const { data } = await admin
+      .from("user_tenants")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .is("disabled_at", null)
+      .limit(1)
+      .maybeSingle<{ tenant_id: string | null }>();
+    return data?.tenant_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Reintenta las filas con Telegram pendiente (ya falló ≥1 vez, < MAX intentos). */
 async function drainTelegramOutbox(
   admin: SupabaseClient,
@@ -228,14 +245,46 @@ async function drainTelegramOutbox(
     payload: RetryPayload;
     telegram_attempts: number;
   }>) {
+    // SDD-0606 · el reintento prueba primero la mención en Discord. La columna
+    // se sigue llamando `telegram`: es el canal de mensajería de la fila.
+    const bugParaDiscord = row.bug_id ? await getBugDetail(admin, row.bug_id) : null;
+    const tenantId = bugParaDiscord?.tenant_id ?? (await tenantOfUser(admin, row.user_id));
+    const mencion = tenantId
+      ? await sendDiscordMentionToUser(admin, tenantId, row.user_id, "bugs", {
+          titulo: "Aviso pendiente de un reporte",
+          codigo: bugParaDiscord?.folio ?? null,
+          url: `${SITE_URL}${row.payload?.url ?? "/studio/bugs"}`,
+        })
+      : { attempted: false, ok: false };
+    // Confirmada, o incierta (pudo guardarse: no se repite, M2).
+    if (mencion.attempted && (mencion.ok || mencion.outcome === "incierto")) {
+      await recordBugNotifChannelSuccess(admin, row.id, "telegram");
+      delivered += 1;
+      continue;
+    }
+
     const { data: profile } = await admin
       .from("user_profiles")
       .select("telegram_chat_id")
       .eq("user_id", row.user_id)
       .maybeSingle<{ telegram_chat_id: string | null }>();
     const chatId = profile?.telegram_chat_id;
+    if (!chatId && mencion.attempted) {
+      // A4 · Discord aplica a esta persona y no guardó la mención (caída,
+      // 429, 5xx): la fila sigue viva para el próximo tick, aunque no tenga
+      // Telegram. Abandonar acá perdía el aviso por una falla pasajera.
+      await recordBugNotifChannelFailure(
+        admin,
+        row.id,
+        "telegram",
+        row.telegram_attempts,
+        mencion.error ?? "Discord no guardó la mención",
+      );
+      failed += 1;
+      continue;
+    }
     if (!chatId) {
-      // Se desvinculó de Telegram entre el fallo original y el reintento.
+      // Sin Discord para esta persona y sin Telegram: no hay por dónde mandarlo.
       await recordBugNotifChannelFailure(
         admin,
         row.id,
@@ -247,7 +296,7 @@ async function drainTelegramOutbox(
       continue;
     }
 
-    const bug = row.bug_id ? await getBugDetail(admin, row.bug_id) : null;
+    const bug = bugParaDiscord;
     const payload = row.payload ?? {};
     const title = [payload.label, bug?.folio].filter(Boolean).join(" · ");
     const text = `${title}\n\n${payload.excerpt ?? ""}\n\n${SITE_URL}${payload.url ?? "/studio/bugs"}`;

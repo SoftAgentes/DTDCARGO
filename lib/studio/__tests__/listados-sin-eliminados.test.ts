@@ -171,7 +171,7 @@ describe("Clientes · un cliente eliminado no se lista ni se cuenta (SDD-0509)",
   });
 
   it("clientsWithTier (Fidelización) no reparte niveles a un eliminado", async () => {
-    const tablas = { ...CLIENTES, studio_client_annual_billing: [] };
+    const tablas = { ...CLIENTES, studio_client_annual_billing_v2: [] };
     const conTier = await clientsWithTier(dobleListados(tablas).client);
     expect(conTier.map((c) => c.markbox)).toEqual(["DTD-1001"]);
 

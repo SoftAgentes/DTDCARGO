@@ -3,6 +3,11 @@
 /**
  * EmbarquesClient — vista comercial agrupada por cliente (SDD-0012).
  *
+ * - SDD-0643: empieza por contenedores («DDP 64», «FCL 63», «Sin
+ *   contenedor»); dentro de cada uno, el acordeón por cliente de siempre.
+ *   Filtros «Contenedor» (número DTD o ISO) y «Cliente» (nombre o Shipping
+ *   Mark). Si no se pudieron leer los contenedores, se dice y se agrupa sólo
+ *   por cliente.
  * - Tabs: Todos / Activos / Entregados / Con alertas (con counts)
  * - Toolbar: search por client_name, MARKBOX, code, ruta
  * - Tabla acordeón agrupada por cliente
@@ -13,10 +18,16 @@
  *   control interactivo dentro de otro no es HTML válido ni accesible.
  * - SDD-0560: junto al motivo de una fila bloqueada, «Ver los pasos» abre el
  *   asistente de borrado de ese embarque (`AsistenteBorrado`).
+ * - SDD-0661 (diseño elegido por Sam, «Franja + Excel»): la cabecera cerrada
+ *   dice clientes, envíos, cajas y m³. Al abrir el contenedor, una franja de
+ *   totales (clientes, cajas, cajas recibidas, CBM) y el detalle por cliente
+ *   como en el Excel, con la fila «Total del contenedor». «Por cobrar» y
+ *   «Cobrado» sólo se pintan si la página los pasó: los lee sólo para quien
+ *   ve Facturación, así que aquí no se decide permiso.
  */
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   computeClientStats,
   groupShipmentsByClient,
@@ -53,6 +64,24 @@ import {
 } from "@/lib/studio/borrado/reglas";
 import { deleteShipmentsAction } from "../actions";
 import { AsistenteBorrado } from "./AsistenteBorrado";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import {
+  agruparPorContenedor,
+  clienteCoincide,
+  contenedorCoincide,
+  formatFecha,
+  type ClienteDeContenedor,
+  type ContenedoresDeEmbarques,
+  type GrupoContenedor,
+  sumarMontos,
+  type MontoAcumulado,
+  type MontosDeContenedores,
+} from "@/lib/studio/embarques-contenedores";
+import { fmtUsd } from "@/lib/money";
+import { CONTAINER_STATUS, type ContainerStatus } from "@/lib/studio/naviera/types";
+
+/** Sin datos de contenedores (p. ej., en pruebas): todo va a «Sin contenedor». */
+const SIN_CONTENEDORES: ContenedoresDeEmbarques = { contenedores: [], porEmbarque: {} };
 
 /**
  * SDD-0522 · Qué sabe la pantalla para ofrecer el borrado. `undefined` = quien
@@ -118,6 +147,9 @@ export function EmbarquesClient({
   shipments,
   adjuntos,
   eliminacion,
+  contenedores = SIN_CONTENEDORES,
+  montos,
+  tope,
 }: {
   shipments: ShipmentListRow[];
   /**
@@ -129,6 +161,18 @@ export function EmbarquesClient({
   adjuntos: ConteosPorId<ConteoEmbarque> | undefined;
   /** SDD-0522: ver `EliminacionEmbarques`. */
   eliminacion?: EliminacionEmbarques;
+  /**
+   * SDD-0643: en qué contenedor va cada embarque. `null` = no se pudo leer:
+   * se dice y la lista se agrupa sólo por cliente, como antes.
+   */
+  contenedores?: ContenedoresDeEmbarques | null;
+  /**
+   * SDD-0661: monto a cobrar por contenedor. Sólo llega si quien mira ve
+   * Facturación (lo decide la página en el servidor); `undefined` = no se pinta.
+   */
+  montos?: MontosDeContenedores;
+  /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
+  tope?: number;
 }) {
   const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set());
   // SDD-0560: el embarque cuyo asistente de borrado está abierto.
@@ -179,6 +223,8 @@ export function EmbarquesClient({
 
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
+  const [qContenedor, setQContenedor] = useState("");
+  const [qCliente, setQCliente] = useState("");
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
   const [filtroAdjuntos, setFiltroAdjuntos] = useState<FiltroAdjuntos>("todos");
   const [drawerShipmentId, setDrawerShipmentId] = useState<string | null>(null);
@@ -194,8 +240,13 @@ export function EmbarquesClient({
     };
   }, [shipments]);
 
-  // Apply tab + service + search → group
-  const groupedFiltered = useMemo(() => {
+  const contenedorPorId = useMemo(
+    () => new Map((contenedores?.contenedores ?? []).map((c) => [c.id, c])),
+    [contenedores],
+  );
+
+  // Apply tab + service + search → filas
+  const filtradas = useMemo(() => {
     let rows = filterByTab(shipments, tab);
 
     if (serviceFilter !== "all") {
@@ -218,29 +269,83 @@ export function EmbarquesClient({
       });
     }
 
-    return groupShipmentsByClient(rows);
-  }, [shipments, tab, serviceFilter, q, filtroAdjuntos, adjuntos]);
+    // SDD-0643: cliente por nombre o Shipping Mark; contenedor por número DTD o ISO.
+    if (qCliente.trim()) {
+      rows = rows.filter((r) => clienteCoincide(r, qCliente));
+    }
+    if (qContenedor.trim() && contenedores) {
+      rows = rows.filter((r) => {
+        const cid = contenedores.porEmbarque[r.id];
+        return contenedorCoincide(cid ? contenedorPorId.get(cid) ?? null : null, qContenedor);
+      });
+    }
+    return rows;
+  }, [shipments, tab, serviceFilter, q, qCliente, qContenedor, filtroAdjuntos, adjuntos, contenedores, contenedorPorId]);
 
-  // Default expand: si <3 grupos, todos abiertos; sino, todos cerrados
+  // SDD-0643: nivel 1. `null` = sin datos de contenedores: sólo por cliente.
+  // El rótulo DDP/FCL sale de `shipments` sin filtrar (revisión M1).
+  const grupos = useMemo<GrupoContenedor[] | null>(
+    () => (contenedores ? agruparPorContenedor(filtradas, contenedores, shipments) : null),
+    [filtradas, contenedores, shipments],
+  );
+  const groupedFiltered = useMemo(
+    () => (grupos ? grupos.flatMap((g) => g.clientes) : groupShipmentsByClient(filtradas)),
+    [grupos, filtradas],
+  );
+  const hayFiltroTexto = Boolean(q.trim() || qCliente.trim() || qContenedor.trim());
+
+  // Default expand: si <3 grupos, todos abiertos; sino, todos cerrados.
+  // SDD-0643: se cuenta por contenedor; con un filtro de texto, hasta 5.
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set<string>(),
   );
+  const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set<string>());
 
-  const allExpanded = expanded.size === groupedFiltered.length;
+  const allExpanded =
+    expanded.size === groupedFiltered.length &&
+    (grupos === null || abiertos.size === grupos.length);
   const defaultExpandKey = useMemo(() => {
-    if (groupedFiltered.length < 3) {
-      return new Set(groupedFiltered.map((g) => g.groupKey));
+    if (!grupos) {
+      return groupedFiltered.length < 3
+        ? new Set(groupedFiltered.map((g) => g.groupKey))
+        : new Set<string>();
     }
-    return new Set<string>();
-  }, [groupedFiltered]);
+    const porDefecto = new Set<string>();
+    for (const g of grupos) {
+      if (g.clientes.length < 3 || (hayFiltroTexto && g.clientes.length <= 5)) {
+        for (const c of g.clientes) porDefecto.add(c.groupKey);
+      }
+    }
+    return porDefecto;
+  }, [grupos, groupedFiltered, hayFiltroTexto]);
+  // Un solo contenedor, o un filtro de texto, los abre; si son varios, cerrados.
+  const defaultAbiertos = useMemo(
+    () =>
+      new Set<string>(
+        grupos && (grupos.length === 1 || hayFiltroTexto) ? grupos.map((g) => g.key) : [],
+      ),
+    [grupos, hayFiltroTexto],
+  );
 
   // Si el set de grupos cambia (filtros o tab), aplicar defaults una vez
-  const groupsKey = groupedFiltered.map((g) => g.groupKey).join("|");
+  const groupsKey =
+    (grupos ? grupos.map((g) => g.key).join(",") + "#" : "") +
+    groupedFiltered.map((g) => g.groupKey).join("|");
   const [lastGroupsKey, setLastGroupsKey] = useState("");
   if (groupsKey !== lastGroupsKey) {
     setExpanded(defaultExpandKey);
+    setAbiertos(defaultAbiertos);
     setLastGroupsKey(groupsKey);
   }
+
+  const toggleContenedor = (key: string) => {
+    setAbiertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const toggleGroup = (key: string) => {
     setExpanded((prev) => {
@@ -253,9 +358,11 @@ export function EmbarquesClient({
 
   const expandAll = () => {
     setExpanded(new Set(groupedFiltered.map((g) => g.groupKey)));
+    if (grupos) setAbiertos(new Set(grupos.map((g) => g.key)));
   };
   const collapseAll = () => {
     setExpanded(new Set());
+    setAbiertos(new Set());
   };
 
   const selectedShipment = drawerShipmentId
@@ -281,20 +388,18 @@ export function EmbarquesClient({
             maxWidth: "62ch",
           }}
         >
-          Vista comercial agrupada por cliente. Para cambiar estado, editar
-          campos o cancelar, abre el detalle e ingresa al Tracking.
+          Primero el contenedor, después el cliente y después sus embarques.
+          Para cambiar estado, editar campos o cancelar, abre el detalle e
+          ingresa al Tracking.
         </p>
       </div>
 
       {/* Tabs */}
       <div
-        style={{
-          display: "flex",
-          gap: "var(--s-1)",
-          borderBottom: "1px solid var(--border)",
-          marginBottom: "var(--s-4)",
-          overflowX: "auto",
-        }}
+        role="group"
+        aria-label="Embarques por estado"
+        className="studio-tabs"
+        style={{ marginBottom: "var(--s-4)" }}
       >
         {(
           [
@@ -309,33 +414,13 @@ export function EmbarquesClient({
             <button
               key={t.value}
               type="button"
+              aria-pressed={active}
+              data-activa={active ? "true" : undefined}
               onClick={() => setTab(t.value)}
-              style={{
-                padding: "10px 14px",
-                background: "transparent",
-                border: 0,
-                borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
-                font: `${active ? "700" : "500"} 13px/1 var(--f-sans)`,
-                color: active ? "var(--ink)" : "var(--ink-soft)",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "var(--s-2)",
-                marginBottom: -1,
-              }}
+              className="studio-tab"
             >
               <span>{t.label}</span>
-              <span
-                style={{
-                  padding: "2px 6px",
-                  borderRadius: "var(--r-sm)",
-                  background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                  color: active ? "var(--wine)" : "var(--ink-soft)",
-                  font: "700 10.5px/1.3 var(--f-mono)",
-                }}
-              >
-                {t.count}
-              </span>
+              <span className="studio-tab-n">{t.count}</span>
             </button>
           );
         })}
@@ -354,9 +439,45 @@ export function EmbarquesClient({
           flexWrap: "wrap",
         }}
       >
+        {contenedores && (
+          <div
+            className="emb-toolbar-cont"
+            // 25 caracteres de 14 px monoespaciado (~8,7 px c/u) + 26 px de
+            // padding y borde ≈ 243 px: el texto de ejemplo cabe entero.
+            style={{ flex: "0 1 260px", minWidth: 250 }}
+          >
+            <label className="studio-label" htmlFor="emb-cont">
+              Contenedor
+            </label>
+            <input
+              id="emb-cont"
+              type="search"
+              className="studio-input studio-input-mono"
+              placeholder="Nº DTD (1-4 cifras) o ISO"
+              value={qContenedor}
+              onChange={(e) => setQContenedor(e.target.value)}
+            />
+          </div>
+        )}
+        <div
+          className="emb-toolbar-cli"
+          style={{ flex: "1 1 220px", minWidth: 200 }}
+        >
+          <label className="studio-label" htmlFor="emb-cli">
+            Cliente
+          </label>
+          <input
+            id="emb-cli"
+            type="search"
+            className="studio-input"
+            placeholder="Nombre o Shipping Mark"
+            value={qCliente}
+            onChange={(e) => setQCliente(e.target.value)}
+          />
+        </div>
         <div
           className="emb-toolbar-search"
-          style={{ flex: "1 1 280px", minWidth: 240 }}
+          style={{ flex: "1 1 220px", minWidth: 200 }}
         >
           <label className="studio-label" htmlFor="emb-q">
             Buscar
@@ -365,7 +486,7 @@ export function EmbarquesClient({
             id="emb-q"
             type="search"
             className="studio-input"
-            placeholder="Cliente, Shipping Mark, código, ruta…"
+            placeholder="Código, ruta…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -426,6 +547,8 @@ export function EmbarquesClient({
       {/* Responsive: mobile-first stack del toolbar + header del grupo */}
       <style>{`
         @media (max-width: 640px) {
+          .emb-toolbar-cont,
+          .emb-toolbar-cli,
           .emb-toolbar-search,
           .emb-toolbar-svc,
           .emb-toolbar-adj {
@@ -498,18 +621,34 @@ export function EmbarquesClient({
         </p>
       )}
 
+      {/* SDD-0643: sin contenedores no se inventa un «Sin contenedor». */}
+      {contenedores === null && (
+        <div style={{ marginBottom: "var(--s-3)" }}>
+          <Aviso tono="atencion" compacto>
+            No se pudieron leer los contenedores. La lista se agrupa sólo por cliente.
+          </Aviso>
+        </div>
+      )}
+      {tope !== undefined && (
+        <div style={{ marginBottom: "var(--s-3)" }}>
+          <Aviso tono="info" compacto>
+            Se muestran los {tope} embarques más recientes. Los anteriores no entran en esta vista.
+          </Aviso>
+        </div>
+      )}
+
       {/* Tabla agrupada o empty */}
       {groupedFiltered.length === 0 ? (
         <EmptyState
           eyebrow={
-            q || filtroAdjuntos !== "todos"
+            hayFiltroTexto || filtroAdjuntos !== "todos"
               ? "Sin resultados"
               : tab === "all"
                 ? "Catálogo vacío"
                 : "Sin envíos en este tab"
           }
           title={
-            q
+            hayFiltroTexto
               ? "Ningún envío matchea la búsqueda."
               : filtroAdjuntos !== "todos"
                 ? filtroAdjuntos === "con"
@@ -524,12 +663,29 @@ export function EmbarquesClient({
                     : "Sin envíos activos."
           }
           description={
-            q
+            hayFiltroTexto
               ? "Prueba ajustar los términos de búsqueda."
               : filtroAdjuntos !== "todos"
                 ? "Cambia el filtro «Adjuntos» a «Todos» para ver el resto."
               : "Crea envíos desde Estimados (convertir estimado aceptado) o desde /tracking/nuevo."
           }
+        />
+      ) : grupos ? (
+        <ListaDeContenedores
+          grupos={grupos}
+          abiertos={abiertos}
+          toggleContenedor={toggleContenedor}
+          montos={montos}
+          renderClientes={(g) => (
+            <GroupedTable
+              groups={g.clientes}
+              expanded={expanded}
+              toggleGroup={toggleGroup}
+              onRowClick={(id) => setDrawerShipmentId(id)}
+              adjuntos={adjuntos ?? null}
+              seleccionable={seleccionable}
+            />
+          )}
         />
       ) : (
         <GroupedTable
@@ -795,6 +951,474 @@ function BarraDeSeleccion({
 
 // ── Grouped Table ──────────────────────────────────────────────
 
+/**
+ * SDD-0643 · Nivel 1: un acordeón por contenedor. La cabecera dice el nombre
+ * («DDP 64», «FCL 63»), el número ISO, la naviera, la ETA, el estado y
+ * los conteos; el cuerpo es el acordeón por cliente (nivel 2) con sus
+ * embarques (nivel 3).
+ */
+function ListaDeContenedores({
+  grupos,
+  abiertos,
+  toggleContenedor,
+  montos,
+  renderClientes,
+}: {
+  grupos: GrupoContenedor[];
+  abiertos: Set<string>;
+  toggleContenedor: (key: string) => void;
+  montos?: MontosDeContenedores;
+  renderClientes: (g: GrupoContenedor) => ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+      {grupos.map((g) => {
+        const abierto = abiertos.has(g.key);
+        const c = g.contenedor;
+        const estado = c ? CONTAINER_STATUS[c.status as ContainerStatus] : undefined;
+        const cuerpoId = `emb-cont-${g.key}`;
+        const nClientes = g.clientes.length;
+        return (
+          <section
+            key={g.key}
+            aria-label={g.nombre}
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-lg)",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              type="button"
+              aria-expanded={abierto}
+              aria-controls={abierto ? cuerpoId : undefined}
+              onClick={() => toggleContenedor(g.key)}
+              className="emb-cont-header"
+              style={{
+                width: "100%",
+                display: "grid",
+                gridTemplateColumns: "24px minmax(0, 1fr) auto",
+                gap: "var(--s-3)",
+                padding: "var(--s-4) var(--s-5)",
+                background: abierto ? "var(--bg-elevated)" : undefined,
+                border: 0,
+                textAlign: "left",
+                cursor: "pointer",
+                alignItems: "center",
+                color: "inherit",
+                transition: "background var(--dur-fast) var(--ease)",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  color: "var(--ink-soft)",
+                  transform: abierto ? "rotate(90deg)" : "none",
+                  transition: "transform var(--dur-fast) var(--ease)",
+                }}
+              >
+                {Icon.chevR(16)}
+              </span>
+              <span style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ font: "800 16px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+                    {g.nombre}
+                  </span>
+                  {c?.containerNo && (
+                    <span
+                      style={{
+                        font: "700 12px/1 var(--f-mono)",
+                        color: "var(--ink)",
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {c.containerNo}
+                    </span>
+                  )}
+                  {estado && (
+                    <Badge tone={estado.tone} size="sm">
+                      {estado.label}
+                    </Badge>
+                  )}
+                </span>
+                {c ? (
+                  <span
+                    style={{
+                      font: "500 12px/1.3 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                      display: "flex",
+                      gap: "var(--s-3)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{c.naviera ?? "Sin naviera"}</span>
+                    <span>ETA {c.eta ? formatFecha(c.eta) : "sin fecha"}</span>
+                    <span style={{ font: "500 11.5px/1.3 var(--f-mono)" }}>{c.ref}</span>
+                  </span>
+                ) : (
+                  <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+                    Embarques que no van en ningún contenedor.
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  gap: "var(--s-2)",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
+                }}
+              >
+                {g.alertas > 0 && (
+                  <Badge tone="danger" size="sm">
+                    {g.alertas} alerta{g.alertas === 1 ? "" : "s"}
+                  </Badge>
+                )}
+                <Badge tone="neutral" size="sm">
+                  {nClientes} {nClientes === 1 ? "cliente" : "clientes"}
+                </Badge>
+                <Badge tone="neutral" size="sm">
+                  {g.embarques} {g.embarques === 1 ? "envío" : "envíos"}
+                </Badge>
+                {g.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(g.cajas)}
+                  </Badge>
+                )}
+                <span
+                  style={{
+                    font: "600 11.5px/1 var(--f-mono)",
+                    color: "var(--ink-soft)",
+                    minWidth: 80,
+                    textAlign: "right",
+                  }}
+                >
+                  {g.totalCbm.toFixed(2)} m³
+                </span>
+              </span>
+            </button>
+            {abierto && (
+              <div
+                id={cuerpoId}
+                style={{
+                  padding: "var(--s-3)",
+                  borderTop: "1px solid var(--border)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--s-3)",
+                }}
+              >
+                {c && (
+                  <>
+                    <FranjaDeTotales grupo={g} montos={montos} />
+                    <DetallePorCliente grupo={g} montos={montos} />
+                  </>
+                )}
+                {renderClientes(g)}
+              </div>
+            )}
+          </section>
+        );
+      })}
+      <style>{`
+        .emb-cont-header { background: transparent; }
+        .emb-cont-header:hover { background: var(--bg-elevated); }
+        /* La tarjeta recorta lo que sale (overflow hidden): el foco va adentro. */
+        .emb-cont-header:focus-visible { outline-offset: -3px; }
+        @media (max-width: 640px) {
+          .emb-cont-header {
+            grid-template-columns: 24px minmax(0, 1fr) !important;
+          }
+          .emb-cont-header > :nth-child(3) {
+            grid-column: 2;
+            justify-content: flex-start !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** SDD-0661: «1 caja» · «1.234 cajas». */
+function textoCajas(n: number): string {
+  return `${n.toLocaleString("es-VE")} ${n === 1 ? "caja" : "cajas"}`;
+}
+
+/** SDD-0661: cajas recibidas; sin recepción, «Sin recepción» (decisión de Sam: nunca 0). */
+function textoRecibidas(n: number | null): string {
+  return n == null ? "Sin recepción" : n.toLocaleString("es-VE");
+}
+
+/** SDD-0665: «1.234,5 kg». */
+function textoPeso(kg: number): string {
+  return `${kg.toLocaleString("es-VE", { maximumFractionDigits: 2 })} kg`;
+}
+
+/** SDD-0665: el peso de un cliente; si ninguno de sus envíos lo tiene, «Sin peso» (no 0). */
+function textoPesoCliente(c: ClienteDeContenedor): string {
+  return c.enviosSinPeso === c.shipments.length ? "Sin peso" : textoPeso(c.stats.totalWeight);
+}
+
+/**
+ * SDD-0661: un monto en dólares, o «Sin facturar» si no hay facturas (el
+ * contenedor 64 se cargó sin facturas: nunca $0.00 inventado).
+ */
+function textoMonto(m: MontoAcumulado, campo: "porCobrarUsd" | "cobradoUsd"): string {
+  return m.facturas === 0 ? "Sin facturar" : fmtUsd(m[campo]);
+}
+
+/** SDD-0661: franja de totales al abrir el contenedor. */
+function FranjaDeTotales({
+  grupo,
+  montos,
+}: {
+  grupo: GrupoContenedor;
+  montos?: MontosDeContenedores;
+}) {
+  const total =
+    montos?.estado === "lista"
+      ? sumarMontos(
+          grupo.clientes.flatMap((c) => c.shipments),
+          montos.porEmbarque,
+        )
+      : null;
+  const fichas: { etiqueta: string; valor: string; dinero?: boolean }[] = [
+    { etiqueta: "Clientes", valor: grupo.clientes.length.toLocaleString("es-VE") },
+    { etiqueta: "Cajas", valor: (grupo.cajas ?? 0).toLocaleString("es-VE") },
+    { etiqueta: "Cajas recibidas", valor: textoRecibidas(grupo.recibidas) },
+    { etiqueta: "CBM total", valor: `${grupo.totalCbm.toFixed(2)} m³` },
+    {
+      etiqueta: "Peso total",
+      valor: grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg),
+    },
+  ];
+  if (montos) {
+    const nd = "No disponible";
+    fichas.push(
+      { etiqueta: "Por cobrar", valor: total ? textoMonto(total, "porCobrarUsd") : nd, dinero: true },
+      { etiqueta: "Cobrado", valor: total ? textoMonto(total, "cobradoUsd") : nd, dinero: true },
+    );
+  }
+  return (
+    <div>
+      <dl
+        aria-label={`Totales de ${grupo.nombre}`}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: "var(--s-2)",
+          margin: 0,
+        }}
+      >
+        {fichas.map((f) => (
+          <div
+            key={f.etiqueta}
+            style={{
+              background: f.dinero ? "var(--warning-bg)" : "var(--bg-elevated)",
+              borderRadius: "var(--r-md)",
+              padding: "var(--s-3)",
+              minWidth: 0,
+            }}
+          >
+            <dt style={{ font: "600 12px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>
+              {f.etiqueta}
+            </dt>
+            <dd
+              style={{
+                margin: "var(--s-1) 0 0",
+                font: "800 18px/1.2 var(--f-sans)",
+                color: "var(--ink)",
+                fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.valor}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {grupo.enviosSinPeso > 0 && grupo.enviosSinPeso < grupo.embarques && (
+        <p
+          style={{
+            margin: "var(--s-2) 0 0",
+            font: "500 12px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {grupo.enviosSinPeso} {grupo.enviosSinPeso === 1 ? "envío" : "envíos"} sin peso cargado: el
+          peso total no los incluye.
+        </p>
+      )}
+      {total && total.otraMoneda > 0 && (
+        <p
+          style={{
+            margin: "var(--s-2) 0 0",
+            font: "500 12px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {total.otraMoneda} {total.otraMoneda === 1 ? "factura está" : "facturas están"} en otra
+          moneda y no se suman.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const TH_DETALLE = {
+  font: "700 11px/1 var(--f-sans)",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+  color: "var(--ink-soft)",
+  textAlign: "right" as const,
+  padding: "var(--s-2)",
+  whiteSpace: "nowrap" as const,
+};
+
+const TD_DETALLE = {
+  font: "500 13px/1.3 var(--f-mono)",
+  color: "var(--ink)",
+  textAlign: "right" as const,
+  padding: "var(--s-2)",
+  borderTop: "1px solid var(--border)",
+  whiteSpace: "nowrap" as const,
+};
+
+const PIE_DETALLE = { ...TD_DETALLE, fontWeight: 700, borderTop: "2px solid var(--ink-soft)" };
+
+/** SDD-0661: el detalle por cliente como en el Excel, con la fila de total. */
+function DetallePorCliente({
+  grupo,
+  montos,
+}: {
+  grupo: GrupoContenedor;
+  montos?: MontosDeContenedores;
+}) {
+  const lista = montos?.estado === "lista" ? montos.porEmbarque : null;
+  const celdaDinero = (filas: readonly ShipmentListRow[], campo: "porCobrarUsd" | "cobradoUsd") =>
+    lista ? textoMonto(sumarMontos(filas, lista), campo) : "—";
+  const todas = grupo.clientes.flatMap((c) => c.shipments);
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontVariantNumeric: "tabular-nums",
+          minWidth: montos ? 720 : 520,
+        }}
+      >
+        <caption
+          style={{
+            textAlign: "left",
+            font: "700 12px/1.2 var(--f-sans)",
+            color: "var(--ink-soft)",
+            padding: "0 var(--s-2) var(--s-1)",
+          }}
+        >
+          Detalle por cliente
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...TH_DETALLE, textAlign: "left" }}>
+              Cliente
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Envíos
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Cajas
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Recibidas
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              m³
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              kg
+            </th>
+            {montos && (
+              <>
+                <th scope="col" style={TH_DETALLE}>
+                  Por cobrar
+                </th>
+                <th scope="col" style={TH_DETALLE}>
+                  Cobrado
+                </th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {grupo.clientes.map((c) => (
+            <tr key={c.groupKey}>
+              <th
+                scope="row"
+                style={{
+                  ...TD_DETALLE,
+                  font: "600 13px/1.3 var(--f-sans)",
+                  textAlign: "left",
+                  whiteSpace: "normal",
+                }}
+              >
+                {c.clientName}
+                {c.clientMarkbox && (
+                  <span
+                    style={{
+                      marginLeft: "var(--s-2)",
+                      font: "700 11px/1 var(--f-mono)",
+                      color: "var(--wine-text)",
+                    }}
+                  >
+                    {c.clientMarkbox}
+                  </span>
+                )}
+              </th>
+              <td style={TD_DETALLE}>{c.stats.count.toLocaleString("es-VE")}</td>
+              <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
+              <td style={TD_DETALLE}>{textoRecibidas(c.recibidas)}</td>
+              <td style={TD_DETALLE}>{c.stats.totalCbm.toFixed(2)}</td>
+              <td style={TD_DETALLE}>{textoPesoCliente(c)}</td>
+              {montos && (
+                <>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "porCobrarUsd")}</td>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "cobradoUsd")}</td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th
+              scope="row"
+              style={{ ...PIE_DETALLE, font: "700 13px/1.3 var(--f-sans)", textAlign: "left" }}
+            >
+              Total del contenedor
+            </th>
+            <td style={PIE_DETALLE}>{grupo.embarques.toLocaleString("es-VE")}</td>
+            <td style={PIE_DETALLE}>{(grupo.cajas ?? 0).toLocaleString("es-VE")}</td>
+            <td style={PIE_DETALLE}>{textoRecibidas(grupo.recibidas)}</td>
+            <td style={PIE_DETALLE}>{grupo.totalCbm.toFixed(2)}</td>
+            <td style={PIE_DETALLE}>
+              {grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg)}
+            </td>
+            {montos && (
+              <>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "porCobrarUsd")}</td>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "cobradoUsd")}</td>
+              </>
+            )}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
 function GroupedTable({
   groups,
   expanded,
@@ -803,7 +1427,8 @@ function GroupedTable({
   adjuntos,
   seleccionable,
 }: {
-  groups: ReturnType<typeof groupShipmentsByClient>;
+  /** SDD-0661: dentro de un contenedor, cada cliente trae sus cajas. */
+  groups: (ReturnType<typeof groupShipmentsByClient>[number] & Partial<Pick<ClienteDeContenedor, "cajas">>)[];
   expanded: Set<string>;
   toggleGroup: (key: string) => void;
   onRowClick: (shipmentId: string) => void;
@@ -814,13 +1439,13 @@ function GroupedTable({
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
-      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px"
-      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px";
-  // SDD-0522: la fila es [casilla | botón con el resto]. El botón usa las
-  // mismas columnas sin la primera, así el encabezado y las filas no se
-  // desalinean (24px + gap + resto, igual que el encabezado).
-  const columnasDatos = columnas.replace(/^24px /, "");
-  const anchoMinimo = adjuntos === null ? 824 : 930;
+      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px 92px"
+      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px 92px";
+  // SDD-0522: la fila es [casilla | botón con los datos | «Abrir»]. El botón
+  // usa las mismas columnas sin la primera ni la última, así el encabezado y
+  // las filas no se desalinean (24px + gap + datos + gap + 92px).
+  const columnasDatos = columnas.replace(/^24px /, "").replace(/ 92px$/, "");
+  const anchoMinimo = adjuntos === null ? 926 : 1032;
   return (
     <div
       style={{
@@ -933,6 +1558,11 @@ function GroupedTable({
                   {group.stats.count}{" "}
                   {group.stats.count === 1 ? "envío" : "envíos"}
                 </Badge>
+                {group.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(group.cajas)}
+                  </Badge>
+                )}
               </div>
               <span
                 style={{
@@ -991,6 +1621,8 @@ function GroupedTable({
                   <span style={{ textAlign: "right" }}>CBM</span>
                   {adjuntos !== null && <span>Adjuntos</span>}
                   <span>Creado</span>
+                  {/* SDD-0603: columna de «Abrir», sin rótulo propio. */}
+                  <span aria-hidden="true" />
                 </div>
                 {group.shipments.map((s) => {
                   const pct = computeProgress(s.status);
@@ -1005,7 +1637,7 @@ function GroupedTable({
                       data-row-id={s.code}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "24px minmax(0, 1fr)",
+                        gridTemplateColumns: "24px minmax(0, 1fr) 92px",
                         columnGap: 10,
                         padding: "var(--s-3) var(--s-5)",
                         background: fondo,
@@ -1040,8 +1672,13 @@ function GroupedTable({
                           />
                         )}
                       </span>
+                      {/* SDD-0603 · tramo 5a: la fila entera sigue abriendo
+                          con el ratón, pero el control de teclado y de lector
+                          es «Abrir». Sale del orden de Tab para que cada fila
+                          siga teniendo una sola parada. */}
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => onRowClick(s.id)}
                         style={{
                           width: "100%",
@@ -1133,6 +1770,16 @@ function GroupedTable({
                       >
                         {formatDate(s.created_at)}
                       </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="studio-btn studio-btn-ghost studio-btn-sm"
+                        aria-label={`Abrir embarque ${s.code}`}
+                        onClick={() => onRowClick(s.id)}
+                        style={{ justifySelf: "end" }}
+                      >
+                        Abrir
+                        {Icon.chevR(14)}
                       </button>
                       {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
                           deshabilitada se ve, no depende de enfocarla. */}

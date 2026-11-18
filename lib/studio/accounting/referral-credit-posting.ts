@@ -32,6 +32,7 @@
  */
 
 import { createAdminClient } from "@/lib/db/admin";
+import { fechaCaracas } from "@/lib/shared/fechas-caracas";
 
 // Las cuentas viven en `./referral-credit-modes` (módulo SIN imports): este
 // archivo arrastra el admin client (service_role) y no puede filtrarse al bundle
@@ -133,6 +134,7 @@ export async function postReferralCreditJournalEntry(
   input: ReferralCreditPostingInput,
 ): Promise<ReferralCreditPostingResult> {
   try {
+    const entryDate = input.entryDate === undefined ? fechaCaracas() : input.entryDate;
     const admin = createAdminClient();
 
     const amountUsd = round2(Number(input.amountUsd) || 0);
@@ -199,7 +201,6 @@ export async function postReferralCreditJournalEntry(
       return { ok: false, error: codeErr?.message ?? "next_entry_code falló" };
     }
     const entryCode = String(codeData);
-    const entryDate = input.entryDate ?? new Date().toISOString().slice(0, 10);
 
     // 5. Insertar el asiento (asentado) + sus 2 líneas. Se linkea a la factura
     //    (invoice_id) para la reversión al anular la factura (§3.6).

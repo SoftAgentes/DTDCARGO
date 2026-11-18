@@ -1,8 +1,12 @@
+import type { AnnualBillingRead } from "@/lib/shared/annual-billing";
 /**
  * Tablero CRM Kommo (SDD-0078) — espejo READ-ONLY + cruce con la plata del ERP.
  * Server component: resuelve la pestaña, computa la analítica (Dirección) en una
  * pasada y deriva los mapas del worklist (Asesor) sin queries extra. No muta nada
  * (ni Kommo ni el mirror).
+ *
+ * SDD-0614 · S0: las pestañas de Kommo están ocultas. La página pinta Embudos
+ * (CRM propio, SDD-0587 · 6.3) sin leer el espejo; ver el `return` temprano.
  */
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial, requireModuleView } from "@/lib/studio/rbac-guard";
@@ -34,7 +38,8 @@ import type {
   KommoCustomFieldRow,
   KommoStageMap,
 } from "@/lib/studio/kommo-types";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { resolverVista } from "@/lib/studio/crm-tablero";
 import {
   filterRecoveryRows,
   getRecoveryUniverse,
@@ -45,7 +50,9 @@ import { DireccionTab } from "./_components/DireccionTab";
 import { KommoBoardView } from "./_components/KommoBoardView";
 import { KommoClient } from "./_components/KommoClient";
 import { RecoveryTab } from "./_components/RecoveryTab";
-import { resolveKommoTab } from "./_components/kommo-tabs.shared";
+import { CrmEmbudosCargando, CrmEmbudosSlot } from "./_components/CrmEmbudosSlot";
+import { KOMMO_TABS_OCULTAS, resolveKommoTab } from "./_components/kommo-tabs.shared";
+import { leerAccesoCrm } from "@/lib/studio/crm-acceso-server";
 
 /** Tope de leads traídos por embudo para el Tablero kanban. */
 const BOARD_CAP = 2000;
@@ -66,6 +73,51 @@ export default async function KommoPage({
   };
   const tab = resolveKommoTab(single("tab"));
   const filters = parseKommoFiltersFromSearchParams(raw);
+  // SDD-0655: la pestaña Bandeja solo para quien la ve (rol + flag `chatwoot_inbox`).
+  const { bandeja } = await leerAccesoCrm();
+
+  // Embudos del CRM propio (SDD-0587 · 6.3): se lee dentro de su Suspense, así
+  // la pestaña muestra su estado de carga en vez de congelar la página.
+  const embudos: ReactNode =
+    tab === "embudos" ? (
+      <Suspense fallback={<CrmEmbudosCargando />}>
+        <CrmEmbudosSlot tableroInicial={resolverVista(single("embudo"))} />
+      </Suspense>
+    ) : null;
+
+  // SDD-0614 · S0 (D-6.6-1): Kommo está oculto del Studio hasta la migración
+  // completa. `resolveKommoTab` ya no devuelve sus pestañas, así que la página
+  // pinta la pestaña propia y vuelve ANTES de leer el espejo `kommo_*`. Lo que
+  // sigue es el camino de las pestañas de Kommo: queda sin uso, no borrado, y
+  // se retira en 8.7 con su OK aparte.
+  if (!KOMMO_TABS_OCULTAS.has(tab)) {
+    return (
+      <KommoClient
+        tab={tab}
+        direccion={null}
+        tablero={null}
+        recuperacion={null}
+        embudos={embudos}
+        overview={null}
+        pipelines={[]}
+        statuses={[]}
+        leads={[]}
+        filters={filters}
+        convertedLeads={{}}
+        valueByLead={{}}
+        // Sin lectura del espejo ni de la facturación: no disponible, nunca cero (SDD-0572-b).
+        convertedAvailable={false}
+        billingAvailable={false}
+        contactByLead={{}}
+        pendingOpsByLead={{}}
+        staleOpsByLead={{}}
+        // Solo lo usa el worklist de Kommo (oculto); Embudos resuelve su permiso.
+        canEdit={false}
+        responsibleUsers={[]}
+        bandeja={bandeja}
+      />
+    );
+  }
 
   const supabase = await createClient();
 
@@ -152,6 +204,8 @@ export default async function KommoPage({
           subdomain={overview.subdomain}
           convertedMarkboxByLead={analytics.convertedMarkboxByLead}
           valueByLead={analytics.valueByLead}
+          convertedAvailable={analytics.convertedAvailable}
+          billingAvailable={analytics.billingAvailable}
           ownerName={ownerName}
           pendingOpsByLead={boardPendingOps}
           staleOpsByLead={boardStaleOps}
@@ -195,7 +249,7 @@ export default async function KommoPage({
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
-  const visibleValue: Record<number, number> = {};
+  const visibleValue: Record<number, AnnualBillingRead> = {};
   for (const l of leads) {
     const mb = analytics.convertedMarkboxByLead[l.id];
     if (mb) visibleConverted[l.id] = mb;
@@ -249,6 +303,7 @@ export default async function KommoPage({
       }
       tablero={tablero}
       recuperacion={recuperacion}
+      embudos={embudos}
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}
@@ -256,11 +311,14 @@ export default async function KommoPage({
       filters={filters}
       convertedLeads={visibleConverted}
       valueByLead={visibleValue}
+      convertedAvailable={analytics.convertedAvailable}
+      billingAvailable={analytics.billingAvailable}
       contactByLead={contactByLead}
       pendingOpsByLead={pendingOpsByLead}
       staleOpsByLead={staleOpsByLead}
       canEdit={canEdit}
       responsibleUsers={analytics.ownership.owners}
+      bandeja={bandeja}
     />
   );
 }

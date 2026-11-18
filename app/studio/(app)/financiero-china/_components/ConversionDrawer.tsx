@@ -14,6 +14,7 @@ import { useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { addConversionAction } from "../actions";
 
 const FROM_CURRENCIES = ["USD", "USDT", "VES"] as const;
@@ -81,17 +82,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
         }}
       >
         {error && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: "var(--r-md)",
-              background: "var(--danger-bg)",
-              color: "var(--danger)",
-              font: "600 12px/1.4 var(--f-sans)",
-            }}
-          >
-            {error}
-          </div>
+          <Aviso tono="error" compacto>{error}</Aviso>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

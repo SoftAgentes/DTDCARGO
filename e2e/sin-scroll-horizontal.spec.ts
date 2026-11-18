@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { esperarHidratado } from "./_helpers/hidratacion";
+import { evitarRecargaDeHmr } from "./_helpers/sin-recarga-hmr";
 
 /**
  * Contrato: la web pública no tiene scroll horizontal en pantallas angostas.
@@ -27,6 +28,124 @@ import { esperarHidratado } from "./_helpers/hidratacion";
 
 const ANCHOS = [320, 360, 375] as const;
 const RUTAS = ["/", "/tarifas", "/faq"] as const;
+
+// El runner cerrado de SDD-0580 instala también el proxy local. El contrato
+// normal conserva el entorno general; en ensayo nunca salen solicitudes.
+test.beforeEach(async ({ context }) => {
+  if (!process.env.DTD_UI_PROXY) return;
+  await context.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ||
+        ["data:", "blob:"].includes(url.protocol)) return route.continue();
+    throw new Error(`Solicitud externa bloqueada: ${url.origin}`);
+  });
+});
+
+for (const width of [320, 360, 375, 390, 414, 430, 640, 768, 1280]) {
+  test(`Shipping Mark íntegro a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
+    await comprobarShippingMark(page);
+  });
+}
+
+for (const width of [320, 375, 768, 1280]) {
+  test(`Shipping Mark con texto 200% a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.evaluate(() => document.fonts.ready);
+    await esperarHidratado(page.locator('.hero-ctas > a[href="/registro"]'), "CTA antes de ampliar texto");
+    await page.evaluate(() => {
+      // Ampliación de texto exclusivamente; no CSS zoom ni zoom nativo.
+      const sizes = [...document.querySelectorAll<HTMLElement>(".home-surface *")]
+        .map((el) => ({ el, size: parseFloat(getComputedStyle(el).fontSize) }));
+      for (const { el, size } of sizes) el.style.fontSize = `${size * 2}px`;
+    });
+    await comprobarShippingMark(page);
+  });
+}
+
+async function comprobarShippingMark(page: Page) {
+  const vecino = await page.locator('.hero-ctas > a[href="/tarifas"]').evaluate((el) => {
+    const box = el.getBoundingClientRect(), range = document.createRange();
+    range.selectNodeContents(el);
+    return { width:box.width,height:box.height,font:parseFloat(getComputedStyle(el).fontSize),
+      inside:[...range.getClientRects()].every(r => r.left >= box.left-.5 && r.right <= box.right+.5 && r.top >= box.top-.5 && r.bottom <= box.bottom+.5) };
+  });
+  expect(vecino.inside, JSON.stringify(vecino)).toBe(true);
+  if (vecino.font === 17) expect(vecino.height).toBe(48);
+  const ctas = page.locator(".hero-ctas > a, .final-ctas > a")
+    .filter({ hasText: "Regístrate y obtén tu Shipping Mark" });
+  await expect(ctas).toHaveCount(2);
+  for (const cta of await ctas.all()) {
+    await expect(cta).toHaveAccessibleName('Regístrate y obtén tu Shipping Mark "Casillero"');
+    await expect(cta).toHaveAttribute("href", "/registro");
+    const measured = await cta.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      const [label, casillero] = [...el.children].map((s) => s.getBoundingClientRect());
+      const required = label.height + casillero.height + parseFloat(cs.rowGap) +
+        parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
+        parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+      return {
+        width:b.width, height:b.height, required,
+        textInside:[label,casillero].every((r) => r.left >= b.left - .5 && r.right <= b.right + .5 && r.top >= b.top - .5 && r.bottom <= b.bottom + .5),
+        below:casillero.top >= label.bottom,
+        strike:getComputedStyle(el.children[1]).textDecorationLine,
+        fontLoaded:document.fonts.check(`${cs.fontSize} ${cs.fontFamily}`) &&
+          [...document.fonts].some((face) => face.family.replaceAll('"', '') === "archivo" && face.status === "loaded"),
+        viewportInside:b.left >= -.5 && b.right <= document.documentElement.clientWidth + .5,
+      };
+    });
+    expect(measured.fontLoaded).toBe(true);
+    expect(measured.height, JSON.stringify(measured)).toBeGreaterThanOrEqual(measured.required - .5);
+    expect(measured.textInside, JSON.stringify(measured)).toBe(true);
+    expect(measured.below).toBe(true);
+    expect(measured.strike).toContain("line-through");
+    expect(measured.viewportInside).toBe(true);
+    expect(measured.width).toBeGreaterThanOrEqual(44);
+    expect(measured.height).toBeGreaterThanOrEqual(44);
+    await cta.focus();
+    await expect(cta).toBeFocused();
+    const focus = await cta.evaluate((el) => ({ visible:el.matches(":focus-visible"), style:getComputedStyle(el).outlineStyle, width:parseFloat(getComputedStyle(el).outlineWidth) }));
+    expect(focus.visible).toBe(true);
+    expect(focus.style).not.toBe("none");
+    expect(focus.width).toBeGreaterThanOrEqual(2);
+  }
+}
+
+test.describe("activación de Shipping Mark", () => {
+test.use({ hasTouch: true });
+// Una prueba por CTA y método, no una sola con las cuatro: cada una abre `/` y
+// navega, y bajo carga un solo `goto` a `/` midió 24 s. Juntas compartían los 60 s.
+// Los 35 s de la espera son de `next dev`, no un contrato de latencia: la primera
+// compilación de /registro midió 17,8 s con la CPU al 100 %, y 35 + 24 caben en 60.
+for (const selector of [".hero-ctas", ".final-ctas"]) {
+  for (const method of ["Enter", "tap"] as const) {
+    test(`el CTA de ${selector} navega a registro con ${method} sin enviar datos`, async ({ page }, testInfo) => {
+      await evitarRecargaDeHmr(page);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      const cta = page.locator(`${selector} > a[href='/registro']`);
+      await esperarHidratado(cta, "CTA Shipping Mark");
+      if (method === "Enter") {
+        await cta.focus();
+        await expect(cta).toBeFocused();
+      }
+      const start = Date.now();
+      await Promise.all([
+        page.waitForURL(/\/registro$/, { timeout:35_000 }),
+        method === "Enter" ? cta.press("Enter") : cta.tap(),
+      ]);
+      await testInfo.attach("navegaciones-locales", {
+        body:JSON.stringify([{selector,method,milliseconds:Date.now()-start}]),
+        contentType:"application/json",
+      });
+    });
+  }
+}
+});
 
 /**
  * Mide el desborde horizontal del documento.

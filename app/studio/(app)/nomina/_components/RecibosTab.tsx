@@ -14,6 +14,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   payrollRunStatusLabel,
   payrollRunStatusTone,
@@ -339,20 +340,9 @@ function CorteDetalle({ run, onBack }: { run: PayrollRun; onBack: () => void }) 
       </div>
 
       {actionError && (
-        <p
-          role="alert"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--danger)",
-            padding: "10px 12px",
-            background: "var(--danger-bg)",
-            border: "1px solid var(--danger)",
-            borderRadius: "var(--r-sm)",
-            margin: "0 0 var(--s-4)",
-          }}
-        >
-          {actionError}
-        </p>
+        <div style={{ marginBottom: "var(--s-4)" }}>
+          <Aviso tono="error">{actionError}</Aviso>
+        </div>
       )}
 
       {/* Totales del corte */}
@@ -383,7 +373,7 @@ function CorteDetalle({ run, onBack }: { run: PayrollRun; onBack: () => void }) 
       </p>
 
       {loadError ? (
-        <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>{loadError}</p>
+        <Aviso tono="error">{loadError}</Aviso>
       ) : lines === null ? (
         <p style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           Cargando recibos…

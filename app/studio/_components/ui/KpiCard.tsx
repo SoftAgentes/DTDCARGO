@@ -1,7 +1,7 @@
 /**
  * KpiCard primitive · DTD Studio (SDD-0014)
  *
- * Card con valor grande + label uppercase + sub-line opcional.
+ * Card con valor grande + label + sub-line opcional.
  * Border-top wine-soft 2px cuando value > 0 (convención visual del dashboard).
  *
  * Reusa tokens del sistema, light + dark theme aware.
@@ -43,10 +43,11 @@ export function KpiCard({
 
   const showHighlight = highlightWhenPositive && isPositive;
 
-  // En feature el texto va sobre el vino → cream (AA). El valor mantiene su color
-  // salvo que sea feature (ahí va cream/blanco para leer sobre el degradado).
-  const valColor = feature ? "var(--ink-inv)" : valueColor;
-  const labelColor = feature ? "var(--ink-inv-soft)" : "var(--ink-soft)";
+  // En feature el texto va sobre el vino, que es oscuro en los dos temas: --ink-side*,
+  // que no voltea. --ink-inv daba navy sobre vino en oscuro (2,51:1, SDD-0603).
+  const valColor = feature ? "var(--ink-side-strong)" : valueColor;
+  const labelColor = feature ? "var(--ink-side-strong)" : "var(--ink)";
+  const subColor = feature ? "var(--ink-side)" : "var(--ink-soft)";
 
   return (
     <div
@@ -61,7 +62,7 @@ export function KpiCard({
             ? "2px solid var(--wine-soft)"
             : "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        padding: "18px 20px 16px",
+        padding: "var(--s-5)",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -88,7 +89,7 @@ export function KpiCard({
       <div
         style={{
           position: "relative",
-          font: "900 30px/1 var(--f-display)",
+          font: "900 var(--kpi-fs) / 1 var(--f-display)",
           // Sora no es monoespaciada → tabular-nums estabiliza el ancho de
           // dígitos (KPIs que cambian en vivo vía Realtime no hacen jitter).
           fontVariantNumeric: "tabular-nums",
@@ -101,10 +102,8 @@ export function KpiCard({
       <div
         style={{
           position: "relative",
-          font: "600 11.5px/1 var(--f-sans)",
+          font: "600 14px/1.2 var(--f-sans)",
           color: labelColor,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
         }}
       >
         {label}
@@ -113,8 +112,8 @@ export function KpiCard({
         <div
           style={{
             position: "relative",
-            font: "500 11px/1.4 var(--f-sans)",
-            color: labelColor,
+            font: "400 13px/1.4 var(--f-sans)",
+            color: subColor,
             marginTop: 2,
           }}
         >

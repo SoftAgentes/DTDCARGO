@@ -1,0 +1,227 @@
+/* Ficha 360° del empleado (SDD-0652 F1).
+   Vive aparte de studio.css para no chocar con la grilla de la ficha del
+   cliente (SDD-0650, PR #629), que todavía no está en main. Mismo reparto:
+   tres columnas desde 1.441 px; dos, con Acceso abajo, hasta 900 px; una sola
+   debajo, en el orden Nómina, Datos, Acceso. Solo tokens del Studio. */
+
+.ficha-emp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-areas: "datos nomina acceso";
+  gap: var(--s-6);
+  align-items: start;
+}
+.ficha-emp-grid--sin-acceso {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-areas: "datos nomina";
+}
+.ficha-emp-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.ficha-emp-col--datos { grid-area: datos; }
+.ficha-emp-col--nomina { grid-area: nomina; }
+.ficha-emp-col--acceso { grid-area: acceso; }
+
+@media (max-width: 1440px) {
+  .ficha-emp-grid:not(.ficha-emp-grid--sin-acceso) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-areas:
+      "datos nomina"
+      "acceso acceso";
+  }
+}
+@media (max-width: 900px) {
+  .ficha-emp-grid:not(.ficha-emp-grid--sin-acceso),
+  .ficha-emp-grid.ficha-emp-grid--sin-acceso {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "nomina" "datos" "acceso";
+  }
+}
+
+.ficha-emp-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  min-width: 0;
+}
+.ficha-emp-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+/* Bloques que no se destacan (amonestaciones, finiquito: §5.2). */
+.ficha-emp-card--compacta {
+  padding: var(--s-3) var(--s-4);
+}
+
+.ficha-emp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--border);
+  font: 500 12.5px/1.4 var(--f-sans);
+  color: var(--ink);
+}
+.ficha-emp-row:first-of-type { border-top: 0; }
+.ficha-emp-row > dt { color: var(--ink-soft); flex-shrink: 0; }
+.ficha-emp-row > dd {
+  margin: 0;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ficha-emp-mono { font-family: var(--f-mono); }
+.ficha-emp-vacio { color: var(--ink-soft); }
+
+.ficha-emp-cabecera {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.ficha-emp-cabecera-id { flex: 1; min-width: 240px; }
+.ficha-emp-cinco {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin: var(--s-3) 0 0;
+  padding: 0;
+}
+.ficha-emp-cinco > div { min-width: 0; }
+.ficha-emp-cinco dt {
+  font: 600 10.5px/1.2 var(--f-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ficha-emp-cinco dd {
+  margin: 2px 0 0;
+  font: 500 13px/1.35 var(--f-sans);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.ficha-emp-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-4);
+  margin-bottom: var(--s-5);
+}
+
+.ficha-emp-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ficha-emp-lista > li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--border);
+  font: 500 12.5px/1.4 var(--f-sans);
+  color: var(--ink);
+}
+.ficha-emp-lista > li:first-child { border-top: 0; }
+.ficha-emp-lista small {
+  display: block;
+  font: 500 11.5px/1.35 var(--f-sans);
+  color: var(--ink-soft);
+}
+
+.ficha-emp-linea {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ficha-emp-linea > li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--border);
+}
+.ficha-emp-linea > li:first-child { border-top: 0; }
+.ficha-emp-linea time {
+  white-space: nowrap;
+  font: 600 12px/1.4 var(--f-mono);
+  color: var(--ink-soft);
+}
+@media (max-width: 480px) {
+  .ficha-emp-linea > li { grid-template-columns: minmax(0, 1fr); gap: var(--s-1); }
+}
+
+/* ── Fase 2: foto, enlace y «Mostrar» la cuenta ─────────────────────────── */
+.ficha-emp-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  max-width: 220px;
+}
+.ficha-emp-foto-img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-pill);
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--neutral-bg);
+  flex-shrink: 0;
+}
+.ficha-emp-foto-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+/* El input sigue en el árbol de accesibilidad; lo abre el botón de al lado. */
+.ficha-emp-foto-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ficha-emp-foto-ayuda {
+  flex-basis: 100%;
+  margin: 0;
+  font: 400 11.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-foto-estado {
+  flex-basis: 100%;
+  font: 500 11.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-foto-estado:empty { display: none; }
+
+.ficha-emp-nota {
+  margin: 0;
+  font: 400 12.5px/1.5 var(--f-sans);
+  color: var(--ink-soft);
+}
+.ficha-emp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.ficha-emp-form .studio-input { width: 100%; }
+
+/* La fila de la cuenta vive en su propia lista, pegada a la de Banco. */
+.ficha-emp-row.ficha-emp-row--sigue:first-of-type { border-top: 1px solid var(--border); }
+.ficha-emp-cuenta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--s-2);
+}

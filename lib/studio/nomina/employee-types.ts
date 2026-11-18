@@ -129,7 +129,90 @@ export type Employee = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** SDD-0113 · login enlazado (null = sin cuenta). Solo servidor: no se manda tal cual al navegador. */
+  auth_user_id: string | null;
 };
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Proyecciones para el navegador (SDD-0652 F1)               ║
+// ╚═══════════════════════════════════════════════════════════╝
+// `Employee` es la fila completa y solo vive en el servidor. A un componente
+// de cliente le llega una de estas tres, según el uso. La lista no lleva
+// cédula, sueldo, nacimiento, teléfono ni cuenta bancaria; la edición no lleva
+// la cuenta: la muestra enmascarada y se reemplaza escribiendo una nueva.
+
+/** Lo mínimo para nombrar a la persona en un selector o una tabla. */
+export type EmployeeRef = Pick<Employee, "id" | "employee_code" | "full_name" | "status">;
+
+/** Fila de la lista de Empleados. */
+export type EmployeeListItem = EmployeeRef &
+  Pick<Employee, "position_label" | "department" | "position_id" | "email"> & {
+    /** Tiene una cuenta enlazada (`auth_user_id` no nulo). Sin el id. */
+    has_account: boolean;
+    /** SDD-0652 fase 2: URL firmada y corta de la foto, o null. La ruta del bucket no viaja. */
+    photo_url: string | null;
+  };
+
+/** Lo que recibe el formulario de edición: todo menos el número de cuenta. */
+export type EmployeeEditView = Omit<Employee, "bank_account" | "auth_user_id" | "created_by" | "deleted_at"> & {
+  /** `•••• 1234`, o null si no hay cuenta. */
+  bank_account_masked: string | null;
+  has_account: boolean;
+};
+
+/**
+ * Cuenta enmascarada: solo los últimos 4 dígitos. Ignora espacios y guiones al
+ * contar; con 4 o menos caracteres útiles no revela nada («••••»).
+ */
+export function maskBankAccount(account: string | null | undefined): string | null {
+  const clean = String(account ?? "").replace(/[\s-]/g, "");
+  if (!clean) return null;
+  if (clean.length <= 4) return "••••";
+  return `•••• ${clean.slice(-4)}`;
+}
+
+export function toEmployeeListItem(e: Employee, photoUrl: string | null = null): EmployeeListItem {
+  return {
+    photo_url: photoUrl,
+    id: e.id,
+    employee_code: e.employee_code,
+    full_name: e.full_name,
+    status: e.status,
+    position_label: e.position_label,
+    department: e.department,
+    position_id: e.position_id,
+    email: e.email,
+    has_account: !!e.auth_user_id,
+  };
+}
+
+export function toEmployeeEditView(e: Employee): EmployeeEditView {
+  // Se arma campo por campo, sin `...e`: un campo nuevo de la fila no llega
+  // al navegador por accidente.
+  return {
+    id: e.id,
+    tenant_id: e.tenant_id,
+    employee_code: e.employee_code,
+    full_name: e.full_name,
+    national_id: e.national_id,
+    position_label: e.position_label,
+    department: e.department,
+    position_id: e.position_id,
+    phone: e.phone,
+    email: e.email,
+    salary_usd: e.salary_usd,
+    hire_date: e.hire_date,
+    birth_date: e.birth_date,
+    bank_name: e.bank_name,
+    bank_account_type: e.bank_account_type,
+    status: e.status,
+    notes: e.notes,
+    created_at: e.created_at,
+    updated_at: e.updated_at,
+    bank_account_masked: maskBankAccount(e.bank_account),
+    has_account: !!e.auth_user_id,
+  };
+}
 
 export type EmployeeKpis = {
   active_count: number;

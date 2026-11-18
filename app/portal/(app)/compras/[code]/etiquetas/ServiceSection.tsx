@@ -7,7 +7,7 @@
  * solo avisamos. Reusa el video-ayuda + el aviso "antes de almacén" compartidos.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
 import {
   defaultAddon,
@@ -22,6 +22,7 @@ import {
   PrealertaServiceVideo,
 } from "../../../../_components/PrealertaAddons";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { useActionKeepingDraft } from "@/lib/shared/use-action-keeping-draft";
 
 const initial: ServiceRequestActionState = {};
 
@@ -146,9 +147,10 @@ function AddServiceForm({
   available: PrealertaAddon[];
   onDone: () => void;
 }) {
-  const [state, action, pending] = useActionState(
+  const [state, formProps, pending] = useActionKeepingDraft(
     requestPrealertaServiceAction,
     initial,
+    "No pudimos confirmar si el servicio quedó pedido. Lo que escribiste sigue aquí. Intenta de nuevo: si ya quedó, te lo avisaremos.",
   );
   const [code, setCode] = useState<string>(available[0]?.code ?? "");
   const selected = available.find((a) => a.code === code) ?? null;
@@ -160,7 +162,7 @@ function AddServiceForm({
 
   return (
     <form
-      action={action}
+      {...formProps}
       className="card-shadow bg-white border border-grey-200 rounded-[14px] p-4 flex flex-col gap-3"
     >
       <input type="hidden" name="prealertaCode" value={prealertaCode} />

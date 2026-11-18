@@ -255,29 +255,33 @@ describe("invoiceUsdAmount", () => {
     ).toBe(1000);
   });
 
-  it("VES sin fx_rate (null) → 0 (se omite del cómputo)", () => {
+  // SDD-0572 (decisión 1 de Sam; el Director, 2026-10-20): sin tasa no se convierte, null; nunca 0.
+  it("VES sin fx_rate (null) → null (va a «sin tasa»)", () => {
     expect(
       invoiceUsdAmount(base({ currency: "VES", total_amount: 36500, fx_rate: null })),
-    ).toBe(0);
+    ).toBeNull();
   });
 
-  it("VES con fx_rate 0 → 0", () => {
+  it("VES con fx_rate 0 → null", () => {
     expect(
       invoiceUsdAmount(base({ currency: "VES", total_amount: 100, fx_rate: 0 })),
-    ).toBe(0);
+    ).toBeNull();
   });
 
-  it("CNY → 0 (omitida en V1)", () => {
+  it("CNY sin tasa → null; con tasa convierte (antes 0 siempre)", () => {
     expect(
       invoiceUsdAmount(base({ currency: "CNY", total_amount: 9999 })),
-    ).toBe(0);
+    ).toBeNull();
+    expect(
+      invoiceUsdAmount(base({ currency: "CNY", total_amount: 7200, fx_rate: 7.2 })),
+    ).toBe(1000);
   });
 
-  it("total_amount no numérico → 0", () => {
+  it("total_amount no numérico → null (falla cerrado)", () => {
     expect(
       invoiceUsdAmount(
         base({ currency: "USD", total_amount: Number.NaN }),
       ),
-    ).toBe(0);
+    ).toBeNull();
   });
 });

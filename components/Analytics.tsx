@@ -505,7 +505,7 @@ function AnalyticsRuntime() {
           hay decisión `granted` en la cookie `dtd_cookie_consent`, arrancamos
           concedido para no re-medir a un usuario que ya aceptó. Ver lib/cookie-consent. */}
       <Script id="ga-init" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());var __dtdc=document.cookie.indexOf('dtd_cookie_consent=granted')!==-1?'granted':'denied';gtag('consent','default',{ad_storage:__dtdc,ad_user_data:__dtdc,ad_personalization:__dtdc,analytics_storage:__dtdc,wait_for_update:500});gtag('config','${GA_ID}',{send_page_view:false});gtag('config','${ADS_ID}');`}
+        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());var __dtdchoices=document.cookie.split(';').map(function(cookie){return cookie.trim();}).filter(function(cookie){return cookie.indexOf('dtd_cookie_consent=')===0;});var __dtdc=__dtdchoices.length===1&&__dtdchoices[0]==='dtd_cookie_consent=granted'?'granted':'denied';gtag('consent','default',{ad_storage:__dtdc,ad_user_data:__dtdc,ad_personalization:__dtdc,analytics_storage:__dtdc,wait_for_update:500});gtag('config','${GA_ID}',{send_page_view:false});gtag('config','${ADS_ID}');`}
       </Script>
       <PageViews />
       <WhatsAppConversionTracker />

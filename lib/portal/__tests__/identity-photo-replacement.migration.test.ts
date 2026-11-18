@@ -14,7 +14,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -52,7 +52,7 @@ function fixtureWith(migrations: string[]): string {
 }
 
 async function run(sql: string): Promise<string | null> {
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   try {
     await db.exec(sql);
     return null;

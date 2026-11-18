@@ -20,7 +20,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   DOCUMENTS_BUCKET,
   DOCUMENT_MAX_BYTES,
@@ -178,6 +178,9 @@ export async function addDocumentVersion(
   formData: FormData,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  // SDD-0624: subir una versión es editar documentos (support es read-only).
+  const denial = await moduleEditDenial(supabase, "documents");
+  if (denial) return { error: denial };
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
@@ -412,6 +415,8 @@ export async function signDocumentUrl(
 ): Promise<string | null> {
   if (!documentId || !UUID_RE.test(documentId)) return null;
   const supabase = await createClient();
+  // SDD-0624: gate de vista además de la RLS de `documents` y de storage.
+  if (await moduleViewDenial(supabase, "documents")) return null;
   const { data: doc } = await supabase
     .from("documents")
     .select("id, tenant_id, storage_path, bucket_id, entity_type, entity_id")
@@ -447,6 +452,8 @@ export async function listDocumentVersionsAction(
 ): Promise<DocumentVersionRow[]> {
   if (!rootId || !UUID_RE.test(rootId)) return [];
   const supabase = await createClient();
+  // SDD-0624: gate de vista además de la RLS de `documents`.
+  if (await moduleViewDenial(supabase, "documents")) return [];
   return listDocumentVersions(supabase, rootId);
 }
 

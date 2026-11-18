@@ -17,7 +17,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PGlite } from "@electric-sql/pglite";
+import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -54,7 +54,7 @@ function inline(file: string, replace: Record<string, string> = {}): string {
 }
 
 async function contract(replace: Record<string, string> = {}) {
-  const db = new PGlite();
+  const db = await pgliteLimpio();
   try {
     const results = await db.exec(inline(CONTRACT, replace));
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);

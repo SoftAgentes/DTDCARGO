@@ -267,6 +267,64 @@ describe("RateSnapshotDrawer · vigencia de la vista previa", () => {
   });
 });
 
+describe("RateSnapshotDrawer · servicio durante el guardado", () => {
+  it.each(["éxito", "rechazo"] as const)(
+    "A → intento de B → resolución A (%s) conserva selección y respuesta coherentes",
+    async (resultado) => {
+      const pendiente = deferred<PreviewResult>();
+      actions.freeze.mockReturnValueOnce(pendiente.promise);
+      await abrir();
+      const selector = screen.getByLabelText(K + "service");
+      await act(async () => { fireEvent.click(submit()); });
+      expect(actions.freeze).toHaveBeenCalledTimes(1);
+      expect(actions.freeze).toHaveBeenCalledWith(expect.objectContaining({ service: DDP }));
+      expect(selector).toBeDisabled();
+
+      // También el manejador debe rechazar un evento sintético sobre disabled.
+      fireEvent.change(selector, { target: { value: LCL } });
+      expect(selector).toHaveValue(DDP);
+      expect(actions.load).toHaveBeenCalledTimes(1);
+
+      const guardada = resultado === "éxito" ? snapshot(850, DDP) : null;
+      if (guardada) {
+        actions.load.mockResolvedValueOnce({
+          ...drawerData(850, DDP), live: guardada, history: [guardada],
+        });
+      }
+      await act(async () => {
+        pendiente.resolve(guardada
+          ? { ok: true, snapshot: guardada }
+          : { ok: false, errorKey: "warehouse_cn.rate.err.generic" });
+      });
+
+      expect(selector).toHaveValue(DDP);
+      expect(selector).toBeEnabled();
+      expect(actions.load).not.toHaveBeenCalledWith(RID, LCL);
+      if (guardada) {
+        expect(actions.load).toHaveBeenCalledTimes(2);
+        expect(actions.load).toHaveBeenLastCalledWith(RID, DDP);
+        expect(actions.toast).toHaveBeenCalledTimes(1);
+      } else {
+        expect(actions.load).toHaveBeenCalledTimes(1);
+        expect(actions.toast).not.toHaveBeenCalled();
+        expect(screen.getByText("warehouse_cn.rate.err.generic")).toBeInTheDocument();
+      }
+
+      // El bloqueo es temporal: B vuelve a ser una selección legítima al terminar.
+      actions.load.mockResolvedValueOnce({
+        ...drawerData(580, LCL), live: guardada, history: guardada ? [guardada] : [],
+      });
+      await act(async () => {
+        fireEvent.change(selector, { target: { value: LCL } });
+      });
+      expect(selector).toHaveValue(LCL);
+      expect(actions.load).toHaveBeenLastCalledWith(RID, LCL);
+      expect(screen.getByText("$1,160.00")).toBeInTheDocument();
+      expect(actions.freeze).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
 describe("RateSnapshotDrawer · vigencia de la carga", () => {
   it("los renders del formulario no repiten la carga por la identidad del traductor", async () => {
     traducciones.limite = 100;

@@ -24,6 +24,7 @@ import type { InspectionActionState } from "@/lib/studio/inspecciones/validators
 import type { InspectionPhotoItem } from "@/lib/studio/inspecciones/photos";
 import { updateInspectionReportAction } from "../actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { PsiBuilder } from "./PsiBuilder";
 import { FactoryBuilder } from "./FactoryBuilder";
 import { PhotoManager } from "./PhotoManager";
@@ -136,12 +137,10 @@ export function ReportEditor({
 
         {/* Tabs */}
         <div
-          style={{
-            display: "flex",
-            gap: 6,
-            padding: "10px 22px 0",
-            borderBottom: "1px solid var(--border)",
-          }}
+          role="group"
+          aria-label="Secciones del informe"
+          className="studio-tabs"
+          style={{ margin: "10px 22px 0" }}
         >
           {(
             [
@@ -155,17 +154,10 @@ export function ReportEditor({
               <button
                 key={id}
                 type="button"
-                onClick={() => setTab(id)}
                 aria-pressed={active}
-                style={{
-                  font: "600 12.5px/1 var(--f-sans)",
-                  color: active ? "var(--ink)" : "var(--ink-soft)",
-                  background: "transparent",
-                  border: 0,
-                  borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
-                  padding: "8px 12px 10px",
-                  cursor: "pointer",
-                }}
+                data-activa={active ? "true" : undefined}
+                onClick={() => setTab(id)}
+                className="studio-tab"
               >
                 {label}
               </button>
@@ -208,16 +200,11 @@ export function ReportEditor({
                 )}
               </form>
               {state.error && (
-                <p
-                  role="alert"
-                  style={{
-                    font: "500 12px/1.4 var(--f-sans)",
-                    color: "var(--danger)",
-                    marginTop: 14,
-                  }}
-                >
-                  {state.error}
-                </p>
+                <div style={{ marginTop: 14 }}>
+                  <Aviso tono="error" compacto>
+                    {state.error}
+                  </Aviso>
+                </div>
               )}
             </>
           )}

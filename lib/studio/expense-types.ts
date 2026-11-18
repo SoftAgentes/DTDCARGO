@@ -7,6 +7,7 @@
  * normalización a USD (amount_usd + fx_rate) + categorías op_* operativas.
  */
 
+import { usdOrNull } from "@/lib/shared/fx";
 import { t, type I18nKey, type Locale } from "@/lib/i18n";
 
 export type ExpenseCurrency = "USD" | "VES" | "CNY";
@@ -251,15 +252,16 @@ export function currencyPair(currency: ExpenseCurrency): string | null {
   return `${currency}/USD`;
 }
 
-/** amount → USD con fx. USD: identidad. CNY/VES: amount / fx_rate. */
+/**
+ * amount → USD con fx. USD: identidad. CNY/VES: amount / fx_rate.
+ * SDD-0572: el conversor canónico (centavos exactos); sin tasa, null (antes 0).
+ */
 export function toAmountUsd(
   amount: number,
   currency: ExpenseCurrency,
   fxRate: number,
-): number {
-  if (currency === "USD") return amount;
-  if (!Number.isFinite(fxRate) || fxRate <= 0) return 0;
-  return amount / fxRate;
+): number | null {
+  return usdOrNull(amount, currency, fxRate);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -363,13 +365,18 @@ export function validateExpenseInput(
 
   const currency = input.currency!;
   const effectiveFx = currency === "USD" ? 1 : fxRate;
+  // SDD-0572: falla cerrado. El validador ya exige la tasa; esto cubre el resto.
+  const amountUsd = toAmountUsd(amount, currency, effectiveFx);
+  if (amountUsd === null) {
+    return { fieldErrors: { fx_rate: "Indica una tasa válida para convertir el gasto a USD." } };
+  }
 
   return {
     input: {
       amount,
       currency,
       fx_rate: effectiveFx,
-      amount_usd: toAmountUsd(amount, currency, effectiveFx),
+      amount_usd: amountUsd,
       category: input.category!,
       scope,
       method: input.method!,

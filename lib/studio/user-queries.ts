@@ -1,7 +1,7 @@
 /**
  * Queries del módulo Usuarios & Roles (SDD-0024 Fase 1).
  *
- * Solo LECTURA. Las mutaciones van por RPCs (studio_invite_user,
+ * Solo LECTURA. Las mutaciones van por RPCs (audit_d1_execute para invitar,
  * studio_accept_invitation, studio_change_user_role) que se llaman
  * desde server actions en Fase 2.
  *
@@ -324,27 +324,9 @@ export async function computeUserKpis(
 
 // ─── Helpers (wrappers de RPCs) ─────────────────────────────
 
-/**
- * Wrapper del RPC studio_invite_user. Devuelve el token + invitation_id
- * o lanza si falla. Server actions llaman este wrapper.
- */
-export async function inviteUserRPC(
-  supabase: SupabaseClient,
-  email: string,
-  role: StudioUserRole,
-  region: "ve" | "cn" = "ve",
-): Promise<{ invitationId: string; token: string }> {
-  const { data, error } = await supabase.rpc("studio_invite_user", {
-    p_email: email,
-    p_role: role,
-    p_region: region,
-  });
-  if (error || !data || !Array.isArray(data) || data.length === 0) {
-    throw new Error(error?.message ?? "RPC studio_invite_user vacío");
-  }
-  const row = data[0] as { invitation_id: string; token: string };
-  return { invitationId: row.invitation_id, token: row.token };
-}
+// Invitar no tiene wrapper: va por `audit_d1_execute` (`membership.invite`) desde
+// `inviteUserAction`. La función interna `studio_invite_user` no se expone
+// directamente (migr 0545, SDD-0636).
 
 export async function acceptInvitationRPC(
   supabase: SupabaseClient,
