@@ -9,6 +9,7 @@
  * - Empty state cuando no hay rows
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -606,12 +607,7 @@ function ReceiptRow({
         : `${row.warehouse.hub_name_es} · ${row.warehouse.hub_name_cn}`;
 
   const cbmDisplay =
-    row.total_cbm != null
-      ? Number(row.total_cbm).toLocaleString("es-VE", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })
-      : "—";
+    formatCbm(row.total_cbm);
 
   const weightDisplay =
     row.total_weight_kg != null
