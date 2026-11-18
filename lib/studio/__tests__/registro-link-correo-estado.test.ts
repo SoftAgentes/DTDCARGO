@@ -116,7 +116,7 @@ describe("estado del correo en «Registros por link»", () => {
   describe("enlace de autoservicio (SDD-0672 entrega 2)", () => {
     const self = (extra: Fila = {}) => ({
       ...link("l-1"),
-      origin: "autoservicio",
+      link_origin: "autoservicio",
       issued_to_email: "ana@example.test",
       submitted_data: { email: "ana@example.test" },
       ...extra,
@@ -162,7 +162,7 @@ describe("estado del correo en «Registros por link»", () => {
               if (table !== "client_registration_links") {
                 return ok({ data: [{ id: "c-1", markbox: "DTD-8001", name: "Ana" }], error: null });
               }
-              return columnas.includes("origin")
+              return columnas.includes("link_origin")
                 ? ok({ data: null, error: { code: "42703", message: "no existe la columna" } })
                 : ok({ data: [link("l-1")], error: null });
             },
@@ -175,7 +175,7 @@ describe("estado del correo en «Registros por link»", () => {
       expect(rows).not.toBeNull();
       expect(rows?.[0].origen).toBe("equipo");
       expect(pedidas).toHaveLength(2);
-      expect(pedidas[1]).not.toContain("origin");
+      expect(pedidas[1]).not.toContain("link_origin");
     });
 
     it("un link del equipo sigue como siempre", async () => {

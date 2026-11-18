@@ -27,7 +27,7 @@ type Row = {
   access_error: string | null;
   reviewed_at: string | null;
   /** SDD-0672 · columnas de la 0562; ausentes antes de aplicarla. */
-  origin?: "equipo" | "autoservicio" | null;
+  link_origin?: "equipo" | "autoservicio" | null;
   issued_to_email?: string | null;
 };
 
@@ -51,7 +51,7 @@ export async function listRegistrosPorLink(
 
   // SDD-0672 · con la 0562 se lee también el origen del link. Sin ella la columna
   // no existe (42703): se vuelve a pedir lo de siempre, y la lista no se rompe.
-  let { data, error } = await consulta(`${COLUMNAS}, origin, issued_to_email`);
+  let { data, error } = await consulta(`${COLUMNAS}, link_origin, issued_to_email`);
   if (error?.code === "42703") ({ data, error } = await consulta(COLUMNAS));
   if (error) {
     // Sin la migración 0552 la tabla no existe: la pantalla lo dice en vez de
@@ -104,7 +104,7 @@ export async function listRegistrosPorLink(
     // fallido, ese correo está comprobado.
     if (
       (!e || e.link_id !== r.id) &&
-      r.origin === "autoservicio" &&
+      r.link_origin === "autoservicio" &&
       !r.access_error &&
       typeof r.issued_to_email === "string" &&
       r.issued_to_email === String(r.submitted_data?.email ?? "").toLowerCase()
@@ -129,7 +129,7 @@ export async function listRegistrosPorLink(
     rifSkipped: r.rif_skipped,
     accessError: r.access_error,
     reviewedAt: r.reviewed_at,
-    origen: r.origin === "autoservicio" ? "autoservicio" : "equipo",
+    origen: r.link_origin === "autoservicio" ? "autoservicio" : "equipo",
     correoEstado: estadoDe(r),
     correoEnviadoAt: estados.get(r.client_id)?.link_id === r.id ? (estados.get(r.client_id)?.sent_at ?? null) : null,
   }));
