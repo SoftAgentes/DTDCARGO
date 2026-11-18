@@ -178,7 +178,8 @@ migración primero.
   Sigue aceptando la cuenta con el correo real, para no romper la app anterior entre la migración y la
   publicación; esa queda anotada igual.
 - RPC solo para `service_role`: `portal_email_sin_comprobar`, `portal_email_check_auth_interno`,
-  `portal_email_check_issue` (7 días, un enlace vivo por cuenta), `portal_email_check_peek` (lee),
+  `portal_email_check_issue` (7 días, un enlace vivo por cuenta), `portal_email_check_peek` (lee; el
+  correo por comprobar solo para la sesión del titular),
   `portal_email_check_claim`, `portal_email_check_confirm`, `portal_email_check_release` y
   `portal_email_check_revisar`. Reclamar y confirmar reciben el usuario de la sesión del portal y exigen
   que sea el titular de la comprobación. Para el equipo (`authenticated`, roles admin/commercial/operations
@@ -221,7 +222,7 @@ jurisprudencia de habeas data (Venezuela). El equipo de China sin rol admin no e
 |---|---|---|
 | Inventario | CORRECTO | Un dato personal nuevo: `client_email_checks.pending_email`, copia del correo de la ficha (`0559_registro_link_correo_comprobado.sql`, «1. La tabla»). `internal_email` es un id aleatorio y `token_hash` un sha256: ninguno identifica a una persona. Finalidad: comprobar que el correo es del cliente antes de que sirva para entrar. Lo lee solo el servidor: la tabla no tiene policies ni permisos de lectura para `authenticated` (contrato §G), y el equipo ve solo el estado. |
 | Minimización | CORRECTO | La dirección interna no sale del Shipping Mark, del nombre ni del correo (`lib/studio/portal/correo-comprobacion.ts`, `nuevoCorreoInterno`; contrato §H). El enlace lleva solo el token (`lib/portal/correo-comprobacion.ts`, `comprobarCorreoUrl`). El correo real deja de estar en la cuenta de Auth hasta que se comprueba: un sistema menos con el dato. |
-| Titular que no es usuario | CORRECTO | El correo de comprobación puede llegarle a un tercero si el cliente escribió una dirección ajena. Lleva el Shipping Mark, no el nombre ni ningún dato de la ficha, y su único enlace no abre el portal (`lib/studio/registro-link-aviso-email.ts`; `registro-link-aviso-email.test.ts`). La página pública muestra solo el Shipping Mark (`portal_email_check_peek` devuelve una columna; contrato §J). |
+| Titular que no es usuario | CORRECTO | El correo de comprobación puede llegarle a un tercero si el cliente escribió una dirección ajena. Lleva el Shipping Mark, no el nombre ni ningún dato de la ficha, y su único enlace no abre el portal (`lib/studio/registro-link-aviso-email.ts`; `registro-link-aviso-email.test.ts`). La página pública muestra el Shipping Mark y, solo a la sesión del portal de la cuenta titular, el correo que va a confirmar, para que lo revise antes; sin sesión o con otra cuenta no sale el correo (`portal_email_check_peek`, contrato §J; `comprobar-correo-page.test.tsx`). |
 | Acceso | CORRECTO | Tabla sin lectura por PostgREST; el estado, solo para el equipo del tenant y sin el correo ni el hash (`portal_email_check_estado`, contrato §G/§H); las RPC del enlace, solo `service_role`; preparar el reenvío exige rol y tenant (contrato §N). El correo sigue viéndose solo en la ficha, donde ya rige quién puede ver datos de contacto (§3.4). |
 | Registros y salidas | CORRECTO | Los avisos de consola de las rutas nuevas llevan códigos de error, no correos; la corrida única imprime conteos e ids internos (`registro-link-correo-estado.test.ts`, «no lleva correos»). El correo sí queda en `mail_logs` como cualquier envío (ya era así con el aviso de la opción A). |
 | Borrado y retención | ENCONTRADO | `pending_email` se borra con la ficha (`on delete cascade`), pero el borrado de clientes es lógico: la copia queda mientras la ficha exista, también después de comprobado, cuando ya no hace falta. Mismo hallazgo que `prev_data`/`submitted_data`. Arreglo propuesto: vaciar `pending_email` al confirmar (el correo ya está en la ficha y en la cuenta) y sumar la tabla al plazo que Sam decida para las copias de la 0552. No se hizo en este cambio porque el trigger compara contra ese valor para saber si el correo cambió; hay que compararlo contra la ficha. |
@@ -346,6 +347,18 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
     `app/entrar/__tests__/actions.test.ts`, `entrar-no-promete-envio.test.tsx`.
 24. La corrida única recorre todas las filas y nunca termina en 0 con pendientes. —
     `registro-link-correo-estado.test.ts`.
+25. El titular ve el correo completo antes de confirmarlo y tiene una salida «No es mi correo» que no
+    confirma nada y le dice cómo corregirlo; sin sesión o con la de otra cuenta el correo no aparece. —
+    contrato §J, `comprobar-correo-page.test.tsx`.
+26. El acceso por WhatsApp falla cerrado: si hay (o no se puede descartar que haya) una cuenta por link
+    sin comprobar y no se puede leer lo necesario, o el cliente no tiene ningún acceso activo, no se
+    acuña ni se crea nada. — `correo-comprobacion.test.ts`.
+27. La entrada por WhatsApp se acuña para la cuenta del link solo si sigue siendo el acceso activo del
+    cliente; revocado y reinvitado por correo, la cuenta vieja no la recibe. — `correo-comprobacion.test.ts`.
+28. Si la confirmación quedó hecha aunque la respuesta volvió con error, no se deshace. —
+    `comprobar-correo-action.test.ts`.
+29. En la corrida única, una fila cuya cuenta de Auth ya no existe se cuenta aparte, no se toca y no
+    cuenta como pendiente (código de salida propio). — `registro-link-correo-estado.test.ts`.
 
 ## 7. Límites de las pruebas
 
@@ -392,6 +405,7 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
   `lib/studio/portal/__tests__/correo-comprobacion.test.ts`,
   `lib/studio/__tests__/registro-link-correo-estado.test.ts`,
   `app/registro/correo/[token]/__tests__/comprobar-correo-action.test.ts`,
+  `app/registro/correo/[token]/__tests__/comprobar-correo-page.test.tsx`,
   `app/studio/(app)/clientes/__tests__/correo-comprobacion-studio.test.ts`, más las ya listadas que se
   ajustaron (`registro-link-action.test.ts`, `registro-link-aviso-email.test.ts`,
   `portal-invite-email.test.ts`, `app/entrar/__tests__/actions.test.ts`,

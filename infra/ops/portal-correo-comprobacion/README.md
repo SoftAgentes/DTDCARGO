@@ -41,14 +41,23 @@ node infra/ops/portal-correo-comprobacion/pasar-cuentas-a-direccion-interna.mjs 
 ## Cuándo está completa
 
 Solo con **código de salida 0** después de `--aplicar`, que significa: ninguna falló y, al volver a
-contar, no queda ninguna pendiente.
+contar, no queda ninguna pendiente; o con **4**, si lo único que queda son filas cuya cuenta de
+Auth ya no existe.
 
 | Código | Qué significa | Qué hacer |
 |---|---|---|
 | 0 | Completa | Nada |
 | 1 | Alguna cuenta quedó «con problema» (no se tocó) | Leer el mensaje de esa fila y volver a correr |
 | 3 | Después de aplicar siguen quedando pendientes | Volver a correr; si se repite, avisar antes de cerrar la ventana |
+| 4 | Terminó; solo quedan filas cuya cuenta de Auth ya no existe | Pasarle al equipo los ids de esas filas (salen en el mensaje). No se reintentan |
 | 2 | Faltan las variables de entorno | Definirlas y volver a correr |
+
+### Una fila cuya cuenta de Auth ya no existe
+
+Pasa si la cuenta se borró de Auth después del registro por link. No hay nada que pasar a la
+dirección interna. El script **no la toca ni la borra**, la cuenta aparte («su cuenta de Auth ya no
+existe») y no la cuenta como pendiente. El ensayo también la detecta, porque solo lee. El equipo
+decide qué hacer con ese cliente: revocar su acceso o volver a invitarlo.
 
 ## Después
 

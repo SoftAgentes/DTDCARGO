@@ -60,6 +60,16 @@ El diseño lo fijó el DG en dos rondas: primero ocho condiciones de diseño, y 
 | 9 | Neutralizar la frase sobre las cuentas anteriores | spec, README, baseline, script y este handoff |
 | 10 | Prueba contra Auth real como pendiente previo | «PENDIENTES», punto 1 |
 
+### Tercera ronda: segunda revisión independiente
+
+| # | Ajuste | Dónde quedó |
+|---|---|---|
+| A | El titular ve qué correo confirma | `portal_email_check_peek(p_token_hash, p_session_user_id)` devuelve el correo por comprobar solo si la sesión es la del titular. La página lee la sesión en el servidor, muestra el correo completo («¿Es este tu correo?», «Revísalo letra por letra…») y ofrece «No es mi correo», que no confirma nada. Contrato §J; `comprobar-correo-page.test.tsx` |
+| B | El acceso por WhatsApp falla cerrado | `direccionInternaDelCliente` devuelve ficha, cuenta o error; con error, `loadAccessTarget` devuelve `null` y `/entrar/[code]` responde el error genérico sin acuñar nada. Solo «la tabla no existe» cae a la ficha |
+| C | La cuenta vieja del link no recibe la entrada | solo si sigue siendo el acceso activo del cliente (lo mismo que mira el estado de la 0559). Revocado y reinvitado: el correo de la ficha. Revocado y sin ningún acceso activo: falla cerrado |
+| D | Confirmación hecha con respuesta de error | antes de dar la vuelta se relee la fila; si ya está comprobada, es un éxito y no se revierte |
+| E | Fila cuya cuenta de Auth ya no existe | la corrida única la cuenta aparte, no la toca ni la borra, no la cuenta como pendiente y sale con 4; el ensayo también la detecta. README con la tabla de códigos |
+
 ## DECISIONES TOMADAS
 
 1. **«Comprobado» vive en `client_email_checks`**, una fila por cliente registrado por link, atada a la cuenta de Auth que nació del link.
@@ -77,13 +87,15 @@ El diseño lo fijó el DG en dos rondas: primero ocho condiciones de diseño, y 
 1. **Aviso dentro del portal** («Tu correo está sin comprobar» + «Reenviar») — propuesto, no hecho. Con la exigencia de sesión gana peso: el cliente confirma desde donde ya tiene el portal abierto.
 2. **Renombrar «Marcar comprobado» → «Marcar revisado»:** en la misma tarjeta conviven «Comprobado» (el equipo revisó) y «Correo comprobado».
 3. **Vaciar `pending_email` al confirmar** y sumar la tabla al plazo de purga pendiente de la 0552.
-4. **Textos nuevos de cara al cliente** para su visto bueno: el correo «Comprueba tu correo», la página `/registro/correo/…`, el texto «entra primero a tu portal» y la línea del mensaje final del registro.
+4. **Textos nuevos de cara al cliente** para su visto bueno: el correo «Comprueba tu correo», la página `/registro/correo/…` (con «¿Es este tu correo?» y «No es mi correo» de la tercera ronda), el texto «entra primero a tu portal» y la línea del mensaje final del registro.
 
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
 |---|---|
-| Contrato de la 0559 en PGlite (`correo-comprobado.migration.test.ts`): contrato, control rojo, desarme y 23 mutantes | PASÓ (26/26) |
+| Contrato de la 0559 en PGlite (`correo-comprobado.migration.test.ts`): contrato, control rojo, desarme y 25 mutantes | PASÓ (28/28) |
+| Tercera ronda: 14 archivos tocados y vecinos (incluidos `access-link.test.ts` y `access-link-bulk.test.ts`) | PASÓ (739 casos) |
+| Tercera ronda: 12 mutantes de la app (A a E) | PASÓ: mueren los 12 |
 | Vitest de los archivos tocados y vecinos, con vitest 5.1.0: `app/registro`, `app/entrar`, `app/abrir`, `app/studio/(app)/clientes`, `lib/studio/portal`, invitación, correo, estado y corrida única, `rbac-actions-guard` | PASÓ (45 archivos, 938 casos) |
 | eslint sobre los archivos tocados | PASÓ |
 | `pending-migration-symbols` | PASÓ: 0 rojo, 4 amarillo declarados (uno es el de la 0559) |
