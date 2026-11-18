@@ -376,7 +376,7 @@ describe("sincronizarAgentes con acceso adicional de Bandeja (SDD-0675)", () => 
     expect(m.quitar).not.toHaveBeenCalled();
     expect(agentesDeMatriz().find((a) => a.chatwootUserId === 12)).toMatchObject({ porAcceso: true });
     // Quien la tiene por rol no lleva porAcceso.
-    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 7)?.porAcceso).toBe(false);
+    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 7)?.porAcceso).toBeUndefined();
   });
 
   it("sin vencimiento también cuenta", async () => {

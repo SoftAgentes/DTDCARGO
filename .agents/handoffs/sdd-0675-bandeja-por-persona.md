@@ -1,31 +1,44 @@
 # Handoff · SDD-0675 — Bandeja como acceso adicional por persona
 
-Fecha: 2026-11-18 · Rama `claude/sdd-0675-bandeja-por-persona` · Reserva `refs/dtd/reservations/0675` ·
-Migración asignada: 0565.
+Fecha: 2026-11-18 · Rama `claude/sdd-0675-bandeja-por-persona` · PR #686 · Reserva `refs/dtd/reservations/0675` ·
+Migración asignada: 0565 (en espera; `pendingBelowCutoff`).
 
-## Hecho (etapa 1: spec y diseño)
+## Hecho
 
-- Decisión de Sam registrada literal (spec §0): «Leads y Clientes», opción D de la SDD-0671, 2026-11-18.
-- Diseño en la spec §1-§3, con archivo:línea. La base ya suma los accesos por persona en `user_has_module`,
-  así que la RLS de la Bandeja no cambia. Lo que falta:
-  - F0: la 0565 suma `bandeja` a `studio_module_is_grantable`, que hoy solo acepta 8 módulos (0538:196-212);
-  - F1: `COVERED`;
-  - F2: el ciclo de agentes con los accesos;
-  - F3: la matriz le da Leads y Clientes a quien tiene el acceso;
-  - F4: «Agentes vinculados»;
-  - F5: sincronizar Chatwoot al conceder o revocar.
+- Decisiones de Sam registradas literal (spec §0 y §5): «Leads y Clientes» (opción D de la SDD-0671) y
+  «Sí, siempre las dos». La pregunta 2 («ver y editar») sigue sin respuesta; se aplica la recomendación: el
+  administrador elige el nivel al conceder.
+- F0: `supabase/migrations/0565_bandeja_concedible_por_persona.sql` suma `bandeja` a los 8 módulos de la 0538.
+  - El preflight aborta si falta la 0538 o si se reaplica.
+  - El postflight exige los 8 módulos de la 0538, uno por uno, más `bandeja`, con `admin` y `users` fuera y
+    los privilegios iguales.
+  - El desarme está en `supabase/desarmes/0565_desarme.sql`.
+- F1: `bandeja` en `COVERED` (`lib/studio/user-module-grants.ts`).
+- F2: el ciclo de agentes lee los accesos de `bandeja`. Si esa lectura falla, el ciclo se omite y no da de baja
+  a nadie.
+- F3: la matriz da Leads y Clientes a quien entra por acceso (`destinosDe(..., porAcceso)`). `porAcceso` solo
+  viaja cuando es verdadero.
+- F4: «Agentes vinculados» y `altaAgente` cuentan el acceso.
+- F5: conceder o revocar `bandeja` en Usuarios sincroniza a esa persona con Chatwoot.
 
-## Evidencia
+## Evidencia (2026-11-18, turno de PC del DG)
 
-- Solo lectura de código y migraciones; no se leyeron datos de producción.
-- 0538 sellada en `supabase/migrations.lock.json`; `pendingBelowCutoff` vacío; 0565 libre en main.
-- Sin código ni pruebas en esta etapa.
+- Vitest acotado, `--pool=forks`: **PASÓ**, 8 de 8 archivos y 173 de 173 pruebas.
+  - `matriz`, `agentes-ciclo`, `alta-agente`, `acceso-bandeja-chatwoot`, `user-module-grants-bandeja`,
+    `user-module-grants.migration`, `bandeja-concedible.migration` y `crm-acceso`.
+  - La primera corrida falló en 3 pruebas. Dos esperaban agentes sin `porAcceso`; se corrigió el código, no las
+    pruebas. La tercera era el mutante «pierde un módulo de la 0538», que no caía porque el postflight solo
+    revisaba `kommo`: se endureció el postflight.
+- ESLint de los 15 archivos `.ts`/`.tsx` del diff: **PASÓ**.
+- Gate `pending-migration-symbols`: **PASÓ** (0 rojo, 0 amarillo).
+- `pnpm verify`: **NO EJECUTADO** (sin turno; el portón es la CI de GitHub).
+- No se leyeron ni escribieron datos de producción.
 
 ## Pendiente de esta tarea
 
-- Que Sam conteste spec §5: (1) si el acceso da siempre Leads y Clientes (recomendado) o se elige por persona;
-  (2) si se permite «ver y editar» (recomendado: sí).
-- Etapa de código con turno de PC del DG; la 0565 se aplica en producción solo con el OK nominal de Sam.
+- CI de GitHub y revisión independiente de la #686.
+- Respuesta de Sam a la pregunta 2 de la spec §5.
+- Aplicar la 0565 en producción solo con el OK nominal de Sam para ese archivo y el runbook, a través del DG.
 
 ## FUERA DE ALCANCE DETECTADO
 

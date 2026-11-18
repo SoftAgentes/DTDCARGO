@@ -257,7 +257,8 @@ async function agentesDeLaMatriz(
   for (const v of lista) {
     const m = estado.get(v.userId);
     if (!m?.rol || decidirBaja(m) !== null) continue;
-    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol, porAcceso: m.porAcceso === true });
+    // porAcceso solo viaja cuando es verdadero: quien la tiene por rol queda igual que antes.
+    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol, ...(m.porAcceso === true ? { porAcceso: true } : {}) });
   }
   return agentes;
 }

@@ -61,8 +61,15 @@ comment on function public.studio_module_is_grantable(text) is
 
 do $postflight$
 begin
+  -- Los 8 módulos de la 0538 siguen, uno por uno, y se suma bandeja.
   if not public.studio_module_is_grantable('bandeja')
-     or not public.studio_module_is_grantable('kommo')
+     or exists (
+       select 1
+       from unnest(array[
+         'kommo', 'clients', 'quotes', 'sales-orders', 'purchase-orders', 'conversaciones', 'rates', 'suppliers'
+       ]::text[]) as m(id)
+       where not public.studio_module_is_grantable(m.id)
+     )
      or public.studio_module_is_grantable('admin')
      or public.studio_module_is_grantable('users') then
     raise exception '0565: la lista de módulos concedibles no quedó como se esperaba';
