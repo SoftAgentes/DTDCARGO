@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.8 (Paso 4: mini-vista de solo lectura) · 18/11/2026**
+**Versión 0.9 (botón de pausa de la oficina) · 18/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -438,6 +438,33 @@ bitácora y la bandera) — maqueta de la V3, solo lectura.
 - `.env.example` e `infra/dtd-cargo/.env.example`
 - esta spec, `docs/runbooks/oficina-cable.md` §13 y su handoff en `.agents/handoffs/`
 
+**El botón de pausa (§3.1 · SGE-AG-01 §7).** Hasta el 18/11/2026 la oficina solo se pausaba o despausaba con SQL:
+`office_cambiar_pausa` (0541) existía, pero ninguna pantalla la llamaba. La etapa 1 le pide a Sam pausar al terminar
+cada sesión, así que Sam pidió el botón («Sí, haz el botón»). No lleva migración.
+- **Dónde:** arriba en `/studio/admin/oficina` (la revisión, solo `is_platform_admin`). **No depende de
+  `OFICINA_VISTA_ACTIVA` ni de ningún otro interruptor:** pausar tiene que estar siempre a mano.
+- **Qué muestra:** si la oficina está pausada o despausada, el último cambio (cuándo, quién, motivo) y **un solo
+  botón**, el contrario del estado: «Pausar la oficina» o «Despausar la oficina».
+- **Cómo cambia.** La acción llama a `office_cambiar_pausa(pausada, motivo)` **con la sesión del usuario**, nunca con
+  el cliente de servicio: la base exige `is_platform_admin()` y el motivo, y la fila queda a nombre de quien pulsó.
+  Antes van los dos candados de las demás acciones de la oficina (módulo `admin` y superadministrador).
+- **El motivo es obligatorio** (1 a 500 caracteres) y pasa por la regla del cable: sin datos personales.
+- **Despausar pide una casilla de confirmación**, porque es lo que pone a trabajar al agente. Pausar no la pide.
+- **Cómo lee el estado.** `office_paused` solo la lee `service_role`: `leerPausa` (`lib/studio/oficina/pausa.ts`) usa
+  el mismo candado de la mini-vista (el cliente de servicio solo se crea después del «sí» de `is_platform_admin()`) y
+  lee una fila, la última. Sin filas, la oficina se trata como pausada. **Si el estado no se pudo leer, la pantalla
+  solo ofrece pausar.**
+- **Auto-pausa.** Si la pausó el tope de gasto, la pantalla avisa que despausar no dura: el despachador la vuelve a
+  pausar mientras el gasto del mes siga sobre el 80 % del tope.
+
+**Archivos del botón de pausa (allowlist):**
+- `lib/studio/oficina/pausa.ts`, `lib/studio/oficina/mini-vista.ts` (exporta `cambioDePausa`) y
+  `lib/studio/oficina/__tests__/pausa.test.ts`
+- `app/studio/(app)/admin/oficina/` (página, `actions.ts` y `_components/TarjetaPausa.tsx`)
+- `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones: suma `cambiarPausaAction`) y
+  `lib/studio/__tests__/oficina-contraste.test.ts` (suma la tarjeta)
+- esta spec, `docs/runbooks/oficina-cable.md` §14 y su handoff en `.agents/handoffs/`
+
 ## 4 · Fase B (semanas 4-5) — resumen para planificar
 Los 6 disparadores (pago, pre-alerta, contenedor, reclamo, run fallido,
 presupuesto 80%) + despachador completo (dependencias `espera:<id>`, modo
@@ -571,6 +598,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.9 | 18/11/2026 | **El botón de pausa** (pedido de Sam del 18/11/2026: «Sí, haz el botón»): cómo se construyó y su allowlist, al final de §3. En `/studio/admin/oficina`, un botón para pausar o despausar la oficina con motivo obligatorio; llama a `office_cambiar_pausa` (0541) con la sesión del usuario. Despausar pide una confirmación. Sin migración y sin interruptor de entorno: pausar tiene que estar siempre a mano |
 | 0.8 | 18/11/2026 | **Paso 4: la mini-vista** (pedido de Sam del 18/11/2026, con la etapa 1 ya encendida): cómo se construyó §3.6 y su allowlist. Página de solo lectura `/studio/admin/oficina/vista` (bandera, cola, eventos, bitácora y gasto del mes), solo para `is_platform_admin`, apagada por defecto con `OFICINA_VISTA_ACTIVA`. Sin migración: lee con el cliente de servicio, que solo se crea después del «sí» de `is_platform_admin()`. No pausa ni despausa. Mapa de pasos: Paso 4 construido |
 | 0.7 | 17/11/2026 | **Etapa 1: «Acuse» en los escalados** (decisión del DG por delegación de Sam): §3.5 suma la **0560** (sin aplicar) y su allowlist: en un escalado, «Acuse» en «No evaluado» no cuenta en contra; en una respuesta nada cambia; la pantalla deja «Acuse» en «No evaluado» en los escalados y el aviso junto a los botones dice lo que de verdad hace el conteo. La 0558, aplicada en producción el 2026-11-17 a las 22:21Z |
 | 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (aplicada en producción el 2026-11-17 a las 22:21Z) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
