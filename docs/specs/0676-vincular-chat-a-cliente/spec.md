@@ -103,6 +103,39 @@ Borrar la ficha (borrado lógico) quita sus uniones, como ya hacía la 0554, y a
 
 El código tolera su falta: el cruce vuelve solo al teléfono, el tablero se lee sin filtrar absorbidas, los chips salen sin logo y «Vincular» une con la RPC de la 0554 (sin canal ni absorción). «Mover aquí» responde que falta la migración. Detalle en la espera (`supabase/migrations-baseline.json`) y en `supabase/pending-migration-symbol-declarations.json`.
 
+
+### 4.8 Para la revisión: quién vincula, RLS y desarme
+
+**Quién puede vincular (dos capas, las dos obligatorias).**
+
+| Capa | Qué comprueba | Dónde |
+|---|---|---|
+| Servidor de Studio | `moduleEditGate("bandeja")` al entrar a cada acción; después que la sesión **edite** la Bandeja, **vea** Clientes y sea del tenant dueño de la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`) | `app/studio/(app)/bandeja/vincular-actions.ts` y `puedeVincularContacto`, en `lib/studio/chatwoot/vincular.ts` |
+| Servidor de Studio | Que Chatwoot le muestre esa conversación **al propio agente**: el contacto y el canal se leen con su token, nunca llegan del navegador | `obtenerConversacion`, en `lib/studio/chatwoot/account-api.ts` |
+| Base | `chatwoot_vincular_contacto` y `chatwoot_quitar_union` llaman a `chatwoot_contact_links_actor_puede` (0554): usuario activo en ese tenant y con edición de la Bandeja (`user_has_module('bandeja', true)`). Además exigen que la ficha sea de ese tenant y no esté borrada | Migración 0566 y 0554 |
+
+Con los roles de hoy eso deja a **Admin y Comercial** (decisión 1 de Sam); Soporte ve la Bandeja y no la edita.
+
+Lo que la base **no** repite: «ve Clientes». Esa parte vive solo en el servidor de Studio. Hoy no hay un rol que edite la Bandeja sin ver Clientes; si se crea uno (o un acceso por persona, SDD-0675), la base lo dejaría vincular y el servidor no. Es un límite conocido, no un hueco abierto: las funciones no se pueden llamar desde el navegador (ver abajo).
+
+**Quién puede llamar a las funciones.** Todas las de la 0566 quitan el permiso a `public`, `anon` y `authenticated`. Las que usa el servidor (`chatwoot_vincular_contacto`, `chatwoot_quitar_union`, `chatwoot_ficha_de_contacto`, `chatwoot_registrar_evento`, `crm_entrada_chatwoot`, `crm_asesor_desde_chatwoot`) quedan solo para `service_role`. Las internas (`crm_absorber_tarjeta_de_contacto`, `crm_soltar_tarjeta_de_contacto`) no quedan para nadie: solo las llaman las anteriores, que son `security definer` con `search_path` vacío. El servidor crea el cliente de servicio **después** del candado y pasa explícitos el tenant y el actor de la sesión; la función los vuelve a comprobar. El contrato lo prueba con un admin con sesión que llama directo por la API y recibe `42501` (bloque 9).
+
+**RLS.** La 0566 no crea tablas ni políticas: agrega columnas a dos tablas que ya tenían RLS.
+
+- `chatwoot_contact_links` (0554): lectura para `authenticated` de su tenant con acceso a la Bandeja; sin permiso de escritura para `authenticated` (solo `select`); todo para `service_role`. La columna `canal_chat` hereda esa política.
+- `crm_tarjetas` (0506): las políticas no cambian. `absorbida_en` y `absorbida_at` se leen con la misma regla que el resto de la tarjeta; el tablero filtra `absorbida_en is null` en la consulta, no en la política. Una restricción impide que una tarjeta absorbida reciba ficha o se absorba a sí misma.
+- Cruce de tenant: `chatwoot_ficha_de_contacto` filtra por tenant; el contrato comprueba que el mismo contacto visto desde otro tenant no es de nadie (4l), y que vincular a una ficha de otro tenant falla.
+- «A qué ficha estaba unido» se lee con el cliente **de la sesión**, no con el de servicio: si esa persona no puede ver la otra ficha, el aviso no la nombra.
+
+**Desarme** (`0566_desarme`, en `supabase/desarmes/`; no es una migración y no se aplica sola).
+
+- Devuelve a su cuerpo anterior, copiado literal, `chatwoot_registrar_evento` (0504, 13 parámetros), `crm_entrada_chatwoot` y `crm_asesor_desde_chatwoot` (0513), `chatwoot_quitar_union` y el disparador de ficha borrada (0554).
+- Suelta primero las tarjetas absorbidas (vuelven a su tablero) y después quita las funciones nuevas, las dos columnas de `crm_tarjetas` y `canal_chat`.
+- No toca las uniones ni la auditoría. No repone el `phone_last10` que se le quitó a una tarjeta al absorberla (lo repone su siguiente mensaje) ni el canal guardado (se pierde con la columna).
+- Es repetible: correrlo dos veces no falla.
+- Orden: el web de esta PR tolera la falta de la 0566, así que se puede desarmar sin despublicar. Un web **anterior** a esta PR llama a `chatwoot_registrar_evento` con 13 parámetros, que la 0566 sigue aceptando (4k).
+- Ensayo: `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` aplica la 0566, desarma y comprueba que las funciones vuelven a la firma anterior y que no quedan tarjetas absorbidas. Usarlo en producción exige OK nominal de Sam.
+
 ## 5. Datos personales (`revisar-datos-ve`)
 
 Revisión acotada a esta pieza. Estados: `ENCONTRADO`, `CORRECTO`, `NO VERIFICABLE`. Resumen: 0 `ENCONTRADO`, 9 `CORRECTO`, 4 `NO VERIFICABLE`.
