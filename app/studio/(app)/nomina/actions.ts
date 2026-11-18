@@ -546,6 +546,10 @@ function payrollRulesRawFromForm(formData: FormData): Record<string, unknown> {
     bono_vacacional_days: strOrNull(formData.get("bono_vacacional_days")) ?? 0,
     vacaciones_days: strOrNull(formData.get("vacaciones_days")) ?? 0,
     salarial_bonuses: strOrNull(formData.get("salarial_bonuses")),
+    // SDD-0658: ajustes de la liquidación (0179). Sin valor = null: la versión nueva conserva los de la vigente.
+    prestaciones_method: strOrNull(formData.get("prestaciones_method")),
+    prestaciones_interest_pct: strOrNull(formData.get("prestaciones_interest_pct")),
+    ajena_78_incluye_92: strOrNull(formData.get("ajena_78_incluye_92")),
     // SDD-0653 A2b (0556): ausentes si el formulario los deshabilitó por falta de la migración. Sin valor =
     // null: «sin configurar» (los números) o «hereda de la versión vigente» (las monedas); nunca un default.
     vigente_desde: strOrNull(formData.get("vigente_desde")),

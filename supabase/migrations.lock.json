@@ -3484,6 +3484,15 @@
         "forma": "exacta"
       }
     },
+    "0549_oficina_revisiones_envio": {
+      "sha256": "8b0cf629455b1d1a1606bce850745118d6a542ddb5106e0a46f979f26eddd9d3",
+      "md5": "4083f60eb93fa7ad9f5c43b68cefda2d",
+      "bytes": 40270,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
     "0550_faro_registro": {
       "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
       "md5": "20ab1801d8b0b68f0f397d82f3912817",
@@ -3520,12 +3529,66 @@
         "forma": "exacta"
       }
     },
+    "0554_chatwoot_contact_links": {
+      "sha256": "c5f3f697ef3deb730dc2c939ac58d2809711e69c7ecc201ce025643b3117b382",
+      "md5": "f61a779386165d8cbddc2f0a97ca0de1",
+      "bytes": 26269,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0555_nomina_ficha_empleado_identidad_foto": {
+      "sha256": "4f786fcf6d611eb5bba4d404efbfbe335bf8a069c31943e8fe1b031c6faf2cd4",
+      "md5": "36debb54e643898cc15f77ee9ac72974",
+      "bytes": 29489,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0556_nomina_reglas_vigencia_y_aportes": {
+      "sha256": "70abeec7119e2b3507433870a133d0ec934920f82db049f48ec5273f95b31414",
+      "md5": "89d094f27f14302a9cf3e4200b4f56da",
+      "bytes": 24812,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
     "0557_portal_vista_preferida": {
       "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
       "md5": "fe1c8d05334658e1502a90676986c67d",
       "bytes": 14921,
       "ledger": {
         "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0558_oficina_casillas_tres_estados": {
+      "sha256": "d9b023075b57edb89b4476293e77de63a6e6ce0c956a13c53f681a32fa92497d",
+      "md5": "465efbee2f535040ec2c45479d27c24c",
+      "bytes": 26283,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0559_registro_link_correo_comprobado": {
+      "sha256": "9723e29d0f4286b8227a05351e27524aed8b05593958ae5c6d0026d65bd781d2",
+      "md5": "ced040575315354b54ad0fb8e2a295f2",
+      "bytes": 38715,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0560_oficina_acuse_en_escalados": {
+      "sha256": "f5949e34dcea1644844048910c098f3486444fe67638c2a1a7ff42161862728f",
+      "md5": "fb276a12571eaeb7ece938117909f5c8",
+      "bytes": 10398,
+      "ledger": {
+        "fecha": "2026-11-18",
         "forma": "exacta"
       }
     }

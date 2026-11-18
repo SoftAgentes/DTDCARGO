@@ -13,6 +13,7 @@ import {
   faltaColumna,
   esConflictoConcurrente,
   faltaFuncion,
+  MSG_AJUSTES_LIQUIDACION_NO_GUARDADOS,
   MSG_BASE_ACTUALIZANDO,
   MSG_GUARDADO_CONCURRENTE,
   getVigentePayrollRules,
@@ -85,6 +86,8 @@ interface Config {
   insertError?: { code?: string; message: string } | null;
   /** El update que restaura la versión archivada falla. */
   restauraFalla?: boolean;
+  /** SDD-0658: el update que fija los ajustes de la liquidación falla. */
+  ajustesFalla?: boolean;
   over?: Fila;
 }
 
@@ -124,7 +127,12 @@ function falso(cfg: Config) {
           return q;
         };
         q.then = (resolve: (r: { error: { message: string } | null }) => void) =>
-          resolve({ error: cfg.restauraFalla && set.status === "vigente" ? { message: "sin conexión" } : null });
+          resolve({
+            error:
+              (cfg.restauraFalla && set.status === "vigente") || (cfg.ajustesFalla && "prestaciones_method" in set)
+                ? { message: "sin conexión" }
+                : null,
+          });
         return q;
       },
       insert(v: Fila) {
@@ -275,7 +283,11 @@ describe("guardar una versión nueva (con la 0556: una función, una transacció
       sso_patronal_pct: 9,
       pension_contrib_pct: 9,
     });
-    expect(log.updates).toHaveLength(0);
+    // No archiva por su cuenta (la atomicidad es de la función). El único update es el de SDD-0658: fija los
+    // ajustes de la liquidación en la versión recién creada.
+    expect(log.updates).toHaveLength(1);
+    expect(log.updates[0].set).not.toHaveProperty("status");
+    expect(log.updates[0].filtros).toEqual([["id", "r-nueva"]]);
     expect(log.inserts).toHaveLength(0);
   });
 
@@ -333,6 +345,7 @@ describe("guardar una versión nueva (con la 0556: una función, una transacció
           q.single = async () => ({ data: null, error: { message: "boom", code: cols ? "XX000" : "" } });
           return q;
         },
+        update: () => ({ eq: async () => ({ error: null }) }),
       }),
     } as unknown as SupabaseClient;
     const r = await upsertPayrollRules(cliente, "t-1", entrada(), null);
@@ -474,5 +487,87 @@ describe("COLUMNAS_0556, faltaColumna y faltaFuncion", () => {
     expect(faltaFuncion({ code: "23514", message: "violates check constraint" })).toBe(false);
     expect(faltaFuncion({ code: "42501", message: "sin acceso a las reglas de nómina" })).toBe(false);
     expect(faltaFuncion(null)).toBe(false);
+  });
+});
+
+
+describe("SDD-0658 · ajustes de la liquidación (columnas de la 0179)", () => {
+  const AJUSTES_VIGENTES = {
+    prestaciones_method: "retroactivo",
+    prestaciones_interest_pct: "12.50",
+    ajena_78_incluye_92: true,
+  };
+
+  it("la lectura los pide y los convierte (antes no se pedían y el finiquito usaba los de fábrica)", async () => {
+    for (const ampliada of [true, false]) {
+      const { supabase, log } = falso({ ampliada, vigente: true, over: AJUSTES_VIGENTES });
+      const rules = await getVigentePayrollRules(supabase);
+      expect(log.selects.at(-1)).toContain("prestaciones_method");
+      expect(log.selects.at(-1)).toContain("prestaciones_interest_pct");
+      expect(log.selects.at(-1)).toContain("ajena_78_incluye_92");
+      expect(rules?.prestaciones_method).toBe("retroactivo");
+      expect(rules?.prestaciones_interest_pct).toBe(12.5);
+      expect(rules?.ajena_78_incluye_92).toBe(true);
+    }
+  });
+
+  it("un método desconocido en la base se lee como «mejor», nunca como texto libre", async () => {
+    const { supabase } = falso({ ampliada: true, vigente: true, over: { prestaciones_method: "otro" } });
+    expect((await getVigentePayrollRules(supabase))?.prestaciones_method).toBe("mejor");
+  });
+
+  it("con la 0556: guardar otra cosa conserva los ajustes de la versión vigente", async () => {
+    const { supabase, log } = falso({ ampliada: true, vigente: true, over: AJUSTES_VIGENTES });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(r.error).toBeNull();
+    const fijado = log.updates.find((u) => "prestaciones_method" in u.set);
+    expect(fijado?.set).toEqual({
+      prestaciones_method: "retroactivo",
+      prestaciones_interest_pct: 12.5,
+      ajena_78_incluye_92: true,
+    });
+    expect(fijado?.filtros).toContainEqual(["id", "r-nueva"]);
+  });
+
+  it("con la 0556: lo que llega en el formulario manda sobre lo vigente", async () => {
+    const { supabase, log } = falso({ ampliada: true, vigente: true, over: AJUSTES_VIGENTES });
+    await upsertPayrollRules(
+      supabase,
+      "t-1",
+      entrada({ prestaciones_method: "garantia", prestaciones_interest_pct: 0, ajena_78_incluye_92: false }),
+      "u-1",
+    );
+    expect(log.updates.find((u) => "prestaciones_method" in u.set)?.set).toEqual({
+      prestaciones_method: "garantia",
+      prestaciones_interest_pct: 0,
+      ajena_78_incluye_92: false,
+    });
+  });
+
+  it("con la 0556: si fijar los ajustes falla, lo dice y no da el guardado por bueno", async () => {
+    const { supabase } = falso({ ampliada: true, vigente: true, over: AJUSTES_VIGENTES, ajustesFalla: true });
+    const r = await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(r.data).toBeNull();
+    expect(r.error).toBe(MSG_AJUSTES_LIQUIDACION_NO_GUARDADOS);
+  });
+
+  it("sin la 0556: el insert de la versión nueva los lleva", async () => {
+    const { supabase, log } = falso({ ampliada: false, vigente: true, over: AJUSTES_VIGENTES });
+    await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(log.inserts[0]).toMatchObject({
+      prestaciones_method: "retroactivo",
+      prestaciones_interest_pct: 12.5,
+      ajena_78_incluye_92: true,
+    });
+  });
+
+  it("sin versión vigente: los valores con que nace la columna (0179)", async () => {
+    const { supabase, log } = falso({ ampliada: false, vigente: false });
+    await upsertPayrollRules(supabase, "t-1", entrada(), "u-1");
+    expect(log.inserts[0]).toMatchObject({
+      prestaciones_method: "mejor",
+      prestaciones_interest_pct: 0,
+      ajena_78_incluye_92: false,
+    });
   });
 });
