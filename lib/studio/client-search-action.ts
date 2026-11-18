@@ -85,7 +85,8 @@ export async function searchClientsAction(q: string): Promise<ClientSearchResult
       name: c.name,
       rif: c.rif,
       person_id: c.person_id,
-      codigoAnterior: c.codigo_anterior ?? null,
+      // Solo cuando apareció por un código anterior: el resto queda como antes.
+      ...(c.codigo_anterior ? { codigoAnterior: c.codigo_anterior } : {}),
     });
   };
 
