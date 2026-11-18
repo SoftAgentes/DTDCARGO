@@ -1151,6 +1151,16 @@ function textoRecibidas(n: number | null): string {
   return n == null ? "Sin recepción" : n.toLocaleString("es-VE");
 }
 
+/** SDD-0665: «1.234,5 kg». */
+function textoPeso(kg: number): string {
+  return `${kg.toLocaleString("es-VE", { maximumFractionDigits: 2 })} kg`;
+}
+
+/** SDD-0665: el peso de un cliente; si ninguno de sus envíos lo tiene, «Sin peso» (no 0). */
+function textoPesoCliente(c: ClienteDeContenedor): string {
+  return c.enviosSinPeso === c.shipments.length ? "Sin peso" : textoPeso(c.stats.totalWeight);
+}
+
 /**
  * SDD-0661: un monto en dólares, o «Sin facturar» si no hay facturas (el
  * contenedor 64 se cargó sin facturas: nunca $0.00 inventado).
@@ -1179,6 +1189,10 @@ function FranjaDeTotales({
     { etiqueta: "Cajas", valor: (grupo.cajas ?? 0).toLocaleString("es-VE") },
     { etiqueta: "Cajas recibidas", valor: textoRecibidas(grupo.recibidas) },
     { etiqueta: "CBM total", valor: `${grupo.totalCbm.toFixed(2)} m³` },
+    {
+      etiqueta: "Peso total",
+      valor: grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg),
+    },
   ];
   if (montos) {
     const nd = "No disponible";
@@ -1225,6 +1239,18 @@ function FranjaDeTotales({
           </div>
         ))}
       </dl>
+      {grupo.enviosSinPeso > 0 && grupo.enviosSinPeso < grupo.embarques && (
+        <p
+          style={{
+            margin: "var(--s-2) 0 0",
+            font: "500 12px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {grupo.enviosSinPeso} {grupo.enviosSinPeso === 1 ? "envío" : "envíos"} sin peso cargado: el
+          peso total no los incluye.
+        </p>
+      )}
       {total && total.otraMoneda > 0 && (
         <p
           style={{
@@ -1281,7 +1307,7 @@ function DetallePorCliente({
           width: "100%",
           borderCollapse: "collapse",
           fontVariantNumeric: "tabular-nums",
-          minWidth: montos ? 640 : 440,
+          minWidth: montos ? 720 : 520,
         }}
       >
         <caption
@@ -1310,6 +1336,9 @@ function DetallePorCliente({
             </th>
             <th scope="col" style={TH_DETALLE}>
               m³
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              kg
             </th>
             {montos && (
               <>
@@ -1352,6 +1381,7 @@ function DetallePorCliente({
               <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
               <td style={TD_DETALLE}>{textoRecibidas(c.recibidas)}</td>
               <td style={TD_DETALLE}>{c.stats.totalCbm.toFixed(2)}</td>
+              <td style={TD_DETALLE}>{textoPesoCliente(c)}</td>
               {montos && (
                 <>
                   <td style={TD_DETALLE}>{celdaDinero(c.shipments, "porCobrarUsd")}</td>
@@ -1373,6 +1403,9 @@ function DetallePorCliente({
             <td style={PIE_DETALLE}>{(grupo.cajas ?? 0).toLocaleString("es-VE")}</td>
             <td style={PIE_DETALLE}>{textoRecibidas(grupo.recibidas)}</td>
             <td style={PIE_DETALLE}>{grupo.totalCbm.toFixed(2)}</td>
+            <td style={PIE_DETALLE}>
+              {grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg)}
+            </td>
             {montos && (
               <>
                 <td style={PIE_DETALLE}>{celdaDinero(todas, "porCobrarUsd")}</td>

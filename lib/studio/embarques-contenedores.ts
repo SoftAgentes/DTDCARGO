@@ -64,6 +64,8 @@ export type ClienteDeContenedor = ClientShipmentGroup & {
   cajas: number | null;
   /** Cajas recibidas. `null` = el contenedor no tiene recepción (o es «Sin contenedor»). */
   recibidas: number | null;
+  /** SDD-0665: envíos suyos sin peso cargado (`weight_kg` nulo); no suman. */
+  enviosSinPeso: number;
 };
 
 /**
@@ -165,6 +167,10 @@ export type GrupoContenedor = {
   cajas: number | null;
   /** SDD-0661: suma de las recibidas de sus clientes; `null` sin recepción. */
   recibidas: number | null;
+  /** SDD-0665: suma de `shipments.weight_kg` de sus clientes (kg). */
+  pesoKg: number;
+  /** SDD-0665: envíos sin peso cargado; no suman al peso. */
+  enviosSinPeso: number;
   alertas: number;
 };
 
@@ -345,12 +351,18 @@ export function agruparPorContenedor(
       // SDD-0661: «Sin contenedor» no tiene carga de la que salgan cajas.
       cajas: contenedor ? sumarCajas(g.shipments, cajasDe) : null,
       recibidas: recibidasDe ? recibidasDe[g.clientMarkbox?.trim() ?? ""] ?? 0 : null,
+      // SDD-0665: el peso sale de la misma fila que el CBM (`shipments`).
+      enviosSinPeso: g.shipments.filter((r) => r.weight_kg == null).length,
     }));
     let totalCbm = 0;
     let alertas = 0;
     let cajas = 0;
     let recibidas = 0;
+    let pesoKg = 0;
+    let enviosSinPeso = 0;
     for (const g of clientes) {
+      pesoKg += g.stats.totalWeight;
+      enviosSinPeso += g.enviosSinPeso;
       totalCbm += g.stats.totalCbm;
       alertas += g.stats.alertCount;
       cajas += g.cajas ?? 0;
@@ -372,6 +384,8 @@ export function agruparPorContenedor(
       totalCbm: Math.round(totalCbm * 1000) / 1000,
       cajas: contenedor ? cajas : null,
       recibidas: recibidasDe ? recibidas : null,
+      pesoKg: Math.round(pesoKg * 100) / 100,
+      enviosSinPeso,
       alertas,
     });
   }
