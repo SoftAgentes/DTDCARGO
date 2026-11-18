@@ -61,6 +61,7 @@ import {
   fechasPorEstado,
   filtroPorDefecto,
   hitosDelContenedor,
+  idDeUrl,
   normalizarBusqueda,
   nombreDelContenedor,
   ordenarContenedores,
@@ -110,9 +111,11 @@ export default async function TrackingPage({
   await requireModuleView("tracking");
 
   const sp = await searchParams;
-  const idPedido = texto(sp.id);
-  const contenedorPedido = texto(sp.c);
-  const resaltadoPedido = texto(sp.e);
+  // Los ids de la URL se validan: un valor que no es UUID se ignora en vez de
+  // llegar a la base, donde haría fallar la consulta entera.
+  const idPedido = idDeUrl(sp.id);
+  const contenedorPedido = idDeUrl(sp.c);
+  const resaltadoPedido = idDeUrl(sp.e);
   const qCrudo = texto(sp.q) ?? "";
   const q = normalizarBusqueda(qCrudo);
 
@@ -216,17 +219,16 @@ export default async function TrackingPage({
           };
         }),
       ),
-      // Solo los contenedores que coinciden por referencia o número; los que
-      // llegaron por un cliente ya salen bajo ese cliente.
+      // Solo los contenedores que coinciden por referencia, número o BL; los
+      // que llegaron por un cliente ya salen bajo ese cliente.
       contenedores: hallazgo.contenedores
-        .filter((c) =>
-          [c.ref, c.container_no].some((v) => v?.toLowerCase().includes(aguja)),
-        )
+        .filter((c) => hallazgo.directos.has(c.id))
         .map((c) => ({
           id: c.id,
           nombre: nombreDelContenedor(c),
           estadoLabel: containerStatusLabel(c.status),
           containerNo: c.container_no,
+          bl: hallazgo.directos.get(c.id)?.bl ?? null,
         })),
       sueltos: sinContenedor
         .filter((s) =>

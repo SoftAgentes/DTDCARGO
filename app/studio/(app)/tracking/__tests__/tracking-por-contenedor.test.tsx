@@ -2,6 +2,9 @@
  * SDD-0659 · Tracking por contenedor: la página real, con las consultas reales
  * sobre un doble que filtra.
  *
+ * Todos los datos son inventados: los Shipping Marks van en el rango DTD-9xxx
+ * para que no coincidan con ningún cliente real.
+ *
  * Se mira lo que Sam pidió y lo que no se puede romper:
  *  - salen los contenedores, no los clientes uno por uno;
  *  - el envío sin contenedor no desaparece;
@@ -104,31 +107,35 @@ function envio(over: Record<string, unknown>) {
 const TABLAS = {
   shipments: [
     // Sin contenedor.
-    envio({ id: "s1", code: "S-2026-0042", client_name: "María Pérez", client_markbox: "DTD-0042" }),
+    envio({ id: "00000000-0000-4000-8000-0000000000a1", code: "S-2026-0042", client_name: "María Pérez", client_markbox: "DTD-9042" }),
     // Dentro del contenedor 64.
-    envio({ id: "s2", code: "S-2026-0043", client_name: "Comercial Rojas", client_markbox: "DTD-0077" }),
+    envio({ id: "00000000-0000-4000-8000-0000000000a2", code: "S-2026-0043", client_name: "Comercial Rojas", client_markbox: "DTD-9077" }),
     // Ya entregado, en el contenedor 61.
     envio({
-      id: "s3",
+      id: "00000000-0000-4000-8000-0000000000a3",
       code: "S-2026-0010",
       client_name: "Comercial Rojas",
-      client_markbox: "DTD-0077",
+      client_markbox: "DTD-9077",
       status: "delivered",
     }),
   ],
   shipment_events: [
-    { id: "e1", shipment_id: "s2", status: "shipped", note: null, occurred_at: "2026-11-09T08:00:00Z", created_by: null, created_at: "2026-11-09T08:00:00Z" },
+    { id: "e1", shipment_id: "00000000-0000-4000-8000-0000000000a2", status: "shipped", note: null, occurred_at: "2026-11-09T08:00:00Z", created_by: null, created_at: "2026-11-09T08:00:00Z" },
   ],
   consolidations: [
-    { id: "c64", ref: "DTD-CONSOL-0064", sailing_id: "sa1", container_type: "40HC", container_no: "DTDU6400183", status: "zarpado", updated_at: "2026-11-09T00:00:00Z", deleted_at: null },
-    { id: "c66", ref: "DTD-CONSOL-0066", sailing_id: null, container_type: "40HC", container_no: null, status: "consolidando", updated_at: "2026-11-15T00:00:00Z", deleted_at: null },
-    { id: "c61", ref: "DTD-CONSOL-0061", sailing_id: null, container_type: "40HC", container_no: "DTDU6100048", status: "arribado", updated_at: "2026-08-01T00:00:00Z", deleted_at: null },
-    { id: "c99", ref: null, sailing_id: null, container_type: "40HC", container_no: null, status: "solicitada", updated_at: "2026-11-16T00:00:00Z", deleted_at: null },
+    { id: "00000000-0000-4000-8000-000000000c64", ref: "DTD-CONSOL-0064", booking_id: "b1", sailing_id: "sa1", container_type: "40HC", container_no: "DTDU6400183", status: "zarpado", updated_at: "2026-11-09T00:00:00Z", deleted_at: null },
+    { id: "00000000-0000-4000-8000-000000000c66", ref: "DTD-CONSOL-0066", sailing_id: null, container_type: "40HC", container_no: null, status: "consolidando", updated_at: "2026-11-15T00:00:00Z", deleted_at: null },
+    { id: "00000000-0000-4000-8000-000000000c61", ref: "DTD-CONSOL-0061", sailing_id: null, container_type: "40HC", container_no: "DTDU6100048", status: "arribado", updated_at: "2026-08-01T00:00:00Z", deleted_at: null },
+    { id: "00000000-0000-4000-8000-000000000c99", ref: null, sailing_id: null, container_type: "40HC", container_no: null, status: "solicitada", updated_at: "2026-11-16T00:00:00Z", deleted_at: null },
   ],
   consolidation_items: [
-    { id: "i1", consolidation_id: "c64", shipment_id: "s2", client_markbox: "DTD-0077", client_name: "Comercial Rojas", cbm: 2.5, weight_kg: 300, pieces: 18, created_at: "2026-11-01T00:00:00Z" },
-    { id: "i2", consolidation_id: "c64", shipment_id: null, client_markbox: "DTD-0100", client_name: "Ana Soto", cbm: 1.5, weight_kg: 120, pieces: 4, created_at: "2026-11-02T00:00:00Z" },
-    { id: "i3", consolidation_id: "c61", shipment_id: "s3", client_markbox: "DTD-0077", client_name: "Comercial Rojas", cbm: 3, weight_kg: 400, pieces: 25, created_at: "2026-07-01T00:00:00Z" },
+    { id: "i1", consolidation_id: "00000000-0000-4000-8000-000000000c64", shipment_id: "00000000-0000-4000-8000-0000000000a2", client_markbox: "DTD-9077", client_name: "Comercial Rojas", cbm: 2.5, weight_kg: 300, pieces: 18, created_at: "2026-11-01T00:00:00Z" },
+    { id: "i2", consolidation_id: "00000000-0000-4000-8000-000000000c64", shipment_id: null, client_markbox: "DTD-9100", client_name: "Ana Soto", cbm: 1.5, weight_kg: 120, pieces: 4, created_at: "2026-11-02T00:00:00Z" },
+    { id: "i3", consolidation_id: "00000000-0000-4000-8000-000000000c61", shipment_id: "00000000-0000-4000-8000-0000000000a3", client_markbox: "DTD-9077", client_name: "Comercial Rojas", cbm: 3, weight_kg: 400, pieces: 25, created_at: "2026-07-01T00:00:00Z" },
+  ],
+  bookings: [
+    { id: "b1", bl_number: "BLPRUEBA6620041", updated_at: "2026-11-05T00:00:00Z", deleted_at: null },
+    { id: "b2", bl_number: null, updated_at: "2026-11-05T00:00:00Z", deleted_at: null },
   ],
   sailings: [
     { id: "sa1", vessel: "Buque de prueba", pol: "Ningbo", pod: "La Guaira", etd: "2026-11-08", eta: "2099-01-01" },
@@ -166,14 +173,14 @@ describe("/studio/tracking por contenedor", () => {
     expect(chip(/Sin contenedor\s*1/)).toBeInTheDocument();
 
     const lista = h.props.ContenedorList as { contenedores: { id: string }[] };
-    expect(lista.contenedores.map((c) => c.id)).toEqual(["c64"]);
+    expect(lista.contenedores.map((c) => c.id)).toEqual(["00000000-0000-4000-8000-000000000c64"]);
     expect(screen.getByRole("link", { name: "Abrir contenedor DTD-CONSOL-0064" })).toHaveAttribute(
       "aria-current",
       "true",
     );
     // La solicitud sin autorizar y el contenedor ya entregado no salen.
     expect(document.body.textContent).not.toContain("DTD-CONSOL-0061");
-    expect(JSON.stringify(h.props.ContenedorPanel)).not.toContain("c99");
+    expect(JSON.stringify(h.props.ContenedorPanel)).not.toContain("00000000-0000-4000-8000-000000000c99");
   });
 
   it("el panel trae buque, ETA, carga y los clientes del contenedor", async () => {
@@ -188,7 +195,7 @@ describe("/studio/tracking por contenedor", () => {
     expect(within(filas[0]).getByText("Comercial Rojas")).toBeInTheDocument();
     expect(within(filas[0]).getByRole("link", { name: "Abrir embarque S-2026-0043", hidden: true })).toHaveAttribute(
       "href",
-      "/studio/tracking/s2",
+      "/studio/tracking/00000000-0000-4000-8000-0000000000a2",
     );
     expect(within(filas[1]).getByText("Ana Soto")).toBeInTheDocument();
     expect(within(filas[1]).getByText("Sin envío enlazado")).toBeInTheDocument();
@@ -213,16 +220,16 @@ describe("/studio/tracking por contenedor", () => {
     const mapa = screen.getByRole("group", { name: /Mapa del Pacífico/ });
     expect(
       within(mapa).getByRole("link", { name: "Contenedor DTD-CONSOL-0066: Consolidando" }),
-    ).toHaveAttribute("href", "/studio/tracking?g=origen&c=c66");
+    ).toHaveAttribute("href", "/studio/tracking?g=origen&c=00000000-0000-4000-8000-000000000c66");
     // El elegido no es enlace a sí mismo.
     expect(within(mapa).queryByRole("link", { name: /DTD-CONSOL-0064/ })).toBeNull();
   });
 
   it("`?id=` de un envío con contenedor abre su contenedor con el envío resaltado", async () => {
-    await pintar(VALENCIA, { id: "s2" });
+    await pintar(VALENCIA, { id: "00000000-0000-4000-8000-0000000000a2" });
     const panel = screen.getByRole("region", { name: "Contenedor DTD-CONSOL-0064" });
     expect(panel.querySelector("details")).toHaveAttribute("open");
-    expect(panel.querySelector('tr[data-resaltado="true"]')?.textContent).toContain("DTD-0077");
+    expect(panel.querySelector('tr[data-resaltado="true"]')?.textContent).toContain("DTD-9077");
   });
 
   it("el envío sin contenedor sigue visible en «Sin contenedor»", async () => {
@@ -237,7 +244,7 @@ describe("/studio/tracking por contenedor", () => {
   });
 
   it("`?id=` de un envío sin contenedor abre ese filtro", async () => {
-    await pintar(VALENCIA, { id: "s1" });
+    await pintar(VALENCIA, { id: "00000000-0000-4000-8000-0000000000a1" });
     const filtros = screen.getByRole("navigation", { name: "Filtrar por ubicación" });
     expect(within(filtros).getByRole("link", { name: /Sin contenedor/ })).toHaveAttribute(
       "aria-current",
@@ -252,8 +259,8 @@ describe("/studio/tracking por contenedor", () => {
     expect(within(resultados).getByRole("heading", { name: /Comercial Rojas/ })).toBeInTheDocument();
     const enlaces = within(resultados).getAllByRole("link");
     expect(enlaces.map((a) => a.getAttribute("href"))).toEqual([
-      "/studio/tracking?c=c64&e=s2",
-      "/studio/tracking?c=c61&e=s3",
+      "/studio/tracking?c=00000000-0000-4000-8000-000000000c64&e=00000000-0000-4000-8000-0000000000a2",
+      "/studio/tracking?c=00000000-0000-4000-8000-000000000c61&e=00000000-0000-4000-8000-0000000000a3",
     ]);
     expect(within(enlaces[0]).getByText("En tránsito")).toBeInTheDocument();
     expect(within(enlaces[1]).getByText("Entregado")).toBeInTheDocument();
@@ -262,11 +269,30 @@ describe("/studio/tracking por contenedor", () => {
   it("buscar por número de contenedor lo encuentra, y `?c=` abre uno ya entregado", async () => {
     await pintar(VALENCIA, { q: "DTDU61" });
     const resultados = screen.getByRole("region", { name: "Resultados de «DTDU61»" });
-    expect(within(resultados).getByRole("link")).toHaveAttribute("href", "/studio/tracking?c=c61");
+    expect(within(resultados).getByRole("link")).toHaveAttribute("href", "/studio/tracking?c=00000000-0000-4000-8000-000000000c61");
     cleanup();
 
-    await pintar(VALENCIA, { c: "c61" });
+    await pintar(VALENCIA, { c: "00000000-0000-4000-8000-000000000c61" });
     expect(screen.getByRole("region", { name: "Contenedor DTD-CONSOL-0061" })).toBeInTheDocument();
+  });
+
+  it("buscar por BL encuentra el contenedor de esa reserva", async () => {
+    await pintar(VALENCIA, { q: "blprueba66" });
+    const resultados = screen.getByRole("region", { name: "Resultados de «blprueba66»" });
+    const enlace = within(resultados).getByRole("link");
+    expect(enlace).toHaveAttribute("href", "/studio/tracking?c=00000000-0000-4000-8000-000000000c64");
+    expect(within(enlace).getByText("BL BLPRUEBA6620041")).toBeInTheDocument();
+    expect(within(enlace).getByText("DTD-CONSOL-0064")).toBeInTheDocument();
+  });
+
+  it("un id de la URL que no es UUID se ignora: la página abre como sin él", async () => {
+    await pintar(VALENCIA, { c: "no-es-un-uuid", id: "1 or 1=1", e: "x" });
+    expect(screen.getByRole("region", { name: "Contenedor DTD-CONSOL-0064" })).toBeInTheDocument();
+    const filtros = screen.getByRole("navigation", { name: "Filtrar por ubicación" });
+    expect(within(filtros).getByRole("link", { name: /En mar/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
   });
 
   it("una búsqueda de un carácter no busca y lo dice", async () => {
@@ -288,21 +314,35 @@ describe("/studio/tracking por contenedor · equipo de China (SDD-0531)", () => 
       expect(JSON.stringify(h.props), nombre).not.toContain(nombre);
       expect(document.body.textContent, nombre).not.toContain(nombre);
     }
-    expect(screen.getAllByText("DTD-0077").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("DTD-9077").length).toBeGreaterThan(0);
     expect(screen.queryByText("Sin cliente")).toBeNull();
   });
 
   it("buscar por nombre no encuentra nada; por Shipping Mark, sí y sin nombre", async () => {
     await pintar(YIWU, { q: "rojas" });
     expect(screen.getByText(/Nada coincide con «rojas»/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Buscar Shipping Mark o contenedor…")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Buscar Shipping Mark, contenedor o BL…")).toBeInTheDocument();
     cleanup();
 
-    await pintar(YIWU, { q: "DTD-0077" });
-    const resultados = screen.getByRole("region", { name: "Resultados de «DTD-0077»" });
+    await pintar(YIWU, { q: "DTD-9077" });
+    const resultados = screen.getByRole("region", { name: "Resultados de «DTD-9077»" });
     expect(within(resultados).getAllByRole("link")).toHaveLength(2);
     expect(sinDatosDelCliente(h.props.BuscadorTracking)).toEqual([]);
     expect(JSON.stringify(h.props.BuscadorTracking)).not.toContain("Comercial Rojas");
     expect(document.body.textContent).not.toContain("Comercial Rojas");
+  });
+
+  it("buscar por BL funciona y tampoco trae nombres", async () => {
+    await pintar(YIWU, { q: "BLPRUEBA66" });
+    const resultados = screen.getByRole("region", { name: "Resultados de «BLPRUEBA66»" });
+    expect(within(resultados).getByRole("link")).toHaveAttribute(
+      "href",
+      "/studio/tracking?c=00000000-0000-4000-8000-000000000c64",
+    );
+    expect(sinDatosDelCliente(h.props.BuscadorTracking)).toEqual([]);
+    for (const nombre of ["Comercial Rojas", "Ana Soto"]) {
+      expect(JSON.stringify(h.props), nombre).not.toContain(nombre);
+      expect(document.body.textContent, nombre).not.toContain(nombre);
+    }
   });
 });

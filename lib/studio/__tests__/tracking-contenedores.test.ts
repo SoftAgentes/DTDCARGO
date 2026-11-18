@@ -16,6 +16,7 @@ import {
   filtroPorDefecto,
   grupoDelContenedor,
   hitosDelContenedor,
+  idDeUrl,
   normalizarBusqueda,
   ordenarContenedores,
   patronIlike,
@@ -46,7 +47,7 @@ function item(id: string, over: Partial<ItemCrudo> = {}): ItemCrudo {
   return {
     id,
     shipment_id: null,
-    client_markbox: "DTD-0001",
+    client_markbox: "DTD-9001",
     client_name: "Cliente de prueba",
     cbm: 2,
     weight_kg: 100,
@@ -191,7 +192,7 @@ describe("armar el contenedor", () => {
       contenedor(),
       [
         item("i1", { shipment_id: "s1", cbm: 2.5 }),
-        item("i2", { shipment_id: "s2", cbm: 1.5, client_markbox: "DTD-0002" }),
+        item("i2", { shipment_id: "s2", cbm: 1.5, client_markbox: "DTD-9002" }),
         item("i3"),
       ],
       envios([
@@ -321,12 +322,23 @@ describe("hitos", () => {
   });
 });
 
+describe("ids de la URL", () => {
+  it("solo pasa lo que tiene forma de UUID", () => {
+    expect(idDeUrl("3F2504E0-4F89-41D3-9A0C-0305E82C3301")).toBe(
+      "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
+    );
+    for (const raro of ["", "c64", "1 or 1=1", "3f2504e0-4f89-41d3-9a0c-0305e82c330", undefined, null, ["a"], 7]) {
+      expect(idDeUrl(raro), String(raro)).toBeNull();
+    }
+  });
+});
+
 describe("búsqueda", () => {
   it("no busca con menos de dos caracteres ni con algo que no es texto", () => {
     expect(normalizarBusqueda(" a ")).toBeNull();
     expect(normalizarBusqueda(undefined)).toBeNull();
     expect(normalizarBusqueda(["ab"])).toBeNull();
-    expect(normalizarBusqueda("  DTD   0042 ")).toBe("DTD 0042");
+    expect(normalizarBusqueda("  DTD   9042 ")).toBe("DTD 9042");
     expect(normalizarBusqueda("x".repeat(200))).toHaveLength(80);
   });
 
@@ -351,14 +363,14 @@ describe("búsqueda", () => {
       cbm: 1,
     });
     const grupos = agruparResultados([
-      fila("i1", "DTD-0042", null, "c64"),
-      fila("i2", "DTD-0042", "Cliente A", "c65"),
-      fila("i2", "DTD-0042", "Cliente A", "c65"),
+      fila("i1", "DTD-9042", null, "c64"),
+      fila("i2", "DTD-9042", "Cliente A", "c65"),
+      fila("i2", "DTD-9042", "Cliente A", "c65"),
       fila("i3", null, "Cliente B", "c64"),
       fila("i4", null, null, "c64"),
     ]);
     expect(grupos.map((g) => [g.clave, g.client_name, g.cargas.map((c) => c.contenedorId)])).toEqual([
-      ["DTD-0042", "Cliente A", ["c64", "c65"]],
+      ["DTD-9042", "Cliente A", ["c64", "c65"]],
       ["Cliente B", "Cliente B", ["c64"]],
       ["item:i4", null, ["c64"]],
     ]);

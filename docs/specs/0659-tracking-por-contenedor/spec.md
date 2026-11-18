@@ -73,7 +73,7 @@ confidencialidad: interno
 ## Reglas que se conservan
 
 - **SDD-0531 (PIPL):** al equipo de China el nombre del cliente no le llega. Se oculta en el servidor en la lista de clientes del contenedor y en el buscador; busca por Shipping Mark o contenedor.
-- RBAC: `requireModuleView("tracking")`. Si las policies de `consolidations` dependen del módulo Naviera, el Worker lo mide antes y lo reporta; no se abre acceso nuevo sin decisión.
+- RBAC: `requireModuleView("tracking")`. **Medido el 2026-11-18:** las policies de `consolidations`, `consolidation_items`, `sailings`, `bookings` y `tracking_snapshots` solo comparan el tenant; la separación por módulo vive en la app. Tracking lo ven `commercial`, `operations`, `accounting`, `warehouse` y `support`; Naviera, solo `operations` y `accounting`. Con esta pantalla, `commercial`, `warehouse` y `support` ven por primera vez qué lleva cada contenedor y buscan en el histórico de cargas. Es consecuencia directa de la decisión 4 de Sam (tracking por contenedor con buscador de clientes); no cambia ninguna policy ni el acceso al módulo Naviera.
 - Marca y Studio: solo tokens `var(--*)`, modo oscuro y compacto por defecto, botones con las variantes oficiales, Sora y Nunito Sans, códigos en JetBrains Mono. Pasa por `/ui-check`.
 - Se dice «contenedor» o «consolidado», nunca «lote».
 
@@ -81,10 +81,13 @@ confidencialidad: interno
 
 - `app/studio/(app)/tracking/page.tsx`
 - `app/studio/(app)/tracking/_components/` (lista, mapa, hitos, clientes, buscador y sus pruebas)
-- `lib/studio/tracking-contenedores.ts` y `lib/studio/tracking-contenedores-queries.ts` (nuevos, con pruebas)
+- `app/studio/(app)/tracking/__tests__/tracking-por-contenedor.test.tsx` (nuevo)
+- `lib/studio/tracking-contenedores.ts` y `lib/studio/tracking-contenedores-queries.ts` (nuevos)
+- `lib/studio/__tests__/tracking-contenedores.test.ts` (nuevo)
 - `lib/studio/tracking-mapa/` (nuevo: proyección, ruta y contorno ya proyectado)
 - `app/studio/studio.css` (solo el bloque `.studio-tracking-ops-*`)
 - `docs/specs/0659-tracking-por-contenedor/`
+- `.agents/handoffs/tracking-por-contenedor-0659.md`
 
 ## Criterios de aceptación (Fase 1)
 

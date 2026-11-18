@@ -17,10 +17,36 @@ Rediseñar `/studio/tracking`. Sam eligió la opción A («Mesa de control») en
 - Mapa centrado en el Pacífico con contorno real (Natural Earth 110m, dominio público), ya proyectado; sin librería de mapas en el navegador. Muestra todos los contenedores y cada punto es un enlace.
 - Posición: usa la caché de rastreo de la naviera (`tracking_snapshots`, SDD-0101) si tiene coordenadas; si no, estima con las fechas del itinerario; si tampoco hay, por estado. La fuente se rotula siempre.
 - Se quitó la velocidad: era un valor fijo en el código (`17.4 kn`), no un dato.
-- Buscador por GET (`?q=`), resuelto en el servidor: cliente, Shipping Mark, referencia o número de contenedor; incluye lo ya entregado.
+- Buscador por GET (`?q=`), resuelto en el servidor: cliente, Shipping Mark, referencia o número de contenedor y BL; incluye lo ya entregado.
 - Envíos activos sin contenedor: siguen visibles en «Sin contenedor», con la lista y el detalle por envío que ya existían.
 - `?id=<envío>` sigue funcionando: abre su contenedor con el envío resaltado, o el envío suelto.
 - SDD-0531: los nombres se ocultan en el servidor en los clientes del contenedor y en el buscador; para el equipo de China la consulta por nombre no se hace.
+
+## Medición de roles (la pide la spec) — 2026-11-18
+
+**Qué se midió.** Quién puede leer, por base de datos y por aplicación, lo que esta pantalla muestra.
+
+- **Base de datos.** Las policies de `consolidations`, `consolidation_items`, `sailings` y `bookings` (`supabase/migrations/0096_naviera_consolidacion.sql`, policies «… by tenant») y la de `tracking_snapshots` (`0158_tracking_snapshots.sql`, «tracking_snapshots by tenant») solo comparan `tenant_id`. No distinguen rol ni módulo.
+- **Aplicación.** `ROLE_MODULE_ACCESS` en `lib/studio/rbac.ts`: `tracking` lo ven `commercial`, `operations`, `accounting`, `warehouse` y `support`; `naviera` solo `operations` y `accounting`.
+
+**Consecuencia.** Antes de esta PR, el contenido de un contenedor solo se veía en Naviera. Con esta PR, `commercial`, `warehouse` y `support` ven por primera vez, desde Tracking:
+
+1. qué lleva cada contenedor: por ítem, Shipping Mark, nombre del cliente, m³, kg y bultos, incluidos los ítems que no están enlazados a un envío;
+2. un buscador sobre todo el histórico de `consolidation_items` (por Shipping Mark y, salvo el equipo de China, por nombre), más referencia, número de contenedor y BL.
+
+Es consecuencia directa de la decisión 4 de Sam del 2026-11-18 (tracking por contenedor, con buscador que diga en qué contenedor viene cada cliente). No se cambió ninguna policy, ni `ROLE_MODULE_ACCESS`, ni el acceso al módulo Naviera: esos tres roles siguen sin entrar a Naviera ni a sus acciones.
+
+**Lo que sigue igual.** El equipo de China (SDD-0531) no recibe nombres: se ocultan en el servidor y la consulta por nombre no se hace. Lo que esos roles ya veían en Tracking (los envíos activos con su cliente) no cambia.
+
+**Si se quisiera restringir**, la decisión es de Sam y el Director: mostrar «Quién viene adentro» y el buscador solo a los roles con acceso a Naviera es un cambio de aplicación, sin migración.
+
+## Cambios tras la revisión independiente (sobre `324ce69f1`)
+
+- Búsqueda por BL: `buscarEnTracking` consulta `bookings.bl_number` y trae los contenedores de esa reserva. Con prueba, también para el equipo de China.
+- Los ids de la URL (`?c=`, `?id=`, `?e=`) se validan como UUID antes de consultar; uno inválido se ignora. Antes tumbaba la página con 22P02.
+- Las tres lecturas iniciales de contenedores van en paralelo.
+- Allowlist de la spec ajustada con los dos archivos de prueba y este handoff; la medición de roles quedó también en la spec.
+- Los Shipping Marks de las pruebas nuevas pasaron al rango `DTD-9xxx`, claramente ficticio. No consulté producción para compararlos.
 
 ## Decisiones tomadas al implementar
 

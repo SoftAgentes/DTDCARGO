@@ -447,6 +447,19 @@ export function fechasPorEstado(
   return mapa;
 }
 
+// ── Parámetros de la URL ────────────────────────────────────────
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Un id que llega por la URL, o null si no tiene forma de UUID. Las columnas son
+ * `uuid`: consultar con otra cosa hace fallar la consulta entera (22P02) y
+ * tumbaría la página por un enlace mal copiado.
+ */
+export function idDeUrl(crudo: unknown): string | null {
+  return typeof crudo === "string" && UUID.test(crudo) ? crudo.toLowerCase() : null;
+}
+
 // ── Búsqueda ────────────────────────────────────────────────────
 
 export const LARGO_MINIMO_DE_BUSQUEDA = 2;

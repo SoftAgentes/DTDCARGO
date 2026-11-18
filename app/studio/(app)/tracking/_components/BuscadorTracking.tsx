@@ -22,6 +22,8 @@ export type ContenedorEncontrado = {
   nombre: string;
   estadoLabel: string;
   containerNo: string | null;
+  /** BL de la reserva, cuando el contenedor se encontró por su BL. */
+  bl: string | null;
 };
 
 export type EnvioSueltoEncontrado = {
@@ -51,8 +53,8 @@ export function BuscadorTracking({
   resultados: ResultadosDeTracking | null;
 }) {
   const placeholder = nombresOcultos
-    ? "Buscar Shipping Mark o contenedor…"
-    : "Buscar cliente, Shipping Mark o contenedor…";
+    ? "Buscar Shipping Mark, contenedor o BL…"
+    : "Buscar cliente, Shipping Mark, contenedor o BL…";
   const muyCorto = q.trim().length > 0 && resultados === null;
 
   return (
@@ -119,7 +121,9 @@ function Resultados({
               <li key={c.id}>
                 <Link href={hrefDeTracking({ c: c.id })}>
                   <code>{c.nombre}</code>
-                  <span>{c.containerNo ?? "Sin número de contenedor"}</span>
+                  <span>
+                    {c.bl ? `BL ${c.bl}` : (c.containerNo ?? "Sin número de contenedor")}
+                  </span>
                   <Badge tone="info" size="xs">
                     {c.estadoLabel}
                   </Badge>

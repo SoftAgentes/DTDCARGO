@@ -28,7 +28,7 @@ import {
 } from "./tracking-contenedores";
 
 const CONTENEDOR_COLUMNS =
-  "id, ref, sailing_id, container_type, container_no, status, updated_at";
+  "id, ref, booking_id, sailing_id, container_type, container_no, status, updated_at";
 const ITEM_COLUMNS =
   "id, consolidation_id, shipment_id, client_markbox, client_name, cbm, weight_kg, pieces, created_at";
 const ITINERARIO_COLUMNS = "id, vessel, pol, pod, etd, eta";
@@ -41,7 +41,10 @@ export const TOPE_DE_BUSQUEDA = 60;
 
 type Fila = Record<string, unknown>;
 
-export type ContenedorLeido = ContenedorCrudo & { sailing_id: string | null };
+export type ContenedorLeido = ContenedorCrudo & {
+  sailing_id: string | null;
+  booking_id: string | null;
+};
 export type ItemLeido = ItemCrudo & { consolidation_id: string };
 
 const num = (v: unknown) => {
@@ -55,6 +58,7 @@ function aContenedor(r: Fila): ContenedorLeido {
     id: String(r.id),
     ref: texto(r.ref),
     sailing_id: texto(r.sailing_id),
+    booking_id: texto(r.booking_id),
     container_type: texto(r.container_type),
     container_no: texto(r.container_no),
     status: (r.status as ContainerStatus) ?? "consolidando",
@@ -111,38 +115,40 @@ export async function leerContenedoresDeTracking(
     ahora.getTime() - DIAS_EN_DESTINO_SIN_ENLACE * 86_400_000,
   ).toISOString();
 
-  const abiertos = await fetchAllPaged<Fila>((d, h) =>
-    supabase
-      .from("consolidations")
-      .select(CONTENEDOR_COLUMNS)
-      .in("status", [...ESTADOS_ABIERTOS])
-      .is("deleted_at", null)
-      .order("id", { ascending: true })
-      .range(d, h),
-  );
-  const arribados = await fetchAllPaged<Fila>((d, h) =>
-    supabase
-      .from("consolidations")
-      .select(CONTENEDOR_COLUMNS)
-      .eq("status", "arribado")
-      .gte("updated_at", corte)
-      .is("deleted_at", null)
-      .order("id", { ascending: true })
-      .range(d, h),
-  );
+  // Las tres lecturas no dependen entre sí: van en paralelo.
+  const [abiertos, arribados, enlaces] = await Promise.all([
+    fetchAllPaged<Fila>((d, h) =>
+      supabase
+        .from("consolidations")
+        .select(CONTENEDOR_COLUMNS)
+        .in("status", [...ESTADOS_ABIERTOS])
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    fetchAllPaged<Fila>((d, h) =>
+      supabase
+        .from("consolidations")
+        .select(CONTENEDOR_COLUMNS)
+        .eq("status", "arribado")
+        .gte("updated_at", corte)
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+    // Contenedores que llevan algún envío activo, aunque hayan arribado hace rato.
+    fetchAllByIds<Fila>(idsDeEnviosActivos, (lote, d, h) =>
+      supabase
+        .from("consolidation_items")
+        .select("id, consolidation_id, shipment_id")
+        .in("shipment_id", lote)
+        .order("id", { ascending: true })
+        .range(d, h),
+    ),
+  ]);
   if (!abiertos.complete || !arribados.complete) {
     throw new Error("Los contenedores superan el tope de lectura.");
   }
-
-  // Contenedores que llevan algún envío activo, aunque hayan arribado hace rato.
-  const enlaces = await fetchAllByIds<Fila>(idsDeEnviosActivos, (lote, d, h) =>
-    supabase
-      .from("consolidation_items")
-      .select("id, consolidation_id, shipment_id")
-      .in("shipment_id", lote)
-      .order("id", { ascending: true })
-      .range(d, h),
-  );
   if (!enlaces.complete) {
     throw new Error("Los ítems de los contenedores superan el tope de lectura.");
   }
@@ -269,11 +275,18 @@ export async function leerEnviosPorIds(
 
 export type HallazgoDeBusqueda = {
   items: ItemLeido[];
+  /** Todos los contenedores que hacen falta para pintar el resultado. */
   contenedores: ContenedorLeido[];
+  /**
+   * Los que coinciden por sí mismos (referencia, número o BL), con el BL que
+   * coincidió cuando fue por BL. Los demás llegaron por un cliente.
+   */
+  directos: Map<string, { bl: string | null }>;
 };
 
 /**
- * Busca por Shipping Mark, por número o referencia de contenedor y, solo si
+ * Busca por Shipping Mark, por número o referencia de contenedor, por BL de la
+ * reserva (`bookings.bl_number`) y, solo si
  * `porNombre`, por nombre del cliente. Con `porNombre` en false (equipo de
  * China, SDD-0531) la consulta por nombre NO se hace: no alcanza con ocultar el
  * resultado, porque acertar un nombre ya lo confirmaría.
@@ -317,6 +330,37 @@ export async function buscarEnTracking(
     }
   }
 
+  // Por BL: la reserva guarda el BL y el contenedor apunta a su reserva.
+  const coincidencias = new Map<string, { bl: string | null }>(
+    [...directos.keys()].map((id) => [id, { bl: null }]),
+  );
+  const { data: reservas, error: errorDeReservas } = await supabase
+    .from("bookings")
+    .select("id, bl_number")
+    .ilike("bl_number", patron)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+  if (errorDeReservas) throw new Error(errorDeReservas.message);
+  const blPorReserva = new Map(
+    ((reservas as Fila[] | null) ?? []).map((r) => [String(r.id), texto(r.bl_number)]),
+  );
+  if (blPorReserva.size > 0) {
+    const { data, error } = await supabase
+      .from("consolidations")
+      .select(CONTENEDOR_COLUMNS)
+      .in("booking_id", [...blPorReserva.keys()])
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(TOPE_DE_BUSQUEDA);
+    if (error) throw new Error(error.message);
+    for (const r of (data as Fila[] | null) ?? []) {
+      const c = aContenedor(r);
+      directos.set(c.id, c);
+      coincidencias.set(c.id, { bl: blPorReserva.get(c.booking_id ?? "") ?? null });
+    }
+  }
+
   const faltan = unicos([...items.values()].map((i) => i.consolidation_id)).filter(
     (id) => !directos.has(id),
   );
@@ -327,5 +371,6 @@ export async function buscarEnTracking(
     // Un ítem cuyo contenedor fue eliminado no se muestra: no hay a dónde ir.
     items: [...items.values()].filter((i) => visibles.has(i.consolidation_id)),
     contenedores: [...directos.values(), ...deItems],
+    directos: coincidencias,
   };
 }
