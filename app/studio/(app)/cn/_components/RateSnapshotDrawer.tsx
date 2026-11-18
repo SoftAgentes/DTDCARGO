@@ -13,6 +13,7 @@
  * previa de la misma RPC que congela.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -54,7 +55,7 @@ const NONE_KEYS: Record<Extract<PropuestaTarifa, { kind: "ninguna" }>["motivo"],
 };
 
 function fmtCbm(n: number): string {
-  return n.toLocaleString("es-VE", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  return formatCbm(n);
 }
 
 function fmtFecha(iso: string): string {

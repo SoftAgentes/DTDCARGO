@@ -26,6 +26,7 @@
  *   ve Facturación, así que aquí no se decide permiso.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import {
@@ -1095,7 +1096,7 @@ function ListaDeContenedores({
                     textAlign: "right",
                   }}
                 >
-                  {g.totalCbm.toFixed(2)} m³
+                  {formatCbm(g.totalCbm)} m³
                 </span>
               </span>
             </button>
@@ -1188,7 +1189,7 @@ function FranjaDeTotales({
     { etiqueta: "Clientes", valor: grupo.clientes.length.toLocaleString("es-VE") },
     { etiqueta: "Cajas", valor: (grupo.cajas ?? 0).toLocaleString("es-VE") },
     { etiqueta: "Cajas recibidas", valor: textoRecibidas(grupo.recibidas) },
-    { etiqueta: "CBM total", valor: `${grupo.totalCbm.toFixed(2)} m³` },
+    { etiqueta: "CBM total", valor: `${formatCbm(grupo.totalCbm)} m³` },
     {
       etiqueta: "Peso total",
       valor: grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg),
@@ -1380,7 +1381,7 @@ function DetallePorCliente({
               <td style={TD_DETALLE}>{c.stats.count.toLocaleString("es-VE")}</td>
               <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
               <td style={TD_DETALLE}>{textoRecibidas(c.recibidas)}</td>
-              <td style={TD_DETALLE}>{c.stats.totalCbm.toFixed(2)}</td>
+              <td style={TD_DETALLE}>{formatCbm(c.stats.totalCbm)}</td>
               <td style={TD_DETALLE}>{textoPesoCliente(c)}</td>
               {montos && (
                 <>
@@ -1402,7 +1403,7 @@ function DetallePorCliente({
             <td style={PIE_DETALLE}>{grupo.embarques.toLocaleString("es-VE")}</td>
             <td style={PIE_DETALLE}>{(grupo.cajas ?? 0).toLocaleString("es-VE")}</td>
             <td style={PIE_DETALLE}>{textoRecibidas(grupo.recibidas)}</td>
-            <td style={PIE_DETALLE}>{grupo.totalCbm.toFixed(2)}</td>
+            <td style={PIE_DETALLE}>{formatCbm(grupo.totalCbm)}</td>
             <td style={PIE_DETALLE}>
               {grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg)}
             </td>
@@ -1572,7 +1573,7 @@ function GroupedTable({
                   minWidth: 90,
                 }}
               >
-                {group.stats.totalCbm.toFixed(2)} m³
+                {formatCbm(group.stats.totalCbm)} m³
               </span>
             </button>
 
@@ -1755,7 +1756,7 @@ function GroupedTable({
                           textAlign: "right",
                         }}
                       >
-                        {s.volume_m3 != null ? Number(s.volume_m3).toFixed(2) : "—"}
+                        {formatCbm(s.volume_m3)}
                       </span>
                       {adjuntos !== null && (
                         <span>

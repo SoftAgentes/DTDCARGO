@@ -24,6 +24,7 @@
  * su href de deep-link al módulo de origen.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { fmtUsd } from "@/lib/money";
@@ -397,7 +398,7 @@ export function deriveAlerts(input: AlertInputs): DireccionAlert[] {
     alerts.push({
       tone: "info",
       icon: "warehouse",
-      text: `${input.looseCbm.toFixed(1)} CBM de carga suelta para consolidar en CN`,
+      text: `${formatCbm(input.looseCbm)} CBM de carga suelta para consolidar en CN`,
       href: "/studio/naviera",
     });
   }

@@ -14,6 +14,7 @@
  * agregados llegan ya calculados desde el server (page.tsx).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useMemo, useState } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -977,7 +978,7 @@ function ContainersView({
           <div style={{ minWidth: 0 }}>
             <div style={{ font: "700 13px/1.2 var(--f-mono)", color: "var(--ink)" }}>{c.ref}</div>
             <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
-              {[c.containerType, c.status, `${c.cbm.toLocaleString("es-VE")} CBM`].filter(Boolean).join(" · ")}
+              {[c.containerType, c.status, formatCbm(c.cbm, { unit: "CBM" })].filter(Boolean).join(" · ")}
             </div>
           </div>
           <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
