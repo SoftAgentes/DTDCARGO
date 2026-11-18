@@ -47,14 +47,29 @@ type Claim = {
 
 /**
  * ¿Auth dice «ese correo ya es de otra cuenta»? Sólo por su código o su texto:
- * un 422 a secas puede ser otra validación (formato, política) y eso no es un
- * choque permanente.
+ * un 422 a secas puede ser otra validación (formato, política), y un 500 a
+ * secas puede ser cualquier cosa; nada de eso es un choque permanente.
+ *
+ * Las dos formas conocidas:
+ *   · 422 con `email_exists` (lo que documenta Auth);
+ *   · 500 con código 23505, violación de unicidad: es lo que respondió el Auth
+ *     real del entorno de prueba al cambiar una cuenta a un correo que ya tenía
+ *     otra (medido el 2026-11-18). Sin el código, sólo si el texto dice
+ *     violación de unicidad Y nombra el correo.
+ *
+ * Es la red de seguridad para la carrera: el chequeo previo lo hace la base al
+ * reclamar (`portal_email_check_claim` mira si ese correo ya es de otra cuenta
+ * y responde «conflicto» sin que la app toque Auth).
  */
-function esCorreoOcupado(err: { code?: string; message?: string }): boolean {
-  return (
-    err.code === "email_exists" ||
-    /email_exists|already (been )?registered|email address .*already/i.test(err.message ?? "")
-  );
+function esCorreoOcupado(err: { status?: number; code?: string; message?: string }): boolean {
+  const msg = err.message ?? "";
+  if (err.code === "email_exists") return true;
+  if (/email_exists|already (been )?registered|email address .*already/i.test(msg)) return true;
+  if (err.status === 500) {
+    if (err.code === "23505") return true;
+    if (/23505|duplicate key value violates unique constraint/i.test(msg) && /email/i.test(msg)) return true;
+  }
+  return false;
 }
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -133,6 +148,12 @@ export async function comprobarCorreoAction(
   if (authErr) {
     const ocupado = esCorreoOcupado(authErr);
     console.error("[comprobarCorreoAction] Auth no tomó el correo:", authErr.status, authErr.code);
+    // Un error del servidor de Auth que no es el choque: no se sabe en qué quedó
+    // la cuenta. El enlace no se suelta y queda para revisión del equipo.
+    if (!ocupado && typeof authErr.status === "number" && authErr.status >= 500) {
+      await dejarParaRevision(admin, claim.check_id, "Auth falló al tomar el correo");
+      return { error: COMPROBAR_CORREO_NO_SIRVE };
+    }
     const suelto = await soltar(admin, claim.check_id, ocupado);
     // Si no se pudo soltar, el enlace quedó gastado: que pida uno nuevo.
     return { error: ocupado || !suelto ? COMPROBAR_CORREO_NO_SIRVE : COMPROBAR_CORREO_REINTENTA };

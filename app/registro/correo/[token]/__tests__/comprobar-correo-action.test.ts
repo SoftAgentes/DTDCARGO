@@ -276,8 +276,51 @@ describe("comprobarCorreoAction · con la sesión del titular", () => {
     });
   });
 
+  it("⭐ la forma real del choque (500 · 23505, Auth de prueba 2026-11-18) queda como choque", async () => {
+    authErrors = [{ status: 500, code: "23505", message: "Database error updating user" }];
+    const res = await comprobarCorreoAction({}, form());
+    expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });
+    expect(nombres()).toEqual(["portal_email_check_claim", "updateUserById", "portal_email_check_release"]);
+    expect(calls[2].args).toEqual({ p_check_id: "chk-1", p_conflicto: true });
+    expect(nombres()).not.toContain("portal_email_check_revisar");
+  });
+
+  it("un 500 sin código que dice violación de unicidad sobre el correo también es choque", async () => {
+    authErrors = [
+      { status: 500, message: 'duplicate key value violates unique constraint "users_email_partial_key"' },
+    ];
+    await comprobarCorreoAction({}, form());
+    expect(calls.find((c) => c.name === "portal_email_check_release")?.args).toEqual({
+      p_check_id: "chk-1",
+      p_conflicto: true,
+    });
+  });
+
+  it("⭐ un 500 de otra causa NO es choque: no se suelta y queda para revisión", async () => {
+    for (const err of [
+      { status: 500, code: "unexpected_failure", message: "Database error updating user" },
+      { status: 500, message: 'duplicate key value violates unique constraint "identities_pkey"' },
+      { status: 503, message: "boom" },
+    ]) {
+      calls = [];
+      authErrors = [err];
+      const res = await comprobarCorreoAction({}, form());
+      expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });
+      expect(nombres()).not.toContain("portal_email_check_release");
+      expect(calls.at(-1)).toEqual({ name: "portal_email_check_revisar", args: { p_check_id: "chk-1" } });
+      expect(nombres()).not.toContain("portal_email_check_confirm");
+    }
+  });
+
+  it("⭐ un 23505 que no viene como 500 no se toma por choque sin más", async () => {
+    authErrors = [{ status: 400, code: "23505", message: "algo" }];
+    const res = await comprobarCorreoAction({}, form());
+    expect(res).toEqual({ error: COMPROBAR_CORREO_REINTENTA });
+    expect(calls.at(-1)?.args).toEqual({ p_check_id: "chk-1", p_conflicto: false });
+  });
+
   it("un fallo pasajero de Auth suelta el enlace para reintentar y no marca comprobado", async () => {
-    authErrors = [{ status: 500, message: "boom" }];
+    authErrors = [{ status: 429, code: "over_request_rate_limit", message: "slow down" }];
     const res = await comprobarCorreoAction({}, form());
     expect(res).toEqual({ error: COMPROBAR_CORREO_REINTENTA });
     expect(calls.at(-1)).toEqual({
@@ -288,7 +331,7 @@ describe("comprobarCorreoAction · con la sesión del titular", () => {
   });
 
   it("si no se puede soltar, no promete un reintento: el enlace quedó gastado", async () => {
-    authErrors = [{ status: 500, message: "boom" }];
+    authErrors = [{ status: 429, message: "slow down" }];
     releaseError = { code: "XX000", message: "boom" };
     const res = await comprobarCorreoAction({}, form());
     expect(res).toEqual({ error: COMPROBAR_CORREO_NO_SIRVE });

@@ -205,14 +205,14 @@
           "name": "portal_email_check_claim",
           "kind": "function",
           "callSites": [
-            "app/registro/correo/[token]/actions.ts:106"
+            "app/registro/correo/[token]/actions.ts:121"
           ]
         },
         {
           "name": "portal_email_check_confirm",
           "kind": "function",
           "callSites": [
-            "app/registro/correo/[token]/actions.ts:143"
+            "app/registro/correo/[token]/actions.ts:164"
           ]
         },
         {
@@ -248,14 +248,14 @@
           "name": "portal_email_check_release",
           "kind": "function",
           "callSites": [
-            "app/registro/correo/[token]/actions.ts:64"
+            "app/registro/correo/[token]/actions.ts:79"
           ]
         },
         {
           "name": "portal_email_check_revisar",
           "kind": "function",
           "callSites": [
-            "app/registro/correo/[token]/actions.ts:75"
+            "app/registro/correo/[token]/actions.ts:90"
           ]
         },
         {
@@ -269,7 +269,7 @@
           "name": "client_email_checks",
           "kind": "table",
           "callSites": [
-            "app/registro/correo/[token]/actions.ts:153",
+            "app/registro/correo/[token]/actions.ts:174",
             "app/registro/link/[token]/actions.ts:190",
             "app/studio/(app)/clientes/actions.ts:481",
             "lib/studio/portal/correo-comprobacion.ts:149"
@@ -308,7 +308,7 @@
           "degradation": "Sin la 0559 portal_email_check_peek no existe: la página muestra «Enlace no disponible» (no llega ningún enlace de estos sin la migración)."
         },
         {
-          "site": "app/registro/correo/[token]/actions.ts:111",
+          "site": "app/registro/correo/[token]/actions.ts:126",
           "contains": "console.error(\"[comprobarCorreoAction] reclamar falló:\", error.code);",
           "degradation": "Sin la 0559 reclamar falla: la acción responde «intenta de nuevo» y no toca Auth; confirmar, soltar, marcar para revisión y leer la tabla sólo corren después de reclamar."
         },

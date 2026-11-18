@@ -36,7 +36,7 @@ El diseño lo fijó el DG en dos rondas: primero ocho condiciones de diseño, y 
 
 | # | Condición | Dónde quedó |
 |---|---|---|
-| 1 | Dirección interna en dominio reservado, de un id aleatorio; ningún envío la toma | `nuevoCorreoInterno` (128 bits, `@sin-comprobar.invalid`); `sendEmail` la rechaza. **Sin probar contra un Auth real** (ver pendientes). |
+| 1 | Dirección interna en dominio reservado, de un id aleatorio; ningún envío la toma | `nuevoCorreoInterno` (128 bits, `@sin-comprobar.invalid`); `sendEmail` la rechaza. Auth real de prueba la acepta (corrida del 2026-11-18, ver «VALIDACIÓN»). |
 | 2 | El correo real solo en nuestra tabla hasta confirmar; choque → genérico, marcado, sin fusionar | `client_email_checks.pending_email`; `portal_email_check_claim` marca `conflict_at`; contrato §L |
 | 3 | El chequeo previo «ese correo ya tiene cuenta» se mantiene | `portal_registration_link_complete` no se tocó |
 | 4 | `/entrar` con el correo sin comprobar: respuesta idéntica a la de uno inexistente | misma respuesta, mismas consultas y ningún envío. Se midió por consultas y envíos, no cronometrando |
@@ -105,20 +105,14 @@ El diseño lo fijó el DG en dos rondas: primero ocho condiciones de diseño, y 
 | CI de la PR, primer push (`e768cb3ea`) | «Contratos SQL» PASÓ. «Calidad» FALLÓ: 38 casos de `app/entrar/__tests__/entrar-no-promete-envio.test.tsx`, cuyo doble no conocía la consulta nueva; no la había corrido en local. Corregido en la segunda ronda |
 | `pnpm test` completo, build y e2e | NO EJECUTADO en la PC por decisión del DG: el portón es el CI |
 | Contrato SQL con psql y Docker | NO DISPONIBLE en local; en el CI corre |
-| Auth real | NO EJECUTADO: Auth está doblado en todas las pruebas |
+| Auth real del entorno de prueba (2026-11-18 01:49Z, la corrió el DG en el VPS con `infra/ops/portal-correo-comprobacion/probar-auth-prueba.mjs` de la PR #658, red interna de prueba, claves distintas de producción verificadas, primero el ensayo; evidencia en el VPS, sin secretos en Git) | PASÓ salvo el choque: `createUser` con la dirección interna 200; enlace de entrada 200 y canje con sesión 200; pedir código con el correo real 422 `signup_disabled` sin cuenta nueva ni correo; recuperación con el correo real 200 sin correo; control positivo de Mailpit, exactamente 1 correo; paso al correo real y vuelta 200 con la sesión válida y renovable; limpieza OK. El choque NO dio `422 email_exists`: dio **500 · 23505**, y la cuenta siguió con su dirección interna. La app ya reconoce esa forma (abajo) |
+| Choque con la forma real (500 · 23505) en `comprobarCorreoAction` | PASÓ: queda como choque (Studio «choque», mensaje genérico, enlace marcado). Un 500 de otra causa va a «para revisar» sin soltar el enlace. 5 mutantes mueren |
 | `/ui-check` | OK con ajustes menores (primera ronda). La segunda ronda sumó un diálogo de confirmación y dos avisos con los componentes del sistema; no se volvió a correr |
 | Producción | NO TOCADA: ni lecturas ni escrituras |
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Antes de aplicar la 0559: probar contra un Auth real, en el entorno de prueba.**
-   - `createUser` con la dirección interna (dominio `.invalid`).
-   - `generateLink` (entrada directa) para esa dirección.
-   - `updateUserById` de la dirección interna al correo real y de vuelta.
-   - Que la sesión del cliente siga viva después del cambio de correo.
-   - Que los caminos propios de Auth para pedir un enlace o un código, con el correo real, no encuentren la cuenta mientras lleva la dirección interna.
-   - El código exacto que devuelve Auth cuando el correo ya está en otra cuenta (la app espera `email_exists`).
-   - Si Auth rechaza la dirección interna, el registro por link cae en «acceso fallido» (falla seguro) y hay que proponer otro dominio antes de seguir.
+1. **Prueba contra Auth real: hecha** (2026-11-18, ver «VALIDACIÓN»). Ya no es pendiente, salvo el choque: Auth responde 500 · 23505 en vez de `422 email_exists`. La app lo reconoce desde esta ronda. El script de #658 acepta las dos formas, así que una nueva corrida tiene que dar 0 con el comportamiento conocido.
 2. **Orden de salida, en una sola ventana:** aplicar la 0559 (OK nominal de Sam) → publicar → corrida única inmediatamente (ensayo, después `--aplicar`, OK nominal de Sam), hasta código de salida 0.
 3. **Smoke sugerido** (extiende el guion de la primera entrega): registrarse por link → entra directo; pedir enlace en `/entrar` con ese correo → pantalla de siempre y ningún correo; abrir el enlace de comprobación sin sesión → pide entrar primero y el enlace sigue vivo; abrirlo con el portal abierto y confirmar → comprobado; después `/entrar` ya manda el enlace; reusar el enlace → mensaje genérico; corregir el correo en la ficha → «sin comprobar»; acceso por WhatsApp de una cuenta sin comprobar → entra; revocar y volver a invitar → diálogo de confirmación y «Correo nunca comprobado».
 4. La revisión independiente del delta la lanza el DG.

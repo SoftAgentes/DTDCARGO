@@ -368,12 +368,11 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
 - El camino feliz completo en el navegador necesita una base con la 0552 y Auth; el e2e cubre la cara
   pública sin base.
 
-- **Enmienda D-1.** Auth está doblado en todas las pruebas. **Antes de aplicar la 0559 en producción hay
-  que probar contra un Auth real, en el entorno de prueba:** crear la cuenta y cambiarle el correo con
-  una dirección del dominio `.invalid`; acuñar la entrada para esa dirección; que la sesión siga viva
-  después del cambio de correo; y el código exacto que devuelve Auth cuando el correo ya está en otra
-  cuenta. Si Auth rechazara la dirección, el registro por link cae en el camino ya existente de «acceso
-  fallido» (la ficha se guarda y el equipo contacta al cliente). La lista completa está en el handoff.
+- **Enmienda D-1.** En las pruebas unitarias Auth está doblado. La prueba contra el Auth real del entorno de
+  prueba se hizo el 2026-11-18 (`infra/ops/portal-correo-comprobacion/probar-auth-prueba.mjs`): acepta la
+  dirección `.invalid`, acuña la entrada para ella, la sesión sigue viva al cambiar el correo y los caminos
+  propios de Auth con el correo real no encuentran la cuenta. El correo ocupado llega como 500 · 23505 (no
+  como `422 email_exists`); la app reconoce las dos formas. Resultado completo en el handoff.
 - La igualdad de respuesta de `/entrar` se prueba por consultas y envíos, no cronometrando.
 
 ## 8. Allowlist
