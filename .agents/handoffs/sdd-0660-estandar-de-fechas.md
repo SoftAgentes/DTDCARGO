@@ -29,13 +29,25 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 
 - Tras un envío con `<form action>` sin `key`, el campo nativo se vaciaba con el reinicio de React 19; `<DateField>` conserva la fecha (es estado de React). Los formularios migrados que se vacían tras éxito usan `key` (Servicios) o cierran el drawer, así que no se nota; anotarlo si aparece en la tanda 2.
 
-## VALIDACIÓN
+## VALIDACIÓN (turno de PC del DG, 2026-11-18)
 
-Ver el cierre en la PR. Hasta el turno de PC del DG: `docs:check` y `sdd:check` PASÓ; vitest, typecheck, lint, `components:check`, `/ui-check` y `pnpm verify` NO EJECUTADO (el worktree no tenía `node_modules`).
+| Comprobación | Resultado |
+|---|---|
+| `pnpm install --frozen-lockfile` | PASÓ (sin cambios en el lockfile) |
+| vitest nuevas: `date-mask`, `DateField`, `fechas-contract` | PASÓ, 45/45 (`--pool=threads --maxWorkers=1`; con el pool por defecto los workers no arrancaron por carga) |
+| vitest de los módulos migrados (32 archivos) | 316/320 en una corrida con 2 workers. De los 4 rojos, 1 real (`reportes-tab`: la etiqueta envolvía el campo) → corregido, 13/13. Los otros 3 (`conservar-lo-escrito` ×2, `CityDrawer`) y 2 archivos que no arrancaron (`ReglasDrawer`, `thread-solo-lectura`) pasaron aislados: 69/69 |
+| typecheck (`tsc --noEmit`) | PASÓ |
+| eslint de los archivos tocados | PASÓ (0 errores, 0 advertencias) |
+| `components:index` / `components:check` | PASÓ |
+| `governance:check`, `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
+| `/ui-check` (página de prueba con `tokens.css` y `studio.css` reales, claro, oscuro y 375 px) | PASÓ con un ajuste aplicado (título «Noviembre De 2026» → «Noviembre de 2026») |
+| Contraste medido | texto 16,5 / 13,1; formato gris 5,3 / 6,9; día elegido 10,6 / 6,6; error 6,3 / 8,3 (claro / oscuro) |
+| `pnpm verify`, e2e | NO EJECUTADO (el DG no dio turno para verify) |
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr con turno: `pnpm install --frozen-lockfile`, vitest de los archivos tocados, typecheck, lint, `pnpm components:index` (regenera `generated/component-registry.json`), `/ui-check` y `pnpm verify`.
+- `pnpm verify` y la corrida completa en CI (la de la PR).
+- El calendario se ancla al borde izquierdo del campo: en un campo pegado al borde derecho de un drawer podría salirse; revisarlo al migrar los drawers anchos en la tanda 2.
 - Tanda 2: el resto de días (lista congelada), incluida Bitácora cuando se fusione la rama de ajustes de pantalla.
 - Tanda 3: `<DateTimeField>` para los 4 `datetime-local`, con la prueba de zona de CAL-01.
 - Tanda 4: `AuditLogSection`, `inspecciones/builder-fields` y `components/document-import`.

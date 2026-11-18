@@ -171,7 +171,7 @@ describe("<DateField> · calendario", () => {
     await user.click(input);
     await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByRole("heading")).toHaveTextContent("noviembre de 2026");
+    expect(within(dialog).getByRole("heading")).toHaveTextContent("Noviembre de 2026");
     const day = within(dialog).getByRole("button", { name: /18 de noviembre de 2026/ });
     expect(day).toHaveFocus();
     expect(day.closest("td")).toHaveAttribute("aria-selected", "true");
@@ -197,7 +197,7 @@ describe("<DateField> · calendario", () => {
     await user.click(input);
     await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
     await user.keyboard("{PageDown}");
-    expect(screen.getByRole("heading")).toHaveTextContent("febrero de 2026");
+    expect(screen.getByRole("heading")).toHaveTextContent("Febrero de 2026");
   });
 
   it("Escape cierra sin cambiar y devuelve el foco", async () => {

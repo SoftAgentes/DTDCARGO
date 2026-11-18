@@ -92,26 +92,34 @@ function FiltroDelPeriodo({ filtro }: { filtro: FiltroReportes }) {
     >
       <input type="hidden" name="tab" value="reportes" />
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
-        <label style={{ display: "flex", flexDirection: "column" }}>
-          <span className="studio-label">Desde</span>
+        {/* SDD-0660: etiqueta con htmlFor; envolver el campo le sumaría al nombre la ayuda del formato. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label className="studio-label" htmlFor={`${id}-desde`}>
+            Desde
+          </label>
           <DateField
+            id={`${id}-desde`}
             name="desde"
             defaultValue={filtro.desde}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}
             style={{ minWidth: 160 }}
           />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column" }}>
-          <span className="studio-label">Hasta (corte)</span>
+        </div>
+        {/* SDD-0660: etiqueta con htmlFor; envolver el campo le sumaría al nombre la ayuda del formato. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label className="studio-label" htmlFor={`${id}-hasta`}>
+            Hasta (corte)
+          </label>
           <DateField
+            id={`${id}-hasta`}
             name="hasta"
             defaultValue={filtro.hasta}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}
             style={{ minWidth: 160 }}
           />
-        </label>
+        </div>
         <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm">
           Aplicar
         </button>

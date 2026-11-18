@@ -618,6 +618,8 @@ migrar un archivo, bórralo de la lista.
 - Al formulario viaja ISO (`AAAA-MM-DD` / `AAAA-MM`) en un oculto con el `name`:
   validadores y server actions no cambian. `onChange` entrega ISO o `""`.
 - Fecha imposible (31/02) no se corrige sola: se explica y bloquea el envío.
+- La etiqueta va con `htmlFor` + `id`, no envolviendo el campo: dentro de un
+  `<label>` la ayuda del formato se sumaría al nombre del campo.
 
 ```tsx
 <label className="studio-label" htmlFor="pay-date">Fecha de pago</label>

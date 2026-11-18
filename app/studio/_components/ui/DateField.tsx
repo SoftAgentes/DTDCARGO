@@ -437,7 +437,6 @@ function CalendarPopover({ id, mode, selected, initialFocus, min, max, onPick, o
     const el = gridRef.current?.querySelector<HTMLButtonElement>('[data-focus="true"]');
     if (el && gridRef.current?.contains(document.activeElement) === false) el.focus();
     // Solo al montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Al mover el foco con teclado, el botón activo recibe el foco real.
@@ -511,7 +510,9 @@ function CalendarPopover({ id, mode, selected, initialFocus, min, max, onPick, o
     move(mode === "date" ? addMonthsToDate(focusIso, n) : addMonths(focusIso, n * 12));
   };
 
-  const heading = mode === "date" ? `${MONTH_NAMES[fm - 1]} de ${fy}` : String(fy);
+  // Mayúscula solo en la primera letra («Noviembre de 2026»); `capitalize` subiría también el «de».
+  const mes = MONTH_NAMES[fm - 1];
+  const heading = mode === "date" ? `${mes.charAt(0).toUpperCase()}${mes.slice(1)} de ${fy}` : String(fy);
   const prevLabel = mode === "date" ? "Mes anterior" : "Año anterior";
   const nextLabel = mode === "date" ? "Mes siguiente" : "Año siguiente";
 
@@ -542,7 +543,7 @@ function CalendarPopover({ id, mode, selected, initialFocus, min, max, onPick, o
         <h2
           id={headingId}
           aria-live="polite"
-          style={{ margin: 0, font: "600 14px/1.2 var(--f-sans)", textTransform: "capitalize" }}
+          style={{ margin: 0, font: "600 14px/1.2 var(--f-sans)" }}
         >
           {heading}
         </h2>
