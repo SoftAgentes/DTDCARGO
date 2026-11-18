@@ -18,6 +18,7 @@ import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { formatCbm } from "@/lib/shared/cbm";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
@@ -39,7 +40,8 @@ import {
 
 const MAX_MOTIVO = 1000;
 
-const fmtCbm = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(3)} m³`);
+// SDD-0667: el CBM se muestra con los decimales que tiene (hasta 4), sin ceros de relleno.
+const fmtCbm = (n: number | null | undefined) => formatCbm(n, { unit: true });
 const fmtKg = (n: number | null | undefined) =>
   n == null ? "—" : `${n.toLocaleString("es-VE", { maximumFractionDigits: 2 })} kg`;
 const fmtCajas = (n: number | null | undefined) => (n == null ? "—" : `${n} ${n === 1 ? "caja" : "cajas"}`);
@@ -330,7 +332,6 @@ function CamposMedidas({
         <NumericInput
           id={`${prefijo}-cbm`}
           type="volume"
-          precision={3}
           min={0}
           value={valor.cbm}
           onChange={(v) => onChange({ ...valor, cbm: v })}
