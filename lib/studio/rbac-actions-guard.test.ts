@@ -258,13 +258,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
   // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
   // de la ficha.
-  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0674 sumó `embarques/facturar-actions.ts` (85 → 86, con prefijo 25 → 26): «Facturar» del contenedor 64.
+  it("la superficie escaneada es la esperada (86 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 85,
+      total: 86,
       exactos: 60,
-      conPrefijo: 25,
+      conPrefijo: 26,
     });
   });
 
