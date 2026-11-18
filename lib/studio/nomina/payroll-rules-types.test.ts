@@ -3,6 +3,8 @@ import { describe, it, expect } from "vitest";
 import {
   validatePayrollRulesInput,
   PAYROLL_RULES_DEFAULTS,
+  AJUSTES_LIQUIDACION_BASE,
+  resolverAjustesLiquidacion,
   UTILIDADES_MIN_DAYS,
   isPayFrequency,
   isDayMethod,
@@ -356,5 +358,48 @@ describe("enums + helpers", () => {
     expect(payrollRulesStatusTone("xxx")).toBe("neutral");
     expect(isPayrollRulesStatus("archivada")).toBe(true);
     expect(isPayrollRulesStatus("nope")).toBe(false);
+  });
+});
+
+
+describe("SDD-0658 · ajustes de la liquidación en el validador", () => {
+  const base = { pay_frequency: "mensual", day_method: "30" };
+
+  it("vacíos = null (se conservan los de la versión vigente), nunca un valor inventado", () => {
+    const { input } = validatePayrollRulesInput({ ...base });
+    expect(input).toMatchObject({ prestaciones_method: null, prestaciones_interest_pct: null, ajena_78_incluye_92: null });
+  });
+
+  it("acepta los tres métodos, el interés de 0 a 100 y sí/no", () => {
+    const { input, fieldErrors } = validatePayrollRulesInput({
+      ...base,
+      prestaciones_method: "garantia",
+      prestaciones_interest_pct: "15.255",
+      ajena_78_incluye_92: "true",
+    });
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toMatchObject({ prestaciones_method: "garantia", prestaciones_interest_pct: 15.26, ajena_78_incluye_92: true });
+    expect(validatePayrollRulesInput({ ...base, ajena_78_incluye_92: "false" }).input?.ajena_78_incluye_92).toBe(false);
+  });
+
+  it("rechaza un método desconocido, un interés fuera de rango y una respuesta que no es sí/no", () => {
+    expect(validatePayrollRulesInput({ ...base, prestaciones_method: "promedio" }).fieldErrors?.prestaciones_method).toBeTruthy();
+    expect(validatePayrollRulesInput({ ...base, prestaciones_interest_pct: "100.5" }).fieldErrors?.prestaciones_interest_pct).toBeTruthy();
+    expect(validatePayrollRulesInput({ ...base, prestaciones_interest_pct: "-1" }).fieldErrors?.prestaciones_interest_pct).toBeTruthy();
+    expect(validatePayrollRulesInput({ ...base, ajena_78_incluye_92: "quizás" }).fieldErrors?.ajena_78_incluye_92).toBeTruthy();
+  });
+
+  it("resolverAjustesLiquidacion: formulario, después vigente, después los de fábrica", () => {
+    const nada = { prestaciones_method: null, prestaciones_interest_pct: null, ajena_78_incluye_92: null } as const;
+    expect(resolverAjustesLiquidacion(nada, null)).toEqual(AJUSTES_LIQUIDACION_BASE);
+    expect(
+      resolverAjustesLiquidacion(nada, { prestaciones_method: "retroactivo", prestaciones_interest_pct: 7, ajena_78_incluye_92: true }),
+    ).toEqual({ prestaciones_method: "retroactivo", prestaciones_interest_pct: 7, ajena_78_incluye_92: true });
+    expect(
+      resolverAjustesLiquidacion(
+        { prestaciones_method: "garantia", prestaciones_interest_pct: 0, ajena_78_incluye_92: false },
+        { prestaciones_method: "retroactivo", prestaciones_interest_pct: 7, ajena_78_incluye_92: true },
+      ),
+    ).toEqual({ prestaciones_method: "garantia", prestaciones_interest_pct: 0, ajena_78_incluye_92: false });
   });
 });
