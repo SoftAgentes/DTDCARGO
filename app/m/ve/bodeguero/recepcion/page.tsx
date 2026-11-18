@@ -5,6 +5,7 @@
  * Click → entra a la pantalla de scan del receipt.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/db/admin";
@@ -219,7 +220,7 @@ function ReceiptCard({
         {receipt.port && <span>📍 {receipt.port}</span>}
         {receipt.eta && <span>ETA {receipt.eta}</span>}
         <span>{receipt.expected_boxes} cj</span>
-        {receipt.expected_cbm != null && <span>{Number(receipt.expected_cbm).toFixed(1)} cbm</span>}
+        {receipt.expected_cbm != null && <span>{formatCbm(Number(receipt.expected_cbm))} cbm</span>}
       </div>
 
       {/* Progress bar */}

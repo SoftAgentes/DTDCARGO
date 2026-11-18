@@ -14,6 +14,7 @@
  *  - Los embarques que no van en ningún contenedor van al grupo «Sin contenedor».
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import {
   groupShipmentsByClient,
   type ClientShipmentGroup,
@@ -381,7 +382,7 @@ export function agruparPorContenedor(
           : "Sin contenedor",
       clientes,
       embarques: lista.length,
-      totalCbm: Math.round(totalCbm * 1000) / 1000,
+      totalCbm: roundCbm(totalCbm),
       cajas: contenedor ? cajas : null,
       recibidas: recibidasDe ? recibidas : null,
       pesoKg: Math.round(pesoKg * 100) / 100,
