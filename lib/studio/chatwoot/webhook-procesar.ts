@@ -81,9 +81,9 @@ export async function aplicarConversacion(
     p_avisar: evento?.avisar ?? false,
   };
   let { data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", { ...args, p_contact_id: contactoId });
-  // Sin la migración de la SDD-0676 la función no conoce `p_contact_id` (PGRST202):
-  // se llama como antes y el cruce sale solo del teléfono.
-  if (error?.code === "PGRST202") {
+  // Sin la migración de la SDD-0676 la función no conoce `p_contact_id` (PGRST202 por PostgREST,
+  // 42883 directo en Postgres): se llama como antes y el cruce sale solo del teléfono.
+  if (error?.code === "PGRST202" || error?.code === "42883") {
     ({ data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", args));
   }
   if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? "sin código"}`);

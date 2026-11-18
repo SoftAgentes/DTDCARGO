@@ -47,7 +47,15 @@ En esta PC no se corrió `pnpm install`, typecheck, vitest ni build: piden turno
 |---|---|
 | Cada mutante de `chatwoot-vincular-canal.migration.test.ts` encuentra su texto exactamente una vez en la migración (script propio, 15 textos) | PASÓ |
 | `node scripts/check-pending-migration-symbols.mjs` | ver la PR |
-| Vitest, typecheck, lint, build, Contratos SQL | NO EJECUTADO en local: CI de la PR |
+| `pnpm install --frozen-lockfile` en el worktree (2026-11-18, con turno del Director General) | PASÓ (pnpm 12.3.4, 2 min 41 s) |
+| Vitest acotado: los 15 archivos de la tarea y sus guardas (`rbac-actions-guard`, `spec-migration-refs`, contratos de avisos, fechas y controles; incluye el contrato de la 0566 en PGlite con mutantes y el ensayo del desarme) | PASÓ: 15 archivos, 746 pruebas |
+| Vitest de `lib/studio/chatwoot` entero, después del arreglo del 42883 | PASÓ: 48 archivos y 1.046 pruebas; 5 archivos y 37 pruebas saltadas (las que ya se saltan sin su entorno) |
+| `tsc --noEmit` (con `prune-next-types`) | PASÓ |
+| ESLint de todo el repo | PASÓ: 0 errores, 37 avisos, ninguno en archivos de esta tarea |
+| Vitest completo y build | NO EJECUTADO en local: el turno era para la corrida acotada. Los cubre «Calidad continua» del CI |
+| CI, cabeza `3941cf343`: «Contratos SQL» | FALLÓ: aserción 4i del contrato. Era el contrato (leía la tabla antes de registrar el evento), no la migración. Corregido en `ecbbff714` |
+| CI, cabeza `ecbbff714`: «Contratos SQL» | PASÓ |
+| CI, cabeza `ecbbff714`: «Calidad continua» | FALLÓ en Unitarios: 3 pruebas de `caida-webhook.scenario.test.ts` (de 20.704; el resto pasó, y antes ESLint, Frontera RSC, TypeScript y Edge Functions). Sin la 0566, Postgres directo responde `42883` y el respaldo de `aplicarConversacion` solo aceptaba `PGRST202`. Corregido: acepta los dos |
 | Smoke en un Chatwoot real | NO EJECUTADO |
 | Migración contra producción o el entorno de prueba | NO EJECUTADO |
 
