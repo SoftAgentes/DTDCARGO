@@ -24,6 +24,7 @@ import {
 import { generarFiniquitoAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "generar-finiquito-form";
 const initial: NominaActionState = {};
@@ -124,13 +125,7 @@ export function GenerarFiniquitoDrawer({
         </Field>
 
         <Field label="Fecha de egreso" error={state.fieldErrors?.termination_date} required>
-          <input
-            name="termination_date"
-            type="date"
-            className="studio-input"
-            defaultValue={todayIso()}
-            required
-          />
+          <DateField name="termination_date" defaultValue={todayIso()} required />
         </Field>
 
         <div

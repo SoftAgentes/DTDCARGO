@@ -10,6 +10,7 @@ import {
   DIAS_EN_DESTINO_SIN_ENLACE,
   agruparResultados,
   armarContenedor,
+  contarClientes,
   contarPorFiltro,
   diasHasta,
   fechasPorEstado,
@@ -187,6 +188,22 @@ describe("días y progreso", () => {
 });
 
 describe("armar el contenedor", () => {
+  it("cuenta clientes distintos, no cargas: un cliente con varias cargas cuenta una vez", () => {
+    const items = [
+      item("i1", { client_markbox: "DTD-9001" }),
+      item("i2", { client_markbox: "DTD-9001" }),
+      item("i3", { client_markbox: " DTD-9001 " }),
+      item("i4", { client_markbox: "DTD-9002" }),
+      item("i5", { client_markbox: null, client_name: "Cliente sin marca" }),
+      item("i6", { client_markbox: null, client_name: "  cliente SIN marca " }),
+    ];
+    expect(contarClientes(items)).toBe(3);
+    expect(contarClientes([])).toBe(0);
+    const v = armarContenedor(contenedor(), items, envios([]), ITINERARIO, null, AHORA)!;
+    expect(v.clientes).toBe(3);
+    expect(v.items).toHaveLength(6);
+  });
+
   it("junta clientes, carga, ETA y alertas", () => {
     const v = armarContenedor(
       contenedor(),
@@ -208,7 +225,7 @@ describe("armar el contenedor", () => {
       grupo: "mar",
       estadoLabel: "Zarpado",
       statusEnvio: "in_transit",
-      clientes: 3,
+      clientes: 2,
       usedCbm: 6,
       capCbm: expect.any(Number),
       eta: "2026-11-28",
