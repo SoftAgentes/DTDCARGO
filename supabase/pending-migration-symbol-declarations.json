@@ -35,12 +35,12 @@
           "degradation": "Sin la 0564 PostgREST responde PGRST205 (o 42P01): leerFacturacionExc0674 devuelve no_disponible."
         },
         {
-          "site": "lib/studio/exc0674-queries.ts:39",
+          "site": "lib/studio/exc0674-queries.ts:43",
           "contains": "if (hechas.error) return { estado: \"no_disponible\" };",
           "degradation": "Igual con el rastro: no_disponible."
         },
         {
-          "site": "app/studio/(app)/embarques/_components/EmbarquesClient.tsx:1128",
+          "site": "app/studio/(app)/embarques/_components/EmbarquesClient.tsx:1129",
           "contains": "{facturacion?.estado === \"lista\" && facturacion.contenedores.includes(c.id) && (",
           "degradation": "Con no_disponible no se pinta FacturarContenedor: Embarques queda como hoy, sin botón «Facturar»."
         }
@@ -55,13 +55,13 @@
           "name": "exc0674_facturar",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/embarques/facturar-actions.ts:82"
+            "app/studio/(app)/embarques/facturar-actions.ts:85"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/embarques/facturar-actions.ts:87",
+          "site": "app/studio/(app)/embarques/facturar-actions.ts:90",
           "contains": "if (error) return { ok: false, error: mensajeErrorExc0674(error.message) };",
           "degradation": "Sin la 0564 la RPC no existe y la acción devuelve un error sin emitir nada. Además no es alcanzable: el botón no se pinta sin la lista (0564-lista-y-rastro)."
         }
