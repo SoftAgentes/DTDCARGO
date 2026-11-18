@@ -300,6 +300,9 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 
 - `task_events`: `tarea.creada`, `run.iniciada`, `conversacion.leida`, `modelo.respuesta` (con modelo y costo) y el
   cierre (`run.terminada`, `run.escalada`, `run.abortada` o `run.interrumpida`).
+- `eval.reintento` (ficha 0.3): el borrador no empezaba con su acuse y el despachador se lo pidió una vez más al
+  agente. Esa corrida tiene dos `modelo.respuesta`, cada una con su costo. Si aparece seguido, revisar las
+  instrucciones del agente; si después viene un escalado `eval:sin_acuse`, el segundo intento tampoco lo trajo.
 - `office_borradores`: una fila por corrida. Solo un administrador la lee, con service_role (no hay pantalla hasta el 3b).
 - `office_gasto_del_mes()`: la suma del mes. La auto-pausa deja en `office_paused` una fila con el motivo «Auto-pausa…».
 - En los logs del web solo aparecen códigos (`[oficina-despachador] …`), nunca el texto del cliente.

@@ -4,7 +4,7 @@ title: "Oficina-runtime — El Cable Vertical"
 status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-17
+updated: 2026-11-18
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.7 (Paso 3b y etapa 1: «Acuse» en los escalados, 0560) · 17/11/2026**
+**Versión 0.10 (ficha 0.3: el acuse en una respuesta) · 18/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -400,6 +400,33 @@ migración **0560** (sin aplicar):
 - `supabase/migrations-baseline.json` (la espera)
 - esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
 
+**Etapa 1: el acuse en una respuesta (ficha 0.3).** En la primera tanda de la etapa 1 en producción (18/11/2026), un
+saludo con una pregunta general no llegó a Sam como respuesta: el despachador lo escaló con `eval:sin_acuse`. El freno
+funcionó y no salió nada, pero la conversación no cuenta como correcta (decisión del DG: un escalado cuyo motivo empieza
+por `eval:` es un defecto del borrador). Sam pidió el arreglo el 18/11/2026.
+- **La causa está en la forma, no en el guion.** La salida del agente ya lleva el acuse como campo propio
+  (`{acuse, texto, guion}`), y `sin_acuse` salta cuando `texto` no empieza con `acuse`. Las instrucciones lo pedían en
+  una sola línea («acuse: primera frase de texto»), que deja al agente partir el mensaje en dos (el acuse en un campo y
+  el resto en el otro), y la comparación era letra por letra: una coma o un «¡» de diferencia también escalaban. El
+  texto exacto que devolvió el agente ese día no se guarda (R5), así que cuál de los dos deslices fue queda NO
+  VERIFICADO; el arreglo cubre los dos.
+- **Qué cambia (los guiones siguen en v0.2, sin tocar una letra):**
+  1. **Las instrucciones** dicen que `texto` es el mensaje completo y empieza con la frase de `acuse`, copiada tal cual,
+     con el guion `acuse-general` como ejemplo de la forma (`REGLA_DEL_ACUSE`).
+  2. **La comparación** mira las palabras, sin signos ni tildes (`empiezaConAcuse`). Sigue fallando si el acuse va
+     vacío, si el texto empieza con otra cosa o si el acuse aparece más adelante.
+  3. **Un reintento, solo por el acuse.** Si lo único que falla es `sin_acuse`, el despachador se lo pide una vez más
+     al agente con una línea fija de corrección, dentro del tope de 2 llamadas por corrida, y lo anota
+     (`eval.reintento`). Si el segundo intento tampoco lo trae, escala como antes. Un dato inventado, un dato
+     personal, un enlace o un guion desconocido **nunca se reintentan**: escalan al momento.
+- **Qué no cambia.** El ERP no escribe ni corrige el texto: lo redacta el agente y lo aprueba Sam. Lo que se envía es lo
+  aprobado. `eval:sin_acuse` sigue existiendo como respaldo, y Sam la juzga con «Acuse» en «Falló».
+
+**Archivos de la ficha 0.3 (allowlist):**
+- `lib/studio/oficina/despachador.ts` y `lib/studio/oficina/eval-automatico.ts`
+- `lib/studio/__tests__/oficina-despachador.test.ts` y `lib/studio/oficina/__tests__/despachador-piezas.test.ts`
+- esta spec (Anexo A), `docs/runbooks/oficina-cable.md` §10 y su handoff en `.agents/handoffs/`
+
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
 un contestador automático. `soporte-chatwoot` y el `dtd-bot` de la SDD-0618
 nunca comparten bandeja. Se hace cumplir en el Paso 3 del cable (§3.4 y §3.5),
@@ -534,13 +561,16 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 - **eval.md (§A.7):** ✓ acuse en primera respuesta · ✓ guión o escalado · ✓
   cero datos inventados · ✓ PII no repetida fuera del contexto · ✓ cierre o
   escalado en ≤3 intercambios.
-- **versión:** 0.2 · changelog: 0.2 (16/11/2026, D1) sin herramientas, el ERP entrega mensajes y guiones, salida JSON;
+- **versión:** 0.3 · changelog: 0.3 (18/11/2026, pedido de Sam tras la tanda 1) las instrucciones dicen que `texto`
+  empieza con la frase de `acuse`, con un ejemplo; el acuse se compara por palabras; un reintento solo por el acuse.
+  Los guiones siguen en v0.2 · 0.2 (16/11/2026, D1) sin herramientas, el ERP entrega mensajes y guiones, salida JSON;
   memoria apagada · 0.1 alta inicial (SDD-0626).
 
 ## Historial de versiones
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.10 | 18/11/2026 | **Ficha 0.3: el acuse en una respuesta** (pedido de Sam del 18/11/2026, tras la tanda 1 de la etapa 1, donde un saludo escaló con `eval:sin_acuse`): §3.5 suma la causa, el arreglo y su allowlist. Las instrucciones dicen que `texto` empieza con la frase de `acuse`, con un ejemplo; el acuse se compara por palabras, sin signos; y el despachador reintenta una vez solo por el acuse, dentro del tope de 2 llamadas. Los guiones siguen en v0.2. Sin migración. Las versiones 0.8 (mini-vista) y 0.9 (botón de pausa) van en sus propias PR |
 | 0.7 | 17/11/2026 | **Etapa 1: «Acuse» en los escalados** (decisión del DG por delegación de Sam): §3.5 suma la **0560** (sin aplicar) y su allowlist: en un escalado, «Acuse» en «No evaluado» no cuenta en contra; en una respuesta nada cambia; la pantalla deja «Acuse» en «No evaluado» en los escalados y el aviso junto a los botones dice lo que de verdad hace el conteo. La 0558, aplicada en producción el 2026-11-17 a las 22:21Z |
 | 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (aplicada en producción el 2026-11-17 a las 22:21Z) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |
 | 0.5 | 16/11/2026 | **Paso 3b** (pedido de Hermes «PASO 3b», tras la #598): cómo se construyó y allowlist en §3.5 (migración 0549, sin aplicar): `office_revisiones` (D2, solo agregar), la consulta de conteo de AC-1 y AC-7, la página solo para `is_platform_admin` con el texto plano (D4), el aviso de Discord sin texto, el envío desde el ERP (`OFICINA_ENVIO_ACTIVO`, solo la bandeja de prueba, otra vez la pausa y la huella) y los pendientes del 3a (enlaces, dinero = 3 y escalado sin llamar al agente, sesión abortada borrada al momento). AC-1, AC-7 y §9: `agent_approvals` → `office_revisiones` (D2); fila «Envío» en §9. `privacidad.md`: hallazgos 19 y 20 |
