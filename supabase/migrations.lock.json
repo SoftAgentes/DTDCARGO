@@ -3591,6 +3591,15 @@
         "fecha": "2026-11-18",
         "forma": "exacta"
       }
+    },
+    "0567_oficina_conteo_exclusiones": {
+      "sha256": "5d4095118fdb702d89092a98d538791a9f7ae4d2a8810576d2a6cf25195b7645",
+      "md5": "92701f0d57da88cd437d8ea44b5662a0",
+      "bytes": 25780,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
     }
   }
 }

@@ -389,7 +389,7 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
   en «cumple». **Requisito duro de orden: la 0560 se aplica en producción ANTES de fusionar su PR y de publicar el
   web.** Esa pantalla deja «Acuse» en «No evaluado» en los escalados, justo las filas que harían abortar el preflight
   de la 0560 si llegara después. Las revisiones de la
-  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1. **Con la 0567** (sin aplicar): las
+  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1. **Con la 0567** (aplicada el 2026-11-18 23:43:42Z): las
   conversaciones de `office_conteo_exclusiones` no cuentan y, si un cierre tiene corrección, cuenta la última (§13b).
 - En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
 
@@ -536,7 +536,7 @@ Vaciar `OFICINA_VISTA_ACTIVA` y relevar el `web`. No hay nada que deshacer en la
 
 Para cuando el conteo de AC-1 o AC-7 tiene una conversación que no debe contar (una prueba del encendido) o un cierre
 guardado con el valor equivocado. Nada se borra ni se edita: se agrega una fila con motivo, actor y fecha. Requiere la
-0567 aplicada.
+0567 aplicada (lo está desde el 2026-11-18 23:43:42Z).
 
 ### Antes de escribir
 
