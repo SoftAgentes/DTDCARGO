@@ -27,6 +27,7 @@ import {
   createFeaturedSupplierAction,
   updateFeaturedSupplierAction,
 } from "../actions";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export function FeaturedSupplierDrawer({
   supplier,
@@ -108,12 +109,7 @@ export function FeaturedSupplierDrawer({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <Field label="Período">
-            <input
-              className="studio-input"
-              type="month"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-            />
+            <DateField mode="month" value={period} onChange={setPeriod} />
           </Field>
           <Field label="Estado">
             <select

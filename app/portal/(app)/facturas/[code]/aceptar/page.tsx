@@ -1,3 +1,4 @@
+import { formatCbm } from "@/lib/shared/cbm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -279,7 +280,7 @@ export default async function AcceptTermsPage({ params }: Props) {
                 <Field label="Envío asociado" value={order.shipmentCode} mono />
               ) : null}
               {medida.cbm != null ? (
-                <Field label={medida.varios ? "Volumen total" : "Volumen"} value={`${medida.cbm.toFixed(2)} m³`} mono />
+                <Field label={medida.varios ? "Volumen total" : "Volumen"} value={`${formatCbm(medida.cbm, { locale: "en-US" })} m³`} mono />
               ) : null}
               {medida.weightKg != null ? (
                 <Field label={medida.varios ? "Peso total" : "Peso"} value={`${medida.weightKg.toFixed(0)} kg`} mono />

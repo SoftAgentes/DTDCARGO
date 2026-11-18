@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "ea7e243332d534518c6e124d091ae0e0d8b2b272",
+  "sourceCommit": "0daf1f5fae699183c76dcd04b26d3701b65e713e",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -306,6 +306,38 @@
           "code": "HTD-01",
           "version": "1.0",
           "path": "docs/governance/policies/htd-01.md"
+        }
+      ],
+      "replacement": null
+    },
+    {
+      "id": "date-field",
+      "name": "DateField",
+      "status": "proposed",
+      "implementation": {
+        "path": "app/studio/_components/ui/DateField.tsx",
+        "exportName": "DateField"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "DAT-01",
+          "version": "1.0",
+          "path": "docs/governance/policies/dat-01.md"
+        },
+        {
+          "code": "FRM-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/frm-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
         }
       ],
       "replacement": null

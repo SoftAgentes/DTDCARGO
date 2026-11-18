@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 645 specs)
+### Índice de specs (generado · 651 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -681,8 +681,14 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0657 | Enlaces internos e indexación del sitio público | in-progress | interno |
 | 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
 | 0659 | Tracking en vivo por contenedor: mesa de control con mapa cen… | in-progress | interno |
+| 0660 | Estándar de fechas del Studio: campo con máscara, calendario … | in-progress | interno |
 | 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
+| 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
 | 0663 | Subaliados como jobs: estado de cuenta dividido y sección Ali… | proposed | interno |
+| 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
+| 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
+| 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
+| 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0660, 0662 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0666, 0668 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

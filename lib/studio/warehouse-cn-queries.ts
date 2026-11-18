@@ -5,6 +5,7 @@
  * global (todos los autenticados ven los activos).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   WarehouseCN,
@@ -311,7 +312,7 @@ export async function computeWarehouseKpis(
   return {
     receiptsThisMonth,
     pendingCount,
-    cbmInWarehouse: Math.round(cbmInWarehouse * 1000) / 1000,
+    cbmInWarehouse: roundCbm(cbmInWarehouse),
     incidentsCount,
   };
 }

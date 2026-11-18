@@ -30,6 +30,7 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Icon } from "@/app/studio/_components/icons";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type CityOption = { slug: string; label: string };
 
@@ -370,23 +371,15 @@ export function TariffDrawer({
               <label className="studio-label" htmlFor="tariff-from">
                 Vigente desde
               </label>
-              <input
-                id="tariff-from"
-                name="validFrom"
-                type="date"
-                className="studio-input"
-                defaultValue={tariff?.validFrom ?? ""}
-              />
+              <DateField id="tariff-from" name="validFrom" defaultValue={tariff?.validFrom ?? ""} />
             </div>
             <div>
               <label className="studio-label" htmlFor="tariff-to">
                 Vigente hasta
               </label>
-              <input
+              <DateField
                 id="tariff-to"
                 name="validTo"
-                type="date"
-                className="studio-input"
                 defaultValue={tariff?.validTo ?? ""}
                 aria-invalid={state.fieldErrors?.validTo ? true : undefined}
               />
