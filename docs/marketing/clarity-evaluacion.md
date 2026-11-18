@@ -18,6 +18,23 @@
 
   El detalle está en §3.3.
 
+## Decisión de Sam (2026-11-18)
+
+Texto de Sam, en la conversación con esta sesión, después de leer la recomendación:
+
+> «Página web. También podemos ponerlo en el portal del cliente. Es lo mismo, confirmo.»
+
+**Alcance decidido:** el sitio público **y** el Portal del Cliente. Esto deja sin efecto el «no en el Portal» de arriba como recomendación. Los riesgos de §3.3 siguen siendo reales y se convierten en **condiciones de implementación** del Portal (§3.6 y fase 5).
+
+**Lo que esta decisión no autoriza:**
+
+- crear la cuenta;
+- aceptar los términos;
+- cambiar la política;
+- encender Clarity en producción.
+
+Cada uno de esos pasos sigue necesitando su OK concreto (§5).
+
 ---
 
 ## 1. Qué es y qué da
@@ -206,6 +223,32 @@ Hay que cambiarlo **antes** de encenderlo en producción:
 - **Aviso en el sitio:** Microsoft recomienda una línea en el pie. Su texto sugerido dice «By using our site, you agree…». No conviene copiarlo, porque presume un consentimiento que nuestro banner no pide así. Basta un enlace a la política desde el pie, que ya existe.
 - **Sin promesas que el sistema no cumple:** no escribir «puedes pedir que borremos tu grabación», porque Clarity no lo permite por persona.
 
+### 3.6 Condiciones para el Portal (alcance decidido por Sam)
+
+Para no publicar una promesa falsa ni grabar datos de clientes, el Portal entra así:
+
+1. **Política primero.**
+   - Se reescriben `/cookies` (`app/cookies/page.tsx:238-243` y `:270-273`, que hoy dicen «nunca») y `/privacidad` **antes** del encendido.
+   - Se avisa a los clientes ya registrados (correo o aviso dentro del Portal), porque se registraron con la promesa anterior.
+   - El abogado revisa el texto.
+2. **Términos.** Antes de aceptar los términos, se relee en la página viva la cláusula de *financial services*. Si prohíbe el uso en pantallas con facturas o pagos, esas pantallas quedan fuera (punto 4).
+3. **Enmascarado Strict solo en el Portal.**
+   - Clarity tiene un único modo por proyecto. Lo más simple es un **segundo proyecto** para el Portal, con modo Strict, y el público en Balanced. Cada proyecto lleva su propia llamada de consentimiento ([FAQ](https://learn.microsoft.com/en-us/clarity/faq)).
+   - Si se usa un solo proyecto, va `data-clarity-mask="True"` en el contenedor raíz del layout del Portal (`app/portal/(app)/layout.tsx`).
+   - En ambos casos, los mapas de clics y las señales de frustración se conservan, y el texto se ve en puntos.
+4. **Rutas del Portal que quedan fuera** aunque se cargue en el resto:
+   - toda URL con código o ID en la ruta, como `/portal/envios/[code]` (y `/track/<código>` en el público);
+   - facturas, finanzas, documentos y mensajes (chat);
+   - `(auth)`: callback y registro.
+
+   Una prueba e2e debe fallar si aparece una petición a `*.clarity.ms` en esas rutas.
+5. **Consentimiento dentro del Portal.**
+   - Clarity corre sin cookies hasta que el cliente acepte, con la misma `dtd_cookie_consent`.
+   - Si se quieren recorridos completos de clientes, el Portal debe pedir la decisión una vez, con un texto que diga qué se graba.
+6. **Acceso al panel:** solo el equipo de Venezuela que lo necesite, con una cuenta de la empresa. Nadie del equipo en China (PIPL).
+7. **Borrado:** la política no promete borrar la grabación de una persona, porque Clarity no puede hacerlo. Decir los plazos: 30 días para las grabaciones y 9 meses para los clics.
+8. **El ID de usuario no se manda.** No se usa `clarity('identify', …)` ni se ponen variables con correo, cédula, RIF, Shipping Mark ni nombre. Clarity queda seudónimo.
+
 ---
 
 ## 4. Comparación
@@ -260,7 +303,7 @@ Hay que cambiarlo **antes** de encenderlo en producción:
 | **2. Política** | Cambiar `/privacidad` y `/cookies` según §3.5, con el abogado. Se publica antes o junto con el encendido. | Worker con PR, más abogado | **Sí:** texto aprobado de la política. |
 | **3. Cuenta y encendido** | Crear el proyecto en Clarity con una cuenta de la empresa (no personal). Enmascarado Balanced; «requiere consentimiento»; acceso al panel solo para el equipo de Venezuela. Poner el ID en el entorno de producción; `prueba` queda en `off`. Medir LCP, INP y CLS antes y después. | Sam crea la cuenta; un Worker configura el entorno | **Sí:** crear la cuenta, aceptar los términos y **encender en producción**. |
 | **4. Revisión a 30 días** | Ver qué aprendimos (calculadora, home, `/estimacion`). Revisar algunas grabaciones al azar buscando datos personales visibles; si aparece uno, se enmascara o se apaga. Revisar el impacto en el INP. Decidir si sigue. | DG y marketing | Sí, si se propone ampliar el alcance. |
-| *(Aparte)* Portal | No se propone. Si se quiere, va en su propia SDD con las condiciones de §3.3. | — | Sí, explícito. |
+| **5. Portal** (decidido por Sam el 2026-11-18) | SDD propia, después de que el público funcione bien en la fase 4. Se aplican las condiciones de §3.6: política y aviso a clientes primero, segundo proyecto en Strict, rutas con código o con contenido financiero fuera, prueba e2e de no-fuga, sin `identify`. | Worker con PR, más abogado | **Sí:** texto de la política del Portal, aviso a clientes, aceptar los términos tras releer la cláusula financiera, y **encender en el Portal**. |
 
 **Lo que no se hizo en esta tarea:** crear la cuenta, aceptar los términos, agregar el script, tocar el CSP o la política, y medir el peso real del script o su efecto en el INP.
 
