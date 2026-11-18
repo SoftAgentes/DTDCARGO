@@ -198,18 +198,18 @@
           "name": "chatwoot_contact_links",
           "kind": "table",
           "callSites": [
-            "lib/studio/chatwoot/ficha-panel.ts:61"
+            "lib/studio/chatwoot/ficha-panel.ts:63"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/chatwoot/ficha-panel.ts:68",
+          "site": "lib/studio/chatwoot/ficha-panel.ts:70",
           "contains": "if (!SIN_MIGRACION.has(error.code ?? \"\"))",
           "degradation": "Sin la 0554 PostgREST responde PGRST205 (o 42P01): listarUniones devuelve null sin aviso en el log."
         },
         {
-          "site": "lib/studio/chatwoot/ficha-panel.ts:94",
+          "site": "lib/studio/chatwoot/ficha-panel.ts:96",
           "contains": "if (uniones === null) return { estado: \"apagado\" };",
           "degradation": "cargarPanelConversaciones queda «apagado» sin llamar a Chatwoot: PanelConversacionesFicha muestra la tarjeta de la F1, como hoy. Además nace apagado sin CHATWOOT_FICHA_TOKEN ni CHATWOOT_INBOX_ARCHIVO_KOMMO_ID."
         }
@@ -224,17 +224,17 @@
           "name": "chatwoot_unir_contactos",
           "kind": "function",
           "callSites": [
-            "lib/studio/chatwoot/union-ficha-manejador.ts:25",
-            "lib/studio/chatwoot/union-ficha-manejador.ts:34",
-            "lib/studio/chatwoot/union-ficha-manejador.ts:38"
+            "lib/studio/chatwoot/union-ficha-manejador.ts:30",
+            "lib/studio/chatwoot/union-ficha-manejador.ts:39",
+            "lib/studio/chatwoot/union-ficha-manejador.ts:43"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/chatwoot/union-ficha-manejador.ts:31",
+          "site": "lib/studio/chatwoot/union-ficha-manejador.ts:36",
           "contains": "if (SIN_0554.has(error.code ?? \"\")) {",
-          "degradation": "Sin la 0554 (PGRST202 o 42883) el manejador unirContactoAFicha no lanza: lo anota una vez en el log y el evento del webhook se cierra igual que antes."
+          "degradation": "Apagado salvo CHATWOOT_FICHA_UNIR=1 (no llama a la RPC). Sin la 0554 (PGRST202 o 42883) el manejador unirContactoAFicha no lanza: lo anota una vez en el log y el evento del webhook se cierra igual que antes."
         }
       ]
     },
@@ -247,20 +247,20 @@
           "name": "chatwoot_unir_contacto_manual",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:71"
+            "app/studio/(app)/clientes/conversaciones-actions.ts:85"
           ]
         },
         {
           "name": "chatwoot_quitar_union",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:98"
+            "app/studio/(app)/clientes/conversaciones-actions.ts:113"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:30",
+          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:35",
           "contains": "if (code && SIN_0554.has(code)) return \"Falta la migración 0554",
           "degradation": "Sin la 0554 las dos acciones devuelven «Falta la migración 0554» y no escriben nada. Además solo se ofrecen dentro del panel en vivo, que sin la 0554 no se muestra."
         }

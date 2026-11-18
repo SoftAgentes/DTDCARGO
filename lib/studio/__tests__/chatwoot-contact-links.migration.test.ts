@@ -110,10 +110,23 @@ describe("0554 · uniones chat ↔ ficha (PGlite)", () => {
     [
       "la unión automática pisa la existente",
       mutar(
-        "    on conflict (tenant_id, chatwoot_contact_id) do nothing;",
-        "    on conflict (tenant_id, chatwoot_contact_id) do update set client_id = excluded.client_id, origen = excluded.origen;",
+        "    on conflict (chatwoot_contact_id) do nothing;",
+        "    on conflict (chatwoot_contact_id) do update set client_id = excluded.client_id, origen = excluded.origen;",
       ),
       "2",
+    ],
+    [
+      "el mismo contacto en dos tenants (llave por tenant, como antes de la revisión)",
+      (sql) =>
+        mutar("    on conflict (chatwoot_contact_id) do nothing;", "    on conflict (tenant_id, chatwoot_contact_id) do nothing;")(
+          mutar("  constraint chatwoot_contact_links_pkey primary key (chatwoot_contact_id),", "  constraint chatwoot_contact_links_pkey primary key (tenant_id, chatwoot_contact_id),")(sql),
+        ),
+      "2e",
+    ],
+    [
+      "borrar la ficha no deja auditoría",
+      mutar("    if v_contactos is not null then", "    if false then"),
+      "6b2",
     ],
     [
       "quitar no filtra el tenant",

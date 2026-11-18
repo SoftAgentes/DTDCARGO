@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatwootResult } from "../chatwoot-types";
 import { cargarPanelConversaciones, type AccesoFicha } from "../ficha-panel";
 
+/** SINT: teléfono imposible en Venezuela (ningún código de área empieza por 0). */
+const TELEFONO_SINT = "+58 000-000-0650";
 const T1 = "11111111-1111-1111-1111-111111111111";
 const T2 = "22222222-2222-2222-2222-222222222222";
 const FICHA = "c0000000-0000-0000-0000-0000000000a1";
@@ -63,7 +65,7 @@ function conversacion(id: number, inbox: number, texto: string, cuando: number) 
     status: "open",
     unread_count: 0,
     last_activity_at: cuando,
-    meta: { sender: { id: 1, name: NOMBRE, phone_number: "+58 412-555-0101" } },
+    meta: { sender: { id: 1, name: NOMBRE, phone_number: TELEFONO_SINT } },
     last_non_activity_message: { id: id * 10, content: texto, message_type: 0, created_at: cuando },
   };
 }
@@ -96,6 +98,7 @@ beforeEach(() => {
   vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
   vi.stubEnv("CHATWOOT_INBOX_ARCHIVO_KOMMO_ID", String(ARCHIVO));
   vi.stubEnv("CHATWOOT_URL", "https://chat.example.test");
+  vi.stubEnv("CHATWOOT_TENANT_ID", T1);
   avisos = vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -125,11 +128,21 @@ describe("barreras antes de tocar el token", () => {
     ["token de espacios", "CHATWOOT_FICHA_TOKEN", "   "],
     ["sin bandeja del Archivo Kommo", "CHATWOOT_INBOX_ARCHIVO_KOMMO_ID", ""],
     ["cuenta inválida", "CHATWOOT_ACCOUNT_ID", "uno"],
+    ["sin tenant dueño de la cuenta", "CHATWOOT_TENANT_ID", ""],
   ])("%s: apagado, como en la F1", async (_n, variable, valor) => {
     vi.stubEnv(variable, valor as string);
     const leer = chatwoot();
     const { s, a } = args(COMERCIAL);
     expect(await cargarPanelConversaciones({ ...a, leer })).toEqual({ estado: "apagado" });
+    expect(leer).not.toHaveBeenCalled();
+    expect(s.consultas).toEqual([]);
+  });
+
+  it("una sesión de OTRO tenant (con Bandeja): apagado, sin leer uniones ni usar el token", async () => {
+    const leer = chatwoot();
+    const s = sesion({ conBandeja: true, tenantSesion: T2 });
+    const r = await cargarPanelConversaciones({ ...args(ADMIN).a, supabase: s.cliente, tenantId: T2, leer });
+    expect(r).toEqual({ estado: "apagado" });
     expect(leer).not.toHaveBeenCalled();
     expect(s.consultas).toEqual([]);
   });
@@ -199,7 +212,7 @@ describe("lectura en vivo", () => {
     const r = await cargarPanelConversaciones({ ...args(COMERCIAL).a, leer: chatwoot() });
     if (r.estado !== "listo") throw new Error(r.estado);
     expect(r.panel.nombreEnElChat).toBe(NOMBRE);
-    expect(JSON.stringify(r)).not.toContain("555");
+    expect(JSON.stringify(r)).not.toContain("000-000");
   });
 
   it("Chatwoot no responde en ningún contacto: chatwoot_no_responde", async () => {

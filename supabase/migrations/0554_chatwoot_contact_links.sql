@@ -15,7 +15,9 @@
 -- 1. public.chatwoot_contact_links: qué contacto de Chatwoot es de qué ficha.
 --    SOLO IDS: tenant, ficha, contacto, origen (webhook | kommo | manual), quién
 --    y cuándo. Ni nombres, ni teléfonos, ni texto. Un contacto es de UNA ficha
---    (único por tenant y contacto); una ficha puede tener varios contactos.
+--    y de UN tenant (llave: el contacto): hay una sola cuenta de Chatwoot, así
+--    que un id de contacto no puede ser de dos tenants. Una ficha puede tener
+--    varios contactos.
 --    RLS: la leen, de su tenant, los que abren el módulo Bandeja
 --    (user_has_module('bandeja'), 0538). Nadie la escribe directo: solo las
 --    funciones de abajo y service_role.
@@ -29,8 +31,18 @@
 --    · chatwoot_quitar_union(ficha, contacto, motivo): deshace una unión
 --      equivocada. Igual permiso; auditada.
 -- 3. Al borrar la ficha (borrado físico) sus uniones se van en cascada; al
---    borrarla lógicamente (deleted_at, SDD-0509) un disparador las borra.
+--    borrarla lógicamente (deleted_at, SDD-0509) un disparador las borra y deja
+--    UNA fila de auditoría con los ids de los contactos. Restaurar la ficha NO
+--    restaura sus uniones: se vuelven a unir (webhook, relleno o a mano).
 -- 4. Catálogo de auditoría: chatwoot_contact_link.
+--
+-- ── Qué tenant puede usarla ─────────────────────────────────
+-- La cuenta de Chatwoot es una y pertenece a un tenant (CHATWOOT_TENANT_ID, en
+-- el entorno del servidor). La base no lo sabe: no hay tabla con ese dato, y
+-- crearla para esto sería otra fuente de verdad que puede divergir del entorno.
+-- Por eso el acotamiento al tenant dueño vive en la app (chatwootFichaConfigPara
+-- y las acciones de unir y quitar), y la base pone lo que sí puede: la RLS por
+-- tenant y la llave por contacto (un contacto no se une en dos tenants).
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
 -- Ninguna fila existente. Ni chatwoot_conversations ni chatwoot_registrar_evento
@@ -84,13 +96,16 @@ create table if not exists public.chatwoot_contact_links (
   origen              text        not null check (origen in ('webhook', 'kommo', 'manual')),
   created_by          uuid        null,
   created_at          timestamptz not null default pg_catalog.now(),
-  constraint chatwoot_contact_links_pkey primary key (tenant_id, chatwoot_contact_id),
+  -- Una sola cuenta de Chatwoot: un contacto es de una ficha y de un tenant.
+  constraint chatwoot_contact_links_pkey primary key (chatwoot_contact_id),
   -- Una unión manual siempre dice quién la hizo; las automáticas, nadie.
   constraint chatwoot_contact_links_autor check ((origen = 'manual') = (created_by is not null))
 );
 
+-- La lectura de la ficha (tenant y ficha) y el borrado por ficha (disparador y
+-- la cascada desde clients) van por client_id.
 create index if not exists chatwoot_contact_links_client_idx
-  on public.chatwoot_contact_links (tenant_id, client_id);
+  on public.chatwoot_contact_links (client_id, tenant_id);
 
 comment on table public.chatwoot_contact_links is
   'SDD-0650 F2 (D4): qué contacto de Chatwoot es de qué ficha. Solo ids: sin nombres, teléfonos ni texto. La escriben chatwoot_unir_contactos (service_role: webhook y relleno del Archivo Kommo), chatwoot_unir_contacto_manual y chatwoot_quitar_union (auditadas). La leen los que abren la Bandeja.';
@@ -169,13 +184,14 @@ begin
 
     insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
     values (p_tenant_id, v_client, v_contact, p_origen, null)
-    on conflict (tenant_id, chatwoot_contact_id) do nothing;
+    on conflict (chatwoot_contact_id) do nothing;
     if found then
       v_unidos := v_unidos + 1;
     else
+      -- Ya unido: a esta misma ficha, o a otra (de este tenant o de otro; no se dice cuál).
       select l.client_id into v_actual
       from public.chatwoot_contact_links l
-      where l.tenant_id = p_tenant_id and l.chatwoot_contact_id = v_contact;
+      where l.chatwoot_contact_id = v_contact and l.tenant_id = p_tenant_id;
       if v_actual = v_client then v_ya := v_ya + 1; else v_otra := v_otra + 1; end if;
     end if;
   end loop;
@@ -229,6 +245,8 @@ begin
     raise exception 'chatwoot_unir_contacto_manual: ese chat ya está unido a otra ficha' using errcode = '23505';
   end if;
 
+  -- Si el contacto está unido en OTRO tenant, la llave lo rechaza con el mismo 23505
+  -- que «otra ficha»: no se distingue un caso del otro.
   insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
   values (v_tenant, p_client_id, p_contact_id, 'manual', v_uid);
 
@@ -307,9 +325,32 @@ language plpgsql
 security definer
 set search_path = ''
 as $fn$
+declare
+  v_uid       uuid := (select auth.uid());
+  v_contactos bigint[];
 begin
   if new.deleted_at is not null and old.deleted_at is null then
-    delete from public.chatwoot_contact_links l where l.client_id = new.id;
+    with borradas as (
+      delete from public.chatwoot_contact_links l where l.client_id = new.id
+      returning l.chatwoot_contact_id
+    )
+    select pg_catalog.array_agg(b.chatwoot_contact_id order by b.chatwoot_contact_id) into v_contactos from borradas b;
+
+    -- Una fila de auditoría por ficha borrada, solo con los ids de los contactos.
+    -- Restaurar la ficha no restaura las uniones.
+    if v_contactos is not null then
+      perform public.append_audit_event(
+        new.tenant_id, 'chatwoot_contact_link', new.id,
+        case when v_uid is null then 'system' else 'user' end, v_uid,
+        'chatwoot_contact_unlinked', 'rpc', 'succeeded', 'Ficha borrada: sus chats dejan de estar unidos',
+        pg_catalog.jsonb_build_object('chatwoot_contact_ids', pg_catalog.to_jsonb(v_contactos), 'motivo', 'ficha_borrada'),
+        null,
+        '{}'::jsonb,
+        pg_catalog.concat('chatwoot-contact-unlink:', new.id::text, ':ficha-borrada:', pg_catalog.txid_current()::text),
+        1,
+        'internal'
+      );
+    end if;
   end if;
   return null;
 end;

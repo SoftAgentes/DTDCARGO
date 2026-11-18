@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { canAccessModule, canEditModule, type RoleModuleOverrides, type UserModuleGrants } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 
-import { chatwootFichaConfig } from "./config";
+import { chatwootFichaConfigPara } from "./config";
 import {
   armarPanel,
   LIMITE_CONTACTOS,
@@ -21,8 +21,10 @@ import { leerConversacionesDeContacto } from "./router-api";
  *
  * Orden de las barreras, y por qué:
  *   1. Rol: sin el módulo Bandeja no se lee nada y no se toca el token (D3, piso 1).
- *   2. Configuración: sin la cuenta de servicio o sin la bandeja del Archivo Kommo
- *      → «apagado»: la ficha queda como en la F1, sin llamar a la red.
+ *   2. Configuración y tenant: sin la cuenta de servicio, sin la bandeja del Archivo
+ *      Kommo, o con una sesión de OTRO tenant que el dueño de la cuenta de Chatwoot
+ *      (`CHATWOOT_TENANT_ID`) → «apagado»: la ficha queda como en la F1, sin llamar a
+ *      la red. La cuenta de servicio lee toda la cuenta: solo su tenant la usa.
  *   3. Uniones (0554), con el cliente de SESIÓN: la RLS vuelve a pedir la Bandeja y el
  *      tenant. Sin la 0554 (PGRST205/42P01) o sin uniones → la tarjeta de la F1.
  *   4. Chatwoot, en vivo y sin caché (`cache: "no-store"`), un contacto por llamada.
@@ -86,8 +88,8 @@ export async function cargarPanelConversaciones(args: {
   const { acceso } = args;
   // 1. Rol, antes que nada.
   if (!canAccessModule(acceso.role, "bandeja", acceso.overrides, acceso.grants)) return { estado: "apagado" };
-  // 2. Configuración.
-  const cfg = chatwootFichaConfig();
+  // 2. Configuración, y solo para el tenant dueño de la cuenta de Chatwoot.
+  const cfg = chatwootFichaConfigPara(args.tenantId);
   if (!cfg) return { estado: "apagado" };
   // 3. Uniones.
   const uniones = await listarUniones(args.supabase, args.tenantId, args.clientId);

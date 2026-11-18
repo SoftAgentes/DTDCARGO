@@ -57,7 +57,8 @@ describe("ConversacionesFichaCard", () => {
   it("muestra el texto, el autor y el Archivo Kommo; avisa sin contar", () => {
     montar();
     expect(screen.getByText("SINT texto del archivo")).toBeTruthy();
-    expect(screen.getByText(/Archivo Kommo/)).toBeTruthy();
+    // La marca de la conversación (la unión de abajo también dice «del Archivo Kommo»).
+    expect(screen.getByText("· Archivo Kommo")).toBeTruthy();
     const aviso = screen.getByText("Hay conversaciones que tu rol no abre.");
     expect(aviso.textContent).not.toMatch(/\d/);
   });

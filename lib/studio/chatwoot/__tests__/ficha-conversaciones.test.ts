@@ -13,6 +13,8 @@ import {
   type ConversacionEnVivo,
 } from "../ficha-conversaciones";
 
+/** SINT: teléfono imposible en Venezuela (ningún código de área empieza por 0). */
+const TELEFONO_SINT = "+58 000-000-0650";
 const ARCHIVO = 9;
 const TEXTO = "SINT-0650 mensaje del cliente con un pedido de prueba";
 
@@ -23,7 +25,7 @@ function conv(extra: Record<string, unknown> = {}) {
     status: "open",
     unread_count: 0,
     last_activity_at: 1_763_000_000,
-    meta: { sender: { id: 5, name: "SINT Contacto", phone_number: "+58 412-555-0101", type: "contact" }, channel: "Channel::Whatsapp" },
+    meta: { sender: { id: 5, name: "SINT Contacto", phone_number: TELEFONO_SINT, type: "contact" }, channel: "Channel::Whatsapp" },
     messages: [{ id: 70, content: "viejo", message_type: 0, created_at: 1_762_999_000 }],
     last_non_activity_message: { id: 71, content: TEXTO, message_type: 0, private: false, created_at: 1_763_000_000, sender: { type: "contact" } },
     ...extra,
@@ -107,7 +109,7 @@ describe("resumirConversacion (forma de 4.19.1)", () => {
   });
 
   it("un nombre que es un teléfono no sirve como «Nombre en el chat»", () => {
-    const r = resumirConversacion(conv({ meta: { sender: { id: 5, name: "+58 412 555 0101" } } }));
+    const r = resumirConversacion(conv({ meta: { sender: { id: 5, name: TELEFONO_SINT } } }));
     expect(r?.nombreContacto).toBeNull();
   });
 

@@ -1,10 +1,14 @@
 import "server-only";
 
+import { chatwootFichaUnirActivo } from "./config";
 import type { ManejadorEvento } from "./webhook-procesar";
 
 /**
  * SDD-0650 F2 (D4) · El webhook une el contacto de Chatwoot con la ficha.
  * Manejador de `procesarEventoChatwoot`.
+ *
+ * Apagado salvo `CHATWOOT_FICHA_UNIR=1` (decisión del DG, M1): con la 0554 aplicada y
+ * sin la variable, no escribe ni llama a la RPC.
  *
  * Solo cuando `chatwoot_registrar_evento` (0504) devolvió un `client_id`: el teléfono
  * cruzó con UNA ficha. El contacto sale del payload (`meta.sender.id`); en el
@@ -19,6 +23,7 @@ const SIN_0554: ReadonlySet<string> = new Set(["PGRST202", "42883"]);
 let avisadoSin0554 = false;
 
 export const unirContactoAFicha: ManejadorEvento = async (ctx, _evento, registro) => {
+  if (!chatwootFichaUnirActivo()) return;
   const contactoId = ctx.contacto?.contactoId ?? null;
   if (!registro.clientId || contactoId === null) return;
 

@@ -4,8 +4,13 @@
  * SDD-0650 F2 (D4) · «Unir este chat a la ficha» y «Quitar la unión», en la columna
  * de conversaciones de la ficha del cliente.
  *
- *  1. `moduleEditDenial(supabase, "bandeja")` al tope: Admin y Comercial (Soporte es
+ *  1. `moduleEditGate(supabase, "bandeja")` al tope: Admin y Comercial (Soporte es
  *     de solo lectura). La RPC lo repite con `user_has_module('bandeja', true)`.
+ *  1b. Solo el tenant dueño de la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`): la cuenta
+ *     de servicio ve TODA la cuenta, así que otro tenant recibe el mismo «no tienes
+ *     permiso» que un rol sin la Bandeja, antes de tocar Chatwoot o la base. La base no
+ *     puede comprobarlo: el tenant de Chatwoot vive en el entorno del servidor, no en
+ *     una tabla (revisión de la F2).
  *  2. Unir: el número de conversación se traduce a su contacto con la cuenta de
  *     servicio (D2). Del contacto solo se usa el id: el nombre y el teléfono que trae
  *     la respuesta no se guardan ni se devuelven.
@@ -17,9 +22,9 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/db/server";
-import { chatwootFichaConfig } from "@/lib/studio/chatwoot/config";
+import { chatwootFichaConfigPara, chatwootTenantId } from "@/lib/studio/chatwoot/config";
 import { obtenerConversacionYContacto } from "@/lib/studio/chatwoot/router-api";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditGate } from "@/lib/studio/rbac-guard";
 
 export type ResultadoUnion = { ok: true; mensaje: string } | { ok: false; error: string };
 
@@ -33,6 +38,14 @@ function errorDeLaBase(code: string | undefined): string {
   if (code === "42501") return "No tienes permiso para unir chats.";
   if (code === "22023") return "Revisa el motivo: va de 4 a 1.000 caracteres.";
   return "No se pudo guardar. Intenta de nuevo.";
+}
+
+const SIN_PERMISO = "No tienes permiso para editar esto.";
+
+/** ¿La sesión es del tenant dueño de la cuenta de Chatwoot? Sin `CHATWOOT_TENANT_ID`, no. */
+function esElTenantDeChatwoot(tenantSesion: string): boolean {
+  const dueño = chatwootTenantId();
+  return dueño !== null && dueño.toLowerCase() === tenantSesion.toLowerCase();
 }
 
 function motivoValido(motivo: unknown): string | null {
@@ -51,15 +64,16 @@ export async function unirChatAction(
   motivo: string,
 ): Promise<ResultadoUnion> {
   const supabase = await createClient();
-  const denegado = await moduleEditDenial(supabase, "bandeja");
-  if (denegado) return { ok: false, error: denegado };
+  const gate = await moduleEditGate(supabase, "bandeja");
+  if (!gate.ok) return { ok: false, error: gate.denied };
+  if (!esElTenantDeChatwoot(gate.tenantId)) return { ok: false, error: SIN_PERMISO };
 
   const m = motivoValido(motivo);
   if (!UUID.test(String(clientId))) return { ok: false, error: "Ficha inválida." };
   if (!Number.isSafeInteger(conversacion) || conversacion <= 0) return { ok: false, error: "Escribe el número de la conversación." };
   if (!m) return { ok: false, error: "Escribe el motivo (4 caracteres o más)." };
 
-  const cfg = chatwootFichaConfig();
+  const cfg = chatwootFichaConfigPara(gate.tenantId);
   if (!cfg) return { ok: false, error: "La lectura de Chatwoot no está configurada." };
   const r = await obtenerConversacionYContacto(cfg, conversacion);
   if (!r.ok) {
@@ -87,8 +101,9 @@ export async function quitarUnionAction(
   motivo: string,
 ): Promise<ResultadoUnion> {
   const supabase = await createClient();
-  const denegado = await moduleEditDenial(supabase, "bandeja");
-  if (denegado) return { ok: false, error: denegado };
+  const gate = await moduleEditGate(supabase, "bandeja");
+  if (!gate.ok) return { ok: false, error: gate.denied };
+  if (!esElTenantDeChatwoot(gate.tenantId)) return { ok: false, error: SIN_PERMISO };
 
   const m = motivoValido(motivo);
   if (!UUID.test(String(clientId))) return { ok: false, error: "Ficha inválida." };

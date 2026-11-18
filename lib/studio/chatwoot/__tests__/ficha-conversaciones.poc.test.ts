@@ -19,6 +19,8 @@ import { describe, expect, it } from "vitest";
 import { resumirConversacion } from "../ficha-conversaciones";
 import { leerConversacionesDeContacto } from "../router-api";
 
+/** SINT: imposible en Venezuela (ningún código de área empieza por 0); E.164 válido para Chatwoot. */
+const TELEFONO_SINT = "+580000000650";
 const ORIGEN = process.env.CHATWOOT_POC_ORIGIN ?? "";
 const CUENTA = Number(process.env.CHATWOOT_POC_CUENTA ?? "0");
 const BANDEJA = Number(process.env.CHATWOOT_POC_BANDEJA ?? "0");
@@ -57,7 +59,7 @@ describe.skipIf(!HAY_INSTANCIA)("SDD-0650 F2 · lectura del panel de la ficha co
     async () => {
       const c = await api("contacts", {
         method: "POST",
-        body: JSON.stringify({ name: "SINT Contacto 0650", phone_number: "+584125550650", identifier: `sint-0650-${sufijo}` }),
+        body: JSON.stringify({ name: "SINT Contacto 0650", phone_number: TELEFONO_SINT, identifier: `sint-0650-${sufijo}` }),
       });
       expect(c.status, JSON.stringify(c.json)).toBe(200);
       contactoId = Number((c.json as { payload?: { contact?: { id?: number } } })?.payload?.contact?.id);

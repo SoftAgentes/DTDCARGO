@@ -9,8 +9,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { StudioUserRole } from "@/lib/studio/user-types";
 
+const T1 = "11111111-1111-1111-1111-111111111111";
+const T2 = "22222222-2222-2222-2222-222222222222";
+
 const h = vi.hoisted(() => ({
   rol: "commercial" as string,
+  tenant: "11111111-1111-1111-1111-111111111111",
   rpc: vi.fn(),
   chatwoot: vi.fn(),
   revalidar: vi.fn(),
@@ -21,8 +25,10 @@ vi.mock("@/lib/db/server", () => ({ createClient: async () => ({ rpc: h.rpc }) }
 vi.mock("@/lib/studio/rbac-guard", async () => {
   const { canEditModule } = await import("@/lib/studio/rbac");
   return {
-    moduleEditDenial: async (_s: unknown, modulo: string) =>
-      canEditModule(h.rol as StudioUserRole, modulo) ? null : "No tienes permiso para editar esto.",
+    moduleEditGate: async (_s: unknown, modulo: string) =>
+      canEditModule(h.rol as StudioUserRole, modulo)
+        ? { ok: true, tenantId: h.tenant, userId: "u0000000-0000-0000-0000-000000000001", role: h.rol }
+        : { ok: false, denied: "No tienes permiso para editar esto." },
   };
 });
 vi.mock("@/lib/studio/chatwoot/router-api", () => ({ obtenerConversacionYContacto: h.chatwoot }));
@@ -33,6 +39,7 @@ const FICHA = "c0000000-0000-0000-0000-0000000000a1";
 
 beforeEach(() => {
   h.rol = "commercial";
+  h.tenant = T1;
   h.rpc.mockReset().mockResolvedValue({ data: "unido", error: null });
   h.chatwoot.mockReset().mockResolvedValue({
     ok: true,
@@ -42,6 +49,7 @@ beforeEach(() => {
   vi.stubEnv("CHATWOOT_FICHA_TOKEN", "token-sintetico");
   vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
   vi.stubEnv("CHATWOOT_INBOX_ARCHIVO_KOMMO_ID", "9");
+  vi.stubEnv("CHATWOOT_TENANT_ID", T1);
 });
 
 describe("unirChatAction", () => {
@@ -51,6 +59,20 @@ describe("unirChatAction", () => {
     expect(r.ok).toBe(false);
     expect(h.chatwoot).not.toHaveBeenCalled();
     expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it("comercial de OTRO tenant: el mismo «no tienes permiso», sin tocar Chatwoot ni la base", async () => {
+    h.tenant = T2;
+    const r = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat de leads");
+    expect(r).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
+    expect(h.chatwoot).not.toHaveBeenCalled();
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it("sin CHATWOOT_TENANT_ID: nadie une", async () => {
+    vi.stubEnv("CHATWOOT_TENANT_ID", "");
+    expect((await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat de leads")).ok).toBe(false);
+    expect(h.chatwoot).not.toHaveBeenCalled();
   });
 
   it("comercial une: traduce la conversación a su contacto y llama la RPC solo con ids", async () => {
@@ -93,6 +115,13 @@ describe("quitarUnionAction", () => {
   it("soporte no quita", async () => {
     h.rol = "support";
     expect((await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).ok).toBe(false);
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it("admin de OTRO tenant no quita: no llega a la base", async () => {
+    h.rol = "admin";
+    h.tenant = T2;
+    expect(await quitarUnionAction(FICHA, "DTD-0001", 77, "Fue un error")).toEqual({ ok: false, error: "No tienes permiso para editar esto." });
     expect(h.rpc).not.toHaveBeenCalled();
   });
 

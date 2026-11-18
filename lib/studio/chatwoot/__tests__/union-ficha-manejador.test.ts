@@ -26,8 +26,12 @@ const contacto = interpretarContactoDelEvento(payload);
 let avisos: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   avisos = vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.stubEnv("CHATWOOT_FICHA_UNIR", "1");
 });
-afterEach(() => avisos.mockRestore());
+afterEach(() => {
+  avisos.mockRestore();
+  vi.unstubAllEnvs();
+});
 
 describe("unirContactoAFicha", () => {
   it("está en MANEJADORES", () => {
@@ -43,6 +47,16 @@ describe("unirContactoAFicha", () => {
       p_pares: [{ client_id: FICHA, contact_id: 5 }],
     });
   });
+
+  it.each([[undefined], [""], ["0"], ["true"], [" 1"]])(
+    "con la tabla y CHATWOOT_FICHA_UNIR=%j: no escribe ni llama a la RPC (M1)",
+    async (valor) => {
+      vi.stubEnv("CHATWOOT_FICHA_UNIR", valor as string);
+      const a = admin();
+      await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA });
+      expect(a.rpc).not.toHaveBeenCalled();
+    },
+  );
 
   it("sin ficha (cruce ambiguo o sin teléfono): no llama", async () => {
     const a = admin();

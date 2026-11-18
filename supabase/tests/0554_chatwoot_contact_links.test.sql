@@ -266,12 +266,22 @@ select pg_temp.assert_true((select client_id from public.chatwoot_contact_links 
   '2c: el contacto 102 sigue en k1');
 select pg_temp.assert_true((select origen from public.chatwoot_contact_links where chatwoot_contact_id = 101) = 'kommo',
   '2d: el origen queda el del primero');
--- El contacto 401 de T2 sí entra en T2 aunque el mismo id exista en T1: la llave es por tenant.
+-- Una sola cuenta de Chatwoot: un contacto unido en T1 NO se une en T2 (cuenta como
+-- otra_ficha, sin decir de qué tenant). Antes de la revisión de la F2 esto era «otra
+-- unión»; ya no es un comportamiento deseado.
+select pg_temp.assert_true(pg_temp.valor(null, format(
+  $q$(select row(unidos, ya_estaban, otra_ficha, sin_ficha)::text from public.chatwoot_unir_contactos(%L, 'webhook', %L::jsonb))$q$,
+  '11111111-1111-1111-1111-111111111112',
+  jsonb_build_array(jsonb_build_object('client_id', pg_temp.k('b1'), 'contact_id', 101)))) = '(0,0,1,0)',
+  '2e: el mismo contacto no se une en otro tenant');
+select pg_temp.assert_true((select tenant_id from public.chatwoot_contact_links where chatwoot_contact_id = 101) = '11111111-1111-1111-1111-111111111111',
+  '2e2: el contacto 101 sigue en T1');
+-- Un contacto libre sí entra en T2.
 select pg_temp.assert_true(pg_temp.valor(null, format(
   $q$(select unidos from public.chatwoot_unir_contactos(%L, 'webhook', %L::jsonb))$q$,
   '11111111-1111-1111-1111-111111111112',
-  jsonb_build_array(jsonb_build_object('client_id', pg_temp.k('b1'), 'contact_id', 101)))) = '1',
-  '2e: el mismo contacto en otro tenant es otra unión');
+  jsonb_build_array(jsonb_build_object('client_id', pg_temp.k('b1'), 'contact_id', 401)))) = '1',
+  '2e3: un contacto libre se une en T2');
 select pg_temp.falla(null, $q$select * from public.chatwoot_unir_contactos('11111111-1111-1111-1111-111111111111', 'manual', '[]'::jsonb)$q$,
   '22023', '2f: el origen manual no entra por la función automática');
 select pg_temp.falla(null, $q$select * from public.chatwoot_unir_contactos('11111111-1111-1111-1111-111111111111', 'kommo', '[{"client_id":"x","contact_id":1}]'::jsonb)$q$,
@@ -337,6 +347,10 @@ select pg_temp.assert_true((select count(*) from public.entity_audit_log where e
   '4l: repetir no deja otro evento');
 select pg_temp.falla(pg_temp.u('a1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 102, 'Mover el chat')$q$, pg_temp.k('a2')),
   '23505', '4m: un chat unido a otra ficha no se mueve');
+select pg_temp.falla(pg_temp.u('b1'), format($q$select public.chatwoot_unir_contacto_manual(%L, 401, 'Es de este cliente')$q$, pg_temp.k('a2')),
+  '23505', '4n: un chat unido en OTRO tenant falla igual que «otra ficha»');
+select pg_temp.assert_true((select tenant_id from public.chatwoot_contact_links where chatwoot_contact_id = 401) = '11111111-1111-1111-1111-111111111112',
+  '4o: y sigue en su tenant');
 
 -- ── 5. Quitar una unión ──────────────────────────────────────────────────
 select pg_temp.falla(pg_temp.u('d1'), format($q$select public.chatwoot_quitar_union(%L, 501, 'Fue un error')$q$, pg_temp.k('a2')),
@@ -369,6 +383,19 @@ select pg_temp.assert_true((select count(*) from public.chatwoot_contact_links w
 update public.clients set deleted_at = now() where id = pg_temp.k('a1');
 select pg_temp.assert_true((select count(*) from public.chatwoot_contact_links where client_id = pg_temp.k('a1')) = 0,
   '6b: el borrado lógico se lleva las uniones');
+select pg_temp.assert_true((
+  select count(*) from public.entity_audit_log
+  where entity_type = 'chatwoot_contact_link' and entity_id = pg_temp.k('a1')
+    and event_type = 'chatwoot_contact_unlinked' and actor_type = 'system' and actor_id is null
+    and before_data = jsonb_build_object('chatwoot_contact_ids', jsonb_build_array(101, 102), 'motivo', 'ficha_borrada')
+    and after_data is null
+) = 1, '6b2: una sola fila de auditoría, solo con los ids');
+update public.clients set deleted_at = null where id = pg_temp.k('a1');
+select pg_temp.assert_true((select count(*) from public.chatwoot_contact_links where client_id = pg_temp.k('a1')) = 0,
+  '6b3: restaurar la ficha no restaura sus uniones');
+update public.clients set deleted_at = now() where id = pg_temp.k('a1');
+select pg_temp.assert_true((select count(*) from public.entity_audit_log where entity_id = pg_temp.k('a1') and event_type = 'chatwoot_contact_unlinked') = 1,
+  '6b4: borrarla otra vez sin uniones no deja otra fila');
 select pg_temp.assert_true((select count(*) from public.chatwoot_contact_links where client_id = pg_temp.k('a2')) = 1,
   '6c: las de otra ficha quedan');
 delete from public.clients where id = pg_temp.k('a2');

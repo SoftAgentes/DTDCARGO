@@ -254,13 +254,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
   // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
   // borradores del agente.
-  it("la superficie escaneada es la esperada (83 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (83 → 84, con prefijo 24 → 25): unir y quitar un chat
+  // de la ficha.
+  it("la superficie escaneada es la esperada (84 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 83,
+      total: 84,
       exactos: 59,
-      conPrefijo: 24,
+      conPrefijo: 25,
     });
   });
 

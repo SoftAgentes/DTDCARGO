@@ -199,6 +199,9 @@ export function chatwootAtributosContactoActivos(): boolean {
  *   `NEXT_PUBLIC_`. Crearlo es una puerta con OK nominal de Sam.
  * - `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID`: la bandeja API «Archivo Kommo» de la E5. Sus
  *   conversaciones solo las abren Admin y Contabilidad (D3).
+ * - `CHATWOOT_TENANT_ID`: el tenant de Studio dueño de la cuenta de Chatwoot. La cuenta
+ *   de servicio lee TODA la cuenta, así que solo la usa una sesión de ese tenant
+ *   (revisión de la F2: acotar por tenant).
  * - `CHATWOOT_URL` y `CHATWOOT_ACCOUNT_ID`, como la Bandeja.
  *
  * Falta algo, o viene vacío → `null`: la ficha queda como en la F1, sin llamar a la red.
@@ -207,6 +210,7 @@ export interface ChatwootFichaConfig {
   origin: string;
   token: string;
   accountId: number;
+  tenantId: string;
   archivoKommoInboxId: number;
 }
 
@@ -214,11 +218,32 @@ export function chatwootFichaConfig(): ChatwootFichaConfig | null {
   const token = firstConfiguredSecret(process.env.CHATWOOT_FICHA_TOKEN);
   const cuenta = (process.env.CHATWOOT_ACCOUNT_ID ?? "").trim();
   const archivo = (process.env.CHATWOOT_INBOX_ARCHIVO_KOMMO_ID ?? "").trim();
-  if (!token || !ID.test(cuenta) || !ID.test(archivo)) return null;
+  const tenantId = chatwootTenantId();
+  if (!token || !ID.test(cuenta) || !ID.test(archivo) || !tenantId) return null;
   return {
     origin: chatwootOriginFromEnv(process.env.CHATWOOT_URL),
     token,
     accountId: Number(cuenta),
+    tenantId,
     archivoKommoInboxId: Number(archivo),
   };
+}
+
+/**
+ * La configuración de la ficha, solo si la sesión es del tenant dueño de la cuenta de
+ * Chatwoot. Otro tenant → `null`, igual que sin configurar: nada distingue un caso del otro.
+ */
+export function chatwootFichaConfigPara(tenantSesion: string | null | undefined): ChatwootFichaConfig | null {
+  const cfg = chatwootFichaConfig();
+  if (!cfg || !tenantSesion || tenantSesion.toLowerCase() !== cfg.tenantId.toLowerCase()) return null;
+  return cfg;
+}
+
+/**
+ * SDD-0650 F2 (decisión del DG, M1): el webhook escribe uniones chat ↔ ficha solo con
+ * `CHATWOOT_FICHA_UNIR=1` exacto. Vacío o cualquier otro valor: apagado, aunque la 0554
+ * esté aplicada. Encenderlo es una puerta con OK de Sam.
+ */
+export function chatwootFichaUnirActivo(): boolean {
+  return (process.env.CHATWOOT_FICHA_UNIR ?? "") === "1";
 }
