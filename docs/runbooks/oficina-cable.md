@@ -389,7 +389,8 @@ solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 
   en «cumple». **Requisito duro de orden: la 0560 se aplica en producción ANTES de fusionar su PR y de publicar el
   web.** Esa pantalla deja «Acuse» en «No evaluado» en los escalados, justo las filas que harían abortar el preflight
   de la 0560 si llegara después. Las revisiones de la
-  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1.
+  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1. **Con la 0567** (sin aplicar): las
+  conversaciones de `office_conteo_exclusiones` no cuentan y, si un cierre tiene corrección, cuenta la última (§13b).
 - En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
 
 ### Cómo se apaga
@@ -530,3 +531,45 @@ Vaciar `OFICINA_VISTA_ACTIVA` y relevar el `web`. No hay nada que deshacer en la
 - No pausa ni despausa la oficina: sigue siendo `office_cambiar_pausa`, de un superadministrador.
 - No muestra el borrador ni el texto del cliente (eso es de la revisión, §11).
 - No se actualiza sola: para ver lo último se recarga la página.
+
+## 13b · Excluir una conversación del conteo o corregir un cierre (la 0567)
+
+Para cuando el conteo de AC-1 o AC-7 tiene una conversación que no debe contar (una prueba del encendido) o un cierre
+guardado con el valor equivocado. Nada se borra ni se edita: se agrega una fila con motivo, actor y fecha. Requiere la
+0567 aplicada.
+
+### Antes de escribir
+
+- **OK nominal de Sam en el chat del DG**, que nombre la conversación, la etapa, lo que se hace (excluir, o corregir a
+  «cumple» o a «falló») y el motivo. Un OK por lote; un OK de otro día no vale.
+- Se corre como el dueño, en una sesión directa a la base de producción (la del runbook `aplicar-migraciones-prod`).
+  Las dos funciones no tienen EXECUTE para la API: desde la página o con la llave del servidor fallan.
+
+### Cómo
+
+```sql
+begin;
+-- La conversación no cuenta en la etapa 1 (una vez; repetirla falla).
+select public.office_excluir_conversacion('<conversación>', 1::smallint, '<motivo>', '<actor: quién y con qué OK>');
+-- El cierre que cuenta pasa a «cumple» (si hay varias, manda la última; el cierre original queda).
+select public.office_corregir_cierre('<conversación>', 1::smallint, true, '<motivo>', '<actor>');
+-- Revisar el conteo antes de confirmar (como el dueño no pasa por office_exigir_admin: leer las tablas).
+select * from public.office_conteo_exclusiones order by excluida_en;
+select * from public.office_cierres_correcciones order by orden;
+commit;
+```
+
+Después, Sam ve el conteo nuevo en la página de revisión (`office_conteo_revisiones(1)`).
+
+### El primer lote (tanda 1 de la etapa 1, 18/11/2026; espera el OK de Sam)
+
+- Excluir la conversación de la prueba del encendido, motivo «prueba del encendido; decisión del DG, 2026-11-18».
+- Corregir a «cumple» los cierres de las dos conversaciones en que Sam marcó «Cumple» y quedó guardado «Falló», motivo
+  «Sam marcó Cumple; quedó guardado Falló; 2026-11-18».
+- Resultado esperado: 4 conversaciones contadas y 3 correctas.
+
+### Deshacer
+
+No se deshace una fila: se agrega otra. Una corrección equivocada se arregla con otra corrección (manda la última).
+Una exclusión no se revierte desde la API; si hiciera falta, la decide el DG con Sam y queda escrita en el
+desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conteo deje de mirar las dos tablas.
