@@ -7,7 +7,7 @@ created: 2026-11-18
 updated: 2026-11-18
 supersedes: null
 superseded_by: null
-related: ["0106", "0108", "0246", "0258", "0531", "0543", "0645", "0650", "0662"]
+related: ["0106", "0108", "0246", "0258", "0531", "0543", "0645", "0646", "0647", "0650", "0662"]
 confidencialidad: interno
 ---
 
@@ -65,9 +65,8 @@ Un solo punto alimenta la búsqueda del Studio, la lista de Clientes y los tres 
 
 ## Estado (2026-11-18)
 
-- **Fases 1 y 2: implementadas**, con el visto bueno del Director. La búsqueda se normaliza con y sin «DTD-» y sin distinguir mayúsculas, para no depender de la pregunta 2. Además del historial, se siguen las fichas absorbidas por fusión (`merged_into_client_id`) hasta el cliente vivo. Módulo: `lib/studio/client-codigo-viejo.ts`.
-- **Fase 3: en espera** de las respuestas de Sam a las preguntas 2 y 3.
-- **Portal del cliente:** fuera de esta SDD (pregunta 4).
+- **Fases 1 y 2: en main** (PR #677). La búsqueda se normaliza con y sin «DTD-» y sin distinguir mayúsculas. Además del historial, se siguen las fichas absorbidas por fusión hasta el cliente vivo. Módulo: `lib/studio/client-codigo-viejo.ts`.
+- **Fases 3 a 6: solo documento.** Sam pidió esperar antes de arrancar más código; el Director avisa cuándo.
 - **Medición de producción:** no se ejecutó; necesita el OK de Sam.
 
 ## Propuesta
@@ -86,30 +85,113 @@ Un solo punto alimenta la búsqueda del Studio, la lista de Clientes y los tres 
 - La ficha muestra los códigos anteriores a la vista, junto al Shipping Mark («Antes: DTD-Z901»), en vez de solo el contador. El panel con fecha y motivo se conserva.
 - `/studio/clientes/<código viejo>` redirige a la ficha vigente: si `getClientByMarkbox` no encuentra, se resuelve con `resolve_markbox`.
 
-### Fase 3 — Enlazar al escribirlo
+### Fase 3 — Enlazar al escribirlo, y ningún embarque sin dueño
+
+Decisión de Sam (2026-11-18, por el Director): **un embarque sin dueño va automáticamente a `DTD-0000`**.
 
 - Nuevo embarque y carga del contenedor: si el Shipping Mark escrito es un código retirado, el servidor lo resuelve con `resolve_markbox` y guarda el vigente. La pantalla avisa «DTD-Z901 es el código anterior de DTD-8901; se guardó con el vigente». Guardar el vigente es obligatorio: el portal compara por texto con el código vivo.
-- Embarques: el filtro «Cliente» acepta también el código viejo. Requiere pasar al navegador el mapa código viejo → vigente de los clientes de esa lista; se mide el tamaño antes de decidir.
-- Ningún embarque sin cliente: ver la pregunta 3.
+- Si el Shipping Mark viene vacío, o no es de ninguna ficha ni de ningún historial, el servidor guarda `DTD-0000` y deja en las notas del embarque lo que se escribió, para que quien lo asigne después tenga la pista. La pantalla lo dice: «No encontramos a ese cliente; el embarque quedó en DTD-0000. Asígnalo cuando sepas de quién es».
+- Requisito previo (nota de la revisión de la #677): `DTD-0000` se excluye de forma explícita de la búsqueda por código anterior. Si la ficha comodín se renombrara o se fusionara, buscar «0000» mostraría «antes DTD-0000».
+- **[sin medir]** Que la ficha `DTD-0000` exista en producción con ese código exacto. Si no existiera, el guardado automático fallaría: la consulta de conteos lo confirma.
+- Embarques: el filtro «Cliente» acepta también el código viejo.
+
+### Fase 4 — El cliente ve su código viejo en el portal
+
+Decisión de Sam (2026-11-18, por el Director): **sí, solo como dato informativo**.
+
+- **[verificado en código]** El portal **ya lo muestra**. `app/portal/(app)/perfil/page.tsx` pinta «Tu código anterior» (o «Tus códigos anteriores») con la nota de que la carga rotulada con él llega igual. Los códigos salen de una RPC ligada a `auth.uid()` (`lib/portal/profile-private-context.ts`, migración 0405): el portal no recibe ids ni lee tablas del ERP.
+- **[sin medir]** Que se vea para un cliente del legado en producción, y si la RPC incluye los códigos de las fichas absorbidas por fusión.
+- Lo que queda por decidir es de presentación, no de datos: hoy está en Perfil. Si Sam lo quiere también en el inicio del portal, junto al Shipping Mark, es un cambio de esa pantalla por el mismo camino (la RPC), sin tocar la frontera público↔ERP.
+- Sin migración si alcanza con lo que la 0405 ya devuelve.
+
+### Fase 5 — Corregir el código de un cliente
+
+Pedido de Sam (2026-11-18, por el Director): los clientes viejos tenían un código de vendedor («DTD-JA…») y en la migración pasaron al 8. Quien maneja clientes debe poder editar el código al correcto; al editarlo, el 8 queda en el historial y el nuevo es el que se usa.
+
+**Ya existe. [verificado en código]**
+
+- La función: `rename_client_markbox()` (0367; redefinida en 0371 y 0552). Mueve el código en todas las tablas que lo copian, en una transacción, y deja el anterior en `client_markbox_history`. Roles: administrador, comercial y operaciones.
+- La pantalla: en la ficha del cliente, el Shipping Mark abre un panel con «Cambiar Shipping Mark» y un motivo (`ShippingMarkChip.tsx`, `renombrarMarkboxAction`). La ve quien puede editar Clientes.
+- Volver al código de antes: desde la 0552 (SDD-0646) un cliente **puede recuperar su propio código retirado**. La fila del historial no se borra: queda marcada como restaurada. El código retirado de **otro** cliente sigue reservado y se rechaza.
+
+O sea: pasar una ficha de `DTD-8901` a `DTD-Z901` (su código de vendedor) ya se puede hacer hoy desde la ficha, y `DTD-8901` queda en el historial.
+
+**Lo que falta, todo de aplicación:**
+
+- Que se encuentre. «Cambiar Shipping Mark» está dentro de un panel que se abre al oprimir el código. Propuesta: en ese panel, junto a cada código anterior, un botón «Volver a este código» que precarga el cambio; y la ayuda dice que el código actual pasa al historial.
+- Mayúsculas: la función guarda el código nuevo en mayúsculas. Un código de vendedor que estaba en minúscula vuelve en mayúscula. La comparación ya no distingue, así que la carga sigue enlazando.
+- **[inferencia]** Las guardas de aliados (0362, 0371) no deberían rechazar un código `DTD-…` con letras; falta probarlo con un caso.
+- **[sin medir]** Cuántas fichas del legado se querrían devolver a su código de vendedor. Si son muchas, hacerlo una por una no escala y habría que hablar de un lote (que sería otra función: migración, con número y OK aparte).
+
+### Qué código se ve — propuesta
+
+Sam pidió poder elegir qué código se ve en la pantalla del cliente, en su portal y en las facturas.
+
+**Propuesta: una sola regla. En todas partes se ve el código vigente, y el vigente se elige corrigiéndolo (Fase 5).** No un selector aparte por pantalla.
+
+Por qué:
+
+- **[verificado en código]** El Shipping Mark no es una referencia: es un texto copiado en más de treinta tablas, y las políticas del portal comparan ese texto con el código vivo del cliente. Mostrar en el portal un código distinto del que tienen sus embarques, facturas y pagos no es un cambio de etiqueta: o se muestra un código con el que nada coincide, o hay que tocar esas políticas.
+- **[verificado en código]** La factura guarda su propia copia (`invoices.client_markbox`) y `rename_client_markbox` también la actualiza. Si el código «visible» fuera otro, la factura y la ficha dirían cosas distintas.
+- Con una sola regla, elegir es editar: quien quiere que el cliente se vea como `DTD-Z901` lo cambia en la ficha, y ese código pasa a verse en la ficha, el portal, las facturas y los embarques, con el anterior en el historial y siempre buscable (fases 1 y 2).
+
+Si Sam quiere de verdad dos códigos a la vez (uno «oficial» y otro «para mostrar»), eso sí pide migración: una columna con el código de presentación y decidir pantalla por pantalla cuál usa. No se propone; si se decide, se pide número al Director.
+
+**Para decidir con Sam:** las facturas ya emitidas. Hoy un cambio de código reescribe también el código en esas facturas. Si un documento ya entregado no debe cambiar, hay que excluir las emitidas del cambio; eso toca la función (migración).
+
+### Fase 6 — Filtros en la búsqueda de clientes
+
+Sam habló de filtros «clientes / aliados / clientes viejos». Lo que ya hay, para no chocar:
+
+- **[verificado en código]** La lista de Clientes filtra por nivel (`tier`), por «pendientes de revisar» (SDD-0046) y por texto (`ClientFilters` en `lib/studio/client-queries.ts`).
+- **[verificado en docs]** SDD-0647 define los segmentos del CRM: Clientes (con prueba de carga), Leads y Leads con código. Viven en el tablero del CRM (`crm-tablero*.ts`, `CrmEmbudosClient.tsx`), que son de otra sesión. Su spec pide dejar la estructura lista para sumar filtros.
+- **[verificado en código]** Los aliados tienen su módulo (0362) y cada cliente lleva `aliado_id`.
+- No se encontró en specs ni handoffs otro filtro «clientes viejos» ya definido.
+
+Propuesta, sin tocar el CRM:
+
+- Un filtro **«Origen»** en la lista de Clientes y en la búsqueda del Studio, con tres opciones además de «Todos»:
+  - **De la casa**: sin aliado y sin código de vendedor en su historia.
+  - **De un aliado**: `aliado_id` presente.
+  - **Del legado**: tiene o tuvo un código de vendedor. Es la misma definición que usa la base en `rename_legacy_markboxes` (0379); no se repite en JavaScript, porque esa copia ya se desincronizó una vez (ver `lib/studio/markbox-legacy-types.ts`).
+- «Del legado» necesita leer el historial por cliente. Con la lista paginada, la forma segura es una función de la base que devuelva el origen de cada ficha: **migración**, con número del Director y OK de Sam. Sin migración se puede filtrar «De un aliado» ya, y aproximar «Del legado» por el rango `DTD-8xxx`, que dejaría fuera a los que se corrijan en la Fase 5.
+- Palabras: hay que acordar con la sesión del CRM que «Clientes» allá (prueba de carga) y «De la casa» aquí no se confundan. Por eso el filtro se llama «Origen» y no «Tipo».
 
 ### Lo que ya está y no se toca
 
 - Almacén CN y el cargador de consolidados ya resuelven el código viejo.
-- `resolve_markbox`, `rename_client_markbox` y `rename_legacy_markboxes`: sin cambios.
+- `resolve_markbox`, `rename_client_markbox` y `rename_legacy_markboxes`: sin cambios en las fases 3 a 5.
+
+### Notas de la revisión de la #677, para la PR siguiente
+
+1. Excluir `DTD-0000` de la búsqueda por código anterior (antes de la Fase 3).
+2. El modo `exacto` busca por fragmento con tope de 50 y sin orden: pasar a igualdad, o la URL vieja de un código corto puede dar 404.
+3. En `client-search-action`, el resultado por cédula entra sin el código anterior y el descarte de repetidos pierde la marca; y el cliente del código viejo puede quedar fuera de los 8 primeros. Darle prioridad.
+4. Pruebas que faltan: el subtítulo «antes …» en la búsqueda del Studio y la redirección de la ficha.
+5. `/ui-check` del contador «+N» de la ficha.
 
 ## No entra
 
-- Migraciones, columnas o índices nuevos. Si la medición de producción mostrara que falta historial, sería una tarea aparte con número del Director y OK nominal de Sam.
+- Migraciones, columnas o índices nuevos en las fases 3, 4 y 5. Lo que sí pediría migración está señalado en cada fase y no se escribe aquí: se pide número al Director y OK nominal de Sam.
 - Cambiar permisos o el rol de alguien.
-- Volver a rotular: el código vigente sigue siendo el `DTD-8xxx`.
-- Mostrar el código viejo al cliente en el portal (pregunta 4).
+- Un lote para devolver muchas fichas a su código de vendedor.
+- Cambios en el tablero del CRM (SDD-0647).
 
 ## Preguntas para Sam
 
-1. **¿Confirmas que el rango es `DTD-8xxx`?** El código dice `DTD-8001` en adelante.
-2. **¿Cómo llega escrito el código viejo en la mercancía?** Si llega completo (`DTD-Z901`), la búsqueda exacta alcanza. Si llega sin prefijo (`Z901`) o con otra forma, la búsqueda por fragmento lo encuentra, pero el enlace automático de la Fase 3 necesita una regla: ¿se acepta sin el `DTD-`?
-3. **Sin dueño → `DTD-0000`: ¿automático o con aviso?** Hoy un embarque puede crearse con el Shipping Mark vacío o con un texto que no es de ninguna ficha. Opciones: (a) el servidor lo manda a `DTD-0000` y guarda en las notas lo que se escribió; (b) no deja guardar sin elegir un cliente o marcar «sin dueño». La primera no frena a nadie; la segunda evita que algo quede en el comodín por un error de tipeo.
-4. **¿El cliente debe ver su código viejo en el portal?** Hoy no se le muestra.
+Respondidas el 2026-11-18:
+
+- Sin dueño → `DTD-0000`: **automático**.
+- ¿El cliente ve su código viejo en el portal?: **sí, informativo**. (Ya se muestra en Perfil.)
+
+Abiertas:
+
+1. **¿Confirmas que el rango de los migrados es `DTD-8xxx`?** El código dice `DTD-8001` en adelante.
+2. **¿Cómo llega escrito el código viejo en la mercancía?** La búsqueda ya acepta con y sin «DTD-». Para el enlace automático de la Fase 3: ¿se acepta sin el prefijo?
+3. **Qué código se ve:** ¿te sirve la regla única (se ve el vigente, y se elige corrigiéndolo en la ficha), o necesitas dos códigos a la vez?
+4. **Facturas ya emitidas:** al corregir el código de un cliente, ¿sus facturas emitidas deben cambiar también, o quedarse con el código que tenían?
+5. **¿Cuántos clientes hay que devolver a su código de vendedor?** Unos pocos (a mano, desde la ficha) o la mayoría (pediría un lote).
+6. **Filtro «Origen» (de la casa / de un aliado / del legado):** ¿son esos los tres grupos que querías?
 
 ## Medición de producción que hace falta (solo conteos)
 
@@ -150,6 +232,21 @@ select
                         where h.tenant_id = s.tenant_id and upper(h.markbox) = upper(btrim(s.client_markbox)))) as embarques_con_codigo_de_nadie;
 ```
 
+Para las fases 3 y 5, dos conteos más (misma regla: sin filas, nombres ni códigos):
+
+```sql
+-- ¿Existe la ficha comodín, viva y una sola?
+select count(*) as fichas_comodin_vivas
+from public.clients
+where upper(btrim(markbox)) = 'DTD-0000' and deleted_at is null and merged_into_client_id is null;
+
+-- Fichas 8xxx cuyo historial guarda un código de vendedor (candidatas a corregir).
+select count(distinct c.id) as fichas_8xxx_con_codigo_de_vendedor
+from public.clients c
+join public.client_markbox_history h on h.client_id = c.id
+where c.deleted_at is null and c.markbox ~ '^DTD-8\d{3}$' and h.markbox ~ '^DTD-[A-Za-z]';
+```
+
 Qué decide cada número:
 
 - `fichas_8xxx` distinto de `fichas_8xxx_con_historial`: hay fichas del legado sin código viejo guardado. Sería la única razón para una tarea de datos.
@@ -169,9 +266,12 @@ Qué decide cada número:
 
 ## Criterios de aceptación
 
+Fases 1 y 2 (en main): criterios 1 a 3 y 5. Fase 3: criterio 4 y el 7.
+
 1. Escribir un código retirado en la búsqueda del Studio, en la lista de Clientes o en «Asignar cliente» trae al cliente vigente, con la indicación «antes <código>».
 2. Un texto con `%`, `_` o `*` no devuelve el historial entero.
 3. La ficha muestra los códigos anteriores sin abrir ningún panel, y la URL con un código viejo lleva a la ficha vigente.
 4. Crear un embarque o cargar un ítem con un código retirado guarda el código vigente y lo avisa.
 5. El equipo que no ve nombres (SDD-0531) no recibe nada nuevo.
 6. Las pruebas de SDD-0258, SDD-0645, SDD-0650 y SDD-0662 siguen pasando.
+7. Crear un embarque con el Shipping Mark vacío o con un código de nadie lo guarda en `DTD-0000`, conserva en las notas lo escrito y lo avisa.
