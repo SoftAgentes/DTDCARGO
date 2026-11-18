@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 641 specs)
+### Índice de specs (generado · 642 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -678,7 +678,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
 | 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
 | 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | in-progress | interno |
+| 0657 | Enlaces internos e indexación del sitio público | in-progress | interno |
 | 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0657 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
