@@ -399,8 +399,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
   // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
   // pasa a `office_revisar_borrador_v2`.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (479 → 481):
+  // `moduleEditDenial(supabase, "bandeja")` al tope; escriben SOLO por las RPC `chatwoot_unir_contacto_manual` y
+  // `chatwoot_quitar_union` (0554), que repiten `user_has_module('bandeja', true)`, el tenant y la auditoría.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(479);
+    expect(reportes.length).toBe(481);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

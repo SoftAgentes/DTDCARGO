@@ -12,6 +12,7 @@
  */
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
@@ -56,7 +57,9 @@ import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
 import { listConversacionesDeCliente, type ConversacionDeCliente } from "@/lib/studio/chatwoot/conversations-queries";
-import { ChatwootConversacionesCard } from "../_components/ChatwootConversacionesCard";
+import { ConversacionesFichaCargando } from "../_components/ConversacionesFichaCard";
+import { PanelConversacionesFicha } from "../_components/PanelConversacionesFicha";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 import { ClientBillingCard, type ClientBillingIdentityRow } from "../_components/ClientBillingCard";
@@ -309,6 +312,10 @@ export default async function ClienteDetallePage({
   // Fichas que vinieron del sistema anterior o de Kommo sin nombre (SDD-0650 §F1).
   const nombreFicha = nombreDeLaFicha(client.name);
   const sinNombre = nombreFicha.sinNombre;
+  // SDD-0650 F2 · SDD-0531: el texto de los mensajes y el «Nombre en el chat» solo
+  // salen del servidor si el usuario puede ver datos de clientes. Solo se pregunta
+  // con panel: sin Bandeja no se lee nada de Chatwoot.
+  const puedeVerDatosDelChat = conversacionesChatwoot ? await readCanSeeClientNames(supabase) : false;
 
   return (
     <div style={{ maxWidth: 1440 }}>
@@ -848,10 +855,22 @@ export default async function ClienteDetallePage({
           </div>
 
           {/* Columna derecha (SDD-0650 F1): las conversaciones, a la vista sin
-              bajar. La F2 le agrega el texto y el Archivo Kommo. */}
-          {conversacionesChatwoot ? (
+              bajar. F2: lectura en vivo de los chats unidos, aparte (Suspense);
+              apagada o sin uniones, la tarjeta de la F1. */}
+          {conversacionesChatwoot && tenantLink?.tenant_id ? (
             <div className="studio-ficha-col studio-ficha-col--conversaciones">
-              <ChatwootConversacionesCard conversaciones={conversacionesChatwoot} />
+              <Suspense fallback={<ConversacionesFichaCargando />}>
+                <PanelConversacionesFicha
+                  supabase={supabase}
+                  tenantId={tenantLink.tenant_id}
+                  clientId={client.id}
+                  markbox={client.markbox}
+                  acceso={{ role: studioRole, overrides: studioAccess.overrides, grants: studioAccess.grants }}
+                  puedeVerDatos={puedeVerDatosDelChat}
+                  fichaSinNombre={sinNombre}
+                  conversacionesF1={conversacionesChatwoot}
+                />
+              </Suspense>
             </div>
           ) : null}
         </div>
