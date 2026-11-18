@@ -39,7 +39,14 @@ Alguien con una lista de correos (un competidor, por ejemplo) puede averiguar cu
 
 1. Cerrojos de 8 pedidos por hora por origen y 5 por correo, que corren **antes** de mirar el correo.
    Con el cupo gastado, un correo con cuenta y uno sin cuenta reciben la misma respuesta.
-2. El mismo piso de tiempo de respuesta en todos los casos (`lib/portal/tiempo-minimo.ts`, 700 ms).
+   - El origen sale del header de `REQUEST_IP_HEADER` (`lib/http/request-ip.ts:57`; respaldo por
+     `x-forwarded-for` en `:89`). Detrás de Cloudflare tiene que ser `cf-connecting-ip`, con el origen
+     cerrado a los rangos de Cloudflare: si no, el cerrojo por origen se esquiva cambiando el header.
+     Lo verifica el DG en producción antes de publicar (revisión de seguridad del 2026-11-18).
+   - El cerrojo cuenta y después inserta (`touchThrottle`): dos pedidos simultáneos pueden pasar los
+     dos. La carrera ya existía antes de esta spec; el cerrojo por correo la acota.
+2. El mismo piso de tiempo de respuesta en todos los casos (`lib/portal/tiempo-minimo.ts`, 700 ms),
+   también cuando la acción termina con una excepción (`finally`).
    Límite: como la pantalla ya nombra el caso, el piso no oculta lo que dice el texto. Queda como
    defensa si una pantalla vuelve a ser común a varios casos.
 3. Ninguna pantalla muestra el nombre, el Shipping Mark ni otro dato de la ficha.

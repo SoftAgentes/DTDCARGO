@@ -70,7 +70,7 @@ PENDIENTE.
 
 ## PR / BRANCH
 
-`codex/entrar-reconoce-correo`. PR: PENDIENTE (se avisa al DG antes de abrirla).
+`codex/entrar-reconoce-correo`. PR: [#683](https://github.com/SoftAgentes/DTDCARGO/pull/683), base `main`, abierta con OK del DG («empuja la entrega 1 como PR y que el CI haga de portón»).
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -78,8 +78,24 @@ PENDIENTE.
   migración nueva (siguiente libre al 2026-11-18: 0562), contrato SQL, desarme, espera declarada y
   revisión de seguridad Opus. Aplicar en producción exige el OK nominal de Sam.
 
+## REVISIÓN DE SEGURIDAD (Opus, lanzada por el DG)
+
+APPROVED sobre `35ceee37c`, sin bloqueantes. Dos arreglos pedidos antes de fusionar, en un commit
+nuevo encima:
+
+1. El piso de tiempo envuelve la acción en `try { … } finally { … }`: una excepción (por ejemplo, el
+   envío que tira) tampoco se lo salta. Prueba: «una excepción tampoco se salta el piso».
+2. Prueba de que con el cerrojo **por correo** lleno no se consulta `client_users` ni `clients` ni
+   ninguna RPC (además del cerrojo por origen).
+
+Notas que quedan en la spec §0: el origen sale de `REQUEST_IP_HEADER` y detrás de Cloudflare debe ser
+`cf-connecting-ip` con el origen cerrado (lo verifica el DG en producción antes de publicar); la
+carrera contar-e-insertar de `touchThrottle` ya existía.
+
 ## FUERA DE ALCANCE DETECTADO
 
+- `app/registro/actions.ts:142-144` (revisión de seguridad): el cerrojo por IP de `/registro` falla
+  abierto si no puede leer la base. Es una decisión de la SDD-0042 §10; no se tocó.
 - `app/invitar/[token]/actions.ts:135` (invitación del equipo, no del cliente): «Cuenta creada pero
   login automático falló: … Intenta login manual.» muestra el mensaje crudo del error. No es del portal
   del cliente; no se tocó.
