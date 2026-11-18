@@ -3,15 +3,16 @@
 - **Fecha:** 2026-11-18
 - **Owner / sesión:** Claude (sesión de Sam). Claim `claude-seo-ff01b80d`, liberado al cerrar.
 - **Worktree:** `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\seo-enlaces-indexacion`
-- **Rama:** `codex/seo-enlaces-indexacion`. Base `1bf1dcaf5` (`origin/main` al empezar) más la reserva `0e71bd8f1`. `origin/main` ya avanzó a `97f4f0718`, sin choque esperado: ese commit es de nómina y Studio.
-- **SDD:** [`docs/specs/0657-seo-enlaces-indexacion/spec.md`](../../docs/specs/0657-seo-enlaces-indexacion/spec.md), `in-progress`. Reservada localmente (`refs/heads/codex/sdd-reserve-0657-seo-enlaces-indexacion`) y sin publicar.
-- **Estado de la tarea:** lista para revisión, con publicación pendiente de autorización.
+- **Rama:** `codex/seo-enlaces-indexacion`. Base `1bf1dcaf5` (`origin/main` al empezar) más la reserva `0e71bd8f1`. Se fusionó `origin/main` (`97f4f0718`, nómina y Studio) sin conflictos.
+- **SDD:** [`docs/specs/0657-seo-enlaces-indexacion/spec.md`](../../docs/specs/0657-seo-enlaces-indexacion/spec.md), `in-progress`. Reserva publicada como `codex/sdd-reserve-0657`, con push create-only.
+- **PR:** [SoftAgentes/DTDCARGO#661](https://github.com/SoftAgentes/DTDCARGO/pull/661), en borrador hacia `main`.
+- **Estado de la tarea:** lista para revisión.
 
 ## Encargo y permisos
 
 - Sam, 2026-11-18: «Haz esta tarea aquí: “Enlaces internos e indexación de dtdcargo.com”».
 - Permitido: commits locales en esta rama.
-- Pendiente del OK explícito de Sam: hacer push de la rama y abrir la PR (regla «no push sin su OK» de `docs/engineering/project-rules.md`).
+- Sam, 2026-11-18: «Sí, abre la PR». Con eso se autorizó publicar la rama y la reserva, y abrir la PR en borrador.
 - No permitido: merge ni despliegue. No se tocó base de datos ni producción.
 
 ## OBJETIVO ORIGINAL
@@ -72,6 +73,10 @@ Detalle de `test`:
   - `lib/studio/__tests__/solo-superadmin-crea-admin.migration.test.ts`: 20 s, con errores de vitest «Timeout waiting for worker to respond» en la misma corrida. Corrida sola PASÓ (36 de 36).
 - El diff de esta rama no toca `infra/`, `scripts/`, `lib/studio/` ni `supabase/` (`git diff --stat HEAD -- infra scripts lib/studio supabase` sale vacío). Se clasifican como del entorno (Windows con carga), no como regresión.
 
+Tras el merge de `origin/main`:
+- PASARON `pnpm typecheck`, eslint de los archivos tocados, `pnpm sdd:check`, `pnpm docs:check` (641 specs) y las 5 suites afectadas (38 de 38).
+- `pnpm verify` completo no se repitió. Cuenta el CI de la PR.
+
 ## COMMITS
 
 - `0e71bd8f1` — reserva de la SDD-0657 (stub).
@@ -80,14 +85,13 @@ Detalle de `test`:
 
 ## PR / BRANCH
 
-- Sin PR. Rama local `codex/seo-enlaces-indexacion` en el worktree indicado arriba.
-- Base `main`, a abrir en draft con el OK de Sam.
-- Antes de abrirla: `git fetch` y merge de `origin/main` en esta rama.
+- PR [SoftAgentes/DTDCARGO#661](https://github.com/SoftAgentes/DTDCARGO/pull/661), en borrador, desde `codex/seo-enlaces-indexacion` hacia `main`.
+- Reserva publicada: `codex/sdd-reserve-0657`.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. OK de Sam para hacer push de la rama, publicar la reserva `codex/sdd-reserve-0657` y abrir la PR.
-2. CI verde en la PR (`gh pr ready` lanza la corrida que cuenta).
+1. Revisión del Director y CI verde en la PR (`gh pr ready` lanza la corrida que cuenta).
+2. El merge y el despliegue los autoriza Sam aparte.
 3. **Decisión de Sam**: fusionar o no `/puerta-a-puerta` con `/servicios/puerta-a-puerta`, con datos de Search Console de 3 o 4 semanas después del despliegue.
 4. **Datos de Sam u operaciones** para diferenciar las 18 páginas de ciudad: tiempo real de entrega por ciudad, transportista local, casos de clientes y costo de última milla. No se inventan.
 5. Después del despliegue: revisar en Search Console «Páginas → Por qué no se indexan» y medir la observación 6 de la aceptación.
@@ -108,7 +112,7 @@ Detalle de `test`:
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** con el OK de Sam, fetch y merge de `origin/main`, repetir `pnpm verify`, push de la rama, publicar la reserva 0657 y abrir la PR en draft hacia `main`.
+- **Siguiente acción:** revisar la PR #661, pasarla a lista para revisión (`gh pr ready`) para que corra el CI e integrarla con el OK de Sam.
 - **Cambios compartidos:** `components/Footer.tsx`, que aparece en todas las páginas públicas, y `next.config.ts` (un redirect nuevo).
 - Sin migraciones.
 - Sin sesiones consumidoras.
