@@ -34,6 +34,8 @@ const mocks = vi.hoisted(() => ({
     error: { code?: string; message: string } | null;
   },
   rpcCalls: [] as Array<[string, unknown]>,
+  /** Tablas que la acción consultó, en orden (fuera del cerrojo). */
+  tablasConsultadas: [] as string[],
   /** SDD-0672 · el piso de tiempo, doblado: con él real cada pedido esperaría. */
   esperarTiempoMinimo: vi.fn(async () => {}),
 }));
@@ -79,6 +81,7 @@ vi.mock("@/lib/db/admin", () => ({
         return mocks.sinComprobar;
       },
       from(table: string) {
+        if (table !== "portal_registro_throttle") mocks.tablasConsultadas.push(table);
         if (table === "portal_registro_throttle") {
           let key = "";
           const chain: Record<string, unknown> = {
@@ -174,6 +177,7 @@ describe("enlace de acceso al portal", () => {
     mocks.clientsFilters.length = 0;
     mocks.sinComprobar = { data: [{ bloquea: false, pendiente: false }], error: null };
     mocks.rpcCalls.length = 0;
+    mocks.tablasConsultadas.length = 0;
     mocks.avisarClienteSinAcceso.mockReset();
     mocks.avisarClienteSinAcceso.mockResolvedValue({
       avisadoCliente: true,
@@ -244,6 +248,14 @@ describe("enlace de acceso al portal", () => {
       const [inicio] = mocks.esperarTiempoMinimo.mock.calls[0] as unknown as [number];
       expect(inicio).toBeGreaterThanOrEqual(antes);
       expect(inicio).toBeLessThanOrEqual(Date.now());
+    });
+
+    it("⭐ una excepción tampoco se salta el piso (el envío que tira)", async () => {
+      mocks.esperarTiempoMinimo.mockClear();
+      mocks.sendPortalMagicLinkEmail.mockRejectedValue(new Error("boom"));
+
+      await expect(requestMagicLink({}, form("cliente@example.com"))).rejects.toThrow("boom");
+      expect(mocks.esperarTiempoMinimo).toHaveBeenCalledOnce();
     });
   });
 
@@ -344,11 +356,16 @@ describe("enlace de acceso al portal", () => {
       nadaSalio();
     });
 
-    it("⭐ con el cerrojo lleno no se mira el correo: no dice si existe", async () => {
-      mocks.throttleCounts["portal-login"] = 8;
+    it.each([
+      ["por origen", "portal-login", 8],
+      ["por correo", "portal-login-mail", 5],
+    ])("⭐ con el cerrojo %s lleno no se mira el correo: ni client_users, ni clients, ni RPC", async (_caso, cerrojo, lleno) => {
+      mocks.throttleCounts[cerrojo as string] = lleno as number;
       mocks.clientUser = null;
       const res = await requestMagicLink({}, form("nadie@example.com"));
       expect(res.resultado).toBeUndefined();
+      expect(res.error).toEqual(VARIOS_PEDIDOS);
+      expect(mocks.tablasConsultadas).toEqual([]);
       expect(mocks.rpcCalls).toEqual([]);
       expect(mocks.clientsFilters).toEqual([]);
     });
