@@ -38,6 +38,23 @@ Asignada por el DG («Sam autorizó anoche avanzar todo el roadmap en bloque»);
 4. **Sin guía ni novedad de Faro de nómina:** `nomina` sigue reservada en el minicerebro y `novedades/` no existe en `main` (D-10 de la 0637 pendiente).
 5. **No se valida** que una vigencia nueva no sea anterior a la de la versión vigente: el orden lo da el número de versión; la fecha es informativa.
 
+**Evidencia de la fase A2b** (sobre `main` 3597afb84 fusionado; turno de PC del DG, versiones del lockfile: typescript 6.0.3, vitest 5.1.0, instaladas con `pnpm install --frozen-lockfile` en el worktree propio):
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ |
+| vitest `lib/studio/nomina` y `app/studio/(app)/nomina` (incluye `conservar-lo-escrito`) | PASÓ |
+| Migración 0556 en PGlite: contrato, control rojo, 2 preflights, desarme y reaplicación, 8 mutantes, gemela | PASÓ (14 casos) |
+| `scripts/__tests__/spec-migration-refs.test.ts` | PASÓ |
+| ESLint de `lib/studio/nomina`, `app/studio/(app)/nomina` y `supabase` | PASÓ |
+| `check-pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO declarados (los de 0549 y 0558 son ajenos) |
+| `migrations-lock`, `docs:check`, `sdd:check`, `governance:check`, `components:check` | PASARON |
+| Contrato `.test.sql` en Postgres real (Docker) | NO EJECUTADO: lo cubre PGlite (PostgreSQL 18.3 embebido) con las mismas migraciones |
+| `pnpm verify` completo y build | NO EJECUTADO (fuera del turno); lo cubre el CI de la PR |
+| Pantalla con sesión real (con y sin la 0556) | NO EJECUTADO |
+
+La declaración de símbolos se genera con un script (los ~196 sitios file:línea los calcula el gate); si se edita un archivo de la lista, hay que regenerarla. Lo que entra en producción sigue siendo del DG: aplicar la 0556 pide el OK nominal de Sam y el runbook.
+
 ## Fase A3 (2026-11-17) — tope de SSO y RPE en el motor
 
 Sam preguntó si el mensaje de una captura sobre el motor era un error o estaba bien: era correcto. Luego dijo «Sí,
