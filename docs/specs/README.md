@@ -686,7 +686,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
 | 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
 | 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
-| 0674 | Embarques: botón «Facturar» para los contenedores montados si… | proposed | interno |
+| 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0667, 0668, 0669, 0670, 0671, 0672, 0673 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

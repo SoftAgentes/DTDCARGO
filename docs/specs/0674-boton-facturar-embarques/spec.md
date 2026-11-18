@@ -1,7 +1,7 @@
 ---
 sdd: "0674"
 title: "Embarques: botón «Facturar» para los contenedores montados sin pasar por origen (regla transitoria)"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-18
 updated: 2026-11-18
@@ -20,8 +20,8 @@ confidencialidad: interno
 > 64**. Antes de facturar, la oficina confirma que lo cargado en el sistema cuadra con el Excel y escribe
 > el valor a facturar.
 >
-> **Spec sin código.** Sam contestó las seis preguntas del §4 (2026-11-18). Antes de implementar faltan
-> tres decisiones, listadas en el §7. Alcance: solo el contenedor 64.
+> **Aprobada por Sam el 2026-11-18.** Contestó las seis preguntas del §4 y aprobó las tres decisiones del
+> §7. Alcance: solo el contenedor 64. Migración: 0564.
 
 ## 1. Por qué es transitorio
 
@@ -128,9 +128,12 @@ y cómo queda cada punto para el botón:
   3. **Quedar bloqueado.** El botón deja la factura en borrador con el aviso del gate hasta que haya
      aceptación. En ese caso no cumple la decisión 3.
 
-  **Propuesta: la opción 2 — PENDIENTE DE SAM.** Va acotada a la lista y con su rastro, porque la regla ya
-  es transitoria. Hasta que Sam la apruebe, la implementación no avanza en este punto. Bajar
-  `LEGAL_GATE_HARD_BLOCK` para todos **no** es una opción.
+  **DECIDIDO por Sam (2026-11-18, chat del DG: «Sí, las tres»): la opción 2.** La excepción es explícita y
+  auditada, y aplica solo a la lista transitoria, que hoy es el contenedor 64.
+  - `LEGAL_GATE_HARD_BLOCK` sigue igual para todo lo demás.
+  - La RPC de la 0564 no consulta el gate para los clientes de la lista. En el audit de cada factura deja
+    `legal_ack = "exc_0674"` junto con quién la emitió, para que se vea que salió por esta regla y no por
+    una aceptación.
 
 **(b) Lo que se dispara al emitir:**
 - **Numeración.** `next_invoice_code(p_tenant_id)` da el correlativo atómico al **crear** la factura, no
@@ -215,11 +218,13 @@ cliente admin desde una action.
    - La pre-factura («valor sin facturar») es otra cosa: existe antes de montar el Excel y no se factura.
    - Lo que esto dispara y sus riesgos están en el §3.1. El gate legal AUT-04 bloquea hoy esta emisión, y
      hace falta que Sam decida.
-   - Faltan dos cosas por decidir:
-     - **¿El monto tecleado es la base o el total con IVA?** Recomiendo el total, porque es lo que el
-       cliente paga; la base y el IVA se derivan con la tasa del tenant.
-     - **¿A quién se factura cuando el cliente tiene un aliado raíz?** Recomiendo lo mismo que la carga de
-       consolidados: al aliado raíz.
+   - **DECIDIDO por Sam (2026-11-18, «Sí, las tres»):**
+     - **El monto tecleado es el total con IVA.** La base y el IVA se derivan con la tasa de IVA del
+       tenant: `base = round(total / (1 + iva/100), 2)` e `iva = total − base`, así que `base + iva` da
+       exactamente el total.
+     - **Si el cliente tiene aliado raíz, se le factura al aliado**, igual que en la carga de consolidados.
+       La factura lleva el Shipping Mark y los datos fiscales del aliado raíz, y una nota con el cliente
+       del contenedor.
 
 4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?** — **DECIDIDO por
    Sam (2026-11-18, en la reunión, por el DG):** «Ve el monto». El botón lo oprime el rol de Embarques, que
@@ -229,9 +234,9 @@ cliente admin desde una action.
    la regla de que solo Contabilidad ve montos (0661, 0414 y la frontera SDD-0357).
    - **Quién ve y escribe el monto y factura:** el rol de Embarques, más `accounting` y `admin`.
      **`commercial` sigue sin ver montos.**
-   - *Supuesto que confirma el DG:* el rol de Embarques es `operations` en `lib/studio/rbac.ts`.
-     `warehouse` y `support`, que también ven el módulo `shipments`, quedan **fuera** de la excepción
-     salvo que Sam diga otra cosa.
+   - El rol de Embarques es `operations` («Operaciones», `lib/studio/user-types.ts`). El catálogo no tiene
+     un rol «Embarques». Es una inferencia del DG, que se la comunica a Sam. `warehouse` y `support`, que
+     también ven el módulo `shipments`, quedan **fuera** de la excepción.
    - **Dónde aplica:** solo en la acción «Facturar», en la fila de un cliente o en el contenedor completo,
      y en sus dos pantallas de confirmación, y solo para los contenedores de la lista transitoria (hoy
      el 64).
@@ -285,9 +290,9 @@ cliente admin desde una action.
 - **0574 / 0571.** Flujo definitivo, embarques sin facturar y tarifa congelada. Este botón no los
   reemplaza.
 
-## 6. Fuera de alcance (por ahora)
+## 6. Fuera de alcance
 
-- Código, migraciones, producción y staging. Solo esta spec.
+- Aplicar la 0564 en producción o staging, que necesita OK aparte de Sam y el runbook. Contenedores que no estén en la lista.
 - Apagar `TRACKING_EN_CONSTRUCCION`. Es una decisión aparte de Sam (SDD-0514).
 - El flujo definitivo de recepción en China.
 
@@ -314,15 +319,19 @@ cliente admin desde una action.
 8. La lectura nueva queda registrada en el inventario SDD-0357 como EXC-0674, en la misma PR que la
    implementa.
 
-**Decisiones de Sam que faltan antes de implementar** (las lleva el DG; las recomendaciones están en el
-§3.1 y el §4):
-- el gate legal AUT-04: propuesta, la opción 2 del §3.1 (a), **pendiente de Sam**;
-- si el monto tecleado es la base o el total con IVA: propuesta, el total, **pendiente de Sam**;
-- si con aliado raíz se le factura al aliado: propuesta, que sí, como la carga de consolidados, **pendiente
-  de Sam**.
+9. Con aliado raíz, la factura sale a nombre del aliado. El monto tecleado es el total con IVA, y
+   `base + iva = total` exacto.
+10. Las facturas de la lista no pasan por el gate AUT-04 y quedan auditadas como `exc_0674`. Fuera de la
+    lista el gate sigue en bloqueo duro.
 
-**Migración:** la RPC transaccional y la lista transitoria en configuración la necesitan. El número se le
-pide al DG al pasar a implementación.
+Sam aprobó las tres decisiones del §3.1 y el §4 el 2026-11-18, en el chat del DG: «Sí, las tres».
+
+**Migración 0564** (número asignado por el DG). Incluye:
+- la lista transitoria en configuración;
+- la RPC transaccional, que hace en una sola transacción el correlativo, el insert ya emitido, el
+  titular, el asiento contable y el audit.
+
+Se implementa en el worktree y no se aplica en producción ni en staging.
 
 ## 8. Evidencia
 

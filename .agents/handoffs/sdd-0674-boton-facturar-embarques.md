@@ -24,7 +24,7 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 
 ## Hecho
 
-- `docs/specs/0674-boton-facturar-embarques/spec.md` en estado `proposed`, con el índice regenerado.
+- `docs/specs/0674-boton-facturar-embarques/spec.md` en estado `approved`, con el índice regenerado.
 
 ## Evidencia
 
@@ -43,11 +43,16 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 5. Solo el contenedor 64. Los demás se agregan después por configuración.
 6. La doble aprobación la da la misma persona, con dos confirmaciones seguidas.
 
+7. Las tres del §7, aprobadas por Sam en el chat del DG («Sí, las tres»):
+   - AUT-04 con una excepción explícita y auditada, solo para la lista;
+   - el monto tecleado es el total con IVA;
+   - si el cliente tiene aliado raíz, se le factura al aliado.
+
+Spec `approved`. Migración asignada por el DG: 0564.
+
 ## Pendientes de esta tarea
 
-- Que el DG revise la spec (status `proposed`).
-- Faltan tres decisiones de Sam antes de implementar (spec §7). Las lleva el DG y las tres están marcadas «pendiente de Sam»: el gate legal AUT-04 (propuesta: opción 2), si el monto es base o total con IVA (propuesta: total) y si se factura al aliado raíz (propuesta: sí).
-- Para implementar hace falta migración (RPC transaccional y lista en configuración). El número se le pide al DG.
+- Implementar la migración 0564 (RPC transaccional y lista), la acción, la interfaz y las pruebas. Las corridas pesadas, con turno del DG.
 
 ## FUERA DE ALCANCE DETECTADO
 
