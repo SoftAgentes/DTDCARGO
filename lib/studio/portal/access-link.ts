@@ -29,6 +29,7 @@
 
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { direccionInternaDelCliente } from "./correo-comprobacion";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -219,7 +220,11 @@ export async function releaseAccessLink(
     .eq("id", linkId);
 }
 
-/** Datos del cliente que necesita la página pública: saludo + correo del enlace. */
+/**
+ * Datos del cliente que necesita la página pública: saludo + la dirección con
+ * la que se acuña la entrada (el correo de la ficha, o la dirección interna de
+ * una cuenta por link sin comprobar). No se muestra ni se le manda nada.
+ */
 export type AccessTarget = { name: string | null; email: string | null };
 
 /**
@@ -238,7 +243,15 @@ export async function loadAccessTarget(
     .maybeSingle<AccessTarget>();
 
   if (error) return null;
-  return data ?? null;
+  if (!data) return null;
+
+  // SDD-0646 D-1: una cuenta por link sin comprobar no lleva el correo de la
+  // ficha, lleva una dirección interna. La entrada se acuña para ESA cuenta;
+  // acuñarla con el correo de la ficha abriría una cuenta suelta, sin portal.
+  // Si no se puede saber, no hay entrada: falla cerrado (error genérico arriba).
+  const dir = await direccionInternaDelCliente(admin, clientId);
+  if (dir.estado === "error") return null;
+  return dir.estado === "cuenta" ? { ...data, email: dir.email } : data;
 }
 
 /**

@@ -414,8 +414,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   //    el rol, la membresía única y el tenant y dejan el evento en la misma
   //    transacción. La subida al bucket privado va después de leer la ficha en
   //    el tenant de la membresía.
+  // SDD-0646 (D-1, opción C) sumó `clientes/actions.ts::resendEmailCheckAction` (485 → 486):
+  // `moduleEditDenial(supabase, "clients")` al tope; después la RPC `portal_email_check_prepare`
+  // (0559) repite en la base los roles admin/commercial/operations y el tenant; service_role entra
+  // recién después de las dos, para pasar la cuenta a su dirección interna y emitir el enlace.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(485);
+    expect(reportes.length).toBe(486);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

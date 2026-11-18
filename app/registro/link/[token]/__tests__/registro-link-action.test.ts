@@ -9,7 +9,10 @@
  *   4. las validaciones son las del registro normal (`validateRegisterInput`);
  *   5. el correo con cuenta vuelve al campo del correo (y la base no gastó el link);
  *   6. si la cuenta o el vínculo fallan, queda `access_error` y el cliente sabe
- *      que lo contactamos; si todo sale, recibe el enlace de un clic y su código.
+ *      que lo contactamos; si todo sale, recibe el enlace de un clic y su código;
+ *   7. ⭐ D-1 (opción C): el correo que escribió NO entra a la cuenta de Auth. La
+ *      cuenta nace con una dirección interna, la entrada se acuña para esa
+ *      dirección, y al correo sólo le llega el enlace de comprobación.
  *
  * Supabase se mockea — sin red ni DB real.
  */
@@ -23,17 +26,36 @@ let bindError: { message: string } | null = null;
 let createUserError: { message: string } | null = null;
 let fromTables: string[] = [];
 let throttleCount = 0;
+let issueError: { message: string } | null = null;
+let accessLinkEmails: string[] = [];
 
 const admin = {
   rpc: async (name: string, args: Record<string, unknown>) => {
     calls.push({ name, args });
     if (name === "portal_registration_link_complete") return completeResult;
     if (name === "portal_registration_link_bind") return { data: null, error: bindError };
+    if (name === "portal_email_check_issue") {
+      return issueError
+        ? { data: null, error: issueError }
+        : {
+            data: [{ tenant_id: "t-1", markbox: "DTD-8001", pending_email: "ana@example.test" }],
+            error: null,
+          };
+    }
     return { data: null, error: null };
   },
   from: (t: string) => {
     fromTables.push(t);
-    // El único acceso directo permitido es el throttle de /registro.
+    // Accesos directos permitidos: el throttle de /registro y la fila de
+    // comprobación del propio registro. Nunca `clients`.
+    if (t === "client_email_checks") {
+      const check = {
+        select: () => check,
+        eq: () => check,
+        maybeSingle: async () => ({ data: { id: "chk-1" }, error: null }),
+      };
+      return check;
+    }
     if (t !== "portal_registro_throttle") throw new Error(`no debería tocar la tabla ${t}`);
     const chain = {
       select: () => chain,
@@ -64,10 +86,14 @@ vi.mock("@/lib/studio/registro-link-aviso-email", () => ({
 }));
 vi.mock("@/lib/http/request-ip", () => ({ getRequestIp: async () => "203.0.113.7" }));
 vi.mock("@/lib/studio/portal-invite-email", () => ({
-  generatePortalAccessLink: async () => "https://auth.example.test/magic",
+  generatePortalAccessLink: async (_a: unknown, email: string) => {
+    accessLinkEmails.push(email);
+    return "https://auth.example.test/magic";
+  },
 }));
 
 import { registerByLinkAction } from "../actions";
+import { esCorreoInterno } from "@/lib/portal/correo-comprobacion";
 import {
   REGISTRO_LINK_DATOS_NO_SIRVEN,
   REGISTRO_LINK_INVALIDO,
@@ -95,6 +121,8 @@ beforeEach(() => {
   throttleCount = 0;
   bindError = null;
   createUserError = null;
+  issueError = null;
+  accessLinkEmails = [];
   completeResult = {
     data: [
       { client_id: "c-1", tenant_id: "t-1", markbox: "DTD-8001", email: "ana@example.test", link_id: "l-1" },
@@ -111,17 +139,19 @@ describe("registerByLinkAction", () => {
       ok: true,
       markbox: "DTD-8001",
       portalUrl: "https://auth.example.test/magic",
+      correoPorComprobar: true,
     });
     const nombres = calls.map((c) => c.name);
     expect(nombres).toEqual([
       "portal_registration_link_complete",
       "createUser",
       "portal_registration_link_bind",
+      "portal_email_check_issue",
       "aviso",
     ]);
     expect(nombres).not.toContain("next_markbox_service");
-    // Sólo el throttle (lectura + intento); nunca `clients`.
-    expect(new Set(fromTables)).toEqual(new Set(["portal_registro_throttle"]));
+    // Sólo el throttle (lectura + intento) y la fila de comprobación; nunca `clients`.
+    expect(new Set(fromTables)).toEqual(new Set(["portal_registro_throttle", "client_email_checks"]));
   });
 
   it("⭐ a la base va el hash del token, nunca el token, y los datos ya normalizados", async () => {
@@ -134,14 +164,46 @@ describe("registerByLinkAction", () => {
     expect(args).not.toHaveProperty("p_markbox");
   });
 
-  it("⭐ D-1: el correo no nace confirmado y le llega el aviso con el Shipping Mark, sin nombre", async () => {
+  it("⭐ D-1: el correo que escribió NO entra a la cuenta de Auth: nace con una dirección interna", async () => {
     await registerByLinkAction({}, form());
-    expect(calls.find((c) => c.name === "createUser")?.args.email_confirm).toBe(false);
-    expect(calls.find((c) => c.name === "aviso")?.args).toEqual({
-      tenantId: "t-1",
-      email: "ana@example.test",
-      markbox: "DTD-8001",
-    });
+    const cuenta = calls.find((c) => c.name === "createUser")?.args;
+    expect(esCorreoInterno(String(cuenta?.email))).toBe(true);
+    expect(cuenta?.email_confirm).toBe(false);
+    // Ni en el correo ni en ningún otro dato de la cuenta va el correo real.
+    expect(JSON.stringify(cuenta).toLowerCase()).not.toContain("ana@example.test");
+    // La dirección interna no sale del Shipping Mark, del nombre ni de la cédula.
+    expect(String(cuenta?.email)).not.toMatch(/8001|ana|12345678/i);
+  });
+
+  it("⭐ D-1: la entrada directa se acuña para la dirección interna, nunca para el correo real", async () => {
+    await registerByLinkAction({}, form());
+    const interna = String(calls.find((c) => c.name === "createUser")?.args.email);
+    expect(accessLinkEmails).toEqual([interna]);
+  });
+
+  it("⭐ D-1: al correo le llega SOLO el enlace de comprobación, con el Shipping Mark y sin nombre", async () => {
+    await registerByLinkAction({}, form());
+    const aviso = calls.find((c) => c.name === "aviso")?.args as Record<string, string>;
+    expect(Object.keys(aviso).sort()).toEqual(["email", "markbox", "tenantId", "url"]);
+    expect(aviso.email).toBe("ana@example.test");
+    expect(aviso.markbox).toBe("DTD-8001");
+    // El enlace es el de comprobación, no uno de entrada.
+    expect(aviso.url).toMatch(/\/registro\/correo\/[A-Za-z0-9_-]{43}$/);
+    expect(aviso.url).not.toBe("https://auth.example.test/magic");
+    // A la base va el hash de ese token, nunca el token.
+    const token = aviso.url.split("/registro/correo/")[1];
+    const emitido = calls.find((c) => c.name === "portal_email_check_issue")?.args;
+    expect(emitido?.p_check_id).toBe("chk-1");
+    expect(emitido?.p_token_hash).toBe(createHash("sha256").update(token).digest("hex"));
+    expect(JSON.stringify(emitido)).not.toContain(token);
+  });
+
+  it("D-1: si el correo de comprobación no sale, el cliente entra igual (lo reenvía el equipo)", async () => {
+    issueError = { message: "boom" };
+    const res = await registerByLinkAction({}, form());
+    expect(res.ok).toBe(true);
+    expect(res.portalUrl).toBe("https://auth.example.test/magic");
+    expect(calls.map((c) => c.name)).not.toContain("aviso");
   });
 
   it("la contraseña de la cuenta es aleatoria, nunca la cédula", async () => {
