@@ -25,9 +25,13 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 - `nomina/_components/__tests__/conservar-lo-escrito.test.tsx`: ahora también llena y compara los campos de `<DateField>` (antes los nativos de fecha estaban cubiertos; sin este cambio quedaban fuera) y comprueba que `granted_on` llega en ISO.
 - `nomina/_components/__tests__/ReglasDrawer.test.tsx` no se tocó: consulta `[name="vigente_desde"]`, que ahora es el oculto, y por eso el oculto lleva `min`/`max` informativos.
 
-### Cambio de comportamiento a revisar
+### Revisión independiente sobre `8bb0bae32` (cambios pedidos por el DG)
 
-- Tras un envío con `<form action>` sin `key`, el campo nativo se vaciaba con el reinicio de React 19; `<DateField>` conserva la fecha (es estado de React). Los formularios migrados que se vacían tras éxito usan `key` (Servicios) o cierran el drawer, así que no se nota; anotarlo si aparece en la tanda 2.
+- **B1** `form.reset()` no vaciaba `<DateField>` (el handoff anterior decía lo contrario y estaba mal): `DocsPanel` heredaba «Vence» y `RateDrawer` «Crear y empezar otra» heredaba la vigencia. Ahora escucha `reset` del formulario y vuelve a `defaultValue`. Prueba: `form.reset()` con y sin valor inicial.
+- **B2** «−» a medio escribir ponía hoy (`18-11-2025` → 17/11/2026 silencioso). Ahora «-» es separador a medio escribir; + y − solo con campo vacío o fecha válida. Pruebas: `18-11-2025`, `18+`, `31022026+-`.
+- **I1** Amonestación: `canNext` exige la validez de la fecha (`onValidityChange`) y la fecha es obligatoria. Prueba: `amonestacion-fecha.test.tsx`.
+- **I2** A medio escribir `onChange` no avisa (Gastos ya no navega con el filtro vacío al reescribir el mes).
+- **I3** Controlado: si el padre cambia la prop a `""`, el campo se limpia aunque haya texto a medio escribir.
 
 ## VALIDACIÓN (turno de PC del DG, 2026-11-18)
 
@@ -42,6 +46,10 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 | `governance:check`, `docs:check`, `sdd:check`, `git diff --check` | PASÓ |
 | `/ui-check` (página de prueba con `tokens.css` y `studio.css` reales, claro, oscuro y 375 px) | PASÓ con un ajuste aplicado (título «Noviembre De 2026» → «Noviembre de 2026») |
 | Contraste medido | texto 16,5 / 13,1; formato gris 5,3 / 6,9; día elegido 10,6 / 6,6; error 6,3 / 8,3 (claro / oscuro) |
+| Tras la revisión: `DateField` + `amonestacion-fecha` | PASÓ 37/37 |
+| Tras la revisión: Nómina, Reportes, Documentos, Tarifas, Gastos, contrato y máscara | PASÓ 97/97 (11 archivos) |
+| Tras la revisión: eslint de lo tocado | PASÓ |
+| Tras la revisión: typecheck | NO EJECUTADO localmente (la PC la tenía Embarques); lo cubre el CI de la PR |
 | `pnpm verify`, e2e | NO EJECUTADO (el DG no dio turno para verify) |
 
 ## PENDIENTES DE ESTA TAREA

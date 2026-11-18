@@ -616,7 +616,9 @@ migrar un archivo, bórralo de la lista.
   seguidos; T (o H) = hoy en Caracas; + y − = un día (o un mes); Alt+↓ o el
   icono abren el calendario. El doble clic selecciona el texto, no abre nada.
 - Al formulario viaja ISO (`AAAA-MM-DD` / `AAAA-MM`) en un oculto con el `name`:
-  validadores y server actions no cambian. `onChange` entrega ISO o `""`.
+  validadores y server actions no cambian. `onChange` entrega ISO, o `""` al
+  vaciar o con una fecha imposible; a medio escribir no avisa. `form.reset()`
+  lo devuelve a `defaultValue`.
 - Fecha imposible (31/02) no se corrige sola: se explica y bloquea el envío.
 - La etiqueta va con `htmlFor` + `id`, no envolviendo el campo: dentro de un
   `<label>` la ayuda del formato se sumaría al nombre del campo.

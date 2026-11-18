@@ -45,7 +45,7 @@ confidencialidad: interno
 | 1. Formato en gris de fondo, sin rayas | El campo es un texto. Detrás, en gris (`--studio-text-soft`, el mismo del placeholder) y con letra monoespaciada, se pinta `dd/mm/aaaa` (meses: `mm/aaaa`). Lo que se escribe tapa su parte: tras `18` se ve `18/mm/aaaa`. |
 | 2. Números seguidos, barras solas | `18112026` → `18/11/2026`. La barra se inserta al empezar el grupo siguiente (`181` → `18/1`), no al terminar el anterior: así Retroceso nunca choca con una barra que se vuelve a poner sola. Una barra escrita tras un solo dígito lo completa con cero (`1/` → `01`). |
 | 3. Calendario con el icono o Alt+↓ | El icono a la derecha del campo y **Alt+↓** abren el calendario. Escape lo cierra y el foco vuelve al campo. |
-| 4. Atajos estilo QuickBooks | **T** = hoy (también **H**, de «hoy»); **+** y **−** = un día más o menos; en meses, un mes. Sin fecha escrita, + y − arrancan en hoy. Respetan `min` y `max`. |
+| 4. Atajos estilo QuickBooks | **T** = hoy (también **H**, de «hoy»); **+** y **−** = un día más o menos; en meses, un mes. Sin fecha escrita, + y − arrancan en hoy. Respetan `min` y `max`. A medio escribir, **«-» es un separador** (`18-11-2025` → `18/11/2025`) y + no hace nada; con una fecha imposible, ninguno de los dos hace nada. |
 | 5. Escribir y elegir sincronizados | El calendario abre en la fecha escrita y la marca como elegida; si se escribe con el calendario abierto, el calendario la sigue. Elegir un día la escribe en el campo. |
 
 **Pegar:** se aceptan `18/11/2026`, `18-11-2026`, `18.11.2026`, `1/2/2026`, `18112026` y el ISO `2026-11-18` (también con hora detrás, que se ignora).
@@ -65,9 +65,11 @@ El botón del icono lleva `tabIndex={-1}`. En formularios de captura con varios 
 ### Lo que viaja en el formulario
 
 - `<input type="hidden" name={name}>` con ISO: `AAAA-MM-DD` (meses `AAAA-MM`). Es el mismo formato que mandaba el campo nativo, así que **los validadores y las server actions no cambian**.
-- Mientras la fecha está vacía, incompleta o es inválida, el oculto va vacío y `onChange` entrega `""` (igual que el campo nativo).
+- Mientras la fecha está vacía, incompleta o es inválida, el oculto va vacío.
+- `onChange` entrega el ISO de una fecha válida y `""` al vaciar el campo o al completar una fecha imposible. **A medio escribir no avisa**: el padre conserva el último valor (así un filtro por mes no se vacía al reescribirlo). `onValidityChange(valida)` sirve a los formularios por pasos que desmontan el campo (Amonestación).
+- `form.reset()` (también el que hace React 19 tras una `<form action>`) lo devuelve a `defaultValue`, como a un campo nativo.
 - API: `mode`, `name`, `id`, `value` / `defaultValue` (ISO; acepta un ISO con hora detrás), `onChange(iso)`, `onBlur`, `min`, `max`, `required`, `disabled`, `autoFocus`, `form`, `aria-label`, `aria-labelledby`, `aria-describedby` (se suma a la del formato), `aria-invalid`, `style` (contenedor), `inputStyle` (campo), `data-testid`.
-- Controlado: si el padre devuelve `""` mientras se escribe, lo escrito se respeta; si el padre manda **otra** fecha, el campo la muestra.
+- Controlado: el texto solo se reescribe cuando el padre **cambia** la prop: a otra fecha, la muestra; a `""`, limpia el campo aunque haya algo a medio escribir. Si la prop no cambia, lo que se está escribiendo se respeta.
 
 ### Calendario (patrón WAI «Date Picker Dialog»)
 

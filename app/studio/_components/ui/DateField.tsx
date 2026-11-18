@@ -18,8 +18,11 @@
  *
  * El valor que viaja en el formulario es ISO (`AAAA-MM-DD`; meses `AAAA-MM`)
  * en un `<input type="hidden" name=…>`, igual que antes: los validadores y las
- * server actions no cambian. `onChange` también entrega ISO, o "" mientras la
- * fecha está vacía, incompleta o es inválida (como el campo nativo).
+ * server actions no cambian. `onChange` entrega el ISO de una fecha válida, ""
+ * al vaciar el campo o al completar una fecha imposible, y nada mientras se
+ * está escribiendo (a medio escribir no hay aviso por tecla).
+ *
+ * `form.reset()` lo devuelve a `defaultValue`, como a un campo nativo.
  *
  * Una fecha imposible (31/02) no se corrige sola (DAT-01): queda escrita,
  * se explica el error y el formulario no se envía.
@@ -67,8 +70,16 @@ export interface DateFieldProps {
   value?: string | null;
   /** Valor inicial en ISO (no controlado). Acepta un ISO con hora detrás. */
   defaultValue?: string | null;
-  /** ISO de la fecha válida, o "" si está vacía, incompleta o inválida. */
+  /**
+   * ISO de la fecha válida, o "" si se vació o la fecha completa es imposible.
+   * Mientras está incompleta no avisa: el padre conserva el último valor.
+   */
   onChange?: (iso: string) => void;
+  /**
+   * Si lo escrito sirve: fecha válida, o vacío cuando no es `required`. Para
+   * formularios por pasos que validan antes de desmontar el campo.
+   */
+  onValidityChange?: (valid: boolean) => void;
   onBlur?: () => void;
   /** Límites en ISO; se aplican al escribir, al usar + y − y en el calendario. */
   min?: string;
@@ -102,6 +113,7 @@ export function DateField({
   value,
   defaultValue,
   onChange,
+  onValidityChange,
   onBlur,
   min,
   max,
@@ -140,18 +152,50 @@ export function DateField({
   const parsed = useMemo(() => parseDisplay(text, mode, bounds), [text, mode, bounds]);
   const currentIso = parsed.status === "valid" ? parsed.iso : "";
 
-  // Valor controlado que llega del padre: solo se reescribe el texto si es
-  // OTRA fecha (si el padre devuelve "" mientras se escribe, se respeta).
+  // Valor controlado: el texto se reescribe solo cuando el padre CAMBIA la
+  // prop a otra fecha (o la vacía, aunque haya algo a medio escribir). Si la
+  // prop no cambia, lo que se está escribiendo se respeta.
+  const prevValue = useRef(value);
   useEffect(() => {
-    if (!isControlled) return;
+    if (!isControlled || value === prevValue.current) return;
+    prevValue.current = value;
     const incoming = normalizeIso(value, mode) ?? "";
-    if (incoming === currentIso) return;
-    if (incoming === "" && parsed.status !== "valid") return;
     lastEmitted.current = incoming;
+    if (incoming !== "" && incoming === currentIso) return;
     // Sincronización deliberada del texto con la fuente controlada.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setText(isoToDisplay(incoming, mode));
-  }, [isControlled, value, mode, currentIso, parsed.status]);
+  }, [isControlled, value, mode, currentIso]);
+
+  // `form.reset()` (también el que hace React 19 tras una `<form action>`) lo
+  // devuelve a `defaultValue`, como a un campo nativo. Controlado: manda el padre.
+  const defaultRef = useRef(defaultValue);
+  useLayoutEffect(() => {
+    defaultRef.current = defaultValue;
+  });
+  useEffect(() => {
+    const form = inputRef.current?.form;
+    if (!form || isControlled) return;
+    const onReset = () => {
+      const display = isoToDisplay(defaultRef.current, mode);
+      lastEmitted.current = normalizeIso(defaultRef.current, mode) ?? "";
+      setText(display);
+      setValidated(false);
+      setOpen(false);
+    };
+    form.addEventListener("reset", onReset);
+    return () => form.removeEventListener("reset", onReset);
+  }, [isControlled, mode]);
+
+  // Validez hacia el padre (formularios por pasos).
+  const acceptable = parsed.status === "valid" || (parsed.status === "empty" && !required);
+  const validityRef = useRef(onValidityChange);
+  useLayoutEffect(() => {
+    validityRef.current = onValidityChange;
+  });
+  useEffect(() => {
+    validityRef.current?.(acceptable);
+  }, [acceptable]);
 
   useLayoutEffect(() => {
     if (pendingCaret.current == null) return;
@@ -177,6 +221,8 @@ export function DateField({
       setText(nextText);
       if (caret != null) pendingCaret.current = caret;
       const next = parseDisplay(nextText, mode, bounds);
+      // A medio escribir no se avisa: el padre conserva el último valor.
+      if (next.status === "incomplete") return;
       const iso = next.status === "valid" ? next.iso : "";
       if (iso === lastEmitted.current) return;
       lastEmitted.current = iso;
@@ -235,14 +281,12 @@ export function DateField({
       applyIso(clampIso(todayIso(mode), normalizeIso(min, mode), normalizeIso(max, mode)));
       return;
     }
-    if (key === "+") {
+    if (key === "+" || key === "-" || key === "−") {
+      // + y − solo mueven una fecha válida o arrancan en hoy con el campo vacío.
+      // A medio escribir, «-» es un separador (18-11-2025); lo demás no hace nada.
+      if (parsed.status === "incomplete" && key === "-") return;
       e.preventDefault();
-      step(1);
-      return;
-    }
-    if (key === "-" || key === "−") {
-      e.preventDefault();
-      step(-1);
+      if (parsed.status === "valid" || parsed.status === "empty") step(key === "+" ? 1 : -1);
       return;
     }
     if (key === "Enter") {
@@ -256,7 +300,7 @@ export function DateField({
       return;
     }
     // Cualquier otra letra o símbolo no tiene sentido en una fecha.
-    if (key.length === 1 && !/[\d/.\- ]/.test(key)) {
+    if (key.length === 1 && !/[\d/. ]/.test(key)) {
       e.preventDefault();
     }
   };

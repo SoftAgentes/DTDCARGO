@@ -64,11 +64,40 @@ describe("<DateField> · escribir", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("de una fecha válida a una incompleta avisa una sola vez con vacío", async () => {
-    const { input, onChange, user } = setup({ defaultValue: "2026-11-18" });
+  it("a medio escribir no avisa; vaciar y completar una fecha imposible avisan vacío", async () => {
+    const { input, container, onChange, user } = setup({ defaultValue: "2026-11-18" });
     await user.type(input, "{Backspace}{Backspace}");
-    expect(onChange).toHaveBeenCalledTimes(1);
+    // El padre conserva la última válida mientras se corrige (revisión de #668, I2).
+    expect(onChange).not.toHaveBeenCalled();
+    expect(hidden(container, "paid_at")).toHaveValue("");
+    await user.clear(input);
     expect(onChange).toHaveBeenLastCalledWith("");
+    onChange.mockClear();
+    await user.type(input, "31022026");
+    expect(onChange).not.toHaveBeenCalled(); // ya avisó vacío; sigue vacío
+    await user.clear(input);
+    await user.type(input, "18112026");
+    expect(onChange).toHaveBeenLastCalledWith("2026-11-18");
+  });
+
+  it("form.reset() lo devuelve al valor inicial, como a un campo nativo (B1)", async () => {
+    const { input, container, getByTestId, user } = setup({ defaultValue: "2026-11-18" });
+    await user.clear(input);
+    await user.type(input, "0101");
+    await user.tab();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    act(() => (getByTestId("form") as HTMLFormElement).reset());
+    expect(input).toHaveValue("18/11/2026");
+    expect(hidden(container, "paid_at")).toHaveValue("2026-11-18");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("form.reset() sin valor inicial lo deja vacío", async () => {
+    const { input, container, getByTestId, user } = setup();
+    await user.type(input, "18112026");
+    act(() => (getByTestId("form") as HTMLFormElement).reset());
+    expect(input).toHaveValue("");
+    expect(hidden(container, "paid_at")).toHaveValue("");
   });
 
   it("las letras que no son atajo no se escriben", async () => {
@@ -143,6 +172,25 @@ describe("<DateField> · atajos", () => {
     expect(input).toHaveValue("01/12/2026");
     await user.type(input, "--");
     expect(input).toHaveValue("29/11/2026");
+  });
+
+  it("a medio escribir, «-» es un separador y no pone hoy (B2)", async () => {
+    const { input, container, user } = setup();
+    await user.type(input, "18-11-2025");
+    expect(input).toHaveValue("18/11/2025");
+    expect(hidden(container, "paid_at")).toHaveValue("2025-11-18");
+  });
+
+  it("a medio escribir, + no hace nada", async () => {
+    const { input, user } = setup();
+    await user.type(input, "18+");
+    expect(input).toHaveValue("18");
+  });
+
+  it("con una fecha imposible, + y − no hacen nada", async () => {
+    const { input, user } = setup();
+    await user.type(input, "31022026+-");
+    expect(input).toHaveValue("31/02/2026");
   });
 
   it("+ sin fecha arranca en hoy", async () => {
@@ -287,5 +335,38 @@ describe("<DateField> · accesibilidad y control", () => {
     expect(screen.getByRole("status")).toHaveTextContent("vacío");
     await user.type(input, "2026");
     expect(screen.getByRole("status")).toHaveTextContent("2026-02-01");
+  });
+
+  it("controlado: si el padre vacía el valor con algo a medio escribir, el campo se limpia (I3)", async () => {
+    function Padre() {
+      const [v, setV] = useState("2026-11-18");
+      return (
+        <>
+          <DateField aria-label="Mes" value={v} onChange={setV} />
+          <button type="button" onClick={() => setV("")}>
+            Limpiar
+          </button>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Padre />);
+    const input = screen.getByLabelText("Mes");
+    await user.type(input, "{Backspace}{Backspace}{Backspace}");
+    expect(input).toHaveValue("18/11/2");
+    await user.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect(input).toHaveValue("");
+  });
+
+  it("onValidityChange avisa si lo escrito sirve (formularios por pasos)", async () => {
+    const onValidityChange = vi.fn();
+    const { input, user } = setup({ defaultValue: "2026-11-18", required: true, onValidityChange });
+    expect(onValidityChange).toHaveBeenLastCalledWith(true);
+    await user.type(input, "{Backspace}");
+    expect(onValidityChange).toHaveBeenLastCalledWith(false);
+    await user.clear(input);
+    expect(onValidityChange).toHaveBeenLastCalledWith(false); // requerido y vacío
+    await user.type(input, "01012026");
+    expect(onValidityChange).toHaveBeenLastCalledWith(true);
   });
 });
