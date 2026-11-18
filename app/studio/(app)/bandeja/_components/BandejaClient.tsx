@@ -180,7 +180,10 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   }, [fase.tipo, src]);
 
   useEffect(() => {
-    setAmpliada(leerAmpliada());
+    // Lectura diferida y cancelable, como `useColumnConfig`: el servidor no ve el
+    // almacenamiento y así no hay diferencia de hidratación.
+    const id = setTimeout(() => setAmpliada(leerAmpliada()), 0);
+    return () => clearTimeout(id);
   }, []);
 
   const listo = estado === "listo";
