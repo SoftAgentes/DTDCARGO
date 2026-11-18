@@ -1,7 +1,7 @@
 ---
 sdd: "0664"
 title: "Clientes migrados: código viejo visible, buscable y enlazable"
-status: proposed
+status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-18
 updated: 2026-11-18
@@ -62,6 +62,13 @@ Todo sale de leer el repositorio. **No se consultó producción.** Cada punto ll
 | Embarques | El filtro «Cliente» compara nombre y Shipping Mark de cada embarque, en el navegador. | `lib/studio/embarques-contenedores.ts` (`clienteCoincide`) |
 
 Un solo punto alimenta la búsqueda del Studio, la lista de Clientes y los tres formularios que eligen cliente: `construirQuery`. Ampliarlo ahí cubre los cinco sin duplicar nada.
+
+## Estado (2026-11-18)
+
+- **Fases 1 y 2: implementadas**, con el visto bueno del Director. La búsqueda se normaliza con y sin «DTD-» y sin distinguir mayúsculas, para no depender de la pregunta 2. Además del historial, se siguen las fichas absorbidas por fusión (`merged_into_client_id`) hasta el cliente vivo. Módulo: `lib/studio/client-codigo-viejo.ts`.
+- **Fase 3: en espera** de las respuestas de Sam a las preguntas 2 y 3.
+- **Portal del cliente:** fuera de esta SDD (pregunta 4).
+- **Medición de producción:** no se ejecutó; necesita el OK de Sam.
 
 ## Propuesta
 
@@ -150,8 +157,9 @@ Qué decide cada número:
 - `embarques_con_codigo_retirado` o `items_con_codigo_retirado` mayores que cero: carga ya guardada con el código viejo; corregirla es escritura en producción, con OK aparte.
 - `embarques_sin_shipping_mark` y `embarques_con_codigo_de_nadie`: el tamaño real de «embarques sin cliente».
 
-## Allowlist (cuando se apruebe)
+## Allowlist
 
+- `lib/studio/client-codigo-viejo.ts` (nuevo), `lib/studio/client-types.ts`
 - `lib/studio/client-queries.ts`, `lib/studio/client-search-action.ts`, `lib/studio/global-search/`
 - `app/studio/_components/ui/ClientCombobox.tsx`, `app/studio/_components/wiring/GlobalSearchModal.tsx`
 - `app/studio/(app)/clientes/[markbox]/page.tsx`, `app/studio/(app)/clientes/_components/ShippingMarkChip.tsx`

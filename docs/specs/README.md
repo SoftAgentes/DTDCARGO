@@ -682,7 +682,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
 | 0659 | Tracking en vivo por contenedor: mesa de control con mapa cen… | in-progress | interno |
 | 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
-| 0664 | Clientes migrados: código viejo visible, buscable y enlazable | proposed | interno |
+| 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0660, 0662, 0663 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
