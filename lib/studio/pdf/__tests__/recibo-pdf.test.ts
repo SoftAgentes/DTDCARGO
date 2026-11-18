@@ -13,6 +13,8 @@ import { inflateSync } from "node:zlib";
  * pero con el `/Length` de cada stream distinto de sus bytes y el contenido
  * comprimido roto. Aquí: termina en %%EOF, cada `stream` tiene su `endstream`,
  * cada `/Length` coincide con los bytes del stream y cada stream se descomprime.
+ * Todo stream tiene que tener su `/Length`: si ninguno hiciera match, el ciclo
+ * no comprobaría nada y la prueba pasaría vacía (revisión de #643).
  */
 function expectPdfIntegro(buffer: Buffer) {
   const raw = buffer.toString("latin1");
@@ -23,7 +25,9 @@ function expectPdfIntegro(buffer: Buffer) {
   expect(endstreams).toBe(streams);
   const conLength = /\/Length (\d+)[^]*?(?<!end)stream\r?\n/g;
   let m: RegExpExecArray | null;
+  let conLengthVistos = 0;
   while ((m = conLength.exec(raw))) {
+    conLengthVistos++;
     const inicio = m.index + m[0].length;
     const declarado = Number(m[1]);
     expect(raw.slice(inicio + declarado).trimStart().startsWith("endstream")).toBe(true);
@@ -31,6 +35,7 @@ function expectPdfIntegro(buffer: Buffer) {
       expect(() => inflateSync(buffer.subarray(inicio, inicio + declarado))).not.toThrow();
     }
   }
+  expect(conLengthVistos).toBe(streams);
 }
 
 function mockPayslip(over: Partial<MyPayslip> = {}): MyPayslip {
