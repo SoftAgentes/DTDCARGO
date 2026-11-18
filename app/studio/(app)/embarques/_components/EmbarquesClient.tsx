@@ -176,7 +176,7 @@ export function EmbarquesClient({
   montos?: MontosDeContenedores;
   /**
    * SDD-0674 · EXC-0674: qué contenedores se facturan desde aquí y qué ya se facturó. Sólo llega
-   * para operations, accounting y admin (lo decide la página en el servidor).
+   * para accounting y admin (lo decide la página en el servidor).
    */
   facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */

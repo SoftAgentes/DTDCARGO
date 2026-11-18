@@ -3,8 +3,8 @@
  *
  * Factura un cliente del contenedor, o todos los clientes a la vez (modo contenedor completo), con
  * la RPC `exc0674_facturar` (migr 0564). La RPC hace todo o nada en una transacción: correlativo,
- * factura emitida en USD, asiento y rastro. Antes de llamarla se comprueba el rol (operations,
- * accounting o admin) y se parsea cada monto. La base vuelve a comprobarlo todo.
+ * factura emitida en USD, asiento y rastro. Antes de llamarla se comprueba el rol (accounting o
+ * admin; Sam, 2026-11-18: operaciones no factura) y se parsea cada monto. La base vuelve a comprobarlo todo.
  *
  * Después, como `emitInvoice`, avisa por correo cada factura emitida según las reglas de Mailing
  * (best-effort: si el correo falla, la factura ya se emitió).

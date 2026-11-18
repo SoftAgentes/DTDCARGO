@@ -3,8 +3,8 @@
 /**
  * SDD-0674 · EXC-0674 — «Facturar» en un contenedor de la lista transitoria (hoy solo el 64).
  *
- * Solo se pinta si la página pasó `facturacion`, que lee en el servidor solo para operations,
- * accounting y admin. Aquí no se decide ningún permiso. Decisiones de Sam (2026-11-18):
+ * Solo se pinta si la página pasó `facturacion`, que lee en el servidor solo para accounting y
+ * admin. Aquí no se decide ningún permiso. Decisiones de Sam (2026-11-18):
  *   · Por cliente: «Facturar» en la fila de cada cliente abre UNA pantalla con los datos (el monto
  *     grande, las cajas y el CBM) y el aviso de que va al portal del cliente y a la contabilidad.
  *     Nada se emite hasta oprimir «Confirmado».

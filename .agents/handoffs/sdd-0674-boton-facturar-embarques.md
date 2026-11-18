@@ -17,7 +17,14 @@ Fecha: 2026-11-18. Datos de la tarea:
   - sobre `a166d07fe`: CHANGES_REQUESTED, 7 bloqueantes. Los corrigió la spec en `aaf25d169`, según las
     decisiones del DG;
   - re-revisión sobre `aaf25d169`: CHANGES_REQUESTED. Los 7 quedaron resueltos en el diseño (el 7,
-    parcial), y salieron los nuevos B1, B2 y N1 a N8. Los atiende la cabeza siguiente (spec §9).
+    parcial), y salieron los nuevos B1, B2 y N1 a N8. B1, B2 y N1 a N3 los atendió `91dd1e4a8`; N6 a N8,
+    la cabeza siguiente (spec §9).
+- **Corrección de Sam (2026-11-18, por el DG):** «El rol operaciones no factura y tampoco ve los valores.»
+  - Facturan y ven el monto **solo `accounting` y `admin`**. Se retiró la EXC-0674 de montos para
+    `operations` (spec §4 pregunta 4, §7.2, §7.3 punto 5 y el documento de excepciones).
+  - N4 y N5 dejan de aplicar: se quitó la RLS de `operations` en las tres tablas, su rol en la RPC, la
+    prop en Embarques y la nota de la frontera 0357. Las pruebas por rol rechazan a `operations`.
+  - Si otro rol debe facturar, será una decisión nueva de Sam.
 - **Código:**
   - el primer commit de implementación (`09356665d`) es anterior a la spec corregida;
   - `6339c2902` y la cabeza siguiente lo alinean con la spec.
@@ -56,19 +63,20 @@ Fecha: 2026-11-18. Datos de la tarea:
     - deriva la base y el IVA del total y reparte las líneas por CBM;
     - hace el asiento, que tiene que quedar `posted` o `already_posted`;
     - escribe el vínculo, el rastro y el evento `invoice_emitted_exc0674` con `legal_ack`.
-  - RLS: `accounting` y `admin` ven todo; `operations` solo mientras el contenedor esté en la lista. Nadie
-    escribe desde el Studio.
+  - RLS: solo `accounting` y `admin` de su tenant ven filas. Nadie escribe desde el Studio. Las altas y
+    bajas de la lista quedan auditadas como `system`, sin `actor_id`, con el motivo obligatorio (N7).
   - Va en espera en `migrations-baseline.json` y declarada en
     `pending-migration-symbol-declarations.json` (3 amarillos).
   - Desarme: `supabase/desarmes/0564_desarme.sql`.
 - **App:**
   - `lib/studio/exc0674.ts` y `exc0674-queries.ts`;
-  - `app/studio/(app)/embarques/facturar-actions.ts`. El correo sale después del commit, y el cliente
-    admin se usa solo para el correo;
+  - `app/studio/(app)/embarques/facturar-actions.ts`. El correo sale después del commit, con las variables
+    del retorno de la RPC (sin releer `invoices`), al titular facturado: con aliado raíz, al aliado (N8). El
+    cliente admin se usa solo para el correo;
   - `_components/FacturarContenedor.tsx`, `page.tsx` y `EmbarquesClient.tsx`;
   - `lib/studio/rate-snapshots/sin-facturar.ts`, que suma los envíos cubiertos.
 - **Frontera SDD-0357:** una nota EXC-0674 en `scripts/__tests__/invoice-read-boundary.test.mjs`, con +0
-  llamadas.
+  llamadas y sin excepción de rol.
 - **Pruebas:**
   - contratos SQL:
     - `supabase/tests/0564_exc0674_facturar_contenedor.test.sql`;
@@ -85,7 +93,8 @@ Fecha: 2026-11-18. Datos de la tarea:
 |---|---|
 | docs:check / sdd:check / governance:check / git diff --check | PASÓ |
 | check-pending-migration-symbols | PASÓ: 0 ROJO, 3 AMARILLO declarados |
-| Contratos SQL (CI) sobre `aaf25d169` | FALLÓ: uuid inválido `…cdel` en el fixture. Lo corrige la cabeza siguiente; falta que corra el CI |
+| Contratos SQL (CI) sobre `aaf25d169` y `6339c2902` | FALLÓ: uuid inválido `…cdel` en el fixture. Corregido en `91dd1e4a8` (`…c0d1`) |
+| Contratos SQL (CI) sobre la cabeza nueva | NO EJECUTADO todavía: lo corre el CI al subir |
 | vitest de lo tocado | NO EJECUTADO: espera el turno de PC del DG |
 | `pnpm typecheck` / eslint de lo tocado | NO EJECUTADO: espera el turno |
 | `/ui-check` de `FacturarContenedor.tsx` | NO EJECUTADO |
@@ -100,10 +109,8 @@ Fecha: 2026-11-18. Datos de la tarea:
      frontera 0357;
    - `pnpm typecheck` y eslint de lo tocado.
 3. `/ui-check` de `FacturarContenedor.tsx`.
-4. N6 a N8 de la re-revisión: le pedí el texto al DG.
-5. N5: el OK explícito de Sam para que `operations` facture lo pide el DG.
-6. La re-revisión de la cabeza nueva, que lanza el DG.
-7. Después de fusionar, y solo con el OK nominal de Sam:
+4. La re-revisión de la cabeza nueva, que lanza el DG.
+5. Después de fusionar, y solo con el OK nominal de Sam:
    - aplicar la 0564 por el runbook;
    - agregar el 64 a la lista con `service_role` y `dtd.audit_reason`.
 
@@ -111,4 +118,5 @@ Fecha: 2026-11-18. Datos de la tarea:
 
 - La 0574 tampoco reconoce envío por envío las facturas en borrador de la carga de consolidados
   (`lote-sql.ts`). Es aparte de esta regla, que ya se resuelve con el vínculo.
-- La 0668 está en la PR #680. Según el DG, no cruza con esta spec salvo que cambie la regla del portal.
+- La 0668 («código viejo visible en el portal») está en la PR #680 y solo toca documentación. Según el DG,
+  no cruza con esta spec salvo que cambie la regla del portal (N6).

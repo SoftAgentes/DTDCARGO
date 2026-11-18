@@ -18,9 +18,9 @@
  * lee si la persona ve Facturación (módulo de dinero `invoices`): si no, no se
  * consulta y la prop no existe, así no viaja al navegador.
  *
- * SDD-0674 · EXC-0674: a operations, accounting y admin se les lee además qué contenedores están en
- * la lista transitoria (hoy solo el 64) y qué clientes ya se facturaron ahí. Es la única excepción
- * a la regla de montos: commercial, warehouse y support no reciben la prop.
+ * SDD-0674 · EXC-0674: a accounting y admin (los que ya ven montos) se les lee además qué
+ * contenedores están en la lista transitoria (hoy solo el 64) y qué clientes ya se facturaron ahí.
+ * Los demás roles, operations incluido, no reciben la prop (Sam, 2026-11-18).
  */
 
 import { createClient } from "@/lib/db/server";

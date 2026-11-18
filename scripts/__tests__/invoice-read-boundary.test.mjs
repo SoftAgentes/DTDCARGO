@@ -89,27 +89,20 @@ const BASELINE = {
   //     por cobrar, cobrado, cuántas en otra moneda), sin código, id, cliente
   //     ni RIF de la factura.
   "lib/studio/embarques-contenedores-queries.ts": 1,
-  // SDD-0674 · EXC-0674 («Embarques factura el contenedor 64», decisión de Sam
-  // del 2026-11-18): +0 llamadas. Es una excepción con nombre a la regla de
-  // montos solo para Contabilidad: operations, accounting y admin ven y teclean
-  // el total con IVA en los contenedores de la lista transitoria. No se lee
-  // `invoices`: la página lee `exc0674_contenedores` y `exc0674_facturas`
-  // (migr 0564), cuyo rastro guarda código, total tecleado y titular, y la
-  // RPC `exc0674_facturar` (security definer) crea y emite. Revisión del
-  // contrato:
+  // SDD-0674 · regla transitoria EXC-0674 («Facturar» en Embarques, contenedor
+  // 64): +0 llamadas y ninguna excepción de rol. Facturan y ven el monto solo
+  // accounting y admin, los mismos de la 0414 (Sam, 2026-11-18: «El rol
+  // operaciones no factura y tampoco ve los valores.»). No se lee `invoices`
+  // con un literal:
+  //   · Embarques lee `exc0674_contenedores` y `exc0674_facturas` (migr 0564;
+  //     RLS accounting/admin del tenant) y la RPC `exc0674_facturar` (security
+  //     definer, accounting/admin) crea y emite;
+  //   · `reporteSinFacturar` (0574) lee la vista `exc0674_envios_cubiertos`
+  //     (security_invoker sobre invoices: la RLS 0414 manda), con código y
+  //     estado, sin montos;
   //   · candado: `rolFacturaExc0674(role)` en `app/studio/(app)/embarques/page.tsx`
-  //     y en `facturar-actions.ts`; la RLS de las dos tablas y la RPC repiten
-  //     operations/accounting/admin del tenant de la sesión;
-  //   · tenant: cliente de SESIÓN (get_user_tenant_id en la base); nunca admin
-  //     para leer (el admin solo dispara el correo, como emitInvoice);
-  //   · uso: al cliente cruzan, por cliente del contenedor de la lista, el
-  //     código, el total tecleado y el titular. commercial/warehouse/support
-  //     no reciben la prop. La franja y el detalle de la 0661 no cambian.
-  //   · 0574: `reporteSinFacturar` lee además la vista `exc0674_envios_cubiertos`
-  //     (security_invoker sobre invoices: la RLS 0414 deja ver solo a accounting
-  //     y admin) con código y estado de las facturas de esta regla por envío.
-  //     No es un literal de `invoices`; el contrato está congelado en
-  //     lib/studio/__tests__/exc0674.migration.test.ts.
+  //     y en `facturar-actions.ts`; el contrato de la RPC y la vista está
+  //     congelado en lib/studio/__tests__/exc0674.migration.test.ts.
   // Si una versión futura lee `invoices` para esto, entra aquí con su número.
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que

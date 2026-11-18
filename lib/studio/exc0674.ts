@@ -1,22 +1,19 @@
 /**
- * SDD-0674 · EXC-0674 — Botón «Facturar» en Embarques (regla transitoria).
+ * SDD-0674 · regla transitoria EXC-0674 — Botón «Facturar» en Embarques.
  *
- * Es una excepción con nombre a la regla de montos solo para Contabilidad (0661, 0414 y frontera
- * SDD-0357). En los contenedores de la lista transitoria (hoy solo el 64), `operations` (el rol de
- * Embarques), `accounting` y `admin`:
- *   · ven y teclean el monto de cada cliente: el TOTAL CON IVA, en USD;
- *   · emiten la factura real con la RPC `exc0674_facturar` (migr 0564).
- * `commercial`, `warehouse` y `support` no ven nada de esto. La franja y el detalle de la 0661 no
- * cambian.
+ * En los contenedores de la lista transitoria (hoy solo el 64), `accounting` y `admin` teclean el monto
+ * de cada cliente (el TOTAL CON IVA, en USD) y emiten la factura real con la RPC `exc0674_facturar`
+ * (migr 0564). Son los mismos roles que ya ven montos (0414, frontera SDD-0357): no se amplía quién ve
+ * dinero. Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.»
+ * `operations`, `commercial`, `warehouse`, `support` y `marketing` no ven nada de esto.
  *
  * Este módulo es puro (sin base): roles, parseo del monto y textos de error.
  */
 
 import type { StudioUserRole } from "./user-types";
 
-/** Roles de la EXC-0674. La RLS y la RPC de la 0564 dicen lo mismo. */
+/** Roles que facturan por esta regla. La RLS y la RPC de la 0564 dicen lo mismo. */
 export const ROLES_EXC0674: ReadonlySet<StudioUserRole> = new Set<StudioUserRole>([
-  "operations",
   "accounting",
   "admin",
 ]);

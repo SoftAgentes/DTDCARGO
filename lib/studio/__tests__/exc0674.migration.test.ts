@@ -1,6 +1,6 @@
 /**
- * SDD-0674 · EXC-0674 — congela, sobre el texto de la migración 0564, por dónde llega `operations` a
- * `invoices`: la RPC `exc0674_facturar` (security definer) y la vista de la 0574. Si alguien cambia la
+ * SDD-0674 · EXC-0674 — congela, sobre el texto de la migración 0564, por dónde llegan `accounting` y
+ * `admin` a `invoices` sin su RLS: la RPC `exc0674_facturar` (security definer) y la vista de la 0574. Si alguien cambia la
  * firma, el `security definer`, el `search_path`, los grants, el lock de numeración, la regla del
  * asiento o abre escritura en las tablas, esta prueba se pone en rojo. El contrato de la base (RLS,
  * privilegios efectivos y carreras) está en supabase/tests/0564_*.test.sql.
@@ -36,7 +36,9 @@ describe("migración 0564 · contrato congelado", () => {
 
   it("roles de la EXC-0674 y confirmación exacta en la RPC", () => {
     const r = rpc();
-    expect(r).toContain("v_role not in ('operations', 'accounting', 'admin')");
+    expect(r).toContain("v_role not in ('accounting', 'admin')");
+    // Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.»
+    expect(SQL).not.toMatch(/'operations'/);
     expect(r).toContain("p_confirmacion is distinct from 'Confirmado'");
     expect(r).toContain("exc0674:contenedor_fuera_de_lista");
   });
@@ -71,8 +73,7 @@ describe("migración 0564 · contrato congelado", () => {
     expect(SQL).toContain("create trigger exc0674_contenedores_auditar");
     expect(SQL).toMatch(/create unique index if not exists exc0674_facturas_un_cliente_vivo\s+on public\.exc0674_facturas \(tenant_id, consolidation_id, client_markbox\)\s+where anulada_at is null;/);
     expect(SQL).toContain("create trigger exc0674_marcar_anulada");
-    // operations ve el rastro solo con el contenedor en la lista.
-    expect(SQL.match(/= 'operations'\s+and exists \(select 1 from public\.exc0674_contenedores l/g)).toHaveLength(2);
+    expect(SQL.match(/current_studio_role\(\)\) in \('accounting', 'admin'\)/g)).toHaveLength(3);
     expect(SQL).toContain("exc0674:lista_sin_motivo");
   });
 });

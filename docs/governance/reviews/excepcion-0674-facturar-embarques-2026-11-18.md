@@ -9,7 +9,7 @@ comportamiento lleva la política afectada, el motivo, el alcance, la mitigació
 de revisión. Se registra como L3 (§7 del índice). Las filas de SGE-00, MP-01 y BTN-01 del registro maestro
 enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/spec.md` (§4, §7.2 y §8).
 
-## Alcance común a las cinco
+## Alcance común a las cuatro vigentes
 
 - **Una sola acción:** «Facturar» (un cliente del contenedor) y «Facturar contenedor» (todos los clientes
   pendientes) en `/studio/embarques`.
@@ -17,8 +17,8 @@ enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/s
   `app/studio/(app)/embarques/facturar-actions.ts`.
 - **Solo los contenedores de la lista transitoria.** Hoy solo el 64. La lista solo cambia por migración o
   por una operación auditada con el OK nominal de Sam.
-- **Solo los roles** `operations` (el que lleva Embarques; inferencia del DG que Sam confirma, N5),
-  `accounting` y `admin`, con una membresía activa en el tenant.
+- **Solo los roles** `accounting` y `admin`, con una membresía activa en el tenant. Son los que ya ven
+  montos. Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.»
 - Fuera de ese alcance rigen las políticas sin excepción.
 
 ## 1. SGE-00.01 · Toda acción debe ser predecible
@@ -62,21 +62,15 @@ enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/s
   - el contenedor completo pasa por dos confirmaciones seguidas;
   - la factura se corrige por el camino normal: se anula en Facturación (P3).
 
-## 5. EXC-0674 · Montos a `operations` (regla de montos solo para Contabilidad: SDD-0661, RLS 0414, frontera SDD-0357)
+## 5. Retirada · EXC-0674 de montos a `operations`
 
-- **Qué se aparta:** `operations` ve y teclea el monto a facturar de cada cliente del contenedor, y el
-  total de lo ya facturado por esta regla.
-- **Motivo:** decisión de Sam: «Ve el monto».
-- **Alcance exacto:**
-  - solo en «Facturar» y sus dos pantallas;
-  - el dato es el total tecleado y el código de lo ya facturado, desde `exc0674_facturas`, cuya RLS lo da
-    a `operations` **solo mientras el contenedor siga en la lista**;
-  - no abre la RLS de `invoices`, ni la franja ni el detalle de la 0661, ni ninguna otra pantalla;
-  - `commercial`, `warehouse`, `support` y `marketing` no reciben nada.
-- **Mitigación:**
-  - la decisión se toma en el servidor y el dato no viaja al navegador de otros roles (prueba por rol);
-  - el inventario SDD-0357 registra la nota EXC-0674;
-  - el contrato de la migración congela la firma y los grants.
+- **Estado:** retirada el 2026-11-18, antes de fusionar, por corrección de Sam (por el DG): «El rol operaciones no factura y tampoco ve los valores.»
+- **Qué queda:** facturan y ven el monto solo `accounting` y `admin`, igual que la regla de montos de la
+  SDD-0661, la RLS 0414 y la frontera SDD-0357. No hay excepción a esa regla.
+- **Qué se quitó:** la RLS de `operations` en `exc0674_contenedores`, `exc0674_facturas` y
+  `exc0674_factura_envios`, su rol en la RPC y la prop en Embarques. Las pruebas por rol rechazan a
+  `operations`.
+- Si otro rol debe facturar, será una decisión nueva de Sam, con su propio registro.
 
 ## 6. AUT-04 (SDD-0054) · Gate legal de emisión DDP en bloqueo duro
 

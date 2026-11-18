@@ -1,8 +1,8 @@
 /**
  * SDD-0674 · EXC-0674 — Lectura de la lista transitoria y de lo ya facturado.
  *
- * Usa la sesión del usuario y su RLS (migr 0564): solo `operations`, `accounting` y `admin` de su
- * tenant ven filas. No lee `invoices`. El rastro `exc0674_facturas` guarda el código, el total
+ * Usa la sesión del usuario y su RLS (migr 0564): solo `accounting` y `admin` de su tenant ven
+ * filas. No lee `invoices`. El rastro `exc0674_facturas` guarda el código, el total
  * tecleado y a quién se facturó, así que la frontera SDD-0357 no cambia (ver la nota EXC-0674 en
  * `scripts/__tests__/invoice-read-boundary.test.mjs`).
  *

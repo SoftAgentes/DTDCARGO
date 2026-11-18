@@ -11,12 +11,11 @@
 -- Los contenedores montados sin pasar por origen (hoy solo el 64) se facturan desde Embarques.
 -- La facturación es por cliente del contenedor, o de todo el contenedor a la vez. El monto lo
 -- teclea la oficina como TOTAL CON IVA, en USD. Se crea la factura REAL ya EMITIDA, a nombre del
--- aliado raíz si el cliente tiene uno. La oprimen `operations` (el rol de Embarques),
--- `accounting` y `admin`.
+-- aliado raíz si el cliente tiene uno. La oprimen SOLO `accounting` y `admin`, que ya ven montos
+-- (0414, frontera SDD-0357). Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.»
 --
--- La regla tiene excepciones explícitas, que se registran con nombre:
---   · EXC-0674 a la regla de montos solo para Contabilidad: `operations` ve y escribe el monto,
---     pero solo aquí;
+-- La regla tiene una excepción explícita, registrada en
+-- docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md:
 --   · AUT-04: estas facturas NO pasan por el gate legal de la app (LEGAL_GATE_HARD_BLOCK sigue
 --     igual para todo lo demás). Cada una queda en exc0674_facturas con legal_ack = 'exc_0674',
 --     el usuario que tecleó el monto y la hora.
@@ -25,7 +24,7 @@
 -- 1. public.exc0674_contenedores (tenant, consolidación): la lista transitoria.
 --    · La migración la deja VACÍA. El 64 se agrega aparte, con el OK de Sam, en un insert de una
 --      fila que se ejecuta después de aplicarla (ver el runbook en el handoff de la SDD-0674).
---    · SELECT solo para authenticated de su tenant con rol operations, accounting o admin.
+--    · SELECT solo para authenticated de su tenant con rol accounting o admin.
 --    · Sin escritura para authenticated. Solo la cambia una migración o una operación con
 --      service_role y el OK nominal de Sam.
 --    · Un trigger audita cada alta y baja (entity_audit_log, entidad consolidation) y EXIGE un
@@ -35,10 +34,10 @@
 --    · Índice único PARCIAL (tenant, contenedor, cliente) donde anulada_at es null: no se factura dos
 --      veces, pero después de anular la factura en Facturación se puede volver a facturar. Un trigger
 --      AFTER UPDATE OF status en invoices marca anulada_at cuando la factura pasa a 'anulada'.
---    · SELECT: accounting y admin de su tenant; operations solo mientras el contenedor siga en la
---      lista. Sin escritura para authenticated.
+--    · SELECT: accounting y admin de su tenant. Sin escritura para authenticated.
 -- 2b. public.exc0674_factura_envios: qué envíos cubre cada factura, con el Shipping Mark del cliente
---     real del contenedor (con aliado raíz, la factura lleva el del aliado). Misma RLS y sin escritura
+--     real del contenedor (con aliado raíz, la factura lleva el del aliado). SELECT para accounting y
+--     admin, y sin escritura
 --     para authenticated.
 -- 2c. public.exc0674_envios_cubiertos: vista security_invoker que une ese vínculo con la factura viva
 --     y su estado. La lee «Embarques sin facturar» (SDD-0574). La RLS 0414 de invoices decide quién ve
@@ -140,7 +139,7 @@ create policy exc0674_contenedores_select on public.exc0674_contenedores
   for select to authenticated
   using (
     tenant_id = (select public.get_user_tenant_id())
-    and (select public.current_studio_role()) in ('operations', 'accounting', 'admin')
+    and (select public.current_studio_role()) in ('accounting', 'admin')
   );
 revoke all on public.exc0674_contenedores from public, anon, authenticated;
 grant select on public.exc0674_contenedores to authenticated;
@@ -212,13 +211,7 @@ create policy exc0674_facturas_select on public.exc0674_facturas
   for select to authenticated
   using (
     tenant_id = (select public.get_user_tenant_id())
-    and (
-      (select public.current_studio_role()) in ('accounting', 'admin')
-      or ((select public.current_studio_role()) = 'operations'
-          and exists (select 1 from public.exc0674_contenedores l
-                       where l.tenant_id = exc0674_facturas.tenant_id
-                         and l.consolidation_id = exc0674_facturas.consolidation_id))
-    )
+    and (select public.current_studio_role()) in ('accounting', 'admin')
   );
 revoke all on public.exc0674_facturas from public, anon, authenticated;
 grant select on public.exc0674_facturas to authenticated;
@@ -268,13 +261,7 @@ create policy exc0674_factura_envios_select on public.exc0674_factura_envios
   for select to authenticated
   using (
     tenant_id = (select public.get_user_tenant_id())
-    and (
-      (select public.current_studio_role()) in ('accounting', 'admin')
-      or ((select public.current_studio_role()) = 'operations'
-          and exists (select 1 from public.exc0674_contenedores l
-                       where l.tenant_id = exc0674_factura_envios.tenant_id
-                         and l.consolidation_id = exc0674_factura_envios.consolidation_id))
-    )
+    and (select public.current_studio_role()) in ('accounting', 'admin')
   );
 revoke all on public.exc0674_factura_envios from public, anon, authenticated;
 grant select on public.exc0674_factura_envios to authenticated;
@@ -342,7 +329,7 @@ begin
   if v_uid is null or v_tenant is null then
     raise exception 'exc0674:sin_sesion' using errcode = '42501';
   end if;
-  if v_role is null or v_role not in ('operations', 'accounting', 'admin') then
+  if v_role is null or v_role not in ('accounting', 'admin') then
     raise exception 'exc0674:rol' using errcode = '42501';
   end if;
   if p_confirmacion is distinct from 'Confirmado' then
@@ -556,7 +543,7 @@ end;
 $function$;
 
 comment on function public.exc0674_facturar(uuid, jsonb, text) is
-  'SDD-0674 · EXC-0674: factura por cliente un contenedor de la lista transitoria (exc0674_contenedores). Todo o nada: crea la factura emitida en USD (el total tecleado lleva el IVA; se factura al aliado raíz si lo hay), su asiento y el rastro en exc0674_facturas. Roles operations, accounting y admin del tenant de la sesión. No pasa por el gate legal AUT-04 de la app (excepción explícita, legal_ack = exc_0674).';
+  'SDD-0674 · EXC-0674: factura por cliente un contenedor de la lista transitoria (exc0674_contenedores). Todo o nada: crea la factura emitida en USD (el total tecleado lleva el IVA; se factura al aliado raíz si lo hay), su asiento y el rastro en exc0674_facturas. Roles accounting y admin del tenant de la sesión (Sam, 2026-11-18: operaciones no factura). No pasa por el gate legal AUT-04 de la app (excepción explícita, legal_ack = exc_0674).';
 
 revoke all on function public.exc0674_facturar(uuid, jsonb, text) from public, anon, service_role;
 grant execute on function public.exc0674_facturar(uuid, jsonb, text) to authenticated;

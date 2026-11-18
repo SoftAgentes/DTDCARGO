@@ -122,9 +122,9 @@ create function pg_temp.ver(p_sql text) returns text language sql as $$
   select r from dblink('c0564_s', p_sql) as t(r text)
 $$;
 
--- Usuarios del contrato: a1 operations del tenant A, b1 operations del tenant B.
+-- Usuarios del contrato: a5 accounting del tenant A, b1 accounting del tenant B.
 create function pg_temp.uid(p_quien text) returns text language sql immutable as $$
-  select case p_quien when 'a1' then '00000000-0000-4000-8000-00000000a001'
+  select case p_quien when 'a5' then '00000000-0000-4000-8000-00000000a005'
                       when 'b1' then '00000000-0000-4000-8000-00000000b001' end
 $$;
 
@@ -232,7 +232,7 @@ begin
     position('exc0674:numeracion:' in pg_temp.ver($q$select pg_get_functiondef('public.exc0674_facturar(uuid,jsonb,text)'::regprocedure)$q$)) = 0,
     'el control no quitó el lock');
   begin
-    v_r := pg_temp.carrera('a1', pg_temp.facturar(k64, 'DTD-C001'), 'a1', pg_temp.facturar(k64, 'DTD-C002'));
+    v_r := pg_temp.carrera('a5', pg_temp.facturar(k64, 'DTD-C001'), 'a5', pg_temp.facturar(k64, 'DTD-C002'));
   exception when others then
     v_r := jsonb_build_object('excepcion', sqlerrm);
     perform pg_temp.reponer();
@@ -243,7 +243,7 @@ begin
 
   -- 1. REAL: `b` espera en el lock consultivo y sale con el número siguiente.
   begin
-    v_r := pg_temp.carrera('a1', pg_temp.facturar(k64, 'DTD-C003'), 'a1', pg_temp.facturar(k64, 'DTD-C004'));
+    v_r := pg_temp.carrera('a5', pg_temp.facturar(k64, 'DTD-C003'), 'a5', pg_temp.facturar(k64, 'DTD-C004'));
   exception when others then
     v_r := jsonb_build_object('excepcion', sqlerrm);
     perform pg_temp.reponer();
@@ -254,7 +254,7 @@ begin
 
   -- 2. REAL: el mismo cliente a la vez. Una sola factura.
   begin
-    v_r := pg_temp.carrera('a1', pg_temp.facturar(k64, 'DTD-C005'), 'a1', pg_temp.facturar(k64, 'DTD-C005'));
+    v_r := pg_temp.carrera('a5', pg_temp.facturar(k64, 'DTD-C005'), 'a5', pg_temp.facturar(k64, 'DTD-C005'));
   exception when others then
     v_r := jsonb_build_object('excepcion', sqlerrm);
     perform pg_temp.reponer();
@@ -268,7 +268,7 @@ begin
 
   -- 3. REAL: tenants distintos no se esperan.
   begin
-    v_r := pg_temp.carrera('a1', pg_temp.facturar(k64, 'DTD-C006'), 'b1', pg_temp.facturar(kb, 'DTD-B001'));
+    v_r := pg_temp.carrera('a5', pg_temp.facturar(k64, 'DTD-C006'), 'b1', pg_temp.facturar(kb, 'DTD-B001'));
   exception when others then
     v_r := jsonb_build_object('excepcion', sqlerrm);
     perform pg_temp.reponer();

@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0674 — Botón «Facturar» en Embarques (regla transitoria)
 
 > Sam lo pidió en la reunión con la oficina del 2026-11-18, por el DG. Embarques tendría un botón
-> «Facturar» que oprime el rol de Embarques, que ve el monto (excepción EXC-0674, §4, pregunta 4). Al facturar, la factura
+> «Facturar» que oprimen **solo** `accounting` y `admin`, los roles que ya ven montos (§4, pregunta 4). Al facturar, la factura
 > llega al portal del cliente y a la contabilidad. Es **transitorio**: era para los cuatro contenedores
 > montados sin pasar por origen, y por decisión de Sam (§4, pregunta 5) hoy cubre **solo el contenedor
 > 64**. Antes de facturar, la oficina confirma que lo cargado en el sistema cuadra con el Excel y escribe
@@ -56,8 +56,8 @@ cliente».
 **Consecuencia.** Hoy un embarque del contenedor ya se ve en el portal **antes** de facturar, con el
 aviso de seguimiento en construcción encima. Que solo se vea al facturar **no** se logra con un botón.
 Habría que cambiar la regla del portal: un filtro nuevo en la policy 0416 y en las lecturas del portal de
-las SDD-0549, 0552 y 0553, con su migración. Ese cambio cruza la 0668, que no encontré en `main` ni en
-las ramas remotas al medir (§5).
+las SDD-0549, 0552 y 0553, con su migración. Ese cambio cruzaría la 0668 («código viejo visible en el
+portal»), que está en la PR #680, sin fusionar, y solo toca documentación (§5).
 
 Por eso, «al facturar el cliente ve el tracking» **ya ocurre hoy**, aunque no haya factura. Lo que el
 botón agrega es la factura y su monto en el portal y en la contabilidad.
@@ -169,6 +169,10 @@ y cómo queda cada punto para el botón:
   Mailing, y respeta sus reglas e interruptores: sin una regla activa no sale nada. Es best-effort: si el
   correo falla, la factura ya quedó emitida. El cliente admin se usa **solo** para ese correo, como en
   `emitInvoice`, y nunca para leer ni escribir `invoices`.
+  - **Las variables del correo salen del retorno de la RPC** (código, titular facturado, Shipping Mark,
+    embarque, emisión, vencimiento y total). La action **no** vuelve a leer `invoices`.
+  - **Destinatario:** el titular facturado. Con aliado raíz, el correo va **al aliado**, que es a quien se
+    le facturó, y no al cliente del contenedor.
 - **Portal.** La factura emitida aparece en `/portal/facturas` del cliente (policy 0452) y entra en su
   estado de cuenta.
 - **Vencimiento.** `due_date` es hoy + 30 días si la factura no trae una fecha.
@@ -181,7 +185,7 @@ y cómo queda cada punto para el botón:
   - Las dos lecturas quedan registradas con el nombre EXC-0674 en el inventario de
     `invoice-read-boundary`, con +0 llamadas y sin aflojar la prueba.
   - Una prueba de migración congela la firma, el `security definer`, el `search_path` y los grants de la
-    RPC y de la vista, que es por donde `operations` llega a `invoices` (§8.6).
+    RPC y de la vista (§8.6). Ninguna de las dos le abre `invoices` a un rol que hoy no lo ve.
 - **SDD-0574. Decisión del DG: se resuelve en esta PR.** `sin-facturar.ts:176-196` reconoce lo facturado
   por `shipment_id|client_markbox` de la factura. Con aliado raíz, la factura lleva el Shipping Mark del
   aliado (como en `lote-sql.ts:705`), y una factura por cliente solo apunta a su primer embarque. Por eso:
@@ -228,7 +232,7 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
      contenedor. Así se ve de un golpe si el monto no cuadra con la carga.
    - **Rastro:** el monto no tiene otro origen que la persona, así que `exc0674_facturas` guarda quién lo
      tecleó (`tecleado_por`, el usuario de la sesión) y cuándo (`confirmado_at`) (§8.1).
-   - Quién teclea el monto: el rol de Embarques, `accounting` o `admin` (pregunta 4, EXC-0674).
+   - Quién teclea el monto: solo `accounting` o `admin` (pregunta 4, corrección de Sam del 2026-11-18).
 
 3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?** — **DECIDIDO por Sam (2026-11-18, por
    el DG):** «Factura en dólares»; «ya es una factura que se va a facturar en contabilidad, en todo».
@@ -246,33 +250,26 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
        del contenedor.
 
 4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?** — **DECIDIDO por
-   Sam (2026-11-18, en la reunión, por el DG):** «Ve el monto». El botón lo oprime el rol de Embarques, que
-   **sí** ve el monto al facturar.
+   Sam (2026-11-18, por el DG):** «El rol operaciones no factura y tampoco ve los valores.»
 
-   **Excepción con nombre: «EXC-0674 · Embarques factura el contenedor 64».** Es una excepción explícita a
-   la regla de que solo Contabilidad ve montos (0661, 0414 y la frontera SDD-0357).
-   - **Quién ve y escribe el monto y factura:** el rol de Embarques, más `accounting` y `admin`.
-     **`commercial` sigue sin ver montos.**
-   - El rol de Embarques es `operations` («Operaciones», `lib/studio/user-types.ts`). El catálogo no tiene
-     un rol «Embarques». Es una inferencia del DG, que se la comunica a Sam. `warehouse` y `support`, que
-     también ven el módulo `shipments`, quedan **fuera** de la excepción.
-   - **Dónde aplica:** solo en la acción «Facturar», en la fila de un cliente o en el contenedor completo,
-     y en sus dos pantallas de confirmación, y solo para los contenedores de la lista transitoria (hoy
-     el 64).
-   - **Dónde no cambia:** la franja y el detalle por cliente de la 0661. Ahí el dinero sigue siendo solo
-     de `accounting` y `admin`.
-   - **Cómo se lee y escribe.** Con su sesión, `operations` no puede leer ni escribir `invoices` (RLS 0414
-     y 0407), y la excepción **no** abre esas policies. Lo hace una RPC `security definer` acotada:
+   La respuesta anterior («Ve el monto», que llevaba a una excepción EXC-0674 de montos para `operations`)
+   **queda reemplazada** por esta corrección del mismo día.
+   - **Facturan y ven el monto solo `accounting` y `admin`**, los mismos que ya ven montos (0661, RLS 0414,
+     frontera SDD-0357). No hay excepción a la regla de montos.
+   - `operations`, `commercial`, `warehouse`, `support` y `marketing` **no** ven el botón ni ningún monto, y
+     el servidor no les lee nada de esta regla. La RPC los rechaza con `exc0674:rol`.
+   - **Dónde no cambia:** la franja y el detalle por cliente de la 0661 siguen igual.
+   - **Cómo se escribe.** `accounting` tampoco puede escribir `invoices` con su sesión en todos los casos
+     que hacen falta (numeración con lock, asiento en la misma transacción, rastro). Lo hace una RPC
+     `security definer` acotada, que:
      - verifica el rol, el tenant y que el contenedor esté en la lista;
-     - es la que crea y emite la factura.
+     - crea y emite la factura.
 
-     Lo ya facturado se lee del rastro `exc0674_facturas`, con RLS para los tres roles, y no de
-     `invoices`. No se usa el cliente admin desde una action.
-   - **Inventario SDD-0357.** Va como nota EXC-0674 en `scripts/__tests__/invoice-read-boundary.test.mjs`,
-     con +0 llamadas literales: la RPC, el rastro y la vista de la 0574 (§3.1 c). Si una versión futura
-     lee `invoices` con un literal, entra ahí con su número.
-   - **Cierre:** cuando se vacía la lista transitoria, la excepción deja de aplicar. Se retira en la misma
-     PR que cierre la regla.
+     Lo ya facturado se lee del rastro `exc0674_facturas`, con RLS para `accounting` y `admin`, y no de
+     `invoices`. No se usa el cliente admin desde una action, salvo para el correo (§3.1 b).
+   - **Inventario SDD-0357.** Va como nota en `scripts/__tests__/invoice-read-boundary.test.mjs`, con +0
+     llamadas literales y sin excepción de rol: la RPC, el rastro y la vista de la 0574 (§3.1 c).
+   - **Si otro rol debe facturar**, será una decisión nueva de Sam, con su propia spec o enmienda.
 
 5. **¿Cuáles son los otros contenedores?** — **DECIDIDO por Sam (2026-11-18, por el DG):** hoy **no** se
    hacen los otros.
@@ -299,8 +296,8 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
   spec, salvo que cambie la regla de lectura del portal (§3).
 - **0549, 0552, 0553 y 0556.** Lecturas del portal por principal y tenant, y facturas anuladas fuera. Si
   cambia qué ve el cliente, se tocan sus lecturas y sus pruebas de frontera.
-- **0357.** La frontera de lecturas de `invoices`. La nota EXC-0674 del inventario dice por dónde llega
-  cada rol (§3.1 c).
+- **0357.** La frontera de lecturas de `invoices`. La nota EXC-0674 del inventario dice por dónde se lee
+  lo facturado, sin excepción de rol (§3.1 c).
 - **0040 / 0497.** El asiento atómico y su guarda i3. La RPC los usa dentro de su transacción.
 - **0466.** El sello del titular al emitir.
 - **0197 / 0494.** El crédito del referidor en la primera factura emitida.
@@ -318,9 +315,9 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 ## 7. Aceptación
 
 1. En `/studio/embarques`, el botón «Facturar» (por cliente) y «Facturar contenedor» aparecen **solo** en
-   el contenedor 64 (lista transitoria) y **solo** para el rol de Embarques (`operations`), `accounting` y
-   `admin` (EXC-0674). A `commercial`, `warehouse`, `support` y `marketing` no se les lee ni se les envía
-   ningún monto. Lo prueba el servidor por rol, como en la 0661. La franja y el detalle de la 0661 no
+   el contenedor 64 (lista transitoria) y **solo** para `accounting` y `admin` (Sam, 2026-11-18:
+   «El rol operaciones no factura y tampoco ve los valores.»). A `operations`, `commercial`, `warehouse`, `support` y `marketing` no se les lee ni se
+   les envía nada de esta regla, ni el botón ni ningún monto; la RPC los rechaza. Lo prueba el servidor por rol, como en la 0661. La franja y el detalle de la 0661 no
    cambian.
 2. El monto lo teclea la persona como total con IVA. El servidor rechaza un monto vacío, en cero, negativo,
    con más de dos decimales o en una moneda que no sea USD. Lo rechazan la acción y la RPC.
@@ -407,14 +404,14 @@ de Embarques no puede emitir con su sesión. Lo hace la RPC `exc0674_facturar` d
 | BTN-01 | excepción | Ver el §7.3, punto 3 (vocabulario). Se cumple el resto: «Volver» sale de la interacción a la izquierda, la primaria va a la derecha, `type="button"`, «Emitiendo…» con `aria-busy` e idempotencia en el servidor (§9 de BTN-01). El botón se oculta, en vez de deshabilitarse, para los roles sin permiso. Contrato `GovernedAction` en el §8.7. |
 | AUD-01 | cumplimiento | La mutación y el evento son una sola operación, porque si el evento falla, no se factura. El actor es `user` con el id de la sesión. Lleva el motivo de la regla, `source = rpc` y `result = succeeded`. Las altas y bajas de la lista quedan auditadas con motivo obligatorio. |
 | AUD-02 | no aplica | No hay consulta, exportación ni lectura del log nueva. El evento sigue la conservación y el acceso que ya existen. |
-| Regla de montos solo para Contabilidad (0661, RLS 0414, frontera SDD-0357) | excepción | EXC-0674 (§7.3, punto 5). |
+| Regla de montos solo para Contabilidad (0661, RLS 0414, frontera SDD-0357) | cumplimiento | Solo `accounting` y `admin` facturan y ven el monto (Sam, 2026-11-18). La EXC-0674 de montos para `operations` se retiró. |
 | Gate legal AUT-04 (SDD-0054) | excepción | §7.3, punto 6. |
 
 ### 7.3 Registro formal de las excepciones (índice de gobernanza §5 y §7, protocolo L3)
 
 Todas están aprobadas por Sam el 2026-11-18, con Sam como responsable. La **fecha de revisión es
 2027-01-31**, o antes si se vacía la lista transitoria. El alcance común es solo la acción «Facturar», solo
-los contenedores de la lista (hoy el 64) y solo `operations`, `accounting` y `admin`. La decisión escrita,
+los contenedores de la lista (hoy el 64) y solo `accounting` y `admin`. La decisión escrita,
 con la mitigación completa, está en
 [`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`](../../governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md).
 Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
@@ -425,7 +422,7 @@ Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
 | 2 | SGE-00.09 | Diálogo propio en vez de `ConfirmDialog` | La confirmación lista clientes con montos, cajas y CBM (decisión de Sam) |
 | 3 | BTN-01 §3 | «Facturar» y «Confirmado» en vez de «Emitir factura» y «Confirmar» | Decisión de Sam (§4, preguntas 1 y 6) |
 | 4 | MP-01 §3 | Una acción R3 sin motivo tecleado | La doble confirmación con datos es la fricción que eligió Sam. El audit lleva un motivo fijo |
-| 5 | EXC-0674 (montos solo para Contabilidad) | `operations` ve y teclea el monto | Decisión de Sam: «Ve el monto». El OK explícito de `operations` lo pide el DG (N5) |
+| 5 | — | **Retirada.** Era la EXC-0674 de montos para `operations` | Sam, 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.» |
 | 6 | AUT-04 (SDD-0054) | Facturas de la lista sin aceptación de T&C | Sin la excepción el botón queda bloqueado para todo el 64. Opción 2 de Sam |
 
 ## 8. Contrato de implementación (migración 0564)
@@ -434,11 +431,15 @@ Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
 
 - **`exc0674_contenedores`** (tenant, consolidación): la lista transitoria.
   - Nace vacía.
-  - Tiene RLS de SELECT para operations, accounting y admin de su tenant.
+  - Tiene RLS de SELECT para `accounting` y `admin` de su tenant.
   - **Sin** INSERT, UPDATE ni DELETE para `authenticated`. Solo la cambian una migración o una operación
     con `service_role` y el OK nominal de Sam.
   - Un trigger escribe un evento de auditoría (entidad `consolidation`, `exc0674_lista_alta` o
     `exc0674_lista_baja`) y **exige** un motivo en `dtd.audit_reason`. Sin motivo, la operación falla.
+  - **Actor (N7):** el cambio se hace con `service_role` o en una migración, sin sesión de usuario. Por eso
+    el evento queda con `actor_type = 'system'` y `actor_id` nulo, y el motivo de `dtd.audit_reason`
+    (obligatorio) lleva el OK de Sam y quién lo ejecutó. Si algún día lo hace un usuario con sesión, queda
+    como `user` con su id. El contrato SQL prueba el alta y la baja como `system`.
 - **`exc0674_facturas`**: la **marca de la regla**. Una fila por cliente del contenedor facturado, con
   factura, código, total tecleado, `tecleado_por` (el usuario de la sesión), `confirmado_at`, titular y
   `legal_ack = 'exc_0674'`.
@@ -446,13 +447,10 @@ Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
     `where anulada_at is null`.
   - El trigger `exc0674_marcar_anulada` (AFTER UPDATE OF status en `invoices`) pone `anulada_at` cuando
     la factura pasa a `anulada`. No toca la factura ni su reverso contable (0497).
-  - RLS de SELECT (N4):
-    - `accounting` y `admin` de su tenant ven todas las filas;
-    - `operations` las ve **solo mientras el contenedor siga en la lista**;
-    - sin escritura para `authenticated`.
+  - RLS de SELECT: `accounting` y `admin` de su tenant. Sin escritura para `authenticated`. (La RLS de
+    `operations` condicionada a la lista, N4, se retiró por la corrección de Sam del 2026-11-18.)
 - **`exc0674_factura_envios`**: el vínculo factura ↔ envío ↔ Shipping Mark del cliente real. Una fila por
-  embarque cubierto, con unique (factura, envío). Tiene la misma RLS que el rastro, también condicionada a
-  la lista para `operations`.
+  embarque cubierto, con unique (factura, envío). Tiene la misma RLS que el rastro.
 - **`exc0674_envios_cubiertos`**: vista `security_invoker` (N3). Hace un **inner join** del vínculo con
   `invoices` vivas (`deleted_at is null`) y expone solo `tenant_id`, `shipment_id`, `client_markbox`,
   `invoice_id`, `invoice_code` y `status`, **sin montos**. La lee el reporte de la 0574. Como es
@@ -464,7 +462,7 @@ Las filas SGE-00, MP-01 y BTN-01 del registro maestro enlazan a ese documento.
 
 ### 8.2 Orden dentro de la transacción (todo o nada)
 
-1. Sesión, rol (`operations`, `accounting` o `admin`), `p_confirmacion = 'Confirmado'` y forma de
+1. Sesión, rol (`accounting` o `admin`), `p_confirmacion = 'Confirmado'` y forma de
    `p_montos` (1 a 500 clientes, sin repetidos).
 2. El contenedor está vivo, es del tenant y está en la lista. Si no, rechaza.
 3. **Lock de numeración por tenant:** `pg_advisory_xact_lock` con la llave
@@ -516,10 +514,13 @@ Embarques no pinta el botón. El reporte de la 0574 queda como hoy. Está declar
   9, incluido el asiento `not_posted` que deshace todo.
 - **Carrera** (`0564_…_carrera.test.sql`, con dblink). Dos facturaciones del mismo tenant a la vez: la
   segunda espera el lock de numeración y sale con otro correlativo. Además, dos facturaciones del mismo
-  cliente: una gana y la otra recibe `ya_facturado`.
+  cliente: una gana y la otra recibe `ya_facturado`. Las corre `accounting`.
+- **Roles** (contrato SQL): `operations`, `commercial`, `warehouse` y `support` reciben `exc0674:rol`;
+  `operations` no ve filas del rastro, del vínculo ni de la lista. Las altas y bajas de la lista quedan
+  auditadas como `system`, sin `actor_id`, con su motivo (N7).
 - **Migración** (`lib/studio/__tests__/exc0674.migration.test.ts`). Congela el texto de la firma, el
   `security definer`, el `search_path` vacío y los grants de la RPC; el `security_invoker` de la vista; y
-  que no haya policies de escritura en las tablas.
+  que no haya policies de escritura en las tablas. También que la 0564 no nombre a `'operations'`.
 
 ### 8.7 Contrato de la acción (BTN-01 §8)
 
@@ -529,7 +530,7 @@ Embarques no pinta el botón. El reporte de la 0574 queda como hoy. Está declar
 | verb / outcome | Facturar / se emite 1 factura real en USD | Facturar contenedor / se emiten N facturas reales en USD |
 | role / risk | primary / critical | primary / critical |
 | permanence / friction | P3 / R3 (excepción de motivo, §7.2) | P3 / R3 (excepción de motivo, §7.2) |
-| permission | operations, accounting, admin + contenedor en la lista | igual |
+| permission | accounting, admin + contenedor en la lista | igual |
 | preconditions | monto válido; cliente sin factura de esta regla | todos los pendientes con monto válido |
 | buttonType | button | button |
 | idle / loading / success | Facturar / Emitiendo… / «Factura F-… emitida.» | Facturar contenedor / Emitiendo… / «N facturas emitidas.» |
@@ -558,11 +559,15 @@ Los arreglos de esta vuelta:
 - **N1:** índice parcial con `anulada_at` y refacturar después de anular;
 - **N2:** la frase de los locks (§3.1 b);
 - **N3:** inner join y vista sin montos (§8.1);
-- **N4:** RLS de `operations` condicionada a la lista (§8.1);
-- **N5:** el OK de `operations` lo pide el DG.
+- **N4 y N5: ya no aplican.** Sam corrigió el 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.» Solo `accounting` y `admin`
+  facturan y ven montos; se retiraron la EXC-0674 de montos, la RLS de `operations` y su lectura;
+- **N6:** la 0668 está en la PR #680 y solo toca documentación (§2 y §5);
+- **N7:** actor `system` con motivo obligatorio en las altas y bajas de la lista, con prueba (§8.1);
+- **N8:** las variables del correo salen del retorno de la RPC, y con aliado raíz el correo va al aliado
+  (§3.1 b).
 
 Los no bloqueantes de la primera revisión también quedaron atendidos:
-- lectura de `operations` por la RPC, con la prueba de migración del §8.6;
+- grants y `security definer` de la RPC y la vista, con la prueba de migración del §8.6;
 - texto viejo de los §3, §3.1 y §4 actualizado;
 - `legal_ack` en `entity_audit_log` (§3.1 a) y contenedor fuera de la lista rechazado en el servidor;
 - `tecleado_por`;

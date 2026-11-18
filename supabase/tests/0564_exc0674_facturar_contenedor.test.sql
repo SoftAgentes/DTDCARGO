@@ -9,14 +9,14 @@
 --
 -- Lo que se protege:
 --   1. Aplicar la 0564 otra vez no falla.
---   2. Por cliente: operations factura el total tecleado con IVA.
+--   2. Por cliente: accounting factura el total tecleado con IVA.
 --      · base = round(total/1,16) e iva = total − base;
 --      · factura emitida en USD, con una línea por embarque vigente repartida por CBM, cuya suma da
 --        exactamente la base;
 --      · se le factura al aliado raíz;
 --      · se hace el asiento y queda el rastro con legal_ack 'exc_0674' y quién tecleó.
 --   3. Un cliente no se factura dos veces.
---   4. Roles: commercial, warehouse y support no facturan. accounting y admin sí.
+--   4. Roles: operations, commercial, warehouse y support no facturan. accounting y admin sí.
 --   5. Un contenedor fuera de la lista, borrado o de otro tenant no se factura.
 --   6. Monto: 0, negativo y más de 2 decimales se rechazan.
 --      Confirmación: sin «Confirmado» exacto se rechaza.
@@ -32,7 +32,7 @@
 --      edita, y cada alta queda auditada.
 --  14. Anular la factura en Facturación marca la fila y el cliente se puede volver a facturar (índice
 --      parcial).
---  15. operations ve el rastro solo mientras el contenedor siga en la lista; accounting lo sigue viendo.
+--  15. operations no factura ni ve el rastro, el vínculo ni la lista (Sam, 2026-11-18).
 --  13. El vínculo factura ↔ envío ↔ cliente real (para la 0574) cubre todos los embarques del cliente,
 --      con su Shipping Mark y no el del aliado. La vista es security_invoker y deja de contar una
 --      factura borrada.
@@ -153,7 +153,8 @@ grant select on public.invoices to authenticated;
 
 -- ─── Fixtures ────────────────────────────────────────────────
 -- Tenant A (IVA 16 %) y tenant B. Usuarios: a1 operations, a2 commercial, a3 warehouse, a4 support,
--- a5 accounting, a6 admin (de A) y b1 operations (de B).
+-- a5 accounting, a6 admin (de A) y b1 accounting (de B). Solo accounting y admin facturan (Sam,
+-- 2026-11-18: «El rol operaciones no factura y tampoco ve los valores.»).
 insert into public.tenants values
   ('00000000-0000-4000-8000-0000000000a0', true),
   ('00000000-0000-4000-8000-0000000000b0', false);
@@ -164,7 +165,7 @@ insert into public.user_tenants (user_id, tenant_id, role) values
   ('00000000-0000-4000-8000-00000000a004', '00000000-0000-4000-8000-0000000000a0', 'support'),
   ('00000000-0000-4000-8000-00000000a005', '00000000-0000-4000-8000-0000000000a0', 'accounting'),
   ('00000000-0000-4000-8000-00000000a006', '00000000-0000-4000-8000-0000000000a0', 'admin'),
-  ('00000000-0000-4000-8000-00000000b001', '00000000-0000-4000-8000-0000000000b0', 'operations');
+  ('00000000-0000-4000-8000-00000000b001', '00000000-0000-4000-8000-0000000000b0', 'accounting');
 
 -- Aliado raíz «AR» (su ficha es el cliente AR) con un subaliado «AR-S»; el cliente AR-S-0001 es del
 -- subaliado, así que se le factura a AR.
@@ -213,7 +214,7 @@ select set_config('dtd.audit_reason', '', true);
 do $lista$
 begin
   if (select count(*) from public.t_audit where event_type = 'exc0674_lista_alta' and entity_type = 'consolidation'
-        and reason like 'Contrato 0564%') <> 3 then
+        and reason like 'Contrato 0564%' and actor_type = 'system' and actor_id is null) <> 3 then
     raise exception 'CONTRATO 12: las altas de la lista no quedaron auditadas';
   end if;
   begin
@@ -287,32 +288,34 @@ declare
   uno constant jsonb := '[{"client_markbox":"DTD-T001","total_usd":116}]';
   v text;
 begin
+  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, uno);
+  if v is distinct from 'exc0674:rol' then raise exception 'CONTRATO 4: operations facturó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000a002', k64, uno);
   if v is distinct from 'exc0674:rol' then raise exception 'CONTRATO 4: commercial facturó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000a003', k64, uno);
   if v is distinct from 'exc0674:rol' then raise exception 'CONTRATO 4: warehouse facturó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000a004', k64, uno);
   if v is distinct from 'exc0674:rol' then raise exception 'CONTRATO 4: support facturó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, uno, 'confirmado');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, uno, 'confirmado');
   if v is distinct from 'exc0674:sin_confirmacion' then raise exception 'CONTRATO 6: confirmación inexacta pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, uno, null);
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, uno, null);
   if v is distinct from 'exc0674:sin_confirmacion' then raise exception 'CONTRATO 6: sin confirmación pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000c065',
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', '00000000-0000-4000-8000-00000000c065',
                         '[{"client_markbox":"DTD-T002","total_usd":10}]');
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: K65 fuera de la lista se facturó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000c0d1', uno);
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', '00000000-0000-4000-8000-00000000c0d1', uno);
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: contenedor borrado se facturó (%)', v; end if;
   v := public.t_intento('00000000-0000-4000-8000-00000000b001', k64, uno);
   if v is distinct from 'exc0674:contenedor_fuera_de_lista' then raise exception 'CONTRATO 5: el tenant B facturó el K64 de A (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":0}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":0}]');
   if v is distinct from 'exc0674:monto:DTD-T001' then raise exception 'CONTRATO 6: monto 0 pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":-5}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":-5}]');
   if v is distinct from 'exc0674:monto:DTD-T001' then raise exception 'CONTRATO 6: monto negativo pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":10.005}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":10.005}]');
   if v is distinct from 'exc0674:monto:DTD-T001' then raise exception 'CONTRATO 6: tres decimales pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":"10"}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":"10"}]');
   if v is distinct from 'exc0674:datos' then raise exception 'CONTRATO 6: monto como texto pasó (%)', v; end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T002","total_usd":10}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T002","total_usd":10}]');
   if v is distinct from 'exc0674:cliente_sin_embarques:DTD-T002' then raise exception 'CONTRATO 5: cliente sin embarques en K64 pasó (%)', v; end if;
   if exists (select 1 from public.invoices) or exists (select 1 from public.exc0674_facturas) then
     raise exception 'CONTRATO 4-6: un rechazo dejó una factura o un rastro';
@@ -327,26 +330,26 @@ declare
   v text;
 begin
   -- El segundo cliente no tiene embarques en el K64: no queda la factura del primero.
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64,
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64,
     '[{"client_markbox":"DTD-T001","total_usd":116},{"client_markbox":"DTD-T002","total_usd":10}]');
   if v is distinct from 'exc0674:cliente_sin_embarques:DTD-T002' then raise exception 'CONTRATO 7: (%)', v; end if;
   -- El mismo cliente dos veces en una llamada.
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64,
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64,
     '[{"client_markbox":"DTD-T001","total_usd":116},{"client_markbox":"dtd-t001","total_usd":116}]');
   if v is distinct from 'exc0674:datos' then raise exception 'CONTRATO 7: cliente repetido pasó (%)', v; end if;
   -- El asiento no sale.
   perform set_config('test.post', 'falla', true);
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
   perform set_config('test.post', '', true);
   if v is distinct from 'exc0674:asiento:sin_cuentas' then raise exception 'CONTRATO 7: asiento fallido (%)', v; end if;
   -- 10. Un outcome desconocido también deshace todo.
   perform set_config('test.post', 'raro', true);
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
   perform set_config('test.post', '', true);
   if v is distinct from 'exc0674:asiento:desconocido' then raise exception 'CONTRATO 10: outcome raro (%)', v; end if;
   -- 11. Si el evento de auditoría no se puede escribir, no se factura.
   perform set_config('test.audit', 'falla', true);
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
   perform set_config('test.audit', '', true);
   if v is distinct from 'audit: falla de prueba' then raise exception 'CONTRATO 11: auditoría fallida (%)', v; end if;
   if exists (select 1 from public.invoices) or exists (select 1 from public.exc0674_facturas)
@@ -367,7 +370,7 @@ declare
   v text;
   v_suma numeric;
 begin
-  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a001', true);
+  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a005', true);
   set local role authenticated;
   r := public.exc0674_facturar(k64, '[{"client_markbox":" ar-s-0001","total_usd":406}]', 'Confirmado');
   reset role;
@@ -404,7 +407,7 @@ begin
   end if;
   select * into f from public.exc0674_facturas;
   if f.invoice_id <> i.id or f.client_markbox <> 'AR-S-0001' or f.billed_markbox <> 'AR' or f.total_usd <> 406
-     or f.legal_ack <> 'exc_0674' or f.tecleado_por <> '00000000-0000-4000-8000-00000000a001' then
+     or f.legal_ack <> 'exc_0674' or f.tecleado_por <> '00000000-0000-4000-8000-00000000a005' then
     raise exception 'CONTRATO 2: rastro incompleto';
   end if;
 
@@ -421,7 +424,7 @@ begin
   -- 11. Evento de auditoría con legal_ack y actor real.
   if (select count(*) from public.t_audit
        where entity_type = 'invoice' and entity_id = i.id and event_type = 'invoice_emitted_exc0674'
-         and actor_type = 'user' and actor_id = '00000000-0000-4000-8000-00000000a001' and source = 'rpc'
+         and actor_type = 'user' and actor_id = '00000000-0000-4000-8000-00000000a005' and source = 'rpc'
          and after_data ->> 'legal_ack' = 'exc_0674' and reason like 'EXC-0674%') <> 1 then
     raise exception 'CONTRATO 11: falta el evento de auditoría con legal_ack';
   end if;
@@ -459,14 +462,14 @@ declare
 begin
   select invoice_id into v_vieja from public.exc0674_facturas where client_markbox = 'DTD-T001';
   -- Mientras está viva, no se refactura.
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
   if v is distinct from 'exc0674:ya_facturado:DTD-T001' then raise exception 'CONTRATO 14: refacturó una viva (%)', v; end if;
   -- Facturación la anula (como voidInvoice): el trigger marca la fila.
   update public.invoices set status = 'anulada' where id = v_vieja;
   if (select anulada_at from public.exc0674_facturas where invoice_id = v_vieja) is null then
     raise exception 'CONTRATO 14: anular no marcó el rastro';
   end if;
-  v := public.t_intento('00000000-0000-4000-8000-00000000a001', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
+  v := public.t_intento('00000000-0000-4000-8000-00000000a005', k64, '[{"client_markbox":"DTD-T001","total_usd":5}]');
   if v is not null then raise exception 'CONTRATO 14: no se pudo volver a facturar después de anular (%)', v; end if;
   if (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-T001') <> 2
      or (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-T001' and anulada_at is null) <> 1 then
@@ -492,7 +495,7 @@ begin
      or pg_catalog.has_function_privilege('service_role', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE') then
     raise exception 'CONTRATO 9: anon o service_role ejecutan la RPC';
   end if;
-  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a001', true);
+  perform set_config('test.uid', '00000000-0000-4000-8000-00000000a005', true);
   set local role authenticated;
   begin
     insert into public.exc0674_contenedores (tenant_id, consolidation_id)
@@ -512,7 +515,7 @@ begin
   exception when insufficient_privilege then null;
   end;
   select pg_catalog.count(*) into n from public.exc0674_facturas;
-  if n <> 3 then raise exception 'CONTRATO 9: operations de A ve % filas del rastro (esperaba 3)', n; end if;
+  if n <> 3 then raise exception 'CONTRATO 9: accounting de A ve % filas del rastro (esperaba 3)', n; end if;
   reset role;
 
   perform set_config('test.uid', '00000000-0000-4000-8000-00000000a002', true);
@@ -531,20 +534,26 @@ begin
   if n <> 1 then raise exception 'CONTRATO 9: el tenant B ve % contenedores (esperaba el suyo)', n; end if;
   reset role;
 
-  -- 15. El K64 sale de la lista (con motivo): operations deja de ver su rastro; accounting no.
-  perform set_config('dtd.audit_reason', 'Contrato 0564: baja de prueba con OK ficticio', true);
-  delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000c064';
-  perform set_config('dtd.audit_reason', '', true);
-  if not exists (select 1 from public.t_audit where event_type = 'exc0674_lista_baja') then
-    raise exception 'CONTRATO 12: la baja de la lista no quedó auditada';
-  end if;
+  -- 15. operations no ve el rastro, el vínculo ni la lista (Sam: operaciones no ve los valores).
   perform set_config('test.uid', '00000000-0000-4000-8000-00000000a001', true);
   set local role authenticated;
-  select pg_catalog.count(*) into n from public.exc0674_facturas;
-  if n <> 0 then raise exception 'CONTRATO 15: operations ve el rastro de un contenedor fuera de la lista'; end if;
-  select pg_catalog.count(*) into n from public.exc0674_factura_envios;
-  if n <> 0 then raise exception 'CONTRATO 15: operations ve el vínculo de un contenedor fuera de la lista'; end if;
+  if (select pg_catalog.count(*) from public.exc0674_facturas) <> 0
+     or (select pg_catalog.count(*) from public.exc0674_factura_envios) <> 0
+     or (select pg_catalog.count(*) from public.exc0674_contenedores) <> 0 then
+    raise exception 'CONTRATO 15: operations ve filas de la regla';
+  end if;
   reset role;
+
+  -- 12. La baja de la lista (con motivo, por service_role o una migración) queda auditada como 'system'.
+  perform set_config('dtd.audit_reason', 'Contrato 0564: baja de prueba con OK ficticio', true);
+  perform set_config('test.uid', '', true);
+  delete from public.exc0674_contenedores where consolidation_id = '00000000-0000-4000-8000-00000000c064';
+  perform set_config('dtd.audit_reason', '', true);
+  if not exists (select 1 from public.t_audit where event_type = 'exc0674_lista_baja'
+                  and actor_type = 'system' and actor_id is null and reason like 'Contrato 0564%') then
+    raise exception 'CONTRATO 12: la baja de la lista no quedó auditada como system con su motivo';
+  end if;
+  -- accounting sigue viendo lo facturado aunque el contenedor salga de la lista.
   perform set_config('test.uid', '00000000-0000-4000-8000-00000000a005', true);
   set local role authenticated;
   select pg_catalog.count(*) into n from public.exc0674_facturas;

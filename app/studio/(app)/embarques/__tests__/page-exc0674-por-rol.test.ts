@@ -1,8 +1,8 @@
 /**
  * SDD-0674 · EXC-0674 — qué recibe el navegador para «Facturar», por rol, decidido en el SERVIDOR.
  *
- * operations, accounting y admin reciben `facturacion`: los contenedores de la lista transitoria y
- * lo ya facturado, con su total. commercial, warehouse, support y marketing no consultan las
+ * Solo accounting y admin reciben `facturacion`: los contenedores de la lista transitoria y
+ * lo ya facturado, con su total. operations, commercial, warehouse, support y marketing no consultan las
  * tablas de la 0564 y no reciben la prop. Ningún rol lee `invoices` para esto. Sin la 0564 (la
  * tabla no existe) la prop dice `no_disponible` y el botón no se pinta. Datos inventados.
  */
@@ -90,7 +90,7 @@ beforeEach(() => {
 });
 
 describe("Embarques · «Facturar» de la EXC-0674 por rol (SDD-0674)", () => {
-  it.each(["commercial", "warehouse", "support", "marketing"])(
+  it.each(["operations", "commercial", "warehouse", "support", "marketing"])(
     "%s: no consulta la lista ni el rastro y no recibe facturacion",
     async (rol) => {
       const props = await propsDe(rol);
@@ -99,7 +99,7 @@ describe("Embarques · «Facturar» de la EXC-0674 por rol (SDD-0674)", () => {
     },
   );
 
-  it.each(["operations", "accounting", "admin"])("%s: recibe la lista y lo facturado con su total", async (rol) => {
+  it.each(["accounting", "admin"])("%s: recibe la lista y lo facturado con su total", async (rol) => {
     const props = await propsDe(rol);
     expect(props.facturacion).toEqual({
       estado: "lista",
@@ -109,14 +109,15 @@ describe("Embarques · «Facturar» de la EXC-0674 por rol (SDD-0674)", () => {
     expect(estado.tablas).not.toContain("invoices");
   });
 
-  it("operations sigue sin recibir los montos de la 0661 (la excepción es solo «Facturar»)", async () => {
+  it("operations no recibe ni la facturación ni los montos de la 0661 (Sam, 2026-11-18)", async () => {
     const props = await propsDe("operations");
+    expect("facturacion" in props).toBe(false);
     expect("montos" in props).toBe(false);
   });
 
   it("sin la 0564 la prop dice no_disponible y no rompe la página", async () => {
     estado.sinMigracion = true;
-    const props = await propsDe("operations");
+    const props = await propsDe("accounting");
     expect(props.facturacion).toEqual({ estado: "no_disponible" });
   });
 });

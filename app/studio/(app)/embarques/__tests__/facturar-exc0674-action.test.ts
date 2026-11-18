@@ -1,14 +1,14 @@
 /**
  * SDD-0674 · EXC-0674 — la server action de «Facturar».
  *
- * Antes de llamar a la RPC exige el rol (operations, accounting o admin), «Confirmado» y montos
+ * Antes de llamar a la RPC exige el rol (accounting o admin), «Confirmado» y montos
  * válidos (total con IVA, > 0, 2 decimales). Manda los centavos exactos y traduce los errores de
  * la base. Después avisa por correo cada factura emitida. Datos inventados.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const estado = vi.hoisted(() => ({
-  rol: "operations" as string | null,
+  rol: "accounting" as string | null,
   tenantId: "t1" as string | null,
   llamadas: [] as { fn: string; args: Record<string, unknown> }[],
   respuesta: { data: null as unknown, error: null as null | { message: string } },
@@ -39,7 +39,7 @@ import { facturarExc0674Action } from "../facturar-actions";
 const C64 = "00000000-0000-4000-8000-00000000c064";
 
 beforeEach(() => {
-  estado.rol = "operations";
+  estado.rol = "accounting";
   estado.tenantId = "t1";
   estado.llamadas = [];
   estado.correos = [];
@@ -59,7 +59,7 @@ beforeEach(() => {
 });
 
 describe("facturarExc0674Action", () => {
-  it.each(["commercial", "warehouse", "support", "marketing", null])("%s: no llama a la RPC", async (rol) => {
+  it.each(["operations", "commercial", "warehouse", "support", "marketing", null])("%s: no llama a la RPC", async (rol) => {
     estado.rol = rol;
     const r = await facturarExc0674Action(C64, [{ clientMarkbox: "DTD-T001", total: "116" }], "Confirmado");
     expect(r.ok).toBe(false);
@@ -90,7 +90,7 @@ describe("facturarExc0674Action", () => {
     expect(estado.llamadas).toEqual([]);
   });
 
-  it.each(["operations", "accounting", "admin"])("%s: manda los centavos exactos y la confirmación", async (rol) => {
+  it.each(["accounting", "admin"])("%s: manda los centavos exactos y la confirmación", async (rol) => {
     estado.rol = rol;
     const r = await facturarExc0674Action(
       C64,
@@ -123,6 +123,33 @@ describe("facturarExc0674Action", () => {
         vars: expect.objectContaining({ invoice_code: "F-TEST-1", due_date: "2026-12-18" }),
       }),
     ]);
+  });
+
+  it("con aliado raíz, el correo va al aliado facturado, con los datos del retorno de la RPC (N8)", async () => {
+    estado.respuesta = {
+      data: {
+        version: 1,
+        facturas: [
+          {
+            client_markbox: "AR-S-0001", invoice_id: "i2", invoice_code: "F-TEST-2", billed_markbox: "AR",
+            billed_name: "Aliado Raíz", shipment_code: "AR-S-0001-01", issued_at: "2026-11-18", due_date: "2026-12-18",
+            total_usd: 10,
+          },
+        ],
+      },
+      error: null,
+    };
+    await facturarExc0674Action(C64, [{ clientMarkbox: "AR-S-0001", total: "10" }], "Confirmado");
+    expect(estado.correos).toEqual([
+      expect.objectContaining({
+        clientMarkbox: "AR",
+        clientName: "Aliado Raíz",
+        sourceRef: { kind: "invoice", id: "i2" },
+        vars: expect.objectContaining({ invoice_code: "F-TEST-2" }),
+      }),
+    ]);
+    // Solo una llamada a la base: la RPC. La action no vuelve a leer `invoices`.
+    expect(estado.llamadas).toHaveLength(1);
   });
 
   it("traduce el error de la base y no avisa por correo", async () => {

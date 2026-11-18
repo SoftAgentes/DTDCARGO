@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { mensajeErrorExc0674, parsearMontoUsd, rolFacturaExc0674 } from "../exc0674";
 
 describe("rolFacturaExc0674", () => {
-  it.each(["operations", "accounting", "admin"] as const)("%s factura", (rol) => {
+  it.each(["accounting", "admin"] as const)("%s factura", (rol) => {
     expect(rolFacturaExc0674(rol)).toBe(true);
   });
-  it.each(["commercial", "warehouse", "support", "marketing"] as const)("%s no factura ni ve montos", (rol) => {
+  it.each(["operations", "commercial", "warehouse", "support", "marketing"] as const)("%s no factura ni ve montos", (rol) => {
     expect(rolFacturaExc0674(rol)).toBe(false);
   });
   it("sin rol no factura", () => {
