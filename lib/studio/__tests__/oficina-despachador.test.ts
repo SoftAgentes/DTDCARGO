@@ -120,7 +120,7 @@ const ENV = {
   OFICINA_RUNTIME_TOKEN: "token-de-prueba-del-cable",
   OFICINA_CHATWOOT_TOKEN_LECTURA: "token-de-lectura-de-prueba",
   OFICINA_CHATWOOT_API_URL: "http://chatwoot.prueba:3000",
-  CHATWOOT_ACCOUNT_ID: "2",
+  OFICINA_CHATWOOT_ACCOUNT_ID: "2",
   OFICINA_CHATWOOT_INBOX_PRUEBA: "11",
 };
 
