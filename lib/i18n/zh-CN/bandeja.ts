@@ -16,11 +16,19 @@ export const bandeja: BandejaDict = {
   "bandeja.state.unconfigured.body": "与消息服务器的连接尚未配置，请联系管理员。",
   "bandeja.state.unlinked.title": "你的用户还没有收件箱坐席",
   "bandeja.state.unlinked.body": "需要管理员把你的用户与坐席绑定，你才能在这里接待客户。",
-  "bandeja.state.error.title": "无法打开收件箱",
-  "bandeja.state.error.body": "请重试。如果仍然失败，请在新标签页中打开。",
-  "bandeja.action.retry": "重试",
-  "bandeja.action.relogin": "重新登录",
   "bandeja.action.open_tab": "在新标签页中打开",
+
+  // ── SDD-0677 ─────────────────────────────────────────────
+  "bandeja.action.reopen": "重新打开",
+  "bandeja.action.expand": "全屏",
+  "bandeja.action.collapse": "缩小",
+  "bandeja.action.collapse_hint": "Esc",
+  "bandeja.help.reopen": "看到 Chatwoot 登录页或错误？请点击「重新打开」。",
+  "bandeja.state.retrying": "正在连接收件箱…（第 {n} 次，共 {total} 次）",
+  "bandeja.recover.title": "收件箱没有打开",
+  "bandeja.recover.service": "消息服务器在 {total} 次尝试后仍未响应，可能正在重启：请稍后重新打开。",
+  "bandeja.recover.slow": "收件箱打开得比平时慢，消息服务器可能正在重启。",
+  "bandeja.recover.throttle": "Chatwoot 会限制频繁登录。请等几分钟，或在新标签页中打开。",
 
   // ── 绑定（仅管理员）──────────────────────────────────────
   "bandeja.links.title": "已绑定的坐席",

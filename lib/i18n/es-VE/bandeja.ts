@@ -19,11 +19,22 @@ export const bandeja = {
   "bandeja.state.unlinked.title": "Tu usuario no tiene un agente de la bandeja",
   "bandeja.state.unlinked.body":
     "Un administrador tiene que vincular tu usuario con tu agente para que puedas atender desde aquí.",
-  "bandeja.state.error.title": "No pudimos abrir la bandeja",
-  "bandeja.state.error.body": "Vuelve a intentarlo. Si sigue fallando, ábrela en una pestaña aparte.",
-  "bandeja.action.retry": "Reintentar",
-  "bandeja.action.relogin": "Volver a entrar",
   "bandeja.action.open_tab": "Abrir en pestaña aparte",
+
+  // ── SDD-0677: pantalla completa y recuperación ───────────
+  "bandeja.action.reopen": "Abrir de nuevo",
+  "bandeja.action.expand": "Pantalla completa",
+  "bandeja.action.collapse": "Reducir",
+  "bandeja.action.collapse_hint": "Esc",
+  "bandeja.help.reopen": "¿Ves la pantalla de inicio de Chatwoot o un error? Oprime «Abrir de nuevo».",
+  "bandeja.state.retrying": "Conectando con la bandeja… (intento {n} de {total})",
+  "bandeja.recover.title": "La bandeja no abrió",
+  "bandeja.recover.service":
+    "El servidor de mensajes no respondió después de {total} intentos. Puede que se esté reiniciando: ábrela de nuevo en un momento.",
+  "bandeja.recover.slow":
+    "La bandeja está tardando más de lo normal. Puede que el servidor de mensajes se esté reiniciando.",
+  "bandeja.recover.throttle":
+    "Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.",
 
   // ── Vínculos (solo admin) ────────────────────────────────
   "bandeja.links.title": "Agentes vinculados",
