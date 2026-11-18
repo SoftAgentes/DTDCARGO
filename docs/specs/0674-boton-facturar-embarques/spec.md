@@ -308,9 +308,13 @@ cliente admin desde una action.
    - la segunda pantalla muestra el monto grande, las cajas y el CBM de cada cliente;
    - avisa que va al portal del cliente y a contabilidad;
    - sin «Confirmado» no se escribe nada.
-4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque y todos
-   sus envíos cubiertos (para que la 0574 no los siga mostrando como «sin facturar»). Correlativo, emisión,
-   titular y asiento van en una transacción, con su rastro: quién tecleó el monto, quién confirmó y cuándo.
+4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque vigente
+   (`shipmentCode` en cada línea, como en la carga de consolidados). Correlativo, emisión, titular y asiento
+   van en una transacción, con su rastro: quién tecleó el monto, quién confirmó y cuándo.
+   *Límite medido en la implementación:* la 0574 reconoce una factura solo por su `shipment_id` (el primer
+   embarque) y su Shipping Mark, que es el del aliado raíz cuando lo hay. Los demás embarques del cliente
+   seguirían en «Embarques sin facturar». Con la carga de consolidados pasa lo mismo. Arreglarlo es cambiar
+   la regla de la 0574 (Reportes, accounting), así que queda **fuera de esta PR** y se propone aparte.
 5. Un cliente del contenedor que ya tiene una factura viva de esta regla no se factura dos veces.
 6. El gate legal AUT-04 se resuelve según la decisión de Sam del §3.1 (a). No se salta en silencio.
 7. Las pruebas cubren: servidor por rol, validación del monto, doble confirmación, factura por cliente con

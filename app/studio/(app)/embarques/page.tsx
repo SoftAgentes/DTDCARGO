@@ -17,6 +17,10 @@
  * recepción VE de cada contenedor (para todos). Por cobrar y cobrado sólo se
  * lee si la persona ve Facturación (módulo de dinero `invoices`): si no, no se
  * consulta y la prop no existe, así no viaja al navegador.
+ *
+ * SDD-0674 · EXC-0674: a operations, accounting y admin se les lee además qué contenedores están en
+ * la lista transitoria (hoy solo el 64) y qué clientes ya se facturaron ahí. Es la única excepción
+ * a la regla de montos: commercial, warehouse y support no reciben la prop.
  */
 
 import { createClient } from "@/lib/db/server";
@@ -32,6 +36,8 @@ import {
   leerRecibidasDeContenedores,
 } from "@/lib/studio/embarques-contenedores-queries";
 import type { MontosDeContenedores } from "@/lib/studio/embarques-contenedores";
+import { rolFacturaExc0674, type FacturacionExc0674 } from "@/lib/studio/exc0674";
+import { leerFacturacionExc0674 } from "@/lib/studio/exc0674-queries";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
@@ -71,16 +77,21 @@ export default async function EmbarquesPage() {
   const { role } = await getStudioAccess(supabase);
   const rolLeeFacturas = role === "accounting" || role === "admin";
   let montos: MontosDeContenedores | undefined;
+  let facturacion: FacturacionExc0674 | undefined;
   if (contenedores) {
-    const [recibidas, leidos] = await Promise.all([
+    const [recibidas, leidos, exc0674] = await Promise.all([
       leerRecibidasDeContenedores(supabase, contenedores.contenedores),
       (async () =>
         rolLeeFacturas && (await moduleViewDenial(supabase, "invoices")) === null
           ? leerMontosDeContenedores(supabase, contenedores)
           : undefined)(),
+      rolFacturaExc0674(role)
+        ? leerFacturacionExc0674(supabase, contenedores.contenedores.map((c) => c.id))
+        : undefined,
     ]);
     if (recibidas) contenedores.recibidasPorContenedor = recibidas;
     montos = leidos;
+    facturacion = exc0674;
   }
 
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
@@ -101,6 +112,7 @@ export default async function EmbarquesPage() {
       eliminacion={eliminacion}
       contenedores={contenedores}
       {...(montos ? { montos } : {})}
+      {...(facturacion ? { facturacion } : {})}
       tope={shipments.length >= TOPE_EMBARQUES ? TOPE_EMBARQUES : undefined}
     />
   );

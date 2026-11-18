@@ -89,6 +89,23 @@ const BASELINE = {
   //     por cobrar, cobrado, cuántas en otra moneda), sin código, id, cliente
   //     ni RIF de la factura.
   "lib/studio/embarques-contenedores-queries.ts": 1,
+  // SDD-0674 · EXC-0674 («Embarques factura el contenedor 64», decisión de Sam
+  // del 2026-11-18): +0 llamadas. Es una excepción con nombre a la regla de
+  // montos solo para Contabilidad: operations, accounting y admin ven y teclean
+  // el total con IVA en los contenedores de la lista transitoria. No se lee
+  // `invoices`: la página lee `exc0674_contenedores` y `exc0674_facturas`
+  // (migr 0564), cuyo rastro guarda código, total tecleado y titular, y la
+  // RPC `exc0674_facturar` (security definer) crea y emite. Revisión del
+  // contrato:
+  //   · candado: `rolFacturaExc0674(role)` en `app/studio/(app)/embarques/page.tsx`
+  //     y en `facturar-actions.ts`; la RLS de las dos tablas y la RPC repiten
+  //     operations/accounting/admin del tenant de la sesión;
+  //   · tenant: cliente de SESIÓN (get_user_tenant_id en la base); nunca admin
+  //     para leer (el admin solo dispara el correo, como emitInvoice);
+  //   · uso: al cliente cruzan, por cliente del contenedor de la lista, el
+  //     código, el total tecleado y el titular. commercial/warehouse/support
+  //     no reciben la prop. La franja y el detalle de la 0661 no cambian.
+  // Si una versión futura lee `invoices` para esto, entra aquí con su número.
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
   // avisa la pantalla de Fidelización).

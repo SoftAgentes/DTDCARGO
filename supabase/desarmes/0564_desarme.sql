@@ -1,0 +1,25 @@
+-- SDD-0674 · Desarme de la 0564: quita la regla transitoria EXC-0674 (botón «Facturar» en Embarques).
+-- ⚠️ NO ES UNA MIGRACIÓN TODAVÍA. Vive fuera de supabase/migrations/ y sin número, para que nada lo
+--    aplique ni lo empaquete. Usarlo exige el OK nominal de Sam: se copia a supabase/migrations/ con el
+--    siguiente número libre y se aplica con el runbook de producción.
+-- Ensayo: supabase/tests/0564_exc0674_facturar_contenedor.test.sql.
+-- Se NIEGA si ya hay facturas emitidas por esta regla: esas facturas son reales, se anulan por el
+-- camino normal de Facturación y su rastro (exc0674_facturas) no se borra. Sin facturas, borra la
+-- función y las dos tablas (la lista transitoria se pierde; hoy solo tiene el 64).
+set local lock_timeout = '5s';
+set local statement_timeout = '30s';
+
+do $guarda$
+begin
+  if pg_catalog.to_regclass('public.exc0674_facturas') is not null
+     and exists (select 1 from public.exc0674_facturas) then
+    raise exception '0564 desarme: hay facturas emitidas por la EXC-0674; no se desarma (avisar al DG)';
+  end if;
+end
+$guarda$;
+
+drop function if exists public.exc0674_facturar(uuid, jsonb, text);
+drop table if exists public.exc0674_facturas;
+drop table if exists public.exc0674_contenedores;
+
+notify pgrst, 'reload schema';
