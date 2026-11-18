@@ -106,6 +106,16 @@ Para confirmar H1 a H4 hacen falta los logs de Chatwoot del VPS (códigos 409 y 
   - (a) subir `MAX_USER_SESSIONS` en el VPS: config de Chatwoot, puerta de integración;
   - (b) un botón «Cerrar mis otras sesiones y entrar», que use la revocación de 2.7 antes del SSO: cierra también la app móvil del agente;
   - (c) que el script del panel le avise a Studio `dtd:sin-sesion` o `dtd:demasiadas-sesiones`: cambia `DASHBOARD_SCRIPTS`, también es puerta de VPS. Con (c), Studio podría abrir de nuevo solo, sin que la persona oprima nada.
+
+  **Recomendación del Worker** (la decide Sam; el DG se la plantea):
+
+  | Opción | Qué resuelve | Costo o riesgo | Recomendación |
+  |---|---|---|---|
+  | (a) Subir `MAX_USER_SESSIONS` (por ejemplo a 10) | Alivia H1 de inmediato: hacen falta el doble de aperturas para llegar al 409 | Un cambio de una línea en el `.env` del VPS con `docker restart`, nunca `compose up`. Solo pospone el problema, porque las sesiones siguen durando 2 meses. Más sesiones vivas por agente | **Sí, ya**, como alivio |
+  | (b) «Cerrar mis otras sesiones y entrar» | Resuelve H1 cuando ya pasó, a pedido de la persona | Cierra también la app móvil y las otras PC del agente. Usa la revocación de 2.7, que cambia el token del agente | **No por defecto.** Solo como último paso del aviso, con confirmación, si (a) y (c) no alcanzan |
+  | (c) El panel avisa `dtd:sin-sesion` o `dtd:demasiadas-sesiones` | Studio deja de estar a ciegas (H1 y H2): ve la pantalla de inicio de sesión o el 409 y abre de nuevo **una vez** por su cuenta, o muestra el aviso | Cambia `DASHBOARD_SCRIPTS` en el VPS, con su prueba local. En Studio son unas pocas líneas sobre el puente que ya existe | **Sí, la de fondo.** Es la que cumple «que siempre abra» |
+
+  Orden propuesto: (a) ahora, (c) en una PR de seguimiento, y (b) solo si los conteos del DG muestran 409 frecuentes después de (a) y (c).
 - **H4.** Medir `req.ip` detrás de Cloudflare (E2-I3) y, si hace falta, `trusted_proxies`. Es config del VPS.
 
 ## Aceptación
