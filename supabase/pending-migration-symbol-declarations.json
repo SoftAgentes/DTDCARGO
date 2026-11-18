@@ -7,51 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "0558-revision-tres-estados-y-cierres",
-      "migration": "0558_oficina_casillas_tres_estados",
-      "primarySymbol": "office_revisar_borrador_v2",
-      "symbols": [
-        {
-          "name": "office_revisar_borrador_v2",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/oficina/revisiones.ts:182"
-          ]
-        },
-        {
-          "name": "office_conversaciones_por_cerrar",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/oficina/revisiones.ts:214"
-          ]
-        },
-        {
-          "name": "office_registrar_cierre",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/oficina/revisiones.ts:236"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/oficina/revisiones.ts:185",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
-          "degradation": "Sin la 0558 guardarRevision devuelve «sin_0558»: la página dice «Falta la migración 0558» y no guarda nada (ni con la función vieja de la 0549)."
-        },
-        {
-          "site": "lib/studio/oficina/revisiones.ts:93",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, motivo: \"sin_migracion\" };",
-          "degradation": "Sin la 0558 leerPorCerrar devuelve «sin_migracion» y la sección «Conversaciones por cerrar» muestra «Falta la migración 0558»."
-        },
-        {
-          "site": "lib/studio/oficina/revisiones.ts:243",
-          "contains": "if (faltaLaMigracion(error)) return { ok: false, codigo: \"sin_0558\" };",
-          "degradation": "Sin la 0558 registrarCierre devuelve «sin_0558»: la acción vuelve a la página con el aviso, sin escribir nada."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }

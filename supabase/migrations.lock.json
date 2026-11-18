@@ -3537,6 +3537,15 @@
         "fecha": "2026-11-17",
         "forma": "exacta"
       }
+    },
+    "0558_oficina_casillas_tres_estados": {
+      "sha256": "d9b023075b57edb89b4476293e77de63a6e6ce0c956a13c53f681a32fa92497d",
+      "md5": "465efbee2f535040ec2c45479d27c24c",
+      "bytes": 26283,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
     }
   }
 }
