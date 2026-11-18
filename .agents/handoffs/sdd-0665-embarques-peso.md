@@ -14,7 +14,7 @@ Pedido de Sam en la reunión del 2026-11-18, por el DG. Spec:
 - En Venezuela no se pesa nada: el escaneo solo marca `scanned_at`, y el `weight_kg` de
   `warehouse_receipt_ve_boxes` es una copia del peso de origen al crear la recepción.
 
-## Propuesta (decisión pendiente de Sam, spec §3)
+## Propuesta (el DG la dio por razonable el 2026-11-18; decisión pendiente de Sam, spec §3)
 
 - Peso = `shipments.weight_kg`, la misma fila del envío de la que ya sale el CBM.
 - «Peso recibido» no se muestra: no hay un peso medido. Medirlo exige migración; «peso declarado de las
@@ -31,9 +31,10 @@ Pedido de Sam en la reunión del 2026-11-18, por el DG. Spec:
 
 | Comprobación | Resultado |
 |---|---|
-| docs:check / sdd:check / git diff --check | ver PR |
-| vitest de Embarques | ver PR (con turno del DG) |
-| typecheck / lint | ver PR (con turno del DG) |
+| docs:check / sdd:check / git diff --check | PASÓ (645 specs) |
+| vitest de Embarques + lib (13 archivos, `--pool=threads --maxWorkers=1`) | PASÓ (156 pruebas) |
+| `pnpm typecheck` | PASÓ |
+| eslint de lo tocado | PASÓ |
 | `pnpm verify` | NO EJECUTADO (el portón es el CI) |
 
 ## Pendientes de esta tarea

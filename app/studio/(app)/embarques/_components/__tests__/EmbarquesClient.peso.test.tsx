@@ -76,11 +76,16 @@ describe("peso del contenedor (SDD-0665)", () => {
     const g64 = g.find((x) => x.key === "c64")!;
     expect(g64.pesoKg).toBe(1246.75);
     expect(g64.enviosSinPeso).toBe(2);
-    expect(g64.clientes.map((c) => [c.clientMarkbox, c.stats.totalWeight, c.enviosSinPeso])).toEqual([
-      ["DTD-1001", 1234.5, 0],
-      ["DTD-1002", 12.25, 1],
-      ["DTD-1003", 0, 1],
-    ]);
+    // El orden de los clientes lo decide `groupShipmentsByClient`; aquí se mira
+    // cada uno por su Shipping Mark.
+    const porMark = Object.fromEntries(
+      g64.clientes.map((c) => [c.clientMarkbox, [c.stats.totalWeight, c.enviosSinPeso]]),
+    );
+    expect(porMark).toEqual({
+      "DTD-1001": [1234.5, 0],
+      "DTD-1002": [12.25, 1],
+      "DTD-1003": [0, 1],
+    });
     const g65 = g.find((x) => x.key === "c65")!;
     expect(g65.pesoKg).toBe(0);
     expect(g65.enviosSinPeso).toBe(1);

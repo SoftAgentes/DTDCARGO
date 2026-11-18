@@ -54,7 +54,7 @@ es. Para tener un peso recibido de verdad haría falta pesar en Venezuela, con u
 migración. Si Sam igual quiere «peso de las cajas recibidas» (declarado), se agrega como columna con
 esa etiqueta exacta, sin migración.
 
-Las dos cosas quedan **pendientes de la decisión de Sam**. Mientras tanto se implementa la propuesta.
+Las dos cosas quedan **pendientes de la decisión de Sam**. El DG dio la propuesta por razonable el 2026-11-18; mientras Sam decide, se implementa.
 
 ## 4. Cómo se suma y qué se ve
 
