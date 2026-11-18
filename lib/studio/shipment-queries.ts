@@ -8,6 +8,7 @@
  * automaticamente. No se pasa tenant_id como param.
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isShipmentService } from "./shipment-types";
 import type {
@@ -423,7 +424,7 @@ export function computeClientStats(rows: ShipmentListRow[]): ClientGroupStats {
     count: rows.length,
     activeCount,
     alertCount,
-    totalCbm: Math.round(totalCbm * 1000) / 1000,
+    totalCbm: roundCbm(totalCbm),
     totalWeight: Math.round(totalWeight * 100) / 100,
   };
 }
