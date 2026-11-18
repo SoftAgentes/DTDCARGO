@@ -105,6 +105,13 @@ vi.mock("../_components/AdvisorAssignCard", () => ({ AdvisorAssignCard: nada }))
 vi.mock("../_components/AliadoCard", () => ({ AliadoCard: nada }));
 vi.mock("../_components/ShippingMarkChip", () => ({ ShippingMarkChip: nada }));
 vi.mock("../_components/ChatwootConversacionesCard", () => ({ ChatwootConversacionesCard: nada }));
+// SDD-0650 F2: el panel en vivo tiene sus propias pruebas (panel-conversaciones-ficha.test.tsx).
+vi.mock("../_components/PanelConversacionesFicha", () => ({ PanelConversacionesFicha: nada }));
+vi.mock("../_components/ConversacionesFichaCard", () => ({ ConversacionesFichaCargando: nada }));
+vi.mock("@/lib/studio/privacidad-cn", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/studio/privacidad-cn")>()),
+  readCanSeeClientNames: async () => true,
+}));
 vi.mock("../_components/DeliveryAddressesCard", () => ({ DeliveryAddressesCard: nada }));
 vi.mock("../_components/IdentityVerificationCard", () => ({ IdentityVerificationCard: nada }));
 vi.mock("../_components/ClientBillingCard", () => ({ ClientBillingCard: nada }));

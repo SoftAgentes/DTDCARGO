@@ -236,6 +236,7 @@ describe("nombre del manejador en los logs (SDD-0585)", () => {
         "marcarContactoErp",
         "responderAlPortal",
         "estadoAlPortal",
+        "unirContactoAFicha",
       ]);
     } finally {
       MANEJADORES.forEach((h, i) => Object.defineProperty(h, "name", { value: nombres[i], configurable: true }));
