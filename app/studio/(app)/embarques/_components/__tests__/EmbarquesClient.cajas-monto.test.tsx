@@ -112,9 +112,9 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(screen.queryByText(/Por cobrar|Cobrado|Sin facturar/)).toBeNull();
 
     const tabla = within(region("DDP 64")).getByRole("table");
-    expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2.00"]);
-    expect(fila(tabla, /Cliente Dos/)).toEqual(["1", "1", "0", "1.00"]);
-    expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3.00"]);
+    expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2.00", "Sin peso"]);
+    expect(fila(tabla, /Cliente Dos/)).toEqual(["1", "1", "0", "1.00", "Sin peso"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3.00", "Sin peso"]);
   });
 
   it("un contenedor sin recepción dice «Sin recepción» en recibidas, no 0", async () => {
@@ -123,7 +123,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
     expect(franja.textContent).toContain("Cajas recibidasSin recepción");
     const tabla = within(region("DDP 65")).getByRole("table");
-    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1.00"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1.00", "Sin peso"]);
   });
 
   it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {
@@ -137,9 +137,9 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(within(region("DDP 64")).getByText(/1 factura está en otra moneda/)).toBeTruthy();
 
     const tabla = within(region("DDP 64")).getByRole("table");
-    expect(fila(tabla, /Cliente Uno/).slice(4)).toEqual(["$12,000.00", "$5,000.00"]);
-    expect(fila(tabla, /Cliente Dos/).slice(4)).toEqual(["$345.50", "$0.00"]);
-    expect(fila(tabla, /Total del contenedor/).slice(4)).toEqual(["$12,345.50", "$5,000.00"]);
+    expect(fila(tabla, /Cliente Uno/).slice(5)).toEqual(["$12,000.00", "$5,000.00"]);
+    expect(fila(tabla, /Cliente Dos/).slice(5)).toEqual(["$345.50", "$0.00"]);
+    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["$12,345.50", "$5,000.00"]);
   });
 
   it("sin facturas dice «Sin facturar», nunca $0.00", async () => {
@@ -151,7 +151,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(franja.textContent).toContain("Por cobrarSin facturar");
     expect(franja.textContent).not.toContain("$0.00");
     const tabla = within(region("DDP 65")).getByRole("table");
-    expect(fila(tabla, /Total del contenedor/).slice(4)).toEqual(["Sin facturar", "Sin facturar"]);
+    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["Sin facturar", "Sin facturar"]);
   });
 
   it("si la lectura del monto falló, lo dice", async () => {
