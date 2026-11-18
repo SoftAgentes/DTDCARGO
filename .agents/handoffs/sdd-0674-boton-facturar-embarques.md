@@ -39,14 +39,14 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 1. Por cliente del contenedor, con un botón en la fila de cada cliente, más un modo para el contenedor completo. La unidad mínima es el cliente.
 2. El monto lo escribe la oficina: a mano, mayor que 0, con dos decimales y en USD.
 3. Se crea una factura real emitida en USD, no un borrador.
-4. «La oficina» es el personal del Studio. Propuesta del Worker: escriben y facturan solo `accounting` y `admin`. Abrirlo a otro rol queda como decisión explícita de Sam.
+4. «Ve el monto»: el botón lo oprime el rol de Embarques (`operations`, supuesto que confirma el DG), además de `accounting` y `admin`. Va como excepción con nombre, EXC-0674. `commercial` sigue sin ver montos. La lectura entra en el inventario 0357 en la PR de implementación, porque hoy la prueba congela solo las llamadas que existen.
 5. Solo el contenedor 64. Los demás se agregan después por configuración.
 6. La doble aprobación la da la misma persona, con dos confirmaciones seguidas.
 
 ## Pendientes de esta tarea
 
 - Que el DG revise la spec (status `proposed`).
-- Faltan tres decisiones de Sam antes de implementar (spec §7): el gate legal AUT-04, si el monto es base o total con IVA, y si se factura al aliado raíz.
+- Faltan tres decisiones de Sam antes de implementar (spec §7). Las lleva el DG y las tres están marcadas «pendiente de Sam»: el gate legal AUT-04 (propuesta: opción 2), si el monto es base o total con IVA (propuesta: total) y si se factura al aliado raíz (propuesta: sí).
 - Para implementar hace falta migración (RPC transaccional y lista en configuración). El número se le pide al DG.
 
 ## FUERA DE ALCANCE DETECTADO

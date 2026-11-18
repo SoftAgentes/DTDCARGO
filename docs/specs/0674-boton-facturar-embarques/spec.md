@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0674 — Botón «Facturar» en Embarques (regla transitoria)
 
 > Sam lo pidió en la reunión con la oficina del 2026-11-18, por el DG. Embarques tendría un botón
-> «Facturar» para el personal del Studio (quién exactamente: §4, pregunta 4). Al facturar, la factura
+> «Facturar» que oprime el rol de Embarques, que ve el monto (excepción EXC-0674, §4, pregunta 4). Al facturar, la factura
 > llega al portal del cliente y a la contabilidad. Es **transitorio**: era para los cuatro contenedores
 > montados sin pasar por origen, y por decisión de Sam (§4, pregunta 5) hoy cubre **solo el contenedor
 > 64**. Antes de facturar, la oficina confirma que lo cargado en el sistema cuadra con el Excel y escribe
@@ -128,7 +128,8 @@ y cómo queda cada punto para el botón:
   3. **Quedar bloqueado.** El botón deja la factura en borrador con el aviso del gate hasta que haya
      aceptación. En ese caso no cumple la decisión 3.
 
-  *Recomiendo la opción 2*, acotada a la lista y con su rastro, porque la regla ya es transitoria. Bajar
+  **Propuesta: la opción 2 — PENDIENTE DE SAM.** Va acotada a la lista y con su rastro, porque la regla ya
+  es transitoria. Hasta que Sam la apruebe, la implementación no avanza en este punto. Bajar
   `LEGAL_GATE_HARD_BLOCK` para todos **no** es una opción.
 
 **(b) Lo que se dispara al emitir:**
@@ -205,9 +206,7 @@ cliente admin desde una action.
      contenedor. Así se ve de un golpe si el monto no cuadra con la carga.
    - **Rastro:** la factura guarda quién escribió el monto y cuándo, porque no tiene otro origen que la
      persona. Si eso no cabe en las columnas actuales de `invoices`, se suma al costo de migración del §3.
-   - *Nota del Worker:* «la oficina» teclea el monto. Si quien lo teclea es el rol de Embarques, la
-     pregunta 4 queda respondida en la práctica: Embarques ve el monto que escribe. Falta que Sam diga
-     quién es «la oficina» en el Studio.
+   - Quién teclea el monto: el rol de Embarques, `accounting` o `admin` (pregunta 4, EXC-0674).
 
 3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?** — **DECIDIDO por Sam (2026-11-18, por
    el DG):** «Factura en dólares»; «ya es una factura que se va a facturar en contabilidad, en todo».
@@ -222,27 +221,38 @@ cliente admin desde una action.
      - **¿A quién se factura cuando el cliente tiene un aliado raíz?** Recomiendo lo mismo que la carga de
        consolidados: al aliado raíz.
 
-4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?** — **RESPONDIDA
-   por Sam (2026-11-18, por el DG):** «la oficina» es el personal que trabaja en el ERP Studio, no un rol
-   aparte.
+4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?** — **DECIDIDO por
+   Sam (2026-11-18, en la reunión, por el DG):** «Ve el monto». El botón lo oprime el rol de Embarques, que
+   **sí** ve el monto al facturar.
 
-   **Propuesta del Worker: escriben el precio y facturan solo `accounting` y `admin`.**
-   - **El dinero no se abre a nadie más.** Son los mismos roles que hoy ven montos (0661), pasan la RLS de
-     `invoices` (0407 y 0414) y entran en la frontera de lectura SDD-0357.
-   - **No hay que tocar Embarques.** `accounting` ya ve el módulo `shipments` (`lib/studio/rbac.ts`).
-   - **Los otros roles no ven nada del botón.** `commercial`, `operations`, `warehouse` y `support` siguen
-     viendo Embarques como hoy, sin «Facturar», sin campo de precio y sin montos. Igual que en la 0661, la
-     decisión se toma en el servidor y el dato no viaja al navegador.
-   - **Esto reemplaza la recomendación anterior** de abrir el monto a Embarques en la pantalla de
-     confirmación.
+   **Excepción con nombre: «EXC-0674 · Embarques factura el contenedor 64».** Es una excepción explícita a
+   la regla de que solo Contabilidad ve montos (0661, 0414 y la frontera SDD-0357).
+   - **Quién ve y escribe el monto y factura:** el rol de Embarques, más `accounting` y `admin`.
+     **`commercial` sigue sin ver montos.**
+   - *Supuesto que confirma el DG:* el rol de Embarques es `operations` en `lib/studio/rbac.ts`.
+     `warehouse` y `support`, que también ven el módulo `shipments`, quedan **fuera** de la excepción
+     salvo que Sam diga otra cosa.
+   - **Dónde aplica:** solo en la acción «Facturar», en la fila de un cliente o en el contenedor completo,
+     y en sus dos pantallas de confirmación, y solo para los contenedores de la lista transitoria (hoy
+     el 64).
+   - **Dónde no cambia:** la franja y el detalle por cliente de la 0661. Ahí el dinero sigue siendo solo
+     de `accounting` y `admin`.
+   - **Cómo se lee y escribe.** Con su sesión, `operations` no puede leer ni escribir `invoices` (RLS 0414
+     y 0407), y la excepción **no** abre esas policies. Lo hace una RPC `security definer` acotada:
+     - verifica el rol, el tenant y que el contenedor esté en la lista;
+     - para el modo contenedor completo, devuelve solo lo que necesita la confirmación: los clientes que
+       ya tienen factura de esta regla y su monto;
+     - y es la que crea y emite la factura.
 
-   **Decisión explícita para Sam, si la quiere:** que otro rol (por ejemplo `operations`) escriba el precio
-   y facture. Eso **amplía** quién ve dinero:
-   - cambia la regla de la 0661;
-   - pide una RPC que escriba `invoices` saltando la RLS 0407;
-   - y abre una lectura nueva de montos fuera de Contabilidad, que habría que registrar en la SDD-0357.
-
-   No se hace sin su OK escrito.
+     No se usa el cliente admin desde una action.
+   - **Inventario SDD-0357.** La lectura nueva entra en `scripts/__tests__/invoice-read-boundary.test.mjs`
+     con un comentario de contrato que nombra EXC-0674: candado de rol y tenant, la lista transitoria y
+     para qué se usa. El inventario congela las llamadas que **existen en el código**, así que la entrada
+     se agrega en la PR de implementación, junto con la llamada. Agregarla hoy pondría la prueba en rojo.
+     Si la lectura pasa por la RPC y no por un `.from("invoices")` literal, el comentario lo dice y la
+     prueba de la frontera agrega la RPC a su lista.
+   - **Cierre:** cuando se vacía la lista transitoria, la excepción deja de aplicar. Se retira en la misma
+     PR que cierre la regla.
 
 5. **¿Cuáles son los otros contenedores?** — **DECIDIDO por Sam (2026-11-18, por el DG):** hoy **no** se
    hacen los otros.
@@ -269,7 +279,8 @@ cliente admin desde una action.
   spec, salvo que cambie la regla de lectura del portal (§3).
 - **0549, 0552, 0553 y 0556.** Lecturas del portal por principal y tenant, y facturas anuladas fuera. Si
   cambia qué ve el cliente, se tocan sus lecturas y sus pruebas de frontera.
-- **0357.** La frontera de lecturas de `invoices`. Una lectura nueva se registra en el inventario.
+- **0357.** La frontera de lecturas de `invoices`. La lectura nueva entra en el inventario con el
+  nombre de la excepción EXC-0674 (§4, pregunta 4), en la PR de implementación.
 - **0054 / AUT-04.** Gate legal al emitir una factura DDP.
 - **0574 / 0571.** Flujo definitivo, embarques sin facturar y tarifa congelada. Este botón no los
   reemplaza.
@@ -283,8 +294,9 @@ cliente admin desde una action.
 ## 7. Aceptación
 
 1. En `/studio/embarques`, el botón «Facturar» (por cliente) y «Facturar contenedor» aparecen **solo** en
-   el contenedor 64 (lista transitoria) y **solo** para `accounting` y `admin`. Para los demás roles no se
-   lee ni se envía ningún monto (prueba de servidor por rol, como en la 0661).
+   el contenedor 64 (lista transitoria) y **solo** para el rol de Embarques (`operations`), `accounting` y
+   `admin` (EXC-0674). Para `commercial` y los demás roles no se lee ni se envía ningún monto, con una
+   prueba de servidor por rol, como en la 0661. La franja y el detalle de la 0661 no cambian.
 2. El monto lo teclea la persona. El servidor rechaza vacío, cero, negativo, más de dos decimales y
    cualquier moneda que no sea USD.
 3. La doble confirmación es del mismo usuario:
@@ -299,10 +311,15 @@ cliente admin desde una action.
 7. Las pruebas cubren: servidor por rol, validación del monto, doble confirmación, factura por cliente con
    sus líneas, no duplicar, la frontera SDD-0357 y el render; además se pasa `/ui-check`.
 
-**Decisiones de Sam que faltan antes de implementar** (las recomendaciones están en el §3.1 y el §4):
-- el gate legal AUT-04 (recomiendo una excepción explícita y auditada, solo para la lista);
-- si el monto tecleado es la base o el total con IVA (recomiendo el total);
-- si con aliado raíz se le factura al aliado (recomiendo que sí, como la carga de consolidados).
+8. La lectura nueva queda registrada en el inventario SDD-0357 como EXC-0674, en la misma PR que la
+   implementa.
+
+**Decisiones de Sam que faltan antes de implementar** (las lleva el DG; las recomendaciones están en el
+§3.1 y el §4):
+- el gate legal AUT-04: propuesta, la opción 2 del §3.1 (a), **pendiente de Sam**;
+- si el monto tecleado es la base o el total con IVA: propuesta, el total, **pendiente de Sam**;
+- si con aliado raíz se le factura al aliado: propuesta, que sí, como la carga de consolidados, **pendiente
+  de Sam**.
 
 **Migración:** la RPC transaccional y la lista transitoria en configuración la necesitan. El número se le
 pide al DG al pasar a implementación.
