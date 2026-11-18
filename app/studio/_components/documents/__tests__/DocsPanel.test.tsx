@@ -171,3 +171,26 @@ describe("DocsPanel · subir nueva versión", () => {
     );
   });
 });
+
+describe("DocsPanel · formulario plegado (SDD-0669)", () => {
+  it("por defecto el formulario está abierto, como antes", () => {
+    render(<DocsPanel entityType="client" entityId="c1" documents={[]} />);
+    expect(screen.getByLabelText("Carpeta")).toBeInTheDocument();
+  });
+
+  it("plegado: «Subir documento» abre el formulario con el foco en el primer campo, y «Cancelar» lo devuelve al botón", async () => {
+    const user = userEvent.setup();
+    render(<DocsPanel entityType="client" entityId="c1" documents={[]} formularioPlegado />);
+    expect(screen.queryByLabelText("Carpeta")).toBeNull();
+    const abrir = screen.getByRole("button", { name: "Subir documento" });
+    expect(abrir.getAttribute("aria-expanded")).toBe("false");
+    expect(abrir.hasAttribute("aria-controls")).toBe(false);
+
+    await user.click(abrir);
+    expect(document.activeElement).toBe(screen.getByLabelText("Carpeta"));
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByLabelText("Carpeta")).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Subir documento" }));
+  });
+});
