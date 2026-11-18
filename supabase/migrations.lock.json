@@ -3538,6 +3538,15 @@
         "forma": "exacta"
       }
     },
+    "0556_nomina_reglas_vigencia_y_aportes": {
+      "sha256": "70abeec7119e2b3507433870a133d0ec934920f82db049f48ec5273f95b31414",
+      "md5": "89d094f27f14302a9cf3e4200b4f56da",
+      "bytes": 24812,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
     "0557_portal_vista_preferida": {
       "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
       "md5": "fe1c8d05334658e1502a90676986c67d",
