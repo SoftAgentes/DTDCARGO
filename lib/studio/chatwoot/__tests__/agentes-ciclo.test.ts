@@ -354,3 +354,64 @@ describe("avisarSaludAAdmins (2.5)", () => {
     expect(m.encolar).not.toHaveBeenCalled();
   });
 });
+
+// ── SDD-0675: la Bandeja por acceso adicional por persona ───────────────────
+describe("sincronizarAgentes con acceso adicional de Bandeja (SDD-0675)", () => {
+  const PEPA = "20000000-0000-4000-8000-000000000005";
+  const FUTURO = "2099-01-01T00:00:00Z";
+  const PASADO = "2020-01-01T00:00:00Z";
+
+  function conPepa(acceso: Fila[]): void {
+    tablas.chatwoot_agent_links.push({ tenant_id: T1, user_id: PEPA, chatwoot_user_id: 12 });
+    tablas.user_tenants.push({ tenant_id: T1, user_id: PEPA, role: "accounting", disabled_at: null });
+    tablas.studio_user_module_grants = acceso;
+    m.listar.mockResolvedValue({ ok: true, data: [...CUENTA, { userId: 12, rol: "agent" }] });
+  }
+  const agentesDeMatriz = () => m.matriz.mock.calls.at(-1)?.[1] as { chatwootUserId: number; porAcceso?: boolean }[];
+
+  it("contabilidad con el acceso vigente: se queda y llega a la matriz con porAcceso", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: FUTURO }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(0);
+    expect(m.quitar).not.toHaveBeenCalled();
+    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 12)).toMatchObject({ porAcceso: true });
+    // Quien la tiene por rol no lleva porAcceso.
+    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 7)?.porAcceso).toBe(false);
+  });
+
+  it("sin vencimiento también cuenta", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: true, expires_at: null }]);
+    expect((await sincronizarAgentes(ctx())).bajas).toBe(0);
+  });
+
+  it("acceso vencido: baja por sin_bandeja", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: PASADO }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(1);
+    expect(m.quitar).toHaveBeenCalledWith(12, CFG);
+  });
+
+  it("el acceso de otro tenant o de otro módulo no cuenta", async () => {
+    conPepa([
+      { tenant_id: T2, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null },
+      { tenant_id: T1, user_id: PEPA, module_id: "kommo", can_view: true, can_edit: false, expires_at: null },
+    ]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(1);
+    expect(m.quitar).toHaveBeenCalledWith(12, CFG);
+  });
+
+  it("el acceso de otra persona no le sirve", async () => {
+    conPepa([{ tenant_id: T1, user_id: ANA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null }]);
+    expect((await sincronizarAgentes(ctx())).bajas).toBe(1);
+  });
+
+  it("si no se pueden leer los accesos: no da de baja a nadie (omitido)", async () => {
+    conPepa([]);
+    admin = doble(tablas, { tabla: "studio_user_module_grants" });
+    const r = await sincronizarAgentes(ctx());
+    expect(r).toMatchObject({ bajas: 0, omitido: true });
+    expect(m.quitar).not.toHaveBeenCalled();
+    expect(m.matriz).not.toHaveBeenCalled();
+  });
+});

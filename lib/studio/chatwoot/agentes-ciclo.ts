@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { canAccessModule, type RoleModuleOverrides } from "@/lib/studio/rbac";
+import { DECISION_COLUMNS, grantsFromRows, type GrantDecisionRow } from "@/lib/studio/user-module-grants-queries";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
 import type { ChatwootConfig } from "./config";
@@ -62,7 +63,7 @@ export interface ResultadoSincronizacion {
   cierresPendientes: number;
   matriz?: Omit<ResultadoMatriz, "miembrosCuenta">;
   salud: SaludBandeja;
-  /** Sin la 0503: no hay vínculos que revisar. */
+  /** Sin la 0503 (no hay vínculos que revisar) o sin poder leer los accesos por persona (SDD-0675): no se toca nada. */
   omitido?: true;
 }
 
@@ -70,22 +71,42 @@ type FilaVinculo = { user_id: string; chatwoot_user_id: number };
 type FilaMiembro = { user_id: string; role: StudioUserRole; disabled_at: string | null };
 type FilaOverride = { role: string; module_id: string; can_view: boolean; can_edit: boolean };
 
-async function estadoEnStudio(ctx: ContextoAgentes): Promise<Map<string, EstadoMiembroStudio>> {
-  const [{ data: miembros }, { data: overridesFilas }] = await Promise.all([
+/**
+ * Estado de cada miembro en Studio. SDD-0675: `puedeBandeja` suma el acceso
+ * adicional vigente de la persona (`studio_user_module_grants`, 0538), igual que
+ * `canAccessModule` en la pantalla. Si esa lectura falla, devuelve `null`: sin
+ * saber quién tiene el acceso, el ciclo no da de baja a nadie.
+ */
+async function estadoEnStudio(ctx: ContextoAgentes): Promise<Map<string, EstadoMiembroStudio> | null> {
+  const [{ data: miembros }, { data: overridesFilas }, accesos] = await Promise.all([
     ctx.admin.from("user_tenants").select("user_id, role, disabled_at").eq("tenant_id", ctx.tenantId),
     ctx.admin.from("studio_role_module_overrides").select("role, module_id, can_view, can_edit").eq("tenant_id", ctx.tenantId),
+    ctx.admin
+      .from("studio_user_module_grants")
+      .select(DECISION_COLUMNS)
+      .eq("tenant_id", ctx.tenantId)
+      .eq("module_id", "bandeja"),
   ]);
+  if (accesos.error) {
+    console.warn(`[chatwoot-agentes] accesos por persona no disponibles: ${accesos.error.code ?? "sin código"}`);
+    return null;
+  }
+  const filasAcceso = (accesos.data ?? []) as GrantDecisionRow[];
   const overrides: Record<string, { view: boolean; edit: boolean }> = {};
   for (const o of (overridesFilas ?? []) as FilaOverride[]) {
     overrides[`${o.role}:${o.module_id}`] = { view: o.can_view, edit: o.can_edit };
   }
   const mapa = new Map<string, EstadoMiembroStudio>();
   for (const fila of (miembros ?? []) as FilaMiembro[]) {
+    const grants = grantsFromRows(filasAcceso.filter((g) => g.user_id === fila.user_id && g.module_id === "bandeja"));
+    const porRol = canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides);
+    const conAcceso = canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides, grants);
     mapa.set(fila.user_id, {
       userId: fila.user_id,
       activo: fila.disabled_at === null,
-      puedeBandeja: canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides),
+      puedeBandeja: conAcceso,
       rol: fila.role,
+      porAcceso: conAcceso && !porRol,
     });
   }
   return mapa;
@@ -114,7 +135,19 @@ export async function sincronizarAgentes(
     userId: f.user_id,
     chatwootUserId: f.chatwoot_user_id,
   }));
-  const [estado, cuenta] = await Promise.all([estadoEnStudio(ctx), listarMiembrosCuenta(ctx.cfg)]);
+  const [estadoLeido, cuenta] = await Promise.all([estadoEnStudio(ctx), listarMiembrosCuenta(ctx.cfg)]);
+  if (!estadoLeido) {
+    return {
+      revisados: 0,
+      bajas: 0,
+      bloqueadas: 0,
+      fallidas: 0,
+      cierresPendientes: 0,
+      salud: { alertas: [], adminsHumanos: null, vinculosFueraDeCuenta: [] },
+      omitido: true,
+    };
+  }
+  const estado = estadoLeido;
   let miembrosCuenta: MiembroCuenta[] = cuenta.ok ? [...cuenta.data] : [];
   const quedan: VinculoAgente[] = [];
   let bajas = 0;
@@ -224,7 +257,7 @@ async function agentesDeLaMatriz(
   for (const v of lista) {
     const m = estado.get(v.userId);
     if (!m?.rol || decidirBaja(m) !== null) continue;
-    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol });
+    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol, porAcceso: m.porAcceso === true });
   }
   return agentes;
 }

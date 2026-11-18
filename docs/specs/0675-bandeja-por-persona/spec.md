@@ -17,7 +17,9 @@ confidencialidad: interno
 > `support`. Esta SDD permite darla a **una persona** como acceso adicional (SDD-0622), sin cambiarle el
 > rol, y hace que Chatwoot le dé las bandejas que le tocan: Leads, Clientes o las dos.
 
-**Estado:** `proposed`. Etapa 1: spec y diseño. El código va después de que Sam conteste §5.
+**Estado:** `proposed`. Decisión 1 de §5 contestada por Sam el 2026-11-18: «Sí, siempre las dos». La
+decisión 2 sigue con la recomendación («ver y editar» como cualquier módulo cubierto) hasta que Sam diga otra
+cosa. Etapa 2: código en esta PR.
 
 ## 0. Decisión de Sam, literal
 
@@ -76,7 +78,9 @@ lo hace.
    El rol de la cuenta de Chatwoot sigue siendo `agent` para todo el que no es admin (`rolChatwootDe`, sin
    cambio): un acceso adicional nunca hace administrador de Chatwoot.
 4. **F4.** «Agentes vinculados» calcula `puedeBandeja` con los accesos del tenant (`getTenantGrantsByUser`,
-   que Usuarios ya usa).
+   que Usuarios ya usa), y el alta del agente (`altaAgente`, `app/studio/(app)/bandeja/actions.ts`) deja de
+   rechazar con `sin_bandeja` a quien tiene el acceso vigente (lee su fila de `bandeja` con la llave de servicio).
+   Este sitio no estaba en la primera versión de la tabla de §1; se encontró al implementar.
 5. **F5.** `grantUserModuleAction` y `revokeUserModuleGrantAction` llaman a
    `sincronizarAgenteDeUsuario(persona)` después de guardar, **solo si el módulo es `bandeja`**, igual que el
    cambio de rol: nunca cambia el resultado de Usuarios y, si Chatwoot falla, lo reintenta el cron.
@@ -126,7 +130,8 @@ su degradación.
 
 ## 5. Decisiones de Sam (preguntas cerradas)
 
-1. **¿Qué bandejas da el acceso adicional de Bandeja?**
+1. **¿Qué bandejas da el acceso adicional de Bandeja?** — **Contestada (2026-11-18), literal: «Sí, siempre
+   las dos».** Se implementa la primera opción; la 0565 es solo el cambio de función.
    - **Siempre Leads y Clientes (recomendado).** Es el caso de hoy; la 0565 es solo el cambio de una función.
    - **Se eligen por persona** (Leads, Clientes o las dos). La 0565 suma una tabla con lo que eligió el admin
      para cada persona, y además cubre al comercial que necesita Clientes (§3). Es más trabajo y deja más
@@ -141,10 +146,15 @@ su degradación.
 - `lib/studio/chatwoot/agentes-ciclo.ts`, `lib/studio/chatwoot/matriz.ts`,
   `lib/studio/chatwoot/agentes-matriz.ts` (si `AgenteMatriz` cambia de forma),
   `lib/studio/chatwoot/agentes-bandeja-admin.ts` y sus pruebas.
-- `app/studio/(app)/usuarios/actions.ts` y su prueba.
+- `app/studio/(app)/usuarios/actions.ts` y su prueba nueva
+  `app/studio/(app)/usuarios/__tests__/acceso-bandeja-chatwoot.test.ts`.
+- `app/studio/(app)/bandeja/actions.ts` (`altaAgente`) y `app/studio/(app)/bandeja/__tests__/alta-agente.test.ts`.
+- `lib/studio/chatwoot/agentes-salud.ts` (campo `porAcceso` del estado).
+- `lib/studio/__tests__/user-module-grants-bandeja.test.ts` (nueva).
 - `docs/specs/0622-permisos-por-persona/spec.md`: nota de que `bandeja` pasa a cubierto por esta SDD.
 - `supabase/migrations/0565_bandeja_concedible_por_persona.sql` (nuevo),
   `supabase/tests/0565_bandeja_concedible_por_persona.test.sql` (nuevo), su prueba en Vitest (nueva),
+  `lib/studio/__tests__/bandeja-concedible.migration.test.ts` (nueva),
   `supabase/desarmes/0565_desarme.sql` (nuevo), `supabase/migrations-baseline.json` (la espera) y
   `supabase/pending-migration-symbol-declarations.json` si el gate lo pide.
 - `lib/studio/__tests__/user-module-grants.migration.test.ts` (lee la última definición).

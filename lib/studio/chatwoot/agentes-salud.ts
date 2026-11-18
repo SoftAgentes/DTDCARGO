@@ -25,6 +25,8 @@ export interface EstadoMiembroStudio {
   puedeBandeja: boolean;
   /** Para la matriz del 2.7. */
   rol?: StudioUserRole;
+  /** SDD-0675: ve la Bandeja por un acceso adicional vigente, no por su rol. */
+  porAcceso?: boolean;
 }
 
 export interface VinculoAgente {

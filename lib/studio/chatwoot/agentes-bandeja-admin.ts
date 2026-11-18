@@ -13,6 +13,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { StudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
+import { getTenantGrantsByUser } from "@/lib/studio/user-module-grants-queries";
 import { chatwootConfig, chatwootServicioUserId } from "./config";
 import { listarMiembrosCuenta } from "./platform-api";
 import { evaluarSalud, type SaludBandeja } from "./agentes-salud";
@@ -52,11 +53,13 @@ export async function cargarAgentesBandeja(
   if (access.role !== "admin" || !access.tenantId || !cfg) return null;
   const tenantId = access.tenantId;
 
-  const [vinculos, miembros, cuenta, webhook] = await Promise.all([
+  const [vinculos, miembros, cuenta, webhook, accesos] = await Promise.all([
     listVinculos(supabase, tenantId),
     miembrosDeBandeja(access, crearClienteAdmin),
     listarMiembrosCuenta(cfg),
     revisarWebhookCuenta(cfg, chatwootServicioUserId()),
+    // SDD-0675: el acceso adicional de Bandeja también deja darla de alta.
+    getTenantGrantsByUser(crearClienteAdmin(), tenantId),
   ]);
   // Paso 2.5: la misma salud que mide el cron diario, leída al abrir la página.
   const salud = evaluarSalud({
@@ -79,7 +82,7 @@ export async function cargarAgentesBandeja(
       .map((m) => ({
         userId: m.user_id,
         nombre: nombreDe(m.profile) || m.user_id.slice(0, 8),
-        puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides),
+        puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides, accesos.get(m.user_id)),
       })),
     salud,
   };

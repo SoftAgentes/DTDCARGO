@@ -1340,6 +1340,9 @@ export async function grantUserModuleAction(
     p_effects_version: sensible ? SENSITIVE_MODULE_EFFECTS_VERSION : null,
   });
   if (error) return { error: mensajeDeAcceso(error) };
+  // SDD-0675: la Bandeja por acceso adicional entra a Chatwoot ya (bandejas de
+  // Leads y Clientes). Igual que el cambio de rol: nunca cambia el resultado.
+  if (input.moduleId === "bandeja") await sincronizarAgenteDeUsuario(input.targetUserId).catch(() => undefined);
   revalidatePath("/studio/usuarios");
   return { ok: true };
 }
@@ -1365,6 +1368,8 @@ export async function revokeUserModuleGrantAction(input: {
     p_reason: motivo,
   });
   if (error) return { error: mensajeDeAcceso(error) };
+  // SDD-0675: sin el acceso, el ciclo la saca de Chatwoot en el momento.
+  if (input.moduleId === "bandeja") await sincronizarAgenteDeUsuario(input.targetUserId).catch(() => undefined);
   revalidatePath("/studio/usuarios");
   return { ok: true };
 }

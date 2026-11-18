@@ -46,10 +46,11 @@ export type GrantCoverage = "covered" | "money_phase" | "admin_base" | "superadm
  *     deciden con `user_has_module`/`user_has_any_module`, así que el extra entra
  *     por ahí (también en `chatwoot_conversations`, solo lectura).
  *   - suppliers: RLS solo por tenant (0236); el extra no necesita cambio en la base.
+ *   - bandeja (SDD-0675, migr 0565): la RLS ya usa `user_has_module('bandeja')`
+ *     (0540, 0554); el ciclo de agentes de Chatwoot suma el extra y le da Leads y
+ *     Clientes (decisión de Sam del 2026-11-18). Sin la 0565 la RPC lo rechaza.
  *
  * Fuera a propósito, con su motivo en `COVERAGE_HINT`:
- *   - bandeja: el ciclo de agentes de Chatwoot (`lib/studio/chatwoot/agentes-*`)
- *     decide quién es agente solo por rol; tocarlo es del carril de Chatwoot.
  *   - users / direccion: sus páginas exigen hoy el rol admin en la aplicación.
  */
 const COVERED: ReadonlySet<string> = new Set([
@@ -61,6 +62,7 @@ const COVERED: ReadonlySet<string> = new Set([
   "conversaciones",
   "rates",
   "suppliers",
+  "bandeja",
 ]);
 
 export function moduleCoverage(moduleId: string): GrantCoverage {

@@ -52,6 +52,7 @@ import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuari
 import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, SSO_COOKIE_OPTIONS } from "@/lib/studio/chatwoot/sso-cookie";
 import { canAccessModule } from "@/lib/studio/rbac";
+import { DECISION_COLUMNS, grantsFromRows, type GrantDecisionRow } from "@/lib/studio/user-module-grants-queries";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/client-account";
 import { getClientAccountState } from "@/lib/studio/client-queries";
@@ -278,7 +279,16 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
   for (const o of (filasOverride ?? []) as { role: string; module_id: string; can_view: boolean; can_edit: boolean }[]) {
     overrides[`${o.role}:${o.module_id}`] = { view: o.can_view, edit: o.can_edit };
   }
-  if (!canAccessModule(miembro.role, "bandeja", overrides)) return { ok: false, error: "sin_bandeja" };
+  // SDD-0675: también cuenta el acceso adicional vigente de la persona (0538).
+  // Si no se puede leer, se decide solo con el rol (no abre más de lo de antes).
+  const { data: filasAcceso } = await admin
+    .from("studio_user_module_grants")
+    .select(DECISION_COLUMNS)
+    .eq("tenant_id", gate.tenantId)
+    .eq("user_id", userId)
+    .eq("module_id", "bandeja");
+  const accesos = grantsFromRows(((filasAcceso ?? []) as GrantDecisionRow[]).filter((g) => g.module_id === "bandeja"));
+  if (!canAccessModule(miembro.role, "bandeja", overrides, accesos)) return { ok: false, error: "sin_bandeja" };
 
   const { data: yaVinculado, error: errorVinculos } = await admin
     .from("chatwoot_agent_links")
