@@ -253,9 +253,13 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   gasto (16/11/2026; después, respaldo deepseek-chat); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
-- **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta `CHATWOOT_ACCOUNT_ID` e ignora los avisos de
+- **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta la cuenta del cable e ignora los avisos de
   otra cuenta (sigue respondiendo 422 a un texto rechazado); el puente de prueba tiene las pruebas que le faltaban (O4)
   y pagina conversaciones y mensajes (O5).
+- **La cuenta del cable es propia (DG, 17/11/2026).** En producción `CHATWOOT_ACCOUNT_ID` es la cuenta real del ERP y la
+  bandeja de prueba vive en la cuenta de prueba. Por eso el cable (webhook, despachador, lectura y envío) toma la cuenta
+  SOLO de `OFICINA_CHATWOOT_ACCOUNT_ID`, sin caída a la del ERP: si falta o no es un entero positivo, el webhook rechaza
+  todo y lo demás responde `sin_config`. La Bandeja del ERP sigue con `CHATWOOT_ACCOUNT_ID`. Encendido: runbook §12.
 
 **Archivos del Paso 3a (allowlist):**
 - `supabase/migrations/0548_oficina_despachador.sql`, `supabase/desarmes/0548_desarme.sql` y
