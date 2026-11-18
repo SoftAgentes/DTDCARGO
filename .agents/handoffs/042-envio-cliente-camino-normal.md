@@ -1780,3 +1780,27 @@ al tope (no rompe la repetición) y dejar la edición a la base.
 - Accesos por persona (0538/0539) en `module_allowed`.
 - «Pasar a otro cliente» (0551/0645): bloqueado con error claro; **decisión a
   confirmar con Sam** en la spec.
+
+### Corrida con turno de PC (2026-11-18, cabeza b1108fac9 + este handoff)
+
+| Comprobación | Estado |
+|---|---|
+| Contrato SQL en PGlite (`consolidacion_cliente_normal.test.sql`) | PASÓ: 190 aserciones (+15 de renombre y accesos por persona) |
+| `normal-path.migration.test.ts` | PASÓ 51/51, 11 mutantes que mueren |
+| Reconstrucción 0001–0561 en `supabase/postgres:17.6.1.136` | PASÓ: OK\|529 |
+| Portal en esa base (cada cliente ve lo suyo) | PASÓ 10/10 |
+| Gate de símbolos con #688 | 0 ROJO · 1 AMARILLO (sin #688: 702 ROJO) |
+| vitest de la PR + rbac | PASÓ 459/459 y 501/501 (antes de los últimos cambios SQL; no tocan TS) |
+| e2e, runner de concurrencia, matriz A1–A18 | NO EJECUTADO |
+| `pnpm verify` | NO EJECUTADO |
+
+La prueba del portal y el lanzador de la base no están en el repo: viven en
+la carpeta de notas del grupo (`pr318-portal578-postgres-real.sql`,
+`pr318-db578-reconstruccion.sh`). Siembra sintética en una transacción con
+ROLLBACK. La fila de cohorte se siembra sin triggers
+(`session_replication_role=replica`); las lecturas corren con RLS.
+
+Dependencia: [#688](https://github.com/SoftAgentes/DTDCARGO/pull/688) (gate,
+solo harness) se fusiona primero; después hay que traer main a esta rama.
+
+FUERA DE ALCANCE DETECTADO: ninguno nuevo.
