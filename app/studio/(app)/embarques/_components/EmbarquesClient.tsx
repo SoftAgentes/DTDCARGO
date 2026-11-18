@@ -1160,7 +1160,8 @@ function MontoDeContenedor({
   }
   return (
     <span style={{ ...estilo, color: "var(--ink)" }}>
-      A cobrar <span style={{ fontFamily: "var(--f-mono)" }}>{fmtUsd(m.totalUsd)}</span>
+      A cobrar{" "}
+      <span style={{ fontFamily: "var(--f-mono)", whiteSpace: "nowrap" }}>{fmtUsd(m.totalUsd)}</span>
       {m.otraMoneda > 0 && (
         <span style={{ display: "block", color: "var(--ink-soft)", fontWeight: 500, marginTop: 2 }}>
           + {m.otraMoneda} {m.otraMoneda === 1 ? "factura" : "facturas"} en otra moneda
