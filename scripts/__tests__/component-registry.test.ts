@@ -19,11 +19,14 @@ describe("CMP-01 component registry", () => {
     // tiene que ser una decisión deliberada, no algo que se cuele. `action-menu`
     // entra con SDD-0263 en estado `proposed` (sin consumidores todavía).
     // `aviso` entra con SDD-0628 en estado `proposed` (consumidor: ErrorAlert).
-    expect(sources).toHaveLength(6);
+    // `date-field` entra con SDD-0660 en estado `proposed` (consumidores:
+    // Conversaciones y Nómina).
+    expect(sources).toHaveLength(7);
     expect(sources.map(({ record }) => record.id)).toEqual([
       "action-menu",
       "aviso",
       "confirm-dialog",
+      "date-field",
       "llm-mode-toggle",
       "numeric-input",
       "segmented-control",

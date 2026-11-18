@@ -82,7 +82,12 @@ Con esto **ya no queda ningún `type="month"` en el Studio**.
 - **Gastos con un mes imposible** (13/2026): avisa `""` y el filtro pasa a «todos los meses», aunque el campo muestra el error.
 - **Limpieza externa repetida con `""`:** si el padre ya tenía `""` y vuelve a poner `""` (por ejemplo, un «Limpiar» pulsado dos veces con algo a medio escribir), la prop no cambia y el texto no se limpia.
 
+### CI sobre `0daf1f5fa`
+
+- «Calidad local sin secretos» falló en Unitarios por 2 pruebas que fijan el registro CMP-01 en 6 componentes (`scripts/__tests__/component-registry.test.ts` y `policy-registry.test.mjs` del plugin). Ahora cuentan 7 con `date-field` y se regeneró el derivado `references/policy-registry.json` con `build-policy-registry.mjs`, como hizo SDD-0628 con `aviso`. Las dos pasan (11/11) y `validate-governance` dice 7 componentes.
+
 ## FUERA DE ALCANCE DETECTADO
+- `run-forward-tests.mjs` del plugin de gobernanza da «29 !== 27» también sin este cambio: cuenta políticas (29 en `main`) contra una cifra vieja. No corre en el CI.
 
 - `app/studio/CLAUDE.md` conserva voseo previo («debés», «parametrizá», «controlá» en `icons.tsx`). No es de esta tarea.
 - `ServiceSubEditors` tenía otras etiquetas sin `htmlFor` (precio, moneda); solo se asoció la de la fecha.
