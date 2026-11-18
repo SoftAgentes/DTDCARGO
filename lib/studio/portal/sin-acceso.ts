@@ -50,8 +50,27 @@ export async function findClienteSinAcceso(
   supabaseAdmin: SupabaseClient,
   email: string,
 ): Promise<ClienteSinAcceso | null> {
+  const r = await buscarClienteSinAcceso(supabaseAdmin, email);
+  return r.estado === "ok" ? r.cliente : null;
+}
+
+/**
+ * Lo mismo que {@link findClienteSinAcceso}, pero distingue «no es cliente» de
+ * «no se pudo preguntar».
+ *
+ * SDD-0672 · desde que `/entrar` dice en pantalla qué pasó con el correo, un
+ * `null` por una consulta caída le diría «no encontramos una cuenta» a un cliente
+ * de verdad. Con `error`, `/entrar` responde «no pudimos atender tu pedido», que
+ * es cierto para cualquier correo.
+ *
+ * NUNCA tira.
+ */
+export async function buscarClienteSinAcceso(
+  supabaseAdmin: SupabaseClient,
+  email: string,
+): Promise<{ estado: "ok"; cliente: ClienteSinAcceso | null } | { estado: "error" }> {
   const clean = email.trim();
-  if (!clean) return null;
+  if (!clean) return { estado: "ok", cliente: null };
 
   try {
     // `.limit(1)` antes de `.maybeSingle()`: el email NO es único en `clients`
@@ -68,9 +87,10 @@ export async function findClienteSinAcceso(
     // SDD-0597 · `sameEmail` porque `*` no se puede escapar (ver `email-literal.ts`).
     // Sin esto, escribir `%@dominio` o un parecido le avisaría al equipo de un
     // cliente que nadie nombró.
-    if (error || !data || !sameEmail(data.email, clean)) return null;
-    return data;
+    if (error) return { estado: "error" };
+    if (!data || !sameEmail(data.email, clean)) return { estado: "ok", cliente: null };
+    return { estado: "ok", cliente: data };
   } catch {
-    return null;
+    return { estado: "error" };
   }
 }
