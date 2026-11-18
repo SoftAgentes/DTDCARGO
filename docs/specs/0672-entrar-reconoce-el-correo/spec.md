@@ -230,7 +230,7 @@ nominal de Sam nombrando el archivo.
 | `app/registro/activar/[token]/page.tsx`, `actions.ts` y su prueba | nuevos: GET que solo lee, POST con la guarda |
 | `app/registro/link/[token]/RegistroLinkForm.tsx` | variante `autoservicio`: sin Shipping Mark antes de la guarda, correo precargado |
 | `lib/portal/registro-link-types.ts` | URL, TTL y los dos mensajes de autoservicio; `origen` en la fila de revisión |
-| `lib/studio/registro-link-queries.ts` | lee `origin`/`issued_to_email` (con respaldo sin la 0562) |
+| `lib/studio/registro-link-queries.ts` | lee `link_origin`/`issued_to_email` (con respaldo sin la 0562) |
 | `lib/studio/__tests__/registro-link-correo-estado.test.ts` | los casos de autoservicio |
 | `app/studio/(app)/clientes/_components/RegistrosLinkClient.tsx` | «lo pidió desde «Entrar»» |
 | esta spec, el índice y `.agents/handoffs/sdd-0672-entrega-2-autoservicio.md` | docs |
