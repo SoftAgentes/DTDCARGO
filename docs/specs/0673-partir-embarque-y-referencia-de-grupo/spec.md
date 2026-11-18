@@ -208,6 +208,7 @@ Reglas:
 - **Qué no es:** no es el dueño. No decide el cliente, no entra en la facturación ni en el Shipping Mark, y no se usa para asignar nada solo.
 - **Al partir:** si el original no tenía referencia, las dos partes quedan con el `code` original como referencia. Así se lee que vienen del mismo grupo. Si ya tenía, la parte nueva la hereda.
 - **Quién la ve:** solo el Studio. **El Portal no la muestra**, porque un grupo compartido revela que hay otro cliente. Ver D5.
+  - Límite conocido: la policy «shipments portal self read» (0416) filtra por fila, no por columna. Un cliente que consulte la API directamente podría leer el grupo de sus propios embarques. Cerrarlo es otra spec.
 - **Edición:** se edita en la franja «Carga» de la ficha con el permiso de editar Tracking, sin motivo y sin evento, igual que las notas del embarque.
 - **Búsqueda:** buscar por el grupo en Embarques y en Tracking queda para una PR siguiente.
 

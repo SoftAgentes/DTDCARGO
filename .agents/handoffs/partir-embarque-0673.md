@@ -56,4 +56,5 @@
 - La carga de consolidados podría llenar `group_reference` con el remitente (D6, spec siguiente).
 - Buscar por grupo de WeChat en Embarques y Tracking.
 - Ofrecer «Corregir medidas» y «Partir» también desde el panel de Embarques.
-- Puntos 6 y 7 de la revisión Opus sobre `dbf39c12a` (2026-11-18): fuera de alcance por decisión del DG; su texto está en la revisión, no se copió acá.
+- (Revisión Opus, punto 6) `PATCH /api/studio/shipments/[id]` (`route.ts:125-135`) todavía escribe `weight_kg` y `volume_m3` sueltos, sin pasar por `correct_shipment_measures`.
+- (Revisión Opus, punto 7) El grupo de WeChat, como cualquier columna de `shipments`, se puede leer desde el Portal por PostgREST: la policy «shipments portal self read» (0416) filtra por fila, no por columna. Ninguna pantalla lo muestra; el riesgo es bajo.
