@@ -51,7 +51,7 @@ CHANGES_REQUESTED de la revisión independiente (11 puntos); esta es la segunda 
 | Comprobación | Resultado |
 |---|---|
 | `tsc --noEmit -p tsconfig.json` | PASÓ |
-| vitest `lib/studio/nomina`, `app/studio/(app)/nomina` (incluye `conservar-lo-escrito`, `ReglasDrawer.test.tsx`, la migración 0556 en PGlite) y `scripts/__tests__/spec-migration-refs.test.ts` | PASÓ (30 archivos, 467 pruebas) |
+| vitest `lib/studio/nomina`, `app/studio/(app)/nomina` (incluye `conservar-lo-escrito`, `ReglasDrawer.test.tsx`, la migración 0556 en PGlite) y `scripts/__tests__/spec-migration-refs.test.ts` | PASÓ (30 archivos, 479 pruebas) |
 | vitest de contratos del Studio y de `scripts/__tests__` | PASÓ (80 archivos, 1157 pruebas) |
 | Migración 0556 en PGlite: contrato, control rojo, preflights, desarme y reaplicación, mutantes, gemela | PASÓ |
 | ESLint de `lib/studio/nomina` y `app/studio/(app)/nomina` | PASÓ |
