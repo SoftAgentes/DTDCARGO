@@ -406,12 +406,39 @@ describe("sincronizarAgentes con acceso adicional de Bandeja (SDD-0675)", () => 
     expect((await sincronizarAgentes(ctx())).bajas).toBe(1);
   });
 
-  it("si no se pueden leer los accesos: no da de baja a nadie (omitido)", async () => {
+  it("si no se pueden leer los accesos: «sin_bandeja» espera, sin matriz, con alerta de salud", async () => {
     conPepa([]);
     admin = doble(tablas, { tabla: "studio_user_module_grants" });
     const r = await sincronizarAgentes(ctx());
-    expect(r).toMatchObject({ bajas: 0, omitido: true });
+    expect(r.omitido).toBeUndefined();
+    expect(r).toMatchObject({ bajas: 0, sinBandejaEnEspera: 1 });
     expect(m.quitar).not.toHaveBeenCalled();
     expect(m.matriz).not.toHaveBeenCalled();
+    expect(r.salud.alertas).toContain("accesos_no_leidos");
+  });
+
+  it("si no se pueden leer los accesos: «desactivado» y «fuera_del_tenant» se aplican igual", async () => {
+    conPepa([]);
+    // LUIS desactivado y un vínculo cuyo usuario ya no está en el tenant.
+    tablas.user_tenants = tablas.user_tenants.map((f) =>
+      f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+    );
+    const FUERA = "20000000-0000-4000-8000-000000000006";
+    tablas.chatwoot_agent_links.push({ tenant_id: T1, user_id: FUERA, chatwoot_user_id: 13 });
+    m.listar.mockResolvedValue({ ok: true, data: [...CUENTA, { userId: 12, rol: "agent" }, { userId: 13, rol: "agent" }] });
+    admin = doble(tablas, { tabla: "studio_user_module_grants" });
+    const r = await sincronizarAgentes(ctx());
+    expect(r).toMatchObject({ bajas: 2, sinBandejaEnEspera: 1 });
+    expect(m.quitar).toHaveBeenCalledWith(8, CFG);
+    expect(m.quitar).toHaveBeenCalledWith(13, CFG);
+    expect(m.quitar).not.toHaveBeenCalledWith(12, CFG);
+    expect(r.salud.alertas).toContain("accesos_no_leidos");
+  });
+
+  it("con los accesos leídos no hay alerta ni sinBandejaEnEspera", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.sinBandejaEnEspera).toBeUndefined();
+    expect(r.salud.alertas).not.toContain("accesos_no_leidos");
   });
 });

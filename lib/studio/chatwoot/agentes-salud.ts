@@ -45,6 +45,8 @@ export type AlertaSalud =
   | "cierre_pendiente"
   | "degradacion_bloqueada"
   | "matriz_incompleta"
+  // SDD-0675: no se pudieron leer los accesos adicionales de Bandeja; las bajas «sin_bandeja» y la matriz esperan.
+  | "accesos_no_leidos"
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta (`webhook-salud.ts`).
   | "webhook_falta"
   | "webhook_sin_mensajes"

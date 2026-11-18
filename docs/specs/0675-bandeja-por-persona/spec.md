@@ -58,16 +58,21 @@ lo hace.
 0. **F0. Migración 0565:** `create or replace function public.studio_module_is_grantable` con la misma
    firma, el mismo cuerpo y los mismos privilegios, sumando `'bandeja'` a la lista. Es una función
    `immutable` sin datos: no escribe filas ni toma locks de tablas. Preflight: exige la 0538 y que la función
-   tenga hoy exactamente las 8 de la 0538; postflight: que `bandeja` sea concedible y `admin`/`users` sigan
-   fuera. Desarme: devolver la lista de 8, y antes **revocar** los accesos de `bandeja` que existan (si no,
-   quedan filas que la RPC ya no aceptaría). La autoriza la decisión de Sam de §0.
+   tenga hoy exactamente las 8 de la 0538 (cada una concedible y ningún literal de más en su cuerpo).
+   Postflight: las 8 más `bandeja`, una por una y sin módulos de más; `admin`/`users` fuera; EXECUTE solo de
+   `authenticated` y `service_role`. Desarme: devolver la lista de 8, entre `begin` y `commit`, y antes
+   **revocar** los accesos de `bandeja` que existan (si no, quedan filas que la RPC ya no aceptaría; el
+   desarme aborta). La autoriza la decisión de Sam de §0.
 1. **F1. `bandeja` pasa a `COVERED`.** Se ofrece en Usuarios › «Lo que puede ver» como cualquier módulo
    cubierto: ver, o ver y editar (editar = unir una conversación a una ficha, 0554), con motivo y
    vencimiento opcional. No es módulo sensible.
 2. **F2. El ciclo lee los accesos.** `estadoEnStudio` lee además las filas vigentes de
    `studio_user_module_grants` con `module_id = 'bandeja'` del tenant (con la llave de servicio, como hoy los
    desvíos) y calcula `puedeBandeja = canAccessModule(rol, "bandeja", overrides, grants)`. Un acceso vencido
-   deja de contar y la siguiente pasada del cron diario lo da de baja.
+   deja de contar y la siguiente pasada del cron diario lo da de baja. **Si esa lectura falla** (revisión
+   de la #686): las bajas por `desactivado` y `fuera_del_tenant` se aplican igual; las de `sin_bandeja`
+   esperan (`sinBandejaEnEspera`), la matriz no corre (sacaría de sus bandejas a quien entra por un extra) y
+   la salud levanta la alerta `accesos_no_leidos`, que el cron le avisa a los admins.
 3. **F3. Bandejas por acceso adicional.** `AgenteMatriz` suma `porAcceso: boolean`: verdadero cuando la
    Bandeja le llega por acceso adicional y no por rol. `destinosDe` queda así:
    - `admin` → Clientes y Leads (igual que hoy);
@@ -83,7 +88,11 @@ lo hace.
    Este sitio no estaba en la primera versión de la tabla de §1; se encontró al implementar.
 5. **F5.** `grantUserModuleAction` y `revokeUserModuleGrantAction` llaman a
    `sincronizarAgenteDeUsuario(persona)` después de guardar, **solo si el módulo es `bandeja`**, igual que el
-   cambio de rol: nunca cambia el resultado de Usuarios y, si Chatwoot falla, lo reintenta el cron.
+   cambio de rol: lo guardado no cambia y, si Chatwoot falla, lo reintenta el cron. Desde la revisión de la
+   #686, si Chatwoot quedó pendiente la acción devuelve el aviso «Guardado; Chatwoot quedó pendiente hasta el
+   próximo ciclo.» y la pestaña Acceso lo muestra.
+6. **Atajo «Todo Comercial».** No suma la Bandeja: abre chats y una cuenta en Chatwoot, así que se da a
+   propósito, módulo por módulo.
 
 **Alta en Chatwoot.** Dar el acceso no crea el usuario de Chatwoot. Después de concederlo, un admin vincula a
 la persona en Usuarios › Bandeja › Agentes vinculados, como hoy con un comercial. Con el vínculo, el ciclo la

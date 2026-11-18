@@ -21,6 +21,11 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0565_bandeja_concedible_por_perso
 const M0565 = "0565_bandeja_concedible_por_persona.sql";
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const FILE_0565 = read(resolve(ROOT, "supabase/migrations", M0565));
+/** El desarme sin su begin/commit: se ensaya dentro de la transacción del contrato. */
+const DESARME = read(resolve(ROOT, "supabase/desarmes/0565_desarme.sql"))
+  .split("\n")
+  .filter((line) => !/^(begin|commit);$/.test(line.trim()))
+  .join("\n");
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
   pendingBelowCutoff: Record<string, string>;
 };
@@ -49,10 +54,10 @@ function inline(file: string, replace: Record<string, string> = {}): string {
   return out.join("\n");
 }
 
-async function contract(replace: Record<string, string> = {}) {
+async function contract(replace: Record<string, string> = {}, ajustar: (sql: string) => string = (sql) => sql) {
   const db = await pgliteLimpio();
   try {
-    const results = await db.exec(inline(CONTRACT, replace));
+    const results = await db.exec(ajustar(inline(CONTRACT, replace)));
     const rows = results.flatMap((result) => result.rows as Record<string, unknown>[]);
     const green = rows.map((row) => String(row.resultado ?? "")).find((text) => text.startsWith("TEST 0565"));
     return { error: null as string | null, green };
@@ -87,13 +92,26 @@ describe("SDD-0675 · 0565 la Bandeja se concede por persona (PGlite)", () => {
       "abre un módulo no cubierto",
       "    'bandeja'\n  ]::text[])\n$$;",
       "    'bandeja', 'cn'\n  ]::text[])\n$$;",
-      /TEST 0565: 4: la lista no se abrió de más/,
+      // Desde la revisión de la #686 lo para el postflight (módulos de más); la aserción 4 del contrato queda de segunda red.
+      /0565: la lista de módulos concedibles no quedó como se esperaba/,
     ],
     [
       "pierde un módulo de la 0538",
       "'rates', 'suppliers',\n    'bandeja'",
       "'rates',\n    'bandeja'",
-      /0565: la lista de módulos concedibles no quedó|TEST 0565/,
+      /0565: la lista de módulos concedibles no quedó como se esperaba/,
+    ],
+    [
+      "suma un módulo de más que no es admin ni users",
+      "    'bandeja'\n  ]::text[])\n$$;",
+      "    'bandeja', 'tesoreria'\n  ]::text[])\n$$;",
+      /0565: la lista de módulos concedibles no quedó como se esperaba/,
+    ],
+    [
+      "le quita EXECUTE a service_role",
+      "comment on function public.studio_module_is_grantable(text) is",
+      "revoke execute on function public.studio_module_is_grantable(text) from service_role;\ncomment on function public.studio_module_is_grantable(text) is",
+      /0565: los privilegios de studio_module_is_grantable cambiaron/,
     ],
     [
       "abre admin",
@@ -116,6 +134,72 @@ describe("SDD-0675 · 0565 la Bandeja se concede por persona (PGlite)", () => {
     expect(run.green).toBeUndefined();
     expect(run.error).toMatch(/0565: bandeja ya es concedible/);
   }, SLOW);
+
+  it("PREFLIGHT: si la lista vigente tiene un módulo de más, aborta", async () => {
+    const run = await contract({
+      [M0565]: `create or replace function public.studio_module_is_grantable(p_module_id text) returns boolean
+language sql immutable security invoker set search_path = '' as $f$
+  select p_module_id = any (array['kommo', 'clients', 'quotes', 'sales-orders', 'purchase-orders',
+    'conversaciones', 'rates', 'suppliers', 'tesoreria']::text[])
+$f$;
+${FILE_0565}`,
+    });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toMatch(/0565: studio_module_is_grantable no tiene la lista de la 0538/);
+  }, SLOW);
+
+  it("PREFLIGHT: si a la lista vigente le falta un módulo de la 0538, aborta", async () => {
+    const run = await contract({
+      [M0565]: `create or replace function public.studio_module_is_grantable(p_module_id text) returns boolean
+language sql immutable security invoker set search_path = '' as $f$
+  select p_module_id = any (array['kommo', 'clients', 'quotes', 'sales-orders', 'purchase-orders',
+    'conversaciones', 'suppliers']::text[])
+$f$;
+${FILE_0565}`,
+    });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toMatch(/0565: studio_module_is_grantable no tiene la lista de la 0538/);
+  }, SLOW);
+
+  it("DESARME: sin accesos de bandeja devuelve la lista de la 0538", async () => {
+    const run = await contract({}, (sql) => {
+      const fin = sql.lastIndexOf("rollback;");
+      return `${sql.slice(0, fin)}
+${DESARME}
+do $d$
+begin
+  if public.studio_module_is_grantable('bandeja') then raise exception 'D1: bandeja sigue concedible'; end if;
+  if not (public.studio_module_is_grantable('kommo') and public.studio_module_is_grantable('suppliers')) then
+    raise exception 'D2: se perdió un módulo de la 0538';
+  end if;
+end;
+$d$;
+select 'DESARME OK' as resultado;
+rollback;`;
+    });
+    expect(run.error).toBeNull();
+    expect(run.green).toMatch(/TEST 0565 GREEN/);
+  }, SLOW);
+
+  it("DESARME: con un acceso de bandeja vigente aborta y no toca la función", async () => {
+    const run = await contract({}, (sql) => {
+      // Justo antes de que el contrato revoque el acceso (aserción 6).
+      const marca = sql.indexOf("select public.studio_revoke_user_module_grant");
+      const corte = sql.lastIndexOf("select pg_temp.como", marca);
+      return `${sql.slice(0, corte)}\n${DESARME}\nrollback;`;
+    });
+    expect(run.green).toBeUndefined();
+    expect(run.error).toMatch(/desarme 0565: quedan accesos adicionales de bandeja/);
+  }, SLOW);
+
+  it("DESARME: va entre begin y commit para que los set local tengan efecto", () => {
+    const crudo = read(resolve(ROOT, "supabase/desarmes/0565_desarme.sql"));
+    const lineas = crudo.split("\n").map((l) => l.trim());
+    const begin = lineas.indexOf("begin;");
+    expect(begin).toBeGreaterThanOrEqual(0);
+    expect(lineas.findIndex((l) => l.startsWith("set local"))).toBeGreaterThan(begin);
+    expect(lineas.filter((l) => l.length > 0).at(-1)).toBe("commit;");
+  });
 
   it("PREFLIGHT: sin la 0538 aborta sin crear nada", async () => {
     const run = await contract({ "0538_studio_user_module_grants.sql": "select 1;" });

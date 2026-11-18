@@ -163,6 +163,7 @@ export const bandeja: BandejaDict = {
   "bandeja.salud.alerta.cierre_pendiente": "一项移除已离开账户，但其会话仍处于打开状态：下一次定时任务会重试。",
   "bandeja.salud.alerta.degradacion_bloqueada": "为避免账户没有管理员，一项角色变更已被阻止。",
   "bandeja.salud.alerta.matriz_incompleta": "未能应用权限矩阵中的全部权限：下一次定时任务会重试。",
+  "bandeja.salud.alerta.accesos_no_leidos": "无法读取收件箱的个人附加权限：没有人因此失去收件箱，权限矩阵将在下一次定时任务时应用。",
   "bandeja.salud.alerta.webhook_falta": "缺少指向 Studio 的账户 Webhook（/api/chatwoot/webhook）：通知和门户回复都无法送达。",
   "bandeja.salud.alerta.webhook_sin_mensajes": "账户 Webhook 没有订阅新消息事件：门户回复无法送达。",
   "bandeja.salud.alerta.webhook_sin_ip_publica": "账户 Webhook 指向一个没有公网 IP 的服务器，消息服务器不会向其投递。",

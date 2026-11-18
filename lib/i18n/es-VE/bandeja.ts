@@ -169,6 +169,7 @@ export const bandeja = {
   "bandeja.salud.alerta.cierre_pendiente": "Una baja salió de la cuenta, pero sus sesiones siguen abiertas: el próximo cron lo reintenta.",
   "bandeja.salud.alerta.degradacion_bloqueada": "Un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador.",
   "bandeja.salud.alerta.matriz_incompleta": "No se pudieron aplicar todos los permisos de la matriz: el próximo cron lo reintenta.",
+  "bandeja.salud.alerta.accesos_no_leidos": "No se pudieron leer los accesos adicionales de la Bandeja: nadie perdió la Bandeja por eso y los permisos de la matriz esperan al próximo cron.",
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
   "bandeja.salud.alerta.webhook_falta": "Falta el webhook de cuenta hacia el Studio (/api/chatwoot/webhook): no llegan los avisos ni las respuestas al portal.",
   "bandeja.salud.alerta.webhook_sin_mensajes": "El webhook de cuenta no tiene el evento de mensajes nuevos: no llegan las respuestas al portal.",

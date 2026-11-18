@@ -3,7 +3,8 @@
  * DESPUÉS de guardarlo, igual que el cambio de rol (SDD-0585, 2.5):
  *  - solo con `bandeja`; otro módulo no toca Chatwoot;
  *  - solo si la RPC guardó; si la base lo rechaza, no;
- *  - un fallo de Chatwoot no cambia el resultado de Usuarios.
+ *  - un fallo de Chatwoot no cambia lo guardado, pero el admin recibe el aviso
+ *    «Chatwoot quedó pendiente hasta el próximo ciclo».
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -43,7 +44,7 @@ const revocar = (moduleId: string) =>
 beforeEach(() => {
   vi.clearAllMocks();
   rpcMock.mockResolvedValue({ data: true, error: null });
-  sincronizarMock.mockResolvedValue(undefined);
+  sincronizarMock.mockResolvedValue(true);
 });
 
 describe("Usuarios → Chatwoot al conceder o revocar la Bandeja (SDD-0675)", () => {
@@ -71,8 +72,26 @@ describe("Usuarios → Chatwoot al conceder o revocar la Bandeja (SDD-0675)", ()
     expect(sincronizarMock).not.toHaveBeenCalled();
   });
 
-  it("si Chatwoot lanza, Usuarios responde igual ok", async () => {
+  const AVISO = "Guardado; Chatwoot quedó pendiente hasta el próximo ciclo.";
+
+  it("si Chatwoot lanza al conceder, guarda igual y avisa al admin", async () => {
     sincronizarMock.mockRejectedValueOnce(new Error("red"));
+    expect(await conceder("bandeja")).toEqual({ ok: true, aviso: AVISO });
+  });
+
+  it("si Chatwoot queda pendiente al revocar, guarda igual y avisa al admin", async () => {
+    sincronizarMock.mockResolvedValueOnce(false);
+    expect(await revocar("bandeja")).toEqual({ ok: true, aviso: AVISO });
+    expect(rpcMock).toHaveBeenCalledWith("studio_revoke_user_module_grant", expect.objectContaining({ p_module_id: "bandeja" }));
+  });
+
+  it("si Chatwoot lanza al revocar, también avisa", async () => {
+    sincronizarMock.mockRejectedValueOnce(new Error("red"));
+    expect(await revocar("bandeja")).toEqual({ ok: true, aviso: AVISO });
+  });
+
+  it("con Chatwoot al día no hay aviso", async () => {
+    expect(await revocar("bandeja")).toEqual({ ok: true });
     expect(await conceder("bandeja")).toEqual({ ok: true });
   });
 });
