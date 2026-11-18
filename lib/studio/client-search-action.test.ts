@@ -132,6 +132,16 @@ describe("searchClientsAction", () => {
     });
   });
 
+  it("SDD-0664: si apareció por un Shipping Mark anterior, el hit lo trae", async () => {
+    listClientsMock.mockResolvedValue([
+      { ...client({ id: "c-1", markbox: "DTD-8901" }), codigo_anterior: "DTD-Z901" },
+      client({ id: "c-2", markbox: "DTD-9001" }),
+    ]);
+    const r = await searchClientsAction("z901");
+    expect(r.hits[0]).toMatchObject({ id: "c-1", markbox: "DTD-8901", codigoAnterior: "DTD-Z901" });
+    expect(r.hits[1]).not.toHaveProperty("codigoAnterior");
+  });
+
   it("error en la query → sin hits + error suave", async () => {
     listClientsMock.mockRejectedValue(new Error("boom"));
     const r = await searchClientsAction("Juan");
