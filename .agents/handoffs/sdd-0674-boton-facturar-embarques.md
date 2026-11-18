@@ -36,7 +36,7 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 
 ## Pendientes de esta tarea
 
-- Decisión 1 de Sam ya escrita en la spec (dos modos: contenedor completo con doble aprobación, y por cliente dentro del contenedor con doble confirmación; la unidad mínima es el cliente del contenedor). Siguen abiertas las preguntas 2 a 5 y la 6 nueva (qué es la doble aprobación). La 4 cambió de recomendación: el monto se ve solo en la pantalla de confirmación.
+- Decisión 1 de Sam ya escrita en la spec (dos modos: contenedor completo con doble aprobación, y por cliente dentro del contenedor con doble confirmación; la unidad mínima es el cliente del contenedor). Decisión 2 de Sam: «Lo escribe la oficina» (monto a mano, > 0, dos decimales, USD, grande en la confirmación junto a cajas y CBM). Siguen abiertas la 3, la 4, la 5 y la 6 (qué es la doble aprobación). La 4 cambió de recomendación: el monto se ve solo en la pantalla de confirmación.
 - Si las respuestas llevan migración (RPC de facturar con el rol de Embarques, o una regla nueva del
   portal), pedirle el número al DG.
 - Con las respuestas, completar la aceptación y pasar a implementación en una PR aparte o en esta misma,

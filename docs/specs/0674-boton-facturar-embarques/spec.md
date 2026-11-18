@@ -123,12 +123,19 @@ no viaja al navegador.
    suelto.
 
 2. **¿De dónde sale el monto: lo escribe quien oprime, sale de la columna «valor a facturar» del Excel o
-   de la tarifa congelada?**
-   *Recomiendo el Excel.* La oficina pasa el valor y el sistema lo calcula con la regla de la carga de
-   consolidados (precio por CBM más exceso de peso). Quien oprime ve el monto y lo **confirma**, pero no
-   lo escribe a mano. La tarifa congelada no sirve aquí, porque estos contenedores no la tienen (§2.2).
-   Escribirlo a mano en el botón abre errores de tipeo sin rastro de dónde salió. Si el Excel trae una
-   columna «valor a facturar» distinta del cálculo, hace falta saber cuál manda.
+   de la tarifa congelada?** — **DECIDIDO por Sam (2026-11-18, por el DG):** «Lo escribe la oficina».
+   El monto de cada cliente del contenedor se teclea a mano. No se importa del Excel ni se calcula con
+   tarifa. Esto reemplaza la recomendación anterior del Worker de tomarlo del Excel.
+   - **Validación (en el servidor, no solo en la pantalla):** el monto es mayor que 0, tiene como máximo
+     dos decimales y va en USD. Un campo vacío, en cero, negativo o con más decimales no pasa.
+   - **Revisión antes de «Confirmado»:** como lo teclea una persona, la pantalla de doble confirmación lo
+     muestra **bien grande**, con `fmtUsd` (`$1,234.50`), junto a las cajas y el CBM de ese cliente en el
+     contenedor. Así se ve de un golpe si el monto no cuadra con la carga.
+   - **Rastro:** la factura guarda quién escribió el monto y cuándo, porque no tiene otro origen que la
+     persona. Si eso no cabe en las columnas actuales de `invoices`, se suma al costo de migración del §3.
+   - *Nota del Worker:* «la oficina» teclea el monto. Si quien lo teclea es el rol de Embarques, la
+     pregunta 4 queda respondida en la práctica: Embarques ve el monto que escribe. Falta que Sam diga
+     quién es «la oficina» en el Studio.
 
 3. **¿Qué crea: una factura del ERP en dólares o una pre-factura?**
    *Recomiendo una factura del ERP en USD, que nace en `borrador` y la emite Contabilidad.* Respeta la
