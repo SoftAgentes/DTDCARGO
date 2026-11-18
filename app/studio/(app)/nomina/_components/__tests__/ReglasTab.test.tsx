@@ -47,7 +47,7 @@ describe("ReglasTab (SDD-0653)", () => {
     render(<ReglasTab rules={rules} onEdit={() => {}} />);
     const barra = screen.getByRole("progressbar");
     expect(barra.getAttribute("aria-valuenow")).toBe("12");
-    expect(barra.getAttribute("aria-valuemax")).toBe("18");
+    expect(barra.getAttribute("aria-valuemax")).toBe("20");
     expect(screen.getByText("Obligaciones al día")).toBeTruthy();
     expect(screen.getAllByText("Referencia").length).toBe(3);
   });
@@ -92,7 +92,7 @@ describe("ReglasTab (SDD-0653)", () => {
 
   it("el filtro «No están en tus reglas» deja solo las obligaciones que faltan", () => {
     render(<ReglasTab rules={rules} onEdit={() => {}} />);
-    fireEvent.click(screen.getByRole("radio", { name: /No están en tus reglas \(6\)/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /No están en tus reglas \(8\)/ }));
     expect(screen.getByRole("button", { name: "Contribución para las pensiones" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Salario mínimo" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Ingreso mínimo integral" })).toBeNull();
@@ -105,6 +105,23 @@ describe("ReglasTab (SDD-0653)", () => {
     expect(screen.getByRole("button", { name: "Bono de guerra económica" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cestaticket" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Salario mínimo" })).toBeNull();
+  });
+
+  it("muestra desde cuándo rige la versión y su fuente (migración 0556)", () => {
+    render(<ReglasTab rules={{ ...rules, vigente_desde: "2026-11-01", fuente_legal: "Decreto de prueba" }} onEdit={() => {}} />);
+    expect(screen.getByText("1 de noviembre de 2026")).toBeTruthy();
+    expect(screen.getByText("Decreto de prueba")).toBeTruthy();
+  });
+
+  it("una versión anterior a la 0556 dice que no tiene fecha de vigencia", () => {
+    render(<ReglasTab rules={{ ...rules, vigente_desde: null, fuente_legal: null }} onEdit={() => {}} />);
+    expect(screen.getByText(/Sin fecha de vigencia registrada/)).toBeTruthy();
+  });
+
+  it("sin la 0556 (campos sin definir) no muestra ninguna línea de vigencia", () => {
+    render(<ReglasTab rules={rules} onEdit={() => {}} />);
+    expect(screen.queryByText(/Rige desde/)).toBeNull();
+    expect(screen.queryByText(/Sin fecha de vigencia registrada/)).toBeNull();
   });
 
   it("sin reglas ofrece definirlas y sigue mostrando la ley", () => {

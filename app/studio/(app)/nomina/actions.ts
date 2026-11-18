@@ -546,6 +546,21 @@ function payrollRulesRawFromForm(formData: FormData): Record<string, unknown> {
     bono_vacacional_days: strOrNull(formData.get("bono_vacacional_days")) ?? 0,
     vacaciones_days: strOrNull(formData.get("vacaciones_days")) ?? 0,
     salarial_bonuses: strOrNull(formData.get("salarial_bonuses")),
+    // SDD-0653 A2b (0556): ausentes si el formulario los deshabilitó por falta de la migración. Sin valor =
+    // null: «sin configurar» (los números) o «hereda de la versión vigente» (las monedas); nunca un default.
+    vigente_desde: strOrNull(formData.get("vigente_desde")),
+    fuente_legal: strOrNull(formData.get("fuente_legal")),
+    ingreso_minimo_integral_usd: strOrNull(formData.get("ingreso_minimo_integral_usd")),
+    cestaticket_moneda: strOrNull(formData.get("cestaticket_moneda")),
+    bono_guerra_moneda: strOrNull(formData.get("bono_guerra_moneda")),
+    sso_patronal_pct: strOrNull(formData.get("sso_patronal_pct")),
+    rpe_patronal_pct: strOrNull(formData.get("rpe_patronal_pct")),
+    faov_patronal_pct: strOrNull(formData.get("faov_patronal_pct")),
+    inces_patronal_pct: strOrNull(formData.get("inces_patronal_pct")),
+    inces_utilidades_pct: strOrNull(formData.get("inces_utilidades_pct")),
+    pension_contrib_pct: strOrNull(formData.get("pension_contrib_pct")),
+    vacaciones_extra_max: strOrNull(formData.get("vacaciones_extra_max")),
+    bono_vacacional_max_days: strOrNull(formData.get("bono_vacacional_max_days")),
     notes: strOrNull(formData.get("notes")),
   };
 }
