@@ -483,14 +483,48 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 ### BD-037 · Claridad de controles (Studio y Portal)
 - **Fecha:** 2026-11-04
 - **Tipo:** Cambio normativo, con excepción a VIS-01 §3 en el color de selección
-- **Estado:** Aprobada por Sam; se adopta por tramos (SDD-0603). Hasta fusionar cada tramo, producción sigue como estaba.
+- **Estado:** Aprobada por Sam. Adoptada en producción el 2026-11-15 (SDD-0603). Quedan siete pantallas que dependen de la PR #318; se ajustan cuando esa PR llegue a main (ver spec 0603, "Detenidos por la PR #318").
 - **Autorizado por:** Sam (founder). Literal, por selector, viendo el texto y el BRAND-CHECK: «Apruebo, en azul (Recommended)». Después, por chat, sobre los predeterminados: «que damos con compacto y prederteminado ocuro».
 - **Aplica a:** Studio y Portal. La web pública no cambia.
 - **Decisión:** Lo que se oprime lleva relleno o contorno de tinta; lo que avisa es una franja plana sin contorno; los estados son texto con icono, sin cajón. El vino queda para la acción principal y la identidad. La selección (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. La vista predeterminada es compacta y en tema oscuro; cada persona puede cambiarlas. Nada que se oprima baja de 32 px.
 - **Contexto:** el contorno del botón secundario y de los campos medía 1,48:1 contra la tarjeta (mínimo 3:1), y botones, avisos y estados compartían el mismo cajón claro.
-- **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisión: al cerrar el tramo de pestañas de SDD-0603.
+- **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisada por Sam el 2026-11-15, al cerrar SDD-0603: la excepción se mantiene (selección en tinta, no en vino).
 - **Enmienda de elevación (2026-11-12, aprobada por Sam):** los controles suben de nivel con sombra (primario `--shadow-md`, relleno `--shadow-sm`, secundario `--shadow-xs` con contorno de 1,5 px en `--ink`), los rellenos llevan en oscuro un borde propio (`--ctl-edge-hi`: luz arriba y aro `--ink-soft`, 6,86:1 contra la tarjeta, porque el vino solo da 2,26:1) y los verbos de botón van en peso 700 o más. Dos tokens nuevos de forma, `--ctl-border` y `--ctl-edge-hi`; ningún color nuevo. Detalle y tabla de niveles en SDD-0603 §Enmienda de elevación. Pendiente de llevar al Brand Book en el próximo NORTE-SYNC.
-- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603.
+- **Enmienda del tema del Portal (2026-11-17, aprobada por Sam):** el Portal del cliente abre en tema claro; el Studio sigue en oscuro. Quien ya eligió oscuro con el botón del Portal lo conserva: la cookie `portal-theme=dark` sigue mandando. Literal de Sam, en el chat del Director General, ante la pregunta «¿el portal del cliente abre en tema claro para todos?»: «Sí, tema claro». Es la D-14 de SDD-0654 (fase 1b). Ningún token ni color nuevo: el tema claro del Portal ya existía (tokens base más `[data-portal-theme]`, `app/globals.css:123`) y su contraste ya lo cubre el caso `claro-explicito` de `app/portal/__tests__/avisos-portal-contract.test.ts`.
+- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603 · `app/portal/(app)/layout.tsx` (tema del Portal, SDD-0654).
+
+---
+
+### BD-070 · Sombra de borde fijo (`--shadow-sticky-top` / `--shadow-sticky-left`)
+- **Fecha:** 2026-11-15
+- **Tipo:** Normativo (adición de tokens de forma; ningún color nuevo)
+- **Estado:** Aprobada por Sam. Primer uso: matriz «Roles y permisos» de Usuarios (SDD-0635).
+- **Autorizado por:** Sam (founder), vía el Director General, al aprobar la maqueta de la SDD-0635. Literal: «Esa me gustó. Y crea la sombra para los bordes fijos.»
+- **Numeración:** BD-070 y no BD-038 porque el registro del proyecto de marca ya usa BD-037 a BD-069 (ver `BRAND-DECISIONS-BD037-BD069.md`); así no choca con ninguno de los dos.
+- **Aplica a:** Studio. Portal y web pública no la usan todavía.
+- **Decisión:** un encabezado o una columna fija (`position: sticky`) que tiene contenido escondido detrás proyecta una sombra corta hacia ese contenido: `--shadow-sticky-top` cae hacia abajo (fila de encabezado fija arriba) y `--shadow-sticky-left` cae hacia la derecha (columna fija a la izquierda). Solo se pinta mientras hay desplazamiento en esa dirección; en el borde, nada.
+- **Valores:** claro `0 6px 8px -6px rgba(15,30,61,0.28)` y `6px 0 8px -6px rgba(15,30,61,0.28)`; oscuro con negro al 60 %. Al imprimir vuelven al claro, como el resto.
+- **Contexto:** en la `/ui-check` de la SDD-0635 (§14.1, hallazgo 3) las sombras de los bordes fijos estaban escritas con `rgba` sueltos, contra la regla de usar solo sombras del sistema.
+- **Regla viva en:** `BRAND.md` §Sombras · `app/studio/tokens.css` · SDD-0635 §3.8.
+
+---
+
+### EXC-0654-01 · Vino claro en la Vista simple del portal
+- **Fecha:** 2026-11-17
+- **Tipo:** Excepción L3 (VIS-01 §7), acotada y con fecha de revisión
+- **Estado:** Aprobada por Sam. Se aplica en la fase 2 de SDD-0654, con el interruptor `PORTAL_VISTA_SIMPLE` apagado hasta que Sam lo encienda.
+- **Autorizado por:** Sam (founder). Pedido literal: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobación en el chat del Director General, a la pregunta «¿Apruebas las decisiones recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas» (D-16).
+- **Objetivo:** que la acción principal no se confunda con un error en la vista para clientes nuevos.
+- **Regla que rompe:** `BRAND.md` §Light theme (`--wine-soft` «solo sobre fondo oscuro») y VIS-01 §3 (el vino es la acción primaria).
+- **Superficie:** solo la Vista simple del portal (`.vs`). La Vista Pro, el Studio y la web pública no cambian.
+- **Usos:** botón principal, avatar y parte «proveedor» del código. No selección, no texto, no error.
+- **Tokens:** relleno `--color-wine-soft` (claro) y `--color-wine-text` (noche); texto `--on-warning` (#0F1E3D) en los dos temas. Tintes declarados, sin colores nuevos: `--tint-ink`, `--tint-wine`, `--tint-ok`, `--tint-warn` (mezclas `color-mix` de tokens existentes), en el bloque `.vs` de `app/globals.css`.
+- **Contraste:** 4,79:1 en claro y 7,13:1 en noche (AC-17), medido por `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
+- **Alternativa que respeta la regla:** dejar el botón principal en vino (#7F0F1A) con texto blanco, como la Vista Pro.
+- **Duración:** hasta la prueba con clientes (D-12). Si funciona, Sam decide si pasa a regla o se extiende.
+- **Fecha de revisión:** 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero.
+- **Dueño:** Sam (aprueba); Director General (custodia del registro).
+- **Regla viva en:** `BRAND.md` §Excepción · Vino claro en la Vista simple · `app/globals.css` (bloque `.vs`) · SDD-0654 §6.3.
 
 ---
 
@@ -534,7 +568,9 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-034 | Fondos ERP: degradados tonales `--grad-*` + marca de agua "D" | Normativo (extiende BD-030) | Vigente — sidebar/hero/KPI/página |
 | BD-035 | Tipografía ERP → Nunito Sans + Sora (realiza la migración de 2026-06-11) | Normativo | Vigente — desde el 2026-10-13 servidas desde el repositorio (SDD-0505); estuvo superada unas horas ese día |
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
-| BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada; se adopta por tramos (SDD-0603) |
+| BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada. Adoptada en producción el 2026-11-15 (SDD-0603); quedan siete pantallas que dependen de la PR #318 |
+| BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
+| EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Aprobada — se revisa a los 90 días de encender la Vista simple o al cerrar la prueba con clientes |
 
 ---
 

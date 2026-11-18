@@ -3,8 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const io = vi.hoisted(() => ({
   client: vi.fn(), account: vi.fn(), post: vi.fn(), void: vi.fn(), revalidate: vi.fn(),
+  role: vi.fn(async () => "commercial"), admin: { current: null as unknown },
 }));
 vi.mock("@/lib/db/server", () => ({ createClient: io.client }));
+// SDD-0624: el asiento histórico se lee con el cliente de servicio (la 0528 se
+// lo oculta a comercial); el doble devuelve el mismo cliente para ver la lectura.
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => io.admin.current }));
+vi.mock("@/lib/studio/rbac-guard", async (orig) => ({
+  ...(await orig<typeof import("@/lib/studio/rbac-guard")>()),
+  getStudioRole: io.role,
+}));
 vi.mock("@/lib/studio/expense-queries", () => ({ resolveExpenseAccountId: io.account }));
 vi.mock("@/lib/studio/accounting/expense-posting", () => ({
   syncExpenseEntry: io.post, voidExpenseEntriesForExpense: io.void,
@@ -144,6 +152,7 @@ function setup(options: Options = {}) {
     },
   };
   io.client.mockResolvedValue(client);
+  io.admin.current = client;
   io.account.mockImplementation(async () => { order.push("account"); return "account" in options ? options.account : A; });
   io.post.mockImplementation(async (value) => { order.push("post"); effects.push({ kind: "post", value }); });
   io.void.mockImplementation(async (...value) => { order.push("void"); effects.push({ kind: "void", value }); });
@@ -400,6 +409,7 @@ describe("C3 · origen y asiento histórico antes de efectos", () => {
     ];
     for (const context of contexts) {
       io.client.mockResolvedValue(context.client);
+      io.admin.current = context.client;
       await blocked(context, "edit");
     }
   });

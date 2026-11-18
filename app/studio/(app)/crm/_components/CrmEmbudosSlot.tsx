@@ -13,22 +13,25 @@ import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { getStudioAccess, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { listTenantAdvisors } from "@/lib/studio/user-queries";
-import { rolUsaCrm, type CrmTablero } from "@/lib/studio/crm-tablero";
+import type { CrmVista } from "@/lib/studio/crm-tablero";
+import { canAccessModule } from "@/lib/studio/rbac";
 import { cargarTableroCrm } from "@/lib/studio/crm-tablero-queries";
+import { puedeAbrirBandeja } from "@/lib/studio/crm-chat-acceso";
+import { ChatPermitido } from "./ChatPermitido";
 import { CrmEmbudosClient } from "./CrmEmbudosClient";
 
-export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmTablero }) {
+export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmVista }) {
   const supabase = await createClient();
   const access = await getStudioAccess(supabase);
 
-  // La RLS de la 0506 solo deja pasar a admin y commercial: un permiso extra
-  // del módulo no abre las tablas, así que se dice aquí y no con un error.
-  if (!rolUsaCrm(access.role) || !access.tenantId) {
+  // La RLS de la 0539 decide con el MISMO acceso que la pantalla (módulo
+  // `kommo`: rol, desvío por rol o acceso adicional de la persona, SDD-0622).
+  if (!canAccessModule(access.role, "kommo", access.overrides, access.grants) || !access.tenantId) {
     return (
       <EmptyState
         eyebrow="CRM propio"
-        title="Tu rol no usa el CRM propio."
-        description="Los embudos de Leads y Clientes los usan administración y comercial."
+        title="No tienes acceso al CRM."
+        description="Los embudos de Leads y Clientes los ve quien tiene el módulo CRM. Pídeselo a un administrador."
       />
     );
   }
@@ -60,15 +63,20 @@ export async function CrmEmbudosSlot({ tableroInicial }: { tableroInicial: CrmTa
     );
   }
 
+  // SDD-0648 §4: «Abrir chat» solo si se puede entrar a la Bandeja.
+  const chat = await puedeAbrirBandeja(supabase);
+
   return (
-    <CrmEmbudosClient
-      etapas={datos.etapas}
-      tarjetas={datos.tarjetas}
-      ocultas={datos.ocultas}
-      recortado={datos.recortado}
-      canEdit={canEdit}
-      tableroInicial={tableroInicial}
-    />
+    <ChatPermitido valor={chat}>
+      <CrmEmbudosClient
+        etapas={datos.etapas}
+        tarjetas={datos.tarjetas}
+        ocultas={datos.ocultas}
+        recortado={datos.recortado}
+        canEdit={canEdit}
+        tableroInicial={tableroInicial}
+      />
+    </ChatPermitido>
   );
 }
 

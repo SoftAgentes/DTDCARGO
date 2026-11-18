@@ -17,10 +17,15 @@ import {
 import { listSuppliers } from "@/lib/studio/treasury/supplier-queries";
 import { listCostLinkData } from "@/lib/studio/treasury/cost-link-queries";
 import { TesoreriaClient } from "./_components/TesoreriaClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Tesorería" };
 
 export default async function TesoreriaPage() {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("treasury");
+
   const supabase = await createClient();
 
   const [queue, kpis, payments, suppliers, expenseAccounts, cashAccounts, costLinks] =

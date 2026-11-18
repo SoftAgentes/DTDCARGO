@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { Receivable } from "@/lib/studio/payment-queries";
 import {
@@ -94,46 +95,15 @@ export function IdentifyPaymentDrawer({
         }}
       >
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-              padding: "10px 12px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
 
         {/* Aviso COPY §3/§7 — lo que el cliente ve hoy. */}
-        <div
-          style={{
-            padding: "12px 14px",
-            background: "var(--warning-bg)",
-            borderRadius: "var(--r-md)",
-            font: "500 11.5px/1.5 var(--f-sans)",
-            color: "var(--ink)",
-          }}
-        >
-          <span
-            style={{
-              font: "700 9.5px/1.3 var(--f-sans)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "var(--ink-soft)",
-              display: "block",
-              marginBottom: 4,
-            }}
-          >
-            El cliente ve
-          </span>
+        <Aviso tono="atencion" compacto titulo="El cliente ve">
           “{UNIDENTIFIED_CLIENT_NOTICE}”
-        </div>
+        </Aviso>
 
         {eligible.length === 0 ? (
           <div
@@ -199,21 +169,13 @@ export function IdentifyPaymentDrawer({
             )}
 
             {selected && (
-              <div
-                style={{
-                  padding: "12px 14px",
-                  background: "var(--info-bg)",
-                  borderRadius: "var(--r-md)",
-                  font: "500 11.5px/1.6 var(--f-sans)",
-                  color: "var(--ink)",
-                }}
-              >
+              <Aviso tono="info" compacto>
                 Se aplican <strong>${fmt(receipt.amount)}</strong> a{" "}
                 <strong>{selected.invoice.invoice_code}</strong> con imputación
                 retroactiva al <strong>{receipt.received_at}</strong> (fecha de
                 recepción de fondos). Quedará un saldo de $
                 {fmt(Math.max(0, selected.balance - receipt.amount))}.
-              </div>
+              </Aviso>
             )}
           </>
         )}

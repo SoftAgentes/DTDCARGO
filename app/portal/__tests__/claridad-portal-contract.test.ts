@@ -136,6 +136,18 @@ function coloresLiterales(css: string): string[] {
   return sinComentarios.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/g) ?? [];
 }
 
+/**
+ * Tokens que la hoja usa con `var()` y que no declara ella ni `globals.css`.
+ * Mira solo el código: un `var(--x)` citado en un comentario no es un uso, y una
+ * línea `--x: …` dentro de un comentario no es una declaración.
+ */
+function tokensSinDeclarar(css: string, globals: string): string[] {
+  const codigo = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const usados = new Set([...codigo.matchAll(/var\((--[\w-]+)\)/g)].map((m) => m[1]));
+  const propios = new Set([...codigo.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]));
+  return [...usados].filter((t) => !propios.has(t) && !new RegExp(`${t}\\s*:`).test(globals));
+}
+
 describe("claridad de controles en el portal · SDD-0603 tramo 3", () => {
   it("mide al menos 13 pares en cada tema (piso: la suite no puede vaciarse)", () => {
     expect(medidas(claridadCss).length).toBeGreaterThanOrEqual(13);
@@ -167,12 +179,7 @@ describe("claridad de controles en el portal · SDD-0603 tramo 3", () => {
     const codigo = claridadCss.replace(/\/\*[\s\S]*?\*\//g, ""); // los comentarios pueden nombrarlos
     expect(codigo).not.toMatch(/!important/);
     expect(codigo).not.toMatch(/\[style/);
-    const usados = new Set([...claridadCss.matchAll(/var\((--[\w-]+)\)/g)].map((m) => m[1]));
-    const propios = new Set([...claridadCss.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]));
-    for (const t of usados) {
-      if (propios.has(t)) continue;
-      expect(globalsCss, `${t} existe en globals.css`).toMatch(new RegExp(`${t}\\s*:`));
-    }
+    expect(tokensSinDeclarar(claridadCss, globalsCss)).toEqual([]);
   });
 
   it("el secundario reposa en sombra de nivel 1, sube al pasar y baja al oprimir", () => {
@@ -252,6 +259,20 @@ describe("claridad de controles en el portal · SDD-0603 tramo 3", () => {
     it("M5 · un selector fuera de .portal-sys o un color literal", () => {
       expect(selectoresFueraDelPortal(`${claridadCss}\n.btn-ghost { color: red; }`)).toEqual([".btn-ghost"]);
       expect(coloresLiterales(`${claridadCss}\n.portal-sys .x { color: #ff0000; }`)).toEqual(["#ff0000"]);
+    });
+
+    it("M6 · un token declarado solo en un comentario no cuenta como declarado", () => {
+      const m = `${claridadCss}\n/* Así se declararía:\n  --portal-fantasma: 0;\n*/\n.portal-sys .x { color: var(--portal-fantasma); }`;
+      expect(tokensSinDeclarar(m, globalsCss)).toEqual(["--portal-fantasma"]);
+    });
+
+    it("M7 · un var() citado en un comentario no cuenta como usado", () => {
+      const m = `${claridadCss}\n/* antes era var(--portal-que-no-existe) */`;
+      expect(tokensSinDeclarar(m, globalsCss)).toEqual([]);
+      // El mismo token, usado de verdad, sí rompe.
+      expect(tokensSinDeclarar(`${m}\n.portal-sys .x { color: var(--portal-que-no-existe); }`, globalsCss)).toEqual([
+        "--portal-que-no-existe",
+      ]);
     });
   });
 });

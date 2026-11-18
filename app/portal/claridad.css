@@ -157,6 +157,55 @@
   box-shadow: none;
 }
 
+/* ── 2b · Franja de aviso del portal (T4e, extensión de SDD-0628) ───────
+   La misma franja que `Aviso` del Studio, sin importar del Studio: el portal
+   no puede. Se usa con la clase `portal-aviso` y el tono en `data-tono`
+   (`info`, `atencion`, `exito`, `error`); el icono es `StatusIcon` dentro de
+   `.portal-aviso-icono`, que pinta por `currentColor`.
+
+   Plana, como la del tramo 3: fondo `--color-grey-100`, sin contorno ni
+   sombra. El color del estado vive en el icono (y, en atención, también en un
+   tinte dorado del fondo, más abajo), y cada tono tiene una
+   forma distinta (círculo con «i», triángulo, visto, equis): se entiende sin
+   color. El texto queda en tinta. Atención en claro lleva el icono en tinta,
+   como en el Studio: el dorado (#B8893A) no llega a 3:1 sobre la franja; en
+   oscuro sí llega y vuelve al icono. Contraste medido en los dos temas por
+   `app/portal/__tests__/avisos-portal-contract.test.ts`. */
+.portal-sys .portal-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--color-grey-100);
+  color: var(--color-ink);
+  border: 0;
+  box-shadow: none;
+}
+.portal-sys .portal-aviso-icono {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-ink);
+}
+.portal-sys .portal-aviso-cuerpo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Atención lleva el acento dorado en el fondo (BRAND §Estados: «acento dorado,
+   texto neutro»), como `--warning-bg` en el Studio: el dorado existente
+   mezclado con la franja, sin token ni color nuevo. */
+.portal-sys .portal-aviso[data-tono="atencion"] {
+  background: color-mix(in srgb, var(--color-status-warning) 14%, var(--color-grey-100));
+}
+.portal-sys .portal-aviso[data-tono="exito"] .portal-aviso-icono {
+  color: var(--color-status-success);
+}
+.portal-sys .portal-aviso[data-tono="error"] .portal-aviso-icono {
+  color: var(--color-status-danger);
+}
+.portal-sys [data-portal-theme="dark"] .portal-aviso[data-tono="atencion"] .portal-aviso-icono {
+  color: var(--color-status-warning);
+}
+
 /* ── 3 · Lo que solo se lee: el estado es texto con icono, sin píldora ── */
 .portal-sys .badge-status,
 .portal-sys .badge-status.badge-status-warning {

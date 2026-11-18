@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -66,7 +67,8 @@ const STAGE_FILTERS: { value: StageFilter; label: string }[] = [
   })),
 ];
 
-const GRID = "130px 1.4fr 110px 130px 1fr 120px";
+// SDD-0603 · tramo 5c: la última columna es «Abrir», sin rótulo propio.
+const GRID = "130px 1.4fr 110px 130px 1fr 120px 92px";
 
 export function CobranzasClient({
   receivables,
@@ -517,43 +519,19 @@ function UnidentifiedSection({
     <section
       style={{
         background: "var(--bg-surface)",
-        border: "1px solid var(--warning)",
+        border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
         overflow: "hidden",
         marginBottom: 20,
       }}
     >
-      <div
-        style={{
-          padding: "var(--s-3) var(--s-5)",
-          background: "var(--warning-bg)",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <span
-          style={{
-            font: "700 11px/1 var(--f-sans)",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--ink)",
-          }}
-        >
-          Sin identificar · {receipts.length}
-        </span>
-        <span
-          style={{
-            font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
+      {/* SDD-0603 · tramo 5c (BD-037): lo que avisa es una franja plana; la
+          bandeja deja el contorno dorado y su encabezado pasa a <Aviso>. */}
+      <div style={{ borderBottom: "1px solid var(--border)" }}>
+        <Aviso tono="atencion" compacto titulo={`Sin identificar · ${receipts.length}`}>
           Fondos en cuenta sin cruce — no liberan ni suspenden plazos hasta
           identificarse (cláusula 7.3).
-        </span>
+        </Aviso>
       </div>
       {receipts.map((r, i) => (
         <div
@@ -659,6 +637,7 @@ function ReceivablesTable({
         <span>Vencimiento</span>
         <span>Última gestión</span>
         <span style={{ textAlign: "right" }}>Estado</span>
+        <span aria-hidden="true" />
       </div>
 
       {rows.map((r, i) => {
@@ -674,17 +653,13 @@ function ReceivablesTable({
             ? "studio-tracking-row studio-row-overdue"
             : "studio-tracking-row";
         return (
+          // SDD-0603 · tramo 5c: la fila sigue abriendo con el ratón, pero
+          // sale del orden de Tab; la parada de teclado es «Abrir».
           <div
             key={inv.id}
-            role="button"
-            tabIndex={0}
+            data-row-id={inv.invoice_code}
+            tabIndex={-1}
             onClick={() => onSelect(inv.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onSelect(inv.id);
-              }
-            }}
             className={rowClass}
             style={{
               display: "grid",
@@ -801,6 +776,19 @@ function ReceivablesTable({
                 {stageLabel(r.stage)}
               </Badge>
             </span>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              aria-label={`Abrir factura ${inv.invoice_code}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(inv.id);
+              }}
+              style={{ justifySelf: "end" }}
+            >
+              Abrir
+              {Icon.chevR(14)}
+            </button>
           </div>
         );
       })}

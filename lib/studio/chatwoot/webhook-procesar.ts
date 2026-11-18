@@ -4,9 +4,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
+import { marcarContactoErp } from "./contacto-erp-manejador";
 import { clasificarContacto } from "./enrutar";
 import { entrarLead } from "./entrada-leads";
 import { estadoAlPortal, responderAlPortal, type MensajePortal } from "./portal-manejadores";
+import { unirContactoAFicha } from "./union-ficha-manejador";
 import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./webhook-events";
 
 /**
@@ -134,15 +136,27 @@ async function yaAvisados(ctx: ContextoChatwoot, clave: string): Promise<Set<str
 }
 
 // SDD-0586 1c-2: `estadoAlPortal` lleva el estado del espejo al hilo del portal (E10-D39).
-export const MANEJADORES: readonly ManejadorEvento[] = [avisarPorPush, clasificarContacto, entrarLead, responderAlPortal, estadoAlPortal];
+// SDD-0649: `marcarContactoErp` escribe el segmento y el Shipping Mark en el contacto.
+// SDD-0650 F2: `unirContactoAFicha` une el contacto con la ficha cuando el teléfono cruzó con una (0554).
+export const MANEJADORES: readonly ManejadorEvento[] = [
+  avisarPorPush,
+  clasificarContacto,
+  entrarLead,
+  marcarContactoErp,
+  responderAlPortal,
+  estadoAlPortal,
+  unirContactoAFicha,
+];
 
 /** Nombres explícitos: en el build de producción `fn.name` queda minificado (`f`, `i`). */
 const NOMBRE_MANEJADOR: ReadonlyMap<ManejadorEvento, string> = new Map([
   [avisarPorPush, "avisarPorPush"],
   [clasificarContacto, "clasificarContacto"],
   [entrarLead, "entrarLead"],
+  [marcarContactoErp, "marcarContactoErp"],
   [responderAlPortal, "responderAlPortal"],
   [estadoAlPortal, "estadoAlPortal"],
+  [unirContactoAFicha, "unirContactoAFicha"],
 ]);
 
 export function nombreManejador(manejador: ManejadorEvento): string {

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import {
   uploadCedulaPhotoAction,
   type CedulaPhotoActionState,
@@ -148,30 +149,35 @@ export function CedulaPhotoRow({
       {canReplace && confirming && !pending ? (
         <div
           id="cedula-photo-confirm"
-          className="mt-2 rounded-[10px] bg-paper border border-grey-200 border-l-[3px] p-4"
-          style={{ borderLeftColor: "var(--color-status-warning)" }}
+          className="portal-aviso mt-2 rounded-[10px] p-4"
+          data-tono="atencion"
         >
-          <p className="text-[13px] text-grey-700 leading-[1.55]">
-            Cambiar la foto usa 1 de tus {quota.remaining}{" "}
-            {quota.remaining === 1 ? "cambio disponible" : "cambios disponibles"}.
-            La foto actual deja de usarse y tu asesor revisa la nueva.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              ref={confirmRef}
-              type="button"
-              onClick={openPicker}
-              className="btn btn-primary inline-flex items-center justify-center"
-            >
-              Elegir foto nueva
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="btn btn-ghost inline-flex items-center justify-center"
-            >
-              Cancelar
-            </button>
+          <span className="portal-aviso-icono">
+            <StatusIcon tone="warning" size={16} />
+          </span>
+          <div className="portal-aviso-cuerpo">
+            <p className="text-[13px] text-grey-700 leading-[1.55]">
+              Cambiar la foto usa 1 de tus {quota.remaining}{" "}
+              {quota.remaining === 1 ? "cambio disponible" : "cambios disponibles"}.
+              La foto actual deja de usarse y tu asesor revisa la nueva.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                ref={confirmRef}
+                type="button"
+                onClick={openPicker}
+                className="btn btn-primary inline-flex items-center justify-center"
+              >
+                Elegir foto nueva
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="btn btn-ghost inline-flex items-center justify-center"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

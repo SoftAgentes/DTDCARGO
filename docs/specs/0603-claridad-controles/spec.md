@@ -4,7 +4,7 @@ title: "Claridad de controles: qué se oprime, qué avisa y qué solo se lee"
 status: in-progress
 author: "Claude"
 created: 2026-11-04
-updated: 2026-11-13
+updated: 2026-11-15
 supersedes: null
 superseded_by: null
 related: ["0120", "0441"]
@@ -14,6 +14,69 @@ confidencialidad: interno
 # SDD-0603 — Claridad de controles: qué se oprime, qué avisa y qué solo se lee
 
 > En el Studio y el portal no se distingue un botón de un mensaje. Quien opera tiene que saber dónde oprimir sin leer cada palabra.
+
+## Estado al cierre (2026-11-15)
+
+Todos los tramos están en `main` y en producción (`main` en `a47658fab`). La spec queda en `in-progress` y no en `done` porque tiene pendientes abiertos, escritos abajo: es la norma del repositorio para una spec fusionada con trabajo por delante.
+
+Las secciones que siguen (Contexto, tramos 1 y 2, enmienda y Límites) son el registro de cada tramo tal como se aprobó. Donde dicen «sin PR» o «antes de fusionar», hablan de ese momento; el estado vigente es el de esta sección.
+
+| Tramo | Qué | PR | Entró a `main` | Detalle |
+|---|---|---|---|---|
+| 1 | Piezas compartidas del Studio | #510 | 2026-11-11 | [Tramo 1](#tramo-1) |
+| 2 | Pestañas | #511 | 2026-11-11 | [Tramo 2](#tramo-2--pestañas) |
+| Enmienda | Elevación de controles | #528 | 2026-11-13 | [Enmienda de elevación](#enmienda-de-elevación-2026-11-12-aprobada-por-sam) |
+| 3 | Portal del cliente | #537, por el tren #540 | 2026-11-14 | [tramo-3.md](tramo-3.md) |
+| 4a | Componente `Aviso` (SDD-0628) | #536, cerrada a mano; sus cambios entraron por el tren #540 | 2026-11-14 | [SDD-0628](../0628-aviso-studio/spec.md) |
+| 5a | «Abrir» en Embarques y controles del Dashboard | #535, por el tren #540 | 2026-11-14 | [tramo-5a.md](tramo-5a.md) |
+| 4b | Avisos de Plataforma | #546, por el tren #549 | 2026-11-14 | [tramo-4b.md](tramo-4b.md) |
+| 4c | Avisos de Finanzas y compras | #547, por el tren #549 | 2026-11-14 | [tramo-4c.md](tramo-4c.md) |
+| 4d | Avisos de Operación y marketing | #548, por el tren #549 | 2026-11-14 | [tramo-4d.md](tramo-4d.md) |
+| 4e | Avisos del portal | #551, por el tren #553 | 2026-11-14 | [tramo-4e.md](tramo-4e.md) |
+| 5c | Tracking, Almacén CN, Documentos y Cobranzas | #552, por el tren #553 | 2026-11-14 | [tramo-5c.md](tramo-5c.md) |
+| 5b | Contabilidad | #557, por el tren #584 | 2026-11-15 | [tramo-5b.md](tramo-5b.md) |
+| Menores del portal | Pendientes de las revisiones del portal | #558, por el tren #584 | 2026-11-15 | [menores-portal.md](menores-portal.md) |
+| 5d | CRM y Conversaciones | #561, por el tren #584 | 2026-11-15 | [tramo-5d.md](tramo-5d.md) |
+| Menores del Studio | Pendientes de las revisiones de los tramos 4 y 5 | #562, por el tren #584 | 2026-11-15 | [menores-studio.md](menores-studio.md) |
+| 5e | Archivos liberados por las PRs #515 y #509 | #582, por el tren #584 | 2026-11-15 | [tramo-5e.md](tramo-5e.md) |
+
+Cada documento de tramo trae su allowlist, sus excepciones contadas, su aceptación y su gate VIS-01. No se repiten aquí.
+
+### La excepción de BD-037 sigue vigente
+
+BD-037 lleva una excepción a VIS-01 §3: la selección va en tinta y no en vino. Su revisión estaba fijada «al cerrar el tramo de pestañas». Ese tramo cerró con #511 y, para el CRM, con #561. Sam la revisó el 2026-11-15, en el chat del Director General, y decidió mantenerla: la selección va en tinta y no en vino. Todos los tramos se construyeron sobre ella. Queda registrada como revisada en `BRAND-DECISIONS.md` (BD-037).
+
+## Pendientes escritos
+
+Ninguno bloquea lo que ya está en producción. Cada uno necesita su propio encargo.
+
+### Detenidos por la PR #318
+
+La PR #318 (SDD-0578) sigue abierta y con conflictos, y su base es la rama `codex/sdd-0574-embarques-cierre`, no `main`. Edita siete archivos que por eso ningún tramo tocó. Cuando ese trabajo llegue a `main`, hay que aplicarles `Aviso` y el botón «Abrir», con la misma receta de los tramos 4 y 5. Todos están bajo `app/studio/(app)/`:
+
+- `cn/_components/AlmacenCnClient.tsx`
+- `cn/_components/ReceiptRowActions.tsx`
+- `naviera/_components/NavieraClient.tsx`
+- `tracking/[id]/_components/FooterActions.tsx`
+- `tracking/[id]/_components/ShipmentDataPanel.tsx`
+- `tracking/[id]/page.tsx`
+- `ve/_components/VeRowActions.tsx`
+
+### Decisiones de marca o de Sam
+
+- **Relleno de `CapBar`.** El relleno de la barra de ocupación mide menos de 3:1 contra su pista en los dos temas. Arreglarlo pide un token nuevo. Ver [menores-studio.md](menores-studio.md), «Pista de CapBar» y «Límites».
+- **Borde de la franja del portal en claro.** El canto de la franja mide 1,09:1 contra el papel y se dejó así: darle 3:1 exigiría un contorno, que BD-037 reserva para lo que se oprime. Ver [menores-portal.md](menores-portal.md), punto 3.
+
+### Hallazgos de las revisiones, sin encargo
+
+- **Las 11 excepciones de contorno del tramo 4d.** El contrato del 4d las cuenta con su motivo; ninguna es un aviso. Las tarjetas de alerta de flota de `GpsLiveTab` son la única que conviene rehacer. Ver [tramo-4d.md](tramo-4d.md) y [menores-studio.md](menores-studio.md), «Contrato T4d».
+- **De [tramo-5e.md](tramo-5e.md):** el chip «Total» de Mis reportes va con relleno de tinta y se lee como algo que se oprime; el código en el encabezado de la factura va en un cajón aunque solo se lee; «Admin» y «DTD» están fijos en el menú de usuario; `BugCard.tsx` lleva el folio en vino.
+- **`pestanas-contract.test.ts` sigue excluyendo `crm/`.** Ver [tramo-5d.md](tramo-5d.md), «Pendientes fuera de este tramo».
+- **ESLint.** `eslint --max-warnings=0` cae por dos avisos anteriores a esta spec en `app/studio/(app)/admin/_components/ExchangeRatesSection.test.tsx:11`.
+
+### Estados de carga del Studio
+
+Quedan para una spec propia, con número nuevo. El 0632 ya está ocupado por el retiro de Graphify; esta PR no reserva número.
 
 ## Contexto
 
@@ -262,3 +325,20 @@ Cada regla nueva tiene piso (cuenta mínima de lo que mide) y al menos un mutant
 - `pnpm verify` se corre con turno del Director.
 - Sin PR hasta que el Director dé turno. La publicación a producción sigue congelada.
 - `Badge` lleva letra de 12 a 13,5 px en lugar de 9,5 a 11,5, pero pierde su relleno lateral. Medido con Nunito Sans real: el estado más largo, «En bodega VE», pasa de 97,8 a 99,9 px en tamaño `sm`, y mide 107,2 px en `md`. No se midió pantalla por pantalla; se comprueba en prueba antes de fusionar.
+
+## Enmienda de cierre (2026-11-15)
+
+Dos decisiones de Sam, tomadas en el chat del Director General, tras publicarse la adopción en producción.
+
+1. **Aviso de créditos sin liberar: `status` en las dos pantallas.** `StrandedCreditsBanner` (Fidelización, tramo 4d) pasa de `urgente` (`alert`) a `status`, igual que el de la factura. Regla de BD-037 y del tramo 5e: lo persistente es `status`. El contrato `avisos-t4d-contract.test.ts` lo vigila, con un mutante que lo devuelve a `urgente`.
+2. **Documentos de marca al día.** `BRAND.md` §Controles y `BRAND-DECISIONS.md` (BD-037 y su fila del índice) dejan de decir «se adopta por tramos»: BD-037 está adoptada en producción desde el 2026-11-15, salvo las siete pantallas de «Detenidos por la PR #318». La excepción a VIS-01 §3 (selección en tinta) se revisó y se mantiene.
+
+### Allowlist de la enmienda de cierre
+
+- `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
+- `app/studio/_components/__tests__/avisos-t4d-contract.test.ts`
+- `BRAND.md`, `docs/design/studio/_norte/BRAND-DECISIONS.md`
+- `docs/specs/0603-claridad-controles/spec.md`, `docs/specs/0603-claridad-controles/tramo-5e.md`, `docs/specs/0603-claridad-controles/tramo-4d.md`
+- `.agents/handoffs/0603-aviso-status-y-marca.md`
+
+Sin base de datos, sin producción, sin tokens ni CSS.

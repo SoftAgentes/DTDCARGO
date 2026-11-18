@@ -4,7 +4,7 @@ title: "Aviso: componente único de avisos del Studio (tramo 4a de SDD-0603)"
 status: in-progress
 author: "Claude"
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 supersedes: null
 superseded_by: null
 related: ["0603", "0441", "0183"]
@@ -77,6 +77,21 @@ Clases en `app/studio/studio.css`, bloque «Aviso · SDD-0628»: `.studio-aviso`
 | `info`, `atencion`, `exito` | `status` | El anuncio menos intrusivo que comunica el cambio (A11Y-01 §5). |
 
 El icono es `aria-hidden`: el mensaje lo dice todo. La acción es un `<button type="button">` con su verbo como nombre accesible y se opera con teclado. El aviso no roba el foco: llevar el foco al primer error bloqueante (ERR-01) sigue siendo trabajo del formulario que lo muestra.
+
+### Enmienda del 2026-11-14: foco por programa
+
+Pendiente que dejó el tramo 4c de SDD-0603 y que resuelve [menores-studio.md](../0603-claridad-controles/menores-studio.md). `Aviso` acepta dos props más, las mínimas para recibir el foco:
+
+```tsx
+tabIndex?: number            // usa -1: enfocable por programa, fuera del orden de Tab
+ref?: Ref<HTMLDivElement>    // referencia a la franja
+```
+
+- No cambian el aspecto, las clases ni el `role`. Sin `tabIndex`, el marcado es idéntico al de antes: lo prueba `Aviso.test.tsx` comparando el HTML con y sin las props.
+- La regla de arriba sigue igual: **el aviso no toma el foco solo**. Quien lo mueve es el formulario. `useDialogA11y` busca `[role="alert"][tabindex="-1"]` al terminar el envío (ERR-01), y con `tabIndex={-1}` un `Aviso` de error entra en esa búsqueda.
+- Primer consumidor: `ErrorBox` de Nómina (`nomina/_components/form-bits.tsx`), que hasta ahora era una caja a mano con contorno rojo porque necesitaba `tabIndex`.
+- El foco visible lo pone la regla global `:focus-visible` de `tokens.css`. No se agrega CSS.
+- La ficha `aviso.json` suma las dos props a su resumen de API y a `form-bits.tsx` como consumidor; sigue en `proposed`.
 
 ## Medidas de contraste
 
@@ -190,3 +205,7 @@ Por módulo, los 139: admin 19, contabilidad 12, componentes compartidos 8, mail
 
 - jsdom no calcula estilos: el contraste se mide sobre los tokens, no sobre píxeles. La revisión en navegador, en claro y oscuro y a 375 px, llega con la primera pantalla que adopte el componente; hoy solo `ErrorAlert` lo usa.
 - La medida de adopción es heurística y por archivo, no por aviso.
+
+## Extensión al portal: tramo 4e
+
+El portal del cliente no puede importar del Studio, así que no usa `Aviso`: reproduce su franja con la clase `.portal-aviso` de `app/portal/claridad.css` (mismos cuatro tonos en `data-tono`, `StatusIcon` compartido, sin contorno ni sombra, color del estado en el icono y, en atención, un tinte dorado del fondo). No es un componente nuevo ni entra en CMP-01. Lo adoptan 13 avisos en 11 archivos del portal; lo vigila `app/portal/__tests__/avisos-portal-contract.test.ts`. Detalle, clasificación y medidas en [tramo-4e.md](../0603-claridad-controles/tramo-4e.md).

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 614 specs)
+### Índice de specs (generado · 640 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -496,7 +496,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0468 | Portal: rediseño del enlace del proveedor (Factura + Packing … | in-progress | interno |
 | 0469 | Borrar un cliente deja un evento de auditoría atómico y se co… | in-progress | interno |
 | 0470 | El e2e de verify sin Supabase público: omite con motivo lo qu… | done | interno |
-| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | in-progress | interno |
+| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | superseded | interno |
 | 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
 | 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
 | 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
@@ -644,14 +644,40 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0619 | Inventario para la limpieza de Kommo (paso 8.10 de la SDD-0582) | draft | interno |
 | 0620 | Respaldo cifrado de los archivos del Storage de Studio | in-progress | interno |
 | 0621 | El CI de PR no corre en borrador: corre al marcar la PR lista | in-progress | interno |
-| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | in-progress | interno |
+| 0622 | Rol base + accesos adicionales por persona en Studio | approved | interno |
+| 0623 | Corrida diaria mecánica de Graphify, Archify y Obsidian | superseded | interno |
+| 0624 | Endurecimiento de permisos: dinero, gastos y deuda RBAC | in-progress | interno |
 | 0625 | Corregir, retirar y volver a publicar noticias desde el Studio | in-progress | interno |
-| 0626 | Oficina-runtime — El Cable Vertical | draft | interno |
+| 0626 | Oficina-runtime — El Cable Vertical | approved | interno |
 | 0627 | Seguimiento estimado: ETA desde el zarpe y avisos por hito | in-progress | interno |
 | 0628 | Aviso: componente único de avisos del Studio (tramo 4a de SDD… | in-progress | interno |
 | 0629 | Equivalente en bolívares, solo como vista, con su tasa, fecha… | in-progress | interno |
 | 0630 | Confirmar un reporte de pago crea su recibo de cobro | in-progress | interno |
 | 0631 | CxP ligada a un contenedor y a un embarque, con su costo en e… | in-progress | interno |
+| 0632 | Retiro de Graphify, Archify y la publicación a Obsidian | in-progress | interno |
+| 0633 | Superadmin: devolver el EXECUTE de is_platform_admin() y avis… | in-progress | interno |
+| 0634 | Feature flags: el superadministrador por cualquier camino, ta… | in-progress | interno |
+| 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
+| 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
+| 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
+| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
+| 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
+| 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
+| 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
+| 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
+| 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
+| 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
+| 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
+| 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
+| 0648 | CRM › Embudos: tarjeta compacta, logo por canal, ancho comple… | in-progress | interno |
+| 0649 | Shipping Mark y segmento del ERP en el contacto de Chatwoot | in-progress | interno |
+| 0650 | Ficha 360° del cliente en el Studio | in-progress | interno |
+| 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
+| 0652 | Ficha 360° del empleado en el Studio: datos, nómina, acceso, … | in-progress | interno |
+| 0653 | Nómina: reglas al día con la ley a noviembre de 2026 y un est… | in-progress | interno |
+| 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
+| 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
+| 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0622, 0624 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

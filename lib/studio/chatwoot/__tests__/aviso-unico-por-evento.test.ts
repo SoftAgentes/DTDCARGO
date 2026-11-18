@@ -229,7 +229,15 @@ describe("nombre del manejador en los logs (SDD-0585)", () => {
     const nombres = MANEJADORES.map((h) => h.name);
     try {
       for (const h of MANEJADORES) Object.defineProperty(h, "name", { value: "f", configurable: true });
-      expect(MANEJADORES.map(nombreManejador)).toEqual(["avisarPorPush", "clasificarContacto", "entrarLead", "responderAlPortal", "estadoAlPortal"]);
+      expect(MANEJADORES.map(nombreManejador)).toEqual([
+        "avisarPorPush",
+        "clasificarContacto",
+        "entrarLead",
+        "marcarContactoErp",
+        "responderAlPortal",
+        "estadoAlPortal",
+        "unirContactoAFicha",
+      ]);
     } finally {
       MANEJADORES.forEach((h, i) => Object.defineProperty(h, "name", { value: nombres[i], configurable: true }));
     }

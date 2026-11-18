@@ -393,3 +393,32 @@ que aparezca una tabla, un bucket o un proveedor nuevo. No es asesoría legal.*
   - la FK `on delete cascade` la borra si se borra físicamente el cliente.
 - **Facturas emitidas:** conservan el titular sellado (nombre, documento, tipo y domicilio fiscal). Es obligación fiscal, no se reescribe, y el plazo lo fija la abogada (§3 B).
 - **Intentos bloqueados** (`client_profile_blocked_attempts`): se purgan a los 90 días con el cron `purge-throttle`. El DELETE lo da la 0466, aplicada a producción el 2026-09-19; la purga corre desde que se despliega el cron de SDD-0487.
+
+## 12 · Foto del empleado (SDD-0652 fase 2)
+
+> La migración 0555 está **en espera**: hasta que se aplique, ni la columna ni el
+> bucket existen en producción y nada de esto corre. Lo que sigue describe el
+> código, no una comprobación contra la base real.
+
+- **Dónde vive:** `nomina_employees.photo_path` (la referencia) y un objeto en el
+  bucket privado `employee-photos`, en `{tenant}/{ficha}/{uuid}.webp`. La ruta
+  lleva ids, no nombres ni cédulas.
+- **Quitar la foto** («Quitar» en la ficha): la referencia queda en `null` en el
+  momento y se deja `photo_removed`. 🟢 **BORRA** la referencia; el objeto lo
+  borra después la reconciliación.
+- **Cambiar la foto:** la ficha apunta al archivo nuevo; el anterior queda sin
+  referencia y lo borra la reconciliación.
+- **Ficha borrada** (`deleted_at`): su foto deja de contar como referida y entra
+  en la misma reconciliación.
+- **Reconciliación** (`/api/cron/purge-employee-photo-orphans`, diaria): borra
+  del bucket lo que ninguna ficha viva referencia y tiene más de un día. **Nace
+  apagada** (`PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED`): mientras no se encienda,
+  los archivos sin referencia **siguen en el bucket**. Si no puede leer las
+  referencias, no borra nada.
+- **Lo que no se borra:** los eventos `photo_set` y `photo_removed` (sin imagen
+  ni ruta) y los `bank_account_revealed`, `user_linked` y `user_unlinked` de
+  la ficha. 🔵 **CONSERVA** 2 años, clase `security` del calendario v1.0.
+- **Egresado:** la foto se conserva y no se puede cambiar. 🔴 **SIN FUNDAMENTO**
+  el plazo: es el mismo pendiente que el de toda la ficha (§3 B).
+- **NO VERIFICABLE** en producción hasta aplicar la 0555 con OK nominal y
+  encender la reconciliación después de leer sus conteos.

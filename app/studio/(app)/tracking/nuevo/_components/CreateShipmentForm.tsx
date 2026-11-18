@@ -20,6 +20,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { createShipment, type CreateShipmentState } from "../actions";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
@@ -429,21 +430,7 @@ export function CreateShipmentForm({
         </div>
 
         {/* Error general */}
-        {state.error && (
-          <div
-            role="alert"
-            style={{
-              padding: "11px 14px",
-              background: "var(--danger-bg)",
-              border: "1px solid var(--danger)",
-              borderRadius: 6,
-              color: "var(--danger)",
-              font: "500 12.5px/1.4 var(--f-sans)",
-            }}
-          >
-            {state.error}
-          </div>
-        )}
+        {state.error && <Aviso tono="error">{state.error}</Aviso>}
 
         {/* Submit */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>

@@ -12,6 +12,3 @@
 | `decisions/` | ADRs (architecture decision records) — se crea cuando haya la 1ª decisión a documentar |
 
 Convención: nombres técnicos en inglés, kebab-case, fechas en front-matter (no en el nombre del archivo).
-
-[Mapa del ciclo de conocimiento](knowledge-lifecycle.md): explicación de diez componentes con
-JSON visual versionado, fuentes comprobables y publicación derivada en Obsidian.

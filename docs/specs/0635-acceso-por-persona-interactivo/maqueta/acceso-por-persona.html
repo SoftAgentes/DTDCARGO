@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso por persona · maqueta SDD-0635</title>
+<!--
+  Maqueta de la SDD-0635. Archivo autocontenido: no importa código del Studio
+  ni toca datos. Personas ficticias («Contable A», «Contable B»). Los estados de
+  cada módulo replican la matriz de lib/studio/rbac.ts y la cobertura de
+  lib/studio/user-module-grants.ts al 2026-11-15. Tokens: copia literal de
+  app/studio/tokens.css (claro y oscuro); ningún color nuevo.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wine:#7F0F1A;--wine-deep:#5E0A12;--wine-tint:rgba(127,15,26,0.08);--wine-text:#7F0F1A;
+  --bg-base:#FBFAF7;--bg-surface:#FFFFFF;--bg-elevated:#F2F0EC;
+  --ink:#0F1E3D;--ink-soft:#6B6B6B;--ink-mute:#9B9B9B;--ink-inv:#FBFAF7;
+  --border:#E8E6E2;--border-strong:#D8D4CE;
+  --success:#1F8A5B;--success-bg:rgba(31,138,91,0.10);
+  --warning:#B8893A;--warning-bg:rgba(184,137,58,0.12);--danger:#A8323E;
+  --neutral-bg:rgba(107,107,107,0.10);
+  --shadow-pop:0 12px 40px rgba(15,30,61,0.18),0 4px 12px rgba(15,30,61,0.08);
+  --cat-2:#3A4E8C;--cat-2-bg:rgba(58,78,140,0.10);
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;
+  --r-sm:5px;--r-md:7px;--r-pill:999px;
+  --f-sans:'Archivo',system-ui,-apple-system,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+[data-theme="dark"]{
+  --wine:#A8323E;--wine-tint:rgba(168,50,62,0.14);--wine-text:#D89AA4;
+  --bg-base:#0B1428;--bg-surface:#16264A;--bg-elevated:#1F3055;
+  --ink:#F2F0EC;--ink-soft:#A8B0C4;--ink-mute:#6E7896;--ink-inv:#0F1E3D;
+  --border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);
+  --success:#5BCFA0;--success-bg:rgba(91,207,160,0.14);
+  --warning:#DCAB6B;--warning-bg:rgba(220,171,107,0.14);--danger:#E07785;
+  --neutral-bg:rgba(168,176,196,0.12);
+  --cat-2:#7C8FD4;--cat-2-bg:rgba(124,143,212,0.14);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg-base);color:var(--ink);font:400 13px/1.5 var(--f-sans)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+[data-theme="dark"] :focus-visible{outline-color:#D89AA4}
+
+/* ── Marco de la maqueta ── */
+.demo-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg-surface);position:sticky;top:0;z-index:5}
+.demo-bar strong{font:600 12px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-right:8px}
+.demo-bar .sp{flex:1}
+.pill{min-height:30px;padding:4px 12px;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-soft);font:550 12px/1 var(--f-sans);cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ink-inv)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 560px;gap:0;min-height:calc(100vh - 51px)}
+.backdrop{padding:24px;color:var(--ink-soft);border-right:1px solid var(--border)}
+.backdrop h1{font:700 18px/1.3 var(--f-sans);color:var(--ink);margin:0 0 6px}
+.backdrop p{max-width:52ch;margin:0 0 10px}
+.backdrop ol{padding-left:18px;max-width:56ch}
+.backdrop li{margin:0 0 6px}
+@media (max-width:1000px){.stage{grid-template-columns:1fr}.backdrop{border-right:0;border-bottom:1px solid var(--border)}}
+
+/* ── Ficha (drawer) ── */
+.drawer{background:var(--bg-surface);display:flex;flex-direction:column;min-width:0}
+.d-head{padding:18px 20px 0}
+.d-name{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--bg-elevated);display:grid;place-items:center;font:700 13px/1 var(--f-sans);color:var(--ink)}
+.d-name h2{margin:0;font:700 16px/1.2 var(--f-sans)}
+.d-name small{display:block;color:var(--ink-soft);font:400 12px/1.4 var(--f-sans)}
+.tabs{display:flex;gap:2px;margin-top:14px;border-bottom:1px solid var(--border)}
+.tab{background:none;border:0;padding:9px 12px;cursor:pointer;color:var(--ink-soft);font:600 13px/1 var(--f-sans);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--wine-text);border-bottom-color:var(--wine)}
+.d-body{padding:16px 20px 120px;display:flex;flex-direction:column;gap:20px;overflow:auto}
+
+.label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.card{border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface)}
+.hint{margin:0;font:400 12px/1.5 var(--f-sans);color:var(--ink-soft)}
+a.link{color:var(--wine-text);font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+
+/* Franja «solo para esta persona» */
+.scope-band{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-md);background:var(--cat-2-bg);color:var(--ink)}
+.scope-band b{font-weight:700}
+.scope-band .ic{flex:none;width:18px;height:18px;border-radius:50%;background:var(--cat-2);color:#fff;display:grid;place-items:center;font:700 11px/1 var(--f-sans);margin-top:1px}
+
+/* Rol base */
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:32px;padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg-surface);color:var(--ink-soft);font:550 12.5px/1 var(--f-sans);cursor:pointer}
+.seg button[aria-checked="true"]{border-color:var(--wine);background:var(--wine-tint);color:var(--wine-text)}
+.rol-card{padding:12px;display:flex;flex-direction:column;gap:10px}
+.rol-meta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font:400 12px/1.5 var(--f-sans);color:var(--ink-soft)}
+.rol-meta .n{font:600 11px/1 var(--f-mono);padding:3px 7px;border-radius:var(--r-pill);background:var(--neutral-bg);color:var(--ink)}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font:600 12px/1.2 var(--f-sans);color:var(--ink)}
+.input,select.input{min-height:34px;padding:6px 10px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--bg-surface);color:var(--ink);font:400 13px/1.3 var(--f-sans)}
+.btn{min-height:32px;padding:6px 14px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--bg-surface);cursor:pointer;font:600 12.5px/1 var(--f-sans)}
+.btn-primary{background:var(--wine);border-color:var(--wine);color:#fff}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft)}
+.btn-sm{min-height:28px;padding:4px 10px;font-size:12px}
+
+/* Mapa de acceso */
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;text-transform:none;letter-spacing:0;font:500 11.5px/1 var(--f-sans);color:var(--ink-soft)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.area{border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-bottom:8px}
+.area h4{margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;font:700 12.5px/1.2 var(--f-sans)}
+.area h4 small{font:500 11px/1 var(--f-mono);color:var(--ink-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:4px 10px;border-radius:var(--r-sm);border:1px solid transparent;font:550 12px/1.2 var(--f-sans);cursor:pointer;background:var(--neutral-bg);color:var(--ink)}
+.chip .lvl{font:600 11px/1 var(--f-mono);letter-spacing:.04em}
+.chip[data-src="grant"]{background:var(--cat-2-bg);color:var(--cat-2);border-color:var(--cat-2)}
+.chip[data-sens="true"]{box-shadow:inset 0 0 0 1px var(--warning)}
+.chip[data-src="none"]{background:transparent;border:1px dashed var(--border-strong);color:var(--ink-soft)}
+.chip[data-src="blocked"]{background:transparent;border:1px dashed var(--border);color:var(--ink-soft);cursor:pointer}
+.chip[data-pending="true"]{outline:2px solid var(--wine);outline-offset:1px}
+.chip[aria-expanded="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.more{margin-top:8px;background:none;border:0;padding:0;color:var(--ink-soft);font:500 11.5px/1.3 var(--f-sans);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* Inspector del módulo */
+.insp{margin-top:10px;border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--bg-elevated);padding:12px;display:flex;flex-direction:column;gap:10px}
+.insp-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.insp-top strong{font:700 13.5px/1.3 var(--f-sans)}
+.origin{font:400 12px/1.5 var(--f-sans);color:var(--ink-soft)}
+.origin b{color:var(--ink);font-weight:600}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.opt{display:flex;flex-direction:column;gap:3px;text-align:left;padding:9px 10px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--bg-surface);cursor:pointer}
+.opt b{font:650 12.5px/1.2 var(--f-sans)}
+.opt span{font:400 11px/1.35 var(--f-sans);color:var(--ink-soft)}
+.opt[aria-checked="true"]{border-color:var(--wine);background:var(--wine-tint)}
+.opt[aria-checked="true"] b{color:var(--wine-text)}
+.opt:disabled{cursor:not-allowed;opacity:.6}
+.opt .floor{font:600 10px/1 var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.tag{display:inline-flex;align-items:center;min-height:20px;padding:1px 7px;border-radius:var(--r-sm);font:600 11px/1.3 var(--f-sans)}
+.tag-sens{background:var(--warning-bg);color:var(--ink)}
+.tag-extra{background:var(--cat-2-bg);color:var(--cat-2)}
+.tag-off{border:1px dashed var(--border-strong);color:var(--ink-soft)}
+.blocked-why{padding:9px 10px;border-radius:var(--r-sm);background:var(--bg-surface);border:1px dashed var(--border-strong);font:400 12px/1.5 var(--f-sans);color:var(--ink)}
+
+/* Bandeja de cambios */
+.tray{position:sticky;bottom:0;margin:0 -20px -120px;padding:12px 20px 16px;background:var(--bg-surface);border-top:2px solid var(--wine);box-shadow:0 -8px 24px rgba(15,30,61,.08);display:flex;flex-direction:column;gap:10px}
+.tray[hidden]{display:none}
+.tray-title{display:flex;justify-content:space-between;align-items:center;gap:8px;font:700 13px/1.3 var(--f-sans)}
+.tray-title small{font:400 12px/1.4 var(--f-sans);color:var(--ink-soft)}
+.tray ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.tray li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--r-sm);background:var(--bg-elevated);font:500 12.5px/1.3 var(--f-sans)}
+.tray li button{background:none;border:0;cursor:pointer;color:var(--ink-soft);font:600 12px/1 var(--f-sans)}
+.row2{display:grid;grid-template-columns:1fr 150px;gap:8px}
+.aviso{font:400 11px/1.4 var(--f-sans);color:var(--ink-soft);margin:2px 0 0}
+.tray-actions{display:flex;justify-content:flex-end;gap:8px}
+
+/* Actividad */
+.feed{list-style:none;margin:0;padding:0}
+.feed li{display:grid;grid-template-columns:86px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.feed time{font:500 11px/1.4 var(--f-mono);color:var(--ink-soft)}
+.feed .what{font:600 12.5px/1.4 var(--f-sans)}
+.feed .why{font:400 12px/1.45 var(--f-sans);color:var(--ink-soft)}
+.kind{display:inline-flex;margin-right:6px;padding:1px 6px;border-radius:var(--r-sm);font:600 10px/1.5 var(--f-mono);letter-spacing:.04em;text-transform:uppercase}
+.k-rol{background:var(--neutral-bg);color:var(--ink)}
+.k-extra{background:var(--cat-2-bg);color:var(--cat-2)}
+.k-todos{background:var(--warning-bg);color:var(--ink)}
+.k-estado{background:var(--wine-tint);color:var(--wine-text)}
+
+/* Roles y permisos (vista por rol) */
+.matrix{width:100%;border-collapse:collapse;font:500 12px/1.3 var(--f-sans)}
+.matrix th,.matrix td{border-bottom:1px solid var(--border);padding:7px 6px;text-align:center}
+.matrix th:first-child,.matrix td:first-child{text-align:left}
+.matrix th{font:600 11px/1.2 var(--f-mono);color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.matrix th small{display:block;text-transform:none;letter-spacing:0;font:500 10.5px/1.3 var(--f-sans)}
+.cell{display:inline-block;min-width:54px;padding:3px 6px;border-radius:var(--r-sm);background:var(--neutral-bg)}
+.cell.none{background:transparent;color:var(--ink-mute)}
+.cell.lock{background:transparent;border:1px dashed var(--border-strong);color:var(--ink-soft)}
+.warnband{display:flex;gap:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--warning-bg);color:var(--ink)}
+.warnband .ic{flex:none;width:18px;height:18px;border-radius:50%;background:var(--warning);color:#0F1E3D;display:grid;place-items:center;font:700 11px/1 var(--f-sans)}
+
+/* Diálogo (doble aviso / confirmación) */
+.dlg-bg{position:fixed;inset:0;background:rgba(15,30,61,.45);display:grid;place-items:center;z-index:20;padding:16px}
+.dlg-bg[hidden]{display:none}
+.dlg{width:min(460px,100%);background:var(--bg-surface);border-radius:var(--r-md);padding:18px;display:flex;flex-direction:column;gap:10px;border:1px solid var(--border)}
+.dlg h3{margin:0;font:700 15px/1.3 var(--f-sans)}
+.dlg ul{margin:0;padding-left:18px}
+.dlg label.chk{display:flex;gap:8px;align-items:flex-start;font:500 12.5px/1.4 var(--f-sans)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--ink-inv);padding:10px 14px;border-radius:var(--r-md);font:600 12.5px/1.3 var(--f-sans);z-index:30}
+.toast[hidden]{display:none}
+@media (max-width:560px){.opts{grid-template-columns:1fr}.row2{grid-template-columns:1fr}}
+/* ── Roles y permisos (matriz por rol) ── */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font:600 11px/1 var(--f-mono)}
+.rp{padding:20px 24px 24px;display:flex;flex-direction:column;gap:12px}
+.rp-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.rp-head h1{margin:0;font:700 20px/1.2 var(--f-sans)}
+.rp-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rp-search input{width:220px}
+.mx-wrap{position:relative;max-height:calc(100vh - 230px);min-height:360px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface)}
+.mx{border-collapse:separate;border-spacing:0;width:100%;min-width:1000px}
+.mx th,.mx td{padding:0;border-bottom:1px solid var(--border);background:var(--bg-surface)}
+/* encabezado fijo arriba */
+.mx thead th{position:sticky;top:0;z-index:3;height:60px;padding:8px 6px;text-align:center;vertical-align:bottom;background:var(--bg-elevated);border-bottom:1px solid var(--border-strong)}
+.mx thead th .rn{display:block;font:700 12.5px/1.2 var(--f-sans);color:var(--ink)}
+.mx thead th .rc{display:block;margin-top:3px;font:500 11.5px/1.2 var(--f-sans);color:var(--ink-soft)}
+/* columna de módulos fija a la izquierda */
+.mx th[scope="row"],.mx thead th:first-child{position:sticky;left:0;z-index:2;text-align:left;min-width:200px;padding:0 12px;border-right:1px solid var(--border-strong)}
+.mx thead th:first-child{z-index:5;padding-bottom:10px;font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.mx th[scope="row"]{font:600 12.5px/1.25 var(--f-sans);color:var(--ink);height:50px}
+.mx th[scope="row"] .lk{display:inline-flex;vertical-align:-1px;margin-left:6px;color:var(--ink-soft)}
+/* grupo fijo bajo el encabezado mientras dura su sección */
+.mx tr.grp th{position:sticky;top:60px;z-index:4;height:32px;padding:0 12px;text-align:left;background:var(--bg-base);font:700 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);border-bottom:1px solid var(--border-strong)}
+.mx tr.grp th small{font:500 11.5px/1 var(--f-sans);letter-spacing:0;text-transform:none;color:var(--ink-soft);margin-left:8px}
+/* sombras que avisan que hay más contenido arriba o a la izquierda */
+.mx-wrap[data-y="true"] .mx thead th,.mx-wrap[data-y="true"] .mx tr.grp th{box-shadow:0 6px 8px -6px rgba(15,30,61,.28)}
+.mx-wrap[data-x="true"] .mx th[scope="row"],.mx-wrap[data-x="true"] .mx thead th:first-child{box-shadow:6px 0 8px -6px rgba(15,30,61,.28)}
+[data-theme="dark"] .mx-wrap[data-y="true"] .mx thead th,[data-theme="dark"] .mx-wrap[data-y="true"] .mx tr.grp th{box-shadow:0 6px 8px -6px rgba(0,0,0,.6)}
+[data-theme="dark"] .mx-wrap[data-x="true"] .mx th[scope="row"]{box-shadow:6px 0 8px -6px rgba(0,0,0,.6)}
+.mx td{text-align:center;padding:6px}
+.mx td.adm{background:var(--bg-base)}
+/* estado de la celda: ícono + palabra */
+.st{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:104px;min-height:30px;padding:4px 8px;border-radius:var(--r-sm);border:1px solid transparent;font:600 12px/1.15 var(--f-sans);white-space:nowrap}
+.st svg{flex:none}
+.st-ve{background:var(--success-bg);color:var(--ink)}
+.st-ve svg{color:var(--success)}
+.st-v{background:var(--neutral-bg);color:var(--ink)}
+.st-no{background:transparent;color:var(--ink-soft);border-color:var(--border)}
+.st-todo{background:var(--wine-tint);color:var(--wine-text)}
+button.st{cursor:pointer}
+button.st:hover{border-color:var(--border-strong)}
+button.st[aria-expanded="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.st[data-locked="true"]{border-style:dashed;border-color:var(--border-strong)}
+.cell-w{display:inline-flex;flex-direction:column;align-items:center;gap:3px}
+.chg{display:inline-flex;align-items:center;gap:4px;font:600 11px/1 var(--f-sans);color:var(--wine-text)}
+.chg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--wine)}
+/* leyenda fija abajo, siempre a la vista */
+.mx-legend{position:sticky;bottom:0;left:0;z-index:6;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 12px;background:var(--bg-surface);border-top:1px solid var(--border-strong);font:500 12px/1.3 var(--f-sans);color:var(--ink-soft)}
+.mx-legend .lg{display:inline-flex;align-items:center;gap:6px}
+.mx-legend .st{min-width:0;min-height:24px;padding:2px 7px}
+.leg-long{display:none}
+/* formato corto en pantallas angostas: la leyenda de abajo lo explica */
+.w-s{display:none}
+@media (max-width:1180px){.leg-long{display:inline}.mx .st .w,.mx-legend .st .w{display:none}.mx-legend .st .w-s{display:inline}.mx .st .w-s{display:inline}.mx .st{min-width:62px}.mx{min-width:780px}}
+/* popover de la celda */
+.pop{position:fixed;z-index:15;width:340px;max-width:calc(100vw - 24px);background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--r-md);box-shadow:var(--shadow-pop);padding:14px;display:flex;flex-direction:column;gap:10px}
+.pop h3{margin:0;font:700 14px/1.3 var(--f-sans)}
+.pop .afecta{font:500 12px/1.45 var(--f-sans);color:var(--ink)}
+.pop .afecta b{font-weight:700}
+.pop .opts{grid-template-columns:1fr}
+.pop .fab{padding:8px 10px;border-radius:var(--r-sm);background:var(--bg-elevated);font:400 12px/1.45 var(--f-sans);color:var(--ink)}
+.pop .fab b{font-weight:700}
+</style>
+</head>
+<body>
+<div class="demo-bar" role="toolbar" aria-label="Controles de la maqueta">
+  <strong>Maqueta SDD-0635</strong>
+  <span style="font:500 12px/1 var(--f-sans);color:var(--ink-soft)">Persona:</span>
+  <button class="pill" data-persona="A" aria-pressed="true">Contable A</button>
+  <button class="pill" data-persona="B" aria-pressed="false">Contable B</button>
+  <span class="sp"></span>
+  <button class="pill" id="vista-rol" aria-pressed="false">Ver «Roles y permisos»</button>
+  <button class="pill" id="tema" aria-pressed="false">Tema oscuro</button>
+</div>
+
+<div class="stage">
+  <aside class="backdrop" id="guia">
+    <h1>Acceso por persona</h1>
+    <p>Maqueta navegable de la pestaña <b>Acceso</b> de la ficha. Personas ficticias; datos de ejemplo. Nada se guarda.</p>
+    <ol>
+      <li>Toca cualquier módulo en <b>Lo que puede hacer</b>: se abre su detalle con el origen del permiso y las tres opciones <b>Sin extra · Solo ver · Ver y editar</b>.</li>
+      <li>Lo que eliges queda en <b>Cambios para esta persona</b> (abajo). Un solo motivo y un solo «Guardar» para todos.</li>
+      <li>Prueba <b>CRM</b> o <b>Conversaciones</b> (se pueden dar), <b>Bandeja</b> (todavía no) y <b>Tesorería</b> (ya la da su rol).</li>
+      <li>Cambia a <b>Contable B</b>: mismo rol, distinto acceso. Los extras son la diferencia.</li>
+      <li>En el rol base, elige <b>Operaciones</b>: recién ahí aparece <b>Almacén</b>.</li>
+      <li>Abre <b>Actividad</b>: rol, almacén, suspensiones y extras en una sola línea de tiempo.</li>
+      <li>«Ver Roles y permisos» abre la matriz que cambia a <b>todos</b> los de un rol: baja y mira cómo los roles, el grupo y la leyenda se quedan a la vista; toca una celda.</li>
+    </ol>
+  </aside>
+
+  <section class="drawer" aria-label="Ficha de la persona">
+    <div class="d-head">
+      <div class="d-name">
+        <div class="avatar" id="av">CA</div>
+        <div><h2 id="nombre">Contable A</h2><small id="sub">Contabilidad · activa</small></div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Secciones de la ficha">
+        <button class="tab" role="tab" aria-selected="false" data-tab="perfil">Perfil</button>
+        <button class="tab" role="tab" aria-selected="true" data-tab="acceso">Acceso</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="actividad">Actividad</button>
+      </div>
+    </div>
+
+    <!-- ── ACCESO ── -->
+    <div class="d-body" id="p-acceso" role="tabpanel">
+      <div class="scope-band" role="note">
+        <span class="ic" aria-hidden="true">i</span>
+        <div>Lo que cambies aquí es <b>solo para <span class="pn">Contable A</span></b>. No toca a las otras personas de Contabilidad. Para cambiar a todo el rol usa <a class="link" data-goto-rol>Roles y permisos</a>.</div>
+      </div>
+
+      <section aria-labelledby="h-rol">
+        <h3 class="label" id="h-rol">Rol base</h3>
+        <div class="card rol-card">
+          <div class="seg" role="radiogroup" aria-label="Rol base" id="seg"></div>
+          <p class="hint" id="rol-desc"></p>
+          <div class="rol-meta"><span><span class="n" id="rol-n">2 personas</span> tienen este rol</span><span>El rol es el piso: lo que todas comparten.</span></div>
+          <div class="field" id="almacen" hidden>
+            <label for="sel-alm">Almacén que ve</label>
+            <select id="sel-alm" class="input" style="max-width:220px"><option>Ambos</option><option>Almacén CN</option><option>Almacén VE</option></select>
+            <p class="aviso">Solo limita los módulos de almacén (CN o VE).</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center"><button class="btn btn-sm" id="aplicar-rol" disabled>Aplicar cambio de rol</button><span class="hint" id="rol-aviso"></span></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-mapa">
+        <h3 class="label" id="h-mapa">Lo que puede hacer
+          <span class="legend">
+            <span><i style="background:var(--neutral-bg)"></i>Por su rol</span>
+            <span><i style="background:var(--cat-2-bg);box-shadow:inset 0 0 0 1px var(--cat-2)"></i>Extra</span>
+            <span><i style="box-shadow:inset 0 0 0 1px var(--warning)"></i>Sensible</span>
+            <span><i style="border:1px dashed var(--border-strong)"></i>Sin acceso</span>
+          </span>
+        </h3>
+        <p class="hint" style="margin-bottom:10px">Toca un módulo para ver de dónde viene su permiso o para darle un extra a <span class="pn">Contable A</span>. <b>V</b> = ver · <b>V·E</b> = ver y editar.</p>
+        <div id="mapa"></div>
+      </section>
+
+      <p class="hint">Los extras solo suman al rol. No dan anular, borrar ni aprobar: esas acciones siguen atadas al rol.</p>
+
+      <div class="tray" id="tray" hidden aria-live="polite">
+        <div class="tray-title"><span id="tray-t">Cambios para Contable A</span><small>No cambia el rol Contabilidad</small></div>
+        <ul id="tray-list"></ul>
+        <div class="row2">
+          <div class="field"><label for="motivo">Motivo (obligatorio)</label><input id="motivo" class="input" maxlength="500" placeholder="Ej: cubre el CRM durante una ausencia"><p class="aviso">No escribas datos personales (cédula, teléfono, salud): queda guardado en Actividad.</p></div>
+          <div class="field"><label for="vence">Vence (opcional)</label><input id="vence" type="date" class="input"></div>
+        </div>
+        <div class="tray-actions"><button class="btn btn-ghost" id="descartar">Descartar</button><button class="btn btn-primary" id="guardar" disabled>Guardar</button></div>
+      </div>
+    </div>
+
+    <!-- ── ACTIVIDAD ── -->
+    <div class="d-body" id="p-actividad" role="tabpanel" hidden>
+      <div class="seg" role="radiogroup" aria-label="Filtrar actividad" id="filtros">
+        <button role="radio" aria-checked="true" data-f="all">Todo</button>
+        <button role="radio" aria-checked="false" data-f="rol">Rol y estado</button>
+        <button role="radio" aria-checked="false" data-f="extra">Accesos extra</button>
+        <button role="radio" aria-checked="false" data-f="todos">Cambios a todo el rol</button>
+      </div>
+      <ul class="feed" id="feed"></ul>
+      <p class="hint">«Cambios a todo el rol» sale de la matriz por rol y necesita su propio historial (etapa 3 de la spec). Hasta entonces se ve solo el último cambio de cada celda, sin motivo.</p>
+    </div>
+
+    <!-- ── PERFIL ── -->
+    <div class="d-body" id="p-perfil" role="tabpanel" hidden><p class="hint">(Perfil sin cambios en esta spec.)</p></div>
+
+  </section>
+</div>
+
+<main id="pag-roles" class="rp" hidden aria-labelledby="rp-t">
+  <header class="rp-head">
+    <div>
+      <h1 id="rp-t">Roles y permisos</h1>
+      <p class="hint">Qué ve y qué edita cada rol en cada módulo.</p>
+    </div>
+    <div class="rp-tools">
+      <label class="rp-search"><span class="sr">Buscar módulo</span><input id="mx-q" class="input" placeholder="Buscar módulo…"></label>
+      <button class="pill" id="mx-cambiados" aria-pressed="false">Solo los cambiados <span id="mx-ncamb" class="mono"></span></button>
+    </div>
+  </header>
+  <div class="warnband" role="note">
+    <span class="ic" aria-hidden="true">!</span>
+    <div><b>Esta tabla cambia a todas las personas de cada rol.</b> Si tocas una celda de Contabilidad, cambia para las 2 personas de Contabilidad. Para darle algo a <b>una sola persona</b>, abre su ficha › Acceso (accesos extra). <a class="link" data-goto-ficha>Abrir la ficha de Contable B</a></div>
+  </div>
+  <div class="mx-wrap" id="mx-wrap" tabindex="0" aria-label="Tabla de permisos por rol. Se desplaza en ambos sentidos.">
+    <table class="mx" id="mx">
+      <caption class="sr">Permisos por rol y módulo. Toca una celda para cambiarla para todo el rol.</caption>
+      <thead><tr id="mx-head"></tr></thead>
+      <tbody id="mx-body"></tbody>
+    </table>
+    <div class="mx-legend" id="mx-legend" role="note" aria-label="Leyenda"></div>
+  </div>
+</main>
+
+<div class="pop" id="pop" hidden role="dialog" aria-modal="false" aria-labelledby="pop-t"></div>
+
+<div class="dlg-bg" id="dlg" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <h3 id="dlg-t"></h3>
+    <div id="dlg-b" class="hint" style="color:var(--ink)"></div>
+    <div class="tray-actions"><button class="btn btn-ghost" id="dlg-no">Cancelar</button><button class="btn btn-primary" id="dlg-si"></button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+const ROLES=[["admin","Administración"],["commercial","Comercial"],["operations","Operaciones"],["accounting","Contabilidad"],["warehouse","Almacenista"],["support","Soporte"],["marketing","Marketing"]];
+const DESC={admin:"Ve y edita todo.",commercial:"Clientes, estimados, CRM y ventas.",operations:"Embarques, almacenes, despacho y aduana.",accounting:"Facturación, cobranzas, gastos, tesorería y contabilidad. También ve clientes, estimados y tarifas.",warehouse:"Recepción, etiquetas e inventario.",support:"Lectura de casi todo, sin editar.",marketing:"Marketing, noticias y documentos."};
+const SCOPED=new Set(["operations","warehouse","support"]);
+// r = lo que da el rol Contabilidad: "ve" ver y editar · "" nada. c = cobertura para extras.
+// c: ok (se puede conceder) · money · admin · super · nr (aún no revisado) ; s = sensible
+const AREAS=[
+ ["Comercial",[["quotes","Estimados","ve"],["clients","Clientes","ve"],["kommo","CRM","",{c:"ok"}],["conversaciones","Conversaciones","",{c:"ok"}],["bandeja","Bandeja","",{c:"nr",why:"La bandeja decide quién atiende por el rol (carril de Chatwoot). Todavía no se puede dar como extra."}],["sales-orders","Órdenes de venta","ve"],["purchase-orders","Compras asistidas","ve"],["suppliers","PreAlertas de servicios","",{c:"ok"}],["service-catalog","Servicios","ve"],["rates","Tarifas","ve"],["academia","Academia","ve"],["fidelizacion","Fidelización","",{c:"nr"}],["club","Club DTD","",{c:"nr"}]]],
+ ["Operación",[["dashboard","Dashboard","ve"],["shipments","Embarques","ve"],["tracking","Tracking","ve"],["calendar","Calendario","ve"],["bitacora","Bitácora","ve"],["naviera","Naviera","ve"],["seniat","Aduana SENIAT","ve"],["reclamos","Reclamos","ve"],["cn","Almacén CN","",{c:"nr"}],["ve","Almacén VE","",{c:"nr"}],["inventory","Inventario","",{c:"nr"}],["tms","TMS","",{c:"nr"}],["despacho","Despacho","",{c:"nr"}],["inspecciones","Inspecciones","",{c:"nr"}]]],
+ ["Finanzas",[["invoices","Facturación","ve",{s:1}],["collections","Cobranzas","ve",{s:1}],["expenses","Gastos","ve",{s:1}],["treasury","Tesorería","ve",{s:1}],["accounting","Contabilidad","ve",{s:1}],["fiscal","Fiscal","ve",{s:1}],["costing","Costing","ve",{s:1}],["reports","Reportes","ve",{s:1}],["nomina","Nómina","ve",{s:1}],["direccion","Dirección","",{c:"admin",s:1}],["renditions","Rendiciones","",{c:"super",s:1}],["financiero-china","Financiero China","",{c:"super",s:1}]]],
+ ["Marketing",[["marketing","Marketing","",{c:"nr"}],["noticias-web","Noticias Web","",{c:"nr"}],["marketing-docs","Documentos de marketing","",{c:"nr"}]]],
+ ["Sistema",[["mentions","Menciones","ve"],["documents","Documentos","ve"],["bugs","Bug Tracker","ve"],["mis-bugs","Mis reportes","ve"],["users","Usuarios","",{c:"admin",s:1}],["admin","Administración","",{c:"admin",s:1}],["operarios","Operarios PWA","",{c:"nr"}]]]
+];
+const WHY={money:"La base todavía exige el rol Contabilidad para el dinero. Se habilita en la fase de dinero (SDD-0622, fase 8).",admin:"La base todavía reserva este módulo al rol Administración.",super:"Exige además ser superadministrador de la plataforma.",nr:"Falta revisar su base para que funcione con un acceso extra. No se ofrece para no prometer algo que no abre."};
+const PERSONAS={
+ A:{ini:"CA",nombre:"Contable A",extras:{}},
+ B:{ini:"CB",nombre:"Contable B",extras:{kommo:{e:true,why:"Atiende el CRM los sábados",by:"un admin",d:"12 nov"},conversaciones:{e:false,why:"Lee las conversaciones del CRM",by:"un admin",d:"12 nov",vence:"31 dic"}}}
+};
+let P="A", rolSel="accounting", abierto=null, pend={}, verOcultos={};
+const LOCK='<svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const mod=id=>{for(const[,ms] of AREAS)for(const m of ms)if(m[0]===id)return m};
+const lbl=id=>mod(id)[1];
+
+function estado(m){ // nivel efectivo + origen
+  const [id,,r,o={}]=m, ex=(pend[id]!==undefined?pend[id]:PERSONAS[P].extras[id]);
+  if(r) return {lvl:"V·E",src:"role",sens:!!o.s};
+  if(ex) return {lvl:ex.e?"V·E":"V",src:"grant",sens:!!o.s};
+  if(o.c&&o.c!=="ok") return {lvl:"",src:"blocked",sens:!!o.s};
+  return {lvl:"",src:"none",sens:!!o.s};
+}
+function render(){
+  const per=PERSONAS[P];
+  $("#av").textContent=per.ini; $("#nombre").textContent=per.nombre;
+  $$(".pn").forEach(e=>e.textContent=per.nombre);
+  $("#seg").innerHTML=ROLES.map(([k,l])=>`<button role="radio" aria-checked="${k===rolSel}" data-rol="${k}">${l}</button>`).join("");
+  $("#rol-desc").textContent=DESC[rolSel];
+  $("#almacen").hidden=!SCOPED.has(rolSel);
+  const cambia=rolSel!=="accounting";
+  $("#aplicar-rol").disabled=!cambia;
+  $("#rol-aviso").textContent=cambia?`Sus extras se conservan; los que el nuevo rol ya da quedarán marcados «sobra».`:"";
+  $("#mapa").innerHTML=AREAS.map(([area,ms])=>{
+    const vis=ms.filter(m=>estado(m).src!=="blocked"||verOcultos[area]||abierto===m[0]);
+    const ocultos=ms.length-vis.length, con=ms.filter(m=>estado(m).lvl).length;
+    const chips=vis.map(m=>{const e=estado(m);return `<button class="chip" data-id="${m[0]}" data-src="${e.src}" ${e.sens?'data-sens="true"':""} ${pend[m[0]]!==undefined?'data-pending="true"':""} aria-expanded="${abierto===m[0]}" aria-label="${m[1]}: ${txtEstado(e)}">${e.src==="none"?"+ ":e.src==="blocked"?LOCK+" ":""}${m[1]}${e.lvl?` <span class="lvl">${e.lvl}</span>`:""}</button>`}).join("");
+    const insp=ms.some(m=>m[0]===abierto)?inspector(mod(abierto)):"";
+    return `<div class="area"><h4>${area} <small>${con} de ${ms.length}</small></h4><div class="chips">${chips||'<span class="hint">Nada en esta área.</span>'}</div>${ocultos?`<button class="more" data-area="${area}">${ocultos} todavía no se pueden dar como extra · ver</button>`:verOcultos[area]?`<button class="more" data-area="${area}">ocultar los no disponibles</button>`:""}${insp}</div>`;
+  }).join("");
+  const n=Object.keys(pend).length;
+  $("#tray").hidden=n===0;
+  $("#tray-t").textContent=`${n} ${n===1?"cambio":"cambios"} para ${per.nombre}`;
+  $("#tray-list").innerHTML=Object.entries(pend).map(([id,v])=>`<li><span>${v===null?"Quitar extra · ":"+ "}${lbl(id)}${v?` · ${v.e?"ver y editar":"solo ver"}`:""}</span><button data-undo="${id}" aria-label="Deshacer ${lbl(id)}">Deshacer</button></li>`).join("");
+  const quita=Object.values(pend).some(v=>v===null);
+  $("#motivo").placeholder=quita?"Ej: ya no cubre el CRM":"Ej: cubre el CRM durante una ausencia";
+  $("#guardar").disabled=$("#motivo").value.trim().length<5;
+  $("#guardar").textContent=`Guardar ${n>1?n+" cambios":"cambio"}`;
+}
+function txtEstado(e){return e.src==="role"?"por su rol, ver y editar":e.src==="grant"?`extra, ${e.lvl==="V"?"solo ver":"ver y editar"}`:e.src==="blocked"?"no disponible como extra":"sin acceso"}
+function inspector(m){
+  const [id,name,r,o={}]=m, per=PERSONAS[P], ex=per.extras[id], cur=pend[id]!==undefined?pend[id]:ex;
+  let origen, cuerpo;
+  if(r){
+    origen=`<b>Por su rol Contabilidad</b>: ver y editar. Lo tienen las 2 personas del rol.`;
+    cuerpo=`<p class="hint">Un extra no le suma nada aquí. Para quitárselo a todo el rol, usa <a class="link" data-goto-rol>Roles y permisos</a>${o.s?" (los módulos de dinero no se cambian por rol)":""}.</p>`;
+  }else if(o.c&&o.c!=="ok"){
+    origen=`<b>Sin acceso</b>. Su rol no lo incluye.`;
+    cuerpo=`<div class="blocked-why"><b>Todavía no se puede dar como extra.</b> ${o.why||WHY[o.c]}</div>`;
+  }else{
+    origen=ex?`<b>Extra</b> · «${ex.why}» · dado por ${ex.by} · ${ex.d}${ex.vence?` · vence ${ex.vence}`:""}`:`<b>Sin acceso</b>. Su rol Contabilidad no incluye ${name}.`;
+    const sel=cur===null||cur===undefined?"no":cur.e?"ve":"v";
+    cuerpo=`<div class="opts" role="radiogroup" aria-label="Acceso extra a ${name}">
+      <button class="opt" role="radio" aria-checked="${sel==="no"}" data-set="no"><b>${ex?"Quitar extra":"Sin extra"}</b><span>${ex?"Deja de verlo al guardar.":"Queda como su rol."}</span></button>
+      <button class="opt" role="radio" aria-checked="${sel==="v"}" data-set="v"><b>Solo ver</b><span>Abre ${name} sin poder cambiar nada.</span></button>
+      <button class="opt" role="radio" aria-checked="${sel==="ve"}" data-set="ve"><b>Ver y editar</b><span>Puede crear y modificar en ${name}.</span></button>
+    </div>${o.s?`<p class="aviso">Sensible: al guardar se pide el doble aviso.</p>`:""}`;
+  }
+  const tag=r?(o.s?'<span class="tag tag-sens">Sensible</span>':""):ex?'<span class="tag tag-extra">Extra</span>':o.c&&o.c!=="ok"?'<span class="tag tag-off">No disponible</span>':"";
+  return `<div class="insp" role="region" aria-label="Detalle de ${name}"><div class="insp-top"><div><strong>${name}</strong> ${tag}<div class="origin">${origen}</div></div><button class="btn btn-ghost btn-sm" data-cerrar aria-label="Cerrar detalle">Cerrar</button></div>${cuerpo}</div>`;
+}
+function setPend(id,val){ // val: null quitar · {e} · "no" sin extra
+  const ex=PERSONAS[P].extras[id];
+  if(val==="no"){ if(ex) pend[id]=null; else delete pend[id]; }
+  else { if(ex&&ex.e===val.e) delete pend[id]; else pend[id]=val; }
+  render();
+}
+function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,3200)}
+function dialog(t,b,si,cb){$("#dlg-t").textContent=t;$("#dlg-b").innerHTML=b;$("#dlg-si").textContent=si;$("#dlg").hidden=false;$("#dlg-si").focus();$("#dlg-si").onclick=()=>{$("#dlg").hidden=true;cb()};}
+$("#dlg-no").onclick=()=>$("#dlg").hidden=true;
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,a"); if(!t) return;
+  if(t.dataset.persona){P=t.dataset.persona;pend={};abierto=null;rolSel="accounting";$$("[data-persona]").forEach(b=>b.setAttribute("aria-pressed",b===t));render();feed();return}
+  if(t.dataset.id){abierto=abierto===t.dataset.id?null:t.dataset.id;render();const c=document.querySelector(`.chip[data-id="${t.dataset.id}"]`);c&&c.focus();return}
+  if(t.dataset.area){verOcultos[t.dataset.area]=!verOcultos[t.dataset.area];render();return}
+  if(t.hasAttribute("data-cerrar")){const id=abierto;abierto=null;render();const c=document.querySelector(`.chip[data-id="${id}"]`);c&&c.focus();return}
+  if(t.dataset.set){const v=t.dataset.set;setPend(abierto,v==="no"?"no":{e:v==="ve"});return}
+  if(t.dataset.undo){delete pend[t.dataset.undo];render();return}
+  if(t.dataset.rol){rolSel=t.dataset.rol;render();return}
+  if(t.dataset.tab){$$(".tab").forEach(b=>b.setAttribute("aria-selected",b===t));["perfil","acceso","actividad"].forEach(k=>$("#p-"+k).hidden=k!==t.dataset.tab);verRoles(false);return}
+  if(t.hasAttribute("data-goto-rol")||t.id==="vista-rol"){verRoles(t.id==="vista-rol"?t.getAttribute("aria-pressed")!=="true":true);return}
+  if(t.id==="tema"){const on=t.getAttribute("aria-pressed")!=="true";t.setAttribute("aria-pressed",on);document.documentElement.dataset.theme=on?"dark":"";return}
+  if(t.id==="descartar"){pend={};render();return}
+  if(t.id==="aplicar-rol"){const ex=Object.keys(PERSONAS[P].extras);dialog(`Cambiar el rol de ${PERSONAS[P].nombre}`,`<p>Su rol pasa de <b>Contabilidad</b> a <b>${ROLES.find(r=>r[0]===rolSel)[1]}</b>. Solo cambia a esta persona.</p>${ex.length?`<p>Conserva sus extras: ${ex.map(lbl).join(", ")}.</p>`:""}<div class="field"><label for="mr">Motivo (obligatorio)</label><input id="mr" class="input" placeholder="Ej: pasa a llevar la operación"></div>`,"Aplicar cambio",()=>toast("Maqueta: no se guardó nada"));return}
+  if(t.id==="guardar"){
+    const sens=Object.entries(pend).filter(([id,v])=>v&&(mod(id)[3]||{}).s);
+    const fin=()=>{const n=Object.keys(pend).length;Object.entries(pend).forEach(([id,v])=>{if(v===null)delete PERSONAS[P].extras[id];else PERSONAS[P].extras[id]={e:v.e,why:$("#motivo").value.trim(),by:"ti",d:"hoy"}});pend={};$("#motivo").value="";abierto=null;render();toast(`${n} ${n===1?"cambio guardado":"cambios guardados"} para ${PERSONAS[P].nombre}`)};
+    if(sens.length) dialog("Doble aviso: módulo sensible",`<p>${PERSONAS[P].nombre} podrá hacer estas modificaciones en ${sens.map(([id])=>lbl(id)).join(", ")}…</p><label class="chk"><input type="checkbox"> Entiendo lo que podrá hacer.</label>`,"Confirmar",fin); else fin();
+    return}
+});
+document.addEventListener("input",e=>{if(e.target.id==="motivo")$("#guardar").disabled=e.target.value.trim().length<5});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#dlg").hidden){$("#dlg").hidden=true;return}if(abierto){const id=abierto;abierto=null;render();const c=document.querySelector(`.chip[data-id="${id}"]`);c&&c.focus()}}});
+
+const EVENTOS={
+ A:[["14 nov 09:12","rol","Rol: Comercial → Contabilidad","«Pasa a llevar la cobranza»","un admin"],["02 nov 16:40","estado","Reactivada","«Vuelve de vacaciones»","un admin"],["20 oct 11:05","todos","Contabilidad (todo el rol): + Tarifas, ver y editar","Sin motivo (la matriz por rol aún no lo guarda)","un admin"]],
+ B:[["12 nov 10:30","extra","+ CRM, ver y editar","«Atiende el CRM los sábados»","un admin"],["12 nov 10:30","extra","+ Conversaciones, solo ver · vence 31 dic","«Lee las conversaciones del CRM»","un admin"],["05 nov 08:55","rol","Almacén: no aplica (rol sin lado)","—","sistema"],["20 oct 11:05","todos","Contabilidad (todo el rol): + Tarifas, ver y editar","Sin motivo (la matriz por rol aún no lo guarda)","un admin"]]
+};
+const KIND={rol:["k-rol","Rol"],estado:["k-estado","Estado"],extra:["k-extra","Extra"],todos:["k-todos","Todo el rol"]};
+let F="all";
+function feed(){$("#feed").innerHTML=EVENTOS[P].filter(x=>F==="all"||x[1]===F||(F==="rol"&&x[1]==="estado")).map(([d,k,w,y,b])=>`<li><time>${d}</time><div><div class="what"><span class="kind ${KIND[k][0]}">${KIND[k][1]}</span>${w}</div><div class="why">${y} · ${b}</div></div></li>`).join("")}
+$("#filtros").addEventListener("click",e=>{const b=e.target.closest("[data-f]");if(!b)return;F=b.dataset.f;$$("#filtros button").forEach(x=>x.setAttribute("aria-checked",x===b));feed()});
+// ── Roles y permisos (matriz por rol) ──
+const IC={
+ eye:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg>',
+ pen:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10.5 2.5l3 3L5.5 13.5H2.5v-3z"/></svg>',
+ dash:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 8h8"/></svg>',
+ shield:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5l5 2v4c0 3.2-2.2 5.6-5 7-2.8-1.4-5-3.8-5-7v-4z"/></svg>',
+ lock:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>'
+};
+const MXROLES=[["admin","Administración",1],["commercial","Comercial",3],["operations","Operaciones",4],["accounting","Contabilidad",2],["warehouse","Almacenista",3],["support","Soporte",1],["marketing","Marketing",1]];
+const PERSONAS_ROL={accounting:["Contable A","Contable B"],commercial:["Comercial A","Comercial B","Comercial C"],operations:["Operaciones A","Operaciones B","Operaciones C","Operaciones D"],warehouse:["Almacén A","Almacén B","Almacén C"],support:["Soporte A"],marketing:["Marketing A"]};
+const Cm="commercial",Op="operations",Ac="accounting",Wh="warehouse",Su="support",Mk="marketing";
+// Matriz de fábrica = ROLE_MODULE_ACCESS de lib/studio/rbac.ts (2026-11-15). 4º campo = fijo (LOCKED_MODULES).
+const MXG=[
+ ["Operación",[["dashboard","Dashboard",[Cm,Op,Ac,Wh,Su,Mk]],["shipments","Embarques",[Cm,Op,Ac,Wh,Su]],["tracking","Tracking",[Cm,Op,Ac,Wh,Su]],["calendar","Calendario",[Cm,Op,Ac,Wh,Su,Mk]],["bitacora","Bitácora",[Cm,Op,Ac,Wh,Su,Mk]],["cn","Almacén CN",[Op,Wh,Su]],["qrqueue","Cola de QR",[Op,Wh]],["labels","Etiquetas CN",[Op,Wh]],["ve","Almacén VE",[Op,Wh,Su]],["naviera","Naviera & Consolidación",[Op,Ac]],["seniat","Aduana SENIAT",[Op,Ac]],["tms","TMS · Transporte",[Op,Wh]],["despacho","Despacho",[Op,Wh]],["despacho-rules","Reglas despacho",[Op]],["despacho-dashboard","Dashboard despacho",[Op,Wh]],["admin-rutas","Rutas y ciudades",[Op]],["inventory","Inventario · WMS",[Op,Wh,Su]],["reclamos","Reclamos",[Cm,Op,Ac,Su]],["inspecciones","Inspecciones",[Op,Cm,Su]]]],
+ ["Comercial",[["quotes","Estimados",[Cm,Op,Ac,Su]],["clients","Clientes",[Cm,Op,Ac,Su]],["conversaciones","Conversaciones",[Cm,Op,Su]],["bandeja","Bandeja",[Cm,Su]],["kommo","CRM",[Cm]],["sales-orders","Órdenes de venta",[Cm,Op,Ac]],["suppliers","PreAlertas de servicios",[Cm,Op]],["purchase-orders","Compras asistidas",[Cm,Op,Ac]],["service-catalog","Servicios",[Cm,Op,Ac]],["rates","Tarifas",[Cm,Ac]],["fidelizacion","Fidelización",[Cm,Su]],["club","Club DTD",[Cm,Su]],["academia","Academia · Formación",[Cm,Ac,Su]]]],
+ ["Finanzas",[["direccion","Dirección",[],1],["invoices","Facturación",[Ac],1],["collections","Cobranzas",[Ac],1],["expenses","Gastos",[Ac,Op,Wh]],["treasury","Tesorería",[Ac],1],["accounting","Contabilidad",[Ac],1],["fiscal","Fiscal · SENIAT",[Ac],1],["costing","Costing & Margen",[Ac],1],["reports","Reportes",[Ac],1],["nomina","Nómina · RRHH",[Ac],1],["renditions","Rendiciones",[],1],["financiero-china","Financiero China",[],1]]],
+ ["Marketing",[["marketing","Marketing",[Mk,Cm,Su]],["noticias-web","Noticias Web",[Cm,Su,Mk]],["marketing-docs","Documentos",[Mk,Cm,Su]]]],
+ ["Sistema",[["mentions","Menciones",[Cm,Op,Ac,Wh,Su,Mk]],["documents","Documentos",[Cm,Op,Ac,Wh,Su,Mk]],["mis-bugs","Mis reportes",[Cm,Op,Ac,Wh,Su,Mk]],["bugs","Bug Tracker",[Cm,Op,Ac,Wh,Su,Mk]],["operarios","Operarios PWA",[Op]],["users","Usuarios",[],1],["admin","Administración",[],1],["mailing","Mailing",[],1],["legal","Legal · T&C",[],1],["no-olvidar","No-Olvidar",[],1]]]
+];
+// Cambios de ejemplo (ficticios) respecto a lo de fábrica: "rol:módulo" → "ve" | "v" | "no"
+const OV={"commercial:reclamos":"v","marketing:clients":"v","operations:rates":"v"};
+const EXTRAS={"accounting:kommo":["Contable B"],"accounting:conversaciones":["Contable B"]};
+const MXMOD={};MXG.forEach(([g,ms])=>ms.forEach(m=>MXMOD[m[0]]={id:m[0],label:m[1],roles:m[2],locked:!!m[3],grupo:g}));
+const LVL={ve:["st-ve",IC.pen,"Ver y editar","Edita"],v:["st-v",IC.eye,"Solo ver","Ve"],no:["st-no",IC.dash,"Sin acceso","No"],todo:["st-todo",IC.shield,"Todo","Todo"]};
+const rolLbl=r=>MXROLES.find(x=>x[0]===r)[1];
+const nPers=n=>`${n} ${n===1?"persona":"personas"}`;
+function fabrica(r,m){if(r==="admin")return "todo";if(!m.roles.includes(r))return "no";return r==="support"?"v":"ve"}
+function nivel(r,m){const k=r+":"+m.id;return OV[k]!==undefined&&r!=="admin"&&!m.locked?OV[k]:fabrica(r,m)}
+function stIn(l){const[,i,w,s]=LVL[l];return `${i}<span class="w">${w}</span><span class="w-s" aria-hidden="true">${s}</span>`}
+let mxSoloCamb=false,mxQ="",popAbierta=null,popDesde=0;
+function norm(s){return s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase()}
+function renderMx(){
+  $("#mx-head").innerHTML=`<th scope="col">Módulo</th>`+MXROLES.map(([r,l,n])=>`<th scope="col"><span class="rn">${l}</span><span class="rc">${r==="admin"?"ve y edita todo":nPers(n)}</span></th>`).join("");
+  $("#mx-ncamb").textContent=`(${Object.keys(OV).length})`;
+  $("#mx-legend").innerHTML=[
+    `<span class="lg"><span class="st st-ve">${stIn("ve")}</span><span class="leg-long">= Ver y editar</span></span>`,
+    `<span class="lg"><span class="st st-v">${stIn("v")}</span><span class="leg-long">= Solo ver</span></span>`,
+    `<span class="lg"><span class="st st-no">${stIn("no")}</span><span class="leg-long">= Sin acceso</span></span>`,
+    `<span class="lg"><span class="st st-todo">${stIn("todo")}</span>solo Administración</span>`,
+    `<span class="lg"><span class="chg-dot"></span>Cambiado: distinto a lo de fábrica</span>`,
+    `<span class="lg">${IC.lock} Fijo: dinero y administración no se cambian aquí</span>`,
+    `<span class="lg" style="margin-left:auto">Toca una celda para cambiarla para <b>todo el rol</b></span>`
+  ].join("");
+  const filas=g=>g[1].map(x=>MXMOD[x[0]]).filter(m=>(!mxQ||norm(m.label).includes(mxQ))&&(!mxSoloCamb||MXROLES.some(([r])=>OV[r+":"+m.id]!==undefined)));
+  const html=MXG.map(g=>{
+    const fs=filas(g);if(!fs.length)return "";
+    return `<tr class="grp"><th colspan="${MXROLES.length+1}" scope="colgroup">${g[0]}<small>${g[1].length} módulos</small></th></tr>`+fs.map(m=>{
+      const celdas=MXROLES.map(([r])=>{
+        const l=nivel(r,m),c=LVL[l][0],cambio=OV[r+":"+m.id]!==undefined&&r!=="admin";
+        const nom=`${rolLbl(r)}, ${m.label}: ${LVL[l][2]}${cambio?", cambiado respecto a lo de fábrica":""}${m.locked?", fijo":""}`;
+        if(r==="admin")return `<td class="adm"><span class="st ${c}" role="img" aria-label="${nom}">${stIn(l)}</span></td>`;
+        if(m.locked)return `<td><span class="st ${c}" data-locked="true" role="img" aria-label="${nom}" title="Fijo: se cambia en código, no aquí">${stIn(l)}</span></td>`;
+        return `<td><span class="cell-w"><button class="st ${c}" data-mx="${r}:${m.id}" aria-haspopup="dialog" aria-expanded="${popAbierta===r+":"+m.id}" aria-label="${nom}. Cambiar para todo el rol">${stIn(l)}</button>${cambio?`<span class="chg"><span class="chg-dot"></span>Cambiado</span>`:""}</span></td>`;
+      }).join("");
+      return `<tr><th scope="row">${m.label}${m.locked?`<span class="lk" title="Fijo: dinero o administración">${IC.lock}</span>`:""}</th>${celdas}</tr>`;
+    }).join("");
+  }).join("");
+  $("#mx-body").innerHTML=html||`<tr><td colspan="8" style="padding:24px;text-align:left"><span class="hint">Ningún módulo coincide.</span></td></tr>`;
+  sombras();
+}
+function sombras(){const w=$("#mx-wrap");w.dataset.y=w.scrollTop>0;w.dataset.x=w.scrollLeft>0}
+function abrirPop(key,btn){
+  const[r,id]=key.split(":"),m=MXMOD[id],fab=fabrica(r,m),act=nivel(r,m),cambio=OV[key]!==undefined;
+  const pers=PERSONAS_ROL[r]||[],ext=EXTRAS[key]||[];
+  popAbierta=key;popDesde=Date.now();let sel=act;
+  const pinta=()=>{
+    $("#pop").innerHTML=`<h3 id="pop-t">${m.label} · todo el rol ${rolLbl(r)}</h3>
+    <div class="afecta">Cambia para <b>${nPers(pers.length)}</b>: ${pers.join(", ")}.</div>
+    <div class="opts" role="radiogroup" aria-label="Permiso de ${rolLbl(r)} en ${m.label}">
+      ${["no","v","ve"].map(l=>{const dis=l==="ve"&&r==="support";return `<button class="opt" role="radio" aria-checked="${sel===l}" data-lv="${l}" ${dis?"disabled":""}><b>${LVL[l][2]}${l===fab?" · de fábrica":""}</b><span>${dis?"Soporte nunca edita.":l==="no"?"No le aparece en el menú.":l==="v"?"Lo abre sin poder cambiar nada.":"Puede crear y modificar."}</span></button>`}).join("")}
+    </div>
+    <div class="fab">De fábrica, ${rolLbl(r)} tiene <b>${LVL[fab][2].toLowerCase()}</b> en ${m.label}.${cambio?` Hoy está cambiado a <b>${LVL[act][2].toLowerCase()}</b>. <a class="link" data-fab>Volver a lo de fábrica</a>`:""}</div>
+    ${ext.length?`<p class="aviso">${ext.join(", ")} ya ${ext.length===1?"lo tiene":"lo tienen"} como acceso extra en su ficha. ${sel!=="no"?"Si lo aplicas, ese extra quedará marcado «sobra».":"Lo conserva aunque el rol no lo tenga."}</p>`:""}
+    <div class="tray-actions"><button class="btn btn-ghost" data-popno>Cancelar</button><button class="btn btn-primary" data-popsi ${sel===act?"disabled":""}>Aplicar a ${pers.length===1?"1 persona":"las "+pers.length}</button></div>`;
+  };
+  pinta();
+  $("#pop").hidden=false;
+  const b=btn.getBoundingClientRect(),pw=340;
+  const x=Math.max(12,Math.min(b.left-120,window.innerWidth-pw-12));let y=b.bottom+6;if(y+400>window.innerHeight)y=Math.max(12,b.top-406);
+  $("#pop").style.left=x+"px";$("#pop").style.top=y+"px";
+  $("#pop").onclick=e=>{const t=e.target.closest("button,a");if(!t)return;
+    if(t.dataset.lv){sel=t.dataset.lv;pinta();$("#pop").querySelector(`[data-lv="${sel}"]`).focus();return}
+    if(t.hasAttribute("data-popno")){cerrarPop();return}
+    if(t.hasAttribute("data-fab")){delete OV[key];cerrarPop();toast(`${m.label} volvió a lo de fábrica para ${rolLbl(r)} (${nPers(pers.length)}).`);return}
+    if(t.hasAttribute("data-popsi")){if(sel===fab)delete OV[key];else OV[key]=sel;cerrarPop();toast(`${rolLbl(r)}: ${m.label} ahora en «${LVL[sel][2]}» para ${nPers(pers.length)}.`);return}
+  };
+  renderMx();
+  const f=$("#pop").querySelector('[aria-checked="true"]');f&&f.focus();
+}
+function cerrarPop(){const k=popAbierta;popAbierta=null;$("#pop").hidden=true;renderMx();const b=document.querySelector(`[data-mx="${k}"]`);b&&b.focus()}
+function verRoles(on){$("#vista-rol").setAttribute("aria-pressed",on);$("#pag-roles").hidden=!on;document.querySelector(".stage").hidden=on;if(on)renderMx();else{$("#pop").hidden=true;popAbierta=null}}
+$("#mx-wrap").addEventListener("scroll",()=>{sombras();if(popAbierta&&Date.now()-popDesde>400){popAbierta=null;$("#pop").hidden=true;renderMx()}},{passive:true});
+$("#mx-q").addEventListener("input",e=>{mxQ=norm(e.target.value.trim());renderMx()});
+$("#mx-cambiados").addEventListener("click",e=>{mxSoloCamb=!mxSoloCamb;e.currentTarget.setAttribute("aria-pressed",mxSoloCamb);renderMx()});
+$("#mx-body").addEventListener("click",e=>{const b=e.target.closest("[data-mx]");if(!b)return;if(popAbierta===b.dataset.mx){cerrarPop();return}abrirPop(b.dataset.mx,b)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&popAbierta)cerrarPop()},true);
+document.addEventListener("click",e=>{const t=e.target.closest("[data-goto-ficha]");if(!t)return;verRoles(false);document.querySelector('[data-persona="B"]').click()});
+
+// Estado inicial por hash, solo para las capturas de la spec:
+// #p=B&open=kommo&pend=kommo:ve,treasury:v&motivo=…&rol=operations&tab=actividad&vista=rol&celda=accounting:kommo&scroll=600&dark=1&dlg=rol
+const H=new URLSearchParams(location.hash.slice(1));
+if(H.get("p")){P=H.get("p");$$("[data-persona]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.persona===P))}
+if(H.get("open"))abierto=H.get("open");
+if(H.get("rol"))rolSel=H.get("rol");
+(H.get("pend")||"").split(",").filter(Boolean).forEach(x=>{const[id,v]=x.split(":");pend[id]=v==="no"?null:{e:v==="ve"}});
+render();feed();
+if(H.get("motivo")){$("#motivo").value=H.get("motivo");render()}
+if(H.get("dark")){$("#tema").click()}
+if(H.get("tab"))document.querySelector(`[data-tab="${H.get("tab")}"]`).click();
+if(H.get("vista"))$("#vista-rol").click();
+if(H.get("celda")){const b=document.querySelector(`[data-mx="${H.get("celda")}"]`);if(b){b.scrollIntoView({block:"center"});abrirPop(H.get("celda"),b)}}
+if(H.get("scroll")){$("#mx-wrap").scrollTop=+H.get("scroll");if(H.get("scrollx"))$("#mx-wrap").scrollLeft=+H.get("scrollx");sombras()}
+if(H.get("dlg")==="rol")$("#aplicar-rol").click();
+if(H.get("open")){const c=document.querySelector(`.chip[data-id="${H.get("open")}"]`);c&&c.scrollIntoView({block:"center"})}
+})();
+</script>
+</body>
+</html>

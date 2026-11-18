@@ -43,6 +43,25 @@ describe("Field", () => {
     expect(campo).toHaveAccessibleDescription("Debe ser mayor que cero.");
   });
 
+  it("una ayuda visible queda ligada al control sin marcarlo como inválido; con error, las dos van en la descripción", () => {
+    const { rerender } = render(
+      <Field label="Monto" ayuda="Sin configurar · propuesta: 9">
+        <input />
+      </Field>,
+    );
+    const campo = screen.getByLabelText("Monto");
+    expect(screen.getByText("Sin configurar · propuesta: 9")).toBeVisible();
+    expect(campo).toHaveAccessibleDescription("Sin configurar · propuesta: 9");
+    expect(campo).not.toHaveAttribute("aria-invalid");
+    rerender(
+      <Field label="Monto" ayuda="Sin configurar · propuesta: 9" error="Debe ser mayor que cero.">
+        <input />
+      </Field>,
+    );
+    expect(screen.getByLabelText("Monto")).toHaveAccessibleDescription("Sin configurar · propuesta: 9 Debe ser mayor que cero.");
+    expect(screen.getByLabelText("Monto")).toHaveAttribute("aria-invalid", "true");
+  });
+
   it("respeta el id del control y su descripción previa", () => {
     render(
       <>
@@ -79,5 +98,22 @@ describe("ErrorBox", () => {
   it("puede recibir el foco sin entrar en el orden de Tab", () => {
     render(<ErrorBox>No se pudo registrar.</ErrorBox>);
     expect(screen.getByRole("alert")).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("es el aviso canónico de error, sin contorno ni color en línea", () => {
+    render(<ErrorBox>No se pudo registrar.</ErrorBox>);
+    const alerta = screen.getByRole("alert");
+    expect(alerta).toHaveClass("studio-aviso", "studio-aviso-compacto");
+    expect(alerta).toHaveAttribute("data-tono", "error");
+    expect(alerta.getAttribute("style")).toBeNull();
+    expect(alerta).toHaveTextContent("No se pudo registrar.");
+  });
+
+  it("recibe el foco por programa, con el selector que usa useDialogA11y", () => {
+    const { container } = render(<ErrorBox>No se pudo registrar.</ErrorBox>);
+    const objetivo = container.querySelector<HTMLElement>('[role="alert"][tabindex="-1"]');
+    expect(objetivo).not.toBeNull();
+    objetivo!.focus();
+    expect(objetivo).toHaveFocus();
   });
 });

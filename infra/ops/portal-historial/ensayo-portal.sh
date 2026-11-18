@@ -16,7 +16,9 @@
 #      Nada pasa por el disco del VPS. La evidencia lleva, por tabla, las filas y el md5 de sus columnas, y el md5 de
 #      la lista entera (D). La copia de Chatwoot trae solo la cuenta y la bandeja del portal (O);
 #   6. corre la carga en las copias: extraer.sh, cargar.sh (seco y cargar), los casos provocados (a), (B1) y (B2)
-#      con vincular.sh, y (c) repetir desde la extracción; controles-studio.sql antes y después (E);
+#      con vincular.sh, y (c) repetir desde la extracción; controles-studio.sql antes y después (E). Después ensaya
+#      las dos vueltas atrás del 4.6b sin el paso que borra: deshacer.sh en seco y con CONFIRMAR=no, y
+#      deshacer-vinculos.sh con ENTORNO=copia y MODO=ensayo, solo sobre los contenedores de la copia (R);
 #   7. vuelve a medir producción (P) y limpia todo. El trap de EXIT borra el proyecto fijo, /dev/shm/portal-ensayo y
 #      /dev/shm/portal-historial, y lo comprueba.
 #
@@ -28,7 +30,8 @@
 # nombres de contenedores; nunca nombres de personas ni textos. Códigos (también `HECHO ensayo_codigo`): 0 pasó todo;
 # 1 fallas; 2 opción o entrada mala; 3 carga o memoria; 4 la limpieza no terminó (y nada más falló); 5 la unidad de
 # systemd tiene TimeoutStopSec de menos de 300 s; 6 --limpiar con docker sin responder, y no se borró nada (un ensayo
-# que corrió borra sus carpetas igual y conserva su código); 143, 130 y 129 parado por TERM, INT y HUP.
+# que corrió borra sus carpetas igual y conserva su código); 7 los tipos de las columnas de la lista no son los mismos
+# en producción y en la copia, y no se copió nada; 143, 130 y 129 parado por TERM, INT y HUP.
 #
 # Copia las guardas de infra/ops/kommo-historial/ensayo-archivo.sh (SDD-0590): el trap que sale con 4, la salida
 # del guion en 7 y 8 para los traps, TimeoutStopSec, la carga del VPS y la memoria.
@@ -52,9 +55,13 @@ readonly RED="${PROYECTO}_aislada"
 readonly STUDIO_COPIA=portal-ensayo-studio-1
 readonly PG_COPIA=portal-ensayo-postgres-1
 readonly RAILS_COPIA=portal-ensayo-rails-1
+# La copia durable del 4.6b: el desarme del ensayo (R) nunca la crea ni la cambia, y lo comprueba (R4).
+readonly DURABLE_4_6B=/srv/ops/portal-historial/deshacer
 
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LISTA="$AQUI/copia-columnas.tsv"
+# El desarme de Studio del 4.6b. En el VPS, el sub-paso 3.0 lo deja junto a este guion.
+DESHACER_VINCULOS="$AQUI/deshacer-vinculos.sh"
 CUENTA="${CUENTA:-1}"
 CHATWOOT_DIR="${CHATWOOT_DIR:-/srv/chatwoot}"
 MIGRACIONES="${MIGRACIONES:-$AQUI/migraciones}"
@@ -240,9 +247,24 @@ if [ -n "${ENSAYO_VOLCADO:-}" ]; then
     exit 2
   fi
 fi
+# Saltar el desarme (R) es SOLO para la prueba de Actions: su producción simulada tiene en la bandeja del portal
+# conversaciones con marcas que no son de la carga, y deshacer.sh en seco se niega con ellas, como debe.
+if [ -n "${ENSAYO_SIN_DESARME:-}" ]; then
+  if [ "${ENSAYO_PRUEBA:-}" != 1 ] || [ "$PROD_PG" = chatwoot-postgres-1 ] || [ "$PROD_STUDIO" = dtd-cargo-db-1 ]; then
+    mal G0 "ENSAYO_SIN_DESARME es solo para la prueba de Actions: en el VPS el ensayo completo ensaya el desarme"
+    evidencia "HECHO error=sin_desarme_fuera_de_la_prueba"
+    exit 2
+  fi
+fi
 [ "$PROYECTO" != "$PROD_PROYECTO" ] || { mal G0 "el proyecto del ensayo es el de producción"; exit 2; }
 [ "$(uname -s)" = Linux ] || { mal G0 "el ensayo corre en Linux (el VPS)"; exit 2; }
 [ -r "$LISTA" ] || { mal G0 "falta $LISTA"; exit 2; }
+# El desarme (R) usa los guiones del 4.6b que deja el 3.0. Si faltara uno, el ensayo completo fallaría al final.
+if [ "$SOLO_COPIA" = 0 ] && [ "${ENSAYO_SIN_DESARME:-}" != 1 ]; then
+  for f in "$AQUI/deshacer.sh" "$AQUI/deshacer-carga.rb" "$DESHACER_VINCULOS" "$AQUI/deshacer-vinculos.sql"; do
+    [ -r "$f" ] || { mal G0 "falta $f (el desarme del ensayo)"; evidencia "HECHO error=falta_un_guion_del_desarme"; exit 2; }
+  done
+fi
 for f in 0006_clients.sql 0106_conversaciones.sql 0337_feature_flags_seed_and_trigger.sql 0503_chatwoot_bandeja.sql \
          0504_chatwoot_eventos.sql 0508_chatwoot_bajas_purga.sql 0519_chatwoot_portal.sql 0520_chatwoot_portal_vuelta.sql \
          0523_chatwoot_portal_carga.sql 0524_chatwoot_portal_puerta4.sql; do
@@ -515,6 +537,75 @@ docker exec "$RAILS_COPIA" bundle exec rails db:chatwoot_prepare >"$DIR/esquema-
 exigir S2 '[ "$(cw_copia -c "select to_regclass('"'"'public.conversations'"'"') is not null")" = t ] && [ "$(cw_copia -c "select count(*) from public.accounts")" = 0 ]' \
   "Chatwoot: el esquema de la imagen (db:chatwoot_prepare), con 0 cuentas"
 [ "$FALLAS" = 0 ] || { tail -n 20 "$DIR/esquema-studio.txt" "$DIR/esquema-chatwoot.txt"; exit 1; }
+
+# ── Los tipos de las columnas de la lista: producción frente a la copia ──────
+# El esquema de la copia de Studio se arma en parte a mano (ensayo-studio-esquema.sql). El --solo-copia del 2026-11-14
+# falló a medias porque crm_historial_etapas.id era uuid en la copia y bigint en producción: el COPY se cortó, y
+# columnas_md5 no lo vio porque solo mide los nombres. Antes de copiar nada se compara «tabla.columna:tipo» de cada
+# columna de la lista, a cada lado, en el catálogo (format_type). Solo nombres y tipos, nunca datos. Una columna que
+# no existe sale como «ausente». Si un lado no coincide, se para con 7, sin copiar.
+# El orden no depende de la base (revisión del DG de la #563, B1): producción de Studio es supabase/postgres y la copia
+# es postgres:17, y pueden ordenar distinto «event:» y «event_key:». Por eso la consulta ordena con `collate "C"` y el
+# `sort` corre con LC_ALL=C: sin eso, el `diff` daría un 7 falso sin ningún tipo distinto.
+tipos_sql() { # lado → la consulta del catálogo para las columnas de ese lado de la lista
+  awk -F'\t' -v lado="$1" '
+    $1 == lado {
+      n = split($3, c, ";")
+      for (i = 1; i <= n; i++) { sub(/=.*/, "", c[i]); v = v (v ? ", " : "") "(\047" $2 "\047, \047" c[i] "\047)" }
+    }
+    END {
+      if (v == "") exit 1
+      print "select (v.t || \047.\047 || v.c || \047:\047 || coalesce((select pg_catalog.format_type(a.atttypid, a.atttypmod) from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(v.t) and a.attname = v.c and a.attnum > 0 and not a.attisdropped), \047ausente\047)) collate \042C\042 from (values " v ") v(t, c) order by 1"
+    }' "$LISTA"
+}
+tipos_columnas() { awk -F'\t' -v lado="$1" '$1 == lado { n += split($3, c, ";") } END { print n + 0 }' "$LISTA"; }
+comparar_tipos() { # lado id
+  local lado="$1" q esperadas prod copia distintas ausentes consulta
+  q="$(tipos_sql "$lado")" || { mal "$2" "$lado: copia-columnas.tsv no trae columnas de ese lado: no hay nada que comparar"; evidencia "HECHO tipos_$lado=lista_sin_columnas"; LISTA_SIN_COLUMNAS=1; return 0; }
+  esperadas="$(tipos_columnas "$lado")"
+  if [ "$lado" = studio ]; then
+    studio_prod -c "$q" >"$DIR/tipos-$lado-prod.txt" 2>&1
+    studio_copia -c "$q" >"$DIR/tipos-$lado-copia.txt" 2>&1
+  else
+    cw_prod -c "$q" >"$DIR/tipos-$lado-prod.txt" 2>&1
+    cw_copia -c "$q" >"$DIR/tipos-$lado-copia.txt" 2>&1
+  fi
+  # Cada línea tiene que ser «esquema.tabla.columna:tipo»: si psql falló, su error no se lee como columna ni va a la
+  # evidencia (solo «fallida»).
+  prod="$(grep -cE '^[a-z_]+\.[a-z_0-9]+\.[a-z_0-9]+:.+$' "$DIR/tipos-$lado-prod.txt")"
+  copia="$(grep -cE '^[a-z_]+\.[a-z_0-9]+\.[a-z_0-9]+:.+$' "$DIR/tipos-$lado-copia.txt")"
+  consulta=ok
+  [ "$prod" = "$esperadas" ] && [ "$prod" = "$(grep -c . "$DIR/tipos-$lado-prod.txt")" ] \
+    && [ "$copia" = "$esperadas" ] && [ "$copia" = "$(grep -c . "$DIR/tipos-$lado-copia.txt")" ] || consulta=fallida
+  distintas=ninguna
+  if [ "$consulta" = ok ]; then
+    # Las cinco primeras, y cuántas son: alcanza para encontrarlas en el esquema del ensayo.
+    distintas="$(diff "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | sed -n 's/^[<>] \([^:]*\):.*/\1/p' | LC_ALL=C sort -u)"
+    distintas="$([ -n "$distintas" ] && printf '%s' "$(printf '%s\n' "$distintas" | grep -c .):$(printf '%s\n' "$distintas" | head -n 5 | paste -sd, -)" || echo ninguna)"
+  fi
+  ausentes="$(cat "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt" | grep -c ':ausente$')"
+  evidencia "HECHO tipos_${lado}_columnas=$esperadas" "HECHO tipos_${lado}_consulta=$consulta"
+  if [ "$consulta" = ok ] && [ "$distintas" = ninguna ] && [ "$ausentes" = 0 ]; then
+    evidencia "HECHO tipos_$lado=iguales" "HECHO tipos_${lado}_md5=$(md5sum <"$DIR/tipos-$lado-prod.txt" | cut -c1-12)"
+    ok "$2" "$lado: las $esperadas columnas de la lista tienen el mismo tipo en producción y en la copia"
+  else
+    evidencia "HECHO tipos_$lado=distintos" "HECHO tipos_${lado}_distintos=$distintas" "HECHO tipos_${lado}_ausentes=$ausentes"
+    mal "$2" "$lado: los tipos de la lista no son los mismos en producción y en la copia (consulta $consulta, distintas $distintas, $ausentes ausentes). No se copia nada"
+  fi
+  rm -f -- "$DIR/tipos-$lado-prod.txt" "$DIR/tipos-$lado-copia.txt"
+}
+log "== tipos de las columnas de la lista, producción frente a la copia"
+LISTA_SIN_COLUMNAS=0
+comparar_tipos studio S3
+comparar_tipos chatwoot S4
+if [ "$LISTA_SIN_COLUMNAS" = 1 ]; then
+  # No es un tipo distinto: la lista está mal. Sale con 1, como cualquier otra falla.
+  evidencia "HECHO error=lista_sin_columnas"
+  exit 1
+elif [ "$FALLAS" != 0 ]; then
+  evidencia "HECHO error=tipos_distintos"
+  exit 7
+fi
 # Marca de cada copia: una tabla que producción nunca tiene, con un valor aleatorio de este momento.
 MARCA="$(openssl rand -hex 16)"
 studio_copia -c "create table public._dtd_ensayo_marca (valor text not null); insert into public._dtd_ensayo_marca values ('$MARCA')" >/dev/null
@@ -758,6 +849,121 @@ open(sys.argv[3], "w", encoding="utf-8", newline="\n").write("\n".join(lineas) +
   c8() { sed -n "s/.*$1=\([0-9]*\).*/\1/p" "$Z" | head -n 1; } # c8 clave: el número de esa clave de C-8
   exigir K3 '[ "$(c8 hilos_vinculados)" -gt 0 ] 2>/dev/null && [ "$(c8 con_espejo)" = "$(c8 hilos_vinculados)" ] && [ "$(c8 client_id_distinto)" = 0 ]' \
     "C-8: $(c8 hilos_vinculados) hilos vinculados, con $(c8 con_espejo) espejos y $(c8 client_id_distinto) clientes distintos"
+  # ── R. Las dos vueltas atrás del 4.6b, ensayadas en las copias ──────────────
+  # Decisión A del DG (2026-11-14): el 3.1 ensaya también el desarme, sin el paso que borra. Sobre las copias:
+  #   R0  la guarda: DB y DB_CW son los contenedores de la copia (proyecto portal-ensayo, solo en la red aislada) y
+  #       nunca dtd-cargo-db-1, chatwoot-postgres-1 ni chatwoot-rails-1. Si no, la etapa no corre y no escribe nada;
+  #   R1  deshacer.sh MODO=seco ve exactamente lo cargado: su antes= es el despues= de la última carga del ensayo;
+  #   R2  deshacer.sh MODO=borrar CONFIRMAR=no: ROLLBACK, la bandeja de la copia de Chatwoot queda igual;
+  #   R3  deshacer-vinculos.sh ENTORNO=copia MODO=ensayo: ROLLBACK, la copia de Studio y C-6 a C-8 quedan iguales;
+  #   R4  la copia durable del 4.6b (/srv/ops/portal-historial/deshacer) no se crea ni cambia, y los .hecho y el
+  #       .ndjson quedan solo en /dev/shm/portal-historial, que la limpieza del trap borra.
+  # Los conteos esperados de deshacer-vinculos.sh salen de C-8 de la copia (como en 4.2) y de sus contactos. Solo
+  # conteos, ids y hashes en la evidencia. La auditoría del flag (entity_audit_log) va vacía en la copia: en la copia no
+  # se prueba «encendido alguna vez», que mide en producción el 4.1 (cola-y-flag.sql) y el paso 1 de verdad.
+  if [ "${ENSAYO_SIN_DESARME:-}" = 1 ]; then
+    log "== R. el desarme: NO EJECUTADO (ENSAYO_SIN_DESARME, solo en la prueba de Actions)"
+    evidencia "HECHO desarme=omitido_en_la_prueba"
+  else
+    log "== R. las dos vueltas atrás del 4.6b, ensayadas en las copias"
+    desarme_es_la_copia() { # studio chatwoot: los dos son de la copia, en la red aislada y con su nombre fijo
+      local c
+      for c in "$1" "$2"; do
+        case "$c" in dtd-cargo-db-1 | chatwoot-postgres-1 | chatwoot-rails-1 | "$PROD_STUDIO" | "$PROD_PG" | "$PROD_RAILS") return 1 ;; esac
+        [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c" 2>/dev/null)" = "$PROYECTO" ] || return 1
+        [ "$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$c" 2>/dev/null | xargs)" = "$RED" ] || return 1
+      done
+      [ "$1" = "$STUDIO_COPIA" ] && [ "$2" = "$RAILS_COPIA" ]
+    }
+    durable_foto() { if [ -e "$DURABLE_4_6B" ]; then echo "presente:$(ls -A "$DURABLE_4_6B" 2>/dev/null | grep -c .)"; else echo ausente; fi; }
+    bandeja_cw() {
+      cw_copia -c "select 'conversaciones:' || (select count(*) from public.conversations where inbox_id = $BANDEJA)
+        || ',mensajes:' || (select count(*) from public.messages where inbox_id = $BANDEJA)
+        || ',contact_inboxes:' || (select count(*) from public.contact_inboxes where inbox_id = $BANDEJA)
+        || ',contactos:' || (select count(*) from public.contacts where account_id = $CUENTA and identifier like 'dtd-portal:%')"
+    }
+    contactos_vinculados() { studio_copia -c "select count(*) from public.chatwoot_portal_contactos where tenant_id = '$TENANT' and chatwoot_contact_id is not null"; }
+    deshacer_cw() { # salida modo [confirmar]
+      env DB="$R_DB" DB_CW="$R_CW" TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" MODO="$2" ${3:+CONFIRMAR="$3"} \
+        bash "$AQUI/deshacer.sh" >"$1" 2>&1
+      echo "HECHO salida_proceso=$?" >>"$1"
+    }
+    # En el log de la corrida, de cada paso: el código de salida y su primer HECHO error= (solo HECHO, sin datos de
+    # personas). Así un rojo se lee sin bajar la evidencia (pedido del Subdirector tras el job 132577863038).
+    # Cada paso del desarme deja en la salida del ensayo (y así en el log del CI) todas sus líneas HECHO: deshacer.sh y
+    # deshacer-vinculos.sh solo sacan conteos, ids de tenant, cuenta y bandeja, y sha256, nunca datos de personas. Las
+    # líneas que no son HECHO (un error de psql puede citar una fila) no salen: solo se cuentan.
+    informar() { # paso
+      local l n=0 otras
+      while IFS= read -r l; do log "   $1: $l"; n=$((n + 1)); done < <(grep '^HECHO ' "$DIR/$1.txt" 2>/dev/null | tr -d '\r')
+      otras="$(grep -vc '^HECHO ' "$DIR/$1.txt" 2>/dev/null)"
+      [ "$n" -gt 0 ] || log "   $1: sin líneas HECHO"
+      [ "${otras:-0}" = 0 ] || log "   $1: y ${otras} líneas que no son HECHO, que no se copian"
+    }
+    R_DB="$STUDIO_COPIA"; R_CW="$RAILS_COPIA"
+    if desarme_es_la_copia "$R_DB" "$R_CW"; then
+      ok R0 "el desarme corre solo en las copias: $R_DB y $R_CW son del proyecto $PROYECTO, en $RED"
+      evidencia "HECHO desarme_guarda=ok"
+      DURABLE_ANTES="$(durable_foto)"
+      CARGADO="$(h "$DIR/carga-2.txt" despues)"
+      deshacer_cw "$DIR/desarme-seco.txt" seco; paso desarme-seco; informar desarme-seco
+      F="$DIR/desarme-seco.txt"
+      R1_ANTES="$(h "$F" antes)"
+      # Los mensajes de la bandeja, explicados y no copiados: el seco cuenta TODAS las filas de messages de la bandeja,
+      # igual que el «despues=» de la carga (filas_en_bandeja de cargar-portal.rb). Son lo que la bandeja tenía antes de
+      # la carga, más los mensajes de Studio (mensajes_nuevos, los que vincular.sh vincula: su «mensajes=») y más las
+      # notas de archivo de los hilos archivados (notas_nuevas), que no son mensajes de Studio ni van en los vínculos.
+      # Por eso, con un hilo archivado, el seco ve un mensaje más que E1 y E2.
+      msj_de() { printf '%s\n' "$1" | sed -n 's/^conversaciones:[0-9]*,mensajes:\([0-9]*\),.*/\1/p'; }
+      num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
+      C1F="$DIR/carga-1.txt"; C2F="$DIR/carga-2.txt"
+      M_ANTES="$(msj_de "$(h "$C1F" antes)")"; M_STUDIO="$(h "$C1F" mensajes_nuevos)"; M_NOTAS="$(h "$C1F" notas_nuevas)"; M_NOTAS="${M_NOTAS:-0}"
+      # Lo que entró al repetir (c): C1 exige que no entre nada, y si entrara se suma aquí en vez de esconderse.
+      M_R1="$(h "$C2F" mensajes_nuevos)"; M_R2="$(h "$C2F" notas_nuevas)"; M_REPETIR=""
+      num "${M_R1:-0}" && num "${M_R2:-0}" && M_REPETIR=$((${M_R1:-0} + ${M_R2:-0}))
+      M_VINCULADOS="$(sed -n 's/^HECHO contactos=[0-9]* hilos=[0-9]* mensajes=\([0-9]*\)$/\1/p' "$DIR/vincular.txt" 2>/dev/null | tr -d '\r' | tail -n 1)"
+      M_BANDEJA="$(msj_de "$R1_ANTES")"
+      M_ESPERADOS=""
+      num "$M_ANTES" && num "$M_STUDIO" && num "$M_NOTAS" && num "$M_REPETIR" && M_ESPERADOS=$((M_ANTES + M_STUDIO + M_NOTAS + M_REPETIR))
+      evidencia "HECHO desarme_mensajes=bandeja:${M_BANDEJA:-ilegible},antes_de_la_carga:${M_ANTES:-ilegible},de_studio:${M_STUDIO:-ilegible},notas_de_archivo:$M_NOTAS,al_repetir:${M_REPETIR:-ilegible},vinculados:${M_VINCULADOS:-ilegible}"
+      exigir R1 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && [ -n "$CARGADO" ] && [ "$R1_ANTES" = "$CARGADO" ] && [ "${CARGADO#conversaciones:0,}" = "$CARGADO" ] && [ -n "$M_ESPERADOS" ] && [ "$M_BANDEJA" = "$M_ESPERADOS" ] && [ "$M_VINCULADOS" = "$M_STUDIO" ] && [ -s "$SHM/chatwoot-seco.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
+        "deshacer.sh en seco ve exactamente lo cargado ($R1_ANTES, la carga dejó $CARGADO): sus ${M_BANDEJA:-?} mensajes son los ${M_ANTES:-?} de antes, ${M_STUDIO:-?} de Studio (vinculados: ${M_VINCULADOS:-?}) y $M_NOTAS notas de archivo; con $(h "$F" contactos_a_borrar) contactos a borrar y el contenedor limpio"
+      CW_ANTES="$(bandeja_cw)"
+      deshacer_cw "$DIR/desarme-1b.txt" borrar no; paso desarme-1b; informar desarme-1b
+      CW_DESPUES="$(bandeja_cw)"
+      evidencia "HECHO desarme_cw_antes=$CW_ANTES" "HECHO desarme_cw_despues=$CW_DESPUES"
+      F="$DIR/desarme-1b.txt"
+      exigir R2 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO deshacer=ok" "$F" && grep -qx "HECHO fin=rollback" "$F" && [ -n "$CW_ANTES" ] && [ "$CW_ANTES" = "$CW_DESPUES" ] && [ ! -e "$SHM/chatwoot-borrar.hecho" ] && [ "$(h "$F" contenedor_limpio)" = si ]' \
+        "deshacer.sh MODO=borrar CONFIRMAR=no termina en ROLLBACK y la copia de Chatwoot queda igual ($CW_DESPUES)"
+      # La marca de la copia que pide deshacer-vinculos.sql para ENTORNO=copia, guardada para la base de la copia.
+      # R3 compara contra la foto de DESPUÉS de la carga: la toma aquí, justo antes de deshacer-vinculos.sh (y después
+      # de R1 y R2, que no cambian Studio). No usa controles-antes.txt, que es de antes de la carga (K, C-8 inicial).
+      studio_copia -c "alter database postgres set dtd.entorno = 'copia'" >/dev/null 2>&1
+      CTL "$DIR/controles-desarme-antes.txt"
+      A="$DIR/controles-desarme-antes.txt"
+      c8a() { sed -n "s/.*$1=\([0-9]*\).*/\1/p" "$A" | head -n 1; }
+      ESP_SALIDA="$(c8a salida_cargado)"; ESP_HILOS="$(c8a hilos_vinculados)"; ESP_ESPEJO="$(c8a con_espejo)"
+      ESP_CONTACTOS="$(contactos_vinculados)"
+      evidencia "HECHO desarme_esperados=salida:$ESP_SALIDA,hilos:$ESP_HILOS,contactos:$ESP_CONTACTOS,espejo:$ESP_ESPEJO"
+      env DB="$R_DB" TENANT="$TENANT" CUENTA="$CUENTA" BANDEJA="$BANDEJA" ESPERADOS_SALIDA="$ESP_SALIDA" ESPERADOS_HILOS="$ESP_HILOS" \
+        ESPERADOS_CONTACTOS="$ESP_CONTACTOS" ESPERADOS_ESPEJO="$ESP_ESPEJO" ENTORNO=copia MODO=ensayo \
+        bash "$DESHACER_VINCULOS" >"$DIR/desarme-studio.txt" 2>&1
+      echo "HECHO salida_proceso=$?" >>"$DIR/desarme-studio.txt"
+      paso desarme-studio; informar desarme-studio
+      CTL "$DIR/controles-desarme-despues.txt"
+      Z="$DIR/controles-desarme-despues.txt"
+      F="$DIR/desarme-studio.txt"
+      exigir R3 '[ "$(h "$F" salida_proceso)" = 0 ] && grep -qx "HECHO modo=ensayo fin=rollback" "$F" && grep -q "^HECHO studio_ensayo=ok .* entorno=copia fin=rollback " "$F" && [ -n "$ESP_HILOS" ] && cmp -s "$A" "$Z" && [ "$(contactos_vinculados)" = "$ESP_CONTACTOS" ]' \
+        "deshacer-vinculos.sh ENTORNO=copia MODO=ensayo termina en ROLLBACK: la copia de Studio, C-6, C-7 y C-8 quedan iguales ($ESP_HILOS hilos, $ESP_SALIDA salidas, $ESP_CONTACTOS contactos, $ESP_ESPEJO espejos)"
+      DURABLE_DESPUES="$(durable_foto)"
+      evidencia "HECHO desarme_durable_antes=$DURABLE_ANTES" "HECHO desarme_durable_despues=$DURABLE_DESPUES"
+      exigir R4 '[ "$DURABLE_ANTES" = "$DURABLE_DESPUES" ] && [ -s "$SHM/chatwoot-seco.hecho" ] && [ -s "$SHM/studio-ensayo.hecho" ] && [ -s "$SHM/contactos-conservados.ndjson" ] && [ ! -e "$SHM/chatwoot-borrar.hecho" ] && [ ! -e "$SHM/studio-aplicar.hecho" ]' \
+        "la copia durable del 4.6b no cambió ($DURABLE_DESPUES); los .hecho y el .ndjson están solo en $SHM, que borra la limpieza"
+    else
+      mal R0 "DB=$R_DB o DB_CW=$R_CW no son los contenedores de la copia ($PROYECTO, en $RED): el desarme no corre ni escribe nada"
+      evidencia "HECHO error=desarme_no_es_la_copia"
+    fi
+  fi
 else
   log "== E. la carga: NO EJECUTADA (--solo-copia)"
 fi

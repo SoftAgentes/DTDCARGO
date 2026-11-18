@@ -177,3 +177,73 @@ export function chatwootBandejasWhatsapp(): { leads: number | null; clientes: nu
   };
   return { leads: id(process.env.CHATWOOT_INBOX_LEADS_ID), clientes: id(process.env.CHATWOOT_INBOX_CLIENTES_ID) };
 }
+
+/**
+ * SDD-0649: escribir el segmento y el Shipping Mark en el contacto de Chatwoot.
+ * Solo con `CHATWOOT_ATRIBUTOS_CONTACTO=1`, que se carga DESPUÉS de crear los dos
+ * atributos en Chatwoot (D1, OK nominal de Sam). Cualquier otro valor, o vacío,
+ * lo deja apagado.
+ */
+export function chatwootAtributosContactoActivos(): boolean {
+  return (process.env.CHATWOOT_ATRIBUTOS_CONTACTO ?? "").trim() === "1";
+}
+
+/**
+ * SDD-0650 F2 (D2): la cuenta de servicio con la que la ficha del cliente lee, en vivo,
+ * las conversaciones de los contactos unidos a ella. Todos los que tienen la Bandeja
+ * ven lo mismo.
+ *
+ * - `CHATWOOT_FICHA_TOKEN`: token de acceso de ese usuario de servicio de Chatwoot
+ *   (administrador de la cuenta: un agente solo ve las conversaciones de sus bandejas,
+ *   medido en la A1 de la 0649). SECRETO: solo en el entorno del servidor, nunca con
+ *   `NEXT_PUBLIC_`. Crearlo es una puerta con OK nominal de Sam.
+ * - `CHATWOOT_INBOX_ARCHIVO_KOMMO_ID`: la bandeja API «Archivo Kommo» de la E5. Sus
+ *   conversaciones solo las abren Admin y Contabilidad (D3).
+ * - `CHATWOOT_TENANT_ID`: el tenant de Studio dueño de la cuenta de Chatwoot. La cuenta
+ *   de servicio lee TODA la cuenta, así que solo la usa una sesión de ese tenant
+ *   (revisión de la F2: acotar por tenant).
+ * - `CHATWOOT_URL` y `CHATWOOT_ACCOUNT_ID`, como la Bandeja.
+ *
+ * Falta algo, o viene vacío → `null`: la ficha queda como en la F1, sin llamar a la red.
+ */
+export interface ChatwootFichaConfig {
+  origin: string;
+  token: string;
+  accountId: number;
+  tenantId: string;
+  archivoKommoInboxId: number;
+}
+
+export function chatwootFichaConfig(): ChatwootFichaConfig | null {
+  const token = firstConfiguredSecret(process.env.CHATWOOT_FICHA_TOKEN);
+  const cuenta = (process.env.CHATWOOT_ACCOUNT_ID ?? "").trim();
+  const archivo = (process.env.CHATWOOT_INBOX_ARCHIVO_KOMMO_ID ?? "").trim();
+  const tenantId = chatwootTenantId();
+  if (!token || !ID.test(cuenta) || !ID.test(archivo) || !tenantId) return null;
+  return {
+    origin: chatwootOriginFromEnv(process.env.CHATWOOT_URL),
+    token,
+    accountId: Number(cuenta),
+    tenantId,
+    archivoKommoInboxId: Number(archivo),
+  };
+}
+
+/**
+ * La configuración de la ficha, solo si la sesión es del tenant dueño de la cuenta de
+ * Chatwoot. Otro tenant → `null`, igual que sin configurar: nada distingue un caso del otro.
+ */
+export function chatwootFichaConfigPara(tenantSesion: string | null | undefined): ChatwootFichaConfig | null {
+  const cfg = chatwootFichaConfig();
+  if (!cfg || !tenantSesion || tenantSesion.toLowerCase() !== cfg.tenantId.toLowerCase()) return null;
+  return cfg;
+}
+
+/**
+ * SDD-0650 F2 (decisión del DG, M1): el webhook escribe uniones chat ↔ ficha solo con
+ * `CHATWOOT_FICHA_UNIR=1` exacto. Vacío o cualquier otro valor: apagado, aunque la 0554
+ * esté aplicada. Encenderlo es una puerta con OK de Sam.
+ */
+export function chatwootFichaUnirActivo(): boolean {
+  return (process.env.CHATWOOT_FICHA_UNIR ?? "") === "1";
+}

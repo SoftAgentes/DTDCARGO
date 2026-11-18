@@ -155,6 +155,7 @@ esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
 - **NUNCA** uses `red`, `blue`, `green`, `orange`, `purple` como nombres CSS. Usa los tokens.
 - **NUNCA** inventes hex como `#FF5733`, `#00FFAA`, etc.
+- **Excepción · logos de canal (SDD-0648, D1, aprobada por Sam el 2026-11-16):** los logos de terceros (WhatsApp, Instagram, Facebook, TikTok) van con sus colores oficiales, de 14 a 18 px, **solo** en el CRM y en listas de conversaciones, para identificar de qué canal vino un lead. Formas de Simple Icons (CC0, versión fija) e Instagram con su degradado oficial; nunca inventados. Cada logo lleva su nombre accesible. El canal propio usa el isólogo oficial (primary en claro, reverse en oscuro). Fuera de esos dos lugares, la regla de arriba sigue igual.
 - **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Los **coloridos/arcoíris siguen prohibidos**; lo permitido es **tonal navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
   - **Glow de fondo (BD-030, 2026-07-12):** además del hero, se **permite —y se recomienda para no dejar fondos planos—** un **glow radial *tonal* navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en claro, el equivalente sutil en papel `#FBFAF7`→`#F2F0EC`. Token: **`var(--bg-glow)`** (`app/globals.css`). Sigue las reglas de BD-022/023 (hex explícito, nunca hacia blanco en la familia navy) y **no** sustituye el gradiente de hero horizontal. Es **tonal, no colorido** — el glow no es una puerta a gradientes de color.
   - **Texto display editorial (autorizado por el founder, 2026-07-23):** en infografías, portadas sociales, cifras KPI y titulares grandes se permite aplicar el mismo **degradado tonal monocromático navy**, de izquierda a derecha, para evitar que el azul se vea plano: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 55%, #1F3055 100%)`. El cambio debe ser sutil — navy profundo a navy ligeramente más claro, sin pasar a azul brillante, cian ni blanco. Se usa únicamente en texto display grande, con fallback sólido `#0F1E3D`; cuerpo, subtítulos pequeños y datos técnicos permanecen en color sólido para conservar legibilidad. **Nunca se aplica al isólogo, al wordmark ni a ninguna variante oficial del logo.**
@@ -286,6 +287,8 @@ Escala de 4px (todo múltiplo). Usa las variables:
 ### Sombras
 Solo las del sistema: `--shadow-xs`, `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-pop`. Nunca sombras inventadas.
 
+**Bordes fijos** (BD-070, aprobada por Sam el 2026-11-15): un encabezado o una columna `sticky` con contenido escondido detrás lleva `--shadow-sticky-top` (cae hacia abajo) o `--shadow-sticky-left` (cae hacia la derecha). Solo mientras hay desplazamiento; en el borde, nada. Claro y oscuro salen del token. Studio (`app/studio/tokens.css`).
+
 ---
 
 ## 🎚️ Perfil de densidad por superficie
@@ -298,14 +301,14 @@ La densidad correcta depende de la superficie — calibra el juicio de spacing *
 
 ## 🎛 Controles · qué se oprime, qué avisa y qué solo se lee (BD-037)
 
-Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal, y se adopta por tramos (SDD-0603).
+Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal. Adoptada en producción el 2026-11-15 (SDD-0603). Quedan siete pantallas que dependen de la PR #318; se ajustan cuando esa PR llegue a main (ver spec 0603, "Detenidos por la PR #318").
 
 - **Lo que se oprime** lleva relleno o contorno de tinta. Contorno de control ≥ 3:1 contra su fondo.
 - **Lo que avisa** es una franja plana con icono, sin contorno ni sombra.
 - **Lo que solo se lee** es texto. Los estados van con texto e icono, sin cajón.
 - **El vino** queda para la acción principal y la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Es una excepción registrada a VIS-01 §3.
 - **Las tarjetas** conservan su borde suave: el contorno fuerte queda para lo oprimible.
-- **Vista predeterminada:** compacta y en tema oscuro; cada persona puede cambiarlas en la barra superior. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
+- **Vista predeterminada:** compacta. El Studio abre en tema oscuro y el Portal en claro (enmienda del 2026-11-17, SDD-0654 D-14). Cada persona puede cambiarlas en la barra superior, y en el Portal quien ya eligió oscuro lo conserva. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
 - **Elevación** (enmienda del 2026-11-12, aprobada por Sam): la sombra marca el nivel. Principal `--shadow-md`; relleno (oscuro, advertencia, peligro) `--shadow-sm`; secundario `--shadow-xs` con contorno de 1,5 px en `--ink` (`--ctl-border`). Avisos, estados y deshabilitados van planos. En oscuro, todo control con relleno lleva `--ctl-edge-hi`, una luz arriba y un aro `--ink-soft`. Los verbos de botón van en peso 700 o más. Sin colores nuevos.
 
 ---
@@ -382,6 +385,18 @@ El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a su
 - **ERP Studio (BD-033):** *scrim frosteado* — `backdrop-filter: var(--scrim-blur)` (blur suave 4px) en el overlay de todos los modales/drawers (`DrawerShell`, `ConfirmDialog`, `GlobalSearchModal`) · *panel de vidrio* del buscador ⌘K (`GlobalSearchModal`). **No** en toasts, paneles de drawer, tablas, KPIs ni fondos. Token del scrim: `--scrim-blur` (`app/studio/tokens.css`), distinto del `--glass-blur` de paneles.
 - **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
 - **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra. Desde el 2026-10-13 las dos fuentes se sirven desde el repositorio (SDD-0505).
+
+### ✅ Excepción · Vino claro en la Vista simple del portal (EXC-0654-01, Sam 2026-11-17)
+
+Pedido de Sam: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobada con la D-16 de SDD-0654 («Sí, ambas», 2026-11-17).
+
+- **Regla que rompe:** `--wine-soft` «solo sobre fondo oscuro» (arriba, §Light theme) y VIS-01 §3 (el vino es la acción primaria).
+- **Superficie:** solo la Vista simple del portal (`.vs`). La Vista Pro, el Studio y la web pública no cambian.
+- **Usos, y nada más:** el relleno del botón principal de cada bloque, el avatar y la parte «proveedor» del código de la compra. **No** selección (va en tinta, BD-037), **no** texto, **no** error.
+- **Tokens:** relleno `--color-wine-soft` en claro y `--color-wine-text` (#D89AA4) en noche; texto **siempre** `--on-warning` (#0F1E3D, navy fijo). **No** `--color-ink`: en noche es crema y sobre #D89AA4 mide 2,03:1.
+- **Contraste:** 4,79:1 en claro y 7,13:1 en noche. Lo mide `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
+- **Duración y revisión:** hasta la prueba con clientes (D-12); se revisa 90 días después de encender la Vista simple o al cerrar esa prueba, lo que ocurra primero. Sam decide si pasa a regla o se extiende.
+- **Dueño:** Sam aprueba; el Director General custodia el registro. Detalle en `docs/design/studio/_norte/BRAND-DECISIONS.md` (EXC-0654-01) y SDD-0654 §6.3.
 
 ---
 

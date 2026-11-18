@@ -167,6 +167,12 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
     if (!mocks.adminDisponible) throw new Error("admin no disponible");
     return {
+      // SDD-0646 D-1 · `/entrar` pregunta siempre si el correo está sin comprobar.
+      // En estos casos ninguno lo está: ni bloqueado ni pendiente.
+      rpc: async (name: string) =>
+        name === "portal_email_sin_comprobar"
+          ? { data: [{ bloquea: false, pendiente: false }], error: null }
+          : { data: null, error: { code: "PGRST202", message: "no existe" } },
       auth: {
         admin: {
           generateLink: async ({ email }: { email: string }) => {
@@ -400,13 +406,6 @@ describe("/entrar · sin revelar si el correo existe", () => {
     ["cuenta activa, sin llave de Resend", CLIENTE, () => vi.stubEnv("RESEND_API_KEY", "")],
     ["cuenta activa, en el entorno de prueba", CLIENTE, () => vi.stubEnv("APP_ENV", "staging")],
     [
-      "cuenta activa, sin cliente admin",
-      CLIENTE,
-      () => {
-        mocks.adminDisponible = false;
-      },
-    ],
-    [
       "invitada sin auth.users y sin llave",
       INVITADO,
       () => vi.stubEnv("RESEND_API_KEY", ""),
@@ -432,6 +431,26 @@ describe("/entrar · sin revelar si el correo existe", () => {
     expect(estado.error).toBeUndefined();
     expect(pantalla).not.toMatch(AFIRMA_ENVIO);
     expect(sinElCorreo(html, email)).toBe(referenciaHtml);
+  });
+
+  // SDD-0646 D-1 · cambió a propósito. Antes, sin el cliente admin, el pedido caía
+  // a Auth y la pantalla era la de siempre. Sin el cliente admin no se puede saber
+  // si el correo está sin comprobar, así que no sale nada. Sigue sin revelar si el
+  // correo existe: la respuesta es la misma para cualquier dirección.
+  it("sin cliente admin no sale nada y la respuesta es igual para cualquier correo", async () => {
+    mocks.adminDisponible = false;
+    const conCuenta = await pedir(CLIENTE);
+    expect(conCuenta.estado.error).toBeTruthy();
+    expect(conCuenta.pantalla).not.toMatch(AFIRMA_ENVIO);
+
+    mocks.estado = {};
+    const sinCuenta = await pedir(NADIE);
+    expect(sinCuenta.estado.error).toBe(conCuenta.estado.error);
+    expect(sinElCorreo(sinCuenta.html, NADIE)).toBe(sinElCorreo(conCuenta.html, CLIENTE));
+
+    expect(fetchResend).not.toHaveBeenCalled();
+    expect(mocks.buzonAuth).toEqual([]);
+    expect(mocks.acunados).toBe(0);
   });
 
   it("un correo desconocido no le manda nada a nadie", async () => {

@@ -9,7 +9,8 @@
  */
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Icon } from "@/app/studio/_components/icons";
+import { StatusIcon } from "@/components/StatusIcon";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import { recordExchangeRateAction } from "../exchange-rates-actions";
@@ -24,6 +25,9 @@ import {
 } from "@/lib/studio/exchange-rates-types";
 
 const INITIAL: ExchangeRateActionState = {};
+
+/** Liga el mensaje «fuera de rango» con el campo «Tasa». */
+const FUERA_DE_RANGO_ID = "fx-rate-fuera-de-rango";
 
 const FUENTE: Record<"bcv" | "manual" | "operacion", string> = {
   bcv: "BCV",
@@ -89,27 +93,15 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
       <Card>
         <CardEyebrow>Tasas vigentes</CardEyebrow>
         {!bcvTodayConfirmed && (
-          <div
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            style={{
-              display: "flex", alignItems: "flex-start", gap: "var(--s-3)",
-              padding: "var(--s-3) var(--s-4)", marginBottom: "var(--s-4)",
-              background: "var(--bg-elevated)", color: "var(--ink)",
-              borderRadius: "var(--r-md)", font: "400 16px/1.5 var(--f-sans)",
-            }}
-          >
-            <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0 }}>{Icon.info(16)}</span>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, fontWeight: 700 }}>BCV: no se confirmó una tasa para hoy.</p>
-              <p style={{ margin: 0 }}>
-                {latestVes
-                  ? `Última tasa informada en esta vista: ${fechaCorta(latestVes.validOn)} · ${FUENTE[latestVes.source]}. `
-                  : "La información disponible no permite confirmar una fecha y fuente completas. "}
-                Puedes registrar una tasa manual en el formulario.
-              </p>
-            </div>
+          // SDD-0603 · menores del Studio: aviso canónico. Es información
+          // (`role="status"`, anuncio cortés): no interrumpe al abrir la sección.
+          <div style={{ marginBottom: "var(--s-4)" }}>
+            <Aviso tono="info" titulo="BCV: no se confirmó una tasa para hoy.">
+              {latestVes
+                ? `Última tasa informada en esta vista: ${fechaCorta(latestVes.validOn)} · ${FUENTE[latestVes.source]}. `
+                : "La información disponible no permite confirmar una fecha y fuente completas. "}
+              Puedes registrar una tasa manual en el formulario.
+            </Aviso>
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--s-3)" }}>
@@ -164,6 +156,7 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 onChange={(e) => setRate(e.target.value)}
                 className="studio-input studio-input-mono"
                 inputMode="decimal"
+                aria-describedby={outOfRange ? FUERA_DE_RANGO_ID : undefined}
                 placeholder={pair === "CNY/USD" ? "7.24" : "40.00"}
                 style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
@@ -197,34 +190,30 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
             />
           </div>
 
+          {/* Mensaje del campo «Tasa», no aviso: aparece y desaparece al
+              escribir, así que no va en una región viva. Es texto con icono,
+              ligado al campo por `aria-describedby` (ERR-01 «Campo»). */}
           {outOfRange && (
-            <div
+            <p
+              id={FUERA_DE_RANGO_ID}
               style={{
-                padding: "var(--s-3)",
-                background: "var(--warning-bg)",
-                color: "var(--warning)",
-                borderRadius: "var(--r-md)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "var(--s-2)",
+                margin: 0,
                 font: "600 12.5px/1.4 var(--f-sans)",
+                color: "var(--ink)",
               }}
             >
-              Esa tasa está fuera del rango histórico habitual de {pair}. Revisa que no sea un error de tipeo (se
-              guarda igual si confirmas).
-            </div>
+              <StatusIcon tone="warning" size={16} style={{ marginTop: 1 }} />
+              <span>
+                Esa tasa está fuera del rango histórico habitual de {pair}. Revisa que no sea un error de tipeo (se
+                guarda igual si confirmas).
+              </span>
+            </p>
           )}
 
-          {state?.error && (
-            <div
-              style={{
-                padding: "var(--s-3)",
-                background: "var(--danger-bg)",
-                color: "var(--danger)",
-                borderRadius: "var(--r-md)",
-                font: "600 13px/1.3 var(--f-sans)",
-              }}
-            >
-              {state.error}
-            </div>
-          )}
+          {state?.error && <Aviso tono="error">{state.error}</Aviso>}
 
           <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
             Cada tasa vale para su fecha. Si registras otra del mismo día y moneda, reemplaza a la anterior y el

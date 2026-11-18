@@ -3,8 +3,9 @@
  *
  * El sitio público NO está autenticado: usa la anon key (NO service_role).
  * Las operaciones sensibles pasan por RPCs `SECURITY DEFINER` de retorno
- * mínimo (tracking, tarifas). La excepción editorial es `news_posts`: la tabla
- * tiene un grant SELECT explícito y RLS limita anon a `published = true`.
+ * mínimo (tracking, tarifas). La excepción editorial es `news_posts`: anon tiene
+ * SELECT solo sobre las columnas públicas (0526) y RLS la limita a
+ * `published = true`.
  *
  * Frontera público↔ERP: este módulo vive en `lib/public/`, la única capa
  * autorizada por ESLint a importar `@supabase/*` desde el lado público.

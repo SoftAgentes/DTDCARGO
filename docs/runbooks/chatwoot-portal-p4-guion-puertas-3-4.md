@@ -4,6 +4,8 @@
 >
 > Lo armó el Worker de la 10.5 el 2026-11-11, por pedido del DG pasado por el Subdirector de Chatwoot. **Este guion no corre nada.** Cada bloque con ⛔ va con el OK nominal de Sam para ese bloque. Un OK no cubre el bloque siguiente.
 
+> **Estado al 2026-11-15:** las puertas 3 y 4 ya se corrieron (el 3.1 nuevo salió en 0 sobre `e7086e3b1`, y la carga de la 4 quedó hecha). Sus horas y sus rutas de evidencia están en el «Registro de las puertas» del runbook. Este guion queda como el checklist de esas puertas, por si hay que repetirlas.
+
 ## Cómo se usa
 
 - **Dónde:** cada comando se corre en el VPS como root, en una terminal interactiva (`ssh -t root@217.216.54.70`), salvo los que dicen «en la PC del DG».
@@ -15,13 +17,13 @@
   - `CUENTA=1`;
   - `TENANT=<uuid>`: el del tenant de producción; no es un secreto.
 
-  Al empezar cada sesión de terminal:
+  Al empezar cada sesión de terminal, **después de que el 3.0 cree la carpeta** (`/srv/ops/portal-historial` no existe en el VPS hasta ese sub-paso, y antes el `cd` falla):
 
   ```bash
   cd /srv/ops/portal-historial && TENANT=<uuid> && CUENTA=1 && BANDEJA=10 && AGENTE_SERVICIO=1 && echo "HECHO cuenta=$CUENTA bandeja=$BANDEJA agente_servicio=$AGENTE_SERVICIO"
   ```
 
-- **El token del enrutador no hace falta aquí.** Ningún guion de las puertas 3 y 4 usa `CHATWOOT_ROUTER_TOKEN` ni la API HTTP de Chatwoot: todos entran a los contenedores con `docker exec` (`extraer.sh:47`, `vincular.sh:51`, `cargar.sh:64`, `deshacer-vinculos.sh:200`, `ensayo-portal.sh:318` y `:322`). Su arreglo va en la puerta 5, sub-paso 5a, con su propio OK.
+- **El token del enrutador no hace falta aquí.** Ningún guion de las puertas 3 y 4 usa `CHATWOOT_ROUTER_TOKEN` ni la API HTTP de Chatwoot: todos entran a los contenedores con `docker exec` (`extraer.sh:47`, `vincular.sh:51`, `cargar.sh:64`, `deshacer-vinculos.sh:200`, `ensayo-portal.sh:340` y `:344`). Su arreglo va en la puerta 5, sub-paso 5a, con su propio OK.
 
 ---
 
@@ -30,7 +32,6 @@
 ### Antes de empezar
 
 - [ ] **La puerta 2 está hecha:** `BANDEJA=10` y `AGENTE_SERVICIO=1`, con su evidencia.
-- [ ] **Los dos OK de la puerta 1 están dados,** el 1a y después el 1b, antes de la primera corrida. Los textos están en el runbook, en la puerta 1.
 - [ ] **La #504 está en `main`.** El orden es fijo: primero la #504, porque cambia `deshacer.sh` y `deshacer-carga.rb`, y después el 3.0, desde un `main` que la incluya. Sin ella no se empieza.
 
 ### 3.0 · ⛔ Los scripts en el VPS
@@ -122,7 +123,7 @@ Es el texto del runbook, puerta 3, sub-paso 3.0, con su OK nominal.
 - [ ] **Lo que se mira en el VPS:**
 
   ```bash
-  stat -c '%a %n' /srv/ops/portal-historial /srv/ops/portal-historial/migraciones; ls migraciones | wc -l; find /srv/ops/portal-historial -perm /077 | wc -l
+  stat -c '%a %n' /srv/ops/portal-historial /srv/ops/portal-historial/migraciones; ls /srv/ops/portal-historial/migraciones | wc -l; find /srv/ops/portal-historial -perm /077 | wc -l
   ```
 
   **Para seguir:** los dos en `700`, `10` migraciones y `0` archivos con permisos de grupo u otros.
@@ -169,8 +170,10 @@ Es el runbook, puerta 3, «Lo que el CI no puede probar».
 
 ### 1 · La comprobación `--solo-copia`, con los OK 1a y 1b
 
-Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de systemd, igual que el ensayo:
-- `TimeoutStopSec` de 600 s, porque la G1 exige 300 o más (`ensayo-portal.sh:77`);
+- [ ] **Los dos OK de la puerta 1 están dados,** el 1a y después el 1b, después del 3.0 y antes de la primera corrida. Los textos están en el runbook, en la puerta 1.
+
+Copia y comprueba sin cargar (`ensayo-portal.sh:26`). Corre como unidad de systemd, igual que el ensayo:
+- `TimeoutStopSec` de 600 s, porque la G1 exige 300 o más (`ensayo-portal.sh:84`);
 - Nice 10;
 - las entradas por `--setenv`. Ninguna es un secreto.
 
@@ -180,7 +183,7 @@ Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de syste
   systemctl reset-failed portal-p4-ensayo.service 2>/dev/null; systemd-run --unit portal-p4-ensayo -p TimeoutStopSec=600s -p Nice=10 -p WorkingDirectory=/srv/ops/portal-historial --setenv=TENANT="$TENANT" --setenv=CUENTA="$CUENTA" --setenv=BANDEJA="$BANDEJA" --setenv=AGENTE_SERVICIO="$AGENTE_SERVICIO" /bin/bash /srv/ops/portal-historial/ensayo-portal.sh --solo-copia
   ```
 
-- [ ] **Mirarla hasta que termine.** Solo salen `PASÓ` y `FALLÓ`, sin nombres ni textos (`ensayo-portal.sh:27-28`):
+- [ ] **Mirarla hasta que termine.** Solo salen `PASÓ` y `FALLÓ`, sin nombres ni textos (`ensayo-portal.sh:29-30`):
 
   ```bash
   journalctl -u portal-p4-ensayo -f -o cat
@@ -189,7 +192,7 @@ Copia y comprueba sin cargar (`ensayo-portal.sh:24`). Corre como unidad de syste
 - [ ] **Su evidencia:**
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa)=' "$E"
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); echo "$E"; grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes)=' "$E"
   ```
 
   **Para seguir:**
@@ -227,7 +230,7 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
 - [ ] **La evidencia:** el mismo `grep` de arriba, más el resumen:
 
   ```bash
-  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
+  E=$(ls -t /srv/ops/portal-historial/evidencia-ensayo-portal-*.txt | head -n 1); grep -E '^HECHO (ensayo_codigo|modo|lista_md5|unidad|unidad_timeout_stop_s|limpieza_completa|error|tipos_studio_distintos|tipos_chatwoot_distintos|tipos_studio_consulta|tipos_chatwoot_consulta|tipos_studio_ausentes|tipos_chatwoot_ausentes|desarme_guarda|desarme_mensajes|desarme_esperados|desarme_cw_antes|desarme_cw_despues|desarme_durable_antes|desarme_durable_despues)=' "$E"; journalctl -u portal-p4-ensayo -o cat --since today | grep -cE '^FALLÓ'
   ```
 
   **Para seguir:**
@@ -235,9 +238,10 @@ Es el runbook, puerta 3, sub-paso 3.1, con su OK nominal.
   - el mismo `lista_md5`;
   - `unidad=portal-p4-ensayo.service`, con `unidad_timeout_stop_s=600`;
   - `limpieza_completa=si` y `ensayo_codigo=0`;
+  - el desarme (decisión A del DG): `desarme_guarda=ok`, `desarme_cw_antes` igual a `desarme_cw_despues`, y `desarme_durable_antes=ausente` y `desarme_durable_despues=ausente`;
   - `0` líneas `FALLÓ`.
 
-  Además, **salen en `PASÓ`** los ids de la lista del runbook (3.1, «Qué mide el ensayo»): `P0`, `P2`, `P3`, `A1` a `A7`, `S1`, `S2`, `D2`, `O1`, `E0`, `E1`, `E2`, `V10`, `V12`, `V13`, `CA`, `B1`, `B2`, `C1` a `C3` y `K1` a `K3`.
+  Además, **salen en `PASÓ`** los ids de la lista del runbook (3.1, «Qué mide el ensayo»): `P0`, `P2`, `P3`, `A1` a `A7`, `S1`, `S2`, `D2`, `O1`, `E0`, `E1`, `E2`, `V10`, `V12`, `V13`, `CA`, `B1`, `B2`, `C1` a `C3`, `K1` a `K3` y `R0` a `R4`. `R0` a `R4` son el desarme del 4.6b sin el paso que borra: los pasos 1, 1b y 2, sobre las copias.
 
 - [ ] **La prueba de borrado,** la misma de la comprobación.
 - [ ] **El DG recibe la evidencia** antes de pedir la puerta 4. Lleva solo líneas `HECHO`, con conteos y md5.
@@ -263,10 +267,10 @@ Son las condiciones del runbook, puerta 4. Sin todas, el DG no le pide la puerta
 - [ ] **El rol de Rails es superusuario:**
 
   ```bash
-  docker exec chatwoot-postgres-1 psql -X -At -v ON_ERROR_STOP=1 -U chatwoot -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'
+  docker exec chatwoot-postgres-1 psql -X -At -v ON_ERROR_STOP=1 -U chatwoot -d chatwoot_production -c 'SELECT rolsuper FROM pg_roles WHERE rolname = current_user'
   ```
 
-  **Para seguir:** `t`.
+  **Para seguir:** `t`. El `-d chatwoot_production` no se omite: sin él, psql falla con «database "chatwoot" does not exist» (runbook, puerta 4, «prevención del log»).
 
 - [ ] **El flag `chatwoot_portal` está apagado.** Se mira en 4.3.
 - [ ] **El DG avisó al equipo, con la hora,** que entre la foto (4.4) y el encendido (puerta 5) no se responde desde Studio.
@@ -388,7 +392,7 @@ Los cubre un solo OK: el de la puerta 4 del runbook. **No cubre la 4.10a.** Se c
 - [ ] **4.10 · El log de Postgres de Chatwoot.** Se cuentan las líneas, sin copiarlas.
 
   ```bash
-  docker exec chatwoot-postgres-1 psql -X -At -U chatwoot -c 'SHOW logging_collector'
+  docker exec chatwoot-postgres-1 psql -X -At -U chatwoot -d chatwoot_production -c 'SHOW logging_collector'
   ```
 
   Con `off`, el log es la salida del contenedor, desde la hora de 4.4:
@@ -428,6 +432,6 @@ Los cubre un solo OK: el de la puerta 4 del runbook. **No cubre la 4.10a.** Se c
   - la comparación de los sha256 del 3.0;
   - el lanzamiento con `systemd-run`, sus lecturas del journal y de la evidencia;
   - la prueba de borrado por etiqueta de compose.
-- **El lanzamiento como unidad:** el ensayo exige `TimeoutStopSec` de 300 s o más si corre como unidad (`ensayo-portal.sh:77` y `:290-305`). El valor y el Nice son los de `infra/ops/kommo-historial/lanzar-unidad.sh:32` y `:84`. **Ese lanzador no se reusa:** solo acepta las unidades del Archivo Kommo (`:60-63`).
-- **El proyecto del ensayo:** `portal-ensayo` (`ensayo-portal.sh:10`), y la evidencia `evidencia-ensayo-portal-<UTC>.txt` en la carpeta del guion (`:79`).
+- **El lanzamiento como unidad:** el ensayo exige `TimeoutStopSec` de 300 s o más si corre como unidad (`ensayo-portal.sh:84` y `:311-327`). El valor y el Nice son los de `infra/ops/kommo-historial/lanzar-unidad.sh:32` y `:84`. **Ese lanzador no se reusa:** solo acepta las unidades del Archivo Kommo (`:60-63`).
+- **El proyecto del ensayo:** `portal-ensayo` (`ensayo-portal.sh:51`), y la evidencia `evidencia-ensayo-portal-<UTC>.txt` en la carpeta del guion (`:86`).
 - **La puerta 2:** la evidencia del DG del 2026-11-11, pasada por el Subdirector.

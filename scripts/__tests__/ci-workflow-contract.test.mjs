@@ -33,8 +33,8 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       "denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed",
     ]);
     expect(usesLines.map((match) => match[2])).toEqual(["v7.0.1", "v2.1.0", "v2.0.5"]);
-    expect(workflow).toMatch(/^\s+version: 11\.19\.0\s*$/m);
-    expect(workflow).toMatch(/^\s+runtime: node@24\.22\.1\s*$/m);
+    expect(workflow).toMatch(/^\s+version: 11\.28\.12\s*$/m);
+    expect(workflow).toMatch(/^\s+runtime: node@24\.22\.3\s*$/m);
     expect(workflow).toMatch(/^\s+deno-version: v2\.x\s*$/m);
   });
 

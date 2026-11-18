@@ -132,7 +132,7 @@ const EXCEPCIONES: Lista = {
     "Re-corre los health checks del panel de diagnóstico; no muta datos de negocio.",
 
   "admin/feature-flags/actions.ts::toggleFeatureFlagAction":
-    "Gatea con `platformAdminDenial` (SDD-0355), que es MÁS estricto que cualquier guard de la matriz: exige `is_platform_admin()`, no `admin` del tenant. El control real es la policy `feature_flags_platform_admin_update` (migr 0355), como dice la cabecera del archivo. (La razón anterior de esta allowlist —«valida role==='admin' inline»— quedó desactualizada cuando la 0355 subió el candado.)",
+    "Gatea con `platformAdminDenial` (SDD-0355; SDD-0633 distingue «no eres superadministrador» de «no se pudo comprobar»), que es MÁS estricto que cualquier guard de la matriz: exige `is_platform_admin()`, no `admin` del tenant; authenticated la ejecuta desde la migr 0542. La policy `feature_flags_platform_admin_update` (migr 0355) NO es el control real: la escritura va por `audit_d1_execute` (migr 0289, DEFINER de postgres), que escribe como dueño y la policy no alcanza. El freno en la base es el disparador `feature_flags_exige_superadmin` (migr 0543, SDD-0634); mientras no esté aplicada, el bloqueo efectivo es esta guarda. (Las razones anteriores —«valida role==='admin' inline» y «el control real es la policy»— quedaron desactualizadas con la 0355 y con la 0289/0543.)",
 
   // Las cuatro del archivo comparten `requireAdmin`, que resuelve el rol con
   // `getStudioRole` → `getStudioAccess`, o sea CON el filtro `disabled_at` de la
@@ -171,6 +171,16 @@ const EXCEPCIONES: Lista = {
   "mis-bugs/actions.ts::createBugAction":
     "Bugs propios del usuario: reportar está abierto por diseño a todo el staff.",
 
+  // SDD-0624 · perfil PROPIO, alcance verificado leyendo el código y la base.
+  "usuarios/actions.ts::updateMyProfileAction":
+    "SDD-0624: sólo `update` de `user_profiles` con `.eq(\"user_id\", <auth.uid() de la sesión>)` (`usuarios/actions.ts`, updateMyProfileAction), y la policy `user_profiles_owner_update` (0019:360) exige `user_id = auth.uid()` en USING y WITH CHECK. No toca datos de negocio ni de otros usuarios.",
+  "usuarios/actions.ts::updateMyPreferencesAction":
+    "SDD-0624: mismo `update` propio de `user_profiles` y un `upsert` de `user_notification_prefs` con `user_id` = el de la sesión, que las policies owner de la 0028 (:682, :686) atan a `auth.uid()`.",
+  "usuarios/actions.ts::linkTelegramAccountAction":
+    "SDD-0624: pasa por `audit_d1_execute` ('notification_channel.link'), cuya única definición (0289:317-333) escribe sobre `user_id = v_actor_id` (auth.uid()), no sobre el target que mande el cliente.",
+  "usuarios/actions.ts::unlinkTelegramAccountAction":
+    "SDD-0624: `audit_d1_execute` ('notification_channel.unlink', 0289:335-348) actualiza la fila de `v_actor_id`; mismo alcance propio que el link.",
+
   "usuarios/actions.ts::sendAccessLinkBulkAction":
     "Delega ÍNTEGRAMENTE en `sendAccessLinkAction`, que lleva `moduleEditDenial(supabase, \"users\")` al tope (`:444`). El contrato no lo ve porque la delegación va dentro de un callback, y un guard dentro de un callback no domina EN GENERAL — la regla se conserva y la excepción se escribe acá.",
 };
@@ -195,59 +205,15 @@ const EXCEPCIONES: Lista = {
  * archivos del repo.
  */
 const DEUDA: Lista = {
-  // ── gate artesanal fail-closed: getStudioRole + canAccessModule sin overrides ──
-  "academia/actions.ts::loadCourseEditorTreeAction":
-    "Gate artesanal de vista: `getStudioRole` + `canAccessModule(role, MODULE)` SIN overrides. Migrar a `moduleViewDenial(supabase, \"academia\")`.",
-  "academia/actions.ts::lookupStudentCiAction":
-    "Gate artesanal de vista (mismo patrón); el lookup devuelve nombre y Shipping Mark a partir de una cédula. Migrar a `moduleViewDenial(supabase, \"academia\")`.",
-  "club/actions.ts::lookupMemberCiAction":
-    "Gate artesanal de vista (mismo patrón que Academia). Migrar a `moduleViewDenial(supabase, \"club\")`.",
-  "reclamos/actions.ts::updateClaimFinancialsAction":
-    "Gate artesanal de producto: `getStudioRole` + `role !== \"accounting\" && role !== \"admin\"` inline. Es fail-closed a `disabled_at`, pero es una cuarta forma de decidir permisos. La regla («solo Contabilidad edita la resolución financiera») NO es la fila del módulo `reclamos`, así que migrarla exige decidir su gate — no es mecánico.",
+  // SDD-0624 (2026-11-11) vació esta lista salvo las tres de tarifas, que son
+  // de la SDD-0622 (permisos por persona, tablas comerciales). Las del perfil
+  // propio pasaron a EXCEPCIONES con el alcance verificado; el resto tiene ya
+  // su gate central.
 
-  // ── sólo sesión: cualquier miembro del tenant pasa ──
-  "clientes/actions.ts::geocodeClientAddressAction":
-    "Sólo `auth.getUser()`. No toca datos del tenant —llama a Nominatim—, pero gasta la cuota de geocodificación de la casa sin mirar el rol.",
-  "gastos/actions.ts::resolveExpenseAlertAction":
-    "Sólo `auth.getUser()`: resuelve a mano una alerta de gastos sin comprobar el módulo `expenses`.",
-  "gastos/actions.ts::exportExpensesCsvAction":
-    "Sólo `auth.getUser()`, y lo que sale es un ARCHIVO con los gastos del mes. Mismo razonamiento que `exportRecoverySmsCsvAction` en SDD-0497: una exportación es tan invocable como una mutación.",
-  "documentos/actions.ts::addDocumentVersion":
-    "Sesión + `resolveTenant` a mano (`rpc(\"get_user_tenant_id\")`); sin gate de módulo antes de subir una versión nueva al bucket.",
-  "bitacora/collab-actions.ts::getTaskCommentsAction":
-    "Sesión + `getUserTenantId()` a mano; sin gate del módulo `bitacora`.",
-  "bitacora/collab-actions.ts::listTaskAttachmentsAction":
-    "Sesión + tenant a mano, y FIRMA URLs del bucket de bitácora. Valida el shape del path antes de firmar, pero no el rol.",
-  "usuarios/actions.ts::updateMyProfileAction":
-    "Edición del perfil PROPIO. Probablemente excepción legítima (como `dashboard`), pero el alcance al propio `user_id` no se verificó en esta tarea: queda en DEUDA hasta comprobarlo, no en EXCEPCIONES.",
-  "usuarios/actions.ts::updateMyPreferencesAction":
-    "Preferencias PROPIAS; mismo pendiente de verificación que `updateMyProfileAction`.",
-  "usuarios/actions.ts::linkTelegramAccountAction":
-    "Vincula la cuenta de Telegram del PROPIO usuario; mismo pendiente de verificación.",
-  "usuarios/actions.ts::unlinkTelegramAccountAction":
-    "Desvincula la cuenta de Telegram del PROPIO usuario; mismo pendiente de verificación.",
-
-  // ── sin candado de aplicación: sólo queda la RLS ──
-  "bugs/actions.ts::updateBugAdminAction":
-    "Sin gate de aplicación: hace `from(\"bug_reports\").update(...)` directo. El candado vive en la DB —policy `bug_reports_admin_update` más el grant por columna de migr 0394 (`:80`)—, y el propio código lo delata al tratar el error `42501`. Defensa en profundidad perdida, no agujero.",
-  "cotizador/actions.ts::lookupSuggestedRate":
-    "Sin candado: resuelve la tarifa sugerida de un cliente (`clientIdByMarkbox` + `resolveRateForClient`). Lo que devuelve es precio.",
-  "tracking/[id]/actions.ts::lookupRateForNewDestination":
-    "Sin candado: busca tarifa por destino. Mismo caso que `lookupSuggestedRate`.",
-  "facturacion/actions.ts::lookupShipmentForInvoice":
-    "Sin candado: `from(\"shipments\").select` por código. Lectura acotada sólo por la RLS de tenant.",
-  "facturacion/actions.ts::lookupInvoiceBillingOptions":
-    "Sin candado: `from(\"clients\").select` con los datos de facturación del cliente.",
-  "documentos/actions.ts::signDocumentUrl":
-    "Sin candado de módulo. Desde SDD-0508 recibe el id de la fila, no un path: firma el `storage_path` de una fila de `documents` que la RLS deje leer, en el bucket que dice la fila (sólo `documents` o `bitacora`). Lo que acota es la RLS de `documents` y la de `storage.objects`.",
-  "documentos/actions.ts::listDocumentVersionsAction":
-    "Sin candado: lista el historial de versiones de una cadena documental.",
-  "nomina/actions.ts::listPayrollRunLinesAction":
-    "Sin candado, en un módulo que es dinero Y PII de empleados. El comentario del código dice «la RLS por tenant+rol ya restringe» — puede ser cierto y aun así el gate de aplicación falta.",
-  "nomina/actions.ts::listSettlementLinesAction":
-    "Sin candado; mismo caso que `listPayrollRunLinesAction`.",
-  "tarifas/actions.ts::previewRatesImportAction":
-    "Sin candado, pero NO toca datos: `return parseRatesCsv(csv)` sobre el texto que mandó el propio llamante. El riesgo es el menor de la lista; se deja acá para no cambiar comportamiento fuera del encargo.",
+  // SDD-0622 sacó las tres de tarifas que quedaban
+  // (`cotizador::lookupSuggestedRate`, `tracking/[id]::lookupRateForNewDestination`
+  // y `tarifas::previewRatesImportAction`): cada una tiene ya su gate central.
+  // La lista queda vacía; una entrada nueva exige defenderla por escrito.
 };
 
 const listaDe = (clave: string): "EXCEPCIONES" | "DEUDA" | null =>
@@ -286,13 +252,19 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  it("la superficie escaneada es la esperada (82 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
+  // borradores del agente.
+  // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
+  // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
+  // de la ficha.
+  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 82,
-      exactos: 58,
-      conPrefijo: 24,
+      total: 85,
+      exactos: 60,
+      conPrefijo: 25,
     });
   });
 
@@ -400,17 +372,74 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // leer nada, como `getReceivableHistory`; la lectura de `payment_reports` usa el
   // cliente de sesión, así que la RLS de la tabla repite el tenant. Pasa el
   // veredicto por acción sin entrar en ninguna lista.
+  // SDD-0622 sumó `usuarios/actions.ts::grantUserModuleAction`,
+  // `::revokeUserModuleGrantAction` y `::listUserAccessActivityAction` (469 → 472):
+  // `tenantAdminGate` antes de leer o escribir nada; escriben SOLO por las RPC
+  // de la 0538 (`studio_grant_user_module`, `studio_revoke_user_module_grant`),
+  // que repiten el rol admin de la base. La bitácora NO la limita la RLS: desde
+  // la 0270 authenticated no la lee, así que `listUserAccessActivityAction` lee
+  // con el cliente de servicio después de `moduleViewDenial("users")` y
+  // `tenantAdminGate`, comprueba en `user_tenants` que la persona sea del tenant
+  // de la sesión y filtra fijo por ese `tenant_id`, el `entity_type` y el
+  // `entity_id`, con columnas y tope fijos (`usuarios/__tests__/actividad-acceso.test.ts`).
+  // SDD-0645 sumó `tracking/[id]/actions.ts::previewReassignShipmentClient` y
+  // `::reassignShipmentClient` (472 → 474): pasar un embarque a otro cliente. Las
+  // dos llaman a `capabilityDenial(supabase, "reassign_shipment_owner")` antes de
+  // leer nada y escriben sólo por la RPC `reassign_shipment_client` (0551), que
+  // repite operations/commercial/admin activo y el tenant de la sesión.
+  // SDD-0646 sumó `clientes/actions.ts::registrationLinkAction` y
+  // `::markRegistrationReviewedAction` (474 → 476): `moduleEditDenial(supabase,
+  // "clients")` al tope, antes de leer o escribir; escriben SOLO por las RPC de la
+  // 0552 (`portal_registration_link_create`, `portal_registration_link_mark_reviewed`),
+  // que repiten en la base los roles admin/commercial/operations y el tenant.
+  // SDD-0652 F1 sumó `nomina/actions.ts::getEmployeeEditViewAction` (476 → 477):
+  // solo lee. `moduleViewDenial(supabase, "nomina")` al tope, después
+  // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
+  // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
+  // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
+  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
+  // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
+  // repite `is_platform_admin()`.
+  // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
+  // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
+  // pasa a `office_revisar_borrador_v2`.
+  // SDD-0652 fase 2 sumó seis (479 → 485):
+  //  · `nomina/actions.ts::getRegistrationReviewAction`: solo lee. `moduleViewDenial`
+  //    al tope, después `getFichaEmpleadoAccess`; devuelve los datos de una
+  //    solicitud PENDIENTE del tenant de la membresía, con la cuenta enmascarada.
+  //  · `nomina/empleados/[codigo]/actions.ts::linkEmployeeUserAction`,
+  //    `::unlinkEmployeeUserAction`, `::uploadEmployeePhotoAction`,
+  //    `::removeEmployeePhotoAction` y `::revealBankAccountAction`:
+  //    `moduleEditDenial(supabase, "nomina")` al tope, después
+  //    `getFichaEmpleadoAccess` (enlazar y quitar el enlace, solo admin), y la
+  //    escritura va SOLO por las RPC de la migración 0555, que repiten en la base
+  //    el rol, la membresía única y el tenant y dejan el evento en la misma
+  //    transacción. La subida al bucket privado va después de leer la ficha en
+  //    el tenant de la membresía.
+  // SDD-0646 (D-1, opción C) sumó `clientes/actions.ts::resendEmailCheckAction` (485 → 486):
+  // `moduleEditDenial(supabase, "clients")` al tope; después la RPC `portal_email_check_prepare`
+  // (0559) repite en la base los roles admin/commercial/operations y el tenant; service_role entra
+  // recién después de las dos, para pasar la cuenta a su dirección interna y emitir el enlace.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (486 → 488):
+  // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
+  // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
+  // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(469);
+    expect(reportes.length).toBe(488);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
     // Bajar estos números es progreso y hay que actualizarlos; subirlos exige
     // defender por escrito cada entrada nueva en una PR.
+    // SDD-0624: DEUDA 24 → 3 (17 con gate central; las 4 del perfil propio,
+    // verificadas, a EXCEPCIONES 20 → 24). Quedan las 3 de tarifas (SDD-0622).
     expect({
       excepciones: Object.keys(EXCEPCIONES).length,
       deuda: Object.keys(DEUDA).length,
-    }).toEqual({ excepciones: 20, deuda: 24 });
+    // SDD-0622 sacó de DEUDA `cotizador::lookupSuggestedRate` (ver Cotizador),
+    // `tracking/[id]::lookupRateForNewDestination` (editar Tracking + ver
+    // Cotizador) y `tarifas::previewRatesImportAction` (editar Tarifas): 3 → 0.
+    }).toEqual({ excepciones: 24, deuda: 0 });
   });
 
   for (const { rel, r } of reportes) {

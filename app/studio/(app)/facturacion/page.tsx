@@ -15,6 +15,7 @@ import {
 } from "@/lib/studio/invoice-queries";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 import { FacturacionClient } from "./_components/FacturacionClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Facturación" };
 
@@ -23,6 +24,10 @@ export default async function FacturacionPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("invoices");
+
   const rawParams = await searchParams;
   const filters = parseInvoiceFiltersFromSearchParams(rawParams);
 

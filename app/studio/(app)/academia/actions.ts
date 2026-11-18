@@ -22,8 +22,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { getStudioRole, moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { canAccessModule } from "@/lib/studio/rbac";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   findPersonByCedula,
   getCourseEditorTree,
@@ -334,8 +333,8 @@ export async function loadCourseEditorTreeAction(
   courseId: string,
 ): Promise<CourseTree | null> {
   const supabase = await createClient();
-  const role = await getStudioRole(supabase);
-  if (!canAccessModule(role, MODULE)) return null;
+  // SDD-0624: gate central (overrides, alcance y disabled_at) en vez del artesanal.
+  if (await moduleViewDenial(supabase, MODULE)) return null;
   if (!courseId) return null;
   return getCourseEditorTree(supabase, courseId);
 }
@@ -511,9 +510,9 @@ export async function lookupStudentCiAction(rawCi: string): Promise<{
   normalized?: string;
 }> {
   const supabase = await createClient();
-  // Gate de vista: si el rol no ve Academia, no exponemos el lookup.
-  const role = await getStudioRole(supabase);
-  if (!canAccessModule(role, MODULE)) return { status: "empty" };
+  // Gate de vista: si el rol no ve Academia, no exponemos el lookup (SDD-0624:
+  // gate central en vez del artesanal).
+  if (await moduleViewDenial(supabase, MODULE)) return { status: "empty" };
 
   const trimmed = (rawCi ?? "").trim();
   if (!trimmed) return { status: "empty" };

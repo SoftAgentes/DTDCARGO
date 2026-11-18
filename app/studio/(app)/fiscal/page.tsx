@@ -31,6 +31,7 @@ import { getPostedBook } from "@/lib/studio/fiscal/books-queries";
 import { listWithholdings } from "@/lib/studio/fiscal/withholding-queries";
 import { asPeriod } from "@/lib/studio/fiscal/types";
 import { FiscalClient, type FiscalTab } from "./_components/FiscalClient";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Fiscal · SENIAT" };
 export const dynamic = "force-dynamic";
@@ -48,6 +49,10 @@ export default async function FiscalPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // SDD-0624: el gate va también en la página, no sólo en el layout: un
+  // layout compartido no se vuelve a ejecutar en la navegación parcial.
+  await requireModuleView("fiscal");
+
   const raw = await searchParams;
   const single = (k: string): string | undefined => {
     const v = raw[k];

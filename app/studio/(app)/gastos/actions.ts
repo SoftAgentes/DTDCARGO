@@ -15,7 +15,11 @@
 import { revalidatePath } from "next/cache";
 import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
 import { createClient } from "@/lib/db/server";
-import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import {
+  capabilityDenial,
+  moduleEditDenial,
+  moduleViewDenial,
+} from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   autoResolveAlertForShipment,
@@ -294,7 +298,11 @@ export async function updateExpenseAction(
     changed = (oldExp.account_id ?? null) !== (accountId ?? null)
       || Number(oldExp.amount_usd) !== Number(input!.amount_usd) || oldExp.method !== input!.method;
     if (changed) {
-      const { data: entries, error: entriesError } = await supabase.from("journal_entries")
+      // SDD-0624: desde la 0528 operaciones y almacén no leen journal_entries;
+      // con su sesión verían 0 filas y la comprobación pasaría en falso. El gasto
+      // ya se leyó con la sesión (tenant y RLS de expenses); el asiento se lee
+      // con el cliente de servicio, el mismo que después lo anula y lo reasienta.
+      const { data: entries, error: entriesError } = await createAdminClient().from("journal_entries")
         .select("id, tenant_id, expense_id, source, entry_date, status, deleted_at")
         .eq("tenant_id", tenantId).eq("expense_id", id).eq("status", "asentado").is("deleted_at", null).limit(2);
       if (entriesError || !Array.isArray(entries) || entries.length > 1) return { error: HISTORY_UNAVAILABLE };
@@ -385,6 +393,11 @@ export async function resolveExpenseAlertAction(
   alertId: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  // SDD-0624: cerrar una alerta es editar gastos (accounting, operations y
+  // warehouse —el equipo CN que la atiende— + admin). Antes bastaba la sesión.
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -427,6 +440,11 @@ export async function exportExpensesCsvAction(
 ): Promise<ExportResult> {
   const exportMonth = month ?? fechaCaracas().slice(0, 7);
   const supabase = await createClient();
+  // SDD-0624: una exportación es tan invocable como una mutación; exige ver
+  // el módulo de gastos.
+  const denial = await moduleViewDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 

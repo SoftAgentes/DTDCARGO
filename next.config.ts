@@ -219,6 +219,11 @@ const nextConfig: NextConfig = {
   output: process.env.DTD_STANDALONE === "1" ? "standalone" : undefined,
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
+  // Next 16.4 escribe por su cuenta un bloque «nextjs-agent-rules» en AGENTS.md
+  // cuando `next dev` detecta un agente de IA, y lo repone si se borra.
+  // AGENTS.md es gobernanza del repo: sus reglas no las escribe una dependencia
+  // (SDD-0656). La opción está en next/dist/server/config-shared.d.ts.
+  agentRules: false,
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {
@@ -281,6 +286,10 @@ const nextConfig: NextConfig = {
     // Packing list pre-llenado del proveedor (SDD-0602): el GET lee la plantilla
     // de `public/templates/` por fs → trazarla para prod.
     "/p/[token]/packlist": ["./public/templates/dtd-packing-list-invoice.xlsx"],
+    // PDF confirmado de Packing List + Factura y etiquetas (SDD-0473): el
+    // renderer lee las TTF estáticas con fs desde process.cwd(). El tracer no las
+    // ve solo porque la ruta se arma en runtime: hay que declararlas.
+    "/api/document-import": ["./lib/font-files/pdf/**"],
     // Documentos de Marketing en el Studio (SDD-0158): el lector lee los `.md`
     // de docs/marketing por fs en runtime → deben viajar en el bundle en prod.
     "/studio/marketing/docs": ["./docs/marketing/**/*.md"],

@@ -62,7 +62,7 @@ cubiertos por la misma regla: nada del texto sale.
   > plazos). Usamos solo esos conteos para decidir qué explicar mejor en el sitio y en las
   > redes. Tus mensajes no salen de nuestro sistema para esto.
 
-  El texto final lo confirma la abogada (decisión D7). **Choque posible:** otra sesión tiene un
+  El texto final lo confirmaba la abogada (decisión D7; *Sam decidió el 2026-11-14 «Solo sumarla», sin consultar a la abogada*). **Choque posible:** otra sesión tiene un
   ajuste de `/privacidad` sin publicar; quien implemente tiene que partir de la versión que
   esté en `main` en ese momento.
 
@@ -150,8 +150,8 @@ propiedades, cada una con su mutante. Tres detalles que esta revisión exige:
 ## 7. No verificable: qué falta mirar y dónde
 
 - Si el agregado con k ≥ 5 es «dato anónimo» para el derecho venezolano (abogada).
-- La base del tratamiento del texto para la finalidad nueva (abogada).
-- El texto final del punto nuevo de la política (abogada; D7).
+- La base del tratamiento del texto para la finalidad nueva (abogada; con D7 «Solo sumarla» queda sin revisión previa, y con D3 «Modelo de lenguaje» el texto de conversaciones saldría a un tercero).
+- El texto final del punto nuevo de la política (abogada; D7: *decidido sin consulta el 2026-11-14*).
 - Que el token `CHATWOOT_RESUMEN_TOKEN` y el webhook vivan solo en el servidor del Studio
   (se comprueba al instalar, en el servidor, sin imprimir valores).
 - Que el bot de ALFRED pueda leer `#datos-marketing` y nada fuera de la categoría Oficina

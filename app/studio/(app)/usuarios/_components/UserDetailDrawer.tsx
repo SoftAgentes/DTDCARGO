@@ -11,17 +11,20 @@
  * (`shell.jsx`, OVERLAY_TITLES 'Perfil de usuario'), NO una carpeta ni una ruta
  * propia. Acá se usa el DrawerShell del Studio, que es el mismo gesto.
  *
- * NO trae "actividad reciente" a propósito. El Norte la dibuja, pero antes de
- * prometerla hay que resolver de dónde salen esos datos: hoy la auditoría vive
- * repartida en varias tablas y no hay una vista por persona. Dibujarla con
- * datos inventados sería peor que no tenerla.
+ * SDD-0622: tres pestañas — Perfil (datos y acciones de admin), Acceso (rol
+ * base, accesos extra y lo que puede ver) y Actividad (rastro de los accesos
+ * extra en `entity_audit_log`). La actividad muestra SOLO eso, que sí tiene una
+ * vista por persona; los cambios de rol siguen en su propia auditoría.
  */
 
-import { useActionState, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
+import Link from "next/link";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   ROLE_LABELS,
@@ -32,7 +35,11 @@ import {
   type UserActionState,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
-import { RolYAlcanceCard } from "./ficha/RolYAlcanceCard";
+import type { RoleModuleOverrides } from "@/lib/studio/rbac";
+import type { UserModuleGrantView } from "@/lib/studio/user-module-grants-queries";
+import { AccesoPanel } from "./acceso/AccesoPanel";
+import { ActividadAcceso } from "./acceso/ActividadAcceso";
+import "./acceso/permisos.css";
 import {
   changeMemberEmailAction,
   disableUserAction,
@@ -43,16 +50,52 @@ import {
 
 const INICIAL: UserActionState = {};
 
+export type FichaPestana = "perfil" | "acceso" | "actividad";
+
 export function UserDetailDrawer({
   member,
   esYo,
   onClose,
+  grants = [],
+  overrides = {},
+  nombres = {},
+  pestana: pestanaInicial = "perfil",
+  personasDelRol,
+  onIrARoles,
+  fichaEmpleado,
 }: {
   member: UserMembershipWithProfile;
   /** El admin se está mirando a sí mismo — cambia el aviso del correo. */
   esYo?: boolean;
   onClose: () => void;
+  /** Accesos extra de esta persona (SDD-0622). */
+  grants?: UserModuleGrantView[];
+  /** Desvíos por rol del tenant, para «Lo que puede ver». */
+  overrides?: RoleModuleOverrides;
+  /** userId → nombre, para «dado por» y la actividad. */
+  nombres?: Record<string, string>;
+  pestana?: FichaPestana;
+  /** SDD-0635: personas activas con el mismo rol («el rol es el piso»). */
+  personasDelRol?: number;
+  /** SDD-0635: lleva a «Roles y permisos» (cambios para todo el rol). */
+  onIrARoles?: () => void;
+  /**
+   * SDD-0652: código de su ficha de empleado, `null` si no tiene, `undefined`
+   * si no se pudo saber (entonces no se dice nada).
+   */
+  fichaEmpleado?: string | null;
 }) {
+  const [pestana, setPestana] = useState<FichaPestana>(pestanaInicial);
+  // SDD-0635 §3.3: cambios de acceso elegidos y sin guardar. Cerrar la ficha,
+  // cambiar de pestaña o ir a la matriz pide confirmar el descarte.
+  const [sinGuardar, setSinGuardar] = useState(0);
+  const [descartar, setDescartar] = useState<null | (() => void)>(null);
+  const onPendientes = useCallback((n: number) => setSinGuardar(n), []);
+  const conGuarda = (accion: () => void) => {
+    if (sinGuardar > 0) setDescartar(() => accion);
+    else accion();
+  };
+  const cerrar = () => conGuarda(onClose);
   const [perfilState, perfilAction, perfilPending] = useActionState(
     updateMemberProfileAction,
     INICIAL,
@@ -96,11 +139,74 @@ export function UserDetailDrawer({
     <DrawerShell
       title={userDisplayName(member.profile, member.email)}
       subtitle={`${ROLE_LABELS[member.role]} · ${memberStatusLabel(estado)}`}
-      onClose={onClose}
+      onClose={cerrar}
       pending={pendiente}
-      width={620}
+      width={640}
     >
+      {/* Pestañas con la forma única del Studio (SDD-0603, `.studio-tabs`). */}
+      <div style={{ padding: "var(--s-3) var(--s-4) 0" }}>
+        <div role="tablist" aria-label="Secciones de la ficha" className="studio-tabs">
+          {(["perfil", "acceso", "actividad"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`ficha-tab-${t}`}
+              aria-selected={pestana === t}
+              aria-controls={`ficha-panel-${t}`}
+              data-activa={pestana === t ? "true" : undefined}
+              tabIndex={pestana === t ? 0 : -1}
+              className="studio-tab"
+              onClick={() => (t === pestana ? undefined : conGuarda(() => setPestana(t)))}
+            >
+              {t === "perfil" ? "Perfil" : t === "acceso" ? "Acceso" : "Actividad"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {pestana === "acceso" && (
+        <div
+          role="tabpanel"
+          id="ficha-panel-acceso"
+          aria-labelledby="ficha-tab-acceso"
+          style={{ flex: 1, overflow: "auto", padding: "var(--s-4)" }}
+        >
+          {/* NO se pasa `onClose`: la ficha se queda abierta y `revalidatePath`
+              la redibuja con la fila fresca (UsersClient guarda el ID). */}
+          <AccesoPanel
+            member={member}
+            grants={grants}
+            overrides={overrides}
+            nombres={nombres}
+            esYo={esYo}
+            personasDelRol={personasDelRol}
+            onIrARoles={onIrARoles ? () => conGuarda(onIrARoles) : undefined}
+            onPendientes={onPendientes}
+          />
+        </div>
+      )}
+
+      {pestana === "actividad" && (
+        <div
+          role="tabpanel"
+          id="ficha-panel-actividad"
+          aria-labelledby="ficha-tab-actividad"
+          style={{ flex: 1, overflow: "auto", padding: "var(--s-4)" }}
+        >
+          <ActividadAcceso
+            userId={member.user_id}
+            nombres={nombres}
+            version={grants.map((g) => `${g.moduleId}:${g.updatedAt}:${g.canEdit}`).join("|")}
+          />
+        </div>
+      )}
+
+      {pestana === "perfil" && (
       <div
+        role="tabpanel"
+        id="ficha-panel-perfil"
+        aria-labelledby="ficha-tab-perfil"
         style={{
           flex: 1,
           overflow: "auto",
@@ -110,6 +216,22 @@ export function UserDetailDrawer({
           gap: "var(--s-5)",
         }}
       >
+        {/* SDD-0652 F1: enlace a su ficha 360° de empleado. */}
+        {fichaEmpleado !== undefined && (
+          <p style={{ margin: 0, font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            {fichaEmpleado ? (
+              <>
+                Ficha de empleado <span style={{ fontFamily: "var(--f-mono)", color: "var(--ink)" }}>{fichaEmpleado}</span>{" · "}
+                <Link href={`/studio/nomina/empleados/${encodeURIComponent(fichaEmpleado)}`} className="studio-link-quiet">
+                  Ver ficha de empleado
+                </Link>
+              </>
+            ) : (
+              "No tiene ficha de empleado enlazada."
+            )}
+          </p>
+        )}
+
         {/* ── Acceso ─────────────────────────────────────────── */}
         <Seccion titulo="Acceso">
           {/* Correo · editable (SDD-0272). Va detrás de un gesto explícito y
@@ -213,18 +335,13 @@ export function UserDetailDrawer({
                   va e invita a quien llega: así el historial de cada quien
                   queda a su nombre.
                 </p>
+                {/* SDD-0603 · tramo 5e: aparece al abrir el formulario y se
+                    queda; es `status`, no `alert`. */}
                 {esYo && (
-                  <p
-                    role="alert"
-                    style={{
-                      font: "600 11.5px/1.5 var(--f-sans)",
-                      color: "var(--ink)",
-                      margin: 0,
-                    }}
-                  >
+                  <Aviso tono="atencion" compacto>
                     Es tu propio correo: de aquí en adelante entras con el
                     nuevo.
-                  </p>
+                  </Aviso>
                 )}
                 <div>
                   <button
@@ -239,17 +356,12 @@ export function UserDetailDrawer({
             )}
 
             {correoState.ok && (
-              <p
-                role="status"
-                style={{
-                  font: "600 11.5px/1.4 var(--f-sans)",
-                  color: "var(--success)",
-                  margin: "var(--s-2) 0 0",
-                }}
-              >
-                Correo actualizado. Los enlaces anteriores quedaron anulados —
-                mándale uno nuevo con «Enviar acceso».
-              </p>
+              <div style={{ marginTop: "var(--s-2)" }}>
+                <Aviso tono="exito" compacto>
+                  Correo actualizado. Los enlaces anteriores quedaron anulados —
+                  mándale uno nuevo con «Enviar acceso».
+                </Aviso>
+              </div>
             )}
           </div>
           <Dato
@@ -258,42 +370,18 @@ export function UserDetailDrawer({
             alerta={nuncaEntro}
           />
           {nuncaEntro && activo && (
-            <p
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "var(--s-2)",
-                font: "500 12px/1.5 var(--f-sans)",
-                color: "var(--ink)",
-                margin: "var(--s-2) 0 0",
-              }}
-            >
-              <span
-                aria-hidden
-                style={{
-                  width: 6,
-                  height: 6,
-                  marginTop: 5,
-                  flexShrink: 0,
-                  borderRadius: "50%",
-                  background: "var(--warning)",
-                }}
-              />
-              Esta persona nunca ha entrado. Mándale su enlace de acceso para que
-              cree su contraseña.
-            </p>
+            <div style={{ marginTop: "var(--s-2)" }}>
+              <Aviso tono="atencion" compacto>
+                Esta persona nunca ha entrado. Mándale su enlace de acceso para que
+                cree su contraseña.
+              </Aviso>
+            </div>
           )}
         </Seccion>
 
-        {/* ── Rol y alcance ──────────────────────────────────── */}
-        <Seccion titulo="Rol y alcance">
-          {/* NO se pasa `onClose`: cerrar la ficha al aplicar descartaba en
-              silencio lo que hubiera escrito el admin en «Datos de la persona»
-              (son inputs no controlados, viven sólo en el DOM). El
-              `revalidatePath` de la acción ya redibuja la ficha con la fila
-              fresca — `UsersClient` guarda el ID, no el objeto. */}
-          <RolYAlcanceCard member={member} esYo={esYo} />
-        </Seccion>
+        {/* El rol y el alcance se mudaron a la pestaña «Acceso» (SDD-0622),
+            junto a los accesos extra: la pregunta es una sola, «qué puede
+            hacer esta persona». */}
 
         {/* ── Datos editables ────────────────────────────────── */}
         <Seccion titulo="Datos de la persona">
@@ -338,16 +426,11 @@ export function UserDetailDrawer({
             />
           </form>
           {perfilState.ok && (
-            <p
-              role="status"
-              style={{
-                font: "600 12px/1.4 var(--f-sans)",
-                color: "var(--success)",
-                margin: "var(--s-2) 0 0",
-              }}
-            >
-              Datos guardados.
-            </p>
+            <div style={{ marginTop: "var(--s-2)" }}>
+              <Aviso tono="exito" compacto>
+                Datos guardados.
+              </Aviso>
+            </div>
           )}
         </Seccion>
 
@@ -371,6 +454,8 @@ export function UserDetailDrawer({
             {activo ? (
               <form action={disableAction} style={{ display: "inline" }}>
                 <input type="hidden" name="target_user_id" value={member.user_id} />
+                {/* Pista para avisar antes si hace falta el superadministrador (SDD-0633). */}
+                <input type="hidden" name="target_role" value={member.role} />
                 <button
                   type="submit"
                   disabled={pendiente}
@@ -384,6 +469,8 @@ export function UserDetailDrawer({
             ) : (
               <form action={enableAction} style={{ display: "inline" }}>
                 <input type="hidden" name="target_user_id" value={member.user_id} />
+                {/* Pista para avisar antes si hace falta el superadministrador (SDD-0633). */}
+                <input type="hidden" name="target_role" value={member.role} />
                 <button
                   type="submit"
                   disabled={pendiente}
@@ -407,64 +494,84 @@ export function UserDetailDrawer({
           </p>
 
           {/* Rastro persistente: el admin necesita PODER COPIAR el enlace si el
-              correo no llega, así que se queda en pantalla. */}
+              correo no llega, así que el aviso con su botón de copiar se queda.
+              SDD-0603 · tramo 5e: el enlace NUNCA se pinta; solo va al
+              portapapeles. Dentro de la región `status` quedan el correo y el
+              botón, no el secreto. */}
           {accesoState.ok && accesoState.accessLink && (
-            <div
-              style={{
-                marginTop: "var(--s-3)",
-                padding: "var(--s-2) var(--s-3)",
-                background: "var(--success-bg)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              <div
-                style={{
-                  font: "600 12px/1.4 var(--f-sans)",
-                  color: "var(--ink)",
-                  marginBottom: "var(--s-2)",
-                }}
-              >
-                Enlace enviado a {member.email}
-              </div>
-              <button
-                type="button"
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(accesoState.accessLink as string)
-                    .then(() => {
-                      setCopiado(true);
-                      setTimeout(() => setCopiado(false), 2500);
-                    });
-                }}
-                title="Por si el correo no llega — pásaselo por un canal privado"
-              >
-                {copiado ? "Copiado" : "Copiar enlace"}
-              </button>
+            <div style={{ marginTop: "var(--s-3)" }}>
+              <Aviso tono="exito" compacto titulo={<>Enlace enviado a {member.email}</>}>
+                <div style={{ marginTop: "var(--s-2)" }}>
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-xs"
+                    onClick={() => {
+                      void navigator.clipboard
+                        .writeText(accesoState.accessLink as string)
+                        .then(() => {
+                          setCopiado(true);
+                          setTimeout(() => setCopiado(false), 2500);
+                        });
+                    }}
+                    title="Por si el correo no llega — pásaselo por un canal privado"
+                  >
+                    {copiado ? "Copiado" : "Copiar enlace"}
+                  </button>
+                </div>
+              </Aviso>
             </div>
           )}
         </Seccion>
 
         {error && (
-          <p
-            role="alert"
-            style={{
-              font: "600 12.5px/1.45 var(--f-sans)",
-              color: "var(--danger)",
-              margin: 0,
-            }}
-          >
+          <Aviso tono="error" compacto>
             {error}
-          </p>
+          </Aviso>
         )}
       </div>
+      )}
 
-      <DrawerFooter
-        formId="ficha-perfil-form"
-        onClose={onClose}
-        isPending={pendiente}
-        canSubmit={!pendiente}
-        submitLabel="Guardar datos"
+      {pestana === "perfil" ? (
+        <DrawerFooter
+          formId="ficha-perfil-form"
+          onClose={cerrar}
+          isPending={pendiente}
+          canSubmit={!pendiente}
+          submitLabel="Guardar datos"
+        />
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <span style={{ flex: 1, font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            Cada cambio de acceso queda en Actividad con quién, cuándo y motivo.
+          </span>
+          <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={cerrar}>
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={descartar !== null}
+        danger
+        title={`Descartar ${sinGuardar === 1 ? "1 cambio" : `${sinGuardar} cambios`} sin guardar`}
+        message="Elegiste cambios de acceso para esta persona y no los guardaste. Si sigues, se pierden."
+        confirmLabel="Descartar cambios"
+        cancelLabel="Seguir editando"
+        onCancel={() => setDescartar(null)}
+        onConfirm={() => {
+          const accion = descartar;
+          setDescartar(null);
+          setSinGuardar(0);
+          accion?.();
+        }}
       />
     </DrawerShell>
   );

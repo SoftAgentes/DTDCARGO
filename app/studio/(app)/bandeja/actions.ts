@@ -57,6 +57,9 @@ import { puedeVerSaldoCliente, type EstadoCuentaCliente } from "@/lib/studio/cli
 import { getClientAccountState } from "@/lib/studio/client-queries";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
 
+/** SDD-0655: «Agentes vinculados» se pinta en Usuarios › Bandeja; esa página se revalida también. */
+const RUTA_AGENTES_VINCULADOS_PAGINA = "/studio/usuarios";
+
 /** Códigos de error; el cliente los traduce con `bandeja.error.<código>`. */
 export type BandejaErrorCode =
   | "denied"
@@ -203,6 +206,7 @@ export async function vincularAgente(_prev: VinculoState, formData: FormData): P
   }
   await despuesDelVinculo(admin, gate.tenantId, userId, chatwootUserId);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -241,6 +245,7 @@ export async function desvincularAgente(_prev: VinculoState, formData: FormData)
     .eq("user_id", userId);
   if (error) return { ok: false, error: "service" };
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -336,6 +341,7 @@ export async function altaAgente(_prev: VinculoState, formData: FormData): Promi
   if (error) return { ok: false, error: error.code === "23505" ? "duplicate" : "service" };
   await despuesDelVinculo(admin, gate.tenantId, userId, creado.data);
   revalidatePath("/studio/bandeja");
+  revalidatePath(RUTA_AGENTES_VINCULADOS_PAGINA); // SDD-0655: los vínculos viven en Usuarios
   return { ok: true, error: null };
 }
 
@@ -383,7 +389,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const agente = idDeContexto(agenteId);
   if (conversacion === null || agente === null) return { ok: false, error: "invalid" };
 
-  const { tenantId, userId, role, overrides } = await getStudioAccess(supabase);
+  const { tenantId, userId, role, overrides, grants } = await getStudioAccess(supabase);
   if (!tenantId || !userId) return { ok: false, error: "denied" };
   const cfg = chatwootConfig();
   if (!cfg) return { ok: false, error: "unconfigured" };
@@ -392,7 +398,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
   const vinculo = await getVinculoPropio(supabase, tenantId, userId);
   if (!vinculo) return { ok: false, error: "unlinked" };
   if (vinculo.chatwoot_user_id !== agente) return { ok: false, error: "otro_agente" };
-  if (!canAccessModule(role, "clients", overrides)) return { ok: false, error: "sin_clientes" };
+  if (!canAccessModule(role, "clients", overrides, grants)) return { ok: false, error: "sin_clientes" };
 
   // E2-D30 (4): Chatwoot decide si ese agente ve esa conversación. El token se
   // usa acá y se descarta.
@@ -444,7 +450,7 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     codigosConocidos = [];
   }
   const cuenta = await getClientAccountState(supabase, cliente, {
-    puedeVerSaldo: puedeVerSaldoCliente(role, overrides),
+    puedeVerSaldo: puedeVerSaldoCliente(role, overrides, grants),
     codigosConocidos,
   });
   return {

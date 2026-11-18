@@ -4,7 +4,7 @@ title: "Publicación automática de noticias en /noticias, con filtros"
 status: in-progress
 author: "founder"
 created: 2026-11-06
-updated: 2026-11-11
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0604", "0605", "0606"]
@@ -57,7 +57,7 @@ vía automática todavía no existe; ver §4.2.1.
 - **Retirar no apaga la automatización, y cada retiro dice el porqué:** «Me dices que yo puedo
   borrarla, pero no me apagues la automatización. ¿Podemos hacer que detecte que una noticia se
   borró y diga el porqué, para entrenar a la gente?». Ver §4.6 y §4.11.
-- **Quién revisa:** «el humano va a ser Sam y va a ser Alejandro», más un agente crítico que
+- **Quién revisa:** «el humano va a ser Sam y va a ser [la persona de contabilidad con CRM]», más un agente crítico que
   muestra si la noticia puede dar algún problema y da su opinión. Ver §4.7.
 
 ### 1.2 La regla que se exceptúa
@@ -95,7 +95,7 @@ y política afectada». La sección 2 de esta spec es ese registro.
 | Motivo | El ritmo decidido (de una por día en prueba a una o dos por semana) y una oficina que redacta y revisa sola no se sostienen si cada publicación espera a Sam. El daño de una noticia mala se acota: es contenido público sin datos de clientes, se retira con un clic y no envía correos |
 | Alcance exacto | Pasar a publicada **una noticia nueva** en `/noticias`, creada desde un borrador en revisión del tenant de DTD Cargo, de los tipos y categorías de §4.2 (F2) |
 | Fuera del alcance | Editar o volver a publicar una noticia ya publicada; borrar; el tipo Especial y la categoría «Novedades DTD»; «Historias reales»; correos, boletín, redes, WhatsApp y cualquier otro canal; cualquier dato del ERP. Todo eso sigue en I4 o en su nivel propio |
-| Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a Alejandro con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
+| Controles que compensan | Los filtros F1 a F10 de §4.2, el aviso a Sam y a la persona de contabilidad con CRM con retiro de §4.5, el motivo obligatorio de cada retiro y su vuelta a la oficina (§4.11) y la auditoría de §4.4. El interruptor lo apaga solo Sam |
 | Lo que IA-01 sigue exigiendo | Auditoría con modelo, versión y resultado; salida segura y camino manual; separar hecho de propuesta; prueba contra contenido no confiable; minimizar datos. Nada de eso se exceptúa |
 | Retirar una noticia | Es I3 (reversible): `published = false`, con auditoría. No requiere esta excepción |
 | Fecha de revisión | **60 días después de la primera publicación automática** (decisión de Sam del 2026-11-06). En la revisión Sam decide si sigue, cambia los filtros o se cierra |
@@ -326,14 +326,14 @@ No se guardan prompts completos, razonamiento del modelo, secretos ni datos pers
 - Lo publicado por la vía automática se firma **«DTD Cargo»**, como organización, sin escritor
   invitado de la rotación de `lib/news/writers.ts`.
 - **Quién revisa** (decisión de Sam del 2026-11-06):
-  - **Las personas son Sam y Alejandro.** Con la vía automática revisan **después** de publicar,
-    a partir del aviso de `#noticias`, y cualquiera de los dos retira si hace falta. Alejandro
-    necesita una cuenta propia en el Studio con permiso para retirar; no se comparte la de Sam.
+  - **Las personas son Sam y la persona de contabilidad con CRM.** Con la vía automática revisan **después** de publicar,
+    a partir del aviso de `#noticias`, y cualquiera de los dos retira si hace falta. La persona de
+    contabilidad con CRM necesita una cuenta propia en el Studio con permiso para retirar; no se comparte la de Sam.
     El Studio registra quién revisó y cuándo.
   - **El agente crítico es el Revisor** de la oficina. Su papel es buscar problemas: dice si la
     noticia puede traer algún riesgo (un dato dudoso, una línea roja, un tono que puede caer mal,
     algo que suene a IA) y da su opinión. Su veredicto es F3; su opinión de riesgo viaja en el
-    aviso de `#noticias` para que Sam y Alejandro la lean primero. **No reemplaza a las
+    aviso de `#noticias` para que Sam y la persona de contabilidad con CRM la lean primero. **No reemplaza a las
     personas**: es una barrera más antes de publicar.
 - La página no dice que una persona revisó el artículo mientras eso no esté registrado. Cuando
   lo esté, puede mostrar el nombre del revisor.
@@ -414,7 +414,7 @@ registro.
   control de datos personales de §4.3.1, y si encuentra algo, no la entrega y avisa.
 - **Al Revisor en particular:** si retiraron una noticia que el Revisor no marcó como riesgosa,
   eso es lo que más le enseña. Esos casos se señalan aparte.
-- **A Sam y a Alejandro, cada semana:** un resumen en `#noticias` con las retiradas de la semana
+- **A Sam y a la persona de contabilidad con CRM, cada semana:** un resumen en `#noticias` con las retiradas de la semana
   por motivo y las que siguen con motivo pendiente.
 - **A las reglas, por una persona:** si un motivo se repite, una persona decide si suma una
   palabra a la lista de muletillas o de líneas rojas, o un ejemplo de «lo que no» en la
@@ -440,7 +440,7 @@ corrigió también es aprendizaje, y se entrega igual.
 | Privacidad | El control detecta un teléfono, un correo y una cédula en el cuerpo |
 | Salida manual | Una persona admin publica a mano un retenido y queda su nombre |
 | Retiro con motivo | Sin motivo no se retira desde la pantalla; despublicar por otra vía deja «motivo pendiente» y avisa; borrar una noticia automática se rechaza; borrar una manual deja registro; una nota con un teléfono no se entrega a la oficina |
-| Dos personas | Alejandro, con su cuenta, retira; una cuenta sin el permiso, no |
+| Dos personas | La persona de contabilidad con CRM, con su cuenta, retira; una cuenta sin el permiso, no |
 
 Cada filtro F1 a F10 tiene una prueba en rojo que lo demuestra y un mutante que muere al
 quitarlo. Las reglas en la base se prueban en SQL efímero, nunca en producción.
@@ -487,20 +487,20 @@ Si cualquiera falla, el borrador queda `retenido` y se avisa (criterio 2).
    y §4.5).
 4. ~~**Fecha de revisión.**~~ *Resuelto por Sam el 2026-11-06:* 60 días después de la primera
    publicación automática (§2). Al quitar el apagado automático, esta revisión y el aviso de
-   §4.6 son el freno que queda además de Sam y Alejandro.
+   §4.6 son el freno que queda además de Sam y la persona de contabilidad con CRM.
 
 **Todas las decisiones abiertas quedaron resueltas.** Sam aprobó la spec el 2026-11-06, texto
 literal: «yo aprobé el PR (aprobado), pero que él tome la decisión». La aprobación es de la spec;
 el merge lo decide el Director.
-5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y Alejandro, más el
+5. ~~**Persona que revisa.**~~ *Resuelto por Sam el 2026-11-06:* Sam y la persona de contabilidad con CRM, más el
    Revisor como agente crítico (§4.7). Queda por decir si la página muestra el nombre de quien
    revisó cuando la revisión esté registrada.
 
 **Abierta desde el 2026-11-11 (N1, §11.4.1):**
 
-6. **Retención de `actor_id`.** Plazo de las cuatro columnas con uuid del personal de §11.3.1 (b),
-   qué se hace al vencer y en qué PR va la purga. La PR de N1 no lo decide. Tiene que estar
-   decidido antes de encender.
+6. **Retención de `actor_id`: decidida el 2026-11-14 (§11.4.1).** 12 meses en las cuatro
+   columnas; al vencer se vacía el uuid; la purga va en la PR del cron. Falta construir y aplicar
+   la purga antes de encender.
 
 ## 8. Dependencias
 
@@ -649,10 +649,10 @@ no enciende nada.
   La 0525 no las toca. Se declaran **excepción temporal**:
   - IA-01 exige dejar quién publicó, retiró o encendió el interruptor, y un uuid sin la fila
     de Auth ya no se puede resolver a un nombre dentro de la base;
-  - la excepción vence cuando Sam fije el plazo de retención de esas tablas (hallazgo 7 de
+  - Sam fijó el plazo el 2026-11-14: 12 meses, vaciando solo el uuid (§11.4.1; hallazgo 7 de
     [`privacidad.md`](privacidad.md));
-  - ese plazo y su purga van en la PR del cron. Antes de encender, el plazo tiene que estar
-    decidido.
+  - la excepción vence cuando la purga esté aplicada. La purga va en la PR del cron; antes de
+    encender tiene que estar aplicada.
 
 #### 11.3.2 Allowlist exacta de la PR #492
 
@@ -720,23 +720,77 @@ a las 14:41:58Z y en producción a las 14:43:54Z, con verificación PASÓ. Se se
   está en `main`.
 - Deshacer: `grant select on public.news_posts to anon;`.
 
-#### 11.4.1 Decisión abierta para Sam: retención de `actor_id`
+#### 11.4.1 Decisión de Sam: retención de `actor_id` (cerrada el 2026-11-14)
 
-**No la decide esta PR.** Las columnas de §11.3.1 (b) siguen guardando el uuid de una persona del
-Studio sin plazo:
+Las columnas de §11.3.1 (b) guardan el uuid de una persona del Studio:
 - `news_post_exits.actor_id`;
 - `news_publication_audit.actor_id`;
 - `news_autopublish_settings.updated_by`;
 - `news_autopublish_settings_log.changed_by`.
 
-Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación, y la 0526 no
-toca esas tablas. Falta que Sam fije:
-- el plazo de retención de esas columnas, o de sus filas: por ejemplo, 24 meses, como propone el
-  hallazgo 7 de [`privacidad.md`](privacidad.md);
-- si al vencer se borra la fila o solo se vacía el uuid;
-- si la purga va en la PR del cron, como dice §11.3.1.
+Ninguna es legible por anon: la 0518 les quitó todo. N1 no cambia esa situación.
 
-Antes de encender, el plazo tiene que estar decidido (§11.3.1).
+**Sam decidió el 2026-11-14**, en la pantalla del Subdirector SEO. Las respuestas llegaron al
+Director General como relato; él las reconfirma con Sam. Opciones elegidas, textualmente:
+- *Plazo:* «12 meses (Recomendado)».
+- *Alcance:* «Sí, las 4 columnas (Recomendado)».
+- *Al vencer:* «Vaciar solo el uuid (Recomendado)»: se conserva qué pasó y cuándo, sin quién.
+- *Dónde va la purga:* «En la PR del cron de noticias (Recomendado)».
+
+Efecto de vaciar solo el uuid, que no es una cita de Sam: IA-01 mantiene la trazabilidad de que una
+noticia salió con IA, sin el dato personal.
+
+**Lo que esto exige antes de encender** (no se cumple todavía):
+1. La purga existe: una migración nueva que, pasados más de 12 meses de la fila (frontera
+   estricta: una fila de exactamente 12 meses no se toca todavía), pone en `NULL` esas
+   cuatro columnas y deja intacto el resto. Hoy no hay ninguna en `main`.
+2. La purga está aplicada en prueba y producción, con OK nominal de Sam (migrate-first).
+3. Las cuatro columnas aceptan `NULL`: `news_autopublish_settings_log.changed_by` es hoy `NOT NULL`
+   (0518) y la migración lo cambia; además el CHECK `news_audit_manual_con_persona` de
+   `news_publication_audit` (`via = 'automatica' or actor_id is not null`) hay que reescribirlo con
+   una marca de purga, sin aflojarlo para filas nuevas.
+4. Un contrato SQL prueba que una fila de más de 12 meses (13) queda sin uuid, que una de 11 y una
+   de exactamente 12 no se tocan y que el resto de la fila no cambia; con piso de conteo y un
+   mutante.
+5. El encendido (timer y retiro de CONGELADO) es lo último, con OK de Sam.
+
+La excepción temporal de §11.3.1 (b) vence cuando la purga esté aplicada **y** su interruptor encendido (y la primera
+corrida haya dado `ok`), no antes (misma regla en §11.4.1.1).
+
+#### 11.4.1.1 La purga, construida (migración 0546, 2026-11-16)
+
+**Construida y aplicada en producción el 2026-11-16 a las 05:33:39Z**, con el OK de Sam (ledger md5
+`5e28082b08b95a5db4c46bd9c2847178`, 15793 bytes). Cumple los puntos 1 a 4 de arriba; el 5 (encender el interruptor
+`NOTICIAS_PURGA_ACTOR_ACTIVO`, con OK de Sam) sigue abierto: la ruta está apagada y la excepción de §11.3.1 (b) sigue vigente.
+
+- `supabase/migrations/0546_noticias_purga_actor_id.sql`, declarada como espera en `supabase/migrations-baseline.json`:
+  - `news_purgar_actor_id()`: SECURITY DEFINER, `search_path` vacío, `lock_timeout`, solo `service_role`. Pone en NULL el
+    uuid de las cuatro columnas en filas de **más** de 12 meses (frontera estricta: `<`, una de exactamente 12 meses no
+    se toca todavía). Edad por tabla: `news_post_exits.created_at`, `news_publication_audit.evaluated_at`,
+    `news_autopublish_settings_log.changed_at`, `news_autopublish_settings.updated_at`. No borra filas ni toca otra columna.
+    Devuelve conteos por tabla. Idempotente.
+  - Una fila nueva no entra ya «purgada»: un disparador BEFORE INSERT (`news_purga_marca_solo_por_purga`) rechaza una marca
+    no nula al insertar; la marca solo la pone la purga con UPDATE.
+  - Marca de purga: `news_publication_audit.actor_purged_at` y `news_autopublish_settings_log.changed_by_purged_at`.
+    `news_audit_manual_con_persona` pasa a «manual con uuid **o** con marca»; un CHECK nuevo impide uuid y marca a la vez.
+    Una fila nueva sigue exigiendo persona (sin marca, se rechaza).
+  - `news_autopublish_settings_log.changed_by` deja de ser NOT NULL, con un CHECK equivalente (uuid o marca).
+  - Ninguna de las cuatro tablas tiene disparadores de solo agregar (la 0518 no los creó): no hay excepción que abrir.
+- El desarme de la 0546 (en `supabase/desarmes/`, sin número): quita función, marcas y CHECK y restaura los de la 0518. **Para** si la purga ya
+  vació algún uuid: lo vaciado no vuelve.
+- Contrato `supabase/tests/0546_noticias_purga_actor_id.test.sql` (filas de 13, 12 y 11 meses en las cuatro tablas, resto
+  de la fila intacto, ninguna fila borrada, rechazos de CHECK, solo `service_role` ejecuta, idempotente) y
+  `lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts` (PGlite: control rojo, preflight, 12 mutantes, desarme
+  y su vuelta, gemela con las cuatro columnas de esta sección).
+- Ruta `/api/cron/noticias-purga-actor` (diaria, 04:45 UTC, en el crontab del servidor): exige `CRON_SECRET`, llama a la
+  función y nace **apagada** (`NOTICIAS_PURGA_ACTOR_ACTIVO`; sin la 0546 responde `sin_migracion`). Es privacidad: no
+  depende del interruptor `news_autopublish`. Runbook: [noticias-purga-actor.md](../../runbooks/noticias-purga-actor.md).
+
+**Impacto en privacidad (`revisar-datos-ve`).** Cumple la minimización y la temporalidad que faltaban: el uuid del
+personal deja de guardarse pasados 12 meses (excepción de §11.3.1 (b)). Se conserva qué pasó y cuándo, sin quién (IA-01:
+sigue constando que una noticia salió con IA). El borrado no se puede deshacer, a propósito. La respuesta de la ruta lleva
+solo conteos, nunca uuid. **La excepción de §11.3.1 (b) vence cuando la 0546 esté aplicada Y el interruptor encendido** (y la primera corrida haya
+dado `ok`): hasta entonces rige. Misma regla que §11.4.1.
 
 #### 11.4.2 Allowlist exacta de esta PR (N1)
 
@@ -749,6 +803,127 @@ Antes de encender, el plazo tiene que estar decidido (§11.3.1).
 | `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §7 y este §11.4 |
 | `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: quién lee `created_by` y `publish_via` antes y después de la 0526 |
 | `.agents/handoffs/sdd-0611-n1-anon-columnas.md` | Nuevo: el handoff de la tarea |
+
+#### 11.4.3 Allowlist exacta de la PR de la purga (#595)
+
+**Orden que la origina.** «Brief del Director General, 2026-11-16 ~03:45Z, sesión local_25e2dded…: "Ruta de cron protegida con `CRON_SECRET` que llame a la función, con su interruptor que nace apagado, y su línea en el crontab" — la purga va en la PR del cron de noticias, como decidió Sam (§11.4.1); como esa PR no existía, el DG decidió abrirla aquí.»
+
+17 archivos; ningún otro entra en la PR:
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0546_noticias_purga_actor_id.sql` | Nuevo: la migración 0546, sin aplicar |
+| `supabase/desarmes/` (archivo «0546», guion bajo, «desarme», extensión `.sql`) | Nuevo: el desarme de la 0546 (fuera de `migrations/`, sin número; no se cita con su nombre completo porque `spec-migration-refs` lo tomaría por una migración) |
+| `supabase/tests/0546_noticias_purga_actor_id.test.sql` | Nuevo: contrato SQL |
+| `lib/news/autopublicar/__tests__/noticias-0546.migration.test.ts` | Nuevo: PGlite, control rojo, mutantes y desarme |
+| `app/api/cron/noticias-purga-actor/route.ts` | Nuevo: la ruta del cron, con `CRON_SECRET` y su interruptor |
+| `app/api/cron/noticias-purga-actor/__tests__/route.test.ts` | Nuevo: pruebas de la ruta |
+| `scripts/build-crontab.mjs` | Modificado: la línea nueva en `EXTRA_CRONS` |
+| `scripts/__tests__/build-crontab.test.ts` | Modificado: la línea nueva en el crontab |
+| `infra/dtd-cargo/cron/crontab` | Modificado: regenerado |
+| `.env.example` | Modificado: `NOTICIAS_PURGA_ACTOR_ACTIVO` |
+| `infra/dtd-cargo/.env.example` | Modificado: ídem |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0546 |
+| `supabase/pending-migration-symbol-declarations.json` | Modificado: degradación declarada de `news_purgar_actor_id` |
+| `docs/runbooks/noticias-purga-actor.md` | Nuevo: el runbook |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado (esta spec): §11.4.1, §11.4.1.1 y esta tabla |
+| `docs/specs/0611-noticias-publicacion-automatica/privacidad.md` | Modificado: la purga construida |
+| `.agents/handoffs/sdd-0611-purga-actor-id.md` | Nuevo: el handoff de la tarea |
+
+### 11.5 Foto de portada de cada noticia (decidida por Sam el 2026-11-15)
+
+**Problema medido (sitio público, 2026-11-15, solo conteos).** Hay 5 noticias publicadas. Las 5
+usan la **foto de respaldo por categoría** (`CATEGORY_IMAGES` en `lib/news/editorial.ts`): ninguna
+lleva foto propia. En 4 la portada es `precinto-doortudoor-contenedor-…jpg`; la otra usa
+`bodega-yiwu-…jpg`. De los seis respaldos, tres tienen «doortudoor» en el nombre de archivo (la marca
+anterior). *Inferencia:* que esas fotos muestren la marca anterior no se comprobó mirando el
+contenido de las imágenes; hace falta que Sam o diseño las confirmen. `cover_image_url` solo acepta
+rutas locales (`editorial.ts:60-67`), así que hoy no puede entrar una foto externa.
+
+**Regla decidida por Sam (2026-11-15; opción B, ampliada el mismo día).** Cada noticia lleva una
+foto elegida en este orden, y se detiene en la primera que cumpla:
+1. **Foto de la fuente de la noticia, solo si la fuente la publica con una licencia que permite
+   reutilizarla**: dominio público (por ejemplo, muchos sitios de gobierno), Creative Commons con uso
+   comercial, nota o kit de prensa que autoriza su difusión, o indicación explícita de la fuente. Se
+   guardan **crédito, licencia y enlace de origen**. Si el permiso no se puede comprobar, esa foto
+   **no** se usa. Modificarla no da permiso.
+2. **Si no, foto de un banco de uso libre** (Unsplash, Pexels, Pixabay u otro de licencia abierta
+   que permita uso comercial sin pago; crédito guardado cuando lo pida) **o foto propia** de la marca
+   vigente que no muestre la marca anterior («DoorTuDoor», «Door to Door»), ni en rótulos, gorras,
+   camisas, códigos QR ni en el nombre del archivo.
+3. **Si no, o ante cualquier duda o problema con la foto, la noticia se publica sin foto.** Es el
+   respaldo que pidió Sam y debe ser seguro de verdad: la portada sin imagen se ve bien (tarjeta,
+   página de la noticia y vista compartida), sin hueco roto ni imagen de relleno.
+4. **Nunca** el logo o las fotos de la marca anterior, ni una foto cuyo permiso no esté comprobado.
+
+**Qué exige el código (PR posterior, no esta).** (a) Columnas de crédito, licencia y enlace de origen
+junto a la portada, migración nueva en espera; (b) la publicación automática **no usa** una foto sin
+licencia registrada y cae al paso 2 o 3, sin retener la noticia por eso; (c) el filtro rechaza una
+portada que apunte a archivos de la marca anterior y una URL que no sea ruta propia versionada o
+host permitido; (d) diseño de la portada sin imagen en tarjeta, página y vista compartida;
+(e) respaldos de `CATEGORY_IMAGES` sin la marca anterior (hecho en la PR de respaldos). Retirar o
+cambiar la foto de las 5 noticias ya publicadas es un cambio de contenido en producción: llega con
+la publicación de la web y lleva el OK de Sam.
+
+**Límite de la prueba:** la prueba de los respaldos solo mira el nombre de archivo y que exista; que la foto no muestre la marca anterior (rótulos, gorras, camisas, QR) **se revisa a mano, a la vista**, cada vez que se agregue o cambie una foto.
+
+**Revisión de las fotos propias (2026-11-15, a la vista).** Con marca anterior, **excluidas**:
+`precinto-doortudoor-…jpg`, `carga-contenedor-precinto-doortudoor-…jpg`,
+`puerto-venezuela-aduana-entrega-final-…jpg` (gorra y camisa con «Door»), `dtd-cargo-recepcion-contenedor.webp`
+(camisa con «doortudoor.com»). Dudosas, **no usadas** (logo «DP» sin confirmar):
+`dtd-cargo-descarga-bodega.webp` y `dtd-cargo-atencion-mapa.webp`. Sin marca anterior visible, usadas:
+`dtd-cargo-carga-consolidada`, `dtd-cargo-camion-entrega`, `dtd-cargo-operacion-puerto`,
+`dtd-cargo-equipo-contenedor` y `bodega-yiwu-…jpg`.
+
+#### 11.5.1 Código de la regla (PR de la foto de portada)
+
+Hecho en código; la migración **0547** queda en espera (sin aplicar):
+
+| Pieza | Qué hace |
+|---|---|
+| `lib/news/portada.ts` | Regla pura: URL permitida (una foto de la **lista cerrada** de 5 fotos propias revisadas a la vista, o el Storage público de Supabase; nunca la marca anterior, también fuera de la URL: enlace, crédito, licencia y texto alternativo), licencia escrita y comprobada con fecha no futura, origen `fuente`/`banco`/`propia` y enlace de origen si no es propia. `evaluarPortada` descarta con motivos; no retiene. |
+| `supabase/migrations/0547_noticias_portada_licencia.sql` | 7 columnas `cover_*` en `news_posts` con dos CHECK, 6 `autopub_cover_*` en `seo_drafts`, `news_insertar_post` guarda la portada solo si pasa y, si no, publica la noticia sin ella; anon lee seis columnas (no la fecha de comprobación). Desarme en el desarme de la 0547 en `supabase/desarmes/`. |
+| `lib/news/autopublicar/puntaje.ts`, `filtros.ts` | F6 ya no retiene por la portada (`puntaje:portada` retirado, §11.5 b); el descarte vive en `evaluarPortada`. |
+| `lib/studio/news/autopublicar.ts` | Lee las columnas de portada (con reintento si la 0547 no está), decide con `evaluarPortada` y manda al RPC la portada solo si se puede usar. |
+| `lib/news/editorial.ts`, `app/noticias/**` | `editorialImageOf` devuelve `null` si no hay foto presentable; tarjeta, archivo, relacionadas y página se ven sin hueco ni relleno; pie de foto con crédito, licencia y origen. La vista compartida (`opengraph-image`) ya es una tarjeta de texto sin foto. |
+| `lib/public/news-queries.ts` | La portada se lee en una consulta aparte que degrada sin la 0547 (declarado en `supabase/pending-migration-symbol-declarations.json`). |
+
+Pendiente fuera de esta PR: aplicar la 0547 (OK nominal de Sam), que el Studio (o quien carga la foto) capture crédito, licencia y comprobación en el borrador, y revisar a la vista cada foto nueva (límite de la prueba, arriba).
+
+**Límites conocidos de la detección de la marca anterior** (código y CHECK usan la misma expresión simple, `door.{0,6}t[uo].{0,6}door|door.{0,6}2.{0,6}door`, sin distinguir mayúsculas):
+- Falsos positivos posibles («Indoor to outdoor», «door-to-door campaign»): descartan la portada, nunca la noticia.
+- Saltos triviales no detectados (`d00r`, espacios o puntos intercalados, otros alfabetos): por eso la URL de la imagen sale de una lista cerrada revisada a la vista y la revisión humana sigue siendo la barrera real.
+- En textos (alt, crédito, licencia) la expresión se prueba tal cual, sin decodificar (un «%» suelto es texto normal); solo las URL se prueban también decodificadas en el código. El CHECK no decodifica en ningún campo.
+- El CHECK de `cover_license_verified_at <= now()` depende del reloj del servidor: con un reloj atrasado se rechaza una comprobación de hoy (la noticia se publica sin foto) y, al restaurar un volcado, solo se revalida lo ya pasado.
+
+**Allowlist exacta de la PR #597** (`git diff --name-only origin/main...HEAD`, 24 archivos; ningún otro entra):
+
+| Archivo | Cambio |
+|---|---|
+| `.agents/handoffs/sdd-0611-foto-portada-licencia.md` | Nuevo: handoff |
+| `app/noticias/[slug]/page.tsx` | Modificado: portada opcional con pie de foto |
+| `app/noticias/_components/ActualidadHub.tsx` | Modificado: tarjeta y archivo sin foto |
+| `app/noticias/noticias.css` | Modificado: estilos sin foto y pie de foto |
+| `docs/specs/0611-noticias-publicacion-automatica/spec.md` | Modificado: esta subsección |
+| `lib/news/__tests__/editorial.test.ts` | Modificado: licencia, respaldos y fotos excluidas |
+| `lib/news/__tests__/portada.test.ts` | Nuevo: regla de portada |
+| `lib/news/autopublicar/__tests__/fixture.ts` | Modificado: `portada` en lugar de `coverImageUrl` |
+| `lib/news/autopublicar/__tests__/noticias-0547.migration.test.ts` | Nuevo: runner PGlite, mutantes y desarme |
+| `lib/news/autopublicar/__tests__/piezas.test.ts` | Modificado: F6 sin portada |
+| `lib/news/autopublicar/filtros.ts` | Modificado: `portada` en el borrador |
+| `lib/news/autopublicar/puntaje.ts` | Modificado: retira `puntaje:portada` |
+| `lib/news/editorial.ts` | Modificado: `editorialImageOf` puede devolver `null` |
+| `lib/news/portada.ts` | Nuevo: regla pura |
+| `lib/news/types.ts` | Modificado: campos `cover_*` |
+| `lib/public/__tests__/news-queries-portada.test.ts` | Nuevo: lectura aparte |
+| `lib/public/news-queries.ts` | Modificado: `conPortadas` |
+| `lib/studio/news/__tests__/autopublicar.test.ts` | Modificado: cableado de la portada |
+| `lib/studio/news/autopublicar.ts` | Modificado: decide y manda la portada |
+| `supabase/desarmes/0547_desarme` (extensión `.sql`; sin punto pegado para no leerse como migración citada) | Nuevo: desarme |
+| `supabase/migrations-baseline.json` | Modificado: espera de la 0547 |
+| `supabase/migrations/0547_noticias_portada_licencia.sql` | Nuevo: migración 0547, sin aplicar |
+| `supabase/pending-migration-symbol-declarations.json` | Modificado: degradado declarado |
+| `supabase/tests/0547_noticias_portada_licencia.test.sql` | Nuevo: contrato SQL |
 
 ## 12. Allowlist exacta de la implementación (PR #417)
 
