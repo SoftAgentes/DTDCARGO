@@ -35,6 +35,11 @@ export type Client = {
   id: string;
   tenant_id: string;
   markbox: string;
+  /**
+   * SDD-0664 · Solo en resultados de búsqueda: el Shipping Mark anterior del
+   * cliente que coincidió con lo buscado. No es una columna de `clients`.
+   */
+  codigo_anterior?: string | null;
   name: string;
   email: string | null;
   phone: string | null;
