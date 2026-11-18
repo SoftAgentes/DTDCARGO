@@ -1,6 +1,9 @@
 /**
- * SDD-0661 · Render: cajas en la cabecera del contenedor y en cada cliente;
- * el monto sólo si la página lo pasó, y «Sin facturar» en vez de $0.00.
+ * SDD-0661 · Render del diseño elegido por Sam («Franja + Excel»):
+ *  - cabecera cerrada: clientes, envíos, cajas y m³;
+ *  - al abrir: franja de totales y detalle por cliente con «Total del contenedor»;
+ *  - «Por cobrar» y «Cobrado» sólo si la página pasó `montos`; sin facturas,
+ *    «Sin facturar», nunca $0.00.
  * Datos inventados.
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -55,52 +58,103 @@ const DATOS: ContenedoresDeEmbarques = {
   ],
   porEmbarque: { a1: "c64", a3: "c64", a2: "c64", b1: "c65" },
   cajasPorEmbarque: { a1: 1000, a3: 234, a2: 1, b1: 8 },
+  recibidasPorContenedor: { c64: { "DTD-1001": 1200 } },
+};
+
+const MONTOS: MontosDeContenedores = {
+  estado: "lista",
+  porEmbarque: {
+    a1: { facturas: 1, porCobrarUsd: 12000, cobradoUsd: 5000, otraMoneda: 0 },
+    a2: { facturas: 2, porCobrarUsd: 345.5, cobradoUsd: 0, otraMoneda: 1 },
+  },
 };
 
 afterEach(cleanup);
 
-function cabecera(nombre: string): HTMLElement {
-  return within(screen.getByRole("region", { name: nombre })).getAllByRole("button")[0];
+function region(nombre: string): HTMLElement {
+  return screen.getByRole("region", { name: nombre });
 }
 
-describe("EmbarquesClient · cajas y monto (SDD-0661)", () => {
-  it("la cabecera del contenedor dice el total de cajas, para cualquiera", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
-    expect(cabecera("DDP 64").textContent).toContain("1.235 cajas");
-    expect(cabecera("DDP 65").textContent).toContain("8 cajas");
-    // Sin `montos` (comercial): nada de dinero en pantalla.
-    expect(screen.queryByText(/A cobrar|Sin facturar|Monto no disponible/)).toBeNull();
-  });
+function cabecera(nombre: string): HTMLElement {
+  return within(region(nombre)).getAllByRole("button")[0];
+}
 
-  it("al abrir el contenedor, cada cliente muestra sus cajas", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
-    await userEvent.click(cabecera("DDP 64"));
-    const region = screen.getByRole("region", { name: "DDP 64" });
-    const uno = within(region).getByText("Cliente Uno").closest("button")!;
-    expect(uno.textContent).toContain("2 envíos");
-    expect(uno.textContent).toContain("1.234 cajas");
-    const dos = within(region).getByText("Cliente Dos").closest("button")!;
-    expect(dos.textContent).toContain("1 caja");
-    expect(dos.textContent).not.toContain("1 cajas");
-  });
+/** Las celdas de la fila cuyo encabezado de fila es `rotulo`. */
+function fila(tabla: HTMLElement, rotulo: RegExp): string[] {
+  const th = within(tabla).getByRole("rowheader", { name: rotulo });
+  const tr = th.closest("tr")!;
+  return within(tr)
+    .getAllByRole("cell")
+    .map((c) => c.textContent ?? "");
+}
 
-  it("con montos: el total en dólares, y «Sin facturar» si no hay facturas", () => {
-    const montos: MontosDeContenedores = {
-      estado: "lista",
-      porContenedor: { c64: { facturas: 3, totalUsd: 12345.5, otraMoneda: 1 } },
-    };
+describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
+  it("cerrado: clientes, envíos, cajas y m³ en la cabecera; nada de dinero", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={montos} />,
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     const c64 = cabecera("DDP 64").textContent ?? "";
-    expect(c64).toContain("A cobrar $12,345.50");
-    expect(c64).toContain("+ 1 factura en otra moneda");
-    const c65 = cabecera("DDP 65").textContent ?? "";
-    expect(c65).toContain("Sin facturar");
-    expect(c65).not.toContain("$0.00");
+    expect(c64).toContain("2 clientes");
+    expect(c64).toContain("3 envíos");
+    expect(c64).toContain("1.235 cajas");
+    expect(c64).toContain("3.00 m³");
+    expect(c64).not.toMatch(/cobr|\$/i);
   });
 
-  it("si la lectura del monto falló, lo dice", () => {
+  it("abierto, sin montos (comercial): franja y detalle sin columnas de dinero", async () => {
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    await userEvent.click(cabecera("DDP 64"));
+    const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
+    expect(franja.textContent).toContain("Clientes2");
+    expect(franja.textContent).toContain("Cajas1.235");
+    expect(franja.textContent).toContain("Cajas recibidas1.200");
+    expect(franja.textContent).toContain("CBM total3.00 m³");
+    expect(screen.queryByText(/Por cobrar|Cobrado|Sin facturar/)).toBeNull();
+
+    const tabla = within(region("DDP 64")).getByRole("table");
+    expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2.00"]);
+    expect(fila(tabla, /Cliente Dos/)).toEqual(["1", "1", "0", "1.00"]);
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["3", "1.235", "1.200", "3.00"]);
+  });
+
+  it("un contenedor sin recepción dice «—» en recibidas, no 0", async () => {
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    await userEvent.click(cabecera("DDP 65"));
+    const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
+    expect(franja.textContent).toContain("Cajas recibidas—");
+    const tabla = within(region("DDP 65")).getByRole("table");
+    expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "—", "1.00"]);
+  });
+
+  it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {
+    render(
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
+    );
+    await userEvent.click(cabecera("DDP 64"));
+    const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
+    expect(franja.textContent).toContain("Por cobrar$12,345.50");
+    expect(franja.textContent).toContain("Cobrado$5,000.00");
+    expect(within(region("DDP 64")).getByText(/1 factura está en otra moneda/)).toBeTruthy();
+
+    const tabla = within(region("DDP 64")).getByRole("table");
+    expect(fila(tabla, /Cliente Uno/).slice(4)).toEqual(["$12,000.00", "$5,000.00"]);
+    expect(fila(tabla, /Cliente Dos/).slice(4)).toEqual(["$345.50", "$0.00"]);
+    expect(fila(tabla, /Total del contenedor/).slice(4)).toEqual(["$12,345.50", "$5,000.00"]);
+  });
+
+  it("sin facturas dice «Sin facturar», nunca $0.00", async () => {
+    render(
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
+    );
+    await userEvent.click(cabecera("DDP 65"));
+    const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
+    expect(franja.textContent).toContain("Por cobrarSin facturar");
+    expect(franja.textContent).not.toContain("$0.00");
+    const tabla = within(region("DDP 65")).getByRole("table");
+    expect(fila(tabla, /Total del contenedor/).slice(4)).toEqual(["Sin facturar", "Sin facturar"]);
+  });
+
+  it("si la lectura del monto falló, lo dice", async () => {
     render(
       <EmbarquesClient
         shipments={ENVIOS}
@@ -109,6 +163,19 @@ describe("EmbarquesClient · cajas y monto (SDD-0661)", () => {
         montos={{ estado: "no_disponible" }}
       />,
     );
-    expect(cabecera("DDP 64").textContent).toContain("Monto no disponible");
+    await userEvent.click(cabecera("DDP 64"));
+    const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
+    expect(franja.textContent).toContain("Por cobrarNo disponible");
+  });
+
+  it("al abrir el contenedor, el acordeón por cliente también dice sus cajas", async () => {
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    await userEvent.click(cabecera("DDP 64"));
+    const botonUno = within(region("DDP 64"))
+      .getAllByText("Cliente Uno")
+      .map((el) => el.closest("button"))
+      .find(Boolean)!;
+    expect(botonUno.textContent).toContain("2 envíos");
+    expect(botonUno.textContent).toContain("1.234 cajas");
   });
 });

@@ -17,8 +17,9 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import {
-  montosPorContenedor,
+  montosPorEmbarque,
   numeroDtdDeNotas,
   type ContenedorDeEmbarques,
   type ContenedoresDeEmbarques,
@@ -159,12 +160,12 @@ export async function leerMontosDeContenedores(
   datos: ContenedoresDeEmbarques,
 ): Promise<MontosDeContenedores> {
   const ids = Object.keys(datos.porEmbarque);
-  if (ids.length === 0) return { estado: "lista", porContenedor: {} };
+  if (ids.length === 0) return { estado: "lista", porEmbarque: {} };
   try {
     const filas = await porTramos(ids, (t) =>
       supabase
         .from("invoices")
-        .select("shipment_id, currency, total_amount, status")
+        .select("shipment_id, currency, total_amount, paid_amount, status")
         .in("shipment_id", t)
         .is("deleted_at", null)
         .neq("status", "anulada"),
@@ -174,10 +175,79 @@ export async function leerMontosDeContenedores(
       shipment_id: str(f.shipment_id),
       currency: str(f.currency),
       total_amount: (f.total_amount as number | string | null) ?? null,
+      paid_amount: (f.paid_amount as number | string | null) ?? null,
       status: str(f.status),
     }));
-    return { estado: "lista", porContenedor: montosPorContenedor(facturas, datos.porEmbarque) };
+    return { estado: "lista", porEmbarque: montosPorEmbarque(facturas) };
   } catch {
     return { estado: "no_disponible" };
+  }
+}
+
+/** ISO de contenedor comparable: sin guiones ni espacios, en mayúsculas. */
+function isoComparable(v: string | null | undefined): string {
+  return (v ?? "").replace(/[^a-z0-9]/gi, "").toUpperCase();
+}
+
+/**
+ * SDD-0661 · Cajas recibidas por contenedor y Shipping Mark: las cajas
+ * escaneadas (`scanned_at` no nulo) en la recepción del almacén de Venezuela
+ * (`warehouse_receipts_ve` vivo) cuyo `container_code` es el ISO del
+ * contenedor. Un contenedor sin recepción no tiene entrada (la vista dice «—»).
+ *
+ * Devuelve `null` si una lectura falla o llega cortada: la vista dice «—» en
+ * vez de un número que no cuadra.
+ */
+export async function leerRecibidasDeContenedores(
+  supabase: SupabaseClient,
+  contenedores: readonly ContenedorDeEmbarques[],
+): Promise<Record<string, Record<string, number>> | null> {
+  const porIso = new Map<string, string>();
+  for (const c of contenedores) {
+    const iso = isoComparable(c.containerNo);
+    if (iso) porIso.set(iso, c.id);
+  }
+  if (porIso.size === 0) return {};
+  try {
+    const recepciones = await fetchAllPaged<Fila>((d, h) =>
+      supabase
+        .from("warehouse_receipts_ve")
+        .select("id, container_code")
+        .is("deleted_at", null)
+        .order("id", { ascending: true })
+        .range(d, h),
+    );
+    if (!recepciones.complete) return null;
+    const contenedorDeRecepcion = new Map<string, string>();
+    for (const r of recepciones.rows) {
+      const cid = porIso.get(isoComparable(str(r.container_code)));
+      const id = str(r.id);
+      if (cid && id) contenedorDeRecepcion.set(id, cid);
+    }
+    const out: Record<string, Record<string, number>> = {};
+    for (const cid of contenedorDeRecepcion.values()) out[cid] ??= {};
+    const ids = [...contenedorDeRecepcion.keys()];
+    for (let i = 0; i < ids.length; i += TRAMO) {
+      const tramo = ids.slice(i, i + TRAMO);
+      const cajas = await fetchAllPaged<Fila>((d, h) =>
+        supabase
+          .from("warehouse_receipt_ve_boxes")
+          .select("id, receipt_id, markbox, scanned_at")
+          .in("receipt_id", tramo)
+          .not("scanned_at", "is", null)
+          .order("id", { ascending: true })
+          .range(d, h),
+      );
+      if (!cajas.complete) return null;
+      for (const b of cajas.rows) {
+        const cid = contenedorDeRecepcion.get(String(b.receipt_id));
+        const mark = str(b.markbox)?.trim();
+        if (!cid || !mark || !b.scanned_at) continue;
+        out[cid][mark] = (out[cid][mark] ?? 0) + 1;
+      }
+    }
+    return out;
+  } catch {
+    return null;
   }
 }

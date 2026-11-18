@@ -51,6 +51,11 @@ export type ContenedoresDeEmbarques = {
    * Sin dato para un embarque, ese embarque suma 0.
    */
   cajasPorEmbarque?: Record<string, number>;
+  /**
+   * SDD-0661: cajas recibidas por contenedor y Shipping Mark. Un contenedor sin
+   * entrada = sin recepción todavía: la vista dice «—», no 0.
+   */
+  recibidasPorContenedor?: Record<string, Record<string, number>>;
 };
 
 /** SDD-0661: un cliente dentro de un contenedor, con sus cajas. */
@@ -60,19 +65,26 @@ export type ClienteDeContenedor = ClientShipmentGroup & {
 };
 
 /**
- * SDD-0661 · Monto a cobrar de un contenedor: facturas vivas no anuladas cuyo
- * `shipment_id` es un embarque del contenedor. `totalUsd` suma `total_amount`
- * de las que están en USD; `otraMoneda` cuenta las que no se sumaron.
- * `facturas === 0` → «sin facturar» (nunca un 0 inventado).
+ * SDD-0661 · Dinero de unos embarques: facturas vivas no anuladas cuyo
+ * `shipment_id` es uno de ellos. `porCobrarUsd` suma `total_amount` (lo
+ * facturado) y `cobradoUsd` suma `paid_amount`, sólo de las facturas en USD;
+ * `otraMoneda` cuenta las que no se sumaron. `facturas === 0` → «Sin
+ * facturar» (nunca un 0 inventado).
  */
-export type MontoContenedor = { facturas: number; totalUsd: number; otraMoneda: number };
+export type MontoAcumulado = {
+  facturas: number;
+  porCobrarUsd: number;
+  cobradoUsd: number;
+  otraMoneda: number;
+};
 
 /**
  * Lo que la página le pasa a la vista SOLO si la persona ve Facturación.
- * `no_disponible` = la lectura falló.
+ * Por embarque, para sumarlo igual por cliente y por contenedor (y respetar
+ * los filtros). `no_disponible` = la lectura falló.
  */
 export type MontosDeContenedores =
-  | { estado: "lista"; porContenedor: Record<string, MontoContenedor> }
+  | { estado: "lista"; porEmbarque: Record<string, MontoAcumulado> }
   | { estado: "no_disponible" };
 
 /** Una factura tal como la necesita la suma (sin cliente, sin líneas). */
@@ -80,30 +92,55 @@ export type FacturaDeEmbarque = {
   shipment_id: string | null;
   currency: string | null;
   total_amount: number | string | null;
+  paid_amount: number | string | null;
   status: string | null;
 };
 
+const MONTO_VACIO: MontoAcumulado = { facturas: 0, porCobrarUsd: 0, cobradoUsd: 0, otraMoneda: 0 };
+
+function redondear(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 /**
- * Suma las facturas por contenedor. Excluye anuladas (la consulta ya excluye
+ * Agrupa las facturas por embarque. Excluye anuladas (la consulta ya excluye
  * las borradas); los borradores cuentan, son lo que se va a cobrar.
  */
-export function montosPorContenedor(
+export function montosPorEmbarque(
   facturas: readonly FacturaDeEmbarque[],
-  porEmbarque: Readonly<Record<string, string>>,
-): Record<string, MontoContenedor> {
-  const out: Record<string, MontoContenedor> = {};
+): Record<string, MontoAcumulado> {
+  const out: Record<string, MontoAcumulado> = {};
   for (const f of facturas) {
     if (!f.shipment_id || f.status === "anulada") continue;
-    const cid = porEmbarque[f.shipment_id];
-    if (!cid) continue;
-    const m = (out[cid] ??= { facturas: 0, totalUsd: 0, otraMoneda: 0 });
+    const m = (out[f.shipment_id] ??= { ...MONTO_VACIO });
     m.facturas += 1;
     const total = Number(f.total_amount);
-    if (f.currency === "USD" && Number.isFinite(total)) m.totalUsd += total;
-    else m.otraMoneda += 1;
+    const pagado = Number(f.paid_amount ?? 0);
+    if (f.currency === "USD" && Number.isFinite(total)) {
+      m.porCobrarUsd = redondear(m.porCobrarUsd + total);
+      if (Number.isFinite(pagado)) m.cobradoUsd = redondear(m.cobradoUsd + pagado);
+    } else {
+      m.otraMoneda += 1;
+    }
   }
-  for (const m of Object.values(out)) m.totalUsd = Math.round(m.totalUsd * 100) / 100;
   return out;
+}
+
+/** Suma el dinero de unos embarques (un cliente, un contenedor). */
+export function sumarMontos(
+  filas: readonly Pick<ShipmentListRow, "id">[],
+  porEmbarque: Readonly<Record<string, MontoAcumulado>>,
+): MontoAcumulado {
+  const t = { ...MONTO_VACIO };
+  for (const r of filas) {
+    const m = porEmbarque[r.id];
+    if (!m) continue;
+    t.facturas += m.facturas;
+    t.porCobrarUsd = redondear(t.porCobrarUsd + m.porCobrarUsd);
+    t.cobradoUsd = redondear(t.cobradoUsd + m.cobradoUsd);
+    t.otraMoneda += m.otraMoneda;
+  }
+  return t;
 }
 
 export type TipoContenedor = "fcl" | "consolidado";
@@ -124,6 +161,8 @@ export type GrupoContenedor = {
   totalCbm: number;
   /** SDD-0661: suma de las cajas de sus clientes. `null` en «Sin contenedor». */
   cajas: number | null;
+  /** SDD-0661: suma de las recibidas de sus clientes; `null` sin recepción. */
+  recibidas: number | null;
   alertas: number;
 };
 
@@ -295,6 +334,7 @@ export function agruparPorContenedor(
     const base = completas.get(key) ?? lista;
     const tipo = contenedor ? tipoDeContenedor(base) : null;
     const cajasDe = datos.cajasPorEmbarque ?? {};
+    const recibidasDe = contenedor ? datos.recibidasPorContenedor?.[contenedor.id] : undefined;
     const clientes: ClienteDeContenedor[] = groupShipmentsByClient(lista).map((g) => ({
       ...g,
       // La misma persona puede estar en dos contenedores: la llave del
@@ -302,14 +342,17 @@ export function agruparPorContenedor(
       groupKey: `${key}::${g.groupKey}`,
       // SDD-0661: «Sin contenedor» no tiene carga de la que salgan cajas.
       cajas: contenedor ? sumarCajas(g.shipments, cajasDe) : null,
+      recibidas: recibidasDe ? recibidasDe[g.clientMarkbox?.trim() ?? ""] ?? 0 : null,
     }));
     let totalCbm = 0;
     let alertas = 0;
     let cajas = 0;
+    let recibidas = 0;
     for (const g of clientes) {
       totalCbm += g.stats.totalCbm;
       alertas += g.stats.alertCount;
       cajas += g.cajas ?? 0;
+      recibidas += g.recibidas ?? 0;
     }
     grupos.push({
       key,
@@ -326,6 +369,7 @@ export function agruparPorContenedor(
       embarques: lista.length,
       totalCbm: Math.round(totalCbm * 1000) / 1000,
       cajas: contenedor ? cajas : null,
+      recibidas: recibidasDe ? recibidas : null,
       alertas,
     });
   }

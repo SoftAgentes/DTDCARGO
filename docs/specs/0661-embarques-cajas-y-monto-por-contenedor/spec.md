@@ -1,6 +1,6 @@
 ---
 sdd: "0661"
-title: "Embarques por contenedor: total de cajas para todos y monto a cobrar solo para quien ve dinero"
+title: "Embarques por contenedor: franja de totales y detalle por cliente como en el Excel; dinero solo para quien ve Facturación"
 status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-18
@@ -11,108 +11,134 @@ related: ["0012", "0085", "0139", "0543", "0622", "0643"]
 confidencialidad: interno
 ---
 
-# SDD-0661 — Cajas y monto a cobrar en la vista por contenedor
+# SDD-0661 — Totales del contenedor en Embarques
 
-> La cabecera de cada contenedor de `/studio/embarques` (SDD-0643) suma el **total de cajas** a los
-> clientes y m³ que ya mostraba. Quien puede ver Facturación (contabilidad y administración) ve además
-> el **monto a cobrar** del contenedor, en dólares. Cada cliente, al abrir el contenedor, muestra sus
-> cajas junto a «N envíos» y los m³.
+> Al abrir un contenedor en `/studio/embarques` (SDD-0643) aparecen una **franja de totales** (clientes,
+> cajas, cajas recibidas y CBM) y el **detalle por cliente como en el Excel** (envíos, cajas, recibidas
+> y m³, con la fila «Total del contenedor»). Quien ve Facturación ve además **por cobrar** y
+> **cobrado**, en la franja y como columnas. La cabecera cerrada dice clientes, envíos, cajas y m³.
 
 ## 1. Pedido
 
-Sam, 2026-11-18, en la reunión con la oficina sobre el contenedor 64 y el 65:
+Sam, 2026-11-18, reunión con la oficina sobre el contenedor 64 y el 65 (por el DG). Primer encargo:
+cajas en la cabecera, cajas por cliente y monto a cobrar solo para contabilidad. Ese mismo día Sam eligió
+el diseño «Franja + Excel» de una maqueta con datos inventados, que reemplaza la parte visual del primer
+encargo:
 
-1. En la cabecera de cada contenedor, para todos los roles: número de clientes, **total de cajas** y
-   total de m³. Sirve para que Alejandro compare con su Excel.
-2. **Solo contabilidad** ve además el **monto total a cobrar** del contenedor. Comercial no ve dinero.
-3. Al abrir el contenedor, cada cliente muestra sus **cajas**, además de «N envíos» y los m³.
-4. Las cajas salen de la misma fuente que la carga del contenedor, para que cuadren con el Excel.
+1. Franja de totales arriba al abrir el contenedor, para todos los roles: clientes, cajas, cajas
+   recibidas y CBM total.
+2. Detalle por cliente como en el Excel: columnas envíos, cajas, recibidas y m³, con la fila final
+   «Total del contenedor».
+3. Solo contabilidad: por cobrar y cobrado, en la franja y como columnas. Comercial y Logística no ven
+   dinero (sí los totales de carga). El monto no viaja al navegador si el rol no puede verlo.
+4. El encabezado cerrado conserva clientes, envíos, cajas y m³.
+
+Confirmado por Sam: «recibidas» = cajas recibidas, no dinero. Las cajas salen de la misma fuente que la
+carga del contenedor, para que Alejandro compare con su Excel.
 
 Vocabulario: «contenedor 64», «DDP 64»; nunca «lote». Todo en dólares.
 
-## 2. De dónde salen las cajas
+## 2. Cajas
 
 - **Tabla y columna:** `public.consolidation_items.pieces`. Es lo que escribe la carga de consolidados
   (SDD-0543, `scripts/consolidados/lote-sql.ts`): por cada envío del Excel inserta un
-  `consolidation_items` con `pieces = cajas` de la fila del envío (la misma cifra que va a
-  `warehouse_receipts_cn.boxes` y que la verificación del lote cuadra contra el Excel).
+  `consolidation_items` con `pieces = cajas` de la fila del envío. Es la misma cifra que va a
+  `warehouse_receipts_cn.boxes` y que la verificación de la carga cuadra contra el Excel.
 - **Qué fila cuenta:** la asignación vigente de cada embarque, la misma que ya decide en qué contenedor
-  va (la `consolidation_items` más reciente por `shipment_id`, SDD-0643). Una fila vieja de un
-  embarque que se movió de contenedor no suma.
-- **Cómo se suma:**
-  - por cliente = suma de `pieces` de los embarques de ese cliente dentro del contenedor;
-  - por contenedor = suma de los clientes del contenedor.
-  - Con filtros activos, la suma es sobre lo que se ve (igual que los m³ y los envíos de la 0643).
-- **Sin dato:** un embarque sin asignación (grupo «Sin contenedor») no tiene cajas de la carga; ese
-  grupo no muestra cajas en vez de inventar un 0. El envío FCL del dueño se carga con `pieces = 0`
-  (la carga no trae cajas para él) y suma 0, como en el Excel.
+  va (la `consolidation_items` más reciente por `shipment_id`, SDD-0643). Una fila vieja de un embarque
+  que se movió de contenedor no suma.
+- **Cómo se suma:** por cliente, la suma de `pieces` de sus embarques dentro del contenedor; por
+  contenedor, la suma de sus clientes. Con filtros activos se suma lo que se ve, igual que los m³ y los
+  envíos de la 0643.
+- **Sin dato:** el grupo «Sin contenedor» no tiene carga y no muestra franja ni detalle. El envío FCL
+  del dueño se carga con `pieces = 0` y suma 0.
 
-## 3. Monto a cobrar
+## 3. Cajas recibidas
 
-### 3.1 Quién lo ve (decisión)
+- **Modelo:** `ContenedoresDeEmbarques.recibidasPorContenedor[contenedor][Shipping Mark]`. Por cliente
+  es la cifra de su Shipping Mark en ese contenedor (0 si el contenedor tiene recepción y el cliente no
+  tiene cajas recibidas). Por contenedor es la suma de sus clientes.
+- **Sin recepción:** si el contenedor no tiene recepción, la franja, la columna y el total dicen «—»,
+  nunca 0.
+- **Fuente (implementada; pendiente de confirmar con Sam o el DG):** las cajas escaneadas en la
+  recepción del almacén de Venezuela de ese contenedor. Son las `warehouse_receipt_ve_boxes` con
+  `scanned_at` no nulo del `warehouse_receipts_ve` vivo cuyo `container_code` es el ISO del contenedor
+  (comparado sin guiones ni espacios), contadas por `markbox` (`leerRecibidasDeContenedores`, paginada
+  con `fetchAllPaged`). Se descartó `warehouse_receipts_cn.boxes`: la carga del Excel la iguala a las
+  cajas y nunca diferiría.
+- **Lectura fallida o cortada:** no hay datos de recibidas y todo dice «—»; no se muestra un número que
+  no cuadre.
+- Las cajas recibidas son carga, no dinero: se leen para todos los roles.
 
-El criterio de dinero del Studio es el módulo **`invoices`** (Facturación), que está en
-`MONEY_MODULES` (`lib/studio/rbac.ts`, candado SDD-0139): por rol lo ven `accounting` y `admin`
-(admin ve todo por diseño, SDD-0085); `commercial`, `operations`, `support`, `warehouse` y `marketing`
-no. Desde la SDD-0622 una persona puede tener un acceso adicional a un módulo bloqueado, con doble
-aviso, motivo y auditoría; ese extra también abre Facturación y por eso también abre este monto.
+## 4. Por cobrar y cobrado
 
-**Decisión:** el monto se muestra si y solo si `moduleViewDenial(supabase, "invoices") === null`, la
-misma comprobación que abre `/studio/facturacion`. Es lo más restrictivo coherente con el sistema: no
-se inventa un criterio nuevo («solo `accounting`» dejaría fuera a administración, que ya ve toda la
+### 4.1 Quién lo ve (decisión, confirmada por el DG el 2026-11-18)
+
+El criterio de dinero del Studio es el módulo **`invoices`** (Facturación), que está en `MONEY_MODULES`
+(`lib/studio/rbac.ts`, candado SDD-0139). Por rol lo ven `accounting` y `admin` (admin ve todo por
+diseño, SDD-0085). `commercial`, `operations`, `support`, `warehouse` y `marketing` no lo ven. Desde la
+SDD-0622 una persona puede tener un acceso adicional a un módulo bloqueado, con doble aviso, motivo y
+auditoría; ese extra abre Facturación y por eso también abre estos montos.
+
+**Decisión:** los montos se muestran si y solo si `moduleViewDenial(supabase, "invoices") === null`, la
+misma comprobación que abre `/studio/facturacion`. Es lo más restrictivo coherente con el sistema: no se
+inventa un criterio nuevo («solo `accounting`» dejaría fuera a administración, que ya ve toda la
 facturación) y no se abre a nadie que hoy no vea las facturas.
 
 **En el servidor:** `app/studio/(app)/embarques/page.tsx` evalúa el permiso. Sin permiso **no se
-consulta** `invoices` y la prop del monto no existe en el payload del componente cliente: el dato no
+consulta** `invoices` y la prop `montos` no existe en el payload del componente cliente: el dato no
 viaja al navegador. No basta con ocultarlo en la UI.
 
-### 3.2 De dónde sale
+### 4.2 De dónde sale
 
 - **Tabla:** `public.invoices`, leída con la sesión del usuario (RLS por tenant).
-- **Qué facturas son del contenedor:** las que tienen `shipment_id` en uno de los embarques del
-  contenedor (asignación vigente, §2). La carga de consolidados crea una factura por cliente y la enlaza
-  al primer embarque de ese cliente en ese contenedor; una factura hecha a mano desde un embarque también
-  queda enlazada por `shipment_id`.
+- **Qué facturas cuentan:** las que tienen `shipment_id` en un embarque del contenedor (asignación
+  vigente, §2). La carga de consolidados crea una factura por cliente y la enlaza al primer embarque de
+  ese cliente en ese contenedor; una factura hecha a mano desde un embarque también queda enlazada por
+  `shipment_id`. Se suman por embarque y después por cliente y por contenedor.
 - **Qué se excluye:** `deleted_at is not null` y `status = 'anulada'`. Los borradores **sí** cuentan:
   son lo que se va a cobrar (la carga del 65 deja sus facturas en borrador).
-- **Qué se suma:** `total_amount` (base + IVA) de las facturas en `USD`. Es el monto total facturado del
-  contenedor, no el saldo: lo que pidió Sam es el total a cobrar para comparar con el Excel.
-- **Otra moneda:** el sistema trabaja en dólares. Si alguna factura del contenedor está en otra moneda,
-  no se convierte aquí: se suma solo lo que está en USD y la cabecera dice cuántas facturas quedaron
-  fuera («+ 1 factura en otra moneda»).
+- **Por cobrar:** `total_amount` (base + IVA), lo facturado. **Cobrado:** `paid_amount`. Ambos solo de
+  las facturas en `USD`.
+- **Otra moneda:** el sistema trabaja en dólares. Una factura en otra moneda no se convierte aquí: no se
+  suma y la franja dice cuántas quedaron fuera.
 
-### 3.3 Sin facturas
+### 4.3 Sin facturas
 
-El contenedor 64 se cargó sin facturas. Si un contenedor no tiene ninguna factura viva (o todas están
-anuladas), la cabecera dice **«sin facturar»**, nunca «$0,00». Si la lectura de facturas falla, la
-cabecera dice «monto no disponible» y no inventa un número.
+El contenedor 64 se cargó sin facturas. Sin ninguna factura viva no anulada, la franja y las columnas
+dicen **«Sin facturar»**, nunca «$0.00». Si la lectura de facturas falla, la franja dice «No disponible»
+y no inventa un número.
 
-## 4. Pantalla
+## 5. Pantalla
 
-- Cabecera del contenedor (`emb-cont-header`), junto a los conteos: `N clientes · N envíos · N cajas`
-  y los m³ de siempre. Con permiso de dinero, debajo de los m³: «A cobrar $12,345.00», «Sin facturar» o
-  «Monto no disponible».
-- Cliente dentro del contenedor: «N envíos · N cajas» además de los m³.
-- Cajas con punto de miles (`es-VE`). El monto usa `fmtUsd` de `lib/money.ts`, el formato único de
+- **Cabecera cerrada** (`emb-cont-header`): pastillas «N clientes», «N envíos», «N cajas» y los m³. Sin
+  dinero.
+- **Al abrir el contenedor:**
+  1. Franja de totales (`<dl>`): Clientes · Cajas · Cajas recibidas · CBM total; con permiso, además
+     Por cobrar · Cobrado sobre `--warning-bg`.
+  2. Tabla «Detalle por cliente»: Cliente (nombre + Shipping Mark) · Envíos · Cajas · Recibidas · m³;
+     con permiso, además Por cobrar · Cobrado. Fila final «Total del contenedor».
+  3. Debajo, el acordeón por cliente con sus embarques (SDD-0643), que también dice «N cajas».
+- Cajas con punto de miles (`es-VE`). Los montos usan `fmtUsd` de `lib/money.ts`, el formato único de
   plata del ERP (decisión del founder 2026-08-11: `$1,234.50`).
 
-## 5. Fuera de alcance
+## 6. Fuera de alcance
 
-- Sin migraciones. Sin cambios en la carga de consolidados.
-- No se toca el saldo, el cobro ni el estado de las facturas.
-- La vista sin contenedores (lectura fallida, SDD-0643) no gana cajas.
+- Sin migraciones. Sin cambios en la carga de consolidados ni en las facturas.
+- La vista sin contenedores (lectura fallida, SDD-0643) no gana franja ni detalle.
 
-## 6. Aceptación
+## 7. Aceptación
 
-1. Para todos los roles con `shipments`, la cabecera de cada contenedor muestra el total de cajas, igual a
-   la suma de `consolidation_items.pieces` vigentes de sus embarques visibles.
-2. Cada cliente dentro del contenedor muestra sus cajas.
-3. Un rol sin vista de `invoices` (p. ej. `commercial`) no dispara ninguna lectura de `invoices` y la
-   página no le pasa monto al componente cliente (prueba del servidor).
-4. Con vista de `invoices`, el monto es la suma de `total_amount` USD de las facturas vivas no anuladas
-   del contenedor; sin facturas dice «sin facturar».
-5. Pruebas de las sumas por cliente y por contenedor y del render.
+1. Para todos los roles con `shipments`, la cabecera cerrada dice clientes, envíos, cajas y m³, y al
+   abrir aparecen la franja y el detalle por cliente con la fila de total.
+2. Las cajas por cliente y por contenedor son la suma de `consolidation_items.pieces` vigentes de sus
+   embarques visibles.
+3. Las cajas recibidas siguen §3; sin recepción dicen «—».
+4. Un rol sin vista de `invoices` (p. ej. `commercial`) no dispara ninguna lectura de `invoices` y la
+   página no le pasa montos al componente cliente (prueba del servidor).
+5. Con vista de `invoices`, por cobrar y cobrado siguen §4.2; sin facturas dicen «Sin facturar».
+6. Pruebas de las sumas por cliente y por contenedor y del render.
 
-## 7. Evidencia
+## 8. Evidencia
 
 Se registra en `.agents/handoffs/sdd-0661-embarques-cajas-y-monto.md`.

@@ -13,7 +13,8 @@
  * empieza por los contenedores. El tope sube a 500 embarques para no cortar
  * un consolidado; si se llega al tope, la vista lo dice.
  *
- * SDD-0661: las cajas salen con los contenedores. El monto a cobrar sólo se
+ * SDD-0661: las cajas salen con los contenedores; las cajas recibidas, de la
+ * recepción VE de cada contenedor (para todos). Por cobrar y cobrado sólo se
  * lee si la persona ve Facturación (módulo de dinero `invoices`): si no, no se
  * consulta y la prop no existe, así no viaja al navegador.
  */
@@ -28,6 +29,7 @@ import { leerInfoEmbarques } from "@/lib/studio/borrado/servidor";
 import {
   leerContenedoresDeEmbarques,
   leerMontosDeContenedores,
+  leerRecibidasDeContenedores,
 } from "@/lib/studio/embarques-contenedores-queries";
 import type { MontosDeContenedores } from "@/lib/studio/embarques-contenedores";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
@@ -60,9 +62,18 @@ export default async function EmbarquesPage() {
 
   // SDD-0661: el monto es dinero. Se decide aquí, en el servidor, con la misma
   // comprobación que abre Facturación; sin permiso no se lee `invoices`.
+  // Las cajas recibidas (recepción VE) son carga, no dinero: para todos.
   let montos: MontosDeContenedores | undefined;
-  if (contenedores && (await moduleViewDenial(supabase, "invoices")) === null) {
-    montos = await leerMontosDeContenedores(supabase, contenedores);
+  if (contenedores) {
+    const [recibidas, leidos] = await Promise.all([
+      leerRecibidasDeContenedores(supabase, contenedores.contenedores),
+      (async () =>
+        (await moduleViewDenial(supabase, "invoices")) === null
+          ? leerMontosDeContenedores(supabase, contenedores)
+          : undefined)(),
+    ]);
+    if (recibidas) contenedores.recibidasPorContenedor = recibidas;
+    montos = leidos;
   }
 
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de

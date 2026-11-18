@@ -24,7 +24,7 @@ function supabaseDoble() {
       estado.tablas.push(tabla);
       const filas =
         tabla === "invoices"
-          ? [{ shipment_id: "s1", currency: "USD", total_amount: "100.00", status: "borrador" }]
+          ? [{ shipment_id: "s1", currency: "USD", total_amount: "100.00", paid_amount: "25.00", status: "borrador" }]
           : [];
       const q = {
         select: () => q,
@@ -107,7 +107,7 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     expect(estado.tablas).toContain("invoices");
     expect(props.montos).toEqual({
       estado: "lista",
-      porContenedor: { c64: { facturas: 1, totalUsd: 100, otraMoneda: 0 } },
+      porEmbarque: { s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0 } },
     });
   });
 });
