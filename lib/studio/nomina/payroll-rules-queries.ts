@@ -22,8 +22,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  isMetodoPrestaciones,
   isMonedaMonto,
   num,
+  resolverAjustesLiquidacion,
   type PayrollRules,
   type PayrollRulesInput,
   type SalarialBonus,
@@ -34,6 +36,9 @@ const COLUMNAS_BASE =
   "min_salary, cestaticket, bono_guerra, sso_pct, rpe_pct, faov_pct, " +
   "sso_cap_sm, rpe_cap_sm, overtime_pct, night_pct, holiday_pct, " +
   "utilidades_days, bono_vacacional_days, vacaciones_days, salarial_bonuses, " +
+  // SDD-0658: los ajustes de la liquidación (0179, aplicada desde junio). Antes no se pedían y el
+  // finiquito usaba siempre «mejor», interés 0 y Art. 92 no incluido.
+  "prestaciones_method, prestaciones_interest_pct, ajena_78_incluye_92, " +
   "notes, created_by, created_at, updated_at, deleted_at";
 
 /**
@@ -102,6 +107,16 @@ function rowToPayrollRules(row: Record<string, unknown>): PayrollRules {
     vacaciones_days: Math.trunc(num(row.vacaciones_days)),
     salarial_bonuses: Array.isArray(bonuses) ? (bonuses as SalarialBonus[]) : [],
   };
+  // SDD-0658 · los ajustes de la liquidación (0179), solo si la columna vino.
+  if (row.prestaciones_method !== undefined) {
+    rules.prestaciones_method = isMetodoPrestaciones(row.prestaciones_method) ? row.prestaciones_method : "mejor";
+  }
+  if (row.prestaciones_interest_pct !== undefined) {
+    rules.prestaciones_interest_pct = num(row.prestaciones_interest_pct);
+  }
+  if (row.ajena_78_incluye_92 !== undefined) {
+    rules.ajena_78_incluye_92 = row.ajena_78_incluye_92 === true;
+  }
   // Lo de la 0556, solo si la columna vino: sin ella el campo queda sin definir.
   if (row.ingreso_minimo_integral_usd !== undefined) {
     rules.ingreso_minimo_integral_usd = numOpt(row.ingreso_minimo_integral_usd);
@@ -179,6 +194,13 @@ export function faltaFuncion(error: { code?: string | null; message?: string | n
 
 /** Lo que se le dice a quien guarda cuando la base cambia mientras tanto (B1). */
 export const MSG_BASE_ACTUALIZANDO = "La base se está actualizando; recarga e inténtalo de nuevo.";
+/**
+ * SDD-0658: la función de la 0556 no conoce los ajustes de la liquidación; se fijan justo después, sobre
+ * la versión que acaba de crear. Si ese segundo paso falla, la versión nueva quedó con los de fábrica.
+ */
+export const MSG_AJUSTES_LIQUIDACION_NO_GUARDADOS =
+  "Las reglas se guardaron, pero no los ajustes de la liquidación (método, interés y Art. 92). Vuelve a guardar.";
+
 /** Lo que se le dice cuando otra persona guardó una versión al mismo tiempo (B4). */
 export const MSG_GUARDADO_CONCURRENTE = "Otra persona guardó al mismo tiempo; recarga.";
 
@@ -253,6 +275,8 @@ export async function upsertPayrollRules(
   userId: string | null,
 ): Promise<{ data: PayrollRules | null; error: string | null; ampliada: boolean }> {
   const { rules: current, ampliada } = await getVigentePayrollRulesConEstado(supabase);
+  // SDD-0658: lo que no llegó en el formulario se conserva de la versión vigente.
+  const ajustes = resolverAjustesLiquidacion(input, current);
 
   // 1) Con la 0556: una función, una transacción.
   if (ampliada) {
@@ -272,6 +296,14 @@ export async function upsertPayrollRules(
         error: `No se pudo guardar las reglas: ${rpc.error.message}. La versión vigente no cambió.`,
         ampliada: true,
       };
+    }
+    // SDD-0658: la función no copia los ajustes de la liquidación; se fijan en la versión recién creada.
+    const fijados = await supabase
+      .from("nomina_payroll_rules")
+      .update(ajustes)
+      .eq("id", rpc.data as string);
+    if (fijados.error) {
+      return { data: null, error: MSG_AJUSTES_LIQUIDACION_NO_GUARDADOS, ampliada: true };
     }
     const leida = await supabase
       .from("nomina_payroll_rules")
@@ -324,6 +356,7 @@ export async function upsertPayrollRules(
       bono_vacacional_days: input.bono_vacacional_days,
       vacaciones_days: input.vacaciones_days,
       salarial_bonuses: input.salarial_bonuses,
+      ...ajustes,
       notes: input.notes,
       created_by: userId,
     })
