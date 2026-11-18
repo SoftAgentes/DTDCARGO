@@ -20,8 +20,8 @@ con el número que asignó el DG.
     `office_revisar_borrador_v2` copia del borrador, nunca del cliente.
   - **Preflight:**
     - exige la 0558 (y la 0549);
-    - si el conteo vivo ya tiene la regla de la 0560, no vuelve a mirar las filas: así es idempotente aunque la etapa 1
-      ya haya empezado;
+    - si el cuerpo vivo del conteo es exactamente el de la 0560 (md5 de `prosrc`), no vuelve a mirar las filas: así es
+      idempotente aunque la etapa 1 ya haya empezado, y un cuerpo que solo trae la regla en un comentario no lo burla;
     - si no la tiene y hay revisiones de criterio 2 de escalados con `c_acuse` en null (las únicas cuyo resultado
       cambiaría), **aborta** con «0560: hay N revisiones…». El mensaje lleva solo el número, ningún dato.
   - **Postflight:** search_path vacío, SECURITY DEFINER, EXECUTE solo para authenticated, y la regla presente en el
@@ -69,7 +69,8 @@ con el número que asignó el DG.
 
 | Comprobación | Resultado |
 |---|---|
-| Contrato de la 0560 en PGlite, control rojo, 6 mutantes, preflight (con su control) y desarme (12 pruebas) | PASÓ |
+| Contrato de la 0560 en PGlite (con la conversación mezclada, el escalado rechazado y la regla 1 ignorada), control rojo, 6 mutantes, preflight (con su control y el md5 que no se burla con un comentario) y desarme con su comentario (13 pruebas) | PASÓ |
+| Revisión con Opus sobre 2440d8ef2 | CHANGES_REQUESTED, sin problemas de lógica ni de seguridad. Corregidos: 1 (orden), 2 (cabecera), 3 (aviso de símbolos quitado: el chequeo descarta lo que ya crea una migración aplicada), 4 (contrato), 5 (comentario del desarme) y 6 (md5 de `prosrc`) |
 | Pantalla: escalado con «Acuse» en «No evaluado», respuesta sin marcas, el aviso nuevo; más `paso3b-piezas`, `oficina-contraste` y `casillas-0558` (54 pruebas) | PASÓ |
 | pending-migration-symbols (0 rojos, 4 amarillos declarados) | PASÓ |
 | Contrato en Postgres 17 («Contratos SQL» del CI) | lo corre el CI |
@@ -78,12 +79,10 @@ con el número que asignó el DG.
 
 ## Fuera de alcance detectado
 
-- **Cuando se retire la declaración de símbolos de la 0549**, `office_conteo_revisiones` va a seguir definido en una
-  migración pendiente (la 0560) y llamado desde `revisiones.ts`. Si la 0560 todavía no está aplicada para entonces,
-  el chequeo lo va a marcar: hace falta su declaración, o aplicar la 0560 antes.
-- **El aviso nuevo de la pantalla** («salvo «Acuse» en un escalado») solo es cierto con la 0560 aplicada. Si el web
-  se publica antes, conviene aplicar la 0560 primero, o aceptar unas horas de aviso adelantado (sin revisiones de
-  criterio 2 todavía, no cambia nada).
+- **REQUISITO DURO DE ORDEN (revisión con Opus, hallazgo 1):** la 0560 se aplica en producción **antes de fusionar
+  esta PR y de publicar el web**. Si el web sale antes, la pantalla deja «Acuse» en «No evaluado» en los escalados y
+  fabrica justo las filas que hacen abortar el preflight. El DG lo hace en ese orden y el portón de publicación lo
+  exige. El aviso nuevo («salvo «Acuse» en un escalado») también es cierto solo con la 0560 aplicada.
 - **El postflight busca la regla como texto en el cuerpo vivo**, así que un comentario la burlaría (como el B4 de la
   #655). Los mutantes lo tienen en cuenta.
 - **El kit de Hermes:** en las conversaciones que se escalan, Sam deja «Acuse» como viene («No evaluado»). «Cierre en
@@ -92,6 +91,6 @@ con el número que asignó el DG.
 ## Lo que falta (no es de esta PR)
 
 1. La revisión con Opus (la pide el DG) y la fusión por su portón.
-2. Aplicar la 0560 en producción **antes de que Sam empiece la etapa 1**, con el OK nominal de Sam para este
-   archivo y el runbook aplicar-migraciones-prod, con el DG.
-3. Publicar el web con esta pantalla.
+2. Aplicar la 0560 en producción **antes de fusionar esta PR y de publicar el web** (requisito duro), con el OK
+   nominal de Sam para este archivo y el runbook aplicar-migraciones-prod, con el DG.
+3. Fusionar y publicar el web con esta pantalla.

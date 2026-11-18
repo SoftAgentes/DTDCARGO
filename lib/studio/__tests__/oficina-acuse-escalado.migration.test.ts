@@ -161,6 +161,22 @@ describe("0560 · «Acuse» en los escalados (PGlite)", () => {
     expect(await run(sql)).toBeNull();
   }, 120_000);
 
+  it("PREFLIGHT: «ya aplicada» es el md5 exacto del cuerpo, no un texto: un conteo que solo trae la regla en un comentario no lo burla", async () => {
+    const m0558 = leer(`supabase/migrations/${M0558}`);
+    const cuerpo = m0558.slice(
+      m0558.indexOf("create or replace function public.office_conteo_revisiones"),
+      m0558.indexOf("-- ─── 4. Dueño, privilegios y comentarios"),
+    );
+    // El conteo de la 0558 con la marca de la 0560 en un comentario (lo que un strpos tomaría por «ya aplicada»).
+    const falso = cuerpo.replace(
+      "#variable_conflict use_column",
+      "#variable_conflict use_column\n-- r.tipo_borrador = 'escalado' and r.c_acuse is null",
+    );
+    expect(falso).not.toBe(cuerpo);
+    const error = await run([base(), filaAntes, falso, leer(`supabase/migrations/${M0560}`)].join("\n"));
+    expect(error).toContain("0560: hay 1 revisiones de criterio 2 de escalados");
+  }, 120_000);
+
   it("sin la comprobación de filas la 0560 se aplicaría encima: lo que frena es el preflight", async () => {
     const sinPreflight = mutar("  if v_n > 0 then\n", "  if false then\n")(leer(`supabase/migrations/${M0560}`));
     expect(await run([base(), filaAntes, sinPreflight].join("\n"))).toBeNull();
@@ -187,6 +203,10 @@ describe("0560 · «Acuse» en los escalados (PGlite)", () => {
         if has_function_privilege('anon', 'public.office_conteo_revisiones(smallint)', 'EXECUTE')
            or not has_function_privilege('authenticated', 'public.office_conteo_revisiones(smallint)', 'EXECUTE') then
           raise exception 'el desarme dejó mal el EXECUTE del conteo';
+        end if;
+        if obj_description('public.office_conteo_revisiones(smallint)'::regprocedure, 'pg_proc') not like '%regla de la 0558: solo criterio 2;%'
+           or obj_description('public.office_conteo_revisiones(smallint)'::regprocedure, 'pg_proc') like '%0560%' then
+          raise exception 'el desarme no volvió el comentario de la 0558';
         end if;
         if to_regclass('public.office_cierres') is null
            or to_regprocedure('public.office_revisar_borrador_v2(uuid, text, boolean, boolean, boolean, boolean, text, smallint)') is null then

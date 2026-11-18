@@ -6,7 +6,10 @@
 --    producción exige el OK nominal de Sam NOMBRANDO este archivo, el runbook
 --    aplicar-migraciones-prod y el Director General. Fusionar la PR NO autoriza
 --    aplicarla. REQUIERE la 0558 (su preflight para si falta). La 0558 no se toca.
---    El código funciona con o sin ella: sin la 0560 el conteo es el de la 0558.
+--    La pantalla de esta PR la NECESITA: aplicar la 0560 ANTES de publicar el web
+--    (y antes de fusionar). Esa pantalla deja «Acuse» en «No evaluado» en los
+--    escalados, justo las filas que hacen abortar el preflight si la 0560 llega
+--    después.
 --
 -- ── Por qué (decisión del DG por delegación de Sam, 17/11/2026) ──────────────
 -- Un escalado no lleva respuesta al cliente, así que «Acuse en la primera
@@ -61,10 +64,10 @@ begin
                        and column_name = 'tipo_borrador') then
     raise exception '0560 requiere la 0558 (office_cierres y office_revisiones.regla_casillas) y la 0549 (tipo_borrador)';
   end if;
-  -- Ya aplicada (el conteo vivo tiene la regla de la 0560): esas filas ya se cuentan así, nada cambia de
-  -- resultado. Volver a aplicarla no falla.
-  if pg_catalog.strpos(pg_catalog.pg_get_functiondef('public.office_conteo_revisiones(smallint)'::pg_catalog.regprocedure),
-                       'r.tipo_borrador = ''escalado'' and r.c_acuse is null') > 0 then
+  -- Ya aplicada (el cuerpo vivo del conteo es EXACTAMENTE el de la 0560: md5 de prosrc): esas filas ya se
+  -- cuentan así, nada cambia de resultado. Volver a aplicarla no falla.
+  if (select pg_catalog.md5(p.prosrc) from pg_catalog.pg_proc p
+       where p.oid = 'public.office_conteo_revisiones(smallint)'::pg_catalog.regprocedure) = 'a936f1ab6c7dd3a58a4c14ce58f9af36' then
     return;
   end if;
   -- Las únicas filas cuyo resultado cambiaría. Solo se cuentan: ningún dato sale en el mensaje.

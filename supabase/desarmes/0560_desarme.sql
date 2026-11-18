@@ -62,4 +62,10 @@ alter function public.office_conteo_revisiones(smallint) owner to postgres;
 revoke all on function public.office_conteo_revisiones(smallint) from public, anon, authenticated, service_role;
 grant execute on function public.office_conteo_revisiones(smallint) to authenticated;
 
+-- El comentario de la 0558 (copiado tal cual).
+comment on function public.office_conteo_revisiones(smallint) is
+  'SDD-0626 AC-1 (etapa 1: 10) y AC-7 (etapa 2: 20), regla de la 0558: solo criterio 2; correcta = aprobada con los '
+  '4 criterios en cumple y cierre que no falló (etapa 2: cierre que cumple; solo conversaciones con cierre); '
+  'inventada = c_cero_inventados false explícito. Solo is_platform_admin().';
+
 notify pgrst, 'reload schema';

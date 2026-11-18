@@ -12,7 +12,10 @@
 --        · respuesta con «Acuse» en null → incorrecta;
 --        · escalado con otra casilla en null → incorrecta;
 --        · escalado y respuesta con las cuatro en cumple → correctas;
---        · un cierre que falló sigue haciendo incorrecta la conversación (lo de la 0558 no cambia).
+--        · un cierre que falló sigue haciendo incorrecta la conversación (lo de la 0558 no cambia);
+--        · escalado RECHAZADO con «Acuse» en null → incorrecta;
+--        · una conversación con varias revisiones mezcladas (escalado y respuesta): cuenta la regla de cada una;
+--        · las revisiones de criterio 1 (la 0549) siguen sin contar.
 --   3. Aprobar un escalado no depende de «Acuse»: se aprueba con «Acuse» en null.
 --   4. Privilegios: anon y service_role no llaman al conteo; un authenticated sin is_platform_admin tampoco.
 -- El preflight (con una fila así ANTES de la 0560, no se aplica) se prueba en
@@ -60,13 +63,15 @@ insert into public.platform_admins (user_id) values ('00000000-0000-4000-8000-00
 insert into public.office_paused (pausada, motivo) values (false, 'Contrato 0560: despausada para la prueba.');
 
 -- Ayuda: una conversación de prueba hasta su borrador (respuesta o escalado), con las funciones de la 0548.
-create function public.t_borrador(p_conv integer, p_tipo text) returns uuid language plpgsql as $$
+create function public.t_borrador(p_conv integer, p_tipo text, p_msg integer default null) returns uuid
+language plpgsql as $$
 declare
   r record;
+  m integer := coalesce(p_msg, p_conv);
 begin
   insert into public.event_inbox (tipo, origen, clave_dedupe, prioridad, payload_ref, estado, triaje_en)
-  values ('chatwoot.message_created', 'chatwoot', 'chatwoot:conv:' || p_conv || ':msg:' || p_conv, 2,
-          'chatwoot:conversations/' || p_conv || '/messages/' || p_conv, 'triaje', now());
+  values ('chatwoot.message_created', 'chatwoot', 'chatwoot:conv:' || p_conv || ':msg:' || m, 2,
+          'chatwoot:conversations/' || p_conv || '/messages/' || m, 'triaje', now());
   perform public.office_convertir_triaje('soporte-chatwoot', 20);
   select * into r from public.office_tomar_tarea('soporte-chatwoot', 0, 300);
   if r.task_id is null then raise exception 't_borrador: no tomó la tarea %', p_conv; end if;
@@ -89,10 +94,10 @@ end;
 $$;
 
 create function public.t_v2(p_conv integer, p_tipo text, p_v text, p_acuse boolean, p_guion boolean, p_cero boolean,
-                            p_pii boolean) returns uuid language plpgsql as $$
+                            p_pii boolean, p_msg integer default null) returns uuid language plpgsql as $$
 declare
   v uuid;
-  b uuid := public.t_borrador(p_conv, p_tipo);
+  b uuid := public.t_borrador(p_conv, p_tipo, p_msg);
 begin
   perform public.t_sam();
   set local role authenticated;
@@ -156,15 +161,59 @@ begin
   reset role;
   c := public.t_conteo();
   if c <> '6/2/0' then raise exception 'CONTRATO 2: un cierre que falló no restó (%)', c; end if;
+
+  -- 16: escalado RECHAZADO con «Acuse» en null (falló «Guion o escalado») → incorrecta.
+  perform public.t_v2(16, 'escalado', 'rechazado', null, false, true, true);
+  c := public.t_conteo();
+  if c <> '7/2/0' then raise exception 'CONTRATO 2: un escalado rechazado contó como correcta (%)', c; end if;
 end;
 $dos$;
+
+-- 2b. Una conversación con varias revisiones mezcladas: el escalado cierra su tarea y la conversación sigue con
+-- una respuesta. Cuenta la regla de CADA revisión (todas tienen que valer).
+do $mezcla$
+declare
+  c text;
+begin
+  -- 20: escalado con «Acuse» en null (vale) + respuesta con «Acuse» en null (no vale) → incorrecta.
+  perform public.t_v2(20, 'escalado', 'aprobado', null, true, true, true, 2001);
+  perform public.t_v2(20, 'respuesta', 'aprobado', null, true, true, true, 2002);
+  -- 21: escalado con «Acuse» en null (vale) + respuesta con todo en cumple → correcta.
+  perform public.t_v2(21, 'escalado', 'aprobado', null, true, true, true, 2101);
+  perform public.t_v2(21, 'respuesta', 'aprobado', true, true, true, true, 2102);
+  if (select count(*) from public.office_revisiones r join public.office_tasks t on t.id = r.task_id
+       where r.regla_casillas = 2 and t.entidad_ref like 'chatwoot:conversations/2_/%') <> 4 then
+    raise exception 'CONTRATO 2: las conversaciones mezcladas no tienen sus 4 revisiones';
+  end if;
+  c := public.t_conteo();
+  if c <> '9/3/0' then raise exception 'CONTRATO 2: la conversación mezclada no contó como debía (%)', c; end if;
+end;
+$mezcla$;
+
+-- 2c. Las revisiones de criterio 1 (la función de la 0549) siguen sin contar, aunque digan «inventado».
+do $vieja$
+declare
+  b uuid := public.t_borrador(30, 'respuesta');
+  c text;
+begin
+  perform public.t_sam();
+  set local role authenticated;
+  perform public.office_revisar_borrador(b, 'rechazado', false, false, false, false, false, 'Fila vieja.', 1::smallint);
+  reset role;
+  if (select count(*) from public.office_revisiones where regla_casillas = 1) <> 1 then
+    raise exception 'CONTRATO 2: no quedó la revisión de criterio 1';
+  end if;
+  c := public.t_conteo();
+  if c <> '9/3/0' then raise exception 'CONTRATO 2: una revisión de criterio 1 contó (%)', c; end if;
+end;
+$vieja$;
 
 -- 1. Otra vez encima, ya con escalados de criterio 2 con «Acuse» sin evaluar: no falla y el conteo no cambia.
 \ir ../migrations/0560_oficina_acuse_en_escalados.sql
 
 do $uno$
 begin
-  if public.t_conteo() <> '6/2/0' then
+  if public.t_conteo() <> '9/3/0' then
     raise exception 'CONTRATO 1: aplicar la 0560 otra vez cambió el conteo';
   end if;
 end;
