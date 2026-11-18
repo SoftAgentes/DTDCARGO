@@ -5,8 +5,9 @@
 -- ni modifica una base alojada.
 --
 -- Aplica las migraciones REALES de auditoría (0258, 0261, 0267, 0294), de
--- embarques (0002, 0003, 0009), del Almacén CN (0008), la 0230 y las cajas
--- (0240, con sus triggers de sincronía). Clientes, facturas, contenedores,
+-- embarques (0002, 0003, 0004, 0009, 0305), del Almacén CN (0008), la 0230 y las
+-- cajas (0240, la estiba y la sincronía endurecida de la 0241 y el índice único
+-- parcial de la 0243, como en producción). Clientes, facturas, contenedores,
 -- recepciones de Venezuela, estiba, documentos, avisos, reclamos, prealertas y
 -- despacho van como dobles mínimos con las columnas de producción que lee la
 -- 0563: su preflight las exige por nombre.
@@ -94,10 +95,12 @@ alter publication supabase_realtime add table public.entity_audit_log;
 
 \ir ../migrations/0002_shipments.sql
 \ir ../migrations/0003_shipment_events_on_insert.sql
+\ir ../migrations/0004_add_destination_gps.sql
 \ir ../migrations/0008_warehouses_cn.sql
 \ir ../migrations/0009_shipment_delivery_pod.sql
 \ir ../migrations/0230_fix_rls_soft_delete_blocked.sql
 \ir ../migrations/0240_warehouse_boxes.sql
+\ir ../migrations/0305_shipment_planning_dates.sql
 
 -- ── Dobles mínimos (columnas de producción que lee o escribe la 0563) ──────
 create table public.clients (
@@ -119,9 +122,11 @@ create table public.consolidation_items (
   supplier_name text, cbm numeric(10,3) not null default 0, weight_kg numeric(12,2) not null default 0,
   pieces int not null default 0, created_at timestamptz not null default now()
 );
-create table public.consolidation_box_positions (
-  id uuid primary key default gen_random_uuid(), box_id uuid not null references public.warehouse_boxes(id)
-);
+-- Lo que la 0241 necesita para crear la estiba (sólo las columnas que toca).
+create table public.container_types (code text primary key);
+create table public.operario_pins (id uuid primary key);
+\ir ../migrations/0241_estiba_por_zonas.sql
+\ir ../migrations/0243_warehouse_boxes_seq_partial_unique.sql
 create table public.warehouse_receipts_ve (id uuid primary key, tenant_id uuid not null, deleted_at timestamptz);
 create table public.warehouse_receipt_ve_boxes (
   id uuid primary key default gen_random_uuid(), receipt_id uuid not null references public.warehouse_receipts_ve(id),
@@ -248,8 +253,18 @@ insert into public.warehouse_receipt_ve_boxes (receipt_id, code, markbox, scanne
 select pg_temp.fid('ve'), b.code, b.markbox, case when b.seq = 5 then now() end
   from public.warehouse_boxes b where b.receipt_id = pg_temp.fid('WR-DTD-9007') and b.seq in (4, 5);
 -- DTD-9008: todas sus cajas tienen historia de estiba.
-insert into public.consolidation_box_positions (box_id)
-select b.id from public.warehouse_boxes b where b.receipt_id = pg_temp.fid('WR-DTD-9008');
+insert into public.consolidation_box_positions (tenant_id, consolidation_id, box_id, zx, zy, zz, seq)
+select pg_temp.fid('tenant-A'), pg_temp.fid('cons'), b.id, 0, 0, 0, b.seq
+  from public.warehouse_boxes b where b.receipt_id = pg_temp.fid('WR-DTD-9008');
+-- DTD-9003: su recepción tiene tarifa congelada viva (0496).
+insert into public.shipment_rate_snapshots (id, tenant_id, receipt_id) values
+  (pg_temp.fid('rs-9003'), pg_temp.fid('tenant-A'), pg_temp.fid('WR-DTD-9003'));
+-- DTD-9001: llegada, planificación y GPS que la parte nueva hereda (el guard de 0305 pide la marca).
+select set_config('dtd.shipment_planning_write', 'rpc', true);
+update public.shipments set destination_gps = '10.0, -66.0', planned_arrival_at = now() + interval '20 days',
+  arrived_destination_at = now() - interval '1 day'
+ where id = pg_temp.fid('DTD-9001');
+select set_config('dtd.shipment_planning_write', '', true);
 
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
 
@@ -368,12 +383,12 @@ begin
       where receipt_id = pg_temp.fid('WR-DTD-9002') and deleted_at is null) = v_codigos[1:4],
     'bajar cajas no borró las de seq más alto');
 
-  -- Volver a subir tras bajar: el trigger de 0240 numeraría encima de una caja borrada.
+  -- Volver a subir tras bajar: con el índice parcial de la 0243 no choca.
   v_r := pg_temp.corregir('operations-A', 'DTD-9002', 5, null, null, 'Vuelve la caja');
-  perform pg_temp.afirmar(v_r -> 'r' -> 'blockers' = '{"cajas_borradas": 2}'::jsonb,
-    'subir cajas tras borrar no quedó bloqueado: ' || v_r::text);
+  perform pg_temp.afirmar(v_r -> 'r' ->> 'outcome' = 'corrected' and pg_temp.medidas('DTD-9002') ->> 'cajas' = '5',
+    'subir cajas tras borrar no dejó 5 cajas vivas: ' || v_r::text);
 
-  v_r := pg_temp.corregir('operations-A', 'DTD-9002', 4, 1.800, 310.50, 'Lo mismo otra vez');
+  v_r := pg_temp.corregir('operations-A', 'DTD-9002', 5, 1.800, 310.50, 'Lo mismo otra vez');
   perform pg_temp.afirmar(v_r ->> 'sqlstate' = '22023', 'aceptó corregir a las mismas medidas: ' || v_r::text);
 end;
 $corregir$;
@@ -396,7 +411,9 @@ begin
   -- El borrador avisa y no bloquea.
   v_r := pg_temp.corregir('operations-A', 'DTD-9003', null, 1.790, null, null, true);
   perform pg_temp.afirmar(v_r -> 'r' ->> 'outcome' = 'preview' and v_r -> 'r' -> 'warnings' ? 'borrador_factura',
-    'el borrador de factura no avisó o bloqueó: ' || v_r::text);
+    'el borrador de factura no avisó al corregir o bloqueó: ' || v_r::text);
+  perform pg_temp.afirmar(v_r -> 'r' -> 'warnings' ->> 'tarifa_congelada' = '1',
+    'corregir no avisó la tarifa congelada: ' || v_r::text);
 
   -- Sin contenedor ni recepción: el CBM sí; las cajas no.
   v_r := pg_temp.corregir('operations-A', 'DTD-9009', null, 0.900, null, 'Embarque suelto');
@@ -434,6 +451,14 @@ begin
   perform pg_temp.afirmar((select s.code = 'DTD-9001-C' and s.client_markbox = 'SINT-1002' and s.client_name = 'Cliente Ficticio B'
       and s.status = 'in_transit' and s.shipment_service = 'consolidacion' and s.group_reference = 'DTD-9001'
       from public.shipments s where s.id = v_nuevo), 'la parte nueva no tiene código, dueño, estado o grupo');
+  perform pg_temp.afirmar((select n.notes is null and o.notes = 'Nota sintética'
+      from public.shipments n, public.shipments o where n.id = v_nuevo and o.id = pg_temp.fid('DTD-9001')),
+    'la parte nueva heredó las notas del original');
+  perform pg_temp.afirmar((select n.destination_gps = o.destination_gps
+      and n.arrived_destination_at = o.arrived_destination_at and n.planned_arrival_at = o.planned_arrival_at
+      and n.planning_timezone = o.planning_timezone
+      from public.shipments n, public.shipments o where n.id = v_nuevo and o.id = pg_temp.fid('DTD-9001')),
+    'la parte nueva no heredó la llegada, la planificación o el GPS');
   perform pg_temp.afirmar(pg_temp.medidas('DTD-9001-C') = '{"s_cbm": 0.400, "s_kg": 80.00, "i_cbm": 0.400, "i_kg": 80.00,
       "i_pieces": 2, "r_boxes": 2, "r_cbm": 0.400, "r_kg": 80.00, "cajas": 2}'::jsonb,
     'la parte nueva no tiene sus medidas: ' || pg_temp.medidas('DTD-9001-C')::text);
@@ -463,9 +488,12 @@ begin
   -- Con códigos de caja elegidos y el borrador de factura (aviso, no bloqueo).
   v_r := pg_temp.partir('admin-A', 'DTD-9003', 'C-A', 1, 0.000, 0.00, 'Separar una caja del mismo cliente',
     array[(select code from public.warehouse_boxes where receipt_id = pg_temp.fid('WR-DTD-9003') and seq = 1)]);
-  perform pg_temp.afirmar(v_r -> 'r' ->> 'outcome' = 'split' and v_r -> 'r' -> 'warnings' ? 'borrador_factura'
-    and v_r -> 'r' ->> 'new_shipment_code' = 'DTD-9003-B',
-    'no partió con un código de caja elegido y un borrador: ' || v_r::text);
+  perform pg_temp.afirmar(v_r -> 'r' ->> 'outcome' = 'split' and v_r -> 'r' ->> 'new_shipment_code' = 'DTD-9003-B',
+    'no partió con un código de caja elegido: ' || v_r::text);
+  perform pg_temp.afirmar(v_r -> 'r' -> 'warnings' ? 'borrador_factura',
+    'el borrador de factura no avisó al partir: ' || v_r::text);
+  perform pg_temp.afirmar(v_r -> 'r' -> 'warnings' ->> 'tarifa_congelada' = '1',
+    'partir no avisó la tarifa congelada: ' || v_r::text);
   perform pg_temp.afirmar((select seq from public.warehouse_boxes b join public.warehouse_receipts_cn r on r.id = b.receipt_id
       where r.shipment_id = (v_r -> 'r' ->> 'new_shipment_id')::uuid) = 1, 'no movió la caja elegida');
   perform pg_temp.afirmar((select lines from public.invoices where id = pg_temp.fid('inv-draft'))

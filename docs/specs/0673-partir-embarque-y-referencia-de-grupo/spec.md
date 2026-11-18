@@ -137,7 +137,7 @@ Validaciones (22023):
 
 | Dónde | Original | Parte nueva |
 |---|---|---|
-| `shipments` | `volume_m3` y `weight_kg` quedan con el resto | Fila nueva: mismo tenant, origen, destino, servicio, estado y `vehicle_category`; cliente y Shipping Mark de `p_client_id`; CBM y peso de la parte; `code` según D2; `group_reference` heredada (§6) |
+| `shipments` | `volume_m3` y `weight_kg` quedan con el resto | Fila nueva: mismo tenant, origen, destino, GPS, servicio, estado y `vehicle_category`; la misma llegada (`arrived_destination_at`, para que el bodegaje no se reinicie) y la misma planificación (`planned_*`, `planning_timezone`); cliente y Shipping Mark de `p_client_id`; CBM y peso de la parte; `code` según D2; `group_reference` heredada (§6). **`notes` va en nulo**: son del dueño original y el nuevo las leería por la API (0416) |
 | `consolidation_items` | Su línea vigente queda con el resto en `cbm`, `weight_kg` y `pieces` | Línea nueva en el mismo contenedor, con el Shipping Mark y el nombre del dueño nuevo |
 | `warehouse_receipts_cn` | `boxes`, `total_cbm` y `total_weight_kg` quedan con el resto | Recepción nueva `<código de la recepción original>-B` (sufijo libre siguiente si ya existe), mismo almacén, estado y `received_at` |
 | `warehouse_boxes` | Conserva las cajas que no se van | Se le **mueven** (`receipt_id`, Shipping Mark y nombre) las cajas de `p_box_codes`, o, si no se pasan, las `p_boxes` de `seq` más alto. Se conserva el código físico de cada caja, porque puede tener la etiqueta impresa |
@@ -176,7 +176,7 @@ Los avisos no bloquean. Se devuelven en el resultado y van en el evento.
 
 - **Borrador de factura** que factura el embarque. No se toca. Contabilidad lo ajusta antes de emitir y crea el del dueño nuevo si corresponde. Ver D3.
 - Documentos del Portal (`shipment_documents`) y avisos programados: se quedan con el original y se cuentan.
-- Tarifa congelada (0496) en la recepción: la nueva no la hereda.
+- Tarifa congelada (0496) en la recepción: guarda su propio CBM y su monto (`cbm`, `amount_to_invoice`), y la usa lo pendiente de facturar. **No se toca** (es dinero; decisión del DG, 2026-11-18). La del original queda calculada con el CBM entero y la parte nueva no la hereda: contabilidad (administración o contabilidad) la reemplaza antes de facturar.
 - El contenedor ya zarpó o arribó: se informa, no bloquea.
 
 ## 5. `correct_shipment_measures`: corregir cajas, CBM y peso
@@ -193,8 +193,11 @@ Reglas:
 - **Si suben las cajas,** el trigger de 0240 crea códigos nuevos para las cajas que faltan. Esas cajas no tienen etiqueta impresa, y la vista previa lo dice.
 - **Si bajan las cajas,** el trigger borra (lógico) las de `seq` más alto que no estén estibadas. Si no alcanzan las no estibadas, se bloquea.
 - **Sin contenedor ni recepción:** se corrige solo `shipments`, igual que hoy pero con motivo y evento.
-- **Bloqueos:** los de §4.5, salvo «medidas desalineadas», porque esta función es justamente la que las alinea. Si se bajan cajas y alguna está escaneada en Venezuela, también se bloquea.
-- **Avisos:** borrador de factura, y contenedor zarpado o arribado.
+- **Bloqueos:** entregado o cancelado, factura emitida, orden de despacho viva, más de una recepción CN viva, cajas físicas que no coinciden con el conteo, cajas que se quitarían estibadas o ya en una recepción de Venezuela.
+  - No bloquean «medidas desalineadas», porque esta función es justamente la que las alinea.
+  - Tampoco bloquean el reclamo ni la prealerta (sí bloquean al partir): no dependen de las medidas y corregir no cambia el dueño ni la carga de nadie más. Partir sí reparte la carga entre dos clientes, y un reclamo o una prealerta del original quedaría sin saber de cuál parte es.
+- **Avisos:** borrador de factura, contenedor zarpado o arribado, cajas nuevas sin etiqueta y **tarifa congelada** (no cambia sola; contabilidad la reemplaza).
+- **Cajas físicas:** las crea y las borra el trigger de 0240 con la sincronía de la 0241. Desde la 0243 el número de caja es único solo entre las vivas: volver a subir después de bajar no choca. El preflight exige ese cuerpo de la función (md5) y ese índice.
 - **Auditoría:** `shipment_measures_corrected`, con el antes y el después de los tres lugares.
 
 ## 6. Referencia del grupo

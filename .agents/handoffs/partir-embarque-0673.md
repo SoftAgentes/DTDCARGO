@@ -36,6 +36,19 @@
 ## Pendientes de esta tarea
 
 - Build y CI de la PR.
+- Revisión del delta (B1-B4 y no bloqueantes 1, 2, 3, 4, 5 y 8 de la revisión Opus): la relanza el DG.
+
+## Cambios por la revisión Opus (CHANGES_REQUESTED en `dbf39c12a`)
+
+- B1: la fixture aplica la 0241 y la 0243 como producción; se quitó el bloqueo `cajas_borradas` (la 0243 dejó el índice único solo sobre las vivas). Subir después de bajar queda probado.
+- B2: `tarifa_congelada` avisa también al corregir; al partir, el texto dice que la tarifa del original queda con el CBM entero y contabilidad la reemplaza. No se toca la tarifa.
+- B3: la parte nueva nace con `notes` en nulo.
+- 1: la parte nueva copia GPS, llegada y planificación.
+- 2: el preflight exige el md5 del cuerpo de `sync_boxes_for_receipt` (0241) y el índice de la 0243.
+- 3: la spec §5 justifica por qué corregir no bloquea por reclamo ni prealerta.
+- 4: mutantes nuevos para las dos postcondiciones de partir, el evento de corrección, el borrador y la tarifa en cada función, las notas, la planificación y el md5.
+- 5: `estaEnContenedor` falla cerrado.
+- 8: `updateShipmentGroupReference` falla si no actualizó ninguna fila.
 - Revisión `/ui-check` de la franja «Carga».
 
 ## FUERA DE ALCANCE DETECTADO
@@ -43,4 +56,4 @@
 - La carga de consolidados podría llenar `group_reference` con el remitente (D6, spec siguiente).
 - Buscar por grupo de WeChat en Embarques y Tracking.
 - Ofrecer «Corregir medidas» y «Partir» también desde el panel de Embarques.
-- `sync_boxes_for_receipt` (0240/0241) calcula el `seq` siguiente solo sobre cajas vivas: si hay cajas borradas con `seq` alto, crear cajas nuevas puede chocar con `warehouse_boxes_receipt_seq_key`. Es previo a esta spec y no se tocó; «Corregir medidas» lo detecta y bloquea (`cajas_borradas`) en vez de fallar.
+- Puntos 6 y 7 de la revisión Opus sobre `dbf39c12a` (2026-11-18): fuera de alcance por decisión del DG; su texto está en la revisión, no se copió acá.

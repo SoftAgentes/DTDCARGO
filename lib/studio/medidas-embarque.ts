@@ -19,7 +19,6 @@ export type MedidasBloqueo =
   | "recepciones"
   | "cajas_desalineadas"
   | "cajas_estibadas"
-  | "cajas_borradas"
   | "caja_en_recepcion_ve"
   | "caja_escaneada_ve"
   | "caja_ajena"
@@ -164,8 +163,6 @@ export function textoBloqueoMedidas(tipo: string, v: string | number): string {
       return `Su recepción tiene ${plural(n, "caja física", "cajas físicas")} y otro conteo. Revísala en el Almacén CN.`;
     case "cajas_estibadas":
       return `${plural(n, "caja ya está estibada", "cajas ya están estibadas")}: no se pueden quitar.`;
-    case "cajas_borradas":
-      return `Su recepción tiene ${plural(n, "caja borrada", "cajas borradas")} con número más alto: agregar cajas chocaría. Revísala en el Almacén CN.`;
     case "caja_en_recepcion_ve":
       return `${plural(n, "caja que se quitaría ya está", "cajas que se quitarían ya están")} en una recepción de Venezuela.`;
     case "caja_escaneada_ve":
@@ -189,8 +186,14 @@ export function textosBloqueosMedidas(blockers: Record<string, string | number>)
   return Object.entries(blockers).map(([k, v]) => textoBloqueoMedidas(k, v));
 }
 
-/** Lo que no impide, pero hay que saber. */
-export function textosAvisosMedidas(warnings: Record<string, string | number>): string[] {
+/**
+ * Lo que no impide, pero hay que saber. `accion` cambia el texto de la tarifa
+ * congelada: al partir, la del original queda calculada con el CBM entero.
+ */
+export function textosAvisosMedidas(
+  warnings: Record<string, string | number>,
+  accion: "corregir" | "partir" = "corregir",
+): string[] {
   const out: string[] = [];
   for (const [k, v] of Object.entries(warnings)) {
     const n = typeof v === "number" ? v : 0;
@@ -208,7 +211,11 @@ export function textosAvisosMedidas(warnings: Record<string, string | number>): 
         out.push("La recepción de Venezuela ya existe y no tendrá las cajas nuevas.");
         break;
       case "tarifa_congelada":
-        out.push("La recepción tiene tarifa congelada: la parte nueva no la hereda.");
+        out.push(
+          accion === "partir"
+            ? "La tarifa congelada del original queda calculada con el CBM entero y la parte nueva no la hereda. Contabilidad (administración o contabilidad) debe reemplazarla antes de facturar."
+            : "La recepción tiene tarifa congelada con el CBM anterior: no cambia sola. Contabilidad (administración o contabilidad) debe reemplazarla antes de facturar.",
+        );
         break;
       case "documentos_quedan":
         out.push(`${plural(n, "documento del Portal se queda", "documentos del Portal se quedan")} con el embarque original.`);

@@ -256,9 +256,19 @@ function Motivo({ id, value, onChange, ejemplo }: { id: string; value: string; o
   );
 }
 
-function Motivos({ blockers, warnings, tituloBloqueo }: { blockers: Record<string, string | number>; warnings: Record<string, string | number>; tituloBloqueo: string }) {
+function Motivos({
+  blockers,
+  warnings,
+  tituloBloqueo,
+  accion,
+}: {
+  blockers: Record<string, string | number>;
+  warnings: Record<string, string | number>;
+  tituloBloqueo: string;
+  accion: "corregir" | "partir";
+}) {
   const bloqueos = textosBloqueosMedidas(blockers);
-  const avisos = textosAvisosMedidas(warnings);
+  const avisos = textosAvisosMedidas(warnings, accion);
   return (
     <>
       {bloqueos.length > 0 && (
@@ -410,7 +420,7 @@ function CorregirMedidasModal({
         </Aviso>
       )}
 
-      {previa && <Motivos blockers={previa.blockers} warnings={previa.warnings} tituloBloqueo="No se puede corregir todavía" />}
+      {previa && <Motivos blockers={previa.blockers} warnings={previa.warnings} tituloBloqueo="No se puede corregir todavía" accion="corregir" />}
 
       {previa && previa.outcome === "preview" && (
         <>
@@ -549,7 +559,7 @@ function PartirEmbarqueModal({
         </Aviso>
       )}
 
-      {previa && <Motivos blockers={previa.blockers} warnings={previa.warnings} tituloBloqueo="No se puede partir todavía" />}
+      {previa && <Motivos blockers={previa.blockers} warnings={previa.warnings} tituloBloqueo="No se puede partir todavía" accion="partir" />}
 
       {previa && previa.outcome === "preview" && p && (
         <>

@@ -40,9 +40,9 @@
           "kind": "column",
           "callSites": [
             "app/studio/(app)/tracking/[id]/actions.ts:813",
-            "lib/studio/medidas-embarque-queries.ts:69",
-            "lib/studio/medidas-embarque-queries.ts:71",
-            "lib/studio/medidas-embarque-queries.ts:73"
+            "lib/studio/medidas-embarque-queries.ts:73",
+            "lib/studio/medidas-embarque-queries.ts:75",
+            "lib/studio/medidas-embarque-queries.ts:77"
           ]
         }
       ],
@@ -58,12 +58,12 @@
           "degradation": "Sin la 0563 la vista previa y el partir devuelven «Esta acción todavía no está disponible.» con noDisponible y el modal no ofrece confirmar. No se escribe nada."
         },
         {
-          "site": "lib/studio/medidas-embarque-queries.ts:72",
+          "site": "lib/studio/medidas-embarque-queries.ts:76",
           "contains": "if (error) return undefined;",
           "degradation": "Sin la columna group_reference la lectura falla y devuelve undefined: la ficha no muestra el campo «Grupo de WeChat». El resto de la ficha se lee por DETAIL_COLUMNS, que no la nombra."
         },
         {
-          "site": "app/studio/(app)/tracking/[id]/actions.ts:817",
+          "site": "app/studio/(app)/tracking/[id]/actions.ts:821",
           "contains": "PGRST204",
           "degradation": "Si alguien guarda el grupo sin la columna, PostgREST responde PGRST204 (o 42703) y la acción dice «Esta acción todavía no está disponible.» sin escribir."
         }

@@ -11,6 +11,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type CargaDelEmbarque = {
   /** Tiene línea vigente en un contenedor vivo. */
   enContenedor: boolean;
+  /** No se pudo leer: quien guarda trata el embarque como si estuviera en un contenedor. */
+  lecturaFallida?: boolean;
   contenedor: { ref: string | null; containerNo: string | null; status: string | null } | null;
   cajas: number | null;
   cbm: number | null;
@@ -34,14 +36,16 @@ export async function leerCargaDelEmbarque(
     .eq("shipment_id", shipmentId)
     .order("created_at", { ascending: false })
     .limit(20);
-  if (error || !items || items.length === 0) return vacio;
+  if (error) return { ...vacio, lecturaFallida: true };
+  if (!items || items.length === 0) return vacio;
 
   const ids = [...new Set(items.map((i) => String(i.consolidation_id)))];
-  const { data: cons } = await supabase
+  const { data: cons, error: consError } = await supabase
     .from("consolidations")
     .select("id, ref, container_no, status")
     .in("id", ids)
     .is("deleted_at", null);
+  if (consError) return { ...vacio, lecturaFallida: true };
   const vivos = new Map((cons ?? []).map((c) => [String(c.id), c]));
   const vigente = items.find((i) => vivos.has(String(i.consolidation_id)));
   if (!vigente) return vacio;
@@ -73,7 +77,12 @@ export async function leerGrupoDelEmbarque(
   return data?.group_reference ?? null;
 }
 
-/** ¿El embarque tiene línea vigente en un contenedor vivo? Lo usa el servidor al guardar. */
+/**
+ * ¿El embarque tiene línea vigente en un contenedor vivo? Lo usa el servidor al
+ * guardar. Falla cerrado: si no se puede leer, responde que sí y la ficha no
+ * escribe peso ni CBM por el camino sin motivo.
+ */
 export async function estaEnContenedor(supabase: SupabaseClient, shipmentId: string): Promise<boolean> {
-  return (await leerCargaDelEmbarque(supabase, shipmentId)).enContenedor;
+  const carga = await leerCargaDelEmbarque(supabase, shipmentId);
+  return carga.enContenedor || carga.lecturaFallida === true;
 }

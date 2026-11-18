@@ -808,10 +808,14 @@ export async function updateShipmentGroupReference(
   const grupo = validarGrupo(value);
   if (!grupo.ok) return { ok: false, error: grupo.error };
 
-  const { error } = await supabase
+  const { data: filas, error } = await supabase
     .from("shipments")
     .update({ group_reference: grupo.valor })
-    .eq("id", shipmentId);
+    .eq("id", shipmentId)
+    .select("id");
+  if (!error && (filas ?? []).length === 0) {
+    return { ok: false, error: "No encontramos este embarque o no puedes editarlo. Recarga la página." };
+  }
   if (error) {
     // Sin la 0563 la columna no existe (PGRST204 / 42703).
     if (error.code === "PGRST204" || error.code === "42703") {

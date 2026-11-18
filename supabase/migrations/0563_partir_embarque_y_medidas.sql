@@ -102,7 +102,10 @@ begin
       ('public.dispatch_orders', 'status'),
       ('public.dispatch_order_packages', 'od_id'), ('public.dispatch_order_packages', 'package_kind'),
       ('public.dispatch_order_packages', 'package_id'),
-      ('public.shipments', 'created_at'),
+      ('public.shipments', 'created_at'), ('public.shipments', 'destination_gps'),
+      ('public.shipments', 'arrived_destination_at'), ('public.shipments', 'planned_departure_at'),
+      ('public.shipments', 'planned_arrival_at'), ('public.shipments', 'planned_delivery_at'),
+      ('public.shipments', 'planning_timezone'),
       ('public.shipment_rate_snapshots', 'tenant_id'), ('public.shipment_rate_snapshots', 'receipt_id'),
       ('public.shipment_rate_snapshots', 'superseded_at'),
       ('public.shipment_documents', 'tenant_id'), ('public.shipment_documents', 'shipment_id'),
@@ -149,6 +152,21 @@ begin
       and tgname = 'warehouse_receipts_cn_sync_boxes_ins' and not tgisinternal and tgenabled <> 'D'
   ) then
     raise exception '0563 requiere los triggers warehouse_receipts_cn_sync_boxes_ins/_upd (0240) activos';
+  end if;
+  -- Partir y corregir confían en lo que hace hoy sync_boxes_for_receipt (0241: no
+  -- borra cajas estibadas; numera desde el seq vivo más alto, con el índice único
+  -- parcial de la 0243). Si el cuerpo cambió, esta migración no lo conoce.
+  if (select pg_catalog.md5(p.prosrc) from pg_catalog.pg_proc p
+       where p.oid = pg_catalog.to_regprocedure('public.sync_boxes_for_receipt(uuid)'))
+     is distinct from 'a6e9542fee29b37e015277696433a125' then
+    raise exception '0563 abortada: sync_boxes_for_receipt no es la de la 0241';
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_indexes
+    where schemaname = 'public' and tablename = 'warehouse_boxes'
+      and indexname = 'warehouse_boxes_receipt_seq_live_key'
+  ) then
+    raise exception '0563 requiere el índice warehouse_boxes_receipt_seq_live_key (0243)';
   end if;
 
   v_writer := pg_catalog.to_regprocedure(
@@ -356,6 +374,12 @@ begin
      where o.tenant_id = v_tenant and o.status <> 'cancelada'
        and dp.package_kind = 'warehouse_receipt_cn' and dp.package_id = v_rec.id;
     if v_n > 0 then v_blockers := v_blockers || pg_catalog.jsonb_build_object('orden_despacho', v_n); end if;
+
+    -- La tarifa congelada (0496) guarda su propio CBM y su monto: no se recalcula
+    -- sola (es dinero). Contabilidad la reemplaza (decisión del DG, 2026-11-18).
+    select pg_catalog.count(*) into v_n from public.shipment_rate_snapshots rs
+     where rs.tenant_id = v_tenant and rs.receipt_id = v_rec.id and rs.superseded_at is null;
+    if v_n > 0 then v_warnings := v_warnings || pg_catalog.jsonb_build_object('tarifa_congelada', v_n); end if;
   end if;
 
   -- Cajas físicas: lo que hará el trigger de 0240/0241 al cambiar `boxes`.
@@ -366,15 +390,6 @@ begin
       v_blockers := v_blockers || pg_catalog.jsonb_build_object('cajas_desalineadas', v_n);
     elsif p_boxes > v_rec.boxes then
       v_warnings := v_warnings || pg_catalog.jsonb_build_object('cajas_nuevas_sin_etiqueta', p_boxes - v_rec.boxes);
-      -- El trigger numera las nuevas desde el seq vivo más alto: una caja borrada
-      -- con seq mayor chocaría con warehouse_boxes_receipt_seq_key (0240).
-      select pg_catalog.count(*) into v_n from public.warehouse_boxes b
-       where b.receipt_id = v_rec.id and b.deleted_at is not null
-         and b.seq > (select coalesce(pg_catalog.max(b2.seq), 0) from public.warehouse_boxes b2
-                       where b2.receipt_id = v_rec.id and b2.deleted_at is null);
-      if v_n > 0 then
-        v_blockers := v_blockers || pg_catalog.jsonb_build_object('cajas_borradas', v_n);
-      end if;
       select pg_catalog.count(*) into v_n
         from public.warehouse_boxes b
         join public.warehouse_receipt_ve_boxes vb on vb.code = b.code
@@ -777,13 +792,18 @@ begin
   perform pg_catalog.set_config('dtd.audit_reason', v_reason, true);
 
   -- El embarque nuevo: lo mismo del original, con el dueño, las medidas y el código nuevos.
+  -- Sin `notes`: son del dueño original y el nuevo las leería en el Portal (0416).
+  -- Llegada, planificación y GPS sí: el bodegaje no se reinicia.
   insert into public.shipments
-    (tenant_id, code, client_name, client_markbox, origin, destination, shipment_service, status,
-     weight_kg, volume_m3, vehicle_category, notes, group_reference, created_at)
+    (tenant_id, code, client_name, client_markbox, origin, destination, destination_gps, shipment_service,
+     status, weight_kg, volume_m3, vehicle_category, notes, group_reference, arrived_destination_at,
+     planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone, created_at)
   values
     (v_tenant, v_new_code, v_client.name, v_client.markbox, v_ship.origin, v_ship.destination,
-     v_ship.shipment_service, v_ship.status, p_weight_kg, p_cbm, v_ship.vehicle_category, v_ship.notes,
-     coalesce(v_ship.group_reference, v_ship.code), v_ship.created_at)
+     v_ship.destination_gps, v_ship.shipment_service, v_ship.status, p_weight_kg, p_cbm,
+     v_ship.vehicle_category, null, coalesce(v_ship.group_reference, v_ship.code),
+     v_ship.arrived_destination_at, v_ship.planned_departure_at, v_ship.planned_arrival_at,
+     v_ship.planned_delivery_at, v_ship.planning_timezone, v_ship.created_at)
   returning id into v_new_ship;
 
   -- La línea de tiempo del original, para que el dueño nuevo la vea en el Portal.
