@@ -16,6 +16,7 @@
  * Iconografía: Icon set Studio. Cero emojis decorativos.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import {
   startTransition,
   useActionState,
@@ -1255,7 +1256,7 @@ function Step4Confirm({
           )}
           <SummaryRow label={t(lang, "pwa.receipt.supplier_label")} value={reception.supplier || "—"} />
           <SummaryRow label={t(lang, "pwa.receipt.boxes_short")} value={reception.boxes} mono />
-          <SummaryRow label="CBM" value={`${reception.cbm} m³`} mono />
+          <SummaryRow label="CBM" value={formatCbm(reception.cbm, { unit: true })} mono />
           {reception.weight && (
             <SummaryRow label={t(lang, "pwa.receipt.weight_label")} value={`${reception.weight} kg`} mono />
           )}

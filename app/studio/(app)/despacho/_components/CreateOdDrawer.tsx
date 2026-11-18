@@ -9,6 +9,7 @@
  * Submit con HTML5 form id + DrawerFooter.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useActionState, useState } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
@@ -285,7 +286,7 @@ export function CreateOdDrawer({
             </div>
             <CapBar pct={usage.kg_pct} label="Peso" used={`${usage.kg_used.toFixed(0)} kg`} total={`${capacity.capacity_kg} kg`} />
             <div style={{ height: 8 }} />
-            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${usage.cbm_used.toFixed(1)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
+            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${formatCbm(usage.cbm_used)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
             {usage.overflow && (
               <div
                 style={{

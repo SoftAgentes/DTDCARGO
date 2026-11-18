@@ -83,3 +83,30 @@ describe("NumericInput · NUM-01 v1.1", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("NumericInput · CBM (type=volume) hasta 4 decimales", () => {
+  function renderVolume() {
+    const result = render(
+      <form aria-label="CBM">
+        <NumericInput name="cbm" aria-label="CBM" type="volume" />
+      </form>,
+    );
+    const input = screen.getByRole("textbox", { name: "CBM" });
+    const hidden = result.container.querySelector(
+      'input[type="hidden"][name="cbm"]',
+    ) as HTMLInputElement;
+    return { input, hidden, container: result.container };
+  }
+
+  it.each([
+    ["0.0012", "= 0.0012 m³"],
+    ["1.5", "= 1.5 m³"],
+    ["2", "= 2 m³"],
+    ["0.12", "= 0.12 m³"],
+  ])("«%s» se guarda tal cual y la vista no rellena con ceros", (texto, vista) => {
+    const { input, hidden, container } = renderVolume();
+    fireEvent.change(input, { target: { value: texto } });
+    expect(hidden.value).toBe(texto);
+    expect(container.textContent).toContain(vista);
+  });
+});
