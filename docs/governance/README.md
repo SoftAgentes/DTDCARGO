@@ -65,9 +65,9 @@ elevando el estado normativo. Lo que no aplica hoy se marca
 
 | Código | Política | Estado normativo | Estado del ERP | Evidencia / próximo gate |
 |---|---|---|---|---|
-| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |
-| MP-01 | Matriz de permanencia | aprobada v1.1 | SDD-0168 cerrado (DB-1/DB-2 en Cloud, APP en Producción, E2E verificado) | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md) |
-| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Adopción parcial · no aplica a agentes | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
+| SGE-00 | Principios constitucionales de experiencia | aprobada | Adopción parcial; plan por superficies y riesgo; excepción SGE-00.01 y .09 en «Facturar» de Embarques (EXC-0674; dueño Sam; revisión 2027-01-31) | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) · SDD-0674 · [excepción «Facturar» en Embarques](reviews/excepcion-0674-facturar-embarques-2026-11-18.md) |
+| MP-01 | Matriz de permanencia | aprobada v1.1 | SDD-0168 cerrado (DB-1/DB-2 en Cloud, APP en Producción, E2E verificado); excepción R3 sin motivo tecleado en «Facturar» de Embarques (EXC-0674; dueño Sam; revisión 2027-01-31) | [REV-MP-005](reviews/mp-01-comments-preview-e2e.md) · SDD-0674 · [excepción «Facturar» en Embarques](reviews/excepcion-0674-facturar-embarques-2026-11-18.md) |
+| BTN-01 | Semántica, jerarquía y contrato de botones | aprobada v1.1 | Adopción parcial · no aplica a agentes; excepción de vocabulario «Facturar»/«Confirmado» en Embarques (EXC-0674; dueño Sam; revisión 2027-01-31) | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) · SDD-0674 · [excepción «Facturar» en Embarques](reviews/excepcion-0674-facturar-embarques-2026-11-18.md) |
 | HTD-01 | Confirmación por presión sostenida | aprobada | Primer consumidor R3 verificado · no aplica a agentes | [SDD-0215](../specs/0215-htd-invoice-void/spec.md) |
 | AVS-01 | Avisos y confirmaciones | verificada | Primitiva conforme · no aplica a agentes | [REV-SGE-009](reviews/adoption-plan-sge-btn-vis-avs-2026-07-29.md) |
 | AUD-01 | Evento auditable y vínculo con acciones | aprobada | D1–D5 aplicados y verificados en Producción | [REV-AUD-046](reviews/aud-sdd-0174-prod-close.md) · [REV-SGE-024](reviews/governance-8-adoption-audit-2026-07-31.md) |

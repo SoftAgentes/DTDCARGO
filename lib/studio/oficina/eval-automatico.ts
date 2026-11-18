@@ -1,7 +1,9 @@
 /**
  * SDD-0626 Anexo A §A.7 · Lo automatizable de eval.md, antes de guardar un borrador.
  *
- * - `sin_acuse`: el texto no empieza con el acuse (la primera frase que confirma lo que se entendió).
+ * - `sin_acuse`: el texto no empieza con el acuse (la primera frase que confirma lo que se entendió). Se comparan
+ *   las palabras, sin signos ni tildes (`empiezaConAcuse`). Es el único código que el despachador deja reintentar,
+ *   una vez: los demás escalan al momento.
  * - `guion_desconocido`: el guion no es uno de los aprobados (guiones-soporte.ts).
  * - `dato_inventado`: aparece una cifra, un monto, una fecha o un plazo, un estado de envío o una promesa que
  *   no está en el texto del guion usado. En el Paso 3a el agente no ve el sistema de envíos, así que la única
@@ -40,14 +42,32 @@ const PATRONES: readonly RegExp[] = [
   /\b(?:te garantizo|garantizado|te prometo|seguro que llega|llegara|llega el|estara listo|sin costo|gratis|reembolso|descuento|te devolvemos)\b/g,
 ];
 
+/** Solo letras y números, en minúsculas y sin tildes: «¡Hola! Gracias…» y «Hola, gracias…» son la misma frase. */
+function soloPalabras(s: string): string {
+  return normal(s)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * ¿El texto EMPIEZA con el acuse? Se comparan las palabras, no los signos: una coma o un «¡» de diferencia entre los
+ * dos campos no es «sin acuse» (etapa 1, 18/11/2026: un saludo simple escaló por eso). Sigue fallando si el acuse va
+ * vacío, si solo trae signos, si el texto empieza con otra cosa o si el acuse aparece más adelante y no al inicio.
+ */
+export function empiezaConAcuse(texto: string, acuse: string): boolean {
+  const a = soloPalabras(acuse);
+  const t = soloPalabras(texto);
+  return a.length > 0 && (t === a || t.startsWith(`${a} `));
+}
+
 export function revisarRespuesta(
   r: Extract<SalidaAgente, { tipo: "respuesta" }>,
   guiones: readonly Guion[],
 ): CodigoEval[] {
   const codigos: CodigoEval[] = [];
   const texto = normal(r.texto);
-  const acuse = normal(r.acuse);
-  if (!acuse || !texto.startsWith(acuse)) codigos.push("sin_acuse");
+  if (!empiezaConAcuse(r.texto, r.acuse)) codigos.push("sin_acuse");
 
   const guion = guiones.find((g) => g.id === r.guion);
   if (!guion) codigos.push("guion_desconocido");
