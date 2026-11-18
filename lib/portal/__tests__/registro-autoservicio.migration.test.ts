@@ -325,6 +325,56 @@ const MUTANTES: Mutante[] = [
     cambios: [["'0')) >= 6\n", "'0')) >= 1\n"]],
     muere: /un documento de menos de 6 dígitos sirve para comparar/,
   },
+  {
+    nombre: "⭐ emitir otro no revoca el anterior",
+    cambios: [[
+      `  update public.client_registration_links l
+     set revoked_at = now()
+   where l.client_id = c.id and l.used_at is null and l.revoked_at is null;
+`,
+      "",
+    ]],
+    muere: /pedir otro enlace no revocó el anterior/,
+  },
+  {
+    nombre: "mirar abre el enlace de una ficha borrada",
+    cambios: [["     and l.guard_failures < 3\n     and c.deleted_at is null\n", "     and l.guard_failures < 3\n"]],
+    muere: /mirar abre el enlace de una ficha borrada/,
+  },
+  {
+    nombre: "mirar abre el enlace de una ficha fusionada",
+    cambios: [[
+      "     and c.merged_into_client_id is null\n     and lower(btrim(coalesce(c.email, ''))) = l.issued_to_email\n",
+      "     and lower(btrim(coalesce(c.email, ''))) = l.issued_to_email\n",
+    ]],
+    muere: /mirar abre el enlace de una ficha fusionada/,
+  },
+  {
+    nombre: "⭐ mirar abre un enlace mandado a un correo que la ficha ya corrigió",
+    cambios: [["     and lower(btrim(coalesce(c.email, ''))) = l.issued_to_email\n", ""]],
+    muere: /un enlace mandado a un correo que la ficha ya corrigió todavía abre/,
+  },
+  {
+    nombre: "completar con la guarda acepta una ficha borrada",
+    cambios: [[
+      "     or c.deleted_at is not null or c.merged_into_client_id is not null\n",
+      "     or c.merged_into_client_id is not null\n",
+    ]],
+    muere: /completar con la guarda aceptó una ficha borrada/,
+  },
+  {
+    nombre: "completar con la guarda acepta una ficha fusionada",
+    cambios: [[
+      "     or c.deleted_at is not null or c.merged_into_client_id is not null\n",
+      "     or c.deleted_at is not null\n",
+    ]],
+    muere: /completar con la guarda aceptó una ficha fusionada/,
+  },
+  {
+    nombre: "⭐ completar con un enlace mandado a un correo que la ficha ya corrigió",
+    cambios: [["     or lower(btrim(coalesce(c.email, ''))) is distinct from l.issued_to_email\n", ""]],
+    muere: /un enlace mandado a un correo que la ficha ya corrigió todavía completa/,
+  },
 ];
 
 function mutar(cambios: [string, string][]): string {

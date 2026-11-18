@@ -399,6 +399,7 @@ grant execute on function public.portal_registration_link_create_self(uuid, text
 --
 -- Devuelve el correo al que salió (quien abre el enlace lo recibió ahí) y
 -- NADA de la ficha: ni el Shipping Mark ni el nombre, hasta pasar la guarda.
+-- Si la ficha ya no tiene ese correo (el equipo lo corrigió), el enlace no abre.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create function public.portal_registration_link_peek_self(p_token_hash text)
@@ -419,6 +420,7 @@ as $$
      and l.guard_failures < 3
      and c.deleted_at is null
      and c.merged_into_client_id is null
+     and lower(btrim(coalesce(c.email, ''))) = l.issued_to_email
      and not exists (
        select 1 from public.client_users u
         where u.tenant_id = c.tenant_id and u.client_id = c.id
@@ -486,6 +488,7 @@ declare
   v_state    text := nullif(btrim(coalesce(p_state, '')), '');
   v_address  text := nullif(btrim(coalesce(p_address, '')), '');
   v_office   text := nullif(btrim(coalesce(p_office_phone, '')), '');
+  v_client_id uuid;
   v_ficha_doc text;
   v_ficha_tel text;
   v_coincide boolean;
@@ -505,6 +508,18 @@ begin
     raise exception 'datos_incompletos' using errcode = '22023';
   end if;
 
+  -- Orden de bloqueos: primero la ficha y después el enlace, el mismo de
+  -- create_self (bloquea la ficha y revoca sus enlaces). Al revés, un /entrar y
+  -- este POST a la vez podían trabarse (40P01). El enlace se ubica sin
+  -- bloquear; con los dos bloqueados, se vuelve a validar todo.
+  select x.client_id into v_client_id from public.client_registration_links x
+   where x.token_hash = p_token_hash;
+  if v_client_id is null then
+    raise exception 'link_invalido' using errcode = 'P0002';
+  end if;
+
+  select * into c from public.clients x where x.id = v_client_id for update;
+
   select * into l from public.client_registration_links x
    where x.token_hash = p_token_hash for update;
   if l.id is null or l.link_origin <> 'autoservicio' or l.used_at is not null
@@ -512,8 +527,12 @@ begin
     raise exception 'link_invalido' using errcode = 'P0002';
   end if;
 
-  select * into c from public.clients x where x.id = l.client_id for update;
-  if c.id is null or c.deleted_at is not null or c.merged_into_client_id is not null
+  -- El correo de la ficha tiene que seguir siendo el que recibió el enlace: si el
+  -- equipo corrigió un correo con tipeo, el enlace que llegó al buzón equivocado
+  -- deja de servir (la guarda queda para lo que no se pudo corregir).
+  if c.id is null or l.client_id is distinct from c.id
+     or c.deleted_at is not null or c.merged_into_client_id is not null
+     or lower(btrim(coalesce(c.email, ''))) is distinct from l.issued_to_email
      or exists (
        select 1 from public.client_users u
         where u.tenant_id = c.tenant_id and u.client_id = c.id

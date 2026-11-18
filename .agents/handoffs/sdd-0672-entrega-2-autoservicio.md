@@ -41,14 +41,15 @@ Opus; aplicar la 0562 en producción exige el OK nominal de Sam.
 ## VALIDACIÓN
 
 md5 de la 0562 nueva: `peek` 620cebdf32c25ad7f33c89dc1b058a37, `complete` 36fe32fa6e5ae9e8cefca187c0250dfa
-(los que mira el preflight del desarme). Archivo: `a30b133d564e…`; desarme: `0d422a005c50…`.
+(los que mira el preflight del desarme; los ajustes de la revisión no los cambian, porque tocan solo
+`peek_self` y `complete_self`). Archivo: `637b3740d2ea…`; desarme: `0d422a005c50…` (sin cambio).
 
 | Comprobación | Resultado |
 |---|---|
 | md5 de los cuerpos de la 0552 (preflight) | PASÓ: el método reproduce el md5 de `bind` que usó la 0559 |
 | El desarme devuelve la 0552 exacta | PASÓ (estático): sus cuerpos dan b90378a1… y 690860ca… |
 | El preflight del desarme reconoce la 0562 | PASÓ (estático): 620cebdf… y 36fe32fa… salen de los cuerpos de la 0562 |
-| Anclas de los 26 mutantes | PASÓ (estático): cada texto está una sola vez en la 0562 y cada mensaje existe en el contrato (el de `anon` se arma con `\|\| f`) |
+| Anclas de los 33 mutantes | PASÓ (estático): cada texto está una sola vez en la 0562 y cada mensaje existe en el contrato (el de `anon` se arma con `\|\| f`) |
 | `check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO · 1 AMARILLO declarado (lo esperado con una espera) |
 | `migrations-lock.mjs verificar --sin-base` | PASÓ: la 0562 figura como espera sin sellar |
 | `docs:check` / `sdd:check` / `git diff --check` | PASÓ |
@@ -67,16 +68,38 @@ sitios ajenos (`url.origin`, cabeceras, Chatwoot); el gate de símbolos falla ce
 Ahora es `link_origin` (como `cover_origin` de la 0547), con su constraint
 `client_registration_links_link_origin_check`; recalculé los md5 del desarme y declaré la columna.
 
-Límites conocidos, sin cambio (no contradicen la spec):
+## REVISIÓN DE SEGURIDAD (Opus, lanzada por el DG)
 
-- `guard_failures` cuenta por enlace: cada `/entrar` da 3 intentos más. El tope real es el cerrojo de
-  5 por hora por correo, y el enlace solo llega al buzón de la ficha.
-- `complete_self` bloquea enlace→ficha y `create_self` ficha→enlace; un choque daría 40P01 y Postgres
-  aborta uno sin dañar datos. Ya pasaba en la 0552 entre `complete` y el `create` del equipo.
+APPROVED sobre `e4385408c` (delta `fb8b7d518..e4385408c`), sin bloqueantes. El DG pidió cerrar tres
+sugerencias en un commit nuevo y anotar las otras tres:
+
+- **1, hecho: orden de bloqueos.** `complete_self` ubica el enlace sin bloquear, bloquea la ficha y
+  después el enlace, y vuelve a validar los dos: el mismo orden que `create_self`, sin 40P01. PGlite
+  tiene una sola conexión, así que el orden no tiene mutante; queda a la lectura.
+- **2, hecho: correo de la ficha.** `peek_self` y `complete_self` exigen
+  `lower(btrim(c.email)) = issued_to_email`: un enlace mandado a un correo con tipeo deja de servir
+  cuando el equipo lo corrige. Contrato, bloque I (con la ficha borrada y fusionada).
+- **6, hecho: mutantes nuevos.** «Emitir otro revoca el anterior» (el contrato traduce el choque con
+  el índice de un enlace abierto al mismo mensaje), y ficha borrada, fusionada o con otro correo en
+  `peek_self` y `complete_self`. Total: 33.
+
+Límites conocidos (sugerencias 3, 4 y 5 de la revisión, y el de los intentos):
+
+- **Molestia por revocación (3):** quien sepa el correo de un cliente puede pedir `/entrar` hasta 5
+  veces por hora; cada pedido revoca el enlace vivo y manda otro correo al buzón de la ficha. No da
+  acceso a nada.
+- **Lo que distingue `/entrar` (4):** `crear_portal` frente a `sin_portal` deja ver si la ficha tiene
+  documento o teléfono que sirvan, o un enlace del equipo vivo. Es menor: la entrega 1 ya dice que el
+  correo es de un cliente (riesgo aceptado por Sam, spec §0).
+- **`correo_en_uso` como oráculo (5):** quien ya pasó la guarda puede probar qué correos tienen cuenta
+  de Auth, a 5 intentos por hora por IP (ese cerrojo es fail-open, como en la 0552). Es el mismo
+  comportamiento de la ruta del equipo.
+- **Intentos por enlace:** `guard_failures` cuenta por enlace; cada `/entrar` da 3 intentos más. El
+  techo real es ~15 por hora, y solo para quien lee el buzón de la ficha.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Revisión independiente en Opus (la lanza el DG).
+- Re-revisión del delta de los ajustes (la lanza el DG).
 - Aplicar la 0562 en producción: OK nominal de Sam nombrando `0562_registro_link_autoservicio`,
   después de fusionar #683.
 - `revisar-datos-ve` sobre la captura de la entrega 2 (resumen en la spec §7).
@@ -88,9 +111,10 @@ Límites conocidos, sin cambio (no contradicen la spec):
 
 ## HANDOFF AL DIRECTOR
 
-- Rama `codex/entrar-autoservicio-portal`, apilada sobre #683 (trae su cabeza 56e4d1b98 por merge).
+- PR #687. Rama `codex/entrar-autoservicio-portal`, apilada sobre #683 (trae su cabeza fb8b7d518 por merge).
   La PR va contra `main`; mientras #683 no entre, su diff incluye la entrega 1.
 - Orden: fusionar #683, luego esta PR. Aplicar la 0562 con el OK nominal de Sam
   (`0562_registro_link_autoservicio`) y el runbook; migrate-first: la app nueva sin la 0562 degrada al
   aviso de la entrega 1.
-- Revisión independiente en Opus: pendiente, la lanza el DG.
+- Revisión independiente en Opus: APPROVED en e4385408c; los ajustes 1, 2 y 6 van en un commit
+  nuevo, para re-revisión del delta.

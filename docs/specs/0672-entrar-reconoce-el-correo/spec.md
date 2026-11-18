@@ -210,6 +210,11 @@ nominal de Sam nombrando el archivo.
    disponible» y «Registros por link» no se rompe.
 9. «Registros por link» marca «lo pidió desde «Entrar»» y «Correo comprobado» cuando el cliente dejó
    el correo al que llegó el enlace.
+10. Si con el enlace abierto la ficha queda borrada o fusionada, o el equipo le corrige el correo, el
+    enlace no abre ni completa (sin gastarse ni sumar intentos). Así, un enlace mandado a un correo
+    con tipeo deja de servir apenas se corrige.
+11. Completar bloquea la ficha y después el enlace, en el mismo orden que la emisión: un `/entrar` y
+    un envío del formulario a la vez no se traban.
 
 ### 4.2 Allowlist (entrega 2)
 

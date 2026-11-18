@@ -459,8 +459,13 @@ begin
     'el enlace de autoservicio no vence a las 24 horas';
   assert l.used_at is null and l.revoked_at is null and l.guard_failures = 0, 'el enlace no nació abierto';
 
-  -- Pedir otro revoca el anterior.
-  perform public.portal_registration_link_create_self('00000000-0000-0000-0000-00000000c101', 'cliente.uno@example.test', repeat('b', 64));
+  -- Pedir otro revoca el anterior. Sin eso, el índice de un enlace abierto por
+  -- cliente (0552) choca: se traduce al mismo mensaje.
+  begin
+    perform public.portal_registration_link_create_self('00000000-0000-0000-0000-00000000c101', 'cliente.uno@example.test', repeat('b', 64));
+  exception when unique_violation then
+    raise exception 'CONTRATO ROTO: pedir otro enlace no revocó el anterior (chocó con el enlace abierto)';
+  end;
   assert (select revoked_at from public.client_registration_links where token_hash = repeat('a', 64)) is not null,
     'pedir otro enlace no revocó el anterior';
   assert (select used_at is null and revoked_at is null from public.client_registration_links where token_hash = repeat('b', 64)),
@@ -861,6 +866,66 @@ begin
     raise exception 'CONTRATO ROTO: emitió el enlace a un cliente que ya tiene portal';
   exception when no_data_found then null;
   end;
+end $$;
+reset role;
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- I. La ficha cambia con el enlace abierto: borrada, fusionada o con otro correo
+-- ═════════════════════════════════════════════════════════════════════════════
+set local role service_role;
+do $$
+declare c public.clients;
+begin
+  select * into c from public.clients where id = '00000000-0000-0000-0000-00000000c114';
+  perform public.portal_registration_link_create_self(c.id, 'catorce@example.test', repeat('1', 64));
+  assert exists (select 1 from public.portal_registration_link_peek_self(repeat('1', 64))),
+    'el enlace de catorce no abre';
+
+  -- Borrada.
+  update public.clients set deleted_at = now() where id = c.id;
+  assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('1', 64))),
+    'mirar abre el enlace de una ficha borrada';
+  begin
+    perform public.portal_registration_link_complete_self(repeat('1', 64), 'persona', 'Catorce Prueba', null,
+      'V-23.232.323', 'catorce@example.test', '0414-555-3414', null, 'Maracay', 'Aragua', null, false);
+    raise exception 'CONTRATO ROTO: completar con la guarda aceptó una ficha borrada';
+  exception when no_data_found then null;
+  end;
+  update public.clients set deleted_at = null where id = c.id;
+
+  -- Fusionada.
+  update public.clients set merged_into_client_id = '00000000-0000-0000-0000-00000000c101' where id = c.id;
+  assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('1', 64))),
+    'mirar abre el enlace de una ficha fusionada';
+  begin
+    perform public.portal_registration_link_complete_self(repeat('1', 64), 'persona', 'Catorce Prueba', null,
+      'V-23.232.323', 'catorce@example.test', '0414-555-3414', null, 'Maracay', 'Aragua', null, false);
+    raise exception 'CONTRATO ROTO: completar con la guarda aceptó una ficha fusionada';
+  exception when no_data_found then null;
+  end;
+  update public.clients set merged_into_client_id = null where id = c.id;
+
+  -- ⭐ El equipo corrige un correo con tipeo: el enlace que salió al correo viejo muere.
+  update public.clients set email = 'catorce.corregido@example.test' where id = c.id;
+  assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('1', 64))),
+    'un enlace mandado a un correo que la ficha ya corrigió todavía abre';
+  begin
+    perform public.portal_registration_link_complete_self(repeat('1', 64), 'persona', 'Catorce Prueba', null,
+      'V-23.232.323', 'catorce@example.test', '0414-555-3414', null, 'Maracay', 'Aragua', null, false);
+    raise exception 'CONTRATO ROTO: un enlace mandado a un correo que la ficha ya corrigió todavía completa';
+  exception when no_data_found then null;
+  end;
+
+  -- Nada de eso gastó el enlace ni sumó intentos; con la ficha como estaba, vuelve a abrir.
+  assert (select used_at is null and revoked_at is null and guard_failures = 0
+            from public.client_registration_links where token_hash = repeat('1', 64)),
+    'un enlace rechazado por el estado de la ficha se gastó o sumó un intento';
+  update public.clients set email = c.email where id = c.id;
+  assert exists (select 1 from public.portal_registration_link_peek_self(repeat('1', 64))),
+    'con la ficha como estaba, el enlace no abre';
+  assert (select deleted_at is null and merged_into_client_id is null and email = c.email
+            from public.clients where id = c.id),
+    'el bloque I no dejó la ficha como estaba';
 end $$;
 
 reset role;
