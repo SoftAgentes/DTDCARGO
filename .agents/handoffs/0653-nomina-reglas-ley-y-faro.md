@@ -2,7 +2,7 @@
 
 - Rama de la fase A2a: `claude/0653-nomina-ley-faro-0b4370` · PR #631 (fusionada) · Worker 0653 · 2026-11-17
 - Rama de la fase A3: `claude/0653-a3-tope-motor` · PR #640 (fusionada, CI verde, revisión APPROVED)
-- Rama de la fase A2b: `claude/0653-a2b-vigencia` (worktree propio, desde `main` 725e2ef81) · PR: ver GitHub · asignada por el DG el 2026-11-17.
+- Rama de la fase A2b: `claude/0653-a2b-vigencia` (worktree propio, desde `main` 725e2ef81) · PR #660 · asignada por el DG el 2026-11-17.
 - A2a y A3 en `main`; A4, B1 y B2 esperan la asignación del DG.
 - Spec: `docs/specs/0653-nomina-reglas-ley-y-faro/spec.md` (`in-progress`).
 - Migración **0556** `nomina_reglas_vigencia_y_aportes` (reservada por el DG): creada en la rama A2b, **EN ESPERA** (no aplicada a ningún entorno).
@@ -21,39 +21,47 @@ presenció. Quedan decididas D1, D2, D3a, D3b y D4 a D10 con la opción (a). No 
 
 ## Fase A2b (2026-11-17) — migración 0556 y pestaña Reglas con vigencia, aportes y escalas
 
-Asignada por el DG («Sam autorizó anoche avanzar todo el roadmap en bloque»); las decisiones D1 a D5 y D10 ya estaban aprobadas.
+Asignada por el DG («Sam autorizó anoche avanzar todo el roadmap en bloque»); las decisiones D1 a D5 y D10 ya estaban aprobadas. La PR #660 recibió
+CHANGES_REQUESTED de la revisión independiente (11 puntos); esta es la segunda ronda, en un solo push.
 
 **Qué entrega** (sin leer ni escribir producción):
 
-- **Migración 0556**, aditiva y idempotente, sobre `nomina_payroll_rules`: 13 columnas (vigencia, fuente legal, ingreso mínimo integral en USD, moneda de cestaticket y bono, 6 aportes del patrono y 2 escalas), 8 CHECK (utilidades 30 a 120, pensiones máx. 15, rangos). Preflight que aborta con datos fuera de rango (cuenta, no lee) y postflight de forma, RLS y grants. Cabecera «NO APLICADA A PRODUCCIÓN». Desarme en `supabase/desarmes/`.
-- **Espera declarada** en `supabase/migrations-baseline.json` y **degradación declarada** en `supabase/pending-migration-symbol-declarations.json`: sin la 0556 la pantalla sigue como en A2a (la lectura reintenta sin las columnas nuevas, la escritura las omite y el formulario deshabilita los campos con un aviso).
-- **Contrato** `supabase/tests/` (migraciones reales 0160, 0162 y 0556): filas existentes intactas, filas nuevas con fecha de hoy, 17 rechazos de CHECK y 10 límites válidos, reaplicar no cambia nada, RLS por tenant Y rol (otro tenant, operador, admin deshabilitado, sin membership y anon no ven ni escriben) y catálogo sin cambios. Ensayado en PGlite con control rojo, preflights, desarme, 8 mutantes y una prueba gemela columnas del SQL = columnas del código.
-- **Código:** tipos y validador (monedas, aportes 0 a 100, pensiones tope 15, utilidades 30 a 120, escalas, vigencia y fuente), consultas con degradación, estante legal enlazado a las columnas nuevas (2 normas más: vacaciones adicionales y bono vacacional máximo; unidad del bono según su moneda), formulario de Reglas con los campos nuevos y pestaña Reglas con «Rige desde … · Fuente …».
+- **Migración 0556**, aditiva y idempotente, sobre `nomina_payroll_rules`: 13 columnas (vigencia, fuente legal, ingreso mínimo integral en USD, moneda de cestaticket y bono, 5 aportes del patrono, el INCES sobre utilidades y 2 escalas), 8 CHECK (utilidades 30 a 120, pensiones máx. 15, rangos) y la función `nomina_guardar_reglas(jsonb)`, que archiva la vigente e inserta la siguiente **en una sola transacción** (SECURITY INVOKER, `search_path` vacío, EXECUTE solo `authenticated`, tenant de la sesión, fecha futura rechazada). Preflight que aborta con datos fuera de rango (cuenta, no lee) y postflight de forma, función, RLS y grants. Cabecera «NO APLICADA A PRODUCCIÓN». Desarme en `supabase/desarmes/`.
+- **Espera declarada** en `supabase/migrations-baseline.json` y **degradación declarada** en `supabase/pending-migration-symbol-declarations.json` (14 símbolos: 13 columnas y la función): sin la 0556 la pantalla sigue como en A2a (la lectura reintenta sin las columnas nuevas, el guardado usa los dos pasos de siempre **con restauración** y el formulario deshabilita los campos con un aviso).
+- **Contrato** `supabase/tests/` (migraciones reales 0160, 0162 y 0556): filas existentes intactas, filas nuevas con fecha de hoy en Caracas, 17 rechazos de CHECK y 10 límites válidos, reaplicar no cambia nada, RLS por tenant Y rol (otro tenant, operador, admin deshabilitado, sin membership y anon), catálogo sin cambios y el guardado atómico (fallos que dejan intacta la vigente, éxito, herencia de moneda, aislamiento entre tenants). Ensayado en PGlite con control rojo, preflights, desarme y reaplicación, mutantes (relleno con UPDATE, default de fecha UTC, moneda USD por defecto, default en un aporte, CHECK de moneda o de rango debilitado, función sin atomicidad o SECURITY DEFINER, fecha futura aceptada, tope de pensiones 100, anon con SELECT, policy abierta, no idempotente) y una prueba gemela columnas del SQL = columnas del código.
+- **Código:** tipos y validador (monedas, aportes 0 a 100, pensiones tope 15, utilidades 30 a 120, escalas, fecha de vigencia no posterior a hoy en Caracas, fuente, montos que no desborden numeric(14,2)); lo no configurado es `null` y **nunca se lee como cero**; consultas con degradación; estante legal enlazado a las columnas nuevas (2 normas más: vacaciones adicionales y bono vacacional máximo; unidad del bono según su moneda; el INCES sobre utilidades es una retención al trabajador y va en deducciones); formulario de Reglas con los campos nuevos y pestaña Reglas con «Rige desde … · Fuente …».
 
-**Decisiones que tomé (para el DG y Sam):**
+**Decisiones tomadas** (para el DG y Sam):
 
-1. **`vigente_desde` nullable** (la spec decía NOT NULL). Con filas existentes y sin UPDATE, NOT NULL las llenaba con la fecha de aplicación, una vigencia inventada. Las versiones anteriores quedan en NULL = «sin fecha de vigencia registrada».
-2. **Defaults de los aportes patronales** = la norma conocida (9, 2, 2, 2, 0,5 y 9). Quedan «por confirmar» en el estante legal; el contador los confirma antes de usarlos (D8). No se cargan valores nuevos: eso es la A4.
-3. **Formulario:** una versión nueva nace con los bonos en USD (D4, «todo en dólares»); la vigencia por omisión es hoy en Caracas; la fuente legal no se hereda de la versión anterior (una fuente vieja en una versión nueva engaña más que un campo vacío).
-4. **Sin guía ni novedad de Faro de nómina:** `nomina` sigue reservada en el minicerebro y `novedades/` no existe en `main` (D-10 de la 0637 pendiente).
-5. **No se valida** que una vigencia nueva no sea anterior a la de la versión vigente: el orden lo da el número de versión; la fecha es informativa.
+1. **`vigente_desde` nullable** (la spec decía NOT NULL). Con filas existentes y sin UPDATE, NOT NULL las llenaba con la fecha de aplicación, una vigencia inventada. Las versiones anteriores quedan en NULL = «sin fecha de vigencia registrada». El default de las filas nuevas es hoy en Caracas.
+2. **«Rige desde» es informativa** (decisión del DG en la revisión): el corte usa siempre la versión vigente y la fecha no puede ser posterior a hoy en Caracas (validador y función). **D11, pendiente de Sam:** si debe elegir la versión de un corte según su fecha (programar cambios futuros). Está en la tabla de decisiones de la spec.
+3. **Aportes patronales, INCES sobre utilidades, pensiones, escalas e ingreso mínimo integral: nullable y sin default** (decisión del DG). La norma conocida (9, 2, 2, 2, 0,5, 9; escalas 15 y 30) la **propone el formulario**, marcada «propuesto» y por confirmar con el contador; si no la confirmas, queda «sin configurar» y la comparación dice «falta», nunca «al día». El ingreso mínimo integral es un anuncio: no se propone valor.
+4. **Monedas** `not null default 'VES'`: las filas existentes siguen en bolívares; al editar, la versión conserva su moneda; una versión nueva sin versión previa arranca los bonos en USD (D4).
+5. **Guardado atómico** con la función de la 0556 (decisión del DG): el diseño anterior archivaba y luego insertaba, y un insert fallido dejaba al tenant sin versión vigente. Sin la 0556 se conservan los dos pasos, ahora con restauración.
+6. **Sin guía ni novedad de Faro de nómina:** `nomina` sigue reservada en el minicerebro y `novedades/` no existe en `main` (D-10 de la 0637 pendiente).
+7. La fuente legal no se hereda de la versión anterior (una fuente vieja en una versión nueva engaña más que un campo vacío).
 
-**Evidencia de la fase A2b** (sobre `main` 3597afb84 fusionado; turno de PC del DG, versiones del lockfile: typescript 6.0.3, vitest 5.1.0, instaladas con `pnpm install --frozen-lockfile` en el worktree propio):
+**Gobernanza (AGENT-BRIEF):** se corrigió la clasificación de la spec §7 bis. SGE-00 cumplimiento parcial, MP-01 cumplimiento, AUD-02 no aplica, y dos no conformidades heredadas **con seguimiento**:
+
+- **S-0653-1 (FRM-01):** el formulario de Reglas usa `<input type="number">` y valida al enviar. Sitio: `app/studio/(app)/nomina/_components/ReglasDrawer.tsx`. Migrarlo a `NumericInput` y al ciclo pristine→blur→invalid es otra tarea.
+- **S-0653-2 (AUD-01):** guardar reglas no emite un evento auditable propio (ni antes ni después de la 0556); el rastro es la versión misma (`version`, `created_by`, `created_at`, estado). Sitios: `savePayrollRulesAction` en `app/studio/(app)/nomina/actions.ts` y `nomina_guardar_reglas` en la 0556.
+
+**Evidencia de la fase A2b** (cabeza local tras fusionar `origin/main`; turno de PC del DG; versiones del lockfile: typescript 6.0.3, vitest 5.1.0, instaladas con `pnpm install --frozen-lockfile` en el worktree propio):
 
 | Comprobación | Resultado |
 |---|---|
-| `tsc --noEmit` | PASÓ |
-| vitest `lib/studio/nomina` y `app/studio/(app)/nomina` (incluye `conservar-lo-escrito`) | PASÓ |
-| Migración 0556 en PGlite: contrato, control rojo, 2 preflights, desarme y reaplicación, 8 mutantes, gemela | PASÓ (14 casos) |
-| `scripts/__tests__/spec-migration-refs.test.ts` | PASÓ |
-| ESLint de `lib/studio/nomina`, `app/studio/(app)/nomina` y `supabase` | PASÓ |
+| `tsc --noEmit -p tsconfig.json` | PASÓ |
+| vitest `lib/studio/nomina`, `app/studio/(app)/nomina` (incluye `conservar-lo-escrito`, `ReglasDrawer.test.tsx`, la migración 0556 en PGlite) y `scripts/__tests__/spec-migration-refs.test.ts` | PASÓ (30 archivos, 467 pruebas) |
+| vitest de contratos del Studio y de `scripts/__tests__` | PASÓ (80 archivos, 1157 pruebas) |
+| Migración 0556 en PGlite: contrato, control rojo, preflights, desarme y reaplicación, mutantes, gemela | PASÓ |
+| ESLint de `lib/studio/nomina` y `app/studio/(app)/nomina` | PASÓ |
 | `check-pending-migration-symbols` | PASÓ: 0 ROJO · 5 AMARILLO declarados (los de 0549 y 0558 son ajenos) |
-| `migrations-lock`, `docs:check`, `sdd:check`, `governance:check`, `components:check` | PASARON |
-| Contrato `.test.sql` en Postgres real (Docker) | NO EJECUTADO: lo cubre PGlite (PostgreSQL 18.3 embebido) con las mismas migraciones |
+| `migrations-lock`, `docs:check`, `sdd:check`, `governance:check`, `components:check` (scripts directos) | PASARON |
+| Contrato `.test.sql` en Postgres real (Docker) | NO EJECUTADO: lo cubre PGlite (PostgreSQL embebido) con las mismas migraciones |
 | `pnpm verify` completo y build | NO EJECUTADO (fuera del turno); lo cubre el CI de la PR |
 | Pantalla con sesión real (con y sin la 0556) | NO EJECUTADO |
 
-La declaración de símbolos se genera con un script (los ~196 sitios file:línea los calcula el gate); si se edita un archivo de la lista, hay que regenerarla. Lo que entra en producción sigue siendo del DG: aplicar la 0556 pide el OK nominal de Sam y el runbook.
+La declaración de símbolos se genera con un script (los ~200 sitios file:línea los calcula el gate); si se edita un archivo de la lista, hay que regenerarla. Lo que entra en producción sigue siendo del DG: aplicar la 0556 pide el OK nominal de Sam y el runbook.
 
 ## Fase A3 (2026-11-17) — tope de SSO y RPE en el motor
 
@@ -132,6 +140,8 @@ ESLint, `docs:check`, `sdd:check`, `governance:check` y `components:check`.
 
 ## FUERA DE ALCANCE DETECTADO
 
+- **Las columnas de la 0179 no se leen ni se guardan desde la pantalla de Reglas.** `getVigentePayrollRules` no selecciona `prestaciones_method`, `prestaciones_interest_pct` ni `ajena_78_incluye_92`: los finiquitos siempre salen con método «mejor», interés 0 y sin el Art. 78, y cada vez que se guarda una versión nueva esas tres columnas vuelven a su valor por defecto. Es anterior a esta tarea y no se arregló aquí; es una tarea aparte, con el contador (qué método, qué tasa y si aplica el Art. 78).
+
 - (Resuelto en la fase A3.) El tope de SSO/RPE mezclaba Bs con USD; ver la sección de la fase A3.
 - La siembra demo de `0162:121` rotula en Bs montos que parecen dólares (cestaticket 40, bono 90).
 - El sitio de la Imprenta Nacional no publica 68 Gacetas Extraordinarias de 2026 y su búsqueda por texto no
@@ -139,4 +149,4 @@ ESLint, `docs:check`, `sdd:check`, `governance:check` y `components:check`.
 
 ## Impacto documental
 
-- Al implementar A2b: actualizar la §8 de la spec 0103 si cambian columnas.
+- A2b: la §8.1 de la spec 0103 ya lista las 13 columnas nuevas y la función (hecho). Si la 0556 cambia antes de aplicarse, actualizarla.
