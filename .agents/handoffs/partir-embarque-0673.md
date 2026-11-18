@@ -59,3 +59,11 @@
 - Ofrecer «Corregir medidas» y «Partir» también desde el panel de Embarques.
 - (Revisión Opus, punto 6) `PATCH /api/studio/shipments/[id]` (`route.ts:125-135`) todavía escribe `weight_kg` y `volume_m3` sueltos, sin pasar por `correct_shipment_measures`.
 - (Revisión Opus, punto 7) El grupo de WeChat, como cualquier columna de `shipments`, se puede leer desde el Portal por PostgREST: la policy «shipments portal self read» (0416) filtra por fila, no por columna. Ninguna pantalla lo muestra; el riesgo es bajo.
+
+## 2026-11-18 · Preflight de la 0563 contra producción (rama `fix/sdd-0673-md5-sync-boxes-cloud`)
+
+- La lectura previa en producción abortó sin escribir: «0563 abortada: sync_boxes_for_receipt no es la de la 0241».
+- Medido por el DG en el catálogo, solo lectura: el `prosrc` de producción tiene md5 `7cb66f72fc71ea058d7f46fb0551eb05` y 2004 caracteres.
+- Es el cuerpo de la 0241 (`a6e9542f…`, 2078 caracteres) sin sus líneas de solo comentario, como lo dejó Supabase Cloud. Lo comprobé con el archivo del repo.
+- El preflight ahora acepta los dos md5.
+- Pruebas: la 0241 sin líneas de comentario pasa el contrato entero, y otro cuerpo aborta. Contrato: PASÓ (34/34).
