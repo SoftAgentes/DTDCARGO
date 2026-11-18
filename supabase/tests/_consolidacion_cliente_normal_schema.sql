@@ -167,7 +167,8 @@ begin new.updated_at = now(); return new; end; $$;
 
 \ir ../migrations/0008_warehouses_cn.sql
 
-alter table public.user_tenants add column region text;
+create type public.user_region as enum ('ve', 'cn'); -- 0052 (fixture 2026-11-18: tipo real)
+alter table public.user_tenants add column region public.user_region;
 alter table public.shipments add column origin text, add column destination text, add column notes text,
   add column volume_m3 numeric(10,3), add column weight_kg numeric(10,2), add column arrived_destination_at timestamptz,
   add column cancellation_reason text;
@@ -201,6 +202,12 @@ create table public.clients (
   id uuid primary key, tenant_id uuid not null references public.tenants(id) on delete cascade,
   markbox text not null, name text not null, aliado_id uuid references public.aliados(id),
   deleted_at timestamptz, unique (tenant_id, markbox)
+);
+-- 0367 + 0552 (fixture 2026-11-18): rastro de Shipping Marks retirados/restaurados.
+create table public.client_markbox_history (
+  id uuid primary key default gen_random_uuid(), tenant_id uuid not null references public.tenants(id),
+  client_id uuid not null references public.clients(id), markbox text not null, reason text,
+  retired_at timestamptz not null default now(), retired_by uuid, restored_at timestamptz, restored_by uuid
 );
 
 
@@ -765,7 +772,11 @@ as $$
 $$;
 
 
--- Copia literal: supabase/migrations/0444_unlinked_document_entity_rbac.sql · function document_entity_authorized · desde línea102
+-- Copia literal: supabase/migrations/0539_comercial_acepta_accesos_por_persona.sql · function document_entity_authorized (fixture 2026-11-18; antes 0444)
+-- Tabla mínima de 0538 que el cuerpo vigente lee (accesos por persona).
+create table public.studio_user_module_grants(tenant_id uuid not null references public.tenants(id),user_id uuid not null,module_id text not null,
+  can_view boolean not null default true,can_edit boolean not null default false,reason text not null default 'fixture',expires_at timestamptz,
+  primary key(tenant_id,user_id,module_id));
 create or replace function public.document_entity_authorized(
   p_entity_type text,
   p_tenant_id uuid,
@@ -795,7 +806,9 @@ as $$
       c.module_id,
       c.default_roles,
       o.can_view,
-      o.can_edit
+      o.can_edit,
+      g.can_view as grant_view,
+      g.can_edit as grant_edit
     from normalized n
     cross join membership m
     left join lateral public.document_entity_module_contract(n.entity_type) c
@@ -804,6 +817,11 @@ as $$
       on o.tenant_id = p_tenant_id
      and pg_catalog.lower(pg_catalog.btrim(o.role)) = m.role
      and o.module_id = c.module_id
+    left join public.studio_user_module_grants g
+      on g.tenant_id = p_tenant_id
+     and g.user_id = (select auth.uid())
+     and g.module_id = c.module_id
+     and (g.expires_at is null or g.expires_at > pg_catalog.now())
   )
   select coalesce((
     select case
@@ -817,9 +835,13 @@ as $$
       when d.module_id is not null and d.role = 'admin' then true
       when d.module_id is not null and d.access = 'view' then
         coalesce(d.can_view, d.role = any(d.default_roles))
+        or coalesce(d.grant_view, false)
       when d.module_id is not null and d.access = 'edit' then
         d.role <> 'support'
-        and coalesce(d.can_edit, d.role = any(d.default_roles))
+        and (
+          coalesce(d.can_edit, d.role = any(d.default_roles))
+          or coalesce(d.grant_edit, false)
+        )
       else false
     end
     from decision d

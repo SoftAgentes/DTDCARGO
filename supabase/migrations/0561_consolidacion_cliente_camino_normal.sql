@@ -31,7 +31,8 @@ begin
     'public.consolidation_items', 'public.consolidation_plans', 'public.warehouse_receipts_cn',
     'public.warehouse_boxes', 'public.consolidation_box_positions', 'public.shipment_rate_snapshots',
     'public.user_tenants', 'public.studio_role_module_overrides', 'public.clients',
-    'public.client_users', 'public.dispatch_city_catalog', 'public.expense_alerts'
+    'public.client_users', 'public.dispatch_city_catalog', 'public.expense_alerts',
+    'public.client_markbox_history', 'public.studio_user_module_grants'
   ] loop
     if pg_catalog.to_regclass(v_name) is null then
       raise exception '0561: prerrequisito ausente: %', v_name;
@@ -42,6 +43,10 @@ begin
      or pg_catalog.to_regprocedure('public.congelar_tarifa_recepcion(uuid,text,uuid,uuid,numeric,numeric,public.shipment_service,integer,text,boolean)') is null then
     raise exception '0561 requiere AUD-01, 0477 y el contrato 0496';
   end if;
+  -- rename_follows reads the 0552 retire/restore trail of a Shipping Mark.
+  if not exists(select 1 from pg_catalog.pg_attribute where attrelid='public.client_markbox_history'::regclass
+      and attname='restored_at' and not attisdropped) then
+    raise exception '0561 requiere client_markbox_history.restored_at (0552)'; end if;
   if pg_catalog.to_regnamespace('dtd_client_normal') is not null then
     raise exception '0561: el protocolo ya existe; no reejecutar ni sobrescribir';
   end if;
@@ -225,7 +230,12 @@ returns boolean language sql stable security definer set search_path = '' as $fn
   select coalesce((select case when m.role = 'admin' then true
     when p_edit and m.role = 'support' then false
     when c.side is not null and coalesce(m.warehouse_scope, 'all') in ('cn','ve') and m.warehouse_scope <> c.side then false
-    else coalesce(case when p_edit then o.can_edit else o.can_view end, m.role = any(c.roles)) end
+    -- Same as lib/studio/rbac.ts canAccessModule/canEditModule: a live
+    -- per-person grant (0538/0539) adds to the role, never past support/scope.
+    else coalesce(case when p_edit then o.can_edit else o.can_view end, m.role = any(c.roles))
+      or exists(select 1 from public.studio_user_module_grants g where g.tenant_id = p_tenant
+        and g.user_id = (select auth.uid()) and g.module_id = c.module_id
+        and (g.expires_at is null or g.expires_at > pg_catalog.now()) and (not p_edit or g.can_edit)) end
     from member m join contract c on c.module_id = p_module
     left join public.studio_role_module_overrides o on o.tenant_id = p_tenant
       and lower(btrim(o.role)) = m.role and o.module_id = c.module_id), false)
@@ -238,7 +248,7 @@ language sql stable security definer set search_path = '' as $fn$
 $fn$;
 create function dtd_client_normal.can_see_names(p_tenant uuid) returns boolean
 language sql stable security definer set search_path = '' as $fn$
-  select coalesce((select not (coalesce(ut.region,'') = 'cn' and ut.role <> 'admin') from public.user_tenants ut
+  select coalesce((select not (coalesce(ut.region::text,'') = 'cn' and ut.role <> 'admin') from public.user_tenants ut
     where ut.tenant_id = p_tenant and ut.user_id = (select auth.uid()) and ut.disabled_at is null), false)
 $fn$;
 create function dtd_client_normal.authorized_context(p_operation text, p_container uuid default null,
@@ -254,6 +264,18 @@ create function dtd_client_normal.strict_client(p_tenant uuid, p_mark text) retu
 language sql stable security definer set search_path = '' as $fn$
   select (array_agg(c.id))[1] from public.clients c where c.tenant_id = p_tenant and c.deleted_at is null
     and upper(btrim(c.markbox)) = upper(btrim(coalesce(p_mark,''))) having count(*) = 1
+$fn$;
+-- 0552 rename_client_markbox (SDD-0646) moves a client's Shipping Mark on
+-- every table. A cohort row may follow ONLY that move: the new mark is the
+-- client's current mark and the old one was just retired for that client
+-- (unrestored row in client_markbox_history). Nothing else may change.
+create function dtd_client_normal.rename_follows(p_tenant uuid, p_client uuid, p_old text, p_new text) returns boolean
+language sql stable security definer set search_path = '' as $fn$
+  select p_client is not null and p_old is not null and p_new is not null and p_old <> p_new
+    and exists(select 1 from public.clients c where c.id = p_client and c.tenant_id = p_tenant
+      and c.deleted_at is null and c.markbox = p_new)
+    and exists(select 1 from public.client_markbox_history h where h.tenant_id = p_tenant
+      and h.client_id = p_client and h.markbox = p_old and h.restored_at is null)
 $fn$;
 create function dtd_client_normal.receipt_version(p_receipt uuid) returns text
 language sql stable security definer set search_path = '' as $fn$
@@ -406,6 +428,14 @@ begin
   if not exists(select 1 from dtd_client_normal.receipts r where r.receipt_id=v_id) then
     if tg_op = 'DELETE' then return old; end if; return new;
   end if;
+  if tg_op = 'UPDATE' and new.client_markbox is distinct from old.client_markbox
+     and (to_jsonb(new)-array['client_markbox','updated_at']) = (to_jsonb(old)-array['client_markbox','updated_at'])
+     and dtd_client_normal.rename_follows(old.tenant_id,
+       coalesce((select g.client_id from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id
+         where m.receipt_id=v_id), dtd_client_normal.strict_client(old.tenant_id,new.client_markbox)),
+       old.client_markbox,new.client_markbox) then
+    return new;
+  end if;
   if tg_op = 'DELETE' then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
   if new.id is distinct from old.id or new.tenant_id is distinct from old.tenant_id or new.warehouse_id is distinct from old.warehouse_id then
     perform dtd_client_normal.fail('NORMAL_GOVERNED');
@@ -445,6 +475,17 @@ begin
     perform 1 from public.warehouse_receipts_cn where id=v_id for update;
     if not found and tg_op<>'DELETE' and v_id is not distinct from v_new then perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
   end loop;
+  if tg_op = 'UPDATE' and new.markbox is distinct from old.markbox
+     and (to_jsonb(new)-array['markbox','updated_at']) = (to_jsonb(old)-array['markbox','updated_at'])
+     and exists(select 1 from dtd_client_normal.receipts r where r.receipt_id=old.receipt_id)
+     and dtd_client_normal.rename_follows(old.tenant_id,
+       coalesce((select g.client_id from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id
+         where m.receipt_id=old.receipt_id), dtd_client_normal.strict_client(old.tenant_id,new.markbox)),
+       old.markbox,new.markbox) then
+    update dtd_client_normal.member_boxes set fixed_data=jsonb_set(fixed_data,'{markbox}',to_jsonb(new.markbox))
+      where box_id=old.id and fixed_data->>'markbox' is not distinct from old.markbox;
+    return new;
+  end if;
   if exists(select 1 from dtd_client_normal.members m where m.receipt_id in (v_old,v_new)) then
     if tg_op <> 'UPDATE' or to_jsonb(new) is distinct from to_jsonb(old) then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
   end if;
@@ -1212,6 +1253,12 @@ begin
       else perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
     end if;
   end if;
+  if new.client_markbox is distinct from old.client_markbox
+     and dtd_client_normal.rename_follows(old.tenant_id,v_group.client_id,old.client_markbox,new.client_markbox) then
+    update dtd_client_normal.groups set client_markbox=new.client_markbox
+      where id=v_group.id and client_markbox=old.client_markbox;
+    v_allowed:=v_allowed||array['client_markbox'];
+  end if;
   if (to_jsonb(new)-v_allowed) is distinct from (to_jsonb(old)-v_allowed) then perform dtd_client_normal.fail('NORMAL_GOVERNED'); end if;
   return new;
 end $fn$;
@@ -1229,6 +1276,14 @@ begin
   if v_shipment is not null then
     perform 1 from public.shipments where id=v_shipment for update;
     if not found and tg_op<>'DELETE' then perform dtd_client_normal.fail('NORMAL_INCOMPLETE'); end if;
+  end if;
+  if tg_op='UPDATE' and new.client_markbox is distinct from old.client_markbox
+     and (to_jsonb(new)-'client_markbox') = (to_jsonb(old)-'client_markbox')
+     and exists(select 1 from dtd_client_normal.groups g where g.item_id=old.id
+       and dtd_client_normal.rename_follows(old.tenant_id,g.client_id,old.client_markbox,new.client_markbox)) then
+    update dtd_client_normal.groups set client_markbox=new.client_markbox
+      where item_id=old.id and client_markbox=old.client_markbox;
+    return new;
   end if;
   if exists(select 1 from dtd_client_normal.containers c where c.container_id=v_container)
     or exists(select 1 from dtd_client_normal.groups g where g.shipment_id=v_shipment)
@@ -2279,9 +2334,9 @@ begin
     end if;
   end loop;
   -- 0439 replaced the document ALL policy with four module-authorized ones.
-  -- The effective authorization body is 0444, retained literally, not a tenant grant.
+  -- The effective authorization body is 0539 (0444 + per-person grants 0538), retained literally.
   if not exists(select 1 from pg_proc where oid=to_regprocedure('public.document_entity_authorized(text,uuid,text)')
-      and prosecdef and pg_get_userbyid(proowner)='postgres' and md5(replace(prosrc,E'\r\n',E'\n'))='4eb9fd08721e8f754087dddc5cb88953')
+      and prosecdef and pg_get_userbyid(proowner)='postgres' and md5(replace(prosrc,E'\r\n',E'\n'))='ff692c6a83089c71d9a9fd07ecda7b93')
     or not exists(select 1 from pg_class where oid='public.shipment_documents'::regclass and relrowsecurity)
     or exists(select 1 from pg_policies where schemaname='public' and tablename='shipment_documents' and cmd='ALL')
     or (select count(*) from pg_policies where schemaname='public' and tablename='shipment_documents'

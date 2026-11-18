@@ -130,7 +130,7 @@ insert into public.tenants(id) values(sdd0578_fixture.id('tenant-A')),(sdd0578_f
 insert into auth.users(id) select sdd0578_fixture.id(label) from unnest(array[
   'admin-A','operations-A','commercial-A','accounting-A','warehouse-A','support-A','operations-B','portal-A','hybrid-B','portal-unlinked']) label;
 insert into public.user_tenants(user_id,tenant_id,role,region,warehouse_scope)
-select sdd0578_fixture.id(label),sdd0578_fixture.id(tenant),role,region,scope from(values
+select sdd0578_fixture.id(label),sdd0578_fixture.id(tenant),role,region::public.user_region,scope from(values
   ('admin-A','tenant-A','admin',null,'all'),('operations-A','tenant-A','operations',null,'all'),
   ('commercial-A','tenant-A','commercial',null,'all'),('accounting-A','tenant-A','accounting',null,'all'),
   ('warehouse-A','tenant-A','warehouse','cn','cn'),('support-A','tenant-A','support',null,'all'),
@@ -434,6 +434,75 @@ begin
   perform sdd0578_fixture.check(sdd0578_fixture.run_as('operations-A',format('select public.client_consolidation_intake(%L::jsonb)',jsonb_build_object('warehouse_id',sdd0578_fixture.id('warehouse'))))->>'availability'='off','explicit OFF branch without birth');
   update dtd_client_normal.scopes set enabled=true;
 end $scope_guards$;
+
+-- 0552 rename_client_markbox frente a la cohorte (2026-11-18). El orden de
+-- escrituras es el de la 0552: historia, clients, shipments, items, recepciones
+-- y cajas. Sólo pasa la marca que sigue al cliente; lo demás sigue gobernado.
+create function sdd0578_fixture.rename_sim(p_client uuid,p_new text,p_ship_mark text default null,p_extra boolean default false)
+returns jsonb language plpgsql as $$
+declare c public.clients; v_old text;
+begin
+  select * into strict c from public.clients where id=p_client; v_old:=c.markbox;
+  insert into public.client_markbox_history(tenant_id,client_id,markbox,reason) values(c.tenant_id,c.id,v_old,'Renombre sintético');
+  update public.clients set markbox=p_new where id=c.id;
+  update public.shipments set client_markbox=coalesce(p_ship_mark,p_new),
+    notes=case when p_extra then 'cambio ajeno' else notes end where tenant_id=c.tenant_id and client_markbox=v_old;
+  update public.consolidation_items set client_markbox=p_new where tenant_id=c.tenant_id and client_markbox=v_old;
+  update public.warehouse_receipts_cn set client_markbox=p_new where tenant_id=c.tenant_id and client_markbox=v_old;
+  update public.warehouse_boxes set markbox=p_new where tenant_id=c.tenant_id and markbox=v_old;
+  return jsonb_build_object('old',v_old,'new',p_new);
+end $$;
+do $client_rename$
+declare v_group dtd_client_normal.groups; v_container uuid:=sdd0578_fixture.id('normal');
+begin
+  select * into strict v_group from dtd_client_normal.groups where container_id=v_container order by id limit 1;
+  -- Negativos: marca suelta sin renombre, marca que no es la del cliente y
+  -- renombre que arrastra otro cambio.
+  perform sdd0578_fixture.denied(format('with r as(update public.shipments set client_markbox=%L where id=%L::uuid returning id) select to_jsonb(count(*)) from r',
+    'DTD-7777',v_group.shipment_id),'NORMAL_GOVERNED',null,'postgres');
+  perform sdd0578_fixture.denied(format('select sdd0578_fixture.rename_sim(%L::uuid,%L,%L)',v_group.client_id,'DTD-7778','DTD-7779'),'NORMAL_GOVERNED',null,'postgres');
+  perform sdd0578_fixture.denied(format('select sdd0578_fixture.rename_sim(%L::uuid,%L,null,true)',v_group.client_id,'DTD-7778'),'NORMAL_GOVERNED',null,'postgres');
+  perform sdd0578_fixture.check((select client_markbox=v_group.client_markbox from dtd_client_normal.groups where id=v_group.id),
+    'rejected renames leave the cohort mark untouched');
+  -- Positivo, en una subtransacción que se revierte al final.
+  begin
+    perform sdd0578_fixture.rename_sim(v_group.client_id,'DTD-7778');
+    perform sdd0578_fixture.check((select client_markbox='DTD-7778' from dtd_client_normal.groups where id=v_group.id),'rename moves the cohort group mark');
+    perform sdd0578_fixture.check((select client_markbox='DTD-7778' from public.shipments where id=v_group.shipment_id),'rename moves the cohort shipment mark');
+    perform sdd0578_fixture.check(not exists(select 1 from dtd_client_normal.member_boxes b join dtd_client_normal.members m on m.receipt_id=b.receipt_id
+      where m.group_id=v_group.id and b.fixed_data->>'markbox' is distinct from 'DTD-7778'),'rename refreshes member box fixed data');
+    perform dtd_client_normal.assert_identity(v_container,false);
+    perform sdd0578_fixture.check(true,'cohort identity still holds after a real rename');
+    raise exception using errcode='ZX579';
+  exception when sqlstate 'ZX579' then null;
+  end;
+  perform sdd0578_fixture.check((select client_markbox=v_group.client_markbox from dtd_client_normal.groups where id=v_group.id),
+    'rename subtransaction rolled back for the following blocks');
+end $client_rename$;
+
+-- Accesos por persona (0538/0539) en module_allowed, como lib/studio/rbac.ts.
+do $person_grants$
+declare v_t uuid:=sdd0578_fixture.id('tenant-A');
+  v_q text:=format('select to_jsonb(array[dtd_client_normal.module_allowed(%L::uuid,%L,false),dtd_client_normal.module_allowed(%L::uuid,%L,true)])',
+    sdd0578_fixture.id('tenant-A'),'cn',sdd0578_fixture.id('tenant-A'),'cn');
+begin
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('commercial-A',v_q,'postgres')='[false,false]'::jsonb,'commercial without grant has no cn');
+  insert into public.studio_user_module_grants(tenant_id,user_id,module_id,can_view,can_edit,reason)
+    values(v_t,sdd0578_fixture.id('commercial-A'),'cn',true,false,'Acceso sintético de vista');
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('commercial-A',v_q,'postgres')='[true,false]'::jsonb,'view grant adds view, not edit');
+  update public.studio_user_module_grants set can_edit=true where user_id=sdd0578_fixture.id('commercial-A') and module_id='cn';
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('commercial-A',v_q,'postgres')='[true,true]'::jsonb,'edit grant adds edit');
+  update public.studio_user_module_grants set expires_at=clock_timestamp()-interval '1 minute' where user_id=sdd0578_fixture.id('commercial-A') and module_id='cn';
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('commercial-A',v_q,'postgres')='[false,false]'::jsonb,'expired grant adds nothing');
+  insert into public.studio_user_module_grants(tenant_id,user_id,module_id,can_view,can_edit,reason)
+    values(v_t,sdd0578_fixture.id('support-A'),'naviera',true,true,'Acceso sintético de soporte');
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('support-A',format('select to_jsonb(dtd_client_normal.module_allowed(%L::uuid,%L,true))',v_t,'naviera'),'postgres')='false'::jsonb,
+    'support never edits, even with an edit grant');
+  insert into public.studio_user_module_grants(tenant_id,user_id,module_id,can_view,can_edit,reason)
+    values(sdd0578_fixture.id('tenant-B'),sdd0578_fixture.id('commercial-A'),'cn',true,true,'Acceso sintético de otro tenant');
+  perform sdd0578_fixture.check(sdd0578_fixture.run_as('commercial-A',v_q,'postgres')='[false,false]'::jsonb,'a grant in another tenant adds nothing');
+  delete from public.studio_user_module_grants where reason like 'Acceso sintético%';
+end $person_grants$;
 
 do $codes$
 declare v_sql text; v_result jsonb; v_ship uuid:=(select shipment_id from dtd_client_normal.groups where container_id=sdd0578_fixture.id('normal'));
