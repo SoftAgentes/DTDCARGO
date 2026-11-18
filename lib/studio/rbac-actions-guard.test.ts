@@ -424,8 +424,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
+  // SDD-0673 sumó cinco en `tracking/[id]/actions.ts` (488 → 493):
+  // `::previewCorrectShipmentMeasures`, `::correctShipmentMeasures`, `::previewSplitShipment` y
+  // `::splitShipment` llaman a `capabilityDenial(supabase, "correct_shipment_measures" | "split_shipment")`
+  // antes de leer nada y escriben SOLO por las RPC `correct_shipment_measures` y `split_shipment` (0563),
+  // que repiten operations/admin activo y el tenant de la sesión. `::updateShipmentGroupReference`
+  // llama a `moduleEditDenial(supabase, "tracking")` al tope y escribe una sola columna nota por la RLS.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(488);
+    expect(reportes.length).toBe(493);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
