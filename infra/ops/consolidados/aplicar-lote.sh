@@ -4,7 +4,8 @@
 # El lote lo genera `pnpm consolidados:lote` en un checkout (scripts/consolidados/)
 # y llega al servidor por scp como una carpeta con previa.sql, simulacro.sql,
 # aplicar.sql, verificar.sql, deshacer.sql y purgar.sql (sólo en prueba),
-# manifiesto.json, resumen.md y SHA256SUMS. Este script corre uno de esos scripts con psql dentro de
+# manifiesto.json y SHA256SUMS. resumen.md y el manifiesto completo se quedan en
+# la PC (<salida>-local/, empaque mínimo). Este script corre uno de esos scripts con psql dentro de
 # `<proyecto>-db-1`, como `postgres`, y deja la evidencia sin nombres de
 # clientes (sólo la salida de psql, los conteos y las huellas).
 #
@@ -32,7 +33,8 @@
 #   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
 #   están deshabilitados: borrar en producción lo corre Sam, no este script. Un
 #   paquete de producción que traiga deshacer.sql o purgar.sql se rechaza (el
-#   generador no los emite para producción).
+#   generador no los emite para producción), y también uno que traiga resumen.md
+#   o un manifiesto.json con `"nombreExcel"` (empaque mínimo, 2026-11-14).
 #
 # Candado: simulacro, aplicar, deshacer y purgar toman
 # LOTES_CANDADO (por defecto /run/lock/dtd-lotes.lock.d), un directorio que se
@@ -145,6 +147,13 @@ if [[ ${ES_PROD} -eq 1 ]]; then
     [[ -e "${LOTE}/${f}" || -L "${LOTE}/${f}" ]] \
       && refuse "el paquete de producción trae ${f}: el generador no lo emite para producción; regenera el lote en una carpeta nueva"
   done
+  # Empaque mínimo (SDD-0543, 2026-11-14): al servidor sube sólo lo que este
+  # guion necesita. resumen.md y el manifiesto completo (con los nombres de las
+  # marcas del Excel) se quedan en la PC, en <salida>-local/.
+  [[ -e "${LOTE}/resumen.md" || -L "${LOTE}/resumen.md" ]] \
+    && refuse "el paquete de producción trae resumen.md: se queda en la PC (<salida>-local/); regenera el lote con el generador de main"
+  grep -q '"nombreExcel"' -- "${LOTE}/manifiesto.json" \
+    && refuse "el manifiesto.json del paquete de producción trae nombreExcel: regenera el lote con el generador de main (el manifiesto completo se queda en la PC)"
   # Enlace simbólico: la guarda de carpeta de abajo resuelve el DIRECTORIO de la
   # ruta, no el último componente, así que un enlace fuera del lote que apunte al
   # manifiesto (que cita el id y lleva nombres) la pasaría; y el destino de un

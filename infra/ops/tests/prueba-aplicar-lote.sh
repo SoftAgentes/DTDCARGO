@@ -132,12 +132,11 @@ cat > "${P}/manifiesto.json" <<'JSON'
 {
   "lote": "carga-consolidado:61:cafebabe",
   "entorno": "produccion",
-  "esperado": { "envios": 1, "recepciones": 0, "items": 0, "cajas": 0, "clientes": 1, "facturas": 0, "cbm": 0, "kg": 0, "base": 0 },
-  "clientes": [{ "clave": "MG-0019", "nombreExcel": "NOMBRE SECRETO PRUEBA" }]
+  "esperado": { "envios": 1, "recepciones": 0, "items": 0, "cajas": 0, "clientes": 1, "facturas": 0, "cbm": 0, "kg": 0, "base": 0 }
 }
 JSON
-echo "# resumen · NOMBRE SECRETO PRUEBA" > "${P}/resumen.md"
-( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+# Empaque mínimo: el paquete de producción no trae resumen.md ni nombres en el manifiesto.
+( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
 prod() { bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP}" "$@"; }
 antes="$(wc -l < "${DOBLE_LOG}")"
 out="$(prod --paso previa 2>&1)"; rc=$?
@@ -158,7 +157,7 @@ done
 # --autorizacion apuntando a un archivo del lote que cita el id (el manifiesto): rechazo, y no llega a la evidencia.
 out="$(prod --paso previa --autorizacion "${P}/manifiesto.json" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"sólo vale AUTORIZACION.txt"* && -z "$(ls -A "${EP}")" ]] && ok "--autorizacion a manifiesto.json del lote rechazada sin dejar evidencia (3)" || ko "manifiesto como autorización rc=${rc}: ${out}"
-out="$(prod --paso previa --autorizacion "${P}/../lote-prod/resumen.md" 2>&1)"; rc=$?
+out="$(prod --paso previa --autorizacion "${P}/../lote-prod/manifiesto.json" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 ]] && ok "--autorizacion a un archivo del lote por ruta con .. también rechazada (3)" || ko "ruta con .. rc=${rc}: ${out}"
 # Un texto con forma de manifiesto no es el OK de Sam, aunque cite el id (H3).
 printf '{ "lote": "carga-consolidado:61:cafebabe" }\n' > "${P}/AUTORIZACION.txt"
@@ -169,12 +168,27 @@ prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 && -z "$(ls -A "${EP}")" ]] && o
 # Un paquete de producción que trae deshacer.sql o purgar.sql se rechaza entero (H6).
 for f in deshacer purgar; do
   printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\n' "${f}" > "${P}/${f}.sql"
-  ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+  ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
   echo "Sam: autorizo carga-consolidado:61:cafebabe" > "${P}/AUTORIZACION.txt"
   out="$(prod --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"trae ${f}.sql"* ]] && ok "paquete de producción con ${f}.sql rechazado en la previa (3)" || ko "${f}.sql en producción rc=${rc}: ${out}"
-  rm -f "${P}/${f}.sql"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+  rm -f "${P}/${f}.sql"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
 done
+# Empaque mínimo (2026-11-14): un paquete de producción con resumen.md, o con un
+# manifiesto que trae nombreExcel, se rechaza entero, sin tocar docker ni dejar evidencia.
+antes_em="$(wc -l < "${DOBLE_LOG}")"
+echo "# resumen · NOMBRE SECRETO PRUEBA" > "${P}/resumen.md"
+( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"trae resumen.md"* && -z "$(ls -A "${EP}")" ]] && ok "paquete de producción con resumen.md rechazado sin dejar evidencia (3)" || ko "resumen.md en producción rc=${rc}: ${out}"
+rm -f "${P}/resumen.md"
+cp "${P}/manifiesto.json" "${T}/manifiesto-limpio.json"
+printf '{\n  "lote": "carga-consolidado:61:cafebabe",\n  "entorno": "produccion",\n  "clientes": [{ "clave": "MG-0019", "nombreExcel": "NOMBRE SECRETO PRUEBA" }]\n}\n' > "${P}/manifiesto.json"
+( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"trae nombreExcel"* && -z "$(ls -A "${EP}")" ]] && ok "manifiesto de producción con nombreExcel rechazado sin dejar evidencia (3)" || ko "nombreExcel en el manifiesto rc=${rc}: ${out}"
+cp "${T}/manifiesto-limpio.json" "${P}/manifiesto.json"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+[[ "$(wc -l < "${DOBLE_LOG}")" -eq "${antes_em}" ]] && ok "los rechazos del empaque mínimo no llamaron a docker" || ko "un rechazo del empaque mínimo llamó a docker"
 echo "Sam, 2026-11-13: autorizo cargar el lote carga-consolidado:61:cafebabe en producción" > "${P}/AUTORIZACION.txt"
 out="$(prod --paso deshacer --confirm-deshacer carga-consolidado:61:cafebabe 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "deshacer en producción deshabilitado aunque esté confirmado (3)" || ko "deshacer en producción rc=${rc}: ${out}"

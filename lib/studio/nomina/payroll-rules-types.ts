@@ -104,6 +104,65 @@ export function isMonedaMonto(v: unknown): v is MonedaMonto {
 
 /** Tope legal de la contribución especial para las pensiones (Ley de Protección de las Pensiones, Art. 7). */
 export const PENSION_CONTRIB_MAX_PCT = 15;
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Ajustes de la liquidación (SDD-0109 · migración 0179)      ║
+// ╚═══════════════════════════════════════════════════════════╝
+// SDD-0658: hasta esta spec no se leían ni se conservaban al guardar una versión nueva.
+
+/** Cómo se calculan las prestaciones del finiquito. Espejo de `PrestacionesMethod` (settlement-types). */
+export type MetodoPrestaciones = "garantia" | "retroactivo" | "mejor";
+
+export const METODO_PRESTACIONES_OPTIONS: { value: MetodoPrestaciones; label: string }[] = [
+  { value: "mejor", label: "El mayor de los dos (garantía o retroactivo)" },
+  { value: "garantia", label: "Garantía (Art. 142, a y b)" },
+  { value: "retroactivo", label: "Retroactivo (Art. 142, c)" },
+];
+
+export function isMetodoPrestaciones(v: unknown): v is MetodoPrestaciones {
+  return v === "garantia" || v === "retroactivo" || v === "mejor";
+}
+
+/** Los ajustes de la liquidación que guarda cada versión de las reglas. */
+export type AjustesLiquidacion = {
+  prestaciones_method: MetodoPrestaciones;
+  prestaciones_interest_pct: number;
+  ajena_78_incluye_92: boolean;
+};
+
+/** Los valores con que nacen las columnas en la base (DEFAULT de la 0179). No son una recomendación legal. */
+export const AJUSTES_LIQUIDACION_BASE: AjustesLiquidacion = {
+  prestaciones_method: "mejor",
+  prestaciones_interest_pct: 0,
+  ajena_78_incluye_92: false,
+};
+
+/**
+ * Lo que la versión nueva guarda: lo que llegó en el formulario; si no llegó (null), lo de la versión
+ * vigente; y si la vigente tampoco lo trae, el valor con que nace la columna. Así guardar otra cosa
+ * nunca devuelve estos ajustes a su valor de fábrica.
+ */
+export function resolverAjustesLiquidacion(
+  input: Pick<PayrollRulesInput, "prestaciones_method" | "prestaciones_interest_pct" | "ajena_78_incluye_92">,
+  vigente: Pick<PayrollRules, "prestaciones_method" | "prestaciones_interest_pct" | "ajena_78_incluye_92"> | null,
+): AjustesLiquidacion {
+  const metodoVigente = vigente?.prestaciones_method;
+  const interesVigente = vigente?.prestaciones_interest_pct;
+  const ajenaVigente = vigente?.ajena_78_incluye_92;
+  return {
+    prestaciones_method:
+      input.prestaciones_method ??
+      (isMetodoPrestaciones(metodoVigente) ? metodoVigente : AJUSTES_LIQUIDACION_BASE.prestaciones_method),
+    prestaciones_interest_pct:
+      input.prestaciones_interest_pct ??
+      (typeof interesVigente === "number" && Number.isFinite(interesVigente)
+        ? interesVigente
+        : AJUSTES_LIQUIDACION_BASE.prestaciones_interest_pct),
+    ajena_78_incluye_92:
+      input.ajena_78_incluye_92 ??
+      (typeof ajenaVigente === "boolean" ? ajenaVigente : AJUSTES_LIQUIDACION_BASE.ajena_78_incluye_92),
+  };
+}
 /** LOTTT Art. 131: mínimo y máximo de días de utilidades. */
 export const UTILIDADES_MAX_DAYS = 120;
 
@@ -137,7 +196,7 @@ export type PayrollRules = {
   salarial_bonuses: SalarialBonus[];
   // Config de liquidación (SDD-0109 · additiva, migr 0179). Opcionales: filas
   // viejas y snapshots previos a 0179 no las traen → el motor usa defaults.
-  prestaciones_method?: "garantia" | "retroactivo" | "mejor";
+  prestaciones_method?: MetodoPrestaciones;
   prestaciones_interest_pct?: number;
   ajena_78_incluye_92?: boolean;
   // SDD-0653 A2b · migración 0556 (opcionales: sin la 0556 la base no los trae).
@@ -190,6 +249,13 @@ export type PayrollRulesInput = {
   bono_vacacional_days: number;
   vacaciones_days: number;
   salarial_bonuses: SalarialBonus[];
+  // SDD-0658 · ajustes de la liquidación (columnas de la 0179). null = no llegó: la versión nueva
+  // conserva el de la vigente (resolverAjustesLiquidacion).
+  prestaciones_method: MetodoPrestaciones | null;
+  /** Interés sobre prestaciones, % de 0 a 100. */
+  prestaciones_interest_pct: number | null;
+  /** Si el despido por causa ajena (Art. 78) suma también la indemnización del Art. 92. */
+  ajena_78_incluye_92: boolean | null;
   // SDD-0653 A2b: solo se persisten si la base tiene la 0556 (payroll-rules-queries.ts).
   /** AAAA-MM-DD, no posterior a hoy en Caracas; null = que la base ponga hoy en Caracas. */
   vigente_desde: string | null;
@@ -236,6 +302,10 @@ export const PAYROLL_RULES_DEFAULTS: PayrollRulesInput = {
   bono_vacacional_days: 15,
   vacaciones_days: 15,
   salarial_bonuses: [],
+  // SDD-0658: sin propuesta. El formulario muestra lo de la versión vigente; el validador no inventa nada.
+  prestaciones_method: null,
+  prestaciones_interest_pct: null,
+  ajena_78_incluye_92: null,
   // Todo en dólares (D4): el formulario propone USD para los bonos cuando no hay versión de la cual heredar.
   // El validador NO usa esto: una moneda que no llega se hereda de la vigente.
   vigente_desde: null,
@@ -507,6 +577,29 @@ export function validatePayrollRulesInput(
     errors.fuente_legal = `La fuente legal admite hasta ${FUENTE_LEGAL_MAX} caracteres.`;
   }
 
+  // Ajustes de la liquidación (SDD-0658): opcionales; vacío = conservar el de la versión vigente.
+  let metodoPrestaciones: MetodoPrestaciones | null = null;
+  if (!sinValor(raw.prestaciones_method)) {
+    const m = String(raw.prestaciones_method).trim();
+    if (isMetodoPrestaciones(m)) metodoPrestaciones = m;
+    else errors.prestaciones_method = "Método de prestaciones inválido.";
+  }
+  let interesPrestaciones: number | null = null;
+  if (!sinValor(raw.prestaciones_interest_pct)) {
+    const n = Number(raw.prestaciones_interest_pct);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      errors.prestaciones_interest_pct = "Interés sobre prestaciones debe estar entre 0 y 100.";
+    }
+    interesPrestaciones = round2(n);
+  }
+  let ajenaIncluye92: boolean | null = null;
+  if (!sinValor(raw.ajena_78_incluye_92)) {
+    const v = String(raw.ajena_78_incluye_92).trim().toLowerCase();
+    if (v === "true" || v === "si" || v === "sí") ajenaIncluye92 = true;
+    else if (v === "false" || v === "no") ajenaIncluye92 = false;
+    else errors.ajena_78_incluye_92 = "Respuesta inválida (sí o no).";
+  }
+
   const bonuses = parseSalarialBonuses(raw.salarial_bonuses);
   if (bonuses === false) errors.salarial_bonuses = "Lista de bonos salariales inválida.";
 
@@ -531,6 +624,9 @@ export function validatePayrollRulesInput(
       bono_vacacional_days: days.bono_vacacional_days,
       vacaciones_days: days.vacaciones_days,
       salarial_bonuses: bonuses === false ? [] : bonuses,
+      prestaciones_method: metodoPrestaciones,
+      prestaciones_interest_pct: interesPrestaciones,
+      ajena_78_incluye_92: ajenaIncluye92,
       vigente_desde: vigenteRaw,
       fuente_legal: fuenteRaw,
       ingreso_minimo_integral_usd: ingresoMinimo,
