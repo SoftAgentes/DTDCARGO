@@ -13,8 +13,12 @@
 //      nueva sí le llega exactamente un correo. Sin el control, el «no llegó
 //      nada» no prueba nada.
 //   4. Pasar la cuenta al correo real (y de vuelta) no corta la sesión.
-//   5. El status y el código exactos cuando el correo ya es de otra cuenta
-//      (la app espera `email_exists`).
+//   5. El status y el código exactos cuando el correo ya es de otra cuenta.
+//      Dos formas conocidas y válidas: `422 email_exists` (lo que documenta
+//      Auth) o `500 23505` (violación de unicidad: lo que respondió el Auth de
+//      prueba el 2026-11-18). La salida anota cuál salió; otra cosa es FALLÓ.
+// Cada cuenta que crea la anota con su id apenas la crea (un id no es un dato
+// personal): si el proceso muere a mitad, la salida ya dice qué borrar a mano.
 // Al final borra SOLO lo suyo: las cuentas que creó (por id) y, como resto de
 // una corrida anterior, las que tengan exactamente la forma de sus correos
 // sintéticos. Nunca lista todas las cuentas del Auth de prueba: busca acotado
@@ -39,6 +43,8 @@
 //   Con red, antes de la primera escritura:
 //   · `api-gw` resuelve a exactamente UNA dirección. En `dtd_edge`, la red
 //     compartida, resuelve a los gateways de los dos proyectos: ahí no corre.
+//   · Y al menos uno de sus alias `kong` o `envoy`, que sólo existen en la red
+//     interna del proyecto, resuelve a esa MISMA dirección.
 //   · Mailpit responde `/api/v1/info` con 200 (producción no tiene Mailpit).
 //   · /auth/v1/settings dice que el registro está cerrado.
 //
@@ -237,6 +243,22 @@ export async function probar(deps) {
     );
   }
   log("PASÓ guarda · api-gw resuelve a una sola dirección");
+  let alias = 0;
+  for (const nombre of ["kong", "envoy"]) {
+    let d = null;
+    try {
+      d = await resolver(nombre);
+    } catch {
+      d = null;
+    }
+    if (!Array.isArray(d) || d.length === 0) continue;
+    if (d.length !== 1 || d[0] !== direcciones[0]) {
+      return noEsPrueba(`el alias ${nombre} no resuelve a la misma dirección que api-gw`);
+    }
+    alias += 1;
+  }
+  if (alias === 0) return noEsPrueba("no resuelve kong ni envoy: no es la red interna del proyecto");
+  log("PASÓ guarda · los alias de la red interna resuelven al mismo gateway");
   const info = await mailpit("GET", "/api/v1/info");
   if (info.status !== 200) return noEsPrueba(`Mailpit no responde /api/v1/info · status ${info.status}`);
   log("PASÓ guarda · Mailpit responde");
@@ -253,6 +275,12 @@ export async function probar(deps) {
   const otro = `${PREFIJO}${sufijo}-o@example.test`;
   const control = `${PREFIJO}${sufijo}-c@example.test`;
   const creados = [];
+  /** Anota la cuenta creada por su id, apenas se crea. */
+  const anotar = (id, cual) => {
+    if (!id) return;
+    creados.push(id);
+    log(`cuenta de prueba creada (${cual}) · id ${String(id).replace(/[^0-9A-Za-z-]/g, "").slice(0, 64)}`);
+  };
 
   let fallo = false;
   const paso = (ok, nombre, r) => {
@@ -308,7 +336,7 @@ export async function probar(deps) {
     // 1. La cuenta con la dirección interna.
     const crear = await llamar("POST", "/auth/v1/admin/users", { cuerpo: { email: interna, email_confirm: true } });
     const idA = crear.body?.id;
-    if (idA) creados.push(idA);
+    anotar(idA, "dirección interna");
     if (!paso((crear.status === 200 || crear.status === 201) && Boolean(idA), "crear la cuenta con la dirección interna", crear)) {
       return 1;
     }
@@ -329,7 +357,7 @@ export async function probar(deps) {
     // 3. Con el correo real, que todavía no está en Auth; y el control, en la
     //    misma ventana, con una cuenta nueva a la que no se le acuñó nada.
     const crearC = await llamar("POST", "/auth/v1/admin/users", { cuerpo: { email: control, email_confirm: true } });
-    if (crearC.body?.id) creados.push(crearC.body.id);
+    anotar(crearC.body?.id, "control");
     if (!paso((crearC.status === 200 || crearC.status === 201) && Boolean(crearC.body?.id), "crear la cuenta de control", crearC)) {
       return 1;
     }
@@ -354,7 +382,7 @@ export async function probar(deps) {
     paso(enControl === 1, "control: a la cuenta de control le llegó exactamente un correo");
     paso((await cuantosEnMailpit(real)) === 0, "en la misma ventana no llegó ningún correo para el correo real");
     const conReal = await conCorreo(real);
-    if (conReal) for (const id of conReal) if (!creados.includes(id)) creados.push(id);
+    if (conReal) for (const id of conReal) if (!creados.includes(id)) anotar(id, "creada por Auth con el correo real");
     paso(Array.isArray(conReal) && conReal.length === 0, "Auth no creó ninguna cuenta con el correo real");
     paso((await emailDe(idA)) === interna, "la cuenta sigue con la dirección interna");
 
@@ -375,10 +403,16 @@ export async function probar(deps) {
 
     // 5. El correo ya es de otra cuenta.
     const crearB = await llamar("POST", "/auth/v1/admin/users", { cuerpo: { email: otro, email_confirm: true } });
-    if (crearB.body?.id) creados.push(crearB.body.id);
+    anotar(crearB.body?.id, "segunda cuenta");
     if (paso((crearB.status === 200 || crearB.status === 201) && Boolean(crearB.body?.id), "crear la segunda cuenta", crearB)) {
       const choque = await llamar("PUT", `/auth/v1/admin/users/${idA}`, { cuerpo: { email: otro, email_confirm: true } });
-      paso(choque.status === 422 && choque.codigo === "email_exists", "el correo ocupado da 422 email_exists", choque);
+      const forma =
+        choque.status === 422 && choque.codigo === "email_exists"
+          ? "422 email_exists"
+          : choque.status === 500 && choque.codigo === "23505"
+            ? "500 23505"
+            : null;
+      paso(forma !== null, `el correo ocupado da un rechazo conocido (forma: ${forma ?? "desconocida"})`, choque);
       paso((await emailDe(idA)) === interna, "después del choque la cuenta sigue con la dirección interna");
     }
     return fallo ? 1 : 0;

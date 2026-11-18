@@ -32,6 +32,11 @@ const AJENAS = Object.freeze([
   "prueba-0646-abcd-r@example.test",
   "prueba-0646-0123abcd-r@example.test.ve",
   "Prueba-0646-ZZZZZZZZ-o@example.test",
+  // Contiene la forma exacta, pero no empieza con ella (el `^` del patrón).
+  "xprueba-0646-0123abcd-r@example.test",
+  // Contiene el correo real de ESTA corrida (con `aleatorio` fijo): la búsqueda
+  // acotada la devuelve, pero no es exacta.
+  "zzprueba-0646-abababab-r@example.test",
 ]);
 
 const ESCRITURAS = /^(POST|PUT|DELETE) \/auth\/v1\/admin|^POST \/auth\/v1\/(otp|recover)/;
@@ -90,6 +95,9 @@ function doble(o = {}) {
       let lista = [...users.entries()].map(([id, x]) => ({ id, email: x.email }));
       if (!o.ignoraFiltro) lista = lista.filter((x) => x.email.toLowerCase().includes(filtro));
       if (o.listaConNulos) lista = [null, { id: null, email: null }, ...lista];
+      if (o.cienRestos && filtro === "prueba-0646-") {
+        lista = [...lista, ...Array.from({ length: 100 }, (_, i) => ({ id: `x-${i}`, email: `prueba-0646-${String(i).padStart(8, "0")}-r@example.test` }))];
+      }
       return resp(200, { users: lista });
     }
     const m = /^\/auth\/v1\/admin\/users\/(.+)$/.exec(p);
@@ -165,7 +173,8 @@ async function correr(o = {}, extra = {}) {
   const codigo = await probar({
     env: { ...ENV, ...(extra.env ?? {}) },
     fetch: d.fetch,
-    resolver: extra.resolver ?? (async () => ["172.20.0.5"]),
+    resolver: extra.resolver ?? (async (h) => (h === "envoy" && extra.sinEnvoy ? [] : ["172.20.0.5"])),
+    aleatorio: extra.aleatorio ?? ((n) => "ab".repeat(n)),
     log: (m) => lineas.push(m),
     esperar: d.esperar,
     ensayo: extra.ensayo,
@@ -194,7 +203,8 @@ test("⭐ camino feliz: todo PASÓ, sale con 0, borra solo lo suyo y deja intact
   const { codigo, salida, d } = await correr();
   assert.equal(codigo, 0, salida);
   assert.doesNotMatch(salida, /FALLÓ/);
-  assert.match(salida, /PASÓ el correo ocupado da 422 email_exists · status 422 · código email_exists/);
+  assert.match(salida, /PASÓ el correo ocupado da un rechazo conocido \(forma: 422 email_exists\) · status 422 · código email_exists/);
+  assert.match(salida, /cuenta de prueba creada \(dirección interna\) · id u-\d+/);
   assert.match(salida, /pedir código con el correo real .* status 422 · código signup_disabled/);
   assert.match(salida, /PASÓ control: a la cuenta de control le llegó exactamente un correo/);
   assert.match(salida, /PASÓ en la misma ventana no llegó ningún correo para el correo real/);
@@ -361,10 +371,57 @@ test("si el cambio de correo corta la sesión, FALLÓ", async () => {
 });
 
 test("⭐ un correo ocupado con otro status o código: FALLÓ y anota los exactos", async () => {
-  const { codigo, salida } = await correr({ ocupado: { status: 400, codigo: "user_already_exists" } });
+  for (const ocupado of [
+    { status: 400, codigo: "user_already_exists" },
+    { status: 500, codigo: "unexpected_failure" },
+    { status: 422, codigo: "23505" },
+  ]) {
+    const { codigo, salida } = await correr({ ocupado });
+    assert.equal(codigo, 1, salida);
+    assert.match(
+      salida,
+      new RegExp(`FALLÓ el correo ocupado da un rechazo conocido \\(forma: desconocida\\) · status ${ocupado.status} · código ${ocupado.codigo}`),
+    );
+    sinFugas(salida);
+  }
+});
+
+test("⭐ la forma real del Auth de prueba (500 · 23505) es un resultado válido y lo anota", async () => {
+  const { codigo, salida } = await correr({ ocupado: { status: 500, codigo: "23505" } });
+  assert.equal(codigo, 0, salida);
+  assert.match(salida, /PASÓ el correo ocupado da un rechazo conocido \(forma: 500 23505\) · status 500 · código 23505/);
+});
+
+test("⭐ alias de la red interna: sin kong ni envoy, o resolviendo a otro gateway, no escribe nada", async () => {
+  const casos = [
+    [async (h) => (h === "api-gw" ? ["172.20.0.5"] : []), /no resuelve kong ni envoy/],
+    [async (h) => (h === "api-gw" ? ["172.20.0.5"] : ["172.21.0.9"]), /alias kong no resuelve a la misma dirección/],
+    [async (h) => (h === "api-gw" ? ["172.20.0.5"] : h === "kong" ? [] : ["172.20.0.5", "172.21.0.9"]), /alias envoy no resuelve a la misma/],
+    [async (h) => { if (h === "api-gw") return ["172.20.0.5"]; throw new Error("ENOTFOUND"); }, /no resuelve kong ni envoy/],
+  ];
+  for (const [resolver, msg] of casos) {
+    const { codigo, salida, d } = await correr({}, { resolver });
+    assert.equal(codigo, 2, salida);
+    assert.match(salida, msg);
+    assert.equal(d.llamadas.filter((l) => ESCRITURAS.test(l)).length, 0);
+  }
+  // Con uno solo de los dos alias alcanza.
+  const { codigo } = await correr({}, { sinEnvoy: true });
+  assert.equal(codigo, 0);
+});
+
+test("⭐ si el proceso muere a mitad, la salida ya anotó el id de la cuenta interna", async () => {
+  const { salida } = await correr({ verifyFalla: true });
+  const iCreada = salida.indexOf("cuenta de prueba creada (dirección interna) · id u-");
+  const iFallo = salida.indexOf("FALLÓ canjear el enlace");
+  assert.ok(iCreada >= 0 && iCreada < iFallo, salida);
+});
+
+test("⭐ con 100 o más resultados la búsqueda de restos no se usa para borrar: FALLÓ y no borra", async () => {
+  const { codigo, salida, d } = await correr({ cienRestos: true });
   assert.equal(codigo, 1);
-  assert.match(salida, /FALLÓ el correo ocupado da 422 email_exists · status 400 · código user_already_exists/);
-  sinFugas(salida);
+  assert.match(salida, /FALLÓ limpieza/);
+  ajenasIntactas(d);
 });
 
 test("⭐ restos de una corrida anterior con la forma exacta se borran; los parecidos no", async () => {
