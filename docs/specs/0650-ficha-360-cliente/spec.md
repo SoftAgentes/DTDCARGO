@@ -177,7 +177,7 @@ Chatwoot y Studio corren en el servidor propio (`docs/runbooks/servidor-contabo.
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0554_chatwoot_contact_links.sql` | Tabla, RLS, cinco funciones (unir automática, comprobación del actor, unir y quitar a mano, disparador de ficha borrada), el disparador y el tipo de auditoría (en espera) |
-| `supabase/desarmes/0554_desarme.sql` | Desarme sin número |
+| `0554_desarme`, en `supabase/desarmes/` | Desarme sin número (se nombra sin la extensión: `spec-migration-refs.test.ts` toma todo `NNNN_nombre` con `.sql` como migración) |
 | `supabase/tests/0554_chatwoot_contact_links.test.sql` | Contrato: RLS por Bandeja y tenant, unir, quitar, borrar, idempotencia |
 | `lib/studio/__tests__/chatwoot-contact-links.migration.test.ts` | El contrato en PGlite, control rojo, 16 mutantes, la llave de una tabla vieja y el desarme |
 | `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` | Espera y degradación declaradas |
