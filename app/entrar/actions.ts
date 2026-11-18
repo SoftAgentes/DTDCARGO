@@ -170,11 +170,14 @@ export async function requestMagicLink(
     return { error: "Ingresa un email válido." };
   }
   // SDD-0672 · todas las respuestas, pase lo que pase con el correo, tardan al
-  // menos lo mismo (ver `lib/portal/tiempo-minimo.ts` y su límite).
+  // menos lo mismo (ver `lib/portal/tiempo-minimo.ts` y su límite). `finally`:
+  // una excepción (por ejemplo, un envío que tira) tampoco se salta el piso.
   const inicio = Date.now();
-  const respuesta = await resolverPedido(prev, email);
-  await esperarTiempoMinimo(inicio);
-  return respuesta;
+  try {
+    return await resolverPedido(prev, email);
+  } finally {
+    await esperarTiempoMinimo(inicio);
+  }
 }
 
 async function resolverPedido(
