@@ -36,7 +36,7 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 
 ## Pendientes de esta tarea
 
-- Que Sam conteste las cinco preguntas del §4.
+- Decisión 1 de Sam ya escrita en la spec (dos modos: contenedor completo con doble aprobación, y por embarque con doble confirmación). Siguen abiertas las preguntas 2 a 5 y la 6 nueva (qué es la doble aprobación). La 4 cambió de recomendación: el monto se ve solo en la pantalla de confirmación.
 - Si las respuestas llevan migración (RPC de facturar con el rol de Embarques, o una regla nueva del
   portal), pedirle el número al DG.
 - Con las respuestas, completar la aceptación y pasar a implementación en una PR aparte o en esta misma,
@@ -44,4 +44,4 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La 0668, que el DG cita como cruce, no estaba en `main` ni en las ramas remotas al medir.
+- La 0668 está en la PR #680, sin fusionar. Según el DG no cruza con esta spec, salvo que cambie la regla del portal.

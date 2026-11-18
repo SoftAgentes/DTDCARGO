@@ -53,6 +53,9 @@ Habría que cambiar la regla del portal: un filtro nuevo en la policy 0416 y en 
 las SDD-0549, 0552 y 0553, con su migración. Ese cambio cruza la 0668, que no encontré en `main` ni en
 las ramas remotas al medir (§5).
 
+Por eso, «al facturar el cliente ve el tracking» **ya ocurre hoy**, aunque no haya factura. Lo que el
+botón agrega es la factura y su monto en el portal y en la contabilidad.
+
 ### 2.2 Cómo se crea hoy una factura
 
 - **Studio, `createInvoice`** (`app/studio/(app)/facturacion/actions.ts`):
@@ -103,10 +106,19 @@ no viaja al navegador.
 
 ## 4. Preguntas para Sam (cada una con la recomendación del Worker)
 
-1. **¿Se factura por cliente dentro del contenedor o por embarque?**
-   *Recomiendo por cliente dentro del contenedor.* Es la unidad que ya usa la carga de consolidados (una
-   factura por cliente y contenedor, con una línea por embarque) y la del «Detalle por cliente» de la
-   SDD-0661. Un cliente con 5 embarques recibe una factura, no cinco.
+1. **¿Se factura por cliente dentro del contenedor o por embarque?** — **DECIDIDO por Sam (2026-11-18,
+   por el DG):** hay dos modos.
+   - **Contenedor completo:** un solo botón factura todo el contenedor, con **doble aprobación** (qué
+     significa queda en la pregunta 6).
+   - **Por embarque, con doble confirmación:** quien oprime «Facturar» ve una pantalla «¿Estás seguro de
+     los datos?» que **muestra los datos que se van a facturar**, y tiene que volver a oprimir
+     «Confirmado».
+   - Razón de Sam: quien oprime «tiene que saber que eso va a ir para el cliente en su portal y en la
+     contabilidad».
+
+   *Nota del Worker:* la carga de consolidados agrupa una factura por cliente y contenedor. En el modo
+   «contenedor completo», recomiendo mantener esa agrupación: sale una factura por cliente con una línea
+   por embarque, no una factura por embarque.
 
 2. **¿De dónde sale el monto: lo escribe quien oprime, sale de la columna «valor a facturar» del Excel o
    de la tarifa congelada?**
@@ -124,10 +136,15 @@ no viaja al navegador.
    falta un estado o una vista nueva de «pre-factura» en el portal, con su migración.
 
 4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?**
-   *Recomiendo que no.* Embarques oprime «Facturar» sobre un monto que la oficina ya cargó y Contabilidad
-   revisa. El botón dice «Facturar a N clientes» sin mostrar dinero. Si Sam quiere que Embarques confirme
-   el monto (pregunta 2), hay que abrir la regla de la 0661 solo para esa pantalla y solo para esos
-   contenedores.
+   *Recomendación actualizada tras la decisión 1: sí, pero solo en la pantalla de confirmación de estos
+   contenedores.* Sam quiere que quien oprime vea «los datos que se van a facturar» y sepa que van a
+   contabilidad. Sin el monto, esa confirmación queda coja. La regla de la 0661 no cambia: la franja y el
+   detalle por cliente siguen sin dinero para Embarques. Lo único que se abre es la pantalla de
+   confirmación, que se arma en el servidor y solo para los contenedores de la lista del §4.5. Muestra:
+   - el cliente y su Shipping Mark;
+   - los embarques;
+   - cajas, CBM y peso;
+   - las líneas y el total en USD.
 
 5. **¿Cuáles son los otros tres contenedores?**
    *Recomiendo una lista cerrada de cuatro, escrita en configuración y no en el código* (por ejemplo, los
@@ -135,10 +152,24 @@ no viaja al navegador.
    transitoria se vacía la lista. Por las notas del DG, el DDP 64 es uno de ellos. No adivino los otros
    tres.
 
+6. **¿Qué es la «doble aprobación» del contenedor completo: dos confirmaciones de la misma persona, como
+   en el modo por embarque, o dos personas distintas?**
+   *Recomiendo dos personas distintas.* Facturar el contenedor completo crea de una vez las facturas de
+   todos sus clientes. Un error ahí llega a muchos portales y a la contabilidad al mismo tiempo. La forma
+   propuesta:
+   - Una persona de Embarques oprime «Facturar contenedor», revisa la misma pantalla de datos del modo por
+     embarque y lo **solicita**.
+   - Una segunda persona, de Contabilidad o Admin y nunca la misma que solicitó, lo **aprueba**. Hasta esa
+     aprobación no se crea ninguna factura.
+
+   Costo: la solicitud tiene que quedar guardada, con quién solicitó, quién aprobó y cuándo. Eso es una
+   tabla o unas columnas nuevas, con su **migración**. Si Sam prefiere dos confirmaciones de la misma
+   persona, se resuelve solo en la pantalla, sin migración por esta parte.
+
 ## 5. Cruces y dependencias
 
-- **0668.** El DG la menciona como cruce del portal. Al medir no estaba en `main` ni en las ramas
-  remotas. Hay que confirmar su alcance antes de tocar la regla del portal.
+- **0668** («código viejo visible en el portal», PR #680, sin fusionar). Según el DG no cruza con esta
+  spec, salvo que cambie la regla de lectura del portal (§3).
 - **0549, 0552, 0553 y 0556.** Lecturas del portal por principal y tenant, y facturas anuladas fuera. Si
   cambia qué ve el cliente, se tocan sus lecturas y sus pruebas de frontera.
 - **0357.** La frontera de lecturas de `invoices`. Una lectura nueva se registra en el inventario.
