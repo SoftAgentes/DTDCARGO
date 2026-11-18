@@ -574,7 +574,7 @@ Lo esperado: el conteo en `a936f1ab6c7dd3a58a4c14ce58f9af36` (0560) y la lista d
 `7bc6356c6e653c2109cca49cbecba9b3` (0558). Si cualquiera de los dos es distinto, no se aplica: el preflight de la
 0567 abortaría igual. En ese caso, avisar al DG.
 
-### El primer lote (tanda 1 de la etapa 1, 18/11/2026; espera el OK de Sam)
+### El primer lote (tanda 1 de la etapa 1, 18/11/2026; escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30»)
 
 - Excluir la conversación de la prueba del encendido, motivo «prueba del encendido; decisión del DG, 2026-11-18».
 - Corregir a «cumple» los cierres de las dos conversaciones en que Sam marcó «Cumple» y quedó guardado «Falló», motivo
