@@ -54,6 +54,7 @@ md5 de la 0562 nueva: `peek` 620cebdf32c25ad7f33c89dc1b058a37, `complete` 36fe32
 | `migrations-lock.mjs verificar --sin-base` | PASÓ: la 0562 figura como espera sin sellar |
 | `docs:check` / `sdd:check` / `git diff --check` | PASÓ |
 | install, typecheck, vitest local, contrato SQL, PGlite | NO EJECUTADO: sin turno de PC y sin `node_modules` en el worktree; el CI hace de portón |
+| CI «Calidad» en 527de903c | FALLÓ, 4 de 20.678. (1) La spec citaba el desarme con su nombre de archivo y la prueba de trazabilidad lo leyó como migración: ahora sin el punto pegado, como en la 0611. (2 y 3) Dos mutantes del origen sobrevivían porque el chequeo nuevo del correo ya rechazaba el enlace del equipo, que no lleva correo: el contrato le pone el correo de la ficha al link del equipo para que el origen se pruebe solo. (4) El inventario de quién acuña enlaces de entrada suma `/registro/activar/[token]/actions.ts`: correo probado o dirección interna, entregado en la página |
 
 ## SUBAGENTE
 

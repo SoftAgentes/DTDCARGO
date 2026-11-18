@@ -495,6 +495,11 @@ begin
     'mirar gastó el enlace';
   assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('a', 64))),
     'un enlace reemplazado todavía abre';
+  -- Aunque un enlace del equipo llevara el correo de la ficha (el CHECK lo
+  -- permite), la ruta del autoservicio no lo abre: el origen se mira aparte del
+  -- correo. Se le quita en el bloque E, después de intentar completarlo.
+  update public.client_registration_links set issued_to_email = 'nueve@example.test'
+   where token_hash = repeat('9', 64);
   assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('9', 64))),
     'mirar el enlace de autoservicio abre un enlace del equipo';
   assert not exists (select 1 from public.portal_registration_link_peek_self(repeat('0', 64))),
@@ -571,6 +576,7 @@ begin
   assert (select used_at is null and guard_failures = 0
             from public.client_registration_links where token_hash = repeat('9', 64)),
     'completar con la guarda tocó un link del equipo';
+  update public.client_registration_links set issued_to_email = null where token_hash = repeat('9', 64);
 
   -- Regresión de la 0646: la ruta del equipo sigue igual con sus links.
   select * into r from public.portal_registration_link_peek(repeat('9', 64));

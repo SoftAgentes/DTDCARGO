@@ -221,7 +221,7 @@ nominal de Sam nombrando el archivo.
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/0562_registro_link_autoservicio.sql` | nueva (no aplicada) |
-| `supabase/desarmes/0562_desarme.sql` | nuevo |
+| `supabase/desarmes/0562_desarme` (extensión `.sql`; sin el punto pegado para que no se lea como migración citada) | nuevo |
 | `supabase/tests/0562_registro_link_autoservicio.test.sql` | contrato |
 | `lib/portal/__tests__/registro-autoservicio.migration.test.ts` | el contrato en PGlite |
 | `supabase/migrations-baseline.json` | espera de la 0562 |
