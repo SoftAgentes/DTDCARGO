@@ -77,7 +77,7 @@ evitar.
   comprobación (§5.1).
 - Mensaje final: «¡Ya eras cliente de DTD Cargo! Este es tu código de siempre: <código>. Ya puedes ver tu
   portal.» y el botón «Entrar a mi portal». Debajo, que le enviamos un correo para comprobar su dirección
-  y que hasta confirmarla ese correo no sirve para volver a entrar.
+  y que lo abra en ese mismo teléfono o computadora, con su portal abierto.
 - El POST pasa por el **throttle por IP** de `/registro` (`portal_registro_throttle`, 5 por hora, fail-open
   si la lectura falla) antes de tocar la ficha.
 - Si el correo ya tiene una cuenta de Auth, la base lo rechaza **antes** de gastar el link. El cliente lee
@@ -109,9 +109,11 @@ duplicado, de la cédula no copiada y del acceso fallido, y ofrece «Marcar comp
 (`portal_registration_link_mark_reviewed`, mismos roles). Filtro «Pendientes» / «Todos».
 
 - **Estado del correo (enmienda D-1).** Cada tarjeta dice «Correo comprobado» o «Correo sin comprobar»
-  con el estado real de `client_email_checks`; ya no usa la regla de «volvió a entrar más de 1 h
-  después». Si al confirmar ese correo ya tenía otra cuenta, la tarjeta avisa y no se fusiona nada. Quien
-  puede editar clientes tiene «Reenviar comprobación» (`resendEmailCheckAction`).
+  con el estado real (`portal_email_check_estado`); ya no usa la regla de «volvió a entrar más de 1 h
+  después». Si al confirmar ese correo ya tenía otra cuenta, o la comprobación quedó a medias, la tarjeta
+  avisa y no se fusiona nada. Si el equipo revocó y volvió a invitar por correo a un cliente que nunca
+  comprobó el suyo, la tarjeta sigue diciendo «Correo nunca comprobado». Quien puede editar clientes tiene
+  «Reenviar comprobación» (`resendEmailCheckAction`).
 - La pantalla es entera de datos personales: quien no puede ver nombres de clientes
   (`readCanSeeClientNames`, equipo de China sin rol admin, SDD-0531 / PIPL) no entra; el servidor no lee
   la tabla y muestra «Sin acceso a esta lista».
@@ -165,17 +167,22 @@ migración primero.
 - Preflight: exige la tabla de la 0552 y compara por md5 el cuerpo vivo de
   `portal_registration_link_bind` (0552, `9dc4862d3d6d1a9fe43726203322b2cd`); si producción tiene otro,
   aborta sin tocar nada.
-- Tabla `client_email_checks`, una fila por cliente registrado por link, con RLS: el equipo lee su
-  tenant; nadie escribe por PostgREST. Guarda la cuenta de Auth que nació del link, su dirección interna,
-  el correo por comprobar, el sha256 del token del enlace (el token no se guarda), su vencimiento y uso,
-  cuándo se comprobó y si hubo choque con otra cuenta.
+- Tabla `client_email_checks`, una fila por cliente registrado por link, con RLS encendida y **sin
+  policies**: nadie la lee ni la escribe por PostgREST. Guarda la cuenta de Auth que nació del link, su
+  dirección interna, el correo por comprobar, el sha256 del token del enlace (el token no se guarda), su
+  vencimiento y uso, cuándo se comprobó, si hubo choque con otra cuenta y si quedó para revisión.
+- El equipo ve **solo el estado** y la fecha del último envío, por `portal_email_check_estado`
+  (`authenticated`, tenant del usuario). Ni el correo por comprobar ni el hash del token salen por ahí: el
+  correo se ve donde ya se veía, en la ficha, con los permisos de siempre.
 - `portal_registration_link_bind` acepta la cuenta con dirección interna y anota la fila «sin comprobar».
   Sigue aceptando la cuenta con el correo real, para no romper la app anterior entre la migración y la
   publicación; esa queda anotada igual.
 - RPC solo para `service_role`: `portal_email_sin_comprobar`, `portal_email_check_auth_interno`,
   `portal_email_check_issue` (7 días, un enlace vivo por cuenta), `portal_email_check_peek` (lee),
-  `portal_email_check_claim`, `portal_email_check_confirm` y `portal_email_check_release`. Para el equipo
-  (`authenticated`, roles admin/commercial/operations y tenant): `portal_email_check_prepare`.
+  `portal_email_check_claim`, `portal_email_check_confirm`, `portal_email_check_release` y
+  `portal_email_check_revisar`. Reclamar y confirmar reciben el usuario de la sesión del portal y exigen
+  que sea el titular de la comprobación. Para el equipo (`authenticated`, roles admin/commercial/operations
+  y tenant): `portal_email_check_prepare`.
 - Trigger `clients_email_vuelve_sin_comprobar_t` (AFTER UPDATE OF email): si cambia el correo de la ficha,
   la fila vuelve a «sin comprobar» y el enlace emitido deja de servir.
 - Escribe datos: una fila «sin comprobar» por cada cuenta por link que ya existe. No toca `clients`,
@@ -188,12 +195,12 @@ migración primero.
   todavía no está disponible, la tarjeta dice que no se sabe si el correo está comprobado y `/entrar` y
   la invitación por correo siguen como siempre.
 
-**Cuentas por link creadas antes de la 0559.** Quedan «sin comprobar» al aplicar la migración, pero su
-cuenta de Auth sigue con el correo que escribió el cliente hasta que pasa a la dirección interna. Eso lo
-hace, cuenta por cuenta, «Reenviar comprobación», y para todas la corrida única
-`infra/ops/portal-correo-comprobacion/pasar-cuentas-a-direccion-interna.mjs` (ensayo por defecto; la
-corre el DG con OK nominal de Sam). **Hasta esa corrida esas cuentas siguen como antes de la enmienda**,
-salvo que `/entrar` y la invitación por correo ya no les mandan enlace.
+**Cuentas por link creadas antes de la 0559.** Quedan «sin comprobar» al aplicar la migración. El paso
+que la migración no puede hacer (necesita la API de Auth) lo completa la corrida única
+`infra/ops/portal-correo-comprobacion/pasar-cuentas-a-direccion-interna.mjs`: ensayo por defecto,
+recorre todas las filas por lotes y solo termina en 0 si no queda ninguna pendiente. La corre el DG con
+OK nominal de Sam **inmediatamente después de publicar, en la misma ventana** (aplicar → publicar →
+corrida). «Reenviar comprobación» hace ese mismo paso, cuenta por cuenta.
 
 ## 5. Privacidad (skill `revisar-datos-ve`, revisión acotada a este cambio)
 
@@ -212,10 +219,10 @@ jurisprudencia de habeas data (Venezuela). El equipo de China sin rol admin no e
 
 | Punto | Estado | Evidencia |
 |---|---|---|
-| Inventario | CORRECTO | Un dato personal nuevo: `client_email_checks.pending_email`, copia del correo de la ficha (`0559_registro_link_correo_comprobado.sql`, «1. La tabla»). `internal_email` es un id aleatorio y `token_hash` un sha256: ninguno identifica a una persona. Finalidad: comprobar que el correo es del cliente antes de que sirva para entrar. Lo ve el equipo del tenant (RLS) y el servidor. |
+| Inventario | CORRECTO | Un dato personal nuevo: `client_email_checks.pending_email`, copia del correo de la ficha (`0559_registro_link_correo_comprobado.sql`, «1. La tabla»). `internal_email` es un id aleatorio y `token_hash` un sha256: ninguno identifica a una persona. Finalidad: comprobar que el correo es del cliente antes de que sirva para entrar. Lo lee solo el servidor: la tabla no tiene policies ni permisos de lectura para `authenticated` (contrato §G), y el equipo ve solo el estado. |
 | Minimización | CORRECTO | La dirección interna no sale del Shipping Mark, del nombre ni del correo (`lib/studio/portal/correo-comprobacion.ts`, `nuevoCorreoInterno`; contrato §H). El enlace lleva solo el token (`lib/portal/correo-comprobacion.ts`, `comprobarCorreoUrl`). El correo real deja de estar en la cuenta de Auth hasta que se comprueba: un sistema menos con el dato. |
 | Titular que no es usuario | CORRECTO | El correo de comprobación puede llegarle a un tercero si el cliente escribió una dirección ajena. Lleva el Shipping Mark, no el nombre ni ningún dato de la ficha, y su único enlace no abre el portal (`lib/studio/registro-link-aviso-email.ts`; `registro-link-aviso-email.test.ts`). La página pública muestra solo el Shipping Mark (`portal_email_check_peek` devuelve una columna; contrato §J). |
-| Acceso | CORRECTO | RLS de solo lectura por tenant; las RPC del enlace, solo `service_role`; preparar el reenvío exige rol y tenant (contrato §G y §N). |
+| Acceso | CORRECTO | Tabla sin lectura por PostgREST; el estado, solo para el equipo del tenant y sin el correo ni el hash (`portal_email_check_estado`, contrato §G/§H); las RPC del enlace, solo `service_role`; preparar el reenvío exige rol y tenant (contrato §N). El correo sigue viéndose solo en la ficha, donde ya rige quién puede ver datos de contacto (§3.4). |
 | Registros y salidas | CORRECTO | Los avisos de consola de las rutas nuevas llevan códigos de error, no correos; la corrida única imprime conteos e ids internos (`registro-link-correo-estado.test.ts`, «no lleva correos»). El correo sí queda en `mail_logs` como cualquier envío (ya era así con el aviso de la opción A). |
 | Borrado y retención | ENCONTRADO | `pending_email` se borra con la ficha (`on delete cascade`), pero el borrado de clientes es lógico: la copia queda mientras la ficha exista, también después de comprobado, cuando ya no hace falta. Mismo hallazgo que `prev_data`/`submitted_data`. Arreglo propuesto: vaciar `pending_email` al confirmar (el correo ya está en la ficha y en la cuenta) y sumar la tabla al plazo que Sam decida para las copias de la 0552. No se hizo en este cambio porque el trigger compara contra ese valor para saber si el correo cambió; hay que compararlo contra la ficha. |
 | Transferencias | NO VERIFICABLE | Sin terceros nuevos. El correo de comprobación sale por el mismo proveedor de envío que el aviso anterior; su contrato y dónde guarda los registros no se ven en el repo. |
@@ -243,22 +250,31 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
      (`correoSinComprobar`, segunda capa). El portal no tiene contraseña que recuperar: la entrada es
      por enlace. La recuperación de estas cuentas va por el acceso de WhatsApp (SDD-0253), que acuña
      para la cuenta del cliente.
-  3. **Un enlace que solo comprueba.** Al correo le llega un enlace de un solo uso, de 7 días, a
-     `/registro/correo/<token>`. Abrirlo solo lee (un filtro de correo que lo abra no lo gasta); el botón
-     «Sí, este correo es mío» lo confirma. No abre sesión ni da acceso a nada. Al confirmarlo, el correo
-     pasa a la cuenta y desde entonces sirve en `/entrar`. Si para entonces ese correo ya tiene otra
-     cuenta, se rechaza con el mismo mensaje genérico, queda marcado en «Registros por link» y no se
-     fusiona nada.
+  3. **Un enlace que solo comprueba, y solo con el portal del cliente abierto.** Al correo le llega un
+     enlace de un solo uso, de 7 días, a `/registro/correo/<token>`. Abrirlo solo lee (un filtro de
+     correo que lo abra no lo gasta); el botón «Sí, este correo es mío» lo confirma. No abre sesión ni da
+     acceso a nada.
+     **El enlace solo no comprueba:** tener el enlace prueba que se lee ese buzón, no que quien lo lee
+     sea el cliente. El POST exige la sesión del portal del titular de esa comprobación; el usuario sale
+     de la sesión en el servidor y la base lo vuelve a comparar al reclamar y al confirmar. Sin sesión, o
+     con la sesión de otra cuenta, no se confirma, el enlace no se gasta y la página pide entrar primero
+     al portal (por el acceso de WhatsApp) y volver a abrir el enlace, sin decir de quién es. Ni la
+     pantalla de éxito ni el correo invitan a pedir un enlace de acceso.
+     Al confirmarlo, el correo pasa a la cuenta. Si para entonces ese correo ya tiene otra cuenta, se
+     rechaza con el mismo mensaje genérico, queda marcado en «Registros por link» y no se fusiona nada.
+     Si la confirmación queda a medias y no se puede deshacer, el enlace no se suelta y la fila queda
+     «para revisar» a la vista del equipo.
 - **A quién aplica.** Solo a la cuenta que nació de un link de registro, mientras siga siendo la cuenta
   del cliente. La invitación por correo (SDD-0042) y el registro público no cambian. Si el equipo revoca
   el acceso y vuelve a invitar por correo, el cliente pasa a ese camino: entra desde su correo, y esa es
-  la prueba.
+  la prueba. Es una decisión del equipo y queda a la vista: al invitar, Studio pide una confirmación
+  explícita si ese cliente nunca comprobó su correo, y «Registros por link» sigue diciendo «Correo nunca
+  comprobado».
 - **Si el correo se corrige** (el equipo en la ficha; el portal no deja al cliente cambiar su correo), el
   nuevo nace sin comprobar: el enlace emitido deja de servir y la cuenta vuelve a su dirección interna.
   El equipo reenvía la comprobación desde «Registros por link».
 - **Cuentas por link ya creadas:** §4.1.
-- **A (anterior).** Entrada directa con el correo en la cuenta y un aviso sin enlaces. Dejaba que el
-  correo sirviera para entrar sin que su dueño lo hubiera confirmado.
+- **A (anterior).** Entrada directa y un aviso sin enlaces. Reemplazada por la C.
 - **B (descartada).** Sin sesión inmediata: el cliente entra desde el enlace de su correo. Prueba el
   correo, pero agrega un paso, y el cliente del legado pudo haber escrito mal un correo que ni revisa.
 
@@ -300,7 +316,9 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
 11. Solo los caminos conocidos acuñan o piden un enlace de entrada; uno nuevo hace fallar la prueba
     hasta decidir cómo respeta la regla. — `lib/studio/portal/__tests__/correo-comprobacion.test.ts`
     (inventario).
-12. El enlace de comprobación no crea sesión ni devuelve nada con qué entrar. — `comprobar-correo-action.test.ts`.
+12. El enlace de comprobación no crea sesión ni devuelve nada con qué entrar, y ni su página ni el
+    correo ofrecen una entrada al portal. — `comprobar-correo-action.test.ts`,
+    `registro-link-aviso-email.test.ts`.
 13. Un GET no lo gasta; vencido, usado, reemplazado o inventado no sirve; es de un solo uso. — contrato
     §J/§K, `comprobar-correo-action.test.ts`.
 14. «Comprobado» exige que el correo ya esté en la cuenta; el choque con otra cuenta queda marcado y no
@@ -313,6 +331,21 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
     contrato §N.
 18. Ningún envío toma la dirección interna como destinatario. — `correo-comprobacion.test.ts`
     (`sendEmail`).
+19. El enlace solo no comprueba: un POST sin la sesión del titular no confirma ni gasta el enlace; con la
+    sesión de otra cuenta tampoco. El usuario sale de la sesión, no del formulario, y la base lo compara
+    al reclamar y al confirmar. — contrato §K, `comprobar-correo-action.test.ts`.
+20. Si la confirmación queda a medias y no se puede deshacer, el enlace no se suelta y queda «para
+    revisar»; los avisos de consola no llevan el correo ni el token. — contrato §Q,
+    `comprobar-correo-action.test.ts`.
+21. La tabla no se lee por PostgREST y el estado que ve el equipo no trae el correo ni el hash del token.
+    — contrato §G/§H, `registro-link-correo-estado.test.ts`.
+22. Revocar y volver a invitar no borra la señal: «Correo nunca comprobado» en la tarjeta y confirmación
+    explícita al invitar. — contrato §P, `correo-comprobacion-studio.test.ts`.
+23. `/entrar` no llega al envío de Auth por ningún camino sin haber preguntado antes; sin el cliente
+    admin no envía nada. — `correo-comprobacion.test.ts` (inventario),
+    `app/entrar/__tests__/actions.test.ts`, `entrar-no-promete-envio.test.tsx`.
+24. La corrida única recorre todas las filas y nunca termina en 0 con pendientes. —
+    `registro-link-correo-estado.test.ts`.
 
 ## 7. Límites de las pruebas
 
@@ -320,11 +353,12 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
 - El camino feliz completo en el navegador necesita una base con la 0552 y Auth; el e2e cubre la cara
   pública sin base.
 
-- **Enmienda D-1.** Auth está doblado en todas las pruebas: que el servicio de Auth acepte una dirección
-  del dominio `.invalid` al crear la cuenta y al cambiarle el correo **no está probado contra un Auth
-  real**. Si la rechazara, el registro por link caería en el camino ya existente de «acceso fallido» (la
-  ficha se guarda y el equipo contacta al cliente): hay que probarlo en el entorno de prueba antes de
-  aplicar la 0559 en producción.
+- **Enmienda D-1.** Auth está doblado en todas las pruebas. **Antes de aplicar la 0559 en producción hay
+  que probar contra un Auth real, en el entorno de prueba:** crear la cuenta y cambiarle el correo con
+  una dirección del dominio `.invalid`; acuñar la entrada para esa dirección; que la sesión siga viva
+  después del cambio de correo; y el código exacto que devuelve Auth cuando el correo ya está en otra
+  cuenta. Si Auth rechazara la dirección, el registro por link cae en el camino ya existente de «acceso
+  fallido» (la ficha se guarda y el equipo contacta al cliente). La lista completa está en el handoff.
 - La igualdad de respuesta de `/entrar` se prueba por consultas y envíos, no cronometrando.
 
 ## 8. Allowlist
@@ -352,15 +386,16 @@ intervenga. Por eso «comprobado» es un estado propio (`client_email_checks`, �
   `lib/studio/mail/send-email.ts`, `lib/studio/registro-link-aviso-email.ts`,
   `lib/studio/registro-link-queries.ts`, `lib/portal/registro-link-types.ts`; `app/entrar/actions.ts`,
   `app/registro/link/[token]/actions.ts` y `RegistroLinkForm.tsx`, `app/registro/correo/[token]/*`;
-  `app/studio/(app)/clientes/actions.ts` (`resendEmailCheckAction`, `updateClientAction`),
-  `…/_components/RegistrosLinkClient.tsx`; `infra/ops/portal-correo-comprobacion/*`; y sus pruebas:
+  `app/studio/(app)/clientes/actions.ts` (`resendEmailCheckAction`, `updateClientAction`,
+  `invitePortalAction`), `…/_components/RegistrosLinkClient.tsx`, `…/_components/PortalAccessCard.tsx`; `infra/ops/portal-correo-comprobacion/*`; y sus pruebas:
   `lib/portal/__tests__/correo-comprobado.migration.test.ts`,
   `lib/studio/portal/__tests__/correo-comprobacion.test.ts`,
   `lib/studio/__tests__/registro-link-correo-estado.test.ts`,
   `app/registro/correo/[token]/__tests__/comprobar-correo-action.test.ts`,
   `app/studio/(app)/clientes/__tests__/correo-comprobacion-studio.test.ts`, más las ya listadas que se
   ajustaron (`registro-link-action.test.ts`, `registro-link-aviso-email.test.ts`,
-  `portal-invite-email.test.ts`, `app/entrar/__tests__/actions.test.ts`, `rbac-actions-guard.test.ts`).
+  `portal-invite-email.test.ts`, `app/entrar/__tests__/actions.test.ts`,
+  `app/entrar/__tests__/entrar-no-promete-envio.test.tsx`, `rbac-actions-guard.test.ts`).
 
 ## 9. Fuera de alcance
 
