@@ -8,6 +8,7 @@
  * financiero). `committed_cbm` es DERIVADO (no se persiste).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import { slugify } from "@/lib/studio/academia/types";
 
 export { slugify };
@@ -153,7 +154,7 @@ export function groupBuyStatsFrom(details: GroupBuyDetail[]): GroupBuyStats {
       enConsolidacion += 1;
     }
   }
-  return { abiertas, enConsolidacion, cbmAbierto: Math.round(cbmAbierto * 1000) / 1000 };
+  return { abiertas, enConsolidacion, cbmAbierto: roundCbm(cbmAbierto) };
 }
 
 // ── Validación (sin Zod) ─────────────────────────────────────

@@ -14,6 +14,7 @@
  * No-emojis · tokens var(--*) · prefers-reduced-motion en uploads.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -377,7 +378,7 @@ export function CurrentDelivery({
         >
           <span>{pkg.boxes_shipped} cj</span>
           <span>{pkg.weight_kg.toFixed(0)} kg</span>
-          {pkg.cbm > 0 && <span>{pkg.cbm.toFixed(1)} cbm</span>}
+          {pkg.cbm > 0 && <span>{formatCbm(pkg.cbm)} cbm</span>}
         </div>
 
         {/* Description */}
