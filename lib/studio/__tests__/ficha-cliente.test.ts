@@ -1,7 +1,35 @@
 /** SDD-0650 F1 · Reglas puras de la ficha del cliente (`lib/studio/ficha-cliente.ts`). */
 import { describe, expect, it } from "vitest";
 
-import { accionesRapidas, codigosConCaida, nombreDeLaFicha } from "../ficha-cliente";
+import {
+  accionesRapidas,
+  codigosConCaida,
+  nombreDeLaFicha,
+  pestanaDeLaFicha,
+  PESTANAS_FICHA,
+  type IdPestanaFicha,
+} from "../ficha-cliente";
+
+describe("pestanaDeLaFicha (SDD-0669)", () => {
+  const todas = [...PESTANAS_FICHA];
+  it.each(todas)("«%s» disponible se abre", (p) => {
+    expect(pestanaDeLaFicha(p, todas)).toBe(p);
+  });
+  it.each([[null], [undefined], [""], ["otra"], ["RESUMEN"], ["envios "], ["__proto__"]])(
+    "%j cae en resumen",
+    (valor) => {
+      expect(pestanaDeLaFicha(valor, todas)).toBe("resumen");
+    },
+  );
+  it("una pestaña que la página no armó para el rol no se abre por la URL", () => {
+    const delRol: IdPestanaFicha[] = ["resumen", "envios"];
+    expect(pestanaDeLaFicha("configuracion", delRol)).toBe("resumen");
+    expect(pestanaDeLaFicha("documentos", delRol)).toBe("resumen");
+  });
+  it("con el parámetro repetido toma el primero", () => {
+    expect(pestanaDeLaFicha(["documentos", "envios"], todas)).toBe("documentos");
+  });
+});
 
 describe("nombreDeLaFicha", () => {
   it.each([[""], ["   "], [null], [undefined]])("%j es «Sin nombre»", (nombre) => {
