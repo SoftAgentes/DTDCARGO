@@ -1,7 +1,7 @@
 ---
 sdd: "0674"
 title: "Embarques: botón «Facturar» para los contenedores montados sin pasar por origen (regla transitoria)"
-status: draft
+status: proposed
 author: "Claude (Worker) + Sam"
 created: 2026-11-18
 updated: 2026-11-18
@@ -14,17 +14,19 @@ confidencialidad: interno
 # SDD-0674 — Botón «Facturar» en Embarques (regla transitoria)
 
 > Sam lo pidió en la reunión con la oficina del 2026-11-18, por el DG. Embarques tendría un botón
-> «Facturar» que el rol de Embarques pueda oprimir. Al facturar, el cliente ve en su portal los datos del
-> embarque y el tracking. Es **transitorio**: solo aplica a los cuatro contenedores que se montaron sin
-> pasar por origen. Antes de facturar, la oficina confirma que lo cargado en el sistema cuadra con el Excel
-> y pasa el valor a facturar.
+> «Facturar» para el personal del Studio (quién exactamente: §4, pregunta 4). Al facturar, la factura
+> llega al portal del cliente y a la contabilidad. Es **transitorio**: era para los cuatro contenedores
+> montados sin pasar por origen, y por decisión de Sam (§4, pregunta 5) hoy cubre **solo el contenedor
+> 64**. Antes de facturar, la oficina confirma que lo cargado en el sistema cuadra con el Excel y escribe
+> el valor a facturar.
 >
-> **Borrador, sin código.** Primero hacen falta las cinco respuestas de Sam (§4).
+> **Spec sin código.** Sam contestó las seis preguntas del §4 (2026-11-18). Antes de implementar faltan
+> tres decisiones, listadas en el §7. Alcance: solo el contenedor 64.
 
 ## 1. Por qué es transitorio
 
 El flujo definitivo es otro: al recibir la mercancía en China se registra, y desde ahí el cliente ve el
-tracking y el monto sin facturar (decisión 9; SDD-0574 y 0571). Los cuatro contenedores de esta regla se
+tracking y el monto sin facturar (decisión 9; SDD-0574 y 0571). Los contenedores de esta regla se
 montaron sin recepción real en origen: entraron con la carga de consolidados (SDD-0543) desde el Excel. Por
 eso no tienen el camino normal, y la oficina necesita una forma de decir «esto ya está listo para el
 cliente».
@@ -121,7 +123,7 @@ y cómo queda cada punto para el botón:
 - El botón **no** salta el gate en silencio. Sam tiene que elegir una de estas tres opciones:
   1. **Cumplirlo.** El cliente acepta los términos en el portal antes de facturar. Hoy no existe un flujo
      de aceptación para envíos que entraron por la carga de consolidados.
-  2. **Excepción explícita y auditada**, solo para los contenedores de la lista transitoria (§4.5). Cada
+  2. **Excepción explícita y auditada**, solo para los contenedores de la lista transitoria (§4, pregunta 5). Cada
      factura queda marcada como emitida sin aceptación por esta regla, con quién la emitió.
   3. **Quedar bloqueado.** El botón deja la factura en borrador con el aviso del gate hasta que haya
      aceptación. En ese caso no cumple la decisión 3.
@@ -142,7 +144,7 @@ y cómo queda cada punto para el botón:
 - **Guarda contable.** El trigger `i3_invoice_guard` (0497) vigila todo INSERT o UPDATE de `invoices`, y
   la RPC tiene que pasarlo.
 - **Referidos.** El trigger `invoices_accredit_referral` (0197) acredita al referidor en la **primera
-  factura** emitida de un cliente referido. Facturar los 4 contenedores puede acreditar referidos de una
+  factura** emitida de un cliente referido. Facturar el contenedor puede acreditar referidos de una
   vez.
 - **Correo.** `fireMailEvent("invoice_emitted")` avisa según las reglas activas del tenant en Mailing,
   que pueden incluir al cliente.
@@ -220,36 +222,46 @@ cliente admin desde una action.
      - **¿A quién se factura cuando el cliente tiene un aliado raíz?** Recomiendo lo mismo que la carga de
        consolidados: al aliado raíz.
 
-4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?**
-   *Recomendación actualizada tras la decisión 1: sí, pero solo en la pantalla de confirmación de estos
-   contenedores.* Sam quiere que quien oprime vea «los datos que se van a facturar» y sepa que van a
-   contabilidad. Sin el monto, esa confirmación queda coja. La regla de la 0661 no cambia: la franja y el
-   detalle por cliente siguen sin dinero para Embarques. Lo único que se abre es la pantalla de
-   confirmación, que se arma en el servidor y solo para los contenedores de la lista del §4.5. Muestra:
-   - el cliente y su Shipping Mark;
-   - los embarques;
-   - cajas, CBM y peso;
-   - las líneas y el total en USD.
+4. **Hoy solo Contabilidad y Admin ven montos (0661). ¿El rol de Embarques ve el monto?** — **RESPONDIDA
+   por Sam (2026-11-18, por el DG):** «la oficina» es el personal que trabaja en el ERP Studio, no un rol
+   aparte.
 
-5. **¿Cuáles son los otros tres contenedores?**
-   *Recomiendo una lista cerrada de cuatro, escrita en configuración y no en el código* (por ejemplo, los
-   ids de `consolidations` por tenant). Fuera de esa lista el botón no aparece, y al cerrarse la regla
-   transitoria se vacía la lista. Por las notas del DG, el DDP 64 es uno de ellos. No adivino los otros
-   tres.
+   **Propuesta del Worker: escriben el precio y facturan solo `accounting` y `admin`.**
+   - **El dinero no se abre a nadie más.** Son los mismos roles que hoy ven montos (0661), pasan la RLS de
+     `invoices` (0407 y 0414) y entran en la frontera de lectura SDD-0357.
+   - **No hay que tocar Embarques.** `accounting` ya ve el módulo `shipments` (`lib/studio/rbac.ts`).
+   - **Los otros roles no ven nada del botón.** `commercial`, `operations`, `warehouse` y `support` siguen
+     viendo Embarques como hoy, sin «Facturar», sin campo de precio y sin montos. Igual que en la 0661, la
+     decisión se toma en el servidor y el dato no viaja al navegador.
+   - **Esto reemplaza la recomendación anterior** de abrir el monto a Embarques en la pantalla de
+     confirmación.
 
-6. **¿Qué es la «doble aprobación» del contenedor completo: dos confirmaciones de la misma persona, como
-   en el modo por cliente, o dos personas distintas?**
-   *Recomiendo dos personas distintas.* Facturar el contenedor completo crea de una vez las facturas de
-   todos sus clientes. Un error ahí llega a muchos portales y a la contabilidad al mismo tiempo. La forma
-   propuesta:
-   - Una persona de Embarques oprime «Facturar contenedor», revisa la misma pantalla de datos del modo por
-     cliente, con todas las filas del contenedor, y lo **solicita**.
-   - Una segunda persona, de Contabilidad o Admin y nunca la misma que solicitó, lo **aprueba**. Hasta esa
-     aprobación no se crea ninguna factura.
+   **Decisión explícita para Sam, si la quiere:** que otro rol (por ejemplo `operations`) escriba el precio
+   y facture. Eso **amplía** quién ve dinero:
+   - cambia la regla de la 0661;
+   - pide una RPC que escriba `invoices` saltando la RLS 0407;
+   - y abre una lectura nueva de montos fuera de Contabilidad, que habría que registrar en la SDD-0357.
 
-   Costo: la solicitud tiene que quedar guardada, con quién solicitó, quién aprobó y cuándo. Eso es una
-   tabla o unas columnas nuevas, con su **migración**. Si Sam prefiere dos confirmaciones de la misma
-   persona, se resuelve solo en la pantalla, sin migración por esta parte.
+   No se hace sin su OK escrito.
+
+5. **¿Cuáles son los otros contenedores?** — **DECIDIDO por Sam (2026-11-18, por el DG):** hoy **no** se
+   hacen los otros.
+   - El trabajo se centra en el **contenedor 64**. Su llegada estimada pasó del 12 a cerca del 20 de
+     diciembre.
+   - La lista cerrada del modo transitorio arranca **solo con el 64**. Los demás se agregan después por
+     configuración, sin tocar el código.
+   - Fuera de la lista el botón no aparece. Al cerrarse la regla transitoria, la lista se vacía.
+
+6. **¿Qué es la «doble aprobación» del contenedor completo?** — **DECIDIDO por Sam (2026-11-18, por el
+   DG):** la da **la misma persona**, con dos confirmaciones seguidas del mismo usuario. No son dos
+   personas distintas.
+   - **Primera confirmación:** «Facturar contenedor» (o «Facturar» en la fila de un cliente) abre la
+     pantalla con los datos.
+   - **Segunda confirmación:** vuelve a mostrar los datos y **avisa que la factura va al portal del cliente
+     y a la contabilidad**. Solo al oprimir «Confirmado» se crea y se emite la factura.
+   - **No guarda una solicitud intermedia**, así que esta parte no lleva migración.
+   - La pantalla del modo contenedor completo muestra todas las filas de cliente, cada una con su monto
+     grande, cajas y CBM, más el total del contenedor y cuántas facturas se van a emitir.
 
 ## 5. Cruces y dependencias
 
@@ -268,9 +280,32 @@ cliente admin desde una action.
 - Apagar `TRACKING_EN_CONSTRUCCION`. Es una decisión aparte de Sam (SDD-0514).
 - El flujo definitivo de recepción en China.
 
-## 7. Aceptación (se completa cuando Sam conteste)
+## 7. Aceptación
 
-Pendiente de las respuestas del §4.
+1. En `/studio/embarques`, el botón «Facturar» (por cliente) y «Facturar contenedor» aparecen **solo** en
+   el contenedor 64 (lista transitoria) y **solo** para `accounting` y `admin`. Para los demás roles no se
+   lee ni se envía ningún monto (prueba de servidor por rol, como en la 0661).
+2. El monto lo teclea la persona. El servidor rechaza vacío, cero, negativo, más de dos decimales y
+   cualquier moneda que no sea USD.
+3. La doble confirmación es del mismo usuario:
+   - la segunda pantalla muestra el monto grande, las cajas y el CBM de cada cliente;
+   - avisa que va al portal del cliente y a contabilidad;
+   - sin «Confirmado» no se escribe nada.
+4. Se crea una factura **emitida** en USD por cliente del contenedor, con una línea por embarque y todos
+   sus envíos cubiertos (para que la 0574 no los siga mostrando como «sin facturar»). Correlativo, emisión,
+   titular y asiento van en una transacción, con su rastro: quién tecleó el monto, quién confirmó y cuándo.
+5. Un cliente del contenedor que ya tiene una factura viva de esta regla no se factura dos veces.
+6. El gate legal AUT-04 se resuelve según la decisión de Sam del §3.1 (a). No se salta en silencio.
+7. Las pruebas cubren: servidor por rol, validación del monto, doble confirmación, factura por cliente con
+   sus líneas, no duplicar, la frontera SDD-0357 y el render; además se pasa `/ui-check`.
+
+**Decisiones de Sam que faltan antes de implementar** (las recomendaciones están en el §3.1 y el §4):
+- el gate legal AUT-04 (recomiendo una excepción explícita y auditada, solo para la lista);
+- si el monto tecleado es la base o el total con IVA (recomiendo el total);
+- si con aliado raíz se le factura al aliado (recomiendo que sí, como la carga de consolidados).
+
+**Migración:** la RPC transaccional y la lista transitoria en configuración la necesitan. El número se le
+pide al DG al pasar a implementación.
 
 ## 8. Evidencia
 

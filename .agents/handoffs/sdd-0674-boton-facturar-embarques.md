@@ -24,7 +24,7 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 
 ## Hecho
 
-- `docs/specs/0674-boton-facturar-embarques/spec.md` en estado `draft`, con el índice regenerado.
+- `docs/specs/0674-boton-facturar-embarques/spec.md` en estado `proposed`, con el índice regenerado.
 
 ## Evidencia
 
@@ -34,13 +34,20 @@ Contiene las cinco preguntas para Sam, cada una con su recomendación.
 | Pruebas de producto | NO APLICA: cambio solo de docs |
 | `pnpm verify` | NO EJECUTADO: es solo docs y el portón es el CI |
 
+## Decisiones de Sam (2026-11-18, por el DG; detalle en la spec §4)
+
+1. Por cliente del contenedor, con un botón en la fila de cada cliente, más un modo para el contenedor completo. La unidad mínima es el cliente.
+2. El monto lo escribe la oficina: a mano, mayor que 0, con dos decimales y en USD.
+3. Se crea una factura real emitida en USD, no un borrador.
+4. «La oficina» es el personal del Studio. Propuesta del Worker: escriben y facturan solo `accounting` y `admin`. Abrirlo a otro rol queda como decisión explícita de Sam.
+5. Solo el contenedor 64. Los demás se agregan después por configuración.
+6. La doble aprobación la da la misma persona, con dos confirmaciones seguidas.
+
 ## Pendientes de esta tarea
 
-- Decisión 1 de Sam ya escrita en la spec (dos modos: contenedor completo con doble aprobación, y por cliente dentro del contenedor con doble confirmación; la unidad mínima es el cliente del contenedor). Decisión 2 de Sam: «Lo escribe la oficina» (monto a mano, > 0, dos decimales, USD, grande en la confirmación junto a cajas y CBM). Decisión 3 de Sam: factura real emitida en USD; lo que dispara emitir está medido en el §3.1 de la spec, y el gate legal AUT-04 la bloquea hoy para DDP (decide Sam, recomiendo una excepción auditada y acotada). Siguen abiertas la 4, la 5, la 6 y dos subpreguntas de la 3 (base o total, aliado raíz). La 4 cambió de recomendación: el monto se ve solo en la pantalla de confirmación.
-- Si las respuestas llevan migración (RPC de facturar con el rol de Embarques, o una regla nueva del
-  portal), pedirle el número al DG.
-- Con las respuestas, completar la aceptación y pasar a implementación en una PR aparte o en esta misma,
-  según lo que diga el DG.
+- Que el DG revise la spec (status `proposed`).
+- Faltan tres decisiones de Sam antes de implementar (spec §7): el gate legal AUT-04, si el monto es base o total con IVA, y si se factura al aliado raíz.
+- Para implementar hace falta migración (RPC transaccional y lista en configuración). El número se le pide al DG.
 
 ## FUERA DE ALCANCE DETECTADO
 
