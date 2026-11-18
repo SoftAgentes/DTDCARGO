@@ -1,8 +1,8 @@
 # Handoff · SDD-0673 · Corregir medidas, partir un embarque y grupo de WeChat
 
-- Rama: `feat/sdd-0673-partir-embarque` · worktree `eager-gould-b7167d` · PR en borrador SoftAgentes/DTDCARGO#685.
+- Rama: `feat/sdd-0673-partir-embarque` · worktree `eager-gould-b7167d` · PR SoftAgentes/DTDCARGO#685 (lista para revisión).
 - Spec: `docs/specs/0673-partir-embarque-y-referencia-de-grupo/spec.md` (in-progress). D1-D3 decididas por el DG el 2026-11-18 con la recomendación; Sam puede cambiarlas.
-- Migración `0563_partir_embarque_y_medidas` (número del DG). **No aplicada.** Espera en `supabase/migrations-baseline.json`, degradación declarada en `supabase/pending-migration-symbol-declarations.json`, desarme en `supabase/desarmes/0563_desarme.sql`.
+- Migración `0563_partir_embarque_y_medidas` (número del DG). **No aplicada.** Espera en `supabase/migrations-baseline.json`, degradación declarada en `supabase/pending-migration-symbol-declarations.json`, desarme de la 0563 en `supabase/desarmes/`.
 
 ## Qué hay
 
@@ -17,8 +17,9 @@
 |---|---|
 | `docs:check`, `sdd:check` (node directo) | PASÓ |
 | `check-pending-migration-symbols` (node directo) | PASÓ: 0 rojos, 1 amarillo declarado |
-| Contrato `supabase/tests/0563_…test.sql` en PGlite: verde (86 aserciones), rojo sin la 0563 y 20 mutantes (`lib/studio/__tests__/partir-embarque-y-medidas.migration.test.ts`) | PASÓ (22/22) |
+| Contrato `supabase/tests/0563_…test.sql` en PGlite: verde (91 aserciones), rojo sin la 0563 y 30 mutantes (`lib/studio/__tests__/partir-embarque-y-medidas.migration.test.ts`) | PASÓ (32/32) |
 | `lib/studio/__tests__/medidas-embarque.test.ts` | PASÓ (6/6) |
+| `medidas-embarque-queries.test.ts` (lecturaFallida, falla cerrado) y `tracking/[id]/__tests__/grupo-wechat-actions.test.ts` (0 filas) | PASÓ (9 pruebas) |
 | `rbac-actions-guard` (inventario 488 → 493) y pruebas de `tracking/` | PASÓ |
 | Contratos del Studio (`vitest run contract`, 34 archivos) | PASÓ |
 | `tsc --noEmit` | PASÓ |

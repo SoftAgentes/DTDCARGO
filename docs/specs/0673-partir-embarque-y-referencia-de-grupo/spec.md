@@ -270,7 +270,7 @@ Pruebas de la aplicación (F2):
 
 - `supabase/migrations/0563_partir_embarque_y_medidas.sql` y `supabase/migrations-baseline.json` (espera)
 - `supabase/tests/0563_partir_embarque_y_medidas.test.sql` y `lib/studio/__tests__/partir-embarque.migration.test.ts`
-- `supabase/desarmes/0563_desarme.sql` y `supabase/pending-migration-symbol-declarations.json`
+- el desarme de la 0563 en `supabase/desarmes/` y `supabase/pending-migration-symbol-declarations.json`
 - `app/studio/(app)/tracking/[id]/actions.ts`, `page.tsx`, `_components/CargaDelEmbarque.tsx` (nuevo) y `_components/ShipmentDataPanel.tsx` (peso y CBM en solo lectura dentro de un contenedor)
 - `app/studio/studio.css` (clases `.studio-ficha-embarque-carga*`, `-modal*`, `-medidas`)
 - `lib/studio/rbac.ts` (acciones `correct_shipment_measures` y `split_shipment`)
