@@ -256,13 +256,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // borradores del agente.
   // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
-  it("la superficie escaneada es la esperada (84 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
+  // de la ficha.
+  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 84,
+      total: 85,
       exactos: 60,
-      conPrefijo: 24,
+      conPrefijo: 25,
     });
   });
 
@@ -418,8 +420,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditDenial(supabase, "clients")` al tope; después la RPC `portal_email_check_prepare`
   // (0559) repite en la base los roles admin/commercial/operations y el tenant; service_role entra
   // recién después de las dos, para pasar la cuenta a su dirección interna y emitir el enlace.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (486 → 488):
+  // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
+  // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
+  // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(486);
+    expect(reportes.length).toBe(488);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

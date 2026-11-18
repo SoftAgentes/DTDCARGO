@@ -90,7 +90,8 @@ export async function obtenerConversacion(
 
 /** Para el reproceso de la entrada de leads (SDD-0587, 6.4): la conversación y su contacto. */
 export async function obtenerConversacionYContacto(
-  cfg: ChatwootRouterConfig,
+  // SDD-0650 F2: solo usa la cuenta; también la llama «Unir este chat a la ficha».
+  cfg: CuentaChatwoot,
   conversacionId: number,
 ): Promise<ChatwootResult<{ conversacion: ConversacionChatwoot; contacto: ContactoEntrada }>> {
   const r = await llamar(cfg, String(conversacionId));
@@ -259,6 +260,22 @@ export async function listarConversacionesContacto(
     if (id !== null) out.push({ id, inboxId: ENTERO(fila?.inbox_id) });
   }
   return { ok: true, data: out };
+}
+
+/**
+ * SDD-0650 F2: las conversaciones de UN contacto, tal como vienen, para el panel de la
+ * ficha (`ficha-panel.ts`), con el token de la cuenta de servicio (D2). Quien llama las
+ * reduce con `resumirConversacion` y no guarda ni registra nada: traen el texto del
+ * último mensaje y el nombre del contacto.
+ */
+export async function leerConversacionesDeContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+): Promise<ChatwootResult<unknown[]>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}/conversations`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  return Array.isArray(payload) ? { ok: true, data: payload } : { ok: false, error: "respuesta_invalida" };
 }
 
 export async function crearConversacionPortal(
