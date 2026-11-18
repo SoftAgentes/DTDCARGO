@@ -7,6 +7,7 @@ import { CalcIcon, ShipIcon, WarningIcon } from "@/components/Icon";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import type { PortalAviso } from "@/lib/portal/portal-avisos";
 import type { PortalVista } from "@/lib/portal/vista-preferida";
+import { BotonGuia } from "../(app)/_simple/BotonGuia";
 import { PortalNextSailingCard } from "../(app)/_components/PortalNextSailingCard";
 import { PortalAccountMenu } from "./PortalAccountMenu";
 import { PortalAvisosBell } from "./PortalAvisosBell";
@@ -29,7 +30,10 @@ import { PortalVistaSelector } from "./PortalVistaSelector";
  *   · Avisos (SDD-0526): la bandeja con los avisos que el sistema ya le envió
  *     al cliente y la respuesta del asesor (SDD-0148). Ver `PortalAvisosBell`.
  *   · «Vista simple / Vista Pro» (SDD-0654) solo aparece si el layout le pasa
- *     una vista, y eso solo pasa con el interruptor `PORTAL_VISTA_SIMPLE`.
+ *     una vista, y eso solo pasa con el interruptor `PORTAL_VISTA_SIMPLE`. Con
+ *     la Vista simple, además, el botón «Guía» (§6.2), a mano desde cualquier
+ *     pantalla. En teléfono, «Guía» va dentro del panel del selector: la barra
+ *     no alcanza a 375 px.
  *   · El botón de la calculadora dispara `portal:open-calc` (la ventana flotante
  *     ya vive en `PortalCalcFab`); se pinta en vidrio (BD-031), que es
  *     justamente el caso permitido: control de una superficie flotante.
@@ -126,6 +130,7 @@ export function PortalTopbar({
         {sailing && (
           <SailingPill sailing={sailing} serverDays={sailingDaysToCutoff} />
         )}
+        {vista === "simple" && <BotonGuia className="hidden sm:inline-flex" />}
         {vista && <PortalVistaSelector vista={vista} />}
         <CalcButton />
         <PortalAvisosBell avisos={avisos} soporteDot={soporteDot} />

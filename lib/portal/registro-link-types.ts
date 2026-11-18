@@ -19,6 +19,8 @@
  * `node:crypto` vive en `registro-link.ts` (sólo servidor).
  */
 
+import type { CorreoEstado } from "./correo-comprobacion";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 /** Días que vive un link. Lo fija la base (migr 0552); acá sólo para el texto. */
@@ -89,6 +91,8 @@ export type RegistroLinkActionState = {
   portalUrl?: string | null;
   /** Aviso suave: el registro quedó, pero algo del acceso no. */
   warning?: string;
+  /** D-1: el correo quedó sin comprobar y se le mandó el enlace de comprobación. */
+  correoPorComprobar?: boolean;
 };
 
 /** Fila de «Registros por link» (Studio). */
@@ -107,10 +111,12 @@ export type RegistroLinkReviewRow = {
   accessError: string | null;
   reviewedAt: string | null;
   /**
-   * D-1: ¿volvió a entrar al portal por un camino que pasa por su correo?
-   * `null` = no se pudo saber (p. ej. falta la RPC de la 0552).
+   * D-1 (opción C): estado real del correo, de `client_email_checks`.
+   * `null` = no se pudo saber (falta la migración 0559).
    */
-  enteredViaEmail: boolean | null;
+  correoEstado: CorreoEstado | null;
+  /** Cuándo salió el último enlace de comprobación. */
+  correoEnviadoAt: string | null;
 };
 
 /** Campos que se comparan en la revisión: [clave en prev, clave en submitted, etiqueta]. */

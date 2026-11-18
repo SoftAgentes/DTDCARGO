@@ -356,6 +356,22 @@ function Hero({
               "Todavía no hay una versión guardada."
             )}
           </p>
+          {rules && rules.vigente_desde !== undefined && (
+            <p style={{ margin: "4px 0 0", font: "500 13px/1.4 var(--f-sans)", color: CREMA_SUAVE }}>
+              {rules.vigente_desde ? (
+                <>
+                  Rige desde el <strong style={{ color: CREMA }}>{formatearFechaLey(rules.vigente_desde)}</strong>
+                </>
+              ) : (
+                "Sin fecha de vigencia registrada"
+              )}
+              {rules.fuente_legal && (
+                <>
+                  {" · "}Fuente: <strong style={{ color: CREMA }}>{rules.fuente_legal}</strong>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <button type="button" className="studio-btn studio-btn-primary" onClick={onEdit}>
           {rules ? "Editar reglas" : "Definir reglas"}

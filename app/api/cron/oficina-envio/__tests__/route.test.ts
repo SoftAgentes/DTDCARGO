@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.stubEnv("OFICINA_ENVIO_ACTIVO", "1");
   vi.stubEnv("OFICINA_CHATWOOT_TOKEN_ENVIO", "escritura");
   vi.stubEnv("OFICINA_CHATWOOT_API_URL", "http://chatwoot.prueba:3000");
-  vi.stubEnv("CHATWOOT_ACCOUNT_ID", "2");
+  vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
   vi.stubEnv("OFICINA_CHATWOOT_INBOX_PRUEBA", "11");
 });
 afterEach(() => {
@@ -77,4 +77,16 @@ describe("GET /api/cron/oficina-envio", () => {
     expect(m.rpc).toHaveBeenCalledTimes(1);
     expect(m.fetch).not.toHaveBeenCalled();
   });
+
+  it.each([undefined, "", "   ", "0", "dos"])(
+    "sin la cuenta propia del cable (OFICINA_CHATWOOT_ACCOUNT_ID=%j) y con la del ERP puesta: «sin_config», ninguna llamada",
+    async (valor) => {
+      vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", valor);
+      vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+      expect(await (await GET(req("Bearer cron-sintetico"))).json()).toEqual({ ok: true, estado: "sin_config" });
+      expect(m.admins).toBe(0);
+      expect(m.rpc).not.toHaveBeenCalled();
+      expect(m.fetch).not.toHaveBeenCalled();
+    },
+  );
 });

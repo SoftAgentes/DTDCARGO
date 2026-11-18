@@ -114,12 +114,14 @@ CHATWOOT_POC_ORIGIN=http://127.0.0.1:3000 \
 CHATWOOT_POC_CUENTA="$CUENTA" \
 CHATWOOT_POC_BANDEJA="$BANDEJA" \
 CHATWOOT_POC_TOKEN="$TOKEN" \
+CHATWOOT_POC_TOKEN_AGENTE="$(leer token_agente)" \
 CHATWOOT_POC_USUARIO="$USUARIO" \
 CHATWOOT_POC_CANAL_CON_URL="$(leer webhook_url_del_canal)" \
 CHATWOOT_POC_STACK="$D" \
 CHATWOOT_POC_PROYECTO="$P" \
   pnpm exec vitest run lib/studio/chatwoot/__tests__/portal.poc.test.ts lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts \
-    lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts \
+    lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts lib/studio/chatwoot/__tests__/contacto-erp.poc.test.ts \
+    lib/studio/chatwoot/__tests__/ficha-conversaciones.poc.test.ts \
     --reporter=verbose --maxWorkers=1
 CODIGO=$?
 # MEDIDA de la PoC-5: Chatwoot 4.19.1 no entrega un webhook a un host sin IP pública (el receptor de la red interna).

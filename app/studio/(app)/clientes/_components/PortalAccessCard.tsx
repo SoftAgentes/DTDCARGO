@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import type { ClientPortalAccess } from "@/lib/studio/client-queries";
 import {
   approvePortalAction,
@@ -59,6 +60,9 @@ export function PortalAccessCard({
   // Enlace wa.me armado tras generar el acceso; se revela como link (no window.open
   // para no chocar con el bloqueo de popups tras el await).
   const [waLink, setWaLink] = useState<string | null>(null);
+  // SDD-0646 D-1 · invitar a un correo que nunca se comprobó pide confirmación.
+  const [confirmarInvitar, setConfirmarInvitar] = useState(false);
+  const [invitando, setInvitando] = useState(false);
   const approved = approvedAt != null;
 
   const status = access?.status ?? null;
@@ -175,7 +179,16 @@ export function PortalAccessCard({
                 successLabel="Invitación enviada"
                 onAction={async () => {
                   setError(null);
-                  return invitePortalAction(clientId, markbox);
+                  const res = await invitePortalAction(clientId, markbox);
+                  // SDD-0646 D-1 · correo nunca comprobado: se pide confirmación
+                  // explícita antes de mandarle un enlace de entrada.
+                  if (res.requiereConfirmar) {
+                    setConfirmarInvitar(true);
+                    throw new Error(
+                      "Este cliente nunca comprobó su correo. Confirma la invitación para enviarla.",
+                    );
+                  }
+                  return res;
                 }}
                 onSuccess={() => router.refresh()}
                 onError={setError}
@@ -297,6 +310,26 @@ export function PortalAccessCard({
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={confirmarInvitar}
+        title="Este cliente nunca comprobó su correo"
+        message="Se registró por link y todavía no confirmó que el correo de su ficha es suyo. Si lo invitas por correo, quien lea ese buzón entra a su portal. Confirma primero con el cliente, por WhatsApp, que el correo es el suyo; o dale el acceso por WhatsApp."
+        confirmLabel="Invitar de todos modos"
+        cancelLabel="Cancelar"
+        pending={invitando}
+        initialFocus="safe"
+        onCancel={() => setConfirmarInvitar(false)}
+        onConfirm={async () => {
+          setInvitando(true);
+          const res = await invitePortalAction(clientId, markbox, {
+            confirmarCorreoSinComprobar: true,
+          });
+          setInvitando(false);
+          setConfirmarInvitar(false);
+          setError(res.error ?? res.warning ?? null);
+          if (res.ok) router.refresh();
+        }}
+      />
     </section>
   );
 }

@@ -71,7 +71,7 @@ import { ComunicacionesTab } from "./ComunicacionesTab";
 import type { EmployeeComm } from "@/lib/studio/nomina/comms-types";
 import type { Settlement, SettlementKpis } from "@/lib/studio/nomina/settlement-types";
 import type { EmployeeInvite } from "@/lib/studio/nomina/invite-types";
-import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
+import type { RegistrationListItem } from "@/lib/studio/nomina/registration-types";
 import type { RegistrationKpis } from "@/lib/studio/nomina/registration-queries";
 import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 import type { Position } from "@/lib/studio/nomina/position-types";
@@ -134,6 +134,7 @@ export function NominaClient({
   contractors,
   payments,
   rules,
+  reglasAmpliada,
   attendance,
   holidays,
   loans,
@@ -161,6 +162,8 @@ export function NominaClient({
   contractors: Contractor[];
   payments: ContractorPayment[];
   rules: PayrollRules | null;
+  /** SDD-0653 A2b: ¿la base tiene la migración 0556? Sin ella, los campos nuevos del formulario esperan. */
+  reglasAmpliada: boolean;
   attendance: Attendance[];
   holidays: Holiday[];
   loans: LoanWithBalance[];
@@ -168,7 +171,7 @@ export function NominaClient({
   runs: PayrollRun[];
   settlements: Settlement[];
   invites: EmployeeInvite[];
-  registrations: EmployeeRegistration[];
+  registrations: RegistrationListItem[];
   comms: EmployeeComm[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
@@ -203,7 +206,7 @@ export function NominaClient({
   const [corteOpen, setCorteOpen] = useState(false);
   const [finiquitoOpen, setFiniquitoOpen] = useState(false);
   const [invitacionOpen, setInvitacionOpen] = useState(false);
-  const [reviewReg, setReviewReg] = useState<EmployeeRegistration | null>(null);
+  const [reviewReg, setReviewReg] = useState<RegistrationListItem | null>(null);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
   const employeeName = new Map(
@@ -409,7 +412,7 @@ export function NominaClient({
         />
       )}
       {reglasOpen && (
-        <ReglasDrawer rules={rules} onClose={() => setReglasOpen(false)} />
+        <ReglasDrawer rules={rules} ampliada={reglasAmpliada} onClose={() => setReglasOpen(false)} />
       )}
       {prestamoOpen && (
         <PrestamoDrawer
@@ -528,22 +531,43 @@ function EmpleadoRow({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", minWidth: 0 }}>
-        <span
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            font: "800 12px/1 var(--f-display)",
-            flexShrink: 0,
-          }}
-        >
-          {initialsOf(e.full_name)}
-        </span>
+        {e.photo_url ? (
+          // SDD-0652 fase 2: foto con URL firmada y corta. Decorativa aquí: el nombre está al lado.
+          // eslint-disable-next-line @next/next/no-img-element -- bucket privado; no pasa por el optimizador
+          <img
+            src={e.photo_url}
+            alt=""
+            width={36}
+            height={36}
+            loading="lazy"
+            decoding="async"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "1px solid var(--border)",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <span
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "var(--wine-tint)",
+              color: "var(--wine-text)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              font: "800 12px/1 var(--f-display)",
+              flexShrink: 0,
+            }}
+          >
+            {initialsOf(e.full_name)}
+          </span>
+        )}
         <div style={{ minWidth: 0 }}>
           {/* SDD-0652 F1: el nombre es el enlace a la ficha (`<a href>`, BTN-01).
               La fila no es clicable: el interruptor y el lápiz siguen siendo botones. */}

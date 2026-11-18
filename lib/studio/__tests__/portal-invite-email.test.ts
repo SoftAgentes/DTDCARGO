@@ -18,11 +18,26 @@ import {
   sendPortalInviteEmail,
   portalInviteUrl,
   generatePortalAccessLink,
+  PORTAL_INVITE_CORREO_SIN_COMPROBAR,
 } from "../portal-invite-email";
+
+/**
+ * SDD-0646 D-1 · lo que responde `portal_email_sin_comprobar`. Por defecto, un
+ * correo de siempre: ni bloqueado ni pendiente.
+ */
+let sinComprobar: { data: unknown; error: { code?: string; message: string } | null } = {
+  data: [{ bloquea: false, pendiente: false }],
+  error: null,
+};
+const rpc = vi.fn(async (name: string, args: unknown) => {
+  void name;
+  void args;
+  return sinComprobar;
+});
 
 /** fakeAdmin sin `.auth` → generateLink tira → generatePortalAccessLink cae a null
  *  → sendPortalInviteEmail usa el fallback `/entrar`. */
-const fakeAdmin = {} as never;
+const fakeAdmin = { rpc } as never;
 
 type GenResult = {
   data: { properties: { action_link: string } } | null;
@@ -40,12 +55,14 @@ function makeAdmin(results: GenResult[]) {
     void args;
     return { data: { user: {} }, error: null };
   });
-  const admin = { auth: { admin: { generateLink, createUser } } } as unknown as never;
+  const admin = { rpc, auth: { admin: { generateLink, createUser } } } as unknown as never;
   return { admin, generateLink, createUser };
 }
 
 beforeEach(() => {
   sendEmailMock.mockReset();
+  rpc.mockClear();
+  sinComprobar = { data: [{ bloquea: false, pendiente: false }], error: null };
 });
 
 describe("generatePortalAccessLink", () => {
@@ -180,5 +197,61 @@ describe("sendPortalInviteEmail", () => {
     const res = await sendPortalInviteEmail(fakeAdmin, "t", { email: "   " });
     expect(res.ok).toBe(false);
     expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("SDD-0646 D-1 · un correo sin comprobar no recibe el enlace de entrada", () => {
+  const directo = () =>
+    makeAdmin([
+      { data: { properties: { action_link: "https://sb/verify?token=direct" } }, error: null },
+    ]);
+
+  it("⭐ cuenta por link sin comprobar: no se acuña ningún enlace y no sale ningún correo", async () => {
+    sinComprobar = { data: [{ bloquea: true, pendiente: true }], error: null };
+    const { admin, generateLink, createUser } = directo();
+    const res = await sendPortalInviteEmail(admin, "t", { email: "Ana@Mail.com", name: "Ana" });
+    expect(res).toEqual({ ok: false, error: PORTAL_INVITE_CORREO_SIN_COMPROBAR });
+    expect(rpc).toHaveBeenCalledWith("portal_email_sin_comprobar", { p_email: "ana@mail.com" });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(createUser).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("⭐ la dirección interna de una cuenta sin comprobar: ni se pregunta, no sale nada", async () => {
+    const { admin, generateLink } = directo();
+    const res = await sendPortalInviteEmail(admin, "t", {
+      email: `c-${"a".repeat(32)}@sin-comprobar.invalid`,
+    });
+    expect(res.ok).toBe(false);
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("⭐ si no se puede saber si está comprobado, no sale (falla cerrado)", async () => {
+    sinComprobar = { data: null, error: { code: "XX000", message: "boom" } };
+    const { admin, generateLink } = directo();
+    const res = await sendPortalInviteEmail(admin, "t", { email: "ana@mail.com" });
+    expect(res.ok).toBe(false);
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("sólo «por comprobar» en OTRA cuenta no bloquea la invitación de este cliente", async () => {
+    // El mismo correo está pendiente en una cuenta por link ajena; este cliente
+    // fue invitado por correo (SDD-0042) y su camino no cambia.
+    sinComprobar = { data: [{ bloquea: false, pendiente: true }], error: null };
+    sendEmailMock.mockResolvedValue({ ok: true, logId: "l", resendId: null, queued: false });
+    const { admin } = directo();
+    const res = await sendPortalInviteEmail(admin, "t", { email: "ana@mail.com" });
+    expect(res.ok).toBe(true);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin la migración 0559 la invitación de siempre sigue saliendo", async () => {
+    sinComprobar = { data: null, error: { code: "PGRST202", message: "no existe" } };
+    sendEmailMock.mockResolvedValue({ ok: true, logId: "l", resendId: null, queued: false });
+    const { admin } = directo();
+    const res = await sendPortalInviteEmail(admin, "t", { email: "ana@mail.com" });
+    expect(res.ok).toBe(true);
   });
 });

@@ -88,7 +88,7 @@ export type HechoTono = "info" | "wine" | "warning" | "danger" | "success" | "ne
 export type Hecho = {
   /** Fecha del hecho, YYYY-MM-DD o ISO. Ordena la línea. */
   fecha: string;
-  tipo: "ingreso" | "comunicacion" | "prestamo" | "amonestacion" | "recibo" | "finiquito";
+  tipo: "ingreso" | "comunicacion" | "prestamo" | "amonestacion" | "recibo" | "finiquito" | "evento";
   titulo: string;
   detalle?: string;
   tono: HechoTono;
@@ -174,6 +174,67 @@ export function lineaDeTiempo(f: FuentesLinea): Hecho[] {
     });
   }
   return hechos.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
+}
+
+// ── Eventos de la ficha (SDD-0652 fase 2) ───────────────────────
+/** Un evento de auditoría de la ficha, tal como lo devuelve la RPC: sin payload ni motivo. */
+export type EventoFicha = {
+  id: string;
+  entity_type: string;
+  event_type: string;
+  occurred_at: string;
+  actor_id: string | null;
+};
+
+const EVENTO: Record<string, { titulo: string; tono: HechoTono }> = {
+  user_linked: { titulo: "Se enlazó con un usuario del Studio", tono: "info" },
+  user_unlinked: { titulo: "Se quitó el enlace con su usuario", tono: "warning" },
+  photo_set: { titulo: "Se cambió la foto", tono: "neutral" },
+  photo_removed: { titulo: "Se quitó la foto", tono: "neutral" },
+  bank_account_revealed: { titulo: "Se consultó la cuenta bancaria completa", tono: "wine" },
+  payroll_settlement_voided: { titulo: "Se anuló un finiquito", tono: "danger" },
+};
+
+/** Los eventos como hechos de la línea de tiempo. Un evento que no se conoce se dice sin inventar. */
+export function hechosDeEventos(eventos: EventoFicha[], nombres: Record<string, string>): Hecho[] {
+  return eventos.map((ev) => {
+    const meta = EVENTO[ev.event_type] ?? { titulo: "Cambio registrado en la ficha", tono: "neutral" as HechoTono };
+    const quien = ev.actor_id ? nombres[ev.actor_id] : undefined;
+    return {
+      fecha: ev.occurred_at,
+      tipo: "evento" as const,
+      titulo: meta.titulo,
+      detalle: quien ? `Por ${quien}` : undefined,
+      tono: meta.tono,
+    };
+  });
+}
+
+/** Une dos listas de hechos, del más reciente al más antiguo. */
+export function unirHechos(a: Hecho[], b: Hecho[]): Hecho[] {
+  return [...a, ...b].sort((x, y) => (x.fecha < y.fecha ? 1 : x.fecha > y.fecha ? -1 : 0));
+}
+
+// ── Enlace con un usuario (SDD-0652 §4) ─────────────────────────
+/** Miembro activo del Studio que todavía no tiene ficha. Solo lo recibe admin. */
+export type CandidatoEnlace = { userId: string; nombre: string; correoAcceso: string | null };
+
+/**
+ * La sugerencia de §4 punto 3: si el correo de contacto de la ficha es
+ * **exactamente** el de acceso de un candidato, se propone. No enlaza: propone.
+ * Con dos candidatos con el mismo correo no se sugiere ninguno.
+ */
+export function sugerenciaDeEnlace(correoContacto: string | null, candidatos: CandidatoEnlace[]): CandidatoEnlace | null {
+  const buscado = (correoContacto ?? "").trim().toLowerCase();
+  if (!buscado) return null;
+  const iguales = candidatos.filter((c) => (c.correoAcceso ?? "").trim().toLowerCase() === buscado);
+  return iguales.length === 1 ? iguales[0]! : null;
+}
+
+/** El motivo que piden las RPC de la ficha: de 4 a 500 caracteres, sin contar los espacios de los bordes. */
+export function motivoValido(motivo: string | null | undefined): boolean {
+  const n = (motivo ?? "").trim().length;
+  return n >= 4 && n <= 500;
 }
 
 // ── Los cinco datos que no se mezclan (§5.1) ────────────────────

@@ -5,7 +5,15 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CorreoEstado } from "@/lib/portal/correo-comprobacion";
 import type { RegistroLinkReviewRow } from "@/lib/portal/registro-link-types";
+
+type EstadoRow = {
+  client_id: string;
+  link_id: string | null;
+  estado: string;
+  sent_at: string | null;
+};
 
 type Row = {
   id: string;
@@ -54,22 +62,36 @@ export async function listRegistrosPorLink(
     }
   }
 
-  // D-1: si volvió a entrar desde su correo. Si la RPC no está, se muestra
-  // «no se sabe» en vez de afirmar algo.
-  const viaCorreo = new Map<string, boolean>();
-  let viaCorreoConocido = false;
+  // D-1 (opción C): el estado REAL del correo. El equipo no lee la tabla
+  // `client_email_checks` (ahí están el hash del token y el correo por
+  // comprobar): la función devuelve sólo el estado y la fecha del último envío.
+  // Si la función no está (falta la 0559), se muestra «no se sabe».
+  const estados = new Map<string, EstadoRow>();
+  let estadoConocido = false;
   if (rows.length > 0) {
-    const { data: estados, error: estadoErr } = await supabase.rpc(
-      "portal_registration_link_email_status",
-      { p_link_ids: rows.map((r) => r.id) },
-    );
+    const { data: es, error: estadoErr } = await supabase.rpc("portal_email_check_estado", {
+      p_client_ids: Array.from(new Set(rows.map((r) => r.client_id))),
+    });
     if (!estadoErr) {
-      viaCorreoConocido = true;
-      for (const e of (estados ?? []) as { link_id: string; entered_via_email: boolean }[]) {
-        viaCorreo.set(e.link_id, e.entered_via_email);
-      }
+      estadoConocido = true;
+      for (const e of (es ?? []) as EstadoRow[]) estados.set(e.client_id, e);
     }
   }
+
+  const ESTADOS: readonly CorreoEstado[] = [
+    "comprobado",
+    "sin_comprobar",
+    "choque",
+    "revisar",
+    "nunca_comprobado",
+  ];
+  /** El estado es del registro vigente del cliente; un link más viejo no lo hereda. */
+  const estadoDe = (r: Row): CorreoEstado | null => {
+    if (!estadoConocido) return null;
+    const e = estados.get(r.client_id);
+    if (!e || e.link_id !== r.id) return "no_aplica";
+    return ESTADOS.includes(e.estado as CorreoEstado) ? (e.estado as CorreoEstado) : "no_aplica";
+  };
 
   return rows.map((r) => ({
     id: r.id,
@@ -85,6 +107,7 @@ export async function listRegistrosPorLink(
     rifSkipped: r.rif_skipped,
     accessError: r.access_error,
     reviewedAt: r.reviewed_at,
-    enteredViaEmail: viaCorreoConocido ? (viaCorreo.get(r.id) ?? false) : null,
+    correoEstado: estadoDe(r),
+    correoEnviadoAt: estados.get(r.client_id)?.link_id === r.id ? (estados.get(r.client_id)?.sent_at ?? null) : null,
   }));
 }

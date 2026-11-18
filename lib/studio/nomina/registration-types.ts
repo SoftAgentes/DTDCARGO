@@ -11,7 +11,7 @@
  */
 
 import { strOrNull, type NominaBadgeTone } from "./employee-types";
-import { isBankAccountType, type BankAccountType } from "./employee-types";
+import { isBankAccountType, maskBankAccount, type BankAccountType } from "./employee-types";
 import { normalizeCedula } from "../person-types";
 
 export { strOrNull, normalizeCedula };
@@ -64,7 +64,6 @@ export type EmployeeRegistration = {
   bank_name: string | null;
   bank_account_type: BankAccountType | null;
   bank_account: string | null;
-  photo_path: string | null;
   status: RegistrationStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -73,6 +72,48 @@ export type EmployeeRegistration = {
   created_at: string;
   updated_at: string;
 };
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Proyecciones para el navegador (SDD-0652 fase 2, N2)       ║
+// ╚═══════════════════════════════════════════════════════════╝
+// `EmployeeRegistration` es la fila completa y solo vive en el servidor (la usa
+// la aprobación). Al navegador va una de estas dos:
+//
+//   - la lista: nombre, correo, estado y fecha. Sin cédula, sin cuenta, sin
+//     teléfono ni nacimiento. Vale para todas las solicitudes, también las ya
+//     aprobadas o rechazadas;
+//   - la revisión: solo de una solicitud PENDIENTE, pedida al abrir el panel.
+//     Trae la cédula (quien aprueba la coteja antes de crear la ficha) y la
+//     cuenta enmascarada. El número completo no viaja: se consulta después
+//     desde la ficha, con motivo y registro.
+
+/** Fila de la bandeja de Solicitudes. */
+export type RegistrationListItem = Pick<EmployeeRegistration, "id" | "full_name" | "email" | "status" | "created_at">;
+
+/** Lo que ve quien revisa una solicitud pendiente. */
+export type RegistrationReview = RegistrationListItem &
+  Pick<EmployeeRegistration, "national_id" | "phone" | "cargo" | "start_date" | "bank_name" | "bank_account_type"> & {
+    /** `•••• 1234`, o null si no declaró cuenta. */
+    bank_account_masked: string | null;
+  };
+
+/** Campo por campo, sin `...r`: una columna nueva de la fila no llega al navegador por accidente. */
+export function toRegistrationListItem(r: RegistrationListItem): RegistrationListItem {
+  return { id: r.id, full_name: r.full_name, email: r.email, status: r.status, created_at: r.created_at };
+}
+
+export function toRegistrationReview(r: EmployeeRegistration): RegistrationReview {
+  return {
+    ...toRegistrationListItem(r),
+    national_id: r.national_id,
+    phone: r.phone,
+    cargo: r.cargo,
+    start_date: r.start_date,
+    bank_name: r.bank_name,
+    bank_account_type: r.bank_account_type,
+    bank_account_masked: maskBankAccount(r.bank_account),
+  };
+}
 
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Validación de input · submit del candidato (sin Zod)       ║

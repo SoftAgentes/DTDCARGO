@@ -149,6 +149,8 @@ export type EmployeeListItem = EmployeeRef &
   Pick<Employee, "position_label" | "department" | "position_id" | "email"> & {
     /** Tiene una cuenta enlazada (`auth_user_id` no nulo). Sin el id. */
     has_account: boolean;
+    /** SDD-0652 fase 2: URL firmada y corta de la foto, o null. La ruta del bucket no viaja. */
+    photo_url: string | null;
   };
 
 /** Lo que recibe el formulario de edición: todo menos el número de cuenta. */
@@ -169,8 +171,9 @@ export function maskBankAccount(account: string | null | undefined): string | nu
   return `•••• ${clean.slice(-4)}`;
 }
 
-export function toEmployeeListItem(e: Employee): EmployeeListItem {
+export function toEmployeeListItem(e: Employee, photoUrl: string | null = null): EmployeeListItem {
   return {
+    photo_url: photoUrl,
     id: e.id,
     employee_code: e.employee_code,
     full_name: e.full_name,
