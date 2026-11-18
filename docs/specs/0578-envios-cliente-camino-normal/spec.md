@@ -1461,3 +1461,25 @@ Residual de catálogo atendido en autoría:0502:2507/2512 añade tgqual IS NULL 
 Test37: dos negativos de catálogo separados añaden WHEN al prepaso y al general manteniendo las demás propiedades. Ambos exigen error específico0502 contrato de prepaso scope incompleto, no fusible/parser u otrofallo. Conteo textual del bloque:9casos/9llamadas al contrato real, desglosados1positivo+8mutantes; ninguno ejecutado/detectado. Runner sólo corrige comentario503–506 y mensaje522: prepaso sólo gate puede rechazar segunda clave antes de cualquier UPSERT. Target sin fence sigue siendo oráculo pertinente; no acredita una escritura durable previa revertida. Todos los asserts de estado/barreras anteriores se conservan.
 
 Informe peer9e58dc27 adoptado arriba, lectura completa71líneas/17307bytes y preimagen153c preservadas. Plan actual externo plan-relevo-p1-72-claves-noop-sin-when.md,2729bytes/SHAde4c5a73d1245fed11c97af6e5c0f3dc8baa3d4b8221d801fdecd2bf00c79555 compone planes previos conservados y corrige conteo/atribución sin cuota artificial. P2 atendido por mecanismo de fuente, NO REPRODUCIDO; matrizA1–A18 NO EJECUTADA. Sólo Git/nativo guard/hash/allowlist/diffcheck, sin parser o runtime. No instalación/Nodeproducto/tests/SQL/DB/Docker/browser/tipos/lint/build/verify/knowledge. NuevoSHA/diff/manifiesto/readback se fija en recibo externo; revisión antes de cualquierGO. Claim retenido, PR318DRAFT/baseD1, sin main/merge/prod/deploy/activación4.2/finanzas4.3 o cambios históricos.
+
+## Ejecución 2026-11-18 · renumeración, fusible y decisiones abiertas
+
+Sam pidió llevar la SDD de borrador a ejecución («Sí, ábrela», vía el Director).
+La migración pasa de `0502` a **`0561_consolidacion_cliente_camino_normal.sql`**
+(número asignado por el Director) y se retira el fusible de autoría. Sigue
+pendiente de aplicar: ni staging ni producción sin el OK nominal de Sam y el
+runbook.
+
+**Decisión a confirmar con Sam — «Pasar a otro cliente» (SDD-0645, 0551).** Esa
+acción entró a main después de esta rama. Un embarque de cohorte del camino
+normal no se puede pasar a otro cliente: la acción lo corta antes de la RPC y,
+si hay carrera, el trigger de la 0561 lo corta en la base. En los dos casos el
+error dice que el embarque está en un contenedor con envíos por cliente y que el
+cliente quedó fijado al formar el envío. Lo mide
+`app/studio/(app)/tracking/[id]/__tests__/reasignar-actions.test.ts`. Si Sam
+quiere poder mover un envío de cohorte, hace falta un escritor tipado nuevo.
+
+**Rutas fuera de la allowlist de 72 tocadas por la ejecución** (para revisión del
+Director): `app/studio/(app)/tracking/[id]/__tests__/reasignar-actions.test.ts`
+y `lib/studio/rbac-actions-guard.test.ts` (inventario 488 → 496 y seis
+`EXCEPCIONES`: los escritores tipados derivan su autoridad en la RPC).

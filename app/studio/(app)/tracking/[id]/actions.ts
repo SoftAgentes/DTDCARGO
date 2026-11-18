@@ -630,6 +630,10 @@ export type ReasignarActionResult =
   | { ok: true; resultado: ReasignarResultado }
   | { ok: false; error: string; noDisponible?: boolean };
 
+/** SDD-0578: por qué no se puede pasar un embarque de cohorte a otro cliente. */
+const REASIGNAR_COHORTE_DENIAL =
+  "Este embarque está en un contenedor con envíos por cliente (manifiesto por cliente). No se puede pasar a otro cliente desde aquí: el cliente quedó fijado al formar el envío.";
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function llamarReasignar(
@@ -639,16 +643,19 @@ async function llamarReasignar(
   reason: string | null,
   dryRun: boolean,
 ): Promise<ReasignarActionResult> {
-  // SDD-0578: un embarque de cohorte cambia sólo por sus escritores tipados;
-  // el trigger de la 0561 también lo corta en la base.
+  // SDD-0578 (decisión a confirmar con Sam): un embarque de cohorte del camino
+  // normal no se pasa a otro cliente; el trigger de la 0561 también lo corta.
   const cohortDenial = await legacyShipmentMutationDenial(supabase, shipmentId);
-  if (cohortDenial) return { ok: false, error: cohortDenial };
+  if (cohortDenial) {
+    return { ok: false, error: cohortDenial === LEGACY_COHORT_DENIAL ? REASIGNAR_COHORTE_DENIAL : cohortDenial };
+  }
   const { data, error } = await supabase.rpc("reassign_shipment_client", {
     p_shipment_id: shipmentId,
     p_client_id: clientId,
     p_reason: reason,
     p_dry_run: dryRun,
   });
+  if (error?.hint === "dtd-client-normal") return { ok: false, error: REASIGNAR_COHORTE_DENIAL };
   if (error) {
     return { ok: false, error: mensajeErrorReasignar(error), noDisponible: faltaLaFuncion(error) || undefined };
   }

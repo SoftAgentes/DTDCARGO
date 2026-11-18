@@ -10,7 +10,6 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { supabaseDouble, type DoubleHandle, type Reply } from "@/lib/studio/__tests__/user-tenants-double";
-import { LEGACY_COHORT_DENIAL } from "@/lib/studio/client-consolidation/normal-flow";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const TENANT = "33333333-3333-4333-8333-333333333333";
@@ -170,13 +169,21 @@ describe("reassignShipmentClient", () => {
 });
 
 describe("SDD-0578: embarque de cohorte del camino normal", () => {
-  it("ni vista previa ni cambio llegan a la RPC; sale el aviso de cohorte", async () => {
+  const COHORTE = /contenedor con envíos por cliente.*No se puede pasar a otro cliente/;
+  it("ni vista previa ni cambio llegan a la RPC; el error dice que es de cohorte", async () => {
     conRol("operations", undefined, null, USER, [SHIPMENT]);
     const previa = await previewReassignShipmentClient(SHIPMENT, CLIENT);
     const cambio = await reassignShipmentClient(SHIPMENT, CLIENT, "Dueño real confirmado");
-    expect(previa).toEqual({ ok: false, error: LEGACY_COHORT_DENIAL });
-    expect(cambio).toEqual({ ok: false, error: LEGACY_COHORT_DENIAL });
+    expect(previa).toEqual({ ok: false, error: expect.stringMatching(COHORTE) });
+    expect(cambio).toEqual({ ok: false, error: expect.stringMatching(COHORTE) });
     expect(llamadas()).toHaveLength(0);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("si la base corta por cohorte (carrera), el error también lo dice", async () => {
+    conRol("operations", { data: null, error: { code: "P0001", message: "NORMAL_GOVERNED", hint: "dtd-client-normal" } as never });
+    const cambio = await reassignShipmentClient(SHIPMENT, CLIENT, "Dueño real confirmado");
+    expect(cambio).toEqual({ ok: false, error: expect.stringMatching(COHORTE) });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 

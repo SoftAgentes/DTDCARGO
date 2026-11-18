@@ -100,6 +100,23 @@ type Lista = Record<string, string>;
  * analizador reconozca. No se espera que esta lista se vacíe.
  */
 const EXCEPCIONES: Lista = {
+  // SDD-0578 · Seis escritores tipados del camino normal. Escriben SOLO por su
+  // RPC de la 0561, que repite rol activo, tenant de la sesión y módulo
+  // (naviera / tracking / ve) en la base y distingue escritura nueva (edición)
+  // de repetición exacta (lectura vigente). Decisión a revisar por el DG.
+  "naviera/actions.ts::confirmClientShipmentsAction":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_confirm` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+  "naviera/actions.ts::closeClientManifestAction":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_close` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+  "tracking/[id]/actions.ts::transitionClientShipment":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_transition` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+  "tracking/[id]/actions.ts::recordClientShipmentNote":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_note` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+  "ve/actions.ts::transitionNormalVeShipmentAction":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_transition` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+  "ve/actions.ts::completeNormalVeDeliveryAction":
+    "SDD-0578: la autoridad la deriva la RPC `client_consolidation_complete_delivery` (0561) (dtd_client_normal.module_allowed: rol activo del tenant de la sesión, edición para escritura nueva y lectura vigente para la repetición exacta de la misma referencia); un moduleEditDenial al tope rompería esa repetición. Medido en supabase/tests/consolidacion_cliente_normal.test.sql (NORMAL_FORBIDDEN).",
+
   // SDD-0571 · Las dos LEEN: `moduleViewDenial(supabase, "cn")` va al tope y
   // domina todo. Lo único que el analizador cuenta como escritura es
   // `rpc("congelar_tarifa_recepcion")` con `p_dry_run = true`, que NO escribe:
@@ -424,8 +441,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
+  // SDD-0578 sumó ocho acciones (488 → 496): `naviera/actions.ts::loadClientManifestAction`
+  // y `ve/actions.ts::loadVeNormalContextAction` (solo leen, con gate de vista al tope) y los
+  // seis escritores tipados de EXCEPCIONES, que escriben solo por sus RPC de la 0561.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(488);
+    expect(reportes.length).toBe(496);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -439,7 +459,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     // SDD-0622 sacó de DEUDA `cotizador::lookupSuggestedRate` (ver Cotizador),
     // `tracking/[id]::lookupRateForNewDestination` (editar Tracking + ver
     // Cotizador) y `tarifas::previewRatesImportAction` (editar Tarifas): 3 → 0.
-    }).toEqual({ excepciones: 24, deuda: 0 });
+    }).toEqual({ excepciones: 30, deuda: 0 }); // SDD-0578: +6 escritores tipados (24 → 30)
   });
 
   for (const { rel, r } of reportes) {
