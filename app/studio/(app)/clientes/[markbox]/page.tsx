@@ -13,7 +13,8 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { markboxVigenteDeCodigoViejo } from "@/lib/studio/client-codigo-viejo";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import {
@@ -114,7 +115,20 @@ export default async function ClienteDetallePage({
   const supabase = await createClient();
 
   const client = await getClientByMarkbox(supabase, markbox);
-  if (!client) notFound();
+  if (!client) {
+    // SDD-0664 · un Shipping Mark anterior (renombrado o fusión) lleva a la
+    // ficha vigente en vez de a un 404.
+    let vigente: string | null = null;
+    try {
+      vigente = await markboxVigenteDeCodigoViejo(supabase, decodeURIComponent(markbox));
+    } catch {
+      vigente = null;
+    }
+    if (vigente && vigente !== markbox) {
+      redirect(`/studio/clientes/${encodeURIComponent(vigente)}`);
+    }
+    notFound();
+  }
 
   const portalAccess = await getClientPortalAccess(supabase, client.id);
   const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
