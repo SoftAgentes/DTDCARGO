@@ -110,15 +110,17 @@ no viaja al navegador.
    por el DG):** hay dos modos.
    - **Contenedor completo:** un solo botón factura todo el contenedor, con **doble aprobación** (qué
      significa queda en la pregunta 6).
-   - **Por embarque, con doble confirmación:** quien oprime «Facturar» ve una pantalla «¿Estás seguro de
-     los datos?» que **muestra los datos que se van a facturar**, y tiene que volver a oprimir
-     «Confirmado».
+   - **Por cliente dentro del contenedor, con doble confirmación:** Sam lo dijo así: «Por cliente». El
+     botón «Facturar» va en la fila de cada cliente del contenedor en Embarques. Quien lo oprime ve una
+     pantalla «¿Estás seguro de los datos?» que **muestra los datos que se van a facturar**, y tiene que
+     volver a oprimir «Confirmado».
+   - El modo «contenedor completo» equivale a facturar todas las filas de cliente del contenedor a la vez.
    - Razón de Sam: quien oprime «tiene que saber que eso va a ir para el cliente en su portal y en la
      contabilidad».
 
-   *Nota del Worker:* la carga de consolidados agrupa una factura por cliente y contenedor. En el modo
-   «contenedor completo», recomiendo mantener esa agrupación: sale una factura por cliente con una línea
-   por embarque, no una factura por embarque.
+   **La unidad mínima es el cliente del contenedor**, no el embarque. Sale una factura por cliente con una
+   línea por embarque, igual que en la carga de consolidados. En ningún modo se factura un embarque
+   suelto.
 
 2. **¿De dónde sale el monto: lo escribe quien oprime, sale de la columna «valor a facturar» del Excel o
    de la tarifa congelada?**
@@ -153,12 +155,12 @@ no viaja al navegador.
    tres.
 
 6. **¿Qué es la «doble aprobación» del contenedor completo: dos confirmaciones de la misma persona, como
-   en el modo por embarque, o dos personas distintas?**
+   en el modo por cliente, o dos personas distintas?**
    *Recomiendo dos personas distintas.* Facturar el contenedor completo crea de una vez las facturas de
    todos sus clientes. Un error ahí llega a muchos portales y a la contabilidad al mismo tiempo. La forma
    propuesta:
    - Una persona de Embarques oprime «Facturar contenedor», revisa la misma pantalla de datos del modo por
-     embarque y lo **solicita**.
+     cliente, con todas las filas del contenedor, y lo **solicita**.
    - Una segunda persona, de Contabilidad o Admin y nunca la misma que solicitó, lo **aprueba**. Hasta esa
      aprobación no se crea ninguna factura.
 
