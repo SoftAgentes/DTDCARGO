@@ -81,9 +81,9 @@ Lo que se corrigió antes fue en SDD-0585:
 | M1 · Sesiones vivas por agente | H1: un agente de la Bandeja con 5 sesiones o más está en el 409 o al borde | Una consulta de solo lectura en la base de Chatwoot, con OK del DG: el histograma de `count(*)` de `user_sessions` (o de tokens vivos) agrupado por usuario. El resultado sale en números, sin ids ni correos (por ejemplo: «3 agentes con 1, 1 con 5») | DG, en el VPS |
 | M2 · Lo que ve Studio al abrir | H2: con la marca, el panel cayó en el inicio de sesión | Requiere (c): el script del panel le avisa a Studio su estado al cargar, y Studio cuenta `abrio_con_marca`, `sin_sesion` y `demasiadas_sesiones` en un log sin usuario ni enlace | PR de seguimiento + puerta del VPS |
 | M3 · Código del SSO | H3 y fallas de la Platform API | Studio ya registra `[bandeja] SSO no disponible: <código>` (C: `actions.ts:105`), sin enlace ni correo. Contar esas líneas en los logs de Studio por día | DG |
-| M4 · 409 y 429 de `/auth/sign_in` | H1 y H4 en el momento del login | Lo pide el navegador a Chatwoot, y Studio no lo ve. Hace falta un access log de Traefik para `chat.` filtrado a esa ruta y a esos códigos, guardando solo conteos. Es config del VPS | DG, con OK de Sam |
+| M4 · 409 y 429 de `/auth/sign_in` | H1 y H4 en el momento del login | Lo pide el navegador a Chatwoot, y Studio no lo ve. Hace falta un access log de Traefik para `chat.` filtrado a esa ruta y a esos códigos, guardando solo conteos. Es config del VPS. **Medido por el DG (2026-11-18):** Traefik no deja el access log en `docker logs` (0 líneas con `/auth/sign_in` en 7 días), así que hoy no hay medida por ahí; habría que encender el access log | DG, con OK de Sam |
 
-El orden que conviene es M1 primero (una consulta y ninguna instalación), y después M3. M2 y M4 dependen de las decisiones de abajo. No se tocan ni la config ni el compose de Chatwoot desde esta spec.
+El orden que conviene es M1 primero (una consulta y ninguna instalación; el DG se la pide a Sam junto con las opciones a, b y c), y después M3. M2 y M4 dependen de las decisiones de abajo. No se tocan ni la config ni el compose de Chatwoot desde esta spec.
 
 ## 2. Diseño
 
