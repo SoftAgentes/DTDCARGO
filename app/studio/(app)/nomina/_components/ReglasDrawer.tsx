@@ -80,7 +80,7 @@ export function ReglasDrawer({
   onClose: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(savePayrollRulesAction, initial);
-  const hoy = useMemo(hoyCaracas, []);
+  const hoy = useMemo(() => hoyCaracas(), []);
   const espera = !ampliada;
 
   /** Un número de la 0556: deshabilitado mientras la migración esté en espera. */

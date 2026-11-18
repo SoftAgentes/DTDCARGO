@@ -131,9 +131,9 @@ const MUTANTES: { nombre: string; sql: () => string; cae: string }[] = [
     cae: "TEST 0556: el admin del tenant 1 ve",
   },
   {
-    nombre: "anon recibe SELECT",
+    nombre: "anon recibe SELECT (lo atrapa el postflight al reaplicar la migración)",
     sql: () => FILE_0556 + "\ngrant select on public.nomina_payroll_rules to anon;",
-    cae: "TEST 0556: anon ganó SELECT sobre nomina_payroll_rules",
+    cae: "0556 postflight: anon tiene privilegios sobre nomina_payroll_rules",
   },
   {
     nombre: "la migración no es idempotente (ADD COLUMN sin IF NOT EXISTS)",

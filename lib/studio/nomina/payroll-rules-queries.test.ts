@@ -250,11 +250,11 @@ describe("guardar una versión nueva", () => {
 
   it("si la base pierde las columnas entre la lectura y el insert (un desarme), reintenta sin ellas", async () => {
     const { supabase, log } = falso({ ampliada: true, vigente: true, insertFalla: true });
-    const r = await upsertPayrollRules(supabase, "t-1", entrada(), null);
+    const r = await upsertPayrollRules(supabase, "t-1", entrada({ vigente_desde: "2026-12-01" }), null);
     expect(r.error).toBeNull();
     expect(r.ampliada).toBe(false);
     expect(log.inserts).toHaveLength(2);
-    expect(log.inserts[0]).toHaveProperty("vigente_desde");
+    expect(log.inserts[0]).toHaveProperty("vigente_desde", "2026-12-01");
     expect(log.inserts[1]).not.toHaveProperty("vigente_desde");
   });
 });
