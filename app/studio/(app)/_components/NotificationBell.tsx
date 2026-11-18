@@ -216,23 +216,8 @@ export function NotificationBell({ userId, initial }: NotificationBellProps) {
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: 4,
-              right: 3,
-              minWidth: 16,
-              height: 16,
-              padding: "0 4px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 8,
-              background: "var(--danger)",
-              color: "var(--ink-inv)",
-              font: "800 9px/1 var(--f-mono)",
-              boxShadow: "0 0 0 2px var(--bg-surface)",
-              pointerEvents: "none",
-            }}
+            className="studio-contador-icono"
+            data-tono="peligro"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>

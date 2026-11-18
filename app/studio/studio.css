@@ -538,6 +538,78 @@
 .studio-cerrar-panel svg {
   flex-shrink: 0;
 }
+
+/* Contador sobre el icono (conversaciones, campana): va en la esquina superior
+   derecha, montado sobre el borde del botón, para no tapar el sobre ni la campana. */
+.studio-contador-icono {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--ink-inv);
+  font: 800 9px/1 var(--f-mono);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+  pointer-events: none;
+}
+.studio-contador-icono[data-tono="vino"] {
+  background: var(--wine);
+  color: var(--ink-side-strong);
+}
+.studio-contador-icono[data-tono="peligro"] {
+  background: var(--danger);
+}
+
+/* Menú lateral cerrado: el nombre sale al instante (sin el aviso nativo de ~1 s) y el
+   icono se corre un poco. Con el foco del teclado pasa igual. */
+.studio-sb-icono {
+  transition: transform var(--dur-fast) var(--ease);
+}
+.studio-sb-link--cerrado:hover .studio-sb-icono,
+.studio-sb-link--cerrado:focus-visible .studio-sb-icono {
+  transform: translateX(3px);
+}
+.studio-sb-tip {
+  position: fixed;
+  z-index: 80;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  color: var(--ink-inv);
+  box-shadow: var(--shadow-md);
+  font: 700 12.5px/1.2 var(--f-sans);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: studio-sb-tip-in 90ms var(--ease) both;
+}
+@keyframes studio-sb-tip-in {
+  from {
+    opacity: 0;
+    margin-left: -4px;
+  }
+  to {
+    opacity: 1;
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-sb-icono {
+    transition: none;
+  }
+  .studio-sb-link--cerrado:hover .studio-sb-icono,
+  .studio-sb-link--cerrado:focus-visible .studio-sb-icono {
+    transform: none;
+  }
+  .studio-sb-tip {
+    animation: none;
+  }
+}
 @media (max-width: 767px) {
   .studio-densidad__texto {
     display: none;
