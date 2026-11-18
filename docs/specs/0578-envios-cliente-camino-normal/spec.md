@@ -1470,6 +1470,12 @@ La migración pasa de `0502` a **`0561_consolidacion_cliente_camino_normal.sql`*
 pendiente de aplicar: ni staging ni producción sin el OK nominal de Sam y el
 runbook.
 
+**Columna `shipments.cohort_client_id`.** Donde esta spec dice «`client_id` del
+envío» se refiere a esta columna: se llama `cohort_client_id` (decisión del
+Director, 2026-11-18) para no chocar con las decenas de `client_id` de otras
+tablas que mide el gate de símbolos pendientes. Los grupos privados conservan
+`dtd_client_normal.groups.client_id`.
+
 **Decisión a confirmar con Sam — «Pasar a otro cliente» (SDD-0645, 0551).** Esa
 acción entró a main después de esta rama. Un embarque de cohorte del camino
 normal no se puede pasar a otro cliente: la acción lo corta antes de la RPC y,

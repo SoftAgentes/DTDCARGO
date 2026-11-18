@@ -94,10 +94,10 @@ create table dtd_client_normal.containers (
   check ((seal_id is null and sealed_at is null and seal is null)
       or (seal_id is not null and sealed_at is not null and seal is not null))
 );
-alter table public.shipments add column client_id uuid references public.clients(id) on delete restrict;
-comment on column public.shipments.client_id is
+alter table public.shipments add column cohort_client_id uuid references public.clients(id) on delete restrict;
+comment on column public.shipments.cohort_client_id is
   'SDD-0578: identidad del cliente del envío prospectivo. Nullable en legacy; no backfill. No autoriza consulta por Shipping Mark ajeno.';
-create index shipments_client_normal_client_idx on public.shipments(tenant_id, client_id) where client_id is not null;
+create index shipments_client_normal_client_idx on public.shipments(tenant_id, cohort_client_id) where cohort_client_id is not null;
 
 create table dtd_client_normal.groups (
   id uuid primary key default gen_random_uuid(),
@@ -729,7 +729,7 @@ begin
   if exists(select 1 from dtd_client_normal.members m join dtd_client_normal.groups g on g.id=m.group_id
     join public.shipment_rate_snapshots s on s.receipt_id=m.receipt_id and s.superseded_at is null
     where m.receipt_id=v_receipt and (s.shipment_id is distinct from g.shipment_id or s.tenant_id is distinct from m.tenant_id
-      or s.client_id is distinct from g.client_id or s.service is distinct from g.service or s.destination is distinct from g.destination
+      or s.cohort_client_id is distinct from g.client_id or s.service is distinct from g.service or s.destination is distinct from g.destination
       or s.cbm is distinct from m.cbm or s.weight_kg is distinct from m.weight_kg)) then
     perform dtd_client_normal.fail('NORMAL_INCOMPATIBLE');
   end if;
@@ -747,7 +747,7 @@ begin
   select * into strict v_group from dtd_client_normal.groups where id=p_group;
   if exists(select 1 from dtd_client_normal.members m join public.shipment_rate_snapshots s
     on s.receipt_id=m.receipt_id and s.superseded_at is null where m.group_id=p_group
-    and (s.tenant_id is distinct from m.tenant_id or s.client_id is distinct from v_group.client_id
+    and (s.tenant_id is distinct from m.tenant_id or s.cohort_client_id is distinct from v_group.client_id
       or s.shipment_id is distinct from v_group.shipment_id or s.service is distinct from v_group.service
       or s.destination is distinct from v_group.destination or s.cbm is distinct from m.cbm
       or s.weight_kg is distinct from m.weight_kg or s.amount_to_invoice is null or s.amount_to_invoice < 0)) then
@@ -1125,7 +1125,7 @@ begin
       update dtd_client_normal.contexts set shipment_ids=array_append(shipment_ids,v_shipment)
         where transaction_id=txid_current() and backend_pid=pg_backend_pid() and operation='membership';
       select sum(r.total_cbm),sum(r.total_weight_kg),sum(r.boxes) into v_cbm,v_weight,v_boxes from public.warehouse_receipts_cn r where r.id=any(v_receipts);
-      insert into public.shipments(id,tenant_id,code,client_id,client_markbox,client_name,origin,destination,shipment_service,status,volume_m3,weight_kg,created_at,updated_at)
+      insert into public.shipments(id,tenant_id,code,cohort_client_id,client_markbox,client_name,origin,destination,shipment_service,status,volume_m3,weight_kg,created_at,updated_at)
         values(v_shipment,v_tenant,v_new_code,v_client.id,v_client.markbox,v_client.name,'China',v_destination,v_service,'consolidating',v_cbm,v_weight,v_now,v_now);
       insert into dtd_client_normal.code_reservations(code,shipment_id,tenant_id,reserved_at) values(v_new_code,v_shipment,v_tenant,v_now);
       insert into public.consolidation_items(id,tenant_id,consolidation_id,shipment_id,client_markbox,client_name,cbm,weight_kg,pieces,created_at)
@@ -1197,7 +1197,7 @@ begin
       join public.shipments s on s.id=g.shipment_id join public.consolidation_items i on i.id=g.item_id
       left join dtd_client_normal.code_reservations cr on cr.shipment_id=g.shipment_id
       where g.container_id=p_container and (g.tenant_id<>v_meta.tenant_id or s.tenant_id<>g.tenant_id
-        or s.deleted_at is not null or s.client_id is distinct from g.client_id or s.client_markbox is distinct from g.client_markbox
+        or s.deleted_at is not null or s.cohort_client_id is distinct from g.client_id or s.client_markbox is distinct from g.client_markbox
         or s.shipment_service<>g.service or s.destination is distinct from g.destination
         or s.code is distinct from cr.code or s.code<>upper(btrim(s.code)) or s.code !~ '^S-[0-9]{4}-[0-9]{4,10}$'
         or i.tenant_id<>g.tenant_id or i.consolidation_id<>g.container_id or i.shipment_id is distinct from g.shipment_id
@@ -2306,7 +2306,7 @@ begin
   select * into v_s from public.shipments where id=p_shipment and tenant_id=p_tenant and deleted_at is null;
   if not found then return false; end if;
   select * into v_g from dtd_client_normal.groups where shipment_id=p_shipment;
-  if found then return v_g.tenant_id=v_principal.tenant_id and v_g.client_id=v_principal.client_id and v_s.client_id=v_principal.client_id; end if;
+  if found then return v_g.tenant_id=v_principal.tenant_id and v_g.client_id=v_principal.client_id and v_s.cohort_client_id=v_principal.client_id; end if;
   return coalesce(v_s.client_markbox=v_principal.markbox and (not p_document or p_mark=v_s.client_markbox),false);
 end $fn$;
 create function public.client_consolidation_read_boundary(p_shipment uuid,p_tenant uuid,p_mark text default null,p_document boolean default false)
@@ -2392,7 +2392,7 @@ begin
     left join dtd_client_normal.containers m on m.container_id=g.container_id left join public.consolidations c on c.id=m.container_id
     where s.tenant_id=v_principal.tenant_id and s.deleted_at is null and
       ((g.id is null and s.client_markbox=v_principal.markbox)
-        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id));
+        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.cohort_client_id=v_principal.client_id));
   return jsonb_build_object('available',true,'complete',true,'principal',jsonb_build_object('tenantId',v_principal.tenant_id,
     'clientId',v_principal.client_id,'markbox',v_principal.markbox),'observedAt',clock_timestamp(),'shipments',v_rows);
 end $fn$;
@@ -2419,13 +2419,13 @@ begin
       case when p_shipment_id is null then e.id end desc),'[]'::jsonb) into v_rows
   from (
     select ev.id,ev.shipment_id,ev.tenant_id,ev.status,ev.occurred_at,ev.note,s.code,
-      case when g.id is null then v_principal.client_id else s.client_id end as owner_client_id
+      case when g.id is null then v_principal.client_id else s.cohort_client_id end as owner_client_id
     from public.shipment_events ev join public.shipments s on s.id=ev.shipment_id and s.tenant_id=ev.tenant_id
     left join dtd_client_normal.groups g on g.shipment_id=s.id
     where ev.tenant_id=v_principal.tenant_id and ev.deleted_at is null and s.deleted_at is null
       and (p_shipment_id is null or s.id=p_shipment_id)
       and ((g.id is null and s.client_markbox=v_principal.markbox)
-        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.client_id=v_principal.client_id))
+        or (g.id is not null and g.tenant_id=v_principal.tenant_id and g.client_id=v_principal.client_id and s.cohort_client_id=v_principal.client_id))
     order by case when p_shipment_id is not null then ev.occurred_at end asc,
       case when p_shipment_id is null then ev.occurred_at end desc,
       case when p_shipment_id is not null then ev.id end asc,

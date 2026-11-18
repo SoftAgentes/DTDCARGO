@@ -603,7 +603,7 @@ begin
   -- an owned legacy shipment has twelve known IDs, including ten equal clocks
   -- and a one-microsecond predecessor. Future time is synthetic ordering data,
   -- never inferred operational evidence. Legacy fixtures may set event times.
-  insert into public.shipments(id,tenant_id,code,client_id,client_markbox,shipment_service)
+  insert into public.shipments(id,tenant_id,code,cohort_client_id,client_markbox,shipment_service)
     values(v_ordering_ship,sdd0578_fixture.id('tenant-A'),'S-2026-6901',sdd0578_fixture.id('client-A'),'DTD-0001','consolidado_lcl');
   insert into public.shipment_events(id,tenant_id,shipment_id,status,note,occurred_at)
     select ('ffffffff-ffff-4fff-8fff-'||lpad(i::text,12,'0'))::uuid,sdd0578_fixture.id('tenant-A'),v_ordering_ship,'consolidating',
