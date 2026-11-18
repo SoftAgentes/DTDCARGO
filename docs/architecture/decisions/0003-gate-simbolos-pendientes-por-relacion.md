@@ -6,7 +6,7 @@
 | Fecha | 2026-09-13 |
 | Dueño | ingeniería DTD Cargo |
 | SDD | SDD-0464 (harness; enmienda de semántica de SDD-0450) |
-| Enmiendas | ninguna |
+| Enmiendas | 2026-11-18 · esquemas que PostgREST no expone (abajo) |
 | Confidencialidad | interno |
 
 ## Contexto y medición
@@ -118,3 +118,49 @@ Revertir el commit de SDD-0464 que toca `scripts/check-pending-migration-symbols
 y su prueba. Las declaraciones vigentes volverían a necesitar los sitios
 homónimos; el gate diría cuáles con exit 2. No hay cambio de formato que
 deshacer.
+
+## Enmienda 2026-11-18 · esquemas que PostgREST no expone
+
+**Medición.** La SDD-0578 (migración 0561) crea un esquema privado,
+`dtd_client_normal`, sin grants a la API, con tablas y funciones de nombre
+común (`groups`, `receipts`, `members`, `containers`, `fail`). El gate las
+buscaba por nombre suelto: 523 de sus 702 sitios en ROJO eran palabras
+corrientes del código (un `groups` de un menú, un `fail()` de una prueba), y
+declararlos por `archivo:línea` habría puesto en rojo cualquier PR ajena que
+moviera líneas en esos archivos.
+
+**Decisión.** Un símbolo nacido en un esquema que PostgREST no publica cuenta
+sólo donde el código lo nombra calificado (`esquema.nombre`, con espacios o
+comillas opcionales alrededor del punto). Una columna agregada a una relación
+de ese esquema cuenta donde se nombra la relación calificada; la asociación
+por relación de este ADR no se le aplica, porque ya exigió el nombre completo.
+Los esquemas expuestos salen de la configuración versionada del PostgREST
+propio: el default de `PGRST_DB_SCHEMAS` en `infra/dtd-cargo/compose.supabase.yml`
+y su valor en `infra/dtd-cargo/.env.example`, unidos y siempre con `public`
+(hoy: `public`, `graphql_public`). Si ninguna fuente fija la lista, todos los
+esquemas cuentan como expuestos: el gate falla cerrado, como antes.
+
+Una línea que nombra `PGRST_DB_SCHEMAS` fuera de un comentario y que el
+lector no entiende (otra variable en el valor, `export …`, una forma nueva)
+hace fallar cerrado: todos los esquemas cuentan como expuestos. El lector
+entiende `CLAVE: valor`, `CLAVE=valor`, la lista de compose `- CLAVE=valor` y
+el default `${PGRST_DB_SCHEMAS:-…}`; `${PGRST_DB_SCHEMAS}` sin default no aporta
+porque el valor sale del `.env`.
+
+**Límites.** La config de producción vive fuera del repo: si alguien expusiera
+otro esquema sólo en el `.env` real, el gate no lo sabría. Por eso la lista se
+lee del default versionado y del ejemplo, y exponer un esquema nuevo exige
+cambiarlos en el repo. `.schema("x")` de supabase-js contra un esquema no
+expuesto lo rechaza el propio PostgREST.
+
+El gate mide código de la app contra símbolos, no SQL contra SQL. Un wrapper
+de `public` ya aplicado que llama a una función privada pendiente no aparece:
+la app nombra el wrapper, que no es pendiente, y la llamada a
+`privado.funcion()` vive en el cuerpo SQL del wrapper, no en el código. Antes
+de esta enmienda pasaba lo mismo; la regla no lo empeora, pero tampoco lo
+cubre. Quien escriba un wrapper así debe declarar la dependencia en la
+migración pendiente (preflight que exija el wrapper) o en la revisión.
+
+**Rollback.** Revertir el commit que agrega `readExposedSchemas` y
+`referencePattern`; sin `exposedSchemas`, `analyzeRepositoryData` mide como
+antes.
