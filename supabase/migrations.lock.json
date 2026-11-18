@@ -3529,6 +3529,15 @@
         "forma": "exacta"
       }
     },
+    "0554_chatwoot_contact_links": {
+      "sha256": "c5f3f697ef3deb730dc2c939ac58d2809711e69c7ecc201ce025643b3117b382",
+      "md5": "f61a779386165d8cbddc2f0a97ca0de1",
+      "bytes": 26269,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
     "0555_nomina_ficha_empleado_identidad_foto": {
       "sha256": "4f786fcf6d611eb5bba4d404efbfbe335bf8a069c31943e8fe1b031c6faf2cd4",
       "md5": "36debb54e643898cc15f77ee9ac72974",
