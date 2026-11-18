@@ -396,12 +396,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
   // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
   // repite `is_platform_admin()`.
-  // SDD-0646 (D-1, opción C) sumó `clientes/actions.ts::resendEmailCheckAction` (478 → 479):
+  // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
+  // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
+  // pasa a `office_revisar_borrador_v2`.
+  // SDD-0646 (D-1, opción C) sumó `clientes/actions.ts::resendEmailCheckAction` (479 → 480):
   // `moduleEditDenial(supabase, "clients")` al tope; después la RPC `portal_email_check_prepare`
   // (0559) repite en la base los roles admin/commercial/operations y el tenant; service_role entra
   // recién después de las dos, para pasar la cuenta a su dirección interna y emitir el enlace.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(479);
+    expect(reportes.length).toBe(480);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
