@@ -3529,6 +3529,15 @@
         "forma": "exacta"
       }
     },
+    "0555_nomina_ficha_empleado_identidad_foto": {
+      "sha256": "4f786fcf6d611eb5bba4d404efbfbe335bf8a069c31943e8fe1b031c6faf2cd4",
+      "md5": "36debb54e643898cc15f77ee9ac72974",
+      "bytes": 29489,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
     "0557_portal_vista_preferida": {
       "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
       "md5": "fe1c8d05334658e1502a90676986c67d",
