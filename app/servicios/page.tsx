@@ -16,12 +16,15 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
 const SERVICE_META_DESC =
   "Servicios entre Yiwu y Valencia: puerta a puerta, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
 
+// SDD-0657 · El título solo decía «Servicios»: ahora nombra el trayecto.
+const SERVICE_META_TITLE = "Servicios de logística China–Venezuela";
+
 export const metadata: Metadata = {
-  title: "Servicios",
+  title: SERVICE_META_TITLE,
   description: SERVICE_META_DESC,
   alternates: { canonical: "/servicios" },
   ...socialMeta({
-    title: "Servicios · DTD Cargo",
+    title: `${SERVICE_META_TITLE} · DTD Cargo`,
     description: SERVICE_META_DESC,
     path: "/servicios",
   }),

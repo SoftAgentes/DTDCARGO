@@ -60,6 +60,10 @@ describe("Footer · Enlaces rápidos (SDD-0521)", () => {
     expect(columna("Enlaces rápidos")).toEqual([
       { nombre: "Seguimiento en construcción", href: "/entrar" },
       { nombre: "Calculadora de envío", href: "/tarifas" },
+      // SDD-0657 · las otras tres calculadoras entraron al pie.
+      { nombre: "Calculadora FCL", href: "/fcl" },
+      { nombre: "Llenado de contenedor", href: "/llenado" },
+      { nombre: "Flete terrestre", href: "/calculadora-terrestre" },
       { nombre: "Cotiza con tu proforma", href: "/cotizador" },
       { nombre: "Contáctenos", href: "/contacto" },
       { nombre: "Enlaces", href: "/enlaces" },

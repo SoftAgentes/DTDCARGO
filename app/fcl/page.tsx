@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -10,10 +11,13 @@ import { FclCalculator } from "@/components/FclCalculator";
 import { getPublicFclRoutes } from "@/lib/public/rates-queries";
 
 const DESC =
-  "Calcula tu flete de contenedor completo (FCL) China → Venezuela al instante: elige la ruta y cuántos contenedores. Estimado con nuestra propia tarifa; el precio en firme lo cierra un asesor por WhatsApp.";
+  "Calcula al instante el flete de contenedor completo (FCL) China → Venezuela: elige ruta y cantidad. Estimado con nuestra tarifa; un asesor lo cierra en firme.";
 
-/** El mismo título va en `metadata` y en el nodo `WebPage`. */
-const TITLE = "Calculadora de flete FCL — contenedor completo China a Venezuela";
+/**
+ * El mismo título va en `metadata` y en el nodo `WebPage`. SDD-0657: con el
+ * sufijo « · DTD Cargo» pasaba de 75 caracteres; ahora queda en 54.
+ */
+const TITLE = "Calculadora de flete FCL China a Venezuela";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -89,6 +93,19 @@ export default async function FclCalcPage() {
                   </li>
                 ))}
               </ul>
+              {/* SDD-0657 · Enlaces a la ficha del servicio FCL y a /llenado,
+                  que no tenían enlaces desde la calculadora. */}
+              <p className="mt-6 text-[15px] text-grey-700 max-w-[46ch]">
+                Conoce cómo funciona el{" "}
+                <Link href="/servicios/fcl" className="font-semibold text-wine hover:text-wine-deep">
+                  servicio de contenedor completo
+                </Link>{" "}
+                o calcula{" "}
+                <Link href="/llenado" className="font-semibold text-wine hover:text-wine-deep">
+                  cuánto contenedor ocupa tu carga
+                </Link>
+                .
+              </p>
             </div>
 
             <FclCalculator routes={routes} />

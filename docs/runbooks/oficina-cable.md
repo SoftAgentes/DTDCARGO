@@ -1,4 +1,4 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a y 3b)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a, 3b y 4)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
@@ -491,3 +491,42 @@ Después, recrear **solo** el `web`.
 
 Staging usa la misma pieza: antes de la próxima prueba en staging hay que definir ahí `OFICINA_CHATWOOT_ACCOUNT_ID`
 (la cuenta de prueba). Sin ella, el cable de staging queda apagado (503 / `sin_config`).
+
+## 13 · Paso 4: la mini-vista (SDD-0626 §3.6, solo lectura)
+
+`/studio/admin/oficina/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
+últimos 10 cambios y el gasto del mes contra el tope), la cola (`office_tasks`), los eventos (`event_inbox`) y la
+bitácora (`task_events`). Es de **solo lectura**: no tiene botones ni formularios, y **no pausa ni despausa**.
+
+### La variable (solo en el `.env` del entorno; el nombre está en `.env.example`, sin valor)
+
+| Variable | Valor | Qué hace |
+|---|---|---|
+| `OFICINA_VISTA_ACTIVA` | vacío (apagada) · `1` para encender | Apagada, la página es un 404 y la revisión no la enlaza |
+
+No pide ninguna migración ni ningún secreto nuevo. Lee con el `service_role` que el web ya tiene, y solo después de que
+la base contesta que quien mira es `is_platform_admin()`.
+
+### Cómo se enciende (con OK de Sam y aviso al DG)
+
+1. Copia del `.env` (`.env.bak-<ts>`, 0600).
+2. `OFICINA_VISTA_ACTIVA=1` en `/srv/dtd-cargo/.env`.
+3. Relevar el contenedor `web` (solo ese).
+4. Sam entra en `/studio/admin/oficina`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
+
+### Qué revisar
+
+- Con la variable apagada, `/studio/admin/oficina/vista` responde 404 para todos.
+- Encendida, un administrador del tenant que no es superadministrador recibe 404.
+- La bandera coincide con `office_esta_pausada()` y el gasto con `office_gasto_del_mes()`.
+- En ninguna fila aparece el texto de un cliente ni un dato de contacto: solo referencias, estados, horas y costos.
+
+### Cómo se apaga
+
+Vaciar `OFICINA_VISTA_ACTIVA` y relevar el `web`. No hay nada que deshacer en la base: la vista no escribe.
+
+### Lo que este paso NO hace
+
+- No pausa ni despausa la oficina: sigue siendo `office_cambiar_pausa`, de un superadministrador.
+- No muestra el borrador ni el texto del cliente (eso es de la revisión, §11).
+- No se actualiza sola: para ver lo último se recarga la página.
