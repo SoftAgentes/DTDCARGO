@@ -1193,7 +1193,7 @@ function FranjaDeTotales({
         aria-label={`Totales de ${grupo.nombre}`}
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: "var(--s-2)",
           margin: 0,
         }}
@@ -1214,7 +1214,7 @@ function FranjaDeTotales({
             <dd
               style={{
                 margin: "var(--s-1) 0 0",
-                font: "800 20px/1.2 var(--f-sans)",
+                font: "800 18px/1.2 var(--f-sans)",
                 color: "var(--ink)",
                 fontVariantNumeric: "tabular-nums",
                 whiteSpace: "nowrap",
