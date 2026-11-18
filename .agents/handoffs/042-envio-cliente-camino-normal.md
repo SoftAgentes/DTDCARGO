@@ -1716,3 +1716,20 @@ Pendiente de esta tarea: número nuevo de migración (lo da el DG), GO del DG pa
 retirar el fusible en la prueba, turno de PC; después la matriz.
 
 FUERA DE ALCANCE DETECTADO: ninguno nuevo.
+
+### Decisión del DG (2026-11-18, después de la medición)
+
+- La PR #318 sigue en BORRADOR; no se recomienda integrarla hoy. El DG lleva la
+  recomendación a Sam.
+- El número **0561** queda reservado para la migración de la SDD-0578. La
+  `0502_consolidacion_cliente_camino_normal.sql` NO se renombra todavía: se
+  renumera (migración, baseline/esperas, pending-symbol-declarations con sus
+  huellas, tests, runner, e2e y spec) sólo cuando haya tarea para llevarla a
+  ejecución.
+- El fusible NO se retiró y no se corrió Docker, install ni vitest.
+- Para la tarea de ejecución, el DG ya fijó dos condiciones: (a) el bloqueo de
+  «Pasar a otro cliente» para embarques de cohorte debe dar un error que diga en
+  claro que es un embarque de cohorte, con prueba, y quedar en la spec como
+  decisión a confirmar con Sam; (b) la prueba local debe demostrar que un cliente
+  del portal sigue viendo SUS envíos y no los de otro, con `client_users` de la
+  0552/0557, tras la nueva policy «shipments portal self read».
