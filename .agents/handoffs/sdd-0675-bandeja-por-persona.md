@@ -74,6 +74,13 @@ Evidencia, con turno de PC (2026-11-18):
 
 Evidencia, con turno de PC y `node_modules` reinstalado (next 16.4.6):
 - Vitest de 11 archivos (los 9 de antes, más `agentes-usuario` y `AgentesBandeja`): **PASÓ**, 236 de 236.
+- `tsc --noEmit` de todo el proyecto: **PASÓ**, sin errores. La falla de `next.config.ts` desapareció con el
+  `node_modules` al día.
+- ESLint de los 24 archivos `.ts`/`.tsx` del diff: **PASÓ**.
+- La CI de 714e9cf24 cayó en Unitarios solo por `agentes-usuario.test.ts:46`, el bloqueante de la
+  re-revisión, ya corregido (1 de 20649 pruebas).
+- Merge con origin/main: solo chocó el índice de specs; `docs:check` dio 652 specs y `sdd:check` sin números
+  repetidos.
 
 ## Pendiente de esta tarea
 
