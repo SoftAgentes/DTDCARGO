@@ -100,11 +100,26 @@ prueba y lo restaura. **Control sin mutar: PASÓ**, `agentes-ciclo` y `agentes-u
 - Una primera tanda dio `exit 1` falso: se invocaba `node` sobre el script de shell de `.bin/vitest` y salía
   `SyntaxError`, sin correr ninguna prueba. Se descartó y se repitió con el control.
 
+## Cierre (2026-11-19)
+
+- La #686 se fusionó en `main` (`2dfe4e8a4`), después de la revisión independiente que lanzó el DG.
+- La 0565 está **aplicada en producción**: commit del apply a las 17:55:31Z (inicio 17:55:30Z), proyecto
+  `dtd-cargo`, con el OK literal de Sam en el chat del DG: «OK, aplica 0566, 0565 y 0562». Md5
+  `479cefea6117e822a7bcd896902f6bdf`, 5486 bytes, una fila en el ledger y el cuerpo vivo de
+  `studio_module_is_grantable` igual al archivo.
+- La evidencia está en `/srv/ops/evidencias/apply-0565-dtd-cargo-20261119T175530Z`; la previa, en
+  `/srv/ops/evidencias/previa-0565-dtd-cargo-20261119T175507Z`.
+- Esos datos son del DG. El md5 y los bytes los comprobé contra el archivo de `main` (`md5sum`, `wc -c`);
+  el resto no lo verifiqué yo.
+- Se cerró en la rama `claude/sdd-0675-cierre-0565`: espera retirada, migración sellada y la prueba que
+  afirmaba la espera cambiada para afirmar el sello. Detalle en
+  `.agents/handoffs/2026-11-19-sdd-0675-cierre-0565.md`.
+
 ## Pendiente de esta tarea
 
-- CI de GitHub y revisión independiente de la #686.
+- Smoke en producción: conceder la Bandeja a una persona sin rol de Bandeja, ver que la ve y que Chatwoot
+  la deja en Leads y Clientes, y revocarla. Necesita el OK de Sam, porque toca una cuenta real.
 - Respuesta de Sam a la pregunta 2 de la spec §5.
-- Aplicar la 0565 en producción solo con el OK nominal de Sam para ese archivo y el runbook, a través del DG.
 
 ## FUERA DE ALCANCE DETECTADO
 
