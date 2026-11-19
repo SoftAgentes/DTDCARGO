@@ -100,10 +100,14 @@ Límites conocidos (sugerencias 3, 4 y 5 de la revisión, y el de los intentos):
 
 ## PENDIENTES DE ESTA TAREA
 
-- Re-revisión del delta de los ajustes (la lanza el DG).
-- Aplicar la 0562 en producción: OK nominal de Sam nombrando `0562_registro_link_autoservicio`,
-  después de fusionar #683.
-- `revisar-datos-ve` sobre la captura de la entrega 2 (resumen en la spec §7).
+- ~~Re-revisión del delta de los ajustes~~: APPROVED en 527de903c y en 49f0a09e0; #687 fusionada
+  (`main` e204360b4).
+- ~~Aplicar la 0562 en producción~~: **aplicada el 2026-11-19 a las 16:51:18Z** con el OK literal
+  de Sam «OK, aplica 0566, 0565 y 0562», y cerrada (espera retirada y sellada) en
+  `.agents/handoffs/2026-11-19-sdd-0672-cierre-0562.md`.
+- Smoke en producción de la entrega 2: NO EJECUTADO. Un cliente sin portal pide el enlace en
+  `/entrar`, lo recibe en el correo de su ficha y activa el portal con su cédula o su WhatsApp.
+- `revisar-datos-ve` sobre la captura de la entrega 2 (resumen en la spec §7): NO EJECUTADO.
 
 ## FUERA DE ALCANCE DETECTADO
 
