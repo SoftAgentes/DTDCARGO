@@ -38,6 +38,12 @@ const mocks = vi.hoisted(() => ({
   tablasConsultadas: [] as string[],
   /** SDD-0672 · el piso de tiempo, doblado: con él real cada pedido esperaría. */
   esperarTiempoMinimo: vi.fn(async () => {}),
+  /** SDD-0672 entrega 2 · el enlace de autoservicio (su lógica tiene su propia prueba). */
+  emitirLinkAutoservicio: vi.fn(),
+}));
+
+vi.mock("@/lib/studio/portal/autoservicio-link", () => ({
+  emitirLinkAutoservicio: mocks.emitirLinkAutoservicio,
 }));
 
 vi.mock("@/lib/portal/tiempo-minimo", () => ({
@@ -178,6 +184,9 @@ describe("enlace de acceso al portal", () => {
     mocks.sinComprobar = { data: [{ bloquea: false, pendiente: false }], error: null };
     mocks.rpcCalls.length = 0;
     mocks.tablasConsultadas.length = 0;
+    mocks.emitirLinkAutoservicio.mockReset();
+    // Por defecto, como sin la migración 0562: sigue el aviso al equipo (entrega 1).
+    mocks.emitirLinkAutoservicio.mockResolvedValue({ estado: "sin-migracion" });
     mocks.avisarClienteSinAcceso.mockReset();
     mocks.avisarClienteSinAcceso.mockResolvedValue({
       avisadoCliente: true,
@@ -509,6 +518,64 @@ describe("enlace de acceso al portal", () => {
 
       // Si no, repetir el pedido spamearía al cliente y al equipo.
       expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("crear el portal desde el correo (SDD-0672 entrega 2)", () => {
+    const CLIENTE_ERP = {
+      id: "cli-1",
+      tenant_id: "tenant-1",
+      markbox: "DTD-1234",
+      name: "Comercial Andina",
+      email: "cliente@example.com",
+    };
+
+    it("⭐ si el enlace de autoservicio salió: «crear_portal», sin aviso al equipo ni enlace de entrada", async () => {
+      mocks.clientUser = null;
+      mocks.cliente = CLIENTE_ERP;
+      mocks.emitirLinkAutoservicio.mockResolvedValue({ estado: "enviado" });
+
+      const res = await requestMagicLink({}, form("cliente@example.com"));
+
+      expect(res).toEqual({ resultado: "crear_portal", requests: 1, email: "cliente@example.com" });
+      expect(mocks.emitirLinkAutoservicio).toHaveBeenCalledOnce();
+      const [, cliente, email] = mocks.emitirLinkAutoservicio.mock.calls[0];
+      expect(cliente.id).toBe("cli-1");
+      expect(email).toBe("cliente@example.com");
+      expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+      nadaSalio();
+      // La pantalla no recibe nada de la ficha.
+      expect(JSON.stringify(res)).not.toContain("DTD-1234");
+    });
+
+    it.each(["no-aplica", "sin-migracion", "no-salio", "error"])(
+      "%s → queda el aviso al equipo de la SDD-0279 («sin_portal»)",
+      async (estado) => {
+        mocks.clientUser = null;
+        mocks.cliente = CLIENTE_ERP;
+        mocks.emitirLinkAutoservicio.mockResolvedValue({ estado });
+
+        const res = await requestMagicLink({}, form("cliente@example.com"));
+
+        expect(res.resultado).toBe("sin_portal");
+        expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledOnce();
+      },
+    );
+
+    it("⭐ nunca para un desconocido, ni para un correo sin comprobar, ni para quien ya tiene acceso", async () => {
+      mocks.clientUser = null;
+      mocks.cliente = null;
+      await requestMagicLink({}, form("nadie@example.com"));
+
+      mocks.cliente = CLIENTE_ERP;
+      mocks.sinComprobar = { data: [{ bloquea: false, pendiente: true }], error: null };
+      await requestMagicLink({}, form("cliente@example.com"));
+
+      mocks.sinComprobar = { data: [{ bloquea: false, pendiente: false }], error: null };
+      mocks.clientUser = { id: "client-user-1", tenant_id: "tenant-1", email: "cliente@example.com" };
+      await requestMagicLink({}, form("cliente@example.com"));
+
+      expect(mocks.emitirLinkAutoservicio).not.toHaveBeenCalled();
     });
   });
 

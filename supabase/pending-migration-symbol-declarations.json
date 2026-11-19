@@ -7,5 +7,85 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0562-autoservicio-del-portal",
+      "migration": "0562_registro_link_autoservicio",
+      "primarySymbol": "portal_registration_link_create_self",
+      "symbols": [
+        {
+          "name": "portal_registration_link_create_self",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/portal/autoservicio-link.ts:67"
+          ]
+        },
+        {
+          "name": "portal_registration_link_peek_self",
+          "kind": "function",
+          "callSites": [
+            "app/registro/activar/[token]/page.tsx:52"
+          ]
+        },
+        {
+          "name": "portal_registration_link_complete_self",
+          "kind": "function",
+          "callSites": [
+            "app/registro/activar/[token]/actions.ts:127"
+          ]
+        },
+        {
+          "name": "portal_registration_link_bind_self",
+          "kind": "function",
+          "callSites": [
+            "app/registro/activar/[token]/actions.ts:179"
+          ]
+        },
+        {
+          "name": "client_registration_links.issued_to_email",
+          "kind": "column",
+          "callSites": [
+            "app/registro/activar/[token]/page.tsx:56",
+            "app/registro/activar/[token]/page.tsx:60",
+            "lib/studio/registro-link-queries.ts:31",
+            "lib/studio/registro-link-queries.ts:54",
+            "lib/studio/registro-link-queries.ts:109",
+            "lib/studio/registro-link-queries.ts:110"
+          ]
+        },
+        {
+          "name": "client_registration_links.link_origin",
+          "kind": "column",
+          "callSites": [
+            "lib/studio/registro-link-queries.ts:30",
+            "lib/studio/registro-link-queries.ts:54",
+            "lib/studio/registro-link-queries.ts:107",
+            "lib/studio/registro-link-queries.ts:132"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/portal/autoservicio-link.ts:73",
+          "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") return { estado: \"sin-migracion\" };",
+          "degradation": "Sin la 0562 emitirLinkAutoservicio devuelve «sin-migracion» sin mandar ningún correo, y /entrar sigue con «ya eres cliente» y el aviso al equipo de la SDD-0279, como en la entrega 1."
+        },
+        {
+          "site": "app/registro/activar/[token]/page.tsx:59",
+          "contains": "vivo = !error && !!row;",
+          "degradation": "Sin la 0562 portal_registration_link_peek_self no existe: la página muestra «Enlace no disponible» y no lee issued_to_email (sin la migración no sale ningún enlace de autoservicio)."
+        },
+        {
+          "site": "app/registro/activar/[token]/actions.ts:144",
+          "contains": "if (error.code === \"PGRST202\" || error.code === \"42883\") {",
+          "degradation": "Sin la 0562 portal_registration_link_complete_self no existe: la acción responde el mensaje de enlace no disponible y no toca la ficha ni Auth; portal_registration_link_bind_self solo corre después de un complete_self «ok»."
+        },
+        {
+          "site": "lib/studio/registro-link-queries.ts:55",
+          "contains": "if (error?.code === \"42703\") ({ data, error } = await consulta(COLUMNAS));",
+          "degradation": "Sin las columnas de la 0562 (42703), «Registros por link» vuelve a pedir las de siempre: issued_to_email y link_origin quedan vacíos y cada registro se muestra como del equipo."
+        }
+      ]
+    }
+  ]
 }
