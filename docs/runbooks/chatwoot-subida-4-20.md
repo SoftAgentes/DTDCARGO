@@ -15,7 +15,7 @@
 ## 0 · Antes del día
 
 1. **PR aprobada** con la fase A del ensayo en verde (SDD-0679 §5) y, si se hizo, la fase B medida.
-2. **OK nominal de Sam**, que nombra: la versión (`v4.20.0-ce` y su digest), la hora, el smoke (§5) y **las diferencias de `sidekiq`** del paso 3 de abajo. El pedido de «Actualizaciones» de Studio no es el OK.
+2. **OK nominal de Sam**, que nombra la versión (`v4.20.0-ce` y su digest), la hora y el smoke (§5). El pedido de «Actualizaciones» de Studio no es el OK. La fase B (copia aislada, §9) y la reactivación de la cuenta 2 para V7 tienen OK propio de Sam desde el 2026-11-19, citado en el §9.
 3. **Fecha y hora.** Sam pidió el **viernes 20 o el sábado 21**. El runbook de versiones dice «lunes a jueves, 21:00–23:00 de Caracas, no el viernes»: si va el viernes o el sábado, el DG confirma con Sam que al día siguiente hay quien atienda. La hora real se mide con `date -u` (Caracas = UTC − 4).
 4. **Sam disponible durante toda la ventana.** La vuelta atrás (b) necesita la clave privada `age` del respaldo, que solo pega Sam (§6).
 5. **Medir las diferencias de `sidekiq` y `rails`** (en el VPS, solo lectura, la víspera o al empezar). El `compose.yml` del VPS **no es** el de `main`, y el `sidekiq` que corre **no es igual** a su compose. Cambiar la imagen obliga a recrearlos y, al recrearlos, entra todo lo que difiera. Se compara por **nombres** y por huella, sin imprimir valores:
@@ -43,8 +43,8 @@
 
    - `<` = está en el contenedor y no en el compose; `>` = entra al recrear. Un nombre en las dos columnas con huella distinta = el valor cambia. Se anota **solo el nombre** de cada diferencia en el handoff, nunca la huella junto al nombre de un secreto en un canal público.
    - Si una variable del compose coincide en nombre con una de la imagen (`RAILS_ENV`, por ejemplo), sale como `>`: es la misma, se descarta a mano.
-   - En `rails` se espera **ninguna** diferencia (se recreó el 2026-11-19 y se comparó). En `sidekiq`, al menos `DTD_CHATWOOT_SERVICIO_ID`, `SEARCH_TIME_RANGE_LIMIT_DAYS` y montajes de `rails/` y `correo/` (medido el 2026-11-19 por otra sesión).
-   - **La lista va en el pedido de OK.** El día, si aparece una diferencia que no está en la lista aprobada, **no se sigue**.
+   - Se espera **ninguna** diferencia en los dos. `rails` se recreó y comparó el 2026-11-19. `sidekiq` no coincidía (le faltaban `DTD_CHATWOOT_SERVICIO_ID`, `SEARCH_TIME_RANGE_LIMIT_DAYS` y montajes). Sam aprobó alinearlo el 2026-11-19 y lo hace otra sesión con la misma imagen 4.19.1, antes de esta subida (dato del DG).
+   - **Si el día aparece cualquier diferencia, no se sigue**: recrear con la imagen nueva la aplicaría sin que nadie la aprobara. Se avisa al DG.
    - Si `node` no está en el host, se hace con `docker compose config sidekiq` a mano y se comparan solo los nombres.
 
 6. **Bajar la imagen antes de la ventana** (no corta nada; ~750 MB):
@@ -175,7 +175,7 @@ docker compose up -d --no-deps --force-recreate sidekiq
 curl -s https://chat.dtdcargo.com/api                                      # "version":"4.19.1"
 ```
 
-Luego S1–S9. Ojo: `sidekiq` vuelve **con** las diferencias del §0 (ya quedaron en el compose del VPS); estaban en el OK.
+Luego S1–S9.
 
 **(b)** Una base migrada no se usa con la imagen vieja. `restaurar.sh` exige un destino vacío y levanta el proyecto entero con el compose de esa carpeta: es el único paso de este runbook que arranca todo, y es la recuperación del runbook de respaldo.
 
@@ -212,7 +212,7 @@ Si la fase B midió `prepare`, se reemplaza la línea del corte con ese número.
 
 ## 8 · Cierre
 
-En el handoff de la subida: hora de inicio y fin del corte, diferencias aprobadas de `sidekiq`, `prepare.txt` (solo la cola y el código de salida), `schema-version.txt`, sello del respaldo, S1–S13 y V1–V8, y los números de Sidekiq antes y después. Después, en una PR aparte (SDD-0679, aceptación 8):
+En el handoff de la subida: hora de inicio y fin del corte, la comparación de `sidekiq` y `rails` (sin diferencias), `prepare.txt` (solo la cola y el código de salida), `schema-version.txt`, sello del respaldo, S1–S13 y V1–V8, y los números de Sidekiq antes y después. Después, en una PR aparte (SDD-0679, aceptación 8):
 
 - fila nueva en el **Registro** de [versiones](chatwoot-versiones.md#registro);
 - `IMAGEN_CHATWOOT` de `infra/ops/kommo-historial/ensayo-archivo.sh` y `infra/ops/portal-historial/ensayo-portal.sh` a la imagen nueva;
@@ -220,3 +220,114 @@ En el handoff de la subida: hora de inicio y fin del corte, diferencias aprobada
 - `version` de `lib/studio/guia/chatwoot-selectores.json`, con el resultado de `smoke-guia.mjs`;
 - la imagen vieja se borra del VPS (`docker image rm`) recién cuando Sam dé por cerrada la subida;
 - `data.fallida-<sello>/` (si la hubo) la decide Sam.
+
+## 9 · Fase B: copia aislada en el VPS (antes del día)
+
+**OK de Sam (2026-11-19, en el chat del DG, literal).** A «¿Autorizas levantar en el servidor una copia temporal y aislada de Chatwoot, sin dominio ni acceso desde afuera, con el respaldo de hoy, para ensayar la subida y después borrarla?», respondió «Sí, copia aislada (Recomendado)». Ese OK cubre **esto y nada más**: no toca `/srv/chatwoot`, la copia no tiene host ni puerto, y se borra al terminar.
+
+La cuenta 2 se reactiva **solo en la ventana de la subida real**, para V7. OK de Sam del mismo día, literal: a «¿autorizas reactivar un rato la cuenta de prueba de Chatwoot (la 2) para probar la Bandeja, la Ficha, el webhook y el chat del portal, y suspenderla al terminar?», respondió «Sí, reactiva y suspende (Recomendado)».
+
+**Qué mide:** cuánto tarda `prepare` con la base real de 4.19.1 (las 15 migraciones), cuánto tarda `rails` 4.20.0 en quedar sano y si los inicializadores cargan con datos reales. Ese número reemplaza la línea del corte en §7.
+
+**Aislamiento, y por qué así:** la copia lleva los tokens reales de Meta, el SMTP y el webhook a Studio. Si `sidekiq` arrancara con salida a internet, podría mandar correos, refrescar tokens o entregar webhooks como si fuera producción. Por eso:
+
+- `sidekiq` **no arranca**: tiene un perfil que nadie activa.
+- `rails` y `prepare` quedan solo en la red `interna` (`internal: true`): sin `chatwoot_edge`, sin salida a internet y sin etiquetas de Traefik.
+- El perfil `cf-access` va apagado (`COMPOSE_PROFILES` vacío).
+- No hay ningún `ports:`.
+
+Lo corre el DG, con SSH. La clave privada `age` la pega Sam, como en P5. Cada salida va al handoff con su hora. Las evidencias van a `/srv/ops/evidencias/chatwoot-0679-ensayo-<sello>/`.
+
+**0 · Condiciones.** Compose ≥ 2.24.4 (por `!override`), memoria libre ≥ 3 GB, sin restos de un ensayo anterior y producción sana.
+
+```bash
+date -u; docker compose version; free -m; df -h /srv
+docker ps -a --filter label=com.docker.compose.project=chatwoot-ensayo -q | wc -l      # 0
+[ ! -e /srv/chatwoot-ensayo ] && echo "carpeta libre"
+SELLO="$(date -u +%Y%m%dT%H%M%SZ)"; EV="/srv/ops/evidencias/chatwoot-0679-ensayo-$SELLO"; install -d -m 700 "$EV"
+R="/srv/backups/chatwoot/$(ls -1 /srv/backups/chatwoot | tail -1)"; echo "$R" | tee "$EV/respaldo.txt"   # el de hoy
+grep -iE '^(fecha|version)' "$R/manifiesto.txt"                                        # 4.19.1, hoy
+```
+
+**1 · Carpeta del ensayo.** El compose y los archivos montados de **producción** (todavía con la 4.19.1), más el overlay de aislamiento, que `docker compose` carga solo por llamarse `compose.override.yml`.
+
+```bash
+install -d -m 700 /srv/chatwoot-ensayo
+cp -a /srv/chatwoot/compose.yml /srv/chatwoot/rails /srv/chatwoot/marca /srv/chatwoot/correo /srv/chatwoot/cf-access /srv/chatwoot-ensayo/
+printf '%s\n' \
+  '# SDD-0679 · copia aislada: sin Traefik, sin internet, sin sidekiq. Se borra al terminar.' \
+  'services:' \
+  '  prepare:' \
+  '    networks: !override [interna]' \
+  '  rails:' \
+  '    networks: !override [interna]' \
+  '    labels: !override ["traefik.enable=false"]' \
+  '  sidekiq:' \
+  '    profiles: ["nunca-en-el-ensayo"]' \
+  >/srv/chatwoot-ensayo/compose.override.yml
+```
+
+**2 · Restaurar** con la imagen 4.19.1 del compose copiado. `restaurar.sh` descifra el `.env` del respaldo, le aplica los `--sobrescribir` e imprime los segundos de cada fase.
+
+```bash
+read -rs K && umask 077 && printf '%s\n' "$K" >/dev/shm/clave.txt && unset K          # Sam pega la clave
+/srv/chatwoot/restaurar.sh --desde "$R" --identidad /dev/shm/clave.txt \
+  --dir /srv/chatwoot-ensayo --project chatwoot-ensayo \
+  --sobrescribir CHATWOOT_HOST=chat-ensayo.invalid \
+  --sobrescribir CHATWOOT_FRONTEND_URL=https://chat-ensayo.invalid \
+  --sobrescribir CHATWOOT_DATA_DIR=/srv/chatwoot-ensayo/data \
+  --sobrescribir COMPOSE_PROFILES= 2>&1 | tee "$EV/restaurar.txt"
+shred -u /dev/shm/clave.txt
+```
+
+**3 · Comprobar el aislamiento antes de seguir.** Si aparece `sidekiq`, `acceso`, una red que no sea la interna o un puerto: paso 6 y no se sigue.
+
+```bash
+cd /srv/chatwoot-ensayo; P="docker compose -p chatwoot-ensayo"
+$P ps -a --format '{{.Service}} {{.State}}' | tee "$EV/servicios.txt"     # prepare exited, rails, postgres, redis; NO sidekiq ni acceso
+docker inspect "$($P ps -q rails)" -f '{{range $k, $v := .NetworkSettings.Networks}}{{println $k}}{{end}}'   # solo chatwoot-ensayo_interna
+docker inspect "$($P ps -q rails)" -f 'traefik={{index .Config.Labels "traefik.enable"}} puertos={{json .HostConfig.PortBindings}}'   # traefik=false puertos={}
+```
+
+**4 · Imagen nueva, migraciones y arranque**, con tiempos.
+
+```bash
+sed -i 's#chatwoot/chatwoot:v4.19.1-ce@sha256:04895c7bd0550d9e74b45b7202787b56f7ee4e891ebbde0c429c8c32901b97cf#chatwoot/chatwoot:v4.20.0-ce@sha256:03cc2004299fec8142481a411906947928678fa0e126beb5248962183593f8be#' compose.yml
+diff /srv/chatwoot/compose.yml compose.yml                                    # UNA línea
+$P stop -t 30 rails
+T0=$(date +%s); $P run --rm --no-deps prepare >"$EV/prepare.txt" 2>&1; echo "prepare=$? $(( $(date +%s) - T0 )) s" | tee -a "$EV/medidas.txt"
+T0=$(date +%s); $P up -d --no-deps --force-recreate rails
+for i in $(seq 1 36); do s="$(docker inspect -f '{{.State.Health.Status}}' "$($P ps -q rails)")"; [ "$s" = healthy ] && break; sleep 5; done
+echo "rails=$s $(( $(date +%s) - T0 )) s" | tee -a "$EV/medidas.txt"
+```
+
+**5 · Qué quedó**, sin abrir datos: la versión, la migración más nueva y conteos de líneas.
+
+```bash
+$P exec -T rails wget -qO- --header 'X-Forwarded-Proto: https' http://127.0.0.1:3000/api | grep -o '"version":"[^"]*"' | tee -a "$EV/medidas.txt"   # 4.20.0
+$P exec -T postgres psql -U chatwoot -d chatwoot_production -Atc "select max(version) from schema_migrations" | tee -a "$EV/medidas.txt"       # 20261116211055
+grep -ciE 'error|abort' "$EV/prepare.txt" | sed 's/^/errores_prepare=/' | tee -a "$EV/medidas.txt"                                          # 0
+for m in 'redacción de logs activa' 'protección de /register activa: ' 'revocación de sesiones activa' 'revocar sesiones: faltan' 'modo cerrado'; do
+  printf '%s=%s\n' "$m" "$($P logs rails 2>&1 | grep -c "$m")"; done | tee -a "$EV/medidas.txt"                                              # 1 1 1 0 0
+$P exec -T rails bundle exec rails runner 'p Whatsapp::FacebookApiClient.instance_method(:register_phone_number).owner, HTTParty::Request.ancestors.include?(DtdProteccionRegister::PeticionHttp), Rails.application.routes.recognize_path("/platform/api/v1/users/1/dtd_revocar_sesiones", method: :post)[:controller], RoomChannel.ancestors.include?(DtdRevocarSesiones::Canal), ActiveJob::Base.log_arguments?' 2>&1 | tail -n 5 | tee -a "$EV/medidas.txt"
+#   DtdProteccionRegister::Cliente · true · "platform/api/v1/dtd_sesiones" · true · false
+```
+
+El `modo cerrado` puede dar 1 si el `.env` del respaldo tiene vacía la lista de IDs protegidos; en ese caso vale lo que diga producción hoy con S2.
+
+**6 · Limpieza**, siempre, también si algo falló. La carpeta tiene el `.env` descifrado y la copia de la base.
+
+```bash
+cd /srv && docker compose -p chatwoot-ensayo --project-directory /srv/chatwoot-ensayo down -v --remove-orphans
+shred -u /srv/chatwoot-ensayo/.env
+rm -rf /srv/chatwoot-ensayo
+docker ps -a --filter label=com.docker.compose.project=chatwoot-ensayo -q | wc -l       # 0
+docker volume ls --filter label=com.docker.compose.project=chatwoot-ensayo -q | wc -l   # 0
+docker network ls --filter label=com.docker.compose.project=chatwoot-ensayo -q | wc -l  # 0
+ls /dev/shm | grep -c clave                                                             # 0
+curl -s https://chat.dtdcargo.com/api | grep -o '"version":"[^"]*"'                     # producción sigue en 4.19.1
+```
+
+- El respaldo se lee **en su lugar** (`/srv/backups/chatwoot/…`, cifrado) y no se copia. `restaurar.sh` no escribe el volcado en claro: lo pasa de `age -d` a `pg_restore` por una tubería. Por eso el único volcado que queda es la base dentro de `/srv/chatwoot-ensayo/data`, y se borra en este paso. Si en lugar del respaldo local se bajó uno de B2 a `/srv/restaurar/`, también se borra aquí: `rm -rf /srv/restaurar/chatwoot-<sello>`.
+- `medidas.txt` va completo al handoff y al DG; no tiene datos de personas.
+- Un `prepare` ≠ 0 o un inicializador que no carga **es el hallazgo**: se limpia igual y se arregla en la rama antes de pedir el OK de la subida.
