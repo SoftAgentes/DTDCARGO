@@ -65,6 +65,8 @@ tenía cómo ver que el envío seguía en curso ni qué había quedado guardado.
 - `AvisoResultado` (cliente) pinta el resultado con `<Aviso>` (éxito o error), **se desplaza hasta él y toma el foco**
   al llegar, también en el móvil, y se repite en cada envío. El cierre dice qué quedó:
   «Cierre de la conversación 27 registrado: Cumple.» Un error de cierre dice de qué conversación era.
+- Los helpers puros del aviso (`tonoDelResultado`, `detalleDelCierre`) viven en `_components/resultado.ts`, sin
+  `"use client"`, porque los usa `page.tsx` (servidor): `scripts/check-rsc-boundary.mjs` lo exige.
 - `c` solo se acepta con la forma del número de conversación de la acción (`^[0-9a-f-]{1,40}$`); React escapa el resto.
 
 ### 3.3 Aceptación
@@ -110,8 +112,37 @@ Regla propuesta para la fase 2 (**propuesta**, no decidida): todo `<form action>
 `FormularioAccion` + `BotonEnvio`; todo botón suelto, `ActionButton`. Un contrato estático como
 `fechas-contract.test.ts`, con la lista de pendientes congelada, evitaría que entren nuevos.
 
-## 5. Fuera de alcance
+## 5. Allowlist exacta (fase 1)
+
+| Archivo | Cambio |
+|---|---|
+| `app/studio/_components/ui/FormularioAccion.tsx` | nuevo: `FormularioAccion` y `BotonEnvio` |
+| `app/studio/_components/ui/FormularioAccion.test.tsx` | nuevo: pendiente, deshabilitado, doble envío, reapertura, error, varios botones |
+| `app/studio/(app)/admin/oficina/_components/TarjetaCierre.tsx` | usa `FormularioAccion` y `BotonEnvio` |
+| `app/studio/(app)/admin/oficina/_components/TarjetaBorrador.tsx` | usa `FormularioAccion` y `BotonEnvio` |
+| `app/studio/(app)/admin/oficina/_components/AvisoResultado.tsx` | nuevo (cliente): aviso con foco y desplazamiento |
+| `app/studio/(app)/admin/oficina/_components/resultado.ts` | nuevo (servidor): `tonoDelResultado`, `detalleDelCierre` |
+| `app/studio/(app)/admin/oficina/_components/AvisoResultado.test.tsx` | nuevo |
+| `app/studio/(app)/admin/oficina/actions.ts` | el redirect lleva `c`, `v` y `n` |
+| `app/studio/(app)/admin/oficina/page.tsx` | pinta `AvisoResultado` y valida `c` |
+| `docs/specs/0678-botones-trabajando/spec.md` | nuevo |
+| `docs/specs/README.md` | índice generado (`pnpm docs:index`) |
+| `.agents/handoffs/botones-trabajando-0678.md` | handoff del Worker |
+
+No cambia permisos, RLS, migraciones, datos ni el ciclo de agentes. `app/studio/CLAUDE.md` no se toca en la fase 1.
+
+## 6. Pendientes para la fase 2 (de la revisión independiente del 2026-11-18; no se implementan aquí)
+
+1. Región `aria-live` que anuncie «Guardando…»: hoy el lector lo sabe por `aria-busy` y el texto del botón, pero
+   no hay un anuncio explícito como el de `ActionButton`.
+2. Foco al deshabilitar: si el botón con foco queda `disabled`, el navegador puede soltar el foco. Evaluar
+   `aria-disabled` + bloqueo por candado en vez de `disabled`, manteniendo el bloqueo de los campos.
+3. Pruebas que faltan: reapertura del candado tras una excepción (con el formulario aún montado) y desmontaje a
+   mitad de la acción (que el efecto no actúe sobre un componente desmontado).
+4. Pérdida del motivo escrito cuando la acción vuelve con error: React reinicia el formulario tras la acción.
+
+## 7. Fuera de alcance
 
 - Cambiar las acciones de la oficina a `useActionState` (resultado por tarjeta). La tarjeta de cierre desaparece al
   registrarse, así que el resultado tiene que vivir fuera de ella; el aviso arriba, con foco, lo cubre.
-- El borrado del motivo escrito cuando la acción vuelve con error (React reinicia el formulario tras la acción).
+- El borrado del motivo escrito cuando la acción vuelve con error (pendiente 4 de §6).

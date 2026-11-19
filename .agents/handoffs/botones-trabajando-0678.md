@@ -24,7 +24,19 @@ veces ni cambiar la opción a mitad, y que el resultado se vea (también en el m
 
 ## Validación
 
-Ver la sección del cierre en la PR: se registra por comprobación (PASÓ / FALLÓ / NO EJECUTADO).
+| Comprobación | Resultado | Detalle |
+|---|---|---|
+| Vitest: oficina, componente y contratos de avisos y controles | PASÓ | 13 archivos, 208 pruebas, sobre `7f2ec51d2` |
+| Mutante 1: sin `e.preventDefault()` en el candado | detectado | falla «doble clic … envía una sola vez» |
+| Mutante 2: `<fieldset disabled={false}>` | detectado | falla «no se puede cambiar «Cumple» por «Falló» a mitad» |
+| Mutante 3: sin `alTerminar()` (el candado no se reabre) | detectado | falla «el candado se abre y se puede reintentar» |
+| eslint y tsc en los archivos tocados | PASÓ | sobre `7f2ec51d2` |
+| CI de GitHub en `7f2ec51d2` (run 44432402211) | FALLÓ | Frontera RSC: `page.tsx` importaba dos helpers de un módulo `"use client"`; los demás pasos quedaron sin correr |
+| `check-rsc-boundary.mjs` tras la corrección | PASÓ | local |
+| `docs:check` (índice regenerado), `sdd:check`, `components:check`, `governance:check`, `feature-constants` | PASÓ | local |
+| `pnpm verify` local | NO EJECUTADO | por decisión del DG; verify: cubierto por CI, en el run de la cabeza nueva |
+| `/ui-check` | OK con ajustes menores | ver la PR |
+| Smoke en el móvil por Sam | NO EJECUTADO | pendiente A8 |
 
 ## Impacto documental
 
@@ -36,7 +48,10 @@ Ver la sección del cierre en la PR: se registra por comprobación (PASÓ / FALL
 
 - Smoke en el móvil por Sam, en una base de prueba (A8 de la spec).
 
+Pendientes de la fase 2 (de la revisión independiente): spec §6, puntos 1 a 4.
+
 ## FUERA DE ALCANCE DETECTADO
 
-- Cuando una acción de la oficina vuelve con error, React reinicia el formulario y se pierde el motivo escrito.
+- Cuando una acción de la oficina vuelve con error, React reinicia el formulario y se pierde el motivo escrito
+  (anotado también en la spec, §6.4).
 - `OperariosClient` (interruptor de desactivar) no tiene ningún estado pendiente: primer candidato de la fase 2.
