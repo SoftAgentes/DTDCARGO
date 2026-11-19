@@ -21,6 +21,8 @@ const MIGRACION = "0566_chatwoot_vincular_canal.sql";
 const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const ARCHIVO = read(resolve(ROOT, "supabase/migrations", MIGRACION));
 const DESARME = read(resolve(ROOT, "supabase/desarmes/0566_desarme.sql"));
+const RELLENO = read(resolve(ROOT, "supabase/cargas/portal-uniones-0566/uniones-portal.sql"));
+const CONTEO = read(resolve(ROOT, "supabase/cargas/portal-uniones-0566/conteo.sql"));
 const SLOW = 180_000;
 
 /** psql → SQL plano: quita \set e inlinea \ir. `replace` sustituye un archivo por el final de su ruta. */
@@ -133,17 +135,84 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     ],
     [
       "el evento no mira la unión del contacto",
-      () => mutar("    v_cliente := public.chatwoot_ficha_de_contacto(p_tenant_id, p_contact_id);\n  end if;", "    v_cliente := null;\n  end if;"),
+      () => mutar("    v_cliente := public.chatwoot_ficha_de_contacto(p_tenant_id, p_contact_id);\n    if v_cliente is not null then", "    v_cliente := null;\n    if v_cliente is not null then"),
       "TEST 0566: 4e",
     ],
     [
-      "el evento conserva el cruce viejo de un contacto sin unión",
+      "un evento sin ficha le quita el cliente a la conversación",
       () =>
         mutar(
+          "    client_id         = coalesce(\n                          excluded.client_id,\n                          (select c.id from public.clients c\n                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
+          "    client_id         = excluded.client_id,",
+        ),
+      "TEST 0566: 4h",
+    ],
+    [
+      "un evento con contacto, sin unión ni teléfono, le quita el cliente (el fallo que rompía el portal)",
+      () =>
+        mutar(
+          "    client_id         = coalesce(\n                          excluded.client_id,\n                          (select c.id from public.clients c\n                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
           "    client_id         = case when v_telefono or v_contacto then excluded.client_id else cc.client_id end,",
-          "    client_id         = case when v_telefono then excluded.client_id else cc.client_id end,",
         ),
       "TEST 0566: 4i",
+    ],
+    [
+      "un cliente que solo se conservó se informa como si hubiera cruzado por teléfono (el webhook lo uniría)",
+      () => mutar("    v_origen := 'conservado';", "    v_origen := 'telefono';"),
+      "TEST 0566: 4q",
+    ],
+    [
+      "una unión se informa como cruce por teléfono",
+      () => mutar("      v_origen := 'union';", "      v_origen := 'telefono';"),
+      "TEST 0566: 4o",
+    ],
+    [
+      "el evento conserva una ficha borrada",
+      () =>
+        mutar(
+          "                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
+          "                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id)),",
+        ),
+      "TEST 0566: 8h",
+    ],
+    [
+      "el evento no guarda de qué contacto es la conversación",
+      () => mutar("    case when v_contacto then p_contact_id end\n  )", "    null\n  )"),
+      "TEST 0566: 4n",
+    ],
+    [
+      "mover no lleva las conversaciones del contacto a la ficha nueva",
+      () => mutar("    and cc.client_id is distinct from p_client_id;\n", "    and false;\n"),
+      "TEST 0566: 5g",
+    ],
+    [
+      "quitar la unión no deja sin ficha las conversaciones del contacto",
+      () => mutar("    and cc.client_id = p_client_id;\n  get diagnostics v_convs = row_count;", "    and false;\n  get diagnostics v_convs = row_count;"),
+      "TEST 0566: 6f",
+    ],
+    [
+      "borrar la ficha no deja sin ficha sus conversaciones",
+      () => mutar("    where cc.tenant_id = new.tenant_id and cc.client_id = new.id;", "    where cc.tenant_id = new.tenant_id and cc.client_id = new.id and false;"),
+      "TEST 0566: 8e",
+    ],
+    [
+      "el chat del portal no deja su unión en el registro único",
+      () =>
+        mutar(
+          "  values (p_tenant_id, v_client, p_contacto_id, 'portal', null, 'portal')\n  on conflict (chatwoot_contact_id) do nothing;",
+          "  select p_tenant_id, v_client, p_contacto_id, 'portal', null, 'portal' where false\n  on conflict (chatwoot_contact_id) do nothing;",
+        ),
+      "TEST 0566: 11a",
+    ],
+    [
+      "la unión del portal se deja quitar a mano",
+      () => mutar("      and l.origen = 'portal'\n  ) then", "      and false\n  ) then"),
+      "TEST 0566: 11f",
+    ],
+    [
+      "la unión del portal se deja mover a otra ficha",
+      () => mutar("    if v_origen = 'portal' then", "    if false then"),
+      "TEST 0566: 11g",
     ],
     [
       "la ficha de un contacto cruza de tenant",
@@ -158,8 +227,8 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
       "quitar la unión no suelta la tarjeta del lead",
       () =>
         mutar(
-          "  v_tarjeta := public.crm_soltar_tarjeta_de_contacto(p_tenant_id, p_contact_id);\n\n  perform public.append_audit_event(",
-          "  v_tarjeta := null;\n\n  perform public.append_audit_event(",
+          "  v_tarjeta := public.crm_soltar_tarjeta_de_contacto(p_tenant_id, p_contact_id);\n\n  -- Quitar la unión es la decisión",
+          "  v_tarjeta := null;\n\n  -- Quitar la unión es la decisión",
         ),
       "TEST 0566: 6b",
     ],
@@ -170,7 +239,7 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     ],
     [
       "la auditoría del borrado de ficha no nombra las tarjetas soltadas",
-      () => mutar("          'tarjetas_soltadas', coalesce(pg_catalog.to_jsonb(v_tarjetas), '[]'::jsonb)),", "          'tarjetas_soltadas', '[]'::jsonb),"),
+      () => mutar("          'tarjetas_soltadas', coalesce(pg_catalog.to_jsonb(v_tarjetas), '[]'::jsonb),\n", "          'tarjetas_soltadas', '[]'::jsonb,\n"),
       "TEST 0566: 8d",
     ],
     [
@@ -222,7 +291,10 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
           raise exception 'DESARME: la fixture no dejó una tarjeta absorbida';
         end if;
       end $c$;`,
-      "create temporary table antes_del_desarme as select count(*) as uniones from public.chatwoot_contact_links;",
+      // Una unión del portal viva al momento del desarme: es la única que el desarme borra.
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+       values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 630, 'portal', null, 'portal');`,
+      "create temporary table antes_del_desarme as select count(*) as uniones from public.chatwoot_contact_links where origen <> 'portal';",
       // Hay uniones con canal: el desarme solo corre si se acepta perderlo (ver la prueba de abajo).
       "set local dtd.desarme_0566_perder_canal = 'si';",
       DESARME,
@@ -231,7 +303,22 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
       declare r record;
       begin
         if (select count(*) from public.chatwoot_contact_links) <> (select uniones from antes_del_desarme) then
-          raise exception 'DESARME: tocó las uniones';
+          raise exception 'DESARME: tocó las uniones que no son del portal';
+        end if;
+        if exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 630) then
+          raise exception 'DESARME: quedó una unión del portal';
+        end if;
+        -- El origen vuelve a sus tres valores: «portal» ya no cabe.
+        begin
+          insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
+          values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 631, 'portal', null);
+          raise exception 'DESARME: el origen «portal» sigue permitido';
+        exception when check_violation then
+          null;
+        end;
+        if coalesce(obj_description('public.chatwoot_portal_vincular(uuid,uuid,bigint,text,bigint,bigint)'::regprocedure, 'pg_proc'), '') not like 'SDD-0586 E10-D35:%'
+           or pg_catalog.pg_get_functiondef('public.chatwoot_portal_vincular(uuid,uuid,bigint,text,bigint,bigint)'::regprocedure) like '%chatwoot_contact_links%' then
+          raise exception 'DESARME: chatwoot_portal_vincular no volvió a la de la 0519';
         end if;
         if not exists (select 1 from public.crm_tarjetas where chatwoot_contact_id = 700) then
           raise exception 'DESARME: perdió la tarjeta del lead';
@@ -269,11 +356,179 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     expect(r.error).toBeNull();
   }, SLOW);
 
+  it("relleno de uniones del portal: crea las que faltan, respeta las demás, es idempotente y aborta si el número no cuadra", async () => {
+    const contrato = inline();
+    const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
+    const T1 = "10000000-0000-0000-0000-000000000001";
+    const K01 = "30000000-0000-0000-0000-000000000001";
+    const K02 = "30000000-0000-0000-0000-000000000002";
+    const K06 = "30000000-0000-0000-0000-000000000006"; // borrada en la fixture
+    const HILO = "50000000-0000-0000-0000-000000000009";
+    const preparar = [
+      // Tres contactos del portal de ANTES de la 0566: el de K02 (falta su unión), el de K01
+      // (alguien lo unió a mano a K02) y el de una ficha borrada.
+      `insert into public.chatwoot_portal_contactos (tenant_id, client_id, chatwoot_contact_id, chatwoot_source_id) values
+         ('${T1}', '${K02}', 640, 'src-640'), ('${T1}', '${K01}', 641, 'src-641'), ('${T1}', '${K06}', 642, 'src-642');`,
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
+         values ('${T1}', '${K02}', 641, 'webhook', null);`,
+      // Una conversación del portal de K02, como la dejó la 0519: con cliente y sin contacto anotado.
+      `insert into public.conversations (id, tenant_id, client_id, channel) values ('${HILO}', '${T1}', '${K02}', 'portal');`,
+      `insert into public.chatwoot_portal_hilos (conversation_id, tenant_id, chatwoot_conversation_id) values ('${HILO}', '${T1}', 97);`,
+      `insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id) values ('${T1}', 97, 4, 'open', '${K02}');`,
+      RELLENO,
+    ];
+    const comprobar = `do $c$
+      declare n bigint;
+      begin
+        if not exists (select 1 from public.chatwoot_contact_links
+                       where chatwoot_contact_id = 640 and client_id = '${K02}' and origen = 'portal' and canal_chat = 'portal') then
+          raise exception 'RELLENO: no creó la unión que faltaba';
+        end if;
+        if (select client_id from public.chatwoot_contact_links where chatwoot_contact_id = 641) <> '${K02}'
+           or (select origen from public.chatwoot_contact_links where chatwoot_contact_id = 641) <> 'webhook' then
+          raise exception 'RELLENO: tocó una unión que ya existía';
+        end if;
+        if exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 642) then
+          raise exception 'RELLENO: unió el contacto de una ficha borrada';
+        end if;
+        if (select chat_contact_id from public.chatwoot_conversations where tenant_id = '${T1}' and conversation_id = 97) is distinct from 640
+           or (select client_id from public.chatwoot_conversations where tenant_id = '${T1}' and conversation_id = 97) <> '${K02}' then
+          raise exception 'RELLENO: no anotó el contacto en la conversación del portal, o le cambió el cliente';
+        end if;
+        select count(*) into n from public.entity_audit_log a
+        where a.tenant_id = '${T1}' and a.event_type = 'chatwoot_contact_linked' and a.actor_type = 'system'
+          and (a.after_data ->> 'chatwoot_contact_id')::bigint = 640 and a.payload ->> 'relleno' = '0566';
+        if n <> 1 then
+          raise exception 'RELLENO: la unión creada debe quedar auditada una sola vez (hay %)', n;
+        end if;
+      end $c$;`;
+    const conteo = (dato: string, esperado: number) => `do $c$ begin
+        if (select cuantos from pg_temp.contar_uniones_portal('${T1}') where dato like '${dato}%') <> ${esperado} then
+          raise exception 'RELLENO: el conteo «${dato}» no dio ${esperado}';
+        end if;
+      end $c$;`;
+
+    // Camino feliz: el conteo dice 1, el relleno crea 1 y la segunda corrida (0 esperadas) no hace nada.
+    const feliz = await correr(
+      [
+        sinCierre,
+        ...preparar,
+        // 640, 641, 642 y el 620 que dejó el bloque 11 del contrato (su ficha se borró).
+        conteo("1.", 4),
+        conteo("3.", 1),
+        conteo("4.", 2),
+        conteo("5.", 1),
+        conteo("6.", 1),
+        `select * from pg_temp.rellenar_uniones_portal('${T1}', 1);`,
+        comprobar,
+        conteo("5.", 0),
+        conteo("6.", 0),
+        `select * from pg_temp.rellenar_uniones_portal('${T1}', 0);`,
+        comprobar,
+        "rollback;",
+      ].join("\n"),
+    );
+    expect(feliz.error).toBeNull();
+
+    // Si el número esperado no es el que sale, aborta y lo dice.
+    const descuadre = await correr([sinCierre, ...preparar, `select * from pg_temp.rellenar_uniones_portal('${T1}', 5);`, "rollback;"].join("\n"));
+    expect(descuadre.error).toContain("relleno 0566: se esperaban 5 uniones y salieron 1");
+  }, SLOW);
+
+  it("conteo.sql: solo lectura, sin funciones ni datos personales, y da lo mismo que la función del relleno", async () => {
+    // Forma: una transacción de solo lectura que termina en rollback, sin crear nada ni escribir.
+    expect(CONTEO).toContain("begin read only;");
+    expect(CONTEO.trimEnd().endsWith("rollback;")).toBe(true);
+    const sentencias = CONTEO.split("\n")
+      .filter((l) => !l.trimStart().startsWith("--"))
+      .join("\n");
+    expect(sentencias).not.toMatch(/\b(create|insert|update|delete|drop|alter|truncate|grant|revoke)\b/i);
+    // Ninguna columna de datos personales en lo que se lee.
+    expect(sentencias).not.toMatch(/\b(name|phone|email|nombre|telefono|texto|body)\b/i);
+
+    const contrato = inline();
+    const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
+    const T1 = "10000000-0000-0000-0000-000000000001";
+    const K01 = "30000000-0000-0000-0000-000000000001";
+    const K02 = "30000000-0000-0000-0000-000000000002";
+    const K03 = "30000000-0000-0000-0000-000000000003";
+    const K06 = "30000000-0000-0000-0000-000000000006"; // borrada en la fixture
+    const HILO = "50000000-0000-0000-0000-000000000009";
+    const preparar = [
+      // Contactos del portal de ANTES de la 0566: el de K02 (falta su unión), el de K01 (alguien
+      // lo unió a mano a K02: es de OTRA ficha) y el de una ficha borrada.
+      `insert into public.chatwoot_portal_contactos (tenant_id, client_id, chatwoot_contact_id, chatwoot_source_id) values
+         ('${T1}', '${K02}', 640, 'src-640'), ('${T1}', '${K01}', 641, 'src-641'), ('${T1}', '${K06}', 642, 'src-642');`,
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
+         values ('${T1}', '${K02}', 641, 'webhook', null);`,
+      // Una ficha del portal todavía sin contacto de Chatwoot (dato 8) y una unión de origen portal ya hecha (dato 7).
+      `insert into public.chatwoot_portal_contactos (tenant_id, client_id) values ('${T1}', '${K03}');`,
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+         values ('${T1}', '${K01}', 650, 'portal', null, 'portal');`,
+      // Una conversación del portal de K02 sin contacto anotado (dato 6).
+      `insert into public.conversations (id, tenant_id, client_id, channel) values ('${HILO}', '${T1}', '${K02}', 'portal');`,
+      `insert into public.chatwoot_portal_hilos (conversation_id, tenant_id, chatwoot_conversation_id) values ('${HILO}', '${T1}', 97);`,
+      `insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id) values ('${T1}', 97, 4, 'open', '${K02}');`,
+      RELLENO,
+    ];
+    // La consulta tal cual, sin su transacción propia (el ensayo ya corre dentro de una) y con el tenant puesto.
+    const cuerpo = CONTEO.slice(CONTEO.indexOf("begin read only;") + "begin read only;".length, CONTEO.lastIndexOf("rollback;"))
+      .split(":'tenant'")
+      .join(`'${T1}'`)
+      .trim()
+      .replace(/;$/, "");
+    const comparar = `create temporary table conteo_sql as ${cuerpo};
+      do $c$
+      declare r record;
+      begin
+        if (select count(*) from conteo_sql) <> 8 then
+          raise exception 'CONTEO: debe devolver 8 filas';
+        end if;
+        -- Los datos 1 a 6 son los mismos que da la función del relleno.
+        if exists (
+          (select dato, cuantos from conteo_sql where left(dato, 1) in ('1','2','3','4','5','6')
+           except select dato, cuantos from pg_temp.contar_uniones_portal('${T1}'))
+          union all
+          (select dato, cuantos from pg_temp.contar_uniones_portal('${T1}')
+           except select dato, cuantos from conteo_sql where left(dato, 1) in ('1','2','3','4','5','6'))
+        ) then
+          raise exception 'CONTEO: conteo.sql y la función del relleno no dan lo mismo';
+        end if;
+        -- Valores de la fixture: cuatro contactos del portal con contacto de Chatwoot (los tres de arriba y el
+        -- 620 que dejó el bloque 11 del contrato, de una ficha ya borrada), ninguno unido a su ficha, uno
+        -- unido a OTRA, dos de ficha borrada y uno por crear.
+        for r in select dato, cuantos from conteo_sql loop
+          if left(r.dato, 1) = '1' and r.cuantos <> 4 then raise exception 'CONTEO 1: %', r.cuantos; end if;
+          if left(r.dato, 1) = '2' and r.cuantos <> 0 then raise exception 'CONTEO 2: %', r.cuantos; end if;
+          if left(r.dato, 1) = '3' and r.cuantos <> 1 then raise exception 'CONTEO 3: %', r.cuantos; end if;
+          if left(r.dato, 1) = '4' and r.cuantos <> 2 then raise exception 'CONTEO 4: %', r.cuantos; end if;
+          if left(r.dato, 1) = '5' and r.cuantos <> 1 then raise exception 'CONTEO 5: %', r.cuantos; end if;
+          if left(r.dato, 1) = '6' and r.cuantos <> 1 then raise exception 'CONTEO 6: %', r.cuantos; end if;
+          if left(r.dato, 1) = '7' and r.cuantos <> 1 then raise exception 'CONTEO 7: %', r.cuantos; end if;
+          if left(r.dato, 1) = '8' and r.cuantos <> 1 then raise exception 'CONTEO 8: %', r.cuantos; end if;
+        end loop;
+      end $c$;`;
+    const r = await correr([sinCierre, ...preparar, comparar, "rollback;"].join("\n"));
+    expect(r.error).toBeNull();
+  }, SLOW);
+
   it("desarme: con uniones que guardan canal se niega, salvo que se acepte perderlo", async () => {
     const contrato = inline();
     const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
     const r = await correr([sinCierre, DESARME, "rollback;"].join("\n"));
     expect(r.error).toContain("desarme 0566: hay");
     expect(r.error).toContain("dtd.desarme_0566_perder_canal");
+
+    // Las uniones del portal no cuentan en esa guarda: con una más, el número que da es el mismo.
+    const conPortal = await correr(
+      [
+        sinCierre,
+        `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+         values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 632, 'portal', null, 'portal');`,
+        DESARME,
+        "rollback;",
+      ].join("\n"),
+    );
+    expect(conPortal.error).toBe(r.error);
   }, SLOW);
 });

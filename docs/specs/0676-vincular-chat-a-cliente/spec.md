@@ -4,7 +4,7 @@ title: "Vincular a cliente: un chat sin teléfono se une a mano a una ficha y se
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0582", "0585", "0587", "0647", "0648", "0649", "0650"]
@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0676 — Vincular a cliente desde la Ficha DTD
 
 > **Decisiones 1 a 5 resueltas por Sam el 2026-11-18**, en la sesión del Subdirector de Chatwoot, literal: «Las cinco preguntas recomendadas, correcto en todas.» Es decir, la opción (a) en las cinco, incluida la 3 reformulada (absorber sin mover filas, reversible).
-> Implementado en esta PR con la migración 0566 **en espera**: nada aplicado ni encendido en producción.
+> **Estado al 2026-11-19.** Implementado en la #689 y corregido antes de aplicar en la #696. La migración 0566 está aplicada en producción el 2026-11-19 a las 12:05:23Z, con el OK nominal de Sam «OK, aplica 0566, 0565 y 0562» (md5 `d201a65bdc027b6a364285b7bc286097`, 56403 bytes, cuerpos vivos iguales; evidencia `/srv/ops/evidencias/apply-0566-dtd-cargo-20261119T120522Z`). Datos que me pasó el Director General: el md5 y los bytes los comprobé contra el archivo de `main`; el resto (hora, OK, evidencia) no lo verifiqué yo. Falta el smoke con Sam (runbook `chatwoot-ficha-dtd`) y el relleno de las uniones del portal que ya existían, que lleva un OK de Sam aparte. `CHATWOOT_FICHA_UNIR` no cambió.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 
 ## 1. Pedido
@@ -68,7 +68,7 @@ El contacto no viaja desde el navegador: el servidor lo lee de la conversación 
 
 | Pieza | Antes | Ahora |
 |---|---|---|
-| Ficha DTD y `chatwoot_conversations.client_id` (`chatwoot_registrar_evento`) | Teléfono con ficha única | La unión del contacto; si no hay, el teléfono. Con contacto y sin unión ni teléfono, el cruce vuelve a vacío |
+| Ficha DTD y `chatwoot_conversations.client_id` (`chatwoot_registrar_evento`) | Teléfono con ficha única | La unión del contacto; si no hay, el teléfono con ficha única; si tampoco, **se conserva** el cliente que la conversación ya tenía. Ningún evento automático deja una conversación sin cliente (§4.9) |
 | Tarjeta del CRM (`crm_entrada_chatwoot`, `crm_asesor_desde_chatwoot`) | Teléfono | La unión; si no hay, el teléfono. La actividad de un contacto vinculado cae en la tarjeta del cliente |
 | Segmento y Shipping Mark en el contacto (`marcarContactoErp`, SDD-0649) | Solo bandejas de WhatsApp, por teléfono | En WhatsApp, la unión manda sobre el teléfono. En las demás bandejas, solo si el contacto está unido |
 
@@ -88,6 +88,7 @@ No cambia `clasificarContacto` (la redirección del número de leads): Instagram
 «Quitar» en la ficha del cliente (o «Mover aquí» desde otra conversación):
 
 - borra la unión y deja la salida en `entity_audit_log`, con el motivo;
+- deja sin ficha, en el mismo momento, las conversaciones de ese contacto (y solo esas), y la auditoría dice cuántas;
 - quita la marca: la tarjeta del lead **vuelve a su tablero, en la etapa donde estaba**, con su historial intacto;
 - en un contacto que no es de WhatsApp, borra el segmento y el Shipping Mark que Studio le había puesto en Chatwoot.
 
@@ -135,14 +136,50 @@ Lo que la base **no** repite: «ve Clientes». Esa parte vive solo en el servido
 
 **Desarme** (`0566_desarme`, en `supabase/desarmes/`; no es una migración y no se aplica sola).
 
-- Devuelve a su cuerpo anterior, copiado literal, `chatwoot_registrar_evento` (0504, 13 parámetros), `crm_entrada_chatwoot` y `crm_asesor_desde_chatwoot` (0513), `chatwoot_quitar_union` y el disparador de ficha borrada (0554).
+- Devuelve a su cuerpo anterior, copiado literal, `chatwoot_registrar_evento` (0504, 13 parámetros), `crm_entrada_chatwoot` y `crm_asesor_desde_chatwoot` (0513), `chatwoot_quitar_union` y el disparador de ficha borrada (0554), y `chatwoot_portal_vincular` (0519).
 - Suelta primero las tarjetas absorbidas (vuelven a su tablero) y después quita las funciones nuevas, las dos columnas de `crm_tarjetas` y `canal_chat`.
-- No toca las uniones ni la auditoría. No repone el `phone_last10` que se le quitó a una tarjeta al absorberla (lo repone su siguiente mensaje).
+- No toca la auditoría ni las uniones, salvo las de origen `portal`, que **borra**: antes de la 0566 no existían, ese origen no cabe en el CHECK de la 0554 y el dato sigue completo en `chatwoot_portal_contactos`. Las conversaciones del portal conservan su cliente. Quita además `chatwoot_conversations.chat_contact_id`. No repone el `phone_last10` que se le quitó a una tarjeta al absorberla (lo repone su siguiente mensaje).
 - **Se niega si hay uniones con canal guardado**: el canal se pierde con la columna y no se puede reconstruir. Para aceptarlo hay que escribir, en la misma transacción y antes del desarme, `set local dtd.desarme_0566_perder_canal = 'si';`. Las uniones siguen; solo dejan de mostrar el logo.
 - Restaura los comentarios (`comment on function`) de las cuatro funciones que vuelven a su cuerpo anterior, copiados literal de la 0554, la 0513 y la 0504.
 - Es repetible: correrlo dos veces no falla.
 - Orden: el web de esta PR tolera la falta de la 0566, así que se puede desarmar sin despublicar. Un web **anterior** a esta PR llama a `chatwoot_registrar_evento` con 13 parámetros, que la 0566 sigue aceptando (4k).
 - Ensayo: `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` aplica la 0566, desarma dos veces y comprueba que las funciones vuelven a la firma y al comentario anteriores, que no quedan tarjetas absorbidas y que, sin aceptar la pérdida del canal, el desarme se niega. Usarlo en producción exige OK nominal de Sam.
+
+### 4.9 Corrección antes de aplicar: el chat del portal (2026-11-18)
+
+Autorización de Sam, recibida en la sesión del Director General el 2026-11-18: «Ok, te encargo la corrección al 0566». La 0566 estaba fusionada y **sin aplicar**; se corrige en su propio archivo.
+
+**El problema.** La primera versión dejaba una conversación sin cliente cuando un evento traía contacto, sin unión y sin teléfono. El chat del portal (SDD-0586, migración 0519) fija el cliente de sus conversaciones directo en `chatwoot_conversations`, sin teléfono y con su vínculo en otra tabla (`chatwoot_portal_contactos`). Como el webhook ya manda el contacto, el primer evento posterior a aplicar la 0566 le habría quitado el cliente a esas conversaciones.
+
+**La solución, en dos reglas.**
+
+1. **Un solo registro de vínculos.** `chatwoot_contact_links` vale también para el portal: `chatwoot_portal_vincular` (redefinida en la 0566, misma firma) deja ahí la unión del contacto, con origen y canal `portal`, auditada como del sistema. Esa unión no se quita ni se mueve a mano (la base responde `55000`; en la ficha del cliente su chip no trae «Quitar»): la pone el sistema y se va con la ficha.
+2. **Ningún evento automático quita un cliente.** El orden es: unión del contacto → teléfono con ficha única → si no hay ninguno, se conserva el cliente que la conversación ya tenía. Solo dos acciones de una persona dejan una conversación sin cliente, y las dos lo auditan: quitar la unión (las conversaciones de ese contacto) y borrar la ficha (todas las de la ficha, unidas o cruzadas por teléfono).
+
+**Decisiones tomadas al implementarla.**
+
+| Decisión | Qué se hizo | Por qué |
+|---|---|---|
+| Teléfono que dejó de coincidir con una ficha | Se conserva el cliente (preferencia del Director General). Antes de la 0566 volvía a vacío | Cambiar el teléfono en la ficha no cambia de quién es el chat. Un teléfono que ahora cruza con **otra** ficha única sí la cambia, y una unión manda siempre |
+| Saber de qué contacto es una conversación | Columna nueva `chatwoot_conversations.chat_contact_id`, que llenan el evento y el chat del portal | Sin ella, quitar una unión no puede tocar solo las conversaciones de ese contacto |
+| Vincular y mover | Pasan a esa ficha, en el mismo momento, las conversaciones de ese contacto | No hace falta esperar al siguiente mensaje |
+| Segmento y Shipping Mark en el contacto (SDD-0649) | El contacto del portal queda **excluido**, aunque esté unido | A Chatwoot solo van el nombre y el identificador del contacto del portal (SDD-0586, E10-D35) |
+| Contactos del portal que ya existían | No se migran en la 0566: van en un archivo aparte, con conteo previo, idempotente y con OK de Sam aparte | Escribir filas en producción es otra autorización |
+| Contacto del portal que alguien ya unió a mano a otra ficha | Ni la función ni el relleno lo tocan; el conteo lo informa | No se pisa una decisión de una persona ni se frena el envío del cliente |
+| `chatwoot_portal_vincular_carga` (0524, la carga histórica ya hecha) | No se toca | Si se volviera a usar, sus contactos los recoge el relleno |
+
+**Cambios de la revisión de la PR de la corrección (2026-11-18).**
+
+- **El evento dice de dónde salió el cliente.** `chatwoot_registrar_evento` devuelve una cuarta columna, `origen_cliente`: `union`, `telefono` o `conservado`. Hacía falta porque ahora devuelve también el cliente conservado, y el manejador que une solo (`unirContactoAFicha`, SDD-0650 F2, apagado salvo `CHATWOOT_FICHA_UNIR=1`) tomaba cualquier cliente como «el teléfono cruzó con una ficha»: habría convertido cada conservación en una unión permanente, también la del portal. Ahora une **solo** con `telefono`, como pide la SDD-0650 («une solo con cruce único»). La función de antes de la 0566 no trae esa columna: su cliente solo sale del teléfono, y así se lee.
+- **Ficha borrada.** El cliente que se conserva se revalida en el mismo `update`: una ficha borrada no se conserva. La ficha que el evento encuentra (por unión o por teléfono) se toma con `for share`, para que el evento y el borrado no se crucen: el que llega segundo espera al primero. Esa espera NO está ejercida por una prueba (pide dos transacciones a la vez); la revalidación sí (contrato 8h y 8i). Costo conocido de ese `for share` (segunda revisión, 2026-11-18): el evento espera lo que dure la otra transacción que tenga tomada esa ficha, y nada lo acota dentro de la función (el `lock_timeout` de la migración vale solo al aplicarla; en el webhook solo lo cortaría el tiempo máximo de sentencia que tenga el rol de servicio, que no medí). A la inversa, mientras dura el evento, que son milisegundos, la edición normal de esa ficha espera. No bloquea lecturas.
+- **Orden de despliegue: el web primero, la 0566 después.** El web de esta corrección tiene que estar publicado antes de aplicar la 0566. Un web anterior trataría la unión del portal como una cualquiera: le escribiría el segmento y el Shipping Mark al contacto del portal en Chatwoot y le pondría «Quitar». Está escrito en la cabecera de la migración y en su espera.
+- **Desarme.** Su guarda del canal guardado no cuenta las uniones del portal, y borrar esas uniones no se audita fila por fila: no es la decisión de una persona sobre un cliente y el dato sigue en `chatwoot_portal_contactos`.
+
+**Mientras no se corra el relleno** el portal funciona igual: sus conversaciones conservan el cliente por la regla 2. Lo único que falta es el chip «Portal» en la ficha de los clientes antiguos y que quitar o mover no aplique a contactos sin unión.
+
+**Menores de la segunda revisión, cerrados aquí:** la aserción 10d del contrato filtra por tenant, y la rama del doble clic completa el canal igual que la rama normal de «ya_estaba».
+
+**Pruebas.** Contrato (`supabase/tests/0566_chatwoot_vincular_canal.test.sql`): 4i y 4m (un evento sin ficha conserva el cliente), 4n (la conversación guarda su contacto), 5g (mover), 6f y 6g (quitar), 8e a 8g (ficha borrada) y el bloque 11 entero (portal: 11a a 11h), 4o a 4s (de dónde salió el cliente) y 8h y 8i (una ficha borrada no se conserva). En PGlite, un mutante por cada regla, el ensayo del desarme con una unión del portal y el ensayo del relleno.
 
 ## 5. Datos personales (`revisar-datos-ve`)
 
@@ -153,6 +190,8 @@ Revisión acotada a esta pieza. Estados: `ENCONTRADO`, `CORRECTO`, `NO VERIFICAB
 | Campo | Qué es | Finalidad | Retención | Quién lo ve |
 |---|---|---|---|---|
 | `chatwoot_contact_links.canal_chat` (nuevo) | Canal por el que escribe un contacto unido | Pintar el logo sin llamar a Chatwoot | La de la unión: se borra al quitarla o al borrar la ficha | Quien abre la Bandeja en su tenant (RLS de la 0554) |
+| `chatwoot_conversations.chat_contact_id` (nuevo) | Id del contacto de Chatwoot de cada conversación | Que quitar una unión deje sin ficha solo las conversaciones de ese contacto | La de la conversación | Quien abre la Bandeja en su tenant (RLS de la 0504) |
+| Unión del contacto del portal en `chatwoot_contact_links` (origen `portal`) | Los mismos ids que ya guardaba `chatwoot_portal_contactos`: ficha y contacto | Un solo registro de vínculos; reconocer el chat del portal igual que los demás | La de la unión: se va con la ficha | Igual que las demás uniones (RLS de la 0554) |
 | `crm_tarjetas.absorbida_en`, `absorbida_at` (nuevos) | Qué tarjeta de cliente absorbió a una de lead, y cuándo | Esconder la tarjeta duplicada y poder deshacer | La de la tarjeta | Admin y Comercial (RLS de la 0506) |
 | Resultado de la búsqueda (no se guarda) | Shipping Mark, nombre y últimos 4 dígitos del teléfono de hasta 8 fichas | Que el agente elija a la persona correcta | Ninguna: vive en la respuesta | Quien edita la Bandeja y ve Clientes |
 | `entity_audit_log` (filas nuevas del mismo tipo) | Quién vinculó, movió o quitó, con el id del contacto, el canal y el id de la tarjeta | Saber quién unió un chat a una ficha y por qué | La de `entity_audit_log` | Lo que ya dicta la auditoría del Studio |
@@ -163,13 +202,13 @@ No hay datos sensibles ni archivos. No entra al ERP el id ni el usuario de la re
 
 | Punto | Estado | Evidencia |
 |---|---|---|
-| Minimización de la búsqueda | CORRECTO | Solo código, nombre y cuatro dígitos: `app/studio/(app)/bandeja/vincular-actions.ts:107`, `lib/studio/chatwoot/canal-union.ts:63`. Tope y mínimo: `vincular-actions.ts:71` y `:72` |
-| Quién puede buscar y vincular | CORRECTO | Edición de la Bandeja al tope de las dos acciones: `vincular-actions.ts:90` y `:132`. Módulo encendido, módulo Clientes y tenant de Chatwoot: `vincular-actions.ts:82`, `lib/studio/chatwoot/vincular.ts:33`. La base repite al actor: `0566_chatwoot_vincular_canal.sql:292` |
-| El contacto no lo elige el navegador | CORRECTO | Sale de la conversación leída con el token del agente: `vincular-actions.ts:160`; el agente del contexto es el de la sesión: `vincular-actions.ts:152`; solo salen el id y el tipo de bandeja: `lib/studio/chatwoot/account-api.ts:92` |
-| Auditoría de vincular, mover y quitar | CORRECTO | `0566_chatwoot_vincular_canal.sql:382` (vincular), `:327` (absorción de una unión que ya existía) y el bloque de mover sobre la ficha anterior; quitar conserva la de la 0554 y suma la tarjeta restaurada. Sin nombres: contrato `supabase/tests/0566_chatwoot_vincular_canal.test.sql`, aserción 3j |
-| No mover sin confirmación | CORRECTO | `0566_chatwoot_vincular_canal.sql:342`; el motivo escrito lo exige la acción: `vincular-actions.ts:145` y su validación previa |
-| A qué ficha estaba unido | CORRECTO | Se lee con la sesión (RLS de la 0554 y de `clients`) y con el tenant: `vincular-actions.ts:194`. Si esta persona no la ve, no se nombra |
-| Logs | CORRECTO | Solo códigos: `vincular-actions.ts:112`, `:157`, `:163` y `:183`; `conversaciones-actions.ts:173` |
+| Minimización de la búsqueda | CORRECTO | Solo código, nombre y cuatro dígitos: `app/studio/(app)/bandeja/vincular-actions.ts:108`, `lib/studio/chatwoot/canal-union.ts:63`. Tope y mínimo: `vincular-actions.ts:72` y `:73` |
+| Quién puede buscar y vincular | CORRECTO | Edición de la Bandeja al tope de las dos acciones: `vincular-actions.ts:91` y `:134`. Módulo encendido, módulo Clientes y tenant de Chatwoot: `vincular-actions.ts:83`, `lib/studio/chatwoot/vincular.ts:33`. La base repite al actor: `0566_chatwoot_vincular_canal.sql:362` |
+| El contacto no lo elige el navegador | CORRECTO | Sale de la conversación leída con el token del agente: `vincular-actions.ts:162`; el agente del contexto es el de la sesión: `vincular-actions.ts:154`; solo salen el id y el tipo de bandeja: `lib/studio/chatwoot/account-api.ts:92` |
+| Auditoría de vincular, mover y quitar | CORRECTO | `0566_chatwoot_vincular_canal.sql:468` (vincular), `:397` (absorción de una unión que ya existía) y el bloque de mover sobre la ficha anterior; quitar conserva la de la 0554 y suma la tarjeta restaurada. Sin nombres: contrato `supabase/tests/0566_chatwoot_vincular_canal.test.sql`, aserción 3j |
+| No mover sin confirmación | CORRECTO | `0566_chatwoot_vincular_canal.sql:416`; el motivo escrito lo exige la acción: `vincular-actions.ts:147` y su validación previa |
+| A qué ficha estaba unido | CORRECTO | Se lee con la sesión (RLS de la 0554 y de `clients`) y con el tenant: `vincular-actions.ts:196`. Si esta persona no la ve, no se nombra |
+| Logs | CORRECTO | Solo códigos: `vincular-actions.ts:113`, `:159`, `:165` y `:185`; `conversaciones-actions.ts:173` |
 | Vincular a la ficha equivocada revela datos de otra persona | CORRECTO (mitigado) | Confirmación con código y nombre: `app/studio/(panel)/ficha-chat/_components/VincularCliente.tsx:126`. Se deshace desde la ficha: `ConversacionesFichaCard.tsx:264`. Al quitar se limpian los atributos del contacto: `conversaciones-actions.ts:173`. El bot nunca afirma «eres cliente» (SDD-0586) |
 | Aislamiento por tenant | CORRECTO | `chatwoot_ficha_de_contacto` filtra unión y ficha por tenant; contrato, aserciones 2c, 2d y 4l |
 | Borrado contra una base real | NO VERIFICABLE | La lógica de quitar y de ficha borrada se ve correcta en el contrato (bloques 6 y 8), pero no se probó contra producción ni contra el entorno de prueba. La migración no está aplicada |
@@ -195,7 +234,7 @@ Chatwoot y Studio corren en el servidor propio. La pieza no llama a terceros y n
 | Qué | Archivos |
 |---|---|
 | Migración, desarme y contrato | `supabase/migrations/0566_chatwoot_vincular_canal.sql` · `0566_desarme`, en `supabase/desarmes/` (sin la extensión: `spec-migration-refs.test.ts` toma todo `NNNN_nombre` con `.sql` como migración) · `supabase/tests/0566_chatwoot_vincular_canal.test.sql` · `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` |
-| Espera y degradación | `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` |
+| Espera y degradación (retiradas en el cierre del 2026-11-19) | `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` · `supabase/migrations.lock.json` (la migración sellada) |
 | Reglas y servidor | `lib/studio/chatwoot/canal-union.ts` (nuevo) · `lib/studio/chatwoot/vincular.ts` (nuevo) · `lib/studio/chatwoot/account-api.ts` · `lib/studio/chatwoot/webhook-procesar.ts` · `lib/studio/chatwoot/contacto-erp-manejador.ts` · `lib/studio/chatwoot/ficha-panel.ts` |
 | Acciones | `app/studio/(app)/bandeja/vincular-actions.ts` (nuevo) · `app/studio/(app)/bandeja/actions.ts` · `app/studio/(app)/clientes/conversaciones-actions.ts` |
 | Ficha DTD | `app/studio/(panel)/ficha-chat/_components/VincularCliente.tsx` (nuevo) · `FichaDtdClient.tsx` · `FichaDtdView.tsx` |
@@ -245,5 +284,6 @@ El estado lo da el CI de la PR. `pnpm verify` local no se corre sin turno del Di
 Cada una con OK nominal de Sam, por el Director General:
 
 1. Fusionar la PR (revisión independiente y CI en verde).
-2. Aplicar `0566_chatwoot_vincular_canal` en producción, con el runbook `aplicar-migraciones-prod`. Recomendado antes de publicar el web.
-3. Smoke en producción con una conversación de prueba, según `docs/runbooks/chatwoot-ficha-dtd.md`.
+2. Aplicar `0566_chatwoot_vincular_canal` en producción, con el runbook `aplicar-migraciones-prod`. **HECHO el 2026-11-19 a las 12:05:23Z** (OK literal de Sam: «OK, aplica 0566, 0565 y 0562»). Ledger: version `20261119120523`, una sola fila, creada por `servidor-propio:psql:SDD-0676`, md5 `d201a65b…` y 56403 bytes (dato del Director General, según la verificación del apply). La espera quedó retirada y la migración sellada en el cierre (§6 del runbook de producción). **Orden real:** El web de la #696 **no** estaba publicado antes del apply: la publicación anterior fue `f0169eed9` a las 10:56Z y la #696 entró a las 10:58Z. Quedó migrate-first (la base nueva con el web anterior) y el web con la #696 se publicó después, en `a30e7ca38`. Dato del Director General; no lo medí yo. Con el web anterior y la 0566 aplicada hubo una ventana, desde el apply hasta esa publicación, en la que el web anterior podía escribir segmento y Shipping Mark al contacto del portal (solo si `CHATWOOT_ATRIBUTOS_CONTACTO=1`) y mostrar «Quitar» en el chip del portal. NV: si eso llegó a pasar; no se midió ni el valor de esa variable ni los contactos del portal en Chatwoot.
+3. Smoke en producción según `docs/runbooks/chatwoot-ficha-dtd.md` («Smoke después de aplicar la 0566»): Sam con su WhatsApp y su Instagram secundarios. **PENDIENTE: no se ha hecho.**
+4. Relleno de las uniones del portal que ya existían (`supabase/cargas/portal-uniones-0566/`). Escribe filas: lleva un OK nominal **aparte** del de la 0566. No es urgente (§4.9). **PENDIENTE.** Antes se corre el conteo de solo lectura (`conteo.sql`, en esa carpeta) y se le lleva a Sam.

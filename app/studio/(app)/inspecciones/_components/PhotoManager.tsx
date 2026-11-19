@@ -6,7 +6,7 @@
  * `inspections`. Su propio <form> (no anida en el form del builder).
  */
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import {
   uploadInspectionPhotosAction,
   deleteInspectionPhotoAction,
@@ -14,6 +14,7 @@ import {
 import type { InspectionPhotoItem } from "@/lib/studio/inspecciones/photos";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { Spinner } from "@/app/studio/_components/ui/EtiquetaEstable";
 
 export function PhotoManager({
   reportId,
@@ -53,7 +54,12 @@ export function PhotoManager({
       ) : (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {photos.map((p) => (
-            <PhotoThumb key={p.id} item={p} onDeleted={() => toast.success("Foto eliminada")} />
+            <PhotoThumb
+              key={p.id}
+              item={p}
+              onDeleted={() => toast.success("Foto eliminada")}
+              onError={(m) => toast.error(`No se pudo eliminar la foto: ${m}`)}
+            />
           ))}
         </div>
       )}
@@ -107,10 +113,15 @@ export function PhotoManager({
 function PhotoThumb({
   item,
   onDeleted,
+  onError,
 }: {
   item: InspectionPhotoItem;
   onDeleted: () => void;
+  onError: (mensaje: string) => void;
 }) {
+  // SDD-0678 · BTN-01 §5 y LOD-01: mientras borra, la × queda deshabilitada (sin doble clic), con spinner y
+  // `aria-busy`; si falla, lo dice (antes el error se perdía en silencio).
+  const [borrando, startBorrar] = useTransition();
   return (
     <div style={{ position: "relative" }}>
       {item.url ? (
@@ -166,12 +177,24 @@ function PhotoThumb({
       )}
       <button
         type="button"
-        onClick={async () => {
-          const r = await deleteInspectionPhotoAction(item.id);
-          if (!r.error) onDeleted();
+        disabled={borrando}
+        aria-busy={borrando}
+        onClick={() => {
+          if (borrando) return;
+          startBorrar(async () => {
+            // Una promesa rechazada (red caída, acción que lanza) NO puede salir de la transición: en React 19 llegaría
+            // al límite de errores y tumbaría la pantalla. Se captura y se dice con un mensaje genérico.
+            try {
+              const r = await deleteInspectionPhotoAction(item.id);
+              if (r.error) onError(r.error);
+              else onDeleted();
+            } catch {
+              onError("Error de conexión. Intenta de nuevo.");
+            }
+          });
         }}
-        aria-label="Eliminar foto"
-        title="Eliminar"
+        aria-label={borrando ? "Eliminando foto…" : "Eliminar foto"}
+        title={borrando ? "Eliminando…" : "Eliminar"}
         style={{
           position: "absolute",
           top: -7,
@@ -183,13 +206,19 @@ function PhotoThumb({
           background: "var(--bg-surface)",
           color: "var(--danger)",
           font: "700 11px/1 var(--f-sans)",
-          cursor: "pointer",
+          cursor: borrando ? "progress" : "pointer",
           display: "grid",
           placeItems: "center",
           boxShadow: "var(--shadow-xs)",
         }}
       >
-        ×
+        {borrando ? (
+          <span className="studio-spin" style={{ display: "inline-flex" }}>
+            <Spinner size={12} />
+          </span>
+        ) : (
+          "×"
+        )}
       </button>
     </div>
   );

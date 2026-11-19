@@ -39,6 +39,32 @@ export function registroLinkUrl(token: string): string {
   return `${SITE_URL}/registro/link/${token}`;
 }
 
+/**
+ * SDD-0672 · horas que vive un enlace de autoservicio. Lo fija la base (migr
+ * 0562); acá sólo para el texto.
+ */
+export const REGISTRO_AUTOSERVICIO_TTL_HORAS = 24;
+
+/**
+ * SDD-0672 · URL del enlace de autoservicio. Otra ruta que la del equipo, a
+ * propósito: la del equipo (`/registro/link/`) no acepta estos enlaces.
+ */
+export function registroAutoservicioUrl(token: string): string {
+  return `${SITE_URL}/registro/activar/${token}`;
+}
+
+/** Enlace de autoservicio que no sirve (cualquier causa): un solo mensaje. */
+export const REGISTRO_AUTOSERVICIO_INVALIDO =
+  "Este enlace ya no está disponible. Pide uno nuevo desde «Entrar» con tu correo, o escríbenos por WhatsApp.";
+
+/**
+ * SDD-0672 · los datos no permitieron activar el portal: no coinciden con la
+ * ficha, o el correo ya tiene otra cuenta. UN solo mensaje para los dos, y sin
+ * decir cuál dato falló: la guarda no revela si el documento coincidió.
+ */
+export const REGISTRO_AUTOSERVICIO_NO_SIRVEN =
+  "No pudimos activar tu portal con estos datos. Revísalos; si siguen sin funcionar, escríbenos por WhatsApp y lo resolvemos.";
+
 /** Mensaje de WhatsApp que arma la ficha para el asesor. */
 export function registroLinkWhatsAppText(name: string | null, url: string): string {
   const saludo = name ? `Hola ${name}` : "Hola";
@@ -117,6 +143,11 @@ export type RegistroLinkReviewRow = {
   correoEstado: CorreoEstado | null;
   /** Cuándo salió el último enlace de comprobación. */
   correoEnviadoAt: string | null;
+  /**
+   * SDD-0672 · quién emitió el link: el equipo (WhatsApp) o `/entrar`
+   * (autoservicio, al correo de la ficha). Sin la 0562, siempre `equipo`.
+   */
+  origen?: "equipo" | "autoservicio";
 };
 
 /** Campos que se comparan en la revisión: [clave en prev, clave en submitted, etiqueta]. */

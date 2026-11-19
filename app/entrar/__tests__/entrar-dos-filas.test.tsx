@@ -118,7 +118,7 @@ describe("/entrar · ningún resultado es un callejón sin salida (SDD-0672)", (
     expect(crearCuenta().className).toContain("btn-primary");
   });
 
-  it.each(["enlace", "sin_portal", "sin_comprobar", "sin_cuenta"] as const)(
+  it.each(["enlace", "crear_portal", "sin_portal", "sin_comprobar", "sin_cuenta"] as const)(
     "%s · deja siempre una salida: otro correo y WhatsApp",
     (resultado) => {
       render(<ResultadoEntrar {...base} resultado={resultado} />);
@@ -128,7 +128,7 @@ describe("/entrar · ningún resultado es un callejón sin salida (SDD-0672)", (
     },
   );
 
-  it.each(["enlace", "sin_portal", "sin_comprobar"] as const)(
+  it.each(["enlace", "crear_portal", "sin_portal", "sin_comprobar"] as const)(
     "%s · quien ya tiene cuenta no recibe la invitación a crear otra",
     (resultado) => {
       // Crear otra cuenta le daría un Shipping Mark nuevo y le partiría el
@@ -138,4 +138,14 @@ describe("/entrar · ningún resultado es un callejón sin salida (SDD-0672)", (
       expect(screen.queryByRole("link", { name: /crear mi cuenta/i })).toBeNull();
     },
   );
+
+  it("⭐ «crear_portal» (SDD-0672 entrega 2) dice sólo que salió el enlace, sin nada de la ficha", () => {
+    const { container } = render(<ResultadoEntrar {...base} resultado="crear_portal" />);
+
+    expect(screen.getByRole("heading", { name: /ya eres cliente/i })).toBeTruthy();
+    expect(container.textContent).toMatch(/te mandamos un enlace/i);
+    expect(container.textContent).toMatch(/24 horas/);
+    // Ni el código ni qué datos se van a comprobar: eso lo dice la página del enlace.
+    expect(container.textContent).not.toMatch(/DTD-\d|cédula|RIF/i);
+  });
 });
