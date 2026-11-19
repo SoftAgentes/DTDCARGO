@@ -1,13 +1,13 @@
 ---
 sdd: "0682"
-title: "Almacén China sin lo consolidado, lista activa de Embarques y «Contenedores en camino»"
+title: "Almacén China en una pantalla: en almacén, en camino y pendiente por liberar"
 status: draft
 author: "Claude (Worker) + Sam"
 created: 2026-11-19
 updated: 2026-11-19
 supersedes: null
 superseded_by: null
-related: ["0016", "0029", "0543", "0643", "0659", "0674"]
+related: ["0016", "0029", "0039", "0047", "0531", "0543", "0643", "0659", "0674"]
 confidencialidad: interno
 ---
 
@@ -17,7 +17,7 @@ confidencialidad: interno
 > debería estar ahí: debería verse «en ruta», en una opción de «contenedores en camino». Y los embarques ya
 > no deberían salir en la lista activa.
 
-**Borrador.** Nada de producto se toca hasta que Sam apruebe por el DG. Se midió solo en código y
+**Borrador, con las respuestas de Sam del 2026-11-19 (§5).** Nada de producto se toca hasta que Sam apruebe por el DG. Se midió solo en código y
 migraciones (base `origin/main` `c04f18fca`); no se leyó ninguna fila de producción.
 
 ## 1. «Confirmen»: qué pasa hoy (medido)
@@ -56,7 +56,7 @@ el dato.
 Si la oficina registró a mano en Almacén China la mercancía del 64 **antes** de la carga, esas recepciones
 siguen `pendiente_consolidacion`: la carga crea recepciones nuevas `WR-C64-*` y no enlaza ni cierra las
 anteriores (`scripts/consolidados/lote-sql.ts:600`). Eso sería un duplicado, y con los KPI arriba contándolo
-como «en almacén». Para saberlo hace falta un conteo (§5, pregunta 1).
+como «en almacén». Para saberlo hace falta un conteo (§5, respuesta 1).
 
 ### 1.4 Embarques: «Activos» incluye lo que va en el mar
 
@@ -65,71 +65,123 @@ como «en almacén». Para saberlo hace falta un conteo (§5, pregunta 1).
   (`app/studio/(app)/embarques/_components/EmbarquesClient.tsx:115`, `:121`; el conteo usa la misma regla en
   `lib/studio/shipment-queries.ts:404`). Un embarque `in_transit` del 64 cuenta como activo.
 
-### 1.5 «Contenedores en camino» ya existe a medias: Tracking
+### 1.5 La regla de «en camino» ya existe: Tracking
 
 La pantalla de Tracking (SDD-0659) lista contenedores y no envíos sueltos, con el grupo «En mar» para todo
 contenedor `zarpado` (`lib/studio/tracking-contenedores.ts:212`). El rol `warehouse` ya ve Tracking
 (`lib/studio/rbac.ts:65`), y Almacén China lo ven `operations`, `warehouse` y `support` (`lib/studio/rbac.ts:70`).
-Lo que falta es el camino desde Almacén China hasta ahí, y saber si el equipo de China tiene Tracking en su
-menú (§5, pregunta 4).
+Sam no quiere mandar al equipo de China a Tracking (§2): se reutiliza la regla, no la pantalla.
 
-## 2. Propuesta
+### 1.6 No hay dato de telex release por contenedor
 
-### 2.1 Almacén China: la vista por defecto es «En almacén»
+Se buscó en migraciones, `lib/` y `app/` (`telex`, `liberad*`, `release`, `seaway`, `bl_*`). Lo que existe es esto:
 
-- Sin filtro en la URL, la tabla muestra `pendiente_consolidacion` + `incidencia` (lo que está físicamente
-  en la bodega). El selector de estado gana la opción «En almacén» como primera y por defecto; «Consolidado»
-  y «Todos» se siguen pudiendo elegir.
-- Arriba de la tabla, un aviso de una línea: «N recepciones ya consolidadas no se muestran · Ver
-  contenedores en camino».
+- `consolidations` tiene `status` (consolidando/cerrado/zarpado/arribado), `container_no`, `notes` y fechas
+  (`supabase/migrations/0096_naviera_consolidacion.sql:166-179`; `container_no` en la 0154). Ninguna columna
+  dice si el BL se liberó.
+- «Liberado» existe solo para la aduana SENIAT en destino (`customs_status`, migraciones 0010 y 0318), que
+  es otro hito.
+- El modal «Generar BL» ofrece el tipo SeaWayBill (`app/studio/_components/wiring/GenerateBLModal.tsx:31`),
+  pero no guarda ningún estado de liberación.
+
+Conclusión: hoy **no hay** dónde marcar «telex release hecho». La vista «Pendiente por liberar» necesita
+un dato nuevo (§2.4).
+
+## 2. Propuesta (con las respuestas de Sam del 2026-11-19)
+
+Sam: «Estoy tratando que el almacén China tenga todo en una sola pantalla. Los tres». El equipo de China
+casi no tiene acceso al resto del sistema, solo a su área. Por eso **todo va dentro de Almacén China**, en
+tres vistas de la misma pantalla. No se manda a nadie a Tracking.
+
+| Vista | Qué muestra | Dato |
+|---|---|---|
+| **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia` | ya existe |
+| **En camino** | Contenedores en el mar: contador de días y porcentaje | ya existe |
+| **Pendiente por liberar** | Contenedores en el mar o sin llegar, sin telex release | **falta** (§2.4) |
+
+### 2.1 En almacén (vista por defecto)
+
+- Sin filtro en la URL, la tabla muestra `pendiente_consolidacion` + `incidencia`: lo que está físicamente
+  en la bodega. El selector de estado queda con «En almacén» por defecto; «Consolidado» y «Todos» siguen a
+  un clic (Sam: «si»).
+- Arriba de la tabla, una línea: «N recepciones ya consolidadas no se muestran», con enlace a «En camino».
 - Sin migración: es un filtro de lectura sobre `warehouse_receipts_cn.status` (índice
-  `warehouse_receipts_cn_tenant_status_idx`, migración 0008).
+  `warehouse_receipts_cn_tenant_status_idx`, migración 0008). Los KPI ya cuentan así.
 
-### 2.2 Embarques: la lista activa deja fuera lo que ya salió
+### 2.2 En camino
 
-Dos lecturas posibles de lo que dijo Sam (§5, pregunta 3):
+- Una fila por contenedor `zarpado`: número DTD (de `notes`, como `numeroDtdDeNotas` en
+  `lib/studio/embarques-contenedores.ts:184`), contenedor, naviera, ETA, **días que faltan** y **porcentaje
+  del viaje**. Sam lo quiere muy simple: solo el contador y el porcentaje, sin mapa ni hitos.
+- El contador y el porcentaje salen de la misma regla de Tracking (`diasRestantes` y `progreso` de
+  `lib/studio/tracking-contenedores.ts:386-387`), sin copiarla. Así las dos pantallas no se separan.
+- Al abrir un contenedor, las recepciones que lleva (las `consolidado` con `shipment_id` en sus
+  `consolidation_items`), con MARKBOX y sin nombre del importador para el equipo de China (SDD-0039 B.9,
+  SDD-0531).
+- Sin migración.
 
-- **(a)** «Activos» pasa a ser «en origen»: `draft`, `in_warehouse`, `consolidating`, `exception`. Se agrega la
-  pestaña «En camino» (`in_transit`, `shipped`, …) y «Entregados» sigue igual. La pestaña por defecto pasa de
-  «Todos» a «Activos».
-- **(b)** «Activos» no cambia de regla; solo la pestaña por defecto pasa a «Activos» y la vista por
-  contenedor pliega los contenedores `zarpado`.
+### 2.3 Pendiente por liberar
 
-Recomendación: **(a)**. Sin migración; regla única en `lib/studio/shipment-queries.ts` para que el conteo y el
-filtro no se separen.
+- Contenedores `zarpado` (y, si Sam lo confirma, también `cerrado`: ya cargados, sin zarpar) que aún no
+  tienen telex release. Primero los de ETA más cercana.
+- Cada fila: contenedor, ETA, días que faltan y una acción «Marcar liberado» para quien tenga permiso
+  (§5, pregunta B). Al marcarlo, sale de esta vista.
+- Después vendría un aviso con antelación para que lo liberen (Sam). **No entra en esta SDD**: aquí solo
+  se deja el dato listo para que el aviso lo lea.
 
-### 2.3 «Contenedores en camino»
+### 2.4 Propuesta de dato: telex release por contenedor (necesita migración)
 
-Recomendación: reutilizar Tracking, filtro «En mar», en vez de una pantalla nueva:
+Lo mínimo:
 
-- Enlace desde Almacén China (cabecera y aviso del §2.1) a `/studio/tracking?g=mar`: Tracking ya lee el
-  grupo de la URL (`app/studio/(app)/tracking/page.tsx:274`), así que no hay que tocar Tracking.
-- La privacidad de China (solo MARKBOX, SDD-0531) ya rige en Tracking.
-- Si Sam quiere la lista dentro de Almacén China, una pestaña «En camino» que lea los mismos datos de
-  `lib/studio/tracking-contenedores.ts` (sin duplicar la regla de grupos).
+- En `consolidations`: `telex_released_at timestamptz null` y `telex_released_by uuid null` (referencia al
+  usuario). `null` = sin liberar.
+- Marcar y desmarcar por un RPC con rol y tenant, que deja evento en `entity_audit_log`, como los demás
+  hitos gobernados.
+- Número de migración: lo asigna el DG. Se aplica en producción solo con OK de Sam y el runbook.
+
+Alternativa sin columna: tomar como «liberado» que exista un documento de tipo telex/BL adjunto al
+contenedor. Se descarta como recomendación porque hoy los documentos BL cuelgan del embarque
+(`shipment_doc_type`, migración 0086) y no del contenedor, y un adjunto no dice si la naviera ya liberó.
+
+### 2.5 Embarques (fuera de la pantalla de China)
+
+Sigue abierto (§5, pregunta A). Hoy «Activos» incluye lo que va en el mar (§1.4). Hay dos opciones:
+
+- **(a)** «Activos» = en origen; pestaña «En camino» aparte; por defecto «Activos».
+- **(b)** Solo pasar la pestaña por defecto a «Activos» y plegar los contenedores zarpados.
 
 ## 3. Fuera de alcance
 
-- Cerrar o borrar recepciones duplicadas en producción (si el conteo las encuentra): se decide aparte, con
+- El aviso de «por liberar» (correo, WhatsApp o campana): otra SDD, que lee el dato del §2.4.
+- Cerrar o borrar recepciones duplicadas en producción, si el conteo las encuentra: se decide aparte, con
   OK de Sam y el runbook.
-- Cambiar la carga de consolidados para que enlace recepciones existentes: otra SDD si hace falta.
+- Cambiar la carga de consolidados para que enlace recepciones ya registradas a mano: otra SDD si hace falta.
 
 ## 4. Pruebas previstas
 
 - Unitarias de `parseReceiptFiltersFromSearchParams` (por defecto «En almacén»; `?status=all` sigue dando
   todo) y de `listReceipts` con el filtro nuevo.
-- Unitarias de la regla de pestañas de Embarques (conteo = filtro).
-- Componente: el aviso de «N consolidadas no se muestran» y su enlace.
+- Unitarias de la selección de «En camino» y «Pendiente por liberar» (zarpado, sin telex, orden por ETA),
+  con el contador y el porcentaje leídos de la regla de Tracking.
+- Contrato SQL de la migración del §2.4: el RPC rechaza otro tenant y roles sin permiso, y deja auditoría.
+- Componente: las tres vistas, el aviso «N consolidadas no se muestran» y la redacción del nombre para China.
 - Cierre con `pnpm verify` en turno de PC del DG; `/ui-check` por ser UI.
 
-## 5. Preguntas para Sam
+## 5. Respuestas y preguntas abiertas
 
-1. ¿Autorizas un conteo en producción, sin nombres ni montos: cuántas recepciones de Almacén China están
-   `pendiente_consolidacion` con marcas del contenedor 64, y cuántas `WR-C64-*` hay `consolidado`? Es lo
-   único que confirma si hay duplicado (§1.3).
-2. Almacén China por defecto: ¿solo lo que está en bodega (pendiente + incidencia), con «Consolidado» y
-   «Todos» a un clic? (recomendado)
-3. Embarques: ¿«Activos» debe dejar fuera lo que va en el mar, con una pestaña «En camino» aparte (a), o
-   solo plegar los contenedores zarpados (b)?
-4. «Contenedores en camino»: ¿basta con llevar al equipo de China a Tracking, «En mar» (recomendado), o la
-   quieres como pestaña dentro de Almacén China? ¿El equipo de China tiene hoy Tracking en su menú?
+Contestadas por Sam el 2026-11-19, vía el DG:
+
+1. Conteo en producción: **sí**. La consulta es solo lectura y devuelve solo conteos. Se le pasó al DG,
+   que la corre. El resultado se anota aquí.
+2. Almacén China abre con lo que está en bodega: **sí**.
+3. y 4. «En camino» va **dentro de Almacén China**, con contador y porcentaje, junto con «Pendiente por
+   liberar»: las tres vistas en una sola pantalla.
+
+Abiertas:
+
+- **A.** Embarques (§2.5): ¿(a) o (b)? ¿O basta con lo de Almacén China y Embarques no cambia?
+- **B.** Telex release: ¿quién lo marca (el equipo de China, operaciones en Venezuela o los dos)? ¿Se guarda
+  solo la fecha, o también el documento?
+- **C.** ¿«Pendiente por liberar» incluye los contenedores `cerrado` (cargados, sin zarpar), o solo los que
+  ya están en el mar?
+- **D.** El contador de «En camino»: ¿días que faltan para la ETA (lo que ya calcula Tracking)?

@@ -11,8 +11,12 @@ Fecha: 2026-11-19 · Rama: `claude/interesting-darwin-9a1100` · Base: `origin/m
 
 ## Pendiente de esta tarea
 
-- Respuestas de Sam a las cuatro preguntas del §5 (una es un conteo en producción, que pide OK).
-- Producto (filtro por defecto, pestañas de Embarques, enlace a Tracking `?g=mar`) solo con la spec aprobada.
+- Sam contestó el 2026-11-19 (spec §5): las tres vistas van dentro de Almacén China (en almacén, en
+  camino, pendiente por liberar). Abiertas: A (Embarques), B (quién marca el telex), C (`cerrado`), D (contador).
+- Conteo en producción autorizado: la consulta (solo lectura, solo conteos) se entregó al DG, que la corre.
+  Falta anotar el resultado en la spec §5.
+- No existe dato de telex release: hace falta migración (número del DG; aplicar solo con OK de Sam).
+- Producto solo con la spec aprobada.
 
 ## Pruebas
 
