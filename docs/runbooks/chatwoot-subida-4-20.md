@@ -74,6 +74,8 @@ Durante el corte, los webhooks de Meta reciben error y Meta los reintenta por su
 
 En el VPS, `cd /srv/chatwoot`. Cada salida, con su hora, en el handoff. Las evidencias en `/srv/ops/evidencias/chatwoot-0679-<sello>/` (700).
 
+> **Por `ssh … 'bash -s' < guion.sh`:** todo `docker compose exec`, `run` o `docker exec` del guion lleva `</dev/null`. Sin eso el contenedor lee el stdin, que es el resto del guion, y lo que falta no se ejecuta, sin error a la vista. Pasó en el §2 de la subida del 2026-11-19. Las variables entre tramos (`EV`, `SELLO`) se guardan en un archivo 600 (`/root/.cw0679.env`) y se cargan al empezar cada tramo.
+
 ```bash
 date -u
 SELLO="$(date -u +%Y%m%dT%H%M%SZ)"; EV="/srv/ops/evidencias/chatwoot-0679-$SELLO"; install -d -m 700 "$EV"
@@ -166,7 +168,7 @@ Primero **S1–S13 de [§6 del runbook de versiones](chatwoot-versiones.md#6--pa
 | V1 | `curl -s https://chat.dtdcargo.com/api` | `"version":"4.20.0"`; `queue_services` y `data_services` en `ok` |
 | V2 | `docker compose images rails sidekiq` | los dos con `v4.20.0-ce` y el digest nuevo |
 | V3 | Inicializadores cargados **una vez por proceso**: `docker compose logs rails sidekiq \| grep -c '\[DTD\] redacción de logs activa'`, `… 'protección de /register activa: '`, `… 'revocación de sesiones activa'` | `2` cada uno (S2, S4, S6 los miden por separado); `0` en `revocar sesiones: faltan` y en `modo cerrado` |
-| V4 | `rails` y `sidekiq` ahora iguales a su compose: repetir la comparación de §0 paso 5 | sin diferencias (la de `sidekiq` entró) |
+| V4 | `rails` y `sidekiq` ahora iguales a su compose: repetir la comparación de §0 paso 5 | sin diferencias (la de `sidekiq` entró). Sale `RAILS_ENV` en los dos: está en el compose y en la imagen con el mismo valor, y se descarta (nota del §0) |
 | V5 | WhatsApp sin app secret: `docker compose logs --since 15m rails \| grep -c WHATSAPP_APP_SECRET_PENDING` | Un número, sin abrir las líneas. **No es rojo**: dice qué bandejas esperan el secreto. Lo carga Sam cuando decida; nadie más |
 | V6 | Sidekiq recupera: los cuatro números del paso 2 | encolados bajan a 0 en minutos; `muertos` no crece |
 | V7 | Prueba en Studio (cuenta 2, **fase C** de la SDD), solo con el OK de Sam para reactivarla: SSO y Bandeja, Ficha DTD, `prueba-punta-a-punta.sh 2` (webhook firmado al ERP) y un mensaje del chat del portal de prueba | todos en verde; al terminar se **suspende** la cuenta 2 otra vez (no se borra) |

@@ -51,13 +51,34 @@ Logs de las cuatro corridas: en el scratchpad de la sesión, fuera del repo (sol
 
 Ver la PR.
 
+## SUBIDA EN PRODUCCIÓN (2026-11-19, la ejecutó el DG)
+
+Datos del informe del DG. Evidencias en el VPS: `/srv/ops/evidencias/chatwoot-0679-20261119T031009Z`.
+
+| Paso | Resultado |
+|---|---|
+| §0 paso 5 | `rails` sin diferencias; `sidekiq` con exactamente las 4 esperadas |
+| §3 respaldo | `chatwoot-20261119T031125Z`, `resultado=success`, `rclone check` con 0 diferencias |
+| §4 corte | de 03:15:43Z a 03:18:48Z (**3 min 5 s**); `prepare=0` en **50 s**; migradas 0 → 15 |
+| S1 / V1 | `4.20.0`, `queue_services` y `data_services` en `ok` |
+| S2 | «activa: 2 Phone Number IDs» ×2 y 0 en `modo cerrado` (el runbook decía «1 »: corregido) |
+| S3, S4, S5, S5b, S6, S7, S9 | OK |
+| S8 | `/monitoring/sidekiq` 403, `/installation/onboarding` 403 y `/app/login` 200. `/super_admin/sign_in` da 302 a Cloudflare Access por el perfil `cf-access`: la exigencia de 403 estaba vencida (corregida) |
+| V2, V5, V6 | OK; V5 = 0; V6 = 0/0/0/2/0 |
+| V4 | solo `RAILS_ENV`, que es de la imagen, igual en los dos (anotado en el runbook) |
+| V8 | `smoke-web` desde el VPS 14/0 |
+| **V7 y S10–S13** | **PENDIENTES**: los ejecuta quien tenga el OK de Sam (abajo) |
+
+Correcciones del runbook por lo medido:
+- S2 cuenta los IDs del `.env`;
+- S8 acepta el 302 de Access;
+- V4 explica lo de `RAILS_ENV`;
+- §2 avisa que `bash -s` por SSH se traga el guion si un `docker exec` no lleva `</dev/null`.
+
 ## PENDIENTES DE ESTA TAREA
 
-- Fase A del ensayo con turno del DG; sin ella no se pide el OK de la subida.
-- Fase B con OK de Sam (mide `prepare` con datos reales y fija la duración).
-- OK nominal de Sam para la subida: versión, digest, hora, smoke y la lista de diferencias de `sidekiq`.
-- La subida (DG o sesión designada) y la fase C.
-- Cierre (aceptación 8): cabeceras de los inicializadores, `IMAGEN_CHATWOOT` de los dos ensayos, `chatwoot-selectores.json`, Uptime Kuma y fila del Registro.
+- **V7 y S10–S13**: reactivar la cuenta 2, SSO y Bandeja, Ficha DTD, `prueba-punta-a-punta.sh 2`, chat del portal de prueba, guía de la Bandeja, y suspender otra vez la cuenta 2. Todo escribe en el Chatwoot de producción, en la cuenta de prueba. Esta sesión no lo corrió: el OK de Sam («Sí, reactiva y suspende (Recomendado)») se lo dio a Sam al DG en su chat y llegó a esta sesión reenviado por otra sesión. Un OK reenviado no autoriza a esta sesión a escribir en producción (AGENTS: aprobación concreta de Sam). Además, S10, S11 y S13 piden un navegador con un usuario de Studio vinculado. Lo corre el DG, o Sam autoriza aquí directamente.
+- Cierre (aceptación 8): cabeceras de los inicializadores, `IMAGEN_CHATWOOT` de los dos ensayos, `chatwoot-selectores.json`, Uptime Kuma y fila del Registro (ya escrita). La imagen vieja **no** se borra todavía (pedido del DG).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -71,4 +92,4 @@ Spec nueva, runbook nuevo, `chatwoot-versiones.md` (aviso y Registro), índice d
 
 ## HANDOFF AL DIRECTOR
 
-Fase A en verde (cuatro corridas, controles en rojo). Turno de la PC soltado. La subida la ejecuta el DG con el runbook, con el OK nominal de Sam ya dado y la clave age a mano; después, la fase C en la cuenta 2 y el cierre (aceptación 8).
+Fase A en verde y subida hecha por el DG el 2026-11-19 (corte de 3 min 5 s). Quedan V7 y S10–S13 con la cuenta 2 (los corre el DG o quien Sam autorice directamente) y el cierre de la aceptación 8.
