@@ -93,6 +93,18 @@ describe("0567 · exclusiones del conteo y corrección de cierres (PGlite)", () 
     expect(await run(inline({ sin0567: true }))).not.toBeNull();
   }, 120_000);
 
+  it("APLICADA en producción (2026-11-18 23:43:42Z): fuera de las esperas y sellada con el md5 del ledger", () => {
+    const baseline = JSON.parse(leer("supabase/migrations-baseline.json"));
+    expect(Object.keys(baseline.pendingBelowCutoff)).not.toContain("0567_oficina_conteo_exclusiones");
+    const candado = JSON.parse(leer("supabase/migrations.lock.json"));
+    expect(candado.selladas["0567_oficina_conteo_exclusiones"]).toMatchObject({
+      md5: "92701f0d57da88cd437d8ea44b5662a0",
+      bytes: 25780,
+      ledger: { forma: "exacta" },
+    });
+    expect(md5(leer(`supabase/migrations/${M0567}`))).toBe("92701f0d57da88cd437d8ea44b5662a0");
+  });
+
   it("los md5 del preflight son los de los cuerpos de la 0560, la 0558 y la propia 0567", () => {
     const m0567 = leer(`supabase/migrations/${M0567}`);
     expect(m0567).toContain(md5(prosrc(leer(`supabase/migrations/${M0560}`), "office_conteo_revisiones")));

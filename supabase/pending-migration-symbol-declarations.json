@@ -17,9 +17,9 @@
           "name": "chatwoot_contact_links.canal_chat",
           "kind": "column",
           "callSites": [
-            "app/studio/(app)/clientes/conversaciones-actions.ts:152",
-            "app/studio/(app)/clientes/conversaciones-actions.ts:156",
+            "app/studio/(app)/clientes/conversaciones-actions.ts:153",
             "app/studio/(app)/clientes/conversaciones-actions.ts:157",
+            "app/studio/(app)/clientes/conversaciones-actions.ts:158",
             "lib/studio/chatwoot/ficha-panel.ts:73",
             "lib/studio/chatwoot/ficha-panel.ts:80",
             "lib/studio/chatwoot/ficha-panel.ts:84",
@@ -41,7 +41,7 @@
           "degradation": "canalesVinculados es un adorno del tablero: si la lectura falla (columna ausente incluida) devuelve un mapa vacío y las tarjetas salen solo con el logo de su fuente."
         },
         {
-          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:158",
+          "site": "app/studio/(app)/clientes/conversaciones-actions.ts:159",
           "contains": "const canal = esCanalUnion(canalGuardado) ? canalGuardado : null;",
           "degradation": "Sin la columna la lectura previa a quitar no trae fila: canal queda en null, no se limpia ningún atributo en Chatwoot y la unión se quita igual por chatwoot_quitar_union (0554)."
         }
@@ -83,7 +83,7 @@
           "name": "chatwoot_vincular_contacto",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/bandeja/vincular-actions.ts:183",
+            "app/studio/(app)/bandeja/vincular-actions.ts:185",
             "lib/studio/chatwoot/vincular.ts:69"
           ]
         }
@@ -100,7 +100,7 @@
           "degradation": "«Mover aquí» no tiene equivalente en la 0554: responde sinMigracion sin escribir nada."
         },
         {
-          "site": "app/studio/(app)/bandeja/vincular-actions.ts:179",
+          "site": "app/studio/(app)/bandeja/vincular-actions.ts:181",
           "contains": "if (r.sinMigracion) return { ok: false, error: \"sin_migracion\" };",
           "degradation": "La Ficha DTD muestra «Todavía no se puede vincular: falta aplicar una migración.» y la conversación queda como estaba."
         }

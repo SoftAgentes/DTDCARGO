@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.12 (exclusiones del conteo y corrección de cierres) · 18/11/2026**
+**Versión 0.13 (la 0567 aplicada en producción) · 18/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -405,7 +405,7 @@ quedó en «5 de 10, 1 correctas» por dos cosas que no son del agente: una conv
 al conteo, y dos cierres quedaron guardados en «Falló» cuando Sam marcó «Cumple». `office_cierres` es de solo agregar
 y admite un cierre por conversación y etapa, así que no se puede editar ni repetir. Decisión del DG (18/11/2026): no se
 borra ni se edita nada (AUD-01); se agregan filas nuevas que dicen qué se corrige, por qué, quién y cuándo. Va en la
-migración **0567** (sin aplicar):
+migración **0567**, **aplicada en producción el 2026-11-18 a las 23:43:42Z** (ledger `version` 20261118234342, md5 `92701f0d57da88cd437d8ea44b5662a0`, 25780 bytes; evidencia `/srv/ops/evidencias/apply-0567-dtd-cargo-20261118T234341Z`; OK de Sam: «OK, aplica 0567»). Las filas de la tanda 1, escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30»:
 - **`office_conteo_exclusiones`**: conversación, etapa, motivo, actor y fecha; una por conversación y etapa. La
   conversación listada no cuenta en esa etapa, ni a favor ni en contra, y no aparece en «Conversaciones por cerrar».
 - **`office_cierres_correcciones`**: conversación, etapa, «cumple», motivo, actor y fecha; puede haber varias, y en el
@@ -625,6 +625,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
 
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 0.13 | 18/11/2026 | **La 0567, aplicada en producción** el 2026-11-18 a las 23:43:42Z, con el OK de Sam «OK, aplica 0567» (ledger `version` 20261118234342, md5 `92701f0d57da88cd437d8ea44b5662a0`, 25780 bytes, verificación PASÓ con los cuerpos vivos iguales; evidencia `/srv/ops/evidencias/apply-0567-dtd-cargo-20261118T234341Z`; paquete del SHA `1f8bad1b2`). Espera retirada y migración sellada en el candado. Las filas (excluir la 25, corregir la 27 y la 30), escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30» |
 | 0.12 | 18/11/2026 | **Etapa 1: exclusiones del conteo y corrección de cierres** (decisión del DG, tras la tanda 1): §3.5 suma la **0567** (sin aplicar) y su allowlist: `office_conteo_exclusiones` (la conversación excluida no cuenta) y `office_cierres_correcciones` (la última corrección reemplaza en el conteo al cierre original, que queda), de solo agregar, escritas solo por el dueño en una sesión directa con el OK nominal de Sam. La migración no escribe filas. La versión 0.11 (botón de pausa) va en su propia PR |
 | 0.10 | 18/11/2026 | **Ficha 0.3: el acuse en una respuesta** (pedido de Sam del 18/11/2026, tras la tanda 1 de la etapa 1, donde un saludo escaló con `eval:sin_acuse`): §3.5 suma la causa, el arreglo y su allowlist. Las instrucciones dicen que `texto` empieza con la frase de `acuse`, con un ejemplo; el acuse se compara por palabras, sin signos; y el despachador reintenta una vez solo por el acuse, dentro del tope de 2 llamadas. Los guiones siguen en v0.2. Sin migración. La versión 0.9 (botón de pausa) va en su propia PR |
 | 0.8 | 18/11/2026 | **Paso 4: la mini-vista** (pedido de Sam del 18/11/2026, con la etapa 1 ya encendida): cómo se construyó §3.6 y su allowlist. Página de solo lectura `/studio/admin/oficina/vista` (bandera, cola, eventos, bitácora y gasto del mes), solo para `is_platform_admin`, apagada por defecto con `OFICINA_VISTA_ACTIVA`. Sin migración: lee con el cliente de servicio, que solo se crea después del «sí» de `is_platform_admin()`. No pausa ni despausa. Mapa de pasos: Paso 4 construido |
