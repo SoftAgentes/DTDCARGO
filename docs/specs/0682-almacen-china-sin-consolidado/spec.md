@@ -1,7 +1,7 @@
 ---
 sdd: "0682"
 title: "Almacén China en una pantalla: en almacén, en camino y pendiente por liberar"
-status: draft
+status: proposed
 author: "Claude (Worker) + Sam"
 created: 2026-11-19
 updated: 2026-11-19
@@ -17,7 +17,7 @@ confidencialidad: interno
 > debería estar ahí: debería verse «en ruta», en una opción de «contenedores en camino». Y los embarques ya
 > no deberían salir en la lista activa.
 
-**Borrador, con las respuestas de Sam del 2026-11-19 (§5).** Nada de producto se toca hasta que Sam apruebe por el DG. Se midió solo en código y
+**Lista para aprobación (`proposed`), con todas las respuestas de Sam del 2026-11-19 (§5).** Nada de producto se toca hasta que Sam la apruebe por el DG y pase la revisión independiente. Se midió solo en código y
 migraciones (base `origin/main` `c04f18fca`); no se leyó ninguna fila de producción.
 
 ## 1. «Confirmen»: qué pasa hoy (medido)
@@ -149,7 +149,7 @@ El número lo da el DG cuando esté por programarse. Se aplica en producción so
   confirmó). `null` = sin liberar.
 - Confirmar y deshacer por un RPC gobernado: valida tenant y rol (equipo de China: `warehouse` y
   `operations`; `admin` siempre), exige el contenedor `zarpado` o `arribado`, es idempotente y deja evento en
-  `entity_audit_log`. Deshacer solo `operations` y `admin`, con motivo.
+  `entity_audit_log`. Deshacer solo `operations` y `admin`, con motivo (Sam, §5 respuesta 10).
 - El documento va al hub de documentos que ya existe: `documents` con `entity_type = 'consolidation'`
   (el tipo ya está en el enum, `supabase/migrations/0097_documentos_hub.sql:44`) y `doc_type` «Telex
   release». No hace falta tabla nueva. Falta verificar al programar que la RLS de `documents` deja subir al
@@ -240,6 +240,8 @@ Contestadas por Sam el 2026-11-19, vía el DG:
    Lo transmitió el 2026-11-19 la sesión de la SDD-0661, que coordina con Sam. Embarques abre en «Activos»
    (solo lo que pide trabajo en origen o en destino) y lo que va en el mar pasa a la pestaña nueva «En camino».
 
-Abiertas:
+10. **F, deshacer el telex:** **sí**. Literal: «Sí, está bien lo de la F. Quedó para operaciones y admin, sí»
+    (2026-11-19, vía el DG). Deshacer una confirmación de telex release queda solo para `operations` y
+    `admin`, con motivo (§2.4).
 
-- **F.** ¿Deshacer una confirmación de telex release queda solo para operaciones y admin, con motivo?
+No quedan preguntas abiertas.
