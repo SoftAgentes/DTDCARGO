@@ -52,7 +52,6 @@ describe("BandejaClient (SDD-0585)", () => {
   it("«Abrir de nuevo» pide un enlace nuevo aunque ya haya panel", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await waitFor(() => expect(document.querySelector("section[data-modo='completa']")).not.toBeNull());
     await userEvent.click(screen.getByRole("button", { name: "Abrir de nuevo" }));
     await waitFor(() => expect(marco()?.getAttribute("src")).toBe(SSO));
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
@@ -62,8 +61,6 @@ describe("BandejaClient (SDD-0585)", () => {
     pedirEnlaceSso.mockResolvedValueOnce({ ok: false, error: "denied" }).mockResolvedValueOnce({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
     expect(await screen.findByText("La bandeja no abrió")).toBeTruthy();
-    // Los roles se consultan cuando la capa ya eligió su modo (antes está oculta).
-    await waitFor(() => expect(document.querySelector("section[data-modo='pendiente']")).toBeNull());
     expect(screen.getByText("No tienes permiso para hacer esto.")).toBeTruthy();
     expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
     expect(marco()).toBeNull();
@@ -87,19 +84,23 @@ describe("BandejaClient (SDD-0585)", () => {
 
   it("SDD-0655: los vínculos ya no están en la Bandeja; el admin tiene el enlace a Usuarios", () => {
     const { rerender } = render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-    expect(screen.queryByRole("link", { name: "Agentes vinculados" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Agentes" })).toBeNull();
     rerender(
       <BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={{ agentesHref: "/studio/usuarios?tab=bandeja" }} />,
     );
-    expect(screen.getByRole("link", { name: "Agentes vinculados" }).getAttribute("href")).toBe("/studio/usuarios?tab=bandeja");
+    // SDD-0680: en la fila, con icono y «Agentes»; el nombre largo va en el título.
+    const enlace = screen.getByRole("link", { name: "Agentes" });
+    expect(enlace.getAttribute("href")).toBe("/studio/usuarios?tab=bandeja");
+    expect(enlace.getAttribute("title")).toBe("Agentes vinculados");
     // Ni el formulario de vincular ni el de alta: viven en Usuarios › Bandeja.
     expect(screen.queryByRole("button", { name: "Vincular" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Dar de alta" })).toBeNull();
   });
 
-  it("SDD-0655: la Bandeja no repite su propio título; la cabecera es la del CRM", () => {
+  it("SDD-0680: un solo título, «CRM», en la fila; la Bandeja no repite el suyo", () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    const titulos = screen.getAllByRole("heading", { level: 1 });
+    expect(titulos.map((h) => h.textContent)).toEqual(["CRM"]);
   });
 
   it("con vínculo reconcilia UNA vez al montar; sin vínculo no", async () => {
@@ -140,8 +141,7 @@ describe("BandejaClient (SDD-0585)", () => {
   });
 });
 
-const region = () => document.querySelector("section[aria-labelledby='bandeja-titulo']") as HTMLElement | null;
-const modo = () => region()?.dataset.modo;
+const region = () => document.querySelector("section[data-bandeja]") as HTMLElement | null;
 const AYUDA = /Oprime «Abrir de nuevo» una vez/;
 /** El de la franja; con aviso hay un segundo, el principal, al final. */
 const reabrirFranja = () => screen.getAllByRole("button", { name: "Abrir de nuevo" })[0] as HTMLButtonElement;
@@ -155,134 +155,88 @@ const drenar = (ms = 0) =>
     await vi.advanceTimersByTimeAsync(ms);
   });
 
-describe("BandejaClient · pantalla completa (SDD-0677)", () => {
-  it("antes de leer la preferencia no pinta ningún modo (sin destello en la hidratación)", () => {
-    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    expect(modo()).toBe("pendiente");
-    expect(region()?.style.visibility).toBe("hidden");
-    // El marco ya está montado y cargando.
-    expect(marco()?.getAttribute("src")).toBe(PANEL);
-  });
-
-  it("lista, abre a pantalla completa; Reducir y Esc vuelven a la vista compacta sin volver a montar el marco", async () => {
-    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await waitFor(() => expect(modo()).toBe("completa"));
-    const antes = marco();
-    expect(region()?.style.position).toBe("fixed");
-    expect(document.body.style.overflow).toBe("hidden");
-
-    await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
-    expect(modo()).toBe("compacta");
-    expect(document.body.style.overflow).toBe("");
-    // Mismo elemento y mismo src: no hay recarga ni login nuevo.
-    expect(marco()).toBe(antes);
-    expect(marco()?.getAttribute("src")).toBe(PANEL);
-    // El foco vuelve al botón que amplía.
-    const ampliar = screen.getByRole("button", { name: "Pantalla completa" });
-    expect(document.activeElement).toBe(ampliar);
-
-    await userEvent.click(ampliar);
-    expect(modo()).toBe("completa");
-    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Bandeja" }));
-    expect(marco()).toBe(antes);
-
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(modo()).toBe("compacta");
-    expect(marco()).toBe(antes);
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Pantalla completa" }));
-    expect(pedirEnlaceSso).not.toHaveBeenCalled();
-  });
-
-  it("Esc reduce solo con Escape, y no si hay un diálogo de Studio abierto encima", async () => {
-    const vista = (conDialogo: boolean) => (
-      <>
-        <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
-        {conDialogo ? <div role="dialog" aria-modal="true" /> : null}
-      </>
-    );
-    const { rerender } = render(vista(true));
-    await waitFor(() => expect(modo()).toBe("completa"));
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(modo()).toBe("completa");
-    rerender(vista(false));
-    fireEvent.keyDown(document, { key: "Enter" });
-    fireEvent.keyDown(document, { key: "a" });
-    expect(modo()).toBe("completa");
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(modo()).toBe("compacta");
-  });
-
-  it("en pantalla completa quedan inert solo las ramas del fondo; el toast, la guía y el BugFAB siguen vivos", async () => {
-    // La estructura real: body > div.studio-sys > [shell, toast, BugFAB, guía], sin portal.
-    render(
-      <div className="studio-sys">
-        <div data-testid="shell" style={{ display: "flex" }}>
-          <div data-capa-fondo="" style={{ display: "contents" }}>
-            <nav data-testid="menu">
-              <a href="/studio">Inicio</a>
-            </nav>
-          </div>
-          <main>
-            <div data-capa-fondo="" style={{ display: "contents" }}>
-              <header data-testid="barra">Barra</header>
-            </div>
-            <div className="studio-content">
-              <div data-capa-fondo="" data-testid="cabecera">
-                CRM
-              </div>
-              <BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />
-            </div>
-          </main>
-        </div>
-        <div role="region" aria-label="Notificaciones" data-testid="toast">
-          <button type="button">Ver</button>
-        </div>
-        <button type="button" data-testid="bugfab">Reportar</button>
-        <aside data-testid="guia">Guía</aside>
-        <div data-capa-fondo="" data-testid="ya-inerte" inert />
-      </div>,
-    );
-    const vivos = ["toast", "bugfab", "guia", "shell"];
-    const enFondo = ["menu", "barra", "cabecera"];
-    const inerte = (id: string) => screen.getByTestId(id).closest("[inert]") !== null;
-    await waitFor(() => expect(modo()).toBe("completa"));
-    for (const id of enFondo) expect(inerte(id)).toBe(true);
-    for (const id of vivos) expect(inerte(id)).toBe(false);
-    // La propia capa nunca queda inert.
-    expect(region()?.closest("[inert]")).toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
-    for (const id of [...enFondo, ...vivos]) expect(inerte(id)).toBe(false);
-    // Lo que ya estaba inert antes no se toca.
-    expect(screen.getByTestId("ya-inerte").hasAttribute("inert")).toBe(true);
-  });
-
-  it("lo del admin debajo del panel es fondo: queda inert en pantalla completa", async () => {
+describe("BandejaClient · la fila y el panel (SDD-0680, variante C)", () => {
+  it("una sola fila: «CRM», las pestañas que trae la página, el estado y las acciones; sin «Reducir» ni ayuda fija", async () => {
     render(
       <BandejaClient
         estado="listo"
         panelUrl={PANEL}
         inicioUrl={PANEL}
-        admin={{ descartados: [{ event_key: "message_created:1", event: "message_created", conversation_id: 7, attempts: 5, updated_at: "2026-11-18T03:00:00.000Z" }] }}
+        pestanas={<div role="tablist" aria-label="Tablero CRM" />}
+        admin={{ agentesHref: "/studio/usuarios?tab=bandeja" }}
       />,
     );
-    await waitFor(() => expect(modo()).toBe("completa"));
-    expect(screen.getByText("Eventos que no se pudieron procesar").closest("[inert]")).not.toBeNull();
+    expect(screen.getByRole("tablist", { name: "Tablero CRM" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Abriendo la bandeja…");
+    fireEvent.load(marco()!);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Conectada"));
+    expect(screen.getByRole("button", { name: "Abrir de nuevo" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Abrir en pestaña aparte" }).getAttribute("href")).toBe(PANEL);
+    expect(screen.getByRole("link", { name: "Agentes" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Reducir|Pantalla completa/ })).toBeNull();
+    expect(screen.queryByText(AYUDA)).toBeNull();
   });
 
-  it("recuerda en el navegador que la persona la redujo", async () => {
-    const { unmount } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await waitFor(() => expect(modo()).toBe("completa"));
-    await userEvent.click(screen.getByRole("button", { name: /Reducir/ }));
-    unmount();
+  it("el panel va sin marco, de borde a borde y con todo el ancho", () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await waitFor(() => expect(modo()).toBe("compacta"));
+    expect(marco()?.style.borderRadius).toBe("");
+    expect(marco()?.style.borderWidth || marco()?.style.border).toMatch(/^0(px)?$/);
+    expect(region()?.hasAttribute("data-ancho-completo")).toBe(true);
+    // Ya no hay capa fija sobre el shell ni se bloquea el desplazamiento.
+    expect(region()?.style.position).toBe("");
+    expect(document.body.style.overflow).toBe("");
   });
 
-  it("sin vínculo no hay capa a pantalla completa", () => {
-    render(<BandejaClient estado="sin_vinculo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-    expect(region()).toBeNull();
-    expect(document.body.style.overflow).toBe("");
+  it("el panel llega hasta el borde de abajo de la ventana, con un mínimo", async () => {
+    const alto = window.innerHeight;
+    const caja = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ top: 120 } as DOMRect);
+    try {
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+      await waitFor(() => expect(marco()?.parentElement?.style.height).toBe("780px"));
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 500 });
+      fireEvent(window, new Event("resize"));
+      await waitFor(() => expect(marco()?.parentElement?.style.height).toBe("480px"));
+    } finally {
+      caja.mockRestore();
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: alto });
+    }
+  });
+
+  it("«Abrir de nuevo» conserva el ancho (BTN-01 §5): las dos etiquetas en la misma celda, la de espera oculta", async () => {
+    let soltar: (v: unknown) => void = () => undefined;
+    pedirEnlaceSso.mockReturnValue(new Promise((r) => (soltar = r)));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    const boton = screen.getByRole("button", { name: "Abrir de nuevo" }) as HTMLButtonElement;
+    const [reposo, espera] = Array.from(boton.children) as HTMLElement[];
+    expect(reposo.style.gridArea).toBe(espera.style.gridArea);
+    expect(espera.style.visibility).toBe("hidden");
+    fireEvent.click(boton);
+    await waitFor(() => expect(boton.getAttribute("aria-busy")).toBe("true"));
+    expect(boton.disabled).toBe(true);
+    expect(reposo.style.visibility).toBe("hidden");
+    expect(espera.style.visibility).toBe("visible");
+    expect(espera.textContent).toBe("Abriendo…");
+    soltar({ ok: true, url: SSO });
+    await waitFor(() => expect(boton.getAttribute("aria-busy")).toBe("false"));
+  });
+
+  it("sin vínculo la fila sigue (pestañas y «Agentes» del admin), sin acciones del panel ni marco", () => {
+    render(
+      <BandejaClient
+        estado="sin_vinculo"
+        panelUrl={PANEL}
+        inicioUrl={null}
+        pestanas={<div role="tablist" aria-label="Tablero CRM" />}
+        admin={{ agentesHref: "/studio/usuarios?tab=bandeja" }}
+      />,
+    );
+    expect(screen.getByRole("tablist", { name: "Tablero CRM" })).toBeTruthy();
+    expect(screen.getByText("Tu usuario no tiene un agente de la bandeja")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Agentes" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Abrir de nuevo" })).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(marco()).toBeNull();
   });
 });
 
@@ -355,19 +309,17 @@ describe("BandejaClient · recuperación (SDD-0677)", () => {
     expect(screen.queryByText(AYUDA)).toBeNull();
   });
 
-  it("la ayuda aparece solo después de un fallo, y no junto al aviso", async () => {
+  it("SDD-0680: sin ayuda fija; si el marco carga después de «lento», el aviso se va y queda «Conectada»", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
-    await drenar();
-    expect(screen.queryByText(AYUDA)).toBeNull();
     await drenar(20_000);
-    // Con el aviso de «lento» a la vista, la ayuda no se repite.
     expect(screen.getByText(/tardando más de lo normal/)).toBeTruthy();
     expect(screen.queryByText(AYUDA)).toBeNull();
     fireEvent.load(marco()!);
     await drenar();
     expect(screen.queryByText("La bandeja no abrió")).toBeNull();
-    expect(screen.getByText(AYUDA)).toBeTruthy();
+    expect(screen.queryByText(AYUDA)).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Conectada");
   });
 
   it("tope de 3 aperturas cada 5 min: la cuarta no pide SSO y explica el freno", async () => {
@@ -555,8 +507,6 @@ describe("BandejaClient · recuperación (SDD-0677)", () => {
       pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
       render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
       await drenar();
-      // Sin preferencia legible abre a pantalla completa.
-      expect(modo()).toBe("completa");
       for (let i = 0; i < 4; i++) {
         fireEvent.click(reabrirFranja());
         await drenar();
@@ -580,5 +530,130 @@ describe("marcasVigentes (SDD-0677)", () => {
         ahora,
       ),
     ).toEqual([ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, ahora + VENTANA_SSO_MS - 1]);
+  });
+});
+
+/**
+ * SDD-0680 · la Bandeja abre sola. El 2026-11-19 la primera carga quedó en
+ * «Abriendo la bandeja…» con el POST de la action en `net::ERR_ABORTED`: la
+ * llamada a la server action RECHAZA (o no vuelve) y antes de 0680 nada lo
+ * atajaba. La fase quedaba en `pidiendo` para siempre, sin vigilante, y «Abrir
+ * de nuevo» seguía deshabilitado. Además, cada intento fallido gastaba cupo del
+ * freno aunque no hubiera login, y al tercero «Abrir de nuevo» ya no abría.
+ */
+describe("BandejaClient · abre sola (SDD-0680)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  });
+
+  it("si la llamada a la action rechaza (ERR_ABORTED), reintenta y abre: no se queda en «Abriendo la bandeja…»", async () => {
+    pedirEnlaceSso.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    await drenar(1500);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("si la action rechaza las tres veces, muestra el aviso y «Abrir de nuevo» queda habilitado y abre", async () => {
+    pedirEnlaceSso.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(6000);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+    expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
+    pedirEnlaceSso.mockReset();
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    expect(reabrirAviso().disabled).toBe(false);
+    fireEvent.click(reabrirAviso());
+    await drenar();
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("si la action no vuelve nunca, al vencer el plazo muestra el aviso y «Abrir de nuevo» recarga la página (la cola de Next sigue trabada, M1)", async () => {
+    const { PLAZO_ENLACE_MS, recargarPagina } = await import("../_components/BandejaClient");
+    const recargar = vi.spyOn(recargarPagina, "ahora").mockImplementation(() => undefined);
+    try {
+      pedirEnlaceSso.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValue({ ok: true, url: SSO });
+      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+      await drenar(PLAZO_ENLACE_MS - 1);
+      expect(screen.queryByText("La bandeja no abrió")).toBeNull();
+      await drenar(1);
+      expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+      expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
+      // No reintenta por la action: esperaría detrás del POST colgado.
+      await drenar(10_000);
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+      fireEvent.click(reabrirAviso());
+      expect(recargar).toHaveBeenCalledTimes(1);
+      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    } finally {
+      recargar.mockRestore();
+    }
+  });
+
+  it("una respuesta que llega después del plazo no cambia el marco ni la fase (B2)", async () => {
+    const { PLAZO_ENLACE_MS } = await import("../_components/BandejaClient");
+    let soltar: (v: unknown) => void = () => undefined;
+    pedirEnlaceSso.mockReturnValueOnce(new Promise((r) => (soltar = r)));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(PLAZO_ENLACE_MS);
+    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+    soltar({ ok: true, url: SSO });
+    await drenar();
+    expect(marco()).toBeNull();
+    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(0);
+  });
+
+  it("si llega el enlace pero otra pestaña llenó el cupo entretanto, no lo carga y explica el freno (B2)", async () => {
+    pedirEnlaceSso.mockImplementation(async () => {
+      const ahora = Date.now();
+      window.localStorage.setItem("dtd.bandeja.sso", JSON.stringify([ahora - 3000, ahora - 2000, ahora - 1000]));
+      return { ok: true, url: SSO };
+    });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/frena los ingresos repetidos/)).toBeTruthy();
+    expect(marco()).toBeNull();
+    // No suma una cuarta marca.
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(3);
+  });
+
+  it("un intento que no llegó a abrir nada no gasta el freno: tras tres fallos, «Abrir de nuevo» abre", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: false, error: "service" });
+    const { unmount } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(6000);
+    unmount();
+    // Dos recargas más que también fallan.
+    for (let i = 0; i < 2; i++) {
+      const r = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+      await drenar(6000);
+      r.unmount();
+    }
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(0);
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(screen.queryByText(/frena los ingresos repetidos/)).toBeNull();
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+    // El enlace que sí se cargó es el login: ese cuenta.
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(1);
+  });
+
+  it("el enlace se pide antes que la reconciliación: la reconciliación espera a que termine el SSO", async () => {
+    let soltar: (v: unknown) => void = () => undefined;
+    pedirEnlaceSso.mockReturnValue(new Promise((r) => (soltar = r)));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    // Next pone las server actions en una sola cola: si la reconciliación saliera
+    // primero, el SSO esperaría detrás de ella.
+    expect(reconciliar).not.toHaveBeenCalled();
+    soltar({ ok: true, url: SSO });
+    await drenar();
+    expect(reconciliar).toHaveBeenCalledTimes(1);
   });
 });

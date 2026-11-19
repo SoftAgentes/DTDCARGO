@@ -69,7 +69,7 @@ const SIN_MIGRACION: ReadonlySet<string> = new Set(["PGRST205", "42P01", "PGRST2
 async function fichaUnida(ctx: ContextoChatwoot, contactoId: number): Promise<FichaErp | null> {
   const { data: uniones, error } = await ctx.admin
     .from("chatwoot_contact_links")
-    .select("client_id")
+    .select("client_id, origen")
     .eq("tenant_id", ctx.tenantId)
     .eq("chatwoot_contact_id", contactoId)
     .limit(1);
@@ -77,7 +77,11 @@ async function fichaUnida(ctx: ContextoChatwoot, contactoId: number): Promise<Fi
     if (SIN_MIGRACION.has(error.code ?? "")) return null;
     throw new Error(`chatwoot_contact_links: ${error.code ?? "sin código"}`);
   }
-  const clientId = Array.isArray(uniones) ? (uniones[0] as { client_id?: unknown } | undefined)?.client_id : null;
+  const union = Array.isArray(uniones) ? (uniones[0] as { client_id?: unknown; origen?: unknown } | undefined) : undefined;
+  // El contacto del portal (0519) solo lleva a Chatwoot su nombre y su identificador: su
+  // unión existe para reconocerlo en Studio, no para escribirle el segmento ni el Shipping Mark.
+  if (union?.origen === "portal") return null;
+  const clientId = union?.client_id;
   if (typeof clientId !== "string") return null;
 
   const { data: fichas, error: errorFicha } = await ctx.admin
