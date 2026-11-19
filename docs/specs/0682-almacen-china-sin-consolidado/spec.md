@@ -1,7 +1,7 @@
 ---
 sdd: "0682"
 title: "Almacén China en una pantalla: en almacén, en camino y pendiente por liberar"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-19
 updated: 2026-11-19
@@ -17,7 +17,7 @@ confidencialidad: interno
 > debería estar ahí: debería verse «en ruta», en una opción de «contenedores en camino». Y los embarques ya
 > no deberían salir en la lista activa.
 
-**Lista para aprobación (`proposed`), con todas las respuestas de Sam del 2026-11-19 (§5).** Nada de producto se toca hasta que Sam la apruebe por el DG y pase la revisión independiente. Se midió solo en código y
+**Aprobada por Sam el 2026-11-19.** Texto literal, en el chat del DG: «Sí, apruebo 0682». Antes contestó todas las preguntas del §5 y la spec pasó la revisión independiente. La implementación va en su propia tarea, después de fusionar esta spec; la migración del §2.4 recibe número del DG al programarse y se aplica en producción solo con OK de Sam. Se midió solo en código y
 migraciones (base `origin/main` `c04f18fca`); no se leyó ninguna fila de producción.
 
 ## 1. «Confirmen»: qué pasa hoy (medido)
@@ -254,3 +254,5 @@ Contestadas por Sam el 2026-11-19, vía el DG:
     `admin`, con motivo (§2.4).
 
 No quedan preguntas abiertas.
+
+**Aprobación:** Sam, 2026-11-19, en el chat del DG: «Sí, apruebo 0682».
