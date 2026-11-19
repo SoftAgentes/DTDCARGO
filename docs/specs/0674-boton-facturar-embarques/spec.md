@@ -581,3 +581,15 @@ Los no bloqueantes de la primera revisión también quedaron atendidos:
 ## 10. Evidencia
 
 Se registra en `.agents/handoffs/sdd-0674-boton-facturar-embarques.md`.
+
+- **Aplicada en producción** (runbook `docs/runbooks/aplicar-migraciones-prod.md`):
+  - OK nominal de Sam, literal: «OK, aplica 0563 y 0564».
+  - COMMIT: 2026-11-18 23:38:29Z. `version` del ledger: `20261118233829`; `created_by`: `servidor-propio:psql:SDD-0674`. El ledger queda con 559 filas.
+  - Una fila en el ledger, md5 `98c061b05735b1b12bd63e2a3c1d3b2a`, 36660 bytes. Verificación PASÓ: cuerpos
+    vivos iguales al archivo.
+  - Evidencia: `/srv/ops/evidencias/apply-0564-dtd-cargo-20261118T233828Z`. Paquete del SHA `8dec3ee29`,
+    el merge de la PR #684 (2026-11-18 23:08:00Z).
+  - Cierre (§6): `retirar-espera.mjs` salió con 0. Quitó la espera de `migrations-baseline.json` y las 3
+    declaraciones, y selló la 0564 en `migrations.lock.json` (sha256 `51c99c4f…`). `migrations-lock.mjs`
+    salió con 0.
+  - La lista `exc0674_contenedores` sigue **vacía**. Agregar el 64 lleva otro OK nominal de Sam.
