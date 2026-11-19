@@ -61,6 +61,21 @@ export interface CrmFichaTarjeta {
     autor: string | null;
     creadaAt: string;
   }[];
+  /**
+   * SDD-0676: tarjetas de lead que esta tarjeta absorbió cuando su chat se vinculó a
+   * la ficha del cliente. No se movió nada: es su historial, tal como quedó, solo para
+   * leer. Si se quita la unión, la tarjeta vuelve a su tablero y sale de aquí.
+   */
+  absorbidas?: CrmTarjetaAbsorbida[];
+}
+
+export interface CrmTarjetaAbsorbida {
+  id: string;
+  fuente: string;
+  creadaAt: string;
+  historial: CrmFichaTarjeta["historial"];
+  tareas: CrmFichaTarjeta["tareas"];
+  notas: CrmFichaTarjeta["notas"];
 }
 
 export const ORIGEN_MOVIMIENTO_LABEL: Record<string, string> = {

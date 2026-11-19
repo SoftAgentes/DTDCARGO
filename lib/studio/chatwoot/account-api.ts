@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ChatwootConfig } from "./config";
 import type { ChatwootError, ChatwootResult } from "./chatwoot-types";
-import { interpretarConversacion, type ConversacionChatwoot } from "./webhook-events";
+import { interpretarContacto, interpretarConversacion, type ConversacionChatwoot } from "./webhook-events";
 
 /**
  * API de cuenta de Chatwoot, leída con el token DEL AGENTE (SDD-0585, E2-D22).
@@ -70,7 +70,7 @@ export async function obtenerConversacion(
   cfg: ChatwootConfig,
   tokenAgente: string,
   conversacionId: number,
-): Promise<ChatwootResult<ConversacionChatwoot>> {
+): Promise<ChatwootResult<ConversacionDelAgente>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -85,14 +85,28 @@ export async function obtenerConversacion(
         res.status === 401 || res.status === 403 ? "no_autorizado" : res.status === 404 ? "no_encontrado" : `http_${res.status}`;
       return { ok: false, error };
     }
-    const c = interpretarConversacion(await res.json().catch(() => null));
+    const crudo: unknown = await res.json().catch(() => null);
+    const c = interpretarConversacion(crudo);
     if (!c || c.id !== conversacionId) return { ok: false, error: "respuesta_invalida" };
-    return { ok: true, data: c };
+    // SDD-0676: del contacto solo salen su id y el tipo de bandeja; el nombre no.
+    const contacto = interpretarContacto(crudo);
+    return { ok: true, data: { ...c, contactoId: contacto.contactoId, canal: contacto.canal } };
   } catch {
     return { ok: false, error: "red" };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * La conversación que el agente puede abrir, con el id de su contacto y el tipo
+ * de bandeja (SDD-0676): la unión contacto ↔ ficha se busca y se escribe con
+ * ese id. Los dos campos extra no viajan a `chatwoot_registrar_evento` salvo el
+ * id, que va en su propio parámetro.
+ */
+export interface ConversacionDelAgente extends ConversacionChatwoot {
+  contactoId: number | null;
+  canal: string | null;
 }
 
 /**

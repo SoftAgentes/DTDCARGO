@@ -2,7 +2,7 @@
 
 - Rama: `feat/sdd-0673-partir-embarque` · worktree `eager-gould-b7167d` · PR SoftAgentes/DTDCARGO#685 (lista para revisión).
 - Spec: `docs/specs/0673-partir-embarque-y-referencia-de-grupo/spec.md` (in-progress). D1-D3 decididas por el DG el 2026-11-18 con la recomendación; Sam puede cambiarlas.
-- Migración `0563_partir_embarque_y_medidas` (número del DG). **No aplicada.** Espera en `supabase/migrations-baseline.json`, degradación declarada en `supabase/pending-migration-symbol-declarations.json`, desarme de la 0563 en `supabase/desarmes/`.
+- Migración `0563_partir_embarque_y_medidas` (número del DG). **Aplicada en producción el 2026-11-19 01:37:17Z** (ver al final). La espera en `supabase/migrations-baseline.json` y la degradación declarada en `supabase/pending-migration-symbol-declarations.json` se retiraron en la #698, que además la selló en `supabase/migrations.lock.json`. El desarme de la 0563 sigue en `supabase/desarmes/`.
 
 ## Qué hay
 
@@ -59,3 +59,24 @@
 - Ofrecer «Corregir medidas» y «Partir» también desde el panel de Embarques.
 - (Revisión Opus, punto 6) `PATCH /api/studio/shipments/[id]` (`route.ts:125-135`) todavía escribe `weight_kg` y `volume_m3` sueltos, sin pasar por `correct_shipment_measures`.
 - (Revisión Opus, punto 7) El grupo de WeChat, como cualquier columna de `shipments`, se puede leer desde el Portal por PostgREST: la policy «shipments portal self read» (0416) filtra por fila, no por columna. Ninguna pantalla lo muestra; el riesgo es bajo.
+
+## 2026-11-18 · Preflight de la 0563 contra producción (rama `fix/sdd-0673-md5-sync-boxes-cloud`)
+
+- La lectura previa en producción abortó sin escribir: «0563 abortada: sync_boxes_for_receipt no es la de la 0241».
+- Medido por el DG en el catálogo, solo lectura: el `prosrc` de producción tiene md5 `7cb66f72fc71ea058d7f46fb0551eb05` y 2004 caracteres.
+- Es el cuerpo de la 0241 (`a6e9542f…`, 2078 caracteres) sin sus líneas de solo comentario, como lo dejó Supabase Cloud. Lo comprobé con el archivo del repo.
+- El preflight ahora acepta los dos md5.
+- Pruebas: la 0241 sin líneas de comentario pasa el contrato entero, y otro cuerpo aborta. Contrato: PASÓ (34/34).
+
+## 2026-11-19 · 0563 aplicada en producción y cierre
+
+- Aplicada el 2026-11-19 a las 01:37:17Z: `version` 20261119013717, md5 `0bd55ef482794f52bb0baffdf2376352`, 51433 bytes.
+- Verificación PASÓ, con los cuerpos vivos iguales. El paquete se armó desde el SHA `6ac848871` (#693).
+- Evidencia: `/srv/ops/evidencias/apply-0563-dtd-cargo-20261119T013717Z`.
+- OK de Sam, por el DG: «OK, aplica 0563 y 0564», y «si».
+- Cierre (rama `chore/sdd-0673-cierre-0563`):
+  - `retirar-espera.mjs … --md5 0bd55ef4…`: exit 0. Quitó la espera y 1 declaración, y selló sha256 `a193fd5d…`. `revisarAMano` salió vacío.
+  - `migrations-lock`: 548 selladas, 0 nuevas sin sellar.
+  - Pruebas del candado (`node --test`, 31/31), `check-migrations-applied` y el contrato de la 0563 (vitest, 70/70): PASÓ.
+  - Busqué a mano pruebas que afirmen la espera de la 0563: no hay. Las coincidencias de «0563» en contabilidad son de la SDD-0563, no de esta migración.
+- La oficina ya puede usar «Corregir medidas» y «Partir embarque» en la ficha del embarque.
