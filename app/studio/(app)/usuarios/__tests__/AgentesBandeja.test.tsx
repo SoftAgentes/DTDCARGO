@@ -174,4 +174,37 @@ describe("AgentesBandeja · rediseño (SDD-0680, variante 1)", () => {
       expect(espera.style.visibility).toBe("hidden");
     }
   });
+
+  it("con la lista incompleta ofrece «Otro agente», que pide el número y deja el select sin nombre", async () => {
+    render(
+      <AgentesBandeja
+        vinculos={[]}
+        miembros={[{ userId: "u3", nombre: "Luis" }]}
+        agentes={[AGENTES[1]]}
+        agentesCompletos={false}
+      />,
+    );
+    const vincular = screen.getByRole("region", { name: "Ya tiene agente en Chatwoot: vincularlo" });
+    await userEvent.selectOptions(within(vincular).getByLabelText(/^Persona de Studio/), "u3");
+    const agente = within(vincular).getByLabelText(/Agente de Chatwoot/) as HTMLSelectElement;
+    expect(within(vincular).getByText(/No pudimos leer todos los agentes/)).toBeTruthy();
+    await userEvent.selectOptions(agente, "otro");
+    expect(agente.name).toBe("");
+    const numero = within(vincular).getByLabelText(/Número del agente en Chatwoot/) as HTMLInputElement;
+    expect(numero.name).toBe("chatwoot_user_id");
+  });
+
+  it("con la lista incompleta no dice que todos tienen vínculo: pide el número", () => {
+    render(
+      <AgentesBandeja
+        vinculos={[{ userId: "u1", nombre: "Ana", chatwootUserId: 2 }]}
+        miembros={[{ userId: "u3", nombre: "Luis" }]}
+        agentes={[AGENTES[0]]}
+        agentesCompletos={false}
+      />,
+    );
+    expect(screen.queryByText(/Todos los agentes de la cuenta ya tienen vínculo/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Vincular" })).toBeTruthy();
+    expect((screen.getByLabelText(/Número del agente en Chatwoot/) as HTMLInputElement).name).toBe("chatwoot_user_id");
+  });
 });

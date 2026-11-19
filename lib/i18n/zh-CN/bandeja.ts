@@ -27,6 +27,7 @@ export const bandeja: BandejaDict = {
   "bandeja.state.retrying": "正在连接收件箱…（第 {n} 次，共 {total} 次）",
   "bandeja.recover.title": "收件箱没有打开",
   "bandeja.recover.service": "消息服务器在 {total} 次尝试后仍未响应。请稍后重新打开。",
+  "bandeja.recover.timeout": "收件箱未能及时响应。请点击「重新打开」：页面将重新加载。",
   "bandeja.recover.slow": "收件箱加载得比平时慢。",
   "bandeja.recover.throttle": "Chatwoot 会限制频繁登录。请等几分钟，或在新标签页中打开。",
 
@@ -42,6 +43,9 @@ export const bandeja: BandejaDict = {
   "bandeja.links.agent_id": "Chatwoot 坐席编号",
   "bandeja.links.agent_id_help": "无法读取 Chatwoot 的坐席列表。请填写 Chatwoot › 设置 › 坐席 中该坐席旁显示的编号。",
   "bandeja.links.agent": "Chatwoot 坐席",
+  "bandeja.links.agent_other": "其他坐席：填写编号…",
+  "bandeja.links.agents_incomplete": "无法读取 Chatwoot 的全部坐席。如果没有列出，请选择「其他坐席」并填写编号。",
+  "bandeja.links.agent_id_help_other": "编号显示在 Chatwoot › 设置 › 坐席 中该坐席旁边。",
   "bandeja.links.agent_placeholder": "选择坐席",
   "bandeja.links.agent_help": "只列出该账户中尚未绑定的坐席。邮箱相同的排在最前。",
   "bandeja.links.no_agents": "该账户的所有坐席都已绑定。如果此人还没有坐席，请在旁边的卡片中创建。",
