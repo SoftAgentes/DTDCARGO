@@ -343,14 +343,17 @@ const nextConfig: NextConfig = {
           : h,
     );
     // Ficha DTD (SDD-0585, paso 2.4, E2-D28): la Dashboard App que Chatwoot
-    // enmarca al lado de cada conversación. SOLO el chat puede enmarcarla:
-    // `frame-ancestors <chat>` y sin `X-Frame-Options` (no sabe nombrar un
-    // origen; con DENY el navegador la bloquearía). El resto, la CSP estricta.
+    // enmarca al lado de cada conversación. Solo el chat y Studio la pueden
+    // enmarcar, sin `X-Frame-Options` (no sabe nombrar un origen; con DENY el
+    // navegador la bloquearía). El resto, la CSP estricta.
+    // SDD-0680: dentro de /studio/bandeja la ficha queda enmarcada DOS veces
+    // (Studio › chat › ficha) y `frame-ancestors` revisa todos los ancestros:
+    // sin `'self'`, el de arriba (Studio) la bloquea y sale en blanco.
     const fichaChatHeaders = securityHeaders
       .filter((h) => h.key !== "X-Frame-Options")
       .map((h) =>
         h.key === "Content-Security-Policy"
-          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
+          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors 'self' ${chatwootOrigin}`) }
           : h,
       );
     // Salida de Studio (SDD-0585, paso 2.7, E2-D13): `/studio/cerrar-chat` abre
