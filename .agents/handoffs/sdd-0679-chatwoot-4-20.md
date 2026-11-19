@@ -43,7 +43,7 @@ Preparar y dejar lista la subida de Chatwoot de v4.19.1-ce a v4.20.0-ce, que Sam
 | Fase A · 4 `prueba-redaccion-canales.sh` (02:57Z–03:02Z) | **PASÓ**, 44/0. Los 16 tipos de línea (T1.1–T1.16) siguen en la imagen y quedan tapados; T1w tapa `entry` en los webhooks de Meta. Controles en rojo: C1 (24 valores aparecen sin el inicializador) y M1–M14 (cada patrón quitado hace reaparecer su valor) |
 | Fase A · `smoke-guia.mjs` | NO EJECUTADO: necesita un agente y una conversación sintéticos con el ensayo conservado. No es vuelta atrás; la guía se mira en S13 después de la subida |
 | Fase B (copia en el VPS) | NO EJECUTADO: el DG la omitió el 2026-11-19 (el tráfico entra casi todo por Kommo y el respaldo del §3 cubre). La receta queda en el §9 del runbook |
-| Fase C (cuenta 2) | NO EJECUTADO: va después de la subida real, con el OK de Sam para reactivar la cuenta y suspenderla al terminar |
+| Fase C (cuenta 2) | NO EJECUTADO. La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable. |
 
 Logs de las cuatro corridas: en el scratchpad de la sesión, fuera del repo (solo datos sintéticos). Al terminar no quedó ningún contenedor de Chatwoot.
 
@@ -77,7 +77,7 @@ Correcciones del runbook por lo medido:
 
 ## PENDIENTES DE ESTA TAREA
 
-- **V7 y S10–S13**: reactivar la cuenta 2, SSO y Bandeja, Ficha DTD, `prueba-punta-a-punta.sh 2`, chat del portal de prueba, guía de la Bandeja, y suspender otra vez la cuenta 2. Todo escribe en el Chatwoot de producción, en la cuenta de prueba. Esta sesión no lo corrió: el OK de Sam («Sí, reactiva y suspende (Recomendado)») se lo dio a Sam al DG en su chat y llegó a esta sesión reenviado por otra sesión. Un OK reenviado no autoriza a esta sesión a escribir en producción (AGENTS: aprobación concreta de Sam). Además, S10, S11 y S13 piden un navegador con un usuario de Studio vinculado. Lo corre el DG, o Sam autoriza aquí directamente.
+- **V7 y S10–S13**: La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable. Esta sesión no escribe en producción con un OK reenviado.
 - Cierre (aceptación 8): cabeceras de los inicializadores, `IMAGEN_CHATWOOT` de los dos ensayos, `chatwoot-selectores.json`, Uptime Kuma y fila del Registro (ya escrita). La imagen vieja **no** se borra todavía (pedido del DG).
 
 ## FUERA DE ALCANCE DETECTADO
