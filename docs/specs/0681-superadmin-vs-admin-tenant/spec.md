@@ -174,7 +174,8 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 | P4 | Cada empresa tiene un **admin principal** (el dueño), que puede nombrar otros admins. Los demás admins no pueden borrarlo. | Aparece un tercer nivel dentro del tenant: **admin principal** > admin > los demás roles. Ver 7.2. |
 | P4 | Solo el admin principal ve el «log fuerte»: qué se borró y las eliminaciones por usuario, con más detalle. Los otros admins ven los logs, pero no pueden borrarlos. El superadmin ve todo, «hasta lo que no hacen». | Hay dos niveles de auditoría en el tenant y uno de plataforma. Ver 7.3. |
 | P6 | Solo superadmin. | Debug, errores y actualizaciones de Chatwoot pasan a ser solo del superadmin (H4). Ya se puede hacer con DTD como único tenant. |
-| P7 | Un solo superadmin. Se crea una función para que el superadmin le dé superadmin a otro, **temporal** (con fecha límite, por ejemplo «te doy dos horas») o **permanente**, siempre con log. El secundario no puede borrar al primero. | Hay un superadmin **primario** y delegaciones con vencimiento. Ver 7.4. |
+| P7 | Un solo superadmin. Se crea una función para que el superadmin le dé superadmin a otro, **temporal** (con fecha límite, por ejemplo «te doy dos horas») o **permanente**, siempre con log. El secundario no puede borrar al primero. | Hay un rango de superadmin **primario** y delegaciones con vencimiento. «Un solo superadmin» se lee como un primario: en DTD son dos cuentas de Sam con el mismo rango. Ver 7.4. |
+| P5 | «si» al modelo mixto que recomendó el DG. | La plataforma fija para cada empresa el tope mensual en USD y los modelos o proveedores; el admin de la empresa configura sus agentes dentro de eso; al llegar al 80 % del tope se avisa a los dos. Ver 7.5 y la fase 9 de §8. |
 
 ### 7.2 Admin principal
 
@@ -201,14 +202,18 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 
 ### 7.4 Superadmin primario y delegación
 
-- Hay **un** superadmin primario. Según el encargo del DG, hay 2 filas en `platform_admins`; el dato viene de una fuente del 2026-08-07 y no lo medí en producción. Qué pasa con la segunda (convertirla en delegación permanente o quitarla) lo decide Sam; no se toca sin su OK nominal.
-- **Delegación:**
-  - El primario le da superadmin a otra persona con un vencimiento (horas o fecha) o de forma permanente.
+- **El rango primario.** «Un solo superadmin» se lee como un rango primario, no como una sola cuenta.
+  - En DTD **se quedan las dos** filas de `platform_admins` como superadmin primario. Son dos cuentas de Sam con el mismo rango, que creó por precaución por si pierde un correo. El dato de las 2 filas viene de una fuente del 2026-08-07 y no lo medí en producción.
+  - En la lista de usuarios del Studio, las dos cuentas tienen que **verse marcadas como superadmin**. Hoy esa lista no marca a nadie.
+  - Principio de Sam para los demás tenants: cualquiera de las dos cuentas tiene acceso a esas empresas. Cómo entra es P3.
+  - Propuesta: entre dos primarios, ninguno quita al otro desde la app; pendiente de confirmar.
+- **Delegación (sin cambios):**
+  - Un primario le da superadmin a otra persona con un vencimiento (horas o fecha) o de forma permanente.
   - El delegado tiene los poderes de superadmin hasta que vence.
   - Propuesta: el delegado no puede delegar ni quitarle nada al primario; pendiente de confirmar.
   - Toda alta, vencimiento y baja deja log.
 - **Qué cambia en la base:**
-  - `platform_admins` suma tipo (primario o delegado), quién la dio, vence y motivo.
+  - `platform_admins` suma tipo (primario o delegado), quién la dio, vence y motivo. Las dos filas actuales pasan a primario.
   - `is_platform_admin()` deja de contar las filas vencidas.
   - La función de delegar exige ser primario.
   - Hoy las altas solo se hacen con `service_role` y sin auditoría (`0058:15-17`); eso deja de ser el único camino.
@@ -223,7 +228,7 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
   - **Hecho técnico:** hoy, con dos membresías activas, `get_user_tenant_id()` devuelve NULL (`0453:242-246`) y la RLS deja de responder (H2). Entrar «como miembro» de varias empresas exige elegir un tenant activo.
   - **Hecho técnico:** la franja «MODO PLATAFORMA» que planteaba la `0058:13` no existe en el Studio; no encontré ningún componente que la pinte.
   - **Propuesta para decidir:** una membresía de soporte por tenant, marcada como superadmin. Mientras el superadmin está dentro de una empresa, el Studio la muestra con una franja y una marca distintas. La membresía no cuenta como usuario de la empresa ni aparece en su lista de equipo.
-- **P5: agentes de IA y su presupuesto.** Sam se inclina por el admin de la empresa. La recomendación se la da el DG; estos son los pros y contras para esa recomendación:
+- **P5: agentes de IA y su presupuesto. Ya está decidido (ver 7.1).** Sam se inclinaba por el admin de la empresa. Dejo como registro los pros y contras con que se decidió:
 
   | Opción | A favor | En contra |
   |---|---|---|
@@ -231,7 +236,7 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
   | Lo configura el superadmin | Control del costo y de los modelos permitidos. Nada se enciende sin revisión. | Cada cambio es un pedido a la plataforma. No escala con muchas empresas. |
   | Mixto: el superadmin fija el techo y los modelos, el admin configura dentro | Autonomía con límite. Coincide con la regla de módulos de P1. | Una pieza más que construir: el techo por tenant. |
 
-  **Recomendación del DG (2026-11-19), pendiente de que Sam la confirme: el modelo mixto.**
+  **Decisión de Sam (2026-11-19): «si» al modelo mixto que recomendó el DG.**
 
   - La plataforma (superadmin) fija, por empresa, el tope mensual en USD y los modelos o proveedores permitidos.
   - El admin de la empresa configura sus agentes dentro de ese tope y con esos modelos.
@@ -246,8 +251,8 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 | 2 | P6: debug, errores y actualizaciones de Chatwoot solo para el superadmin. Junto con eso: el sidebar respeta los 4 módulos SA (H7) y los avisos dejan de depender de datos del cliente (H6). | App, y base donde haya RPC | Nada |
 | 3 | P4 · admin principal: la marca, la protección y que pueda nombrar admins (ajuste de los disparadores de la 0545). | SDD propia, migración y app | Confirmar 7.2 |
 | 4 | P4 · auditoría: el «log fuerte» solo para el admin principal y el superadmin, y verificar que nadie borra logs. Lo de plataforma va aparte. | SDD propia, app y base | Fase 3; confirmar 7.3 |
-| 5 | P7 · superadmin primario y delegación con vencimiento y log. | SDD propia, migración | Decidir la segunda fila (7.4) |
+| 5 | P7 · rango primario (las dos cuentas de Sam en DTD), su marca en la lista de usuarios y la delegación con vencimiento y log. | SDD propia, migración y app | Confirmar las propuestas de 7.4 |
 | 6 | P3 · vía de soporte en otra empresa: tenant activo, membresía de soporte y marca visual. | SDD propia, migración y app | Decidir P3 |
 | 7 | P2 · catálogo de módulos por tenant: los 4 de DTD no se ofrecen fuera de DTD. | App y base | Llega con el segundo tenant |
 | 8 | Integraciones por tenant (H5). | SDD propia por integración | Fase 6 |
-| 9 | P5 · agentes de IA con el modelo mixto: tope mensual en USD y modelos por empresa, fijados por la plataforma; el admin configura dentro; aviso a los dos al 80 %. | App y base | Que Sam confirme la recomendación del DG |
+| 9 | P5 · agentes de IA con el modelo mixto: tope mensual en USD y modelos por empresa, fijados por la plataforma; el admin configura dentro; aviso a los dos al 80 %. | App y base | Nada: decidido |
