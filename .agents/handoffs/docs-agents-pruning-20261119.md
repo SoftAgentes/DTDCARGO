@@ -86,7 +86,7 @@ Nota: `pnpm` ejecutó instalación de dependencias en el worktree durante los ch
 - `280203fa4` — `docs(norte): retirar back Norte y su mencion en el organigrama` (borrado 2 archivos + organigrama; 1+/222−)
 - `c59f6b297` — `chore(handoff): cierre de docs-agents-pruning-20261119` (este handoff).
 - `48207f65d` — `chore(handoff): registrar PR #706 en el handoff`. Cabeza de partida del seguimiento.
-- SHA pendiente — `docs(agents): atender revision de PR #706 (handoff honesto, punteros y multi-tenant)` (handoff + project-rules.md; solo los 2 archivos del allowlist del seguimiento).
+- `ee154c39a` — `docs(agents): atender revision de PR #706 (handoff honesto, punteros y multi-tenant)` (handoff + project-rules.md; solo los 2 archivos del allowlist del seguimiento). **Cabeza nueva del seguimiento.**
 
 Detalle de proceso: un primer intento de commits absorbió el borrado staged del back Norte dentro del commit de AGENTS.md; se reorganizó con `git reset --mixed` **propio, local y no publicado** (nada destructivo, trabajo conservado) para dejar una unidad lógica por commit. Árbol limpio al cierre.
 
