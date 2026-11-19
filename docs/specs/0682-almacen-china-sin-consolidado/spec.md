@@ -159,7 +159,10 @@ El número lo da el DG cuando esté por programarse. Se aplica en producción so
 Se descartó usar solo el documento como prueba de liberación: Sam quiere que China pueda confirmar sin
 adjuntar nada, y un adjunto no dice por sí solo que la naviera ya liberó.
 
-### 2.5 Embarques: maqueta antes y después, sin programar
+### 2.5 Embarques: opción (a), elegida por Sam con la maqueta
+
+**Decisión de Sam (2026-11-19, §5 respuesta 9): opción (a).** Lo que sigue describe lo que se vio en la
+maqueta y lo que se programa.
 
 Sam quiere **ver** cómo quedaría antes de cambiar nada, y cree que Embarques no debería cambiar. La maqueta
 está en [`assets/maqueta-embarques.html`](assets/maqueta-embarques.html) (datos inventados), publicada
@@ -176,8 +179,9 @@ cambio exacto propuesto, opción (a):
   `lib/shared/shipment-public.ts:143-157`. La insignia verde «Liberado» aparece en el encabezado del
   contenedor (§2.3).
 
-Si Sam decide que Embarques no cambia, solo entra la insignia «Liberado», que es de solo lectura y no
-mueve la lista. La opción (b) (plegar los zarpados) queda descartada salvo que la pida.
+La alternativa «sin cambio, solo la insignia» y la opción (b) (plegar los zarpados) quedan descartadas.
+La regla de las pestañas vive en un solo lugar (`lib/studio/shipment-queries.ts`), para que el conteo y el
+filtro no se separen.
 
 ## 3. Fuera de alcance
 
@@ -195,6 +199,8 @@ mueve la lista. La opción (b) (plegar los zarpados) queda descartada salvo que 
 - Contrato SQL de la migración del §2.4: el RPC rechaza otro tenant, roles sin permiso y contenedores que no
   zarparon; es idempotente; deshacer pide motivo; todo deja auditoría.
 - Componente: las tres vistas, el aviso «N consolidadas no se muestran» y la redacción del nombre para China.
+- Unitarias de las pestañas de Embarques, opción (a): «Activos» sin `shipped` ni `in_transit`, «En camino»
+  con solo esos dos, la pantalla abre en «Activos», y el conteo de cada pestaña es igual a su filtro.
 - Cierre con `pnpm verify` en turno de PC del DG; `/ui-check` por ser UI.
 
 ## 5. Respuestas y preguntas abiertas
@@ -230,8 +236,10 @@ Contestadas por Sam el 2026-11-19, vía el DG:
    antes de la ETA.
 8. **D:** el contador son los días que faltan para la ETA.
 
+9. **E, Embarques:** Sam vio la maqueta y eligió **(a)**. Literal: «Lo de embarques me gustó, el después. a».
+   Lo transmitió el 2026-11-19 la sesión de la SDD-0661, que coordina con Sam. Embarques abre en «Activos»
+   (solo lo que pide trabajo en origen o en destino) y lo que va en el mar pasa a la pestaña nueva «En camino».
+
 Abiertas:
 
-- **E.** Embarques: con la maqueta a la vista, ¿(a), o Embarques no cambia y solo entra la insignia
-  «Liberado»?
 - **F.** ¿Deshacer una confirmación de telex release queda solo para operaciones y admin, con motivo?
