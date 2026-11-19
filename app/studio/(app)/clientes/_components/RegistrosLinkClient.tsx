@@ -155,6 +155,8 @@ function RegistroCard({ row, canEdit }: { row: RegistroLinkReviewRow; canEdit: b
           </Link>
           <span style={{ font: "500 13px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginLeft: 10 }}>
             {row.clientName ?? "—"} · se registró el {fecha(row.usedAt)}
+            {/* SDD-0672 · el link lo pidió el cliente desde «Entrar», no un asesor. */}
+            {row.origen === "autoservicio" ? " · lo pidió desde «Entrar»" : ""}
           </span>
         </div>
         <span style={{ display: "inline-flex", gap: "var(--s-2)", alignItems: "center" }}>

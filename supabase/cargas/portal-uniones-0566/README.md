@@ -18,6 +18,16 @@ No es urgente. Sin el relleno el portal sigue funcionando: con la 0566 ningún e
 
 No toca una unión que ya existe, no crea uniones de fichas borradas, no cambia el cliente de ninguna conversación y no llama a Chatwoot. Solo maneja ids.
 
+## Antes de pedir el OK: el conteo de solo lectura
+
+`conteo.sql` (en esta carpeta) es una sola consulta que devuelve **conteos**, sin nombres, teléfonos, correos, textos ni ids. No crea nada, ni siquiera tablas temporales, y termina en `rollback`. Es lo que se le lleva a Sam para decidir:
+
+```bash
+psql -v ON_ERROR_STOP=1 -v tenant=<TENANT> -f supabase/cargas/portal-uniones-0566/conteo.sql
+```
+
+Son 8 filas. El dato 5 es el número que el relleno espera crear; el dato 3 debe ser cero. Sin la 0566 aplicada falla con «column does not exist» y no devuelve nada.
+
 ## Pasos
 
 Todo en una sola sesión de `psql` contra la base, porque las funciones son temporales. `<TENANT>` es el tenant dueño de la cuenta de Chatwoot (`CHATWOOT_TENANT_ID`).
