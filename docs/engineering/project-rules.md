@@ -52,7 +52,7 @@ la cápsula generada y cualquier plugin son derivados read-only.
 
 ### ⚠️ Producción web: cada push a `main` publica
 
-La web corre en el servidor propio con el vigilante (SDD-0541): cada push a `main` construye y publica, sin excluir documentación; un merge a `main` es publicación web y exige autorización propia. Vercel está en pausa desde el 2026-10-16 y su `ignoreCommand` ya no decide nada. Detalle e historia: [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md).
+La web corre en el servidor propio con el vigilante (SDD-0541): cada push a `main` construye y publica, sin excluir documentación; un merge a `main` es publicación web y exige autorización propia. Vercel está en pausa desde el 2026-10-16 y su `ignoreCommand` ya no decide nada. Detalle e historia del `ignoreCommand` y la pausa: [`codex-engineering.md`](../runbooks/codex-engineering.md) (nota del 2026-10-19); detalle del vigilante: [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md). `vercel.json` conserva `ignoreCommand` mientras Vercel esté en pausa; si se reactiva, revisar esa sección antes.
 
 ## Stack
 
@@ -158,6 +158,7 @@ consolidado), **`/tarifas/embed`**, **`/fcl`** y **`/calculadora-terrestre`**.
 - **Tokens**: solo `var(--*)` desde `app/studio/tokens.css`. Sobre fondo navy usar `--ink-inv-soft` / `--ink-inv-mute`, nunca `rgba(255,255,255,X)` inline.
 - **MARKBOX** = ID de cliente (`DTD-NNNN`), autogenerado por `rpc('next_markbox')`. Nombre VISIBLE al usuario: **"Shipping Mark"** (SDD-0065, display-only); `markbox` sigue siendo el identificador interno (columnas, RPCs, props).
 - **Dónde va el código nuevo**: dominio con ≥3 archivos → carpeta `lib/studio/<feature>/`; 1-2 → par plano `<entidad>-{queries,types}.ts`. Transversal (push/mail/telegram/agents) → `lib/studio/<feature>/`. Compartido público↔ERP → `lib/shared/`. Util genérico sin dominio → `lib/`. API (webhook/cron/externo) → `app/api/.../route.ts` fino (sin lógica de negocio).
+- **Multi-tenant**: el tenant sale de la sesión/token y el cliente nunca lo elige; RLS y el servidor son la frontera (ocultar en la UI no es control). Canónico: [aud-01.md](../governance/policies/aud-01.md) y [aud-02.md](../governance/policies/aud-02.md).
 
 ## Contratos que miden el comportamiento, no el texto
 
