@@ -695,7 +695,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
 | 0673 | Partir un embarque en dos, corregir sus medidas y anotar la r… | in-progress | interno |
 | 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
-| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | proposed | interno |
+| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | in-progress | interno |
 | 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
 | 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |

@@ -1,10 +1,10 @@
 ---
 sdd: "0675"
 title: "Bandeja como acceso adicional por persona, con las bandejas de Chatwoot que le tocan"
-status: proposed
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0585", "0622", "0655", "0671"]
@@ -17,9 +17,22 @@ confidencialidad: interno
 > `support`. Esta SDD permite darla a **una persona** como acceso adicional (SDD-0622), sin cambiarle el
 > rol, y hace que Chatwoot le dé las bandejas que le tocan: Leads, Clientes o las dos.
 
-**Estado:** `proposed`. Decisión 1 de §5 contestada por Sam el 2026-11-18: «Sí, siempre las dos». La
+**Estado:** `in-progress`. Decisión 1 de §5 contestada por Sam el 2026-11-18: «Sí, siempre las dos». La
 decisión 2 sigue con la recomendación («ver y editar» como cualquier módulo cubierto) hasta que Sam diga otra
-cosa. Etapa 2: código en esta PR.
+cosa. Etapa 2: código en la #686, fusionada.
+
+> **Estado al 2026-11-19.** El código y la migración están en `main` (#686). La migración
+> `0565_bandeja_concedible_por_persona` está **aplicada en producción** el 2026-11-19: commit del apply
+> a las 17:55:31Z (inicio 17:55:30Z), proyecto `dtd-cargo`, con el OK literal de Sam «OK, aplica 0566,
+> 0565 y 0562». Md5 `479cefea6117e822a7bcd896902f6bdf`, 5486 bytes, una fila en el ledger y el cuerpo
+> vivo de `studio_module_is_grantable` igual al archivo. Evidencia en el servidor:
+> `/srv/ops/evidencias/apply-0565-dtd-cargo-20261119T175530Z` (previa:
+> `/srv/ops/evidencias/previa-0565-dtd-cargo-20261119T175507Z`). La espera quedó retirada y la
+> migración sellada en el cierre; la cabecera «NO APLICADA» del `.sql` se conserva (runbook §6). Datos
+> del Director General: el md5 y los bytes los comprobé contra el archivo de `main` (también lo hace
+> `retirar-espera.mjs`); la hora, el OK, la fila del ledger, el cuerpo vivo y la evidencia no los
+> verifiqué yo. Falta el smoke en producción: conceder la Bandeja a una persona sin rol de Bandeja,
+> comprobar que la ve y que Chatwoot la deja en Leads y Clientes, y revocarla.
 
 ## 0. Decisión de Sam, literal
 
@@ -167,7 +180,8 @@ su degradación.
 - `supabase/migrations/0565_bandeja_concedible_por_persona.sql` (nuevo),
   `supabase/tests/0565_bandeja_concedible_por_persona.test.sql` (nuevo), su prueba en Vitest (nueva),
   `lib/studio/__tests__/bandeja-concedible.migration.test.ts` (nueva),
-  `supabase/desarmes/0565_desarme.sql` (nuevo), `supabase/migrations-baseline.json` (la espera) y
+  `supabase/desarmes/0565_desarme` (nuevo; extensión `.sql`, sin el punto pegado para que no se lea como
+  migración citada), `supabase/migrations-baseline.json` (la espera) y
   `supabase/pending-migration-symbol-declarations.json` si el gate lo pide.
 - `lib/studio/__tests__/user-module-grants.migration.test.ts` (lee la última definición).
 - `.agents/handoffs/sdd-0675-bandeja-por-persona.md`.
