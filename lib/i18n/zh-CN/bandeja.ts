@@ -99,6 +99,7 @@ export const bandeja: BandejaDict = {
   "bandeja.ficha.origin.webhook": "按电话",
   "bandeja.ficha.origin.kommo": "来自 Kommo 归档",
   "bandeja.ficha.origin.manual": "手动关联",
+  "bandeja.ficha.origin.portal": "来自客户门户",
   "bandeja.ficha.contact": "联系人 #{n}",
   "bandeja.ficha.unlink": "移除",
   "bandeja.ficha.unlink_title": "从档案中移除该聊天？",
@@ -204,6 +205,7 @@ export const bandeja: BandejaDict = {
   "bandeja.vincular.error.sin_migracion": "暂时无法关联：还有一项迁移未应用。",
   "bandeja.vincular.error.ficha_inexistente": "该档案已不存在，请重新搜索。",
   "bandeja.vincular.error.otra_ficha": "此对话已关联到其他档案。",
+  "bandeja.vincular.error.del_portal": "此对话来自其他客户的门户，不能转移到别的档案。",
   "bandeja.vincular.error.motivo": "请填写原因（至少 4 个字符）。",
   "bandeja.vincular.error.service": "关联失败，请重试。",
   "bandeja.ficha.channels_title": "已关联渠道",
@@ -213,6 +215,7 @@ export const bandeja: BandejaDict = {
   "bandeja.ficha.channel.tiktok": "TikTok",
   "bandeja.ficha.channel.correo": "邮件",
   "bandeja.ficha.channel.otro": "其他渠道",
+  "bandeja.ficha.channel.portal": "客户门户",
   "bandeja.ficha.channel.sin_canal": "对话",
   "bandeja.ficha.unlink_channel": "取消关联 {canal}",
 

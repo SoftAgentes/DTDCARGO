@@ -110,6 +110,7 @@ export const bandeja = {
   "bandeja.ficha.origin.webhook": "por teléfono",
   "bandeja.ficha.origin.kommo": "del Archivo Kommo",
   "bandeja.ficha.origin.manual": "unido a mano",
+  "bandeja.ficha.origin.portal": "del portal",
   "bandeja.ficha.contact": "Contacto #{n}",
   "bandeja.ficha.unlink": "Quitar",
   "bandeja.ficha.unlink_title": "¿Quitar este chat de la ficha?",
@@ -216,6 +217,7 @@ export const bandeja = {
   "bandeja.vincular.error.sin_migracion": "Todavía no se puede vincular: falta aplicar una migración.",
   "bandeja.vincular.error.ficha_inexistente": "Esa ficha ya no existe. Busca de nuevo.",
   "bandeja.vincular.error.otra_ficha": "Este chat ya está unido a otra ficha.",
+  "bandeja.vincular.error.del_portal": "Este chat es del portal de otro cliente y no se mueve de ficha.",
   "bandeja.vincular.error.motivo": "Escribe el motivo (4 caracteres o más).",
   "bandeja.vincular.error.service": "No se pudo vincular. Vuelve a intentarlo.",
   "bandeja.ficha.channels_title": "Canales vinculados",
@@ -225,6 +227,7 @@ export const bandeja = {
   "bandeja.ficha.channel.tiktok": "TikTok",
   "bandeja.ficha.channel.correo": "Correo",
   "bandeja.ficha.channel.otro": "Otro canal",
+  "bandeja.ficha.channel.portal": "Portal",
   "bandeja.ficha.channel.sin_canal": "Chat",
   "bandeja.ficha.unlink_channel": "Desvincular {canal}",
 
