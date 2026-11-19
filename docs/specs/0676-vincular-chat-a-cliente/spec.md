@@ -4,7 +4,7 @@ title: "Vincular a cliente: un chat sin teléfono se une a mano a una ficha y se
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0582", "0585", "0587", "0647", "0648", "0649", "0650"]
@@ -14,7 +14,7 @@ confidencialidad: interno
 # SDD-0676 — Vincular a cliente desde la Ficha DTD
 
 > **Decisiones 1 a 5 resueltas por Sam el 2026-11-18**, en la sesión del Subdirector de Chatwoot, literal: «Las cinco preguntas recomendadas, correcto en todas.» Es decir, la opción (a) en las cinco, incluida la 3 reformulada (absorber sin mover filas, reversible).
-> Implementado en esta PR con la migración 0566 **en espera**: nada aplicado ni encendido en producción.
+> **Estado al 2026-11-19.** Implementado en la #689 y corregido antes de aplicar en la #696. La migración 0566 está aplicada en producción el 2026-11-19 a las 12:05:23Z, con el OK nominal de Sam «OK, aplica 0566, 0565 y 0562» (md5 `d201a65bdc027b6a364285b7bc286097`, 56403 bytes, cuerpos vivos iguales; evidencia `/srv/ops/evidencias/apply-0566-dtd-cargo-20261119T120522Z`). Datos que me pasó el Director General: el md5 y los bytes los comprobé contra el archivo de `main`; el resto (hora, OK, evidencia) no lo verifiqué yo. Falta el smoke con Sam (runbook `chatwoot-ficha-dtd`) y el relleno de las uniones del portal que ya existían, que lleva un OK de Sam aparte. `CHATWOOT_FICHA_UNIR` no cambió.
 > Etiquetas: **C** código leído · **D** documento del repo · **I** inferencia · **NV** sin verificar.
 
 ## 1. Pedido
@@ -234,7 +234,7 @@ Chatwoot y Studio corren en el servidor propio. La pieza no llama a terceros y n
 | Qué | Archivos |
 |---|---|
 | Migración, desarme y contrato | `supabase/migrations/0566_chatwoot_vincular_canal.sql` · `0566_desarme`, en `supabase/desarmes/` (sin la extensión: `spec-migration-refs.test.ts` toma todo `NNNN_nombre` con `.sql` como migración) · `supabase/tests/0566_chatwoot_vincular_canal.test.sql` · `lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts` |
-| Espera y degradación | `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` |
+| Espera y degradación (retiradas en el cierre del 2026-11-19) | `supabase/migrations-baseline.json` · `supabase/pending-migration-symbol-declarations.json` · `supabase/migrations.lock.json` (la migración sellada) |
 | Reglas y servidor | `lib/studio/chatwoot/canal-union.ts` (nuevo) · `lib/studio/chatwoot/vincular.ts` (nuevo) · `lib/studio/chatwoot/account-api.ts` · `lib/studio/chatwoot/webhook-procesar.ts` · `lib/studio/chatwoot/contacto-erp-manejador.ts` · `lib/studio/chatwoot/ficha-panel.ts` |
 | Acciones | `app/studio/(app)/bandeja/vincular-actions.ts` (nuevo) · `app/studio/(app)/bandeja/actions.ts` · `app/studio/(app)/clientes/conversaciones-actions.ts` |
 | Ficha DTD | `app/studio/(panel)/ficha-chat/_components/VincularCliente.tsx` (nuevo) · `FichaDtdClient.tsx` · `FichaDtdView.tsx` |
@@ -284,6 +284,6 @@ El estado lo da el CI de la PR. `pnpm verify` local no se corre sin turno del Di
 Cada una con OK nominal de Sam, por el Director General:
 
 1. Fusionar la PR (revisión independiente y CI en verde).
-2. Aplicar `0566_chatwoot_vincular_canal` en producción, con el runbook `aplicar-migraciones-prod`. El web ya publicado tolera su falta y la usa en cuanto exista.
-3. Smoke en producción según `docs/runbooks/chatwoot-ficha-dtd.md` («Smoke después de aplicar la 0566»): Sam con su WhatsApp y su Instagram secundarios.
-4. Relleno de las uniones del portal que ya existían (`supabase/cargas/portal-uniones-0566/`). Escribe filas: lleva un OK nominal **aparte** del de la 0566. No es urgente (§4.9).
+2. Aplicar `0566_chatwoot_vincular_canal` en producción, con el runbook `aplicar-migraciones-prod`. El web ya publicado tolera su falta y la usa en cuanto exista. **HECHO el 2026-11-19 a las 12:05:23Z** (OK literal de Sam: «OK, aplica 0566, 0565 y 0562»). La espera quedó retirada y la migración sellada en el cierre (§6 del runbook de producción). NV: si el web de la #696 estaba publicado antes del apply, como pide §4.9; el merge de la #696 fue el 2026-11-19 a las 10:58:08Z y no medí cuándo se desplegó.
+3. Smoke en producción según `docs/runbooks/chatwoot-ficha-dtd.md` («Smoke después de aplicar la 0566»): Sam con su WhatsApp y su Instagram secundarios. **PENDIENTE: no se ha hecho.**
+4. Relleno de las uniones del portal que ya existían (`supabase/cargas/portal-uniones-0566/`). Escribe filas: lleva un OK nominal **aparte** del de la 0566. No es urgente (§4.9). **PENDIENTE.** Antes se corre el conteo de solo lectura (`conteo.sql`, en esa carpeta) y se le lleva a Sam.
