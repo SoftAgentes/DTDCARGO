@@ -13,7 +13,8 @@ import { vistaActiva } from "@/lib/studio/oficina/config";
 import { etapaActual, leerConteo, leerPendientes, leerPorCerrar } from "@/lib/studio/oficina/revisiones";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-import { AvisoResultado, detalleDelCierre, tonoDelResultado } from "./_components/AvisoResultado";
+import { AvisoResultado } from "./_components/AvisoResultado";
+import { detalleDelCierre, tonoDelResultado } from "./_components/resultado";
 import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/TarjetaBorrador";
 import { TarjetaCierre } from "./_components/TarjetaCierre";
 import { registrarCierreAction, revisarBorradorAction } from "./actions";

@@ -2,7 +2,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AvisoResultado, detalleDelCierre, tonoDelResultado } from "./AvisoResultado";
+import { AvisoResultado } from "./AvisoResultado";
+import { detalleDelCierre, tonoDelResultado } from "./resultado";
 
 afterEach(cleanup);
 

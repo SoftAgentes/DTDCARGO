@@ -12,6 +12,8 @@ import { useEffect, useRef } from "react";
 
 import { Aviso, type AvisoTono } from "@/app/studio/_components/ui/Aviso";
 
+// Los helpers puros viven en `./resultado` (sin "use client"): los usa `page.tsx`, que es de servidor.
+
 export function AvisoResultado({ tono, children }: { tono: AvisoTono; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -28,15 +30,4 @@ export function AvisoResultado({ tono, children }: { tono: AvisoTono; children: 
       </Aviso>
     </div>
   );
-}
-
-/** Tono del aviso según el código de la acción: `ok_*` es éxito; `ok_rechazado` también (se guardó). */
-export function tonoDelResultado(codigo: string): AvisoTono {
-  return codigo.startsWith("ok_") ? "exito" : "error";
-}
-
-/** Lo que se guardó en un cierre, dicho con las palabras de los botones. */
-export function detalleDelCierre(conversacion: string | null, cumple: string | null): string | null {
-  if (!conversacion || (cumple !== "si" && cumple !== "no")) return null;
-  return `Cierre de la conversación ${conversacion} registrado: ${cumple === "si" ? "Cumple" : "Falló"}.`;
 }
