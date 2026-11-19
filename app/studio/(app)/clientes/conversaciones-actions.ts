@@ -57,6 +57,7 @@ function errorDeLaBase(code: string | undefined): string {
   if (code === "P0002") return "La ficha no existe o fue borrada.";
   if (code === "42501") return SIN_PERMISO;
   if (code === "22023") return "Revisa el motivo: va de 4 a 1.000 caracteres.";
+  if (code === "55000") return "El chat del portal es de la ficha de su cliente: no se desvincula ni se mueve.";
   return "No se pudo guardar. Intenta de nuevo.";
 }
 

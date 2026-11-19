@@ -31,7 +31,8 @@ import { quitarUnionAction, unirChatAction } from "../conversaciones-actions";
 
 export interface UnionVisible {
   chatwootContactId: number;
-  origen: "webhook" | "kommo" | "manual";
+  /** `portal`: la unión del chat del portal; la pone el sistema y no se quita a mano. */
+  origen: "webhook" | "kommo" | "manual" | "portal";
   /** SDD-0676: por qué canal escribe ese contacto; null en las uniones anteriores. */
   canal?: CanalUnion | null;
 }
@@ -269,7 +270,7 @@ function ChatsUnidos({
               const logo = logoDeCanalUnion(u.canal);
               const idChip = `ficha-canal-${u.chatwootContactId}`;
               return (
-                <li key={u.chatwootContactId} style={{ ...CHIP, paddingRight: puedeUnir ? "var(--s-1)" : "var(--s-3)" }}>
+                <li key={u.chatwootContactId} style={{ ...CHIP, paddingRight: puedeUnir && u.origen !== "portal" ? "var(--s-1)" : "var(--s-3)" }}>
                   {/* El nombre del canal va en texto al lado: el logo es decorativo. */}
                   {logo ? (
                     <span aria-hidden="true" style={{ display: "inline-flex" }}>
@@ -282,7 +283,8 @@ function ChatsUnidos({
                       : t("bandeja.ficha.contact", { n: u.chatwootContactId })}
                     <span style={{ color: "var(--ink-mute)", marginLeft: "var(--s-2)" }}>{t(`bandeja.ficha.origin.${u.origen}` as I18nKey)}</span>
                   </span>
-                  {puedeUnir ? (
+                  {/* La unión del portal la pone el sistema y se va con la ficha: no se quita a mano. */}
+                  {puedeUnir && u.origen !== "portal" ? (
                     <button
                       type="button"
                       className="studio-btn studio-btn-ghost studio-btn-xs"
