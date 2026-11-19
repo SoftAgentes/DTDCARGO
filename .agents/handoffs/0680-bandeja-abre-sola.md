@@ -19,9 +19,15 @@
 - `app/studio/(app)/bandeja/_components/BandejaClient.tsx`: `pedirConPlazo` (rechazo, resultado raro o 15 s sin respuesta = `service`); `hayCupo` antes de pedir y la marca al cargar el enlace; la reconciliación espera a que termine el pedido.
 - `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`: bloque «abre sola (SDD-0680)», 5 pruebas. Las de 0585/0655/0677 no se tocaron.
 
-### Validación
+- Segundo bug (pedido del DG): `next.config.ts` › `fichaChatHeaders` con `frame-ancestors 'self' <chat>` por el doble marco Studio › chat › ficha; prueba en `lib/runtime/__tests__/next-config.test.ts`; runbook `docs/runbooks/chatwoot-ficha-dtd.md` (app registrada el 2026-11-19 con OK de Sam).
 
-Ver la sección «Validación» de la PR (se completa al correr con turno del DG).
+### Validación (turno de PC del DG, 2026-11-19)
+
+- `pnpm install --frozen-lockfile`: PASÓ.
+- **Antes del arreglo** (`BandejaClient.tsx` y `next.config.ts` de `f9ae0b678`, pruebas nuevas): vitest de `BandejaClient.test.tsx` + `next-config.test.ts`: FALLÓ como se esperaba, 7 fallidas (las 5 de 0680 y las 2 de la cabecera), 63 pasaron.
+- **Después:** vitest de `app/studio/(app)/bandeja/__tests__`, `next-config.test.ts` y `proxy-ficha-chat.test.ts`: PASÓ, 9 archivos, 181 pruebas.
+- `tsc --noEmit`: PASÓ. `eslint` de los 4 archivos de código: PASÓ.
+- `pnpm verify` y e2e: NO EJECUTADOS (el turno era solo install + vitest; el portón es el CI).
 
 ## PR 2 · rediseño
 

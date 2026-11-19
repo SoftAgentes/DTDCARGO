@@ -67,6 +67,13 @@ Dos PR, en este orden:
 5. Sin marca de SSO, la reconciliación no sale hasta que termina el pedido del enlace.
 6. Las pruebas de SDD-0585, 0655 y 0677 de `BandejaClient.test.tsx` siguen en verde sin tocarlas.
 
+### Segundo bug · la Ficha DTD sale en blanco dentro de la Bandeja
+
+- **O** (DG, 2026-11-19): con el OK de Sam, el DG registró la Dashboard App «Ficha DTD» en el Chatwoot de producción (cuenta 1, id 1, URL `https://dtdcargo.com/studio/ficha-chat`). La pestaña aparece, pero dentro de `/studio/bandeja` sale en blanco. La consola: «Framing 'https://dtdcargo.com/' violates the following Content Security Policy directive: "frame-ancestors https://chat.dtdcargo.com"».
+- **Causa** (C: `next.config.ts` › `fichaChatHeaders`): la ficha queda enmarcada dos veces, `dtdcargo.com` › `chat.dtdcargo.com` › `dtdcargo.com/studio/ficha-chat`. `frame-ancestors` revisa todos los ancestros, y el de arriba, Studio, no estaba en la lista.
+- **Arreglo:** la CSP de `/studio/ficha-chat`, y solo esa ruta, pasa a `frame-ancestors 'self' https://chat.dtdcargo.com`. Sigue sin `X-Frame-Options`. El resto de Studio queda con `'none'` y `DENY`.
+- **Aceptación:** 7. La prueba de cabecera de `lib/runtime/__tests__/next-config.test.ts` exige `'self'` y el origen del chat en esa ruta; las rutas vecinas (`/studio/ficha-chats`, `/studio/ficha-chat/otra`) siguen sin dejarse enmarcar. El runbook `docs/runbooks/chatwoot-ficha-dtd.md` registra la app como registrada y explica el doble marco.
+
 ## Parte 2 · rediseño (PR 2)
 
 Pendiente de la elección de Sam entre las variantes de la propuesta visual. Se completa en la PR 2 con la variante elegida, la revisión `/ui-check` y la regla BTN-01 (los botones no cambian de ancho).
