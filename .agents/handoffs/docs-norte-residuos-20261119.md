@@ -31,13 +31,15 @@ Comandos y resultados por comprobación (SHA observado: `a6050cc8b` + commits de
 
 ## COMMITS
 
-- `docs(norte)`: retiro de entrada prisma huérfana y API-CONTRACT como fuente histórica (`.gitignore` + `docs/architecture/schema-reconciliation.md`).
-- `chore(handoff)`: commit que contiene este documento (hashes finales registrados en la PR).
+- `b33c58476` — `docs(norte)`: retiro de entrada prisma huérfana y API-CONTRACT como fuente histórica (`.gitignore` + `docs/architecture/schema-reconciliation.md`).
+- `d918e24fc` — `chore(handoff)`: commit que contiene la primera versión de este documento.
+- Commit final — `chore(handoff)`: registra la PR #707 en este documento (hash en la PR).
 
 ## PR / BRANCH
 
 - Rama: `codex/docs-norte-residuos` (push a sí misma; base `main`). Worktree: `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\docs-norte-residuos`.
-- PR: ver URL actualizada en la conversación de entrega / `gh pr list --head codex/docs-norte-residuos`. Archivos de esta PR disjuntos de los de #706.
+- **PR #707:** https://github.com/SoftAgentes/DTDCARGO/pull/707 (lista, no borrador). Archivos de esta PR disjuntos de los de #706.
+- CI: corrida `pull_request` de `quality.yml` disparada sobre la cabeza `d918e24fcb69ed8361a77ea321aedbc6f793f6ba` (suite `120556470355`, `in_progress` al cierre de esta edición).
 
 ## PENDIENTES DE ESTA TAREA
 
