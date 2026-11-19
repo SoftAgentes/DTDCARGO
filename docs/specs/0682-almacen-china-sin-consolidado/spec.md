@@ -1,5 +1,5 @@
 ---
-sdd: "NNNN"
+sdd: "0682"
 title: "Almacén China sin lo consolidado, lista activa de Embarques y «Contenedores en camino»"
 status: draft
 author: "Claude (Worker) + Sam"
@@ -11,7 +11,7 @@ related: ["0016", "0029", "0543", "0643", "0659", "0674"]
 confidencialidad: interno
 ---
 
-# SDD-NNNN — Lo consolidado sale de Almacén China y de la lista activa
+# SDD-0682 — Lo consolidado sale de Almacén China y de la lista activa
 
 > Sam, 2026-11-19: lo que se metió en el contenedor 64 sigue saliendo en Almacén China. Lo consolidado no
 > debería estar ahí: debería verse «en ruta», en una opción de «contenedores en camino». Y los embarques ya
