@@ -31,14 +31,23 @@ const RUTA = "/studio/admin/oficina";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONVERSACION = /^[0-9a-f-]{1,40}$/;
 
-function volver(codigo: string): never {
-  redirect(`${RUTA}?r=${encodeURIComponent(codigo)}`);
+/**
+ * Vuelve a la página con el resultado. SDD-0678: además del código, `c` (la conversación) y `v` (lo guardado) dejan
+ * que el aviso diga QUÉ se guardó, y `n` cambia en cada envío para que el aviso se vuelva a mostrar y a enfocar
+ * aunque el código se repita (dos cierres seguidos).
+ */
+function volver(codigo: string, detalle: { c?: string; v?: string } = {}): never {
+  const q = new URLSearchParams({ r: codigo });
+  if (detalle.c) q.set("c", detalle.c);
+  if (detalle.v) q.set("v", detalle.v);
+  q.set("n", Date.now().toString(36));
+  redirect(`${RUTA}?${q.toString()}`);
 }
 
-function motivoDe(formData: FormData): string {
+function motivoDe(formData: FormData, detalle: { c?: string } = {}): string {
   const motivo = String(formData.get("motivo") ?? "").trim();
-  if (motivo.length < 1 || motivo.length > 500) volver("sin_motivo");
-  if (detectorDelCable(motivo)) volver("motivo_con_datos");
+  if (motivo.length < 1 || motivo.length > 500) volver("sin_motivo", detalle);
+  if (detectorDelCable(motivo)) volver("motivo_con_datos", detalle);
   return motivo;
 }
 
@@ -80,8 +89,8 @@ export async function registrarCierreAction(formData: FormData): Promise<void> {
   const conversacion = String(formData.get("conversacion") ?? "");
   const cumple = String(formData.get("cumple") ?? "");
   if (!CONVERSACION.test(conversacion) || (cumple !== "si" && cumple !== "no")) volver("invalido");
-  const motivo = motivoDe(formData);
+  const motivo = motivoDe(formData, { c: conversacion });
 
   const r = await registrarCierre(supabase, { conversacion, cumple: cumple === "si", motivo, etapa: etapaActual() });
-  volver(r.ok ? "ok_cierre" : r.codigo);
+  volver(r.ok ? "ok_cierre" : r.codigo, r.ok ? { c: conversacion, v: cumple } : { c: conversacion });
 }

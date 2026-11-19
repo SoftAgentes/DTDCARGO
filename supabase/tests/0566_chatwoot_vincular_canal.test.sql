@@ -224,6 +224,36 @@ insert into public.shipments (tenant_id, client_markbox, status) values
 \ir ../migrations/0513_crm_entrada_leads.sql
 \ir ../migrations/0554_chatwoot_contact_links.sql
 
+-- El chat del portal (0519), lo justo para chatwoot_portal_vincular: la tabla de hilos de la
+-- 0106 con las columnas que lee, y las dos tablas de la 0519 copiadas tal cual.
+create table public.conversations (
+  id uuid primary key,
+  tenant_id uuid not null references public.tenants(id) on delete cascade,
+  client_id uuid references public.clients(id),
+  channel text not null
+);
+create table public.chatwoot_portal_contactos (
+  tenant_id           uuid not null references public.tenants(id) on delete cascade,
+  client_id           uuid not null references public.clients(id) on delete cascade,
+  identificador       uuid not null default gen_random_uuid() unique,
+  chatwoot_contact_id bigint check (chatwoot_contact_id > 0 and chatwoot_contact_id <= 2147483647),
+  chatwoot_source_id  text check (
+    chatwoot_source_id ~ '^[A-Za-z0-9._:@=+/-]{1,255}$' and chatwoot_source_id !~ '^\+?[0-9]+$'
+  ),
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  primary key (tenant_id, client_id),
+  unique (tenant_id, chatwoot_contact_id),
+  check ((chatwoot_contact_id is null) = (chatwoot_source_id is null))
+);
+create table public.chatwoot_portal_hilos (
+  conversation_id          uuid primary key references public.conversations(id) on delete cascade,
+  tenant_id                uuid not null references public.tenants(id) on delete cascade,
+  chatwoot_conversation_id bigint not null check (chatwoot_conversation_id > 0 and chatwoot_conversation_id <= 2147483647),
+  created_at               timestamptz not null default now(),
+  unique (tenant_id, chatwoot_conversation_id)
+);
+
 \ir ../migrations/0566_chatwoot_vincular_canal.sql
 -- Idempotente: aplicarla otra vez no falla ni cambia nada.
 \ir ../migrations/0566_chatwoot_vincular_canal.sql
@@ -305,6 +335,21 @@ begin
     p_actualizado, null, false, p_contacto);
   reset role;
   return r.client_id;
+end;
+$$;
+
+-- Lo mismo, pero devuelve de dónde dice la función que salió el cliente.
+create function pg_temp.evento_origen(
+  p_clave text, p_conversacion bigint, p_telefono text, p_actualizado double precision, p_contacto bigint default null
+) returns text language plpgsql as $$
+declare r record;
+begin
+  set local role service_role;
+  select * into r from public.chatwoot_registrar_evento(
+    pg_temp.t1(), p_clave, 'message_created', p_conversacion, 3, 'open', 0, null, p_telefono, null,
+    p_actualizado, null, false, p_contacto);
+  reset role;
+  return r.origen_cliente;
 end;
 $$;
 
@@ -443,6 +488,7 @@ declare
   ajena  uuid;
   propia uuid;
   ev     uuid;
+  og     text;
 begin
   lead := pg_temp.del_contacto(500);
   antes := lead.ultima_actividad_at;
@@ -479,17 +525,39 @@ begin
   -- El evento se registra ANTES de mirar la tabla: dentro de una misma expresión, Postgres
   -- puede leer la subconsulta primero y ver el estado de antes.
   ev := pg_temp.evento('message_created:3002', 70, null, 101);
-  perform pg_temp.assert_true(ev is null
+  -- El evento devuelve el cliente que la conversación tiene de verdad: el conservado.
+  perform pg_temp.assert_true(ev = pg_temp.k('01')
     and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 70) = pg_temp.k('01'),
     '4h sin contacto ni teléfono el cruce guardado se conserva');
-  -- Un contacto SIN unión y sin teléfono no hereda el cruce de otro.
-  ev := pg_temp.evento('message_created:3003', 70, null, 102, 501);
-  perform pg_temp.assert_true(ev is null
-    and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 70) is null,
-    '4i un contacto sin unión ni teléfono deja la conversación sin ficha');
   -- Sin unión, el teléfono cruza como siempre.
   perform pg_temp.assert_true(pg_temp.evento('message_created:3004', 72, '4125550202', 100, 501) = pg_temp.k('02'),
     '4j sin unión, el teléfono con ficha única sigue cruzando');
+  -- Ningún evento automático quita un cliente: el mismo contacto, ya sin teléfono y sin
+  -- unión, conserva la ficha que la conversación tenía (y el evento la devuelve).
+  ev := pg_temp.evento('message_created:3003', 72, null, 101, 501);
+  perform pg_temp.assert_true(ev = pg_temp.k('02')
+    and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 72) = pg_temp.k('02'),
+    '4i un evento con contacto, sin unión ni teléfono, conserva la ficha de la conversación');
+  -- Un teléfono que dejó de coincidir con una ficha tampoco la quita.
+  ev := pg_temp.evento('message_created:3006', 72, '4125559999', 102, 501);
+  perform pg_temp.assert_true(ev = pg_temp.k('02')
+    and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 72) = pg_temp.k('02'),
+    '4m un teléfono que ya no coincide con ninguna ficha no quita la que había');
+  perform pg_temp.assert_true(
+    (select chat_contact_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 71) = 500
+    and (select chat_contact_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 72) = 501,
+    '4n la conversación guarda de qué contacto es');
+  -- De dónde salió el cliente: quien une solo (el webhook) lo hace únicamente con 'telefono'.
+  og := pg_temp.evento_origen('message_created:3010', 71, null, 103, 500);
+  perform pg_temp.assert_true(og = 'union', '4o un cliente que sale de la unión del contacto se dice «union»');
+  og := pg_temp.evento_origen('message_created:3011', 72, '4125550202', 103, 501);
+  perform pg_temp.assert_true(og = 'telefono', '4p un cliente que sale del teléfono con ficha única se dice «telefono»');
+  og := pg_temp.evento_origen('message_created:3012', 72, null, 104, 501);
+  perform pg_temp.assert_true(og = 'conservado', '4q un cliente que solo se conservó se dice «conservado», no «telefono»');
+  og := pg_temp.evento_origen('message_created:3014', 72, '4125559999', 105, 501);
+  perform pg_temp.assert_true(og = 'conservado', '4r un teléfono que ya no coincide conserva el cliente como «conservado»');
+  og := pg_temp.evento_origen('message_created:3013', 76, null, 100, 502);
+  perform pg_temp.assert_true(og is null, '4s sin cliente no hay origen');
   -- Los 13 parámetros de antes siguen sirviendo (el web anterior a esta PR).
   set local role service_role;
   select * into r from public.chatwoot_registrar_evento(
@@ -537,6 +605,12 @@ begin
     where a.entity_id = pg_temp.k('02') and a.event_type = 'chatwoot_contact_linked'
       and (a.payload ->> 'movido_de')::uuid = pg_temp.k('01')),
     '5f y la entrada auditada en la ficha nueva');
+  perform pg_temp.assert_true(
+    (select count(*) from public.chatwoot_conversations
+     where tenant_id = pg_temp.t1() and chat_contact_id = 500 and client_id = pg_temp.k('02')) = 2
+    and not exists (select 1 from public.chatwoot_conversations
+                    where tenant_id = pg_temp.t1() and chat_contact_id = 500 and client_id = pg_temp.k('01')),
+    '5g al mover, las conversaciones de ese contacto pasan a la ficha nueva');
 end;
 $mover$;
 
@@ -562,6 +636,16 @@ begin
       and a.reason = 'Fue un error' and (a.payload ->> 'tarjeta_restaurada')::uuid = lead.id
       and a.before_data ->> 'canal' = 'instagram'),
     '6c quitar queda auditado con la tarjeta que restauró');
+  perform pg_temp.assert_true(
+    not exists (select 1 from public.chatwoot_conversations
+                where tenant_id = pg_temp.t1() and chat_contact_id = 500 and client_id is not null)
+    and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 72) = pg_temp.k('02'),
+    '6f quitar deja sin ficha las conversaciones de ese contacto, y no las de otro contacto de la misma ficha');
+  perform pg_temp.assert_true(exists (
+    select 1 from public.entity_audit_log a
+    where a.tenant_id = pg_temp.t1() and a.entity_id = pg_temp.k('02') and a.event_type = 'chatwoot_contact_unlinked'
+      and a.reason = 'Fue un error' and (a.payload ->> 'conversaciones_sin_ficha')::int = 2),
+    '6g la auditoría de quitar dice cuántas conversaciones quedaron sin ficha');
 
   -- Sin unión, vuelve a ser un lead: su actividad cae en SU tarjeta.
   r := pg_temp.entrada(500, null, 'Lead Instagram', null, 'message_created:4000', now());
@@ -604,6 +688,13 @@ begin
   perform pg_temp.entrada(800, null, 'Lead Ochocientos', null, 'message_created:6000', now());
   perform pg_temp.vincular(pg_temp.u('02'), pg_temp.k('04'), 800);
   perform pg_temp.assert_true((pg_temp.del_contacto(800)).absorbida_en is not null, '8a quedó absorbida');
+  -- Dos conversaciones de esa ficha: una por su contacto unido y otra solo por teléfono.
+  perform pg_temp.evento('message_created:6001', 80, null, 100, 800);
+  perform pg_temp.evento('message_created:6002', 81, '4125550204', 100, 801);
+  perform pg_temp.assert_true(
+    (select count(*) from public.chatwoot_conversations
+     where tenant_id = pg_temp.t1() and conversation_id in (80, 81) and client_id = pg_temp.k('04')) = 2,
+    '8a2 las dos conversaciones son de la ficha antes de borrarla');
   update public.clients set deleted_at = now() where id = pg_temp.k('04');
   lead := pg_temp.del_contacto(800);
   perform pg_temp.assert_true(not exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 800)
@@ -620,6 +711,28 @@ begin
       and a.before_data ->> 'motivo' = 'ficha_borrada'
       and a.before_data -> 'tarjetas_soltadas' = pg_catalog.jsonb_build_array(lead.id)),
     '8d la auditoría del borrado de la ficha nombra la tarjeta que se soltó');
+  perform pg_temp.assert_true(
+    not exists (select 1 from public.chatwoot_conversations
+                where tenant_id = pg_temp.t1() and client_id = pg_temp.k('04')),
+    '8e borrar la ficha deja sin ficha todas sus conversaciones, las unidas y las de teléfono');
+  perform pg_temp.assert_true(exists (
+    select 1 from public.entity_audit_log a
+    where a.tenant_id = pg_temp.t1() and a.entity_id = pg_temp.k('04') and a.event_type = 'chatwoot_contact_unlinked'
+      and a.before_data ->> 'motivo' = 'ficha_borrada'
+      and (a.before_data ->> 'conversaciones_sin_ficha')::int = 2),
+    '8f y la auditoría dice cuántas');
+  -- Ni un evento posterior con el mismo teléfono se la devuelve: la ficha está borrada.
+  perform pg_temp.assert_true(pg_temp.evento('message_created:6003', 81, '4125550204', 101, 801) is null,
+    '8g un evento posterior no revive la ficha borrada');
+  -- Una conversación que quedó apuntando a una ficha borrada (por otra vía, o por una carrera
+  -- con el borrado) no la conserva: el evento la revalida.
+  update public.chatwoot_conversations set client_id = pg_temp.k('06')
+  where tenant_id = pg_temp.t1() and conversation_id = 81;
+  perform pg_temp.assert_true(pg_temp.evento('message_created:6004', 81, null, 102, 801) is null
+    , '8h el evento no devuelve una ficha borrada');
+  perform pg_temp.assert_true(
+    (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 81) is null,
+    '8i una ficha borrada no se conserva en la conversación');
 end;
 $borrada$;
 
@@ -676,10 +789,85 @@ begin
   v := pg_temp.vincular(pg_temp.u('02'), pg_temp.k('02'), 950);
   perform pg_temp.assert_true(v ->> 'resultado' = 'ya_estaba' and not (v ->> 'tarjeta_absorbida')::boolean
     and (select count(*) from public.entity_audit_log a
-         where a.event_type = 'chatwoot_contact_linked' and (a.after_data ->> 'chatwoot_contact_id')::bigint = 950) = 1,
+         where a.tenant_id = pg_temp.t1() and a.event_type = 'chatwoot_contact_linked'
+           and (a.after_data ->> 'chatwoot_contact_id')::bigint = 950) = 1,
     '10d repetirlo no absorbe ni audita otra vez');
 end;
 $pendiente$;
+
+-- ─── 11. El chat del portal: una sola fuente de vínculos ────────────────────
+do $portal$
+declare
+  hilo   constant uuid := '50000000-0000-0000-0000-000000000001';
+  ficha  constant uuid := '30000000-0000-0000-0000-000000000007';
+  v_est  text;
+  ev     uuid;
+begin
+  insert into public.clients (id, tenant_id, markbox, phone, advisor_id, deleted_at)
+  values (ficha, pg_temp.t1(), 'DTD-1007', '+584125550207', null, null);
+  insert into public.conversations (id, tenant_id, client_id, channel) values (hilo, pg_temp.t1(), ficha, 'portal');
+  insert into public.chatwoot_portal_contactos (tenant_id, client_id) values (pg_temp.t1(), ficha);
+
+  set local role service_role;
+  perform public.chatwoot_portal_vincular(pg_temp.t1(), hilo, 620, 'src-portal-620', 4, 95);
+  -- Repetirlo (un reintento del envío) no duplica nada.
+  perform public.chatwoot_portal_vincular(pg_temp.t1(), hilo, 620, 'src-portal-620', 4, 95);
+  reset role;
+
+  perform pg_temp.assert_true(exists (
+    select 1 from public.chatwoot_contact_links l
+    where l.tenant_id = pg_temp.t1() and l.chatwoot_contact_id = 620 and l.client_id = ficha
+      and l.origen = 'portal' and l.canal_chat = 'portal' and l.created_by is null),
+    '11a chatwoot_portal_vincular deja la unión del contacto en chatwoot_contact_links');
+  perform pg_temp.assert_true((
+    select count(*) from public.entity_audit_log a
+    where a.tenant_id = pg_temp.t1() and a.entity_type = 'chatwoot_contact_link' and a.entity_id = ficha
+      and a.event_type = 'chatwoot_contact_linked' and a.actor_type = 'system' and a.actor_id is null
+      and a.after_data ->> 'origen' = 'portal' and (a.after_data ->> 'chatwoot_contact_id')::bigint = 620) = 1,
+    '11b la unión del portal queda auditada una sola vez, como del sistema');
+  perform pg_temp.assert_true(exists (
+    select 1 from public.chatwoot_conversations cc
+    where cc.tenant_id = pg_temp.t1() and cc.conversation_id = 95 and cc.client_id = ficha and cc.chat_contact_id = 620),
+    '11c la conversación del portal queda con su cliente y su contacto');
+
+  -- El caso que rompía: una conversación del portal de ANTES de la 0566 (su cliente fijado
+  -- por la 0519, sin unión todavía) recibe un evento con contacto, sin unión y sin teléfono.
+  insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id)
+  values (pg_temp.t1(), 96, 4, 'open', ficha);
+  ev := pg_temp.evento('message_created:8000', 96, null, 100, 621);
+  perform pg_temp.assert_true(ev = ficha
+    and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 96) = ficha,
+    '11d una conversación del portal sin unión conserva su cliente tras un evento sin teléfono');
+  -- Y con la unión, el evento del contacto del portal devuelve su ficha.
+  perform pg_temp.assert_true(pg_temp.evento('message_created:8001', 95, null, 100, 620) = ficha,
+    '11e el evento del contacto del portal devuelve su ficha por la unión');
+
+  -- La unión del portal no se quita ni se mueve a mano.
+  begin
+    set local role service_role;
+    perform public.chatwoot_quitar_union(pg_temp.t1(), pg_temp.u('02'), ficha, 620, 'Intento de quitar');
+    v_est := null;
+  exception when others then
+    v_est := sqlstate;
+  end;
+  reset role;
+  perform pg_temp.assert_true(v_est = '55000'
+    and exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 620),
+    '11f la unión del portal no se quita a mano');
+  perform pg_temp.assert_true(
+    pg_temp.vincular_falla(pg_temp.u('02'), pg_temp.k('02'), 620, 'otro', 'Intento de mover', true) = '55000'
+    and pg_temp.vincular_falla(pg_temp.u('02'), pg_temp.k('02'), 620) = '55000'
+    and (select client_id from public.chatwoot_contact_links where chatwoot_contact_id = 620) = ficha,
+    '11g la unión del portal no se mueve a otra ficha, ni con p_mover');
+
+  -- La ficha se borra: sus dos conversaciones del portal quedan sin cliente y la unión se va.
+  update public.clients set deleted_at = now() where id = ficha;
+  perform pg_temp.assert_true(
+    not exists (select 1 from public.chatwoot_conversations where tenant_id = pg_temp.t1() and client_id = ficha)
+    and not exists (select 1 from public.chatwoot_contact_links where chatwoot_contact_id = 620),
+    '11h al borrar la ficha, sus conversaciones del portal quedan sin cliente y la unión se va');
+end;
+$portal$;
 
 select 'TEST 0566 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;

@@ -43,7 +43,7 @@ export type EstadoPanel =
 
 export interface UnionDeLaFicha {
   chatwootContactId: number;
-  origen: "webhook" | "kommo" | "manual";
+  origen: "webhook" | "kommo" | "manual" | "portal";
   /** SDD-0676: canal del contacto, para el logo. null en las uniones anteriores o sin la migración. */
   canal: CanalUnion | null;
 }

@@ -10,8 +10,12 @@ import type { ManejadorEvento } from "./webhook-procesar";
  * Apagado salvo `CHATWOOT_FICHA_UNIR=1` (decisión del DG, M1): con la 0554 aplicada y
  * sin la variable, no escribe ni llama a la RPC.
  *
- * Solo cuando `chatwoot_registrar_evento` (0504) devolvió un `client_id`: el teléfono
- * cruzó con UNA ficha. El contacto sale del payload (`meta.sender.id`); en el
+ * Solo cuando `chatwoot_registrar_evento` dice que el cliente salió del TELÉFONO, que
+ * cruzó con UNA ficha (`origenCliente === "telefono"`). Desde la SDD-0676 la función
+ * también devuelve el cliente de una unión que ya existe y el que la conversación
+ * conserva: ninguno de los dos prueba un cruce por teléfono, y unir con ellos volvería
+ * permanente lo que solo se conservó (el chat del portal, un teléfono que ya no coincide).
+ * El contacto sale del payload (`meta.sender.id`); en el
  * reproceso no viene y no se une (lo hará el siguiente evento). La RPC de la 0554
  * nunca pisa una unión que ya existe, ni manual ni del Archivo Kommo.
  *
@@ -25,7 +29,7 @@ let avisadoSin0554 = false;
 export const unirContactoAFicha: ManejadorEvento = async (ctx, _evento, registro) => {
   if (!chatwootFichaUnirActivo()) return;
   const contactoId = ctx.contacto?.contactoId ?? null;
-  if (!registro.clientId || contactoId === null) return;
+  if (!registro.clientId || registro.origenCliente !== "telefono" || contactoId === null) return;
 
   const { error } = await ctx.admin.rpc("chatwoot_unir_contactos", {
     p_tenant_id: ctx.tenantId,
