@@ -141,6 +141,8 @@ docker compose up -d --wait
 docker compose logs prepare | tail -n 20                  # migraciones aplicadas, sin error
 ```
 
+> **Desde la SDD-0679, el paso 5 de arriba no se usa así.** En `/srv/chatwoot` nunca se corre un `docker compose up` general: el `compose.yml` del VPS no es el de `main` y recrear todo cambia contenedores que nadie aprobó. Se cambia solo la línea de la imagen, `prepare` corre una vez con `docker compose run --rm --no-deps prepare` y se recrean `rails` y `sidekiq` con `up -d --no-deps --force-recreate`, comparando antes sus diferencias con el compose. Guion concreto: [subida a la 4.20.0](chatwoot-subida-4-20.md) §0 y §4.
+
 **Smoke.** Todos con su resultado en el handoff. Un rojo en **S1–S7** es vuelta atrás inmediata (§7); no se depura en caliente.
 
 | # | Comprobación | Exigencia |
@@ -199,3 +201,4 @@ docker compose exec -T rails bundle exec rails runner '
 | Fecha | De → a | Ensayo local | Copia en el VPS | Ventana | Resultado | Quién |
 |---|---|---|---|---|---|---|
 | — | `v4.19.1-ce` (instalada el 2026-10-29) | — | — | — | — | — |
+| pendiente | `v4.19.1-ce` → `v4.20.0-ce` ([SDD-0679](../specs/0679-chatwoot-4-20/spec.md)) | pendiente (fase A) | pendiente (fase B) | Sam pidió el 2026-11-20 o el 21 | preparada, sin correr | DG o sesión designada |
