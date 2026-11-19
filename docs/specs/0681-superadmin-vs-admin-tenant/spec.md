@@ -169,12 +169,12 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 
 | # | Respuesta de Sam | Qué cambia en la frontera |
 |---|---|---|
-| P1 | (a), aclarada el 2026-11-19: solo el superadmin activa o desactiva módulos, porque el plan es venderlos por separado. Si un módulo se desactiva, se desactivan sus permisos y nadie de la empresa lo ve, como si no existiera. Al activarlo entran los permisos predeterminados, y desde ahí el admin configura quién accede. Literal: «el admin ahí sí puede configurar quién quiere que acceda a esos usuarios. Solo superadmin hace eso». | El admin del tenant **no** enciende ni apaga módulos (`feature_flags`); eso ya es solo del superadmin (0543). Sí reparte el acceso dentro de lo encendido: la matriz rol × módulo y los accesos por persona. Lo nuevo: desactivar apaga también los permisos, y activar parte de los predeterminados (`ROLE_MODULE_ACCESS`). Ver la fase 7 de §8. |
-| P2 | (a), aclarada el 2026-11-19. Literal: «no debería verlo nadie, solo de dtd». | Financiero China, Legal, No-Olvidar y Rendiciones existen **solo para DTD y el superadmin**. Ninguna otra empresa los ve: no se ofrecen ni se encienden. «Revisar caso por caso» de §3 deja de aplicar: los 4 siguen siendo de superadmin. La fase 5 de §5 (= fase 7 de §8) se convierte en un catálogo de módulos por tenant. |
+| P1 | Aclarada el 2026-11-19: solo el superadmin activa o desactiva módulos, porque el plan es venderlos por separado. Si un módulo se desactiva, se desactivan sus permisos y nadie de la empresa lo ve, como si no existiera. Al activarlo entran los permisos predeterminados, y desde ahí el admin configura quién accede. Literal: «el admin ahí sí puede configurar quién quiere que acceda a esos usuarios. Solo superadmin hace eso». | El admin del tenant **no** enciende ni apaga módulos (`feature_flags`); eso ya es solo del superadmin (0543). Sí reparte el acceso dentro de lo encendido: la matriz rol × módulo y los accesos por persona. Lo nuevo: desactivar apaga también los permisos, y activar parte de los predeterminados (`ROLE_MODULE_ACCESS`). Ver la fase 7 de §8. |
+| P2 | Aclarada el 2026-11-19. Literal: «no debería verlo nadie, solo de dtd». | Financiero China, Legal, No-Olvidar y Rendiciones existen **solo para DTD y el superadmin**. Ninguna otra empresa los ve: no se ofrecen ni se encienden. «Revisar caso por caso» de §3 deja de aplicar: los 4 siguen siendo de superadmin. La fase 5 de §5 (= fase 7 de §8) se convierte en un catálogo de módulos por tenant. |
 | P4 | Cada empresa tiene un **admin principal** (el dueño), que puede nombrar otros admins. Los demás admins no pueden borrarlo. | Aparece un tercer nivel dentro del tenant: **admin principal** > admin > los demás roles. Ver 7.2. |
 | P4 | Solo el admin principal ve el «log fuerte»: qué se borró y las eliminaciones por usuario, con más detalle. Los otros admins ven los logs, pero no pueden borrarlos. El superadmin ve todo, «hasta lo que no hacen». | Hay dos niveles de auditoría en el tenant y uno de plataforma. Ver 7.3. |
 | P6 | Solo superadmin. | Debug, errores y actualizaciones de Chatwoot pasan a ser solo del superadmin (H4). Ya se puede hacer con DTD como único tenant. |
-| P7 | Un solo superadmin. Se crea una función para que el superadmin le dé superadmin a otro, **temporal** (con fecha límite, por ejemplo «te doy dos horas») o **permanente**, siempre con log. El secundario no puede borrar al primero. | Hay un rango de superadmin **primario** y delegaciones con vencimiento. «Un solo superadmin» se lee como un primario: en DTD son dos cuentas de Sam con el mismo rango. Ver 7.4. |
+| P7 | Un solo superadmin. Se crea una función para que el superadmin le dé superadmin a otro, **temporal** (con fecha límite, por ejemplo «te doy dos horas») o **permanente**, siempre con log. El secundario no puede borrar al primero. | Hay un rango de superadmin **primario** y delegaciones con vencimiento. En DTD se quedan las dos cuentas de Sam como superadmin. *Interpretación* (a confirmar en 7.4): las dos con rango primario. Ver 7.4. |
 | P5 | «si» al modelo mixto que recomendó el DG. | La plataforma fija para cada empresa el tope mensual en USD y los modelos o proveedores; el admin de la empresa configura sus agentes dentro de eso; al llegar al 80 % del tope se avisa a los dos. Ver 7.5 y la fase 9 de §8. |
 
 ### 7.2 Admin principal
@@ -202,18 +202,20 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 
 ### 7.4 Superadmin primario y delegación
 
-- **El rango primario.** «Un solo superadmin» se lee como un rango primario, no como una sola cuenta.
-  - En DTD **se quedan las dos** filas de `platform_admins` como superadmin primario. Son dos cuentas de Sam con el mismo rango, que creó por precaución por si pierde un correo. El dato de las 2 filas viene de una fuente del 2026-08-07 y no lo medí en producción.
+- **Las dos cuentas de DTD.** Sam, el 2026-11-19: «Lo hice por precaución, por si acaso perdí un correo o algo. Déjalos a los dos como superadmin.»
+  - En DTD **se quedan las dos** filas de `platform_admins` como superadmin. Son dos cuentas de Sam. El dato de las 2 filas viene de una fuente del 2026-08-07 y no lo medí en producción.
+  - *Interpretación*, a confirmar con Sam: las dos tienen rango primario. «Un solo superadmin» se leería como un rango primario, no como una sola cuenta. Sam no eligió entre dos primarios y un primario con una delegación permanente.
   - En la lista de usuarios del Studio, las dos cuentas tienen que **verse marcadas como superadmin**. Hoy esa lista no marca a nadie.
   - Principio de Sam para los demás tenants: cualquiera de las dos cuentas tiene acceso a esas empresas. Cómo entra es P3.
-  - Propuesta: entre dos primarios, ninguno quita al otro desde la app; pendiente de confirmar.
+  - Propuesta, si se confirman dos primarios: ninguno quita al otro desde la app; pendiente de confirmar.
+- **Lo que Sam confirma en 7.4:** si las dos cuentas son dos primarios o un primario y una delegación permanente; la propuesta entre primarios; y la propuesta del delegado.
 - **Delegación (sin cambios):**
   - Un primario le da superadmin a otra persona con un vencimiento (horas o fecha) o de forma permanente.
   - El delegado tiene los poderes de superadmin hasta que vence.
   - Propuesta: el delegado no puede delegar ni quitarle nada al primario; pendiente de confirmar.
   - Toda alta, vencimiento y baja deja log.
 - **Qué cambia en la base:**
-  - `platform_admins` suma tipo (primario o delegado), quién la dio, vence y motivo. Las dos filas actuales pasan a primario.
+  - `platform_admins` suma tipo (primario o delegado), quién la dio, vence y motivo. Las dos filas actuales pasan a primario (*interpretación*, a confirmar).
   - `is_platform_admin()` deja de contar las filas vencidas.
   - La función de delegar exige ser primario.
   - Hoy las altas solo se hacen con `service_role` y sin auditoría (`0058:15-17`); eso deja de ser el único camino.
@@ -248,7 +250,7 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 | 2 | P6: debug, errores y actualizaciones de Chatwoot solo para el superadmin. Junto con eso: el sidebar respeta los 4 módulos SA (H7) y los avisos dejan de depender de datos del cliente (H6). | App, y base donde haya RPC | Nada |
 | 3 | P4 · admin principal: la marca, la protección y que pueda nombrar admins (ajuste de los disparadores de la 0545). | SDD propia, migración y app | Confirmar 7.2 |
 | 4 | P4 · auditoría: el «log fuerte» solo para el admin principal y el superadmin, y verificar que nadie borra logs. Lo de plataforma va aparte. | SDD propia, app y base | Fase 3; confirmar 7.3 |
-| 5 | P7 · rango primario (las dos cuentas de Sam en DTD), su marca en la lista de usuarios y la delegación con vencimiento y log. | SDD propia, migración y app | Confirmar las propuestas de 7.4 |
+| 5 | P7 · rango primario (las dos cuentas de Sam en DTD, según lo que confirme en 7.4), su marca en la lista de usuarios y la delegación con vencimiento y log. | SDD propia, migración y app | Confirmar las propuestas de 7.4 |
 | 6 | P3 · vía de soporte en otra empresa: tenant activo, membresía de soporte y marca visual. | SDD propia, migración y app | Decidir P3 |
 | 7 | P1 y P2 · catálogo de módulos por tenant, vendibles por separado. Solo el superadmin activa o desactiva. Los 4 de DTD no se ofrecen fuera de DTD. **Al desactivar** un módulo se desactivan sus permisos (matriz y accesos por persona) y nadie de la empresa lo ve, como si no existiera. **Al activarlo** entran los permisos predeterminados y desde ahí el admin configura quién accede. Hechos que hay que resolver: <ul><li>hoy el apagado vive solo en la app;</li><li>`requireFeatureEnabled` falla abierto a propósito si la lectura falla (`lib/studio/feature-flag-guard.ts:30-47`);</li><li>los módulos sin entrada en `MODULE_FLAG_MAP` son «core» y no se pueden apagar;</li><li>los accesos por persona (0538) quedan guardados al apagar.</li></ul> | SDD propia, app y base | Llega con el segundo tenant; P1 ya está decidido |
 | 8 | Integraciones por tenant (H5). | SDD propia por integración | Fase 6 |
