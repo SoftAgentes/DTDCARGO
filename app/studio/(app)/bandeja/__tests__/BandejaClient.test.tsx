@@ -582,3 +582,88 @@ describe("marcasVigentes (SDD-0677)", () => {
     ).toEqual([ahora - VENTANA_SSO_MS + 1, ahora, ahora + 1, ahora + VENTANA_SSO_MS - 1]);
   });
 });
+
+/**
+ * SDD-0680 · la Bandeja abre sola. El 2026-11-19 la primera carga quedó en
+ * «Abriendo la bandeja…» con el POST de la action en `net::ERR_ABORTED`: la
+ * llamada a la server action RECHAZA (o no vuelve) y antes de 0680 nada lo
+ * atajaba. La fase quedaba en `pidiendo` para siempre, sin vigilante, y «Abrir
+ * de nuevo» seguía deshabilitado. Además, cada intento fallido gastaba cupo del
+ * freno aunque no hubiera login, y al tercero «Abrir de nuevo» ya no abría.
+ */
+describe("BandejaClient · abre sola (SDD-0680)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  });
+
+  it("si la llamada a la action rechaza (ERR_ABORTED), reintenta y abre: no se queda en «Abriendo la bandeja…»", async () => {
+    pedirEnlaceSso.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    await drenar(1500);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("si la action rechaza las tres veces, muestra el aviso y «Abrir de nuevo» queda habilitado y abre", async () => {
+    pedirEnlaceSso.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(6000);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+    expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
+    pedirEnlaceSso.mockReset();
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    expect(reabrirAviso().disabled).toBe(false);
+    fireEvent.click(reabrirAviso());
+    await drenar();
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("si la action no vuelve nunca, al vencer el plazo reintenta (el pedido colgado no deja la pantalla quieta)", async () => {
+    const { PLAZO_ENLACE_MS } = await import("../_components/BandejaClient");
+    pedirEnlaceSso.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(PLAZO_ENLACE_MS - 1);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    await drenar(1 + 1500);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("un intento que no llegó a abrir nada no gasta el freno: tras tres fallos, «Abrir de nuevo» abre", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: false, error: "service" });
+    const { unmount } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(6000);
+    unmount();
+    // Dos recargas más que también fallan.
+    for (let i = 0; i < 2; i++) {
+      const r = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+      await drenar(6000);
+      r.unmount();
+    }
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(0);
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(screen.queryByText(/frena los ingresos repetidos/)).toBeNull();
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+    // El enlace que sí se cargó es el login: ese cuenta.
+    expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(1);
+  });
+
+  it("el enlace se pide antes que la reconciliación: la reconciliación espera a que termine el SSO", async () => {
+    let soltar: (v: unknown) => void = () => undefined;
+    pedirEnlaceSso.mockReturnValue(new Promise((r) => (soltar = r)));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    // Next pone las server actions en una sola cola: si la reconciliación saliera
+    // primero, el SSO esperaría detrás de ella.
+    expect(reconciliar).not.toHaveBeenCalled();
+    soltar({ ok: true, url: SSO });
+    await drenar();
+    expect(reconciliar).toHaveBeenCalledTimes(1);
+  });
+});
