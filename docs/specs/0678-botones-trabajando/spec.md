@@ -207,7 +207,25 @@ Orden aprobado por el DG el 2026-11-19, sobre el inventario estático del 2026-1
 |---|---|---|---|---|---|
 | `DrawerFooter` | cumplimiento (ya estaba) | cumplimiento | cumplimiento (ya estaba) + spinner | cumplimiento | no aplica: lo muestra cada drawer |
 | Operarios · desactivar | cumplimiento | cumplimiento | cumplimiento (nombre accesible y `title`) | cumplimiento (38 px fijos) | no conformidad preexistente: la acción no devuelve error a la fila; pendiente §10.2 |
-| Inspecciones · eliminar foto | cumplimiento | cumplimiento | cumplimiento (nombre accesible y `title`) | cumplimiento (24 px fijos) | cumplimiento (aviso nuevo) |
+| Inspecciones · eliminar foto | cumplimiento | cumplimiento | cumplimiento (nombre accesible y `title`) | cumplimiento (24 px fijos) | cumplimiento (aviso nuevo; también si la acción RECHAZA: `try/catch` con mensaje genérico, para que no suba al límite de errores de React 19) |
+
+### 9.2b Medida del ancho del submit (Chrome headless, 2026-11-19)
+
+Con `studio.css` y `tokens.css` reales, ancho en px del submit primario (reposo / «Creando…»). **M**
+
+| Etiqueta | Antes (reposo / en curso) | Ahora (reposo / en curso) |
+|---|---|---|
+| «Guardar» | 85,4 / 101,7 | 123,7 / 123,7 |
+| «Crear» | 69,0 / 101,7 | 123,7 / 123,7 |
+| «Guardar cambios» | 141,4 / 101,7 | 141,4 / 141,4 |
+| «Crear y dejar abierta» | 161,6 / 101,7 | 161,6 / 161,6 |
+| «Registrar recepción y emitir comprobante» | 290 / 101,7 | 290 / 290 |
+
+El botón ya no cambia de ancho al trabajar (antes saltaba hasta 188 px). El **costo**: una etiqueta corta («Guardar»,
+«Crear») queda en el ancho de «Creando…» con spinner (≈124 px) también en reposo: +38 a +55 px. Las largas no cambian en
+reposo. En 375 px la más larga de la tabla (290) cabe sola; junto a «Cancelar» ya no cabía antes ni cabe ahora
+(preexistente). El submit y «Cancelar» siguen en `flex` sin quiebre: `/ui-check` queda **NO EJECUTADO** en esta
+PR (no se abrió el drawer real en el navegador; la medida es de un HTML con los estilos reales).
 
 ### 9.3 Allowlist exacta (PR A)
 

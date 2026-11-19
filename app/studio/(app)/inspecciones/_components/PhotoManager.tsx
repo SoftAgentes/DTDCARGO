@@ -182,9 +182,15 @@ function PhotoThumb({
         onClick={() => {
           if (borrando) return;
           startBorrar(async () => {
-            const r = await deleteInspectionPhotoAction(item.id);
-            if (r.error) onError(r.error);
-            else onDeleted();
+            // Una promesa rechazada (red caída, acción que lanza) NO puede salir de la transición: en React 19 llegaría
+            // al límite de errores y tumbaría la pantalla. Se captura y se dice con un mensaje genérico.
+            try {
+              const r = await deleteInspectionPhotoAction(item.id);
+              if (r.error) onError(r.error);
+              else onDeleted();
+            } catch {
+              onError("Error de conexión. Intenta de nuevo.");
+            }
           });
         }}
         aria-label={borrando ? "Eliminando foto…" : "Eliminar foto"}

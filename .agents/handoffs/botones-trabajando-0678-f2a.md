@@ -28,6 +28,9 @@ estable, y los botones del inventario que llaman al servidor sin ningún estado 
 | eslint en lo tocado | PASÓ | 0 errores, 2 avisos por parámetros sin usar en los dobles de prueba |
 | tsc | PASÓ | tras corregir 3 tipos en los dobles de las pruebas |
 | `check-rsc-boundary`, `docs:check` | PASÓ | |
+| Revisión independiente, cambio 1 (bloqueante): `await` sin `try/catch` en `PhotoManager` | corregido | `try/catch` con mensaje genérico; prueba nueva con acción que RECHAZA; vitest de ese archivo 3/3 PASÓ y el mutante sin `try/catch` la hace fallar |
+| Revisión, cambio 2: ancho del submit en reposo | medido | spec §9.2b (Chrome headless). `/ui-check`: NO EJECUTADO |
+| Revisión, cambio 3 (menor) | DECLARADO, no cubierto | (a) ninguna prueba detecta quitar `className="studio-spin"` de `EtiquetaEstable`; (b) el doble clic de `OperariosClient.desactivar.test.tsx` se frena porque el botón ya está `disabled`, no por el candado. Cubrirlos exige correr más vitest y el turno de la PC era solo para `PhotoManager.test.tsx` |
 | `pnpm verify` local | NO EJECUTADO | lo cubre el CI de GitHub |
 
 ## Impacto documental
