@@ -3592,6 +3592,15 @@
         "forma": "exacta"
       }
     },
+    "0562_registro_link_autoservicio": {
+      "sha256": "ce4aea9b82d449cb829385fda27d277ee8cdfbdc5b3afea703348d859f0a7c3a",
+      "md5": "637b3740d2ea71e9981da1b3d171161e",
+      "bytes": 34441,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
     "0563_partir_embarque_y_medidas": {
       "sha256": "a193fd5ddee9313dfbae29efbca39a2143f21789a1c139f8468f5b92032797a9",
       "md5": "0bd55ef482794f52bb0baffdf2376352",
