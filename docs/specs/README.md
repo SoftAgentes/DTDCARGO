@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 661 specs)
+### Índice de specs (generado · 664 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -661,6 +661,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
 | 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
 | 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
+| 0639 | IA: cambiar de modelo o de proveedor por función, con princip… | approved | interno |
 | 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
 | 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
 | 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
@@ -696,9 +697,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
 | 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
+| 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |
 | 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
 | 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
+| 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0668, 0670, 0675, 0678, 0681, 0682, 0683 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0668, 0670, 0675, 0682, 0683 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
