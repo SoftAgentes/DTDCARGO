@@ -13,6 +13,12 @@ vi.mock("@/app/studio/(app)/bandeja/actions", () => ({
   pedirFichaDtd: (...args: unknown[]) => pedirFichaDtd(...args),
 }));
 
+// SDD-0676: el botón «Vincular a cliente» vive en la Ficha DTD; sus acciones son de servidor.
+vi.mock("@/app/studio/(app)/bandeja/vincular-actions", () => ({
+  buscarClientesParaVincular: vi.fn(),
+  vincularContactoDeConversacion: vi.fn(),
+}));
+
 const { FichaDtdClient } = await import("../_components/FichaDtdClient");
 
 const CHAT = "https://chat.ejemplo.test";
@@ -95,6 +101,21 @@ describe("FichaDtdClient (SDD-0585, 2.4)", () => {
     mandar(contexto(43));
     await waitFor(() => expect(pedirFichaDtd).toHaveBeenCalledTimes(2));
     expect(pedirFichaDtd).toHaveBeenLastCalledWith(43, 3);
+  });
+
+  it("SDD-0676 · sin ficha: «Vincular a cliente» solo si el servidor dice que esta persona puede", async () => {
+    pedirFichaDtd.mockResolvedValueOnce({ ok: true, ficha: null, costo: null, puedeVincular: true });
+    render(<FichaDtdClient origenChat={CHAT} conSesion loginUrl="/studio/login" />);
+    mandar(contexto(42));
+    await waitFor(() => expect(screen.getByText("Sin ficha")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Vincular a cliente" })).toBeTruthy();
+
+    // Otra conversación, sin permiso (o con una respuesta vieja que no trae el campo): sin botón.
+    pedirFichaDtd.mockResolvedValueOnce({ ok: true, ficha: null, costo: null });
+    mandar(contexto(43));
+    await waitFor(() => expect(pedirFichaDtd).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Vincular a cliente" })).toBeNull());
+    expect(screen.getByText("Sin ficha")).toBeTruthy();
   });
 
   it("una respuesta vieja no pisa la de la conversación nueva", async () => {

@@ -29,7 +29,8 @@ export type EstadoFichaDtd =
   | { tipo: "cargando" }
   | { tipo: "sin_sesion"; loginUrl: string }
   | { tipo: "error"; error: FichaDtdError }
-  | { tipo: "sin_ficha"; costo?: CostoChat | null }
+  /** `vincularEn` (SDD-0676): la conversación en la que esta persona puede vincular el chat a un cliente. */
+  | { tipo: "sin_ficha"; costo?: CostoChat | null; vincularEn?: { conversacionId: number; agenteId: number } }
   | { tipo: "ficha"; ficha: FichaDtd; costo?: CostoChat | null };
 
 const PANEL = {
@@ -168,11 +169,14 @@ export function FichaDtdView({
   estado,
   onRetry,
   costoChat,
+  vincular,
 }: {
   estado: EstadoFichaDtd;
   onRetry?: () => void;
   /** Hueco del 2.8. Si no se pasa, se pinta `CostoChatCard` con el `costo` del estado. */
   costoChat?: ReactNode;
+  /** SDD-0676: «Vincular a cliente». Solo se pinta en «Sin ficha»; lo arma `FichaDtdClient`. */
+  vincular?: ReactNode;
 }) {
   const t = useT();
   const costoDelEstado = estado.tipo === "ficha" || estado.tipo === "sin_ficha" ? estado.costo : null;
@@ -221,6 +225,7 @@ export function FichaDtdView({
       cuerpo = (
         <>
           <Mensaje titulo={t("bandeja.ficha.none.title")} cuerpo={t("bandeja.ficha.none.body")} />
+          {vincular ? <section data-hueco="vincular">{vincular}</section> : null}
           {costo ? <section data-hueco="costo-chat">{costo}</section> : null}
         </>
       );

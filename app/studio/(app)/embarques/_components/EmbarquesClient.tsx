@@ -65,6 +65,8 @@ import {
 } from "@/lib/studio/borrado/reglas";
 import { deleteShipmentsAction } from "../actions";
 import { AsistenteBorrado } from "./AsistenteBorrado";
+import { FacturarContenedor } from "./FacturarContenedor";
+import type { FacturacionExc0674 } from "@/lib/studio/exc0674";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   agruparPorContenedor,
@@ -150,6 +152,7 @@ export function EmbarquesClient({
   eliminacion,
   contenedores = SIN_CONTENEDORES,
   montos,
+  facturacion,
   tope,
 }: {
   shipments: ShipmentListRow[];
@@ -172,6 +175,11 @@ export function EmbarquesClient({
    * Facturación (lo decide la página en el servidor); `undefined` = no se pinta.
    */
   montos?: MontosDeContenedores;
+  /**
+   * SDD-0674 · EXC-0674: qué contenedores se facturan desde aquí y qué ya se facturó. Sólo llega
+   * para accounting y admin (lo decide la página en el servidor).
+   */
+  facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
 }) {
@@ -677,6 +685,7 @@ export function EmbarquesClient({
           abiertos={abiertos}
           toggleContenedor={toggleContenedor}
           montos={montos}
+          facturacion={facturacion}
           renderClientes={(g) => (
             <GroupedTable
               groups={g.clientes}
@@ -963,12 +972,14 @@ function ListaDeContenedores({
   abiertos,
   toggleContenedor,
   montos,
+  facturacion,
   renderClientes,
 }: {
   grupos: GrupoContenedor[];
   abiertos: Set<string>;
   toggleContenedor: (key: string) => void;
   montos?: MontosDeContenedores;
+  facturacion?: FacturacionExc0674;
   renderClientes: (g: GrupoContenedor) => ReactNode;
 }) {
   return (
@@ -1115,6 +1126,9 @@ function ListaDeContenedores({
                   <>
                     <FranjaDeTotales grupo={g} montos={montos} />
                     <DetallePorCliente grupo={g} montos={montos} />
+                    {facturacion?.estado === "lista" && facturacion.contenedores.includes(c.id) && (
+                      <FacturarContenedor grupo={g} facturados={facturacion.facturados[c.id] ?? {}} />
+                    )}
                   </>
                 )}
                 {renderClientes(g)}

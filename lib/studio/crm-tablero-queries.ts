@@ -12,6 +12,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllByIds } from "@/lib/db/paginate";
+import { esCanalUnion, logoDeCanalUnion } from "@/lib/studio/chatwoot/canal-union";
+import { canalDeTarjeta, type CrmCanal } from "@/lib/studio/crm-canal";
 import {
   CRM_TABLERO_CAP,
   diasDesde,
@@ -105,6 +107,51 @@ export function rastrosDesdeHistorial(
   return out;
 }
 
+/** Los canales vinculados que NO son el de la fuente de la tarjeta, sin repetir. */
+export function canalesExtraDe(
+  propio: CrmCanal | null,
+  vinculados: ReadonlySet<CrmCanal> | undefined,
+): CrmCanal[] {
+  if (!vinculados) return [];
+  return [...vinculados].filter((c) => c !== propio).sort();
+}
+
+/**
+ * SDD-0676 · Canales de los chats vinculados a cada ficha (`chatwoot_contact_links`),
+ * para pintar su logo en la tarjeta del cliente. La RLS de la 0554 pide la Bandeja: quien
+ * no la tiene recibe cero filas y ve solo el logo de la fuente. Es un adorno: sin la
+ * migración (la columna no existe) o si la lectura falla, la tarjeta sale sin logos extra.
+ */
+export async function canalesVinculados(
+  supabase: SupabaseClient,
+  clientIds: readonly string[],
+): Promise<Map<string, Set<CrmCanal>>> {
+  const out = new Map<string, Set<CrmCanal>>();
+  if (clientIds.length === 0) return out;
+  try {
+    const res = await fetchAllByIds<{ client_id: string; canal_chat: string | null }>(
+      [...clientIds],
+      (lote, from, to) =>
+        supabase
+          .from("chatwoot_contact_links")
+          .select("client_id, canal_chat")
+          .in("client_id", lote)
+          .order("chatwoot_contact_id", { ascending: true })
+          .range(from, to),
+    );
+    for (const f of res.rows) {
+      const logo = logoDeCanalUnion(esCanalUnion(f.canal_chat) ? f.canal_chat : null);
+      if (!logo) continue;
+      const set = out.get(f.client_id) ?? new Set<CrmCanal>();
+      set.add(logo);
+      out.set(f.client_id, set);
+    }
+  } catch {
+    return new Map();
+  }
+  return out;
+}
+
 export async function cargarTableroCrm(
   supabase: SupabaseClient,
   opts: { asesores: ReadonlyMap<string, string>; ahoraMs?: number },
@@ -120,14 +167,19 @@ export async function cargarTableroCrm(
   }
   const etapas = (etapasRes.data ?? []) as CrmEtapa[];
 
-  // Las anonimizadas (D6) quedan para los conteos, no para trabajar.
-  const tarjetasRes = await supabase
-    .from("crm_tarjetas")
-    .select(COLS_TARJETA)
-    .is("anonimizada_at", null)
-    .order("ultima_actividad_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(CRM_TABLERO_CAP);
+  // Las anonimizadas (D6) quedan para los conteos, no para trabajar. Las absorbidas
+  // (SDD-0676) tampoco se pintan: son la tarjeta de lead de un chat ya vinculado a un
+  // cliente, y su historial se ve en la tarjeta de ese cliente.
+  const leerTarjetas = (sinAbsorbidas: boolean) => {
+    const base = supabase.from("crm_tarjetas").select(COLS_TARJETA).is("anonimizada_at", null);
+    return (sinAbsorbidas ? base.is("absorbida_en", null) : base)
+      .order("ultima_actividad_at", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(CRM_TABLERO_CAP);
+  };
+  let tarjetasRes = await leerTarjetas(true);
+  // Sin la migración de la SDD-0676 la columna no existe (42703): no hay absorbidas que esconder.
+  if (tarjetasRes.error?.code === "42703") tarjetasRes = await leerTarjetas(false);
   if (tarjetasRes.error) {
     return { ok: false, motivo: esModeloAusente(tarjetasRes.error) ? "sin_modelo" : "error" };
   }
@@ -151,6 +203,7 @@ export async function cargarTableroCrm(
 
     const { visibles, ocultas } = separarVisibles(filas, fichas);
     const ids = visibles.map((t) => t.id);
+    const canalesDeFicha = await canalesVinculados(supabase, clientIds);
 
     const segmentos = new Map<string, CrmSegmento>();
     for (let i = 0; i < ids.length; i += SEGMENTO_LOTE) {
@@ -203,6 +256,10 @@ export async function cargarTableroCrm(
       const u = ubicarTarjeta(t, segmento, rastros.get(t.id) ?? { clientesAt: null, enLeads: false });
       const ficha = t.client_id ? fichas.get(t.client_id) : undefined;
       const tk = abiertas.get(t.id);
+      const extra = canalesExtraDe(
+        canalDeTarjeta(t.fuente, t.utm_source),
+        t.client_id ? canalesDeFicha.get(t.client_id) : undefined,
+      );
       return {
         id: t.id,
         nombre: ficha?.name?.trim() || t.nombre_visible?.trim() || null,
@@ -217,6 +274,7 @@ export async function cargarTableroCrm(
         tareasVencidas: tk?.vencidas ?? 0,
         fuente: t.fuente,
         utmSource: t.utm_source?.trim() || null,
+        ...(extra.length > 0 ? { canalesExtra: extra } : {}),
       };
     });
 
