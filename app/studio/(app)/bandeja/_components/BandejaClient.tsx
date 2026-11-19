@@ -99,7 +99,7 @@ type Fase =
   | { tipo: "abierto" }
   | { tipo: "lento" }
   | { tipo: "freno" }
-  | { tipo: "error"; codigo: BandejaErrorCode };
+  | { tipo: "error"; codigo: BandejaErrorCode; vencido?: boolean };
 
 const esperar = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -318,7 +318,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       if (!r.ok && r.vencido) {
         // Un reintento por la action esperaría detrás del POST colgado.
         colaTrabada.current = true;
-        setFase({ tipo: "error", codigo: "service" });
+        setFase({ tipo: "error", codigo: "service", vencido: true });
         return;
       }
       if (r.ok) {
@@ -398,7 +398,10 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   const aviso =
     fase.tipo === "error"
-      ? fase.codigo === "service"
+      ? fase.vencido
+        ? // SDD-0680: no hubo 3 intentos; hubo uno que no volvió, y la salida es recargar.
+          t("bandeja.recover.timeout")
+        : fase.codigo === "service"
         ? t("bandeja.recover.service", { total: INTENTOS_ENLACE })
         : t(`bandeja.error.${fase.codigo}` as I18nKey)
       : fase.tipo === "lento"
@@ -473,7 +476,9 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         {t("bandeja.page.crm")}
       </h1>
       {pestanas}
-      {listo && estadoFila ? (
+      {/* Siempre montado mientras hay panel: un `role="status"` que nace con el texto
+          no siempre se anuncia; uno que ya estaba y cambia, sí. */}
+      {listo ? (
         <span
           role="status"
           style={{

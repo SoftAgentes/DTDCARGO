@@ -12,6 +12,8 @@
 export type EntrarResultado =
   /** Tiene acceso y el enlace de entrada salió. */
   | "enlace"
+  /** Es cliente del ERP sin portal y le salió el enlace para crearlo (entrega 2). */
+  | "crear_portal"
   /** Es cliente del ERP, pero sin acceso al portal: el equipo ya está avisado. */
   | "sin_portal"
   /** Cuenta que nació del link de registro y cuyo correo su dueño no comprobó. */
@@ -22,6 +24,7 @@ export type EntrarResultado =
 /** Mensaje de WhatsApp que se arma para cada caso. */
 export const ENTRAR_WHATSAPP: Record<EntrarResultado, string> = {
   enlace: "Hola DTD Cargo, soy cliente y no me llega el enlace para entrar a mi portal.",
+  crear_portal: "Hola DTD Cargo, ya soy cliente y no me llega el enlace para crear mi portal.",
   sin_portal: "Hola DTD Cargo, ya soy cliente y quiero activar mi portal.",
   sin_comprobar:
     "Hola DTD Cargo, quiero entrar a mi portal y mi correo todavía no está comprobado.",

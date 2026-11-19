@@ -20,6 +20,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { StudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
+import { getTenantGrantsByUser } from "@/lib/studio/user-module-grants-queries";
 import { chatwootConfig, chatwootServicioUserId } from "./config";
 import { listarMiembrosCuenta, obtenerAgente, type RolCuenta } from "./platform-api";
 import { evaluarSalud, type SaludBandeja } from "./agentes-salud";
@@ -58,33 +59,57 @@ export interface AgentesBandejaDatos {
   salud: SaludBandeja;
   /** SDD-0680: agentes de la cuenta (sin el de servicio); `null` si Chatwoot no respondió. */
   agentes: AgenteCuenta[] | null;
+  /** SDD-0680: `false` si algún agente no se pudo leer; la pantalla ofrece también el número. */
+  agentesCompletos: boolean;
 }
 
 /** Tope de agentes que se leen uno por uno; con más, la pantalla pide el número a mano. */
 export const MAX_AGENTES_LEIDOS = 60;
+/** Lecturas a la Platform API a la vez: no se abren 60 conexiones de golpe contra Chatwoot. */
+export const LECTURAS_EN_PARALELO = 5;
+
+/** La lista de agentes y si quedó completa. */
+export interface ListaAgentes {
+  agentes: AgenteCuenta[];
+  completa: boolean;
+}
+
+/** Corre `fn` sobre cada elemento con a lo sumo `n` en vuelo; conserva el orden. */
+export async function enLotes<T, R>(items: readonly T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const salida: R[] = new Array(items.length);
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < items.length) {
+      const i = siguiente++;
+      salida[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, trabajador));
+  return salida;
+}
 
 /**
- * Lee nombre y correo de cada miembro de la cuenta (sin el de servicio). Un
- * agente que no se pudo leer queda fuera de la lista; si no se pudo leer
- * ninguno, o la cuenta no respondió, devuelve `null`.
+ * Lee nombre y correo de cada miembro de la cuenta (sin el de servicio), de a
+ * `LECTURAS_EN_PARALELO`. Un agente que no se pudo leer queda fuera y la lista
+ * se marca incompleta; si no se pudo leer ninguno, hay más del tope o la cuenta
+ * no respondió, devuelve `null`.
  */
 export async function agentesDeCuenta(
   cuenta: Awaited<ReturnType<typeof listarMiembrosCuenta>>,
   servicioId: number | null,
   cfg: NonNullable<ReturnType<typeof chatwootConfig>>,
-): Promise<AgenteCuenta[] | null> {
+): Promise<ListaAgentes | null> {
   if (!cuenta.ok) return null;
   const miembros = cuenta.data.filter((m) => m.userId !== servicioId);
-  if (miembros.length === 0) return [];
+  if (miembros.length === 0) return { agentes: [], completa: true };
   if (miembros.length > MAX_AGENTES_LEIDOS) return null;
-  const leidos = await Promise.all(
-    miembros.map(async (m): Promise<AgenteCuenta | null> => {
-      const r = await obtenerAgente(m.userId, cfg);
-      return r.ok ? { id: m.userId, nombre: r.data.name, correo: r.data.email, rol: m.rol } : null;
-    }),
-  );
+  const leidos = await enLotes(miembros, LECTURAS_EN_PARALELO, async (m): Promise<AgenteCuenta | null> => {
+    const r = await obtenerAgente(m.userId, cfg);
+    return r.ok ? { id: m.userId, nombre: r.data.name, correo: r.data.email, rol: m.rol } : null;
+  });
   const agentes = leidos.filter((a): a is AgenteCuenta => a !== null);
-  return agentes.length === 0 ? null : agentes;
+  if (agentes.length === 0) return null;
+  return { agentes, completa: agentes.length === miembros.length };
 }
 
 function nombreDe(profile: { first_name: string | null; last_name: string | null } | null): string {
@@ -100,11 +125,13 @@ export async function cargarAgentesBandeja(
   if (access.role !== "admin" || !access.tenantId || !cfg) return null;
   const tenantId = access.tenantId;
 
-  const [vinculos, miembros, cuenta, webhook] = await Promise.all([
+  const [vinculos, miembros, cuenta, webhook, accesos] = await Promise.all([
     listVinculos(supabase, tenantId),
     miembrosDeBandeja(access, crearClienteAdmin),
     listarMiembrosCuenta(cfg),
     revisarWebhookCuenta(cfg, chatwootServicioUserId()),
+    // SDD-0675: el acceso adicional de Bandeja también deja darla de alta.
+    getTenantGrantsByUser(crearClienteAdmin(), tenantId),
   ]);
   // Paso 2.5: la misma salud que mide el cron diario, leída al abrir la página.
   const salud = evaluarSalud({
@@ -114,8 +141,8 @@ export async function cargarAgentesBandeja(
   });
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
   sumarAlertasWebhook(salud, webhook);
-  const agentes = await agentesDeCuenta(cuenta, chatwootServicioUserId(), cfg);
-  const porId = new Map((agentes ?? []).map((a) => [a.id, a]));
+  const lista = await agentesDeCuenta(cuenta, chatwootServicioUserId(), cfg);
+  const porId = new Map((lista?.agentes ?? []).map((a) => [a.id, a]));
 
   const nombres = new Map(miembros.map((m) => [m.user_id, nombreDe(m.profile)]));
   return {
@@ -130,10 +157,11 @@ export async function cargarAgentesBandeja(
       .map((m) => ({
         userId: m.user_id,
         nombre: nombreDe(m.profile) || m.user_id.slice(0, 8),
-        puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides),
+        puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides, accesos.get(m.user_id)),
         correo: m.email,
       })),
     salud,
-    agentes,
+    agentes: lista?.agentes ?? null,
+    agentesCompletos: lista?.completa ?? false,
   };
 }

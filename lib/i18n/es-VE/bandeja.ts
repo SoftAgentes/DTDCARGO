@@ -30,6 +30,8 @@ export const bandeja = {
   "bandeja.state.retrying": "Conectando con la bandeja… (intento {n} de {total})",
   "bandeja.recover.title": "La bandeja no abrió",
   "bandeja.recover.service": "El servidor de mensajes no respondió después de {total} intentos. Ábrela de nuevo en un momento.",
+  "bandeja.recover.timeout":
+    "La bandeja no respondió a tiempo. Oprime «Abrir de nuevo»: la página se vuelve a cargar.",
   "bandeja.recover.slow": "La bandeja está tardando más de lo normal en cargar.",
   "bandeja.recover.throttle":
     "Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.",
@@ -49,6 +51,10 @@ export const bandeja = {
   "bandeja.links.agent_id_help":
     "No pudimos leer la lista de agentes de Chatwoot. Escribe el número que sale junto al agente en Chatwoot › Ajustes › Agentes.",
   "bandeja.links.agent": "Agente de Chatwoot",
+  "bandeja.links.agent_other": "Otro agente: escribir su número…",
+  "bandeja.links.agents_incomplete":
+    "No pudimos leer todos los agentes de Chatwoot. Si no aparece, elige «Otro agente» y escribe su número.",
+  "bandeja.links.agent_id_help_other": "El número sale junto al agente en Chatwoot › Ajustes › Agentes.",
   "bandeja.links.agent_placeholder": "Elige un agente",
   "bandeja.links.agent_help":
     "Solo salen los agentes de la cuenta que todavía no tienen vínculo. El que tiene el mismo correo va primero.",
@@ -244,6 +250,8 @@ export const bandeja = {
   "bandeja.salud.alerta.cierre_pendiente": "Una baja salió de la cuenta, pero sus sesiones siguen abiertas: el próximo cron lo reintenta.",
   "bandeja.salud.alerta.degradacion_bloqueada": "Un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador.",
   "bandeja.salud.alerta.matriz_incompleta": "No se pudieron aplicar todos los permisos de la matriz: el próximo cron lo reintenta.",
+  "bandeja.salud.alerta.miembros_no_leidos": "No se pudieron leer los usuarios o los permisos por rol del Studio: nadie fue dado de baja ni cambiado en el servidor de mensajes; el próximo cron lo reintenta.",
+  "bandeja.salud.alerta.accesos_no_leidos": "No se pudieron leer los accesos adicionales de la Bandeja: nadie perdió la Bandeja por eso y los permisos de la matriz esperan al próximo cron.",
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
   "bandeja.salud.alerta.webhook_falta": "Falta el webhook de cuenta hacia el Studio (/api/chatwoot/webhook): no llegan los avisos ni las respuestas al portal.",
   "bandeja.salud.alerta.webhook_sin_mensajes": "El webhook de cuenta no tiene el evento de mensajes nuevos: no llegan las respuestas al portal.",

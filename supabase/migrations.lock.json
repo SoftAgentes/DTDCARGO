@@ -3592,6 +3592,15 @@
         "forma": "exacta"
       }
     },
+    "0562_registro_link_autoservicio": {
+      "sha256": "ce4aea9b82d449cb829385fda27d277ee8cdfbdc5b3afea703348d859f0a7c3a",
+      "md5": "637b3740d2ea71e9981da1b3d171161e",
+      "bytes": 34441,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
     "0563_partir_embarque_y_medidas": {
       "sha256": "a193fd5ddee9313dfbae29efbca39a2143f21789a1c139f8468f5b92032797a9",
       "md5": "0bd55ef482794f52bb0baffdf2376352",
@@ -3607,6 +3616,24 @@
       "bytes": 36660,
       "ledger": {
         "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0565_bandeja_concedible_por_persona": {
+      "sha256": "9e9345c08e16d9e733f480bd13651946dcbbcca610cde0a9de9aaf6e83370e67",
+      "md5": "479cefea6117e822a7bcd896902f6bdf",
+      "bytes": 5486,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0566_chatwoot_vincular_canal": {
+      "sha256": "6130aa83fe15310cbb377baa998b0badfa859e2e98a061c51bef4c51390bd468",
+      "md5": "d201a65bdc027b6a364285b7bc286097",
+      "bytes": 56403,
+      "ledger": {
+        "fecha": "2026-11-19",
         "forma": "exacta"
       }
     },
