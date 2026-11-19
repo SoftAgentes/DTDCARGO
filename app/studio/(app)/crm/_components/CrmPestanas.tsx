@@ -40,7 +40,16 @@ export function CrmCabecera({ bajada, extra }: { bajada: ReactNode; extra?: Reac
   );
 }
 
-export function CrmPestanas({ pestanas, activa }: { pestanas: ReadonlyArray<CrmPestana>; activa: CrmPestanaKey }) {
+export function CrmPestanas({
+  pestanas,
+  activa,
+  compacta = false,
+}: {
+  pestanas: ReadonlyArray<CrmPestana>;
+  activa: CrmPestanaKey;
+  /** SDD-0680: dentro de la fila de la Bandeja, sin margen debajo. */
+  compacta?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -50,7 +59,7 @@ export function CrmPestanas({ pestanas, activa }: { pestanas: ReadonlyArray<CrmP
   };
 
   return (
-    <div style={{ marginBottom: 20, opacity: isPending ? 0.7 : 1 }}>
+    <div style={{ marginBottom: compacta ? 0 : 20, opacity: isPending ? 0.7 : 1 }}>
       <div role="tablist" aria-label="Tablero CRM" className="studio-tabs">
         {pestanas.map((p) => {
           const isActive = p.key === activa;
