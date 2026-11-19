@@ -31,7 +31,8 @@ import { quitarUnionAction, unirChatAction } from "../conversaciones-actions";
 
 export interface UnionVisible {
   chatwootContactId: number;
-  origen: "webhook" | "kommo" | "manual";
+  /** `portal`: la unión del chat del portal; la pone el sistema y no se quita a mano. */
+  origen: "webhook" | "kommo" | "manual" | "portal";
   /** SDD-0676: por qué canal escribe ese contacto; null en las uniones anteriores. */
   canal?: CanalUnion | null;
 }

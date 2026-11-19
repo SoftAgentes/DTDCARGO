@@ -150,8 +150,12 @@ Esta nota se escribió después de la aprobación y está en un commit local sin
 |---|---|
 | Gate de símbolos, con las declaraciones regeneradas | PASÓ (0 rojos, 7 amarillos) |
 | Anclas de los 25 mutantes: cada texto aparece una sola vez en la migración | PASÓ |
-| Vitest (contrato en PGlite, mutantes, ensayos del desarme y del relleno, pruebas de Studio), `tsc`, ESLint | PENDIENTE de turno de PC; ver abajo |
-| Contrato SQL en Postgres 17 | NO EJECUTADO en local: CI |
+| Vitest, con turno del Director General: prueba de la migración (contrato en PGlite, 25 mutantes, ensayos del desarme y del relleno), `lib/studio/chatwoot`, los contratos del portal en PGlite, las pruebas de Studio tocadas, guardas e i18n | PASÓ: 82 archivos y 2.121 pruebas; 5 archivos y 37 pruebas saltadas (las que ya se saltan sin su entorno) |
+| `tsc --noEmit` | FALLÓ la primera vez: el tipo `UnionVisible` de la ficha del cliente no conocía el origen `portal` (4 errores, error mío; vitest no lo ve porque no comprueba tipos). Corregido, PASÓ |
+| ESLint | PASÓ: 0 errores, 37 avisos, ninguno en archivos de la tarea. Corrió antes del arreglo de una línea del tipo; no lo repetí |
+| CI, cabeza `3685bc8d4`: «Contratos SQL» en Postgres 17 | FALLÓ: la aserción 4h esperaba que el evento devolviera vacío y ahora devuelve el cliente conservado. Era el contrato; corregido en `9f5f97b1b` |
+| CI, cabeza `9f5f97b1b`: «Contratos SQL» | PASÓ |
+| Vitest completo y build | NO EJECUTADO en local: CI |
 | Aplicar la 0566 o el relleno en algún entorno | NO EJECUTADO |
 | Smoke del runbook | NO EJECUTADO |
 
