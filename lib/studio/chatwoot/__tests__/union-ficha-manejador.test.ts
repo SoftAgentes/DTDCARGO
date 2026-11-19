@@ -40,7 +40,7 @@ describe("unirContactoAFicha", () => {
 
   it("con ficha única y contacto: une con origen webhook, solo ids", async () => {
     const a = admin();
-    await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA });
+    await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" });
     expect(a.rpc).toHaveBeenCalledWith("chatwoot_unir_contactos", {
       p_tenant_id: T1,
       p_origen: "webhook",
@@ -53,7 +53,7 @@ describe("unirContactoAFicha", () => {
     async (valor) => {
       vi.stubEnv("CHATWOOT_FICHA_UNIR", valor as string);
       const a = admin();
-      await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA });
+      await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" });
       expect(a.rpc).not.toHaveBeenCalled();
     },
   );
@@ -64,24 +64,40 @@ describe("unirContactoAFicha", () => {
     expect(a.rpc).not.toHaveBeenCalled();
   });
 
+  // SDD-0676: la RPC también devuelve el cliente de una unión que ya existe y el que la
+  // conversación conserva. Ninguno prueba que el teléfono cruzó: no se une con ellos.
+  it.each([["union"], ["conservado"], [null], [undefined]])(
+    "con cliente pero origen %j: no une (solo «telefono» prueba un cruce único)",
+    async (origen) => {
+      const a = admin();
+      await unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, {
+        nuevo: true,
+        aplicado: true,
+        clientId: FICHA,
+        origenCliente: origen as "union" | "conservado" | null | undefined,
+      });
+      expect(a.rpc).not.toHaveBeenCalled();
+    },
+  );
+
   it("sin contacto (reproceso): no llama", async () => {
     const a = admin();
-    await unirContactoAFicha({ admin: a.cliente, tenantId: T1 }, evento, { nuevo: true, aplicado: true, clientId: FICHA });
+    await unirContactoAFicha({ admin: a.cliente, tenantId: T1 }, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" });
     expect(a.rpc).not.toHaveBeenCalled();
   });
 
   it("sin la 0554 (PGRST202): no lanza y avisa una sola vez", async () => {
     const a = admin({ code: "PGRST202" });
     const ctx = { admin: a.cliente, tenantId: T1, contacto };
-    await unirContactoAFicha(ctx, evento, { nuevo: true, aplicado: true, clientId: FICHA });
-    await unirContactoAFicha(ctx, evento, { nuevo: true, aplicado: true, clientId: FICHA });
+    await unirContactoAFicha(ctx, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" });
+    await unirContactoAFicha(ctx, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" });
     expect(avisos).toHaveBeenCalledTimes(1);
   });
 
   it("otro error lanza con el código (el evento queda fallido y se reintenta)", async () => {
     const a = admin({ code: "XX000" });
     await expect(
-      unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA }),
+      unirContactoAFicha({ admin: a.cliente, tenantId: T1, contacto }, evento, { nuevo: true, aplicado: true, clientId: FICHA, origenCliente: "telefono" }),
     ).rejects.toThrow("chatwoot_unir_contactos: XX000");
   });
 });
