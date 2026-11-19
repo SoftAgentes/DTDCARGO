@@ -169,8 +169,8 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 
 | # | Respuesta de Sam | Qué cambia en la frontera |
 |---|---|---|
-| P1 | «si» — *interpretación*: el DG le pidió a Sam que la aclare (7.5) | El admin del tenant **no** enciende ni apaga módulos (`feature_flags`). Sí reparte acceso dentro de lo que está encendido: la matriz rol × módulo y los accesos por persona. Hoy ya funciona así (§1, H1); no hay brecha. |
-| P2 | «si» — *interpretación*: el DG le pidió a Sam que la aclare (7.5) | Financiero China, Legal, No-Olvidar y Rendiciones existen **solo para DTD y el superadmin**. En otro tenant no se ofrecen ni se encienden. «Revisar caso por caso» de §3 deja de aplicar: los 4 siguen siendo de superadmin. La fase 5 de §5 (= fase 7 de §8) se convierte en un catálogo de módulos por tenant. |
+| P1 | (a), aclarada el 2026-11-19: solo el superadmin activa o desactiva módulos, porque el plan es venderlos por separado. Si un módulo se desactiva, se desactivan sus permisos y nadie de la empresa lo ve, como si no existiera. Al activarlo entran los permisos predeterminados, y desde ahí el admin configura quién accede. Literal: «el admin ahí sí puede configurar quién quiere que acceda a esos usuarios. Solo superadmin hace eso». | El admin del tenant **no** enciende ni apaga módulos (`feature_flags`); eso ya es solo del superadmin (0543). Sí reparte el acceso dentro de lo encendido: la matriz rol × módulo y los accesos por persona. Lo nuevo: desactivar apaga también los permisos, y activar parte de los predeterminados (`ROLE_MODULE_ACCESS`). Ver la fase 7 de §8. |
+| P2 | (a), aclarada el 2026-11-19. Literal: «no debería verlo nadie, solo de dtd». | Financiero China, Legal, No-Olvidar y Rendiciones existen **solo para DTD y el superadmin**. Ninguna otra empresa los ve: no se ofrecen ni se encienden. «Revisar caso por caso» de §3 deja de aplicar: los 4 siguen siendo de superadmin. La fase 5 de §5 (= fase 7 de §8) se convierte en un catálogo de módulos por tenant. |
 | P4 | Cada empresa tiene un **admin principal** (el dueño), que puede nombrar otros admins. Los demás admins no pueden borrarlo. | Aparece un tercer nivel dentro del tenant: **admin principal** > admin > los demás roles. Ver 7.2. |
 | P4 | Solo el admin principal ve el «log fuerte»: qué se borró y las eliminaciones por usuario, con más detalle. Los otros admins ven los logs, pero no pueden borrarlos. El superadmin ve todo, «hasta lo que no hacen». | Hay dos niveles de auditoría en el tenant y uno de plataforma. Ver 7.3. |
 | P6 | Solo superadmin. | Debug, errores y actualizaciones de Chatwoot pasan a ser solo del superadmin (H4). Ya se puede hacer con DTD como único tenant. |
@@ -221,9 +221,6 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 
 ### 7.5 Lo que sigue abierto
 
-- **P1 y P2: el «si» es ambiguo.** El DG le pidió a Sam que lo aclare. Mientras tanto, 7.1 las lee así, como *interpretación*:
-  - P1: el admin no enciende módulos y sí reparte acceso dentro de lo encendido.
-  - P2: los 4 módulos del superadmin existen solo para DTD.
 - **P3: cómo entra el superadmin a otra empresa.** Sam no está seguro. Prefiere que entre como admin o miembro de esa empresa, pero que **se note** que no es un usuario de ellos: otro logo, otra tipografía o algo distinto.
   - **Hecho técnico:** hoy, con dos membresías activas, `get_user_tenant_id()` devuelve NULL (`0453:242-246`) y la RLS deja de responder (H2). Entrar «como miembro» de varias empresas exige elegir un tenant activo.
   - **Hecho técnico:** la franja «MODO PLATAFORMA» que planteaba la `0058:13` no existe en el Studio; no encontré ningún componente que la pinte.
@@ -253,6 +250,6 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 | 4 | P4 · auditoría: el «log fuerte» solo para el admin principal y el superadmin, y verificar que nadie borra logs. Lo de plataforma va aparte. | SDD propia, app y base | Fase 3; confirmar 7.3 |
 | 5 | P7 · rango primario (las dos cuentas de Sam en DTD), su marca en la lista de usuarios y la delegación con vencimiento y log. | SDD propia, migración y app | Confirmar las propuestas de 7.4 |
 | 6 | P3 · vía de soporte en otra empresa: tenant activo, membresía de soporte y marca visual. | SDD propia, migración y app | Decidir P3 |
-| 7 | P2 · catálogo de módulos por tenant: los 4 de DTD no se ofrecen fuera de DTD. | App y base | Llega con el segundo tenant |
+| 7 | P1 y P2 · catálogo de módulos por tenant, vendibles por separado. Solo el superadmin activa o desactiva. Los 4 de DTD no se ofrecen fuera de DTD. **Al desactivar** un módulo se desactivan sus permisos (matriz y accesos por persona) y nadie de la empresa lo ve, como si no existiera. **Al activarlo** entran los permisos predeterminados y desde ahí el admin configura quién accede. Hechos que hay que resolver: <ul><li>hoy el apagado vive solo en la app;</li><li>`requireFeatureEnabled` falla abierto a propósito si la lectura falla (`lib/studio/feature-flag-guard.ts:30-47`);</li><li>los módulos sin entrada en `MODULE_FLAG_MAP` son «core» y no se pueden apagar;</li><li>los accesos por persona (0538) quedan guardados al apagar.</li></ul> | SDD propia, app y base | Llega con el segundo tenant; P1 ya está decidido |
 | 8 | Integraciones por tenant (H5). | SDD propia por integración | Fase 6 |
 | 9 | P5 · agentes de IA con el modelo mixto: tope mensual en USD y modelos por empresa, fijados por la plataforma; el admin configura dentro; aviso a los dos al 80 %. | App y base | Nada: decidido |
