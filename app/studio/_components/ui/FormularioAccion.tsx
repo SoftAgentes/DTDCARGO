@@ -10,7 +10,7 @@
  *   1. Mientras la acción corre, TODO el formulario queda deshabilitado (`<fieldset disabled>`): no se puede tocar
  *      otra vez el botón ni cambiar la opción marcada a mitad de la acción.
  *   2. El botón que se tocó dice «Guardando…» con spinner (`aria-busy`); los demás del mismo formulario quedan
- *      deshabilitados con su texto.
+ *      deshabilitados con su texto. El ancho no cambia entre los dos estados (BTN-01 §5).
  *   3. Un segundo envío antes de que React pinte el estado pendiente se descarta en `onSubmit` (candado en ref).
  *
  * Los valores viajan bien: el `FormData` se arma en el evento `submit`, antes de que el fieldset se deshabilite.
@@ -99,21 +99,35 @@ export function BotonEnvio({ children, textoPendiente = "Guardando…", name, va
       aria-busy={esEste}
       style={{ minWidth: "max-content" }}
     >
-      {esEste ? (
-        <>
-          <span className="studio-spin" style={ICONO} aria-hidden="true">
+      {/*
+        BTN-01 §5 «Loading … conserva ancho»: las dos etiquetas ocupan la MISMA celda de una rejilla y la invisible
+        sigue reservando su espacio. El botón mide siempre lo que la más ancha, en reposo y mientras corre: no crece
+        al pasar de «Aprobar» a «Guardando…» ni empuja a sus vecinos. Sin medir en JS (jsdom y SSR no tienen layout).
+      */}
+      <span style={REJILLA} data-ancho-reservado="">
+        <span style={celda(!esEste)} aria-hidden={esEste || undefined} data-etiqueta="reposo">
+          {children}
+        </span>
+        <span style={celda(esEste)} aria-hidden={esEste ? undefined : true} data-etiqueta="pendiente">
+          <span className={esEste ? "studio-spin" : undefined} style={ICONO} aria-hidden="true">
             <Spinner />
           </span>
           {textoPendiente}
-        </>
-      ) : (
-        children
-      )}
+        </span>
+      </span>
     </button>
   );
 }
 
 const ICONO: CSSProperties = { display: "inline-flex", width: 14, height: 14, flexShrink: 0 };
+const REJILLA: CSSProperties = { display: "inline-grid", justifyItems: "center", alignItems: "center" };
+const celda = (visible: boolean): CSSProperties => ({
+  gridArea: "1 / 1",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "var(--s-2)",
+  visibility: visible ? "visible" : "hidden",
+});
 
 function Spinner() {
   return (

@@ -151,6 +151,59 @@ class Limite extends Component<{ children: ReactNode }, { error: Error | null }>
   }
 }
 
+describe("BotonEnvio · conserva el ancho (BTN-01 §5)", () => {
+  it("en reposo ya reserva el espacio de «Guardando…», y mientras corre conserva el de la etiqueta de reposo", async () => {
+    const user = userEvent.setup();
+    const a = accionControlada();
+    render(
+      <FormularioAccion action={a.accion}>
+        <BotonEnvio>Aprobar</BotonEnvio>
+      </FormularioAccion>,
+    );
+    const boton = screen.getByRole("button", { name: "Aprobar" });
+    const celdas = () => {
+      const reposo = boton.querySelector<HTMLElement>('[data-etiqueta="reposo"]');
+      const pendiente = boton.querySelector<HTMLElement>('[data-etiqueta="pendiente"]');
+      if (!reposo || !pendiente) throw new Error("falta una de las dos etiquetas: el ancho ya no se reserva");
+      return { reposo, pendiente };
+    };
+
+    // jsdom no mide: se fija la estructura que garantiza el ancho. Las dos etiquetas, en la misma celda de la rejilla,
+    // en los dos estados; la que no se ve, oculta con visibility (reserva espacio), nunca con display:none.
+    const enReposo = celdas();
+    expect(enReposo.reposo.parentElement).toBe(enReposo.pendiente.parentElement);
+    expect(enReposo.reposo.parentElement?.style.display).toBe("inline-grid");
+    expect(enReposo.reposo.style.gridArea).toBe(enReposo.pendiente.style.gridArea);
+    expect(enReposo.pendiente).toHaveTextContent("Guardando…");
+    expect(enReposo.pendiente.style.visibility).toBe("hidden");
+    expect(enReposo.reposo.style.visibility).toBe("visible");
+
+    await user.click(boton);
+    await screen.findByRole("button", { name: /Guardando…/ });
+    const corriendo = celdas();
+    expect(corriendo.reposo).toHaveTextContent("Aprobar");
+    expect(corriendo.reposo.style.visibility).toBe("hidden");
+    expect(corriendo.pendiente.style.visibility).toBe("visible");
+    for (const c of [corriendo.reposo, corriendo.pendiente]) expect(c.style.display).not.toBe("none");
+
+    await act(async () => a.terminar());
+  });
+
+  it("la etiqueta oculta no se suma al nombre accesible", async () => {
+    const user = userEvent.setup();
+    const a = accionControlada();
+    render(
+      <FormularioAccion action={a.accion}>
+        <BotonEnvio>Aprobar</BotonEnvio>
+      </FormularioAccion>,
+    );
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aprobar" }));
+    expect(await screen.findByRole("button", { name: "Guardando…" })).toBeInTheDocument();
+    await act(async () => a.terminar());
+  });
+});
+
 describe("BotonEnvio · varios botones en un formulario", () => {
   it("solo el botón tocado dice «Guardando…»; el otro queda deshabilitado con su texto", async () => {
     const user = userEvent.setup();
