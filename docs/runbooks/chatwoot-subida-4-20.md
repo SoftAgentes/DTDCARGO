@@ -190,7 +190,7 @@ curl -s https://chat.dtdcargo.com/api                                      # "ve
 
 Luego S1–S9.
 
-**(b)** Una base migrada no se usa con la imagen vieja. `restaurar.sh` exige un destino vacío y levanta el proyecto entero con el compose de esa carpeta: es el único paso de este runbook que arranca todo, y es la recuperación del runbook de respaldo.
+**(b)** Una base migrada no se usa con la imagen vieja. `restaurar.sh` exige un destino vacío y levanta el proyecto entero con el compose de esa carpeta: es el único paso de este runbook que arranca todo, y es la recuperación del runbook de respaldo. Sam lo autorizó el 2026-11-19, en el chat del DG, **solo en emergencia**; respuesta literal: «Sí, solo en emergencia (Recomendado)».
 
 ```bash
 cp -p "$EV/compose.yml.antes" compose.yml
