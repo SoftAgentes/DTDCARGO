@@ -132,3 +132,15 @@ Menciones verificadas en otras zonas **excluidas por diseño** del encargo (docu
 - Cambios compartidos a vigilar: ningún contrato de API/schema/UI afectado (docs-only). El doc nuevo `docs/engineering/contratos-de-comportamiento.md` es derivado de project-rules.md; si se edita la sección resumen, mantener el enlace bidireccional. El bloque de producción web de project-rules.md ahora enlaza el detalle del `ignoreCommand` a `docs/runbooks/codex-engineering.md` (nota del 2026-10-19): si Vercel se reactiva, revisar esa sección antes de tocar `vercel.json`.
 - Sesiones consumidoras: ninguna conocida sobre los archivos editados; los handoffs históricos que citan `_norte/backend/README.md` son evidencia fechada y no requieren corrección retroactiva.
 - Impacto documental: AGENTS.md (normativa de agentes) y project-rules.md (guía madre) actualizados; docs/README.md sin cambio requerido; no aplica marketing/legal.
+
+## SINCRONIZACION CON MAIN (instruccion DG, 2026-11-19)
+
+La rama estaba BEHIND de main (main traia #705 y #703). Merge normal de origin/main (62659728f), sin force, estrategia ort, SIN conflictos (el indice de specs no entro al merge; no hizo falta el driver dtd-generated-records). Solo docs:check y sdd:check, nada de install ni vitest:
+
+| Comprobacion | Resultado |
+|---|---|
+| git merge origin/main | PASO - exit 0, 16 archivos de main integrados |
+| pnpm docs:check | PASO - exit 0, indice sincronizado con 663 specs |
+| pnpm sdd:check | PASO - exit 0, [OK] numbering sin numeros repetidos |
+
+Cabeza nueva tras el merge: 1bf1ff1c9 (merge de 62659728f sobre 6c6b4d082). Sin cambios propios adicionales en la rama. Integracion a main: la hace el DG por el tren.
