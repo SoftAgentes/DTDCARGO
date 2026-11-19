@@ -21,7 +21,14 @@ estable, y los botones del inventario que llaman al servidor sin ningún estado 
 
 ## Validación
 
-Se completa con el turno de la PC del DG (install + vitest). Ver la PR.
+| Comprobación | Resultado | Detalle |
+|---|---|---|
+| Vitest: pruebas nuevas, oficina y todos los archivos de prueba que mencionan Drawer/DrawerFooter/OperariosClient/PhotoManager/FormularioAccion | PASÓ | 67 archivos, 648 pruebas |
+| Mutantes: DrawerFooter sin `aria-busy` (3 pruebas fallan), sin etiqueta en curso (1), foto sin `disabled` (2), foto calla el error (1), operario sin `disabled` ni `aria-busy` (1) | los 5 detectados | el control sin cambio de conducta pasa 6/6 |
+| eslint en lo tocado | PASÓ | 0 errores, 2 avisos por parámetros sin usar en los dobles de prueba |
+| tsc | PASÓ | tras corregir 3 tipos en los dobles de las pruebas |
+| `check-rsc-boundary`, `docs:check` | PASÓ | |
+| `pnpm verify` local | NO EJECUTADO | lo cubre el CI de GitHub |
 
 ## Impacto documental
 

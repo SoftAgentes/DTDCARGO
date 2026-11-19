@@ -9,7 +9,7 @@ import type { OperarioRow } from "@/lib/studio/operario-queries";
 
 let terminar: () => void = () => {};
 const setOperarioActiveAction = vi.fn(
-  () =>
+  (_fd: FormData) =>
     new Promise<void>((ok) => {
       terminar = ok;
     }),
@@ -63,7 +63,7 @@ describe("Operarios · desactivar con estado de trabajo", () => {
     expect(corriendo).toBeDisabled();
     expect(corriendo).toHaveAttribute("aria-busy", "true");
     expect(setOperarioActiveAction).toHaveBeenCalledTimes(1);
-    const fd = setOperarioActiveAction.mock.calls[0][0] as unknown as FormData;
+    const fd = setOperarioActiveAction.mock.calls[0][0];
     expect(fd.get("operario_id")).toBe(ANA.id);
     expect(fd.get("active")).toBe("false");
 

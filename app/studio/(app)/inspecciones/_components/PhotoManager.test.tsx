@@ -10,7 +10,7 @@ import type { InspectionPhotoItem } from "@/lib/studio/inspecciones/photos";
 
 let terminar: (r: { ok?: boolean; error?: string }) => void = () => {};
 const deleteInspectionPhotoAction = vi.fn(
-  () =>
+  (_id: string) =>
     new Promise<{ ok?: boolean; error?: string }>((ok) => {
       terminar = ok;
     }),
