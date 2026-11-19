@@ -14,7 +14,7 @@ Volver a analizar el plan completo Kommo → Chatwoot, anotar los cambios no pre
 - **Línea base v5 (2026-11-19):** alcance 129,5 → **127,75 d**; avance 49,0 % → **49,7 %** (63,5 d aceptados; no se aceptó nada nuevo).
   - E7 (bot propio, 18,5 d) sale como **fase posterior**: sus 11 pasos quedan `descartado`. Criterio: Sam dijo «no hace falta *ya*», no «no se hará»; el script solo saca del alcance lo descartado; el código de `dtd-bot` ya fusionado queda apagado en `main`. Retomarlo exige una v6.
   - La 7.3 (respaldo del conocimiento de la IA de Kommo) pasa a la **8.14**, porque se pierde al cancelar la licencia.
-  - 8.1 y 8.2 ajustadas: el corte ya no espera a E7, y ya no hay IA ni bot de Kommo que apagar.
+  - 8.1 y 8.2 ajustadas: el corte ya no espera a E7, y según Sam, el bot está siempre apagado, y el estado de la IA y de los Salesbots de Kommo se verifica en 8.1.
   - 14 filas nuevas (+16,75 d): 2.9–2.12, 4.10, 6.11–6.17, 8.14, 10.9. Sección «Cambios desde v4» con la evidencia (PR y SHA).
   - Estados corregidos: 10.5 y 10.7 pasan a `entregado` (chat del portal en producción desde 2026-11-15; smoke 5c de Sam). 10.8 con 0 restante. Nota vencida de 4.9 corregida: las alarmas del cupo y del token de Instagram **ya están en `main`** desde 2026-11-06 (`a3fa6df2c`); instalación en el VPS: NV.
 - **Spec:** sección «Cambio de alcance v5: corte sin esperar el bot propio» con las tres decisiones de Sam citadas literalmente, el criterio sobre E7, el NV, y ajustes en alcance, metodología, aceptación del programa, allowlist y seguimiento.

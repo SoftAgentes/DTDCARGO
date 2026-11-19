@@ -122,7 +122,7 @@ Supuestos: se arranca después de cerrar el contenedor 64, alrededor del 2026-11
 | 5 | Acta parcial de E5 | 5.8 | 0,5 | Conteos de producción: OK nominal de Sam |
 | 6 | Guía y capacitación | 9.4, 9.5, 9.6 | 4,5 | Activar `DASHBOARD_SCRIPTS`: OK de Sam; prueba con la persona que atiende |
 | 7 | Respaldo de la IA de Kommo y convivencia final | 8.14, 8.1 | 1,5 | OK nominal de Sam con fecha; **7 días corridos de convivencia** |
-| 8 | Corte | 8.2, 8.3 | 0,75 | Se apagan los Salesbots; la IA y el bot de Kommo ya están apagados |
+| 8 | Corte | 8.2, 8.3 | 0,75 | Se apagan los Salesbots; el estado de la IA de Kommo se verifica en 8.1 |
 | 9 | Monitoreo, extracción final, acta y salida de Kommo | 8.4 a 8.9 y 8.12 | 3,75 | 1 a 2 semanas de monitoreo; acta firmada por Sam; 8.8 y 8.12 sin retorno |
 | 10 | Limpieza del ERP y cierre | 8.10, 8.11, 8.13 (8.12 va con el 9) | 4,5 | PR, migración con OK nominal de Sam |
 
@@ -220,7 +220,7 @@ Total antes del corte (órdenes 1 a 7): 26,5 d base. Corte: 0,75. Después: 8,25
 | 7.10 | E7 | Evaluación final y ajuste | IA | 1 | — | 0 | descartado | Fuera de la línea base v5; fase posterior | **Descartado de la línea base v5** (Sam, 2026-11-19: «No hace falta ya que el bot lo tenemos siempre apagado.»). E7 pasa a fase posterior, fuera de la línea base; retomarla exige una línea base nueva con reestimación. |
 | 7.11 | E7 | Modo sombra (Sugerir sobre tráfico real) | IA | 1 | — | 0 | descartado | Fuera de la línea base v5; fase posterior | **Descartado de la línea base v5** (Sam, 2026-11-19: «No hace falta ya que el bot lo tenemos siempre apagado.»). E7 pasa a fase posterior, fuera de la línea base; retomarla exige una línea base nueva con reestimación. |
 | 8.1 | E8 | Convivencia final de 7 días, capacitación con la guía de E9, ensayo y checklist de corte firmado | S+IA | 1 | — | — | pendiente | OK nominal Sam con fecha; requiere E9. Ya no espera a E7 ni al modo sombra (Sam, 2026-11-19: «Sí, cortamos como sin esperar el bot.») | **v5 (2026-11-19):** el corte ya no depende de E7; la convivencia de 7 días sigue, sin modo sombra del bot. |
-| 8.2 | E8 | Instante de corte y corte de WhatsApp: se apagan los Salesbots de Kommo. La IA y el bot de Kommo ya están apagados (Sam, 2026-11-19), y se comprueba que `dtd-bot` sigue apagado | S+IA | 0,5 | — | — | pendiente | Antes del corte, la alarma de la puerta 7 de 4.9 en `vigilar.sh`, si 4.5 no la trajo antes (Director General, 2026-11-05) | **v5 (2026-11-19):** texto ajustado; ya no hay IA ni bot de Kommo que apagar, y el bot propio no entra al corte. |
+| 8.2 | E8 | Instante de corte y corte de WhatsApp: se apagan los Salesbots de Kommo. Según Sam (2026-11-19), el bot está siempre apagado; el estado de la IA y de los Salesbots de Kommo se verifica en 8.1. Se comprueba que `dtd-bot` sigue apagado | S+IA | 0,5 | — | — | pendiente | Antes del corte, la alarma de la puerta 7 de 4.9 en `vigilar.sh`, si 4.5 no la trajo antes (Director General, 2026-11-05) | **v5 (2026-11-19):** texto ajustado: según Sam, el bot está siempre apagado; el estado de la IA y de los Salesbots de Kommo se verifica en 8.1; el bot propio no entra al corte. |
 | 8.3 | E8 | Corte de Messenger e Instagram en el Enrutamiento | S+IA | 0,25 | — | — | pendiente | — | — |
 | 8.4 | E8 | Monitoreo; Kommo de respaldo con límite declarado (no tiene lo enviado desde Chatwoot) | IA | 0,5 | — | — | pendiente | Espera: 1–2 semanas | — |
 | 8.5 | E8 | Extracción incremental final y 2.º backup | IA | 0,5 | — | — | pendiente | — | — |
