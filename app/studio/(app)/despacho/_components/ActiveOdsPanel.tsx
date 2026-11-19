@@ -5,6 +5,7 @@
  * Click en una OD abre el drawer de cancel (Fase 1) — en Fase 2 abre detalle.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
@@ -110,7 +111,7 @@ export function ActiveOdsPanel({
                 >
                   <span>{od.package_count} pkg</span>
                   <span>{od.total_kg.toFixed(0)} kg</span>
-                  <span>{od.total_cbm.toFixed(1)} cbm</span>
+                  <span>{formatCbm(od.total_cbm)} cbm</span>
                 </div>
                 {canCancel && (
                   <button

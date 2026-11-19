@@ -15,6 +15,7 @@
  * numeración paradas 1/N.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -353,7 +354,7 @@ function OdView({
             {completedCount}/{totalPkgs} entregadas
           </span>
           <span>{od.total_kg.toFixed(0)} kg</span>
-          <span>{od.total_cbm.toFixed(1)} cbm</span>
+          <span>{formatCbm(od.total_cbm)} cbm</span>
         </div>
       </div>
 

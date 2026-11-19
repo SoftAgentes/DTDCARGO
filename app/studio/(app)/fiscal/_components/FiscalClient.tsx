@@ -54,6 +54,7 @@ import type { TaxWithholding } from "@/lib/studio/fiscal/withholding-types";
 import { postFiscalBookAction, voidFiscalBookAction } from "../actions";
 import { FiscalConfig } from "./FiscalConfig";
 import { WithholdingsView } from "./WithholdingsView";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type FiscalTab = "config" | "ventas" | "compras" | "retenciones";
 
@@ -275,6 +276,7 @@ function PostingBar({
   liveRowCount,
   liveBase,
   liveIva,
+  periodValid = true,
 }: {
   period: FiscalPeriod;
   bookType: PostedBookType;
@@ -283,6 +285,8 @@ function PostingBar({
   liveRowCount: number;
   liveBase: number;
   liveIva: number;
+  /** SDD-0660: falso mientras el selector de mes tiene algo a medio escribir o imposible. */
+  periodValid?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -383,7 +387,7 @@ function PostingBar({
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
               onClick={() => setVoidOpen(true)}
-              disabled={pending}
+              disabled={pending || !periodValid}
             >
               {pending ? "Procesando…" : "Anular asiento"}
             </button>
@@ -392,7 +396,7 @@ function PostingBar({
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setConfirmPost(true)}
-              disabled={pending}
+              disabled={pending || !periodValid}
             >
               {pending ? "Asentando…" : "Asentar período"}
             </button>
@@ -466,9 +470,11 @@ function FiscalDisabled({
 function MonthSelector({
   period,
   onPeriod,
+  onValidityChange,
 }: {
   period: FiscalPeriod;
   onPeriod: (p: FiscalPeriod) => void;
+  onValidityChange?: (valid: boolean) => void;
 }) {
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -480,14 +486,14 @@ function MonthSelector({
       >
         ←
       </button>
-      <input
-        type="month"
+      <DateField
+        mode="month"
         value={period}
-        onChange={(e) => {
-          const v = e.target.value;
+        onChange={(v) => {
           if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
         }}
-        className="studio-input studio-input-mono"
+        onValidityChange={onValidityChange}
+        required
         style={{ width: 160 }}
         aria-label="Período fiscal"
       />
@@ -509,11 +515,16 @@ function BookToolbar({
   onPeriod,
   onCsv,
   hasRows,
+  periodValid = true,
+  onPeriodValidity,
 }: {
   period: FiscalPeriod;
   onPeriod: (p: FiscalPeriod) => void;
   onCsv: () => void;
   hasRows: boolean;
+  /** SDD-0660: con el mes a medio escribir, exportar esperaría al mes que se ve en el campo. */
+  periodValid?: boolean;
+  onPeriodValidity?: (valid: boolean) => void;
 }) {
   return (
     <div
@@ -526,13 +537,13 @@ function BookToolbar({
         flexWrap: "wrap",
       }}
     >
-      <MonthSelector period={period} onPeriod={onPeriod} />
+      <MonthSelector period={period} onPeriod={onPeriod} onValidityChange={onPeriodValidity} />
       <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
           className="studio-btn studio-btn-ghost studio-btn-sm"
           onClick={onCsv}
-          disabled={!hasRows}
+          disabled={!hasRows || !periodValid}
         >
           {Icon.doc(14)} Exportar CSV
         </button>
@@ -540,7 +551,7 @@ function BookToolbar({
           type="button"
           className="studio-btn studio-btn-primary studio-btn-sm"
           onClick={() => window.print()}
-          disabled={!hasRows}
+          disabled={!hasRows || !periodValid}
         >
           Exportar PDF
         </button>
@@ -683,6 +694,9 @@ function SalesBookView({
 }) {
   // Totales del VIVO (para detectar drift contra el snapshot).
   const liveTotals = useMemo(() => salesTotals(rows), [rows]);
+  // SDD-0660: el selector de mes no vive en un <form>; con algo a medio escribir el
+  // libro sigue mostrando el mes anterior, así que asentar y exportar esperan.
+  const [periodValid, setPeriodValid] = useState(true);
   // Si está asentado, la tabla muestra el SNAPSHOT (no el vivo).
   const displayRows = useMemo(
     () => (postedBook ? postedToSalesRows(postedBook) : rows),
@@ -705,7 +719,14 @@ function SalesBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
+      <BookToolbar
+        period={period}
+        onPeriod={onPeriod}
+        onCsv={exportCsv}
+        hasRows={displayRows.length > 0}
+        periodValid={periodValid}
+        onPeriodValidity={setPeriodValid}
+      />
 
       {(displayRows.length > 0 || canPost) && (
         <PostingBar
@@ -716,6 +737,7 @@ function SalesBookView({
           liveRowCount={liveTotals.rows}
           liveBase={liveTotals.base}
           liveIva={liveTotals.iva}
+          periodValid={periodValid}
         />
       )}
 
@@ -816,6 +838,9 @@ function PurchaseBookView({
   onPeriod: (p: FiscalPeriod) => void;
 }) {
   const liveTotals = useMemo(() => purchaseTotals(rows), [rows]);
+  // SDD-0660: el selector de mes no vive en un <form>; con algo a medio escribir el
+  // libro sigue mostrando el mes anterior, así que asentar y exportar esperan.
+  const [periodValid, setPeriodValid] = useState(true);
   const displayRows = useMemo(
     () => (postedBook ? postedToPurchaseRows(postedBook) : rows),
     [postedBook, rows],
@@ -838,7 +863,14 @@ function PurchaseBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
+      <BookToolbar
+        period={period}
+        onPeriod={onPeriod}
+        onCsv={exportCsv}
+        hasRows={displayRows.length > 0}
+        periodValid={periodValid}
+        onPeriodValidity={setPeriodValid}
+      />
 
       {(displayRows.length > 0 || canPost) && (
         <PostingBar
@@ -849,6 +881,7 @@ function PurchaseBookView({
           liveRowCount={liveTotals.rows}
           liveBase={liveTotals.base}
           liveIva={liveTotals.iva}
+          periodValid={periodValid}
         />
       )}
 

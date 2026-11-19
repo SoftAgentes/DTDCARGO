@@ -58,6 +58,7 @@ const m = vi.hoisted(() => ({
   cuenta: vi.fn(),
   historial: vi.fn(),
   saldo: null as boolean | null,
+  tenantChatwoot: "10000000-0000-4000-8000-000000000001" as string | null,
 }));
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => m.sesion }));
@@ -68,7 +69,8 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   getStudioAccess: async () => m.access,
 }));
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => m.flags }));
-vi.mock("@/lib/studio/chatwoot/config", () => ({ chatwootConfig: () => m.cfg }));
+// SDD-0676: `puedeVincular` mira el tenant dueño de la cuenta de Chatwoot.
+vi.mock("@/lib/studio/chatwoot/config", () => ({ chatwootConfig: () => m.cfg, chatwootTenantId: () => m.tenantChatwoot }));
 vi.mock("@/lib/studio/chatwoot/platform-api", () => ({ obtenerEnlaceSso: vi.fn(), obtenerAgente: vi.fn(), obtenerTokenAgente: m.tokenAgente }));
 vi.mock("@/lib/studio/chatwoot/account-api", () => ({
   listarConversacionesRecientes: vi.fn(),
@@ -195,7 +197,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
 
   it("aplica la conversación con la RPC de la reconciliación, en el tenant de la sesión", async () => {
     await pedirFichaDtd(42, 3);
-    expect(m.aplicar).toHaveBeenCalledWith({ admin: m.admin, tenantId: T1 }, CONVERSACION, null);
+    expect(m.aplicar).toHaveBeenCalledWith({ admin: m.admin, tenantId: T1 }, CONVERSACION, null, null);
   });
 
   it("si aplicar falla: service, sin leer la ficha", async () => {
@@ -206,7 +208,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
 
   it("sin client_id (cruce ambiguo o sin cruce): «sin ficha»", async () => {
     m.obtener.mockResolvedValueOnce({ ok: true, data: { ...CONVERSACION, id: 50 } });
-    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
+    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO, puedeVincular: true });
     expect(m.cuenta).not.toHaveBeenCalled();
   });
 
@@ -219,7 +221,7 @@ describe("pedirFichaDtd (SDD-0585, 2.4)", () => {
     const tablas = tablasBase();
     tablas.clients = [];
     m.sesion = dobleSupabase(tablas);
-    expect(await pedirFichaDtd(42, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
+    expect(await pedirFichaDtd(42, 3)).toEqual({ ok: true, ficha: null, costo: COSTO, puedeVincular: true });
   });
 
   it("con cliente: código, anteriores, cuenta, segmento vacío y enlace a la ficha", async () => {
@@ -287,7 +289,7 @@ describe("pedirFichaDtd · costo de referencia del chat (2.8)", () => {
 
   it("sin ficha también trae el costo: es del chat, no del cliente", async () => {
     m.obtener.mockResolvedValueOnce({ ok: true, data: { ...CONVERSACION, id: 50 } });
-    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO });
+    expect(await pedirFichaDtd(50, 3)).toEqual({ ok: true, ficha: null, costo: COSTO, puedeVincular: true });
   });
 
   it("si contar falla, la ficha sale igual, sin costo, y el log lleva solo el código", async () => {

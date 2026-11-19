@@ -7,6 +7,7 @@
  * últimas recepciones del hub. UI es pura (no fetcha).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -438,7 +439,7 @@ function ReceiptRow({
 }) {
   const isIncident = r.status === "incidencia";
   const isOrphan = r.clientMarkbox === null;
-  const cbmFmt = r.cbm.toFixed(2);
+  const cbmFmt = formatCbm(r.cbm);
   return (
     <button
       type="button"
@@ -729,7 +730,7 @@ function ReceiptDetailModal({
             value={r.supplier ?? "—"}
           />
           <DetailRow label={t(lang, "Cajas", "箱")} value={String(r.boxes)} mono />
-          <DetailRow label="CBM" value={`${r.cbm.toFixed(2)} m³`} mono />
+          <DetailRow label="CBM" value={`${formatCbm(r.cbm)} m³`} mono />
           <DetailRow
             label={t(lang, "Recibido", "接收时间")}
             value={formatRelativeTime(r.createdAt, lang)}

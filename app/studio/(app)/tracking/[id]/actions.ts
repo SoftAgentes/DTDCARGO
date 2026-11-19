@@ -40,6 +40,17 @@ import {
   parseReasignarResultado,
   type ReasignarResultado,
 } from "@/lib/studio/reasignar-embarque";
+import {
+  faltaLaFuncionMedidas,
+  leerNumero,
+  mensajeErrorMedidas,
+  parseCorregirResultado,
+  parsePartirResultado,
+  validarGrupo,
+  type CorregirResultado,
+  type PartirResultado,
+} from "@/lib/studio/medidas-embarque";
+import { estaEnContenedor } from "@/lib/studio/medidas-embarque-queries";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -144,7 +155,7 @@ export async function updateShipment(
   // client_name y client_markbox NO se actualizan desde edicion del detalle —
   // vienen de la base de clientes externa. Defensa server-side: aunque alguien
   // edite el HTML, el server no procesa esos campos.
-  const update = {
+  const update: Record<string, string | number | null> = {
     origin: parseString(formData.get("origin")),
     destination: parseString(formData.get("destination")),
     destination_gps: parseString(formData.get("destination_gps")),
@@ -154,6 +165,13 @@ export async function updateShipment(
     vehicle_model: parseString(formData.get("vehicle_model")),
     notes: parseString(formData.get("notes")),
   };
+  // SDD-0673: en un embarque de contenedor el peso y el CBM se corrigen con
+  // «Corregir medidas» (las tres tablas a la vez, con motivo). Acá no se tocan,
+  // aunque el formulario los mande.
+  if (await estaEnContenedor(supabase, id)) {
+    delete update.weight_kg;
+    delete update.volume_m3;
+  }
 
   if (service === "transporte_terrestre" && !update.vehicle_category) {
     return {
@@ -621,4 +639,190 @@ export async function reassignShipmentClient(
     for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
   }
   return res;
+}
+
+// ─── Corregir medidas y partir el embarque (SDD-0673) ──────────────────────
+
+export type MedidasInput = { boxes?: unknown; cbm?: unknown; weightKg?: unknown };
+
+export type CorregirActionResult =
+  | { ok: true; resultado: CorregirResultado }
+  | { ok: false; error: string; noDisponible?: boolean };
+
+export type PartirActionResult =
+  | { ok: true; resultado: PartirResultado }
+  | { ok: false; error: string; noDisponible?: boolean };
+
+function medidasDe(m: MedidasInput) {
+  const boxes = leerNumero(m.boxes);
+  return {
+    boxes: boxes === null ? null : Number.isInteger(boxes) ? boxes : Number.NaN,
+    cbm: leerNumero(m.cbm),
+    weightKg: leerNumero(m.weightKg),
+  };
+}
+
+async function llamarCorregir(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string,
+  medidas: MedidasInput,
+  reason: string | null,
+  dryRun: boolean,
+): Promise<CorregirActionResult> {
+  const m = medidasDe(medidas);
+  if (Number.isNaN(m.boxes)) return { ok: false, error: "Las cajas van en números enteros." };
+  const { data, error } = await supabase.rpc("correct_shipment_measures", {
+    p_shipment_id: shipmentId,
+    p_boxes: m.boxes,
+    p_cbm: m.cbm,
+    p_weight_kg: m.weightKg,
+    p_reason: reason,
+    p_dry_run: dryRun,
+  });
+  if (error) {
+    return { ok: false, error: mensajeErrorMedidas(error), noDisponible: faltaLaFuncionMedidas(error) || undefined };
+  }
+  const resultado = parseCorregirResultado(data);
+  if (!resultado) return { ok: false, error: "No pudimos leer la respuesta. Recarga la página." };
+  return { ok: true, resultado };
+}
+
+/** Vista previa de «Corregir medidas»: qué cambia en cada lugar y qué lo impide, sin escribir. */
+export async function previewCorrectShipmentMeasures(
+  shipmentId: string,
+  medidas: MedidasInput,
+): Promise<CorregirActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "correct_shipment_measures");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "")) return { ok: false, error: "Este embarque no es válido. Recarga la página." };
+  return llamarCorregir(supabase, shipmentId, medidas, null, true);
+}
+
+/**
+ * Corrige cajas, CBM y peso a la vez en el embarque, su línea del contenedor y
+ * su recepción CN, con motivo. Todo o nada en la 0563.
+ */
+export async function correctShipmentMeasures(
+  shipmentId: string,
+  medidas: MedidasInput,
+  reason: string,
+): Promise<CorregirActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "correct_shipment_measures");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "")) return { ok: false, error: "Este embarque no es válido. Recarga la página." };
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) return { ok: false, error: motivo.error };
+
+  const res = await llamarCorregir(supabase, shipmentId, medidas, motivo.reason, false);
+  if (res.ok && res.resultado.outcome === "corrected") {
+    revalidatePath(`/studio/tracking/${shipmentId}`);
+    for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+  }
+  return res;
+}
+
+async function llamarPartir(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string,
+  clientId: string,
+  parte: MedidasInput,
+  reason: string | null,
+  dryRun: boolean,
+): Promise<PartirActionResult> {
+  const m = medidasDe(parte);
+  if (m.boxes === null || Number.isNaN(m.boxes) || m.cbm === null || m.weightKg === null) {
+    return { ok: false, error: "Indica las cajas (enteras), el CBM y el peso de la parte nueva." };
+  }
+  const { data, error } = await supabase.rpc("split_shipment", {
+    p_shipment_id: shipmentId,
+    p_client_id: clientId,
+    p_boxes: m.boxes,
+    p_cbm: m.cbm,
+    p_weight_kg: m.weightKg,
+    p_reason: reason,
+    p_box_codes: null,
+    p_dry_run: dryRun,
+  });
+  if (error) {
+    return { ok: false, error: mensajeErrorMedidas(error), noDisponible: faltaLaFuncionMedidas(error) || undefined };
+  }
+  const resultado = parsePartirResultado(data);
+  if (!resultado) return { ok: false, error: "No pudimos leer la respuesta. Recarga la página." };
+  return { ok: true, resultado };
+}
+
+/** Vista previa de «Partir embarque»: las dos partes, el código nuevo y qué lo impide. */
+export async function previewSplitShipment(
+  shipmentId: string,
+  clientId: string,
+  parte: MedidasInput,
+): Promise<PartirActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "split_shipment");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  return llamarPartir(supabase, shipmentId, clientId, parte, null, true);
+}
+
+/** Parte el embarque en dos con motivo; el total del contenedor no cambia (0563). */
+export async function splitShipment(
+  shipmentId: string,
+  clientId: string,
+  parte: MedidasInput,
+  reason: string,
+): Promise<PartirActionResult> {
+  const supabase = await createClient();
+  const denial = await capabilityDenial(supabase, "split_shipment");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "") || !UUID_RE.test(clientId ?? "")) {
+    return { ok: false, error: "Elige un cliente de la lista." };
+  }
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) return { ok: false, error: motivo.error };
+
+  const res = await llamarPartir(supabase, shipmentId, clientId, parte, motivo.reason, false);
+  if (res.ok && res.resultado.outcome === "split") {
+    revalidatePath(`/studio/tracking/${shipmentId}`);
+    revalidatePath("/studio/tracking");
+    for (const ruta of RUTAS_EMBARQUES) revalidatePath(ruta);
+  }
+  return res;
+}
+
+/**
+ * «Grupo de WeChat» (SDD-0673 §6): nota libre del embarque, con el permiso de
+ * editar Tracking. No decide el dueño ni se ve en el Portal.
+ */
+export async function updateShipmentGroupReference(
+  shipmentId: string,
+  value: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { ok: false, error: denial };
+  if (!UUID_RE.test(shipmentId ?? "")) return { ok: false, error: "Este embarque no es válido. Recarga la página." };
+  const grupo = validarGrupo(value);
+  if (!grupo.ok) return { ok: false, error: grupo.error };
+
+  const { data: filas, error } = await supabase
+    .from("shipments")
+    .update({ group_reference: grupo.valor })
+    .eq("id", shipmentId)
+    .select("id");
+  if (!error && (filas ?? []).length === 0) {
+    return { ok: false, error: "No encontramos este embarque o no puedes editarlo. Recarga la página." };
+  }
+  if (error) {
+    // Sin la 0563 la columna no existe (PGRST204 / 42703).
+    if (error.code === "PGRST204" || error.code === "42703") {
+      return { ok: false, error: "Esta acción todavía no está disponible." };
+    }
+    return { ok: false, error: "No pudimos guardar el grupo. Intenta de nuevo." };
+  }
+  revalidatePath(`/studio/tracking/${shipmentId}`);
+  return { ok: true };
 }

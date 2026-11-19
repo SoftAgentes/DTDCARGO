@@ -7,6 +7,7 @@
  * Solo tokens var(--*). Cada celda deep-linkea a su módulo.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OpsSummary } from "@/lib/studio/direccion/queries";
@@ -75,7 +76,7 @@ export function OpsCard({ ops }: { ops: OpsSummary }) {
         />
         <MiniStat
           label="Carga suelta CN"
-          value={ops.looseCbm.toFixed(1)}
+          value={formatCbm(ops.looseCbm)}
           sub="CBM por consolidar"
           icon={Icon.warehouse(16)}
           href="/studio/naviera"

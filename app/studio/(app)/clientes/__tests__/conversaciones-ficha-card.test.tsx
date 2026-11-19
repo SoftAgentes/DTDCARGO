@@ -81,11 +81,11 @@ describe("ConversacionesFichaCard", () => {
 
   it("unir y quitar solo con permiso de edición", () => {
     montar();
-    expect(screen.queryByText("Unir un chat a esta ficha")).toBeNull();
+    expect(screen.queryByText("Vincular otra red")).toBeNull();
     expect(screen.queryByRole("button", { name: "Quitar" })).toBeNull();
     cleanup();
     montar(PANEL, { puedeUnir: true });
-    expect(screen.getByText("Unir un chat a esta ficha")).toBeTruthy();
+    expect(screen.getByText("Vincular otra red")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Quitar" })).toBeTruthy();
   });
 });

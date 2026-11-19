@@ -123,8 +123,10 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await user.click(cabecera("DDP 64"));
     const seccion = screen.getByRole("region", { name: "DDP 64" });
-    expect(within(seccion).getByText("Cliente Uno")).toBeTruthy();
-    expect(within(seccion).getByText("Cliente Dos")).toBeTruthy();
+    // SDD-0661: el nombre también sale en el detalle por cliente; el nivel 2
+    // (acordeón) es el botón del cliente.
+    expect(within(seccion).getByRole("button", { name: /Cliente Uno/ })).toBeTruthy();
+    expect(within(seccion).getByRole("button", { name: /Cliente Dos/ })).toBeTruthy();
     expect(within(seccion).queryByText("Cliente Tres")).toBeNull();
     expect(within(seccion).getByText("S-a1")).toBeTruthy();
     // El drawer de detalle sigue igual.

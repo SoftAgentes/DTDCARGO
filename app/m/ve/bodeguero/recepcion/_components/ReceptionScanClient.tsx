@@ -18,6 +18,7 @@
  *  - Sin emojis decorativos (handoff usaba 🚢 / 📦).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -253,7 +254,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                   letterSpacing: "-0.02em",
                 }}
               >
-                {progress.scannedCbm.toFixed(1)}
+                {formatCbm(progress.scannedCbm)}
                 <span
                   style={{
                     font: "700 14px/1 var(--f-display)",
@@ -261,7 +262,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                   }}
                 >
                   {" / "}
-                  {totalCbmExpected.toFixed(1)} m³
+                  {formatCbm(totalCbmExpected)} m³
                 </span>
               </div>
               <div
@@ -554,7 +555,7 @@ function ClientGroup({
                     marginTop: 4,
                   }}
                 >
-                  {Number(b.cbm).toFixed(2)} m³
+                  {formatCbm(Number(b.cbm))} m³
                 </div>
               )}
             </div>

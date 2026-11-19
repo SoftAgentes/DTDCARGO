@@ -25,6 +25,7 @@ import {
   type WithholdingType,
 } from "@/lib/studio/fiscal/withholding-types";
 import { createWithholdingAction } from "../actions";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "withholding-drawer-form";
 const initialState: WithholdingActionState = {};
@@ -154,13 +155,7 @@ export function WithholdingDrawer({
             <label style={labelStyle} htmlFor="wh-date">
               Fecha
             </label>
-            <input
-              id="wh-date"
-              name="op_date"
-              type="date"
-              className="studio-input studio-input-mono"
-              style={fieldStyle}
-            />
+            <DateField id="wh-date" name="op_date" />
             {fe.opDate && <div style={errStyle}>{fe.opDate}</div>}
           </div>
         </div>
