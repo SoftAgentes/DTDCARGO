@@ -47,7 +47,7 @@
    - **`sidekiq`:** se espera **exactamente** esta diferencia, que entra con la subida. La nombra el OK nominal de Sam del 2026-11-19, literal: «OK, sube Chatwoot a 4.20.0 hoy, recreando rails y sidekiq (sidekiq toma DTD_CHATWOOT_SERVICIO_ID, SEARCH_TIME_RANGE_LIMIT_DAYS y el montaje de revocar sesiones)».
      - `> DTD_CHATWOOT_SERVICIO_ID`;
      - `> SEARCH_TIME_RANGE_LIMIT_DAYS`;
-     - `MAX_USER_SESSIONS` con huella distinta (5 → 10). `sidekiq` no la lee;
+     - `MAX_USER_SESSIONS` con huella distinta (5 → 10). No sale en la frase de arriba porque Sam la autorizó antes, el 2026-11-19 en el chat del DG: «Subir a 10 y contar (Recomendado)». Quedó aplicada en `rails` a las 00:48Z. `sidekiq` no la usa (C): en la 4.20.0 solo la lee `app/controllers/devise_overrides/sessions_controller.rb:116`, al iniciar sesión por HTTP;
      - montaje `> /app/config/initializers/zz_dtd_revocar_sesiones.rb`.
    - **Si aparece cualquier otra diferencia, en `rails` o en `sidekiq`, no se sigue**: recrear la aplicaría sin que nadie la aprobara. Se avisa al DG.
    - Si `node` no está en el host, se hace con `docker compose config sidekiq` a mano y se comparan solo los nombres.
@@ -108,10 +108,15 @@ docker compose exec -T rails bundle exec rails runner '
 systemctl start chatwoot-respaldo.service; tail -n 20 /var/log/chatwoot-respaldo.log
 systemctl show -p Result --value chatwoot-respaldo.service | sed 's/^/resultado=/' | tee "$EV/respaldo.txt"   # resultado=success
 N="$(ls -1 /srv/backups/chatwoot | grep '^chatwoot-[0-9]\{8\}T[0-9]\{6\}Z$' | sort | tail -n 1)"
-[[ "$N" > "chatwoot-$SELLO" ]] && echo "respaldo=$N (posterior a $SELLO)" | tee -a "$EV/respaldo.txt" || echo "NO HAY RESPALDO NUEVO: no se sigue"
+if [[ "$N" > "chatwoot-$SELLO" ]]; then
+  echo "respaldo=$N (posterior a $SELLO)" | tee -a "$EV/respaldo.txt"
+  printf '%s\n' "$N" >"$EV/respaldo-sello.txt"          # SOLO el nombre: lo lee la vuelta atrás (b) del §6
+else
+  echo "NO HAY RESPALDO NUEVO: NO SE SIGUE"
+fi
 ```
 
-**No se sigue** sin `resultado=success`, sin una carpeta con sello **posterior** a `$SELLO` (es la de esta ventana, no la diaria de las 06:30) y sin `rclone check` en verde en el log. Ese sello es el de la vuelta atrás (b).
+**Condición de parada: si sale `NO HAY RESPALDO NUEVO` o `resultado=` distinto de `success`, aquí se termina la ventana.** No se pasa al §4; se avisa al DG. El bloque no usa `exit` a propósito: en una sesión SSH interactiva cerraría la terminal. **No se sigue** sin `resultado=success`, sin una carpeta con sello **posterior** a `$SELLO` (es la de esta ventana, no la diaria de las 06:30) y sin `rclone check` en verde en el log. Ese sello es el de la vuelta atrás (b).
 
 ## 4 · Cambio de imagen, migraciones y recreación
 
@@ -198,7 +203,7 @@ docker compose down                                    # SIN -v
 mv data "data.fallida-$SELLO"                          # se conserva hasta que Sam decida; no sale del VPS
 mv .env "$EV/env.fallida" && chmod 600 "$EV/env.fallida"   # restaurar.sh descifra el del respaldo
 read -rs K && umask 077 && printf '%s\n' "$K" >/dev/shm/clave.txt && unset K   # Sam pega la clave age
-R="/srv/backups/chatwoot/$(cat "$EV/respaldo.txt")"
+R="/srv/backups/chatwoot/$(cat "$EV/respaldo-sello.txt")"; ls "$R/manifiesto.txt"    # existe: la ruta es buena
 /srv/chatwoot/restaurar.sh --desde "$R" --identidad /dev/shm/clave.txt --dir /srv/chatwoot
 shred -u /dev/shm/clave.txt
 curl -s https://chat.dtdcargo.com/api                  # "version":"4.19.1"
