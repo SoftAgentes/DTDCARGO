@@ -22,7 +22,7 @@ Volver a analizar el plan completo Kommo → Chatwoot, anotar los cambios no pre
 
 ## Aceptaciones
 
-Ninguna. Marqué `entregado` lo que está fusionado o en producción sin aceptación de Sam documentada (2.9, 4.10, 6.11–6.15, 9.3, 10.5, 10.7–10.9). No inventé aceptaciones. Los días de 6.16 (F3 a F5), 2.10 y 2.12 son **estimación del Worker** y se confirman con Sam al integrar.
+Ninguna. Marqué `entregado` lo que está fusionado o en producción sin aceptación de Sam documentada (2.9, 4.10, 6.11–6.15, 9.3, 10.5, 10.7–10.9). No inventé aceptaciones. Los días de 2.10, 2.11, 2.12, 6.16 y 6.17 son estimación del Worker; **Sam aprobó la estimación el 2026-11-19** (relatado por el DG; citas en el checklist). No es aceptación de los pasos. La 2.12 pasa a `entregado` con la #690 fusionada en `7f90d8483`.
 
 ## VALIDACIÓN
 
@@ -61,12 +61,12 @@ Por etapa:
 
 ## Lo que falta para el corte (resumen; el detalle está en el checklist)
 
-Antes del corte: 26,5 d base (Bandeja y 0566 2,5 · portal 2 · reemplazos de Kommo 11,5 · canales 4 · acta E5 0,5 · guía 4,5 · 8.14 y 8.1 1,5). Corte (8.2, 8.3): 0,75. Después: 8,25.
+Antes del corte: 26 d base (Bandeja y 0566 2 · portal 2 · reemplazos de Kommo 11,5 · canales 4 · acta E5 0,5 · guía 4,5 · 8.14 y 8.1 1,5). Corte (8.2, 8.3): 0,75. Después: 8,25.
 
 | Escenario | Fin del trabajo previo | Corte | Cierre de E8 |
 |---|---|---|---|
 | Ritmo del script (3,19), arranque 2026-11-23 | ≈ 2026-12-02 | ≈ 2026-12-09 | ≈ 2026-12-30 |
-| 1:1 (cota prudente) | ≈ 2026-12-30 | ≈ 2027-01-06 | ≈ 2027-02-02 |
+| 1:1 (cota prudente) | ≈ 2026-12-29 | ≈ 2027-01-05 | ≈ 2027-02-01 |
 
 Inferencia: no cuenta las esperas de Sam, Meta ni revisión. **Instagram: el token vence el 2026-12-30**; la renovación (script ya en `main`) va antes del 2026-12-20 con OK de Sam, haya o no corte. Messenger no llega al corte (decisión de Sam del 2026-11-03, «Mantener la espera»): hay que decidir si la 8.3 cubre solo Instagram.
 
@@ -80,7 +80,6 @@ Rama `claude/modest-brahmagupta-fc8f7e`; PR contra `main`, número en el aviso a
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam confirme la v5 y los días estimados por el Worker (2.10, 2.11, 2.12, 6.16, 6.17).
 - Que Sam acepte, si quiere, los pasos `entregado` (ninguno está aceptado).
 - CI de la PR (incluye la prueba de Vitest del checklist) y revisión independiente, que lanza el DG.
 

@@ -341,12 +341,16 @@ Revisión completa del plan, pedida por Sam, sobre `main` en `875767eaf`. El che
 | Tema | Pasos | Días | Estado |
 |---|---|---|---|
 | Plantillas de Clientes C1 a C10 | 4.10 | 1 | entregado (aprobadas por Meta el 2026-11-17) |
-| Bandeja como pestaña de CRM, gestión, acceso por persona y pantalla completa | 2.9 a 2.12 | 2,5 | 1 entregado, 1 pendiente, 2 en curso |
+| Bandeja como pestaña de CRM, gestión, acceso por persona y pantalla completa | 2.9 a 2.12 | 2,5 | 2 entregados, 1 pendiente, 1 en curso |
 | Embudos por segmento, tarjeta compacta, Ficha 360°, franja y «Vincular a cliente» | 6.11 a 6.17 | 11,75 | 5 entregados, 1 pendiente, 1 en curso |
 | Datos del ERP en el contacto de Chatwoot | 10.9 | 1 | entregado, interruptor apagado |
 | Respaldo del conocimiento de la IA de Kommo (viene de la 7.3) | 8.14 | 0,5 | pendiente |
 
 Cambian de estado sin cambiar de días: 10.5 y 10.7 (chat del portal en producción desde el 2026-11-15, flag encendido por Sam y smoke 5c suyo) pasan a `entregado`. Ninguna es `aceptado`: no hay aceptación de Sam posterior al 2026-11-08 en los registros que se revisaron.
+
+### Aprobación de la estimación (Sam, 2026-11-19)
+
+Los días de 2.10, 2.11, 2.12, 6.16 y 6.17 (0,5, 1, 0,5, 3 y 2) los estimó el Worker. Sam aprobó la estimación el 2026-11-19, según el relato del Director General, que le dio el contexto de esas cinco filas: «Ya no me acuerdo qué puse que sí en el chat. Alguien tocó, sí, yo fui el que toqué», y después del contexto, «ok avanzamos». Es aprobación de la estimación, no aceptación de los pasos. La 2.12 pasa a `entregado` con la #690 fusionada en `7f90d8483`.
 
 ### Lo que esta revisión no pudo verificar (NV)
 
@@ -429,7 +433,7 @@ Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan 
 
   En la D pasaron el respaldo, las puertas (269 migraciones en el ledger, con huellas iguales) y la prueba rápida, 14 de 14. El webhook de Chatwoot responde 401 sin firma, el cron 403, y el log no tiene errores. No cambió el crontab ni el compose. El Subdirector comprobó a las 02:04Z, desde fuera, que `/privacidad` publica el texto de SDD-0587 con fecha del 5 de noviembre. **Con la D, todo lo de Chatwoot del mandato está en producción.** Lo que sigue abierto está en el checklist: 4.4 y 4.6 en espera de Meta, 4.5, 4.8, 4.9, y de E6 a E9.
 - **2026-11-05 (capacitación, pedida por Sam, todavía sin orden de empezar):** lo dijo Sam en el chat del Director General: «Hay que hacer un entrenamiento al personal para que entiendan cómo manejar esta herramienta comparada con Kommo. Hay que preparar diferencias entre Kommo y Chatwoot. Lo hacía de una manera ya en el pipeline, en el embudo, y aquí lo va a hacer casi de la misma manera o diferente.» Y: «El bug del ERP hay que ponerlo visible dentro de la herramienta cuando trabajen los empleados, o recordarles que cualquier mejora puede hacerlo en el book.» La capacitación ya es parte de 8.1 y sale de [`guia-guion.md`](guia-guion.md). De 9.2 a 9.6, lo del botón de bugs cae en 9.5. **No se empieza hasta que Sam la ordene.**
-- **2026-11-19 (línea base v5):** Sam decidió cortar Kommo sin esperar el bot propio y que las plantillas de Clientes se usen solo desde Chatwoot (ver «Cambio de alcance v5: corte sin esperar el bot propio»). Alcance 129,5 → 127,75 días; avance 49,0 % → 49,7 %. Cierre de E8 estimado entre el 2026-12-30 y el 2027-02-02, según el ritmo; el token de Instagram vence el 2026-12-30.
+- **2026-11-19 (línea base v5):** Sam decidió cortar Kommo sin esperar el bot propio y que las plantillas de Clientes se usen solo desde Chatwoot (ver «Cambio de alcance v5: corte sin esperar el bot propio»). Alcance 129,5 → 127,75 días; avance 49,0 % → 49,7 %. Cierre de E8 estimado entre el 2026-12-30 y el 2027-02-01, según el ritmo; el token de Instagram vence el 2026-12-30.
 - **2026-11-16 (enmienda, plantillas desde el número de clientes):** a la pregunta «¿Enmiendo la spec 0582 para permitir plantillas desde el número de Clientes?», Sam respondió en la sesión de análisis de plantillas: «Sí, enmiéndala».
   - Cambia la regla «No se le escribe al cliente desde el número de clientes» de *Redirección sin IA*. Ahora DTD puede escribir primero con plantillas aprobadas, con las condiciones que dice esa sección. La redirección por enlace no cambia.
   - No cambia código, no crea plantillas en Meta y no automatiza envíos. Cada uno de esos pasos va con su propio OK.
