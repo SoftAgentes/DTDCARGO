@@ -509,7 +509,8 @@ begin
   -- El evento se registra ANTES de mirar la tabla: dentro de una misma expresión, Postgres
   -- puede leer la subconsulta primero y ver el estado de antes.
   ev := pg_temp.evento('message_created:3002', 70, null, 101);
-  perform pg_temp.assert_true(ev is null
+  -- El evento devuelve el cliente que la conversación tiene de verdad: el conservado.
+  perform pg_temp.assert_true(ev = pg_temp.k('01')
     and (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 70) = pg_temp.k('01'),
     '4h sin contacto ni teléfono el cruce guardado se conserva');
   -- Sin unión, el teléfono cruza como siempre.
