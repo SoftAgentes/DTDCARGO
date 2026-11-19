@@ -171,8 +171,10 @@ Primero **S1–S13 de [§6 del runbook de versiones](chatwoot-versiones.md#6--pa
 | V4 | `rails` y `sidekiq` ahora iguales a su compose: repetir la comparación de §0 paso 5 | sin diferencias (la de `sidekiq` entró). Sale `RAILS_ENV` en los dos: está en el compose y en la imagen con el mismo valor, y se descarta (nota del §0) |
 | V5 | WhatsApp sin app secret: `docker compose logs --since 15m rails \| grep -c WHATSAPP_APP_SECRET_PENDING` | Un número, sin abrir las líneas. **No es rojo**: dice qué bandejas esperan el secreto. Lo carga Sam cuando decida; nadie más |
 | V6 | Sidekiq recupera: los cuatro números del paso 2 | encolados bajan a 0 en minutos; `muertos` no crece |
-| V7 | Prueba en Studio (cuenta 2, **fase C** de la SDD): SSO y Bandeja, Ficha DTD y un mensaje de prueba a la bandeja 11 | todos en verde. La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable. |
+| V7 | Prueba en Studio (cuenta 2, **fase C** de la SDD): SSO y Bandeja, Ficha DTD y un mensaje de prueba a la bandeja 11 | todos en verde |
 | V8 | La web de DTD: `infra/ops/web/smoke-web.sh` | igual que antes |
+
+**Cuenta 2 (V7).** La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no, lo decide Sam cuando termine Cable.
 
 Uptime Kuma: el monitor «Chatwoot · versión» se cambia a `4.20.0` **después** de V1.
 
@@ -247,7 +249,7 @@ En el handoff de la subida: hora de inicio y fin del corte, la comparación de `
 
 **OK de Sam (2026-11-19, en el chat del DG, literal).** A «¿Autorizas levantar en el servidor una copia temporal y aislada de Chatwoot, sin dominio ni acceso desde afuera, con el respaldo de hoy, para ensayar la subida y después borrarla?», respondió «Sí, copia aislada (Recomendado)». Ese OK cubre **esto y nada más**: no toca `/srv/chatwoot`, la copia no tiene host ni puerto, y se borra al terminar.
 
-**Cuenta 2 (V7).** La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable. OK previo de Sam, del 2026-11-19, literal: a «¿autorizas reactivar un rato la cuenta de prueba de Chatwoot (la 2) para probar la Bandeja, la Ficha, el webhook y el chat del portal, y suspenderla al terminar?», respondió «Sí, reactiva y suspende (Recomendado)».
+**Cuenta 2 (V7).** La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no, lo decide Sam cuando termine Cable. OK previo de Sam, del 2026-11-19, literal: a «¿autorizas reactivar un rato la cuenta de prueba de Chatwoot (la 2) para probar la Bandeja, la Ficha, el webhook y el chat del portal, y suspenderla al terminar?», respondió «Sí, reactiva y suspende (Recomendado)».
 
 **Qué mide:** cuánto tarda `prepare` con la base real de 4.19.1 (las 15 migraciones), cuánto tarda `rails` 4.20.0 en quedar sano y si los inicializadores cargan con datos reales. Ese número reemplaza la línea del corte en §7.
 

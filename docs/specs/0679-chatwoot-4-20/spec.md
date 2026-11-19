@@ -116,7 +116,7 @@ Se fija el **digest del índice**, como el pin vigente: `docker` elige `linux/am
 |---|---|---|---|
 | **A · Local** | la PC, Docker, datos sintéticos, una corrida a la vez | `ensayo-local.sh`, `prueba-register.sh`, `prueba-revocar-sesiones.sh`, `prueba-redaccion-canales.sh` y `smoke-guia.mjs` con la v4.20.0-ce (§4 del runbook de versiones). `ensayo-local.sh` ya corre `db:chatwoot_prepare` desde cero y restaura un respaldo | **Turno del DG** |
 | **B · Copia en el VPS** | proyecto `chatwoot-ensayo`, sin Traefik ni DNS | restaurar el respaldo de producción sobre la v4.20.0 y medir `prepare` (las 15 migraciones con datos reales); `GET /api` en la red interna; `down -v` al terminar | **OK nominal de Sam** (es una copia de datos reales; no sale del VPS). Lo corre quien tiene SSH |
-| **C · Smoke en prueba** | cuenta 2, **después** de la subida real | login por SSO, Bandeja, Ficha DTD y un mensaje de prueba a la bandeja 11 | La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable. |
+| **C · Smoke en prueba** | cuenta 2, **después** de la subida real | login por SSO, Bandeja, Ficha DTD y un mensaje de prueba a la bandeja 11 | La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no, lo decide Sam cuando termine Cable. |
 
 Sin la fase A en verde **no se pide el OK de la subida**. La fase B decide la duración; si no se hace, el runbook usa el máximo.
 
@@ -162,7 +162,7 @@ Comandos exactos en el [runbook](../../runbooks/chatwoot-subida-4-20.md#6--vuelt
 4. [x] Fase A del ensayo en verde, con los controles en rojo: el 2026-11-19, de las 02:33Z a las 03:02Z, con turno del DG. Las cuatro corridas dieron 24/0, 15/0, 14/0 y 44/0. Detalle en el handoff. `smoke-guia.mjs` no se corrió: lo cubre S13.
 5. [—] Fase B: omitida por el DG el 2026-11-19. La receta queda en el runbook, §9.
 6. [ ] Subida en producción con S1–S13 en verde (OK nominal de Sam y hora acordada; la ejecuta el DG o una sesión designada). **Hecha el 2026-11-19 por el DG:** corte de 3 min 5 s, `prepare` de 50 s, S1–S9 y V1–V8 OK. Faltan S10–S13 y V7.
-7. [ ] Fase C en prueba. La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no lo decide Sam cuando termine Cable.
+7. [ ] Fase C en prueba. La cuenta 2 ya estaba activa: la usa la sesión «Cable Paso 3b» (webhook 4, bandeja 11). V7 y S10–S13 quedan pendientes y los hace Sam con su navegador: Bandeja y SSO, Ficha DTD y un mensaje de prueba a la bandeja 11. Si la cuenta 2 se suspende o no, lo decide Sam cuando termine Cable.
 8. [ ] Cierre: cabeceras de los inicializadores, `IMAGEN_CHATWOOT` de los dos ensayos, `chatwoot-selectores.json`, monitor de Uptime Kuma y fila del Registro del runbook de versiones.
 
 Los puntos 4 a 8 son de la ejecución; la PR de esta SDD cubre 1 a 3.
