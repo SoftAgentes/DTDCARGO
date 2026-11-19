@@ -117,6 +117,14 @@ Maqueta con variantes (Artifact privado de Sam, 2026-11-19): para la Bandeja, A 
 - **B1 (baja), límite anotado.** La marca `dtd_cw_sso` la pone el servidor al devolver el enlace (`actions.ts` › `pedirEnlaceSso`). Puede quedar puesta sin que haya login: si la respuesta llega después del plazo, o si llegó pero el freno no dejó cargar el enlace. En la próxima carga `page.tsx` abre el panel directo, sin SSO, y si Chatwoot no tiene sesión se ve su pantalla de inicio. Ya pasaba antes de 0680 con un POST abortado. Salida: «Abrir de nuevo». Arreglo de fondo: el aviso `dtd:sin-sesion` del panel (SDD-0677, opción c), fuera de esta spec.
 - **B2 (baja), resuelto.** Dos pruebas nuevas: «si llega el enlace pero otra pestaña llenó el cupo entretanto, no lo carga y explica el freno» y «una respuesta que llega después del plazo no cambia el marco ni la fase».
 
+### Revisión independiente de la #703 (Opus, APPROVED): bajos, en la PR 3
+
+1. **Texto propio al vencer el plazo.** El aviso decía «no respondió después de 3 intentos», y en ese caso hubo un solo pedido que no volvió. Ahora dice «La bandeja no respondió a tiempo. Oprime «Abrir de nuevo»: la página se vuelve a cargar.» (`bandeja.recover.timeout`).
+2. **Lista de agentes incompleta.** `agentesDeCuenta` devuelve `{ agentes, completa }`. Si algún agente no se pudo leer, el selector suma «Otro agente: escribir su número…», que muestra el campo del número (y el selector deja de enviar su valor). Tampoco dice «todos tienen vínculo»: el que faltó puede ser el libre. Si entre los leídos no queda nadie libre, se pide el número directo.
+3. **Lecturas en paralelo con tope.** `enLotes` corre las lecturas de a `LECTURAS_EN_PARALELO` (5), conservando el orden; el tope de 60 agentes sigue.
+4. **`role="status"` siempre montado** mientras hay panel (sin texto cuando hay aviso): un estado que nace con el texto no siempre se anuncia.
+5. **Sin la URL del Artifact** en los handoffs.
+
 ### Gobernanza
 
 | Política | Clasificación |

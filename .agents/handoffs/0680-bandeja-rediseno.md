@@ -4,7 +4,7 @@
 - **Ruta:** `.claude/worktrees/reverent-elbakyan-65151b`
 - **Rama:** `sdd-0680-bandeja-rediseno`, que sale de la cabeza de la #700 (`bbf85440a`) porque toca el mismo `BandejaClient.tsx`. Base de la PR: `main`. Mientras la #700 no entre, la PR 2 muestra también sus commits.
 - **Spec:** `docs/specs/0680-bandeja-rediseno/spec.md`, parte 2. Sin migración.
-- **Elección de Sam (2026-11-19):** «c y agente a» → Bandeja C, panel de agentes 1. Maqueta: https://claude.ai/artifact/6AGqJKyWhQxHBFW9WJyQof (privada).
+- **Elección de Sam (2026-11-19):** «c y agente a» → Bandeja C, panel de agentes 1. Maqueta en un Artifact privado de Sam.
 
 ## Hecho
 
