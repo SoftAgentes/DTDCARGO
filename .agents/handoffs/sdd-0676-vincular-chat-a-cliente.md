@@ -135,6 +135,8 @@ Esta nota se escribió después de la aprobación y está en un commit local sin
 - Menores de la segunda revisión, cerrados: 10d con `tenant_id` y la rama de carrera completa `canal_chat`.
 - Runbook: «Smoke después de aplicar la 0566», con los pasos para el WhatsApp y el Instagram secundarios de Sam.
 
+**Agregado del Director General (2026-11-18, por mensaje entre sesiones):** Sam ofrece dos lugares para el smoke (entorno de prueba antes de producción, o producción directo) y el runbook deja los dos caminos. La limpieza en producción es con «Quitar», sin borrar filas. El web sale a producción SIN la 0566: Sam aceptó dejarla pendiente. No verifiqué que el entorno de prueba tenga un Chatwoot con los canales secundarios de Sam conectados; el runbook lo dice así.
+
 **Decisiones mías, para que la revisión las mire:**
 
 1. Origen nuevo `portal` (rehace el CHECK del origen de la 0554) en vez de reusar `webhook`: así la base distingue la unión que no se puede quitar.

@@ -96,6 +96,15 @@ Lo hace Sam con su **WhatsApp secundario** y su **Instagram secundario**, y una 
 
 > **No está ejecutado.** Solo vale después de aplicar `0566_chatwoot_vincular_canal` con el OK nominal de Sam.
 
+**Estado al 2026-11-18.** El web con «Vincular a cliente» sale a producción **sin** la 0566: Sam aceptó dejarla pendiente. Hasta que se aplique, lo de abajo no se cumple entero: la ficha cruza solo por teléfono, «Vincular» une sin guardar el canal ni absorber la tarjeta de lead, y «Mover aquí» responde que falta la migración.
+
+**Dónde hacerlo.** Sam ofreció dos lugares; los pasos A a D son los mismos en los dos.
+
+| Camino | Cómo | Qué tener en cuenta |
+|---|---|---|
+| 1. Entorno de prueba, antes de producción | Ensayar la 0566 según [entorno-prueba.md](entorno-prueba.md), §4: base igual a `main`, aplicar la migración del head, smoke con la app anterior y después con la nueva. La evidencia vale para un SHA | NO VERIFICADO: que el entorno de prueba tenga un Chatwoot con el WhatsApp y el Instagram secundarios conectados. Si no los tiene, ahí se ensaya el apply y lo que se ve en Studio, y los pasos con chats reales (A, B y C) se hacen por el camino 2 |
+| 2. Producción, directo | Con la 0566 ya aplicada en producción con su OK nominal, hacer A a D con una ficha de prueba | Se deja todo desvinculado al terminar, con «Quitar» (abajo). No se borran filas |
+
 **Antes de empezar.** Anota el Shipping Mark de la ficha de prueba. Si el teléfono del WhatsApp secundario está en alguna ficha, Studio lo reconoce por teléfono y no ofrece «Vincular a cliente»: para la parte B usa un número que no esté en ninguna ficha, o sáltala.
 
 **A. Instagram**
@@ -138,6 +147,14 @@ Lo hace Sam con su **WhatsApp secundario** y su **Instagram secundario**, y una 
 | D4 | Desde otra ficha, «Vincular otra red» con el número de esa conversación del portal | Solo si ese contacto ya tiene su unión del portal: «El chat del portal es de la ficha de su cliente: no se desvincula ni se mueve.» |
 
 El chip «Portal» aparece en la ficha de un cliente cuando escribe por el portal después de la 0566, o después de correr el relleno (`supabase/cargas/portal-uniones-0566/`, con OK aparte). En ese chip no hay «Quitar».
+
+**Limpieza al terminar (sin borrar filas).** Vale para los dos caminos; en producción es la única forma prevista.
+
+1. Ficha del cliente de prueba › conversaciones › **Canales vinculados**: oprime **Quitar** en cada chip, con un motivo como «Fin de la prueba». Es el paso C.
+2. Comprueba que la lista de canales quedó vacía y que las dos conversaciones dicen «Sin ficha».
+3. En Chatwoot, marca las dos conversaciones como resueltas.
+
+Lo que **queda** y no se borra: las conversaciones de prueba en Chatwoot, la tarjeta de lead de cada chat en el CRM (de vuelta en su tablero) y las filas de auditoría de vincular y quitar, que son el rastro de la prueba. Borrar cualquiera de esas filas en producción es un borrado permanente: lo corre Sam o requiere su OK nominal, y no forma parte de este smoke.
 
 **Auditoría.** Cada vincular, mover y quitar deja su fila en `entity_audit_log` (tipo `chatwoot_contact_link`); la de quitar dice cuántas conversaciones quedaron sin ficha. Contarlas en producción es una lectura que pide su propia autorización.
 
