@@ -67,3 +67,21 @@ No se corrigió nada de esto; son candidatos a tarea propia, ya encuadrados en e
 - `.agents/handoffs/rebrand-design-evaluacion-ant-design.md`
 
 Sin cambios en `app/`, `lib/`, `components/`, `supabase/`, `public/` ni la web pública.
+
+---
+
+## AMPLIACIÓN 2026-11-19 · Carbon y versus (pedido de Sam en la misma sesión)
+
+- Sam pidió hacer lo mismo con `carbon-design-system/carbon`, compararlo con Ant Design y decidir mañana qué instalar. Entregables nuevos: [evaluacion-carbon.md](../../docs/design/rebrand-erp/evaluacion-carbon.md) y [versus-ant-design-vs-carbon.md](../../docs/design/rebrand-erp/versus-ant-design-vs-carbon.md) (con el plan del laboratorio de mañana).
+- Fork y clon **superficial y parcial** de Carbon (8 GB de repo) en una carpeta hermana (`ref-carbon`) más los paquetes descargados como archivo (`ref-carbon-npm-1.121.0`). Commit analizado `3011e16b77b6b4af5c4156f4014486cddac25573`. Nada se ejecutó.
+- **Veredicto del versus:** conviene más **Carbon** para lo que Sam pidió mirar (reglas de botones, títulos, mensajes y guardado) y para nuestras reglas duras (sin CSS-in-JS, AA, CSP); Ant Design gana en tablas y comunidad. La opción A sigue siendo lo primero.
+- **Hallazgos de seguridad de Carbon:** 20 de 59 paquetes declaran `postinstall` de telemetría de IBM (bloqueado por `allowBuilds` de pnpm 11 por inferencia; apagable con `IBM_TELEMETRY_DISABLED`); fuentes desde la CDN de IBM por defecto (bloqueadas por nuestra CSP; apagables); atestación de procedencia presente; 0 avisos en 59 paquetes.
+- **Comunidad en redes: NO verificable con fuentes directas.** Las búsquedas devolvieron páginas de comparación comerciales, ningún hilo de Reddit ni de Hacker News. Está dicho en el documento.
+- Validación: `docs:check` y `sdd:check` **PASARON** (con `node`, como arriba). Resto, **NO EJECUTADO** por la misma razón.
+
+### Pendiente nuevo de esta tarea
+- Laboratorio de dos aplicaciones (fuera del repo, datos de mentira, con turno de PC del Director) y su rúbrica: sección 5 del versus. No se hizo hoy.
+- Borrar, con autorización, `ref-carbon` y `ref-carbon-npm-1.121.0`; el fork de Carbon queda en GitHub hasta que Sam decida.
+
+### FUERA DE ALCANCE DETECTADO (nuevo)
+- Si algún día se instala `@carbon/*` en DTDCARGO, hay que fijar `IBM_TELEMETRY_DISABLED=true` en el `Dockerfile` y en CI, aunque `allowBuilds` ya lo bloquee, y dejar `$css--font-face: false`.
