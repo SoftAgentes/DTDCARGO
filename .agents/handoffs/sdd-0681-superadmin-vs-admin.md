@@ -26,7 +26,8 @@ Levantar qué puede hacer hoy el superadmin (`platform_admins`, `is_platform_adm
 
 ## Pendientes de esta tarea
 
-- ~~Sam tiene que contestar las preguntas P1 a P7 (§4).~~ Respondidas el 2026-11-19, por medio del DG. Están en la Enmienda 1 (§7 y §8), en la rama `codex/sdd-0681-enmienda-decisiones`, que va en una PR aparte cuando entre la #701.
+- ~~Sam tiene que contestar las preguntas P1 a P7 (§4).~~ Respondidas el 2026-11-19, por medio del DG. Están en la Enmienda 1 (§7 y §8), en la PR #705 (rama `codex/sdd-0681-enmienda-decisiones`).
+- P1 y P2 quedan como *interpretación*: el «si» es ambiguo y el DG le pidió a Sam que lo aclare.
 - Siguen abiertas P3 (cómo entra el superadmin a otra empresa), P5 (recomendación del DG, el modelo mixto, pendiente de que Sam la confirme) y las confirmaciones de 7.2, 7.3 y 7.4.
 - El DG decide si abre la fase 1 (H-S).
 
