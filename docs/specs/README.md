@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 657 specs)
+### Índice de specs (generado · 661 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -684,8 +684,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0660 | Estándar de fechas del Studio: campo con máscara, calendario … | in-progress | interno |
 | 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
 | 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
+| 0663 | Subaliados como jobs: estado de cuenta por trabajo, sección A… | proposed | interno |
 | 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
 | 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
+| 0666 | Portal del aliado: sus clientes, prealertas y marca blanca | proposed | interno |
 | 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
 | 0668 | Portal: el cliente ve su código anterior, como dato informativo | proposed | interno |
 | 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
@@ -695,6 +697,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
 | 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
+| 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
+| 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0663, 0666, 0670, 0675 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0670, 0675, 0678 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
