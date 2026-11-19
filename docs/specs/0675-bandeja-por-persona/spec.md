@@ -180,7 +180,8 @@ su degradación.
 - `supabase/migrations/0565_bandeja_concedible_por_persona.sql` (nuevo),
   `supabase/tests/0565_bandeja_concedible_por_persona.test.sql` (nuevo), su prueba en Vitest (nueva),
   `lib/studio/__tests__/bandeja-concedible.migration.test.ts` (nueva),
-  `supabase/desarmes/0565_desarme.sql` (nuevo), `supabase/migrations-baseline.json` (la espera) y
+  `supabase/desarmes/0565_desarme` (nuevo; extensión `.sql`, sin el punto pegado para que no se lea como
+  migración citada), `supabase/migrations-baseline.json` (la espera) y
   `supabase/pending-migration-symbol-declarations.json` si el gate lo pide.
 - `lib/studio/__tests__/user-module-grants.migration.test.ts` (lee la última definición).
 - `.agents/handoffs/sdd-0675-bandeja-por-persona.md`.
