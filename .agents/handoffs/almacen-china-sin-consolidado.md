@@ -13,8 +13,7 @@ Fecha: 2026-11-19 · Rama: `claude/interesting-darwin-9a1100` · Base: `origin/m
 
 - Sam contestó el 2026-11-19 (spec §5): las tres vistas van dentro de Almacén China (en almacén, en
   camino, pendiente por liberar). Abiertas: A (Embarques), B (quién marca el telex), C (`cerrado`), D (contador).
-- Conteo en producción autorizado: la consulta (solo lectura, solo conteos) se entregó al DG, que la corre.
-  Falta anotar el resultado en la spec §5.
+- Conteo en producción corrido por el DG el 2026-11-19: sin duplicados, 111 recepciones del 64 consolidadas, 0 pendientes en el almacén (spec §5).
 - No existe dato de telex release: hace falta migración (número del DG; aplicar solo con OK de Sam).
 - Producto solo con la spec aprobada.
 

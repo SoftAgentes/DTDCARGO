@@ -51,12 +51,14 @@ O sea: la hipótesis «la carga no cambia el estado» **no** se cumple. Las rece
 **Causa:** la pantalla no esconde lo consolidado; lo pinta con la insignia «Consolidado». Es la tabla, no
 el dato.
 
-### 1.3 Lo que no se puede confirmar sin leer producción
+### 1.3 Confirmado en producción: no hay duplicados
 
-Si la oficina registró a mano en Almacén China la mercancía del 64 **antes** de la carga, esas recepciones
-siguen `pendiente_consolidacion`: la carga crea recepciones nuevas `WR-C64-*` y no enlaza ni cierra las
-anteriores (`scripts/consolidados/lote-sql.ts:600`). Eso sería un duplicado, y con los KPI arriba contándolo
-como «en almacén». Para saberlo hace falta un conteo (§5, respuesta 1).
+Quedaba una duda. Si la oficina hubiera registrado a mano en Almacén China la mercancía del 64 **antes** de
+la carga, esas recepciones seguirían `pendiente_consolidacion`, porque la carga crea recepciones nuevas
+`WR-C64-*` y no enlaza ni cierra las anteriores (`scripts/consolidados/lote-sql.ts:600`). El conteo del
+2026-11-19 (§5, respuesta 1) lo descarta: las 111 recepciones del 64 están `consolidado`, no hay recepciones
+manuales con sus marcas y el almacén no tiene ninguna pendiente. Todo lo que hoy se ve en Almacén China
+está consolidado: es solo la vista (§1.2).
 
 ### 1.4 Embarques: «Activos» incluye lo que va en el mar
 
@@ -171,8 +173,23 @@ Sigue abierto (§5, pregunta A). Hoy «Activos» incluye lo que va en el mar (§
 
 Contestadas por Sam el 2026-11-19, vía el DG:
 
-1. Conteo en producción: **sí**. La consulta es solo lectura y devuelve solo conteos. Se le pasó al DG,
-   que la corre. El resultado se anota aquí.
+1. Conteo en producción: **sí**. Lo corrió el DG el 2026-11-19 a las ~12:20Z, en una transacción de solo
+   lectura y solo con conteos. Usó para las notas el patrón `~* 'contenedor\s+DTD\s*#\s*64\M'`, el mismo
+   del alta del 64.
+
+   | Conteo | Resultado |
+   |---|---|
+   | Consolidaciones del 64 | 1 |
+   | Marcas (clientes) en el 64 | 40 |
+   | Recepciones `WR-C64-*` en `consolidado` | 111 |
+   | Recepciones `WR-C64-*` en otro estado | 0 |
+   | Recepciones manuales con marcas del 64, pendientes | 0 |
+   | ídem, recibidas hasta la fecha de la carga | 0 |
+   | Recepciones manuales con marcas del 64, consolidadas | 0 |
+   | Recepciones pendientes en todo el almacén | 0 |
+
+   Lectura: la carga quedó como dice el código, no hay duplicados ni recepciones manuales pendientes. Con
+   la vista por defecto del §2.1, Almacén China quedaría hoy vacía en «En almacén», y eso es lo correcto.
 2. Almacén China abre con lo que está en bodega: **sí**.
 3. y 4. «En camino» va **dentro de Almacén China**, con contador y porcentaje, junto con «Pendiente por
    liberar»: las tres vistas en una sola pantalla.
