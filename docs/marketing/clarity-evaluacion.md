@@ -6,17 +6,19 @@
 
 ## Respuesta corta
 
-**Sitio público: sí, con condiciones. Portal del Cliente: no, por ahora.**
+**Sitio público: sí, con condiciones (fases 1 a 4). Portal del Cliente: sí, por decisión de Sam, en la fase 5 y con las condiciones de §3.6.**
 
 - En las páginas públicas (home, servicios, tarifas, calculadora, geo-páginas, noticias), Clarity da lo que GA4 no da: **ver cómo se usa la página** (grabaciones, mapas de calor, clics de rabia o sin respuesta y abandono). Es gratis y no tiene tope de tráfico.
-- En el **Portal del Cliente** las desventajas pesan más que las ventajas:
+- En el **Portal del Cliente** entra después del público y con condiciones propias, porque:
   1. Hoy le prometemos por escrito al cliente que **nunca** cargamos analítica en el Portal.
   2. Los términos de Clarity excluyen contenido de **servicios financieros**, y el Portal tiene facturas y finanzas.
   3. El modo de enmascarado por defecto **no oculta nombres ni direcciones**.
   4. Las URL del Portal llevan el **código del envío**.
   5. Clarity **no puede borrar los datos de una sola persona**: para borrarlos hay que eliminar el proyecto completo.
 
-  El detalle está en §3.3.
+  Los riesgos están en §3.3 y las condiciones que los atienden, en §3.6.
+
+> *Recomendación original (superada por la decisión de Sam):* «Portal del Cliente: no, por ahora».
 
 ## Decisión de Sam (2026-11-18)
 
@@ -24,7 +26,7 @@ Texto de Sam, en la conversación con esta sesión, después de leer la recomend
 
 > «Página web. También podemos ponerlo en el portal del cliente. Es lo mismo, confirmo.»
 
-**Alcance decidido:** el sitio público **y** el Portal del Cliente. Esto deja sin efecto el «no en el Portal» de arriba como recomendación. Los riesgos de §3.3 siguen siendo reales y se convierten en **condiciones de implementación** del Portal (§3.6 y fase 5).
+**Alcance decidido:** el sitio público **y** el Portal del Cliente. Esto deja sin efecto la recomendación original de no instalarlo en el Portal. Los riesgos de §3.3 siguen siendo reales y se convierten en **condiciones de implementación** del Portal (§3.6 y fase 5).
 
 **Lo que esta decisión no autoriza:**
 
@@ -153,7 +155,7 @@ Según [Masking content](https://learn.microsoft.com/en-us/clarity/setup-and-ins
   - el formulario de contacto completo.
 - Las páginas públicas no deberían tener datos de clientes en el texto. Si una los tiene, es un hallazgo aparte.
 
-### 3.3 El Portal del Cliente: por qué no
+### 3.3 El Portal del Cliente: ventajas y riesgos
 
 Sam preguntó si «la página» incluye el Portal y qué ventajas y desventajas tendría instalarlo ahí.
 
@@ -173,17 +175,11 @@ Sam preguntó si «la página» incluye el Portal y qué ventajas y desventajas 
 | 4 | **El código del envío va en la URL.** `/portal/envios/[code]` y `/track/<código>`. Clarity guarda la URL completa, y el enmascarado de parámetros no cubre segmentos de ruta. Es la misma fuga que obligó a sacar GA de esas rutas en 2026-07-05. | `app/portal/(app)/envios/[code]`, `docs/marketing/seo.md` §2026-07-05 |
 | 5 | **No hay borrado por persona.** Un cliente que ejerza el habeas data (CRBV art. 28: conocer uso y finalidad, pedir destrucción) no puede ser borrado de Clarity sin eliminar todo el proyecto. Las grabaciones duran 30 días; los clics y mapas, 9 meses. | [FAQ](https://learn.microsoft.com/en-us/clarity/faq), [Data retention](https://learn.microsoft.com/en-us/clarity/setup-and-installation/data-retention) |
 | 6 | **Microsoft decide sus propios fines.** Mandarle la sesión de un cliente identificado equivale a darle datos de clientes a un tercero que no actúa por nuestras instrucciones. Choca con la regla del proyecto de no enviar datos de clientes a proveedores no permitidos, y con la sentencia 332/2001 de la Sala Constitucional (finalidad predeterminada y consentimiento previo e informado). | §3.1 |
-| 7 | **Acceso al panel.** Quien tenga acceso a Clarity puede ver sesiones de clientes. Si alguien del equipo en China entra al panel, hay además tratamiento en China (PIPL), con consentimiento separado para la transferencia. | `.claude/skills/revisar-datos-ve/references/marco-legal-cn-pipl.md` |
+| 7 | **Acceso al panel.** Quien tenga acceso a Clarity puede ver sesiones de clientes. Si el panel se consulta desde China, hay además tratamiento sujeto a la PIPL, con consentimiento separado para la transferencia. | `.claude/skills/revisar-datos-ve/references/marco-legal-cn-pipl.md` |
 
-**Si algún día se quiere en el Portal,** sería otra decisión con su propia SDD. El mínimo sería:
+Sam decidió incluir el Portal (ver «Decisión de Sam»). Estos riesgos no lo impiden: cada uno tiene su condición en §3.6, y el Portal entra en la fase 5 con su propia SDD.
 
-- modo **Strict** solo en esas rutas, con lo que las grabaciones quedan en puntos;
-- sin `/portal/envios/[code]`, facturas, finanzas, documentos ni mensajes;
-- política cambiada y avisada;
-- consentimiento explícito dentro del Portal;
-- acceso al panel limitado al equipo de Venezuela.
-
-Con todo eso, lo útil que queda son los mapas de clics de pantallas sin datos. Para eso conviene más una herramienta que se pueda alojar en nuestro servidor (PostHog autoalojado, §4).
+> *Recomendación original (superada por la decisión de Sam):* no instalarlo en el Portal y, si hacía falta ver uso ahí, preferir una herramienta autoalojada como PostHog (§4).
 
 ### 3.4 Consentimiento y aviso de cookies
 
@@ -219,7 +215,7 @@ Hay que cambiarlo **antes** de encenderlo en producción:
   - finalidad: mejorar el sitio;
   - que Microsoft trata esos datos también para sus fines, con enlace a su declaración de privacidad;
   - que se guardan 30 días las grabaciones y 9 meses los mapas;
-  - que **no** se usa en el Portal.
+  - en la fase 1, que **no** se usa en el Portal; en la fase 5, el texto del Portal de §3.6.
 - **Aviso en el sitio:** Microsoft recomienda una línea en el pie. Su texto sugerido dice «By using our site, you agree…». No conviene copiarlo, porque presume un consentimiento que nuestro banner no pide así. Basta un enlace a la política desde el pie, que ya existe.
 - **Sin promesas que el sistema no cumple:** no escribir «puedes pedir que borremos tu grabación», porque Clarity no lo permite por persona.
 
@@ -245,7 +241,7 @@ Para no publicar una promesa falsa ni grabar datos de clientes, el Portal entra 
 5. **Consentimiento dentro del Portal.**
    - Clarity corre sin cookies hasta que el cliente acepte, con la misma `dtd_cookie_consent`.
    - Si se quieren recorridos completos de clientes, el Portal debe pedir la decisión una vez, con un texto que diga qué se graba.
-6. **Acceso al panel:** solo el equipo de Venezuela que lo necesite, con una cuenta de la empresa. Nadie del equipo en China (PIPL).
+6. **Acceso al panel:** solo el equipo de Venezuela que lo necesite, con una cuenta de la empresa. Si alguna vez se consultara desde otro país, se revisa antes la ley aplicable (por ejemplo, la PIPL en China).
 7. **Borrado:** la política no promete borrar la grabación de una persona, porque Clarity no puede hacerlo. Decir los plazos: 30 días para las grabaciones y 9 meses para los clics.
 8. **El ID de usuario no se manda.** No se usa `clarity('identify', …)` ni se ponen variables con correo, cédula, RIF, Shipping Mark ni nombre. Clarity queda seudónimo.
 
@@ -264,7 +260,7 @@ Para no publicar una promesa falsa ni grabar datos de clientes, el Portal entra 
 | Quién guarda los datos | Microsoft (Azure), que **decide sus fines** | Su nube (EE. UU. o UE) o **nuestro servidor** | Contentsquare | Servidores en la UE, o el nuestro | Cloudflare |
 | Borrar a una persona | **No** (solo el proyecto entero) | Sí (ver su doc.) | Ver su doc. | No guarda personas | No guarda personas |
 | Integración con lo que hay | GA4 | Reemplazaría parte de GA4 | GA4 | Duplicaría GA4 | Ya usamos Cloudflare delante del sitio |
-| Encaje con DTD | **Bueno en el público, malo en el Portal** | Bueno si se autoaloja; más trabajo de operación | Peor que Clarity por precio y límites | No resuelve el «porqué» | Útil solo para medir Core Web Vitals |
+| Encaje con DTD | **Bueno en el público; en el Portal, solo con las condiciones de §3.6** | Bueno si se autoaloja; más trabajo de operación | Peor que Clarity por precio y límites | No resuelve el «porqué» | Útil solo para medir Core Web Vitals |
 
 **Fuentes de la tabla:**
 
@@ -294,7 +290,9 @@ Para no publicar una promesa falsa ni grabar datos de clientes, el Portal entra 
 
 ## 5. Recomendación y fases
 
-**Sí, con condiciones, solo en el sitio público. No en el Portal.**
+**Sí, con condiciones: primero el sitio público (fases 1 a 4) y después el Portal del Cliente (fase 5, decisión de Sam del 2026-11-18, con las condiciones de §3.6).**
+
+> *Recomendación original (superada):* «solo en el sitio público. No en el Portal».
 
 | Fase | Qué se hace | Quién | Necesita OK de Sam |
 |---|---|---|---|
