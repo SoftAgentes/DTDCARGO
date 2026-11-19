@@ -4,7 +4,7 @@ title: "/entrar reconoce el correo y dice en pantalla qué pasó"
 status: in-progress
 author: "Sam (founder) + Claude Code"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0094", "0276", "0278", "0279", "0597", "0646"]
@@ -17,9 +17,21 @@ confidencialidad: interno
 > portal, si es cliente sin portal o si no lo encontramos. Modifica la SDD-0597, que respondía lo
 > mismo para todos los correos.
 
-**Estado:** `in-progress`. Entrega 1 (esta PR): los resultados en pantalla y los textos de
-`/registro`, sin migración. Entrega 2 (otra PR, con la migración 0562 asignada por el DG): el
+**Estado:** `in-progress`. Entrega 1 (#683): los resultados en pantalla y los textos de
+`/registro`, sin migración. Entrega 2 (#687, con la migración 0562 asignada por el DG): el
 enlace para crear el portal llega al correo del cliente sin portal.
+
+> **Estado al 2026-11-19.** Las dos entregas están en `main` (#683 y #687). La migración
+> `0562_registro_link_autoservicio` está **aplicada en producción** el 2026-11-19: commit del apply
+> a las 16:51:18Z (inicio 16:51:17Z), proyecto `dtd-cargo`, con el OK literal de Sam «OK, aplica
+> 0566, 0565 y 0562». Md5 `637b3740d2ea71e9981da1b3d171161e`, 34441 bytes, una fila en el ledger y
+> los 7 cuerpos vivos iguales al archivo. Evidencia en el servidor:
+> `/srv/ops/evidencias/apply-0562-dtd-cargo-20261119T165117Z` (previa:
+> `/srv/ops/evidencias/previa-0562-dtd-cargo-20261119T165049Z`). La espera quedó retirada y la
+> migración sellada en el cierre. Datos del Director General: el md5 y los bytes los comprobé
+> contra el archivo de `main` (también lo hace `retirar-espera.mjs`); la hora, el OK, la fila del
+> ledger, los cuerpos vivos y la evidencia no los verifiqué yo. Falta el smoke en producción de la
+> entrega 2 (un cliente sin portal recibe el enlace y lo activa).
 
 ## 0. Enmiendas explícitas
 
@@ -189,7 +201,8 @@ El diseño (implementado en la PR de la entrega 2):
 
 Migración: **0562**, asignada por el DG el 2026-11-18. Contrato SQL, desarme y espera declarada
 van en su PR. Revisión independiente en Opus, por seguridad. Aplicarla en producción pide el OK
-nominal de Sam nombrando el archivo.
+nominal de Sam nombrando el archivo. **HECHO el 2026-11-19 a las 16:51:18Z** (OK literal de Sam:
+«OK, aplica 0566, 0565 y 0562»; detalle en el aviso de estado de arriba).
 
 ### 4.1 Aceptación de la entrega 2
 
@@ -220,12 +233,13 @@ nominal de Sam nombrando el archivo.
 
 | Archivo | Cambio |
 |---|---|
-| `supabase/migrations/0562_registro_link_autoservicio.sql` | nueva (no aplicada) |
+| `supabase/migrations/0562_registro_link_autoservicio.sql` | nueva; aplicada en producción el 2026-11-19 (16:51:18Z) |
 | `supabase/desarmes/0562_desarme` (extensión `.sql`; sin el punto pegado para que no se lea como migración citada) | nuevo |
 | `supabase/tests/0562_registro_link_autoservicio.test.sql` | contrato |
 | `lib/portal/__tests__/registro-autoservicio.migration.test.ts` | el contrato en PGlite |
-| `supabase/migrations-baseline.json` | espera de la 0562 |
-| `supabase/pending-migration-symbol-declarations.json` | símbolos de la 0562 que usa la app |
+| `supabase/migrations-baseline.json` | espera de la 0562 (retirada en el cierre del 2026-11-19) |
+| `supabase/pending-migration-symbol-declarations.json` | símbolos de la 0562 que usa la app (retirados en el cierre del 2026-11-19) |
+| `supabase/migrations.lock.json` | la 0562 sellada (cierre del 2026-11-19) |
 | `lib/studio/portal/autoservicio-link.ts` | nuevo: emitir y mandar el enlace |
 | `lib/studio/portal/__tests__/autoservicio-link.test.ts` | nuevo |
 | `app/entrar/actions.ts` | `crear_portal` antes del aviso de la SDD-0279 |
