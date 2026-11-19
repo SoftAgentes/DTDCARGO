@@ -8,7 +8,7 @@
 
 import type { CrmCanal } from "@/lib/studio/crm-canal";
 
-export const CANALES_UNION = ["whatsapp", "instagram", "messenger", "tiktok", "correo", "otro"] as const;
+export const CANALES_UNION = ["whatsapp", "instagram", "messenger", "tiktok", "correo", "otro", "portal"] as const;
 export type CanalUnion = (typeof CANALES_UNION)[number];
 
 export function esCanalUnion(v: unknown): v is CanalUnion {
@@ -16,6 +16,9 @@ export function esCanalUnion(v: unknown): v is CanalUnion {
 }
 
 /**
+ * `portal` no sale de aquí: es el canal de la unión que escribe el chat del portal
+ * (`chatwoot_portal_vincular`), nunca el de una unión hecha a mano.
+ *
  * `Channel::Whatsapp` → `whatsapp`. Un tipo que no conocemos (API, widget web,
  * SMS…) es `otro`; sin tipo, `null`: mejor sin logo que uno que diga algo que
  * no pasó.
@@ -54,6 +57,8 @@ export function logoDeCanalUnion(canal: CanalUnion | null | undefined): CrmCanal
       return "tiktok";
     case "correo":
       return "correo";
+    case "portal":
+      return "dtd";
     default:
       return null;
   }

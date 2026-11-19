@@ -90,6 +90,28 @@ describe("ConversacionesFichaCard", () => {
   });
 });
 
+describe("ConversacionesFichaCard · el chat del portal (SDD-0676)", () => {
+  it("su chip dice «Portal · del portal» y no trae «Quitar», aunque la persona pueda quitar las demás", () => {
+    render(
+      <ConversacionesFichaCard
+        panel={PANEL}
+        uniones={[
+          { chatwootContactId: 501, origen: "kommo" },
+          { chatwootContactId: 777, origen: "portal", canal: "portal" },
+        ]}
+        puedeUnir
+        puedeVerTexto
+        clientId={FICHA}
+        markbox="DTD-0001"
+      />,
+    );
+    expect(screen.getByText("Portal")).toBeTruthy();
+    expect(screen.getByText("del portal")).toBeTruthy();
+    // Un solo «Quitar»: el de la unión del Archivo Kommo.
+    expect(screen.getAllByRole("button", { name: "Quitar" })).toHaveLength(1);
+  });
+});
+
 describe("PanelConversacionesFicha (servidor)", () => {
   const F1 = [{ conversation_id: 42, status: "open", unread_count: 0, last_activity_at: null }];
   const props = {

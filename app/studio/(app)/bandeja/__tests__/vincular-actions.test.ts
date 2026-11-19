@@ -261,6 +261,13 @@ describe("vincularContactoDeConversacion", () => {
     expect(r).toEqual({ ok: false, error: "otra_ficha", otra: { markbox: "DTD-0002", nombre: "SINT Dos" } });
   });
 
+  it("el chat es del portal de otro cliente (55000): lo dice y no ofrece moverlo ni nombra a nadie", async () => {
+    m.rpc.mockResolvedValueOnce({ data: null, error: { code: "55000" } });
+    const r = await vincularContactoDeConversacion(42, 3, CLIENTE);
+    expect(r).toEqual({ ok: false, error: "del_portal" });
+    expect(JSON.stringify(r)).not.toContain("DTD-");
+  });
+
   it("unido en OTRO tenant: avisa sin decir a quién (el filtro por tenant se aplica)", async () => {
     m.obtener.mockResolvedValueOnce({ ok: true, data: { id: 42, inboxId: 5, contactoId: 88, canal: "Channel::Instagram" } });
     m.rpc.mockResolvedValueOnce({ data: null, error: { code: "23505" } });

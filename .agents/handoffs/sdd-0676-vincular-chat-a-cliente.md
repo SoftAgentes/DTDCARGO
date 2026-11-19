@@ -116,6 +116,61 @@ Texto del Director General por mensaje entre sesiones: B1, B2, 3, 4, 6 y 7 resue
 
 Esta nota se escribió después de la aprobación y está en un commit local sin subir, para no mover la cabeza aprobada.
 
+## Corrección de la 0566 antes de aplicarla (2026-11-18, rama `claude/0566-correccion-portal`)
+
+**Autorización de Sam** (texto recibido del Director General por mensaje entre sesiones; la recibió su sesión, no esta): «Ok, te encargo la corrección al 0566». La #689 ya estaba fusionada (`031ef7ad7`) y la 0566 sin aplicar.
+
+**Problema (lo midió el Director General leyendo `main`).** La 0566 dejaba sin cliente una conversación cuando un evento traía contacto, sin unión y sin teléfono. El chat del portal (0519) fija su cliente sin teléfono y con el vínculo en otra tabla: el primer evento posterior se lo habría quitado. No lo vi al escribir la 0566: mi contrato no cargaba nada del portal.
+
+**Qué cambia** (detalle en la spec, §4.9):
+
+- `chatwoot_contact_links` es el registro único, también para el portal (origen y canal `portal`); `chatwoot_portal_vincular` se redefine en la 0566 y deja ahí la unión, auditada.
+- Ningún evento automático quita un cliente: unión → teléfono con ficha única → se conserva. Incluye el teléfono que dejó de coincidir.
+- Solo quitar la unión y borrar la ficha dejan conversaciones sin cliente, y lo auditan con el número.
+- Columna nueva `chatwoot_conversations.chat_contact_id`.
+- La unión del portal no se quita ni se mueve a mano (`55000`); su chip no trae «Quitar».
+- El contacto del portal queda fuera de la escritura de segmento y Shipping Mark en Chatwoot.
+- Relleno de los contactos del portal que ya existían: `supabase/cargas/portal-uniones-0566/` (función de conteo, función de relleno, README). **No corrido en ningún entorno.** Lleva OK de Sam aparte.
+- Desarme: restaura también `chatwoot_portal_vincular`, borra las uniones de origen `portal`, devuelve el CHECK del origen y quita la columna nueva.
+- Menores de la segunda revisión, cerrados: 10d con `tenant_id` y la rama de carrera completa `canal_chat`.
+- Runbook: «Smoke después de aplicar la 0566», con los pasos para el WhatsApp y el Instagram secundarios de Sam.
+
+**Agregado del Director General (2026-11-18, por mensaje entre sesiones):** Sam ofrece dos lugares para el smoke (entorno de prueba antes de producción, o producción directo) y el runbook deja los dos caminos. La limpieza en producción es con «Quitar», sin borrar filas. El web sale a producción SIN la 0566: Sam aceptó dejarla pendiente. No verifiqué que el entorno de prueba tenga un Chatwoot con los canales secundarios de Sam conectados; el runbook lo dice así.
+
+**Decisiones mías, para que la revisión las mire:**
+
+1. Origen nuevo `portal` (rehace el CHECK del origen de la 0554) en vez de reusar `webhook`: así la base distingue la unión que no se puede quitar.
+2. Borrar la ficha deja sin cliente **todas** sus conversaciones, también las cruzadas por teléfono. Sin eso, con la regla nueva seguirían apuntando a una ficha borrada.
+3. El desarme **borra** las uniones del portal en vez de convertirlas a otro origen: el web actual las trataría como uniones normales (se podrían quitar y recibirían el Shipping Mark).
+4. Si un contacto del portal ya está unido a mano a otra ficha, ni `chatwoot_portal_vincular` ni el relleno lo tocan: los eventos de ese contacto cruzarían a esa otra ficha. El conteo del relleno lo informa (dato 3). Caso raro, pero existe.
+
+**Revisión independiente de la #696 (Opus, sobre `2aaf99462`): CHANGES_REQUESTED.** Texto del Director General por mensaje entre sesiones; no leí el informe completo. El escenario del portal, la seguridad SQL, el relleno y el desarme quedaron bien.
+
+| Punto | Qué pedía | Estado |
+|---|---|---|
+| M1 (bloquea) | La RPC devuelve ahora el cliente conservado y `unirContactoAFicha` lo tomaba como cruce por teléfono: con `CHATWOOT_FICHA_UNIR=1` cada conservación se volvía una unión permanente | Corregido: la RPC devuelve `origen_cliente` y el manejador une solo con `telefono`. Contrato 4o a 4s, dos mutantes, y pruebas del manejador y del envoltorio. **No lo vi yo**: no revisé quién más leía el cliente devuelto |
+| B1 | Carrera con el borrado de la ficha | Revalidación en el `update` (probada: 8h, 8i y un mutante) y `for share` sobre la ficha encontrada (leída, **no ejercida**: pide dos transacciones a la vez) |
+| B2 | Orden de despliegue | Web primero, 0566 después: cabecera de la migración, espera del baseline, spec y runbook |
+| B3 | Guarda del desarme | No cuenta las uniones del portal (probado en el ensayo) y la nota de que su borrado no se audita |
+
+**Evidencia de esta corrección**
+
+| Comprobación | Resultado |
+|---|---|
+| Gate de símbolos, con las declaraciones regeneradas | PASÓ (0 rojos, 7 amarillos) |
+| Anclas de los 25 mutantes: cada texto aparece una sola vez en la migración | PASÓ |
+| Vitest, con turno del Director General: prueba de la migración (contrato en PGlite, 25 mutantes, ensayos del desarme y del relleno), `lib/studio/chatwoot`, los contratos del portal en PGlite, las pruebas de Studio tocadas, guardas e i18n | PASÓ: 82 archivos y 2.121 pruebas; 5 archivos y 37 pruebas saltadas (las que ya se saltan sin su entorno) |
+| `tsc --noEmit` | FALLÓ la primera vez: el tipo `UnionVisible` de la ficha del cliente no conocía el origen `portal` (4 errores, error mío; vitest no lo ve porque no comprueba tipos). Corregido, PASÓ |
+| ESLint | PASÓ: 0 errores, 37 avisos, ninguno en archivos de la tarea. Corrió antes del arreglo de una línea del tipo; no lo repetí |
+| CI, cabeza `3685bc8d4`: «Contratos SQL» en Postgres 17 | FALLÓ: la aserción 4h esperaba que el evento devolviera vacío y ahora devuelve el cliente conservado. Era el contrato; corregido en `9f5f97b1b` |
+| CI, cabeza `9f5f97b1b`: «Contratos SQL» | PASÓ |
+| Tras los cambios de la revisión de la #696 (M1, B1, B2, B3), con turno: vitest de la prueba de la migración (contrato en PGlite, 28 mutantes, ensayos del desarme y del relleno), `lib/studio/chatwoot` entero, contratos del portal y `spec-migration-refs` | PASÓ: 56 archivos y 1.288 pruebas, 37 saltadas |
+| `tsc --noEmit` tras esos cambios | PASÓ |
+| ESLint tras esos cambios | NO EJECUTADO en local: CI |
+| Vitest completo y build | NO EJECUTADO en local: CI |
+| Aplicar la 0566 o el relleno en algún entorno | NO EJECUTADO |
+| Smoke del runbook | NO EJECUTADO |
+
 ## FUERA DE ALCANCE DETECTADO
 
 - `chatwoot_unir_contacto_manual` (0554) queda sin llamadores cuando la 0566 esté aplicada; se puede retirar en una migración posterior.
