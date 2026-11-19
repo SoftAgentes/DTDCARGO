@@ -78,8 +78,11 @@ export default async function BandejaPage({
   return (
     // Sin `maxWidth`: el panel del chat usa todo el ancho, como antes de SDD-0655.
     <div>
-      <CrmCabecera bajada="Las conversaciones con clientes y leads. Responde aquí sin salir de Studio." />
-      <CrmPestanas pestanas={pestanasCrm({ embudos, bandeja: true })} activa="bandeja" />
+      {/* SDD-0677: rama del fondo; la pantalla completa la vuelve `inert`. */}
+      <div data-capa-fondo="">
+        <CrmCabecera bajada="Las conversaciones con clientes y leads. Responde aquí sin salir de Studio." />
+        <CrmPestanas pestanas={pestanasCrm({ embudos, bandeja: true })} activa="bandeja" />
+      </div>
       <BandejaClient estado={estado} panelUrl={panelUrl} inicioUrl={inicioUrl} conversacion={conversacion} admin={admin} />
     </div>
   );
