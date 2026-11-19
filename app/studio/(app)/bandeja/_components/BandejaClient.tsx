@@ -28,7 +28,8 @@
  *   un login: el login lo hace el navegador al cargarlo). Un vigilante avisa si
  *   el marco no carga.
  * - **Freno.** Como mucho 3 aperturas por SSO cada 5 minutos en este navegador,
- *   automáticas y manuales, también las que terminan en `service`. Las marcas
+ *   automáticas y manuales. SDD-0680: cuenta el enlace que se carga en el marco
+ *   (ese es el login); un pedido que falló o no volvió no cuenta. Las marcas
  *   (solo horas, sin datos) van en localStorage: sobreviven a recargar y se
  *   comparten entre pestañas. Si el almacenamiento falla al leer O al escribir,
  *   la página pasa a usar solo la memoria. La reserva corre bajo
@@ -53,7 +54,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { origenDe, usePuenteChatwoot } from "@/app/studio/_components/guia/usePuenteChatwoot";
-import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode } from "../actions";
+import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode, type EnlaceSsoResult } from "../actions";
 import { PortalChatwoot } from "./PortalChatwoot";
 import type { ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
@@ -63,6 +64,12 @@ export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
 /** Intentos del enlace ante `service` y la espera antes de cada reintento. */
 export const INTENTOS_ENLACE = 3;
 export const ESPERAS_REINTENTO_MS = [1500, 4000] as const;
+/**
+ * SDD-0680: plazo de cada pedido del enlace. Un pedido que no vuelve (el POST de
+ * la action abortado o colgado) cuenta como `service` y se reintenta. El servidor
+ * corta el suyo a los 10 s (`platform-api.ts`); esto cubre la red y la cola.
+ */
+export const PLAZO_ENLACE_MS = 15_000;
 /** Si el marco no termina de cargar en este tiempo, se ofrece abrirlo de nuevo. */
 export const VIGILANTE_CARGA_MS = 20_000;
 /** Aperturas por SSO permitidas por ventana y navegador (automáticas y manuales). */
@@ -147,7 +154,33 @@ function guardarMarcas(marcas: number[]) {
   }
 }
 
-/** Reserva una apertura si cabe en la ventana; si no, `false` y no se pide SSO. */
+/** ¿Queda cupo en la ventana? Solo mira: la marca se pone al cargar el enlace (SDD-0680). */
+function hayCupo(): boolean {
+  return marcasVigentes(leerMarcas(), Date.now()).length < SSO_MAX;
+}
+
+/**
+ * SDD-0680: pide el enlace sin que nada lo deje colgado. Si la llamada a la
+ * action rechaza (`net::ERR_ABORTED`, una respuesta que Next no reconoce tras un
+ * despliegue) o no vuelve en `PLAZO_ENLACE_MS`, el resultado es `service`, que se
+ * reintenta. Antes de 0680 el rechazo escapaba y la fase quedaba en `pidiendo`.
+ */
+async function pedirConPlazo(conversacion: number | undefined): Promise<EnlaceSsoResult> {
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  const plazo = new Promise<EnlaceSsoResult>((resolver) => {
+    reloj = setTimeout(() => resolver({ ok: false, error: "service" }), PLAZO_ENLACE_MS);
+  });
+  try {
+    const r = await Promise.race([pedirEnlaceSso(conversacion), plazo]);
+    return r && typeof r === "object" && "ok" in r ? r : { ok: false, error: "service" };
+  } catch {
+    return { ok: false, error: "service" };
+  } finally {
+    clearTimeout(reloj);
+  }
+}
+
+/** Reserva una apertura si cabe en la ventana; si no, `false` y el enlace no se carga. */
 function reservarApertura(ahora: number): boolean {
   const vigentes = marcasVigentes(leerMarcas(), ahora);
   if (vigentes.length >= SSO_MAX) {
@@ -230,19 +263,29 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   const pedirConReintentos = useCallback(async () => {
     const mia = ++corrida.current;
-    // Cada apertura cuenta una vez para el freno, termine bien o en `service`.
-    const reservada = await reservarAperturaExclusiva();
-    if (mia !== corrida.current) return;
-    if (!reservada) {
+    const frenar = () => {
       setFase({ tipo: "freno" });
       setHuboFallo(true);
+    };
+    // Con el tope lleno no se pide: el enlace no se podría cargar.
+    if (!hayCupo()) {
+      frenar();
       return;
     }
     for (let intento = 1; intento <= INTENTOS_ENLACE; intento++) {
       setFase({ tipo: "pidiendo", intento });
-      const r = await pedirEnlaceSso(conversacion ?? undefined);
+      const r = await pedirConPlazo(conversacion ?? undefined);
       if (mia !== corrida.current) return;
       if (r.ok) {
+        // SDD-0680: la marca se pone aquí, al cargar el enlace, porque el login lo
+        // hace el navegador al cargarlo. Un intento que falló no gastó ningún login
+        // y no cuenta: antes de 0680 tres fallos cerraban «Abrir de nuevo» 5 min.
+        const reservada = await reservarAperturaExclusiva();
+        if (mia !== corrida.current) return;
+        if (!reservada) {
+          frenar();
+          return;
+        }
         setSrc(r.url);
         setFase({ tipo: "abriendo" });
         return;
@@ -275,10 +318,15 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   useEffect(() => {
     // Una reconciliación por montaje; si falla, el contador sigue con el webhook.
-    if (estado !== "listo" || reconcilio.current) return;
+    // SDD-0680: espera a que termine el pedido del enlace. Next pone las server
+    // actions en UNA cola: si la reconciliación (varias llamadas a Chatwoot) sale
+    // primero, el SSO espera detrás de ella con la pantalla en «Abriendo…».
+    if (estado !== "listo" || reconcilio.current || fase.tipo === "pidiendo") return;
     reconcilio.current = true;
-    void reconciliarBandeja().catch(() => undefined);
-  }, [estado]);
+    void Promise.resolve()
+      .then(() => reconciliarBandeja())
+      .catch(() => undefined);
+  }, [estado, fase.tipo]);
 
   useEffect(() => {
     // Un solo pedido automático por montaje (StrictMode monta dos veces en dev).
