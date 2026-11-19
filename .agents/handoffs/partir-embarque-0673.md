@@ -2,7 +2,7 @@
 
 - Rama: `feat/sdd-0673-partir-embarque` · worktree `eager-gould-b7167d` · PR SoftAgentes/DTDCARGO#685 (lista para revisión).
 - Spec: `docs/specs/0673-partir-embarque-y-referencia-de-grupo/spec.md` (in-progress). D1-D3 decididas por el DG el 2026-11-18 con la recomendación; Sam puede cambiarlas.
-- Migración `0563_partir_embarque_y_medidas` (número del DG). **Aplicada en producción el 2026-11-19 01:37:17Z** (ver al final). Espera en `supabase/migrations-baseline.json`, degradación declarada en `supabase/pending-migration-symbol-declarations.json`, desarme de la 0563 en `supabase/desarmes/`.
+- Migración `0563_partir_embarque_y_medidas` (número del DG). **Aplicada en producción el 2026-11-19 01:37:17Z** (ver al final). La espera en `supabase/migrations-baseline.json` y la degradación declarada en `supabase/pending-migration-symbol-declarations.json` se retiraron en la #698, que además la selló en `supabase/migrations.lock.json`. El desarme de la 0563 sigue en `supabase/desarmes/`.
 
 ## Qué hay
 
