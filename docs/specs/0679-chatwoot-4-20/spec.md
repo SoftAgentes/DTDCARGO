@@ -159,8 +159,8 @@ Comandos exactos en el [runbook](../../runbooks/chatwoot-subida-4-20.md#6--vuelt
 1. [x] Inventario de piezas propias con veredicto por código contra el diff de los dos tags (§2).
 2. [x] Imagen `v4.20.0-ce` fijada por digest en `infra/chatwoot/compose.yml` (§3).
 3. [x] Runbook de subida con respaldo, aviso a «Cable Paso 3b», comandos sin `compose up` general, verificación, vuelta atrás y duración.
-4. [ ] Fase A del ensayo en verde, con los controles en rojo (pide turno del DG).
-5. [ ] Fase B medida (pide OK de Sam).
+4. [x] Fase A del ensayo en verde, con los controles en rojo: el 2026-11-19, de las 02:33Z a las 03:02Z, con turno del DG. Las cuatro corridas dieron 24/0, 15/0, 14/0 y 44/0. Detalle en el handoff. `smoke-guia.mjs` no se corrió: lo cubre S13.
+5. [—] Fase B: omitida por el DG el 2026-11-19. La receta queda en el runbook, §9.
 6. [ ] Subida en producción con S1–S13 en verde (OK nominal de Sam y hora acordada; la ejecuta el DG o una sesión designada).
 7. [ ] Fase C en prueba (pide OK de Sam para reactivar la cuenta 2).
 8. [ ] Cierre: cabeceras de los inicializadores, `IMAGEN_CHATWOOT` de los dos ensayos, `chatwoot-selectores.json`, monitor de Uptime Kuma y fila del Registro del runbook de versiones.

@@ -37,9 +37,15 @@ Preparar y dejar lista la subida de Chatwoot de v4.19.1-ce a v4.20.0-ce, que Sam
 | `bash -n infra/chatwoot/pruebas/ensayo-local.sh` y la extracción de versión | PASÓ |
 | Enlaces y anclas de los tres documentos | PASÓ (revisión con script) |
 | `pnpm verify` / Vitest | NO EJECUTADO: el worktree no tiene `node_modules` y el cambio es de docs e infra; el portón es el CI de la PR |
-| Fase A del ensayo (Docker, cuatro corridas) | NO EJECUTADO: pedido turno al DG |
-| Fase B (copia en el VPS) | NO EJECUTADO: pide OK de Sam; la corre quien tenga SSH |
-| Fase C (cuenta 2) | NO EJECUTADO: va después de la subida real y pide OK para reactivar la cuenta |
+| Fase A · 1 `ensayo-local.sh` (02:33Z–02:52Z, turno del DG) | **PASÓ**, 24/0. Controles en rojo: A1 (sin redacción se ven los datos), R4 y R4b (con otras claves el secreto no se recupera; `restaurar.sh` sale 1). C1 `"version":"4.20.0"`, C6 sin fugas, R2 restauración en 130 s, R3b restaurado en 4.20.0, D1–D4 Access. Arranque desde cero (`prepare` con todas las migraciones, `rails` y `sidekiq`): 74 s |
+| Fase A · 2 `prueba-register.sh` (02:52Z–02:55Z) | **PASÓ**, 15/0. El control sin el inicializador sale en rojo: 7 de 9 exigencias fallan y el `/register` llega al servidor falso |
+| Fase A · 3 `prueba-revocar-sesiones.sh` (02:55Z–02:57Z) | **PASÓ**, 14/0. Incluye R10 y R12: `RoomChannel` con Rails 8.0 corta el tiempo real a los 30 s sin reconectar. En el control C1, la ruta da 404 y la sesión sigue viva |
+| Fase A · 4 `prueba-redaccion-canales.sh` (02:57Z–03:02Z) | **PASÓ**, 44/0. Los 16 tipos de línea (T1.1–T1.16) siguen en la imagen y quedan tapados; T1w tapa `entry` en los webhooks de Meta. Controles en rojo: C1 (24 valores aparecen sin el inicializador) y M1–M14 (cada patrón quitado hace reaparecer su valor) |
+| Fase A · `smoke-guia.mjs` | NO EJECUTADO: necesita un agente y una conversación sintéticos con el ensayo conservado. No es vuelta atrás; la guía se mira en S13 después de la subida |
+| Fase B (copia en el VPS) | NO EJECUTADO: el DG la omitió el 2026-11-19 (el tráfico entra casi todo por Kommo y el respaldo del §3 cubre). La receta queda en el §9 del runbook |
+| Fase C (cuenta 2) | NO EJECUTADO: va después de la subida real, con el OK de Sam para reactivar la cuenta y suspenderla al terminar |
+
+Logs de las cuatro corridas: en el scratchpad de la sesión, fuera del repo (solo datos sintéticos). Al terminar no quedó ningún contenedor de Chatwoot.
 
 ## COMMITS
 
@@ -65,4 +71,4 @@ Spec nueva, runbook nuevo, `chatwoot-versiones.md` (aviso y Registro), índice d
 
 ## HANDOFF AL DIRECTOR
 
-PR lista para revisión. El siguiente paso es tuyo: turno para la fase A y los dos OKs de Sam (fase B y reactivar la cuenta 2), más el OK nominal de la subida con la hora.
+Fase A en verde (cuatro corridas, controles en rojo). Turno de la PC soltado. La subida la ejecuta el DG con el runbook, con el OK nominal de Sam ya dado y la clave age a mano; después, la fase C en la cuenta 2 y el cierre (aceptación 8).
