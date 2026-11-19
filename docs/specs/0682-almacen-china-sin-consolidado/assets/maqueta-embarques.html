@@ -1,0 +1,332 @@
+<title>Embarques: antes y después</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Maqueta SDD-0682 · dos pantallas de Embarques lado a lado (hoy | propuesta), con los tokens de Studio. */
+:root {
+  --bg: #FBFAF7;
+  --surface: #FFFFFF;
+  --elevated: #F4F2EE;
+  --ink: #0F1E3D;
+  --ink-soft: #5E5E5E;
+  --ink-inv: #FBFAF7;
+  --border: #E8E6E2;
+  --border-strong: #D8D4CE;
+  --wine: #7F0F1A;
+  --success: #1F8A5B;
+  --success-bg: rgba(31,138,91,0.12);
+  --warning: #8A6420;
+  --warning-bg: rgba(184,137,58,0.14);
+  --danger: #A8323E;
+  --danger-bg: rgba(168,50,62,0.10);
+  --neutral-bg: rgba(107,107,107,0.10);
+  --info-bg: rgba(15,30,61,0.07);
+  --mark: rgba(127,15,26,0.08);
+  --f-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-display: 'Archivo Black', 'Archivo', system-ui, 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1626; --surface: #152035; --elevated: #1B2840; --ink: #EEF1F6; --ink-soft: #A9B2C2;
+    --ink-inv: #0E1626; --border: #26344D; --border-strong: #34445F; --wine: #E08A95;
+    --success: #4FC28F; --success-bg: rgba(79,194,143,0.16); --warning: #E0B567; --warning-bg: rgba(224,181,103,0.16);
+    --danger: #EA8590; --danger-bg: rgba(234,133,144,0.14); --neutral-bg: rgba(169,178,194,0.14);
+    --info-bg: rgba(238,241,246,0.08); --mark: rgba(224,138,149,0.12); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1626; --surface: #152035; --elevated: #1B2840; --ink: #EEF1F6; --ink-soft: #A9B2C2;
+  --ink-inv: #0E1626; --border: #26344D; --border-strong: #34445F; --wine: #E08A95;
+  --success: #4FC28F; --success-bg: rgba(79,194,143,0.16); --warning: #E0B567; --warning-bg: rgba(224,181,103,0.16);
+  --danger: #EA8590; --danger-bg: rgba(234,133,144,0.14); --neutral-bg: rgba(169,178,194,0.14);
+  --info-bg: rgba(238,241,246,0.08); --mark: rgba(224,138,149,0.12); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--f-sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1360px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.intro { display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
+.eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--wine); }
+h1 { font: 800 28px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
+.intro p { margin: 0; color: var(--ink-soft); }
+.demo { display: inline-flex; align-self: flex-start; gap: 6px; align-items: center; font: 600 12px/1 var(--f-sans);
+  color: var(--warning); background: var(--warning-bg); padding: 6px 10px; border-radius: 999px; }
+.panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 920px) { .panels { grid-template-columns: minmax(0, 1fr); } }
+.panel { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.panel-label { font: 800 13px/1 var(--f-sans); letter-spacing: .06em; text-transform: uppercase; }
+.panel-label.antes { color: var(--ink-soft); }
+.panel-label.despues { color: var(--wine); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--elevated); flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; color: var(--ink); font: 600 12.5px/1 var(--f-sans); padding: 8px 10px; border-radius: 7px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); font-weight: 800; }
+.screen { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.screen h2 { font: 800 22px/1 var(--f-display); margin: 0; }
+.screen .sub { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--elevated); width: fit-content; max-width: 100%; }
+.tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: 600 13.5px/1 var(--f-sans); cursor: pointer; white-space: nowrap; }
+.tab[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); font-weight: 800; }
+.tab .n { font: 700 11.5px/1 var(--f-mono); opacity: .8; }
+.tab.nuevo { box-shadow: inset 0 0 0 1.5px var(--wine); }
+.tab.nuevo[aria-pressed="true"] { box-shadow: none; }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.groups { display: flex; flex-direction: column; gap: 8px; }
+.group { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ghead { width: 100%; display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; align-items: center; padding: 10px 12px; background: transparent; border: 0; color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+.ghead:hover { background: var(--elevated); }
+.gtitle { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.gname { font: 800 14px/1.1 var(--f-sans); }
+.gno { font: 700 11.5px/1 var(--f-mono); letter-spacing: .02em; }
+.gmeta { display: flex; flex-wrap: wrap; gap: 10px; font: 500 12px/1.3 var(--f-sans); color: var(--ink-soft); }
+.gmeta .mono { font-family: var(--f-mono); font-size: 11.5px; }
+.gright { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font: 700 11px/1 var(--f-sans); padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.b-neutral { background: var(--neutral-bg); color: var(--ink); }
+.b-info { background: var(--info-bg); color: var(--ink); }
+.b-success { background: var(--success-bg); color: var(--success); }
+.b-warning { background: var(--warning-bg); color: var(--warning); }
+.b-danger { background: var(--danger-bg); color: var(--danger); }
+.b-liberado { background: var(--success); color: #FFFFFF; }
+.b-liberado.mark { box-shadow: 0 0 0 3px var(--mark); }
+.rows { border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 12px; font-size: 12.5px; }
+.row + .row { border-top: 1px solid var(--border); }
+.row .code { font: 600 12px/1 var(--f-mono); }
+.row .cli { color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty { padding: 18px; text-align: center; color: var(--ink-soft); border: 1px dashed var(--border-strong); border-radius: 10px; }
+.notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.notes b { font-weight: 700; }
+.foot { color: var(--ink-soft); font-size: 12.5px; max-width: 90ch; margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .tab, .seg button, .ghead { transition: background-color .14s, color .14s; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="eyebrow">SDD-0682 · Maqueta para decidir</span>
+    <h1>Embarques: cómo se ve hoy y cómo quedaría</h1>
+    <p>Pantalla de Embarques del Studio, con los contenedores primero. Cambia de pestaña en cada lado para comparar qué embarques salen en cada una. Abre un contenedor para ver sus envíos.</p>
+    <span class="demo">Datos de ejemplo: contenedores DTD #91 a #94, clientes, códigos y fechas no existen</span>
+  </header>
+
+  <div class="panels">
+    <section class="panel" aria-labelledby="lbl-antes">
+      <div class="panel-head">
+        <span class="panel-label antes" id="lbl-antes">Antes · hoy</span>
+      </div>
+      <div class="screen" id="screen-antes"></div>
+      <ul class="notes">
+        <li>Abre en <b>Todos</b>.</li>
+        <li><b>Activos</b> cuenta todo lo que no está entregado ni cancelado, también lo que va en el mar (DTD #92 y #93).</li>
+      </ul>
+    </section>
+
+    <section class="panel" aria-labelledby="lbl-despues">
+      <div class="panel-head">
+        <span class="panel-label despues" id="lbl-despues">Después · propuesta</span>
+        <div class="seg" role="group" aria-label="Qué propuesta mostrar">
+          <button type="button" id="opt-a" aria-pressed="true">Opción (a)</button>
+          <button type="button" id="opt-sin" aria-pressed="false">Sin cambio + «Liberado»</button>
+        </div>
+      </div>
+      <div class="screen" id="screen-despues"></div>
+      <ul class="notes" id="notes-despues"></ul>
+    </section>
+  </div>
+
+  <p class="foot">La insignia verde «Liberado» la pone el equipo de China cuando confirma el telex release desde Almacén China (SDD-0682 §2.3). En Embarques es de solo lectura: no saca a nadie de la lista. Nada de esto está programado.</p>
+</div>
+
+<script>
+(function () {
+  var LABEL = {
+    draft: "Borrador", in_warehouse: "En bodega", consolidating: "Consolidando", shipped: "Embarcado",
+    in_transit: "En tránsito", in_customs: "En aduana", arrived_destination: "En bodega VE",
+    out_for_delivery: "En reparto", delivered: "Entregado", exception: "Alerta"
+  };
+  var TONE = {
+    draft: "b-neutral", in_warehouse: "b-info", consolidating: "b-info", shipped: "b-info", in_transit: "b-info",
+    in_customs: "b-warning", arrived_destination: "b-info", out_for_delivery: "b-info", delivered: "b-success", exception: "b-danger"
+  };
+  var CONT = [
+    { id: "c94", name: "Contenedor DTD #94", no: "DEMO 940000-0", estado: ["Consolidando", "b-info"], naviera: "Naviera de ejemplo A", eta: "sin fecha", ref: "DEMO-CONSOL-04", liberado: false },
+    { id: "c93", name: "Contenedor DTD #93", no: "DEMO 930000-0", estado: ["Zarpado", "b-info"], naviera: "Naviera de ejemplo B", eta: "10/03/2031", ref: "DEMO-CONSOL-03", liberado: true },
+    { id: "c92", name: "Contenedor DTD #92", no: "DEMO 920000-0", estado: ["Zarpado", "b-info"], naviera: "Naviera de ejemplo A", eta: "24/02/2031", ref: "DEMO-CONSOL-02", liberado: false },
+    { id: "c91", name: "Contenedor DTD #91", no: "DEMO 910000-0", estado: ["Arribado", "b-success"], naviera: "Naviera de ejemplo B", eta: "06/01/2031", ref: "DEMO-CONSOL-01", liberado: true },
+    { id: "sin", name: "Sin contenedor", no: "", estado: null, naviera: null, eta: null, ref: null, liberado: false }
+  ];
+  var plan = {
+    c94: [["in_warehouse", 3], ["consolidating", 4]],
+    c93: [["in_transit", 6]],
+    c92: [["shipped", 1], ["in_transit", 4]],
+    c91: [["in_customs", 2], ["arrived_destination", 2], ["out_for_delivery", 1], ["delivered", 3], ["exception", 1]],
+    sin: [["draft", 1], ["in_warehouse", 2]]
+  };
+  var SHIP = [], k = 0;
+  CONT.forEach(function (c) {
+    (plan[c.id] || []).forEach(function (p) {
+      for (var i = 0; i < p[1]; i++) {
+        k++;
+        SHIP.push({ c: c.id, code: "DEMO-" + String(1000 + k), cli: "Cliente de ejemplo " + String.fromCharCode(64 + ((k * 7) % 26 || 26)), st: p[0] });
+      }
+    });
+  });
+
+  var EN_MAR = { shipped: 1, in_transit: 1 };
+  var TERMINAL = { delivered: 1, cancelled: 1 };
+  var TABS_ANTES = [
+    { v: "all", l: "Todos", f: function () { return true; } },
+    { v: "active", l: "Activos", f: function (s) { return !TERMINAL[s.st]; } },
+    { v: "delivered", l: "Entregados", f: function (s) { return s.st === "delivered"; } },
+    { v: "alerts", l: "Alertas", f: function (s) { return s.st === "exception"; } }
+  ];
+  var TABS_A = [
+    { v: "active", l: "Activos", f: function (s) { return !TERMINAL[s.st] && !EN_MAR[s.st]; } },
+    { v: "camino", l: "En camino", nuevo: true, f: function (s) { return !!EN_MAR[s.st]; } },
+    { v: "delivered", l: "Entregados", f: function (s) { return s.st === "delivered"; } },
+    { v: "alerts", l: "Alertas", f: function (s) { return s.st === "exception"; } },
+    { v: "all", l: "Todos", f: function () { return true; } }
+  ];
+
+  var state = {
+    antes: { tab: "all", open: {} },
+    despues: { tab: "active", open: {}, modo: "a" }
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function render(which) {
+    var st = state[which];
+    var isA = which === "despues" && st.modo === "a";
+    var tabs = which === "antes" || st.modo === "sin" ? TABS_ANTES : TABS_A;
+    var withBadge = which === "despues";
+    var screen = document.getElementById("screen-" + which);
+    screen.textContent = "";
+
+    var head = el("div");
+    head.appendChild(el("h2", null, "Embarques."));
+    head.appendChild(el("p", "sub", "Primero el contenedor, después el cliente y después sus embarques."));
+    screen.appendChild(head);
+
+    var bar = el("div", "tabs");
+    bar.setAttribute("role", "group");
+    bar.setAttribute("aria-label", "Embarques por estado");
+    var current = tabs.filter(function (t) { return t.v === st.tab; })[0] || tabs[0];
+    tabs.forEach(function (t) {
+      var b = el("button", "tab" + (t.nuevo ? " nuevo" : ""));
+      b.type = "button";
+      b.setAttribute("aria-pressed", t.v === current.v ? "true" : "false");
+      b.appendChild(document.createTextNode(t.l));
+      b.appendChild(el("span", "n", String(SHIP.filter(t.f).length)));
+      b.addEventListener("click", function () { st.tab = t.v; render(which); });
+      bar.appendChild(b);
+    });
+    screen.appendChild(bar);
+
+    var rows = SHIP.filter(current.f);
+    var groups = el("div", "groups");
+    var any = false;
+    CONT.forEach(function (c) {
+      var mine = rows.filter(function (s) { return s.c === c.id; });
+      if (!mine.length) return;
+      any = true;
+      var g = el("div", "group");
+      var h = el("button", "ghead");
+      h.type = "button";
+      var key = c.id;
+      h.setAttribute("aria-expanded", st.open[key] ? "true" : "false");
+      var t = el("span", "gtitle");
+      var line = el("span", "gline");
+      line.appendChild(el("span", "gname", c.name));
+      if (c.no) line.appendChild(el("span", "gno", c.no));
+      if (c.estado) line.appendChild(el("span", "badge " + c.estado[1], c.estado[0]));
+      if (withBadge && c.liberado && c.id !== "sin") {
+        line.appendChild(el("span", "badge b-liberado" + (isA ? "" : " mark"), "✓ Liberado"));
+      }
+      t.appendChild(line);
+      var meta = el("span", "gmeta");
+      if (c.naviera) {
+        meta.appendChild(el("span", null, c.naviera));
+        meta.appendChild(el("span", null, "ETA " + c.eta));
+        meta.appendChild(el("span", "mono", c.ref));
+      } else {
+        meta.appendChild(el("span", null, "Embarques que no van en ningún contenedor."));
+      }
+      t.appendChild(meta);
+      h.appendChild(t);
+      var right = el("span", "gright");
+      var alerts = mine.filter(function (s) { return s.st === "exception"; }).length;
+      if (alerts) right.appendChild(el("span", "badge b-danger", alerts + (alerts === 1 ? " alerta" : " alertas")));
+      var clientes = {};
+      mine.forEach(function (s) { clientes[s.cli] = 1; });
+      var nc = Object.keys(clientes).length;
+      right.appendChild(el("span", "badge b-neutral", nc + (nc === 1 ? " cliente" : " clientes")));
+      right.appendChild(el("span", "badge b-neutral", mine.length + (mine.length === 1 ? " envío" : " envíos")));
+      h.appendChild(right);
+      h.addEventListener("click", function () { st.open[key] = !st.open[key]; render(which); });
+      g.appendChild(h);
+      if (st.open[key]) {
+        var list = el("div", "rows");
+        mine.forEach(function (s) {
+          var r = el("div", "row");
+          r.appendChild(el("span", "code", s.code));
+          r.appendChild(el("span", "cli", s.cli));
+          r.appendChild(el("span", "badge " + TONE[s.st], LABEL[s.st]));
+          list.appendChild(r);
+        });
+        g.appendChild(list);
+      }
+      groups.appendChild(g);
+    });
+    if (!any) groups.appendChild(el("div", "empty", "Sin envíos en esta pestaña."));
+    screen.appendChild(groups);
+
+    if (which === "despues") {
+      var notes = document.getElementById("notes-despues");
+      notes.textContent = "";
+      var items = st.modo === "a"
+        ? [
+            ["Abre en ", "Activos", ": solo lo que pide trabajo en origen o en destino (bodega China, consolidando, aduana, bodega VE, reparto, alertas)."],
+            ["Pestaña nueva ", "En camino", ": lo que va en el mar (Embarcado y En tránsito). Ahí quedan el DTD #92 y el #93."],
+            ["En el encabezado del contenedor, la insignia verde ", "Liberado", " cuando China confirmó el telex release."]
+          ]
+        : [
+            ["Las pestañas y la lista quedan ", "igual que hoy", "."],
+            ["Lo único nuevo es la insignia verde ", "Liberado", " en el encabezado del contenedor (resaltada en esta maqueta)."]
+          ];
+      items.forEach(function (it) {
+        var li = el("li");
+        li.appendChild(document.createTextNode(it[0]));
+        li.appendChild(el("b", null, it[1]));
+        li.appendChild(document.createTextNode(it[2]));
+        notes.appendChild(li);
+      });
+    }
+  }
+
+  function setModo(m) {
+    state.despues.modo = m;
+    state.despues.tab = m === "a" ? "active" : "all";
+    document.getElementById("opt-a").setAttribute("aria-pressed", m === "a" ? "true" : "false");
+    document.getElementById("opt-sin").setAttribute("aria-pressed", m === "sin" ? "true" : "false");
+    render("despues");
+  }
+  document.getElementById("opt-a").addEventListener("click", function () { setModo("a"); });
+  document.getElementById("opt-sin").addEventListener("click", function () { setModo("sin"); });
+
+  state.antes.open.c93 = true;
+  state.despues.open.c93 = true;
+  render("antes");
+  render("despues");
+})();
+</script>

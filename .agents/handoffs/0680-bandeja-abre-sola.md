@@ -31,7 +31,7 @@
 
 ## PR 2 · rediseño
 
-- Maqueta con tres variantes (A sin barra, B riel lateral, C fila del CRM): https://claude.ai/artifact/6AGqJKyWhQxHBFW9WJyQof (privada de Sam).
+- Maqueta con tres variantes (A sin barra, B riel lateral, C fila del CRM).
 - Pendiente: la elección de Sam. No se implementa nada antes.
 
 ## Impacto documental
