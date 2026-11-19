@@ -148,8 +148,8 @@ Las corre `db:chatwoot_prepare`, en el contenedor de una sola vez del runbook, c
 
 | Situación | Qué se hace | Tiempo |
 |---|---|---|
-| a) `prepare` falla **sin** aplicar ninguna migración | devolver el `compose.yml` guardado y recrear `rails` y `sidekiq` con la imagen vieja | ~3–5 min |
-| b) Rojo y `prepare` **sí** migró | una base migrada no se usa con la imagen vieja: `restaurar.sh` del respaldo conjunto de la ventana, con la imagen vieja | ~5–10 min (200 s medidos en P5) |
+| a) `prepare` falla y **ninguna** de las 15 versiones está en `schema_migrations` (se cuentan una por una: dos tienen fecha anterior al schema de 4.19.1, así que `max(version)` no sirve) | devolver el `compose.yml` guardado y recrear `rails` y `sidekiq` con la imagen vieja | ~3–5 min |
+| b) Rojo y `prepare` **sí** migró | una base migrada no se usa con la imagen vieja: `restaurar.sh` del respaldo conjunto de la ventana, con la imagen vieja | ~15 min (restauración de 200 s medida en P5, más preparar y S1–S9) |
 | c) La 4.20.0 anda pero un inicializador no carga | (a) o (b). No se deja corriendo sin el candado ni sin la revocación | — |
 
 Comandos exactos en el [runbook](../../runbooks/chatwoot-subida-4-20.md#6--vuelta-atrás).

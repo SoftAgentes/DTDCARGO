@@ -80,6 +80,11 @@ SELLO="$(date -u +%Y%m%dT%H%M%SZ)"; EV="/srv/ops/evidencias/chatwoot-0679-$SELLO
 sha256sum compose.yml rails/*.rb | tee "$EV/huellas-antes.txt"
 docker compose images rails sidekiq | tee "$EV/imagenes-antes.txt"
 cp -p compose.yml "$EV/compose.yml.antes"
+# Las 15 migraciones de la 4.20.0 (SDD-0679 §6). Dos tienen fecha ANTERIOR al schema de 4.19.1
+# (2026_10_19_143116): max(version) no dice si migró. Se cuentan estas, de a una.
+V420="'20261006212107','20261019130258','20261021105045','20261026062035','20261027115208','20261029104503','20261103142055','20261104085110','20261104085633','20261104104833','20261107075626','20261111031108','20261113073350','20261113115701','20261116211055'"
+migradas() { docker compose exec -T postgres psql -U chatwoot -d chatwoot_production -Atc "select count(*) from schema_migrations where version in ($V420)"; }
+migradas | sed 's/^/migradas_4_20_antes=/' | tee "$EV/schema-antes.txt"     # 0. Si no es 0, se para y se avisa al DG
 # El log del contenedor se pierde al recrearlo; se guarda (ya va redactado) y se deja en el VPS.
 for s in rails sidekiq; do docker compose logs --no-color "$s" >"$EV/log-$s-antes.txt" 2>&1; done; chmod 600 "$EV"/log-*
 
@@ -100,11 +105,13 @@ docker compose exec -T rails bundle exec rails runner '
 ## 3 · Respaldo conjunto en el momento
 
 ```bash
-systemctl start chatwoot-respaldo.service && tail -n 20 /var/log/chatwoot-respaldo.log
-ls -1 /srv/backups/chatwoot | tail -1 | tee "$EV/respaldo.txt"     # sello del punto de vuelta
+systemctl start chatwoot-respaldo.service; tail -n 20 /var/log/chatwoot-respaldo.log
+systemctl show -p Result --value chatwoot-respaldo.service | sed 's/^/resultado=/' | tee "$EV/respaldo.txt"   # resultado=success
+N="$(ls -1 /srv/backups/chatwoot | grep '^chatwoot-[0-9]\{8\}T[0-9]\{6\}Z$' | sort | tail -n 1)"
+[[ "$N" > "chatwoot-$SELLO" ]] && echo "respaldo=$N (posterior a $SELLO)" | tee -a "$EV/respaldo.txt" || echo "NO HAY RESPALDO NUEVO: no se sigue"
 ```
 
-Sin `respaldo.sh` en 0 y con `rclone check` en verde **no se sigue**. Ese sello es el de la vuelta atrás (b).
+**No se sigue** sin `resultado=success`, sin una carpeta con sello **posterior** a `$SELLO` (es la de esta ventana, no la diaria de las 06:30) y sin `rclone check` en verde en el log. Ese sello es el de la vuelta atrás (b).
 
 ## 4 · Cambio de imagen, migraciones y recreación
 
@@ -128,7 +135,7 @@ docker compose run --rm --no-deps prepare 2>&1 | tee "$EV/prepare.txt"; echo "pr
 ```
 
 - `prepare=0`: sigue en 4.4.
-- `prepare` ≠ 0: se mira `"$EV/prepare.txt"`. Si **no** aplicó ninguna migración (§4.5 da la versión vieja), vuelta atrás (a). Si aplicó alguna, vuelta atrás (b). **No se reintenta en caliente.**
+- `prepare` ≠ 0: se mira `"$EV/prepare.txt"` y se corre `migradas`. Con `0`, vuelta atrás (a). Con cualquier otro número, vuelta atrás (b). **No se reintenta en caliente.**
 
 ```bash
 # 4.4 Recrear SOLO rails y sidekiq con la imagen nueva. --no-deps: no toca postgres, redis, acceso ni prepare.
@@ -137,10 +144,11 @@ docker compose up -d --no-deps --force-recreate sidekiq
 for i in $(seq 1 24); do s="$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q rails)")"; echo "rails $s"; [ "$s" = healthy ] && break; sleep 10; done
 date -u | tee "$EV/corte-fin.txt"
 
-# 4.5 Última migración aplicada (debe ser la de la 4.20.0)
-docker compose exec -T postgres psql -U chatwoot -d chatwoot_production -Atc \
-  "select max(version) from schema_migrations" | tee "$EV/schema-version.txt"      # 20261116211055
+# 4.5 Las 15 migraciones de la 4.20.0, aplicadas
+migradas | sed 's/^/migradas_4_20_despues=/' | tee "$EV/schema-despues.txt"    # 15
 ```
+
+Un número entre 1 y 14 con `prepare=0` no debería pasar; si pasa, es vuelta atrás (b).
 
 `rails` tardó 41–70 s en quedar sano en las recreaciones anteriores; con Rails 8.0 puede variar (NV). Si a los 4 min no está `healthy`, vuelta atrás (b).
 
@@ -167,8 +175,8 @@ Aviso de cierre a «Cable Paso 3b» y al equipo (§1).
 
 | Situación | Qué se hace | Tiempo |
 |---|---|---|
-| **a)** `prepare` falló **sin** migrar (§4.5 da la versión vieja) | volver la línea de la imagen y recrear `rails` y `sidekiq` | ~3–5 min |
-| **b)** Rojo y `prepare` **sí** migró, o `rails` no queda sano | restaurar el respaldo del paso 3 con la imagen vieja | ~10–15 min (restauración de 200 s medida en P5, más preparar) |
+| **a)** `prepare` falló y `migradas` da **0** | volver la línea de la imagen y recrear `rails` y `sidekiq` | ~3–5 min |
+| **b)** Rojo y `migradas` da **más de 0**, o `rails` no queda sano | restaurar el respaldo del paso 3 con la imagen vieja | **~15 min** (restauración de 200 s medida en P5, más preparar la carpeta, la clave y S1–S9) |
 | **c)** La 4.20.0 anda pero un inicializador no carga y no se arregla en la ventana | (a) o (b). **No** se deja corriendo sin el candado de `/register` ni sin la revocación | — |
 
 **(a)**
@@ -211,7 +219,7 @@ curl -s https://chat.dtdcargo.com/api                  # "version":"4.19.1"
 | **Corte visible** (§4.2 a §4.4) | **~5–10 min** | `prepare` (15 migraciones; NV hasta la fase B) + `rails` 41–70 s + `sidekiq` ~53 s medidos en recreaciones anteriores |
 | §5 verificación | ~15 min | S1–S13 y V1–V8 |
 | **Total** | **~45 min** | |
-| Vuelta atrás (b) | +10–15 min | restauración de 200 s en P5 |
+| Vuelta atrás (b) | **+15 min** | restauración de 200 s en P5, más preparar y S1–S9 |
 
 Si la fase B midió `prepare`, se reemplaza la línea del corte con ese número.
 
@@ -263,6 +271,7 @@ install -d -m 700 /srv/chatwoot-ensayo
 cp -a /srv/chatwoot/compose.yml /srv/chatwoot/rails /srv/chatwoot/marca /srv/chatwoot/correo /srv/chatwoot/cf-access /srv/chatwoot-ensayo/
 printf '%s\n' \
   '# SDD-0679 · copia aislada: sin Traefik, sin internet, sin sidekiq. Se borra al terminar.' \
+  'name: chatwoot-ensayo' \
   'services:' \
   '  prepare:' \
   '    networks: !override [interna]' \
@@ -272,7 +281,20 @@ printf '%s\n' \
   '  sidekiq:' \
   '    profiles: ["nunca-en-el-ensayo"]' \
   >/srv/chatwoot-ensayo/compose.override.yml
+
+# Antes de restaurar: lo que levantaría el compose. Todavía no hay .env, así que se usa uno FICTICIO
+# con los nombres obligatorios del compose y el valor «ficticio» (ningún secreto). Validado en local
+# el 2026-11-19, con su control: sin el overlay aparecen sidekiq, chatwoot_edge y traefik.enable=true.
+cd /srv/chatwoot-ensayo
+F=/dev/shm/ensayo-ficticio.env
+{ grep -o '\${[A-Z_]*:?' compose.yml | sed 's/^\${//; s/:?$//' | sort -u | sed 's/$/=ficticio/'; echo 'COMPOSE_PROFILES='; } >"$F"
+docker compose -p chatwoot-ensayo --env-file "$F" config >/dev/shm/ensayo-config.yml && head -n 1 /dev/shm/ensayo-config.yml   # name: chatwoot-ensayo
+for p in 'sidekiq' 'chatwoot_edge' 'traefik.enable: "true"|traefik.enable=true' '^ *ports:' '/srv/chatwoot/'; do
+  printf '%s → %s\n' "$p" "$(grep -cE "$p" /dev/shm/ensayo-config.yml)"; done | tee "$EV/config-aislamiento.txt"   # todos → 0
+shred -u "$F" /dev/shm/ensayo-config.yml
 ```
+
+Si alguno no da `0`, **no se sigue**: se borra `/srv/chatwoot-ensayo` y se revisa el overlay.
 
 **2 · Restaurar** con la imagen 4.19.1 del compose copiado. `restaurar.sh` descifra el `.env` del respaldo, le aplica los `--sobrescribir` e imprime los segundos de cada fase.
 
@@ -312,7 +334,8 @@ echo "rails=$s $(( $(date +%s) - T0 )) s" | tee -a "$EV/medidas.txt"
 
 ```bash
 $P exec -T rails wget -qO- --header 'X-Forwarded-Proto: https' http://127.0.0.1:3000/api | grep -o '"version":"[^"]*"' | tee -a "$EV/medidas.txt"   # 4.20.0
-$P exec -T postgres psql -U chatwoot -d chatwoot_production -Atc "select max(version) from schema_migrations" | tee -a "$EV/medidas.txt"       # 20261116211055
+V420="'20261006212107','20261019130258','20261021105045','20261026062035','20261027115208','20261029104503','20261103142055','20261104085110','20261104085633','20261104104833','20261107075626','20261111031108','20261113073350','20261113115701','20261116211055'"
+$P exec -T postgres psql -U chatwoot -d chatwoot_production -Atc "select count(*) from schema_migrations where version in ($V420)" | sed 's/^/migradas_4_20=/' | tee -a "$EV/medidas.txt"   # 15
 grep -ciE 'error|abort' "$EV/prepare.txt" | sed 's/^/errores_prepare=/' | tee -a "$EV/medidas.txt"                                          # 0
 for m in 'redacción de logs activa' 'protección de /register activa: ' 'revocación de sesiones activa' 'revocar sesiones: faltan' 'modo cerrado'; do
   printf '%s=%s\n' "$m" "$($P logs rails 2>&1 | grep -c "$m")"; done | tee -a "$EV/medidas.txt"                                              # 1 1 1 0 0
