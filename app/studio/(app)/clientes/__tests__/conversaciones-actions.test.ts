@@ -197,6 +197,17 @@ describe("unirChatAction", () => {
     expect(r.ok === false && r.error).toMatch(/0554/);
   });
 
+  it("SDD-0676 · el chat del portal (55000) no se mueve ni se quita: lo dice", async () => {
+    h.rpcServicio.mockResolvedValueOnce({ data: null, error: { code: "55000" } });
+    const unir = await unirChatAction(FICHA, "DTD-0001", 31, "Es su chat");
+    expect(unir).toEqual({ ok: false, error: "El chat del portal es de la ficha de su cliente: no se desvincula ni se mueve." });
+    h.rpcServicio.mockResolvedValueOnce({ data: null, error: { code: "55000" } });
+    const quitar = await quitarUnionAction(FICHA, "DTD-0001", 77, "Se unió por error");
+    expect(quitar).toEqual({ ok: false, error: "El chat del portal es de la ficha de su cliente: no se desvincula ni se mueve." });
+    // Si la base se negó, no se limpia nada en Chatwoot.
+    expect(h.limpiar).not.toHaveBeenCalled();
+  });
+
   it("SDD-0676 · el canal sale del tipo de bandeja de Chatwoot, no del navegador", async () => {
     h.chatwoot.mockResolvedValueOnce({
       ok: true,

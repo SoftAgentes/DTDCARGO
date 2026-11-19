@@ -5,12 +5,18 @@
 -- Ensayo: lib/studio/__tests__/chatwoot-vincular-canal.migration.test.ts.
 --
 -- DEVUELVE a su cuerpo anterior chatwoot_registrar_evento (0504, 13 parámetros), crm_entrada_chatwoot y
--- crm_asesor_desde_chatwoot (0513), y chatwoot_quitar_union y el disparador de ficha borrada (0554). Los
--- cuerpos de abajo son copia literal de esas migraciones.
+-- crm_asesor_desde_chatwoot (0513), chatwoot_quitar_union y el disparador de ficha borrada (0554), y
+-- chatwoot_portal_vincular (0519). Los cuerpos de abajo son copia literal de esas migraciones.
+-- BORRA las uniones de origen «portal»: antes de la 0566 no existían, el origen no cabe en el CHECK de
+-- la 0554 y el dato sigue completo en chatwoot_portal_contactos. Ese borrado NO se audita fila por
+-- fila: no es la decisión de una persona sobre un cliente, sino volver al esquema anterior, y nada se
+-- pierde (la evidencia del desarme es la del runbook con que se aplique). Las conversaciones del portal
+-- conservan su cliente (la 0504 no se lo quita a un evento sin teléfono).
+-- QUITA además chatwoot_conversations.chat_contact_id y devuelve el CHECK del origen a sus tres valores.
 -- SUELTA las tarjetas absorbidas (vuelven a su tablero) y QUITA chatwoot_vincular_contacto,
 -- chatwoot_ficha_de_contacto, absorber y soltar, las columnas crm_tarjetas.absorbida_en / absorbida_at y
 -- chatwoot_contact_links.canal_chat.
--- NO toca las uniones (chatwoot_contact_links) ni la auditoría. El teléfono que se le quitó a una tarjeta
+-- NO toca las demás uniones (chatwoot_contact_links) ni la auditoría. El teléfono que se le quitó a una tarjeta
 -- al absorberla no vuelve: lo repone el siguiente mensaje de esa persona.
 -- CANAL GUARDADO: el desarme borra chatwoot_contact_links.canal_chat y ese dato NO se puede
 -- reconstruir (sale del tipo de bandeja en el momento de vincular). Si hay uniones con canal,
@@ -31,7 +37,9 @@ begin
     select 1 from pg_catalog.pg_attribute
     where attrelid = 'public.chatwoot_contact_links'::regclass and attname = 'canal_chat' and not attisdropped
   ) then
-    execute 'select count(*) from public.chatwoot_contact_links where canal_chat is not null' into v_con_canal;
+    -- Las del portal no cuentan: su canal no es un dato que se pierda (sale del origen) y
+    -- el desarme las borra de todos modos.
+    execute 'select count(*) from public.chatwoot_contact_links where canal_chat is not null and origen <> ''portal''' into v_con_canal;
   end if;
   if v_con_canal > 0
      and coalesce(pg_catalog.current_setting('dtd.desarme_0566_perder_canal', true), '') <> 'si' then
@@ -380,6 +388,105 @@ $fn$;
 revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) from public, anon, authenticated;
 grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean) to service_role;
 
+-- ─── chatwoot_portal_vincular, como en la 0519 ────────────────────────────
+create or replace function public.chatwoot_portal_vincular(
+  p_tenant_id          uuid,
+  p_hilo_id            uuid,
+  p_contacto_id        bigint,
+  p_contacto_source_id text,
+  p_inbox_id           bigint default null,
+  p_conversacion_id    bigint default null
+)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $function$
+declare
+  v_client uuid;
+  v_actual bigint;
+begin
+  select c.client_id into v_client
+  from public.conversations c
+  where c.id = p_hilo_id and c.tenant_id = p_tenant_id and c.channel = 'portal';
+  if v_client is null then
+    raise exception 'chatwoot_portal_vincular: hilo del portal no encontrado' using errcode = 'P0002';
+  end if;
+  if p_contacto_id is null or p_contacto_id <= 0 or p_contacto_id > 2147483647 then
+    raise exception 'chatwoot_portal_vincular: id de contacto inválido' using errcode = '22023';
+  end if;
+
+  select k.chatwoot_contact_id into v_actual
+  from public.chatwoot_portal_contactos k
+  where k.tenant_id = p_tenant_id and k.client_id = v_client
+  for update;
+  if not found then
+    -- Sin identificador guardado no hay contacto legítimo: lo crea chatwoot_portal_tomar.
+    raise exception 'chatwoot_portal_vincular: la ficha no tiene identificador' using errcode = 'P0002';
+  end if;
+  if v_actual is not null and v_actual <> p_contacto_id then
+    raise exception 'chatwoot_portal_vincular: la ficha ya tiene otro contacto' using errcode = '23505';
+  end if;
+  update public.chatwoot_portal_contactos k
+  set chatwoot_contact_id = p_contacto_id, chatwoot_source_id = p_contacto_source_id, updated_at = pg_catalog.now()
+  where k.tenant_id = p_tenant_id and k.client_id = v_client;
+
+  if p_conversacion_id is null then
+    return;
+  end if;
+  if p_conversacion_id <= 0 or p_conversacion_id > 2147483647 or p_inbox_id is null or p_inbox_id <= 0 then
+    raise exception 'chatwoot_portal_vincular: conversación o bandeja inválida' using errcode = '22023';
+  end if;
+
+  insert into public.chatwoot_portal_hilos (conversation_id, tenant_id, chatwoot_conversation_id)
+  values (p_hilo_id, p_tenant_id, p_conversacion_id)
+  on conflict do nothing;
+  select hl.chatwoot_conversation_id into v_actual
+  from public.chatwoot_portal_hilos hl
+  where hl.conversation_id = p_hilo_id;
+  if v_actual is distinct from p_conversacion_id then
+    raise exception 'chatwoot_portal_vincular: el hilo o la conversación ya tienen otro vínculo' using errcode = '23505';
+  end if;
+
+  insert into public.chatwoot_conversations as cc (tenant_id, conversation_id, inbox_id, status, client_id)
+  values (p_tenant_id, p_conversacion_id, p_inbox_id, 'open', v_client)
+  on conflict (tenant_id, conversation_id) do update
+    set client_id = excluded.client_id,
+        inbox_id  = coalesce(cc.inbox_id, excluded.inbox_id);
+end;
+$function$;
+
+comment on function public.chatwoot_portal_vincular(uuid, uuid, bigint, text, bigint, bigint) is
+  'SDD-0586 E10-D35: guarda el contacto de Chatwoot de la ficha del hilo y, si viene, la conversación del hilo, y deja el client_id en chatwoot_conversations para la Ficha DTD. Rechaza un segundo contacto o una segunda conversación.';
+
+revoke all on function public.chatwoot_portal_vincular(uuid, uuid, bigint, text, bigint, bigint) from public, anon, authenticated;
+grant execute on function public.chatwoot_portal_vincular(uuid, uuid, bigint, text, bigint, bigint) to service_role;
+
+-- ─── Las uniones del portal y el CHECK del origen, como en la 0554 ────────
+delete from public.chatwoot_contact_links where origen = 'portal';
+
+do $origen$
+declare
+  r record;
+begin
+  for r in
+    select c.conname
+    from pg_catalog.pg_constraint c
+    where c.conrelid = 'public.chatwoot_contact_links'::regclass
+      and c.contype = 'c'
+      and pg_catalog.pg_get_constraintdef(c.oid) like '%kommo%'
+  loop
+    execute pg_catalog.format('alter table public.chatwoot_contact_links drop constraint %I', r.conname);
+  end loop;
+  alter table public.chatwoot_contact_links add constraint chatwoot_contact_links_origen_check
+    check (origen in ('webhook', 'kommo', 'manual'));
+end;
+$origen$;
+
+drop index if exists public.chatwoot_conversations_chat_contact_idx;
+alter table public.chatwoot_conversations drop column if exists chat_contact_id;
+
 -- ─── Los comentarios de antes (copia literal de la 0554, la 0513 y la 0504) ──
 comment on function public.chatwoot_quitar_union(uuid, uuid, uuid, bigint, text) is
   'SDD-0650 F2 (D4): deshace una unión chat ↔ ficha de cualquier origen. Solo service_role, con la misma comprobación del actor que unir; motivo; auditada con el actor real.';
@@ -418,6 +525,9 @@ begin
   ) or exists (
     select 1 from pg_catalog.pg_attribute
     where attrelid = 'public.chatwoot_contact_links'::regclass and attname = 'canal_chat' and not attisdropped
+  ) or exists (
+    select 1 from pg_catalog.pg_attribute
+    where attrelid = 'public.chatwoot_conversations'::regclass and attname = 'chat_contact_id' and not attisdropped
   ) then
     raise exception 'desarme 0566: quedó una columna';
   end if;

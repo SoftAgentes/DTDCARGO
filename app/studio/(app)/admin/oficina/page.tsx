@@ -13,6 +13,8 @@ import { vistaActiva } from "@/lib/studio/oficina/config";
 import { etapaActual, leerConteo, leerPendientes, leerPorCerrar } from "@/lib/studio/oficina/revisiones";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
+import { AvisoResultado } from "./_components/AvisoResultado";
+import { detalleDelCierre, tonoDelResultado } from "./_components/resultado";
 import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/TarjetaBorrador";
 import { TarjetaCierre } from "./_components/TarjetaCierre";
 import { registrarCierreAction, revisarBorradorAction } from "./actions";
@@ -55,7 +57,13 @@ export default async function OficinaRevisionPage({
     leerPorCerrar(supabase, etapa),
     searchParams,
   ]);
-  const r = typeof sp.r === "string" ? sp.r : null;
+  const uno = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
+  const r = uno("r");
+  // SDD-0678: el aviso dice qué se guardó (o de qué conversación era el error) y se repite en cada envío (`n`).
+  // Solo un número de conversación (la misma forma que valida la acción): nada de texto libre desde la URL.
+  const c = uno("c");
+  const conversacionDelAviso = c && /^[0-9a-f-]{1,40}$/.test(c) ? c : null;
+  const detalle = r === "ok_cierre" ? detalleDelCierre(conversacionDelAviso, uno("v")) : null;
   // Con la 0549 y sin la 0558, office_conteo_revisiones es todavía el de la 0549 (la regla vieja): se avisa junto al
   // conteo. La señal es la misma que da la sección de cierres: office_conversaciones_por_cerrar (0558) no existe.
   const sin0558 = conteo.ok && !porCerrar.ok && porCerrar.motivo === "sin_migracion";
@@ -82,9 +90,12 @@ export default async function OficinaRevisionPage({
         </p>
       ) : null}
       {r && AVISOS[r] ? (
-        <p role="status" style={{ ...texto, marginBottom: 16 }}>
-          {AVISOS[r]}
-        </p>
+        <AvisoResultado key={uno("n") ?? r} tono={tonoDelResultado(r)}>
+          {detalle ??
+            (conversacionDelAviso && !r.startsWith("ok_")
+              ? `Conversación ${conversacionDelAviso}: no se guardó el cierre. ${AVISOS[r]}`
+              : AVISOS[r])}
+        </AvisoResultado>
       ) : null}
       {conteo.ok ? (
         <p style={{ font: "400 13px/1.4 var(--f-sans)", margin: "0 0 16px" }}>
