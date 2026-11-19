@@ -328,6 +328,10 @@ Revisión completa del plan, pedida por Sam, sobre `main` en `875767eaf`. El che
 2. «No hace falta ya que el bot lo tenemos siempre apagado.» El bot propio sale del camino del corte.
 3. Las plantillas C1 a C10 de Clientes, aprobadas por Meta, se usan solo desde Chatwoot (bandeja Clientes). No se recrean en Kommo. El número viejo queda para leads.
 
+### Messenger queda fuera del corte (Sam, 2026-11-19)
+
+Sam decidió, según el relato del Director General: «Deja Messenger, no los cuentes, sé que no hay casi nada.» El corte no espera a Messenger: la 8.3 corta solo Instagram, y Messenger se conecta después del corte o no se conecta. Sustituye a la espera por App Review que la 4.4 y la 4.6 tenían como camino al corte (decisión del 2026-11-03, «Mantener la espera»); la 4.6 de Instagram no cambia.
+
 ### Qué se hizo con E7 y por qué
 
 - **Decisión del Worker, con criterio:** E7 pasa a **fase posterior, fuera de la línea base**, y en el checklist sus 11 pasos quedan `descartado`. No se dejó `descartado` a secas como si fuera «no se hará»: Sam no dijo eso, dijo que no hace falta *ahora*. Tampoco se dejó dentro del alcance: el bot no frena nada y mantener 18,5 d en el denominador escondería el avance real hacia el corte.

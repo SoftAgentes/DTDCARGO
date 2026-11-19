@@ -68,7 +68,7 @@ Antes del corte: 26 d base (Bandeja y 0566 2 · portal 2 · reemplazos de Kommo 
 | Ritmo del script (3,19), arranque 2026-11-23 | ≈ 2026-12-02 | ≈ 2026-12-09 | ≈ 2026-12-30 |
 | 1:1 (cota prudente) | ≈ 2026-12-29 | ≈ 2027-01-05 | ≈ 2027-02-01 |
 
-Inferencia: no cuenta las esperas de Sam, Meta ni revisión. **Instagram: el token vence el 2026-12-30**; la renovación (script ya en `main`) va antes del 2026-12-20 con OK de Sam, haya o no corte. Messenger no llega al corte (decisión de Sam del 2026-11-03, «Mantener la espera»): hay que decidir si la 8.3 cubre solo Instagram.
+Inferencia: no cuenta las esperas de Sam, Meta ni revisión. **Instagram: el token vence el 2026-12-30**; la renovación (script ya en `main`) va antes del 2026-12-20 con OK de Sam, haya o no corte. Messenger queda fuera del corte (Sam, 2026-11-19, relatado por el DG: «Deja Messenger, no los cuentes, sé que no hay casi nada.»): la 8.3 corta solo Instagram; Messenger se conecta después o no se conecta.
 
 ## COMMITS
 
@@ -92,7 +92,7 @@ Rama `claude/modest-brahmagupta-fc8f7e`; PR contra `main`, número en el aviso a
 
 ## HANDOFF AL DIRECTOR
 
-Revisar la PR; el checklist es la fuente del avance y la prueba `avance-checklist.test.mjs` fija ahora la v5. Decisiones que necesitan a Sam: confirmar v5 y estimaciones, qué hace la 8.3 con Messenger y arrancar la renovación del token de Instagram.
+Revisar la PR; el checklist es la fuente del avance y la prueba `avance-checklist.test.mjs` fija ahora la v5. Decisiones que necesitan a Sam: confirmar v5 y estimaciones, arrancar la renovación del token de Instagram.
 
 ## Impacto documental
 
