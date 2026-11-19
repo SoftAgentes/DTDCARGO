@@ -27,7 +27,7 @@ Levantar qué puede hacer hoy el superadmin (`platform_admins`, `is_platform_adm
 ## Pendientes de esta tarea
 
 - ~~Sam tiene que contestar las preguntas P1 a P7 (§4).~~ Respondidas el 2026-11-19, por medio del DG. Están en la Enmienda 1 (§7 y §8), en la PR #705 (rama `codex/sdd-0681-enmienda-decisiones`).
-- Sam aclaró P1 y P2 el 2026-11-19 y quedan decididas, las dos (a). P1: solo el superadmin activa módulos; al desactivar se apagan sus permisos y al activar entran los predeterminados. P2: los 4 módulos son solo de DTD.
+- Sam aclaró P1 y P2 el 2026-11-19 y quedan decididas. P1: solo el superadmin activa módulos; al desactivar se apagan sus permisos y al activar entran los predeterminados. P2: los 4 módulos son solo de DTD.
 - P5 está decidida: «si» al modelo mixto. En DTD quedan las dos cuentas de Sam como superadmin (que las dos sean primario es *interpretación*, a confirmar en 7.4), marcadas en la lista de usuarios (7.4).
 - Siguen abiertas P3 (cómo entra el superadmin a otra empresa) y las confirmaciones de 7.2, 7.3 y 7.4.
 - El DG decide si abre la fase 1 (H-S).
