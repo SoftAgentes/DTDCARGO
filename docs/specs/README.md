@@ -698,6 +698,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
 | 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |
 | 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
+| 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639, 0668, 0670, 0675 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
