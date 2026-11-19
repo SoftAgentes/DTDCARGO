@@ -1,9 +1,10 @@
 /**
  * SDD-0678 · <FormularioAccion> + <BotonEnvio>: estado pendiente visible, todo deshabilitado mientras corre,
- * sin doble envío, sin cambiar la opción a mitad, y vuelta a la normalidad tras un error.
+ * sin doble envío, sin cambiar la opción a mitad, el candado que se abre al terminar y el error que no deja colgado.
  */
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Component, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BotonEnvio, FormularioAccion } from "./FormularioAccion";
@@ -95,33 +96,60 @@ describe("FormularioAccion · estado pendiente", () => {
     await act(async () => a.terminar());
   });
 
-  it("si la acción falla, el formulario se libera y se puede reintentar", async () => {
+  it("cuando la acción termina (en la oficina, un error vuelve por redirect), el candado se abre y se puede reintentar", async () => {
     const user = userEvent.setup();
     const a = accionControlada();
-    const errores: unknown[] = [];
-    const alError = (e: ErrorEvent) => {
-      errores.push(e.error);
-      e.preventDefault();
-    };
-    window.addEventListener("error", alError);
+    render(<Cierre accion={a.accion} />);
+    await user.click(screen.getByLabelText("Cumple"));
+    await user.click(screen.getByRole("button", { name: "Registrar el cierre" }));
+    await screen.findByRole("button", { name: /Guardando…/ });
+
+    await act(async () => a.terminar());
+    const boton = await screen.findByRole("button", { name: "Registrar el cierre" });
+    expect(boton).toBeEnabled();
+    expect(boton).toHaveAttribute("aria-busy", "false");
+
+    // Reintento: React reinicia el formulario tras la acción, así que se vuelve a marcar.
+    await user.click(screen.getByLabelText("Falló"));
+    await user.click(boton);
+    await screen.findByRole("button", { name: /Guardando…/ });
+    expect(a.accion).toHaveBeenCalledTimes(2);
+    expect(a.llamadas[1].get("cumple")).toBe("no");
+    await act(async () => a.terminar());
+  });
+
+  it("si la acción lanza (red caída), el error llega al límite de errores y no queda colgado en «Guardando…»", async () => {
+    const user = userEvent.setup();
+    const a = accionControlada();
     const consola = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
-      render(<Cierre accion={a.accion} />);
+      render(
+        <Limite>
+          <Cierre accion={a.accion} />
+        </Limite>,
+      );
       await user.click(screen.getByLabelText("Cumple"));
       await user.click(screen.getByRole("button", { name: "Registrar el cierre" }));
       await screen.findByRole("button", { name: /Guardando…/ });
 
       await act(async () => a.fallar(new Error("red caída")));
-      await waitFor(() => expect(screen.queryByRole("button", { name: /Guardando…/ })).toBeNull());
-    } catch {
-      // Sin error boundary, React vuelve a lanzar el error de la acción: el formulario ya no está montado y no hay
-      // nada más que medir en este árbol.
+      expect(await screen.findByText("falló: red caída")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Guardando…/ })).toBeNull();
     } finally {
-      window.removeEventListener("error", alError);
       consola.mockRestore();
     }
   });
 });
+
+class Limite extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    return this.state.error ? <p>falló: {this.state.error.message}</p> : this.props.children;
+  }
+}
 
 describe("BotonEnvio · varios botones en un formulario", () => {
   it("solo el botón tocado dice «Guardando…»; el otro queda deshabilitado con su texto", async () => {
