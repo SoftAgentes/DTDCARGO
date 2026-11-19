@@ -47,6 +47,7 @@ import { contarEnviadosWhatsapp, listarConversacionesRecientes, obtenerConversac
 import { estimarCosto, type CostoChat } from "@/lib/studio/chatwoot/costo-chat";
 import { aplicarConversacion } from "@/lib/studio/chatwoot/webhook-procesar";
 import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
+import { puedeVincularContacto } from "@/lib/studio/chatwoot/vincular";
 import { rolChatwootDe } from "@/lib/studio/chatwoot/matriz";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { isUuid, mismoCorreo, parseChatwootUserId } from "@/lib/studio/chatwoot/chatwoot-types";
@@ -373,7 +374,8 @@ export interface FichaDtd {
  * pudo leer o si el contacto no tiene un teléfono del que salga el mercado.
  */
 export type FichaDtdResult =
-  | { ok: true; ficha: FichaDtd | null; costo: CostoChat | null }
+  /** `puedeVincular` (SDD-0676): sin ficha, ¿esta persona puede vincular el chat a un cliente? */
+  | { ok: true; ficha: FichaDtd | null; costo: CostoChat | null; puedeVincular?: boolean }
   | { ok: false; error: FichaDtdError };
 
 const idDeContexto = (v: unknown): number | null => (typeof v === "number" ? parseChatwootUserId(v) : null);
@@ -422,7 +424,8 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
 
   // E2-D31: la misma RPC de la reconciliación; el cruce con el cliente lo decide la base.
   try {
-    await aplicarConversacion({ admin: createAdminClient(), tenantId }, leida.data, null);
+    // SDD-0676: con el contacto, la base mira primero su unión con una ficha.
+    await aplicarConversacion({ admin: createAdminClient(), tenantId }, leida.data, null, leida.data.contactoId ?? null);
   } catch (e) {
     console.warn(`[ficha-dtd] ${e instanceof Error ? e.message : "no se pudo aplicar"}`);
     return { ok: false, error: "service" };
@@ -435,13 +438,15 @@ export async function pedirFichaDtd(conversacionId: unknown, agenteId: unknown):
     .eq("tenant_id", tenantId)
     .eq("conversation_id", conversacion)
     .maybeSingle<{ client_id: string | null }>();
-  if (!fila?.client_id) return { ok: true, ficha: null, costo };
+  // SDD-0676: sin ficha, quien edita la Bandeja y ve Clientes puede vincular el chat.
+  const puedeVincular = puedeVincularContacto({ role, tenantId, overrides, grants });
+  if (!fila?.client_id) return { ok: true, ficha: null, costo, puedeVincular };
   const { data: cliente } = await supabase
     .from("clients")
     .select("id, markbox, deleted_at")
     .eq("id", fila.client_id)
     .maybeSingle<{ id: string; markbox: string; deleted_at: string | null }>();
-  if (!cliente) return { ok: true, ficha: null, costo };
+  if (!cliente) return { ok: true, ficha: null, costo, puedeVincular };
 
   let codigosConocidos: string[] = [];
   try {

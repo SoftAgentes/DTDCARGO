@@ -27,6 +27,8 @@
  * detectarlo es de 6.6, que es el paso de los movimientos automáticos.
  */
 
+import type { CrmCanal } from "@/lib/studio/crm-canal";
+
 export type CrmTablero = "leads" | "clientes";
 export type CrmSegmento = "cliente" | "lead_registrado" | "lead_nuevo";
 
@@ -292,6 +294,11 @@ export interface CrmTarjetaTablero {
   fuente: string;
   /** `utm_source` de la tarjeta (p. ej. «tiktok») o null. */
   utmSource: string | null;
+  /**
+   * SDD-0676: canales de los chats vinculados a la ficha, además del de la fuente
+   * (un cliente de WhatsApp que también escribe por Instagram lleva los dos logos).
+   */
+  canalesExtra?: CrmCanal[];
 }
 
 export interface CrmColumna {
