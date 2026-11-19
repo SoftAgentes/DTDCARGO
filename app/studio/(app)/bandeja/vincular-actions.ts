@@ -48,6 +48,7 @@ export type VincularError =
   | "sin_migracion"
   | "ficha_inexistente"
   | "otra_ficha"
+  | "del_portal"
   | "motivo"
   | "service";
 
@@ -119,6 +120,7 @@ function errorDeLaBase(codigo: string | undefined): VincularError {
   if (codigo === "23505") return "otra_ficha";
   if (codigo === "P0002") return "ficha_inexistente";
   if (codigo === "22023") return "motivo";
+  if (codigo === "55000") return "del_portal";
   return "service";
 }
 

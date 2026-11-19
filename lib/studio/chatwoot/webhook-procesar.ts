@@ -30,11 +30,26 @@ import type { ContactoEntrada, ConversacionChatwoot, EventoChatwoot } from "./we
  * payload, y la ruta responde 500.
  */
 
+/**
+ * De dónde salió el cliente que devolvió `chatwoot_registrar_evento` (SDD-0676):
+ * la unión del contacto, el teléfono con ficha única, o el que la conversación ya tenía.
+ */
+export type OrigenCliente = "union" | "telefono" | "conservado";
+
 export interface Registro {
   nuevo: boolean;
   aplicado: boolean;
   clientId: string | null;
+  /**
+   * Con `clientId`, de dónde salió. Solo `telefono` prueba que el teléfono cruzó con UNA
+   * ficha (lo que mira `unirContactoAFicha`). `null` sin cliente. Opcional solo para quien
+   * arma un `Registro` a mano: `aplicarConversacion` lo llena siempre, y quien no lo trae
+   * no une nada.
+   */
+  origenCliente?: OrigenCliente | null;
 }
+
+const ORIGENES: ReadonlySet<string> = new Set(["union", "telefono", "conservado"]);
 
 export interface ContextoChatwoot {
   admin: SupabaseClient;
@@ -88,9 +103,22 @@ export async function aplicarConversacion(
   }
   if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? "sin código"}`);
   const fila = (Array.isArray(data) ? data[0] : data) as
-    | { nuevo?: boolean; aplicado?: boolean; client_id?: string | null }
+    | { nuevo?: boolean; aplicado?: boolean; client_id?: string | null; origen_cliente?: unknown }
     | null;
-  return { nuevo: fila?.nuevo === true, aplicado: fila?.aplicado === true, clientId: fila?.client_id ?? null };
+  const clientId = fila?.client_id ?? null;
+  // La función de la 0504 (sin la 0566) no trae `origen_cliente`: su cliente solo sale del
+  // teléfono con ficha única. Con la 0566 siempre viene; un valor que no conocemos no es
+  // «teléfono»: se trata como conservado, que es el que no une nada.
+  const dicho = fila?.origen_cliente;
+  const origenCliente: OrigenCliente | null =
+    clientId === null
+      ? null
+      : dicho === undefined || dicho === null
+        ? "telefono"
+        : typeof dicho === "string" && ORIGENES.has(dicho)
+          ? (dicho as OrigenCliente)
+          : "conservado";
+  return { nuevo: fila?.nuevo === true, aplicado: fila?.aplicado === true, clientId, origenCliente };
 }
 
 /**
@@ -267,7 +295,7 @@ export async function reprocesarEventosChatwoot(
         telefonoUltimos10: null,
       },
     };
-    const ok = await correrYCerrar({ admin, tenantId: f.tenant_id }, evento, { nuevo: true, aplicado: false, clientId: null }, manejadores);
+    const ok = await correrYCerrar({ admin, tenantId: f.tenant_id }, evento, { nuevo: true, aplicado: false, clientId: null, origenCliente: null }, manejadores);
     if (ok) procesados += 1;
   }
   return { tomados: filas.length, procesados, fallidos: filas.length - procesados };
