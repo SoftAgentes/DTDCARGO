@@ -1,7 +1,10 @@
 /**
  * Un borrador del agente para la revisión de Sam (SDD-0626 Paso 3b, D4). El texto y el motivo van SIEMPRE como
  * texto plano dentro de un <pre>: React los escapa; aquí no hay HTML ni Markdown renderizado.
+ *
+ * SDD-0678: mientras se guarda, el formulario queda deshabilitado y el botón tocado dice «Guardando…».
  */
+import { BotonEnvio, FormularioAccion } from "@/app/studio/_components/ui/FormularioAccion";
 import { CASILLAS, CRITERIO_CIERRE, type BorradorPendiente } from "@/lib/studio/oficina/revisiones";
 
 export const estiloTextoPlano: React.CSSProperties = {
@@ -37,7 +40,7 @@ export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (
       <pre style={estiloTextoPlano} data-testid="borrador-texto">
         {b.tipo === "respuesta" ? b.texto : b.motivo}
       </pre>
-      <form action={accion} style={{ marginTop: "var(--s-3, 12px)" }}>
+      <FormularioAccion action={accion} style={{ marginTop: "var(--s-3, 12px)" }}>
         <input type="hidden" name="borrador" value={b.borradorId} />
         <fieldset style={{ border: 0, padding: 0, margin: "0 0 8px" }}>
           <legend style={{ font: "600 13px/1.3 var(--f-sans)", marginBottom: 6 }}>
@@ -72,14 +75,14 @@ export function TarjetaBorrador({ b, accion }: { b: BorradorPendiente; accion: (
           correcta, salvo «Acuse» en un escalado. Rechazar exige marcar al menos un «Falló».
         </p>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button type="submit" name="veredicto" value="aprobado" className="studio-btn studio-btn-primary">
+          <BotonEnvio name="veredicto" value="aprobado" className="studio-btn-primary">
             Aprobar
-          </button>
-          <button type="submit" name="veredicto" value="rechazado" className="studio-btn">
+          </BotonEnvio>
+          <BotonEnvio name="veredicto" value="rechazado">
             Rechazar
-          </button>
+          </BotonEnvio>
         </div>
-      </form>
+      </FormularioAccion>
     </article>
   );
 }
