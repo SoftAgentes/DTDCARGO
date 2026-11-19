@@ -55,7 +55,7 @@ Los logs de `web` solo tienen que mostrar líneas `[ficha-dtd] …` con códigos
 
 Sirve para una conversación «Sin ficha» de un canal que no trae teléfono: Instagram, Messenger o TikTok. Quien edita la Bandeja y ve Clientes (Admin y Comercial) ve el botón **Vincular a cliente**.
 
-> **No está ejecutado en producción.** Pide la PR fusionada, la migración `0566_chatwoot_vincular_canal` aplicada según el [runbook de producción](aplicar-migraciones-prod.md) y el web desplegado, cada cosa con el OK nominal de Sam.
+> **Estado al 2026-11-19.** La corrección de la 0566 está fusionada (#696) y la migración `0566_chatwoot_vincular_canal` está aplicada en producción el 2026-11-19 a las 12:05:23Z, con el OK nominal de Sam «OK, aplica 0566, 0565 y 0562» (md5 `d201a65bdc027b6a364285b7bc286097`, 56403 bytes, cuerpos vivos iguales; evidencia `/srv/ops/evidencias/apply-0566-dtd-cargo-20261119T120522Z`). Datos que me pasó el Director General: el md5 y los bytes los comprobé contra el archivo de `main`; el resto (hora, OK, evidencia) no lo verifiqué yo. **El smoke de abajo todavía no se ha hecho**: está pendiente con Sam. El relleno de las uniones del portal que ya existían tampoco: lleva un OK aparte.
 
 ### Cómo se usa
 
@@ -97,11 +97,11 @@ Sin la migración aplicada no se rompe nada: la ficha sigue cruzando solo por te
 
 Lo hace Sam con su **WhatsApp secundario** y su **Instagram secundario**, y una ficha de prueba propia (no la de un cliente real). Hace falta un usuario Admin o Comercial con su agente de Chatwoot vinculado. Al terminar, todo queda desvinculado.
 
-> **No está ejecutado.** Solo vale después de aplicar `0566_chatwoot_vincular_canal` con el OK nominal de Sam.
+> **No está ejecutado.** La 0566 ya está aplicada en producción (2026-11-19); falta hacer este smoke con Sam.
 
-**Estado al 2026-11-18.** El web con «Vincular a cliente» sale a producción **sin** la 0566: Sam aceptó dejarla pendiente. Hasta que se aplique, lo de abajo no se cumple entero: la ficha cruza solo por teléfono, «Vincular» une sin guardar el canal ni absorber la tarjeta de lead, y «Mover aquí» responde que falta la migración.
+**Estado al 2026-11-19.** La 0566 está aplicada en producción, así que lo de abajo debe cumplirse entero. Si algo sale como antes de la migración (la ficha cruza solo por teléfono, «Vincular» une sin guardar el canal ni absorber la tarjeta de lead, o «Mover aquí» responde que falta la migración), el web o la base no están donde se cree: no repitas el paso y avisa al Director General.
 
-**Orden.** Primero el web de la corrección de la 0566 publicado en producción; después la 0566. Al revés, el web anterior le escribiría el segmento y el Shipping Mark al contacto del portal y mostraría «Quitar» en su chip.
+**Orden (ya pasado).** El web de la corrección debía estar publicado antes de aplicar la 0566; en producción pasó al revés: El web de la #696 **no** estaba publicado antes del apply: la publicación anterior fue `f0169eed9` a las 10:56Z y la #696 entró a las 10:58Z. Quedó migrate-first (la base nueva con el web anterior) y el web con la #696 se publicó después, en `a30e7ca38`. Dato del Director General; no lo medí yo. Si el web anterior corrió esa ventana con la 0566 aplicada, pudo escribir segmento y Shipping Mark al contacto del portal en Chatwoot (solo con `CHATWOOT_ATRIBUTOS_CONTACTO=1`) y mostrar «Quitar» en su chip. No está medido: antes del smoke conviene mirar los contactos del portal en Chatwoot.
 
 **Dónde hacerlo.** Sam ofreció dos lugares; los pasos A a D son los mismos en los dos.
 

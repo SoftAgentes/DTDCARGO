@@ -30,6 +30,8 @@ export const bandeja = {
   "bandeja.state.retrying": "Conectando con la bandeja… (intento {n} de {total})",
   "bandeja.recover.title": "La bandeja no abrió",
   "bandeja.recover.service": "El servidor de mensajes no respondió después de {total} intentos. Ábrela de nuevo en un momento.",
+  "bandeja.recover.timeout":
+    "La bandeja no respondió a tiempo. Oprime «Abrir de nuevo»: la página se vuelve a cargar.",
   "bandeja.recover.slow": "La bandeja está tardando más de lo normal en cargar.",
   "bandeja.recover.throttle":
     "Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.",
@@ -49,6 +51,10 @@ export const bandeja = {
   "bandeja.links.agent_id_help":
     "No pudimos leer la lista de agentes de Chatwoot. Escribe el número que sale junto al agente en Chatwoot › Ajustes › Agentes.",
   "bandeja.links.agent": "Agente de Chatwoot",
+  "bandeja.links.agent_other": "Otro agente: escribir su número…",
+  "bandeja.links.agents_incomplete":
+    "No pudimos leer todos los agentes de Chatwoot. Si no aparece, elige «Otro agente» y escribe su número.",
+  "bandeja.links.agent_id_help_other": "El número sale junto al agente en Chatwoot › Ajustes › Agentes.",
   "bandeja.links.agent_placeholder": "Elige un agente",
   "bandeja.links.agent_help":
     "Solo salen los agentes de la cuenta que todavía no tienen vínculo. El que tiene el mismo correo va primero.",

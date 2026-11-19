@@ -352,6 +352,7 @@ export function UsersClient({
             miembros={agentesBandeja.miembros}
             salud={agentesBandeja.salud}
             agentes={agentesBandeja.agentes}
+            agentesCompletos={agentesBandeja.agentesCompletos}
           />
         ) : (
           <EmptyState
