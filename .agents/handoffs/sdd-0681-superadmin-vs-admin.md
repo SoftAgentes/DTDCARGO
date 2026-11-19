@@ -12,7 +12,7 @@ Levantar qué puede hacer hoy el superadmin (`platform_admins`, `is_platform_adm
 ## Hecho
 
 - Spec con la tabla de capacidades (archivo:línea), 9 hallazgos, la propuesta de frontera, 7 preguntas para Sam y un plan de 6 fases.
-- Hay un hallazgo de seguridad explotable (H-S). Queda **fuera de Git**, en la nota `sdd-0681-hueco-financiero-china-NO-GIT.md` de la carpeta de notas del DG. En la spec solo aparece como «reportado aparte».
+- Hay un hallazgo de seguridad (H-S). Queda **fuera de Git**, en la nota H-S en la carpeta del DG.
 
 ## Validación
 
@@ -32,4 +32,4 @@ Levantar qué puede hacer hoy el superadmin (`platform_admins`, `is_platform_adm
 ## FUERA DE ALCANCE DETECTADO
 
 - Las cabeceras «NO APLICADA» de las migraciones ya selladas (0538, 0542, 0543, 0545).
-- `audit_d1_admin_tenant()` (`0289:147-149`) y `get_user_tenant_id()` (`0453:242-246`) eligen el tenant con reglas distintas.
+- `audit_d1_admin_tenant()` (`0289:151-152`) y `get_user_tenant_id()` (`0453:242-246`) eligen el tenant con reglas distintas.

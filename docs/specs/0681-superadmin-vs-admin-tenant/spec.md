@@ -24,7 +24,7 @@ Sam definió las dos figuras así:
 
 En el sistema, cada figura tiene su lugar:
 
-- **Superadmin** = una fila en `public.platform_admins` (`supabase/migrations/0058_platform_admins.sql:20-25`). La pregunta se hace con `public.is_platform_admin()` (`0058:54-64`). Esa función es DEFINER y desde la 0542 la ejecutan `authenticated` y `service_role`, nunca `anon` (`0542_is_platform_admin_execute_authenticated.sql:106-107`). Es una dimensión que cruza tenants y es ortogonal al rol (`0058:4-8`). Hoy hay 2 filas.
+- **Superadmin** = una fila en `public.platform_admins` (`supabase/migrations/0058_platform_admins.sql:20-25`). La pregunta se hace con `public.is_platform_admin()` (`0058:54-64`). Esa función es DEFINER y desde la 0542 la ejecutan `authenticated` y `service_role`, nunca `anon` (`0542_is_platform_admin_execute_authenticated.sql:106-107`). Es una dimensión que cruza tenants y es ortogonal al rol (`0058:4-8`).
 - **Admin del tenant** = `user_tenants.role = 'admin'`, uno de los 7 roles (`0189_marketing_role.sql:24-27`). En SQL se pregunta con `is_tenant_admin()`, con `audit_d1_admin_tenant()` (`0289_audit_d1_access_configuration.sql:131-160`) o con un `role = 'admin'` dentro de cada RPC. En la app, con `tenantAdminGate` (`lib/studio/rbac-guard.ts:339`) o con `canAccessModule`/`canEditModule`, donde el admin siempre pasa (`lib/studio/rbac.ts:469,487`).
 
 Estas migraciones ya están aplicadas: ninguna figura en `pendingBelowCutoff` y las de 0528 a 0545 están selladas en `supabase/migrations.lock.json`. Sus cabeceras todavía dicen «NO APLICADA»; es texto viejo, no el estado real.
@@ -35,17 +35,17 @@ En la tabla, **SA** es superadmin, **AT** es admin del tenant y **Otros** son lo
 
 | Capacidad | SA | AT | Otros | Dónde se decide (archivo:línea) |
 |---|---|---|---|---|
-| **Encender o apagar un módulo** (`feature_flags`) | Sí. Además tiene que ser admin activo del tenant (ver H3). | **No** | No | App: `app/studio/(app)/admin/feature-flags/actions.ts:55` (`platformAdminDenial`). Base: la policy `feature_flags_platform_admin_update` (`0355:132-137`) y el disparador ALWAYS `feature_flags_exige_superadmin` (`0543:144-176`), que también frena la rama `feature_flag.toggle` de `audit_d1_execute` (`0289:632-650`). |
+| **Encender o apagar un módulo** (`feature_flags`) | Sí. Además tiene que ser admin activo del tenant (ver H2). | **No** | No | App: `app/studio/(app)/admin/feature-flags/actions.ts:55` (`platformAdminDenial`). Base: la policy `feature_flags_platform_admin_update` (`0355:132-137`) y el disparador ALWAYS `feature_flags_exige_superadmin` (`0543:144-176`), que también frena la rama `feature_flag.toggle` de `audit_d1_execute` (`0289:632-650`). |
 | Editar la matriz rol × módulo (desvíos por rol) | Sí | **Sí** | No | App: `admin/actions.ts:23,52` (`moduleEditDenial("admin")`). Base: `studio_set_role_module_access`; los módulos de `LOCKED_MODULES` no se tocan (`0357`, CHECK `studio_role_module_overrides_locked_check`). |
 | Dar a una persona un módulo extra (grants) | Sí. Es el único que da los 4 módulos SA. | **Sí**, menos los 4 SA. No a sí mismo ni a otro admin. | No | Base: `studio_grant_user_module` (`0538:395-545`). Exige rol admin (`:431`), no deja dárselo a uno mismo (`:435`) y reserva los módulos SA a `is_platform_admin()` (`:465`). App: `usuarios/actions.ts:1305,1347` (`tenantAdminGate`). |
-| Abrir los 4 módulos SA (Financiero China, Legal, No-Olvidar, Rendiciones) | Sí | No | No | App: `SUPERADMIN_ONLY_MODULES` (`rbac.ts:205-210`) y `rbac-guard.ts:169-174,197-202,242-247`. Base: Legal y Rendiciones tienen RLS de escritura con `is_platform_admin()` (`0356:43-132`). Financiero China: ver §2, H-S. |
+| Abrir los 4 módulos SA (Financiero China, Legal, No-Olvidar, Rendiciones) | Sí | No | No | App: `SUPERADMIN_ONLY_MODULES` (`rbac.ts:205-210`) y `rbac-guard.ts:169-174,197-202,242-247`. |
 | Dirección y Mailing | Sí | Sí | No | Decisión del founder del 2026-08-07: quedan en admin por rol (`0356:6-8`, `rbac.ts:197-204`). |
 | **Crear o reactivar un admin** (invitar como admin, subir a admin, reactivar a un admin suspendido) | Sí | **No** | No | Base: los disparadores ALWAYS `user_invitations_exige_superadmin` y `user_tenants_exige_superadmin` (`0545:162-252`), decisión de Sam del 2026-11-15. App: aviso previo en `usuarios/actions.ts:160` y `app/invitar/[token]/actions.ts:88-97`. |
 | Suspender a otro admin o cambiarle el rol | Sí | **No**. Sobre sí mismo sí, salvo que sea el último admin. | No | Base: `studio_set_user_disabled` (`0355:184-187`) y `studio_change_user_role` (`0355:252-255`), más el anti-lockout del último admin (`0355:189-199,257-264`). |
 | Invitar a los demás roles, cambiar roles que no son admin, suspender a quien no es admin, editar perfil o correo, alcance de almacén, revocar invitaciones | Sí | Sí | No | App: `moduleEditDenial("users")` en `usuarios/actions.ts:154,293,324,393,441,508,675,794,926`. Base: `audit_d1_execute` → `membership.*` (`0289:240-306`); invitar solo pasa por ahí desde la `0545:302`. |
 | Borrar embarques y recepciones CN | Sí, como admin | Sí | No | Capability `delete_shipments`/`delete_warehouse_receipts` (`rbac.ts:307-315`). Base: `soft_delete_shipments_with_audit_reason` (`0476`) pide `role = 'admin'`. |
 | Anular facturas, recibos, asientos, libros fiscales, pagos, gastos y finiquitos | Sí, como admin | Sí | accounting en los de dinero | App: `moduleEditDenial` del módulo de dinero (`facturacion/actions.ts:783`, `cobranzas/actions.ts:193`, `tesoreria/actions.ts:219,266`, `contabilidad/actions.ts:362,407,704`, `fiscal/actions.ts:253,380`). Capability `void_expense` es accounting (`gastos/actions.ts:375`) y `void_payroll_settlement` es solo admin (`nomina/actions.ts:1710`). Base: escritura del dinero solo accounting y admin (0470, 0511). |
-| Anular una rendición | Sí | No | No | `rendiciones/actions.ts:62` y RLS `0356:108-112`. |
+| Anular una rendición | Sí | No | No | `rendiciones/actions.ts:62`. |
 | Leer montos (asientos, cobros, CxP) | Sí, como admin | Sí | accounting | Base: `studio_can_read_money()` (`0528`). App: `MONEY_MODULES` (`rbac.ts:167-176`). |
 | Tarifas y costeo | Sí, como admin | Sí | accounting y los roles de la matriz | `moduleEditDenial("rates"/"costing")`. Tarifas de transportistas: `admin/carrier-actions.ts:62-65` (`tenantAdminGate`). |
 | Tasa BCV manual | Sí, como admin | Sí | accounting | `admin/exchange-rates-actions.ts:29`. El cron `app/api/cron/bcv-rates/route.ts:12` usa `CRON_SECRET` y un tenant fijado por `BCV_RATE_TENANT_ID`. |
@@ -68,7 +68,7 @@ En la tabla, **SA** es superadmin, **AT** es admin del tenant y **Otros** son lo
 
 Sigo la regla de la tarea: un hueco abierto que se pueda explotar no se describe en este repo público.
 
-- **H-S (seguridad, reportado aparte).** Hay un módulo reservado al superadmin cuyo candado, en la base, no corresponde al de la app. Ya está en una nota fuera del repo para el DG, con archivo:línea y propuesta de cierre. El cierre va en una SDD con migración y OK nominal (fase 1).
+- **H-S.** Hallazgo de seguridad reportado aparte al DG; cierre en fase 1.
 - **H1. «Activar módulos» tiene tres perillas, y solo una es de superadmin.**
   - `feature_flags` enciende o apaga el módulo para todo el tenant, y es solo del superadmin, tanto en la app como en la base.
   - La matriz rol × módulo y los grants por persona deciden *quién* ve un módulo ya encendido. Esas dos las maneja el admin del tenant.
@@ -76,7 +76,7 @@ Sigo la regla de la tarea: un hueco abierto que se pueda explotar no se describe
 - **H2. No hay consola de plataforma, así que el superadmin no puede atender a otro tenant.** Tres razones:
   - Para encender un módulo, el superadmin además tiene que ser admin activo **de ese** tenant. `audit_d1_execute` resuelve el tenant con `audit_d1_admin_tenant()`, que busca `role = 'admin'` (`0289:141-150`), y `toggleFeatureFlagAction` usa el tenant de la sesión.
   - Con dos membresías activas, `get_user_tenant_id()` falla cerrado: devuelve NULL (`0453:242-246`). La RLS de casi todo el sistema deja de responder.
-  - `audit_d1_admin_tenant()` toma la primera membresía admin por fecha (`order by created_at limit 1`, `0289:147-149`). Es una regla distinta de la anterior.
+  - `audit_d1_admin_tenant()` toma la primera membresía admin por fecha (`order by created_at limit 1`, `0289:151-152`). Es una regla distinta de la anterior.
 
   Resultado: hoy el superadmin solo opera dentro del tenant donde es admin. Para vender a terceros hace falta una vía de soporte explícita (fase 3).
 - **H3. El superadmin hereda los poderes del admin, pero no los tiene por sí solo.** Todo lo de la tabla que dice «Sí, como admin» depende de que Sam tenga `role = 'admin'` en ese tenant. `is_platform_admin()` no sube el rol: `getStudioAccess` no lo mira (`rbac-guard.ts:86-130`). En DTD funciona porque Sam es las dos cosas. Para un tenant nuevo hay que decidir si el superadmin entra como miembro o por la consola (P3).
@@ -99,7 +99,7 @@ Sigo la regla de la tarea: un hueco abierto que se pueda explotar no se describe
   - Otras: `crm/actions.ts:190`, `admin/feature-flags/page.tsx:34` y `legal/expediente/[code]/page.tsx:260`.
 
   La RLS de datos usa `get_user_tenant_id()`, que sí excluye a los suspendidos. Por eso es robustez y no un agujero.
-- **H9. `capabilityDenial`/`canSpecial` dejan pasar al admin en todo** (`rbac.ts:344-360`), incluso `audit_view_sensitive` y `delete_*`. Es coherente con «el admin administra su empresa», pero ninguna capability está reservada al superadmin.
+- **H9. `capabilityDenial`/`canSpecial` dejan pasar al admin en todo** (`rbac-guard.ts:357`, `rbac.ts:344`), incluso `audit_view_sensitive` y `delete_*`. Es coherente con «el admin administra su empresa», pero ninguna capability está reservada al superadmin.
 
 Al revés no encontré nada: no hay una capacidad del admin que la base le niegue sin motivo, salvo lo que el superadmin decidió reservarse.
 
@@ -140,7 +140,7 @@ Regla general: **el superadmin opera la plataforma** (lo que cruza tenants, lo q
 
 | Fase | Qué | Tipo | Depende de |
 |---|---|---|---|
-| 1 | Cerrar H-S: alinear la base con el candado de la app en el módulo afectado. | Migración con preflight, OK nominal de Sam | Nada; es lo primero |
+| 1 | Cerrar H-S (detalle fuera del repo). | Migración con preflight, OK nominal de Sam | Nada; es lo primero |
 | 2 | Pasar a superadmin lo que es plataforma (H4): debug, errores, actualizaciones de Chatwoot y, según P5, agentes de IA. El sidebar respeta los 4 módulos SA (H7). Los avisos dejan de depender de datos del cliente (H6). | App, y base donde haya RPC | P5, P6 |
 | 3 | Vía de soporte multi-tenant: elegir el tenant como superadmin sin depender de `get_user_tenant_id()`, encender módulos de cualquier tenant y dejar rastro en la auditoría (H2, H3). | SDD propia, migración y app | P3 |
 | 4 | Integraciones por tenant: pasar `*_TENANT_ID` y los secretos del entorno a configuración por tenant, con secretos solo del superadmin (H5). | SDD propia por integración | Fase 3 |
