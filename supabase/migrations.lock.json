@@ -3591,6 +3591,15 @@
         "fecha": "2026-11-18",
         "forma": "exacta"
       }
+    },
+    "0564_exc0674_facturar_contenedor": {
+      "sha256": "51c99c4f8b9e6bec561337d01c379a007818c9e2e627a8a2ead3b36220c74f9a",
+      "md5": "98c061b05735b1b12bd63e2a3c1d3b2a",
+      "bytes": 36660,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
     }
   }
 }

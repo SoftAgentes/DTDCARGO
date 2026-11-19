@@ -7,7 +7,7 @@ Fecha: 2026-11-18. Datos de la tarea:
 - Worktree: `DTD-worktrees/sdd-0674-boton-facturar-embarques`.
 - Base: `origin/main` `9434cc4f6`, con merge de `origin/main` `65a3ad8db` (#681).
 - SDD y migración 0564 asignadas por el DG.
-- PR: #684.
+- PR: #684 (fusionada 2026-11-18 23:08:00Z, `8dec3ee29`). Cierre de la 0564: rama `codex/sdd-0674-cierre-0564`.
 
 ## Estado
 
@@ -79,8 +79,8 @@ Fecha: 2026-11-18. Datos de la tarea:
     - escribe el vínculo, el rastro y el evento `invoice_emitted_exc0674` con `legal_ack`.
   - RLS: solo `accounting` y `admin` de su tenant ven filas. Nadie escribe desde el Studio. Las altas y
     bajas de la lista quedan auditadas como `system`, sin `actor_id`, con el motivo obligatorio (N7).
-  - Va en espera en `migrations-baseline.json` y declarada en
-    `pending-migration-symbol-declarations.json` (3 amarillos).
+  - Estuvo en espera en `migrations-baseline.json`, con 3 amarillos declarados; se retiró en el cierre
+    (ver «Aplicación»).
   - Desarme: `supabase/desarmes/0564_desarme.sql`.
 - **App:**
   - `lib/studio/exc0674.ts` y `exc0674-queries.ts`;
@@ -141,13 +141,25 @@ Fecha: 2026-11-18. Datos de la tarea:
   de la sentencia que ya corre. El tope lo pone el rol `authenticated`, y la guarda contra ciclos corta el
   único bucle sin fin. El DG lo aceptó.
 
+## Aplicación de la 0564 (rama `codex/sdd-0674-cierre-0564`)
+
+- **Aplicada en producción** (runbook `docs/runbooks/aplicar-migraciones-prod.md`):
+  - OK nominal de Sam, literal: «OK, aplica 0563 y 0564».
+  - COMMIT: 2026-11-18 23:38:29Z. `version` del ledger: `20261118233829`; `created_by`: `servidor-propio:psql:SDD-0674`. El ledger queda con 559 filas.
+  - Una fila en el ledger, md5 `98c061b05735b1b12bd63e2a3c1d3b2a`, 36660 bytes. Verificación PASÓ: cuerpos
+    vivos iguales al archivo.
+  - Evidencia: `/srv/ops/evidencias/apply-0564-dtd-cargo-20261118T233828Z`. Paquete del SHA `8dec3ee29`,
+    el merge de la PR #684 (2026-11-18 23:08:00Z).
+  - Cierre (§6): `retirar-espera.mjs` salió con 0. Quitó la espera de `migrations-baseline.json` y las 3
+    declaraciones, y selló la 0564 en `migrations.lock.json` (sha256 `51c99c4f…`). `migrations-lock.mjs`
+    salió con 0.
+  - La lista `exc0674_contenedores` sigue **vacía**. Agregar el 64 lleva otro OK nominal de Sam.
+
 ## Pendientes de esta tarea
 
-1. Que el CI pase sobre la cabeza nueva.
-2. La re-revisión de la cabeza nueva, que lanza el DG.
-3. Después de fusionar, y solo con el OK nominal de Sam:
-   - aplicar la 0564 por el runbook;
-   - agregar el 64 a la lista con `service_role` y `dtd.audit_reason`.
+1. Que el CI pase sobre la PR de cierre y que el DG la fusione.
+2. Solo con un OK nominal nuevo de Sam: agregar el 64 a `exc0674_contenedores` con `service_role` y
+   `dtd.audit_reason` (motivo con el OK literal). El evento queda como `system`.
 
 ## FUERA DE ALCANCE DETECTADO
 
