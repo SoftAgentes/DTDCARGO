@@ -4,7 +4,7 @@ title: "/entrar reconoce el correo y dice en pantalla qué pasó"
 status: in-progress
 author: "Sam (founder) + Claude Code"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0094", "0276", "0278", "0279", "0597", "0646"]
@@ -17,9 +17,21 @@ confidencialidad: interno
 > portal, si es cliente sin portal o si no lo encontramos. Modifica la SDD-0597, que respondía lo
 > mismo para todos los correos.
 
-**Estado:** `in-progress`. Entrega 1 (esta PR): los resultados en pantalla y los textos de
-`/registro`, sin migración. Entrega 2 (otra PR, con la migración 0562 asignada por el DG): el
+**Estado:** `in-progress`. Entrega 1 (#683): los resultados en pantalla y los textos de
+`/registro`, sin migración. Entrega 2 (#687, con la migración 0562 asignada por el DG): el
 enlace para crear el portal llega al correo del cliente sin portal.
+
+> **Estado al 2026-11-19.** Las dos entregas están en `main` (#683 y #687). La migración
+> `0562_registro_link_autoservicio` está **aplicada en producción** el 2026-11-19: commit del apply
+> a las 16:51:18Z (inicio 16:51:17Z), proyecto `dtd-cargo`, con el OK literal de Sam «OK, aplica
+> 0566, 0565 y 0562». Md5 `637b3740d2ea71e9981da1b3d171161e`, 34441 bytes, una fila en el ledger y
+> los 7 cuerpos vivos iguales al archivo. Evidencia en el servidor:
+> `/srv/ops/evidencias/apply-0562-dtd-cargo-20261119T165117Z` (previa:
+> `/srv/ops/evidencias/previa-0562-dtd-cargo-20261119T165049Z`). La espera quedó retirada y la
+> migración sellada en el cierre. Datos del Director General: el md5 y los bytes los comprobé
+> contra el archivo de `main` (también lo hace `retirar-espera.mjs`); la hora, el OK, la fila del
+> ledger, los cuerpos vivos y la evidencia no los verifiqué yo. Falta el smoke en producción de la
+> entrega 2 (un cliente sin portal recibe el enlace y lo activa).
 
 ## 0. Enmiendas explícitas
 
@@ -29,7 +41,7 @@ Esta spec es un cambio de seguridad del portal y **enmienda** dos decisiones ant
 |---|---|---|
 | [SDD-0597](../0597-entrar-no-promete-envio/spec.md), aceptación 2 | «el mismo HTML para todos, salvo el correo escrito» | **reemplazada** por la aceptación 1 de esta spec: una pantalla por resultado. Sigue en pie su aceptación 1: la pantalla nunca afirma un envío que no salió |
 | [SDD-0279](../0279-cliente-sin-acceso-al-portal/spec.md) §3, «pantalla idéntica en los tres casos» | el cliente sin acceso veía lo mismo que un desconocido | **reemplazada**: ve «Ya eres cliente de DTD Cargo». Siguen en pie los avisos al cliente y al equipo, y que el correo al cliente no lleva nombre ni Shipping Mark |
-| SDD-0279 §3, decisión del 2026-08-23 «enlace automático **no**» | — | **sin cambio en la entrega 1**. La entrega 2 la enmienda solo con la guarda de §4 |
+| SDD-0279 §3, decisión del 2026-08-23 «enlace automático **no**» | el correo de `clients` lo cargó el equipo; un tipeo entregaría el portal a un desconocido | **sin cambio en la entrega 1**. La entrega 2 la **enmienda**: el enlace sale al correo de la ficha, pero el portal se activa solo si la cédula/RIF o el WhatsApp coinciden con la ficha (§4). Con un tipeo, el desconocido recibe el enlace y no puede pasar la guarda |
 
 **Riesgo que se acepta: enumeración.** Desde este cambio, cualquiera que escriba un correo en
 `/entrar` sabe si es de un cliente de DTD Cargo, si tiene portal o si su correo falta comprobar.
@@ -147,7 +159,7 @@ ni a «recuperar tu contraseña».
 - Los cerrojos, el plan B, `token_hash`, `/abrir` y la comparación literal (`sameEmail`) quedan
   iguales.
 
-## 4. Entrega 2 — crear el portal desde el correo (planeada, con migración)
+## 4. Entrega 2 — crear el portal desde el correo (migración 0562)
 
 Cumple la segunda parte del pedido sin abrir una toma de cuenta. Hay dos razones para no dejar
 completar los datos en la misma pantalla:
@@ -158,7 +170,7 @@ completar los datos en la misma pantalla:
 2. El correo de la ficha puede tener un tipeo y ser de otra persona. Por eso Sam decidió el
    2026-08-23 «enlace automático **no**» (SDD-0279 §3).
 
-El diseño propuesto:
+El diseño (implementado en la PR de la entrega 2):
 
 - `sin_portal` pasa a decir solo «Ya eres cliente. Te mandamos un enlace a tu correo para crear tu
   portal» (condición del DG: nada más de la ficha). El enlace es el link de registro de la SDD-0646,
@@ -189,7 +201,58 @@ El diseño propuesto:
 
 Migración: **0562**, asignada por el DG el 2026-11-18. Contrato SQL, desarme y espera declarada
 van en su PR. Revisión independiente en Opus, por seguridad. Aplicarla en producción pide el OK
-nominal de Sam nombrando el archivo.
+nominal de Sam nombrando el archivo. **HECHO el 2026-11-19 a las 16:51:18Z** (OK literal de Sam:
+«OK, aplica 0566, 0565 y 0562»; detalle en el aviso de estado de arriba).
+
+### 4.1 Aceptación de la entrega 2
+
+1. Con la 0562, un cliente del ERP sin ninguna fila de acceso, con documento o teléfono en la ficha y
+   sin enlace del equipo vivo, recibe en el correo de su ficha el enlace `/registro/activar/<token>`,
+   y `/entrar` responde `crear_portal` («Te mandamos un enlace…»). No sale el aviso de la SDD-0279.
+2. El correo y la página del enlace no muestran el nombre ni el Shipping Mark antes de la guarda.
+3. El portal se activa solo si la cédula/RIF (dígitos) o el WhatsApp (`phone_match_key`) coinciden
+   con la ficha. Si no, la ficha no cambia, el enlace no se gasta, se suma un intento y al tercero el
+   enlace muere. El mensaje es el mismo que para un correo con cuenta, y no nombra el dato.
+4. Un documento que no se puede normalizar no salta la guarda.
+5. Con el mismo correo al que llegó el enlace, la cuenta nace con el correo real, sin «sin
+   comprobar»; con otro correo, sigue el camino D-1 de la SDD-0646.
+6. La ruta del equipo (`/registro/link/`) no acepta enlaces de autoservicio; los del equipo siguen
+   funcionando igual.
+7. Las RPC nuevas: `SECURITY DEFINER`, `search_path = ''`, `EXECUTE` solo para `service_role`.
+8. Sin la 0562, `/entrar` sigue como en la entrega 1, `/registro/activar/` dice «Enlace no
+   disponible» y «Registros por link» no se rompe.
+9. «Registros por link» marca «lo pidió desde «Entrar»» y «Correo comprobado» cuando el cliente dejó
+   el correo al que llegó el enlace.
+10. Si con el enlace abierto la ficha queda borrada o fusionada, o el equipo le corrige el correo, el
+    enlace no abre ni completa (sin gastarse ni sumar intentos). Así, un enlace mandado a un correo
+    con tipeo deja de servir apenas se corrige.
+11. Completar bloquea la ficha y después el enlace, en el mismo orden que la emisión: un `/entrar` y
+    un envío del formulario a la vez no se traban.
+
+### 4.2 Allowlist (entrega 2)
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/0562_registro_link_autoservicio.sql` | nueva; aplicada en producción el 2026-11-19 (16:51:18Z) |
+| `supabase/desarmes/0562_desarme` (extensión `.sql`; sin el punto pegado para que no se lea como migración citada) | nuevo |
+| `supabase/tests/0562_registro_link_autoservicio.test.sql` | contrato |
+| `lib/portal/__tests__/registro-autoservicio.migration.test.ts` | el contrato en PGlite |
+| `supabase/migrations-baseline.json` | espera de la 0562 (retirada en el cierre del 2026-11-19) |
+| `supabase/pending-migration-symbol-declarations.json` | símbolos de la 0562 que usa la app (retirados en el cierre del 2026-11-19) |
+| `supabase/migrations.lock.json` | la 0562 sellada (cierre del 2026-11-19) |
+| `lib/studio/portal/autoservicio-link.ts` | nuevo: emitir y mandar el enlace |
+| `lib/studio/portal/__tests__/autoservicio-link.test.ts` | nuevo |
+| `app/entrar/actions.ts` | `crear_portal` antes del aviso de la SDD-0279 |
+| `app/entrar/EntrarForm.tsx` | pantalla `crear_portal` |
+| `lib/portal/entrar-resultado.ts` | `crear_portal` |
+| `app/entrar/__tests__/actions.test.ts`, `app/entrar/__tests__/entrar-dos-filas.test.tsx` | los casos nuevos |
+| `app/registro/activar/[token]/page.tsx`, `actions.ts` y su prueba | nuevos: GET que solo lee, POST con la guarda |
+| `app/registro/link/[token]/RegistroLinkForm.tsx` | variante `autoservicio`: sin Shipping Mark antes de la guarda, correo precargado |
+| `lib/portal/registro-link-types.ts` | URL, TTL y los dos mensajes de autoservicio; `origen` en la fila de revisión |
+| `lib/studio/registro-link-queries.ts` | lee `link_origin`/`issued_to_email` (con respaldo sin la 0562) |
+| `lib/studio/__tests__/registro-link-correo-estado.test.ts` | los casos de autoservicio |
+| `app/studio/(app)/clientes/_components/RegistrosLinkClient.tsx` | «lo pidió desde «Entrar»» |
+| esta spec, el índice y `.agents/handoffs/sdd-0672-entrega-2-autoservicio.md` | docs |
 
 ## 5. Aceptación de la entrega 1
 
@@ -253,6 +316,15 @@ su correo falta comprobar. No revela nombre, Shipping Mark, envíos ni ningún o
 Ese dato, «es cliente», ya lo revelaba `/registro`. Base: CRBV art. 28 (habeas data), que exige
 proteger el dato y su uso; el control que queda es el cerrojo, que no se toca. La entrega 2 sí
 captura datos (la ficha completa) y pasa por `revisar-datos-ve` en su PR.
+
+**Entrega 2, datos personales.** Captura los mismos datos que `/registro` y que el registro por link
+de la SDD-0646 (tipo, nombre o razón social, cédula/RIF, correo, WhatsApp, teléfono de oficina,
+ciudad, estado y dirección), con el mismo texto de finalidad y el mismo enlace a la política de
+privacidad. Base: el titular los entrega para operar su portal (CRBV art. 28: acceso y
+actualización de sus propios datos). Lo nuevo que se guarda: `issued_to_email` (el correo de la
+ficha al que salió el enlace) y el conteo de intentos; ninguno sale de la base hacia la pantalla
+antes de la guarda. El token se guarda solo como sha256. La cédula y el WhatsApp que escribe el
+cliente se comparan en la base y no se registran en logs.
 
 ## 8. Validación
 

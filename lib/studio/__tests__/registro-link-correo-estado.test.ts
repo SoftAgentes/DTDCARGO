@@ -112,6 +112,78 @@ describe("estado del correo en «Registros por link»", () => {
   it("sin la migración 0559 dice «no se sabe» en vez de afirmar algo", async () => {
     expect((await leer(null)).rows[0].correoEstado).toBeNull();
   });
+
+  describe("enlace de autoservicio (SDD-0672 entrega 2)", () => {
+    const self = (extra: Fila = {}) => ({
+      ...link("l-1"),
+      link_origin: "autoservicio",
+      issued_to_email: "ana@example.test",
+      submitted_data: { email: "ana@example.test" },
+      ...extra,
+    });
+
+    it("⭐ dejó el mismo correo al que llegó el enlace: «comprobado», sin fila de comprobación", async () => {
+      const { rows } = await leer([], [self()]);
+      expect(rows[0].correoEstado).toBe("comprobado");
+      expect(rows[0].origen).toBe("autoservicio");
+    });
+
+    it("⭐ con acceso fallido no se afirma «comprobado»", async () => {
+      const { rows } = await leer([], [self({ access_error: "createUser: boom" })]);
+      expect(rows[0].correoEstado).toBe("no_aplica");
+    });
+
+    it("con otro correo manda el estado real de la comprobación (camino D-1)", async () => {
+      const { rows } = await leer(
+        [fila("sin_comprobar")],
+        [self({ submitted_data: { email: "otro@example.test" } })],
+      );
+      expect(rows[0].correoEstado).toBe("sin_comprobar");
+    });
+
+    it("⭐ sin la migración 0562 (columna inexistente) la lista no se rompe", async () => {
+      const pedidas: string[] = [];
+      const client = {
+        rpc: async () => ({ data: [], error: null }),
+        from(table: string) {
+          let columnas = "";
+          const chain: Record<string, unknown> = {
+            select: (c: string) => {
+              columnas = c ?? "";
+              if (table === "client_registration_links") pedidas.push(columnas);
+              return chain;
+            },
+            not: () => chain,
+            order: () => chain,
+            is: () => chain,
+            in: () => chain,
+            limit: () => chain,
+            then: (ok: (v: unknown) => unknown) => {
+              if (table !== "client_registration_links") {
+                return ok({ data: [{ id: "c-1", markbox: "DTD-8001", name: "Ana" }], error: null });
+              }
+              return columnas.includes("link_origin")
+                ? ok({ data: null, error: { code: "42703", message: "no existe la columna" } })
+                : ok({ data: [link("l-1")], error: null });
+            },
+          };
+          return chain;
+        },
+      } as never;
+
+      const rows = await listRegistrosPorLink(client, { soloPendientes: false });
+      expect(rows).not.toBeNull();
+      expect(rows?.[0].origen).toBe("equipo");
+      expect(pedidas).toHaveLength(2);
+      expect(pedidas[1]).not.toContain("link_origin");
+    });
+
+    it("un link del equipo sigue como siempre", async () => {
+      const { rows } = await leer([], [link("l-1")]);
+      expect(rows[0].correoEstado).toBe("no_aplica");
+      expect(rows[0].origen).toBe("equipo");
+    });
+  });
 });
 
 describe("corrida única de las cuentas ya creadas", () => {

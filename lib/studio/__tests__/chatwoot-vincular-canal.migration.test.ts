@@ -22,6 +22,7 @@ const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n")
 const ARCHIVO = read(resolve(ROOT, "supabase/migrations", MIGRACION));
 const DESARME = read(resolve(ROOT, "supabase/desarmes/0566_desarme.sql"));
 const RELLENO = read(resolve(ROOT, "supabase/cargas/portal-uniones-0566/uniones-portal.sql"));
+const CONTEO = read(resolve(ROOT, "supabase/cargas/portal-uniones-0566/conteo.sql"));
 const SLOW = 180_000;
 
 /** psql → SQL plano: quita \set e inlinea \ir. `replace` sustituye un archivo por el final de su ruta. */
@@ -432,6 +433,83 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     // Si el número esperado no es el que sale, aborta y lo dice.
     const descuadre = await correr([sinCierre, ...preparar, `select * from pg_temp.rellenar_uniones_portal('${T1}', 5);`, "rollback;"].join("\n"));
     expect(descuadre.error).toContain("relleno 0566: se esperaban 5 uniones y salieron 1");
+  }, SLOW);
+
+  it("conteo.sql: solo lectura, sin funciones ni datos personales, y da lo mismo que la función del relleno", async () => {
+    // Forma: una transacción de solo lectura que termina en rollback, sin crear nada ni escribir.
+    expect(CONTEO).toContain("begin read only;");
+    expect(CONTEO.trimEnd().endsWith("rollback;")).toBe(true);
+    const sentencias = CONTEO.split("\n")
+      .filter((l) => !l.trimStart().startsWith("--"))
+      .join("\n");
+    expect(sentencias).not.toMatch(/\b(create|insert|update|delete|drop|alter|truncate|grant|revoke)\b/i);
+    // Ninguna columna de datos personales en lo que se lee.
+    expect(sentencias).not.toMatch(/\b(name|phone|email|nombre|telefono|texto|body)\b/i);
+
+    const contrato = inline();
+    const sinCierre = contrato.slice(0, contrato.lastIndexOf("select 'TEST 0566 GREEN"));
+    const T1 = "10000000-0000-0000-0000-000000000001";
+    const K01 = "30000000-0000-0000-0000-000000000001";
+    const K02 = "30000000-0000-0000-0000-000000000002";
+    const K03 = "30000000-0000-0000-0000-000000000003";
+    const K06 = "30000000-0000-0000-0000-000000000006"; // borrada en la fixture
+    const HILO = "50000000-0000-0000-0000-000000000009";
+    const preparar = [
+      // Contactos del portal de ANTES de la 0566: el de K02 (falta su unión), el de K01 (alguien
+      // lo unió a mano a K02: es de OTRA ficha) y el de una ficha borrada.
+      `insert into public.chatwoot_portal_contactos (tenant_id, client_id, chatwoot_contact_id, chatwoot_source_id) values
+         ('${T1}', '${K02}', 640, 'src-640'), ('${T1}', '${K01}', 641, 'src-641'), ('${T1}', '${K06}', 642, 'src-642');`,
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by)
+         values ('${T1}', '${K02}', 641, 'webhook', null);`,
+      // Una ficha del portal todavía sin contacto de Chatwoot (dato 8) y una unión de origen portal ya hecha (dato 7).
+      `insert into public.chatwoot_portal_contactos (tenant_id, client_id) values ('${T1}', '${K03}');`,
+      `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+         values ('${T1}', '${K01}', 650, 'portal', null, 'portal');`,
+      // Una conversación del portal de K02 sin contacto anotado (dato 6).
+      `insert into public.conversations (id, tenant_id, client_id, channel) values ('${HILO}', '${T1}', '${K02}', 'portal');`,
+      `insert into public.chatwoot_portal_hilos (conversation_id, tenant_id, chatwoot_conversation_id) values ('${HILO}', '${T1}', 97);`,
+      `insert into public.chatwoot_conversations (tenant_id, conversation_id, inbox_id, status, client_id) values ('${T1}', 97, 4, 'open', '${K02}');`,
+      RELLENO,
+    ];
+    // La consulta tal cual, sin su transacción propia (el ensayo ya corre dentro de una) y con el tenant puesto.
+    const cuerpo = CONTEO.slice(CONTEO.indexOf("begin read only;") + "begin read only;".length, CONTEO.lastIndexOf("rollback;"))
+      .split(":'tenant'")
+      .join(`'${T1}'`)
+      .trim()
+      .replace(/;$/, "");
+    const comparar = `create temporary table conteo_sql as ${cuerpo};
+      do $c$
+      declare r record;
+      begin
+        if (select count(*) from conteo_sql) <> 8 then
+          raise exception 'CONTEO: debe devolver 8 filas';
+        end if;
+        -- Los datos 1 a 6 son los mismos que da la función del relleno.
+        if exists (
+          (select dato, cuantos from conteo_sql where left(dato, 1) in ('1','2','3','4','5','6')
+           except select dato, cuantos from pg_temp.contar_uniones_portal('${T1}'))
+          union all
+          (select dato, cuantos from pg_temp.contar_uniones_portal('${T1}')
+           except select dato, cuantos from conteo_sql where left(dato, 1) in ('1','2','3','4','5','6'))
+        ) then
+          raise exception 'CONTEO: conteo.sql y la función del relleno no dan lo mismo';
+        end if;
+        -- Valores de la fixture: cuatro contactos del portal con contacto de Chatwoot (los tres de arriba y el
+        -- 620 que dejó el bloque 11 del contrato, de una ficha ya borrada), ninguno unido a su ficha, uno
+        -- unido a OTRA, dos de ficha borrada y uno por crear.
+        for r in select dato, cuantos from conteo_sql loop
+          if left(r.dato, 1) = '1' and r.cuantos <> 4 then raise exception 'CONTEO 1: %', r.cuantos; end if;
+          if left(r.dato, 1) = '2' and r.cuantos <> 0 then raise exception 'CONTEO 2: %', r.cuantos; end if;
+          if left(r.dato, 1) = '3' and r.cuantos <> 1 then raise exception 'CONTEO 3: %', r.cuantos; end if;
+          if left(r.dato, 1) = '4' and r.cuantos <> 2 then raise exception 'CONTEO 4: %', r.cuantos; end if;
+          if left(r.dato, 1) = '5' and r.cuantos <> 1 then raise exception 'CONTEO 5: %', r.cuantos; end if;
+          if left(r.dato, 1) = '6' and r.cuantos <> 1 then raise exception 'CONTEO 6: %', r.cuantos; end if;
+          if left(r.dato, 1) = '7' and r.cuantos <> 1 then raise exception 'CONTEO 7: %', r.cuantos; end if;
+          if left(r.dato, 1) = '8' and r.cuantos <> 1 then raise exception 'CONTEO 8: %', r.cuantos; end if;
+        end loop;
+      end $c$;`;
+    const r = await correr([sinCierre, ...preparar, comparar, "rollback;"].join("\n"));
+    expect(r.error).toBeNull();
   }, SLOW);
 
   it("desarme: con uniones que guardan canal se niega, salvo que se acepte perderlo", async () => {
