@@ -80,6 +80,10 @@ export function CrmEmbudosLista({
                   {canal ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}>
                       <CanalLogo canal={canal} />
+                      {/* SDD-0676: los otros canales vinculados a la ficha del cliente. */}
+                      {(t.canalesExtra ?? []).map((c) => (
+                        <CanalLogo key={c} canal={c} />
+                      ))}
                       <span>{CANAL_LABEL[canal]}</span>
                     </span>
                   ) : (
