@@ -7,17 +7,16 @@ Fecha: 2026-11-19 · Rama: `claude/interesting-darwin-9a1100` · Base: `origin/m
 - Medido en código (sin leer producción) por qué lo del contenedor 64 sigue en Almacén China. Causa: la
   carga sí deja las recepciones `consolidado` y los embarques `in_transit`; la tabla de Almacén China
   arranca en «Todos» y no esconde lo consolidado. Detalle con archivo:línea en la spec, §1.
-- Spec en borrador: `docs/specs/NNNN-almacen-china-sin-consolidado/spec.md` (número pendiente del DG).
+- Spec en borrador: `docs/specs/0682-almacen-china-sin-consolidado/spec.md` (SDD-0682, asignada por el DG el 2026-11-19).
 
 ## Pendiente de esta tarea
 
-- Número SDD del DG → renombrar carpeta y front-matter.
 - Respuestas de Sam a las cuatro preguntas del §5 (una es un conteo en producción, que pide OK).
 - Producto (filtro por defecto, pestañas de Embarques, enlace a Tracking `?g=mar`) solo con la spec aprobada.
 
 ## Pruebas
 
-- Solo docs: `pnpm docs:check` / `pnpm sdd:check` cuando tenga número. Producto: NO EJECUTADO (no hay
+- Solo docs: ver el registro de comprobaciones de la PR. Producto: NO EJECUTADO (no hay
   cambios de producto).
 
 ## FUERA DE ALCANCE DETECTADO
