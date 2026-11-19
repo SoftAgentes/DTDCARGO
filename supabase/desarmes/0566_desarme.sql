@@ -8,7 +8,9 @@
 -- crm_asesor_desde_chatwoot (0513), chatwoot_quitar_union y el disparador de ficha borrada (0554), y
 -- chatwoot_portal_vincular (0519). Los cuerpos de abajo son copia literal de esas migraciones.
 -- BORRA las uniones de origen «portal»: antes de la 0566 no existían, el origen no cabe en el CHECK de
--- la 0554 y el dato sigue completo en chatwoot_portal_contactos. Las conversaciones del portal
+-- la 0554 y el dato sigue completo en chatwoot_portal_contactos. Ese borrado NO se audita fila por
+-- fila: no es la decisión de una persona sobre un cliente, sino volver al esquema anterior, y nada se
+-- pierde (la evidencia del desarme es la del runbook con que se aplique). Las conversaciones del portal
 -- conservan su cliente (la 0504 no se lo quita a un evento sin teléfono).
 -- QUITA además chatwoot_conversations.chat_contact_id y devuelve el CHECK del origen a sus tres valores.
 -- SUELTA las tarjetas absorbidas (vuelven a su tablero) y QUITA chatwoot_vincular_contacto,
@@ -35,7 +37,9 @@ begin
     select 1 from pg_catalog.pg_attribute
     where attrelid = 'public.chatwoot_contact_links'::regclass and attname = 'canal_chat' and not attisdropped
   ) then
-    execute 'select count(*) from public.chatwoot_contact_links where canal_chat is not null' into v_con_canal;
+    -- Las del portal no cuentan: su canal no es un dato que se pierda (sale del origen) y
+    -- el desarme las borra de todos modos.
+    execute 'select count(*) from public.chatwoot_contact_links where canal_chat is not null and origen <> ''portal''' into v_con_canal;
   end if;
   if v_con_canal > 0
      and coalesce(pg_catalog.current_setting('dtd.desarme_0566_perder_canal', true), '') <> 'si' then

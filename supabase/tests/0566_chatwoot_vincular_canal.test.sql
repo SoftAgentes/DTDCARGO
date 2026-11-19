@@ -338,6 +338,21 @@ begin
 end;
 $$;
 
+-- Lo mismo, pero devuelve de dónde dice la función que salió el cliente.
+create function pg_temp.evento_origen(
+  p_clave text, p_conversacion bigint, p_telefono text, p_actualizado double precision, p_contacto bigint default null
+) returns text language plpgsql as $$
+declare r record;
+begin
+  set local role service_role;
+  select * into r from public.chatwoot_registrar_evento(
+    pg_temp.t1(), p_clave, 'message_created', p_conversacion, 3, 'open', 0, null, p_telefono, null,
+    p_actualizado, null, false, p_contacto);
+  reset role;
+  return r.origen_cliente;
+end;
+$$;
+
 create function pg_temp.del_contacto(p_contacto bigint) returns public.crm_tarjetas language sql as $$
   select t.* from public.crm_tarjetas t where t.tenant_id = pg_temp.t1() and t.chatwoot_contact_id = p_contacto
 $$;
@@ -473,6 +488,7 @@ declare
   ajena  uuid;
   propia uuid;
   ev     uuid;
+  og     text;
 begin
   lead := pg_temp.del_contacto(500);
   antes := lead.ultima_actividad_at;
@@ -531,6 +547,17 @@ begin
     (select chat_contact_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 71) = 500
     and (select chat_contact_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 72) = 501,
     '4n la conversación guarda de qué contacto es');
+  -- De dónde salió el cliente: quien une solo (el webhook) lo hace únicamente con 'telefono'.
+  og := pg_temp.evento_origen('message_created:3010', 71, null, 103, 500);
+  perform pg_temp.assert_true(og = 'union', '4o un cliente que sale de la unión del contacto se dice «union»');
+  og := pg_temp.evento_origen('message_created:3011', 72, '4125550202', 103, 501);
+  perform pg_temp.assert_true(og = 'telefono', '4p un cliente que sale del teléfono con ficha única se dice «telefono»');
+  og := pg_temp.evento_origen('message_created:3012', 72, null, 104, 501);
+  perform pg_temp.assert_true(og = 'conservado', '4q un cliente que solo se conservó se dice «conservado», no «telefono»');
+  og := pg_temp.evento_origen('message_created:3014', 72, '4125559999', 105, 501);
+  perform pg_temp.assert_true(og = 'conservado', '4r un teléfono que ya no coincide conserva el cliente como «conservado»');
+  og := pg_temp.evento_origen('message_created:3013', 76, null, 100, 502);
+  perform pg_temp.assert_true(og is null, '4s sin cliente no hay origen');
   -- Los 13 parámetros de antes siguen sirviendo (el web anterior a esta PR).
   set local role service_role;
   select * into r from public.chatwoot_registrar_evento(
@@ -697,6 +724,15 @@ begin
   -- Ni un evento posterior con el mismo teléfono se la devuelve: la ficha está borrada.
   perform pg_temp.assert_true(pg_temp.evento('message_created:6003', 81, '4125550204', 101, 801) is null,
     '8g un evento posterior no revive la ficha borrada');
+  -- Una conversación que quedó apuntando a una ficha borrada (por otra vía, o por una carrera
+  -- con el borrado) no la conserva: el evento la revalida.
+  update public.chatwoot_conversations set client_id = pg_temp.k('06')
+  where tenant_id = pg_temp.t1() and conversation_id = 81;
+  perform pg_temp.assert_true(pg_temp.evento('message_created:6004', 81, null, 102, 801) is null
+    , '8h el evento no devuelve una ficha borrada');
+  perform pg_temp.assert_true(
+    (select client_id from public.chatwoot_conversations where tenant_id = pg_temp.t1() and conversation_id = 81) is null,
+    '8i una ficha borrada no se conserva en la conversación');
 end;
 $borrada$;
 

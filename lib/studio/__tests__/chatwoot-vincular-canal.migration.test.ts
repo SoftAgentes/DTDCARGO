@@ -134,14 +134,14 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     ],
     [
       "el evento no mira la unión del contacto",
-      () => mutar("    v_cliente := public.chatwoot_ficha_de_contacto(p_tenant_id, p_contact_id);\n  end if;", "    v_cliente := null;\n  end if;"),
+      () => mutar("    v_cliente := public.chatwoot_ficha_de_contacto(p_tenant_id, p_contact_id);\n    if v_cliente is not null then", "    v_cliente := null;\n    if v_cliente is not null then"),
       "TEST 0566: 4e",
     ],
     [
       "un evento sin ficha le quita el cliente a la conversación",
       () =>
         mutar(
-          "    client_id         = coalesce(excluded.client_id, cc.client_id),",
+          "    client_id         = coalesce(\n                          excluded.client_id,\n                          (select c.id from public.clients c\n                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
           "    client_id         = excluded.client_id,",
         ),
       "TEST 0566: 4h",
@@ -150,10 +150,29 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
       "un evento con contacto, sin unión ni teléfono, le quita el cliente (el fallo que rompía el portal)",
       () =>
         mutar(
-          "    client_id         = coalesce(excluded.client_id, cc.client_id),",
+          "    client_id         = coalesce(\n                          excluded.client_id,\n                          (select c.id from public.clients c\n                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
           "    client_id         = case when v_telefono or v_contacto then excluded.client_id else cc.client_id end,",
         ),
       "TEST 0566: 4i",
+    ],
+    [
+      "un cliente que solo se conservó se informa como si hubiera cruzado por teléfono (el webhook lo uniría)",
+      () => mutar("    v_origen := 'conservado';", "    v_origen := 'telefono';"),
+      "TEST 0566: 4q",
+    ],
+    [
+      "una unión se informa como cruce por teléfono",
+      () => mutar("      v_origen := 'union';", "      v_origen := 'telefono';"),
+      "TEST 0566: 4o",
+    ],
+    [
+      "el evento conserva una ficha borrada",
+      () =>
+        mutar(
+          "                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),",
+          "                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id)),",
+        ),
+      "TEST 0566: 8h",
     ],
     [
       "el evento no guarda de qué contacto es la conversación",
@@ -421,5 +440,17 @@ describe("0566 · vincular un contacto de Chatwoot a un cliente (PGlite)", () =>
     const r = await correr([sinCierre, DESARME, "rollback;"].join("\n"));
     expect(r.error).toContain("desarme 0566: hay");
     expect(r.error).toContain("dtd.desarme_0566_perder_canal");
+
+    // Las uniones del portal no cuentan en esa guarda: con una más, el número que da es el mismo.
+    const conPortal = await correr(
+      [
+        sinCierre,
+        `insert into public.chatwoot_contact_links (tenant_id, client_id, chatwoot_contact_id, origen, created_by, canal_chat)
+         values ('10000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 632, 'portal', null, 'portal');`,
+        DESARME,
+        "rollback;",
+      ].join("\n"),
+    );
+    expect(conPortal.error).toBe(r.error);
   }, SLOW);
 });

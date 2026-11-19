@@ -98,6 +98,8 @@ Lo hace Sam con su **WhatsApp secundario** y su **Instagram secundario**, y una 
 
 **Estado al 2026-11-18.** El web con «Vincular a cliente» sale a producción **sin** la 0566: Sam aceptó dejarla pendiente. Hasta que se aplique, lo de abajo no se cumple entero: la ficha cruza solo por teléfono, «Vincular» une sin guardar el canal ni absorber la tarjeta de lead, y «Mover aquí» responde que falta la migración.
 
+**Orden.** Primero el web de la corrección de la 0566 publicado en producción; después la 0566. Al revés, el web anterior le escribiría el segmento y el Shipping Mark al contacto del portal y mostraría «Quitar» en su chip.
+
 **Dónde hacerlo.** Sam ofreció dos lugares; los pasos A a D son los mismos en los dos.
 
 | Camino | Cómo | Qué tener en cuenta |

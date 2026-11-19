@@ -195,7 +195,32 @@ describe("aplicarConversacion manda el contacto a la base", () => {
     const r = await aplicarConversacion({ admin: { rpc } as never, tenantId: T1 }, conv, null, 77);
     expect(rpc).toHaveBeenCalledTimes(2);
     expect(Object.keys((rpc.mock.calls[1] as unknown[])[1] as object)).not.toContain("p_contact_id");
-    expect(r).toEqual({ nuevo: true, aplicado: true, clientId: null });
+    expect(r).toEqual({ nuevo: true, aplicado: true, clientId: null, origenCliente: null });
+  });
+
+  it.each([
+    ["union", "union"],
+    ["telefono", "telefono"],
+    ["conservado", "conservado"],
+    // Un valor que no conocemos nunca es «teléfono»: se trata como conservado, que no une.
+    ["otra_cosa", "conservado"],
+    [7, "conservado"],
+  ])("origen_cliente %j de la base se lee como %j", async (dicho, esperado) => {
+    const rpc = vi.fn(async () => ({ data: [{ ...fila, origen_cliente: dicho }], error: null }));
+    const r = await aplicarConversacion({ admin: { rpc } as never, tenantId: T1 }, conv, null, 77);
+    expect(r).toEqual({ nuevo: true, aplicado: true, clientId: FICHA, origenCliente: esperado });
+  });
+
+  it("la función de antes (sin origen_cliente): su cliente solo sale del teléfono", async () => {
+    const rpc = vi.fn(async () => ({ data: [fila], error: null }));
+    const r = await aplicarConversacion({ admin: { rpc } as never, tenantId: T1 }, conv, null, 77);
+    expect(r.origenCliente).toBe("telefono");
+  });
+
+  it("sin cliente no hay origen, diga lo que diga la fila", async () => {
+    const rpc = vi.fn(async () => ({ data: [{ nuevo: true, aplicado: true, client_id: null, origen_cliente: "telefono" }], error: null }));
+    const r = await aplicarConversacion({ admin: { rpc } as never, tenantId: T1 }, conv, null, 77);
+    expect(r).toEqual({ nuevo: true, aplicado: true, clientId: null, origenCliente: null });
   });
 
   it("otro error no se repite: lanza con el código", async () => {

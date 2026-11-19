@@ -15,6 +15,14 @@
 --    REQUIERE la 0504, la 0506, la 0513, la 0519 y la 0554 (el preflight para si
 --    falta alguna).
 --
+--    ORDEN OBLIGATORIO: EL WEB PRIMERO, LA 0566 DESPUÉS. El web de la corrección
+--    (PR #696) tiene que estar publicado ANTES de aplicarla. La razón: desde que la
+--    0566 existe, el chat del portal deja su unión en chatwoot_contact_links, y un
+--    web anterior a la #696 la trataría como una unión cualquiera: le escribiría el
+--    segmento y el Shipping Mark al contacto del portal en Chatwoot (a ese contacto
+--    solo van su nombre y su identificador) y le pondría «Quitar» en la ficha del
+--    cliente. El web de la #696 tolera que la 0566 falte.
+--
 -- CORREGIDA ANTES DE APLICARSE (Sam, 2026-11-18: «Ok, te encargo la corrección
 -- al 0566»). La primera versión dejaba sin cliente una conversación cuando un
 -- evento traía contacto, sin unión y sin teléfono. El chat del portal (0519)
@@ -639,7 +647,7 @@ create or replace function public.chatwoot_registrar_evento(
   p_avisar            boolean default false,
   p_contact_id        bigint default null
 )
-returns table (nuevo boolean, aplicado boolean, client_id uuid)
+returns table (nuevo boolean, aplicado boolean, client_id uuid, origen_cliente text)
 language plpgsql
 security definer
 set search_path = ''
@@ -647,6 +655,10 @@ as $fn$
 declare
   v_filas    integer;
   v_cliente  uuid;
+  -- De dónde salió el cliente que se devuelve: 'union' | 'telefono' | 'conservado' | null.
+  -- Quien une solo (chatwoot_unir_contactos, origen webhook) lo hace ÚNICAMENTE con
+  -- 'telefono': un cliente conservado no prueba que el teléfono haya cruzado.
+  v_origen   text;
   v_guardado uuid;
   v_cruces   integer := 0;
   v_telefono boolean := coalesce(p_phone_last10 ~ '^[0-9]{10}$', false);
@@ -673,7 +685,7 @@ begin
              or (e.status = 'procesando' and e.updated_at < pg_catalog.now() - interval '5 minutes'));
       get diagnostics v_filas = row_count;
       if v_filas = 0 then
-        return query select false, false, null::uuid;
+        return query select false, false, null::uuid, null::text;
         return;
       end if;
     end if;
@@ -683,6 +695,9 @@ begin
   -- unión hecha a mano manda sobre el teléfono.
   if v_contacto then
     v_cliente := public.chatwoot_ficha_de_contacto(p_tenant_id, p_contact_id);
+    if v_cliente is not null then
+      v_origen := 'union';
+    end if;
   end if;
 
   -- Después, el teléfono: exactamente una ficha o nada (phone_last10 no es único).
@@ -695,6 +710,21 @@ begin
       and c.deleted_at is null;
     if v_cruces <> 1 then
       v_cliente := null;
+    else
+      v_origen := 'telefono';
+    end if;
+  end if;
+
+  -- Carrera con el borrado de la ficha: se toma la ficha encontrada con FOR SHARE. Si
+  -- alguien la está borrando, este evento espera y, al seguir, ya la ve borrada y no la
+  -- escribe; si este evento va primero, el borrado espera y su disparador limpia después.
+  if v_cliente is not null then
+    perform 1 from public.clients c
+    where c.id = v_cliente and c.tenant_id = p_tenant_id and c.deleted_at is null
+    for share;
+    if not found then
+      v_cliente := null;
+      v_origen := null;
     end if;
   end if;
 
@@ -716,7 +746,11 @@ begin
     -- Así sobreviven el chat del portal (0519, que fija su cliente sin teléfono) y un
     -- teléfono que dejó de coincidir. Solo chatwoot_quitar_union y el borrado de la ficha,
     -- que son decisiones de una persona, dejan una conversación sin cliente.
-    client_id         = coalesce(excluded.client_id, cc.client_id),
+    -- El conservado se revalida aquí mismo: una ficha borrada no se conserva.
+    client_id         = coalesce(
+                          excluded.client_id,
+                          (select c.id from public.clients c
+                           where c.id = cc.client_id and c.tenant_id = cc.tenant_id and c.deleted_at is null)),
     chat_contact_id   = coalesce(excluded.chat_contact_id, cc.chat_contact_id),
     last_activity_at  = excluded.last_activity_at,
     source_updated_at = excluded.source_updated_at,
@@ -725,13 +759,17 @@ begin
   returning cc.client_id into v_guardado;
   get diagnostics v_filas = row_count;
 
-  -- Devuelve el cliente que la conversación tiene de verdad (el conservado, si lo hubo).
-  return query select true, v_filas = 1, case when v_filas = 1 then v_guardado else v_cliente end;
+  -- Devuelve el cliente que la conversación tiene de verdad y de dónde salió. Si este
+  -- evento no encontró ficha y la conversación conservó la suya, es 'conservado'.
+  if v_filas = 1 and v_cliente is null and v_guardado is not null then
+    v_origen := 'conservado';
+  end if;
+  return query select true, v_filas = 1, case when v_filas = 1 then v_guardado else v_cliente end, v_origen;
 end;
 $fn$;
 
 comment on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean, bigint) is
-  'SDD-0585 E2-D18/E2-D19/E2-D22 y SDD-0676: registra un evento de Chatwoot (idempotente por event_key) y aplica el estado de la conversación si no es más viejo que lo guardado. El cliente sale de la unión del contacto (0554) y, si no hay, del teléfono con ficha única; si tampoco, se conserva el que la conversación ya tenía (ningún evento quita un cliente). event_key nulo = reconciliación por API. Solo service_role.';
+  'SDD-0585 E2-D18/E2-D19/E2-D22 y SDD-0676: registra un evento de Chatwoot (idempotente por event_key) y aplica el estado de la conversación si no es más viejo que lo guardado. El cliente sale de la unión del contacto (0554) y, si no hay, del teléfono con ficha única; si tampoco, se conserva el que la conversación ya tenía, salvo que esa ficha esté borrada (ningún evento quita un cliente). Devuelve además origen_cliente (union | telefono | conservado): solo con telefono se une sola. event_key nulo = reconciliación por API. Solo service_role.';
 
 revoke all on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean, bigint) from public, anon, authenticated;
 grant execute on function public.chatwoot_registrar_evento(uuid, text, text, bigint, bigint, text, integer, bigint, text, timestamptz, double precision, bigint, boolean, bigint) to service_role;

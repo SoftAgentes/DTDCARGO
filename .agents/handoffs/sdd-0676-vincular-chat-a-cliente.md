@@ -144,6 +144,15 @@ Esta nota se escribió después de la aprobación y está en un commit local sin
 3. El desarme **borra** las uniones del portal en vez de convertirlas a otro origen: el web actual las trataría como uniones normales (se podrían quitar y recibirían el Shipping Mark).
 4. Si un contacto del portal ya está unido a mano a otra ficha, ni `chatwoot_portal_vincular` ni el relleno lo tocan: los eventos de ese contacto cruzarían a esa otra ficha. El conteo del relleno lo informa (dato 3). Caso raro, pero existe.
 
+**Revisión independiente de la #696 (Opus, sobre `2aaf99462`): CHANGES_REQUESTED.** Texto del Director General por mensaje entre sesiones; no leí el informe completo. El escenario del portal, la seguridad SQL, el relleno y el desarme quedaron bien.
+
+| Punto | Qué pedía | Estado |
+|---|---|---|
+| M1 (bloquea) | La RPC devuelve ahora el cliente conservado y `unirContactoAFicha` lo tomaba como cruce por teléfono: con `CHATWOOT_FICHA_UNIR=1` cada conservación se volvía una unión permanente | Corregido: la RPC devuelve `origen_cliente` y el manejador une solo con `telefono`. Contrato 4o a 4s, dos mutantes, y pruebas del manejador y del envoltorio. **No lo vi yo**: no revisé quién más leía el cliente devuelto |
+| B1 | Carrera con el borrado de la ficha | Revalidación en el `update` (probada: 8h, 8i y un mutante) y `for share` sobre la ficha encontrada (leída, **no ejercida**: pide dos transacciones a la vez) |
+| B2 | Orden de despliegue | Web primero, 0566 después: cabecera de la migración, espera del baseline, spec y runbook |
+| B3 | Guarda del desarme | No cuenta las uniones del portal (probado en el ensayo) y la nota de que su borrado no se audita |
+
 **Evidencia de esta corrección**
 
 | Comprobación | Resultado |
@@ -155,6 +164,9 @@ Esta nota se escribió después de la aprobación y está en un commit local sin
 | ESLint | PASÓ: 0 errores, 37 avisos, ninguno en archivos de la tarea. Corrió antes del arreglo de una línea del tipo; no lo repetí |
 | CI, cabeza `3685bc8d4`: «Contratos SQL» en Postgres 17 | FALLÓ: la aserción 4h esperaba que el evento devolviera vacío y ahora devuelve el cliente conservado. Era el contrato; corregido en `9f5f97b1b` |
 | CI, cabeza `9f5f97b1b`: «Contratos SQL» | PASÓ |
+| Tras los cambios de la revisión de la #696 (M1, B1, B2, B3), con turno: vitest de la prueba de la migración (contrato en PGlite, 28 mutantes, ensayos del desarme y del relleno), `lib/studio/chatwoot` entero, contratos del portal y `spec-migration-refs` | PASÓ: 56 archivos y 1.288 pruebas, 37 saltadas |
+| `tsc --noEmit` tras esos cambios | PASÓ |
+| ESLint tras esos cambios | NO EJECUTADO en local: CI |
 | Vitest completo y build | NO EJECUTADO en local: CI |
 | Aplicar la 0566 o el relleno en algún entorno | NO EJECUTADO |
 | Smoke del runbook | NO EJECUTADO |

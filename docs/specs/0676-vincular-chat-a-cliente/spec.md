@@ -168,11 +168,18 @@ Autorización de Sam, recibida en la sesión del Director General el 2026-11-18:
 | Contacto del portal que alguien ya unió a mano a otra ficha | Ni la función ni el relleno lo tocan; el conteo lo informa | No se pisa una decisión de una persona ni se frena el envío del cliente |
 | `chatwoot_portal_vincular_carga` (0524, la carga histórica ya hecha) | No se toca | Si se volviera a usar, sus contactos los recoge el relleno |
 
+**Cambios de la revisión de la PR de la corrección (2026-11-18).**
+
+- **El evento dice de dónde salió el cliente.** `chatwoot_registrar_evento` devuelve una cuarta columna, `origen_cliente`: `union`, `telefono` o `conservado`. Hacía falta porque ahora devuelve también el cliente conservado, y el manejador que une solo (`unirContactoAFicha`, SDD-0650 F2, apagado salvo `CHATWOOT_FICHA_UNIR=1`) tomaba cualquier cliente como «el teléfono cruzó con una ficha»: habría convertido cada conservación en una unión permanente, también la del portal. Ahora une **solo** con `telefono`, como pide la SDD-0650 («une solo con cruce único»). La función de antes de la 0566 no trae esa columna: su cliente solo sale del teléfono, y así se lee.
+- **Ficha borrada.** El cliente que se conserva se revalida en el mismo `update`: una ficha borrada no se conserva. La ficha que el evento encuentra (por unión o por teléfono) se toma con `for share`, para que el evento y el borrado no se crucen: el que llega segundo espera al primero. Esa espera NO está ejercida por una prueba (pide dos transacciones a la vez); la revalidación sí (contrato 8h y 8i).
+- **Orden de despliegue: el web primero, la 0566 después.** El web de esta corrección tiene que estar publicado antes de aplicar la 0566. Un web anterior trataría la unión del portal como una cualquiera: le escribiría el segmento y el Shipping Mark al contacto del portal en Chatwoot y le pondría «Quitar». Está escrito en la cabecera de la migración y en su espera.
+- **Desarme.** Su guarda del canal guardado no cuenta las uniones del portal, y borrar esas uniones no se audita fila por fila: no es la decisión de una persona sobre un cliente y el dato sigue en `chatwoot_portal_contactos`.
+
 **Mientras no se corra el relleno** el portal funciona igual: sus conversaciones conservan el cliente por la regla 2. Lo único que falta es el chip «Portal» en la ficha de los clientes antiguos y que quitar o mover no aplique a contactos sin unión.
 
 **Menores de la segunda revisión, cerrados aquí:** la aserción 10d del contrato filtra por tenant, y la rama del doble clic completa el canal igual que la rama normal de «ya_estaba».
 
-**Pruebas.** Contrato (`supabase/tests/0566_chatwoot_vincular_canal.test.sql`): 4i y 4m (un evento sin ficha conserva el cliente), 4n (la conversación guarda su contacto), 5g (mover), 6f y 6g (quitar), 8e a 8g (ficha borrada) y el bloque 11 entero (portal: 11a a 11h). En PGlite, un mutante por cada regla, el ensayo del desarme con una unión del portal y el ensayo del relleno.
+**Pruebas.** Contrato (`supabase/tests/0566_chatwoot_vincular_canal.test.sql`): 4i y 4m (un evento sin ficha conserva el cliente), 4n (la conversación guarda su contacto), 5g (mover), 6f y 6g (quitar), 8e a 8g (ficha borrada) y el bloque 11 entero (portal: 11a a 11h), 4o a 4s (de dónde salió el cliente) y 8h y 8i (una ficha borrada no se conserva). En PGlite, un mutante por cada regla, el ensayo del desarme con una unión del portal y el ensayo del relleno.
 
 ## 5. Datos personales (`revisar-datos-ve`)
 
