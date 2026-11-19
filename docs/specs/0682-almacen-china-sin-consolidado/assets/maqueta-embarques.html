@@ -1,7 +1,5 @@
 <title>Embarques: antes y después</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Maqueta SDD-0682 · dos pantallas de Embarques lado a lado (hoy | propuesta), con los tokens de Studio. */
 :root {
@@ -23,8 +21,8 @@
   --neutral-bg: rgba(107,107,107,0.10);
   --info-bg: rgba(15,30,61,0.07);
   --mark: rgba(127,15,26,0.08);
-  --f-sans: 'Archivo', system-ui, -apple-system, sans-serif;
-  --f-display: 'Archivo Black', 'Archivo', sans-serif;
+  --f-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-display: 'Archivo Black', 'Archivo', system-ui, 'Segoe UI', sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -53,7 +51,7 @@ body {
 .wrap { max-width: 1360px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
 .intro { display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
 .eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--wine); }
-h1 { font: 400 28px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
+h1 { font: 800 28px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
 .intro p { margin: 0; color: var(--ink-soft); }
 .demo { display: inline-flex; align-self: flex-start; gap: 6px; align-items: center; font: 600 12px/1 var(--f-sans);
   color: var(--warning); background: var(--warning-bg); padding: 6px 10px; border-radius: 999px; }
@@ -68,7 +66,7 @@ h1 { font: 400 28px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
 .seg button { border: 0; background: transparent; color: var(--ink); font: 600 12.5px/1 var(--f-sans); padding: 8px 10px; border-radius: 7px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--ink-inv); font-weight: 800; }
 .screen { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.screen h2 { font: 400 22px/1 var(--f-display); margin: 0; }
+.screen h2 { font: 800 22px/1 var(--f-display); margin: 0; }
 .screen .sub { margin: 0; font-size: 12.5px; color: var(--ink-soft); }
 .tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--elevated); width: fit-content; max-width: 100%; }
 .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: 600 13.5px/1 var(--f-sans); cursor: pointer; white-space: nowrap; }
@@ -113,7 +111,7 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
     <span class="eyebrow">SDD-0682 · Maqueta para decidir</span>
     <h1>Embarques: cómo se ve hoy y cómo quedaría</h1>
     <p>Pantalla de Embarques del Studio, con los contenedores primero. Cambia de pestaña en cada lado para comparar qué embarques salen en cada una. Abre un contenedor para ver sus envíos.</p>
-    <span class="demo">Datos inventados: contenedores, clientes y códigos son de ejemplo</span>
+    <span class="demo">Datos de ejemplo: contenedores DTD #91 a #94, clientes, códigos y fechas no existen</span>
   </header>
 
   <div class="panels">
@@ -124,7 +122,7 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
       <div class="screen" id="screen-antes"></div>
       <ul class="notes">
         <li>Abre en <b>Todos</b>.</li>
-        <li><b>Activos</b> cuenta todo lo que no está entregado ni cancelado, también lo que va en el mar (DTD #63 y #64).</li>
+        <li><b>Activos</b> cuenta todo lo que no está entregado ni cancelado, también lo que va en el mar (DTD #92 y #93).</li>
       </ul>
     </section>
 
@@ -156,17 +154,17 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
     in_customs: "b-warning", arrived_destination: "b-info", out_for_delivery: "b-info", delivered: "b-success", exception: "b-danger"
   };
   var CONT = [
-    { id: "c65", name: "Contenedor DTD #65", no: "DEMO 650001-0", estado: ["Consolidando", "b-info"], naviera: "Naviera A", eta: "sin fecha", ref: "DTD-CONSOL-0006", liberado: false },
-    { id: "c64", name: "Contenedor DTD #64", no: "DEMO 640001-0", estado: ["Zarpado", "b-info"], naviera: "Naviera B", eta: "08/12/2026", ref: "DTD-CONSOL-0004", liberado: true },
-    { id: "c63", name: "Contenedor DTD #63", no: "DEMO 630001-0", estado: ["Zarpado", "b-info"], naviera: "Naviera A", eta: "28/11/2026", ref: "DTD-CONSOL-0003", liberado: false },
-    { id: "c61", name: "Contenedor DTD #61", no: "DEMO 610001-0", estado: ["Arribado", "b-success"], naviera: "Naviera B", eta: "02/11/2026", ref: "DTD-CONSOL-0001", liberado: true },
+    { id: "c94", name: "Contenedor DTD #94", no: "DEMO 940000-0", estado: ["Consolidando", "b-info"], naviera: "Naviera de ejemplo A", eta: "sin fecha", ref: "DEMO-CONSOL-04", liberado: false },
+    { id: "c93", name: "Contenedor DTD #93", no: "DEMO 930000-0", estado: ["Zarpado", "b-info"], naviera: "Naviera de ejemplo B", eta: "10/03/2031", ref: "DEMO-CONSOL-03", liberado: true },
+    { id: "c92", name: "Contenedor DTD #92", no: "DEMO 920000-0", estado: ["Zarpado", "b-info"], naviera: "Naviera de ejemplo A", eta: "24/02/2031", ref: "DEMO-CONSOL-02", liberado: false },
+    { id: "c91", name: "Contenedor DTD #91", no: "DEMO 910000-0", estado: ["Arribado", "b-success"], naviera: "Naviera de ejemplo B", eta: "06/01/2031", ref: "DEMO-CONSOL-01", liberado: true },
     { id: "sin", name: "Sin contenedor", no: "", estado: null, naviera: null, eta: null, ref: null, liberado: false }
   ];
   var plan = {
-    c65: [["in_warehouse", 3], ["consolidating", 4]],
-    c64: [["in_transit", 6]],
-    c63: [["shipped", 1], ["in_transit", 4]],
-    c61: [["in_customs", 2], ["arrived_destination", 2], ["out_for_delivery", 1], ["delivered", 3], ["exception", 1]],
+    c94: [["in_warehouse", 3], ["consolidating", 4]],
+    c93: [["in_transit", 6]],
+    c92: [["shipped", 1], ["in_transit", 4]],
+    c91: [["in_customs", 2], ["arrived_destination", 2], ["out_for_delivery", 1], ["delivered", 3], ["exception", 1]],
     sin: [["draft", 1], ["in_warehouse", 2]]
   };
   var SHIP = [], k = 0;
@@ -299,7 +297,7 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
       var items = st.modo === "a"
         ? [
             ["Abre en ", "Activos", ": solo lo que pide trabajo en origen o en destino (bodega China, consolidando, aduana, bodega VE, reparto, alertas)."],
-            ["Pestaña nueva ", "En camino", ": lo que va en el mar (Embarcado y En tránsito). Ahí quedan el DTD #63 y el #64."],
+            ["Pestaña nueva ", "En camino", ": lo que va en el mar (Embarcado y En tránsito). Ahí quedan el DTD #92 y el #93."],
             ["En el encabezado del contenedor, la insignia verde ", "Liberado", " cuando China confirmó el telex release."]
           ]
         : [
@@ -326,8 +324,8 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   document.getElementById("opt-a").addEventListener("click", function () { setModo("a"); });
   document.getElementById("opt-sin").addEventListener("click", function () { setModo("sin"); });
 
-  state.antes.open.c64 = true;
-  state.despues.open.c64 = true;
+  state.antes.open.c93 = true;
+  state.despues.open.c93 = true;
   render("antes");
   render("despues");
 })();

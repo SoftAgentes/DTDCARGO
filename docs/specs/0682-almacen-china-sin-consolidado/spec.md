@@ -11,7 +11,7 @@ related: ["0016", "0029", "0039", "0047", "0531", "0543", "0643", "0659", "0674"
 confidencialidad: interno
 ---
 
-# SDD-0682 — Lo consolidado sale de Almacén China y de la lista activa
+# SDD-0682 — Almacén China en una pantalla: en almacén, en camino y pendiente por liberar
 
 > Sam, 2026-11-19: lo que se metió en el contenedor 64 sigue saliendo en Almacén China. Lo consolidado no
 > debería estar ahí: debería verse «en ruta», en una opción de «contenedores en camino». Y los embarques ya
@@ -78,9 +78,15 @@ Sam no quiere mandar al equipo de China a Tracking (§2): se reutiliza la regla,
 
 Se buscó en migraciones, `lib/` y `app/` (`telex`, `liberad*`, `release`, `seaway`, `bl_*`). Lo que existe es esto:
 
-- `consolidations` tiene `status` (consolidando/cerrado/zarpado/arribado), `container_no`, `notes` y fechas
-  (`supabase/migrations/0096_naviera_consolidacion.sql:166-179`; `container_no` en la 0154). Ninguna columna
-  dice si el BL se liberó.
+- `consolidations` tiene `status` (consolidando/cerrado/zarpado/arribado), `container_no`, `notes`,
+  `sailing_id` y solo marcas técnicas de tiempo (`created_at`, `updated_at`, `deleted_at`)
+  (`supabase/migrations/0096_naviera_consolidacion.sql:166-179`; `container_no` en la 0154). No tiene fechas
+  de negocio y ninguna columna dice si el BL se liberó.
+- La ETA (y la ETD) no vive en el contenedor sino en su itinerario: `sailings.eta`, por
+  `consolidations.sailing_id` (`supabase/migrations/0096_naviera_consolidacion.sql:96-108`). Tracking y
+  Embarques ya la leen así (`lib/studio/tracking-contenedores-queries.ts:203-207`,
+  `lib/studio/embarques-contenedores-queries.ts:96-97`). Un contenedor sin `sailing_id` o con `sailings.eta`
+  nula no tiene ETA.
 - «Liberado» existe solo para la aduana SENIAT en destino (`customs_status`, migraciones 0010 y 0318), que
   es otro hito.
 - El modal «Generar BL» ofrece el tipo SeaWayBill (`app/studio/_components/wiring/GenerateBLModal.tsx:31`),
@@ -115,6 +121,8 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 - Una fila por contenedor `zarpado`: número DTD (de `notes`, como `numeroDtdDeNotas` en
   `lib/studio/embarques-contenedores.ts:184`), contenedor, naviera, ETA, **días que faltan** y **porcentaje
   del viaje**. Sam lo quiere muy simple: solo el contador y el porcentaje, sin mapa ni hitos.
+- La ETA sale de `sailings.eta` por `consolidations.sailing_id` (§1.6). Sin ETA, el contador dice «sin
+  ETA» y no se inventa (regla de Tracking, `lib/studio/tracking-contenedores.ts:11`).
 - El contador y el porcentaje salen de la misma regla de Tracking (`diasRestantes` y `progreso` de
   `lib/studio/tracking-contenedores.ts:386-387`), sin copiarla. Así las dos pantallas no se separan.
 - Al abrir un contenedor, las recepciones que lleva (las `consolidado` con `shipment_id` en sus
@@ -129,7 +137,8 @@ avisar. China da crédito en el flete y libera cuando el contenedor está por ll
 de la ETA**. Si no libera, la aduana no puede tocar el contenedor.
 
 - **Solo** contenedores `zarpado` (en el mar) sin telex release. Los `cerrado` (cargados, sin zarpar) no
-  entran. Primero los de ETA más cercana.
+  entran. Primero los de ETA más cercana; la ETA es `sailings.eta` por `sailing_id` (§1.6). Los que no
+  tienen ETA van al final, marcados «sin ETA», y no se resaltan.
 - Cada fila: número DTD, contenedor, naviera, ETA y días que faltan. Cuando faltan 15 días o menos, la fila
   se resalta («toca liberar»). Ese umbral queda como constante con nombre: es el mismo que leerá el aviso.
 - Botón **«Confirmar telex release»** para el equipo de China. Abre una confirmación con un campo opcional
@@ -165,7 +174,7 @@ adjuntar nada, y un adjunto no dice por sí solo que la naviera ya liberó.
 maqueta y lo que se programa.
 
 Sam quiere **ver** cómo quedaría antes de cambiar nada, y cree que Embarques no debería cambiar. La maqueta
-está en [`assets/maqueta-embarques.html`](assets/maqueta-embarques.html) (datos inventados), publicada
+está en [`assets/maqueta-embarques.html`](assets/maqueta-embarques.html) (datos ficticios: DTD #91 a #94, DEMO-CONSOL-01 a 04), publicada
 en privado para Sam en <https://claude.ai/artifact/MnQ36KhNCemhmqjzoQuAS8>. Se puede cambiar de pestaña y
 abrir los contenedores, y alternar entre la opción (a) y «sin cambio, solo la insignia». Muestra el
 cambio exacto propuesto, opción (a):
@@ -228,8 +237,8 @@ Contestadas por Sam el 2026-11-19, vía el DG:
 3. y 4. «En camino» va **dentro de Almacén China**, con contador y porcentaje, junto con «Pendiente por
    liberar»: las tres vistas en una sola pantalla.
 
-5. **A, Embarques:** antes de cambiar nada, Sam quiere ver cómo quedaría; cree que no debería cambiar. Se
-   preparó la maqueta antes/después (§2.5). No se programa nada de Embarques hasta que la vea.
+5. **A, Embarques:** resuelta por la respuesta 9. Antes de cambiar nada, Sam quiso ver cómo quedaría y se
+   preparó la maqueta antes/después (§2.5).
 6. **B, telex release:** lo hace siempre China. China tiene un botón para confirmarlo, con opción de subir
    el documento; del lado de DTD sale en verde como «Liberado» (§2.3, §2.4).
 7. **C:** «Pendiente por liberar» incluye **solo** los contenedores en el mar. China libera unos 15 días
