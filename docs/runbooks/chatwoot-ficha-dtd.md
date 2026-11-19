@@ -101,7 +101,7 @@ Lo hace Sam con su **WhatsApp secundario** y su **Instagram secundario**, y una 
 
 **Estado al 2026-11-19.** La 0566 está aplicada en producción, así que lo de abajo debe cumplirse entero. Si algo sale como antes de la migración (la ficha cruza solo por teléfono, «Vincular» une sin guardar el canal ni absorber la tarjeta de lead, o «Mover aquí» responde que falta la migración), el web o la base no están donde se cree: no repitas el paso y avisa al Director General.
 
-**Orden (ya pasado).** El web de la corrección de la 0566 tenía que estar publicado antes de aplicarla; al revés, el web anterior le escribiría el segmento y el Shipping Mark al contacto del portal y mostraría «Quitar» en su chip. Si hubo una ventana con el web anterior y la 0566 aplicada, conviene mirar los contactos del portal en Chatwoot antes del smoke: eso no está medido.
+**Orden (ya pasado).** El web de la corrección debía estar publicado antes de aplicar la 0566; en producción pasó al revés: El web de la #696 **no** estaba publicado antes del apply: la publicación anterior fue `f0169eed9` a las 10:56Z y la #696 entró a las 10:58Z. Quedó migrate-first (la base nueva con el web anterior) y el web con la #696 se publicó después, en `a30e7ca38`. Dato del Director General; no lo medí yo. Si el web anterior corrió esa ventana con la 0566 aplicada, pudo escribir segmento y Shipping Mark al contacto del portal en Chatwoot (solo con `CHATWOOT_ATRIBUTOS_CONTACTO=1`) y mostrar «Quitar» en su chip. No está medido: antes del smoke conviene mirar los contactos del portal en Chatwoot.
 
 **Dónde hacerlo.** Sam ofreció dos lugares; los pasos A a D son los mismos en los dos.
 
