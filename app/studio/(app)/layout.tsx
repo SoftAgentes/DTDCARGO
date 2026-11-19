@@ -193,6 +193,9 @@ export default async function StudioAppLayout({
               color: "var(--ink)",
             }}
           >
+            {/* SDD-0677: `data-capa-fondo` marca las ramas que la Bandeja a pantalla
+                completa vuelve `inert`. `display: contents` no cambia el flex. */}
+            <div data-capa-fondo="" style={{ display: "contents" }}>
             <StudioSidebar
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
@@ -202,6 +205,7 @@ export default async function StudioAppLayout({
               overrides={roleModuleOverrides}
               grants={myModuleGrants}
             />
+            </div>
 
             <main
               style={{
@@ -211,6 +215,7 @@ export default async function StudioAppLayout({
                 minWidth: 0,
               }}
             >
+              <div data-capa-fondo="" style={{ display: "contents" }}>
               <StudioTopbar
                 userEmail={user.email ?? ""}
                 userId={user.id}
@@ -219,6 +224,7 @@ export default async function StudioAppLayout({
                 initialUnreadConversations={initialUnreadConversations}
                 showConversations={canAccessModule(role, "conversaciones", roleModuleOverrides, myModuleGrants)}
               />
+              </div>
               {/* El tope de ancho vive en `.studio-content` (studio.css) para que una
                   pantalla que lo pide (SDD-0648: Embudos del CRM) use todo el ancho. */}
               <div

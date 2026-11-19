@@ -12,6 +12,15 @@
  * consolidations → sailings → carriers, con la sesión y su RLS) y la vista
  * empieza por los contenedores. El tope sube a 500 embarques para no cortar
  * un consolidado; si se llega al tope, la vista lo dice.
+ *
+ * SDD-0661: las cajas salen con los contenedores; las cajas recibidas, de la
+ * recepción VE de cada contenedor (para todos). Por cobrar y cobrado sólo se
+ * lee si la persona ve Facturación (módulo de dinero `invoices`): si no, no se
+ * consulta y la prop no existe, así no viaja al navegador.
+ *
+ * SDD-0674 · EXC-0674: a accounting y admin (los que ya ven montos) se les lee además qué
+ * contenedores están en la lista transitoria (hoy solo el 64) y qué clientes ya se facturaron ahí.
+ * Los demás roles, operations incluido, no reciben la prop (Sam, 2026-11-18).
  */
 
 import { createClient } from "@/lib/db/server";
@@ -21,7 +30,14 @@ import { listShipments, type ShipmentListRow } from "@/lib/studio/shipment-queri
 import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
 import { conteosPorId } from "@/lib/studio/documents/adjuntos";
 import { leerInfoEmbarques } from "@/lib/studio/borrado/servidor";
-import { leerContenedoresDeEmbarques } from "@/lib/studio/embarques-contenedores-queries";
+import {
+  leerContenedoresDeEmbarques,
+  leerMontosDeContenedores,
+  leerRecibidasDeContenedores,
+} from "@/lib/studio/embarques-contenedores-queries";
+import type { MontosDeContenedores } from "@/lib/studio/embarques-contenedores";
+import { rolFacturaExc0674, type FacturacionExc0674 } from "@/lib/studio/exc0674";
+import { leerFacturacionExc0674 } from "@/lib/studio/exc0674-queries";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
@@ -50,9 +66,36 @@ export default async function EmbarquesPage() {
     })(),
   ]);
 
+  // SDD-0661: el monto es dinero. Se decide aquí, en el servidor; sin permiso no
+  // se lee `invoices` y la prop no existe. Hacen falta las DOS cosas:
+  //  - la puerta de Facturación (`moduleViewDenial(…, "invoices")`), y
+  //  - el rol que deja leer la tabla: `invoices_accounting_select` (0414) sólo
+  //    abre el SELECT a accounting y admin. Un acceso extra de la SDD-0622 pasa
+  //    la puerta pero no la RLS: leería cero facturas y diría «Sin facturar»
+  //    sin ser cierto. Por eso no se le muestra dinero.
+  // Las cajas recibidas (recepción VE) son carga, no dinero: para todos.
+  const { role } = await getStudioAccess(supabase);
+  const rolLeeFacturas = role === "accounting" || role === "admin";
+  // SDD-0674: la puerta de Facturación decide también «Facturar». Una sola consulta para las dos.
+  const veFacturacion =
+    (rolLeeFacturas || rolFacturaExc0674(role)) && (await moduleViewDenial(supabase, "invoices")) === null;
+  let montos: MontosDeContenedores | undefined;
+  let facturacion: FacturacionExc0674 | undefined;
+  if (contenedores) {
+    const [recibidas, leidos, exc0674] = await Promise.all([
+      leerRecibidasDeContenedores(supabase, contenedores.contenedores),
+      rolLeeFacturas && veFacturacion ? leerMontosDeContenedores(supabase, contenedores) : undefined,
+      rolFacturaExc0674(role) && veFacturacion
+        ? leerFacturacionExc0674(supabase, contenedores.contenedores.map((c) => c.id))
+        : undefined,
+    ]);
+    if (recibidas) contenedores.recibidasPorContenedor = recibidas;
+    montos = leidos;
+    facturacion = exc0674;
+  }
+
   // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
   // bloqueos falla (por ejemplo, sin la 0476), se dice y no se ofrece borrar.
-  const { role } = await getStudioAccess(supabase);
   let eliminacion: EliminacionEmbarques | undefined;
   if (canSpecial(role, "delete_shipments")) {
     const info = await leerInfoEmbarques(
@@ -68,6 +111,8 @@ export default async function EmbarquesPage() {
       adjuntos={adjuntos}
       eliminacion={eliminacion}
       contenedores={contenedores}
+      {...(montos ? { montos } : {})}
+      {...(facturacion ? { facturacion } : {})}
       tope={shipments.length >= TOPE_EMBARQUES ? TOPE_EMBARQUES : undefined}
     />
   );

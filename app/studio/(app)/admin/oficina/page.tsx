@@ -9,6 +9,7 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/db/server";
+import { vistaActiva } from "@/lib/studio/oficina/config";
 import { etapaActual, leerConteo, leerPendientes, leerPorCerrar } from "@/lib/studio/oficina/revisiones";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
@@ -73,6 +74,13 @@ export default async function OficinaRevisionPage({
       <p style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 16px", maxWidth: "76ch" }}>
         Lo que redactó el agente soporte-chatwoot. Nada se envía sin tu aprobación, y solo a la bandeja de prueba.
       </p>
+      {vistaActiva() ? (
+        <p style={{ font: "400 13px/1.4 var(--f-sans)", margin: "0 0 16px" }}>
+          <Link href="/studio/admin/oficina/vista" style={{ color: "var(--ink)" }}>
+            Ver la cola, los eventos y la bitácora del cable (solo lectura) →
+          </Link>
+        </p>
+      ) : null}
       {r && AVISOS[r] ? (
         <p role="status" style={{ ...texto, marginBottom: 16 }}>
           {AVISOS[r]}

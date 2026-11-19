@@ -18,8 +18,15 @@
  *   control interactivo dentro de otro no es HTML válido ni accesible.
  * - SDD-0560: junto al motivo de una fila bloqueada, «Ver los pasos» abre el
  *   asistente de borrado de ese embarque (`AsistenteBorrado`).
+ * - SDD-0661 (diseño elegido por Sam, «Franja + Excel»): la cabecera cerrada
+ *   dice clientes, envíos, cajas y m³. Al abrir el contenedor, una franja de
+ *   totales (clientes, cajas, cajas recibidas, CBM) y el detalle por cliente
+ *   como en el Excel, con la fila «Total del contenedor». «Por cobrar» y
+ *   «Cobrado» sólo se pintan si la página los pasó: los lee sólo para quien
+ *   ve Facturación, así que aquí no se decide permiso.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import {
@@ -58,15 +65,22 @@ import {
 } from "@/lib/studio/borrado/reglas";
 import { deleteShipmentsAction } from "../actions";
 import { AsistenteBorrado } from "./AsistenteBorrado";
+import { FacturarContenedor } from "./FacturarContenedor";
+import type { FacturacionExc0674 } from "@/lib/studio/exc0674";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   agruparPorContenedor,
   clienteCoincide,
   contenedorCoincide,
   formatFecha,
+  type ClienteDeContenedor,
   type ContenedoresDeEmbarques,
   type GrupoContenedor,
+  sumarMontos,
+  type MontoAcumulado,
+  type MontosDeContenedores,
 } from "@/lib/studio/embarques-contenedores";
+import { fmtUsd } from "@/lib/money";
 import { CONTAINER_STATUS, type ContainerStatus } from "@/lib/studio/naviera/types";
 
 /** Sin datos de contenedores (p. ej., en pruebas): todo va a «Sin contenedor». */
@@ -137,6 +151,8 @@ export function EmbarquesClient({
   adjuntos,
   eliminacion,
   contenedores = SIN_CONTENEDORES,
+  montos,
+  facturacion,
   tope,
 }: {
   shipments: ShipmentListRow[];
@@ -154,6 +170,16 @@ export function EmbarquesClient({
    * se dice y la lista se agrupa sólo por cliente, como antes.
    */
   contenedores?: ContenedoresDeEmbarques | null;
+  /**
+   * SDD-0661: monto a cobrar por contenedor. Sólo llega si quien mira ve
+   * Facturación (lo decide la página en el servidor); `undefined` = no se pinta.
+   */
+  montos?: MontosDeContenedores;
+  /**
+   * SDD-0674 · EXC-0674: qué contenedores se facturan desde aquí y qué ya se facturó. Sólo llega
+   * para accounting y admin (lo decide la página en el servidor).
+   */
+  facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
 }) {
@@ -658,6 +684,8 @@ export function EmbarquesClient({
           grupos={grupos}
           abiertos={abiertos}
           toggleContenedor={toggleContenedor}
+          montos={montos}
+          facturacion={facturacion}
           renderClientes={(g) => (
             <GroupedTable
               groups={g.clientes}
@@ -943,11 +971,15 @@ function ListaDeContenedores({
   grupos,
   abiertos,
   toggleContenedor,
+  montos,
+  facturacion,
   renderClientes,
 }: {
   grupos: GrupoContenedor[];
   abiertos: Set<string>;
   toggleContenedor: (key: string) => void;
+  montos?: MontosDeContenedores;
+  facturacion?: FacturacionExc0674;
   renderClientes: (g: GrupoContenedor) => ReactNode;
 }) {
   return (
@@ -1062,6 +1094,11 @@ function ListaDeContenedores({
                 <Badge tone="neutral" size="sm">
                   {g.embarques} {g.embarques === 1 ? "envío" : "envíos"}
                 </Badge>
+                {g.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(g.cajas)}
+                  </Badge>
+                )}
                 <span
                   style={{
                     font: "600 11.5px/1 var(--f-mono)",
@@ -1070,15 +1107,30 @@ function ListaDeContenedores({
                     textAlign: "right",
                   }}
                 >
-                  {g.totalCbm.toFixed(2)} m³
+                  {formatCbm(g.totalCbm)} m³
                 </span>
               </span>
             </button>
             {abierto && (
               <div
                 id={cuerpoId}
-                style={{ padding: "var(--s-3)", borderTop: "1px solid var(--border)" }}
+                style={{
+                  padding: "var(--s-3)",
+                  borderTop: "1px solid var(--border)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--s-3)",
+                }}
               >
+                {c && (
+                  <>
+                    <FranjaDeTotales grupo={g} montos={montos} />
+                    <DetallePorCliente grupo={g} montos={montos} />
+                    {facturacion?.estado === "lista" && facturacion.contenedores.includes(c.id) && (
+                      <FacturarContenedor grupo={g} facturados={facturacion.facturados[c.id] ?? {}} />
+                    )}
+                  </>
+                )}
                 {renderClientes(g)}
               </div>
             )}
@@ -1104,6 +1156,284 @@ function ListaDeContenedores({
   );
 }
 
+/** SDD-0661: «1 caja» · «1.234 cajas». */
+function textoCajas(n: number): string {
+  return `${n.toLocaleString("es-VE")} ${n === 1 ? "caja" : "cajas"}`;
+}
+
+/** SDD-0661: cajas recibidas; sin recepción, «Sin recepción» (decisión de Sam: nunca 0). */
+function textoRecibidas(n: number | null): string {
+  return n == null ? "Sin recepción" : n.toLocaleString("es-VE");
+}
+
+/** SDD-0665: «1.234,5 kg». */
+function textoPeso(kg: number): string {
+  return `${kg.toLocaleString("es-VE", { maximumFractionDigits: 2 })} kg`;
+}
+
+/** SDD-0665: el peso de un cliente; si ninguno de sus envíos lo tiene, «Sin peso» (no 0). */
+function textoPesoCliente(c: ClienteDeContenedor): string {
+  return c.enviosSinPeso === c.shipments.length ? "Sin peso" : textoPeso(c.stats.totalWeight);
+}
+
+/**
+ * SDD-0661: un monto en dólares, o «Sin facturar» si no hay facturas (el
+ * contenedor 64 se cargó sin facturas: nunca $0.00 inventado).
+ */
+function textoMonto(m: MontoAcumulado, campo: "porCobrarUsd" | "cobradoUsd"): string {
+  return m.facturas === 0 ? "Sin facturar" : fmtUsd(m[campo]);
+}
+
+/** SDD-0661: franja de totales al abrir el contenedor. */
+function FranjaDeTotales({
+  grupo,
+  montos,
+}: {
+  grupo: GrupoContenedor;
+  montos?: MontosDeContenedores;
+}) {
+  const total =
+    montos?.estado === "lista"
+      ? sumarMontos(
+          grupo.clientes.flatMap((c) => c.shipments),
+          montos.porEmbarque,
+        )
+      : null;
+  const fichas: { etiqueta: string; valor: string; dinero?: boolean }[] = [
+    { etiqueta: "Clientes", valor: grupo.clientes.length.toLocaleString("es-VE") },
+    { etiqueta: "Cajas", valor: (grupo.cajas ?? 0).toLocaleString("es-VE") },
+    { etiqueta: "Cajas recibidas", valor: textoRecibidas(grupo.recibidas) },
+    { etiqueta: "CBM total", valor: `${formatCbm(grupo.totalCbm)} m³` },
+    {
+      etiqueta: "Peso total",
+      valor: grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg),
+    },
+  ];
+  if (montos) {
+    const nd = "No disponible";
+    fichas.push(
+      { etiqueta: "Por cobrar", valor: total ? textoMonto(total, "porCobrarUsd") : nd, dinero: true },
+      { etiqueta: "Cobrado", valor: total ? textoMonto(total, "cobradoUsd") : nd, dinero: true },
+    );
+  }
+  return (
+    <div>
+      <dl
+        aria-label={`Totales de ${grupo.nombre}`}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: "var(--s-2)",
+          margin: 0,
+        }}
+      >
+        {fichas.map((f) => (
+          <div
+            key={f.etiqueta}
+            style={{
+              background: f.dinero ? "var(--warning-bg)" : "var(--bg-elevated)",
+              borderRadius: "var(--r-md)",
+              padding: "var(--s-3)",
+              minWidth: 0,
+            }}
+          >
+            <dt style={{ font: "600 12px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>
+              {f.etiqueta}
+            </dt>
+            <dd
+              style={{
+                margin: "var(--s-1) 0 0",
+                font: "800 18px/1.2 var(--f-sans)",
+                color: "var(--ink)",
+                fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.valor}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {grupo.enviosSinPeso > 0 && grupo.enviosSinPeso < grupo.embarques && (
+        <p
+          style={{
+            margin: "var(--s-2) 0 0",
+            font: "500 12px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {grupo.enviosSinPeso} {grupo.enviosSinPeso === 1 ? "envío" : "envíos"} sin peso cargado: el
+          peso total no los incluye.
+        </p>
+      )}
+      {total && total.otraMoneda > 0 && (
+        <p
+          style={{
+            margin: "var(--s-2) 0 0",
+            font: "500 12px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {total.otraMoneda} {total.otraMoneda === 1 ? "factura está" : "facturas están"} en otra
+          moneda y no se suman.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const TH_DETALLE = {
+  font: "700 11px/1 var(--f-sans)",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+  color: "var(--ink-soft)",
+  textAlign: "right" as const,
+  padding: "var(--s-2)",
+  whiteSpace: "nowrap" as const,
+};
+
+const TD_DETALLE = {
+  font: "500 13px/1.3 var(--f-mono)",
+  color: "var(--ink)",
+  textAlign: "right" as const,
+  padding: "var(--s-2)",
+  borderTop: "1px solid var(--border)",
+  whiteSpace: "nowrap" as const,
+};
+
+const PIE_DETALLE = { ...TD_DETALLE, fontWeight: 700, borderTop: "2px solid var(--ink-soft)" };
+
+/** SDD-0661: el detalle por cliente como en el Excel, con la fila de total. */
+function DetallePorCliente({
+  grupo,
+  montos,
+}: {
+  grupo: GrupoContenedor;
+  montos?: MontosDeContenedores;
+}) {
+  const lista = montos?.estado === "lista" ? montos.porEmbarque : null;
+  const celdaDinero = (filas: readonly ShipmentListRow[], campo: "porCobrarUsd" | "cobradoUsd") =>
+    lista ? textoMonto(sumarMontos(filas, lista), campo) : "—";
+  const todas = grupo.clientes.flatMap((c) => c.shipments);
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontVariantNumeric: "tabular-nums",
+          minWidth: montos ? 720 : 520,
+        }}
+      >
+        <caption
+          style={{
+            textAlign: "left",
+            font: "700 12px/1.2 var(--f-sans)",
+            color: "var(--ink-soft)",
+            padding: "0 var(--s-2) var(--s-1)",
+          }}
+        >
+          Detalle por cliente
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" style={{ ...TH_DETALLE, textAlign: "left" }}>
+              Cliente
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Envíos
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Cajas
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              Recibidas
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              m³
+            </th>
+            <th scope="col" style={TH_DETALLE}>
+              kg
+            </th>
+            {montos && (
+              <>
+                <th scope="col" style={TH_DETALLE}>
+                  Por cobrar
+                </th>
+                <th scope="col" style={TH_DETALLE}>
+                  Cobrado
+                </th>
+              </>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {grupo.clientes.map((c) => (
+            <tr key={c.groupKey}>
+              <th
+                scope="row"
+                style={{
+                  ...TD_DETALLE,
+                  font: "600 13px/1.3 var(--f-sans)",
+                  textAlign: "left",
+                  whiteSpace: "normal",
+                }}
+              >
+                {c.clientName}
+                {c.clientMarkbox && (
+                  <span
+                    style={{
+                      marginLeft: "var(--s-2)",
+                      font: "700 11px/1 var(--f-mono)",
+                      color: "var(--wine-text)",
+                    }}
+                  >
+                    {c.clientMarkbox}
+                  </span>
+                )}
+              </th>
+              <td style={TD_DETALLE}>{c.stats.count.toLocaleString("es-VE")}</td>
+              <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
+              <td style={TD_DETALLE}>{textoRecibidas(c.recibidas)}</td>
+              <td style={TD_DETALLE}>{formatCbm(c.stats.totalCbm)}</td>
+              <td style={TD_DETALLE}>{textoPesoCliente(c)}</td>
+              {montos && (
+                <>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "porCobrarUsd")}</td>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "cobradoUsd")}</td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th
+              scope="row"
+              style={{ ...PIE_DETALLE, font: "700 13px/1.3 var(--f-sans)", textAlign: "left" }}
+            >
+              Total del contenedor
+            </th>
+            <td style={PIE_DETALLE}>{grupo.embarques.toLocaleString("es-VE")}</td>
+            <td style={PIE_DETALLE}>{(grupo.cajas ?? 0).toLocaleString("es-VE")}</td>
+            <td style={PIE_DETALLE}>{textoRecibidas(grupo.recibidas)}</td>
+            <td style={PIE_DETALLE}>{formatCbm(grupo.totalCbm)}</td>
+            <td style={PIE_DETALLE}>
+              {grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg)}
+            </td>
+            {montos && (
+              <>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "porCobrarUsd")}</td>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "cobradoUsd")}</td>
+              </>
+            )}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
 function GroupedTable({
   groups,
   expanded,
@@ -1112,7 +1442,8 @@ function GroupedTable({
   adjuntos,
   seleccionable,
 }: {
-  groups: ReturnType<typeof groupShipmentsByClient>;
+  /** SDD-0661: dentro de un contenedor, cada cliente trae sus cajas. */
+  groups: (ReturnType<typeof groupShipmentsByClient>[number] & Partial<Pick<ClienteDeContenedor, "cajas">>)[];
   expanded: Set<string>;
   toggleGroup: (key: string) => void;
   onRowClick: (shipmentId: string) => void;
@@ -1242,6 +1573,11 @@ function GroupedTable({
                   {group.stats.count}{" "}
                   {group.stats.count === 1 ? "envío" : "envíos"}
                 </Badge>
+                {group.cajas != null && (
+                  <Badge tone="neutral" size="sm">
+                    {textoCajas(group.cajas)}
+                  </Badge>
+                )}
               </div>
               <span
                 style={{
@@ -1251,7 +1587,7 @@ function GroupedTable({
                   minWidth: 90,
                 }}
               >
-                {group.stats.totalCbm.toFixed(2)} m³
+                {formatCbm(group.stats.totalCbm)} m³
               </span>
             </button>
 
@@ -1434,7 +1770,7 @@ function GroupedTable({
                           textAlign: "right",
                         }}
                       >
-                        {s.volume_m3 != null ? Number(s.volume_m3).toFixed(2) : "—"}
+                        {formatCbm(s.volume_m3)}
                       </span>
                       {adjuntos !== null && (
                         <span>
