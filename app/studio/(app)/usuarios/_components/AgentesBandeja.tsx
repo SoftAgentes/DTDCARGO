@@ -225,14 +225,79 @@ export function agentesParaElegir(
   return [...libres].sort((a, b) => Number(coincide(b)) - Number(coincide(a)) || a.nombre.localeCompare(b.nombre, "es"));
 }
 
+/** Valor del select que pide escribir el número a mano. */
+const OTRO_AGENTE = "otro";
+
+function CampoNumero({ ayudaKey }: { ayudaKey: I18nKey }) {
+  const t = useT();
+  return (
+    <label className="studio-label" style={campo}>
+      {t("bandeja.links.agent_id")}
+      <input
+        name="chatwoot_user_id"
+        required
+        inputMode="numeric"
+        pattern="[1-9][0-9]*"
+        aria-describedby="bandeja-agent-id-help"
+        className="studio-input studio-input-mono"
+      />
+      <span id="bandeja-agent-id-help" style={{ ...ayuda, fontWeight: 400 }}>
+        {t(ayudaKey)}
+      </span>
+    </label>
+  );
+}
+
+/**
+ * El agente por nombre y correo. Con la lista incompleta (algún agente no se pudo
+ * leer) suma «Otro agente», que pide el número a mano. Se monta de nuevo al
+ * cambiar de persona (`key`), así arranca con el sugerido.
+ */
+function CampoAgente({ opciones, sugerido, completa }: { opciones: AgenteCuenta[]; sugerido: string; completa: boolean }) {
+  const t = useT();
+  const [elegido, setElegido] = useState(sugerido);
+  const manual = elegido === OTRO_AGENTE;
+  return (
+    <>
+      <label className="studio-label" style={campo}>
+        {t("bandeja.links.agent")}
+        <select
+          name={manual ? undefined : "chatwoot_user_id"}
+          required
+          value={elegido}
+          onChange={(e) => setElegido(e.target.value)}
+          aria-describedby="bandeja-agent-help"
+          className="studio-input"
+        >
+          <option value="" disabled>
+            {t("bandeja.links.agent_placeholder")}
+          </option>
+          {opciones.map((a) => (
+            <option key={a.id} value={a.id}>
+              {`${a.nombre || t("bandeja.links.agent_unknown", { id: a.id })} · ${a.correo} (#${a.id})`}
+            </option>
+          ))}
+          {!completa ? <option value={OTRO_AGENTE}>{t("bandeja.links.agent_other")}</option> : null}
+        </select>
+        <span id="bandeja-agent-help" style={{ ...ayuda, fontWeight: 400 }}>
+          {t(completa ? "bandeja.links.agent_help" : "bandeja.links.agents_incomplete")}
+        </span>
+      </label>
+      {manual ? <CampoNumero ayudaKey="bandeja.links.agent_id_help_other" /> : null}
+    </>
+  );
+}
+
 function Vincular({
   miembros,
   vinculos,
   agentes,
+  completa,
 }: {
   miembros: MiembroOpcion[];
   vinculos: VinculoFila[];
   agentes: AgenteCuenta[] | null;
+  completa: boolean;
 }) {
   const t = useT();
   const [estado, accion, pendiente] = useActionState(vincularAgente, INICIAL);
@@ -254,7 +319,8 @@ function Vincular({
         {t("bandeja.links.link_title")}
       </h3>
       <p style={ayuda}>{t("bandeja.links.link_help")}</p>
-      {agentes !== null && agentesParaElegir(agentes, vinculos, undefined).length === 0 ? (
+      {/* «Todos tienen vínculo» solo si la lista está completa: si faltó leer alguno, puede ser ese. */}
+      {agentes !== null && completa && agentesParaElegir(agentes, vinculos, undefined).length === 0 ? (
         <p style={ayuda}>{t("bandeja.links.no_agents")}</p>
       ) : (
         <form action={accion} style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
@@ -278,45 +344,12 @@ function Vincular({
             </select>
           </label>
           {agentes === null ? (
-            <label className="studio-label" style={campo}>
-              {t("bandeja.links.agent_id")}
-              <input
-                name="chatwoot_user_id"
-                required
-                inputMode="numeric"
-                pattern="[1-9][0-9]*"
-                aria-describedby="bandeja-agent-id-help"
-                className="studio-input studio-input-mono"
-              />
-              <span id="bandeja-agent-id-help" style={{ ...ayuda, fontWeight: 400 }}>
-                {t("bandeja.links.agent_id_help")}
-              </span>
-            </label>
+            <CampoNumero ayudaKey="bandeja.links.agent_id_help" />
+          ) : opciones.length === 0 ? (
+            // Lista incompleta y sin nadie libre entre los leídos: solo queda el número.
+            <CampoNumero ayudaKey="bandeja.links.agents_incomplete" />
           ) : (
-            <label className="studio-label" style={campo}>
-              {t("bandeja.links.agent")}
-              {/* `key`: al cambiar de persona se vuelve a elegir el sugerido. */}
-              <select
-                key={persona}
-                name="chatwoot_user_id"
-                required
-                defaultValue={sugerido}
-                aria-describedby="bandeja-agent-help"
-                className="studio-input"
-              >
-                <option value="" disabled>
-                  {t("bandeja.links.agent_placeholder")}
-                </option>
-                {opciones.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {`${a.nombre || t("bandeja.links.agent_unknown", { id: a.id })} · ${a.correo} (#${a.id})`}
-                  </option>
-                ))}
-              </select>
-              <span id="bandeja-agent-help" style={{ ...ayuda, fontWeight: 400 }}>
-                {t("bandeja.links.agent_help")}
-              </span>
-            </label>
+            <CampoAgente key={persona} opciones={opciones} sugerido={sugerido} completa={completa} />
           )}
           <div>
             <BotonFijo
@@ -393,6 +426,7 @@ export function AgentesBandeja({
   miembros,
   salud,
   agentes = null,
+  agentesCompletos = true,
 }: {
   vinculos: VinculoFila[];
   miembros: MiembroOpcion[];
@@ -400,6 +434,8 @@ export function AgentesBandeja({
   salud?: SaludBandeja | null;
   /** SDD-0680: agentes de la cuenta para elegir por nombre; null si Chatwoot no respondió. */
   agentes?: AgenteCuenta[] | null;
+  /** SDD-0680: `false` si algún agente no se pudo leer. */
+  agentesCompletos?: boolean;
 }) {
   const t = useT();
   return (
@@ -418,7 +454,7 @@ export function AgentesBandeja({
         <TablaVinculos vinculos={vinculos} />
       </section>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--s-5)" }}>
-        <Vincular miembros={miembros} vinculos={vinculos} agentes={agentes} />
+        <Vincular miembros={miembros} vinculos={vinculos} agentes={agentes} completa={agentesCompletos} />
         <AltaAgente miembros={miembros} />
       </div>
     </div>

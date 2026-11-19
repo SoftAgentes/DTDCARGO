@@ -177,6 +177,17 @@ describe("BandejaClient · la fila y el panel (SDD-0680, variante C)", () => {
     expect(screen.queryByText(AYUDA)).toBeNull();
   });
 
+  it("el estado de la fila está montado desde el principio y sigue montado sin texto con un aviso", async () => {
+    pedirEnlaceSso.mockResolvedValue({ ok: false, error: "denied" });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    const estado = screen.getByRole("status");
+    expect(estado.textContent).toBe("Abriendo la bandeja…");
+    expect(await screen.findByText("La bandeja no abrió")).toBeTruthy();
+    // El mismo nodo, ahora vacío: lo explica el aviso.
+    expect(screen.getByRole("status")).toBe(estado);
+    expect(estado.textContent).toBe("");
+  });
+
   it("el panel va sin marco, de borde a borde y con todo el ancho", () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
     expect(marco()?.style.borderRadius).toBe("");
@@ -581,6 +592,9 @@ describe("BandejaClient · abre sola (SDD-0680)", () => {
       expect(screen.queryByText("La bandeja no abrió")).toBeNull();
       await drenar(1);
       expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+      // Texto propio: no hubo tres intentos, y la salida es recargar.
+      expect(screen.getByText(/no respondió a tiempo/)).toBeTruthy();
+      expect(screen.queryByText(/después de 3 intentos/)).toBeNull();
       expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
       // No reintenta por la action: esperaría detrás del POST colgado.
       await drenar(10_000);
