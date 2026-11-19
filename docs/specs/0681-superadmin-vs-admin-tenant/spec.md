@@ -227,6 +227,13 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
   | Lo configura el superadmin | Control del costo y de los modelos permitidos. Nada se enciende sin revisión. | Cada cambio es un pedido a la plataforma. No escala con muchas empresas. |
   | Mixto: el superadmin fija el techo y los modelos, el admin configura dentro | Autonomía con límite. Coincide con la regla de módulos de P1. | Una pieza más que construir: el techo por tenant. |
 
+  **Recomendación del DG (2026-11-19), pendiente de que Sam la confirme: el modelo mixto.**
+
+  - La plataforma (superadmin) fija, por empresa, el tope mensual en USD y los modelos o proveedores permitidos.
+  - El admin de la empresa configura sus agentes dentro de ese tope y con esos modelos.
+  - Al llegar al 80 % del tope, se avisa a los dos: al admin de la empresa y a la plataforma.
+  - Hoy el tope existe solo por agente (`budget_usd_monthly`); falta el tope por empresa y el aviso. Es la fase 9 de §8.
+
 ## 8. Plan por fases corregido (Enmienda 1)
 
 | Fase | Qué | Tipo | Depende de |
@@ -239,4 +246,4 @@ Sam respondió por medio del DG, en el chat del DG, el 2026-11-19. Abajo copio c
 | 6 | P3 · vía de soporte en otra empresa: tenant activo, membresía de soporte y marca visual. | SDD propia, migración y app | Decidir P3 |
 | 7 | P2 · catálogo de módulos por tenant: los 4 de DTD no se ofrecen fuera de DTD. | App y base | Llega con el segundo tenant |
 | 8 | Integraciones por tenant (H5). | SDD propia por integración | Fase 6 |
-| 9 | P5 · agentes de IA según la recomendación del DG. | App y base | Decidir P5 |
+| 9 | P5 · agentes de IA con el modelo mixto: tope mensual en USD y modelos por empresa, fijados por la plataforma; el admin configura dentro; aviso a los dos al 80 %. | App y base | Que Sam confirme la recomendación del DG |
