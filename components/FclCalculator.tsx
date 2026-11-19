@@ -108,7 +108,7 @@ export function FclCalculator({ routes }: { routes: PublicFclRoute[] }) {
       </div>
 
       {/* Resultado */}
-      <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-6 sm:p-7">
+      <div data-clarity-mask="True" className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-6 sm:p-7">
         <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
           Estimado
         </div>

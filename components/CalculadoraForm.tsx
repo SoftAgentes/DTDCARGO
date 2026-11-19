@@ -565,6 +565,7 @@ export function CalculadoraForm({
             lado que mira a la columna de entrada, sin importar en qué orden
             caiga cada una. */}
         <div
+          data-clarity-mask="True"
           className={`p-6 lg:p-9 flex flex-col gap-4 ${esConsolidado ? "lg:order-1" : "lg:order-2"}`}
           style={{
             background: "rgba(0,0,0,0.15)",

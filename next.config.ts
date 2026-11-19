@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 // bundler y no resuelve el alias `@/`.
 import { originFromEnv } from "./lib/runtime/supabase-origin";
 import { chatwootOriginFromEnv } from "./lib/runtime/chatwoot-origin";
+import { clarityIdFromEnv } from "./lib/clarity";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -78,6 +79,41 @@ const cspHeader = [
   `form-action 'self'`,
   `object-src 'none'`,
 ].join("; ");
+
+/**
+ * CSP del SITIO PÚBLICO: la estricta de arriba + Microsoft Clarity cuando hay
+ * `NEXT_PUBLIC_CLARITY_ID` (fase 1, `docs/marketing/clarity-evaluacion.md` §2.4).
+ *
+ * - Clarity entra SOLO en `script-src`, `connect-src` e `img-src` (no en
+ *   `default-src`, como sugiere Microsoft) y SOLO en la CSP pública. Las rutas
+ *   privadas (`PRIVATE_CSP_PATH`) y las reglas propias (`/m`, `/marca`, embeds,
+ *   Bandeja, Bitácora…) siguen con `cspHeader` tal cual. `frame-ancestors` no
+ *   se toca.
+ * - Sin ID (o con `off`) es idéntica a `cspHeader`: el apagado tampoco abre la
+ *   CSP. Como es `NEXT_PUBLIC_*`, el valor queda fijado en el build.
+ * - `https://c.bing.com` queda fuera: es el dominio de las cookies de terceros
+ *   de Microsoft y la publicidad siempre va denegada (ver `lib/clarity.ts`).
+ */
+function withSources(csp: string, directive: string, sources: readonly string[]): string {
+  return csp
+    .split("; ")
+    .map((part) => (part.startsWith(`${directive} `) ? `${part} ${sources.join(" ")}` : part))
+    .join("; ");
+}
+/**
+ * Orígenes de Clarity ([Clarity CSP](https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-csp)).
+ * Viven aquí y no en `lib/clarity.ts`: ese módulo lo importa el componente
+ * cliente y con Clarity apagado ningún chunk del navegador debe nombrar
+ * `clarity.ms` (lo comprueba `build-image-prueba.yml`).
+ */
+const CLARITY_CSP_SOURCES = ["https://www.clarity.ms", "https://*.clarity.ms"] as const;
+const clarityEnabled = clarityIdFromEnv(process.env.NEXT_PUBLIC_CLARITY_ID) !== "";
+const publicCspHeader = clarityEnabled
+  ? ["script-src", "connect-src", "img-src"].reduce(
+      (csp, directive) => withSources(csp, directive, CLARITY_CSP_SOURCES),
+      cspHeader,
+    )
+  : cspHeader;
 
 /**
  * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book vigente (material de
@@ -175,6 +211,38 @@ const securityHeaders = [
     value: "max-age=63072000; includeSubDomains; preload",
   },
 ];
+
+/** Los mismos headers con la CSP pública (Clarity, si está encendido). */
+const publicSecurityHeaders = securityHeaders.map((h) =>
+  h.key === "Content-Security-Policy" ? { key: h.key, value: publicCspHeader } : h,
+);
+
+/**
+ * Rutas privadas para la CSP: las que excluye la guarda de Clarity por ruta
+ * (`isClarityExcludedUrl` en `components/Clarity.tsx`: `PRIVATE_PREFIXES` de GA
+ * + `/registro`, `/entrar`, `/abrir` + `/track/<código>`) y que no tienen regla
+ * propia más abajo. `/m/*`, `/marca*`, `/tarifas/embed` y `/fcl/embed` ya
+ * llevan la CSP estricta en sus reglas. La paridad con la guarda la mide
+ * `lib/runtime/__tests__/next-config-clarity.test.ts`.
+ */
+const PRIVATE_CSP_SEGMENTS = [
+  "studio",
+  "portal",
+  "back",
+  "invitar",
+  "acceso",
+  "entrar",
+  "abrir",
+  "verificar",
+  "p",
+  "interno",
+  "registro",
+];
+const PRIVATE_CSP_ALTERNATIVES = `(?:${PRIVATE_CSP_SEGMENTS.join("|")})`;
+/** Las rutas de Studio con regla propia (Bitácora, Bandeja, ficha, cierre). */
+const STUDIO_OWN_RULES =
+  "studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$";
+const PRIVATE_CSP_PATH = `/:path((?:(?!${STUDIO_OWN_RULES})(?:${PRIVATE_CSP_ALTERNATIVES}(?:/.*)?|track/.+|m)))`;
 
 // Los embeds de calculadora (`/tarifas/embed` = CBM/LCL, `/fcl/embed` = FCL) los
 // enmarca el FAB del portal (ventana flotante Norte) en un iframe SAME-ORIGIN.
@@ -520,11 +588,18 @@ const nextConfig: NextConfig = {
         headers: calcEmbedHeaders,
       },
       {
+        // Rutas privadas: CSP estricta, sin Clarity. Mutuamente excluyente con
+        // el catch-all público de abajo (dos CSP en la misma URL se intersectan).
+        source: PRIVATE_CSP_PATH,
+        headers: securityHeaders,
+      },
+      {
+        // Catch-all PÚBLICO: CSP del sitio público (Clarity solo con ID).
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
-        source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed).*)",
-        headers: securityHeaders,
+        // `m$` y `track/.`: `/m` exacto y `/track/<código>` van a la privada.
+        source: `/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed|${PRIVATE_CSP_ALTERNATIVES}(?:/|$)|track/.|m$).*)`,
+        headers: publicSecurityHeaders,
       },
     ];
   },
