@@ -72,7 +72,7 @@ Detalle de proceso: un primer intento de commits absorbió el borrado staged del
 ## PR / BRANCH
 
 - Rama: `codex/docs-agents-pruning` (worktree `DTD-worktrees/docs-agents-pruning`), base `origin/main` @ `a6050cc8b`.
-- Push de la rama y PR: autorizados por el encargo; ese push NO publica (solo `main` publica). Estado al cierre de este handoff: ver sección HANDOFF AL DIRECTOR.
+- PR: **https://github.com/SoftAgentes/DTDCARGO/pull/706** (lista para revisión; el CI corre sobre la cabeza por SDD-0621). Push de la rama propio, sin destino `main`: NO publica web.
 
 ## PENDIENTES DE ESTA TAREA
 
