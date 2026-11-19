@@ -2,7 +2,9 @@
 
 SDD-0585, paso 2.4. Explica cómo se registra en el Chatwoot del VPS la Dashboard App que muestra, al lado de cada conversación, la ficha del cliente de Studio.
 
-> **No está ejecutado.** Registrar la app cambia la configuración del Chatwoot de producción. Hace falta el OK nominal de Sam, como cualquier cambio del VPS.
+> **Registrada el 2026-11-19** en el Chatwoot de producción, con el OK de Sam («Sí, regístrala»): cuenta 1, Dashboard App id 1, URL `https://dtdcargo.com/studio/ficha-chat`. La registró el DG. Cualquier cambio o retiro vuelve a necesitar el OK nominal de Sam, como cualquier cambio del VPS.
+>
+> **Doble marco (SDD-0680).** Dentro de `/studio/bandeja` la ficha queda enmarcada dos veces: `dtdcargo.com` › `chat.dtdcargo.com` › `dtdcargo.com/studio/ficha-chat`. `frame-ancestors` revisa **todos** los ancestros, así que con solo `https://chat.dtdcargo.com` el navegador la bloquea («Framing 'https://dtdcargo.com/' violates … frame-ancestors https://chat.dtdcargo.com») y la pestaña sale en blanco. Desde la SDD-0680 la cabecera de esa ruta es `frame-ancestors 'self' https://chat.dtdcargo.com`. Solo esa ruta: el resto de Studio sigue con `'none'`.
 
 ## Qué es
 
@@ -18,7 +20,7 @@ Diseño completo: [SDD-0585 §«Paso 2.4»](../specs/0585-chatwoot-bandeja-studi
 
 Cada punto tiene su propio OK:
 
-1. **El código en `main`, ya desplegado en el VPS.** Ese despliegue trae la ruta, la cabecera `frame-ancestors https://chat.dtdcargo.com` y el hueco del proxy.
+1. **El código en `main`, ya desplegado en el VPS.** Ese despliegue trae la ruta, la cabecera `frame-ancestors 'self' https://chat.dtdcargo.com` (con `'self'` desde la SDD-0680, por el doble marco) y el hueco del proxy.
 2. **La 0503 y la 0504 aplicadas** en la base del VPS, según el [runbook de producción](aplicar-migraciones-prod.md).
 3. **Las variables `CHATWOOT_URL`, `CHATWOOT_PLATFORM_TOKEN` y `CHATWOOT_ACCOUNT_ID` cargadas** en el contenedor `web`. Es el mismo trío de la Bandeja.
 4. **El flag `chatwoot_inbox` encendido** para el tenant.
@@ -44,6 +46,7 @@ Hazlo con una conversación de prueba, sin datos reales:
 | Sin sesión de Studio en ese navegador | «Inicia sesión en Studio», con un enlace que abre otra pestaña |
 | Sesión de Studio de otra persona en ese navegador | «Esta sesión de Studio es de otra persona» |
 | Abrir `https://dtdcargo.com/studio/ficha-chat` suelta, fuera de Chatwoot | «Abre una conversación», sin datos |
+| Dentro de Studio › Bandeja, pestaña «Ficha DTD» | Se ve la ficha; la consola no muestra errores de `frame-ancestors` (SDD-0680) |
 | Enmarcarla desde otro sitio | El navegador la bloquea (`frame-ancestors`) |
 
 Los logs de `web` solo tienen que mostrar líneas `[ficha-dtd] …` con códigos de error, nunca un teléfono, un código de cliente ni un nombre.
