@@ -13,6 +13,7 @@ import {
 } from "@/components/Icon";
 import { requestMagicLink, type PortalLoginState } from "./actions";
 import { ENTRAR_WHATSAPP, type EntrarResultado } from "@/lib/portal/entrar-resultado";
+import { REGISTRO_AUTOSERVICIO_TTL_HORAS } from "@/lib/portal/registro-link-types";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
@@ -452,6 +453,7 @@ export function ResultadoEntrar({
 
   const titulo: Record<EntrarResultado, string> = {
     enlace: "Revisa tu correo",
+    crear_portal: "Ya eres cliente de DTD Cargo",
     sin_portal: "Ya eres cliente de DTD Cargo",
     sin_comprobar: "Tu correo todavía no está comprobado",
     sin_cuenta: "No encontramos una cuenta con este correo",
@@ -498,7 +500,7 @@ export function ResultadoEntrar({
         className="w-14 h-14 rounded-[12px] grid place-items-center"
         style={{ background: "var(--color-wine-soft)", color: "#fff" }}
       >
-        {resultado === "enlace" ? (
+        {resultado === "enlace" || resultado === "crear_portal" ? (
           <MailIcon size={26} />
         ) : resultado === "sin_cuenta" ? (
           <StampIcon size={26} />
@@ -555,6 +557,22 @@ export function ResultadoEntrar({
             </p>
             <div className="mt-1">{otroCorreo}</div>
           </div>
+        </>
+      )}
+
+      {resultado === "crear_portal" && (
+        // SDD-0672 entrega 2 · condición del DG: esta pantalla dice sólo que salió
+        // el enlace. Nada de la ficha, y nada sobre qué se va a comprobar.
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Te mandamos un enlace a {correo} para crear tu portal. Ábrelo y llena tus
+            datos. Vale por {REGISTRO_AUTOSERVICIO_TTL_HORAS} horas y es de un solo uso.
+          </p>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            No crees otra cuenta: tendrías un Shipping Mark nuevo y tus envíos quedarían
+            en el de siempre. Si no te llega en unos minutos, revisa spam o {whatsapp}.
+          </p>
+          <div>{otroCorreo}</div>
         </>
       )}
 

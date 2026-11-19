@@ -4,7 +4,7 @@ title: "Botones que muestran que están trabajando: «Guardando…», sin doble 
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0626", "0603", "0628"]
@@ -44,7 +44,7 @@ tenía cómo ver que el envío seguía en curso ni qué había quedado guardado.
 - CSS: `.studio-btn[aria-busy="true"]` (en progreso, no apagado) y `.studio-spin`. **C**
 - `<Aviso>` (SDD-0628) con `tabIndex` y `ref` para llevarle el foco. **C**
 
-## 3. Fase 1 (esta PR): la revisión de la oficina
+## 3. Fase 1 (#695, fusionada): la revisión de la oficina
 
 ### 3.1 Componente nuevo del Studio: `FormularioAccion` + `BotonEnvio`
 
@@ -179,3 +179,74 @@ se cambia aquí.
 - Cambiar las acciones de la oficina a `useActionState` (resultado por tarjeta). La tarjeta de cierre desaparece al
   registrarse, así que el resultado tiene que vivir fuera de ella; el aviso arriba, con foco, lo cubre.
 - El borrado del motivo escrito cuando la acción vuelve con error (pendiente 4 de §7).
+
+## 9. Fase 2 · PR A (2026-11-19): el pie de los drawers y los botones sin ningún estado
+
+Orden aprobado por el DG el 2026-11-19, sobre el inventario estático del 2026-11-19 (notas del DG,
+`sdd-0678-f2-inventario-botones-20261119.md`). El inventario es **I**: un escaneo del código, no de la pantalla.
+
+### 9.1 Cambios
+
+- `EtiquetaEstable` (nuevo, `app/studio/_components/ui/EtiquetaEstable.tsx`): la rejilla de dos etiquetas de la fase 1
+  sale de `BotonEnvio` a un componente propio, para reutilizarla. `BotonEnvio` la usa sin cambio de conducta.
+- `DrawerFooter` (`app/studio/_components/ui/drawer/DrawerShell.tsx`), el submit de **66 archivos**: ya deshabilitaba
+  y cambiaba el texto. Ahora además tiene `aria-busy`, spinner y conserva el ancho. Deshabilitado por validación
+  (`canSubmit=false`) no se anuncia como trabajando.
+- Operarios · desactivar (`operarios/_components/OperariosClient.tsx`): el interruptor iba en un `<form action>` sin
+  ningún estado. Ahora va en `FormularioAccion` (bloqueo y candado de doble envío) y, mientras corre, queda
+  deshabilitado con `aria-busy`, spinner en la perilla y nombre «Desactivando a …». El ancho es fijo (38 px).
+- Inspecciones · eliminar foto (`inspecciones/_components/PhotoManager.tsx`): la × llamaba al servidor sin ningún
+  estado y **callaba el error**. Ahora usa `useTransition`: deshabilitada, `aria-busy`, spinner y «Eliminando foto…»;
+  si falla, un aviso dice «No se pudo eliminar la foto: …» (LOD-01).
+- Libro diario · CSV (`contabilidad/_components/LibroDiarioTab.tsx:578`): **no aplica**. Es un `<form method="get">`
+  a `/api/studio/contabilidad/export`, una descarga que no muta nada. No se toca.
+
+### 9.2 Conformidad (BTN-01 §5 y LOD-01)
+
+| Pieza | Deshabilita | `aria-busy` | Verbo en progreso | Conserva ancho | Error visible |
+|---|---|---|---|---|---|
+| `DrawerFooter` | cumplimiento (ya estaba) | cumplimiento | cumplimiento (ya estaba) + spinner | cumplimiento | no aplica: lo muestra cada drawer |
+| Operarios · desactivar | cumplimiento | cumplimiento | cumplimiento (nombre accesible y `title`) | cumplimiento (38 px fijos) | no conformidad preexistente: la acción no devuelve error a la fila; pendiente §10.2 |
+| Inspecciones · eliminar foto | cumplimiento | cumplimiento | cumplimiento (nombre accesible y `title`) | cumplimiento (24 px fijos) | cumplimiento (aviso nuevo; también si la acción RECHAZA: `try/catch` con mensaje genérico, para que no suba al límite de errores de React 19) |
+
+### 9.2b Medida del ancho del submit (Chrome headless, 2026-11-19)
+
+Con `studio.css` y `tokens.css` reales, ancho en px del submit primario (reposo / «Creando…»). **M**
+
+| Etiqueta | Antes (reposo / en curso) | Ahora (reposo / en curso) |
+|---|---|---|
+| «Guardar» | 85,4 / 101,7 | 123,7 / 123,7 |
+| «Crear» | 69,0 / 101,7 | 123,7 / 123,7 |
+| «Guardar cambios» | 141,4 / 101,7 | 141,4 / 141,4 |
+| «Crear y dejar abierta» | 161,6 / 101,7 | 161,6 / 161,6 |
+| «Registrar recepción y emitir comprobante» | 290 / 101,7 | 290 / 290 |
+
+El botón ya no cambia de ancho al trabajar (antes saltaba hasta 188 px). El **costo**: una etiqueta corta («Guardar»,
+«Crear») queda en el ancho de «Creando…» con spinner (≈124 px) también en reposo: +38 a +55 px. Las largas no cambian en
+reposo. En 375 px la más larga de la tabla (290) cabe sola; junto a «Cancelar» ya no cabía antes ni cabe ahora
+(preexistente). El submit y «Cancelar» siguen en `flex` sin quiebre: `/ui-check` queda **NO EJECUTADO** en esta
+PR (no se abrió el drawer real en el navegador; la medida es de un HTML con los estilos reales).
+
+### 9.3 Allowlist exacta (PR A)
+
+| Archivo | Cambio |
+|---|---|
+| `app/studio/_components/ui/EtiquetaEstable.tsx` | nuevo |
+| `app/studio/_components/ui/FormularioAccion.tsx` | `BotonEnvio` usa `EtiquetaEstable` |
+| `app/studio/_components/ui/drawer/DrawerShell.tsx` | `DrawerFooter`: `aria-busy`, spinner y ancho estable |
+| `app/studio/_components/ui/drawer/DrawerFooter.test.tsx` | nuevo |
+| `app/studio/(app)/operarios/_components/OperariosClient.tsx` | desactivar con `FormularioAccion` y estado |
+| `app/studio/(app)/operarios/_components/OperariosClient.desactivar.test.tsx` | nuevo |
+| `app/studio/(app)/inspecciones/_components/PhotoManager.tsx` | eliminar foto con estado y error visible |
+| `app/studio/(app)/inspecciones/_components/PhotoManager.test.tsx` | nuevo |
+| `docs/specs/0678-botones-trabajando/spec.md` | esta sección |
+| `.agents/handoffs/botones-trabajando-0678-f2a.md` | handoff |
+
+No cambia permisos, RLS, migraciones ni datos. No toca `usuarios/_components/AgentesBandeja.tsx` (SDD-0680).
+
+## 10. Fase 2 · lo que sigue (orden aprobado por el DG)
+
+1. PR B: los 22 destructivos sin `danger`, con su copy (incluye el «Rechazar» de la oficina, §7.5).
+2. Operarios: que desactivar devuelva el error a la fila (hoy la acción no lo muestra).
+3. PR C y siguientes: los 102 B2 del inventario, por módulo, empezando por admin.
+4. Al final, un contrato estático con la lista congelada.

@@ -25,6 +25,8 @@
 import { useEffect, useRef, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
+import { EtiquetaEstable } from "./EtiquetaEstable";
+
 type Accion = (formData: FormData) => void | Promise<void>;
 
 export interface FormularioAccionProps {
@@ -99,40 +101,8 @@ export function BotonEnvio({ children, textoPendiente = "Guardando…", name, va
       aria-busy={esEste}
       style={{ minWidth: "max-content" }}
     >
-      {/*
-        BTN-01 §5 «Loading … conserva ancho»: las dos etiquetas ocupan la MISMA celda de una rejilla y la invisible
-        sigue reservando su espacio. El botón mide siempre lo que la más ancha, en reposo y mientras corre: no crece
-        al pasar de «Aprobar» a «Guardando…» ni empuja a sus vecinos. Sin medir en JS (jsdom y SSR no tienen layout).
-      */}
-      <span style={REJILLA} data-ancho-reservado="">
-        <span style={celda(!esEste)} aria-hidden={esEste || undefined} data-etiqueta="reposo">
-          {children}
-        </span>
-        <span style={celda(esEste)} aria-hidden={esEste ? undefined : true} data-etiqueta="pendiente">
-          <span className={esEste ? "studio-spin" : undefined} style={ICONO} aria-hidden="true">
-            <Spinner />
-          </span>
-          {textoPendiente}
-        </span>
-      </span>
+      {/* BTN-01 §5 «Loading … conserva ancho»: ver `EtiquetaEstable`. */}
+      <EtiquetaEstable enCurso={esEste} reposo={children} textoEnCurso={textoPendiente} />
     </button>
-  );
-}
-
-const ICONO: CSSProperties = { display: "inline-flex", width: 14, height: 14, flexShrink: 0 };
-const REJILLA: CSSProperties = { display: "inline-grid", justifyItems: "center", alignItems: "center" };
-const celda = (visible: boolean): CSSProperties => ({
-  gridArea: "1 / 1",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "var(--s-2)",
-  visibility: visible ? "visible" : "hidden",
-});
-
-function Spinner() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-      <path d="M20 11.5A8 8 0 1 1 12 4" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    </svg>
   );
 }
