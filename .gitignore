@@ -150,6 +150,7 @@ docs/design/studio/_norte/.image-slots.state.json
 # Blueprint Prisma que Cloud Design re-incluye en cada handoff. Decisión founder
 # 2026-06-03: backend NATIVO Supabase, NO Prisma → schema.prisma fuera de git
 # (borrado permanente; se re-excluye solo en cada NORTE-SYNC).
+docs/design/studio/_norte/backend/prisma/
 # Copia horneada del Norte para la web (SDD-0050): la genera `scripts/norte.mjs`
 # vía el `postbuild` de Vercel y, en local, corriendo el script a mano. Es un
 # artefacto de build (su `stamp` cambia en cada corrida → churn), no se versiona.
