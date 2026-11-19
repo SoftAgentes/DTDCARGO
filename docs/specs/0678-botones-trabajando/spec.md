@@ -69,6 +69,12 @@ tenía cómo ver que el envío seguía en curso ni qué había quedado guardado.
   `"use client"`, porque los usa `page.tsx` (servidor): `scripts/check-rsc-boundary.mjs` lo exige.
 - `c` solo se acepta con la forma del número de conversación de la acción (`^[0-9a-f-]{1,40}$`); React escapa el resto.
 
+5. **Ancho estable (BTN-01 §5):** las dos etiquetas («Aprobar» y «Guardando…» con spinner) ocupan la misma celda
+   de una rejilla y la que no se ve queda con `visibility: hidden`. El botón mide siempre lo que la más ancha: no
+   crece ni encoge al cambiar de estado. Medido en Chrome headless con `studio.css` y `tokens.css` (2026-11-18):
+   «Aprobar» primario 140,06 px en reposo y 140,06 px mientras corre; «Rechazar» 140,06 / 140,06; «Registrar el
+   cierre» 144,48 / 144,48. **M**
+
 ### 3.3 Aceptación
 
 | # | Criterio | Evidencia |
@@ -78,6 +84,7 @@ tenía cómo ver que el envío seguía en curso ni qué había quedado guardado.
 | A3 | Doble clic y doble `submit` envían una vez | idem |
 | A4 | Si la acción falla, el formulario se libera | idem |
 | A5 | Con Aprobar/Rechazar, solo el tocado dice «Guardando…» | idem |
+| A5b | El botón conserva el ancho entre reposo y «Guardando…» (BTN-01 §5) | `FormularioAccion.test.tsx` (estructura) + medida de §3.1.5 |
 | A6 | El resultado se ve y dice qué se guardó, con foco y desplazamiento | `AvisoResultado.test.tsx` |
 | A7 | Las pruebas que ya existían de la oficina siguen verdes | `lib/studio/oficina/__tests__`, `lib/studio/__tests__/oficina-*` |
 | A8 | Smoke en el móvil por Sam en una base de prueba | **pendiente** (fuera de esta PR) |
@@ -131,7 +138,31 @@ Regla propuesta para la fase 2 (**propuesta**, no decidida): todo `<form action>
 
 No cambia permisos, RLS, migraciones, datos ni el ciclo de agentes. `app/studio/CLAUDE.md` no se toca en la fase 1.
 
-## 6. Pendientes para la fase 2 (de la revisión independiente del 2026-11-18; no se implementan aquí)
+## 6. Conformidad con BTN-01 v1.1 y LOD-01 v1.0
+
+Clasificación del AGENT-BRIEF sobre lo que toca esta PR. «Preexistente» es lo que ya estaba así antes de la PR y no
+se cambia aquí.
+
+| Política · regla | Resultado | Evidencia |
+|---|---|---|
+| BTN-01 §2 · todo botón declara `type` | cumplimiento | `BotonEnvio` es `type="submit"` |
+| BTN-01 §2 · una sola primaria por bloque | cumplimiento | borrador: solo «Aprobar» es `primary`; cierre: ninguna primaria (se mantiene la clase de antes) |
+| BTN-01 §3 · vocabulario | cumplimiento | «Registrar el cierre» asienta un hecho; «Aprobar»/«Rechazar» deciden dentro de un flujo y el rechazo guarda motivo |
+| BTN-01 §1 y §2 · el destructivo no comparte borde con el positivo; «Rechazar con consecuencia» usa `danger` | no conformidad preexistente | «Rechazar» va junto a «Aprobar» (8 px) y en la variante base. Esta PR no lo cambia; pasa a la fase 2 (§7.5) |
+| BTN-01 §5 · Loading: bloquea repetición, conserva ancho, verbo en progreso y `aria-busy` | cumplimiento | §3.1 puntos 1, 2, 3 y 5; A1, A3 y A5b |
+| BTN-01 §5 · Pressed: respuesta inmediata sin fingir que terminó | cumplimiento | «Guardando…» hasta que vuelve la acción; el éxito llega después, en el aviso |
+| BTN-01 §5 · Disabled: no ejecuta y explica el motivo | cumplimiento | mientras corre, el botón vecino queda deshabilitado y el motivo está a la vista en el botón tocado («Guardando…») |
+| BTN-01 §5 · Success solo después del resultado durable | cumplimiento | el aviso sale del `redirect` posterior a la escritura en la base |
+| BTN-01 §5 · Error: no anuncia éxito y devuelve el control | cumplimiento | aviso `role="alert"` con la causa; el candado se abre (prueba de reapertura y de excepción) |
+| BTN-01 §5 · Focus visible 3:1 | no aplica | no cambia: `.studio-btn:focus-visible` |
+| BTN-01 · foco cuando el botón enfocado pasa a `disabled` | no aplica (BTN-01 no lo regula); riesgo abierto de A11Y-01 | el navegador puede soltar el foco. Se estudia `aria-disabled` en la fase 2 (§7.2). No se declara excepción: eso lo aprueba Sam |
+| LOD-01 · mutación desde botón: spinner y texto dentro del botón, bloquea repetición | cumplimiento | §3.1 |
+| LOD-01 · success solo después del resultado durable | cumplimiento | igual que BTN-01 §5 |
+| LOD-01 · el error sustituye la espera, con reintento; nunca spinner infinito | cumplimiento | pruebas «el candado se abre y se puede reintentar» y «si la acción lanza … no queda colgado» |
+| LOD-01 · `aria-busy` en el área relevante | cumplimiento | `aria-busy` en el fieldset del formulario y en el botón tocado |
+| LOD-01 · skeleton, progreso medible, optimista, pestaña oculta | no aplica | la acción es una mutación corta sin avance medible |
+
+## 7. Pendientes para la fase 2 (de la revisión independiente del 2026-11-18; no se implementan aquí)
 
 1. Región `aria-live` que anuncie «Guardando…»: hoy el lector lo sabe por `aria-busy` y el texto del botón, pero
    no hay un anuncio explícito como el de `ActionButton`.
@@ -140,9 +171,11 @@ No cambia permisos, RLS, migraciones, datos ni el ciclo de agentes. `app/studio/
 3. Pruebas que faltan: reapertura del candado tras una excepción (con el formulario aún montado) y desmontaje a
    mitad de la acción (que el efecto no actúe sobre un componente desmontado).
 4. Pérdida del motivo escrito cuando la acción vuelve con error: React reinicia el formulario tras la acción.
+5. «Rechazar» de la oficina: separarlo de «Aprobar» y pasarlo a `danger` (BTN-01 §1 y §2; no conformidad
+   preexistente, §6).
 
-## 7. Fuera de alcance
+## 8. Fuera de alcance
 
 - Cambiar las acciones de la oficina a `useActionState` (resultado por tarjeta). La tarjeta de cierre desaparece al
   registrarse, así que el resultado tiene que vivir fuera de ella; el aviso arriba, con foco, lo cubre.
-- El borrado del motivo escrito cuando la acción vuelve con error (pendiente 4 de §6).
+- El borrado del motivo escrito cuando la acción vuelve con error (pendiente 4 de §7).

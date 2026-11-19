@@ -31,6 +31,9 @@ veces ni cambiar la opción a mitad, y que el resultado se vea (también en el m
 | Mutante 2: `<fieldset disabled={false}>` | detectado | falla «no se puede cambiar «Cumple» por «Falló» a mitad» |
 | Mutante 3: sin `alTerminar()` (el candado no se reabre) | detectado | falla «el candado se abre y se puede reintentar» |
 | eslint y tsc en los archivos tocados | PASÓ | sobre `7f2ec51d2` |
+| BTN-01 §5 «conserva ancho» (estaba en no conformidad, la detectó el Worker al leer la política) | PASÓ tras el arreglo | prueba de estructura + medida en Chrome headless: 140,06/140,06, 140,06/140,06 y 144,48/144,48 px |
+| Mutante 4: la etiqueta oculta con `display: none` (deja de reservar el ancho) | detectado | falla «en reposo ya reserva el espacio de «Guardando…»…» |
+| Vitest del componente y de la oficina tras el arreglo | PASÓ | 162 pruebas |
 | CI de GitHub en `7f2ec51d2` (run 44432402211) | FALLÓ | Frontera RSC: `page.tsx` importaba dos helpers de un módulo `"use client"`; los demás pasos quedaron sin correr |
 | `check-rsc-boundary.mjs` tras la corrección | PASÓ | local |
 | `docs:check` (índice regenerado), `sdd:check`, `components:check`, `governance:check`, `feature-constants` | PASÓ | local |
@@ -48,10 +51,10 @@ veces ni cambiar la opción a mitad, y que el resultado se vea (también en el m
 
 - Smoke en el móvil por Sam, en una base de prueba (A8 de la spec).
 
-Pendientes de la fase 2 (de la revisión independiente): spec §6, puntos 1 a 4.
+Pendientes de la fase 2: spec §7, puntos 1 a 5. Conformidad con BTN-01 y LOD-01: spec §6.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - Cuando una acción de la oficina vuelve con error, React reinicia el formulario y se pierde el motivo escrito
-  (anotado también en la spec, §6.4).
+  (anotado también en la spec, §7.4).
 - `OperariosClient` (interruptor de desactivar) no tiene ningún estado pendiente: primer candidato de la fase 2.
