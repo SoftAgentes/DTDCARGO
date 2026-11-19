@@ -4,6 +4,13 @@
  * admin, mudada sin cambios de lógica: vínculos del tenant, miembros sin
  * vínculo (con si ven la Bandeja) y la salud de la cuenta de Chatwoot.
  *
+ * SDD-0680: también los agentes de la cuenta de Chatwoot con nombre, correo y
+ * rol, para elegir el agente por nombre en vez de escribir su número. La lista
+ * de miembros de la cuenta (la misma que usa la salud) solo trae id y rol; el
+ * nombre y el correo salen de leer cada agente por la Platform API, de solo
+ * lectura. Si Chatwoot no responde, `agentes` es `null` y la pantalla ofrece
+ * escribir el número a mano.
+ *
  * Solo admin: devuelve `null` a cualquier otro rol, sin tenant o sin la
  * Bandeja configurada. La lista de miembros va con el cliente admin (la RLS de
  * `user_tenants` deja ver una sola fila con la sesión), filtrada por el tenant
@@ -14,16 +21,26 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { chatwootConfig, chatwootServicioUserId } from "./config";
-import { listarMiembrosCuenta } from "./platform-api";
+import { listarMiembrosCuenta, obtenerAgente, type RolCuenta } from "./platform-api";
 import { evaluarSalud, type SaludBandeja } from "./agentes-salud";
 import { revisarWebhookCuenta, sumarAlertasWebhook } from "./webhook-salud";
 import { listVinculos } from "./links-queries";
 import { miembrosDeBandeja } from "./bandeja-miembros";
 
+/** SDD-0680: un agente de la cuenta de Chatwoot, para mostrarlo por nombre. */
+export interface AgenteCuenta {
+  id: number;
+  nombre: string;
+  correo: string;
+  rol: RolCuenta;
+}
+
 export interface VinculoFila {
   userId: string;
   nombre: string;
   chatwootUserId: number;
+  /** SDD-0680: el agente vinculado, si Chatwoot respondió; si no, solo el número. */
+  agente?: AgenteCuenta | null;
 }
 
 export interface MiembroOpcion {
@@ -31,12 +48,43 @@ export interface MiembroOpcion {
   nombre: string;
   /** Paso 2.5: solo quien ve la Bandeja se puede dar de alta. Sin dato, se ofrece. */
   puedeBandeja?: boolean;
+  /** SDD-0680: para poner primero el agente con el mismo correo. */
+  correo?: string;
 }
 
 export interface AgentesBandejaDatos {
   vinculos: VinculoFila[];
   miembros: MiembroOpcion[];
   salud: SaludBandeja;
+  /** SDD-0680: agentes de la cuenta (sin el de servicio); `null` si Chatwoot no respondió. */
+  agentes: AgenteCuenta[] | null;
+}
+
+/** Tope de agentes que se leen uno por uno; con más, la pantalla pide el número a mano. */
+export const MAX_AGENTES_LEIDOS = 60;
+
+/**
+ * Lee nombre y correo de cada miembro de la cuenta (sin el de servicio). Un
+ * agente que no se pudo leer queda fuera de la lista; si no se pudo leer
+ * ninguno, o la cuenta no respondió, devuelve `null`.
+ */
+export async function agentesDeCuenta(
+  cuenta: Awaited<ReturnType<typeof listarMiembrosCuenta>>,
+  servicioId: number | null,
+  cfg: NonNullable<ReturnType<typeof chatwootConfig>>,
+): Promise<AgenteCuenta[] | null> {
+  if (!cuenta.ok) return null;
+  const miembros = cuenta.data.filter((m) => m.userId !== servicioId);
+  if (miembros.length === 0) return [];
+  if (miembros.length > MAX_AGENTES_LEIDOS) return null;
+  const leidos = await Promise.all(
+    miembros.map(async (m): Promise<AgenteCuenta | null> => {
+      const r = await obtenerAgente(m.userId, cfg);
+      return r.ok ? { id: m.userId, nombre: r.data.name, correo: r.data.email, rol: m.rol } : null;
+    }),
+  );
+  const agentes = leidos.filter((a): a is AgenteCuenta => a !== null);
+  return agentes.length === 0 ? null : agentes;
 }
 
 function nombreDe(profile: { first_name: string | null; last_name: string | null } | null): string {
@@ -66,6 +114,8 @@ export async function cargarAgentesBandeja(
   });
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
   sumarAlertasWebhook(salud, webhook);
+  const agentes = await agentesDeCuenta(cuenta, chatwootServicioUserId(), cfg);
+  const porId = new Map((agentes ?? []).map((a) => [a.id, a]));
 
   const nombres = new Map(miembros.map((m) => [m.user_id, nombreDe(m.profile)]));
   return {
@@ -73,6 +123,7 @@ export async function cargarAgentesBandeja(
       userId: v.user_id,
       nombre: nombres.get(v.user_id) || v.user_id.slice(0, 8),
       chatwootUserId: v.chatwoot_user_id,
+      agente: porId.get(v.chatwoot_user_id) ?? null,
     })),
     miembros: miembros
       .filter((m) => !vinculos.some((v) => v.user_id === m.user_id))
@@ -80,7 +131,9 @@ export async function cargarAgentesBandeja(
         userId: m.user_id,
         nombre: nombreDe(m.profile) || m.user_id.slice(0, 8),
         puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides),
+        correo: m.email,
       })),
     salud,
+    agentes,
   };
 }
