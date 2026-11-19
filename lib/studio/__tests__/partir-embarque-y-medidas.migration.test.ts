@@ -25,6 +25,18 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0563_partir_embarque_y_medidas.te
 const M0563 = "0563_partir_embarque_y_medidas.sql";
 const FILE_0563 = readFileSync(resolve(ROOT, "supabase/migrations", M0563), "utf8");
 const SLOW = 300_000;
+const M0241 = "0241_estiba_por_zonas.sql";
+const FILE_0241 = readFileSync(resolve(ROOT, "supabase/migrations", M0241), "utf8");
+
+/** La 0241 con el cuerpo de sync_boxes_for_receipt cambiado por `cambiar`. */
+function con0241(cambiar: (cuerpo: string) => string): string {
+  const inicio = FILE_0241.indexOf("create or replace function public.sync_boxes_for_receipt(");
+  const desde = FILE_0241.indexOf("as $$", inicio) + "as $$".length;
+  const hasta = FILE_0241.indexOf("$$;", desde);
+  expect(inicio).toBeGreaterThan(0);
+  const cuerpo = cambiar(FILE_0241.slice(desde, hasta));
+  return FILE_0241.slice(0, desde) + cuerpo + FILE_0241.slice(hasta);
+}
 const ASERCIONES = 91;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
@@ -80,9 +92,11 @@ function inline(file: string, vars: Record<string, string>, replace: Record<stri
   return out.join("\n");
 }
 
-async function contract(options: { applyFix?: boolean; migration?: string } = {}) {
-  const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) },
-    options.migration ? { [M0563]: options.migration } : {});
+async function contract(options: { applyFix?: boolean; migration?: string; m0241?: string } = {}) {
+  const sql = inline(CONTRACT, { apply_fix: String(options.applyFix ?? true) }, {
+    ...(options.migration ? { [M0563]: options.migration } : {}),
+    ...(options.m0241 ? { [M0241]: options.m0241 } : {}),
+  });
   const db = await pgliteLimpio({ pgcrypto });
   try {
     const results = await db.exec(sql);
@@ -112,6 +126,23 @@ describe("0563 · corregir medidas y partir un embarque (contrato en PGlite)", (
   it("rojo: sin la 0563, operaciones no puede corregir las medidas", async () => {
     const { error } = await contract({ applyFix: false });
     expect(error).toContain("TEST 0563: operaciones no pudo ver la vista previa de la corrección");
+  }, SLOW);
+
+  // Producción (aplicada desde Supabase Cloud) guarda el cuerpo de la 0241 sin sus
+  // líneas de solo comentario: md5 7cb66f72…, 2004 caracteres. El preflight lo acepta.
+  it("el cuerpo de la 0241 sin líneas de comentario (como quedó en Cloud) pasa el preflight", async () => {
+    const m0241 = con0241((c) => c.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n"));
+    expect(m0241).not.toBe(FILE_0241);
+    const { error, green } = await contract({ m0241 });
+    expect(error).toBeNull();
+    expect(green).toBe(`TEST 0563 GREEN: ${ASERCIONES} aserciones`);
+  }, SLOW);
+
+  it("otro cuerpo de sync_boxes_for_receipt aborta la 0563", async () => {
+    const m0241 = con0241((c) => c.replace("order by b2.seq desc", "order by b2.seq asc"));
+    expect(m0241).not.toBe(FILE_0241);
+    const { error } = await contract({ m0241 });
+    expect(error).toContain("0563 abortada: sync_boxes_for_receipt no es la de la 0241");
   }, SLOW);
 
   const MUTANTES: [nombre: string, from: string, to: string, muere: string, veces?: number][] = [
@@ -215,8 +246,8 @@ describe("0563 · corregir medidas y partir un embarque (contrato en PGlite)", (
       "v_ship.arrived_destination_at, v_ship.planned_departure_at, null,",
       "la parte nueva no heredó la llegada, la planificación o el GPS"],
     ["el preflight no mira el cuerpo de sync_boxes_for_receipt",
-      "is distinct from 'a6e9542fee29b37e015277696433a125' then",
-      "is distinct from '00000000000000000000000000000000' then",
+      "not in ('a6e9542fee29b37e015277696433a125', '7cb66f72fc71ea058d7f46fb0551eb05') then",
+      "not in ('00000000000000000000000000000000', '7cb66f72fc71ea058d7f46fb0551eb05') then",
       "0563 abortada: sync_boxes_for_receipt no es la de la 0241"],
     ["el grupo de WeChat sin el check",
       "or pg_catalog.char_length(pg_catalog.btrim(group_reference)) between 1 and 120) not valid;",
