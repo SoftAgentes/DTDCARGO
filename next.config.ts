@@ -237,6 +237,8 @@ const PRIVATE_CSP_SEGMENTS = [
   "p",
   "interno",
   "registro",
+  // Contenido de documentos importados como texto (revisión de la #710).
+  "cotizador",
 ];
 const PRIVATE_CSP_ALTERNATIVES = `(?:${PRIVATE_CSP_SEGMENTS.join("|")})`;
 /** Las rutas de Studio con regla propia (Bitácora, Bandeja, ficha, cierre). */

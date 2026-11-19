@@ -45,7 +45,7 @@ function directive(csp: string, name: string): string {
   return csp.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? "";
 }
 
-const PUBLIC_PATHS = ["/", "/servicios", "/tarifas", "/fcl", "/noticias/una-nota", "/track", "/portales", "/mapa", "/preguntas", "/privacidad"];
+const PUBLIC_PATHS = ["/", "/cotizador-flete", "/cotizadores", "/servicios", "/tarifas", "/fcl", "/noticias/una-nota", "/track", "/portales", "/mapa", "/preguntas", "/privacidad"];
 const PRIVATE_PATHS = [
   "/portal",
   "/portal/envios/DTD-0001",
@@ -59,6 +59,8 @@ const PRIVATE_PATHS = [
   "/abrir",
   "/registro",
   "/registro/link/tok",
+  "/cotizador",
+  "/cotizador/algo",
   "/verificar",
   "/p/tok",
   "/interno",

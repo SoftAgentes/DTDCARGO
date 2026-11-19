@@ -149,6 +149,9 @@ describe("guarda de rutas", () => {
     "/registro",
     "/registro/link/tok",
     "/registro/correo/tok",
+    "/cotizador",
+    "/cotizador?utm_source=ig",
+    "/cotizador/algo",
     "/verificar?c=ABC",
     "/p/tok",
     "/interno",
@@ -186,7 +189,7 @@ describe("render (carga sin cookies hasta el consentimiento)", () => {
     expect(script?.textContent).not.toContain("identify");
   });
 
-  it.each(["/portal", "/registro", "/entrar", "/abrir?token_hash=SYNTHETIC", "/servicios?email=x"])(
+  it.each(["/portal", "/registro", "/entrar", "/cotizador", "/abrir?token_hash=SYNTHETIC", "/servicios?email=x"])(
     "en %s no carga nada aunque haya granted",
     async (path) => {
       document.cookie = "dtd_cookie_consent=granted; path=/";

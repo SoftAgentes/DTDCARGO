@@ -74,8 +74,13 @@ const CLARITY_TAG_BASE = CLARITY_BUILD_OFF ? "" : "https://www.clarity.ms/tag/";
  * Exclusiones propias de Clarity, además de las de GA. `/entrar` y `/abrir` ya
  * están en `PRIVATE_PREFIXES` de GA; se repiten para que esta lista no dependa
  * de que alguien las mantenga allá.
+ *
+ * `/cotizador` (revisión de la #710): con `DOCUMENT_IMPORT_ENABLED` muestra
+ * como TEXTO el contenido de documentos importados (nombre del archivo,
+ * Shipping Mark, productos, códigos y marcas). En Balanced eso se grabaría
+ * legible. GA no graba el DOM y sigue midiéndolo; Clarity no.
  */
-export const CLARITY_EXTRA_PRIVATE_PREFIXES = ["/registro", "/entrar", "/abrir"] as const;
+export const CLARITY_EXTRA_PRIVATE_PREFIXES = ["/registro", "/entrar", "/abrir", "/cotizador"] as const;
 
 function hasPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

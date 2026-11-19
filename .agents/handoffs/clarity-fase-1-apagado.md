@@ -13,7 +13,7 @@
 | Archivo | Cambio |
 |---|---|
 | `lib/clarity.ts` | `clarityIdFromEnv`: ausente, vacío, espacios, `off` o forma inválida ⇒ `""`. Sin respaldo. |
-| `components/Clarity.tsx` | Componente cliente con `next/script` (`lazyOnload`). Guarda de GA + `/registro`, `/entrar`, `/abrir`. Consent API v2: carga sin cookies; `consentv2` concedido solo con `dtd_cookie_consent=granted` (publicidad siempre denegada); `consent false` al revocar. Corte público → privado: clic ⇒ navegación completa; `router.push`/atrás/fragmento ⇒ `consent false` + recarga. Apagado plegado en el build (patrón SDD-0544). |
+| `components/Clarity.tsx` | Componente cliente con `next/script` (`lazyOnload`). Guarda de GA + `/registro`, `/entrar`, `/abrir`, `/cotizador`. Consent API v2: carga sin cookies; `consentv2` concedido solo con `dtd_cookie_consent=granted` (publicidad siempre denegada); `consent false` al revocar. Corte público → privado: clic ⇒ navegación completa; `router.push`/atrás/fragmento ⇒ `consent false` + recarga. Apagado plegado en el build (patrón SDD-0544). |
 | `app/layout.tsx` | `<Clarity />` junto a `<Analytics />`. |
 | `next.config.ts` | `publicCspHeader`: Clarity en `script-src`, `connect-src` e `img-src` solo con ID. Regla nueva y excluyente para las rutas privadas con la CSP estricta. `c.bing.com` fuera. `default-src` y `frame-ancestors` sin cambios. |
 | `components/CalculadoraForm.tsx`, `FclCalculator.tsx`, `EstimadoModal.tsx`, `ContactoForm.tsx` | `data-clarity-mask="True"` en resultados, modal del estimado y formulario de contacto. |
@@ -49,13 +49,11 @@ mayoría de las sesiones serán por página y sin cookies.
 | `pnpm test:e2e:clarity` (chromium) | PASÓ: 14/14 (incluye el banner real: aceptar ⇒ `consentv2` concedido, rechazar ⇒ `consent false`) |
 | Mutante: corte desactivado (clic y red de seguridad) | La e2e FALLA como debe: 34 latidos después de entrar a `/entrar` y a `/portal`. Se corrió sobre el mismo código del corte que quedó (el cambio de modo no lo tocó). |
 | `docs:check` / `sdd:check` (sueltos) | PASÓ / PASÓ |
-| `pnpm verify` (una corrida, cortada al detenerse la sesión a las 12:36Z) | FALLÓ, con este detalle: |
-| · harness, lint, rsc-boundary, edge-functions | PASÓ |
-| · typecheck | FALLÓ: 3 asignaciones `window.clarity = vi.fn()` en `Clarity.test.tsx` (tipo del mock). Corregido después; **no se volvió a correr** |
-| · test | FALLÓ: 18 pruebas en 5 archivos. 1 es mía (`env-example-contract`: faltaba `NEXT_PUBLIC_CLARITY_ID` en `.env.example`; corregido, no se volvió a correr). Las otras 15 son timeouts de 20 s y workers que no arrancaron (`cotizador`, `p/[token]`, `PermissionsSection`), suites que esta PR no toca: carga de la máquina |
-| · docs:check, numbering, feature-constants, components:check, governance:check, migrations-applied, pending-migration-symbols, sql-tests, schema-rebuild, build | FALLÓ con exit 3221225794 (0xC0000142, el proceso no pudo iniciar): la sesión se estaba cerrando. NO MEDIDO de verdad |
-| · e2e general | NO EJECUTADO (sin puerto libre en 3100-3799) |
-| Pendiente con turno | `pnpm typecheck` y vitest focal (`Clarity.test.tsx`, `env-example-contract.test.ts`); después `pnpm verify` completo o el CI de la PR |
+| `pnpm typecheck` (con turno del DG, después de la revisión) | PASÓ |
+| vitest focal después de la revisión: Clarity, contrato del bundle, CSP, `next-config`, workflows, `env-example-contract`, Analytics, banner y `CalculadoraForm*` | PASÓ: 16 archivos, 299 pruebas (antes de la revisión: 12 archivos, 280 pruebas, sobre `035c4dd47`) |
+| Mutante: quitar `/cotizador` de la guarda y de la CSP | FALLAN 5 pruebas, como debe |
+| `pnpm verify` completo | NO EJECUTADO limpio: la única corrida se cortó con la sesión a las 12:36Z (sus pasos posteriores dieron `0xC0000142`, sin medir). Lo cubre el CI de la PR |
+| e2e general | NO EJECUTADO |
 
 Notas de las pruebas:
 
@@ -91,8 +89,17 @@ En este orden, cada paso con su OK:
 
 ## Pendiente de esta tarea
 
-- `pnpm typecheck` y vitest focal con turno del DG (después de la #704 y del ensayo de la 0566).
 - Un `pnpm verify` completo limpio, o el CI verde de la PR.
+- Fase 3, antes de encender: comprobar en una grabación de prueba si Clarity guarda el `href` de un enlace dentro de un nodo enmascarado (spec §6, NO VERIFICADO).
+
+## Revisión independiente (cabeza `035c4dd47`): cambios hechos
+
+1. `/cotizador` excluida en la guarda y en la CSP privada (muestra contenido de documentos como
+   texto). Grep de otras rutas públicas con datos como texto: ninguna más; detalle en la spec §6.
+   Además se enmascaró el bloque «Estimado guardado» (código EST) de `CalculadoraForm`.
+2. `href` dentro de nodos enmascarados: declarado NO VERIFICADO en la spec §6, con su atenuante y
+   la medición pendiente.
+3. Este handoff, con los resultados reales.
 - Revisión independiente de la PR (la lanza el DG).
 
 ## FUERA DE ALCANCE DETECTADO

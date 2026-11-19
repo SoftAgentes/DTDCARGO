@@ -45,7 +45,7 @@ Sam decidió el 2026-11-18 instalar Microsoft Clarity en la web pública y, más
 ### 2. Componente `components/Clarity.tsx`
 
 - Componente cliente montado junto a `<Analytics />` en `app/layout.tsx`. Usa `next/script` con `lazyOnload` (evaluación §2.5: menos riesgo para el INP). **C**
-- **Guarda:** `isClarityExcludedUrl` = `isAnalyticsExcludedUrl` de GA (`PRIVATE_PREFIXES`, `/track/<código>`, query no aprobada, credenciales en el fragmento) **más** `/registro`, `/entrar` y `/abrir`. Se evalúa con la URL completa del navegador; en el servidor no se renderiza nada. **P**
+- **Guarda:** `isClarityExcludedUrl` = `isAnalyticsExcludedUrl` de GA (`PRIVATE_PREFIXES`, `/track/<código>`, query no aprobada, credenciales en el fragmento) **más** `/registro`, `/entrar`, `/abrir` y `/cotizador` (ver §6). Se evalúa con la URL completa del navegador; en el servidor no se renderiza nada. **P**
 - **Snippet:** el oficial, con dos cambios. (1) Antes de nada pregunta a `window.__dtdClarityAllowed()`, que evalúa la guarda sobre `location.href` en ese momento; si la función no existe o dice que no, no hace nada. Motivo: `next/script` con `lazyOnload` inserta el script después de `load` aunque el componente ya se haya desmontado. (2) Encola `consentv2` leyendo `dtd_cookie_consent` con la misma regla exacta que GA (nombre y valor completos, una sola cookie visible): concedido solo con `granted`; si no, denegado. **P**
 - **Apagado plegado en el build** (patrón de la SDD-0544): `CLARITY_BUILD_OFF` compara contra `process.env.NEXT_PUBLIC_CLARITY_ID` directo, así que con `off` o vacío el minificador descarta la rama y `clarity.ms` no llega a `.next/static`. Contrato: `components/Clarity.apagado-build.test.ts` (con control rojo: un `.trim()` en medio deja `clarity.ms`). Los orígenes de la CSP viven en `next.config.ts` y no en `lib/clarity.ts` por el mismo motivo. **P**
 - Nunca se llama a `clarity('identify', …)` ni se ponen etiquetas con datos de la persona. **C**
@@ -72,7 +72,7 @@ Un script cargado no se descarga. Si Clarity ya cargó en una página pública y
 ### 5. CSP (`next.config.ts`)
 
 - Nueva `publicCspHeader` = `cspHeader` + `https://www.clarity.ms https://*.clarity.ms` en `script-src`, `connect-src` e `img-src`, **solo si hay ID**. Sin ID es idéntica a `cspHeader`. **P**
-- Se aplica en el catch-all público. Una regla nueva, mutuamente excluyente con él, da la CSP estricta de siempre a las rutas privadas que no tenían regla propia: `studio`, `portal`, `back`, `invitar`, `acceso`, `entrar`, `abrir`, `verificar`, `p`, `interno`, `registro`, `/track/<código>` y `/m` exacto. `/m/*`, `/marca*`, los embeds, Bandeja, Bitácora, ficha y cierre de chat conservan sus reglas, derivadas de `cspHeader`. **P**
+- Se aplica en el catch-all público. Una regla nueva, mutuamente excluyente con él, da la CSP estricta de siempre a las rutas privadas que no tenían regla propia: `studio`, `portal`, `back`, `invitar`, `acceso`, `entrar`, `abrir`, `verificar`, `p`, `interno`, `registro`, `cotizador`, `/track/<código>` y `/m` exacto. `/m/*`, `/marca*`, los embeds, Bandeja, Bitácora, ficha y cierre de chat conservan sus reglas, derivadas de `cspHeader`. **P**
 - `default-src` y `frame-ancestors` no se tocan. **P**
 - **`c.bing.com` queda fuera.** Es el dominio que planta las cookies de terceros de Microsoft (`MUID` y otras), que también sirven para su publicidad, y nosotros mandamos `ad_Storage: "denied"` siempre. Si al encender (fase 3) el panel no recibe datos sin él, se agrega con una SDD que lo diga. **D**, **I** sobre el efecto.
 - La prueba mide con el matcher de rutas de Next (`getPathMatch`) que **cada ruta recibe exactamente una CSP** y que toda ruta excluida por la guarda recibe una CSP sin Clarity (paridad). **P**
@@ -87,8 +87,30 @@ Modo del proyecto: **Balanced** (se configura en el panel, fase 3). Además, `da
 | Resultado de la calculadora FCL (`/fcl`) | `components/FclCalculator.tsx` |
 | Modal del estimado (`/estimacion` redirige a `/tarifas`): nombre y teléfono | `components/EstimadoModal.tsx` |
 | Formulario de contacto completo | `components/ContactoForm.tsx` |
+| Bloque «Estimado guardado» con el código EST (fuera de la columna de resultado; según su comentario no se pinta en `/tarifas`, pero se enmascara igual) | `components/CalculadoraForm.tsx` |
 
-Los demás formularios públicos (academia, boletín) solo tienen inputs, que Clarity enmascara siempre (**D**). `/registro`, `/entrar` y `/abrir` están excluidos del todo.
+Los demás formularios públicos (academia, boletín) solo tienen inputs, que Clarity enmascara siempre (**D**). `/registro`, `/entrar`, `/abrir` y `/cotizador` están excluidos del todo.
+
+**`/cotizador` excluido (revisión independiente de la #710).** Es pública, pero con `DOCUMENT_IMPORT_ENABLED` encendida muestra como **texto** el contenido de documentos importados (`components/document-import/DocumentEditor.tsx`: nombre del archivo, Shipping Mark, productos, códigos y marcas). En Balanced eso se grabaría legible, y choca con «las páginas públicas no llevan datos de clientes». Se eligió la opción más segura: excluir la ruta en la guarda (`CLARITY_EXTRA_PRIVATE_PREFIXES`) y, por paridad, en la CSP privada (`PRIVATE_CSP_SEGMENTS`). Enmascarar la raíz de `CotizadorClient` habría dejado pasar la URL y cualquier texto nuevo fuera de esa raíz. **P** (guarda, CSP y paridad; un mutante que quita `/cotizador` hace fallar 5 pruebas). GA sigue midiendo `/cotizador`, porque no graba el DOM.
+
+**Búsqueda de otras rutas públicas con datos como texto** (2026-11-19, grep en `app/` y `components/` de lectores de archivos, `/api/public/` y ecos de nombre, correo o teléfono fuera de las zonas privadas). Resultado:
+
+- `DocumentEditor` y `DocumentImportPanel` solo se usan en `/cotizador` (ahora excluida), en el Portal y en `/p/[token]` (ya excluidos).
+- `DocumentImportEntry` solo se usa en el Portal.
+- `CalculadoraForm`, `FclCalculator` y `EstimadoModal` quedan enmascarados según la tabla.
+- `ContactoForm`, `AcademiaLeadForm` y `NewsletterCard` no devuelven como texto lo que escribe la persona. El contacto lo arma en el mensaje de WhatsApp, que sale del sitio.
+- `/email/baja` muestra textos fijos; un parámetro con token o correo excluye la vista por la regla de query de GA.
+- `/admin/cbm-estudio` e `/ir/bitacora/tarea/[id]` son route handlers: no renderizan el layout, así que no cargan Clarity.
+- `/llenado` y `/calculadora-terrestre` muestran medidas y montos que escribe la persona, no datos personales. Balanced enmascara los números. **I**
+
+**Atributos `href` dentro de nodos enmascarados: NO VERIFICADO.** El bloque del estimado guardado tiene un enlace `href="/registro?est=<código EST>"`. La documentación de enmascarado que cita la evaluación habla del **texto** de los nodos y de los campos. No dice si Clarity también reemplaza atributos como `href` en un nodo con `data-clarity-mask="True"`, ni si un clic en un enlace guarda su destino. No se pudo medir sin un proyecto real.
+
+Hasta medirlo se cuenta como riesgo. Lo atenúan dos cosas:
+
+1. Según el comentario del código, el bloque no se pinta en `/tarifas`, la única página pública que usa `CalculadoraForm`.
+2. Un clic en ese enlace va a `/registro`, que está excluida: el corte hace navegación completa y la URL de destino no se graba como página.
+
+En la fase 3, antes de encender, hay que revisar una grabación de prueba con un `href` sintético dentro de un nodo enmascarado. Si el atributo aparece, se quita el código de la URL o se excluye la página.
 
 ### 7. Imagen Docker y workflows
 
@@ -123,7 +145,8 @@ La e2e no entra en `pnpm test:e2e`: la suite general corre sin ID, que es como s
 
 - [x] Sin ID (ausente, vacío, espacios, `off`) no se carga nada y la CSP no cambia.
 - [x] Sin ID de respaldo en el código; ningún ID real en el repo.
-- [x] Guarda de GA + `/registro`, `/entrar`, `/abrir`.
+- [x] Guarda de GA + `/registro`, `/entrar`, `/abrir` y `/cotizador` (contenido de documentos como texto; corrección de la revisión de la #710).
+- [ ] `href` dentro de nodos enmascarados: NO VERIFICADO; se mide con una grabación de prueba en la fase 3, antes de encender.
 - [x] CSP de Clarity solo en el sitio público y solo en `script-src`, `connect-src`, `img-src`.
 - [x] Consent API v2 enlazada a `dtd_cookie_consent` (sin cookies hasta `granted`; `consent false` al revocar).
 - [x] `clarity.ms` fuera del bundle con el apagado; `off` fijo en la imagen de prueba; producción desde la variable de repositorio.
