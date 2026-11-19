@@ -18,7 +18,14 @@ import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MensajeLeido } from "../oficina/chatwoot-lectura";
-import { correrTanda, ejecutarCorrida, tick, type DepsDespachador } from "../oficina/despachador";
+import {
+  CORRECCION_DEL_ACUSE,
+  REGLA_DEL_ACUSE,
+  correrTanda,
+  ejecutarCorrida,
+  tick,
+  type DepsDespachador,
+} from "../oficina/despachador";
 import { type AlmacenDespachador, ErrorDelAlmacen, SinMigracion } from "../oficina/despachador-almacen";
 import { configDespachador } from "../oficina/despachador-config";
 import { olvidarAvisosParaPruebas } from "../oficina/escritura";
@@ -136,10 +143,12 @@ interface Doble {
   llamadas: number;
   sesionesBorradas: string[];
   lecturas: number;
+  /** Las instrucciones («sistema») de cada llamada al agente, en orden. */
+  sistemas: string[];
 }
 
 function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<string | "lento">; ajustes?: Partial<ReturnType<typeof configDespachador>> } = {}) {
-  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0 };
+  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0, sistemas: [] };
   const contenidos = [...(o.contenidos ?? [respuestaBuena])];
   const registros: string[] = [];
   const config = { ...configDespachador({ ...ENV, ...(o.env ?? {}) }), vigilarPausaMs: 50, tickMs: 20, ...(o.ajustes ?? {}) };
@@ -150,8 +159,9 @@ function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<
       doble.lecturas += 1;
       return MENSAJES.map((m) => ({ ...m }));
     },
-    async llamar({ signal }): Promise<RespuestaAgente> {
+    async llamar({ signal, sistema }): Promise<RespuestaAgente> {
       doble.llamadas += 1;
+      doble.sistemas.push(sistema);
       const c = contenidos.length > 1 ? contenidos.shift()! : contenidos[0];
       if (c === "lento") {
         await new Promise((_, rechazar) => {
@@ -327,6 +337,115 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(b.tipo).toBe("escalado");
       expect(String(b.motivo)).toContain("dato_inventado");
       expect(b.texto).toBeNull();
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  // Ficha 0.3 (etapa 1, 18/11/2026): un saludo simple escaló con `eval:sin_acuse` porque el agente partió el mensaje
+  // entre «acuse» y «texto». Lo que el agente devolvió entonces:
+  const partida = JSON.stringify({
+    respuesta: {
+      acuse: "¡Hola! Gracias por escribirle a DTD Cargo.",
+      texto: "Ya vi tu mensaje y te ayudo con gusto. Cuéntame un poco más de lo que necesitas.",
+      guion: "acuse-general",
+    },
+  });
+  const completa = JSON.stringify({
+    respuesta: {
+      acuse: "¡Hola! Gracias por escribirle a DTD Cargo.",
+      texto: "¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto. Cuéntame un poco más de lo que necesitas.",
+      guion: "acuse-general",
+    },
+  });
+
+  it("las instrucciones dicen que «texto» empieza con el acuse, con el ejemplo del guion; sin corrección en el primer intento", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d, doble } = deps(db);
+      expect(await tick(d)).toMatchObject({ resultado: { fin: "borrador" } });
+      expect(doble.sistemas).toHaveLength(1);
+      expect(doble.sistemas[0]).toContain(REGLA_DEL_ACUSE);
+      expect(doble.sistemas[0]).not.toContain(CORRECCION_DEL_ACUSE);
+      // El ejemplo de la regla es una salida válida y pasa el eval: no se le enseña al agente una forma que escala.
+      expect(REGLA_DEL_ACUSE).toContain(completa);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("sin acuse al inicio: se le pide UNA vez más con la corrección; si el segundo intento lo trae, guarda el borrador", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d, doble } = deps(db, { contenidos: [partida, completa] });
+      expect(await tick(d)).toMatchObject({ resultado: { fin: "borrador" } });
+      expect(doble.llamadas).toBe(2);
+      // La corrección es una línea fija al final de las mismas instrucciones: no lleva nada del borrador rechazado.
+      expect(doble.sistemas[1]).toBe(`${doble.sistemas[0]}\n${CORRECCION_DEL_ACUSE}`);
+      expect(await filas(db, "select tipo, guion, motivo from public.office_borradores")).toEqual([
+        { tipo: "respuesta", guion: "acuse-general", motivo: null },
+      ]);
+      const pasos = await filas(db, "select tipo, actor from public.task_events where tipo = 'eval.reintento'");
+      expect(pasos).toEqual([{ tipo: "eval.reintento", actor: "sistema:despachador" }]);
+      // Los dos intentos quedan con su costo en la bitácora (AC-2 y AC-5).
+      const modelo = await filas(db, "select count(*)::int as n, sum(costo_usd) > 0 as con_costo from public.task_events where tipo = 'modelo.respuesta'");
+      expect(modelo).toEqual([{ n: 2, con_costo: true }]);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("si el segundo intento tampoco trae el acuse al inicio: escala `eval:sin_acuse`, sin un tercer intento", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d, doble } = deps(db, { contenidos: [partida] });
+      expect(await tick(d)).toMatchObject({ resultado: { fin: "escalado", motivo: "eval:sin_acuse" } });
+      expect(doble.llamadas).toBe(2);
+      expect(await filas(db, "select tipo, motivo, texto from public.office_borradores")).toEqual([
+        { tipo: "escalado", motivo: "eval:sin_acuse", texto: null },
+      ]);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("con el tope en 1 llamada por corrida no hay reintento: escala `eval:sin_acuse` como antes", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d, doble } = deps(db, { contenidos: [partida, completa], env: { OFICINA_TOPE_LLAMADAS_CORRIDA: "1" } });
+      expect(await tick(d)).toMatchObject({ resultado: { fin: "escalado", motivo: "eval:sin_acuse" } });
+      expect(doble.llamadas).toBe(1);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("solo el acuse se reintenta: con un dato inventado además, escala al momento y no vuelve a llamar", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const partidaEInventada = JSON.stringify({
+        respuesta: {
+          acuse: "Entiendo tu consulta.",
+          texto: "Tu caja ya está en tránsito y llega el 20 de noviembre.",
+          guion: "derivar-equipo",
+        },
+      });
+      const { d, doble } = deps(db, { contenidos: [partidaEInventada, completa] });
+      const r = await tick(d);
+      expect(r).toMatchObject({ resultado: { fin: "escalado" } });
+      expect(doble.llamadas).toBe(1);
+      const [b] = await filas(db, "select motivo from public.office_borradores");
+      expect(String(b.motivo)).toBe("eval:sin_acuse,dato_inventado");
     } finally {
       await db.close();
     }

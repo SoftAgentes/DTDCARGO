@@ -308,6 +308,66 @@ function Ficha({
           </ol>
         )}
       </Seccion>
+
+      {/* SDD-0676: lo que traía la tarjeta de lead que este cliente absorbió al vincular su chat. */}
+      {(f.absorbidas ?? []).map((a) => (
+        <Seccion key={a.id} titulo={`Antes, como lead de ${FUENTE_LABEL[a.fuente] ?? a.fuente}`}>
+          <p style={{ ...NOTA_SUAVE, margin: "0 0 var(--s-2)" }}>
+            Tarjeta creada el {fechaCorta(a.creadaAt)}. Su chat se vinculó a esta ficha: esto es lo que traía, solo
+            para leer. Si se quita la unión desde la ficha del cliente, vuelve a su tablero.
+          </p>
+          {a.tareas.length + a.notas.length + a.historial.length === 0 ? (
+            <p style={NOTA_SUAVE}>No tenía tareas, notas ni movimientos.</p>
+          ) : (
+            <ul style={LISTA}>
+              {a.tareas.map((k) => (
+                <li key={`t-${k.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)", overflowWrap: "anywhere" }}>
+                    Tarea: {k.texto}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {k.completadaAt ? `Hecha el ${fechaCorta(k.completadaAt)}` : "Abierta"}
+                    {k.venceAt ? ` · Vence ${fechaCorta(k.venceAt)}` : ""}
+                    {k.asignado ? ` · ${k.asignado}` : ""}
+                  </p>
+                </li>
+              ))}
+              {a.notas.map((n) => (
+                <li key={`n-${n.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      font: "400 13px/1.45 var(--f-sans)",
+                      color: "var(--ink)",
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    Nota: {n.texto}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {n.autor ?? "Sistema"} · {fechaCorta(n.creadaAt)}
+                  </p>
+                </li>
+              ))}
+              {a.historial.map((h) => (
+                <li key={`h-${h.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                    {h.tablero === "leads" ? "Leads" : "Clientes"}:{" "}
+                    {h.de ? `${nombreEtapa(etapas, h.tablero, h.de)} → ` : ""}
+                    {nombreEtapa(etapas, h.tablero, h.a)}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {ORIGEN_MOVIMIENTO_LABEL[h.origen] ?? h.origen}
+                    {h.actor ? ` · ${h.actor}` : ""} · {fechaCorta(h.ocurrioAt)}
+                    {h.motivo ? ` · Motivo: ${h.motivo}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Seccion>
+      ))}
     </>
   );
 }
