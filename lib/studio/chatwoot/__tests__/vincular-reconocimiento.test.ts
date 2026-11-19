@@ -54,6 +54,8 @@ type Fila = Record<string, unknown>;
 const UNIONES: Fila[] = [
   { tenant_id: T1, chatwoot_contact_id: 5, client_id: FICHA },
   { tenant_id: T1, chatwoot_contact_id: 6, client_id: BORRADA },
+  // El contacto del chat del portal de esa misma ficha (unión que escribe chatwoot_portal_vincular).
+  { tenant_id: T1, chatwoot_contact_id: 9, client_id: FICHA, origen: "portal" },
   // El mismo número de contacto no existe en dos tenants (llave de la 0554): este es otro contacto, de T2.
   { tenant_id: T2, chatwoot_contact_id: 8, client_id: AJENA },
 ];
@@ -133,7 +135,7 @@ describe("canal de la unión (reglas puras)", () => {
   });
 
   it("solo los canales de la migración son válidos", () => {
-    for (const c of ["whatsapp", "instagram", "messenger", "tiktok", "correo", "otro"]) expect(esCanalUnion(c)).toBe(true);
+    for (const c of ["whatsapp", "instagram", "messenger", "tiktok", "correo", "otro", "portal"]) expect(esCanalUnion(c)).toBe(true);
     for (const c of ["telegram", "", null, undefined, 3, "Instagram"]) expect(esCanalUnion(c)).toBe(false);
   });
 
@@ -142,6 +144,14 @@ describe("canal de la unión (reglas puras)", () => {
     expect(logoDeCanalUnion("instagram")).toBe("instagram");
     expect(logoDeCanalUnion("otro")).toBeNull();
     expect(logoDeCanalUnion(null)).toBeNull();
+    // El chat del portal lleva el logo de los canales propios de DTD.
+    expect(logoDeCanalUnion("portal")).toBe("dtd");
+  });
+
+  it("«portal» nunca sale del tipo de bandeja: solo lo escribe el chat del portal", () => {
+    for (const tipo of ["Channel::Api", "Channel::WebWidget", "Channel::Whatsapp", "portal"]) {
+      expect(canalDeChatwoot(tipo)).not.toBe("portal");
+    }
   });
 
   it.each([
@@ -213,6 +223,17 @@ describe("marcarContactoErp con un contacto vinculado", () => {
     const b = base();
     const e = instagram(55);
     await marcarContactoErp({ admin: b.admin, tenantId: T1, contacto: e.contacto }, e.evento, REGISTRO);
+    expect(b.lecturas).toEqual(["chatwoot_contact_links"]);
+    expect(b.rpc).not.toHaveBeenCalled();
+    expect(api.leerAtributosContacto).not.toHaveBeenCalled();
+    expect(api.escribirAtributosContacto).not.toHaveBeenCalled();
+  });
+
+  it("contacto del portal: aunque está unido, no se le escribe segmento ni Shipping Mark (a Chatwoot solo va su nombre)", async () => {
+    const b = base();
+    const e = instagram(9);
+    await marcarContactoErp({ admin: b.admin, tenantId: T1, contacto: e.contacto }, e.evento, REGISTRO);
+    // Lee la unión, ve que es del portal y para: ni la ficha, ni el segmento, ni Chatwoot.
     expect(b.lecturas).toEqual(["chatwoot_contact_links"]);
     expect(b.rpc).not.toHaveBeenCalled();
     expect(api.leerAtributosContacto).not.toHaveBeenCalled();
