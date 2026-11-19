@@ -51,13 +51,21 @@ export interface ContextoChatwoot {
 
 export type ManejadorEvento = (ctx: ContextoChatwoot, evento: EventoChatwoot, registro: Registro) => Promise<void>;
 
-/** Llama la RPC. `clave` nula = reconciliación (no deja evento). Lanza si la base falla. */
+/**
+ * Llama la RPC. `clave` nula = reconciliación (no deja evento). Lanza si la base falla.
+ *
+ * SDD-0676: `contactoId` es el contacto de Chatwoot de la conversación. Con él, la
+ * base busca primero su unión con una ficha (`chatwoot_contact_links`) y después el
+ * teléfono. Por defecto sale del payload (`ctx.contacto`); sin contacto (reproceso,
+ * reconciliación en lote) el cruce queda como estaba.
+ */
 export async function aplicarConversacion(
   ctx: ContextoChatwoot,
   conversacion: ConversacionChatwoot,
   evento: Pick<EventoChatwoot, "clave" | "evento" | "mensajeId" | "avisar"> | null,
+  contactoId: number | null = ctx.contacto?.contactoId ?? null,
 ): Promise<Registro> {
-  const { data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", {
+  const args = {
     p_tenant_id: ctx.tenantId,
     p_event_key: evento?.clave ?? null,
     p_event: evento?.evento ?? null,
@@ -71,7 +79,13 @@ export async function aplicarConversacion(
     p_source_updated_at: conversacion.fuenteActualizada,
     p_message_id: evento?.mensajeId ?? null,
     p_avisar: evento?.avisar ?? false,
-  });
+  };
+  let { data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", { ...args, p_contact_id: contactoId });
+  // Sin la migración de la SDD-0676 la función no conoce `p_contact_id` (PGRST202 por PostgREST,
+  // 42883 directo en Postgres): se llama como antes y el cruce sale solo del teléfono.
+  if (error?.code === "PGRST202" || error?.code === "42883") {
+    ({ data, error } = await ctx.admin.rpc("chatwoot_registrar_evento", args));
+  }
   if (error) throw new Error(`chatwoot_registrar_evento: ${error.code ?? "sin código"}`);
   const fila = (Array.isArray(data) ? data[0] : data) as
     | { nuevo?: boolean; aplicado?: boolean; client_id?: string | null }
