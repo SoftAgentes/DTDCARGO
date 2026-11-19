@@ -15,7 +15,7 @@
 ## 0 · Antes del día
 
 1. **PR aprobada** con la fase A del ensayo en verde (SDD-0679 §5) y, si se hizo, la fase B medida.
-2. **OK nominal de Sam**, que nombra la versión (`v4.20.0-ce` y su digest), la hora y el smoke (§5). El pedido de «Actualizaciones» de Studio no es el OK. La fase B (copia aislada, §9) y la reactivación de la cuenta 2 para V7 tienen OK propio de Sam desde el 2026-11-19, citado en el §9.
+2. **OK nominal de Sam.** Para esta subida se dio el 2026-11-19 en el chat del DG, con la frase literal citada en el paso 5: la subida es el mismo día, y se recrean `rails` y `sidekiq`. El pedido de «Actualizaciones» de Studio no es el OK. La reactivación de la cuenta 2 para V7 tiene su propio OK, citado en el §9. **La fase B (§9) se omitió** por decisión del DG: el tráfico entra casi todo por Kommo y el respaldo del §3 cubre la vuelta atrás. Por eso el corte del §7 queda sin medir con datos reales.
 3. **Fecha y hora.** Sam pidió el **viernes 20 o el sábado 21**. El runbook de versiones dice «lunes a jueves, 21:00–23:00 de Caracas, no el viernes»: si va el viernes o el sábado, el DG confirma con Sam que al día siguiente hay quien atienda. La hora real se mide con `date -u` (Caracas = UTC − 4).
 4. **Sam disponible durante toda la ventana.** La vuelta atrás (b) necesita la clave privada `age` del respaldo, que solo pega Sam (§6).
 5. **Medir las diferencias de `sidekiq` y `rails`** (en el VPS, solo lectura, la víspera o al empezar). El `compose.yml` del VPS **no es** el de `main`, y el `sidekiq` que corre **no es igual** a su compose. Cambiar la imagen obliga a recrearlos y, al recrearlos, entra todo lo que difiera. Se compara por **nombres** y por huella, sin imprimir valores:
@@ -43,8 +43,13 @@
 
    - `<` = está en el contenedor y no en el compose; `>` = entra al recrear. Un nombre en las dos columnas con huella distinta = el valor cambia. Se anota **solo el nombre** de cada diferencia en el handoff, nunca la huella junto al nombre de un secreto en un canal público.
    - Si una variable del compose coincide en nombre con una de la imagen (`RAILS_ENV`, por ejemplo), sale como `>`: es la misma, se descarta a mano.
-   - Se espera **ninguna** diferencia en los dos. `rails` se recreó y comparó el 2026-11-19. `sidekiq` no coincidía (le faltaban `DTD_CHATWOOT_SERVICIO_ID`, `SEARCH_TIME_RANGE_LIMIT_DAYS` y montajes). Sam aprobó alinearlo el 2026-11-19 y lo hace otra sesión con la misma imagen 4.19.1, antes de esta subida (dato del DG).
-   - **Si el día aparece cualquier diferencia, no se sigue**: recrear con la imagen nueva la aplicaría sin que nadie la aprobara. Se avisa al DG.
+   - **`rails`:** ninguna diferencia (se recreó y comparó el 2026-11-19). La imagen cambia en §4, no aquí.
+   - **`sidekiq`:** se espera **exactamente** esta diferencia, que entra con la subida. La nombra el OK nominal de Sam del 2026-11-19, literal: «OK, sube Chatwoot a 4.20.0 hoy, recreando rails y sidekiq (sidekiq toma DTD_CHATWOOT_SERVICIO_ID, SEARCH_TIME_RANGE_LIMIT_DAYS y el montaje de revocar sesiones)».
+     - `> DTD_CHATWOOT_SERVICIO_ID`;
+     - `> SEARCH_TIME_RANGE_LIMIT_DAYS`;
+     - `MAX_USER_SESSIONS` con huella distinta (5 → 10). `sidekiq` no la lee;
+     - montaje `> /app/config/initializers/zz_dtd_revocar_sesiones.rb`.
+   - **Si aparece cualquier otra diferencia, en `rails` o en `sidekiq`, no se sigue**: recrear la aplicaría sin que nadie la aprobara. Se avisa al DG.
    - Si `node` no está en el host, se hace con `docker compose config sidekiq` a mano y se comparan solo los nombres.
 
 6. **Bajar la imagen antes de la ventana** (no corta nada; ~750 MB):
@@ -148,7 +153,7 @@ Primero **S1–S13 de [§6 del runbook de versiones](chatwoot-versiones.md#6--pa
 | V1 | `curl -s https://chat.dtdcargo.com/api` | `"version":"4.20.0"`; `queue_services` y `data_services` en `ok` |
 | V2 | `docker compose images rails sidekiq` | los dos con `v4.20.0-ce` y el digest nuevo |
 | V3 | Inicializadores cargados **una vez por proceso**: `docker compose logs rails sidekiq \| grep -c '\[DTD\] redacción de logs activa'`, `… 'protección de /register activa: '`, `… 'revocación de sesiones activa'` | `2` cada uno (S2, S4, S6 los miden por separado); `0` en `revocar sesiones: faltan` y en `modo cerrado` |
-| V4 | `sidekiq` ahora igual a su compose: repetir la comparación de §0 paso 5 | sin diferencias |
+| V4 | `rails` y `sidekiq` ahora iguales a su compose: repetir la comparación de §0 paso 5 | sin diferencias (la de `sidekiq` entró) |
 | V5 | WhatsApp sin app secret: `docker compose logs --since 15m rails \| grep -c WHATSAPP_APP_SECRET_PENDING` | Un número, sin abrir las líneas. **No es rojo**: dice qué bandejas esperan el secreto. Lo carga Sam cuando decida; nadie más |
 | V6 | Sidekiq recupera: los cuatro números del paso 2 | encolados bajan a 0 en minutos; `muertos` no crece |
 | V7 | Prueba en Studio (cuenta 2, **fase C** de la SDD), solo con el OK de Sam para reactivarla: SSO y Bandeja, Ficha DTD, `prueba-punta-a-punta.sh 2` (webhook firmado al ERP) y un mensaje del chat del portal de prueba | todos en verde; al terminar se **suspende** la cuenta 2 otra vez (no se borra) |
@@ -221,7 +226,9 @@ En el handoff de la subida: hora de inicio y fin del corte, la comparación de `
 - la imagen vieja se borra del VPS (`docker image rm`) recién cuando Sam dé por cerrada la subida;
 - `data.fallida-<sello>/` (si la hubo) la decide Sam.
 
-## 9 · Fase B: copia aislada en el VPS (antes del día)
+## 9 · Fase B: copia aislada en el VPS (opcional, para próximas subidas)
+
+> **En la subida a la 4.20.0 no se corrió:** el DG la omitió el 2026-11-19. Queda como receta para un salto con migraciones largas o con más tráfico en Chatwoot.
 
 **OK de Sam (2026-11-19, en el chat del DG, literal).** A «¿Autorizas levantar en el servidor una copia temporal y aislada de Chatwoot, sin dominio ni acceso desde afuera, con el respaldo de hoy, para ensayar la subida y después borrarla?», respondió «Sí, copia aislada (Recomendado)». Ese OK cubre **esto y nada más**: no toca `/srv/chatwoot`, la copia no tiene host ni puerto, y se borra al terminar.
 
