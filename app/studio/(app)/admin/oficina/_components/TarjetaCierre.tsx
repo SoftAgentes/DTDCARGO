@@ -1,7 +1,11 @@
 /**
  * El cierre de una conversación revisada (SDD-0626 · 0558, H3): «Cierre o escalado en 3 intercambios o menos» se
  * registra UNA vez por conversación, al cerrarla o escalarla. Sin texto del cliente: solo el número de conversación.
+ *
+ * SDD-0678: mientras se guarda, el formulario entero queda deshabilitado (no se cambia «Cumple»/«Falló» a mitad) y
+ * el botón dice «Guardando…».
  */
+import { BotonEnvio, FormularioAccion } from "@/app/studio/_components/ui/FormularioAccion";
 import { CRITERIO_CIERRE, type ConversacionPorCerrar } from "@/lib/studio/oficina/revisiones";
 
 export function TarjetaCierre({
@@ -19,7 +23,7 @@ export function TarjetaCierre({
         Conversación {c.conversacion} · {c.revisiones} {c.revisiones === 1 ? "revisión" : "revisiones"} · última{" "}
         {c.ultimaRevision.slice(0, 16).replace("T", " ")} UTC
       </p>
-      <form action={accion}>
+      <FormularioAccion action={accion} aria-label={`Cierre de la conversación ${c.conversacion}`}>
         <input type="hidden" name="conversacion" value={c.conversacion} />
         <fieldset style={{ border: 0, padding: 0, margin: "0 0 8px", font: "400 13px/1.6 var(--f-sans)" }}>
           <legend style={{ font: "600 13px/1.3 var(--f-sans)", marginBottom: 6 }}>{CRITERIO_CIERRE}</legend>
@@ -35,11 +39,9 @@ export function TarjetaCierre({
           <textarea name="motivo" required maxLength={500} rows={2} style={{ display: "block", width: "100%", marginTop: 4 }} />
         </label>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button type="submit" className="studio-btn">
-            Registrar el cierre
-          </button>
+          <BotonEnvio>Registrar el cierre</BotonEnvio>
         </div>
-      </form>
+      </FormularioAccion>
     </article>
   );
 }
