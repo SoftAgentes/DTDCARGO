@@ -11,10 +11,13 @@ Fecha: 2026-11-19 · Rama: `claude/interesting-darwin-9a1100` · Base: `origin/m
 
 ## Pendiente de esta tarea
 
-- Sam contestó el 2026-11-19 (spec §5): las tres vistas van dentro de Almacén China (en almacén, en
-  camino, pendiente por liberar). Abiertas: A (Embarques), B (quién marca el telex), C (`cerrado`), D (contador).
+- Sam contestó el 2026-11-19 (spec §5): las tres vistas van dentro de Almacén China; el telex lo confirma
+  China con botón y documento opcional, y en DTD sale «Liberado» en verde; «Pendiente por liberar» solo en
+  el mar (~15 días antes de la ETA); el contador son los días a la ETA.
+- Embarques: maqueta antes/después en `docs/specs/0682-almacen-china-sin-consolidado/assets/maqueta-embarques.html`,
+  publicada en https://claude.ai/artifact/MnQ36KhNCemhmqjzoQuAS8. Abiertas: E (Embarques con la maqueta a la vista), F (deshacer).
 - Conteo en producción corrido por el DG el 2026-11-19: sin duplicados, 111 recepciones del 64 consolidadas, 0 pendientes en el almacén (spec §5).
-- No existe dato de telex release: hace falta migración (número del DG; aplicar solo con OK de Sam).
+- No existe dato de telex release: migración propuesta en spec §2.4 (número del DG al programarse; aplicar solo con OK de Sam).
 - Producto solo con la spec aprobada.
 
 ## Pruebas

@@ -99,7 +99,7 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 |---|---|---|
 | **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia` | ya existe |
 | **En camino** | Contenedores en el mar: contador de días y porcentaje | ya existe |
-| **Pendiente por liberar** | Contenedores en el mar o sin llegar, sin telex release | **falta** (§2.4) |
+| **Pendiente por liberar** | Contenedores en el mar sin telex release | **falta** (§2.4) |
 
 ### 2.1 En almacén (vista por defecto)
 
@@ -124,33 +124,60 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 
 ### 2.3 Pendiente por liberar
 
-- Contenedores `zarpado` (y, si Sam lo confirma, también `cerrado`: ya cargados, sin zarpar) que aún no
-  tienen telex release. Primero los de ETA más cercana.
-- Cada fila: contenedor, ETA, días que faltan y una acción «Marcar liberado» para quien tenga permiso
-  (§5, pregunta B). Al marcarlo, sale de esta vista.
-- Después vendría un aviso con antelación para que lo liberen (Sam). **No entra en esta SDD**: aquí solo
-  se deja el dato listo para que el aviso lo lea.
+Sam: el telex release lo hace **siempre China**. Hoy avisan «ya está listo» sin mandar nada, o se olvida
+avisar. China da crédito en el flete y libera cuando el contenedor está por llegar, **unos 15 días antes
+de la ETA**. Si no libera, la aduana no puede tocar el contenedor.
 
-### 2.4 Propuesta de dato: telex release por contenedor (necesita migración)
+- **Solo** contenedores `zarpado` (en el mar) sin telex release. Los `cerrado` (cargados, sin zarpar) no
+  entran. Primero los de ETA más cercana.
+- Cada fila: número DTD, contenedor, naviera, ETA y días que faltan. Cuando faltan 15 días o menos, la fila
+  se resalta («toca liberar»). Ese umbral queda como constante con nombre: es el mismo que leerá el aviso.
+- Botón **«Confirmar telex release»** para el equipo de China. Abre una confirmación con un campo opcional
+  para subir el documento (PDF o imagen). Al confirmar, el contenedor sale de esta vista.
+- Del lado de DTD (Venezuela), el contenedor aparece en verde como **«Liberado»**, con fecha y, si lo hay,
+  el documento. Dónde se ve en Venezuela: la ficha del contenedor en Naviera y la vista por contenedor de
+  Embarques, como una insignia que no cambia la lista (§2.5).
+- Después vendría un aviso con antelación para que liberen (Sam). **No entra en esta SDD**: aquí se deja
+  listo el dato que el aviso va a leer.
 
-Lo mínimo:
+### 2.4 Propuesta de dato: telex release por contenedor (migración, sin número todavía)
 
-- En `consolidations`: `telex_released_at timestamptz null` y `telex_released_by uuid null` (referencia al
-  usuario). `null` = sin liberar.
-- Marcar y desmarcar por un RPC con rol y tenant, que deja evento en `entity_audit_log`, como los demás
-  hitos gobernados.
-- Número de migración: lo asigna el DG. Se aplica en producción solo con OK de Sam y el runbook.
+El número lo da el DG cuando esté por programarse. Se aplica en producción solo con OK de Sam y el
+[runbook de producción](../../runbooks/aplicar-migraciones-prod.md).
 
-Alternativa sin columna: tomar como «liberado» que exista un documento de tipo telex/BL adjunto al
-contenedor. Se descarta como recomendación porque hoy los documentos BL cuelgan del embarque
-(`shipment_doc_type`, migración 0086) y no del contenedor, y un adjunto no dice si la naviera ya liberó.
+- En `consolidations`: `telex_released_at timestamptz null` y `telex_released_by uuid null` (usuario que
+  confirmó). `null` = sin liberar.
+- Confirmar y deshacer por un RPC gobernado: valida tenant y rol (equipo de China: `warehouse` y
+  `operations`; `admin` siempre), exige el contenedor `zarpado` o `arribado`, es idempotente y deja evento en
+  `entity_audit_log`. Deshacer solo `operations` y `admin`, con motivo.
+- El documento va al hub de documentos que ya existe: `documents` con `entity_type = 'consolidation'`
+  (el tipo ya está en el enum, `supabase/migrations/0097_documentos_hub.sql:44`) y `doc_type` «Telex
+  release». No hace falta tabla nueva. Falta verificar al programar que la RLS de `documents` deja subir al
+  rol `warehouse` de China.
+- La lista de «Pendiente por liberar» sale de `status = 'zarpado' and telex_released_at is null`.
 
-### 2.5 Embarques (fuera de la pantalla de China)
+Se descartó usar solo el documento como prueba de liberación: Sam quiere que China pueda confirmar sin
+adjuntar nada, y un adjunto no dice por sí solo que la naviera ya liberó.
 
-Sigue abierto (§5, pregunta A). Hoy «Activos» incluye lo que va en el mar (§1.4). Hay dos opciones:
+### 2.5 Embarques: maqueta antes y después, sin programar
 
-- **(a)** «Activos» = en origen; pestaña «En camino» aparte; por defecto «Activos».
-- **(b)** Solo pasar la pestaña por defecto a «Activos» y plegar los contenedores zarpados.
+Sam quiere **ver** cómo quedaría antes de cambiar nada, y cree que Embarques no debería cambiar. La maqueta
+está en [`assets/maqueta-embarques.html`](assets/maqueta-embarques.html) (datos inventados), publicada
+en privado para Sam en <https://claude.ai/artifact/MnQ36KhNCemhmqjzoQuAS8>. Se puede cambiar de pestaña y
+abrir los contenedores, y alternar entre la opción (a) y «sin cambio, solo la insignia». Muestra el
+cambio exacto propuesto, opción (a):
+
+- **Antes (hoy):** pestañas Todos · Activos · Entregados · Alertas; abre en «Todos»; «Activos» incluye lo que
+  va en el mar.
+- **Después (a):** pestañas Activos · En camino · Entregados · Alertas · Todos, y abre en «Activos».
+  «En camino» = lo que va en el mar: `shipped` (Embarcado) e `in_transit` (En tránsito). «Activos» = lo que
+  pide trabajo en origen o en destino: todo lo que no es `shipped`, `in_transit`, `delivered` ni `cancelled`
+  (bodega China, consolidando, aduana, bodega VE, bodegaje, reparto, última milla, alerta). Estados de
+  `lib/shared/shipment-public.ts:143-157`. La insignia verde «Liberado» aparece en el encabezado del
+  contenedor (§2.3).
+
+Si Sam decide que Embarques no cambia, solo entra la insignia «Liberado», que es de solo lectura y no
+mueve la lista. La opción (b) (plegar los zarpados) queda descartada salvo que la pida.
 
 ## 3. Fuera de alcance
 
@@ -163,9 +190,10 @@ Sigue abierto (§5, pregunta A). Hoy «Activos» incluye lo que va en el mar (§
 
 - Unitarias de `parseReceiptFiltersFromSearchParams` (por defecto «En almacén»; `?status=all` sigue dando
   todo) y de `listReceipts` con el filtro nuevo.
-- Unitarias de la selección de «En camino» y «Pendiente por liberar» (zarpado, sin telex, orden por ETA),
-  con el contador y el porcentaje leídos de la regla de Tracking.
-- Contrato SQL de la migración del §2.4: el RPC rechaza otro tenant y roles sin permiso, y deja auditoría.
+- Unitarias de la selección de «En camino» y «Pendiente por liberar» (solo zarpado, sin telex, orden por
+  ETA, resaltado a 15 días o menos), con el contador y el porcentaje leídos de la regla de Tracking.
+- Contrato SQL de la migración del §2.4: el RPC rechaza otro tenant, roles sin permiso y contenedores que no
+  zarparon; es idempotente; deshacer pide motivo; todo deja auditoría.
 - Componente: las tres vistas, el aviso «N consolidadas no se muestran» y la redacción del nombre para China.
 - Cierre con `pnpm verify` en turno de PC del DG; `/ui-check` por ser UI.
 
@@ -194,11 +222,16 @@ Contestadas por Sam el 2026-11-19, vía el DG:
 3. y 4. «En camino» va **dentro de Almacén China**, con contador y porcentaje, junto con «Pendiente por
    liberar»: las tres vistas en una sola pantalla.
 
+5. **A, Embarques:** antes de cambiar nada, Sam quiere ver cómo quedaría; cree que no debería cambiar. Se
+   preparó la maqueta antes/después (§2.5). No se programa nada de Embarques hasta que la vea.
+6. **B, telex release:** lo hace siempre China. China tiene un botón para confirmarlo, con opción de subir
+   el documento; del lado de DTD sale en verde como «Liberado» (§2.3, §2.4).
+7. **C:** «Pendiente por liberar» incluye **solo** los contenedores en el mar. China libera unos 15 días
+   antes de la ETA.
+8. **D:** el contador son los días que faltan para la ETA.
+
 Abiertas:
 
-- **A.** Embarques (§2.5): ¿(a) o (b)? ¿O basta con lo de Almacén China y Embarques no cambia?
-- **B.** Telex release: ¿quién lo marca (el equipo de China, operaciones en Venezuela o los dos)? ¿Se guarda
-  solo la fecha, o también el documento?
-- **C.** ¿«Pendiente por liberar» incluye los contenedores `cerrado` (cargados, sin zarpar), o solo los que
-  ya están en el mar?
-- **D.** El contador de «En camino»: ¿días que faltan para la ETA (lo que ya calcula Tracking)?
+- **E.** Embarques: con la maqueta a la vista, ¿(a), o Embarques no cambia y solo entra la insignia
+  «Liberado»?
+- **F.** ¿Deshacer una confirmación de telex release queda solo para operaciones y admin, con motivo?
