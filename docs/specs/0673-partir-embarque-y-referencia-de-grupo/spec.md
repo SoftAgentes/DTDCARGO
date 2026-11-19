@@ -266,6 +266,16 @@ Pruebas de la aplicación (F2):
   3. Cada paso lleva su motivo.
   4. Los números reales no van a Git.
 
+### 9.1 Aplicación en producción
+
+- **Aplicada** el 2026-11-19 a las 01:37:17Z, `version` 20261119013717, con el name `0563_partir_embarque_y_medidas`.
+- Archivo aplicado: md5 `0bd55ef482794f52bb0baffdf2376352`, 51433 bytes. El paquete se armó desde el SHA `6ac848871` (#693).
+- Verificación PASÓ, con los cuerpos vivos iguales a los del archivo.
+- Evidencia en el servidor: `/srv/ops/evidencias/apply-0563-dtd-cargo-20261119T013717Z`.
+- OK nominal de Sam, por el DG: «OK, aplica 0563 y 0564» y, para seguir, «si».
+- La primera lectura previa abortó sin escribir («sync_boxes_for_receipt no es la de la 0241»). Producción guarda el cuerpo de la 0241 sin sus líneas de solo comentario. La #693 hizo que el preflight aceptara también ese md5.
+- Cierre: la espera salió de la línea base, la declaración de degradación se quitó y la migración quedó sellada en `supabase/migrations.lock.json`.
+
 ## 10. Allowlist (F1 y F2)
 
 - `supabase/migrations/0563_partir_embarque_y_medidas.sql` y `supabase/migrations-baseline.json` (espera)

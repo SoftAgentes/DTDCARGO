@@ -156,9 +156,10 @@ begin
   -- Partir y corregir confían en lo que hace hoy sync_boxes_for_receipt (0241: no
   -- borra cajas estibadas; numera desde el seq vivo más alto, con el índice único
   -- parcial de la 0243). Si el cuerpo cambió, esta migración no lo conoce.
-  if (select pg_catalog.md5(p.prosrc) from pg_catalog.pg_proc p
-       where p.oid = pg_catalog.to_regprocedure('public.sync_boxes_for_receipt(uuid)'))
-     is distinct from 'a6e9542fee29b37e015277696433a125' then
+  -- El segundo md5 es el mismo cuerpo de la 0241 sin sus líneas de solo comentario, como quedó al aplicarla desde Supabase Cloud.
+  if coalesce((select pg_catalog.md5(p.prosrc) from pg_catalog.pg_proc p
+       where p.oid = pg_catalog.to_regprocedure('public.sync_boxes_for_receipt(uuid)')), '')
+     not in ('a6e9542fee29b37e015277696433a125', '7cb66f72fc71ea058d7f46fb0551eb05') then
     raise exception '0563 abortada: sync_boxes_for_receipt no es la de la 0241';
   end if;
   if not exists (
