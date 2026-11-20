@@ -760,6 +760,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     reordena arrastrando). La columna «Indicadores» muestra todos.
 12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
     embarques del 65 con «Uso de montacargas» antes de la pre-orden.
+    **Contestada (2026-11-20): Contabilidad y Operaciones** (`accounting` y `operations`, más admin). El filtro
+    «genera cobro» sale en Embarques solo para esos roles.
 13. **Venezuela y el catálogo.** ¿Quién en Venezuela pone indicadores en el embarque, y puede crear
     indicadores nuevos o solo usar los de China? Ejemplo: Operaciones en Caracas pone «Montacargas» al
     embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
