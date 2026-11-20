@@ -344,8 +344,9 @@ versión 2 y agrega lo siguiente:
    `invoice_resolve_addresses(p_invoice invoices)`, sin EXECUTE para nadie. La usan el trigger y la RPC de
    lectura (§4.3), así que el borrador muestra exactamente lo que se va a sellar.
 5. **El formato del texto** sale de una función SQL, `invoice_format_address(line, city, state)`,
-   `immutable` y con `search_path = ''`. **No incluye `reference`** (§10, punto 2). Su equivalente en
-   TypeScript se prueba con la misma tabla de casos.
+   `immutable` y con `search_path = ''`. **No incluye `reference`** (§10, punto 2). **No tiene copia en
+   TypeScript** (cuarta vuelta, 2): el borrador, el PDF, el comprobante y la pantalla del Studio reciben el
+   texto ya armado de `invoice_addresses` (§4.3).
 6. **Las vías de emisión que ya cubre el trigger** siguen igual:
    - la RPC 0128 y la acción del Studio;
    - `exc0674_facturar` (0564), que inserta en `emitida`;
@@ -436,17 +437,57 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
 
   Si falta alguna, devuelve null, y el embarque **cuenta como sin elección**: va a la predeterminada del
   cliente actual.
-  - Su espejo en TypeScript, `direccionElegidaDelEmbarque`, está en `lib/studio/shipment-delivery-address.ts`
-    y se prueba con la misma tabla de casos.
-  - **Todos los lectores la usan:**
-    - la tarjeta «Entregar en» del portal. Lee por `portal_get_shipment_delivery_address(p_shipment_code)`,
-      `security definer` con `search_path = ''`, que filtra igual que la RPC de escritura (tenant, Shipping
-      Mark, código y `deleted_at`) y devuelve lo que dice la regla, con las direcciones vigentes del propio
-      cliente. Nunca lee con una consulta directa ni con el rol de servicio;
-    - la marca «Otra dirección», el aviso «Varias direcciones» y el drawer de Embarques;
-    - la precarga del Almacén VE y del TMS;
-    - el chofer.
-  - Ningún lector lee `delivery_address_id` directo.
+  - **No tiene espejo en TypeScript** (cuarta vuelta, 2). Es la única fuente, y la leen dos RPC:
+    - **`portal_get_shipment_delivery_address(p_shipment_code text)`**, para la tarjeta «Entregar en» del
+      portal:
+      - es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`;
+      - **autoriza con el predicado completo de la política «shipments portal self read»** (`0416:40-53`),
+        copiado tal cual (cuarta vuelta, 1). El embarque tiene `deleted_at is null` y `client_markbox` no
+        nulo. Además, existe un `client_users` con `auth_user_id = auth.uid()` y `status = 'active'` del
+        mismo tenant del embarque, cuyo cliente está vivo, es de ese tenant y tiene el `markbox` del
+        embarque;
+      - no usa `get_portal_client_id()`, que solo devuelve el `client_id` de un vínculo activo, sin tenant
+        ni cliente vivo;
+      - **devuelve solo lo que muestra la tarjeta**: `{ "address": text|null, "is_default": boolean,
+        "options": [{ "id", "label", "address" }], "locked": boolean }`. `address` y las opciones salen de
+        `invoice_format_address`, sin `reference`. `options` son las direcciones vigentes del propio
+        cliente, y `locked` dice si el embarque ya llegó a Venezuela;
+      - en cualquier otro caso devuelve null, sin distinguir «no existe» de «no es tuyo»;
+    - **`studio_get_shipment_delivery(p_shipment_ids uuid[])`**, para el Studio:
+      - es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`;
+      - autoriza con el predicado de la política «shipments by tenant» (`0012:228-231`): `tenant_id =
+        get_user_tenant_id()` y `deleted_at is null`;
+      - acepta hasta 500 ids por llamada y devuelve, por embarque, `{ shipment_id, address, other_address }`.
+        `other_address` es verdadero si la regla devuelve una dirección y no es la predeterminada actual;
+      - la usan la marca «Otra dirección» y el drawer de Embarques (`lib/studio/shipment-queries.ts`), el
+        aviso «Varias direcciones» de Facturación (`lib/studio/invoice-queries.ts`), la precarga del Almacén
+        VE y del TMS, y el chofer (`lib/studio/dispatch-mobile-queries.ts`).
+  - **Contratos de equivalencia** (cuarta vuelta, 1). Para una matriz de roles y embarques:
+    - `portal_get_shipment_delivery_address` devuelve algo si y solo si un `select id from shipments` con
+      el mismo rol del portal ve esa fila;
+    - `studio_get_shipment_delivery` devuelve una fila si y solo si el mismo `select` con el rol del Studio
+      la ve.
+
+    Si alguien cambia una de esas políticas, el contrato se pone rojo.
+  - **Nadie lee `delivery_address_id` directo, y la base lo impide** (cuarta vuelta, 3):
+    - la F-3 quita el `select` de tabla de `authenticated` (`0002_shipments.sql:83`) y lo vuelve a dar por
+      columnas, a todas menos `delivery_address_id`. `insert`, `update` y `delete` siguen a nivel de tabla.
+      Un `revoke select (columna)` solo no basta, porque el permiso de tabla cubre todas las columnas;
+    - un `select delivery_address_id` como `authenticated` falla con 42501, y lo prueba un contrato;
+    - **trampa nueva**: desde ahí, una columna que se agregue a `shipments` no la ve `authenticated` hasta
+      que su migración le dé el `grant select` de esa columna. Un contrato compara las columnas de la
+      tabla con las que tiene `authenticated` y falla si falta alguna que no sea `delivery_address_id`;
+    - **lectores medidos que se romperían** (`git grep` en `app/` y `lib/` sobre `7ff097d12`):
+      - `app/api/studio/shipments/[id]/route.ts:140-145` hace `.update(...).select()`, que pide todas las
+        columnas. La F-3 lo pasa a una lista explícita de columnas;
+      - no hay ningún `.from("shipments").select("*")` fuera de las pruebas. La única prueba que lo usa
+        (`lib/studio/notifications/__tests__/avisos-bodega-confiables.test.ts:158`) corre contra un doble en
+        memoria, sin permisos;
+      - las funciones SQL que hacen `select s.*` sobre `shipments` son todas `security definer` (0321, 0336,
+        0477, 0484, 0486, 0487 y 0563), así que corren como su dueño y no las toca;
+      - la única vista `security_invoker` que se cruza (`exc0674_envios_cubiertos`, `0564:271-277`) no lee
+        `shipments`;
+      - la F-3 repite este `git grep` antes de aplicar, porque puede entrar código nuevo.
   - **El id histórico se conserva**, pero ningún lector se lo muestra al cliente nuevo. Por ejemplo,
     después de reasignar un embarque entregado (abajo), ni el portal del cliente nuevo ni el Studio
     muestran la dirección del anterior, y no salen ni la marca ni el aviso.
@@ -466,8 +507,9 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
   - **el cliente, en el portal**, con `portal_set_shipment_delivery_address(p_shipment_code text,
     p_address_id uuid)`:
     - es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`;
-    - busca el embarque por el **tenant** del cliente de la sesión, su **Shipping Mark** y el **código**, con
-      `deleted_at is null` (revisión, punto 8). El Shipping Mark solo es único dentro del tenant;
+    - busca el embarque por el **código** con el mismo predicado completo de «shipments portal self read»
+      (`0416:40-53`) que la RPC de lectura (cuarta vuelta, 1): tenant, vínculo activo, cliente vivo y
+      Shipping Mark. El Shipping Mark solo es único dentro del tenant, y no usa `get_portal_client_id()`;
     - null vuelve a la predeterminada;
     - funciona **hasta que el embarque llega a Venezuela** (decisión 9), medido con
       `shipments.arrived_destination_at` no nulo (`lib/studio/warehouse-ve-queries.ts:27`). La F-3 confirma
@@ -722,16 +764,23 @@ superusuario.
     devuelve «Entregar en» en null. El contrato de equivalencia con la 0414 (§4.3) está verde.
 18. El PDF (render de prueba) y el comprobante HTML muestran los mismos dos bloques para la misma factura.
     Una factura vieja muestra «Dirección actual del cliente» en los dos.
-19. La función SQL de formato y su equivalente en TypeScript dan el mismo texto para la misma tabla de
+19. La función SQL de formato da el texto esperado para la tabla de
     casos, y ninguno incluye `reference`.
 
 **F-3**
 
-20. `portal_set_shipment_delivery_address` con una dirección de otro cliente da error. Con una dirección
-    borrada, también. Con el código de un embarque de otro tenant que tenga el mismo Shipping Mark, no
-    encuentra nada. Con un embarque borrado, tampoco. `portal_get_shipment_delivery_address` da los mismos
-    resultados en esos casos, y con el rol del portal un `select` directo de `shipments.delivery_address_id`
-    nunca es el camino de la tarjeta.
+20. Las dos RPC del portal, la de leer (`portal_get_shipment_delivery_address`) y la de escribir
+    (`portal_set_shipment_delivery_address`), con los mismos casos:
+    - una dirección de otro cliente: la de escribir da error;
+    - una dirección borrada: la de escribir da error;
+    - el código de un embarque de otro tenant con el mismo Shipping Mark: ninguna lo encuentra;
+    - un embarque borrado: ninguna lo encuentra;
+    - un vínculo `client_users` que no está `active`: ninguna lo encuentra;
+    - un cliente borrado: ninguna lo encuentra.
+
+    La de leer no trae `reference` en ningún campo. Los dos contratos de equivalencia con las políticas de
+    `shipments` están verdes. Con el rol `authenticated`, un `select delivery_address_id from shipments`
+    falla con 42501, y el contrato de columnas de `shipments` está verde.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
@@ -741,7 +790,8 @@ superusuario.
     `delivery_address_id`, la guarda de la 0321 no salta y el trigger diferido no lo rechaza. **Después de
     esa reasignación**, `shipment_chosen_delivery_address` devuelve null, el portal del cliente nuevo y el
     drawer del Studio no muestran la dirección del anterior, y no salen ni la marca «Otra dirección» ni el
-    aviso «Varias direcciones». La función SQL y su espejo en TypeScript dan lo mismo en la tabla de casos.
+    aviso «Varias direcciones». `studio_get_shipment_delivery` devuelve `address` en null y
+    `other_address` en falso.
 23. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
     sobrevive.
 24. Después de `delivered`, un UPDATE de `delivery_address_id` falla con el error de la 0321.
@@ -770,7 +820,7 @@ dirección de entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 
 | Pieza | Dueña | Qué hace la 0698 |
 |---|---|---|
-| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Los dos se prueban con la misma tabla de casos |
+| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Como la regla vive en dos lenguajes y en dos SDD, el fixture de casos es **uno solo** (un JSON en `supabase/tests/fixtures/`), y lo leen la prueba de TypeScript de la 0694 y el contrato SQL de la 0698 |
 | Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2 | No las toca. Mi perfil sigue escribiendo direcciones de entrega por ellas |
 | El comprobante HTML: misma fuente que el PDF | **0694** decisión 9, F-2 | Va después. Cambia `domicilioFiscalSellado` por el helper nuevo en todos los lectores a la vez |
 | Sellar siempre «Facturar a», el bloque «Entregar en», la casilla y la etiqueta de las facturas viejas | **0698** (0694 §3, decisión 9, y §8) | Es esta spec |
@@ -922,7 +972,9 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
     `app/portal/(app)/envios/[code]/_components/EntregarEnCard.tsx` (nuevo), `app/portal/(app)/envios/[code]/actions.ts`
     (nuevo) y sus pruebas en `app/portal/(app)/envios/[code]/__tests__/`;
   - `lib/studio/shipment-types.ts`;
-  - `lib/studio/shipment-delivery-address.ts` (nuevo, la regla única) y `lib/studio/__tests__/shipment-delivery-address.test.ts`;
+  - `lib/studio/shipment-queries.ts` (la marca y el drawer, por `studio_get_shipment_delivery`);
+  - `lib/studio/invoice-queries.ts` (la consulta del aviso «Varias direcciones»);
+  - `app/api/studio/shipments/[id]/route.ts` (el `.select()` pasa a columnas explícitas);
   - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
     `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
   - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);
@@ -932,6 +984,8 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/dispatch-mobile-queries.ts` y `lib/studio/dispatch-types.ts` (después de la 0694 F-1);
   - `lib/studio/privacidad-cn.ts`;
   - `lib/studio/__tests__/warehouse-ve-delivery-governance.test.ts`.
+- **F-2, además:** `supabase/tests/fixtures/direccion-de-entrega-casos.json`, el fixture único de la regla
+  de la predeterminada (§9).
 
 ## 14. Clasificación de gobernanza
 

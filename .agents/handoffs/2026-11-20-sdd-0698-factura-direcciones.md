@@ -125,6 +125,19 @@ La pidió Dir_DTD. Esto se corrigió en la spec:
 - **3:** límite de la FK contra la 0321, solo en el borrado permanente (§4.4).
 - **4:** este handoff, con la dueña de las filas del registro corregida.
 
+## Cuarta vuelta de la revisión (CHANGES_REQUESTED sobre `41386e7bb`) y corrección
+
+- **1:** las dos RPC del portal copian la política «shipments portal self read» (`0416:40-53`), sin
+  `get_portal_client_id()`, y tienen un contrato de equivalencia. La de leer devuelve solo lo de la
+  tarjeta, sin `reference`. El criterio 20 aplica los mismos casos a las dos.
+- **2:** sin espejo en TypeScript. La regla del embarque y el formato viven solo en SQL; el Studio lee por
+  `studio_get_shipment_delivery` y por `invoice_addresses`. La regla de la predeterminada, que comparte con
+  la 0694, usa un solo fixture JSON.
+- **3:** el `select` de tabla de `shipments` pasa a columnas, sin `delivery_address_id` (42501), con un
+  contrato de columnas. Lector medido que se rompería: `app/api/studio/shipments/[id]/route.ts:140-145`
+  (`.update().select()`). Las funciones con `select s.*` son `security definer` y no se rompen.
+- **4:** allowlist de la F-3 con `shipment-queries.ts`, `invoice-queries.ts` y la ruta de la API.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.
