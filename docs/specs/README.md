@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 671 specs)
+### Índice de specs (generado · 672 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -708,7 +708,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
 | 0690 | Embarques: «Facturar» emite el borrador con los precios del E… | in-progress | interno |
 | 0693 | La aceptación de T&C limita el portal, no la facturación | approved | interno |
+| 0695 | Datos duplicados y fuentes únicas: identidad, correo, asesor,… | approved | interno |
 | 0697 | Indicadores de carga en Almacén China: catálogo propio, histo… | approved | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0686, 0687, 0688, 0691, 0692, 0694, 0695, 0696 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0686, 0687, 0688, 0691, 0692, 0694, 0696 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
