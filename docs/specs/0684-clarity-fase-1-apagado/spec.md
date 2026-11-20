@@ -167,7 +167,7 @@ Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cook
 
 Las duraciones de `_clck` y `_clsk` salen de la documentación de Clarity (**D**); se confirman en el navegador al encender (**NO VERIFICADO** hasta la fase 3).
 
-### Objeción del DG: el texto y el interruptor (PENDIENTE de Sam)
+### Objeción del DG: el texto y el interruptor (decidida por Sam: acoplar)
 
 **Evidencia (medida por el DG el 2026-11-20):** en producción `NEXT_PUBLIC_CLARITY_ID` no está en el `.env` del servidor, tiene largo 0 en el contenedor `dtd-cargo-web-2` y ningún archivo servido menciona `clarity.ms`. La variable de repositorio vale `off`. **Hoy Clarity no recoge nada.**
 
@@ -176,7 +176,7 @@ Si este texto se publica antes del encendido, la política describe una recolecc
 1. **Redacción condicional:** el texto dice qué pasa *cuando la medición está activa*, y queda cierto encendido o apagado. Cambia palabras del texto aprobado, así que vuelve a Sam.
 2. **Acoplar la publicación al encendido:** la PR se fusiona solo con el OK de encendido de Sam, y la variable pasa al ID en el mismo tren, sin otra fusión de por medio. Conserva el texto aprobado. Queda un hueco de minutos entre la imagen con el texto y la imagen con el ID, salvo que el DG ordene ambos pasos juntos.
 
-La decisión se registra aquí antes de fusionar.
+**Decisión de Sam (2026-11-20): «Junto con encender»** (salida 2, D). El texto aprobado no cambia. La PR queda lista, revisada y en verde, pero **no se fusiona hasta el OK nominal de encendido de Sam** en el chat del DG. Ese día, en un solo tren que ordena el DG: se confirma la fecha de `UPDATED` (cuatro sitios), se fusiona esta PR y se cambia `NEXT_PUBLIC_CLARITY_ID` de `off` al ID. El DG decide el orden para que el hueco entre texto publicado y Clarity encendido sea el menor posible.
 
 ### Lo que esta fase no autoriza
 
