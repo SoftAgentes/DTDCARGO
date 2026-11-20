@@ -287,8 +287,8 @@ que encuentre van como PR del carril rápido. Lo que pida el otro carril, o una 
 no se publica: lo que se fusione de madrugada sale en la ventana de las 11:00.
 
 **Fusionar y publicar son pasos distintos.** Hoy un push a `main` no publica: el vigilante de la publicación
-automática (SDD-0541) está detenido y el servidor no tiene crontab. Publicar es un paso manual del Director, con
-`publicar.sh`. Por eso el tren fusiona a cualquier hora, en cuanto la PR cumple su carril.
+automática (SDD-0541) está detenido desde el 2026-10-25 y el servidor no tiene crontab. Publicar es un paso
+manual del Director (`publicar-web.sh publicar <sha>` en el VPS). Por eso el tren fusiona a cualquier hora, en cuanto la PR cumple su carril.
 
 **Ventanas de publicación.** Rigen solo para publicar: 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam
 para lo que ya está integrado en `main`. Si el vigilante vuelve a activarse (cada push a `main` publicaría
@@ -475,6 +475,13 @@ producción, no publica esta revisión, no mergea main y no despliega.
 > `publicar-web.sh` (journal del vigilante y `publicaciones.json`), y el
 > redeploy de una versión conocida, como `publicar-web.sh volver` o
 > `publicar <sha>`, que corre la sesión de Contabo.
+>
+> **Nota del 2026-11-20 · el vigilante está detenido.** Desde el 2026-10-25 la
+> publicación automática está detenida a propósito: un merge a `main` arma su
+> imagen pero no publica, y la web la publica el Director a mano
+> (`publicar-web.sh publicar <sha>`). Fusionar y publicar son pasos distintos
+> (ver [Carriles de integración](#carriles-de-integración)). Si el vigilante
+> vuelve a activarse, esta nota y los carriles se revisan.
 
 Release requiere evidencia: autorización, PR/SHA integrado, checks aplicables,
 migraciones por nombre y una por vez según runbook, ID de deployment READY y

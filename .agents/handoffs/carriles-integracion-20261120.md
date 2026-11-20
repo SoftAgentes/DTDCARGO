@@ -44,10 +44,24 @@ Decisiones tomadas dentro del alcance:
 - **Los formularios** (`*Form.tsx`), el consentimiento de cookies, la analítica y Clarity van con revisión
   previa: deciden qué datos personales se capturan.
 - **Ventanas (corregido por Dir_DTD, 2026-11-20).** Hoy un push a `main` no publica: el vigilante está detenido y
-  publicar es un paso manual del Director con `publicar.sh`. Por eso el tren fusiona a cualquier hora y las ventanas
+  publicar es un paso manual del Director. Por eso el tren fusiona a cualquier hora y las ventanas
   rigen solo para publicar. Si el vigilante vuelve a activarse, la regla se revisa. La primera versión decía que el
   tren fusionaba solo en ventana.
 - **Madrugada.** El runbook dice que la lanza el Director, sin nombrar la herramienta.
+- **Fusionar no publica, en todo el repo (pedido de Dir_DTD, 2026-11-20).** Había frases que daban por hecho
+  que un merge publica, y las corregí, dejando dicho que si el vigilante vuelve la regla se revisa:
+  - `AGENTS.md`, «Fronteras críticas»: «cada push a `main` construye y publica automáticamente… Un merge a `main`
+    es publicación web».
+  - `docs/engineering/project-rules.md`, «⚠️ Producción web: cada push a `main` publica» (título y texto).
+  - `docs/runbooks/aplicar-migraciones-prod.md` §5: «Fusionar es publicar: la web entra sola en el VPS». Ahora
+    el Director publica a mano justo después del merge, dentro de la misma autorización.
+  - `docs/runbooks/codex-engineering.md`: nota nueva debajo de la nota histórica del 2026-10-19.
+  - Notas del 2026-10-19 en `setup-resend.md`, `setup-resend-inbound.md`, `setup-telegram-bot.md`,
+    `setup-web-push.md` y `deploy-orden-venta-0072.md`: «se publica sola con el vigilante» pasa a «se
+    publicaba… (detenido desde el 2026-10-25: hoy la publica el Director a mano)».
+  - `publicacion-automatica-web.md` ya decía que la publicación está detenida desde el 2026-10-25: no lo cambié.
+  - El comando que cito es el documentado en el repo, `publicar-web.sh publicar <sha>`. Dir_DTD lo llamó
+    `publicar.sh`.
 
 ## VALIDACIÓN
 
@@ -91,9 +105,6 @@ Decisiones tomadas dentro del alcance:
 - Paso 3: cambiar `tren.sh` para que use el contrato. Lo hace Dir_DTD, fuera del repo.
 - La revisión de madrugada (2:00 de Caracas) la lanza Dir_DTD, con la herramienta que elija. No es parte de
   esta PR.
-- `AGENTS.md`, en «Fronteras críticas», todavía dice que cada push a `main` publica automáticamente y que un
-  merge es publicación web. Con el vigilante detenido, eso choca con la sección de carriles. No lo cambié porque
-  es una frontera crítica fuera del encargo: lo decide Dir_DTD.
 - El registro del carril de cada merge, para medir la semana, lo lleva el tren. Este repo no tiene dónde
   guardarlo.
 - El escáner de voseo (`scripts/buscar-voseo.mjs`) da 2 apariciones previas en

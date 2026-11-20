@@ -175,7 +175,11 @@ nombrar cada una.
 Migrate-first: la base nueva convive con la web vieja hasta que la web nueva entra.
 Por eso el Director fusiona la PR **segundos después** del COMMIT, con su propia
 autorización de merge y `gh pr merge <n> --merge --match-head-commit <sha del
-paquete>`. Fusionar es publicar: la web entra sola en el VPS (~6 min, SDD-0541).
+paquete>`. Fusionar no publica: el vigilante (SDD-0541) está detenido desde el 2026-10-25,
+así que el Director publica la cabeza fusionada a mano (`publicar-web.sh publicar <sha>` en el VPS)
+inmediatamente después del merge, dentro de la misma autorización. Si el vigilante
+vuelve a activarse, la web entraría sola (~6 min) y este paso se revisa. Hasta el
+2026-11-20 aquí decía «Fusionar es publicar: la web entra sola en el VPS».
 
 Si el OK de aplicar todavía no llegó, la PR **se publica (push) con la espera
 declarada** y se queda sin fusionar: un solo CI sirve para los dos caminos. No la

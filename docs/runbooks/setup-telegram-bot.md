@@ -6,8 +6,8 @@
 > respuestas admin via chat de Telegram.
 
 > ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
-> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
-> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publicaba
+> sola con el vigilante (detenido desde el 2026-10-25: hoy la publica el Director a mano) ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
 > Vercel está en pausa. Donde abajo dice «Vercel producción»:
 >
 > - **Variables:** `TELEGRAM_BOT_TOKEN` y `TELEGRAM_WEBHOOK_SECRET` viven en el
