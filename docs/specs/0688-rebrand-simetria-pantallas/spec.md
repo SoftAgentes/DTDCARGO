@@ -174,7 +174,7 @@ Cada regla se vigila con un contrato que mide comportamiento o estructura, con p
 - `pnpm verify` con turno del Director; CI verde; revisión independiente que lanza el Director General.
 - Fusionar y publicar piden cada uno su autorización.
 
-## 9. Extras propuestos (no entran sin decisión)
+## 9. Extras (los ocho aprobados por Sam el 2026-11-20, §11 punto 4)
 
 Faltan hoy y mejorarían la experiencia; cada uno pediría fase propia: aviso de cambios sin guardar, esqueleto de carga y `loading.tsx`, explicación accesible del botón deshabilitado, páginas de error y de «no encontrado», migas de pan, botón único de «Copiar», barra de acciones por lote, paginación en servidor (TBL-01). Detalle en `docs/design/rebrand-erp/checklist-y-color.md` §3.
 
@@ -197,7 +197,9 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
 3. ~~Si la simetría se extiende al Portal.~~ **Decidido el 2026-11-20, opción 2 de tres** (Sam: «la 2»):
    - **Entran ahora al Portal:** las reglas de botones (1 a 6) y las de mensajes (7 a 9). Son reglas de comportamiento, así que el cliente las ve igual que la oficina.
    - **Esperan al rediseño del Portal:** las medidas (anchos de panel, encabezado y escala de texto), para no rehacerlas cuando llegue el portal nuevo.
-4. Cuáles extras de §9 entran.
+4. ~~Cuáles extras de §9 entran.~~ **Decidido el 2026-11-20: entran los ocho.** Sam marcó en una lista con casillas: «Aviso de cambios sin guardar, Esqueleto de carga, Explicación del botón deshabilitado, Barra de acciones por lote, Páginas de error y no encontrado, Migas de pan, Botón único de Copiar, Paginación en servidor». Cada uno va en su propia fase, después de las piezas compartidas (§4). La paginación en servidor sigue TBL-01.
+
+Con esto, todos los pendientes de decisión de esta spec quedan cerrados.
 
 ## 12. Límites
 
