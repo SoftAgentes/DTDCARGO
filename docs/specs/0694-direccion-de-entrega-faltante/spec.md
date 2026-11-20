@@ -738,6 +738,9 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `lib/studio/export/operativo-csv.ts`, `lib/studio/agents/tools/shipment-tools.ts`;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (la precarga de ciudad y estado);
   - `supabase/migrations/NNNN_registro_enlace_direccion.sql` y `NNNN_merge_clients_conserva_direccion.sql`, con sus pruebas;
+  - `docs/architecture/fuentes-unicas.md` (el registro de fuentes únicas de la 0695 §4.1): las filas de la
+    dirección de entrega y de las RPC de escritura. **Si el archivo todavía no existe** (porque la 0695 F-1 no
+    llegó a `main`), esta F-2 lo crea con la estructura de la 0695 §4.1 y solo esas filas;
   - `supabase/migrations/NNNN_client_delivery_address_save.sql` (las dos RPC de §4.3, con los permisos y el
     chequeo de tenant de `_service`), con su `.test.sql`;
   - la prueba de contrato del uso de `_service`, en `lib/__tests__/client-delivery-address-service.contract.test.ts`;
