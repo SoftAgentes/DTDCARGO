@@ -203,6 +203,12 @@ La dirección de un cliente se calcula siempre con la misma regla, en un solo he
 - si no hay predeterminada pero sí filas vigentes, la más reciente, marcada «sin predeterminada»;
 - si no hay ninguna fila vigente, **ninguna**.
 
+**Los casos de la regla viven en un fixture compartido:** `lib/__tests__/fixtures/direccion-predeterminada.json`.
+Lo crea esta F-1, con datos inventados. Cada caso trae las filas de entrada (vigentes, borradas, con y sin
+predeterminada, con fechas distintas) y el resultado esperado: cuál fila sale y si va marcada «sin
+predeterminada». La prueba del helper de esta F-1 lo recorre, y el contrato de la SDD-0698 lee el mismo
+archivo. Si la regla cambia, cambia el fixture y fallan las dos pruebas.
+
 **Cómo se llevan las cuatro fuentes a una.** Va en una migración de copia, idempotente, con número que asigna
 Dir_DTD:
 
@@ -717,6 +723,8 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
 - **F-1:**
   - `supabase/migrations/NNNN_direccion_entrega_copia.sql` y su `.test.sql`;
   - `lib/studio/client-address-queries.ts` (el helper y su variante por lote);
+  - `lib/__tests__/fixtures/direccion-predeterminada.json` (los casos de la regla, compartidos con la
+    SDD-0698, §4.2);
   - `lib/studio/dispatch-mobile-queries.ts`;
   - `lib/studio/client-types.ts` (`CompletenessSource`, y `city`/`state` en `Client`);
   - `lib/studio/client-queries.ts` (`city, state` en el select de `:51`);

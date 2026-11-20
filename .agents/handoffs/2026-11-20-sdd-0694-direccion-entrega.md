@@ -165,3 +165,7 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
 - **Choque con la 0695 resuelto (2026-11-20):** la 0694 F-2 crea `client_delivery_address_save` y su
   variante `_service` (para el registro sin sesión), y las altas del Studio y del registro las usan. La regla
   y la prueba de contrato son de la 0695 F-9a. Las dos tablas de dueñas quedaron actualizadas.
+
+## Fixture compartido con la 0698 (2026-11-20)
+
+- A pedido de Dir_DTD, por la revisión de la 0698: la F-1 crea `lib/__tests__/fixtures/direccion-predeterminada.json` con los casos de la regla de §4.2. Lo leen la prueba del helper y el contrato de la 0698. Está en la allowlist de la F-1.
