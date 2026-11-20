@@ -183,8 +183,8 @@ describe("monto a cobrar (SDD-0661)", () => {
       { shipment_id: "s3", currency: "USD", total_amount: 1, paid_amount: 0, status: "anulada" },
     ]);
     expect(m).toEqual({
-      s1: { facturas: 2, porCobrarUsd: 100.1, cobradoUsd: 40, otraMoneda: 1 },
-      s2: { facturas: 1, porCobrarUsd: 50.2, cobradoUsd: 50.2, otraMoneda: 0 },
+      s1: { facturas: 2, porCobrarUsd: 100.1, cobradoUsd: 40, otraMoneda: 1, borradores: 1, sinFacturarUsd: 100.1 },
+      s2: { facturas: 1, porCobrarUsd: 50.2, cobradoUsd: 50.2, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
     });
     // s3 sólo tenía una anulada: no aparece → la vista dice «Sin facturar».
     expect(m.s3).toBeUndefined();
@@ -193,6 +193,8 @@ describe("monto a cobrar (SDD-0661)", () => {
       porCobrarUsd: 150.3,
       cobradoUsd: 90.2,
       otraMoneda: 1,
+      borradores: 1,
+      sinFacturarUsd: 100.1,
     });
     expect(sumarMontos([{ id: "s3" }], m).facturas).toBe(0);
   });
@@ -212,7 +214,9 @@ describe("monto a cobrar (SDD-0661)", () => {
     expect(consultadas).toEqual(["invoices"]);
     expect(r).toEqual({
       estado: "lista",
-      porEmbarque: { s1: { facturas: 1, porCobrarUsd: 10, cobradoUsd: 4, otraMoneda: 0 } },
+      porEmbarque: {
+        s1: { facturas: 1, porCobrarUsd: 10, cobradoUsd: 4, otraMoneda: 0, borradores: 1, sinFacturarUsd: 10 },
+      },
     });
   });
 
