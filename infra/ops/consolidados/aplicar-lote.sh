@@ -184,7 +184,10 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)? · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
     refuse "la autorización parece una copia de resumen.md (trae su título «Lote … · contenedor DTD #» o las cabeceras de su tabla): tiene que ser el OK literal de Sam"
   fi
-  grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
+  # El id como palabra entera: «carga-consolidado:64:6303f821:facturas» (pre-órdenes, SDD-0690) cita el id
+  # de la carga como prefijo, y ese OK no sirve para el paquete de la carga. El id sólo trae
+  # [a-z0-9:-], que en ERE no son especiales. Un «:» suelto después del id («<id>: autorizado») sí vale.
+  LC_ALL=C grep -qE -- "${LOTE_ID}(\$|[^:[:alnum:]_-]|:(\$|[^[:alnum:]]))" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
 case "${PASO}" in

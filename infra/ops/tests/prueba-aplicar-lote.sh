@@ -308,6 +308,13 @@ for v in bom sangria renderizado citado tabla solo-facturas; do
   out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/resumen-${v}.txt" --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "copia de resumen.md (${v}) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md (${v}) rc=${rc}: ${out}"
 done
+# SDD-0690: un OK de las pre-órdenes («<id>:facturas») no autoriza el paquete de la carga (<id>).
+printf 'Sam: autorizo las pre-órdenes, lote carga-consolidado:61:cafebabe:facturas\n' > "${T}/ok-pre-ordenes.txt"
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-pre-ordenes.txt" --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"no cita el lote carga-consolidado:61:cafebabe"* && -z "$(ls -A "${EP5}")" ]] && ok "un OK de las pre-órdenes (:facturas) no sirve para la carga (3)" || ko "OK de pre-órdenes para la carga rc=${rc}: ${out}"
+# … y el id seguido de puntuación (fin de frase, paréntesis) sí vale.
+printf 'Sam: autorizo carga-consolidado:61:cafebabe.\n' > "${T}/ok-con-punto.txt"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-punto.txt" --paso previa >/dev/null 2>&1 && ok "un OK con el id seguido de punto sigue valiendo" || ko "un OK con el id seguido de punto se rechazó"
 # Un OK legítimo que nombra el lote (incluso empezando con «Lote <id>» o mencionando «# Lote») sigue valiendo.
 printf 'Sam: autorizo carga-consolidado:61:cafebabe (ver # Lote en el resumen)\n' > "${T}/ok-con-almohadilla.txt"
 bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» sin el título del resumen sigue valiendo" || ko "un OK válido con «# Lote» se rechazó"
