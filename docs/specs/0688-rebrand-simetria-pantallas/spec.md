@@ -185,7 +185,7 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
 ## 11. Pendientes de decisión (Sam)
 
 1. ~~Reglas de botones 1 a 6 de §3.~~ **Aprobadas el 2026-11-20.** Sam vio las seis dibujadas, cada una con su «así no» y su «así sí», y respondió: «Reglas de botones: aprobadas las seis». Entran en BTN-01 v1.3.
-   Siguen pendientes las reglas 7 a 9 (mensajes).
+   Las reglas 7 a 9 (mensajes) quedaron **aprobadas el 2026-11-20**. Sam vio dibujados los cuatro tipos (en línea, toast, accionable y llamada), cada uno con su persistencia, y el lugar fijo del aviso del formulario encima de la fila de botones del pie. Respondió: «Reglas de mensajes: aprobadas las tres». Se escriben como enmienda de AVS-01.
 2. ~~Los tres anchos de panel (regla 10).~~ **Decidido el 2026-11-20: opción A, `sm` 520, `md` 640 y `lg` 760 px.** Sam comparó dos opciones dibujadas sobre una pantalla de 1.400 px:
    - **A** (520 · 640 · 760): no cambian 32 de los 116 paneles y se achican unos 49, sobre todo los 37 que hoy miden 560 y pasan a 520.
    - **B** (560 · 640 · 720, la recomendada): no cambian 56 y se achica 1.
