@@ -202,7 +202,8 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
 - **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
   muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
   calcula montos ni toca facturas (§2.0).
-- **Quién crea y edita** (propuesta, pregunta 2): `admin`, o `warehouse` de región `cn`. Venezuela no edita
+- **Quién crea y edita** (Sam, 2026-11-20, pregunta 2: «cualquiera de China»): `admin`, o cualquier miembro activo
+  de región `cn` con rol `warehouse` u `operations` (los que editan en el módulo `cn`; `support` solo lee). Venezuela no edita
   el catálogo de China.
 
 ### 2.3 Asignación a la recepción
@@ -427,7 +428,7 @@ Candados por RPC:
 
 | RPC | Candado | Qué hace |
 |---|---|---|
-| `crear_etiqueta_almacen(...)` | `admin`, o `warehouse` con `region = 'cn'` | Inserta en el catálogo y escribe `entity_audit_log` |
+| `crear_etiqueta_almacen(...)` | `admin`, o `warehouse`/`operations` con `region = 'cn'` | Inserta en el catálogo y escribe `entity_audit_log` |
 | `editar_etiqueta_almacen(p_id, ...)` | ídem | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
 | `archivar_etiqueta_almacen(p_id, p_archivar boolean)` | ídem | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
@@ -438,7 +439,7 @@ Candados por RPC:
 - Errores con `errcode = '42501'` para permiso y `P0001` con texto en español para lo demás (archivada,
   repetida, recepción borrada). La pantalla los traduce con el diccionario.
 - Capabilities nuevas en `lib/studio/rbac.ts`, que repiten el candado de la base:
-  `manage_warehouse_tags: ["warehouse"]` (más la región `cn`, que se valida en el servidor y en la base) y
+  `manage_warehouse_tags: ["warehouse", "operations"]` (más la región `cn`, que se valida en el servidor y en la base) y
   `assign_warehouse_tags: ["warehouse", "operations"]`.
 
 ## 3. Privacidad (SDD-0039 B.9 y SDD-0531)
@@ -561,6 +562,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 1. **Nombre.** **Contestada (2026-11-20):** «Indicadores de carga», como lo llama el equipo técnico.
 2. **Quién crea.** ¿Quién puede crear y editar etiquetas, y quién ponerlas? Ejemplo: el jefe del almacén de
    China crea «Montacargas»; un operario solo la pone.
+   **Contestada (2026-11-20): cualquiera de China** (`warehouse` u `operations` de región `cn`, más admin).
 3. **Dónde va.** ¿A la recepción o al embarque? Ejemplo: la WR-2099-0001 llega con una marca sin papeles y
    se etiqueta ahí; el embarque la hereda.
 4. **Qué ve Venezuela.** ¿Te sirve la tabla del §2.5? Ejemplo: Caracas ve «Montacargas», no ve «Devolución de
@@ -592,8 +594,8 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
    fallan con `42501`. `anon` no tiene `select`.
 2. **Escritura directa denegada:** `insert`, `update` y `delete` directos sobre las dos tablas fallan para
    `authenticated` (sin grant), también para admin.
-3. **Escritura por rol:** `crear_etiqueta_almacen` pasa con admin y con `warehouse` región `cn`; falla con
-   `42501` para `warehouse` región `ve`, `operations`, `support` y el miembro deshabilitado.
+3. **Escritura por rol:** `crear_etiqueta_almacen` pasa con admin y con `warehouse` u `operations` de región `cn`; falla con
+   `42501` para `warehouse` u `operations` de región `ve`, `support` de región `cn` y el miembro deshabilitado.
    `asignar_etiqueta_recepcion` pasa con admin, `warehouse` y `operations`; falla con `support` y el
    deshabilitado.
 4. **Entre tenants:** `warehouse` de T2 no lee nada de T1 y no puede asignar una etiqueta de T1 ni a una
