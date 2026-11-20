@@ -1178,6 +1178,20 @@ commit;
 export const MARCA_SOLO_FACTURAS = "pre-orden cargada aparte (SDD-0690)";
 
 /**
+ * SDD-0690 · El paquete `--solo-facturas` tiene id propio: el de la carga más este sufijo
+ * (`carga-consolidado:64:6303f821:facturas`). Así `aplicar-lote.sh` no lo confunde con la carga del
+ * contenedor (su guarda de «no aplicar dos veces» sigue valiendo), y el OK de Sam para las pre-órdenes no
+ * se cumple con el de la carga. El contenedor y sus envíos se siguen buscando por el id de la carga
+ * (`o.lote`), que es lo que quedó en sus notas.
+ */
+export const SUFIJO_SOLO_FACTURAS = ":facturas";
+
+/** El id del paquete: el de la carga, o con {@link SUFIJO_SOLO_FACTURAS} en `--solo-facturas`. */
+export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas">): string {
+  return o.soloFacturas ? `${o.lote}${SUFIJO_SOLO_FACTURAS}` : o.lote;
+}
+
+/**
  * Cuerpo de aplicar.sql y simulacro.sql con `--solo-facturas`. Escribe sólo
  * facturas en borrador (el mismo borrador del bloque de facturas de arriba) y su
  * evento `invoice_imported`. Su preflight reemplaza al normal: el contenedor tiene
@@ -1379,8 +1393,9 @@ begin
       cab.lote, 1, 'internal');
   end loop;
 
+  -- El aviso nombra el id del PAQUETE (aplicar-lote.sh lo busca en la evidencia del simulacro).
   raise notice 'solo-facturas lote % · contenedor % · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas',
-    cab.lote, cab.contenedor, v_n_facturas, v_n_saltados, v_n_sin_lineas;
+    cab.lote || ':facturas', cab.contenedor, v_n_facturas, v_n_saltados, v_n_sin_lineas;
 end
 $lote$;
 `;
@@ -1399,7 +1414,7 @@ function previaSoloFacturas(lote: Lote, o: OpcionesSql): string {
   const contenedor = litSql(normalizarCodigo(lote.rastreo.contenedor));
   return `\\set ON_ERROR_STOP on
 \\set VERBOSITY terse
--- SDD-0690 · lectura previa de --solo-facturas para el lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
+-- SDD-0690 · lectura previa del paquete ${idDelPaquete(o)}: --solo-facturas sobre la carga ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
 -- Sólo lee. Termina en rollback. Sólo conteos: ni montos ni nombres.
 begin transaction read only;
 
@@ -1446,7 +1461,7 @@ rollback;
 function verificarSoloFacturas(lote: Lote, o: OpcionesSql): string {
   return `\\set ON_ERROR_STOP on
 \\set VERBOSITY terse
--- SDD-0690 · verificación de --solo-facturas para el lote ${o.lote}: cada cliente con líneas
+-- SDD-0690 · verificación del paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}): cada cliente con líneas
 -- tiene exactamente una factura viva sobre sus envíos. Sólo lee; sólo conteos.
 begin transaction read only;
 
@@ -1489,7 +1504,7 @@ rollback;
 function deshacerSoloFacturas(lote: Lote, o: OpcionesSql): string {
   return `\\set ON_ERROR_STOP on
 \\set VERBOSITY terse
--- SDD-0690 · deshacer --solo-facturas del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero}).
+-- SDD-0690 · deshacer el paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}, contenedor DTD #${lote.rastreo.numero}).
 -- Borrado lógico de las pre-órdenes de esta carga; no toca el contenedor ni sus envíos.
 -- Se niega si alguna dejó de ser borrador.
 begin;
@@ -1526,7 +1541,7 @@ commit;
 function purgarSoloFacturas(lote: Lote, o: OpcionesSql): string {
   return `\\set ON_ERROR_STOP on
 \\set VERBOSITY terse
--- SDD-0690 · PURGA de las pre-órdenes de --solo-facturas del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero}).
+-- SDD-0690 · PURGA de las pre-órdenes del paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}, contenedor DTD #${lote.rastreo.numero}).
 -- SÓLO PRUEBA. No toca el contenedor ni sus envíos.
 begin;
 
@@ -1567,7 +1582,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
   const marcas = marcasDelLote(lote);
   const marcaDueno = lote.dueno ? marcas[marcas.length - 1] : null;
   const manifiesto: Manifiesto = {
-    lote: o.lote,
+    lote: idDelPaquete(o),
     sdd: "0543",
     entorno: o.entorno,
     generadoEn: new Date().toISOString(),
@@ -1610,7 +1625,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     ...(o.soloFacturas ? { modo: "solo-facturas" as const } : {}),
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);
-  const cabecera = `${o.soloFacturas ? "-- SDD-0690 · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n" : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
+  const cabecera = `${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
     previa: o.soloFacturas ? previaSoloFacturas(lote, o) : previa(lote, o, pod, nav),
     aplicar: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
