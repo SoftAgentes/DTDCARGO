@@ -228,8 +228,9 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
 5. **Las vías de emisión que ya cubre el trigger** se mantienen: la RPC 0128, la acción del Studio y
    `exc0674_facturar` (0564), que inserta en `emitida`. También `exc0674_emitir_borradores` (0569), que
    pasa la pre-orden de `borrador` a `emitida`: la pre-orden se sella al emitirla, con sus ediciones de
-   borrador si las tiene. No hay que cambiar ninguna de ellas. La F-2 comprueba que la guarda
-   `borrador_alterado` de la 0569 no salta por las columnas que llena el trigger en ese mismo UPDATE.
+   borrador si las tiene. No hay que cambiar ninguna de ellas. La guarda `borrador_alterado` de la 0569
+   solo compara el código y los montos (`0569:299-302`), así que las direcciones que llena el trigger en
+   ese mismo UPDATE no la disparan. Un contrato de la F-2 lo deja probado.
 
 **Sin backfill.** Las facturas ya emitidas quedan con `addresses_sealed_at` en null. Son las «viejas sin
 sello» de la decisión 4 (§5.4).
