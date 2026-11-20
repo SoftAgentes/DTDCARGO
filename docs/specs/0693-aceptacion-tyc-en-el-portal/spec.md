@@ -19,8 +19,12 @@ confidencialidad: interno
 >   acepte, no ve su seguimiento ni su estado de cuenta.
 > - Al aceptar le llega un correo de confirmación con un hash del acto y un acuse de recibo.
 >
-> Esta spec es solo un documento para que Sam la apruebe. No trae código ni migración. Los números de
-> migración los asigna Dir_DTD cuando se implemente.
+> **Sam contestó las 11 preguntas el 2026-11-20, por Dir_DTD** (§10). En todas eligió la propuesta
+> recomendada. Lo único pendiente es la revisión del abogado (§6): el texto del correo, la cláusula 13.1 y
+> el plazo de retención.
+>
+> Esta spec es solo un documento. No trae código ni migración. Los números de migración los asigna Dir_DTD
+> cuando se implemente.
 
 ## 1. Qué cambia en una línea
 
@@ -99,7 +103,7 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 | | Hoy (SDD-0054) | Con la 0693 |
 |---|---|---|
 | Dónde se exige | En la emisión de la factura DDP | En el portal del cliente |
-| Qué se acepta | Una orden: monto, medida y documentos vigentes | El Acuerdo de Servicios y los documentos vigentes de cara al cliente, una vez por versión |
+| Qué se acepta | Una orden: monto, medida y documentos vigentes | Todo: el Acuerdo de Servicios completo y los documentos vigentes de cara al cliente, incluidas las condiciones del puerta a puerta (DDP), una vez por versión. Se aplican después a cada orden que se le facture (decisión 11) |
 | Qué bloquea | Emitir la factura | Ver el seguimiento y el estado de cuenta en el portal |
 | Qué no bloquea | — | Facturar, contabilizar, cobrar, enviar la factura por correo |
 
@@ -113,7 +117,7 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 - **Queda un rastro informativo.** El evento de emisión agrega `tyc_portal` con uno de dos valores:
   `aceptados` o `pendientes`. Ese valor sale del mismo cálculo de §4.4. Solo se registra; no decide nada.
   Así se puede listar lo que se emitió con el cliente sin aceptar.
-- **La aceptación por orden se retira** en la fase 4 (§7):
+- **La aceptación por orden se retira** (decisión 11) en la fase 4 (§7):
   - la ruta `/portal/facturas/[code]/aceptar`;
   - `PendingAcceptanceCard` y `PendingInvoiceGate`;
   - `lib/portal/pending-acceptance.ts`.
@@ -147,9 +151,8 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 - **En la PR de la fase 1:**
   1. En el documento de la EXC-0674, el §6 pasa a «Retirada el AAAA-MM-DD por la SDD-0693: la emisión ya no
      exige aceptación». La frase del alcance común se ajusta.
-  2. Las filas SGE-00, MP-01 y BTN-01 del registro **no cambian**: siguen citando la EXC-0674 por el §1
-     al §4. Si Sam quiere que la tabla lo diga, se agrega «(§6 AUT-04 retirado por SDD-0693)». Es la
-     pregunta 9.
+  2. Las filas SGE-00, MP-01 y BTN-01 del registro (`README.md:68-70`) siguen citando la EXC-0674 por el §1
+     al §4, y agregan la nota «§6 AUT-04 retirado por SDD-0693» (decisión 9).
   3. La SDD-0054 recibe una nota: su §3.1 (puerta en la emisión) queda reemplazado por la 0693. Su
      `status` no cambia.
   4. Correr `governance:check`.
@@ -169,7 +172,8 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 |---|---|---|
 | `aceptados` | Hay una aceptación general íntegra que cubre todos los documentos vigentes (§5.3) | Todo el portal |
 | `sin_aceptar` | Nunca aceptó | El aviso (§4.2) y los módulos cerrados (§4.3) |
-| `version_nueva` | Aceptó una versión anterior y hay otra vigente | Igual que `sin_aceptar`, con el texto de versión nueva |
+| `version_anunciada` | Aceptó la versión anterior y la nueva ya está publicada, pero todavía no entra en vigencia (§5.3) | Todo el portal, con una franja informativa que se puede cerrar |
+| `version_nueva` | Aceptó una versión anterior y la nueva ya entró en vigencia | Igual que `sin_aceptar`, con el texto de versión nueva |
 | `sin_documentos` | El tenant no tiene documentos vigentes de cara al cliente | Todo el portal, sin aviso (no hay nada que aceptar). El Studio lo señala en `/studio/legal` |
 | `no_comprobado` | Falló la lectura | Los módulos cerrados muestran «No pudimos comprobar tu aceptación. Prueba de nuevo en un rato.» Falla cerrado, pero sin aviso de aceptar |
 
@@ -191,10 +195,15 @@ Es insistente sin atrapar al cliente. Tiene tres capas:
    - **Estado de cuenta:** «Tu estado de cuenta se activa al aceptar los términos» / «Lee el Acuerdo de
      Servicios y acéptalo para ver aquí tus facturas, tus pagos y tu saldo.»
    - Botón principal «Leer y aceptar», y uno secundario «Hablar con tu asesor», que lleva a Mensajes.
+   - La pantalla del estado de cuenta suma un tercer botón, «Reportar un pago» (decisión 4, §4.3).
 
 En el estado `version_nueva`, el título de la franja es «Actualizamos el Acuerdo de Servicios» y el texto
 dice «Para seguir viendo tus envíos y tu estado de cuenta, lee y acepta la versión {versión}, vigente desde
 {fecha}.» Se reutiliza el aviso de reaceptación de `acceptance-copy.ts`.
+
+En el estado `version_anunciada`, la franja es informativa y se puede cerrar: «Actualizamos el Acuerdo de
+Servicios. La versión {versión} entra en vigencia el {fecha}. Acéptala antes de esa fecha para seguir
+viendo tus envíos y tu estado de cuenta.» Botón «Leer y aceptar».
 
 ### 4.3 Qué se cierra y qué no
 
@@ -210,20 +219,19 @@ dice «Para seguir viendo tus envíos y tu estado de cuenta, lee y acepta la ver
 | Perfil, Mensajes, Soporte y Reclamos | El cliente nunca queda sin canal. Es también el camino para pedir sus datos (§5.5, habeas data) |
 | El texto de los términos y la pantalla de aceptación | Es lo que tiene que leer |
 | Constancias de aceptación (§5.4) | Son su prueba |
-| Cotizaciones, Estimados, Compras, Proveedores, Academia, Club y Referidos | No son seguimiento ni estado de cuenta. Compras y Documentos son la pregunta 3 |
-| Reportar un pago | La cobranza no se frena. Es la pregunta 4 |
+| Compras y Documentos | Decisión 3: quedan abiertos |
+| Cotizaciones, Estimados, Proveedores, Academia, Club y Referidos | No son seguimiento ni estado de cuenta |
+| Reportar un pago | Decisión 4: la cobranza no se frena. Hoy el reporte vive en el detalle de la factura (`app/portal/(app)/facturas/[code]/_components/InvoicePaymentReports.tsx`). Con el estado de cuenta cerrado, se ofrece desde la pantalla de la puerta, sin mostrar saldos ni la lista de facturas |
 
 - **La puerta se aplica en el servidor.** Cada página y cada ruta de PDF consulta el estado (§4.4) antes de
   leer datos. El candado del menú solo señala. Sigue el patrón de `verify-gate.ts`, en un módulo puro
   `lib/portal/tyc-gate.ts`.
 - **Es una puerta de experiencia y de contrato, no de seguridad.** La RLS del portal no cambia: los datos
   son del cliente. No se agrega una policy nueva.
-- **Fuera del portal no cambia nada:**
+- **Fuera del portal no cambia nada** (decisión 5). Siguen saliendo:
   - los correos y avisos push de seguimiento;
   - el correo de la factura emitida;
-  - el canal de WhatsApp.
-
-  Es la pregunta 5.
+  - los mensajes por WhatsApp.
 
 ### 4.4 Cómo se calcula el estado
 
@@ -242,9 +250,12 @@ SDD-0549. Valen las mismas reglas que en `acceptanceRowValid`:
 - **Ruta:** `/portal/terminos/aceptar`, siempre abierta.
 - **Encabezado:** «Acuerdo de Servicios · versión {versión}, vigente desde {fecha}». Debajo va el texto
   completo, que sale de `legal_docs` vigente.
+- **Texto sobre las casillas** (decisión 11): «Al aceptar, aceptas los términos completos, incluidas las
+  condiciones del servicio puerta a puerta (DDP). Se aplican a cada orden que te facturemos. No tendrás que
+  aceptar cada orden por separado.»
 - **Casilla 1:** «He leído y acepto el Acuerdo de Servicios, versión {versión}.» Si hay más documentos
   vigentes, se nombran todos, como en `acceptance-copy.ts`.
-- **Casilla 2:** la declaración de comerciante que ya existe. Es la pregunta 6.
+- **Casilla 2:** la declaración de comerciante que ya existe (decisión 6).
 - Ninguna casilla viene marcada. Las dos son obligatorias y cada una tiene su error.
 - **Botón:** «Aceptar los términos», que pasa a «Registrando…» mientras guarda. A la izquierda, «Ahora no».
 - **Pie:** «Guardamos la fecha y la hora de tu aceptación, la versión que aceptaste, tu dirección IP, los
@@ -304,11 +315,16 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
 ### 5.3 Validez
 
 - Una aceptación `portal` vale mientras cubra todas las versiones vigentes de cara al cliente.
-- Si se publica una versión nueva, el estado pasa a `version_nueva`. La aceptación vieja se conserva como
-  evidencia. Cuándo se cierra el portal está en la pregunta 7: la cláusula 13.2 da 72 horas hábiles de
-  vigencia diferida.
-- **Quién la da.** Cubre al cliente (`client_id`), no solo al usuario que la dio. Si el cliente tiene
-  varios usuarios del portal, basta con que acepte uno. Es la pregunta 8.
+- **Versión nueva (decisión 7).** El portal se cierra cuando la versión nueva **entra en vigencia**, no
+  cuando se publica. La cláusula 13.2 da 72 horas hábiles.
+  - La fecha de vigencia es `legal_docs.effective_date`, y la fija quien publica. La puerta solo la lee.
+  - Desde que se publica hasta esa fecha, el cliente que aceptó la versión anterior queda en
+    `version_anunciada`: ve todo, con la franja informativa (§4.2).
+  - Desde esa fecha, pasa a `version_nueva` y el portal se cierra hasta que acepte.
+  - La comparación de fechas va en hora de Caracas.
+  - La aceptación vieja se conserva como evidencia.
+- **Quién la da (decisión 8).** Cubre al cliente (`client_id`). Si el cliente tiene varios usuarios del
+  portal, basta con que acepte uno. Queda registrado quién fue en `accepted_by` y en el correo.
 
 ### 5.4 El correo y el acuse
 
@@ -318,20 +334,22 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
   - `legal_acceptances` no se actualiza.
   - Si el correo falla, la aceptación vale igual. El Studio ve el fallo en el registro de correos y puede
     reenviarlo.
-- **El acuse** es el correo mismo: la constancia de DTD de que recibió la aceptación. Lleva el código, y en
-  el portal queda una página que se puede imprimir: `/portal/terminos/constancia/[code]`. Esa página
-  recomputa el hash y dice «La huella coincide» o «La huella no coincide». Si Sam quiere además que el
-  cliente confirme que recibió el correo, es la pregunta 2.
+- **El acuse (decisión 2).** El correo y la constancia del portal bastan; no hay botón de confirmación.
+  - El correo es la constancia de DTD de que recibió la aceptación, y lleva el código.
+  - En el portal queda una página que se puede imprimir: `/portal/terminos/constancia/[code]`. Recalcula el
+    hash y dice «La huella coincide» o «La huella no coincide».
 - **El correo no lleva la IP ni el agente de usuario.** No hacen falta para la constancia, y así no viajan
   por un canal más.
-- **Texto propuesto** (antes de publicarlo lo revisa el abogado, §6):
+- **El correo dice quién aceptó** (decisión 8). Va al usuario que aceptó, con su nombre en el saludo.
+- **Texto propuesto.** Antes de publicarlo lo revisa el abogado (§6, pendiente 1):
 
   > **Asunto:** Constancia de aceptación del Acuerdo de Servicios · {AC-2026-0001}
   >
   > Hola, {nombre}:
   >
-  > Recibimos tu aceptación del Acuerdo de Servicios de DTD Cargo. Estos son los datos que quedaron
-  > registrados:
+  > Recibimos tu aceptación del Acuerdo de Servicios de DTD Cargo. Con ella aceptaste los términos
+  > completos, incluidas las condiciones del servicio puerta a puerta (DDP), que se aplican a cada orden
+  > que te facturemos. Estos son los datos que quedaron registrados:
   >
   > - Constancia: {AC-2026-0001}
   > - Cliente: {DTD-0000}
@@ -371,10 +389,10 @@ ENCONTRADO, CORRECTO y NO VERIFICABLE. Ninguno es asesoría legal.
 |---|---|---|---|
 | 2 | Minimización | CORRECTO con condición | IP y agente con finalidad declarada (`app/privacidad/page.tsx:98`). Agente recortado (`types.ts:150`). Sin geolocalización. El correo no lleva la IP (§5.4) |
 | 3 | Consentimiento con evidencia | CORRECTO | Versión, fecha y huella del texto (`0102_capa_legal.sql:86-109`, `0297_legal_docs_body_hash.sql:36-40`). Casillas sin marcar (`AcceptanceForm.tsx:107-110`). El T&C va separado del opt-in de correos (`RegisterForm.tsx:877-889`). La aceptación del T&C no sustituye el tratamiento de datos de la política de privacidad |
-| 4 | Derechos como caminos reales | Requisito de esta spec | El acceso a los propios datos (CRBV art. 28) no se condiciona a aceptar: Mensajes y Soporte quedan abiertos (§4.3). Que alcance o no, lo dice el abogado |
-| 5 | Borrado | NO VERIFICABLE | `legal_acceptances` es de solo inserción (`0102_capa_legal.sql:125-138`). Una solicitud de supresión choca con la conservación de la prueba. `docs/legal/retention-schedule-v1.md` no tiene una fila para las aceptaciones. Hay que fijar el plazo |
+| 4 | Derechos como caminos reales | Requisito de esta spec | El acceso a los propios datos (CRBV art. 28) no se condiciona a aceptar: Mensajes y Soporte quedan abiertos (§4.3) |
+| 5 | Borrado | NO VERIFICABLE | `legal_acceptances` es de solo inserción (`0102_capa_legal.sql:125-138`). Una solicitud de supresión choca con la conservación de la prueba. `docs/legal/retention-schedule-v1.md` no tiene una fila para las aceptaciones. El plazo lo fija el abogado (§6, pendiente 3) |
 | 8 | Terceros | NO VERIFICABLE | Resend envía el correo (`send-email.ts`). Su contrato está fuera del repo |
-| 11 | Valor probatorio | CORRECTO en lo técnico; ENCONTRADO en el texto | Hash del contenido sellado en el servidor (`0297`, `seal.ts:142`) e inmutabilidad en la base (`0102:125-138`). No hay certificado de un PSC: es el art. 17. **ENCONTRADO:** la cláusula 13.1 (`lib/legal-public.ts:81`) dice que se acepta «al confirmar cada cotización»; con esta spec se acepta una vez por versión en el portal. Hay que reescribirla (§6) |
+| 11 | Valor probatorio | CORRECTO en lo técnico; ENCONTRADO en el texto | Hash del contenido sellado en el servidor (`0297`, `seal.ts:142`) e inmutabilidad en la base (`0102:125-138`). No hay certificado de un PSC: es el art. 17. **ENCONTRADO:** la cláusula 13.1 (`lib/legal-public.ts:81`) dice que se acepta «al confirmar cada cotización»; con esta spec se acepta una vez por versión en el portal. La reescribe el abogado (§6, pendiente 2) |
 | — | PIPL | NO VERIFICABLE | Solo leen `legal_acceptances` `lib/studio/legal/`, `lib/portal/portal-legal-queries.ts` y la acción de aceptar del portal. No se midió qué roles del equipo de China abren `/studio/legal` |
 
 Recomendación de la skill: que otro modelo haga una segunda lectura cuando exista el código.
@@ -395,34 +413,44 @@ Recomendación de la skill: que otro modelo haga una segunda lectura cuando exis
   - «misma validez que tu firma autógrafa»;
   - cualquier otra promesa de más valor legal del que da la ley.
 
-  Se dice «aceptación electrónica», «constancia» y «huella de integridad (hash)». Sam dijo que «funciona
-  como firma electrónica»: esta spec propone no escribirlo así. Es la pregunta 1.
-- **Hay que revisar el pie que ya existe.** «Conforme a la Ley sobre Mensajes de Datos y Firmas
-  Electrónicas» (`acceptance-copy.ts:122`, `COPY_LEGAL_UI.md:23`). Lo revisa el abogado junto con el
-  resto.
-- **Condición previa.** El abogado revisa antes de publicar:
-  1. la cláusula 13.1 y la 13.2 del Acuerdo;
-  2. el aviso, las casillas y el pie (§4);
-  3. el correo (§5.4);
-  4. la puerta (§4.3): que condicionar el seguimiento y el estado de cuenta a la aceptación sea válido, y
-     que el canal para pedir los datos baste.
+  Se dice «aceptación electrónica», «constancia» y «huella de integridad (hash)», nunca «firma»
+  (decisión 1).
+- **El pie que ya existe** dice «conforme a la Ley sobre Mensajes de Datos y Firmas Electrónicas»
+  (`acceptance-copy.ts:122`, `COPY_LEGAL_UI.md:23`). Entra en la revisión del texto final (pendiente 1).
 
-  Sin esa revisión y el OK de Sam, la fase 3 no se enciende. La fase 3 necesita además un documento vigente
-  sin marcadores pendientes en `legal_docs`, y que sea el mismo texto que publique `/terminos`
-  (`TERMINOS_LIVE`).
+### 6.1 Pendiente: la revisión del abogado
+
+Es lo único que queda abierto. Las fases 2 y 3 lo esperan (decisión 10).
+
+1. **El texto final del correo** (§5.4). Incluye el pie de la pantalla de aceptación (§4.5), que repite sus
+   frases.
+2. **La cláusula 13.1 del Acuerdo** (`lib/legal-public.ts:81`). Dice que se acepta «al confirmar cada
+   cotización». Con esta spec se acepta una vez por versión en el portal.
+   - Una sola aceptación cubre los términos completos, incluidas las condiciones DDP, que se aplican a cada
+     orden facturada (decisión 11).
+   - El abogado revisa esa frase junto con la cláusula, y el texto sobre las casillas (§4.5).
+3. **El plazo de retención de las aceptaciones.** Va como fila nueva en
+   `docs/legal/retention-schedule-v1.md`.
+
+La fase 3 se enciende con el OK nominal de Sam cuando estén los tres. Necesita además un documento vigente
+sin marcadores pendientes en `legal_docs`, que sea el mismo texto que publique `/terminos`
+(`TERMINOS_LIVE`).
 
 ## 7. Fases
 
 | Fase | Qué | Depende de | Producción |
 |---|---|---|---|
-| 0 | Revisión del abogado y OK de Sam a los textos (§6) | — | No aplica |
-| 1 | Facturación sin la puerta legal (§3.1), marca `tyc_portal`, retiro del §6 de la EXC-0674 y nota en la SDD-0054 | Aprobación de esta spec | Merge = despliegue. No tiene migración |
-| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`, evidencia v4, `estadoTycPortal` y plantilla `tyc_aceptada` | Fase 1 y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
-| 3 | Portal: franja, pantalla de entrada, `/portal/terminos/aceptar`, constancia, puerta en el servidor y correo. Detrás de la bandera `PORTAL_TYC_GATE_LIVE = false` | Fases 0 y 2 | Encender la bandera con el OK nominal de Sam |
-| 4 | Retiro de la aceptación por orden (§3.1) y estado de T&C en la ficha del cliente del Studio | Fase 3 encendida | Normal |
+| 0 | Revisión del abogado (§6.1) | — | No aplica |
+| 1 | Facturación sin la puerta legal (§3.1), rastro `tyc_portal`, retiro del §6 de la EXC-0674, nota en las filas SGE-00, MP-01 y BTN-01 del registro y nota en la SDD-0054 | Esta spec. **No espera al abogado** (decisión 10) | Merge = despliegue. No tiene migración |
+| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`, evidencia v4, `estadoTycPortal` (con `version_anunciada`) y plantilla `tyc_aceptada` | Fases 0 y 1, y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
+| 3 | Portal: franja, pantalla de entrada, `/portal/terminos/aceptar`, constancia, puerta en el servidor, «Reportar un pago» desde la puerta y correo. Detrás de la bandera `PORTAL_TYC_GATE_LIVE = false` | Fases 0 y 2 | Encender la bandera con el OK nominal de Sam |
+| 4 | Retiro de la aceptación por orden de las DDP (decisión 11) y estado de T&C en la ficha del cliente del Studio | Fase 3 encendida | Normal |
 
-La fase 1 puede salir antes que la 0 porque no promete nada al cliente. En ese tiempo se emite sin
-aceptación y `tyc_portal = pendientes` lo deja listado. Es la pregunta 10.
+**Fase 1 antes que el abogado (decisión 10).** Mientras la fase 3 no esté encendida, se emite sin
+aceptación y `tyc_portal = pendientes` deja la lista.
+
+**La aceptación por orden sigue hasta la fase 4.** Así el cliente siempre tiene una manera de aceptar,
+aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación general esté encendida.
 
 ## 8. Aceptación verificable
 
@@ -434,7 +462,8 @@ aceptación y `tyc_portal = pendientes` lo deja listado. Es la pregunta 10.
    hay una aceptación `portal` íntegra.
 3. `LEGAL_GATE_HARD_BLOCK` no existe en el código ni en `feature-constants.json`. `check-feature-constants`
    pasa.
-4. El §6 del documento de la EXC-0674 dice «Retirada» con la fecha, y `governance:check` pasa.
+4. El §6 del documento de la EXC-0674 dice «Retirada» con la fecha. Las filas SGE-00, MP-01 y BTN-01 de
+   `docs/governance/README.md` llevan la nota «§6 AUT-04 retirado por SDD-0693». `governance:check` pasa.
 
 **Fase 2**
 
@@ -446,26 +475,44 @@ aceptación y `tyc_portal = pendientes` lo deja listado. Es la pregunta 10.
    - la misma entrada da el mismo hash;
    - cambiar un carácter del cuerpo, de `copy_sha256`, de `accepted_by` o de `accepted_at` da otro hash;
    - una fila v3 se sigue verificando.
-7. Pruebas de `estadoTycPortal` con los cinco estados de §4.1, una aceptación con el hash alterado
-   (`sin_aceptar`) y una versión nueva (`version_nueva`).
+7. Pruebas de `estadoTycPortal`:
+   - los seis estados de §4.1;
+   - una aceptación con el hash alterado da `sin_aceptar`;
+   - una versión nueva publicada con vigencia de mañana da `version_anunciada`;
+   - la misma versión, el día de su vigencia en hora de Caracas, da `version_nueva`;
+   - dos usuarios del mismo cliente: si acepta uno, los dos ven `aceptados`, y la fila guarda en
+     `accepted_by` al que aceptó.
 
 **Fase 3**
 
 8. Para cada ruta cerrada de §4.3, una prueba de página o de ruta comprueba que, con `sin_aceptar`, devuelve
    la pantalla de la puerta y no llama a la consulta de datos. Con `aceptados`, muestra los datos.
-9. Una prueba comprueba que las rutas abiertas de §4.3 no consultan el estado.
-10. La acción de aceptar:
+9. Una prueba comprueba que las rutas abiertas de §4.3 (Compras y Documentos incluidas) no consultan el
+   estado.
+10. Con `sin_aceptar`, la pantalla de la puerta del estado de cuenta ofrece «Reportar un pago», el reporte
+    se registra igual que hoy, y la pantalla no muestra saldos ni la lista de facturas.
+11. Con `sin_aceptar`, siguen saliendo los correos y avisos push de seguimiento y el correo de la factura.
+    Ninguna prueba de esos envíos cambia.
+12. La acción de aceptar:
     - rechaza sin las dos casillas, cada una con su error;
     - inserta una sola vez si se repite;
     - toma la IP y el agente de los headers, no del formulario;
     - envía `tyc_aceptada` con el `acceptance_code` en `metadata`.
 
     Si el correo falla, la aceptación queda igual.
-11. Una prueba de contrato sobre los textos de §4 y §5.4 comprueba que no aparecen «firma», «firmad»,
-    «certificad» ni «autógrafa». Y que no hay voseo.
-12. `/ui-check` de la franja, la puerta y la pantalla de aceptación.
-13. Un ensayo e2e local con datos inventados: entra un cliente sin aceptar, ve la franja, no ve Envíos,
+13. Una prueba de contrato sobre los textos de §4 y §5.4 comprueba que no aparecen «firma», «firmad»,
+    «certificad» ni «autógrafa», salvo en el nombre de la ley si el abogado lo deja.
+    Comprueba también que no hay voseo, y que la pantalla y el correo dicen que la aceptación cubre los
+    términos completos, incluidas las condiciones DDP (decisión 11).
+14. `/ui-check` de la franja, la puerta y la pantalla de aceptación.
+15. Un ensayo e2e local con datos inventados: entra un cliente sin aceptar, ve la franja, no ve Envíos,
     acepta, recibe el correo en modo de prueba y ve Envíos.
+
+**Fase 4**
+
+16. `/portal/facturas/[code]/aceptar` ya no existe. La portada y Facturas no muestran «por aceptar».
+    `emitInvoice` no lee `hasValidAcceptanceForMarkbox`. Las filas `orden` siguen en la base y se exportan
+    en el expediente.
 
 **Cierre de cada fase:** `pnpm verify` y el CI de GitHub de la PR.
 
@@ -484,7 +531,7 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 - `scripts/feature-constants.json`
 - `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`
 - `docs/specs/0054-capa-legal/spec.md` (solo la nota)
-- `docs/governance/README.md` (solo si Sam contesta «sí» a la pregunta 9)
+- `docs/governance/README.md` (la nota en las filas SGE-00, MP-01 y BTN-01, decisión 9)
 
 **Fase 2**
 
@@ -504,6 +551,7 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 - `app/portal/_components/PortalSidebar.tsx` (candado del menú)
 - `lib/portal/demo.ts` o el módulo de banderas que elija Dir_DTD, y `scripts/feature-constants.json`
 - `lib/studio/legal/acceptance-copy.ts` y `docs/legal/COPY_LEGAL_UI.md`
+- `app/portal/(app)/facturas/[code]/_components/InvoicePaymentReports.tsx`, solo para ofrecer «Reportar un pago» desde la puerta (decisión 4)
 
 **Fase 4**
 
@@ -516,27 +564,41 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 **Fuera de la allowlist en todas las fases**
 
 - La RLS del portal.
+- Las páginas de Compras y Documentos (decisión 3).
+- Los envíos de correo y push de seguimiento y el correo de la factura (decisión 5).
 - La 0564 y las filas que ya existen en `legal_acceptances`.
-- `lib/legal-public.ts`: el texto del Acuerdo lo cambia el abogado, en su propio cambio.
+- `lib/legal-public.ts` y `docs/legal/retention-schedule-v1.md`: los cambia el abogado, en su propio cambio (§6.1).
 
-## 10. Preguntas para Sam
+## 10. Decisiones de Sam (2026-11-20)
 
-1. **«Firma electrónica».** Esta spec propone que el correo y la pantalla digan «aceptación electrónica» y
-   «huella de integridad», y no «firma electrónica» (§6). ¿De acuerdo, o prefieres esperar al abogado?
-2. **El acuse de recibo.** ¿Basta con que el correo sea la constancia de DTD, o quieres que el cliente
-   confirme que lo recibió, con un botón en el correo o en el portal?
-3. **Compras y Documentos.** ¿Se cierran también? Compras muestra la recepción en bodega y Documentos trae
-   el BL y el POD. La propuesta es dejarlos abiertos.
-4. **Reportar un pago** sin haber aceptado. ¿Se deja? La propuesta es que sí, para no frenar la cobranza.
-5. **Fuera del portal.** ¿Los correos y avisos push de seguimiento y el correo de la factura siguen
-   saliendo aunque no haya aceptado? La propuesta es que sí: la regla limita el portal.
-6. **La declaración de comerciante.** ¿Se mantiene como segunda casilla obligatoria?
-7. **Versión nueva.** ¿El portal se cierra apenas se publica, o cuando entra en vigencia (72 horas hábiles,
-   cláusula 13.2)? La propuesta es al entrar en vigencia.
-8. **Varios usuarios de un mismo cliente.** ¿Basta con que acepte uno?
-9. **El registro de gobernanza.** ¿Agregamos a las filas SGE-00, MP-01 y BTN-01 la nota «§6 AUT-04
-   retirado por SDD-0693», o basta con el documento de la EXC-0674?
-10. **El orden.** ¿La fase 1 (facturar sin la puerta) sale antes de que el abogado termine, con el rastro
-    `tyc_portal = pendientes`?
-11. **La aceptación por orden.** Confirma que el cliente ya no acepta el monto de cada orden DDP antes de
-    la emisión (fase 4).
+Sam contestó por Dir_DTD, una por una. En las 11 eligió la propuesta recomendada.
+
+1. **Las palabras.** Se dice «aceptación electrónica» y «huella de integridad», nunca «firma». El abogado
+   revisa el texto final (§6, §6.1).
+2. **El acuse.** El correo y la constancia del portal bastan como acuse. No hay botón de confirmación
+   (§5.4).
+3. **Compras y Documentos** quedan abiertos. Se cierran el seguimiento, el estado de cuenta y las facturas
+   (§4.3).
+4. **Reportar un pago.** El cliente puede reportarlo sin haber aceptado (§4.2, §4.3).
+5. **Fuera del portal.** Siguen saliendo los correos y avisos de seguimiento y el correo de la factura
+   (§4.3).
+6. **La declaración de comerciante** se mantiene como segunda casilla obligatoria (§4.5).
+7. **Versión nueva.** El portal se cierra cuando la versión nueva entra en vigencia, a las 72 horas hábiles
+   de la cláusula 13.2 (§4.1, §5.3).
+8. **Varios usuarios.** Basta con que acepte un usuario por cliente, y queda registrado quién fue (§5.1,
+   §5.3).
+9. **El registro de gobernanza.** Se agrega la nota «§6 AUT-04 retirado por SDD-0693» a las filas SGE-00,
+   MP-01 y BTN-01 (§3.3).
+10. **El orden.** La fase 1 (facturar sin la puerta, con el rastro `tyc_portal = pendientes`) sale antes de
+    que el abogado termine. Las fases 2 y 3 esperan al abogado (§7).
+11. **La aceptación por orden** de las DDP se quita (§3.1, fase 4). Aclaración de Sam: «el cliente al
+    aceptar acepta todo».
+    - Con una sola aceptación en el portal, el cliente acepta los términos completos, incluidas las
+      condiciones del puerta a puerta (DDP).
+    - Esas condiciones se aplican después a cada orden que se le facture. No hay aceptación por orden.
+    - Lo dicen la pantalla (§4.5) y el correo (§5.4). Lo revisa el abogado junto con la cláusula 13.1 (§6.1).
+
+**Pendiente:** solo la revisión del abogado (§6.1):
+- el texto del correo;
+- la cláusula 13.1, con la frase «se acepta todo, incluidas las condiciones DDP, una sola vez»;
+- el plazo de retención.
