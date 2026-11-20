@@ -756,8 +756,13 @@ Cada pregunta trae la recomendación primero.
   en su hora y su día, en la pantalla: es presentación, no lo que se guarda (§4.9, punto 8).
 - **P-7 (prioridad). Decidida por Sam el 2026-11-20:** «Sí, en paralelo». La F-2 (fechas fiscales) y la
   F-3 (identidad) van a la vez, cada una en su rama. La F-2 conserva el plan B de la §6.
-- **P-8 (duplicados ya existentes).** Con los conteos de Q1 y Q2 en la mano, ¿la oficina revisa y fusiona
-  los grupos con la herramienta que ya existe? *Recomendado: sí,* antes de crear el índice único.
+- **P-8 (duplicados ya existentes). Decidida por Sam el 2026-11-20:** «Sí, antes». La oficina revisa y
+  fusiona los grupos de Q1 y Q2 con la herramienta de fusión que ya existe, **antes** de crear el índice
+  único por correo (F-5). Es una operación de datos en producción: lleva su acta de conteo y el OK nominal de
+  Sam.
+
+**Las ocho preguntas están contestadas** (P-1 a P-8; la P-9 la cerró la 0694). Falta el «Apruebo la 0695»
+de Sam.
 
 ## 10. Aceptación verificable
 
