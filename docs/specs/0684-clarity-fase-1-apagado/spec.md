@@ -153,3 +153,11 @@ La e2e no entra en `pnpm test:e2e`: la suite general corre sin ID, que es como s
 - [x] `data-clarity-mask` en resultados, ecos de datos y formulario de contacto.
 - [x] Corte al pasar del público a una zona privada.
 - [x] Pruebas unitarias y e2e de no-fuga.
+
+## Corrección previa al encendido: exclusiones de Google Analytics en el registro
+
+La política de la fase 2 dice que Google Analytics 4 y Clarity no cargan en páginas cuya dirección lleve tokens o enlaces personales. Para que eso sea cierto, las exclusiones de GA se alinean con las de Clarity en el registro: `/registro/link`, `/registro/activar` y `/registro/correo` entran en `PRIVATE_PREFIXES` (`components/Analytics.tsx`). `/registro` a secas sigue cargando GA, porque ahí se mide la conversión de registro. **P**: `__tests__/analytics.test.ts` (prefijos, y `/registro/linkedin` no se confunde) y `components/Analytics.registro.test.tsx` (render real: carga en `/registro`, nada en las tres subrutas).
+
+Se revisaron las demás rutas públicas con un segmento dinámico fuera de `/studio`, `/portal` y `/m`. Las que no son de marketing ya estaban excluidas, o son manejadores sin página (`/ir/…`, `/api/…`). **D**
+
+Va en su propia PR, antes del tren de encendido, y se publica en la misma imagen.

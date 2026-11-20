@@ -21,7 +21,7 @@
  *   las de `ETIQUETAS_DINERO_POR_DEFECTO` y `ETIQUETAS_INTERNO_POR_DEFECTO`.
  * - `OFICINA_VACIADO_ACTIVO`: enciende el vaciado diario de `task_events.resumen` (privacidad,
  *   decisión A de Sam del 15/11/2026). Interruptor PROPIO: corre aunque la oficina esté pausada.
- * - `OFICINA_VISTA_ACTIVA`: enciende la mini-vista de solo lectura (§3.6, Paso 4), `/studio/admin/oficina/vista`.
+ * - `OFICINA_VISTA_ACTIVA`: enciende la mini-vista de solo lectura (§3.6, Paso 4), `/studio/admin/oficina-virtual/vista`.
  *   Apagado = la página no existe (404), también para el superadministrador. No enciende ni apaga nada más.
  */
 import { firstConfiguredSecret } from "@/lib/runtime/server-secret";

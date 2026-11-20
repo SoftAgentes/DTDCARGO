@@ -18,7 +18,7 @@ import { vistaActiva } from "../config";
 import { COLUMNAS, ESTADOS_EVENTO, ESTADOS_TAREA, LIMITES, conversacionDe, leerMiniVista } from "../mini-vista";
 
 const ROOT = resolve(__dirname, "..", "..", "..", "..");
-const PAGINA = "app/studio/(app)/admin/oficina/vista/page.tsx";
+const PAGINA = "app/studio/(app)/admin/oficina-virtual/vista/page.tsx";
 
 type Respuesta = { data?: unknown; error?: { code: string; message?: string } | null; count?: number | null };
 interface Consulta {
@@ -318,8 +318,8 @@ describe("mini-vista · el interruptor y la página", () => {
   });
 
   it("la revisión de borradores solo enlaza la mini-vista cuando está encendida", () => {
-    const revision = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/page.tsx"), "utf8");
-    expect(revision).toMatch(/\{vistaActiva\(\) \? \(\s*<p[^>]*>\s*<Link href="\/studio\/admin\/oficina\/vista"/);
+    const revision = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/page.tsx"), "utf8");
+    expect(revision).toMatch(/\{vistaActiva\(\) \? \(\s*<p[^>]*>\s*<Link href="\/studio\/admin\/oficina-virtual\/vista"/);
   });
 
   it("la lectura no importa nada que escriba ni que salga a Chatwoot o al runtime", () => {

@@ -87,6 +87,12 @@ const PRIVATE_PREFIXES = [
   // (antes /calculadora/embed) vive en /tarifas/embed; el FCL en /fcl/embed.
   "/tarifas/embed",
   "/fcl/embed",
+  // SDD-0684 (fase 2): las subrutas del registro que llevan un enlace personal
+  // en la ruta. `/registro` a secas sigue midiéndose (conversión de registro).
+  // Clarity excluye todo `/registro`; GA solo estas tres.
+  "/registro/link",
+  "/registro/activar",
+  "/registro/correo",
 ];
 
 export function isPrivatePath(pathname: string): boolean {

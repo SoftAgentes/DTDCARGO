@@ -26,7 +26,17 @@ function supabaseDoble() {
       estado.tablas.push(tabla);
       const filas =
         tabla === "invoices"
-          ? [{ shipment_id: "s1", currency: "USD", total_amount: "100.00", paid_amount: "25.00", status: "borrador" }]
+          ? [
+              {
+                id: "inv-1",
+                invoice_code: "F-PO-1",
+                shipment_id: "s1",
+                currency: "USD",
+                total_amount: "100.00",
+                paid_amount: "25.00",
+                status: "borrador",
+              },
+            ]
           : [];
       const q = {
         select: () => q,
@@ -112,9 +122,30 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     expect(estado.tablas).toContain("invoices");
     expect(props.montos).toEqual({
       estado: "lista",
-      porEmbarque: { s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0 } },
+      porEmbarque: {
+        s1: {
+          facturas: 1,
+          totalUsd: 100,
+          pagadoUsd: 25,
+          otraMoneda: 0,
+          borradores: 1,
+          sinFacturarUsd: 100,
+          // SDD-0690: el id y el código viajan solo aquí, con `montos`.
+          documentos: [{ invoiceId: "inv-1", invoiceCode: "F-PO-1", preorden: true, totalUsd: 100 }],
+        },
+      },
     });
   });
+
+  // SDD-0689: el «Sin facturar» del encabezado sale de `montos`. Se decide aquí, en el servidor: a
+  // operations y a los demás roles no les llega ningún monto, ni siquiera el de los borradores.
+  it.each(["operations", "commercial", "support", "warehouse", "marketing"])(
+    "%s: el «Sin facturar» del encabezado no viaja al navegador",
+    async (rol) => {
+      const props = await propsDe(rol);
+      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|totalUsd|pagadoUsd|invoiceCode|invoiceId|invoice_code/);
+    },
+  );
 
   it("un acceso extra a Facturación sin el rol no lee invoices: la RLS (0414) le daría cero filas", async () => {
     estado.extras = ["invoices"];

@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
-import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
+import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, idDelPaquete, MARCA_SOLO_FACTURAS, naviera, puertoDestino, SUFIJO_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -654,5 +654,164 @@ describe("SDD-0543 F2 · empaque mínimo: al servidor sube sólo lo que aplicar-
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya cargado", () => {
+  const SOLO: OpcionesSql = { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false, soloFacturas: true };
+  const solo = () => generarSql(lote(), SOLO, FUENTES);
+  const bloque = (t: string) => t.slice(t.indexOf("do $lote$"), t.indexOf("$lote$;"));
+
+  it("aplicar y simulacro no escriben consolidación, envíos, recepciones ni ítems: sólo facturas en borrador", () => {
+    const s = solo();
+    for (const t of [s.aplicar, s.simulacro]) {
+      expect(t).not.toMatch(
+        /insert\s+into\s+public\.(consolidations|consolidation_items|shipments|shipment_events|warehouse_receipts_cn|warehouse_receipt_items|warehouse_receipt_events|sailings|carriers|ports|clients|aliados|expenses)\b/i,
+      );
+      expect(t).not.toMatch(/\bupdate\s+public\./i);
+      expect(t).not.toMatch(/\bdelete\s+from\s+public\./i);
+      expect(t.match(/insert into public\.invoices/g)).toHaveLength(1);
+      expect(t).toContain("'USD', v_iva_rate, v_base, v_iva, v_total, 'borrador', v_lines");
+      expect(t).toContain("v_code := public.next_invoice_code(v_tenant);");
+      expect(t).toContain("'invoice_imported'");
+      expect(t.match(/public\.append_audit_event\(/g)).toHaveLength(1);
+      // Las mismas líneas que hoy: las de la preorden del Excel, con su shipmentCode.
+      expect(t).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+      expect(t).toContain("'shipmentCode', remitente");
+      // La marca del lote en notes, más la de esta carga.
+      expect(t).toContain("'Carga ' || cab.lote || ' · contenedor DTD #'");
+      expect(t).toContain(`' · ${MARCA_SOLO_FACTURAS}'`);
+      // Ningún alias de tabla de una letra igual a una variable del bloque.
+      expect(bloque(t)).not.toMatch(/\b(?:from|join)\s+[^\s(]+\s+(?:as\s+)?[cefrm]\b(?!\.)/i);
+    }
+    expect(s.manifiesto.modo).toBe("solo-facturas");
+    expect(manifiestoDelPaquete(s.manifiesto).modo).toBe("solo-facturas");
+    expect(generarSql(lote(), OPCIONES, FUENTES).manifiesto.modo).toBeUndefined();
+  });
+
+  it("su preflight exige el contenedor cargado con el lote y en exc0674_contenedores, y no aborta porque ya haya facturas", () => {
+    const t = solo().aplicar;
+    expect(t).toContain("from public.exc0674_contenedores xc");
+    expect(t).toContain("where xc.tenant_id = v_tenant and xc.consolidation_id = v_cons");
+    expect(t).toContain("raise exception 'preflight solo-facturas: el contenedor % no está en exc0674_contenedores; no se cargan pre-órdenes fuera de la lista'");
+    expect(t).toContain("raise exception 'preflight solo-facturas: el contenedor % no está cargado vivo con el lote %");
+    expect(t).toContain("raise exception 'preflight solo-facturas: % de % envíos del lote no están cargados vivos en el contenedor %'");
+    expect(t).toContain("join vigente vg on vg.shipment_id = sh.id and vg.consolidation_id = v_cons;");
+    // El preflight normal no va: el contenedor y las facturas del lote ya existen.
+    expect(t).not.toContain("preflight: el contenedor % ya está cargado");
+    expect(t).not.toContain("preflight: ya hay facturas del lote");
+    expect(t).not.toContain("preflight: el lote % ya está aplicado");
+    for (const aviso of ["no está en exc0674_contenedores", "no están cargados vivos"]) {
+      expect(t.indexOf(aviso)).toBeLessThan(t.indexOf("insert into public.invoices"));
+    }
+    // El script normal no conoce la lista.
+    expect(generarSql(lote(), OPCIONES, FUENTES).aplicar).not.toContain("exc0674");
+  });
+
+  it("por cliente es idempotente: con una factura viva sobre sus envíos se salta, antes de pedir código", () => {
+    const t = solo().aplicar;
+    expect(t).toContain(
+      [
+        "    if exists (",
+        "      select 1 from public.invoices iv",
+        "       where iv.tenant_id = v_tenant and iv.deleted_at is null and iv.status <> 'anulada'",
+        "         and (iv.shipment_id = any(v_ships)",
+        "              or exists (select 1 from public.exc0674_factura_envios fe",
+        "                          where fe.invoice_id = iv.id and fe.shipment_id = any(v_ships)))",
+        "    ) then",
+        "      v_n_saltados := v_n_saltados + 1;",
+        "      continue;",
+        "    end if;",
+      ].join("\n"),
+    );
+    expect(t.indexOf("v_n_saltados := v_n_saltados + 1;")).toBeLessThan(t.indexOf("public.next_invoice_code(v_tenant)"));
+    expect(t).toContain("v_n_sin_lineas := v_n_sin_lineas + 1;");
+    // Misma llave de bloqueo que exc0674_facturar (0564).
+    expect(t).toContain("pg_advisory_xact_lock(hashtextextended('exc0674:' || v_tenant::text || ':' || v_cons::text || ':' || v_mb, 0))");
+    // Avisos con conteos, nunca montos ni nombres.
+    const avisos = t.split("\n").filter((l) => /raise (notice|exception)/.test(l));
+    expect(avisos.length).toBeGreaterThan(0);
+    for (const l of avisos) expect(l).not.toMatch(/v_base|v_total|v_iva\b|nombre|\.name|c\.clave/);
+    expect(t).toContain("raise notice 'solo-facturas lote % · contenedor % · % Shipping Marks · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas'");
+    // SDD-0690: una pre-orden por Shipping Mark vivo de los envíos, no por clave del Excel.
+    expect(t).toContain("select lc.markbox, min(lc.orden) as primero\n      from lote_cargados lc\n     group by lc.markbox");
+    expect(t).not.toContain("group by lc.clave");
+    expect(t).not.toContain("no comparten un Shipping Mark");
+  });
+
+  it("el paquete tiene id propio (carga + «:facturas»); el contenedor se sigue buscando por el id de la carga", () => {
+    const s = solo();
+    const id = `${SOLO.lote}${SUFIJO_SOLO_FACTURAS}`;
+    expect(SUFIJO_SOLO_FACTURAS).toBe(":facturas");
+    expect(idDelPaquete(SOLO)).toBe(id);
+    expect(idDelPaquete(OPCIONES)).toBe(OPCIONES.lote);
+    expect(s.manifiesto.lote).toBe(id);
+    expect(manifiestoDelPaquete(s.manifiesto).lote).toBe(id);
+    // La carga normal no cambia de id.
+    expect(generarSql(lote(), OPCIONES, FUENTES).manifiesto.lote).toBe(OPCIONES.lote);
+    // aplicar-lote.sh exige el id del paquete dentro de cada script que corre (grep -F).
+    for (const t of [s.previa, s.simulacro, s.aplicar, s.verificar, s.deshacer, s.purgar]) expect(t).toContain(id);
+    // El aviso del simulacro nombra el id del paquete: es lo que aplicar-lote.sh busca en su evidencia.
+    expect(s.simulacro).toContain("cab.lote || ':facturas', cab.contenedor, v_n_marcas, v_n_facturas, v_n_saltados, v_n_sin_lineas;");
+    // lote_cab y el preflight siguen con el id de la carga, que es el que quedó en las notas del contenedor.
+    expect(s.aplicar).toContain(`'${SOLO.lote}', 'ABCU1234567'`);
+    expect(s.aplicar).not.toContain(`'${id}', 'ABCU1234567'`);
+    expect(s.aplicar).toContain("and notes like '%' || cab.lote || '%';");
+    expect(s.previa).toContain(`cn.notes like '%' || '${SOLO.lote}' || '%'`);
+  });
+
+  it("el exceso de peso se elige al generar: con o sin sus líneas", () => {
+    const con = generarSql(lote(), SOLO, FUENTES).aplicar;
+    const sin = generarSql(agruparLote(RASTREO, FILAS, { eta: "2026-10-19", excesoPeso: false }), SOLO, FUENTES).aplicar;
+    expect(con).toContain("'Exceso de peso · DTD-A116-06");
+    expect(sin).not.toContain("Exceso de peso");
+    expect(sin).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "59", "--eta", "2026-10-19", "--salida", "x", "--solo-facturas", "--entorno", "produccion"];
+    expect(parsearArgumentos([...base, "--sin-exceso-peso"])).toMatchObject({ soloFacturas: true, excesoPeso: false });
+    expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: true, excesoPeso: true });
+  });
+
+  it("--solo-facturas no va con --sin-facturas, ni crea clientes ni registra el gasto", () => {
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out"];
+    expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: false, facturas: true });
+    expect(parsearArgumentos([...base, "--solo-facturas", "--entorno", "produccion"])).toMatchObject({ soloFacturas: true, facturas: true, entorno: "produccion" });
+    expect(() => parsearArgumentos([...base, "--solo-facturas", "--sin-facturas"])).toThrow(/--solo-facturas y --sin-facturas no van juntos/);
+    expect(() => parsearArgumentos([...base, "--sin-facturas", "--solo-facturas"])).toThrow(/no van juntos/);
+    expect(() => parsearArgumentos([...base, "--solo-facturas", "--crear-clientes-faltantes"])).toThrow(/no crea clientes/);
+    expect(() =>
+      parsearArgumentos([...base, "--solo-facturas", "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "100", "--gasto-usuario", "a@b.test"]),
+    ).toThrow(/gasto por espacio/);
+    expect(() => generarSql(lote(), { ...SOLO, facturas: false }, FUENTES)).toThrow(/no van juntos/);
+    expect(() => generarSql(lote(), { ...SOLO, entorno: "prueba", crearClientesFaltantes: true }, FUENTES)).toThrow(/no crea clientes/);
+  });
+
+  it("el ensayo (simulacro.sql) corre el mismo cuerpo y termina en rollback; aplicar es una transacción con commit", () => {
+    const s = solo();
+    expect(s.simulacro.startsWith("\\set ON_ERROR_STOP on")).toBe(true);
+    expect(s.simulacro.match(/^begin;$/gm)).toHaveLength(1);
+    expect(s.simulacro.trimEnd().endsWith("rollback;")).toBe(true);
+    expect(s.simulacro).not.toMatch(/^commit;$/m);
+    expect(s.aplicar.match(/^begin;$/gm)).toHaveLength(1);
+    expect(s.aplicar.trimEnd().endsWith("commit;")).toBe(true);
+    expect(s.aplicar).not.toMatch(/^rollback;$/m);
+    expect(bloque(s.simulacro)).toBe(bloque(s.aplicar));
+  });
+
+  it("previa y verificar sólo leen y sólo cuentan; deshacer y purgar tocan sólo sus pre-órdenes", () => {
+    const s = generarSql(lote(), { ...SOLO, entorno: "prueba" }, FUENTES);
+    for (const t of [s.previa, s.verificar]) {
+      expect(t).toMatch(/^begin transaction read only;$/m);
+      expect(t.trimEnd().endsWith("rollback;")).toBe(true);
+      expect(t).not.toMatch(/base_amount|total_amount|client_name|PRUEBA O''HIGGINS|ALIADO PRUEBA MM/);
+    }
+    expect(s.previa).toContain("as en_lista_exc0674");
+    expect(s.previa).toContain("as clientes_con_factura_viva");
+    expect(s.verificar).toContain("clientes con más de una factura viva");
+    for (const t of [s.deshacer, s.purgar]) {
+      expect(t).toContain(`notes like '%${MARCA_SOLO_FACTURAS}%'`);
+      expect(t).not.toMatch(/public\.(consolidations|shipments|warehouse_receipts_cn|consolidation_items|clients)\b(?! where id = '05400000)/);
+      expect(t).toContain("'05400000-0000-4000-8000-000000000101'::uuid");
+    }
+    expect(s.deshacer).toContain("status <> 'borrador'");
   });
 });
