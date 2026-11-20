@@ -75,7 +75,7 @@ Resultado:               excepción convertida en regla; BD-076; el Norte recibe
 
 ### Valores propuestos
 
-Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`). **El tono exacto se fija cuando Sam lo vea en la imagen de prueba**; si cambia, se actualizan esta tabla y los contratos en la misma PR.
+Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`). **Tono fijado por Sam el 2026-11-20:** vio tres tonos en claro y en oscuro, junto al rojo de peligro y al vino del logo: A `#2B5FC7`, B `#1F4FA8` y C `#173F8A`. Respondió «eligo la b». Quedan los valores de esta tabla, sin cambios.
 
 | Token (ERP) | Claro | Oscuro | Para qué |
 |---|---|---|---|
@@ -246,7 +246,7 @@ Lo vigila `color-accion-contract.test.ts`, leyendo los valores reales de `tokens
 
 ## 10. Pendientes de decisión
 
-1. Tono exacto del azul, tras verlo en la imagen de prueba.
+1. ~~Tono exacto del azul.~~ **Decidido el 2026-11-20:** opción B, `#1F4FA8` en claro y `#7FAAF0` en oscuro.
 2. Si el **Shipping Mark** (`DTD-XXXX`) se pinta como identidad (vino), como acción (azul) o en tinta. Propuesta: tinta, porque es un dato que se lee.
 3. Qué hacer con correos, PDF y Chatwoot (§9).
 4. El tono de badge `wine` (`BRAND.md:325`): se retira o pasa a llamarse por su función.

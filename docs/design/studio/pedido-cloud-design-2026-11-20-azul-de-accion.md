@@ -65,7 +65,7 @@ Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`).
 
 ## Pendientes de decisión de Sam (no los resuelvan solos)
 
-- Tono exacto del azul, tras verlo en la imagen de prueba.
+- ~~Tono exacto del azul.~~ Sam lo fijó el 2026-11-20 al elegir la opción B entre tres: `#1F4FA8` en claro y `#7FAAF0` en oscuro, los valores de la tabla de arriba.
 - Color del Shipping Mark (`DTD-XXXX`) por fila: propuesta, tinta.
 - Badge tono `wine`: se retira o se nombra por su función.
 - Correos, PDF de factura y estado de cuenta, etiquetas: conservan el vino salvo decisión contraria.
