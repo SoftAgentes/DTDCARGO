@@ -17,7 +17,7 @@ confidencialidad: interno
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
 > «Devolución de impuestos», marca sin documentación y «Montacargas». Hay más.
 
-**Estado: borrador para preguntas.** No hay migración escrita ni aplicada, nada en producción y nada
+**Estado: borrador con todas las preguntas del §7 contestadas por Sam (2026-11-20); falta la revisión del delta y su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
 fusionado. Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no
 se leyó ninguna fila de producción. Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
 Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.
@@ -190,15 +190,15 @@ nada en esta spec.
 
 **Catálogo inicial (sembrado en la migración B, a confirmar con las preguntas 4, 7, 8 y 10):**
 
-| Prioridad | Indicador (es-VE / zh-CN) | Color | Ícono | Grupo | Efecto |
-|---|---|---|---|---|---|
-| 1 | Marca sin autorización / 品牌无授权 | ámbar | escudo (`shield`) | documentos y aduana | tarea |
-| 2 | Carga especial / 特殊货物 | rojo | llama (`flame`) | carga especial | cobro al cliente |
-| 3 | Devolución de impuestos / 退税 | verde | factura (`invoice`) | trámite con el proveedor | cobro y costo |
-| 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | ninguno |
-| 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | cobro y costo |
-| 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | tarea |
-| 7 | Batería de litio / 锂电池 | rojo | batería (`battery`, nuevo) | carga especial | cobro al cliente |
+| Prioridad | Indicador (es-VE / zh-CN) | Color | Ícono | Grupo | Efecto | Almacén VE |
+|---|---|---|---|---|---|---|
+| 1 | Marca sin autorización / 品牌无授权 | ámbar | escudo (`shield`) | documentos y aduana | tarea | no |
+| 2 | Carga especial / 特殊货物 | rojo | llama (`flame`) | carga especial | cobro al cliente | sí |
+| 3 | Devolución de impuestos / 退税 | verde | factura (`invoice`) | trámite con el proveedor | cobro y costo | no |
+| 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | ninguno | no |
+| 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | cobro y costo | sí |
+| 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | tarea | no |
+| 7 | Batería de litio / 锂电池 | rojo | batería (`battery`, nuevo) | carga especial | cobro al cliente | no |
 
 Los textos zh-CN los revisa un hablante nativo antes de producción.
 
@@ -392,8 +392,13 @@ contra frontera de base» que traía ese campo: no hay nada que esconder entre o
 
 - **Embarques y Tracking:** los indicadores vivos de las recepciones con `warehouse_receipts_cn.shipment_id`
   = el embarque (con «CN»), más los que Venezuela puso en el embarque (con «VE», §2.3.1).
-- **Almacén VE:** los de las recepciones CN que nombran sus cajas por
-  `warehouse_receipt_ve_boxes.source_receipt_cn_id` (§1.4), sin repetir.
+- **Almacén VE: solo los de manejo físico** (Sam, 2026-11-20, pregunta 13): «Almacén Venezuela ya no tiene por
+  qué ver los indicadores específicos, solamente los que requieran montacargas, o cuando es carga especial.»
+  Cada indicador del catálogo lleva el interruptor `en_almacen_ve` («se ve al recibir en Caracas»); de inicio
+  está encendido solo en «Carga especial» y «Uso de montacargas». Se leen de las recepciones CN que nombran
+  sus cajas por `warehouse_receipt_ve_boxes.source_receipt_cn_id` (§1.4), y de lo que Venezuela puso en el
+  embarque, sin repetir. En Almacén VE no se ponen indicadores; si más adelante hacen falta indicadores de
+  despacho, son otra spec.
 - **Recepción VE sin origen CN** (todas sus cajas con `source_receipt_cn_id` nulo): no muestra indicadores de
   China. No se adivina por MARKBOX ni por contenedor, porque juntaría la carga de otros envíos. Es un límite
   conocido mientras ese dato no se llene; llenarlo es otra SDD.
@@ -434,6 +439,7 @@ create table public.warehouse_tags (
   descripcion_zh text check (descripcion_zh is null or length(descripcion_zh) <= 140),
   grupo          text not null check (grupo in ('carga_especial', 'documentos_aduana', 'tramite_proveedor')),
   color          text not null check (color in ('ambar', 'rojo', 'verde', 'celeste', 'rosa', 'azul', 'navy', 'gris')),
+  en_almacen_ve  boolean not null default false,   -- se ve al recibir en Caracas (§2.5)
   efecto         text not null default 'ninguno'
                  check (efecto in ('ninguno', 'cobro_cliente', 'costo_proveedor', 'cobro_y_costo', 'tarea')),
   icono          text not null
@@ -658,7 +664,7 @@ embarque partido.
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
 | **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
-| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (todos los heredados), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
+| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (todos los heredados), (Almacén VE solo los de `en_almacen_ve`), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
 | **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
@@ -766,7 +772,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     indicadores nuevos o solo usar los de China? Ejemplo: Operaciones en Caracas pone «Montacargas» al
     embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
     **Contestada en parte (2026-11-20):** Venezuela crea indicadores de aduana y logística y comenta los de
-    China. Falta: el etiquetado en Almacén VE.
+    China. **Almacén VE (2026-11-20): no pone indicadores y solo ve los de manejo físico** (carga especial y
+    montacargas, §2.5).
 14. **La autorización.** Para quitar o cambiar un indicador con dinero o impuesto, ¿basta un admin con motivo, o
     lo aprueba alguien más? Ejemplo: Caracas pide quitar «Uso de montacargas» y Contabilidad lo aprueba.
     **Contestada (2026-11-20): lo aprueba Contabilidad.**
@@ -840,6 +847,7 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 - El panel de historial muestra «etiqueta agregada» y «etiqueta quitada», con quién y cuándo, y no muestra
   notas `note`.
 - Un usuario `cn` sin admin no recibe `client_name` en ninguna lectura nueva (prueba de servidor).
-- F2: Venezuela ve en el embarque y en Almacén VE todos los indicadores de sus recepciones; una recepción VE
+- F2: Venezuela ve en el embarque todos los indicadores de sus recepciones, y en Almacén VE solo los de
+  `en_almacen_ve` (Carga especial y Uso de montacargas); una recepción VE
   sin origen CN no muestra ninguna; la mitad nueva de un embarque partido no muestra ninguna.
 - F2: las lecturas del portal no traen etiquetas.

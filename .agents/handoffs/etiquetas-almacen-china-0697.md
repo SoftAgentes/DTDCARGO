@@ -59,3 +59,20 @@ Checks: build-docs-index --check PASÓ; check-numbering PASÓ; verify NO EJECUTA
 - Pregunta 1: el nombre es «Indicadores de carga», como lo llama el equipo técnico.
 - Los indicadores generan cobros, costos o tareas (tax refund, montacargas, batería de litio). La spec agrega el campo «efecto»; el monto va en otra SDD.
 - Mensaje de Sam al Director: el contenedor 65 entra primero por Almacén China. Lo deja pendiente para analizar y no es de esta tarea.
+
+## Preguntas de Sam contestadas (2026-11-20)
+
+Ya están contestadas todas las preguntas de la §7, de la 0 a la 14:
+- El nombre es «indicadores de carga».
+- Hay leyenda de colores, con íconos que no se repiten, y la sección «Indicadores» vive dentro de Almacén China.
+- Son dos etapas: China pone indicadores en la recepción y Venezuela en el embarque, con el origen CN/VE visible.
+- Venezuela ve todos los indicadores, comenta y agrega, pero no cambia los de China.
+- Quitar o cambiar un indicador con dinero o impuesto lo aprueba Contabilidad.
+- El cliente no ve ninguno.
+- «Batería de litio» es un indicador aparte.
+- Cada indicador lleva una nota corta.
+- La fila se pinta con el indicador de mayor prioridad.
+- «Genera cobro» lo ven Contabilidad y Operaciones.
+- Almacén VE solo ve carga especial y montacargas.
+
+Fuera de esta spec, se lo pasé al Director: China no entra a Embarques; el telex release con prueba (0682 F2); el contenedor 65 entra por Almacén China.
