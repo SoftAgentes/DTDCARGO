@@ -183,12 +183,22 @@ Las tres son `security definer` y tienen `search_path = ''`.
 **El bloqueo se revisa en la base, dentro de la misma transacción** que la lectura o el consumo. No depende
 de que el servidor se acuerde de hacerlo:
 
-1. Cuenta los fallos de `p_attempt_key` en `client_address_link_attempts` dentro de la ventana de §4.4.4.
-2. **Si el origen está bloqueado,** registra el intento como fallo y termina igual que con un enlace
-   inválido: `_peek` devuelve cero filas y `_complete` da el error neutro. **No llega al `update`:** un token
-   válido no se consume y no se escribe ninguna dirección.
-3. Si no está bloqueado, sigue con la lectura o el consumo, y registra el intento como fallo o como éxito
+0. **Solo en `_complete`, primero se validan los campos** (`line` entre 1 y 300 caracteres, y `city`,
+   `state` y `reference` con sus propios límites). Un campo inválido devuelve el error de campo **con
+   `raise`**, antes de mirar el token. No cuenta como intento, y la respuesta no dice nada del token.
+1. `perform pg_advisory_xact_lock(hashtextextended(p_attempt_key, 0))`. Serializa las llamadas de un mismo
+   origen, y así el límite de 5 es exacto aunque lleguen peticiones en paralelo.
+2. Cuenta los fallos de `p_attempt_key` en `client_address_link_attempts` dentro de la ventana de §4.4.4.
+3. **Si el origen está bloqueado,** registra el intento como fallo y **devuelve el resultado neutro**:
+   `_peek` da cero filas y `_complete` da `ok = false`. **No llega al `update`:** un token válido no se
+   consume y no se escribe ninguna dirección.
+4. Si no está bloqueado, sigue con la lectura o el consumo, y registra el intento como fallo o como éxito
    según el resultado.
+
+**Un token inválido, vencido, usado, revocado o bloqueado nunca hace `raise`.** `_complete` devuelve una
+fila `(ok boolean)` con `ok = false`, y la transacción **confirma**. Si fuera un `raise`, el rollback
+borraría la fila del intento y el límite no contaría por la vía del envío. El único `raise` es el de los
+campos del paso 0.
 
 No hay una RPC aparte para los intentos.
 
@@ -203,7 +213,7 @@ returning client_id, tenant_id;
 ```
 
 - Esta sentencia corre solo si el origen no está bloqueado (arriba).
-- Sin fila, la RPC termina con el mismo error neutro que un enlace que no existe.
+- Sin fila, la RPC registra el fallo y devuelve `ok = false`, igual que con un enlace que no existe, sin `raise`.
 - Con fila, la dirección se escribe **solo** en `client_delivery_addresses`, y solo en filas del
   `client_id` que devolvió esa sentencia. No acepta un `client_id` del que llama. `client_markbox` y
   `tenant_id` no los pone la RPC: los sella desde `clients` el trigger de la 0198 (`0198:149`).
@@ -223,9 +233,8 @@ returning client_id, tenant_id;
 
   Así la nueva queda como predeterminada, y la anterior queda guardada.
 - Todo va en la misma transacción. Si dos envíos llegan a la vez, el `update` con su condición deja pasar
-  solo uno: el otro no encuentra fila.
-- Valida en la base: `line` entre 1 y 300 caracteres, y `city`, `state` y `reference` con sus propios
-  límites.
+  solo uno: el otro no encuentra fila y devuelve `ok = false`.
+- Con éxito, devuelve `ok = true`.
 
 #### 4.4.3 La marca, desde el token y cerrada ante errores
 
@@ -406,7 +415,7 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
    - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
      13 días y 23 horas todavía funciona.
    - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
-     otro recibe el error neutro. Queda una sola fila nueva.
+     otro recibe `ok = false`. Queda una sola fila nueva.
    - **La misma respuesta.** Un segundo uso, un enlace vencido, uno revocado, uno inexistente y uno
      bloqueado responden igual, **en la carga y en el envío del formulario**. Una prueba compara las cinco
      respuestas con:
@@ -418,7 +427,11 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      origen bloqueado, y que siempre pasa la clave del intento.
    - **El límite de intentos**, en `.test.sql` contra las RPC reales, no simuladas:
      - después de 5 fallos de una misma clave, `_peek` con un **token válido** devuelve cero filas;
-     - **un origen bloqueado con un token válido por el envío:** `_complete` da el error neutro, no deja
+     - **cada fallo cuenta también por el envío:** después de un `_complete` con un token inexistente, la
+       fila de fallo existe en `client_address_link_attempts` (la llamada no hizo `raise` y la transacción
+       confirmó). Después de 5 de esos, la sexta llamada, aunque traiga un token válido, queda bloqueada;
+     - **los campos inválidos** dan el error de campo y no dejan fila de intento;
+     - **un origen bloqueado con un token válido por el envío:** `_complete` devuelve `ok = false`, no deja
        ninguna fila nueva en `client_delivery_addresses`, `used_at` sigue en null y no hay evento en
        `entity_audit_log`. El mismo token, con una clave no bloqueada, después funciona;
      - la tabla guarda el HMAC del origen, nunca la IP, no tiene `tenant_id` y solo la toca service_role.

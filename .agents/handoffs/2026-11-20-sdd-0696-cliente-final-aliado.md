@@ -89,3 +89,12 @@
   por el envío da cero filas, `used_at` en null y ningún evento.
 - AUD-01: `_complete` deja un evento en `entity_audit_log` sin el texto, sin el token y sin la clave. La
   §4.4.2, la §10 y la prueba quedaron de acuerdo.
+
+## Cuarta vuelta (sobre 7f9207edd), corregida
+
+- `_complete` no hace `raise` con un token inválido, bloqueado o vencido: devuelve `ok = false` y la
+  transacción confirma, así que el intento queda registrado. Solo los campos inválidos hacen `raise`, y eso
+  pasa antes de mirar el token.
+- `pg_advisory_xact_lock(hashtextextended(p_attempt_key, 0))` va antes de contar.
+- Hay pruebas nuevas: la fila de fallo existe después de un `_complete` con un token inexistente, y después
+  de 5 la siguiente queda bloqueada.
