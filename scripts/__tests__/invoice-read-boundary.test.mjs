@@ -104,6 +104,13 @@ const BASELINE = {
   //     y en `facturar-actions.ts`; el contrato de la RPC y la vista está
   //     congelado en lib/studio/__tests__/exc0674.migration.test.ts.
   // Si una versión futura lee `invoices` para esto, entra aquí con su número.
+  // SDD-0690 · EXC-0674 ampliada a pre-orden («Facturar» emite el borrador y
+  // «Facturar todo»): +0 llamadas literales desde la migración. La RPC
+  // `exc0674_emitir_borradores` (migr 0569; security definer, accounting/admin
+  // del tenant) lee y emite los borradores dentro de la base y deja el rastro
+  // en `exc0674_facturas` con `origen_monto = 'borrador'`. Si la pantalla lee
+  // `invoices` para listar las pre-órdenes, ese caller entra aquí con su número
+  // y su candado (rol accounting/admin y moduleViewDenial de `invoices`).
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
   // avisa la pantalla de Fidelización).
