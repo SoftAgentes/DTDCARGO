@@ -756,6 +756,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     **Contestada (2026-11-20): sí, en dos.**
 11. **Prioridad.** Cuando una fila tiene dos indicadores, ¿qué color gana? Ejemplo: marca y montacargas → la
     fila ámbar, con las dos insignias.
+    **Contestada (2026-11-20): gana el de mayor prioridad** (el más arriba en la lista de la sección; se
+    reordena arrastrando). La columna «Indicadores» muestra todos.
 12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
     embarques del 65 con «Uso de montacargas» antes de la pre-orden.
 13. **Venezuela y el catálogo.** ¿Quién en Venezuela pone indicadores en el embarque, y puede crear
