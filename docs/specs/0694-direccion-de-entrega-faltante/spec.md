@@ -170,10 +170,20 @@ pasa `0412…` a `58412…`, y el Cotizador ya abre `wa.me` desde el Studio con 
    - La ficha del Studio los muestra.
    - La fusión de clientes los conserva: si el que sobrevive no los tiene, toma los del que se fusiona.
    - Moverlos a `client_delivery_addresses` no entra en esta SDD (§8).
-9. **Comprobante HTML del portal (P-8). Decidido por Sam el 2026-11-20:** «Usar el domicilio sellado».
-   - El comprobante muestra el mismo domicilio fiscal sellado al emitir que usa el PDF
-     (`invoice-client-doc.ts:69-84`).
-   - Una factura vieja no cambia aunque el cliente cambie su dirección.
+9. **Comprobante HTML del portal (P-8). Decidido por Sam el 2026-11-20:** «Como QuickBooks: dos
+   direcciones». La respuesta llegó por mensaje de Dir_DTD, después de que Sam viera cómo lo hace QuickBooks.
+   - **Lo que entra en esta spec:** el comprobante HTML y el PDF usan **la misma fuente y la misma lógica**,
+     `domicilioFiscalSellado` (`lib/studio/invoice-client-doc.ts:69-84`), que ya usan los dos PDF
+     (`app/portal/(app)/facturas/[code]/pdf/route.ts:74` y `app/studio/(app)/facturacion/[code]/pdf/route.ts:57`).
+     Sea cual sea la regla del PDF, el HTML hace lo mismo, así que los dos nunca dicen cosas distintas.
+   - **Lo que pasa a la SDD-0698** (facturación, la escribe otra sesión):
+     - sellar siempre «Facturar a»;
+     - el bloque «Entregar en», con la casilla «igual a mi dirección de entrega»;
+     - la etiqueta «Dirección actual del cliente» para las facturas viejas.
+   - **Esto resuelve el hallazgo 1 de la revisión sobre `c3f81665b`.** El revisor encontró que `0466:315`
+     sella `client_fiscal_address` solo cuando la factura va a otra identidad de facturación, y que en el
+     caso común (`0466:319`) queda null. Con esta decisión el HTML no promete nada que el PDF no haga: si el
+     PDF no imprime domicilio, el HTML tampoco. Completarlo es trabajo de la 0698.
 
 Las decisiones 5 a 9 llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
 
@@ -219,7 +229,7 @@ Dir_DTD:
 | «Perfil del cliente» (`client-types.ts:426`) | `CompletenessSource` cambia `address` por `hasDeliveryAddress: boolean`. La página lo calcula con las direcciones que ya lee (`page.tsx:259`). | **F-1** |
 | Indicador del portal (`portal-queries.ts:713-721`) | Solo F-2. Se quita la lectura de F-1, una vez aplicada la copia. | F-2 |
 | Cotización nueva del portal (`cotizaciones/nueva/page.tsx:19`) | El destino por defecto sale de la predeterminada. | F-2 |
-| Comprobante HTML de la factura (`comprobante/page.tsx:232`) | **Decisión 9:** deja de leer `clients.address` y muestra `invoices.client_fiscal_address` de **esa** factura, el mismo dato sellado que usa el PDF (`domicilioFiscalSellado`, `invoice-client-doc.ts:69-84`). Lo sella el trigger de la 0466 (`0466:315`). Se lee con la sesión del cliente, en la misma consulta del portal que trae la factura. Si la factura no lo tiene sellado, no se imprime ninguna dirección. | F-2 |
+| Comprobante HTML de la factura (`comprobante/page.tsx:232`) | **Decisión 9:** deja de leer `clients.address` y llama a `domicilioFiscalSellado` (`invoice-client-doc.ts:69-84`) con la sesión del cliente, igual que el PDF del portal (`facturas/[code]/pdf/route.ts:74`). Imprime lo que devuelve esa función, y si devuelve null no imprime ninguna dirección, igual que el PDF. Sellarlo siempre es de la SDD-0698. | F-2 |
 | CSV operativo (`operativo-csv.ts:89`) | Columna «Dirección» desde la predeterminada (por lote). | F-2 |
 | Agente IA (`shipment-tools.ts:224`) | Lee la predeterminada. | F-2 |
 | Geocodificación (`clientes/actions.ts:522-540`) | Geocodifica la línea de la predeterminada. `clients.lat`/`lng` no cambian en esta spec (§8). | F-2 |
@@ -530,11 +540,12 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
    `app/portal/(app)/facturas/[code]/comprobante/page.test.tsx`, con datos inventados:
    - con `client_fiscal_address` sellado en la factura, el comprobante imprime ese texto y no el de
      `clients.address` ni el de la predeterminada;
-   - sin domicilio sellado, no imprime ninguna línea de dirección;
+   - sin domicilio sellado (el caso común de hoy, `0466:319`), no imprime ninguna línea de dirección, igual
+     que el PDF;
    - **factura vieja:** con la factura sellada, cambiar la dirección del cliente y su domicilio de facturación
      no cambia lo que imprime el comprobante;
-   - el comprobante y el PDF de la misma factura muestran el mismo domicilio. Es una prueba de contrato sobre
-     la columna que lee cada uno.
+   - **misma fuente:** una prueba de contrato comprueba que el comprobante HTML y los dos PDF obtienen el
+     domicilio de `domicilioFiscalSellado` y de ninguna otra fuente.
 7. **Botón «Pedir».**
    - Lo ven los roles que editan clientes y no lo ve la región `cn`.
    - Con una conversación, lleva a `/studio/bandeja?c=<id>`. Sin ella, el enlace es `wa.me/58…?text=…` con
@@ -601,6 +612,9 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 - `shipments.delivery_address` (TMS y almacén VE): es la dirección de **ese** envío y se escribe a mano.
   Precargarla desde la predeterminada sería una mejora aparte.
 - El domicilio fiscal (`client_fiscal_address`, 0466): es otro dato y no se toca.
+- **SDD-0698 (facturación, de otra sesión):** sellar siempre «Facturar a», el bloque «Entregar en» con la
+  casilla «igual a mi dirección de entrega», que los dos sean editables en el borrador, y la etiqueta
+  «Dirección actual del cliente» para las facturas viejas (decisión 9).
 - Validar el teléfono en el registro (§2.5). Esta spec solo normaliza para `wa.me`.
 
 ## 9. Preguntas para Sam: todas contestadas
@@ -617,7 +631,8 @@ Las ocho preguntas están contestadas y no queda ninguna abierta:
 - **P-6 (pedido por correo). Decidida** el 2026-11-20: «Correo del sistema» (§3, decisión 6, y §4.4).
 - **Dirección rápida en el registro. Decidida** el 2026-11-20 (§3, decisión 7, y §4.7).
 - **P-7 (ciudad y estado del registro). Decidida** el 2026-11-20: «Dejarlos y mostrarlos» (§3, decisión 8).
-- **P-8 (comprobante HTML del portal). Decidida** el 2026-11-20: «Usar el domicilio sellado» (§3, decisión 9).
+- **P-8 (comprobante HTML del portal). Decidida** el 2026-11-20: «Como QuickBooks: dos direcciones». En esta
+  spec, el HTML y el PDF usan la misma fuente. El modelo de dos direcciones va en la SDD-0698 (§3, decisión 9).
 
 ## 10. Archivos (allowlist provisional)
 

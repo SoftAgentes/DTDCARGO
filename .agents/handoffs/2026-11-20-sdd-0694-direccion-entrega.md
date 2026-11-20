@@ -159,3 +159,6 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
 - **5.** Los consumidores de `PortalClient.address` quedaron medidos y anotados en la allowlist de la F-2.
 - **6.** La base es `af0f635ad`. Se mergeó `origin/main` en la rama, sin reescribir la historia.
 - Validación: `docs:check`, `check-numbering` y `git diff --check` PASARON. `pnpm verify` NO EJECUTADO.
+- **Punto 1 (P-8), resuelto el 2026-11-20:** Sam decidió «Como QuickBooks: dos direcciones». Aquí el HTML
+  y el PDF usan la misma fuente (`domicilioFiscalSellado`). Sellar siempre, «Entregar en» y la etiqueta de las
+  facturas viejas pasan a la SDD-0698.
