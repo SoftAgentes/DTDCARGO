@@ -68,18 +68,24 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 | **AVS-01** | Avisos y confirmaciones (registro: «verificada») | Su texto normativo no está en `docs/governance/policies/`; se localiza al abrir la fase 1 (**NV**) |
 | **CMP-01** | Toda pieza nueva entra como `proposed` y se promueve con evidencia | Aplica a cada pieza de §4 |
 
-## 3. Reglas nuevas que esta spec propone (cambian políticas; las aprueba Sam)
+## 3. Reglas nuevas (cambian políticas; aprobadas por Sam el 2026-11-20, §11)
 
 Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su código y en su documentación pública (ver `docs/design/rebrand-erp/evaluacion-carbon.md` §4). **No se instala ninguna librería.**
 
 **Para BTN-01 (pasaría a v1.3; la v1.2 la tomó SDD-0686 para el color de `primary`):**
 
-1. Etiqueta de **verbo + sustantivo** («Guardar cambios», «Crear embarque»), salvo los comunes («Cancelar», «Cerrar», «Eliminar»).
-2. **Máximo tres acciones visibles por grupo**; la cuarta va al menú de acciones.
+1. Etiqueta de **verbo + sustantivo** («Guardar cambios», «Crear embarque»), salvo los comunes («Guardar», «Cancelar», «Cerrar», «Eliminar»). El verbo sale siempre del vocabulario de BTN-01 §3. La regla no lo cambia: le agrega el objeto cuando sin él la acción queda ambigua. «Guardar» a secas sigue siendo válido en el pie de un formulario de un solo objeto (**I**: así se concilia con `btn-01.md:60`). Lo que Sam vio como «así no» fueron «OK» y «Aceptar».
+2. **Máximo tres acciones visibles por grupo de botones** (encabezado, pie de panel, barra de herramientas); la cuarta va al menú de acciones. **No relaja la fila de tabla:** ahí sigue el máximo de dos acciones de bajo énfasis de BTN-01 §4 (`btn-01.md:92`).
 3. **Un solo tamaño dentro de un grupo** de botones.
-4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo.
+4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo. Ver el BRAND-CHECK de abajo: la variante nueva queda **pendiente de registrar como decisión de marca** antes de la fase 4.
 5. **Posición fija del icono** respecto del texto. Hoy va a la izquierda (`ActionButton.tsx:213-214`); se fija así.
 6. **La etiqueta no se corta**: si no cabe, baja de línea.
+
+> 🛑 **BRAND-CHECK · regla 4**
+>
+> - **Lo que se pide:** un botón destructivo en tres énfasis (relleno, contorno, texto).
+> - **Regla que toca:** `BRAND.md:324` («6 variantes oficiales… No inventes») y la regla de `BRAND.md:11` de avisar antes de una variante nueva. Hoy existe un solo `danger`, con relleno.
+> - **Estado:** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca. **Pendiente:** registrarla en `BRAND-DECISIONS.md` con un número que asigne el Director (o reducirla a variantes que ya existen: `danger` y `ghost` con texto de peligro) antes de abrir la fase 4. Mientras tanto no se implementa.
 
 **Para los mensajes (enmienda de AVS-01; no contradice ERR-01, que ya pide el error cerca de su causa):**
 
@@ -87,9 +93,9 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 8. **Persistencia escrita:** en línea, hasta cerrarla o resolver · toast, breve y con la información disponible en otro lado · accionable, se queda · llamada, no se cierra y no es para éxito ni error.
 9. **Lugar fijo del aviso de formulario:** encima de la fila de botones del pie.
 
-**Medidas (decisión de diseño de esta spec):**
+**Medidas (aprobadas por Sam, §11.2):**
 
-10. **Tres anchos de panel lateral** en vez de 13. Propuesta: `sm` 520, `md` 640, `lg` 760 px (los tres más cercanos a lo que ya se usa: 520 en 19 usos, 560 en 36, 640 en 12, 720/760 en 7).
+10. **Tres anchos de panel lateral** en vez de 13: `sm` 520, `md` 640 y `lg` 760 px. Es la opción A que eligió Sam (§11.2). Hoy hay 520 en 19 paneles, 560 en 37, 640 en 12 y 720/760 en 8.
 11. **Un solo tamaño y un solo margen para el título de página.**
 
 ## 4. Piezas compartidas
@@ -124,6 +130,10 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 | **7** | **Tablas:** `TableFrame` extendido y adopción de TBL-01 por módulo | L, varias PR |
 | **8** | **`Ficha`, `Campo` y `Pila`**, por módulo | L, varias PR |
 | **9** | **Higiene con contrato:** radios, espacios y tamaños sueltos | M, continuo |
+| **10** | **Portal · reglas 1 a 9 en el código** (§11.3, opción 2): botones y mensajes del Portal con las mismas reglas que el Studio. Las medidas (anchos, encabezado, escala de texto) **no** entran aquí: esperan al rediseño del Portal. Allowlist al abrirla | M |
+| **11 a 18** | **Extras aprobados (§9, §11.4):** una fase por extra, en este orden (**I**): aviso de cambios sin guardar, esqueleto de carga, explicación del botón deshabilitado, barra de acciones por lote, páginas de error y «no encontrado», migas de pan, botón único de «Copiar» y paginación en servidor (TBL-01). Propuesta, fase aparte: cada una fija su allowlist al abrirse y va después de las piezas compartidas de §4 | S-M cada una |
+
+**Portal en la fase 1 (I):** las reglas 1 a 9 se escriben en las políticas con alcance Studio y Portal. En la fase 1 es solo política, sin código; el código del Portal llega en la fase 10.
 
 **Orden de los grupos de módulos** (el mismo en las fases 3, 5, 7 y 8):
 
@@ -176,11 +186,11 @@ Cada regla se vigila con un contrato que mide comportamiento o estructura, con p
 
 ## 9. Extras (los ocho aprobados por Sam el 2026-11-20, §11 punto 4)
 
-Faltan hoy y mejorarían la experiencia; cada uno pediría fase propia: aviso de cambios sin guardar, esqueleto de carga y `loading.tsx`, explicación accesible del botón deshabilitado, páginas de error y de «no encontrado», migas de pan, botón único de «Copiar», barra de acciones por lote, paginación en servidor (TBL-01). Detalle en `docs/design/rebrand-erp/checklist-y-color.md` §3.
+Faltan hoy y mejoran la experiencia. Cada uno es una fase propia (fases 11 a 18 de §5): aviso de cambios sin guardar, esqueleto de carga y `loading.tsx`, explicación accesible del botón deshabilitado, páginas de error y de «no encontrado», migas de pan, botón único de «Copiar», barra de acciones por lote, paginación en servidor (TBL-01). Detalle en `docs/design/rebrand-erp/checklist-y-color.md` §3.
 
 ## 10. Lo que esta spec no cubre
 
-Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec es del Studio; si Sam quiere la misma simetría en el Portal, es una fase aparte), los siete archivos detenidos por la PR #318 (SDD-0603) y cualquier cambio de datos.
+Color (SDD-0686), formato de cifras (SDD-0687), las **medidas** en el Portal (anchos, encabezado y escala de texto esperan a su rediseño; las reglas 1 a 9 sí entran, en la fase 10, por la decisión de Sam en §11.3), la web pública, los siete archivos detenidos por la PR #318 (SDD-0603) y cualquier cambio de datos.
 
 ## 11. Pendientes de decisión (Sam)
 
@@ -191,13 +201,13 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
    - **B** (560 · 640 · 720, la recomendada): no cambian 56 y se achica 1.
 
    Respondió: «Anchos de panel: opción A, 520, 640 y 760». **Cómo se aplica (M, conteo de `width={N}` en `<DrawerShell>`):**
-   - Cada panel va al ancho más cercano.
-   - Todo panel que se achica se revisa en pantalla. Si un campo, una tabla o el pie no caben en el ancho nuevo, sube al siguiente (520 → 640), nunca a un cuarto ancho.
-   - Esa revisión es parte de la aceptación de la fase que toque cada módulo.
+   - Cada panel va al ancho más cercano (**I**).
+   - Todo panel que se achica se revisa en pantalla. Si un campo, una tabla o el pie no caben en el ancho nuevo, sube al siguiente (520 → 640), nunca a un cuarto ancho (**I**: Sam solo eligió «opción A»; esto es cómo se aplica sin cortar contenido).
+   - Esa revisión es parte de la aceptación de la fase que toque cada módulo (**I**).
 3. ~~Si la simetría se extiende al Portal.~~ **Decidido el 2026-11-20, opción 2 de tres** (Sam: «la 2»):
-   - **Entran ahora al Portal:** las reglas de botones (1 a 6) y las de mensajes (7 a 9). Son reglas de comportamiento, así que el cliente las ve igual que la oficina.
+   - **Entran ahora al Portal:** las reglas de botones (1 a 6) y las de mensajes (7 a 9). Son reglas de comportamiento, así que el cliente las ve igual que la oficina (**I**: el motivo es el de la propuesta que Sam eligió, no palabras suyas). Se hacen en la fase 10.
    - **Esperan al rediseño del Portal:** las medidas (anchos de panel, encabezado y escala de texto), para no rehacerlas cuando llegue el portal nuevo.
-4. ~~Cuáles extras de §9 entran.~~ **Decidido el 2026-11-20: entran los ocho.** Sam marcó en una lista con casillas: «Aviso de cambios sin guardar, Esqueleto de carga, Explicación del botón deshabilitado, Barra de acciones por lote, Páginas de error y no encontrado, Migas de pan, Botón único de Copiar, Paginación en servidor». Cada uno va en su propia fase, después de las piezas compartidas (§4). La paginación en servidor sigue TBL-01.
+4. ~~Cuáles extras de §9 entran.~~ **Decidido el 2026-11-20: entran los ocho.** Sam marcó en una lista con casillas: «Aviso de cambios sin guardar, Esqueleto de carga, Explicación del botón deshabilitado, Barra de acciones por lote, Páginas de error y no encontrado, Migas de pan, Botón único de Copiar, Paginación en servidor». Cada uno va en su propia fase (fases 11 a 18 de §5). Que vayan después de las piezas compartidas (§4) y que la paginación siga TBL-01 es **I**, no palabras de Sam.
 
 Con esto, todos los pendientes de decisión de esta spec quedan cerrados.
 
