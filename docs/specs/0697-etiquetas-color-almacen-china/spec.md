@@ -286,8 +286,13 @@ Cómo se trabaja hoy, según Sam:
 
 | Etapa | Pantalla | Sobre qué | Quién |
 |---|---|---|---|
-| 1 · Lo que llega | Almacén China («En almacén») | la recepción | la oficina de China (y el que recibe, a veces montacargas) |
-| 2 · Lo consolidado | Embarques | el embarque | Venezuela |
+| 1 · Lo que llega | Almacén China («En almacén») | la recepción | la oficina de China (y el que recibe, a veces montacargas); **Venezuela también puede poner algunos aquí** |
+| 2 · Lo consolidado | Embarques | el embarque | **solo Venezuela** |
+
+Sam, 2026-11-20: «China lo va a hacer en su Almacén China. Venezuela va a poder hacer algunos en Almacén
+China y otros en Embarques. Embarques solamente lo va a tocar Venezuela.» Por eso el candado de asignar en
+la recepción no mira la región (admin, `warehouse` u `operations` de China o de Venezuela), y el del embarque
+exige región `ve` (o admin). Queda abierto el etiquetado en Almacén VE (pregunta 13).
 
 Diseño:
 
@@ -472,7 +477,7 @@ create unique index shipment_tags_viva_uq
   on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
 -- Misma RLS de solo lectura para miembro activo, sin política de portal, y escritura solo por las RPC
 -- poner_indicador_embarque / quitar_indicador_embarque / resolver_indicador_heredado
--- (candado: admin, u operations / warehouse / commercial de región ve, según la pregunta 13).
+-- (candado: admin, u operations / warehouse de región ve; commercial según la pregunta 13).
 
 alter table public.warehouse_tags enable row level security;
 alter table public.warehouse_receipt_tags enable row level security;
