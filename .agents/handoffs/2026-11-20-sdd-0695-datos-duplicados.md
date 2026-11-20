@@ -93,3 +93,10 @@
   crudo de apariciones y archivos.
 - **Conteos.** Q20 y Q21 dieron cero: la F-2 queda como **preventiva**. Q9 es el daño mayor, y la F-3 puede ir
   en paralelo.
+
+## Pedido de Dir_DTD (2026-11-20): regla de una predeterminada
+
+- Se agregó la §4.10 y la fase F-9: un constraint trigger diferido que exige una predeterminada cuando
+  hay filas vivas, y el traspaso al borrar. La aceptación es la 9.
+- Arreglar las fichas actuales sin predeterminada es una operación de datos aparte, con el OK nominal de
+  Sam. En la spec solo va el diseño.

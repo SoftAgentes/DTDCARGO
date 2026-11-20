@@ -289,7 +289,7 @@ mide cada consulta y su lectura en términos cualitativos.
 | D-8 | Q1 a Q4 | Grupos de fichas vivas con el mismo correo, el mismo teléfono (`phone_match_key`), el mismo documento o el mismo Shipping Mark sin distinguir mayúsculas | **Pocos** grupos por correo y por teléfono. **Ninguno** por documento ni por código |
 | D-1, D-2 | Q5 | Por canal de registro: fichas sin ninguna dirección, solo con la vieja, solo con la nueva, con las dos, y con ciudad | **Más de la mitad** de los clientes del portal no tiene ninguna dirección. Los importados del sistema viejo la tienen en las dos fuentes. Es materia de la 0694 |
 | D-1 | Q6 | Fichas con las dos fuentes y textos distintos | **Ninguna** |
-| D-1 | Q7 | Fichas con direcciones nuevas y ninguna predeterminada | **Algunas decenas.** Va a la 0694: su helper ya contempla «la más reciente, sin predeterminada» |
+| D-1 | Q7 | Fichas con direcciones nuevas y ninguna predeterminada | **Algunas decenas.** Mientras tanto, el helper de la 0694 las lee como «la más reciente, sin predeterminada». La regla de integridad va en esta spec (§4.10, F-9) |
 | D-2 | Q8 | Fusiones en las que se perdió la ciudad | **Ninguna** hasta hoy |
 | D-3 | Q9 | Fichas sin `person_id`, por canal | **Casi todos** los clientes nuevos del portal. Ninguno de los importados. **Es el daño más grande medido** |
 | D-3 | Q10, Q11 | Personas ligadas que no coinciden con su ficha, y personas sueltas con la cédula de una ficha | **Casi ninguna** y **ninguna** |
@@ -463,6 +463,32 @@ de §4.1.
      el itinerario.
 8. **China** (P-6): ¿la bodega de Yiwu registra su día en la hora de China o en la de Caracas?
 
+### 4.10 Una sola predeterminada por cliente (Q7)
+
+Es una regla de integridad de `client_delivery_addresses`, no de pantalla. Lo que existe hoy:
+
+- el índice único parcial `client_delivery_addresses_default_uidx` (`0198:44-46`) ya garantiza **como máximo
+  una** predeterminada vigente por cliente;
+- falta garantizar **al menos una** cuando el cliente tiene filas vivas.
+
+Diseño:
+
+- **Un constraint trigger diferido** (`deferrable initially deferred`, `after insert or update or delete`,
+  por fila) sobre `client_delivery_addresses`. Al cerrar la transacción, comprueba que cada cliente tocado
+  que tenga filas vivas (`deleted_at is null`) tenga exactamente una con `is_default`. Si no, la
+  transacción falla con un error claro.
+- Va **diferido** para que las escrituras de varios pasos no fallen a mitad de camino: mover la
+  predeterminada de una fila a otra (la 0694 y el `_complete` de la 0696) y la fusión de fichas.
+- **Al borrar (lógico) la predeterminada:** un trigger `before update of deleted_at` pasa `is_default` a la
+  siguiente fila viva del mismo cliente, la más reciente por `created_at`, antes de que corra la
+  comprobación. Si no queda ninguna fila viva, el cliente se queda sin predeterminada, y eso es válido.
+- **Al insertar la primera fila viva** de un cliente sin `is_default`, el mismo trigger la marca
+  predeterminada.
+- **Las fichas que hoy no tienen predeterminada no se arreglan con esta migración.** La migración solo crea
+  los triggers. Arreglar esas fichas es una operación de datos en producción: va aparte, con su acta de
+  conteo y el OK nominal de Sam, y **antes** de crear el trigger. Si quedan fichas sin arreglar, la primera
+  escritura que toque a uno de esos clientes fallaría.
+
 ## 5. Dependencias
 
 - **0694** (dirección): se implementa primero. Las dos specs son del mismo Worker, y cada pieza
@@ -494,6 +520,7 @@ de §4.1.
 | F-6 | El Shipping Mark (D-7): `rename_client_markbox` cubre `exc0674_*`. `merge_clients` reescribe el texto o deja el alias de la 0367. | Sí | Q16 y Q18 salieron limpios: es preventiva. La redefinición de `merge_clients` parte de la versión de la 0694 F-2 y va después. |
 | F-7 | Nombre copiado (§4.7). | Sí (trigger) | Según P-4. |
 | F-8 | El resto de las fechas (§4.9, puntos 5 a 7) y la vista de completitud (§4.2). | Sí | La vista requiere la 0694 F-1 en `main`. |
+| F-9 | Una sola predeterminada por cliente (§4.10). | Sí (triggers) | Va después del helper de la 0694 F-1. Requiere que antes se arreglen las fichas sin predeterminada (una operación de datos aparte, con su acta y el OK nominal de Sam). |
 
 Cada fase lleva su PR y su `pnpm verify`. Las migraciones las numera Dir_DTD y las aplica con el runbook de
 producción y el OK nominal de Sam. **Ninguna corrige datos de producción** sin un acta de conteo previa y su
@@ -595,10 +622,19 @@ Cada pregunta trae la recomendación primero.
    lo prueba un `.test.sql` de RLS.
 8. **F-5, duplicados.** El alta del Studio con un correo existente responde según P-5. El índice único
    existe solo si Q1 dio cero.
+9. **F-9, una predeterminada.** Las pruebas son `.test.sql` en PGlite:
+   - una transacción que deja un cliente con filas vivas y sin predeterminada falla al confirmar;
+   - mover la predeterminada de una fila a otra en la misma transacción (con el `update` y después el
+     `insert`) pasa;
+   - el borrado lógico de la predeterminada la pasa a la fila viva más reciente;
+   - borrar la última fila viva deja al cliente sin predeterminada, y pasa;
+   - la primera fila de un cliente queda como predeterminada aunque llegue con `is_default = false`;
+   - `merge_clients` (la versión de la 0694 F-2) sigue pasando con dos clientes que tienen predeterminada
+     cada uno.
 
 ## 11. Archivos (allowlist provisional)
 
-Es exacta para F-0 a F-6. **La F-7 y la F-8 requieren un inventario previo:** sus lectores (9 tablas) y sus
+Es exacta para F-0 a F-6 y F-9. **La F-7 y la F-8 requieren un inventario previo:** sus lectores (9 tablas) y sus
 reimplementaciones de fecha se listan archivo por archivo en esta spec antes de programarlas. Las
 migraciones las numera Dir_DTD.
 
@@ -633,6 +669,8 @@ migraciones las numera Dir_DTD.
   - `lib/studio/client-name.ts` (`nombreCliente`);
   - `app/studio/(app)/tracking/nuevo/actions.ts` y `app/studio/(app)/cn/actions.ts`;
   - los lectores de D-6.
+- **F-9:** `NNNN_una_predeterminada_por_cliente.sql`, con su `.test.sql`. El arreglo de las fichas actuales
+  no va en el repo como migración: es una operación de datos con acta.
 - **F-8:**
   - `NNNN_defaults_dia_caracas.sql` y `NNNN_client_completeness.sql`;
   - `lib/shared/eta.ts`, `app/studio/(app)/naviera/actions.ts` (`refreshTracking`), `lib/portal/seguimiento-estimado.ts` y
