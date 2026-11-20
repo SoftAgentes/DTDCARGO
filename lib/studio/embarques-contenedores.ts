@@ -440,7 +440,7 @@ export function agruparPorContenedor(
     const cajasDe = datos.cajasPorEmbarque ?? {};
     const recibidasDe = contenedor ? datos.recibidasPorContenedor?.[contenedor.id] : undefined;
     const clientesDe = (l: readonly ShipmentListRow[]): ClienteDeContenedor[] =>
-      groupShipmentsByClient(l).map((g) => ({
+      groupShipmentsByClient([...l]).map((g) => ({
         ...g,
         // La misma persona puede estar en dos contenedores: la llave del
         // acordeón del cliente tiene que ser única en toda la pantalla.

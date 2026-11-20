@@ -162,7 +162,7 @@ describe("cajas (SDD-0661)", () => {
     ]);
     // Sin filtro, son los mismos clientes.
     const [sin] = agruparPorContenedor(todas, datos, todas);
-    expect(sin.completo.clientes).toBe(sin.clientes);
+    expect(sin.completo.clientes).toEqual(sin.clientes);
   });
 
   it("SDD-0690 §3.5: «Facturado» exige factura emitida viva en todos los clientes del contenedor entero", () => {

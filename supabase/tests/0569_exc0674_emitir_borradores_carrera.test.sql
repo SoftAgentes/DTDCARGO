@@ -28,8 +28,8 @@
 --      b. El tecleado llega primero.
 --         · Control: exc0674_facturar sin la guarda (la de la 0564). El tecleado emite y la pre-orden queda
 --           en borrador y sale ya facturada: lo que el real prueba que ya no pasa.
---         · Real: `a` falla con exc0674:tiene_preorden y retiene sus locks consultivos hasta el rollback;
---           la pre-orden espera en ellos y se emite.
+--         · Real: `a` falla con exc0674:tiene_preorden y no emite nada; la pre-orden se emite. (Postgres
+--           suelta los locks de `a` al fallar, así que no se exige que la pre-orden espere.)
 --   2. Al revés: pre-orden primero y monto tecleado después. Gana la pre-orden.
 --   3. La misma pre-orden dos veces (doble clic o dos pestañas). Una sola emisión.
 --   4. Dos clientes distintos del mismo tenant: `b` espera y las dos se emiten.
@@ -209,7 +209,7 @@ end;
 $$;
 
 -- Escenario 1: como carrera(), pero la sesión `a` puede fallar. Su error se guarda en error_a y `a` termina
--- con rollback (los locks consultivos que tomó antes del error siguen tomados hasta entonces).
+-- con rollback. Ojo: Postgres suelta los locks de `a` en el momento del error, no en ese rollback.
 create function pg_temp.carrera_a_falla(p_a text, p_a_sql text, p_b text, p_b_sql text) returns jsonb
 language plpgsql as $$
 declare
@@ -397,8 +397,9 @@ begin
       and not pg_temp.una_sola(8),
     format('CONTROL 1b: sin la guarda, el tecleado tenía que emitir delante de la pre-orden: %s', v_r));
 
-  -- 1b. REAL: el tecleado primero. `a` falla con tiene_preorden pero, hasta su rollback, retiene los locks
-  --     consultivos que tomó; la pre-orden espera en ellos y se emite.
+  -- 1b. REAL: el tecleado primero. `a` falla con tiene_preorden y no deja nada; la pre-orden se emite.
+  --     Postgres suelta los locks de una transacción abortada en el momento del error, no en el rollback,
+  --     así que aquí no se exige que `b` espere: la propiedad es que el tecleado no emite.
   begin
     v_r := pg_temp.carrera_a_falla('a5', pg_temp.facturar(k64, 'DTD-C009'), 'a5', pg_temp.emitir(k64, pg_temp.preorden(9)));
   exception when others then
@@ -406,8 +407,7 @@ begin
     perform pg_temp.reponer();
   end;
   perform pg_temp.afirmar(coalesce(v_r ->> 'error_a' like '%exc0674:tiene_preorden:DTD-C009%', false)
-      and v_r ->> 'a' is null and v_r ->> 'error_b' is null and v_r ->> 'b' = 'F-1999-0209'
-      and (v_r ->> 'espero')::boolean and v_r ->> 'lock' = 'advisory',
+      and v_r ->> 'a' is null and v_r ->> 'error_b' is null and v_r ->> 'b' = 'F-1999-0209',
     format('REAL 1b: monto tecleado y pre-orden a la vez: %s', v_r));
   perform pg_temp.afirmar(pg_temp.una_sola(9), 'REAL 1b: quedó otra cosa que la pre-orden emitida');
 

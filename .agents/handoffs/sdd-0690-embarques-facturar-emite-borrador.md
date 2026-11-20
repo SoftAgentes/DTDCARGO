@@ -87,8 +87,22 @@ Arreglado en el commit que sigue a `dc1fd86b7`:
 
 ## Evidencia
 
-Lo de abajo es sobre `dc1fd86b7`. Las corridas sobre el commit de la revisión se anotan en el reporte al DG
-y en la descripción de la PR.
+Corridas sobre los arreglos de la revisión (turno de PC del DG, 2026-11-20):
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ (tras corregir un `readonly` en `clientesDe`) |
+| eslint de Embarques y de los archivos de `lib` tocados | PASÓ: 0 errores |
+| vitest (`--pool=threads --maxWorkers=1`) de Embarques, de `lib`, `spec-migration-refs`, `consolidados-sql`, `rbac-actions-guard` e `invoice-read-boundary` | PASÓ: 20 archivos, 795 pruebas |
+| Contratos SQL (`run-sql-tests.mjs`, Postgres efímero) | PASÓ: 317, incluidos la 0569 y su carrera reescrita |
+| `migrations-lock --sin-base` / gate de símbolos | PASÓ: 1 espera (0569) · 0 ROJO, 1 AMARILLO |
+
+En la primera corrida falló la carrera «REAL 1b». Daba por hecho que una transacción abortada guarda sus
+locks consultivos hasta el `rollback`, pero Postgres los suelta en el momento del error. La propiedad sí
+se cumplía: el tecleado falló con `tiene_preorden` y se emitió solo la pre-orden. Quité de esa aserción la
+exigencia de espera.
+
+La tabla de abajo es la evidencia anterior, sobre `dc1fd86b7`.
 
 - `pnpm verify`: **NO EJECUTADO**. Es pesado (incluye el build). El portón es la CI de GitHub más la
   revisión independiente.

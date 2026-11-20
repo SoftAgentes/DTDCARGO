@@ -86,8 +86,10 @@ function region(nombre: string): HTMLElement {
   return screen.getByRole("region", { name: nombre });
 }
 
+/** Abre el contenedor si está cerrado (con una búsqueda la vista ya lo abre sola). */
 async function abrir(nombre: string) {
-  await userEvent.click(within(region(nombre)).getAllByRole("button")[0]);
+  const cabecera = within(region(nombre)).getAllByRole("button")[0];
+  if (cabecera.getAttribute("aria-expanded") !== "true") await userEvent.click(cabecera);
 }
 
 describe("EmbarquesClient · Facturar (EXC-0674)", () => {
