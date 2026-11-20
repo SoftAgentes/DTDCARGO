@@ -703,7 +703,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
 | 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
 | 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
-| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
+| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | in-progress | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 | 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
 | 0693 | La aceptación de T&C limita el portal, no la facturación | approved | interno |

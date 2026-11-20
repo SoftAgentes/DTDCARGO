@@ -41,6 +41,10 @@ vi.mock("../_components/WarehouseKpis", () => ({ WarehouseKpis: () => null }));
 
 import CnPage from "../page";
 
+// SDD-0682: «En almacén» (la vista por defecto) le pasa además lo que ya salió de
+// la bodega; aquí no hay recepciones, así que va vacío.
+const SALIDAS_VACIAS = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
+
 async function pedidoA(region: string, role: string) {
   h.listReceipts.mockClear();
   h.client = dobleSupabase({
@@ -57,10 +61,10 @@ async function pedidoA(region: string, role: string) {
 
 describe("Almacén CN con la regla compartida", () => {
   it("China sin rol admin: le pide a listReceipts que redacte", async () => {
-    expect(await pedidoA("cn", "warehouse")).toEqual({ redactClientNames: true });
+    expect(await pedidoA("cn", "warehouse")).toEqual({ redactClientNames: true, salidas: SALIDAS_VACIAS });
   });
 
   it("Venezuela: no redacta", async () => {
-    expect(await pedidoA("ve", "warehouse")).toEqual({ redactClientNames: false });
+    expect(await pedidoA("ve", "warehouse")).toEqual({ redactClientNames: false, salidas: SALIDAS_VACIAS });
   });
 });

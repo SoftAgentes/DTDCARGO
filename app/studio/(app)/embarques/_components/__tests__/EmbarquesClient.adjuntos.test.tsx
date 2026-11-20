@@ -30,7 +30,7 @@ const CONTEOS: Record<string, ConteoEmbarque> = {
 };
 
 function pintar(adjuntos: ConteosPorId<ConteoEmbarque> | undefined) {
-  return render(<EmbarquesClient shipments={ENVIOS} adjuntos={adjuntos} />);
+  return render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={adjuntos} />);
 }
 
 const codigos = () =>

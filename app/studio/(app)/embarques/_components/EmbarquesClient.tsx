@@ -30,8 +30,11 @@ import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
-  computeClientStats,
+  contarPorPestana,
+  filtrarPorPestana,
   groupShipmentsByClient,
+  PESTANA_POR_DEFECTO,
+  type PestanaEmbarques,
   type ShipmentListRow,
 } from "@/lib/studio/shipment-queries";
 import {
@@ -109,23 +112,9 @@ interface Seleccionable {
 const BORRADO_SIN_CONFIRMAR =
   "No se pudo confirmar el borrado. Recarga la lista para ver cómo quedó.";
 
-type Tab = "all" | "active" | "delivered" | "alerts";
+// SDD-0682 §2.5: las pestañas y su regla viven en `shipment-queries.ts`.
+type Tab = PestanaEmbarques;
 type ServiceFilter = ShipmentService | "all";
-
-const TERMINAL_STATUSES = new Set<ShipmentStatus>(["delivered", "cancelled"]);
-
-function filterByTab(rows: ShipmentListRow[], tab: Tab): ShipmentListRow[] {
-  switch (tab) {
-    case "all":
-      return rows;
-    case "active":
-      return rows.filter((r) => !TERMINAL_STATUSES.has(r.status));
-    case "delivered":
-      return rows.filter((r) => r.status === "delivered");
-    case "alerts":
-      return rows.filter((r) => r.status === "exception");
-  }
-}
 
 function statusBadgeTone(
   status: ShipmentStatus,
@@ -154,6 +143,7 @@ export function EmbarquesClient({
   montos,
   facturacion,
   tope,
+  pestanaInicial = PESTANA_POR_DEFECTO,
 }: {
   shipments: ShipmentListRow[];
   /**
@@ -182,6 +172,8 @@ export function EmbarquesClient({
   facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
+  /** SDD-0682 §2.5: pestaña con la que abre. La pantalla real abre en «Activos». */
+  pestanaInicial?: Tab;
 }) {
   const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set());
   // SDD-0560: el embarque cuyo asistente de borrado está abierto.
@@ -230,7 +222,7 @@ export function EmbarquesClient({
     [shipments, seleccion, eliminacion],
   );
 
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<Tab>(pestanaInicial);
   const [q, setQ] = useState("");
   const [qContenedor, setQContenedor] = useState("");
   const [qCliente, setQCliente] = useState("");
@@ -239,15 +231,7 @@ export function EmbarquesClient({
   const [drawerShipmentId, setDrawerShipmentId] = useState<string | null>(null);
 
   // Counts globales para los tabs (sin search aplicado)
-  const tabCounts = useMemo(() => {
-    const stats = computeClientStats(shipments);
-    return {
-      all: stats.count,
-      active: stats.activeCount,
-      delivered: shipments.filter((r) => r.status === "delivered").length,
-      alerts: stats.alertCount,
-    };
-  }, [shipments]);
+  const tabCounts = useMemo(() => contarPorPestana(shipments), [shipments]);
 
   const contenedorPorId = useMemo(
     () => new Map((contenedores?.contenedores ?? []).map((c) => [c.id, c])),
@@ -256,7 +240,7 @@ export function EmbarquesClient({
 
   // Apply tab + service + search → filas
   const filtradas = useMemo(() => {
-    let rows = filterByTab(shipments, tab);
+    let rows = filtrarPorPestana(shipments, tab);
 
     if (serviceFilter !== "all") {
       rows = rows.filter((r) => r.shipment_service === serviceFilter);
@@ -429,10 +413,11 @@ export function EmbarquesClient({
       >
         {(
           [
-            { value: "all", label: "Todos", count: tabCounts.all },
             { value: "active", label: "Activos", count: tabCounts.active },
+            { value: "camino", label: "En camino", count: tabCounts.camino },
             { value: "delivered", label: "Entregados", count: tabCounts.delivered },
             { value: "alerts", label: "Con alertas", count: tabCounts.alerts },
+            { value: "all", label: "Todos", count: tabCounts.all },
           ] as { value: Tab; label: string; count: number }[]
         ).map((t) => {
           const active = tab === t.value;
@@ -686,7 +671,9 @@ export function EmbarquesClient({
                   ? "Sin envíos con alertas activas."
                   : tab === "delivered"
                     ? "Sin envíos entregados todavía."
-                    : "Sin envíos activos."
+                    : tab === "camino"
+                      ? "Ningún envío va en el mar ahora."
+                      : "Sin envíos activos en origen ni en destino."
           }
           description={
             hayFiltroTexto
