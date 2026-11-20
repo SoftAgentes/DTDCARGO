@@ -138,6 +138,16 @@ La pidió Dir_DTD. Esto se corrigió en la spec:
   (`.update().select()`). Las funciones con `select s.*` son `security definer` y no se rompen.
 - **4:** allowlist de la F-3 con `shipment-queries.ts`, `invoice-queries.ts` y la ruta de la API.
 
+## Quinta vuelta de la revisión (CHANGES_REQUESTED sobre `f993238fd`) y corrección
+
+- **1 (bloqueante):** se agregó el POST `app/api/studio/shipments/route.ts:105-123`
+  (`.insert().select().single()`) a la medición y a la allowlist. Hay una guarda nueva,
+  `lib/studio/__tests__/shipments-select-explicito.test.ts`. La medición recorrió `app/`, `lib/`,
+  `components/` y `hooks/`, y solo salieron el POST, el PATCH y una prueba con un doble.
+- **2:** `studio_get_shipment_delivery` usa el predicado vigente después de la 0230, sin `deleted_at`.
+- **3:** el fixture lo crea la 0694 F-1; la 0698 solo lo lee.
+- **4:** se sumaron 0305, 0318, 0320 y 0496 a la lista de funciones `security definer`.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.

@@ -455,8 +455,12 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
       - en cualquier otro caso devuelve null, sin distinguir «no existe» de «no es tuyo»;
     - **`studio_get_shipment_delivery(p_shipment_ids uuid[])`**, para el Studio:
       - es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`;
-      - autoriza con el predicado de la política «shipments by tenant» (`0012:228-231`): `tenant_id =
-        get_user_tenant_id()` y `deleted_at is null`;
+      - autoriza con el predicado **vigente** de la política «shipments by tenant» (quinta vuelta, 2):
+        `tenant_id = (select public.get_user_tenant_id())`. La creó la `0012:228-231` con `and deleted_at
+        is null`, pero la 0230 se lo quitó a todas las políticas FOR ALL (`0230_fix_rls_soft_delete_blocked.sql:22-38`),
+        y ninguna migración posterior la redefine (`git grep` de la política en `supabase/migrations/`).
+        Igual que la RLS, no filtra los embarques borrados: los llamadores le pasan solo ids de embarques
+        vivos, como hace la app con `.is("deleted_at", null)`;
       - acepta hasta 500 ids por llamada y devuelve, por embarque, `{ shipment_id, address, other_address }`.
         `other_address` es verdadero si la regla devuelve una dirección y no es la predeterminada actual;
       - la usan la marca «Otra dirección» y el drawer de Embarques (`lib/studio/shipment-queries.ts`), el
@@ -478,13 +482,26 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
       que su migración le dé el `grant select` de esa columna. Un contrato compara las columnas de la
       tabla con las que tiene `authenticated` y falla si falta alguna que no sea `delivery_address_id`;
     - **lectores medidos que se romperían** (`git grep` en `app/` y `lib/` sobre `7ff097d12`):
-      - `app/api/studio/shipments/[id]/route.ts:140-145` hace `.update(...).select()`, que pide todas las
-        columnas. La F-3 lo pasa a una lista explícita de columnas;
-      - no hay ningún `.from("shipments").select("*")` fuera de las pruebas. La única prueba que lo usa
-        (`lib/studio/notifications/__tests__/avisos-bodega-confiables.test.ts:158`) corre contra un doble en
-        memoria, sin permisos;
-      - las funciones SQL que hacen `select s.*` sobre `shipments` son todas `security definer` (0321, 0336,
-        0477, 0484, 0486, 0487 y 0563), así que corren como su dueño y no las toca;
+      - **dos rutas** piden todas las columnas con el cliente de la sesión, y la F-3 las pasa a una lista
+        explícita:
+        - `app/api/studio/shipments/route.ts:105-123`: el POST que crea embarques hace
+          `.insert(...).select().single()` (quinta vuelta, 1);
+        - `app/api/studio/shipments/[id]/route.ts:140-145`: el PATCH hace `.update(...).select()`;
+      - la medición recorrió `app/`, `lib/`, `components/` y `hooks/`, buscando toda sentencia que empiece en
+        `.from("shipments")` y tenga un `.select()` vacío o con `"*"`. Solo salieron esas dos y la prueba
+        `lib/studio/notifications/__tests__/avisos-bodega-confiables.test.ts:158`, que corre contra un doble
+        en memoria, sin permisos. Ningún lector usa el nombre de la tabla en una variable: los informes leen
+        con `SHIPMENT_COLUMNS` (`lib/studio/reports/queries.ts:205-206`);
+      - **una guarda lo deja fijo**: la prueba `lib/studio/__tests__/shipments-select-explicito.test.ts`
+        recorre esas cuatro carpetas y falla ante cualquier `.select()` vacío o con `"*"` en una sentencia
+        sobre `shipments`, salvo en pruebas que usan un doble. Se mata con un mutante, que es volver a
+        poner el `.select()` vacío en el POST;
+      - las funciones SQL que leen `shipments` con `select s.*` o con su fila completa son todas `security
+        definer`, así que corren como su dueño y el cambio no las toca:
+        - 0321, 0336, 0477, 0484, 0486, 0487 y 0563;
+        - y también `update_shipment_plan` (`0305:54-63`), `clear_customs_filing_governed` (`0318:207`),
+          `complete_tms_route_governed` (`0320:180`) y `congelar_tarifa_recepcion` (`0496:423-438`) (quinta
+          vuelta, 4);
       - la única vista `security_invoker` que se cruza (`exc0674_envios_cubiertos`, `0564:271-277`) no lee
         `shipments`;
       - la F-3 repite este `git grep` antes de aplicar, porque puede entrar código nuevo.
@@ -780,7 +797,9 @@ superusuario.
 
     La de leer no trae `reference` en ningún campo. Los dos contratos de equivalencia con las políticas de
     `shipments` están verdes. Con el rol `authenticated`, un `select delivery_address_id from shipments`
-    falla con 42501, y el contrato de columnas de `shipments` está verde.
+    falla con 42501, y el contrato de columnas de `shipments` está verde. Crear un embarque por el POST
+    y editarlo por el PATCH de la API funciona con el rol del Studio, y la guarda
+    `shipments-select-explicito` está verde.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
@@ -820,7 +839,7 @@ dirección de entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 
 | Pieza | Dueña | Qué hace la 0698 |
 |---|---|---|
-| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Como la regla vive en dos lenguajes y en dos SDD, el fixture de casos es **uno solo** (un JSON en `supabase/tests/fixtures/`), y lo leen la prueba de TypeScript de la 0694 y el contrato SQL de la 0698 |
+| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Como la regla vive en dos lenguajes y en dos SDD, el fixture de casos es **uno solo**: `supabase/tests/fixtures/direccion-de-entrega-casos.json`. **Lo crea la 0694 F-1**, que va antes, y está en su allowlist. La 0698 F-2 solo lo lee desde su contrato SQL (quinta vuelta, 3) |
 | Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2 | No las toca. Mi perfil sigue escribiendo direcciones de entrega por ellas |
 | El comprobante HTML: misma fuente que el PDF | **0694** decisión 9, F-2 | Va después. Cambia `domicilioFiscalSellado` por el helper nuevo en todos los lectores a la vez |
 | Sellar siempre «Facturar a», el bloque «Entregar en», la casilla y la etiqueta de las facturas viejas | **0698** (0694 §3, decisión 9, y §8) | Es esta spec |
@@ -974,7 +993,9 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/shipment-types.ts`;
   - `lib/studio/shipment-queries.ts` (la marca y el drawer, por `studio_get_shipment_delivery`);
   - `lib/studio/invoice-queries.ts` (la consulta del aviso «Varias direcciones»);
-  - `app/api/studio/shipments/[id]/route.ts` (el `.select()` pasa a columnas explícitas);
+  - `app/api/studio/shipments/route.ts` y `app/api/studio/shipments/[id]/route.ts` (los dos `.select()`
+    pasan a columnas explícitas);
+  - `lib/studio/__tests__/shipments-select-explicito.test.ts` (nuevo, la guarda);
   - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
     `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
   - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);
@@ -984,8 +1005,8 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/dispatch-mobile-queries.ts` y `lib/studio/dispatch-types.ts` (después de la 0694 F-1);
   - `lib/studio/privacidad-cn.ts`;
   - `lib/studio/__tests__/warehouse-ve-delivery-governance.test.ts`.
-- **F-2, además:** `supabase/tests/fixtures/direccion-de-entrega-casos.json`, el fixture único de la regla
-  de la predeterminada (§9).
+- **El fixture `supabase/tests/fixtures/direccion-de-entrega-casos.json` no es de la 0698.** Lo crea la
+  0694 F-1. La 0698 F-2 solo lo lee (§9).
 
 ## 14. Clasificación de gobernanza
 
