@@ -742,9 +742,9 @@ Cada pregunta trae la recomendación primero.
   ficha, se actualizan las copias de los registros abiertos: embarques sin entregar, recepciones sin
   despachar, ítems de consolidados sin cerrar, cotizaciones en borrador y órdenes sin facturar. Nunca las de
   facturas ni las de documentos sellados (§4.7).
-- **P-5 (alta duplicada en el Studio).** Si la oficina da de alta a alguien con un correo o un teléfono que
-  ya existe, ¿se bloquea o solo se avisa? *Recomendado:* bloquear con el correo y avisar con el teléfono
-  (§4.3).
+- **P-5 (alta duplicada en el Studio). Decidida por Sam el 2026-11-20:** «Sí, así». En el alta del Studio
+  y en la conversión de Kommo, un correo que ya existe **bloquea** con «Ya existe una ficha con ese correo»
+  y un enlace a esa ficha. Un teléfono que ya existe **solo avisa** y deja seguir (§4.3).
 - **P-6 (día de China).** En la bodega de Yiwu, ¿la fecha de recepción es el día de China o el de Caracas?
   *Recomendado:* el de China en la recepción, y el de Caracas en la contabilidad.
 - **P-7 (prioridad). Decidida por Sam el 2026-11-20:** «Sí, en paralelo». La F-2 (fechas fiscales) y la
