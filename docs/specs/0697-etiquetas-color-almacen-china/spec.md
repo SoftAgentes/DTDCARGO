@@ -993,12 +993,12 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     existían (`shipment`, `client`, `invoice`, `quote`, `dispatch_order`, `supplier_bill`,
     `warehouse_receipt_cn`, `warehouse_receipt_ve`, `bitacora_task`) sigue pasando con una entidad del tenant y
     falla con una de otro tenant; un tipo desconocido sigue fallando.
+32. **Cancelar ajena o cerrada:** cancelar una solicitud de otro usuario, o una ya aprobada, rechazada o
+    cancelada, falla con `42501` y no cambia la fila.
 33. **md5 del cuerpo de la 0215 en CI:** una prueba lee `supabase/migrations/0215_bitacora_enums.sql`, toma el
     texto entre los `$$` de `comment_entity_in_tenant` y comprueba que su md5 es
     `86d37a438337bc91e2f44e204d2051d4`, el que acepta el precheck de la C (patrón de
     `lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts`).
-32. **Cancelar ajena o cerrada:** cancelar una solicitud de otro usuario, o una ya aprobada, rechazada o
-    cancelada, falla con `42501` y no cambia la fila.
 
 ### 8.2 Pruebas de aplicación
 
