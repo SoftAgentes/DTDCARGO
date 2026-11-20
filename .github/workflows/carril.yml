@@ -48,10 +48,12 @@ jobs:
             cp scripts/carril.mjs "$dir/carril.mjs"
             origen="la PR (main todavía no lo tiene)"
           fi
+          # El diff completo (no solo los nombres): el clasificador mira las líneas cambiadas de las pantallas.
           # --no-renames: un renombre aparece como borrado + alta, con la ruta vieja y la nueva.
-          git diff --name-only --no-renames HEAD^1 HEAD > "$dir/archivos.txt"
+          # HEAD^2 es la cabeza de la PR dentro del merge de prueba.
+          git diff --no-renames HEAD^1 HEAD > "$dir/cambios.diff"
           set +e
-          node "$dir/carril.mjs" --json < "$dir/archivos.txt" > "$dir/carril.json"
+          node "$dir/carril.mjs" --json --diff --head "$(git rev-parse HEAD^2)" < "$dir/cambios.diff" > "$dir/carril.json"
           codigo=$?
           set -e
           node -e '

@@ -9,12 +9,25 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { SALIDA, clasificar, clasificarArchivo, leerArgumentos, main, normalizar, rutasDeDiff } from "../carril.mjs";
+import {
+  SALIDA,
+  analizarDiff,
+  clasificar,
+  clasificarArchivo,
+  leerArgumentos,
+  main,
+  normalizar,
+  rutasDeDiff,
+} from "../carril.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const SHA_A = "a".repeat(40);
+const SHA_B = "b".repeat(40);
+const ROOT =path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCRIPT = path.join(ROOT, "scripts", "carril.mjs");
 
-const carril = (ruta) => clasificarArchivo(ruta).carril;
+// Con un diff sin líneas sensibles: lo que da revision aquí lo decide la ruta, no la falta de diff.
+const carril = (ruta, lineas = []) => clasificarArchivo(ruta, lineas).carril;
+const PRESENTACION = ['<p className="texto">Hola</p>', 'const titulo = t("embarques");'];
 
 // Una ruta real (o con la forma real) del repo por cada frontera sensible.
 const SENSIBLES = {
@@ -88,11 +101,30 @@ const SENSIBLES = {
   "lógica en lib (sin clasificar)": "lib/studio/client-queries.ts",
   "script suelto (sin clasificar)": "scripts/verify.mjs",
   "privado": "private/marca/guia.html",
+  // Revisión de Dir_DTD sobre cb7de5ed8: pantallas con puertas, lecturas sin RLS o datos personales.
+  "página del Studio con puerta require*()": "app/studio/(app)/admin/page.tsx",
+  "página móvil con createAdminClient": "app/m/cn/page.tsx",
+  "página móvil del bodeguero": "app/m/ve/bodeguero/page.tsx",
+  "alta de cuentas del portal": "app/studio/(app)/admin/_components/PortalBackfillSection.tsx",
+  "GPS del camionero": "app/m/ve/camionero/_components/GpsBlock.tsx",
+  "perfil con push": "app/studio/_components/wiring/ProfileModal.tsx",
+  "perfil del portal": "app/portal/(app)/perfil/page.tsx",
+  "empresa del perfil del portal": "app/portal/(app)/perfil/empresa/page.tsx",
+  "clientes del Studio": "app/studio/(app)/clientes/page.tsx",
+  "página del back": "app/back/(app)/page.tsx",
+  "ficha": "app/studio/(app)/ficha/_components/Resumen.tsx",
+  "rbac": "components/RbacBadge.tsx",
+  "project-rules": "docs/engineering/project-rules.md",
+  "runbook de publicación": "docs/runbooks/publicacion-automatica-web.md",
+  ".harness": ".harness/CHECKPOINTS.md",
+  "ayudante de e2e": "e2e/_helpers/sesion.ts",
+  "diagnóstico de e2e": "e2e/diagnostics/medir.mjs",
+  "diccionario i18n (TypeScript)": "lib/i18n/es-VE/bandeja.ts",
 };
 
 for (const [nombre, ruta] of Object.entries(SENSIBLES)) {
   test(`revision: ${nombre} (${ruta})`, () => {
-    const r = clasificarArchivo(ruta);
+    const r = clasificarArchivo(ruta, PRESENTACION);
     assert.equal(r.carril, "revision", `${ruta} cayó en ${r.regla}`);
     assert.ok(r.motivo.length > 0);
   });
@@ -105,8 +137,7 @@ const SEGURAS = {
   "README": "README.md",
   "handoff": ".agents/handoffs/carriles-integracion-20261120.md",
   "imagen de docs": "docs/design/captura.png",
-  "texto es-VE": "lib/i18n/es-VE/bandeja.ts",
-  "texto zh-CN": "lib/i18n/zh-CN/bandeja.ts",
+  "diccionario JSON": "lib/i18n/es-VE/bandeja.json",
   "llms-full": "app/llms-full.txt",
   "prueba vitest": "components/Footer.enlaces.test.tsx",
   "prueba de una action (es prueba, no action)": "app/portal/actions.test.ts",
@@ -116,23 +147,90 @@ const SEGURAS = {
   "estilo global": "app/globals.css",
   "estilo del Studio": "app/studio/studio.css",
   "tokens de diseño": "lib/design-tokens.ts",
-  "pantalla del Studio": "app/studio/(app)/clientes/page.tsx",
   "componente del Studio": "app/studio/(app)/embarques/_components/TablaEmbarques.tsx",
   "componente público": "components/Footer.tsx",
   "página pública": "app/nosotros/page.tsx",
-  "loading": "app/studio/(app)/clientes/loading.tsx",
+  "loading": "app/studio/(app)/embarques/loading.tsx",
   "logo": "public/brand/container.svg",
   "fuente": "lib/font-files/inter.woff2",
 };
 
 for (const [nombre, ruta] of Object.entries(SEGURAS)) {
   test(`rapido: ${nombre} (${ruta})`, () => {
-    const r = clasificarArchivo(ruta);
+    const r = clasificarArchivo(ruta, PRESENTACION);
     assert.equal(r.carril, "rapido", `${ruta} cayó en ${r.regla}: ${r.motivo}`);
   });
 }
 
-test("los temas sí miran pruebas que viven en carpetas sensibles", () => {
+const LINEAS_SENSIBLES = [
+  ['await requireModuleView("admin");', "require"],
+  ["const db = createAdminClient();", "createAdminClient"],
+  ["const rol = 'service_role';", "service_role"],
+  ["const { data: { user } } = await supabase.auth.getUser();", "getUser"],
+  ['import { puede } from "@/lib/studio/rbac-guard";', "rbac"],
+  ['const { data } = await db.from("clients").select("*");', ".from("],
+  ['await db.rpc("cerrar_lote", { id });', ".rpc("],
+  ["await tabla.update({ nombre });", ".update("],
+  ['redirect("/studio/login");', "redirect("],
+  ["if (!fila) notFound();", "notFound("],
+  ['"use server";', "use server"],
+  ['await fetch("/api/gps", { method: "POST", body });', "method:"],
+  ['import { guardar } from "./actions";', "import de actions"],
+  ['import { createServerClient } from "@supabase/ssr";', "@supabase/"],
+  ["const c = cookies();", "cookies()"],
+];
+
+for (const [linea, marca] of LINEAS_SENSIBLES) {
+  test(`contenido: una pantalla segura que agrega o quita «${marca}» da revision`, () => {
+    const r = clasificarArchivo("components/Footer.tsx", ["<p>ok</p>", linea]);
+    assert.equal(r.carril, "revision", linea);
+    assert.equal(r.regla, "contenido-sensible");
+  });
+}
+
+test("contenido: Array.from no cuenta como consulta", () => {
+  assert.equal(carril("components/Footer.tsx", ["const xs = Array.from(items);"]), "rapido");
+});
+
+test("contenido: una pantalla sin diff (solo el nombre) da revision", () => {
+  const r = clasificarArchivo("components/Footer.tsx");
+  assert.equal(r.carril, "revision");
+  assert.equal(r.regla, "sin-contenido");
+  // Lo que no es código no necesita el diff.
+  assert.equal(clasificarArchivo("docs/a.md").carril, "rapido");
+  assert.equal(clasificarArchivo("app/globals.css").carril, "rapido");
+});
+
+test("contenido: las pruebas no miran líneas (un mock de .from( sigue siendo prueba)", () => {
+  assert.equal(carril("components/Footer.test.tsx", ['db.from("clients")']), "rapido");
+});
+
+test("página pública fuera de las zonas con sesión: rapido solo si sus líneas no tocan datos", () => {
+  assert.equal(carril("app/nosotros/page.tsx", ["<h1>Nosotros</h1>"]), "rapido");
+  assert.equal(carril("app/nosotros/page.tsx", ['const x = await db.from("noticias").select();']), "revision");
+});
+
+test("analizarDiff guarda las líneas agregadas y quitadas, no las de contexto", () => {
+  const diff = [
+    "diff --git a/components/Footer.tsx b/components/Footer.tsx",
+    "--- a/components/Footer.tsx",
+    "+++ b/components/Footer.tsx",
+    "@@ -1,3 +1,3 @@",
+    " const db = createAdminClient(); // contexto, no cuenta",
+    '-await requireModuleView("x");',
+    "+<p>hola</p>",
+  ].join("\n");
+  const cambios = analizarDiff(diff);
+  assert.deepEqual(cambios.get("components/Footer.tsx"), ['await requireModuleView("x");', "<p>hola</p>"]);
+  const r = clasificar([...cambios.keys()], cambios);
+  assert.equal(r.carril, "revision", "quitar una puerta pesa igual que ponerla");
+  assert.equal(r.contenido, true);
+
+  const soloContexto = analizarDiff(diff.replace('-await requireModuleView("x");\n', ""));
+  assert.equal(clasificar([...soloContexto.keys()], soloContexto).carril, "rapido", "el contexto no cuenta");
+});
+
+test("las reglas por carpeta sí alcanzan a las pruebas que viven ahí", () => {
   assert.equal(carril("app/registro/__tests__/registro.test.tsx"), "revision");
   assert.equal(carril("app/api/contact/__tests__/route.test.ts"), "revision");
   assert.equal(carril("supabase/tests/0001.test.sql"), "revision");
@@ -165,7 +263,8 @@ test("PR mixta: un archivo sensible vuelve revision a toda la PR y lo nombra", (
 });
 
 test("PR solo de rutas seguras: rapido, sin causantes", () => {
-  const r = clasificar(["docs/a.md", "", "docs/a.md", "components/Footer.tsx", "app/globals.css"]);
+  const cambios = new Map([["components/Footer.tsx", PRESENTACION]]);
+  const r = clasificar(["docs/a.md", "", "docs/a.md", "components/Footer.tsx", "app/globals.css"], cambios);
   assert.equal(r.carril, "rapido");
   assert.equal(r.total, 3, "ignora líneas vacías y repetidas");
   assert.deepEqual(r.causantes, []);
@@ -207,11 +306,21 @@ test("rutasDeDiff toma la ruta vieja y la nueva de un renombre", () => {
 });
 
 test("leerArgumentos: --pr, rutas y errores de uso", () => {
-  assert.deepEqual(leerArgumentos(["--json", "--pr", "42"]), { json: true, pr: "42", rutas: [], ayuda: false });
+  assert.deepEqual(leerArgumentos(["--json", "--pr", "42"]), {
+    json: true,
+    pr: "42",
+    head: null,
+    diff: false,
+    rutas: [],
+    ayuda: false,
+  });
   assert.equal(leerArgumentos(["--pr=7"]).pr, "7");
+  assert.equal(leerArgumentos(["--diff", "--head", SHA_A]).head, SHA_A);
   assert.deepEqual(leerArgumentos(["a.md", "--", "--raro.md"]).rutas, ["a.md", "--raro.md"]);
   assert.throws(() => leerArgumentos(["--pr"]), /necesita/);
-  assert.throws(() => leerArgumentos(["--pr", "1", "a.md"]), /no las dos/);
+  assert.throws(() => leerArgumentos(["--pr", "1", "a.md"]), /una sola entrada/);
+  assert.throws(() => leerArgumentos(["--diff", "a.md"]), /una sola entrada/);
+  assert.throws(() => leerArgumentos(["--head", "abc123"]), /40 caracteres/);
   assert.throws(() => leerArgumentos(["--nada"]), /desconocida/);
 });
 
@@ -222,7 +331,8 @@ function correr(argv, io = {}) {
   return { codigo, out, err };
 }
 
-test("contrato: códigos de salida 0 rapido, 1 revision, 2 error", () => {
+test("contrato: códigos de salida 0 rapido, 1 revision, 2 error o ayuda", () => {
+  assert.equal(correr(["--help"]).codigo, 2, "la ayuda no se confunde con rapido");
   assert.deepEqual(SALIDA, { rapido: 0, revision: 1, error: 2 });
   assert.equal(correr(["docs/a.md"]).codigo, 0);
   assert.equal(correr(["supabase/x.sql"]).codigo, 1);
@@ -234,9 +344,10 @@ test("contrato: el JSON trae carril, motivo, causantes y archivos", () => {
   const { codigo, out } = correr(["--json", "docs/a.md", "app/api/x/route.ts"]);
   assert.equal(codigo, 1);
   const r = JSON.parse(out);
-  assert.equal(r.version, 1);
+  assert.equal(r.version, 2);
   assert.equal(r.carril, "revision");
   assert.equal(r.origen, "args");
+  assert.equal(r.contenido, false, "por argumentos solo se conocen los nombres");
   assert.equal(r.total, 2);
   assert.equal(typeof r.motivo, "string");
   assert.deepEqual(Object.keys(r.causantes[0]).sort(), ["motivo", "regla", "ruta"]);
@@ -244,26 +355,75 @@ test("contrato: el JSON trae carril, motivo, causantes y archivos", () => {
 });
 
 test("contrato: stdin, una ruta por línea con CRLF", () => {
-  const { codigo, out } = correr(["--json"], { stdin: "docs/a.md\r\ncomponents/Footer.tsx\r\n" });
+  const { codigo, out } = correr(["--json"], { stdin: "docs/a.md\r\napp/globals.css\r\n" });
   assert.equal(codigo, 0);
   const r = JSON.parse(out);
   assert.equal(r.carril, "rapido");
   assert.equal(r.origen, "stdin");
+  // Una pantalla por nombre, sin diff, no puede ir por el carril rápido.
+  assert.equal(correr(["--json"], { stdin: "components/Footer.tsx\n" }).codigo, 1);
 });
 
-test("contrato: --pr usa gh pr diff N y un fallo de gh da error con JSON de revision", () => {
-  const llamadas = [];
-  const ok = correr(["--json", "--pr", "12"], {
-    ejecutar: (cmd, args) => {
-      llamadas.push([cmd, ...args]);
-      return "diff --git a/docs/a.md b/docs/a.md\n--- a/docs/a.md\n+++ b/docs/a.md\n@@ -1 +1 @@\n";
-    },
-  });
-  assert.deepEqual(llamadas, [["gh", "pr", "diff", "12", "--color=never"]]);
-  assert.equal(ok.codigo, 0);
-  assert.equal(JSON.parse(ok.out).pr, 12);
-  assert.equal(JSON.parse(ok.out).origen, "pr");
+const DIFF_DOC = "diff --git a/docs/a.md b/docs/a.md\n--- a/docs/a.md\n+++ b/docs/a.md\n@@ -1 +1 @@\n+hola\n";
 
+function ghFalso(cabezas, diff = DIFF_DOC) {
+  const llamadas = [];
+  const ejecutar = (cmd, args) => {
+    llamadas.push([cmd, ...args].join(" "));
+    if (args[1] === "view") return `${cabezas.shift()}\n`;
+    return diff;
+  };
+  return { llamadas, ejecutar };
+}
+
+test("contrato: --pr ata la clasificación a la cabeza y la devuelve en el JSON", () => {
+  const gh = ghFalso([SHA_A, SHA_A]);
+  const ok = correr(["--json", "--pr", "12"], { ejecutar: gh.ejecutar });
+  assert.deepEqual(gh.llamadas, [
+    "gh pr view 12 --json headRefOid --jq .headRefOid",
+    "gh pr diff 12 --color=never",
+    "gh pr view 12 --json headRefOid --jq .headRefOid",
+  ]);
+  assert.equal(ok.codigo, 0);
+  const r = JSON.parse(ok.out);
+  assert.equal(r.version, 2);
+  assert.equal(r.pr, 12);
+  assert.equal(r.origen, "pr");
+  assert.equal(r.head, SHA_A);
+  assert.equal(r.contenido, true);
+});
+
+test("contrato: un push durante la clasificación es error, no un rapido", () => {
+  const r = correr(["--json", "--pr", "12"], { ejecutar: ghFalso([SHA_A, SHA_B]).ejecutar });
+  assert.equal(r.codigo, 2);
+  assert.match(JSON.parse(r.out).error, /cambió de cabeza/);
+});
+
+test("contrato: --pr con --head distinto de la cabeza actual es error", () => {
+  const r = correr(["--json", "--pr", "12", "--head", SHA_B], { ejecutar: ghFalso([SHA_A, SHA_A]).ejecutar });
+  assert.equal(r.codigo, 2);
+  assert.match(JSON.parse(r.out).error, /no b{40}/);
+});
+
+test("contrato: --pr con una pantalla que toca datos da revision", () => {
+  const diff =
+    "diff --git a/components/Footer.tsx b/components/Footer.tsx\n--- a/components/Footer.tsx\n" +
+    "+++ b/components/Footer.tsx\n@@ -1 +1 @@\n+const db = createAdminClient();\n";
+  const r = correr(["--json", "--pr", "12"], { ejecutar: ghFalso([SHA_A, SHA_A], diff).ejecutar });
+  assert.equal(r.codigo, 1);
+  assert.equal(JSON.parse(r.out).causantes[0].regla, "contenido-sensible");
+});
+
+test("contrato: --diff por stdin mira el contenido y repite --head", () => {
+  const { codigo, out } = correr(["--json", "--diff", "--head", SHA_A], { stdin: DIFF_DOC });
+  assert.equal(codigo, 0);
+  const r = JSON.parse(out);
+  assert.equal(r.origen, "diff");
+  assert.equal(r.head, SHA_A);
+  assert.equal(r.contenido, true);
+});
+
+test("contrato: un fallo de gh da error con JSON de revision", () => {
   const falla = correr(["--json", "--pr", "12"], {
     ejecutar: () => {
       const e = new Error("gh falló");
@@ -310,6 +470,7 @@ test("el check de CI es liviano, informativo y usa el clasificador de main", asy
   assert.match(wf, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1/);
   assert.match(wf, /persist-credentials: false/);
   assert.match(wf, /git show HEAD\^1:scripts\/carril\.mjs/, "manda el clasificador de la base");
-  assert.match(wf, /--no-renames/);
+  assert.match(wf, /git diff --no-renames HEAD\^1 HEAD/, "pasa el diff completo, no solo los nombres");
+  assert.match(wf, /carril\.mjs" --json --diff --head "\$\(git rev-parse HEAD\^2\)"/, "registra la cabeza de la PR");
   assert.doesNotMatch(wf, /exit "?\$codigo"?/, "el carril no se convierte en el código del job");
 });

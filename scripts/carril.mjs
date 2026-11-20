@@ -6,15 +6,18 @@
  *   - `rapido`:   la PR entra con el CI en verde y se revisa en la revisión de madrugada.
  *   - `revision`: revisión independiente APPROVED + CI verde en la cabeza exacta (la regla de siempre).
  *
- * Las reglas van por ruta y son conservadoras: un archivo es `rapido` solo si cae en una lista corta de rutas
- * seguras (documentos, textos, pruebas, estilos, pantallas y recursos estáticos) y no toca nada sensible. Todo lo
- * demás, incluido lo que no se reconoce, es `revision`. Basta un archivo `revision` para que toda la PR lo sea.
+ * Dos capas, conservadoras: un archivo es `rapido` solo si cae en una lista corta de rutas seguras (documentos,
+ * textos, pruebas, estilos, pantallas y recursos estáticos), no toca nada sensible por ruta y, si es código (una
+ * pantalla), sus líneas cambiadas no tocan puertas, lecturas ni escrituras de datos. Sin el diff no se puede mirar
+ * el contenido, así que una pantalla clasificada solo por nombre es `revision`. Todo lo demás, incluido lo que no
+ * se reconoce, es `revision`. Basta un archivo `revision` para que toda la PR lo sea.
  *
  * Contrato (lo usa el tren del Director; detalle en docs/runbooks/codex-engineering.md, «Carriles de integración»):
- *   node scripts/carril.mjs --json --pr <N>        # diff de la PR con `gh pr diff <N>`
- *   node scripts/carril.mjs --json <ruta>...       # rutas por argumento
- *   git diff --name-only --no-renames A B | node scripts/carril.mjs --json   # rutas por stdin
- * Códigos de salida: 0 = rapido, 1 = revision, 2 = error (no se pudo clasificar; cuenta como revision).
+ *   node scripts/carril.mjs --json --pr <N>                       # diff de la PR; el JSON trae la cabeza (`head`)
+ *   git diff --no-renames A B | node scripts/carril.mjs --json --diff [--head <sha>]   # diff por stdin
+ *   node scripts/carril.mjs --json <ruta>...                      # solo nombres (sin contenido)
+ *   git diff --name-only --no-renames A B | node scripts/carril.mjs --json            # solo nombres por stdin
+ * Códigos de salida: 0 = rapido, 1 = revision, 2 = error o ayuda (no se pudo clasificar; cuenta como revision).
  *
  * Sin dependencias: solo módulos de Node.
  */
@@ -23,7 +26,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = 1;
+export const VERSION = 2;
 export const SALIDA = Object.freeze({ rapido: 0, revision: 1, error: 2 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -45,10 +48,13 @@ const REGLAS_FIJAS = [
         "scripts/tests/carril.node.mjs",
         "docs/runbooks/codex-engineering.md",
         "docs/runbooks/aplicar-migraciones-prod.md",
+        "docs/runbooks/publicacion-automatica-web.md",
+        "docs/engineering/project-rules.md",
         "scripts/__tests__/ci-workflow-contract.test.mjs",
       ].includes(r) ||
       // Los handoffs (`.agents/handoffs/`) son documentos de cada tarea: no cambian reglas.
-      (/^(\.agents|\.claude|\.codex|docs\/governance)\//.test(r) && !/^\.agents\/handoffs\/[^/]+\.md$/.test(r)) ||
+      (/^(\.agents|\.claude|\.codex|\.harness|docs\/governance)\//.test(r) &&
+        !/^\.agents\/handoffs\/[^/]+\.md$/.test(r)) ||
       /(^|\/)(AGENTS|CLAUDE)\.md$/i.test(r),
   },
   {
@@ -125,6 +131,12 @@ const REGLAS_FIJAS = [
       /^tsconfig[^/]*\.json$/.test(r),
   },
   {
+    id: "pagina-con-sesion",
+    motivo: "página de una zona con sesión (Studio, portal, móvil, back, interno): suele llevar puertas y lecturas",
+    tambienPruebas: false,
+    coincide: (r) => /^app\/(studio|portal|m|back|interno|admin)\/(.+\/)?page\.[cm]?[jt]sx?$/.test(r),
+  },
+  {
     id: "server-actions",
     motivo: "server action (escribe datos)",
     tambienPruebas: false,
@@ -160,7 +172,7 @@ const TEMAS = [
       /^rls$/, /^polic(y|ies)$/, /^grants?$/, /^usuarios?$/, /^users?$/, /^acceso/, /^access(?!ib)/, /^invit/,
       /^registro/, /^regist(er|ration)/, /^activar/, /^aceptar/, /^recuperar/, /^reauthor/, /^verific/,
       /^tokens?$/, /^otp$/, /^pin$/, /^password/, /^clave/, /^flags?$/, /^legal/, /^ley$/, /^terminos/,
-      /^privac/, /^consent/, /^cookies?$/, /^callback$/, /^proxy$/, /^middleware$/,
+      /^privac/, /^consent/, /^cookies?$/, /^callback$/, /^proxy$/, /^middleware$/, /^admin/, /^rbac/, /^guards?$/,
     ],
   },
   {
@@ -170,7 +182,9 @@ const TEMAS = [
       /^borrad/, /^purg/, /^baja$/, /^(un|re)?subscribe$/, /^export/, /^import$/, /^migrar/, /^duplicad/,
       /^merge$/, /^personas?$/, /^empleados?$/, /^employees?$/, /^expediente/, /^cedula/, /^rif$/, /^telefono/,
       /^phones?$/, /^direccion/, /^address/, /^attachments?$/, /^adjunto/, /^storage$/, /^upload/, /^pii$/,
-      /^retention$/, /^habeas/, /^analytics$/, /^clarity$/, /^forms?$/, /^formulario/,
+      /^retention$/, /^habeas/, /^analytics$/, /^clarity$/, /^forms?$/, /^formulario/, /^clientes?$/, /^clients?$/,
+      /^perfil/, /^profiles?$/, /^ficha/, /^contacto/, /^contacts?$/, /^gps$/, /^ubicacion/, /^location/, /^tms$/,
+      /^backfill/,
     ],
   },
   {
@@ -189,7 +203,8 @@ const TEMAS = [
 // Rutas seguras (carril rápido). Solo llega aquí lo que no cayó en una regla fija ni en un tema sensible.
 // ---------------------------------------------------------------------------------------------------------------
 
-const RE_PRUEBA = /(^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$|^scripts\/tests\/[^/]+\.node\.mjs$|^e2e\//;
+// En `e2e/` cuentan solo los `*.spec.*`/`*.test.*`: los ayudantes y diagnósticos (`e2e/_helpers/`, `*.mjs`) son código.
+const RE_PRUEBA = /(^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$|^scripts\/tests\/[^/]+\.node\.mjs$/;
 const RE_RECURSO = /\.(png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|otf|mp4|webm|mp3|pdf)$/i;
 
 const SEGURAS = [
@@ -200,8 +215,9 @@ const SEGURAS = [
   },
   {
     id: "textos",
-    motivo: "textos de la interfaz (diccionarios)",
-    coincide: (r) => /^lib\/i18n\/(es-VE|zh-CN)\/[^/]+\.(ts|json)$/.test(r) || /^(app|public)\/.*\.txt$/.test(r),
+    // Los diccionarios `lib/i18n/**/*.ts` son TypeScript ejecutable: van por la lógica de `lib/` (revisión).
+    motivo: "texto plano publicado",
+    coincide: (r) => /^lib\/i18n\/(es-VE|zh-CN)\/[^/]+\.json$/.test(r) || /^(app|public)\/.*\.txt$/.test(r),
   },
   { id: "pruebas", motivo: "prueba", coincide: (r) => RE_PRUEBA.test(r) },
   {
@@ -271,8 +287,43 @@ export function pedazos(ruta) {
   return [...salida];
 }
 
-/** Clasifica un archivo. Devuelve `{ ruta, carril, regla, motivo }`. */
-export function clasificarArchivo(rutaCruda) {
+// ---------------------------------------------------------------------------------------------------------------
+// Capa de contenido: una pantalla en ruta segura va a `revision` si alguna línea agregada o quitada toca puertas,
+// sesión, lecturas o escrituras de datos. Se miran las dos: quitar una puerta pesa igual que ponerla.
+// ---------------------------------------------------------------------------------------------------------------
+
+const CONTENIDO_SENSIBLE = [
+  /\brequire\w*\s*\(/, // puertas `requireModuleView(…)`, `requireRole(…)`, y `require(…)`
+  /createAdminClient/, // lectura o escritura sin RLS
+  /service_role/i,
+  /\bgetUser\b|\bgetSession\b/,
+  /rbac/i,
+  /(?<!Array)\.from\s*\(/, // consulta a una tabla
+  /\.rpc\s*\(/,
+  /\.(insert|update|upsert|delete)\s*\(/,
+  /\bredirect\s*\(|\bnotFound\s*\(|\bpermanentRedirect\s*\(/,
+  /["']use server["']/,
+  /\bmethod\s*:/, // fetch con POST, PUT o DELETE
+  /from\s+["'][^"']*actions?["']/, // importa una server action
+  /@supabase\/|@\/lib\/(db|auth)\b/,
+  /\b(cookies|headers)\s*\(\s*\)/,
+];
+
+function lineaSensible(lineas) {
+  for (const linea of lineas) {
+    for (const re of CONTENIDO_SENSIBLE) {
+      const m = linea.match(re);
+      if (m) return m[0];
+    }
+  }
+  return null;
+}
+
+/**
+ * Clasifica un archivo. `lineas` son las líneas agregadas y quitadas del diff (sin el `+`/`-`), o `undefined` si
+ * solo se conoce el nombre. Devuelve `{ ruta, carril, regla, motivo }`.
+ */
+export function clasificarArchivo(rutaCruda, lineas) {
   const ruta = normalizar(rutaCruda);
   const esPrueba = RE_PRUEBA.test(ruta);
 
@@ -282,8 +333,9 @@ export function clasificarArchivo(rutaCruda) {
   }
 
   const segura = SEGURAS.find((s) => s.coincide(ruta));
+  const esCodigo = !segura || !NO_ES_CODIGO.has(segura.id);
 
-  if (!segura || !NO_ES_CODIGO.has(segura.id)) {
+  if (esCodigo) {
     const trozos = pedazos(ruta);
     for (const tema of TEMAS) {
       const palabra = trozos.find((t) => tema.palabras.some((re) => re.test(t)));
@@ -293,24 +345,50 @@ export function clasificarArchivo(rutaCruda) {
     }
   }
 
-  if (segura) return { ruta, carril: "rapido", regla: segura.id, motivo: segura.motivo };
-  return {
-    ruta,
-    carril: "revision",
-    regla: "sin-clasificar",
-    motivo: "ruta fuera de la lista de rutas seguras (ante la duda, revisión)",
-  };
+  if (!segura) {
+    return {
+      ruta,
+      carril: "revision",
+      regla: "sin-clasificar",
+      motivo: "ruta fuera de la lista de rutas seguras (ante la duda, revisión)",
+    };
+  }
+
+  if (esCodigo) {
+    if (lineas === undefined) {
+      return {
+        ruta,
+        carril: "revision",
+        regla: "sin-contenido",
+        motivo: "código clasificado solo por nombre: sin el diff no se ven sus líneas (usa --pr o --diff)",
+      };
+    }
+    const toque = lineaSensible(lineas);
+    if (toque) {
+      return {
+        ruta,
+        carril: "revision",
+        regla: "contenido-sensible",
+        motivo: `una línea cambiada toca puertas, sesión o datos («${toque}»)`,
+      };
+    }
+  }
+
+  return { ruta, carril: "rapido", regla: segura.id, motivo: segura.motivo };
 }
 
-/** Clasifica un diff completo. Basta un archivo `revision` para que la PR sea `revision`. */
-export function clasificar(rutas) {
+/**
+ * Clasifica un diff completo. `cambios` (opcional) es el `Map` ruta → líneas cambiadas de `analizarDiff`; sin él,
+ * solo se conocen los nombres. Basta un archivo `revision` para que la PR sea `revision`.
+ */
+export function clasificar(rutas, cambios = null) {
   const vistos = new Set();
   const archivos = [];
   for (const cruda of rutas) {
     const ruta = normalizar(cruda);
     if (!ruta || vistos.has(ruta)) continue;
     vistos.add(ruta);
-    archivos.push(clasificarArchivo(ruta));
+    archivos.push(clasificarArchivo(ruta, cambios ? (cambios.get(ruta) ?? []) : undefined));
   }
   if (archivos.length === 0) throw new ErrorCarril("el diff no trae archivos: no hay nada que clasificar");
 
@@ -327,6 +405,7 @@ export function clasificar(rutas) {
     carril,
     motivo,
     total: archivos.length,
+    contenido: cambios !== null,
     causantes: causantes.map(({ ruta, regla, motivo: m }) => ({ ruta, regla, motivo: m })),
     archivos,
   };
@@ -335,19 +414,25 @@ export function clasificar(rutas) {
 export class ErrorCarril extends Error {}
 
 /**
- * Saca las rutas de un diff unificado (`gh pr diff N`). Toma las dos rutas de cada archivo (la vieja y la nueva),
- * para que renombrar un archivo sensible a una ruta segura no lo esconda: `gh pr diff --name-only` solo da la nueva.
+ * Lee un diff unificado (`gh pr diff N`, `git diff`). Devuelve un `Map` ruta → líneas agregadas y quitadas. Toma
+ * las dos rutas de cada archivo (la vieja y la nueva), para que renombrar un archivo sensible a una ruta segura no
+ * lo esconda: `gh pr diff --name-only` solo da la nueva. Las dos rutas comparten las líneas del archivo.
  */
-export function rutasDeDiff(texto) {
-  const rutas = new Set();
+export function analizarDiff(texto) {
+  const cambios = new Map();
+  let actual = [];
   const agregar = (r) => {
-    if (r && r !== "/dev/null") rutas.add(normalizar(r));
+    if (!r || r === "/dev/null") return;
+    const ruta = normalizar(r);
+    if (!cambios.has(ruta)) cambios.set(ruta, []);
+    if (!actual.includes(ruta)) actual.push(ruta);
   };
-  // Solo se leen las cabeceras: dentro de un hunk, una línea borrada «-- x» se vería como «--- x».
+  // Las rutas salen solo de las cabeceras: dentro de un hunk, una línea borrada «-- x» se vería como «--- x».
   let enCabecera = false;
   for (const linea of texto.split(/\r?\n/)) {
     if (linea.startsWith("diff --git ")) {
       enCabecera = true;
+      actual = [];
       const resto = linea.slice("diff --git ".length);
       const citada = resto.match(/^"a\/((?:[^"\\]|\\.)*)" "b\/((?:[^"\\]|\\.)*)"$/);
       if (citada) {
@@ -372,8 +457,16 @@ export function rutasDeDiff(texto) {
       }
       continue;
     }
-    if (linea.startsWith("@@")) enCabecera = false;
-    if (!enCabecera) continue;
+    if (linea.startsWith("@@")) {
+      enCabecera = false;
+      continue;
+    }
+    if (!enCabecera) {
+      if ((linea.startsWith("+") || linea.startsWith("-")) && actual.length > 0) {
+        for (const ruta of actual) cambios.get(ruta).push(linea.slice(1));
+      }
+      continue;
+    }
     const renombre = linea.match(/^(?:rename|copy) (?:from|to) (.+)$/);
     if (renombre) {
       agregar(renombre[1]);
@@ -386,14 +479,19 @@ export function rutasDeDiff(texto) {
       agregar(valor.replace(/^[ab]\//, ""));
     }
   }
-  return [...rutas];
+  return cambios;
 }
 
-function leerPr(numero, ejecutar = execFileSync) {
-  if (!/^\d+$/.test(String(numero))) throw new ErrorCarril(`--pr espera un número de PR, no «${numero}»`);
-  let texto;
+/** Las rutas de un diff unificado (vieja y nueva de cada archivo). */
+export function rutasDeDiff(texto) {
+  return [...analizarDiff(texto).keys()];
+}
+
+const RE_SHA = /^[0-9a-f]{40}$/;
+
+function correrGh(ejecutar, args) {
   try {
-    texto = ejecutar("gh", ["pr", "diff", String(numero), "--color=never"], {
+    return ejecutar("gh", args, {
       encoding: "utf8",
       maxBuffer: 512 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
@@ -401,51 +499,88 @@ function leerPr(numero, ejecutar = execFileSync) {
     });
   } catch (error) {
     const detalle = String(error.stderr || error.message || error).trim().split(/\r?\n/)[0];
-    throw new ErrorCarril(`gh pr diff ${numero} falló: ${detalle}`);
+    throw new ErrorCarril(`gh ${args.slice(0, 3).join(" ")} falló: ${detalle}`);
   }
-  const rutas = rutasDeDiff(texto);
-  if (rutas.length === 0) throw new ErrorCarril(`gh pr diff ${numero} no trajo archivos`);
-  return rutas;
 }
 
-const AYUDA = `Uso: node scripts/carril.mjs [--json] (--pr <N> | <ruta>... | < lista)
+function cabezaDePr(ejecutar, numero) {
+  const sha = String(correrGh(ejecutar, ["pr", "view", numero, "--json", "headRefOid", "--jq", ".headRefOid"])).trim();
+  if (!RE_SHA.test(sha)) throw new ErrorCarril(`gh pr view ${numero} no dio una cabeza válida («${sha}»)`);
+  return sha;
+}
+
+/**
+ * Lee la PR atada a su cabeza: la cabeza antes y después del diff tiene que ser la misma; si llegó un push en el
+ * medio, es un error (otra vuelta). Con `esperada`, la cabeza tiene que ser esa.
+ */
+function leerPr(numero, esperada, ejecutar = execFileSync) {
+  if (!/^\d+$/.test(String(numero))) throw new ErrorCarril(`--pr espera un número de PR, no «${numero}»`);
+  const n = String(numero);
+  const antes = cabezaDePr(ejecutar, n);
+  if (esperada && antes !== esperada) {
+    throw new ErrorCarril(`la cabeza de la PR ${n} es ${antes}, no ${esperada}`);
+  }
+  const texto = correrGh(ejecutar, ["pr", "diff", n, "--color=never"]);
+  const despues = cabezaDePr(ejecutar, n);
+  if (despues !== antes) {
+    throw new ErrorCarril(`la PR ${n} cambió de cabeza mientras se clasificaba (${antes} → ${despues})`);
+  }
+  const cambios = analizarDiff(texto);
+  if (cambios.size === 0) throw new ErrorCarril(`gh pr diff ${n} no trajo archivos`);
+  return { cambios, head: antes };
+}
+
+const AYUDA = `Uso: node scripts/carril.mjs [--json] (--pr <N> [--head <sha>] | --diff [--head <sha>] < diff | <ruta>... | < lista)
 
 Clasifica un diff en el carril «rapido» o «revision».
-  --pr <N>   lee el diff de la PR con «gh pr diff <N>» (rutas vieja y nueva de cada archivo)
-  <ruta>...  rutas por argumento
-  (stdin)    una ruta por línea, por ejemplo: git diff --name-only --no-renames A B | node scripts/carril.mjs
-  --json     salida en JSON (el contrato del tren)
-Salida: 0 = rapido, 1 = revision, 2 = error (cuenta como revision).`;
+  --pr <N>      lee el diff de la PR con «gh pr diff <N>» y su cabeza con «gh pr view»; el JSON trae «head»
+  --diff        stdin es un diff unificado (git diff --no-renames A B): mira rutas y líneas cambiadas
+  --head <sha>  la cabeza clasificada (40 caracteres); con --pr, tiene que ser la cabeza actual
+  <ruta>...     solo nombres por argumento (una pantalla así da revision: sin diff no se ve su contenido)
+  (stdin)       solo nombres, una ruta por línea
+  --json        salida en JSON (el contrato del tren)
+Salida: 0 = rapido, 1 = revision, 2 = error o esta ayuda (cuenta como revision).`;
 
 export function leerArgumentos(argv) {
-  const opciones = { json: false, pr: null, rutas: [], ayuda: false };
+  const opciones = { json: false, pr: null, head: null, diff: false, rutas: [], ayuda: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") opciones.json = true;
+    else if (a === "--diff") opciones.diff = true;
     else if (a === "-h" || a === "--help") opciones.ayuda = true;
-    else if (a === "--pr") {
-      if (i + 1 >= argv.length) throw new ErrorCarril("--pr necesita el número de la PR");
-      opciones.pr = argv[++i];
+    else if (a === "--pr" || a === "--head") {
+      if (i + 1 >= argv.length) throw new ErrorCarril(`${a} necesita un valor`);
+      opciones[a.slice(2)] = argv[++i];
     } else if (a.startsWith("--pr=")) opciones.pr = a.slice(5);
+    else if (a.startsWith("--head=")) opciones.head = a.slice(7);
     else if (a === "--") {
       opciones.rutas.push(...argv.slice(i + 1));
       break;
     } else if (a.startsWith("-")) throw new ErrorCarril(`opción desconocida: ${a}`);
     else opciones.rutas.push(a);
   }
-  if (opciones.pr !== null && opciones.rutas.length > 0) {
-    throw new ErrorCarril("usa --pr o rutas, no las dos cosas");
+  const fuentes = [opciones.pr !== null, opciones.diff, opciones.rutas.length > 0].filter(Boolean).length;
+  if (fuentes > 1) throw new ErrorCarril("usa una sola entrada: --pr, --diff o rutas");
+  if (opciones.head !== null && !RE_SHA.test(opciones.head)) {
+    throw new ErrorCarril(`--head espera el SHA completo de 40 caracteres, no «${opciones.head}»`);
   }
   return opciones;
 }
 
 function texto(resultado) {
   const lineas = [`carril: ${resultado.carril}`, `motivo: ${resultado.motivo}`];
+  if (resultado.head) lineas.push(`cabeza: ${resultado.head}`);
   if (resultado.causantes.length > 0) {
     lineas.push("archivos que piden revisión:");
     for (const c of resultado.causantes) lineas.push(`  ${c.ruta} — ${c.regla}: ${c.motivo}`);
   }
   return lineas.join("\n");
+}
+
+function leerStdin(io) {
+  const esTty = io.stdinEsTty ?? process.stdin.isTTY;
+  if (esTty) throw new ErrorCarril("faltan las rutas: pásalas por argumento, por stdin, con --diff o con --pr <N>");
+  return io.stdin ?? readFileSync(0, "utf8");
 }
 
 /** Punto de entrada. `io` permite probarlo sin procesos: { stdin, stdinEsTty, ejecutar, out, err }. */
@@ -458,19 +593,21 @@ export function main(argv, io = {}) {
     json = opciones.json;
     if (opciones.ayuda) {
       out(`${AYUDA}\n`);
-      return SALIDA.rapido;
+      return SALIDA.error;
     }
-    let rutas;
-    if (opciones.pr !== null) rutas = leerPr(opciones.pr, io.ejecutar);
-    else if (opciones.rutas.length > 0) rutas = opciones.rutas;
-    else {
-      const esTty = io.stdinEsTty ?? process.stdin.isTTY;
-      if (esTty) throw new ErrorCarril("faltan las rutas: pásalas por argumento, por stdin o con --pr <N>");
-      const entrada = io.stdin ?? readFileSync(0, "utf8");
-      rutas = entrada.split(/\r?\n/);
+    let resultado;
+    if (opciones.pr !== null) {
+      const { cambios, head } = leerPr(opciones.pr, opciones.head, io.ejecutar);
+      resultado = { ...clasificar([...cambios.keys()], cambios), origen: "pr", pr: Number(opciones.pr), head };
+    } else if (opciones.diff) {
+      const cambios = analizarDiff(leerStdin(io));
+      resultado = { ...clasificar([...cambios.keys()], cambios), origen: "diff" };
+    } else if (opciones.rutas.length > 0) {
+      resultado = { ...clasificar(opciones.rutas), origen: "args" };
+    } else {
+      resultado = { ...clasificar(leerStdin(io).split(/\r?\n/)), origen: "stdin" };
     }
-    const resultado = { ...clasificar(rutas), origen: opciones.pr !== null ? "pr" : opciones.rutas.length ? "args" : "stdin" };
-    if (opciones.pr !== null) resultado.pr = Number(opciones.pr);
+    if (opciones.head !== null && !resultado.head) resultado.head = opciones.head;
     out(json ? `${JSON.stringify(resultado, null, 2)}\n` : `${texto(resultado)}\n`);
     return SALIDA[resultado.carril];
   } catch (error) {
