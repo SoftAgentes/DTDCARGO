@@ -600,7 +600,8 @@ de `shipments` con la sesión, el 42501 saldría en producción. La guarda hace 
   (`ts.getParsedCommandLineOfConfigFile`), y se reutilizan ese programa y su checker. Las pruebas también
   arman un solo programa en memoria por grupo de mutantes;
 - **el costo se mide al implementar.** La F-3 anota en su handoff el tiempo y la memoria de la corrida
-  sobre el árbol real. Si pesa demasiado para correr en cada `verify`, se le avisa a Dir_DTD antes de
+  sobre el árbol real, y aparte el costo del chequeo de TS2307 del canario, que pide los diagnósticos del
+  programa. Si pesa demasiado para correr en cada `verify`, se le avisa a Dir_DTD antes de
   fusionar, con la medida.
 
 **Cómo lee el código.** Con el AST y el *type checker* del paquete `typescript`, que ya está en el repo
@@ -613,14 +614,23 @@ de `shipments` con la sesión, el 42501 saldría en producción. La guarda hace 
 - **El receptor de cada `.from(`, identificado por su declaración, y con falla cerrada** (séptima
   vuelta, 1). Para cada llamada `x.from(...)` la guarda toma el tipo de `x` y, de ese tipo, el archivo
   donde está declarado. El nombre del tipo no cuenta.
-  - **Es un cliente de tabla** si esa declaración vive en `node_modules/@supabase/supabase-js/` o en
-    `node_modules/@supabase/postgrest-js/`, con la ruta real ya resuelta. Esa llamada se analiza.
-    - **Por confirmar en la F-3:** este worktree de la spec no tiene `node_modules`, así que no se midió en
-      qué archivo declara cada versión instalada esos tipos.
-    - La F-3 confirma las dos rutas con las dependencias del lockfile. Si `@supabase/ssr` declara su propio
-      cliente, lo suma a esta lista, con un caso verde.
+  - **Es un cliente de tabla** si esa declaración está en el paquete `@supabase/supabase-js` o en
+    `@supabase/postgrest-js`. Esa llamada se analiza.
+    - **La comparación es por segmentos de la ruta, no por prefijo.** La ruta real ya resuelta se parte por
+      separador, y el paquete se reconoce por el par de segmentos `@supabase` y `<paquete>` que va justo
+      después del último `node_modules`.
+    - Así, una ruta de pnpm como
+      `node_modules/.pnpm/@supabase+postgrest-js@<versión>/node_modules/@supabase/postgrest-js/dist/…`
+      cuenta.
+    - En cambio, un `node_modules/@supabase/postgrest-js-falso/` o un `@supabase` en otro lugar de la ruta
+      no cuentan.
+    - **Las rutas exactas salen del lockfile** (criterio 20b). Este worktree de la spec no tiene
+      `node_modules`, así que no se midieron aquí.
+    - La F-3 las mide con las dependencias de `pnpm-lock.yaml` y cada una lleva su caso verde. Si
+      `@supabase/ssr` declara su propio cliente, también entra con su caso verde.
   - **Queda excluido** solo si la declaración está en la **lista positiva** de clases excluidas. La lista
-    vive en el JSON de excepciones, bajo `receptores_excluidos`, y cada entrada lleva su justificación:
+    vive en el JSON de excepciones, bajo `receptores_excluidos`. Se compara con los mismos segmentos de
+    ruta, y cada entrada lleva su justificación:
     - el cliente de storage, declarado en `node_modules/@supabase/storage-js/` (`StorageClient` y sus
       buckets);
     - los constructores de `Array` y de los arreglos tipados, declarados en los `lib.es*.d.ts` de
@@ -959,8 +969,15 @@ superusuario.
     forma y la línea esperadas. El canario se pone rojo, con salida 1 y sin dar un verde vacío, cuando
     `@supabase/supabase-js` no resuelve, cuando hay un TS2307 y cuando no se alcanza el piso. Los casos
     verdes pasan, el árbol real da cero hallazgos con el canario en verde, y volver a poner el `.select()`
-    vacío en el POST la pone roja. El paso `shipments-select` de `verify.mjs` corre después de `typecheck`,
-    y la F-3 anota en su handoff cuánto tarda y cuánta memoria usa.
+    vacío en el POST la pone roja. El paso `shipments-select` de `verify.mjs` corre después de `typecheck`.
+    - **Rutas de declaración de `@supabase/*`:** la F-3 las mide con las dependencias de `pnpm-lock.yaml` y
+      las anota en su handoff. Cada paquete reconocido tiene su caso verde con su ruta real de pnpm (dentro
+      de `node_modules/.pnpm/…`): `@supabase/supabase-js`, `@supabase/postgrest-js` y, si declara su propio
+      cliente, `@supabase/ssr`.
+    - La comparación es por segmentos. Un caso rojo con un paquete de nombre parecido, como
+      `@supabase/postgrest-js-falso`, da `from-receptor-sin-resolver`.
+    - **Costo:** la F-3 anota en su handoff cuánto tardan la corrida y el chequeo de TS2307 del canario, y
+      cuánta memoria usan.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
