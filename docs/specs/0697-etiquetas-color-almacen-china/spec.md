@@ -125,8 +125,9 @@ y ninguna se combina con otra.
   las insignias evitan perder la segunda situación.
 - Nunca se crea un indicador combinado («marca con montacargas»). Dos situaciones = dos indicadores.
 - «Tax refund, o elementos en la puerta del contenedor» son dos situaciones con un solo color. **Decisión
-  de Sam (2026-11-20): se parten en dos indicadores que comparten el verde**, «Devolución de impuestos» y
-  «Va en la puerta del contenedor» (pregunta 10, §7). 封门 («puerta sellada») en la hoja marca ese bloque.
+  de Sam (2026-11-20): se parten en dos indicadores**, «Devolución de impuestos» (verde) y
+  «Va en la puerta del contenedor» (pregunta 10, §7), que **deja el verde y pasa a navy** con su ícono de puerta
+  (Sam, 2026-11-20). 封门 («puerta sellada») en la hoja marca ese bloque.
 - Celeste y rosa no existen en la paleta de `BRAND.md` (§2.2): agregarlos necesita OK de diseño.
 
 **Los indicadores tienen consecuencias (Sam, 2026-11-20).** No son solo información: pueden generar un cobro,
@@ -171,14 +172,14 @@ nada en esta spec.
 
 **Catálogo inicial (sembrado en la migración B, a confirmar con las preguntas 4, 7, 8 y 10):**
 
-| Prioridad | Indicador (es-VE / zh-CN) | Color | Grupo | ¿Venezuela? | Efecto |
-|---|---|---|---|---|---|
-| 1 | Marca sin autorización / 品牌无授权 | ámbar | documentos y aduana | sí | tarea |
-| 2 | Carga especial / 特殊货物 | rojo | carga especial | sí | cobro al cliente |
-| 3 | Devolución de impuestos / 退税 | verde | trámite con el proveedor | no | cobro y costo |
-| 4 | Va en la puerta del contenedor / 装在柜门口 | verde | carga especial | sí | ninguno |
-| 5 | Uso de montacargas / 需要叉车 | rosa | carga especial | sí | cobro y costo |
-| 6 | Revisión o remedida / 复查或复量 | celeste | trámite con el proveedor | no | tarea |
+| Prioridad | Indicador (es-VE / zh-CN) | Color | Ícono | Grupo | ¿Venezuela? | Efecto |
+|---|---|---|---|---|---|---|
+| 1 | Marca sin autorización / 品牌无授权 | ámbar | escudo (`shield`) | documentos y aduana | sí | tarea |
+| 2 | Carga especial / 特殊货物 | rojo | llama (`flame`) | carga especial | sí | cobro al cliente |
+| 3 | Devolución de impuestos / 退税 | verde | factura (`invoice`) | trámite con el proveedor | no | cobro y costo |
+| 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | sí | ninguno |
+| 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | sí | cobro y costo |
+| 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | no | tarea |
 
 Los textos zh-CN los revisa un hablante nativo antes de producción.
 
@@ -199,12 +200,42 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
   pantalla.
 - **Color de fila:** el del indicador vivo con menor `orden` (mayor prioridad), en tono suave para que el
   texto se lea. Sin indicadores, la fila va sin color.
+- **Ícono (Sam, 2026-11-20):** cada indicador lleva un ícono además del color, de una lista fija (§2.7). El
+  ícono distingue dos indicadores del mismo color y sirve a quien no distingue colores. Sale del catálogo
+  central `app/studio/_components/icons.tsx` (ICO-01): `shield`, `flame`, `invoice`, `flag`, `warn`, `box`,
+  `camera`, `clock`, `lock` y `star` ya existen; `door`, `forklift`, `ruler`, `battery`, `fragile` y `scale` se agregan ahí, con su revisión de ICO-01 (significado único,
+  nombre accesible, claro y oscuro). La insignia lleva ícono **y** texto; en la fila pintada, el ícono va al
+  lado de la marca.
 - **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
   muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
   calcula montos ni toca facturas (§2.0).
 - **Quién crea y edita** (Sam, 2026-11-20, pregunta 2: «cualquiera de China»): `admin`, o cualquier miembro activo
   de región `cn` con rol `warehouse` u `operations` (los que editan en el módulo `cn`; `support` solo lee). Venezuela no edita
   el catálogo de China.
+
+### 2.2.1 La sección «Indicadores de carga» (Sam, 2026-11-20)
+
+Sam pidió un lugar para crear indicadores con un paquete de íconos, sin que se repitan, y simple. Buenas
+prácticas de las herramientas que lo hacen bien (las etiquetas de Linear, Jira, GitHub o Notion):
+
+- **Es una sección, no un módulo.** Un módulo es una entrada del menú lateral con sus propios permisos. Esto
+  es la configuración de Almacén China: una página `/studio/cn/indicadores`, a la que se entra con un botón
+  «Indicadores» en el encabezado de Almacén China. No suma nada al menú.
+- **Una sola pantalla, una lista.** Cada fila muestra la insignia tal como se verá (ícono, color y nombre),
+  la descripción, «¿Venezuela?», el efecto y cuántas recepciones vivas la usan. Arriba, «Nuevo indicador».
+- **Crear y editar en un panel lateral corto**, con vista previa en vivo de la insignia. Campos en este orden:
+  nombre (es y zh), ícono, color, descripción, ¿la ve Venezuela?, efecto. El grupo y la prioridad tienen un
+  valor por defecto; la prioridad se cambia arrastrando la fila (con botones subir y bajar para teclado).
+- **Paquete fijo de íconos**, en una cuadrícula: los 16 de la §2.7. Los que ya usa otro indicador vivo se ven
+  apagados, con el nombre de quién lo usa al pasar el cursor, y no se pueden elegir. La base lo repite con un
+  índice único. Si se acaban, se archiva uno o se pide un ícono nuevo (cambio de código con revisión ICO-01).
+- **Colores:** la paleta de ocho. Pueden repetirse, porque el ícono ya distingue; si el color elegido ya lo
+  usa otro, la pantalla lo avisa sin bloquear.
+- **No se crea desde la fila.** Al poner un indicador a una recepción solo se elige de la lista; crear va
+  siempre en la sección. Así el catálogo no se llena de duplicados escritos con prisa.
+- **Archivar, no borrar** (§2.2), con «Mostrar archivados» al pie de la lista.
+- **Tope sugerido:** hasta 12 indicadores vivos. Más que eso ya no se lee de un vistazo, como pasa con la
+  leyenda de la hoja.
 
 ### 2.3 Asignación a la recepción
 
@@ -319,9 +350,11 @@ create table public.warehouse_tags (
   descripcion_zh text check (descripcion_zh is null or length(descripcion_zh) <= 140),
   grupo          text not null check (grupo in ('carga_especial', 'documentos_aduana', 'tramite_proveedor')),
   color          text not null check (color in ('ambar', 'rojo', 'verde', 'celeste', 'rosa', 'azul', 'navy', 'gris')),
-  visible_ve     boolean not null default false,
   efecto         text not null default 'ninguno'
                  check (efecto in ('ninguno', 'cobro_cliente', 'costo_proveedor', 'cobro_y_costo', 'tarea')),
+  icono          text not null
+                 check (icono in ('shield', 'flame', 'invoice', 'door', 'forklift', 'ruler', 'flag', 'warn',
+                                  'box', 'battery', 'fragile', 'scale', 'camera', 'clock', 'lock', 'star')),
   orden          smallint not null default 0,
   created_by     uuid references auth.users(id),
   created_at     timestamptz not null default now(),
@@ -338,6 +371,10 @@ create unique index warehouse_tags_nombre_es_vivo_uq
 create unique index warehouse_tags_nombre_zh_vivo_uq
   on public.warehouse_tags (tenant_id, btrim(nombre_zh))
   where archived_at is null and nombre_zh is not null;
+
+-- Un ícono no se repite entre los indicadores vivos del tenant (Sam, 2026-11-20).
+create unique index warehouse_tags_icono_vivo_uq
+  on public.warehouse_tags (tenant_id, icono) where archived_at is null;
 
 create table public.warehouse_receipt_tags (
   id           uuid primary key default gen_random_uuid(),
@@ -517,7 +554,10 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `lib/studio/almacen-cn-contenedores-queries.ts`: las etiquetas en «En camino».
 - `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/tag-actions.ts` (nuevo, server actions que llaman a las RPC).
 - `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`, `CaminoCn.tsx`, `FilaCamino.tsx`.
-- `app/studio/(app)/cn/_components/IndicadoresRecepcion.tsx`, `CatalogoIndicadores.tsx`, `HistorialRecepcion.tsx` (nuevos).
+- `app/studio/(app)/cn/_components/IndicadoresRecepcion.tsx`, `HistorialRecepcion.tsx` (nuevos).
+- `app/studio/(app)/cn/indicadores/page.tsx` y `app/studio/(app)/cn/indicadores/_components/CatalogoIndicadores.tsx` (nuevos: la sección del §2.2.1).
+- `app/studio/(app)/cn/_components/EncabezadoCn.tsx`: el botón «Indicadores».
+- `app/studio/_components/icons.tsx`: los íconos nuevos del paquete (`door`, `forklift`, `ruler`, `battery`, `fragile`, `scale` y los que falten).
 - `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`.
 - Pruebas: `app/studio/(app)/cn/__tests__/tag-actions.test.ts`, `app/studio/(app)/cn/_components/__tests__/IndicadoresRecepcion.test.tsx`, `HistorialRecepcion.test.tsx`, `CatalogoIndicadores.test.tsx`, `lib/studio/__tests__/warehouse-tags-queries.test.ts`.
 - `docs/specs/0697-etiquetas-color-almacen-china/spec.md`, `docs/specs/README.md`, `.agents/handoffs/`.
@@ -602,6 +642,8 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
    recepción de T1.
 5. **Unicidad del nombre:** dos vivas con «Montacargas» y « montacargas » en T1 → la segunda falla. Archivada
    la primera, la segunda pasa. El mismo nombre en T2 pasa.
+   **Ícono único:** dos vivas con `forklift` en T1 → la segunda falla; archivada la primera, pasa; el mismo
+   ícono en T2 pasa. Un ícono fuera del paquete falla por el `check`.
 6. **Unicidad de la asignación viva:** asignar dos veces la misma etiqueta a la misma recepción → la segunda
    falla. Quitada, se puede volver a asignar, y quedan dos filas (una con `removed_at`).
 7. **Archivada no se asigna:** `asignar_etiqueta_recepcion` con una archivada falla y no escribe evento.
