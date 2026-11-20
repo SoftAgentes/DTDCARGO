@@ -112,7 +112,9 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     expect(estado.tablas).toContain("invoices");
     expect(props.montos).toEqual({
       estado: "lista",
-      porEmbarque: { s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0 } },
+      porEmbarque: {
+        s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
+      },
     });
   });
 

@@ -81,6 +81,10 @@ export type MontoAcumulado = {
   porCobrarUsd: number;
   cobradoUsd: number;
   otraMoneda: number;
+  /** SDD-0689: facturas en borrador (precio cargado, todavía sin emitir). */
+  borradores: number;
+  /** SDD-0689: USD de los borradores: el «Total sin facturar» del encabezado. */
+  sinFacturarUsd: number;
 };
 
 /**
@@ -101,7 +105,14 @@ export type FacturaDeEmbarque = {
   status: string | null;
 };
 
-const MONTO_VACIO: MontoAcumulado = { facturas: 0, porCobrarUsd: 0, cobradoUsd: 0, otraMoneda: 0 };
+const MONTO_VACIO: MontoAcumulado = {
+  facturas: 0,
+  porCobrarUsd: 0,
+  cobradoUsd: 0,
+  otraMoneda: 0,
+  borradores: 0,
+  sinFacturarUsd: 0,
+};
 
 function redondear(n: number): number {
   return Math.round(n * 100) / 100;
@@ -121,8 +132,10 @@ export function montosPorEmbarque(
     m.facturas += 1;
     const total = Number(f.total_amount);
     const pagado = Number(f.paid_amount ?? 0);
+    if (f.status === "borrador") m.borradores += 1;
     if (f.currency === "USD" && Number.isFinite(total)) {
       m.porCobrarUsd = redondear(m.porCobrarUsd + total);
+      if (f.status === "borrador") m.sinFacturarUsd = redondear(m.sinFacturarUsd + total);
       if (Number.isFinite(pagado)) m.cobradoUsd = redondear(m.cobradoUsd + pagado);
     } else {
       m.otraMoneda += 1;
@@ -144,6 +157,8 @@ export function sumarMontos(
     t.porCobrarUsd = redondear(t.porCobrarUsd + m.porCobrarUsd);
     t.cobradoUsd = redondear(t.cobradoUsd + m.cobradoUsd);
     t.otraMoneda += m.otraMoneda;
+    t.borradores += m.borradores;
+    t.sinFacturarUsd = redondear(t.sinFacturarUsd + m.sinFacturarUsd);
   }
   return t;
 }
