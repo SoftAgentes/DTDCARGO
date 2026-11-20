@@ -17,9 +17,9 @@ Fecha: 2026-11-20.
     a la pre-orden; en la pantalla se dice «pre-orden»;
   - el cliente sin precio: monto tecleado.
 - Pendientes de Sam:
-  - el camino de la aceptación de T&C. La quiere exigir en el portal; es una SDD propia. Hasta decidirlo no
-    se escribe la RPC ni la ampliación de la EXC-0674;
-  - la versión (A) o (B) del resumen de dinero.
+  - la versión (A) o (B) del resumen de dinero. Hasta que la elija, no hay código.
+- T&C, decidido por Sam: se exige en el portal (SDD-0693). La RPC emite bajo la EXC-0674 ampliada; la
+  ampliación se anota en el registro en la PR de implementación.
 
 ## Hecho
 
