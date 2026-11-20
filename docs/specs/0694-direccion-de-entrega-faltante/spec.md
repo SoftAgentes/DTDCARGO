@@ -258,13 +258,21 @@ SDD-0695 (§4.10 y F-9a):
 
 **Definición de `client_delivery_address_save_service`** (idéntica en la 0694 §4.3 y la 0695 §4.10):
 
-- **Firma:** `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug,
-  p_state, p_reference, p_make_default)`. La lógica de la predeterminada es la misma de
-  `client_delivery_address_save`: alta, `update` de la predeterminada anterior e `insert` en una
-  transacción.
-- **Tenant:** `p_client_id` tiene que existir en `public.clients`, estar vivo (`deleted_at is null` y
-  `merged_into_client_id is null`) y ser de `p_tenant_id`. Si no, la RPC termina con error y no escribe
-  nada.
+- **Solo inserta la primera dirección de un cliente recién creado.** Firma:
+  `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug, p_state,
+  p_reference)`. No recibe `p_address_id`, no edita filas y no elige otra predeterminada. La fila que
+  inserta queda como predeterminada.
+- **Condiciones:** si falla cualquiera, la RPC termina con error y no escribe nada.
+  - `p_client_id` existe en `public.clients` y está vivo (`deleted_at is null` y `merged_into_client_id is
+    null`);
+  - el `tenant_id` del cliente es `p_tenant_id`;
+  - el cliente **no tiene ninguna dirección viva**;
+  - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos.
+- **Por qué esa ventana, y no un marcador.** `registerClientAction` crea la ficha y llama a esta RPC en la
+  misma petición, a segundos de distancia. La ventana no necesita una columna nueva en `clients` ni un
+  estado que limpiar después. Junto con la condición de «sin dirección viva», impide que la función sirva
+  para escribir en fichas viejas aunque alguien consiguiera ejecutarla con service_role. Un marcador del
+  registro obligaría a otra migración de `clients` y a decidir cuándo se borra.
 - **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
   Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
 - **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
@@ -272,10 +280,15 @@ SDD-0695 (§4.10 y F-9a):
   TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
   `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
   `app/` o `lib/` la invoca.
-- **Pruebas:** van en la 0694 F-2, donde nace la función. Un `.test.sql` comprueba que `authenticated` y
-  `anon` no la pueden ejecutar (`has_function_privilege`), y que con el id de un cliente de otro tenant,
-  de un cliente borrado, de un cliente fusionado o de un id inexistente da error y no escribe ninguna
-  fila. La 0695 F-9a solo la cita.
+- **Pruebas.** Van en la 0694 F-2, donde nace la función, en un `.test.sql`, con un caso por condición:
+  - `public`, `anon` y `authenticated` no la pueden ejecutar, y `service_role` sí (`has_function_privilege`);
+  - un cliente recién creado y sin direcciones recibe una fila predeterminada;
+  - un cliente que ya tiene una dirección viva da error y no escribe;
+  - un cliente creado hace más de 10 minutos da error y no escribe;
+  - con un `p_tenant_id` que no es el del cliente da error y no escribe;
+  - un cliente borrado, uno fusionado y un id inexistente dan error y no escriben.
+
+  La 0695 F-9a solo las cita.
 
 Las RPC SQL que escriben dentro de su propia transacción (el registro por enlace, la copia de §4.1, las
 semillas y el `_complete` de la 0696) cumplen la regla porque son una sola transacción.
@@ -614,10 +627,12 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
     - El paso 2 muestra el campo opcional debajo de la ciudad y el estado, con la etiqueta, el placeholder y la
       ayuda decididos.
     - El alta escribe la dirección con `client_delivery_address_save_service`, no con un insert directo.
-    - `client_delivery_address_save_service` (definición en §4.3), con un `.test.sql`: `authenticated` y
-      `anon` no la pueden ejecutar, y con el id de un cliente de otro tenant, borrado, fusionado o
-      inexistente da error sin escribir. Una prueba de contrato falla si otro archivo de `app/` o `lib/`,
-      fuera de `registerClientAction` y de las dos acciones de enlace permitidas, la invoca.
+    - `client_delivery_address_save_service` (definición en §4.3) tiene un `.test.sql` con un caso por
+      condición: privilegios de `public`, `anon`, `authenticated` y `service_role`; cliente recién creado
+      sin direcciones; cliente con una dirección viva; cliente de más de 10 minutos; `p_tenant_id`
+      distinto; cliente borrado, fusionado e inexistente. Una prueba de contrato falla si otro archivo de
+      `app/` o `lib/`, fuera de `registerClientAction` y de las dos acciones de enlace permitidas, la
+      invoca.
     - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
       ciudad y el estado del paso 2, y `clients.address` queda en null.
     - Con el campo vacío, no crea ninguna fila.
