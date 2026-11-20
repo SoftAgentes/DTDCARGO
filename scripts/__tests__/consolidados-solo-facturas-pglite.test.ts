@@ -12,7 +12,7 @@
  */
 import { PGlite } from "@electric-sql/pglite";
 import { afterEach, describe, expect, it } from "vitest";
-import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
+import { agruparLote, type FilaPacking, type Lote, type Rastreo } from "../consolidados/modelo";
 import { generarSql, MARCA_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
 
 const RASTREO: Rastreo = {
@@ -99,11 +99,30 @@ insert into public.consolidation_items (tenant_id, shipment_id, consolidation_id
     .join("\n");
 }
 
-function aplicarSql(): string {
-  const l = agruparLote(RASTREO, FILAS, { eta: "2026-10-19", excesoPeso: false });
-  const a = generarSql(l, SOLO, { rastreo: "a".repeat(64), packing: "d".repeat(64) }).aplicar;
+function loteDe(filas: FilaPacking[] = FILAS, excesoPeso = false): Lote {
+  return agruparLote(RASTREO, filas, { eta: "2026-10-19", excesoPeso });
+}
+
+function sqlDe(l: Lote, paso: "aplicar" | "verificar"): string {
+  const t = generarSql(l, SOLO, { rastreo: "a".repeat(64), packing: "d".repeat(64) })[paso];
   // Sin los meta-comandos de psql (\set …): PGlite no es psql.
-  return a.split("\n").filter((x) => !x.startsWith("\\")).join("\n");
+  return t.split("\n").filter((x) => !x.startsWith("\\")).join("\n");
+}
+
+function aplicarSql(l: Lote = loteDe()): string {
+  return sqlDe(l, "aplicar");
+}
+
+/** Corre verificar.sql sobre la base ya aplicada y devuelve su aviso (o lanza su FALLÓ). */
+async function verificar(l: Lote): Promise<string> {
+  const avisos: string[] = [];
+  await db!.exec(sqlDe(l, "verificar"), { onNotice: (n) => avisos.push(n.message ?? "") });
+  return avisos.find((a) => a.startsWith("verificar solo-facturas")) ?? "";
+}
+
+/** Base de unas líneas como la calcula el bloque: round(sum(qty × precio), 2). */
+function base(lineas: { qty: number; unitPrice: number }[]): number {
+  return Math.round(lineas.reduce((t, x) => t + x.qty * x.unitPrice, 0) * 100) / 100;
 }
 
 type Preorden = { client_markbox: string; shipment_code: string; base_amount: string; codigos: string; notes: string };
@@ -114,11 +133,14 @@ afterEach(async () => {
   db = null;
 });
 
-async function correr(duenos: Record<string, string>): Promise<{ preordenes: Preorden[]; aviso: string }> {
+async function correr(
+  duenos: Record<string, string>,
+  l: Lote = loteDe(),
+): Promise<{ preordenes: Preorden[]; aviso: string }> {
   db = new PGlite();
   await db.exec(ESQUEMA + envios(duenos));
   const avisos: string[] = [];
-  await db.exec(aplicarSql(), { onNotice: (n) => avisos.push(n.message ?? "") });
+  await db.exec(aplicarSql(l), { onNotice: (n) => avisos.push(n.message ?? "") });
   const r = await db.query<Preorden>(`
     select client_markbox, shipment_code, base_amount::text as base_amount, notes,
            (select string_agg(l ->> 'shipmentCode', ',' order by l ->> 'shipmentCode')
@@ -162,6 +184,56 @@ describe("SDD-0690 · --solo-facturas: una pre-orden por cliente (PGlite)", { ti
     expect(avisos.find((a) => a.startsWith("solo-facturas lote"))).toContain(
       "· 2 Shipping Marks · 0 clientes con pre-orden nueva · 2 saltados",
     );
+  });
+
+  it("verificar pasa con una factura viva por Shipping Mark", async () => {
+    await correr({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5002", "DTD-A116-06": "DTD-5002" });
+    expect(await verificar(loteDe())).toBe(
+      "verificar solo-facturas: PASÓ · 2 de 2 clientes con una factura viva · 2 pre-órdenes de esta carga",
+    );
+  });
+
+  it("verificar mira sólo a los dueños de envíos con alguna línea PROPIA, como aplicar", async () => {
+    // DTD-J031-06 queda sin ninguna línea (como si su fila no generara cobro) y es de otro dueño. Su clave
+    // sí tiene líneas (las de DTD-J031-05): con el criterio por clave, verificar le pedía factura a
+    // DTD-5002 y daba un FALLÓ falso. aplicar no le crea pre-orden: cuenta 1 sin líneas.
+    const l = loteDe();
+    for (const c of l.clientes) c.lineas = c.lineas.filter((x) => x.remitente !== "DTD-J031-06");
+    const { preordenes, aviso } = await correr(
+      { "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5002", "DTD-A116-06": "DTD-5001" },
+      l,
+    );
+    expect(preordenes.map((p) => p.client_markbox)).toEqual(["DTD-5001"]);
+    expect(aviso).toContain("· 2 Shipping Marks · 1 clientes con pre-orden nueva · 0 saltados (ya tenían factura viva) · 1 sin líneas");
+    expect(await verificar(l)).toBe(
+      "verificar solo-facturas: PASÓ · 1 de 1 clientes con una factura viva · 1 pre-órdenes de esta carga",
+    );
+  });
+
+  it("invariante: lo que suman las pre-órdenes por dueño es lo que suman las líneas por clave (con exceso de peso)", async () => {
+    // DTD-J031-05 lleva DOS líneas en el mismo envío: el flete y el exceso de peso.
+    const filas = FILAS.map((f) =>
+      f.remitente === "DTD-J031-05" ? { ...f, extraKg: 50, precioKgExtra: 0.8, valorKgExtra: 40 } : f,
+    );
+    const l = loteDe(filas, true);
+    const duenos = { "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5002", "DTD-A116-06": "DTD-5002" };
+    const lineas = l.clientes.flatMap((c) => c.lineas);
+    expect(lineas.filter((x) => x.remitente === "DTD-J031-05")).toHaveLength(2);
+    const { preordenes } = await correr(duenos, l);
+    // Por dueño: la base de su pre-orden es la de las líneas de sus envíos, y lleva todas esas líneas.
+    for (const p of preordenes) {
+      const suyas = lineas.filter((x) => duenos[x.remitente as keyof typeof duenos] === p.client_markbox);
+      expect(Number(p.base_amount)).toBe(base(suyas));
+      expect(p.codigos.split(",")).toHaveLength(suyas.length);
+    }
+    // En total: la suma por dueño es la suma por clave del Excel.
+    const porDueno = Math.round(preordenes.reduce((t, p) => t + Number(p.base_amount), 0) * 100) / 100;
+    const porClave = Math.round(l.clientes.reduce((t, c) => t + base(c.lineas), 0) * 100) / 100;
+    expect(porDueno).toBe(porClave);
+    expect(preordenes.map((p) => [p.client_markbox, p.base_amount])).toEqual([
+      ["DTD-5001", "840.00"],
+      ["DTD-5002", "1975.00"],
+    ]);
   });
 
   it("un envío sin Shipping Mark aborta todo sin escribir", async () => {

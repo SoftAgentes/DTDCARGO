@@ -1432,6 +1432,20 @@ function enviosConEtiqueta(lote: Lote, soloConLineas: boolean): string {
   return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
 }
 
+/**
+ * SDD-0690 · Los envíos que tienen alguna línea PROPIA (por `remitente`), con su etiqueta. Es el mismo
+ * criterio de `aplicar` con `--solo-facturas`, que reparte las líneas por el dueño de cada envío: un
+ * dueño cuyos envíos no tienen ninguna línea no lleva pre-orden, y `verificar` no tiene que pedírsela.
+ */
+function enviosConLineasPropias(lote: Lote): string {
+  const etiquetas = new Map(marcasDelLote(lote).map((m) => [m.clave, m.etiqueta]));
+  const conLinea = new Set(lote.clientes.flatMap((c) => c.lineas.map((l) => (l.remitente ?? "").toUpperCase())));
+  const filas = lote.embarques
+    .filter((e) => conLinea.has(e.remitente.toUpperCase()))
+    .map((e) => `(${litSql(e.remitente)}, ${litSql(etiquetas.get(e.clave) ?? e.clave)})`);
+  return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
+}
+
 function previaSoloFacturas(lote: Lote, o: OpcionesSql): string {
   const contenedor = litSql(normalizarCodigo(lote.rastreo.contenedor));
   return `\\set ON_ERROR_STOP on
@@ -1494,7 +1508,7 @@ declare
   n_clientes int; n_una int; n_ninguna int; n_varias int; n_preordenes int;
 begin
   with envios(remitente, etiqueta) as (values
-    ${enviosConEtiqueta(lote, true)}
+    ${enviosConLineasPropias(lote)}
   ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
   -- SDD-0690: por Shipping Mark vivo de los envíos (el cliente), no por clave del Excel.
   por_cliente as (
