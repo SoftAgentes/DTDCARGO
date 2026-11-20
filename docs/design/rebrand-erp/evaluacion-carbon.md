@@ -41,7 +41,7 @@
 
 ### Componentes que cubren casos de ERP
 
-`DataTable` (ordenar, seleccionar, acciones por lote, expandir, skeleton), `Modal`/`ComposedModal`/`Tearsheet`, `Notification` (inline, toast, accionable), `InlineLoading`/`Loading`/`ProgressBar`, `Tag`, `Tabs`/`ContentSwitcher`, `Dropdown`/`ComboBox`/`MultiSelect`, `DatePicker`, `NumberInput`, `FileUploader`, `TreeView`, `UIShell` (encabezado y menú lateral), `PageHeader`, `Heading`/`Section`, `Layer`, `Stack`, `OverflowMenu`/`MenuButton`/`ComboButton`, `ConditionBuilder` y más (`packages/react/src/components/`, **C**). Cubre el mismo terreno que nuestras primitivas; la tabla es menos potente que la de Ant Design (**I**, no comparado en uso).
+`DataTable` (ordenar, seleccionar, acciones sobre varias filas, expandir, skeleton), `Modal`/`ComposedModal`/`Tearsheet`, `Notification` (inline, toast, accionable), `InlineLoading`/`Loading`/`ProgressBar`, `Tag`, `Tabs`/`ContentSwitcher`, `Dropdown`/`ComboBox`/`MultiSelect`, `DatePicker`, `NumberInput`, `FileUploader`, `TreeView`, `UIShell` (encabezado y menú lateral), `PageHeader`, `Heading`/`Section`, `Layer`, `Stack`, `OverflowMenu`/`MenuButton`/`ComboButton`, `ConditionBuilder` y más (`packages/react/src/components/`, **C**). Cubre el mismo terreno que nuestras primitivas; la tabla es menos potente que la de Ant Design (**I**, no comparado en uso).
 
 ## 2. Seguridad
 

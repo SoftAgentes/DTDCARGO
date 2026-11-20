@@ -124,7 +124,7 @@ Lo que **no** está hoy en el Studio, contado por archivos (**M**; algunos puede
 | 5 | **Ayuda al pasar el cursor accesible** (tooltip), sobre todo para explicar un botón deshabilitado | 0 componente; 91 textos cortados dependen de `title` | Carbon `Tooltip`/`Toggletip`; BTN-01 §6 ya lo pide | Se entiende por qué no puedo oprimir |
 | 6 | **Migas de pan** en pantallas de detalle | 1 | Carbon `Breadcrumb` | Saber dónde estoy y volver |
 | 7 | **Botón «Copiar»** único para códigos (Shipping Mark, contenedor, factura) | 17 archivos, cada uno a su manera | Carbon `CopyButton` | Mismo gesto y misma confirmación en todo el ERP |
-| 8 | **Barra de acciones por lote** uniforme | 10 archivos distintos | Carbon `DataTable` (acciones por lote) | Seleccionar varias filas se ve igual en todos los módulos |
+| 8 | **Barra de acciones sobre varias filas** uniforme | 10 archivos distintos | Carbon `DataTable` (su barra de acciones sobre varias filas) | Seleccionar varias filas se ve igual en todos los módulos |
 | 9 | **Orden de columnas anunciado y visible** | `aria-sort` en 1 archivo | A11Y-01; Carbon y Ant Design lo traen | Se ve por qué columna está ordenado |
 | 10 | **Encabezado y primera columna fijos** en tablas anchas | 9 archivos | Ant Design `Table` (`fixed`); tokens `--shadow-sticky-*` ya existen | No perder de vista el cliente al desplazarse |
 | 11 | **Indicador de pasos** en asistentes | por módulo | Carbon `ProgressIndicator`; WIZ-01 | Saber cuánto falta |

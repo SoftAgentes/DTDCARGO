@@ -4,9 +4,9 @@
 - Owner: Worker «Rebrand Design» (Claude Code, Sonnet 5.5), sesión iniciada por el Director General
 - Worktree: `.claude/worktrees/rebrand-design-aa6ba9`
 - Rama: `claude/rebrand-design-aa6ba9` (el encargo la llama `rebrand-design`)
-- Base: `origin/main` `9ba6bcf32`
-- SDD: **ninguno**. Tarea de análisis: no cambia comportamiento del Studio ni código de producto. Propone SDD futuros sin reservar números.
-- Estado de tarea: **lista para revisión**. Sin push, sin PR, sin merge: no hay orden del Director ni de Sam para publicar.
+- Base: `origin/main` `9ba6bcf32` al empezar; `2ea18799a` al abrir la PR #715
+- SDD: **ninguno** propio (tarea de análisis, sin código de producto). Sus propuestas se volvieron las SDD-0686, 0687 y 0688, con reservas `codex/sdd-reserve-0686`, `-0687` y `-0688`.
+- Estado de tarea: **cerrada.** Publicada por orden del Director General en la PR #715 (2026-11-20), aprobada por revisión independiente sobre `d10f228c2` y puesta al día con `origin/main` `2ea18799a`. El análisis lo adoptan las SDD-0686, 0687 y 0688.
 - Entregable principal: [`docs/design/rebrand-erp/evaluacion-ant-design.md`](../../docs/design/rebrand-erp/evaluacion-ant-design.md)
 
 ## OBJETIVO ORIGINAL

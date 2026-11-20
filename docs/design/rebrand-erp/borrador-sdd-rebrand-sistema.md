@@ -1,6 +1,6 @@
 # Borrador de SDD · Rebrand del sistema completo: color de acción, cifras y simetría
 
-> Estado: **borrador sin número**. El número de SDD lo asigna el Director; al asignarlo, este texto pasa a `docs/specs/NNNN-…/spec.md` con su front-matter. **No cambia código, tokens ni `BRAND.md` todavía.**
+> Estado: **adoptado** en tres SDD, con números del Director General (2026-11-20): [SDD-0686 color de acción](../../specs/0686-rebrand-color-accion-azul/spec.md) (reserva `codex/sdd-reserve-0686`), [SDD-0687 formato de cifras](../../specs/0687-rebrand-cifras-formato-ve/spec.md) (`codex/sdd-reserve-0687`) y [SDD-0688 simetría de pantallas](../../specs/0688-rebrand-simetria-pantallas/spec.md) (`codex/sdd-reserve-0688`). Las specs mandan; este borrador queda como evidencia fechada. Las specs 0687 y 0688 llegan a `main` en sus propias PR; hasta entonces sus enlaces no resuelven.
 > Fecha: 2026-11-20 · Rama `rebrand-design`. Etiquetas: **C** código leído · **M** medido · **I** inferencia · **NV** no verificado.
 > Insumos: [checklist-y-color.md](checklist-y-color.md), [mejoras-ux-adaptables.md](mejoras-ux-adaptables.md), [evaluacion-ant-design.md](evaluacion-ant-design.md), [evaluacion-carbon.md](evaluacion-carbon.md).
 
