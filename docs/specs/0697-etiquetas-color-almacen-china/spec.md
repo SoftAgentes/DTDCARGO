@@ -186,19 +186,18 @@ nada en esta spec.
 | Color | Distinguir de un vistazo y pintar la fila, de una paleta fija | rosa (como en la hoja) |
 | Prioridad (`orden`) | Qué color gana cuando la fila tiene varios | 5 |
 | Descripción (es-VE y zh-CN) | Qué significa y qué hay que hacer | «Carga pesada o paletizada: hace falta montacargas para bajarla. En China lo paga el proveedor; en Venezuela hay que tenerlo listo.» |
-| ¿La ve Venezuela? | Si sale en Almacén VE, Embarques y Tracking | sí |
 | Efecto | Si genera cobro al cliente, costo del proveedor, los dos, una tarea o nada | cobro y costo |
 
 **Catálogo inicial (sembrado en la migración B, a confirmar con las preguntas 4, 7, 8 y 10):**
 
-| Prioridad | Indicador (es-VE / zh-CN) | Color | Ícono | Grupo | ¿Venezuela? | Efecto |
-|---|---|---|---|---|---|---|
-| 1 | Marca sin autorización / 品牌无授权 | ámbar | escudo (`shield`) | documentos y aduana | sí | tarea |
-| 2 | Carga especial / 特殊货物 | rojo | llama (`flame`) | carga especial | sí | cobro al cliente |
-| 3 | Devolución de impuestos / 退税 | verde | factura (`invoice`) | trámite con el proveedor | no | cobro y costo |
-| 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | sí | ninguno |
-| 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | sí | cobro y costo |
-| 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | no | tarea |
+| Prioridad | Indicador (es-VE / zh-CN) | Color | Ícono | Grupo | Efecto |
+|---|---|---|---|---|---|
+| 1 | Marca sin autorización / 品牌无授权 | ámbar | escudo (`shield`) | documentos y aduana | tarea |
+| 2 | Carga especial / 特殊货物 | rojo | llama (`flame`) | carga especial | cobro al cliente |
+| 3 | Devolución de impuestos / 退税 | verde | factura (`invoice`) | trámite con el proveedor | cobro y costo |
+| 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | ninguno |
+| 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | cobro y costo |
+| 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | tarea |
 
 Los textos zh-CN los revisa un hablante nativo antes de producción.
 
@@ -242,9 +241,9 @@ prácticas de las herramientas que lo hacen bien (las etiquetas de Linear, Jira,
   es la configuración de Almacén China: una página `/studio/cn/indicadores`, a la que se entra con un botón
   «Indicadores» en el encabezado de Almacén China. No suma nada al menú.
 - **Una sola pantalla, una lista.** Cada fila muestra la insignia tal como se verá (ícono, color y nombre),
-  la descripción, «¿Venezuela?», el efecto y cuántas recepciones vivas la usan. Arriba, «Nuevo indicador».
+  la descripción, el efecto y cuántas recepciones vivas la usan. Arriba, «Nuevo indicador».
 - **Crear y editar en un panel lateral corto**, con vista previa en vivo de la insignia. Campos en este orden:
-  nombre (es y zh), ícono, color, descripción, ¿la ve Venezuela?, efecto. El grupo y la prioridad tienen un
+  nombre (es y zh), ícono, color, descripción y efecto. El grupo y la prioridad tienen un
   valor por defecto; la prioridad se cambia arrastrando la fila (con botones subir y bajar para teclado).
 - **Paquete fijo de íconos**, en una cuadrícula: los 16 de la §2.7. Los que ya usa otro indicador vivo se ven
   apagados, con el nombre de quién lo usa al pasar el cursor, y no se pueden elegir. La base lo repite con un
@@ -386,47 +385,21 @@ Diseño:
 
 ### 2.5 Qué ve Venezuela
 
-- Solo las etiquetas con `visible_ve = true`. Las demás son de trabajo interno de China.
-- **Embarques y Tracking:** las etiquetas `visible_ve` vivas de las recepciones con
-  `warehouse_receipts_cn.shipment_id` = el embarque.
-- **Almacén VE:** las de las recepciones CN que nombran sus cajas por
+**Venezuela ve todos** (Sam, 2026-11-20, pregunta 4). No hay indicadores ocultos para Venezuela: se quita el
+campo `visible_ve` de propuestas anteriores. Con eso desaparece también el límite de «filtro de servidor
+contra frontera de base» que traía ese campo: no hay nada que esconder entre oficinas.
+
+- **Embarques y Tracking:** los indicadores vivos de las recepciones con `warehouse_receipts_cn.shipment_id`
+  = el embarque (con «CN»), más los que Venezuela puso en el embarque (con «VE», §2.3.1).
+- **Almacén VE:** los de las recepciones CN que nombran sus cajas por
   `warehouse_receipt_ve_boxes.source_receipt_cn_id` (§1.4), sin repetir.
-- **Recepción VE sin origen CN** (todas sus cajas con `source_receipt_cn_id` nulo): no muestra etiquetas. No se
-  adivina por MARKBOX ni por contenedor, porque juntaría la carga de otros envíos. Es un límite conocido
-  mientras ese dato no se llene; llenarlo es otra SDD.
-- **Embarque partido:** la mitad de origen conserva las etiquetas de sus recepciones. La mitad nueva no
-  tiene recepción propia (§1.4) y no muestra ninguna en esta spec. Límite conocido: el que parte el embarque
-  ve, al partirlo, las etiquetas `visible_ve` del de origen, para avisar a mano si hace falta.
-- Propuesta de partida para las tres de Sam (pregunta 4):
-
-| Etiqueta | ¿La ve Venezuela? | Por qué |
-|---|---|---|
-| Montacargas | sí | Aquí también hay que tener montacargas listo |
-| Marca sin autorización | sí | Puede trabarse en la aduana de Venezuela |
-| Devolución de impuestos | no | Es un trámite con el proveedor en China |
-
-- **Frontera.** `visible_ve` es un **filtro de servidor**, no una frontera de base. Las tablas se leen con la
-  RLS de miembro activo del tenant (§2.7): un usuario de Venezuela con su propia sesión y PostgREST directo
-  puede leer las etiquetas internas de China. Se declara como **límite conocido**, igual que hace
-  `lib/studio/privacidad-cn.ts` con su regla: el catálogo no lleva datos personales ni montos, y lo que se
-  esconde es ruido operativo, no un secreto. La nota libre sí podría llevar algo, y por eso tiene sus reglas
-  (§3). Si Sam quiere que la base lo cierre, la salida es partir la política de lectura por región:
-  `visible_ve = true or` región `cn` del lector `or` rol `admin`. Lo que cuesta:
-  - **Lectura de región y rol:** una subconsulta a `user_tenants` por `(user_id, tenant_id)`. Corre una vez
-    por consulta (initplan), no una vez por fila, solo si cada función va envuelta en su propio `select`:
-    `(select auth.uid())` y `(select public.get_user_tenant_id())`. Llamadas sueltas se evalúan por fila.
-  - **`warehouse_receipt_tags`:** `visible_ve` vive en el catálogo, así que la política necesita un `exists`
-    a `warehouse_tags` por su clave primaria **por cada fila** de asignación. En listas de 100 recepciones
-    son unos cientos de búsquedas por índice: barato, pero no gratis.
-  - **El historial no queda cubierto.** Los eventos `tag_added`/`tag_removed` guardan el nombre en
-    `description` y no tienen `tag_id`. Para que Venezuela no lea ahí las etiquetas internas hay que
-    agregar `tag_id` a `warehouse_receipt_events` y una política de lectura por tipo y región en esa tabla,
-    que hoy es «for all» y la leen otras pantallas y el resumen del CEO. Ese es el costo real: tocar la
-    política de una tabla compartida.
-  - Las lecturas del servidor con cliente de servicio no pasan por RLS: el filtro de la aplicación sigue
-    haciendo falta igual.
-
-  Recomendación: límite conocido en la F1 y F2; cerrarlo en la base solo si Sam lo pide.
+- **Recepción VE sin origen CN** (todas sus cajas con `source_receipt_cn_id` nulo): no muestra indicadores de
+  China. No se adivina por MARKBOX ni por contenedor, porque juntaría la carga de otros envíos. Es un límite
+  conocido mientras ese dato no se llene; llenarlo es otra SDD.
+- **Embarque partido:** la mitad de origen conserva los indicadores de sus recepciones. La mitad nueva no
+  tiene recepción propia (§1.4) y no hereda ninguno en esta spec. Límite conocido: al partir, la pantalla
+  muestra los indicadores del de origen, para que Venezuela los ponga en la mitad nueva si hace falta.
+- Lo que sí queda fuera de Venezuela es **editar** lo de China (regla de cambios, §2.3.1), no verlo.
 
 ### 2.6 El cliente no ve ninguna
 
@@ -684,7 +657,7 @@ embarque partido.
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
 | **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
-| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (heredados `visible_ve`), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
+| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (todos los heredados), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
 | **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
@@ -761,6 +734,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    Venezuela en el embarque después.
 4. **Qué ve Venezuela.** ¿Te sirve la tabla del §2.5? Ejemplo: Caracas ve «Montacargas», no ve «Devolución de
    impuestos».
+   **Contestada (2026-11-20): Venezuela ve todos.** Se quita `visible_ve`.
 5. **Quitar.** ¿Se pueden quitar? Ejemplo: llega la carta de autorización y quitan «Marca sin autorización»;
    queda en el historial quién la quitó y cuándo.
 6. **El cliente.** ¿El cliente nunca ve ninguna? Ejemplo: el importador no ve «Montacargas» en su portal.
@@ -853,6 +827,6 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 - El panel de historial muestra «etiqueta agregada» y «etiqueta quitada», con quién y cuándo, y no muestra
   notas `note`.
 - Un usuario `cn` sin admin no recibe `client_name` en ninguna lectura nueva (prueba de servidor).
-- F2: Venezuela ve en el embarque y en Almacén VE solo las `visible_ve` de sus recepciones; una recepción VE
+- F2: Venezuela ve en el embarque y en Almacén VE todos los indicadores de sus recepciones; una recepción VE
   sin origen CN no muestra ninguna; la mitad nueva de un embarque partido no muestra ninguna.
 - F2: las lecturas del portal no traen etiquetas.
