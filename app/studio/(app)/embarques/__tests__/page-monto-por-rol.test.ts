@@ -112,9 +112,21 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     expect(estado.tablas).toContain("invoices");
     expect(props.montos).toEqual({
       estado: "lista",
-      porEmbarque: { s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0 } },
+      porEmbarque: {
+        s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0, borradores: 1, sinFacturarUsd: 100 },
+      },
     });
   });
+
+  // SDD-0689: el «Sin facturar» del encabezado sale de `montos`. Se decide aquí, en el servidor: a
+  // operations y a los demás roles no les llega ningún monto, ni siquiera el de los borradores.
+  it.each(["operations", "commercial", "support", "warehouse", "marketing"])(
+    "%s: el «Sin facturar» del encabezado no viaja al navegador",
+    async (rol) => {
+      const props = await propsDe(rol);
+      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|porCobrarUsd/);
+    },
+  );
 
   it("un acceso extra a Facturación sin el rol no lee invoices: la RLS (0414) le daría cero filas", async () => {
     estado.extras = ["invoices"];
