@@ -6,17 +6,17 @@
  *   - `rapido`:   la PR entra con el CI en verde y se revisa en la revisión de madrugada.
  *   - `revision`: revisión independiente APPROVED + CI verde en la cabeza exacta (la regla de siempre).
  *
- * Dos capas, conservadoras: un archivo es `rapido` solo si cae en una lista corta de rutas seguras (documentos,
- * textos, pruebas, estilos, pantallas y recursos estáticos), no toca nada sensible por ruta y, si es código (una
- * pantalla), sus líneas cambiadas no tocan puertas, lecturas ni escrituras de datos. Sin el diff no se puede mirar
- * el contenido, así que una pantalla clasificada solo por nombre es `revision`. Todo lo demás, incluido lo que no
- * se reconoce, es `revision`. Basta un archivo `revision` para que toda la PR lo sea.
+ * Dos capas, conservadoras. Por ruta: un archivo es candidato a `rapido` solo si cae en una lista corta de rutas
+ * seguras (documentos, textos, pruebas, estilos, pantallas y recursos estáticos) y no toca nada sensible. Por
+ * contenido, para el código (las pantallas): se lee el archivo completo en la base y en la cabeza, y si cualquiera
+ * de las dos versiones toca puertas, sesión, lecturas o escrituras de datos, o importa una server action, es
+ * `revision`. Sin leer el archivo, o si no es texto, también. Todo lo demás, incluido lo que no se reconoce, es
+ * `revision`. Basta un archivo `revision` para que toda la PR lo sea.
  *
  * Contrato (lo usa el tren del Director; detalle en docs/runbooks/codex-engineering.md, «Carriles de integración»):
- *   node scripts/carril.mjs --json --pr <N>                       # diff de la PR; el JSON trae la cabeza (`head`)
- *   git diff --no-renames A B | node scripts/carril.mjs --json --diff [--head <sha>]   # diff por stdin
- *   node scripts/carril.mjs --json <ruta>...                      # solo nombres (sin contenido)
- *   git diff --name-only --no-renames A B | node scripts/carril.mjs --json            # solo nombres por stdin
+ *   node scripts/carril.mjs --json --pr <N>              # el del tren: diff, cabeza (`head`) y archivos con git
+ *   git diff --no-renames B H | node scripts/carril.mjs --json --diff --base B --head H   # diff verificado
+ *   node scripts/carril.mjs --json <ruta>...             # solo nombres (las pantallas dan revision)
  * Códigos de salida: 0 = rapido, 1 = revision, 2 = error o ayuda (no se pudo clasificar; cuenta como revision).
  *
  * Sin dependencias: solo módulos de Node.
@@ -26,7 +26,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const VERSION = 2;
+export const VERSION = 3;
 export const SALIDA = Object.freeze({ rapido: 0, revision: 1, error: 2 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ const TEMAS = [
       /^phones?$/, /^direccion/, /^address/, /^attachments?$/, /^adjunto/, /^storage$/, /^upload/, /^pii$/,
       /^retention$/, /^habeas/, /^analytics$/, /^clarity$/, /^forms?$/, /^formulario/, /^clientes?$/, /^clients?$/,
       /^perfil/, /^profiles?$/, /^ficha/, /^contacto/, /^contacts?$/, /^gps$/, /^ubicacion/, /^location/, /^tms$/,
-      /^backfill/,
+      /^backfill/, /^crm$/, /^leads?$/, /^comments?$/, /^comentario/, /^bugs?$/,
     ],
   },
   {
@@ -288,12 +288,20 @@ export function pedazos(ruta) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Capa de contenido: una pantalla en ruta segura va a `revision` si alguna línea agregada o quitada toca puertas,
-// sesión, lecturas o escrituras de datos. Se miran las dos: quitar una puerta pesa igual que ponerla.
+// Capa de contenido, por archivo: una pantalla en ruta segura va a `revision` si su versión de la base o la de la
+// cabeza (el archivo completo, no solo las líneas cambiadas) toca puertas, sesión, lecturas o escrituras de datos,
+// o importa una server action. Así, quitar una puerta o un filtro escrito en otra línea también cae: la base lo
+// tenía. Un archivo que no se puede leer como texto (NUL, UTF-8 inválido) va a `revision`: se falla cerrado.
 // ---------------------------------------------------------------------------------------------------------------
 
-const CONTENIDO_SENSIBLE = [
+const MARCAS = [
   /\brequire\w*\s*\(/, // puertas `requireModuleView(…)`, `requireRole(…)`, y `require(…)`
+  /\bcanAccess\w*/, // `canAccessModule(…)`
+  /\bgetStudioAccess\b/,
+  /\bisAdmin\b/,
+  /\bhasRole\b/,
+  /\bcan\s*\(/,
+  /\bpuede\w*\s*\(/,
   /createAdminClient/, // lectura o escritura sin RLS
   /service_role/i,
   /\bgetUser\b|\bgetSession\b/,
@@ -304,26 +312,117 @@ const CONTENIDO_SENSIBLE = [
   /\bredirect\s*\(|\bnotFound\s*\(|\bpermanentRedirect\s*\(/,
   /["']use server["']/,
   /\bmethod\s*:/, // fetch con POST, PUT o DELETE
-  /from\s+["'][^"']*actions?["']/, // importa una server action
-  /@supabase\/|@\/lib\/(db|auth)\b/,
+  /(from|import)\s*\(?\s*["'][^"']*action[^"']*["']/i, // importa de `_actions/`, `/actions`, `*-actions`
+  /@supabase\/|@\/lib\/(db|auth)\b|\/lib\/db\//,
   /\b(cookies|headers)\s*\(\s*\)/,
 ];
 
-function lineaSensible(lineas) {
-  for (const linea of lineas) {
-    for (const re of CONTENIDO_SENSIBLE) {
-      const m = linea.match(re);
-      if (m) return m[0];
-    }
+const RE_CODIGO = /\.[cm]?[jt]sx?$/;
+const RE_IMPORT = /(?:\bfrom|\bimport)\s*\(?\s*["']([^"']+)["']/g;
+const RE_USE_SERVER = /^\s*["']use server["']/m;
+
+function marcaEn(texto) {
+  for (const re of MARCAS) {
+    const m = texto.match(re);
+    if (m) return m[0];
   }
   return null;
 }
 
+/** `null` si el contenido no es texto: trae un byte NUL o no es UTF-8 válido. */
+export function comoTexto(bytes) {
+  if (bytes === null || bytes === undefined) return null;
+  const b = Buffer.isBuffer(bytes) ? bytes : Buffer.from(String(bytes), "utf8");
+  if (b.includes(0)) return null;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(b);
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Clasifica un archivo. `lineas` son las líneas agregadas y quitadas del diff (sin el `+`/`-`), o `undefined` si
- * solo se conoce el nombre. Devuelve `{ ruta, carril, regla, motivo }`.
+ * Resuelve los imports locales (`@/…` y relativos) de un archivo a las rutas candidatas del repo.
+ * Los paquetes (`react`, `next/…`) no se resuelven.
  */
-export function clasificarArchivo(rutaCruda, lineas) {
+export function importsLocales(ruta, texto) {
+  const salida = [];
+  for (const m of texto.matchAll(RE_IMPORT)) {
+    const spec = m[1];
+    let base;
+    if (spec.startsWith("@/")) base = spec.slice(2);
+    else if (spec.startsWith(".")) base = path.posix.normalize(path.posix.join(path.posix.dirname(ruta), spec));
+    else continue;
+    const candidatas = RE_CODIGO.test(base)
+      ? [base]
+      : [".ts", ".tsx", ".js", ".mjs", "/index.ts", "/index.tsx"].map((ext) => `${base}${ext}`);
+    salida.push({ spec, candidatas });
+  }
+  return salida;
+}
+
+/** Adapta un lector de a uno (`leer(ref, ruta)` → Buffer o `null`) a lotes. */
+export function porLotes(leer) {
+  return (pares) => new Map(pares.map(([ref, ruta]) => [`${ref}:${ruta}`, leer(ref, ruta)]));
+}
+
+/** Si el archivo es código que solo por su ruta todavía podría ir por el carril rápido: hay que leerlo. */
+export function necesitaLeer(ruta) {
+  if (!RE_CODIGO.test(ruta)) return false;
+  const r = clasificarArchivo(ruta, { textos: [""], binario: false, accion: null });
+  // Las pruebas y los estilos (`lib/design-tokens.ts`) no se leen: no son pantallas.
+  return r.carril === "rapido" && !NO_ES_CODIGO.has(r.regla);
+}
+
+/**
+ * Lee el contenido de los archivos de código que todavía pueden ir por el carril rápido, en las revisiones dadas.
+ * `leerVarios([[ref, ruta], …])` devuelve un `Map` "ref:ruta" → Buffer o `null` (lectura por lotes: un solo
+ * `git cat-file --batch` por vuelta). Devuelve un `Map` ruta → `{ textos, binario, accion }`: los textos de
+ * cada versión que existe, si alguna no es texto, y el import que lleva a un archivo con `"use server"` (o `null`).
+ */
+export function cargarContenido(rutas, refs, leerVarios) {
+  const aLeer = rutas.filter(necesitaLeer);
+  const leidos = leerVarios(aLeer.flatMap((ruta) => refs.map((ref) => [ref, ruta])));
+  const contenido = new Map();
+  const pendientes = []; // [ruta, ref, spec, candidatas]
+  for (const ruta of aLeer) {
+    const textos = [];
+    let binario = false;
+    for (const ref of refs) {
+      const bytes = leidos.get(`${ref}:${ruta}`) ?? null;
+      if (bytes === null) continue; // no existe en esa versión (archivo nuevo o borrado)
+      const texto = comoTexto(bytes);
+      if (texto === null) {
+        binario = true;
+        continue;
+      }
+      textos.push(texto);
+      for (const { spec, candidatas } of importsLocales(ruta, texto)) pendientes.push([ruta, ref, spec, candidatas]);
+    }
+    contenido.set(ruta, { textos, binario, accion: null });
+  }
+  // Segunda vuelta: los archivos importados, para ver si alguno es una server action ("use server").
+  const unicos = new Map();
+  for (const [, ref, , cs] of pendientes) for (const c of cs) unicos.set(`${ref}:${c}`, [ref, c]);
+  const pares = [...unicos.values()];
+  const importados = leerVarios(pares);
+  for (const [ruta, ref, spec, candidatas] of pendientes) {
+    const c = contenido.get(ruta);
+    if (c.accion) continue;
+    const servidor = candidatas.some((cand) => {
+      const t = comoTexto(importados.get(`${ref}:${cand}`) ?? null);
+      return t !== null && RE_USE_SERVER.test(t);
+    });
+    if (servidor) c.accion = spec;
+  }
+  return contenido;
+}
+
+/**
+ * Clasifica un archivo. `contenido` es `{ textos, binario, accion }` (de `cargarContenido`), o `undefined` si solo
+ * se conoce el nombre. Devuelve `{ ruta, carril, regla, motivo }`.
+ */
+export function clasificarArchivo(rutaCruda, contenido) {
   const ruta = normalizar(rutaCruda);
   const esPrueba = RE_PRUEBA.test(ruta);
 
@@ -355,21 +454,29 @@ export function clasificarArchivo(rutaCruda, lineas) {
   }
 
   if (esCodigo) {
-    if (lineas === undefined) {
-      return {
-        ruta,
-        carril: "revision",
-        regla: "sin-contenido",
-        motivo: "código clasificado solo por nombre: sin el diff no se ven sus líneas (usa --pr o --diff)",
-      };
+    const sinContenido = (motivo) => ({ ruta, carril: "revision", regla: "sin-contenido", motivo });
+    if (contenido === undefined) {
+      return sinContenido("código clasificado sin leer el archivo (usa --pr, o --diff con --base y --head)");
     }
-    const toque = lineaSensible(lineas);
-    if (toque) {
+    if (contenido.binario) return sinContenido("el archivo no se puede leer como texto (NUL o UTF-8 inválido)");
+    if (contenido.textos.length === 0) return sinContenido("no se encontró el archivo en la base ni en la cabeza");
+    for (const t of contenido.textos) {
+      const marca = marcaEn(t);
+      if (marca) {
+        return {
+          ruta,
+          carril: "revision",
+          regla: "contenido-sensible",
+          motivo: `el archivo (en la base o en la cabeza) toca puertas, sesión o datos («${marca}»)`,
+        };
+      }
+    }
+    if (contenido.accion) {
       return {
         ruta,
         carril: "revision",
         regla: "contenido-sensible",
-        motivo: `una línea cambiada toca puertas, sesión o datos («${toque}»)`,
+        motivo: `importa un archivo con "use server" («${contenido.accion}»)`,
       };
     }
   }
@@ -378,17 +485,23 @@ export function clasificarArchivo(rutaCruda, lineas) {
 }
 
 /**
- * Clasifica un diff completo. `cambios` (opcional) es el `Map` ruta → líneas cambiadas de `analizarDiff`; sin él,
- * solo se conocen los nombres. Basta un archivo `revision` para que la PR sea `revision`.
+ * Clasifica un diff completo. `contenido` (opcional) es el `Map` de `cargarContenido`; sin él, solo se conocen los
+ * nombres. `binarios` son las rutas que el diff marcó como binarias. Basta un archivo `revision` para que la PR sea
+ * `revision`.
  */
-export function clasificar(rutas, cambios = null) {
+export function clasificar(rutas, contenido = null, binarios = new Set()) {
   const vistos = new Set();
   const archivos = [];
   for (const cruda of rutas) {
     const ruta = normalizar(cruda);
     if (!ruta || vistos.has(ruta)) continue;
     vistos.add(ruta);
-    archivos.push(clasificarArchivo(ruta, cambios ? (cambios.get(ruta) ?? []) : undefined));
+    let c;
+    if (contenido) {
+      c = contenido.get(ruta) ?? { textos: [], binario: false, accion: null };
+      if (binarios.has(ruta)) c = { ...c, binario: true };
+    }
+    archivos.push(clasificarArchivo(ruta, c));
   }
   if (archivos.length === 0) throw new ErrorCarril("el diff no trae archivos: no hay nada que clasificar");
 
@@ -405,7 +518,7 @@ export function clasificar(rutas, cambios = null) {
     carril,
     motivo,
     total: archivos.length,
-    contenido: cambios !== null,
+    contenido: contenido !== null,
     causantes: causantes.map(({ ruta, regla, motivo: m }) => ({ ruta, regla, motivo: m })),
     archivos,
   };
@@ -414,17 +527,19 @@ export function clasificar(rutas, cambios = null) {
 export class ErrorCarril extends Error {}
 
 /**
- * Lee un diff unificado (`gh pr diff N`, `git diff`). Devuelve un `Map` ruta → líneas agregadas y quitadas. Toma
- * las dos rutas de cada archivo (la vieja y la nueva), para que renombrar un archivo sensible a una ruta segura no
- * lo esconda: `gh pr diff --name-only` solo da la nueva. Las dos rutas comparten las líneas del archivo.
+ * Lee un diff unificado (`gh pr diff N`, `git diff`). Devuelve `{ rutas, binarios }`. Toma las dos rutas de cada
+ * archivo (la vieja y la nueva), para que renombrar un archivo sensible a una ruta segura no lo esconda:
+ * `gh pr diff --name-only` solo da la nueva. `binarios` son las rutas con `Binary files … differ` o
+ * `GIT binary patch`.
  */
 export function analizarDiff(texto) {
-  const cambios = new Map();
+  const rutas = new Set();
+  const binarios = new Set();
   let actual = [];
   const agregar = (r) => {
     if (!r || r === "/dev/null") return;
     const ruta = normalizar(r);
-    if (!cambios.has(ruta)) cambios.set(ruta, []);
+    rutas.add(ruta);
     if (!actual.includes(ruta)) actual.push(ruta);
   };
   // Las rutas salen solo de las cabeceras: dentro de un hunk, una línea borrada «-- x» se vería como «--- x».
@@ -461,10 +576,9 @@ export function analizarDiff(texto) {
       enCabecera = false;
       continue;
     }
-    if (!enCabecera) {
-      if ((linea.startsWith("+") || linea.startsWith("-")) && actual.length > 0) {
-        for (const ruta of actual) cambios.get(ruta).push(linea.slice(1));
-      }
+    if (!enCabecera) continue;
+    if (/^Binary files .* differ$/.test(linea) || linea === "GIT binary patch") {
+      for (const r of actual) binarios.add(r);
       continue;
     }
     const renombre = linea.match(/^(?:rename|copy) (?:from|to) (.+)$/);
@@ -479,81 +593,157 @@ export function analizarDiff(texto) {
       agregar(valor.replace(/^[ab]\//, ""));
     }
   }
-  return cambios;
+  return { rutas: [...rutas], binarios };
 }
 
 /** Las rutas de un diff unificado (vieja y nueva de cada archivo). */
 export function rutasDeDiff(texto) {
-  return [...analizarDiff(texto).keys()];
+  return analizarDiff(texto).rutas;
 }
 
 const RE_SHA = /^[0-9a-f]{40}$/;
+const OPCIONES_PROCESO = { maxBuffer: 512 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"], windowsHide: true };
 
-function correrGh(ejecutar, args) {
+function correr(ejecutar, cmd, args, encoding = "utf8") {
   try {
-    return ejecutar("gh", args, {
-      encoding: "utf8",
-      maxBuffer: 512 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true,
-    });
+    return ejecutar(cmd, args, { ...OPCIONES_PROCESO, encoding });
   } catch (error) {
     const detalle = String(error.stderr || error.message || error).trim().split(/\r?\n/)[0];
-    throw new ErrorCarril(`gh ${args.slice(0, 3).join(" ")} falló: ${detalle}`);
+    throw new ErrorCarril(`${cmd} ${args.slice(0, 3).join(" ")} falló: ${detalle}`);
   }
 }
 
+/**
+ * Lector por lotes con git: un solo `git cat-file --batch` para todos los pares. Lo que no existe (o no es un
+ * blob) queda en `null`.
+ */
+export function lectorGit(ejecutar = execFileSync) {
+  return (pares) => {
+    const salida = new Map();
+    if (pares.length === 0) return salida;
+    const entrada = `${pares.map(([ref, ruta]) => `${ref}:${ruta}`).join("\n")}\n`;
+    let buf;
+    try {
+      buf = ejecutar("git", ["cat-file", "--batch"], {
+        ...OPCIONES_PROCESO,
+        stdio: ["pipe", "pipe", "pipe"],
+        // Como Buffer: con `encoding: "buffer"`, Node no sabría convertir un string de entrada.
+        input: Buffer.from(entrada, "utf8"),
+        encoding: "buffer",
+      });
+    } catch (error) {
+      const detalle = String(error.stderr || error.message || error).trim().split(/\r?\n/)[0];
+      throw new ErrorCarril(`git cat-file --batch falló: ${detalle}`);
+    }
+    buf = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+    let pos = 0;
+    for (const [ref, ruta] of pares) {
+      const clave = `${ref}:${ruta}`;
+      const fin = buf.indexOf(0x0a, pos);
+      if (fin < 0) throw new ErrorCarril("git cat-file --batch devolvió menos objetos de los pedidos");
+      const cabecera = buf.subarray(pos, fin).toString("utf8");
+      pos = fin + 1;
+      const m = cabecera.match(/^[0-9a-f]{40,64} (\w+) (\d+)$/);
+      if (!m) {
+        salida.set(clave, null); // «<objeto> missing» o «ambiguous»
+        continue;
+      }
+      const largo = Number(m[2]);
+      salida.set(clave, m[1] === "blob" ? Buffer.from(buf.subarray(pos, pos + largo)) : null);
+      pos += largo + 1;
+    }
+    return salida;
+  };
+}
+
+function resolverCommit(ejecutar, ref) {
+  const sha = String(correr(ejecutar, "git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`])).trim();
+  if (!RE_SHA.test(sha)) throw new ErrorCarril(`«${ref}» no es un commit de este repositorio`);
+  return sha;
+}
+
 function cabezaDePr(ejecutar, numero) {
-  const sha = String(correrGh(ejecutar, ["pr", "view", numero, "--json", "headRefOid", "--jq", ".headRefOid"])).trim();
+  const sha = String(
+    correr(ejecutar, "gh", ["pr", "view", numero, "--json", "headRefOid", "--jq", ".headRefOid"]),
+  ).trim();
   if (!RE_SHA.test(sha)) throw new ErrorCarril(`gh pr view ${numero} no dio una cabeza válida («${sha}»)`);
   return sha;
 }
 
 /**
  * Lee la PR atada a su cabeza: la cabeza antes y después del diff tiene que ser la misma; si llegó un push en el
- * medio, es un error (otra vuelta). Con `esperada`, la cabeza tiene que ser esa.
+ * medio, es un error (otra vuelta). Con `esperada`, la cabeza tiene que ser esa. Después trae la cabeza con git
+ * (`git fetch origin pull/<N>/head`) y lee cada archivo de código en la base (el merge-base con `baseRef`) y en la
+ * cabeza.
  */
-function leerPr(numero, esperada, ejecutar = execFileSync) {
+function leerPr(numero, esperada, baseRef, ejecutar = execFileSync) {
   if (!/^\d+$/.test(String(numero))) throw new ErrorCarril(`--pr espera un número de PR, no «${numero}»`);
   const n = String(numero);
   const antes = cabezaDePr(ejecutar, n);
   if (esperada && antes !== esperada) {
     throw new ErrorCarril(`la cabeza de la PR ${n} es ${antes}, no ${esperada}`);
   }
-  const texto = correrGh(ejecutar, ["pr", "diff", n, "--color=never"]);
+  const texto = correr(ejecutar, "gh", ["pr", "diff", n, "--color=never"]);
   const despues = cabezaDePr(ejecutar, n);
   if (despues !== antes) {
     throw new ErrorCarril(`la PR ${n} cambió de cabeza mientras se clasificaba (${antes} → ${despues})`);
   }
-  const cambios = analizarDiff(texto);
-  if (cambios.size === 0) throw new ErrorCarril(`gh pr diff ${n} no trajo archivos`);
-  return { cambios, head: antes };
+  const { rutas, binarios } = analizarDiff(texto);
+  if (rutas.length === 0) throw new ErrorCarril(`gh pr diff ${n} no trajo archivos`);
+
+  correr(ejecutar, "git", ["fetch", "--no-tags", "--quiet", "origin", `pull/${n}/head`]);
+  if (resolverCommit(ejecutar, antes) !== antes) throw new ErrorCarril(`no se pudo traer la cabeza ${antes}`);
+  const base = String(correr(ejecutar, "git", ["merge-base", antes, resolverCommit(ejecutar, baseRef)])).trim();
+  if (!RE_SHA.test(base)) throw new ErrorCarril(`no hay merge-base entre ${antes} y ${baseRef}`);
+  const contenido = cargarContenido(rutas, [base, antes], lectorGit(ejecutar));
+  return { rutas, binarios, contenido, head: antes, base };
 }
 
-const AYUDA = `Uso: node scripts/carril.mjs [--json] (--pr <N> [--head <sha>] | --diff [--head <sha>] < diff | <ruta>... | < lista)
+/**
+ * `--diff` con `--base` y `--head`: los dos tienen que ser commits de este repositorio y el diff de stdin tiene que
+ * ser exactamente `git diff --no-renames <base> <head>`. Si no, es un error: un `head` que no ata nada no sirve.
+ */
+function leerDiffAtado(textoStdin, baseRef, headRef, ejecutar = execFileSync) {
+  const base = resolverCommit(ejecutar, baseRef);
+  const head = resolverCommit(ejecutar, headRef);
+  const propio = String(correr(ejecutar, "git", ["diff", "--no-renames", base, head]));
+  const limpio = (t) => t.replace(/\r\n/g, "\n").trimEnd();
+  if (limpio(propio) !== limpio(textoStdin)) {
+    throw new ErrorCarril(`el diff de stdin no es «git diff --no-renames ${base} ${head}»`);
+  }
+  const { rutas, binarios } = analizarDiff(propio);
+  const contenido = cargarContenido(rutas, [base, head], lectorGit(ejecutar));
+  return { rutas, binarios, contenido, head, base };
+}
+
+const AYUDA = `Uso: node scripts/carril.mjs [--json] (--pr <N> [--head <sha>] [--base <ref>] | --diff [--base <ref> --head <ref>] < diff | <ruta>... | < lista)
 
 Clasifica un diff en el carril «rapido» o «revision».
-  --pr <N>      lee el diff de la PR con «gh pr diff <N>» y su cabeza con «gh pr view»; el JSON trae «head»
-  --diff        stdin es un diff unificado (git diff --no-renames A B): mira rutas y líneas cambiadas
-  --head <sha>  la cabeza clasificada (40 caracteres); con --pr, tiene que ser la cabeza actual
-  <ruta>...     solo nombres por argumento (una pantalla así da revision: sin diff no se ve su contenido)
-  (stdin)       solo nombres, una ruta por línea
-  --json        salida en JSON (el contrato del tren)
+  --pr <N>       lee el diff con «gh pr diff <N>», la cabeza con «gh pr view» y cada archivo de código completo
+                 en la base y en la cabeza con git; el JSON trae «head» y «base»
+  --base <ref>   rama base para el merge-base con --pr (por defecto origin/main), o la base del diff con --diff
+  --head <sha>   con --pr, la cabeza tiene que ser esa; con --diff, la cabeza del diff (se verifica)
+  --diff         stdin es un diff unificado; con --base y --head se verifica contra git y se leen los archivos;
+                 sin ellos, las pantallas dan revision (no se puede leer su contenido)
+  <ruta>...      solo nombres por argumento (una pantalla así da revision)
+  (stdin)        solo nombres, una ruta por línea
+  --json         salida en JSON (el contrato del tren)
 Salida: 0 = rapido, 1 = revision, 2 = error o esta ayuda (cuenta como revision).`;
 
 export function leerArgumentos(argv) {
-  const opciones = { json: false, pr: null, head: null, diff: false, rutas: [], ayuda: false };
+  const opciones = { json: false, pr: null, head: null, base: null, diff: false, rutas: [], ayuda: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") opciones.json = true;
     else if (a === "--diff") opciones.diff = true;
     else if (a === "-h" || a === "--help") opciones.ayuda = true;
-    else if (a === "--pr" || a === "--head") {
+    else if (a === "--pr" || a === "--head" || a === "--base") {
       if (i + 1 >= argv.length) throw new ErrorCarril(`${a} necesita un valor`);
       opciones[a.slice(2)] = argv[++i];
-    } else if (a.startsWith("--pr=")) opciones.pr = a.slice(5);
-    else if (a.startsWith("--head=")) opciones.head = a.slice(7);
-    else if (a === "--") {
+    } else if (/^--(pr|head|base)=/.test(a)) {
+      const [clave, ...valor] = a.slice(2).split("=");
+      opciones[clave] = valor.join("=");
+    } else if (a === "--") {
       opciones.rutas.push(...argv.slice(i + 1));
       break;
     } else if (a.startsWith("-")) throw new ErrorCarril(`opción desconocida: ${a}`);
@@ -561,8 +751,14 @@ export function leerArgumentos(argv) {
   }
   const fuentes = [opciones.pr !== null, opciones.diff, opciones.rutas.length > 0].filter(Boolean).length;
   if (fuentes > 1) throw new ErrorCarril("usa una sola entrada: --pr, --diff o rutas");
-  if (opciones.head !== null && !RE_SHA.test(opciones.head)) {
+  if (opciones.pr !== null && opciones.head !== null && !RE_SHA.test(opciones.head)) {
     throw new ErrorCarril(`--head espera el SHA completo de 40 caracteres, no «${opciones.head}»`);
+  }
+  if (opciones.diff && (opciones.head === null) !== (opciones.base === null)) {
+    throw new ErrorCarril("--diff necesita --base y --head juntos (o ninguno de los dos)");
+  }
+  if (!opciones.diff && opciones.pr === null && (opciones.head !== null || opciones.base !== null)) {
+    throw new ErrorCarril("--head y --base solo van con --pr o con --diff");
   }
   return opciones;
 }
@@ -587,6 +783,7 @@ function leerStdin(io) {
 export function main(argv, io = {}) {
   const out = io.out ?? ((s) => process.stdout.write(s));
   const err = io.err ?? ((s) => process.stderr.write(s));
+  const ejecutar = io.ejecutar ?? execFileSync;
   let json = argv.includes("--json");
   try {
     const opciones = leerArgumentos(argv);
@@ -597,17 +794,25 @@ export function main(argv, io = {}) {
     }
     let resultado;
     if (opciones.pr !== null) {
-      const { cambios, head } = leerPr(opciones.pr, opciones.head, io.ejecutar);
-      resultado = { ...clasificar([...cambios.keys()], cambios), origen: "pr", pr: Number(opciones.pr), head };
+      const r = leerPr(opciones.pr, opciones.head, opciones.base ?? "origin/main", ejecutar);
+      resultado = {
+        ...clasificar(r.rutas, r.contenido, r.binarios),
+        origen: "pr",
+        pr: Number(opciones.pr),
+        head: r.head,
+        base: r.base,
+      };
+    } else if (opciones.diff && opciones.head !== null) {
+      const r = leerDiffAtado(leerStdin(io), opciones.base, opciones.head, ejecutar);
+      resultado = { ...clasificar(r.rutas, r.contenido, r.binarios), origen: "diff", head: r.head, base: r.base };
     } else if (opciones.diff) {
-      const cambios = analizarDiff(leerStdin(io));
-      resultado = { ...clasificar([...cambios.keys()], cambios), origen: "diff" };
+      const { rutas } = analizarDiff(leerStdin(io));
+      resultado = { ...clasificar(rutas), origen: "diff" };
     } else if (opciones.rutas.length > 0) {
       resultado = { ...clasificar(opciones.rutas), origen: "args" };
     } else {
       resultado = { ...clasificar(leerStdin(io).split(/\r?\n/)), origen: "stdin" };
     }
-    if (opciones.head !== null && !resultado.head) resultado.head = opciones.head;
     out(json ? `${JSON.stringify(resultado, null, 2)}\n` : `${texto(resultado)}\n`);
     return SALIDA[resultado.carril];
   } catch (error) {

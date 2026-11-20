@@ -48,12 +48,13 @@ jobs:
             cp scripts/carril.mjs "$dir/carril.mjs"
             origen="la PR (main todavía no lo tiene)"
           fi
-          # El diff completo (no solo los nombres): el clasificador mira las líneas cambiadas de las pantallas.
+          # El diff completo (no solo los nombres), con las rutas vieja y nueva de cada archivo.
           # --no-renames: un renombre aparece como borrado + alta, con la ruta vieja y la nueva.
-          # HEAD^2 es la cabeza de la PR dentro del merge de prueba.
+          # --base y --head: el clasificador verifica que el diff sea ese y lee cada archivo de código completo en
+          # las dos versiones. HEAD es el merge de prueba de la PR con main; HEAD^1, la base.
           git diff --no-renames HEAD^1 HEAD > "$dir/cambios.diff"
           set +e
-          node "$dir/carril.mjs" --json --diff --head "$(git rev-parse HEAD^2)" < "$dir/cambios.diff" > "$dir/carril.json"
+          node "$dir/carril.mjs" --json --diff --base HEAD^1 --head HEAD < "$dir/cambios.diff" > "$dir/carril.json"
           codigo=$?
           set -e
           node -e '

@@ -1,10 +1,12 @@
 // Pruebas de scripts/carril.mjs, el clasificador de carriles (rápido / con revisión previa).
 //
 // QUÉ PROTEGEN: que nada sensible se cuele al carril rápido. Las dos mitades importan: lo sensible tiene que dar
-// `revision` (una ruta por cada tema que Sam nombró) y lo seguro tiene que dar `rapido`; si todo diera `revision`,
-// el carril rápido no existiría y nadie lo notaría. Además, el contrato que usa el tren: JSON y códigos de salida.
+// `revision` (una ruta por cada tema que Sam nombró, y cada marca de contenido) y lo seguro tiene que dar
+// `rapido`; si todo diera `revision`, el carril rápido no existiría y nadie lo notaría. Además, el contrato que usa
+// el tren: JSON, cabeza atada y códigos de salida.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -12,22 +14,30 @@ import { fileURLToPath } from "node:url";
 import {
   SALIDA,
   analizarDiff,
+  cargarContenido,
   clasificar,
   clasificarArchivo,
+  comoTexto,
+  importsLocales,
   leerArgumentos,
   main,
   normalizar,
+  porLotes,
   rutasDeDiff,
 } from "../carril.mjs";
 
 const SHA_A = "a".repeat(40);
 const SHA_B = "b".repeat(40);
-const ROOT =path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const SHA_M = "c".repeat(40);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCRIPT = path.join(ROOT, "scripts", "carril.mjs");
 
-// Con un diff sin líneas sensibles: lo que da revision aquí lo decide la ruta, no la falta de diff.
-const carril = (ruta, lineas = []) => clasificarArchivo(ruta, lineas).carril;
-const PRESENTACION = ['<p className="texto">Hola</p>', 'const titulo = t("embarques");'];
+const PRESENTACION = '<p className="texto">Hola</p>\nconst titulo = t("embarques");';
+// Contenido leído (base y cabeza) de un archivo de código.
+const leido = (...textos) => ({ textos, binario: false, accion: null });
+// Con un archivo de presentación: lo que da revision aquí lo decide la ruta, no la falta de contenido.
+const carril = (ruta, ...textos) => clasificarArchivo(ruta, leido(...(textos.length ? textos : [PRESENTACION]))).carril;
+const delRepo = (ruta) => readFileSync(path.join(ROOT, ruta), "utf8");
 
 // Una ruta real (o con la forma real) del repo por cada frontera sensible.
 const SENSIBLES = {
@@ -122,13 +132,6 @@ const SENSIBLES = {
   "diccionario i18n (TypeScript)": "lib/i18n/es-VE/bandeja.ts",
 };
 
-for (const [nombre, ruta] of Object.entries(SENSIBLES)) {
-  test(`revision: ${nombre} (${ruta})`, () => {
-    const r = clasificarArchivo(ruta, PRESENTACION);
-    assert.equal(r.carril, "revision", `${ruta} cayó en ${r.regla}`);
-    assert.ok(r.motivo.length > 0);
-  });
-}
 
 const SEGURAS = {
   "spec": "docs/specs/0700-algo/spec.md",
@@ -155,15 +158,40 @@ const SEGURAS = {
   "fuente": "lib/font-files/inter.woff2",
 };
 
+for (const [nombre, ruta] of Object.entries(SENSIBLES)) {
+  test(`revision: ${nombre} (${ruta})`, () => {
+    const r = clasificarArchivo(ruta, leido(PRESENTACION));
+    assert.equal(r.carril, "revision", `${ruta} cayó en ${r.regla}`);
+    assert.ok(r.motivo.length > 0);
+  });
+}
+
 for (const [nombre, ruta] of Object.entries(SEGURAS)) {
   test(`rapido: ${nombre} (${ruta})`, () => {
-    const r = clasificarArchivo(ruta, PRESENTACION);
+    const r = clasificarArchivo(ruta, leido(PRESENTACION));
     assert.equal(r.carril, "rapido", `${ruta} cayó en ${r.regla}: ${r.motivo}`);
   });
 }
 
-const LINEAS_SENSIBLES = [
+// Revisión de Dir_DTD sobre a557ca449: palabras de ruta que faltaban.
+for (const ruta of [
+  "app/studio/(app)/crm/_components/LeadDrawer.tsx",
+  "app/studio/(app)/crm/_components/ChatPermitido.tsx",
+  "components/zz/LeadCard.tsx",
+  "app/studio/(app)/_components/comments/CommentsThread.tsx",
+  "app/studio/(app)/debug/_components/BugsTab.tsx",
+]) {
+  test(`revision por ruta: ${ruta}`, () => assert.equal(carril(ruta), "revision"));
+}
+
+const MARCAS = [
   ['await requireModuleView("admin");', "require"],
+  ['if (!canAccessModule(access.role, "kommo")) return null;', "canAccess*"],
+  ["const access = await getStudioAccess();", "getStudioAccess"],
+  ["{isAdmin && <Borrar />}", "isAdmin"],
+  ['if (!hasRole(user, "ops")) return;', "hasRole"],
+  ['if (!can("editar")) return;', "can("],
+  ['if (!puedeEditar(rol)) return;', "puede*("],
   ["const db = createAdminClient();", "createAdminClient"],
   ["const rol = 'service_role';", "service_role"],
   ["const { data: { user } } = await supabase.auth.getUser();", "getUser"],
@@ -175,59 +203,135 @@ const LINEAS_SENSIBLES = [
   ["if (!fila) notFound();", "notFound("],
   ['"use server";', "use server"],
   ['await fetch("/api/gps", { method: "POST", body });', "method:"],
-  ['import { guardar } from "./actions";', "import de actions"],
+  ['import { guardar } from "./actions";', "import de ./actions"],
+  ['import { deleteComment } from "@/app/studio/(app)/_actions/comments";', "import de _actions/"],
+  ['import { guardar } from "@/lib/studio/guia-actions";', "import de *-actions"],
+  ['const { guardar } = await import("./actions");', "import() dinámico de actions"],
   ['import { createServerClient } from "@supabase/ssr";', "@supabase/"],
+  ['import { createClient } from "@/lib/db/client";', "@/lib/db"],
+  ['import { createClient } from "../../lib/db/admin";', "lib/db relativo"],
   ["const c = cookies();", "cookies()"],
 ];
 
-for (const [linea, marca] of LINEAS_SENSIBLES) {
-  test(`contenido: una pantalla segura que agrega o quita «${marca}» da revision`, () => {
-    const r = clasificarArchivo("components/Footer.tsx", ["<p>ok</p>", linea]);
+for (const [linea, marca] of MARCAS) {
+  test(`contenido: un archivo seguro que contiene «${marca}» da revision`, () => {
+    const r = clasificarArchivo("components/Footer.tsx", leido(`<p>ok</p>\n${linea}`));
     assert.equal(r.carril, "revision", linea);
     assert.equal(r.regla, "contenido-sensible");
   });
 }
 
 test("contenido: Array.from no cuenta como consulta", () => {
-  assert.equal(carril("components/Footer.tsx", ["const xs = Array.from(items);"]), "rapido");
+  assert.equal(carril("components/Footer.tsx", "const xs = Array.from(items);"), "rapido");
 });
 
-test("contenido: una pantalla sin diff (solo el nombre) da revision", () => {
+test("contenido por archivo: si la base tenía la puerta y la cabeza no, da revision", () => {
+  const base = 'if (!canAccessModule(access.role, "kommo") || !access.tenantId) return null;';
+  const cabeza = "if (!access.tenantId) return null;";
+  assert.equal(carril("components/zz/Embudos.tsx", base, cabeza), "revision");
+  assert.equal(carril("components/zz/Embudos.tsx", cabeza), "rapido", "sin la base, la cabeza sola no dice nada");
+});
+
+test("contenido por archivo: quitar el filtro de eliminados de GenerateBLModal da revision", () => {
+  const ruta = "app/studio/_components/wiring/GenerateBLModal.tsx";
+  const base = delRepo(ruta);
+  assert.match(base, /\.is\("deleted_at", null\)/, "la base del repo tiene el filtro");
+  const cabeza = base.replace(/\n\s*\.is\("deleted_at", null\)/, "");
+  assert.notEqual(cabeza, base);
+  const r = clasificarArchivo(ruta, leido(base, cabeza));
+  assert.equal(r.carril, "revision");
+  assert.equal(r.regla, "contenido-sensible");
+});
+
+test("contenido por archivo: quitar canAccessModule de CrmEmbudosSlot da revision (por ruta y por contenido)", () => {
+  const ruta = "app/studio/(app)/crm/_components/CrmEmbudosSlot.tsx";
+  const base = delRepo(ruta);
+  assert.match(base, /canAccessModule\(/);
+  const cabeza = base.replace(/!canAccessModule\([^)]*\)\s*\|\|\s*/, "");
+  assert.equal(carril(ruta, base, cabeza), "revision", "por ruta (crm)");
+  // En una ruta sin palabras, el contenido de la base basta.
+  const r = clasificarArchivo("components/zz/Embudos.tsx", leido(base, cabeza));
+  assert.equal(r.regla, "contenido-sensible");
+});
+
+for (const ruta of [
+  "app/studio/(app)/_components/comments/CommentsThread.tsx",
+  "app/studio/(app)/_components/comments/DeletedCommentsPanel.tsx",
+]) {
+  test(`contenido: ${path.basename(ruta)} importa server actions de _actions/ y da revision`, () => {
+    const texto = delRepo(ruta);
+    assert.match(texto, /_actions\/comments/);
+    const r = clasificarArchivo("components/zz/Copia.tsx", leido(texto));
+    assert.equal(r.carril, "revision");
+    assert.match(r.motivo, /_actions\/comments/);
+  });
+}
+
+test("contenido: importar un archivo con \"use server\" (sin «action» en el nombre) da revision", () => {
+  const archivos = {
+    "components/zz/Boton.tsx": 'import { guardar } from "./guardar";\nexport const B = () => <button onClick={guardar} />;',
+    "components/zz/guardar.ts": '"use server";\nexport async function guardar() {}',
+  };
+  const leer = (_ref, ruta) => (ruta in archivos ? Buffer.from(archivos[ruta]) : null);
+  const contenido = cargarContenido(["components/zz/Boton.tsx"], [SHA_B, SHA_A], porLotes(leer));
+  assert.equal(contenido.get("components/zz/Boton.tsx").accion, "./guardar");
+  const r = clasificar(["components/zz/Boton.tsx"], contenido);
+  assert.equal(r.carril, "revision");
+  assert.match(r.causantes[0].motivo, /use server/);
+});
+
+test("importsLocales resuelve @/ y relativos, y deja fuera los paquetes", () => {
+  const imports = importsLocales(
+    "app/x/y/Z.tsx",
+    'import a from "react";\nimport b from "@/lib/b";\nimport c from "../c";\nimport d from "./d.tsx";',
+  );
+  assert.deepEqual(
+    imports.map((i) => [i.spec, i.candidatas[0]]),
+    [
+      ["@/lib/b", "lib/b.ts"],
+      ["../c", "app/x/c.ts"],
+      ["./d.tsx", "app/x/y/d.tsx"],
+    ],
+  );
+});
+
+test("binarios: un .tsx con NUL o UTF-8 inválido da revision (se falla cerrado)", () => {
+  assert.equal(comoTexto(Buffer.from([0x61, 0x00, 0x62])), null);
+  assert.equal(comoTexto(Buffer.from([0xff, 0xfe, 0x41])), null);
+  assert.equal(comoTexto(Buffer.from("hola")), "hola");
+  const leer = () => Buffer.from([0x2f, 0x2f, 0x00]);
+  const contenido = cargarContenido(["components/zz/Bin.tsx"], [SHA_A], porLotes(leer));
+  const r = clasificar(["components/zz/Bin.tsx"], contenido);
+  assert.equal(r.carril, "revision");
+  assert.equal(r.causantes[0].regla, "sin-contenido");
+});
+
+test("binarios: «Binary files … differ» en el diff marca el archivo aunque se lea", () => {
+  const diff = "diff --git a/components/zz/Bin.tsx b/components/zz/Bin.tsx\nnew file mode 100644\nindex 0..1\nBinary files /dev/null and b/components/zz/Bin.tsx differ\n";
+  const { rutas, binarios } = analizarDiff(diff);
+  assert.deepEqual(rutas, ["components/zz/Bin.tsx"]);
+  assert.ok(binarios.has("components/zz/Bin.tsx"));
+  const contenido = new Map([["components/zz/Bin.tsx", leido(PRESENTACION)]]);
+  assert.equal(clasificar(rutas, contenido, binarios).carril, "revision");
+});
+
+test("contenido: un archivo de código sin leer (solo el nombre) da revision", () => {
   const r = clasificarArchivo("components/Footer.tsx");
   assert.equal(r.carril, "revision");
   assert.equal(r.regla, "sin-contenido");
-  // Lo que no es código no necesita el diff.
+  assert.equal(clasificarArchivo("components/Footer.tsx", leido()).regla, "sin-contenido", "ni en base ni en cabeza");
+  // Lo que no es código no necesita leerse.
   assert.equal(clasificarArchivo("docs/a.md").carril, "rapido");
   assert.equal(clasificarArchivo("app/globals.css").carril, "rapido");
 });
 
-test("contenido: las pruebas no miran líneas (un mock de .from( sigue siendo prueba)", () => {
-  assert.equal(carril("components/Footer.test.tsx", ['db.from("clients")']), "rapido");
+test("contenido: las pruebas no se leen (un mock de .from( sigue siendo prueba)", () => {
+  assert.equal(carril("components/Footer.test.tsx", 'db.from("clients")'), "rapido");
 });
 
-test("página pública fuera de las zonas con sesión: rapido solo si sus líneas no tocan datos", () => {
-  assert.equal(carril("app/nosotros/page.tsx", ["<h1>Nosotros</h1>"]), "rapido");
-  assert.equal(carril("app/nosotros/page.tsx", ['const x = await db.from("noticias").select();']), "revision");
-});
-
-test("analizarDiff guarda las líneas agregadas y quitadas, no las de contexto", () => {
-  const diff = [
-    "diff --git a/components/Footer.tsx b/components/Footer.tsx",
-    "--- a/components/Footer.tsx",
-    "+++ b/components/Footer.tsx",
-    "@@ -1,3 +1,3 @@",
-    " const db = createAdminClient(); // contexto, no cuenta",
-    '-await requireModuleView("x");',
-    "+<p>hola</p>",
-  ].join("\n");
-  const cambios = analizarDiff(diff);
-  assert.deepEqual(cambios.get("components/Footer.tsx"), ['await requireModuleView("x");', "<p>hola</p>"]);
-  const r = clasificar([...cambios.keys()], cambios);
-  assert.equal(r.carril, "revision", "quitar una puerta pesa igual que ponerla");
-  assert.equal(r.contenido, true);
-
-  const soloContexto = analizarDiff(diff.replace('-await requireModuleView("x");\n', ""));
-  assert.equal(clasificar([...soloContexto.keys()], soloContexto).carril, "rapido", "el contexto no cuenta");
+test("página pública fuera de las zonas con sesión: rapido solo si el archivo no toca datos", () => {
+  assert.equal(carril("app/nosotros/page.tsx", "<h1>Nosotros</h1>"), "rapido");
+  assert.equal(carril("app/nosotros/page.tsx", 'const x = await db.from("noticias").select();'), "revision");
 });
 
 test("las reglas por carpeta sí alcanzan a las pruebas que viven ahí", () => {
@@ -237,7 +341,7 @@ test("las reglas por carpeta sí alcanzan a las pruebas que viven ahí", () => {
 });
 
 test("una ruta desconocida da revision (ante la duda, revisión)", () => {
-  const r = clasificarArchivo("carpeta-nueva/algo.ts");
+  const r = clasificarArchivo("carpeta-nueva/algo.ts", leido(PRESENTACION));
   assert.equal(r.carril, "revision");
   assert.equal(r.regla, "sin-clasificar");
 });
@@ -263,11 +367,12 @@ test("PR mixta: un archivo sensible vuelve revision a toda la PR y lo nombra", (
 });
 
 test("PR solo de rutas seguras: rapido, sin causantes", () => {
-  const cambios = new Map([["components/Footer.tsx", PRESENTACION]]);
-  const r = clasificar(["docs/a.md", "", "docs/a.md", "components/Footer.tsx", "app/globals.css"], cambios);
+  const contenido = new Map([["components/Footer.tsx", leido(PRESENTACION)]]);
+  const r = clasificar(["docs/a.md", "", "docs/a.md", "components/Footer.tsx", "app/globals.css"], contenido);
   assert.equal(r.carril, "rapido");
   assert.equal(r.total, 3, "ignora líneas vacías y repetidas");
   assert.deepEqual(r.causantes, []);
+  assert.equal(r.contenido, true);
 });
 
 test("un diff sin archivos es un error, no un rapido", () => {
@@ -305,22 +410,25 @@ test("rutasDeDiff toma la ruta vieja y la nueva de un renombre", () => {
   assert.equal(clasificar(rutas).carril, "revision", "el renombre desde supabase/ no se esconde");
 });
 
-test("leerArgumentos: --pr, rutas y errores de uso", () => {
+test("leerArgumentos: --pr, --diff, --base, --head y errores de uso", () => {
   assert.deepEqual(leerArgumentos(["--json", "--pr", "42"]), {
     json: true,
     pr: "42",
     head: null,
+    base: null,
     diff: false,
     rutas: [],
     ayuda: false,
   });
   assert.equal(leerArgumentos(["--pr=7"]).pr, "7");
-  assert.equal(leerArgumentos(["--diff", "--head", SHA_A]).head, SHA_A);
+  assert.equal(leerArgumentos(["--diff", "--base", "HEAD^1", "--head", "HEAD"]).base, "HEAD^1");
   assert.deepEqual(leerArgumentos(["a.md", "--", "--raro.md"]).rutas, ["a.md", "--raro.md"]);
   assert.throws(() => leerArgumentos(["--pr"]), /necesita/);
   assert.throws(() => leerArgumentos(["--pr", "1", "a.md"]), /una sola entrada/);
   assert.throws(() => leerArgumentos(["--diff", "a.md"]), /una sola entrada/);
-  assert.throws(() => leerArgumentos(["--head", "abc123"]), /40 caracteres/);
+  assert.throws(() => leerArgumentos(["--pr", "1", "--head", "abc123"]), /40 caracteres/);
+  assert.throws(() => leerArgumentos(["--diff", "--head", SHA_A]), /--base y --head juntos/);
+  assert.throws(() => leerArgumentos(["--head", SHA_A, "a.md"]), /solo van con --pr o con --diff/);
   assert.throws(() => leerArgumentos(["--nada"]), /desconocida/);
 });
 
@@ -344,7 +452,7 @@ test("contrato: el JSON trae carril, motivo, causantes y archivos", () => {
   const { codigo, out } = correr(["--json", "docs/a.md", "app/api/x/route.ts"]);
   assert.equal(codigo, 1);
   const r = JSON.parse(out);
-  assert.equal(r.version, 2);
+  assert.equal(r.version, 3);
   assert.equal(r.carril, "revision");
   assert.equal(r.origen, "args");
   assert.equal(r.contenido, false, "por argumentos solo se conocen los nombres");
@@ -360,67 +468,147 @@ test("contrato: stdin, una ruta por línea con CRLF", () => {
   const r = JSON.parse(out);
   assert.equal(r.carril, "rapido");
   assert.equal(r.origen, "stdin");
-  // Una pantalla por nombre, sin diff, no puede ir por el carril rápido.
+  // Una pantalla por nombre, sin leerla, no puede ir por el carril rápido.
   assert.equal(correr(["--json"], { stdin: "components/Footer.tsx\n" }).codigo, 1);
 });
 
-const DIFF_DOC = "diff --git a/docs/a.md b/docs/a.md\n--- a/docs/a.md\n+++ b/docs/a.md\n@@ -1 +1 @@\n+hola\n";
+const diffDe = (ruta, linea = "+hola") =>
+  `diff --git a/${ruta} b/${ruta}\n--- a/${ruta}\n+++ b/${ruta}\n@@ -1 +1 @@\n${linea}\n`;
 
-function ghFalso(cabezas, diff = DIFF_DOC) {
+/**
+ * gh y git falsos. `cabezas`: lo que devuelve cada `gh pr view`. `archivos`: { "<ref>:<ruta>": texto }.
+ * `diffGit`: lo que devuelve `git diff`. Los refs se resuelven a sí mismos si son SHA, o por `refs`.
+ */
+function falso({ cabezas = [SHA_A, SHA_A], diff = diffDe("docs/a.md"), archivos = {}, diffGit = diff, refs = {} } = {}) {
   const llamadas = [];
-  const ejecutar = (cmd, args) => {
+  const ejecutar = (cmd, args, opts = {}) => {
     llamadas.push([cmd, ...args].join(" "));
-    if (args[1] === "view") return `${cabezas.shift()}\n`;
-    return diff;
+    if (cmd === "gh" && args[1] === "view") return `${cabezas.shift()}\n`;
+    if (cmd === "gh" && args[1] === "diff") return diff;
+    if (cmd === "git" && args[0] === "fetch") return "";
+    if (cmd === "git" && args[0] === "rev-parse") {
+      const ref = args.at(-1).replace(/\^\{commit\}$/, "");
+      const sha = refs[ref] ?? ([SHA_A, SHA_B, SHA_M].includes(ref) ? ref : null);
+      if (!sha) throw Object.assign(new Error("no existe"), { stderr: "fatal: no existe" });
+      return `${sha}\n`;
+    }
+    if (cmd === "git" && args[0] === "merge-base") return `${SHA_M}\n`;
+    if (cmd === "git" && args[0] === "diff") return diffGit;
+    if (cmd === "git" && args[0] === "cat-file") {
+      // Formato de `git cat-file --batch`: «<sha> blob <largo>», salto, contenido y salto; o «<pedido> missing».
+      const partes = [];
+      for (const pedido of String(opts.input).split("\n").filter(Boolean)) {
+        if (pedido in archivos) {
+          const cuerpo = Buffer.from(archivos[pedido]);
+          partes.push(Buffer.from(`${"e".repeat(40)} blob ${cuerpo.length}\n`), cuerpo, Buffer.from("\n"));
+        } else partes.push(Buffer.from(`${pedido} missing\n`));
+      }
+      return Buffer.concat(partes);
+    }
+    throw new Error(`llamada inesperada: ${cmd} ${args.join(" ")}`);
   };
   return { llamadas, ejecutar };
 }
 
-test("contrato: --pr ata la clasificación a la cabeza y la devuelve en el JSON", () => {
-  const gh = ghFalso([SHA_A, SHA_A]);
-  const ok = correr(["--json", "--pr", "12"], { ejecutar: gh.ejecutar });
-  assert.deepEqual(gh.llamadas, [
-    "gh pr view 12 --json headRefOid --jq .headRefOid",
-    "gh pr diff 12 --color=never",
-    "gh pr view 12 --json headRefOid --jq .headRefOid",
-  ]);
-  assert.equal(ok.codigo, 0);
+test("contrato: --pr ata la clasificación a la cabeza, lee base y cabeza con git y devuelve head y base", () => {
+  const f = falso({ refs: { "origin/main": SHA_B } });
+  const ok = correr(["--json", "--pr", "12"], { ejecutar: f.ejecutar });
+  assert.deepEqual(
+    f.llamadas.filter((l) => l.startsWith("gh")),
+    [
+      "gh pr view 12 --json headRefOid --jq .headRefOid",
+      "gh pr diff 12 --color=never",
+      "gh pr view 12 --json headRefOid --jq .headRefOid",
+    ],
+  );
+  assert.ok(f.llamadas.includes("git fetch --no-tags --quiet origin pull/12/head"));
+  assert.ok(f.llamadas.some((l) => l.startsWith(`git merge-base ${SHA_A} ${SHA_B}`)));
+  assert.equal(ok.codigo, 0, ok.err);
   const r = JSON.parse(ok.out);
-  assert.equal(r.version, 2);
+  assert.equal(r.version, 3);
   assert.equal(r.pr, 12);
   assert.equal(r.origen, "pr");
   assert.equal(r.head, SHA_A);
+  assert.equal(r.base, SHA_M);
   assert.equal(r.contenido, true);
 });
 
+test("contrato: --pr da revision si la base del archivo tenía la puerta, aunque el diff la quite", () => {
+  const ruta = "components/zz/Embudos.tsx";
+  const f = falso({
+    refs: { "origin/main": SHA_B },
+    diff: diffDe(ruta, '-if (!canAccessModule(rol, "kommo")) return null;'),
+    archivos: {
+      [`${SHA_M}:${ruta}`]: 'if (!canAccessModule(rol, "kommo")) return null;\nreturn <p>x</p>;',
+      [`${SHA_A}:${ruta}`]: "return <p>x</p>;",
+    },
+  });
+  const r = correr(["--json", "--pr", "12"], { ejecutar: f.ejecutar });
+  assert.equal(r.codigo, 1, r.err);
+  assert.equal(JSON.parse(r.out).causantes[0].regla, "contenido-sensible");
+});
+
+test("contrato: --pr con un archivo de presentación en base y cabeza da rapido", () => {
+  const ruta = "components/zz/Tarjeta.tsx";
+  const f = falso({
+    refs: { "origin/main": SHA_B },
+    diff: diffDe(ruta, "+<p>nuevo</p>"),
+    archivos: { [`${SHA_M}:${ruta}`]: "<p>viejo</p>", [`${SHA_A}:${ruta}`]: "<p>nuevo</p>" },
+  });
+  const r = correr(["--json", "--pr", "12"], { ejecutar: f.ejecutar });
+  assert.equal(r.codigo, 0, r.err);
+});
+
 test("contrato: un push durante la clasificación es error, no un rapido", () => {
-  const r = correr(["--json", "--pr", "12"], { ejecutar: ghFalso([SHA_A, SHA_B]).ejecutar });
+  const r = correr(["--json", "--pr", "12"], { ejecutar: falso({ cabezas: [SHA_A, SHA_B] }).ejecutar });
   assert.equal(r.codigo, 2);
   assert.match(JSON.parse(r.out).error, /cambió de cabeza/);
 });
 
 test("contrato: --pr con --head distinto de la cabeza actual es error", () => {
-  const r = correr(["--json", "--pr", "12", "--head", SHA_B], { ejecutar: ghFalso([SHA_A, SHA_A]).ejecutar });
+  const r = correr(["--json", "--pr", "12", "--head", SHA_B], { ejecutar: falso().ejecutar });
   assert.equal(r.codigo, 2);
   assert.match(JSON.parse(r.out).error, /no b{40}/);
 });
 
-test("contrato: --pr con una pantalla que toca datos da revision", () => {
-  const diff =
-    "diff --git a/components/Footer.tsx b/components/Footer.tsx\n--- a/components/Footer.tsx\n" +
-    "+++ b/components/Footer.tsx\n@@ -1 +1 @@\n+const db = createAdminClient();\n";
-  const r = correr(["--json", "--pr", "12"], { ejecutar: ghFalso([SHA_A, SHA_A], diff).ejecutar });
-  assert.equal(r.codigo, 1);
-  assert.equal(JSON.parse(r.out).causantes[0].regla, "contenido-sensible");
-});
+test("contrato: --diff --base --head verifica que el diff sea ese y lee los archivos", () => {
+  const ruta = "components/zz/Tarjeta.tsx";
+  const diff = diffDe(ruta, "+<p>nuevo</p>");
+  const archivos = { [`${SHA_B}:${ruta}`]: "<p>viejo</p>", [`${SHA_A}:${ruta}`]: "<p>nuevo</p>" };
+  const refs = { "HEAD^1": SHA_B, HEAD: SHA_A };
 
-test("contrato: --diff por stdin mira el contenido y repite --head", () => {
-  const { codigo, out } = correr(["--json", "--diff", "--head", SHA_A], { stdin: DIFF_DOC });
-  assert.equal(codigo, 0);
-  const r = JSON.parse(out);
+  const ok = correr(["--json", "--diff", "--base", "HEAD^1", "--head", "HEAD"], {
+    stdin: diff,
+    ejecutar: falso({ diff, archivos, refs }).ejecutar,
+  });
+  assert.equal(ok.codigo, 0, ok.err);
+  const r = JSON.parse(ok.out);
   assert.equal(r.origen, "diff");
   assert.equal(r.head, SHA_A);
+  assert.equal(r.base, SHA_B);
   assert.equal(r.contenido, true);
+
+  const otro = correr(["--json", "--diff", "--base", "HEAD^1", "--head", "HEAD"], {
+    stdin: diffDe("docs/a.md"),
+    ejecutar: falso({ diff, archivos, refs }).ejecutar,
+  });
+  assert.equal(otro.codigo, 2, "el diff de stdin no es el de base..head");
+  assert.match(JSON.parse(otro.out).error, /no es «git diff/);
+
+  const noExiste = correr(["--json", "--diff", "--base", "HEAD^1", "--head", SHA_B.replace(/b/g, "d")], {
+    stdin: diff,
+    ejecutar: falso({ diff, archivos, refs }).ejecutar,
+  });
+  assert.equal(noExiste.codigo, 2, "un head que no existe se rechaza");
+});
+
+test("contrato: --diff sin --base ni --head solo ve nombres (una pantalla da revision)", () => {
+  const { codigo, out } = correr(["--json", "--diff"], { stdin: diffDe("components/Footer.tsx") });
+  assert.equal(codigo, 1);
+  const r = JSON.parse(out);
+  assert.equal(r.contenido, false);
+  assert.equal(r.head, undefined, "sin --head no hay cabeza que reportar");
+  assert.equal(correr(["--json", "--diff"], { stdin: diffDe("docs/a.md") }).codigo, 0);
 });
 
 test("contrato: un fallo de gh da error con JSON de revision", () => {
@@ -435,7 +623,6 @@ test("contrato: un fallo de gh da error con JSON de revision", () => {
   const r = JSON.parse(falla.out);
   assert.equal(r.carril, "revision");
   assert.match(r.error, /406/);
-
   assert.equal(correr(["--json", "--pr", "abc"]).codigo, 2, "número inválido");
 });
 
@@ -458,8 +645,7 @@ test("CLI real: argumentos y stdin con el proceso de Node", () => {
   assert.match(texto.stdout, /app\/x\/actions\.ts — server-actions/);
 });
 
-test("el check de CI es liviano, informativo y usa el clasificador de main", async () => {
-  const { readFileSync } = await import("node:fs");
+test("el check de CI es liviano, informativo y usa el clasificador de main", () => {
   const wf = readFileSync(path.join(ROOT, ".github", "workflows", "carril.yml"), "utf8");
   assert.match(wf, /^permissions:\s*\n  contents: read\s*$/m);
   assert.doesNotMatch(wf, /:\s*write\s*$/m, "sin permisos de escritura");
@@ -471,6 +657,6 @@ test("el check de CI es liviano, informativo y usa el clasificador de main", asy
   assert.match(wf, /persist-credentials: false/);
   assert.match(wf, /git show HEAD\^1:scripts\/carril\.mjs/, "manda el clasificador de la base");
   assert.match(wf, /git diff --no-renames HEAD\^1 HEAD/, "pasa el diff completo, no solo los nombres");
-  assert.match(wf, /carril\.mjs" --json --diff --head "\$\(git rev-parse HEAD\^2\)"/, "registra la cabeza de la PR");
+  assert.match(wf, /carril\.mjs" --json --diff --base HEAD\^1 --head HEAD/, "diff verificado y archivos leídos");
   assert.doesNotMatch(wf, /exit "?\$codigo"?/, "el carril no se convierte en el código del job");
 });
