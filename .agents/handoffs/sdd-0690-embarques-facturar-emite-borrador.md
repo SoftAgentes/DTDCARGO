@@ -16,8 +16,10 @@ Fecha: 2026-11-20.
   - el precio: en el 64 manda el Excel, en Embarques no se edita, y el monto en color enlaza a la factura o
     a la pre-orden; en la pantalla se dice «pre-orden»;
   - el cliente sin precio: monto tecleado.
-- Pendientes de Sam:
-  - la versión (A) o (B) del resumen de dinero. Hasta que la elija, no hay código.
+- Resumen de dinero, decidido por Sam: versión B (Total del embarque / Pagado / Saldo, con «Sin facturar»
+  como desglose). Medido: hoy una pre-orden no puede recibir abonos (0467, 0464, 0195); registrarlos
+  queda fuera de alcance.
+- Allowlist cerrada (§6). La spec queda lista para la aprobación de Sam; sin código ni archivo 0569.
 - T&C, decidido por Sam: se exige en el portal (SDD-0693). La RPC emite bajo la EXC-0674 ampliada; la
   ampliación se anota en el registro en la PR de implementación.
 

@@ -13,10 +13,9 @@ confidencialidad: interno
 
 # SDD-0690 — Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»
 
-> **Estado: propuesta.** Sam decidió tres puntos del §7: el precio, el cliente sin precio y la aceptación de
-> T&C. Falta la versión del resumen de dinero. No hay código hasta que la elija. La migración **0569**
-> todavía no existe como archivo. Se escribe cuando esta spec quede aprobada, y su cabecera dirá «NO
-> APLICADA EN NINGÚN ENTORNO».
+> **Estado: propuesta, lista para que Sam la apruebe.** Sam decidió los cuatro puntos del §7 el
+> 2026-11-20. La migración **0569** todavía no existe como archivo. Se escribe cuando esta spec quede
+> aprobada, y su cabecera dirá «NO APLICADA EN NINGÚN ENTORNO».
 
 ## 1. Pedido
 
@@ -206,13 +205,24 @@ exceso a estos borradores.
 - **Los rótulos del dinero, para cerrar el pendiente de la 0689:**
   - **«Sin facturar» = la suma de las pre-órdenes**, igual que en el encabezado. Esto es firme (Sam,
     2026-11-20).
-  - El resto del resumen está **pendiente** (§7, punto 4). Sam elegirá entre dos versiones:
-    - **(A)** «Sin facturar» / «Por cobrar» / «Cobrado»;
-    - **(B)** «Total del embarque» / «Pagado» / «Saldo», con abonos.
-  - Sea cual sea, la franja y el detalle por cliente usan las mismas palabras con el mismo sentido.
+  - **El resumen es la versión B** (Sam, 2026-11-20: «Me quedo con la versión B»; §7, punto 4):
+    - **«Total del embarque»** = la suma del total de las facturas emitidas y de las pre-órdenes, todo
+      lo no anulado, en USD;
+    - **«Sin facturar»** va como desglose del total: la parte que todavía son pre-órdenes;
+    - **«Pagado»** = lo abonado (`paid_amount`), sobre facturas y pre-órdenes, contando los abonos por
+      adelantado;
+    - **«Saldo»** = el total menos lo pagado.
+  - **Por cliente, igual:** Total, Pagado y Saldo. El saldo de una pre-orden es su total menos lo abonado.
+  - La franja del contenedor y el detalle por cliente usan las mismas palabras con el mismo sentido. «Por
+    cobrar» y «Cobrado» desaparecen de Embarques.
+  - **Medido: hoy una pre-orden no puede recibir abonos.** El cobro (`0467_cobro_factura_atomico.sql:209`)
+    y el reporte de pago (`0195_payment_reports.sql` §5, `0464_reporte_pago_factura_pagada.sql:245`)
+    rechazan una factura en `borrador`. Así que hoy el «Pagado» de una pre-orden es 0 y su saldo es su
+    total. La fórmula ya cuenta los abonos por adelantado para cuando existan. **Registrar un abono
+    sobre una pre-orden no entra en esta spec** (§8).
 - Los quiebres que la revisión de la 0689 dejó para aquí:
-  - el «Peso total» de la franja y del pie se iguala al del encabezado (el contenedor entero), o se
-    rotula como peso de la vista;
+  - el «Peso total» de la franja y del pie se iguala al del encabezado: el contenedor entero
+    (`GrupoContenedor.completo`);
   - la referencia vencida de la spec 0689 (§3.1 remite a «§5, punto 3», que ahora es el punto 4);
   - un borrador en USD por $0 muestra un texto exacto, no «Sin monto en USD».
 - Todo en USD; el bolívar es solo una vista. Una factura en otra moneda no suma y no se emite por esta
@@ -237,26 +247,56 @@ exceso a estos borradores.
 4. Con todos los clientes facturados, el contenedor dice «Facturado» y no hay botón.
 5. Ningún rol fuera de `accounting` y `admin` puede llamar la RPC ni ve montos (prueba SQL y prueba del
    servidor).
-6. «Sin facturar» (las pre-órdenes) y el resto del resumen que elija Sam significan lo mismo en el
-   encabezado, la franja y el detalle.
-7. En el detalle, el monto en color lleva a la factura si el cliente está facturado y a la pre-orden si no.
+6. El resumen de dinero es «Total del embarque» / «Pagado» / «Saldo», con «Sin facturar» (las
+   pre-órdenes) como desglose del total. Por cliente va Total / Pagado / Saldo. Las palabras significan lo
+   mismo en el encabezado, la franja y el detalle, y «Por cobrar» y «Cobrado» ya no aparecen en Embarques.
+   Prueba con un cliente con factura emitida y abono parcial, y otro con pre-orden: el saldo de la
+   pre-orden es su total menos lo abonado.
+7. El «Peso total» de la franja y del pie coincide con el del encabezado con cualquier pestaña o filtro.
+8. En el detalle, el monto en color lleva a la factura si el cliente está facturado y a la pre-orden si no.
    La pantalla dice «pre-orden», nunca «borrador».
-8. Las pruebas de la 0564, la 0661 y la 0689 siguen pasando.
+9. Las pruebas de la 0564, la 0661 y la 0689 siguen pasando.
 
-## 6. Archivos (allowlist provisional; se cierra al aprobar)
+## 6. Archivos (allowlist)
 
-- Esta spec, el índice `docs/specs/README.md` y `.agents/handoffs/sdd-0690-embarques-facturar-emite-borrador.md`.
-- `supabase/migrations/0569_exc0674_emitir_borradores.sql`, su desarme en `supabase/desarmes/`, su prueba
-  `.test.sql` y las declaraciones de espera que pida el runbook.
-- `scripts/consolidados/generar-lote.ts` y `lote-sql.ts` (modo `--solo-facturas`) y sus pruebas.
-- `app/studio/(app)/embarques/facturar-actions.ts`, `_components/FacturarContenedor.tsx`,
-  `_components/EmbarquesClient.tsx`, `page.tsx` y `lib/studio/exc0674-queries.ts`.
-- `lib/studio/embarques-contenedores.ts` (rótulos y saldo) y sus pruebas.
-- `docs/specs/0689-embarques-encabezado-y-cliente/spec.md`, solo la referencia vencida del §3.1.
+Documentos:
+- esta spec, el índice `docs/specs/README.md` y `.agents/handoffs/sdd-0690-embarques-facturar-emite-borrador.md`;
+- `docs/specs/0689-embarques-encabezado-y-cliente/spec.md`, solo la referencia vencida del §3.1;
 - `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`, solo la ampliación aprobada
-  (§3.4), en la PR de implementación.
+  (§3.4).
 
-## 7. Decisiones de Sam y pendientes
+Base de datos:
+- `supabase/migrations/0569_exc0674_emitir_borradores.sql`;
+- `supabase/desarmes/0569_desarme.sql`;
+- `supabase/tests/0569_exc0674_emitir_borradores.test.sql`;
+- `supabase/tests/0569_exc0674_emitir_borradores_carrera.test.sql`;
+- las declaraciones de espera que pida el runbook para una migración nueva (`supabase/migrations-baseline.json`
+  y `pending-migration-symbol-declarations.json`).
+
+Cargador:
+- `scripts/consolidados/generar-lote.ts` y `scripts/consolidados/lote-sql.ts` (modo `--solo-facturas`);
+- `scripts/__tests__/consolidados-sql.test.ts`.
+
+Embarques:
+- `app/studio/(app)/embarques/facturar-actions.ts`;
+- `app/studio/(app)/embarques/page.tsx`;
+- `app/studio/(app)/embarques/_components/FacturarContenedor.tsx`;
+- `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`;
+- `lib/studio/exc0674-queries.ts`;
+- `lib/studio/embarques-contenedores.ts` (Total, Pagado, Saldo y «Sin facturar»).
+
+Pruebas de Embarques:
+- `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`;
+- `app/studio/(app)/embarques/__tests__/page-exc0674-por-rol.test.ts`;
+- `app/studio/(app)/embarques/__tests__/page-monto-por-rol.test.ts`;
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.facturar.test.tsx`;
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.cajas-monto.test.tsx`;
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.encabezado-cliente.test.tsx`;
+- `lib/studio/__tests__/embarques-cajas-y-monto.test.ts`.
+
+Cualquier archivo fuera de esta lista se anota en el handoff y pide OK del DG antes de tocarlo.
+
+## 7. Decisiones de Sam
 
 Respuestas de Sam del 2026-11-20, en el chat del DG:
 
@@ -269,12 +309,16 @@ Respuestas de Sam del 2026-11-20, en el chat del DG:
    del cliente, en la SDD-0693 (aviso insistente, sin tracking ni estado de cuenta hasta que acepte, y un
    correo con hash y acuse). Mientras la 0693 no cambie formalmente la AUT-04, la RPC emite bajo la
    EXC-0674 ampliada a pre-orden y «Facturar todo», con el mismo alcance y la misma fecha (§3.4).
-4. **El resumen de dinero (PENDIENTE en parte).** «Sin facturar» = las pre-órdenes es firme. Falta que Sam
-   elija entre (A) «Sin facturar» / «Por cobrar» / «Cobrado» y (B) «Total del embarque» / «Pagado» /
-   «Saldo», con abonos (§3.5).
+4. **El resumen de dinero (DECIDIDO).** Sam vio dos versiones y respondió «Me quedo con la versión B»: Total
+   del embarque / Pagado / Saldo, contando los abonos por adelantado, con «Sin facturar» (las pre-órdenes)
+   como desglose del total. Por cliente, igual: Total, Pagado y Saldo; el saldo de una pre-orden es su
+   total menos lo abonado (§3.5).
 
 ## 8. Fuera de alcance
 
+- **Registrar abonos sobre una pre-orden.** Hoy el cobro y el reporte de pago rechazan los borradores
+  (§3.5). El resumen ya los cuenta si existen, pero abrir esa vía toca Cobranzas y la contabilidad, y es
+  una SDD propia si Sam la pide.
 - La línea de exceso de kg y la tarifa por cliente: SDD-0692.
 - El historial de contenedores entregados al 100 %: SDD-0691.
 - Cargar borradores de cualquier contenedor que no sea el 64.
