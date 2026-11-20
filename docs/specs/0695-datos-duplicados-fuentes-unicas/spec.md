@@ -866,7 +866,9 @@ reimplementaciones de fecha se listan archivo por archivo en esta spec antes de 
 migraciones las numera Dir_DTD.
 
 - **F-0:** esta spec, `docs/specs/README.md` (índice) y `.agents/handoffs/2026-11-20-sdd-0695-datos-duplicados.md`.
-- **F-1:** `docs/architecture/fuentes-unicas.md`, `lib/shared/fuentes-unicas-detector.ts` (el detector puro)
+- **F-1:** `docs/architecture/fuentes-unicas.md`. **Si la 0694 F-2 llega antes,** ella crea el archivo con la
+  estructura de §4.1 y las filas de la dirección, y esta F-1 completa las demás. También
+  `lib/shared/fuentes-unicas-detector.ts` (el detector puro)
   y `lib/__tests__/fuentes-unicas.contract.test.ts`.
 - **F-2:**
   - migraciones `NNNN_dia_caracas.sql` y `NNNN_correlativos_anio_caracas.sql`, con su `.test.sql`;
