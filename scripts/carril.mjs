@@ -427,8 +427,10 @@ export function leerArgumentos(argv) {
       if (i + 1 >= argv.length) throw new ErrorCarril("--pr necesita el número de la PR");
       opciones.pr = argv[++i];
     } else if (a.startsWith("--pr=")) opciones.pr = a.slice(5);
-    else if (a === "--") opciones.rutas.push(...argv.slice(i + 1)), (i = argv.length);
-    else if (a.startsWith("-")) throw new ErrorCarril(`opción desconocida: ${a}`);
+    else if (a === "--") {
+      opciones.rutas.push(...argv.slice(i + 1));
+      break;
+    } else if (a.startsWith("-")) throw new ErrorCarril(`opción desconocida: ${a}`);
     else opciones.rutas.push(a);
   }
   if (opciones.pr !== null && opciones.rutas.length > 0) {
