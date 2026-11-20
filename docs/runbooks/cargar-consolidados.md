@@ -128,6 +128,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     - **`aplicar`** se niega sin ese simulacro, y también si ya hay un `aplicar` PASÓ de ese id.
     - **`verificar`** es PASÓ cuando cada cliente con líneas tiene exactamente una factura viva.
     - Al terminar, se borra el paquete del servidor, igual que en cualquier lote.
+    - **Emitir no es parte de la carga.** Decisión de Sam (2026-11-20, por el DG), literal: «64: la oficina emite con Facturar todo cuando las revise». Después de `verificar` nadie emite: la oficina revisa las pre-órdenes en Facturación y emite desde Embarques con «Facturar todo».
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.
