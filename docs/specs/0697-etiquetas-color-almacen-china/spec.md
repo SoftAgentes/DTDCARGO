@@ -17,7 +17,7 @@ confidencialidad: interno
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
 > «Devolución de impuestos», marca sin documentación y «Montacargas». Hay más.
 
-**Estado: borrador con todas las preguntas del §7 contestadas por Sam (2026-11-20); falta la revisión del delta y su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
+**Estado: borrador con las preguntas 0 a 14 del §7 contestadas por Sam (2026-11-20); queda abierta la 15 (si China ve el efecto) y faltan la revisión y su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
 fusionado. Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no
 se leyó ninguna fila de producción. Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
 Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.
@@ -230,9 +230,14 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
   calcula montos ni toca facturas (§2.0).
 - **China no ve el efecto** (pendiente de la pregunta 15; recomendado: solo nombre, color e ícono). Las
   lecturas del servidor para un usuario de región `cn` sin admin no traen `efecto`, y la sección de China no
-  lo muestra ni lo pide. Un indicador que crea China nace con `efecto = 'ninguno'`; **fijarlo por primera vez**
-  (de `ninguno` a otro) lo hace Venezuela (`operations` o `accounting` de región `ve`, o admin) sin solicitud;
-  **cambiar un efecto ya fijado** pasa por la solicitud del §2.3.1. Límite conocido: como el resto del
+  lo muestra ni lo pide. Un indicador que crea China nace con `efecto = 'ninguno'` y sin fijar
+  (`crear_etiqueta_almacen` rechaza otro efecto si quien crea es de región `cn`). **Fijarlo por primera vez** lo
+  hace Venezuela (`operations` o `accounting` de región `ve`, o admin) sin solicitud, y **la base impone que sea
+  una sola vez** con `efecto_fijado_at` (§2.7). Si Venezuela crea el indicador con un efecto, ya nace fijado.
+  **Cambiar un efecto ya fijado** pasa siempre por la solicitud del §2.3.1, **también si es `tarea` o
+  `ninguno`**: el efecto decide qué se cobra, así que una sola regla para todos los cambios evita que un
+  indicador pase a «dinero» o salga de «dinero» sin aprobación. Una solicitud aprobada que deja el efecto en
+  `ninguno` no reabre `fijar`: la marca de fijado no se limpia. Límite conocido: como el resto del
   catálogo, la columna se lee con la RLS de miembro activo, así que un usuario de China con PostgREST directo
   podría leerla. Cerrarlo en la base (grant por columna o una vista) se decide si Sam contesta que China no
   debe verlo nunca.
@@ -339,6 +344,8 @@ de contabilidad.»
   - Contabilidad ve las solicitudes en una lista «Cambios de indicadores por aprobar», dentro de Embarques
     (ya tiene acceso, `lib/studio/rbac.ts:64`), con aviso en la campana. No entra a Almacén China.
   - Quien pidió puede **cancelar** su propia solicitud mientras siga pendiente.
+  - En la pantalla de China, cuando quitar un indicador está bloqueado, el mensaje dice «Este cambio lo aprueba
+    Venezuela», sin decir que el indicador tiene efecto de dinero (pregunta 15).
   - Tabla `warehouse_tag_change_requests` y RPC `pedir_cambio_indicador`, `aprobar_cambio_indicador`,
     `rechazar_cambio_indicador` y `cancelar_cambio_indicador` (§2.7). El cambio lo aplica una función interna,
     `aplicar_cambio_indicador`, sin grant a nadie, que solo llama `aprobar_cambio_indicador`. Capability nueva `approve_tag_changes: ["accounting"]` (admin
@@ -458,6 +465,8 @@ create table public.warehouse_tags (
   en_almacen_ve  boolean not null default false,   -- se ve al recibir en Caracas (§2.5)
   efecto         text not null default 'ninguno'
                  check (efecto in ('ninguno', 'cobro_cliente', 'costo_proveedor', 'cobro_y_costo', 'tarea')),
+  efecto_fijado_at  timestamptz,                 -- una vez fijado, no vuelve a nulo (§2.2)
+  efecto_fijado_por uuid references auth.users(id),
   icono          text not null
                  check (icono in ('shield', 'flame', 'invoice', 'door', 'forklift', 'ruler', 'flag', 'warn',
                                   'box', 'battery', 'fragile', 'scale', 'camera', 'clock', 'lock', 'star')),
@@ -468,8 +477,11 @@ create table public.warehouse_tags (
   archived_at    timestamptz,
   archived_by    uuid references auth.users(id),
   check (nombre_es is not null or nombre_zh is not null),
-  check ((archived_at is null) = (archived_by is null))
+  check ((archived_at is null) = (archived_by is null)),
+  check ((efecto_fijado_at is null) = (efecto_fijado_por is null)),
+  check (efecto_fijado_at is not null or efecto = 'ninguno')
 );
+-- El catálogo inicial nace fijado (efecto_fijado_at = momento de la migración).
 
 create unique index warehouse_tags_nombre_es_vivo_uq
   on public.warehouse_tags (tenant_id, lower(btrim(nombre_es)))
@@ -611,14 +623,54 @@ create policy "warehouse_tag_change_requests lectura miembro activo"
 -- Comentarios sobre indicadores: dos tipos nuevos en el hilo de 0090. El check se rehace con la lista
 -- vigente (leída del catálogo en el precheck) más los dos nuevos.
 --   'warehouse_receipt_tag', 'shipment_tag'
--- comment_entity_in_tenant (0093:28-67, rehecha en 0215:107): dos ramas nuevas, fail-closed, que
--- comprueban el tenant de la asignación; el resto de la función queda igual (else → false):
---   when 'warehouse_receipt_tag' then
---     select exists(select 1 from public.warehouse_receipt_tags
---                   where id = p_entity_id and tenant_id = p_tenant_id) into ok;
---   when 'shipment_tag' then
---     select exists(select 1 from public.shipment_tags
---                   where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+-- comment_entity_in_tenant: cuerpo completo (las nueve ramas de 0215:107-143 más las dos nuevas).
+-- Precheck antes de reemplazar: md5 del prosrc vigente = md5 del cuerpo de la 0215; si no coincide,
+-- la migración aborta (alguien la cambió después y hay que mirar antes de pisarla).
+create or replace function public.comment_entity_in_tenant(
+  p_entity_type text,
+  p_entity_id   uuid,
+  p_tenant_id   uuid
+) returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  ok boolean := false;
+begin
+  case p_entity_type
+    when 'shipment' then
+      select exists(select 1 from public.shipments where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'client' then
+      select exists(select 1 from public.clients where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'invoice' then
+      select exists(select 1 from public.invoices where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'quote' then
+      select exists(select 1 from public.quotes where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'dispatch_order' then
+      select exists(select 1 from public.dispatch_orders where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'supplier_bill' then
+      select exists(select 1 from public.supplier_bills where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'warehouse_receipt_cn' then
+      select exists(select 1 from public.warehouse_receipts_cn where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'warehouse_receipt_ve' then
+      select exists(select 1 from public.warehouse_receipts_ve where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'bitacora_task' then
+      select exists(select 1 from public.bitacora_tasks where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'warehouse_receipt_tag' then
+      -- SDD-0697: comentario sobre un indicador puesto en una recepción de China.
+      select exists(select 1 from public.warehouse_receipt_tags where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    when 'shipment_tag' then
+      -- SDD-0697: comentario sobre un indicador puesto por Venezuela en un embarque.
+      select exists(select 1 from public.shipment_tags where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+    else
+      ok := false; -- tipo desconocido → rechaza (fail-closed; el CHECK ya acota el set)
+  end case;
+  return ok;
+end;
+$$;
+-- Los grants de la función no cambian (0288:4295-4296): create or replace los conserva.
 ```
 
 - **Es una lista de denegación:** bloquea solo a `authenticated` y `anon`, los roles con los que entra una
@@ -648,18 +700,18 @@ Candados por RPC:
 
 | RPC | Candado | Qué hace |
 |---|---|---|
-| `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log` |
+| `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log`. Si quien crea es de región `cn`, rechaza un efecto distinto de `ninguno` y deja el indicador sin fijar; si es de `ve` o admin y trae efecto, lo deja fijado |
 | `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: rechaza y pide usar `pedir_cambio_indicador` | Cambia nombre, descripción, grupo, color, ícono, `en_almacen_ve` u orden (reordenar nunca pide solicitud); audita antes y después |
 | `archivar_etiqueta_almacen(p_id, p_archivar boolean, p_motivo)` | ídem; con efecto de dinero: solo por solicitud aprobada | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
 | `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo por solicitud aprobada | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
 | `poner_indicador_embarque(p_shipment_id, p_tag_id, p_nota)` (C) | `admin`, o `warehouse`/`operations` de región `ve` | Valida embarque vivo del tenant e indicador no archivado; inserta en `shipment_tags` y audita |
 | `quitar_indicador_embarque(p_asignacion_id, p_motivo)` (C) | ídem; con efecto de dinero, solo por solicitud aprobada | Marca `removed_*` y audita |
-| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve`; solo si el efecto vigente es `ninguno` | Fija el efecto por primera vez; audita |
+| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve` | Compare-and-set: `update public.warehouse_tags set efecto = p_efecto, efecto_fijado_at = pg_catalog.now(), efecto_fijado_por = auth.uid() where id = p_id and tenant_id = <tenant> and efecto_fijado_at is null returning id`; si no devuelve fila, `P0001` («el efecto ya está fijado; pide el cambio»). Audita |
 | `pedir_cambio_indicador(p_accion, p_objetivo_id, p_cambios, p_motivo)` (C) | quien podría hacer ese cambio si el indicador no tuviera dinero | Crea la solicitud `pendiente` |
 | `aprobar_cambio_indicador(p_id, p_comentario)` (C) | `admin` o `accounting` (`approve_tag_changes`), distinto de quien pidió | Llama a `aplicar_cambio_indicador` en la misma transacción y cierra la solicitud |
 | `rechazar_cambio_indicador(p_id, p_comentario)` (C) | ídem | Cierra la solicitud sin cambios |
-| `cancelar_cambio_indicador(p_id)` (C) | solo quien la pidió, mientras esté pendiente | La cierra como `cancelada` |
+| `cancelar_cambio_indicador(p_id)` (C) | solo quien la pidió, mientras esté pendiente | `update … set estado = 'cancelada', resuelto_por = auth.uid(), resuelto_at = pg_catalog.now() where id = p_id and tenant_id = <tenant> and pedido_por = auth.uid() and estado = 'pendiente'`; si no afecta exactamente una fila, `42501` |
 | `aplicar_cambio_indicador(p_id)` (C, interna) | **sin grant a nadie** (`revoke all … from public, anon, authenticated, service_role`) | Aplica el cambio; solo la llama `aprobar_cambio_indicador` |
 
 - La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
@@ -915,8 +967,22 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 25. **Filtro «genera cobro» por región:** `operations` de región `ve` lo recibe; `operations` de región `cn` no
     recibe el filtro ni el `efecto` en ninguna lectura (prueba de servidor).
 26. **Fijar el efecto:** `operations` de región `ve` fija el efecto de un indicador nuevo (`ninguno` →
-    `cobro_cliente`) sin solicitud; cambiarlo después sin solicitud falla.
+    `cobro_cliente`) sin solicitud; volver a llamar `fijar` falla; cambiarlo (también a `tarea` o `ninguno`)
+    solo pasa por solicitud aprobada.
 27. **Reordenar sin solicitud:** cambiar el `orden` de un indicador con efecto de dinero pasa sin solicitud.
+28. **Fijar en carrera:** dos sesiones llaman `fijar_efecto_indicador` sobre el mismo indicador a la vez con
+    efectos distintos → una gana y la otra recibe `P0001`; queda un solo `efecto_fijado_*` y una sola fila de
+    auditoría.
+29. **No se reabre:** una solicitud aprobada lleva un efecto de `cobro_cliente` a `ninguno` → `efecto_fijado_at`
+    sigue con valor y `fijar_efecto_indicador` falla.
+30. **Crear desde China:** `warehouse` de región `cn` crea un indicador con efecto `cobro_cliente` → falla; sin
+    efecto → nace `ninguno` y sin fijar. `operations` de región `ve` lo crea con `tarea` → nace fijado.
+31. **Regresión de comentarios:** después de la migración C, comentar en cada uno de los nueve tipos que ya
+    existían (`shipment`, `client`, `invoice`, `quote`, `dispatch_order`, `supplier_bill`,
+    `warehouse_receipt_cn`, `warehouse_receipt_ve`, `bitacora_task`) sigue pasando con una entidad del tenant y
+    falla con una de otro tenant; un tipo desconocido sigue fallando.
+32. **Cancelar ajena o cerrada:** cancelar una solicitud de otro usuario, o una ya aprobada, rechazada o
+    cancelada, falla con `42501` y no cambia la fila.
 
 ### 8.2 Pruebas de aplicación
 

@@ -62,7 +62,7 @@ Checks: build-docs-index --check PASÓ; check-numbering PASÓ; verify NO EJECUTA
 
 ## Preguntas de Sam contestadas (2026-11-20)
 
-Ya están contestadas todas las preguntas de la §7, de la 0 a la 14:
+Están contestadas las preguntas 0 a 14 de la §7; queda abierta la 15 (si China ve el efecto):
 - El nombre es «indicadores de carga».
 - Hay leyenda de colores, con íconos que no se repiten, y la sección «Indicadores» vive dentro de Almacén China.
 - Son dos etapas: China pone indicadores en la recepción y Venezuela en el embarque, con el origen CN/VE visible.
