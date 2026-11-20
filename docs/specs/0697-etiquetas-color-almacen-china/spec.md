@@ -625,7 +625,7 @@ ve en el almacén es un hecho: llegó una marca conocida sin papeles. Propuesta 
 
 | | es-VE | zh-CN |
 |---|---|---|
-| **Nombre (recomendado)** | **Marca sin autorización** | 品牌无授权 |
+| **Nombre (elegido por Sam, 2026-11-20)** | **Marca sin autorización** | 品牌无授权 |
 | Alternativa A | Marca sin documentos | 品牌无文件 |
 | Alternativa B | Marca por verificar | 品牌待核实 |
 | Descripción | «Llega una marca conocida sin registro de marca ni carta de autorización del dueño de la marca. Pide los papeles al proveedor antes de embarcar: sin ellos la carga puede retenerse en la aduana.» | 「知名品牌货物到仓，但没有商标注册证或品牌授权书。装柜前请向供应商索取文件，否则货物可能在海关被扣。」 |
@@ -742,6 +742,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 6. **El cliente.** ¿El cliente nunca ve ninguna? Ejemplo: el importador no ve «Montacargas» en su portal.
    **Contestada (2026-11-20): nunca ve ninguno.** Si un indicador genera un cargo, el cliente lo ve en su factura, no como indicador.
 7. **Texto de la marca.** ¿«Marca sin autorización», «Marca sin documentos» o «Marca por verificar»?
+   **Contestada (2026-11-20): «Marca sin autorización» / 品牌无授权.**
 8. **Las otras.** Además de las cinco de la leyenda, ¿hay otras? Ejemplo: «Batería de litio», ¿va dentro de
    «Carga especial» o aparte, por su cobro propio?
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
