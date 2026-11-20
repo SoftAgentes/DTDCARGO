@@ -235,6 +235,10 @@ Producto:
 Pruebas:
 - `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `almacen-cn-contenedores-queries.test.ts`, `almacen-cn-en-almacen.test.ts`, `embarques-pestanas.test.ts` (nuevas)
 - `app/studio/(app)/cn/_components/__tests__/FilaCamino.test.tsx` (nueva)
+- `app/studio/(app)/cn/__tests__/regla-nombres-compartida.test.ts`: la página le pasa además a `listReceipts`
+  lo que ya salió de la bodega; la aserción sigue exacta.
+- `lib/studio/__tests__/listados-double.ts` (doble compartido): ordena como PostgREST, el primer `order` manda y
+  los siguientes desempatan. Antes mandaba el último, y el desempate por `id` de `listReceipts` lo destapó.
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.pestanas.test.tsx` (nueva)
 - `EmbarquesClient.{abrir,adjuntos,borrado,cajas-monto,contenedores,facturar,peso}.test.tsx`: abren en «Todos»
   (prueban contenedores y montos, no pestañas). `EmbarquesClient.encabezado-cliente.test.tsx` (SDD-0689):

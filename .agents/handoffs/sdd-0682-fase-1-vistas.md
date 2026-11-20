@@ -78,6 +78,16 @@ Corregido en la tanda siguiente:
   - eslint de los archivos tocados: PASÓ.
   - `pnpm verify` completo: NO EJECUTADO (el DG no lo dio en este turno; lo cubre la CI).
 
+- Turno de PC del DG, 2026-11-20, sobre `2ee878838` y el arreglo encima:
+  - typecheck (`tsc --noEmit`): PASÓ, antes y después del arreglo.
+  - vitest de lo tocado (cn, app/m/cn, operarios, contratos del Studio, lectores de warehouse-cn y los 15
+    consumidores de `listados-double.ts`): primera corrida 409/412. FALLARON `regla-nombres-compartida`
+    (2 casos; la página ahora pasa `salidas`) y el control del doble de `recepciones-sin-eliminadas` (el doble
+    ordenaba por el último `order`, y el desempate por `id` volteó el orden). Arreglo: la aserción exacta
+    incluye `salidas` y el doble ordena como PostgREST. Segunda corrida: 874/874 PASÓ.
+  - eslint de los archivos tocados: PASÓ.
+  - `pnpm verify` completo: NO EJECUTADO (fuera del turno; lo cubre la CI).
+
 ## Pendiente de esta tarea
 
 - Correr las comprobaciones con turno, PR de la fase 1, revisión independiente (la lanza el DG).
