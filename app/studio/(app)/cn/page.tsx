@@ -121,7 +121,9 @@ export default async function CnPage({
       // Shipments con alerta de gastos activa → chip "Pendiente gastos" en la row.
       activeAlertShipmentIds(supabase),
       // SDD-0682: cuántas recepciones consolidadas deja fuera «En almacén».
-      filters.status === "en_almacen" ? contarRecepcionesConsolidadas(supabase) : Promise.resolve(null),
+      filters.status === "en_almacen"
+        ? contarRecepcionesConsolidadas(supabase, filters)
+        : Promise.resolve(null),
     ]);
 
   // SDD-0571: la tarifa congelada de cada recepción. Sin la 0496, «No disponible».

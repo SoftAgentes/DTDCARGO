@@ -73,9 +73,6 @@ export const warehouse = {
   "warehouse_cn.table.orphan": "Huérfana",
 
   // ── Empty state ──────────────────────────────────────────
-  "warehouse_cn.empty.title": "Sin recepciones todavía",
-  "warehouse_cn.empty.description":
-    "Cuando llegue mercadería a un hub CN, regístrala con + Nueva recepción.",
   "warehouse_cn.empty.en_almacen_title": "No hay mercancía en la bodega",
   "warehouse_cn.empty.en_almacen_description":
     "No hay recepciones pendientes de consolidar ni incidencias. Lo consolidado está en «En camino».",
@@ -378,7 +375,6 @@ export const warehouse = {
   "warehouse_cn.view.hidden_notice_one":
     "1 recepción ya consolidada no se muestra: salió de la bodega.",
   "warehouse_cn.view.hidden_link": "Ver contenedores en camino",
-  "warehouse_cn.camino.title": "Contenedores en camino",
   "warehouse_cn.camino.description":
     "Lo que ya salió de la bodega: contenedores en el mar y contenedores cargados que aún no zarpan.",
   "warehouse_cn.camino.empty_title": "No hay contenedores en camino",
@@ -387,7 +383,12 @@ export const warehouse = {
   "warehouse_cn.camino.group_mar": "En el mar",
   "warehouse_cn.camino.group_origen": "Cargados, sin zarpar",
   "warehouse_cn.camino.col_container": "Contenedor",
-  "warehouse_cn.camino.col_vessel": "Buque",
+  "warehouse_cn.camino.col_carrier": "Naviera",
+  "warehouse_cn.camino.col_mark": "Shipping Mark",
+  "warehouse_cn.camino.show_receipts": "Ver recepciones ({count})",
+  "warehouse_cn.camino.hide_receipts": "Ocultar recepciones",
+  "warehouse_cn.camino.receipts_empty": "Este contenedor no tiene recepciones consolidadas registradas.",
+  "warehouse_cn.camino.receipts_label": "Recepciones del contenedor {container}",
   "warehouse_cn.camino.col_eta": "ETA",
   "warehouse_cn.camino.col_days": "Días",
   "warehouse_cn.camino.col_progress": "Avance",

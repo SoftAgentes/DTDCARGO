@@ -38,6 +38,18 @@ export function hrefDeVista(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
+/** Valores que acepta el selector de estado; `""` es «En almacén». */
+const VALORES_DEL_SELECTOR = ["all", "pendiente_consolidacion", "consolidado", "incidencia"];
+
+/**
+ * Valor del selector de estado a partir de `?status=`. Un valor que no existe se
+ * lee como «En almacén» (`""`), igual que `parseReceiptFiltersFromSearchParams`
+ * en el servidor: el selector nunca queda sin una opción elegida.
+ */
+export function statusDelSelector(crudo: string | null | undefined): string {
+  return crudo && VALORES_DEL_SELECTOR.includes(crudo) ? crudo : "";
+}
+
 /** Texto del contador de días a la ETA: `null` días = sin ETA (no se inventa). */
 export type TextoDias =
   | { tipo: "sin_eta" }

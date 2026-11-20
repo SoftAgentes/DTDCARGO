@@ -16,7 +16,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
-import { hrefDeVista } from "@/lib/studio/almacen-cn-vistas";
+import { hrefDeVista, statusDelSelector } from "@/lib/studio/almacen-cn-vistas";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   HUB_GROUPS,
@@ -164,7 +164,8 @@ function AlmacenCnView({
   // Filtros locales sincronizados con URL
   const [q, setQ] = useState(params.get("q") ?? "");
   const [hub, setHub] = useState(params.get("hub") ?? "");
-  const [status, setStatus] = useState(params.get("status") ?? "");
+  // SDD-0682: un `?status=` que no existe se lee como «En almacén», igual que el servidor.
+  const [status, setStatus] = useState(statusDelSelector(params.get("status")));
 
   // Bulk selection (set de receipt IDs)
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -368,7 +369,7 @@ function AlmacenCnView({
           eyebrow={
             hasActiveFilters
               ? t("chrome.empty.no_results")
-              : t("warehouse_cn.empty.title")
+              : t("warehouse_cn.view.en_almacen")
           }
           title={
             hasActiveFilters

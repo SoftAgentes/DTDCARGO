@@ -270,6 +270,34 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
     },
   );
 
+  it("en «Activos», con un envío en aduana, el encabezado sigue siendo el del contenedor entero", () => {
+    // SDD-0682: «Activos» deja fuera lo que va en el mar; el envío en aduana es el que lo trae aquí.
+    const conActivo = [
+      ...MIXTO,
+      envio("m4", { client_name: "Cliente Cuatro", client_markbox: "DTD-1004", status: "in_customs", weight_kg: 5 }),
+    ];
+    const datos: ContenedoresDeEmbarques = {
+      ...DATOS_MIXTO,
+      porEmbarque: { ...DATOS_MIXTO.porEmbarque, m4: "c64" },
+    };
+    const montos: MontosDeContenedores = {
+      estado: "lista",
+      porEmbarque: {
+        m1: { facturas: 1, porCobrarUsd: 300, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300 },
+        m2: { facturas: 1, porCobrarUsd: 200, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200 },
+        m3: { facturas: 1, porCobrarUsd: 50, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 50 },
+        m4: { facturas: 1, porCobrarUsd: 25, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 25 },
+      },
+    };
+    render(
+      <EmbarquesClient pestanaInicial="active" shipments={conActivo} adjuntos={undefined} contenedores={datos} montos={montos} />,
+    );
+    expect(cabecera().textContent ?? "").toContain("155 kg");
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    fireEvent.click(within(monto).getByRole("button", { name: /Mostrar u ocultar el total sin facturar/ }));
+    expect(monto.textContent).toBe("Sin facturar$575.00");
+  });
+
   it("sin montos tampoco hay dinero en ninguna pestaña", () => {
     render(<EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} />);
     filtrar("Entregados");

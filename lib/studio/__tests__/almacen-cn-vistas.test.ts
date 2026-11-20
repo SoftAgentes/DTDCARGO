@@ -3,7 +3,7 @@
  * texto del contador de días.
  */
 import { describe, expect, it } from "vitest";
-import { hrefDeVista, textoDeDias, vistaDeUrl } from "@/lib/studio/almacen-cn-vistas";
+import { hrefDeVista, statusDelSelector, textoDeDias, vistaDeUrl } from "@/lib/studio/almacen-cn-vistas";
 import {
   ESTADOS_EN_ALMACEN,
   parseReceiptFiltersFromSearchParams,
@@ -20,7 +20,7 @@ describe("vistaDeUrl", () => {
 
 describe("hrefDeVista", () => {
   it("conserva el idioma y suelta los filtros de recepciones", () => {
-    const params = { lang: "cn", q: "DTD-0418", hub: "YIW", status: "all", view: "create" };
+    const params = { lang: "cn", q: "DEMO-0001", hub: "YIW", status: "all", view: "create" };
     expect(hrefDeVista("/studio/cn", params, "camino")).toBe("/studio/cn?lang=cn&vista=camino");
     expect(hrefDeVista("/studio/cn", { ...params, vista: "camino" }, "almacen")).toBe(
       "/studio/cn?lang=cn",
@@ -43,6 +43,22 @@ describe("filtro de estado de Almacén China", () => {
     expect(parseReceiptFiltersFromSearchParams({ status: "all" }).status).toBe("all");
     expect(parseReceiptFiltersFromSearchParams({ status: "consolidado" }).status).toBe("consolidado");
     expect(parseReceiptFiltersFromSearchParams({ status: ["incidencia"] }).status).toBe("incidencia");
+  });
+});
+
+describe("statusDelSelector", () => {
+  it("el selector nunca queda sin opción: lo desconocido es «En almacén»", () => {
+    expect(statusDelSelector(null)).toBe("");
+    expect(statusDelSelector("foo")).toBe("");
+    expect(statusDelSelector("all")).toBe("all");
+    expect(statusDelSelector("consolidado")).toBe("consolidado");
+  });
+
+  it("dice lo mismo que el servidor para cada valor", () => {
+    for (const crudo of [undefined, "", "foo", "all", "pendiente_consolidacion", "consolidado", "incidencia", "received"]) {
+      const servidor = parseReceiptFiltersFromSearchParams(crudo === undefined ? {} : { status: crudo }).status;
+      expect(statusDelSelector(crudo)).toBe(servidor === "en_almacen" ? "" : servidor);
+    }
   });
 });
 

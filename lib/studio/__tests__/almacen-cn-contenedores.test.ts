@@ -1,11 +1,15 @@
 /**
  * SDD-0682 §2.2 · «En camino» de Almacén China: usa la regla de Tracking (días y
- * porcentaje), ordena primero lo que va en el mar, y no deja pasar nombres de
- * importador al navegador.
+ * porcentaje), ordena primero lo que va en el mar, muestra el número DTD y no deja
+ * pasar nombres de importador al navegador.
  */
 import { describe, expect, it } from "vitest";
 import { armarContenedor, type ContenedorCrudo, type ItemCrudo } from "@/lib/studio/tracking-contenedores";
-import { aContenedorEnCamino, enCaminoOrdenados } from "@/lib/studio/almacen-cn-contenedores";
+import {
+  aContenedorEnCamino,
+  enCaminoOrdenados,
+  rotuloDelContenedor,
+} from "@/lib/studio/almacen-cn-contenedores";
 
 const AHORA = new Date("2026-11-20T12:00:00Z");
 
@@ -52,8 +56,8 @@ function vista(
 
 describe("Almacén China · En camino (SDD-0682)", () => {
   it("lleva el contador de días y el porcentaje de Tracking, y suma cajas y clientes", () => {
-    const v = vista("01", "zarpado", "2026-11-30", [item(1, "DTD-0001", 3), item(2, "DTD-0001", 2), item(3, "DTD-0002", 5)]);
-    const c = aContenedorEnCamino(v);
+    const v = vista("01", "zarpado", "2026-11-30", [item(1, "DEMO-0001", 3), item(2, "DEMO-0001", 2), item(3, "DEMO-0002", 5)]);
+    const c = aContenedorEnCamino(v, { numeroDtd: 91, naviera: "Naviera demo", recepciones: [] });
     expect(c).not.toBeNull();
     expect(c!.grupo).toBe("mar");
     expect(c!.diasRestantes).toBe(v.diasRestantes);
@@ -61,13 +65,26 @@ describe("Almacén China · En camino (SDD-0682)", () => {
     expect(c!.progreso).toBe(v.progreso);
     expect(c!.clientes).toBe(2);
     expect(c!.piezas).toBe(10);
+    expect(c!.numeroDtd).toBe(91);
+    expect(c!.naviera).toBe("Naviera demo");
   });
 
-  it("no lleva nombres ni marcas de importador", () => {
-    const c = aContenedorEnCamino(vista("02", "zarpado", "2026-12-01", [item(1, "DTD-0009", 1)]));
+  it("se nombra por el número DTD; sin número, por la referencia", () => {
+    expect(rotuloDelContenedor({ numeroDtd: 64, nombre: "DTD-CONSOL-0004" })).toBe("DTD #64");
+    expect(rotuloDelContenedor({ numeroDtd: null, nombre: "DTD-CONSOL-0004" })).toBe("DTD-CONSOL-0004");
+  });
+
+  it("no lleva nombres de importador; el MARKBOX solo viaja en las recepciones", () => {
+    const c = aContenedorEnCamino(vista("02", "zarpado", "2026-12-01", [item(1, "DEMO-0009", 1)]), {
+      numeroDtd: null,
+      naviera: null,
+      recepciones: [{ id: "r-1", codigo: "WR-C91-A", markbox: "DEMO-0007", cajas: 1, cbm: 0.5 }],
+    });
     const texto = JSON.stringify(c);
     expect(texto).not.toContain("Importador secreto");
-    expect(texto).not.toContain("DTD-0009");
+    // El MARKBOX de los ítems no se copia: solo el de cada recepción.
+    expect(texto).not.toContain("DEMO-0009");
+    expect(c!.recepciones[0].markbox).toBe("DEMO-0007");
   });
 
   it("sin ETA, los días quedan en null (no se inventan)", () => {

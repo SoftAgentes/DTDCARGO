@@ -199,6 +199,12 @@ filtro no se separen.
   despejado (revisión, CI verde y OK de Sam para aplicar a la vista), porque una migración en espera congela
   la publicación de la web.
 
+**Cómo quedó la §2.2 en la fase 1:** la fila dice «DTD #64» (de `consolidations.notes`, con
+`numeroDtdDeNotas`) y, debajo, la referencia y el número físico; la columna es «Naviera»
+(`sailings.carrier_id` → `carriers.name`). «Ver recepciones (N)» abre las recepciones del contenedor:
+las `warehouse_receipts_cn` en `consolidado` cuyo `shipment_id` está en sus ítems, con código, MARKBOX,
+cajas y CBM. Las pendientes no se listan ahí: siguen en «En almacén».
+
 **Decisión de implementación de la fase 1, a confirmar con Sam:** «En camino» incluye también los
 contenedores `consolidando` y `cerrado`, en un grupo aparte «Cargados, sin zarpar». La §2.2 hablaba solo de
 los `zarpado`; sin esto, lo consolidado en un contenedor que aún no zarpa no se vería en ninguna parte.
@@ -207,7 +213,7 @@ los `zarpado`; sin esto, lo consolidado en un contenedor que aún no zarpa no se
 
 Producto:
 - `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`
-- `app/studio/(app)/cn/_components/CaminoCn.tsx`, `EncabezadoCn.tsx`, `VistasAlmacen.tsx` (nuevos)
+- `app/studio/(app)/cn/_components/CaminoCn.tsx`, `FilaCamino.tsx`, `EncabezadoCn.tsx`, `VistasAlmacen.tsx` (nuevos)
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
 - `app/studio/studio.css` (solo `a.studio-tab { text-decoration: none }`)
 - `lib/studio/warehouse-cn-queries.ts`, `lib/studio/shipment-queries.ts`
@@ -215,7 +221,8 @@ Producto:
 - `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`
 
 Pruebas:
-- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `embarques-pestanas.test.ts` (nuevas)
+- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `almacen-cn-contenedores-queries.test.ts`, `embarques-pestanas.test.ts` (nuevas)
+- `app/studio/(app)/cn/_components/__tests__/FilaCamino.test.tsx` (nueva)
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.pestanas.test.tsx` (nueva)
 - `EmbarquesClient.{abrir,adjuntos,borrado,cajas-monto,contenedores,facturar,peso}.test.tsx`: abren en «Todos»
   (prueban contenedores y montos, no pestañas). `EmbarquesClient.encabezado-cliente.test.tsx` (SDD-0689):
@@ -232,7 +239,7 @@ Fuera de la allowlist: ninguna migración, ninguna escritura de datos, ninguna s
 | ERR-01 / LOD-01 | cumplimiento | Si falla la lectura de «En camino», `<Aviso tono="error">` lo dice; no se muestra vacío como si no hubiera |
 | VIS-01 / VIS-02 | cumplimiento | Solo tokens de `tokens.css`; tipografía y clases existentes |
 | MP-01 / AUD-01 / AUD-02 | no aplica | Solo lectura: no se crea, mueve ni borra nada |
-| Privacidad China (SDD-0039 B.9, SDD-0531) | cumplimiento | «En camino» no envía nombres ni marcas de importador; prueba en `almacen-cn-contenedores.test.ts` |
+| Privacidad China (SDD-0039 B.9, SDD-0531) | cumplimiento | «En camino» no envía nombres de importador. Al abrir un contenedor viaja el MARKBOX de cada recepción, que es lo que China sí ve (§2.2); el de los ítems no se copia. Pruebas en `almacen-cn-contenedores.test.ts` y `almacen-cn-contenedores-queries.test.ts` |
 
 ## 3. Fuera de alcance
 

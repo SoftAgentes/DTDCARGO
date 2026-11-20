@@ -17,6 +17,18 @@ Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arr
   `in_transit`). Prop `pestanaInicial` (por defecto «Activos»).
 - i18n es-VE y zh-CN.
 
+## Revisión independiente sobre `c006caa17`: CHANGES_REQUESTED (2026-11-20)
+
+Corregido en la tanda siguiente:
+- §2.2 completa: la fila dice «DTD #64» (`numeroDtdDeNotas`), la columna es «Naviera» (carriers por
+  `sailings.carrier_id`) y «Ver recepciones (N)» abre las recepciones consolidadas del contenedor con MARKBOX
+  (`FilaCamino.tsx`). §2.8 corregida: en el detalle viaja el MARKBOX, nunca el nombre.
+- Menores: fuera `warehouse_cn.empty.title/description`, `camino.title` y `camino.col_vessel`; el texto pequeño
+  de la bodega vacía es «En almacén»; el aviso de consolidadas cuenta con los mismos filtros de bodega y
+  búsqueda que la tabla; `?status=` desconocido deja el selector en «En almacén» (`statusDelSelector`, misma
+  regla que el servidor); caso nuevo en «Activos» con un envío en aduana en la prueba del encabezado; el
+  fixture `DTD-0418` pasa a `DEMO-0001`.
+
 ## Decisión propia a confirmar con Sam
 
 - «En camino» incluye los contenedores cargados que aún no zarpan (la spec hablaba solo del mar). Sin eso, esa

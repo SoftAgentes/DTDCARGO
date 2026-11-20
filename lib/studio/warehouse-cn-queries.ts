@@ -130,47 +130,11 @@ export async function listReceipts(
     query = query.eq("status", filters.status);
   }
 
-  // Filtro exacto por warehouse_code → resolver a id primero
-  if (filters.warehouseCode && filters.warehouseCode.trim()) {
-    const { data: wh } = await supabase
-      .from("warehouses_cn")
-      .select("id")
-      .eq("code", filters.warehouseCode.trim())
-      .maybeSingle<{ id: string }>();
-    if (wh?.id) {
-      query = query.eq("warehouse_id", wh.id);
-    } else {
-      // warehouse_code inválido → no rows
-      return [];
-    }
-  } else if (filters.hub && VALID_HUB_PREFIXES.includes(filters.hub)) {
-    // Filtro por prefix de hub → resolver a array de ids
-    const { data: hubs } = await supabase
-      .from("warehouses_cn")
-      .select("id")
-      .eq("hub_code", filters.hub)
-      .eq("active", true);
-    const ids = (hubs ?? []).map((h: { id: string }) => h.id);
-    if (ids.length === 0) return [];
-    query = query.in("warehouse_id", ids);
-  }
-
-  if (filters.q && filters.q.trim()) {
-    const q = filters.q
-      .trim()
-      .replace(/[,()]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    query = query.or(
-      [
-        `receipt_code.ilike.%${q}%`,
-        `client_name.ilike.%${q}%`,
-        `client_markbox.ilike.%${q}%`,
-        `supplier_name.ilike.%${q}%`,
-        `supplier_name_translated.ilike.%${q}%`,
-      ].join(","),
-    );
-  }
+  const bodegas = await bodegasDelFiltro(supabase, filters);
+  if (bodegas === "ninguna") return [];
+  if (bodegas) query = query.in("warehouse_id", bodegas);
+  const busqueda = busquedaDelFiltro(filters);
+  if (busqueda) query = query.or(busqueda);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -331,17 +295,73 @@ export async function computeWarehouseKpis(
 }
 
 /**
- * SDD-0682: cuántas recepciones ya consolidadas deja fuera la vista «En almacén».
- * `null` si no se pudo contar: el aviso no se muestra en vez de decir un número falso.
+ * Bodegas que deja pasar el filtro de hub o de código. `null` = sin filtro de
+ * bodega; `"ninguna"` = el filtro no coincide con ninguna bodega (cero filas).
+ */
+async function bodegasDelFiltro(
+  supabase: SupabaseClient,
+  filters: ReceiptFilters,
+): Promise<string[] | null | "ninguna"> {
+  // Filtro exacto por warehouse_code → resolver a id primero
+  if (filters.warehouseCode && filters.warehouseCode.trim()) {
+    const { data: wh } = await supabase
+      .from("warehouses_cn")
+      .select("id")
+      .eq("code", filters.warehouseCode.trim())
+      .maybeSingle<{ id: string }>();
+    return wh?.id ? [wh.id] : "ninguna";
+  }
+  if (filters.hub && VALID_HUB_PREFIXES.includes(filters.hub)) {
+    // Filtro por prefix de hub → resolver a array de ids
+    const { data: hubs } = await supabase
+      .from("warehouses_cn")
+      .select("id")
+      .eq("hub_code", filters.hub)
+      .eq("active", true);
+    const ids = (hubs ?? []).map((h: { id: string }) => h.id);
+    return ids.length === 0 ? "ninguna" : ids;
+  }
+  return null;
+}
+
+/** Expresión `or` de PostgREST para la búsqueda de texto; `null` sin búsqueda. */
+function busquedaDelFiltro(filters: ReceiptFilters): string | null {
+  if (!filters.q || !filters.q.trim()) return null;
+  const q = filters.q
+    .trim()
+    .replace(/[,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return [
+    `receipt_code.ilike.%${q}%`,
+    `client_name.ilike.%${q}%`,
+    `client_markbox.ilike.%${q}%`,
+    `supplier_name.ilike.%${q}%`,
+    `supplier_name_translated.ilike.%${q}%`,
+  ].join(",");
+}
+
+/**
+ * SDD-0682: cuántas recepciones ya consolidadas deja fuera la vista «En almacén»,
+ * con los mismos filtros de bodega y búsqueda que la tabla (RLS ya acota al
+ * tenant). `null` si no se pudo contar: el aviso no se muestra en vez de decir un
+ * número falso.
  */
 export async function contarRecepcionesConsolidadas(
   supabase: SupabaseClient,
+  filters: ReceiptFilters = {},
 ): Promise<number | null> {
-  const { count, error } = await supabase
+  const bodegas = await bodegasDelFiltro(supabase, filters);
+  if (bodegas === "ninguna") return 0;
+  let query = supabase
     .from("warehouse_receipts_cn")
     .select("id", { count: "exact", head: true })
     .is("deleted_at", null)
     .eq("status", "consolidado");
+  if (bodegas) query = query.in("warehouse_id", bodegas);
+  const busqueda = busquedaDelFiltro(filters);
+  if (busqueda) query = query.or(busqueda);
+  const { count, error } = await query;
   if (error) return null;
   return count ?? 0;
 }
