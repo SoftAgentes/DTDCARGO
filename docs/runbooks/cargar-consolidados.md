@@ -124,7 +124,11 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     ```
 
     - **`previa`** solo cuenta. Revisa el contenedor cargado con el lote, los envíos y los clientes que resuelven.
-    - **`simulacro`** termina con `NOTICE: solo-facturas lote carga-consolidado:64:6303f821:facturas · contenedor … · N clientes con pre-orden nueva · M saltados (ya tenían factura viva) · K sin líneas` y `ROLLBACK`.
+    - **`simulacro`** termina con `NOTICE: solo-facturas lote carga-consolidado:64:6303f821:facturas · contenedor … · S Shipping Marks · N clientes con pre-orden nueva · M saltados (ya tenían factura viva) · K sin líneas` y `ROLLBACK`.
+      - **Sale una pre-orden por cliente:** por el Shipping Mark que tienen los envíos *al correr*, no por la marca del Excel. Si dos marcas del Excel son del mismo dueño, salen en una sola pre-orden. Si los envíos de una marca quedaron con dos dueños (por ejemplo, después de «Pasar a otro cliente»), sale una para cada uno.
+      - Por eso **S = N + M + K = los Shipping Marks vivos de los 111 envíos en ese momento**. No son las 59 marcas del Excel.
+      - Para comparar antes de aplicar está la columna `shipping_marks_vivos` de la `previa`.
+      - Primero se reasignan los envíos del comodín y después se carga. Con la pre-orden ya creada, la 0551 no puede pasar a otro cliente un envío cuya pre-orden también factura otros envíos (`factura_varios_embarques`).
     - **`aplicar`** se niega sin ese simulacro, y también si ya hay un `aplicar` PASÓ de ese id.
     - **`verificar`** es PASÓ cuando cada cliente con líneas tiene exactamente una factura viva.
     - Al terminar, se borra el paquete del servidor, igual que en cualquier lote.
