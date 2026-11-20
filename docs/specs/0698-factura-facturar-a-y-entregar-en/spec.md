@@ -7,7 +7,7 @@ created: 2026-11-20
 updated: 2026-11-20
 supersedes: null
 superseded_by: null
-related: ["0138", "0298", "0487", "0543", "0674", "0694", "0695", "0696"]
+related: ["0138", "0298", "0487", "0543", "0674", "0690", "0694", "0695", "0696"]
 confidencialidad: interno
 ---
 
@@ -94,6 +94,9 @@ spec agrega esa elección (§4.3, fase F-3).
   de un cliente y contenedor (`lib/studio/invoice-types.ts:32-38`).
 - La facturación por contenedor de la SDD-0674 inserta la factura ya `emitida`, con una línea por embarque
   y, si hay aliado raíz, a nombre del aliado (`0564_exc0674_facturar_contenedor.sql:11-15`, `:50-58`).
+- La SDD-0690 (#719, fusionada el 2026-11-20 y todavía sin aplicar) agrega `exc0674_emitir_borradores`.
+  Esa función emite la pre-orden que ya existe, con un UPDATE de `borrador` a `emitida`, y no cambia ni
+  las líneas ni los montos (`0569_exc0674_emitir_borradores.sql:2`, `:13-17`).
 
 ### 2.6 Despacho y app del chofer
 
@@ -223,7 +226,10 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
    state)`), que es la única que arma la dirección para el sello. Su equivalente en TypeScript lo prueba la
    misma tabla de casos. **No incluye `reference`** (§10, punto 2).
 5. **Las vías de emisión que ya cubre el trigger** se mantienen: la RPC 0128, la acción del Studio y
-   `exc0674_facturar` (0564), que inserta en `emitida`. No hay que cambiar ninguna de ellas.
+   `exc0674_facturar` (0564), que inserta en `emitida`. También `exc0674_emitir_borradores` (0569), que
+   pasa la pre-orden de `borrador` a `emitida`: la pre-orden se sella al emitirla, con sus ediciones de
+   borrador si las tiene. No hay que cambiar ninguna de ellas. La F-2 comprueba que la guarda
+   `borrador_alterado` de la 0569 no salta por las columnas que llena el trigger en ese mismo UPDATE.
 
 **Sin backfill.** Las facturas ya emitidas quedan con `addresses_sealed_at` en null. Son las «viejas sin
 sello» de la decisión 4 (§5.4).
@@ -400,7 +406,7 @@ Cada punto se comprueba con una prueba que corre y observa el resultado, no con 
    `invoice_address_overridden` cuyo payload no tiene la dirección.
 10. Después de emitir, un UPDATE de cualquiera de las columnas de §4.2 falla con `invoice_titular_frozen`.
     Cambiar después la predeterminada del cliente no cambia la factura emitida.
-11. `exc0674_facturar` y la RPC 0128 emiten con el sello completo.
+11. `exc0674_facturar`, `exc0674_emitir_borradores` (0569) y la RPC 0128 emiten con el sello completo.
 12. El PDF (render de prueba) y el comprobante HTML muestran los mismos dos bloques para la misma factura.
     Una factura emitida con `addresses_sealed_at` en null muestra «Dirección actual del cliente» en los
     dos.
