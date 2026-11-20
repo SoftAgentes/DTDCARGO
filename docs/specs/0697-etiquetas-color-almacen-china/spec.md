@@ -270,6 +270,42 @@ prácticas de las herramientas que lo hacen bien (las etiquetas de Linear, Jira,
   «+N».
 - Filtro por etiqueta en «En almacén» y «En camino».
 
+### 2.3.1 Dos etapas: China en la recepción, Venezuela en el embarque (Sam, 2026-11-20, pregunta 3)
+
+Cómo se trabaja hoy, según Sam:
+
+- **Quien recibe en el almacén de China casi nunca pone indicadores.** A veces sabe que hace falta
+  montacargas; nada más. La carga especial se avisa antes, en el grupo de WeChat, porque el almacén le cobra
+  al proveedor por entrar (montacargas, carga especial o falta de descargadores).
+- **Una segunda persona, en la oficina de China**, revisa la lista y pone los indicadores («este proveedor
+  necesita montacargas, este no»). Lo hace en Almacén China **antes de consolidar**, porque la declaración de
+  aduana necesita esa información.
+- **Venezuela pone los suyos después**, cuando la carga ya está consolidada: en Embarques, sobre lo que va
+  dentro de contenedores despachados. También puede agregar o corregir lo que puso China; China casi no
+  vuelve a tocar.
+
+| Etapa | Pantalla | Sobre qué | Quién |
+|---|---|---|---|
+| 1 · Lo que llega | Almacén China («En almacén») | la recepción | la oficina de China (y el que recibe, a veces montacargas) |
+| 2 · Lo consolidado | Embarques | el embarque | Venezuela |
+
+Diseño:
+
+- **Etapa 1** es la asignación a la recepción de arriba.
+- **Etapa 2** es una asignación nueva, al **embarque**: tabla `shipment_tags` (DDL en el §2.7), con las mismas
+  reglas (una viva por embarque e indicador; quitar marca `removed_at`; solo por RPC).
+- **El embarque muestra los dos:** los heredados de sus recepciones (con «de WR-…») y los propios de
+  Venezuela. Si un indicador viene de la recepción y Venezuela lo pone también en el embarque, se muestra
+  una vez.
+- **Venezuela no borra lo que puso China:** si un heredado ya no aplica, Venezuela lo **oculta en ese
+  embarque** (marca de «resuelto en Venezuela», con quién y cuándo) y el de la recepción queda intacto como
+  registro de lo que dijo China. Corregir el de la recepción es de China.
+- **Mismo catálogo.** Venezuela usa los indicadores del mismo catálogo del tenant; si necesita uno nuevo, lo
+  pide o lo crea según la pregunta 13 (§7).
+- **Rastro de la etapa 2:** las filas de `shipment_tags` (puesto, quitado, resuelto, con actor y fecha) más
+  `entity_audit_log`. No va a `shipment_events`, que lo lee el portal (§1.3).
+- China ve en «En camino» los indicadores que Venezuela agregó a sus embarques, como información.
+
 ### 2.4 Rastro en el historial
 
 - Cada asignación y cada retiro escribe una fila en `warehouse_receipt_events`, con dos tipos nuevos del
@@ -413,6 +449,27 @@ create unique index warehouse_receipt_tags_viva_uq
 create index warehouse_receipt_tags_tag_idx
   on public.warehouse_receipt_tags (tenant_id, tag_id) where removed_at is null;
 
+-- Etapa 2 (§2.3.1), en la migración C: indicadores que pone Venezuela en el embarque,
+-- y los heredados que Venezuela da por resueltos en ese embarque.
+create table public.shipment_tags (
+  id            uuid primary key default gen_random_uuid(),
+  tenant_id     uuid not null references public.tenants(id) on delete cascade,
+  shipment_id   uuid not null references public.shipments(id) on delete cascade,
+  tag_id        uuid not null references public.warehouse_tags(id) on delete restrict,
+  modo          text not null check (modo in ('agregado', 'resuelto')),
+  nota          text check (nota is null or length(nota) <= 140),
+  assigned_by   uuid not null references auth.users(id),
+  assigned_at   timestamptz not null default now(),
+  removed_by    uuid references auth.users(id),
+  removed_at    timestamptz,
+  check ((removed_at is null) = (removed_by is null))
+);
+create unique index shipment_tags_viva_uq
+  on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
+-- Misma RLS de solo lectura para miembro activo, sin política de portal, y escritura solo por las RPC
+-- poner_indicador_embarque / quitar_indicador_embarque / resolver_indicador_heredado
+-- (candado: admin, u operations / warehouse / commercial de región ve, según la pregunta 13).
+
 alter table public.warehouse_tags enable row level security;
 alter table public.warehouse_receipt_tags enable row level security;
 
@@ -552,7 +609,7 @@ embarque partido.
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
 | **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
-| **F2** | Lectura en Venezuela: Almacén VE, Embarques y Tracking, solo `visible_ve` | F1 en producción |
+| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (heredados `visible_ve`), y la etapa 2: poner, quitar y resolver indicadores en el embarque (migración C) | F1 en producción |
 | **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
@@ -588,6 +645,7 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `app/studio/(app)/tracking/[id]/page.tsx`, `app/studio/(app)/tracking/[id]/_components/ShipmentHeader.tsx`.
 - `app/studio/_components/IndicadoresSoloLectura.tsx` (nuevo) y sus pruebas.
 - Prueba de que el portal no recibe etiquetas: `lib/portal/__tests__/sin-etiquetas-almacen.test.ts` (nueva).
+- Etapa 2: migración C (`shipment_tags` y sus RPC, número del DG), `app/studio/(app)/embarques/indicadores-actions.ts` (nuevo), `app/studio/(app)/embarques/_components/IndicadoresEmbarque.tsx` (nuevo) y `supabase/tests/indicadores_embarque.test.sql`.
 
 **F3**: se define con la respuesta a la pregunta 0; toca `AlmacenCnClient.tsx` y `ReceiptStatusBadge.tsx`.
 
@@ -624,6 +682,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    **Contestada (2026-11-20): cualquiera de China** (`warehouse` u `operations` de región `cn`, más admin).
 3. **Dónde va.** ¿A la recepción o al embarque? Ejemplo: la WR-2099-0001 llega con una marca sin papeles y
    se etiqueta ahí; el embarque la hereda.
+   **Contestada (2026-11-20): a los dos, por etapas** (§2.3.1). China en la recepción antes de consolidar;
+   Venezuela en el embarque después.
 4. **Qué ve Venezuela.** ¿Te sirve la tabla del §2.5? Ejemplo: Caracas ve «Montacargas», no ve «Devolución de
    impuestos».
 5. **Quitar.** ¿Se pueden quitar? Ejemplo: llega la carta de autorización y quitan «Marca sin autorización»;
@@ -640,6 +700,9 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     fila ámbar, con las dos insignias.
 12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
     embarques del 65 con «Uso de montacargas» antes de la pre-orden.
+13. **Venezuela y el catálogo.** ¿Quién en Venezuela pone indicadores en el embarque, y puede crear
+    indicadores nuevos o solo usar los de China? Ejemplo: Operaciones en Caracas pone «Montacargas» al
+    embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
 
 ## 8. Criterios de aceptación y pruebas
 
@@ -688,6 +751,11 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     evento son `auth.uid()` del que llama.
 17. **Auditoría del catálogo:** crear, editar y archivar dejan una fila en `entity_audit_log` con tipo
     `warehouse_tag` y actor; si la llamada falla, no queda fila.
+18. **Etapa 2, embarque:** `operations` de región `ve` pone «Montacargas» a un embarque → pasa; un usuario
+    `cn` sin admin → falla con `42501`. Dos vivas iguales en el mismo embarque → la segunda falla.
+19. **Resolver un heredado:** Venezuela marca como resuelto en el embarque un indicador que viene de la
+    recepción → el embarque deja de mostrarlo, la asignación de la recepción sigue viva y sin cambios.
+20. **Sin duplicado en pantalla:** un indicador heredado y el mismo puesto en el embarque se leen una vez.
 
 ### 8.2 Pruebas de aplicación
 
