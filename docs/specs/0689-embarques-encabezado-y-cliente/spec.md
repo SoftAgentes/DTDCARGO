@@ -1,7 +1,7 @@
 ---
 sdd: "0689"
 title: "Embarques: peso y «Total sin facturar» en el encabezado, y clic en el cliente"
-status: proposed
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -12,6 +12,9 @@ confidencialidad: interno
 ---
 
 # SDD-0689 — Embarques: peso y «Total sin facturar» en el encabezado, y clic en el cliente
+
+> **Aprobada por Sam el 2026-11-20:** «Apruebo la 0689» (en el chat del DG, ante la pregunta «¿Apruebas
+> la spec 0689 del encabezado de Embarques?»).
 
 ## 1. Pedido
 
