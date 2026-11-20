@@ -30,7 +30,7 @@
 |---|---|---|---|
 | **primary** | `/brand/dtdcargo-isologo-primary.png` | light, paper, white | 14.8 : 1 |
 | **reverse** | `/brand/dtdcargo-isologo-reverse.png` | navy, ink, sidebar | 12.4 : 1 |
-| **mono-light** | `/brand/dtdcargo-isologo-mono-light.png` | wine, CTAs, alertas | 7.2 : 1 |
+| **mono-light** | `/brand/dtdcargo-isologo-mono-light.png` | wine (sello y piezas de marca), alertas. **Nunca sobre el azul de acción ni dentro de un botón** (BD-076 regla 9) | 7.2 : 1 |
 | **mono-dark** | `/brand/dtdcargo-isologo-mono-dark.png` | paper, B&W, sello jurídico | 15.3 : 1 |
 
 ### Wordmark · "DTD Cargo" (DOS palabras, NO "DTDCARGO")
