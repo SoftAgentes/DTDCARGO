@@ -105,3 +105,22 @@ Sin cambios en `app/`, `lib/`, `components/`, `supabase/`, `public/` ni la web p
 - Checklist en cinco fases (decidir, preparar, reglas, piezas, adopción por tramos, verificar) y 14 extras de experiencia.
 - Validación: `docs:check` y `sdd:check` **PASARON** (con `node`). Visual en pantalla: **NO EJECUTADO**.
 - Pendiente: decisión de Sam sobre el color y las tres decisiones asociadas (saldos, web pública, logo); número de SDD del Director.
+
+---
+
+## AMPLIACIÓN 2026-11-20 (3) · Decisiones de Sam y borrador del SDD
+
+- **Decisiones de Sam (literal, en el chat de esta sesión):** «opcion 2  Completamente todo el proyecto web, portal y ERP; todo el sistema completo.» · «todas las vamos a cambiar» (pantallas) · «Si hay que cambiar el branding completo, se puede cambiar. Si hay que eliminar algo que nos pueda dar errores adentro del brand.md, hay que cambiarlo.» · «El formato que se usa va a ser el segundo, el que dice 1.235,50: la coma siempre va a ser los decimales.»
+- **Alcance de esas decisiones:** preparar y adoptar por tramos. **No** cubren fusionar, publicar, escribir en la base de datos ni cambiar el logo.
+- Entregable: [borrador-sdd-rebrand-sistema.md](../../docs/design/rebrand-erp/borrador-sdd-rebrand-sistema.md): ranking de los 55 módulos, inventario del color por superficie, líneas de `BRAND.md` que chocan, alcance y riesgos del formato `1.234,50` y tramos con allowlist por carpeta. **Sin número de SDD**: lo asigna el Director.
+- **Nada se cambió** en código, tokens ni `BRAND.md`.
+- Validación: `docs:check` y `sdd:check` **PASARON** (con `node`). Visual: **NO EJECUTADO**.
+
+### Pendiente
+- Número(s) de SDD y turno de PC del Director; recomiendo tres SDD (color, cifras, simetría).
+- De Sam: tono exacto del azul (viéndolo), símbolo de moneda, regla de tecleo de cifras, y qué hacer con correos, PDF y Chatwoot.
+
+### FUERA DE ALCANCE DETECTADO (nuevo)
+- `docs/engineering/project-rules.md` resume las fuentes permitidas como «solo Archivo + JetBrains Mono + Noto Sans SC», desfasado frente a Nunito Sans y Sora (vigentes desde 2026-05-31).
+- `BRAND.md:324` enumera 6 variantes de botón que no coinciden con las 5 del Studio.
+- El analizador de cifras trata un solo separador como decimal; con el formato nuevo en pantalla puede guardar montos mil veces menores si no se define la regla (riesgo R1 del borrador).
