@@ -1,7 +1,7 @@
 ---
 sdd: "0695"
 title: "Datos duplicados y fuentes únicas: identidad, correo, asesor, nombres copiados y fechas"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # SDD-0695 — Datos duplicados y fuentes únicas
 
-> **Estado: propuesta para que Sam la apruebe.** Esta PR no trae código, migraciones ni cambios de
+> **Estado: aprobada por Sam el 2026-11-20 («Apruebo la 0695»).** Esta PR no trae código, migraciones ni cambios de
 > producto: solo la spec. Las preguntas para Sam están en la §9 y van una por una.
 >
 > **Medición:** código de `main` en `6a7787d08`. La reserva `9b00a1665` no cambia código. Las líneas se

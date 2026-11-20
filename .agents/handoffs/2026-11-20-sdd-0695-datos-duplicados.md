@@ -156,3 +156,7 @@
   que existir. Sale de `auth.getUser()` después de `moduleEditDenial`.
 - **`set_config`.** Hay una prueba en una segunda transacción, con la definición real de `auth.uid()`.
 - **Correo vacío con acceso activo.** Se rechaza.
+
+## Aprobación de Sam (2026-11-20)
+
+- Sam escribió «Apruebo la 0695». La spec pasa a `status: approved`. La PR #728 sigue sin fusionar: la integración es de Dir_DTD.
