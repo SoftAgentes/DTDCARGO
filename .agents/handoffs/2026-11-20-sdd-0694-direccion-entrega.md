@@ -135,3 +135,13 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
 - Para implementar F-1 hacen falta:
   - el número de la migración de copia;
   - el OK de Sam a la spec.
+
+## Retomada por el Worker de la 0695 (2026-11-20)
+
+- Dueño de las correcciones de revisión, por asignación de Dir_DTD. Trabaja en el worktree
+  `DTD-worktrees/sdd-0694-revision` (rama local `codex/sdd-0694-revision`) y publica en
+  `claude/sdd-0694-direccion-entrega`.
+- Se citó en la §8 la tabla de dueñas compartida con la 0695 (#728). La ciudad y el estado quedan cerrados
+  por la decisión 8.
+- Validación: `docs:check`, `check-numbering` y `git diff --check` PASARON. `pnpm verify` NO EJECUTADO
+  (solo docs).

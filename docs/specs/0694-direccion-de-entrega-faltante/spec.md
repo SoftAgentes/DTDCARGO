@@ -177,7 +177,7 @@ pasa `0412…` a `58412…`, y el Cotizador ya abre `wa.me` desde el Studio con 
 
 Las decisiones 5 a 9 llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
 
-Dir_DTD tiene una búsqueda aparte de **otros** datos con fuente vieja y nueva. No entran en esta spec (§8).
+Los **otros** datos con fuente vieja y nueva van en la SDD-0695 (datos duplicados y fuentes únicas). No entran en esta spec (§8).
 
 ## 4. Diseño
 
@@ -554,9 +554,19 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 
 ## 8. Fuera de alcance
 
-- **Otros datos con fuente vieja y nueva.** Dir_DTD tiene una búsqueda aparte. Van en su propia spec.
+- **Otros datos con fuente vieja y nueva.** Van en la SDD-0695. Las piezas que comparten las dos specs
+  tienen una sola dueña:
+
+  | Pieza | Dueña | La otra |
+  |---|---|---|
+  | La guardia de `clients.address` y `address_reference` | **0694** §7, punto 4 | La 0695 §4.8 la cita y no la repite |
+  | `merge_clients`: dirección, ciudad y estado | **0694** F-2 | La 0695 F-6 parte de la versión de la 0694 F-2, solo agrega el Shipping Mark y va después |
+  | `clientCompleteness` → `hasDeliveryAddress` | **0694** F-1 | La 0695 F-8 cambia el cálculo por su vista `client_completeness`, conservando la regla, y va después |
+  | Ciudad y estado | **0694**, decisión 8 (cerrada) | La 0695 no la reabre |
+  | La persona de la ficha fusionada (`person_id` en `merge_clients`, `0361:258`) | **0695** F-3 | La 0694 F-2 conserva esa línea tal cual al redefinir `merge_clients` |
+  | Una sola predeterminada por cliente (constraint trigger y RPC atómica) | **0695** F-9 | La 0694 no la repite. Su helper lee «la más reciente, sin predeterminada» mientras tanto |
 - **Mover `clients.city` y `clients.state` a `client_delivery_addresses`.** Por la decisión 8 se quedan en
-  `clients`. Si se mueven o no, lo decide la SDD de datos duplicados.
+  `clients`. Está cerrado, y la 0695 no lo reabre.
 - `clients.lat`/`lng` y la foto de fachada (`facade_photo_url`, `0066`): siguen en `clients`. Pasarlos a la
   dirección es trabajo aparte.
 - `shipments.delivery_address` (TMS y almacén VE): es la dirección de **ese** envío y se escribe a mano.
