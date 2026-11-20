@@ -97,6 +97,21 @@ Decisiones tomadas dentro del alcance:
     `VistasAlmacen.tsx`, `ReportPreview.tsx`, `ContenedorPanel.tsx`, `EmptyState.tsx`,
     `DecimalInput.tsx` y `Timeline.tsx`. Ninguna trae `fetch` ni formulario.
 
+- **Tercera revisión de Dir_DTD sobre `8190d6a4f` (CHANGES_REQUESTED), atendida:**
+  - Imports en dos niveles. Si un módulo importado con código (no `import type`) cae en una regla fija o en un
+    tema por su ruta, o trae una marca, la pantalla va a revisión. Así caen `voidExpenseEntriesForExpense`
+    (`lib/studio/accounting/`) y `lib/marca/access.ts` (`hasBrandAccess`). Los estilos y los textos importados
+    (`lib/design-tokens.ts`) no cuentan.
+  - Marcas nuevas: `has*Access`, `fetch(`, `<form … method=`, `action={`, `formAction`, `sendBeacon(`,
+    `XMLHttpRequest` y las props `onSave/onSubmit/onDelete…/onConfirm` llamadas con un objeto. Medí esa última:
+    hoy no la trae ninguna pantalla del árbol, así que no da falsos positivos.
+  - `cat-file --batch` falla cerrado si una ruta trae un salto de línea o si la salida no cuadra con lo pedido.
+    Un import con salto de línea en la ruta da revisión.
+  - `--pr` lee también la versión actual de `origin/main`. El runbook documenta que los cambios posteriores no se
+    leen, porque el tren exige que la PR no esté BEHIND.
+  - En el árbol quedan **131 pantallas** en `rapido` (antes, 216). El costo más grande de la regla de imports son
+    las 19 páginas que importan `WhatsAppFAB`, que cae por la palabra «whatsapp».
+
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
@@ -112,6 +127,10 @@ Decisiones tomadas dentro del alcance:
 | `--pr 727/721/715/726` con git real (fetch, merge-base, cat-file) | PRs fusionadas | PASÓ: rapido, revision, rapido, revision; 8 a 10 s cada una |
 | Simulación de `carril.yml` sobre un merge real con `--diff --base HEAD^1 --head HEAD` | diff de esta PR más dos archivos de prueba | PASÓ: `head` es el merge, `ZzDatos.tsx` (importa `lib/db`) da revision y `ZzNuevo.tsx` da rapido |
 | `bash -n infra/ops/web/publicar-web.sh` | avisos | PASÓ |
+| `node --test scripts/tests/carril.node.mjs` tras la tercera revisión | cabeza de esta vuelta | PASÓ (192/192) |
+| Mutaciones de la tercera vuelta: sin imports de nivel 1, sin nivel 2, `import type` cuenta, sin chequeo de que cuadre, sin exención de estilos, sin marca `fetch(` | copia restaurada | PASÓ: 2, 1, 1, 1, 1 y 1 en rojo |
+| `--pr 727/721/726` con git real (tres versiones) | PRs | PASÓ: rapido, revision (15 de 36), revision; 7 a 12 s |
+| Simulación de `carril.yml` sobre un merge real | más `ZzAnula.tsx`, que llama a `voidExpenseEntriesForExpense` | PASÓ: `ZzAnula.tsx` da revision por el import y `ZzNuevo.tsx` da rapido |
 | Mutaciones a mano: carril fijo en rapido, sin causantes, `---` dentro de un hunk, temas aplicados a docs | copia de trabajo, restaurada | PASÓ: 48, 5, 1 y 24 pruebas en rojo, en ese orden |
 | `node --test` de `harness-discovery` y `verify-harness-discovery` | `d4bdcb406` | PASÓ (5/5) |
 | Simulación del paso de `carril.yml` en un worktree descartable (commit sintético sobre la base) | diff de esta PR | PASÓ: da `revision` (gobernanza y ci), resumen y anotación correctos, exit 0 |

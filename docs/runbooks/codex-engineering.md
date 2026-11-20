@@ -359,43 +359,57 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
    - estilos: `.css` y `lib/design-tokens.ts`;
    - pantallas y componentes: `.tsx` de `app/` o `components/`, salvo `layout.tsx` y `template.tsx`;
    - imágenes y fuentes de `public/`, `docs/` y `lib/font-files/`.
-4. **Contenido de las pantallas, por archivo.** Para cada pantalla que llegó hasta aquí, el clasificador lee el
-   archivo **completo** en la base (el merge-base) y en la cabeza. Si **cualquiera de las dos versiones** trae
-   una de estas marcas, va a `revision` (`contenido-sensible`):
-   - puertas o sesión: `require*(`, `canAccess*`, `getStudioAccess`, `isAdmin`, `hasRole`, `can(`, `puede*(`,
-     `getUser`, `getSession`, `rbac`, `redirect(`, `notFound(`, `cookies()` y `headers()`;
+4. **Contenido de las pantallas, por archivo y por lo que importan.** Para cada pantalla que llegó hasta aquí,
+   el clasificador lee el archivo **completo** en la base (el merge-base) y en la cabeza; con `--pr`, también en
+   la versión actual de `origin/main`. Si **cualquiera de esas versiones** trae una de estas marcas, va a
+   `revision` (`contenido-sensible`):
+   - puertas o sesión: `require*(`, `canAccess*`, `has*Access`, `getStudioAccess`, `isAdmin`, `hasRole`, `can(`,
+     `puede*(`, `getUser`, `getSession`, `rbac`, `redirect(`, `notFound(`, `cookies()` y `headers()`;
    - lecturas sin RLS: `createAdminClient` y `service_role`;
    - consultas o escrituras: `.from(`, `.rpc(`, `.insert(`, `.update(`, `.upsert(` y `.delete(`;
-   - acciones del servidor:
-     - `"use server"`;
-     - cualquier import cuya ruta lleve `action` (`_actions/`, `/actions`, `*-actions`);
-     - el import de un archivo local que declare `"use server"`: el clasificador resuelve los imports `@/…` y
-       relativos y lee esos archivos;
-   - otras: `method:` (un `fetch` que escribe), `@supabase/` y `lib/db` o `@/lib/auth`.
+   - escrituras por HTTP o por formulario: cualquier `fetch(`, `method:`, `<form … method=`, `action={`,
+     `formAction`, `sendBeacon(` y `XMLHttpRequest`;
+   - props de acción llamadas con un objeto: `onSave({`, `onSubmit({`, `onDelete…({` y `onConfirm({`;
+   - acciones del servidor: `"use server"` y cualquier import cuya ruta lleve `action` (`_actions/`, `/actions`,
+     `*-actions`);
+   - otras: `@supabase/` y `lib/db` o `@/lib/auth`.
+
+   Además, **los imports con código** de la pantalla (`@/…` y relativos; no los `import type`) se leen en **dos
+   niveles**: lo que importa la pantalla y lo que importan esos módulos. Si un módulo importado cae en una regla
+   fija o en un tema por su ruta (por ejemplo `lib/studio/accounting/…`, `lib/marca/access.ts` o
+   `WhatsAppFAB.tsx`), o si su contenido trae una marca (incluido `"use server"`), la pantalla va a `revision`. Así
+   caen la pantalla que llama a `voidExpenseEntriesForExpense` (escribe asientos con service role) y la que usa la
+   puerta `hasBrandAccess` con otro nombre. Los módulos de estilos y de textos (`lib/design-tokens.ts`) no cuentan.
 
    Decidir por archivo cierra el hueco de mirar solo las líneas cambiadas. Quitar `.is("deleted_at", null)` o una
    puerta `canAccessModule(…)` cae en revisión porque la base las tenía, aunque el `.from(` o el import estén en
-   otra línea. Y como el archivo que importa una acción ya va a revisión, también caen sus llamadas.
+   otra línea. Como el archivo que importa una acción o un módulo sensible ya va a revisión, también caen sus
+   llamadas.
 
-   Se falla cerrado. Da `revision` (`sin-contenido`) si el archivo no se puede leer como texto (un byte NUL,
-   UTF-8 inválido o «Binary files» en el diff), si no aparece ni en la base ni en la cabeza, o si no se leyó porque
-   solo se pasaron nombres por argumento o por stdin. Los documentos, los estilos, el texto plano y las pruebas no
-   se leen.
+   Se falla cerrado. Da `revision` (`sin-contenido` o `contenido-sensible`) en estos casos:
+   - el archivo no se puede leer como texto: un byte NUL, UTF-8 inválido o «Binary files» en el diff;
+   - el archivo no aparece ni en la base ni en la cabeza;
+   - no se leyó, porque solo se pasaron nombres por argumento o por stdin;
+   - un import trae un salto de línea en su ruta;
+   - la salida de `git cat-file --batch` no cuadra con lo pedido (eso es un error, código `2`).
+
+   Los documentos, los estilos, el texto plano y las pruebas no se leen.
 5. Todo lo demás: `revision` («sin-clasificar»). Esto incluye la lógica de `lib/` (también los diccionarios
    `lib/i18n/**/*.ts`, que son TypeScript ejecutable), los scripts y los ayudantes de `e2e/`.
 
-En el carril rápido quedan los componentes de presentación cuyo archivo no trae ninguna marca, ni en la base ni en
-la cabeza, más los estilos, el texto plano, los documentos y las pruebas. Al 2026-11-20 son 216 pantallas del
-árbol, casi todas tarjetas, tablas, insignias y páginas públicas de texto.
+En el carril rápido quedan los componentes de presentación cuyo archivo y cuyos imports (dos niveles) no traen
+ninguna marca ni caen en un tema. Se suman los estilos, el texto plano, los documentos y las pruebas. Al
+2026-11-20 son **131 pantallas** del árbol. Antes de leer los imports eran 216, y antes de leer el archivo
+completo, 239. Son casi todas tarjetas, tablas, insignias, iconos y bloques de texto. La regla de imports es
+conservadora: las páginas públicas que usan `WhatsAppFAB` caen por su ruta («whatsapp», integraciones).
 
-**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve dos casos:
+**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve estos casos:
 
-- una **lectura o escritura** que llega por una función ya existente de `lib/` (un cargador, una consulta),
-  importada sin marca y llamada desde la pantalla. La función vive en `lib/`, que va a revisión cuando cambia,
-  pero llamarla desde una pantalla nueva no trae marca;
-- un permiso que llega por prop, o un callback que escribe (`onSubmit`, `onSave`) cuando la escritura vive en el
-  padre. El padre suele ser una `page.tsx` de una zona con sesión, que va a revisión, pero un cambio solo en el
-  hijo no.
+- una lectura o escritura que está a **tres niveles o más** de la pantalla (pantalla → módulo → módulo → la
+  función que escribe), cuando los dos primeros niveles no traen marca ni caen en un tema;
+- un permiso que llega por prop, o un callback que escribe cuando la llamada no le pasa un objeto
+  (`onSave(id)`). La escritura vive en el padre, que suele ser una `page.tsx` de una zona con sesión y va a
+  revisión, pero un cambio solo en el hijo no.
 
 Esa es la razón de la revisión de madrugada. Las reglas nuevas para tapar un caso así, o para ampliar la lista de
 rutas seguras, van en una PR con revisión previa, porque tocan `scripts/carril.mjs`.
@@ -411,6 +425,9 @@ Las pruebas viven en `scripts/tests/carril.node.mjs` y corren con `pnpm harness:
   `CommentsThread.tsx` y `DeletedCommentsPanel.tsx`;
 - cada clase de ruta segura da `rapido` con un archivo de presentación;
 - cada marca de contenido da `revision`, y también un `.tsx` binario o un import de un archivo con `"use server"`;
+- los casos de la tercera revisión dan `revision`: una pantalla que llama a `voidExpenseEntriesForExpense`
+  (`lib/studio/accounting/expense-posting.ts`), la que importa `lib/marca/access.ts` (`hasBrandAccess`), un
+  módulo sensible en el segundo nivel y un import con salto de línea; un `import type` no cuenta;
 - el contrato de abajo.
 
 ### Contrato para el tren del Director
@@ -432,9 +449,13 @@ node scripts/carril.mjs --json --pr <N>
   después. Si cambió en el medio, es un error. El JSON devuelve esa cabeza en `head`. Con `--head <sha>`, además,
   la cabeza tiene que ser esa: si no, es un error.
 - **De dónde salen los archivos.** `--pr` trae la cabeza con `git fetch --no-tags origin pull/<N>/head` y calcula
-  la base como el merge-base de la cabeza con `origin/main` (otra rama con `--base <ref>`). Después lee las
-  pantallas en las dos versiones con un solo `git cat-file --batch`. Por eso se corre en una copia del repo con
-  `origin`. Si git falla, es un error.
+  la base como el merge-base de la cabeza con `origin/main` (otra rama con `--base <ref>`). Lee las pantallas y
+  sus imports en tres versiones (la base, la cabeza y `origin/main` tal como está en la copia del tren), con un
+  `git cat-file --batch` por vuelta. Por eso se corre en una copia del repo con `origin` recién traído. Si git
+  falla, o su salida no cuadra con lo pedido, es un error.
+- **Lo que no lee.** Los cambios que lleguen a `main` después de esa lectura no se ven. No hace falta: el tren
+  clasifica la cabeza ya actualizada, porque exige que la PR no esté BEHIND de `main`, y fusiona con
+  `--match-head-commit`. Si `main` avanza, la PR queda BEHIND, se actualiza y se clasifica otra vez.
 - **Otras entradas.** Para consultas:
   - `git diff --no-renames <base> <cabeza> | node scripts/carril.mjs --json --diff --base <base> --head <cabeza>`
     exige que los dos sean commits del repositorio y que el diff de stdin sea exactamente ese `git diff`. Si no,
