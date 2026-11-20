@@ -184,7 +184,8 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
 
 ## 11. Pendientes de decisión (Sam)
 
-1. Las nueve reglas de §3 (1 a 9).
+1. ~~Reglas de botones 1 a 6 de §3.~~ **Aprobadas el 2026-11-20.** Sam vio las seis dibujadas, cada una con su «así no» y su «así sí», y respondió: «Reglas de botones: aprobadas las seis». Entran en BTN-01 v1.3.
+   Siguen pendientes las reglas 7 a 9 (mensajes).
 2. Los tres anchos de panel (regla 10).
 3. Si la simetría se extiende al Portal.
 4. Cuáles extras de §9 entran.
