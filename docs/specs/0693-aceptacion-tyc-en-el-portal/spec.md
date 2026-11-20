@@ -176,7 +176,7 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 
 | Estado | Cuándo | Qué ve |
 |---|---|---|
-| `aceptados` | Hay una aceptación general íntegra que cubre todos los documentos vigentes (§5.3) | Todo el portal |
+| `aceptados` | Hay una aceptación general íntegra que cubre todos los documentos que exige `documentosEfectivos` (§4.4) | Todo el portal |
 | `sin_aceptar` | Nunca aceptó | El aviso (§4.2) y los módulos cerrados (§4.3) |
 | `version_anunciada` | Aceptó la versión anterior y la nueva ya está publicada, pero todavía no entra en vigencia (§5.3) | Todo el portal, con una franja informativa que se puede cerrar |
 | `version_nueva` | Aceptó una versión anterior y la nueva ya entró en vigencia por fecha, aunque el cron todavía no la haya activado (§4.4) | Igual que `sin_aceptar`, con el texto de versión nueva |
@@ -248,7 +248,8 @@ Nace en la fase 2.
   explícitos, como en la SDD-0549.
 - **Valen las mismas reglas que en `acceptanceRowValid`:**
   - el hash se recomputa desde la fila;
-  - la aceptación tiene que cubrir todos los documentos vigentes.
+  - la aceptación tiene que cubrir todos los documentos que exige `documentosEfectivos`, no solo los que
+    están en `vigente`.
 - **Los documentos que se exigen** salen de una función pura, `documentosEfectivos(vigentes, programadas,
   hoy)`. La usan `estadoTycPortal`, la emisión y la pantalla de aceptación:
   - una `programada` con `effective_date` menor o igual a hoy **cuenta como vigente**, aunque el cron todavía
@@ -341,7 +342,8 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
 
 ### 5.3 Validez
 
-- Una aceptación `portal` vale mientras cubra todas las versiones vigentes de cara al cliente.
+- Una aceptación `portal` vale mientras cubra todos los documentos de cara al cliente que exige
+  `documentosEfectivos` (§4.4).
 - **Versión nueva (decisión 7).** El portal se cierra cuando la versión nueva **entra en vigencia**, no
   cuando se publica. La cláusula 13.2 da 72 horas hábiles.
   - La fecha de vigencia es `legal_docs.effective_date`. La puerta solo la lee.
@@ -362,20 +364,46 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
   - **Una sola programada por clave.** Se agrega un índice único parcial `on legal_docs (tenant_id, key)
     where status = 'programada'`.
   - **Cuándo se exige `programada`.**
-    - Si la clave ya tiene una versión `vigente`, la nueva entra como `programada`. El trigger rechaza un
-      insert directo como `vigente` sobre una clave que ya la tiene.
-    - La primera versión de una clave, sin reemplazos, puede entrar `vigente`: no cambia nada que el
+    - El trigger rechaza un insert `vigente` si la clave tiene **cualquier** versión anterior, `vigente`,
+      `programada` o `archivada`. No basta con mirar la vigente: el índice `legal_docs_current_uniq`
+      (`0102_capa_legal.sql:70-73`) ya impide dos vigentes, y el atajo de la 0213 (`:15`: archivar la
+      v3.0 y después insertar la v3.1) quedaría abierto.
+    - Solo la primera versión de una clave, sin `reemplaza`, puede entrar `vigente`: no cambia nada que el
       cliente ya haya aceptado.
+    - Toda versión siguiente entra `programada`.
+  - **Archivar una vigente solo pasa dentro de una RPC.**
+    - El guard (`0297_legal_docs_body_hash.sql:90-97`) deja de permitir `vigente → archivada` en cualquier
+      momento.
+    - Solo lo permite cuando la transacción tiene encendido `set local dtd.legal_docs_rpc = 'on'`. Lo
+      enciende `legal_docs_activar_programadas`, y `legal_docs_retirar` para el caso de abajo.
+    - Un `UPDATE` suelto de `status`, como el de la 0213 (`:113-120`), se rechaza.
+    - El `set local` es un candado de procedimiento, no de permisos. Escribir `legal_docs` sigue limitado
+      a quien hoy puede hacerlo.
+  - **Retirar una programada (`programada → archivada`)** se permite mientras su `effective_date` sea
+    posterior a hoy en Caracas, para corregir una publicación con error. No deja a ninguna clave sin
+    vigente, porque la programada todavía no lo es. Desde su fecha ya no se retira: se reemplaza con otra
+    versión.
+  - **El guard protege también `reemplaza`.** Se suma a los campos que no cambian después del insert
+    (`0297_legal_docs_body_hash.sql:75-82`).
   - **Cambio de clave.** Pasa cuando un documento reemplaza a otros, como en la 0213, donde
     `acuerdo-servicios` reemplazó a `tyc` y `operador`.
     - La `programada` declara las claves que reemplaza en una columna nueva, `reemplaza text[]`. Por
       ejemplo, `{tyc, operador}`.
     - Con `reemplaza` no vacío, la versión tiene que entrar `programada` y cumplir las 72 horas hábiles,
       aunque su propia clave sea nueva.
+    - **Una clave nueva que reemplaza a otras entra siempre `programada`, con `reemplaza` lleno.** El
+      patrón de la 0213 (`:18-21` y `:113-120`: insertar la clave nueva como `vigente` y archivar las viejas
+      con un `UPDATE` suelto) ya no funciona. El insert `vigente` de una clave nueva se permite (primera
+      versión), pero las viejas siguen vigentes y exigidas, porque archivarlas requiere la RPC.
     - El trigger exige que cada clave de `reemplaza` tenga una `vigente`.
     - La RPC archiva, en la misma transacción, la vigente de la misma clave y las de `reemplaza`, y activa la
       programada.
     - `documentosEfectivos` (§4.4) deja de exigir las claves reemplazadas desde la `effective_date`.
+  - **Retirar un documento sin reemplazo** es una operación explícita y aparte, fuera del flujo automático.
+    - La hace una migración con el OK nominal de Sam, que llama a `legal_docs_retirar(key, motivo)`.
+    - Esa RPC enciende el mismo `set local` y archiva la vigente de esa clave.
+    - Desde ese momento `documentosEfectivos` deja de exigirla.
+    - El cron nunca retira nada.
   - **Una RPC programada** (`legal_docs_activar_programadas`, sin permiso para el cliente) archiva la
     anterior y activa la programada en la misma transacción. La llama un cron nuevo de Vercel,
     `/api/cron/legal-docs-activar`, a las 00:05 de Caracas, como los otros de `app/api/cron/`. Es idempotente.
@@ -573,18 +601,30 @@ aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación g
    - un cliente nuevo durante el período anunciado acepta la vigente, queda en `version_anunciada`, y al
      llegar la fecha de la programada pasa a `version_nueva`, haya corrido o no el cron;
    - sin documentos vigentes da `sin_documentos`, y no `sin_aceptar`.
-8. La emisión escribe `tyc_portal: "aceptados"` cuando hay una aceptación `portal` íntegra que cubre las
-   vigentes, y `"pendientes"` en los demás casos.
+8. La emisión escribe `tyc_portal: "aceptados"` cuando hay una aceptación `portal` íntegra que cubre los
+   documentos que exige `documentosEfectivos`, y `"pendientes"` en los demás casos.
+   - La prueba usa esa función, no `currentClientDocs`.
+   - Incluye el caso del cron caído: hay una `programada` con fecha de ayer y la vieja sigue `vigente`. Una
+     aceptación de la vieja da `pendientes`, y una de la programada da `aceptados`.
 9. Una prueba SQL de `programada`:
    - se inserta con una `effective_date` de tres días hábiles o más;
    - se rechaza con una menor, contando un feriado de `operational_calendar` y un fin de semana;
    - de `programada` a `vigente` se rechaza antes de la fecha;
    - `legal_docs_activar_programadas` archiva la anterior y activa la nueva en una transacción, y una
      segunda llamada no cambia nada;
-   - nunca hay dos vigentes por `key`, ni un momento sin una;
+   - nunca hay dos vigentes por `key`. Tampoco un momento sin vigente para una clave que no fue reemplazada
+     ni retirada con `legal_docs_retirar`;
    - una segunda `programada` de la misma clave se rechaza por el índice único parcial;
-   - un insert `vigente` sobre una clave que ya tiene una vigente se rechaza, y la primera versión de una
-     clave nueva sin `reemplaza` entra `vigente`;
+   - la primera versión de una clave nueva sin `reemplaza` entra `vigente`;
+   - **se rechaza** un insert `vigente` sobre una clave que ya tiene cualquier versión, aunque esté
+     archivada;
+   - **se rechaza** archivar una vigente a mano, con un `UPDATE` fuera de la RPC;
+   - **se rechaza** el atajo de la 0213: archivar la v3.0 y después insertar la v3.1 `vigente`. Falla en el
+     primer paso, y el segundo también fallaría solo;
+   - una `programada` se retira (`programada → archivada`) antes de su fecha, y se rechaza retirarla desde
+     su fecha;
+   - cambiar `reemplaza` después del insert se rechaza;
+   - `legal_docs_retirar` archiva la vigente de una clave y, fuera de ella, el mismo `UPDATE` se rechaza;
    - con `reemplaza`: se rechaza si alguna clave no tiene una vigente o si entra `vigente`, y la RPC archiva
      las claves reemplazadas junto con la activación.
 
