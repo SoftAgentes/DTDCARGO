@@ -712,7 +712,9 @@ publicar_a_mano() { # $1 = sha, $2 = --aunque-congelado (opcional)
   publicar_imagen "${sha}" "${dig}" a-mano; rc=$?
   if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar "${IMAGEN}:${ETIQUETA}"; then
     # Para que el vigilante no la pise en el próximo minuto: la :publicable de
-    # ahora queda rechazada y la automática vuelve con el próximo merge.
+    # ahora queda rechazada y la automática vuelve con el próximo merge, solo si
+    # el vigilante está encendido. Desde el 2026-10-25 está detenido y publica el
+    # Director a mano (docs/runbooks/codex-engineering.md, carriles).
     pdig="$(digest_de "${IMAGEN}:${ETIQUETA}")"; prev="$(etiqueta_de "${IMAGEN}:${ETIQUETA}" org.opencontainers.image.revision)"
     if [ -n "${pdig}" ] && [ "${pdig}" != "${dig}" ]; then
       marcar_rechazo "${pdig}" "${prev}" "reemplazada a mano por ${sha:0:8}"
