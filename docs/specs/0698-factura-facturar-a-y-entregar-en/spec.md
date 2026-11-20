@@ -839,7 +839,7 @@ dirección de entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 
 | Pieza | Dueña | Qué hace la 0698 |
 |---|---|---|
-| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Como la regla vive en dos lenguajes y en dos SDD, el fixture de casos es **uno solo**: `supabase/tests/fixtures/direccion-de-entrega-casos.json`. **Lo crea la 0694 F-1**, que va antes, y está en su allowlist. La 0698 F-2 solo lo lee desde su contrato SQL (quinta vuelta, 3) |
+| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Como la regla vive en dos lenguajes y en dos SDD, el fixture de casos es **uno solo**: `lib/__tests__/fixtures/direccion-predeterminada.json`. **Lo crea la 0694 F-1**, que va antes, y está en su allowlist. La 0698 F-2 solo lo lee desde su contrato SQL (quinta vuelta, 3). Según la #725 en `76f28eb15`, tiene datos inventados: las filas de entrada, el resultado esperado y la marca «sin predeterminada» |
 | Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2 | No las toca. Mi perfil sigue escribiendo direcciones de entrega por ellas |
 | El comprobante HTML: misma fuente que el PDF | **0694** decisión 9, F-2 | Va después. Cambia `domicilioFiscalSellado` por el helper nuevo en todos los lectores a la vez |
 | Sellar siempre «Facturar a», el bloque «Entregar en», la casilla y la etiqueta de las facturas viejas | **0698** (0694 §3, decisión 9, y §8) | Es esta spec |
@@ -1005,7 +1005,7 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/dispatch-mobile-queries.ts` y `lib/studio/dispatch-types.ts` (después de la 0694 F-1);
   - `lib/studio/privacidad-cn.ts`;
   - `lib/studio/__tests__/warehouse-ve-delivery-governance.test.ts`.
-- **El fixture `supabase/tests/fixtures/direccion-de-entrega-casos.json` no es de la 0698.** Lo crea la
+- **El fixture `lib/__tests__/fixtures/direccion-predeterminada.json` no es de la 0698.** Lo crea la
   0694 F-1. La 0698 F-2 solo lo lee (§9).
 
 ## 14. Clasificación de gobernanza
