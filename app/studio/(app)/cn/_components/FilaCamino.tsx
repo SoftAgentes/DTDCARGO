@@ -63,8 +63,11 @@ function Avance({ valor, etiqueta }: { valor: number; etiqueta: string }) {
 
 function Recepciones({ c, id }: { c: ContenedorEnCamino; id: string }) {
   const t = useT();
+  // Va dentro de `role="table"`: es una fila con una sola celda que la cruza entera
+  // (ARIA válido), y la tabla nativa de recepciones vive en esa celda.
   return (
     <div
+      role="row"
       id={id}
       style={{
         padding: "var(--s-3) var(--s-4) var(--s-4)",
@@ -72,6 +75,7 @@ function Recepciones({ c, id }: { c: ContenedorEnCamino; id: string }) {
         borderTop: "1px solid var(--border)",
       }}
     >
+      <div role="cell" aria-colspan={6}>
       {c.recepciones.length === 0 ? (
         <p style={{ margin: 0, color: "var(--ink-soft)", font: "400 13px/1.4 var(--f-sans)" }}>
           {t("warehouse_cn.camino.receipts_empty")}
@@ -111,6 +115,7 @@ function Recepciones({ c, id }: { c: ContenedorEnCamino; id: string }) {
           </tbody>
         </table>
       )}
+      </div>
     </div>
   );
 }

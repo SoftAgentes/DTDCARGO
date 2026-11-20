@@ -2,8 +2,7 @@
  * Almacén China · lectura de «En camino» (SDD-0682 §2.2). Solo lee; RLS filtra
  * por tenant con el cliente de sesión.
  *
- * Reúne los contenedores que ya no están en la bodega (consolidando, cerrado,
- * zarpado) con:
+ * Reúne los contenedores que ya zarparon (`ESTADOS_EN_CAMINO`) con:
  *  - sus ítems e itinerario (ETA en `sailings.eta`, por `sailing_id`) y el último
  *    rastreo cacheado, armados con la misma regla de Tracking;
  *  - el número DTD de `consolidations.notes` («contenedor DTD #64»);

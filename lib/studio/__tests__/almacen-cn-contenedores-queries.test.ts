@@ -30,11 +30,14 @@ function datos() {
         sailing_id: null,
         container_type: "40HC",
         container_no: null,
-        status: "cerrado",
+        status: "zarpado",
         notes: null,
         updated_at: "2026-11-15T00:00:00Z",
         deleted_at: null,
       },
+      // Se carga o está cerrado sin zarpar: no entra (Sam, 2026-11-20: «solo los que ya zarparon»).
+      { id: "c-consolidando", ref: "DEMO-CONSOL-05", sailing_id: "s-1", container_type: null, container_no: null, status: "consolidando", notes: "contenedor DTD #95", updated_at: "2026-11-15T00:00:00Z", deleted_at: null },
+      { id: "c-cerrado", ref: "DEMO-CONSOL-06", sailing_id: "s-1", container_type: null, container_no: null, status: "cerrado", notes: "contenedor DTD #96", updated_at: "2026-11-15T00:00:00Z", deleted_at: null },
       // Ya arribó: no está en camino.
       { id: "c-arribado", ref: "DEMO-CONSOL-03", sailing_id: null, container_type: null, container_no: null, status: "arribado", notes: null, updated_at: "2026-11-01T00:00:00Z", deleted_at: null },
       // Eliminado: no entra.
@@ -65,10 +68,10 @@ async function leer() {
 }
 
 describe("leerContenedoresEnCamino (SDD-0682)", () => {
-  it("trae los que ya salieron de la bodega, sin los arribados ni los eliminados, y el mar primero", async () => {
+  it("trae solo los zarpados: sin consolidando, cerrado, arribados ni eliminados; sin ETA al final", async () => {
     const lista = await leer();
     expect(lista.map((c) => c.id)).toEqual(["c-mar", "c-sin-numero"]);
-    expect(lista.map((c) => c.grupo)).toEqual(["mar", "origen"]);
+    expect(lista.every((c) => c.grupo === "mar")).toBe(true);
   });
 
   it("el número DTD sale de las notas y la naviera del itinerario", async () => {

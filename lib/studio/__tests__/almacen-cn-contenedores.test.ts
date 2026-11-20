@@ -92,15 +92,25 @@ describe("Almacén China · En camino (SDD-0682)", () => {
     expect(c!.diasRestantes).toBeNull();
   });
 
-  it("primero lo que va en el mar por ETA; después lo cargado sin zarpar", () => {
+  it("solo entra lo que ya zarpó, ordenado por ETA; sin ETA, al final", () => {
     const lista = enCaminoOrdenados([
-      vista("10", "cerrado", "2026-12-20"),
       vista("11", "zarpado", "2026-12-15"),
+      vista("14", "zarpado", null),
       vista("12", "zarpado", "2026-11-25"),
-      vista("13", "consolidando", null),
     ]);
-    expect(lista.map((c) => c.id)).toEqual(["12", "11", "10", "13"]);
-    expect(lista.map((c) => c.grupo)).toEqual(["mar", "mar", "origen", "origen"]);
+    expect(lista.map((c) => c.id)).toEqual(["12", "11", "14"]);
+    expect(lista.every((c) => c.grupo === "mar")).toBe(true);
+  });
+
+  it("un contenedor «consolidando» y uno «cerrado» NO entran (Sam, 2026-11-20)", () => {
+    expect(aContenedorEnCamino(vista("30", "consolidando", "2026-12-20"))).toBeNull();
+    expect(aContenedorEnCamino(vista("31", "cerrado", "2026-12-20"))).toBeNull();
+    const lista = enCaminoOrdenados([
+      vista("30", "consolidando", "2026-12-20"),
+      vista("31", "cerrado", "2026-12-20"),
+      vista("32", "zarpado", "2026-12-20"),
+    ]);
+    expect(lista.map((c) => c.id)).toEqual(["32"]);
   });
 
   it("un contenedor que ya arribó no entra", () => {

@@ -274,7 +274,7 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
     // SDD-0682: «Activos» deja fuera lo que va en el mar; el envío en aduana es el que lo trae aquí.
     const conActivo = [
       ...MIXTO,
-      envio("m4", { client_name: "Cliente Cuatro", client_markbox: "DTD-1004", status: "in_customs", weight_kg: 5 }),
+      envio("m4", { client_name: "Cliente Cuatro", client_markbox: "DEMO-1004", status: "in_customs", weight_kg: 5 }),
     ];
     const datos: ContenedoresDeEmbarques = {
       ...DATOS_MIXTO,

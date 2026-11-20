@@ -85,8 +85,9 @@ export default async function CnPage({
   // lib/studio/privacidad-cn.ts (SDD-0531): Tracking y Naviera leen la misma.
   const canSeeClientNames = reglaNombresDeClientes(ut);
 
-  // SDD-0682: «En camino» no lee recepciones; solo los contenedores que ya
-  // salieron de la bodega. Si la lectura falla, la vista lo dice.
+  // SDD-0682: «En camino» no lee la tabla de «En almacén»: lee los contenedores
+  // que ya zarparon y, de cada uno, sus recepciones consolidadas (con MARKBOX).
+  // Si la lectura falla, la vista lo dice.
   const vista = vistaDeUrl(rawParams.vista);
   if (vista === "camino") {
     let contenedores: ContenedorEnCamino[] | null;

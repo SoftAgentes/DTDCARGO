@@ -1,8 +1,8 @@
 /**
  * Almacén China · vista «En camino» (SDD-0682 §2.2). PURO: sin base de datos.
  *
- * El equipo de China ve aquí los contenedores que ya salieron de su bodega: los
- * que van en el mar y los ya cargados que aún no zarpan. Por contenedor: número
+ * El equipo de China ve aquí los contenedores que ya zarparon (Sam, 2026-11-20:
+ * «solo los que ya zarparon»; así ninguna recepción sale en dos pantallas). Por contenedor: número
  * DTD, naviera, ETA, el contador de días y el porcentaje (Sam: «solo el contador
  * y el porcentaje»). Al abrirlo, las recepciones que lleva, con su MARKBOX.
  *
@@ -18,8 +18,13 @@ import {
   type GrupoContenedor,
 } from "@/lib/studio/tracking-contenedores";
 
-/** Estados de contenedor que ya no están en la bodega de China. */
-export const ESTADOS_EN_CAMINO = ["consolidando", "cerrado", "zarpado"] as const;
+/**
+ * Estados de contenedor que entran en «En camino»: solo `zarpado`. Los que se
+ * cargan (`consolidando`) o están cerrados sin zarpar (`cerrado`) quedan fuera:
+ * una recepción pendiente de un contenedor que se llena saldría también en
+ * «En almacén» (decisión de Sam del 2026-11-20).
+ */
+export const ESTADOS_EN_CAMINO = ["zarpado"] as const;
 
 /** Una recepción dentro del contenedor: sin nombre de importador. */
 export type RecepcionEnCamino = {
@@ -37,8 +42,8 @@ export type ContenedorEnCamino = {
   /** Referencia interna (DTD-CONSOL-NNNN) o número físico, si no hay referencia. */
   nombre: string;
   containerNo: string | null;
-  /** `mar` = ya zarpó; `origen` = cargado o cargándose, aún no zarpa. */
-  grupo: Extract<GrupoContenedor, "mar" | "origen">;
+  /** Siempre `mar`: ya zarpó (regla de grupo de Tracking). */
+  grupo: Extract<GrupoContenedor, "mar">;
   estadoLabel: string;
   /** Naviera del itinerario (`sailings.carrier_id` → `carriers.name`). */
   naviera: string | null;
@@ -68,7 +73,7 @@ export function aContenedorEnCamino(
   v: ContenedorVista,
   extras: ExtrasDelContenedor = SIN_EXTRAS,
 ): ContenedorEnCamino | null {
-  if (v.grupo !== "mar" && v.grupo !== "origen") return null;
+  if (v.grupo !== "mar") return null;
   return {
     id: v.id,
     numeroDtd: extras.numeroDtd,
@@ -88,18 +93,14 @@ export function aContenedorEnCamino(
   };
 }
 
-/**
- * Lista de la vista: primero los que ya van en el mar, y dentro de cada grupo lo
- * que llega antes; sin ETA, al final (orden de Tracking).
- */
+/** Lista de la vista: lo que llega antes, primero; sin ETA, al final (orden de Tracking). */
 export function enCaminoOrdenados(
   vistas: readonly ContenedorVista[],
   extrasPorId: ReadonlyMap<string, ExtrasDelContenedor> = new Map(),
 ): ContenedorEnCamino[] {
-  const lista = ordenarContenedores(vistas)
+  return ordenarContenedores(vistas)
     .map((v) => aContenedorEnCamino(v, extrasPorId.get(v.id)))
     .filter((c): c is ContenedorEnCamino => c !== null);
-  return [...lista.filter((c) => c.grupo === "mar"), ...lista.filter((c) => c.grupo === "origen")];
 }
 
 /** Lo que se muestra como nombre del contenedor: «DTD #64», o la referencia si no hay número. */

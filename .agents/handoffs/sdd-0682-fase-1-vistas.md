@@ -29,10 +29,18 @@ Corregido en la tanda siguiente:
   regla que el servidor); caso nuevo en «Activos» con un envío en aduana en la prueba del encabezado; el
   fixture `DTD-0418` pasa a `DEMO-0001`.
 
-## Decisión propia a confirmar con Sam
+## Decisión de Sam (2026-11-20)
 
-- «En camino» incluye los contenedores cargados que aún no zarpan (la spec hablaba solo del mar). Sin eso, esa
-  mercancía no se vería en ninguna parte. Pregunta 8 de la ronda de clasificación.
+- «721: solo los que ya zarparon». `ESTADOS_EN_CAMINO = ["zarpado"]`; fuera el grupo «Cargados, sin zarpar» y
+  su texto; prueba explícita de que `consolidando` y `cerrado` no entran.
+
+## Revisión sobre `658dfbbaf`: APPROVED, con tres menores corregidos en la tanda siguiente
+
+- M1: `DTD-1004` → `DEMO-1004` en `EmbarquesClient.encabezado-cliente.test.tsx`.
+- M2: el comentario de `cn/page.tsx` sobre «En camino» dice ahora que lee los contenedores zarpados y sus
+  recepciones consolidadas.
+- M3: el panel de recepciones es un `role="row"` con una celda (`aria-colspan`) y la tabla nativa adentro;
+  prueba en `FilaCamino.test.tsx`.
 
 ## Pruebas
 

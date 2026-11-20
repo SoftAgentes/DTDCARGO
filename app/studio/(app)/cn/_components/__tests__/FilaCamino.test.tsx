@@ -58,6 +58,10 @@ describe("FilaCamino (SDD-0682)", () => {
     await userEvent.click(boton);
     expect(boton.getAttribute("aria-expanded")).toBe("true");
     const tabla = screen.getByRole("table", { name: "Recepciones del contenedor DTD #91" });
+    // ARIA válido: el panel es una fila con una celda, y la tabla vive en la celda.
+    const celda = tabla.closest('[role="cell"]');
+    expect(celda).not.toBeNull();
+    expect(celda!.parentElement!.getAttribute("role")).toBe("row");
     const filas = within(tabla).getAllByRole("row");
     expect(filas).toHaveLength(3);
     expect(filas[1].textContent).toContain("WR-C91-A");

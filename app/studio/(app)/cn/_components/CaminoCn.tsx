@@ -1,7 +1,7 @@
 /**
  * Almacén China · «En camino» (SDD-0682 §2.2). Server component.
  *
- * Un grupo por situación («En el mar», «Cargados, sin zarpar») y una fila por
+ * Los contenedores que ya zarparon («En el mar») y una fila por
  * contenedor (`FilaCamino`): número DTD, naviera, ETA, días que faltan y
  * porcentaje de avance; al abrirlo, sus recepciones con MARKBOX. Nunca el
  * nombre del importador.
@@ -111,11 +111,6 @@ export function CaminoCn({
         locale={locale}
         titulo={t(locale, "warehouse_cn.camino.group_mar")}
         lista={contenedores.filter((c) => c.grupo === "mar")}
-      />
-      <Grupo
-        locale={locale}
-        titulo={t(locale, "warehouse_cn.camino.group_origen")}
-        lista={contenedores.filter((c) => c.grupo === "origen")}
       />
     </>
   );

@@ -205,9 +205,10 @@ filtro no se separen.
 las `warehouse_receipts_cn` en `consolidado` cuyo `shipment_id` está en sus ítems, con código, MARKBOX,
 cajas y CBM. Las pendientes no se listan ahí: siguen en «En almacén».
 
-**Decisión de implementación de la fase 1, a confirmar con Sam:** «En camino» incluye también los
-contenedores `consolidando` y `cerrado`, en un grupo aparte «Cargados, sin zarpar». La §2.2 hablaba solo de
-los `zarpado`; sin esto, lo consolidado en un contenedor que aún no zarpa no se vería en ninguna parte.
+**Decisión de Sam (2026-11-20), vía el DG:** «721: solo los que ya zarparon». «En camino» muestra solo
+los contenedores `zarpado`; los `consolidando` y `cerrado` no entran, así ninguna recepción sale en dos
+pantallas (una recepción pendiente de un contenedor que se llena sigue en «En almacén»). La primera versión
+de la fase 1 los incluía en un grupo «Cargados, sin zarpar»; se quitó.
 
 ### 2.7 Allowlist exacta de la fase 1
 

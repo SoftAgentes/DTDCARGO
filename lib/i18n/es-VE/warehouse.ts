@@ -376,12 +376,11 @@ export const warehouse = {
     "1 recepción ya consolidada no se muestra: salió de la bodega.",
   "warehouse_cn.view.hidden_link": "Ver contenedores en camino",
   "warehouse_cn.camino.description":
-    "Lo que ya salió de la bodega: contenedores en el mar y contenedores cargados que aún no zarpan.",
+    "Lo que ya salió de la bodega: los contenedores que zarparon, hasta que lleguen.",
   "warehouse_cn.camino.empty_title": "No hay contenedores en camino",
   "warehouse_cn.camino.empty_description":
-    "Cuando se consolide y se cierre un contenedor, aparece aquí hasta que llegue.",
+    "Cuando un contenedor zarpe, aparece aquí hasta que llegue.",
   "warehouse_cn.camino.group_mar": "En el mar",
-  "warehouse_cn.camino.group_origen": "Cargados, sin zarpar",
   "warehouse_cn.camino.col_container": "Contenedor",
   "warehouse_cn.camino.col_carrier": "Naviera",
   "warehouse_cn.camino.col_mark": "Shipping Mark",
