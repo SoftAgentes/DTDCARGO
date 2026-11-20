@@ -85,3 +85,12 @@ Sin cambios en `app/`, `lib/`, `components/`, `supabase/`, `public/` ni la web p
 
 ### FUERA DE ALCANCE DETECTADO (nuevo)
 - Si algún día se instala `@carbon/*` en DTDCARGO, hay que fijar `IBM_TELEMETRY_DISABLED=true` en el `Dockerfile` y en CI, aunque `allowBuilds` ya lo bloquee, y dejar `$css--font-face: false`.
+
+---
+
+## AMPLIACIÓN 2026-11-20 · Mejoras de experiencia adaptables
+
+- Sam pidió sacar de lo leído qué se puede implementar para mejorar la experiencia del Studio, que «no se ve simétrico en todas las secciones». Entregable: [mejoras-ux-adaptables.md](../../docs/design/rebrand-erp/mejoras-ux-adaptables.md): 29 mejoras con origen (Carbon o Ant Design), qué haríamos y tamaño, sin instalar ninguna librería.
+- Medición nueva de la asimetría (solo lectura, `app/studio/(app)/`): 91 `<h1>` a mano con 7 tamaños y 20 márgenes; 13 anchos de drawer; 45 archivos con `DrawerShell` sin `DrawerFooter`; 73 `<table>` crudas; 22 tamaños de letra en línea; 1.506 rellenos y 1.762 separaciones con número suelto; `useRowHighlight` en 14 archivos contra `useToast` en 132.
+- Validación: `docs:check` y `sdd:check` **PASARON** (con `node`). Recorrido visual: **NO EJECUTADO**.
+- Pendiente: que Sam elija por dónde empezar (propuesta: encabezado de página único, anchos y pie de drawer). Cada mejora necesita SDD con allowlist; estimación sin reservar, 8 a 10 SDD que se solapan con los 4 de la opción A.
