@@ -300,11 +300,20 @@ versión 2 y agrega lo siguiente:
      - **cambio de comportamiento:** en el caso de la principal, `0466:320` hoy pone null y ahora sella la
        dirección.
    - **«Entregar en»:**
-     - **guarda del aliado (revisión, punto 7):** si `new.shipment_id` es un embarque cuyo
-       `client_markbox` no es el de la factura, `ship_to_address` y `ship_to_address_id` quedan en null,
-       aunque el borrador traiga una edición. Es el caso de la factura de contenedor al aliado raíz
-       (`0564:496-508`) y de sus pre-órdenes (0569). Esas facturas salen sin el bloque «Entregar en» hasta
-       que la **SDD-0696** defina qué mostrar (§5.6 y §12);
+     - **guarda del aliado (revisión, punto 7, y segunda vuelta, C):** si **alguno** de los embarques de
+       la factura tiene un `client_markbox` distinto del de la factura, `ship_to_address` y
+       `ship_to_address_id` quedan en null, aunque el borrador traiga una edición.
+       - «Los embarques de la factura» son `new.shipment_id` más los embarques del mismo tenant, vivos,
+         cuyo código aparece en `lines[].shipmentCode`. Es la misma lectura de las líneas que ya hace la
+         0551 (`0551:306-322`). Las líneas de la 0564 traen ese código (`0564:489`).
+       - No basta con `new.shipment_id`. La 0564 guarda ahí solo el primer embarque (`0564:497-499`), y si
+         ese primero es del propio aliado, coincidiría con la factura.
+       - La regla vive en una función interna, `invoice_ships_to_others(p_invoice invoices) returns
+         boolean`, sin EXECUTE para nadie. La usan el trigger y la rama de las facturas viejas de
+         `invoice_addresses` (§4.3).
+       - Es el caso de la factura de contenedor al aliado raíz (`0564:496-508`) y de sus pre-órdenes (0569).
+         Esas facturas salen sin el bloque «Entregar en» hasta que la **SDD-0696** defina qué mostrar (§5.6
+         y §12);
      - si no aplica la guarda y el borrador trae `ship_to_address`, se queda esa, con `ship_to_address_id`
        en null;
      - si no, la **predeterminada vigente** del cliente de la factura (decisión 5);
@@ -346,17 +355,28 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
 - **`invoice_addresses(p_invoice_id uuid) returns jsonb`**, que devuelve `{ "bill_to": text|null, "ship_to":
   text|null, "legacy": boolean }`.
   - Es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`.
-  - **Autoriza con el mismo criterio que la lectura de facturas (0414):**
-    - un usuario del portal, solo para facturas de su tenant y de su Shipping Mark (`get_portal_client_id()`),
-      y nunca en `borrador`;
-    - un usuario del Studio, solo si `tenant_id = get_user_tenant_id()` y su rol es `accounting` o `admin`
-      (`0414:52-56`);
-    - en cualquier otro caso devuelve null, sin un error que distinga «no existe» de «no es tuya».
+  - **Autoriza con el predicado completo de las políticas de lectura de la 0414, copiado tal cual**
+    (segunda vuelta, B). No basta con `get_portal_client_id()`: solo devuelve el `client_id` de un vínculo
+    activo, sin el tenant ni el cliente vivo (`0080_portal_cliente.sql`, la definición de esa función).
+    - **Portal**, como «invoices portal self read» (`0414:62-80`):
+      - la factura tiene `deleted_at is null`, `status <> 'borrador'` y `client_markbox` no nulo;
+      - existe un `client_users` con `auth_user_id = auth.uid()` y `status = 'active'`, del mismo tenant
+        de la factura;
+      - su cliente está vivo (`deleted_at is null`), es de ese tenant y su `markbox` es el
+        `client_markbox` de la factura.
+    - **Studio**, como `invoices_accounting_select` (`0414:52-56`): `tenant_id = get_user_tenant_id()` y
+      rol `accounting` o `admin`.
+    - En cualquier otro caso devuelve null, sin un error que distinga «no existe» de «no es tuya».
+    - **Un contrato de equivalencia lo amarra a la 0414.** Para una matriz de roles y facturas,
+      `invoice_addresses` devuelve algo si y solo si un `select` de `invoices` con el mismo rol ve esa fila.
+      Si alguien cambia la política, el contrato se pone rojo.
   - **Borrador:** lo que saldría al emitir, con `invoice_resolve_addresses`.
   - **Emitida con sello:** lo sellado.
   - **Emitida sin sello (vieja):**
     - «Facturar a» sellado, si lo tiene; si no, el actual de la identidad sellada;
-    - «Entregar en», el actual;
+    - «Entregar en», el actual, **salvo que `invoice_ships_to_others` diga que sí** (segunda vuelta, D). En
+      ese caso es null. Así, una factura de contenedor al aliado ya emitida tampoco muestra la dirección
+      del aliado;
     - `legacy = true`.
 - **`direccionesDeLaFactura(supabase, invoiceId)`**, en `lib/studio/invoice-client-doc.ts`, es un envoltorio
   fino de esa RPC. Reemplaza a `domicilioFiscalSellado` en los dos PDF, el comprobante y la pantalla del
@@ -375,11 +395,23 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
     confirmar que, si `delivery_address_id` tiene valor, la dirección sea del mismo tenant y del cliente vivo
     que tiene hoy el Shipping Mark del embarque. Cuando cambia `delivery_address_id`, exige además que la
     dirección esté vigente;
+  - es **`security definer` con `search_path = ''`** (segunda vuelta, F): lee `clients` y
+    `client_delivery_addresses` fuera de la RLS de quien escribe, como el chequeo diferido de la 0695
+    (§4.10). Solo devuelve el error, sin datos;
+  - **no revisa los embarques entregados** (`status = 'delivered'`). Su `delivery_address_id` es el
+    histórico de una entrega que ya ocurrió (segunda vuelta, A);
   - es diferido porque `rename_client_markbox` (0371) cambia el código del cliente, del embarque y de las
     direcciones en la misma transacción. Al confirmar, los tres ya coinciden;
-  - **`reassign_shipment_client`** (`0551:203`) se redefine con la misma firma para poner
-    `delivery_address_id := null` cuando pasa el embarque a otro cliente, y anotarlo en su auditoría. Sin
-    eso, el trigger diferido rechazaría la reasignación.
+  - **`reassign_shipment_client`** (`0551:203`) se redefine con la misma firma. Al cambiar el
+    `client_markbox` del embarque (`0551:396-398`):
+    - **si el embarque no está entregado**, pone `delivery_address_id := null` y lo anota en su auditoría.
+      Sin eso, el trigger diferido rechazaría la reasignación;
+    - **si ya está entregado, lo conserva** (segunda vuelta, A): es el histórico de la entrega. Así no
+      choca con el congelado de la 0321, que lo protege después de `delivered`, y el trigger diferido no
+      lo revisa;
+    - en las pre-órdenes que mueve al cliente nuevo, además de lo que ya limpia (`0551:410-413`), pone
+      `ship_to_address := null` (segunda vuelta, E): era una edición del operador hecha para el cliente
+      viejo.
 - **Congelado (revisión, punto 8):** `guard_ve_delivery_completion()` (`0321:46`, condición en `:66-73`) se
   redefine para sumar `delivery_address_id` a lo que no cambia después de `delivered`.
 - Si la dirección elegida se borra después (borrado lógico), el resolvedor la ignora y vuelve a la
@@ -532,11 +564,13 @@ RPC. Un borrador nunca lleva esa etiqueta, porque todavía no se ha sellado.
 ### 5.6 La factura de contenedor al aliado raíz
 
 Las facturas de las 0564 y 0569 con aliado raíz van a nombre del aliado, pero la mercancía es del cliente
-final (`0564:496-508`). La guarda de §4.2 deja «Entregar en» vacío en esas facturas: nunca lleva la dirección
-del aliado. «Facturar a» sí se sella, con la identidad del aliado, como hoy.
+final (`0564:496-508`). La guarda de §4.2 deja «Entregar en» vacío en esas facturas, y la rama de las
+facturas viejas de `invoice_addresses` aplica la misma guarda (§4.3). Mira todos los embarques de la
+factura, no solo el primero. Nunca lleva la dirección del aliado. «Facturar a» sí se sella, con la
+identidad del aliado, como hoy.
 
 Lo que se muestre en su lugar (la dirección de cada cliente final, o nada) lo define la **SDD-0696**, que
-es una dependencia de esta spec (§9 y §12). Dir_DTD le avisa a la 0696 para que la cite de vuelta.
+es una dependencia de esta spec (§9 y §12). La 0696 ya cita la 0698 de vuelta (#729).
 
 ## 6. Pantallas
 
@@ -620,11 +654,19 @@ superusuario.
 15. `exc0674_facturar`, `exc0674_emitir_borradores` (0569) y la RPC 0128 emiten con el sello completo. En
     la 0569, la guarda `borrador_alterado` no se dispara.
 16. Una factura de contenedor al aliado raíz (0564 o 0569) se emite con `ship_to_address` en null, aunque
-    el aliado tenga predeterminada y el borrador traiga una edición.
+    el aliado tenga predeterminada y el borrador traiga una edición. También cuando el **primer** embarque
+    (el de `shipment_id`) es del propio aliado y los demás, de las líneas, son de clientes finales.
 17. `invoice_addresses`, con el rol del portal, devuelve las direcciones de su factura vieja (`legacy =
-    true`), con «Facturar a» y «Entregar en» actuales. Para la factura de otro cliente o de otro tenant
-    devuelve null, y para su propio borrador también. Con el Studio, `accounting` la lee y `operations`
-    no.
+    true`), con «Facturar a» y «Entregar en» actuales. Devuelve null en estos casos:
+    - la factura de otro cliente o de otro tenant;
+    - su propio borrador;
+    - una factura de otro tenant con **el mismo Shipping Mark**;
+    - una factura con `deleted_at`;
+    - un vínculo `client_users` que no está `active`;
+    - un cliente borrado.
+
+    Con el Studio, `accounting` la lee y `operations` no. Una factura vieja de contenedor al aliado
+    devuelve «Entregar en» en null. El contrato de equivalencia con la 0414 (§4.3) está verde.
 18. El PDF (render de prueba) y el comprobante HTML muestran los mismos dos bloques para la misma factura.
     Una factura vieja muestra «Dirección actual del cliente» en los dos.
 19. La función SQL de formato y su equivalente en TypeScript dan el mismo texto para la misma tabla de
@@ -637,8 +679,11 @@ superusuario.
     encuentra nada. Con un embarque borrado, tampoco.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
-22. `reassign_shipment_client` deja `delivery_address_id` en null. Un UPDATE de `client_markbox` que deje la
-    dirección de otro cliente falla al confirmar. `rename_client_markbox` del mismo cliente no falla.
+22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
+    las pre-órdenes que mueve deja `ship_to_address` en null. Un UPDATE de `client_markbox` que deje la
+    dirección de otro cliente en un embarque no entregado falla al confirmar. `rename_client_markbox` del
+    mismo cliente no falla. Reasignar un embarque **entregado** con dirección elegida funciona: conserva su
+    `delivery_address_id`, la guarda de la 0321 no salta y el trigger diferido no lo rechaza.
 23. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
     sobrevive.
 24. Después de `delivered`, un UPDATE de `delivery_address_id` falla con el error de la 0321.
@@ -675,7 +720,7 @@ dirección de entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 | Precargar `shipments.delivery_address` | Ninguna (la 0694 §8 la dejó como «mejora aparte») | La toma la F-3 |
 | `merge_clients` (dirección, ciudad, estado y Shipping Mark) | **0694** F-2 y **0695** F-6 | No la redefine. Su contrato 23 vive en `supabase/tests/` y corre en el CI. La 0695 F-6, que redefine `merge_clients` después, lo tiene que mantener verde. Si la 0698 F-3 llega después de la 0695 F-6, se prueba contra esa versión |
 | Una sola predeterminada por cliente (RPC atómica y triggers) | **0695** F-9 | No la repite. Mientras la F-9 no esté, el sello usa «la más reciente» si no hay predeterminada, como el helper de la 0694 |
-| **Las filas del registro de fuentes únicas** para la dirección fiscal (`client_fiscal_addresses`) y la dirección del embarque (`shipments.delivery_address_id`) | **0694** F-2 (lo decidió Dir_DTD el 2026-11-20) | Solo las cita. La lista de lectores congelados de `client_billing_identities.fiscal_address` también va en esas filas |
+| **Las filas del registro de fuentes únicas** para la dirección fiscal (`client_fiscal_addresses`) y la dirección del embarque (`shipments.delivery_address_id`) | **0694** F-2 (lo decidió Dir_DTD el 2026-11-20) | Solo las cita. La lista de lectores congelados de `client_billing_identities.fiscal_address` también va en esas filas. El archivo `docs/architecture/fuentes-unicas.md` lo crea la 0695 F-1, y Dir_DTD lo suma a la allowlist de la 0694 F-2 |
 | Las copias selladas de `invoices` | **0695** §2.1 («copias intencionales») | `invoices.client_fiscal_address` ya no es solo de la alterna: se sella siempre. Y se suman `ship_to_address`, `ship_to_address_id` y `addresses_sealed_at`. La fila para la tabla §5 de la 0695 se la pasó este Worker a Dir_DTD |
 | Las funciones que redefine esta spec | **0698** §4.5 | La tabla de versiones de §4.5 es la única lista. Ninguna de las otras specs las redefine |
 | El cliente final del aliado, su dirección y la factura del aliado raíz | **0696** | **Es una dependencia de esta spec.** Hasta que la 0696 decida, la guarda de §4.2 deja «Entregar en» vacío en esas facturas, y el aviso «Varias direcciones» mira solo los embarques del cliente de la factura (§5.6 y §12) |

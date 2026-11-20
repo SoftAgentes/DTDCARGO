@@ -101,6 +101,20 @@ La pidió Dir_DTD. Esto se corrigió en la spec:
   - 11: la 0466 y la 0569 están aplicadas; cita `0569:300-303`.
   - 12: camino de la recepción a su embarque medido (§2.6).
 
+## Segunda vuelta de la revisión (CHANGES_REQUESTED sobre `216c4bde5`) y corrección
+
+- **A:** `reassign_shipment_client` conserva el `delivery_address_id` de un embarque entregado y lo limpia
+  solo si no está entregado. El trigger diferido no revisa los entregados (criterio 22).
+- **B:** `invoice_addresses` copia el predicado completo de la 0414 y tiene un contrato de equivalencia con
+  la política. El criterio 17 suma los casos de otro tenant con el mismo Shipping Mark, la factura borrada,
+  el vínculo inactivo y el cliente borrado.
+- **C:** la guarda del aliado mira todos los embarques de la factura, `shipment_id` más los
+  `shipmentCode` de las líneas, con `invoice_ships_to_others` (criterio 16).
+- **D:** la rama de las facturas viejas aplica la misma guarda.
+- **E:** la reasignación también pone `ship_to_address` en null en las pre-órdenes que mueve.
+- **F:** el trigger diferido es `security definer`. `fuentes-unicas.md` va en la allowlist de la 0694 F-2,
+  según Dir_DTD.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.
