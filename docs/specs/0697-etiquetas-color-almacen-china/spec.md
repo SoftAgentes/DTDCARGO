@@ -111,12 +111,11 @@ de carga». Los colores de fila **no son estados: son indicadores**.
 | Celeste | Revisión o remedida |
 | Rosa | Uso de elevador o montacargas |
 
-**Medido en una hoja real (2026-11-20).** Solo conteos, sin datos de clientes. De los archivos locales, el
-único en el formato de China es el packing list del contenedor 63 (columnas MARKS, BRAND, DESCRIPTION,
-CHINESE DESCRIPTION, CTNS, PCS, G.W, CBM, DELIVERY DATE y REMARKS). Los del 59, 60 y 64 son el formato de
-precios de Venezuela, y no se encontraron archivos del 65 ni del 67.
+**Medido en una hoja real (2026-11-20).** Solo conteos, sin datos de clientes. Se midió un packing list en el
+formato de China de un contenedor reciente (columnas MARKS, BRAND, DESCRIPTION, CHINESE DESCRIPTION, CTNS,
+PCS, G.W, CBM, DELIVERY DATE y REMARKS). Las demás hojas locales son el formato de precios de Venezuela.
 
-| Color de fila en el 63 | Filas de producto | Con BRAND |
+| Color de fila en la hoja medida | Filas de producto | Con BRAND |
 |---|---|---|
 | Verde | 11 | 4 |
 | Ámbar (dorado del tema) | 9 | 4 |
@@ -229,6 +228,16 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
 - **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
   muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
   calcula montos ni toca facturas (§2.0).
+- **China no ve el efecto** (pendiente de la pregunta 15; recomendado: solo nombre, color e ícono). Las
+  lecturas del servidor para un usuario de región `cn` sin admin no traen `efecto`, y la sección de China no
+  lo muestra ni lo pide. Un indicador que crea China nace con `efecto = 'ninguno'`; **fijarlo por primera vez**
+  (de `ninguno` a otro) lo hace Venezuela (`operations` o `accounting` de región `ve`, o admin) sin solicitud;
+  **cambiar un efecto ya fijado** pasa por la solicitud del §2.3.1. Límite conocido: como el resto del
+  catálogo, la columna se lee con la RLS de miembro activo, así que un usuario de China con PostgREST directo
+  podría leerla. Cerrarlo en la base (grant por columna o una vista) se decide si Sam contesta que China no
+  debe verlo nunca.
+- **Reordenar** (arrastrar la prioridad) no necesita solicitud, aunque el indicador tenga efecto de dinero:
+  cambia solo el color de la fila.
 - **Quién crea y edita** (Sam, 2026-11-20, preguntas 2 y 13: «cualquiera de China», y Venezuela crea los de
   aduana y logística): `admin`, o cualquier miembro activo con rol `warehouse` u `operations`, de China o de
   Venezuela (`support` solo lee). Antes decía que Venezuela no edita
@@ -303,7 +312,8 @@ exige región `ve` (o admin). Queda abierto el etiquetado en Almacén VE (pregun
   que ya existe (`public.comments`, `supabase/migrations/0090_comments.sql:24-45`), sumando dos tipos de
   entidad: `warehouse_receipt_tag` y `shipment_tag`. Así hereda lo que ya resuelve ese hilo: autor, edición,
   borrado lógico y moderación (MP-01, SDD-0168). China lee esos comentarios en su historial; la nota de
-  privacidad del §3 vale igual para ellos.
+  privacidad del §3 vale igual para ellos: nada de datos del cliente en texto libre que lee China, con el
+  aviso «No escribas nombres, teléfonos ni contactos» también en el cuadro de comentario.
 - **Crea indicadores nuevos** de aduana y logística (por ejemplo «Retenido en aduana»), en el mismo catálogo.
   Por eso crear y editar el catálogo queda abierto a `warehouse` y `operations` de las dos regiones (§2.2).
 
@@ -328,8 +338,10 @@ de contabilidad.»
      aprobó y el motivo; también en `entity_audit_log` (MP-01 R3).
   - Contabilidad ve las solicitudes en una lista «Cambios de indicadores por aprobar», dentro de Embarques
     (ya tiene acceso, `lib/studio/rbac.ts:64`), con aviso en la campana. No entra a Almacén China.
+  - Quien pidió puede **cancelar** su propia solicitud mientras siga pendiente.
   - Tabla `warehouse_tag_change_requests` y RPC `pedir_cambio_indicador`, `aprobar_cambio_indicador`,
-    `rechazar_cambio_indicador` (§2.7). Capability nueva `approve_tag_changes: ["accounting"]` (admin
+    `rechazar_cambio_indicador` y `cancelar_cambio_indicador` (§2.7). El cambio lo aplica una función interna,
+    `aplicar_cambio_indicador`, sin grant a nadie, que solo llama `aprobar_cambio_indicador`. Capability nueva `approve_tag_changes: ["accounting"]` (admin
     implícito), repetida en la base.
 - Lo mismo vale para el catálogo: cambiar el `efecto` de un indicador o archivar uno con efecto de dinero
   pasa por la misma solicitud.
@@ -351,7 +363,7 @@ Diseño:
   dice «VE». Poner no necesita autorización, aunque el indicador tenga cobro; quitarlo después sí (regla de
   cambios). La recepción de China queda como estaba: se ve qué dijo cada uno.
 - **Venezuela no oculta ni borra lo que puso China.** Si cree que uno ya no aplica, lo comenta; lo quita China
-  o, si tiene efecto de dinero, un admin con motivo.
+  o, si tiene efecto de dinero, pasa por la solicitud que aprueba Contabilidad.
 - **Mismo catálogo.** Venezuela usa los indicadores del mismo catálogo del tenant; si necesita uno nuevo, lo
   crea (respuesta de Sam a la pregunta 13).
 - **Rastro de la etapa 2:** las filas de `shipment_tags` (puesto y quitado, con actor y fecha) más
@@ -377,7 +389,7 @@ Diseño:
   `anon`. Dentro de una RPC `security definer`, `current_user` es su dueño y el trigger deja pasar. Los demás
   tipos no cambian. Con ese trigger, el historial de etiquetas es tan confiable como las tablas de
   asignación; sin él, sería un registro de lo que dijo la RPC más lo que cualquier miembro quiso agregar.
-- Los cambios al catálogo (crear, renombrar, cambiar color, grupo o visibilidad, archivar) quedan en
+- Los cambios al catálogo (crear, renombrar, cambiar color, ícono, grupo, `en_almacen_ve`, efecto u orden, archivar) quedan en
   `entity_audit_log` por `append_audit_event` (§2.7, AUD-01).
 - **Panel de historial por recepción en Almacén China** (§1.2: hoy no existe), sobre `listEventsForReceipt`.
   Muestra los tipos `received`, `consolidated`, `incident`, `status_change`, `tag_added` y `tag_removed`. Las
@@ -418,8 +430,9 @@ etiqueta como la de marca sin autorización dicha al cliente es otra conversaci�
 
 ### 2.7 Propuesta de migración (sin número, sin aplicar)
 
-Dos migraciones, porque un valor nuevo del enum no se puede usar en la misma transacción que lo agrega. Los
-números los da el DG al programar la fase 1; se aplican en producción solo con OK nominal de Sam y el
+Tres migraciones. A y B van en la F1: A aparte, porque un valor nuevo del enum no se puede usar en la misma
+transacción que lo agrega. C va en la F2 (etapa 2, solicitudes y comentarios). Los números los da el DG al
+programar cada fase; se aplican en producción solo con OK nominal de Sam y el
 runbook (`docs/runbooks/aplicar-migraciones-prod.md`). Orden: **migrate-first**. Sin la app nueva, nada
 cambia: nadie llama a las RPC.
 
@@ -487,47 +500,6 @@ create unique index warehouse_receipt_tags_viva_uq
 create index warehouse_receipt_tags_tag_idx
   on public.warehouse_receipt_tags (tenant_id, tag_id) where removed_at is null;
 
--- Etapa 2 (§2.3.1), en la migración C: indicadores que pone Venezuela en el embarque,
--- y los heredados que Venezuela da por resueltos en ese embarque.
-create table public.shipment_tags (
-  id            uuid primary key default gen_random_uuid(),
-  tenant_id     uuid not null references public.tenants(id) on delete cascade,
-  shipment_id   uuid not null references public.shipments(id) on delete cascade,
-  tag_id        uuid not null references public.warehouse_tags(id) on delete restrict,
-  nota          text check (nota is null or length(nota) <= 140),
-  assigned_by   uuid not null references auth.users(id),
-  assigned_at   timestamptz not null default now(),
-  removed_by    uuid references auth.users(id),
-  removed_at    timestamptz,
-  check ((removed_at is null) = (removed_by is null))
-);
-create unique index shipment_tags_viva_uq
-  on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
--- Misma RLS de solo lectura para miembro activo, sin política de portal, y escritura solo por las RPC
--- poner_indicador_embarque / quitar_indicador_embarque
-
--- Solicitudes de cambio de indicadores con dinero o impuesto (§2.3.1, pregunta 14).
-create table public.warehouse_tag_change_requests (
-  id              uuid primary key default gen_random_uuid(),
-  tenant_id       uuid not null references public.tenants(id) on delete cascade,
-  accion          text not null check (accion in ('quitar_recepcion', 'quitar_embarque', 'editar_catalogo', 'archivar_catalogo')),
-  objetivo_id     uuid not null,          -- asignación o indicador, según accion
-  cambios         jsonb,                  -- para editar_catalogo: campos nuevos
-  motivo          text not null check (length(btrim(motivo)) between 10 and 500),
-  estado          text not null default 'pendiente' check (estado in ('pendiente', 'aprobada', 'rechazada', 'cancelada')),
-  pedido_por      uuid not null references auth.users(id),
-  pedido_at       timestamptz not null default now(),
-  resuelto_por    uuid references auth.users(id),
-  resuelto_at     timestamptz,
-  comentario      text check (comentario is null or length(comentario) <= 500),
-  check ((estado = 'pendiente') = (resuelto_por is null)),
-  check (resuelto_por is null or resuelto_por <> pedido_por)
-);
-create unique index warehouse_tag_change_requests_una_pendiente_uq
-  on public.warehouse_tag_change_requests (objetivo_id, accion) where estado = 'pendiente';
--- Misma RLS de solo lectura y escritura solo por RPC. aprobar_* exige accounting o admin activo.
--- (candado: admin, u operations / warehouse de región ve; commercial según la pregunta 13).
-
 alter table public.warehouse_tags enable row level security;
 alter table public.warehouse_receipt_tags enable row level security;
 
@@ -572,12 +544,89 @@ revoke all on function public.warehouse_receipt_events_tags_solo_rpc()
   from public, anon, authenticated;
 ```
 
+**Migración C — etapa 2, solicitudes y comentarios (F2).** Empieza con el mismo precheck de roles, columnas y
+`append_audit_event` que la B, y comprueba que el cuerpo vigente de `comment_entity_in_tenant` es el de la
+0215 antes de reemplazarlo.
+
+```sql
+-- Indicadores que pone Venezuela en el embarque (§2.3.1).
+create table public.shipment_tags (
+  id            uuid primary key default gen_random_uuid(),
+  tenant_id     uuid not null references public.tenants(id) on delete cascade,
+  shipment_id   uuid not null references public.shipments(id) on delete cascade,
+  tag_id        uuid not null references public.warehouse_tags(id) on delete restrict,
+  nota          text check (nota is null or length(nota) <= 140),
+  assigned_by   uuid not null references auth.users(id),
+  assigned_at   timestamptz not null default now(),
+  removed_by    uuid references auth.users(id),
+  removed_at    timestamptz,
+  check ((removed_at is null) = (removed_by is null))
+);
+create unique index shipment_tags_viva_uq
+  on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
+
+-- Solicitudes de cambio de indicadores con dinero o impuesto (§2.3.1, pregunta 14).
+create table public.warehouse_tag_change_requests (
+  id              uuid primary key default gen_random_uuid(),
+  tenant_id       uuid not null references public.tenants(id) on delete cascade,
+  accion          text not null check (accion in ('quitar_recepcion', 'quitar_embarque', 'editar_catalogo', 'archivar_catalogo')),
+  objetivo_id     uuid not null,          -- asignación o indicador, según accion
+  cambios         jsonb,                  -- para editar_catalogo: campos nuevos
+  motivo          text not null check (length(btrim(motivo)) between 10 and 500),
+  estado          text not null default 'pendiente'
+                  check (estado in ('pendiente', 'aprobada', 'rechazada', 'cancelada')),
+  pedido_por      uuid not null references auth.users(id),
+  pedido_at       timestamptz not null default now(),
+  resuelto_por    uuid references auth.users(id),
+  resuelto_at     timestamptz,
+  comentario      text check (comentario is null or length(comentario) <= 500),
+  check ((estado = 'pendiente') = (resuelto_por is null)),
+  check ((estado = 'pendiente') = (resuelto_at is null)),
+  -- Nadie aprueba ni rechaza la suya; cancelar es solo de quien la pidió.
+  check (estado not in ('aprobada', 'rechazada') or resuelto_por <> pedido_por),
+  check (estado <> 'cancelada' or resuelto_por = pedido_por)
+);
+create unique index warehouse_tag_change_requests_una_pendiente_uq
+  on public.warehouse_tag_change_requests (objetivo_id, accion) where estado = 'pendiente';
+
+alter table public.shipment_tags enable row level security;
+alter table public.warehouse_tag_change_requests enable row level security;
+revoke all on public.shipment_tags, public.warehouse_tag_change_requests from anon, authenticated;
+grant select on public.shipment_tags, public.warehouse_tag_change_requests to authenticated;
+
+-- Miembro activo, sin política de portal ni de anon (mismo patrón que la B).
+create policy "shipment_tags lectura miembro activo"
+  on public.shipment_tags for select to authenticated
+  using (exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid()) and ut.tenant_id = shipment_tags.tenant_id
+      and ut.disabled_at is null));
+create policy "warehouse_tag_change_requests lectura miembro activo"
+  on public.warehouse_tag_change_requests for select to authenticated
+  using (exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid()) and ut.tenant_id = warehouse_tag_change_requests.tenant_id
+      and ut.disabled_at is null));
+
+-- Comentarios sobre indicadores: dos tipos nuevos en el hilo de 0090. El check se rehace con la lista
+-- vigente (leída del catálogo en el precheck) más los dos nuevos.
+--   'warehouse_receipt_tag', 'shipment_tag'
+-- comment_entity_in_tenant (0093:28-67, rehecha en 0215:107): dos ramas nuevas, fail-closed, que
+-- comprueban el tenant de la asignación; el resto de la función queda igual (else → false):
+--   when 'warehouse_receipt_tag' then
+--     select exists(select 1 from public.warehouse_receipt_tags
+--                   where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+--   when 'shipment_tag' then
+--     select exists(select 1 from public.shipment_tags
+--                   where id = p_entity_id and tenant_id = p_tenant_id) into ok;
+```
+
 - **Es una lista de denegación:** bloquea solo a `authenticated` y `anon`, los roles con los que entra una
   sesión por PostgREST. Cualquier otro rol (el dueño de las RPC, `service_role`, `postgres`) pasa. Si mañana
   aparece otro rol de sesión, hay que sumarlo a la lista; una lista de permitidos (solo el dueño de las RPC)
   sería más cerrada, pero también bloquearía las correcciones de datos por runbook.
 
-**Reglas de las cinco RPC** (todas, sin excepción):
+**Reglas de todas las RPC de esta spec** (catálogo, asignación, etapa 2 y solicitudes), sin excepción:
 
 - `security definer`, `set search_path = ''` y **todo calificado**: tablas y funciones con `public.`,
   funciones del sistema con `pg_catalog.` (`pg_catalog.now()`, `pg_catalog.btrim`, `pg_catalog.lower`).
@@ -592,7 +641,7 @@ revoke all on function public.warehouse_receipt_events_tags_solo_rpc()
   `0563:173-182`: la migración aborta si la función no existe, no es `security definer` con `search_path`
   vacío o el rol que aplica no puede ejecutarla. Tipo de entidad `warehouse_tag`, fuente `studio`,
   `before`/`after` con los campos cambiados.
-- La migración B empieza con un precheck de roles (`authenticated`, `anon`, `service_role`) y de las
+- Las migraciones B y C empiezan con un precheck de roles (`authenticated`, `anon`, `service_role`) y de las
   columnas que lee, como `0563:53-54`.
 
 Candados por RPC:
@@ -600,18 +649,28 @@ Candados por RPC:
 | RPC | Candado | Qué hace |
 |---|---|---|
 | `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log` |
-| `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: rechaza y pide usar `pedir_cambio_indicador` | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
+| `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: rechaza y pide usar `pedir_cambio_indicador` | Cambia nombre, descripción, grupo, color, ícono, `en_almacen_ve` u orden (reordenar nunca pide solicitud); audita antes y después |
 | `archivar_etiqueta_almacen(p_id, p_archivar boolean, p_motivo)` | ídem; con efecto de dinero: solo por solicitud aprobada | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
 | `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo por solicitud aprobada | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
+| `poner_indicador_embarque(p_shipment_id, p_tag_id, p_nota)` (C) | `admin`, o `warehouse`/`operations` de región `ve` | Valida embarque vivo del tenant e indicador no archivado; inserta en `shipment_tags` y audita |
+| `quitar_indicador_embarque(p_asignacion_id, p_motivo)` (C) | ídem; con efecto de dinero, solo por solicitud aprobada | Marca `removed_*` y audita |
+| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve`; solo si el efecto vigente es `ninguno` | Fija el efecto por primera vez; audita |
+| `pedir_cambio_indicador(p_accion, p_objetivo_id, p_cambios, p_motivo)` (C) | quien podría hacer ese cambio si el indicador no tuviera dinero | Crea la solicitud `pendiente` |
+| `aprobar_cambio_indicador(p_id, p_comentario)` (C) | `admin` o `accounting` (`approve_tag_changes`), distinto de quien pidió | Llama a `aplicar_cambio_indicador` en la misma transacción y cierra la solicitud |
+| `rechazar_cambio_indicador(p_id, p_comentario)` (C) | ídem | Cierra la solicitud sin cambios |
+| `cancelar_cambio_indicador(p_id)` (C) | solo quien la pidió, mientras esté pendiente | La cierra como `cancelada` |
+| `aplicar_cambio_indicador(p_id)` (C, interna) | **sin grant a nadie** (`revoke all … from public, anon, authenticated, service_role`) | Aplica el cambio; solo la llama `aprobar_cambio_indicador` |
 
 - La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
   idioma, ese solo. Es la foto del §2.4.
 - Errores con `errcode = '42501'` para permiso y `P0001` con texto en español para lo demás (archivada,
   repetida, recepción borrada). La pantalla los traduce con el diccionario.
 - Capabilities nuevas en `lib/studio/rbac.ts`, que repiten el candado de la base:
-  `manage_warehouse_tags: ["warehouse", "operations"]` (sin filtro de región) y
-  `assign_warehouse_tags: ["warehouse", "operations"]`.
+  `manage_warehouse_tags: ["warehouse", "operations"]` (sin filtro de región),
+  `assign_warehouse_tags: ["warehouse", "operations"]` y, en la F2, `approve_tag_changes: ["accounting"]`.
+  La región (`ve` para la etapa 2 y para el filtro «genera cobro») la validan el servidor y la base, no la
+  capability.
 
 ## 3. Privacidad (SDD-0039 B.9 y SDD-0531)
 
@@ -656,7 +715,7 @@ no juzga al proveedor. El chino lo debe revisar un hablante nativo antes de prod
 
 ## 6. Alcance, fases y allowlist
 
-**No entra:** etiquetas que bloqueen o cambien un estado; etiquetas creadas por Venezuela; la app del
+**No entra:** indicadores que bloqueen o cambien un estado; indicadores que se ponen en Almacén VE; la app del
 teléfono (`/m/cn`); notificaciones por correo o Telegram al asignar; reportes y KPI por etiqueta; el portal del
 cliente; mostrar las notas `note` en el panel; llenar `source_receipt_cn_id`; el vínculo persistente del
 embarque partido.
@@ -667,7 +726,7 @@ embarque partido.
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
 | **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
-| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (todos los heredados), (Almacén VE solo los de `en_almacen_ve`), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
+| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (todos los heredados), (Almacén VE solo los de `en_almacen_ve`), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China; fijar el efecto; solicitudes de cambio que aprueba Contabilidad (migración C) | F1 en producción |
 | **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
@@ -703,7 +762,7 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `app/studio/(app)/tracking/[id]/page.tsx`, `app/studio/(app)/tracking/[id]/_components/ShipmentHeader.tsx`.
 - `app/studio/_components/IndicadoresSoloLectura.tsx` (nuevo) y sus pruebas.
 - Prueba de que el portal no recibe etiquetas: `lib/portal/__tests__/sin-etiquetas-almacen.test.ts` (nueva).
-- Etapa 2: migración C (`shipment_tags` y sus RPC, y los tipos `warehouse_receipt_tag` y `shipment_tag` en el `check` de `public.comments`; número del DG), `app/studio/(app)/_actions/comments.ts` y `lib/studio/comments/comments-queries.ts` (el hilo existente: solo los dos tipos nuevos), `app/studio/(app)/embarques/indicadores-actions.ts` (nuevo), `app/studio/(app)/embarques/_components/IndicadoresEmbarque.tsx` (nuevo) y `supabase/tests/indicadores_embarque.test.sql`.
+- Etapa 2: migración C (`shipment_tags`, `warehouse_tag_change_requests`, sus RPC, y los tipos `warehouse_receipt_tag` y `shipment_tag` en `public.comments` y `comment_entity_in_tenant`; número del DG), `app/studio/(app)/embarques/_components/CambiosIndicadoresPorAprobar.tsx` (nuevo), `app/studio/(app)/embarques/cambios-indicadores-actions.ts` (nuevo), `app/studio/(app)/_actions/comments.ts` y `lib/studio/comments/comments-queries.ts` (el hilo existente: solo los dos tipos nuevos), `app/studio/(app)/embarques/indicadores-actions.ts` (nuevo), `app/studio/(app)/embarques/_components/IndicadoresEmbarque.tsx` (nuevo) y `supabase/tests/indicadores_embarque.test.sql`.
 
 **F3**: se define con la respuesta a la pregunta 0; toca `AlmacenCnClient.tsx` y `ReceiptStatusBadge.tsx`.
 
@@ -737,7 +796,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 1. **Nombre.** **Contestada (2026-11-20):** «Indicadores de carga», como lo llama el equipo técnico.
 2. **Quién crea.** ¿Quién puede crear y editar etiquetas, y quién ponerlas? Ejemplo: el jefe del almacén de
    China crea «Montacargas»; un operario solo la pone.
-   **Contestada (2026-11-20): cualquiera de China** (`warehouse` u `operations` de región `cn`, más admin).
+   **Contestada (2026-11-20): cualquiera de China**; con la pregunta 13 se amplió a Venezuela: `warehouse` u
+   `operations` de las dos regiones, más admin.
 3. **Dónde va.** ¿A la recepción o al embarque? Ejemplo: la WR-2099-0001 llega con una marca sin papeles y
    se etiqueta ahí; el embarque la hereda.
    **Contestada (2026-11-20): a los dos, por etapas** (§2.3.1). China en la recepción antes de consolidar;
@@ -769,8 +829,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     reordena arrastrando). La columna «Indicadores» muestra todos.
 12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
     embarques del 65 con «Uso de montacargas» antes de la pre-orden.
-    **Contestada (2026-11-20): Contabilidad y Operaciones** (`accounting` y `operations`, más admin). El filtro
-    «genera cobro» sale en Embarques solo para esos roles.
+    **Contestada (2026-11-20): Contabilidad y Operaciones** de Venezuela: el filtro «genera cobro» se abre por
+    rol (`accounting` u `operations`) **y** región `ve`, o admin. `operations` de China no lo ve.
 13. **Venezuela y el catálogo.** ¿Quién en Venezuela pone indicadores en el embarque, y puede crear
     indicadores nuevos o solo usar los de China? Ejemplo: Operaciones en Caracas pone «Montacargas» al
     embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
@@ -780,6 +840,9 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 14. **La autorización.** Para quitar o cambiar un indicador con dinero o impuesto, ¿basta un admin con motivo, o
     lo aprueba alguien más? Ejemplo: Caracas pide quitar «Uso de montacargas» y Contabilidad lo aprueba.
     **Contestada (2026-11-20): lo aprueba Contabilidad.**
+15. **El efecto y China.** ¿China ve el efecto (cobro o costo) de un indicador, o solo el nombre y el color?
+    Ejemplo: en Almacén China, «Uso de montacargas» se ve rosa con su ícono, sin la moneda de «cobro y costo».
+    Recomendado: solo nombre, color e ícono.
 
 ## 8. Criterios de aceptación y pruebas
 
@@ -789,7 +852,7 @@ Con dos tenants (T1, T2) y usuarios sintéticos: admin T1, `warehouse` región `
 T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un cliente del portal de T1.
 
 1. **Portal denegado:** con el JWT del cliente del portal (con `get_portal_client_markbox()` resuelto),
-   `select` sobre las dos tablas devuelve 0 filas aunque su envío tenga recepciones etiquetadas; las cinco RPC
+   `select` sobre las dos tablas devuelve 0 filas aunque su envío tenga recepciones etiquetadas; todas las RPC de la spec
    fallan con `42501`. `anon` no tiene `select`.
 2. **Escritura directa denegada:** `insert`, `update` y `delete` directos sobre las dos tablas fallan para
    `authenticated` (sin grant), también para admin.
@@ -812,7 +875,7 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 9. **Atomicidad:** si el insert del evento falla (forzado), no queda asignación.
 10. **Recepción borrada:** asignar a una recepción con `deleted_at` falla.
 11. **Conteo del CEO intacto:** los eventos nuevos no suben el conteo de `incident`.
-12. **Anon no ejecuta:** con el rol `anon`, las cinco RPC fallan por permiso (`has_function_privilege` falso y
+12. **Anon no ejecuta:** con el rol `anon`, todas las RPC de la spec fallan por permiso (`has_function_privilege` falso y
     llamada rechazada). `service_role` tampoco tiene `execute`.
 13. **Quitar ajena:** `operations` quita una asignación puesta por `warehouse` del mismo tenant → pasa, y el
     evento `tag_removed` lleva a `operations` como actor. `warehouse` de T2 intenta quitar una de T1 → falla
@@ -840,7 +903,20 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 20. **Origen visible:** un indicador heredado y el mismo puesto en el embarque se leen una vez, con «CN · VE»;
     uno puesto solo por Venezuela se lee con «VE» y no aparece en la recepción de China.
 21. **Comentario sobre un indicador de China:** Venezuela comenta una asignación de recepción → queda en
-    `public.comments` con tipo `warehouse_receipt_tag`; la asignación no cambia; China lo lee.
+    `public.comments` con tipo `warehouse_receipt_tag`; la asignación no cambia; China lo lee. Comentar con un
+    `entity_id` de otro tenant o inexistente falla (rama fail-closed de `comment_entity_in_tenant`).
+22. **Portal y anon en las tablas nuevas:** el cliente del portal y `anon` leen 0 filas de `shipment_tags`,
+    `warehouse_tag_change_requests` y de los `comments` de tipo `warehouse_receipt_tag`/`shipment_tag`, y no
+    pueden insertar ahí.
+23. **Escritura directa denegada en las tablas nuevas:** `insert`/`update`/`delete` directos de `authenticated`
+    sobre `shipment_tags` y `warehouse_tag_change_requests` fallan, también para admin.
+24. **Cancelar y la función interna:** quien pidió cancela la suya pendiente → `cancelada`; otro usuario no
+    puede cancelarla; nadie puede llamar `aplicar_cambio_indicador` directo (sin `execute`, ni `service_role`).
+25. **Filtro «genera cobro» por región:** `operations` de región `ve` lo recibe; `operations` de región `cn` no
+    recibe el filtro ni el `efecto` en ninguna lectura (prueba de servidor).
+26. **Fijar el efecto:** `operations` de región `ve` fija el efecto de un indicador nuevo (`ninguno` →
+    `cobro_cliente`) sin solicitud; cambiarlo después sin solicitud falla.
+27. **Reordenar sin solicitud:** cambiar el `orden` de un indicador con efecto de dinero pasa sin solicitud.
 
 ### 8.2 Pruebas de aplicación
 
