@@ -1,0 +1,227 @@
+---
+sdd: "0686"
+title: "Color de acción azul en web, Portal y ERP: el rojo queda para el peligro y el vino para la identidad"
+status: proposed
+author: "Claude Worker (Sam)"
+created: 2026-11-20
+updated: 2026-11-20
+supersedes: null
+superseded_by: null
+related: ["0603", "0441", "0654", "0687", "0688"]
+confidencialidad: interno
+---
+
+# SDD-0686 — Color de acción azul en web, Portal y ERP
+
+> El botón principal y el botón de borrar se ven del mismo rojo. Quien opera no debe dudar entre «haz esto» y «cuidado».
+> Sin migraciones, sin datos de producción y sin PII. Etiquetas: **C** código leído · **M** medido · **I** inferencia · **NV** sin verificar.
+
+## Estado (2026-11-20)
+
+Spec escrita y propuesta. **Ninguna fase está implementada.** Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
+
+## 1. Problema
+
+**Pedido de Sam, 2026-11-20, literal, en el chat de la sesión «Rebrand Design»:**
+
+- «El rojo que tenemos, el vino tinto, visualmente la gente lo ve como algo negativo o como borrar.»
+- «¿qué otras opciones tenemos para hacer un cambio total en el rojo? Todos estos cambios los vamos a hacer en conjunto, a nivel de portal del cliente y a nivel de ERP».
+- Vistas cinco opciones con su contraste: «opcion 2  Completamente todo el proyecto web, portal y ERP; todo el sistema completo.»
+- «Si hay que cambiar el branding completo, se puede cambiar. Si hay que eliminar algo que nos pueda dar errores adentro del brand.md, hay que cambiarlo.»
+
+Antecedente del mismo dolor: el 2026-11-17 Sam dijo «El rojo siempre llama como si fuera un error» y aprobó la excepción EXC-0654-01 (vino claro en la Vista simple del Portal, `BRAND.md`).
+
+**Causa medida** (`app/studio/tokens.css`, **C** y **M**):
+
+| Hecho | Medición |
+|---|---|
+| El vino y el rojo de peligro comparten tono | `--wine` `#7F0F1A` y `--danger` `#A8323E`: ambos a 354°; contrastan 1,61:1 entre sí |
+| En tema oscuro el botón principal usa el mismo hex que el peligro del tema claro | `--wine` oscuro = `#A8323E` = `--danger` claro |
+| En oscuro, el botón principal casi no se separa de la tarjeta | `#A8323E` sobre `--bg-surface` `#16264A`: 2,26:1 (mínimo 3:1). SDD-0603 lo compensó con un aro (`--ctl-edge-hi`) |
+| El Studio abre oscuro por defecto | SDD-0603 / BD-037 |
+| El vino también pinta enlaces, pestañas, saldos y KPI | 1.018 usos por token en `app/studio`, 259 en `app/portal`, 612 en la web y `components/`, 131 en `app/m` |
+
+## 2. La regla
+
+1. **Azul = acción.** Botón principal, enlaces, foco y acento de «esto se oprime».
+2. **Rojo = peligro y error.** Es el único rojo de la interfaz.
+3. **Vino = identidad.** Logo, wordmark «DTD», sello y documentos de marca. No pinta botones, enlaces ni cifras.
+4. **Tinta = selección** (pestaña, filtro), como ya fija BD-037, **y cifras** (saldos, KPI, montos). Un saldo va en rojo solo si está vencido.
+5. Un estado nunca se comunica solo con color: el peligro conserva icono y verbo (BRAND §Estados).
+
+## 3. Decisión de marca
+
+Cambia la apariencia respecto al Norte. Aprobada por Sam (cita en §1). Se registra como **BD nuevo** en `docs/design/studio/_norte/BRAND-DECISIONS.md` (el último es BD-070; el número lo custodia el Director General) y en `BRAND.md`.
+
+**BRAND-CHECK.**
+
+```
+Lo que se pide:          azul como color de acción en web, Portal y ERP
+Regla que rompe:         BRAND §Sistema de color («--wine: Acento primario · CTAs · links»),
+                         regla 1 («cero hex inventados»), VIS-01 §3 («Wine: identidad, selección
+                         y acción primaria») y BD-037 («El vino queda para la acción principal»)
+Por qué va:              el vino y el peligro comparten tono (354°) y en oscuro comparten hex;
+                         Sam lo vio y lo decidió
+Alternativa dentro del sistema: tinta (navy/crema), sin colores nuevos; descartada por Sam porque
+                         se confunde con la selección
+Resultado:               excepción convertida en regla; BD nuevo; el Norte recibe la enmienda
+                         por NORTE-SYNC (el Norte no se edita localmente salvo la nota de enmienda,
+                         como en SDD-0441)
+```
+
+### Valores propuestos
+
+Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`). **El tono exacto se fija cuando Sam lo vea en la imagen de prueba**; si cambia, se actualizan esta tabla y los contratos en la misma PR.
+
+| Token (ERP) | Claro | Oscuro | Para qué |
+|---|---|---|---|
+| `--accion` | `#1F4FA8` | `#7FAAF0` | Relleno del botón principal; acento de acción |
+| `--accion-hover` | `#183E86` | `#9BBDF4` | Hover del relleno |
+| `--on-accion` | `#FFFFFF` | `#0F1E3D` | Texto e icono sobre el relleno |
+| `--accion-text` | `#1F4FA8` | `#7FAAF0` | Acción como texto: enlaces |
+| `--accion-tint` | `rgba(31,79,168,0.08)` | `rgba(127,170,240,0.14)` | Fondo suave de acción |
+| `--accion-soft` | `#7FAAF0` | `#7FAAF0` | Anillo de foco sobre superficies siempre oscuras (menú lateral) |
+
+En la web, el Portal y el móvil los pares son `--color-accion`, `--color-accion-hover`, `--color-on-accion`, `--color-accion-text`, `--color-accion-tint`, declarados en `app/globals.css` (claro en el tema base y oscuro en `[data-portal-theme="dark"]`).
+
+**Contraste medido** (fórmula WCAG, valores de `tokens.css`):
+
+| Par | Claro | Oscuro | Mínimo |
+|---|---|---|---|
+| `--on-accion` sobre `--accion` | 7,66 | 7,00 | 4,5 |
+| `--on-accion` sobre `--accion-hover` | 10,13 | 8,62 | 4,5 |
+| `--accion` contra `--bg-surface` (forma) | 7,66 | 6,32 | 3 |
+| `--accion` contra `--bg-elevated` (forma) | 6,73 | 5,53 | 3 |
+| `--accion-text` sobre `--bg-base` | 7,34 | 7,78 | 4,5 |
+| `--accion-text` sobre `--accion-tint` (compuesto sobre la tarjeta) | 6,76 | 4,90 | 4,5 |
+| `--accion-soft` contra `--bg-sidebar` (foco) | 7,00 | 8,23 | 3 |
+
+En oscuro el texto sobre el relleno es navy y **no** blanco: blanco sobre `#7FAAF0` mide 2,36:1.
+
+**Límite conocido.** Azul y rojo de peligro tienen luminosidad parecida (1,16:1 en claro): se distinguen por tono, no por claridad. Por eso la regla 5 es obligatoria y un botón destructivo nunca queda como única señal por su color.
+
+## 4. Qué pasa con el vino
+
+- `--wine`, `--wine-deep`, `--wine-soft`, `--wine-text` y `--wine-tint` **se conservan** como tokens de identidad. No se borran: el logo, los documentos y los gradientes de marca los usan.
+- Los alias `--studio-wine*` de `app/studio/studio.css:37-39` se retiran cuando su último consumidor pase a `--accion*`.
+- Cada uso actual del vino se reparte en tres destinos: **acción** → `--accion*`; **cifra o selección** → `--ink`; **identidad** → se queda.
+- **EXC-0654-01** (vino claro en la Vista simple del Portal) se cierra cuando la fase 3 llegue a esa pantalla: la sustituye el azul.
+
+## 5. Fases
+
+AGENT-BRIEF prohíbe el barrido masivo: **una fase, una rama, una PR**. Cada fase fija su allowlist archivo por archivo antes de empezar y la añade a esta spec.
+
+| Fase | Qué | Superficie | Tamaño |
+|---|---|---|---|
+| **0** | Marca y políticas: BD nuevo, `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda en el Norte | Documentos | S |
+| **1** | Tokens de acción y clases compartidas del Studio: botón principal, foco, enlaces y acentos de `studio.css`; contratos de contraste | ERP | M |
+| **2** | Usos en línea del Studio (`var(--wine…)` en TSX), repartidos en acción, tinta o identidad, por grupos de módulos | ERP | L, en varias PR |
+| **3** | Tokens y clases de la web, el Portal y el móvil (`bg-wine`, `text-wine-text`, `var(--color-wine…)`) | Web, Portal, móvil | L, en varias PR |
+| **4** | Colores de la familia vino escritos a mano (unos 190) y el inicio de sesión | Todas | M |
+| **5** | Documentos y correos de marca, según decida Sam; cierre de EXC-0654-01; NORTE-SYNC | Documentos | M |
+
+### Fase 0 · allowlist
+
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`, `docs/specs/README.md`
+- `BRAND.md`
+- `docs/design/studio/_norte/BRAND-DECISIONS.md`
+- `docs/design/studio/_norte/CLAUDE.md` (solo la nota de enmienda local al tope de §Sistema de color; el resto llega por NORTE-SYNC)
+- `docs/governance/policies/vis-01.md`, `docs/governance/policies/btn-01.md`, `docs/governance/generated/` (lo que regenere `pnpm governance:check`)
+- `app/studio/CLAUDE.md` (tabla de variantes: `primary` deja de ser «wine»)
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+
+Líneas de `BRAND.md` que se reescriben (**C**, sobre `main` `2ea18799a`): `:104` (fila «Marca»), `:121-123` y `:145-146` (rol de `--wine`), `:162` (los azules siguen prohibidos **para alertas**; el de acción no es alerta), `:183`, `:186` y `:188-189` (relleno y texto), `:309` (BD-037: «el vino queda para la acción principal»), `:324-325` (variantes de botón y tono de badge) y `:389-398` (EXC-0654-01, que queda con fecha de cierre).
+
+### Fase 1 · allowlist
+
+- `app/studio/tokens.css` (tokens nuevos en claro, oscuro e impresión)
+- `app/studio/studio.css` (las 83 líneas que nombran el vino: cada una pasa a acción, a tinta o se queda como identidad, con el motivo en la PR)
+- `app/studio/_components/__tests__/claridad-controles-contract.test.ts` (hoy mide `--ink-side-strong` sobre `--wine`, `:93`)
+- `app/studio/_components/__tests__/dark-theme-contrast-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-contract.test.ts` (nuevo)
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`, `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+
+Sin tocar ningún TSX: lo que cambia en pantalla tras la fase 1 es todo lo que se pinta por clase (`.studio-btn-primary`, anillos de foco, enlaces y chips de `studio.css`). Los usos en línea siguen en vino hasta la fase 2; **es un estado intermedio visible y aceptado**, y por eso la fase 1 no se publica sola (ver §8).
+
+### Fases 2 a 5
+
+Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):
+
+| Superficie | Por token o clase | Familia vino escrita a mano |
+|---|---|---|
+| `app/studio` | 1.018 usos en 276 archivos | 97 en 36 |
+| `app/portal` | 259 en 73 | 2 en 1 |
+| Web (`app/*` público + `components/`) | 612 en 64 | 30 en 7 |
+| `app/m` | 131 en 25 | 2 en 2 |
+| `lib/` | 20 en 9 | 49 en 22 |
+| `app/back`, `app/marca`, `app/invitar` | 11 en 6 | 14 en 5 |
+
+Orden de los grupos de la fase 2: lo que se ve siempre (menú lateral, barra superior), operación diaria (`dashboard`, `embarques`, `tracking`, `clientes`, `cn`, `cobranzas`, `facturacion`, `crm`) y el resto por grupos de 5 a 8 módulos.
+
+## 6. Aceptación
+
+### Fase 0
+
+- `BRAND.md`, VIS-01 y BTN-01 dicen lo mismo que §2 y no quedan frases que asignen la acción al vino.
+- BD nuevo registrado con cita literal, superficie, tokens, contraste y fecha.
+- `pnpm docs:check`, `pnpm sdd:check` y `pnpm governance:check` pasan.
+
+### Fase 1
+
+Lo vigila `color-accion-contract.test.ts`, leyendo los valores reales de `tokens.css`. Cada regla tiene piso (cuenta mínima de lo que mide) y al menos un mutante que la rompe:
+
+- `--on-accion` sobre `--accion` y sobre `--accion-hover` mide al menos 4,5:1 en los dos temas.
+- `--accion` mide al menos 3:1 contra `--bg-surface` y `--bg-elevated` en los dos temas.
+- `--accion-text` mide al menos 4,5:1 sobre `--bg-base`, `--bg-surface` y `--bg-elevated` en los dos temas.
+- **La acción y el peligro no comparten tono:** la distancia de tono entre `--accion` y `--danger` es de al menos 90° en los dos temas. Mutante: devolver `--accion` a `#A8323E`.
+- Ninguna regla de `.studio-btn-primary` nombra `--wine` ni `--studio-wine`.
+- Los tokens `--accion*` no referencian tokens `--wine*`.
+- Al imprimir, los tokens de acción vuelven a su valor claro, como cada token que el tema oscuro sobrescribe.
+- Todo lo de SDD-0603 sigue valiendo: contornos de al menos 3:1, nada oprimible bajo 32 px, elevación por niveles y verbos en peso 700.
+
+### Fases 2 a 4
+
+- Un contrato congela la lista de archivos con `var(--wine` o clases `*-wine*`, con cuenta exacta por archivo, y la lista solo puede bajar. Al cerrar, quedan únicamente los usos de identidad, cada uno con su motivo escrito.
+- Ningún saldo, monto ni KPI usa `--wine-text`.
+- La selección sigue en tinta (BD-037); ningún tramo la pasa a azul.
+
+## 7. Gate VIS-01
+
+| Punto | Clasificación |
+|---|---|
+| Presupuesto de énfasis | Cumple: sigue habiendo un único relleno de acción por contexto; cambia su color |
+| Acción dominante | Cumple: no cambia la cantidad de primarios |
+| Semántica de color | **Cambio de política aprobado por Sam:** VIS-01 §3 pasa de «Wine: identidad, selección y acción primaria» a acción en azul e identidad en vino. Se enmienda la política en la fase 0 |
+| Contraste | Cumple en valores medidos; lo vigila el contrato de la fase 1 |
+| Tokens | Seis tokens de color nuevos, registrados en el BD |
+| Estados sin color | Cumple: el peligro conserva icono y verbo; ver «Límite conocido» en §3 |
+| Light/dark | Cumple en contrato. Falta el recorrido en pantalla (§8) |
+| Móvil | Sin cambio de disposición; `app/m` entra en la fase 3 |
+| Movimiento reducido | No aplica: no se agrega movimiento |
+
+## 8. Verificación y publicación
+
+- **Imagen de prueba** (rama que no se fusiona) con las fases 1 y 2 juntas, para que Sam vea el azul en el Studio en claro, oscuro y compacto antes de fijar el tono. Datos tapados, sin escribir.
+- `/ui-check` por PR y `/ui-pro` sobre las pantallas principales al cierre.
+- `pnpm verify` con turno del Director; CI verde sobre la cabeza exacta; revisión independiente que lanza el Director General.
+- **La fase 1 no se publica sola:** dejaría botones azules junto a enlaces y acentos en vino. Se publica cuando la fase 2 cubra al menos lo que se ve siempre y la operación diaria.
+- Fusionar y publicar a producción piden cada uno su autorización. Las decisiones de Sam del 2026-11-20 cubren el diseño.
+
+## 9. Lo que esta spec no cubre
+
+- **Logo y wordmark:** las 4 variantes PNG y el «DTD» en vino no se tocan.
+- **Formato de cifras:** SDD-0687. **Encabezados, drawers, tablas y espaciados:** SDD-0688.
+- **Correos y plantillas guardadas en la base de datos:** 8 migraciones ya aplicadas llevan el vino en plantillas. Cambiarlas exige migración nueva y escritura en producción con OK nominal de Sam y el runbook; se decide en la fase 5.
+- **Chatwoot** (`infra/chatwoot`) y **`infra/dtd-cargo`**: se despliegan aparte.
+- **PDF de factura, estado de cuenta, etiquetas y diplomas:** son documentos de marca; conservan el vino salvo decisión contraria de Sam.
+
+## 10. Pendientes de decisión
+
+1. Tono exacto del azul, tras verlo en la imagen de prueba.
+2. Si el **Shipping Mark** (`DTD-XXXX`) se pinta como identidad (vino), como acción (azul) o en tinta. Propuesta: tinta, porque es un dato que se lee.
+3. Qué hacer con correos, PDF y Chatwoot (§9).
+4. El tono de badge `wine` (`BRAND.md:325`): se retira o pasa a llamarse por su función.
+
+## 11. Límites
+
+Los valores de §3 son calculados; nadie los ha visto en pantalla. Los conteos de §5 son por texto en el código. No se midió accesibilidad en vivo ni se probó con personas con daltonismo.

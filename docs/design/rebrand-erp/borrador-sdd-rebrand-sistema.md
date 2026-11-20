@@ -98,7 +98,7 @@ Fuentes del color: `app/studio/tokens.css` (ERP), `app/globals.css` (web y Porta
 - **Tokens de acción nuevos** (`--accion`, `--accion-hover`, `--accion-text`, `--accion-tint` y sus pares `--color-accion*` en la web y el Portal). El botón principal, los enlaces y el foco leen de ahí.
 - **Reparto del vino actual en tres destinos**, por token y no pantalla por pantalla: acción → azul; cifras, KPI y saldos → tinta; identidad (logo, wordmark, Shipping Mark si Sam lo quiere así) → vino.
 - **`--wine` no se borra**: queda como token de identidad, para no romper el logo ni los documentos de marca.
-- **Excepción vigente que se cierra:** el «vino claro» de la Vista simple del Portal (EXC-0654-01, `BRAND.md:388-398`) nació del mismo problema («El rojo siempre llama como si fuera un error»). Con el azul deja de hacer falta: se sustituye y se anota como cerrada.
+- **Excepción vigente que se cierra:** el «vino claro» de la Vista simple del Portal (EXC-0654-01, `BRAND.md:389-398`) nació del mismo problema («El rojo siempre llama como si fuera un error»). Con el azul deja de hacer falta: se sustituye y se anota como cerrada.
 
 ### 4.3 Lo que no cambia solo (y necesita decisión u OK aparte)
 
@@ -121,7 +121,7 @@ Líneas de `BRAND.md` (**C**) que hoy obligarían a un agente a deshacer el camb
 | `BRAND.md:188-189` | «Rol de `--wine` en dark» como relleno de acción | Se reescribe: el relleno de acción es el azul |
 | `BRAND.md:309` | BD-037: «El vino queda para la acción principal y la identidad» | «El azul es la acción principal; el vino, la identidad» |
 | `BRAND.md:324-325` | 6 variantes de botón; tono de badge `wine` | Se alinean con las 5 variantes reales del Studio y se decide el badge |
-| `BRAND.md:388-398` | Excepción «vino claro» del Portal | Cerrada, sustituida por el azul |
+| `BRAND.md:389-398` | Excepción «vino claro» del Portal | Cerrada, sustituida por el azul |
 
 **También se actualizan** (mismas reglas, otros archivos): `docs/design/studio/_norte/CLAUDE.md` §Sistema de color y §Contraste (es espejo de `BRAND.md`; el Norte solo cambia por NORTE-SYNC, así que se anota la enmienda local como se hizo en SDD-0441 y se envía a Cloud Design), `app/studio/CLAUDE.md` («`primary` (wine)», «Convención de formato (V1)»), `docs/governance/policies/vis-01.md` §3 y `btn-01.md` §2 («el vino de marca no sustituye `danger`»), y la cabecera de `lib/money.ts`.
 
