@@ -534,8 +534,30 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
 1. **Primero, un solo camino de escritura.** Desde `app/` y `lib/`, toda escritura de
    `client_delivery_addresses` pasa por una de estas dos RPC:
    - `client_delivery_address_save`, para quien tiene sesión;
-   - `client_delivery_address_save_service`, con la misma lógica, `security definer` y **solo para
-     service_role**, para el registro de la página, que no tiene sesión de usuario.
+   - `client_delivery_address_save_service`, para el registro de la página, que no tiene sesión de
+     usuario. Su definición es la misma de la 0694 §4.3, copiada aquí sin cambios:
+
+     **Definición de `client_delivery_address_save_service`** (idéntica en la 0694 §4.3 y la 0695 §4.10):
+
+     - **Firma:** `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug,
+       p_state, p_reference, p_make_default)`. La lógica de la predeterminada es la misma de
+       `client_delivery_address_save`: alta, `update` de la predeterminada anterior e `insert` en una
+       transacción.
+     - **Tenant:** `p_client_id` tiene que existir en `public.clients`, estar vivo (`deleted_at is null` y
+       `merged_into_client_id is null`) y ser de `p_tenant_id`. Si no, la RPC termina con error y no escribe
+       nada.
+     - **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
+       Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
+     - **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
+       usuario. El alta por enlace escribe dentro de su RPC SQL y no la necesita. Si algún día se llamara desde
+       TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
+       `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
+       `app/` o `lib/` la invoca.
+     - **Pruebas:** van en la 0694 F-2, donde nace la función. Un `.test.sql` comprueba que `authenticated` y
+       `anon` no la pueden ejecutar (`has_function_privilege`), y que con el id de un cliente de otro tenant,
+       de un cliente borrado, de un cliente fusionado o de un id inexistente da error y no escribe ninguna
+       fila. La 0695 F-9a solo la cita.
+
 
    **Las dos nacen en la 0694 F-2**, que es la primera que las necesita (el alta del Studio y la dirección
    rápida del registro). La F-9a de esta spec pasa a ellas a los llamadores que quedan y agrega la prueba de
@@ -771,7 +793,8 @@ Cada pregunta trae la recomendación primero.
        `setDefaultDeliveryAddress`, `insertClientDeliveryAddress` y `updateClientDeliveryAddress`, y un
        `.from("client_delivery_addresses")` con `insert`, `update` o `upsert`. **El alta del Studio y el
        registro de la 0694 entran en la misma regla**, no en una excepción;
-     - `client_delivery_address_save_service` no la puede ejecutar `authenticated` ni `anon`;
+     - las pruebas de `client_delivery_address_save_service` (permisos, tenant y uso) son de la 0694 F-2, donde
+       nace la función. La F-9a solo las cita;
      - funcionan por los dos caminos: agregar una predeterminada, elegir otra existente y editar la
        predeterminada sin cambiar la marca;
      - desmarcar la única predeterminada devuelve el error de campo y no cambia nada;
