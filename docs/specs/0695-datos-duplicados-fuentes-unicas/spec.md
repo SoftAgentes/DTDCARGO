@@ -649,10 +649,8 @@ Cada pregunta trae la recomendación primero.
   (§4.3).
 - **P-6 (día de China).** En la bodega de Yiwu, ¿la fecha de recepción es el día de China o el de Caracas?
   *Recomendado:* el de China en la recepción, y el de Caracas en la contabilidad.
-- **P-7 (prioridad).** Los conteos muestran que la identidad (F-3) tiene daño hoy, y que las
-  fechas fiscales (F-2) no tienen daño todavía pero sí tienen fecha límite. ¿Hacemos la F-2 y la F-3 en
-  paralelo? *Recomendado: sí,* porque no comparten archivos. Si es una sola, primero la F-2, por el 31 de
-  diciembre, con el plan B de la §6.
+- **P-7 (prioridad). Decidida por Sam el 2026-11-20:** «Sí, en paralelo». La F-2 (fechas fiscales) y la
+  F-3 (identidad) van a la vez, cada una en su rama. La F-2 conserva el plan B de la §6.
 - **P-8 (duplicados ya existentes).** Con los conteos de Q1 y Q2 en la mano, ¿la oficina revisa y fusiona
   los grupos con la herramienta que ya existe? *Recomendado: sí,* antes de crear el índice único.
 
