@@ -1,10 +1,10 @@
 ---
 sdd: "0682"
 title: "Almacén China en una pantalla: en almacén, en camino y pendiente por liberar"
-status: approved
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-20
 supersedes: null
 superseded_by: null
 related: ["0016", "0029", "0039", "0047", "0531", "0543", "0643", "0659", "0674"]
@@ -191,6 +191,48 @@ cambio exacto propuesto, opción (a):
 La alternativa «sin cambio, solo la insignia» y la opción (b) (plegar los zarpados) quedan descartadas.
 La regla de las pestañas vive en un solo lugar (`lib/studio/shipment-queries.ts`), para que el conteo y el
 filtro no se separen.
+
+### 2.6 Implementación por fases
+
+- **Fase 1 (sin migración):** §2.1, §2.2 y §2.5. PR propia; se puede fusionar y publicar sin ataduras.
+- **Fase 2 (migración 0568):** §2.3 y §2.4, telex release. Otra PR; Dir_DTD la fusiona solo con el camino
+  despejado (revisión, CI verde y OK de Sam para aplicar a la vista), porque una migración en espera congela
+  la publicación de la web.
+
+**Decisión de implementación de la fase 1, a confirmar con Sam:** «En camino» incluye también los
+contenedores `consolidando` y `cerrado`, en un grupo aparte «Cargados, sin zarpar». La §2.2 hablaba solo de
+los `zarpado`; sin esto, lo consolidado en un contenedor que aún no zarpa no se vería en ninguna parte.
+
+### 2.7 Allowlist exacta de la fase 1
+
+Producto:
+- `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`
+- `app/studio/(app)/cn/_components/CaminoCn.tsx`, `EncabezadoCn.tsx`, `VistasAlmacen.tsx` (nuevos)
+- `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
+- `app/studio/studio.css` (solo `a.studio-tab { text-decoration: none }`)
+- `lib/studio/warehouse-cn-queries.ts`, `lib/studio/shipment-queries.ts`
+- `lib/studio/almacen-cn-vistas.ts`, `almacen-cn-contenedores.ts`, `almacen-cn-contenedores-queries.ts` (nuevos)
+- `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`
+
+Pruebas:
+- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `embarques-pestanas.test.ts` (nuevas)
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.pestanas.test.tsx` (nueva)
+- `EmbarquesClient.{abrir,adjuntos,borrado,cajas-monto,contenedores,facturar,peso}.test.tsx`: abren en «Todos»
+  (prueban contenedores y montos, no pestañas). `EmbarquesClient.encabezado-cliente.test.tsx` (SDD-0689):
+  abre en «En camino», el camino real del 64.
+
+Fuera de la allowlist: ninguna migración, ninguna escritura de datos, ninguna server action.
+
+### 2.8 Clasificación de gobernanza de la fase 1
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| A11Y-01 (pestañas) | cumplimiento | `<nav aria-label>` + `.studio-tabs`, enlaces con `aria-current`; `pestanas-contract.test.ts` verde |
+| BTN-01 | cumplimiento | La única acción nueva es la del `<Aviso>` (botón secundario del componente); no hay mutaciones |
+| ERR-01 / LOD-01 | cumplimiento | Si falla la lectura de «En camino», `<Aviso tono="error">` lo dice; no se muestra vacío como si no hubiera |
+| VIS-01 / VIS-02 | cumplimiento | Solo tokens de `tokens.css`; tipografía y clases existentes |
+| MP-01 / AUD-01 / AUD-02 | no aplica | Solo lectura: no se crea, mueve ni borra nada |
+| Privacidad China (SDD-0039 B.9, SDD-0531) | cumplimiento | «En camino» no envía nombres ni marcas de importador; prueba en `almacen-cn-contenedores.test.ts` |
 
 ## 3. Fuera de alcance
 
