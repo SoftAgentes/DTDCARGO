@@ -333,9 +333,13 @@ Diseño:
 - **Etapa 1** es la asignación a la recepción de arriba.
 - **Etapa 2** es una asignación nueva, al **embarque**: tabla `shipment_tags` (DDL en el §2.7), con las mismas
   reglas (una viva por embarque e indicador; quitar marca `removed_at`; solo por RPC).
-- **El embarque muestra los dos:** los heredados de sus recepciones (con «de WR-…») y los propios de
-  Venezuela. Si un indicador viene de la recepción y Venezuela lo pone también en el embarque, se muestra
-  una vez.
+- **El embarque muestra los dos, cada uno con su origen:** los heredados de sus recepciones llevan «CN» (y
+  «de WR-…» al pasar el cursor); los que puso Venezuela llevan «VE». Si el mismo indicador viene de China y
+  Venezuela también lo puso, se muestra una vez con «CN · VE».
+- **Ejemplo (Sam, 2026-11-20):** China no marcó «Carga especial», pero en Venezuela se ve que sí lo es y se le
+  puede cobrar al cliente. Venezuela pone «Carga especial» en el embarque, del mismo catálogo, y la insignia
+  dice «VE». Poner no necesita autorización, aunque el indicador tenga cobro; quitarlo después sí (regla de
+  cambios). La recepción de China queda como estaba: se ve qué dijo cada uno.
 - **Venezuela no oculta ni borra lo que puso China.** Si cree que uno ya no aplica, lo comenta; lo quita China
   o, si tiene efecto de dinero, un admin con motivo.
 - **Mismo catálogo.** Venezuela usa los indicadores del mismo catálogo del tenant; si necesita uno nuevo, lo
@@ -803,7 +807,8 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 19b. **Dinero solo con autorización:** `warehouse` de región `cn` intenta quitar «Devolución de impuestos» →
     falla; `admin` sin motivo → falla; `admin` con motivo → pasa y el motivo queda en el evento y en
     `entity_audit_log`. Cambiar el `efecto` de un indicador sin ser admin → falla.
-20. **Sin duplicado en pantalla:** un indicador heredado y el mismo puesto en el embarque se leen una vez.
+20. **Origen visible:** un indicador heredado y el mismo puesto en el embarque se leen una vez, con «CN · VE»;
+    uno puesto solo por Venezuela se lee con «VE» y no aparece en la recepción de China.
 21. **Comentario sobre un indicador de China:** Venezuela comenta una asignación de recepción → queda en
     `public.comments` con tipo `warehouse_receipt_tag`; la asignación no cambia; China lo lee.
 
