@@ -1,7 +1,7 @@
 ---
 sdd: "0698"
 title: "Factura: Facturar a y Entregar en"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -13,9 +13,15 @@ confidencialidad: interno
 
 # SDD-0698 — Factura: Facturar a y Entregar en
 
-> **Estado: propuesta para que Sam la apruebe.** No trae código, ni migraciones, ni cambios de producto.
-> Las decisiones de Sam van citadas con su fecha (§3). Las seis preguntas de la §11 ya están contestadas
-> (decisiones 6 a 11). Falta que Sam apruebe la spec completa.
+> **Estado: aprobada por Sam el 2026-11-20.** Su texto, en el chat de Dir_DTD, fue: «Apruebo la 0698
+> (Recomendado)». Dir_DTD se lo pasó a este Worker el mismo día. La aprobó sobre la cabeza `c67474d8f`
+> de la #732, después de la revisión independiente APPROVED en `a0cb3a63d` y de que Dir_DTD comprobara
+> que el delta solo toca esta spec.
+>
+> La spec no trae código, ni migraciones, ni cambios de producto. Aprobarla no autoriza aplicar ninguna
+> migración: cada fase lleva su PR, y cada migración, su OK nominal de Sam (§7). Los números de migración
+> los asigna Dir_DTD cuando programe la F-1. Las decisiones de Sam van citadas con su fecha (§3), y las seis
+> preguntas de la §11 ya están contestadas (decisiones 6 a 11).
 >
 > Los ejemplos son inventados. No hay datos, conteos ni montos de producción.
 
@@ -161,6 +167,8 @@ Worker el 2026-11-20, a pedido de Dir_DTD. Van literales.
 9. **P-4, el corte para el cliente:** «Hasta llegar a Venezuela».
 10. **P-5, quién edita la dirección fiscal en el Studio:** «Solo en el borrador (Recomendado)».
 11. **P-6, cliente sin dirección de entrega:** «Emitir sin el bloque (Recomendado)».
+12. **Aprobación de la spec completa (2026-11-20):** «Apruebo la 0698 (Recomendado)». Sam la dio en el chat
+    de Dir_DTD, sobre la cabeza `c67474d8f` de la #732.
 
 ## 4. Modelo de datos
 

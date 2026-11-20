@@ -1,6 +1,8 @@
 # Handoff — SDD-0698 «Factura: Facturar a y Entregar en» (spec)
 
-- **Estado:** Sam contestó P-1 a P-6 el 2026-11-20. La revisión independiente pidió cambios, ya corregidos.
+- **Estado:** **aprobada.** Sam la aprobó el 2026-11-20 con el texto «Apruebo la 0698 (Recomendado)», en el
+  chat de Dir_DTD, sobre `c67474d8f`. La revisión independiente quedó APPROVED en `a0cb3a63d`, después de
+  siete vueltas. La spec está en `approved`, y la #732 está lista para el tren de Dir_DTD.
 - **Owner:** Worker (Claude), sesión `local-sdd-0698-worker`, encargada por Dir_DTD.
 - **Ruta:** `.claude/worktrees/sdd-0698-factura-direcciones-dff669`
 - **Rama:** `claude/sdd-0698-factura-direcciones-dff669`, desde `origin/main` `af0f635ad` + la reserva
@@ -53,8 +55,11 @@ la etiqueta «Dirección actual del cliente» para las facturas viejas.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam apruebe la spec completa. Después, pasar la spec a `approved`.
-- La revisión independiente de la §10 antes de la F-2, como recomienda la skill.
+- **Esta tarea (spec) queda cerrada.** La fusión la hace Dir_DTD con el tren.
+- Para las fases, no para esta tarea:
+  - los números de migración, que los da Dir_DTD cuando programe la F-1;
+  - la revisión independiente de la §10 antes de la F-2, como recomienda la skill;
+  - en la F-3, medir con el lockfile las rutas de `@supabase/*` y el costo de la guarda (criterio 20b).
 
 ## FUERA DE ALCANCE DETECTADO
 
