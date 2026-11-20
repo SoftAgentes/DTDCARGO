@@ -443,8 +443,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // admin; Sam, 2026-11-18). Escribe SOLO por la RPC `exc0674_facturar` (0564, security definer), que
   // repite en la base el rol, el tenant y la lista transitoria y deja el evento en la misma transacción.
   // El cliente de servicio se usa después, solo para el correo.
+  // SDD-0690 sumó `embarques/facturar-actions.ts::emitirPreordenesExc0674Action` (496 → 497): los mismos
+  // candados al tope (`moduleEditDenial(supabase, "invoices")` y `rolFacturaExc0674`). Escribe SOLO por la
+  // RPC `exc0674_emitir_borradores` (0569, security definer), que repite rol, tenant, lista transitoria y
+  // estado `borrador`, y deja el evento en la misma transacción. El cliente de servicio, solo para el correo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(496);
+    expect(reportes.length).toBe(497);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
