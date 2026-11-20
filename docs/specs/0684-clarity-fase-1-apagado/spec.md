@@ -176,7 +176,18 @@ Si este texto se publica antes del encendido, la política describe una recolecc
 1. **Redacción condicional:** el texto dice qué pasa *cuando la medición está activa*, y queda cierto encendido o apagado. Cambia palabras del texto aprobado, así que vuelve a Sam.
 2. **Acoplar la publicación al encendido:** la PR se fusiona solo con el OK de encendido de Sam, y la variable pasa al ID en el mismo tren, sin otra fusión de por medio. Conserva el texto aprobado. Queda un hueco de minutos entre la imagen con el texto y la imagen con el ID, salvo que el DG ordene ambos pasos juntos.
 
-**Decisión de Sam (2026-11-20): «Junto con encender»** (salida 2, D). El texto aprobado no cambia. La PR queda lista, revisada y en verde, pero **no se fusiona hasta el OK nominal de encendido de Sam** en el chat del DG. Ese día, en un solo tren que ordena el DG: se confirma la fecha de `UPDATED` (cuatro sitios), se fusiona esta PR y se cambia `NEXT_PUBLIC_CLARITY_ID` de `off` al ID. El DG decide el orden para que el hueco entre texto publicado y Clarity encendido sea el menor posible.
+**Decisión de Sam (2026-11-20): «Junto con encender»** (salida 2, D). El texto aprobado no cambia. La PR queda **en borrador hasta el día del encendido** (decisión del DG): si se fusionara antes y alguien publicara `main`, el texto saldría con Clarity apagado, que es justo lo que Sam quiso evitar.
+
+**Por qué el `.env` del servidor no enciende nada (D).** `NEXT_PUBLIC_CLARITY_ID` es un `ARG` de build del `Dockerfile`, que `build-image.yml` toma de la variable de repositorio `vars.NEXT_PUBLIC_CLARITY_ID`. Como es `NEXT_PUBLIC_*`, Next la **incrusta en el bundle del cliente al construir la imagen**. Cambiarla en el `.env` del VPS no tiene efecto. Encender exige tres cosas: la variable de repositorio con el ID, **una imagen reconstruida** con ella y **publicar esa imagen**.
+
+**Tren del encendido (orden del DG, hueco cero),** en una sola sesión:
+
+1. El DG confirma la fecha de `UPDATED` y se cambia en los cuatro sitios: las dos páginas, `privacidad-chat.test.ts`, `privacidad-mensajeria-interna.test.tsx` y `faq-seguimiento-coherente.test.tsx`.
+2. El DG lanza la revisión independiente (después del pase del abogado, no antes) y se espera el CI verde en la cabeza exacta.
+3. El DG fusiona esta PR por el tren. **Todavía no se publica.**
+4. La variable de repositorio pasa de `off` al ID real, con el OK nominal de Sam.
+5. Se reconstruye la imagen de la cabeza de `main` con la variable ya puesta.
+6. Se publica **esa** imagen: una sola publicación con el texto y la medición juntos.
 
 ### Lo que esta fase no autoriza
 
