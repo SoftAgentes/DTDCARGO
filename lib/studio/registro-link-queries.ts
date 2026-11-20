@@ -26,30 +26,40 @@ type Row = {
   rif_skipped: boolean;
   access_error: string | null;
   reviewed_at: string | null;
+  /** SDD-0672 · columnas de la 0562; ausentes antes de aplicarla. */
+  link_origin?: "equipo" | "autoservicio" | null;
+  issued_to_email?: string | null;
 };
+
+const COLUMNAS =
+  "id, client_id, used_at, prev_data, submitted_data, duplicate_client_id, duplicate_matched_by, rif_skipped, access_error, reviewed_at";
 
 export async function listRegistrosPorLink(
   supabase: SupabaseClient,
   opts: { soloPendientes: boolean },
 ): Promise<RegistroLinkReviewRow[] | null> {
-  let q = supabase
-    .from("client_registration_links")
-    .select(
-      "id, client_id, used_at, prev_data, submitted_data, duplicate_client_id, duplicate_matched_by, rif_skipped, access_error, reviewed_at",
-    )
-    .not("used_at", "is", null)
-    .order("used_at", { ascending: false })
-    .limit(200);
-  if (opts.soloPendientes) q = q.is("reviewed_at", null);
+  const consulta = (columnas: string) => {
+    let q = supabase
+      .from("client_registration_links")
+      .select(columnas)
+      .not("used_at", "is", null)
+      .order("used_at", { ascending: false })
+      .limit(200);
+    if (opts.soloPendientes) q = q.is("reviewed_at", null);
+    return q;
+  };
 
-  const { data, error } = await q;
+  // SDD-0672 · con la 0562 se lee también el origen del link. Sin ella la columna
+  // no existe (42703): se vuelve a pedir lo de siempre, y la lista no se rompe.
+  let { data, error } = await consulta(`${COLUMNAS}, link_origin, issued_to_email`);
+  if (error?.code === "42703") ({ data, error } = await consulta(COLUMNAS));
   if (error) {
     // Sin la migración 0552 la tabla no existe: la pantalla lo dice en vez de
     // mostrar una lista vacía que parezca «nada pendiente».
     console.error("[listRegistrosPorLink]", error.code);
     return null;
   }
-  const rows = (data ?? []) as Row[];
+  const rows = (data ?? []) as unknown as Row[];
 
   const ids = Array.from(
     new Set(rows.flatMap((r) => [r.client_id, r.duplicate_client_id].filter(Boolean) as string[])),
@@ -89,6 +99,18 @@ export async function listRegistrosPorLink(
   const estadoDe = (r: Row): CorreoEstado | null => {
     if (!estadoConocido) return null;
     const e = estados.get(r.client_id);
+    // SDD-0672 · autoservicio con el mismo correo al que llegó el enlace: abrirlo
+    // probó el correo, y por eso no deja fila de comprobación. Sin acceso
+    // fallido, ese correo está comprobado.
+    if (
+      (!e || e.link_id !== r.id) &&
+      r.link_origin === "autoservicio" &&
+      !r.access_error &&
+      typeof r.issued_to_email === "string" &&
+      r.issued_to_email === String(r.submitted_data?.email ?? "").toLowerCase()
+    ) {
+      return "comprobado";
+    }
     if (!e || e.link_id !== r.id) return "no_aplica";
     return ESTADOS.includes(e.estado as CorreoEstado) ? (e.estado as CorreoEstado) : "no_aplica";
   };
@@ -107,6 +129,7 @@ export async function listRegistrosPorLink(
     rifSkipped: r.rif_skipped,
     accessError: r.access_error,
     reviewedAt: r.reviewed_at,
+    origen: r.link_origin === "autoservicio" ? "autoservicio" : "equipo",
     correoEstado: estadoDe(r),
     correoEnviadoAt: estados.get(r.client_id)?.link_id === r.id ? (estados.get(r.client_id)?.sent_at ?? null) : null,
   }));

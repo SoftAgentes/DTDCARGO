@@ -26,6 +26,7 @@ import {
   TypeCard,
 } from "../../RegisterForm";
 import { registerByLinkAction } from "./actions";
+import { registerBySelfLinkAction } from "../../activar/[token]/actions";
 
 const initial: RegistroLinkActionState = {};
 
@@ -45,17 +46,32 @@ export function RegistroLinkForm({
   token,
   markbox,
   cities,
+  variante = "equipo",
+  prefillEmail = null,
 }: {
   token: string;
-  markbox: string;
+  /**
+   * El Shipping Mark de la ficha. `null` en el enlace de autoservicio
+   * (SDD-0672): ahí no se muestra nada de la ficha hasta pasar la guarda.
+   */
+  markbox: string | null;
   cities: RegisterCity[];
+  /** `autoservicio`: el enlace que llegó al correo desde /entrar (SDD-0672). */
+  variante?: "equipo" | "autoservicio";
+  /** Autoservicio: el correo al que salió el enlace (quien lo abre lo recibió ahí). */
+  prefillEmail?: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(registerByLinkAction, initial);
+  // La variante no cambia durante la vida del formulario: elegir la acción acá no
+  // altera el orden de los hooks.
+  const [state, formAction, pending] = useActionState(
+    variante === "autoservicio" ? registerBySelfLinkAction : registerByLinkAction,
+    initial,
+  );
   const [kind, setKind] = useState<"persona" | "empresa">("persona");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [document, setDocument] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail ?? "");
   const [whatsapp, setWhatsapp] = useState("");
   const [office, setOffice] = useState("");
   const [city, setCity] = useState("");
@@ -97,31 +113,42 @@ export function RegistroLinkForm({
         className="mt-2 text-[26px] sm:text-[30px] leading-[1.08] text-ink"
         style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
       >
-        Completa tus datos
+        {markbox ? "Completa tus datos" : "Crea tu portal"}
       </h1>
-      <p className="mt-2 text-[14px] text-grey-700 leading-[1.6] max-w-[52ch]">
-        Tu Shipping Mark es <strong className="text-ink">{markbox}</strong>. Ya está
-        guardado: llena tus datos y entras a tu portal para ver tus envíos.
-      </p>
+      {markbox ? (
+        <>
+          <p className="mt-2 text-[14px] text-grey-700 leading-[1.6] max-w-[52ch]">
+            Tu Shipping Mark es <strong className="text-ink">{markbox}</strong>. Ya está
+            guardado: llena tus datos y entras a tu portal para ver tus envíos.
+          </p>
 
-      {/* Congelado: sale de la ficha, no del formulario. */}
-      <div
-        className="mt-6 rounded-[12px] border border-grey-200 bg-white px-4 py-3.5"
-        aria-label="Tu Shipping Mark"
-      >
-        <div className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-          Tu Shipping Mark
-        </div>
-        <div
-          className="mt-1 text-[22px] text-ink"
-          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-        >
-          {markbox}
-        </div>
-        <div className="mt-1 text-[12px] text-grey-500 leading-[1.4]">
-          Es el mismo de siempre: no cambia y no hace falta escribirlo.
-        </div>
-      </div>
+          {/* Congelado: sale de la ficha, no del formulario. */}
+          <div
+            className="mt-6 rounded-[12px] border border-grey-200 bg-white px-4 py-3.5"
+            aria-label="Tu Shipping Mark"
+          >
+            <div className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+              Tu Shipping Mark
+            </div>
+            <div
+              className="mt-1 text-[22px] text-ink"
+              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+            >
+              {markbox}
+            </div>
+            <div className="mt-1 text-[12px] text-grey-500 leading-[1.4]">
+              Es el mismo de siempre: no cambia y no hace falta escribirlo.
+            </div>
+          </div>
+        </>
+      ) : (
+        // SDD-0672 · autoservicio: nada de la ficha antes de la guarda. El código
+        // de siempre aparece al terminar, cuando los datos ya coincidieron.
+        <p className="mt-2 text-[14px] text-grey-700 leading-[1.6] max-w-[52ch]">
+          Llena tus datos y entras a tu portal con tu código de siempre. Para cuidar tu
+          cuenta, comprobamos tu cédula o RIF, o tu WhatsApp, con lo que ya tenemos de ti.
+        </p>
+      )}
 
       <form action={formAction} className="mt-6 flex flex-col gap-5" noValidate>
         <input type="hidden" name="token" value={token} />
