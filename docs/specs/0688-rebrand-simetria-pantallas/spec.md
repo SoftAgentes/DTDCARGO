@@ -194,7 +194,9 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
    - Cada panel va al ancho más cercano.
    - Todo panel que se achica se revisa en pantalla. Si un campo, una tabla o el pie no caben en el ancho nuevo, sube al siguiente (520 → 640), nunca a un cuarto ancho.
    - Esa revisión es parte de la aceptación de la fase que toque cada módulo.
-3. Si la simetría se extiende al Portal.
+3. ~~Si la simetría se extiende al Portal.~~ **Decidido el 2026-11-20, opción 2 de tres** (Sam: «la 2»):
+   - **Entran ahora al Portal:** las reglas de botones (1 a 6) y las de mensajes (7 a 9). Son reglas de comportamiento, así que el cliente las ve igual que la oficina.
+   - **Esperan al rediseño del Portal:** las medidas (anchos de panel, encabezado y escala de texto), para no rehacerlas cuando llegue el portal nuevo.
 4. Cuáles extras de §9 entran.
 
 ## 12. Límites
