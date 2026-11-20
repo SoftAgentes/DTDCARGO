@@ -732,7 +732,11 @@ describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya carg
     const avisos = t.split("\n").filter((l) => /raise (notice|exception)/.test(l));
     expect(avisos.length).toBeGreaterThan(0);
     for (const l of avisos) expect(l).not.toMatch(/v_base|v_total|v_iva\b|nombre|\.name|c\.clave/);
-    expect(t).toContain("raise notice 'solo-facturas lote % · contenedor % · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas'");
+    expect(t).toContain("raise notice 'solo-facturas lote % · contenedor % · % Shipping Marks · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas'");
+    // SDD-0690: una pre-orden por Shipping Mark vivo de los envíos, no por clave del Excel.
+    expect(t).toContain("select lc.markbox, min(lc.orden) as primero\n      from lote_cargados lc\n     group by lc.markbox");
+    expect(t).not.toContain("group by lc.clave");
+    expect(t).not.toContain("no comparten un Shipping Mark");
   });
 
   it("el paquete tiene id propio (carga + «:facturas»); el contenedor se sigue buscando por el id de la carga", () => {
@@ -748,7 +752,7 @@ describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya carg
     // aplicar-lote.sh exige el id del paquete dentro de cada script que corre (grep -F).
     for (const t of [s.previa, s.simulacro, s.aplicar, s.verificar, s.deshacer, s.purgar]) expect(t).toContain(id);
     // El aviso del simulacro nombra el id del paquete: es lo que aplicar-lote.sh busca en su evidencia.
-    expect(s.simulacro).toContain("cab.lote || ':facturas', cab.contenedor, v_n_facturas, v_n_saltados, v_n_sin_lineas;");
+    expect(s.simulacro).toContain("cab.lote || ':facturas', cab.contenedor, v_n_marcas, v_n_facturas, v_n_saltados, v_n_sin_lineas;");
     // lote_cab y el preflight siguen con el id de la carga, que es el que quedó en las notas del contenedor.
     expect(s.aplicar).toContain(`'${SOLO.lote}', 'ABCU1234567'`);
     expect(s.aplicar).not.toContain(`'${id}', 'ABCU1234567'`);
