@@ -27,9 +27,16 @@ Fecha: 2026-11-20. Datos de la tarea:
 - Cuidados del DG sobre el ojo: es un botón que alterna (`aria-pressed`, `aria-label`), funciona con Enter
   y Espacio, y al ocultarse solo no le quita el foco a nadie. La spec dice que es privacidad frente a la
   pantalla, no protección de datos.
-- Hallazgo del DG en la revisión: el peso y el monto del encabezado sumaban solo lo que dejaba pasar la
-  pestaña. Ahora `GrupoContenedor.completo` trae el contenedor entero y el encabezado suma sobre eso; la
-  spec dice en qué vista se ve el encabezado del 64 (§3.1).
+- La revisión independiente de `240f0a5a5` pidió cambios: un bloqueo y cinco menores. Los corregí así:
+  1. El peso y el monto del encabezado sumaban solo lo que dejaba pasar la vista. Ahora
+     `GrupoContenedor.completo` trae el contenedor entero y el encabezado suma sobre eso. La spec dice qué
+     números son del contenedor y cuáles de la vista.
+  2. El nombre del cliente tenía `all: unset` en línea, y eso tapaba el foco. Ahora va en la clase.
+  3. El ojo se decide por la suma en USD, así que nunca sale «$0.00».
+  4. Los textos «Facturado», «Sin precios cargados» y «Sin monto en USD». El doble sentido de «Sin
+     facturar» queda anotado como pendiente de la 0690.
+  5. El ojo tiene un `aria-label` fijo con `aria-pressed`, y los «••••••» no se anuncian.
+  6. La vista del contenedor zarpado: «En camino» cuando entre la 0682.
 - Pruebas:
   - del servidor: a `operations` y a los demás roles no les llega ningún monto (`page-monto-por-rol`);
   - las fixtures de la 0661 suman los campos nuevos;
@@ -41,6 +48,7 @@ Fecha: 2026-11-20. Datos de la tarea:
 | Comprobación | Resultado |
 |---|---|
 | docs:check / sdd:check / git diff --check | PASÓ |
+| Cabeza nueva tras la revisión: vitest, typecheck y eslint locales | NO EJECUTADO: el turno de la PC lo tiene otra tarea. Por orden del DG, el portón es el CI de GitHub de la cabeza nueva |
 | `pnpm install --frozen-lockfile` (turno del DG) | PASÓ |
 | vitest (`--pool=threads --maxWorkers=1`): `app/studio/(app)/embarques/` y las tres pruebas de `lib` de Embarques y la 0661 | PASÓ: 17 archivos, 202 pruebas |
 | `pnpm typecheck` | PASÓ |

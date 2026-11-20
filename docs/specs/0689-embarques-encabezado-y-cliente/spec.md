@@ -61,26 +61,38 @@ El DG separó el pedido en dos specs:
   - **Oculto por defecto:** se ve «Sin facturar ••••••» con un botón de ojo. El ojo muestra el monto
     durante 4 segundos y lo vuelve a ocultar solo; oprimirlo otra vez lo oculta antes. El ojo va al lado
     del botón de la cabecera, no adentro: mirar el monto no abre ni cierra el contenedor.
-  - **Accesibilidad:** el ojo es un botón que alterna (`aria-pressed`), con un `aria-label` que dice qué
-    hace y por cuántos segundos. Funciona con Enter y Espacio. Al ocultarse solo, el foco se queda en el
-    ojo, así que quien navega con teclado o lector de pantalla lo vuelve a mostrar con una tecla. El monto
-    se anuncia con `aria-live="polite"` al mostrarse.
+  - **Accesibilidad:** el ojo es un botón que alterna (`aria-pressed`), con un `aria-label` fijo que dice
+    qué hace y por cuántos segundos: «Mostrar u ocultar el total sin facturar de DDP 64 (se oculta solo a
+    los 4 segundos)». El estado lo dice solo `aria-pressed`, para que no se anuncie dos veces. Funciona
+    con Enter y Espacio. Al ocultarse solo, el foco se queda en el ojo, así que quien navega con teclado
+    o lector de pantalla lo vuelve a mostrar con una tecla. El monto se anuncia con `aria-live="polite"`
+    al mostrarse; los «••••••» van con `aria-hidden` y no se anuncian.
   - **Qué protege:** es privacidad frente a quien mira la pantalla, no protección de datos. El monto llega
     al navegador de quien ya tiene permiso para verlo (la página lo decide en el servidor) y se puede ver
     con el inspector. Para los demás roles el monto no viaja (§5, punto 3, con prueba del servidor).
   - Adentro, al abrir el contenedor, la franja y el detalle por cliente muestran los montos completos,
     como hoy (SDD-0661).
-  - Si no hay borradores, dice «Sin precios cargados», nunca $0.00 inventado, y no hay ojo. Así queda el 64 hasta que la
-    SDD-0690 cargue sus borradores.
+  - El ojo aparece solo si la suma en USD de los borradores es mayor que cero. Si no, no hay ojo y el
+    encabezado dice, nunca «$0.00»:
+    - **«Sin precios cargados»** si el contenedor no tiene facturas. Así queda el 64 hasta que la
+      SDD-0690 cargue sus borradores;
+    - **«Facturado»** si tiene facturas y ningún borrador: todo se emitió (decisión de Sam del
+      2026-11-20 para la SDD-0690);
+    - **«Sin monto en USD»** si sus borradores están en otra moneda, que no suma.
   - El sistema trabaja en dólares; el bolívar es solo una vista. Las facturas en otra moneda no suman.
-- **Sobre el contenedor entero.** El peso y el «Total sin facturar» suman todos los envíos del
-  contenedor, no solo los que dejaron pasar la pestaña, la búsqueda o los filtros. Así el total no cambia
-  al pasar de «Todos» a «Activos» o a «Entregados». Los clientes, los envíos, las cajas y el m³ siguen
-  siendo los de la vista filtrada, como hoy.
-- **En qué vista se ve el encabezado del 64.** Se ve en «Todos», la pestaña con la que abre Embarques, y
-  en toda pestaña donde quede al menos uno de sus envíos, siempre con los mismos totales. Cuando la
-  SDD-0682 (PR #702) agregue la pestaña «En camino» y abra en «Activos», el 64 se verá en «En camino»,
-  con los mismos totales.
+- **Qué es del contenedor y qué es de la vista.**
+  - **Del contenedor entero:** el peso y el «Total sin facturar». Suman todos sus envíos, no solo los que
+    dejaron pasar la pestaña, el filtro de servicio o la búsqueda. Así no cambian al pasar de «Todos» a
+    «Activos» o a «Entregados».
+  - **De la vista:** clientes, envíos, cajas y m³, como hoy (SDD-0643 y SDD-0661). Cuentan lo que se ve
+    abajo, al abrir el contenedor.
+  - Para no confundirlos, el peso y el monto van con su propio rótulo: el peso como insignia de kg y el
+    monto como «Sin facturar».
+- **En qué vista se ve el encabezado de un contenedor zarpado, como el 64.** Hoy se ve en «Todos», la
+  pestaña con la que abre Embarques, y en toda pestaña donde quede al menos uno de sus envíos. Con sus
+  envíos `in_transit`, eso incluye «Activos». Cuando la SDD-0682 (PR #702) agregue la pestaña «En camino»
+  y abra en «Activos», un contenedor zarpado con envíos `in_transit` se verá en **«En camino»**. En
+  cualquier pestaña, el peso y el «Sin facturar» son los mismos.
 - Se reemplaza la regla de la SDD-0661 «la cabecera cerrada no muestra dinero»: el «Total sin facturar»
   es el único dinero del encabezado.
 
@@ -95,6 +107,9 @@ El DG separó el pedido en dos specs:
 
 ## 4. Fuera de alcance
 
+- **Pendiente de la SDD-0690:** «Sin facturar» tiene dos sentidos. En el encabezado son los borradores. En
+  la franja y en el detalle por cliente (`textoMonto`) es lo que falta por cobrar. Esta spec no lo toca: la
+  SDD-0690 redefine «Por cobrar» y lo resuelve ahí.
 - Todo lo de la SDD-0690: cargar los borradores del 64 desde el Excel, «Facturar» que emite el borrador,
   «Facturar todo», el estado «Facturado» y el cambio de la RPC de la 0564.
 - El historial de contenedores entregados al 100 % y la tarifa por cliente con la alerta de exceso: son
@@ -104,10 +119,12 @@ El DG separó el pedido en dos specs:
 
 1. El encabezado cerrado del contenedor muestra el peso total a todos los roles que ven Embarques.
 2. Con montos, muestra «Sin facturar ••••••» y un ojo. El ojo muestra la suma en USD de los borradores
-   durante 4 segundos y la vuelve a ocultar, sin abrir el contenedor. Sin borradores, muestra «Sin precios
+   durante 4 segundos y la vuelve a ocultar, sin abrir el contenedor. Sin facturas, muestra «Sin precios
    cargados».
-3. El peso y el «Sin facturar» del encabezado son los mismos en todas las pestañas: suman el contenedor
-   entero (prueba con un envío en tránsito y otro entregado).
+3. El peso y el «Sin facturar» del encabezado son los mismos en todas las pestañas y con cualquier
+   filtro de servicio o búsqueda: suman el contenedor entero. La prueba usa un envío en tránsito, otro
+   entregado y uno de otro servicio. Con facturas y sin borradores dice «Facturado». Con borradores en
+   otra moneda dice «Sin monto en USD».
 4. Sin montos (`operations`, `commercial`, `warehouse`, `support`), el encabezado no muestra ningún dinero, y
    la página no le manda ningún monto al navegador (prueba del servidor en `page-monto-por-rol.test.ts`).
 5. En el detalle, clic en un cliente con un embarque abre su ficha; con varios, abre su bloque.

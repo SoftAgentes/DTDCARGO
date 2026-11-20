@@ -74,7 +74,9 @@ const CON_BORRADORES: MontosDeContenedores = {
   },
 };
 
-const SIN_BORRADORES: MontosDeContenedores = { estado: "lista", porEmbarque: {} };
+const SIN_FACTURAS: MontosDeContenedores = { estado: "lista", porEmbarque: {} };
+
+const ETIQUETA_OJO = "Mostrar u ocultar el total sin facturar de DDP 64 (se oculta solo a los 4 segundos)";
 
 afterEach(() => {
   cleanup();
@@ -105,7 +107,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     expect(monto.textContent).toBe("Sin facturar••••••");
     expect(monto.textContent).not.toContain("$");
 
-    fireEvent.click(within(monto).getByRole("button", { name: /Mostrar el total sin facturar de DDP 64/ }));
+    fireEvent.click(within(monto).getByRole("button", { name: /Mostrar u ocultar el total sin facturar de DDP 64/ }));
     expect(monto.textContent).toBe("Sin facturar$1,750.75");
 
     act(() => {
@@ -132,7 +134,8 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     await user.keyboard("{Enter}");
     expect(monto.textContent).toContain("$1,750.75");
     expect(ojo.getAttribute("aria-pressed")).toBe("true");
-    expect(ojo.getAttribute("aria-label")).toMatch(/^Ocultar el total sin facturar de DDP 64/);
+    // El nombre no cambia: el estado lo dice aria-pressed (no se anuncia dos veces).
+    expect(ojo.getAttribute("aria-label")).toBe(ETIQUETA_OJO);
 
     await user.keyboard(" ");
     expect(monto.textContent).toBe("Sin facturar••••••");
@@ -141,14 +144,15 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     expect(monto.textContent).toContain("$1,750.75");
     await waitFor(() => expect(monto.textContent).toBe("Sin facturar••••••"), { timeout: 5000 });
     expect(document.activeElement).toBe(ojo);
-    expect(ojo.getAttribute("aria-label")).toMatch(/^Mostrar el total sin facturar de DDP 64 por 4 segundos/);
+    expect(ojo.getAttribute("aria-label")).toBe(ETIQUETA_OJO);
+    expect(ojo.getAttribute("aria-pressed")).toBe("false");
   }, 10_000);
 
   it("el ojo no abre el contenedor: va fuera del botón de la cabecera", () => {
     render(
       <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
-    const ojo = within(region()).getByRole("button", { name: /Mostrar el total sin facturar/ });
+    const ojo = within(region()).getByRole("button", { name: /Mostrar u ocultar el total sin facturar/ });
     expect(cabecera().contains(ojo)).toBe(false);
     const antes = cabecera().getAttribute("aria-expanded");
     fireEvent.click(ojo);
@@ -163,13 +167,47 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     expect(within(region()).queryByTestId("total-sin-facturar")).toBeNull();
   });
 
-  it("con montos pero sin borradores dice «Sin precios cargados», no $0.00", () => {
+  it("con montos pero sin facturas dice «Sin precios cargados», no $0.00", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={SIN_BORRADORES} />,
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={SIN_FACTURAS} />,
     );
     const monto = within(region()).getByTestId("total-sin-facturar");
     expect(monto.textContent).toBe("Sin precios cargados");
     expect(within(monto).queryByRole("button")).toBeNull();
+  });
+
+  it("todo emitido, sin borradores: dice «Facturado»", () => {
+    const emitido: MontosDeContenedores = {
+      estado: "lista",
+      porEmbarque: {
+        a1: { facturas: 1, porCobrarUsd: 1500, cobradoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
+      },
+    };
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={emitido} />);
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    expect(monto.textContent).toBe("Facturado");
+    expect(within(monto).queryByRole("button")).toBeNull();
+  });
+
+  it("borradores solo en otra moneda: nunca «$0.00»", () => {
+    const otra: MontosDeContenedores = {
+      estado: "lista",
+      porEmbarque: {
+        a1: { facturas: 1, porCobrarUsd: 0, cobradoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 0 },
+      },
+    };
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={otra} />);
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    expect(monto.textContent).toBe("Sin monto en USD");
+    expect(monto.textContent).not.toContain("$");
+  });
+
+  it("los «••••••» no se anuncian: van ocultos al lector de pantalla", () => {
+    render(
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+    );
+    const vivo = within(region()).getByTestId("total-sin-facturar").querySelector("[aria-live]");
+    expect(vivo?.querySelector('[aria-hidden="true"]')?.textContent).toBe("••••••");
   });
 });
 
@@ -178,19 +216,43 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
   const MIXTO = [
     envio("m1", { status: "in_transit", weight_kg: 100 }),
     envio("m2", { client_name: "Cliente Dos", client_markbox: "DTD-1002", status: "delivered", weight_kg: 40 }),
+    envio("m3", {
+      client_name: "Cliente Tres",
+      client_markbox: "DTD-1003",
+      shipment_service: "consolidado_lcl",
+      weight_kg: 10,
+    }),
   ];
-  const DATOS_MIXTO: ContenedoresDeEmbarques = { ...DATOS, porEmbarque: { m1: "c64", m2: "c64" } };
+  const DATOS_MIXTO: ContenedoresDeEmbarques = { ...DATOS, porEmbarque: { m1: "c64", m2: "c64", m3: "c64" } };
   const MONTOS_MIXTO: MontosDeContenedores = {
     estado: "lista",
     porEmbarque: {
       m1: { facturas: 1, porCobrarUsd: 300, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300 },
       m2: { facturas: 1, porCobrarUsd: 200, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200 },
+      m3: { facturas: 1, porCobrarUsd: 50, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 50 },
     },
   };
 
-  it.each(["Todos", "Activos", "Entregados"])(
-    "en «%s» el peso y el «Sin facturar» son los del contenedor entero",
-    (pestana) => {
+  /** Pestaña, filtro de servicio y búsqueda: lo que la vista deja pasar no cambia el encabezado. */
+  function filtrar(pestana: string, servicio?: string, busqueda?: string): void {
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Embarques por estado" })).getByRole("button", {
+        name: new RegExp(`^${pestana}`),
+      }),
+    );
+    if (servicio) fireEvent.change(document.getElementById("emb-svc")!, { target: { value: servicio } });
+    if (busqueda) fireEvent.change(document.getElementById("emb-q")!, { target: { value: busqueda } });
+  }
+
+  it.each([
+    ["Todos", undefined, undefined],
+    ["Activos", undefined, undefined],
+    ["Entregados", undefined, undefined],
+    ["Todos", "puerta_a_puerta_DDP", undefined],
+    ["Activos", "puerta_a_puerta_DDP", "S-m1"],
+  ] as const)(
+    "en «%s» (servicio %s, búsqueda %s) el peso y el «Sin facturar» son los del contenedor entero",
+    (pestana, servicio, busqueda) => {
       render(
         <EmbarquesClient
           shipments={MIXTO}
@@ -199,31 +261,34 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
           montos={MONTOS_MIXTO}
         />,
       );
-      fireEvent.click(
-        within(screen.getByRole("group", { name: "Embarques por estado" })).getByRole("button", {
-          name: new RegExp(`^${pestana}`),
-        }),
-      );
-      expect(cabecera().textContent ?? "").toContain("140 kg");
+      filtrar(pestana, servicio, busqueda);
+      expect(cabecera().textContent ?? "").toContain("150 kg");
       const monto = within(region()).getByTestId("total-sin-facturar");
-      fireEvent.click(within(monto).getByRole("button", { name: /Mostrar el total sin facturar/ }));
-      expect(monto.textContent).toBe("Sin facturar$500.00");
+      fireEvent.click(within(monto).getByRole("button", { name: /Mostrar u ocultar el total sin facturar/ }));
+      expect(monto.textContent).toBe("Sin facturar$550.00");
     },
   );
 
   it("sin montos tampoco hay dinero en ninguna pestaña", () => {
     render(<EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} />);
-    fireEvent.click(
-      within(screen.getByRole("group", { name: "Embarques por estado" })).getByRole("button", {
-        name: /^Entregados/,
-      }),
-    );
-    expect(cabecera().textContent ?? "").toContain("140 kg");
+    filtrar("Entregados");
+    expect(cabecera().textContent ?? "").toContain("150 kg");
     expect(region().textContent ?? "").not.toMatch(/sin facturar|[$]/i);
   });
 });
 
 describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
+  it("el nombre no lleva estilo en línea que tape el foco y el hover de su clase", async () => {
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    await abrir();
+    const tabla = within(region()).getByRole("table");
+    const boton = within(tabla).getByRole("button", { name: /Cliente Dos/ });
+    expect(boton.className).toBe("emb-cliente-link");
+    expect(boton.getAttribute("style")).toBeNull();
+    boton.focus();
+    expect(document.activeElement).toBe(boton);
+  });
+
   it("con un solo embarque abre su ficha", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await abrir();

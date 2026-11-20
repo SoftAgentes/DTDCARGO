@@ -1153,7 +1153,8 @@ function ListaDeContenedores({
             </button>
             {c && dinero && (
               <MontoOculto
-                texto={dinero.borradores > 0 ? fmtUsd(dinero.sinFacturarUsd) : null}
+                texto={dinero.sinFacturarUsd > 0 ? fmtUsd(dinero.sinFacturarUsd) : null}
+                sinMonto={textoSinMonto(dinero)}
                 contenedor={g.nombre}
               />
             )}
@@ -1187,6 +1188,7 @@ function ListaDeContenedores({
       <style>{`
         .emb-cont-header { background: transparent; }
         .emb-cont-header:hover { background: var(--bg-elevated); }
+        .emb-cliente-link { all: unset; cursor: pointer; border-radius: var(--r-sm); }
         .emb-cliente-link:hover { text-decoration: underline; }
         .emb-ojo:hover { background: var(--bg-elevated) !important; }
         .emb-ojo:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
@@ -1211,12 +1213,32 @@ function ListaDeContenedores({
 export const SEGUNDOS_MONTO_VISIBLE = 4;
 
 /**
+ * SDD-0689: qué dice el encabezado cuando no hay monto en USD que ocultar.
+ *  - sin facturas: «Sin precios cargados»;
+ *  - con facturas y sin borradores: «Facturado» (Sam, 2026-11-20);
+ *  - con borradores que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
+ */
+function textoSinMonto(m: { facturas: number; borradores: number }): string {
+  if (m.facturas === 0) return "Sin precios cargados";
+  if (m.borradores === 0) return "Facturado";
+  return "Sin monto en USD";
+}
+
+/**
  * SDD-0689 · «Total sin facturar» del encabezado, oculto por privacidad: la pantalla queda abierta en la
  * PC de la oficina (Sam, 2026-11-20: «la opción del ojito como lo hace QuickBooks»). El ojo lo muestra
  * {@link SEGUNDOS_MONTO_VISIBLE} segundos y vuelve a ocultarlo. Adentro, en la franja del contenedor, los
- * montos se ven completos. `texto` null = no hay borradores: no hay nada que ocultar.
+ * montos se ven completos. `texto` null = no hay monto en USD sin facturar: se muestra `sinMonto`.
  */
-function MontoOculto({ texto, contenedor }: { texto: string | null; contenedor: string }) {
+function MontoOculto({
+  texto,
+  sinMonto,
+  contenedor,
+}: {
+  texto: string | null;
+  sinMonto: string;
+  contenedor: string;
+}) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     if (!visible) return;
@@ -1237,22 +1259,18 @@ function MontoOculto({ texto, contenedor }: { texto: string | null; contenedor: 
       }}
     >
       {texto == null ? (
-        "Sin precios cargados"
+        sinMonto
       ) : (
         <>
           Sin facturar
           <span aria-live="polite" style={{ minWidth: 88, textAlign: "right" }}>
-            {visible ? texto : "••••••"}
+            {visible ? texto : <span aria-hidden="true">••••••</span>}
           </span>
           <button
             type="button"
             className="emb-ojo"
             aria-pressed={visible}
-            aria-label={
-              visible
-                ? `Ocultar el total sin facturar de ${contenedor}`
-                : `Mostrar el total sin facturar de ${contenedor} por ${SEGUNDOS_MONTO_VISIBLE} segundos`
-            }
+            aria-label={`Mostrar u ocultar el total sin facturar de ${contenedor} (se oculta solo a los ${SEGUNDOS_MONTO_VISIBLE} segundos)`}
             onClick={() => setVisible((v) => !v)}
             style={{
               display: "inline-flex",
@@ -1511,11 +1529,6 @@ function DetallePorCliente({
                   className="emb-cliente-link"
                   onClick={() => onAbrirCliente(c)}
                   title={c.shipments.length === 1 ? "Abrir la ficha del embarque" : "Ver sus embarques"}
-                  style={{
-                    all: "unset",
-                    cursor: "pointer",
-                    borderRadius: "var(--r-sm)",
-                  }}
                 >
                   {c.clientName}
                   {c.clientMarkbox && (
