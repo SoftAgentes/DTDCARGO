@@ -124,9 +124,9 @@ y ninguna se combina con otra.
   prioridad) y la columna muestra las dos insignias. El color de la fila sirve para leer rápido, como hoy;
   las insignias evitan perder la segunda situación.
 - Nunca se crea un indicador combinado («marca con montacargas»). Dos situaciones = dos indicadores.
-- «Tax refund, o elementos en la puerta del contenedor» son dos situaciones con un solo color. Propuesta:
-  dos indicadores que comparten el verde, «Devolución de impuestos» y «Va en la puerta del contenedor»
-  (pregunta 10, §7). 封门 («puerta sellada») en la hoja marca ese bloque.
+- «Tax refund, o elementos en la puerta del contenedor» son dos situaciones con un solo color. **Decisión
+  de Sam (2026-11-20): se parten en dos indicadores que comparten el verde**, «Devolución de impuestos» y
+  «Va en la puerta del contenedor» (pregunta 10, §7). 封门 («puerta sellada») en la hoja marca ese bloque.
 - Celeste y rosa no existen en la paleta de `BRAND.md` (§2.2): agregarlos necesita OK de diseño.
 
 **Los indicadores tienen consecuencias (Sam, 2026-11-20).** No son solo información: pueden generar un cobro,
@@ -574,6 +574,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
 10. **El verde.** ¿Partimos «Tax refund o elementos en la puerta del contenedor» en dos indicadores verdes?
     Ejemplo: una carga en la puerta sin tax refund no debería salir como «cobro y costo».
+    **Contestada (2026-11-20): sí, en dos.**
 11. **Prioridad.** Cuando una fila tiene dos indicadores, ¿qué color gana? Ejemplo: marca y montacargas → la
     fila ámbar, con las dos insignias.
 12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
