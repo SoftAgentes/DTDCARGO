@@ -24,7 +24,11 @@ Fecha: 2026-11-20. Datos de la tarea:
     con `montos`, y sin borradores dice «Sin precios cargados». El ojo va fuera del botón de la cabecera;
   - en el detalle, el nombre del cliente es un botón. Con un embarque abre su ficha (el panel); con
     varios, abre su bloque y le pasa el foco.
+- Cuidados del DG sobre el ojo: es un botón que alterna (`aria-pressed`, `aria-label`), funciona con Enter
+  y Espacio, y al ocultarse solo no le quita el foco a nadie. La spec dice que es privacidad frente a la
+  pantalla, no protección de datos.
 - Pruebas:
+  - del servidor: a `operations` y a los demás roles no les llega ningún monto (`page-monto-por-rol`);
   - las fixtures de la 0661 suman los campos nuevos;
   - la prueba de la 0661 que congelaba «sin dinero en la cabecera» se ajustó a la decisión nueva;
   - prueba nueva: `EmbarquesClient.encabezado-cliente.test.tsx`.
@@ -34,15 +38,16 @@ Fecha: 2026-11-20. Datos de la tarea:
 | Comprobación | Resultado |
 |---|---|
 | docs:check / sdd:check / git diff --check | PASÓ |
-| vitest de Embarques y de la 0661 | NO EJECUTADO: espera el turno de PC del DG |
-| typecheck / eslint | NO EJECUTADO: espera el turno |
-| `/ui-check` | NO EJECUTADO |
+| `pnpm install --frozen-lockfile` (turno del DG) | PASÓ |
+| vitest (`--pool=threads --maxWorkers=1`): `app/studio/(app)/embarques/` y las tres pruebas de `lib` de Embarques y la 0661 | PASÓ: 17 archivos, 202 pruebas |
+| `pnpm typecheck` | PASÓ |
+| eslint de lo tocado | PASÓ |
+| `/ui-check` del encabezado (advisory) | PASÓ: tokens del Studio, ojo de 32 px con foco visible, sin hex nuevos; el respaldo de foco usa `--wine`, como el resto del Studio |
 
 ## Pendientes de esta tarea
 
-1. El turno de PC: pnpm install, vitest, typecheck y eslint.
-2. `/ui-check` del encabezado.
-3. Push, PR y la revisión que lanza el DG. Aprobación de Sam.
+1. La revisión que lanza el DG y el CI de la PR.
+2. La aprobación de Sam de la spec.
 
 ## FUERA DE ALCANCE DETECTADO
 

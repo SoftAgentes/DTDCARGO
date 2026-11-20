@@ -176,7 +176,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     const botonUno = within(region("DDP 64"))
       .getAllByText("Cliente Uno")
       .map((el) => el.closest("button"))
-      .find(Boolean)!;
+      .find((b) => b?.classList.contains("emb-group-header"))!;
     expect(botonUno.textContent).toContain("2 envíos");
     expect(botonUno.textContent).toContain("1.234 cajas");
   });

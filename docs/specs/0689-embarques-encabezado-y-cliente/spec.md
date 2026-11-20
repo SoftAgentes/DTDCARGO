@@ -61,6 +61,13 @@ El DG separó el pedido en dos specs:
   - **Oculto por defecto:** se ve «Sin facturar ••••••» con un botón de ojo. El ojo muestra el monto
     durante 4 segundos y lo vuelve a ocultar solo; oprimirlo otra vez lo oculta antes. El ojo va al lado
     del botón de la cabecera, no adentro: mirar el monto no abre ni cierra el contenedor.
+  - **Accesibilidad:** el ojo es un botón que alterna (`aria-pressed`), con un `aria-label` que dice qué
+    hace y por cuántos segundos. Funciona con Enter y Espacio. Al ocultarse solo, el foco se queda en el
+    ojo, así que quien navega con teclado o lector de pantalla lo vuelve a mostrar con una tecla. El monto
+    se anuncia con `aria-live="polite"` al mostrarse.
+  - **Qué protege:** es privacidad frente a quien mira la pantalla, no protección de datos. El monto llega
+    al navegador de quien ya tiene permiso para verlo (la página lo decide en el servidor) y se puede ver
+    con el inspector. Para los demás roles el monto no viaja (§5, punto 3, con prueba del servidor).
   - Adentro, al abrir el contenedor, la franja y el detalle por cliente muestran los montos completos,
     como hoy (SDD-0661).
   - Si no hay borradores, dice «Sin precios cargados», nunca $0.00 inventado, y no hay ojo. Así queda el 64 hasta que la
@@ -91,7 +98,8 @@ El DG separó el pedido en dos specs:
 2. Con montos, muestra «Sin facturar ••••••» y un ojo. El ojo muestra la suma en USD de los borradores
    durante 4 segundos y la vuelve a ocultar, sin abrir el contenedor. Sin borradores, muestra «Sin precios
    cargados».
-3. Sin montos (`operations`, `commercial`, `warehouse`, `support`), el encabezado no muestra ningún dinero.
+3. Sin montos (`operations`, `commercial`, `warehouse`, `support`), el encabezado no muestra ningún dinero, y
+   la página no le manda ningún monto al navegador (prueba del servidor en `page-monto-por-rol.test.ts`).
 4. En el detalle, clic en un cliente con un embarque abre su ficha; con varios, abre su bloque.
 5. Las pruebas de la SDD-0661 siguen pasando, salvo la que congelaba «sin dinero en la cabecera», que se
    ajusta a esta decisión.
@@ -106,6 +114,8 @@ El DG separó el pedido en dos specs:
   - `lib/studio/__tests__/embarques-cajas-y-monto.test.ts`;
   - `app/studio/(app)/embarques/__tests__/page-monto-por-rol.test.ts`;
   - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.cajas-monto.test.tsx`;
+  - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.contenedores.test.tsx` (busca el botón
+    del acordeón, porque el nombre del cliente en el detalle ahora también es un botón);
   - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.encabezado-cliente.test.tsx` (nueva).
 
 ## 7. Clasificación de gobernanza

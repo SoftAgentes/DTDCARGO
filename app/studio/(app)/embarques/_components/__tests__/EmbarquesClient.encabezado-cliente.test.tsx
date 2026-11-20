@@ -7,7 +7,7 @@
  *    su bloque de embarques.
  * Datos inventados.
  */
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ShipmentListRow } from "@/lib/studio/shipment-queries";
@@ -89,6 +89,11 @@ function cabecera(): HTMLElement {
   return within(region()).getAllByRole("button")[0];
 }
 
+/** Con un solo contenedor la vista lo abre sola; si está cerrado, se abre. */
+async function abrir(): Promise<void> {
+  if (cabecera().getAttribute("aria-expanded") !== "true") await userEvent.click(cabecera());
+}
+
 describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
   it("muestra el peso total a todos y el «Total sin facturar» oculto tras el ojo", () => {
     vi.useFakeTimers();
@@ -113,14 +118,41 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     expect(monto.textContent).toBe("Sin facturar••••••");
   });
 
+  it("con teclado: Enter muestra, Espacio oculta, y al ocultarse solo no se pierde el foco", async () => {
+    // Relojes reales: userEvent no avanza con relojes falsos en este entorno. La espera real es de 4 s.
+    const user = userEvent.setup();
+    render(
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+    );
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    const ojo = within(monto).getByRole("button");
+    ojo.focus();
+    expect(ojo.getAttribute("aria-pressed")).toBe("false");
+
+    await user.keyboard("{Enter}");
+    expect(monto.textContent).toContain("$1,750.75");
+    expect(ojo.getAttribute("aria-pressed")).toBe("true");
+    expect(ojo.getAttribute("aria-label")).toMatch(/^Ocultar el total sin facturar de DDP 64/);
+
+    await user.keyboard(" ");
+    expect(monto.textContent).toBe("Sin facturar••••••");
+
+    await user.keyboard("{Enter}");
+    expect(monto.textContent).toContain("$1,750.75");
+    await waitFor(() => expect(monto.textContent).toBe("Sin facturar••••••"), { timeout: 5000 });
+    expect(document.activeElement).toBe(ojo);
+    expect(ojo.getAttribute("aria-label")).toMatch(/^Mostrar el total sin facturar de DDP 64 por 4 segundos/);
+  }, 10_000);
+
   it("el ojo no abre el contenedor: va fuera del botón de la cabecera", () => {
     render(
       <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
     const ojo = within(region()).getByRole("button", { name: /Mostrar el total sin facturar/ });
     expect(cabecera().contains(ojo)).toBe(false);
+    const antes = cabecera().getAttribute("aria-expanded");
     fireEvent.click(ojo);
-    expect(cabecera().getAttribute("aria-expanded")).toBe("false");
+    expect(cabecera().getAttribute("aria-expanded")).toBe(antes);
   });
 
   it("sin montos (operaciones, comercial) hay peso pero ningún dinero", () => {
@@ -144,7 +176,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
 describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
   it("con un solo embarque abre su ficha", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
-    await userEvent.click(cabecera());
+    await abrir();
     const tabla = within(region()).getByRole("table");
     await userEvent.click(within(tabla).getByRole("button", { name: /Cliente Dos/ }));
     expect(screen.getByTestId("ficha-embarque").textContent).toBe("S-a2");
@@ -152,7 +184,7 @@ describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
 
   it("con varios embarques abre su bloque y lo trae a la vista", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
-    await userEvent.click(cabecera());
+    await abrir();
     expect(screen.queryByText("S-a1")).toBeNull();
     const tabla = within(region()).getByRole("table");
     await userEvent.click(within(tabla).getByRole("button", { name: /Cliente Uno/ }));
