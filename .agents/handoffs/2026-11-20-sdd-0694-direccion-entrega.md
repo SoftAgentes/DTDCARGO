@@ -50,9 +50,24 @@
   Se reutiliza `normalizeWhatsappPhone` (`quote-types.ts:399`).
 - **No hay código que mande plantillas de WhatsApp.**
 
+## Segunda vuelta (2026-11-20): decisiones nuevas de Sam
+
+Llegaron por mensaje de Dir_DTD y van en la spec, con su cita y la fecha:
+
+- **P-5 «En la primera compra»:** es la §4.6 y la fase nueva E-1. Se exige en el portal, al crear la compra o la
+  prealerta, y lo valida el servidor. El Studio avisa sin bloquear al consolidar.
+- **P-6 «Correo del sistema»:** está en la §4.4.
+- **Dirección rápida opcional en el paso 2 del registro:** es la §4.7, en la fase F-2 junto con las RPC de
+  enlace. Lleva sus criterios 10 y 11 y su allowlist.
+  - También ajusta `app/privacidad/page.tsx:82` en F-2, y ese cambio va al DG antes.
+- **P-7 «Dejarlos y mostrarlos»:**
+  - es la fila nueva «Ciudad de entrega» en la ficha (F-1);
+  - la fusión conserva la ciudad y el estado;
+  - moverlos a la tabla queda fuera de alcance, para la SDD de datos duplicados.
+
 ## PENDIENTES DE ESTA TAREA
 
-- La aprobación de Sam y sus respuestas a P-5 a P-8 (§9 de la spec).
+- La aprobación de Sam y su respuesta a P-8 (el comprobante HTML), que Dir_DTD pasa cuando Sam conteste.
 - `gh pr ready` cuando Sam apruebe: en borrador, el CI no corre.
 
 ## FUERA DE ALCANCE DETECTADO

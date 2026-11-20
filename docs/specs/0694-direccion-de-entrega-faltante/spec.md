@@ -14,7 +14,8 @@ confidencialidad: interno
 # SDD-0694 — Dirección de entrega: una sola fuente, aviso y pedirla desde la ficha
 
 > **Estado: propuesta para que Sam la apruebe.** No trae código, ni migración, ni cambio de producto.
-> Las decisiones de Sam van citadas con su fecha. Lo que falta decidir está en §9.
+> Las decisiones de Sam van citadas con su fecha (§3: P-4, P-5, P-6, P-7 y la dirección rápida del registro).
+> Solo queda abierta la P-8 (§9).
 
 ## 1. Pedido
 
@@ -98,6 +99,11 @@ F-4 no la escribe nadie en `app/` ni en `lib/`. Solo la toca la fusión (`0361:2
 
 - El registro de la página la difiere a propósito (`app/registro/actions.ts:234-251`). El comentario dice que
   se pide «antes de la 1ª compra», pero ningún código lo exige.
+  - El paso 2 («Contacto», `app/registro/RegisterForm.tsx:755-846`) pide el WhatsApp, el teléfono de oficina y
+    la ciudad y el estado de entrega (`CiudadEntrega`, `:834-843`). No pide la dirección.
+  - El paso 3 reemplazó el paso «Dirección» del mockup (`:145-147`, `:848-849`).
+- El registro por enlace (`registro/link` y `activar`, que comparten `RegistroLinkForm`) **sí** la pide,
+  opcional (`app/registro/link/[token]/RegistroLinkForm.tsx:276-284`), pero la guarda en el campo viejo (§2.2).
 - El candado del portal cierra solo Documentos, Referidos, Academia y Soporte (`verify-gate.ts:27-32`). Compras,
   proveedores, cotizaciones y envíos quedan abiertos sin dirección.
 - El portal solo muestra la píldora «Falta completar datos» (`app/portal/(app)/layout.tsx:74-76`) y la
@@ -149,6 +155,20 @@ pasa `0412…` a `58412…`, y el Cotizador ya abre `wa.me` desde el Studio con 
 4. **Aviso automático. Canal decidido por Sam el 2026-11-20:** «correo, portal y además WhatsApp automático
    cuando Meta apruebe la plantilla» (mensaje de Dir_DTD a este Worker, el mismo día). Así quedan dos fases
    (§4, A-1 y A-2).
+5. **Dónde se exige (P-5). Decidido por Sam el 2026-11-20:** «En la primera compra». El portal exige la
+   dirección al crear la primera compra o prealerta, con el formulario en la misma pantalla. Además, el Studio
+   muestra un aviso, sin bloquear, al consolidar mercancía de un cliente sin dirección (§4.6).
+6. **Pedido por correo (P-6). Decidido por Sam el 2026-11-20:** «Correo del sistema». Sale del sistema, con
+   plantilla y rastro sin PII, como máximo uno cada 24 horas (§4.4).
+7. **Dirección rápida en el registro. Decidido por Sam el 2026-11-20:** «sí, agrega la dirección rápida
+   opcional en el paso 2». Esto incluye el registro por enlace (§4.7).
+8. **Ciudad y estado del registro (P-7). Decidido por Sam el 2026-11-20:** «Dejarlos y mostrarlos».
+   - `clients.city` y `clients.state` se quedan donde están.
+   - La ficha del Studio los muestra.
+   - La fusión de clientes los conserva: si el que sobrevive no los tiene, toma los del que se fusiona.
+   - Moverlos a `client_delivery_addresses` no entra en esta SDD (§8).
+
+Las decisiones 5 a 8 llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
 
 Dir_DTD tiene una búsqueda aparte de **otros** datos con fuente vieja y nueva. No entran en esta spec (§8).
 
@@ -188,6 +208,7 @@ Dir_DTD:
 |---|---|---|
 | App del camionero (`dispatch-mobile-queries.ts:163`, `:199-200`) | Lee por lote la dirección de F-2: `line`, `city` y `state` en `client_address`, y `reference` en `client_address_reference`. Se conserva la forma de `dispatch-types.ts:102-103`. | **F-1** |
 | Ficha, fila «Dirección» (`page.tsx:440`) | Muestra `line` y, debajo, ciudad y estado de la predeterminada. Sin dirección, dice «Sin dirección de entrega» en el tono de peligro del Studio (`var(--danger)`), con el texto escrito y no solo con el color. | **F-1** |
+| Ficha, ciudad y estado del registro (decisión 8) | Fila nueva «Ciudad de entrega» en «Datos del cliente», junto a «Dirección» (`page.tsx:440`), con `clients.city` y `clients.state` («Valencia, Carabobo»). Sin dato, «—». Para eso, `client-queries.ts:51` agrega `city, state` al select y `Client` (`client-types.ts:46`) los suma. | **F-1** |
 | «Perfil del cliente» (`client-types.ts:426`) | `CompletenessSource` cambia `address` por `hasDeliveryAddress: boolean`. La página lo calcula con las direcciones que ya lee (`page.tsx:259`). | **F-1** |
 | Indicador del portal (`portal-queries.ts:713-721`) | Solo F-2. Se quita la lectura de F-1, una vez aplicada la copia. | F-2 |
 | Cotización nueva del portal (`cotizaciones/nueva/page.tsx:19`) | El destino por defecto sale de la predeterminada. | F-2 |
@@ -203,8 +224,8 @@ Dir_DTD:
 |---|---|---|
 | Alta en el Studio (`clientes/actions.ts:101`, `:245`) | Si se escribe una dirección en el alta, se crea la **predeterminada** en F-2 con `insertClientDeliveryAddress`. No se escribe F-1. | F-2 |
 | Edición en el Studio (`clientes/actions.ts:392`, `ClientDrawer.tsx:549-557`) | El campo «Dirección» sale del drawer de edición: la dirección se edita en la tarjeta «Direcciones de entrega», que ya existe. El update deja de escribir F-1. | F-2 |
-| RPC de registro por enlace (`0562:247-249`, `:266-268`, `:596`, `:613`) | Una migración nueva las redefine: si llega `p_address`, insertan la predeterminada en F-2 (con la ciudad y el estado) solo si el cliente no tiene ninguna vigente. Dejan de escribir F-1. | F-2 |
-| Registro de la página (`app/registro/actions.ts:251-253`) | Sin cambio en el alta: sigue sin pedir la dirección hasta que Sam decida la §9, P-5. F-3 se sigue escribiendo: es la precarga del primer formulario. | — |
+| RPC de registro por enlace (`0562:247-249`, `:266-268`, `:594-596`, `:611-613`) | Una migración nueva las redefine: si llega `p_address`, insertan la predeterminada en F-2 (con la ciudad y el estado) solo si el cliente no tiene ninguna vigente. Dejan de escribir F-1. Ver §4.7. | F-2 |
+| Registro de la página (`app/registro/actions.ts:251-253`) | Con la dirección rápida del paso 2 llena, el alta crea la predeterminada en F-2. Nunca escribe F-1: el `address: null` se queda. F-3 se sigue escribiendo. Ver §4.7. | F-2 |
 | Mi perfil y tarjeta del Studio | Sin cambio: ya escriben F-2. Si no hay ninguna dirección, el formulario llega con la ciudad y el estado de F-3. | F-2 |
 | Fusión (`merge_clients`, `0361`) | Una migración nueva la redefine. Conserva las filas de F-2 como hoy (`0361:137-149`), deja de completar F-1 y F-4 (`:248-249`), y **conserva F-3** con `coalesce` (sobreviviente primero, luego la fusionada). Hoy esa ciudad se pierde. | F-2 |
 | Importación `legacy_import` | Dir_DTD ubica el importador fuera del repo. Si se vuelve a usar, escribe F-2. Mientras no se ubique, la copia de §4.1 se vuelve a correr después de cada carga. | F-2 |
@@ -243,8 +264,8 @@ Dir_DTD:
     texto viaja en la URL de `wa.me`, así que nunca lleva el correo, el teléfono, el documento ni otra
     dirección.
   - Cada ítem tiene su propio texto, que pide solo ese dato.
-- **Correo:** ver §9, P-6. Recomiendo un correo del sistema con plantilla propia, mandado con `sendEmail` y
-  con un botón al perfil del Portal.
+- **Correo (decisión 6):** un correo del sistema con plantilla propia, mandado con `sendEmail` y con un botón al
+  perfil del Portal. No hay `mailto:`.
   - Usa `<ActionButton>`: «Pedir por correo» → «Enviando…» → «Pedido enviado».
   - Se limita a un correo por ítem y por cliente cada 24 horas.
   - Sin correo, no hay acción de correo.
@@ -298,17 +319,79 @@ Dir_DTD:
 - **Cuándo sale:** en el mismo momento que el correo de A-1, y solo si el cliente no tiene dirección y tiene
   un teléfono que sirve para WhatsApp. Sale una vez por llegada, con el mismo dedupe que el correo.
 
+### 4.6 Exigir la dirección en la primera compra (decisión 5)
+
+**Portal.**
+
+- Al crear una compra o una prealerta (`app/portal/(app)/compras/nueva/`, con `NewPurchaseWizard.tsx`, y
+  `createPrealertaAction` en `app/portal/(app)/proveedores/actions.ts:576`), si el cliente no tiene dirección
+  (§4.1), la pantalla le pide la dirección antes de confirmar.
+- El formulario es el mismo de Mi perfil (`PortalAddresses.tsx`), llega precargado con la ciudad y el estado
+  del registro y se guarda con la misma acción (`perfil/address-actions.ts`). El cliente no sale de la
+  pantalla ni pierde lo que ya escribió de la compra.
+- Al guardarla, la compra sigue donde estaba.
+- **Lo exige el servidor, no solo la pantalla:** `createPrealertaAction` (y la acción que cree la compra) responde
+  con un error de campo, «Agrega tu dirección de entrega para continuar», si el cliente no tiene dirección.
+- Se aplica en cada compra mientras no tenga dirección, no solo en la primera: la primera es la que llega
+  primero.
+
+**Studio.**
+
+- Al consolidar mercancía de un cliente sin dirección, el Studio muestra un `<Aviso tono="atencion">` que no
+  bloquea, por ejemplo: «DTD-0000 no tiene dirección de entrega. Pídesela desde su ficha.», con un enlace a
+  la ficha.
+- El punto exacto se confirma al implementar: hoy la consolidación se arma en
+  `app/studio/(app)/naviera/actions.ts` (`createConsolidation:320`, `linkConsolidation:823`) y la estiba del
+  móvil en `app/m/cn/estibar/`.
+- **China.** En la región `cn` no admin, el aviso se muestra solo con el Shipping Mark: no lleva el nombre ni
+  la dirección (SDD-0531).
+
+### 4.7 Dirección rápida en el registro (decisión 7)
+
+**Registro de la página.**
+
+- En `app/registro/RegisterForm.tsx`, paso 2 («Contacto»), debajo de `CiudadEntrega` (`:834-843`), va un campo
+  de texto opcional:
+  - etiqueta: «Dirección de entrega (opcional)»;
+  - placeholder: «Calle, sector, casa o edificio»;
+  - ayuda: «Así te entregamos sin tener que llamarte. Si prefieres, la pones después en tu perfil.»
+- El campo viaja oculto al confirmar, como la ciudad y el estado (`:456-457`). El resumen del paso 4 lo muestra
+  junto a «Ciudad de entrega» (`:923-926`).
+- `validateRegisterInput` (`lib/portal/register-types.ts:223`) lo acepta vacío y lo limita a 300 caracteres,
+  igual que el registro por enlace (`app/registro/link/[token]/actions.ts:89-91`).
+- **Si viene lleno,** `registerClientAction` (`app/registro/actions.ts`), después de crear el cliente, inserta
+  la predeterminada en `client_delivery_addresses`: `line` es el texto; `city` y `state` vienen del paso 2;
+  `city_slug` viene del catálogo si la ciudad salió de ahí, y si no, null; `is_default` va en true. Usa
+  `insertClientDeliveryAddress` o un insert equivalente con el cliente admin.
+  - Nunca escribe `clients.address`: el `address: null` de `:251` se queda.
+  - Si ese insert falla, el alta no se cae. El cliente queda sin dirección y aplica la §4.6. El error se
+    registra sin el texto de la dirección.
+- **Si viene vacío,** no se crea nada y aplica la §4.6.
+- Se actualiza el comentario de `RegisterForm.tsx:145-147`, que dice que la dirección se difiere.
+
+**Registro por enlace (`registro/link` y `activar`).**
+
+- El campo ya existe y es opcional (`RegistroLinkForm.tsx:276-284`). Se alinea su etiqueta, su placeholder y
+  su ayuda con los de arriba.
+- Las RPC `portal_registration_link_complete` y `_complete_self` se redefinen (§4.3): la dirección va a
+  `client_delivery_addresses` como predeterminada, con la ciudad y el estado. Se inserta solo si el cliente no
+  tiene ninguna dirección vigente. Si ya la tiene, el texto nuevo no la pisa: se agrega como no
+  predeterminada. Dejan de escribir `clients.address`.
+- Va en la misma transacción de la RPC: si el insert falla, falla el registro por enlace, como hoy falla
+  cualquier error de la RPC.
+
 ## 5. Fases
 
 | Fase | Qué entra | Migración | Notas |
 |---|---|---|---|
 | F-0 | Esta spec. | No | Aprobación de Sam. |
 | **F-1** | Copia idempotente (§4.1). Helper de la dirección. **Camionero, fila «Dirección» y «Perfil del cliente»** (§4.2). | Sí: la copia | Prioridad de Dir_DTD. La copia se aplica antes de publicar los lectores. |
-| F-2 | El resto de los lectores (§4.2) y todos los escritores (§4.3): Studio, RPC de registro por enlace, fusión que conserva la ciudad, semillas y portal sin doble lectura. | Sí: las RPC de enlace y la fusión | Después de F-2, nadie escribe F-1 ni F-4. |
+| F-2 | El resto de los lectores (§4.2) y todos los escritores (§4.3): el Studio, la **dirección rápida del registro de la página y del registro por enlace (§4.7)**, la fusión que conserva la ciudad, las semillas y el portal sin doble lectura. | Sí: las RPC de enlace y la fusión | Después de F-2, nadie escribe F-1 ni F-4. La dirección rápida va en F-2 porque el registro por enlace necesita la misma migración que sus RPC. |
 | F-3 | Botón «Pedir» (§4.4). | No, salvo que el correo necesite una plantilla en la DB | Puede ir en paralelo con F-2. |
+| E-1 | Exigir la dirección en la compra o la prealerta del portal, y el aviso al consolidar en el Studio (§4.6). | No | Requiere F-1 (el helper). Va después de F-2, para que los registros nuevos ya traigan su dirección y no se les pida dos veces. |
 | A-1 | Recuadro en el correo y aviso en el portal (§4.5). | No | Requiere F-1 (el helper). |
 | A-2 | WhatsApp automático (§4.5). | Por decidir en su diseño | Condicionada a la aprobación de Meta. |
-| F-4 | Retiro de F-1 y F-4. Un grep nuevo confirma que no quedan lectores ni escritores (en el código, las migraciones vivas y las semillas), y la copia se vuelve a correr. Después hay un periodo de guarda en el que la base rechaza escribir `clients.address` (trigger o `revoke update`) y, al final, el `drop column`. | Sí, en dos pasos | Con respaldo, el OK nominal de Sam y el runbook. F-3 de las fuentes (ciudad y estado) es la §9, P-7. |
+| F-4 | Retiro de F-1 y F-4. Un grep nuevo confirma que no quedan lectores ni escritores (en el código, las migraciones vivas y las semillas), y la copia se vuelve a correr. Después hay un periodo de guarda en el que la base rechaza escribir `clients.address` (trigger o `revoke update`) y, al final, el `drop column`. | Sí, en dos pasos | Con respaldo, el OK nominal de Sam y el runbook. F-3 de las fuentes (ciudad y estado) **no se retira** (decisión 8). |
 
 ## 6. `revisar-datos-ve` aplicado a la dirección y al número de WhatsApp
 
@@ -333,6 +416,8 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
    - El mensaje de §4.4 y la plantilla de §4.5 siguen esa regla. La plantilla ni siquiera lleva el nombre.
    - `ENCONTRADO`: la referencia y la dirección vieja se le muestran al chofer desde F-1 y F-4, que pueden
      estar viejas. F-1 de las fases lo arregla.
+   - **Registro.** La dirección rápida (§4.7) es opcional y su ayuda dice para qué sirve («Así te entregamos
+     sin tener que llamarte»). Se pide una sola línea, además de la ciudad y el estado que ya se pedían.
 3. **Consentimiento.**
    - Abrir `wa.me` lo manda una persona del equipo a quien ya es cliente: es una gestión de la entrega.
    - `NO VERIFICABLE`: si el aviso **automático** por WhatsApp (A-2) tiene base suficiente con la política
@@ -350,9 +435,12 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
    `entity_audit_log` ni a logs.
 7. **Política pública.**
    - `ENCONTRADO`: `privacidad/page.tsx:82` dice que la dirección detallada «la agregas después, en tu perfil
-     del Portal». Sigue siendo cierto con esta spec.
-   - Si Sam decide exigirla antes (§9, P-5) o encender A-2, la política se revisa con el abogado. Un texto
-     aprobado que cambia va al DG antes.
+     del Portal».
+   - Con la decisión 7, el registro **puede** recibirla, de forma opcional. Con la decisión 5, se exige al
+     crear la primera compra.
+   - **Hay que ajustar ese texto en F-2**, antes de publicar la dirección rápida: «puedes darla al registrarte
+     o después en tu perfil; la necesitamos antes de tu primera compra». Es un texto aprobado que cambia, así
+     que va al DG antes. A-2 también requiere revisar la política con el abogado.
 8. **Terceros.**
    - Meta (WhatsApp) recibe el número y el texto: al abrir `wa.me` y en A-2.
    - Resend recibe el correo.
@@ -364,8 +452,10 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
      dirección, ni el teléfono, ni si al cliente le falta la dirección.
    - El botón «Pedir» no se muestra a la región `cn` (§4.4).
    - `CORRECTO` en el ocultamiento actual (`privacidad-cn.ts:101-112`). Las rutas nuevas tienen que pasar por él.
-10. **Decisiones automatizadas.** El aviso solo informa: no bloquea nada ni cambia el estado del envío. Si
-    Sam decide exigir la dirección (P-5), es una regla visible con su texto, no una decisión opaca.
+10. **Decisiones automatizadas.**
+    - El aviso solo informa: no bloquea nada ni cambia el estado del envío.
+    - Exigir la dirección en la compra (§4.6) es una regla visible: dice qué falta y deja cargarlo en la misma
+      pantalla. No es una decisión opaca.
 11. **Valor probatorio.** No aplica.
 12. **Titulares que no son usuarios.**
     - Una dirección de entrega puede ser la de otra persona, como «casa de mi hermana», con una referencia
@@ -387,12 +477,18 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
    `CurrentDelivery`. Un cliente sin dirección muestra el estado vacío de hoy.
 3. **Ficha.** Con la dirección solo en F-2, la fila «Dirección» muestra la predeterminada y «Perfil del
    cliente» la marca completa. Sin filas, dice «Sin dirección de entrega» en rojo y el bloque dice «Falta: Dirección».
+   - **Ciudad y estado (decisión 8).** La fila «Ciudad de entrega» muestra `clients.city` y `clients.state`,
+     con o sin dirección. Sin dato, muestra «—».
+   - La fila no abre ningún acceso nuevo: la ve quien hoy ve la fila «Dirección» de la ficha.
 4. **Ningún lector de §4.2 lee F-1 ni F-4** al cerrar F-2. Lo vigila una prueba de contrato que busca
    `address` y `address_reference` de `clients` en `app/`, `lib/` y las RPC vivas, con una lista de
    excepciones que llega a cero en F-4.
 5. **Ningún escritor de §4.3 escribe F-1** al cerrar F-2.
    - El registro por enlace con dirección deja una predeterminada en F-2.
-   - La fusión conserva las filas de F-2 y la ciudad y el estado.
+   - La fusión conserva las filas de F-2 y la ciudad y el estado. Hay tres casos, con una prueba `.test.sql`:
+     - si el sobreviviente no tiene ciudad ni estado, toma los del fusionado;
+     - si los tiene, conserva los suyos;
+     - si ninguno los tiene, quedan en null.
 6. **Comprobante.** Con un domicilio sellado imprime ese; sin domicilio sellado no imprime dirección. Cambiar
    la dirección del cliente no cambia el comprobante.
 7. **Botón «Pedir».**
@@ -409,12 +505,32 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
    - El portal muestra el aviso en las mismas condiciones.
 9. **A-2.** No se enciende sin la plantilla aprobada por Meta, sin el diseño de envío aprobado y sin la §6,
    punto 3 resuelto.
-10. **F-4.** Antes del `drop`, un grep sin resultados (fuera de migraciones aplicadas y desarmes), una segunda
+10. **Dirección rápida del registro (§4.7).**
+    - El paso 2 muestra el campo opcional debajo de la ciudad y el estado, con la etiqueta, el placeholder y la
+      ayuda decididos.
+    - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
+      ciudad y el estado del paso 2, y `clients.address` queda en null.
+    - Con el campo vacío, no crea ninguna fila.
+    - Con más de 300 caracteres, da un error de campo en el paso 2.
+    - Si el insert de la dirección falla, el alta termina igual y el error no lleva el texto.
+    - El registro por enlace y el de activar, con la dirección llena, dejan la predeterminada en la tabla y no
+      escriben `clients.address`. Si el cliente ya tenía una vigente, la nueva no es predeterminada.
+11. **Exigir en la compra (§4.6).**
+    - Un cliente sin dirección no puede confirmar una compra ni una prealerta: el servidor responde con el error
+      de campo. La prueba llama la acción directo, sin pasar por la pantalla.
+    - La pantalla le muestra el formulario de dirección sin perder lo que escribió. Al guardarla, la compra se
+      confirma.
+    - Un cliente con dirección no ve ningún paso de más.
+    - En el Studio, consolidar mercancía de un cliente sin dirección muestra el aviso y la consolidación sigue.
+      Para la región `cn`, el aviso lleva solo el Shipping Mark.
+12. **F-4.** Antes del `drop`, un grep sin resultados (fuera de migraciones aplicadas y desarmes), una segunda
     corrida de la copia y el OK nominal de Sam.
 
 ## 8. Fuera de alcance
 
 - **Otros datos con fuente vieja y nueva.** Dir_DTD tiene una búsqueda aparte. Van en su propia spec.
+- **Mover `clients.city` y `clients.state` a `client_delivery_addresses`.** Por la decisión 8 se quedan en
+  `clients`. Si se mueven o no, lo decide la SDD de datos duplicados.
 - `clients.lat`/`lng` y la foto de fachada (`facade_photo_url`, `0066`): siguen en `clients`. Pasarlos a la
   dirección es trabajo aparte.
 - `shipments.delivery_address` (TMS y almacén VE): es la dirección de **ese** envío y se escribe a mano.
@@ -426,27 +542,11 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 
 - **P-4 (canal del aviso). Decidida** el 2026-11-20: correo y portal (A-1) y, además, WhatsApp automático
   cuando Meta apruebe la plantilla (A-2).
-- **P-5. ¿Dónde se exige la dirección?** Hoy no se exige en ningún momento antes de la primera compra (§2.4).
-  Opciones:
-  - (a) en el registro;
-  - (b) en el portal, al crear la primera compra o prealerta: un formulario de dirección en la misma pantalla,
-    sin salir de ella;
-  - (c) en el Studio, al consolidar: un aviso que no bloquea;
-  - (d) solo con el aviso de A-1.
-
-  **Recomiendo (b) más (c).** La (a) le quita al registro exprés lo que lo hace rápido, y la (d) llega tarde
-  para quien nunca abre el correo.
-- **P-6. ¿El pedido por correo va con `mailto:` o con un correo del sistema?** Recomiendo el **correo del
-  sistema**, con su plantilla y un botón al perfil:
-  - sale del dominio de DTD;
-  - no depende del programa de correo de cada PC;
-  - deja rastro sin PII;
-  - se puede limitar.
-
-  El `mailto:` sale de la casilla personal de cada persona y no deja ningún rastro.
-- **P-7. Ciudad y estado del registro (F-3).** ¿Quedan en `clients` como la zona del cliente y precarga del
-  primer formulario, o se retiran con F-1? Recomiendo que **queden** hasta que la búsqueda aparte de Dir_DTD
-  decida los datos duplicados. Hoy son el único dato de ubicación de los clientes sin dirección.
+- **P-5 (dónde se exige). Decidida** el 2026-11-20: «En la primera compra». Se exige en el portal, al crear
+  la compra o la prealerta, y el Studio avisa sin bloquear al consolidar (§3, decisión 5, y §4.6).
+- **P-6 (pedido por correo). Decidida** el 2026-11-20: «Correo del sistema» (§3, decisión 6, y §4.4).
+- **Dirección rápida en el registro. Decidida** el 2026-11-20 (§3, decisión 7, y §4.7).
+- **P-7 (ciudad y estado del registro). Decidida** el 2026-11-20: «Dejarlos y mostrarlos» (§3, decisión 8).
 - **P-8. Comprobante HTML del portal.** ¿Usa el domicilio sellado, como el PDF? Recomiendo que **sí** (§4.2).
 
 ## 10. Archivos (allowlist provisional)
@@ -458,8 +558,9 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `supabase/migrations/NNNN_direccion_entrega_copia.sql` y su `.test.sql`;
   - `lib/studio/client-address-queries.ts` (el helper y su variante por lote);
   - `lib/studio/dispatch-mobile-queries.ts`;
-  - `lib/studio/client-types.ts`;
-  - `app/studio/(app)/clientes/[markbox]/page.tsx`;
+  - `lib/studio/client-types.ts` (`CompletenessSource`, y `city`/`state` en `Client`);
+  - `lib/studio/client-queries.ts` (`city, state` en el select de `:51`);
+  - `app/studio/(app)/clientes/[markbox]/page.tsx` (fila «Dirección» y fila nueva «Ciudad de entrega»);
   - `app/studio/(app)/clientes/_components/ClientDrawer.tsx` (la fuente del aviso del alta);
   - y sus pruebas.
 - **F-2:**
@@ -469,7 +570,22 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `lib/studio/export/operativo-csv.ts`, `lib/studio/agents/tools/shipment-tools.ts`;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (la precarga de ciudad y estado);
   - `supabase/migrations/NNNN_registro_enlace_direccion.sql` y `NNNN_merge_clients_conserva_direccion.sql`, con sus pruebas;
-  - `scripts/seed-portal-demo.sql`.
+  - `scripts/seed-portal-demo.sql`;
+  - dirección rápida del registro (§4.7):
+    - `app/registro/RegisterForm.tsx` (paso 2, campo oculto, resumen y comentario);
+    - `app/registro/actions.ts`;
+    - `lib/portal/register-types.ts` (validación);
+    - `app/registro/link/[token]/RegistroLinkForm.tsx` (textos);
+    - las RPC de enlace, en la misma migración `NNNN_registro_enlace_direccion.sql`;
+    - pruebas en `app/registro/__tests__/` y `lib/portal/__tests__/register.test.ts`, más las de
+      `app/registro/link/[token]/` y `app/registro/activar/[token]/__tests__/`;
+  - `app/privacidad/page.tsx` (§6, punto 7), con el visto bueno del DG.
+- **E-1:**
+  - `app/portal/(app)/compras/nueva/` (el wizard y su paso de confirmar);
+  - `app/portal/(app)/proveedores/actions.ts` (`createPrealertaAction` y la acción que crea la compra);
+  - `app/portal/(app)/perfil/PortalAddresses.tsx` (el formulario, reutilizable dentro de la compra);
+  - `app/studio/(app)/naviera/actions.ts` y su pantalla, o la de la estiba (`app/m/cn/estibar/`), según dónde se consolide;
+  - y sus pruebas.
 - **F-3:**
   - un componente nuevo en `app/studio/(app)/clientes/_components/` (`PedirDato`);
   - `page.tsx`;
@@ -490,6 +606,7 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
 | A11Y-01 | cumplimiento (diseño) | «Sin dirección de entrega» va en texto, no solo en rojo. El menú se maneja con teclado. |
 | MP-01 | no aplica | No se borra nada en F-1 a F-3. El `drop` de F-4 sigue el runbook y su propia aprobación. |
 | AUD-01 / AUD-02 | cumplimiento (diseño) | El pedido por correo se audita sin PII. Las direcciones siguen con su auditoría actual. |
-| FRM-01 | no aplica en F-1; aplica en F-2 | Quitar el campo del drawer y precargar el formulario de dirección. |
+| FRM-01 | no aplica en F-1; aplica en F-2 y E-1 | Quitar el campo del drawer y precargar el formulario de dirección. El campo opcional del registro sigue el patrón del wizard: el error del servidor devuelve al paso y enfoca el campo. El formulario dentro de la compra conserva lo escrito. |
+| ERR-01 | cumplimiento (diseño) | El error «Agrega tu dirección de entrega para continuar» dice qué falta y cómo resolverlo en la misma pantalla. |
 | Privacidad CN (SDD-0531) | cumplimiento (diseño) | Ni «Pedir» ni el aviso exponen datos a la región `cn`. |
 | Producción (AGENTS) | cumplimiento | Esta spec no leyó producción. Los conteos de §2.1 son de Dir_DTD, con la autorización de Sam, y no se copian al repo. |
