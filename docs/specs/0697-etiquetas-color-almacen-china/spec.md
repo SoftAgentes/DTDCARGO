@@ -198,6 +198,7 @@ nada en esta spec.
 | 4 | Va en la puerta del contenedor / 装在柜门口 | navy | puerta (`door`, nuevo) | carga especial | ninguno |
 | 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | cobro y costo |
 | 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | tarea |
+| 7 | Batería de litio / 锂电池 | rojo | batería (`battery`, nuevo) | carga especial | cobro al cliente |
 
 Los textos zh-CN los revisa un hablante nativo antes de producción.
 
@@ -745,6 +746,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    **Contestada (2026-11-20): «Marca sin autorización» / 品牌无授权.**
 8. **Las otras.** Además de las cinco de la leyenda, ¿hay otras? Ejemplo: «Batería de litio», ¿va dentro de
    «Carga especial» o aparte, por su cobro propio?
+   **Contestada en parte (2026-11-20): «Batería de litio» va aparte** (fila 7 del catálogo inicial), con su
+   cobro propio. Comparte el rojo con «Carga especial»; los distingue el ícono.
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
 10. **El verde.** ¿Partimos «Tax refund o elementos en la puerta del contenedor» en dos indicadores verdes?
     Ejemplo: una carga en la puerta sin tax refund no debería salir como «cobro y costo».
