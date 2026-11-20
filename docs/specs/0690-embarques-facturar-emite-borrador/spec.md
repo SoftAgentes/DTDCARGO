@@ -101,9 +101,15 @@ exceso a estos borradores.
   - Escribe el mismo borrador que hoy (§2.2): mismas líneas, mismo `shipment_id`, el código de
     `next_invoice_code`, `invoice_imported` en la auditoría y la marca del lote en `notes`.
 - **La carga en producción escribe datos.** Necesita un OK nominal de Sam en el chat del DG, que nombre
-  el contenedor (el 64, y nada más). **La corre el DG con el runbook**, no el Worker. Antes, el Worker
-  hace un ensayo en una base local con `rollback` y conteos, sin montos. Fusionar la PR no autoriza la
-  carga.
+  el contenedor (el 64, y nada más). **La corre el DG con el runbook**, no el Worker. Fusionar la PR no
+  autoriza la carga.
+- **Condiciones previas a la carga del 64** (DG, 2026-11-20). No forman parte de la PR de implementación:
+  1. el ensayo de `--solo-facturas` en una base local con el 64 cargado desde el mismo Excel: corre
+     `simulacro.sql`, que termina en `rollback`, y se reportan conteos sin montos (pre-órdenes nuevas,
+     clientes saltados y clientes sin líneas);
+  2. el OK nominal de Sam en el chat del DG, nombrando el 64;
+  3. la 0569 aplicada en producción, con su propio OK nominal, si la carga se hace para emitir
+     enseguida. La carga en sí no necesita la 0569.
 
 ### 3.2 El caso de datos: un cliente que ya tiene una factura emitida con monto tecleado
 

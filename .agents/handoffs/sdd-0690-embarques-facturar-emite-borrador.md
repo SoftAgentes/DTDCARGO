@@ -1,58 +1,84 @@
-# Handoff · SDD-0690 — Embarques: «Facturar» emite el borrador, «Facturar todo» y «Facturado»
+# Handoff · SDD-0690 — Embarques: «Facturar» emite la pre-orden, «Facturar todo» y «Facturado»
 
 Fecha: 2026-11-20.
 
 - Owner: Worker 0689/0690.
 - Rama: `claude/sdd-0690-facturar-emite-borrador`.
 - Worktree: `DTD-worktrees/sdd-0690-facturar-borrador`.
-- Base: `origin/main` `765f3954a`.
+- Base: `origin/main` `765f3954a`, con merge de main después de la 0689.
 - La rama de reserva `codex/sdd-reserve-0690` no se toca: es el candado del número.
 
 ## Estado
 
-- **Spec `proposed`**, solo documento. No hay código ni archivo de migración: la 0569 se escribe cuando
-  la spec esté aprobada.
-- Sam decidió el 2026-11-20, por el DG:
-  - el precio: en el 64 manda el Excel, en Embarques no se edita, y el monto en color enlaza a la factura o
-    a la pre-orden; en la pantalla se dice «pre-orden»;
-  - el cliente sin precio: monto tecleado.
-- Resumen de dinero, decidido por Sam: versión B (Total del embarque / Pagado / Saldo, con «Sin facturar»
-  como desglose). Medido: hoy una pre-orden no puede recibir abonos (0467, 0464, 0195); registrarlos
-  queda fuera de alcance.
-- Allowlist cerrada (§6). La spec queda lista para la aprobación de Sam; sin código ni archivo 0569.
-- T&C, decidido por Sam: se exige en el portal (SDD-0693). La RPC emite bajo la EXC-0674 ampliada; la
-  ampliación se anota en el registro en la PR de implementación.
+- **Spec `in-progress`**, aprobada por Sam el 2026-11-20 («Apruebo la 0690»), sin abonos sobre pre-órdenes.
+- **Implementación** en la rama, según la allowlist del §6.
+- **La 0569 NO está aplicada en ningún entorno.** Aplicarla y cargar las pre-órdenes del 64 llevan cada
+  una su OK nominal de Sam, y las corre el DG.
 
-## Hecho
+## Decisiones de Sam (2026-11-20, por el DG)
 
-- Medición de la 0564, del cargador, de `emitInvoice`, de `FacturarContenedor` y de los montos de la
-  pantalla (spec §2, con archivo:línea).
-- Decisión propuesta:
-  - `--solo-facturas` para cargar los borradores del 64;
-  - el caso del cliente que ya tiene una factura emitida con monto tecleado;
-  - la RPC `exc0674_emitir_borradores` en la 0569;
-  - la pantalla («Facturar», «Facturar todo», «Facturado»);
-  - los rótulos del dinero.
+1. El precio: en el 64 manda el Excel y en Embarques no se edita. El monto en color enlaza a la factura o a
+   la pre-orden. En la pantalla se dice «pre-orden».
+2. Un cliente sin precio en el Excel: monto tecleado, como hoy.
+3. La aceptación de T&C se exige en el portal (SDD-0693). La RPC emite bajo la EXC-0674 ampliada a
+   pre-orden y «Facturar todo», con el mismo alcance y la misma fecha.
+4. El resumen de dinero es la versión B: Total del embarque / Pagado / Saldo, con «Sin facturar» como
+   desglose.
+
+## Hecho (spec §6)
+
+- **0569** (`5724af9e2`), con su desarme, su contrato y su prueba de carrera:
+  - RPC `exc0674_emitir_borradores`, todo o nada;
+  - no cambia ni el código ni el total;
+  - asiento atómico;
+  - rastro con `origen_monto = 'borrador'` y auditoría `invoice_emitted_exc0674_borrador`;
+  - espera declarada en el baseline y en las declaraciones de símbolos.
+- **Cargador** (`cc4ad4015`): `--solo-facturas` para un contenedor ya cargado.
+  - Es idempotente por cliente y su preflight exige que el contenedor esté en `exc0674_contenedores`.
+  - Toma el mismo candado que `exc0674_facturar`.
+  - El ensayo es `simulacro.sql`, que termina en `rollback`.
+- **Embarques** (`fb0afae8b`):
+  - la acción `emitirPreordenesExc0674Action`;
+  - en `FacturarContenedor`, la pre-orden con enlace y «Facturar», «Facturar todo» y «Facturado»;
+  - el resumen B en la franja y en el detalle, con el total enlazado a la factura o a la pre-orden;
+  - el peso y el dinero de la franja y del pie sobre el contenedor entero.
+- **`leerMontosDeContenedores`** trae `id, invoice_code`, con OK del DG (`43a576b10`). La prueba del
+  servidor comprueba que no viajan sin `montos`.
+
+## Desviaciones registradas
+
+- La columna se llama `origen_monto`, no `origen`, porque `origen` daba ROJO en el gate de símbolos (la
+  palabra ya la usan otras tablas). OK del DG del 2026-11-20. La spec está alineada.
+- El botón «Facturar contenedor (N clientes)» de la 0674 se queda solo cuando no hay pre-órdenes. Con
+  pre-órdenes aparece «Facturar todo», y los clientes sin precio se facturan uno por uno.
 
 ## Evidencia
 
 | Comprobación | Resultado |
 |---|---|
-| docs:check / sdd:check / git diff --check | ver el commit |
-| Pruebas de producto | NO APLICA: cambio solo de docs |
+| `pnpm install --frozen-lockfile` (turno del DG) | PASÓ |
+| vitest (`--pool=threads --maxWorkers=1`) de Embarques, del dinero en `lib` y del cargador | PASÓ: 18 archivos, 252 pruebas |
+| `tsc --noEmit` | PASÓ |
+| eslint de los 14 archivos tocados | PASÓ: 0 errores; 3 avisos en `generar-lote.ts:319` que ya estaban en main |
+| `migrations-lock verificar --sin-base` | PASÓ: 1 espera sin sellar, la 0569 |
+| `check-pending-migration-symbols` | PASÓ: 0 ROJO, 1 AMARILLO declarado |
+| docs:check / sdd:check | PASÓ |
+| Contratos SQL (`run-sql-tests.mjs`, Postgres efímero en Docker; turno del DG) | PASÓ: 317 contratos con rollback, incluidos la 0564, la 0569 y sus dos carreras |
 
 ## Pendientes de esta tarea
 
-1. Aprobación de Sam y respuestas del §7.
-2. Implementación: 0569 con su prueba SQL y su desarme, `--solo-facturas`, la acción y la pantalla.
-3. Ensayo local de la carga del 64 con `rollback`. Después, el OK nominal de Sam para la carga en
-   producción y otro aparte para aplicar la 0569.
+1. `revisar-datos-ve`, la PR de implementación y la revisión que lanza el DG.
+2. Antes de la carga del 64, que no es parte de esta PR (spec §3.1):
+   - el ensayo de `--solo-facturas` con `rollback` en una base local;
+   - el OK nominal de Sam;
+   - aplicar la 0569, con su propio OK.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La cabecera de `0564_exc0674_facturar_contenedor.sql` todavía dice «NO APLICADA», aunque se aplicó el
-  2026-11-18. Un archivo aplicado no se edita; el DG decide si se anota en la spec de la 0674.
-- La spec y el handoff de la 0674 tienen que anotar que el 64 entró a `exc0674_contenedores`, sin ids,
-  en la próxima PR de docs.
-- `next_invoice_code` calcula max + 1 sin bloqueo (0077). Fuera de la 0564/0569, dos inserciones a la
-  vez podrían chocar con la restricción unique.
+- `lib/studio/exc0674.ts` (`mensajeErrorExc0674`) no tiene texto propio para los errores nuevos de la
+  0569 (`no_borrador`, `factura_inexistente`, `envio_fuera_del_contenedor`, `borrador_alterado`) y muestra
+  el genérico «No se pudo facturar. No se emitió ninguna factura.». Está fuera de la allowlist.
+- Registrar abonos sobre una pre-orden: hoy el cobro y el reporte de pago rechazan los borradores (spec §8).
+- La cabecera de la 0564 dice «NO APLICADA», aunque se aplicó el 2026-11-18. La sella el DG aparte.
+- La spec y el handoff de la 0674 deben anotar que el 64 entró a `exc0674_contenedores`, sin ids.
+- `next_invoice_code` calcula max + 1 sin candado (0077).
