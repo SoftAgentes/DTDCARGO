@@ -69,8 +69,8 @@ export async function aplicarMatriz(
   const enCuenta = new Set(resultado.miembrosCuenta.map((m) => m.userId));
 
   const grupos = [
-    { tipo: "bandejas" as const, ids: bandejas, leer: leerMiembrosBandeja, fijar: fijarMiembrosBandeja, destinos: (rol: AgenteMatriz["rol"]) => destinosDe(rol, cfgMatriz).bandejas },
-    { tipo: "equipos" as const, ids: equipos, leer: leerMiembrosEquipo, fijar: fijarMiembrosEquipo, destinos: (rol: AgenteMatriz["rol"]) => destinosDe(rol, cfgMatriz).equipos },
+    { tipo: "bandejas" as const, ids: bandejas, leer: leerMiembrosBandeja, fijar: fijarMiembrosBandeja, destinos: (rol: AgenteMatriz["rol"], a: AgenteMatriz) => destinosDe(rol, cfgMatriz, a.porAcceso).bandejas },
+    { tipo: "equipos" as const, ids: equipos, leer: leerMiembrosEquipo, fijar: fijarMiembrosEquipo, destinos: (rol: AgenteMatriz["rol"], a: AgenteMatriz) => destinosDe(rol, cfgMatriz, a.porAcceso).equipos },
   ];
   for (const g of grupos) {
     const actuales = new Map<number, number[]>();

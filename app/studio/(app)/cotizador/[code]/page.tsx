@@ -5,6 +5,7 @@
  * al QuoteDetailClient.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
@@ -243,7 +244,7 @@ export default async function QuoteDetailPage({
         <Field label="Destino" value={quote.destination} />
         <Field
           label="Volumen"
-          value={quote.cbm != null ? `${Number(quote.cbm).toFixed(3)} m³` : "—"}
+          value={quote.cbm != null ? formatCbm(quote.cbm, { unit: true }) : "—"}
           mono
         />
         <Field

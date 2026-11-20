@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 
 /**
@@ -2135,7 +2136,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
                 {incomplete && <span>Ingreso conocido: {fmtUsd(r.revenue)}</span>}
               </div>
               <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
-                {r.cbm.toFixed(1)}
+                {formatCbm(r.cbm)}
               </span>
               <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
                 {incomplete ? "—" : fmtUsdCompact(r.revenuePerCbm)}

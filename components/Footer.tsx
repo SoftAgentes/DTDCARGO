@@ -74,9 +74,15 @@ export function Footer() {
           </div>
 
           {/* Explora */}
+          {/* SDD-0657 · Puerta a puerta e Importar por ciudad entran al pie:
+              antes ninguna página fuera del grupo de ciudades enlazaba a
+              /importar-de-china ni a /puerta-a-puerta, y Google las dejaba sin
+              indexar. El pie es el único enlace presente en todo el sitio. */}
           <FooterCol title="Explora">
             <FooterLink href="/tarifas">Tarifas</FooterLink>
             <FooterLink href="/servicios">Servicios</FooterLink>
+            <FooterLink href="/puerta-a-puerta">Puerta a puerta</FooterLink>
+            <FooterLink href="/importar-de-china">Importar por ciudad</FooterLink>
             <FooterLink href="/pre-alertas">Pre-alertas</FooterLink>
             <FooterLink href="/nosotros">Nosotros</FooterLink>
             <FooterLink href="/entrar">Mi portal</FooterLink>
@@ -87,8 +93,9 @@ export function Footer() {
           <FooterCol title="Ayuda">
             <FooterLink href="/faq">Preguntas frecuentes</FooterLink>
             <FooterLink href="/glosario">Glosario</FooterLink>
-              <FooterLink href="/noticias">Actualidad</FooterLink>
+            <FooterLink href="/noticias">Actualidad</FooterLink>
             <FooterLink href="/academia">Academia</FooterLink>
+            <FooterLink href="/brochure">Brochure</FooterLink>
             {/* Mismo destino que "Cómo trabajamos" del menú Ayuda (Nav.tsx) —
                 deliberado, dos nombres para la misma página (ver comentario ahí). */}
             <FooterLink href="/shipping-mark">Cómo trabajamos</FooterLink>
@@ -105,6 +112,10 @@ export function Footer() {
               {TRACKING_EN_CONSTRUCCION ? "Seguimiento en construcción" : "Rastrea tu envío"}
             </FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
+            {/* SDD-0657 · Las otras tres calculadoras no tenían ningún enlace. */}
+            <FooterLink href="/fcl">Calculadora FCL</FooterLink>
+            <FooterLink href="/llenado">Llenado de contenedor</FooterLink>
+            <FooterLink href="/calculadora-terrestre">Flete terrestre</FooterLink>
             {/* SDD-0473 · Sólo con la bandera encendida: apagada, /cotizador es
                 404. El Footer es componente de servidor (ningún cliente lo
                 importa), así que la variable se lee acá sin exponerla. */}

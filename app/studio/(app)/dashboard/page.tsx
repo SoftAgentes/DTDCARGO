@@ -11,6 +11,7 @@
  * usuario sin Nómina no recibe ni valores ni widget de nómina.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { createClient } from "@/lib/db/server";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
@@ -185,7 +186,7 @@ export default async function DashboardPage() {
           };
         break;
       case "cbmInTransit":
-        if (naviera) kpiValues[k.id] = { value: `${naviera.looseCbm.toFixed(1)} CBM`, sub: "carga en almacén CN", tone: "neutral" };
+        if (naviera) kpiValues[k.id] = { value: `${formatCbm(naviera.looseCbm)} CBM`, sub: "carga en almacén CN", tone: "neutral" };
         break;
       case "cnStock":
         if (naviera) kpiValues[k.id] = { value: String(naviera.looseCount), sub: "embarques en almacén CN", tone: "neutral" };
@@ -267,7 +268,7 @@ export default async function DashboardPage() {
     alerts.push({
       tone: "info",
       title: `${naviera.looseCount} embarque(s) por consolidar`,
-      meta: `${naviera.looseCbm.toFixed(1)} CBM sueltos en CN`,
+      meta: `${formatCbm(naviera.looseCbm)} CBM sueltos en CN`,
       href: "/studio/naviera",
     });
 

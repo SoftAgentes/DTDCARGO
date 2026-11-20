@@ -20,6 +20,7 @@ import { registerLoanInstallmentAction, cancelLoanAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
 import { fmtUsd } from "@/lib/money";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "cuota-prestamo-form";
 const initial: NominaActionState = {};
@@ -95,7 +96,7 @@ export function CuotaPrestamoDrawer({
         </div>
 
         <Field label="Fecha de la cuota" error={state.fieldErrors?.paid_on}>
-          <input name="paid_on" type="date" className="studio-input" defaultValue={today} />
+          <DateField name="paid_on" defaultValue={today} />
         </Field>
 
         <Field label="Monto de la cuota (USD)" error={state.fieldErrors?.amount_usd} required>

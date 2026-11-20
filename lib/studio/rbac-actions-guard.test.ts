@@ -256,13 +256,18 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // borradores del agente.
   // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
-  it("la superficie escaneada es la esperada (84 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
+  // de la ficha.
+  // SDD-0676 sumó `bandeja/vincular-actions.ts` (85 → 86, con prefijo 25 → 26): buscar un cliente y vincularle el
+  // chat desde la Ficha DTD.
+  // SDD-0674 sumó `embarques/facturar-actions.ts` (86 → 87, con prefijo 26 → 27): «Facturar» del contenedor 64.
+  it("la superficie escaneada es la esperada (87 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 84,
+      total: 87,
       exactos: 60,
-      conPrefijo: 24,
+      conPrefijo: 27,
     });
   });
 
@@ -418,8 +423,28 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditDenial(supabase, "clients")` al tope; después la RPC `portal_email_check_prepare`
   // (0559) repite en la base los roles admin/commercial/operations y el tenant; service_role entra
   // recién después de las dos, para pasar la cuenta a su dirección interna y emitir el enlace.
+  // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts::unirChatAction` y `::quitarUnionAction` (486 → 488):
+  // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
+  // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
+  // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
+  // SDD-0676 sumó `bandeja/vincular-actions.ts::buscarClientesParaVincular` y `::vincularContactoDeConversacion`
+  // (488 → 490): `moduleEditGate(supabase, "bandeja")` al tope y, después, el módulo encendido, el módulo Clientes y
+  // el tenant dueño de la cuenta de Chatwoot. Buscar lee con el cliente de sesión (RLS de `clients`). Vincular escribe
+  // SOLO por la RPC `chatwoot_vincular_contacto` (solo service_role), llamada con el cliente de servicio después de los
+  // candados, que vuelve a comprobar al actor, el tenant y la ficha, y audita.
+  // SDD-0673 sumó cinco en `tracking/[id]/actions.ts` (490 → 495):
+  // `::previewCorrectShipmentMeasures`, `::correctShipmentMeasures`, `::previewSplitShipment` y
+  // `::splitShipment` llaman a `capabilityDenial(supabase, "correct_shipment_measures" | "split_shipment")`
+  // antes de leer nada y escriben SOLO por las RPC `correct_shipment_measures` y `split_shipment` (0563),
+  // que repiten operations/admin activo y el tenant de la sesión. `::updateShipmentGroupReference`
+  // llama a `moduleEditDenial(supabase, "tracking")` al tope y escribe una sola columna nota por la RLS.
+  // SDD-0674 sumó `embarques/facturar-actions.ts::facturarExc0674Action` (495 → 496):
+  // `moduleEditDenial(supabase, "invoices")` al tope y después `rolFacturaExc0674` (solo accounting y
+  // admin; Sam, 2026-11-18). Escribe SOLO por la RPC `exc0674_facturar` (0564, security definer), que
+  // repite en la base el rol, el tenant y la lista transitoria y deja el evento en la misma transacción.
+  // El cliente de servicio se usa después, solo para el correo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(486);
+    expect(reportes.length).toBe(496);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

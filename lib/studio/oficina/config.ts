@@ -21,6 +21,8 @@
  *   las de `ETIQUETAS_DINERO_POR_DEFECTO` y `ETIQUETAS_INTERNO_POR_DEFECTO`.
  * - `OFICINA_VACIADO_ACTIVO`: enciende el vaciado diario de `task_events.resumen` (privacidad,
  *   decisión A de Sam del 15/11/2026). Interruptor PROPIO: corre aunque la oficina esté pausada.
+ * - `OFICINA_VISTA_ACTIVA`: enciende la mini-vista de solo lectura (§3.6, Paso 4), `/studio/admin/oficina/vista`.
+ *   Apagado = la página no existe (404), también para el superadministrador. No enciende ni apaga nada más.
  */
 import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 
@@ -77,4 +79,9 @@ export function configWebhookOficina(env: Entorno = process.env): ConfigWebhookO
 
 export function vaciadoActivo(env: Entorno = process.env): boolean {
   return interruptorEncendido(env.OFICINA_VACIADO_ACTIVO);
+}
+
+/** La mini-vista (§3.6) nace apagada: solo `1` o `true` la enciende. */
+export function vistaActiva(env: Entorno = process.env): boolean {
+  return interruptorEncendido(env.OFICINA_VISTA_ACTIVA);
 }

@@ -9,6 +9,7 @@
  * Single Source of Truth para edición = el módulo Tracking.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import {
   SERVICE_LABELS,
@@ -135,7 +136,7 @@ export function ShipmentDetailDrawer({
               label="Volumen"
               value={
                 shipment.volume_m3 != null
-                  ? `${Number(shipment.volume_m3).toFixed(3)} m³`
+                  ? formatCbm(shipment.volume_m3, { unit: true })
                   : "—"
               }
               mono

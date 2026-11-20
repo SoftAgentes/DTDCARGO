@@ -25,6 +25,7 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   bankAccounts: Account[];
@@ -240,12 +241,11 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
               <label className="studio-label" htmlFor="stmt-period">
                 Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
               </label>
-              <input
+              <DateField
                 id="stmt-period"
-                type="month"
-                className="studio-input"
+                mode="month"
                 value={periodLabel}
-                onChange={(e) => setPeriodLabel(e.target.value)}
+                onChange={setPeriodLabel}
               />
               {state.fieldErrors?.period_label && (
                 <FieldError msg={state.fieldErrors.period_label} />
@@ -346,13 +346,9 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                     alignItems: "start",
                   }}
                 >
-                  <input
-                    type="date"
-                    className="studio-input"
+                  <DateField
                     value={l.line_date}
-                    onChange={(e) =>
-                      updateLine(idx, { line_date: e.target.value })
-                    }
+                    onChange={(iso) => updateLine(idx, { line_date: iso })}
                     aria-label={`Fecha movimiento ${idx + 1}`}
                   />
                   <input

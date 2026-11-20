@@ -12,6 +12,8 @@ import {
   UserIcon,
 } from "@/components/Icon";
 import { requestMagicLink, type PortalLoginState } from "./actions";
+import { ENTRAR_WHATSAPP, type EntrarResultado } from "@/lib/portal/entrar-resultado";
+import { REGISTRO_AUTOSERVICIO_TTL_HORAS } from "@/lib/portal/registro-link-types";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
@@ -60,12 +62,16 @@ const SIDE_RESUMEN = TRACKING_EN_CONSTRUCCION
  * entrar cuando lo que ocurre es que llega un correo.
  *
  * 🔴 **Por qué `CrearCuentaBoton` es un componente y no JSX suelto.** Tiene que
- * aparecer en DOS sitios: la fila 2 y el estado de pedido recibido. Antes de
- * SDD-0276 sólo estaba en el primero —y como un enlace de 12,5 px— así que
- * quien no tenía cuenta escribía su correo, veía "Revisa tu correo", no le
- * llegaba nada (el login **no** crea usuarios: `shouldCreateUser: false`) y se
- * quedaba sin ninguna salida. Un solo componente para los dos sitios es lo que
- * impide que vuelvan a divergir.
+ * aparecer en DOS sitios: la fila 2 y «No encontramos una cuenta con este
+ * correo». Antes de SDD-0276 sólo estaba en el primero —y como un enlace de
+ * 12,5 px— así que quien no tenía cuenta escribía su correo, veía "Revisa tu
+ * correo", no le llegaba nada (el login **no** crea usuarios:
+ * `shouldCreateUser: false`) y se quedaba sin ninguna salida. Un solo componente
+ * para los dos sitios es lo que impide que vuelvan a divergir.
+ *
+ * SDD-0672 · después de pedir el enlace, la pantalla dice qué pasó con ese correo
+ * (`ResultadoEntrar`): salió el enlace, es cliente sin portal, su correo falta
+ * comprobarlo o no lo encontramos.
  *
  * Backend INTACTO (SDD-0094): Server Action `requestMagicLink`, callback
  * `/portal/callback`, TTL del enlace. El input conserva `name="email"` y NO hay
@@ -89,6 +95,15 @@ export function EntrarForm({
   // Si falla «Pedir otro enlace», el formulario vuelve a montarse: su correo es el que ya se usó.
   const [lastEmail, setLastEmail] = useState<string | null>(null);
   if (magicState.email && magicState.email !== lastEmail) setLastEmail(magicState.email);
+  // «Probar con otro correo» vuelve al formulario con el correo escrito, para
+  // corregirlo. Una respuesta nueva de la acción vuelve a mostrar su resultado.
+  const [editando, setEditando] = useState(false);
+  const [estadoVisto, setEstadoVisto] = useState(magicState);
+  if (magicState !== estadoVisto) {
+    setEstadoVisto(magicState);
+    setEditando(false);
+  }
+  const resultado = editando ? undefined : magicState.resultado;
 
   return (
     <div
@@ -132,12 +147,16 @@ export function EntrarForm({
               WebkitBackdropFilter: "var(--glass-blur)",
             }}
           >
-            {magicState.requested ? (
-              <MagicRequested
+            {resultado ? (
+              <ResultadoEntrar
+                key={resultado}
+                resultado={resultado}
                 email={magicState.email ?? ""}
                 requests={magicState.requests}
+                equipoAvisado={magicState.equipoAvisado === true}
                 {...magicFormProps}
                 pending={magicPending}
+                onOtroCorreo={() => setEditando(true)}
               />
             ) : (
               <>
@@ -330,16 +349,33 @@ export function EntrarForm({
 }
 
 /**
- * El botón de crear cuenta — el MISMO en la fila 2 y en "Revisa tu correo".
+ * El botón de crear cuenta — el MISMO en la fila 2 y en «No encontramos una
+ * cuenta con este correo».
  *
  * `.btn` mide 48 px y va a ancho completo: es la diferencia con el enlace de
- * 12,5 px que había antes. Se queda en `btn-ghost` (relleno blanco para que
- * levante sobre el glass) y NO en `btn-primary`, porque BTN-01 §2 admite una
- * sola acción primaria por pantalla y ésa es "Envíame el enlace". La
- * prominencia sale del tamaño, del ancho y de tener fila propia, no de un
- * segundo relleno vino.
+ * 12,5 px que había antes. En la puerta se queda en `btn-ghost` (relleno blanco
+ * para que levante sobre el glass) y NO en `btn-primary`, porque BTN-01 §2 admite
+ * una sola acción primaria por pantalla y ésa es "Envíame el enlace". En «No
+ * encontramos una cuenta» (SDD-0672) crear la cuenta ES la acción principal, y
+ * ahí sí va `primario`.
+ *
+ * El correo NO viaja a `/registro` en la URL: terminaría en los registros del
+ * servidor y en la analítica.
  */
-function CrearCuentaBoton({ className = "" }: { className?: string }) {
+function CrearCuentaBoton({
+  className = "",
+  primario = false,
+}: {
+  className?: string;
+  primario?: boolean;
+}) {
+  if (primario) {
+    return (
+      <Link href="/registro" className={`btn btn-primary w-full justify-center gap-2 ${className}`}>
+        Crear mi cuenta <ArrowIcon size={14} />
+      </Link>
+    );
+  }
   return (
     <Link
       href="/registro"
@@ -362,40 +398,101 @@ function CrearCuentaBoton({ className = "" }: { className?: string }) {
 }
 
 /**
- * Estado de pedido recibido.
+ * SDD-0672 · lo que pasó con el correo, dicho en pantalla.
  *
- * 🔴 Esta pantalla no puede afirmar que el correo salió (SDD-0597). El login no
- * distingue —a propósito, por anti-enumeración— entre un correo con cuenta, uno
- * sin ella y un envío que falló, así que se les muestra igual a los tres. Por eso
- * va en condicional, y por eso dice "pedido recibido", que es lo único que se sabe.
+ * Reemplaza la pantalla única de la SDD-0597 («Si tienes acceso, revisa tu
+ * correo»), que callaba a propósito para que nadie pudiera averiguar quién es
+ * cliente. Sam decidió el 2026-11-18 decirlo: el cliente que escribió mal su
+ * correo, o que nunca tuvo portal, ya no se queda esperando un enlace que no va
+ * a llegar.
  *
- * 🔴 El bloque de abajo NO es decorativo: es la salida del callejón. Quien no tiene
- * cuenta puede crearla, y quien ya es cliente tiene a quién escribirle en vez de
- * crear una segunda cuenta. Y como se muestra SIEMPRE, no revela si el correo existe.
+ * 🔴 `enlace` SÍ afirma que el correo salió: la acción devuelve `error` si el
+ * envío falla, así que esta pantalla sólo aparece cuando salió.
+ *
+ * 🔴 Ningún caso le dice a quién pertenece la cuenta (nombre, Shipping Mark): sólo
+ * si el correo que la persona acaba de escribir está o no. El correo de la ficha
+ * lo cargó el equipo y puede tener un tipeo.
  *
  * Se EXPORTA sólo para poder probarlo suelto: `fireEvent.submit` no dispara el
  * `useActionState` de React 19 en jsdom (medido en este repo), así que llegar
  * acá desde el formulario dentro de un test es imposible. Mismo recurso que
  * `StepDone` en `app/registro/RegisterForm.tsx`.
  */
-export function MagicRequested({
+export function ResultadoEntrar({
+  resultado,
   email,
   requests = 1,
+  equipoAvisado = false,
   action,
   onSubmit,
   pending,
+  onOtroCorreo,
 }: {
+  resultado: EntrarResultado;
   email: string;
   /** Pedidos seguidos: es lo que hace notar en pantalla que un reintento se recibió. */
   requests?: number;
+  /** `sin_portal`: el aviso al equipo salió. Si no, la pantalla no lo afirma. */
+  equipoAvisado?: boolean;
   action: (formData: FormData) => void;
   onSubmit?: FormEventHandler<HTMLFormElement>;
   pending: boolean;
+  /** Vuelve al formulario con el correo escrito, para corregirlo. */
+  onOtroCorreo: () => void;
 }) {
   // El formulario de donde venía el foco ya no existe. Sin esto, el foco cae en
   // `body` y un lector de pantalla no se entera del cambio.
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
+
+  const correo = email ? (
+    <strong className="text-ink [overflow-wrap:anywhere]">{email}</strong>
+  ) : (
+    "ese correo"
+  );
+
+  const titulo: Record<EntrarResultado, string> = {
+    enlace: "Revisa tu correo",
+    crear_portal: "Ya eres cliente de DTD Cargo",
+    sin_portal: "Ya eres cliente de DTD Cargo",
+    sin_comprobar: "Tu correo todavía no está comprobado",
+    sin_cuenta: "No encontramos una cuenta con este correo",
+  };
+
+  const whatsapp = (
+    <a
+      href={buildWhatsAppLink(ENTRAR_WHATSAPP[resultado])}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-semibold text-wine-text underline underline-offset-2 hover:text-wine-deep"
+    >
+      escríbenos por WhatsApp
+    </a>
+  );
+
+  // Cuando no hay enlace que esperar, escribirnos ES la acción principal: botón de
+  // ancho completo, la única primaria de esa pantalla (BTN-01 §2).
+  const whatsappBoton = (
+    <a
+      href={buildWhatsAppLink(ENTRAR_WHATSAPP[resultado])}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="btn btn-primary w-full justify-center gap-2 mt-1"
+    >
+      Escribirnos por WhatsApp <ArrowIcon size={14} />
+    </a>
+  );
+
+  const otroCorreo = (
+    <button
+      type="button"
+      onClick={onOtroCorreo}
+      // A11Y-01: se usa sobre todo desde el teléfono.
+      className="inline-flex items-center min-h-[44px] sm:min-h-[32px] text-[13px] font-semibold text-wine-text hover:text-wine-deep"
+    >
+      Probar con otro correo
+    </button>
+  );
 
   return (
     <div className="flex flex-col justify-center flex-1 gap-3">
@@ -403,7 +500,13 @@ export function MagicRequested({
         className="w-14 h-14 rounded-[12px] grid place-items-center"
         style={{ background: "var(--color-wine-soft)", color: "#fff" }}
       >
-        <MailIcon size={26} />
+        {resultado === "enlace" || resultado === "crear_portal" ? (
+          <MailIcon size={26} />
+        ) : resultado === "sin_cuenta" ? (
+          <StampIcon size={26} />
+        ) : (
+          <UserIcon size={26} />
+        )}
       </span>
       <h1
         ref={headingRef}
@@ -411,67 +514,115 @@ export function MagicRequested({
         className="text-[24px] sm:text-[26px] leading-[1.1] text-ink outline-none"
         style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
       >
-        Si tienes acceso, revisa tu correo
+        {titulo[resultado]}
       </h1>
-      <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
-        Recibimos tu pedido
-        {email ? (
-          <>
-            {" "}para <strong className="text-ink [overflow-wrap:anywhere]">{email}</strong>
-          </>
-        ) : null}
-        . Si ese correo tiene acceso al portal, debería llegarte un enlace en un par
-        de minutos. Ábrelo y entrarás automáticamente — sin contraseña. Vale por una
-        hora, es de un solo uso y da igual dónde lo abras. Si no lo ves, revisa spam
-        o pide otro.
-      </p>
-      <form action={action} onSubmit={onSubmit} className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <input type="hidden" name="email" value={email} />
-        <button
-          type="submit"
-          // `aria-disabled` y no `disabled`: un botón deshabilitado suelta el foco a
-          // `body` (medido en navegador; jsdom no lo ve), y el teclado perdería el
-          // sitio justo al reintentar. El doble envío se frena en el clic.
-          aria-disabled={pending}
-          aria-busy={pending}
-          onClick={(event) => {
-            if (pending) event.preventDefault();
-          }}
-          // A11Y-01: es el camino de reintento, y se usa sobre todo desde el teléfono.
-          className="inline-flex items-center min-h-[44px] sm:min-h-[32px] text-[13px] font-semibold text-wine-text hover:text-wine-deep aria-disabled:opacity-60"
-        >
-          {pending ? "Pidiendo…" : "Pedir otro enlace"}
-        </button>
-        <span
-          role="status"
-          className="inline-flex items-center gap-1.5 text-[12.5px] text-grey-700"
-        >
-          <CheckIcon size={13} className="flex-shrink-0" />
-          {requests > 1
-            ? `Recibimos ${requests} pedidos. Usa el último enlace que te llegue.`
-            : "Pedido recibido"}
-        </span>
-      </form>
 
-      <div className="mt-4 rounded-[10px] border border-grey-300 bg-white/60 p-4">
-        <p className="text-[12.5px] text-grey-700 leading-[1.5]">
-          ¿No te llega nada? Puede que ese correo no tenga cuenta con nosotros, o que
-          el envío haya fallado.
-        </p>
-        <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.5]">
-          Si ya eres cliente,{" "}
-          <a
-            href={buildWhatsAppLink("Hola DTD Cargo, soy cliente y no me llega el enlace para entrar a mi portal.")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-wine-text underline underline-offset-2 hover:text-wine-deep"
-          >
-            escríbenos por WhatsApp
-          </a>
-          . Si es tu primera vez, crea tu cuenta.
-        </p>
-        <CrearCuentaBoton className="mt-3" />
-      </div>
+      {resultado === "enlace" && (
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Te enviamos un enlace a {correo}. Ábrelo y entrarás automáticamente — sin
+            contraseña. Vale por una hora, es de un solo uso y da igual dónde lo abras.
+            Si no lo ves en un par de minutos, revisa spam o pide otro.
+          </p>
+          <form action={action} onSubmit={onSubmit} className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <input type="hidden" name="email" value={email} />
+            <button
+              type="submit"
+              // `aria-disabled` y no `disabled`: un botón deshabilitado suelta el foco a
+              // `body` (medido en navegador; jsdom no lo ve), y el teclado perdería el
+              // sitio justo al reintentar. El doble envío se frena en el clic.
+              aria-disabled={pending}
+              aria-busy={pending}
+              onClick={(event) => {
+                if (pending) event.preventDefault();
+              }}
+              // A11Y-01: es el camino de reintento, y se usa sobre todo desde el teléfono.
+              className="inline-flex items-center min-h-[44px] sm:min-h-[32px] text-[13px] font-semibold text-wine-text hover:text-wine-deep aria-disabled:opacity-60"
+            >
+              {pending ? "Pidiendo…" : "Pedir otro enlace"}
+            </button>
+            <span
+              role="status"
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-grey-700"
+            >
+              <CheckIcon size={13} className="flex-shrink-0" />
+              {requests > 1
+                ? `Te enviamos ${requests} enlaces. Usa el último que te llegue.`
+                : "Enlace enviado"}
+            </span>
+          </form>
+          <div className="mt-4 rounded-[10px] border border-grey-300 bg-white/60 p-4">
+            <p className="text-[12.5px] text-grey-700 leading-[1.5]">
+              ¿Sigue sin llegar? Revisa que el correo esté bien escrito, o {whatsapp}.
+            </p>
+            <div className="mt-1">{otroCorreo}</div>
+          </div>
+        </>
+      )}
+
+      {resultado === "crear_portal" && (
+        // SDD-0672 entrega 2 · condición del DG: esta pantalla dice sólo que salió
+        // el enlace. Nada de la ficha, y nada sobre qué se va a comprobar.
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Te mandamos un enlace a {correo} para crear tu portal. Ábrelo y llena tus
+            datos. Vale por {REGISTRO_AUTOSERVICIO_TTL_HORAS} horas y es de un solo uso.
+          </p>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            No crees otra cuenta: tendrías un Shipping Mark nuevo y tus envíos quedarían
+            en el de siempre. Si no te llega en unos minutos, revisa spam o {whatsapp}.
+          </p>
+          <div>{otroCorreo}</div>
+        </>
+      )}
+
+      {resultado === "sin_portal" && (
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Encontramos {correo} entre nuestros clientes, pero tu portal todavía no está
+            activo.{" "}
+            {equipoAvisado
+              ? "Ya le avisamos al equipo para activarlo; si prefieres que sea ahora, escríbenos."
+              : "Escríbenos y lo activamos."}
+          </p>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            No crees otra cuenta: tendrías un Shipping Mark nuevo y tus envíos quedarían
+            en el de siempre.
+          </p>
+          {whatsappBoton}
+          <div>{otroCorreo}</div>
+        </>
+      )}
+
+      {resultado === "sin_comprobar" && (
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            {correo} es el correo de tu portal, pero falta comprobarlo, y hasta entonces no
+            podemos mandarte enlaces de entrada. Si tienes el correo de comprobación de
+            DTD Cargo, ábrelo con tu portal abierto en ese mismo teléfono o computadora.
+          </p>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Si no lo tienes, escríbenos y te ayudamos a entrar.
+          </p>
+          {whatsappBoton}
+          <div>{otroCorreo}</div>
+        </>
+      )}
+
+      {resultado === "sin_cuenta" && (
+        <>
+          <p className="text-[13.5px] text-grey-700 leading-[1.6] max-w-[46ch]">
+            Revisa que esté bien escrito: {correo}. Si es tu primera vez, crea tu cuenta
+            y recibe tu Shipping Mark.
+          </p>
+          <CrearCuentaBoton className="mt-1" primario />
+          <div>{otroCorreo}</div>
+          <p className="text-[12.5px] text-grey-700 leading-[1.5]">
+            ¿Ya eres cliente y usas otro correo? Pruébalo, o {whatsapp}. No crees otra
+            cuenta: tendrías dos Shipping Marks.
+          </p>
+        </>
+      )}
     </div>
   );
 }

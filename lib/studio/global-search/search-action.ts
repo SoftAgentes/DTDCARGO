@@ -88,7 +88,13 @@ async function runClients(
 ): Promise<GlobalSearchHit[]> {
   const hits: GlobalSearchHit[] = [];
   const seen = new Set<string>();
-  const push = (c: { id: string; markbox: string; name: string; rif: string | null }) => {
+  const push = (c: {
+    id: string;
+    markbox: string;
+    name: string;
+    rif: string | null;
+    codigo_anterior?: string | null;
+  }) => {
     if (seen.has(c.id) || hits.length >= LIMIT) return;
     seen.add(c.id);
     hits.push({
@@ -96,7 +102,10 @@ async function runClients(
       id: c.id,
       code: c.markbox,
       title: c.name,
-      subtitle: c.rif ?? undefined,
+      // SDD-0664: si apareció por un Shipping Mark anterior, se dice cuál.
+      subtitle: c.codigo_anterior
+        ? [`antes ${c.codigo_anterior}`, c.rif].filter(Boolean).join(" · ")
+        : (c.rif ?? undefined),
       href: `/studio/clientes/${encodeURIComponent(c.markbox)}`,
     });
   };

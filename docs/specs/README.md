@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 640 specs)
+### Índice de specs (generado · 666 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -661,6 +661,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
 | 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
 | 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
+| 0639 | IA: cambiar de modelo o de proveedor por función, con princip… | approved | interno |
 | 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
 | 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
 | 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
@@ -678,6 +679,31 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
 | 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
 | 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | in-progress | interno |
+| 0657 | Enlaces internos e indexación del sitio público | in-progress | interno |
+| 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
+| 0659 | Tracking en vivo por contenedor: mesa de control con mapa cen… | in-progress | interno |
+| 0660 | Estándar de fechas del Studio: campo con máscara, calendario … | in-progress | interno |
+| 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
+| 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
+| 0663 | Subaliados como jobs: estado de cuenta por trabajo, sección A… | proposed | interno |
+| 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
+| 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
+| 0666 | Portal del aliado: sus clientes, prealertas y marca blanca | proposed | interno |
+| 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
+| 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
+| 0671 | CRM: tarjetas sin botón Abrir y Bandeja visible para la oficina | proposed | interno |
+| 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
+| 0673 | Partir un embarque en dos, corregir sus medidas y anotar la r… | in-progress | interno |
+| 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
+| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | in-progress | interno |
+| 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
+| 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
+| 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |
+| 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
+| 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
+| 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
+| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
+| 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0639 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0668, 0670, 0683 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

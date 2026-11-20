@@ -178,6 +178,7 @@ export function EstimadoModal({
 
       {/* Card */}
       <div
+        data-clarity-mask="True"
         ref={cardRef}
         className="relative w-full sm:max-w-[460px] bg-white rounded-t-[20px] sm:rounded-[18px] card-shadow border border-grey-200 overflow-hidden"
       >

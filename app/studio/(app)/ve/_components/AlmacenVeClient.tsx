@@ -10,6 +10,7 @@
  * - Empty state si no hay shipments en estados VE
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -223,12 +224,7 @@ function VeRow({
   hasBorderTop: boolean;
 }) {
   const cbmDisplay =
-    row.volume_m3 != null
-      ? Number(row.volume_m3).toLocaleString("es-VE", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })
-      : "—";
+    formatCbm(row.volume_m3);
 
   const deliveredDisplay = row.delivered_at
     ? formatDate(row.delivered_at)

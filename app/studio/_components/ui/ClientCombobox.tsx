@@ -323,6 +323,16 @@ export function ClientCombobox({
                   >
                     {hit.markbox}
                   </span>
+                  {hit.codigoAnterior && (
+                    <span
+                      style={{
+                        font: "600 11px/1 var(--f-mono)",
+                        color: "var(--ink-soft)",
+                      }}
+                    >
+                      antes {hit.codigoAnterior}
+                    </span>
+                  )}
                   <span
                     style={{
                       font: "600 11px/1 var(--f-mono)",

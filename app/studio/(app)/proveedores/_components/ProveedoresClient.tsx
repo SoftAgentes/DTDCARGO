@@ -19,6 +19,7 @@
  * Solo tokens var(--*).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -657,10 +658,7 @@ function IncomingTab({
             }}
           >
             {cbm != null
-              ? cbm.toLocaleString("es-VE", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
+              ? formatCbm(cbm)
               : "—"}
           </span>
         );
@@ -905,10 +903,7 @@ function IncomingTab({
                 label: "Σ CBM",
                 value:
                   totCbm > 0
-                    ? totCbm.toLocaleString("es-VE", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
+                    ? formatCbm(totCbm)
                     : "—",
               },
             ].map((t) => (
