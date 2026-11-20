@@ -285,7 +285,11 @@ Embarques:
 - `app/studio/(app)/embarques/_components/FacturarContenedor.tsx`;
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`;
 - `lib/studio/exc0674-queries.ts`;
-- `lib/studio/embarques-contenedores.ts` (Total, Pagado, Saldo y «Sin facturar»).
+- `lib/studio/embarques-contenedores.ts` (Total, Pagado, Saldo y «Sin facturar»);
+- `lib/studio/embarques-contenedores-queries.ts`, **solo** agregar `id, invoice_code` al `select` de
+  `invoices` en `leerMontosDeContenedores`: el enlace a la factura o a la pre-orden y «Facturar» los
+  necesitan. Es la misma consulta, con la misma puerta de `montos`; ninguna lectura nueva. Para los roles
+  sin `montos` no llegan al navegador (prueba en `page-monto-por-rol.test.ts`). OK del DG del 2026-11-20.
 
 Pruebas de Embarques:
 - `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`;

@@ -124,7 +124,7 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     "%s: el «Sin facturar» del encabezado no viaja al navegador",
     async (rol) => {
       const props = await propsDe(rol);
-      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|totalUsd|pagadoUsd|invoice_code/);
+      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|totalUsd|pagadoUsd|invoiceCode|invoiceId|invoice_code/);
     },
   );
 
