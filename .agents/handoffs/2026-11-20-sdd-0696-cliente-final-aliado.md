@@ -80,3 +80,12 @@
   ids. Vale para la carga y para el envío. El caso bloqueado también llama a `_peek` y a `_complete`.
 - **4.** `client_address_link_attempts` no tiene tenant y declara sus columnas.
 - **5.** `attempt_key` es un HMAC-SHA-256 con `ADDRESS_LINK_ATTEMPT_SECRET`.
+
+## Tercera vuelta (sobre 709d558f7): un hallazgo alto, corregido
+
+- Se adoptó la salida (b): `_peek` y `_complete` reciben `p_attempt_key` y revisan el bloqueo dentro de la
+  misma transacción. Con el origen bloqueado no llegan al `update`, así que un token válido no se consume.
+  Se quitó la RPC `_attempt`. Hay una prueba nueva contra las RPC reales: origen bloqueado con token válido
+  por el envío da cero filas, `used_at` en null y ningún evento.
+- AUD-01: `_complete` deja un evento en `entity_audit_log` sin el texto, sin el token y sin la clave. La
+  §4.4.2, la §10 y la prueba quedaron de acuerdo.

@@ -172,14 +172,25 @@ token inválido no tiene tenant. Por eso no copia tal cual `brand_access_attempt
 
 #### 4.4.2 Las RPC
 
-Las cuatro son `security definer` y tienen `search_path = ''`.
+Las tres son `security definer` y tienen `search_path = ''`.
 
 | RPC | Quién la ejecuta | Qué hace |
 |---|---|---|
 | `client_address_link_create(p_client_id, p_token_hash)` | `authenticated` (con `revoke` de `public` y `anon`). Pide un rol del Studio (`admin`, `commercial` u `operations`) en el tenant del cliente, o el rol `aliado` con la cadena comprobada (§4.3) | Revoca el enlace vigente de ese cliente, si hay uno, e inserta el nuevo. **`created_via` no es un parámetro:** la RPC lo deriva del rol que pasó la comprobación (`studio` o `aliado`), y `created_by` sale de `auth.uid()`. Rechaza a un cliente directo de DTD (sin `aliado_id`). **Solo la llama un clic de una persona** («Copiar enlace nuevo»), nunca un proceso automático (§4.5). |
-| `client_address_link_peek(p_token_hash)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Devuelve `client_id`, `tenant_id` y la marca resuelta (§4.4.3), solo si el enlace está vigente. Si no, devuelve cero filas. |
-| `client_address_link_complete(p_token_hash, p_line, p_city, p_city_slug, p_state, p_reference)` | **solo `service_role`** | Hace el consumo atómico y escribe la dirección (abajo). |
-| `client_address_link_attempt(p_attempt_key, p_succeeded)` | **solo `service_role`** | Cuenta los intentos (§4.4.4). |
+| `client_address_link_peek(p_token_hash, p_attempt_key)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Revisa el bloqueo del origen y registra el intento (abajo). Si el origen no está bloqueado y el enlace está vigente, devuelve `client_id`, `tenant_id` y la marca resuelta (§4.4.3). En cualquier otro caso devuelve cero filas. |
+| `client_address_link_complete(p_token_hash, p_attempt_key, p_line, p_city, p_city_slug, p_state, p_reference)` | **solo `service_role`** | Revisa el bloqueo, registra el intento, hace el consumo atómico, escribe la dirección y deja la auditoría (abajo). |
+
+**El bloqueo se revisa en la base, dentro de la misma transacción** que la lectura o el consumo. No depende
+de que el servidor se acuerde de hacerlo:
+
+1. Cuenta los fallos de `p_attempt_key` en `client_address_link_attempts` dentro de la ventana de §4.4.4.
+2. **Si el origen está bloqueado,** registra el intento como fallo y termina igual que con un enlace
+   inválido: `_peek` devuelve cero filas y `_complete` da el error neutro. **No llega al `update`:** un token
+   válido no se consume y no se escribe ninguna dirección.
+3. Si no está bloqueado, sigue con la lectura o el consumo, y registra el intento como fallo o como éxito
+   según el resultado.
+
+No hay una RPC aparte para los intentos.
 
 **El consumo atómico de `_complete`** pasa en una sola sentencia:
 
@@ -191,10 +202,19 @@ update public.client_address_links
 returning client_id, tenant_id;
 ```
 
+- Esta sentencia corre solo si el origen no está bloqueado (arriba).
 - Sin fila, la RPC termina con el mismo error neutro que un enlace que no existe.
-- Con fila, escribe **solo** en `client_delivery_addresses`, y solo filas del `client_id` que devolvió esa
-  sentencia. No acepta un `client_id` del que llama. `client_markbox` y `tenant_id` no los pone la RPC: los
-  sella desde `clients` el trigger de la 0198 (`0198:149`). No toca ninguna otra tabla.
+- Con fila, la dirección se escribe **solo** en `client_delivery_addresses`, y solo en filas del
+  `client_id` que devolvió esa sentencia. No acepta un `client_id` del que llama. `client_markbox` y
+  `tenant_id` no los pone la RPC: los sella desde `clients` el trigger de la 0198 (`0198:149`).
+- **Además de la dirección, `_complete` toca exactamente tres cosas:**
+  - `client_address_links.used_at`;
+  - una fila en `client_address_link_attempts`;
+  - **un evento en `entity_audit_log`** (AUD-01) con `{ campo: "delivery_address", origen: "enlace" }`,
+    el `client_id` y el id de la fila nueva. El evento no lleva el texto de la dirección, ni el token, ni
+    su hash, ni la clave del intento.
+
+  No toca ninguna otra tabla.
 - Dentro de ese cliente hace dos cosas, en este orden:
   1. si había una predeterminada vigente, un `update … set is_default = false` **solo de esa fila**. Lo
      exige el índice único de una predeterminada por cliente (`client_delivery_addresses_default_uidx`,
@@ -245,10 +265,11 @@ returning client_id, tenant_id;
 - **La misma respuesta para todo enlace inválido** (vencido, usado, revocado, inexistente o bloqueado), con
   el mismo código HTTP (200), las mismas cabeceras y el mismo texto: «Este enlace ya no está disponible.
   Pídele uno nuevo a tu aliado». Vale para la **carga** de la página y para el **envío** del formulario.
-- **El mismo trabajo en todos los casos.** El servidor siempre hace el hash del token, registra el intento y
-  llama a `_peek`, **también cuando el origen está bloqueado**. En ese caso descarta el resultado de
-  `_peek`. Así el tiempo de respuesta no distingue el bloqueo de un token inválido. En el envío, siempre
-  llama a `_complete`, que con un token inválido o bloqueado no encuentra fila.
+- **El mismo trabajo en todos los casos.** El servidor siempre calcula el hash del token y el HMAC del
+  origen, y llama a `_peek` en la carga y a `_complete` en el envío, **también cuando el origen está
+  bloqueado**. La decisión del bloqueo la toma la base dentro de esas RPC (§4.4.2), no el servidor. Así el
+  tiempo de respuesta no distingue el bloqueo de un token inválido, y un origen bloqueado no puede consumir
+  un token válido.
 - **Qué muestra:**
   - La marca de §4.4.3 y el formulario. El formulario es el de Mi perfil (`PortalAddresses.tsx`): calle,
     ciudad (del catálogo), estado y punto de referencia. No pide la cédula ni el correo.
@@ -370,7 +391,10 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      - su predeterminada anterior solo cambió `is_default`;
      - ninguna fila cambió `line`, `deleted_at` ni `client_id`;
      - el otro cliente quedó igual;
-     - ninguna otra tabla cambió, salvo `client_address_links.used_at`.
+     - fuera de `client_delivery_addresses`, solo cambiaron `client_address_links.used_at`, una fila de
+       `client_address_link_attempts` y **un** evento en `entity_audit_log`;
+     - el evento de auditoría no contiene la línea, la ciudad, la referencia, el token, su hash ni la
+       clave del intento: el test busca esos textos en el `jsonb`.
    - **`_create` rechaza** (`.test.sql`):
      - a un `authenticated` sin rol del Studio ni rol `aliado`;
      - a un aliado con un cliente de otra cadena;
@@ -390,13 +414,16 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      - las mismas cabeceras, sin contar `date`, el nonce de la CSP ni los ids de petición;
      - el mismo cuerpo **normalizado**: sin nonces, ids de React ni marcas de tiempo.
    - **El mismo trabajo.** Una prueba con las RPC simuladas comprueba que, en los cinco casos, el servidor
-     llama a `_attempt` y a `_peek` (y a `_complete` en el envío) el mismo número de veces, también con el
-     origen bloqueado.
-   - **El límite de intentos.** El sexto fallo desde el mismo origen en 15 minutos responde como inválido,
-     aunque el token sea válido, y no lo consume. La tabla guarda el HMAC del origen, nunca la IP. Un
-     `.test.sql` comprueba que la tabla no tiene `tenant_id` y que solo service_role la toca.
-   - **El acceso a las RPC.** `anon` y `authenticated` no pueden ejecutar `_peek`, `_complete` ni
-     `_attempt`: se prueba con `has_function_privilege`.
+     llama a `_peek` en la carga y a `_complete` en el envío el mismo número de veces, también con el
+     origen bloqueado, y que siempre pasa la clave del intento.
+   - **El límite de intentos**, en `.test.sql` contra las RPC reales, no simuladas:
+     - después de 5 fallos de una misma clave, `_peek` con un **token válido** devuelve cero filas;
+     - **un origen bloqueado con un token válido por el envío:** `_complete` da el error neutro, no deja
+       ninguna fila nueva en `client_delivery_addresses`, `used_at` sigue en null y no hay evento en
+       `entity_audit_log`. El mismo token, con una clave no bloqueada, después funciona;
+     - la tabla guarda el HMAC del origen, nunca la IP, no tiene `tenant_id` y solo la toca service_role.
+   - **El acceso a las RPC.** `anon` y `authenticated` no pueden ejecutar `_peek` ni `_complete`: se prueba
+     con `has_function_privilege`.
    - **Las cabeceras.** La respuesta de `/d/[token]` trae `Cache-Control: no-store` y
      `Referrer-Policy: no-referrer`.
    - **Los logs.** Una prueba captura `console.*` durante un uso válido y uno inválido, y busca el token en
@@ -453,7 +480,7 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
   - y sus pruebas.
 - **F-2:**
   - `supabase/migrations/NNNN_client_address_links.sql`, con su `.test.sql`. Lleva la tabla, la de
-    intentos y las RPC `_create`, `_peek`, `_complete` y `_attempt`;
+    intentos y las RPC `_create`, `_peek` y `_complete`;
   - `app/d/[token]/**`, y `proxy.ts` si las cabeceras van ahí;
   - `.env.example` y `infra/dtd-cargo/.env.example` (`ADDRESS_LINK_ATTEMPT_SECRET`, sin valor);
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (para reutilizar el formulario);
@@ -478,7 +505,7 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
 | SGE-00 | cumplimiento (diseño) | «Copiar enlace para el aliado» y «Cargar dirección» dicen qué hacen. |
 | BTN-01 | cumplimiento (diseño) | Guardar la dirección usa `<ActionButton>`: «Guardar» → «Guardando…» → «Listo». |
 | FRM-01 / ERR-01 | cumplimiento (diseño) | El formulario es el de Mi perfil. El enlace inválido da un mensaje neutro con su salida. |
-| AUD-01 | cumplimiento (diseño) | Cada carga por el aliado o por el enlace se audita sin el texto. |
+| AUD-01 | cumplimiento (diseño) | Cada carga por el aliado (§4.3) o por el enlace (`_complete`, §4.4.2) deja un evento en `entity_audit_log` sin el texto de la dirección, que se prueba en la §7. |
 | Privacidad CN (SDD-0531) | cumplimiento (diseño) | La lista, las RPC y el aviso no exponen datos a la región `cn`. |
 | Marca blanca (SDD-0336, 0666) | cumplimiento (diseño) | La página del enlace no muestra nada de DTD. |
 | Producción (AGENTS) | cumplimiento | No se leyó producción. |
