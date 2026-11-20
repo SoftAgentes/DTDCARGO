@@ -387,9 +387,11 @@ Propuesta, sujeta a P-1:
   - **Si los dos tenían persona,** no se fusionan personas automáticamente. Mover membresías del Club y
     matrículas de Academia de una persona a otra puede chocar con sus restricciones únicas. La persona de la
     fusionada queda como está, ligada a la ficha fusionada, que es el alias.
-  - La vista `client_completeness` (§4.2) suma `persona_por_revisar`: es verdadero cuando una ficha viva
-    absorbió a otra cuyo `person_id` es distinto del suyo. La oficina lo revisa a mano. La vista es la pieza
-    que lo implementa, y no hay trigger.
+  - **La marca entra en la F-3**, no espera a la F-8. La migración de la F-3 crea una vista mínima,
+    `client_person_review` (`security_invoker`, con la RLS del Studio). Devuelve el id de cada ficha viva
+    que absorbió a otra cuyo `person_id` es distinto del suyo, y nada más. La oficina la revisa a mano. No
+    hay trigger.
+  - Cuando llegue la F-8, la vista `client_completeness` (§4.2) toma esa vista como `persona_por_revisar`.
 
 ### 4.5 Correo (D-4, P-2)
 
@@ -417,7 +419,7 @@ Propuesta, sujeta a P-1:
      `auth_interno` en false, y pasa la cuenta de Auth a la dirección interna.
 
   Así el trigger y `dejarCuentaSinComprobar` las cubren **sin cambiar su cuerpo**.
-- **Los pasos 1 y 2 los hace una sola RPC**, `client_email_change_service(p_client_id, p_new_email)`:
+- **Los pasos 1 y 2 los hace una sola RPC**, `client_email_change_service(p_client_id, p_new_email, p_actor)`:
   - es `security definer`, con `search_path = ''`, y **solo la ejecuta service_role** (`revoke` de
     `public`, `anon` y `authenticated`), porque `client_email_checks` está revocada para `authenticated`
     (`0559:145`);
@@ -425,7 +427,17 @@ Propuesta, sujeta a P-1:
   - crea la fila (paso 1) y hace el `update` de `clients.email` (paso 2) **en la misma transacción**. Si
     cualquiera de los dos falla, no queda nada: ni una fila con `pending_email` en el correo anterior (que
     dejaría la cuenta trabada en `/entrar`) ni el correo cambiado a medias;
-  - si la cuenta ya tiene fila en `client_email_checks`, no crea otra y solo hace el `update`.
+  - si la cuenta ya tiene fila en `client_email_checks`, no crea otra y solo hace el `update`;
+  - **el actor real queda en la auditoría.** El trigger `audit_d5_clients_contact` toma el actor de
+    `auth.uid()` y, si es nulo, registra `'system'` (`0293:358-359`). Con service_role, `auth.uid()` sería
+    nulo. Por eso la RPC recibe `p_actor`, que es el `auth.uid()` del operador que la acción ya verificó, y
+    antes del `update` hace `perform set_config('request.jwt.claim.sub', p_actor::text, true)`. Eso dura solo
+    en la transacción. Así `auth.uid()` devuelve al operador dentro del trigger, y el audit registra
+    `'user'` con su id;
+  - **el orden en la acción:** cuando el correo cambia, `updateClientAction` guarda los demás campos **sin
+    `email`** y después llama a la RPC, que es **la única que escribe `clients.email`** en ese flujo. La
+    acción no hace otro `update` del correo. Si la RPC falla, la acción responde con el error del correo, y
+    el mensaje dice que los demás datos sí se guardaron.
 - La tarjeta de acceso de la ficha dice «Sin comprobar desde …» y el botón «Reenviar comprobación» sirve
   para cualquier cuenta, no solo para las del enlace.
 
@@ -526,18 +538,27 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
      permite.
    - Pasan a usarla los cuatro llamadores:
      - en el Studio, `addClientAddressAction` y `setDefaultClientAddressAction`;
-     - en el portal, `address-actions.ts`, con su alta y **`updateAddressAction`**, que hoy limpia y
-       actualiza en dos peticiones (`app/portal/(app)/perfil/address-actions.ts:89-92`).
+     - en el portal, `app/portal/(app)/perfil/address-actions.ts`. Hoy tiene tres caminos que limpian y
+       marcan en dos peticiones:
+       - `addAddressAction` (`:36`), incluida su rama de «misma dirección», que llama a
+         `setDefaultDeliveryAddress` (`:53`), y la de alta nueva, que llama a `clearDefaultForClient` y a
+         `insertClientDeliveryAddress` (`:57-59`);
+       - **`updateAddressAction`** (`:89-92`);
+       - **`setDefaultAddressAction`** (`:102`, que llama a `setDefaultDeliveryAddress` en `:109`).
 
-     `clearDefaultForClient` deja de llamarse por separado. **Los triggers de los puntos 2 a 4 no entran
+     `clearDefaultForClient` y `setDefaultDeliveryAddress` dejan de llamarse por separado. **Los triggers de los puntos 2 a 4 no entran
      hasta que la app use esta RPC en `main` y en producción.**
 2. **Marcar la primera fila.** Un trigger `before insert` (normal, no de restricción, porque un constraint
    trigger no puede modificar `new`), **`security invoker`**: si el cliente no tiene ninguna fila viva
    predeterminada, pone `new.is_default = true`.
-3. **Promover al borrar.** Un trigger **`after update of deleted_at`** por fila, **`security invoker`**,
-   con `when (old.deleted_at is null and new.deleted_at is not null and old.is_default)`:
-   - limpia `is_default` de la fila borrada, para que no quede una borrada marcada;
-   - marca predeterminada a la fila viva más reciente del mismo cliente.
+3. **Promover al borrar**, con dos triggers sobre la misma condición,
+   `when (old.deleted_at is null and new.deleted_at is not null and old.is_default)`. Los dos son
+   `security invoker`:
+   - **`before update of deleted_at`:** pone `new.is_default = false` en la **misma fila**. Tiene que ir en
+     `before`, porque un segundo `update` de la fila ya borrada afectaría cero filas sin error: la política
+     de la 0198 exige `deleted_at is null`;
+   - **`after update of deleted_at`:** marca predeterminada a la fila viva más reciente del mismo cliente.
+     Esa fila está viva, así que la política la deja escribir.
 
    Va en `after` porque ahí la fila borrada ya no cuenta para el índice parcial (`where is_default and
    deleted_at is null`). En `before`, la promoción chocaría con el índice. Sin filas vivas, el cliente se
@@ -548,7 +569,7 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
    - revisa **los dos clientes**, el de `old.client_id` y el de `new.client_id`, porque la fusión mueve
      filas de un cliente a otro;
    - falla si alguno de los dos tiene filas vivas y no exactamente una predeterminada;
-   - **es el único `security definer`** de los tres, con `search_path = ''`, para contar todas las filas del
+   - **es el único `security definer`** de los cuatro, con `search_path = ''`, para contar todas las filas del
      cliente aunque la RLS del que escribe solo le deje ver algunas. Devuelve solo el error, sin datos.
 5. **Preflight en la migración**, en la misma transacción que crea los triggers:
    - primero, `lock table public.client_delivery_addresses in share row exclusive mode`, para que nadie
@@ -680,7 +701,8 @@ Cada pregunta trae la recomendación primero.
        diciembre y no en enero;
      - Aging, Dirección y KPIs reciben el día de Caracas por defecto.
 4. **F-3, identidad.** Una ficha nueva dada de alta por cualquiera de los cuatro caminos queda con
-   `person_id`. Con la cédula de una ficha, Academia no crea otra persona. Un cliente nuevo inscrito en el
+   `person_id`. Al fusionar dos fichas con personas distintas, el sobreviviente aparece en
+   `client_person_review`. Con una sola persona, no aparece y toma la persona por el `coalesce`. Con la cédula de una ficha, Academia no crea otra persona. Un cliente nuevo inscrito en el
    Club lo ve en el portal. La vista muestra el nombre de la ficha y no el de la copia.
 5. **F-4, correo y asesor.**
    - Cambiar el correo de una cuenta activa nacida en `/registro`, en el enlace **o en una invitación de la
@@ -690,6 +712,8 @@ Cada pregunta trae la recomendación primero.
      `pending_email` igual al correo anterior, el `update` al nuevo deja `client_users.email` en la dirección
      interna y `pending_email` en el nuevo. **Un caso de control** crea la fila con `pending_email` igual al
      nuevo y comprueba que el trigger no actúa. Así queda probado por qué el orden importa.
+   - Con `p_actor`, el evento de `audit_d5_clients_contact` tiene `actor_type = 'user'` y ese id, no
+     `'system'`.
    - `client_email_change_service` solo la ejecuta service_role (`has_function_privilege`). Si el `update`
      falla (por ejemplo, un correo inválido), no queda ninguna fila nueva en `client_email_checks`.
    - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
@@ -705,10 +729,12 @@ Cada pregunta trae la recomendación primero.
    existe solo si Q1 dio cero.
 9. **F-9, una predeterminada.**
    - **F-9a**, con Vitest y `.test.sql`:
-     - Mi perfil (alta y `updateAddressAction`) y la tarjeta del Studio cambian la predeterminada en **una
-       sola llamada** a `client_delivery_address_save`;
-     - una prueba de contrato falla si `clearDefaultForClient`, o `updateClientDeliveryAddress` con
-       `isDefault`, vuelven a llamarse fuera de la RPC;
+     - Mi perfil (`addAddressAction` con sus dos ramas, `updateAddressAction` y `setDefaultAddressAction`) y
+       la tarjeta del Studio cambian la predeterminada en **una sola llamada** a
+       `client_delivery_address_save`;
+     - una prueba de contrato falla si `clearDefaultForClient`, `setDefaultDeliveryAddress`, o
+       `insertClientDeliveryAddress` y `updateClientDeliveryAddress` con `isDefault`, vuelven a llamarse
+       fuera de la RPC en `app/` o `lib/`;
      - funcionan por los dos caminos: agregar una predeterminada, elegir otra existente y editar la
        predeterminada sin cambiar la marca;
      - desmarcar la única predeterminada devuelve el error de campo y no cambia nada;
@@ -729,7 +755,9 @@ Cada pregunta trae la recomendación primero.
      - con un cliente sembrado sin predeterminada, el preflight aborta la migración, y el mensaje lleva el
        conteo y ningún id ni markbox;
      - borrar la predeterminada deja a la borrada con `is_default = false`, y el trigger no dispara al
-       borrar una fila que no era la predeterminada.
+       borrar una fila que no era la predeterminada;
+     - **estos casos corren con `set role authenticated`** y el claim del cliente o del operador, no como
+       superusuario, para que la RLS de la 0198 aplique igual que en producción.
 
 ## 11. Archivos (allowlist provisional)
 
@@ -744,6 +772,8 @@ migraciones las numera Dir_DTD.
   - migraciones `NNNN_dia_caracas.sql` y `NNNN_correlativos_anio_caracas.sql`, con su `.test.sql`;
   - `lib/studio/fiscal/queries.ts` y `fiscal/types.ts`;
   - `lib/studio/reports/queries.ts`, `lib/studio/direccion/queries.ts` y `lib/studio/dashboard/dashboard-kpi-queries.ts`;
+  - el aviso del plan B (del 29 al 31 de diciembre): `app/studio/(app)/facturacion/page.tsx`, que usa
+    `app/studio/_components/ui/Aviso.tsx` sin cambiarlo, con su prueba;
   - pruebas: `lib/studio/fiscal/__tests__/types.test.ts` y `queries.test.ts` (ya existen y se extienden),
     `lib/studio/reports/__tests__/aging-hoy-caracas.test.ts`,
     `lib/studio/direccion/__tests__/hoy-caracas.test.ts` y
@@ -751,6 +781,7 @@ migraciones las numera Dir_DTD.
 - **F-3:**
   - migración `NNNN_persona_de_la_ficha.sql`, con su `.test.sql`;
   - `lib/studio/academia/queries.ts`, `lib/studio/club/club-member-queries.ts` y `lib/portal/portal-club-queries.ts`;
+  - la vista `client_person_review` en la misma migración `NNNN_persona_de_la_ficha.sql`;
   - pruebas de cada uno, en su carpeta `__tests__/`.
 - **F-4:**
   - `app/studio/(app)/clientes/actions.ts` (`updateClientAction` y `dejarCuentaSinComprobar`);
@@ -776,10 +807,10 @@ migraciones las numera Dir_DTD.
 - **F-9a:**
   - `NNNN_client_delivery_address_save.sql`, con su `.test.sql`;
   - `lib/studio/client-address-queries.ts`;
-  - `app/portal/(app)/perfil/address-actions.ts` (alta y `updateAddressAction`) y
+  - `app/portal/(app)/perfil/address-actions.ts` (`addAddressAction`, `updateAddressAction` y `setDefaultAddressAction`) y
     `app/studio/(app)/clientes/actions.ts` (`addClientAddressAction` y `setDefaultClientAddressAction`);
   - sus pruebas.
-- **F-9b:** `NNNN_una_predeterminada_por_cliente.sql` (los tres triggers y el preflight), con su `.test.sql`.
+- **F-9b:** `NNNN_una_predeterminada_por_cliente.sql` (los cuatro triggers y el preflight), con su `.test.sql`.
   El arreglo de las fichas actuales no va en el repo como migración: es una operación de datos con acta.
 
 ## 12. Clasificación de gobernanza

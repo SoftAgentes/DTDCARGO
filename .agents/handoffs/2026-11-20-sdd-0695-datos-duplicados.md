@@ -134,3 +134,15 @@
 - **La persona fusionada.** La F-3 decide sin tocar `merge_clients`: con una sola persona rige el
   `coalesce` de siempre, y con dos queda marcada en `persona_por_revisar` para la oficina.
 - **Plan B de la F-2.** Dice quién avisa y dónde queda escrito. La allowlist pone la F-9 después de la F-8.
+
+## Quinta vuelta (sobre 343a36dec), corregida
+
+- **Mi perfil.** `addAddressAction`, con su rama «misma dirección», `updateAddressAction` y
+  `setDefaultAddressAction` pasan a la RPC. La prueba de contrato prohíbe `setDefaultDeliveryAddress` y
+  `clearDefaultForClient` fuera de ella.
+- **La fila borrada.** Un `before update` limpia `is_default` en la misma fila y un `after` promueve la
+  siguiente. La aceptación 9 corre con `set role authenticated`.
+- **El correo.** `p_actor` llega por `set_config('request.jwt.claim.sub', …, true)`, así que el audit
+  registra al operador. La RPC es la única que escribe `clients.email` en ese flujo.
+- **`persona_por_revisar`.** Pasa a la F-3 como la vista mínima `client_person_review`.
+- **Plan B.** El aviso está en la allowlist de la F-2 (`facturacion/page.tsx` y `Aviso.tsx`).
