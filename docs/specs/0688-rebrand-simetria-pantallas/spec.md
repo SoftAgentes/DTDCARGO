@@ -64,7 +64,7 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 
 Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su código y en su documentación pública (ver `docs/design/rebrand-erp/evaluacion-carbon.md` §4). **No se instala ninguna librería.**
 
-**Para BTN-01 (pasaría a v1.2):**
+**Para BTN-01 (pasaría a v1.3; la v1.2 la tomó SDD-0686 para el color de `primary`):**
 
 1. Etiqueta de **verbo + sustantivo** («Guardar cambios», «Crear embarque»), salvo los comunes («Cancelar», «Cerrar», «Eliminar»).
 2. **Máximo tres acciones visibles por grupo**; la cuarta va al menú de acciones.
@@ -107,7 +107,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 
 | Fase | Qué | Tamaño |
 |---|---|---|
-| **1** | **Reglas:** BTN-01 v1.2, política de mensajes, medidas (§3), con Sam | S |
+| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam | S |
 | **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra | M |
 | **3** | **Paneles:** `tamano` y `DrawerFooter` obligatorio; migración de los 117 paneles por grupos | M-L |
 | **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px, los 11 sin `type`, y la variante destructiva en tres énfasis | M |
