@@ -14,8 +14,8 @@ confidencialidad: interno
 # SDD-0698 — Factura: Facturar a y Entregar en
 
 > **Estado: propuesta para que Sam la apruebe.** No trae código, ni migraciones, ni cambios de producto.
-> Las decisiones de Sam van citadas con su fecha (§3). Las preguntas abiertas están en la §11, una por una,
-> cada una con su opción recomendada (⭐).
+> Las decisiones de Sam van citadas con su fecha (§3). Las seis preguntas de la §11 ya están contestadas
+> (decisiones 6 a 11). Falta que Sam apruebe la spec completa.
 >
 > Los ejemplos son inventados. No hay datos, conteos ni montos de producción.
 
@@ -50,9 +50,11 @@ el dato, las reglas, las pantallas y sus fases.
 - En el Studio, la opción de la principal sale con `fiscalAddress: null` (`lib/studio/invoice-billing.ts:46-52`).
   La vista previa del borrador, «Así sale en la factura», solo muestra una dirección para la alterna
   (`app/studio/(app)/facturacion/_components/InvoiceTitularPicker.tsx:140-146`).
-- La cabecera de la 0466 dice «NO APLICADA A PRODUCCIÓN» (`0466:5-10`), pero ya no figura como espera:
-  `supabase/migrations-baseline.json:39` tiene `pendingBelowCutoff` vacío. No leí producción. Dir_DTD
-  confirma su estado antes de la F-2 (§7).
+- **La 0466 está aplicada en producción** desde el 2026-09-19. Lo dice el ledger
+  (`0466_client_billing_identity`), según confirmó Dir_DTD el 2026-11-20. La cabecera «NO APLICADA A
+  PRODUCCIÓN» (`0466:5-10`) es texto viejo y no se corrige, porque la migración está sellada. En el repo
+  tampoco figura como espera: `supabase/migrations-baseline.json:39` tiene `pendingBelowCutoff` vacío.
+  Este Worker no leyó producción.
 
 ### 2.2 Dirección de entrega del cliente
 
@@ -130,6 +132,26 @@ Llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
    > opción, queda su dirección principal como predeterminada. A la hora de facturar, siempre va a salir la
    > que él escoja como predeterminada en su portal.»
 
+Las decisiones 6 a 11 son las respuestas de Sam a las preguntas P-1 a P-6 (§11). Las dio directamente a este
+Worker el 2026-11-20, a pedido de Dir_DTD. Van literales.
+
+6. **P-1, varios embarques con direcciones distintas:**
+
+   > «Sí, la factura solo muestra la dirección predeterminada. Realmente, cuando hay una emisión de
+   > embarque, adentro del embarque las instrucciones de embarque sí dan especificaciones. En la factura no
+   > se requiere; solamente facturación global y listo. Lo que quiero hacer es que, en los embarques que
+   > tengan diferentes direcciones, poner una letra o algo que avise que es otra dirección diferente a la
+   > predeterminada, o un aviso pequeño en el ERP que diga: "Varias direcciones, cliente escogió varias
+   > direcciones, revisar". La revisión es porque si hay una zona que está fuera del precio, podemos
+   > refacturar. Eso después lo reanalizamos más adelante.»
+
+   Cómo queda: la factura no trae detalle por embarque. El aviso va en el ERP, no en el papel (§5.3).
+7. **P-2, la casilla sigue a la predeterminada:** «La sigue (Recomendado)».
+8. **P-3, la casilla viene marcada:** «Marcada, salvo empresas con domicilio (Recomendado)».
+9. **P-4, el corte para el cliente:** «Hasta llegar a Venezuela».
+10. **P-5, quién edita la dirección fiscal en el Studio:** «Solo en el borrador (Recomendado)».
+11. **P-6, cliente sin dirección de entrega:** «Emitir sin el bloque (Recomendado)».
+
 ## 4. Modelo de datos
 
 Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
@@ -149,8 +171,11 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
 | `created_at`, `updated_at` | timestamptz | — |
 
 - `unique (client_id, kind)`.
-- **Sin fila, se entiende que la casilla está marcada.** Así, ningún cliente necesita una fila nueva para
-  que su factura tenga dirección. Esto depende de la pregunta P-3 (§11).
+- **Sin fila, se entiende que la casilla está marcada** (decisión 8). Así, ningún cliente necesita una fila
+  nueva para que su factura tenga dirección. Las empresas que ya tienen domicilio fiscal quedan desmarcadas
+  por la copia de abajo.
+- **La casilla sigue a la predeterminada** (decisión 7): no se copia ningún texto. Si el cliente cambia su
+  predeterminada, la dirección fiscal cambia para las facturas nuevas; las emitidas no cambian.
 - **Por qué una tabla y no una columna en `clients`:**
   - la 0466 decidió no agregar columnas a `clients` (`0466:25`);
   - la SDD-0695 pide una fuente por dato;
@@ -171,8 +196,9 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
     `portal_set_my_fiscal_address(p_kind, p_same_as_delivery, p_line, p_city, p_state)`, la escribe. Las dos
     son `security definer`, con `search_path = ''`, EXECUTE solo para `authenticated`, y el cliente sale de
     la sesión, nunca de un parámetro;
-  - en el Studio, SELECT para `accounting`, `admin` y `commercial` del tenant, como `0466:52`. Quién la
-    edita desde el Studio depende de la pregunta P-5;
+  - en el Studio, SELECT para `accounting`, `admin` y `commercial` del tenant, como `0466:52`. **El Studio
+    no escribe en esta tabla** (decisión 10): la oficina corrige la dirección solo en el borrador de cada
+    factura (§5.2), y eso queda en la auditoría;
   - `service_role`: todo.
 - **Borrar la identidad alterna** (`portal_delete_my_billing_identity`, 0466) borra también su fila de
   dirección fiscal, en la misma transacción.
@@ -193,14 +219,13 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
 |---|---|---|
 | `ship_to_address` | text | La dirección de «Entregar en», en texto: `line`, ciudad y estado |
 | `ship_to_address_id` | uuid, sin FK | La fila de `client_delivery_addresses` de la que salió. Sirve de rastro. Queda en null si se editó a mano o si no había dirección |
-| `ship_to_by_shipment` | jsonb | Las entregas de los embarques que van a otra dirección: `[{ "shipmentCode": "…", "address": "…" }]`. Depende de la pregunta P-1 |
 | `addresses_sealed_at` | timestamptz | La hora del sello. **Es la marca que separa una factura nueva de una vieja** |
 
 **El trigger** `invoices_seal_billing_titular` se redefine en una migración nueva. Conserva todo lo de la
 0466 y agrega lo siguiente:
 
-1. **Congelado:** a la lista de `0466:265-269` se suman `ship_to_address`, `ship_to_address_id`,
-   `ship_to_by_shipment` y `addresses_sealed_at`.
+1. **Congelado:** a la lista de `0466:265-269` se suman `ship_to_address`, `ship_to_address_id` y
+   `addresses_sealed_at`.
 2. **En el borrador**, `client_fiscal_address` y `ship_to_address` solo los escribe el operador cuando edita
    esa factura. **Null significa «sigue al cliente».**
 3. **Al emitir**, en el mismo momento que hoy (`0466:275-280`):
@@ -216,8 +241,8 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
      - si no, la **predeterminada vigente** del cliente de la factura (decisión 5);
      - si no hay predeterminada pero sí filas vigentes, la más reciente, con la misma regla que el helper
        `direccionDeEntrega` de la 0694 (§4.1 de esa spec). Ver §9;
-     - sin filas vigentes, queda en null.
-   - **Por embarque:** ver §5.3.
+     - sin filas vigentes, queda en null, y la factura sale sin el bloque (decisión 11).
+   - **Por embarque no se sella nada** (decisión 6). El aviso de varias direcciones es del ERP (§5.3).
    - `addresses_sealed_at := now()`.
    - **Auditoría:** si el borrador editó alguna de las dos direcciones, se registra
      `invoice_address_overridden` con `append_audit_event`, igual que `0466:323-345`. El payload lleva
@@ -248,9 +273,11 @@ sello» de la decisión 4 (§5.4).
   predeterminada. La columna no se limpia sola.
 - **Quién la cambia:**
   - **el cliente, en el portal**, con una RPC de sesión nueva, `portal_set_shipment_delivery_address(p_shipment_code,
-    p_address_id)`. Null vuelve a la predeterminada. Funciona **hasta el corte** que defina la pregunta
-    P-4. Después responde con un error de campo: «Este embarque ya salió a reparto. Escríbenos para
-    cambiar la entrega»;
+    p_address_id)`. Null vuelve a la predeterminada. Funciona **hasta que el embarque llega a Venezuela**
+    (decisión 9). Se propone medirlo con `shipments.arrived_destination_at` no nulo
+    (`lib/studio/warehouse-ve-queries.ts:27`). La F-3 confirma que esa columna y el estado de llegada
+    dicen lo mismo. Después responde con un error de campo: «Este embarque ya llegó a Venezuela.
+    Escríbenos para cambiar la entrega»;
   - **el equipo, en el Studio**, en la ficha del embarque, con los mismos roles que hoy escriben
     `shipments`;
   - los dos dejan auditoría `shipment_delivery_address_changed`, con la fila elegida (su id) y sin el
@@ -275,7 +302,6 @@ sello» de la decisión 4 (§5.4).
 | Nombre y documento de «Facturar a» | Al emitir (como hoy) | La identidad elegida (`bill_to_kind` o la preferencia) |
 | Dirección de «Facturar a» | Al emitir | La edición del borrador o, si no hay, la dirección fiscal de esa identidad (§4.1) |
 | «Entregar en» | Al emitir | La edición del borrador o, si no hay, la predeterminada vigente del cliente de la factura |
-| Entregas por embarque | Al emitir | La dirección elegida de cada embarque de las líneas, solo si es distinta de la de «Entregar en» (§5.3) |
 
 **Si después el cliente cambia su dirección, solo cambian las facturas nuevas** (decisión 1). Lo garantiza
 el congelado del trigger, no la pantalla.
@@ -289,40 +315,46 @@ el congelado del trigger, no la pantalla.
 - La edición **solo vale para esa factura**. No cambia el perfil del cliente.
 - Si el cliente cambia su predeterminada mientras la factura está en borrador, el bloque sin editar muestra
   la nueva. El bloque editado conserva lo que escribió el operador.
-- **Cliente sin dirección de entrega:** depende de la pregunta P-6. La opción recomendada es que el
-  borrador muestre `<Aviso tono="atencion">`, «Este cliente no tiene dirección de entrega», con el botón
-  «Pedir» de la 0694 (§4.4 de esa spec), y que la factura se emita igual, sin el bloque.
+- **Cliente sin dirección de entrega** (decisión 11): el borrador muestra `<Aviso tono="atencion">`, «Este
+  cliente no tiene dirección de entrega», con el botón «Pedir» de la 0694 (§4.4 de esa spec). La factura se
+  emite igual, sin el bloque «Entregar en».
 - Las facturas que nacen ya emitidas (RPC 0128 y `exc0674_facturar`) no tienen borrador: se sellan con lo
   que tenga el cliente en ese momento.
 
 ### 5.3 Una factura con varios embarques que van a direcciones distintas
 
-Sam dice que en la factura sale la predeterminada (decisión 5). **Propuesta, pendiente de la pregunta P-1:**
+**La factura solo muestra la predeterminada** (decisiones 5 y 6). No lleva detalle por embarque: la
+entrega de cada embarque la dicen sus instrucciones de embarque, y la factura es «facturación global».
 
-- el encabezado «Entregar en» lleva la predeterminada, como dijo Sam;
-- **debajo de las líneas**, un bloque «Entregas por embarque» que lista **solo** los embarques que van a
-  otra dirección. Se sella en `ship_to_by_shipment`. Si todos van a la predeterminada, el bloque no sale.
+**El aviso va en el ERP, no en el papel** (decisión 6). Se calcula en vivo y no se sella:
+
+- **En Embarques del Studio**, el embarque cuya dirección elegida (`delivery_address_id`) no es la
+  predeterminada actual del cliente lleva una marca corta, **«Otra dirección»**. Es texto, no solo color.
+  El drawer del embarque muestra cuál es la dirección.
+- **En Facturación del Studio**, el borrador y el detalle de una factura muestran `<Aviso tono="atencion">`
+  si alguno de sus embarques tiene otra dirección: **«Varias direcciones: el cliente escogió varias
+  direcciones de entrega. Revisar.»** El aviso lista los códigos de esos embarques. Para eso se leen
+  `shipment_id` y los `shipmentCode` de las líneas (`invoice-types.ts:32-38`). Las líneas sin código
+  (facturas hechas a mano) no cuentan.
+- **No sale en el PDF, ni en el comprobante del portal, ni en la ficha del envío del cliente.**
+- Para qué sirve: si una dirección está en una zona fuera del precio, la oficina puede refacturar. **Ese
+  análisis de zonas y precio se hará más adelante** (§12).
 
 Ejemplo inventado: la factura F-2026-0999 de DTD-9001 cubre tres embarques; dos van a la predeterminada y
 uno a otro almacén.
 
 ```text
-Facturar a                          Entregar en
-Comercial Ejemplo, C.A.             Av. Principal, Galpón 3
-RIF: J-00000000-0                   Valencia, Carabobo
+PDF y comprobante                   Studio (borrador o detalle)
+Facturar a                          ⚠ Varias direcciones: el cliente escogió
+Comercial Ejemplo, C.A.               varias direcciones de entrega. Revisar.
+RIF: J-00000000-0                     DTDU-0003
 Calle 1, Torre A, piso 2
-Caracas, Distrito Capital
-
-Líneas
-  DTDU-0001  Flete consolidado  …
-  DTDU-0002  Flete consolidado  …
-  DTDU-0003  Flete consolidado  …
-
-Entregas por embarque
-  DTDU-0003 → Calle 5, Depósito Norte, Maracay, Aragua
+Caracas, Distrito Capital           Embarques
+                                      DTDU-0001
+Entregar en                           DTDU-0002
+Av. Principal, Galpón 3               DTDU-0003  Otra dirección
+Valencia, Carabobo
 ```
-
-Las líneas sin `shipmentCode` (facturas hechas a mano, `invoice-types.ts:32-37`) no entran al bloque.
 
 ### 5.4 Facturas viejas sin sello
 
@@ -331,8 +363,7 @@ Una factura **emitida** con `addresses_sealed_at` en null es vieja (§4.2). Para
 - **«Facturar a»:** si tiene `client_fiscal_address` sellado (las de la identidad alterna), sale ese, como
   hoy. Si no, se muestra la dirección fiscal **actual** de la identidad sellada, con la etiqueta
   **«Dirección actual del cliente»**;
-- **«Entregar en»:** la predeterminada **actual**, con la misma etiqueta;
-- **«Entregas por embarque»:** no sale.
+- **«Entregar en»:** la predeterminada **actual**, con la misma etiqueta.
 
 Sale igual en el PDF, en el comprobante HTML y en la pantalla del Studio. Un borrador nunca lleva esa
 etiqueta, porque todavía no se ha sellado.
@@ -349,14 +380,14 @@ etiqueta, porque todavía no se ha sellado.
 |---|---|---|---|
 | **Mi perfil del portal: identidades** | `app/portal/(app)/perfil/BillingIdentityCard.tsx:57-59`, `perfil/empresa/BillingIdentityForm.tsx:100-114` | Cada identidad, también la principal, muestra «Dirección fiscal», con la casilla **«Igual a mi dirección de entrega»**. Marcada, muestra la predeterminada en solo lectura. Desmarcada, pide dirección, ciudad y estado. El campo de domicilio libre del formulario de empresa se convierte en este bloque | F-1 |
 | **Mi perfil: direcciones de entrega** | `PortalAddresses.tsx` | Solo texto de ayuda: «La predeterminada es la que sale en tus facturas, y a donde llegan tus embarques si no eliges otra». Sin cambio de datos | F-1 |
-| **Ficha del cliente en el Studio** | `app/studio/(app)/clientes/_components/ClientBillingCard.tsx:56-59` | Muestra la dirección fiscal de cada identidad, o «Igual a la dirección de entrega». Solo lectura, salvo lo que decida la pregunta P-5 | F-1 |
+| **Ficha del cliente en el Studio** | `app/studio/(app)/clientes/_components/ClientBillingCard.tsx:56-59` | Muestra la dirección fiscal de cada identidad, o «Igual a la dirección de entrega». Solo lectura: el Studio no edita la dirección fiscal del perfil (decisión 10) | F-1 |
 | **Borrador de la factura** | `InvoiceTitularPicker.tsx` y `facturacion/actions.ts:1115-1150` | Los dos bloques con vista previa, «Editar en esta factura» y «Volver a la del cliente» (§5.2). La acción manda `client_fiscal_address` y `ship_to_address`, con el mismo patrón `*_present` que usa `bill_to_kind` (`invoice-billing.ts:89-116`) | F-2 |
-| **PDF de la factura** | `lib/studio/pdf/factura-pdf.tsx:379-394` | El bloque «Cliente» pasa a ser **«Facturar a»** (nombre, documento, dirección y Shipping Mark). Se agrega **«Entregar en»** al lado y, debajo de las líneas, «Entregas por embarque». Las facturas viejas llevan la etiqueta de §5.4 | F-2 |
-| **Rutas del PDF** | `app/portal/(app)/facturas/[code]/pdf/route.ts:74`, `app/studio/(app)/facturacion/[code]/pdf/route.ts:57` | Dejan de llamar a `domicilioFiscalSellado` y llaman a un helper nuevo, `direccionesDeLaFactura(supabase, invoiceId)`, que devuelve las dos direcciones, las entregas por embarque y si la factura es vieja | F-2 |
+| **PDF de la factura** | `lib/studio/pdf/factura-pdf.tsx:379-394` | El bloque «Cliente» pasa a ser **«Facturar a»** (nombre, documento, dirección y Shipping Mark). Se agrega **«Entregar en»** al lado, con la predeterminada. Sin detalle por embarque (decisión 6). Si no hay dirección, el bloque no sale (decisión 11). Las facturas viejas llevan la etiqueta de §5.4 | F-2 |
+| **Rutas del PDF** | `app/portal/(app)/facturas/[code]/pdf/route.ts:74`, `app/studio/(app)/facturacion/[code]/pdf/route.ts:57` | Dejan de llamar a `domicilioFiscalSellado` y llaman a un helper nuevo, `direccionesDeLaFactura(supabase, invoiceId)`, que devuelve las dos direcciones y si la factura es vieja | F-2 |
 | **Comprobante HTML del portal** | `app/portal/(app)/facturas/[code]/comprobante/page.tsx:226-233` | Los mismos dos bloques y la misma etiqueta, con el mismo helper. La 0694 F-2 deja este archivo leyendo `domicilioFiscalSellado`; la 0698 F-2 lo cambia por el helper nuevo (§9) | F-2 |
-| **Detalle de la factura en el Studio** | `app/studio/(app)/facturacion/[code]/` | Los dos bloques en solo lectura cuando ya está emitida | F-2 |
-| **Ficha del envío en el portal** | `app/portal/(app)/envios/[code]/page.tsx` | Tarjeta **«Entregar en»**: muestra a dónde va y deja elegir otra dirección o «Usar mi predeterminada». Después del corte (P-4), solo lectura con el texto del error | F-3 |
-| **Embarques en el Studio** | `app/studio/(app)/embarques/_components/` (el drawer del embarque, a medir en F-3) | Campo «Entregar en», con las direcciones del cliente | F-3 |
+| **Detalle de la factura en el Studio** | `app/studio/(app)/facturacion/[code]/` | Los dos bloques en solo lectura cuando ya está emitida. Desde la F-3, el aviso «Varias direcciones» (§5.3), también en el borrador | F-2 y F-3 |
+| **Ficha del envío en el portal** | `app/portal/(app)/envios/[code]/page.tsx` | Tarjeta **«Entregar en»**: muestra a dónde va y deja elegir otra dirección o «Usar mi predeterminada». Cuando el embarque ya llegó a Venezuela (decisión 9), solo lectura con el texto del error. No muestra la marca «Otra dirección», que es del ERP | F-3 |
+| **Embarques en el Studio** | `app/studio/(app)/embarques/_components/` (el drawer del embarque, a medir en F-3) | Campo «Entregar en», con las direcciones del cliente, y la marca «Otra dirección» en la fila y en el drawer (§5.3) | F-3 |
 | **Almacén VE y TMS** | `ve/actions.ts:103-112`, `ve/_components/VeRowActions.tsx:40`, `tms/_components/RouteDrawer.tsx:56-75` | Precargan `delivery_address` con la dirección elegida o con la predeterminada | F-3 |
 | **Despacho y app del chofer** | `lib/studio/dispatch-mobile-queries.ts:161-200` | Después de la 0694 F-1 (que pasa este lector a la predeterminada), si el paquete pertenece a un embarque con dirección elegida, el chofer ve esa. El camino de la recepción a su embarque se mide en la F-3 | F-3 |
 
@@ -369,11 +400,11 @@ componentes `canonical` del Studio (`<Aviso>`, `DrawerShell`) y solo tokens `var
 |---|---|---|---|
 | F-0 | Esta spec y las respuestas de Sam (§11) | No | — |
 | **F-1** | `client_fiscal_addresses`, la copia desde `client_billing_identities.fiscal_address`, las RPC del portal, Mi perfil y la ficha del Studio | Sí: `NNNN_direccion_fiscal_por_identidad.sql` | El helper `direccionDeEntrega` de la 0694 F-1 en `main`, para mostrar la predeterminada cuando la casilla está marcada |
-| **F-2** | El sello doble, el borrador, el PDF, el comprobante HTML y la pantalla del Studio | Sí: `NNNN_factura_sella_facturar_a_y_entregar_en.sql` (**migrate-first**: sin ella, el código nuevo no tiene columnas que leer; la lectura degrada como `invoice-client-doc.ts:64-68`) | F-1 en producción, la 0694 F-2 en `main` (comparten el comprobante), y la 0466 confirmada en producción por Dir_DTD |
-| **F-3** | `shipments.delivery_address_id`, la RPC del portal, la ficha del envío, Embarques, Almacén VE, TMS, el despacho y «Entregas por embarque» | Sí: `NNNN_embarque_entregar_en.sql`, y en la misma migración, la redefinición del trigger para llenar `ship_to_by_shipment` | F-2 en producción y la 0694 F-1 en `main` (comparten `dispatch-mobile-queries.ts`) |
+| **F-2** | El sello doble, el borrador, el PDF, el comprobante HTML y la pantalla del Studio | Sí: `NNNN_factura_sella_facturar_a_y_entregar_en.sql` (**migrate-first**: sin ella, el código nuevo no tiene columnas que leer; la lectura degrada como `invoice-client-doc.ts:64-68`) | F-1 en producción, la 0694 F-2 en `main` (comparten el comprobante). La 0466 ya está en producción (§2.1) |
+| **F-3** | `shipments.delivery_address_id`, la RPC del portal, la ficha del envío, Embarques, Almacén VE, TMS, el despacho, la marca «Otra dirección» y el aviso «Varias direcciones» de Facturación | Sí: `NNNN_embarque_entregar_en.sql`. El trigger de la factura no cambia | F-2 en producción y la 0694 F-1 en `main` (comparten `dispatch-mobile-queries.ts`) |
 | F-4 | Retirar `client_billing_identities.fiscal_address` | Sí: `NNNN_retira_fiscal_address_de_identidad.sql` | F-1 a F-3 en producción, y un `git grep` sin lectores |
 
-Hasta la F-3, `ship_to_by_shipment` queda en null: todavía no hay embarques con otra dirección.
+Hasta la F-3 no hay embarques con otra dirección, así que el aviso de Facturación entra con ella.
 
 Cada fase lleva su PR, su `pnpm verify` y sus contratos SQL (`supabase/tests/*.test.sql`), que el CI corre
 en el job «Contratos SQL». Las migraciones las numera Dir_DTD y las aplica con el
@@ -418,10 +449,13 @@ Cada punto se comprueba con una prueba que corre y observa el resultado, no con 
 
 14. `portal_set_shipment_delivery_address` con una dirección de otro cliente da error. Con una dirección
     borrada, también.
-15. Después del corte de la pregunta P-4, la RPC del portal da el error de campo y no escribe nada. El
-    Studio sí puede cambiarla.
-16. Una factura con tres embarques, uno con otra dirección, sella `ship_to_by_shipment` con ese solo
-    embarque. Sin embarques distintos, queda null.
+15. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
+    campo y no escribe nada. Antes de esa fecha sí escribe. El Studio la puede cambiar siempre, hasta la
+    entrega.
+16. Una factura con tres embarques, uno con otra dirección, muestra en el Studio el aviso «Varias
+    direcciones» con ese solo código, y su PDF y su comprobante no traen ningún detalle por embarque. Sin
+    embarques con otra dirección, el aviso no sale. La fila de ese embarque en Embarques lleva «Otra
+    dirección».
 17. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
     sobrevive.
 18. El chofer ve la dirección elegida del embarque cuando la hay, y la predeterminada cuando no.
@@ -445,7 +479,7 @@ entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 | Una sola predeterminada por cliente (RPC atómica y triggers) | **0695** F-9 | No la repite. Mientras la F-9 no esté, el sello usa «la más reciente» si no hay predeterminada, como el helper de la 0694 |
 | El registro de fuentes únicas y la guardia de CI | **0695** F-1 (§4.1 y §4.8) | Agrega dos filas: la dirección fiscal (`client_fiscal_addresses`) y la dirección del embarque (`shipments.delivery_address_id`). Agrega `client_billing_identities.fiscal_address` a la lista de lectores congelados hasta la F-4 |
 | Las copias selladas de `invoices` | **0695** §2.1 («copias intencionales») | Las columnas nuevas de §4.2 son copias intencionales con la misma razón. Se suman a esa lista |
-| El cliente final del aliado y su dirección | **0696** | Ver §12 |
+| El cliente final del aliado y su dirección, y la factura del aliado raíz | **0696** | Es una dependencia: el aviso «Varias direcciones» de la 0698 mira solo los embarques del cliente de la factura hasta que la 0696 decida. Ver §12 |
 
 ## 10. `revisar-datos-ve` aplicado
 
@@ -457,7 +491,7 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
 |---|---|---|---|
 | `client_fiscal_addresses.line`, `city`, `state` (nuevo) | Dirección fiscal de cada identidad | Que la factura sirva al contador del cliente (SDD-0298) | El equipo de `accounting`, `admin` y `commercial` |
 | `invoices.client_fiscal_address` (ya existe; ahora siempre lleno) | Copia sellada de «Facturar a» | El documento | Quien ve la factura: el cliente y los roles que ven montos (RLS 0414) |
-| `invoices.ship_to_address` y `ship_to_by_shipment` (nuevos) | Copia sellada de «Entregar en» | El documento | Lo mismo |
+| `invoices.ship_to_address` (nuevo) | Copia sellada de «Entregar en» | El documento | Lo mismo |
 | `shipments.delivery_address_id` (nuevo) | A cuál de sus direcciones va el embarque | La entrega | El equipo y el chofer |
 
 **Los doce puntos:**
@@ -493,61 +527,38 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
    - La tarjeta «Entregar en» del Studio y la de Embarques pasan por el ocultamiento de la región `cn`
      (`lib/studio/privacidad-cn.ts`). La F-3 lo prueba.
 10. **Decisiones automatizadas.** El sello es una regla visible: el borrador muestra qué saldrá y deja
-    editarlo. El corte de la pregunta P-4 se explica en el mismo error.
+    editarlo. El corte de la llegada a Venezuela se explica en el mismo error.
 11. **Valor probatorio.** No aplica: la factura no se firma.
 12. **Titulares que no son usuarios.** Una dirección de entrega puede ser la de otra persona. La factura la
-    imprime solo si el cliente la eligió como predeterminada o para ese embarque, y no imprime la referencia.
+    imprime solo si el cliente la eligió como predeterminada, y no imprime la referencia. La dirección elegida para
+    un embarque solo la ve el equipo en el ERP y el chofer.
 
 La skill recomienda que otro modelo revise esta sección antes de la F-2.
 
-## 11. Preguntas para Sam, una por una
+## 11. Preguntas para Sam: todas contestadas
 
-**P-1. Si una factura junta varios embarques y uno va a otra dirección, ¿cómo lo mostramos?**
+Sam las contestó el 2026-11-20, una por una. Las respuestas literales están en la §3.
 
-- ⭐ **Opción A (recomendada):** arriba, en «Entregar en», tu dirección predeterminada. Debajo de las
-  líneas, un bloque «Entregas por embarque» con **solo** los embarques que van a otra dirección. Si todos
-  van a la predeterminada, ese bloque no sale.
-- Opción B: solo la predeterminada, sin detalle por embarque.
-- Opción C: un bloque «Entregar en» por cada embarque, siempre.
-
-**P-2. La casilla «igual a mi dirección de entrega», ¿sigue a la predeterminada o la copia una sola vez?**
-
-- ⭐ **Opción A (recomendada): la sigue.** Si el cliente cambia su predeterminada, su dirección fiscal
-  cambia para las facturas nuevas. Las emitidas no cambian.
-- Opción B: la copia una vez, al marcar la casilla. Después hay que actualizarla a mano.
-
-**P-3. ¿La casilla viene marcada por defecto?**
-
-- ⭐ **Opción A (recomendada):** sí, marcada, para la persona principal y para las empresas que no tienen
-  domicilio fiscal cargado. Las empresas que ya lo tienen lo conservan, con la casilla desmarcada.
-- Opción B: desmarcada para todos. Mientras el cliente no cargue su dirección fiscal, «Facturar a» sale sin
-  dirección.
-
-**P-4. ¿Hasta cuándo puede el cliente cambiar a dónde llega un embarque?**
-
-- ⭐ **Opción A (recomendada):** hasta que el embarque sale a reparto. Después, solo la oficina.
-- Opción B: hasta que llega a Venezuela.
-- Opción C: siempre, hasta que se entrega.
-
-**P-5. ¿Quién edita la dirección fiscal desde el Studio?**
-
-- ⭐ **Opción A (recomendada):** en el perfil la cambia solo el cliente, como hoy con su empresa. La
-  oficina la corrige en el borrador de cada factura, y eso queda en la auditoría.
-- Opción B: el asesor también la edita en la ficha del cliente.
-
-**P-6. ¿Qué hacemos con la factura de un cliente sin dirección de entrega?**
-
-- ⭐ **Opción A (recomendada):** se emite igual, sin el bloque «Entregar en». El borrador avisa y ofrece el
-  botón «Pedir» de la 0694.
-- Opción B: no deja emitir hasta que el cliente tenga una dirección.
+| Pregunta | Respuesta | Decisión |
+|---|---|---|
+| P-1. Si una factura junta varios embarques y uno va a otra dirección, ¿cómo lo mostramos? | La factura muestra solo la predeterminada. En el ERP, una marca en el embarque y el aviso «Varias direcciones… revisar» | 6 |
+| P-2. La casilla «igual a mi dirección de entrega», ¿sigue a la predeterminada o la copia una vez? | La sigue | 7 |
+| P-3. ¿La casilla viene marcada por defecto? | Marcada, salvo las empresas con domicilio fiscal | 8 |
+| P-4. ¿Hasta cuándo puede el cliente cambiar a dónde llega un embarque? | Hasta que llega a Venezuela | 9 |
+| P-5. ¿Quién edita la dirección fiscal desde el Studio? | Solo en el borrador de cada factura | 10 |
+| P-6. ¿Qué hacemos con la factura de un cliente sin dirección de entrega? | Se emite sin el bloque «Entregar en» | 11 |
 
 ## 12. Fuera de alcance
 
 - **La factura a nombre del aliado** (SDD-0674 con aliado raíz, `0564:11-15`). La mercancía es del cliente
   final, pero la factura va al aliado. Esta spec sella «Entregar en» con la predeterminada **del cliente de
-  la factura**, y «Entregas por embarque» solo con los embarques de ese mismo cliente. Si la factura del
+  la factura**, y el aviso «Varias direcciones» mira solo los embarques de ese mismo cliente. Si la factura del
   aliado tiene que mostrar las direcciones de sus clientes finales, eso lo define la **SDD-0696**.
-  Dir_DTD lo coordina.
+  **Es una dependencia de esta spec**: lo que decida la 0696 puede ampliar el aviso «Varias direcciones»
+  a los embarques de los clientes finales. Dir_DTD estuvo de acuerdo el 2026-11-20 y lo coordina.
+- **Refacturar por zona fuera del precio.** El aviso «Varias direcciones» sirve para que la oficina lo
+  revise, pero el análisis de zonas y precio, y cómo se refactura, lo reanaliza Sam más adelante
+  (decisión 6).
 - Facturación fiscal SENIAT, notas de crédito y numeración fiscal: no existen en el sistema.
 - Mover `clients.city` y `clients.state`, o `lat`/`lng` y la foto de fachada: siguen como los dejó la 0694.
 - Geocodificar la dirección fiscal: no hace falta.

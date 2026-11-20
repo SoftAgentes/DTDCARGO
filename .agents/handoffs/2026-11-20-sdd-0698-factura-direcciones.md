@@ -36,8 +36,9 @@ la etiqueta «Dirección actual del cliente» para las facturas viejas.
   `ve/actions.ts:103-112` y `tms/actions.ts:236-239`.
 - Los paquetes del despacho son recepciones de almacén (`dispatch-types.ts:36-38`), no embarques. El camino
   de una recepción a su embarque queda por medir en la F-3.
-- La cabecera de la 0466 dice «NO APLICADA», pero `migrations-baseline.json:39` tiene `pendingBelowCutoff`
-  vacío. **No leí producción.** Dir_DTD confirma el estado antes de la F-2.
+- La 0466 está aplicada en producción desde el 2026-09-19, según el ledger (lo confirmó Dir_DTD el
+  2026-11-20). La cabecera «NO APLICADA» es texto viejo y la migración no se toca, porque está sellada.
+  Este Worker no leyó producción.
 
 ## VALIDACIÓN
 
@@ -51,8 +52,7 @@ la etiqueta «Dirección actual del cliente» para las facturas viejas.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Las respuestas de Sam a P-1 a P-6 (§11). Después, pasar la spec a `approved`.
-- Que Dir_DTD confirme si la 0466 ya está en producción (§2.1).
+- Que Sam apruebe la spec completa. Después, pasar la spec a `approved`.
 - La revisión independiente de la §10 antes de la F-2, como recomienda la skill.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -60,7 +60,22 @@ la etiqueta «Dirección actual del cliente» para las facturas viejas.
 - **Factura a nombre del aliado** (0674 con aliado raíz): no está claro si «Entregar en» debe llevar las
   direcciones de los clientes finales. Se le pasa a la SDD-0696 y lo coordina Dir_DTD (spec §12).
 - `lib/studio/invoice-client-doc.ts:29` (ya en `main`) cita un conteo de clientes de producción en un
-  comentario de un repo público. No lo toqué. Dir_DTD decide si se quita.
+  comentario de un repo público. Dir_DTD pidió quitarlo en una PR aparte desde `main`, sin mezclarla con
+  esta.
+
+## Respuestas de Sam (2026-11-20, directo a este Worker, a pedido de Dir_DTD)
+
+Van literales en la spec, §3, decisiones 6 a 11:
+
+- **P-1:** la factura muestra solo la predeterminada. En el ERP va una marca «Otra dirección» en el
+  embarque y el aviso «Varias direcciones… revisar» en Facturación. Por eso se quitó
+  `ship_to_by_shipment` del diseño. El análisis de zonas y precio para refacturar queda para más adelante;
+- **P-2:** la casilla sigue a la predeterminada;
+- **P-3:** viene marcada, salvo las empresas con domicilio fiscal;
+- **P-4:** el cliente puede cambiar la dirección de un embarque hasta que llega a Venezuela. Se propone
+  medirlo con `arrived_destination_at`, y la F-3 lo confirma;
+- **P-5:** la oficina corrige la dirección fiscal solo en el borrador;
+- **P-6:** sin dirección de entrega, la factura se emite sin el bloque.
 
 ## Impacto documental
 
