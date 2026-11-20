@@ -199,6 +199,7 @@ nada en esta spec.
 | 5 | Uso de montacargas / 需要叉车 | rosa | montacargas (`forklift`, nuevo) | carga especial | cobro y costo | sí |
 | 6 | Revisión o remedida / 复查或复量 | celeste | regla (`ruler`, nuevo) | trámite con el proveedor | tarea | no |
 | 7 | Batería de litio / 锂电池 | rojo | batería (`battery`, nuevo) | carga especial | cobro al cliente | no |
+| 8 | Frágil / 易碎 | gris | frágil (`fragile`, nuevo) | carga especial | ninguno | sí |
 
 Los textos zh-CN los revisa un hablante nativo antes de producción.
 
@@ -395,7 +396,9 @@ contra frontera de base» que traía ese campo: no hay nada que esconder entre o
 - **Almacén VE: solo los de manejo físico** (Sam, 2026-11-20, pregunta 13): «Almacén Venezuela ya no tiene por
   qué ver los indicadores específicos, solamente los que requieran montacargas, o cuando es carga especial.»
   Cada indicador del catálogo lleva el interruptor `en_almacen_ve` («se ve al recibir en Caracas»); de inicio
-  está encendido solo en «Carga especial» y «Uso de montacargas». Se leen de las recepciones CN que nombran
+  está encendido en «Carga especial», «Uso de montacargas» y «Frágil» (Sam, 2026-11-20: «Frágil» lo tiene
+  que ver el almacén en Venezuela para saber que esa mercancía es frágil). La regla: se enciende en lo que
+  cambia cómo se maneja la carga al recibirla. Se leen de las recepciones CN que nombran
   sus cajas por `warehouse_receipt_ve_boxes.source_receipt_cn_id` (§1.4), y de lo que Venezuela puso en el
   embarque, sin repetir. En Almacén VE no se ponen indicadores; si más adelante hacen falta indicadores de
   despacho, son otra spec.
@@ -848,6 +851,6 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
   notas `note`.
 - Un usuario `cn` sin admin no recibe `client_name` en ninguna lectura nueva (prueba de servidor).
 - F2: Venezuela ve en el embarque todos los indicadores de sus recepciones, y en Almacén VE solo los de
-  `en_almacen_ve` (Carga especial y Uso de montacargas); una recepción VE
+  `en_almacen_ve` (Carga especial, Uso de montacargas y Frágil); una recepción VE
   sin origen CN no muestra ninguna; la mitad nueva de un embarque partido no muestra ninguna.
 - F2: las lecturas del portal no traen etiquetas.
