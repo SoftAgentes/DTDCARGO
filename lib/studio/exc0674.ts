@@ -107,6 +107,19 @@ export function mensajeErrorExc0674(mensaje: string | null | undefined): string 
       return "No se pudo hacer el asiento contable, así que no se emitió ninguna factura. Avisa a Contabilidad.";
     case "sin_confirmacion":
       return "Falta la confirmación. No se emitió ninguna factura.";
+    // SDD-0690 · errores de la 0569 (emitir la pre-orden) y de la guarda del camino tecleado.
+    case "tiene_preorden":
+      return `Ese cliente tiene una pre-orden en este contenedor${quien}: se factura desde la pre-orden, no con un monto escrito. No se emitió ninguna factura.`;
+    case "no_borrador":
+      return `Esa pre-orden ya no está pendiente${quien}: alguien la emitió o la anuló. Recarga la página; no se emitió ninguna factura.`;
+    case "moneda":
+      return `Esa pre-orden no está en dólares${quien}. Corrígela en Facturación; no se emitió ninguna factura.`;
+    case "borrador_alterado":
+      return `La pre-orden cambió mientras se emitía${quien}. Recarga la página y revísala; no se emitió ninguna factura.`;
+    case "factura_inexistente":
+      return `No se encontró la pre-orden${quien}. Recarga la página; no se emitió ninguna factura.`;
+    case "envio_fuera_del_contenedor":
+      return `La pre-orden incluye envíos que no son de este contenedor${quien}. Corrígela en Facturación; no se emitió ninguna factura.`;
     default:
       return "No se pudo facturar. No se emitió ninguna factura.";
   }

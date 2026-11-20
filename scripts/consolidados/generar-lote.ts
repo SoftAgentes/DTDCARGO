@@ -6,8 +6,18 @@
  *     --packing "<NUEVO FORMATO CONTENEDOR 59.xlsx>" --contenedor 59 \
  *     --eta 2026-10-19 --salida "C:\...\DTD-consolidados\59\2026-10-16" \
  *     [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
- *     [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
+ *     [--crear-clientes-faltantes] [--sin-facturas | --solo-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
  *     [--pol NGB] [--tipo 40HC] [--tenant dtd] [--correlativo-origen N]
+ *
+ * `--solo-facturas` (SDD-0690): para un contenedor que YA está cargado (el 64 se
+ * cargó con `--sin-facturas`). Con el mismo Excel de la carga, aplicar.sql escribe
+ * sólo las pre-órdenes en borrador, una por cliente, y no toca consolidación,
+ * envíos, recepciones ni ítems. Su preflight exige el contenedor vivo con la marca
+ * del lote, todos sus envíos cargados y el contenedor en `exc0674_contenedores`.
+ * Por cliente es idempotente: si ya tiene una factura viva (borrador o emitida) en
+ * el contenedor, se salta. simulacro.sql es el ensayo: corre lo mismo y termina en
+ * rollback. Los avisos llevan sólo conteos. No va con `--sin-facturas` ni con
+ * `--crear-clientes-faltantes` ni con `--gasto-espacio`.
  *
  * `--correlativo-origen N`: el título del packing list trae el correlativo del
  * almacén de China («CONTENEDOR DTD #61») y el lote es otro número DTD (`--contenedor 64`).
@@ -40,6 +50,8 @@ export interface Argumentos {
   entorno: "prueba" | "produccion";
   crearClientesFaltantes: boolean;
   facturas: boolean;
+  /** SDD-0690 · `--solo-facturas`: sólo las pre-órdenes de un contenedor ya cargado. */
+  soloFacturas: boolean;
   excesoPeso: boolean;
   mapa?: string;
   pol: string;
@@ -67,7 +79,7 @@ const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor 
       [--modalidad ddp|fcl|mixto] [--dueno <marca>] [--servicio-fcl fcl_directo|fcl_bodega] [--cbm-fcl N] [--kg-fcl N]
       [--gasto-espacio <monto USD> --gasto-usuario <correo del Studio>]
       [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
-      [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
+      [--crear-clientes-faltantes] [--sin-facturas | --solo-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
       [--correlativo-origen <N del título del packing>] [--ignorar-titulo-packing (sólo prueba)]`;
 
 export function parsearArgumentos(argv: string[]): Argumentos {
@@ -77,7 +89,7 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     const a = argv[i];
     if (!a.startsWith("--")) throw new Error(`Argumento inesperado: ${a}\n${USO}`);
     const k = a.slice(2);
-    if (["crear-clientes-faltantes", "sin-facturas", "sin-exceso-peso", "ignorar-titulo-packing"].includes(k)) {
+    if (["crear-clientes-faltantes", "sin-facturas", "solo-facturas", "sin-exceso-peso", "ignorar-titulo-packing"].includes(k)) {
       banderas.add(k);
       continue;
     }
@@ -99,6 +111,10 @@ export function parsearArgumentos(argv: string[]): Argumentos {
   if (entorno !== "prueba" && entorno !== "produccion") throw new Error("--entorno debe ser prueba o produccion");
   const crear = banderas.has("crear-clientes-faltantes");
   if (crear && entorno !== "prueba") throw new Error("--crear-clientes-faltantes sólo se permite con --entorno prueba");
+  const soloFacturas = banderas.has("solo-facturas");
+  if (soloFacturas && banderas.has("sin-facturas")) throw new Error(`--solo-facturas y --sin-facturas no van juntos\n${USO}`);
+  if (soloFacturas && crear) throw new Error("--solo-facturas no crea clientes: el contenedor ya está cargado");
+  if (soloFacturas && valores.has("gasto-espacio")) throw new Error("--solo-facturas no registra el gasto por espacio: ya quedó con la carga");
   for (const k of ["etd", "fecha-carga"]) {
     const v = valores.get(k);
     if (v && !ISO_FECHA.test(v)) throw new Error(`--${k} debe ser YYYY-MM-DD`);
@@ -148,6 +164,7 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     entorno,
     crearClientesFaltantes: crear,
     facturas: !banderas.has("sin-facturas"),
+    soloFacturas,
     excesoPeso: !banderas.has("sin-exceso-peso"),
     mapa: valores.get("mapa"),
     pol,
@@ -219,7 +236,7 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
   const avisos = [...avisosExcel, ...lote.avisos];
   return `# Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no})
 
-- Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
+${m.modo === "solo-facturas" ? "- Modo: **--solo-facturas** (SDD-0690): el contenedor ya está cargado; aplicar.sql escribe sólo las pre-órdenes en borrador de los clientes que no tienen una factura viva. Las cifras de la tabla describen el contenedor, no lo que se escribe.\n" : ""}- Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
 - Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente DDP)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
 - Naviera ${m.contenedor.naviera} · ${m.contenedor.pol} → ${m.contenedor.pod} · carga ${m.contenedor.fechaCarga} · recepciones ${m.contenedor.fechaRecepcion} · ETD ${m.contenedor.etd} · ETA ${m.contenedor.eta} · ${m.opciones.containerType}
 ${m.contenedor.correlativoOrigen != null ? `- Correlativo de origen: **${m.contenedor.correlativoOrigen} (China) → ${m.contenedor.numero} (DTD)**: el título del packing list usa el número del almacén de China\n` : ""}- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
@@ -392,6 +409,7 @@ export async function generar(
     vessel: "Por confirmar",
     lote: `carga-consolidado:${args.contenedor}:${huellaLote}`,
     tenantSlug: args.tenant,
+    ...(args.soloFacturas ? { soloFacturas: true } : {}),
     ...(args.correlativoOrigen != null ? { correlativoOrigen: args.correlativoOrigen } : {}),
   };
   const salida = generarSql(lote, opciones, fuentes);

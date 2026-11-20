@@ -11,6 +11,11 @@
  *
  * Excepción con nombre: estas facturas NO pasan por el gate legal AUT-04 de la app. Lo decidió Sam
  * el 2026-11-18 y queda como `legal_ack = 'exc_0674'` en `exc0674_facturas` (spec §3.1 a).
+ *
+ * SDD-0690: `emitirPreordenesExc0674Action` emite pre-órdenes que ya existen (los precios del Excel),
+ * por cliente o todas las del contenedor («Facturar todo»), con la RPC `exc0674_emitir_borradores`
+ * (migr 0569). No recibe montos: emite lo que diga la pre-orden. Misma excepción, ampliada por Sam el
+ * 2026-11-20 (spec 0690 §3.4).
  */
 
 "use server";
@@ -90,7 +95,58 @@ export async function facturarExc0674Action(
   if (error) return { ok: false, error: mensajeErrorExc0674(error.message) };
 
   const facturas = (((data ?? {}) as { facturas?: FacturaDeRpc[] }).facturas ?? []);
+  return cerrarEmision(tenantId, facturas);
+}
 
+/**
+ * SDD-0690 · «Facturar» de una pre-orden, o «Facturar todo» (todas las del contenedor): las emite tal
+ * como están, todo o nada. La base vuelve a comprobar rol, lista, confirmación y estado `borrador`.
+ */
+export async function emitirPreordenesExc0674Action(
+  consolidationId: string,
+  invoiceIds: string[],
+  confirmacion: string,
+): Promise<ResultadoFacturarExc0674> {
+  const supabase = await createClient();
+  const denegado = await moduleEditDenial(supabase, "invoices");
+  if (denegado) return { ok: false, error: denegado };
+  const { role, tenantId } = await getStudioAccess(supabase);
+  if (!rolFacturaExc0674(role) || !tenantId) {
+    return { ok: false, error: "Tu rol no puede facturar desde Embarques." };
+  }
+  if (confirmacion !== "Confirmado") {
+    return { ok: false, error: "Falta la confirmación. No se emitió ninguna factura." };
+  }
+  if (typeof consolidationId !== "string" || !UUID.test(consolidationId)) {
+    return { ok: false, error: "No se reconoce el contenedor." };
+  }
+  if (!Array.isArray(invoiceIds) || invoiceIds.length === 0 || invoiceIds.length > 500) {
+    return { ok: false, error: "No hay pre-órdenes para facturar." };
+  }
+  const ids = new Set<string>();
+  for (const id of invoiceIds) {
+    if (typeof id !== "string" || !UUID.test(id) || ids.has(id)) {
+      return { ok: false, error: "La lista de pre-órdenes no es válida." };
+    }
+    ids.add(id);
+  }
+
+  const { data, error } = await supabase.rpc("exc0674_emitir_borradores", {
+    p_consolidation_id: consolidationId,
+    p_invoice_ids: [...ids],
+    p_confirmacion: "Confirmado",
+  });
+  if (error) return { ok: false, error: mensajeErrorExc0674(error.message) };
+
+  const facturas = (((data ?? {}) as { facturas?: FacturaDeRpc[] }).facturas ?? []);
+  return cerrarEmision(tenantId, facturas);
+}
+
+/** Correo por factura emitida (best-effort), revalidación y resultado. Común a las dos acciones. */
+async function cerrarEmision(
+  tenantId: string,
+  facturas: FacturaDeRpc[],
+): Promise<ResultadoFacturarExc0674> {
   // Correo de factura emitida, igual que emitInvoice (SDD-0305). Best-effort.
   try {
     const admin = createAdminClient();
