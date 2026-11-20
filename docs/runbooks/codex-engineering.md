@@ -344,7 +344,7 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
    - permisos y acceso (`auth`, `login`, `permisos`, `roles`, `usuarios`, `admin`, `rbac`, `token`, `legal`,
      `consent`, `cookies`…);
    - datos personales (`clientes`, `perfil`, `profile`, `ficha`, `contacto`, `gps`, `ubicacion`, `tms`,
-     `backfill`, `borrado`, `purga`, `export`, `import`, `personas`, `empleados`, `direccion`, `attachments`,
+     `backfill`, `crm`, `lead`, `comment`, `bug`, `borrado`, `purga`, `export`, `import`, `personas`, `empleados`, `direccion`, `attachments`,
      `upload`, `form`, `analytics`, `clarity`…);
    - integraciones (`chatwoot`, `kommo`, `meta`, `whatsapp`, `email`, `mail`, `correo`, `newsletter`,
      `webhooks`, `push`, `notif`, `cron`, `api`, `oficina`, `agent`…).
@@ -359,29 +359,46 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
    - estilos: `.css` y `lib/design-tokens.ts`;
    - pantallas y componentes: `.tsx` de `app/` o `components/`, salvo `layout.tsx` y `template.tsx`;
    - imágenes y fuentes de `public/`, `docs/` y `lib/font-files/`.
-4. **Contenido de las pantallas.** Una pantalla en ruta segura va a `revision` (`contenido-sensible`) si alguna
-   línea **agregada o quitada** del diff toca:
-   - puertas o sesión: `require*(`, `getUser`, `getSession`, `rbac`, `redirect(`, `notFound(`, `cookies()`,
-     `headers()`;
+4. **Contenido de las pantallas, por archivo.** Para cada pantalla que llegó hasta aquí, el clasificador lee el
+   archivo **completo** en la base (el merge-base) y en la cabeza. Si **cualquiera de las dos versiones** trae
+   una de estas marcas, va a `revision` (`contenido-sensible`):
+   - puertas o sesión: `require*(`, `canAccess*`, `getStudioAccess`, `isAdmin`, `hasRole`, `can(`, `puede*(`,
+     `getUser`, `getSession`, `rbac`, `redirect(`, `notFound(`, `cookies()` y `headers()`;
    - lecturas sin RLS: `createAdminClient` y `service_role`;
-   - consultas o escrituras: `.from(`, `.rpc(`, `.insert(`, `.update(`, `.upsert(`, `.delete(`;
-   - acciones del servidor: `"use server"` o un import de `*actions`;
-   - otras: `method:` (un `fetch` que escribe), `@supabase/` y `@/lib/db` o `@/lib/auth`.
+   - consultas o escrituras: `.from(`, `.rpc(`, `.insert(`, `.update(`, `.upsert(` y `.delete(`;
+   - acciones del servidor:
+     - `"use server"`;
+     - cualquier import cuya ruta lleve `action` (`_actions/`, `/actions`, `*-actions`);
+     - el import de un archivo local que declare `"use server"`: el clasificador resuelve los imports `@/…` y
+       relativos y lee esos archivos;
+   - otras: `method:` (un `fetch` que escribe), `@supabase/` y `lib/db` o `@/lib/auth`.
 
-   Quitar una puerta pesa igual que ponerla. Las líneas de contexto no cuentan. Sin el diff, cuando se pasan solo
-   nombres por argumento o por stdin, una pantalla da `revision` (`sin-contenido`). Los documentos, los estilos,
-   el texto plano y las pruebas no necesitan el diff.
+   Decidir por archivo cierra el hueco de mirar solo las líneas cambiadas. Quitar `.is("deleted_at", null)` o una
+   puerta `canAccessModule(…)` cae en revisión porque la base las tenía, aunque el `.from(` o el import estén en
+   otra línea. Y como el archivo que importa una acción ya va a revisión, también caen sus llamadas.
+
+   Se falla cerrado. Da `revision` (`sin-contenido`) si el archivo no se puede leer como texto (un byte NUL,
+   UTF-8 inválido o «Binary files» en el diff), si no aparece ni en la base ni en la cabeza, o si no se leyó porque
+   solo se pasaron nombres por argumento o por stdin. Los documentos, los estilos, el texto plano y las pruebas no
+   se leen.
 5. Todo lo demás: `revision` («sin-clasificar»). Esto incluye la lógica de `lib/` (también los diccionarios
    `lib/i18n/**/*.ts`, que son TypeScript ejecutable), los scripts y los ayudantes de `e2e/`.
 
-En el carril rápido quedan los componentes de presentación sin esas líneas, los estilos, el texto plano, los
-documentos y las pruebas.
+En el carril rápido quedan los componentes de presentación cuyo archivo no trae ninguna marca, ni en la base ni en
+la cabeza, más los estilos, el texto plano, los documentos y las pruebas. Al 2026-11-20 son 216 pantallas del
+árbol, casi todas tarjetas, tablas, insignias y páginas públicas de texto.
 
-**Límite conocido.** La capa de contenido busca palabras, no entiende el código. Una lectura nueva escondida
-detrás de una función ya existente que se llama desde la pantalla no se ve, porque el cambio de la función vive
-en `lib/`, que va a revisión, pero la llamada nueva puede no traer ninguna marca. Esa es la razón de la revisión
-de madrugada. Las reglas nuevas para tapar un caso así, o para ampliar la lista de rutas seguras, van en una PR
-con revisión previa, porque tocan `scripts/carril.mjs`.
+**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve dos casos:
+
+- una **lectura o escritura** que llega por una función ya existente de `lib/` (un cargador, una consulta),
+  importada sin marca y llamada desde la pantalla. La función vive en `lib/`, que va a revisión cuando cambia,
+  pero llamarla desde una pantalla nueva no trae marca;
+- un permiso que llega por prop, o un callback que escribe (`onSubmit`, `onSave`) cuando la escritura vive en el
+  padre. El padre suele ser una `page.tsx` de una zona con sesión, que va a revisión, pero un cambio solo en el
+  hijo no.
+
+Esa es la razón de la revisión de madrugada. Las reglas nuevas para tapar un caso así, o para ampliar la lista de
+rutas seguras, van en una PR con revisión previa, porque tocan `scripts/carril.mjs`.
 
 Las pruebas viven en `scripts/tests/carril.node.mjs` y corren con `pnpm harness:test` o con
 `node --test scripts/tests/carril.node.mjs`. Verifican lo siguiente:
@@ -389,8 +406,11 @@ Las pruebas viven en `scripts/tests/carril.node.mjs` y corren con `pnpm harness:
 - una ruta de cada frontera sensible da `revision`, incluidas las pantallas que citó la revisión del 2026-11-20
   (`app/studio/(app)/admin/page.tsx`, `app/m/cn/page.tsx`, `PortalBackfillSection.tsx`, `GpsBlock.tsx`,
   `ProfileModal.tsx`, el perfil del portal y los clientes del Studio);
-- cada clase de ruta segura da `rapido` con un diff de presentación;
-- cada marca de contenido da `revision`;
+- las pantallas de la segunda revisión dan `revision`: quitar `.is("deleted_at", null)` de `GenerateBLModal.tsx`
+  o `canAccessModule(…)` de `CrmEmbudosSlot.tsx` (la base lo tenía), y los imports de `_actions/` de
+  `CommentsThread.tsx` y `DeletedCommentsPanel.tsx`;
+- cada clase de ruta segura da `rapido` con un archivo de presentación;
+- cada marca de contenido da `revision`, y también un `.tsx` binario o un import de un archivo con `"use server"`;
 - el contrato de abajo.
 
 ### Contrato para el tren del Director
@@ -404,18 +424,27 @@ node scripts/carril.mjs --json --pr <N>
 - **Desde qué copia.** Se corre desde una copia de `origin/main` recién actualizada (`git fetch origin` y el
   script de `origin/main`), nunca desde la cabeza de la PR. Así la PR no decide su carril con su propia versión
   del clasificador. El check de CI hace lo mismo: usa el script de la base.
-- **De dónde salen las rutas y las líneas.** `--pr <N>` lee el diff completo con `gh pr diff <N> --color=never`.
-  De las cabeceras de cada archivo toma las rutas, la vieja y la nueva, y de los hunks, las líneas agregadas y
-  quitadas. No usa `gh pr diff --name-only`, que en un renombre da solo la ruta nueva: un archivo sensible se
-  escondería renombrándolo a una ruta segura. Si GitHub no da el diff (por ejemplo, `HTTP 406` en un diff muy
-  grande), es un error y la PR va con revisión previa.
+- **De dónde salen las rutas.** `--pr <N>` lee el diff completo con `gh pr diff <N> --color=never` y toma de
+  las cabeceras de cada archivo las dos rutas, la vieja y la nueva. No usa `gh pr diff --name-only`, que en un
+  renombre da solo la ruta nueva: un archivo sensible se escondería renombrándolo a una ruta segura. Si GitHub no
+  da el diff (por ejemplo, `HTTP 406` en un diff muy grande), es un error y la PR va con revisión previa.
 - **Atado a una cabeza.** `--pr` lee la cabeza con `gh pr view <N> --json headRefOid` antes del diff y otra vez
   después. Si cambió en el medio, es un error. El JSON devuelve esa cabeza en `head`. Con `--head <sha>`, además,
   la cabeza tiene que ser esa: si no, es un error.
-- **Otras entradas.** `git diff --no-renames <base> <cabeza> | node scripts/carril.mjs --json --diff --head <cabeza>`
-  clasifica un diff por stdin con el mismo detalle; así lo usa el check de CI. Las rutas solas, por argumento
-  (`node scripts/carril.mjs --json <ruta>...`) o por stdin (una por línea), sirven para consultas: sin el
-  contenido, una pantalla da `revision`. Con stdin vacío o sin rutas, sale con error.
+- **De dónde salen los archivos.** `--pr` trae la cabeza con `git fetch --no-tags origin pull/<N>/head` y calcula
+  la base como el merge-base de la cabeza con `origin/main` (otra rama con `--base <ref>`). Después lee las
+  pantallas en las dos versiones con un solo `git cat-file --batch`. Por eso se corre en una copia del repo con
+  `origin`. Si git falla, es un error.
+- **Otras entradas.** Para consultas:
+  - `git diff --no-renames <base> <cabeza> | node scripts/carril.mjs --json --diff --base <base> --head <cabeza>`
+    exige que los dos sean commits del repositorio y que el diff de stdin sea exactamente ese `git diff`. Si no,
+    es un error. Así lo usa el check de CI, con el merge de prueba como cabeza.
+  - `--diff` sin `--base` ni `--head` solo ve nombres.
+  - Las rutas solas, por argumento (`node scripts/carril.mjs --json <ruta>...`) o por stdin (una por línea),
+    tampoco leen nada, así que una pantalla da `revision`.
+
+  Con stdin vacío o sin rutas, sale con error. **Para el tren solo vale `origen: "pr"`**: un JSON de otra entrada
+  no ata la cabeza de la PR y se trata como `revision`.
 
 **Cómo fusiona el tren una PR del carril rápido.** Lo hace en este orden:
 
@@ -435,42 +464,44 @@ APPROVED también tiene que ser de esa cabeza.
 |---|---|---|
 | `0` | `rapido` | puede fusionar la cabeza `head` con el CI verde en esa cabeza, sin esperar la revisión |
 | `1` | `revision` | exige revisión independiente APPROVED y CI verde en la cabeza exacta |
-| `2` | error (uso, `gh`, diff sin archivos, cabeza que cambió) o `--help` | lo trata como `revision` |
+| `2` | error (uso, `gh` o `git`, diff sin archivos o distinto del de `--base`/`--head`, cabeza que cambió) o `--help` | lo trata como `revision` |
 
-El tren va por el carril rápido solo si el código es `0` **y** el JSON dice `"carril": "rapido"` con un `head` de
-40 caracteres. Cualquier otro caso, incluido un código inesperado o un JSON ilegible, va con revisión previa.
+El tren va por el carril rápido solo si el código es `0` **y** el JSON dice `"carril": "rapido"`, `"origen": "pr"` y
+trae un `head` de 40 caracteres. Cualquier otro caso, incluido un código inesperado o un JSON ilegible, va con revisión previa.
 
 **Salida JSON** (`--json`, en stdout; los mensajes de error van además a stderr):
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "carril": "revision",
   "motivo": "1 de 2 archivos piden revisión previa (contenido-sensible)",
   "total": 2,
   "contenido": true,
   "causantes": [
-    { "ruta": "components/Footer.tsx", "regla": "contenido-sensible", "motivo": "una línea cambiada toca puertas, sesión o datos («createAdminClient»)" }
+    { "ruta": "components/Footer.tsx", "regla": "contenido-sensible", "motivo": "el archivo (en la base o en la cabeza) toca puertas, sesión o datos («createAdminClient»)" }
   ],
   "archivos": [
     { "ruta": "docs/a.md", "carril": "rapido", "regla": "documentos", "motivo": "documento" },
-    { "ruta": "components/Footer.tsx", "carril": "revision", "regla": "contenido-sensible", "motivo": "una línea cambiada toca puertas, sesión o datos («createAdminClient»)" }
+    { "ruta": "components/Footer.tsx", "carril": "revision", "regla": "contenido-sensible", "motivo": "el archivo (en la base o en la cabeza) toca puertas, sesión o datos («createAdminClient»)" }
   ],
   "origen": "pr",
   "pr": 123,
-  "head": "<sha de 40 caracteres>"
+  "head": "<sha de 40 caracteres>",
+  "base": "<sha del merge-base>"
 }
 ```
 
 - `carril`: `rapido` o `revision`. `motivo`: una frase para el registro.
-- `contenido`: `true` si se miraron las líneas del diff (`--pr` o `--diff`) y `false` si solo los nombres.
+- `contenido`: `true` si se leyeron los archivos (`--pr`, o `--diff` con `--base` y `--head`) y `false` si solo
+  los nombres.
 - `causantes`: los archivos que piden revisión, con su `regla` y su `motivo`. Si el carril es `rapido`, viene vacío.
 - `archivos`: todos los archivos, cada uno con su carril. `total`: cuántos son, sin repetidos.
-- `origen`: `pr`, `diff`, `args` o `stdin`. `pr`: el número, solo con `--pr`. `head`: la cabeza clasificada,
-  siempre con `--pr` y también con `--head`.
-- `version`: sube si cambia la forma del JSON (la 2 agregó `head` y `contenido`). El tren debe rechazar, y tratar
+- `origen`: `pr`, `diff`, `args` o `stdin`. `pr`: el número, solo con `--pr`. `head` y `base`: la cabeza
+  clasificada y la base contra la que se leyó, con `--pr` y con `--diff --base --head`.
+- `version`: sube si cambia la forma del JSON (la 2 agregó `head` y `contenido`; la 3, `base` y la lectura por archivo). El tren debe rechazar, y tratar
   como `revision`, una versión que no conoce.
-- En error: `{ "version": 2, "carril": "revision", "error": "<qué pasó>" }` y código `2`.
+- En error: `{ "version": 3, "carril": "revision", "error": "<qué pasó>" }` y código `2`.
 
 **Cuándo se clasifica.** El carril vale solo para `head`. Un push nuevo a la PR obliga a clasificar otra vez, y el
 `--match-head-commit` del merge lo hace cumplir.
@@ -545,8 +576,8 @@ producción, no publica esta revisión, no mergea main y no despliega.
 > están porque son registro histórico: `docs/audits/2026-10-18-contabilidad-anexo-planes.md`,
 > `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`,
 > `docs/specs/0589-guia-motor-studio/spec.md` y la nota del 2026-10-19 de arriba.
-> Los mensajes de `infra/ops/web/publicar-web.sh` («se publica sola con el próximo
-> merge») describen el vigilante encendido; valen solo si vuelve.
+> Los avisos de `infra/ops/web/publicar-web.sh` sobre el próximo merge dicen desde
+> el 2026-11-20 que valen solo con el vigilante encendido.
 
 Release requiere evidencia: autorización, PR/SHA integrado, checks aplicables,
 migraciones por nombre y una por vez según runbook, ID de deployment READY y

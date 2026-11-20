@@ -78,6 +78,25 @@ Decisiones tomadas dentro del alcance:
   - En el árbol, con el contenido de cada archivo como diff, quedan 239 pantallas en `rapido`. Dos traen un
     `fetch` GET de lectura (`ZipButton.tsx` y `BugReplayPlayer.tsx`).
 
+- **Segunda revisión de Dir_DTD sobre `a557ca449` (CHANGES_REQUESTED), atendida:**
+  - La capa de contenido ahora decide por archivo. Cada pantalla se lee completa en la base (el merge-base) y en
+    la cabeza con un solo `git cat-file --batch`, y si cualquiera de las dos trae una marca, va a revisión.
+    Quitar `.is("deleted_at", null)` de `GenerateBLModal.tsx` o `canAccessModule` de `CrmEmbudosSlot.tsx` ya
+    da revisión; las dos están en las pruebas.
+  - Los imports de `_actions/`, de `/actions` o de un archivo local con `"use server"` mandan a revisión
+    (`CommentsThread.tsx` y `DeletedCommentsPanel.tsx` están en las pruebas). Un `.tsx` con NUL, con UTF-8
+    inválido o marcado como «Binary files» también va a revisión.
+  - Marcas nuevas: `canAccess*`, `getStudioAccess`, `isAdmin`, `hasRole`, `can(` y `puede*(`. Palabras
+    de ruta nuevas: `crm`, `lead`, `comment` y `bug`.
+  - `--diff` pide `--base` y `--head` juntos y verifica que el diff sea `git diff --no-renames base head`. El
+    runbook dice que para el tren solo vale `origen: "pr"`. El JSON pasa a la versión 3, con `base`.
+  - Los dos avisos de `publicar-web.sh` (vuelta atrás y publicación a mano) ahora dicen que valen solo con el
+    vigilante encendido.
+  - En el árbol quedan 216 pantallas en `rapido` (antes, 239). Muestra de diez: `app/faq/page.tsx`,
+    `PortalAdvisorCard.tsx`, `PortalMaintenanceNotice.tsx`, `app/shipping-mark/page.tsx`,
+    `VistasAlmacen.tsx`, `ReportPreview.tsx`, `ContenedorPanel.tsx`, `EmptyState.tsx`,
+    `DecimalInput.tsx` y `Timeline.tsx`. Ninguna trae `fetch` ni formulario.
+
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
@@ -88,6 +107,11 @@ Decisiones tomadas dentro del alcance:
 | `--pr 727/724/723/715` contra GitHub, con `head` | PRs fusionadas | PASÓ: rapido (docs), rapido (docs), revision (skill), rapido (docs) |
 | Simulación de `carril.yml` con un merge real de prueba (`--diff --head HEAD^2`) | diff de esta PR | PASÓ: revision, `head` correcto, exit 0 |
 | `bash -n infra/ops/web/publicar-web.sh` | comentario | PASÓ |
+| `node --test scripts/tests/carril.node.mjs` tras la segunda revisión | `5da89b4cb` y siguientes | PASÓ (175/175) |
+| Mutaciones de la capa por archivo: solo la cabeza, sin binarios, sin acciones importadas, sin `canAccess*`, sin verificar el diff, sin «Binary files», sin chequeo de cabeza | copia restaurada | PASÓ: 2, 1, 1, 3, 1, 1 y 1 en rojo |
+| `--pr 727/721/715/726` con git real (fetch, merge-base, cat-file) | PRs fusionadas | PASÓ: rapido, revision, rapido, revision; 8 a 10 s cada una |
+| Simulación de `carril.yml` sobre un merge real con `--diff --base HEAD^1 --head HEAD` | diff de esta PR más dos archivos de prueba | PASÓ: `head` es el merge, `ZzDatos.tsx` (importa `lib/db`) da revision y `ZzNuevo.tsx` da rapido |
+| `bash -n infra/ops/web/publicar-web.sh` | avisos | PASÓ |
 | Mutaciones a mano: carril fijo en rapido, sin causantes, `---` dentro de un hunk, temas aplicados a docs | copia de trabajo, restaurada | PASÓ: 48, 5, 1 y 24 pruebas en rojo, en ese orden |
 | `node --test` de `harness-discovery` y `verify-harness-discovery` | `d4bdcb406` | PASÓ (5/5) |
 | Simulación del paso de `carril.yml` en un worktree descartable (commit sintético sobre la base) | diff de esta PR | PASÓ: da `revision` (gobernanza y ci), resumen y anotación correctos, exit 0 |
