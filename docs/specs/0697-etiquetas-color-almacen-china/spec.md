@@ -282,8 +282,7 @@ Cómo se trabaja hoy, según Sam:
   necesita montacargas, este no»). Lo hace en Almacén China **antes de consolidar**, porque la declaración de
   aduana necesita esa información.
 - **Venezuela pone los suyos después**, cuando la carga ya está consolidada: en Embarques, sobre lo que va
-  dentro de contenedores despachados. También puede agregar o corregir lo que puso China; China casi no
-  vuelve a tocar.
+  dentro de contenedores despachados. Agrega los suyos; lo que puso China no lo toca (regla de abajo).
 
 | Etapa | Pantalla | Sobre qué | Quién |
 |---|---|---|---|
@@ -297,7 +296,7 @@ exige región `ve` (o admin). Queda abierto el etiquetado en Almacén VE (pregun
 
 **Lo que hace Venezuela en Embarques** (Sam, 2026-11-20): nota cosas, averigua en los grupos y entonces:
 
-- **Ajusta** los indicadores: pone, quita o da por resuelto un heredado (arriba).
+- **Pone y quita los suyos** en el embarque. Los de China los ve, pero no los cambia (regla de abajo).
 - **Comenta** los indicadores de China, sin cambiarlos. Por ejemplo, en «Marca sin autorización» de una
   recepción: «el proveedor mandó la carta por WeChat, queda resuelto». Se reutiliza el hilo de comentarios
   que ya existe (`public.comments`, `supabase/migrations/0090_comments.sql:24-45`), sumando dos tipos de
@@ -306,6 +305,25 @@ exige región `ve` (o admin). Queda abierto el etiquetado en Almacén VE (pregun
   privacidad del §3 vale igual para ellos.
 - **Crea indicadores nuevos** de aduana y logística (por ejemplo «Retenido en aduana»), en el mismo catálogo.
   Por eso crear y editar el catálogo queda abierto a `warehouse` y `operations` de las dos regiones (§2.2).
+
+**Regla de cambios (Sam, 2026-11-20):** «Venezuela no puede eliminar los de China ni modificarlos sino con
+autorización. Hay indicadores que tienen cobro; por eso no deberían cambiarse, porque puede estar atado a algo
+de contabilidad.»
+
+| Quién | Indicadores de China (en la recepción) | Con efecto de dinero o impuesto | Los suyos |
+|---|---|---|---|
+| **China** | pone y quita; corrige un error desde su historial | **solo con autorización** | — |
+| **Venezuela** | ve y comenta; **no** quita ni cambia | **solo con autorización** | pone y quita en el embarque; crea indicadores nuevos |
+| **Admin** | puede todo, con motivo | puede, **con motivo obligatorio** | puede todo |
+
+- **Con efecto de dinero o impuesto** = `efecto` en `cobro_cliente`, `costo_proveedor` o `cobro_y_costo`
+  (por ejemplo Devolución de impuestos, Carga especial, Uso de montacargas).
+- **«Con autorización»** en esta spec = lo hace un `admin`, con **motivo escrito**, y queda en el historial y en
+  `entity_audit_log` (MP-01 R3). Si Sam prefiere otro camino, como que Contabilidad apruebe una solicitud, es
+  la pregunta 14.
+- Lo mismo vale para el catálogo: cambiar el `efecto` de un indicador o archivar uno con efecto de dinero es
+  solo de `admin`, con motivo.
+- Poner un indicador nunca necesita autorización: sumar información no cambia una cuenta.
 
 **Nombre:** «indicadores de carga» (decidido, pregunta 1). En la conversación se dice «etiquetas» a veces;
 en la pantalla, la base y el código es «indicador».
@@ -318,12 +336,11 @@ Diseño:
 - **El embarque muestra los dos:** los heredados de sus recepciones (con «de WR-…») y los propios de
   Venezuela. Si un indicador viene de la recepción y Venezuela lo pone también en el embarque, se muestra
   una vez.
-- **Venezuela no borra lo que puso China:** si un heredado ya no aplica, Venezuela lo **oculta en ese
-  embarque** (marca de «resuelto en Venezuela», con quién y cuándo) y el de la recepción queda intacto como
-  registro de lo que dijo China. Corregir el de la recepción es de China.
+- **Venezuela no oculta ni borra lo que puso China.** Si cree que uno ya no aplica, lo comenta; lo quita China
+  o, si tiene efecto de dinero, un admin con motivo.
 - **Mismo catálogo.** Venezuela usa los indicadores del mismo catálogo del tenant; si necesita uno nuevo, lo
-  pide o lo crea según la pregunta 13 (§7).
-- **Rastro de la etapa 2:** las filas de `shipment_tags` (puesto, quitado, resuelto, con actor y fecha) más
+  crea (respuesta de Sam a la pregunta 13).
+- **Rastro de la etapa 2:** las filas de `shipment_tags` (puesto y quitado, con actor y fecha) más
   `entity_audit_log`. No va a `shipment_events`, que lo lee el portal (§1.3).
 - **China no entra a Embarques** (Sam, 2026-11-20). Almacén China es lo que está en el almacén; lo
   consolidado pasa a Embarques, que es de Venezuela. China solo ve su historial de consolidados («En camino»,
@@ -481,7 +498,6 @@ create table public.shipment_tags (
   tenant_id     uuid not null references public.tenants(id) on delete cascade,
   shipment_id   uuid not null references public.shipments(id) on delete cascade,
   tag_id        uuid not null references public.warehouse_tags(id) on delete restrict,
-  modo          text not null check (modo in ('agregado', 'resuelto')),
   nota          text check (nota is null or length(nota) <= 140),
   assigned_by   uuid not null references auth.users(id),
   assigned_at   timestamptz not null default now(),
@@ -492,7 +508,7 @@ create table public.shipment_tags (
 create unique index shipment_tags_viva_uq
   on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
 -- Misma RLS de solo lectura para miembro activo, sin política de portal, y escritura solo por las RPC
--- poner_indicador_embarque / quitar_indicador_embarque / resolver_indicador_heredado
+-- poner_indicador_embarque / quitar_indicador_embarque
 -- (candado: admin, u operations / warehouse de región ve; commercial según la pregunta 13).
 
 alter table public.warehouse_tags enable row level security;
@@ -567,10 +583,10 @@ Candados por RPC:
 | RPC | Candado | Qué hace |
 |---|---|---|
 | `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log` |
-| `editar_etiqueta_almacen(p_id, ...)` | ídem | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
-| `archivar_etiqueta_almacen(p_id, p_archivar boolean)` | ídem | Archiva o desarchiva; audita |
+| `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: solo `admin` con `p_motivo` | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
+| `archivar_etiqueta_almacen(p_id, p_archivar boolean, p_motivo)` | ídem; con efecto de dinero: solo `admin` con `p_motivo` | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
-| `quitar_etiqueta_recepcion(p_asignacion_id)` | ídem | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed`. Cualquiera con el candado puede quitar una puesta por otro: el historial dice quién la puso y quién la quitó |
+| `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo `admin` con `p_motivo` | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
 
 - La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
   idioma, ese solo. Es la foto del §2.4.
@@ -634,7 +650,7 @@ embarque partido.
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
 | **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
-| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (heredados `visible_ve`), y la etapa 2: poner, quitar y resolver indicadores en el embarque (migración C) | F1 en producción |
+| **F2** | Venezuela: lectura en Almacén VE, Embarques y Tracking (heredados `visible_ve`), y la etapa 2: poner y quitar sus indicadores en el embarque y comentar los de China (migración C) | F1 en producción |
 | **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
@@ -730,6 +746,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
     **Contestada en parte (2026-11-20):** Venezuela crea indicadores de aduana y logística y comenta los de
     China. Falta: el etiquetado en Almacén VE.
+14. **La autorización.** Para quitar o cambiar un indicador con dinero o impuesto, ¿basta un admin con motivo, o
+    lo aprueba alguien más? Ejemplo: Caracas pide quitar «Uso de montacargas» y Contabilidad lo aprueba.
 
 ## 8. Criterios de aceptación y pruebas
 
@@ -780,8 +798,11 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     `warehouse_tag` y actor; si la llamada falla, no queda fila.
 18. **Etapa 2, embarque:** `operations` de región `ve` pone «Montacargas» a un embarque → pasa; un usuario
     `cn` sin admin → falla con `42501`. Dos vivas iguales en el mismo embarque → la segunda falla.
-19. **Resolver un heredado:** Venezuela marca como resuelto en el embarque un indicador que viene de la
-    recepción → el embarque deja de mostrarlo, la asignación de la recepción sigue viva y sin cambios.
+19. **Venezuela no toca lo de China:** `operations` de región `ve` intenta quitar una asignación de recepción →
+    falla con `42501`; comentarla pasa.
+19b. **Dinero solo con autorización:** `warehouse` de región `cn` intenta quitar «Devolución de impuestos» →
+    falla; `admin` sin motivo → falla; `admin` con motivo → pasa y el motivo queda en el evento y en
+    `entity_audit_log`. Cambiar el `efecto` de un indicador sin ser admin → falla.
 20. **Sin duplicado en pantalla:** un indicador heredado y el mismo puesto en el embarque se leen una vez.
 21. **Comentario sobre un indicador de China:** Venezuela comenta una asignación de recepción → queda en
     `public.comments` con tipo `warehouse_receipt_tag`; la asignación no cambia; China lo lee.
