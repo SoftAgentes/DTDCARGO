@@ -13,8 +13,10 @@ import type { ContenedorEnCamino } from "@/lib/studio/almacen-cn-contenedores";
 import { textoDeDias } from "@/lib/studio/almacen-cn-vistas";
 import { formatFecha } from "@/lib/studio/embarques-contenedores";
 
+// ETA y días toman el ancho de su texto (no estimado) y no se parten: si un texto
+// crece, se ve, en vez de re-maquetar la fila (/ui-check).
 const COLUMNAS =
-  "minmax(160px,1.3fr) minmax(120px,1fr) 120px 130px minmax(140px,1fr) minmax(150px,1fr)";
+  "minmax(160px,1.3fr) minmax(120px,1fr) minmax(110px,max-content) minmax(110px,max-content) minmax(140px,1fr) minmax(150px,1fr)";
 
 function Dias({ locale, dias }: { locale: Locale; dias: number | null }) {
   const x = textoDeDias(dias);
@@ -86,8 +88,10 @@ function Fila({ locale, c }: { locale: Locale; c: ContenedorEnCamino }) {
       <span role="cell" style={{ color: "var(--ink-soft)", overflowWrap: "anywhere" }}>
         {c.vessel ?? "—"}
       </span>
-      <span role="cell">{c.eta ? formatFecha(c.eta) : "—"}</span>
-      <span role="cell">
+      <span role="cell" style={{ whiteSpace: "nowrap" }}>
+        {c.eta ? formatFecha(c.eta) : "—"}
+      </span>
+      <span role="cell" style={{ whiteSpace: "nowrap" }}>
         <Dias locale={locale} dias={c.diasRestantes} />
       </span>
       <span role="cell">
