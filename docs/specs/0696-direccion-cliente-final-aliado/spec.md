@@ -1,7 +1,7 @@
 ---
 sdd: "0696"
 title: "Dirección de entrega del cliente final de un aliado: la carga el aliado o el cliente con un enlace de su marca"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # SDD-0696 — Dirección de entrega del cliente final de un aliado
 
-> **Estado: propuesta para que Sam la apruebe.** Esta PR solo trae la spec: ni código, ni migración, ni
+> **Estado: aprobada por Sam el 2026-11-20 («Apruebo la 0696 (Recomendado)»).** Esta PR solo trae la spec: ni código, ni migración, ni
 > cambio de producto. Las preguntas van una por una en la §8.
 >
 > **Medición:** código de `main` en `6a7787d08`. La rama se basa en ese commit y la reserva `e9a0aa2aa` no

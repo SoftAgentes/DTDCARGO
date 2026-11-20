@@ -124,3 +124,7 @@
 - La prueba suma `accounting` y service_role sin la bandera.
 - `_complete` toma los locks en este orden: advisory, enlace, aliado.
 - La igualdad se describe como «mismas llamadas del servidor», no como el mismo tiempo en la base.
+
+## Aprobación de Sam (2026-11-20)
+
+- Sam escribió «Apruebo la 0696 (Recomendado)» en el chat de Dir_DTD. La spec pasa a `status: approved`. La #729 sale de borrador y la fusión la hace Dir_DTD con el tren.
