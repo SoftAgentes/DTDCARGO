@@ -266,7 +266,9 @@ tandas 2 a 4 y no toca la base ni los validadores (`0660/spec.md:37`).
 
 | Copia | Por qué |
 |---|---|
-| `invoices.client_name`, `client_rif`, `client_doc_kind` y `client_fiscal_address` | Se sellan al emitir. Un trigger impide cambiarlas (`0466:249-318`) |
+| `invoices.client_name`, `client_rif`, `client_doc_kind` y `client_fiscal_address` | Se sellan al emitir. Un trigger impide cambiarlas (`0466:249-318`). Con la SDD-0698, `client_fiscal_address` deja de sellarse solo para la identidad alterna y se sella siempre |
+| `invoices.ship_to_address`, `ship_to_address_id` y `addresses_sealed_at` (SDD-0698) | «Entregar en», sellado al emitir y editable en el borrador. Es la dueña la 0698 (F-1 a F-3) |
+| `shipments.delivery_address_id` (SDD-0698) | La dirección de **ese** embarque. Es la dueña la 0698 |
 | `payment_receipts.client_name` y `client_markbox` | Se copian de la factura al cobrar (`0467:312`) |
 | `shipment_rate_snapshots` | Es la tarifa congelada (`0496:213-219`). Solo su texto `client_markbox` queda viejo al cambiar el código (D-7) |
 | `invoices.fx_rate`, con su fuente y su fecha | Es la tasa del documento (`0495:349-359`) |
@@ -669,6 +671,7 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
   | La persona de la ficha fusionada (`person_id` en `merge_clients`, `coalesce` en `0361:258`) | 0695 F-3 (§4.4) | La F-3 no toca `merge_clients`: el caso de dos personas lo marca la vista (`persona_por_revisar`). La 0694 F-2 conserva la línea tal cual al redefinir `merge_clients`, y la 0695 F-6 también |
   | Las RPC de escritura `client_delivery_address_save` y `_save_service` | 0694 F-2, que las crea | La 0695 F-9a pasa a ellas a los demás llamadores y es dueña de la prueba de contrato del camino único (§4.10) |
   | La regla de una sola predeterminada (los triggers y el preflight, §4.10) | 0695 F-9b | La 0694 no la repite. Su helper lee «la más reciente» mientras tanto |
+  | Las direcciones de la factura y del embarque (`client_fiscal_addresses`, las columnas selladas de `invoices` y `shipments.delivery_address_id`) | 0698 (F-1 a F-3) | La 0695 las suma a §2.1 (copias intencionales): `invoices.client_fiscal_address` deja de ser solo de la alterna y se sella siempre, y se agregan `ship_to_address`, `ship_to_address_id` y `addresses_sealed_at`. Las filas del registro de fuentes únicas (0695 §4.1) las escribe la 0694 F-2. `client_billing_identities.fiscal_address` queda congelada desde la 0698 F-1, y su retiro va aparte |
 
   La misma tabla se cita en la 0694 (§8).
 - **0696** (cliente final del aliado): el cliente final guarda su dirección en la misma fuente única,
