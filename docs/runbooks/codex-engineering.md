@@ -281,14 +281,18 @@ previa, y la corrección de la regla es otra PR (que también va con revisión p
 `git revert -m 1 <merge>` en una rama nueva. Toca las mismas rutas que la PR revertida, así que el clasificador
 también la da `rapido`. Primero se revierte y después se investiga. La corrección vuelve como PR nueva, por el carril que le toque.
 
-**Revisión de madrugada.** Corre a las 2:00 de Caracas sobre todo lo que entró por el carril rápido en las últimas
-24 h (los merges a `main` cuyo carril registrado fue `rapido`). Las correcciones pequeñas que encuentre van como PR
-del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam. De noche no se publica: sus PR de
-corrección esperan la ventana de las 11:00.
+**Revisión de madrugada.** La lanza el Director a las 2:00 de Caracas sobre todo lo que entró por el carril
+rápido en las últimas 24 h (los merges a `main` cuyo carril registrado fue `rapido`). Las correcciones pequeñas
+que encuentre van como PR del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam. De noche
+no se publica: lo que se fusione de madrugada sale en la ventana de las 11:00.
 
-**Ventanas de publicación.** 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam para lo integrado. Mientras
-cada push a `main` construya y publique (SDD-0541), integrar es publicar: el tren fusiona solo dentro de una
-ventana y, fuera de ella, las PR listas esperan en cola. Las migraciones y encender interruptores (feature
+**Fusionar y publicar son pasos distintos.** Hoy un push a `main` no publica: el vigilante de la publicación
+automática (SDD-0541) está detenido y el servidor no tiene crontab. Publicar es un paso manual del Director, con
+`publicar.sh`. Por eso el tren fusiona a cualquier hora, en cuanto la PR cumple su carril.
+
+**Ventanas de publicación.** Rigen solo para publicar: 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam
+para lo que ya está integrado en `main`. Si el vigilante vuelve a activarse (cada push a `main` publicaría
+otra vez), esta regla se revisa antes, porque fusionar volvería a ser publicar. Las migraciones y encender interruptores (feature
 flags) en producción siguen pidiendo un OK nominal de Sam, como dice el
 [runbook de migraciones](aplicar-migraciones-prod.md). El OK fijo no cubre los smokes que pida una espera
 concreta.

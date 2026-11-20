@@ -43,10 +43,11 @@ Decisiones tomadas dentro del alcance:
   puertas de acceso.
 - **Los formularios** (`*Form.tsx`), el consentimiento de cookies, la analítica y Clarity van con revisión
   previa: deciden qué datos personales se capturan.
-- **Ventanas.** Mientras cada push a `main` publique (SDD-0541), integrar es publicar, así que la regla escrita
-  dice que el tren fusiona solo dentro de una ventana. Es lo más seguro con la regla vigente de AGENTS
-  («un merge a main es publicación web»). Si Dir_DTD o Sam quieren integrar fuera de ventana, primero hay que
-  separar la publicación del push a `main`, y ese es un cambio de operaciones aparte.
+- **Ventanas (corregido por Dir_DTD, 2026-11-20).** Hoy un push a `main` no publica: el vigilante está detenido y
+  publicar es un paso manual del Director con `publicar.sh`. Por eso el tren fusiona a cualquier hora y las ventanas
+  rigen solo para publicar. Si el vigilante vuelve a activarse, la regla se revisa. La primera versión decía que el
+  tren fusionaba solo en ventana.
+- **Madrugada.** El runbook dice que la lanza el Director, sin nombrar la herramienta.
 
 ## VALIDACIÓN
 
@@ -88,8 +89,11 @@ Decisiones tomadas dentro del alcance:
 ## FUERA DE ALCANCE DETECTADO
 
 - Paso 3: cambiar `tren.sh` para que use el contrato. Lo hace Dir_DTD, fuera del repo.
-- La revisión de madrugada (2:00 de Caracas) necesita quien la corra: una tarea programada o una sesión. No
-  existe todavía y no es parte de esta PR.
+- La revisión de madrugada (2:00 de Caracas) la lanza Dir_DTD, con la herramienta que elija. No es parte de
+  esta PR.
+- `AGENTS.md`, en «Fronteras críticas», todavía dice que cada push a `main` publica automáticamente y que un
+  merge es publicación web. Con el vigilante detenido, eso choca con la sección de carriles. No lo cambié porque
+  es una frontera crítica fuera del encargo: lo decide Dir_DTD.
 - El registro del carril de cada merge, para medir la semana, lo lleva el tren. Este repo no tiene dónde
   guardarlo.
 - El escáner de voseo (`scripts/buscar-voseo.mjs`) da 2 apariciones previas en
@@ -98,7 +102,7 @@ Decisiones tomadas dentro del alcance:
 ## HANDOFF AL DIRECTOR
 
 - Siguiente acción: lanzar la revisión independiente. Después, `gh pr ready` para la corrida de calidad y,
-  con eso, fusionar en una ventana con el OK que corresponda.
+  con eso, fusionar; publicar en una ventana.
 - Contrato compartido nuevo: la salida de `scripts/carril.mjs` (versión 1) que va a usar `tren.sh`.
 - Impacto documental: AGENTS, el runbook de integración y la skill del Director quedan actualizados. No toca
   `docs/specs` (no hay SDD) ni la cápsula de gobernanza, que sigue vigente.

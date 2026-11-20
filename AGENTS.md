@@ -22,8 +22,9 @@ Aprobados por Sam el 2026-11-20; prueba de una semana. Detalle y contrato del tr
 - **Carril con revisión previa:** todo lo demás, con la regla de siempre: revisión independiente APPROVED y CI verde en la cabeza exacta.
 - El carril lo decide `node scripts/carril.mjs`, por ruta y conservador: ante la duda, revisión previa, y basta un archivo sensible para que toda la PR lo sea. El check «Carril (informativo)» lo muestra en cada PR; la barrera es el tren del Director, no GitHub.
 - **Reversión:** si `main` queda en rojo después de una PR del carril rápido, se revierte con su propia PR del carril rápido.
-- **Revisión de madrugada:** a las 2:00 de Caracas, sobre lo que entró por el carril rápido en las últimas 24 h. Las correcciones pequeñas van como PR del carril rápido; lo del otro carril espera a Sam. De noche no se publica.
-- **Ventanas de publicación:** 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam para lo integrado. Mientras cada push a `main` publique, el tren fusiona solo dentro de una ventana. Las migraciones y encender interruptores en producción siguen pidiendo OK nominal.
+- **Revisión de madrugada:** la lanza el Director a las 2:00 de Caracas, sobre lo que entró por el carril rápido en las últimas 24 h. Las correcciones pequeñas van como PR del carril rápido; lo del otro carril espera a Sam. De noche no se publica.
+- **Fusionar y publicar van aparte:** hoy un push a `main` no publica (el vigilante está detenido; publicar es un paso manual del Director con `publicar.sh`), así que el tren fusiona a cualquier hora. Si el vigilante vuelve a activarse, esta regla se revisa.
+- **Ventanas de publicación:** solo para publicar, a las 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam para lo integrado. Las migraciones y encender interruptores en producción siguen pidiendo OK nominal.
 
 ## Comandos de supervivencia
 
