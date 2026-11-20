@@ -145,3 +145,17 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
   por la decisión 8.
 - Validación: `docs:check`, `check-numbering` y `git diff --check` PASARON. `pnpm verify` NO EJECUTADO
   (solo docs).
+
+## Revisión sobre c3f81665b (CHANGES_REQUESTED), corregida salvo el punto 1
+
+- **1.** La P-8 y el domicilio sellado que queda null en el caso común: **no se tocó**. Dir_DTD le pregunta
+  a Sam y pasa la respuesta.
+- **2.** El aviso de dirección faltante es solo para VE. La región `cn` no admin no lo recibe y, como mucho,
+  ve un marcador neutro (§4.6 y §7.11).
+- **3.** El límite de 24 h usa la tabla `client_data_requests` y la RPC `client_data_request_claim`, con
+  advisory lock e insert condicional. Las pruebas están en §7.7.
+- **4.** `createPrealertaAction` es la única acción que crea la compra (el paso 1 del asistente). La
+  dirección se pide antes y la acción la exige antes de insertar.
+- **5.** Los consumidores de `PortalClient.address` quedaron medidos y anotados en la allowlist de la F-2.
+- **6.** La base es `af0f635ad`. Se mergeó `origin/main` en la rama, sin reescribir la historia.
+- Validación: `docs:check`, `check-numbering` y `git diff --check` PASARON. `pnpm verify` NO EJECUTADO.

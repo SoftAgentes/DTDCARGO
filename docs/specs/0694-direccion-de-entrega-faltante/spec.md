@@ -31,7 +31,7 @@ ningún lado. Ese mismo día Sam pidió:
 - un botón para pedirle el dato al cliente desde la ficha;
 - un aviso automático cuando le llega mercancía a la bodega de China y no tenemos su dirección.
 
-## 2. Medición (código de `main` 87ff55598)
+## 2. Medición (código de `main` 87ff55598; base actualizada a `af0f635ad`, sin deriva en las líneas citadas de la §4.6 ni de `portal-queries.ts:117`)
 
 ### 2.1 Cuatro fuentes, no dos
 
@@ -274,7 +274,19 @@ Dir_DTD:
 - **Correo (decisión 6):** un correo del sistema con plantilla propia, mandado con `sendEmail` y con un botón al
   perfil del Portal. No hay `mailto:`.
   - Usa `<ActionButton>`: «Pedir por correo» → «Enviando…» → «Pedido enviado».
-  - Se limita a un correo por ítem y por cliente cada 24 horas.
+  - **Se limita a un correo por ítem y por cliente cada 24 horas.** El estado vive en una tabla nueva,
+    `client_data_requests`:
+    - columnas: `id`, `tenant_id`, `client_id`, `campo` (el ítem que se pide), `canal` (`email`),
+      `requested_by` y `requested_at`;
+    - RLS solo para el equipo del tenant; sin PII en la fila.
+  - **Contra el doble clic de dos operadores,** la acción llama a una RPC
+    `client_data_request_claim(p_client_id, p_campo)` que:
+    - toma `pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_campo, 0))`;
+    - mira si hay una fila de ese cliente y ese campo en las últimas 24 horas;
+    - si no la hay, inserta la fila y devuelve `ok = true`; si la hay, devuelve `ok = false` con la hora del
+      último pedido, sin insertar.
+  - El correo sale **solo** con `ok = true`. Con `ok = false`, el botón dice «Ya se pidió hoy, a las …».
+  - Si `sendEmail` falla después del `claim`, se borra esa fila para no bloquear el reintento.
   - Sin correo, no hay acción de correo.
 - **Rastro sin PII:**
   - El correo del sistema deja un evento en `entity_audit_log` (AUD-01) con solo
@@ -330,15 +342,20 @@ Dir_DTD:
 
 **Portal.**
 
-- Al crear una compra o una prealerta (`app/portal/(app)/compras/nueva/`, con `NewPurchaseWizard.tsx`, y
-  `createPrealertaAction` en `app/portal/(app)/proveedores/actions.ts:576`), si el cliente no tiene dirección
-  (§4.1), la pantalla le pide la dirección antes de confirmar.
+- **La compra se crea en una sola acción:** `createPrealertaAction`
+  (`app/portal/(app)/proveedores/actions.ts:576`). El asistente de tres pasos (`NewPurchaseWizard.tsx`)
+  la llama **al terminar el paso 1** (con `wizard`, `:582-585`), y el formulario largo la llama al final.
+  No hay una segunda acción que cree la compra.
+- Por eso la dirección se pide **antes de que esa acción corra**: en el asistente, como un bloque dentro
+  del paso 1, que aparece solo si el cliente no tiene dirección (§4.1); en el formulario largo, antes del
+  botón de enviar.
 - El formulario es el mismo de Mi perfil (`PortalAddresses.tsx`), llega precargado con la ciudad y el estado
   del registro y se guarda con la misma acción (`perfil/address-actions.ts`). El cliente no sale de la
   pantalla ni pierde lo que ya escribió de la compra.
 - Al guardarla, la compra sigue donde estaba.
-- **Lo exige el servidor, no solo la pantalla:** `createPrealertaAction` (y la acción que cree la compra) responde
-  con un error de campo, «Agrega tu dirección de entrega para continuar», si el cliente no tiene dirección.
+- **Lo exige el servidor, no solo la pantalla:** `createPrealertaAction` comprueba la dirección **antes de
+  insertar la compra**, en los dos caminos (asistente y formulario largo). Sin dirección, responde con un error
+  de campo, «Agrega tu dirección de entrega para continuar», y no crea nada.
 - Se aplica en cada compra mientras no tenga dirección, no solo en la primera: la primera es la que llega
   primero.
 
@@ -350,8 +367,11 @@ Dir_DTD:
 - El punto exacto se confirma al implementar: hoy la consolidación se arma en
   `app/studio/(app)/naviera/actions.ts` (`createConsolidation:320`, `linkConsolidation:823`) y la estiba del
   móvil en `app/m/cn/estibar/`.
-- **China.** En la región `cn` no admin, el aviso se muestra solo con el Shipping Mark: no lleva el nombre ni
-  la dirección (SDD-0531).
+- **China no recibe este aviso.** Es solo para Venezuela y para el Studio de VE. Un usuario de la región
+  `cn` que no sea admin no ve si al cliente le falta la dirección (§6, punto 9), ni en la consolidación ni en
+  la estiba del móvil (`app/m/cn/estibar/`).
+  - Si la operación de China necesita saber que debe esperar, ve un marcador neutro, «Retener: falta un dato
+    en VE», sin decir qué dato. Ese marcador lo decide Sam en la implementación; por defecto no se muestra.
 
 ### 4.7 Dirección rápida en el registro (decisión 7)
 
@@ -404,7 +424,7 @@ bueno.
 | F-0 | Esta spec. | No | Aprobación de Sam. |
 | **F-1** | Copia idempotente (§4.1). Helper de la dirección. **Camionero, fila «Dirección» y «Perfil del cliente»** (§4.2). | Sí: la copia | Prioridad de Dir_DTD. La copia se aplica antes de publicar los lectores. |
 | F-2 | El resto de los lectores (§4.2) y todos los escritores (§4.3): el Studio, la **dirección rápida del registro de la página y del registro por enlace (§4.7)**, la fusión que conserva la ciudad, las semillas y el portal sin doble lectura. | Sí: las RPC de enlace y la fusión | Después de F-2, nadie escribe F-1 ni F-4. La dirección rápida va en F-2 porque el registro por enlace necesita la misma migración que sus RPC. **Condición previa:** el ajuste de `app/privacidad/page.tsx:82`, con el visto bueno del DG (§4.7). |
-| F-3 | Botón «Pedir» (§4.4). | No, salvo que el correo necesite una plantilla en la DB | Puede ir en paralelo con F-2. |
+| F-3 | Botón «Pedir» (§4.4). | Sí: `client_data_requests` y su RPC `claim` | Puede ir en paralelo con F-2. |
 | E-1 | Exigir la dirección en la compra o la prealerta del portal, y el aviso al consolidar en el Studio (§4.6). | No | Requiere F-1 (el helper). Va después de F-2, para que los registros nuevos ya traigan su dirección y no se les pida dos veces. |
 | A-1 | Recuadro en el correo y aviso en el portal (§4.5). | No | Requiere F-1 (el helper). |
 | A-2 | WhatsApp automático (§4.5). | Por decidir en su diseño | Condicionada a la aprobación de Meta. |
@@ -521,7 +541,14 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
      `target="_blank"`.
    - El texto lleva solo el nombre de pila y el Shipping Mark; una prueba lo vigila como en `markbox-whatsapp`.
    - Con un teléfono que no sirve, la acción queda deshabilitada con su motivo.
-   - El correo deja un evento de auditoría sin PII y respeta el límite de 24 horas.
+   - El correo deja un evento de auditoría sin PII.
+   - **El límite de 24 horas** (`.test.sql` y Vitest):
+     - dos `client_data_request_claim` del mismo cliente y campo, en paralelo, dan un `ok = true` y un
+       `ok = false`, y queda una sola fila;
+     - a las 23 h 59 min el segundo pedido da `ok = false`, y a las 24 h 1 min da `ok = true`;
+     - otro campo del mismo cliente no queda bloqueado;
+     - con `ok = false` no se llama a `sendEmail`;
+     - si `sendEmail` falla, la fila se borra y el reintento sale.
 8. **A-1.**
    - Un aviso `status:in_warehouse` de un cliente sin dirección lleva el recuadro y el botón a `/portal/perfil`.
    - Con dirección, no lo lleva.
@@ -542,13 +569,15 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
     - El registro por enlace y el de activar, con la dirección llena, dejan la predeterminada en la tabla y no
       escriben `clients.address`. Si el cliente ya tenía una vigente, la nueva no es predeterminada.
 11. **Exigir en la compra (§4.6).**
-    - Un cliente sin dirección no puede confirmar una compra ni una prealerta: el servidor responde con el error
-      de campo. La prueba llama la acción directo, sin pasar por la pantalla.
+    - Un cliente sin dirección no puede crear una compra ni una prealerta: `createPrealertaAction` responde con
+      el error de campo y no inserta nada, **con `wizard` (paso 1 del asistente) y sin él**. La prueba llama
+      la acción directo, sin pasar por la pantalla.
     - La pantalla le muestra el formulario de dirección sin perder lo que escribió. Al guardarla, la compra se
       confirma.
     - Un cliente con dirección no ve ningún paso de más.
     - En el Studio, consolidar mercancía de un cliente sin dirección muestra el aviso y la consolidación sigue.
-      Para la región `cn`, el aviso lleva solo el Shipping Mark.
+      Un usuario de la región `cn` no admin **no ve el aviso** (una prueba lo comprueba en la consolidación y en
+      la estiba). Si se activa el marcador neutro, no nombra el dato que falta.
 12. **F-4.** Antes del `drop`, un grep sin resultados (fuera de migraciones aplicadas y desarmes), una segunda
     corrida de la copia y el OK nominal de Sam.
 
@@ -606,7 +635,10 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - y sus pruebas.
 - **F-2:**
   - `app/studio/(app)/clientes/actions.ts`, `ClientDrawer.tsx`;
-  - `lib/portal/portal-queries.ts`, `lib/portal/portal-types.ts`;
+  - `lib/portal/portal-queries.ts`, `lib/portal/portal-types.ts`. **Antes de cambiar `PortalClient.address`**
+    (`portal-queries.ts:117`) se hace un `git grep` de sus consumidores. Medidos en `af0f635ad`:
+    `app/portal/(app)/cotizaciones/nueva/page.tsx:19` y `app/portal/(app)/facturas/[code]/comprobante/page.tsx:232`.
+    La medición se repite al arrancar la F-2;
   - `app/portal/(app)/cotizaciones/nueva/page.tsx`;
   - el comprobante (decisión 9):
     - `app/portal/(app)/facturas/[code]/comprobante/page.tsx`;
@@ -628,11 +660,13 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `app/privacidad/page.tsx` (§6, punto 7), con el visto bueno del DG.
 - **E-1:**
   - `app/portal/(app)/compras/nueva/` (el wizard y su paso de confirmar);
-  - `app/portal/(app)/proveedores/actions.ts` (`createPrealertaAction` y la acción que crea la compra);
+  - `app/portal/(app)/proveedores/actions.ts` (`createPrealertaAction`, la única acción que crea la compra);
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (el formulario, reutilizable dentro de la compra);
   - `app/studio/(app)/naviera/actions.ts` y su pantalla, o la de la estiba (`app/m/cn/estibar/`), según dónde se consolide;
   - y sus pruebas.
 - **F-3:**
+  - `supabase/migrations/NNNN_client_data_requests.sql` (la tabla y `client_data_request_claim`), con su
+    `.test.sql`;
   - un componente nuevo en `app/studio/(app)/clientes/_components/` (`PedirDato`);
   - `page.tsx`;
   - una acción en `clientes/actions.ts`;
