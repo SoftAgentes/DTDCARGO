@@ -304,7 +304,11 @@ Diseño:
   pide o lo crea según la pregunta 13 (§7).
 - **Rastro de la etapa 2:** las filas de `shipment_tags` (puesto, quitado, resuelto, con actor y fecha) más
   `entity_audit_log`. No va a `shipment_events`, que lo lee el portal (§1.3).
-- China ve en «En camino» los indicadores que Venezuela agregó a sus embarques, como información.
+- **China no entra a Embarques** (Sam, 2026-11-20). Almacén China es lo que está en el almacén; lo
+  consolidado pasa a Embarques, que es de Venezuela. China solo ve su historial de consolidados («En camino»,
+  SDD-0682), y ahí, de solo lectura, los indicadores de sus recepciones y los que Venezuela agregó a esos
+  embarques. Cerrarle a China el acceso a Embarques y Tracking (hoy abierto al rol `warehouse`,
+  `lib/studio/rbac.ts:64-65`) y el telex release con su prueba son de la SDD-0682 fase 2, no de esta.
 
 ### 2.4 Rastro en el historial
 
