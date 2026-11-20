@@ -1,9 +1,10 @@
-# BTN-01 v1.1 — Semántica, jerarquía y contrato de botones
+# BTN-01 v1.2 — Semántica, jerarquía y contrato de botones
 
 | Control | Valor |
 |---|---|
 | Código | BTN-01 |
-| Versión | 1.1 |
+| Versión | 1.2 |
+| Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: `primary` se pinta con el azul de acción |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-014 |
@@ -32,7 +33,11 @@ Reglas:
 
 - una sola acción primaria por pantalla, drawer, diálogo o bloque independiente;
 - `success` no es una variante en reposo: solo feedback transitorio;
-- el vino de marca no sustituye `danger`;
+- `primary` se pinta con el azul de acción (`--accion`, texto `--on-accion`);
+  el vino queda para la identidad y no pinta botones (BD-076; adopción por las
+  fases de SDD-0686);
+- ni el vino ni el azul de acción sustituyen `danger`: lo destructivo conserva
+  rojo, icono y verbo;
 - una acción crítica no se oculta sin rastro dentro de un menú para “limpiar” la pantalla;
 - una tabla puede repetir una acción por fila, pero normalmente usa enlace,
   terciario o icono para no crear decenas de primarios visuales; la página

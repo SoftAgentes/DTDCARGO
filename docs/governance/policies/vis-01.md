@@ -1,9 +1,10 @@
-# VIS-01 v1.0 — Jerarquía y presupuesto de énfasis visual
+# VIS-01 v1.1 — Jerarquía y presupuesto de énfasis visual
 
 | Control | Valor |
 |---|---|
 | Código | VIS-01 |
-| Versión | 1.0 |
+| Versión | 1.1 |
+| Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: la acción primaria pasa del vino al azul |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
 | Creado | 2026-07-21 |
@@ -34,14 +35,26 @@ accesibilidad o seguridad y se mantiene la jerarquía.
 
 - **Base/surface:** soporta lectura prolongada y densidad operativa.
 - **Ink:** contenido y jerarquía tipográfica.
-- **Wine:** identidad, selección y acción primaria; no significa peligro.
+- **Acción (azul, `--accion`):** acción primaria, enlaces y foco; no significa
+  estado, aviso ni peligro.
+- **Wine:** identidad (logo, wordmark, sello, documentos de marca); no pinta
+  botones, enlaces ni cifras, y no significa peligro.
+- **Ink:** además del contenido, selección (pestaña, filtro; BD-037) y cifras
+  (saldos, KPI, montos).
 - **Navy/dark:** estructura y acción secundaria importante.
 - **Success/warning/danger/info/neutral:** estado estable y transversal.
 - **Categórico:** diferencia entidades comparables; nunca sustituye semántica.
 
 El mismo color no puede significar “seleccionado” en un módulo y “error” en
-otro. `danger` no se sustituye por wine. La IA no recibe púrpuras, neones o
-gradientes “mágicos” como identidad paralela.
+otro. `danger` no se sustituye por wine ni por el azul de acción. La acción y el
+peligro no comparten tono: su distancia de tono es de al menos 90° en los dos
+temas, porque el vino y el peligro compartían 354° y la acción principal se leía
+como «borrar» (BD-076). La IA no recibe púrpuras, neones o gradientes “mágicos”
+como identidad paralela.
+
+**Adopción de la enmienda v1.1.** La pasan las fases de SDD-0686; mientras una
+superficie no migra, conserva el vino como acción y eso no se registra como
+incumplimiento de esta sección.
 
 ## 4. Escala de énfasis
 
@@ -92,7 +105,8 @@ Fortalezas:
 
 - tokens duales y semánticos existentes;
 - contraste documentado;
-- `danger` separado de wine;
+- `danger` separado de wine por nombre de token (no por tono: los dos a 354°,
+  corregido por BD-076);
 - una acción primaria definida en el estándar actual;
 - movimiento reducido presente en primitivas recientes.
 

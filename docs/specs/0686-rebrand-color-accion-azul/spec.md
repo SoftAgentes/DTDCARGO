@@ -1,7 +1,7 @@
 ---
 sdd: "0686"
 title: "Color de acción azul en web, Portal y ERP: el rojo queda para el peligro y el vino para la identidad"
-status: proposed
+status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-20
 updated: 2026-11-20
@@ -18,7 +18,9 @@ confidencialidad: interno
 
 ## Estado (2026-11-20)
 
-Spec escrita y propuesta. **Ninguna fase está implementada.** Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
+**Aprobada por Sam el 2026-11-20** para empezar las fases 0 y 1. Pregunta: «¿Apruebas la spec de la SDD-0686 para empezar con las fases 0 y 1?». Respuesta literal: «Sí, empieza». La aprobación cubre el diseño y la implementación de esas dos fases; no cubre fusionar ni publicar.
+
+**Fase 0 escrita** (BD-076, `BRAND.md`, VIS-01 v1.1, BTN-01 v1.2, nota del Norte, `app/studio/CLAUDE.md`). **Fase 1 sin empezar.** Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
 
 ## 1. Problema
 
@@ -130,7 +132,9 @@ AGENT-BRIEF prohíbe el barrido masivo: **una fase, una rama, una PR**. Cada fas
 - `docs/design/studio/_norte/CLAUDE.md` (solo la nota de enmienda local al tope de §Sistema de color; el resto llega por NORTE-SYNC)
 - `docs/governance/policies/vis-01.md`, `docs/governance/policies/btn-01.md`, `docs/governance/generated/` (lo que regenere `pnpm governance:check`)
 - `app/studio/CLAUDE.md` (tabla de variantes: `primary` deja de ser «wine»)
+- `docs/governance/README.md` (filas de VIS-01 y BTN-01)
 - `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- Observaciones de la revisión de la PR #715, que por orden del Director entran aquí: `.agents/handoffs/rebrand-design-evaluacion-ant-design.md`, `docs/design/rebrand-erp/borrador-sdd-rebrand-sistema.md`, `docs/design/rebrand-erp/checklist-y-color.md` y `docs/design/rebrand-erp/evaluacion-carbon.md`
 
 Líneas de `BRAND.md` que se reescriben (**C**, sobre `main` `2ea18799a`): `:104` (fila «Marca»), `:121-123` y `:145-146` (rol de `--wine`), `:162` (los azules siguen prohibidos **para alertas**; el de acción no es alerta), `:183`, `:186` y `:188-189` (relleno y texto), `:309` (BD-037: «el vino queda para la acción principal»), `:324-325` (variantes de botón y tono de badge) y `:389-398` (EXC-0654-01, que queda con fecha de cierre).
 

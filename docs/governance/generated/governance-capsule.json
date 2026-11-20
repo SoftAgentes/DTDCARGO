@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-11-12T00:00:00.000Z",
-  "sourceCommit": "75f77e61e5ae42846cc42b763db68544b19b8d78",
+  "sourceCommit": "9519fe06b7c230adbec179e54fbf4bd9b80a4dc5",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -34,7 +34,7 @@
     },
     {
       "code": "BTN-01",
-      "version": "1.1",
+      "version": "1.2",
       "state": "aprobada",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/btn-01.md"
@@ -195,7 +195,7 @@
     },
     {
       "code": "VIS-01",
-      "version": "1.0",
+      "version": "1.1",
       "state": "aprobada",
       "approvedAt": "2026-07-21",
       "path": "docs/governance/policies/vis-01.md"

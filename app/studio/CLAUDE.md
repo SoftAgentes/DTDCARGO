@@ -122,7 +122,8 @@ Viven en `app/studio/_components/ui/`:
 
 - `Avatar` · iniciales + color (wine | success | info | neutral)
 - `Badge` · tonos `success` / `warning` / `danger` / `info` / `wine` / `neutral`,
-  sizes `xs` / `sm` / `md`
+  sizes `xs` / `sm` / `md`. El tono `wine` está en revisión por BD-076
+  (SDD-0686 §10): no lo uses en badges nuevos.
 - `EmptyState` · eyebrow + título + descripción + action opcional
 - `KpiCard` · número grande + label + sub
 - `drawer/DrawerShell` · shell + footer compartidos
@@ -373,12 +374,14 @@ cumplirlas todas.
 
 | Variante | Cuándo | Ejemplo |
 |---|---|---|
-| `primary` (wine) | Acción principal de la pantalla. **Una sola** por contexto. | "Enviar cotización", "Crear cliente", "Convertir a embarque" |
+| `primary` (azul de acción, `--accion`; BD-076) | Acción principal de la pantalla. **Una sola** por contexto. | "Enviar cotización", "Crear cliente", "Convertir a embarque" |
 | `dark` (navy) | Acción secundaria importante pero no destructive. | "Marcar despachado", "Asignar ruta" |
 | `ghost` (contorno de tinta) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
 | `danger` (red) | Acciones destructivas o de rechazo. | "Eliminar", "Rechazar", "Cancelar embarque" |
 | `warning` (gold) | Requiere atención · no destructiva pero significativa. | "Marcar excepción", "On hold" |
 | `success` (green) | **NUNCA como idle** · solo flash transitorio post-éxito. | (estado interno de ActionButton) |
+
+**Color de acción (BD-076, SDD-0686, 2026-11-20).** Azul = acción; rojo = peligro; vino = solo identidad (logo, wordmark); tinta = selección y cifras. El cambio llega por fases: hasta que la fase 1 de SDD-0686 cambie `.studio-btn-primary` en `studio.css`, el relleno sigue en vino. **Código nuevo:** enlaces y acentos de acción con `var(--accion-text)` / `var(--accion)` en cuanto existan esos tokens (fase 1), nunca `var(--wine…)`; saldos, KPI y montos en `var(--ink)`. No migres usos viejos del vino fuera de la allowlist de su fase.
 
 **Elevación (SDD-0603, enmienda del 2026-11-12).** La sombra de `.studio-btn` sale de dos piezas: `--btn-lift` (el nivel) y `--btn-edge` (el borde propio en oscuro). Una variante cambia esas piezas, nunca `box-shadow` entero. Niveles: `primary` `--shadow-md` (hover `--shadow-lg`); `dark`, `warning` y `danger` `--shadow-sm`; `ghost` `--shadow-xs` con contorno de 1,5 px en `--ctl-border`. Los rellenos llevan `--btn-edge: var(--ctl-edge-hi)`. Deshabilitado y `success` van planos. Verbos en peso 700 o más. Lo vigila `claridad-controles-contract.test.ts`.
 
