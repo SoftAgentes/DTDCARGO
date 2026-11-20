@@ -39,13 +39,19 @@ Sam decidió el 2026-11-20 pasar el color de acción del vino al azul en web, Po
 
 ## PENDIENTE DE ESTA TAREA
 
-1. Ejecutar la fase 1 (vitest de contratos, `verify`) con turno de PC; pedido al Director el 2026-11-20, sin respuesta todavía.
-2. Imagen de prueba para que Sam fije el tono.
-3. Fases 2 a 5, cada una con su allowlist y su PR. **Condición de publicación (spec §8.1):** entre la fase 1 y el final de la fase 2 no se publica ni se fusiona a `main`, salvo que la pantalla quede coherente.
-4. Decisiones abiertas de Sam: tono exacto, color del Shipping Mark, correos/PDF/Chatwoot y el badge `wine` (spec §10).
+Estado del 2026-11-20, tarde:
+- Sam cerró todas las decisiones de §10: tono B, BD-076 reglas 6 a 9 (Shipping Mark, badge `wine`, correos/PDF/Chatwoot y logo) y el dashboard en tinta.
+- Fase 2, grupos 1 y 2, en la rama local `claude/sdd-0686-fase2-g1` (`e1864b03e` y `ad71ada61`), apilada sobre la PR #722.
+- Se pidió turno de PC al Director para vitest; sin respuesta.
+
+1. **Vitest con turno:** `color-accion-fase2-contract.test.ts` (nuevo) y los contratos de `app/studio/_components/__tests__/`, más las pruebas de los módulos tocados. Hasta ahora solo hay comprobación de sintaxis TypeScript (67 archivos, 0 errores), no de tipos.
+2. Publicar la rama de la fase 2 y abrir su PR solo con la orden del Director o de Sam. Entra a `main` junto con la #722 (§8.1).
+3. Grupo 3: las funciones de `lib/studio` que devuelven `"wine"` como tono de badge (nivel VIP, plan mayorista, ETA del calendario, modelo de agente, auditoría y otras), y el resto de módulos por grupos de 5 a 8.
+4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
+5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 
 ## FUERA DE ALCANCE DETECTADO
 
 - Si la PR #715 entra a `main` por **squash**, esta rama tendrá conflictos de «añadido en los dos lados» en los cuatro archivos del análisis que corrige. Se resuelven tomando la versión de esta rama. Con merge normal no hay conflicto.
 - Los enlaces del borrador a las specs 0687 y 0688 no resuelven hasta que esas specs lleguen a `main`.
-- `BRAND.md:33` dice que el logo `mono-light` va «sobre wine, CTAs, alertas». Desde BD-076 los CTA son azules; no lo cambié porque es una regla del logo y Sam no autorizó cambios de logo. Hay que confirmarlo al ver la imagen de prueba.
+- ~~`BRAND.md:33` y el logo `mono-light`.~~ Resuelto el 2026-11-20 con la regla 9 de BD-076: el logo no va sobre el azul.
