@@ -32,7 +32,14 @@ Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arr
   abre en `pestanaInicial="camino"` (decisión del DG: es el camino real del 64, zarpado), y en su bloque
   «el encabezado no depende de la pestaña» los casos «Activos» pasan a «En camino», donde ahora viven los
   envíos en tránsito. Aserciones sin cambios.
-- typecheck, vitest y lint: NO EJECUTADO todavía (turno de PC en cola del DG).
+- Turno de PC del DG, 2026-11-20, sobre `0c50a9fa8` y el arreglo encima:
+  - typecheck (`pnpm typecheck`): PASÓ.
+  - vitest de lo tocado (cn, embarques, contratos del Studio, app/m/cn y las pruebas de lib/studio
+    relacionadas): primera corrida 743/744; FALLÓ `pestanas-contract` porque el enlace de pestaña llevaba
+    `style` en línea. Arreglo: se quita el estilo y `a.studio-tab { text-decoration: none }` va a
+    `studio.css`. Segunda corrida de contratos, cn y lectores de `studio.css`: 491/491 PASÓ.
+  - eslint de los archivos tocados: PASÓ.
+  - `pnpm verify` completo: NO EJECUTADO (el DG no lo dio en este turno; lo cubre la CI).
 
 ## Pendiente de esta tarea
 

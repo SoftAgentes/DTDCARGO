@@ -35,7 +35,6 @@ export function VistasAlmacen({
           className="studio-tab"
           data-activa={vista === o.id ? "true" : undefined}
           aria-current={vista === o.id ? "page" : undefined}
-          style={{ textDecoration: "none" }}
         >
           {o.label}
         </Link>
