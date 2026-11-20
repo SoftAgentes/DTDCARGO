@@ -301,7 +301,7 @@ function OrdersTable({
                 </Badge>
               )}
               {cajas > 0 && (
-                <Badge tone="wine" size="sm">
+                <Badge tone="neutral" size="sm">
                   {cajas} {cajas === 1 ? "caja" : "cajas"}
                 </Badge>
               )}

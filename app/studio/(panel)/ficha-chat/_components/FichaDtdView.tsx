@@ -129,7 +129,7 @@ function Ficha({ ficha, costoChat }: { ficha: FichaDtd; costoChat?: ReactNode })
           <h1 style={{ font: "900 22px/1.15 var(--f-display)", color: "var(--wine-text)", letterSpacing: "-0.01em", margin: 0 }}>
             {ficha.markbox}
           </h1>
-          {ficha.segmento ? <Badge tone="wine">{t(`bandeja.ficha.segment.${ficha.segmento}`)}</Badge> : null}
+          {ficha.segmento ? <Badge tone="neutral">{t(`bandeja.ficha.segment.${ficha.segmento}`)}</Badge> : null}
         </div>
         {anteriores.length ? <p style={CUERPO}>{t("bandeja.ficha.previous", { codigos: anteriores.join(" · ") })}</p> : null}
       </section>

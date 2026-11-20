@@ -119,7 +119,7 @@ interface ActionableRowConfig {
   onSelect: () => void;
   /** Nombre accesible de la acción (ej. "Ver reclamo RC-0012"). */
   label?: string;
-  /** Fila actualmente seleccionada → tinte `--wine-tint`. */
+  /** Fila actualmente seleccionada → tinte de tinta (selección, BD-037). */
   active?: boolean;
   disabled?: boolean;
 }
@@ -203,7 +203,7 @@ export function ActionableRow({
       {...a11y}
       className={`studio-actionable-row ${className ?? ""}`.trim()}
       style={{
-        ...(active ? { background: "var(--wine-tint)" } : null),
+        ...(active ? { background: "color-mix(in srgb, var(--ink) 8%, transparent)" } : null),
         ...style,
       }}
     >

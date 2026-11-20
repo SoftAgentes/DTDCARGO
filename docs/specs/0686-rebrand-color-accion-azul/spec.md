@@ -163,6 +163,28 @@ Sin contar comentarios, el vino aparecía en **74 líneas** de declaraciones y q
 
 Alias retirados: `--studio-wine` y `--studio-wine-deep` (su único consumidor era el botón principal). `--studio-wine-soft` se queda para el eyebrow. El foco global de `tokens.css` pasa a `var(--accion)` en los dos temas y desaparece la regla oscura que usaba `--wine-soft`.
 
+### Fase 2 · grupo 1 · allowlist y reparto (2026-11-20)
+
+Lo abrió Sam con «Lo que no necesita mi aprobación, avances. Con esto que te di puedes ir avanzando», después de cerrar las decisiones de §10. Va en la rama `claude/sdd-0686-fase2-g1`, apilada sobre la PR de la fase 1. No se fusiona ni se publica sola (§8.1).
+
+**Archivos:**
+- Marco del Studio: `StudioSidebar.tsx`, `StudioTopbar.tsx`, `BandejaBadge.tsx` y `comments/CommentItem.tsx`.
+- Primitivas: `SegmentedControl`, `KpiCard`, `SplitActionButton`, `DateField`, `DataTable`, `ClientCombobox`, `RealtimeIndicator`, `columns/ColumnConfig` y `Badge` (el tono `wine` queda marcado como obsoleto).
+- Dashboard: `page.tsx`, `DashboardWidgets`, `DashboardEditorDrawer`, `RecentActivityCard` y `RecentQuotesCard`.
+- Los 19 `<Badge tone="wine">` del Studio, en 18 archivos (incluida la barra superior), con un cambio de una línea cada uno.
+- La enmienda de BD-011 y el contrato nuevo `color-accion-fase2-contract.test.ts`.
+
+| Destino | Qué |
+|---|---|
+| Acción (`--accion*`) | Anillo de foco y borde al pasar el ratón de `SegmentedControl` (el anillo pasa de un tinte que no llegaba a 3:1 a 2 px de `--accion`); casilla y «Restablecer» de columnas; asa de ancho del menú (`--accion-soft`, sobre navy); enlaces del dashboard; zona donde se suelta un widget, «+» e interruptor del editor del dashboard |
+| Tinta (selección, BD-037) | Segmento y tarjeta activos; opción por defecto del botón dividido; día elegido del calendario (texto `--ink-inv`); día de hoy; fila activa de `DataTable`; opción activa del buscador de clientes; botón «Columnas» abierto; reacción propia en comentarios; icono y punto del módulo activo del menú |
+| Tinta (cifras, aprobado por Sam) | Barras, etiquetas y KPI «en curso» del dashboard; monto de los estimados; código del embarque en la actividad; KPI destacado en degradado navy (antes vino) |
+| Neutro o estado | Estados de viaje en `--info`; «En vivo» en `--success`; contador de la bandeja en una pastilla blanca con tinta fija, como la selección del menú; badges en `neutral` y «Vigente» en `success` |
+| Se queda: identidad | Brillo de marca del menú (BD-034), panel de bienvenida del dashboard (BD-034) y eyebrow de `EmptyState` |
+| Se queda: por decidir | Tono `wine` de `Avatar`, que son iniciales de persona: no es acción ni cifra |
+
+También corrige el voseo «refrescá» del indicador en vivo, que pasa a «refresca».
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

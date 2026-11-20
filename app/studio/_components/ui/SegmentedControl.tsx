@@ -24,8 +24,8 @@
  *
  * Tokens (light + dark via data-theme):
  *  - pills:  activo con relleno de tinta; inactivo con texto de tinta (SDD-0603)
- *  - cards:  activo con contorno vino; inactivo con contorno --ink-soft
- *  - hover   → border var(--wine) sin commit visual
+ *  - cards:  activo con contorno y tinte de tinta (selección, BD-037); inactivo con contorno --ink-soft
+ *  - hover   → borde var(--accion) sin commit visual; foco → anillo var(--accion) (BD-076)
  */
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
@@ -202,10 +202,10 @@ export function SegmentedControl<T extends string>({
               padding: "12px 14px",
               borderRadius: "var(--r-md, 10px)",
               border: `1px solid ${
-                isActive ? "var(--wine-text)" : "var(--ink-soft)"
+                isActive ? "var(--ink)" : "var(--ink-soft)"
               }`,
               background: isActive
-                ? "var(--wine-tint, rgba(127,15,26,0.06))"
+                ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                 : "var(--bg-surface, #FFFFFF)",
               cursor: isDisabled ? "not-allowed" : "pointer",
               opacity: isDisabled ? 0.4 : 1,
@@ -219,7 +219,7 @@ export function SegmentedControl<T extends string>({
             }}
             onMouseEnter={(e) => {
               if (!isActive && !isDisabled) {
-                e.currentTarget.style.borderColor = "var(--wine, #7F0F1A)";
+                e.currentTarget.style.borderColor = "var(--accion)";
               }
             }}
             onMouseLeave={(e) => {
@@ -229,7 +229,7 @@ export function SegmentedControl<T extends string>({
             }}
             onFocus={(e) => {
               e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--wine-tint, rgba(127,15,26,0.18))";
+                "0 0 0 2px var(--accion)";
             }}
             onBlur={(e) => {
               e.currentTarget.style.boxShadow = "none";
@@ -243,7 +243,7 @@ export function SegmentedControl<T extends string>({
                 fontWeight: 700,
                 fontSize: 14,
                 color: isActive
-                  ? "var(--wine, #7F0F1A)"
+                  ? "var(--ink)"
                   : "var(--ink, #0F1E3D)",
                 lineHeight: 1.2,
               }}
@@ -260,7 +260,7 @@ export function SegmentedControl<T extends string>({
                 style={{
                   fontSize: 12.5,
                   color: isActive
-                    ? "var(--wine, #7F0F1A)"
+                    ? "var(--ink)"
                     : "var(--ink-soft, #4B5563)",
                   opacity: isActive ? 0.85 : 1,
                   lineHeight: 1.35,

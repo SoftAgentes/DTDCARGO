@@ -190,7 +190,7 @@ export function ConvertLeadDrawer({
                     </div>
                   </div>
                   {on && (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Elegido
                     </Badge>
                   )}

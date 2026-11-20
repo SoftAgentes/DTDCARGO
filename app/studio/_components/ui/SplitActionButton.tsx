@@ -17,7 +17,7 @@
  *   └─────────────────────────────┴──┘
  *   ↓ click en chevron:
  *   ┌──────────────────────────────────┐
- *   │  ● Crear y cerrar (actual)       │   ← punto wine = default actual
+ *   │  ● Crear y cerrar (actual)       │   ← punto de tinta = default actual
  *   │  ○ Crear y dejar abierta         │
  *   │  ○ Crear y empezar otra          │
  *   └──────────────────────────────────┘
@@ -564,7 +564,7 @@ function SplitActionMenu({
               <span
                 style={{
                   font: "700 9px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
                 }}
@@ -588,7 +588,7 @@ function RadioDot({ active }: { active: boolean }) {
         width: 12,
         height: 12,
         borderRadius: "50%",
-        border: `1.5px solid ${active ? "var(--wine)" : "var(--ink-mute)"}`,
+        border: `1.5px solid ${active ? "var(--ink)" : "var(--ink-mute)"}`,
         position: "relative",
         flexShrink: 0,
       }}
@@ -602,7 +602,7 @@ function RadioDot({ active }: { active: boolean }) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--wine)",
+            background: "var(--ink)",
           }}
         />
       )}

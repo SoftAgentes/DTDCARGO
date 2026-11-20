@@ -203,7 +203,7 @@ export function DeliveryAddressesCard({
                     </span>
                   )}
                   {a.isDefault && (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Predeterminada
                     </Badge>
                   )}

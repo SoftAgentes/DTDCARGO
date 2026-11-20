@@ -187,7 +187,7 @@ function KpiEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <span className="studio-eyebrow">
             EN EL DASHBOARD · {config.kpis.length}/{MAX_KPIS}
           </span>
           <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
@@ -242,8 +242,8 @@ function KpiEditor({
                     alignItems: "center",
                     gap: 10,
                     padding: "10px 12px",
-                    background: isOver ? "var(--wine-tint)" : "var(--bg-surface)",
-                    border: `1px solid ${isOver ? "var(--wine)" : "var(--border)"}`,
+                    background: isOver ? "var(--accion-tint)" : "var(--bg-surface)",
+                    border: `1px solid ${isOver ? "var(--accion)" : "var(--border)"}`,
                     borderRadius: "var(--r-md)",
                     cursor: "grab",
                     opacity: dragIdx === idx ? 0.4 : 1,
@@ -369,7 +369,7 @@ function KpiEditor({
                         {(Icon as Record<string, ((n?: number) => React.ReactNode) | undefined>)[meta.icon]?.(13)}
                       </span>
                       <span style={{ flex: 1, font: "500 12.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>{meta.label}</span>
-                      <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>{Icon.plus(13)}</span>
+                      <span style={{ color: "var(--accion-text)", display: "inline-flex" }}>{Icon.plus(13)}</span>
                     </button>
                   ))}
                 </div>
@@ -422,7 +422,7 @@ function WidgetEditor({
             width: 34,
             height: 20,
             borderRadius: 999,
-            background: on ? "var(--wine)" : "var(--border-strong)",
+            background: on ? "var(--accion)" : "var(--border-strong)",
             position: "relative",
             flexShrink: 0,
             marginTop: 1,
@@ -455,7 +455,7 @@ function WidgetEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {left.length > 0 && (
         <section>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
             COLUMNA PRINCIPAL · 2/3
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -467,7 +467,7 @@ function WidgetEditor({
       )}
       {right.length > 0 && (
         <section>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
             COLUMNA LATERAL · 1/3
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

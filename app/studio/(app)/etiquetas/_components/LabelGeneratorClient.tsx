@@ -617,7 +617,7 @@ function LabelGeneratorInner({
                 {copiesPerBox === 1 ? "copia" : "copias"}
               </div>
             </div>
-            <Badge tone="wine" size="md">
+            <Badge tone="neutral" size="md">
               {format.label}
             </Badge>
           </div>

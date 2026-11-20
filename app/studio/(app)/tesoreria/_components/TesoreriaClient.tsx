@@ -690,7 +690,7 @@ function PaymentsTab({
               </span>
               <span>
                 {isChinaRemittance(p.method, p.currency) ? (
-                  <Badge tone="wine" size="sm">
+                  <Badge tone="neutral" size="sm">
                     {paymentMethodLabel(p.method)}
                   </Badge>
                 ) : (

@@ -175,7 +175,7 @@ export default async function DashboardPage() {
     if (!accessibleKpiIds.has(k.id)) continue;
     switch (k.id) {
       case "shipmentsActive":
-        if (operational) kpiValues[k.id] = { value: String(operational.total), sub: "en curso", tone: "wine" };
+        if (operational) kpiValues[k.id] = { value: String(operational.total), sub: "en curso", tone: "neutral" };
         break;
       case "openIncidents":
         if (operational)

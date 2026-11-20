@@ -2,7 +2,7 @@
  * KpiCard primitive · DTD Studio (SDD-0014)
  *
  * Card con valor grande + label + sub-line opcional.
- * Border-top wine-soft 2px cuando value > 0 (convención visual del dashboard).
+ * Border-top de tinta 2px cuando value > 0 (cifras en tinta, BD-076 · SDD-0686).
  *
  * Reusa tokens del sistema, light + dark theme aware.
  */
@@ -15,12 +15,12 @@ interface KpiCardProps {
   /** Texto secundario debajo del label (ej: "8 enviadas · 3 aceptadas"). */
   sub?: ReactNode;
   /** Color del valor (default var(--ink)). Útil para diferenciar tonos
-   *  semánticos: success/warning/danger/wine. */
+   *  semánticos: success/warning/danger. */
   valueColor?: string;
-  /** Si false, no muestra border-top wine-soft aunque value > 0. */
+  /** Si false, no muestra el border-top de tinta aunque value > 0. */
   highlightWhenPositive?: boolean;
   /**
-   * KPI DESTACADO (BD-034): relleno degradado vino + marca de agua "D" (isotipo
+   * KPI DESTACADO (BD-034): relleno degradado navy (cifras en tinta, BD-076; antes vino) + marca de agua "D" (isotipo
    * mono-light, wallpaper) + texto cream. Para el KPI primario del dashboard.
    */
   feature?: boolean;
@@ -54,19 +54,19 @@ export function KpiCard({
       style={{
         position: "relative",
         overflow: "hidden",
-        background: feature ? "var(--grad-wine)" : "var(--grad-card)",
+        background: feature ? "var(--grad-navy)" : "var(--grad-card)",
         border: feature ? "1px solid transparent" : "1px solid var(--border)",
         borderTop: feature
           ? "1px solid transparent"
           : showHighlight
-            ? "2px solid var(--wine-soft)"
+            ? "2px solid var(--ink-soft)"
             : "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
         padding: "var(--s-5)",
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        boxShadow: feature ? "0 12px 32px -14px rgba(127,15,26,0.6)" : undefined,
+        boxShadow: feature ? "var(--shadow-md)" : undefined,
         ...style,
       }}
     >

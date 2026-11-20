@@ -189,9 +189,10 @@ export function CommentItem({
                     gap: 4,
                     padding: "3px 8px",
                     borderRadius: "var(--r-pill)",
-                    background: mine ? "var(--wine-tint)" : "var(--bg-elevated)",
-                    color: mine ? "var(--wine)" : "var(--ink-soft)",
-                    border: `1px solid ${mine ? "var(--wine)" : "transparent"}`,
+                    // Reacción propia = estado marcado: tinta, como la selección (BD-037, BD-076).
+                    background: mine ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
+                    color: mine ? "var(--ink)" : "var(--ink-soft)",
+                    border: `1px solid ${mine ? "var(--ink)" : "transparent"}`,
                     font: "600 11px/1.2 var(--f-sans)",
                   }}
                 >

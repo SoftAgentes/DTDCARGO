@@ -210,7 +210,7 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
             marginBottom: 14,
           }}
         >
-          <Badge tone="wine" size="md">
+          <Badge tone="neutral" size="md">
             {selectedIds.size} seleccionada{selectedIds.size === 1 ? "" : "s"}
           </Badge>
           <div style={{ flex: 1 }} />

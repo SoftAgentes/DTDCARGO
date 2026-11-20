@@ -200,6 +200,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Decisión:** paleta de charts **categórica** (orden fijo de 6 tokens, wine protagonista), **semántica** (success/warning/danger/info/neutral solo para significado) y **secuencial** (un token con opacidad escalonada — **cero hex nuevos**). Máximo 6 series; verde/rojo nunca como categoría.
 - **Por qué:** `CLAUDE.md` prohibía colores random en charts pero no definía la secuencia oficial; el primer dashboard real la iba a improvisar.
 - **Regla viva en:** `Sistema de Datos · DTD-Cargo.html` · tokens en Brand Book §06.
+- **Enmienda (2026-11-20, BD-076 · SDD-0686 fase 2):** la serie protagonista y la rampa secuencial pasan de vino a **tinta** (`--ink` con opacidad escalonada, sin hex nuevos). Los estados de viaje («en tránsito», «en reparto», «última milla») van en `--info`, que es neutro. El rojo queda para la excepción. El azul no entra en los gráficos, para que una barra no parezca un botón. Sam aprobó la propuesta («cifras y gráficas en tinta, y estados neutros») con «Sí, así». El resto de BD-011 sigue igual: categórica de 6, semántica solo con significado, sin verde ni rojo como categoría.
 
 ### BD-012 · Accesibilidad → matriz de contraste de texto (WCAG)
 - **Fecha:** 2026-06-20

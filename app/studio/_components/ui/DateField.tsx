@@ -682,10 +682,10 @@ function cellStyle(isSelected: boolean, isToday: boolean, disabled: boolean, mut
   return {
     width: "100%",
     minHeight: 36,
-    border: isToday && !isSelected ? "1px solid var(--wine-text)" : "1px solid transparent",
+    border: isToday && !isSelected ? "1px solid var(--ink)" : "1px solid transparent",
     borderRadius: "var(--r-md)",
-    background: isSelected ? "var(--wine)" : "transparent",
-    color: isSelected ? "var(--ink-side-strong)" : disabled ? "var(--ink-mute)" : muted ? "var(--ink-soft)" : "var(--ink)",
+    background: isSelected ? "var(--ink)" : "transparent",
+    color: isSelected ? "var(--ink-inv)" : disabled ? "var(--ink-mute)" : muted ? "var(--ink-soft)" : "var(--ink)",
     font: `${isSelected || isToday ? 700 : 500} 13px/1 var(--f-mono)`,
     cursor: disabled ? "not-allowed" : "pointer",
     textDecoration: disabled ? "line-through" : "none",
