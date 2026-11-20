@@ -492,10 +492,8 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
         `lib/studio/notifications/__tests__/avisos-bodega-confiables.test.ts:158`, que corre contra un doble
         en memoria, sin permisos. Ningún lector usa el nombre de la tabla en una variable: los informes leen
         con `SHIPMENT_COLUMNS` (`lib/studio/reports/queries.ts:205-206`);
-      - **una guarda lo deja fijo**: la prueba `lib/studio/__tests__/shipments-select-explicito.test.ts`
-        recorre esas cuatro carpetas y falla ante cualquier `.select()` vacío o con `"*"` en una sentencia
-        sobre `shipments`, salvo en pruebas que usan un doble. Se mata con un mutante, que es volver a
-        poner el `.select()` vacío en el POST;
+      - **una guarda lo deja fijo**: la prueba `lib/studio/__tests__/shipments-select-explicito.test.ts`.
+        Qué exige y cómo se mata está en §4.6;
       - las funciones SQL que leen `shipments` con `select s.*` o con su fila completa son todas `security
         definer`, así que corren como su dueño y el cambio no las toca:
         - 0321, 0336, 0477, 0484, 0486, 0487 y 0563;
@@ -582,6 +580,101 @@ Cada redefinición es un `create or replace` completo, con la misma firma.
 - **Ninguna de las specs abiertas que se cruzan con esta redefine estas cinco funciones.** Busqué los cinco
   nombres en la 0694 (#725) y la 0695 (#728), y no aparece ninguno. Si otra spec las necesita, parte de la
   versión vigente y la suma a esta tabla.
+
+### 4.6 La guarda `shipments-select-explicito` (F-3)
+
+Le pone fecha de vencimiento al `select` por columnas de §4.4. Si alguien vuelve a pedir todas las columnas
+de `shipments` con la sesión, el 42501 aparecería en producción. La guarda hace que aparezca antes, en el
+CI.
+
+**Dónde vive:**
+
+- la prueba, en `lib/studio/__tests__/shipments-select-explicito.test.ts`;
+- la lógica, en `lib/studio/__tests__/helpers/shipments-select-guard.ts`;
+- las excepciones, en `lib/studio/__tests__/shipments-select-explicito.excepciones.json`.
+
+Las tres corren con Vitest, dentro de `pnpm verify`.
+
+**Cómo lee el código.** Con el AST y el *type checker* del paquete `typescript`, que ya está en el repo
+(`package.json:106`). No usa expresiones regulares sobre el texto.
+
+- Arma un `ts.Program` con el `tsconfig.json` del repo y recorre los `.ts` y `.tsx` de `app/`, `lib/`,
+  `components/` y `hooks/`. En `7ff097d12` no hay una carpeta `hooks/` en la raíz. La guarda la incluye
+  igual, para cubrirla si aparece.
+- Quedan fuera las pruebas (`**/__tests__/**`, `*.test.ts` y `*.test.tsx`), porque no corren como
+  `authenticated` contra PostgREST. Los contratos SQL prueban eso aparte.
+- Una llamada cuenta como `.from(...)` de tabla solo si el checker dice que su receptor es un cliente de
+  Supabase (`SupabaseClient`, o lo que devuelve su `.schema(...)`).
+  - `storage.from(...)`, `Array.from(...)` y `Buffer.from(...)` quedan fuera **por tipo**, no por texto.
+  - Medido sobre `7ff097d12`: hay unas 130 llamadas `.from(` con argumento no literal en esas carpetas, y
+    unas 80 son de buckets de storage.
+- **El valor de un argumento** se resuelve así:
+  - un literal de cadena, con comillas simples o dobles, o una plantilla sin sustituciones, es su texto;
+  - un identificador o una expresión se resuelven por su **tipo literal**, con
+    `checker.getTypeAtLocation`. Así, `const TABLE = "shipments"` resuelve a `"shipments"`, aunque venga
+    importada;
+  - una unión de literales cuenta con cada uno de sus valores;
+  - **sin tipo literal**, por ejemplo `string`, una plantilla con sustituciones o `const COLS: string =
+    "id"`, el valor queda **sin resolver**.
+
+**Lo que marca como falla**, con `archivo:línea` y el nombre de la forma:
+
+1. **`select-vacio`.** Una cadena de llamadas que parte de `.from(X)`, con X que resuelve a `"shipments"`,
+   y tiene un `.select()` sin argumentos en cualquier eslabón.
+   - Cuenta en cualquier posición de la cadena: después de `insert`, `update`, `upsert` o `delete`, de
+     filtros como `eq` o `in`, y con la cadena partida en varias líneas.
+   - También con parámetro de tipo: `.from<Row>("shipments")`.
+2. **`select-asterisco`.** En esa misma cadena, un `.select(arg)` cuyo valor, partido por comas y sin
+   espacios, tiene un elemento `*`. Ejemplos: `'*'`, `" * "`, `"*, x"`, `"id, *"` y la plantilla
+   `` `*` ``.
+3. **`select-sin-resolver`.** En esa misma cadena, un `.select(arg)` cuyo valor queda sin resolver. Por
+   ejemplo, una constante de columnas tipada `string` o armada con una plantilla con sustituciones.
+4. **`constante-con-asterisco`.** El `.select(arg)` resuelve, por su tipo literal, a una constante de
+   columnas que contiene `*`, como `const SHIPMENT_COLUMNS = "id, *"`. Es el caso 2 llegando por un
+   identificador, y se reporta aparte para que el mensaje diga qué constante cambiar.
+5. **`embed-asterisco`.** En cualquier `.select(arg)` de **cualquier** tabla, cuyo valor resuelto tiene un
+   *embed* de `shipments` con `*` adentro.
+   - Ejemplos: `shipments(*)`, `shipments!inner(*)`, `shipment:shipments(*)` y `shipments(id, *)`.
+   - El embed se lee con un analizador chico del lenguaje de `select` de PostgREST (nombre, alias, `!pista`
+     y paréntesis anidados), no con una expresión regular.
+   - Un embed con valor sin resolver cuenta como `select-sin-resolver`.
+6. **`from-sin-resolver`.** Un `.from(arg)` de tabla cuyo valor queda sin resolver.
+   - Pasa solo si está en `shipments-select-explicito.excepciones.json`. Cada excepción lleva:
+     - `archivo`;
+     - `expresion`: el texto del argumento, por ejemplo `tabla`;
+     - `justificacion`: por qué nunca puede ser `shipments`, o por qué ese lector ya pide columnas
+       explícitas.
+   - Una excepción que ya no coincide con ningún `.from(` también hace fallar la prueba, para que la lista
+     no se pudra.
+   - La F-3 arranca con la lista que salga de la primera corrida, y cada fila se justifica en su PR.
+
+**Cómo se mata.** La prueba tiene un caso rojo por cada forma. Le pasa al helper fuentes en memoria, con un
+`CompilerHost` propio, y espera **exactamente** la forma indicada en la línea indicada:
+
+| Mutante | Forma esperada |
+|---|---|
+| `.insert({...})` y después, en otra línea, `.select().single()` | `select-vacio` |
+| `.upsert({...}).select()` y `.update({...}).eq("id", x).select()` | `select-vacio` |
+| `.select('*')`, `.select(" * ")`, `.select("*, x")`, `.select("id, *")` y `` .select(`*`) `` | `select-asterisco` |
+| `.from<Row>("shipments").select()` | `select-vacio` |
+| `const TABLE = "shipments"` importada de otro archivo, con `.from(TABLE).select()` | `select-vacio` |
+| `const COLS: string = "id"; .select(COLS)` | `select-sin-resolver` |
+| `const COLS = "id, *"; .select(COLS)` | `constante-con-asterisco` |
+| `.from("invoices").select("id, shipments(*)")` y `shipment:shipments!inner(id, *)` | `embed-asterisco` |
+| `function f(t: string) { return supabase.from(t).select("id") }` sin excepción | `from-sin-resolver` |
+| Una excepción en el JSON que ya no existe en el código | excepción vencida |
+
+Hay también casos verdes:
+
+- `.from("shipments").select("id, code")`;
+- `.update({...})` sin `.select()`;
+- `storage.from(BUCKET)`;
+- `Array.from(x)`;
+- `.from("invoices").select("id, shipments(id, code)")`.
+
+Por último, corre sobre el árbol real y espera **cero** hallazgos. El mutante del árbol real es volver a
+poner el `.select()` vacío en el POST de `app/api/studio/shipments/route.ts`, y la prueba se tiene que
+poner roja.
 
 ## 5. Reglas
 
@@ -800,6 +893,9 @@ superusuario.
     falla con 42501, y el contrato de columnas de `shipments` está verde. Crear un embarque por el POST
     y editarlo por el PATCH de la API funciona con el rol del Studio, y la guarda
     `shipments-select-explicito` está verde.
+20b. La guarda de §4.6 tiene un caso rojo por cada forma de su tabla de mutantes, y cada uno falla con
+    exactamente la forma y la línea esperadas. Los casos verdes pasan, el árbol real da cero hallazgos, y
+    volver a poner el `.select()` vacío en el POST la pone roja.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
@@ -995,7 +1091,8 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/invoice-queries.ts` (la consulta del aviso «Varias direcciones»);
   - `app/api/studio/shipments/route.ts` y `app/api/studio/shipments/[id]/route.ts` (los dos `.select()`
     pasan a columnas explícitas);
-  - `lib/studio/__tests__/shipments-select-explicito.test.ts` (nuevo, la guarda);
+  - `lib/studio/__tests__/shipments-select-explicito.test.ts`, `lib/studio/__tests__/helpers/shipments-select-guard.ts`
+    y `lib/studio/__tests__/shipments-select-explicito.excepciones.json` (nuevos, la guarda de §4.6);
   - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
     `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
   - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);

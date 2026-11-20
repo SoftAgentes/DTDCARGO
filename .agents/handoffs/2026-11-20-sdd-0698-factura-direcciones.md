@@ -148,6 +148,22 @@ La pidió Dir_DTD. Esto se corrigió en la spec:
 - **3:** el fixture lo crea la 0694 F-1; la 0698 solo lo lee.
 - **4:** se sumaron 0305, 0318, 0320 y 0496 a la lista de funciones `security definer`.
 
+## Sexta vuelta de la revisión (CHANGES_REQUESTED sobre `b03bb60ef`) y corrección
+
+Solo faltaba fijar la guarda. Quedaron cerrados la medición, el predicado, el fixture y las funciones
+`security definer`.
+
+- La spec §4.6 fija qué exige `shipments-select-explicito`. Usa el AST y el *type checker* de
+  `typescript`, no regex.
+- Resuelve los argumentos por su tipo literal y solo mira los `.from(` cuyo receptor es un cliente de
+  Supabase según el tipo. Así quedan fuera `storage` y `Array.from`.
+- Marca seis formas: `select-vacio`, `select-asterisco`, `select-sin-resolver`,
+  `constante-con-asterisco`, `embed-asterisco` y `from-sin-resolver`. La última tiene su lista de
+  excepciones con justificación, y la prueba falla si una excepción queda vencida.
+- Lleva un mutante por cada forma, casos verdes, una corrida sobre el árbol real con cero hallazgos y el
+  mutante del POST.
+- Criterio 20b y allowlist con los tres archivos de la guarda.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.
