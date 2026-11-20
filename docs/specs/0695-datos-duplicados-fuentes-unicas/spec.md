@@ -369,7 +369,7 @@ No expone PII: devuelve booleanos y el id. En la región `cn` no admin se oculta
 
 ### 4.4 Identidad: `persons` deja de copiar a la ficha (D-3, P-1)
 
-Propuesta, sujeta a P-1:
+Diseño (P-1, decidida por Sam: manda la ficha):
 
 - Un trigger `after insert` sobre `clients` crea o liga la persona, buscándola por la cédula normalizada
   dentro del tenant: si existe, la liga; si no, la crea. Así ninguna ficha nueva queda sin `person_id`.
@@ -444,9 +444,13 @@ Propuesta, sujeta a P-1:
     `email`** y después llama a la RPC, que es **la única que escribe `clients.email`** en ese flujo. La
     acción no hace otro `update` del correo. Si la RPC falla, la acción responde con el error del correo, y
     el mensaje dice que los demás datos sí se guardaron.
-- **Borrar el correo de una ficha con acceso activo se rechaza.** La acción responde con un error de campo:
-  «Este cliente entra al portal con su correo. Para quitarlo, primero revoca su acceso». La RPC también lo
-  rechaza si `p_new_email` llega vacío. Sin acceso activo, se puede dejar la ficha sin correo, como hoy.
+- **Borrar el correo también pasa por la RPC.** `client_email_change_service` es la única que escribe
+  `clients.email` cuando el correo cambia, también cuando queda vacío:
+  - **con acceso activo, lo rechaza** con el error de campo «Este cliente entra al portal con su correo.
+    Para quitarlo, primero revoca su acceso», y no cambia nada;
+  - **sin acceso activo, lo permite:** deja `clients.email` en null, y el evento de
+    `audit_d5_clients_contact` lleva al operador como actor (por `p_actor`);
+  - la acción no tiene otro camino para vaciar el correo.
 - La tarjeta de acceso de la ficha dice «Sin comprobar desde …» y el botón «Reenviar comprobación» sirve
   para cualquier cuenta, no solo para las del enlace.
 
@@ -539,13 +543,21 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
 
      **Definición de `client_delivery_address_save_service`** (idéntica en la 0694 §4.3 y la 0695 §4.10):
 
-     - **Firma:** `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug,
-       p_state, p_reference, p_make_default)`. La lógica de la predeterminada es la misma de
-       `client_delivery_address_save`: alta, `update` de la predeterminada anterior e `insert` en una
-       transacción.
-     - **Tenant:** `p_client_id` tiene que existir en `public.clients`, estar vivo (`deleted_at is null` y
-       `merged_into_client_id is null`) y ser de `p_tenant_id`. Si no, la RPC termina con error y no escribe
-       nada.
+     - **Solo inserta la primera dirección de un cliente recién creado.** Firma:
+       `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug, p_state,
+       p_reference)`. No recibe `p_address_id`, no edita filas y no elige otra predeterminada. La fila que
+       inserta queda como predeterminada.
+     - **Condiciones:** si falla cualquiera, la RPC termina con error y no escribe nada.
+       - `p_client_id` existe en `public.clients` y está vivo (`deleted_at is null` y `merged_into_client_id is
+         null`);
+       - el `tenant_id` del cliente es `p_tenant_id`;
+       - el cliente **no tiene ninguna dirección viva**;
+       - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos.
+     - **Por qué esa ventana, y no un marcador.** `registerClientAction` crea la ficha y llama a esta RPC en la
+       misma petición, a segundos de distancia. La ventana no necesita una columna nueva en `clients` ni un
+       estado que limpiar después. Junto con la condición de «sin dirección viva», impide que la función sirva
+       para escribir en fichas viejas aunque alguien consiguiera ejecutarla con service_role. Un marcador del
+       registro obligaría a otra migración de `clients` y a decidir cuándo se borra.
      - **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
        Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
      - **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
@@ -553,10 +565,15 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
        TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
        `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
        `app/` o `lib/` la invoca.
-     - **Pruebas:** van en la 0694 F-2, donde nace la función. Un `.test.sql` comprueba que `authenticated` y
-       `anon` no la pueden ejecutar (`has_function_privilege`), y que con el id de un cliente de otro tenant,
-       de un cliente borrado, de un cliente fusionado o de un id inexistente da error y no escribe ninguna
-       fila. La 0695 F-9a solo la cita.
+     - **Pruebas.** Van en la 0694 F-2, donde nace la función, en un `.test.sql`, con un caso por condición:
+       - `public`, `anon` y `authenticated` no la pueden ejecutar, y `service_role` sí (`has_function_privilege`);
+       - un cliente recién creado y sin direcciones recibe una fila predeterminada;
+       - un cliente que ya tiene una dirección viva da error y no escribe;
+       - un cliente creado hace más de 10 minutos da error y no escribe;
+       - con un `p_tenant_id` que no es el del cliente da error y no escribe;
+       - un cliente borrado, uno fusionado y un id inexistente dan error y no escriben.
+
+       La 0695 F-9a solo las cita.
 
 
    **Las dos nacen en la 0694 F-2**, que es la primera que las necesita (el alta del Studio y la dirección
@@ -759,7 +776,10 @@ Cada pregunta trae la recomendación primero.
      nuevo y comprueba que el trigger no actúa. Así queda probado por qué el orden importa.
    - Con `p_actor`, el evento de `audit_d5_clients_contact` tiene `actor_type = 'user'` y ese id, no
      `'system'`. **Esta prueba carga la definición real de `auth.uid()` de Supabase**, que lee
-     `request.jwt.claim.sub` y, si no está, `request.jwt.claims`. No usa el reemplazo que devuelve null de
+     `request.jwt.claim.sub` y, si no está, `request.jwt.claims`. **De dónde sale:** se copia del esquema
+     `auth` de la imagen de Postgres de Supabase que usa el proyecto, leída con
+     `pg_get_functiondef('auth.uid()'::regprocedure)`. El fixture la guarda tal cual, con un comentario que
+     dice la versión de la imagen de la que salió. No usa el reemplazo que devuelve null de
      `oficina-despachador.test.ts:39`. Comprueba que `claim.sub` manda.
    - **En una segunda transacción**, en la misma conexión, `current_setting('request.jwt.claim.sub', true)`
      está vacío y `auth.uid()` es null: el actor no se filtró.
@@ -769,8 +789,9 @@ Cada pregunta trae la recomendación primero.
      de `moduleEditDenial`, y que no lee ningún `actor` de `formData`.
    - `client_email_change_service` solo la ejecuta service_role (`has_function_privilege`). Si el `update`
      falla (por ejemplo, un correo inválido), no queda ninguna fila nueva en `client_email_checks`.
-   - Borrar el correo de una ficha con acceso activo da el error de campo y no cambia nada. Sin acceso
-     activo, se puede.
+   - Borrar el correo de una ficha con acceso activo por la RPC da el error de campo y no cambia nada. Sin
+     acceso activo, la RPC lo deja en null y el audit registra al operador. Una prueba de contrato comprueba
+     que `updateClientAction` no escribe `email` fuera de la RPC.
    - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
    - Si crear la fila de comprobación falla, el correo de la ficha no cambia.
    - Cambiar el dueño de una tarjeta con ficha cambia `advisor_id`, y el portal muestra el mismo asesor que
