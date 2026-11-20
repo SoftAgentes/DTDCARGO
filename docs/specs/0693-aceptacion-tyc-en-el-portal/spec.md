@@ -1,7 +1,7 @@
 ---
 sdd: "0693"
 title: "La aceptación de T&C limita el portal, no la facturación"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -18,6 +18,8 @@ confidencialidad: interno
 > - Lo que se limita es el portal del cliente. Al entrar ve un aviso insistente para aceptar. Hasta que
 >   acepte, no ve su seguimiento ni su estado de cuenta.
 > - Al aceptar le llega un correo de confirmación con un hash del acto y un acuse de recibo.
+>
+> **Aprobada por Sam el 2026-11-20, por Dir_DTD: «Apruebo la 0693».**
 >
 > **Sam contestó las 11 preguntas el 2026-11-20, por Dir_DTD** (§10). En todas eligió la propuesta
 > recomendada. Lo único pendiente es la revisión del abogado (§6): el texto del correo, la cláusula 13.1 y
