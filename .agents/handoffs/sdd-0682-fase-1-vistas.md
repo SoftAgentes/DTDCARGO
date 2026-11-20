@@ -1,0 +1,44 @@
+# Handoff — SDD-0682 fase 1: Almacén China por vistas y pestañas de Embarques
+
+Fecha: 2026-11-20 · Rama: `claude/sdd-0682-almacen-china-vistas` · Base: `origin/main` `2ea18799a`
+Spec: `docs/specs/0682-almacen-china-sin-consolidado/spec.md` (aprobada por Sam el 2026-11-19).
+Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arranca»).
+
+## Hecho (sin migración)
+
+- **Almacén China abre en «En almacén»** (§2.1): sin `?status=` el filtro es `en_almacen` =
+  `pendiente_consolidacion` + `incidencia` (`lib/studio/warehouse-cn-queries.ts`). `?status=all` sigue dando
+  todo. Aviso con cuántas consolidadas quedan fuera y botón a «En camino». Vacío: «No hay mercancía en la bodega».
+- **«En camino» dentro de Almacén China** (§2.2): `?vista=camino`. Contenedores `zarpado` («En el mar») y
+  `consolidando`/`cerrado` («Cargados, sin zarpar»), con buque, ETA (`sailings.eta`), días y porcentaje de la
+  regla de Tracking (`armarContenedor`). Sin nombres ni marcas de importador: solo clientes y cajas.
+- **Embarques, opción (a)** (§2.5): regla única en `lib/studio/shipment-queries.ts` (`enPestana`,
+  `contarPorPestana`, `filtrarPorPestana`); abre en «Activos», pestaña nueva «En camino» (`shipped`,
+  `in_transit`). Prop `pestanaInicial` (por defecto «Activos»).
+- i18n es-VE y zh-CN.
+
+## Decisión propia a confirmar con Sam
+
+- «En camino» incluye los contenedores cargados que aún no zarpan (la spec hablaba solo del mar). Sin eso, esa
+  mercancía no se vería en ninguna parte. Pregunta 8 de la ronda de clasificación.
+
+## Pruebas
+
+- Nuevas: `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`,
+  `embarques-pestanas.test.ts`, `EmbarquesClient.pestanas.test.tsx`.
+- Las 34 pruebas previas de `EmbarquesClient.*` arman envíos `in_transit`; se les pasa `pestanaInicial="all"`
+  porque prueban contenedores y montos, no pestañas. No se debilitó ninguna aserción.
+- typecheck, vitest y lint: NO EJECUTADO todavía (turno de PC en cola del DG).
+
+## Pendiente de esta tarea
+
+- Correr las comprobaciones con turno, PR de la fase 1, revisión independiente (la lanza el DG).
+- Fase 2 (§2.3–2.4, telex release): migración **0568** asignada por el DG, en PR aparte, cabecera
+  «NO APLICADA EN NINGÚN ENTORNO»; no se fusiona sin aviso del DG ni se aplica sin OK nominal de Sam.
+- Clasificación nueva de Sam (CONT.DDP, CONT.FCL, CARGA.DDP, LCL-L, «contenedor DDP consolidado»): enmienda
+  dentro de la 0682 cuando Sam conteste la ronda de preguntas. Catálogo existente: modalidades de carga
+  `ddp`/`fcl`/`mixto` (`scripts/consolidados/modelo.ts:142`), solo en notas; `BookingMode` FCL/LCL.
+
+## FUERA DE ALCANCE DETECTADO
+
+- La 0689 (Embarques) puede tocar `EmbarquesClient.tsx`; medir el cruce con `git merge-tree` antes de integrar.

@@ -31,7 +31,7 @@ afterEach(cleanup);
 
 describe("EmbarquesClient · «Abrir» en la fila (SDD-0603, tramo 5a)", () => {
   it("cada fila trae «Abrir» como secundario de tabla, con nombre que dice qué abre", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     const botones = screen.getAllByRole("button", { name: /^Abrir embarque / });
     expect(botones).toHaveLength(ENVIOS.length);
     for (const [i, b] of botones.entries()) {
@@ -45,14 +45,14 @@ describe("EmbarquesClient · «Abrir» en la fila (SDD-0603, tramo 5a)", () => {
   });
 
   it("la fila sigue abriendo con el ratón, pero sale del Tab: una sola parada por fila", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     const fila = screen.getByText("S-2026-0001").closest("button")!;
     expect(fila.tabIndex).toBe(-1);
   });
 
   it("«Abrir» abre el mismo detalle que la fila, también con teclado", async () => {
     const user = userEvent.setup();
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     const abrir = screen.getByRole("button", { name: "Abrir embarque S-2026-0002" });
     abrir.focus();
     await user.keyboard("{Enter}");
@@ -61,13 +61,13 @@ describe("EmbarquesClient · «Abrir» en la fila (SDD-0603, tramo 5a)", () => {
 
   it("clic en la fila abre lo mismo que antes", async () => {
     const user = userEvent.setup();
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     await user.click(screen.getByText("S-2026-0001"));
     expect(screen.getByRole("dialog", { name: "Detalle S-2026-0001" })).toBeTruthy();
   });
 
   it("el encabezado y las filas tienen las mismas columnas", () => {
-    const { container } = render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} />);
+    const { container } = render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     const fila = container.querySelector('[data-row-id="S-2026-0001"]') as HTMLElement;
     const datos = within(fila).getByText("S-2026-0001").closest("button") as HTMLElement;
     const cabecera = within(container).getByText("Código").parentElement as HTMLElement;

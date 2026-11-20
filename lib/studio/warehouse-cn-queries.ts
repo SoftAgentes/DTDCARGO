@@ -27,8 +27,19 @@ export type ReceiptFilters = {
   hub?: string;
   /** Code exacto de un warehouse: 'YIW-A1', etc. (más específico que hub) */
   warehouseCode?: string;
-  status?: WarehouseReceiptStatus | "all";
+  /**
+   * SDD-0682: `en_almacen` (por defecto) = lo que está físicamente en la bodega
+   * (pendiente de consolidar + incidencia). `all` trae también lo consolidado,
+   * que ya salió hacia un contenedor.
+   */
+  status?: WarehouseReceiptStatus | "all" | "en_almacen";
 };
+
+/** SDD-0682: estados de una recepción que sigue en la bodega de China. */
+export const ESTADOS_EN_ALMACEN: readonly WarehouseReceiptStatus[] = [
+  "pendiente_consolidacion",
+  "incidencia",
+];
 
 const VALID_STATUSES: WarehouseReceiptStatus[] = [
   "pendiente_consolidacion",
@@ -113,7 +124,9 @@ export async function listReceipts(
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (filters.status && filters.status !== "all") {
+  if (filters.status === "en_almacen") {
+    query = query.in("status", [...ESTADOS_EN_ALMACEN]);
+  } else if (filters.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
   }
 
@@ -317,6 +330,22 @@ export async function computeWarehouseKpis(
   };
 }
 
+/**
+ * SDD-0682: cuántas recepciones ya consolidadas deja fuera la vista «En almacén».
+ * `null` si no se pudo contar: el aviso no se muestra en vez de decir un número falso.
+ */
+export async function contarRecepcionesConsolidadas(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("warehouse_receipts_cn")
+    .select("id", { count: "exact", head: true })
+    .is("deleted_at", null)
+    .eq("status", "consolidado");
+  if (error) return null;
+  return count ?? 0;
+}
+
 // ─────────────────────────────────────────────────────────────
 // parseFiltersFromSearchParams
 // ─────────────────────────────────────────────────────────────
@@ -333,10 +362,14 @@ export function parseReceiptFiltersFromSearchParams(
   };
 
   const statusRaw = single("status");
+  // SDD-0682: sin `?status=` (o con un valor que no existe) la pantalla abre en
+  // «En almacén». `?status=all` es la forma explícita de ver todo.
   const status: ReceiptFilters["status"] =
-    statusRaw && VALID_STATUSES.includes(statusRaw as WarehouseReceiptStatus)
-      ? (statusRaw as WarehouseReceiptStatus)
-      : "all";
+    statusRaw === "all"
+      ? "all"
+      : statusRaw && VALID_STATUSES.includes(statusRaw as WarehouseReceiptStatus)
+        ? (statusRaw as WarehouseReceiptStatus)
+        : "en_almacen";
 
   const hubRaw = single("hub");
   const hub =
