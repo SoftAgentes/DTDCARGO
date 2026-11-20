@@ -119,3 +119,18 @@
 - **6.** Los conteos de la spec dicen solo «hay» o «no hay». Q12 y Q17 aparecen como «medido».
 - **7.** La tabla de dueñas tiene filas para la persona de la ficha fusionada y para la regla de la
   predeterminada. La tabla se cita en la 0694.
+
+## Cuarta vuelta (sobre 70511ef4c), corregida
+
+- **F-9a.** La RPC `client_delivery_address_save` cubre el alta, la edición y la elección de predeterminada.
+  También cubre `updateAddressAction` del portal (`address-actions.ts:89-92`). Desmarcar la única
+  predeterminada se rechaza con un error de campo, y si el cambio afecta cero filas da error. Tiene
+  `revoke` de public y anon, y `search_path` fijo.
+- **El correo.** La RPC `client_email_change_service` es `security definer` y solo la ejecuta
+  service_role (`0559:145`). Crea la fila y hace el update en la misma transacción.
+- **El preflight.** Hace `lock table` en la misma transacción y el error solo lleva el conteo.
+- **Los triggers.** El `before insert` y la promoción son invoker, y el chequeo es el único definer. La
+  promoción lleva `when` y limpia `is_default` de la fila borrada.
+- **La persona fusionada.** La F-3 decide sin tocar `merge_clients`: con una sola persona rige el
+  `coalesce` de siempre, y con dos queda marcada en `persona_por_revisar` para la oficina.
+- **Plan B de la F-2.** Dice quién avisa y dónde queda escrito. La allowlist pone la F-9 después de la F-8.
