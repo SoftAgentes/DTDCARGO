@@ -655,8 +655,9 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
 
 Cada pregunta trae la recomendación primero.
 
-- **P-1 (identidad).** ¿La ficha manda y `persons` queda solo para quien no tiene ficha? *Recomendado: sí,*
-  con un trigger que liga la persona al darse de alta y una vista que lee la ficha (§4.4).
+- **P-1 (identidad). Decidida por Sam el 2026-11-20:** «Sí, manda la ficha». Para un cliente de carga, la
+  ficha manda, y `persons` queda solo para quien no tiene ficha. Se implementa con el trigger que liga la
+  persona al darse de alta y con la vista que lee la ficha (§4.4).
 - **P-2 (correo).** Si la oficina cambia el correo de un cliente que ya entra al portal, la cuenta queda
   «sin comprobar» hasta que el cliente confirme el correo nuevo, como ya pasa con las cuentas del enlace.
   ¿Lo aplicamos a todas las cuentas? *Recomendado: sí* (§4.5). El costo: si la oficina se equivoca al
