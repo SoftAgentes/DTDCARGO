@@ -86,6 +86,27 @@ enlazan a este documento. La spec es `docs/specs/0674-boton-facturar-embarques/s
     con el actor real y en la misma transacción;
   - si el evento no se puede escribir, no se factura.
 
+## 6 bis. Ampliación SDD-0690 · Emitir la pre-orden y «Facturar todo»
+
+- **Estado:** aprobada por Sam el **2026-11-20**, por el Director General (decisiones de la SDD-0690,
+  §3.4 y §7, punto 3; «Apruebo la 0690»).
+- **Qué se amplía:** las excepciones 1 a 4 y la 6 (AUT-04) cubren también dos acciones nuevas en
+  `/studio/embarques`:
+  - «Facturar» de un cliente con pre-orden: emite la factura `borrador` que dejó la carga, con los
+    precios del Excel, sin teclear monto;
+  - «Facturar todo»: emite en una sola llamada todas las pre-órdenes pendientes del contenedor.
+- **Vía:** la RPC `exc0674_emitir_borradores` (migración 0569), llamada desde
+  `app/studio/(app)/embarques/facturar-actions.ts`. La 0569 también hace que `exc0674_facturar` rechace
+  el monto tecleado de un cliente con una pre-orden viva en el contenedor (`exc0674:tiene_preorden`).
+- **Mismo alcance:** solo los contenedores de la lista transitoria (hoy el 64), solo `accounting` y
+  `admin`, la misma doble confirmación con «Confirmado» y la misma marca `legal_ack = 'exc_0674'` en
+  `exc0674_facturas` y en la auditoría, con `origen_monto = 'borrador'`.
+- **Misma fecha de revisión:** 2027-01-31, con los mismos disparadores del §7.
+- **Lo reemplaza:** la SDD-0693 (aprobada por Sam el 2026-11-20) exige la aceptación de T&C en el portal
+  del cliente. Cuando la 0693 cambie formalmente la AUT-04, esta ampliación y la excepción 6 se retiran.
+- **Estado de la evidencia:** la 0569 **no está aplicada en ningún entorno**. Aplicarla lleva su propio OK
+  nominal de Sam.
+
 ## 7. Responsable, revisión y retiro
 
 - **Aprobador y responsable:** Sam.
