@@ -100,7 +100,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
   it("muestra el peso total a todos y el «Total sin facturar» oculto tras el ojo", () => {
     vi.useFakeTimers();
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+      <EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
     expect(cabecera().textContent ?? "").toContain("180 kg");
     const monto = within(region()).getByTestId("total-sin-facturar");
@@ -124,7 +124,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     // Relojes reales: userEvent no avanza con relojes falsos en este entorno. La espera real es de 4 s.
     const user = userEvent.setup();
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+      <EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
     const monto = within(region()).getByTestId("total-sin-facturar");
     const ojo = within(monto).getByRole("button");
@@ -150,7 +150,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
 
   it("el ojo no abre el contenedor: va fuera del botón de la cabecera", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+      <EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
     const ojo = within(region()).getByRole("button", { name: /Mostrar u ocultar el total sin facturar/ });
     expect(cabecera().contains(ojo)).toBe(false);
@@ -160,7 +160,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
   });
 
   it("sin montos (operaciones, comercial) hay peso pero ningún dinero", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     const texto = cabecera().textContent ?? "";
     expect(texto).toContain("180 kg");
     expect(region().textContent ?? "").not.toMatch(/sin facturar|[$]/i);
@@ -169,7 +169,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
 
   it("con montos pero sin facturas dice «Sin precios cargados», no $0.00", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={SIN_FACTURAS} />,
+      <EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={SIN_FACTURAS} />,
     );
     const monto = within(region()).getByTestId("total-sin-facturar");
     expect(monto.textContent).toBe("Sin precios cargados");
@@ -183,7 +183,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
         a1: { facturas: 1, porCobrarUsd: 1500, cobradoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
       },
     };
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={emitido} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={emitido} />);
     const monto = within(region()).getByTestId("total-sin-facturar");
     expect(monto.textContent).toBe("Facturado");
     expect(within(monto).queryByRole("button")).toBeNull();
@@ -196,7 +196,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
         a1: { facturas: 1, porCobrarUsd: 0, cobradoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 0 },
       },
     };
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={otra} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={otra} />);
     const monto = within(region()).getByTestId("total-sin-facturar");
     expect(monto.textContent).toBe("Sin monto en USD");
     expect(monto.textContent).not.toContain("$");
@@ -204,7 +204,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
 
   it("los «••••••» no se anuncian: van ocultos al lector de pantalla", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
+      <EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={CON_BORRADORES} />,
     );
     const vivo = within(region()).getByTestId("total-sin-facturar").querySelector("[aria-live]");
     expect(vivo?.querySelector('[aria-hidden="true"]')?.textContent).toBe("••••••");
@@ -212,7 +212,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
 });
 
 describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)", () => {
-  // Un envío en tránsito (Activos) y otro entregado (Entregados), del mismo contenedor.
+  // Dos envíos en tránsito (En camino, SDD-0682) y uno entregado (Entregados), del mismo contenedor.
   const MIXTO = [
     envio("m1", { status: "in_transit", weight_kg: 100 }),
     envio("m2", { client_name: "Cliente Dos", client_markbox: "DTD-1002", status: "delivered", weight_kg: 40 }),
@@ -246,10 +246,11 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
 
   it.each([
     ["Todos", undefined, undefined],
-    ["Activos", undefined, undefined],
+    // SDD-0682 opción (a): lo que va en el mar está en «En camino», no en «Activos».
+    ["En camino", undefined, undefined],
     ["Entregados", undefined, undefined],
     ["Todos", "puerta_a_puerta_DDP", undefined],
-    ["Activos", "puerta_a_puerta_DDP", "S-m1"],
+    ["En camino", "puerta_a_puerta_DDP", "S-m1"],
   ] as const)(
     "en «%s» (servicio %s, búsqueda %s) el peso y el «Sin facturar» son los del contenedor entero",
     (pestana, servicio, busqueda) => {
@@ -269,6 +270,34 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
     },
   );
 
+  it("en «Activos», con un envío en aduana, el encabezado sigue siendo el del contenedor entero", () => {
+    // SDD-0682: «Activos» deja fuera lo que va en el mar; el envío en aduana es el que lo trae aquí.
+    const conActivo = [
+      ...MIXTO,
+      envio("m4", { client_name: "Cliente Cuatro", client_markbox: "DEMO-1004", status: "in_customs", weight_kg: 5 }),
+    ];
+    const datos: ContenedoresDeEmbarques = {
+      ...DATOS_MIXTO,
+      porEmbarque: { ...DATOS_MIXTO.porEmbarque, m4: "c64" },
+    };
+    const montos: MontosDeContenedores = {
+      estado: "lista",
+      porEmbarque: {
+        m1: { facturas: 1, porCobrarUsd: 300, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300 },
+        m2: { facturas: 1, porCobrarUsd: 200, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200 },
+        m3: { facturas: 1, porCobrarUsd: 50, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 50 },
+        m4: { facturas: 1, porCobrarUsd: 25, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 25 },
+      },
+    };
+    render(
+      <EmbarquesClient pestanaInicial="active" shipments={conActivo} adjuntos={undefined} contenedores={datos} montos={montos} />,
+    );
+    expect(cabecera().textContent ?? "").toContain("155 kg");
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    fireEvent.click(within(monto).getByRole("button", { name: /Mostrar u ocultar el total sin facturar/ }));
+    expect(monto.textContent).toBe("Sin facturar$575.00");
+  });
+
   it("sin montos tampoco hay dinero en ninguna pestaña", () => {
     render(<EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} />);
     filtrar("Entregados");
@@ -279,7 +308,7 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
 
 describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
   it("el nombre no lleva estilo en línea que tape el foco y el hover de su clase", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await abrir();
     const tabla = within(region()).getByRole("table");
     const boton = within(tabla).getByRole("button", { name: /Cliente Dos/ });
@@ -290,7 +319,7 @@ describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
   });
 
   it("con un solo embarque abre su ficha", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await abrir();
     const tabla = within(region()).getByRole("table");
     await userEvent.click(within(tabla).getByRole("button", { name: /Cliente Dos/ }));
@@ -298,7 +327,7 @@ describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
   });
 
   it("con varios embarques abre su bloque y lo trae a la vista", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="camino" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await abrir();
     expect(screen.queryByText("S-a1")).toBeNull();
     const tabla = within(region()).getByRole("table");
