@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 666 specs)
+### Índice de specs (generado · 667 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -690,6 +690,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
 | 0666 | Portal del aliado: sus clientes, prealertas y marca blanca | proposed | interno |
 | 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
+| 0668 | Portal: el cliente ve su código anterior, como dato informativo | proposed | interno |
 | 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
 | 0671 | CRM: tarjetas sin botón Abrir y Bandeja visible para la oficina | proposed | interno |
 | 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
@@ -705,5 +706,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0668, 0670, 0683 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
