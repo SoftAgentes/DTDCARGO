@@ -97,6 +97,10 @@ los roles que editan clientes.
     «Retira el aliado».
 - La app del chofer, el despacho y la vista de completitud de la 0695 leen `destinoDeEntrega`, nunca la
   dirección suelta.
+- **Facturas de contenedor al aliado (SDD-0698 §4.2 y §5.6).** Cuando DTD le factura al aliado un
+  contenedor con embarques de sus clientes finales, «Entregar en» queda en null en cada embarque cuyo
+  Shipping Mark no es el del aliado facturado. La factura no imprime la dirección de un cliente final. La
+  dirección sigue en la ficha de ese cliente y la usa la logística (`destinoDeEntrega`), no la factura.
 
 ### 4.3 El aliado carga la dirección
 
