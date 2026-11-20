@@ -103,3 +103,13 @@
 
 - P-1 «Sí, por aliado»; P-2 «Sí, hailuway.com»; P-3 «Sí, así»; P-4 «Sí, que pase»; P-5 «Sí, así»; P-6 «Sí, así»; P-7 «El del aliado».
 - P-7 cambia el diseño: columna `aliados.privacy_notice_url` (https), el campo en la tarjeta del aliado, `_create` rechaza sin aviso (`falta_aviso_privacidad`), `_peek` y `_complete` lo vuelven a revisar, y las pruebas. La 0255 §8.5 sigue como requisito de la F-2. Necesita otra vuelta de revisión.
+
+## Correcciones de la revisión sobre 9191772 (2026-11-20)
+
+- Enlace sin aviso: misma respuesta que el enlace inválido, sexto caso en la comparación de §7, y fallo cerrado en §4.4.3.
+- `_complete` revisa el aviso con `for update` del enlace y `for share` del aliado antes del consumo. Sin aviso: `ok = false`, sin `raise` y sin consumir el token. `_peek` devuelve la URL. Hay una prueba que pone la columna en null entre `_peek` y `_complete`.
+- `aliados.privacy_notice_url` la escribe solo la acción del Studio con rol `admin`, `commercial` u `operations`, con un trigger, porque la policy `0362:143-155` no alcanza. `aliado` y `cliente_final` no pueden. Lleva su prueba.
+- El check queda como `^https://[^\s]+$`, con un máximo de 500 caracteres y sus casos de prueba. El enlace lleva `rel="noopener noreferrer"`.
+- Lo que agregué a P-1 y P-2 queda marcado como interpretación del DG, no como palabras de Sam.
+
+**Dependencia:** el párrafo de §4.2 sobre facturas de contenedor al aliado cita la SDD-0698 (§4.2 y §5.6, PR #732, todavía sin integrar). Si la 0698 cambia antes de integrarse, hay que revisar ese párrafo.

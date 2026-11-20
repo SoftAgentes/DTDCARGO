@@ -181,7 +181,7 @@ Las tres son `security definer` y tienen `search_path = ''`.
 | RPC | Quién la ejecuta | Qué hace |
 |---|---|---|
 | `client_address_link_create(p_client_id, p_token_hash)` | `authenticated` (con `revoke` de `public` y `anon`). Pide un rol del Studio (`admin`, `commercial` u `operations`) en el tenant del cliente, o el rol `aliado` con la cadena comprobada (§4.3) | Revoca el enlace vigente de ese cliente, si hay uno, e inserta el nuevo. **`created_via` no es un parámetro:** la RPC lo deriva del rol que pasó la comprobación (`studio` o `aliado`), y `created_by` sale de `auth.uid()`. Rechaza a un cliente directo de DTD (sin `aliado_id`). **Solo la llama un clic de una persona** («Copiar enlace nuevo»), nunca un proceso automático (§4.5). |
-| `client_address_link_peek(p_token_hash, p_attempt_key)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Revisa el bloqueo del origen y registra el intento (abajo). Si el origen no está bloqueado y el enlace está vigente, devuelve `client_id`, `tenant_id` y la marca resuelta (§4.4.3). En cualquier otro caso devuelve cero filas. |
+| `client_address_link_peek(p_token_hash, p_attempt_key)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Revisa el bloqueo del origen y registra el intento (abajo). Si el origen no está bloqueado, el enlace está vigente y el aliado de la marca tiene aviso de privacidad, devuelve `client_id`, `tenant_id`, la marca resuelta (§4.4.3) y `privacy_notice_url`. En cualquier otro caso devuelve cero filas. |
 | `client_address_link_complete(p_token_hash, p_attempt_key, p_line, p_city, p_city_slug, p_state, p_reference)` | **solo `service_role`** | Revisa el bloqueo, registra el intento, hace el consumo atómico, escribe la dirección y deja la auditoría (abajo). |
 
 **El bloqueo se revisa en la base, dentro de la misma transacción** que la lectura o el consumo. No depende
@@ -222,6 +222,14 @@ returning client_id, tenant_id;
 ```
 
 - Esta sentencia corre solo si el origen no está bloqueado (arriba).
+- **Antes de esa sentencia, `_complete` revisa el aviso de privacidad sin soltar la fila:**
+  1. lee el enlace con `select client_id … from public.client_address_links where token_hash = p_token_hash
+     … for update`. Si no hay fila vigente, sigue al `update`, que no encuentra fila;
+  2. resuelve el aliado de la marca con la misma subida de cadena de §4.4.3;
+  3. lee `privacy_notice_url` de ese aliado con `select … from public.aliados where id = … for share`. El
+     `for share` impide que otra transacción cambie la columna hasta que `_complete` termine;
+  4. **si es null, o si la cadena no resuelve,** registra el intento como fallo y devuelve `ok = false`,
+     **sin `raise` y sin llegar al `update`:** el token no se consume y no se escribe ninguna dirección.
 - Sin fila, la RPC registra el fallo y devuelve `ok = false`, igual que con un enlace que no existe, sin `raise`.
 - Con fila, la dirección se escribe **solo** en `client_delivery_addresses`, y solo en filas del
   `client_id` que devolvió esa sentencia. No acepta un `client_id` del que llama. `client_markbox` y
@@ -255,6 +263,8 @@ returning client_id, tenant_id;
   - si no hay aliado;
   - si la cadena no resuelve;
   - si `hide_dtd_brand` es `false`;
+  - **si el aliado de la marca no tiene `privacy_notice_url`** (sin aviso). En este caso, además, no hay
+    formulario: la página da la respuesta de enlace inválido de §4.4.4;
   - o si la consulta falla.
 
   En cualquiera de esos casos la página sale **neutra**: sin logo, sin nombre, sin colores y sin pie, con
@@ -280,7 +290,8 @@ returning client_id, tenant_id;
     durante 1 hora.
   - Cada token inválido cuenta como fallo.
   - Las filas se borran a los 7 días.
-- **La misma respuesta para todo enlace inválido** (vencido, usado, revocado, inexistente o bloqueado), con
+- **La misma respuesta para todo enlace inválido** (vencido, usado, revocado, inexistente, bloqueado o sin
+  aviso de privacidad del aliado), con
   el mismo código HTTP (200), las mismas cabeceras y el mismo texto: «Este enlace ya no está disponible.
   Pídele uno nuevo a tu aliado». Vale para la **carga** de la página y para el **envío** del formulario.
 - **El mismo trabajo en todos los casos.** El servidor siempre calcula el hash del token y el HMAC del
@@ -300,16 +311,22 @@ returning client_id, tenant_id;
 - **El aviso de privacidad es el del aliado (P-7, decidida por Sam).** Debajo del botón de guardar va el
   texto «Tus datos los recibe {nombre de la marca} para entregarte tu carga. Lee su aviso de privacidad»,
   con un enlace a la dirección que guarda la columna nueva `aliados.privacy_notice_url`:
-  - es `text`, admite null y lleva un `check` que exige que empiece por `https://`;
-  - se carga en la tarjeta del aliado del Studio. La pone la oficina con la dirección que le pasa el
-    aliado;
+  - es `text` y admite null. Lleva el `check` `privacy_notice_url ~ '^https://[^\s]+$' and
+    char_length(privacy_notice_url) <= 500`;
+  - el enlace se abre con `target="_blank"` y `rel="noopener noreferrer"`;
+  - **quién la escribe:** solo la acción de la tarjeta del aliado del Studio, con la sesión de una persona
+    con rol de equipo (`admin`, `commercial` u `operations`) en el tenant del aliado. La pone la oficina
+    con la dirección que le pasa el aliado. La policy de `aliados` (`0362:143-155`) da `update` a
+    `authenticated` solo por tenant, y eso no alcanza. Por eso la migración de la F-2 agrega un trigger
+    `before insert or update of privacy_notice_url` que rechaza el cambio si quien llama no tiene uno de
+    esos roles en el tenant. Los roles `aliado` y `cliente_final` no la pueden escribir;
   - vale la del aliado cuya marca lleva la página (§4.4.3);
   - **sin esa dirección no hay enlace:** `_create` lo rechaza con `ok=false` y el motivo
     `falta_aviso_privacidad`, y el Studio muestra «Este aliado no tiene aviso de privacidad. Cárgalo en su
     tarjeta antes de mandar enlaces»;
-  - si la dirección se borra después de crear el enlace, `_peek` responde sin formulario y la página dice
-    «Este enlace no está disponible. Pídele uno nuevo a tu aliado». `_complete` también la vuelve a revisar
-    y rechaza sin escribir.
+  - si la dirección se borra después de crear el enlace, `_peek` da cero filas y la página da **la misma
+    respuesta de enlace inválido** de arriba, con el mismo código, las mismas cabeceras y el mismo texto.
+    `_complete` la vuelve a revisar con `for share` (§4.4.2) y devuelve `ok = false` sin consumir el token.
 
 ### 4.5 Aviso al aliado
 
@@ -436,23 +453,34 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
 
      Con un rol del Studio, `created_via` queda en `studio`, y con el aliado, en `aliado`, aunque el que
      llama intente otra cosa: no hay parámetro para eso.
-   - **El aviso del aliado.** La página muestra el enlace a `privacy_notice_url`. Si la columna queda en null
-     después de crear el enlace, `_peek` responde sin formulario y `_complete` rechaza sin escribir
-     (`.test.sql` y prueba de la página). El `check` rechaza una dirección que no empieza por `https://`.
+   - **El aviso del aliado.**
+     - La página muestra el enlace a `privacy_notice_url`, con `target="_blank"` y
+       `rel="noopener noreferrer"` (prueba de la página).
+     - Si la columna queda en null después de crear el enlace, `_peek` da cero filas y la página da la
+       respuesta de enlace inválido (`.test.sql` y prueba de la página).
+     - **Entre `_peek` y `_complete`:** el `.test.sql` llama a `_peek` (que devuelve la URL), pone la
+       columna en null y llama a `_complete`. Resultado: `ok = false`, sin `raise`, `used_at` sigue en
+       null, no hay fila nueva en `client_delivery_addresses` ni evento en `entity_audit_log`, y queda una
+       fila de fallo en `client_address_link_attempts`.
+     - **El `check`** acepta `https://aliado.example/privacidad` y rechaza `http://aliado.example`,
+       `https://`, una dirección con un espacio y una de 501 caracteres.
+     - **Quién la escribe** (`.test.sql`): un usuario con rol `admin`, `commercial` u `operations` del
+       tenant la cambia; un usuario con rol `aliado`, uno con `cliente_final` y uno del Studio de otro
+       tenant reciben error y la columna no cambia.
    - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
      13 días y 23 horas todavía funciona.
    - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
      otro recibe `ok = false`. Queda una sola fila nueva.
    - **La misma respuesta.** Un segundo uso, un enlace vencido, uno revocado, uno inexistente y uno
-     bloqueado responden igual, **en la carga y en el envío del formulario**. Una prueba compara las cinco
-     respuestas con:
+     bloqueado, y uno **sin aviso de privacidad del aliado**, responden igual, **en la carga y en el envío
+     del formulario**. Una prueba compara las seis respuestas con:
      - el mismo código HTTP;
      - las mismas cabeceras, sin contar `date`, el nonce de la CSP ni los ids de petición;
      - el mismo cuerpo **normalizado**: sin nonces, ids de React ni marcas de tiempo.
 
      Además, **un campo inválido con un token válido** y **un campo inválido con un token inexistente** dan
      la misma respuesta de error de campo, comparada igual. El token válido no se consume.
-   - **El mismo trabajo.** Una prueba con las RPC simuladas comprueba que, en los cinco casos, el servidor
+   - **El mismo trabajo.** Una prueba con las RPC simuladas comprueba que, en los seis casos, el servidor
      llama a `_peek` en la carga y a `_complete` en el envío el mismo número de veces, también con el
      origen bloqueado, y que siempre pasa la clave del intento.
    - **El límite de intentos**, en `.test.sql` contra las RPC reales, no simuladas:
@@ -497,12 +525,14 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
   un cliente puntual? *Recomendado:* por aliado, con `retira_aliado` por defecto, y la excepción por
   cliente en una fase posterior si hace falta.
   **Decidida por Sam (2026-11-20): «Sí, por aliado».** El modo se fija por aliado, con `retira_aliado` por
-  defecto. La excepción por cliente queda para una fase posterior, si hace falta.
+  defecto. *Interpretación del DG, no dicha por Sam:* la excepción por cliente queda para una fase
+  posterior, si hace falta, como decía la recomendación.
 - **P-2 (dominio del enlace).** Mientras no esté montado `hailuway.com`, ¿el enlace puede salir de una
   dirección de DTD con la marca del aliado, o esperamos el dominio neutro? *Recomendado:* montar solo la
   ruta del enlace en `hailuway.com`, sin subdominio por aliado, para no mostrar DTD.
-  **Decidida por Sam (2026-11-20): «Sí, hailuway.com».** El enlace sale solo por `hailuway.com`, sin
-  subdominio por aliado. No sale por una dirección de DTD, ni siquiera mientras tanto.
+  **Decidida por Sam (2026-11-20): «Sí, hailuway.com».** El enlace sale por `hailuway.com`, sin
+  subdominio por aliado. *Interpretación del DG, no dicha por Sam:* tampoco sale por una dirección de DTD
+  mientras `hailuway.com` no esté montado.
 - **P-3 (enlace).** ¿El enlace es de un solo uso y vence a los 14 días? *Recomendado: sí,* y el aliado lo
   regenera cuando quiera.
   **Decidida por Sam (2026-11-20): «Sí, así».** El enlace es de un solo uso y vence a los 14 días. El
