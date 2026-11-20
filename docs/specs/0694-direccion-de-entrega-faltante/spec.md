@@ -267,7 +267,12 @@ SDD-0695 (§4.10 y F-9a):
     null`);
   - el `tenant_id` del cliente es `p_tenant_id`;
   - el cliente **no tiene ninguna dirección viva**;
-  - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos.
+  - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos. Se compara con `now()`
+    de la base. **Ningún instante llega del llamador:** la RPC no recibe fechas ni horas;
+  - `p_line`, sin espacios a los lados, no está vacío y no pasa de 300 caracteres.
+- **Serialización:** antes de contar las direcciones vivas, la RPC hace `select … for update` sobre la fila
+  del cliente en `public.clients`. Dos llamadas para el mismo cliente quedan en fila, y la segunda ve la
+  dirección que dejó la primera y falla.
 - **Por qué esa ventana, y no un marcador.** `registerClientAction` crea la ficha y llama a esta RPC en la
   misma petición, a segundos de distancia. La ventana no necesita una columna nueva en `clients` ni un
   estado que limpiar después. Junto con la condición de «sin dirección viva», impide que la función sirva
@@ -275,20 +280,24 @@ SDD-0695 (§4.10 y F-9a):
   registro obligaría a otra migración de `clients` y a decidir cuándo se borra.
 - **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
   Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
-- **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
-  usuario. El alta por enlace escribe dentro de su RPC SQL y no la necesita. Si algún día se llamara desde
-  TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
-  `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
-  `app/` o `lib/` la invoca.
+- **Uso:** la llama **solo** `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
+  usuario. El registro por enlace (`link` y `activar`) **no** la usa: completa fichas que pueden tener más
+  de 10 minutos y escribe la dirección dentro de su propia RPC SQL (§4.3). La prueba de contrato falla si
+  cualquier otro archivo de `app/` o `lib/` la invoca.
 - **Pruebas.** Van en la 0694 F-2, donde nace la función, en un `.test.sql`, con un caso por condición:
-  - `public`, `anon` y `authenticated` no la pueden ejecutar, y `service_role` sí (`has_function_privilege`);
+  - `anon` y `authenticated` no la pueden ejecutar y `service_role` sí (`has_function_privilege`).
+    `public` se comprueba en el ACL de la función (`pg_proc.proacl`): no tiene una entrada para `public`,
+    porque `has_function_privilege` no acepta `public` como rol;
   - un cliente recién creado y sin direcciones recibe una fila predeterminada;
   - un cliente que ya tiene una dirección viva da error y no escribe;
-  - un cliente creado hace más de 10 minutos da error y no escribe;
+  - un cliente creado hace más de 10 minutos da error y no escribe. La prueba **retrasa `created_at` en la
+    base** (`update … set created_at = now() - interval '11 minutes'`) y no simula el reloj;
+  - `p_line` vacío, solo con espacios o de 301 caracteres da error y no escribe;
+  - dos llamadas en paralelo para el mismo cliente dejan una sola fila;
   - con un `p_tenant_id` que no es el del cliente da error y no escribe;
   - un cliente borrado, uno fusionado y un id inexistente dan error y no escriben.
 
-  La 0695 F-9a solo las cita.
+  La 0695 F-9a solo las cita, salvo que cree la función antes que la 0694: entonces trae estas mismas pruebas.
 
 Las RPC SQL que escriben dentro de su propia transacción (el registro por enlace, la copia de §4.1, las
 semillas y el `_complete` de la 0696) cumplen la regla porque son una sola transacción.
@@ -629,15 +638,18 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
     - El alta escribe la dirección con `client_delivery_address_save_service`, no con un insert directo.
     - `client_delivery_address_save_service` (definición en §4.3) tiene un `.test.sql` con un caso por
       condición: privilegios de `public`, `anon`, `authenticated` y `service_role`; cliente recién creado
-      sin direcciones; cliente con una dirección viva; cliente de más de 10 minutos; `p_tenant_id`
-      distinto; cliente borrado, fusionado e inexistente. Una prueba de contrato falla si otro archivo de
-      `app/` o `lib/`, fuera de `registerClientAction` y de las dos acciones de enlace permitidas, la
-      invoca.
+      sin direcciones; cliente con una dirección viva; cliente de más de 10 minutos (con `created_at`
+      retrasado en la base); `p_line` vacío o largo; dos llamadas en paralelo; `p_tenant_id` distinto;
+      cliente borrado, fusionado e inexistente. `public` se revisa en `proacl`. Una prueba de contrato
+      falla si otro archivo de `app/` o `lib/`, fuera de `registerClientAction`, la invoca.
     - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
       ciudad y el estado del paso 2, y `clients.address` queda en null.
     - Con el campo vacío, no crea ninguna fila.
     - Con más de 300 caracteres, da un error de campo en el paso 2.
     - Si el insert de la dirección falla, el alta termina igual y el error no lleva el texto.
+    - **Un cliente creado hace más de 10 minutos** (una ficha vieja que recibe su enlace) completa el registro
+      por enlace con la dirección llena y recibe su dirección: la RPC SQL del enlace la escribe, sin pasar por
+      `_service`.
     - El registro por enlace y el de activar, con la dirección llena, dejan la predeterminada en la tabla y no
       escriben `clients.address`. Si el cliente ya tenía una vigente, la nueva no es predeterminada.
 11. **Exigir en la compra (§4.6).**
