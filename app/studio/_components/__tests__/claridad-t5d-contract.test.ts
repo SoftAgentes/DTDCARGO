@@ -56,9 +56,9 @@ const ESPERADO: Record<string, Cuenta> = {
   // Excepciones: el canal de anuncio del arrastre (status + aria-live, DND-01) y «Moviendo…» (status, texto).
   // El vino es la señal de la columna mientras se arrastra encima, igual que en Bitácora.
   // SDD-0671: el único «Abrir ficha de …» es el nombre, y es la parada de Tab (fueraDeTab 0).
-  "crm/_components/CrmTableroKanban.tsx": { aviso: 0, rol: 2, vivo: 1, contorno: 0, abrir: 1, fueraDeTab: 0, tablist: 0, tab: 0, vino: 2 },
+  "crm/_components/CrmTableroKanban.tsx": { aviso: 0, rol: 2, vivo: 1, contorno: 0, abrir: 1, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // El vino es color de dato: un KPI y la primera barra de la cartera.
-  "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 2 },
+  "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // Excepción: «Cargando la ficha…» es texto en status, sin caja.
   "crm/_components/TarjetaFichaDrawer.tsx": { aviso: 1, rol: 1, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // El vino es el contador de mensajes sin leer (pastilla de estado, no se toca).
