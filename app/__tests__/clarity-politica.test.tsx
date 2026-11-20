@@ -1,8 +1,8 @@
 /**
  * SDD-0684 fase 2 · `/cookies` y `/privacidad` declaran Microsoft Clarity con el
- * texto EXACTO que Sam aprobó «tal cual» el 2026-11-20 (borrador con sha256 corto
- * 4cc400bf00ba, opción A) y las correcciones C1 y C2 que aprobó ese mismo día
- * («Apruebo C1 y C2»; archivo con la versión 2: sha256 corto 532dfd730dbf).
+ * texto EXACTO que Sam aprobó palabra por palabra el 2026-11-20 (opción A, y las
+ * correcciones C1, C2 y C3 de ese mismo día; la huella del texto aprobado está en
+ * la spec 0684).
  *
  * Se renderiza la página real (Nav, Footer y el botón de WhatsApp se sustituyen)
  * y se busca cada texto en lo que ve el visitante, no en el archivo fuente. Si
@@ -39,9 +39,10 @@ const COOKIES = [
 
 const PRIVACIDAD = [
   "Cómo usas las páginas públicas del sitio: clics, desplazamiento y movimiento del puntero, con lo que escribes oculto. Sin cookies, cada página por separado; si aceptas las cookies de analítica, también la visita completa. Ver Política de Cookies.",
-  "Mejorar el sitio, viendo dónde se traban las personas en las páginas públicas (analítica seudónima, sin tu nombre ni tus datos de contacto), y medir nuestras campañas. La medición de campañas y la unión de tu visita completa son solo si aceptas las cookies correspondientes.",
-  // C2 (versión 2, aprobada por Sam el 2026-11-20): sin consentimiento Google recibe avisos sin cookies.
-  "Herramientas de analítica y publicidad. Google (Analytics y Ads): si no aceptas las cookies opcionales, solo recibe avisos de visita sin cookies; sus cookies, solo si las aceptas. Microsoft Clarity, solo en las páginas públicas: registra cómo usas cada página, con lo que escribes oculto. Microsoft trata esos datos también para sus propios fines, según su declaración de privacidad. No le enviamos tu nombre, tu documento, tu correo, tu teléfono ni tu Shipping Mark.",
+  // C3 (aprobada por Sam el 2026-11-20): la medición de campañas también va sin cookies sin consentimiento.
+  "Mejorar el sitio, viendo dónde se traban las personas en las páginas públicas (analítica seudónima, sin tu nombre ni tus datos de contacto), y medir nuestras campañas. Sin tu consentimiento, esa medición va sin cookies; la medición con cookies y la unión de tu visita completa son solo si aceptas las cookies correspondientes.",
+  // C2 (versión 3, aprobada por Sam el 2026-11-20): sin consentimiento Google recibe avisos sin cookies de visitas y acciones.
+  "Herramientas de analítica y publicidad. Google (Analytics y Ads): si no aceptas las cookies opcionales, solo recibe avisos sin cookies, de tus visitas y de acciones como escribirnos por WhatsApp, enviarnos un formulario o completar el registro; sus cookies, solo si las aceptas. Microsoft Clarity, solo en las páginas públicas: registra cómo usas cada página, con lo que escribes oculto. Microsoft trata esos datos también para sus propios fines, según su declaración de privacidad. No le enviamos tu nombre, tu documento, tu correo, tu teléfono ni tu Shipping Mark.",
   "No compartimos la información de tu Portal con plataformas de publicidad ni de analítica. La analítica del sitio público y tus datos de cliente están separados.",
   "Las grabaciones de uso del sitio que guarda Microsoft Clarity se borran a los 30 días, y los datos de clics y mapas de calor a los 9 meses. Clarity no permite borrar la visita de una sola persona antes de esos plazos.",
 ];
@@ -90,5 +91,8 @@ describe("/privacidad · Microsoft Clarity (SDD-0684 fase 2)", () => {
     expect(t).not.toContain("(analítica anónima)");
     // C2: la versión 1 decía que Google recibe datos solo con las cookies aceptadas.
     expect(t).not.toContain("Google (Analytics y Ads), solo si aceptas las cookies opcionales");
+    // C2 v2 y la v1 de «Mejorar el sitio», reemplazadas por la versión 3.
+    expect(t).not.toContain("solo recibe avisos de visita sin cookies");
+    expect(t).not.toContain("La medición de campañas y la unión de tu visita completa son solo si aceptas");
   });
 });
