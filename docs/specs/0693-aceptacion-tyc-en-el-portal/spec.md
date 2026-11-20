@@ -179,7 +179,7 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 | `aceptados` | Hay una aceptación general íntegra que cubre todos los documentos vigentes (§5.3) | Todo el portal |
 | `sin_aceptar` | Nunca aceptó | El aviso (§4.2) y los módulos cerrados (§4.3) |
 | `version_anunciada` | Aceptó la versión anterior y la nueva ya está publicada, pero todavía no entra en vigencia (§5.3) | Todo el portal, con una franja informativa que se puede cerrar |
-| `version_nueva` | Aceptó una versión anterior y la nueva ya entró en vigencia | Igual que `sin_aceptar`, con el texto de versión nueva |
+| `version_nueva` | Aceptó una versión anterior y la nueva ya entró en vigencia por fecha, aunque el cron todavía no la haya activado (§4.4) | Igual que `sin_aceptar`, con el texto de versión nueva |
 | `sin_documentos` | El tenant no tiene documentos vigentes de cara al cliente | Todo el portal, sin aviso, y el Studio lo señala en `/studio/legal`. Es un cambio de criterio deliberado (§4.4) |
 | `no_comprobado` | Falló la lectura | Los módulos cerrados muestran «No pudimos comprobar tu aceptación. Prueba de nuevo en un rato.» Falla cerrado, pero sin aviso de aceptar |
 
@@ -249,9 +249,18 @@ Nace en la fase 2.
 - **Valen las mismas reglas que en `acceptanceRowValid`:**
   - el hash se recomputa desde la fila;
   - la aceptación tiene que cubrir todos los documentos vigentes.
-- **Excepción del período anunciado (§5.3).** Si hay un documento `programada` con `effective_date`
-  posterior a hoy, una aceptación que cubre las vigentes da `version_anunciada` y no `aceptados`. Cuando la
-  programada pasa a vigente, la regla general la exige y el estado pasa a `version_nueva`.
+- **Los documentos que se exigen** salen de una función pura, `documentosEfectivos(vigentes, programadas,
+  hoy)`. La usan `estadoTycPortal`, la emisión y la pantalla de aceptación:
+  - una `programada` con `effective_date` menor o igual a hoy **cuenta como vigente**, aunque el cron todavía
+    no la haya activado. Reemplaza a la vigente de su misma clave y a las claves que declare en
+    `reemplaza` (§5.3);
+  - una `programada` con `effective_date` posterior a hoy no se exige todavía.
+- **El período anunciado (§5.3).** Si hay una `programada` con `effective_date` posterior a hoy, una
+  aceptación que cubre las vigentes da `version_anunciada` y no `aceptados`.
+- **Al llegar la fecha** (decisión 7: el portal se cierra cuando la versión entra en vigencia), esa
+  aceptación ya no cubre lo que exige `documentosEfectivos` y el estado es `version_nueva`. Eso vale también
+  entre las 00:00 y las 00:05 de Caracas, antes de que corra el cron, y si el cron falla. El estado lo
+  decide la fecha, no el cron.
 - **`hoy` es la fecha de Caracas** (`fechaCaracas`, `lib/shared/fechas-caracas.ts:43`).
 - **No mira la medida ni la orden.** Desde la fase 2, la emisión del Studio (§3.1) usa esta misma función
   para escribir `tyc_portal`.
@@ -350,16 +359,38 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
     anterior sigue `vigente` hasta esa fecha. El índice único de una vigente por `key` no cambia.
   - **El guard admite una transición más:** de `programada` a `vigente`, solo con `effective_date` menor o
     igual a hoy en Caracas. Una programada no se edita, igual que una vigente.
+  - **Una sola programada por clave.** Se agrega un índice único parcial `on legal_docs (tenant_id, key)
+    where status = 'programada'`.
+  - **Cuándo se exige `programada`.**
+    - Si la clave ya tiene una versión `vigente`, la nueva entra como `programada`. El trigger rechaza un
+      insert directo como `vigente` sobre una clave que ya la tiene.
+    - La primera versión de una clave, sin reemplazos, puede entrar `vigente`: no cambia nada que el
+      cliente ya haya aceptado.
+  - **Cambio de clave.** Pasa cuando un documento reemplaza a otros, como en la 0213, donde
+    `acuerdo-servicios` reemplazó a `tyc` y `operador`.
+    - La `programada` declara las claves que reemplaza en una columna nueva, `reemplaza text[]`. Por
+      ejemplo, `{tyc, operador}`.
+    - Con `reemplaza` no vacío, la versión tiene que entrar `programada` y cumplir las 72 horas hábiles,
+      aunque su propia clave sea nueva.
+    - El trigger exige que cada clave de `reemplaza` tenga una `vigente`.
+    - La RPC archiva, en la misma transacción, la vigente de la misma clave y las de `reemplaza`, y activa la
+      programada.
+    - `documentosEfectivos` (§4.4) deja de exigir las claves reemplazadas desde la `effective_date`.
   - **Una RPC programada** (`legal_docs_activar_programadas`, sin permiso para el cliente) archiva la
     anterior y activa la programada en la misma transacción. La llama un cron nuevo de Vercel,
     `/api/cron/legal-docs-activar`, a las 00:05 de Caracas, como los otros de `app/api/cron/`. Es idempotente.
-    Si se atrasa, el portal sigue en `version_anunciada` con la versión anterior vigente: nunca queda sin
-    documento vigente.
-  - **`currentClientDocs` no cambia.** Se agrega `scheduledClientDocs` para la franja informativa y para
-    `estadoTycPortal`.
+    El cron solo ordena la tabla; no decide el estado del cliente. Si se atrasa o falla, la base sigue con
+    la versión anterior en `vigente`, pero `documentosEfectivos` (§4.4) ya exige la `programada` desde su
+    fecha, y el cliente queda en `version_nueva`. La pantalla de aceptación muestra y sella esa misma versión,
+    así que el cliente puede aceptarla antes de que corra el cron. Si el cron falla, `/studio/legal` muestra
+    la programada vencida sin activar.
+  - **`currentClientDocs` no cambia.** Se agrega `scheduledClientDocs`. La puerta, la emisión, la franja
+    informativa y la acción de aceptar del portal leen `documentosEfectivos(currentClientDocs,
+    scheduledClientDocs, hoy)` (§4.4), así que sellan lo mismo que exige la puerta.
 - **El cliente nuevo durante el período anunciado** acepta la versión vigente, que es la única que se puede
   aceptar. Queda en `version_anunciada` y, cuando entra la nueva, vuelve a aceptar.
-- **Quién valida las 72 horas hábiles (cláusula 13.2).** La base, al insertar una versión `programada`:
+- **Quién valida las 72 horas hábiles (cláusula 13.2).** La base, al insertar una versión `programada`,
+  con o sin `reemplaza`:
   - el trigger rechaza una `effective_date` menor que la fecha de publicación más tres días hábiles en
     Caracas;
   - los días hábiles excluyen sábados, domingos y los feriados VE de `operational_calendar`
@@ -491,7 +522,7 @@ sin marcadores pendientes en `legal_docs`, que sea el mismo texto que publique `
 |---|---|---|---|
 | 0 | Revisión del abogado (§6.1) | — | No aplica |
 | 1 | Facturación sin la puerta legal (§3.1): `emitInvoice` y `createInvoice` dejan de leer `hasValidAcceptanceForMarkbox`. Rastro `tyc_portal`, que en esta fase vale siempre `pendientes`. Retiro del §6 de la EXC-0674, nota en las filas SGE-00, MP-01 y BTN-01 del registro y nota en la SDD-0054 | Esta spec. **No espera al abogado** (decisión 10) | Merge = despliegue. No tiene migración |
-| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`. Estado `programada` en `legal_docs`, con su guard, la regla de las 72 horas hábiles y la RPC y el cron de activación (§5.3). Evidencia v4, `estadoTycPortal` (con `version_anunciada` y la excepción del período anunciado) y `tyc_portal` calculado en la emisión. Plantilla `tyc_aceptada` | Fases 0 y 1, y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
+| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`. Estado `programada` en `legal_docs`, con su guard, su índice único, `reemplaza`, la regla de las 72 horas hábiles y la RPC y el cron de activación (§5.3). Evidencia v4, `estadoTycPortal` (con `version_anunciada` y la excepción del período anunciado) y `tyc_portal` calculado en la emisión. Plantilla `tyc_aceptada` | Fases 0 y 1, y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
 | 3 | Portal: franja, pantalla de entrada, `/portal/terminos/aceptar`, constancia, puerta en el servidor, «Reportar un pago» desde la puerta y correo. Detrás de la bandera `PORTAL_TYC_GATE_LIVE = false` | Fases 0 y 2 | Encender la bandera con el OK nominal de Sam |
 | 4 | Retiro de la aceptación por orden de las DDP (decisión 11) y estado de T&C en la ficha del cliente del Studio | Fase 3 encendida | Normal |
 
@@ -529,11 +560,18 @@ aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación g
    - los seis estados de §4.1;
    - una aceptación con el hash alterado da `sin_aceptar`;
    - una versión nueva publicada con vigencia de mañana da `version_anunciada`;
-   - la misma versión, el día de su vigencia en hora de Caracas, da `version_nueva`;
+   - la misma versión, el día de su vigencia en hora de Caracas, da `version_nueva`, aunque siga
+     `programada`:
+     - a las 00:01 de Caracas, antes de que corra el cron de las 00:05;
+     - con el cron caído, un día después de la fecha;
+   - en ese mismo caso, `documentosEfectivos` devuelve la programada y no la vigente vieja, y la acción de
+     aceptar sella la programada;
+   - con una `programada` que reemplaza a `{tyc, operador}`: antes de la fecha se exigen `tyc` y `operador`,
+     y desde la fecha solo la nueva clave;
    - dos usuarios del mismo cliente: si acepta uno, los dos ven `aceptados`, y la fila guarda en
      `accepted_by` al que aceptó;
    - un cliente nuevo durante el período anunciado acepta la vigente, queda en `version_anunciada`, y al
-     activarse la programada pasa a `version_nueva`;
+     llegar la fecha de la programada pasa a `version_nueva`, haya corrido o no el cron;
    - sin documentos vigentes da `sin_documentos`, y no `sin_aceptar`.
 8. La emisión escribe `tyc_portal: "aceptados"` cuando hay una aceptación `portal` íntegra que cubre las
    vigentes, y `"pendientes"` en los demás casos.
@@ -543,7 +581,12 @@ aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación g
    - de `programada` a `vigente` se rechaza antes de la fecha;
    - `legal_docs_activar_programadas` archiva la anterior y activa la nueva en una transacción, y una
      segunda llamada no cambia nada;
-   - nunca hay dos vigentes por `key`, ni un momento sin una.
+   - nunca hay dos vigentes por `key`, ni un momento sin una;
+   - una segunda `programada` de la misma clave se rechaza por el índice único parcial;
+   - un insert `vigente` sobre una clave que ya tiene una vigente se rechaza, y la primera versión de una
+     clave nueva sin `reemplaza` entra `vigente`;
+   - con `reemplaza`: se rechaza si alguna clave no tiene una vigente o si entra `vigente`, y la RPC archiva
+     las claves reemplazadas junto con la activación.
 
 **Fase 3**
 
@@ -599,7 +642,8 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 **Fase 2**
 
 - `supabase/migrations/NNNN_tyc_portal_aceptacion.sql` (columnas de `legal_acceptances`; estado `programada`,
-  guard y regla de días hábiles en `legal_docs`; RPC de activación), su `.test.sql` y su desarme en
+  columna `reemplaza`, índice único de una programada por clave, guard y regla de días hábiles en
+  `legal_docs`; RPC de activación), su `.test.sql` y su desarme en
   `supabase/desarmes/`
 - `lib/studio/legal/seal.ts`, `lib/studio/legal/types.ts` y `lib/studio/legal/queries.ts`, con sus pruebas
   en `lib/studio/legal/__tests__/`
