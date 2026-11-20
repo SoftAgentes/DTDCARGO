@@ -738,8 +738,10 @@ Cada pregunta trae la recomendación primero.
 - **P-3 (asesor). Decidida por Sam el 2026-11-20:** «Sí, manda la ficha». Si el cliente tiene ficha, manda
   `clients.advisor_id` también en el CRM, y cambiar el dueño de la tarjeta cambia el de la ficha. La
   tarjeta solo tiene dueño propio cuando no hay ficha (leads) (§4.6).
-- **P-4 (nombre).** Si se corrige el nombre de un cliente, ¿lo actualizamos en sus embarques, recepciones
-  y despachos **abiertos**? *Recomendado: sí,* y nunca en facturas ni en documentos sellados (§4.7).
+- **P-4 (nombre). Decidida por Sam el 2026-11-20:** «Sí, en los abiertos». Al corregir el nombre en la
+  ficha, se actualizan las copias de los registros abiertos: embarques sin entregar, recepciones sin
+  despachar, ítems de consolidados sin cerrar, cotizaciones en borrador y órdenes sin facturar. Nunca las de
+  facturas ni las de documentos sellados (§4.7).
 - **P-5 (alta duplicada en el Studio).** Si la oficina da de alta a alguien con un correo o un teléfono que
   ya existe, ¿se bloquea o solo se avisa? *Recomendado:* bloquear con el correo y avisar con el teléfono
   (§4.3).
