@@ -142,7 +142,7 @@ exceso a estos borradores.
   Embarques no se edita el precio; si hace falta corregirlo, se corrige la pre-orden en Facturación
   antes de emitir (`updateInvoice` ya edita borradores). Lo decidió Sam el 2026-11-20 (§7, punto 1).
 - `exc0674_facturas.tecleado_por` hoy quiere decir «quién tecleó el monto». En la 0569 se agrega
-  `origen` (`'tecleado'` o `'borrador'`) para que el rastro diga de dónde salió el monto.
+  `origen_monto` (`'tecleado'` o `'borrador'`) para que el rastro diga de dónde salió el monto.
 - Hay que verificar en la implementación que los triggers de `invoices` (titular 0466, guarda i3 0497,
   auditoría d2 0290) aceptan el `UPDATE` borrador → emitida, con prueba SQL.
 - Acción de servidor nueva, hermana de `facturarExc0674Action`. Hace las mismas verificaciones, manda un
@@ -172,7 +172,7 @@ exceso a estos borradores.
   lista falla. `LEGAL_GATE_HARD_BLOCK` sigue igual para todo lo demás, y `emitInvoice` no cambia.
 - **Cómo queda la marca.** Cada factura emitida por la RPC deja `legal_ack = 'exc_0674'` en
   `exc0674_facturas` y en la auditoría (`append_audit_event`, misma transacción), con quién la emitió y
-  `origen = 'borrador'`. Así se puede listar todo lo emitido sin aceptación.
+  `origen_monto = 'borrador'`. Así se puede listar todo lo emitido sin aceptación.
 - **La ampliación de la excepción.** El registro formal de la EXC-0674
   (`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`) cubre «solo la acción
   «Facturar»» de la 0564, la del monto tecleado. Emitir la pre-orden y «Facturar todo» son acciones
@@ -242,7 +242,7 @@ exceso a estos borradores.
 1. `--solo-facturas` crea un borrador por cliente del 64 con las líneas del Excel. A un cliente que ya
    tiene una factura viva no le crea otra. Con un contenedor que no está en la lista, aborta.
 2. «Facturar» en un cliente con borrador lo emite **sin cambiar su código ni su total**. Hace el asiento
-   y escribe el rastro con `origen = 'borrador'`.
+   y escribe el rastro con `origen_monto = 'borrador'`.
 3. «Facturar todo» emite todos los borradores del contenedor, o ninguno si uno falla.
 4. Con todos los clientes facturados, el contenedor dice «Facturado» y no hay botón.
 5. Ningún rol fuera de `accounting` y `admin` puede llamar la RPC ni ve montos (prueba SQL y prueba del

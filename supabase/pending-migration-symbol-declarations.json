@@ -7,5 +7,27 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0569-rpc-emitir-borradores",
+      "migration": "0569_exc0674_emitir_borradores",
+      "primarySymbol": "exc0674_emitir_borradores",
+      "symbols": [
+        {
+          "name": "exc0674_emitir_borradores",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/embarques/facturar-actions.ts:134"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/embarques/facturar-actions.ts:139",
+          "contains": "if (error) return { ok: false, error: mensajeErrorExc0674(error.message) };",
+          "degradation": "Sin la 0569 la RPC no existe (PGRST202 o 42883) y la acción devuelve un error sin emitir nada; la pre-orden sigue en borrador y el «Facturar» con monto tecleado (0564) no cambia."
+        }
+      ]
+    }
+  ]
 }
