@@ -51,7 +51,9 @@ Antecedente del mismo dolor: el 2026-11-17 Sam dijo «El rojo siempre llama como
 
 ## 3. Decisión de marca
 
-Cambia la apariencia respecto al Norte. Aprobada por Sam (cita en §1). Se registra como **BD nuevo** en `docs/design/studio/_norte/BRAND-DECISIONS.md` (el último es BD-070; el número lo custodia el Director General) y en `BRAND.md`.
+Cambia la apariencia respecto al Norte. Aprobada por Sam (cita en §1). Se registra como **BD-076** en `docs/design/studio/_norte/BRAND-DECISIONS.md` y en `BRAND.md`.
+
+Por qué BD-076 y no BD-071 (número asignado por el Director General el 2026-11-20, comprobado por valor en todo `origin/main` `2ea18799a`): el registro llega a BD-070, pero BD-071 ya la usa `docs/specs/0654-version-light-portal/spec.md`, y BD-074 y BD-075 están reclamadas en `docs/design/studio/respuesta-cloud-design-2026-08-02-v6-verificacion.md` y en esa misma spec. BD-072 y BD-073 no aparecen en ningún archivo: son huecos y **no se reutilizan**.
 
 **BRAND-CHECK.**
 
@@ -64,7 +66,7 @@ Por qué va:              el vino y el peligro comparten tono (354°) y en oscur
                          Sam lo vio y lo decidió
 Alternativa dentro del sistema: tinta (navy/crema), sin colores nuevos; descartada por Sam porque
                          se confunde con la selección
-Resultado:               excepción convertida en regla; BD nuevo; el Norte recibe la enmienda
+Resultado:               excepción convertida en regla; BD-076; el Norte recibe la enmienda
                          por NORTE-SYNC (el Norte no se edita localmente salvo la nota de enmienda,
                          como en SDD-0441)
 ```
@@ -113,7 +115,7 @@ AGENT-BRIEF prohíbe el barrido masivo: **una fase, una rama, una PR**. Cada fas
 
 | Fase | Qué | Superficie | Tamaño |
 |---|---|---|---|
-| **0** | Marca y políticas: BD nuevo, `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda en el Norte | Documentos | S |
+| **0** | Marca y políticas: BD-076, `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda en el Norte | Documentos | S |
 | **1** | Tokens de acción y clases compartidas del Studio: botón principal, foco, enlaces y acentos de `studio.css`; contratos de contraste | ERP | M |
 | **2** | Usos en línea del Studio (`var(--wine…)` en TSX), repartidos en acción, tinta o identidad, por grupos de módulos | ERP | L, en varias PR |
 | **3** | Tokens y clases de la web, el Portal y el móvil (`bg-wine`, `text-wine-text`, `var(--color-wine…)`) | Web, Portal, móvil | L, en varias PR |
@@ -141,7 +143,7 @@ Líneas de `BRAND.md` que se reescriben (**C**, sobre `main` `2ea18799a`): `:104
 - `app/studio/_components/__tests__/color-accion-contract.test.ts` (nuevo)
 - `docs/specs/0686-rebrand-color-accion-azul/spec.md`, `.agents/handoffs/0686-rebrand-color-accion-azul.md`
 
-Sin tocar ningún TSX: lo que cambia en pantalla tras la fase 1 es todo lo que se pinta por clase (`.studio-btn-primary`, anillos de foco, enlaces y chips de `studio.css`). Los usos en línea siguen en vino hasta la fase 2; **es un estado intermedio visible y aceptado**, y por eso la fase 1 no se publica sola (ver §8).
+Sin tocar ningún TSX: lo que cambia en pantalla tras la fase 1 es todo lo que se pinta por clase (`.studio-btn-primary`, anillos de foco, enlaces y chips de `studio.css`). Los usos en línea siguen en vino hasta la fase 2; **es un estado intermedio visible y aceptado**, y por eso la fase 1 no se publica sola (condición de publicación, §8.1).
 
 ### Fases 2 a 5
 
@@ -163,7 +165,7 @@ Orden de los grupos de la fase 2: lo que se ve siempre (menú lateral, barra sup
 ### Fase 0
 
 - `BRAND.md`, VIS-01 y BTN-01 dicen lo mismo que §2 y no quedan frases que asignen la acción al vino.
-- BD nuevo registrado con cita literal, superficie, tokens, contraste y fecha.
+- BD-076 registrado con cita literal, superficie, tokens, contraste y fecha.
 - `pnpm docs:check`, `pnpm sdd:check` y `pnpm governance:check` pasan.
 
 ### Fase 1
@@ -204,8 +206,17 @@ Lo vigila `color-accion-contract.test.ts`, leyendo los valores reales de `tokens
 - **Imagen de prueba** (rama que no se fusiona) con las fases 1 y 2 juntas, para que Sam vea el azul en el Studio en claro, oscuro y compacto antes de fijar el tono. Datos tapados, sin escribir.
 - `/ui-check` por PR y `/ui-pro` sobre las pantallas principales al cierre.
 - `pnpm verify` con turno del Director; CI verde sobre la cabeza exacta; revisión independiente que lanza el Director General.
-- **La fase 1 no se publica sola:** dejaría botones azules junto a enlaces y acentos en vino. Se publica cuando la fase 2 cubra al menos lo que se ve siempre y la operación diaria.
 - Fusionar y publicar a producción piden cada uno su autorización. Las decisiones de Sam del 2026-11-20 cubren el diseño.
+
+### 8.1 Condición de publicación
+
+**Entre la fase 1 y el final de la fase 2 no se publica**, salvo que lo que queda en pantalla sea coherente. Confirmada por el Director General el 2026-11-20.
+
+- **Por qué:** la fase 1 cambia lo que se pinta por clase y la fase 2 lo que se pinta en línea. Publicar la primera sin la segunda deja botones azules junto a enlaces y acentos en vino, que es peor que no haber empezado.
+- **Alcanza a la fusión, no solo al despliegue:** en este repo cada push a `main` publica la web (SDD-0541). Mientras la condición no se cumpla, la PR de la fase 1 no entra a `main`.
+- **Qué es «coherente» y cómo se comprueba:** en lo que se ve siempre (menú lateral, barra superior) y en la operación diaria (los ocho módulos de §5) no queda ningún botón principal, enlace ni acento de acción en vino. Lo mide el contrato de la fase 2 (§6): para esos grupos, la lista de usos de `var(--wine` solo contiene usos de identidad, cada uno con su motivo.
+- **Cómo se llega sin publicar a medias:** lo decide el Director al abrir la fase 1. Propuesta: las PR de la fase 1 y de los dos primeros grupos de la fase 2 se revisan una por una, pero entran a `main` juntas, en una sola fusión.
+- Ninguna excepción a esta condición se toma por el Worker: la autoriza Sam.
 
 ## 9. Lo que esta spec no cubre
 

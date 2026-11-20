@@ -29,10 +29,10 @@ Sam decidió el 2026-11-20 pasar el color de acción del vino al azul en web, Po
 
 ## PENDIENTE DE ESTA TAREA
 
-1. Fase 0: BD nuevo, `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda del Norte y `app/studio/CLAUDE.md`.
+1. Fase 0: BD-076 (número del Director General; BD-071, 074 y 075 están tomadas fuera del registro y 072-073 son huecos que no se reutilizan), `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda del Norte y `app/studio/CLAUDE.md`.
 2. Fase 1: tokens `--accion*`, `studio.css` y contratos (`color-accion-contract.test.ts` nuevo).
 3. Imagen de prueba para que Sam fije el tono.
-4. Fases 2 a 5, cada una con su allowlist y su PR.
+4. Fases 2 a 5, cada una con su allowlist y su PR. **Condición de publicación (spec §8.1):** entre la fase 1 y el final de la fase 2 no se publica ni se fusiona a `main`, salvo que la pantalla quede coherente.
 5. Decisiones abiertas de Sam: tono exacto, color del Shipping Mark, correos/PDF/Chatwoot y el badge `wine` (spec §10).
 
 ## FUERA DE ALCANCE DETECTADO
