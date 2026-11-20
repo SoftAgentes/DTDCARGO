@@ -115,14 +115,15 @@ La fusión solo conserva el valor que ya había (`0361:258`). Academia y Club cr
 | `client_users.email` | invitación (`0080:106`, `:133`, `:139`); `/registro` (`registro/actions.ts:396-403`); enlace (`0559:195-205`) | **inicio de sesión** en `/entrar` (`app/entrar/actions.ts:218-224`, `:241`); recordatorio a invitados (`app/api/cron/portal-cold-reminder/route.ts:80-87`); volver a invitar (`0080:121-123`) |
 | `auth.users.email` | `registro/actions.ts:367-372`; `lib/studio/portal/magic-link.ts:85`; comprobación de correo (`correo-comprobacion.ts:75`, `app/registro/correo/[token]/actions.ts:145`, `:209`) | enlace mágico (`magic-link.ts:66-87`); vincular invitado (`0080:155-170`) |
 
-- **Lo único que sincroniza es la 0559** (`0559:700-739`, más `dejarCuentaSinComprobar` en
-  `clientes/actions.ts:452-513`), y solo cubre las cuentas que nacieron del enlace.
-- **INFERENCIA, siguiendo el código.** El Studio corrige el correo de un cliente que ya entra al portal.
-  Desde ese momento:
-  - los avisos salen al correo nuevo;
-  - el viejo sigue sirviendo para entrar;
-  - con el nuevo, `/entrar` no encuentra el acceso y termina en «sin portal»;
-  - volver a invitar manda al correo viejo.
+- **Lo único que sincroniza es la 0559.** Lo hacen dos piezas:
+  - el **trigger** `clients_email_vuelve_sin_comprobar` (`0559:700-739`), que pone `client_users.email` en
+    la dirección interna (`:704-713`);
+  - `dejarCuentaSinComprobar` (`clientes/actions.ts:452-513`), que pasa la cuenta de Auth a esa dirección.
+
+  Después, `/entrar` responde «sin comprobar» (`app/entrar/actions.ts:233-244`) hasta que el cliente
+  compruebe el nuevo correo. **Solo cubre las cuentas con fila en `client_email_checks`**, es decir, las
+  que nacieron del enlace. En las demás (invitación de la 0080 y `/registro`), el correo de entrada puede
+  quedar distinto del de contacto.
 - **Intencional:** la dirección interna `.invalid` mientras el correo no se compruebe (`0559:42-46`).
 
 ### D-5. Asesor: dos dueños (riesgo medio)
@@ -349,14 +350,22 @@ Propuesta, sujeta a P-1:
 ### 4.5 Correo (D-4, P-2)
 
 - `clients.email` es el correo de contacto.
-- Si el Studio lo cambia y el cliente tiene acceso activo, la acción aplica a todas las cuentas la regla
-  de la 0559: el acceso queda «sin comprobar» y se le manda la comprobación al correo nuevo. Así, el correo
-  de entrada y el de los avisos vuelven a ser el mismo.
-- Mientras no se compruebe, el correo viejo sigue entrando. Así no se le corta el acceso a alguien por un
-  error de tipeo de la oficina.
-- La tarjeta de acceso de la ficha muestra los dos correos cuando no coinciden: «Entra con: …» y «Avisos
-  a: …». Así el equipo lo ve.
-- Va en la misma transacción que la RPC de la 0559, redefinida para que no dependa de `client_email_checks`.
+- **Una sola semántica, la de la 0559, para todas las cuentas.** Si el Studio cambia el correo y el cliente
+  tiene acceso activo:
+  - la cuenta pasa en el acto a su dirección interna;
+  - el acceso queda «sin comprobar»;
+  - se manda la comprobación al correo nuevo.
+
+  El correo anterior deja de servir para entrar desde ese momento. Después de comprobar, el correo de
+  entrada y el de los avisos son el mismo.
+- **Cuentas sin fila en `client_email_checks`** (invitación de la 0080 y `/registro`). Antes del `update`
+  de `clients.email`, `updateClientAction` crea la fila: con el `auth_user_id` de `client_users`, el
+  `internal_email` generado igual que en la 0559 y `pending_email` con el correo nuevo. Así el trigger de la
+  0559 (`0559:700-739`) y `dejarCuentaSinComprobar` las cubren **sin cambiar su cuerpo**.
+  - Si crear la fila falla, el cambio de correo no se guarda y la acción devuelve el error. No queda un
+    estado a medias.
+- La tarjeta de acceso de la ficha dice «Sin comprobar desde …» y el botón «Reenviar comprobación» sirve
+  para cualquier cuenta, no solo para las del enlace.
 
 ### 4.6 Asesor (D-5, P-3)
 
@@ -480,9 +489,10 @@ Cada pregunta trae la recomendación primero.
 
 - **P-1 (identidad).** ¿La ficha manda y `persons` queda solo para quien no tiene ficha? *Recomendado: sí,*
   con un trigger que liga la persona al darse de alta y una vista que lee la ficha (§4.4).
-- **P-2 (correo).** Si la oficina cambia el correo de un cliente que ya entra al portal, ¿también cambia el
-  correo con el que entra? *Recomendado: sí, después de que el cliente compruebe el nuevo;* mientras
-  tanto, sigue entrando con el viejo (§4.5).
+- **P-2 (correo).** Si la oficina cambia el correo de un cliente que ya entra al portal, la cuenta queda
+  «sin comprobar» hasta que el cliente confirme el correo nuevo, como ya pasa con las cuentas del enlace.
+  ¿Lo aplicamos a todas las cuentas? *Recomendado: sí* (§4.5). El costo: si la oficina se equivoca al
+  escribir el correo, el cliente no entra hasta que se corrija y se le reenvíe la comprobación.
 - **P-3 (asesor).** Cuando el cliente ya tiene ficha, ¿manda el asesor de la ficha también en el CRM?
   *Recomendado: sí;* la tarjeta conserva su dueño solo para los leads sin ficha (§4.6).
 - **P-4 (nombre).** Si se corrige el nombre de un cliente, ¿lo actualizamos en sus embarques, recepciones
