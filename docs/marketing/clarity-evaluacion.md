@@ -303,6 +303,8 @@ Para no publicar una promesa falsa ni grabar datos de clientes, el Portal entra 
 | **4. Revisión a 30 días** | Ver qué aprendimos (calculadora, home, `/estimacion`). Revisar algunas grabaciones al azar buscando datos personales visibles; si aparece uno, se enmascara o se apaga. Revisar el impacto en el INP. Decidir si sigue. | DG y marketing | Sí, si se propone ampliar el alcance. |
 | **5. Portal** (decidido por Sam el 2026-11-18) | SDD propia, después de que el público funcione bien en la fase 4. Se aplican las condiciones de §3.6: política y aviso a clientes primero, segundo proyecto en Strict, rutas con código o con contenido financiero fuera, prueba e2e de no-fuga, sin `identify`. | Worker con PR, más abogado | **Sí:** texto de la política del Portal, aviso a clientes, aceptar los términos tras releer la cláusula financiera, y **encender en el Portal**. |
 
+**Seguimiento:** la fase 1 es la [SDD-0684](../specs/0684-clarity-fase-1-apagado/spec.md) (código apagado). Aplica el modo de §3.4 tal cual (carga sin cookies; `consentv2` concedido solo con `dtd_cookie_consent=granted`).
+
 **Lo que no se hizo en esta tarea:** crear la cuenta, aceptar los términos, agregar el script, tocar el CSP o la política, y medir el peso real del script o su efecto en el INP.
 
 ---

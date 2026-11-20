@@ -211,8 +211,18 @@ rollback;`;
     expect(run.error).toMatch(/0565 requiere la 0538/);
   }, SLOW);
 
-  it("la 0565 está declarada como espera hasta que Sam la apruebe", () => {
-    expect(BASELINE.pendingBelowCutoff["0565_bandeja_concedible_por_persona"]).toMatch(/PENDIENTE DE APLICAR/);
+  // Aplicada en producción el 2026-11-19 a las 17:55:31Z, con el OK de Sam «OK, aplica 0566, 0565 y 0562».
+  // Sale de las esperas y queda sellada con el md5 del ledger. La cabecera «NO APLICADA» se conserva
+  // (runbook de migraciones, §6): el ledger guarda el texto exacto y la identidad se prueba por md5.
+  it("la 0565 está aplicada: fuera de las esperas y sellada con el md5 del ledger", () => {
+    const LOCK = JSON.parse(read(resolve(ROOT, "supabase/migrations.lock.json"))) as {
+      selladas: Record<string, { md5: string; bytes: number }>;
+    };
+    expect(BASELINE.pendingBelowCutoff["0565_bandeja_concedible_por_persona"]).toBeUndefined();
+    expect(LOCK.selladas["0565_bandeja_concedible_por_persona"]).toMatchObject({
+      md5: "479cefea6117e822a7bcd896902f6bdf",
+      bytes: 5486,
+    });
     expect(FILE_0565).toMatch(/NO APLICADA EN NINGÚN ENTORNO/);
   });
 });

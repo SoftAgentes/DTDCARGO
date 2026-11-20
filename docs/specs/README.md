@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 666 specs)
+### Índice de specs (generado · 667 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -696,7 +696,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
 | 0673 | Partir un embarque en dos, corregir sus medidas y anotar la r… | in-progress | interno |
 | 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
-| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | proposed | interno |
+| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | in-progress | interno |
 | 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
 | 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
 | 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |
@@ -704,6 +704,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
 | 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
 | 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
+| 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
