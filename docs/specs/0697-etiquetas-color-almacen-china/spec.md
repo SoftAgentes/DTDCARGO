@@ -125,7 +125,7 @@ precios de Venezuela, y no se encontraron archivos del 65 ni del 67.
 
 - 24 de 156 filas (15 %) llevan color. Ninguna va en rojo, celeste ni rosa: en ese contenedor no hubo carga
   especial, remedida ni montacargas marcados.
-- Hay **dos tonos parecidos** (ámbar del tema y naranja). Los 4 naranjas tienen BRAND, lo que apunta a «marca».
+- Hay **dos tonos parecidos** (ámbar del tema y naranja). Los 4 naranjas tienen BRAND. **Sam (2026-11-20): los dos son «marca».**
   Por eso, a mano, el mismo indicador se pinta de dos formas: con el catálogo, el color lo pone el sistema.
 - La hoja ya trae una columna **BRAND**. Idea para una fase posterior: si la recepción trae marca, la pantalla
   sugiere «Marca sin autorización», sin ponerlo sola. No entra en esta spec.
