@@ -250,12 +250,15 @@ export default function CookiesPage() {
               <CookieTable rows={ANALITICA} />
               <p className="mt-3 text-[13px] leading-[1.6] text-grey-500">
                 Usamos Google Analytics 4 y Microsoft Clarity{" "}
-                <strong>solo en las páginas públicas</strong> del sitio. No los
-                cargamos dentro del Portal del Cliente, en el registro, en el
-                inicio de sesión, en el cotizador ni en páginas cuya dirección
-                contenga datos tuyos (tu número de cliente o Shipping Mark, tokens
-                o enlaces personales). Esas zonas quedan excluidas para no enviar
-                información personal a terceros.
+                <strong>solo en las páginas públicas</strong> del sitio. Ninguno
+                de los dos carga dentro del Portal del Cliente, en el inicio de
+                sesión ni en páginas cuya dirección contenga datos tuyos (tu
+                número de cliente o Shipping Mark, tokens o enlaces personales).
+                Microsoft Clarity tampoco carga en el registro ni en el
+                cotizador, porque ahí podría grabar lo que escribes; Google
+                Analytics 4 sí cuenta las visitas a esas páginas y si se completa
+                el registro, sin grabar lo que escribes. Esas zonas quedan
+                excluidas para no enviar información personal a terceros.
               </p>
               <p className="mt-3 text-[13px] leading-[1.6] text-grey-500">
                 <strong>Qué hace Microsoft Clarity.</strong> Clarity nos muestra

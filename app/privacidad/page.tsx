@@ -50,7 +50,9 @@ const DESC =
 // texto de las filas «Navegación», «Mejorar el sitio», analítica en §4, el párrafo
 // final de §4 y el plazo de Clarity en §6 (borrador con sha256 corto 4cc400bf00ba,
 // opción A: decir que Clarity registra cada página sin cookies aunque no haya
-// consentimiento). Si cambia una palabra, se le vuelve a preguntar.
+// consentimiento). Ese día aprobó también C2 («Apruebo C1 y C2»): sin consentimiento,
+// Google recibe avisos de visita sin cookies (versión 2, sha256 corto 532dfd730dbf).
+// Si cambia una palabra, se le vuelve a preguntar.
 const UPDATED = "20 de noviembre de 2026";
 
 export const metadata: Metadata = {
@@ -295,7 +297,9 @@ export default function PrivacidadPage() {
                 </li>
                 <li>
                   <strong>Herramientas de analítica y publicidad.</strong> Google
-                  (Analytics y Ads), solo si aceptas las cookies opcionales.{" "}
+                  (Analytics y Ads): si no aceptas las cookies opcionales, solo
+                  recibe avisos de visita sin cookies; sus cookies, solo si las
+                  aceptas.{" "}
                   <strong>Microsoft Clarity</strong>, solo en las páginas
                   públicas: registra cómo usas cada página, con lo que escribes
                   oculto. Microsoft <strong>trata esos datos también para sus

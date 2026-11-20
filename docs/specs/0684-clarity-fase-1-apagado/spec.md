@@ -150,6 +150,8 @@ Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cook
 - **Opción A** (D): el código de esta SDD carga Clarity en las páginas públicas **sin cookies aunque no haya consentimiento** (§3). La política lo dice tal cual, en vez de cambiar el código para no cargar nada sin consentimiento (opción B, descartada: el aviso solo sale en `/entrar` y `/registro`, y Clarity casi no vería visitas).
 - **Texto aprobado «tal cual»** (D): el borrador `clarity-fase-2-borrador-privacidad-cookies.md` (notas de la sesión, fuera del repo), con sha256 corto `4cc400bf00ba`. Si el abogado o la revisión cambian una palabra, se le vuelve a preguntar a Sam.
 
+- **Versión 2, aprobada el mismo día** (D): la revisión independiente encontró que `/cookies` §3c negaba que GA4 cargue en `/registro` y `/cotizador`, y sí carga (`PRIVATE_PREFIXES` no los tiene; `RegisterForm.tsx` llama a `trackLead("registro")`). Sam eligió corregir el texto y no el código («Sí, corregir texto», en el chat del DG) y aprobó palabra por palabra **C1** (`/cookies` §3c separa GA4 de Clarity) y **C2** (`/privacidad` §4: sin consentimiento, Google recibe avisos de visita sin cookies; esto ya era inexacto antes de esta SDD). Su texto: «Apruebo C1 y C2». Mismo archivo de notas, sección «Versión 2», con sha256 corto `532dfd730dbf`.
+
 ### Qué cambia
 
 | Página | Sección | Cambio |

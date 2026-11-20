@@ -1,7 +1,8 @@
 /**
  * SDD-0684 fase 2 · `/cookies` y `/privacidad` declaran Microsoft Clarity con el
  * texto EXACTO que Sam aprobó «tal cual» el 2026-11-20 (borrador con sha256 corto
- * 4cc400bf00ba, opción A).
+ * 4cc400bf00ba, opción A) y las correcciones C1 y C2 que aprobó ese mismo día
+ * («Apruebo C1 y C2»; archivo con la versión 2: sha256 corto 532dfd730dbf).
  *
  * Se renderiza la página real (Nav, Footer y el botón de WhatsApp se sustituyen)
  * y se busca cada texto en lo que ve el visitante, no en el archivo fuente. Si
@@ -28,7 +29,8 @@ async function texto(ruta: "cookies" | "privacidad") {
 
 const COOKIES = [
   "Las herramientas de analítica y publicidad (Google y Microsoft Clarity) arrancan en un modo restringido, sin guardar nada en tu equipo, hasta que das tu consentimiento. En ese modo, Microsoft Clarity igual registra cómo usas cada página por separado (ver sección 3c).",
-  "Usamos Google Analytics 4 y Microsoft Clarity solo en las páginas públicas del sitio. No los cargamos dentro del Portal del Cliente, en el registro, en el inicio de sesión, en el cotizador ni en páginas cuya dirección contenga datos tuyos (tu número de cliente o Shipping Mark, tokens o enlaces personales). Esas zonas quedan excluidas para no enviar información personal a terceros.",
+  // C1 (versión 2, aprobada por Sam el 2026-11-20): GA4 sí carga en /registro y /cotizador.
+  "Usamos Google Analytics 4 y Microsoft Clarity solo en las páginas públicas del sitio. Ninguno de los dos carga dentro del Portal del Cliente, en el inicio de sesión ni en páginas cuya dirección contenga datos tuyos (tu número de cliente o Shipping Mark, tokens o enlaces personales). Microsoft Clarity tampoco carga en el registro ni en el cotizador, porque ahí podría grabar lo que escribes; Google Analytics 4 sí cuenta las visitas a esas páginas y si se completa el registro, sin grabar lo que escribes. Esas zonas quedan excluidas para no enviar información personal a terceros.",
   "Qué hace Microsoft Clarity. Clarity nos muestra cómo se usan las páginas: dónde haces clic, hasta dónde bajas y si algo no responde. Para eso reconstruye tu visita a partir de esos movimientos; no graba tu pantalla ni tu cámara. Lo que escribes en formularios, los números y los correos se ocultan en tu navegador, antes de enviarse. Si no aceptas las cookies, Clarity funciona sin ellas: ve cada página por separado y no puede unir tu visita. Microsoft guarda las grabaciones 30 días y los datos de clics y mapas de calor 9 meses.",
   "No compartimos los datos de tu Portal con Google, con Microsoft ni con ninguna plataforma de publicidad o analítica. La analítica del sitio y los datos del Portal están separados. Si algún día quisiéramos medir el uso del Portal, te lo avisaremos antes y cambiaremos primero esta política.",
   "Los terceros que pueden instalar cookies en tu navegador a través de nuestro sitio son Google (Google Analytics 4 y Google Ads) y Microsoft (Clarity), y solo si aceptas las cookies opcionales. Las cookies de Clarity (_clck y _clsk) quedan guardadas bajo nuestro dominio; no permitimos las cookies publicitarias de Microsoft. Puedes consultar cómo tratan la información la política de privacidad de Google, cómo usa Google las cookies y la declaración de privacidad de Microsoft.",
@@ -38,7 +40,8 @@ const COOKIES = [
 const PRIVACIDAD = [
   "Cómo usas las páginas públicas del sitio: clics, desplazamiento y movimiento del puntero, con lo que escribes oculto. Sin cookies, cada página por separado; si aceptas las cookies de analítica, también la visita completa. Ver Política de Cookies.",
   "Mejorar el sitio, viendo dónde se traban las personas en las páginas públicas (analítica seudónima, sin tu nombre ni tus datos de contacto), y medir nuestras campañas. La medición de campañas y la unión de tu visita completa son solo si aceptas las cookies correspondientes.",
-  "Herramientas de analítica y publicidad. Google (Analytics y Ads), solo si aceptas las cookies opcionales. Microsoft Clarity, solo en las páginas públicas: registra cómo usas cada página, con lo que escribes oculto. Microsoft trata esos datos también para sus propios fines, según su declaración de privacidad. No le enviamos tu nombre, tu documento, tu correo, tu teléfono ni tu Shipping Mark.",
+  // C2 (versión 2, aprobada por Sam el 2026-11-20): sin consentimiento Google recibe avisos sin cookies.
+  "Herramientas de analítica y publicidad. Google (Analytics y Ads): si no aceptas las cookies opcionales, solo recibe avisos de visita sin cookies; sus cookies, solo si las aceptas. Microsoft Clarity, solo en las páginas públicas: registra cómo usas cada página, con lo que escribes oculto. Microsoft trata esos datos también para sus propios fines, según su declaración de privacidad. No le enviamos tu nombre, tu documento, tu correo, tu teléfono ni tu Shipping Mark.",
   "No compartimos la información de tu Portal con plataformas de publicidad ni de analítica. La analítica del sitio público y tus datos de cliente están separados.",
   "Las grabaciones de uso del sitio que guarda Microsoft Clarity se borran a los 30 días, y los datos de clics y mapas de calor a los 9 meses. Clarity no permite borrar la visita de una sola persona antes de esos plazos.",
 ];
@@ -71,6 +74,8 @@ describe("/cookies · Microsoft Clarity (SDD-0684 fase 2)", () => {
     const t = await texto("cookies");
     expect(t).not.toContain("El único tercero que puede instalar cookies");
     expect(t).not.toContain("Nunca cargamos analítica");
+    // C1: GA4 sí carga en el registro y el cotizador; la frase vieja lo negaba.
+    expect(t).not.toContain("No los cargamos dentro del Portal del Cliente, en el registro");
   });
 });
 
