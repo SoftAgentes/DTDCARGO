@@ -90,7 +90,7 @@ export function InvoiceTitularPicker({
                 gap: "var(--s-3)",
                 padding: "var(--s-2) var(--s-3)",
                 borderRadius: "var(--r-md)",
-                border: checked ? "2px solid var(--wine)" : "1px solid var(--border)",
+                border: checked ? "2px solid var(--ink)" : "1px solid var(--border)",
                 cursor: "pointer",
               }}
             >
@@ -100,7 +100,7 @@ export function InvoiceTitularPicker({
                 value={option.kind}
                 checked={checked}
                 onChange={() => setChosen(option.kind)}
-                style={{ accentColor: "var(--wine)" }}
+                style={{ accentColor: "var(--accion)" }}
               />
               <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 14 }}>{option.name || "Sin nombre"}</span>
               <span className="studio-input-mono" style={{ fontSize: 13 }}>
@@ -114,7 +114,7 @@ export function InvoiceTitularPicker({
                     background: "var(--bg-elevated)",
                     fontSize: 11,
                     fontWeight: 800,
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   Preferencia

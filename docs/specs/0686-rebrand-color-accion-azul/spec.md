@@ -185,6 +185,21 @@ Lo abrió Sam con «Lo que no necesita mi aprobación, avances. Con esto que te 
 
 También corrige el voseo «refrescá» del indicador en vivo, que pasa a «refresca».
 
+### Fase 2 · grupo 2 · operación diaria (2026-11-20)
+
+En la misma rama. Son 104 usos en línea, en 33 archivos de `embarques`, `tracking`, `clientes`, `cn`, `cobranzas`, `facturacion` y `crm`. Ninguno queda en vino. El contrato `color-accion-fase2-contract.test.ts` suma estas siete carpetas, con cero usos permitidos.
+
+| Destino | Qué |
+|---|---|
+| Acción | Enlaces de documento y su foco; casillas (`accentColor`); botones de texto («Agregar dirección», «Cambiar destino», «Usar esta»); enlaces a duplicados, adjuntos y WhatsApp; el hover de las acciones de recepción; el botón «Traducir»; la columna del kanban donde se suelta una tarjeta |
+| Acción con subrayado (regla 6) | El Shipping Mark que, él solo, lleva a la ficha del cliente: en la tabla de embarques y en el panel del embarque |
+| Tinta (cifras y datos) | Saldos y KPI «por cobrar» o «pendiente»; montos de la factura; CBM; código del recibo; Shipping Mark que no lleva a ninguna parte; valor de la tarifa; tarjeta del fee |
+| Tinta (selección y estado) | Filas y tarjetas elegidas; opción activa del tipo de cliente, del idioma y del titular; botón «ver nombres» encendido; dirección predeterminada; progreso del tracking y su línea de tiempo; completitud de la ficha |
+| Neutro | El asterisco de campo obligatorio (`--ink-soft`, porque no es un error), las etiquetas «pendiente», el contador de no leídos, el bloque de traducción y el chino del encabezado del almacén |
+| Peligro | La fecha vencida sobre el panel oscuro de la factura (`--color-status-danger-on-dark`) |
+
+Quedan para un grupo siguiente las funciones de `lib/studio` que devuelven el tono `"wine"` a un `<Badge>` por variable (nivel VIP, plan mayorista, ETA del calendario y otras). Cada una necesita su propio reparto por función, y el contrato de hoy solo detecta el literal `tone="wine"`.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

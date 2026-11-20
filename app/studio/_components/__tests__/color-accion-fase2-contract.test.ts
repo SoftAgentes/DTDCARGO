@@ -19,11 +19,21 @@ const STUDIO = join(RAIZ, "app", "studio");
 
 const VINO = /var\(--(?:grad-)?wine[a-z-]*/g;
 
-/** Carpetas y archivos del grupo 1. Todo TSX de producción dentro entra a la cuenta. */
+/**
+ * Carpetas de los grupos 1 (marco, primitivas, dashboard) y 2 (operación diaria).
+ * Todo TSX de producción dentro entra a la cuenta.
+ */
 const GRUPO_1 = [
   "app/studio/_components/ui",
   "app/studio/(app)/_components",
   "app/studio/(app)/dashboard",
+  "app/studio/(app)/embarques",
+  "app/studio/(app)/tracking",
+  "app/studio/(app)/clientes",
+  "app/studio/(app)/cn",
+  "app/studio/(app)/cobranzas",
+  "app/studio/(app)/facturacion",
+  "app/studio/(app)/crm",
 ];
 
 /** Lo único que puede quedar en vino en el grupo 1, con su motivo. */

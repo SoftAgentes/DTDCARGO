@@ -442,7 +442,7 @@ export function RecoveryTab({
                   href={b.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: "var(--wine-text)", fontWeight: 700 }}
+                  style={{ color: "var(--accion-text)", fontWeight: 700 }}
                   onClick={() =>
                     setOpened((prev) => new Set(prev).add(b.contactId))
                   }

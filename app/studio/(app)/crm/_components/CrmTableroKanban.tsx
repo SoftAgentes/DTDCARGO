@@ -125,8 +125,8 @@ export function CrmTableroKanban({
               onDrop={(e) => canEdit && soltar(e, etapa)}
               style={{
                 minWidth: 0,
-                background: encima ? "var(--wine-tint)" : "var(--bg-surface)",
-                border: `1px ${encima ? "dashed var(--wine)" : "solid var(--border)"}`,
+                background: encima ? "var(--accion-tint)" : "var(--bg-surface)",
+                border: `1px ${encima ? "dashed var(--accion)" : "solid var(--border)"}`,
                 borderRadius: "var(--r-lg)",
                 overflow: "hidden",
                 display: "flex",

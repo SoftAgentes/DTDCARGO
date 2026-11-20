@@ -320,9 +320,9 @@ function AlmacenCnView({
               alignItems: "center",
               gap: 6,
               ...(showClientNames && {
-                background: "var(--wine-tint)",
-                color: "var(--wine-text)",
-                borderColor: "var(--wine)",
+                background: "color-mix(in srgb, var(--ink) 8%, transparent)",
+                color: "var(--ink)",
+                borderColor: "var(--ink)",
               }),
             }}
             onClick={() => setShowClientNames((v) => !v)}
@@ -539,7 +539,7 @@ function ReceiptsTable({
             }}
             onChange={onToggleAll}
             style={{
-              accentColor: "var(--wine)",
+              accentColor: "var(--accion)",
               cursor: "pointer",
               width: 16,
               height: 16,
@@ -647,7 +647,7 @@ function ReceiptRow({
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         alignItems: "center",
-        background: selected ? "var(--wine-tint)" : "transparent",
+        background: selected ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
         transition: "background var(--dur-fast) var(--ease)",
       }}
     >
@@ -658,7 +658,7 @@ function ReceiptRow({
           checked={selected}
           onChange={onToggle}
           style={{
-            accentColor: "var(--wine)",
+            accentColor: "var(--accion)",
             cursor: "pointer",
             width: 16,
             height: 16,
@@ -737,9 +737,9 @@ function ReceiptRow({
               <code
                 style={{
                   font: "800 11px/1 var(--f-mono)",
-                  // En selected row el bg pasa a wine-tint → wine sobre wine-tint
-                  // pierde contraste AA. Usamos --ink en ese caso.
-                  color: selected ? "var(--ink)" : "var(--wine)",
+                  // El Shipping Mark es un dato: va en tinta, también en la fila
+                  // seleccionada (BD-076, regla 6).
+                  color: "var(--ink)",
                 }}
               >
                 {row.client_markbox}
@@ -832,7 +832,7 @@ function ReceiptRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.total_cbm != null ? "var(--wine)" : "var(--ink-mute)",
+          color: row.total_cbm != null ? "var(--ink)" : "var(--ink-mute)",
           textAlign: "right",
         }}
       >

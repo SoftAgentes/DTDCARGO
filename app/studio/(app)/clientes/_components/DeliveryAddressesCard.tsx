@@ -178,7 +178,7 @@ export function DeliveryAddressesCard({
               style={{
                 border: "1px solid var(--border)",
                 borderLeft: a.isDefault
-                  ? "3px solid var(--wine)"
+                  ? "3px solid var(--ink)"
                   : "1px solid var(--border)",
                 borderRadius: "var(--r-md)",
                 padding: "10px 12px",
@@ -251,7 +251,7 @@ export function DeliveryAddressesCard({
                     }}
                     style={{
                       font: "600 12px/1 var(--f-sans)",
-                      color: "var(--wine-text)",
+                      color: "var(--accion-text)",
                       background: "none",
                       border: 0,
                       cursor: busy != null ? "wait" : "pointer",
@@ -304,7 +304,7 @@ export function DeliveryAddressesCard({
           onClick={() => setAdding(true)}
           style={{
             font: "600 12.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             background: "none",
             border: 0,
             cursor: "pointer",
@@ -413,7 +413,7 @@ export function DeliveryAddressesCard({
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             Marcar como predeterminada
           </label>

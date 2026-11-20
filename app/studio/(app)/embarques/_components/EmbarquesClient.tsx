@@ -1196,13 +1196,13 @@ function ListaDeContenedores({
         .emb-cont-header { background: transparent; }
         .emb-cont-header:hover { background: var(--bg-elevated); }
         .emb-cliente-link { all: unset; cursor: pointer; border-radius: var(--r-sm); }
-        .emb-doc-link { color: var(--wine-text); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
+        .emb-doc-link { color: var(--accion-text); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
         .emb-doc-link:hover { text-decoration: underline; }
-        .emb-doc-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+        .emb-doc-link:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
         .emb-cliente-link:hover { text-decoration: underline; }
         .emb-ojo:hover { background: var(--bg-elevated) !important; }
-        .emb-ojo:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
-        .emb-cliente-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+        .emb-ojo:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
+        .emb-cliente-link:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
         /* La tarjeta recorta lo que sale (overflow hidden): el foco va adentro. */
         .emb-cont-header:focus-visible { outline-offset: -3px; }
         @media (max-width: 640px) {
@@ -1627,7 +1627,7 @@ function DetallePorCliente({
                       style={{
                         marginLeft: "var(--s-2)",
                         font: "700 11px/1 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink)",
                       }}
                     >
                       {c.clientMarkbox}
@@ -1796,8 +1796,8 @@ function GroupedTable({
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       font: "700 11.5px/1 var(--f-mono)",
-                      color: "var(--wine-text)",
-                      textDecoration: "none",
+                      color: "var(--accion-text)",
+                      textDecoration: "underline", textUnderlineOffset: 3,
                       letterSpacing: "0.02em",
                     }}
                   >
@@ -1893,7 +1893,7 @@ function GroupedTable({
                   const svc = SERVICE_LABELS[s.shipment_service];
                   const motivo = seleccionable ? seleccionable.motivo(s.id) : null;
                   const elegido = seleccionable?.seleccion.has(s.id) === true && motivo === null;
-                  const fondo = elegido ? "var(--wine-tint)" : "transparent";
+                  const fondo = elegido ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent";
                   const motivoId = `emb-motivo-${s.id}`;
                   return (
                     <div
@@ -1927,7 +1927,7 @@ function GroupedTable({
                             aria-describedby={motivo !== null ? motivoId : undefined}
                             onChange={() => seleccionable.onToggle(s.id)}
                             style={{
-                              accentColor: "var(--wine)",
+                              accentColor: "var(--accion)",
                               cursor: motivo !== null ? "not-allowed" : "pointer",
                               width: 16,
                               height: 16,
@@ -2120,7 +2120,7 @@ function CasillaDeGrupo({
       }}
       onChange={() => seleccionable.onToggleGrupo(ids)}
       style={{
-        accentColor: "var(--wine)",
+        accentColor: "var(--accion)",
         cursor: ids.length === 0 ? "not-allowed" : "pointer",
         width: 16,
         height: 16,
