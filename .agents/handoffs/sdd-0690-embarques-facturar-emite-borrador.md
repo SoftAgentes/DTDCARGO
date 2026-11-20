@@ -154,6 +154,18 @@ No es asesoría legal: es un inventario técnico.
    - el OK nominal de Sam;
    - aplicar la 0569, con su propio OK.
 
+## Seguimiento después de fusionar (2026-11-20)
+
+- **#719 fusionada** (`78aa5edd9`). El DG aplicó la 0569 en producción a las 20:11:34Z, con el OK de Sam (lectura previa y verificación PASÓ, md5 `9cd8b758…`). El sello va en la #731.
+- **Id propio para `--solo-facturas`** (rama `claude/sdd-0690-solo-facturas-id-propio`, con revisión previa del DG). La carga v2 del 64 y sus pre-órdenes salían del mismo Excel con el mismo id, `carga-consolidado:64:6303f821`. Por eso `aplicar-lote.sh:231-238` se negaba a aplicar las pre-órdenes («ya se aplicó»), y el OK viejo de la carga pasaba su guarda.
+  - Ahora el paquete es `…:facturas`.
+  - El contenedor y sus envíos se siguen buscando por el id de la carga.
+  - La regex de «copia de resumen.md» de `aplicar-lote.sh` acepta el sufijo. Su prueba nueva falla sin el arreglo: la probé con el mutante.
+  - Evidencia: `prueba-aplicar-lote.sh` 75 PASÓ · 0 FALLÓ (1 OMITIDA, la del `ulimit`). El vitest de `consolidados-sql` va en el turno de PC.
+- **Ensayo:** el DG acepta como ensayo el simulacro de producción (termina en ROLLBACK, solo conteos). No hace falta el ensayo local de la §3.1.
+- **Emitir: DECIDIDO.** Decisión de Sam (2026-11-20, por el DG), literal: «64: la oficina emite con Facturar todo cuando las revise». Después de cargar las pre-órdenes no se emite nada.
+- **Exceso de peso: DECIDIDO.** Sam eligió «Sin exceso: manda el Excel (Recomendado)» (2026-11-20, por el DG). Las pre-órdenes del 64 se generan con `--sin-exceso-peso`, como el 59. El generador sigue aceptando las dos opciones.
+
 ## FUERA DE ALCANCE DETECTADO
 
 - Registrar abonos sobre una pre-orden: hoy el cobro y el reporte de pago rechazan los borradores (spec §8).
