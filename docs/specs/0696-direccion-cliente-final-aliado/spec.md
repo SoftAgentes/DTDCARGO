@@ -53,7 +53,7 @@ nueva de la marca blanca, con sus propias preguntas legales y de marca.
 | Hoy la oficina ya puede cargar la dirección de cualquier ficha | Tarjeta «Direcciones de entrega»: `addClientAddressAction` (`app/studio/(app)/clientes/actions.ts:1141`) | Es la salida provisional: el aliado manda las direcciones y la oficina las carga. |
 | Patrón de enlace de un solo uso | `client_registration_links` (`0552:13-36`): token aleatorio de 256 bits, la base guarda solo su sha256, un solo uso, 14 días, y regenerarlo revoca el anterior (`0552:256-262`) | El enlace de dirección copia ese patrón. |
 | Marca blanca por cliente | `get_portal_brand()` (`0401:12-45`, cadena en `0451`) deriva todo de `auth.uid()` y `client_users`. `resolveBrandForClient` (`lib/studio/aliados/brand-resolve.ts:37-47`) cae a `DTD_BRAND` ante cualquier error. `aliados.hide_dtd_brand` vale `true` por defecto (`0362:85`) | **Ninguna de las dos sirve para el enlace:** quien abre el enlace no tiene sesión, y caer a DTD rompe la marca blanca. La marca se resuelve desde el token, y si falla, la página sale neutra (§4.4.3). |
-| Límite de intentos en la base | `brand_access_attempts` (`0334:140-150`): guarda el SHA-256 del origen, no la IP, con bloqueo escalonado y acceso solo por service_role | El enlace copia este mecanismo. `0552` no trae ninguno. |
+| Límite de intentos en la base | `brand_access_attempts` (`0334:140-150`): guarda el SHA-256 del origen, no la IP, con bloqueo escalonado y acceso solo por service_role | El enlace copia el mecanismo, pero sin `tenant_id` y con HMAC (§4.4.1). `0552` no trae ninguno. |
 | Helper de direcciones | `lib/studio/client-address-queries.ts` (`insertClientDeliveryAddress:96`, `listClientDeliveryAddresses:46`) | Ahí vive `direccionDeEntrega` (0694 §10, F-1), y ahí se ubica `destinoDeEntrega`. |
 | Dominio sin rastro de DTD | 0666 §2.2: `hailuway.com`, todavía sin montar (fase P5) | Define en qué dirección vive el enlace (P-2). |
 | Avisos | 0666 §2.1: «Solo al aliado; nada al cliente final» | El aviso de dirección faltante le llega **al aliado** (§4.5). |
@@ -155,13 +155,28 @@ La tabla nueva `client_address_links` copia el patrón de `client_registration_l
 - El token tiene 32 bytes aleatorios (256 bits) y se genera en el servidor. En claro **solo existe al
   crearlo**: se muestra una vez para copiarlo y no se puede recuperar.
 
+La tabla nueva `client_address_link_attempts` cuenta los intentos (§4.4.4). **No tiene `tenant_id`**: un
+token inválido no tiene tenant. Por eso no copia tal cual `brand_access_attempts`, que sí lo exige
+(`0334:140-150`).
+
+| Columna | Qué guarda |
+|---|---|
+| `id` | `bigint generated always as identity` |
+| `attempt_key` | El HMAC-SHA-256 en hex del origen (`^[0-9a-f]{64}$`), con un secreto del servidor (§4.4.4). No guarda la IP |
+| `succeeded` | `boolean not null` |
+| `created_at` | `timestamptz not null default now()` |
+
+- Tiene un índice `(attempt_key, created_at desc) where succeeded = false`.
+- RLS encendida y sin políticas. `revoke all` de `public`, `anon` y `authenticated`, y
+  `select, insert, delete` solo para service_role.
+
 #### 4.4.2 Las RPC
 
 Las cuatro son `security definer` y tienen `search_path = ''`.
 
 | RPC | Quién la ejecuta | Qué hace |
 |---|---|---|
-| `client_address_link_create(p_client_id, p_token_hash)` | `authenticated`. Pide un rol del Studio (`admin`, `commercial` u `operations`) o el rol `aliado` con la cadena comprobada (§4.3) | Revoca el enlace vigente de ese cliente, si hay uno, e inserta el nuevo. **Solo la llama un clic de una persona** («Copiar enlace nuevo»), nunca un proceso automático (§4.5). |
+| `client_address_link_create(p_client_id, p_token_hash)` | `authenticated` (con `revoke` de `public` y `anon`). Pide un rol del Studio (`admin`, `commercial` u `operations`) en el tenant del cliente, o el rol `aliado` con la cadena comprobada (§4.3) | Revoca el enlace vigente de ese cliente, si hay uno, e inserta el nuevo. **`created_via` no es un parámetro:** la RPC lo deriva del rol que pasó la comprobación (`studio` o `aliado`), y `created_by` sale de `auth.uid()`. Rechaza a un cliente directo de DTD (sin `aliado_id`). **Solo la llama un clic de una persona** («Copiar enlace nuevo»), nunca un proceso automático (§4.5). |
 | `client_address_link_peek(p_token_hash)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Devuelve `client_id`, `tenant_id` y la marca resuelta (§4.4.3), solo si el enlace está vigente. Si no, devuelve cero filas. |
 | `client_address_link_complete(p_token_hash, p_line, p_city, p_city_slug, p_state, p_reference)` | **solo `service_role`** | Hace el consumo atómico y escribe la dirección (abajo). |
 | `client_address_link_attempt(p_attempt_key, p_succeeded)` | **solo `service_role`** | Cuenta los intentos (§4.4.4). |
@@ -177,10 +192,16 @@ returning client_id, tenant_id;
 ```
 
 - Sin fila, la RPC termina con el mismo error neutro que un enlace que no existe.
-- Con fila, inserta **solo** en `client_delivery_addresses`, con el `client_id` y el `tenant_id` que
-  devolvió esa sentencia. No acepta un `client_id` del cliente y no toca ninguna otra tabla ni columna.
-- Si el cliente no tiene ninguna dirección vigente, la nueva queda como predeterminada. Si tenía una, la
-  nueva pasa a ser la predeterminada y la anterior queda guardada.
+- Con fila, escribe **solo** en `client_delivery_addresses`, y solo filas del `client_id` que devolvió esa
+  sentencia. No acepta un `client_id` del que llama. `client_markbox` y `tenant_id` no los pone la RPC: los
+  sella desde `clients` el trigger de la 0198 (`0198:149`). No toca ninguna otra tabla.
+- Dentro de ese cliente hace dos cosas, en este orden:
+  1. si había una predeterminada vigente, un `update … set is_default = false` **solo de esa fila**. Lo
+     exige el índice único de una predeterminada por cliente (`client_delivery_addresses_default_uidx`,
+     `0198:44-46`). No cambia `line`, `deleted_at` ni `client_id` de ninguna fila;
+  2. el `insert` de la fila nueva con `is_default = true`.
+
+  Así la nueva queda como predeterminada, y la anterior queda guardada.
 - Todo va en la misma transacción. Si dos envíos llegan a la vez, el `update` con su condición deja pasar
   solo uno: el otro no encuentra fila.
 - Valida en la base: `line` entre 1 y 300 caracteres, y `city`, `state` y `reference` con sus propios
@@ -213,17 +234,21 @@ returning client_id, tenant_id;
   `proxy.ts` para `/d/`). Sustituyen el `strict-origin-when-cross-origin` general de `next.config.ts:201`
   en esa ruta, para que el token no viaje en el `Referer`.
 - **Límite de intentos en la base**, efectivo en serverless porque no vive en la memoria de un proceso:
-  - Lo hace la tabla `client_address_link_attempts`, que copia `brand_access_attempts` (`0334:140-155`):
-    `attempt_key` es el SHA-256 del origen (no la IP), con `succeeded`, `created_at` y acceso solo por
-    service_role.
+  - Lo hace la tabla `client_address_link_attempts` (§4.4.1), sin tenant.
+  - `attempt_key` es un **HMAC-SHA-256** del origen con un secreto del servidor
+    (`ADDRESS_LINK_ATTEMPT_SECRET`, que va en los dos `.env.example`), no un SHA-256 sin sal. Así la tabla
+    no permite recuperar la IP probando las direcciones posibles.
   - Con 5 fallos en 15 minutos desde el mismo origen, la página responde igual que un enlace inválido
-    durante 1 hora, sin consultar `_peek`.
+    durante 1 hora.
   - Cada token inválido cuenta como fallo.
   - Las filas se borran a los 7 días.
 - **La misma respuesta para todo enlace inválido** (vencido, usado, revocado, inexistente o bloqueado), con
-  el mismo HTML, el mismo código HTTP (200) y el mismo texto: «Este enlace ya no está disponible. Pídele
-  uno nuevo a tu aliado». El servidor hace siempre el mismo trabajo (hash, intento, `_peek`) para que el
-  tiempo de respuesta no distinga los casos.
+  el mismo código HTTP (200), las mismas cabeceras y el mismo texto: «Este enlace ya no está disponible.
+  Pídele uno nuevo a tu aliado». Vale para la **carga** de la página y para el **envío** del formulario.
+- **El mismo trabajo en todos los casos.** El servidor siempre hace el hash del token, registra el intento y
+  llama a `_peek`, **también cuando el origen está bloqueado**. En ese caso descarta el resultado de
+  `_peek`. Así el tiempo de respuesta no distingue el bloqueo de un token inválido. En el envío, siempre
+  llama a `_complete`, que con un token inválido o bloqueado no encuentra fila.
 - **Qué muestra:**
   - La marca de §4.4.3 y el formulario. El formulario es el de Mi perfil (`PortalAddresses.tsx`): calle,
     ciudad (del catálogo), estado y punto de referencia. No pide la cédula ni el correo.
@@ -339,16 +364,37 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      sale neutra, nunca la de DTD: `hide_dtd_brand = false`, una cadena rota y un error simulado de la
      consulta de la marca.
    - **Lo que escribe.** Guardar crea la predeterminada en la ficha del cliente del token y en ninguna otra.
-     Un `.test.sql` comprueba que `_complete` no escribe otra tabla ni otro `client_id`.
+     Un `.test.sql` siembra un cliente con dos direcciones (una predeterminada) y otro cliente con una, y
+     comprueba lo siguiente:
+     - después de `_complete`, el cliente del token tiene una fila nueva predeterminada;
+     - su predeterminada anterior solo cambió `is_default`;
+     - ninguna fila cambió `line`, `deleted_at` ni `client_id`;
+     - el otro cliente quedó igual;
+     - ninguna otra tabla cambió, salvo `client_address_links.used_at`.
+   - **`_create` rechaza** (`.test.sql`):
+     - a un `authenticated` sin rol del Studio ni rol `aliado`;
+     - a un aliado con un cliente de otra cadena;
+     - a cualquiera con un cliente directo de DTD;
+     - a `anon`, que no la puede ejecutar (`has_function_privilege`).
+
+     Con un rol del Studio, `created_via` queda en `studio`, y con el aliado, en `aliado`, aunque el que
+     llama intente otra cosa: no hay parámetro para eso.
    - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
      13 días y 23 horas todavía funciona.
    - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
      otro recibe el error neutro. Queda una sola fila nueva.
    - **La misma respuesta.** Un segundo uso, un enlace vencido, uno revocado, uno inexistente y uno
-     bloqueado responden con el mismo HTML, el mismo código HTTP y el mismo texto. Una prueba compara las
-     cinco respuestas byte a byte.
-   - **El límite de intentos.** El sexto fallo desde el mismo origen en 15 minutos responde como inválido
-     sin llamar a `_peek`. La tabla guarda el hash del origen, nunca la IP.
+     bloqueado responden igual, **en la carga y en el envío del formulario**. Una prueba compara las cinco
+     respuestas con:
+     - el mismo código HTTP;
+     - las mismas cabeceras, sin contar `date`, el nonce de la CSP ni los ids de petición;
+     - el mismo cuerpo **normalizado**: sin nonces, ids de React ni marcas de tiempo.
+   - **El mismo trabajo.** Una prueba con las RPC simuladas comprueba que, en los cinco casos, el servidor
+     llama a `_attempt` y a `_peek` (y a `_complete` en el envío) el mismo número de veces, también con el
+     origen bloqueado.
+   - **El límite de intentos.** El sexto fallo desde el mismo origen en 15 minutos responde como inválido,
+     aunque el token sea válido, y no lo consume. La tabla guarda el HMAC del origen, nunca la IP. Un
+     `.test.sql` comprueba que la tabla no tiene `tenant_id` y que solo service_role la toca.
    - **El acceso a las RPC.** `anon` y `authenticated` no pueden ejecutar `_peek`, `_complete` ni
      `_attempt`: se prueba con `has_function_privilege`.
    - **Las cabeceras.** La respuesta de `/d/[token]` trae `Cache-Control: no-store` y
@@ -409,6 +455,7 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
   - `supabase/migrations/NNNN_client_address_links.sql`, con su `.test.sql`. Lleva la tabla, la de
     intentos y las RPC `_create`, `_peek`, `_complete` y `_attempt`;
   - `app/d/[token]/**`, y `proxy.ts` si las cabeceras van ahí;
+  - `.env.example` y `infra/dtd-cargo/.env.example` (`ADDRESS_LINK_ATTEMPT_SECRET`, sin valor);
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (para reutilizar el formulario);
   - una acción en `app/studio/(app)/clientes/actions.ts`;
   - y sus pruebas.

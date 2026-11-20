@@ -68,3 +68,15 @@
   integrar, en el orden que serialice Dir_DTD.
 - **9.** La base de la medición es `6a7787d08`.
 - **10.** La minimización queda como «diseño», con la nota del prefijo del código impreso.
+
+## Segunda vuelta (sobre 54d6d6f71): CHANGES_REQUESTED menor, corregida
+
+- **1.** `_create` tiene pruebas negativas: un authenticated sin rol, un aliado de otra cadena, un cliente
+  directo de DTD y anon. `created_via` lo deriva el rol, no un parámetro.
+- **2.** `_complete` hace el `update` solo de `is_default` en la predeterminada anterior (lo exige el índice
+  `0198:44-46`) y luego el `insert`. El trigger de la 0198 sella `client_markbox`. El `.test.sql` comprueba
+  que `line`, `deleted_at` y `client_id` no cambian.
+- **3.** La respuesta se compara normalizada: el mismo código y las mismas cabeceras, sin `date`, nonce ni
+  ids. Vale para la carga y para el envío. El caso bloqueado también llama a `_peek` y a `_complete`.
+- **4.** `client_address_link_attempts` no tiene tenant y declara sus columnas.
+- **5.** `attempt_key` es un HMAC-SHA-256 con `ADDRESS_LINK_ATTEMPT_SECRET`.
