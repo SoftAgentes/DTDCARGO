@@ -28,7 +28,7 @@ Sam pidió compararlo con QuickBooks y eligió ese modelo el 2026-11-20: **cada 
 direcciones, «Facturar a» y «Entregar en», y las dos se sellan al emitir.** Esta spec diseña ese cambio:
 el dato, las reglas, las pantallas y sus fases.
 
-## 2. Medición en `main` (`af0f635ad`)
+## 2. Medición en `main` (`af0f635ad`; lo que pidió la revisión, sobre `7ff097d12`)
 
 ### 2.1 Qué sella la factura hoy
 
@@ -52,9 +52,8 @@ el dato, las reglas, las pantallas y sus fases.
   (`app/studio/(app)/facturacion/_components/InvoiceTitularPicker.tsx:140-146`).
 - **La 0466 está aplicada en producción** desde el 2026-09-19. Lo dice el ledger
   (`0466_client_billing_identity`), según confirmó Dir_DTD el 2026-11-20. La cabecera «NO APLICADA A
-  PRODUCCIÓN» (`0466:5-10`) es texto viejo y no se corrige, porque la migración está sellada. En el repo
-  tampoco figura como espera: `supabase/migrations-baseline.json:39` tiene `pendingBelowCutoff` vacío.
-  Este Worker no leyó producción.
+  PRODUCCIÓN» (`0466:5-10`) es texto viejo. La migración no se corrige, porque está sellada. Este Worker
+  no leyó producción.
 
 ### 2.2 Dirección de entrega del cliente
 
@@ -76,7 +75,7 @@ Sam dice que «esa opción está». **Lo medí y está a medias:**
 | Texto de la dirección final del envío | Sí, pero **lo escribe el equipo** | `shipments.delivery_address`, texto libre (`0009_shipment_delivery_pod.sql:11`, `:15-16`). Lo llenan el Almacén VE (`app/studio/(app)/ve/actions.ts:103-112`) y el TMS con la última parada de la ruta (`app/studio/(app)/tms/actions.ts:236-239`). Se congela al entregar (`0321_warehouse_ve_delivery_governance.sql:71`) |
 
 Es decir: el cliente puede tener siete direcciones, pero hoy no puede decir a cuál va cada embarque. Esta
-spec agrega esa elección (§4.3, fase F-3).
+spec agrega esa elección (§4.4, fase F-3).
 
 ### 2.4 El PDF y el comprobante HTML
 
@@ -95,20 +94,31 @@ spec agrega esa elección (§4.3, fase F-3).
 - Desde la SDD-0543, cada línea puede llevar su `shipmentCode` cuando la factura junta varios embarques
   de un cliente y contenedor (`lib/studio/invoice-types.ts:32-38`).
 - La facturación por contenedor de la SDD-0674 inserta la factura ya `emitida`, con una línea por embarque
-  y, si hay aliado raíz, a nombre del aliado (`0564_exc0674_facturar_contenedor.sql:11-15`, `:50-58`).
-- La SDD-0690 (#719, fusionada el 2026-11-20 y todavía sin aplicar) agrega `exc0674_emitir_borradores`.
-  Esa función emite la pre-orden que ya existe, con un UPDATE de `borrador` a `emitida`, y no cambia ni
-  las líneas ni los montos (`0569_exc0674_emitir_borradores.sql:2`, `:13-17`).
+  y, si hay aliado raíz, a nombre del aliado (`0564_exc0674_facturar_contenedor.sql:11-15`, `:50-58`). En
+  ese caso, `client_markbox` es el del aliado y `shipment_id` es el primer embarque del cliente real
+  (`0564:496-508`).
+- La SDD-0690 (#719) agrega `exc0674_emitir_borradores` (0569). **Está aplicada en producción desde el
+  2026-11-20** y quedó sellada en la #731 (`7ff097d12`). Emite la pre-orden con un UPDATE de `borrador` a
+  `emitida` (`0569:288-296`), sin cambiar las líneas ni los montos. Su guarda `borrador_alterado` compara
+  el código, el total, la base y el IVA (`0569:300-303`).
 
 ### 2.6 Despacho y app del chofer
 
 - `hydrateClientFieldsOnPackages` lee `clients.address` y `address_reference` por Shipping Mark
   (`lib/studio/dispatch-mobile-queries.ts:161-163`) y los pasa a `client_address` y
   `client_address_reference` (`:199-200`).
-- Los paquetes del despacho son recepciones de almacén (`warehouse_receipt_cn` y `warehouse_receipt_ve`,
-  `lib/studio/dispatch-types.ts:36-38`), no embarques. El camino de una recepción a su embarque hay que
-  medirlo en la F-3.
 - La SDD-0694, fase F-1, ya cambia este lector a la predeterminada de `client_delivery_addresses` (§9).
+- Los paquetes del despacho son recepciones de almacén, no embarques. `dispatch_order_packages` las
+  enlaza con `package_kind` y `package_id` (`0024_dispatch_core.sql:423-424`). **Medí el camino de cada
+  tipo hasta su embarque:**
+
+  | Tipo de paquete | ¿Llega a un embarque? | Evidencia |
+  |---|---|---|
+  | `warehouse_receipt_cn` | **Sí.** La recepción guarda `shipment_id` al consolidar | `0008_warehouses_cn.sql:74` |
+  | `warehouse_receipt_ve` | **No.** Es una fila por contenedor que llega al hub, sin embarque ni cliente | `0067_warehouse_receipts_ve.sql:34-56`, `:58-59` |
+
+  Por eso, en la F-3 el chofer ve la dirección elegida solo en los paquetes de China. En los de
+  Venezuela sigue viendo la predeterminada del Shipping Mark del paquete (§4.4).
 
 ## 3. Decisiones de Sam (2026-11-20)
 
@@ -154,57 +164,96 @@ Worker el 2026-11-20, a pedido de Dir_DTD. Van literales.
 
 ## 4. Modelo de datos
 
-Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
+Hay tres fases con migración (F-1 a F-3). Las migraciones van sin número: las numera Dir_DTD.
 
 ### 4.1 La dirección fiscal por identidad (F-1)
 
-**Tabla nueva `client_fiscal_addresses`.** Hay una fila por cliente y por identidad:
+**Tabla nueva `client_fiscal_addresses`.** Hay una fila por identidad del cliente:
 
 | Columna | Tipo | Regla |
 |---|---|---|
 | `id` | uuid | Llave primaria |
-| `tenant_id` | uuid | La sella un trigger desde el cliente, como en `0198` |
-| `client_id` | uuid | FK a `clients`, `on delete cascade` |
-| `kind` | text | `persona` o `empresa`. Tiene que ser el tipo de la principal (`clients.doc_kind`) o el de la identidad alterna. Lo valida un trigger |
-| `same_as_delivery` | boolean | La casilla «Igual a mi dirección de entrega». Por defecto, `true` |
-| `line`, `city`, `state` | text | Obligatorios si `same_as_delivery` es `false`, y en null si es `true`. `line` va de 5 a 300 caracteres, recortada, como `0466:162-165` |
+| `tenant_id` | uuid, not null | FK a `tenants`, `on delete cascade`. La sella un trigger desde el cliente, como en `0198` |
+| `client_id` | uuid, not null | FK a `clients`, `on delete cascade` |
+| `billing_identity_id` | uuid, null | FK a `client_billing_identities(id)`, `on delete cascade`. **Null = la persona principal.** Con valor, es la identidad alterna |
+| `same_as_delivery` | boolean, not null | La casilla «Igual a mi dirección de entrega». Por defecto, `true` |
+| `line` | text | Recortada, de 5 a 300 caracteres, como `0466:162-165` |
+| `city`, `state` | text, null | Recortados, hasta 100 caracteres |
 | `created_at`, `updated_at` | timestamptz | — |
 
-- `unique (client_id, kind)`.
-- **Sin fila, se entiende que la casilla está marcada** (decisión 8). Así, ningún cliente necesita una fila
-  nueva para que su factura tenga dirección. Las empresas que ya tienen domicilio fiscal quedan desmarcadas
-  por la copia de abajo.
+- **La llave es la identidad, no el tipo** (revisión, punto 5).
+  - Hay dos índices únicos: `(client_id) where billing_identity_id is null`, una fila para la principal, y
+    `(billing_identity_id)`, una por alterna.
+  - Un trigger valida que la alterna sea del mismo `client_id`.
+  - Si la principal cambia de `doc_kind`, su fila sigue siendo de la principal. No hay forma de que pase a
+    ser de la alterna.
+  - Borrar la alterna borra su fila por la cascada. No hace falta cambiar `portal_delete_my_billing_identity`.
+- **CHECK de forma:** `(same_as_delivery and line is null and city is null and state is null) or (not
+  same_as_delivery and line is not null)`.
+  - Ciudad y estado se pueden dejar en null en la tabla. Así cumplen la copia de abajo, que no los trae, y
+    cualquier UPDATE posterior de esas filas (revisión, punto 4).
+  - La RPC del portal los exige en las filas que escribe el cliente.
+- **Sin fila, se entiende que la casilla está marcada** (decisión 8). Las empresas que ya tienen domicilio
+  fiscal quedan desmarcadas por la copia.
 - **La casilla sigue a la predeterminada** (decisión 7): no se copia ningún texto. Si el cliente cambia su
-  predeterminada, la dirección fiscal cambia para las facturas nuevas; las emitidas no cambian.
+  predeterminada, la dirección fiscal cambia en las facturas nuevas. Las emitidas no cambian.
 - **Por qué una tabla y no una columna en `clients`:**
   - la 0466 decidió no agregar columnas a `clients` (`0466:25`);
   - la SDD-0695 pide una fuente por dato;
   - con una sola tabla, las dos identidades se leen y se sellan igual.
-- **`client_billing_identities.fiscal_address` se retira por fases:**
-  1. la migración copia cada `fiscal_address` no vacío a una fila con `same_as_delivery = false` y
-     `line = fiscal_address`. Ciudad y estado quedan en null, porque hoy es texto libre;
-  2. los lectores (`lib/portal/billing-identity.ts`, `invoice-billing.ts`, `ClientBillingCard.tsx`) pasan a
-     la tabla nueva;
-  3. la columna se borra en una migración aparte, después de un `git grep` sin lectores. Esta migración
-     entra en el registro de fuentes únicas de la 0695 (§4.1 de esa spec).
 
-  La regla de `line`, `city` y `state` obligatorios aplica a las filas nuevas. Las copiadas pueden llevar
-  ciudad y estado en null.
-- **Acceso:**
-  - en el portal, por RPC de sesión, igual que la 0466 (`0466:47-51`): `portal_get_my_billing_profile` se
-    redefine para devolver la dirección fiscal de cada identidad, y una RPC nueva,
-    `portal_set_my_fiscal_address(p_kind, p_same_as_delivery, p_line, p_city, p_state)`, la escribe. Las dos
-    son `security definer`, con `search_path = ''`, EXECUTE solo para `authenticated`, y el cliente sale de
-    la sesión, nunca de un parámetro;
-  - en el Studio, SELECT para `accounting`, `admin` y `commercial` del tenant, como `0466:52`. **El Studio
-    no escribe en esta tabla** (decisión 10): la oficina corrige la dirección solo en el borrador de cada
-    factura (§5.2), y eso queda en la auditoría;
-  - `service_role`: todo.
-- **Borrar la identidad alterna** (`portal_delete_my_billing_identity`, 0466) borra también su fila de
-  dirección fiscal, en la misma transacción.
-- **Cambiar el tipo de la principal** (`clients.doc_kind`) deja la fila vieja con un `kind` que ya no es de
-  ninguna identidad. El trigger de validación no la borra: el resolvedor solo lee las filas de un `kind`
-  vigente. La F-1 mide si ese cambio ocurre y por cuál camino.
+**Seguridad (revisión, punto 3).** Sigue el patrón de `0466:179-188`:
+
+- `enable row level security`;
+- `revoke all on table public.client_fiscal_addresses from public, anon, authenticated, service_role`;
+- `grant select` a `authenticated` y `grant select, insert, update, delete` a `service_role`;
+- **ningún INSERT, UPDATE ni DELETE para `authenticated`.** El portal escribe solo por RPC, y el Studio no
+  escribe (decisión 10);
+- la política `client_fiscal_addresses_studio_select`, `for select to authenticated`, deja leer solo si
+  `tenant_id = (select public.get_user_tenant_id())` y `(select public.current_studio_role()) in
+  ('accounting', 'admin', 'commercial')`;
+- **el portal no tiene política SELECT**: lee por RPC (§4.3);
+- las funciones nuevas son `security definer`, con `search_path = ''` y `revoke all … from public, anon`.
+  EXECUTE solo para `authenticated`, en las que el portal tiene que llamar. Los triggers no tienen
+  EXECUTE para nadie.
+
+**RPC del portal** (el cliente y el tenant salen de `get_portal_client_id()`, nunca de un parámetro):
+
+- **`portal_set_my_fiscal_address(p_identity text, p_same_as_delivery boolean, p_line text, p_city text,
+  p_state text)`**, que devuelve `table (outcome text)`, como las de la 0466:
+  - `p_identity` es `principal` o `alterna`. Con `alterna`, toma la fila de `client_billing_identities`
+    del cliente. Si no tiene, da error;
+  - con la casilla desmarcada exige `line`, `city` y `state`. Con la casilla marcada, los ignora y los
+    guarda en null;
+  - **audita** con `append_audit_event`, igual que `0466:555-563`:
+    - entidad `client`;
+    - acción `client_fiscal_address_saved`, canal `rpc`;
+    - payload `{identity, same_as_delivery, changed}`, sin el texto;
+    - clave `'fiscal-address:' || client_id || ':' || gen_random_uuid()`, versión 1;
+    - clasificación `sensitive`.
+- **`portal_get_my_billing_profile()`** se redefine con la misma firma, para devolver además la dirección
+  fiscal de cada identidad.
+- **`portal_upsert_my_billing_identity(p_legal_name, p_doc, p_fiscal_address, p_set_default)`** se redefine
+  con la misma firma (`0466:397-402`). El `p_fiscal_address` que recibe ya no va a la columna vieja, sino a
+  la fila de la alterna en la tabla nueva, desmarcada. Así, aunque quede código desplegado que todavía usa
+  ese parámetro, no se escribe en dos lugares.
+
+**El paso de la F-1 a la F-2 (revisión, punto 2).** Desde la F-1 hay una sola fuente. En la misma
+migración:
+
+1. **copia** cada `client_billing_identities.fiscal_address` no vacío a la fila de su alterna, desmarcada y
+   con `line` = el texto. Es idempotente: solo copia si no existe la fila. El conteo previo va al acta, no
+   a Git;
+2. **redefine `portal_upsert_my_billing_identity`** como se dijo arriba;
+3. **redefine `invoices_seal_billing_titular` (versión 2, §4.5)** para que lea la dirección de la alterna en
+   la tabla nueva.
+   - El comportamiento es **el mismo de la 0466**: la alterna sella `line`, ciudad y estado solo si su fila
+     está desmarcada, y si no, null. La principal sigue sellando null.
+   - El sello completo es de la F-2.
+
+Desde ahí, `client_billing_identities.fiscal_address` no tiene ni escritor ni lector: queda congelada. Su
+retiro es una fase aparte (§12). Si la F-1 está aplicada y la F-2 no, las facturas salen como hoy, y lo
+que edite el cliente ya va a la fuente nueva.
 
 ### 4.2 El sello doble en `invoices` (F-2)
 
@@ -217,81 +266,185 @@ Tres piezas, una por fase. Las migraciones van sin número: las numera Dir_DTD.
 
 | Columna | Tipo | Qué guarda |
 |---|---|---|
-| `ship_to_address` | text | La dirección de «Entregar en», en texto: `line`, ciudad y estado |
-| `ship_to_address_id` | uuid, sin FK | La fila de `client_delivery_addresses` de la que salió. Sirve de rastro. Queda en null si se editó a mano o si no había dirección |
-| `addresses_sealed_at` | timestamptz | La hora del sello. **Es la marca que separa una factura nueva de una vieja** |
+| `ship_to_address` | text, CHECK: null o recortada, de 5 a 400 caracteres | La dirección de «Entregar en», en texto: `line`, ciudad y estado |
+| `ship_to_address_id` | uuid, sin FK | La fila de `client_delivery_addresses` de la que salió. Es solo rastro. La escribe solo el trigger |
+| `addresses_sealed_at` | timestamptz | La hora del sello. **Es la marca que separa una factura nueva de una vieja.** La escribe solo el trigger |
 
-**El trigger** `invoices_seal_billing_titular` se redefine en una migración nueva. Conserva todo lo de la
-0466 y agrega lo siguiente:
+`client_fiscal_address` no lleva un CHECK nuevo. Un CHECK, aun `NOT VALID`, se evalúa en cualquier UPDATE de
+la fila, y las facturas viejas se siguen actualizando (pagos, `0466:40-43`). El largo y el recorte de una
+edición los valida el trigger, solo cuando cambia ese valor en un borrador.
+
+**El trigger `invoices_seal_billing_titular`, versión 3** (§4.5). Se redefine completo. Conserva lo de la
+versión 2 y agrega lo siguiente:
 
 1. **Congelado:** a la lista de `0466:265-269` se suman `ship_to_address`, `ship_to_address_id` y
    `addresses_sealed_at`.
-2. **En el borrador**, `client_fiscal_address` y `ship_to_address` solo los escribe el operador cuando edita
-   esa factura. **Null significa «sigue al cliente».**
+2. **En el borrador:**
+   - `client_fiscal_address` y `ship_to_address` solo los escribe el operador, cuando edita esa factura.
+     **Null significa «sigue al cliente».** El trigger rechaza una edición que no venga recortada o que no
+     tenga de 5 a 400 caracteres;
+   - `ship_to_address_id` y `addresses_sealed_at` **los pone en null** el trigger, venga lo que venga.
 3. **Al emitir**, en el mismo momento que hoy (`0466:275-280`):
+   - **Siempre sobrescribe** `ship_to_address_id` y `addresses_sealed_at`, aunque el INSERT emitida (RPC
+     0128) o el UPDATE los traigan llenos (revisión, punto 6). `ship_to_address_id` sale solo de la
+     resolución del trigger, del mismo tenant.
+   - **Sin cliente vivo** (`0466:290-293`): la versión 3 no regresa antes de sellar las direcciones.
+     - `client_fiscal_address` y `ship_to_address` quedan como vienen: la edición del borrador o null;
+     - `ship_to_address_id` queda en null y `addresses_sealed_at := now()`;
+     - así, una factura nueva nunca se lee como vieja.
    - **«Facturar a»:**
      - el nombre y el documento se resuelven como hoy;
      - si el borrador trae `client_fiscal_address`, se queda esa;
-     - si no, se toma la dirección fiscal de la identidad elegida: si la casilla está marcada (o no hay
-       fila), la predeterminada de entrega; si no, `line`, ciudad y estado de la fila;
-     - **cambio de comportamiento:** en el caso principal, `0466:320` hoy pone null y pasa a sellar la
+     - si no, toma la fila de la identidad elegida: marcada o sin fila, la predeterminada de entrega;
+       desmarcada, `line`, ciudad y estado;
+     - **cambio de comportamiento:** en el caso de la principal, `0466:320` hoy pone null y ahora sella la
        dirección.
    - **«Entregar en»:**
-     - si el borrador trae `ship_to_address`, se queda esa, con `ship_to_address_id` en null;
+     - **guarda del aliado (revisión, punto 7):** si `new.shipment_id` es un embarque cuyo
+       `client_markbox` no es el de la factura, `ship_to_address` y `ship_to_address_id` quedan en null,
+       aunque el borrador traiga una edición. Es el caso de la factura de contenedor al aliado raíz
+       (`0564:496-508`) y de sus pre-órdenes (0569). Esas facturas salen sin el bloque «Entregar en» hasta
+       que la **SDD-0696** defina qué mostrar (§5.6 y §12);
+     - si no aplica la guarda y el borrador trae `ship_to_address`, se queda esa, con `ship_to_address_id`
+       en null;
      - si no, la **predeterminada vigente** del cliente de la factura (decisión 5);
      - si no hay predeterminada pero sí filas vigentes, la más reciente, con la misma regla que el helper
-       `direccionDeEntrega` de la 0694 (§4.1 de esa spec). Ver §9;
+       `direccionDeEntrega` de la 0694 (§4.1 de esa spec);
      - sin filas vigentes, queda en null, y la factura sale sin el bloque (decisión 11).
    - **Por embarque no se sella nada** (decisión 6). El aviso de varias direcciones es del ERP (§5.3).
    - `addresses_sealed_at := now()`.
-   - **Auditoría:** si el borrador editó alguna de las dos direcciones, se registra
-     `invoice_address_overridden` con `append_audit_event`, igual que `0466:323-345`. El payload lleva
-     **solo cuál de las dos se editó** (`bill_to` o `ship_to`), nunca el texto.
-4. **El formato del texto** sale de una función SQL nueva (por ejemplo, `format_delivery_address(line, city,
-   state)`), que es la única que arma la dirección para el sello. Su equivalente en TypeScript lo prueba la
-   misma tabla de casos. **No incluye `reference`** (§10, punto 2).
-5. **Las vías de emisión que ya cubre el trigger** se mantienen: la RPC 0128, la acción del Studio y
-   `exc0674_facturar` (0564), que inserta en `emitida`. También `exc0674_emitir_borradores` (0569), que
-   pasa la pre-orden de `borrador` a `emitida`: la pre-orden se sella al emitirla, con sus ediciones de
-   borrador si las tiene. No hay que cambiar ninguna de ellas. La guarda `borrador_alterado` de la 0569
-   solo compara el código y los montos (`0569:299-302`), así que las direcciones que llena el trigger en
-   ese mismo UPDATE no la disparan. Un contrato de la F-2 lo deja probado.
+   - **Auditoría:** si el borrador editó alguna de las dos direcciones, registra `invoice_address_overridden`
+     con `append_audit_event`, igual que `0466:323-345`:
+     - payload `{bill_to_edited, ship_to_edited}`, sin el texto;
+     - clave `'invoice-address:' || new.id`. Es distinta de la clave `'invoice-bill-to:' || new.id` del
+       evento de la 0466 (`0466:341`);
+     - versión 1, clasificación `internal`.
+4. **Una sola resolución.** La regla de «Facturar a» y «Entregar en» vive en una función interna,
+   `invoice_resolve_addresses(p_invoice invoices)`, sin EXECUTE para nadie. La usan el trigger y la RPC de
+   lectura (§4.3), así que el borrador muestra exactamente lo que se va a sellar.
+5. **El formato del texto** sale de una función SQL, `invoice_format_address(line, city, state)`,
+   `immutable` y con `search_path = ''`. **No incluye `reference`** (§10, punto 2). Su equivalente en
+   TypeScript se prueba con la misma tabla de casos.
+6. **Las vías de emisión que ya cubre el trigger** siguen igual:
+   - la RPC 0128 y la acción del Studio;
+   - `exc0674_facturar` (0564), que inserta en `emitida`;
+   - `exc0674_emitir_borradores` (0569), que pasa la pre-orden de `borrador` a `emitida`.
+
+   No hay que cambiar ninguna. La guarda `borrador_alterado` de la 0569 compara el código, el total, la base
+   y el IVA que devuelve el `UPDATE … returning` (`0569:300-303`). Ese `returning` no trae direcciones, así
+   que el sello no la dispara. El contrato 15 lo prueba.
 
 **Sin backfill.** Las facturas ya emitidas quedan con `addresses_sealed_at` en null. Son las «viejas sin
 sello» de la decisión 4 (§5.4).
 
-### 4.3 «Entregar en» por embarque (F-3)
+### 4.3 La lectura de las direcciones (F-2)
+
+**Hay una sola función para leer, en el portal y en el Studio** (revisión, punto 1). El PDF y el
+comprobante del portal corren con la sesión del cliente (`app/portal/(app)/facturas/[code]/pdf/route.ts:51-74`)
+y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para el portal.
+
+- **`invoice_addresses(p_invoice_id uuid) returns jsonb`**, que devuelve `{ "bill_to": text|null, "ship_to":
+  text|null, "legacy": boolean }`.
+  - Es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`.
+  - **Autoriza con el mismo criterio que la lectura de facturas (0414):**
+    - un usuario del portal, solo para facturas de su tenant y de su Shipping Mark (`get_portal_client_id()`),
+      y nunca en `borrador`;
+    - un usuario del Studio, solo si `tenant_id = get_user_tenant_id()` y su rol es `accounting` o `admin`
+      (`0414:52-56`);
+    - en cualquier otro caso devuelve null, sin un error que distinga «no existe» de «no es tuya».
+  - **Borrador:** lo que saldría al emitir, con `invoice_resolve_addresses`.
+  - **Emitida con sello:** lo sellado.
+  - **Emitida sin sello (vieja):**
+    - «Facturar a» sellado, si lo tiene; si no, el actual de la identidad sellada;
+    - «Entregar en», el actual;
+    - `legacy = true`.
+- **`direccionesDeLaFactura(supabase, invoiceId)`**, en `lib/studio/invoice-client-doc.ts`, es un envoltorio
+  fino de esa RPC. Reemplaza a `domicilioFiscalSellado` en los dos PDF, el comprobante y la pantalla del
+  Studio.
+
+### 4.4 «Entregar en» por embarque (F-3)
 
 **Columna nueva `shipments.delivery_address_id`**: uuid, nullable, FK a `client_delivery_addresses(id)`
 `on delete set null`.
 
 - **Null = la predeterminada.** Es el caso normal: «Aunque no use esa opción, queda su dirección principal
   como predeterminada» (decisión 5).
-- Un trigger valida que la dirección sea **del cliente del embarque**, del mismo tenant y que esté vigente
-  (`deleted_at is null`).
+- **Integridad (revisión, punto 8):**
+  - un **constraint trigger diferido**, `shipments_delivery_address_same_client` (`deferrable initially
+    deferred`, `after insert or update of delivery_address_id, client_markbox, tenant_id`), revisa al
+    confirmar que, si `delivery_address_id` tiene valor, la dirección sea del mismo tenant y del cliente vivo
+    que tiene hoy el Shipping Mark del embarque. Cuando cambia `delivery_address_id`, exige además que la
+    dirección esté vigente;
+  - es diferido porque `rename_client_markbox` (0371) cambia el código del cliente, del embarque y de las
+    direcciones en la misma transacción. Al confirmar, los tres ya coinciden;
+  - **`reassign_shipment_client`** (`0551:203`) se redefine con la misma firma para poner
+    `delivery_address_id := null` cuando pasa el embarque a otro cliente, y anotarlo en su auditoría. Sin
+    eso, el trigger diferido rechazaría la reasignación.
+- **Congelado (revisión, punto 8):** `guard_ve_delivery_completion()` (`0321:46`, condición en `:66-73`) se
+  redefine para sumar `delivery_address_id` a lo que no cambia después de `delivered`.
 - Si la dirección elegida se borra después (borrado lógico), el resolvedor la ignora y vuelve a la
   predeterminada. La columna no se limpia sola.
 - **Quién la cambia:**
-  - **el cliente, en el portal**, con una RPC de sesión nueva, `portal_set_shipment_delivery_address(p_shipment_code,
-    p_address_id)`. Null vuelve a la predeterminada. Funciona **hasta que el embarque llega a Venezuela**
-    (decisión 9). Se propone medirlo con `shipments.arrived_destination_at` no nulo
-    (`lib/studio/warehouse-ve-queries.ts:27`). La F-3 confirma que esa columna y el estado de llegada
-    dicen lo mismo. Después responde con un error de campo: «Este embarque ya llegó a Venezuela.
-    Escríbenos para cambiar la entrega»;
-  - **el equipo, en el Studio**, en la ficha del embarque, con los mismos roles que hoy escriben
-    `shipments`;
-  - los dos dejan auditoría `shipment_delivery_address_changed`, con la fila elegida (su id) y sin el
-    texto de la dirección.
-- **`shipments.delivery_address` (el texto de 0009) se queda.** Es la dirección operativa del envío y la
+  - **el cliente, en el portal**, con `portal_set_shipment_delivery_address(p_shipment_code text,
+    p_address_id uuid)`:
+    - es `security definer`, con `search_path = ''`, y EXECUTE solo para `authenticated`;
+    - busca el embarque por el **tenant** del cliente de la sesión, su **Shipping Mark** y el **código**, con
+      `deleted_at is null` (revisión, punto 8). El Shipping Mark solo es único dentro del tenant;
+    - null vuelve a la predeterminada;
+    - funciona **hasta que el embarque llega a Venezuela** (decisión 9), medido con
+      `shipments.arrived_destination_at` no nulo (`lib/studio/warehouse-ve-queries.ts:27`). La F-3 confirma
+      que esa columna y el estado de llegada dicen lo mismo. Después responde con un error de campo: «Este
+      embarque ya llegó a Venezuela. Escríbenos para cambiar la entrega»;
+  - **el equipo, en el Studio**, con `studio_set_shipment_delivery_address(p_shipment_id uuid, p_address_id
+    uuid)`, `security invoker`: la RLS de `shipments` decide quién escribe, sin corte de fecha y hasta la
+    entrega;
+  - las dos auditan `shipment_delivery_address_changed`:
+    - payload `{address_id, origen: "portal" | "studio"}`, sin el texto;
+    - clave `'shipment-delivery:' || shipment_id || ':' || gen_random_uuid()`, versión 1;
+    - clasificación `internal`.
+- **`shipments.delivery_address` (el texto de la 0009) se queda.** Es la dirección operativa del envío y la
   sigue escribiendo el equipo. Lo nuevo:
-  - el Almacén VE (`ve/actions.ts:103-112`) y el TMS (`tms/actions.ts:236-239`) **precargan** el campo con
+  - el Almacén VE (`ve/actions.ts:103-112`) y el TMS (`tms/actions.ts:236-239`) **precargan** ese campo con
     la dirección elegida o, si no hay, con la predeterminada. El operador la puede cambiar;
-  - el congelado de `0321:71` no cambia.
+  - el congelado de `0321:66-73` sigue cubriendo ese texto.
 
   La 0694 dejó esta precarga como «mejora aparte» (su §8). Aquí la toma la F-3.
-- **`merge_clients`** mueve las filas de `client_delivery_addresses` al cliente que sobrevive sin cambiarles
-  el id (`0361:137-149`). Por eso `delivery_address_id` sigue apuntando bien después de una fusión. La F-3
-  lo comprueba con un contrato SQL. No hace falta redefinir la función.
+- **El chofer:** en los paquetes `warehouse_receipt_cn`, la dirección elegida del embarque de la recepción
+  (`0008:74`). En los `warehouse_receipt_ve`, que no tienen embarque (§2.6), la predeterminada, como lo deja
+  la 0694 F-1.
+- **`merge_clients`** mueve las filas de `client_delivery_addresses` al cliente que sobrevive, sin
+  cambiarles el id (`0361:137-149`). Por eso `delivery_address_id` sigue apuntando bien después de una
+  fusión. La 0698 no redefine esa función. El contrato 23 lo prueba (§9 explica el orden).
+
+### 4.5 Las funciones que redefine esta spec (revisión, punto 9)
+
+Cada redefinición es un `create or replace` completo, con la misma firma.
+
+- **Preflight:** la migración revisa que el cuerpo vigente sea la versión esperada, comparando el md5 de
+  `prosrc` (como `0453:176-178`). Si no lo es, aborta.
+- **Contrato:** en la misma PR corre el contrato de la versión anterior, que tiene que seguir verde en todo
+  lo que no cambia.
+- **Desarme:** cada fase trae su desarme en `supabase/desarmes/`, sin número y fuera de `supabase/migrations/`,
+  como `0569_desarme.sql`. Aplicarlo exige el OK nominal de Sam.
+
+| Función | Hoy | La redefine | Contrato que sigue verde | Lo que repone el desarme |
+|---|---|---|---|---|
+| `invoices_seal_billing_titular` | 0466 (v1) | **F-1 (v2):** lee la tabla nueva, con el mismo comportamiento. **F-2 (v3):** sello doble | F-1: `0466_client_billing_identity.test.sql`. F-2: el contrato de la F-1 | F-1: la v1. F-2: la v2 |
+| `portal_upsert_my_billing_identity` | 0466 | F-1 | `0466_client_billing_identity.test.sql` | La de la 0466 (ver abajo) |
+| `portal_get_my_billing_profile` | 0466 | F-1 | Ídem | La de la 0466 |
+| `reassign_shipment_client` | 0551 | F-3 | `0551_pasar_embarque_a_otro_cliente.test.sql` | La de la 0551 |
+| `guard_ve_delivery_completion` | 0321 | F-3 | `0321_warehouse_ve_delivery_governance.test.sql` | La de la 0321 |
+
+- **El desarme de la F-1:**
+  - antes de reponer la 0466, vuelve a copiar a `client_billing_identities.fiscal_address` el texto de las
+    filas desmarcadas de las alternas;
+  - **se niega** si hay filas de la principal desmarcadas: son datos que cargó el cliente y que no tienen a
+    dónde volver;
+  - los desarmes de la F-2 y de la F-3 se niegan si ya hay facturas selladas o embarques con dirección
+    elegida, salvo el OK nominal de Sam.
+- **Ninguna de las specs abiertas que se cruzan con esta redefine estas cinco funciones.** Busqué los cinco
+  nombres en la 0694 (#725) y la 0695 (#728), y no aparece ninguno. Si otra spec las necesita, parte de la
+  versión vigente y la suma a esta tabla.
 
 ## 5. Reglas
 
@@ -300,16 +453,17 @@ sello» de la decisión 4 (§5.4).
 | Dato | Se sella | Desde dónde |
 |---|---|---|
 | Nombre y documento de «Facturar a» | Al emitir (como hoy) | La identidad elegida (`bill_to_kind` o la preferencia) |
-| Dirección de «Facturar a» | Al emitir | La edición del borrador o, si no hay, la dirección fiscal de esa identidad (§4.1) |
-| «Entregar en» | Al emitir | La edición del borrador o, si no hay, la predeterminada vigente del cliente de la factura |
+| Dirección de «Facturar a» | Al emitir | La edición del borrador o, si no hay, la fila de esa identidad (§4.1) |
+| «Entregar en» | Al emitir | La edición del borrador o, si no hay, la predeterminada vigente del cliente de la factura. Nada en la factura al aliado (§5.6) |
 
 **Si después el cliente cambia su dirección, solo cambian las facturas nuevas** (decisión 1). Lo garantiza
 el congelado del trigger, no la pantalla.
 
 ### 5.2 El borrador
 
-- Muestra los dos bloques, «Facturar a» y «Entregar en», con lo que **saldría si se emitiera ahora**. Es la
-  misma idea que la vista previa de hoy, «Así sale en la factura» (`InvoiceTitularPicker.tsx:140`).
+- Muestra los dos bloques, «Facturar a» y «Entregar en», con lo que **saldría si se emitiera ahora**, leído
+  de `invoice_addresses` (§4.3). Es la misma idea que la vista previa de hoy, «Así sale en la factura»
+  (`InvoiceTitularPicker.tsx:140`).
 - Cada bloque tiene **«Editar en esta factura»**, que abre un campo de texto con la dirección actual, y
   **«Volver a la del cliente»**, que deja la columna en null.
 - La edición **solo vale para esa factura**. No cambia el perfil del cliente.
@@ -358,21 +512,31 @@ Valencia, Carabobo
 
 ### 5.4 Facturas viejas sin sello
 
-Una factura **emitida** con `addresses_sealed_at` en null es vieja (§4.2). Para ella:
+Una factura **emitida** con `addresses_sealed_at` en null es vieja (§4.2). Para ella, `invoice_addresses`
+devuelve `legacy = true` (§4.3), y:
 
 - **«Facturar a»:** si tiene `client_fiscal_address` sellado (las de la identidad alterna), sale ese, como
   hoy. Si no, se muestra la dirección fiscal **actual** de la identidad sellada, con la etiqueta
   **«Dirección actual del cliente»**;
 - **«Entregar en»:** la predeterminada **actual**, con la misma etiqueta.
 
-Sale igual en el PDF, en el comprobante HTML y en la pantalla del Studio. Un borrador nunca lleva esa
-etiqueta, porque todavía no se ha sellado.
+Sale igual en el PDF, en el comprobante HTML y en la pantalla del Studio, porque los tres leen la misma
+RPC. Un borrador nunca lleva esa etiqueta, porque todavía no se ha sellado.
 
 ### 5.5 La anulación y la devolución parcial
 
 - Anular no vuelve a sellar. Cobranzas (0467) devuelve de `parcial` a `emitida` al anular un recibo, y el
   trigger no vuelve a sellar (`0466:34-36`). Las direcciones siguen esa misma regla.
 - No hay notas de crédito en el sistema (no hay facturación fiscal SENIAT). Si llegan, se diseñan aparte.
+
+### 5.6 La factura de contenedor al aliado raíz
+
+Las facturas de las 0564 y 0569 con aliado raíz van a nombre del aliado, pero la mercancía es del cliente
+final (`0564:496-508`). La guarda de §4.2 deja «Entregar en» vacío en esas facturas: nunca lleva la dirección
+del aliado. «Facturar a» sí se sella, con la identidad del aliado, como hoy.
+
+Lo que se muestre en su lugar (la dirección de cada cliente final, o nada) lo define la **SDD-0696**, que
+es una dependencia de esta spec (§9 y §12). Dir_DTD le avisa a la 0696 para que la cite de vuelta.
 
 ## 6. Pantallas
 
@@ -381,15 +545,16 @@ etiqueta, porque todavía no se ha sellado.
 | **Mi perfil del portal: identidades** | `app/portal/(app)/perfil/BillingIdentityCard.tsx:57-59`, `perfil/empresa/BillingIdentityForm.tsx:100-114` | Cada identidad, también la principal, muestra «Dirección fiscal», con la casilla **«Igual a mi dirección de entrega»**. Marcada, muestra la predeterminada en solo lectura. Desmarcada, pide dirección, ciudad y estado. El campo de domicilio libre del formulario de empresa se convierte en este bloque | F-1 |
 | **Mi perfil: direcciones de entrega** | `PortalAddresses.tsx` | Solo texto de ayuda: «La predeterminada es la que sale en tus facturas, y a donde llegan tus embarques si no eliges otra». Sin cambio de datos | F-1 |
 | **Ficha del cliente en el Studio** | `app/studio/(app)/clientes/_components/ClientBillingCard.tsx:56-59` | Muestra la dirección fiscal de cada identidad, o «Igual a la dirección de entrega». Solo lectura: el Studio no edita la dirección fiscal del perfil (decisión 10) | F-1 |
-| **Borrador de la factura** | `InvoiceTitularPicker.tsx` y `facturacion/actions.ts:1115-1150` | Los dos bloques con vista previa, «Editar en esta factura» y «Volver a la del cliente» (§5.2). La acción manda `client_fiscal_address` y `ship_to_address`, con el mismo patrón `*_present` que usa `bill_to_kind` (`invoice-billing.ts:89-116`) | F-2 |
+| **Borrador de la factura** | `facturacion/_components/InvoiceDrawer.tsx`, `InvoiceTitularPicker.tsx` y `facturacion/actions.ts:1115-1150` | Un componente nuevo, `InvoiceAddressesBlock.tsx`, con los dos bloques, la vista previa, «Editar en esta factura» y «Volver a la del cliente» (§5.2). La acción manda `client_fiscal_address` y `ship_to_address`, con el patrón `*_present` de `bill_to_kind` (`invoice-billing.ts:89-116`) | F-2 |
 | **PDF de la factura** | `lib/studio/pdf/factura-pdf.tsx:379-394` | El bloque «Cliente» pasa a ser **«Facturar a»** (nombre, documento, dirección y Shipping Mark). Se agrega **«Entregar en»** al lado, con la predeterminada. Sin detalle por embarque (decisión 6). Si no hay dirección, el bloque no sale (decisión 11). Las facturas viejas llevan la etiqueta de §5.4 | F-2 |
-| **Rutas del PDF** | `app/portal/(app)/facturas/[code]/pdf/route.ts:74`, `app/studio/(app)/facturacion/[code]/pdf/route.ts:57` | Dejan de llamar a `domicilioFiscalSellado` y llaman a un helper nuevo, `direccionesDeLaFactura(supabase, invoiceId)`, que devuelve las dos direcciones y si la factura es vieja | F-2 |
+| **Rutas del PDF** | `app/portal/(app)/facturas/[code]/pdf/route.ts:74`, `app/studio/(app)/facturacion/[code]/pdf/route.ts:57` | Dejan de llamar a `domicilioFiscalSellado` y llaman a `direccionesDeLaFactura`, el envoltorio de `invoice_addresses` (§4.3) | F-2 |
 | **Comprobante HTML del portal** | `app/portal/(app)/facturas/[code]/comprobante/page.tsx:226-233` | Los mismos dos bloques y la misma etiqueta, con el mismo helper. La 0694 F-2 deja este archivo leyendo `domicilioFiscalSellado`; la 0698 F-2 lo cambia por el helper nuevo (§9) | F-2 |
-| **Detalle de la factura en el Studio** | `app/studio/(app)/facturacion/[code]/` | Los dos bloques en solo lectura cuando ya está emitida. Desde la F-3, el aviso «Varias direcciones» (§5.3), también en el borrador | F-2 y F-3 |
-| **Ficha del envío en el portal** | `app/portal/(app)/envios/[code]/page.tsx` | Tarjeta **«Entregar en»**: muestra a dónde va y deja elegir otra dirección o «Usar mi predeterminada». Cuando el embarque ya llegó a Venezuela (decisión 9), solo lectura con el texto del error. No muestra la marca «Otra dirección», que es del ERP | F-3 |
-| **Embarques en el Studio** | `app/studio/(app)/embarques/_components/` (el drawer del embarque, a medir en F-3) | Campo «Entregar en», con las direcciones del cliente, y la marca «Otra dirección» en la fila y en el drawer (§5.3) | F-3 |
+| **Detalle de la factura en el Studio** | `app/studio/(app)/facturacion/[code]/page.tsx`, `facturacion/_components/InvoiceDetailClient.tsx` | Los dos bloques en solo lectura cuando ya está emitida. Desde la F-3, también el aviso «Varias direcciones» (§5.3) | F-2 y F-3 |
+| **Ficha del envío en el portal** | `app/portal/(app)/envios/[code]/page.tsx`, `_components/PortalShipmentDetailNorte.tsx` | Un componente nuevo, `EntregarEnCard.tsx`: muestra a dónde va el embarque y deja elegir otra dirección o «Usar mi predeterminada». Cuando el embarque ya llegó a Venezuela (decisión 9), queda en solo lectura con el texto del error. No muestra la marca «Otra dirección», que es del ERP | F-3 |
+| **Embarques en el Studio** | `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx` | La marca «Otra dirección» en la fila (§5.3). En el drawer, el campo «Entregar en», con las direcciones del cliente | F-3 |
+| **Borrador de la factura (aviso)** | `facturacion/_components/InvoiceDrawer.tsx` | El aviso «Varias direcciones» (§5.3) | F-3 |
 | **Almacén VE y TMS** | `ve/actions.ts:103-112`, `ve/_components/VeRowActions.tsx:40`, `tms/_components/RouteDrawer.tsx:56-75` | Precargan `delivery_address` con la dirección elegida o con la predeterminada | F-3 |
-| **Despacho y app del chofer** | `lib/studio/dispatch-mobile-queries.ts:161-200` | Después de la 0694 F-1 (que pasa este lector a la predeterminada), si el paquete pertenece a un embarque con dirección elegida, el chofer ve esa. El camino de la recepción a su embarque se mide en la F-3 | F-3 |
+| **Despacho y app del chofer** | `lib/studio/dispatch-mobile-queries.ts:161-200` | Después de la 0694 F-1, que pasa este lector a la predeterminada: en los paquetes de China, la dirección elegida del embarque de la recepción (§4.4) | F-3 |
 
 Toda pantalla nueva o con cambio visual sustancial pasa por `/ui-check` antes del commit. Se usan los
 componentes `canonical` del Studio (`<Aviso>`, `DrawerShell`) y solo tokens `var(--*)`.
@@ -399,12 +564,12 @@ componentes `canonical` del Studio (`<Aviso>`, `DrawerShell`) y solo tokens `var
 | Fase | Qué entra | Migración | Depende de |
 |---|---|---|---|
 | F-0 | Esta spec y las respuestas de Sam (§11) | No | — |
-| **F-1** | `client_fiscal_addresses`, la copia desde `client_billing_identities.fiscal_address`, las RPC del portal, Mi perfil y la ficha del Studio | Sí: `NNNN_direccion_fiscal_por_identidad.sql` | El helper `direccionDeEntrega` de la 0694 F-1 en `main`, para mostrar la predeterminada cuando la casilla está marcada |
-| **F-2** | El sello doble, el borrador, el PDF, el comprobante HTML y la pantalla del Studio | Sí: `NNNN_factura_sella_facturar_a_y_entregar_en.sql` (**migrate-first**: sin ella, el código nuevo no tiene columnas que leer; la lectura degrada como `invoice-client-doc.ts:64-68`) | F-1 en producción, la 0694 F-2 en `main` (comparten el comprobante). La 0466 ya está en producción (§2.1) |
-| **F-3** | `shipments.delivery_address_id`, la RPC del portal, la ficha del envío, Embarques, Almacén VE, TMS, el despacho, la marca «Otra dirección» y el aviso «Varias direcciones» de Facturación | Sí: `NNNN_embarque_entregar_en.sql`. El trigger de la factura no cambia | F-2 en producción y la 0694 F-1 en `main` (comparten `dispatch-mobile-queries.ts`) |
-| F-4 | Retirar `client_billing_identities.fiscal_address` | Sí: `NNNN_retira_fiscal_address_de_identidad.sql` | F-1 a F-3 en producción, y un `git grep` sin lectores |
+| **F-1** | `client_fiscal_addresses` con su RLS, la copia, las tres RPC del portal, el trigger v2, Mi perfil y la ficha del Studio | Sí: `NNNN_direccion_fiscal_por_identidad.sql` y su desarme | El helper `direccionDeEntrega` de la 0694 F-1 en `main`, para mostrar la predeterminada cuando la casilla está marcada |
+| **F-2** | Las columnas nuevas, el trigger v3, `invoice_addresses`, el borrador, el PDF, el comprobante HTML y la pantalla del Studio | Sí: `NNNN_factura_sella_facturar_a_y_entregar_en.sql` y su desarme (**migrate-first**: sin ella, el código nuevo no tiene la RPC; la lectura degrada como `invoice-client-doc.ts:64-68`, sin la línea) | La F-1 en producción y la 0694 F-2 en `main` (comparten el comprobante) |
+| **F-3** | `shipments.delivery_address_id`, sus dos RPC, el trigger diferido, `reassign_shipment_client`, el congelado de la 0321, la ficha del envío, Embarques, Almacén VE, TMS, el despacho, la marca «Otra dirección» y el aviso «Varias direcciones» | Sí: `NNNN_embarque_entregar_en.sql` y su desarme. El trigger de la factura no cambia | La F-2 en producción y la 0694 F-1 en `main` (comparten `dispatch-mobile-queries.ts`) |
 
-Hasta la F-3 no hay embarques con otra dirección, así que el aviso de Facturación entra con ella.
+Hasta la F-3 no hay embarques con otra dirección, así que el aviso de Facturación entra con ella. **El
+retiro de `client_billing_identities.fiscal_address` no es una fase de esta spec** (§12).
 
 Cada fase lleva su PR, su `pnpm verify` y sus contratos SQL (`supabase/tests/*.test.sql`), que el CI corre
 en el job «Contratos SQL». Las migraciones las numera Dir_DTD y las aplica con el
@@ -414,72 +579,106 @@ idempotente («no existe fila»), y su conteo previo va al acta, no a Git.
 
 ## 8. Aceptación verificable
 
-Cada punto se comprueba con una prueba que corre y observa el resultado, no con una búsqueda de texto.
+Cada punto se comprueba con una prueba que corre y observa el resultado, no con una búsqueda de texto. Los
+contratos SQL corren con los roles reales (`authenticated` con el claim del portal o del Studio), no como
+superusuario.
 
 **F-1**
 
-1. Un contrato SQL inserta una identidad alterna con `fiscal_address` y corre la copia dos veces: queda
-   **una** fila con `same_as_delivery = false` y el mismo texto.
-2. `portal_set_my_fiscal_address` con un `kind` que no es de ninguna identidad del cliente da error, y no
-   escribe nada.
-3. Con la casilla marcada y `line` lleno, la tabla rechaza la fila. Con la casilla desmarcada y `line`
-   vacío, también.
-4. Un usuario del portal no puede leer ni escribir la dirección fiscal de otro cliente, ni de otro tenant
-   (RLS y RPC). Un rol `operations` del Studio no la lee.
-5. Borrar la identidad alterna borra su fila de dirección fiscal.
+1. Un contrato inserta una alterna con `fiscal_address` y corre la copia dos veces: queda **una** fila de
+   esa alterna, desmarcada, con el mismo texto y ciudad y estado en null. Después, un UPDATE de otra
+   columna de esa fila no falla (CHECK de §4.1).
+2. `portal_set_my_fiscal_address` con la casilla desmarcada y sin ciudad o sin estado da error de campo y
+   no escribe nada. Con `alterna` y sin alterna, también.
+3. La tabla rechaza una fila marcada con `line`, y una desmarcada sin `line`.
+4. Con el rol del portal, un `select` directo a `client_fiscal_addresses` no devuelve filas, y la RPC no
+   escribe la fila de otro cliente ni la de otro tenant. Con el Studio, `operations` no lee y
+   `commercial` sí. Ningún `authenticated` puede hacer INSERT, UPDATE ni DELETE directo.
+5. Borrar la alterna borra su fila. Si la principal cambia de `doc_kind`, su fila sigue siendo de la
+   principal y la alterna no la ve.
+6. `portal_set_my_fiscal_address` deja un evento `client_fiscal_address_saved` cuyo payload no tiene el
+   texto de la dirección.
+7. `portal_upsert_my_billing_identity` con `p_fiscal_address` escribe en la tabla nueva, y
+   `client_billing_identities.fiscal_address` no cambia.
+8. Con el trigger v2, una factura a la alterna desmarcada sella su `line`, ciudad y estado. Una a la
+   principal sigue sellando null. `0466_client_billing_identity.test.sql` sigue verde.
 
 **F-2**
 
-6. Emitir una factura a la **principal**, con la casilla marcada, sella en `client_fiscal_address` la
+9. Emitir una factura a la **principal**, con la casilla marcada, sella en `client_fiscal_address` la
    predeterminada formateada. Hoy queda null (`0466:320`).
-7. Emitir con la casilla desmarcada sella `line`, ciudad y estado de la fila.
-8. Emitir sella `ship_to_address` con la predeterminada y `ship_to_address_id` con su id.
-9. Un borrador con `ship_to_address` editado se emite con ese texto, `ship_to_address_id` en null y un evento
-   `invoice_address_overridden` cuyo payload no tiene la dirección.
-10. Después de emitir, un UPDATE de cualquiera de las columnas de §4.2 falla con `invoice_titular_frozen`.
-    Cambiar después la predeterminada del cliente no cambia la factura emitida.
-11. `exc0674_facturar`, `exc0674_emitir_borradores` (0569) y la RPC 0128 emiten con el sello completo.
-12. El PDF (render de prueba) y el comprobante HTML muestran los mismos dos bloques para la misma factura.
-    Una factura emitida con `addresses_sealed_at` en null muestra «Dirección actual del cliente» en los
-    dos.
-13. La función SQL de formato y su equivalente en TypeScript dan el mismo texto para la misma tabla de
+10. Emitir con la casilla desmarcada sella `line`, ciudad y estado de la fila.
+11. Emitir sella `ship_to_address` con la predeterminada y `ship_to_address_id` con su id. Si el INSERT trae
+    otro `ship_to_address_id` o `addresses_sealed_at`, el trigger los sobrescribe.
+12. Un borrador con `ship_to_address` editado se emite con ese texto, `ship_to_address_id` en null y un evento
+    `invoice_address_overridden` con la clave `invoice-address:<id>`, cuyo payload no tiene la dirección.
+13. Después de emitir, un UPDATE de cualquiera de las columnas de §4.2 falla con `invoice_titular_frozen`.
+    Cambiar después la predeterminada del cliente no cambia la factura emitida. Un UPDATE de `paid_amount`
+    de una factura vieja sigue funcionando.
+14. Una factura sin cliente vivo se emite con `addresses_sealed_at` lleno y `invoice_addresses` devuelve
+    `legacy = false`.
+15. `exc0674_facturar`, `exc0674_emitir_borradores` (0569) y la RPC 0128 emiten con el sello completo. En
+    la 0569, la guarda `borrador_alterado` no se dispara.
+16. Una factura de contenedor al aliado raíz (0564 o 0569) se emite con `ship_to_address` en null, aunque
+    el aliado tenga predeterminada y el borrador traiga una edición.
+17. `invoice_addresses`, con el rol del portal, devuelve las direcciones de su factura vieja (`legacy =
+    true`), con «Facturar a» y «Entregar en» actuales. Para la factura de otro cliente o de otro tenant
+    devuelve null, y para su propio borrador también. Con el Studio, `accounting` la lee y `operations`
+    no.
+18. El PDF (render de prueba) y el comprobante HTML muestran los mismos dos bloques para la misma factura.
+    Una factura vieja muestra «Dirección actual del cliente» en los dos.
+19. La función SQL de formato y su equivalente en TypeScript dan el mismo texto para la misma tabla de
     casos, y ninguno incluye `reference`.
 
 **F-3**
 
-14. `portal_set_shipment_delivery_address` con una dirección de otro cliente da error. Con una dirección
-    borrada, también.
-15. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
-    campo y no escribe nada. Antes de esa fecha sí escribe. El Studio la puede cambiar siempre, hasta la
-    entrega.
-16. Una factura con tres embarques, uno con otra dirección, muestra en el Studio el aviso «Varias
-    direcciones» con ese solo código, y su PDF y su comprobante no traen ningún detalle por embarque. Sin
-    embarques con otra dirección, el aviso no sale. La fila de ese embarque en Embarques lleva «Otra
-    dirección».
-17. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
+20. `portal_set_shipment_delivery_address` con una dirección de otro cliente da error. Con una dirección
+    borrada, también. Con el código de un embarque de otro tenant que tenga el mismo Shipping Mark, no
+    encuentra nada. Con un embarque borrado, tampoco.
+21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
+    campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
+22. `reassign_shipment_client` deja `delivery_address_id` en null. Un UPDATE de `client_markbox` que deje la
+    dirección de otro cliente falla al confirmar. `rename_client_markbox` del mismo cliente no falla.
+23. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
     sobrevive.
-18. El chofer ve la dirección elegida del embarque cuando la hay, y la predeterminada cuando no.
+24. Después de `delivered`, un UPDATE de `delivery_address_id` falla con el error de la 0321.
+    `0321_warehouse_ve_delivery_governance.test.sql` y `0551_pasar_embarque_a_otro_cliente.test.sql` siguen
+    verdes.
+25. Una factura con tres embarques, uno con otra dirección, muestra en el Studio el aviso «Varias
+    direcciones» con ese solo código. Su PDF y su comprobante no traen detalle por embarque. Sin embarques
+    con otra dirección, el aviso no sale. La fila de ese embarque en Embarques lleva «Otra dirección».
+26. En un paquete `warehouse_receipt_cn` cuyo embarque tiene una dirección elegida, el chofer ve esa. Sin
+    dirección elegida, o en un `warehouse_receipt_ve`, ve la predeterminada. **Riesgo:** depende de que la
+    recepción de China tenga `shipment_id` (`0008:74`), que se llena al consolidar. Una recepción sin
+    consolidar cae a la predeterminada, y la prueba cubre ese caso.
 
-Cada contrato nuevo se mata con un mutante antes de darlo por bueno (quitar la línea del sello, quitar la
-columna del congelado, quitar el filtro de cliente de la RPC).
+**Para todas las fases**
 
-## 9. Relación con la SDD-0694 (#725) y la SDD-0695 (#728)
+27. Cada desarme se ensaya en su contrato: se niega en los casos de §4.5 y, sin ellos, repone la versión
+    anterior exacta (md5 de `prosrc`).
 
-Las dos están abiertas, y las dos usan `client_delivery_addresses` como fuente única de la dirección de
-entrega. Esta spec no reabre nada de lo que ya tiene dueña.
+Cada contrato nuevo se mata con un mutante antes de darlo por bueno: quitar la línea del sello, quitar la
+columna del congelado, quitar el filtro de tenant de la RPC o quitar la guarda del aliado.
+
+## 9. Relación con la SDD-0694 (#725), la SDD-0695 (#728) y la SDD-0696 (#729)
+
+Las tres están abiertas. La 0694 y la 0695 usan `client_delivery_addresses` como fuente única de la
+dirección de entrega. Esta spec no reabre nada de lo que ya tiene dueña.
 
 | Pieza | Dueña | Qué hace la 0698 |
 |---|---|---|
-| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla «igual a mi dirección de entrega» y para «Entregar en». El trigger de la F-2 replica la misma regla en SQL. Los dos se prueban con la misma tabla de casos |
-| El comprobante HTML: misma fuente que el PDF | **0694** decisión 9, F-2 | Va después. Cambia `domicilioFiscalSellado` por el helper nuevo en los dos lectores a la vez |
+| La fuente única de la dirección de entrega y el helper `direccionDeEntrega` («la predeterminada vigente; si no, la más reciente») | **0694** §4.1, F-1 | Lo usa para la casilla y para «Entregar en». `invoice_resolve_addresses` replica la misma regla en SQL. Los dos se prueban con la misma tabla de casos |
+| Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2 | No las toca. Mi perfil sigue escribiendo direcciones de entrega por ellas |
+| El comprobante HTML: misma fuente que el PDF | **0694** decisión 9, F-2 | Va después. Cambia `domicilioFiscalSellado` por el helper nuevo en todos los lectores a la vez |
 | Sellar siempre «Facturar a», el bloque «Entregar en», la casilla y la etiqueta de las facturas viejas | **0698** (0694 §3, decisión 9, y §8) | Es esta spec |
-| El lector del despacho pasa a la predeterminada | **0694** F-1 | La F-3 agrega encima la dirección elegida por embarque. No toca el archivo antes de que la 0694 F-1 esté en `main` |
+| El lector del despacho pasa a la predeterminada | **0694** F-1 | La F-3 agrega encima la dirección elegida del embarque. No toca el archivo antes de que la 0694 F-1 esté en `main` |
 | Precargar `shipments.delivery_address` | Ninguna (la 0694 §8 la dejó como «mejora aparte») | La toma la F-3 |
-| `merge_clients` (dirección, ciudad, estado y Shipping Mark) | **0694** F-2 y **0695** F-6 | No la redefine. Solo comprueba en un contrato que `delivery_address_id` sobrevive |
+| `merge_clients` (dirección, ciudad, estado y Shipping Mark) | **0694** F-2 y **0695** F-6 | No la redefine. Su contrato 23 vive en `supabase/tests/` y corre en el CI. La 0695 F-6, que redefine `merge_clients` después, lo tiene que mantener verde. Si la 0698 F-3 llega después de la 0695 F-6, se prueba contra esa versión |
 | Una sola predeterminada por cliente (RPC atómica y triggers) | **0695** F-9 | No la repite. Mientras la F-9 no esté, el sello usa «la más reciente» si no hay predeterminada, como el helper de la 0694 |
-| El registro de fuentes únicas y la guardia de CI | **0695** F-1 (§4.1 y §4.8) | Agrega dos filas: la dirección fiscal (`client_fiscal_addresses`) y la dirección del embarque (`shipments.delivery_address_id`). Agrega `client_billing_identities.fiscal_address` a la lista de lectores congelados hasta la F-4 |
-| Las copias selladas de `invoices` | **0695** §2.1 («copias intencionales») | Las columnas nuevas de §4.2 son copias intencionales con la misma razón. Se suman a esa lista |
-| El cliente final del aliado y su dirección, y la factura del aliado raíz | **0696** | Es una dependencia: el aviso «Varias direcciones» de la 0698 mira solo los embarques del cliente de la factura hasta que la 0696 decida. Ver §12 |
+| **Las filas del registro de fuentes únicas** para la dirección fiscal (`client_fiscal_addresses`) y la dirección del embarque (`shipments.delivery_address_id`) | **0694** F-2 (lo decidió Dir_DTD el 2026-11-20) | Solo las cita. La lista de lectores congelados de `client_billing_identities.fiscal_address` también va en esas filas |
+| Las copias selladas de `invoices` | **0695** §2.1 («copias intencionales») | `invoices.client_fiscal_address` ya no es solo de la alterna: se sella siempre. Y se suman `ship_to_address`, `ship_to_address_id` y `addresses_sealed_at`. La fila para la tabla §5 de la 0695 se la pasó este Worker a Dir_DTD |
+| Las funciones que redefine esta spec | **0698** §4.5 | La tabla de versiones de §4.5 es la única lista. Ninguna de las otras specs las redefine |
+| El cliente final del aliado, su dirección y la factura del aliado raíz | **0696** | **Es una dependencia de esta spec.** Hasta que la 0696 decida, la guarda de §4.2 deja «Entregar en» vacío en esas facturas, y el aviso «Varias direcciones» mira solo los embarques del cliente de la factura (§5.6 y §12) |
 
 ## 10. `revisar-datos-ve` aplicado
 
@@ -497,7 +696,8 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
 **Los doce puntos:**
 
 1. **Inventario.** `ENCONTRADO`: la dirección fiscal de la alterna vive en `client_billing_identities.fiscal_address`
-   (`0466:162-165`). Con la F-1 se copia a una sola tabla, y la F-4 retira la vieja.
+   (`0466:162-165`). Con la F-1 se copia a una sola tabla y la vieja queda congelada. Su retiro es aparte
+   (§12).
 2. **Minimización.**
    - La factura **no** imprime `reference` (punto de referencia), que es para el chofer y puede nombrar a
      un tercero («casa de mi hermana»).
@@ -508,6 +708,8 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
 4. **Derechos.**
    - `CORRECTO`: el cliente ve, edita y borra sus direcciones de entrega en Mi perfil (`PortalAddresses.tsx:148-220`).
      Con la F-1, también la fiscal de cada identidad.
+   - El cliente lee las direcciones de sus facturas por `invoice_addresses`, que solo le devuelve las suyas
+     (§4.3).
    - El cliente **no** puede cambiar una factura ya emitida. Es un comprobante, como explica
      `invoice-client-doc.ts:4-14`.
 5. **Borrado.**
@@ -516,8 +718,8 @@ Esto no es asesoría legal. Estados: `ENCONTRADO`, `CORRECTO` y `NO VERIFICABLE`
      abogado. **Esta spec no agrega ni quita plazos.**
    - Borrar una dirección de entrega no borra la copia sellada en las facturas emitidas, y eso es
      intencional.
-6. **Trazabilidad.** Las ediciones del borrador y los cambios de entrega de un embarque dejan auditoría sin
-   PII (§4.2 y §4.3).
+6. **Trazabilidad.** Los cambios de la dirección fiscal, las ediciones del borrador y los cambios de entrega
+   de un embarque dejan auditoría sin PII (§4.1, §4.2 y §4.4).
 7. **Política pública.** `NO VERIFICABLE`: si `app/privacidad/page.tsx` dice que la factura lleva las dos
    direcciones. Se revisa en la F-2. Si hay que cambiar un texto aprobado, va al DG antes.
 8. **Terceros.** No hay ninguno nuevo. El PDF se genera en el servidor (`@react-pdf`) y no sale a un
@@ -550,12 +752,21 @@ Sam las contestó el 2026-11-20, una por una. Las respuestas literales están en
 
 ## 12. Fuera de alcance
 
-- **La factura a nombre del aliado** (SDD-0674 con aliado raíz, `0564:11-15`). La mercancía es del cliente
-  final, pero la factura va al aliado. Esta spec sella «Entregar en» con la predeterminada **del cliente de
-  la factura**, y el aviso «Varias direcciones» mira solo los embarques de ese mismo cliente. Si la factura del
-  aliado tiene que mostrar las direcciones de sus clientes finales, eso lo define la **SDD-0696**.
-  **Es una dependencia de esta spec**: lo que decida la 0696 puede ampliar el aviso «Varias direcciones»
-  a los embarques de los clientes finales. Dir_DTD estuvo de acuerdo el 2026-11-20 y lo coordina.
+- **Qué muestra la factura del aliado raíz** (SDD-0674, `0564:11-15`, y sus pre-órdenes de la 0569).
+  - La mercancía es del cliente final, pero la factura va al aliado. Esta spec deja «Entregar en» vacío en
+    esas facturas (§5.6), y el aviso «Varias direcciones» mira solo los embarques del cliente de la factura.
+  - Si deben llevar la dirección de cada cliente final, lo define la **SDD-0696** (#729). **Es una
+    dependencia**: lo que decida puede quitar la guarda o ampliar el aviso.
+  - Dir_DTD estuvo de acuerdo el 2026-11-20 y lo coordina. También le avisa a la 0696 para que cite esta
+    spec de vuelta.
+- **Retirar `client_billing_identities.fiscal_address`.** Desde la F-1 la columna queda congelada, sin
+  escritor ni lector (§4.1). Borrarla es una operación aparte, **con su propia SDD o con el OK nominal de
+  Sam**, y exige:
+  1. un `git grep` sin lectores;
+  2. respaldo de la columna;
+  3. volver a correr la copia de la F-1 justo antes;
+  4. su desarme en `supabase/desarmes/`;
+  5. sus propios criterios de aceptación.
 - **Refacturar por zona fuera del precio.** El aviso «Varias direcciones» sirve para que la oficina lo
   revise, pero el análisis de zonas y precio, y cómo se refactura, lo reanaliza Sam más adelante
   (decisión 6).
@@ -565,50 +776,65 @@ Sam las contestó el 2026-11-20, una por una. Las respuestas literales están en
 - Pedir la dirección fiscal en el registro: no entra. El registro solo pide la dirección rápida de entrega
   (0694 §4.7).
 
-## 13. Archivos (allowlist provisional)
+## 13. Archivos (allowlist)
 
-Se confirma al empezar cada fase, con un `git grep` de los lectores. Las migraciones las numera Dir_DTD.
+La allowlist es exacta. Antes de empezar cada fase, se vuelve a medir con un `git grep` de los lectores, y
+cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migraciones las numera Dir_DTD.
 
-- **F-0:** esta spec, `docs/specs/README.md` (índice) y `.agents/handoffs/2026-11-20-sdd-0698-factura-direcciones.md`.
+- **F-0:** `docs/specs/0698-factura-facturar-a-y-entregar-en/spec.md`, `docs/specs/README.md` (índice) y
+  `.agents/handoffs/2026-11-20-sdd-0698-factura-direcciones.md`.
 - **F-1:**
-  - `supabase/migrations/NNNN_direccion_fiscal_por_identidad.sql` y `supabase/tests/NNNN_direccion_fiscal_por_identidad.test.sql`;
-  - `lib/portal/billing-identity.ts` y sus pruebas;
-  - `app/portal/(app)/perfil/BillingIdentityCard.tsx`, `perfil/empresa/BillingIdentityForm.tsx`,
-    `perfil/billing-actions.ts`, `perfil/PortalAddresses.tsx` (solo el texto) y `perfil/page.tsx`;
-  - `lib/studio/invoice-billing.ts` (la opción de la principal deja de salir con `fiscalAddress: null`);
+  - `supabase/migrations/NNNN_direccion_fiscal_por_identidad.sql`;
+  - `supabase/tests/NNNN_direccion_fiscal_por_identidad.test.sql`;
+  - `supabase/desarmes/NNNN_desarme.sql`;
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`;
+  - `lib/portal/billing-identity.ts` y `lib/portal/__tests__/billing-identity.test.ts`;
+  - `app/portal/(app)/perfil/BillingIdentityCard.tsx`, `app/portal/(app)/perfil/empresa/BillingIdentityForm.tsx`,
+    `app/portal/(app)/perfil/billing-actions.ts`, `app/portal/(app)/perfil/PortalAddresses.tsx` (solo el
+    texto) y `app/portal/(app)/perfil/page.tsx`;
+  - `lib/studio/invoice-billing.ts` y `lib/studio/__tests__/invoice-billing.test.ts`;
   - `app/studio/(app)/clientes/_components/ClientBillingCard.tsx` y `app/studio/(app)/clientes/[markbox]/page.tsx`;
-  - `app/studio/(app)/facturacion/actions.ts` (la lectura de `:1115-1150`);
-  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`, si la migración va como espera;
-  - y sus pruebas.
+  - `app/studio/(app)/facturacion/actions.ts` (la lectura de `:1115-1150`).
 - **F-2:**
-  - `supabase/migrations/NNNN_factura_sella_facturar_a_y_entregar_en.sql` y su `.test.sql`;
-  - `lib/studio/invoice-client-doc.ts` (el helper `direccionesDeLaFactura` y la función de formato);
-  - `lib/studio/invoice-types.ts`, `lib/studio/invoice-queries.ts`;
+  - `supabase/migrations/NNNN_factura_sella_facturar_a_y_entregar_en.sql`;
+  - `supabase/tests/NNNN_factura_sella_facturar_a_y_entregar_en.test.sql`;
+  - `supabase/desarmes/NNNN_desarme.sql`;
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`;
+  - `lib/studio/invoice-client-doc.ts` y `lib/studio/__tests__/invoice-client-doc.test.ts`;
+  - `lib/studio/invoice-billing.ts` (el patrón `*_present` de las dos direcciones);
+  - `lib/studio/invoice-types.ts` y `lib/studio/invoice-queries.ts`;
   - `lib/studio/pdf/factura-pdf.tsx`;
-  - `app/portal/(app)/facturas/[code]/pdf/route.ts`, `app/studio/(app)/facturacion/[code]/pdf/route.ts`;
-  - `app/portal/(app)/facturas/[code]/comprobante/page.tsx` y `lib/portal/comprobante.ts`;
-  - `app/studio/(app)/facturacion/_components/InvoiceTitularPicker.tsx` (o un componente hermano,
-    `InvoiceAddressesBlock.tsx`), `app/studio/(app)/facturacion/actions.ts` y la página del detalle;
-  - y sus pruebas, incluidas `lib/studio/__tests__/invoice-client-doc.test.ts`, `invoice-billing.test.ts`
-    y `app/portal/(app)/facturas/[code]/comprobante/page.test.tsx`.
+  - `app/portal/(app)/facturas/[code]/pdf/route.ts` y `app/studio/(app)/facturacion/[code]/pdf/route.ts`;
+  - `app/portal/(app)/facturas/[code]/comprobante/page.tsx`, `app/portal/(app)/facturas/[code]/comprobante/page.test.tsx`,
+    `lib/portal/comprobante.ts` y `lib/portal/__tests__/comprobante.test.ts`;
+  - `app/studio/(app)/facturacion/_components/InvoiceAddressesBlock.tsx` (nuevo) y su prueba,
+    `InvoiceTitularPicker.tsx`, `InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx`, en la misma carpeta;
+  - `app/studio/(app)/facturacion/actions.ts` y `app/studio/(app)/facturacion/[code]/page.tsx`.
 - **F-3:**
-  - `supabase/migrations/NNNN_embarque_entregar_en.sql` y su `.test.sql`;
-  - `app/portal/(app)/envios/[code]/page.tsx`, un componente nuevo en `envios/[code]/_components/` y una
-    acción del portal;
-  - `lib/studio/shipment-types.ts` y el drawer de `app/studio/(app)/embarques/_components/`;
-  - `app/studio/(app)/ve/actions.ts`, `ve/_components/VeRowActions.tsx`, `ve/_components/AlmacenVeClient.tsx`;
-  - `app/studio/(app)/tms/actions.ts`, `tms/_components/RouteDrawer.tsx`, `lib/studio/tms-queries.ts`;
-  - `lib/studio/dispatch-mobile-queries.ts`, `lib/studio/dispatch-types.ts` (después de la 0694 F-1);
-  - `lib/studio/privacidad-cn.ts`, si hace falta agregar las rutas nuevas;
-  - y sus pruebas.
-- **F-4:** `supabase/migrations/NNNN_retira_fiscal_address_de_identidad.sql`, su `.test.sql`, y el registro de
-  fuentes únicas de la 0695.
+  - `supabase/migrations/NNNN_embarque_entregar_en.sql`;
+  - `supabase/tests/NNNN_embarque_entregar_en.test.sql`;
+  - `supabase/desarmes/NNNN_desarme.sql`;
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`;
+  - `app/portal/(app)/envios/[code]/page.tsx`, `app/portal/(app)/envios/[code]/_components/PortalShipmentDetailNorte.tsx`,
+    `app/portal/(app)/envios/[code]/_components/EntregarEnCard.tsx` (nuevo), `app/portal/(app)/envios/[code]/actions.ts`
+    (nuevo) y sus pruebas en `app/portal/(app)/envios/[code]/__tests__/`;
+  - `lib/studio/shipment-types.ts`;
+  - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
+    `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
+  - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);
+  - `app/studio/(app)/ve/actions.ts`, `app/studio/(app)/ve/_components/VeRowActions.tsx` y
+    `app/studio/(app)/ve/_components/AlmacenVeClient.tsx`;
+  - `app/studio/(app)/tms/actions.ts`, `app/studio/(app)/tms/_components/RouteDrawer.tsx` y `lib/studio/tms-queries.ts`;
+  - `lib/studio/dispatch-mobile-queries.ts` y `lib/studio/dispatch-types.ts` (después de la 0694 F-1);
+  - `lib/studio/privacidad-cn.ts`;
+  - `lib/studio/__tests__/warehouse-ve-delivery-governance.test.ts`.
 
 ## 14. Clasificación de gobernanza
 
 | Política | Estado | Nota |
 |---|---|---|
-| AUD-01 y AUD-02 (tenant y auditoría) | Cumplimiento (propuesto) | El tenant sale de la sesión. Las RPC nuevas validan el cliente. La auditoría va sin PII |
+| AUD-01 y AUD-02 (tenant y auditoría) | Cumplimiento (propuesto) | El tenant sale de la sesión. Las RPC nuevas validan el cliente y el tenant. La tabla nueva tiene RLS y grants mínimos (§4.1). La auditoría va sin PII |
+| Redefiniciones y desarmes | Cumplimiento (propuesto) | Cada función que se redefine tiene preflight, contrato previo y desarme (§4.5) |
 | FRM-01 y ERR-01 (formularios y errores) | Cumplimiento (propuesto) | La casilla, «Editar en esta factura» y el error del corte son errores de campo, con texto escrito |
 | BTN-01 (acciones) | Cumplimiento (propuesto) | «Volver a la del cliente» no destruye nada y no pide confirmación. Emitir sigue como hoy |
 | CMP-01 (componentes) | Cumplimiento (propuesto) | Se usan `<Aviso>` y `DrawerShell` canonical. No hay componentes nuevos del sistema |

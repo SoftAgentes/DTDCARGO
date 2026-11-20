@@ -1,5 +1,6 @@
 # Handoff — SDD-0698 «Factura: Facturar a y Entregar en» (spec)
 
+- **Estado:** Sam contestó P-1 a P-6 el 2026-11-20. La revisión independiente pidió cambios, ya corregidos.
 - **Owner:** Worker (Claude), sesión `local-sdd-0698-worker`, encargada por Dir_DTD.
 - **Ruta:** `.claude/worktrees/sdd-0698-factura-direcciones-dff669`
 - **Rama:** `claude/sdd-0698-factura-direcciones-dff669`, desde `origin/main` `af0f635ad` + la reserva
@@ -76,6 +77,29 @@ Van literales en la spec, §3, decisiones 6 a 11:
   medirlo con `arrived_destination_at`, y la F-3 lo confirma;
 - **P-5:** la oficina corrige la dirección fiscal solo en el borrador;
 - **P-6:** sin dirección de entrega, la factura se emite sin el bloque.
+
+## Revisión independiente (CHANGES_REQUESTED sobre `e8fdae2e5`) y corrección
+
+La pidió Dir_DTD. Esto se corrigió en la spec:
+
+- **Altos.**
+  - 1: la RPC `invoice_addresses` (§4.3) es la única lectura para el portal y el Studio.
+  - 2: la F-1 deja una sola fuente: copia, redefine `portal_upsert_my_billing_identity` y el trigger v2
+    (§4.1). El DROP de la columna vieja sale de esta SDD (§12).
+  - 3: RLS, grants y auditoría de `client_fiscal_addresses` (§4.1).
+- **Medios.**
+  - 4: ciudad y estado pueden ir en null en la tabla.
+  - 5: la llave es `billing_identity_id`.
+  - 6: el trigger v3 siempre sobrescribe el id y la hora del sello; también se definen el caso sin cliente
+    vivo y la clave `invoice-address:<id>`.
+  - 7: la guarda del aliado (§4.2 y §5.6).
+  - 8: trigger diferido, `reassign_shipment_client`, el congelado de la 0321 y la RPC filtrada por tenant
+    (§4.4).
+  - 9: la tabla de versiones (§4.5); las filas del registro son de la 0694 F-2, según Dir_DTD.
+- **Bajos.**
+  - 10: allowlist exacta.
+  - 11: la 0466 y la 0569 están aplicadas; cita `0569:300-303`.
+  - 12: camino de la recepción a su embarque medido (§2.6).
 
 ## Impacto documental
 
