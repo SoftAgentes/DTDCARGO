@@ -94,14 +94,14 @@ async function abrir(nombre: string) {
 
 describe("EmbarquesClient · Facturar (EXC-0674)", () => {
   it("sin la prop (commercial, warehouse, support) no hay «Facturar»", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await abrir("DDP 64");
     expect(screen.queryByRole("button", { name: "Facturar" })).toBeNull();
     expect(screen.queryByText(/Total con IVA/)).toBeNull();
   });
 
   it("solo en el contenedor de la lista; no en el 65", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await abrir("DDP 65");
     expect(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })).toHaveLength(2);
@@ -110,14 +110,14 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
 
   it("con no_disponible (sin la 0564) no hay «Facturar»", async () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={{ estado: "no_disponible" }} />,
+      <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={{ estado: "no_disponible" }} />,
     );
     await abrir("DDP 64");
     expect(screen.queryByRole("button", { name: "Facturar" })).toBeNull();
   });
 
   it("por cliente: dos confirmaciones con los datos; nada se emite antes de «Confirmado»", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "1.234,56");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
@@ -143,7 +143,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
   });
 
   it("«Volver» cierra sin emitir", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "100");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
@@ -153,7 +153,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
   });
 
   it("un monto inválido no abre la confirmación y dice por qué", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "0");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
@@ -169,7 +169,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
         { clientMarkbox: "DTD-1002", invoiceCode: "F-TEST-2", totalUsd: 50.5 },
       ],
     });
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "100");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Dos/), "50,5");
@@ -200,7 +200,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
 
   it("si la base rechaza, el error queda en la confirmación", async () => {
     mocks.accion.mockResolvedValue({ ok: false, error: "Ese cliente ya está facturado en este contenedor (DTD-1001)." });
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={FACTURACION} />);
     await abrir("DDP 64");
     await userEvent.type(screen.getByLabelText(/Total con IVA de Cliente Uno/), "100");
     await userEvent.click(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })[0]);
@@ -211,7 +211,7 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
 
   it("un cliente ya facturado muestra su factura y no ofrece «Facturar»", async () => {
     render(
-      <EmbarquesClient
+      <EmbarquesClient pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
