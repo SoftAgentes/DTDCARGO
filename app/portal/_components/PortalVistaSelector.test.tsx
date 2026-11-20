@@ -82,6 +82,31 @@ describe("PortalVistaSelector", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
   });
 
+  it("Escape ya se escucha en el instante en que el aviso aparece en el DOM", async () => {
+    // El aviso llega tras el `await` de la acción, fuera de `act`. Un listener puesto
+    // en un efecto pasivo llegaba en otra tarea, después del aviso: un Escape en ese
+    // hueco se perdía (la prueba de arriba fallaba al azar en la CI). El observador
+    // mira en el mismo microtask en que el aviso entra al DOM.
+    setPortalVistaAction.mockResolvedValue({ ok: false });
+    const { container } = render(<PortalVistaSelector vista="pro" />);
+    const add = vi.spyOn(document, "addEventListener");
+    let escuchaba: boolean | undefined;
+    const observador = new MutationObserver(() => {
+      if (escuchaba === undefined && container.querySelector('[role="alert"]')) {
+        escuchaba = add.mock.calls.some(([tipo]) => tipo === "keydown");
+      }
+    });
+    observador.observe(container, { childList: true, subtree: true });
+    try {
+      fireEvent.click(boton("Vista simple"));
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+    } finally {
+      observador.disconnect();
+      add.mockRestore();
+    }
+    expect(escuchaba).toBe(true);
+  });
+
   it("el aviso de error se cierra solo", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
