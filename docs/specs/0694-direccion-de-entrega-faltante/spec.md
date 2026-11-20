@@ -1,7 +1,7 @@
 ---
 sdd: "0694"
 title: "Dirección de entrega: una sola fuente, aviso y pedirla desde la ficha"
-status: proposed
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # SDD-0694 — Dirección de entrega: una sola fuente, aviso y pedirla desde la ficha
 
-> **Estado: propuesta para que Sam la apruebe.** No trae código, ni migración, ni cambio de producto.
+> **Estado: aprobada por Sam el 2026-11-20 («Apruebo la 0694»).** No trae código, ni migración, ni cambio de producto.
 > Las decisiones de Sam van citadas con su fecha (§3, decisiones 1 a 9). Las ocho preguntas están contestadas
 > (§9).
 >

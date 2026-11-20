@@ -169,3 +169,7 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
 ## Fixture compartido con la 0698 (2026-11-20)
 
 - A pedido de Dir_DTD, por la revisión de la 0698: la F-1 crea `lib/__tests__/fixtures/direccion-predeterminada.json` con los casos de la regla de §4.2. Lo leen la prueba del helper y el contrato de la 0698. Está en la allowlist de la F-1.
+
+## Aprobación de Sam (2026-11-20)
+
+- Sam escribió «Apruebo la 0694» en el chat de Dir_DTD. La spec pasa a `status: approved`. La #725 sale de borrador; la fusión la hace Dir_DTD con el tren.
