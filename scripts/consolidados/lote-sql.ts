@@ -1235,6 +1235,7 @@ declare
   v_n_facturas int := 0;
   v_n_saltados int := 0;
   v_n_sin_lineas int := 0;
+  v_n_marcas int := 0;
 begin
   select * into cab from lote_cab;
   select id into v_tenant from public.tenants where slug = cab.tenant_slug;
@@ -1301,21 +1302,39 @@ begin
   select coalesce(iva_enabled, false) into v_iva_on from public.tenants where id = v_tenant;
   v_iva_rate := case when v_iva_on then 16 else 0 end;
 
-  -- ── Una pre-orden por cliente, en borrador, si no tiene ya una factura viva ──
+  -- Cada envío tiene que tener dueño: sin Shipping Mark no hay a quién facturar.
+  select count(*) into v_n_mb from lote_cargados where markbox is null or markbox = '';
+  if v_n_mb > 0 then
+    raise exception 'solo-facturas: % envíos del lote no tienen Shipping Mark', v_n_mb;
+  end if;
+  -- Toda línea del Excel cuelga de un envío cargado: si no, se perdería al repartirlas por dueño.
+  select count(*) into v_n_mb
+    from lote_lineas ll
+   where not exists (select 1 from lote_cargados lc where upper(lc.remitente) = upper(ll.remitente));
+  if v_n_mb > 0 then
+    raise exception 'solo-facturas: % líneas del lote no cuelgan de un envío cargado', v_n_mb;
+  end if;
+  select count(distinct markbox) into v_n_marcas from lote_cargados;
+
+  -- ── Una pre-orden por CLIENTE (Shipping Mark vivo de los envíos al correr), en borrador, si no tiene
+  --    ya una factura viva. Junta las líneas de todas sus claves del Excel: el rastro de la 0564/0569
+  --    admite un solo cliente vivo por contenedor, y dos pre-órdenes del mismo dueño no se podrían
+  --    emitir. Una clave repartida entre dos dueños da una pre-orden a cada uno, con las líneas de sus
+  --    envíos (SDD-0690, después de la #733). ──
   for c in
-    select lc.clave, min(lc.orden) as primero
+    select lc.markbox, min(lc.orden) as primero
       from lote_cargados lc
-     group by lc.clave
+     group by lc.markbox
      order by min(lc.orden)
   loop
-    -- En los raise va la etiqueta (PREFIJO-#n), nunca la clave: termina en la evidencia.
-    select lt.etiqueta into v_etiqueta from lote_clientes lt where lt.clave = c.clave;
-    select array_agg(lc.shipment_id order by lc.orden), count(distinct lc.markbox), min(lc.markbox)
-      into v_ships, v_n_mb, v_mb
-      from lote_cargados lc where lc.clave = c.clave;
-    if v_n_mb <> 1 or v_mb is null or v_mb = '' then
-      raise exception 'solo-facturas: los envíos de la marca % no comparten un Shipping Mark', v_etiqueta;
-    end if;
+    v_mb := c.markbox;
+    -- En los raise va la etiqueta (PREFIJO-#n) de su primera clave, nunca la clave: termina en la evidencia.
+    select lt.etiqueta into v_etiqueta
+      from lote_clientes lt
+     where lt.clave = (select lc.clave from lote_cargados lc where lc.orden = c.primero);
+    select array_agg(lc.shipment_id order by lc.orden)
+      into v_ships
+      from lote_cargados lc where lc.markbox = c.markbox;
 
     -- Misma llave que exc0674_facturar (0564): esta carga y «Facturar» no se cruzan.
     perform pg_advisory_xact_lock(hashtextextended('exc0674:' || v_tenant::text || ':' || v_cons::text || ':' || v_mb, 0));
@@ -1338,7 +1357,9 @@ begin
            coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price, 'shipmentCode', remitente) order by orden), '[]'::jsonb),
            coalesce(round(sum(qty * unit_price), 2), 0)
       into v_n_lineas, v_lines, v_base
-      from lote_lineas where clave = c.clave;
+      from lote_lineas ll
+     where exists (select 1 from lote_cargados lc
+                    where lc.markbox = c.markbox and upper(lc.remitente) = upper(ll.remitente));
     if v_n_lineas = 0 then
       v_n_sin_lineas := v_n_sin_lineas + 1;
       continue;
@@ -1370,7 +1391,7 @@ begin
     end if;
 
     select lc.shipment_id, lc.code into v_first_ship, v_first_code
-      from lote_cargados lc where lc.clave = c.clave order by lc.orden limit 1;
+      from lote_cargados lc where lc.markbox = c.markbox order by lc.orden limit 1;
     v_code := public.next_invoice_code(v_tenant);
     insert into public.invoices
       (tenant_id, invoice_code, client_markbox, client_name, client_rif, client_doc_kind, shipment_id, shipment_code,
@@ -1379,7 +1400,7 @@ begin
       (v_tenant, v_code, v_fact.markbox, v_fact.name, v_fact.rif, v_fact.doc_kind, v_first_ship, v_first_code,
        'USD', v_iva_rate, v_base, v_iva, v_total, 'borrador', v_lines,
        'Carga ' || cab.lote || ' · contenedor DTD #' || cab.numero::text || ' (' || cab.contenedor || ') · embarques: '
-         || (select string_agg(remitente, ', ' order by orden) from lote_envios where clave = c.clave)
+         || (select string_agg(lc.remitente, ', ' order by lc.orden) from lote_cargados lc where lc.markbox = c.markbox)
          || case when v_fact_id <> v_client_id then ' · facturado al aliado raíz de ' || v_mb else '' end
          || ' · ${MARCA_SOLO_FACTURAS}',
        'third_party')
@@ -1394,8 +1415,9 @@ begin
   end loop;
 
   -- El aviso nombra el id del PAQUETE (aplicar-lote.sh lo busca en la evidencia del simulacro).
-  raise notice 'solo-facturas lote % · contenedor % · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas',
-    cab.lote || ':facturas', cab.contenedor, v_n_facturas, v_n_saltados, v_n_sin_lineas;
+  -- N + M + K = Shipping Marks vivos de los envíos al correr.
+  raise notice 'solo-facturas lote % · contenedor % · % Shipping Marks · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas',
+    cab.lote || ':facturas', cab.contenedor, v_n_marcas, v_n_facturas, v_n_saltados, v_n_sin_lineas;
 end
 $lote$;
 `;
@@ -1406,6 +1428,20 @@ function enviosConEtiqueta(lote: Lote, soloConLineas: boolean): string {
   const conLineas = new Set(lote.clientes.filter((c) => c.lineas.length > 0).map((c) => c.clave));
   const filas = lote.embarques
     .filter((e) => !soloConLineas || conLineas.has(e.clave))
+    .map((e) => `(${litSql(e.remitente)}, ${litSql(etiquetas.get(e.clave) ?? e.clave)})`);
+  return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
+}
+
+/**
+ * SDD-0690 · Los envíos que tienen alguna línea PROPIA (por `remitente`), con su etiqueta. Es el mismo
+ * criterio de `aplicar` con `--solo-facturas`, que reparte las líneas por el dueño de cada envío: un
+ * dueño cuyos envíos no tienen ninguna línea no lleva pre-orden, y `verificar` no tiene que pedírsela.
+ */
+function enviosConLineasPropias(lote: Lote): string {
+  const etiquetas = new Map(marcasDelLote(lote).map((m) => [m.clave, m.etiqueta]));
+  const conLinea = new Set(lote.clientes.flatMap((c) => c.lineas.map((l) => (l.remitente ?? "").toUpperCase())));
+  const filas = lote.embarques
+    .filter((e) => conLinea.has(e.remitente.toUpperCase()))
     .map((e) => `(${litSql(e.remitente)}, ${litSql(etiquetas.get(e.clave) ?? e.clave)})`);
   return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
 }
@@ -1435,7 +1471,7 @@ vigente as (
    order by ci.shipment_id, ci.created_at desc, ci.id desc
 ),
 cargados as (
-  select ev.etiqueta, sx.id, sx.tenant_id
+  select ev.etiqueta, sx.id, sx.tenant_id, upper(btrim(sx.client_markbox)) as markbox
     from envios ev
     join public.shipments sx on upper(sx.code) = upper(ev.remitente) and sx.tenant_id = (select id from tenant) and sx.deleted_at is null
     join vigente vg on vg.shipment_id = sx.id and vg.consolidation_id in (select id from cons)
@@ -1446,8 +1482,10 @@ select
     where xc.tenant_id = (select id from tenant) and xc.consolidation_id in (select id from cons)) as en_lista_exc0674,
   (select count(*) from envios where remitente is not null) as envios_del_lote,
   (select count(*) from cargados) as envios_cargados,
-  (select count(distinct etiqueta) from envios where remitente is not null) as clientes,
-  (select count(distinct cg.etiqueta) from cargados cg
+  (select count(distinct etiqueta) from envios where remitente is not null) as claves_del_excel,
+  -- SDD-0690: sale una pre-orden por Shipping Mark vivo, no por clave del Excel.
+  (select count(distinct cg.markbox) from cargados cg) as shipping_marks_vivos,
+  (select count(distinct cg.markbox) from cargados cg
     where exists (
       select 1 from public.invoices iv
        where iv.tenant_id = cg.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
@@ -1470,18 +1508,19 @@ declare
   n_clientes int; n_una int; n_ninguna int; n_varias int; n_preordenes int;
 begin
   with envios(remitente, etiqueta) as (values
-    ${enviosConEtiqueta(lote, true)}
+    ${enviosConLineasPropias(lote)}
   ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+  -- SDD-0690: por Shipping Mark vivo de los envíos (el cliente), no por clave del Excel.
   por_cliente as (
-    select ev.etiqueta,
-           (select count(distinct iv.id)
-              from public.shipments sx
-              join public.invoices iv on iv.tenant_id = sx.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
-               and (iv.shipment_id = sx.id
-                    or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = sx.id))
-             where sx.tenant_id = (select id from tenant) and sx.deleted_at is null
-               and upper(sx.code) in (select upper(e2.remitente) from envios e2 where e2.etiqueta = ev.etiqueta)) as facturas
-      from (select distinct etiqueta from envios where remitente is not null) ev
+    select upper(btrim(sx.client_markbox)) as markbox,
+           count(distinct iv.id) as facturas
+      from public.shipments sx
+      left join public.invoices iv on iv.tenant_id = sx.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
+       and (iv.shipment_id = sx.id
+            or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = sx.id))
+     where sx.tenant_id = (select id from tenant) and sx.deleted_at is null
+       and upper(sx.code) in (select upper(e2.remitente) from envios e2 where e2.remitente is not null)
+     group by upper(btrim(sx.client_markbox))
   )
   select count(*), count(*) filter (where facturas = 1), count(*) filter (where facturas = 0), count(*) filter (where facturas > 1)
     into n_clientes, n_una, n_ninguna, n_varias

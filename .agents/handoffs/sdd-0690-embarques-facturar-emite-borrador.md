@@ -166,6 +166,20 @@ No es asesoría legal: es un inventario técnico.
 - **Emitir: DECIDIDO.** Decisión de Sam (2026-11-20, por el DG), literal: «64: la oficina emite con Facturar todo cuando las revise». Después de cargar las pre-órdenes no se emite nada.
 - **Exceso de peso: DECIDIDO.** Sam eligió «Sin exceso: manda el Excel (Recomendado)» (2026-11-20, por el DG). Las pre-órdenes del 64 se generan con `--sin-exceso-peso`, como el 59. El generador sigue aceptando las dos opciones.
 
+- **Corrección de un número que di (2026-11-20).** Le dije al DG «59 marcas y 304 envíos». Los 304 eran la suma de 111 envíos y 193 filas del packing. Los números del 64 (manifiesto de la v2) son:
+  - 111 envíos;
+  - 111 recepciones;
+  - 193 filas;
+  - 1089 cajas;
+  - 59 claves (marcas del Excel).
+  Con el mapa, esas 59 claves dan 40 Shipping Marks en producción: 11 claves (20 envíos) van a DTD-0000 y 9 (21 envíos) a DC.
+- **Pre-órdenes por cliente** (rama `claude/sdd-0690-solo-facturas-por-cliente`, PR aparte después de la #733, con revisión previa).
+  - Antes, `--solo-facturas` sacaba una pre-orden por clave del Excel, así que DTD-0000 recibía 11 y DC 9. Pero `exc0674_emitir_borradores` deja emitir una sola por cliente y contenedor (`ya_facturado`, `0569:250-253`; índice `0564:202`).
+  - Ahora agrupa por el Shipping Mark vivo de los envíos y junta las líneas de todas sus claves. Una clave con dos dueños da una pre-orden a cada uno.
+  - El aviso cuenta los Shipping Marks. La `previa` trae `shipping_marks_vivos` y `verificar` comprueba una factura viva por cada Shipping Mark.
+  - La prueba en PGlite corre el `aplicar.sql` de verdad.
+- **Orden con el comodín DTD-0000:** primero la oficina reasigna con «Pasar a otro cliente» y después se carga. Si la pre-orden ya existe y factura varios envíos, la 0551 bloquea la reasignación (`factura_varios_embarques`, `0551:307-332`).
+
 ## FUERA DE ALCANCE DETECTADO
 
 - Registrar abonos sobre una pre-orden: hoy el cobro y el reporte de pago rechazan los borradores (spec §8).
