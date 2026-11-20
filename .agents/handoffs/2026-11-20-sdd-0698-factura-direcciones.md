@@ -164,6 +164,22 @@ Solo faltaba fijar la guarda. Quedaron cerrados la medición, el predicado, el f
   mutante del POST.
 - Criterio 20b y allowlist con los tres archivos de la guarda.
 
+## Séptima vuelta de la revisión (CHANGES_REQUESTED sobre `887adadb9`) y corrección
+
+- **1, falla cerrada:**
+  - el receptor de `.from(` se identifica por el archivo de declaración, que tiene que estar en
+    `@supabase/supabase-js` o en `@supabase/postgrest-js`;
+  - hay una lista positiva de receptores excluidos: storage-js, los `lib.es*.d.ts` de Array y de los
+    arreglos tipados, y Buffer de `@types/node`;
+  - todo lo demás es `from-receptor-sin-resolver`;
+  - un canario permanente comprueba que `@supabase/supabase-js` resuelva, que no haya ningún TS2307 y que
+    se alcance un piso de `.from("shipments")`. Si falla, sale con 1 y no da un verde vacío;
+  - lleva cinco mutantes con receptor `any`.
+- **2, costo y lugar:** la guarda es `scripts/check-shipments-select.mjs`, con un solo `ts.Program`, y corre
+  en `verify.mjs` después de `typecheck`. Sus pruebas van en `scripts/tests/*.node.mjs`, con el arnés de
+  Node y fuera de jsdom. El costo se mide al implementar y queda anotado en el handoff de la F-3.
+- **3:** dos formas nuevas, `builder-en-variable` y `from-destructurado`. Las excepciones llevan `funcion`.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.

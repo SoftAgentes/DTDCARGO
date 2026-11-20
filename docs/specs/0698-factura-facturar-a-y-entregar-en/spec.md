@@ -492,8 +492,8 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
         `lib/studio/notifications/__tests__/avisos-bodega-confiables.test.ts:158`, que corre contra un doble
         en memoria, sin permisos. Ningún lector usa el nombre de la tabla en una variable: los informes leen
         con `SHIPMENT_COLUMNS` (`lib/studio/reports/queries.ts:205-206`);
-      - **una guarda lo deja fijo**: la prueba `lib/studio/__tests__/shipments-select-explicito.test.ts`.
-        Qué exige y cómo se mata está en §4.6;
+      - **una guarda lo deja fijo**: el script `scripts/check-shipments-select.mjs`, que corre en
+        `verify.mjs` después de `typecheck`. Qué exige y cómo se mata está en §4.6;
       - las funciones SQL que leen `shipments` con `select s.*` o con su fila completa son todas `security
         definer`, así que corren como su dueño y el cambio no las toca:
         - 0321, 0336, 0477, 0484, 0486, 0487 y 0563;
@@ -584,38 +584,72 @@ Cada redefinición es un `create or replace` completo, con la misma firma.
 ### 4.6 La guarda `shipments-select-explicito` (F-3)
 
 Le pone fecha de vencimiento al `select` por columnas de §4.4. Si alguien vuelve a pedir todas las columnas
-de `shipments` con la sesión, el 42501 aparecería en producción. La guarda hace que aparezca antes, en el
-CI.
+de `shipments` con la sesión, el 42501 saldría en producción. La guarda hace que salga antes, en el CI.
 
-**Dónde vive:**
+**Dónde vive y cuándo corre** (séptima vuelta, 2):
 
-- la prueba, en `lib/studio/__tests__/shipments-select-explicito.test.ts`;
-- la lógica, en `lib/studio/__tests__/helpers/shipments-select-guard.ts`;
-- las excepciones, en `lib/studio/__tests__/shipments-select-explicito.excepciones.json`.
-
-Las tres corren con Vitest, dentro de `pnpm verify`.
+- **la guarda es un script:** `scripts/check-shipments-select.mjs`. Sin hallazgos sale con 0; con
+  hallazgos, o si falla el canario, sale con 1 y lista cada uno con `archivo:línea` y su forma. Exporta su
+  función de análisis para que las pruebas la usen;
+- **sus excepciones:** `scripts/check-shipments-select.excepciones.json`;
+- **sus pruebas:** `scripts/tests/check-shipments-select.node.mjs`. Corren con el arnés de Node
+  (`pnpm harness:test`, `scripts/tests/run-harness.mjs:7-8`), no dentro del proyecto jsdom de Vitest;
+- **en `verify.mjs`** entra como un paso nuevo, `shipments-select`, justo después de `typecheck`
+  (`scripts/verify.mjs:444-450`);
+- **un solo `ts.Program` por corrida.** Se arma una vez con el `tsconfig.json` del repo
+  (`ts.getParsedCommandLineOfConfigFile`), y se reutilizan ese programa y su checker. Las pruebas también
+  arman un solo programa en memoria por grupo de mutantes;
+- **el costo se mide al implementar.** La F-3 anota en su handoff el tiempo y la memoria de la corrida
+  sobre el árbol real. Si pesa demasiado para correr en cada `verify`, se le avisa a Dir_DTD antes de
+  fusionar, con la medida.
 
 **Cómo lee el código.** Con el AST y el *type checker* del paquete `typescript`, que ya está en el repo
 (`package.json:106`). No usa expresiones regulares sobre el texto.
 
-- Arma un `ts.Program` con el `tsconfig.json` del repo y recorre los `.ts` y `.tsx` de `app/`, `lib/`,
-  `components/` y `hooks/`. En `7ff097d12` no hay una carpeta `hooks/` en la raíz. La guarda la incluye
-  igual, para cubrirla si aparece.
+- Recorre los `.ts` y `.tsx` de `app/`, `lib/`, `components/` y `hooks/`. En `7ff097d12` no hay una carpeta
+  `hooks/` en la raíz. La guarda la incluye igual, para cubrirla si aparece.
 - Quedan fuera las pruebas (`**/__tests__/**`, `*.test.ts` y `*.test.tsx`), porque no corren como
   `authenticated` contra PostgREST. Los contratos SQL prueban eso aparte.
-- Una llamada cuenta como `.from(...)` de tabla solo si el checker dice que su receptor es un cliente de
-  Supabase (`SupabaseClient`, o lo que devuelve su `.schema(...)`).
-  - `storage.from(...)`, `Array.from(...)` y `Buffer.from(...)` quedan fuera **por tipo**, no por texto.
-  - Medido sobre `7ff097d12`: hay unas 130 llamadas `.from(` con argumento no literal en esas carpetas, y
-    unas 80 son de buckets de storage.
+- **El receptor de cada `.from(`, identificado por su declaración, y con falla cerrada** (séptima
+  vuelta, 1). Para cada llamada `x.from(...)` la guarda toma el tipo de `x` y, de ese tipo, el archivo
+  donde está declarado. El nombre del tipo no cuenta.
+  - **Es un cliente de tabla** si esa declaración vive en `node_modules/@supabase/supabase-js/` o en
+    `node_modules/@supabase/postgrest-js/`, con la ruta real ya resuelta. Esa llamada se analiza.
+    - **Por confirmar en la F-3:** este worktree de la spec no tiene `node_modules`, así que no se midió en
+      qué archivo declara cada versión instalada esos tipos.
+    - La F-3 confirma las dos rutas con las dependencias del lockfile. Si `@supabase/ssr` declara su propio
+      cliente, lo suma a esta lista, con un caso verde.
+  - **Queda excluido** solo si la declaración está en la **lista positiva** de clases excluidas. La lista
+    vive en el JSON de excepciones, bajo `receptores_excluidos`, y cada entrada lleva su justificación:
+    - el cliente de storage, declarado en `node_modules/@supabase/storage-js/` (`StorageClient` y sus
+      buckets);
+    - los constructores de `Array` y de los arreglos tipados, declarados en los `lib.es*.d.ts` de
+      TypeScript;
+    - `Buffer`, declarado en `node_modules/@types/node/`.
+  - **Cualquier otro caso es `from-receptor-sin-resolver`**, y falla:
+    - un receptor `any` o `unknown`;
+    - un tipo de error, porque el módulo no resolvió;
+    - un tipo sin declaración;
+    - o un tipo declarado en un archivo que no está en ninguna de las dos listas.
 - **El valor de un argumento** se resuelve así:
   - un literal de cadena, con comillas simples o dobles, o una plantilla sin sustituciones, es su texto;
-  - un identificador o una expresión se resuelven por su **tipo literal**, con
-    `checker.getTypeAtLocation`. Así, `const TABLE = "shipments"` resuelve a `"shipments"`, aunque venga
-    importada;
+  - un identificador o una expresión se resuelven por su **tipo literal**, con `checker.getTypeAtLocation`.
+    Así, `const TABLE = "shipments"` resuelve a `"shipments"`, aunque venga importada;
   - una unión de literales cuenta con cada uno de sus valores;
   - **sin tipo literal**, por ejemplo `string`, una plantilla con sustituciones o `const COLS: string =
     "id"`, el valor queda **sin resolver**.
+
+**El canario, permanente** (séptima vuelta, 1). Va antes de buscar hallazgos, en cada corrida. Si falla,
+la guarda sale con 1 y dice que se quedó ciega. No da un verde vacío. Comprueba tres cosas:
+
+1. `@supabase/supabase-js` resuelve a un archivo de declaración, con `ts.resolveModuleName` desde la raíz
+   del repo;
+2. los diagnósticos del programa no tienen **ningún TS2307** («Cannot find module»);
+3. la guarda reconoció **al menos un piso** de llamadas `.from("shipments")` como cliente de tabla.
+   - El piso va escrito en el script y sale del conteo de la primera corrida, con un margen chico. Como
+     referencia de texto, en `7ff097d12` había unas 86 líneas con `.from("shipments")` fuera de las
+     pruebas.
+   - Bajar el piso exige editar el script, y eso se ve en el diff de la PR.
 
 **Lo que marca como falla**, con `archivo:línea` y el nombre de la forma:
 
@@ -638,18 +672,35 @@ Las tres corren con Vitest, dentro de `pnpm verify`.
    - El embed se lee con un analizador chico del lenguaje de `select` de PostgREST (nombre, alias, `!pista`
      y paréntesis anidados), no con una expresión regular.
    - Un embed con valor sin resolver cuenta como `select-sin-resolver`.
-6. **`from-sin-resolver`.** Un `.from(arg)` de tabla cuyo valor queda sin resolver.
-   - Pasa solo si está en `shipments-select-explicito.excepciones.json`. Cada excepción lleva:
-     - `archivo`;
-     - `expresion`: el texto del argumento, por ejemplo `tabla`;
-     - `justificacion`: por qué nunca puede ser `shipments`, o por qué ese lector ya pide columnas
-       explícitas.
-   - Una excepción que ya no coincide con ningún `.from(` también hace fallar la prueba, para que la lista
-     no se pudra.
-   - La F-3 arranca con la lista que salga de la primera corrida, y cada fila se justifica en su PR.
+6. **`from-sin-resolver`.** Un `.from(arg)` sobre un cliente de tabla cuyo valor queda sin resolver.
+7. **`from-receptor-sin-resolver`.** Un `.from(` cuyo receptor no se puede identificar, según la regla de
+   arriba (séptima vuelta, 1).
+8. **`builder-en-variable`** (séptima vuelta, 3). El resultado de `.from("shipments")`, o de un eslabón de
+   su cadena, se guarda en una variable, como `const q = supabase.from("shipments")`.
+   - La guarda sigue las referencias de ese símbolo con el checker, dentro del mismo archivo, y aplica las
+     formas 1 a 4 a cada cadena que parte de la variable.
+   - Si el builder sale de la función (lo devuelve, lo pasa como argumento o lo guarda en una propiedad),
+     ya no se puede seguir, y falla como `builder-en-variable`.
+9. **`from-destructurado`** (séptima vuelta, 3). Sacar `from` del cliente, como `const { from } = supabase`,
+   `const f = supabase.from` o `supabase.from.bind(supabase)`. Siempre falla, porque deja de haber un
+   receptor que analizar.
 
-**Cómo se mata.** La prueba tiene un caso rojo por cada forma. Le pasa al helper fuentes en memoria, con un
-`CompilerHost` propio, y espera **exactamente** la forma indicada en la línea indicada:
+**Las excepciones.** Las formas 6 a 9 pasan solo si están en `scripts/check-shipments-select.excepciones.json`.
+Cada excepción lleva:
+
+- `archivo`;
+- `funcion`: el nombre de la función que la contiene, o `<módulo>` si está en el nivel del archivo
+  (séptima vuelta, 3);
+- `forma`;
+- `expresion`: el texto del argumento o del receptor, por ejemplo `tabla`;
+- `justificacion`: por qué nunca puede ser `shipments`, o por qué ese lector ya pide columnas explícitas.
+
+Una excepción que ya no coincide con ninguna llamada también hace fallar la guarda, para que la lista no se
+pudra. La F-3 arranca con la lista que salga de la primera corrida, y cada fila se justifica en su PR.
+
+**Cómo se mata.** Las pruebas le pasan al análisis fuentes en memoria, con un `CompilerHost` propio que sí
+resuelve `@supabase/*` desde el `node_modules` del repo. Esperan **exactamente** la forma indicada en la
+línea indicada:
 
 | Mutante | Forma esperada |
 |---|---|
@@ -662,19 +713,29 @@ Las tres corren con Vitest, dentro de `pnpm verify`.
 | `const COLS = "id, *"; .select(COLS)` | `constante-con-asterisco` |
 | `.from("invoices").select("id, shipments(*)")` y `shipment:shipments!inner(id, *)` | `embed-asterisco` |
 | `function f(t: string) { return supabase.from(t).select("id") }` sin excepción | `from-sin-resolver` |
+| **Receptor `any`, 1:** `(supabase as any).from("shipments").select()` | `from-receptor-sin-resolver` |
+| **Receptor `any`, 2:** `function db(): any { … }` y `db().from("shipments").select()` | `from-receptor-sin-resolver` |
+| **Receptor `any`, 3:** un parámetro `sb: any` con `sb.from("shipments").select()` | `from-receptor-sin-resolver` |
+| **Receptor `any`, 4:** `const c = JSON.parse(x); c.from("shipments").select()` | `from-receptor-sin-resolver` |
+| **Receptor `any`, 5:** un cliente importado de un módulo que no existe (`@supabase/no-existe`) | `from-receptor-sin-resolver`, y el canario en rojo por TS2307 |
+| `const q = supabase.from("shipments"); …; q.select()` | `select-vacio`, en la línea de `q.select()` |
+| `return supabase.from("shipments")` desde un helper | `builder-en-variable` |
+| `const { from } = supabase` y `supabase.from.bind(supabase)` | `from-destructurado` |
 | Una excepción en el JSON que ya no existe en el código | excepción vencida |
+| Un programa en el que `@supabase/supabase-js` no resuelve | canario en rojo: «la guarda está ciega», sin hallazgos y con salida 1 |
+| Un piso de `.from("shipments")` más alto que lo que hay | canario en rojo |
 
 Hay también casos verdes:
 
 - `.from("shipments").select("id, code")`;
 - `.update({...})` sin `.select()`;
-- `storage.from(BUCKET)`;
-- `Array.from(x)`;
-- `.from("invoices").select("id, shipments(id, code)")`.
+- `storage.from(BUCKET)`, `Array.from(x)` y `Buffer.from(x)`, excluidos por su declaración;
+- `.from("invoices").select("id, shipments(id, code)")`;
+- `const q = supabase.from("shipments").select("id")` usado en el mismo archivo.
 
-Por último, corre sobre el árbol real y espera **cero** hallazgos. El mutante del árbol real es volver a
-poner el `.select()` vacío en el POST de `app/api/studio/shipments/route.ts`, y la prueba se tiene que
-poner roja.
+Por último, corre sobre el árbol real y espera **cero** hallazgos y el canario en verde. El mutante del árbol
+real es volver a poner el `.select()` vacío en el POST de `app/api/studio/shipments/route.ts`, y la guarda
+se tiene que poner roja.
 
 ## 5. Reglas
 
@@ -893,9 +954,13 @@ superusuario.
     falla con 42501, y el contrato de columnas de `shipments` está verde. Crear un embarque por el POST
     y editarlo por el PATCH de la API funciona con el rol del Studio, y la guarda
     `shipments-select-explicito` está verde.
-20b. La guarda de §4.6 tiene un caso rojo por cada forma de su tabla de mutantes, y cada uno falla con
-    exactamente la forma y la línea esperadas. Los casos verdes pasan, el árbol real da cero hallazgos, y
-    volver a poner el `.select()` vacío en el POST la pone roja.
+20b. La guarda de §4.6 tiene un caso rojo por cada forma de su tabla de mutantes, incluidos los cinco de
+    receptor `any`, el builder en una variable y el `from` destructurado. Cada uno falla con exactamente la
+    forma y la línea esperadas. El canario se pone rojo, con salida 1 y sin dar un verde vacío, cuando
+    `@supabase/supabase-js` no resuelve, cuando hay un TS2307 y cuando no se alcanza el piso. Los casos
+    verdes pasan, el árbol real da cero hallazgos con el canario en verde, y volver a poner el `.select()`
+    vacío en el POST la pone roja. El paso `shipments-select` de `verify.mjs` corre después de `typecheck`,
+    y la F-3 anota en su handoff cuánto tarda y cuánta memoria usa.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
@@ -1091,8 +1156,9 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
   - `lib/studio/invoice-queries.ts` (la consulta del aviso «Varias direcciones»);
   - `app/api/studio/shipments/route.ts` y `app/api/studio/shipments/[id]/route.ts` (los dos `.select()`
     pasan a columnas explícitas);
-  - `lib/studio/__tests__/shipments-select-explicito.test.ts`, `lib/studio/__tests__/helpers/shipments-select-guard.ts`
-    y `lib/studio/__tests__/shipments-select-explicito.excepciones.json` (nuevos, la guarda de §4.6);
+  - `scripts/check-shipments-select.mjs`, `scripts/check-shipments-select.excepciones.json` y
+    `scripts/tests/check-shipments-select.node.mjs` (nuevos, la guarda de §4.6);
+  - `scripts/verify.mjs` (el paso `shipments-select`, después de `typecheck`);
   - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
     `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
   - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);
