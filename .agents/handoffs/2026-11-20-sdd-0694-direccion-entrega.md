@@ -162,3 +162,6 @@ Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesi�
 - **Punto 1 (P-8), resuelto el 2026-11-20:** Sam decidió «Como QuickBooks: dos direcciones». Aquí el HTML
   y el PDF usan la misma fuente (`domicilioFiscalSellado`). Sellar siempre, «Entregar en» y la etiqueta de las
   facturas viejas pasan a la SDD-0698.
+- **Choque con la 0695 resuelto (2026-11-20):** la 0694 F-2 crea `client_delivery_address_save` y su
+  variante `_service` (para el registro sin sesión), y las altas del Studio y del registro las usan. La regla
+  y la prueba de contrato son de la 0695 F-9a. Las dos tablas de dueñas quedaron actualizadas.

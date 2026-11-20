@@ -239,11 +239,24 @@ Dir_DTD:
 
 | Escritor | Cambio | Fase |
 |---|---|---|
-| Alta en el Studio (`clientes/actions.ts:101`, `:245`) | Si se escribe una dirección en el alta, se crea la **predeterminada** en F-2 con `insertClientDeliveryAddress`. No se escribe F-1. | F-2 |
+| Alta en el Studio (`clientes/actions.ts:101`, `:245`) | Si se escribe una dirección en el alta, se crea la **predeterminada** en F-2 con la RPC `client_delivery_address_save` (abajo). No se escribe F-1. | F-2 |
 | Edición en el Studio (`clientes/actions.ts:392`, `ClientDrawer.tsx:549-557`) | El campo «Dirección» sale del drawer de edición: la dirección se edita en la tarjeta «Direcciones de entrega», que ya existe. El update deja de escribir F-1. | F-2 |
 | RPC de registro por enlace (`0562:247-249`, `:266-268`, `:594-596`, `:611-613`) | Una migración nueva las redefine: si llega `p_address`, insertan la predeterminada en F-2 (con la ciudad y el estado) solo si el cliente no tiene ninguna vigente. Dejan de escribir F-1. Ver §4.7. | F-2 |
 | Registro de la página (`app/registro/actions.ts:251-253`) | Con la dirección rápida del paso 2 llena, el alta crea la predeterminada en F-2. Nunca escribe F-1: el `address: null` se queda. F-3 se sigue escribiendo. Ver §4.7. | F-2 |
-| Mi perfil y tarjeta del Studio | Sin cambio: ya escriben F-2. Si no hay ninguna dirección, el formulario llega con la ciudad y el estado de F-3. | F-2 |
+| Mi perfil y tarjeta del Studio | Ya escriben F-2. Si no hay ninguna dirección, el formulario llega con la ciudad y el estado de F-3. Pasarlos a la RPC es de la 0695 F-9a. | F-2 |
+
+**Un solo camino de escritura desde `app/` y `lib/`.** Esta F-2 crea las dos RPC por las que pasa toda
+escritura de `client_delivery_addresses` desde TypeScript. La regla y su prueba de contrato son de la
+SDD-0695 (§4.10 y F-9a):
+
+- `client_delivery_address_save(p_client_id, p_address_id, …, p_make_default)`, `security invoker`, para
+  quien tiene sesión: el alta del Studio, y después Mi perfil y la tarjeta del Studio;
+- `client_delivery_address_save_service(...)`, con la misma lógica, `security definer`, **solo para
+  service_role**, para el registro de la página, que no tiene sesión de usuario. Recibe el `client_id` que
+  la acción acaba de crear.
+
+Las RPC SQL que escriben dentro de su propia transacción (el registro por enlace, la copia de §4.1, las
+semillas y el `_complete` de la 0696) cumplen la regla porque son una sola transacción.
 | Fusión (`merge_clients`, `0361`) | Una migración nueva la redefine. Conserva las filas de F-2 como hoy (`0361:137-149`), deja de completar F-1 y F-4 (`:248-249`), y **conserva F-3** con `coalesce` (sobreviviente primero, luego la fusionada). Hoy esa ciudad se pierde. | F-2 |
 | Importación `legacy_import` | Dir_DTD ubica el importador fuera del repo. Si se vuelve a usar, escribe F-2. Mientras no se ubique, la copia de §4.1 se vuelve a correr después de cada carga. | F-2 |
 | Semillas (`seed-portal-demo.sql:35`) | Escriben F-2. | F-2 |
@@ -416,7 +429,7 @@ bueno.
 - **Si viene lleno,** `registerClientAction` (`app/registro/actions.ts`), después de crear el cliente, inserta
   la predeterminada en `client_delivery_addresses`: `line` es el texto; `city` y `state` vienen del paso 2;
   `city_slug` viene del catálogo si la ciudad salió de ahí, y si no, null; `is_default` va en true. Usa
-  `insertClientDeliveryAddress` o un insert equivalente con el cliente admin.
+  la RPC `client_delivery_address_save_service` con el cliente admin (§4.3). No usa `insertClientDeliveryAddress`.
   - Nunca escribe `clients.address`: el `address: null` de `:251` se queda.
   - Si ese insert falla, el alta no se cae. El cliente queda sin dirección y aplica la §4.6. El error se
     registra sin el texto de la dirección.
@@ -581,6 +594,7 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
       visto bueno del DG registrado en la PR.
     - El paso 2 muestra el campo opcional debajo de la ciudad y el estado, con la etiqueta, el placeholder y la
       ayuda decididos.
+    - El alta escribe la dirección con `client_delivery_address_save_service`, no con un insert directo.
     - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
       ciudad y el estado del paso 2, y `clients.address` queda en null.
     - Con el campo vacío, no crea ninguna fila.
@@ -613,7 +627,8 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
   | `clientCompleteness` → `hasDeliveryAddress` | **0694** F-1 | La 0695 F-8 cambia el cálculo por su vista `client_completeness`, conservando la regla, y va después |
   | Ciudad y estado | **0694**, decisión 8 (cerrada) | La 0695 no la reabre |
   | La persona de la ficha fusionada (`person_id` en `merge_clients`, `0361:258`) | **0695** F-3 | La 0694 F-2 conserva esa línea tal cual al redefinir `merge_clients` |
-  | Una sola predeterminada por cliente (constraint trigger y RPC atómica) | **0695** F-9 | La 0694 no la repite. Su helper lee «la más reciente, sin predeterminada» mientras tanto |
+  | Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2, que las crea porque es la primera que las necesita | La 0695 F-9a pasa a ellas a Mi perfil y a la tarjeta del Studio, y agrega la prueba de contrato |
+  | Una sola predeterminada por cliente (los triggers y el preflight) | **0695** F-9b | La 0694 no la repite. Su helper lee «la más reciente, sin predeterminada» mientras tanto |
 - **Mover `clients.city` y `clients.state` a `client_delivery_addresses`.** Por la decisión 8 se quedan en
   `clients`. Está cerrado, y la 0695 no lo reabre.
 - `clients.lat`/`lng` y la foto de fachada (`facade_photo_url`, `0066`): siguen en `clients`. Pasarlos a la
@@ -672,6 +687,7 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `lib/studio/export/operativo-csv.ts`, `lib/studio/agents/tools/shipment-tools.ts`;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (la precarga de ciudad y estado);
   - `supabase/migrations/NNNN_registro_enlace_direccion.sql` y `NNNN_merge_clients_conserva_direccion.sql`, con sus pruebas;
+  - `supabase/migrations/NNNN_client_delivery_address_save.sql` (las dos RPC de §4.3), con su `.test.sql`;
   - `scripts/seed-portal-demo.sql`;
   - dirección rápida del registro (§4.7):
     - `app/registro/RegisterForm.tsx` (paso 2, campo oculto, resumen y comentario);
