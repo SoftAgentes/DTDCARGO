@@ -1011,13 +1011,9 @@ function ListaDeContenedores({
         const cuerpoId = `emb-cont-${g.key}`;
         const nClientes = g.clientes.length;
         // SDD-0689: el dinero del encabezado solo llega a quien ve Facturación (la página decide).
+        // Peso y dinero se suman sobre el contenedor entero, no sobre lo que dejó pasar la pestaña.
         const dinero =
-          montos?.estado === "lista"
-            ? sumarMontos(
-                g.clientes.flatMap((cl) => cl.shipments),
-                montos.porEmbarque,
-              )
-            : null;
+          montos?.estado === "lista" ? sumarMontos(g.completo.envios, montos.porEmbarque) : null;
         return (
           <section
             key={g.key}
@@ -1138,7 +1134,9 @@ function ListaDeContenedores({
                 )}
                 {c && (
                   <Badge tone="neutral" size="sm">
-                    {g.enviosSinPeso === g.embarques ? "Sin peso" : textoPeso(g.pesoKg)}
+                    {g.completo.enviosSinPeso === g.completo.envios.length
+                      ? "Sin peso"
+                      : textoPeso(g.completo.pesoKg)}
                   </Badge>
                 )}
                 <span

@@ -173,6 +173,56 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
   });
 });
 
+describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)", () => {
+  // Un envío en tránsito (Activos) y otro entregado (Entregados), del mismo contenedor.
+  const MIXTO = [
+    envio("m1", { status: "in_transit", weight_kg: 100 }),
+    envio("m2", { client_name: "Cliente Dos", client_markbox: "DTD-1002", status: "delivered", weight_kg: 40 }),
+  ];
+  const DATOS_MIXTO: ContenedoresDeEmbarques = { ...DATOS, porEmbarque: { m1: "c64", m2: "c64" } };
+  const MONTOS_MIXTO: MontosDeContenedores = {
+    estado: "lista",
+    porEmbarque: {
+      m1: { facturas: 1, porCobrarUsd: 300, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300 },
+      m2: { facturas: 1, porCobrarUsd: 200, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200 },
+    },
+  };
+
+  it.each(["Todos", "Activos", "Entregados"])(
+    "en «%s» el peso y el «Sin facturar» son los del contenedor entero",
+    (pestana) => {
+      render(
+        <EmbarquesClient
+          shipments={MIXTO}
+          adjuntos={undefined}
+          contenedores={DATOS_MIXTO}
+          montos={MONTOS_MIXTO}
+        />,
+      );
+      fireEvent.click(
+        within(screen.getByRole("group", { name: "Embarques por estado" })).getByRole("button", {
+          name: new RegExp(`^${pestana}`),
+        }),
+      );
+      expect(cabecera().textContent ?? "").toContain("140 kg");
+      const monto = within(region()).getByTestId("total-sin-facturar");
+      fireEvent.click(within(monto).getByRole("button", { name: /Mostrar el total sin facturar/ }));
+      expect(monto.textContent).toBe("Sin facturar$500.00");
+    },
+  );
+
+  it("sin montos tampoco hay dinero en ninguna pestaña", () => {
+    render(<EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} />);
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Embarques por estado" })).getByRole("button", {
+        name: /^Entregados/,
+      }),
+    );
+    expect(cabecera().textContent ?? "").toContain("140 kg");
+    expect(region().textContent ?? "").not.toMatch(/sin facturar|[$]/i);
+  });
+});
+
 describe("EmbarquesClient · clic en el cliente del detalle (SDD-0689)", () => {
   it("con un solo embarque abre su ficha", async () => {
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);

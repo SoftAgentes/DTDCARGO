@@ -188,6 +188,15 @@ export type GrupoContenedor = {
   /** SDD-0665: envíos sin peso cargado; no suman al peso. */
   enviosSinPeso: number;
   alertas: number;
+  /**
+   * SDD-0689: el contenedor entero, sin la pestaña ni la búsqueda. El encabezado suma el peso y el
+   * «Sin facturar» sobre esto, para que el total no cambie según la pestaña abierta.
+   */
+  completo: {
+    envios: readonly ShipmentListRow[];
+    pesoKg: number;
+    enviosSinPeso: number;
+  };
 };
 
 const SERVICIOS_FCL: ReadonlySet<ShipmentService> = new Set<ShipmentService>([
@@ -403,6 +412,13 @@ export function agruparPorContenedor(
       pesoKg: Math.round(pesoKg * 100) / 100,
       enviosSinPeso,
       alertas,
+      completo: {
+        envios: base,
+        pesoKg:
+          Math.round(base.reduce((s, r) => s + (r.weight_kg != null ? Number(r.weight_kg) : 0), 0) * 100) /
+          100,
+        enviosSinPeso: base.filter((r) => r.weight_kg == null).length,
+      },
     });
   }
 

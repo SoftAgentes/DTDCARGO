@@ -73,6 +73,14 @@ El DG separó el pedido en dos specs:
   - Si no hay borradores, dice «Sin precios cargados», nunca $0.00 inventado, y no hay ojo. Así queda el 64 hasta que la
     SDD-0690 cargue sus borradores.
   - El sistema trabaja en dólares; el bolívar es solo una vista. Las facturas en otra moneda no suman.
+- **Sobre el contenedor entero.** El peso y el «Total sin facturar» suman todos los envíos del
+  contenedor, no solo los que dejaron pasar la pestaña, la búsqueda o los filtros. Así el total no cambia
+  al pasar de «Todos» a «Activos» o a «Entregados». Los clientes, los envíos, las cajas y el m³ siguen
+  siendo los de la vista filtrada, como hoy.
+- **En qué vista se ve el encabezado del 64.** Se ve en «Todos», la pestaña con la que abre Embarques, y
+  en toda pestaña donde quede al menos uno de sus envíos, siempre con los mismos totales. Cuando la
+  SDD-0682 (PR #702) agregue la pestaña «En camino» y abra en «Activos», el 64 se verá en «En camino»,
+  con los mismos totales.
 - Se reemplaza la regla de la SDD-0661 «la cabecera cerrada no muestra dinero»: el «Total sin facturar»
   es el único dinero del encabezado.
 
@@ -98,17 +106,20 @@ El DG separó el pedido en dos specs:
 2. Con montos, muestra «Sin facturar ••••••» y un ojo. El ojo muestra la suma en USD de los borradores
    durante 4 segundos y la vuelve a ocultar, sin abrir el contenedor. Sin borradores, muestra «Sin precios
    cargados».
-3. Sin montos (`operations`, `commercial`, `warehouse`, `support`), el encabezado no muestra ningún dinero, y
+3. El peso y el «Sin facturar» del encabezado son los mismos en todas las pestañas: suman el contenedor
+   entero (prueba con un envío en tránsito y otro entregado).
+4. Sin montos (`operations`, `commercial`, `warehouse`, `support`), el encabezado no muestra ningún dinero, y
    la página no le manda ningún monto al navegador (prueba del servidor en `page-monto-por-rol.test.ts`).
-4. En el detalle, clic en un cliente con un embarque abre su ficha; con varios, abre su bloque.
-5. Las pruebas de la SDD-0661 siguen pasando, salvo la que congelaba «sin dinero en la cabecera», que se
+5. En el detalle, clic en un cliente con un embarque abre su ficha; con varios, abre su bloque.
+6. Las pruebas de la SDD-0661 siguen pasando, salvo la que congelaba «sin dinero en la cabecera», que se
    ajusta a esta decisión.
 
 ## 6. Archivos (allowlist)
 
 - `docs/specs/0689-embarques-encabezado-y-cliente/spec.md` y el índice `docs/specs/README.md`.
 - `.agents/handoffs/sdd-0689-embarques-encabezado-y-cliente.md`.
-- `lib/studio/embarques-contenedores.ts`: `MontoAcumulado` suma `borradores` y `sinFacturarUsd`.
+- `lib/studio/embarques-contenedores.ts`: `MontoAcumulado` suma `borradores` y `sinFacturarUsd`, y
+  `GrupoContenedor.completo` trae los envíos y el peso del contenedor entero.
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`.
 - Pruebas:
   - `lib/studio/__tests__/embarques-cajas-y-monto.test.ts`;

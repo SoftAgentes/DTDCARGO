@@ -27,11 +27,14 @@ Fecha: 2026-11-20. Datos de la tarea:
 - Cuidados del DG sobre el ojo: es un botón que alterna (`aria-pressed`, `aria-label`), funciona con Enter
   y Espacio, y al ocultarse solo no le quita el foco a nadie. La spec dice que es privacidad frente a la
   pantalla, no protección de datos.
+- Hallazgo del DG en la revisión: el peso y el monto del encabezado sumaban solo lo que dejaba pasar la
+  pestaña. Ahora `GrupoContenedor.completo` trae el contenedor entero y el encabezado suma sobre eso; la
+  spec dice en qué vista se ve el encabezado del 64 (§3.1).
 - Pruebas:
   - del servidor: a `operations` y a los demás roles no les llega ningún monto (`page-monto-por-rol`);
   - las fixtures de la 0661 suman los campos nuevos;
   - la prueba de la 0661 que congelaba «sin dinero en la cabecera» se ajustó a la decisión nueva;
-  - prueba nueva: `EmbarquesClient.encabezado-cliente.test.tsx`.
+  - prueba nueva: `EmbarquesClient.encabezado-cliente.test.tsx`, con el caso de dos pestañas.
 
 ## Evidencia
 
