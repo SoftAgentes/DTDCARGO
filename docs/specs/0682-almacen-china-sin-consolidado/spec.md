@@ -103,18 +103,29 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 
 | Vista | Qué muestra | Dato |
 |---|---|---|
-| **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia` | ya existe |
+| **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia`, y las `consolidado` cuyo contenedor no ha zarpado | ya existe |
 | **En camino** | Contenedores en el mar: contador de días y porcentaje | ya existe |
 | **Pendiente por liberar** | Contenedores en el mar sin telex release | **falta** (§2.4) |
 
 ### 2.1 En almacén (vista por defecto)
 
-- Sin filtro en la URL, la tabla muestra `pendiente_consolidacion` + `incidencia`: lo que está físicamente
-  en la bodega. El selector de estado queda con «En almacén» por defecto; «Consolidado» y «Todos» siguen a
-  un clic (Sam: «si»).
+- Sin filtro en la URL, la tabla muestra lo que está físicamente en la bodega: `pendiente_consolidacion`,
+  `incidencia` y las `consolidado` cuyo contenedor no ha zarpado (ver la decisión de abajo). El selector de
+  estado queda con «En almacén» por defecto; «Consolidado» y «Todos» siguen a un clic (Sam: «si»).
 - Arriba de la tabla, una línea: «N recepciones ya consolidadas no se muestran», con enlace a «En camino».
-- Sin migración: es un filtro de lectura sobre `warehouse_receipts_cn.status` (índice
-  `warehouse_receipts_cn_tenant_status_idx`, migración 0008). Los KPI ya cuentan así.
+  N cuenta solo las de contenedores `zarpado`, con los mismos filtros de bodega y búsqueda: son las que se
+  ven en «En camino», así el enlace dice la verdad.
+- Sin migración: es lectura de `warehouse_receipts_cn`, `consolidation_items` y `consolidations`. Los KPI no
+  cambian.
+
+**Decisión de Sam (2026-11-20), vía el DG: «Quedan en almacén».** Una recepción `consolidado` cuyo
+contenedor está `consolidando` o `cerrado` sigue en «En almacén», con la etiqueta «En contenedor DTD #N, sin
+zarpar» (el número de `notes`; si no hay, la referencia). Al zarpar el contenedor pasa a «En camino»; al
+arribar sale de las dos vistas. Lo decide el servidor con la misma regla de «En camino»
+(`situacionDeRecepcion` en `lib/studio/almacen-cn-contenedores.ts`). Si un envío va en dos contenedores,
+manda el más avanzado. Una `consolidado` sin contenedor conocido también se queda, sin etiqueta: ninguna
+recepción se pierde ni sale dos veces. La lista se lee por páginas y salta lo que ya salió, para que las
+recepciones de un contenedor zarpado no tapen a las que siguen en la bodega.
 
 ### 2.2 En camino
 
@@ -217,12 +228,12 @@ Producto:
 - `app/studio/(app)/cn/_components/CaminoCn.tsx`, `FilaCamino.tsx`, `EncabezadoCn.tsx`, `VistasAlmacen.tsx` (nuevos)
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
 - `app/studio/studio.css` (solo `a.studio-tab { text-decoration: none }`)
-- `lib/studio/warehouse-cn-queries.ts`, `lib/studio/shipment-queries.ts`
+- `lib/studio/warehouse-cn-queries.ts`, `lib/studio/warehouse-cn-types.ts`, `lib/studio/shipment-queries.ts`
 - `lib/studio/almacen-cn-vistas.ts`, `almacen-cn-contenedores.ts`, `almacen-cn-contenedores-queries.ts` (nuevos)
 - `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`
 
 Pruebas:
-- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `almacen-cn-contenedores-queries.test.ts`, `embarques-pestanas.test.ts` (nuevas)
+- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `almacen-cn-contenedores-queries.test.ts`, `almacen-cn-en-almacen.test.ts`, `embarques-pestanas.test.ts` (nuevas)
 - `app/studio/(app)/cn/_components/__tests__/FilaCamino.test.tsx` (nueva)
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.pestanas.test.tsx` (nueva)
 - `EmbarquesClient.{abrir,adjuntos,borrado,cajas-monto,contenedores,facturar,peso}.test.tsx`: abren en «Todos»

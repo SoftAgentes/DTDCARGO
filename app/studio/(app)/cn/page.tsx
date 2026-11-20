@@ -19,7 +19,7 @@ import { leerInfoRecepciones } from "@/lib/studio/borrado/servidor";
 import { listClients } from "@/lib/studio/client-queries";
 import {
   computeWarehouseKpis,
-  contarRecepcionesConsolidadas,
+  leerSalidasDeAlmacen,
   listReceipts,
   listWarehouses,
   parseReceiptFiltersFromSearchParams,
@@ -110,9 +110,15 @@ export default async function CnPage({
   const { role } = await getStudioAccess(supabase);
   const puedeEliminar = canSpecial(role, "delete_warehouse_receipts");
 
-  const [receipts, warehouses, clients, kpis, cities, alertShipmentSet, consolidadas] =
+  // SDD-0682: qué recepciones consolidadas ya salieron de la bodega (su contenedor
+  // zarpó o llegó). Se lee una vez: lo usan la tabla y el aviso.
+  const salidas =
+    filters.status === "en_almacen" ? await leerSalidasDeAlmacen(supabase, filters) : undefined;
+  const consolidadas = salidas ? salidas.enCamino : null;
+
+  const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
     await Promise.all([
-      listReceipts(supabase, filters, { redactClientNames: !canSeeClientNames }),
+      listReceipts(supabase, filters, { redactClientNames: !canSeeClientNames, salidas }),
       listWarehouses(supabase),
       listClients(supabase),
       computeWarehouseKpis(supabase),
@@ -121,10 +127,6 @@ export default async function CnPage({
       listCities(supabase, { activeOnly: true }),
       // Shipments con alerta de gastos activa → chip "Pendiente gastos" en la row.
       activeAlertShipmentIds(supabase),
-      // SDD-0682: cuántas recepciones consolidadas deja fuera «En almacén».
-      filters.status === "en_almacen"
-        ? contarRecepcionesConsolidadas(supabase, filters)
-        : Promise.resolve(null),
     ]);
 
   // SDD-0571: la tarifa congelada de cada recepción. Sin la 0496, «No disponible».

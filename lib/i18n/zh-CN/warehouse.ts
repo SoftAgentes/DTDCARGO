@@ -360,6 +360,7 @@ export const warehouse: WarehouseDict = {
   "warehouse_cn.view.hidden_notice": "{count} 张已拼柜的入库单不再显示：货物已离开仓库。",
   "warehouse_cn.view.hidden_notice_one": "1 张已拼柜的入库单不再显示：货物已离开仓库。",
   "warehouse_cn.view.hidden_link": "查看在途柜子",
+  "warehouse_cn.view.in_container_unsailed": "已装入 {container} 柜，尚未开船",
   "warehouse_cn.camino.description": "已离开仓库的货物：已开船的柜子，直到到港。",
   "warehouse_cn.camino.empty_title": "暂无在途柜子",
   "warehouse_cn.camino.empty_description": "柜子开船后会显示在这里，直到到港。",

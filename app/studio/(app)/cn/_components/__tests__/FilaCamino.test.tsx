@@ -62,6 +62,8 @@ describe("FilaCamino (SDD-0682)", () => {
     const celda = tabla.closest('[role="cell"]');
     expect(celda).not.toBeNull();
     expect(celda!.parentElement!.getAttribute("role")).toBe("row");
+    // La celda cruza las 6 columnas de la tabla de «En camino».
+    expect(celda!.getAttribute("aria-colspan")).toBe("6");
     const filas = within(tabla).getAllByRole("row");
     expect(filas).toHaveLength(3);
     expect(filas[1].textContent).toContain("WR-C91-A");

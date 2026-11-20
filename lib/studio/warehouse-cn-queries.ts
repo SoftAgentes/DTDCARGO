@@ -6,6 +6,13 @@
  */
 
 import { roundCbm } from "@/lib/shared/cbm";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
+import { numeroDtdDeNotas } from "./embarques-contenedores";
+import {
+  contenedorQueManda,
+  situacionDeRecepcion,
+  type ContenedorDeRecepcion,
+} from "./almacen-cn-contenedores";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   WarehouseCN,
@@ -35,10 +42,15 @@ export type ReceiptFilters = {
   status?: WarehouseReceiptStatus | "all" | "en_almacen";
 };
 
-/** SDD-0682: estados de una recepción que sigue en la bodega de China. */
+/**
+ * SDD-0682: estados que se piden a la base para «En almacén». Lo consolidado
+ * entra también, y después `leerSalidasDeAlmacen` saca lo que ya zarpó o llegó
+ * (Sam, 2026-11-20: hasta que el contenedor zarpe, «quedan en almacén»).
+ */
 export const ESTADOS_EN_ALMACEN: readonly WarehouseReceiptStatus[] = [
   "pendiente_consolidacion",
   "incidencia",
+  "consolidado",
 ];
 
 const VALID_STATUSES: WarehouseReceiptStatus[] = [
@@ -114,30 +126,54 @@ export async function listWarehouses(
 export async function listReceipts(
   supabase: SupabaseClient,
   filters: ReceiptFilters = {},
-  opts: { redactClientNames?: boolean } = {},
+  opts: { redactClientNames?: boolean; salidas?: SalidasDeAlmacen } = {},
 ): Promise<WarehouseReceiptRow[]> {
-  let query = supabase
-    .from("warehouse_receipts_cn")
-    .select(RECEIPT_LIST_SELECT)
-    .is("deleted_at", null)
-    .order("received_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (filters.status === "en_almacen") {
-    query = query.in("status", [...ESTADOS_EN_ALMACEN]);
-  } else if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
-  }
-
   const bodegas = await bodegasDelFiltro(supabase, filters);
   if (bodegas === "ninguna") return [];
-  if (bodegas) query = query.in("warehouse_id", bodegas);
   const busqueda = busquedaDelFiltro(filters);
-  if (busqueda) query = query.or(busqueda);
 
-  const { data, error } = await query;
-  if (error) throw error;
+  // Cada página arma su consulta desde cero: un builder de supabase-js no se reusa.
+  const armar = () => {
+    let query = supabase
+      .from("warehouse_receipts_cn")
+      .select(RECEIPT_LIST_SELECT)
+      .is("deleted_at", null)
+      .order("received_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (filters.status === "en_almacen") {
+      query = query.in("status", [...ESTADOS_EN_ALMACEN]);
+    } else if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
+    if (bodegas) query = query.in("warehouse_id", bodegas);
+    if (busqueda) query = query.or(busqueda);
+    return query;
+  };
+
+  let data: unknown[];
+  let salidas: SalidasDeAlmacen | null = null;
+  if (filters.status === "en_almacen") {
+    // SDD-0682: se pide por páginas y se salta lo que ya salió de la bodega, para
+    // que las recepciones de un contenedor zarpado no tapen a las que siguen aquí.
+    salidas = opts.salidas ?? (await leerSalidasDeAlmacen(supabase, filters));
+    const quedan: unknown[] = [];
+    for (let pagina = 0; pagina < PAGINAS_EN_ALMACEN && quedan.length < TOPE_LISTA; pagina++) {
+      const desde = pagina * TAMANO_PAGINA;
+      const { data: filas, error } = await armar().range(desde, desde + TAMANO_PAGINA - 1);
+      if (error) throw error;
+      const lista = (filas ?? []) as unknown as { id: string }[];
+      for (const f of lista) {
+        if (!salidas.fuera.has(f.id)) quedan.push(f);
+      }
+      if (lista.length < TAMANO_PAGINA) break;
+    }
+    data = quedan.slice(0, TOPE_LISTA);
+  } else {
+    const { data: filas, error } = await armar().limit(TOPE_LISTA);
+    if (error) throw error;
+    data = filas ?? [];
+  }
 
   // Supabase devuelve las relaciones como arrays incluso en FK 1:1
   // (`warehouse` viene `[{...}]`, `items_count` viene `[{count: N}]`).
@@ -177,6 +213,8 @@ export async function listReceipts(
       items_count: Array.isArray(r.items_count)
         ? (r.items_count[0]?.count ?? 0)
         : (r.items_count ?? 0),
+      // SDD-0682: consolidada en un contenedor que aún no zarpa.
+      contenedor_sin_zarpar: salidas?.sinZarpar.get(r.id) ?? null,
     } satisfies WarehouseReceiptRow;
   });
 }
@@ -341,29 +379,108 @@ function busquedaDelFiltro(filters: ReceiptFilters): string | null {
   ].join(",");
 }
 
+const TOPE_LISTA = 100;
+const TAMANO_PAGINA = 200;
+/** Hasta 5.000 filas recorridas para llenar las 100 de «En almacén». */
+const PAGINAS_EN_ALMACEN = 25;
+
 /**
- * SDD-0682: cuántas recepciones ya consolidadas deja fuera la vista «En almacén»,
- * con los mismos filtros de bodega y búsqueda que la tabla (RLS ya acota al
- * tenant). `null` si no se pudo contar: el aviso no se muestra en vez de decir un
- * número falso.
+ * SDD-0682: qué recepciones consolidadas ya no están en la bodega.
+ *  - `fuera`: ids que no van en «En almacén» (su contenedor zarpó o llegó).
+ *  - `enCamino`: cuántas van en un contenedor zarpado: las que se ven en «En
+ *    camino». Es el número del aviso, así su enlace dice la verdad.
+ *  - `sinZarpar`: las que siguen en la bodega dentro de un contenedor que aún no
+ *    zarpa, con su nombre para la etiqueta.
  */
-export async function contarRecepcionesConsolidadas(
+export type SalidasDeAlmacen = {
+  fuera: Set<string>;
+  enCamino: number;
+  sinZarpar: Map<string, { numeroDtd: number | null; ref: string | null }>;
+};
+
+type FilaConsolidacion = { id: string; status: string; ref: string | null; notes: string | null };
+
+/**
+ * Lee las recepciones consolidadas (con los mismos filtros de bodega y búsqueda
+ * que la tabla; RLS acota al tenant), el contenedor de cada una por
+ * `consolidation_items.shipment_id` y decide con `situacionDeRecepcion`, la misma
+ * regla de «En camino». Solo lee.
+ */
+export async function leerSalidasDeAlmacen(
   supabase: SupabaseClient,
   filters: ReceiptFilters = {},
-): Promise<number | null> {
+): Promise<SalidasDeAlmacen> {
+  const vacio: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
   const bodegas = await bodegasDelFiltro(supabase, filters);
-  if (bodegas === "ninguna") return 0;
-  let query = supabase
-    .from("warehouse_receipts_cn")
-    .select("id", { count: "exact", head: true })
-    .is("deleted_at", null)
-    .eq("status", "consolidado");
-  if (bodegas) query = query.in("warehouse_id", bodegas);
+  if (bodegas === "ninguna") return vacio;
   const busqueda = busquedaDelFiltro(filters);
-  if (busqueda) query = query.or(busqueda);
-  const { count, error } = await query;
-  if (error) return null;
-  return count ?? 0;
+
+  const consolidadas = await fetchAllPaged<{ id: string; shipment_id: string | null }>((d, h) => {
+    let q = supabase
+      .from("warehouse_receipts_cn")
+      .select("id, shipment_id")
+      .is("deleted_at", null)
+      .eq("status", "consolidado");
+    if (bodegas) q = q.in("warehouse_id", bodegas);
+    if (busqueda) q = q.or(busqueda);
+    return q.order("id", { ascending: true }).range(d, h);
+  });
+  if (!consolidadas.complete) throw new Error("Las recepciones consolidadas superan el tope de lectura.");
+  const envios = [...new Set(consolidadas.rows.map((r) => r.shipment_id).filter((x): x is string => !!x))];
+  if (envios.length === 0) return vacio;
+
+  const items = await fetchAllByIds<{ shipment_id: string; consolidation_id: string }>(envios, (lote, d, h) =>
+    supabase
+      .from("consolidation_items")
+      .select("shipment_id, consolidation_id")
+      .in("shipment_id", lote)
+      .order("consolidation_id", { ascending: true })
+      .range(d, h),
+  );
+  if (!items.complete) throw new Error("Los ítems de los contenedores superan el tope de lectura.");
+  const consIds = [...new Set(items.rows.map((i) => String(i.consolidation_id)))];
+  const cons =
+    consIds.length === 0
+      ? { rows: [] as FilaConsolidacion[], complete: true }
+      : await fetchAllByIds<FilaConsolidacion>(consIds, (lote, d, h) =>
+          supabase
+            .from("consolidations")
+            .select("id, status, ref, notes")
+            .in("id", lote)
+            .is("deleted_at", null)
+            .order("id", { ascending: true })
+            .range(d, h),
+        );
+  if (!cons.complete) throw new Error("Los contenedores superan el tope de lectura.");
+  const contenedorPorId = new Map<string, ContenedorDeRecepcion>(
+    cons.rows.map((c) => [
+      String(c.id),
+      { status: String(c.status), numeroDtd: numeroDtdDeNotas(c.notes), ref: c.ref ?? null },
+    ]),
+  );
+  const contenedoresPorEnvio = new Map<string, ContenedorDeRecepcion[]>();
+  for (const it of items.rows) {
+    const c = contenedorPorId.get(String(it.consolidation_id));
+    if (!c) continue;
+    const lista = contenedoresPorEnvio.get(String(it.shipment_id)) ?? [];
+    lista.push(c);
+    contenedoresPorEnvio.set(String(it.shipment_id), lista);
+  }
+
+  const out: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
+  for (const r of consolidadas.rows) {
+    const c = r.shipment_id ? contenedorQueManda(contenedoresPorEnvio.get(r.shipment_id) ?? []) : null;
+    const situacion = situacionDeRecepcion("consolidado", c);
+    if (situacion === "camino") {
+      out.fuera.add(r.id);
+      out.enCamino++;
+    } else if (situacion === "llego") {
+      out.fuera.add(r.id);
+    } else if (c) {
+      out.sinZarpar.set(r.id, { numeroDtd: c.numeroDtd, ref: c.ref });
+    }
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────

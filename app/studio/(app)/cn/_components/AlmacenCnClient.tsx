@@ -17,6 +17,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { hrefDeVista, statusDelSelector } from "@/lib/studio/almacen-cn-vistas";
+import { nombreParaEtiqueta } from "@/lib/studio/almacen-cn-contenedores";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   HUB_GROUPS,
@@ -870,6 +871,17 @@ function ReceiptRow({
       {/* Status + payment + destino · stacked */}
       <span style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
+        {/* SDD-0682: consolidada, pero su contenedor aún no zarpa: sigue en la bodega. */}
+        {row.contenedor_sin_zarpar && (
+          <span
+            data-testid="en-contenedor-sin-zarpar"
+            style={{ font: "600 11px/1.25 var(--f-sans)", color: "var(--ink)" }}
+          >
+            {tRow("warehouse_cn.view.in_container_unsailed", {
+              container: nombreParaEtiqueta(row.contenedor_sin_zarpar),
+            })}
+          </span>
+        )}
         <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
           {PAYMENT_STATUS_LABELS[row.payment_status]}
         </Badge>

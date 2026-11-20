@@ -30,9 +30,9 @@ describe("hrefDeVista", () => {
 });
 
 describe("filtro de estado de Almacén China", () => {
-  it("sin ?status= abre en «En almacén» (pendiente + incidencia)", () => {
+  it("sin ?status= abre en «En almacén» (pendiente, incidencia y lo consolidado que no zarpó)", () => {
     expect(parseReceiptFiltersFromSearchParams({}).status).toBe("en_almacen");
-    expect([...ESTADOS_EN_ALMACEN].sort()).toEqual(["incidencia", "pendiente_consolidacion"]);
+    expect([...ESTADOS_EN_ALMACEN].sort()).toEqual(["consolidado", "incidencia", "pendiente_consolidacion"]);
   });
 
   it("un estado que no existe cae en «En almacén», no en «todos»", () => {

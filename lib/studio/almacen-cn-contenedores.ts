@@ -26,6 +26,58 @@ import {
  */
 export const ESTADOS_EN_CAMINO = ["zarpado"] as const;
 
+/**
+ * Estados de contenedor que sacan una recepción consolidada de «En almacén»:
+ * `zarpado` (está en «En camino») y `arribado` (ya llegó). Sam, 2026-11-20:
+ * mientras el contenedor no zarpe, sus recepciones «quedan en almacén».
+ */
+export const ESTADOS_FUERA_DE_ALMACEN = ["zarpado", "arribado"] as const;
+
+/** Contenedor en el que va una recepción, con lo necesario para nombrarlo. */
+export type ContenedorDeRecepcion = {
+  status: string;
+  numeroDtd: number | null;
+  ref: string | null;
+};
+
+/** Dónde se ve una recepción: en la bodega, en «En camino» o en ninguna (ya llegó). */
+export type SituacionDeRecepcion = "almacen" | "camino" | "llego";
+
+/**
+ * Regla única de dónde va una recepción (SDD-0682). Lo que no está consolidado
+ * sigue en la bodega; lo consolidado sigue en la bodega hasta que su contenedor
+ * zarpe; al zarpar pasa a «En camino» y al llegar sale de las dos vistas. Una
+ * recepción consolidada sin contenedor conocido también se queda: así ninguna se
+ * pierde y ninguna sale dos veces.
+ */
+export function situacionDeRecepcion(
+  status: string,
+  contenedor: ContenedorDeRecepcion | null,
+): SituacionDeRecepcion {
+  if (status !== "consolidado" || !contenedor) return "almacen";
+  if ((ESTADOS_EN_CAMINO as readonly string[]).includes(contenedor.status)) return "camino";
+  if ((ESTADOS_FUERA_DE_ALMACEN as readonly string[]).includes(contenedor.status)) return "llego";
+  return "almacen";
+}
+
+/**
+ * Si un envío va en más de un contenedor (envío partido, SDD-0563), manda el más
+ * avanzado: basta con que una parte haya zarpado para que la recepción salga de
+ * la bodega.
+ */
+export function contenedorQueManda(
+  lista: readonly ContenedorDeRecepcion[],
+): ContenedorDeRecepcion | null {
+  const peso = (c: ContenedorDeRecepcion) =>
+    c.status === "arribado" ? 2 : (ESTADOS_EN_CAMINO as readonly string[]).includes(c.status) ? 1 : 0;
+  return lista.reduce<ContenedorDeRecepcion | null>((m, c) => (m === null || peso(c) > peso(m) ? c : m), null);
+}
+
+/** Nombre del contenedor para la etiqueta «En contenedor DTD #N, sin zarpar»: el número DTD o la ref. */
+export function nombreParaEtiqueta(c: Pick<ContenedorDeRecepcion, "numeroDtd" | "ref">): string {
+  return c.numeroDtd !== null ? `DTD #${c.numeroDtd}` : (c.ref ?? "—");
+}
+
 /** Una recepción dentro del contenedor: sin nombre de importador. */
 export type RecepcionEnCamino = {
   id: string;

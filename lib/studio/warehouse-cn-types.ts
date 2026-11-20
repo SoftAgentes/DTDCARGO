@@ -146,6 +146,11 @@ export type WarehouseReceiptRow = WarehouseReceipt & {
   warehouse: Pick<WarehouseCN, "code" | "hub_code" | "hub_name_es" | "hub_name_cn">;
   items: WarehouseReceiptItemSummary[];
   items_count: number;
+  /**
+   * SDD-0682: consolidada dentro de un contenedor que aún no zarpa (sigue en la
+   * bodega). `null`/ausente = no aplica o no se calculó (solo «En almacén»).
+   */
+  contenedor_sin_zarpar?: { numeroDtd: number | null; ref: string | null } | null;
 };
 
 // ─────────────────────────────────────────────────────────────

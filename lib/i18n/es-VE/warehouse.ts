@@ -375,6 +375,7 @@ export const warehouse = {
   "warehouse_cn.view.hidden_notice_one":
     "1 recepción ya consolidada no se muestra: salió de la bodega.",
   "warehouse_cn.view.hidden_link": "Ver contenedores en camino",
+  "warehouse_cn.view.in_container_unsailed": "En contenedor {container}, sin zarpar",
   "warehouse_cn.camino.description":
     "Lo que ya salió de la bodega: los contenedores que zarparon, hasta que lleguen.",
   "warehouse_cn.camino.empty_title": "No hay contenedores en camino",

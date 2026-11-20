@@ -4,14 +4,21 @@ Fecha: 2026-11-20 · Rama: `claude/sdd-0682-almacen-china-vistas` · Base: `orig
 Spec: `docs/specs/0682-almacen-china-sin-consolidado/spec.md` (aprobada por Sam el 2026-11-19).
 Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arranca»).
 
-## Hecho (sin migración)
+## Hecho (sin migración) — estado actual de la rama
 
-- **Almacén China abre en «En almacén»** (§2.1): sin `?status=` el filtro es `en_almacen` =
-  `pendiente_consolidacion` + `incidencia` (`lib/studio/warehouse-cn-queries.ts`). `?status=all` sigue dando
-  todo. Aviso con cuántas consolidadas quedan fuera y botón a «En camino». Vacío: «No hay mercancía en la bodega».
-- **«En camino» dentro de Almacén China** (§2.2): `?vista=camino`. Contenedores `zarpado` («En el mar») y
-  `consolidando`/`cerrado` («Cargados, sin zarpar»), con buque, ETA (`sailings.eta`), días y porcentaje de la
-  regla de Tracking (`armarContenedor`). Sin nombres ni marcas de importador: solo clientes y cajas.
+- **Almacén China abre en «En almacén»** (§2.1): sin `?status=` el filtro es `en_almacen`. Se piden a la base
+  `pendiente_consolidacion`, `incidencia` y `consolidado` (`ESTADOS_EN_ALMACEN`), y `leerSalidasDeAlmacen`
+  saca las consolidadas cuyo contenedor está `zarpado` o `arribado` (`lib/studio/warehouse-cn-queries.ts`).
+  Las de un contenedor `consolidando` o `cerrado` se quedan con la etiqueta «En contenedor DTD #N, sin
+  zarpar». `?status=all` sigue dando todo. El aviso cuenta solo las consolidadas de contenedores zarpados,
+  con los mismos filtros, y su botón lleva a «En camino». Vacío: «No hay mercancía en la bodega».
+- **«En camino» dentro de Almacén China** (§2.2): `?vista=camino`. Solo contenedores `zarpado` («En el mar»):
+  «DTD #N» (`numeroDtdDeNotas`), naviera (`sailings.carrier_id` → `carriers.name`), ETA (`sailings.eta`), días
+  y porcentaje de la regla de Tracking (`armarContenedor`). «Ver recepciones (N)» abre las recepciones
+  consolidadas con MARKBOX; nunca el nombre del importador.
+- **Regla única** de dónde va una recepción: `situacionDeRecepcion` y `contenedorQueManda`
+  (`lib/studio/almacen-cn-contenedores.ts`); la usan «En almacén» y el aviso, con los mismos estados que «En
+  camino».
 - **Embarques, opción (a)** (§2.5): regla única en `lib/studio/shipment-queries.ts` (`enPestana`,
   `contarPorPestana`, `filtrarPorPestana`); abre en «Activos», pestaña nueva «En camino» (`shipped`,
   `in_transit`). Prop `pestanaInicial` (por defecto «Activos»).
@@ -33,6 +40,10 @@ Corregido en la tanda siguiente:
 
 - «721: solo los que ya zarparon». `ESTADOS_EN_CAMINO = ["zarpado"]`; fuera el grupo «Cargados, sin zarpar» y
   su texto; prueba explícita de que `consolidando` y `cerrado` no entran.
+- «Quedan en almacén» (2026-11-20): una consolidada de un contenedor que no ha zarpado sigue en «En almacén»
+  con su etiqueta; al zarpar pasa a «En camino»; al arribar sale de las dos. Registrada en la spec, §2.1.
+  Costo conocido: «En almacén» recorre todas las consolidadas (con los filtros) en cada carga para decidir;
+  la lista se pagina (200 por página, hasta 25 páginas) para que lo que ya salió no tape a lo que queda.
 
 ## Revisión sobre `658dfbbaf`: APPROVED, con tres menores corregidos en la tanda siguiente
 
@@ -43,6 +54,12 @@ Corregido en la tanda siguiente:
   prueba en `FilaCamino.test.tsx`.
 
 ## Pruebas
+
+- «Quedan en almacén»: `lib/studio/__tests__/almacen-cn-en-almacen.test.ts` (regla pura, envío partido,
+  etiqueta, `leerSalidasDeAlmacen` y `listReceipts` con el doble que aplica filtros: cerrado se queda con
+  etiqueta, zarpado sale y cuenta, arribado sale sin contar, sin contenedor se queda, 250 zarpadas no tapan a
+  una pendiente). Menores de la revisión: m2, aserción directa `ESTADOS_EN_CAMINO = ["zarpado"]`; m4,
+  `aria-colspan="6"` en `FilaCamino.test.tsx`. `almacen-cn-vistas.test.ts` espera los tres estados.
 
 - Nuevas: `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`,
   `embarques-pestanas.test.ts`, `EmbarquesClient.pestanas.test.tsx`.
