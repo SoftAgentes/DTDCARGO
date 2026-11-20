@@ -113,3 +113,14 @@
 - Lo que agregué a P-1 y P-2 queda marcado como interpretación del DG, no como palabras de Sam.
 
 **Dependencia:** el párrafo de §4.2 sobre facturas de contenedor al aliado cita la SDD-0698 (§4.2 y §5.6, PR #732, todavía sin integrar). Si la 0698 cambia antes de integrarse, hay que revisar ese párrafo.
+
+## Correcciones de la revisión sobre a8e45c1 (2026-11-20)
+
+- El trigger `aliados_privacy_notice_url_guard` queda definido:
+  - el rol se toma de `public.user_tenants.role` contra `new.tenant_id`, y solo pasan admin, commercial y operations;
+  - es `security definer` con `search_path = `;
+  - sin `auth.uid()` rechaza, salvo que esté puesto `set local dtd.aliado_aviso_rpc = on` (patrón de la 0693 D2), que en esta SDD no enciende ninguna RPC.
+- La acción `actualizarAliadoAction` (`actions.ts:1262`) escribe con el cliente de sesión (`:1268`), medido en el código.
+- La prueba suma `accounting` y service_role sin la bandera.
+- `_complete` toma los locks en este orden: advisory, enlace, aliado.
+- La igualdad se describe como «mismas llamadas del servidor», no como el mismo tiempo en la base.

@@ -230,6 +230,9 @@ returning client_id, tenant_id;
      `for share` impide que otra transacción cambie la columna hasta que `_complete` termine;
   4. **si es null, o si la cadena no resuelve,** registra el intento como fallo y devuelve `ok = false`,
      **sin `raise` y sin llegar al `update`:** el token no se consume y no se escribe ninguna dirección.
+- **Orden de los locks en `_complete`, siempre el mismo:** primero el advisory del origen (paso 1 de
+  arriba), después la fila del enlace (`for update`) y por último la fila del aliado (`for share`). Ningún
+  otro camino de esta SDD toma esos locks en otro orden. `_peek` solo toma el advisory.
 - Sin fila, la RPC registra el fallo y devuelve `ok = false`, igual que con un enlace que no existe, sin `raise`.
 - Con fila, la dirección se escribe **solo** en `client_delivery_addresses`, y solo en filas del
   `client_id` que devolvió esa sentencia. No acepta un `client_id` del que llama. `client_markbox` y
@@ -297,8 +300,9 @@ returning client_id, tenant_id;
 - **El mismo trabajo en todos los casos.** El servidor siempre calcula el hash del token y el HMAC del
   origen, y llama a `_peek` en la carga y a `_complete` en el envío, **también cuando el origen está
   bloqueado**. La decisión del bloqueo la toma la base dentro de esas RPC (§4.4.2), no el servidor. Así el
-  tiempo de respuesta no distingue el bloqueo de un token inválido, y un origen bloqueado no puede consumir
-  un token válido.
+  servidor hace **las mismas llamadas** en todos los casos, y un origen bloqueado no puede consumir un
+  token válido. No se promete que la base tarde lo mismo en cada caso: lo que se prueba son las llamadas
+  del servidor.
 - **Qué muestra:**
   - La marca de §4.4.3 y el formulario. El formulario es el de Mi perfil (`PortalAddresses.tsx`): calle,
     ciudad (del catálogo), estado y punto de referencia. No pide la cédula ni el correo.
@@ -316,10 +320,26 @@ returning client_id, tenant_id;
   - el enlace se abre con `target="_blank"` y `rel="noopener noreferrer"`;
   - **quién la escribe:** solo la acción de la tarjeta del aliado del Studio, con la sesión de una persona
     con rol de equipo (`admin`, `commercial` u `operations`) en el tenant del aliado. La pone la oficina
-    con la dirección que le pasa el aliado. La policy de `aliados` (`0362:143-155`) da `update` a
-    `authenticated` solo por tenant, y eso no alcanza. Por eso la migración de la F-2 agrega un trigger
-    `before insert or update of privacy_notice_url` que rechaza el cambio si quien llama no tiene uno de
-    esos roles en el tenant. Los roles `aliado` y `cliente_final` no la pueden escribir;
+    con la dirección que le pasa el aliado. La acción es `actualizarAliadoAction`
+    (`app/studio/(app)/clientes/actions.ts:1262`), que escribe con el **cliente de sesión**
+    (`createClient()`, `:1268`), no con el admin client. La F-2 le suma el campo al mismo `update`. Los
+    roles `aliado` y `cliente_final` no la pueden escribir;
+  - **el trigger.** La policy de `aliados` (`0362:143-155`) da `update` a `authenticated` solo por tenant,
+    y eso no alcanza. La migración de la F-2 agrega `public.aliados_privacy_notice_url_guard()`:
+    - `before insert or update of privacy_notice_url on public.aliados for each row`. En el `update` solo
+      actúa si `new.privacy_notice_url is distinct from old.privacy_notice_url`, y en el `insert` solo si
+      `new.privacy_notice_url` no es null;
+    - `security definer` con `set search_path = ''`, y todo calificado (`public.…`, `pg_catalog.…`);
+    - **de dónde sale el rol:** de `public.user_tenants.role` (`0001`; los valores los fija el `check`
+      de `0019` y `0189`). Pasa solo si existe una fila con `user_id = auth.uid()`,
+      `tenant_id = new.tenant_id` y `role in ('admin', 'commercial', 'operations')`. Cualquier otro rol del
+      equipo (`accounting`, `warehouse`, `support`, `marketing`), un usuario de otro tenant o un usuario sin
+      fila en `user_tenants` (el aliado y el cliente final entran por `client_users`) recibe error;
+    - **sin sesión** (`auth.uid()` null, como con service_role), el trigger **rechaza**. La única excepción
+      es una escritura dentro de una RPC `security definer` que haga
+      `set local dtd.aliado_aviso_rpc = 'on'`, el mismo candado de procedimiento de la SDD-0693 D2
+      (`dtd.legal_docs_rpc`). **Ninguna RPC lo enciende en esta SDD:** la acción del Studio usa el cliente
+      de sesión. service_role no salta el trigger en silencio;
   - vale la del aliado cuya marca lleva la página (§4.4.3);
   - **sin esa dirección no hay enlace:** `_create` lo rechaza con `ok=false` y el motivo
     `falta_aviso_privacidad`, y el Studio muestra «Este aliado no tiene aviso de privacidad. Cárgalo en su
@@ -465,8 +485,14 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      - **El `check`** acepta `https://aliado.example/privacidad` y rechaza `http://aliado.example`,
        `https://`, una dirección con un espacio y una de 501 caracteres.
      - **Quién la escribe** (`.test.sql`): un usuario con rol `admin`, `commercial` u `operations` del
-       tenant la cambia; un usuario con rol `aliado`, uno con `cliente_final` y uno del Studio de otro
-       tenant reciben error y la columna no cambia.
+       tenant la cambia. Reciben error, y la columna no cambia:
+       - un usuario con rol `accounting` del mismo tenant (equipo, pero fuera de los tres);
+       - un usuario con rol `aliado` y uno con `cliente_final`;
+       - uno del Studio de otro tenant;
+       - service_role sin `dtd.aliado_aviso_rpc`.
+
+       Con `set local dtd.aliado_aviso_rpc = 'on'` dentro de una función `security definer` de prueba,
+       sin `auth.uid()`, pasa. Un `update` de otra columna de `aliados` no dispara el rechazo.
    - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
      13 días y 23 horas todavía funciona.
    - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
