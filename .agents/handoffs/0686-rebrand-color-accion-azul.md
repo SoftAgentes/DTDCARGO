@@ -6,7 +6,7 @@
 - Rama: `claude/sdd-0686-color-accion-azul` (parte de `claude/rebrand-design-aa6ba9` más `origin/main` `2ea18799a`)
 - SDD: `docs/specs/0686-rebrand-color-accion-azul/spec.md`, estado `in-progress`. Reserva del Director: `codex/sdd-reserve-0686` (`c20842933`).
 - Aprobación: Sam, 2026-11-20, a «¿Apruebas la spec de la SDD-0686 para empezar con las fases 0 y 1?»: «Sí, empieza». Cubre implementar las fases 0 y 1; no cubre fusionar ni publicar.
-- Estado de tarea: **fase 0 escrita; fase 1 sin empezar.** Sin push, sin PR.
+- Estado de tarea: **fases 0 y 1 escritas y guardadas en commits locales; la fase 1 no se ha ejecutado** (vitest y verify esperan el turno de PC). Sin push, sin PR.
 - Permisos: commits locales selectivos. Push y PR, con orden del Director. Sin merge, sin producción, sin base de datos.
 
 ## OBJETIVO ORIGINAL
@@ -23,6 +23,7 @@ Sam decidió el 2026-11-20 pasar el color de acción del vino al azul en web, Po
   - VIS-01 v1.1 (§3 roles, distancia de tono acción/peligro ≥ 90°, nota de adopción) y BTN-01 v1.2 (§2), con sus filas en `docs/governance/README.md` y la cápsula regenerada.
   - Nota de enmienda local al tope de §Sistema de color del Norte (`_norte/CLAUDE.md`), como en SDD-0441.
   - `app/studio/CLAUDE.md`: `primary` en azul de acción, regla para código nuevo y badge `wine` en revisión.
+- **Fase 1 (código, sin ejecutar):** seis tokens `--accion*` en claro, oscuro e impresión (`app/studio/tokens.css`); foco global en `--accion`; en `studio.css` el vino pasa de 74 a 24 líneas de declaración (reparto y motivos en la spec, «Fase 1 · reparto aplicado»); alias `--studio-wine` y `--studio-wine-deep` retirados; `claridad-controles-contract.test.ts` mide `--on-accion` sobre `--accion`; contrato nuevo `color-accion-contract.test.ts`. Los contrastes que exige el contrato los calculé con node sobre los valores reales: todos pasan (el más bajo, 4,88:1, es el texto de acción sobre su tinte en oscuro).
 - **Observaciones de la revisión de la PR #715**, traídas aquí por orden del Director: handoff de análisis cerrado con su PR, borrador enlazado a las tres specs y «acciones sobre varias filas» en lugar de «acciones por lote».
 
 ## VALIDACIÓN
@@ -33,12 +34,12 @@ Sam decidió el 2026-11-20 pasar el color de acción del vino al azul en web, Po
 | `sdd:check` (con `node scripts/check-numbering.mjs`) | **PASÓ** |
 | `governance:check` (con `node scripts/build-governance-capsule.mjs --check`) | **PASÓ** (29 políticas), tras regenerar la cápsula |
 | Pruebas que lean el texto cambiado | Ninguna lee `BRAND.md`, BTN-01, VIS-01 ni las guías: búsqueda en `*.test.*` y `scripts/` |
-| `verify`, vitest, build | **NO EJECUTADO**: la fase 0 es solo documentos; la fase 1 lo necesita, con turno de PC del Director |
+| `verify`, vitest, build | **NO EJECUTADO**: falta el turno de PC del Director. Lo primero será el vitest de `app/studio/_components/__tests__/` (contratos de color, claridad, tema oscuro, apariencia, pestañas y avisos) y después `verify` |
 | Imagen de prueba y recorrido visual | **NO EJECUTADO** |
 
 ## PENDIENTE DE ESTA TAREA
 
-1. Fase 1: tokens `--accion*`, `studio.css` y contratos (`color-accion-contract.test.ts` nuevo). Turno de PC pedido al Director.
+1. Ejecutar la fase 1 (vitest de contratos, `verify`) con turno de PC; pedido al Director el 2026-11-20, sin respuesta todavía.
 2. Imagen de prueba para que Sam fije el tono.
 3. Fases 2 a 5, cada una con su allowlist y su PR. **Condición de publicación (spec §8.1):** entre la fase 1 y el final de la fase 2 no se publica ni se fusiona a `main`, salvo que la pantalla quede coherente.
 4. Decisiones abiertas de Sam: tono exacto, color del Shipping Mark, correos/PDF/Chatwoot y el badge `wine` (spec §10).
