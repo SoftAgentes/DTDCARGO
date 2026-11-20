@@ -257,9 +257,10 @@ prácticas de las herramientas que lo hacen bien (las etiquetas de Linear, Jira,
   es la configuración de Almacén China: una página `/studio/cn/indicadores`, a la que se entra con un botón
   «Indicadores» en el encabezado de Almacén China. No suma nada al menú.
 - **Una sola pantalla, una lista.** Cada fila muestra la insignia tal como se verá (ícono, color y nombre),
-  la descripción, el efecto y cuántas recepciones vivas la usan. Arriba, «Nuevo indicador».
+  la descripción, el efecto (solo para Venezuela y admin; en China no está esa columna, pregunta 15) y cuántas
+  recepciones vivas la usan. Arriba, «Nuevo indicador».
 - **Crear y editar en un panel lateral corto**, con vista previa en vivo de la insignia. Campos en este orden:
-  nombre (es y zh), ícono, color, descripción y efecto. El grupo y la prioridad tienen un
+  nombre (es y zh), ícono, color, descripción y efecto (el campo efecto solo aparece para Venezuela y admin). El grupo y la prioridad tienen un
   valor por defecto; la prioridad se cambia arrastrando la fila (con botones subir y bajar para teclado).
 - **Paquete fijo de íconos**, en una cuadrícula: los 16 de la §2.7. Los que ya usa otro indicador vivo se ven
   apagados, con el nombre de quién lo usa al pasar el cursor, y no se pueden elegir. La base lo repite con un
@@ -632,7 +633,9 @@ create policy "warehouse_tag_change_requests lectura miembro activo"
 --   '473bd66fcd3a2ccc1fe83f0d1699b63a'  -- cuerpo vivo en producción (1418 bytes; medido por el DG
 --                                          el 2026-11-20 solo en el catálogo: la 0215 perdió dos
 --                                          comentarios al aplicarse)
---   '<md5 del cuerpo de abajo>'         -- la propia C: re-aplicarla no cambia nada
+--   '51da3b7a0f47dafc6f8187ba1c49196d'  -- cuerpo de la propia C (1726 bytes): re-aplicarla no cambia nada
+-- El cuerpo va SIN comentarios `--` dentro de los $$ (así el md5 guardado es el aplicado): las ramas
+-- 'warehouse_receipt_tag' y 'shipment_tag' son de SDD-0697, y el else rechaza todo tipo desconocido.
 -- Cualquier otro md5 aborta: alguien la cambió después y hay que mirar antes de pisarla.
 create or replace function public.comment_entity_in_tenant(
   p_entity_type text,
@@ -667,13 +670,11 @@ begin
     when 'bitacora_task' then
       select exists(select 1 from public.bitacora_tasks where id = p_entity_id and tenant_id = p_tenant_id) into ok;
     when 'warehouse_receipt_tag' then
-      -- SDD-0697: comentario sobre un indicador puesto en una recepción de China.
       select exists(select 1 from public.warehouse_receipt_tags where id = p_entity_id and tenant_id = p_tenant_id) into ok;
     when 'shipment_tag' then
-      -- SDD-0697: comentario sobre un indicador puesto por Venezuela en un embarque.
       select exists(select 1 from public.shipment_tags where id = p_entity_id and tenant_id = p_tenant_id) into ok;
     else
-      ok := false; -- tipo desconocido → rechaza (fail-closed; el CHECK ya acota el set)
+      ok := false;
   end case;
   return ok;
 end;
@@ -715,7 +716,7 @@ Candados por RPC:
 | `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo por solicitud aprobada | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
 | `poner_indicador_embarque(p_shipment_id, p_tag_id, p_nota)` (C) | `admin`, o `warehouse`/`operations` de región `ve` | Valida embarque vivo del tenant e indicador no archivado; inserta en `shipment_tags` y audita |
 | `quitar_indicador_embarque(p_asignacion_id, p_motivo)` (C) | ídem; con efecto de dinero, solo por solicitud aprobada | Marca `removed_*` y audita |
-| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve` | Compare-and-set sobre un indicador **vivo**: `update public.warehouse_tags set efecto = p_efecto, efecto_fijado_at = pg_catalog.now(), efecto_fijado_por = auth.uid() where id = p_id and tenant_id = <tenant> and archived_at is null and efecto_fijado_at is null returning id`. `p_efecto = 'ninguno'` se permite: fija «sin efecto» y lo cierra igual; si no devuelve fila, `P0001` («el efecto ya está fijado; pide el cambio»). Audita |
+| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve` | Compare-and-set sobre un indicador **vivo**: `update public.warehouse_tags set efecto = p_efecto, efecto_fijado_at = pg_catalog.now(), efecto_fijado_por = auth.uid() where id = p_id and tenant_id = <tenant> and archived_at is null and efecto_fijado_at is null returning id`. `p_efecto = 'ninguno'` se permite: fija «sin efecto» y lo cierra igual; si no devuelve fila, `P0001` con mensaje según la causa: «el indicador está archivado» o «el efecto ya está fijado; pide el cambio». Audita |
 | `pedir_cambio_indicador(p_accion, p_objetivo_id, p_cambios, p_motivo)` (C) | quien podría hacer ese cambio si el indicador no tuviera dinero | Crea la solicitud `pendiente` |
 | `aprobar_cambio_indicador(p_id, p_comentario)` (C) | `admin` o `accounting` (`approve_tag_changes`), distinto de quien pidió | Llama a `aplicar_cambio_indicador` en la misma transacción y cierra la solicitud |
 | `rechazar_cambio_indicador(p_id, p_comentario)` (C) | ídem | Cierra la solicitud sin cambios |
@@ -998,7 +999,10 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 33. **md5 del cuerpo de la 0215 en CI:** una prueba lee `supabase/migrations/0215_bitacora_enums.sql`, toma el
     texto entre los `$$` de `comment_entity_in_tenant` y comprueba que su md5 es
     `86d37a438337bc91e2f44e204d2051d4`, el que acepta el precheck de la C (patrón de
-    `lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts`).
+    `lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts`). Además: ese mismo cuerpo sin sus dos
+    comentarios (la línea `-- SDD-0146…` y el `-- tipo desconocido…` del `else`) da
+    `473bd66fcd3a2ccc1fe83f0d1699b63a`, el vivo en producción (comprobado al escribir esta spec), y el cuerpo de
+    la migración C da `51da3b7a0f47dafc6f8187ba1c49196d`.
 
 ### 8.2 Pruebas de aplicación
 
