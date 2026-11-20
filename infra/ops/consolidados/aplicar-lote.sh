@@ -133,6 +133,9 @@ SCRIPT="${LOTE}/${PASO}.sql"
   || refuse "${PASO}.sql no empieza con \\set ON_ERROR_STOP on"
 LOTE_ID="$(sed -nE 's/^[[:space:]]*"lote":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ -n "${LOTE_ID}" ]] || refuse "manifiesto.json no trae el id del lote"
+# La forma del id, antes de usarlo en un grep -E o en una regex (SDD-0690, revisión de la #733): la carga
+# (`carga-consolidado:<N>:<hash>`) o sus pre-órdenes (`…:facturas`). Nada más.
+[[ "${LOTE_ID}" =~ ^carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)?$ ]] || refuse "el id del lote no tiene la forma esperada"
 grep -qF -- "${LOTE_ID}" "${SCRIPT}" || refuse "${PASO}.sql no es del lote ${LOTE_ID}"
 ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ "${ENTORNO}" == "${ENTORNO_ESPERADO}" ]] || refuse "el lote se generó para «${ENTORNO}», no para ${ENTORNO_ESPERADO} (${PROJECT})"

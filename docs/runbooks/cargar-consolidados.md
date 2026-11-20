@@ -111,6 +111,12 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     El OK de Sam va literal en `AUTORIZACION.txt`, dentro de la carpeta, y tiene que citar el id con `:facturas` y la palabra «pre-órdenes». Por ejemplo, para que Sam lo repita: «Autorizo cargar las pre-órdenes del 64, lote carga-consolidado:64:6303f821:facturas, en producción». Después se sube la carpeta a `/srv/ops/paquetes/lote-64-facturas` y se corren los pasos de a uno, leyendo la evidencia entre paso y paso:
 
     ```bash
+    scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\64\2026-11-20-produccion-solo-facturas" root@217.216.54.70:/srv/ops/paquetes/lote-64-facturas
+    ```
+
+    En el VPS:
+
+    ```bash
     /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso previa
     /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso simulacro
     /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso aplicar
