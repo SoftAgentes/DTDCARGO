@@ -217,8 +217,9 @@ nada en esta spec.
   esconde es ruido operativo, no un secreto. La nota libre sí podría llevar algo, y por eso tiene sus reglas
   (§3). Si Sam quiere que la base lo cierre, la salida es partir la política de lectura por región:
   `visible_ve = true or` región `cn` del lector `or` rol `admin`. Lo que cuesta:
-  - **Lectura de región y rol:** una subconsulta a `user_tenants` por `(user_id, tenant_id)`. Escrita como
-    `(select …)` corre una vez por consulta (initplan), no una vez por fila.
+  - **Lectura de región y rol:** una subconsulta a `user_tenants` por `(user_id, tenant_id)`. Corre una vez
+    por consulta (initplan), no una vez por fila, solo si cada función va envuelta en su propio `select`:
+    `(select auth.uid())` y `(select public.get_user_tenant_id())`. Llamadas sueltas se evalúan por fila.
   - **`warehouse_receipt_tags`:** `visible_ve` vive en el catálogo, así que la política necesita un `exists`
     a `warehouse_tags` por su clave primaria **por cada fila** de asignación. En listas de 100 recepciones
     son unos cientos de búsquedas por índice: barato, pero no gratis.
@@ -339,7 +340,15 @@ end $$;
 create trigger warehouse_receipt_events_tags_solo_rpc
   before insert or update or delete on public.warehouse_receipt_events
   for each row execute function public.warehouse_receipt_events_tags_solo_rpc();
+-- Función de trigger: nadie la llama directo (patrón de la 0327).
+revoke all on function public.warehouse_receipt_events_tags_solo_rpc()
+  from public, anon, authenticated;
 ```
+
+- **Es una lista de denegación:** bloquea solo a `authenticated` y `anon`, los roles con los que entra una
+  sesión por PostgREST. Cualquier otro rol (el dueño de las RPC, `service_role`, `postgres`) pasa. Si mañana
+  aparece otro rol de sesión, hay que sumarlo a la lista; una lista de permitidos (solo el dueño de las RPC)
+  sería más cerrada, pero también bloquearía las correcciones de datos por runbook.
 
 **Reglas de las cinco RPC** (todas, sin excepción):
 
@@ -545,7 +554,9 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     `removed_at` y no escribe un segundo `tag_removed`.
 15. **Historial solo por RPC:** como `authenticated` (miembro activo de T1), insertar directo en
     `warehouse_receipt_events` un `tag_added` falla con `42501`; actualizar o borrar uno existente, también.
-    Insertar directo un `note` sigue pasando (no se cambia lo que ya funciona).
+    Insertar directo un `note` sigue pasando (no se cambia lo que ya funciona). Casos de `old`/`new` nulos:
+    un `insert` de `note` (sin `old`) y un `delete` de un `note` (sin `new`), ambos como `authenticated`,
+    terminan sin error del trigger; el `delete` de un `tag_added` falla con `42501`.
 16. **Actor desde la sesión:** ninguna RPC acepta un actor por parámetro; `assigned_by` y el `created_by` del
     evento son `auth.uid()` del que llama.
 17. **Auditoría del catálogo:** crear, editar y archivar dejan una fila en `entity_audit_log` con tipo
