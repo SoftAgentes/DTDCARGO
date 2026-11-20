@@ -10,12 +10,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
 import type { MinimalAlert } from "@/lib/studio/discord/minimal-alert";
 
-export const RUTA_REVISION = "/studio/admin/oficina";
+export const RUTA_REVISION = "/studio/admin/oficina-virtual";
 
 export function avisoDePendientes(pendientes: number, sitio: string | undefined): MinimalAlert {
   const n = Math.max(0, Math.trunc(pendientes));
   return {
-    titulo: n === 1 ? "Oficina: hay 1 borrador pendiente de revisión" : `Oficina: hay ${n} borradores pendientes de revisión`,
+    titulo: n === 1 ? "Oficina_Virtual: hay 1 borrador pendiente de revisión" : `Oficina_Virtual: hay ${n} borradores pendientes de revisión`,
     url: sitio ? `${sitio.replace(/\/+$/, "")}${RUTA_REVISION}` : null,
     conteos: [{ etiqueta: "Pendientes", valor: n }],
   };
