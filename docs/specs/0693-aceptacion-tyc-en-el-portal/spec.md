@@ -109,16 +109,20 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 | Qué bloquea | Emitir la factura | Ver el seguimiento y el estado de cuenta en el portal |
 | Qué no bloquea | — | Facturar, contabilizar, cobrar, enviar la factura por correo |
 
-- **Sale de la emisión.** `createInvoice` y `emitInvoice` dejan de consultar la aceptación. No hay bloqueo,
-  aviso ni override. La factura DDP se emite como cualquier otra.
+- **Sale de la emisión, desde la fase 1.** `createInvoice` y `emitInvoice` dejan de llamar a
+  `evaluateLegalGate` y, con eso, a `hasValidAcceptanceForMarkbox`. No hay bloqueo, aviso ni override. La
+  factura DDP se emite como cualquier otra. `hasValidAcceptanceForMarkbox` sigue existiendo solo para la
+  acción de aceptar por orden del portal, hasta que se retire en la fase 4.
 - **Entra al portal.** La aceptación general del cliente (§5) abre el seguimiento y el estado de cuenta (§4).
 - **Se retira la constante `LEGAL_GATE_HARD_BLOCK`.** Se borra de `gate-config.ts` y de
   `feature-constants.json`. El banner de modo de `/studio/legal` dice: «La aceptación de T&C se exige en el
   portal del cliente. No frena la facturación.» Apagarla y dejarla viva no sirve: la rama advisory pediría
   un override en cada factura DDP.
-- **Queda un rastro informativo.** El evento de emisión agrega `tyc_portal` con uno de dos valores:
-  `aceptados` o `pendientes`. Ese valor sale del mismo cálculo de §4.4. Solo se registra; no decide nada.
-  Así se puede listar lo que se emitió con el cliente sin aceptar.
+- **Queda un rastro informativo.** El evento de emisión agrega `tyc_portal`. Solo se registra; no decide
+  nada. Así se puede listar lo que se emitió con el cliente sin aceptar.
+  - **En la fase 1 vale siempre `pendientes`.** Todavía no existen la columna `alcance` ni el cálculo de
+    §4.4, y ninguna aceptación por orden cuenta como aceptación general.
+  - **Desde la fase 2** sale del cálculo de §4.4 y puede valer `aceptados` o `pendientes`.
 - **La aceptación por orden se retira** (decisión 11) en la fase 4 (§7):
   - la ruta `/portal/facturas/[code]/aceptar`;
   - `PendingAcceptanceCard` y `PendingInvoiceGate`;
@@ -176,7 +180,7 @@ general del cliente. La 0693 la crea sin tocar las filas que ya existen.
 | `sin_aceptar` | Nunca aceptó | El aviso (§4.2) y los módulos cerrados (§4.3) |
 | `version_anunciada` | Aceptó la versión anterior y la nueva ya está publicada, pero todavía no entra en vigencia (§5.3) | Todo el portal, con una franja informativa que se puede cerrar |
 | `version_nueva` | Aceptó una versión anterior y la nueva ya entró en vigencia | Igual que `sin_aceptar`, con el texto de versión nueva |
-| `sin_documentos` | El tenant no tiene documentos vigentes de cara al cliente | Todo el portal, sin aviso (no hay nada que aceptar). El Studio lo señala en `/studio/legal` |
+| `sin_documentos` | El tenant no tiene documentos vigentes de cara al cliente | Todo el portal, sin aviso, y el Studio lo señala en `/studio/legal`. Es un cambio de criterio deliberado (§4.4) |
 | `no_comprobado` | Falló la lectura | Los módulos cerrados muestran «No pudimos comprobar tu aceptación. Prueba de nuevo en un rato.» Falla cerrado, pero sin aviso de aceptar |
 
 ### 4.2 El aviso
@@ -237,15 +241,27 @@ viendo tus envíos y tu estado de cuenta.» Botón «Leer y aceptar».
 
 ### 4.4 Cómo se calcula el estado
 
-Una función pura `estadoTycPortal(aceptaciones, vigentes)` devuelve un estado de §4.1. La lectura va por
-el principal del portal (`getPortalClientPrincipal`), con tenant y cliente explícitos, como en la
-SDD-0549. Valen las mismas reglas que en `acceptanceRowValid`:
+Una función pura `estadoTycPortal(aceptaciones, vigentes, programadas, hoy)` devuelve un estado de §4.1.
+Nace en la fase 2.
 
-- el hash se recomputa desde la fila;
-- la aceptación tiene que cubrir todos los documentos vigentes.
-
-**No mira la medida ni la orden.** La emisión del Studio (§3.1) usa esta misma función para escribir
-`tyc_portal`.
+- **La lectura** va por el principal del portal (`getPortalClientPrincipal`), con tenant y cliente
+  explícitos, como en la SDD-0549.
+- **Valen las mismas reglas que en `acceptanceRowValid`:**
+  - el hash se recomputa desde la fila;
+  - la aceptación tiene que cubrir todos los documentos vigentes.
+- **Excepción del período anunciado (§5.3).** Si hay un documento `programada` con `effective_date`
+  posterior a hoy, una aceptación que cubre las vigentes da `version_anunciada` y no `aceptados`. Cuando la
+  programada pasa a vigente, la regla general la exige y el estado pasa a `version_nueva`.
+- **`hoy` es la fecha de Caracas** (`fechaCaracas`, `lib/shared/fechas-caracas.ts:43`).
+- **No mira la medida ni la orden.** Desde la fase 2, la emisión del Studio (§3.1) usa esta misma función
+  para escribir `tyc_portal`.
+- **Sin documentos vigentes, el portal queda abierto.** Es un cambio de criterio deliberado.
+  `hasValidAcceptanceForMarkbox` falla cerrado en ese caso (`queries.ts:492`), y en la emisión tenía
+  sentido: sin documentos no hay nada que acredite una aceptación, y la factura DDP no salía. Aquí cerrar
+  le quitaría a todos los clientes su seguimiento y su estado de cuenta por un error de configuración del
+  Studio, sin que exista un texto que puedan aceptar. Por eso se abre, se señala en `/studio/legal` y queda
+  `tyc_portal = pendientes` en la emisión. Mientras la bandera de la fase 3 esté apagada, el caso no llega
+  al cliente.
 
 ### 4.5 La pantalla de aceptación
 
@@ -319,12 +335,41 @@ caracteres (`lib/studio/legal/types.ts:150`). No se agrega nada más:
 - Una aceptación `portal` vale mientras cubra todas las versiones vigentes de cara al cliente.
 - **Versión nueva (decisión 7).** El portal se cierra cuando la versión nueva **entra en vigencia**, no
   cuando se publica. La cláusula 13.2 da 72 horas hábiles.
-  - La fecha de vigencia es `legal_docs.effective_date`, y la fija quien publica. La puerta solo la lee.
+  - La fecha de vigencia es `legal_docs.effective_date`. La puerta solo la lee.
   - Desde que se publica hasta esa fecha, el cliente que aceptó la versión anterior queda en
     `version_anunciada`: ve todo, con la franja informativa (§4.2).
   - Desde esa fecha, pasa a `version_nueva` y el portal se cierra hasta que acepte.
   - La comparación de fechas va en hora de Caracas.
   - La aceptación vieja se conserva como evidencia.
+- **Cómo sigue vigente la versión anterior en ese período.** Hoy `legal_docs.status` solo admite `vigente`
+  o `archivada` (`0102_capa_legal.sql:59-60`). Hay a lo sumo una vigente por `(tenant, key)`
+  (`0102_capa_legal.sql:70-73`). `currentClientDocs` filtra `vigente` (`queries.ts:96`). El guard solo deja
+  pasar de `vigente` a `archivada` (`0297_legal_docs_body_hash.sql:90-97`). Por eso hace falta un estado
+  nuevo, que se declara en la migración de la fase 2:
+  - **`programada`.** La versión nueva se publica como `programada`, con su `effective_date` futura. La
+    anterior sigue `vigente` hasta esa fecha. El índice único de una vigente por `key` no cambia.
+  - **El guard admite una transición más:** de `programada` a `vigente`, solo con `effective_date` menor o
+    igual a hoy en Caracas. Una programada no se edita, igual que una vigente.
+  - **Una RPC programada** (`legal_docs_activar_programadas`, sin permiso para el cliente) archiva la
+    anterior y activa la programada en la misma transacción. La llama un cron nuevo de Vercel,
+    `/api/cron/legal-docs-activar`, a las 00:05 de Caracas, como los otros de `app/api/cron/`. Es idempotente.
+    Si se atrasa, el portal sigue en `version_anunciada` con la versión anterior vigente: nunca queda sin
+    documento vigente.
+  - **`currentClientDocs` no cambia.** Se agrega `scheduledClientDocs` para la franja informativa y para
+    `estadoTycPortal`.
+- **El cliente nuevo durante el período anunciado** acepta la versión vigente, que es la única que se puede
+  aceptar. Queda en `version_anunciada` y, cuando entra la nueva, vuelve a aceptar.
+- **Quién valida las 72 horas hábiles (cláusula 13.2).** La base, al insertar una versión `programada`:
+  - el trigger rechaza una `effective_date` menor que la fecha de publicación más tres días hábiles en
+    Caracas;
+  - los días hábiles excluyen sábados, domingos y los feriados VE de `operational_calendar`
+    (`0192_operational_calendar.sql:22`);
+  - se prueba en el `.test.sql` de la fase 2.
+
+  Hoy los documentos se publican por migración (`0213_acuerdo_servicios_v3.sql`) y no hay un botón de
+  publicar en el Studio, así que la regla tiene que vivir en la base. Si algún día se agrega ese botón, usa
+  la misma regla.
+  - **Supuesto, a confirmar con el abogado:** «72 horas hábiles» equivale a tres días hábiles completos.
 - **Quién la da (decisión 8).** Cubre al cliente (`client_id`). Si el cliente tiene varios usuarios del
   portal, basta con que acepte uno. Queda registrado quién fue en `accepted_by` y en el correo.
 
@@ -431,6 +476,8 @@ Es lo único que queda abierto. Las fases 2 y 3 lo esperan (decisión 10).
    - Una sola aceptación cubre los términos completos, incluidas las condiciones DDP, que se aplican a cada
      orden facturada (decisión 11).
    - El abogado revisa esa frase junto con la cláusula, y el texto sobre las casillas (§4.5).
+   - De paso confirma el supuesto de la cláusula 13.2 que usa la base: «72 horas hábiles» son tres días
+     hábiles completos (§5.3).
 3. **El plazo de retención de las aceptaciones.** Va como fila nueva en
    `docs/legal/retention-schedule-v1.md`.
 
@@ -443,8 +490,8 @@ sin marcadores pendientes en `legal_docs`, que sea el mismo texto que publique `
 | Fase | Qué | Depende de | Producción |
 |---|---|---|---|
 | 0 | Revisión del abogado (§6.1) | — | No aplica |
-| 1 | Facturación sin la puerta legal (§3.1), rastro `tyc_portal`, retiro del §6 de la EXC-0674, nota en las filas SGE-00, MP-01 y BTN-01 del registro y nota en la SDD-0054 | Esta spec. **No espera al abogado** (decisión 10) | Merge = despliegue. No tiene migración |
-| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`, evidencia v4, `estadoTycPortal` (con `version_anunciada`) y plantilla `tyc_aceptada` | Fases 0 y 1, y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
+| 1 | Facturación sin la puerta legal (§3.1): `emitInvoice` y `createInvoice` dejan de leer `hasValidAcceptanceForMarkbox`. Rastro `tyc_portal`, que en esta fase vale siempre `pendientes`. Retiro del §6 de la EXC-0674, nota en las filas SGE-00, MP-01 y BTN-01 del registro y nota en la SDD-0054 | Esta spec. **No espera al abogado** (decisión 10) | Merge = despliegue. No tiene migración |
+| 2 | Columnas `alcance`, `accepted_by` y `copy_sha256`. Estado `programada` en `legal_docs`, con su guard, la regla de las 72 horas hábiles y la RPC y el cron de activación (§5.3). Evidencia v4, `estadoTycPortal` (con `version_anunciada` y la excepción del período anunciado) y `tyc_portal` calculado en la emisión. Plantilla `tyc_aceptada` | Fases 0 y 1, y número de migración de Dir_DTD | Aplicar la migración con el OK nominal de Sam y el runbook |
 | 3 | Portal: franja, pantalla de entrada, `/portal/terminos/aceptar`, constancia, puerta en el servidor, «Reportar un pago» desde la puerta y correo. Detrás de la bandera `PORTAL_TYC_GATE_LIVE = false` | Fases 0 y 2 | Encender la bandera con el OK nominal de Sam |
 | 4 | Retiro de la aceptación por orden de las DDP (decisión 11) y estado de T&C en la ficha del cliente del Studio | Fase 3 encendida | Normal |
 
@@ -460,8 +507,9 @@ aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación g
 
 1. Una prueba de `emitInvoice` y de `createInvoice` con `emit_on_create`: un borrador DDP sin aceptación
    se emite. No devuelve `needsLegalAck` ni error legal.
-2. Esa prueba comprueba que el evento de emisión lleva `tyc_portal: "pendientes"`, y `"aceptados"` cuando
-   hay una aceptación `portal` íntegra.
+2. Esa prueba comprueba que el evento de emisión lleva `tyc_portal: "pendientes"`, aunque el cliente tenga
+   una aceptación por orden. Y que ni `emitInvoice` ni `createInvoice` llaman a
+   `hasValidAcceptanceForMarkbox`.
 3. `LEGAL_GATE_HARD_BLOCK` no existe en el código ni en `feature-constants.json`. `check-feature-constants`
    pasa.
 4. El §6 del documento de la EXC-0674 dice «Retirada» con la fecha. Las filas SGE-00, MP-01 y BTN-01 de
@@ -483,38 +531,50 @@ aunque desde la fase 1 ya no frene la emisión. Se quita cuando la aceptación g
    - una versión nueva publicada con vigencia de mañana da `version_anunciada`;
    - la misma versión, el día de su vigencia en hora de Caracas, da `version_nueva`;
    - dos usuarios del mismo cliente: si acepta uno, los dos ven `aceptados`, y la fila guarda en
-     `accepted_by` al que aceptó.
+     `accepted_by` al que aceptó;
+   - un cliente nuevo durante el período anunciado acepta la vigente, queda en `version_anunciada`, y al
+     activarse la programada pasa a `version_nueva`;
+   - sin documentos vigentes da `sin_documentos`, y no `sin_aceptar`.
+8. La emisión escribe `tyc_portal: "aceptados"` cuando hay una aceptación `portal` íntegra que cubre las
+   vigentes, y `"pendientes"` en los demás casos.
+9. Una prueba SQL de `programada`:
+   - se inserta con una `effective_date` de tres días hábiles o más;
+   - se rechaza con una menor, contando un feriado de `operational_calendar` y un fin de semana;
+   - de `programada` a `vigente` se rechaza antes de la fecha;
+   - `legal_docs_activar_programadas` archiva la anterior y activa la nueva en una transacción, y una
+     segunda llamada no cambia nada;
+   - nunca hay dos vigentes por `key`, ni un momento sin una.
 
 **Fase 3**
 
-8. Para cada ruta cerrada de §4.3, una prueba de página o de ruta comprueba que, con `sin_aceptar`, devuelve
-   la pantalla de la puerta y no llama a la consulta de datos. Con `aceptados`, muestra los datos.
-9. Una prueba comprueba que las rutas abiertas de §4.3 (Compras y Documentos incluidas) no consultan el
-   estado.
-10. Con `sin_aceptar`, la pantalla de la puerta del estado de cuenta ofrece «Reportar un pago», el reporte
+10. Para cada ruta cerrada de §4.3, una prueba de página o de ruta comprueba que, con `sin_aceptar`, devuelve
+    la pantalla de la puerta y no llama a la consulta de datos. Con `aceptados`, muestra los datos.
+11. Una prueba comprueba que las rutas abiertas de §4.3 (Compras y Documentos incluidas) no consultan el
+    estado.
+12. Con `sin_aceptar`, la pantalla de la puerta del estado de cuenta ofrece «Reportar un pago», el reporte
     se registra igual que hoy, y la pantalla no muestra saldos ni la lista de facturas.
-11. Con `sin_aceptar`, siguen saliendo los correos y avisos push de seguimiento y el correo de la factura.
+13. Con `sin_aceptar`, siguen saliendo los correos y avisos push de seguimiento y el correo de la factura.
     Ninguna prueba de esos envíos cambia.
-12. La acción de aceptar:
+14. La acción de aceptar:
     - rechaza sin las dos casillas, cada una con su error;
     - inserta una sola vez si se repite;
     - toma la IP y el agente de los headers, no del formulario;
     - envía `tyc_aceptada` con el `acceptance_code` en `metadata`.
 
     Si el correo falla, la aceptación queda igual.
-13. Una prueba de contrato sobre los textos de §4 y §5.4 comprueba que no aparecen «firma», «firmad»,
+15. Una prueba de contrato sobre los textos de §4 y §5.4 comprueba que no aparecen «firma», «firmad»,
     «certificad» ni «autógrafa», salvo en el nombre de la ley si el abogado lo deja.
     Comprueba también que no hay voseo, y que la pantalla y el correo dicen que la aceptación cubre los
     términos completos, incluidas las condiciones DDP (decisión 11).
-14. `/ui-check` de la franja, la puerta y la pantalla de aceptación.
-15. Un ensayo e2e local con datos inventados: entra un cliente sin aceptar, ve la franja, no ve Envíos,
+16. `/ui-check` de la franja, la puerta y la pantalla de aceptación.
+17. Un ensayo e2e local con datos inventados: entra un cliente sin aceptar, ve la franja, no ve Envíos,
     acepta, recibe el correo en modo de prueba y ve Envíos.
 
 **Fase 4**
 
-16. `/portal/facturas/[code]/aceptar` ya no existe. La portada y Facturas no muestran «por aceptar».
-    `emitInvoice` no lee `hasValidAcceptanceForMarkbox`. Las filas `orden` siguen en la base y se exportan
-    en el expediente.
+18. `/portal/facturas/[code]/aceptar` ya no existe. La portada y Facturas no muestran «por aceptar». Nada
+    llama a `hasValidAcceptanceForMarkbox`; `emitInvoice` dejó de leerla en la fase 1 (criterio 2). Las filas
+    `orden` siguen en la base y se exportan en el expediente.
 
 **Cierre de cada fase:** `pnpm verify` y el CI de GitHub de la PR.
 
@@ -524,7 +584,8 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 
 **Fase 1**
 
-- `app/studio/(app)/facturacion/actions.ts`
+- `app/studio/(app)/facturacion/actions.ts`: se quita `evaluateLegalGate` y se agrega `tyc_portal: "pendientes"` fijo. No se
+  toca `lib/studio/legal/queries.ts` ni se lee `legal_acceptances`.
 - `app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx`
 - `app/studio/(app)/facturacion/__tests__/` (prueba nueva de emisión DDP)
 - `lib/studio/legal/gate-config.ts` (se borra o queda sin la constante)
@@ -537,11 +598,15 @@ Se cierra en la PR de cada fase. Lo que no está aquí no se toca sin enmendar l
 
 **Fase 2**
 
-- `supabase/migrations/NNNN_tyc_portal_aceptacion.sql`, su `.test.sql` y su desarme en
+- `supabase/migrations/NNNN_tyc_portal_aceptacion.sql` (columnas de `legal_acceptances`; estado `programada`,
+  guard y regla de días hábiles en `legal_docs`; RPC de activación), su `.test.sql` y su desarme en
   `supabase/desarmes/`
 - `lib/studio/legal/seal.ts`, `lib/studio/legal/types.ts` y `lib/studio/legal/queries.ts`, con sus pruebas
   en `lib/studio/legal/__tests__/`
 - `lib/portal/tyc-gate.ts` y su prueba
+- `app/api/cron/legal-docs-activar/route.ts` (nuevo) y su entrada en `vercel.json`
+- `app/studio/(app)/facturacion/actions.ts`: solo para cambiar el `tyc_portal` fijo por el de `estadoTycPortal`
+- `app/studio/(app)/legal/_components/LegalClient.tsx`: para mostrar la versión `programada` y su fecha
 - Plantilla `tyc_aceptada` en `scripts/seed-mail-templates.ts`, o en la migración si Dir_DTD lo prefiere
 
 **Fase 3**
