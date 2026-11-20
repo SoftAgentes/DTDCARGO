@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-11-18T00:00:00.000Z",
-  "sourceCommit": "da808bb034ad56b74ee8ffc63274f1b503a54c3b",
+  "sourceCommit": "b406f1e68f3d87d2986521adbe8ea9141300f2b0",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -22,7 +22,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.1",
+          "version": "1.2",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
@@ -134,7 +134,7 @@
         },
         {
           "code": "VIS-01",
-          "version": "1.0",
+          "version": "1.1",
           "path": "docs/governance/policies/vis-01.md"
         }
       ],
@@ -218,12 +218,12 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.1",
+          "version": "1.2",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
           "code": "VIS-01",
-          "version": "1.0",
+          "version": "1.1",
           "path": "docs/governance/policies/vis-01.md"
         },
         {
@@ -629,7 +629,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.1",
+          "version": "1.2",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
