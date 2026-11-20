@@ -519,7 +519,10 @@ de §4.1.
    - una cadena única, `etaDelEnvio`, en `lib/shared`, que comparten los avisos y el portal;
    - cuando `refreshTracking` cambia `pod_eta`, se reprograman los avisos pendientes, como ya pasa al editar
      el itinerario.
-8. **China** (P-6): ¿la bodega de Yiwu registra su día en la hora de China o en la de Caracas?
+8. **China** (P-6, decidida): se guarda el día de Caracas, también en las recepciones de Yiwu
+   (`warehouse_receipts_cn.received_at` y la recepción móvil). Las pantallas de la región `cn` muestran la
+   fecha y la hora convertidas a la zona de China (`Asia/Shanghai`), con la zona visible (CAL-01). El
+   cambio va en la F-8.
 
 ### 4.10 Una sola predeterminada por cliente (Q7)
 
@@ -748,8 +751,9 @@ Cada pregunta trae la recomendación primero.
 - **P-5 (alta duplicada en el Studio). Decidida por Sam el 2026-11-20:** «Sí, así». En el alta del Studio
   y en la conversión de Kommo, un correo que ya existe **bloquea** con «Ya existe una ficha con ese correo»
   y un enlace a esa ficha. Un teléfono que ya existe **solo avisa** y deja seguir (§4.3).
-- **P-6 (día de China).** En la bodega de Yiwu, ¿la fecha de recepción es el día de China o el de Caracas?
-  *Recomendado:* el de China en la recepción, y el de Caracas en la contabilidad.
+- **P-6 (día de China). Decidida por Sam el 2026-11-20:** «Todo Caracas». La contabilidad y todo lo que se
+  guarda usan el día de Caracas, también las recepciones de Yiwu. El equipo de China solo **ve** sus datos
+  en su hora y su día, en la pantalla: es presentación, no lo que se guarda (§4.9, punto 8).
 - **P-7 (prioridad). Decidida por Sam el 2026-11-20:** «Sí, en paralelo». La F-2 (fechas fiscales) y la
   F-3 (identidad) van a la vez, cada una en su rama. La F-2 conserva el plan B de la §6.
 - **P-8 (duplicados ya existentes).** Con los conteos de Q1 y Q2 en la mano, ¿la oficina revisa y fusiona
