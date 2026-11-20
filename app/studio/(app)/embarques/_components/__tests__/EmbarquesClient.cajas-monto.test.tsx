@@ -64,8 +64,8 @@ const DATOS: ContenedoresDeEmbarques = {
 const MONTOS: MontosDeContenedores = {
   estado: "lista",
   porEmbarque: {
-    a1: { facturas: 1, porCobrarUsd: 12000, cobradoUsd: 5000, otraMoneda: 0 },
-    a2: { facturas: 2, porCobrarUsd: 345.5, cobradoUsd: 0, otraMoneda: 1 },
+    a1: { facturas: 1, porCobrarUsd: 12000, cobradoUsd: 5000, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
+    a2: { facturas: 2, porCobrarUsd: 345.5, cobradoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 345.5 },
   },
 };
 
@@ -89,7 +89,7 @@ function fila(tabla: HTMLElement, rotulo: RegExp): string[] {
 }
 
 describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
-  it("cerrado: clientes, envíos, cajas y m³ en la cabecera; nada de dinero", () => {
+  it("cerrado: clientes, envíos, cajas y m³ en la cabecera; el dinero, solo el «Total sin facturar» (SDD-0689)", () => {
     render(
       <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
@@ -98,7 +98,9 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(c64).toContain("3 envíos");
     expect(c64).toContain("1.235 cajas");
     expect(c64).toContain("3 m³");
-    expect(c64).not.toMatch(/cobr|\$/i);
+    expect(c64).not.toMatch(/cobr|[$]/i);
+    // El «Total sin facturar» va al lado, oculto hasta oprimir el ojo.
+    expect(within(region("DDP 64")).getByTestId("total-sin-facturar").textContent).toContain("••••••");
   });
 
   it("abierto, sin montos (comercial): franja y detalle sin columnas de dinero", async () => {
@@ -174,7 +176,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     const botonUno = within(region("DDP 64"))
       .getAllByText("Cliente Uno")
       .map((el) => el.closest("button"))
-      .find(Boolean)!;
+      .find((b) => b?.classList.contains("emb-group-header"))!;
     expect(botonUno.textContent).toContain("2 envíos");
     expect(botonUno.textContent).toContain("1.234 cajas");
   });

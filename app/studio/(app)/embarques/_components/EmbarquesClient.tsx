@@ -28,7 +28,7 @@
 
 import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   contarPorPestana,
   filtrarPorPestana,
@@ -337,6 +337,23 @@ export function EmbarquesClient({
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
+    });
+  };
+
+  /**
+   * SDD-0689: clic en un cliente del detalle. Con un solo embarque abre su ficha
+   * (el panel con «Editar»); con varios abre su bloque de embarques y lo trae a la vista.
+   */
+  const abrirCliente = (c: ClienteDeContenedor) => {
+    if (c.shipments.length === 1) {
+      setDrawerShipmentId(c.shipments[0].id);
+      return;
+    }
+    setExpanded((prev) => new Set(prev).add(c.groupKey));
+    requestAnimationFrame(() => {
+      const bloque = document.getElementById(idDeCliente(c.groupKey));
+      bloque?.scrollIntoView({ behavior: "smooth", block: "start" });
+      bloque?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
     });
   };
 
@@ -673,6 +690,7 @@ export function EmbarquesClient({
           toggleContenedor={toggleContenedor}
           montos={montos}
           facturacion={facturacion}
+          onAbrirCliente={abrirCliente}
           renderClientes={(g) => (
             <GroupedTable
               groups={g.clientes}
@@ -960,6 +978,7 @@ function ListaDeContenedores({
   toggleContenedor,
   montos,
   facturacion,
+  onAbrirCliente,
   renderClientes,
 }: {
   grupos: GrupoContenedor[];
@@ -967,6 +986,7 @@ function ListaDeContenedores({
   toggleContenedor: (key: string) => void;
   montos?: MontosDeContenedores;
   facturacion?: FacturacionExc0674;
+  onAbrirCliente: (c: ClienteDeContenedor) => void;
   renderClientes: (g: GrupoContenedor) => ReactNode;
 }) {
   return (
@@ -977,6 +997,10 @@ function ListaDeContenedores({
         const estado = c ? CONTAINER_STATUS[c.status as ContainerStatus] : undefined;
         const cuerpoId = `emb-cont-${g.key}`;
         const nClientes = g.clientes.length;
+        // SDD-0689: el dinero del encabezado solo llega a quien ve Facturación (la página decide).
+        // Peso y dinero se suman sobre el contenedor entero, no sobre lo que dejó pasar la pestaña.
+        const dinero =
+          montos?.estado === "lista" ? sumarMontos(g.completo.envios, montos.porEmbarque) : null;
         return (
           <section
             key={g.key}
@@ -988,6 +1012,13 @@ function ListaDeContenedores({
               overflow: "hidden",
             }}
           >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: abierto ? "var(--bg-elevated)" : undefined,
+              }}
+            >
             <button
               type="button"
               aria-expanded={abierto}
@@ -995,6 +1026,8 @@ function ListaDeContenedores({
               onClick={() => toggleContenedor(g.key)}
               className="emb-cont-header"
               style={{
+                flex: 1,
+                minWidth: 0,
                 width: "100%",
                 display: "grid",
                 gridTemplateColumns: "24px minmax(0, 1fr) auto",
@@ -1086,6 +1119,13 @@ function ListaDeContenedores({
                     {textoCajas(g.cajas)}
                   </Badge>
                 )}
+                {c && (
+                  <Badge tone="neutral" size="sm">
+                    {g.completo.enviosSinPeso === g.completo.envios.length
+                      ? "Sin peso"
+                      : textoPeso(g.completo.pesoKg)}
+                  </Badge>
+                )}
                 <span
                   style={{
                     font: "600 11.5px/1 var(--f-mono)",
@@ -1098,6 +1138,14 @@ function ListaDeContenedores({
                 </span>
               </span>
             </button>
+            {c && dinero && (
+              <MontoOculto
+                texto={dinero.sinFacturarUsd > 0 ? fmtUsd(dinero.sinFacturarUsd) : null}
+                sinMonto={textoSinMonto(dinero)}
+                contenedor={g.nombre}
+              />
+            )}
+            </div>
             {abierto && (
               <div
                 id={cuerpoId}
@@ -1112,7 +1160,7 @@ function ListaDeContenedores({
                 {c && (
                   <>
                     <FranjaDeTotales grupo={g} montos={montos} />
-                    <DetallePorCliente grupo={g} montos={montos} />
+                    <DetallePorCliente grupo={g} montos={montos} onAbrirCliente={onAbrirCliente} />
                     {facturacion?.estado === "lista" && facturacion.contenedores.includes(c.id) && (
                       <FacturarContenedor grupo={g} facturados={facturacion.facturados[c.id] ?? {}} />
                     )}
@@ -1127,6 +1175,11 @@ function ListaDeContenedores({
       <style>{`
         .emb-cont-header { background: transparent; }
         .emb-cont-header:hover { background: var(--bg-elevated); }
+        .emb-cliente-link { all: unset; cursor: pointer; border-radius: var(--r-sm); }
+        .emb-cliente-link:hover { text-decoration: underline; }
+        .emb-ojo:hover { background: var(--bg-elevated) !important; }
+        .emb-ojo:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+        .emb-cliente-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
         /* La tarjeta recorta lo que sale (overflow hidden): el foco va adentro. */
         .emb-cont-header:focus-visible { outline-offset: -3px; }
         @media (max-width: 640px) {
@@ -1141,6 +1194,96 @@ function ListaDeContenedores({
       `}</style>
     </div>
   );
+}
+
+/** SDD-0689: cuánto se muestra el monto al oprimir el ojo. */
+export const SEGUNDOS_MONTO_VISIBLE = 4;
+
+/**
+ * SDD-0689: qué dice el encabezado cuando no hay monto en USD que ocultar.
+ *  - sin facturas: «Sin precios cargados»;
+ *  - con facturas y sin borradores: «Facturado» (Sam, 2026-11-20);
+ *  - con borradores que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
+ */
+function textoSinMonto(m: { facturas: number; borradores: number }): string {
+  if (m.facturas === 0) return "Sin precios cargados";
+  if (m.borradores === 0) return "Facturado";
+  return "Sin monto en USD";
+}
+
+/**
+ * SDD-0689 · «Total sin facturar» del encabezado, oculto por privacidad: la pantalla queda abierta en la
+ * PC de la oficina (Sam, 2026-11-20: «la opción del ojito como lo hace QuickBooks»). El ojo lo muestra
+ * {@link SEGUNDOS_MONTO_VISIBLE} segundos y vuelve a ocultarlo. Adentro, en la franja del contenedor, los
+ * montos se ven completos. `texto` null = no hay monto en USD sin facturar: se muestra `sinMonto`.
+ */
+function MontoOculto({
+  texto,
+  sinMonto,
+  contenedor,
+}: {
+  texto: string | null;
+  sinMonto: string;
+  contenedor: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => setVisible(false), SEGUNDOS_MONTO_VISIBLE * 1000);
+    return () => clearTimeout(t);
+  }, [visible]);
+  return (
+    <span
+      data-testid="total-sin-facturar"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "var(--s-2)",
+        paddingRight: "var(--s-5)",
+        font: "600 11.5px/1 var(--f-mono)",
+        color: "var(--ink-soft)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {texto == null ? (
+        sinMonto
+      ) : (
+        <>
+          Sin facturar
+          <span aria-live="polite" style={{ minWidth: 88, textAlign: "right" }}>
+            {visible ? texto : <span aria-hidden="true">••••••</span>}
+          </span>
+          <button
+            type="button"
+            className="emb-ojo"
+            aria-pressed={visible}
+            aria-label={`Mostrar u ocultar el total sin facturar de ${contenedor} (se oculta solo a los ${SEGUNDOS_MONTO_VISIBLE} segundos)`}
+            onClick={() => setVisible((v) => !v)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              padding: 0,
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-md)",
+              background: "var(--bg-surface)",
+              color: "var(--ink-soft)",
+              cursor: "pointer",
+            }}
+          >
+            {visible ? Icon.eyeOff(16) : Icon.eye(16)}
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
+
+/** SDD-0689: id del bloque de embarques de un cliente, para llevarlo a la vista. */
+function idDeCliente(groupKey: string): string {
+  return `emb-cli-${groupKey}`;
 }
 
 /** SDD-0661: «1 caja» · «1.234 cajas». */
@@ -1294,9 +1437,11 @@ const PIE_DETALLE = { ...TD_DETALLE, fontWeight: 700, borderTop: "2px solid var(
 function DetallePorCliente({
   grupo,
   montos,
+  onAbrirCliente,
 }: {
   grupo: GrupoContenedor;
   montos?: MontosDeContenedores;
+  onAbrirCliente: (c: ClienteDeContenedor) => void;
 }) {
   const lista = montos?.estado === "lista" ? montos.porEmbarque : null;
   const celdaDinero = (filas: readonly ShipmentListRow[], campo: "porCobrarUsd" | "cobradoUsd") =>
@@ -1366,18 +1511,25 @@ function DetallePorCliente({
                   whiteSpace: "normal",
                 }}
               >
-                {c.clientName}
-                {c.clientMarkbox && (
-                  <span
-                    style={{
-                      marginLeft: "var(--s-2)",
-                      font: "700 11px/1 var(--f-mono)",
-                      color: "var(--wine-text)",
-                    }}
-                  >
-                    {c.clientMarkbox}
-                  </span>
-                )}
+                <button
+                  type="button"
+                  className="emb-cliente-link"
+                  onClick={() => onAbrirCliente(c)}
+                  title={c.shipments.length === 1 ? "Abrir la ficha del embarque" : "Ver sus embarques"}
+                >
+                  {c.clientName}
+                  {c.clientMarkbox && (
+                    <span
+                      style={{
+                        marginLeft: "var(--s-2)",
+                        font: "700 11px/1 var(--f-mono)",
+                        color: "var(--wine-text)",
+                      }}
+                    >
+                      {c.clientMarkbox}
+                    </span>
+                  )}
+                </button>
               </th>
               <td style={TD_DETALLE}>{c.stats.count.toLocaleString("es-VE")}</td>
               <td style={TD_DETALLE}>{(c.cajas ?? 0).toLocaleString("es-VE")}</td>
@@ -1462,8 +1614,10 @@ function GroupedTable({
         return (
           <div
             key={group.groupKey}
+            id={idDeCliente(group.groupKey)}
             style={{
               borderTop: gi > 0 ? "1px solid var(--border)" : 0,
+              scrollMarginTop: "var(--s-5)",
             }}
           >
             {/* Group header (clickeable como toggle).
