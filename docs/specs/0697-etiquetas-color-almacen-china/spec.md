@@ -17,7 +17,7 @@ confidencialidad: interno
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
 > «Devolución de impuestos», marca sin documentación y «Montacargas». Hay más.
 
-**Estado: borrador con las preguntas 0 a 14 del §7 contestadas por Sam (2026-11-20); queda abierta la 15 (si China ve el efecto) y faltan la revisión y su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
+**Estado: borrador con todas las preguntas del §7 (0 a 15) contestadas por Sam (2026-11-20); falta su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
 fusionado. Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no
 se leyó ninguna fila de producción. Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
 Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.
@@ -228,7 +228,7 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
 - **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
   muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
   calcula montos ni toca facturas (§2.0).
-- **China no ve el efecto** (pendiente de la pregunta 15; recomendado: solo nombre, color e ícono). Las
+- **China no ve el efecto** (Sam, 2026-11-20, pregunta 15: «solo nombre y color»; el ícono también se ve). Las
   lecturas del servidor para un usuario de región `cn` sin admin no traen `efecto`, y la sección de China no
   lo muestra ni lo pide. Un indicador que crea China nace con `efecto = 'ninguno'` y sin fijar
   (`crear_etiqueta_almacen` rechaza otro efecto si quien crea es de región `cn`). **Fijarlo por primera vez** lo
@@ -239,8 +239,8 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
   indicador pase a «dinero» o salga de «dinero» sin aprobación. Una solicitud aprobada que deja el efecto en
   `ninguno` no reabre `fijar`: la marca de fijado no se limpia. Límite conocido: como el resto del
   catálogo, la columna se lee con la RLS de miembro activo, así que un usuario de China con PostgREST directo
-  podría leerla. Cerrarlo en la base (grant por columna o una vista) se decide si Sam contesta que China no
-  debe verlo nunca.
+  podría leerla. Cerrarlo en la base (grant por columna o una vista) queda
+  como mejora posterior: el efecto no es un dato personal ni un monto, y la aplicación ya no lo envía.
 - **Reordenar** (arrastrar la prioridad) no necesita solicitud, aunque el indicador tenga efecto de dinero:
   cambia solo el color de la fila.
 - **Quién crea y edita** (Sam, 2026-11-20, preguntas 2 y 13: «cualquiera de China», y Venezuela crea los de
@@ -895,6 +895,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 15. **El efecto y China.** ¿China ve el efecto (cobro o costo) de un indicador, o solo el nombre y el color?
     Ejemplo: en Almacén China, «Uso de montacargas» se ve rosa con su ícono, sin la moneda de «cobro y costo».
     Recomendado: solo nombre, color e ícono.
+    **Contestada (2026-11-20): solo nombre y color** (con su ícono).
 
 ## 8. Criterios de aceptación y pruebas
 
