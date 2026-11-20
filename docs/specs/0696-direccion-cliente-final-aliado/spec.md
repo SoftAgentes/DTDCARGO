@@ -297,7 +297,19 @@ returning client_id, tenant_id;
     datos.
 - Al guardar, sale el texto «Listo. Tu aliado ya tiene tu dirección de entrega». Al recargar, la página ya
   da la respuesta de enlace inválido.
-- El aviso de privacidad del formulario depende de P-7.
+- **El aviso de privacidad es el del aliado (P-7, decidida por Sam).** Debajo del botón de guardar va el
+  texto «Tus datos los recibe {nombre de la marca} para entregarte tu carga. Lee su aviso de privacidad»,
+  con un enlace a la dirección que guarda la columna nueva `aliados.privacy_notice_url`:
+  - es `text`, admite null y lleva un `check` que exige que empiece por `https://`;
+  - se carga en la tarjeta del aliado del Studio. La pone la oficina con la dirección que le pasa el
+    aliado;
+  - vale la del aliado cuya marca lleva la página (§4.4.3);
+  - **sin esa dirección no hay enlace:** `_create` lo rechaza con `ok=false` y el motivo
+    `falta_aviso_privacidad`, y el Studio muestra «Este aliado no tiene aviso de privacidad. Cárgalo en su
+    tarjeta antes de mandar enlaces»;
+  - si la dirección se borra después de crear el enlace, `_peek` responde sin formulario y la página dice
+    «Este enlace no está disponible. Pídele uno nuevo a tu aliado». `_complete` también la vuelve a revisar
+    y rechaza sin escribir.
 
 ### 4.5 Aviso al aliado
 
@@ -347,7 +359,7 @@ Esto se aplica cuando Sam apruebe esta spec, con una nota de cambio en cada una:
 |---|---|---|---|
 | F-0 | Esta spec. | No | La aprobación de Sam. |
 | **F-1** | `aliados.entrega_ve` en la tarjeta del aliado; `destinoDeEntrega` en el chofer y el despacho; la lista «Clientes sin dirección de entrega» en la ficha del aliado. | Sí | La 0694 F-1 (el helper). **No depende de la 0666 ni trata datos nuevos**: la oficina ya carga direcciones. |
-| F-2 | El enlace de §4.4, generado desde el Studio, y su página pública con la marca del aliado. | Sí | La cláusula de la 0255 §8.5, el texto legal de P-7 y el dominio de P-2. |
+| F-2 | El enlace de §4.4, generado desde el Studio, y su página pública con la marca del aliado. | Sí | La cláusula de la 0255 §8.5, la columna `aliados.privacy_notice_url` (P-7) y el dominio de P-2. |
 | F-3 | El aviso diario al aliado (§4.5). | No | **La F-2**, porque el correo dice si cada cliente tiene un enlace vigente, y eso sale de `client_address_links`. También la F-1 y la 0694 A-1 (el mismo punto de la recepción). El correo nunca genera ni lleva enlaces (§4.5). |
 | F-4 | En el portal del aliado: «Dirección de entrega» por cliente (con lectura y alta por RPC), «Mandarle el enlace» y el paso de la prealerta (§4.3 y §4.6). | Sí (las dos RPC) | La 0666 P2 y P3, la F-2 y la cláusula de la §8.5. |
 
@@ -368,8 +380,9 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
    F-2 ni la F-4 salen. La F-1 no agrega datos: la oficina ya los carga hoy.
 2. **Recogida directa.** `NO VERIFICABLE`: cuando el cliente final llena el enlace, entrega su dirección a
    un sistema operado por DTD bajo la marca del aliado, y la 0666 dice que el cliente final no ve ninguna
-   política de DTD. Hay que decidir qué aviso de privacidad lleva el formulario (P-7). Lo ve el abogado de
-   Sam antes de la F-2.
+   política de DTD. **Decidido por Sam (P-7):** el formulario muestra el aviso de privacidad del propio
+   aliado (§4.4.4), y sin ese aviso no se generan enlaces. El texto del aviso es responsabilidad del
+   aliado. La cláusula de la 0255 §8.5 sigue siendo requisito de la F-2.
 3. **Minimización.** **Diseño** (se verifica cuando el formulario exista):
    - solo se piden los campos de la dirección, y solo cuando DTD entrega;
    - el enlace no muestra el nombre, el teléfono ni la carga;
@@ -417,10 +430,15 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      - a un `authenticated` sin rol del Studio ni rol `aliado`;
      - a un aliado con un cliente de otra cadena;
      - a cualquiera con un cliente directo de DTD;
+     - con `ok=false` y `falta_aviso_privacidad`, cuando el aliado de la marca no tiene
+       `privacy_notice_url`, y no inserta el enlace;
      - a `anon`, que no la puede ejecutar (`has_function_privilege`).
 
      Con un rol del Studio, `created_via` queda en `studio`, y con el aliado, en `aliado`, aunque el que
      llama intente otra cosa: no hay parámetro para eso.
+   - **El aviso del aliado.** La página muestra el enlace a `privacy_notice_url`. Si la columna queda en null
+     después de crear el enlace, `_peek` responde sin formulario y `_complete` rechaza sin escribir
+     (`.test.sql` y prueba de la página). El `check` rechaza una dirección que no empieza por `https://`.
    - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
      13 días y 23 horas todavía funciona.
    - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
@@ -473,24 +491,38 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
 6. **China.** Ninguna superficie nueva devuelve el nombre, el teléfono ni la dirección a un usuario `cn`
    que no sea admin.
 
-## 8. Preguntas para Sam, una por una
+## 8. Preguntas para Sam: todas contestadas (2026-11-20)
 
 - **P-1 (modo).** ¿Quién recibe la carga en Venezuela se decide por aliado, con la opción de cambiarlo para
   un cliente puntual? *Recomendado:* por aliado, con `retira_aliado` por defecto, y la excepción por
   cliente en una fase posterior si hace falta.
+  **Decidida por Sam (2026-11-20): «Sí, por aliado».** El modo se fija por aliado, con `retira_aliado` por
+  defecto. La excepción por cliente queda para una fase posterior, si hace falta.
 - **P-2 (dominio del enlace).** Mientras no esté montado `hailuway.com`, ¿el enlace puede salir de una
   dirección de DTD con la marca del aliado, o esperamos el dominio neutro? *Recomendado:* montar solo la
   ruta del enlace en `hailuway.com`, sin subdominio por aliado, para no mostrar DTD.
+  **Decidida por Sam (2026-11-20): «Sí, hailuway.com».** El enlace sale solo por `hailuway.com`, sin
+  subdominio por aliado. No sale por una dirección de DTD, ni siquiera mientras tanto.
 - **P-3 (enlace).** ¿El enlace es de un solo uso y vence a los 14 días? *Recomendado: sí,* y el aliado lo
   regenera cuando quiera.
+  **Decidida por Sam (2026-11-20): «Sí, así».** El enlace es de un solo uso y vence a los 14 días. El
+  aliado lo regenera cuando quiera.
 - **P-4 (prealerta sin dirección).** Si el aliado crea una prealerta para un cliente sin dirección, ¿la
   bloqueamos o la dejamos pasar con el aviso? *Recomendado:* dejarla pasar, marcada, con el aviso diario.
+  **Decidida por Sam (2026-11-20): «Sí, que pase».** La prealerta se crea, queda marcada «sin dirección» y
+  el aliado recibe el aviso diario hasta completarla.
 - **P-5 (quién manda).** Si el cliente final ya cargó su dirección, ¿el aliado puede cambiarla?
   *Recomendado:* sí puede agregar otra y elegirla como predeterminada, pero no borrar la del cliente.
+  **Decidida por Sam (2026-11-20): «Sí, así».** El aliado puede agregar otra dirección y elegirla como
+  predeterminada. No puede borrar la que cargó el cliente.
 - **P-6 (subaliado).** Con `retira_aliado`, ¿la carga de un cliente de un subaliado la retira el subaliado
   o el raíz? *Recomendado:* el subaliado si tiene dirección, y si no, el raíz.
+  **Decidida por Sam (2026-11-20): «Sí, así».** Retira el subaliado si tiene dirección cargada. Si no la
+  tiene, retira el aliado raíz.
 - **P-7 (legal).** ¿Qué aviso de privacidad lleva el formulario del enlace? ¿El del aliado, uno de DTD sin
   la marca o uno neutro? Esto lo decide tu abogado junto con la cláusula de la 0255 §8.5.
+  **Decidida por Sam (2026-11-20): «El del aliado».** El formulario enlaza el aviso de privacidad del
+  aliado, guardado en `aliados.privacy_notice_url`. Sin él no se generan enlaces (§4.4.4).
 
 ## 9. Archivos (allowlist provisional)
 
@@ -505,7 +537,8 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
   - y sus pruebas.
 - **F-2:**
   - `supabase/migrations/NNNN_client_address_links.sql`, con su `.test.sql`. Lleva la tabla, la de
-    intentos y las RPC `_create`, `_peek` y `_complete`;
+    intentos, la columna `aliados.privacy_notice_url` y las RPC `_create`, `_peek` y `_complete`;
+  - `app/studio/(app)/clientes/_components/AliadoCard.tsx` (el campo del aviso de privacidad);
   - `app/d/[token]/**`, y `proxy.ts` si las cabeceras van ahí;
   - `.env.example` y `infra/dtd-cargo/.env.example` (`ADDRESS_LINK_ATTEMPT_SECRET`, sin valor);
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (para reutilizar el formulario);

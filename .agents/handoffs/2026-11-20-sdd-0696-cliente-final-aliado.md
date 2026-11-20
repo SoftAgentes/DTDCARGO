@@ -98,3 +98,8 @@
 - `pg_advisory_xact_lock(hashtextextended(p_attempt_key, 0))` va antes de contar.
 - Hay pruebas nuevas: la fila de fallo existe después de un `_complete` con un token inexistente, y después
   de 5 la siguiente queda bloqueada.
+
+## Respuestas de Sam a P-1 a P-7 (2026-11-20)
+
+- P-1 «Sí, por aliado»; P-2 «Sí, hailuway.com»; P-3 «Sí, así»; P-4 «Sí, que pase»; P-5 «Sí, así»; P-6 «Sí, así»; P-7 «El del aliado».
+- P-7 cambia el diseño: columna `aliados.privacy_notice_url` (https), el campo en la tarjeta del aliado, `_create` rechaza sin aviso (`falta_aviso_privacidad`), `_peek` y `_complete` lo vuelven a revisar, y las pruebas. La 0255 §8.5 sigue como requisito de la F-2. Necesita otra vuelta de revisión.
