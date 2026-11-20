@@ -46,7 +46,12 @@ const DESC =
 // Soporte del portal pasa a leerse y responderse en nuestro propio sistema de atención.
 // Ese chat no se conecta hasta que esto esté publicado (E10-D42). Si cambia una palabra,
 // se le vuelve a preguntar. Esta fecha lleva el día de publicar: si no sale el 8, se mueve.
-const UPDATED = "8 de noviembre de 2026";
+// SDD-0684, fase 2 (Microsoft Clarity): el 2026-11-20 Sam aprobó «tal cual» el
+// texto de las filas «Navegación», «Mejorar el sitio», analítica en §4, el párrafo
+// final de §4 y el plazo de Clarity en §6 (borrador con sha256 corto 4cc400bf00ba,
+// opción A: decir que Clarity registra cada página sin cookies aunque no haya
+// consentimiento). Si cambia una palabra, se le vuelve a preguntar.
+const UPDATED = "20 de noviembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -91,7 +96,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Navegación",
-    "Datos técnicos anónimos de uso del sitio (solo si aceptas las cookies de analítica). Ver Política de Cookies.",
+    "Cómo usas las páginas públicas del sitio: clics, desplazamiento y movimiento del puntero, con lo que escribes oculto. Sin cookies, cada página por separado; si aceptas las cookies de analítica, también la visita completa. Ver Política de Cookies.",
   ],
   [
     "Seguridad y registro de actividad",
@@ -225,9 +230,11 @@ export default function PrivacidadPage() {
                   y legales aplicables a la operación logística.
                 </li>
                 <li>
-                  <strong>Mejorar el sitio</strong> (analítica anónima) y medir
-                  nuestras campañas — <strong>solo si aceptas</strong> las cookies
-                  correspondientes.
+                  <strong>Mejorar el sitio</strong>, viendo dónde se traban las
+                  personas en las páginas públicas (analítica seudónima, sin tu
+                  nombre ni tus datos de contacto), y medir nuestras campañas. La
+                  medición de campañas y la unión de tu visita completa son{" "}
+                  <strong>solo si aceptas</strong> las cookies correspondientes.
                 </li>
               </ul>
               <p className={P}>
@@ -287,9 +294,23 @@ export default function PrivacidadPage() {
                   propio sistema, alojado en nuestro servidor.
                 </li>
                 <li>
-                  <strong>Herramientas de analítica y publicidad</strong>{" "}
-                  (Google), <strong>solo si aceptas</strong> las cookies
-                  opcionales y de forma anonimizada.
+                  <strong>Herramientas de analítica y publicidad.</strong> Google
+                  (Analytics y Ads), solo si aceptas las cookies opcionales.{" "}
+                  <strong>Microsoft Clarity</strong>, solo en las páginas
+                  públicas: registra cómo usas cada página, con lo que escribes
+                  oculto. Microsoft <strong>trata esos datos también para sus
+                  propios fines</strong>, según su{" "}
+                  <a
+                    href="https://www.microsoft.com/privacy/privacystatement"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                    style={{ color: "var(--color-wine)" }}
+                  >
+                    declaración de privacidad
+                  </a>
+                  . No le enviamos tu nombre, tu documento, tu correo, tu
+                  teléfono ni tu Shipping Mark.
                 </li>
                 <li>
                   <strong>Nuestro equipo en Venezuela</strong>, para coordinar tu
@@ -327,8 +348,8 @@ export default function PrivacidadPage() {
               </p>
               <p className={P}>
                 No compartimos la información de tu Portal con plataformas de
-                publicidad. La analítica del sitio y tus datos de cliente están{" "}
-                <strong>separados</strong>.
+                publicidad ni de analítica. La analítica del sitio público y tus
+                datos de cliente están <strong>separados</strong>.
               </p>
             </article>
 
@@ -387,6 +408,13 @@ export default function PrivacidadPage() {
                   El <strong>código anónimo de WhatsApp (BSUID)</strong> se borra
                   al <strong>año sin actividad</strong>, y el registro de las
                   respuestas automáticas, a los <strong>30 días</strong>.
+                </li>
+                <li>
+                  Las grabaciones de uso del sitio que guarda{" "}
+                  <strong>Microsoft Clarity</strong> se borran a los{" "}
+                  <strong>30 días</strong>, y los datos de clics y mapas de calor
+                  a los <strong>9 meses</strong>. Clarity no permite borrar la
+                  visita de una sola persona antes de esos plazos.
                 </li>
                 <li>
                   Las <strong>copias de respaldo</strong> se conservan{" "}

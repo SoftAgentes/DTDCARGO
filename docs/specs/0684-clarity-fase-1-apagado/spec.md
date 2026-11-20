@@ -136,10 +136,51 @@ La e2e no entra en `pnpm test:e2e`: la suite general corre sin ID, que es como s
 
 ## Encendido (fases 2 y 3, no en esta SDD)
 
-1. Publicar el texto de `/privacidad` y `/cookies` (evaluación §3.5). Según la sesión que evaluó Clarity, Sam ya aprobó el texto de las cookies; el cambio de las páginas lo asigna el DG en otra PR.
+1. Publicar el texto de `/privacidad` y `/cookies` (evaluación §3.5). Ver «Fase 2» abajo. *Corrección 2026-11-20: esta línea decía que Sam ya había aprobado el texto de las cookies. No era exacto: Sam aprobó la idea, pero el texto todavía no existía. Lo aprobó el 2026-11-20 (Fase 2).*
 2. Proyecto en clarity.microsoft.com con una cuenta de la empresa: enmascarado **Balanced** y **«requiere consentimiento»** (según esa misma sesión, Sam ya lo dejó así); acceso solo para el equipo de Venezuela.
 3. La **variable de repositorio** `NEXT_PUBLIC_CLARITY_ID` (GitHub → Settings → Secrets and variables → Actions → Variables) ya existe y vale `off` (la creó la sesión que evaluó Clarity, por decisión de Sam). Para encender, Sam la cambia por el ID real y se reconstruye la imagen de producción. `prueba` ya va con `off` fijo. Encender en producción, y el modo de consentimiento de §3, necesitan la **confirmación y el OK nominal de Sam**.
 4. Medir LCP, INP y CLS de `/`, `/tarifas` y `/calculadora` antes y después.
+
+## Fase 2: texto de `/privacidad` y `/cookies`
+
+Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cookies/page.tsx` y esta spec. Las pruebas que fijan la fecha y el texto, solo si el DG las asigna.
+
+### Decisiones de Sam (2026-11-20)
+
+- **Opción A** (D): el código de esta SDD carga Clarity en las páginas públicas **sin cookies aunque no haya consentimiento** (§3). La política lo dice tal cual, en vez de cambiar el código para no cargar nada sin consentimiento (opción B, descartada: el aviso solo sale en `/entrar` y `/registro`, y Clarity casi no vería visitas).
+- **Texto aprobado «tal cual»** (D): el borrador `clarity-fase-2-borrador-privacidad-cookies.md` (notas de la sesión, fuera del repo), con sha256 corto `4cc400bf00ba`. Si el abogado o la revisión cambian una palabra, se le vuelve a preguntar a Sam.
+
+### Qué cambia
+
+| Página | Sección | Cambio |
+|---|---|---|
+| `/cookies` | §2 | Las herramientas de Google y Clarity arrancan sin guardar nada; Clarity igual registra cada página por separado. |
+| `/cookies` | §3c | Filas `_clck` (1 año) y `_clsk` (1 día); solo páginas públicas, con las zonas excluidas por la guarda (Portal, registro, inicio de sesión, cotizador, direcciones con datos); qué hace Clarity, qué oculta y sus plazos (30 días y 9 meses). |
+| `/cookies` | §4 | Sin datos del Portal para Google ni Microsoft; si algún día se mide el Portal, aviso previo y política cambiada antes (condición 1 de la fase 5). |
+| `/cookies` | §5 | Google **y Microsoft**; cookies de Clarity bajo nuestro dominio; sin cookies publicitarias de Microsoft (coherente con §5: `c.bing.com` fuera de la CSP). Enlace a la declaración de privacidad de Microsoft. |
+| `/cookies` | §6 | Sin consentimiento, Clarity solo registra cada página por separado, sin cookies. |
+| `/privacidad` | Datos, «Navegación» | Qué se registra, con lo escrito oculto; sin cookies por página, con cookies la visita completa. |
+| `/privacidad` | Finalidades | «Mejorar el sitio» con analítica seudónima; campañas y visita completa solo con consentimiento. |
+| `/privacidad` | §4 | Clarity solo en páginas públicas; **Microsoft trata los datos también para sus propios fines**; no recibe nombre, documento, correo, teléfono ni Shipping Mark. |
+| `/privacidad` | §6 | Plazos de Clarity y **sin borrado por persona** antes de esos plazos (evaluación §1). |
+| Ambas | Fecha | `UPDATED` = 2026-11-20. |
+
+Las duraciones de `_clck` y `_clsk` salen de la documentación de Clarity (**D**); se confirman en el navegador al encender (**NO VERIFICADO** hasta la fase 3).
+
+### Objeción del DG: el texto y el interruptor (PENDIENTE de Sam)
+
+**Evidencia (medida por el DG el 2026-11-20):** en producción `NEXT_PUBLIC_CLARITY_ID` no está en el `.env` del servidor, tiene largo 0 en el contenedor `dtd-cargo-web-2` y ningún archivo servido menciona `clarity.ms`. La variable de repositorio vale `off`. **Hoy Clarity no recoge nada.**
+
+Si este texto se publica antes del encendido, la política describe una recolección que no ocurre. Dos salidas:
+
+1. **Redacción condicional:** el texto dice qué pasa *cuando la medición está activa*, y queda cierto encendido o apagado. Cambia palabras del texto aprobado, así que vuelve a Sam.
+2. **Acoplar la publicación al encendido:** la PR se fusiona solo con el OK de encendido de Sam, y la variable pasa al ID en el mismo tren, sin otra fusión de por medio. Conserva el texto aprobado. Queda un hueco de minutos entre la imagen con el texto y la imagen con el ID, salvo que el DG ordene ambos pasos juntos.
+
+La decisión se registra aquí antes de fusionar.
+
+### Lo que esta fase no autoriza
+
+Fusionar (portón: CI verde en la cabeza exacta y revisión independiente que lanza el DG) ni encender `NEXT_PUBLIC_CLARITY_ID`, que necesita el OK nominal de Sam en el chat del DG.
 
 ## Criterios de aceptación
 
