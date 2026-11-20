@@ -331,6 +331,13 @@ el mismo lote y se negaba a aplicar con «ya se aplicó». Archivos:
 - `infra/ops/tests/prueba-aplicar-lote.sh`;
 - `docs/runbooks/cargar-consolidados.md`.
 
+Segundo seguimiento del 2026-11-20, con OK del DG, en una PR aparte con revisión previa: `--solo-facturas`
+saca **una pre-orden por cliente**, agrupada por el Shipping Mark vivo de los envíos y no por la clave del
+Excel. El rastro de la 0564 y la 0569 admite un solo cliente vivo por contenedor. Archivos:
+- `scripts/consolidados/lote-sql.ts`, `scripts/__tests__/consolidados-sql.test.ts` y
+  `scripts/__tests__/consolidados-solo-facturas-pglite.test.ts`, que es nuevo;
+- `docs/runbooks/cargar-consolidados.md` y el handoff.
+
 Cualquier archivo fuera de esta lista se anota en el handoff y pide OK del DG antes de tocarlo.
 
 ## 7. Decisiones de Sam

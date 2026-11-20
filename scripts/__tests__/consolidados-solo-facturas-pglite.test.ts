@@ -1,0 +1,176 @@
+// @vitest-environment node
+/**
+ * SDD-0690 · `--solo-facturas` corrido de verdad en PostgreSQL embebido (PGlite).
+ *
+ * Una pre-orden por CLIENTE: por el Shipping Mark vivo de los envíos al correr, no por la clave del
+ * Excel. El rastro de la 0564/0569 admite un solo cliente vivo por contenedor, así que dos pre-órdenes
+ * del mismo dueño no se podrían emitir (hallazgo del 64: el mapa mandaba 11 claves a DTD-0000 y 9 a DC).
+ *
+ * El bloque que corre es el MISMO `aplicar.sql` que genera `generarSql` (sin los meta-comandos de
+ * psql), sobre un esquema mínimo: las tablas y columnas que toca, un `resolve_markbox` por markbox,
+ * `next_invoice_code` con una secuencia y `append_audit_event` que no hace nada. Datos inventados.
+ */
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, describe, expect, it } from "vitest";
+import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
+import { generarSql, MARCA_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
+
+const RASTREO: Rastreo = {
+  numero: 59,
+  etiqueta: "DTD#59",
+  modalidad: "DDP",
+  puertoCarga: "YIWU",
+  fechaCarga: "2026-08-11",
+  contenedor: "ABCU1234567",
+  precinto: null,
+  naviera: "CMA CGM",
+  puertoLlegada: "la guaira",
+  etaExcel: null,
+  link: null,
+  filaExcel: 39,
+};
+
+// Dos claves del Excel: DTD-J031 con dos envíos y DTD-A116 con uno. Sin exceso de peso.
+const fila = (filaExcel: number, marcaTexto: string, remitente: string, cbm: number, precio: number): FilaPacking => ({
+  filaExcel, marcaTexto, remitente, descripcion: "Cajas", cajas: 1, pesoKg: 10, cbmChina: cbm, cbmFactura: cbm,
+  extraKg: -100, precioKgExtra: 1, valorKgExtra: -100, precioCbm: precio, totalFacturado: cbm * precio, agente: "X",
+});
+const FILAS: FilaPacking[] = [
+  fila(4, "DTD-J031 PRUEBA", "DTD-J031-05", 1, 800),
+  fila(5, "DTD-J031 PRUEBA", "DTD-J031-06", 2, 800),
+  fila(6, "DTD-A116 PRUEBA", "DTD-A116-06", 0.5, 750),
+];
+
+const LOTE = "carga-consolidado:59:deadbeef";
+const SOLO: OpcionesSql = {
+  entorno: "produccion",
+  crearClientesFaltantes: false,
+  facturas: true,
+  pol: "NGB",
+  polNombre: "Ningbo",
+  containerType: "40HC",
+  vessel: "Por confirmar",
+  lote: LOTE,
+  tenantSlug: "dtd",
+  soloFacturas: true,
+};
+
+const T = "00000000-0000-0000-0000-000000000001";
+const CONS = "00000000-0000-0000-0000-00000000c059";
+
+const ESQUEMA = `
+create table public.tenants (id uuid primary key, slug text, iva_enabled boolean);
+create table public.clients (id uuid primary key, tenant_id uuid, markbox text, name text, rif text, doc_kind text,
+  aliado_id uuid, deleted_at timestamptz);
+create table public.aliados (id uuid primary key, parent_aliado_id uuid, client_id uuid);
+create table public.consolidations (id uuid primary key, tenant_id uuid, container_no text, notes text, deleted_at timestamptz);
+create table public.shipments (id uuid primary key, tenant_id uuid, code text, client_markbox text, deleted_at timestamptz);
+create table public.consolidation_items (id uuid primary key default gen_random_uuid(), tenant_id uuid, shipment_id uuid,
+  consolidation_id uuid, created_at timestamptz default now());
+create table public.invoices (id uuid primary key default gen_random_uuid(), tenant_id uuid, invoice_code text,
+  client_markbox text, client_name text, client_rif text, client_doc_kind text, shipment_id uuid, shipment_code text,
+  currency text, iva_rate numeric, base_amount numeric, iva_amount numeric, total_amount numeric, status text,
+  lines jsonb, notes text, fund_class text, deleted_at timestamptz);
+create table public.exc0674_contenedores (tenant_id uuid, consolidation_id uuid);
+create table public.exc0674_factura_envios (invoice_id uuid, shipment_id uuid);
+create sequence public.codigos;
+create function public.next_invoice_code(p uuid) returns text language sql as
+$$ select 'F-T-' || lpad(nextval('public.codigos')::text, 4, '0') $$;
+create function public.resolve_markbox(p uuid, m text)
+returns table(client_id uuid, canonical_markbox text, was_redirected boolean) language sql stable as
+$$ select c.id, c.markbox, false from public.clients c where c.tenant_id = p and upper(c.markbox) = upper(m) limit 1 $$;
+create function public.append_audit_event(uuid, text, uuid, text, uuid, text, text, text, text, jsonb, jsonb, jsonb,
+  text, integer, text) returns void language sql as $$ select $$;
+insert into public.tenants values ('${T}', 'dtd', false);
+insert into public.consolidations values ('${CONS}', '${T}', 'ABCU1234567', 'Carga ${LOTE} · contenedor DTD #59', null);
+insert into public.exc0674_contenedores values ('${T}', '${CONS}');
+insert into public.clients values
+  ('00000000-0000-0000-0000-0000000005a1', '${T}', 'DTD-5001', 'Dueño Uno', null, null, null, null),
+  ('00000000-0000-0000-0000-0000000005a2', '${T}', 'DTD-5002', 'Dueño Dos', null, null, null, null);`;
+
+/** Los tres envíos del lote, cargados en el contenedor, con el dueño de cada uno. */
+function envios(duenos: Record<string, string>): string {
+  return Object.entries(duenos)
+    .map(([code, mb], i) => {
+      const id = `00000000-0000-0000-0000-00000000e00${i + 1}`;
+      return `insert into public.shipments values ('${id}', '${T}', '${code}', '${mb}', null);
+insert into public.consolidation_items (tenant_id, shipment_id, consolidation_id) values ('${T}', '${id}', '${CONS}');`;
+    })
+    .join("\n");
+}
+
+function aplicarSql(): string {
+  const l = agruparLote(RASTREO, FILAS, { eta: "2026-10-19", excesoPeso: false });
+  const a = generarSql(l, SOLO, { rastreo: "a".repeat(64), packing: "d".repeat(64) }).aplicar;
+  // Sin los meta-comandos de psql (\set …): PGlite no es psql.
+  return a.split("\n").filter((x) => !x.startsWith("\\")).join("\n");
+}
+
+type Preorden = { client_markbox: string; shipment_code: string; base_amount: string; codigos: string; notes: string };
+
+let db: PGlite | null = null;
+afterEach(async () => {
+  await db?.close();
+  db = null;
+});
+
+async function correr(duenos: Record<string, string>): Promise<{ preordenes: Preorden[]; aviso: string }> {
+  db = new PGlite();
+  await db.exec(ESQUEMA + envios(duenos));
+  const avisos: string[] = [];
+  await db.exec(aplicarSql(), { onNotice: (n) => avisos.push(n.message ?? "") });
+  const r = await db.query<Preorden>(`
+    select client_markbox, shipment_code, base_amount::text as base_amount, notes,
+           (select string_agg(l ->> 'shipmentCode', ',' order by l ->> 'shipmentCode')
+              from jsonb_array_elements(lines) l) as codigos
+      from public.invoices where status = 'borrador' order by client_markbox`);
+  return { preordenes: r.rows, aviso: avisos.find((a) => a.startsWith("solo-facturas lote")) ?? "" };
+}
+
+// PGlite arranca un Postgres entero en WASM: bajo carga tarda más que el tope de 5 s por prueba.
+describe("SDD-0690 · --solo-facturas: una pre-orden por cliente (PGlite)", { timeout: 60_000 }, () => {
+  it("dos claves del Excel con el mismo dueño dan UNA pre-orden con las líneas de las dos", async () => {
+    const { preordenes, aviso } = await correr({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5001", "DTD-A116-06": "DTD-5001" });
+    expect(preordenes).toHaveLength(1);
+    expect(preordenes[0]).toMatchObject({
+      client_markbox: "DTD-5001",
+      shipment_code: "DTD-J031-05",
+      codigos: "DTD-A116-06,DTD-J031-05,DTD-J031-06",
+      base_amount: "2775.00",
+    });
+    expect(preordenes[0].notes).toContain(`embarques: DTD-J031-05, DTD-J031-06, DTD-A116-06 · ${MARCA_SOLO_FACTURAS}`);
+    expect(aviso).toBe(
+      `solo-facturas lote ${LOTE}:facturas · contenedor ABCU1234567 · 1 Shipping Marks · 1 clientes con pre-orden nueva · 0 saltados (ya tenían factura viva) · 0 sin líneas`,
+    );
+  });
+
+  it("una clave repartida entre dos dueños da DOS pre-órdenes, cada una con las líneas de sus envíos", async () => {
+    const { preordenes, aviso } = await correr({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5002", "DTD-A116-06": "DTD-5002" });
+    expect(preordenes.map((p) => [p.client_markbox, p.codigos, p.base_amount])).toEqual([
+      ["DTD-5001", "DTD-J031-05", "800.00"],
+      ["DTD-5002", "DTD-A116-06,DTD-J031-06", "1975.00"],
+    ]);
+    expect(aviso).toContain("· 2 Shipping Marks · 2 clientes con pre-orden nueva · 0 saltados");
+  });
+
+  it("es idempotente por cliente: con la pre-orden ya creada, el segundo aplicar se salta a ese dueño", async () => {
+    await correr({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5002", "DTD-A116-06": "DTD-5002" });
+    const avisos: string[] = [];
+    await db!.exec(aplicarSql(), { onNotice: (n) => avisos.push(n.message ?? "") });
+    const n = await db!.query<{ n: number }>("select count(*)::int as n from public.invoices");
+    expect(n.rows[0].n).toBe(2);
+    expect(avisos.find((a) => a.startsWith("solo-facturas lote"))).toContain(
+      "· 2 Shipping Marks · 0 clientes con pre-orden nueva · 2 saltados",
+    );
+  });
+
+  it("un envío sin Shipping Mark aborta todo sin escribir", async () => {
+    await expect(correr({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "", "DTD-A116-06": "DTD-5001" })).rejects.toThrow(
+      "solo-facturas: 1 envíos del lote no tienen Shipping Mark",
+    );
+    // El aplicar quedó a medias en su transacción: se cierra como lo cerraría psql (ON_ERROR_STOP).
+    await db!.exec("rollback");
+    const n = await db!.query<{ n: number }>("select count(*)::int as n from public.invoices");
+    expect(n.rows[0].n).toBe(0);
+  });
+});
