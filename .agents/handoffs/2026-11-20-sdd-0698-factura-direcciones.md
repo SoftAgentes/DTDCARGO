@@ -115,12 +115,22 @@ La pidió Dir_DTD. Esto se corrigió en la spec:
 - **F:** el trigger diferido es `security definer`. `fuentes-unicas.md` va en la allowlist de la 0694 F-2,
   según Dir_DTD.
 
+## Tercera vuelta de la revisión (CHANGES_REQUESTED sobre `2f73f707c`) y corrección
+
+- **1:** hay una regla única, `shipment_chosen_delivery_address` en SQL y `direccionElegidaDelEmbarque`
+  en TypeScript. Solo devuelve la dirección si es del cliente vivo actual del embarque, y la usan todos los
+  lectores. El criterio 22 cubre el embarque entregado que se reasigna.
+- **2:** bordes de `invoice_ships_to_others`: otro tenant, `lines` que no es un arreglo, código sin embarque
+  vivo y el respaldo de `exc0674_facturas` en las facturas viejas (criterio 16).
+- **3:** límite de la FK contra la 0321, solo en el borrado permanente (§4.4).
+- **4:** este handoff, con la dueña de las filas del registro corregida.
+
 ## Impacto documental
 
 - La spec y el índice. No cambia ningún documento canónico.
-- Cuando se apruebe, la 0695 (§4.1, el registro de fuentes únicas, y §2.1, las copias intencionales) tiene
-  que sumar las filas que propone la §9 de esta spec. Lo hace la fase F-1 de la 0695 o la 0698 F-1, según
-  cuál llegue primero a `main`.
+- Cuando se apruebe, la 0695 tiene que sumar a su §2.1 (copias intencionales) las columnas selladas de
+  esta spec. La fila para la tabla §5 de la 0695 se la pasé a Dir_DTD. **Las filas del registro de fuentes
+  únicas las escribe la 0694 F-2** (decisión de Dir_DTD, 2026-11-20), y la 0698 solo las cita (spec §9).
 
 ## HANDOFF AL DIRECTOR
 

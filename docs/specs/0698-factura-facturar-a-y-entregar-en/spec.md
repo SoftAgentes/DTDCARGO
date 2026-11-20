@@ -311,6 +311,18 @@ versión 2 y agrega lo siguiente:
        - La regla vive en una función interna, `invoice_ships_to_others(p_invoice invoices) returns
          boolean`, sin EXECUTE para nadie. La usan el trigger y la rama de las facturas viejas de
          `invoice_addresses` (§4.3).
+       - **Bordes (tercera vuelta, 2):**
+         - el tenant es siempre el de la factura (`p_invoice.tenant_id`), nunca el de la sesión. Como
+           `shipments` es único por `(tenant_id, code)` (`0002_shipments.sql:51`), un código de otro tenant
+           no coincide;
+         - si `lines` no es un arreglo, se lee como vacío, igual que `0551:310-320`;
+         - una línea con `shipmentCode` que no tiene embarque vivo en el tenant **cuenta como de otro
+           cliente**: la guarda actúa y «Entregar en» queda en null. Si no se puede saber de quién es la
+           mercancía, es más seguro no sellar una dirección. Las líneas sin código (las facturas hechas a
+           mano) no cuentan;
+         - en las facturas viejas, la guarda actúa además si la fila de `exc0674_facturas` de esa factura
+           tiene un `client_markbox` distinto de su `billed_markbox` (`0564:190`, `:193`). Esa fila se
+           escribe después de la factura, así que al emitir no sirve, pero en las viejas es el respaldo.
        - Es el caso de la factura de contenedor al aliado raíz (`0564:496-508`) y de sus pre-órdenes (0569).
          Esas facturas salen sin el bloque «Entregar en» hasta que la **SDD-0696** defina qué mostrar (§5.6
          y §12);
@@ -414,8 +426,42 @@ y no pueden leer `client_fiscal_addresses`, que no tiene política SELECT para e
       viejo.
 - **Congelado (revisión, punto 8):** `guard_ve_delivery_completion()` (`0321:46`, condición en `:66-73`) se
   redefine para sumar `delivery_address_id` a lo que no cambia después de `delivered`.
-- Si la dirección elegida se borra después (borrado lógico), el resolvedor la ignora y vuelve a la
-  predeterminada. La columna no se limpia sola.
+- **Regla única de resolución (tercera vuelta, 1).** Una sola función SQL,
+  `shipment_chosen_delivery_address(p_shipment shipments)`, interna y sin EXECUTE para nadie, devuelve la
+  dirección elegida **solo si se cumplen las tres condiciones**:
+  - la fila de `delivery_address_id` existe y está vigente (`deleted_at is null`);
+  - su `client_id` es el del cliente vivo que hoy tiene el Shipping Mark del embarque, en su tenant (la
+    misma condición del trigger diferido);
+  - el tenant de la dirección es el del embarque.
+
+  Si falta alguna, devuelve null, y el embarque **cuenta como sin elección**: va a la predeterminada del
+  cliente actual.
+  - Su espejo en TypeScript, `direccionElegidaDelEmbarque`, está en `lib/studio/shipment-delivery-address.ts`
+    y se prueba con la misma tabla de casos.
+  - **Todos los lectores la usan:**
+    - la tarjeta «Entregar en» del portal. Lee por `portal_get_shipment_delivery_address(p_shipment_code)`,
+      `security definer` con `search_path = ''`, que filtra igual que la RPC de escritura (tenant, Shipping
+      Mark, código y `deleted_at`) y devuelve lo que dice la regla, con las direcciones vigentes del propio
+      cliente. Nunca lee con una consulta directa ni con el rol de servicio;
+    - la marca «Otra dirección», el aviso «Varias direcciones» y el drawer de Embarques;
+    - la precarga del Almacén VE y del TMS;
+    - el chofer.
+  - Ningún lector lee `delivery_address_id` directo.
+  - **El id histórico se conserva**, pero ningún lector se lo muestra al cliente nuevo. Por ejemplo,
+    después de reasignar un embarque entregado (abajo), ni el portal del cliente nuevo ni el Studio
+    muestran la dirección del anterior, y no salen ni la marca ni el aviso.
+  - Si la dirección elegida se borra después (borrado lógico), la regla la ignora y vuelve a la
+    predeterminada. La columna no se limpia sola.
+- **Límite conocido (tercera vuelta, 3).** La FK `on delete set null` choca con el congelado de la 0321
+  solo en un **borrado permanente**: borrar de verdad una dirección, o un cliente por la cascada, que use un
+  embarque ya entregado. Ese UPDATE lo rechaza la guarda (42501).
+  - El código de hoy borra las direcciones de forma lógica (`lib/studio/client-address-queries.ts:161-171`),
+    así que no lo toca.
+  - Hoy la guarda de la 0321 no tiene ninguna excepción para cambiar un embarque entregado. Sus ajustes de
+    sesión (`0321:52-64`) sirven para confirmar la entrega, no para cambiarla después.
+  - Por eso, **el borrado permanente de una dirección que usa un embarque entregado queda bloqueado**.
+    Ese borrado lo corre Sam aparte. Si alguna vez hace falta, se diseña una excepción gobernada en la
+    0321, con su OK. Esta spec no la crea.
 - **Quién la cambia:**
   - **el cliente, en el portal**, con `portal_set_shipment_delivery_address(p_shipment_code text,
     p_address_id uuid)`:
@@ -655,7 +701,14 @@ superusuario.
     la 0569, la guarda `borrador_alterado` no se dispara.
 16. Una factura de contenedor al aliado raíz (0564 o 0569) se emite con `ship_to_address` en null, aunque
     el aliado tenga predeterminada y el borrador traiga una edición. También cuando el **primer** embarque
-    (el de `shipment_id`) es del propio aliado y los demás, de las líneas, son de clientes finales.
+    (el de `shipment_id`) es del propio aliado y los demás, de las líneas, son de clientes finales. Bordes de
+    `invoice_ships_to_others`:
+    - una línea cuyo `shipmentCode` es igual al de un embarque de **otro tenant** y de otro cliente no
+      activa la guarda, y la factura de un solo cliente conserva su «Entregar en»;
+    - `lines` que no es un arreglo se lee como vacío;
+    - una línea cuyo código no tiene embarque vivo activa la guarda;
+    - una factura vieja con su fila de `exc0674_facturas` facturada a otro (`billed_markbox` distinto)
+      devuelve «Entregar en» en null.
 17. `invoice_addresses`, con el rol del portal, devuelve las direcciones de su factura vieja (`legacy =
     true`), con «Facturar a» y «Entregar en» actuales. Devuelve null en estos casos:
     - la factura de otro cliente o de otro tenant;
@@ -676,14 +729,19 @@ superusuario.
 
 20. `portal_set_shipment_delivery_address` con una dirección de otro cliente da error. Con una dirección
     borrada, también. Con el código de un embarque de otro tenant que tenga el mismo Shipping Mark, no
-    encuentra nada. Con un embarque borrado, tampoco.
+    encuentra nada. Con un embarque borrado, tampoco. `portal_get_shipment_delivery_address` da los mismos
+    resultados en esos casos, y con el rol del portal un `select` directo de `shipments.delivery_address_id`
+    nunca es el camino de la tarjeta.
 21. Con `arrived_destination_at` lleno (llegó a Venezuela, decisión 9), la RPC del portal da el error de
     campo y no escribe nada. Antes sí escribe. El Studio la puede cambiar hasta la entrega.
 22. `reassign_shipment_client`, en un embarque **no entregado**, deja `delivery_address_id` en null, y en
     las pre-órdenes que mueve deja `ship_to_address` en null. Un UPDATE de `client_markbox` que deje la
     dirección de otro cliente en un embarque no entregado falla al confirmar. `rename_client_markbox` del
     mismo cliente no falla. Reasignar un embarque **entregado** con dirección elegida funciona: conserva su
-    `delivery_address_id`, la guarda de la 0321 no salta y el trigger diferido no lo rechaza.
+    `delivery_address_id`, la guarda de la 0321 no salta y el trigger diferido no lo rechaza. **Después de
+    esa reasignación**, `shipment_chosen_delivery_address` devuelve null, el portal del cliente nuevo y el
+    drawer del Studio no muestran la dirección del anterior, y no salen ni la marca «Otra dirección» ni el
+    aviso «Varias direcciones». La función SQL y su espejo en TypeScript dan lo mismo en la tabla de casos.
 23. Después de `merge_clients`, el embarque sigue apuntando a la misma dirección, ya del cliente que
     sobrevive.
 24. Después de `delivered`, un UPDATE de `delivery_address_id` falla con el error de la 0321.
@@ -864,6 +922,7 @@ cualquier archivo nuevo entra solo con una enmienda de esta spec. Las migracione
     `app/portal/(app)/envios/[code]/_components/EntregarEnCard.tsx` (nuevo), `app/portal/(app)/envios/[code]/actions.ts`
     (nuevo) y sus pruebas en `app/portal/(app)/envios/[code]/__tests__/`;
   - `lib/studio/shipment-types.ts`;
+  - `lib/studio/shipment-delivery-address.ts` (nuevo, la regla única) y `lib/studio/__tests__/shipment-delivery-address.test.ts`;
   - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`,
     `app/studio/(app)/embarques/actions.ts` y sus pruebas en `app/studio/(app)/embarques/__tests__/`;
   - `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` e `InvoiceDetailClient.tsx` (el aviso);
