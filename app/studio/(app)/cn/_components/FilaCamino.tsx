@@ -14,14 +14,10 @@ import {
   rotuloDelContenedor,
   type ContenedorEnCamino,
 } from "@/lib/studio/almacen-cn-contenedores";
-import { textoDeDias } from "@/lib/studio/almacen-cn-vistas";
+import { COLUMNAS_CAMINO, textoDeDias } from "@/lib/studio/almacen-cn-vistas";
 import { formatFecha } from "@/lib/studio/embarques-contenedores";
 import { formatCbm } from "@/lib/shared/cbm";
 
-// ETA y días toman el ancho de su texto y no se parten: si un texto crece, se ve,
-// en vez de re-maquetar la fila (/ui-check).
-export const COLUMNAS_CAMINO =
-  "minmax(170px,1.3fr) minmax(120px,1fr) minmax(110px,max-content) minmax(110px,max-content) minmax(140px,1fr) minmax(190px,1fr)";
 
 function Dias({ dias }: { dias: number | null }) {
   const t = useT();

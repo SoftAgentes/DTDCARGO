@@ -38,6 +38,15 @@ export function hrefDeVista(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
+/**
+ * Columnas de la tabla de «En camino». Vive aquí (sin "use client") porque la usan
+ * el encabezado, que se pinta en el servidor, y la fila, que es cliente.
+ * ETA y días toman el ancho de su texto y no se parten: si un texto crece, se ve,
+ * en vez de re-maquetar la fila (/ui-check).
+ */
+export const COLUMNAS_CAMINO =
+  "minmax(170px,1.3fr) minmax(120px,1fr) minmax(110px,max-content) minmax(110px,max-content) minmax(140px,1fr) minmax(190px,1fr)";
+
 /** Valores que acepta el selector de estado; `""` es «En almacén». */
 const VALORES_DEL_SELECTOR = ["all", "pendiente_consolidacion", "consolidado", "incidencia"];
 

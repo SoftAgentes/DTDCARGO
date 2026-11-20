@@ -11,7 +11,8 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { t, type Locale } from "@/lib/i18n";
 import type { ContenedorEnCamino } from "@/lib/studio/almacen-cn-contenedores";
-import { COLUMNAS_CAMINO, FilaCamino } from "./FilaCamino";
+import { COLUMNAS_CAMINO } from "@/lib/studio/almacen-cn-vistas";
+import { FilaCamino } from "./FilaCamino";
 
 function Grupo({
   locale,
