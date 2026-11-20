@@ -737,6 +737,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    **Contestada (2026-11-20): Venezuela ve todos.** Se quita `visible_ve`.
 5. **Quitar.** ¿Se pueden quitar? Ejemplo: llega la carta de autorización y quitan «Marca sin autorización»;
    queda en el historial quién la quitó y cuándo.
+   **Contestada (2026-11-20, regla de cambios del §2.3.1):** China quita los suyos; Venezuela no quita los de
+   China; los de dinero o impuesto, solo con aprobación de Contabilidad. Todo queda en el historial.
 6. **El cliente.** ¿El cliente nunca ve ninguna? Ejemplo: el importador no ve «Montacargas» en su portal.
 7. **Texto de la marca.** ¿«Marca sin autorización», «Marca sin documentos» o «Marca por verificar»?
 8. **Las otras.** Además de las cinco de la leyenda, ¿hay otras? Ejemplo: «Batería de litio», ¿va dentro de
