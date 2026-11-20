@@ -312,17 +312,26 @@ de contabilidad.»
 
 | Quién | Indicadores de China (en la recepción) | Con efecto de dinero o impuesto | Los suyos |
 |---|---|---|---|
-| **China** | pone y quita; corrige un error desde su historial | **solo con autorización** | — |
-| **Venezuela** | ve y comenta; **no** quita ni cambia | **solo con autorización** | pone y quita en el embarque; crea indicadores nuevos |
-| **Admin** | puede todo, con motivo | puede, **con motivo obligatorio** | puede todo |
+| **China** | pone y quita; corrige un error desde su historial | **pide el cambio; lo aprueba Contabilidad** | — |
+| **Venezuela** | ve y comenta; **no** quita ni cambia | **pide el cambio; lo aprueba Contabilidad** | pone y quita en el embarque; crea indicadores nuevos |
+| **Contabilidad** | ve | **aprueba o rechaza** las solicitudes | — |
 
 - **Con efecto de dinero o impuesto** = `efecto` en `cobro_cliente`, `costo_proveedor` o `cobro_y_costo`
   (por ejemplo Devolución de impuestos, Carga especial, Uso de montacargas).
-- **«Con autorización»** en esta spec = lo hace un `admin`, con **motivo escrito**, y queda en el historial y en
-  `entity_audit_log` (MP-01 R3). Si Sam prefiere otro camino, como que Contabilidad apruebe una solicitud, es
-  la pregunta 14.
-- Lo mismo vale para el catálogo: cambiar el `efecto` de un indicador o archivar uno con efecto de dinero es
-  solo de `admin`, con motivo.
+- **«Con autorización» = lo aprueba Contabilidad** (Sam, 2026-11-20, pregunta 14). El flujo:
+  1. Quien quiere quitar o cambiar el indicador (China, Venezuela u Operaciones) pide el cambio con **motivo
+     escrito**. Nada cambia todavía; el indicador muestra «cambio pendiente».
+  2. Un usuario de `accounting` (o un `admin`) lo **aprueba o rechaza**, con comentario. Nadie aprueba su
+     propia solicitud.
+  3. Al aprobar, la base aplica el cambio en la misma transacción y deja en el historial quién pidió, quién
+     aprobó y el motivo; también en `entity_audit_log` (MP-01 R3).
+  - Contabilidad ve las solicitudes en una lista «Cambios de indicadores por aprobar», dentro de Embarques
+    (ya tiene acceso, `lib/studio/rbac.ts:64`), con aviso en la campana. No entra a Almacén China.
+  - Tabla `warehouse_tag_change_requests` y RPC `pedir_cambio_indicador`, `aprobar_cambio_indicador`,
+    `rechazar_cambio_indicador` (§2.7). Capability nueva `approve_tag_changes: ["accounting"]` (admin
+    implícito), repetida en la base.
+- Lo mismo vale para el catálogo: cambiar el `efecto` de un indicador o archivar uno con efecto de dinero
+  pasa por la misma solicitud.
 - Poner un indicador nunca necesita autorización: sumar información no cambia una cuenta.
 
 **Nombre:** «indicadores de carga» (decidido, pregunta 1). En la conversación se dice «etiquetas» a veces;
@@ -513,6 +522,27 @@ create unique index shipment_tags_viva_uq
   on public.shipment_tags (shipment_id, tag_id) where removed_at is null;
 -- Misma RLS de solo lectura para miembro activo, sin política de portal, y escritura solo por las RPC
 -- poner_indicador_embarque / quitar_indicador_embarque
+
+-- Solicitudes de cambio de indicadores con dinero o impuesto (§2.3.1, pregunta 14).
+create table public.warehouse_tag_change_requests (
+  id              uuid primary key default gen_random_uuid(),
+  tenant_id       uuid not null references public.tenants(id) on delete cascade,
+  accion          text not null check (accion in ('quitar_recepcion', 'quitar_embarque', 'editar_catalogo', 'archivar_catalogo')),
+  objetivo_id     uuid not null,          -- asignación o indicador, según accion
+  cambios         jsonb,                  -- para editar_catalogo: campos nuevos
+  motivo          text not null check (length(btrim(motivo)) between 10 and 500),
+  estado          text not null default 'pendiente' check (estado in ('pendiente', 'aprobada', 'rechazada', 'cancelada')),
+  pedido_por      uuid not null references auth.users(id),
+  pedido_at       timestamptz not null default now(),
+  resuelto_por    uuid references auth.users(id),
+  resuelto_at     timestamptz,
+  comentario      text check (comentario is null or length(comentario) <= 500),
+  check ((estado = 'pendiente') = (resuelto_por is null)),
+  check (resuelto_por is null or resuelto_por <> pedido_por)
+);
+create unique index warehouse_tag_change_requests_una_pendiente_uq
+  on public.warehouse_tag_change_requests (objetivo_id, accion) where estado = 'pendiente';
+-- Misma RLS de solo lectura y escritura solo por RPC. aprobar_* exige accounting o admin activo.
 -- (candado: admin, u operations / warehouse de región ve; commercial según la pregunta 13).
 
 alter table public.warehouse_tags enable row level security;
@@ -587,10 +617,10 @@ Candados por RPC:
 | RPC | Candado | Qué hace |
 |---|---|---|
 | `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log` |
-| `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: solo `admin` con `p_motivo` | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
-| `archivar_etiqueta_almacen(p_id, p_archivar boolean, p_motivo)` | ídem; con efecto de dinero: solo `admin` con `p_motivo` | Archiva o desarchiva; audita |
+| `editar_etiqueta_almacen(p_id, ..., p_motivo)` | ídem; cambiar `efecto`, o cualquier campo de un indicador con efecto de dinero: rechaza y pide usar `pedir_cambio_indicador` | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
+| `archivar_etiqueta_almacen(p_id, p_archivar boolean, p_motivo)` | ídem; con efecto de dinero: solo por solicitud aprobada | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
-| `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo `admin` con `p_motivo` | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
+| `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo por solicitud aprobada | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
 
 - La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
   idioma, ese solo. Es la foto del §2.4.
@@ -752,6 +782,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
     China. Falta: el etiquetado en Almacén VE.
 14. **La autorización.** Para quitar o cambiar un indicador con dinero o impuesto, ¿basta un admin con motivo, o
     lo aprueba alguien más? Ejemplo: Caracas pide quitar «Uso de montacargas» y Contabilidad lo aprueba.
+    **Contestada (2026-11-20): lo aprueba Contabilidad.**
 
 ## 8. Criterios de aceptación y pruebas
 
@@ -804,9 +835,11 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     `cn` sin admin → falla con `42501`. Dos vivas iguales en el mismo embarque → la segunda falla.
 19. **Venezuela no toca lo de China:** `operations` de región `ve` intenta quitar una asignación de recepción →
     falla con `42501`; comentarla pasa.
-19b. **Dinero solo con autorización:** `warehouse` de región `cn` intenta quitar «Devolución de impuestos» →
-    falla; `admin` sin motivo → falla; `admin` con motivo → pasa y el motivo queda en el evento y en
-    `entity_audit_log`. Cambiar el `efecto` de un indicador sin ser admin → falla.
+19b. **Dinero solo con autorización de Contabilidad:** `warehouse` de región `cn` intenta quitar «Devolución
+    de impuestos» directo → falla; la pide con motivo → queda `pendiente` y el indicador sigue vivo; un
+    `accounting` la aprueba → se quita en la misma transacción y quedan quién pidió, quién aprobó y el motivo.
+    Quien pidió no puede aprobar la suya; `operations` no puede aprobar; una segunda solicitud pendiente
+    igual falla; rechazar no cambia nada.
 20. **Origen visible:** un indicador heredado y el mismo puesto en el embarque se leen una vez, con «CN · VE»;
     uno puesto solo por Venezuela se lee con «VE» y no aparece en la recepción de China.
 21. **Comentario sobre un indicador de China:** Venezuela comenta una asignación de recepción → queda en
