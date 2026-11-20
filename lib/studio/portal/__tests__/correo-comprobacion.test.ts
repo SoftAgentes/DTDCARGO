@@ -355,6 +355,10 @@ describe("⭐ inventario: quién acuña un enlace que abre el portal", () => {
     "app/entrar/[code]/actions.ts": "no manda correo; redirige en el POST",
     // Registro por link: acuña para la dirección interna y lo entrega en la página.
     "app/registro/link/[token]/actions.ts": "dirección interna; se entrega en la página",
+    // Autoservicio (SDD-0672): con el correo al que salió el enlace, abrirlo ya
+    // probó ese correo (la base lo exige en `bind_self`); con otro correo, la
+    // dirección interna como en el registro por link. Se entrega en la página.
+    "app/registro/activar/[token]/actions.ts": "correo probado o dirección interna; se entrega en la página",
   };
 
   function archivos(dir: string, out: string[] = []): string[] {

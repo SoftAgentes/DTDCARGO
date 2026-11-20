@@ -18,7 +18,10 @@
  */
 
 import { useState, type CSSProperties } from "react";
+import { useFormStatus } from "react-dom";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Spinner } from "@/app/studio/_components/ui/EtiquetaEstable";
+import { FormularioAccion } from "@/app/studio/_components/ui/FormularioAccion";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   ColumnResizeHandle,
@@ -480,17 +483,35 @@ function ActiveToggle({
     );
   }
   return (
-    <form action={setOperarioActiveAction}>
+    // SDD-0678 · BTN-01 §5: el formulario se bloquea mientras corre (sin doble envío) y el interruptor lo dice.
+    <FormularioAccion action={setOperarioActiveAction}>
       <input type="hidden" name="operario_id" value={op.id} />
       <input type="hidden" name="active" value="false" />
-      <button
-        type="submit"
-        aria-label={`Desactivar a ${op.display_name}`}
-        style={toggleStyle(true)}
-      >
-        <span aria-hidden style={knobStyle(true)} />
-      </button>
-    </form>
+      <DesactivarBoton nombre={op.display_name} />
+    </FormularioAccion>
+  );
+}
+
+/** Hijo del formulario para leer `useFormStatus`. El ancho es fijo (38 px): no cambia al trabajar. */
+function DesactivarBoton({ nombre }: { nombre: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      aria-label={pending ? `Desactivando a ${nombre}…` : `Desactivar a ${nombre}`}
+      title={pending ? "Desactivando…" : undefined}
+      style={{ ...toggleStyle(true), cursor: pending ? "progress" : "pointer" }}
+    >
+      <span aria-hidden style={knobStyle(true)}>
+        {pending ? (
+          <span className="studio-spin" style={{ display: "grid", placeItems: "center", width: 18, height: 18, color: "var(--success)" }}>
+            <Spinner size={12} />
+          </span>
+        ) : null}
+      </span>
+    </button>
   );
 }
 
