@@ -252,7 +252,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
+  // SDD-0626 (Paso 3b) sumó `admin/oficina-virtual/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
   // borradores del agente.
   // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
@@ -400,10 +400,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
   // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
   // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
-  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
+  // SDD-0626 (Paso 3b) sumó `admin/oficina-virtual/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
   // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
   // repite `is_platform_admin()`.
-  // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
+  // SDD-0626 (0558) sumó `admin/oficina-virtual/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
   // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
   // pasa a `office_revisar_borrador_v2`.
   // SDD-0652 fase 2 sumó seis (479 → 485):
