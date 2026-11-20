@@ -16,7 +16,8 @@ confidencialidad: interno
 > **Estado: propuesta para que Sam la apruebe.** Esta PR solo trae la spec: ni código, ni migración, ni
 > cambio de producto. Las preguntas van una por una en la §8.
 >
-> **Medición:** código de `main` en `e9a0aa2aa`. No se leyó producción. La consulta Q17 de la SDD-0695
+> **Medición:** código de `main` en `6a7787d08`. La rama se basa en ese commit y la reserva `e9a0aa2aa` no
+> cambia código. No se leyó producción. La consulta Q17 de la SDD-0695
 > cuenta los clientes de aliado sin dirección. Su número va por chat, no a este repo.
 
 ## 1. Pedido
@@ -51,7 +52,9 @@ nueva de la marca blanca, con sus propias preguntas legales y de marca.
 | Cláusula de datos de terceros para aliados | 0255 §8.5; 0666 §6.2, D1 | Sigue faltando, y es requisito para toda fase que trate datos del cliente final (§6). |
 | Hoy la oficina ya puede cargar la dirección de cualquier ficha | Tarjeta «Direcciones de entrega»: `addClientAddressAction` (`app/studio/(app)/clientes/actions.ts:1141`) | Es la salida provisional: el aliado manda las direcciones y la oficina las carga. |
 | Patrón de enlace de un solo uso | `client_registration_links` (`0552:13-36`): token aleatorio de 256 bits, la base guarda solo su sha256, un solo uso, 14 días, y regenerarlo revoca el anterior (`0552:256-262`) | El enlace de dirección copia ese patrón. |
-| Marca blanca por cliente | `get_portal_brand()` (`0401`, cadena en `0451`) y SDD-0336 | La página del enlace puede mostrar la marca del aliado del cliente final. |
+| Marca blanca por cliente | `get_portal_brand()` (`0401:12-45`, cadena en `0451`) deriva todo de `auth.uid()` y `client_users`. `resolveBrandForClient` (`lib/studio/aliados/brand-resolve.ts:37-47`) cae a `DTD_BRAND` ante cualquier error. `aliados.hide_dtd_brand` vale `true` por defecto (`0362:85`) | **Ninguna de las dos sirve para el enlace:** quien abre el enlace no tiene sesión, y caer a DTD rompe la marca blanca. La marca se resuelve desde el token, y si falla, la página sale neutra (§4.4.3). |
+| Límite de intentos en la base | `brand_access_attempts` (`0334:140-150`): guarda el SHA-256 del origen, no la IP, con bloqueo escalonado y acceso solo por service_role | El enlace copia este mecanismo. `0552` no trae ninguno. |
+| Helper de direcciones | `lib/studio/client-address-queries.ts` (`insertClientDeliveryAddress:96`, `listClientDeliveryAddresses:46`) | Ahí vive `direccionDeEntrega` (0694 §10, F-1), y ahí se ubica `destinoDeEntrega`. |
 | Dominio sin rastro de DTD | 0666 §2.2: `hailuway.com`, todavía sin montar (fase P5) | Define en qué dirección vive el enlace (P-2). |
 | Avisos | 0666 §2.1: «Solo al aliado; nada al cliente final» | El aviso de dirección faltante le llega **al aliado** (§4.5). |
 
@@ -107,50 +110,129 @@ los roles que editan clientes.
 **En el portal del aliado (0666, P2, «Mis clientes»):**
 
 - Cada cliente tiene «Dirección de entrega»: ver, agregar y cambiar la predeterminada.
-- Lo hace una RPC `security definer` nueva, `aliado_set_client_delivery_address`, con el mismo patrón de
-  las RPC del aliado (0666 §4.3). La RPC:
-  - deriva la identidad de `auth.uid()`;
-  - exige el rol `aliado`;
-  - comprueba que el cliente cuelga de la cadena del aliado que llama;
-  - escribe en `client_delivery_addresses` y en nada más.
+- **La RLS de la 0198 no le sirve al aliado.** Solo da lectura por tenant (al equipo) o por el markbox
+  propio (al cliente). Por eso hay dos RPC `security definer` nuevas, con el patrón de las RPC del aliado
+  (0666 §4.3):
+  - **`aliado_list_client_delivery_addresses(p_client_id)`**, de lectura. Devuelve las filas vigentes de
+    ese cliente: `id`, `label`, `line`, `city`, `state`, `reference` e `is_default`;
+  - **`aliado_add_client_delivery_address(p_client_id, …, p_make_default)`**, de escritura. Solo hace
+    `insert` de una fila nueva y, si se pide, mueve `is_default` a esa fila.
+- Las dos:
+  - derivan la identidad de `auth.uid()` y exigen el rol `aliado`;
+  - comprueban que el cliente cuelga de la cadena del aliado que llama: suben por `parent_aliado_id`, en el
+    mismo tenant (0451);
+  - responden igual si el cliente no existe o es de otro aliado;
+  - no devuelven el nombre, el teléfono ni la dirección a un usuario de la región `cn` (0666 D7).
+- **No hay borrado ni edición (P-5).** No existe una RPC del aliado que haga `update` del texto ni
+  `deleted_at` en una fila de `client_delivery_addresses`. Lo único que la RPC de escritura cambia en una
+  fila existente es `is_default`, para elegir la nueva.
 - No se abren las 12 políticas de escritura del portal (0255 §8.4): el aliado sigue sin poder reportar
   pagos ni tocar otra cosa.
-- Si el cliente final ya cargó su dirección, el aliado la ve y puede agregar otra, pero no la borra (P-5).
 - Cada cambio deja un evento en `entity_audit_log` sin el texto de la dirección:
   `{ campo: "delivery_address", origen: "aliado" }`.
 
 ### 4.4 Enlace para que el cliente final la llene
 
-**La tabla.** Tabla nueva `client_address_links`, que copia el patrón de `client_registration_links`:
+#### 4.4.1 La tabla
 
-- token de 256 bits, del que la base guarda solo el sha256;
-- un solo uso y 14 días de vigencia;
-- regenerar el enlace revoca el anterior;
-- `client_id`, `created_by` y `created_via`, que vale `studio` o `aliado`.
+La tabla nueva `client_address_links` copia el patrón de `client_registration_links` (0552):
 
-**Quién lo genera:**
+| Columna | Qué guarda |
+|---|---|
+| `id` | Llave |
+| `tenant_id` | El tenant |
+| `client_id` | El cliente final |
+| `token_hash` | El sha256 en hex del token (`^[0-9a-f]{64}$`), único |
+| `expires_at` | `now() + interval '14 days'` |
+| `used_at` | Cuándo se usó |
+| `revoked_at` | Cuándo se revocó |
+| `created_by` | Quién lo generó |
+| `created_via` | `studio` o `aliado` |
 
-- la oficina, desde la ficha del cliente final o desde la lista de §4.3, con «Copiar enlace para el
-  aliado»;
-- el aliado, desde su portal, cuando exista (0666 P2).
+- RLS encendida y sin políticas: no la lee ni la escribe `anon` ni `authenticated`, solo las RPC.
+- Un índice parcial único garantiza **un solo enlace vigente por cliente**: `client_id` donde `used_at` y
+  `revoked_at` son null.
+- El token tiene 32 bytes aleatorios (256 bits) y se genera en el servidor. En claro **solo existe al
+  crearlo**: se muestra una vez para copiarlo y no se puede recuperar.
 
-DTD no le escribe al cliente final: el enlace lo manda el aliado (0666 §2.1).
+#### 4.4.2 Las RPC
 
-**La página pública** (`/d/[token]`; la dirección exacta depende de P-2):
+Las cuatro son `security definer` y tienen `search_path = ''`.
 
-- Lleva **la marca del aliado** del cliente final (`get_portal_brand()` por la cadena) y **nada de DTD**:
-  ni logo, ni nombre, ni colores, ni pie.
-- Muestra solo el código impreso del cliente (por ejemplo `FA-1232`) y el formulario. No muestra el
-  nombre, el teléfono ni la carga: el token da permiso para dar una dirección, no para ver datos.
-- El formulario es el mismo de Mi perfil (`PortalAddresses.tsx`), con la calle, la ciudad (del catálogo),
-  el estado y el punto de referencia. No pide la cédula ni el correo.
-- Al guardar, si el cliente no tiene ninguna dirección vigente, queda como predeterminada. Si ya tenía una,
-  la nueva queda como predeterminada y la anterior sigue guardada: el cliente es el que mejor sabe dónde
-  recibe.
-- El enlace queda usado, y la página dice: «Listo. Tu aliado ya tiene tu dirección de entrega».
-- Un enlace vencido, usado o revocado responde igual que uno que no existe: «Este enlace ya no está
-  disponible. Pídele uno nuevo a tu aliado». No dice cuál de los casos es.
-- Lleva un límite de intentos por IP, como las rutas públicas de registro.
+| RPC | Quién la ejecuta | Qué hace |
+|---|---|---|
+| `client_address_link_create(p_client_id, p_token_hash)` | `authenticated`. Pide un rol del Studio (`admin`, `commercial` u `operations`) o el rol `aliado` con la cadena comprobada (§4.3) | Revoca el enlace vigente de ese cliente, si hay uno, e inserta el nuevo. **Solo la llama un clic de una persona** («Copiar enlace nuevo»), nunca un proceso automático (§4.5). |
+| `client_address_link_peek(p_token_hash)` | **solo `service_role`** (`revoke` de `public`, `anon` y `authenticated`, como `0552:309-310`) | Devuelve `client_id`, `tenant_id` y la marca resuelta (§4.4.3), solo si el enlace está vigente. Si no, devuelve cero filas. |
+| `client_address_link_complete(p_token_hash, p_line, p_city, p_city_slug, p_state, p_reference)` | **solo `service_role`** | Hace el consumo atómico y escribe la dirección (abajo). |
+| `client_address_link_attempt(p_attempt_key, p_succeeded)` | **solo `service_role`** | Cuenta los intentos (§4.4.4). |
+
+**El consumo atómico de `_complete`** pasa en una sola sentencia:
+
+```sql
+update public.client_address_links
+   set used_at = now()
+ where token_hash = p_token_hash
+   and used_at is null and revoked_at is null and expires_at > now()
+returning client_id, tenant_id;
+```
+
+- Sin fila, la RPC termina con el mismo error neutro que un enlace que no existe.
+- Con fila, inserta **solo** en `client_delivery_addresses`, con el `client_id` y el `tenant_id` que
+  devolvió esa sentencia. No acepta un `client_id` del cliente y no toca ninguna otra tabla ni columna.
+- Si el cliente no tiene ninguna dirección vigente, la nueva queda como predeterminada. Si tenía una, la
+  nueva pasa a ser la predeterminada y la anterior queda guardada.
+- Todo va en la misma transacción. Si dos envíos llegan a la vez, el `update` con su condición deja pasar
+  solo uno: el otro no encuentra fila.
+- Valida en la base: `line` entre 1 y 300 caracteres, y `city`, `state` y `reference` con sus propios
+  límites.
+
+#### 4.4.3 La marca, desde el token y cerrada ante errores
+
+- `get_portal_brand()` y `resolveBrandForClient` no se usan aquí (§2).
+- `_peek` resuelve la marca **en la base**, desde el `client_id` del token. Sube por la cadena hasta el
+  aliado raíz (la marca la pone el raíz, 0666 §2.2) y devuelve `trade_name`, el logo, el color y
+  `hide_dtd_brand`.
+- **Se falla cerrado:**
+  - si no hay aliado;
+  - si la cadena no resuelve;
+  - si `hide_dtd_brand` es `false`;
+  - o si la consulta falla.
+
+  En cualquiera de esos casos la página sale **neutra**: sin logo, sin nombre, sin colores y sin pie, con
+  el título «Dirección de entrega». **Nunca** sale la de DTD. La página no importa `DTD_BRAND`.
+- El enlace solo se genera para clientes de un aliado. Para un cliente directo de DTD, `_create` lo
+  rechaza: ese cliente tiene Mi perfil y el pedido de la 0694.
+
+#### 4.4.4 La página pública
+
+- La ruta es `/d/[token]`, y su dirección exacta depende de P-2.
+- El servidor toma el token del segmento, calcula el sha256 y llama a `_peek` y a `_complete` con el
+  cliente de service_role. El token en claro **no** va a ningún `console.*`, ni a Sentry, ni a la
+  auditoría, ni a un error. El registro del servidor lleva solo los primeros 8 caracteres del **hash**.
+- **Cabeceras:** `Cache-Control: no-store` y `Referrer-Policy: no-referrer`. Las pone la página (o
+  `proxy.ts` para `/d/`). Sustituyen el `strict-origin-when-cross-origin` general de `next.config.ts:201`
+  en esa ruta, para que el token no viaje en el `Referer`.
+- **Límite de intentos en la base**, efectivo en serverless porque no vive en la memoria de un proceso:
+  - Lo hace la tabla `client_address_link_attempts`, que copia `brand_access_attempts` (`0334:140-155`):
+    `attempt_key` es el SHA-256 del origen (no la IP), con `succeeded`, `created_at` y acceso solo por
+    service_role.
+  - Con 5 fallos en 15 minutos desde el mismo origen, la página responde igual que un enlace inválido
+    durante 1 hora, sin consultar `_peek`.
+  - Cada token inválido cuenta como fallo.
+  - Las filas se borran a los 7 días.
+- **La misma respuesta para todo enlace inválido** (vencido, usado, revocado, inexistente o bloqueado), con
+  el mismo HTML, el mismo código HTTP (200) y el mismo texto: «Este enlace ya no está disponible. Pídele
+  uno nuevo a tu aliado». El servidor hace siempre el mismo trabajo (hash, intento, `_peek`) para que el
+  tiempo de respuesta no distinga los casos.
+- **Qué muestra:**
+  - La marca de §4.4.3 y el formulario. El formulario es el de Mi perfil (`PortalAddresses.tsx`): calle,
+    ciudad (del catálogo), estado y punto de referencia. No pide la cédula ni el correo.
+  - El código impreso del cliente (por ejemplo `FA-1232`), para que sepa de qué carga se trata. **Ese código
+    revela el prefijo del aliado** a quien tenga el enlace (§6, hallazgo 3).
+  - No muestra el nombre, el teléfono ni la carga: el token da permiso para dar una dirección, no para ver
+    datos.
+- Al guardar, sale el texto «Listo. Tu aliado ya tiene tu dirección de entrega». Al recargar, la página ya
+  da la respuesta de enlace inválido.
 - El aviso de privacidad del formulario depende de P-7.
 
 ### 4.5 Aviso al aliado
@@ -158,15 +240,22 @@ DTD no le escribe al cliente final: el enlace lo manda el aliado (0666 §2.1).
 Cuando llega a la bodega de China la carga de un cliente final de un aliado con `dtd_entrega_cliente_final`,
 y ese cliente no tiene dirección:
 
-- le llega un correo **al aliado**, no al cliente: «Tu cliente FA-1232 tiene mercancía en nuestro almacén y
-  no tenemos su dirección de entrega». Lleva el botón «Cargar dirección» (portal del aliado) o, mientras no
-  exista, el enlace de §4.4;
-- se decide al enviar, como en la 0694 §4.5: si la dirección se cargó en el medio, el aviso no sale;
-- se agrupa por aliado: un correo al día con todos sus clientes sin dirección, no uno por caja;
-- no lleva el nombre del cliente final, solo el código impreso, porque el aliado ya sabe quién es.
-
-Con `retira_aliado` no sale ningún aviso por los clientes finales. Solo cuenta la dirección del aliado,
-con el aviso normal de la 0694.
+- **El correo le llega al aliado**, no al cliente final:
+  - Dice: «Tu cliente FA-1232 tiene mercancía en nuestro almacén y no tenemos su dirección de entrega».
+  - **No lleva el enlace de §4.4 y nunca genera uno.** Generarlo revocaría el que el aliado quizá ya le
+    mandó al cliente, y el token en claro no se puede recuperar.
+  - En su lugar, lleva un botón a la ficha del cliente en el portal del aliado («Cargar dirección o
+    mandar enlace»), cuando exista (0666 P2).
+  - Mientras ese portal no exista, el correo dice: «Escríbenos para que te mandemos el enlace». La oficina
+    genera el enlace a mano desde la lista de §4.3.
+- Por cada cliente, el correo dice si ya hay un enlace vigente, y desde cuándo: «Enlace enviado el 18/11,
+  vence el 02/12». Así el aliado sabe si tiene que reenviarlo o pedir uno nuevo.
+- Se decide al enviar, como en la 0694 §4.5: si la dirección se cargó en el medio, el cliente no sale en
+  el correo.
+- Se agrupa por aliado: un correo al día con todos sus clientes sin dirección, no uno por caja.
+- No lleva el nombre del cliente final, solo el código impreso: el aliado ya sabe quién es.
+- Con `retira_aliado` no sale ningún aviso por los clientes finales. Solo cuenta la dirección del aliado,
+  con el aviso normal de la 0694.
 
 ### 4.6 Exigir la dirección
 
@@ -195,8 +284,8 @@ Esto se aplica cuando Sam apruebe esta spec, con una nota de cambio en cada una:
 | F-0 | Esta spec. | No | La aprobación de Sam. |
 | **F-1** | `aliados.entrega_ve` en la tarjeta del aliado; `destinoDeEntrega` en el chofer y el despacho; la lista «Clientes sin dirección de entrega» en la ficha del aliado. | Sí | La 0694 F-1 (el helper). **No depende de la 0666 ni trata datos nuevos**: la oficina ya carga direcciones. |
 | F-2 | El enlace de §4.4, generado desde el Studio, y su página pública con la marca del aliado. | Sí | La cláusula de la 0255 §8.5, el texto legal de P-7 y el dominio de P-2. |
-| F-3 | El aviso diario al aliado (§4.5). | No | La F-1, y la 0694 A-1 (el mismo punto del correo). |
-| F-4 | En el portal del aliado: «Dirección de entrega» por cliente, «Mandarle el enlace» y el paso de la prealerta (§4.3 y §4.6). | Sí (la RPC) | La 0666 P2 y P3, y la cláusula de la §8.5. |
+| F-3 | El aviso diario al aliado (§4.5). | No | **La F-2**, porque el correo dice si cada cliente tiene un enlace vigente, y eso sale de `client_address_links`. También la F-1 y la 0694 A-1 (el mismo punto de la recepción). El correo nunca genera ni lleva enlaces (§4.5). |
+| F-4 | En el portal del aliado: «Dirección de entrega» por cliente (con lectura y alta por RPC), «Mandarle el enlace» y el paso de la prealerta (§4.3 y §4.6). | Sí (las dos RPC) | La 0666 P2 y P3, la F-2 y la cláusula de la §8.5. |
 
 ## 6. `revisar-datos-ve` aplicado
 
@@ -217,13 +306,25 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
    un sistema operado por DTD bajo la marca del aliado, y la 0666 dice que el cliente final no ve ninguna
    política de DTD. Hay que decidir qué aviso de privacidad lleva el formulario (P-7). Lo ve el abogado de
    Sam antes de la F-2.
-3. **Minimización.** `CORRECTO` en el diseño: solo los campos de la dirección, solo cuando DTD entrega, y
-   el enlace no muestra datos del cliente.
+3. **Minimización.** **Diseño** (se verifica cuando el formulario exista):
+   - solo se piden los campos de la dirección, y solo cuando DTD entrega;
+   - el enlace no muestra el nombre, el teléfono ni la carga;
+   - `ENCONTRADO`: el enlace muestra el código impreso (`FA-1232`), y ese código **revela el prefijo del
+     aliado** a quien tenga el enlace. Se acepta porque el cliente final ya ve ese código en sus etiquetas
+     (0666 §2.3) y el enlace solo lo recibe él. Si Sam prefiere no mostrarlo, la página dice «tu carga» sin
+     código.
 4. **Supresión.** Rige la 0666 D3. Las direcciones caen con la ficha (`on delete cascade`, `0198:26`).
    Los enlaces usados se pueden borrar a los 30 días: guardan solo el hash y el id.
 5. **China.** `CORRECTO`, si las RPC y la lista nuevas pasan por `privacidad-cn.ts`. Lo exige la aceptación 6.
-6. **Seguridad del enlace.** El token es de un solo uso y se guarda en hash. La respuesta es igual para
-   todos los casos inválidos, y hay límite por IP.
+6. **Seguridad del enlace.** Diseño de §4.4:
+   - el token es de un solo uso y la base guarda solo su hash;
+   - el consumo es atómico;
+   - las RPC solo las ejecuta service_role;
+   - la marca falla cerrado;
+   - la respuesta es la misma para todo enlace inválido;
+   - el límite de intentos vive en la base y guarda el hash del origen, no la IP;
+   - las cabeceras son `no-store` y `no-referrer`;
+   - el token no va a los logs.
 
 ## 7. Aceptación verificable
 
@@ -232,19 +333,45 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
    Con pruebas unitarias del helper y una `.test.sql` de la columna.
 2. **F-1, lista.** La ficha del aliado lista solo a los clientes de su cadena sin dirección, y solo con
    `dtd_entrega_cliente_final`. Un usuario de la región `cn` no ve nombres.
-3. **F-2, enlace.**
-   - Abrir el enlace muestra la marca del aliado y ningún texto, logo ni color de DTD: una prueba busca
-     «DTD» en el HTML renderizado.
-   - Guardar crea la predeterminada en la ficha del cliente final.
-   - Un segundo uso, un enlace vencido o uno revocado responden con el mismo texto.
-   - Regenerar revoca el anterior.
-   - La base guarda solo el hash. Contrato SQL con mutantes.
-4. **F-3, aviso.** Un aliado con dos clientes sin dirección y carga en la bodega recibe un solo correo con
-   los dos códigos. Si uno carga la dirección antes del envío, el correo lleva solo el otro. Con
-   `retira_aliado`, no sale ningún correo.
-5. **F-4, RPC.** El aliado escribe la dirección de un cliente de su cadena. Con un cliente de otro aliado o
-   un cliente directo de DTD, la RPC rechaza. La RPC no toca otra columna ni otra tabla. Deja auditoría sin
-   el texto.
+3. **F-2, enlace.** Hay pruebas para:
+   - **La marca.** Abrir el enlace muestra la marca del aliado y ningún texto, logo ni color de DTD: una
+     prueba busca «DTD» en el HTML renderizado. Hay tres casos que fallan cerrado y en los tres la página
+     sale neutra, nunca la de DTD: `hide_dtd_brand = false`, una cadena rota y un error simulado de la
+     consulta de la marca.
+   - **Lo que escribe.** Guardar crea la predeterminada en la ficha del cliente del token y en ninguna otra.
+     Un `.test.sql` comprueba que `_complete` no escribe otra tabla ni otro `client_id`.
+   - **El vencimiento.** Con el reloj simulado a 14 días y 1 minuto, el enlace responde como inválido. A los
+     13 días y 23 horas todavía funciona.
+   - **El doble envío.** En el `.test.sql`, dos `_complete` con el mismo token: solo uno inserta, y el
+     otro recibe el error neutro. Queda una sola fila nueva.
+   - **La misma respuesta.** Un segundo uso, un enlace vencido, uno revocado, uno inexistente y uno
+     bloqueado responden con el mismo HTML, el mismo código HTTP y el mismo texto. Una prueba compara las
+     cinco respuestas byte a byte.
+   - **El límite de intentos.** El sexto fallo desde el mismo origen en 15 minutos responde como inválido
+     sin llamar a `_peek`. La tabla guarda el hash del origen, nunca la IP.
+   - **El acceso a las RPC.** `anon` y `authenticated` no pueden ejecutar `_peek`, `_complete` ni
+     `_attempt`: se prueba con `has_function_privilege`.
+   - **Las cabeceras.** La respuesta de `/d/[token]` trae `Cache-Control: no-store` y
+     `Referrer-Policy: no-referrer`.
+   - **Los logs.** Una prueba captura `console.*` durante un uso válido y uno inválido, y busca el token en
+     claro: no aparece.
+   - **Regenerar** revoca el anterior.
+   - **El hash.** La base guarda solo el hash. Contrato SQL con mutantes.
+4. **F-3, aviso.**
+   - Un aliado con dos clientes sin dirección y carga en la bodega recibe un solo correo con los dos
+     códigos.
+   - Si uno carga la dirección antes del envío, el correo lleva solo el otro.
+   - Con `retira_aliado`, no sale ningún correo.
+   - **El aviso no toca `client_address_links`:** después de enviarlo, el enlace vigente sigue vigente y
+     el correo no trae ningún token. Una prueba compara la tabla antes y después.
+5. **F-4, RPC.**
+   - El aliado lee y agrega direcciones de un cliente de su cadena.
+   - **Entre aliados:** el aliado A, con el `client_id` de un cliente del aliado B o de un cliente directo
+     de DTD, recibe de las dos RPC la misma respuesta que con un id que no existe. Se prueba en
+     `.test.sql` con dos aliados y sus cadenas.
+   - La RPC de escritura solo inserta y mueve `is_default`: un `.test.sql` comprueba que no cambia `line`
+     ni `deleted_at` de filas existentes (P-5).
+   - Deja auditoría sin el texto.
 6. **China.** Ninguna superficie nueva devuelve el nombre, el teléfono ni la dirección a un usuario `cn`
    que no sea admin.
 
@@ -279,14 +406,20 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
   - `app/studio/(app)/clientes/_components/AliadoCard.tsx` y `app/studio/(app)/clientes/[markbox]/page.tsx`;
   - y sus pruebas.
 - **F-2:**
-  - `supabase/migrations/NNNN_client_address_links.sql`, con su `.test.sql`;
-  - `app/d/[token]/**`;
+  - `supabase/migrations/NNNN_client_address_links.sql`, con su `.test.sql`. Lleva la tabla, la de
+    intentos y las RPC `_create`, `_peek`, `_complete` y `_attempt`;
+  - `app/d/[token]/**`, y `proxy.ts` si las cabeceras van ahí;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (para reutilizar el formulario);
   - una acción en `app/studio/(app)/clientes/actions.ts`;
   - y sus pruebas.
-- **F-3:** `lib/studio/notifications/` (el aviso al aliado), con sus pruebas.
+- **F-3:**
+  - `lib/studio/notifications/aviso-aliado-direcciones.ts`, que arma y agrupa el correo;
+  - `app/api/cron/aliado-direcciones-pendientes/route.ts`, el disparo diario, con el mismo patrón que
+    `app/api/cron/portal-cold-reminder/route.ts`;
+  - y sus pruebas.
 - **F-4:**
-  - `supabase/migrations/NNNN_aliado_set_client_delivery_address.sql`;
+  - `supabase/migrations/NNNN_aliado_direcciones_rpc.sql`, con `aliado_list_client_delivery_addresses` y
+    `aliado_add_client_delivery_address`, y su `.test.sql`;
   - las secciones del portal del aliado de la 0666 P2 y P3.
 - **Al aprobarse:** las notas de cambio en `docs/specs/0666-portal-del-aliado/spec.md` y
   `docs/specs/0255-aliados-white-label/spec.md` (§4.7).

@@ -14,7 +14,7 @@
 
 ## Hecho
 
-- Medición del modelo de aliados en `main` (e9a0aa2aa):
+- Medición del modelo de aliados en `main` (6a7787d08):
   - el cliente final es una ficha de `clients` con `aliado_id`;
   - el aliado tiene su ficha ancla;
   - no hay modo de entrega construido;
@@ -38,3 +38,33 @@
 
 - La spec nueva y el índice `docs/specs/README.md`. Las enmiendas a la 0666 y la 0255 quedan pendientes de la
   aprobación.
+
+## Revisión independiente (2026-11-20, sobre 8593ebdfd): CHANGES_REQUESTED, corregida
+
+- **1. Marca:** se resuelve desde el token en `_peek`, falla cerrado (página neutra, nunca DTD) y exige
+  `hide_dtd_brand` (§4.4.3).
+- **2. Mecánica del enlace:**
+  - las RPC `_create`, `_peek`, `_complete` y `_attempt`, con service_role donde corresponde;
+  - el consumo atómico;
+  - la escritura solo en la ficha del token;
+  - un límite de intentos en la base, con el patrón de `brand_access_attempts` (0334);
+  - `no-store` y `no-referrer`;
+  - el token fuera de los logs (§4.4.1 a §4.4.4).
+- **3.** El aviso diario no genera ni lleva enlaces (§4.5).
+- **4.** La F-3 declara que depende de la F-2 (§5).
+- **5.** Hay una RPC de lectura y otra de alta, con la comprobación de cadena y sin borrar ni editar (§4.3).
+- **6.** La §7 suma las pruebas que faltaban:
+  - el vencimiento a 14 días;
+  - el doble envío;
+  - el límite de intentos;
+  - la respuesta idéntica;
+  - el acceso entre aliados;
+  - la marca ante un error;
+  - las cabeceras;
+  - los logs.
+- **7.** `lib/studio/client-address-queries.ts` **sí existe** en `main` (6a7787d08:
+  `insertClientDeliveryAddress:96`). Quedan nombrados los archivos de la F-3.
+- **8.** `docs/specs/README.md` es generado: se regenera con `node scripts/build-docs-index.mjs` al
+  integrar, en el orden que serialice Dir_DTD.
+- **9.** La base de la medición es `6a7787d08`.
+- **10.** La minimización queda como «diseño», con la nota del prefijo del código impreso.
