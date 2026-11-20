@@ -186,7 +186,14 @@ Color (SDD-0686), formato de cifras (SDD-0687), Portal y web pública (esta spec
 
 1. ~~Reglas de botones 1 a 6 de §3.~~ **Aprobadas el 2026-11-20.** Sam vio las seis dibujadas, cada una con su «así no» y su «así sí», y respondió: «Reglas de botones: aprobadas las seis». Entran en BTN-01 v1.3.
    Siguen pendientes las reglas 7 a 9 (mensajes).
-2. Los tres anchos de panel (regla 10).
+2. ~~Los tres anchos de panel (regla 10).~~ **Decidido el 2026-11-20: opción A, `sm` 520, `md` 640 y `lg` 760 px.** Sam comparó dos opciones dibujadas sobre una pantalla de 1.400 px:
+   - **A** (520 · 640 · 760): no cambian 32 de los 116 paneles y se achican unos 49, sobre todo los 37 que hoy miden 560 y pasan a 520.
+   - **B** (560 · 640 · 720, la recomendada): no cambian 56 y se achica 1.
+
+   Respondió: «Anchos de panel: opción A, 520, 640 y 760». **Cómo se aplica (M, conteo de `width={N}` en `<DrawerShell>`):**
+   - Cada panel va al ancho más cercano.
+   - Todo panel que se achica se revisa en pantalla. Si un campo, una tabla o el pie no caben en el ancho nuevo, sube al siguiente (520 → 640), nunca a un cuarto ancho.
+   - Esa revisión es parte de la aceptación de la fase que toque cada módulo.
 3. Si la simetría se extiende al Portal.
 4. Cuáles extras de §9 entran.
 
