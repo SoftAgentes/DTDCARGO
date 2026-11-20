@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   SALIDA,
+  TOPE_IMPORTS,
   analizarDiff,
   cargarContenido,
   clasificar,
@@ -338,7 +339,7 @@ test("imports: segundo nivel (la pantalla importa un módulo limpio que importa 
   const c = cargarContenido(["components/zz/P.tsx"], [SHA_A], porLotes((_ref, r) => (r in archivos ? Buffer.from(archivos[r]) : null)));
   const r = clasificarArchivo("components/zz/P.tsx", c.get("components/zz/P.tsx"));
   assert.equal(r.carril, "revision");
-  assert.match(r.motivo, /importa «@\/lib\/zz\/limpio», que importa «\.\/sucio»/);
+  assert.match(r.motivo, /importa «@\/lib\/zz\/limpio» → «\.\/sucio», sensible/);
 });
 
 test("imports: import type no cuenta, y un módulo de estilos (design-tokens) tampoco", () => {
@@ -348,6 +349,81 @@ test("imports: import type no cuenta, y un módulo de estilos (design-tokens) ta
   };
   const c = cargarContenido(["components/zz/T.tsx"], [SHA_A], delArbol(archivos));
   assert.equal(clasificarArchivo("components/zz/T.tsx", c.get("components/zz/T.tsx")).carril, "rapido");
+});
+
+const enMemoria = (archivos) => porLotes((_ref, r) => (r in archivos ? Buffer.from(archivos[r]) : null));
+
+test("design-tokens: se lee; con un fetch POST da revision, sola o importada, y sin marcas sigue rapido", () => {
+  const tokens = delRepo("lib/design-tokens.ts");
+  assert.match(tokens, /buildWhatsAppLink/);
+  const conFetch = `${tokens}\nexport async function avisar(d) { await fetch("/api/m/tms/ping", { method: "POST", body: d }); }`;
+  const sola = cargarContenido(["lib/design-tokens.ts"], [SHA_B, SHA_A], porLotes((ref, r) => (r === "lib/design-tokens.ts" ? Buffer.from(ref === SHA_A ? conFetch : tokens) : null)));
+  assert.equal(clasificarArchivo("lib/design-tokens.ts", sola.get("lib/design-tokens.ts")).carril, "revision", "el cambio solo en design-tokens");
+  const limpia = cargarContenido(["lib/design-tokens.ts"], [SHA_A], enMemoria({ "lib/design-tokens.ts": tokens }));
+  assert.equal(clasificarArchivo("lib/design-tokens.ts", limpia.get("lib/design-tokens.ts")).carril, "rapido", "«tokens» del nombre no cuenta");
+  const archivos = {
+    "lib/design-tokens.ts": conFetch,
+    "components/zz/Aviso.tsx": 'import { avisar } from "@/lib/design-tokens";\nexport const A = () => <button onClick={() => avisar(1)} />;',
+  };
+  const c = cargarContenido(["components/zz/Aviso.tsx"], [SHA_A], enMemoria(archivos));
+  const r = clasificarArchivo("components/zz/Aviso.tsx", c.get("components/zz/Aviso.tsx"));
+  assert.equal(r.carril, "revision", "la pantalla que la importa");
+  assert.match(r.motivo, /design-tokens.*fetch/);
+});
+
+test("imports: un archivo de prueba importado desde una pantalla da revision", () => {
+  const archivos = {
+    "lib/zz/__tests__/w.ts": "export const borrar = () => 1;",
+    "components/zz/B.tsx": 'import { borrar } from "@/lib/zz/__tests__/w";\nexport const B = () => <p>{borrar()}</p>;',
+  };
+  const c = cargarContenido(["components/zz/B.tsx"], [SHA_A], enMemoria(archivos));
+  const r = clasificarArchivo("components/zz/B.tsx", c.get("components/zz/B.tsx"));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /archivo de prueba/);
+  // El archivo de prueba cambiado por sí solo sigue siendo una prueba (carril rápido).
+  assert.equal(carril("lib/zz/__tests__/w.ts"), "rapido");
+});
+
+test("imports: el cierre completo llega al tercer nivel y más", () => {
+  const archivos = {
+    "components/zz/P.tsx": 'import { a } from "@/lib/zz/a";\nexport const P = () => <p>{a()}</p>;',
+    "lib/zz/a.ts": 'import { b } from "./b";\nexport const a = () => b();',
+    "lib/zz/b.ts": 'import { c } from "./c";\nexport const b = () => c();',
+    "lib/zz/c.ts": 'import { d } from "./d";\nexport const c = () => d();',
+    "lib/zz/d.ts": "export const d = () => createAdminClient();",
+  };
+  const c = cargarContenido(["components/zz/P.tsx"], [SHA_A], enMemoria(archivos));
+  const r = clasificarArchivo("components/zz/P.tsx", c.get("components/zz/P.tsx"));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /«@\/lib\/zz\/a» → «\.\/b» → «\.\/c» → «\.\/d»/);
+});
+
+test("imports: los ciclos no cuelgan y un cierre limpio da rapido", () => {
+  const archivos = {
+    "components/zz/C.tsx": 'import { a } from "@/lib/zz/a";\nexport const C = () => <p>{a}</p>;',
+    "lib/zz/a.ts": 'import { b } from "./b";\nexport const a = b;',
+    "lib/zz/b.ts": 'import { a } from "./a";\nexport const b = 1;',
+  };
+  const c = cargarContenido(["components/zz/C.tsx"], [SHA_A], enMemoria(archivos));
+  assert.equal(clasificarArchivo("components/zz/C.tsx", c.get("components/zz/C.tsx")).carril, "rapido");
+});
+
+test("imports: llegar al tope de niveles o de archivos da revision", () => {
+  const archivos = {
+    "components/zz/P.tsx": 'import { a } from "@/lib/zz/a";\nexport const P = () => <p>{a()}</p>;',
+    "lib/zz/a.ts": 'import { b } from "./b";\nexport const a = () => b();',
+    "lib/zz/b.ts": 'import { c } from "./c";\nexport const b = () => c();',
+    "lib/zz/c.ts": "export const c = () => 1;",
+  };
+  assert.ok(TOPE_IMPORTS.niveles >= 8 && TOPE_IMPORTS.archivos >= 400);
+  const limpio = cargarContenido(["components/zz/P.tsx"], [SHA_A], enMemoria(archivos));
+  assert.equal(clasificarArchivo("components/zz/P.tsx", limpio.get("components/zz/P.tsx")).carril, "rapido");
+  const corto = cargarContenido(["components/zz/P.tsx"], [SHA_A], enMemoria(archivos), { niveles: 2, archivos: 2000 });
+  const r = clasificarArchivo("components/zz/P.tsx", corto.get("components/zz/P.tsx"));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /tope/);
+  const pocos = cargarContenido(["components/zz/P.tsx"], [SHA_A], enMemoria(archivos), { niveles: 10, archivos: 1 });
+  assert.match(clasificarArchivo("components/zz/P.tsx", pocos.get("components/zz/P.tsx")).motivo, /tope/);
 });
 
 test("imports: un import con salto de línea en la ruta da revision (se falla cerrado)", () => {

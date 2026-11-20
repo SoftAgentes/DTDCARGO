@@ -223,7 +223,13 @@ const SEGURAS = [
   {
     id: "estilos",
     motivo: "estilos",
-    coincide: (r) => /\.(css|scss)$/i.test(r) || r === "lib/design-tokens.ts",
+    coincide: (r) => /\.(css|scss)$/i.test(r),
+  },
+  {
+    // Es TypeScript ejecutable (lo importan decenas de pantallas, con `buildWhatsAppLink`): se lee como una pantalla.
+    id: "tokens-de-diseno",
+    motivo: "tokens de diseño",
+    coincide: (r) => r === "lib/design-tokens.ts",
   },
   {
     id: "pantallas",
@@ -388,55 +394,56 @@ const VACIO = Object.freeze({ textos: [], binario: false, importa: null });
 export function necesitaLeer(ruta) {
   if (!RE_CODIGO.test(ruta)) return false;
   const r = clasificarArchivo(ruta, { ...VACIO, textos: [""] });
-  // Las pruebas y los estilos (`lib/design-tokens.ts`) no se leen: no son pantallas.
+  // Las pruebas, los estilos y los textos no se leen cuando cambian ellos mismos (sí cuando una pantalla los importa).
   return r.carril === "rapido" && !NO_ES_CODIGO.has(r.regla);
 }
 
+/** Rutas de código seguras cuyo nombre trae una palabra de tema por casualidad («tokens»). Su contenido sí se lee. */
+const SIN_TEMA_POR_NOMBRE = new Set(["lib/design-tokens.ts"]);
+
+/** Tope del recorrido de imports: si se alcanza, la pantalla va a revisión (no se pudo mirar todo). */
+export const TOPE_IMPORTS = Object.freeze({ niveles: 10, archivos: 2000 });
+
 /**
- * Por qué un módulo importado es sensible, o `null`. Por ruta: una regla fija o un tema (no basta «sin-clasificar»,
- * que es toda la lógica de `lib/`). Por contenido: cualquier marca, incluido `"use server"`.
+ * Por qué un módulo importado es sensible por sí mismo, o `null` (lo que importa se mira aparte). Por ruta: una regla
+ * fija, un tema (no basta «sin-clasificar», que es toda la lógica de `lib/`) o ser un archivo de prueba importado
+ * desde código de producción. Por contenido: cualquier marca, incluido `"use server"`. Todo `.ts`/`.tsx` se lee, también
+ * `lib/design-tokens.ts` y las pruebas: la excepción es solo para lo que no es código.
  */
 function moduloSensible(ruta, texto) {
-  // Lo que ya es seguro y no es pantalla (estilos como `lib/design-tokens.ts`, textos) no hace sensible a quien lo usa.
-  const segura = SEGURAS.find((s) => s.coincide(ruta));
-  if (segura && NO_ES_CODIGO.has(segura.id)) return null;
+  if (!RE_CODIGO.test(ruta)) return null;
+  if (RE_PRUEBA.test(ruta)) return "es un archivo de prueba importado desde código de producción";
   for (const regla of REGLAS_FIJAS) {
     if (regla.coincide(ruta)) return `${regla.id} por la ruta`;
   }
-  const trozos = pedazos(ruta);
-  for (const tema of TEMAS) {
-    const palabra = trozos.find((t) => tema.palabras.some((re) => re.test(t)));
-    if (palabra) return `${tema.id} («${palabra}» en la ruta)`;
+  if (!SIN_TEMA_POR_NOMBRE.has(ruta)) {
+    const trozos = pedazos(ruta);
+    for (const tema of TEMAS) {
+      const palabra = trozos.find((t) => tema.palabras.some((re) => re.test(t)));
+      if (palabra) return `${tema.id} («${palabra}» en la ruta)`;
+    }
   }
   if (texto === null) return "no se puede leer como texto";
   const marca = marcaEn(texto);
   return marca ? `trae «${marca}»` : null;
 }
 
-/** Resuelve cada import a su primer candidato que existe en la lectura (o `null` si ninguno existe). */
-function resolver(imports, ref, leidos) {
-  return imports.map((imp) => {
-    for (const c of imp.candidatas) {
-      const bytes = leidos.get(`${ref}:${c}`) ?? null;
-      if (bytes !== null) return { ...imp, ruta: c, texto: comoTexto(bytes) };
-    }
-    return { ...imp, ruta: null, texto: null };
-  });
-}
-
 /**
  * Lee el contenido de los archivos de código que todavía pueden ir por el carril rápido, en las revisiones dadas, y
- * sus imports en dos niveles. `leerVarios([[ref, ruta], …])` devuelve un `Map` "ref:ruta" → Buffer o `null`
- * (lectura por lotes: un solo `git cat-file --batch` por vuelta). Devuelve un `Map` ruta → `{ textos, binario,
- * importa }`: los textos de cada versión que existe, si alguna no es texto, y por qué un import la hace sensible
- * (o `null`).
+ * recorre el **cierre completo** de sus imports con código (no `import type`), por lotes: un `git cat-file --batch`
+ * por nivel. `leerVarios([[ref, ruta], …])` devuelve un `Map` "ref:ruta" → Buffer o `null`. Devuelve un `Map`
+ * ruta → `{ textos, binario, importa }`: los textos de cada versión que existe, si alguna no es texto, y por qué
+ * algo de lo que importa (directa o indirectamente) la hace sensible, o `null`. Si el recorrido llega al tope
+ * (`TOPE_IMPORTS`), `importa` lo dice y la pantalla va a revisión.
  */
-export function cargarContenido(rutas, refs, leerVarios) {
+export function cargarContenido(rutas, refs, leerVarios, tope = TOPE_IMPORTS) {
   const aLeer = rutas.filter(necesitaLeer);
   const leidos = leerVarios(aLeer.flatMap((ruta) => refs.map((ref) => [ref, ruta])));
   const contenido = new Map();
-  // Nivel 1: los imports de cada pantalla, en cada versión.
-  const nivel1 = []; // { ruta, ref, imp }
+
+  // El grafo, por versión: nodo "ref:ruta" → { ruta, propio, imports }.
+  const nodos = new Map();
+  const raices = []; // { ruta, ref, imports }
   for (const ruta of aLeer) {
     const entrada = { textos: [], binario: false, importa: null };
     for (const ref of refs) {
@@ -448,48 +455,117 @@ export function cargarContenido(rutas, refs, leerVarios) {
         continue;
       }
       entrada.textos.push(texto);
-      for (const imp of importsLocales(ruta, texto)) {
-        if (imp.raro && !entrada.importa) entrada.importa = `un import con salto de línea («${imp.spec.trim()}»)`;
-        else if (!imp.raro) nivel1.push({ ruta, ref, imp });
-      }
+      const imports = importsLocales(ruta, texto);
+      const raro = imports.find((i) => i.raro);
+      if (raro && !entrada.importa) entrada.importa = `un import con salto de línea («${raro.spec.trim()}»)`;
+      raices.push({ ruta, ref, imports: imports.filter((i) => !i.raro) });
     }
     contenido.set(ruta, entrada);
   }
 
-  const leerImports = (lista) => {
-    const unicos = new Map();
-    for (const { ref, imp } of lista) for (const c of imp.candidatas) unicos.set(`${ref}:${c}`, [ref, c]);
-    return leerVarios([...unicos.values()]);
-  };
-
-  // Nivel 1: el módulo importado, por su ruta y su contenido.
-  const leidos1 = leerImports(nivel1);
-  const nivel2 = []; // { ruta, ref, imp, via }
-  for (const { ruta, ref, imp } of nivel1) {
-    const entrada = contenido.get(ruta);
-    if (entrada.importa) continue;
-    const [r] = resolver([imp], ref, leidos1);
-    if (r.ruta === null) continue; // no es un archivo del repo en esa versión (alias de paquete, generado)
-    const motivo = moduloSensible(r.ruta, r.texto);
-    if (motivo) {
-      entrada.importa = `importa «${imp.spec}», que es sensible: ${motivo}`;
-      continue;
+  // Recorrido por niveles: cada nivel lee de una vez todos los candidatos de los imports pendientes.
+  let pendientes = raices.flatMap(({ ref, imports }) => imports.map((imp) => ({ ref, imp })));
+  let nivel = 0;
+  let topeAlcanzado = false;
+  const resueltos = new Map(); // "ref:spec-candidatas" → clave del nodo o null
+  const claveImport = (ref, imp) => `${ref}|${imp.candidatas.join("|")}`;
+  while (pendientes.length > 0) {
+    nivel += 1;
+    if (nivel > tope.niveles || nodos.size > tope.archivos) {
+      topeAlcanzado = true;
+      break;
     }
-    for (const imp2 of importsLocales(r.ruta, r.texto)) {
-      if (imp2.raro) entrada.importa = `«${imp.spec}» trae un import con salto de línea`;
-      else nivel2.push({ ruta, ref, imp: imp2, via: imp.spec });
+    const porLeer = new Map();
+    for (const { ref, imp } of pendientes) {
+      if (resueltos.has(claveImport(ref, imp))) continue;
+      for (const c of imp.candidatas) if (!nodos.has(`${ref}:${c}`)) porLeer.set(`${ref}:${c}`, [ref, c]);
     }
+    const lote = leerVarios([...porLeer.values()]);
+    const siguientes = [];
+    for (const { ref, imp } of pendientes) {
+      const k = claveImport(ref, imp);
+      if (resueltos.has(k)) continue;
+      let clave = null;
+      for (const c of imp.candidatas) {
+        const ck = `${ref}:${c}`;
+        if (nodos.has(ck)) {
+          clave = ck;
+          break;
+        }
+        const bytes = lote.get(ck) ?? null;
+        if (bytes === null) continue;
+        const texto = comoTexto(bytes);
+        const hijos = texto === null ? [] : importsLocales(c, texto);
+        const raro = hijos.find((h) => h.raro);
+        nodos.set(ck, {
+          ruta: c,
+          propio: raro ? `trae un import con salto de línea («${raro.spec.trim()}»)` : moduloSensible(c, texto),
+          imports: hijos.filter((h) => !h.raro),
+        });
+        for (const h of hijos) if (!h.raro) siguientes.push({ ref, imp: h });
+        clave = ck;
+        break;
+      }
+      resueltos.set(k, clave); // null: no es un archivo del repo en esa versión (alias de paquete, generado)
+    }
+    pendientes = siguientes;
   }
 
-  // Nivel 2: lo que importan esos módulos.
-  const leidos2 = leerImports(nivel2);
-  for (const { ruta, ref, imp, via } of nivel2) {
+  // Por qué un nodo es sensible (él o lo que importa), con memoria. Un nodo que el recorrido no expandió por el tope
+  // cuenta como sensible.
+  const memo = new Map();
+  const sensible = (clave, ref, enCurso = new Set()) => {
+    if (memo.has(clave)) return memo.get(clave);
+    if (enCurso.has(clave)) return null; // ciclo: lo resuelve quien lo empezó
+    const nodo = nodos.get(clave);
+    if (!nodo) return null;
+    if (nodo.propio) {
+      memo.set(clave, { motivo: nodo.propio, cadena: [] });
+      return memo.get(clave);
+    }
+    enCurso.add(clave);
+    let r = null;
+    for (const imp of nodo.imports) {
+      const k = claveImport(ref, imp);
+      if (!resueltos.has(k)) {
+        if (topeAlcanzado) r = { motivo: "el recorrido de imports llegó al tope sin terminar", cadena: [imp.spec] };
+        if (r) break;
+        continue;
+      }
+      const hijo = resueltos.get(k);
+      if (!hijo) continue;
+      const s = sensible(hijo, ref, enCurso);
+      if (s) {
+        r = { motivo: s.motivo, cadena: [imp.spec, ...s.cadena] };
+        break;
+      }
+    }
+    enCurso.delete(clave);
+    memo.set(clave, r);
+    return r;
+  };
+
+  for (const { ruta, ref, imports } of raices) {
     const entrada = contenido.get(ruta);
     if (entrada.importa) continue;
-    const [r] = resolver([imp], ref, leidos2);
-    if (r.ruta === null) continue;
-    const motivo = moduloSensible(r.ruta, r.texto);
-    if (motivo) entrada.importa = `importa «${via}», que importa «${imp.spec}», sensible: ${motivo}`;
+    for (const imp of imports) {
+      const k = claveImport(ref, imp);
+      if (!resueltos.has(k)) {
+        if (topeAlcanzado) {
+          entrada.importa = `el recorrido de imports llegó al tope (${tope.niveles} niveles o ${tope.archivos} archivos)`;
+          break;
+        }
+        continue;
+      }
+      const hijo = resueltos.get(k);
+      if (!hijo) continue;
+      const s = sensible(hijo, ref);
+      if (s) {
+        const cadena = [imp.spec, ...s.cadena].map((x) => `«${x}»`).join(" → ");
+        entrada.importa = s.cadena.length === 0 ? `importa ${cadena}, que es sensible: ${s.motivo}` : `importa ${cadena}, sensible: ${s.motivo}`;
+        break;
+      }
+    }
   }
   return contenido;
 }
@@ -510,7 +586,7 @@ export function clasificarArchivo(rutaCruda, contenido) {
   const segura = SEGURAS.find((s) => s.coincide(ruta));
   const esCodigo = !segura || !NO_ES_CODIGO.has(segura.id);
 
-  if (esCodigo) {
+  if (esCodigo && !SIN_TEMA_POR_NOMBRE.has(ruta)) {
     const trozos = pedazos(ruta);
     for (const tema of TEMAS) {
       const palabra = trozos.find((t) => tema.palabras.some((re) => re.test(t)));
