@@ -185,7 +185,12 @@ de que el servidor se acuerde de hacerlo:
 
 0. **Solo en `_complete`, primero se validan los campos** (`line` entre 1 y 300 caracteres, y `city`,
    `state` y `reference` con sus propios límites). Un campo inválido devuelve el error de campo **con
-   `raise`**, antes de mirar el token. No cuenta como intento, y la respuesta no dice nada del token.
+   `raise`**, antes de mirar el token. La respuesta no dice nada del token.
+   - `p_city_slug` se valida contra el catálogo de ciudades **sin consultar el token ni el cliente**: solo
+     se comprueba que el slug exista.
+   - **Este camino no cuenta como intento**, y es inocuo: no lee el token ni toca `client_address_links`,
+     así que no sirve para probar tokens. El que adivina tokens tiene que mandar campos válidos, y entonces
+     cuenta.
 1. `perform pg_advisory_xact_lock(hashtextextended(p_attempt_key, 0))`. Serializa las llamadas de un mismo
    origen, y así el límite de 5 es exacto aunque lleguen peticiones en paralelo.
 2. Cuenta los fallos de `p_attempt_key` en `client_address_link_attempts` dentro de la ventana de §4.4.4.
@@ -422,6 +427,9 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
      - el mismo código HTTP;
      - las mismas cabeceras, sin contar `date`, el nonce de la CSP ni los ids de petición;
      - el mismo cuerpo **normalizado**: sin nonces, ids de React ni marcas de tiempo.
+
+     Además, **un campo inválido con un token válido** y **un campo inválido con un token inexistente** dan
+     la misma respuesta de error de campo, comparada igual. El token válido no se consume.
    - **El mismo trabajo.** Una prueba con las RPC simuladas comprueba que, en los cinco casos, el servidor
      llama a `_peek` en la carga y a `_complete` en el envío el mismo número de veces, también con el
      origen bloqueado, y que siempre pasa la clave del intento.
