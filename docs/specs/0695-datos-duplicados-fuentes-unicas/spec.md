@@ -658,10 +658,10 @@ Cada pregunta trae la recomendación primero.
 - **P-1 (identidad). Decidida por Sam el 2026-11-20:** «Sí, manda la ficha». Para un cliente de carga, la
   ficha manda, y `persons` queda solo para quien no tiene ficha. Se implementa con el trigger que liga la
   persona al darse de alta y con la vista que lee la ficha (§4.4).
-- **P-2 (correo).** Si la oficina cambia el correo de un cliente que ya entra al portal, la cuenta queda
-  «sin comprobar» hasta que el cliente confirme el correo nuevo, como ya pasa con las cuentas del enlace.
-  ¿Lo aplicamos a todas las cuentas? *Recomendado: sí* (§4.5). El costo: si la oficina se equivoca al
-  escribir el correo, el cliente no entra hasta que se corrija y se le reenvíe la comprobación.
+- **P-2 (correo). Decidida por Sam el 2026-11-20:** «Sí, en todas». Al cambiar el correo de un cliente con
+  acceso, la cuenta queda «sin comprobar» hasta que confirme el nuevo, sin importar cómo nació la cuenta
+  (§4.5). Sam acepta el costo: si la oficina escribe mal el correo, el cliente no entra hasta que se corrija
+  y se reenvíe la comprobación.
 - **P-3 (asesor).** Cuando el cliente ya tiene ficha, ¿manda el asesor de la ficha también en el CRM?
   *Recomendado: sí;* la tarjeta conserva su dueño solo para los leads sin ficha (§4.6).
 - **P-4 (nombre).** Si se corrige el nombre de un cliente, ¿lo actualizamos en sus embarques, recepciones
