@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 668 specs)
+### Índice de specs (generado · 669 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -706,6 +706,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 | 0686 | Color de acción azul en web, Portal y ERP: el rojo queda para… | in-progress | interno |
+| 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0688 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
