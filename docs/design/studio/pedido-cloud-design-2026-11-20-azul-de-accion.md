@@ -68,7 +68,7 @@ Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`).
 - ~~Tono exacto del azul.~~ Sam lo fijó el 2026-11-20 al elegir la opción B entre tres: `#1F4FA8` en claro y `#7FAAF0` en oscuro, los valores de la tabla de arriba.
 - ~~Color del Shipping Mark.~~ Decidido el 2026-11-20 (BD-076, regla 6). Todo dato va en tinta. Va en azul con subrayado fino solo cuando ese dato, él solo, lleva a otro lugar. Si toda la fila se abre al tocarla, en impresión o sin destino, va en tinta. Sustituye `--wine-text` para el Shipping Mark en §Contraste del `CLAUDE.md` del Norte.
 - ~~Badge tono `wine`.~~ Decidido el 2026-11-20 (BD-076, regla 7): el tono se retira. Cada badge toma el tono de lo que dice: `neutral` si informa, `success` si confirma, tinta si cuenta una selección. En `erp/components.jsx` (`<Badge>`) y en el Brand Book, el tono `wine` sale de la lista.
-- Correos, PDF de factura y estado de cuenta, etiquetas: conservan el vino salvo decisión contraria.
+- ~~Correos, PDF y Chatwoot.~~ Decidido el 2026-11-20 (BD-076, regla 8). En el correo, logo y encabezado en vino, botones y enlaces en azul. En el PDF (factura, estado de cuenta, etiquetas), vino solo en el logo y la línea del encabezado, y sin azul. La burbuja de Chatwoot, en azul. Las cifras van en tinta en los tres. Actualizar las plantillas de correo y de PDF del Norte.
 - La variante `mono-light` del logo dice «sobre wine, CTAs»: con CTAs azules, confirmar si aplica igual sobre el azul.
 
 ## Estado en el repo
