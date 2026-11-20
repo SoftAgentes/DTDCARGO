@@ -28,6 +28,10 @@ Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arr
   `embarques-pestanas.test.ts`, `EmbarquesClient.pestanas.test.tsx`.
 - Las 34 pruebas previas de `EmbarquesClient.*` arman envíos `in_transit`; se les pasa `pestanaInicial="all"`
   porque prueban contenedores y montos, no pestañas. No se debilitó ninguna aserción.
+- Tras traer main con la 0689 (#716, `0f736b35f`): su prueba `EmbarquesClient.encabezado-cliente.test.tsx`
+  abre en `pestanaInicial="camino"` (decisión del DG: es el camino real del 64, zarpado), y en su bloque
+  «el encabezado no depende de la pestaña» los casos «Activos» pasan a «En camino», donde ahora viven los
+  envíos en tránsito. Aserciones sin cambios.
 - typecheck, vitest y lint: NO EJECUTADO todavía (turno de PC en cola del DG).
 
 ## Pendiente de esta tarea
@@ -41,4 +45,5 @@ Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arr
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La 0689 (Embarques) puede tocar `EmbarquesClient.tsx`; medir el cruce con `git merge-tree` antes de integrar.
+- Choque de comportamiento con la 0689 medido y resuelto aquí (ver Pruebas). El DG le pasó a la 0689 que el «Total sin
+  facturar» debía ser del contenedor entero, no de la pestaña; su prueba ya lo cubre.
