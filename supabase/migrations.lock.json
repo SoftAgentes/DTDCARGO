@@ -3645,6 +3645,15 @@
         "fecha": "2026-11-19",
         "forma": "exacta"
       }
+    },
+    "0569_exc0674_emitir_borradores": {
+      "sha256": "e65b7de5a4785b4d2818654de909b7386c5ff8ba35b8c9b7efa3142309aee40a",
+      "md5": "9cd8b758933dbc13f623bdc93f913cc2",
+      "bytes": 41875,
+      "ledger": {
+        "fecha": "2026-11-20",
+        "forma": "exacta"
+      }
     }
   }
 }

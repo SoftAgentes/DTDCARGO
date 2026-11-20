@@ -26,8 +26,8 @@
  *
  * ## Lo que NO hace: inventar
  *
- * 146 de 490 clientes vivos no tienen documento cargado (medido 2026-08-25).
- * Para ellos esto devuelve `null` y el PDF no imprime la línea. Una factura con
+ * Muchos clientes vivos no tienen el documento cargado. Para ellos esto
+ * devuelve `null` y el PDF no imprime la línea. Una factura con
  * un identificador equivocado es peor que una sin él.
  */
 

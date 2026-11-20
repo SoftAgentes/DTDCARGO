@@ -133,6 +133,9 @@ SCRIPT="${LOTE}/${PASO}.sql"
   || refuse "${PASO}.sql no empieza con \\set ON_ERROR_STOP on"
 LOTE_ID="$(sed -nE 's/^[[:space:]]*"lote":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ -n "${LOTE_ID}" ]] || refuse "manifiesto.json no trae el id del lote"
+# La forma del id, antes de usarlo en un grep -E o en una regex (SDD-0690, revisión de la #733): la carga
+# (`carga-consolidado:<N>:<hash>`) o sus pre-órdenes (`…:facturas`). Nada más.
+[[ "${LOTE_ID}" =~ ^carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)?$ ]] || refuse "el id del lote no tiene la forma esperada"
 grep -qF -- "${LOTE_ID}" "${SCRIPT}" || refuse "${PASO}.sql no es del lote ${LOTE_ID}"
 ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ "${ENTORNO}" == "${ENTORNO_ESPERADO}" ]] || refuse "el lote se generó para «${ENTORNO}», no para ${ENTORNO_ESPERADO} (${PROJECT})"
@@ -181,10 +184,13 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   # Se reconoce por su título («Lote <id> · contenedor DTD #N», en cualquier
   # lugar de la línea: con BOM, sangría, cita o renderizado sin «#») o por las
   # cabeceras fijas de su tabla de clientes. Bytes, no caracteres (LC_ALL=C).
-  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+ · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
+  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)? · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
     refuse "la autorización parece una copia de resumen.md (trae su título «Lote … · contenedor DTD #» o las cabeceras de su tabla): tiene que ser el OK literal de Sam"
   fi
-  grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
+  # El id como palabra entera: «carga-consolidado:64:6303f821:facturas» (pre-órdenes, SDD-0690) cita el id
+  # de la carga como prefijo, y ese OK no sirve para el paquete de la carga. El id sólo trae
+  # [a-z0-9:-], que en ERE no son especiales. Un «:» suelto después del id («<id>: autorizado») sí vale.
+  LC_ALL=C grep -qE -- "${LOTE_ID}(\$|[^:[:alnum:]_-]|:(\$|[^[:alnum:]]))" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
 case "${PASO}" in
