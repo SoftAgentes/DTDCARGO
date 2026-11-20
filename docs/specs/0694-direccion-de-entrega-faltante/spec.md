@@ -244,6 +244,9 @@ Dir_DTD:
 | RPC de registro por enlace (`0562:247-249`, `:266-268`, `:594-596`, `:611-613`) | Una migración nueva las redefine: si llega `p_address`, insertan la predeterminada en F-2 (con la ciudad y el estado) solo si el cliente no tiene ninguna vigente. Dejan de escribir F-1. Ver §4.7. | F-2 |
 | Registro de la página (`app/registro/actions.ts:251-253`) | Con la dirección rápida del paso 2 llena, el alta crea la predeterminada en F-2. Nunca escribe F-1: el `address: null` se queda. F-3 se sigue escribiendo. Ver §4.7. | F-2 |
 | Mi perfil y tarjeta del Studio | Ya escriben F-2. Si no hay ninguna dirección, el formulario llega con la ciudad y el estado de F-3. Pasarlos a la RPC es de la 0695 F-9a. | F-2 |
+| Fusión (`merge_clients`, `0361`) | Una migración nueva la redefine. Conserva las filas de F-2 como hoy (`0361:137-149`), deja de completar F-1 y F-4 (`:248-249`), y **conserva F-3** con `coalesce` (sobreviviente primero, luego la fusionada). Hoy esa ciudad se pierde. | F-2 |
+| Importación `legacy_import` | Dir_DTD ubica el importador fuera del repo. Si se vuelve a usar, escribe F-2. Mientras no se ubique, la copia de §4.1 se vuelve a correr después de cada carga. | F-2 |
+| Semillas (`seed-portal-demo.sql:35`) | Escriben F-2. | F-2 |
 
 **Un solo camino de escritura desde `app/` y `lib/`.** Esta F-2 crea las dos RPC por las que pasa toda
 escritura de `client_delivery_addresses` desde TypeScript. La regla y su prueba de contrato son de la
@@ -251,15 +254,31 @@ SDD-0695 (§4.10 y F-9a):
 
 - `client_delivery_address_save(p_client_id, p_address_id, …, p_make_default)`, `security invoker`, para
   quien tiene sesión: el alta del Studio, y después Mi perfil y la tarjeta del Studio;
-- `client_delivery_address_save_service(...)`, con la misma lógica, `security definer`, **solo para
-  service_role**, para el registro de la página, que no tiene sesión de usuario. Recibe el `client_id` que
-  la acción acaba de crear.
+- `client_delivery_address_save_service`, para el registro de la página, que no tiene sesión de usuario.
+
+**Definición de `client_delivery_address_save_service`** (idéntica en la 0694 §4.3 y la 0695 §4.10):
+
+- **Firma:** `client_delivery_address_save_service(p_tenant_id, p_client_id, p_line, p_city, p_city_slug,
+  p_state, p_reference, p_make_default)`. La lógica de la predeterminada es la misma de
+  `client_delivery_address_save`: alta, `update` de la predeterminada anterior e `insert` en una
+  transacción.
+- **Tenant:** `p_client_id` tiene que existir en `public.clients`, estar vivo (`deleted_at is null` y
+  `merged_into_client_id is null`) y ser de `p_tenant_id`. Si no, la RPC termina con error y no escribe
+  nada.
+- **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
+  Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
+- **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
+  usuario. El alta por enlace escribe dentro de su RPC SQL y no la necesita. Si algún día se llamara desde
+  TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
+  `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
+  `app/` o `lib/` la invoca.
+- **Pruebas:** van en la 0694 F-2, donde nace la función. Un `.test.sql` comprueba que `authenticated` y
+  `anon` no la pueden ejecutar (`has_function_privilege`), y que con el id de un cliente de otro tenant,
+  de un cliente borrado, de un cliente fusionado o de un id inexistente da error y no escribe ninguna
+  fila. La 0695 F-9a solo la cita.
 
 Las RPC SQL que escriben dentro de su propia transacción (el registro por enlace, la copia de §4.1, las
 semillas y el `_complete` de la 0696) cumplen la regla porque son una sola transacción.
-| Fusión (`merge_clients`, `0361`) | Una migración nueva la redefine. Conserva las filas de F-2 como hoy (`0361:137-149`), deja de completar F-1 y F-4 (`:248-249`), y **conserva F-3** con `coalesce` (sobreviviente primero, luego la fusionada). Hoy esa ciudad se pierde. | F-2 |
-| Importación `legacy_import` | Dir_DTD ubica el importador fuera del repo. Si se vuelve a usar, escribe F-2. Mientras no se ubique, la copia de §4.1 se vuelve a correr después de cada carga. | F-2 |
-| Semillas (`seed-portal-demo.sql:35`) | Escriben F-2. | F-2 |
 
 ### 4.4 Botón para pedir el dato
 
@@ -595,6 +614,10 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
     - El paso 2 muestra el campo opcional debajo de la ciudad y el estado, con la etiqueta, el placeholder y la
       ayuda decididos.
     - El alta escribe la dirección con `client_delivery_address_save_service`, no con un insert directo.
+    - `client_delivery_address_save_service` (definición en §4.3), con un `.test.sql`: `authenticated` y
+      `anon` no la pueden ejecutar, y con el id de un cliente de otro tenant, borrado, fusionado o
+      inexistente da error sin escribir. Una prueba de contrato falla si otro archivo de `app/` o `lib/`,
+      fuera de `registerClientAction` y de las dos acciones de enlace permitidas, la invoca.
     - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
       ciudad y el estado del paso 2, y `clients.address` queda en null.
     - Con el campo vacío, no crea ninguna fila.
@@ -687,7 +710,9 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
   - `lib/studio/export/operativo-csv.ts`, `lib/studio/agents/tools/shipment-tools.ts`;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (la precarga de ciudad y estado);
   - `supabase/migrations/NNNN_registro_enlace_direccion.sql` y `NNNN_merge_clients_conserva_direccion.sql`, con sus pruebas;
-  - `supabase/migrations/NNNN_client_delivery_address_save.sql` (las dos RPC de §4.3), con su `.test.sql`;
+  - `supabase/migrations/NNNN_client_delivery_address_save.sql` (las dos RPC de §4.3, con los permisos y el
+    chequeo de tenant de `_service`), con su `.test.sql`;
+  - la prueba de contrato del uso de `_service`, en `lib/__tests__/client-delivery-address-service.contract.test.ts`;
   - `scripts/seed-portal-demo.sql`;
   - dirección rápida del registro (§4.7):
     - `app/registro/RegisterForm.tsx` (paso 2, campo oculto, resumen y comentario);
