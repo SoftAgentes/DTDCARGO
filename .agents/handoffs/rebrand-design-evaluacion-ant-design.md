@@ -94,3 +94,14 @@ Sin cambios en `app/`, `lib/`, `components/`, `supabase/`, `public/` ni la web p
 - Medición nueva de la asimetría (solo lectura, `app/studio/(app)/`): 91 `<h1>` a mano con 7 tamaños y 20 márgenes; 13 anchos de drawer; 45 archivos con `DrawerShell` sin `DrawerFooter`; 73 `<table>` crudas; 22 tamaños de letra en línea; 1.506 rellenos y 1.762 separaciones con número suelto; `useRowHighlight` en 14 archivos contra `useToast` en 132.
 - Validación: `docs:check` y `sdd:check` **PASARON** (con `node`). Recorrido visual: **NO EJECUTADO**.
 - Pendiente: que Sam elija por dónde empezar (propuesta: encabezado de página único, anchos y pie de drawer). Cada mejora necesita SDD con allowlist; estimación sin reservar, 8 a 10 SDD que se solapan con los 4 de la opción A.
+
+---
+
+## AMPLIACIÓN 2026-11-20 (2) · Checklist, extras y opciones para el rojo
+
+- Sam pidió el checklist de qué y cómo se hará (para un SDD), extras de experiencia y revisar el rojo/vino, que la gente lee como negativo o «borrar»; los cambios irían juntos en ERP y Portal. Entregable: [checklist-y-color.md](../../docs/design/rebrand-erp/checklist-y-color.md).
+- Hallazgo de color (medido): `--wine` y `--danger` comparten tono (354°) y contrastan 1,61:1 entre sí; en tema oscuro `--wine` es `#A8323E`, el mismo hex que `--danger` en claro; el primario en oscuro mide 2,26:1 contra la tarjeta.
+- Cinco opciones con contraste calculado; recomendación **opción 2 «Azul DTD»** (hex propuestos, no aprobados) con vino solo para identidad y rojo solo para peligro. Es decisión de marca: va con BRAND-CHECK, BD nuevo y NORTE-SYNC. **Nada se cambió.**
+- Checklist en cinco fases (decidir, preparar, reglas, piezas, adopción por tramos, verificar) y 14 extras de experiencia.
+- Validación: `docs:check` y `sdd:check` **PASARON** (con `node`). Visual en pantalla: **NO EJECUTADO**.
+- Pendiente: decisión de Sam sobre el color y las tres decisiones asociadas (saldos, web pública, logo); número de SDD del Director.
