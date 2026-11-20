@@ -20,6 +20,7 @@ import {
   comoTexto,
   importsLocales,
   leerArgumentos,
+  lectorGit,
   main,
   normalizar,
   porLotes,
@@ -34,7 +35,7 @@ const SCRIPT = path.join(ROOT, "scripts", "carril.mjs");
 
 const PRESENTACION = '<p className="texto">Hola</p>\nconst titulo = t("embarques");';
 // Contenido leído (base y cabeza) de un archivo de código.
-const leido = (...textos) => ({ textos, binario: false, accion: null });
+const leido = (...textos) => ({ textos, binario: false, importa: null });
 // Con un archivo de presentación: lo que da revision aquí lo decide la ruta, no la falta de contenido.
 const carril = (ruta, ...textos) => clasificarArchivo(ruta, leido(...(textos.length ? textos : [PRESENTACION]))).carril;
 const delRepo = (ruta) => readFileSync(path.join(ROOT, ruta), "utf8");
@@ -208,6 +209,17 @@ const MARCAS = [
   ['import { guardar } from "@/lib/studio/guia-actions";', "import de *-actions"],
   ['const { guardar } = await import("./actions");', "import() dinámico de actions"],
   ['import { createServerClient } from "@supabase/ssr";', "@supabase/"],
+  ["if (!(await hasBrandAccess())) return null;", "has*Access"],
+  ['const r = await fetch("/api/x");', "fetch("],
+  ['<form method="post" action="/api/studio/push/subscribe">', "<form method="],
+  ['<form action={guardar}><input name="cedula" /></form>', "action={"],
+  ["<button formAction={borrar}>Borrar</button>", "formAction"],
+  ['navigator.sendBeacon("/api/m/tms/ping", "x");', "sendBeacon("],
+  ["const xhr = new XMLHttpRequest();", "XMLHttpRequest"],
+  ["onSave({ monto: 0 });", "onSave({"],
+  ["props.onSubmit({ cedula });", "onSubmit({"],
+  ["onDeleteItem({ id });", "onDelete*({"],
+  ["onConfirm({ motivo });", "onConfirm({"],
   ['import { createClient } from "@/lib/db/client";', "@/lib/db"],
   ['import { createClient } from "../../lib/db/admin";', "lib/db relativo"],
   ["const c = cookies();", "cookies()"],
@@ -274,10 +286,91 @@ test("contenido: importar un archivo con \"use server\" (sin «action» en el no
   };
   const leer = (_ref, ruta) => (ruta in archivos ? Buffer.from(archivos[ruta]) : null);
   const contenido = cargarContenido(["components/zz/Boton.tsx"], [SHA_B, SHA_A], porLotes(leer));
-  assert.equal(contenido.get("components/zz/Boton.tsx").accion, "./guardar");
+  assert.match(contenido.get("components/zz/Boton.tsx").importa, /«\.\/guardar».*use server/);
   const r = clasificar(["components/zz/Boton.tsx"], contenido);
   assert.equal(r.carril, "revision");
   assert.match(r.causantes[0].motivo, /use server/);
+});
+
+const delArbol = (archivos = {}) =>
+  porLotes((_ref, ruta) => {
+    if (ruta in archivos) return Buffer.from(archivos[ruta]);
+    try {
+      return readFileSync(path.join(ROOT, ruta));
+    } catch {
+      return null;
+    }
+  });
+
+test("imports: llamar a una función de lib/ que escribe con service role (accounting) da revision", () => {
+  const ruta = "components/zz/V.tsx";
+  const archivos = {
+    [ruta]:
+      'import { voidExpenseEntriesForExpense as anular } from "@/lib/studio/accounting/expense-posting";\n' +
+      "export async function V() { await anular(1, 2); return <p>ok</p>; }",
+  };
+  assert.match(delRepo("lib/studio/accounting/expense-posting.ts"), /createAdminClient/);
+  const c = cargarContenido([ruta], [SHA_A], delArbol(archivos));
+  const r = clasificarArchivo(ruta, c.get(ruta));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /expense-posting.*facturacion-pagos-montos/);
+});
+
+test("imports: una puerta de lib/ sin marca en la pantalla (hasBrandAccess con otro nombre) da revision", () => {
+  const ruta = "components/zz/M.tsx";
+  const archivos = {
+    [ruta]: 'import { hasBrandAccess as ver } from "@/lib/marca/access";\nexport async function M() { return (await ver()) ? <p /> : null; }',
+    "components/zz/N.tsx": 'import { algo } from "@/lib/marca/access";\nexport const N = () => <p>{algo}</p>;',
+  };
+  const c = cargarContenido([ruta, "components/zz/N.tsx"], [SHA_A], delArbol(archivos));
+  assert.equal(clasificarArchivo(ruta, c.get(ruta)).carril, "revision", "la marca hasBrandAccess está en el import");
+  const n = clasificarArchivo("components/zz/N.tsx", c.get("components/zz/N.tsx"));
+  assert.equal(n.carril, "revision", "lib/marca/access cae por la ruta («access»)");
+  assert.match(n.motivo, /lib\/marca\/access/);
+});
+
+test("imports: segundo nivel (la pantalla importa un módulo limpio que importa uno con createAdminClient)", () => {
+  const archivos = {
+    "components/zz/P.tsx": 'import { listar } from "@/lib/zz/limpio";\nexport const P = () => <p>{listar()}</p>;',
+    "lib/zz/limpio.ts": 'import { leer } from "./sucio";\nexport const listar = () => leer();',
+    "lib/zz/sucio.ts": "export const leer = () => createAdminClient();",
+  };
+  const c = cargarContenido(["components/zz/P.tsx"], [SHA_A], porLotes((_ref, r) => (r in archivos ? Buffer.from(archivos[r]) : null)));
+  const r = clasificarArchivo("components/zz/P.tsx", c.get("components/zz/P.tsx"));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /importa «@\/lib\/zz\/limpio», que importa «\.\/sucio»/);
+});
+
+test("imports: import type no cuenta, y un módulo de estilos (design-tokens) tampoco", () => {
+  const archivos = {
+    "components/zz/T.tsx":
+      'import type { Asiento } from "@/lib/studio/accounting/expense-posting";\nimport { color } from "@/lib/design-tokens";\nexport const T = () => <p style={{ color }} />;',
+  };
+  const c = cargarContenido(["components/zz/T.tsx"], [SHA_A], delArbol(archivos));
+  assert.equal(clasificarArchivo("components/zz/T.tsx", c.get("components/zz/T.tsx")).carril, "rapido");
+});
+
+test("imports: un import con salto de línea en la ruta da revision (se falla cerrado)", () => {
+  const archivos = { "components/zz/R.tsx": 'import x from "./a\nb";\nexport const R = () => <p />;' };
+  const c = cargarContenido(["components/zz/R.tsx"], [SHA_A], porLotes((_ref, r) => (r in archivos ? Buffer.from(archivos[r]) : null)));
+  const r = clasificarArchivo("components/zz/R.tsx", c.get("components/zz/R.tsx"));
+  assert.equal(r.carril, "revision");
+  assert.match(r.motivo, /salto de línea/);
+});
+
+test("lectorGit falla cerrado: una ruta con salto de línea o una salida que no cuadra es error", () => {
+  const leer = lectorGit(() => Buffer.from(`${"e".repeat(40)} blob 2\nok\nsobra`));
+  assert.throws(() => leer([[SHA_A, "a.ts"]]), /no cuadra/);
+  const corta = lectorGit(() => Buffer.from(""));
+  assert.throws(() => corta([[SHA_A, "a.ts"]]), /menos objetos/);
+  assert.throws(() => lectorGit(() => Buffer.from(""))([[SHA_A, "a\nb.ts"]]), /salto de línea/);
+  const bien = lectorGit(() => Buffer.from(`${"e".repeat(40)} blob 2\nok\nb.ts missing\n`));
+  const m = bien([
+    [SHA_A, "a.ts"],
+    [SHA_A, "b.ts"],
+  ]);
+  assert.equal(String(m.get(`${SHA_A}:a.ts`)), "ok");
+  assert.equal(m.get(`${SHA_A}:b.ts`), null);
 });
 
 test("importsLocales resuelve @/ y relativos, y deja fuera los paquetes", () => {

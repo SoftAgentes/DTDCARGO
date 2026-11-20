@@ -297,6 +297,7 @@ export function pedazos(ruta) {
 const MARCAS = [
   /\brequire\w*\s*\(/, // puertas `requireModuleView(…)`, `requireRole(…)`, y `require(…)`
   /\bcanAccess\w*/, // `canAccessModule(…)`
+  /\bhas\w*Access\b/, // `hasBrandAccess()`
   /\bgetStudioAccess\b/,
   /\bisAdmin\b/,
   /\bhasRole\b/,
@@ -311,15 +312,25 @@ const MARCAS = [
   /\.(insert|update|upsert|delete)\s*\(/,
   /\bredirect\s*\(|\bnotFound\s*\(|\bpermanentRedirect\s*\(/,
   /["']use server["']/,
-  /\bmethod\s*:/, // fetch con POST, PUT o DELETE
+  /\bfetch\s*\(/, // cualquier fetch: también los que escriben sin `method:`
+  /\bmethod\s*:/,
+  /<form\b[^>]*\bmethod\s*=/, // formulario HTML que envía a una ruta
+  /\baction\s*=\s*\{/, // `<form action={guardar}>`: server action por formulario
+  /\bformAction\b/,
+  /\bsendBeacon\s*\(/,
+  /\bXMLHttpRequest\b/,
+  /\bon(Save|Submit|Delete|Confirm)\w*\s*\(\s*\{/, // prop de acción llamada con un objeto
   /(from|import)\s*\(?\s*["'][^"']*action[^"']*["']/i, // importa de `_actions/`, `/actions`, `*-actions`
   /@supabase\/|@\/lib\/(db|auth)\b|\/lib\/db\//,
   /\b(cookies|headers)\s*\(\s*\)/,
 ];
 
 const RE_CODIGO = /\.[cm]?[jt]sx?$/;
-const RE_IMPORT = /(?:\bfrom|\bimport)\s*\(?\s*["']([^"']+)["']/g;
-const RE_USE_SERVER = /^\s*["']use server["']/m;
+// `import … from "x"`, `export … from "x"`, `import "x"` e `import("x")`. El grupo 1 marca `import type`/`export type`,
+// que no trae código y se salta. La ruta se toma con `[^"']+` a propósito: si trae un salto de línea, el archivo
+// cae en revisión (no se puede leer con seguridad).
+const RE_IMPORT =
+  /\b(?:import|export)\b(\s+type\b)?[^"';]*?\bfrom\s*["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)|\bimport\s+["']([^"']+)["']/g;
 
 function marcaEn(texto) {
   for (const re of MARCAS) {
@@ -342,13 +353,18 @@ export function comoTexto(bytes) {
 }
 
 /**
- * Resuelve los imports locales (`@/…` y relativos) de un archivo a las rutas candidatas del repo.
- * Los paquetes (`react`, `next/…`) no se resuelven.
+ * Los imports locales con código (`@/…` y relativos; no `import type`) de un archivo, con sus rutas candidatas.
+ * Los paquetes (`react`, `next/…`) no se resuelven. `raro: true` si la ruta del import trae un salto de línea.
  */
 export function importsLocales(ruta, texto) {
   const salida = [];
   for (const m of texto.matchAll(RE_IMPORT)) {
-    const spec = m[1];
+    if (m[1]) continue; // import type / export type
+    const spec = m[2] ?? m[3] ?? m[4];
+    if (/[\r\n]/.test(spec)) {
+      salida.push({ spec, candidatas: [], raro: true });
+      continue;
+    }
     let base;
     if (spec.startsWith("@/")) base = spec.slice(2);
     else if (spec.startsWith(".")) base = path.posix.normalize(path.posix.join(path.posix.dirname(ruta), spec));
@@ -356,7 +372,7 @@ export function importsLocales(ruta, texto) {
     const candidatas = RE_CODIGO.test(base)
       ? [base]
       : [".ts", ".tsx", ".js", ".mjs", "/index.ts", "/index.tsx"].map((ext) => `${base}${ext}`);
-    salida.push({ spec, candidatas });
+    salida.push({ spec, candidatas, raro: false });
   }
   return salida;
 }
@@ -366,60 +382,120 @@ export function porLotes(leer) {
   return (pares) => new Map(pares.map(([ref, ruta]) => [`${ref}:${ruta}`, leer(ref, ruta)]));
 }
 
+const VACIO = Object.freeze({ textos: [], binario: false, importa: null });
+
 /** Si el archivo es código que solo por su ruta todavía podría ir por el carril rápido: hay que leerlo. */
 export function necesitaLeer(ruta) {
   if (!RE_CODIGO.test(ruta)) return false;
-  const r = clasificarArchivo(ruta, { textos: [""], binario: false, accion: null });
+  const r = clasificarArchivo(ruta, { ...VACIO, textos: [""] });
   // Las pruebas y los estilos (`lib/design-tokens.ts`) no se leen: no son pantallas.
   return r.carril === "rapido" && !NO_ES_CODIGO.has(r.regla);
 }
 
 /**
- * Lee el contenido de los archivos de código que todavía pueden ir por el carril rápido, en las revisiones dadas.
- * `leerVarios([[ref, ruta], …])` devuelve un `Map` "ref:ruta" → Buffer o `null` (lectura por lotes: un solo
- * `git cat-file --batch` por vuelta). Devuelve un `Map` ruta → `{ textos, binario, accion }`: los textos de
- * cada versión que existe, si alguna no es texto, y el import que lleva a un archivo con `"use server"` (o `null`).
+ * Por qué un módulo importado es sensible, o `null`. Por ruta: una regla fija o un tema (no basta «sin-clasificar»,
+ * que es toda la lógica de `lib/`). Por contenido: cualquier marca, incluido `"use server"`.
+ */
+function moduloSensible(ruta, texto) {
+  // Lo que ya es seguro y no es pantalla (estilos como `lib/design-tokens.ts`, textos) no hace sensible a quien lo usa.
+  const segura = SEGURAS.find((s) => s.coincide(ruta));
+  if (segura && NO_ES_CODIGO.has(segura.id)) return null;
+  for (const regla of REGLAS_FIJAS) {
+    if (regla.coincide(ruta)) return `${regla.id} por la ruta`;
+  }
+  const trozos = pedazos(ruta);
+  for (const tema of TEMAS) {
+    const palabra = trozos.find((t) => tema.palabras.some((re) => re.test(t)));
+    if (palabra) return `${tema.id} («${palabra}» en la ruta)`;
+  }
+  if (texto === null) return "no se puede leer como texto";
+  const marca = marcaEn(texto);
+  return marca ? `trae «${marca}»` : null;
+}
+
+/** Resuelve cada import a su primer candidato que existe en la lectura (o `null` si ninguno existe). */
+function resolver(imports, ref, leidos) {
+  return imports.map((imp) => {
+    for (const c of imp.candidatas) {
+      const bytes = leidos.get(`${ref}:${c}`) ?? null;
+      if (bytes !== null) return { ...imp, ruta: c, texto: comoTexto(bytes) };
+    }
+    return { ...imp, ruta: null, texto: null };
+  });
+}
+
+/**
+ * Lee el contenido de los archivos de código que todavía pueden ir por el carril rápido, en las revisiones dadas, y
+ * sus imports en dos niveles. `leerVarios([[ref, ruta], …])` devuelve un `Map` "ref:ruta" → Buffer o `null`
+ * (lectura por lotes: un solo `git cat-file --batch` por vuelta). Devuelve un `Map` ruta → `{ textos, binario,
+ * importa }`: los textos de cada versión que existe, si alguna no es texto, y por qué un import la hace sensible
+ * (o `null`).
  */
 export function cargarContenido(rutas, refs, leerVarios) {
   const aLeer = rutas.filter(necesitaLeer);
   const leidos = leerVarios(aLeer.flatMap((ruta) => refs.map((ref) => [ref, ruta])));
   const contenido = new Map();
-  const pendientes = []; // [ruta, ref, spec, candidatas]
+  // Nivel 1: los imports de cada pantalla, en cada versión.
+  const nivel1 = []; // { ruta, ref, imp }
   for (const ruta of aLeer) {
-    const textos = [];
-    let binario = false;
+    const entrada = { textos: [], binario: false, importa: null };
     for (const ref of refs) {
       const bytes = leidos.get(`${ref}:${ruta}`) ?? null;
       if (bytes === null) continue; // no existe en esa versión (archivo nuevo o borrado)
       const texto = comoTexto(bytes);
       if (texto === null) {
-        binario = true;
+        entrada.binario = true;
         continue;
       }
-      textos.push(texto);
-      for (const { spec, candidatas } of importsLocales(ruta, texto)) pendientes.push([ruta, ref, spec, candidatas]);
+      entrada.textos.push(texto);
+      for (const imp of importsLocales(ruta, texto)) {
+        if (imp.raro && !entrada.importa) entrada.importa = `un import con salto de línea («${imp.spec.trim()}»)`;
+        else if (!imp.raro) nivel1.push({ ruta, ref, imp });
+      }
     }
-    contenido.set(ruta, { textos, binario, accion: null });
+    contenido.set(ruta, entrada);
   }
-  // Segunda vuelta: los archivos importados, para ver si alguno es una server action ("use server").
-  const unicos = new Map();
-  for (const [, ref, , cs] of pendientes) for (const c of cs) unicos.set(`${ref}:${c}`, [ref, c]);
-  const pares = [...unicos.values()];
-  const importados = leerVarios(pares);
-  for (const [ruta, ref, spec, candidatas] of pendientes) {
-    const c = contenido.get(ruta);
-    if (c.accion) continue;
-    const servidor = candidatas.some((cand) => {
-      const t = comoTexto(importados.get(`${ref}:${cand}`) ?? null);
-      return t !== null && RE_USE_SERVER.test(t);
-    });
-    if (servidor) c.accion = spec;
+
+  const leerImports = (lista) => {
+    const unicos = new Map();
+    for (const { ref, imp } of lista) for (const c of imp.candidatas) unicos.set(`${ref}:${c}`, [ref, c]);
+    return leerVarios([...unicos.values()]);
+  };
+
+  // Nivel 1: el módulo importado, por su ruta y su contenido.
+  const leidos1 = leerImports(nivel1);
+  const nivel2 = []; // { ruta, ref, imp, via }
+  for (const { ruta, ref, imp } of nivel1) {
+    const entrada = contenido.get(ruta);
+    if (entrada.importa) continue;
+    const [r] = resolver([imp], ref, leidos1);
+    if (r.ruta === null) continue; // no es un archivo del repo en esa versión (alias de paquete, generado)
+    const motivo = moduloSensible(r.ruta, r.texto);
+    if (motivo) {
+      entrada.importa = `importa «${imp.spec}», que es sensible: ${motivo}`;
+      continue;
+    }
+    for (const imp2 of importsLocales(r.ruta, r.texto)) {
+      if (imp2.raro) entrada.importa = `«${imp.spec}» trae un import con salto de línea`;
+      else nivel2.push({ ruta, ref, imp: imp2, via: imp.spec });
+    }
+  }
+
+  // Nivel 2: lo que importan esos módulos.
+  const leidos2 = leerImports(nivel2);
+  for (const { ruta, ref, imp, via } of nivel2) {
+    const entrada = contenido.get(ruta);
+    if (entrada.importa) continue;
+    const [r] = resolver([imp], ref, leidos2);
+    if (r.ruta === null) continue;
+    const motivo = moduloSensible(r.ruta, r.texto);
+    if (motivo) entrada.importa = `importa «${via}», que importa «${imp.spec}», sensible: ${motivo}`;
   }
   return contenido;
 }
 
 /**
- * Clasifica un archivo. `contenido` es `{ textos, binario, accion }` (de `cargarContenido`), o `undefined` si solo
+ * Clasifica un archivo. `contenido` es `{ textos, binario, importa }` (de `cargarContenido`), o `undefined` si solo
  * se conoce el nombre. Devuelve `{ ruta, carril, regla, motivo }`.
  */
 export function clasificarArchivo(rutaCruda, contenido) {
@@ -471,13 +547,8 @@ export function clasificarArchivo(rutaCruda, contenido) {
         };
       }
     }
-    if (contenido.accion) {
-      return {
-        ruta,
-        carril: "revision",
-        regla: "contenido-sensible",
-        motivo: `importa un archivo con "use server" («${contenido.accion}»)`,
-      };
+    if (contenido.importa) {
+      return { ruta, carril: "revision", regla: "contenido-sensible", motivo: contenido.importa };
     }
   }
 
@@ -498,7 +569,7 @@ export function clasificar(rutas, contenido = null, binarios = new Set()) {
     vistos.add(ruta);
     let c;
     if (contenido) {
-      c = contenido.get(ruta) ?? { textos: [], binario: false, accion: null };
+      c = contenido.get(ruta) ?? VACIO;
       if (binarios.has(ruta)) c = { ...c, binario: true };
     }
     archivos.push(clasificarArchivo(ruta, c));
@@ -621,6 +692,9 @@ export function lectorGit(ejecutar = execFileSync) {
   return (pares) => {
     const salida = new Map();
     if (pares.length === 0) return salida;
+    for (const [ref, ruta] of pares) {
+      if (/[\r\n]/.test(`${ref}${ruta}`)) throw new ErrorCarril(`ruta con salto de línea: «${ruta}»`);
+    }
     const entrada = `${pares.map(([ref, ruta]) => `${ref}:${ruta}`).join("\n")}\n`;
     let buf;
     try {
@@ -652,6 +726,7 @@ export function lectorGit(ejecutar = execFileSync) {
       salida.set(clave, m[1] === "blob" ? Buffer.from(buf.subarray(pos, pos + largo)) : null);
       pos += largo + 1;
     }
+    if (pos !== buf.length) throw new ErrorCarril("git cat-file --batch devolvió una salida que no cuadra con lo pedido");
     return salida;
   };
 }
@@ -693,9 +768,13 @@ function leerPr(numero, esperada, baseRef, ejecutar = execFileSync) {
 
   correr(ejecutar, "git", ["fetch", "--no-tags", "--quiet", "origin", `pull/${n}/head`]);
   if (resolverCommit(ejecutar, antes) !== antes) throw new ErrorCarril(`no se pudo traer la cabeza ${antes}`);
-  const base = String(correr(ejecutar, "git", ["merge-base", antes, resolverCommit(ejecutar, baseRef)])).trim();
+  const principal = resolverCommit(ejecutar, baseRef);
+  const base = String(correr(ejecutar, "git", ["merge-base", antes, principal])).trim();
   if (!RE_SHA.test(base)) throw new ErrorCarril(`no hay merge-base entre ${antes} y ${baseRef}`);
-  const contenido = cargarContenido(rutas, [base, antes], lectorGit(ejecutar));
+  // También la versión actual de la rama base: si main agregó una marca después del merge-base, el resultado
+  // fusionado la tiene. Lo que main cambie después de esta lectura no se ve: el tren exige que la PR no esté BEHIND.
+  const refs = principal === base ? [base, antes] : [base, antes, principal];
+  const contenido = cargarContenido(rutas, refs, lectorGit(ejecutar));
   return { rutas, binarios, contenido, head: antes, base };
 }
 
