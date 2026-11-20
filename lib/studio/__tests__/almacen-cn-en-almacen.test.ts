@@ -190,7 +190,7 @@ describe("listReceipts · «En almacén» (SDD-0682)", () => {
   it("con otro estado elegido no se calcula ni se etiqueta nada", async () => {
     const { client } = dobleListados(TABLAS);
     const filas = await listReceipts(client, { status: "consolidado" });
-    expect(filas).toHaveLength(10);
+    expect(filas.map((f) => f.id)).toEqual(["r7", "r6", "r5", "r4", "r3", "r2", "r1", "r0", "q0", "p0"]);
     expect(filas.every((f) => f.contenedor_sin_zarpar == null)).toBe(true);
   });
 });
