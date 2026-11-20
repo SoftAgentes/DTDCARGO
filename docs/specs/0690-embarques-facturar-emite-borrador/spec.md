@@ -13,7 +13,8 @@ confidencialidad: interno
 
 # SDD-0690 — Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»
 
-> **Estado: propuesta.** Falta la aprobación de Sam y las respuestas del §7. La migración **0569**
+> **Estado: propuesta.** Falta la aprobación de Sam y las respuestas del §7, entre ellas la ampliación de
+> la excepción EXC-0674. La migración **0569**
 > todavía no existe como archivo. Se escribe cuando esta spec quede aprobada, y su cabecera dirá «NO
 > APLICADA EN NINGÚN ENTORNO».
 
@@ -100,8 +101,9 @@ exceso a estos borradores.
     contenedor, no le crea otra y lo informa en el reporte.
   - Escribe el mismo borrador que hoy (§2.2): mismas líneas, mismo `shipment_id`, el código de
     `next_invoice_code`, `invoice_imported` en la auditoría y la marca del lote en `notes`.
-- **Correrlo en producción necesita el OK nominal de Sam en el chat del DG**, para el 64 y para nada más.
-  Antes va un ensayo en una base local con `rollback` y conteos, sin montos. Fusionar la PR no autoriza la
+- **La carga en producción escribe datos.** Necesita un OK nominal de Sam en el chat del DG, que nombre
+  el contenedor (el 64, y nada más). **La corre el DG con el runbook**, no el Worker. Antes, el Worker
+  hace un ensayo en una base local con `rollback` y conteos, sin montos. Fusionar la PR no autoriza la
   carga.
 
 ### 3.2 El caso de datos: un cliente que ya tiene una factura emitida con monto tecleado
@@ -147,7 +149,33 @@ exceso a estos borradores.
 - Acción de servidor nueva, hermana de `facturarExc0674Action`. Hace las mismas verificaciones, manda un
   correo `invoice_emitted` por factura después del commit y revalida la página.
 
-### 3.4 La pantalla
+### 3.4 La puerta legal AUT-04: la RPC no la salta en silencio
+
+- **Qué regla no aplica.** La puerta legal AUT-04 (SDD-0054), en `evaluateLegalGate`
+  (`app/studio/(app)/facturacion/actions.ts:299`, y su llamada al emitir en `:611`), exige para un envío
+  `puerta_a_puerta_DDP` una aceptación vigente de T&C (`hasValidAcceptanceForMarkbox`) que cuadre con el
+  Shipping Mark, el CBM, el peso, el total y la orden. Con `LEGAL_GATE_HARD_BLOCK = true`
+  (`lib/studio/legal/gate-config.ts:35`), sin aceptación no se emite y no hay override. La RPC nueva no
+  consulta esa exigencia de aceptación, y **solo esa**. Todo lo demás de la emisión sí corre: rol, lista,
+  doble confirmación, estado `borrador`, triggers de `invoices`, asiento atómico y auditoría.
+- **Por qué.** Es la excepción **EXC-0674**, opción 2, que Sam decidió el 2026-11-18 (spec 0674, §3.1 (a)
+  y §7.3). Los clientes del 64 entraron por la carga de consolidados y no pasaron por una cotización
+  aceptada en el portal, y hoy no existe un flujo de aceptación para esos envíos. Sin la excepción, la
+  puerta bloquea a todos los clientes del 64.
+- **Hasta cuándo.** Lo que diga el registro de la EXC-0674: revisión el **2027-01-31**, o antes si se
+  vacía la lista `exc0674_contenedores`. Con la lista vacía, la RPC no emite nada, porque su guarda de
+  lista falla. `LEGAL_GATE_HARD_BLOCK` sigue igual para todo lo demás, y `emitInvoice` no cambia.
+- **Cómo queda la marca.** Cada factura emitida por la RPC deja `legal_ack = 'exc_0674'` en
+  `exc0674_facturas` y en la auditoría (`append_audit_event`, misma transacción), con quién la emitió y
+  `origen = 'borrador'`. Así se puede listar todo lo emitido sin aceptación.
+- **Condición previa: hay que ampliar la excepción.** El registro formal de la EXC-0674
+  (`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`) cubre «solo la acción
+  «Facturar»» de la 0564, la del monto tecleado. Emitir el borrador y «Facturar todo» son acciones
+  nuevas. Antes de implementar, Sam tiene que aprobar la ampliación con el mismo alcance (solo la lista,
+  solo `accounting` y `admin`) y la misma fecha de revisión, y se anota en ese registro (§7, pregunta 4).
+  Sin esa aprobación, la RPC no se escribe.
+
+### 3.5 La pantalla
 
 - En `FacturarContenedor`, por cliente:
   - **con borrador:** se ve su total en USD, sin campo para teclear, y el botón «Facturar», que lo emite;
@@ -203,6 +231,8 @@ exceso a estos borradores.
   `_components/EmbarquesClient.tsx`, `page.tsx` y `lib/studio/exc0674-queries.ts`.
 - `lib/studio/embarques-contenedores.ts` (rótulos y saldo) y sus pruebas.
 - `docs/specs/0689-embarques-encabezado-y-cliente/spec.md`, solo la referencia vencida del §3.1.
+- `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`, solo la ampliación, si Sam la
+  aprueba.
 
 ## 7. Preguntas para Sam
 
@@ -212,6 +242,9 @@ exceso a estos borradores.
    sin facturar hasta tener precio? Propuesta: sigue el tecleado.
 3. **«Por cobrar»:** ¿es el saldo de lo emitido (total menos pagado) o el total emitido? Propuesta: el
    saldo.
+4. **¿Amplías la excepción EXC-0674** a «Facturar» que emite el borrador y a «Facturar todo» (§3.4)? El
+   alcance y la fecha de revisión (2027-01-31) serían los mismos. Sin esa ampliación, la puerta legal
+   bloquea a los clientes del 64.
 
 ## 8. Fuera de alcance
 
@@ -231,5 +264,5 @@ exceso a estos borradores.
 | MP-01 (mutación protegida) | cumplimiento | La RPC exige rol, lista, `'Confirmado'` y estado `borrador`, y es atómica. |
 | AUD-01 / AUD-02 | cumplimiento | `append_audit_event` en la misma transacción y rastro `exc0674_*`. |
 | Regla de montos (0661, RLS 0414, frontera SDD-0357) | cumplimiento | Montos solo con `accounting` o `admin`, decididos en el servidor. |
-| Puerta legal (EXC-0674) | excepción | La misma excepción aprobada en la 0674, solo para la lista y solo por la RPC. |
-| Producción y migraciones | cumplimiento | Sin archivo 0569 hasta aprobar; la aplicación y la carga del 64 llevan cada una su OK nominal. |
+| Gate legal AUT-04 (SDD-0054) | excepción | EXC-0674, ampliada si Sam la aprueba (§3.4 y §7, pregunta 4). Solo la regla de aceptación de T&C, solo la lista, revisión el 2027-01-31. |
+| Producción y migraciones | cumplimiento | Sin archivo 0569 hasta aprobar. La aplicación de la 0569 y la carga del 64 llevan cada una su OK nominal, y la carga la corre el DG. |
