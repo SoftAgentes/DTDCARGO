@@ -446,7 +446,9 @@ Diseño (P-1, decidida por Sam: manda la ficha):
     el mensaje dice que los demás datos sí se guardaron.
 - **Borrar el correo también pasa por la RPC.** `client_email_change_service` es la única que escribe
   `clients.email` cuando el correo cambia, también cuando queda vacío:
-  - **con acceso activo, lo rechaza** con el error de campo «Este cliente entra al portal con su correo.
+  - **«Acceso» incluye la invitación todavía sin vincular** (`client_users` en `invited` o `active`): sin
+    correo, la invitación no se podría completar ni volver a mandar;
+  - **con acceso, lo rechaza** con el error de campo «Este cliente entra al portal con su correo.
     Para quitarlo, primero revoca su acceso», y no cambia nada;
   - **sin acceso activo, lo permite:** deja `clients.email` en null, y el evento de
     `audit_d5_clients_contact` lleva al operador como actor (por `p_actor`);
@@ -552,7 +554,12 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
          null`);
        - el `tenant_id` del cliente es `p_tenant_id`;
        - el cliente **no tiene ninguna dirección viva**;
-       - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos.
+       - el cliente es **recién creado:** su `created_at` es de hace 10 minutos o menos. Se compara con `now()`
+         de la base. **Ningún instante llega del llamador:** la RPC no recibe fechas ni horas;
+       - `p_line`, sin espacios a los lados, no está vacío y no pasa de 300 caracteres.
+     - **Serialización:** antes de contar las direcciones vivas, la RPC hace `select … for update` sobre la fila
+       del cliente en `public.clients`. Dos llamadas para el mismo cliente quedan en fila, y la segunda ve la
+       dirección que dejó la primera y falla.
      - **Por qué esa ventana, y no un marcador.** `registerClientAction` crea la ficha y llama a esta RPC en la
        misma petición, a segundos de distancia. La ventana no necesita una columna nueva en `clients` ni un
        estado que limpiar después. Junto con la condición de «sin dirección viva», impide que la función sirva
@@ -560,25 +567,30 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
        registro obligaría a otra migración de `clients` y a decidir cuándo se borra.
      - **Permisos:** `security definer` y `set search_path = ''`, con todo calificado (`public.…`, `pg_catalog.…`).
        Lleva `revoke execute … from public, anon, authenticated` y `grant execute … to service_role`.
-     - **Uso:** la llama solo `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
-       usuario. El alta por enlace escribe dentro de su RPC SQL y no la necesita. Si algún día se llamara desde
-       TypeScript, los únicos otros archivos permitidos son `app/registro/link/[token]/actions.ts` y
-       `app/registro/activar/[token]/actions.ts`. La prueba de contrato falla si cualquier otro archivo de
-       `app/` o `lib/` la invoca.
+     - **Uso:** la llama **solo** `registerClientAction` (`app/registro/actions.ts`), que no tiene sesión de
+       usuario. El registro por enlace (`link` y `activar`) **no** la usa: completa fichas que pueden tener más
+       de 10 minutos y escribe la dirección dentro de su propia RPC SQL (§4.3). La prueba de contrato falla si
+       cualquier otro archivo de `app/` o `lib/` la invoca.
      - **Pruebas.** Van en la 0694 F-2, donde nace la función, en un `.test.sql`, con un caso por condición:
-       - `public`, `anon` y `authenticated` no la pueden ejecutar, y `service_role` sí (`has_function_privilege`);
+       - `anon` y `authenticated` no la pueden ejecutar y `service_role` sí (`has_function_privilege`).
+         `public` se comprueba en el ACL de la función (`pg_proc.proacl`): no tiene una entrada para `public`,
+         porque `has_function_privilege` no acepta `public` como rol;
        - un cliente recién creado y sin direcciones recibe una fila predeterminada;
        - un cliente que ya tiene una dirección viva da error y no escribe;
-       - un cliente creado hace más de 10 minutos da error y no escribe;
+       - un cliente creado hace más de 10 minutos da error y no escribe. La prueba **retrasa `created_at` en la
+         base** (`update … set created_at = now() - interval '11 minutes'`) y no simula el reloj;
+       - `p_line` vacío, solo con espacios o de 301 caracteres da error y no escribe;
+       - dos llamadas en paralelo para el mismo cliente dejan una sola fila;
        - con un `p_tenant_id` que no es el del cliente da error y no escribe;
        - un cliente borrado, uno fusionado y un id inexistente dan error y no escriben.
 
-       La 0695 F-9a solo las cita.
+       La 0695 F-9a solo las cita, salvo que cree la función antes que la 0694: entonces trae estas mismas pruebas.
 
 
    **Las dos nacen en la 0694 F-2**, que es la primera que las necesita (el alta del Studio y la dirección
    rápida del registro). La F-9a de esta spec pasa a ellas a los llamadores que quedan y agrega la prueba de
-   contrato. Si la 0694 F-2 todavía no está en `main` cuando arranque la F-9a, la F-9a las crea con la
+   contrato. Si la 0694 F-2 todavía no está en `main` cuando arranque la F-9a, la F-9a las crea, **con sus
+   pruebas** (las de la 0694 §7.10, que entonces viajan en la F-9a), con la
    misma definición, y la 0694 F-2 las reutiliza. Las RPC SQL que escriben dentro de su propia transacción
    (el registro por enlace, la copia de la 0694 §4.1 y el `_complete` de la 0696) cumplen la regla porque
    son una sola transacción.
@@ -790,7 +802,8 @@ Cada pregunta trae la recomendación primero.
      de `moduleEditDenial`, y que no lee ningún `actor` de `formData`.
    - `client_email_change_service` solo la ejecuta service_role (`has_function_privilege`). Si el `update`
      falla (por ejemplo, un correo inválido), no queda ninguna fila nueva en `client_email_checks`.
-   - Borrar el correo de una ficha con acceso activo por la RPC da el error de campo y no cambia nada. Sin
+   - Borrar el correo de una ficha con acceso activo, **o con una invitación sin vincular**, por la RPC da el
+     error de campo y no cambia nada. Sin
      acceso activo, la RPC lo deja en null y el audit registra al operador. Una prueba de contrato comprueba
      que `updateClientAction` no escribe `email` fuera de la RPC.
    - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
