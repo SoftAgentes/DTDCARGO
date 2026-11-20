@@ -15,6 +15,9 @@ import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { hrefDeVista, statusDelSelector } from "@/lib/studio/almacen-cn-vistas";
+import { nombreParaEtiqueta } from "@/lib/studio/almacen-cn-contenedores";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   HUB_GROUPS,
@@ -92,6 +95,11 @@ interface Props {
   tarifas?: TarifasCn;
   /** SDD-0571: puede congelar en lote (admin, operations, warehouse, accounting). */
   puedeCongelarTarifas?: boolean;
+  /**
+   * SDD-0682: recepciones consolidadas que la vista «En almacén» deja fuera.
+   * `null`/ausente = no se contó (otra vista, o la cuenta falló): sin aviso.
+   */
+  consolidadasOcultas?: number | null;
 }
 
 /** SDD-0571 · Lo que la tabla sabe de las tarifas congeladas. */
@@ -134,6 +142,7 @@ function AlmacenCnView({
   eliminacion,
   tarifas,
   puedeCongelarTarifas = false,
+  consolidadasOcultas = null,
 }: Props) {
   const alertSet = new Set(alertShipmentIds);
   // SDD-0571: el cajón de la tarifa de una recepción.
@@ -156,7 +165,8 @@ function AlmacenCnView({
   // Filtros locales sincronizados con URL
   const [q, setQ] = useState(params.get("q") ?? "");
   const [hub, setHub] = useState(params.get("hub") ?? "");
-  const [status, setStatus] = useState(params.get("status") ?? "");
+  // SDD-0682: un `?status=` que no existe se lee como «En almacén», igual que el servidor.
+  const [status, setStatus] = useState(statusDelSelector(params.get("status")));
 
   // Bulk selection (set de receipt IDs)
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -272,7 +282,9 @@ function AlmacenCnView({
               pushFilters({ q, hub, status: e.target.value });
             }}
           >
-            <option value="">{t("warehouse_cn.filter.status_all")}</option>
+            {/* SDD-0682: sin estado en la URL = «En almacén» (pendiente + incidencia). */}
+            <option value="">{t("warehouse_cn.filter.status_en_almacen")}</option>
+            <option value="all">{t("warehouse_cn.filter.status_all")}</option>
             {RECEIPT_STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(RECEIPT_STATUS_LABEL_KEYS[opt.value])}
@@ -331,23 +343,44 @@ function AlmacenCnView({
         )}
       </div>
 
+      {/* SDD-0682: lo consolidado ya salió de la bodega; se dice y se ofrece dónde verlo. */}
+      {!status && consolidadasOcultas !== null && consolidadasOcultas > 0 && (
+        <div style={{ marginBottom: "var(--s-4)" }}>
+          <Aviso
+            tono="info"
+            compacto
+            accion={{
+              etiqueta: t("warehouse_cn.view.hidden_link"),
+              onClick: () =>
+                router.push(
+                  hrefDeVista(pathname, Object.fromEntries(params.entries()), "camino"),
+                ),
+            }}
+          >
+            {consolidadasOcultas === 1
+              ? t("warehouse_cn.view.hidden_notice_one")
+              : t("warehouse_cn.view.hidden_notice", { count: consolidadasOcultas })}
+          </Aviso>
+        </div>
+      )}
+
       {/* Tabla o empty */}
       {receipts.length === 0 ? (
         <EmptyState
           eyebrow={
             hasActiveFilters
               ? t("chrome.empty.no_results")
-              : t("warehouse_cn.empty.title")
+              : t("warehouse_cn.view.en_almacen")
           }
           title={
             hasActiveFilters
               ? t("warehouse_cn.empty.filtered_title")
-              : t("warehouse_cn.empty.title")
+              : t("warehouse_cn.empty.en_almacen_title")
           }
           description={
             hasActiveFilters
               ? t("warehouse_cn.empty.filtered_description")
-              : t("warehouse_cn.empty.description")
+              : t("warehouse_cn.empty.en_almacen_description")
           }
           action={
             !hasActiveFilters ? (
@@ -838,6 +871,17 @@ function ReceiptRow({
       {/* Status + payment + destino · stacked */}
       <span style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
+        {/* SDD-0682: consolidada, pero su contenedor aún no zarpa: sigue en la bodega. */}
+        {row.contenedor_sin_zarpar && (
+          <span
+            data-testid="en-contenedor-sin-zarpar"
+            style={{ font: "600 11px/1.25 var(--f-sans)", color: "var(--ink)" }}
+          >
+            {tRow("warehouse_cn.view.in_container_unsailed", {
+              container: nombreParaEtiqueta(row.contenedor_sin_zarpar),
+            })}
+          </span>
+        )}
         <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
           {PAYMENT_STATUS_LABELS[row.payment_status]}
         </Badge>

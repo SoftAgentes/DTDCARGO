@@ -43,6 +43,7 @@ export const warehouse = {
   "warehouse_cn.filter.hub_all": "Todos los hubs",
   "warehouse_cn.filter.status_label": "Estado",
   "warehouse_cn.filter.status_all": "Todos los estados",
+  "warehouse_cn.filter.status_en_almacen": "En almacén",
   "warehouse_cn.filter.show_names": "Mostrar nombres",
   "warehouse_cn.filter.hide_names": "Ocultar nombres",
   "warehouse_cn.filter.clear": "Limpiar",
@@ -72,9 +73,9 @@ export const warehouse = {
   "warehouse_cn.table.orphan": "Huérfana",
 
   // ── Empty state ──────────────────────────────────────────
-  "warehouse_cn.empty.title": "Sin recepciones todavía",
-  "warehouse_cn.empty.description":
-    "Cuando llegue mercadería a un hub CN, regístrala con + Nueva recepción.",
+  "warehouse_cn.empty.en_almacen_title": "No hay mercancía en la bodega",
+  "warehouse_cn.empty.en_almacen_description":
+    "No hay recepciones pendientes de consolidar ni incidencias. Lo consolidado está en «En camino».",
   "warehouse_cn.empty.filtered_title": "No hay recepciones que coincidan",
   "warehouse_cn.empty.filtered_description":
     "Ajusta los filtros o limpia la búsqueda para ver todo.",
@@ -364,6 +365,42 @@ export const warehouse = {
   "warehouse_cn.rate.err.rate_not_applicable": "La lista del cliente tiene su propia tarifa para esta ruta: usa esa.",
   "warehouse_cn.rate.err.receipt_no_destination": "Falta la ciudad destino de la recepción.",
   "warehouse_cn.rate.bulk.partial": "Antes del error se congelaron {frozen}.",
+
+  // ── SDD-0682 · vistas de la pantalla ─────────────────────
+  "warehouse_cn.view.label": "Vista de Almacén China",
+  "warehouse_cn.view.en_almacen": "En almacén",
+  "warehouse_cn.view.en_camino": "En camino",
+  "warehouse_cn.view.hidden_notice":
+    "{count} recepciones ya consolidadas no se muestran: salieron de la bodega.",
+  "warehouse_cn.view.hidden_notice_one":
+    "1 recepción ya consolidada no se muestra: salió de la bodega.",
+  "warehouse_cn.view.hidden_link": "Ver contenedores en camino",
+  "warehouse_cn.view.in_container_unsailed": "En contenedor {container}, sin zarpar",
+  "warehouse_cn.camino.description":
+    "Lo que ya salió de la bodega: los contenedores que zarparon, hasta que lleguen.",
+  "warehouse_cn.camino.empty_title": "No hay contenedores en camino",
+  "warehouse_cn.camino.empty_description":
+    "Cuando un contenedor zarpe, aparece aquí hasta que llegue.",
+  "warehouse_cn.camino.group_mar": "En el mar",
+  "warehouse_cn.camino.col_container": "Contenedor",
+  "warehouse_cn.camino.col_carrier": "Naviera",
+  "warehouse_cn.camino.col_mark": "Shipping Mark",
+  "warehouse_cn.camino.show_receipts": "Ver recepciones ({count})",
+  "warehouse_cn.camino.hide_receipts": "Ocultar recepciones",
+  "warehouse_cn.camino.receipts_empty": "Este contenedor no tiene recepciones consolidadas registradas.",
+  "warehouse_cn.camino.receipts_label": "Recepciones del contenedor {container}",
+  "warehouse_cn.camino.col_eta": "ETA",
+  "warehouse_cn.camino.col_days": "Días",
+  "warehouse_cn.camino.col_progress": "Avance",
+  "warehouse_cn.camino.col_load": "Carga",
+  "warehouse_cn.camino.no_eta": "Sin ETA",
+  "warehouse_cn.camino.days_left": "{days} d",
+  "warehouse_cn.camino.days_late": "ETA vencida ({days} d)",
+  "warehouse_cn.camino.arrives_today": "Llega hoy",
+  "warehouse_cn.camino.load_text": "{clients} clientes · {pieces} cajas",
+  "warehouse_cn.camino.load_text_one": "1 cliente · {pieces} cajas",
+  "warehouse_cn.camino.unavailable":
+    "No se pudieron leer los contenedores en camino. Recarga la página.",
 } as const satisfies Record<string, string>;
 
 export type WarehouseDict = Record<keyof typeof warehouse, string>;

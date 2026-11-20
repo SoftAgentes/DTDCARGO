@@ -91,7 +91,7 @@ function fila(tabla: HTMLElement, rotulo: RegExp): string[] {
 describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
   it("cerrado: clientes, envíos, cajas y m³ en la cabecera; el dinero, solo el «Total sin facturar» (SDD-0689)", () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
+      <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     const c64 = cabecera("DDP 64").textContent ?? "";
     expect(c64).toContain("2 clientes");
@@ -104,7 +104,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
   });
 
   it("abierto, sin montos (comercial): franja y detalle sin columnas de dinero", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(cabecera("DDP 64"));
     const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
     expect(franja.textContent).toContain("Clientes2");
@@ -120,7 +120,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
   });
 
   it("un contenedor sin recepción dice «Sin recepción» en recibidas, no 0", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(cabecera("DDP 65"));
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
     expect(franja.textContent).toContain("Cajas recibidasSin recepción");
@@ -130,7 +130,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
 
   it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
+      <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     await userEvent.click(cabecera("DDP 64"));
     const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
@@ -146,7 +146,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
 
   it("sin facturas dice «Sin facturar», nunca $0.00", async () => {
     render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
+      <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     await userEvent.click(cabecera("DDP 65"));
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
@@ -158,7 +158,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
 
   it("si la lectura del monto falló, lo dice", async () => {
     render(
-      <EmbarquesClient
+      <EmbarquesClient pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -171,7 +171,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
   });
 
   it("al abrir el contenedor, el acordeón por cliente también dice sus cajas", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(cabecera("DDP 64"));
     const botonUno = within(region("DDP 64"))
       .getAllByText("Cliente Uno")
