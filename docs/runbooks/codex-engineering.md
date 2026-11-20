@@ -256,6 +256,162 @@ comparar equivalencia del cambio porque head no será ancestro. No rebase de ram
 compartidas. El Director no programa producto durante revisión: devuelve correcciones
 al Worker.
 
+## Carriles de integración
+
+Aprobados por Sam el 2026-11-20 («Carriles: sí, arranca hoy con los pasos 1 a 3»), a prueba durante una
+semana. Antes, toda PR esperaba su turno en un único tren serial: revisión independiente APPROVED más CI verde
+sobre la cabeza exacta. Cada PR que entraba dejaba atrasada a la siguiente, que volvía a correr el CI completo.
+Ahora hay dos carriles según el riesgo.
+
+### Los dos carriles
+
+- **Carril rápido.** La PR entra con el CI en verde (la corrida `pull_request` de `quality.yml` sobre la cabeza
+  exacta, con la regla de siempre: `success`, no `skipped`) y se revisa **después**, en la revisión de
+  madrugada. Cubre pantallas que solo leen, textos, estilos, documentos y pruebas.
+  No aplica si la PR lleva migraciones, RLS o permisos, facturación, pagos o montos, escrituras de datos
+  personales, registro o acceso al portal, o integraciones (correo, Meta, Chatwoot, Kommo).
+- **Carril con revisión previa.** Todo lo demás. Sigue la regla de siempre: revisión independiente APPROVED,
+  que lanza el Director, más el CI verde en la cabeza exacta, ambas antes de fusionar.
+
+El carril lo decide el clasificador (`scripts/carril.mjs`), no el autor. Una PR que mezcla rutas de los dos
+carriles va con revisión previa. Si el autor cree que el clasificador se equivocó, la PR igual va con revisión
+previa, y la corrección de la regla es otra PR (que también va con revisión previa: ver abajo).
+
+**Reversión.** Si `main` queda en rojo después de una PR del carril rápido, se revierte con su propia PR,
+`git revert -m 1 <merge>` en una rama nueva. Toca las mismas rutas que la PR revertida, así que el clasificador
+también la da `rapido`. Primero se revierte y después se investiga. La corrección vuelve como PR nueva, por el carril que le toque.
+
+**Revisión de madrugada.** Corre a las 2:00 de Caracas sobre todo lo que entró por el carril rápido en las últimas
+24 h (los merges a `main` cuyo carril registrado fue `rapido`). Las correcciones pequeñas que encuentre van como PR
+del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam. De noche no se publica: sus PR de
+corrección esperan la ventana de las 11:00.
+
+**Ventanas de publicación.** 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam para lo integrado. Mientras
+cada push a `main` construya y publique (SDD-0541), integrar es publicar: el tren fusiona solo dentro de una
+ventana y, fuera de ella, las PR listas esperan en cola. Las migraciones y encender interruptores (feature
+flags) en producción siguen pidiendo un OK nominal de Sam, como dice el
+[runbook de migraciones](aplicar-migraciones-prod.md). El OK fijo no cubre los smokes que pida una espera
+concreta.
+
+**Prueba de una semana.** Del 2026-11-20 al 2026-11-27 se mide:
+
+- el tiempo de cada PR desde que está lista (`ready_for_review`, o la apertura si nació lista) hasta que su SHA
+  está en producción (la evidencia de publicación de `publicar-web.sh`), separado por carril;
+- las reversiones: cuántas PR del carril rápido hubo que revertir, y por qué;
+- los hallazgos de la revisión de madrugada: cuántos, de qué gravedad y cuántos fueron PR de corrección.
+
+El Director registra el carril de cada PR (la salida JSON del clasificador) junto a su merge, para poder medirlo.
+Al cerrar la semana, Sam decide si los carriles siguen, cambian o se retiran.
+
+### GitHub no es la barrera
+
+Las reglas de GitHub de «revisor requerido por ruta» (CODEOWNERS con revisión obligatoria) no sirven aquí: todas
+las PR salen de la misma cuenta y GitHub no deja aprobar las propias, así que bloquearían todo. **No se proponen
+como barrera.** La barrera es el tren del Director con el clasificador. El check «Carril (informativo)»
+(`.github/workflows/carril.yml`) solo muestra el carril en cada PR. No es check requerido ni bloquea.
+
+### El clasificador
+
+`scripts/carril.mjs`, en Node y sin dependencias. Las reglas van por ruta y son conservadoras: un archivo es
+`rapido` solo si cae en una lista corta de rutas seguras y no toca nada sensible. Lo que no reconoce es
+`revision`, y basta un archivo `revision` para que lo sea toda la PR. El orden:
+
+1. **Reglas fijas** (siempre `revision`, también para documentos y pruebas que vivan ahí): `supabase/`, cualquier
+   `.sql` y `lib/db/`; `.env*`; `.github/`; `infra/`, `Dockerfile` y compose; `scripts/consolidados/`;
+   `app/registro/`, `app/entrar/`, `app/invitar/`, `app/acceso/`, `app/abrir/`, `app/activar/`,
+   `app/verificar/`, los grupos `(auth)` de `app/` y `lib/auth/`, más `proxy.ts` y `middleware.ts`;
+   `lib/studio/legal/`, `lib/legal-public.ts` y las páginas de términos, privacidad y cookies; `app/api/` y
+   cualquier `route.ts`; `private/`; dependencias y configuración global (`package.json`, lockfile,
+   `next.config`, `eslint.config`, `tsconfig`, `vitest.config` y similares). También las server actions
+   (`actions.ts`, `*-actions.ts`, `_actions/`). Esta regla no alcanza a sus pruebas.
+   Por último, las reglas mismas: `AGENTS.md` y `CLAUDE.md` en cualquier carpeta, `.agents/` (salvo
+   `.agents/handoffs/`), `.claude/`, `docs/governance/`, este runbook, el de migraciones en producción,
+   `scripts/carril.mjs`, sus pruebas y el contrato del CI. Una PR no puede rebajar su propio carril.
+2. **Temas sensibles por palabra en la ruta**, solo para código: facturación, pagos, contabilidad, tarifas y montos
+   (`facturacion`, `pagos`, `contabilidad`, `fiscal`, `tesoreria`, `nomina`, `tarifas`, `cotizador`,
+   `calculadora`, `bcv`…); permisos y acceso (`auth`, `login`, `permisos`, `roles`, `usuarios`, `token`,
+   `legal`, `consent`, `cookies`…); datos personales (`borrado`, `purga`, `export`, `import`, `personas`,
+   `empleados`, `direccion`, `attachments`, `upload`, `form`, `analytics`, `clarity`…); integraciones
+   (`chatwoot`, `kommo`, `meta`, `whatsapp`, `email`, `mail`, `correo`, `newsletter`, `webhooks`, `push`,
+   `notif`, `cron`, `api`, `oficina`, `agent`…). La ruta se corta por `/ - _ . ( ) [ ]` y por mayúsculas,
+   así `WhatsAppFAB.tsx` o `estado-de-cuenta/` caen. La lista exacta está en el script.
+3. **Rutas seguras** (`rapido`): documentos (`docs/` y `*.md` fuera de las reglas fijas, incluidos los handoffs);
+   textos (`lib/i18n/es-VE/`, `lib/i18n/zh-CN/` y `.txt` de `app/` o `public/`); pruebas (`__tests__/`,
+   `*.test.*`, `*.spec.*`, `e2e/`, `scripts/tests/*.node.mjs`); estilos (`.css` y `lib/design-tokens.ts`);
+   pantallas y componentes (`.tsx` de `app/` o `components/`, salvo `layout.tsx` y `template.tsx`, que suelen
+   llevar las puertas de acceso); imágenes y fuentes de `public/`, `docs/` y `lib/font-files/`.
+4. Todo lo demás: `revision` («sin-clasificar»). Esto incluye la lógica de `lib/` y los scripts.
+
+**Límite conocido.** El clasificador mira rutas, no contenido. Una pantalla `.tsx` en una ruta segura que
+declare `"use server"` o escriba datos pasaría como `rapido`. Esa es la razón de la revisión de madrugada, y una
+regla nueva para tapar un caso así va en una PR con revisión previa. Ampliar la lista de rutas seguras también es
+una PR con revisión previa, porque toca `scripts/carril.mjs`.
+
+Las pruebas viven en `scripts/tests/carril.node.mjs` (corren con `pnpm harness:test` o
+`node --test scripts/tests/carril.node.mjs`). Dan `revision` para una ruta de cada frontera sensible y `rapido`
+para cada clase de ruta segura, y verifican el contrato de abajo.
+
+### Contrato para el tren del Director
+
+El tren (`tren.sh`) vive fuera del repo y lo cambia el Director. Usa el clasificador así:
+
+```bash
+node scripts/carril.mjs --json --pr <N>
+```
+
+- **Desde qué copia.** Se corre desde una copia de `origin/main` recién actualizada (`git fetch origin` y el
+  script de `origin/main`), nunca desde la cabeza de la PR. Así la PR no decide su carril con su propia versión
+  del clasificador. El check de CI hace lo mismo: usa el script de la base.
+- **De dónde salen las rutas.** `--pr <N>` lee el diff completo con `gh pr diff <N> --color=never` y toma las
+  rutas de las cabeceras de cada archivo: la vieja y la nueva. No usa `gh pr diff --name-only`, que en un renombre
+  da solo la ruta nueva y dejaría esconder un archivo sensible renombrándolo a una ruta segura. Si GitHub no da
+  el diff (por ejemplo, `HTTP 406` en un diff muy grande), es un error y la PR va con revisión previa.
+- **Otras entradas.** Las rutas pueden ir por argumento (`node scripts/carril.mjs --json <ruta>...`) o por stdin,
+  una por línea: `git diff --name-only --no-renames <base> <cabeza> | node scripts/carril.mjs --json`.
+  Con stdin vacío o sin rutas, sale con error.
+
+**Códigos de salida:**
+
+| Código | Significado | Qué hace el tren |
+|---|---|---|
+| `0` | `rapido` | puede fusionar con el CI verde en la cabeza exacta, sin esperar la revisión |
+| `1` | `revision` | exige revisión independiente APPROVED y CI verde en la cabeza exacta |
+| `2` | error: no se pudo clasificar (uso, `gh`, diff sin archivos) | lo trata como `revision` |
+
+El tren va por el carril rápido solo si el código es `0` **y** el JSON dice `"carril": "rapido"`. Cualquier otro
+caso, incluido un código inesperado o un JSON ilegible, va con revisión previa.
+
+**Salida JSON** (`--json`, en stdout; los mensajes de error van además a stderr):
+
+```json
+{
+  "version": 1,
+  "carril": "revision",
+  "motivo": "1 de 2 archivos piden revisión previa (base-de-datos)",
+  "total": 2,
+  "causantes": [
+    { "ruta": "supabase/migrations/0700_x.sql", "regla": "base-de-datos", "motivo": "migraciones, RLS, permisos de base o acceso directo a la base" }
+  ],
+  "archivos": [
+    { "ruta": "docs/a.md", "carril": "rapido", "regla": "documentos", "motivo": "documento" },
+    { "ruta": "supabase/migrations/0700_x.sql", "carril": "revision", "regla": "base-de-datos", "motivo": "migraciones, RLS, permisos de base o acceso directo a la base" }
+  ],
+  "origen": "pr",
+  "pr": 123
+}
+```
+
+- `carril`: `rapido` o `revision`. `motivo`: una frase para el registro.
+- `causantes`: los archivos que piden revisión, con su `regla` y su `motivo`. Si el carril es `rapido`, viene vacío.
+- `archivos`: todos los archivos, cada uno con su carril. `total`: cuántos son, sin repetidos.
+- `origen`: `pr`, `args` o `stdin`. `pr`: el número, solo con `--pr`.
+- `version`: sube si cambia la forma del JSON. El tren debe rechazar (y tratar como `revision`) una versión que no
+  conoce.
+- En error: `{ "version": 1, "carril": "revision", "error": "<qué pasó>" }` y código `2`.
+
+**Cuándo se clasifica.** El carril vale para la cabeza clasificada. Un push nuevo a la PR obliga a clasificar
+otra vez antes de fusionar, igual que obliga a revisar de nuevo.
+
 ## Validación y producción
 
 `pnpm verify` ya incluye build (no repetir sin razón). Reporta SKIPs

@@ -40,6 +40,18 @@ Decisión de Sam (2026-11-20): cada director es dueño de un solo proyecto. Este
 - Solo integra PR concreta con autorización vigente y evidencia sobre head/base actuales. Sigue el runbook para GitHub, release y cleanup. Un nuevo commit invalida la revisión anterior. Un check `skipped` no es verde: el CI de PR solo corre con la PR lista (SDD-0621). Antes de fusionar, la corrida más reciente de `pull_request` de `quality.yml` sobre la cabeza (`actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request`, `max_by(.id)`) tiene que estar `completed` + `success`; ni `commits/<sha>/check-runs` (una fila por corrida) ni `gh pr checks` (cuenta el `skipped` y sale con 0) bastan. Comando exacto en el runbook. No uses `--admin` ni auto-merge para saltar checks.
 - Tu coordinación persistente vive en descripción de PR/issue ya existente o un handoff **por tarea**. No crees un tablero compartido editable por todos. Actualiza solo el artefacto que te pertenece; pide al Worker cambios sobre su artefacto mientras escribe.
 
+## Carriles de integración
+
+Decisión de Sam (2026-11-20), a prueba una semana. Detalle y contrato en el [runbook](../../../docs/runbooks/codex-engineering.md#carriles-de-integración).
+
+- Antes de fusionar, clasifica la cabeza con `node scripts/carril.mjs --json --pr <N>`, desde `origin/main` recién actualizado, nunca desde la cabeza de la PR. Va por el carril rápido solo con código `0` y `"carril": "rapido"`; el `1`, el `2` o cualquier otra cosa van con revisión previa. Un push nuevo obliga a clasificar otra vez. Registra el JSON junto al merge.
+- **Rápido** (pantallas que solo leen, textos, estilos, documentos, pruebas): fusiona con el CI verde en la cabeza exacta (`success`, no `skipped`) y revísala en la madrugada. **Revisión previa** (todo lo demás: migraciones, RLS o permisos, plata, datos personales, registro o acceso, integraciones): la regla de siempre, revisión independiente APPROVED que lanzas tú más CI verde.
+- Si `main` queda en rojo tras una PR rápida, revierte primero con su propia PR rápida y después investiga.
+- A las 2:00 de Caracas, revisión de madrugada de lo que entró por el carril rápido en 24 h: correcciones pequeñas como PR rápida; lo del otro carril espera a Sam. De noche no se publica.
+- Ventanas 11:00, 15:00 y 19:00 de Caracas con OK fijo para lo integrado. Mientras cada push a `main` publique, fusiona solo dentro de una ventana. Las migraciones y encender interruptores en producción siguen con OK nominal.
+- No propongas revisores requeridos por ruta en GitHub: todas las PR salen de una sola cuenta y bloquearían todo. La barrera es tu tren con el clasificador; el check «Carril (informativo)» solo lo muestra.
+- Durante la semana de prueba mide el tiempo de PR lista a producción por carril, las reversiones y los hallazgos de madrugada.
+
 ## Resumen visual para Sam
 
 Decisión de Sam (2026-11-20), común a todos los directores (ver la skill común `director-orca`, «Resumen visual con respuestas de un clic»). Cuando Sam pide un resumen («cómo vamos», «dónde estamos», «qué necesitas de mí») y al cerrar una tanda, se muestra un croquis visual en línea, no solo texto:
