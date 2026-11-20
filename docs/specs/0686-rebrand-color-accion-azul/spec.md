@@ -250,6 +250,7 @@ Lo vigila `color-accion-contract.test.ts`, leyendo los valores reales de `tokens
 2. Si el **Shipping Mark** (`DTD-XXXX`) se pinta como identidad (vino), como acción (azul) o en tinta. Propuesta: tinta, porque es un dato que se lee.
 3. Qué hacer con correos, PDF y Chatwoot (§9).
 4. El tono de badge `wine` (`BRAND.md:325`): se retira o pasa a llamarse por su función.
+5. **Gráficos y dashboard (choque con BD-011), para decidir antes de la fase 2.** BD-011 (2026-06-20) fija la paleta de gráficos con el «wine protagonista». El dashboard del Studio pinta en vino su gráfica de barras, las etiquetas de sección y los íconos (`dashboard/_components/DashboardWidgets.tsx`). También el estado «en tránsito», «en reparto» y «última milla» (`dashboard/_components/RecentActivityCard.tsx:35-39`), que además choca con la política de Estados de `BRAND.md`: estar en camino no es riesgo. Propuesta mostrada a Sam el 2026-11-20: cifras y gráficas en tinta, con rampa por opacidad y sin colores nuevos; estados de viaje en `--info` (neutro); el rojo solo para la excepción. El azul queda fuera de los gráficos, para que una barra no parezca un botón. Si Sam la aprueba, se enmienda BD-011 en la misma PR de la fase 2.
 
 ## 11. Límites
 
