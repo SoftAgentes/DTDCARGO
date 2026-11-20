@@ -29,3 +29,17 @@ Fecha: 2026-11-20 · Rama: `claude/nifty-goldwasser-a7d348` · Base: `origin/mai
 - `listEventsForReceipt` (`lib/studio/warehouse-cn-queries.ts:252`) no se usa: Almacén China escribe el
   historial de la recepción, pero no lo muestra. La spec lo incluye en su fase 1.
 - Choque de nombre con el módulo «Etiquetas CN» (`/studio/etiquetas`, impresión de QR).
+
+## Segunda vuelta (revisión independiente sobre `fc390fd77`, CHANGES_REQUESTED)
+
+Corregido en la spec:
+- Allowlist provisional por fase (§6.2) y fases F0-F3 con su orden frente a la 0682 fase 2 (§6.1).
+- Propuesta de migración en dos partes (§2.7): enum y tablas, índices, grants y RLS de miembro activo, sin política para el portal; escritura solo por RPC con candado de rol.
+- `visible_ve` declarado como límite conocido, con la salida para cerrarlo en la base (§2.5).
+- Venezuela: por `source_receipt_cn_id` (0067:83); recepción VE sin origen y embarque partido (§2.5).
+- Clasificación de gobernanza, módulo y capabilities (§6.3).
+- Pruebas SQL concretas (§8.1).
+- Citas corregidas (0240:42; zh-CN, 386 líneas), escritores y lector del historial (§1.2).
+- Sin códigos de la hoja de Sam; el ejemplo de recepción es inventado.
+
+Checks: build-docs-index --check PASÓ; check-numbering PASÓ; verify NO EJECUTADO (solo docs).

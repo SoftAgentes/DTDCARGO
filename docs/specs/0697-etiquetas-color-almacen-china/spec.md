@@ -7,7 +7,7 @@ created: 2026-11-20
 updated: 2026-11-20
 supersedes: null
 superseded_by: null
-related: ["0008", "0039", "0139", "0152", "0196", "0531", "0563", "0682"]
+related: ["0008", "0039", "0067", "0139", "0152", "0196", "0476", "0522", "0531", "0563", "0682"]
 confidencialidad: interno
 ---
 
@@ -17,9 +17,10 @@ confidencialidad: interno
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
 > «Devolución de impuestos», marca sin documentación y «Montacargas». Hay más.
 
-**Estado: borrador para preguntas.** No hay migración escrita ni aplicada, nada en producción y nada fusionado.
-Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no se leyó ninguna fila de producción.
-Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
+**Estado: borrador para preguntas.** No hay migración escrita ni aplicada, nada en producción y nada
+fusionado. Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no
+se leyó ninguna fila de producción. Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
+Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.
 
 ## 1. Qué hay hoy (medido)
 
@@ -27,7 +28,7 @@ Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
 
 - En `supabase/migrations/` (552 archivos, hasta la 0567) no hay ninguna tabla ni columna de etiquetas
   para recepciones ni para embarques. Las coincidencias de «tag»/«etiqueta» son de otras cosas: las
-  etiquetas físicas con QR de cada caja (`warehouse_boxes`, `supabase/migrations/0240_warehouse_boxes.sql:46`),
+  etiquetas físicas con QR de cada caja (`warehouse_boxes`, `supabase/migrations/0240_warehouse_boxes.sql:42`),
   el servicio «Etiquetado por pieza» (`supabase/migrations/0150_prealerta_addons.sql:274`) y las etiquetas de
   Kommo (`patch_tags`, `supabase/migrations/0365_kommo_outbox_claim.sql:57`).
 - **Choque de nombre.** El Studio ya tiene un módulo que se llama «Etiquetas CN», en `/studio/etiquetas`
@@ -41,11 +42,15 @@ Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
   `:239`; política rehecha en `supabase/migrations/0012_rls_perf_and_rpc_guards.sql:273-274`).
 - Los tipos de evento son un enum cerrado: `received`, `consolidated`, `incident`, `note`, `status_change`
   (`supabase/migrations/0008_warehouses_cn.sql:15-21`). Ninguna migración posterior le agrega valores.
-- Las acciones de la pantalla escriben ahí al crear, cambiar de estado, marcar incidencia y facturar
-  (`app/studio/(app)/cn/actions.ts:231`, `:618`, `:690`, `:762`, `:838`, `:902`).
-- La lectura existe (`listEventsForReceipt`, `lib/studio/warehouse-cn-queries.ts:252-265`), pero **nadie la
-  llama**: Almacén China no tiene pantalla de detalle ni panel de historial. Hoy el historial se escribe y no
-  se ve.
+- **Escritores.** Con la sesión del usuario, las acciones de la pantalla al crear, cambiar de estado, marcar
+  incidencia y operar en lote (`app/studio/(app)/cn/actions.ts:231`, `:618`, `:690`, `:762`, `:838`, `:902`).
+  Con cliente de servicio, tres notas de sistema (`event_type = 'note'`): el aviso de bodega al crear
+  (`app/studio/(app)/cn/actions.ts:342`) y las dos notas de la facturación automática
+  (`app/studio/(app)/cn/actions.ts:579`, `:590`).
+- **Lectores.** `listEventsForReceipt` (`lib/studio/warehouse-cn-queries.ts:252-265`) existe pero **nadie la
+  llama**: Almacén China no tiene panel de historial. El único lector en producción es el resumen del CEO,
+  que cuenta los eventos `incident` (`lib/news/ceo-brief.ts:131-136`). Los tipos nuevos de esta spec no
+  cambian ese conteo, porque filtra por `incident`.
 
 ### 1.3 El embarque tiene otro historial, y ese lo ve el cliente
 
@@ -53,46 +58,54 @@ Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
   SDD-0132 tiene una política para que **el cliente del portal lea los eventos de sus envíos**
   (`supabase/migrations/0196_shipment_events_portal_rls.sql`), y el portal los lee con su `note`
   (`lib/portal/shipment-events-queries.ts:55-56`, `:98-99`).
-- Consecuencia: una etiqueta como «Devolución de impuestos» o la de marca sin documentos **no puede
+- Consecuencia: una etiqueta como «Devolución de impuestos» o la de marca sin autorización **no puede
   escribirse en `shipment_events`**: le llegaría al cliente. Su rastro va en el historial de la recepción.
 
-### 1.4 Recepción y embarque
+### 1.4 Recepción, embarque y recepción en Venezuela
 
 - La recepción (`warehouse_receipts_cn`) nace en China; al consolidarse recibe `shipment_id`
-  (`supabase/migrations/0008_warehouses_cn.sql:73-74`). El embarque existe recién desde ahí, y un embarque se
-  puede partir (SDD-0563, `supabase/migrations/0563_partir_embarque_y_medidas.sql`).
-- Lo que China toca es la recepción: es lo que ve en «En almacén», y en «En camino» ve las recepciones
-  consolidadas de cada contenedor (SDD-0682, `lib/studio/almacen-cn-contenedores-queries.ts`).
+  (`supabase/migrations/0008_warehouses_cn.sql:73-74`).
+- Partir un embarque (`split_shipment`, SDD-0673, `supabase/migrations/0563_partir_embarque_y_medidas.sql`)
+  crea un embarque nuevo. El vínculo con el de origen queda solo en el evento (`from_shipment_id`,
+  `0563:901`), no en una columna, y la recepción CN sigue apuntando al embarque de origen.
+- En Venezuela, la caja recibida guarda su recepción CN de origen en
+  `warehouse_receipt_ve_boxes.source_receipt_cn_id` (`supabase/migrations/0067_warehouse_receipts_ve.sql:83`).
+  Es opcional (`on delete set null`), y fuera de las lecturas y del borrado (`0476:528`) ningún flujo de
+  `app/` ni de `lib/` la llena: hoy puede venir nula.
 
 ### 1.5 Idioma, privacidad y permisos
 
 - La pantalla resuelve el idioma por perfil y región (`app/studio/(app)/cn/page.tsx:62-82`) y tiene
-  diccionario es-VE y zh-CN (`lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`, 369 líneas). El
-  zh-CN dice que debe revisarlo un hablante nativo antes de producción (`lib/i18n/zh-CN/warehouse.ts:4`).
+  diccionario es-VE y zh-CN (`lib/i18n/es-VE/warehouse.ts`, 406 líneas; `lib/i18n/zh-CN/warehouse.ts`, 386
+  líneas). El zh-CN dice que lo debe revisar un hablante nativo antes de producción
+  (`lib/i18n/zh-CN/warehouse.ts:4`).
 - Privacidad: región `cn` sin rol `admin` no ve nombres de clientes, solo el MARKBOX; la regla vive en
   `lib/studio/privacidad-cn.ts` (SDD-0039 B.9, SDD-0531) y se aplica en el servidor
   (`app/studio/(app)/cn/page.tsx:83-86`).
 - Ven Almacén China `operations`, `warehouse` y `support` (`lib/studio/rbac.ts:70`); Almacén VE, los mismos
   (`lib/studio/rbac.ts:73`). Embarques y Tracking los ve casi todo el equipo (`lib/studio/rbac.ts:64-65`).
-- Colores: `BRAND.md:16` prohíbe inventar colores; hay que usar las variables del sistema (`--danger`,
+  Las acciones con candado propio son capabilities (`lib/studio/rbac.ts:273`), y la base repite el candado
+  en sus RPC (por ejemplo `0563:281-284`: `role in ('admin','operations')` y `disabled_at is null`).
+- Colores: `BRAND.md:16` prohíbe inventar colores; se usan las variables del sistema (`--danger`,
   `--warning`, `--success`, `--info`, la tinta y el azul de acción del rebrand). El dorado como texto de
-  insignia no se lee (`BRAND.md:137`): va como punto con texto en tinta.
+  insignia no se lee (`BRAND.md:137`): va como punto, con el texto en tinta.
 
 ## 2. La lógica propuesta
 
 ### 2.0 Color de fila y avisos: dos cosas distintas (Sam, 2026-11-20)
 
-Sam mostró la hoja del contenedor (`CONT 53 YW` … `DTD-63-DG`): cada fila va pintada entera (verde, naranja,
-blanco), la columna REMARKS lleva códigos arancelarios y notas en chino, y un bloque lleva al lado 封门
-(«puerta sellada»). Y planteó el problema: una misma carga puede tener dos situaciones a la vez (marca sin
-registro confirmado **y** carga especial), y una fila no puede tener dos colores.
+Sam mostró la hoja de cálculo con la que trabaja hoy el almacén de China, una pestaña por contenedor. Cada
+fila va pintada entera (verde, naranja, blanco), la columna de observaciones lleva códigos arancelarios y
+notas en chino, y un bloque lleva al lado 封门 («puerta sellada»). Y planteó el problema: una misma carga
+puede tener dos situaciones a la vez (marca sin registro confirmado **y** carga especial), y una fila no
+puede tener dos colores.
 
 Así lo resuelven los sistemas de almacén y de carga (WMS/TMS): separan dos capas.
 
 | Capa | Cuántas por fila | Cómo se ve | Ejemplo |
 |---|---|---|---|
-| **Estado** | una sola | el color de la fila, como en el Excel | verde, naranja |
-| **Avisos** | varias | íconos con texto en una columna propia | «Marca sin autorización» + «Montacargas» |
+| **Estado** | una sola | el color de la fila, como en la hoja | verde, naranja |
+| **Avisos** | varios | íconos con texto en una columna propia | «Marca sin autorización» + «Montacargas» |
 
 - El color de fila responde «¿en qué paso va?». Es uno solo y lo decide una regla, no la mano.
 - Los avisos responden «¿qué hay que saber de esta carga?». Se suman sin combinarse: nunca se crea un aviso
@@ -101,104 +114,226 @@ Así lo resuelven los sistemas de almacén y de carga (WMS/TMS): separan dos cap
   mercancía: montacargas, batería de litio, frágil), **Documentos y aduana** (marca sin autorización, falta
   factura) y **Trámite con el proveedor** (devolución de impuestos). Los dos últimos se resuelven y se
   quitan; el primero acompaña la carga hasta Venezuela.
-- La pantalla «En almacén» se ve como la hoja: columnas en el mismo orden que el Excel (MARKS, descripción,
-  CTN, piezas, peso, CBM, recibido, REMARKS), filas pintadas por estado, totales abajo y la columna de avisos.
-  Al consolidar, la fila sale del almacén y pasa a «En camino», que hace el papel del documento «consolidado»
-  (SDD-0682).
-- Falta saber qué significa cada color de la hoja hoy (pregunta 0, §7). Si el color ya es un aviso
-  (por ejemplo, naranja = «hay un problema»), se vuelve aviso y el color de fila queda para el estado.
+- La pantalla «En almacén» se ve como la hoja: columnas en el mismo orden (marca, descripción, cajas,
+  piezas, peso, CBM, recibido, observaciones), filas pintadas por estado, totales abajo y la columna de
+  avisos. Al consolidar, la fila sale del almacén y pasa a «En camino», que hace el papel del documento
+  «consolidado» (SDD-0682).
+- Falta saber qué significa hoy cada color de la hoja (pregunta 0, §7). Si un color ya es un aviso (por
+  ejemplo, naranja = «hay un problema»), se vuelve aviso y el color de fila queda para el estado.
 
 En esta spec, «etiqueta» se lee como **aviso** hasta que Sam elija el nombre (pregunta 1).
 
-### 2.0b Qué responde cada aviso
+### 2.1 Qué responde cada aviso
 
 Una etiqueta es **un aviso operativo sobre una recepción**: dice algo que el que la toca después tiene que
 saber o hacer. No es un estado (el estado sigue siendo pendiente, consolidado o incidencia) y no bloquea
-nada en esta fase.
-
-Cada etiqueta del catálogo responde cuatro cosas:
+nada en esta spec.
 
 | Campo | Para qué | Ejemplo «Montacargas» |
 |---|---|---|
 | Nombre (es-VE y zh-CN) | Lo que se lee en la insignia | «Montacargas» / 叉车 |
+| Grupo | Carga especial, documentos y aduana, o trámite con el proveedor | carga especial |
 | Color | Distinguir de un vistazo, de una paleta fija | dorado (atención) |
 | Descripción (es-VE y zh-CN) | Qué significa y qué hay que hacer | «Carga pesada o paletizada: hace falta montacargas para bajarla. En China lo paga el proveedor; en Venezuela hay que tenerlo listo.» |
 | ¿La ve Venezuela? | Si sale en Almacén VE, Embarques y Tracking | sí |
 
-### 2.1 Catálogo por tenant
+### 2.2 Catálogo por tenant
 
-- Tabla nueva `warehouse_tags` (nombre provisional): `tenant_id`, `nombre_es`, `nombre_zh`, `descripcion_es`,
-  `descripcion_zh`, `color` (una clave de la paleta fija, no un hex libre), `visible_ve` (booleano), `orden`,
-  `created_by`, `created_at`, `updated_at`, `archived_at`.
-- Nombre único por tenant entre las vivas (sin distinguir mayúsculas), en cada idioma.
-- **No se borra: se archiva.** Una etiqueta archivada no se puede asignar, pero sigue leyéndose en el historial
-  y en las recepciones que ya la tienen.
+- Tabla nueva `warehouse_tags` (nombre provisional; DDL en el §2.7).
+- Nombre único por tenant entre las vivas, sin distinguir mayúsculas, en cada idioma.
 - Hace falta al menos uno de los dos nombres. Si falta el otro idioma, la pantalla muestra el que hay con la
-  marca «sin traducir», para que alguien lo complete (§5).
-- Paleta fija de seis, todas de variables existentes: rojo (`--danger`), dorado (`--warning`), verde
-  (`--success`), azul (acción), navy (`--ink`) y gris (`--ink-soft`). La insignia siempre lleva texto: el color
-  ayuda, no informa solo. Un color nuevo necesita OK de diseño, no se agrega desde la pantalla.
-- **Quién crea y edita** (propuesta, pregunta 2): `admin` y `warehouse`. `operations` asigna pero no edita el
-  catálogo; `support` solo ve.
+  marca «sin traducir» (§5).
+- **No se borra: se archiva.** Una etiqueta archivada no se puede asignar, pero sigue leyéndose en el
+  historial y en las recepciones que ya la tienen.
+- Paleta fija de seis claves, todas de variables existentes: `rojo` (`--danger`), `dorado` (`--warning`),
+  `verde` (`--success`), `azul` (acción), `navy` (`--ink`) y `gris` (`--ink-soft`). La insignia siempre lleva
+  texto: el color ayuda, no informa solo. Un color nuevo necesita OK de diseño y una migración, no se agrega
+  desde la pantalla.
+- **Quién crea y edita** (propuesta, pregunta 2): `admin`, o `warehouse` de región `cn`. Venezuela no edita
+  el catálogo de China.
 
-### 2.2 Asignación a la recepción
+### 2.3 Asignación a la recepción
 
-- Tabla nueva `warehouse_receipt_tags`: `tenant_id`, `receipt_id`, `tag_id`, `nota` (opcional, corta),
-  `assigned_by`, `assigned_at`, `removed_by`, `removed_at`. Una etiqueta viva por recepción (índice único
-  parcial `receipt_id, tag_id where removed_at is null`).
+- Tabla nueva `warehouse_receipt_tags` (DDL en el §2.7). Una asignación viva por recepción y etiqueta.
 - Se asigna a la **recepción** (pregunta 3): es lo que China tiene en la mano, existe antes del embarque y
-  aguanta que el embarque se parta. El embarque **hereda** las etiquetas de sus recepciones: al mirar un
-  embarque se juntan las etiquetas vivas de las recepciones con su `shipment_id`, sin copiarlas.
-- Se puede asignar en cualquier estado de la recepción, también después de consolidar (en «En camino»).
+  aguanta que el embarque se parta. El embarque **hereda** las etiquetas de sus recepciones: al mirarlo se
+  juntan las etiquetas vivas de las recepciones con su `shipment_id`, sin copiarlas.
+- **Quién asigna y quita** (propuesta, pregunta 2): `admin`, `warehouse` y `operations`.
+- Se puede asignar en cualquier estado de la recepción, también después de consolidar (en «En camino»). No
+  en una recepción borrada.
 - Quitar una etiqueta no la borra: marca `removed_at` y queda en el historial (pregunta 5).
-- Varias etiquetas por recepción; en la tabla se ven como insignias en la fila, hasta tres y «+N».
+- Varias etiquetas por recepción; en la tabla se ven como insignias en la columna de avisos, hasta tres y
+  «+N».
 - Filtro por etiqueta en «En almacén» y «En camino».
 
-### 2.3 Rastro en el historial
+### 2.4 Rastro en el historial
 
-- Cada asignación y cada retiro escribe una fila en `warehouse_receipt_events`, con dos tipos nuevos del enum:
-  `tag_added` y `tag_removed`. La `description` guarda una foto del nombre (es y zh) y la nota, para que el
-  historial se siga leyendo igual aunque después renombren o archiven la etiqueta.
-- Lo escribe la misma función que asigna, en la misma transacción (un RPC `security definer` con chequeo de
-  tenant y de rol, patrón de las RPC de bodega), para que no haya etiqueta sin rastro ni rastro sin etiqueta.
-- Cambios al catálogo (crear, renombrar, cambiar color o visibilidad, archivar) quedan en `entity_audit_log`,
-  como el resto de catálogos.
-- **Se agrega a Almacén China un panel de historial por recepción** (§1.2: hoy no existe), que lee
-  `listEventsForReceipt`. Sin ese panel, el «rastro en el historial» no lo vería nadie.
+- Cada asignación y cada retiro escribe una fila en `warehouse_receipt_events`, con dos tipos nuevos del
+  enum: `tag_added` y `tag_removed`. La `description` guarda una foto del nombre en los dos idiomas y la nota
+  (formato en el §2.7), para que el historial se siga leyendo igual aunque después renombren o archiven la
+  etiqueta.
+- Lo escribe la misma RPC que asigna, en la misma transacción, para que no haya etiqueta sin rastro ni
+  rastro sin etiqueta.
+- Los cambios al catálogo (crear, renombrar, cambiar color, grupo o visibilidad, archivar) quedan en
+  `entity_audit_log` desde sus RPC (AUD-01).
+- **Panel de historial por recepción en Almacén China** (§1.2: hoy no existe), sobre `listEventsForReceipt`.
+  Muestra los tipos `received`, `consolidated`, `incident`, `status_change`, `tag_added` y `tag_removed`. Las
+  notas (`note`) quedan fuera de la fase 1: varias las escribe el sistema (§1.2) y su contenido no pasó la
+  revisión de privacidad China. Sumarlas es otra decisión, con esa revisión hecha.
 - Nada de esto se escribe en `shipment_events` (§1.3).
-- Nota técnica: `alter type … add value` no se puede usar dentro de la misma transacción que lo crea; la
-  migración separa el cambio del enum del resto, o se usa un `text` con `check`. Lo decide la implementación.
 
-### 2.4 Qué ve Venezuela
+### 2.5 Qué ve Venezuela
 
 - Solo las etiquetas con `visible_ve = true`. Las demás son de trabajo interno de China.
-- Dónde: Almacén VE (recepción en Caracas), el detalle del embarque en Embarques y en Tracking, como
-  insignias con su descripción al pasar el cursor o tocar.
+- **Embarques y Tracking:** las etiquetas `visible_ve` vivas de las recepciones con
+  `warehouse_receipts_cn.shipment_id` = el embarque.
+- **Almacén VE:** las de las recepciones CN que nombran sus cajas por
+  `warehouse_receipt_ve_boxes.source_receipt_cn_id` (§1.4), sin repetir.
+- **Recepción VE sin origen CN** (todas sus cajas con `source_receipt_cn_id` nulo): no muestra etiquetas. No se
+  adivina por MARKBOX ni por contenedor, porque juntaría la carga de otros envíos. Es un límite conocido
+  mientras ese dato no se llene; llenarlo es otra SDD.
+- **Embarque partido:** la mitad de origen conserva las etiquetas de sus recepciones. La mitad nueva no
+  tiene recepción propia (§1.4) y no muestra ninguna en esta spec. Límite conocido: el que parte el embarque
+  ve, al partirlo, las etiquetas `visible_ve` del de origen, para avisar a mano si hace falta.
 - Propuesta de partida para las tres de Sam (pregunta 4):
 
 | Etiqueta | ¿La ve Venezuela? | Por qué |
 |---|---|---|
 | Montacargas | sí | Aquí también hay que tener montacargas listo |
-| Marca sin documentos | sí | Puede trabarse en la aduana de Venezuela |
+| Marca sin autorización | sí | Puede trabarse en la aduana de Venezuela |
 | Devolución de impuestos | no | Es un trámite con el proveedor en China |
 
-- Venezuela **no** edita el catálogo de China ni quita etiquetas de China en esta fase.
+- **Frontera.** `visible_ve` es un **filtro de servidor**, no una frontera de base. Las tablas se leen con la
+  RLS de miembro activo del tenant (§2.7): un usuario de Venezuela con su propia sesión y PostgREST directo
+  puede leer las etiquetas internas de China. Se declara como **límite conocido**, igual que hace
+  `lib/studio/privacidad-cn.ts` con su regla: el catálogo no lleva datos personales ni montos, y lo que se
+  esconde es ruido operativo, no un secreto. La nota libre sí podría llevar algo, y por eso tiene sus reglas
+  (§3). Si Sam quiere que la base lo cierre, la salida es partir la política de lectura de las dos tablas
+  por región: `visible_ve = true or` región `cn` del lector `or` rol `admin`. Cuesta una consulta a
+  `user_tenants` por fila; se decide en la revisión de la migración.
 
-### 2.5 El cliente no ve ninguna
+### 2.6 El cliente no ve ninguna
 
-Las etiquetas no llegan al portal ni al rastreo público (pregunta 6). Por eso viven fuera de
-`shipment_events` y las lecturas del portal no las tocan. Una etiqueta como la de marca sin documentos
-dicha al cliente es otra conversación, con su texto propio.
+Las etiquetas no llegan al portal ni al rastreo público (pregunta 6). Viven fuera de `shipment_events`, no
+hay política para el portal en ninguna de las dos tablas y las lecturas del portal no las tocan. Una
+etiqueta como la de marca sin autorización dicha al cliente es otra conversación, con su texto propio.
+
+### 2.7 Propuesta de migración (sin número, sin aplicar)
+
+Dos migraciones, porque un valor nuevo del enum no se puede usar en la misma transacción que lo agrega. Los
+números los da el DG al programar la fase 1; se aplican en producción solo con OK nominal de Sam y el
+runbook (`docs/runbooks/aplicar-migraciones-prod.md`). Orden: **migrate-first**. Sin la app nueva, nada
+cambia: nadie llama a las RPC.
+
+**Migración A — enum.**
+
+```sql
+alter type public.warehouse_receipt_event_type add value if not exists 'tag_added';
+alter type public.warehouse_receipt_event_type add value if not exists 'tag_removed';
+```
+
+**Migración B — tablas, índices, RLS, grants y RPC.**
+
+```sql
+create table public.warehouse_tags (
+  id             uuid primary key default gen_random_uuid(),
+  tenant_id      uuid not null references public.tenants(id) on delete cascade,
+  nombre_es      text check (nombre_es is null or length(btrim(nombre_es)) between 1 and 40),
+  nombre_zh      text check (nombre_zh is null or length(btrim(nombre_zh)) between 1 and 20),
+  descripcion_es text check (descripcion_es is null or length(descripcion_es) <= 280),
+  descripcion_zh text check (descripcion_zh is null or length(descripcion_zh) <= 140),
+  grupo          text not null check (grupo in ('carga_especial', 'documentos_aduana', 'tramite_proveedor')),
+  color          text not null check (color in ('rojo', 'dorado', 'verde', 'azul', 'navy', 'gris')),
+  visible_ve     boolean not null default false,
+  orden          smallint not null default 0,
+  created_by     uuid references auth.users(id),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  archived_at    timestamptz,
+  archived_by    uuid references auth.users(id),
+  check (nombre_es is not null or nombre_zh is not null),
+  check ((archived_at is null) = (archived_by is null))
+);
+
+create unique index warehouse_tags_nombre_es_vivo_uq
+  on public.warehouse_tags (tenant_id, lower(btrim(nombre_es)))
+  where archived_at is null and nombre_es is not null;
+create unique index warehouse_tags_nombre_zh_vivo_uq
+  on public.warehouse_tags (tenant_id, btrim(nombre_zh))
+  where archived_at is null and nombre_zh is not null;
+
+create table public.warehouse_receipt_tags (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null references public.tenants(id) on delete cascade,
+  receipt_id   uuid not null references public.warehouse_receipts_cn(id) on delete cascade,
+  tag_id       uuid not null references public.warehouse_tags(id) on delete restrict,
+  nota         text check (nota is null or length(nota) <= 140),
+  assigned_by  uuid not null references auth.users(id),
+  assigned_at  timestamptz not null default now(),
+  removed_by   uuid references auth.users(id),
+  removed_at   timestamptz,
+  check ((removed_at is null) = (removed_by is null))
+);
+
+create unique index warehouse_receipt_tags_viva_uq
+  on public.warehouse_receipt_tags (receipt_id, tag_id) where removed_at is null;
+create index warehouse_receipt_tags_tag_idx
+  on public.warehouse_receipt_tags (tenant_id, tag_id) where removed_at is null;
+
+alter table public.warehouse_tags enable row level security;
+alter table public.warehouse_receipt_tags enable row level security;
+
+-- Solo lectura para el Studio. Sin insert/update/delete: se escribe por RPC.
+revoke all on public.warehouse_tags, public.warehouse_receipt_tags from anon, authenticated;
+grant select on public.warehouse_tags, public.warehouse_receipt_tags to authenticated;
+
+-- Miembro ACTIVO del tenant. No basta tenant_id = get_user_tenant_id(): se exige
+-- la fila viva en user_tenants. Sin política para el portal ni para anon.
+create policy "warehouse_tags lectura miembro activo"
+  on public.warehouse_tags for select to authenticated
+  using (exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid()) and ut.tenant_id = warehouse_tags.tenant_id
+      and ut.disabled_at is null));
+create policy "warehouse_receipt_tags lectura miembro activo"
+  on public.warehouse_receipt_tags for select to authenticated
+  using (exists (
+    select 1 from public.user_tenants ut
+    where ut.user_id = (select auth.uid()) and ut.tenant_id = warehouse_receipt_tags.tenant_id
+      and ut.disabled_at is null));
+```
+
+RPC `security definer`, `set search_path = ''`, `grant execute … to authenticated`, `revoke … from public,
+anon`. Cada una resuelve el tenant con `get_user_tenant_id()` y repite el candado de rol contra
+`user_tenants` (`disabled_at is null`), con el patrón de `0563:281-284`:
+
+| RPC | Candado | Qué hace |
+|---|---|---|
+| `crear_etiqueta_almacen(...)` | `admin`, o `warehouse` con `region = 'cn'` | Inserta en el catálogo y escribe `entity_audit_log` |
+| `editar_etiqueta_almacen(p_id, ...)` | ídem | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
+| `archivar_etiqueta_almacen(p_id, p_archivar boolean)` | ídem | Archiva o desarchiva; audita |
+| `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
+| `quitar_etiqueta_recepcion(p_asignacion_id)` | ídem | Marca `removed_*` y escribe `tag_removed` |
+
+- La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
+  idioma, ese solo. Es la foto del §2.4.
+- Errores con `errcode = '42501'` para permiso y `P0001` con texto en español para lo demás (archivada,
+  repetida, recepción borrada). La pantalla los traduce con el diccionario.
+- Capabilities nuevas en `lib/studio/rbac.ts`, que repiten el candado de la base:
+  `manage_warehouse_tags: ["warehouse"]` (más la región `cn`, que se valida en el servidor y en la base) y
+  `assign_warehouse_tags: ["warehouse", "operations"]`.
 
 ## 3. Privacidad (SDD-0039 B.9 y SDD-0531)
 
 - El catálogo no tiene datos personales: son nombres de situaciones, no de personas.
-- La recepción etiquetada se sigue mostrando a China con el MARKBOX; las lecturas nuevas (filtro, insignias,
+- La recepción etiquetada se sigue mostrando a China con el MARKBOX. Las lecturas nuevas (filtro, insignias,
   historial) pasan por la misma regla `canSeeClientNames`, en el servidor. Ninguna consulta nueva trae
   `client_name` para un usuario `cn` sin admin.
+- El panel de historial no muestra las notas (`note`) en la fase 1 (§2.4).
 - **La nota libre es el riesgo.** Alguien puede escribir ahí el nombre del importador o el WeChat del
   proveedor, y ese texto lo vería Venezuela, o China si lo escribe Venezuela. Propuesta: nota opcional, de
-  hasta 140 caracteres, con la ayuda «No escribas nombres, teléfonos ni contactos». No se valida el contenido.
+  hasta 140 caracteres, con la ayuda «No escribas nombres, teléfonos ni contactos». No se valida el
+  contenido (pregunta 9).
 - Proveedores: el contacto de un proveedor chino es dato personal bajo la PIPL (art. 6, mínimo alcance). Las
   etiquetas no lo piden ni lo guardan.
 - Esta spec pasa por `.claude/skills/revisar-datos-ve/SKILL.md` antes de implementarse, por la nota libre.
@@ -215,32 +350,88 @@ ve en el almacén es un hecho: llegó una marca conocida sin papeles. Propuesta 
 | Alternativa B | Marca por verificar | 品牌待核实 |
 | Descripción | «Llega una marca conocida sin registro de marca ni carta de autorización del dueño de la marca. Pide los papeles al proveedor antes de embarcar: sin ellos la carga puede retenerse en la aduana.» | 「知名品牌货物到仓，但没有商标注册证或品牌授权书。装柜前请向供应商索取文件，否则货物可能在海关被扣。」 |
 
-La recomendada nombra lo que falta (la autorización del dueño de la marca), que es lo que pide la aduana, y no
-juzga al proveedor. El chino lo debe revisar un hablante nativo antes de producción.
+La recomendada nombra lo que falta (la autorización del dueño de la marca), que es lo que pide la aduana, y
+no juzga al proveedor. El chino lo debe revisar un hablante nativo antes de producción.
 
 ## 5. i18n es-VE y zh-CN
 
-- El texto de cada etiqueta es **dato**, no diccionario: vive en el catálogo con sus dos idiomas
-  (`nombre_es`/`nombre_zh`, `descripcion_es`/`descripcion_zh`).
-- El texto de la interfaz (crear etiqueta, asignar, quitar, filtro, historial, «sin traducir», la ayuda de la
-  nota) va al diccionario `warehouse_cn.tags.*` en `lib/i18n/es-VE/warehouse.ts` y `lib/i18n/zh-CN/warehouse.ts`.
+- El texto de cada etiqueta es **dato**, no diccionario: vive en el catálogo con sus dos idiomas.
+- El texto de la interfaz (catálogo, asignar, quitar, filtro, historial, «sin traducir», la ayuda de la
+  nota, los errores de las RPC) va al diccionario `warehouse_cn.tags.*` en `lib/i18n/es-VE/warehouse.ts` y
+  `lib/i18n/zh-CN/warehouse.ts`. El tipo `WarehouseDict` obliga a tener las dos.
 - Se muestra en el idioma del usuario; si falta, el otro con la marca «sin traducir» / 未翻译.
 - En Venezuela (Almacén VE, Embarques, Tracking) se muestra `nombre_es`; si solo hay chino, el chino con
   «sin traducir».
-- Sin traducción automática en esta fase.
+- Sin traducción automática en esta spec.
 
-## 6. Alcance
+## 6. Alcance, fases y allowlist
 
-**Entra (fase 1):** catálogo con crear, editar y archivar; asignar y quitar en Almacén China (En almacén y En
-camino); historial por recepción con los eventos nuevos; filtro por etiqueta; insignias de solo lectura en
-Almacén VE, Embarques y Tracking para las `visible_ve`; las etiquetas iniciales que Sam confirme, sembradas
-en la migración.
+**No entra:** etiquetas que bloqueen o cambien un estado; etiquetas creadas por Venezuela; la app del
+teléfono (`/m/cn`); avisos por correo o Telegram al asignar; reportes y KPI por etiqueta; el portal del
+cliente; mostrar las notas `note` en el panel; llenar `source_receipt_cn_id`; el vínculo persistente del
+embarque partido.
 
-**No entra:** etiquetas que bloqueen o cambien un estado; etiquetas creadas por Venezuela; la app del teléfono
-(`/m/cn`); avisos por correo o Telegram al asignar; reportes y KPI por etiqueta; el portal del cliente.
+### 6.1 Fases y orden
 
-**Por definir con el DG:** el orden con la SDD-0682 fase 2 («Pendiente por liberar»), que toca la misma
-pantalla.
+| Fase | Qué | Depende de |
+|---|---|---|
+| **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
+| **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna de avisos; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
+| **F2** | Lectura en Venezuela: Almacén VE, Embarques y Tracking, solo `visible_ve` | F1 en producción |
+| **F3** | La pantalla con forma de hoja (columnas y color de fila por estado, §2.0) | pregunta 0 contestada; puede ir antes de F2 |
+
+La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
+`warehouse-cn-queries.ts`) y trae su propia migración. Por eso F1 arranca después de que se fusione, y el DG
+serializa los números de migración. Si el DG prefiere el orden inverso, la 0682 fase 2 se rebasa sobre F1.
+
+### 6.2 Allowlist provisional
+
+Provisional: se cierra al programar cada fase, contra la base de ese momento.
+
+**F1**
+- `supabase/migrations/NNNN_etiquetas_almacen_enum.sql` (A) y `supabase/migrations/NNNN_etiquetas_almacen.sql` (B).
+- `supabase/migrations/NNNN_etiquetas_almacen.test.sql`: las pruebas del §8.
+- `lib/studio/rbac.ts`: las dos capabilities.
+- `lib/studio/warehouse-tags-types.ts` y `lib/studio/warehouse-tags-queries.ts` (nuevos): catálogo, asignaciones vivas por recepción, filtro.
+- `lib/studio/warehouse-cn-queries.ts`: el filtro por etiqueta y las etiquetas de cada fila.
+- `lib/studio/warehouse-cn-types.ts`: los tipos de evento nuevos.
+- `lib/studio/almacen-cn-contenedores-queries.ts`: las etiquetas en «En camino».
+- `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/tag-actions.ts` (nuevo, server actions que llaman a las RPC).
+- `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`, `CaminoCn.tsx`, `FilaCamino.tsx`.
+- `app/studio/(app)/cn/_components/AvisosRecepcion.tsx`, `CatalogoAvisos.tsx`, `HistorialRecepcion.tsx` (nuevos).
+- `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`.
+- Pruebas: `app/studio/(app)/cn/__tests__/tag-actions.test.ts`, `app/studio/(app)/cn/_components/__tests__/AvisosRecepcion.test.tsx`, `HistorialRecepcion.test.tsx`, `CatalogoAvisos.test.tsx`, `lib/studio/__tests__/warehouse-tags-queries.test.ts`.
+- `docs/specs/0697-etiquetas-color-almacen-china/spec.md`, `docs/specs/README.md`, `.agents/handoffs/`.
+
+**F2**
+- `lib/studio/warehouse-tags-queries.ts`: lectura por embarque y por recepción VE.
+- `app/studio/(app)/ve/page.tsx`, `app/studio/(app)/ve/_components/AlmacenVeClient.tsx`.
+- `app/studio/(app)/embarques/page.tsx`, `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`.
+- `app/studio/(app)/tracking/[id]/page.tsx`, `app/studio/(app)/tracking/[id]/_components/ShipmentHeader.tsx`.
+- `app/studio/_components/AvisosSoloLectura.tsx` (nuevo) y sus pruebas.
+- Prueba de que el portal no recibe etiquetas: `lib/portal/__tests__/sin-etiquetas-almacen.test.ts` (nueva).
+
+**F3**: se define con la respuesta a la pregunta 0; toca `AlmacenCnClient.tsx` y `ReceiptStatusBadge.tsx`.
+
+Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a `shipment_events`.
+
+### 6.3 Gobernanza
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| MP-01 | cumplimiento | Asignar y quitar: R1, con **Deshacer** 10 s y sin diálogo; quitar es reversible y no pierde nada (`removed_at`, se puede volver a asignar). Archivar una etiqueta del catálogo: R2, `ConfirmDialog` con el nombre y la consecuencia («deja de poder asignarse; las recepciones que la tienen la conservan»); desarchivar la restaura. No hay borrado físico. Los eventos son P4 (fila «Operación logística», `docs/governance/policies/mp-01.md:67`) |
+| AUD-01 | cumplimiento | Asignar y quitar dejan `tag_added`/`tag_removed` con actor y fecha, en la misma transacción. Los cambios al catálogo van a `entity_audit_log` desde sus RPC |
+| AUD-02 | cumplimiento parcial | Consulta: el panel de historial (§2.4). Conservación: las asignaciones y los eventos no se borran (P4). Exportación: no aplica en esta spec |
+| FRM-01 | cumplimiento | Formulario del catálogo: al menos un nombre, nombre único, largos del §2.7, error en línea por campo, envío deshabilitado solo mientras guarda |
+| TBL-01 | cumplimiento | Una columna nueva («Avisos») con tope de tres insignias y «+N»; el filtro por etiqueta se suma a los existentes; no cambia la densidad |
+| A11Y-01 | cumplimiento | Insignias con texto, nunca solo color; el dorado como punto con texto en tinta (`BRAND.md:137`); menú de asignar operable con teclado (rol `menu`/`listbox`), foco visible y nombre accesible en «+N» |
+| VIS-01 / VIS-02 | cumplimiento | Solo variables existentes (§2.2) |
+| Privacidad China | cumplimiento | §3 |
+
+**Módulo y permisos de la pantalla del catálogo:** vive dentro del módulo `cn` (no es un módulo nuevo), en
+`/studio/cn/avisos`, para no chocar con `/studio/etiquetas`. La ven quienes ven `cn`
+(`lib/studio/rbac.ts:70`); editar exige `manage_warehouse_tags`. Asignar exige `assign_warehouse_tags`.
+`support` solo lee.
 
 ## 7. Preguntas para Sam (una por una)
 
@@ -248,12 +439,12 @@ pantalla.
    contenedor, y qué es 封门? Ejemplo: «verde = ya recibido con papeles; naranja = recibido con algo
    pendiente».
 1. **Nombre.** Ya existe «Etiquetas CN» (la impresión de etiquetas con QR). ¿Cómo llamamos a esto? Ejemplo:
-   «Etiquetas de color» en el menú y «Etiqueta» en la fila.
-2. **Quién crea.** ¿Quién puede crear y editar etiquetas? Ejemplo: el jefe del almacén de China crea
-   «Montacargas»; un operario solo la pone.
-3. **Dónde va.** ¿A la recepción (WR) o al embarque? Ejemplo: la WR-2026-0412 llega con marca sin papeles y
+   «Avisos» en el menú y en la columna.
+2. **Quién crea.** ¿Quién puede crear y editar etiquetas, y quién ponerlas? Ejemplo: el jefe del almacén de
+   China crea «Montacargas»; un operario solo la pone.
+3. **Dónde va.** ¿A la recepción o al embarque? Ejemplo: la WR-2099-0001 llega con una marca sin papeles y
    se etiqueta ahí; el embarque la hereda.
-4. **Qué ve Venezuela.** ¿Te sirve la tabla del §2.4? Ejemplo: Caracas ve «Montacargas», no ve «Devolución de
+4. **Qué ve Venezuela.** ¿Te sirve la tabla del §2.5? Ejemplo: Caracas ve «Montacargas», no ve «Devolución de
    impuestos».
 5. **Quitar.** ¿Se pueden quitar? Ejemplo: llega la carta de autorización y quitan «Marca sin autorización»;
    queda en el historial quién la quitó y cuándo.
@@ -262,15 +453,44 @@ pantalla.
 8. **Las otras.** ¿Qué otras etiquetas usan hoy en China, con su color? Ejemplo: «Frágil», en rojo.
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
 
-## 8. Criterios de aceptación (borrador)
+## 8. Criterios de aceptación y pruebas
 
-- Un usuario `warehouse` crea una etiqueta con nombre es y zh, color y visibilidad, y la ve en el catálogo.
-- La asigna a una recepción; la fila muestra la insignia y el historial muestra «etiqueta agregada», con quién
-  y cuándo, en el idioma del usuario.
-- La quita; la insignia desaparece y el historial muestra «etiqueta quitada».
-- Renombrarla después no cambia lo que dice el historial.
-- Una etiqueta archivada no aparece al asignar y sigue leyéndose donde ya estaba.
-- Venezuela ve en el embarque las etiquetas `visible_ve` de sus recepciones, y ninguna de las otras.
-- Un usuario `cn` sin admin no recibe el nombre del cliente en ninguna lectura nueva (prueba de servidor).
-- El portal del cliente no recibe ninguna etiqueta (prueba de las lecturas del portal).
-- RLS: un tenant no ve ni asigna etiquetas de otro (prueba SQL).
+### 8.1 Pruebas SQL (`NNNN_etiquetas_almacen.test.sql`, PGlite o Postgres local)
+
+Con dos tenants (T1, T2) y usuarios sintéticos: admin T1, `warehouse` región `cn` T1, `warehouse` región `ve`
+T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un cliente del portal de T1.
+
+1. **Portal denegado:** con el JWT del cliente del portal (con `get_portal_client_markbox()` resuelto),
+   `select` sobre las dos tablas devuelve 0 filas aunque su envío tenga recepciones etiquetadas; las cinco RPC
+   fallan con `42501`. `anon` no tiene `select`.
+2. **Escritura directa denegada:** `insert`, `update` y `delete` directos sobre las dos tablas fallan para
+   `authenticated` (sin grant), también para admin.
+3. **Escritura por rol:** `crear_etiqueta_almacen` pasa con admin y con `warehouse` región `cn`; falla con
+   `42501` para `warehouse` región `ve`, `operations`, `support` y el miembro deshabilitado.
+   `asignar_etiqueta_recepcion` pasa con admin, `warehouse` y `operations`; falla con `support` y el
+   deshabilitado.
+4. **Entre tenants:** `warehouse` de T2 no lee nada de T1 y no puede asignar una etiqueta de T1 ni a una
+   recepción de T1.
+5. **Unicidad del nombre:** dos vivas con «Montacargas» y « montacargas » en T1 → la segunda falla. Archivada
+   la primera, la segunda pasa. El mismo nombre en T2 pasa.
+6. **Unicidad de la asignación viva:** asignar dos veces la misma etiqueta a la misma recepción → la segunda
+   falla. Quitada, se puede volver a asignar, y quedan dos filas (una con `removed_at`).
+7. **Archivada no se asigna:** `asignar_etiqueta_recepcion` con una archivada falla y no escribe evento.
+8. **Snapshot del historial:** asignar «Montacargas»/叉车 con nota, renombrar a «Grúa» → el evento
+   `tag_added` sigue diciendo «Montacargas · 叉车 — <nota>». Quitar escribe `tag_removed` con el nombre
+   vigente.
+9. **Atomicidad:** si el insert del evento falla (forzado), no queda asignación.
+10. **Recepción borrada:** asignar a una recepción con `deleted_at` falla.
+11. **Conteo del CEO intacto:** los eventos nuevos no suben el conteo de `incident`.
+
+### 8.2 Pruebas de aplicación
+
+- **«Sin traducir»:** etiqueta solo con `nombre_zh` → en es-VE se ve el chino con «sin traducir»; solo con
+  `nombre_es` → en zh-CN se ve el español con 未翻译. Con los dos, cada idioma ve el suyo.
+- La fila muestra hasta tres insignias y «+N»; el filtro por etiqueta deja solo las recepciones con ella viva.
+- El panel de historial muestra «etiqueta agregada» y «etiqueta quitada», con quién y cuándo, y no muestra
+  notas `note`.
+- Un usuario `cn` sin admin no recibe `client_name` en ninguna lectura nueva (prueba de servidor).
+- F2: Venezuela ve en el embarque y en Almacén VE solo las `visible_ve` de sus recepciones; una recepción VE
+  sin origen CN no muestra ninguna; la mitad nueva de un embarque partido no muestra ninguna.
+- F2: las lecturas del portal no traen etiquetas.
