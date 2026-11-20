@@ -111,6 +111,25 @@ de carga». Los colores de fila **no son estados: son indicadores**.
 | Celeste | Revisión o remedida |
 | Rosa | Uso de elevador o montacargas |
 
+**Medido en una hoja real (2026-11-20).** Solo conteos, sin datos de clientes. De los archivos locales, el
+único en el formato de China es el packing list del contenedor 63 (columnas MARKS, BRAND, DESCRIPTION,
+CHINESE DESCRIPTION, CTNS, PCS, G.W, CBM, DELIVERY DATE y REMARKS). Los del 59, 60 y 64 son el formato de
+precios de Venezuela, y no se encontraron archivos del 65 ni del 67.
+
+| Color de fila en el 63 | Filas de producto | Con BRAND |
+|---|---|---|
+| Verde | 11 | 4 |
+| Ámbar (dorado del tema) | 9 | 4 |
+| Naranja | 4 | 4 |
+| Sin color | 132 | 14 |
+
+- 24 de 156 filas (15 %) llevan color. Ninguna va en rojo, celeste ni rosa: en ese contenedor no hubo carga
+  especial, remedida ni montacargas marcados.
+- Hay **dos tonos parecidos** (ámbar del tema y naranja). Los 4 naranjas tienen BRAND, lo que apunta a «marca».
+  Por eso, a mano, el mismo indicador se pinta de dos formas: con el catálogo, el color lo pone el sistema.
+- La hoja ya trae una columna **BRAND**. Idea para una fase posterior: si la recepción trae marca, la pantalla
+  sugiere «Marca sin autorización», sin ponerlo sola. No entra en esta spec.
+
 Así lo resuelven los sistemas de almacén y de carga (WMS/TMS): la fila puede llevar varias marcas a la vez,
 y ninguna se combina con otra.
 
