@@ -16,9 +16,10 @@ confidencialidad: interno
 > **Estado: propuesta para que Sam la apruebe.** Esta PR no trae código, migraciones ni cambios de
 > producto: solo la spec. Las preguntas para Sam están en la §9 y van una por una.
 >
-> **Medición:** código de `main` en `9b00a1665`. Los conteos de producción los corre Dir_DTD, con la
-> autorización de Sam. **Este repo es público, así que los números no se copian aquí**: van en el
-> reporte por chat y la spec solo los cita en términos cualitativos.
+> **Medición:** código de `main` en `6a7787d08`. La reserva `9b00a1665` no cambia código. Las líneas se
+> vuelven a verificar al arrancar cada fase. Los conteos de producción los corrió Dir_DTD el 2026-11-20,
+> con la autorización de Sam. **Este repo es público, así que los números no se copian aquí:** van por
+> chat, y la spec solo los cita en términos cualitativos (§3).
 
 ## 1. Pedido
 
@@ -38,7 +39,7 @@ demás y deja la regla general que impide que el problema se repita con otro dat
 |---|---|
 | Fuente única de la dirección; ficha, chofer y comprobante; aviso; botón «Pedir»; dirección en el registro; exigirla en la primera compra; ciudad y estado visibles y conservados al fusionar | **0694** |
 | Dirección del cliente final de un aliado: la carga el aliado, o el cliente con un enlace con la marca del aliado | **0696** |
-| Regla general de fuente única, vista de completitud, guardia de CI contra lectores del campo viejo, y los demás datos duplicados | **0695** (esta) |
+| Regla general de fuente única, vista de completitud, guardia de CI contra los demás campos viejos (la de la dirección es de la 0694) y los demás datos duplicados | **0695** (esta) |
 
 ## 2. Medición: qué dato vive en más de un lugar
 
@@ -71,7 +72,8 @@ Lo que esta spec agrega para la dirección está en la §4: la guardia de CI y l
 - El Studio no los muestra: `lib/studio/client-queries.ts:51` no los selecciona.
 - La fusión los pierde: `merge_clients` en `0361` no menciona `city` ni `state`.
 - La 0694 los muestra y los conserva al fusionar.
-- Queda abierto dónde viven a largo plazo: P-9.
+- **Dónde viven:** lo cerró la 0694 (decisión 8). Se quedan en la ficha y sirven de precarga. Esta spec no
+  lo reabre.
 
 ### D-3. Identidad partida: `persons` frente a `clients` (riesgo alto)
 
@@ -167,7 +169,8 @@ En varios casos el Studio guarda el texto que se escribió en el formulario, no 
 - `exc0674_facturas.client_markbox` y `billed_markbox`, y `exc0674_factura_envios.client_markbox`
   (`0564:190`, `:193`, `:250`). Nacieron después de la 0552, y la función no se redefinió. Se cruzan con
   `shipments.client_markbox` (`0564:407`), así que después de un cambio de código quedan desalineadas;
-- `shipment_rate_snapshots.client_markbox` (`0496:219`). Tiene `client_id`, así que es menos grave.
+- `shipment_rate_snapshots.client_markbox` (`0496:219`). La tarifa congelada es intencional (§2.1), pero
+  su columna de texto no se reescribe al cambiar el código. Es menos grave porque se lee por `client_id`.
 
 **`merge_clients` mueve `client_id`, no el texto** (`0361:130-222`).
 
@@ -193,20 +196,36 @@ En varios casos el Studio guarda el texto que se escribió en el formulario, no 
 **La base no fija zona.** Ninguna migración hace `set timezone` y las pruebas fijan UTC, así que
 `current_date` es el día UTC. Esto es **INFERENCIA para producción**: lo mide la consulta Q19.
 
-**SQL.** No hay ninguna función `caracas_today()`. La 0576 decidió no crearla (`0576/spec.md:222`), así que
+**SQL.** No hay ninguna función `caracas_today()`. La 0533 de la SDD-0576 no incorporó un helper SQL
+(`docs/specs/0576-fechas-caracas/spec.md:222`, checkpoint C1), así que
 59 líneas en 24 migraciones repiten `(… at time zone 'America/Caracas')::date`, con cuatro relojes distintos:
 `now()`, `clock_timestamp()`, `statement_timestamp()` y `transaction_timestamp()`.
 
 | Riesgo | Hallazgo | Dónde |
 |---|---|---|
-| **Alto** | El **número de factura** toma el año UTC (`extract(year from current_date)`), pero `issued_at` toma el día de Caracas. Entre las 20:00 y las 24:00 del 31 de diciembre sale una factura fechada en un año con número del siguiente. Lo mismo pasa con los asientos, los recibos y las CxP: son 22 correlativos | `0077:70`; `0078:98`, `0079:97`, `0088:185`, `:211` y otros |
-| **Alto** | El **Libro de Ventas** y la Posición de IVA filtran por `created_at` con límites UTC, no por `issued_at` en Caracas. Una factura del último día del mes, después de las 20:00, cae en el mes siguiente | `lib/studio/fiscal/queries.ts:225-226`; `fiscal/types.ts:25-28`, `:382` |
+| **Alto** | El **número de factura** toma el año UTC (`extract(year from current_date)`), pero `issued_at` toma el día de Caracas. Entre las 20:00 y las 24:00 del 31 de diciembre sale una factura fechada en un año con número del siguiente. Lo mismo pasa con los asientos, los recibos y las CxP. Hay una veintena de funciones de correlativo así: el conteo crudo da 28 apariciones de `extract(year from current_date)` en 22 archivos, incluidas definiciones históricas. La lista exacta de las vigentes se arma al arrancar la F-2. **Preventivo:** Q20 no encontró ningún caso hasta hoy | `0077:70`; `0078:98`, `0079:97`, `0088:185`, `:211` y otros |
+| **Alto** | El **Libro de Ventas** y la Posición de IVA filtran por `created_at` con límites UTC, no por `issued_at` en Caracas. Una factura del último día del mes, después de las 20:00, cae en el mes siguiente. **Preventivo:** Q21 no encontró ningún caso hasta hoy | `lib/studio/fiscal/queries.ts:225-226`; `fiscal/types.ts:25-28`, `:382` |
 | **Alto** | Aging, Dirección y KPIs ponen por defecto un `today` en UTC y se lo pasan a colas que por defecto usan Caracas, así que el UTC **anula** al de Caracas | `lib/studio/reports/queries.ts:740-744`; `direccion/queries.ts:439`; `dashboard/dashboard-kpi-queries.ts:57` |
 | **Alto** | Nómina y financiero China, con defaults SQL en UTC y valores por defecto en UTC en el código. El mismo módulo de nómina usa `hoyEnCaracas` en otras partes | `0161:37`, `0164:28`, `:48`, `0171:26`, `0114:87-258`; `nomina/loan-types.ts:222`; `partner-finance/posting.ts:237` |
 | Medio | Las tarifas públicas vencen 4 horas antes; las guardas de «fecha no futura» aceptan el día siguiente; la cuenta regresiva al cut-off del portal está en UTC | `0256:153`, `0330:305`, `0458:116`; `0483:123`; `app/portal/(app)/layout.tsx:137` |
 | Medio | Cotizaciones: `valid_until = current_date + 30` | `0007:29`; `cotizador/actions.ts:90` |
 
-En total hay 17 defaults de columna con `current_date` en UTC (lista en el informe de fechas del handoff).
+**Los 17 defaults de columna con `current_date` en UTC:**
+
+- `quotes.valid_until` (`0007:29`);
+- `warehouse_receipts_cn.received_at` (`0008:76`);
+- `customs_filings.arrived_at` (`0010:71`);
+- `tms_incidents.occurred_at` (`0011:150`);
+- `news_posts.date` (`0055:39`);
+- `supplier_charges.charged_on`, `supplier_credit_notes.issued_on`, `currency_conversions.converted_on`,
+  `partner_ledger_entries.occurred_on` y `supplier_claim_offsets.claimed_on` (`0114:87`, `:126`, `:164`,
+  `:205` y `:258`);
+- `service_price_history.valid_from` (`0130:160`);
+- `academy_diplomas.issued_at` (`0144:215`);
+- `nomina_contractor_payments.paid_on` (`0161:37`);
+- `nomina_loans.granted_on` y `nomina_loan_installments.paid_on` (`0164:28`, `:48`);
+- `nomina_warnings.issued_on` (`0171:26`);
+- `bitacora_meetings.fecha` (`0214:90`).
 
 **TypeScript.** El lector compartido existe: `lib/shared/fechas-caracas.ts`, con 38 importadores. Pero:
 
@@ -249,7 +268,7 @@ tandas 2 a 4 y no toca la base ni los validadores (`0660/spec.md:37`).
 |---|---|
 | `invoices.client_name`, `client_rif`, `client_doc_kind` y `client_fiscal_address` | Se sellan al emitir. Un trigger impide cambiarlas (`0466:249-318`) |
 | `payment_receipts.client_name` y `client_markbox` | Se copian de la factura al cobrar (`0467:312`) |
-| `shipment_rate_snapshots` | Es la tarifa congelada (`0496:213-219`) |
+| `shipment_rate_snapshots` | Es la tarifa congelada (`0496:213-219`). Solo su texto `client_markbox` queda viejo al cambiar el código (D-7) |
 | `invoices.fx_rate`, con su fuente y su fecha | Es la tasa del documento (`0495:349-359`) |
 | `client_markbox` en las tablas que cubre `rename_client_markbox` | Es el Shipping Mark propagado: la llave del portal |
 | `legal_acceptances.client_markbox`, `client_markbox_history` y `clients.legacy_markbox` | Son historial |
@@ -260,22 +279,34 @@ tandas 2 a 4 y no toca la base ni los validadores (`0660/spec.md:37`).
 
 ## 3. Producción: conteos agregados
 
-Hay 25 consultas de solo lectura (Q1 a Q21), en una sesión `read only`. Devuelven solo conteos: ninguna
-fila, valor, PII ni monto. La lista está en el handoff y Dir_DTD da el OK antes de correrla. Los resultados
-van al reporte por chat, nunca a Git.
+Son 21 consultas (Q1 a Q21), con 25 sentencias, porque Q15 y Q18 miran varias tablas. Corrieron en una
+sesión `read only` y solo devuelven conteos: ninguna fila, valor, PII ni monto. El SQL vive fuera del repo,
+en las notas de Dir_DTD, que lo revisó y lo corrió el 2026-11-20. Los números van por chat. Aquí va qué
+mide cada consulta y su lectura en términos cualitativos.
 
-| Hallazgo | Consultas |
-|---|---|
-| D-8: fichas duplicadas | Q1 a Q4 |
-| D-1 y D-2: dirección, ciudad y fusión | Q5 a Q8, Q17 |
-| D-3: identidad | Q9 a Q11 |
-| D-4: correo | Q12 y Q13 |
-| D-5: asesor | Q14 |
-| D-6: nombre copiado | Q15 |
-| D-7: Shipping Mark | Q16 y Q18 |
-| D-9: fechas | Q19 a Q21 |
+| Hallazgo | Consulta | Qué cuenta | Lectura (2026-11-20) |
+|---|---|---|---|
+| D-8 | Q1 a Q4 | Grupos de fichas vivas con el mismo correo, el mismo teléfono (`phone_match_key`), el mismo documento o el mismo Shipping Mark sin distinguir mayúsculas | **Pocos** grupos por correo y por teléfono. **Ninguno** por documento ni por código |
+| D-1, D-2 | Q5 | Por canal de registro: fichas sin ninguna dirección, solo con la vieja, solo con la nueva, con las dos, y con ciudad | **Más de la mitad** de los clientes del portal no tiene ninguna dirección. Los importados del sistema viejo la tienen en las dos fuentes. Es materia de la 0694 |
+| D-1 | Q6 | Fichas con las dos fuentes y textos distintos | **Ninguna** |
+| D-1 | Q7 | Fichas con direcciones nuevas y ninguna predeterminada | **Algunas decenas.** Va a la 0694: su helper ya contempla «la más reciente, sin predeterminada» |
+| D-2 | Q8 | Fusiones en las que se perdió la ciudad | **Ninguna** hasta hoy |
+| D-3 | Q9 | Fichas sin `person_id`, por canal | **Casi todos** los clientes nuevos del portal. Ninguno de los importados. **Es el daño más grande medido** |
+| D-3 | Q10, Q11 | Personas ligadas que no coinciden con su ficha, y personas sueltas con la cédula de una ficha | **Casi ninguna** y **ninguna** |
+| D-4 | Q12, Q13 | Accesos activos cuyo correo no es el de la ficha, y Auth frente a `client_users` | **Muy pocos**, y **ninguno** |
+| D-5 | Q14 | Tarjetas con ficha cuyo dueño difiere del asesor de la ficha | **Ninguna** |
+| D-6 | Q15 | Copias de `client_name` distintas de la ficha (embarques, recepciones CN e ítems de consolidado) | **Ninguna:** el riesgo está latente, sin daño todavía |
+| D-7 | Q16, Q18 | Filas de `exc0674_*`, embarques, facturas y prealertas con el código de una ficha fusionada o inexistente | **Ninguna** |
+| D-9 | Q19 | La zona horaria de la sesión de la base | **UTC.** Confirma la inferencia |
+| D-9 | Q20, Q21 | Facturas cuyo año de correlativo no es el de `issued_at`, y facturas cuyo mes UTC no es el de Caracas | **Ninguna:** el riesgo es **preventivo**, con fecha límite el 31 de diciembre |
+| 0696 | Q17 | Clientes de aliado sin dirección | **No hay** clientes de aliado cargados todavía |
 
-**Estado de los conteos:** PENDIENTE, a la espera del OK de Dir_DTD (§10, aceptación 1).
+**Cómo cambian las prioridades:**
+
+- La identidad (F-3) es el daño mayor de hoy.
+- Las fechas fiscales (F-2) no tienen daño, pero sí fecha límite.
+- Los duplicados, el nombre copiado, el Shipping Mark y el asesor salieron limpios o casi. Siguen como
+  prevención, en ese orden.
 
 ## 4. Diseño: la regla para que no vuelva a pasar
 
@@ -286,13 +317,13 @@ Archivo nuevo: `docs/architecture/fuentes-unicas.md`. Es un documento vivo y tie
 | Dato | Fuente única | Lector compartido | Copias permitidas | Campos viejos y su plan de retiro |
 |---|---|---|---|---|
 | Dirección de entrega | `client_delivery_addresses` | `direccionDeEntrega` (0694) | `shipments.delivery_address` (la de ese envío); `invoices.client_fiscal_address` (sellada) | `clients.address` y `address_reference` (0694, fase F-4) |
-| Ciudad y estado de entrega | `clients.city` y `clients.state` (0694, decisión 8) | la ficha | — | P-9 |
+| Ciudad y estado de entrega | `clients.city` y `clients.state` (0694, decisión 8) | la ficha | — | ninguno: se quedan (cerrado por la 0694) |
 | Identidad de un cliente de carga | `clients` | `clients` | `persons` solo para personas **sin** ficha | `persons.name`, `email`, `phone` y `national_id` cuando hay ficha (§4.4, P-1) |
 | Correo de contacto | `clients.email` | — | `client_users.email` y `auth.users.email` siguen a la ficha (§4.5, P-2) | — |
 | Asesor | `clients.advisor_id` cuando hay ficha | — | `crm_tarjetas.asesor_id` solo sin ficha (§4.6, P-3) | — |
 | Nombre del cliente en la operación | `clients.name`, leído en vivo | `nombreCliente` por lote | las selladas de §2.1 | las 9 de D-6 (§4.7, P-4) |
 | Shipping Mark | `clients.markbox` | — | las columnas de `rename_client_markbox`, vigiladas por la guardia de §4.8 | — |
-| «Hoy» de negocio | Caracas | SQL `public.dia_caracas()`; TS `fechaCaracas` | — | los 17 defaults en UTC, los 22 correlativos y las 7 reimplementaciones en TS (§4.9) |
+| «Hoy» de negocio | Caracas | SQL `public.dia_caracas()`; TS `fechaCaracas` | — | los 17 defaults en UTC (D-9), los correlativos con año UTC y las 7 reimplementaciones en TS (§4.9) |
 | ETA | una cadena, en `lib/shared` | `etaDelEnvio` | `scheduled_for`, que se reprograma (§4.9) | las dos cadenas de hoy |
 
 Toda columna nueva que copie un dato de la tabla debe declarar en su `comment on column` si es **sellada**
@@ -315,7 +346,9 @@ viva, con columnas booleanas:
 Tiene dos usos:
 
 - `clientCompleteness` (`lib/studio/client-types.ts:426`) y el bloque «Perfil del cliente» la leen en lugar
-  de calcular cada uno por su lado;
+  de calcular cada uno por su lado. **La dueña del cambio de `clientCompleteness` es la 0694 (F-1):** pasa a
+  `hasDeliveryAddress`. Esta spec (F-8) solo cambia el cálculo por la vista, con la misma regla, y entra
+  cuando la 0694 F-1 ya esté en `main`;
 - un tablero de conteos para la oficina, solo con números, que dice cuántas fichas tienen cada falta.
 
 No expone PII: devuelve booleanos y el id. En la región `cn` no admin se oculta como el resto de la ficha
@@ -397,9 +430,11 @@ Prueba de contrato nueva: `lib/__tests__/fuentes-unicas.contract.test.ts`. Corre
 de §4.1.
 
 1. **Lectores de campos viejos.** Busca en `app/` y en `lib/` cada campo que el registro marca como viejo,
-   por ejemplo `clients.address`, `address_reference` y `persons.email` cuando hay ficha. Falla si aparece un
-   lector que no está en la lista de excepciones, y esa lista solo puede achicarse: la prueba guarda el
-   máximo.
+   por ejemplo `persons.name`, `persons.email` y `persons.phone` donde hay ficha. Falla si aparece un lector
+   que no está en la lista de excepciones, y esa lista solo puede achicarse: la prueba guarda el máximo.
+   - **`clients.address` y `address_reference` no entran aquí.** La dueña de esa guardia es la prueba de
+     contrato de la 0694 (§7, punto 4), con su lista de excepciones que llega a cero en su F-4. Esta prueba
+     solo la cita en el registro.
 2. **Cobertura del Shipping Mark.** Compara las columnas `*markbox*` de las migraciones con la lista que
    reescribe `rename_client_markbox`. Falla si una columna nueva no está cubierta ni marcada como
    historial.
@@ -430,13 +465,21 @@ de §4.1.
 
 ## 5. Dependencias
 
-- **0694** (dirección): se implementa primero. Esta spec no repite sus fases y solo agrega la guardia de
-  §4.8 y la vista de §4.2.
+- **0694** (dirección): se implementa primero. Las dos specs son del mismo Worker, y cada pieza
+  compartida tiene una sola dueña:
+
+  | Pieza | Dueña | La otra |
+  |---|---|---|
+  | La guardia de `clients.address` y `address_reference` | 0694 §7.4 | 0695 §4.8 la cita y no la repite |
+  | `merge_clients`: dirección, ciudad y estado | 0694 F-2 | La 0695 F-6 parte de la versión vigente (la de la 0694 F-2), solo agrega el Shipping Mark y va después |
+  | `clientCompleteness` → `hasDeliveryAddress` | 0694 F-1 | La 0695 F-8 cambia el cálculo por la vista, conservando la regla, y va después |
+  | Ciudad y estado | 0694, decisión 8 (cerrada) | La 0695 no pregunta de nuevo |
 - **0696** (cliente final del aliado): el cliente final guarda su dirección en la misma fuente única,
   `client_delivery_addresses`, de su propia ficha. La 0696 define quién la carga y cómo.
 - **0576** y **0660** (fechas): esta spec retoma lo que la 0576 dejó fuera, como el helper SQL y el cierre
   global. No toca el componente `<DateField>` de la 0660.
-- **0559** (comprobación de correo): §4.5 la extiende a todas las cuentas.
+- **0559** (comprobación de correo): §4.5 aplica su misma semántica a todas las cuentas, sin cambiar el
+  cuerpo de su trigger.
 
 ## 6. Fases
 
@@ -444,13 +487,13 @@ de §4.1.
 |---|---|---|---|
 | F-0 | Esta spec y los conteos de §3. | No | Aprobación de Sam. |
 | **F-1** | El registro `fuentes-unicas.md` y la guardia de CI de §4.8, con sus listas congeladas de hoy. | No | Es lo que evita que el problema vuelva a crecer. Va primero porque no cambia comportamiento. |
-| F-2 | Fechas fiscales: `dia_caracas()`, los correlativos, el Libro de Ventas y los `today` en UTC de los reportes (§4.9, puntos 1 a 4). | Sí | **Antes del 31 de diciembre de 2026**, por el cambio de año de las facturas. |
-| F-3 | Identidad (§4.4): el trigger de alta, la vinculación por cédula y la vista `persona_vigente`. | Sí | Arregla el Club en el portal. |
-| F-4 | Correo (§4.5) y asesor (§4.6). | Sí (la RPC de la 0559) | — |
+| F-2 | Fechas fiscales: `dia_caracas()`, los correlativos, el Libro de Ventas y los `today` en UTC de los reportes (§4.9, puntos 1 a 4). | Sí | **Antes del 31 de diciembre de 2026**, por el cambio de año de las facturas. Es preventiva: no hay daño medido. **Plan B** si no está en producción el 28 de diciembre: la oficina no emite facturas, asientos, recibos ni CxP entre las 20:00 y las 24:00 del 31 de diciembre. Dir_DTD vuelve a correr Q20 el 1 de enero. |
+| F-3 | Identidad (§4.4): el trigger de alta, la vinculación por cédula y la vista `persona_vigente`. | Sí | Arregla el Club en el portal. **Es el daño mayor medido** (§3). Puede ir en paralelo con la F-2: no comparten archivos. |
+| F-4 | Correo (§4.5) y asesor (§4.6). | No, salvo que crear la fila de comprobación requiera una RPC | El trigger de la 0559 no cambia. |
 | F-5 | Duplicados (§4.3): el aviso en el alta del Studio y en Kommo, y después los índices, si los conteos dan cero. | Sí, después de limpiar | La limpieza con la herramienta de fusión es una operación de la oficina, con su propio OK. |
-| F-6 | El Shipping Mark (D-7): `rename_client_markbox` cubre `exc0674_*`, y `merge_clients` reescribe el texto o deja el alias de la 0367. Va según Q18. | Sí | — |
+| F-6 | El Shipping Mark (D-7): `rename_client_markbox` cubre `exc0674_*`. `merge_clients` reescribe el texto o deja el alias de la 0367. | Sí | Q16 y Q18 salieron limpios: es preventiva. La redefinición de `merge_clients` parte de la versión de la 0694 F-2 y va después. |
 | F-7 | Nombre copiado (§4.7). | Sí (trigger) | Según P-4. |
-| F-8 | El resto de las fechas (§4.9, puntos 5 a 7) y la vista de completitud (§4.2). | Sí | La vista requiere la F-1 de la 0694. |
+| F-8 | El resto de las fechas (§4.9, puntos 5 a 7) y la vista de completitud (§4.2). | Sí | La vista requiere la 0694 F-1 en `main`. |
 
 Cada fase lleva su PR y su `pnpm verify`. Las migraciones las numera Dir_DTD y las aplica con el runbook de
 producción y el OK nominal de Sam. **Ninguna corrige datos de producción** sin un acta de conteo previa y su
@@ -502,65 +545,89 @@ Cada pregunta trae la recomendación primero.
   (§4.3).
 - **P-6 (día de China).** En la bodega de Yiwu, ¿la fecha de recepción es el día de China o el de Caracas?
   *Recomendado:* el de China en la recepción, y el de Caracas en la contabilidad.
-- **P-7 (prioridad).** ¿Arrancamos por las fechas fiscales (F-2) antes que por la identidad (F-3)?
-  *Recomendado: sí,* por el cambio de año del 31 de diciembre.
+- **P-7 (prioridad).** Los conteos muestran que la identidad (F-3) es el daño mayor de hoy, y que las
+  fechas fiscales (F-2) no tienen daño todavía pero sí tienen fecha límite. ¿Hacemos la F-2 y la F-3 en
+  paralelo? *Recomendado: sí,* porque no comparten archivos. Si es una sola, primero la F-2, por el 31 de
+  diciembre, con el plan B de la §6.
 - **P-8 (duplicados ya existentes).** Con los conteos de Q1 y Q2 en la mano, ¿la oficina revisa y fusiona
   los grupos con la herramienta que ya existe? *Recomendado: sí,* antes de crear el índice único.
-- **P-9 (ciudad y estado a largo plazo).** ¿Se quedan en la ficha para siempre o pasan a la dirección de
-  entrega cuando el cliente tenga una? *Recomendado:* que se queden en la ficha (decisión 8 de la 0694) y
-  sirvan de precarga.
 
 ## 10. Aceptación verificable
 
-1. **Conteos.** Q1 a Q21 corridas con el OK de Dir_DTD. Resultados en el chat y, en Git, solo una frase
-   cualitativa por hallazgo. Esta spec se actualiza si un conteo cambia una prioridad.
-2. **F-1, guardia.** La prueba de §4.8:
-   - falla si se agrega en `lib/` un lector nuevo de `clients.address` fuera de la lista;
-   - falla con una columna `*_markbox` nueva sin cubrir;
-   - falla con un `toISOString().slice(0, 10)` nuevo en `lib/studio/fiscal/`;
-   - falla con una columna `client_name` nueva sin comentario.
-   Las cuatro fallas se demuestran con un cambio de prueba que después se revierte, y la prueba pasa en
-   `main`.
-3. **F-2, fechas fiscales.** En una prueba `.test.sql`, con `set local timezone = 'UTC'` y el reloj
-   simulado al 31 de diciembre a las 21:00 de Caracas:
-   - el correlativo de la factura lleva el año de `issued_at`;
-   - el Libro de Ventas de diciembre la incluye, y el de enero no;
-   - Aging, Dirección y KPIs usan el día de Caracas: lo prueba una prueba unitaria con el reloj a las 21:00.
+1. **Conteos.** Q1 a Q21 corridas por Dir_DTD el 2026-11-20. Resultados en el chat y, en Git, solo la
+   lectura cualitativa de la §3. **Cumplido.**
+2. **F-1, guardia.** El detector de §4.8 es una función pura que recibe el texto de archivos y
+   migraciones. La prueba tiene **casos negativos permanentes**: textos de ejemplo dentro del propio test
+   que el detector tiene que marcar. Un revisor los ve y los corre sin tocar el repo:
+   - un lector nuevo de `persons.email` en un archivo de `lib/` simulado;
+   - una migración simulada con una columna `*_markbox` que no está en la lista de `rename_client_markbox`;
+   - un `toISOString().slice(0, 10)` nuevo en un archivo simulado de `lib/studio/fiscal/`;
+   - una migración simulada con una columna `client_name` sin `comment on column`.
+
+   Además, la prueba pasa sobre el repo real en `main`.
+3. **F-2, fechas fiscales.** Cada pieza se prueba en su capa:
+   - **SQL** (`.test.sql` en PGlite, con `set local timezone = 'UTC'`). El correlativo recibe la fecha de
+     emisión y no lee el reloj. Con `2026-12-31` da `F-2026-…`, y con `2027-01-01` empieza la serie de 2027.
+     **Los números ya emitidos no cambian:** el test compara `invoice_code` de las filas sembradas antes y
+     después de aplicar la migración.
+   - **TypeScript** (Vitest, con `vi.setSystemTime` en 2026-12-31 a las 21:00 de Caracas, que son las
+     01:00 UTC del 1 de enero):
+     - `currentPeriod` y `fiscalRange` (`lib/studio/fiscal/types.ts:25`, `:57`) dan diciembre;
+     - el Libro de Ventas de diciembre (`lib/studio/fiscal/queries.ts`, con PostgREST simulado) pide las
+       facturas por `issued_at` de diciembre, y una factura con `issued_at` del 31 de diciembre entra en
+       diciembre y no en enero;
+     - Aging, Dirección y KPIs reciben el día de Caracas por defecto.
 4. **F-3, identidad.** Una ficha nueva dada de alta por cualquiera de los cuatro caminos queda con
    `person_id`. Con la cédula de una ficha, Academia no crea otra persona. Un cliente nuevo inscrito en el
    Club lo ve en el portal. La vista muestra el nombre de la ficha y no el de la copia.
-5. **F-4, correo y asesor.** Cambiar el correo de una cuenta activa nacida en `/registro` deja el acceso
-   «sin comprobar» y manda la comprobación. Después de comprobarlo, `client_users.email` y
-   `auth.users.email` coinciden con la ficha. Cambiar el dueño de una tarjeta con ficha cambia
-   `advisor_id`, y el portal muestra el mismo asesor que el CRM.
+5. **F-4, correo y asesor.**
+   - Cambiar el correo de una cuenta activa nacida en `/registro`, en el enlace **o en una invitación de la
+     0080**, deja el acceso «sin comprobar» en el acto y manda la comprobación. El correo anterior ya no
+     entra.
+   - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
+   - Si crear la fila de comprobación falla, el correo de la ficha no cambia.
+   - Cambiar el dueño de una tarjeta con ficha cambia `advisor_id`, y el portal muestra el mismo asesor que
+     el CRM.
 6. **F-7, nombre.** Corregir el nombre actualiza las copias abiertas y no las selladas. Los lectores en vivo
    respetan el ocultamiento `cn`.
-7. **F-6, Shipping Mark.** Cambiar el código de una ficha con filas en `exc0674_*` las reescribe. Q18 vuelve
-   a dar cero o el portal del sobreviviente ve esas filas: lo prueba una prueba de RLS.
+7. **F-6, Shipping Mark.** Cambiar el código de una ficha con filas en `exc0674_*` las reescribe (`.test.sql`).
+   Después de una fusión, el portal del sobreviviente ve las filas guardadas con el código de la fusionada:
+   lo prueba un `.test.sql` de RLS.
 8. **F-5, duplicados.** El alta del Studio con un correo existente responde según P-5. El índice único
    existe solo si Q1 dio cero.
 
 ## 11. Archivos (allowlist provisional)
 
-Se confirma en cada fase. Las migraciones las numera Dir_DTD.
+Es exacta para F-0 a F-6. **La F-7 y la F-8 requieren un inventario previo:** sus lectores (9 tablas) y sus
+reimplementaciones de fecha se listan archivo por archivo en esta spec antes de programarlas. Las
+migraciones las numera Dir_DTD.
 
 - **F-0:** esta spec, `docs/specs/README.md` (índice) y `.agents/handoffs/2026-11-20-sdd-0695-datos-duplicados.md`.
-- **F-1:** `docs/architecture/fuentes-unicas.md` y `lib/__tests__/fuentes-unicas.contract.test.ts`.
+- **F-1:** `docs/architecture/fuentes-unicas.md`, `lib/shared/fuentes-unicas-detector.ts` (el detector puro)
+  y `lib/__tests__/fuentes-unicas.contract.test.ts`.
 - **F-2:**
   - migraciones `NNNN_dia_caracas.sql` y `NNNN_correlativos_anio_caracas.sql`, con su `.test.sql`;
   - `lib/studio/fiscal/queries.ts` y `fiscal/types.ts`;
   - `lib/studio/reports/queries.ts`, `lib/studio/direccion/queries.ts` y `lib/studio/dashboard/dashboard-kpi-queries.ts`;
-  - y sus pruebas.
+  - pruebas: `lib/studio/fiscal/__tests__/types.test.ts` y `queries.test.ts` (ya existen y se extienden),
+    `lib/studio/reports/__tests__/aging-hoy-caracas.test.ts`,
+    `lib/studio/direccion/__tests__/hoy-caracas.test.ts` y
+    `lib/studio/dashboard/__tests__/kpi-hoy-caracas.test.ts`.
 - **F-3:**
   - migración `NNNN_persona_de_la_ficha.sql`, con su `.test.sql`;
-  - `lib/studio/academia/queries.ts`, `lib/studio/club/club-member-queries.ts` y `lib/portal/portal-club-queries.ts`.
+  - `lib/studio/academia/queries.ts`, `lib/studio/club/club-member-queries.ts` y `lib/portal/portal-club-queries.ts`;
+  - pruebas de cada uno, en su carpeta `__tests__/`.
 - **F-4:**
-  - migración `NNNN_correo_acceso_sigue_ficha.sql`;
-  - `app/studio/(app)/clientes/actions.ts` y `PortalAccessCard.tsx`;
-  - `app/studio/(app)/crm/tarjeta-actions.ts` y `lib/studio/crm-tablero-queries.ts`.
-- **F-5:** `app/studio/(app)/clientes/actions.ts`, `lib/studio/kommo-convert.ts` y, si aplica,
-  `NNNN_clients_email_unique.sql`.
-- **F-6:** `NNNN_rename_markbox_cubre_exc0674.sql` y, según Q18, la redefinición de `merge_clients`.
+  - `app/studio/(app)/clientes/actions.ts` (`updateClientAction` y `dejarCuentaSinComprobar`);
+  - `app/studio/(app)/clientes/_components/PortalAccessCard.tsx`;
+  - si crear la fila de comprobación necesita una RPC, `NNNN_correo_comprobacion_toda_cuenta.sql`, con su
+    `.test.sql`. El trigger `clients_email_vuelve_sin_comprobar` (`0559:700-739`) no cambia;
+  - `app/studio/(app)/crm/tarjeta-actions.ts` y `lib/studio/crm-tablero-queries.ts`;
+  - pruebas de cada uno.
+- **F-5:** `app/studio/(app)/clientes/actions.ts`, `lib/studio/kommo-convert.ts`, sus pruebas y, si Q1 da
+  cero después de la limpieza, `NNNN_clients_email_unique.sql` con su `.test.sql`.
+- **F-6:** `NNNN_rename_markbox_cubre_exc0674.sql` y la redefinición de `merge_clients` (partiendo de la
+  0694 F-2), con sus `.test.sql`.
 - **F-7:**
   - `NNNN_client_name_refresco.sql`;
   - `lib/studio/client-name.ts` (`nombreCliente`);
@@ -581,4 +648,7 @@ Se confirma en cada fase. Las migraciones las numera Dir_DTD.
 | ERR-01 | cumplimiento (diseño) | El aviso de duplicado dice qué coincide y adónde ir. |
 | FRM-01 | cumplimiento (diseño) | El alta duplicada responde con un error de campo, sin perder lo escrito. |
 | Privacidad CN (SDD-0531) | cumplimiento (diseño) | Los lectores en vivo pasan por `privacidad-cn.ts`. |
-| Producción (AGENTS) | cumplimiento | Solo conteos agregados, con el OK de Dir_DTD; ningún valor en Git. |
+| CAL-01 (calendario y tiempo) | **no conformidad** del código actual; la corrige esta spec | El contrato dice «no se corta un `timestamptz` en UTC para presentar fecha local». Lo incumplen el Libro de Ventas (`fiscal/queries.ts:225-226`, `fiscal/types.ts:382`), Aging, Dirección y KPIs (D-9). La F-2 y la F-8 lo corrigen. |
+| DAT-01 (selector de fecha) | **no conformidad** parcial del código actual; la corrige esta spec | «Min/max y timezone se aplican en UI y servidor»: las guardas de «fecha no futura» del servidor usan el día UTC (`0483:123`, `0484:124`, `0485:130`). Las corrige la F-8. El componente `<DateField>` es de la 0660 y no se toca. |
+| NUM-01 (campos numéricos) | no aplica | Esta spec no cambia campos numéricos ni montos. Los correlativos son códigos, no campos de entrada. |
+| Producción (AGENTS) | cumplimiento | Solo conteos agregados, que corrió Dir_DTD; ningún valor en Git. |

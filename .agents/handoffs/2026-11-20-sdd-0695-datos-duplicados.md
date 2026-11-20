@@ -16,7 +16,7 @@
 
 ## Hecho
 
-- Medición en `main` (9b00a1665) de D-1 a D-10, con archivo:línea (spec §2). Tres subagentes de solo
+- Medición en `main` (6a7787d08; la reserva 9b00a1665 no cambia código) de D-1 a D-10, con archivo:línea (spec §2). Tres subagentes de solo
   lectura midieron D-3 a D-6 y D-9, y este Worker comprobó por muestreo las líneas de mayor riesgo:
   - `0077:70`;
   - `fiscal/queries.ts:225-226`;
@@ -27,24 +27,23 @@
   - la ausencia de `exc0674` en `rename_client_markbox`;
   - el alta del Studio sin búsqueda de duplicados.
 - Spec `docs/specs/0695-datos-duplicados-fuentes-unicas/spec.md`, en estado `proposed`.
-- La lista de 25 conteos (Q1 a Q21) está en la carpeta de notas compartidas de la sesión de Dir_DTD
-  (`sdd-0695-conteos-produccion.sql`), fuera del repo. Se le mandó a Dir_DTD para su OK.
+- Conteos de producción: son 21 consultas (Q1 a Q21), con 25 sentencias. El SQL vive fuera del repo, en
+  las notas de Dir_DTD. Dir_DTD lo revisó y lo corrió el 2026-11-20, en una sesión de solo lectura. Los
+  números se quedaron en el chat. En la spec §3 solo va la lectura cualitativa.
 
 ## Validación
 
 | Comprobación | Resultado |
 |---|---|
-| `node scripts/build-docs-index.mjs --check` | ver el commit |
-| `node scripts/check-numbering.mjs` | ver el commit |
-| `git diff --check` | ver el commit |
+| `node scripts/build-docs-index.mjs --check` | PASÓ |
+| `node scripts/check-numbering.mjs` | PASÓ |
+| `git diff --check` | PASÓ |
 | `pnpm verify` | NO EJECUTADO: el cambio es solo de docs y el encargo no da turno de PC |
 
 ## Pendientes de esta tarea
 
-1. Correr los conteos cuando Dir_DTD dé el OK. Reportar los números por chat y actualizar la §3 solo con
-   texto cualitativo.
-2. Las respuestas de Sam a P-1 a P-9 (spec §9), una por una.
-3. La SDD-0696, en su propia rama y su propia PR, después de esta.
+1. Las respuestas de Sam a P-1 a P-8 (spec §9), una por una. La primera es la P-7 (prioridad).
+2. Que la revisión independiente apruebe la #728.
 4. Las correcciones de revisión de la #725 (SDD-0694), cuando lleguen.
 
 ## Fuera de alcance detectado
@@ -62,3 +61,35 @@
 - Spec nueva y el índice `docs/specs/README.md`.
 - La F-1 propone un documento vivo nuevo, `docs/architecture/fuentes-unicas.md`. Todavía no se crea:
   depende de que Sam apruebe la spec.
+
+## Revisión independiente (2026-11-20, sobre 3b9933453): CHANGES_REQUESTED, corregida
+
+- **3. Repo público.** El escenario de acceso con un correo anterior salió de la spec en c96d2eb12, con un
+  commit normal. Ahora está en la nota privada `sdd-0695-correo-de-acceso-NO-GIT.md`, en la carpeta de notas
+  de Dir_DTD, fuera del repo. La P-2 está replanteada.
+- **1. Correo.** La §4.5 usa una sola semántica, la de la 0559 (verificada en `0559:704-713` y
+  `app/entrar/actions.ts:233-244`): el correo anterior deja de entrar en el acto. Las cuentas sin fila en
+  `client_email_checks` reciben esa fila antes del cambio. La spec llama trigger al trigger. La aceptación 5
+  cubre la cuenta invitada.
+- **2. Solape con la 0694.** La §5 tiene la tabla de dueñas:
+  - la guardia de la dirección es de la 0694;
+  - `merge_clients` es de la 0694 F-2, y la F-6 va después;
+  - `clientCompleteness` es de la 0694 F-1, y la F-8 va después.
+
+  La P-9 salió: la cerró la decisión 8 de la 0694.
+- **4. Referencias.**
+  - Los 17 defaults quedaron listados en la spec.
+  - Las consultas Q están descritas en la §3, con su lectura cualitativa.
+  - «21 consultas, 25 sentencias».
+  - La cita de la 0576 está corregida.
+  - `shipment_rate_snapshots` queda aclarado.
+- **5. Gobernanza.**
+  - CAL-01 y DAT-01 son no conformidades del código actual, y las corrige la spec. NUM-01 no aplica.
+  - La allowlist es exacta para F-0 a F-6. La F-7 y la F-8 necesitan un inventario previo.
+  - La aceptación 3 se prueba por capa: SQL y TypeScript.
+  - La aceptación 2 tiene casos negativos permanentes.
+  - La F-2 tiene plan B.
+- **6.** La validación dice PASÓ. Los correlativos se cuentan como «una veintena de funciones», con el conteo
+  crudo de apariciones y archivos.
+- **Conteos.** Q20 y Q21 dieron cero: la F-2 queda como **preventiva**. Q9 es el daño mayor, y la F-3 puede ir
+  en paralelo.
