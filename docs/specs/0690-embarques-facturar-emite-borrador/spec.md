@@ -7,14 +7,14 @@ created: 2026-11-20
 updated: 2026-11-20
 supersedes: null
 superseded_by: null
-related: ["0543", "0661", "0674", "0682", "0689", "0691", "0692"]
+related: ["0543", "0661", "0674", "0682", "0689", "0691", "0692", "0693"]
 confidencialidad: interno
 ---
 
 # SDD-0690 — Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»
 
-> **Estado: propuesta.** Sam decidió dos puntos del §7 (el precio y el cliente sin precio). Faltan el
-> camino de la aceptación de T&C y la versión del resumen de dinero. La migración **0569**
+> **Estado: propuesta.** Sam decidió tres puntos del §7: el precio, el cliente sin precio y la aceptación de
+> T&C. Falta la versión del resumen de dinero. No hay código hasta que la elija. La migración **0569**
 > todavía no existe como archivo. Se escribe cuando esta spec quede aprobada, y su cabecera dirá «NO
 > APLICADA EN NINGÚN ENTORNO».
 
@@ -151,10 +151,11 @@ exceso a estos borradores.
 
 ### 3.4 La puerta legal AUT-04: la RPC no la salta en silencio
 
-> **En espera (§7, punto 3).** Sam no quiere que la aceptación de T&C frene la facturación en ningún lado.
-> Quiere exigirla en el portal del cliente, y eso es una SDD propia cuyo camino está confirmando el DG.
-> Mientras no se decida, **no se escribe la RPC ni la ampliación de la EXC-0674**. Lo que sigue es el
-> análisis, por si el camino sigue pasando por la excepción.
+> **Decisión de Sam (2026-11-20):** la aceptación de T&C no frena la facturación ni la contabilidad; se
+> exige en el portal (SDD-0693). Mientras la 0693 no cambie formalmente la AUT-04, la RPC de la 0690 emite
+> bajo la EXC-0674 ampliada a pre-orden y «Facturar todo», con el mismo alcance y la misma fecha.
+>
+> La ampliación se anota en el registro de la EXC-0674 en la PR de implementación, no antes.
 
 - **Qué regla no aplica.** La puerta legal AUT-04 (SDD-0054), en `evaluateLegalGate`
   (`app/studio/(app)/facturacion/actions.ts:299`, y su llamada al emitir en `:611`), exige para un envío
@@ -173,12 +174,12 @@ exceso a estos borradores.
 - **Cómo queda la marca.** Cada factura emitida por la RPC deja `legal_ack = 'exc_0674'` en
   `exc0674_facturas` y en la auditoría (`append_audit_event`, misma transacción), con quién la emitió y
   `origen = 'borrador'`. Así se puede listar todo lo emitido sin aceptación.
-- **Condición previa: hay que ampliar la excepción.** El registro formal de la EXC-0674
+- **La ampliación de la excepción.** El registro formal de la EXC-0674
   (`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`) cubre «solo la acción
-  «Facturar»» de la 0564, la del monto tecleado. Emitir el borrador y «Facturar todo» son acciones
-  nuevas. Antes de implementar, Sam tiene que aprobar la ampliación con el mismo alcance (solo la lista,
-  solo `accounting` y `admin`) y la misma fecha de revisión, y se anota en ese registro (§7, punto 3).
-  Sin esa aprobación, la RPC no se escribe.
+  «Facturar»» de la 0564, la del monto tecleado. Emitir la pre-orden y «Facturar todo» son acciones
+  nuevas. Sam aprobó ampliarla a esas dos acciones con el mismo alcance (solo la lista, solo `accounting`
+  y `admin`) y la misma fecha de revisión (§7, punto 3). Se anota en ese registro en la PR de
+  implementación.
 
 ### 3.5 La pantalla
 
@@ -252,8 +253,8 @@ exceso a estos borradores.
   `_components/EmbarquesClient.tsx`, `page.tsx` y `lib/studio/exc0674-queries.ts`.
 - `lib/studio/embarques-contenedores.ts` (rótulos y saldo) y sus pruebas.
 - `docs/specs/0689-embarques-encabezado-y-cliente/spec.md`, solo la referencia vencida del §3.1.
-- `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`, solo la ampliación, si Sam la
-  aprueba.
+- `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`, solo la ampliación aprobada
+  (§3.4), en la PR de implementación.
 
 ## 7. Decisiones de Sam y pendientes
 
@@ -264,9 +265,10 @@ Respuestas de Sam del 2026-11-20, en el chat del DG:
    hace en Facturación. Su modelo es estimado (cotización) → pre-orden (el cliente aceptó, no contable) →
    factura, y en la pantalla se dice «pre-orden», no «borrador» (§3.3 y §3.5).
 2. **Cliente sin precio en el Excel (DECIDIDO).** Monto tecleado, como hoy (§3.5).
-3. **La aceptación de T&C (PENDIENTE).** Sam no quiere que frene la facturación en ningún lado; quiere
-   exigirla en el portal del cliente. Eso es una SDD propia y el DG está confirmando el camino con Sam.
-   Hasta entonces no se escribe la RPC ni la ampliación de la EXC-0674 (§3.4).
+3. **La aceptación de T&C (DECIDIDO).** No frena la facturación ni la contabilidad: se exige en el portal
+   del cliente, en la SDD-0693 (aviso insistente, sin tracking ni estado de cuenta hasta que acepte, y un
+   correo con hash y acuse). Mientras la 0693 no cambie formalmente la AUT-04, la RPC emite bajo la
+   EXC-0674 ampliada a pre-orden y «Facturar todo», con el mismo alcance y la misma fecha (§3.4).
 4. **El resumen de dinero (PENDIENTE en parte).** «Sin facturar» = las pre-órdenes es firme. Falta que Sam
    elija entre (A) «Sin facturar» / «Por cobrar» / «Cobrado» y (B) «Total del embarque» / «Pagado» /
    «Saldo», con abonos (§3.5).
@@ -289,5 +291,5 @@ Respuestas de Sam del 2026-11-20, en el chat del DG:
 | MP-01 (mutación protegida) | cumplimiento | La RPC exige rol, lista, `'Confirmado'` y estado `borrador`, y es atómica. |
 | AUD-01 / AUD-02 | cumplimiento | `append_audit_event` en la misma transacción y rastro `exc0674_*`. |
 | Regla de montos (0661, RLS 0414, frontera SDD-0357) | cumplimiento | Montos solo con `accounting` o `admin`, decididos en el servidor. |
-| Gate legal AUT-04 (SDD-0054) | pendiente | Sam quiere exigir la aceptación en el portal y no en la facturación (§7, punto 3). Mientras se decide, no hay RPC ni ampliación de la EXC-0674 (§3.4). |
+| Gate legal AUT-04 (SDD-0054) | excepción | EXC-0674 ampliada a pre-orden y «Facturar todo», mismo alcance y fecha (revisión 2027-01-31), mientras la SDD-0693 no cambie formalmente la AUT-04 (§3.4). Solo la regla de aceptación de T&C. |
 | Producción y migraciones | cumplimiento | Sin archivo 0569 hasta aprobar. La aplicación de la 0569 y la carga del 64 llevan cada una su OK nominal, y la carga la corre el DG. |
