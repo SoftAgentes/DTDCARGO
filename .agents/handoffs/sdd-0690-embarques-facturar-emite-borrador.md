@@ -12,7 +12,14 @@ Fecha: 2026-11-20.
 
 - **Spec `proposed`**, solo documento. No hay código ni archivo de migración: la 0569 se escribe cuando
   la spec esté aprobada.
-- Faltan la aprobación de Sam y sus respuestas a las tres preguntas del §7.
+- Sam decidió el 2026-11-20, por el DG:
+  - el precio: en el 64 manda el Excel, en Embarques no se edita, y el monto en color enlaza a la factura o
+    a la pre-orden; en la pantalla se dice «pre-orden»;
+  - el cliente sin precio: monto tecleado.
+- Pendientes de Sam:
+  - el camino de la aceptación de T&C. La quiere exigir en el portal; es una SDD propia. Hasta decidirlo no
+    se escribe la RPC ni la ampliación de la EXC-0674;
+  - la versión (A) o (B) del resumen de dinero.
 
 ## Hecho
 

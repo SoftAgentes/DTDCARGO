@@ -13,8 +13,8 @@ confidencialidad: interno
 
 # SDD-0690 — Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»
 
-> **Estado: propuesta.** Falta la aprobación de Sam y las respuestas del §7, entre ellas la ampliación de
-> la excepción EXC-0674. La migración **0569**
+> **Estado: propuesta.** Sam decidió dos puntos del §7 (el precio y el cliente sin precio). Faltan el
+> camino de la aceptación de T&C y la versión del resumen de dinero. La migración **0569**
 > todavía no existe como archivo. Se escribe cuando esta spec quede aprobada, y su cabecera dirá «NO
 > APLICADA EN NINGÚN ENTORNO».
 
@@ -139,9 +139,9 @@ exceso a estos borradores.
     con `legal_ack = 'exc_0674'`;
   - la auditoría `invoice_emitted_exc0674_borrador`;
   - los mismos bloqueos de numeración y de cliente que la 0564.
-- **El monto es el del borrador.** La RPC no recibe montos. Si la oficina tiene que corregir un precio,
-  corrige el borrador en Facturación antes de emitir (`updateInvoice` ya edita borradores). Ver §7,
-  pregunta 1.
+- **El monto es el de la pre-orden** (el borrador). La RPC no recibe montos. En el 64 manda el Excel. En
+  Embarques no se edita el precio; si hace falta corregirlo, se corrige la pre-orden en Facturación
+  antes de emitir (`updateInvoice` ya edita borradores). Lo decidió Sam el 2026-11-20 (§7, punto 1).
 - `exc0674_facturas.tecleado_por` hoy quiere decir «quién tecleó el monto». En la 0569 se agrega
   `origen` (`'tecleado'` o `'borrador'`) para que el rastro diga de dónde salió el monto.
 - Hay que verificar en la implementación que los triggers de `invoices` (titular 0466, guarda i3 0497,
@@ -150,6 +150,11 @@ exceso a estos borradores.
   correo `invoice_emitted` por factura después del commit y revalida la página.
 
 ### 3.4 La puerta legal AUT-04: la RPC no la salta en silencio
+
+> **En espera (§7, punto 3).** Sam no quiere que la aceptación de T&C frene la facturación en ningún lado.
+> Quiere exigirla en el portal del cliente, y eso es una SDD propia cuyo camino está confirmando el DG.
+> Mientras no se decida, **no se escribe la RPC ni la ampliación de la EXC-0674**. Lo que sigue es el
+> análisis, por si el camino sigue pasando por la excepción.
 
 - **Qué regla no aplica.** La puerta legal AUT-04 (SDD-0054), en `evaluateLegalGate`
   (`app/studio/(app)/facturacion/actions.ts:299`, y su llamada al emitir en `:611`), exige para un envío
@@ -172,25 +177,38 @@ exceso a estos borradores.
   (`docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`) cubre «solo la acción
   «Facturar»» de la 0564, la del monto tecleado. Emitir el borrador y «Facturar todo» son acciones
   nuevas. Antes de implementar, Sam tiene que aprobar la ampliación con el mismo alcance (solo la lista,
-  solo `accounting` y `admin`) y la misma fecha de revisión, y se anota en ese registro (§7, pregunta 4).
+  solo `accounting` y `admin`) y la misma fecha de revisión, y se anota en ese registro (§7, punto 3).
   Sin esa aprobación, la RPC no se escribe.
 
 ### 3.5 La pantalla
 
+- **Las palabras de Sam.** El modelo es estimado (la cotización) → **pre-orden** (el cliente aceptó; no es
+  contable) → **factura**. En la pantalla se dice «pre-orden», nunca «borrador». «Borrador» queda solo
+  como nombre técnico del estado de `invoices`.
 - En `FacturarContenedor`, por cliente:
-  - **con borrador:** se ve su total en USD, sin campo para teclear, y el botón «Facturar», que lo emite;
-  - **sin borrador ni factura:** queda el camino tecleado de la 0564, tal como está (ver §7, pregunta 2);
+  - **con pre-orden:** se ve su total en USD, sin campo para teclear, y el botón «Facturar», que la emite;
+  - **sin pre-orden ni factura** (el cliente no tiene precio en el Excel): monto tecleado, como hoy, por
+    el camino de la 0564 (§7, punto 2);
   - **ya facturado:** «Facturada {código}», sin botón, como hoy.
-- **«Facturar todo»** emite todos los borradores del contenedor en una sola llamada, con la misma doble
+- **El número en color es un enlace.** En el detalle por cliente (y en `FacturarContenedor`), el monto se
+  ve en color y lleva a su documento en Facturación (`/studio/facturacion/{código}`, la misma ruta que
+  usan Facturación y Cobranzas):
+  - si el cliente está facturado, a **su factura**;
+  - si no, a **su pre-orden**.
+  - Ahí se edita, con el RBAC de Facturación. Embarques no edita precios. El enlace solo aparece con
+    `montos`, para `accounting` y `admin`.
+- **«Facturar todo»** emite todas las pre-órdenes del contenedor en una sola llamada, con la misma doble
   confirmación. El resumen dice cuántos clientes y el total en USD.
 - **«Facturado»:** cuando todos los clientes del contenedor tienen factura emitida viva, la cabecera
   muestra la insignia «Facturado» y `FacturarContenedor` no muestra ningún botón. El contenedor se queda
   en Embarques. El historial de los entregados al 100 % es la SDD-0691.
 - **Los rótulos del dinero, para cerrar el pendiente de la 0689:**
-  - **«Sin facturar»** = la suma de los borradores, igual que en el encabezado;
-  - **«Por cobrar»** = el saldo de lo emitido (total menos pagado; ver §7, pregunta 3);
-  - **«Cobrado»** = lo pagado;
-  - la franja y el detalle por cliente usan las mismas tres palabras con el mismo sentido.
+  - **«Sin facturar» = la suma de las pre-órdenes**, igual que en el encabezado. Esto es firme (Sam,
+    2026-11-20).
+  - El resto del resumen está **pendiente** (§7, punto 4). Sam elegirá entre dos versiones:
+    - **(A)** «Sin facturar» / «Por cobrar» / «Cobrado»;
+    - **(B)** «Total del embarque» / «Pagado» / «Saldo», con abonos.
+  - Sea cual sea, la franja y el detalle por cliente usan las mismas palabras con el mismo sentido.
 - Los quiebres que la revisión de la 0689 dejó para aquí:
   - el «Peso total» de la franja y del pie se iguala al del encabezado (el contenedor entero), o se
     rotula como peso de la vista;
@@ -218,8 +236,11 @@ exceso a estos borradores.
 4. Con todos los clientes facturados, el contenedor dice «Facturado» y no hay botón.
 5. Ningún rol fuera de `accounting` y `admin` puede llamar la RPC ni ve montos (prueba SQL y prueba del
    servidor).
-6. «Sin facturar», «Por cobrar» y «Cobrado» significan lo mismo en el encabezado, la franja y el detalle.
-7. Las pruebas de la 0564, la 0661 y la 0689 siguen pasando.
+6. «Sin facturar» (las pre-órdenes) y el resto del resumen que elija Sam significan lo mismo en el
+   encabezado, la franja y el detalle.
+7. En el detalle, el monto en color lleva a la factura si el cliente está facturado y a la pre-orden si no.
+   La pantalla dice «pre-orden», nunca «borrador».
+8. Las pruebas de la 0564, la 0661 y la 0689 siguen pasando.
 
 ## 6. Archivos (allowlist provisional; se cierra al aprobar)
 
@@ -234,17 +255,21 @@ exceso a estos borradores.
 - `docs/governance/reviews/excepcion-0674-facturar-embarques-2026-11-18.md`, solo la ampliación, si Sam la
   aprueba.
 
-## 7. Preguntas para Sam
+## 7. Decisiones de Sam y pendientes
 
-1. **¿Se puede cambiar el precio antes de emitir?** Propuesta: sí, editando el borrador en Facturación.
-   Embarques emite lo que diga el borrador.
-2. **Un cliente del 64 que no tiene precio en el Excel:** ¿sigue con el monto tecleado de hoy, o se queda
-   sin facturar hasta tener precio? Propuesta: sigue el tecleado.
-3. **«Por cobrar»:** ¿es el saldo de lo emitido (total menos pagado) o el total emitido? Propuesta: el
-   saldo.
-4. **¿Amplías la excepción EXC-0674** a «Facturar» que emite el borrador y a «Facturar todo» (§3.4)? El
-   alcance y la fecha de revisión (2027-01-31) serían los mismos. Sin esa ampliación, la puerta legal
-   bloquea a los clientes del 64.
+Respuestas de Sam del 2026-11-20, en el chat del DG:
+
+1. **El precio (DECIDIDO).** En el 64 manda el Excel, y en Embarques no se edita el precio. En el detalle, el
+   número en color es un enlace: a la factura si está facturado, o a la pre-orden si no. La edición se
+   hace en Facturación. Su modelo es estimado (cotización) → pre-orden (el cliente aceptó, no contable) →
+   factura, y en la pantalla se dice «pre-orden», no «borrador» (§3.3 y §3.5).
+2. **Cliente sin precio en el Excel (DECIDIDO).** Monto tecleado, como hoy (§3.5).
+3. **La aceptación de T&C (PENDIENTE).** Sam no quiere que frene la facturación en ningún lado; quiere
+   exigirla en el portal del cliente. Eso es una SDD propia y el DG está confirmando el camino con Sam.
+   Hasta entonces no se escribe la RPC ni la ampliación de la EXC-0674 (§3.4).
+4. **El resumen de dinero (PENDIENTE en parte).** «Sin facturar» = las pre-órdenes es firme. Falta que Sam
+   elija entre (A) «Sin facturar» / «Por cobrar» / «Cobrado» y (B) «Total del embarque» / «Pagado» /
+   «Saldo», con abonos (§3.5).
 
 ## 8. Fuera de alcance
 
@@ -264,5 +289,5 @@ exceso a estos borradores.
 | MP-01 (mutación protegida) | cumplimiento | La RPC exige rol, lista, `'Confirmado'` y estado `borrador`, y es atómica. |
 | AUD-01 / AUD-02 | cumplimiento | `append_audit_event` en la misma transacción y rastro `exc0674_*`. |
 | Regla de montos (0661, RLS 0414, frontera SDD-0357) | cumplimiento | Montos solo con `accounting` o `admin`, decididos en el servidor. |
-| Gate legal AUT-04 (SDD-0054) | excepción | EXC-0674, ampliada si Sam la aprueba (§3.4 y §7, pregunta 4). Solo la regla de aceptación de T&C, solo la lista, revisión el 2027-01-31. |
+| Gate legal AUT-04 (SDD-0054) | pendiente | Sam quiere exigir la aceptación en el portal y no en la facturación (§7, punto 3). Mientras se decide, no hay RPC ni ampliación de la EXC-0674 (§3.4). |
 | Producción y migraciones | cumplimiento | Sin archivo 0569 hasta aprobar. La aplicación de la 0569 y la carga del 64 llevan cada una su OK nominal, y la carga la corre el DG. |
