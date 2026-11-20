@@ -88,6 +88,11 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
   - Adentro queda `pid` con el dueño. Si ese `pid` no se puede escribir (disco lleno, permisos), el guion se niega (3) y suelta el candado: no corre un paso con un candado sin dueño. Al salir, también por una señal (HUP 129, INT 130, TERM 143), el guion solo suelta el candado si sigue siendo suyo; nunca suelta uno ajeno.
   - Si quedó de una corrida muerta, comprueba con `ps -o lstart=,args= -p <pid>` que ese pid no existe o que es otro proceso: compara la hora de inicio y el comando con `aplicar-lote.sh`, porque los pid se reciclan. Recién entonces bórralo a mano (`rm -r`).
 - Un lote generado para prueba se rechaza en `dtd-cargo`, y uno generado para producción se rechaza en un `*-staging`.
+- **Pre-órdenes de un contenedor ya cargado (`--solo-facturas`, SDD-0690).** El paquete tiene **id propio**: el de la carga más `:facturas` (`carga-consolidado:64:6303f821:facturas`). Ese es el id que va en `manifiesto.json`, en cada `.sql`, en el aviso del simulacro y en `AUTORIZACION.txt`. Así:
+  - la guarda de idempotencia no lo confunde con la carga del contenedor, que tiene el id sin sufijo, y un segundo `aplicar` de las pre-órdenes sigue negándose;
+  - un OK de Sam para la carga no sirve para las pre-órdenes. El OK nuevo cita el id con `:facturas` y dice «pre-órdenes».
+  - El contenedor y sus envíos se siguen buscando por el id de la carga, que es lo que quedó en sus notas. Por eso se genera con **el mismo Excel** de la carga (y el mismo `--mapa` y `--correlativo-origen`).
+  - El exceso de peso se elige al generar: con `--sin-exceso-peso` las pre-órdenes no llevan esas líneas.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.

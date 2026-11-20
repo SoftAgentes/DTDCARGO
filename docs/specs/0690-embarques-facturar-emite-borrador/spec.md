@@ -321,6 +321,16 @@ Pruebas de Embarques:
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.encabezado-cliente.test.tsx`;
 - `lib/studio/__tests__/embarques-cajas-y-monto.test.ts`.
 
+Seguimiento del 2026-11-20, después de fusionar (#719). Con OK del DG, en una PR aparte con revisión previa:
+id propio para el paquete `--solo-facturas`, que pasa a ser el id de la carga más `:facturas`. La carga v2
+del 64 y sus pre-órdenes salían del mismo Excel con el mismo id, así que `aplicar-lote.sh` las tomaba por
+el mismo lote y se negaba a aplicar con «ya se aplicó». Archivos:
+- `scripts/consolidados/lote-sql.ts`;
+- `scripts/__tests__/consolidados-sql.test.ts`;
+- `infra/ops/consolidados/aplicar-lote.sh`, solo la regex que reconoce una copia del resumen;
+- `infra/ops/tests/prueba-aplicar-lote.sh`;
+- `docs/runbooks/cargar-consolidados.md`.
+
 Cualquier archivo fuera de esta lista se anota en el handoff y pide OK del DG antes de tocarlo.
 
 ## 7. Decisiones de Sam

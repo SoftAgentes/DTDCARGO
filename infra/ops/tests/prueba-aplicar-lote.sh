@@ -301,7 +301,10 @@ printf '   # Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU12345
 printf 'Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-renderizado.txt"
 printf 'OK de Sam:\n> # Lote carga-consolidado:61:cafebabe · contenedor DTD #61\n' > "${T}/resumen-citado.txt"
 printf 'OK carga-consolidado:61:cafebabe\n| Marca | Etiqueta en la evidencia | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |\n' > "${T}/resumen-tabla.txt"
-for v in bom sangria renderizado citado tabla; do
+# SDD-0690: el resumen de un paquete --solo-facturas lleva el id con «:facturas» antes del « · ».
+printf '# Lote carga-consolidado:61:cafebabe:facturas · contenedor DTD #61 (ABCU1234567)
+' > "${T}/resumen-solo-facturas.txt"
+for v in bom sangria renderizado citado tabla solo-facturas; do
   out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/resumen-${v}.txt" --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "copia de resumen.md (${v}) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md (${v}) rc=${rc}: ${out}"
 done

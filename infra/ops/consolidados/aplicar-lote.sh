@@ -181,7 +181,7 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   # Se reconoce por su título («Lote <id> · contenedor DTD #N», en cualquier
   # lugar de la línea: con BOM, sangría, cita o renderizado sin «#») o por las
   # cabeceras fijas de su tabla de clientes. Bytes, no caracteres (LC_ALL=C).
-  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+ · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
+  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)? · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
     refuse "la autorización parece una copia de resumen.md (trae su título «Lote … · contenedor DTD #» o las cabeceras de su tabla): tiene que ser el OK literal de Sam"
   fi
   grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
