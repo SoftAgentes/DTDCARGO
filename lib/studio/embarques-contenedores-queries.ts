@@ -165,13 +165,16 @@ export async function leerMontosDeContenedores(
     const filas = await porTramos(ids, (t) =>
       supabase
         .from("invoices")
-        .select("shipment_id, currency, total_amount, paid_amount, status")
+        .select("id, invoice_code, shipment_id, currency, total_amount, paid_amount, status")
         .in("shipment_id", t)
         .is("deleted_at", null)
         .neq("status", "anulada"),
     );
     if (filas === null) return { estado: "no_disponible" };
     const facturas: FacturaDeEmbarque[] = filas.map((f) => ({
+      // SDD-0690: el enlace a la factura o a la pre-orden y «Facturar» necesitan el id y el código.
+      id: str(f.id),
+      invoice_code: str(f.invoice_code),
       shipment_id: str(f.shipment_id),
       currency: str(f.currency),
       total_amount: (f.total_amount as number | string | null) ?? null,

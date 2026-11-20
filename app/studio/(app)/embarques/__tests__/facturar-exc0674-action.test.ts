@@ -36,7 +36,7 @@ vi.mock("@/lib/studio/mail/mail-rule-engine", () => ({
   },
 }));
 
-import { facturarExc0674Action } from "../facturar-actions";
+import { emitirPreordenesExc0674Action, facturarExc0674Action } from "../facturar-actions";
 
 const C64 = "00000000-0000-4000-8000-00000000c064";
 
@@ -166,6 +166,49 @@ describe("facturarExc0674Action", () => {
     estado.respuesta = { data: null, error: { message: "exc0674:ya_facturado:DTD-T001" } };
     const r = await facturarExc0674Action(C64, [{ clientMarkbox: "DTD-T001", total: "116" }], "Confirmado");
     expect(r).toEqual({ ok: false, error: expect.stringContaining("ya está facturado") });
+    expect(estado.correos).toEqual([]);
+  });
+});
+
+describe("emitirPreordenesExc0674Action (SDD-0690)", () => {
+  const P1 = "00000000-0000-4000-8000-0000000000a1";
+  const P2 = "00000000-0000-4000-8000-0000000000a2";
+
+  it.each(["operations", "commercial", "warehouse", "support", "marketing", null])("%s: no llama a la RPC", async (rol) => {
+    estado.rol = rol;
+    const r = await emitirPreordenesExc0674Action(C64, [P1], "Confirmado");
+    expect(r.ok).toBe(false);
+    expect(estado.llamadas).toEqual([]);
+  });
+
+  it("sin edición de Facturación, sin «Confirmado» o con ids inválidos no llama a la RPC", async () => {
+    estado.denegado = "No tienes permiso para editar esto.";
+    expect((await emitirPreordenesExc0674Action(C64, [P1], "Confirmado")).ok).toBe(false);
+    estado.denegado = null;
+    expect((await emitirPreordenesExc0674Action(C64, [P1], "confirmado")).ok).toBe(false);
+    expect((await emitirPreordenesExc0674Action(C64, [], "Confirmado")).ok).toBe(false);
+    expect((await emitirPreordenesExc0674Action(C64, ["no-es-uuid"], "Confirmado")).ok).toBe(false);
+    expect((await emitirPreordenesExc0674Action(C64, [P1, P1], "Confirmado")).ok).toBe(false);
+    expect((await emitirPreordenesExc0674Action("c64", [P1], "Confirmado")).ok).toBe(false);
+    expect(estado.llamadas).toEqual([]);
+  });
+
+  it("emite por id, sin montos, y avisa por correo cada factura", async () => {
+    const r = await emitirPreordenesExc0674Action(C64, [P1, P2], "Confirmado");
+    expect(estado.llamadas).toEqual([
+      {
+        fn: "exc0674_emitir_borradores",
+        args: { p_consolidation_id: C64, p_invoice_ids: [P1, P2], p_confirmacion: "Confirmado" },
+      },
+    ]);
+    expect(r).toEqual({ ok: true, facturas: [{ clientMarkbox: "DTD-T001", invoiceCode: "F-TEST-1", totalUsd: 1234.56 }] });
+    expect(estado.correos).toHaveLength(1);
+  });
+
+  it("si la base rechaza, no hay correo y el error es legible", async () => {
+    estado.respuesta = { data: null, error: { message: "exc0674:contenedor_fuera_de_lista" } };
+    const r = await emitirPreordenesExc0674Action(C64, [P1], "Confirmado");
+    expect(r).toEqual({ ok: false, error: "Este contenedor no está en la lista de la regla transitoria." });
     expect(estado.correos).toEqual([]);
   });
 });

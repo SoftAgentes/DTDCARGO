@@ -9,7 +9,9 @@ import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   agruparPorContenedor,
+  documentoDeEnlace,
   montosPorEmbarque,
+  saldoUsd,
   sumarCajas,
   sumarMontos,
   type ContenedorDeEmbarques,
@@ -183,20 +185,45 @@ describe("monto a cobrar (SDD-0661)", () => {
       { shipment_id: "s3", currency: "USD", total_amount: 1, paid_amount: 0, status: "anulada" },
     ]);
     expect(m).toEqual({
-      s1: { facturas: 2, porCobrarUsd: 100.1, cobradoUsd: 40, otraMoneda: 1, borradores: 1, sinFacturarUsd: 100.1 },
-      s2: { facturas: 1, porCobrarUsd: 50.2, cobradoUsd: 50.2, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
+      s1: { facturas: 2, totalUsd: 100.1, pagadoUsd: 40, otraMoneda: 1, borradores: 1, sinFacturarUsd: 100.1, documentos: [] },
+      s2: { facturas: 1, totalUsd: 50.2, pagadoUsd: 50.2, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0, documentos: [] },
     });
     // s3 sólo tenía una anulada: no aparece → la vista dice «Sin facturar».
     expect(m.s3).toBeUndefined();
     expect(sumarMontos([{ id: "s1" }, { id: "s2" }, { id: "s3" }], m)).toEqual({
       facturas: 3,
-      porCobrarUsd: 150.3,
-      cobradoUsd: 90.2,
+      totalUsd: 150.3,
+      pagadoUsd: 90.2,
       otraMoneda: 1,
       borradores: 1,
       sinFacturarUsd: 100.1,
+      documentos: [],
     });
     expect(sumarMontos([{ id: "s3" }], m).facturas).toBe(0);
+  });
+
+  it("SDD-0690 · versión B: documentos para el enlace, saldo y la factura antes que la pre-orden", () => {
+    const m = montosPorEmbarque([
+      { id: "i1", invoice_code: "F-2026-0001", shipment_id: "s1", currency: "USD", total_amount: 80, paid_amount: 30, status: "emitida" },
+      { id: "i2", invoice_code: "F-2026-0002", shipment_id: "s2", currency: "USD", total_amount: "20.5", paid_amount: 0, status: "borrador" },
+      { id: "i3", invoice_code: "F-2026-0003", shipment_id: "s2", currency: "VES", total_amount: 99, paid_amount: 0, status: "borrador" },
+    ]);
+    const t = sumarMontos([{ id: "s1" }, { id: "s2" }], m);
+    expect(t.totalUsd).toBe(100.5);
+    expect(t.pagadoUsd).toBe(30);
+    expect(saldoUsd(t)).toBe(70.5);
+    expect(t.sinFacturarUsd).toBe(20.5);
+    expect(t.documentos).toEqual([
+      { invoiceId: "i1", invoiceCode: "F-2026-0001", preorden: false, totalUsd: 80 },
+      { invoiceId: "i2", invoiceCode: "F-2026-0002", preorden: true, totalUsd: 20.5 },
+      { invoiceId: "i3", invoiceCode: "F-2026-0003", preorden: true, totalUsd: null },
+    ]);
+    // Con factura emitida, el enlace va a la factura; sin ella, a la pre-orden.
+    expect(documentoDeEnlace(t)?.invoiceCode).toBe("F-2026-0001");
+    expect(documentoDeEnlace(sumarMontos([{ id: "s2" }], m))?.invoiceCode).toBe("F-2026-0002");
+    expect(documentoDeEnlace(sumarMontos([{ id: "s9" }], m))).toBeNull();
+    // El saldo de una pre-orden es su total menos lo abonado (hoy no hay abonos sobre pre-órdenes).
+    expect(saldoUsd(sumarMontos([{ id: "s2" }], m))).toBe(20.5);
   });
 
   it("la lectura filtra borradas y anuladas en la consulta", async () => {
@@ -215,7 +242,7 @@ describe("monto a cobrar (SDD-0661)", () => {
     expect(r).toEqual({
       estado: "lista",
       porEmbarque: {
-        s1: { facturas: 1, porCobrarUsd: 10, cobradoUsd: 4, otraMoneda: 0, borradores: 1, sinFacturarUsd: 10 },
+        s1: { facturas: 1, totalUsd: 10, pagadoUsd: 4, otraMoneda: 0, borradores: 1, sinFacturarUsd: 10, documentos: [] },
       },
     });
   });

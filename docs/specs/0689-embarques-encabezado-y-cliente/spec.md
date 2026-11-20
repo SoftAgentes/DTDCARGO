@@ -72,7 +72,7 @@ El DG separó el pedido en dos specs:
     al mostrarse; los «••••••» van con `aria-hidden` y no se anuncian.
   - **Qué protege:** es privacidad frente a quien mira la pantalla, no protección de datos. El monto llega
     al navegador de quien ya tiene permiso para verlo (la página lo decide en el servidor) y se puede ver
-    con el inspector. Para los demás roles el monto no viaja (§5, punto 3, con prueba del servidor).
+    con el inspector. Para los demás roles el monto no viaja (§5, punto 4, con prueba del servidor).
   - Adentro, al abrir el contenedor, la franja y el detalle por cliente muestran los montos completos,
     como hoy (SDD-0661).
   - El ojo aparece solo si la suma en USD de los borradores es mayor que cero. Si no, no hay ojo y el

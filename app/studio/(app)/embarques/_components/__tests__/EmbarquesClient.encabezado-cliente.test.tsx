@@ -69,8 +69,8 @@ const DATOS: ContenedoresDeEmbarques = {
 const CON_BORRADORES: MontosDeContenedores = {
   estado: "lista",
   porEmbarque: {
-    a1: { facturas: 1, porCobrarUsd: 1500, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 1500 },
-    a2: { facturas: 1, porCobrarUsd: 250.75, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 250.75 },
+    a1: { facturas: 1, totalUsd: 1500, pagadoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 1500, documentos: [] },
+    a2: { facturas: 1, totalUsd: 250.75, pagadoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 250.75, documentos: [] },
   },
 };
 
@@ -180,7 +180,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     const emitido: MontosDeContenedores = {
       estado: "lista",
       porEmbarque: {
-        a1: { facturas: 1, porCobrarUsd: 1500, cobradoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
+        a1: { facturas: 1, totalUsd: 1500, pagadoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0, documentos: [] },
       },
     };
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={emitido} />);
@@ -193,7 +193,7 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     const otra: MontosDeContenedores = {
       estado: "lista",
       porEmbarque: {
-        a1: { facturas: 1, porCobrarUsd: 0, cobradoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 0 },
+        a1: { facturas: 1, totalUsd: 0, pagadoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 0, documentos: [] },
       },
     };
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={otra} />);
@@ -227,9 +227,9 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
   const MONTOS_MIXTO: MontosDeContenedores = {
     estado: "lista",
     porEmbarque: {
-      m1: { facturas: 1, porCobrarUsd: 300, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300 },
-      m2: { facturas: 1, porCobrarUsd: 200, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200 },
-      m3: { facturas: 1, porCobrarUsd: 50, cobradoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 50 },
+      m1: { facturas: 1, totalUsd: 300, pagadoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 300, documentos: [] },
+      m2: { facturas: 1, totalUsd: 200, pagadoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 200, documentos: [] },
+      m3: { facturas: 1, totalUsd: 50, pagadoUsd: 0, otraMoneda: 0, borradores: 1, sinFacturarUsd: 50, documentos: [] },
     },
   };
 

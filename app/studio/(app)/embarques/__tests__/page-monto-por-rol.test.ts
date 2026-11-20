@@ -113,7 +113,7 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     expect(props.montos).toEqual({
       estado: "lista",
       porEmbarque: {
-        s1: { facturas: 1, porCobrarUsd: 100, cobradoUsd: 25, otraMoneda: 0, borradores: 1, sinFacturarUsd: 100 },
+        s1: { facturas: 1, totalUsd: 100, pagadoUsd: 25, otraMoneda: 0, borradores: 1, sinFacturarUsd: 100, documentos: [] },
       },
     });
   });
@@ -124,7 +124,7 @@ describe("Embarques · monto a cobrar por rol (SDD-0661)", () => {
     "%s: el «Sin facturar» del encabezado no viaja al navegador",
     async (rol) => {
       const props = await propsDe(rol);
-      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|porCobrarUsd/);
+      expect(JSON.stringify(props)).not.toMatch(/sinFacturarUsd|totalUsd|pagadoUsd|invoice_code/);
     },
   );
 

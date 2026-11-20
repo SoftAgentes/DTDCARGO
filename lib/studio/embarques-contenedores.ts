@@ -70,22 +70,49 @@ export type ClienteDeContenedor = ClientShipmentGroup & {
 };
 
 /**
- * SDD-0661 · Dinero de unos embarques: facturas vivas no anuladas cuyo
- * `shipment_id` es uno de ellos. `porCobrarUsd` suma `total_amount` (lo
- * facturado) y `cobradoUsd` suma `paid_amount`, sólo de las facturas en USD;
- * `otraMoneda` cuenta las que no se sumaron. `facturas === 0` → «Sin
- * facturar» (nunca un 0 inventado).
+ * SDD-0661 → SDD-0690 (versión B de Sam, 2026-11-20) · Dinero de unos embarques: facturas vivas no
+ * anuladas, emitidas y pre-órdenes (`borrador`), cuyo `shipment_id` es uno de ellos.
+ *  - `totalUsd` («Total del embarque») suma `total_amount`; `pagadoUsd` («Pagado») suma `paid_amount`;
+ *    el «Saldo» es la resta ({@link saldoUsd}). Sólo facturas en USD; `otraMoneda` cuenta las que no
+ *    se sumaron. El bolívar es solo una vista.
+ *  - `sinFacturarUsd` («Sin facturar») es la parte del total que todavía son pre-órdenes.
+ *  - `facturas === 0` → no hay precio cargado: la vista no inventa un 0.
  */
 export type MontoAcumulado = {
   facturas: number;
-  porCobrarUsd: number;
-  cobradoUsd: number;
+  totalUsd: number;
+  pagadoUsd: number;
   otraMoneda: number;
-  /** SDD-0689: facturas en borrador (precio cargado, todavía sin emitir). */
+  /** SDD-0689: pre-órdenes (estado `borrador`: precio cargado, todavía sin emitir). */
   borradores: number;
-  /** SDD-0689: USD de los borradores: el «Total sin facturar» del encabezado. */
+  /** SDD-0689: USD de las pre-órdenes: el «Sin facturar» del encabezado. */
   sinFacturarUsd: number;
+  /** SDD-0690: los documentos, para el enlace a la factura o a la pre-orden y para «Facturar». */
+  documentos: DocumentoDeEmbarque[];
 };
+
+/** SDD-0690: una factura o pre-orden, tal como la enlaza y la emite Embarques. */
+export type DocumentoDeEmbarque = {
+  invoiceId: string;
+  invoiceCode: string;
+  /** `true` = pre-orden (estado `borrador`). */
+  preorden: boolean;
+  /** `null` si no está en USD (no suma ni se emite desde Embarques). */
+  totalUsd: number | null;
+};
+
+/** SDD-0690 · «Saldo» = total menos lo pagado. */
+export function saldoUsd(m: Pick<MontoAcumulado, "totalUsd" | "pagadoUsd">): number {
+  return redondear(m.totalUsd - m.pagadoUsd);
+}
+
+/**
+ * SDD-0690 · El documento al que lleva el monto en color: la factura si hay una emitida; si no, la
+ * pre-orden. `null` si no hay ninguno.
+ */
+export function documentoDeEnlace(m: Pick<MontoAcumulado, "documentos">): DocumentoDeEmbarque | null {
+  return m.documentos.find((d) => !d.preorden) ?? m.documentos[0] ?? null;
+}
 
 /**
  * Lo que la página le pasa a la vista SOLO si la persona ve Facturación.
@@ -98,6 +125,9 @@ export type MontosDeContenedores =
 
 /** Una factura tal como la necesita la suma (sin cliente, sin líneas). */
 export type FacturaDeEmbarque = {
+  /** SDD-0690: para el enlace y para emitir la pre-orden. */
+  id?: string | null;
+  invoice_code?: string | null;
   shipment_id: string | null;
   currency: string | null;
   total_amount: number | string | null;
@@ -105,14 +135,17 @@ export type FacturaDeEmbarque = {
   status: string | null;
 };
 
-const MONTO_VACIO: MontoAcumulado = {
-  facturas: 0,
-  porCobrarUsd: 0,
-  cobradoUsd: 0,
-  otraMoneda: 0,
-  borradores: 0,
-  sinFacturarUsd: 0,
-};
+function montoVacio(): MontoAcumulado {
+  return {
+    facturas: 0,
+    totalUsd: 0,
+    pagadoUsd: 0,
+    otraMoneda: 0,
+    borradores: 0,
+    sinFacturarUsd: 0,
+    documentos: [],
+  };
+}
 
 function redondear(n: number): number {
   return Math.round(n * 100) / 100;
@@ -128,17 +161,27 @@ export function montosPorEmbarque(
   const out: Record<string, MontoAcumulado> = {};
   for (const f of facturas) {
     if (!f.shipment_id || f.status === "anulada") continue;
-    const m = (out[f.shipment_id] ??= { ...MONTO_VACIO });
+    const m = (out[f.shipment_id] ??= montoVacio());
     m.facturas += 1;
     const total = Number(f.total_amount);
     const pagado = Number(f.paid_amount ?? 0);
-    if (f.status === "borrador") m.borradores += 1;
-    if (f.currency === "USD" && Number.isFinite(total)) {
-      m.porCobrarUsd = redondear(m.porCobrarUsd + total);
-      if (f.status === "borrador") m.sinFacturarUsd = redondear(m.sinFacturarUsd + total);
-      if (Number.isFinite(pagado)) m.cobradoUsd = redondear(m.cobradoUsd + pagado);
+    const preorden = f.status === "borrador";
+    const enUsd = f.currency === "USD" && Number.isFinite(total);
+    if (preorden) m.borradores += 1;
+    if (enUsd) {
+      m.totalUsd = redondear(m.totalUsd + total);
+      if (preorden) m.sinFacturarUsd = redondear(m.sinFacturarUsd + total);
+      if (Number.isFinite(pagado)) m.pagadoUsd = redondear(m.pagadoUsd + pagado);
     } else {
       m.otraMoneda += 1;
+    }
+    if (f.id && f.invoice_code) {
+      m.documentos.push({
+        invoiceId: f.id,
+        invoiceCode: f.invoice_code,
+        preorden,
+        totalUsd: enUsd ? redondear(total) : null,
+      });
     }
   }
   return out;
@@ -149,16 +192,17 @@ export function sumarMontos(
   filas: readonly Pick<ShipmentListRow, "id">[],
   porEmbarque: Readonly<Record<string, MontoAcumulado>>,
 ): MontoAcumulado {
-  const t = { ...MONTO_VACIO };
+  const t = montoVacio();
   for (const r of filas) {
     const m = porEmbarque[r.id];
     if (!m) continue;
     t.facturas += m.facturas;
-    t.porCobrarUsd = redondear(t.porCobrarUsd + m.porCobrarUsd);
-    t.cobradoUsd = redondear(t.cobradoUsd + m.cobradoUsd);
+    t.totalUsd = redondear(t.totalUsd + m.totalUsd);
+    t.pagadoUsd = redondear(t.pagadoUsd + m.pagadoUsd);
     t.otraMoneda += m.otraMoneda;
     t.borradores += m.borradores;
     t.sinFacturarUsd = redondear(t.sinFacturarUsd + m.sinFacturarUsd);
+    t.documentos.push(...(m.documentos ?? []));
   }
   return t;
 }
