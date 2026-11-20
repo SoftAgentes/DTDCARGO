@@ -679,6 +679,7 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
   | La persona de la ficha fusionada (`person_id` en `merge_clients`, `0361:258`) | **0695** F-3 | La 0694 F-2 conserva esa línea tal cual al redefinir `merge_clients` |
   | Las RPC de escritura `client_delivery_address_save` y `_save_service` | **0694** F-2, que las crea porque es la primera que las necesita | La 0695 F-9a pasa a ellas a Mi perfil y a la tarjeta del Studio, y agrega la prueba de contrato |
   | Una sola predeterminada por cliente (los triggers y el preflight) | **0695** F-9b | La 0694 no la repite. Su helper lee «la más reciente, sin predeterminada» mientras tanto |
+  | Las direcciones de la factura y del embarque (`client_fiscal_addresses`, las columnas selladas de `invoices` y `shipments.delivery_address_id`) | **0698** (F-1 a F-3) | La 0695 las suma a §2.1 (copias intencionales): `invoices.client_fiscal_address` deja de ser solo de la alterna y se sella siempre, y se agregan `ship_to_address`, `ship_to_address_id` y `addresses_sealed_at`. Las filas del registro de fuentes únicas (0695 §4.1) las escribe la 0694 F-2. `client_billing_identities.fiscal_address` queda congelada desde la 0698 F-1, y su retiro va aparte |
 - **Mover `clients.city` y `clients.state` a `client_delivery_addresses`.** Por la decisión 8 se quedan en
   `clients`. Está cerrado, y la 0695 no lo reabre.
 - `clients.lat`/`lng` y la foto de fachada (`facade_photo_url`, `0066`): siguen en `clients`. Pasarlos a la
