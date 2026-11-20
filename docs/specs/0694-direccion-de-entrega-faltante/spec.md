@@ -14,8 +14,11 @@ confidencialidad: interno
 # SDD-0694 — Dirección de entrega: una sola fuente, aviso y pedirla desde la ficha
 
 > **Estado: propuesta para que Sam la apruebe.** No trae código, ni migración, ni cambio de producto.
-> Las decisiones de Sam van citadas con su fecha (§3: P-4, P-5, P-6, P-7 y la dirección rápida del registro).
-> Solo queda abierta la P-8 (§9).
+> Las decisiones de Sam van citadas con su fecha (§3, decisiones 1 a 9). Las ocho preguntas están contestadas
+> (§9).
+>
+> **Condición previa a publicar el campo de dirección del registro (§4.7):** antes hay que ajustar
+> `app/privacidad/page.tsx:82`, y ese cambio va al DG (§6, punto 7).
 
 ## 1. Pedido
 
@@ -167,8 +170,12 @@ pasa `0412…` a `58412…`, y el Cotizador ya abre `wa.me` desde el Studio con 
    - La ficha del Studio los muestra.
    - La fusión de clientes los conserva: si el que sobrevive no los tiene, toma los del que se fusiona.
    - Moverlos a `client_delivery_addresses` no entra en esta SDD (§8).
+9. **Comprobante HTML del portal (P-8). Decidido por Sam el 2026-11-20:** «Usar el domicilio sellado».
+   - El comprobante muestra el mismo domicilio fiscal sellado al emitir que usa el PDF
+     (`invoice-client-doc.ts:69-84`).
+   - Una factura vieja no cambia aunque el cliente cambie su dirección.
 
-Las decisiones 5 a 8 llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
+Las decisiones 5 a 9 llegaron por mensaje de Dir_DTD a este Worker, el mismo día.
 
 Dir_DTD tiene una búsqueda aparte de **otros** datos con fuente vieja y nueva. No entran en esta spec (§8).
 
@@ -212,7 +219,7 @@ Dir_DTD:
 | «Perfil del cliente» (`client-types.ts:426`) | `CompletenessSource` cambia `address` por `hasDeliveryAddress: boolean`. La página lo calcula con las direcciones que ya lee (`page.tsx:259`). | **F-1** |
 | Indicador del portal (`portal-queries.ts:713-721`) | Solo F-2. Se quita la lectura de F-1, una vez aplicada la copia. | F-2 |
 | Cotización nueva del portal (`cotizaciones/nueva/page.tsx:19`) | El destino por defecto sale de la predeterminada. | F-2 |
-| Comprobante HTML de la factura (`comprobante/page.tsx:232`) | **Recomendación:** usar el domicilio fiscal sellado, como el PDF (`domicilioFiscalSellado`, `invoice-client-doc.ts:69-84`). Si la factura no lo tiene sellado, no se imprime ninguna dirección. Un comprobante no tiene que cambiar cuando el cliente se muda. | F-2 |
+| Comprobante HTML de la factura (`comprobante/page.tsx:232`) | **Decisión 9:** deja de leer `clients.address` y muestra `invoices.client_fiscal_address` de **esa** factura, el mismo dato sellado que usa el PDF (`domicilioFiscalSellado`, `invoice-client-doc.ts:69-84`). Lo sella el trigger de la 0466 (`0466:315`). Se lee con la sesión del cliente, en la misma consulta del portal que trae la factura. Si la factura no lo tiene sellado, no se imprime ninguna dirección. | F-2 |
 | CSV operativo (`operativo-csv.ts:89`) | Columna «Dirección» desde la predeterminada (por lote). | F-2 |
 | Agente IA (`shipment-tools.ts:224`) | Lee la predeterminada. | F-2 |
 | Geocodificación (`clientes/actions.ts:522-540`) | Geocodifica la línea de la predeterminada. `clients.lat`/`lng` no cambian en esta spec (§8). | F-2 |
@@ -348,6 +355,16 @@ Dir_DTD:
 
 ### 4.7 Dirección rápida en el registro (decisión 7)
 
+**Condición previa a publicar.** El campo del registro no se publica (ni el de la página ni el texto nuevo del
+registro por enlace) hasta que:
+
+- se ajuste `app/privacidad/page.tsx:82`, que hoy dice que la dirección detallada «la agregas después, en tu
+  perfil del Portal»;
+- el DG apruebe ese ajuste, porque cambia un texto aprobado. El texto propuesto está en la §6, punto 7.
+
+El ajuste va en la misma PR del campo, o en una anterior, y la PR del campo no se fusiona sin ese visto
+bueno.
+
 **Registro de la página.**
 
 - En `app/registro/RegisterForm.tsx`, paso 2 («Contacto»), debajo de `CiudadEntrega` (`:834-843`), va un campo
@@ -386,7 +403,7 @@ Dir_DTD:
 |---|---|---|---|
 | F-0 | Esta spec. | No | Aprobación de Sam. |
 | **F-1** | Copia idempotente (§4.1). Helper de la dirección. **Camionero, fila «Dirección» y «Perfil del cliente»** (§4.2). | Sí: la copia | Prioridad de Dir_DTD. La copia se aplica antes de publicar los lectores. |
-| F-2 | El resto de los lectores (§4.2) y todos los escritores (§4.3): el Studio, la **dirección rápida del registro de la página y del registro por enlace (§4.7)**, la fusión que conserva la ciudad, las semillas y el portal sin doble lectura. | Sí: las RPC de enlace y la fusión | Después de F-2, nadie escribe F-1 ni F-4. La dirección rápida va en F-2 porque el registro por enlace necesita la misma migración que sus RPC. |
+| F-2 | El resto de los lectores (§4.2) y todos los escritores (§4.3): el Studio, la **dirección rápida del registro de la página y del registro por enlace (§4.7)**, la fusión que conserva la ciudad, las semillas y el portal sin doble lectura. | Sí: las RPC de enlace y la fusión | Después de F-2, nadie escribe F-1 ni F-4. La dirección rápida va en F-2 porque el registro por enlace necesita la misma migración que sus RPC. **Condición previa:** el ajuste de `app/privacidad/page.tsx:82`, con el visto bueno del DG (§4.7). |
 | F-3 | Botón «Pedir» (§4.4). | No, salvo que el correo necesite una plantilla en la DB | Puede ir en paralelo con F-2. |
 | E-1 | Exigir la dirección en la compra o la prealerta del portal, y el aviso al consolidar en el Studio (§4.6). | No | Requiere F-1 (el helper). Va después de F-2, para que los registros nuevos ya traigan su dirección y no se les pida dos veces. |
 | A-1 | Recuadro en el correo y aviso en el portal (§4.5). | No | Requiere F-1 (el helper). |
@@ -489,8 +506,15 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
      - si el sobreviviente no tiene ciudad ni estado, toma los del fusionado;
      - si los tiene, conserva los suyos;
      - si ninguno los tiene, quedan en null.
-6. **Comprobante.** Con un domicilio sellado imprime ese; sin domicilio sellado no imprime dirección. Cambiar
-   la dirección del cliente no cambia el comprobante.
+6. **Comprobante (decisión 9).** Se prueba en
+   `app/portal/(app)/facturas/[code]/comprobante/page.test.tsx`, con datos inventados:
+   - con `client_fiscal_address` sellado en la factura, el comprobante imprime ese texto y no el de
+     `clients.address` ni el de la predeterminada;
+   - sin domicilio sellado, no imprime ninguna línea de dirección;
+   - **factura vieja:** con la factura sellada, cambiar la dirección del cliente y su domicilio de facturación
+     no cambia lo que imprime el comprobante;
+   - el comprobante y el PDF de la misma factura muestran el mismo domicilio. Es una prueba de contrato sobre
+     la columna que lee cada uno.
 7. **Botón «Pedir».**
    - Lo ven los roles que editan clientes y no lo ve la región `cn`.
    - Con una conversación, lleva a `/studio/bandeja?c=<id>`. Sin ella, el enlace es `wa.me/58…?text=…` con
@@ -506,6 +530,8 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 9. **A-2.** No se enciende sin la plantilla aprobada por Meta, sin el diseño de envío aprobado y sin la §6,
    punto 3 resuelto.
 10. **Dirección rápida del registro (§4.7).**
+    - **Condición previa:** en `main`, o en la misma PR, está el ajuste de `app/privacidad/page.tsx:82`, con el
+      visto bueno del DG registrado en la PR.
     - El paso 2 muestra el campo opcional debajo de la ciudad y el estado, con la etiqueta, el placeholder y la
       ayuda decididos.
     - Con el campo lleno, el alta deja **una** predeterminada en `client_delivery_addresses`, con esa línea y la
@@ -538,7 +564,12 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 - El domicilio fiscal (`client_fiscal_address`, 0466): es otro dato y no se toca.
 - Validar el teléfono en el registro (§2.5). Esta spec solo normaliza para `wa.me`.
 
-## 9. Preguntas para Sam
+## 9. Preguntas para Sam: todas contestadas
+
+Las ocho preguntas están contestadas y no queda ninguna abierta:
+
+- P-1 a P-3 son las decisiones 1 a 3 del pedido (§3);
+- P-4 a P-8 están abajo.
 
 - **P-4 (canal del aviso). Decidida** el 2026-11-20: correo y portal (A-1) y, además, WhatsApp automático
   cuando Meta apruebe la plantilla (A-2).
@@ -547,7 +578,7 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
 - **P-6 (pedido por correo). Decidida** el 2026-11-20: «Correo del sistema» (§3, decisión 6, y §4.4).
 - **Dirección rápida en el registro. Decidida** el 2026-11-20 (§3, decisión 7, y §4.7).
 - **P-7 (ciudad y estado del registro). Decidida** el 2026-11-20: «Dejarlos y mostrarlos» (§3, decisión 8).
-- **P-8. Comprobante HTML del portal.** ¿Usa el domicilio sellado, como el PDF? Recomiendo que **sí** (§4.2).
+- **P-8 (comprobante HTML del portal). Decidida** el 2026-11-20: «Usar el domicilio sellado» (§3, decisión 9).
 
 ## 10. Archivos (allowlist provisional)
 
@@ -566,7 +597,12 @@ Se confirma al implementar cada fase. Las migraciones las numera Dir_DTD.
 - **F-2:**
   - `app/studio/(app)/clientes/actions.ts`, `ClientDrawer.tsx`;
   - `lib/portal/portal-queries.ts`, `lib/portal/portal-types.ts`;
-  - `app/portal/(app)/cotizaciones/nueva/page.tsx`, `app/portal/(app)/facturas/[code]/comprobante/page.tsx`;
+  - `app/portal/(app)/cotizaciones/nueva/page.tsx`;
+  - el comprobante (decisión 9):
+    - `app/portal/(app)/facturas/[code]/comprobante/page.tsx`;
+    - la consulta de la factura del portal que alimenta `lib/portal/comprobante.ts`, para leer
+      `client_fiscal_address`;
+    - `app/portal/(app)/facturas/[code]/comprobante/page.test.tsx`;
   - `lib/studio/export/operativo-csv.ts`, `lib/studio/agents/tools/shipment-tools.ts`;
   - `app/portal/(app)/perfil/PortalAddresses.tsx` (la precarga de ciudad y estado);
   - `supabase/migrations/NNNN_registro_enlace_direccion.sql` y `NNNN_merge_clients_conserva_direccion.sql`, con sus pruebas;

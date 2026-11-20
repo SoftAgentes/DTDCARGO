@@ -65,10 +65,51 @@ Llegaron por mensaje de Dir_DTD y van en la spec, con su cita y la fecha:
   - la fusión conserva la ciudad y el estado;
   - moverlos a la tabla queda fuera de alcance, para la SDD de datos duplicados.
 
+## Tercera vuelta (2026-11-20): P-8 y cierre de las preguntas
+
+- **P-8 «Usar el domicilio sellado».**
+  - Es la decisión 9 de la §3 de la spec.
+  - En la §4.2, el comprobante HTML del portal lee `invoices.client_fiscal_address` de esa factura (sellado
+    por la 0466, `:315`), el mismo dato que el PDF (`invoice-client-doc.ts:69-84`).
+  - Su aceptación es el punto 6 de la §7, con la prueba en `comprobante/page.test.tsx`. Su allowlist está en
+    la §10, F-2.
+- **La §9 queda cerrada:** las ocho preguntas están contestadas.
+- **Condición previa a publicar el campo del registro.**
+  - Antes hay que ajustar `app/privacidad/page.tsx:82`, y ese cambio va al DG.
+  - Está en el encabezado de la spec, en la §4.7, en la fila F-2 de la §5 y en el punto 10 de la §7.
+
+## Cómo retomar la #725 desde otra sesión
+
+Sam quiere que el tema de las direcciones siga en una sesión aparte. Esta sesión termina aquí.
+
+- **PR:** #725, en borrador, contra `main`. **Rama:** `claude/sdd-0694-direccion-entrega`. La cabeza es la
+  que dice `git log -1` en `origin/claude/sdd-0694-direccion-entrega`.
+  - Tiene un merge de `origin/main` que hizo otra sesión (`18f8d392c`). Se conserva.
+- **Estado:**
+  - la spec está en `proposed` y solo trae docs;
+  - las ocho preguntas están contestadas;
+  - falta el OK de Sam a la spec entera.
+- **Al retomar:**
+  1. Crea tu propio worktree desde la rama. Este worktree, `.claude/worktrees/agent-a87f6d5db08e82972`, es
+     de otra sesión: no lo uses ni lo borres. Haz claim con tu sesión.
+  2. Con el OK de Sam, pasa el `status` de la spec a `approved` y escribe la cita del OK arriba, como en la
+     0689.
+  3. Corre los checks con node: `build-docs-index.mjs --check`, `check-numbering.mjs` y
+     `build-governance-capsule.mjs --check`. Después, `gh pr ready 725` para que corra el CI.
+  4. **Para implementar F-1**, que es la prioridad (camionero, fila «Dirección», «Ciudad de entrega» y
+     «Perfil del cliente»):
+     - pídele a Dir_DTD el número de la migración de copia;
+     - va en una tarea Worker aparte, con su propia rama, no en esta PR de spec;
+     - la copia se aplica a producción solo con el OK nominal de Sam y el runbook.
+  5. **Antes de F-2** (la dirección rápida del registro): el ajuste de `app/privacidad/page.tsx:82`, con el
+     visto bueno del DG.
+- **Lo que queda abierto fuera de la spec:**
+  - ubicar el importador `legacy_import`, que vive fuera del repo;
+  - la búsqueda de Dir_DTD de otros datos duplicados.
+
 ## PENDIENTES DE ESTA TAREA
 
-- La aprobación de Sam y su respuesta a P-8 (el comprobante HTML), que Dir_DTD pasa cuando Sam conteste.
-- `gh pr ready` cuando Sam apruebe: en borrador, el CI no corre.
+- El OK de Sam a la spec y `gh pr ready 725`. En borrador, el CI no corre.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -84,8 +125,9 @@ Llegaron por mensaje de Dir_DTD y van en la spec, con su cita y la fecha:
 
 - Spec nueva e índice regenerado.
 - No cambian documentos canónicos.
-- Si Sam exige la dirección antes (P-5) o se enciende A-2, hay que revisar `app/privacidad/page.tsx`. Un
-  texto aprobado que cambia va al DG antes.
+- **Ya decidido:** como Sam exige la dirección en la primera compra (P-5) y el registro la pide de forma
+  opcional, `app/privacidad/page.tsx:82` se ajusta antes de publicar el campo. Ese cambio va al DG.
+- A-2 también requiere revisar la política.
 
 ## HANDOFF AL DIRECTOR
 
