@@ -2,6 +2,7 @@
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
+**Nombre en pantalla:** desde el 2026-11-20 (pedido de Sam) la oficina se llama **Oficina_Virtual** en el ERP: la revisión vive en `/studio/admin/oficina-virtual` y la mini-vista en `/studio/admin/oficina-virtual/vista`. La dirección vieja `/studio/admin/oficina` (y `/vista`) redirige con un 308 permanente. Lo interno no cambia: tablas `office_*`, variables `OFICINA_*`, crons `oficina-*`. En este runbook, «la oficina» sigue siendo también el VPS donde corre el agente.
 **Sin secretos:** este archivo solo nombra servicios, usuarios, puertos y rutas. La llave vive en los servidores y nunca va al repo, a un log, a un PR ni a un chat.
 
 ## 1 · Qué es
@@ -339,7 +340,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 ## 11 · Paso 3b: la revisión de Sam y el envío (SDD-0626 D2 y D4 · AC-1 etapa 1)
 
 **Qué hace.** El despachador deja cada borrador en «aprobación» y avisa a Discord «hay N pendientes» (solo el número).
-Sam revisa en **`/studio/admin/oficina`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
+Sam revisa en **`/studio/admin/oficina-virtual`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
 falló** en los 4 criterios de eval.md (por criterio, «Falló» o «No evaluado»; sin marca = cumple), escribe el motivo y
 aprueba o rechaza. El quinto criterio («Cierre o escalado en 3 intercambios o menos») lo registra una vez por
 conversación, al cerrarla o escalarla, en «Conversaciones por cerrar» (desde la 0558). Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
@@ -472,7 +473,7 @@ Después, recrear **solo** el `web`.
      antes de la conversación 1);
    - `curl` de los crons con la llave: `oficina-despachador` responde `estado` `hecha` u `ocupado` (nunca `sin_config`
      ni `sin_vaciado`); `oficina-envio` responde `hecho` o `pausada` (nunca `apagado` ni `sin_config`).
-6. Sam entra en `/studio/admin/oficina` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
+6. Sam entra en `/studio/admin/oficina-virtual` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
 
 ### Vuelta atrás y cierre
 
@@ -495,7 +496,7 @@ Staging usa la misma pieza: antes de la próxima prueba en staging hay que defin
 
 ## 13 · Paso 4: la mini-vista (SDD-0626 §3.6, solo lectura)
 
-`/studio/admin/oficina/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
+`/studio/admin/oficina-virtual/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
 últimos 10 cambios y el gasto del mes contra el tope), la cola (`office_tasks`), los eventos (`event_inbox`) y la
 bitácora (`task_events`). Es de **solo lectura**: no tiene botones ni formularios, y **no pausa ni despausa**.
 
@@ -513,11 +514,11 @@ la base contesta que quien mira es `is_platform_admin()`.
 1. Copia del `.env` (`.env.bak-<ts>`, 0600).
 2. `OFICINA_VISTA_ACTIVA=1` en `/srv/dtd-cargo/.env`.
 3. Relevar el contenedor `web` (solo ese).
-4. Sam entra en `/studio/admin/oficina`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
+4. Sam entra en `/studio/admin/oficina-virtual`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
 
 ### Qué revisar
 
-- Con la variable apagada, `/studio/admin/oficina/vista` responde 404 para todos.
+- Con la variable apagada, `/studio/admin/oficina-virtual/vista` responde 404 para todos.
 - Encendida, un administrador del tenant que no es superadministrador recibe 404.
 - La bandera coincide con `office_esta_pausada()` y el gasto con `office_gasto_del_mes()`.
 - En ninguna fila aparece el texto de un cliente ni un dato de contacto: solo referencias, estados, horas y costos.
