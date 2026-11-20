@@ -1,7 +1,7 @@
 ---
 sdd: "0690"
 title: "Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»"
-status: proposed
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -13,9 +13,9 @@ confidencialidad: interno
 
 # SDD-0690 — Embarques: «Facturar» emite el borrador con los precios del Excel, «Facturar todo» y «Facturado»
 
-> **Estado: propuesta, lista para que Sam la apruebe.** Sam decidió los cuatro puntos del §7 el
-> 2026-11-20. La migración **0569** todavía no existe como archivo. Se escribe cuando esta spec quede
-> aprobada, y su cabecera dirá «NO APLICADA EN NINGÚN ENTORNO».
+> **Aprobada por Sam el 2026-11-20:** «Apruebo la 0690» (en el chat del DG), sin abonos sobre
+> pre-órdenes. La migración **0569** lleva en su cabecera «NO APLICADA EN NINGÚN ENTORNO». Aplicarla y
+> cargar las pre-órdenes del 64 llevan cada una su OK nominal de Sam, y las corre el DG.
 
 ## 1. Pedido
 
@@ -270,8 +270,10 @@ Base de datos:
 - `supabase/desarmes/0569_desarme.sql`;
 - `supabase/tests/0569_exc0674_emitir_borradores.test.sql`;
 - `supabase/tests/0569_exc0674_emitir_borradores_carrera.test.sql`;
-- las declaraciones de espera que pida el runbook para una migración nueva (`supabase/migrations-baseline.json`
-  y `pending-migration-symbol-declarations.json`).
+- la plomería que el runbook y la CI piden para una migración nueva, igual que la 0564 (#684):
+  `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json`,
+  `supabase/migrations.lock.json`, `scripts/ci-sql-tests-control.sh` (montaje del desarme) y
+  `scripts/__tests__/invoice-read-boundary.test.mjs` (inventario de lecturas de facturas).
 
 Cargador:
 - `scripts/consolidados/generar-lote.ts` y `scripts/consolidados/lote-sql.ts` (modo `--solo-facturas`);
