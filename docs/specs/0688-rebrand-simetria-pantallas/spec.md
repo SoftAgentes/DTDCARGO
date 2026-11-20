@@ -16,6 +16,14 @@ confidencialidad: interno
 > Cada módulo arma a mano su encabezado, su panel lateral, su tabla y sus espacios. Por eso el ERP no se ve igual de una sección a otra.
 > Sin migraciones, sin datos de producción y sin PII. Etiquetas: **C** código leído · **M** medido · **I** inferencia · **NV** sin verificar.
 
+## Objetivos de Sam (2026-11-20)
+
+Estos tres objetivos dicen qué se considera terminado. Cada decisión de esta spec se mide contra ellos. Sam los pidió en el chat de la sesión «Rebrand Design» y cerró con «Ok, avanzamos»:
+
+1. **Homogéneo.** «Que el sistema se vea homogéneo, que todo lo que cargamos y lo que estamos construyendo salga igual.» Lo que ya existe y lo que se construya después usan el mismo encabezado, los mismos paneles, las mismas tablas y los mismos espacios.
+2. **Botones con lógica y con feedback.** «Que los botones tengan lógica, que tengan feedback… que si un guardado me tiene que indicar que está guardando, no me deje oprimirlo cinco veces.» Cada botón muestra que está trabajando y no acepta un segundo clic mientras tanto (SDD-0678, BTN-01 v1.3).
+3. **Simétrico y fácil de usar.** «Que sea simétrico… fácil para el usuario final (UI/UX).» Las secciones se ven iguales y la persona que lo usa no tiene que aprender cada pantalla por separado.
+
 ## Estado (2026-11-20)
 
 Spec propuesta. **Nada implementado.** Número asignado por el Director General (reserva `codex/sdd-reserve-0688`, `0bf583338`). Va **al final**, después de SDD-0686 (color) y SDD-0687 (cifras), sobre tokens ya estabilizados.
