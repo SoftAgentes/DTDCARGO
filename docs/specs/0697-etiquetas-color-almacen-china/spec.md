@@ -1,7 +1,7 @@
 ---
 sdd: "0697"
 title: "Indicadores de carga en Almacén China: catálogo propio, historial, consecuencias y lo que ve Venezuela"
-status: draft
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
 updated: 2026-11-20
@@ -17,7 +17,7 @@ confidencialidad: interno
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
 > «Devolución de impuestos», marca sin documentación y «Montacargas». Hay más.
 
-**Estado: borrador con todas las preguntas del §7 (0 a 15) contestadas por Sam (2026-11-20); falta su aprobación.** No hay migración escrita ni aplicada, nada en producción y nada
+**Aprobada por Sam el 2026-11-20.** Texto literal, en el chat del DG (reportado por el DG): «Apruebo la 0697 (Recomendado)». Antes contestó todas las preguntas del §7 (0 a 15) y la spec pasó la revisión independiente (APPROVED sobre `7f1ea369b`, vigente en `738c6e5d9`). La implementación va por fases (§6.1) en sus propias tareas; las migraciones A, B y C reciben número del DG al programarse y se aplican en producción solo con OK nominal de Sam y el runbook. No hay migración escrita ni aplicada, nada en producción y nada
 fusionado. Se midió solo en código y migraciones (base `origin/main` `6a7787d08`, con la 0682 adentro); no
 se leyó ninguna fila de producción. Las preguntas abiertas están en el §7 y se le hacen a Sam una por una.
 Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.

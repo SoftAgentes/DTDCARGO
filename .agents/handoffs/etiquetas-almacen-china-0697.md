@@ -76,3 +76,21 @@ Están contestadas todas las preguntas de la §7, de la 0 a la 15 (la 15: China 
 - Almacén VE solo ve carga especial y montacargas.
 
 Fuera de esta spec, se lo pasé al Director: China no entra a Embarques; el telex release con prueba (0682 F2); el contenedor 65 entra por Almacén China.
+
+## Aprobación (2026-11-20)
+
+- Sam la aprobó en el chat del DG, según el DG: «Apruebo la 0697 (Recomendado)». La spec queda en `status: approved` con esa cita.
+- La revisión independiente aprobó la cabeza 7f1ea369b, y su aprobación sigue vigente en 738c6e5d9 (cambio solo de texto).
+- La PR pasa a ready. La fusión la hace el DG con el tren.
+
+Pendiente para después de fusionar:
+- F1, que arranca cuando se fusione la 0682 fase 2: el DG da los números de las migraciones A y B.
+- F2, que incluye la migración C.
+- F3: OK de diseño para celeste y rosa.
+- Revisión de los textos en chino por un hablante nativo.
+- Revisión de la nota libre con `revisar-datos-ve`.
+
+FUERA DE ALCANCE DETECTADO (ya se lo pasé al DG):
+- Notas de facturación con montos en `warehouse_receipt_events`. No va a Git.
+- China sin acceso a Embarques y el telex release con prueba (0682 F2).
+- El contenedor 65 entra por Almacén China.
