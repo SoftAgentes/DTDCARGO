@@ -148,7 +148,7 @@ Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cook
 ### Decisiones de Sam (2026-11-20)
 
 - **Opción A** (D): el código de esta SDD carga Clarity en las páginas públicas **sin cookies aunque no haya consentimiento** (§3). La política lo dice tal cual, en vez de cambiar el código para no cargar nada sin consentimiento (opción B, descartada: el aviso solo sale en `/entrar` y `/registro`, y Clarity casi no vería visitas).
-- **Texto aprobado «tal cual»** (D): el borrador `clarity-fase-2-borrador-privacidad-cookies.md` (notas de la sesión, fuera del repo), con sha256 corto `4cc400bf00ba`. Si el abogado o la revisión cambian una palabra, se le vuelve a preguntar a Sam.
+- **Texto aprobado «tal cual»** (D): el borrador `clarity-fase-2-borrador-privacidad-cookies.md` (notas de la sesión, fuera del repo), con sha256 corto `4cc400bf00ba` (**huella de la versión 1, superada**: la vigente es la de la versión 3, abajo). Si el abogado o la revisión cambian una palabra, se le vuelve a preguntar a Sam.
 
 - **Versión 2, aprobada el mismo día** (D): la revisión independiente encontró que `/cookies` §3c negaba que GA4 cargue en `/registro` y `/cotizador`, y sí carga (`PRIVATE_PREFIXES` no los tiene; `RegisterForm.tsx` llama a `trackLead("registro")`). Sam eligió corregir el texto y no el código («Sí, corregir texto», en el chat del DG) y aprobó palabra por palabra **C1** (`/cookies` §3c separa GA4 de Clarity) y **C2** (`/privacidad` §4: sin consentimiento, Google recibe avisos de visita sin cookies; esto ya era inexacto antes de esta SDD). Su texto: «Apruebo C1 y C2». Mismo archivo de notas, sección «Versión 2».
 
@@ -160,13 +160,13 @@ Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cook
 | Página | Sección | Cambio |
 |---|---|---|
 | `/cookies` | §2 | Las herramientas de Google y Clarity arrancan sin guardar nada; Clarity igual registra cada página por separado. |
-| `/cookies` | §3c | Filas `_clck` (1 año) y `_clsk` (1 día); solo páginas públicas, con las zonas excluidas por la guarda (Portal, registro, inicio de sesión, cotizador, direcciones con datos); qué hace Clarity, qué oculta y sus plazos (30 días y 9 meses). |
+| `/cookies` | §3c | Filas `_clck` (1 año) y `_clsk` (1 día); los dos solo en páginas públicas, ninguno en el Portal, el inicio de sesión ni direcciones con datos; Clarity tampoco en el registro ni el cotizador, donde GA4 sí cuenta visitas y el registro completado (C1); qué hace Clarity, qué oculta y sus plazos (30 días y 9 meses). |
 | `/cookies` | §4 | Sin datos del Portal para Google ni Microsoft; si algún día se mide el Portal, aviso previo y política cambiada antes (condición 1 de la fase 5). |
 | `/cookies` | §5 | Google **y Microsoft**; cookies de Clarity bajo nuestro dominio; sin cookies publicitarias de Microsoft (coherente con §5: `c.bing.com` fuera de la CSP). Enlace a la declaración de privacidad de Microsoft. |
 | `/cookies` | §6 | Sin consentimiento, Clarity solo registra cada página por separado, sin cookies. |
 | `/privacidad` | Datos, «Navegación» | Qué se registra, con lo escrito oculto; sin cookies por página, con cookies la visita completa. |
-| `/privacidad` | Finalidades | «Mejorar el sitio» con analítica seudónima; campañas y visita completa solo con consentimiento. |
-| `/privacidad` | §4 | Clarity solo en páginas públicas; **Microsoft trata los datos también para sus propios fines**; no recibe nombre, documento, correo, teléfono ni Shipping Mark. |
+| `/privacidad` | Finalidades | «Mejorar el sitio» con analítica seudónima; sin consentimiento, la medición de campañas va sin cookies; la medición con cookies y la visita completa, solo con consentimiento (C3). |
+| `/privacidad` | §4 | Google: sin consentimiento, avisos sin cookies de visitas y de acciones (WhatsApp, formularios, registro); sus cookies, solo con consentimiento (C2 v3). Clarity solo en páginas públicas; **Microsoft trata los datos también para sus propios fines**; no recibe nombre, documento, correo, teléfono ni Shipping Mark. |
 | `/privacidad` | §6 | Plazos de Clarity y **sin borrado por persona** antes de esos plazos (evaluación §1). |
 | Ambas | Fecha | `UPDATED` = 2026-11-20. |
 
@@ -198,6 +198,11 @@ Si este texto se publica antes del encendido, la política describe una recolecc
 
 - `/privacidad` §3, «Base para el tratamiento», no nombra la base de lo que Clarity registra **sin** consentimiento (cada página por separado, sin cookies). No es falso, es un silencio: decidirlo con el abogado.
 - La política cubre el marco venezolano. Si alguna vez el panel de Clarity se consulta desde otro país, se revisa antes la ley de ese país.
+
+### Para Sam y el abogado, después del encendido (tercera revisión, no son falsas)
+
+- `/cookies` §3c no dice que en `/registro` y `/cotizador` también se cuenta el toque a WhatsApp. No dice «solo», así que no es falso.
+- `/cookies` §2 y §6 nombran solo a Clarity como el que registra sin consentimiento, y no dicen que Google recibe avisos sin cookies. Es un silencio: `/privacidad` §4 ya lo explica.
 
 ### Lo que esta fase no autoriza
 
