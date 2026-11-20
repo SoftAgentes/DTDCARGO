@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
-import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, MARCA_SOLO_FACTURAS, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
+import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, idDelPaquete, MARCA_SOLO_FACTURAS, naviera, puertoDestino, SUFIJO_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -733,6 +733,38 @@ describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya carg
     expect(avisos.length).toBeGreaterThan(0);
     for (const l of avisos) expect(l).not.toMatch(/v_base|v_total|v_iva\b|nombre|\.name|c\.clave/);
     expect(t).toContain("raise notice 'solo-facturas lote % · contenedor % · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas'");
+  });
+
+  it("el paquete tiene id propio (carga + «:facturas»); el contenedor se sigue buscando por el id de la carga", () => {
+    const s = solo();
+    const id = `${SOLO.lote}${SUFIJO_SOLO_FACTURAS}`;
+    expect(SUFIJO_SOLO_FACTURAS).toBe(":facturas");
+    expect(idDelPaquete(SOLO)).toBe(id);
+    expect(idDelPaquete(OPCIONES)).toBe(OPCIONES.lote);
+    expect(s.manifiesto.lote).toBe(id);
+    expect(manifiestoDelPaquete(s.manifiesto).lote).toBe(id);
+    // La carga normal no cambia de id.
+    expect(generarSql(lote(), OPCIONES, FUENTES).manifiesto.lote).toBe(OPCIONES.lote);
+    // aplicar-lote.sh exige el id del paquete dentro de cada script que corre (grep -F).
+    for (const t of [s.previa, s.simulacro, s.aplicar, s.verificar, s.deshacer, s.purgar]) expect(t).toContain(id);
+    // El aviso del simulacro nombra el id del paquete: es lo que aplicar-lote.sh busca en su evidencia.
+    expect(s.simulacro).toContain("cab.lote || ':facturas', cab.contenedor, v_n_facturas, v_n_saltados, v_n_sin_lineas;");
+    // lote_cab y el preflight siguen con el id de la carga, que es el que quedó en las notas del contenedor.
+    expect(s.aplicar).toContain(`'${SOLO.lote}', 'ABCU1234567'`);
+    expect(s.aplicar).not.toContain(`'${id}', 'ABCU1234567'`);
+    expect(s.aplicar).toContain("and notes like '%' || cab.lote || '%';");
+    expect(s.previa).toContain(`cn.notes like '%' || '${SOLO.lote}' || '%'`);
+  });
+
+  it("el exceso de peso se elige al generar: con o sin sus líneas", () => {
+    const con = generarSql(lote(), SOLO, FUENTES).aplicar;
+    const sin = generarSql(agruparLote(RASTREO, FILAS, { eta: "2026-10-19", excesoPeso: false }), SOLO, FUENTES).aplicar;
+    expect(con).toContain("'Exceso de peso · DTD-A116-06");
+    expect(sin).not.toContain("Exceso de peso");
+    expect(sin).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "59", "--eta", "2026-10-19", "--salida", "x", "--solo-facturas", "--entorno", "produccion"];
+    expect(parsearArgumentos([...base, "--sin-exceso-peso"])).toMatchObject({ soloFacturas: true, excesoPeso: false });
+    expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: true, excesoPeso: true });
   });
 
   it("--solo-facturas no va con --sin-facturas, ni crea clientes ni registra el gasto", () => {
