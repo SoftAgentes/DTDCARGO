@@ -762,7 +762,7 @@ describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya carg
     expect(con).toContain("'Exceso de peso · DTD-A116-06");
     expect(sin).not.toContain("Exceso de peso");
     expect(sin).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
-    const base = ["--rastreo", "r.xlsx", "--contenedor", "59", "--eta", "2026-10-19", "--salida", "x", "--solo-facturas", "--entorno", "produccion"];
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "59", "--eta", "2026-10-19", "--salida", "x", "--solo-facturas", "--entorno", "produccion"];
     expect(parsearArgumentos([...base, "--sin-exceso-peso"])).toMatchObject({ soloFacturas: true, excesoPeso: false });
     expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: true, excesoPeso: true });
   });
