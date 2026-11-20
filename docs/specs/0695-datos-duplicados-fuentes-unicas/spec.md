@@ -723,8 +723,9 @@ Cada pregunta trae la recomendación primero.
   acceso, la cuenta queda «sin comprobar» hasta que confirme el nuevo, sin importar cómo nació la cuenta
   (§4.5). Sam acepta el costo: si la oficina escribe mal el correo, el cliente no entra hasta que se corrija
   y se reenvíe la comprobación.
-- **P-3 (asesor).** Cuando el cliente ya tiene ficha, ¿manda el asesor de la ficha también en el CRM?
-  *Recomendado: sí;* la tarjeta conserva su dueño solo para los leads sin ficha (§4.6).
+- **P-3 (asesor). Decidida por Sam el 2026-11-20:** «Sí, manda la ficha». Si el cliente tiene ficha, manda
+  `clients.advisor_id` también en el CRM, y cambiar el dueño de la tarjeta cambia el de la ficha. La
+  tarjeta solo tiene dueño propio cuando no hay ficha (leads) (§4.6).
 - **P-4 (nombre).** Si se corrige el nombre de un cliente, ¿lo actualizamos en sus embarques, recepciones
   y despachos **abiertos**? *Recomendado: sí,* y nunca en facturas ni en documentos sellados (§4.7).
 - **P-5 (alta duplicada en el Studio).** Si la oficina da de alta a alguien con un correo o un teléfono que
