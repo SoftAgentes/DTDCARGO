@@ -6,13 +6,9 @@
  */
 
 import { roundCbm } from "@/lib/shared/cbm";
-import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
-import { numeroDtdDeNotas } from "./embarques-contenedores";
-import {
-  contenedorQueManda,
-  situacionDeRecepcion,
-  type ContenedorDeRecepcion,
-} from "./almacen-cn-contenedores";
+import { fetchAllPaged } from "@/lib/db/paginate";
+import { situacionDeRecepcion } from "./almacen-cn-contenedores";
+import { leerContenedorVigentePorEnvio } from "./almacen-cn-contenedores-queries";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   WarehouseCN,
@@ -398,21 +394,19 @@ export type SalidasDeAlmacen = {
   sinZarpar: Map<string, { numeroDtd: number | null; ref: string | null }>;
 };
 
-type FilaConsolidacion = { id: string; status: string; ref: string | null; notes: string | null };
-
 /**
  * Lee las recepciones consolidadas (con los mismos filtros de bodega y búsqueda
- * que la tabla; RLS acota al tenant), el contenedor de cada una por
- * `consolidation_items.shipment_id` y decide con `situacionDeRecepcion`, la misma
- * regla de «En camino». Solo lee.
+ * que la tabla; RLS acota al tenant), el contenedor vigente de cada envío
+ * (`leerContenedorVigentePorEnvio`: la línea más reciente en un contenedor vivo,
+ * la misma que usa «En camino») y decide con `situacionDeRecepcion`. Solo lee.
  */
 export async function leerSalidasDeAlmacen(
   supabase: SupabaseClient,
   filters: ReceiptFilters = {},
 ): Promise<SalidasDeAlmacen> {
-  const vacio: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
+  const out: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
   const bodegas = await bodegasDelFiltro(supabase, filters);
-  if (bodegas === "ninguna") return vacio;
+  if (bodegas === "ninguna") return out;
   const busqueda = busquedaDelFiltro(filters);
 
   const consolidadas = await fetchAllPaged<{ id: string; shipment_id: string | null }>((d, h) => {
@@ -426,50 +420,12 @@ export async function leerSalidasDeAlmacen(
     return q.order("id", { ascending: true }).range(d, h);
   });
   if (!consolidadas.complete) throw new Error("Las recepciones consolidadas superan el tope de lectura.");
-  const envios = [...new Set(consolidadas.rows.map((r) => r.shipment_id).filter((x): x is string => !!x))];
-  if (envios.length === 0) return vacio;
+  const envios = consolidadas.rows.map((r) => r.shipment_id).filter((x): x is string => !!x);
+  if (envios.length === 0) return out;
+  const vigente = await leerContenedorVigentePorEnvio(supabase, envios);
 
-  const items = await fetchAllByIds<{ shipment_id: string; consolidation_id: string }>(envios, (lote, d, h) =>
-    supabase
-      .from("consolidation_items")
-      .select("shipment_id, consolidation_id")
-      .in("shipment_id", lote)
-      .order("consolidation_id", { ascending: true })
-      .range(d, h),
-  );
-  if (!items.complete) throw new Error("Los ítems de los contenedores superan el tope de lectura.");
-  const consIds = [...new Set(items.rows.map((i) => String(i.consolidation_id)))];
-  const cons =
-    consIds.length === 0
-      ? { rows: [] as FilaConsolidacion[], complete: true }
-      : await fetchAllByIds<FilaConsolidacion>(consIds, (lote, d, h) =>
-          supabase
-            .from("consolidations")
-            .select("id, status, ref, notes")
-            .in("id", lote)
-            .is("deleted_at", null)
-            .order("id", { ascending: true })
-            .range(d, h),
-        );
-  if (!cons.complete) throw new Error("Los contenedores superan el tope de lectura.");
-  const contenedorPorId = new Map<string, ContenedorDeRecepcion>(
-    cons.rows.map((c) => [
-      String(c.id),
-      { status: String(c.status), numeroDtd: numeroDtdDeNotas(c.notes), ref: c.ref ?? null },
-    ]),
-  );
-  const contenedoresPorEnvio = new Map<string, ContenedorDeRecepcion[]>();
-  for (const it of items.rows) {
-    const c = contenedorPorId.get(String(it.consolidation_id));
-    if (!c) continue;
-    const lista = contenedoresPorEnvio.get(String(it.shipment_id)) ?? [];
-    lista.push(c);
-    contenedoresPorEnvio.set(String(it.shipment_id), lista);
-  }
-
-  const out: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
   for (const r of consolidadas.rows) {
-    const c = r.shipment_id ? contenedorQueManda(contenedoresPorEnvio.get(r.shipment_id) ?? []) : null;
+    const c = r.shipment_id ? (vigente.get(r.shipment_id) ?? null) : null;
     const situacion = situacionDeRecepcion("consolidado", c);
     if (situacion === "camino") {
       out.fuera.add(r.id);

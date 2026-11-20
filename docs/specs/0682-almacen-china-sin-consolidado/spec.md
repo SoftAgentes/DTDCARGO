@@ -122,10 +122,22 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 contenedor está `consolidando` o `cerrado` sigue en «En almacén», con la etiqueta «En contenedor DTD #N, sin
 zarpar» (el número de `notes`; si no hay, la referencia). Al zarpar el contenedor pasa a «En camino»; al
 arribar sale de las dos vistas. Lo decide el servidor con la misma regla de «En camino»
-(`situacionDeRecepcion` en `lib/studio/almacen-cn-contenedores.ts`). Si un envío va en dos contenedores,
-manda el más avanzado. Una `consolidado` sin contenedor conocido también se queda, sin etiqueta: ninguna
+(`situacionDeRecepcion` en `lib/studio/almacen-cn-contenedores.ts`). El contenedor de una recepción es el
+**vigente** de su envío, con la regla del proyecto: si el envío tiene más de una línea en
+`consolidation_items`, gana la más reciente (`created_at`) en un contenedor vivo (SDD-0643 §3.2, SDD-0661,
+`lib/portal/consolidation-queries.ts`). Dos líneas del mismo envío quieren decir que se movió de contenedor;
+partir un envío (SDD-0563/0673) pone la línea nueva en el mismo contenedor. La aplica `lineaVigentePorEnvio`,
+y la leen igual «En almacén», su aviso y «En camino» (`leerContenedorVigentePorEnvio`). Así, un envío que
+pasó de un contenedor zarpado o arribado a uno que se llena sigue en la bodega con el contenedor nuevo, y no
+sale en «En camino». Una `consolidado` sin contenedor vigente también se queda, sin etiqueta: ninguna
 recepción se pierde ni sale dos veces. La lista se lee por páginas y salta lo que ya salió, para que las
 recepciones de un contenedor zarpado no tapen a las que siguen en la bodega.
+
+**Costo conocido.** En cada carga, «En almacén» recorre todas las recepciones `consolidado` que pasan los
+filtros, con sus líneas y contenedores, para decidir qué sale. La lista se pide en páginas de 200, hasta 25
+páginas (5.000 filas), para llenar sus 100 filas. Si la bodega llegara a tener más de 5.000 recepciones
+recorridas antes de juntar 100 que se quedan, la lista mostraría menos de 100. Se acepta en esta fase; si
+crece, la salida es mover la decisión a la base (una vista o un RPC).
 
 ### 2.2 En camino
 

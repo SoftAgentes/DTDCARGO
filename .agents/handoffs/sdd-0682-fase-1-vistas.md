@@ -16,9 +16,10 @@ Sam pidió arrancar la implementación en esta sesión el 2026-11-20 («Sí, arr
   «DTD #N» (`numeroDtdDeNotas`), naviera (`sailings.carrier_id` → `carriers.name`), ETA (`sailings.eta`), días
   y porcentaje de la regla de Tracking (`armarContenedor`). «Ver recepciones (N)» abre las recepciones
   consolidadas con MARKBOX; nunca el nombre del importador.
-- **Regla única** de dónde va una recepción: `situacionDeRecepcion` y `contenedorQueManda`
-  (`lib/studio/almacen-cn-contenedores.ts`); la usan «En almacén» y el aviso, con los mismos estados que «En
-  camino».
+- **Regla única** de dónde va una recepción: `situacionDeRecepcion` sobre el contenedor VIGENTE del envío
+  (`lineaVigentePorEnvio`: la línea más reciente de `consolidation_items` en un contenedor vivo, la regla de
+  SDD-0643 §3.2, SDD-0661 y el Portal), en `lib/studio/almacen-cn-contenedores.ts`. La leen igual «En
+  almacén», su aviso y «En camino» (`leerContenedorVigentePorEnvio`).
 - **Embarques, opción (a)** (§2.5): regla única en `lib/studio/shipment-queries.ts` (`enPestana`,
   `contarPorPestana`, `filtrarPorPestana`); abre en «Activos», pestaña nueva «En camino» (`shipped`,
   `in_transit`). Prop `pestanaInicial` (por defecto «Activos»).
@@ -42,8 +43,20 @@ Corregido en la tanda siguiente:
   su texto; prueba explícita de que `consolidando` y `cerrado` no entran.
 - «Quedan en almacén» (2026-11-20): una consolidada de un contenedor que no ha zarpado sigue en «En almacén»
   con su etiqueta; al zarpar pasa a «En camino»; al arribar sale de las dos. Registrada en la spec, §2.1.
-  Costo conocido: «En almacén» recorre todas las consolidadas (con los filtros) en cada carga para decidir;
-  la lista se pagina (200 por página, hasta 25 páginas) para que lo que ya salió no tape a lo que queda.
+  Costo conocido (anotado también en la spec, §2.1): «En almacén» recorre todas las consolidadas (con los
+  filtros) en cada carga para decidir; la lista se pagina (200 por página, hasta 25 páginas = 5.000 filas)
+  para que lo que ya salió no tape a lo que queda.
+
+## Revisión sobre `b0cfd5375`: CHANGES_REQUESTED, corregido en la tanda siguiente
+
+- M1: «manda el más avanzado» (`contenedorQueManda`) chocaba con la regla del proyecto: dos líneas del mismo
+  envío = se movió de contenedor, y gana la más reciente en un contenedor vivo. Con A arribado y B
+  consolidando la recepción quedaba invisible en las dos vistas. Fuera `contenedorQueManda`; entran
+  `lineaVigentePorEnvio` (pura) y `leerContenedorVigentePorEnvio` (lectura compartida). «En camino» lista solo
+  los envíos cuyo contenedor vigente es ese, así un envío movido de A zarpado a B consolidando no sale dos
+  veces. Spec §2.1 corregida.
+- m1: las líneas se leen con `.order("id")`, orden estable. m2: comentario del orden del doble corregido.
+  m3: el tope de 5.000 queda como costo conocido en la spec.
 
 ## Revisión sobre `658dfbbaf`: APPROVED, con tres menores corregidos en la tanda siguiente
 
@@ -55,10 +68,13 @@ Corregido en la tanda siguiente:
 
 ## Pruebas
 
-- «Quedan en almacén»: `lib/studio/__tests__/almacen-cn-en-almacen.test.ts` (regla pura, envío partido,
+- «Quedan en almacén»: `lib/studio/__tests__/almacen-cn-en-almacen.test.ts` (regla pura, línea vigente,
   etiqueta, `leerSalidasDeAlmacen` y `listReceipts` con el doble que aplica filtros: cerrado se queda con
   etiqueta, zarpado sale y cuenta, arribado sale sin contar, sin contenedor se queda, 250 zarpadas no tapan a
-  una pendiente). Menores de la revisión: m2, aserción directa `ESTADOS_EN_CAMINO = ["zarpado"]`; m4,
+  una pendiente). Envíos movidos: A arribado → B consolidando y A zarpado → B consolidando se quedan con B;
+  A zarpado → B arribado sale sin contar; la línea nueva en un contenedor eliminado no cuenta; el envío
+  partido dentro del mismo contenedor zarpado sale y cuenta una vez. En `almacen-cn-contenedores-queries.test.ts`,
+  un envío movido de un zarpado a uno que se llena no se lista en el zarpado. Menores de la revisión: m2, aserción directa `ESTADOS_EN_CAMINO = ["zarpado"]`; m4,
   `aria-colspan="6"` en `FilaCamino.test.tsx`. `almacen-cn-vistas.test.ts` espera los tres estados.
 
 - Nuevas: `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`,

@@ -7,8 +7,10 @@
  *    rastreo cacheado, armados con la misma regla de Tracking;
  *  - el número DTD de `consolidations.notes` («contenedor DTD #64»);
  *  - la naviera (`sailings.carrier_id` → `carriers.name`);
- *  - las recepciones consolidadas que van en él (las `warehouse_receipts_cn` con
- *    `status = 'consolidado'` cuyo `shipment_id` está en sus ítems).
+ *  - las recepciones consolidadas que van en él: las `warehouse_receipts_cn` con
+ *    `status = 'consolidado'` cuyo envío tiene a este contenedor como vigente
+ *    (`leerContenedorVigentePorEnvio`). Un envío que se movió a otro contenedor no
+ *    se lista aquí, así no sale dos veces.
  *
  * Los nombres de importador se descartan aquí: la vista de China no los usa y no
  * deben viajar al navegador. Solo el MARKBOX.
@@ -27,6 +29,8 @@ import type { ContainerStatus } from "@/lib/studio/naviera/types";
 import {
   enCaminoOrdenados,
   ESTADOS_EN_CAMINO,
+  lineaVigentePorEnvio,
+  type ContenedorDeRecepcion,
   type ContenedorEnCamino,
   type ExtrasDelContenedor,
   type RecepcionEnCamino,
@@ -69,6 +73,75 @@ async function leerNavieras(
     mapa.set(String(s.id), cid ? (nombre.get(cid) ?? null) : null);
   }
   return mapa;
+}
+
+/** El contenedor vigente de un envío, con lo necesario para decidir y nombrarlo. */
+export type ContenedorVigente = ContenedorDeRecepcion & { id: string };
+
+/**
+ * Contenedor vigente de cada envío (SDD-0682): lee todas sus líneas de
+ * `consolidation_items` y los contenedores vivos, y aplica `lineaVigentePorEnvio`
+ * (la más reciente en un contenedor vivo). Un envío sin línea viva no aparece.
+ * Lo usan «En almacén», su aviso y «En camino», así las tres cuentan igual.
+ * Solo lee; RLS acota al tenant.
+ */
+export async function leerContenedorVigentePorEnvio(
+  supabase: SupabaseClient,
+  shipmentIds: readonly string[],
+): Promise<Map<string, ContenedorVigente>> {
+  const out = new Map<string, ContenedorVigente>();
+  const ids = unicos(shipmentIds);
+  if (ids.length === 0) return out;
+  const lineas = await fetchAllByIds<Fila>(ids, (lote, d, h) =>
+    supabase
+      .from("consolidation_items")
+      .select("id, shipment_id, consolidation_id, created_at")
+      .in("shipment_id", lote)
+      .order("id", { ascending: true })
+      .range(d, h),
+  );
+  if (!lineas.complete) throw new Error("Los ítems de los contenedores superan el tope de lectura.");
+  const consIds = unicos(lineas.rows.map((l) => texto(l.consolidation_id)));
+  const cons =
+    consIds.length === 0
+      ? { rows: [] as Fila[], complete: true }
+      : await fetchAllByIds<Fila>(consIds, (lote, d, h) =>
+          supabase
+            .from("consolidations")
+            .select("id, status, ref, notes")
+            .in("id", lote)
+            .is("deleted_at", null)
+            .order("id", { ascending: true })
+            .range(d, h),
+        );
+  if (!cons.complete) throw new Error("Los contenedores superan el tope de lectura.");
+  const vivos = new Map<string, ContenedorVigente>(
+    cons.rows.map((c) => [
+      String(c.id),
+      {
+        id: String(c.id),
+        status: String(c.status),
+        numeroDtd: numeroDtdDeNotas(texto(c.notes)),
+        ref: texto(c.ref),
+      },
+    ]),
+  );
+  const vigente = lineaVigentePorEnvio(
+    lineas.rows
+      .filter((l) => texto(l.shipment_id) && texto(l.consolidation_id))
+      .map((l) => ({
+        id: String(l.id ?? ""),
+        shipmentId: String(l.shipment_id),
+        consolidationId: String(l.consolidation_id),
+        createdAt: String(l.created_at ?? ""),
+      })),
+    new Set(vivos.keys()),
+  );
+  for (const [sid, cid] of vigente) {
+    const c = vivos.get(cid);
+    if (c) out.set(sid, c);
+  }
+  return out;
 }
 
 /** Recepciones consolidadas por id de envío. */
@@ -142,10 +215,11 @@ export async function leerContenedoresEnCamino(
     leerRastreos(supabase),
     leerNavieras(supabase, sailingIds),
   ]);
-  const recepcionesPorEnvio = await leerRecepcionesPorEnvio(
-    supabase,
-    unicos(items.map((i) => i.shipment_id)),
-  );
+  const enviosDeLosItems = unicos(items.map((i) => i.shipment_id));
+  const [recepcionesPorEnvio, vigentePorEnvio] = await Promise.all([
+    leerRecepcionesPorEnvio(supabase, enviosDeLosItems),
+    leerContenedorVigentePorEnvio(supabase, enviosDeLosItems),
+  ]);
 
   const itemsPorContenedor = new Map<string, typeof items>();
   for (const it of items) {
@@ -168,7 +242,11 @@ export async function leerContenedoresEnCamino(
     );
     if (!v) continue;
     vistas.push(v);
-    const envios = unicos(suyos.map((i) => i.shipment_id));
+    // Solo los envíos cuyo contenedor vigente es este: uno que se movió a otro
+    // contenedor conserva aquí su línea vieja, pero ya no va en él.
+    const envios = unicos(suyos.map((i) => i.shipment_id)).filter(
+      (sid) => vigentePorEnvio.get(sid)?.id === c.id,
+    );
     extras.set(c.id, {
       numeroDtd: numeroDtdDeNotas(c.notes),
       naviera: c.sailing_id ? (navieras.get(c.sailing_id) ?? null) : null,

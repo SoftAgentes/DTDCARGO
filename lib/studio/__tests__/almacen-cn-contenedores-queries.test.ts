@@ -94,6 +94,26 @@ describe("leerContenedoresEnCamino (SDD-0682)", () => {
     expect(sinNumero.recepciones).toEqual([]);
   });
 
+  it("un envío que se movió a un contenedor sin zarpar no se lista en el zarpado (no sale dos veces)", async () => {
+    const tablas = datos();
+    // sh-2 tenía su línea en c-mar (zarpado) y luego se movió a c-consolidando.
+    tablas.consolidation_items.push({
+      id: "i-3",
+      consolidation_id: "c-consolidando",
+      shipment_id: "sh-2",
+      client_markbox: "DEMO-B",
+      client_name: "Importador secreto B",
+      cbm: 2,
+      weight_kg: 20,
+      pieces: 5,
+      created_at: "2026-11-12T00:00:00Z",
+    });
+    const doble = dobleSupabase({ tablas });
+    const [mar] = await leerContenedoresEnCamino(doble.client as SupabaseClient, AHORA);
+    expect(mar.id).toBe("c-mar");
+    expect(mar.recepciones.map((r) => r.codigo)).toEqual(["WR-C91-B"]);
+  });
+
   it("ningún nombre de importador llega al resultado", async () => {
     expect(JSON.stringify(await leer())).not.toContain("Importador secreto");
   });

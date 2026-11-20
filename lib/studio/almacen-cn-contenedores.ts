@@ -46,9 +46,10 @@ export type SituacionDeRecepcion = "almacen" | "camino" | "llego";
 /**
  * Regla única de dónde va una recepción (SDD-0682). Lo que no está consolidado
  * sigue en la bodega; lo consolidado sigue en la bodega hasta que su contenedor
- * zarpe; al zarpar pasa a «En camino» y al llegar sale de las dos vistas. Una
- * recepción consolidada sin contenedor conocido también se queda: así ninguna se
- * pierde y ninguna sale dos veces.
+ * zarpe; al zarpar pasa a «En camino» y al llegar sale de las dos vistas. El
+ * contenedor es el vigente del envío (`lineaVigentePorEnvio`). Una recepción
+ * consolidada sin contenedor conocido también se queda: así ninguna se pierde y
+ * ninguna sale dos veces.
  */
 export function situacionDeRecepcion(
   status: string,
@@ -60,17 +61,40 @@ export function situacionDeRecepcion(
   return "almacen";
 }
 
+/** Una fila de `consolidation_items`: en qué contenedor se puso un envío y cuándo. */
+export type LineaDeContenedor = {
+  id: string;
+  shipmentId: string;
+  consolidationId: string;
+  createdAt: string;
+};
+
 /**
- * Si un envío va en más de un contenedor (envío partido, SDD-0563), manda el más
- * avanzado: basta con que una parte haya zarpado para que la recepción salga de
- * la bodega.
+ * En qué contenedor va cada envío, con la regla vigente del proyecto: si hay más
+ * de una línea, gana la más reciente (`created_at`) en un contenedor vivo. Dos
+ * líneas del mismo envío significan que se movió de contenedor (partir un envío,
+ * SDD-0563/0673, crea la línea nueva en el MISMO contenedor). Es la regla de
+ * Embarques (SDD-0643 §3.2, SDD-0661) y del Portal
+ * (`lib/portal/consolidation-queries.ts`). Empate de fecha: decide el `id` mayor,
+ * para que el resultado no dependa del orden de lectura.
  */
-export function contenedorQueManda(
-  lista: readonly ContenedorDeRecepcion[],
-): ContenedorDeRecepcion | null {
-  const peso = (c: ContenedorDeRecepcion) =>
-    c.status === "arribado" ? 2 : (ESTADOS_EN_CAMINO as readonly string[]).includes(c.status) ? 1 : 0;
-  return lista.reduce<ContenedorDeRecepcion | null>((m, c) => (m === null || peso(c) > peso(m) ? c : m), null);
+export function lineaVigentePorEnvio(
+  lineas: readonly LineaDeContenedor[],
+  vivos: ReadonlySet<string>,
+): Map<string, string> {
+  const mejor = new Map<string, LineaDeContenedor>();
+  for (const l of lineas) {
+    if (!vivos.has(l.consolidationId)) continue;
+    const previa = mejor.get(l.shipmentId);
+    if (
+      !previa ||
+      l.createdAt > previa.createdAt ||
+      (l.createdAt === previa.createdAt && l.id > previa.id)
+    ) {
+      mejor.set(l.shipmentId, l);
+    }
+  }
+  return new Map([...mejor].map(([sid, l]) => [sid, l.consolidationId]));
 }
 
 /** Nombre del contenedor para la etiqueta «En contenedor DTD #N, sin zarpar»: el número DTD o la ref. */
