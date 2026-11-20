@@ -92,7 +92,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
   - la guarda de idempotencia no lo confunde con la carga del contenedor, que tiene el id sin sufijo, y un segundo `aplicar` de las pre-órdenes sigue negándose;
   - un OK de Sam para la carga no sirve para las pre-órdenes. El OK nuevo cita el id con `:facturas` y dice «pre-órdenes».
   - El contenedor y sus envíos se siguen buscando por el id de la carga, que es lo que quedó en sus notas. Por eso se genera con **el mismo Excel** de la carga (y el mismo `--mapa` y `--correlativo-origen`).
-  - El exceso de peso se elige al generar: con `--sin-exceso-peso` las pre-órdenes no llevan esas líneas.
+  - El exceso de peso se elige al generar: con `--sin-exceso-peso` las pre-órdenes no llevan esas líneas. Para el 64, Sam eligió sin exceso (2026-11-20), como el 59.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.

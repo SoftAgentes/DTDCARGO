@@ -163,7 +163,7 @@ No es asesoría legal: es un inventario técnico.
   - La regex de «copia de resumen.md» de `aplicar-lote.sh` acepta el sufijo. Su prueba nueva falla sin el arreglo: la probé con el mutante.
   - Evidencia: `prueba-aplicar-lote.sh` 75 PASÓ · 0 FALLÓ (1 OMITIDA, la del `ulimit`). El vitest de `consolidados-sql` va en el turno de PC.
 - **Ensayo:** el DG acepta como ensayo el simulacro de producción (termina en ROLLBACK, solo conteos). No hace falta el ensayo local de la §3.1.
-- **Exceso de peso:** lo decide Sam, y el DG le pregunta. El generador acepta las dos opciones (`--sin-exceso-peso`).
+- **Exceso de peso: DECIDIDO.** Sam eligió «Sin exceso: manda el Excel (Recomendado)» (2026-11-20, por el DG). Las pre-órdenes del 64 se generan con `--sin-exceso-peso`, como el 59. El generador sigue aceptando las dos opciones.
 
 ## FUERA DE ALCANCE DETECTADO
 
