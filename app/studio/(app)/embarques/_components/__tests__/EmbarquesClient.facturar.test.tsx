@@ -261,6 +261,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
   it("con pre-orden no se teclea: se ve su total con el enlace y «Facturar»; sin precio, el campo de siempre", async () => {
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -284,6 +285,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
   it("«Facturar» en la pre-orden: dos confirmaciones y emite por id, sin montos tecleados", async () => {
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -317,6 +319,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     });
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -345,6 +348,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
   it("con todos los clientes facturados dice «Facturado» y no ofrece ningún botón", async () => {
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -370,6 +374,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     // La pre-orden de Cliente Uno cuelga de a1; la búsqueda deja solo a2 (también de Cliente Uno).
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -401,7 +406,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     const soloUno = { estado: "lista" as const, contenedores: ["c64"], facturados: { c64: { "DTD-1001": facturados.c64["DTD-1001"] } } };
     // Con solo Cliente Uno facturado y el filtro dejando solo a Cliente Uno, NO dice «Facturado».
     const { unmount } = render(
-      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={soloUno} />,
+      <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={soloUno} />,
     );
     await userEvent.type(screen.getByLabelText("Buscar"), "S-a1");
     await abrir("DDP 64");
@@ -412,6 +417,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     // Con los dos facturados sí, aunque el filtro deje uno.
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -428,6 +434,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
   it("una pre-orden en $0 no se emite ni se teclea: se corrige en Facturación", async () => {
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -456,6 +463,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     };
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
@@ -472,6 +480,7 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
   it("en el detalle, el total en color lleva a la factura si está emitida y a la pre-orden si no", async () => {
     render(
       <EmbarquesClient
+        pestanaInicial="all"
         shipments={ENVIOS}
         adjuntos={undefined}
         contenedores={DATOS}
