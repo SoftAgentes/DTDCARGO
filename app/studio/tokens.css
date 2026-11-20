@@ -11,7 +11,7 @@
   --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
 
   /* Acción (BD-076, SDD-0686): azul = lo que se oprime; rojo = peligro; vino = identidad.
-     Valores propuestos: el tono exacto lo fija Sam en la imagen de prueba. Contraste
+     Tono fijado por Sam el 2026-11-20 (opción B de tres). Contraste
      y distancia de tono contra --danger los vigila color-accion-contract.test.ts.
      No referencian --wine*: si la identidad cambia, la acción no se mueve. */
   --accion: #1F4FA8;                    /* relleno del botón principal · acento de acción */

@@ -126,12 +126,13 @@ Pedido de Sam: el vino «visualmente la gente lo ve como algo negativo o como bo
 3. **Vino = identidad.** Logo, wordmark «DTD», sello y documentos de marca. No pinta botones, enlaces ni cifras.
 4. **Tinta = selección** (pestaña, filtro; BD-037) **y cifras** (saldos, KPI, montos). Un saldo va en rojo solo si está vencido.
 5. Un estado nunca se comunica solo con color: el peligro conserva icono y verbo. Azul y rojo tienen luminosidad parecida y se distinguen por tono.
+6. **Un dato va en azul solo si lleva a algún lugar.** El Shipping Mark, el cliente, la factura, el contenedor y el tracking van en tinta. Pasan a azul, siempre con subrayado fino, solo cuando ese dato, por sí solo, abre otra pantalla o su información. Si toda la fila se abre al tocarla, en impresión o sin destino, el dato queda en tinta. Lo que ya parece botón conserva su forma de botón. Sam lo aprobó el 2026-11-20 («Sí, la regla del Shipping Mark queda así»).
 
 **Adopción por fases (SDD-0686).** Mientras una superficie no se migra, sigue con el vino; no es un error que corregir a mano fuera de su fase. Lo nuevo que se escriba ya usa los tokens de acción.
 
 ```
 /* Acción · ERP (app/studio/tokens.css); en web y Portal, --color-accion* en app/globals.css */
-/* Valores propuestos: el tono exacto lo fija Sam en la imagen de prueba (SDD-0686 §3)      */
+/* Tono fijado por Sam el 2026-11-20 (opción B de tres; SDD-0686 §3)                      */
 --accion:        #1F4FA8   /* Relleno del botón principal · acento de acción */
 --accion-hover:  #183E86   /* Hover del relleno */
 --on-accion:     #FFFFFF   /* Texto e icono sobre el relleno */
