@@ -149,6 +149,20 @@ Líneas de `BRAND.md` que se reescriben (**C**, sobre `main` `2ea18799a`): `:104
 
 Sin tocar ningún TSX: lo que cambia en pantalla tras la fase 1 es todo lo que se pinta por clase (`.studio-btn-primary`, anillos de foco, enlaces y chips de `studio.css`). Los usos en línea siguen en vino hasta la fase 2; **es un estado intermedio visible y aceptado**, y por eso la fase 1 no se publica sola (condición de publicación, §8.1).
 
+### Fase 1 · reparto aplicado en `studio.css` (2026-11-20)
+
+Sin contar comentarios, el vino aparecía en **74 líneas** de declaraciones y queda en **24** (**M**, contando líneas sin comentarios antes y después). Cada una queda con su motivo:
+
+| Destino | Qué | Reglas |
+|---|---|---|
+| Acción (`--accion*`) | Botón principal (relleno, hover, texto `--on-accion`), todos los anillos de foco (44 reglas `:focus-visible`, ninguna en vino), borde de foco de campos, enlace del aviso, enlace discreto, botón «Hoy» del calendario, restablecer permiso, enlaces de la matriz, hover de fila y de fecha clicables, asa de ancho de columna | `.studio-btn-primary*`, `.studio-input:focus-visible`, `.studio-toast-action`, `.studio-link-quiet`, `.studio-cal-today-btn*`, `.studio-permcell-reset*`, `.studio-mx-link*`, `.studio-row-linkable:hover`, `.studio-date-field__*:hover`, `.studio-col-resize*` y los `:focus-visible` |
+| Tinta (selección, BD-037) | Fila seleccionada, opción marcada de la matriz, estado activo del botón fantasma | `.studio-row-selected`, `.studio-mx-opt[aria-checked]`, `.bug-fab-ghost[data-active]`. El fondo es `color-mix(in srgb, var(--ink) 8%, transparent)`: sin color nuevo |
+| Tinta (cifras) | Valor KPI con acento en Tracking | `.studio-tracking-ops-kpis dd[data-acento]` |
+| Se queda: identidad | Guión del eyebrow; tono «vino» del contador de iconos (lo elige quien lo usa) | `.studio-eyebrow*::before`, `.studio-contador-icono[data-tono="vino"]` |
+| Se queda: **pendiente de decisión en la fase 2** | Vista de Tracking en vivo (barra, mapa, hitos, eyebrow, fila resaltada, código); chip de @mención; destello al guardar un permiso; estado y cambio de la matriz de permisos; contador de alerta de pestaña | `.studio-tracking-ops-*`, `.mention-chip`, `studio-permcell-saved`, `.studio-mx-st/chg/dot`, `.studio-tab-n[data-alerta]`. Son datos o estados, no acción; se deciden viendo la pantalla, con su consumidor en TSX |
+
+Alias retirados: `--studio-wine` y `--studio-wine-deep` (su único consumidor era el botón principal). `--studio-wine-soft` se queda para el eyebrow. El foco global de `tokens.css` pasa a `var(--accion)` en los dos temas y desaparece la regla oscura que usaba `--wine-soft`.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):
