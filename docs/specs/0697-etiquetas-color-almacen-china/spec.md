@@ -749,6 +749,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    **Contestada en parte (2026-11-20): «Batería de litio» va aparte** (fila 7 del catálogo inicial), con su
    cobro propio. Comparte el rojo con «Carga especial»; los distingue el ícono.
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
+   **Contestada (2026-11-20): sí, con nota** opcional de hasta 140 caracteres y la ayuda «No escribas nombres,
+   teléfonos ni contactos» (§3).
 10. **El verde.** ¿Partimos «Tax refund o elementos en la puerta del contenedor» en dos indicadores verdes?
     Ejemplo: una carga en la puerta sin tax refund no debería salir como «cobro y costo».
     **Contestada (2026-11-20): sí, en dos.**
