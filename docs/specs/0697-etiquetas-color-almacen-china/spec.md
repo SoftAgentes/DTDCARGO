@@ -228,8 +228,9 @@ Los textos zh-CN los revisa un hablante nativo antes de producción.
 - **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
   muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
   calcula montos ni toca facturas (§2.0).
-- **Quién crea y edita** (Sam, 2026-11-20, pregunta 2: «cualquiera de China»): `admin`, o cualquier miembro activo
-  de región `cn` con rol `warehouse` u `operations` (los que editan en el módulo `cn`; `support` solo lee). Venezuela no edita
+- **Quién crea y edita** (Sam, 2026-11-20, preguntas 2 y 13: «cualquiera de China», y Venezuela crea los de
+  aduana y logística): `admin`, o cualquier miembro activo con rol `warehouse` u `operations`, de China o de
+  Venezuela (`support` solo lee). Antes decía que Venezuela no edita
   el catálogo de China.
 
 ### 2.2.1 La sección «Indicadores de carga» (Sam, 2026-11-20)
@@ -293,6 +294,21 @@ Sam, 2026-11-20: «China lo va a hacer en su Almacén China. Venezuela va a pode
 China y otros en Embarques. Embarques solamente lo va a tocar Venezuela.» Por eso el candado de asignar en
 la recepción no mira la región (admin, `warehouse` u `operations` de China o de Venezuela), y el del embarque
 exige región `ve` (o admin). Queda abierto el etiquetado en Almacén VE (pregunta 13).
+
+**Lo que hace Venezuela en Embarques** (Sam, 2026-11-20): nota cosas, averigua en los grupos y entonces:
+
+- **Ajusta** los indicadores: pone, quita o da por resuelto un heredado (arriba).
+- **Comenta** los indicadores de China, sin cambiarlos. Por ejemplo, en «Marca sin autorización» de una
+  recepción: «el proveedor mandó la carta por WeChat, queda resuelto». Se reutiliza el hilo de comentarios
+  que ya existe (`public.comments`, `supabase/migrations/0090_comments.sql:24-45`), sumando dos tipos de
+  entidad: `warehouse_receipt_tag` y `shipment_tag`. Así hereda lo que ya resuelve ese hilo: autor, edición,
+  borrado lógico y moderación (MP-01, SDD-0168). China lee esos comentarios en su historial; la nota de
+  privacidad del §3 vale igual para ellos.
+- **Crea indicadores nuevos** de aduana y logística (por ejemplo «Retenido en aduana»), en el mismo catálogo.
+  Por eso crear y editar el catálogo queda abierto a `warehouse` y `operations` de las dos regiones (§2.2).
+
+**Nombre:** «indicadores de carga» (decidido, pregunta 1). En la conversación se dice «etiquetas» a veces;
+en la pantalla, la base y el código es «indicador».
 
 Diseño:
 
@@ -550,7 +566,7 @@ Candados por RPC:
 
 | RPC | Candado | Qué hace |
 |---|---|---|
-| `crear_etiqueta_almacen(...)` | `admin`, o `warehouse`/`operations` con `region = 'cn'` | Inserta en el catálogo y escribe `entity_audit_log` |
+| `crear_etiqueta_almacen(...)` | `admin`, `warehouse` u `operations` (cualquier región) | Inserta en el catálogo y escribe `entity_audit_log` |
 | `editar_etiqueta_almacen(p_id, ...)` | ídem | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
 | `archivar_etiqueta_almacen(p_id, p_archivar boolean)` | ídem | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
@@ -561,7 +577,7 @@ Candados por RPC:
 - Errores con `errcode = '42501'` para permiso y `P0001` con texto en español para lo demás (archivada,
   repetida, recepción borrada). La pantalla los traduce con el diccionario.
 - Capabilities nuevas en `lib/studio/rbac.ts`, que repiten el candado de la base:
-  `manage_warehouse_tags: ["warehouse", "operations"]` (más la región `cn`, que se valida en el servidor y en la base) y
+  `manage_warehouse_tags: ["warehouse", "operations"]` (sin filtro de región) y
   `assign_warehouse_tags: ["warehouse", "operations"]`.
 
 ## 3. Privacidad (SDD-0039 B.9 y SDD-0531)
@@ -654,7 +670,7 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `app/studio/(app)/tracking/[id]/page.tsx`, `app/studio/(app)/tracking/[id]/_components/ShipmentHeader.tsx`.
 - `app/studio/_components/IndicadoresSoloLectura.tsx` (nuevo) y sus pruebas.
 - Prueba de que el portal no recibe etiquetas: `lib/portal/__tests__/sin-etiquetas-almacen.test.ts` (nueva).
-- Etapa 2: migración C (`shipment_tags` y sus RPC, número del DG), `app/studio/(app)/embarques/indicadores-actions.ts` (nuevo), `app/studio/(app)/embarques/_components/IndicadoresEmbarque.tsx` (nuevo) y `supabase/tests/indicadores_embarque.test.sql`.
+- Etapa 2: migración C (`shipment_tags` y sus RPC, y los tipos `warehouse_receipt_tag` y `shipment_tag` en el `check` de `public.comments`; número del DG), `app/studio/(app)/_actions/comments.ts` y `lib/studio/comments/comments-queries.ts` (el hilo existente: solo los dos tipos nuevos), `app/studio/(app)/embarques/indicadores-actions.ts` (nuevo), `app/studio/(app)/embarques/_components/IndicadoresEmbarque.tsx` (nuevo) y `supabase/tests/indicadores_embarque.test.sql`.
 
 **F3**: se define con la respuesta a la pregunta 0; toca `AlmacenCnClient.tsx` y `ReceiptStatusBadge.tsx`.
 
@@ -712,6 +728,8 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 13. **Venezuela y el catálogo.** ¿Quién en Venezuela pone indicadores en el embarque, y puede crear
     indicadores nuevos o solo usar los de China? Ejemplo: Operaciones en Caracas pone «Montacargas» al
     embarque; si necesita «Retenido en aduana», ¿lo crea o lo pide a China?
+    **Contestada en parte (2026-11-20):** Venezuela crea indicadores de aduana y logística y comenta los de
+    China. Falta: el etiquetado en Almacén VE.
 
 ## 8. Criterios de aceptación y pruebas
 
@@ -725,8 +743,8 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
    fallan con `42501`. `anon` no tiene `select`.
 2. **Escritura directa denegada:** `insert`, `update` y `delete` directos sobre las dos tablas fallan para
    `authenticated` (sin grant), también para admin.
-3. **Escritura por rol:** `crear_etiqueta_almacen` pasa con admin y con `warehouse` u `operations` de región `cn`; falla con
-   `42501` para `warehouse` u `operations` de región `ve`, `support` de región `cn` y el miembro deshabilitado.
+3. **Escritura por rol:** `crear_etiqueta_almacen` pasa con admin y con `warehouse` u `operations` de las dos
+   regiones; falla con `42501` para `support` y el miembro deshabilitado.
    `asignar_etiqueta_recepcion` pasa con admin, `warehouse` y `operations`; falla con `support` y el
    deshabilitado.
 4. **Entre tenants:** `warehouse` de T2 no lee nada de T1 y no puede asignar una etiqueta de T1 ni a una
@@ -765,6 +783,8 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 19. **Resolver un heredado:** Venezuela marca como resuelto en el embarque un indicador que viene de la
     recepción → el embarque deja de mostrarlo, la asignación de la recepción sigue viva y sin cambios.
 20. **Sin duplicado en pantalla:** un indicador heredado y el mismo puesto en el embarque se leen una vez.
+21. **Comentario sobre un indicador de China:** Venezuela comenta una asignación de recepción → queda en
+    `public.comments` con tipo `warehouse_receipt_tag`; la asignación no cambia; China lo lee.
 
 ### 8.2 Pruebas de aplicación
 
