@@ -37,6 +37,12 @@
 --      columna sin tocar la 0564; repetirlo no falla.
 --  13. Privilegios: anon y service_role no ejecutan la RPC; authenticated sí y no escribe el rastro. El
 --      check de origen_monto rechaza otro valor.
+--  14. La 0569 redefine exc0674_facturar (0564) con la guarda exc0674:tiene_preorden, sin cambiar su firma,
+--      SECURITY DEFINER, search_path ni grants: (a) un cliente con pre-orden viva en el contenedor no se
+--      factura con monto tecleado, todo o nada, sin crear factura; (b) después de emitir su pre-orden el
+--      tecleado sale ya_facturado; (c) un cliente sin pre-orden viva en el contenedor (las borradas y las de
+--      un embarque de otro contenedor no cuentan) sí se factura con monto tecleado. El desarme (12) repone
+--      la definición de la 0564, sin la guarda.
 
 begin;
 
@@ -740,6 +746,124 @@ begin
 end
 $todo$;
 
+-- ─── 14. El monto tecleado no se emite si el cliente tiene pre-orden ─
+-- Ayuda: llama a exc0674_facturar (redefinida por la 0569) como un usuario y devuelve el error (o null).
+create function public.t_teclear(p_uid text, p_cons uuid, p_montos jsonb)
+returns text language plpgsql as $$
+declare v_err text;
+begin
+  perform set_config('test.uid', p_uid, true);
+  set local role authenticated;
+  begin
+    perform public.exc0674_facturar(p_cons, p_montos, 'Confirmado');
+  exception when others then
+    v_err := sqlerrm;
+  end;
+  reset role;
+  return v_err;
+end $$;
+grant execute on function public.t_teclear(text, uuid, jsonb) to authenticated;
+
+-- Fixture propio (después del de la carrera): DTD-S001 tiene un embarque vigente en el K64 (-01) y otro en
+-- el K65 (-02). Sus dos pre-órdenes NO cuentan en el K64: f0113 es de su embarque del K65 y f0114 está
+-- borrada. Montos inventados.
+insert into public.clients (id, tenant_id, markbox, name) values
+  ('00000000-0000-4000-8000-0000000c0a07', '00000000-0000-4000-8000-0000000000a0', 'DTD-S001', 'Cliente Sin Pre-orden');
+insert into public.shipments (id, tenant_id, code, client_markbox, volume_m3) values
+  ('00000000-0000-4000-8000-0000000e0009', '00000000-0000-4000-8000-0000000000a0', 'DTD-S001-01', 'DTD-S001', 2),
+  ('00000000-0000-4000-8000-0000000e0010', '00000000-0000-4000-8000-0000000000a0', 'DTD-S001-02', 'DTD-S001', 1);
+insert into public.consolidation_items (tenant_id, consolidation_id, shipment_id, created_at) values
+  ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c064', '00000000-0000-4000-8000-0000000e0009', now() - interval '2 days'),
+  ('00000000-0000-4000-8000-0000000000a0', '00000000-0000-4000-8000-00000000c065', '00000000-0000-4000-8000-0000000e0010', now() - interval '2 days');
+insert into public.invoices
+  (id, tenant_id, invoice_code, client_markbox, client_name, shipment_id, shipment_code, currency,
+   iva_rate, base_amount, iva_amount, total_amount, status, lines, notes, fund_class, deleted_at)
+values
+  ('00000000-0000-4000-8000-0000000f0113', '00000000-0000-4000-8000-0000000000a0', 'F-1999-0113', 'DTD-S001', 'Cliente Sin Pre-orden',
+   '00000000-0000-4000-8000-0000000e0010', 'DTD-S001-02', 'USD', 16, 50, 8, 58, 'borrador',
+   '[]', 'Lote de prueba', 'third_party', null),
+  ('00000000-0000-4000-8000-0000000f0114', '00000000-0000-4000-8000-0000000000a0', 'F-1999-0114', 'DTD-S001', 'Cliente Sin Pre-orden',
+   '00000000-0000-4000-8000-0000000e0009', 'DTD-S001-01', 'USD', 16, 50, 8, 58, 'borrador',
+   '[]', 'Lote de prueba', 'third_party', now());
+
+do $tiene_preorden$
+declare
+  k64 constant uuid := '00000000-0000-4000-8000-00000000c064';
+  a5  constant text := '00000000-0000-4000-8000-00000000a005';
+  n_inv integer := (select count(*) from public.invoices);
+  v_antes text := public.t_huella();
+  v text;
+  r jsonb;
+begin
+  -- La función aplicada tiene la guarda y conserva la forma y los grants de la 0564.
+  if not exists (select 1 from pg_catalog.pg_proc p
+                  where p.oid = 'public.exc0674_facturar(uuid,jsonb,text)'::regprocedure
+                    and p.prosecdef and p.proconfig @> array['search_path=""']
+                    and pg_catalog.strpos(p.prosrc, 'exc0674:tiene_preorden:') > 0)
+     or pg_catalog.has_function_privilege('anon', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('service_role', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE') then
+    raise exception 'CONTRATO 14: exc0674_facturar no quedó con la guarda de pre-orden y la forma de la 0564';
+  end if;
+
+  -- a. DTD-T004 tiene su pre-orden viva (f0112) en el K64: el monto tecleado no se emite.
+  v := public.t_teclear(a5, k64, '[{"client_markbox":"DTD-T004","total_usd":116}]');
+  if v is distinct from 'exc0674:tiene_preorden:DTD-T004' then
+    raise exception 'CONTRATO 14a: un cliente con pre-orden se facturó con monto tecleado (%)', v;
+  end if;
+  -- El Shipping Mark se normaliza como en la 0564.
+  v := public.t_teclear(a5, k64, '[{"client_markbox":" dtd-t004 ","total_usd":116}]');
+  if v is distinct from 'exc0674:tiene_preorden:DTD-T004' then
+    raise exception 'CONTRATO 14a: el Shipping Mark sin normalizar esquivó la guarda (%)', v;
+  end if;
+  -- Todo o nada: DTD-S001 va primero (orden de Shipping Mark) y ya quedó facturado dentro de la llamada
+  -- cuando la guarda frena a DTD-T004. No queda nada.
+  v := public.t_teclear(a5, k64,
+    '[{"client_markbox":"DTD-T004","total_usd":116},{"client_markbox":"DTD-S001","total_usd":58}]');
+  if v is distinct from 'exc0674:tiene_preorden:DTD-T004' then
+    raise exception 'CONTRATO 14a: contenedor completo con un cliente con pre-orden (%)', v;
+  end if;
+  if (select count(*) from public.invoices) <> n_inv or public.t_huella() is distinct from v_antes
+     or (select status from public.invoices where id = '00000000-0000-4000-8000-0000000f0112') <> 'borrador'
+     or exists (select 1 from public.exc0674_facturas where client_markbox in ('DTD-T004', 'DTD-S001')) then
+    raise exception 'CONTRATO 14a: un rechazo por pre-orden dejó algo (% → %)', v_antes, public.t_huella();
+  end if;
+
+  -- b. Pre-orden ya emitida (CONTRATOS 2 y 10): el monto tecleado sale ya facturado. DTD-T001 aún tiene
+  --    otra pre-orden viva (f0111) y AR-S-0001 una de un embarque reasignado (f0109): manda ya_facturado.
+  v := public.t_teclear(a5, k64, '[{"client_markbox":"DTD-T001","total_usd":116}]');
+  if v is distinct from 'exc0674:ya_facturado:DTD-T001' then
+    raise exception 'CONTRATO 14b: tecleado después de emitir la pre-orden (%)', v;
+  end if;
+  v := public.t_teclear(a5, k64, '[{"client_markbox":"AR-S-0001","total_usd":406}]');
+  if v is distinct from 'exc0674:ya_facturado:AR-S-0001' then
+    raise exception 'CONTRATO 14b: tecleado de un cliente aliado después de emitir su pre-orden (%)', v;
+  end if;
+  if (select count(*) from public.invoices) <> n_inv or public.t_huella() is distinct from v_antes then
+    raise exception 'CONTRATO 14b: un rechazo dejó algo (% → %)', v_antes, public.t_huella();
+  end if;
+
+  -- c. DTD-S001 no tiene pre-orden viva en el K64: se factura con monto tecleado, como en la 0564.
+  perform set_config('test.uid', a5, true);
+  set local role authenticated;
+  r := public.exc0674_facturar(k64, '[{"client_markbox":"DTD-S001","total_usd":58}]', 'Confirmado');
+  reset role;
+  if pg_catalog.jsonb_array_length(r -> 'facturas') <> 1 or r -> 'facturas' -> 0 ->> 'client_markbox' <> 'DTD-S001'
+     or (r -> 'facturas' -> 0 ->> 'total_usd')::numeric <> 58 then
+    raise exception 'CONTRATO 14c: salida %', r;
+  end if;
+  if (select count(*) from public.invoices) <> n_inv + 1
+     or (select count(*) from public.invoices where status = 'emitida' and client_markbox = 'DTD-S001'
+          and id = (r -> 'facturas' -> 0 ->> 'invoice_id')::uuid) <> 1
+     or (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-S001' and anulada_at is null
+          and origen_monto = 'tecleado' and consolidation_id = k64) <> 1
+     or (select count(*) from public.invoices where id in ('00000000-0000-4000-8000-0000000f0113',
+          '00000000-0000-4000-8000-0000000f0114') and status = 'borrador') <> 2 then
+    raise exception 'CONTRATO 14c: el cliente sin pre-orden no quedó facturado con monto tecleado';
+  end if;
+end
+$tiene_preorden$;
+
 -- ─── 11. Cliente ya facturado; anular y volver a emitir ──────
 do $ya_facturado$
 declare
@@ -756,10 +880,14 @@ begin
   if v is distinct from 'exc0674:ya_facturado:AR-S-0001' then raise exception 'CONTRATO 11: dos veces (%)', v; end if;
 
   -- Un cliente facturado por la 0564 con monto tecleado: su fila es 'tecleado' y su pre-orden no se emite.
+  -- Desde la 0569 el tecleado se niega mientras la pre-orden esté viva (CONTRATO 14a). Para llegar a este
+  -- estado (pre-orden que aparece después del tecleado), se borra f0112, se teclea y se repone.
+  update public.invoices set deleted_at = now() where id = '00000000-0000-4000-8000-0000000f0112';
   perform set_config('test.uid', a5, true);
   set local role authenticated;
   r := public.exc0674_facturar(k64, '[{"client_markbox":"DTD-T004","total_usd":116}]', 'Confirmado');
   reset role;
+  update public.invoices set deleted_at = null where id = '00000000-0000-4000-8000-0000000f0112';
   if (select origen_monto from public.exc0674_facturas where client_markbox = 'DTD-T004') is distinct from 'tecleado' then
     raise exception 'CONTRATO 11: la 0564 no dejó origen_monto tecleado';
   end if;
@@ -813,7 +941,8 @@ begin
   exception when insufficient_privilege then null;
   end;
   select count(*) into n from public.exc0674_facturas;
-  if n <> 5 then raise exception 'CONTRATO 13: accounting de A ve % filas del rastro (esperaba 5)', n; end if;
+  -- 6: las 5 de los CONTRATOS 2, 10 y 11 y la tecleada de DTD-S001 (CONTRATO 14c).
+  if n <> 6 then raise exception 'CONTRATO 13: accounting de A ve % filas del rastro (esperaba 6)', n; end if;
   reset role;
   perform set_config('test.uid', '00000000-0000-4000-8000-00000000a001', true);
   set local role authenticated;
@@ -852,8 +981,31 @@ begin
      or (select count(*) from public.exc0674_facturas where client_markbox = 'DTD-T004') <> 1 then
     raise exception 'CONTRATO 12: el desarme tocó la 0564 o su rastro';
   end if;
+  -- exc0674_facturar vuelve a la definición de la 0564: sin la guarda de pre-orden, con la misma forma y
+  -- los mismos grants.
+  if not exists (select 1 from pg_catalog.pg_proc p
+                  where p.oid = 'public.exc0674_facturar(uuid,jsonb,text)'::regprocedure
+                    and p.prosecdef and p.proconfig @> array['search_path=""']
+                    and pg_catalog.strpos(p.prosrc, 'tiene_preorden') = 0
+                    and pg_catalog.strpos(p.prosrc, 'exc0674:ya_facturado:') > 0)
+     or pg_catalog.has_function_privilege('anon', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
+     or pg_catalog.has_function_privilege('service_role', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated', 'public.exc0674_facturar(uuid,jsonb,text)', 'EXECUTE')
+     or pg_catalog.obj_description('public.exc0674_facturar(uuid,jsonb,text)'::regprocedure, 'pg_proc') like '%SDD-0690%' then
+    raise exception 'CONTRATO 12: el desarme no repuso exc0674_facturar de la 0564';
+  end if;
+  -- Sin la guarda, DTD-C008 (pre-orden viva en el K64, sin fila en el rastro) vuelve a facturarse con
+  -- monto tecleado, como en la 0564.
+  if public.t_teclear('00000000-0000-4000-8000-00000000a005', '00000000-0000-4000-8000-00000000c064',
+       '[{"client_markbox":"DTD-C008","total_usd":11.60}]') is not null then
+    raise exception 'CONTRATO 12: tras el desarme, el monto tecleado de la 0564 no funciona';
+  end if;
   -- Repetirlo no falla.
   execute v_sql;
+  if pg_catalog.strpos((select p.prosrc from pg_catalog.pg_proc p
+                         where p.oid = 'public.exc0674_facturar(uuid,jsonb,text)'::regprocedure), 'tiene_preorden') <> 0 then
+    raise exception 'CONTRATO 12: el desarme repetido dejó la guarda de la 0569';
+  end if;
 end
 $desarme$;
 

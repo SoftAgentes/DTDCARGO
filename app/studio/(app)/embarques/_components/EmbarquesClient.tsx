@@ -75,6 +75,7 @@ import {
   agruparPorContenedor,
   clienteCoincide,
   contenedorCoincide,
+  contenedorFacturado,
   formatFecha,
   type ClienteDeContenedor,
   type ContenedoresDeEmbarques,
@@ -1019,6 +1020,9 @@ function ListaDeContenedores({
         // Peso y dinero se suman sobre el contenedor entero, no sobre lo que dejó pasar la pestaña.
         const dinero =
           montos?.estado === "lista" ? sumarMontos(g.completo.envios, montos.porEmbarque) : null;
+        // SDD-0690 §3.5: «Facturado» = todos los clientes del contenedor entero con factura emitida viva.
+        const facturado =
+          !!c && montos?.estado === "lista" && contenedorFacturado(g, montos.porEmbarque);
         return (
           <section
             key={g.key}
@@ -1121,6 +1125,13 @@ function ListaDeContenedores({
                   justifyContent: "flex-end",
                 }}
               >
+                {facturado && (
+                  <span data-testid="encabezado-facturado">
+                    <Badge tone="success" size="sm">
+                      Facturado
+                    </Badge>
+                  </span>
+                )}
                 {g.alertas > 0 && (
                   <Badge tone="danger" size="sm">
                     {g.alertas} alerta{g.alertas === 1 ? "" : "s"}
@@ -1159,7 +1170,7 @@ function ListaDeContenedores({
             {c && dinero && (
               <MontoOculto
                 texto={dinero.sinFacturarUsd > 0 ? fmtUsd(dinero.sinFacturarUsd) : null}
-                sinMonto={textoSinMonto(dinero)}
+                sinMonto={textoSinMonto(dinero, facturado)}
                 contenedor={g.nombre}
               />
             )}
@@ -1225,21 +1236,28 @@ function ListaDeContenedores({
 export const SEGUNDOS_MONTO_VISIBLE = 4;
 
 /**
- * SDD-0689: qué dice el encabezado cuando no hay monto en USD que ocultar.
+ * SDD-0689 → SDD-0690: qué dice el encabezado cuando no hay monto en USD que ocultar.
  *  - sin facturas: «Sin precios cargados»;
- *  - con facturas y sin borradores: «Facturado» (Sam, 2026-11-20);
- *  - con borradores que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
+ *  - todos los clientes del contenedor con factura emitida viva (§3.5): «Facturado»;
+ *  - sin pre-órdenes pero con algún cliente sin precio: «Clientes sin precio»;
+ *  - con pre-órdenes que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
  */
-function textoSinMonto(m: { facturas: number; borradores: number; otraMoneda: number }): string {
+function textoSinMonto(
+  m: { facturas: number; borradores: number; otraMoneda: number },
+  facturado: boolean,
+): string {
   if (m.facturas === 0) return "Sin precios cargados";
-  if (m.borradores === 0) return "Facturado";
+  if (facturado) return "Facturado";
+  if (m.borradores === 0) return "Clientes sin precio";
   // SDD-0690: pre-órdenes en USD que suman $0 no son «otra moneda».
   return m.otraMoneda > 0 ? "Sin monto en USD" : "Pre-orden sin monto";
 }
 
 /**
- * SDD-0690 · La pre-orden pendiente de cada cliente (USD y mayor que 0), por Shipping Mark en
- * MAYÚSCULAS, para «Facturar». Sale de los mismos `montos` que decide la página: sin ellos, nada.
+ * SDD-0690 · La pre-orden pendiente de cada cliente del contenedor ENTERO (sin filtro), por Shipping
+ * Mark en MAYÚSCULAS, para «Facturar». Una pre-orden en $0 o en otra moneda también viaja (con
+ * `totalUsd` null o 0): ese cliente no va al camino tecleado, se corrige en Facturación. Sale de los
+ * mismos `montos` que decide la página: sin ellos, nada.
  */
 function preordenesDeGrupo(
   g: GrupoContenedor,
@@ -1247,15 +1265,13 @@ function preordenesDeGrupo(
 ): Record<string, PreordenDeCliente> {
   const out: Record<string, PreordenDeCliente> = {};
   if (montos?.estado !== "lista") return out;
-  for (const cl of g.clientes) {
+  for (const cl of g.completo.clientes) {
     const mb = (cl.clientMarkbox ?? "").trim().toUpperCase();
     if (!mb) continue;
-    const po = sumarMontos(cl.shipments, montos.porEmbarque).documentos.find(
-      (d) => d.preorden && d.totalUsd != null && d.totalUsd > 0,
-    );
-    if (po && po.totalUsd != null) {
-      out[mb] = { invoiceId: po.invoiceId, invoiceCode: po.invoiceCode, totalUsd: po.totalUsd };
-    }
+    const pres = sumarMontos(cl.shipments, montos.porEmbarque).documentos.filter((d) => d.preorden);
+    // La válida primero; si no hay, la inválida, para avisar en vez de ofrecer teclear.
+    const po = pres.find((d) => d.totalUsd != null && d.totalUsd > 0) ?? pres[0];
+    if (po) out[mb] = { invoiceId: po.invoiceId, invoiceCode: po.invoiceCode, totalUsd: po.totalUsd };
   }
   return out;
 }

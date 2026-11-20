@@ -20,6 +20,10 @@
  *   · Un cliente sin pre-orden (sin precio en el Excel) sigue con el monto tecleado.
  *   · Con todos los clientes facturados: «Facturado», sin botones.
  *   · En pantalla se dice «pre-orden», nunca «borrador».
+ *   · Todo se calcula sobre el contenedor ENTERO (`grupo.completo.clientes`), no sobre lo que dejó el
+ *     filtro: si no, un cliente con pre-orden cuyo envío quedó fuera de la búsqueda se ofrecería a
+ *     teclear y la pre-orden seguiría viva (revisión de la 0690).
+ *   · Una pre-orden en $0 o en otra moneda no se emite ni se teclea: se corrige en Facturación.
  */
 
 import Link from "next/link";
@@ -41,8 +45,17 @@ import {
   type ResultadoFacturarExc0674,
 } from "../facturar-actions";
 
-/** SDD-0690: la pre-orden pendiente de un cliente, en USD. */
-export type PreordenDeCliente = { invoiceId: string; invoiceCode: string; totalUsd: number };
+/** SDD-0690: la pre-orden pendiente de un cliente. `totalUsd` null = no está en USD. */
+export type PreordenDeCliente = { invoiceId: string; invoiceCode: string; totalUsd: number | null };
+
+/** Se emite desde Embarques solo si está en USD y es mayor que 0. */
+function preordenValida(po: PreordenDeCliente): po is PreordenDeCliente & { totalUsd: number } {
+  return po.totalUsd != null && po.totalUsd > 0;
+}
+
+function hrefFacturacion(codigo: string): string {
+  return `/studio/facturacion/${encodeURIComponent(codigo)}`;
+}
 
 type Pedido = {
   modo: "cliente" | "contenedor";
@@ -92,7 +105,8 @@ export function FacturarContenedor({
   accionPreordenes?: typeof emitirPreordenesExc0674Action;
 }) {
   const consolidationId = grupo.contenedor?.id ?? "";
-  const clientes = grupo.clientes.filter((c) => !!c.clientMarkbox);
+  // El contenedor entero, sin la pestaña ni la búsqueda.
+  const clientes = grupo.completo.clientes.filter((c) => !!c.clientMarkbox);
   const [montos, setMontos] = useState<Record<string, string>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -102,8 +116,13 @@ export function FacturarContenedor({
   const tituloId = useId();
 
   const pendientes = clientes.filter((c) => !facturados[claveMarkbox(c.clientMarkbox)]);
-  const conPreorden = pendientes.filter((c) => !!preordenes[claveMarkbox(c.clientMarkbox)]);
-  const tecleados = pendientes.filter((c) => !preordenes[claveMarkbox(c.clientMarkbox)]);
+  const preordenDe = (c: ClienteDeContenedor) => preordenes[claveMarkbox(c.clientMarkbox)];
+  const conPreorden = pendientes.filter((c) => {
+    const po = preordenDe(c);
+    return !!po && preordenValida(po);
+  });
+  // Un cliente con cualquier pre-orden viva (válida o no) NUNCA va al camino tecleado.
+  const tecleados = pendientes.filter((c) => !preordenDe(c));
 
   function leerMonto(c: ClienteDeContenedor): number | null {
     const mb = claveMarkbox(c.clientMarkbox);
@@ -121,13 +140,15 @@ export function FacturarContenedor({
   }
 
   function filaDePreorden(c: ClienteDeContenedor): Pedido["filas"][number] {
-    const po = preordenes[claveMarkbox(c.clientMarkbox)];
-    return { cliente: c, centavos: Math.round(po.totalUsd * 100), invoiceId: po.invoiceId };
+    const po = preordenDe(c);
+    return { cliente: c, centavos: Math.round((po?.totalUsd ?? 0) * 100), invoiceId: po?.invoiceId };
   }
 
   function pedirCliente(c: ClienteDeContenedor) {
     setErrorAccion(undefined);
-    if (preordenes[claveMarkbox(c.clientMarkbox)]) {
+    const po = preordenDe(c);
+    if (po) {
+      if (!preordenValida(po)) return;
       setPedido({ modo: "cliente", origen: "preorden", filas: [filaDePreorden(c)], paso: 1 });
       return;
     }
@@ -259,18 +280,39 @@ export function FacturarContenedor({
                   <td style={TD}>{cbm(c)}</td>
                   {hecho ? (
                     <td style={TD} colSpan={2}>
-                      Facturada {hecho.invoiceCode} · {fmtUsd(hecho.totalUsd)}
+                      Facturada{" "}
+                      <Link
+                        href={hrefFacturacion(hecho.invoiceCode)}
+                        className="emb-doc-link"
+                        title={`Abrir la factura ${hecho.invoiceCode} en Facturación`}
+                      >
+                        {hecho.invoiceCode}
+                      </Link>{" "}
+                      · {fmtUsd(hecho.totalUsd)}
                       {hecho.billedMarkbox && hecho.billedMarkbox !== mb ? ` · a ${hecho.billedMarkbox}` : ""}
+                    </td>
+                  ) : po && !preordenValida(po) ? (
+                    <td style={{ ...TD, whiteSpace: "normal" }} colSpan={2} data-testid={`preorden-invalida-${mb}`}>
+                      <span style={{ font: "600 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                        Pre-orden sin monto válido: corrígela en Facturación.
+                      </span>{" "}
+                      <Link
+                        href={hrefFacturacion(po.invoiceCode)}
+                        className="emb-doc-link"
+                        title={`Abrir la pre-orden ${po.invoiceCode} en Facturación`}
+                      >
+                        Pre-orden {po.invoiceCode}
+                      </Link>
                     </td>
                   ) : po ? (
                     <>
                       <td style={TD}>
                         <Link
-                          href={`/studio/facturacion/${encodeURIComponent(po.invoiceCode)}`}
+                          href={hrefFacturacion(po.invoiceCode)}
                           className="emb-doc-link"
                           title={`Abrir la pre-orden ${po.invoiceCode} en Facturación`}
                         >
-                          {fmtUsd(po.totalUsd)}
+                          {fmtUsd(po.totalUsd ?? 0)}
                         </Link>
                         <span style={{ display: "block", font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
                           Pre-orden {po.invoiceCode}

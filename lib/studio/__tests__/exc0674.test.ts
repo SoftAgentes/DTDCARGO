@@ -55,6 +55,18 @@ describe("mensajeErrorExc0674", () => {
     expect(mensajeErrorExc0674("exc0674:cliente_ambiguo:DTD-T001")).toContain("más de una ficha de cliente con ese Shipping Mark (DTD-T001)");
     expect(mensajeErrorExc0674("exc0674:aliado_ciclo:DTD-T001")).toContain("cadena de aliados de ese cliente está mal armada (DTD-T001)");
   });
+  it("SDD-0690: traduce los errores de la 0569 y la guarda del camino tecleado", () => {
+    expect(mensajeErrorExc0674("exc0674:tiene_preorden:DTD-T001")).toContain("tiene una pre-orden en este contenedor (DTD-T001)");
+    expect(mensajeErrorExc0674("exc0674:no_borrador:F-T1")).toContain("ya no está pendiente (F-T1)");
+    expect(mensajeErrorExc0674("exc0674:moneda:F-T1")).toContain("no está en dólares (F-T1)");
+    expect(mensajeErrorExc0674("exc0674:borrador_alterado:F-T1")).toContain("cambió mientras se emitía (F-T1)");
+    expect(mensajeErrorExc0674("exc0674:factura_inexistente:x")).toContain("No se encontró la pre-orden");
+    expect(mensajeErrorExc0674("exc0674:envio_fuera_del_contenedor:F-T1")).toContain("no son de este contenedor");
+    for (const m of ["tiene_preorden", "no_borrador", "moneda", "borrador_alterado"]) {
+      expect(mensajeErrorExc0674(`exc0674:${m}:X`)).toMatch(/no se emitió ninguna factura/i);
+      expect(mensajeErrorExc0674(`exc0674:${m}:X`)).not.toMatch(/borrador/i);
+    }
+  });
   it("un error desconocido dice que no se emitió nada", () => {
     expect(mensajeErrorExc0674("boom")).toContain("No se emitió ninguna factura");
     expect(mensajeErrorExc0674(undefined)).toContain("No se emitió ninguna factura");

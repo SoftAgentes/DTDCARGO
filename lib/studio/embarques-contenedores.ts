@@ -115,6 +115,28 @@ export function documentoDeEnlace(m: Pick<MontoAcumulado, "documentos">): Docume
 }
 
 /**
+ * SDD-0690 §3.5 · Un cliente está facturado si tiene al menos una factura emitida viva y ninguna
+ * pre-orden pendiente. Sin documentos (sin precio) no está facturado.
+ */
+export function clienteFacturado(m: Pick<MontoAcumulado, "documentos">): boolean {
+  return m.documentos.some((d) => !d.preorden) && !m.documentos.some((d) => d.preorden);
+}
+
+/**
+ * SDD-0690 §3.5 · «Facturado»: todos los clientes del contenedor ENTERO (sin filtro) tienen su factura
+ * emitida viva. Uno sin precio o con la pre-orden pendiente basta para que no lo esté.
+ */
+export function contenedorFacturado(
+  g: Pick<GrupoContenedor, "completo">,
+  porEmbarque: Readonly<Record<string, MontoAcumulado>>,
+): boolean {
+  const clientes = g.completo.clientes;
+  return (
+    clientes.length > 0 && clientes.every((cl) => clienteFacturado(sumarMontos(cl.shipments, porEmbarque)))
+  );
+}
+
+/**
  * Lo que la página le pasa a la vista SOLO si la persona ve Facturación.
  * Por embarque, para sumarlo igual por cliente y por contenedor (y respetar
  * los filtros). `no_disponible` = la lectura falló.
@@ -238,6 +260,11 @@ export type GrupoContenedor = {
    */
   completo: {
     envios: readonly ShipmentListRow[];
+    /**
+     * SDD-0690: los clientes del contenedor entero. «Facturar», «Facturar todo» y «Facturado» se
+     * calculan sobre esto: con un filtro puesto no se ofrece teclear a quien tiene pre-orden.
+     */
+    clientes: ClienteDeContenedor[];
     pesoKg: number;
     enviosSinPeso: number;
   };
@@ -412,17 +439,19 @@ export function agruparPorContenedor(
     const tipo = contenedor ? tipoDeContenedor(base) : null;
     const cajasDe = datos.cajasPorEmbarque ?? {};
     const recibidasDe = contenedor ? datos.recibidasPorContenedor?.[contenedor.id] : undefined;
-    const clientes: ClienteDeContenedor[] = groupShipmentsByClient(lista).map((g) => ({
-      ...g,
-      // La misma persona puede estar en dos contenedores: la llave del
-      // acordeón del cliente tiene que ser única en toda la pantalla.
-      groupKey: `${key}::${g.groupKey}`,
-      // SDD-0661: «Sin contenedor» no tiene carga de la que salgan cajas.
-      cajas: contenedor ? sumarCajas(g.shipments, cajasDe) : null,
-      recibidas: recibidasDe ? recibidasDe[g.clientMarkbox?.trim() ?? ""] ?? 0 : null,
-      // SDD-0665: el peso sale de la misma fila que el CBM (`shipments`).
-      enviosSinPeso: g.shipments.filter((r) => r.weight_kg == null).length,
-    }));
+    const clientesDe = (l: readonly ShipmentListRow[]): ClienteDeContenedor[] =>
+      groupShipmentsByClient(l).map((g) => ({
+        ...g,
+        // La misma persona puede estar en dos contenedores: la llave del
+        // acordeón del cliente tiene que ser única en toda la pantalla.
+        groupKey: `${key}::${g.groupKey}`,
+        // SDD-0661: «Sin contenedor» no tiene carga de la que salgan cajas.
+        cajas: contenedor ? sumarCajas(g.shipments, cajasDe) : null,
+        recibidas: recibidasDe ? recibidasDe[g.clientMarkbox?.trim() ?? ""] ?? 0 : null,
+        // SDD-0665: el peso sale de la misma fila que el CBM (`shipments`).
+        enviosSinPeso: g.shipments.filter((r) => r.weight_kg == null).length,
+      }));
+    const clientes = clientesDe(lista);
     let totalCbm = 0;
     let alertas = 0;
     let cajas = 0;
@@ -458,6 +487,7 @@ export function agruparPorContenedor(
       alertas,
       completo: {
         envios: base,
+        clientes: base === lista ? clientes : clientesDe(base),
         pesoKg:
           Math.round(base.reduce((s, r) => s + (r.weight_kg != null ? Number(r.weight_kg) : 0), 0) * 100) /
           100,

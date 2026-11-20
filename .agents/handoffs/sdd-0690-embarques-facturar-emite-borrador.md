@@ -45,6 +45,39 @@ Fecha: 2026-11-20.
 - **`leerMontosDeContenedores`** trae `id, invoice_code`, con OK del DG (`43a576b10`). La prueba del
   servidor comprueba que no viajan sin `montos`.
 
+## Revisión de la PR #719 (CHANGES_REQUESTED sobre `dc1fd86b7`, 2026-11-20)
+
+Arreglado en el commit que sigue a `dc1fd86b7`:
+
+1. **(Alta) «Facturar» sobre lo filtrado.** `GrupoContenedor.completo` trae ahora `clientes` (el
+   contenedor entero, sin pestaña ni búsqueda). `FacturarContenedor` y `preordenesDeGrupo` usan
+   `grupo.completo.clientes`: los clientes, las pre-órdenes, «Facturar todo» y «Facturado» ya no dependen
+   del filtro.
+   - Un cliente con una pre-orden viva en $0 o en otra moneda no va al camino tecleado: la fila dice
+     «Pre-orden sin monto válido: corrígela en Facturación», con el enlace y sin botón.
+   - Defensa en la base: la 0569 redefine `exc0674_facturar` para que rechace el monto tecleado de un
+     cliente con una pre-orden viva en el contenedor (`exc0674:tiene_preorden`). El desarme restaura la
+     definición de la 0564. Tiene su prueba SQL.
+   - Pruebas de pantalla: con la búsqueda dejando fuera el envío de la pre-orden no se ofrece teclear y
+     «Facturar todo» la emite por id. Con un filtro, «Facturado» sigue cubriendo el contenedor entero.
+     También hay pruebas para la pre-orden en $0 y en otra moneda.
+2. **(Media) Registro EXC-0674:** el §6 bis anota la ampliación, con el OK de Sam del 2026-11-20, el mismo
+   alcance, la fecha 2027-01-31 y que la SDD-0693 la reemplazará.
+3. **(Media) «Facturado» del encabezado según la §3.5.** `contenedorFacturado` exige que todos los
+   clientes del contenedor entero tengan una factura emitida viva y ninguna pre-orden pendiente. La
+   insignia va en la cabecera (`encabezado-facturado`). `textoSinMonto` dice «Facturado» solo en ese caso.
+   Si no hay pre-órdenes pero algún cliente no tiene precio, dice «Clientes sin precio». Hay prueba de
+   «uno facturado y otro sin precio».
+4. **(Baja) Pruebas:**
+   - la §5.7, el peso de la franja y del pie con un filtro;
+   - `page-monto-por-rol.test.ts`, con un doble que trae `id`/`invoice_code` y comprueba `documentos` en
+     el caso positivo.
+5. **(Baja) Otros:**
+   - `mensajeErrorExc0674` tiene los textos de los errores nuevos, autorizado fuera de la allowlist y
+     anotado en el §6;
+   - la fila «Facturada {código}» enlaza a la factura;
+   - las líneas de mapeo de `embarques-contenedores-queries.ts` quedan cubiertas por el OK del DG.
+
 ## Desviaciones registradas
 
 - La columna se llama `origen_monto`, no `origen`, porque `origen` daba ROJO en el gate de símbolos (la
@@ -53,6 +86,20 @@ Fecha: 2026-11-20.
   pre-órdenes aparece «Facturar todo», y los clientes sin precio se facturan uno por uno.
 
 ## Evidencia
+
+Lo de abajo es sobre `dc1fd86b7`. Las corridas sobre el commit de la revisión se anotan en el reporte al DG
+y en la descripción de la PR.
+
+- `pnpm verify`: **NO EJECUTADO**. Es pesado (incluye el build). El portón es la CI de GitHub más la
+  revisión independiente.
+- `/ui-check` del diff de Embarques (2026-11-20), solo lectura: **OK con ajustes menores**, no
+  bloqueante.
+  - Solo tokens `var(--*)`, sin hex nuevos y sin AI slop.
+  - Los componentes son los del sistema (`Badge`, `Link`, `studio-btn`).
+  - Los tamaños de fuente en px siguen el patrón que ya tiene el archivo.
+  - Las copias van en tuteo.
+  - (Baja) El aviso «Pre-orden sin monto válido» es texto plano. Si Sam lo quiere más visible, puede ir
+    con un `Badge` en tono de atención.
 
 | Comprobación | Resultado |
 |---|---|
@@ -87,7 +134,7 @@ No es asesoría legal: es un inventario técnico.
 
 ## Pendientes de esta tarea
 
-1. `revisar-datos-ve`, la PR de implementación y la revisión que lanza el DG.
+1. La nueva revisión del DG sobre el commit de los arreglos.
 2. Antes de la carga del 64, que no es parte de esta PR (spec §3.1):
    - el ensayo de `--solo-facturas` con `rollback` en una base local;
    - el OK nominal de Sam;
@@ -95,10 +142,9 @@ No es asesoría legal: es un inventario técnico.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- `lib/studio/exc0674.ts` (`mensajeErrorExc0674`) no tiene texto propio para los errores nuevos de la
-  0569 (`no_borrador`, `factura_inexistente`, `envio_fuera_del_contenedor`, `borrador_alterado`) y muestra
-  el genérico «No se pudo facturar. No se emitió ninguna factura.». Está fuera de la allowlist.
 - Registrar abonos sobre una pre-orden: hoy el cobro y el reporte de pago rechazan los borradores (spec §8).
+- Un cliente con DOS pre-órdenes vivas en el mismo contenedor: Embarques emite una sola (la primera
+  válida). El cargador deja una por cliente, así que hoy no pasa.
 - La cabecera de la 0564 dice «NO APLICADA», aunque se aplicó el 2026-11-18. La sella el DG aparte.
 - La spec y el handoff de la 0674 deben anotar que el 64 entró a `exc0674_contenedores`, sin ids.
 - `next_invoice_code` calcula max + 1 sin candado (0077).

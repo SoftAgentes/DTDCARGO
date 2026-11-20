@@ -221,7 +221,10 @@ describe("EmbarquesClient · Facturar (EXC-0674)", () => {
       />,
     );
     await abrir("DDP 64");
-    expect(within(region("DDP 64")).getByText(/Facturada F-TEST-9 · \$406\.00 · a AR/)).toBeTruthy();
+    expect(region("DDP 64").textContent).toMatch(/Facturada F-TEST-9 · \$406\.00 · a AR/);
+    // SDD-0690: el código de la factura lleva a Facturación.
+    const enlace = within(region("DDP 64")).getByRole("link", { name: "F-TEST-9" });
+    expect(enlace.getAttribute("href")).toBe("/studio/facturacion/F-TEST-9");
     expect(within(region("DDP 64")).getAllByRole("button", { name: "Facturar" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /Facturar contenedor/ })).toBeNull();
   });
@@ -359,6 +362,109 @@ describe("EmbarquesClient · Facturar emite la pre-orden (SDD-0690)", () => {
     const seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
     expect(within(seccion).getByTestId("contenedor-facturado").textContent).toBe("Facturado");
     expect(within(seccion).queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("con un filtro que deja fuera el envío de la pre-orden no se ofrece teclear: cubre el contenedor entero", async () => {
+    // La pre-orden de Cliente Uno cuelga de a1; la búsqueda deja solo a2 (también de Cliente Uno).
+    render(
+      <EmbarquesClient
+        shipments={ENVIOS}
+        adjuntos={undefined}
+        contenedores={DATOS}
+        facturacion={FACTURACION}
+        montos={MONTOS_PO}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText("Buscar"), "S-a2");
+    await abrir("DDP 64");
+    const seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
+    expect(within(seccion).queryByLabelText(/Total con IVA de Cliente Uno/)).toBeNull();
+    expect(within(seccion).getByRole("link", { name: "$150.25" }).getAttribute("href")).toBe("/studio/facturacion/F-PO-1");
+    // Cliente Dos quedó fuera del filtro, pero es del contenedor: sigue en «Facturar».
+    expect(within(seccion).getByLabelText(/Total con IVA de Cliente Dos/)).toBeTruthy();
+    await userEvent.click(within(seccion).getByRole("button", { name: "Facturar todo (1 pre-orden)" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Sí, los datos están bien" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmado" }));
+    expect(mocks.accionPreordenes).toHaveBeenCalledWith("c64", ["i1"], "Confirmado");
+    expect(mocks.accion).not.toHaveBeenCalled();
+  });
+
+  it("con un filtro puesto, «Facturado» sigue cubriendo el contenedor entero", async () => {
+    const facturados = {
+      c64: {
+        "DTD-1001": { invoiceCode: "F-1", totalUsd: 10, billedMarkbox: "DTD-1001" },
+        "DTD-1002": { invoiceCode: "F-2", totalUsd: 20, billedMarkbox: "DTD-1002" },
+      },
+    };
+    const soloUno = { estado: "lista" as const, contenedores: ["c64"], facturados: { c64: { "DTD-1001": facturados.c64["DTD-1001"] } } };
+    // Con solo Cliente Uno facturado y el filtro dejando solo a Cliente Uno, NO dice «Facturado».
+    const { unmount } = render(
+      <EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} facturacion={soloUno} />,
+    );
+    await userEvent.type(screen.getByLabelText("Buscar"), "S-a1");
+    await abrir("DDP 64");
+    let seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
+    expect(within(seccion).queryByTestId("contenedor-facturado")).toBeNull();
+    expect(within(seccion).getByLabelText(/Total con IVA de Cliente Dos/)).toBeTruthy();
+    unmount();
+    // Con los dos facturados sí, aunque el filtro deje uno.
+    render(
+      <EmbarquesClient
+        shipments={ENVIOS}
+        adjuntos={undefined}
+        contenedores={DATOS}
+        facturacion={{ estado: "lista", contenedores: ["c64"], facturados }}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText("Buscar"), "S-a1");
+    await abrir("DDP 64");
+    seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
+    expect(within(seccion).getByTestId("contenedor-facturado").textContent).toBe("Facturado");
+    expect(within(seccion).queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("una pre-orden en $0 no se emite ni se teclea: se corrige en Facturación", async () => {
+    render(
+      <EmbarquesClient
+        shipments={ENVIOS}
+        adjuntos={undefined}
+        contenedores={DATOS}
+        facturacion={FACTURACION}
+        montos={{ estado: "lista", porEmbarque: { a1: conDocumento("i0", "F-PO-0", 0, true) } }}
+      />,
+    );
+    await abrir("DDP 64");
+    const seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
+    expect(within(seccion).queryByLabelText(/Total con IVA de Cliente Uno/)).toBeNull();
+    const aviso = within(seccion).getByTestId("preorden-invalida-DTD-1001");
+    expect(aviso.textContent).toContain("Pre-orden sin monto válido: corrígela en Facturación.");
+    expect(within(aviso).getByRole("link", { name: "Pre-orden F-PO-0" }).getAttribute("href")).toBe(
+      "/studio/facturacion/F-PO-0",
+    );
+    expect(within(aviso).queryByRole("button")).toBeNull();
+    expect(within(seccion).queryByRole("button", { name: /Facturar todo/ })).toBeNull();
+    // Solo Cliente Dos (sin precio) ofrece «Facturar».
+    expect(within(seccion).getAllByRole("button", { name: "Facturar" })).toHaveLength(1);
+  });
+
+  it("una pre-orden en otra moneda tampoco va al camino tecleado", async () => {
+    const otra: MontoAcumulado = {
+      facturas: 1, totalUsd: 0, pagadoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 0,
+      documentos: [{ invoiceId: "iv", invoiceCode: "F-PO-VES", preorden: true, totalUsd: null }],
+    };
+    render(
+      <EmbarquesClient
+        shipments={ENVIOS}
+        adjuntos={undefined}
+        contenedores={DATOS}
+        facturacion={FACTURACION}
+        montos={{ estado: "lista", porEmbarque: { a1: otra } }}
+      />,
+    );
+    await abrir("DDP 64");
+    const seccion = within(region("DDP 64")).getByRole("region", { name: "Facturar DDP 64" });
+    expect(within(seccion).queryByLabelText(/Total con IVA de Cliente Uno/)).toBeNull();
+    expect(within(seccion).getByTestId("preorden-invalida-DTD-1001")).toBeTruthy();
   });
 
   it("en el detalle, el total en color lleva a la factura si está emitida y a la pre-orden si no", async () => {

@@ -9,6 +9,8 @@ import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   agruparPorContenedor,
+  clienteFacturado,
+  contenedorFacturado,
   documentoDeEnlace,
   montosPorEmbarque,
   saldoUsd,
@@ -143,6 +145,49 @@ describe("cajas (SDD-0661)", () => {
     const todas = [envio("a1", "DTD-1001"), envio("a2", "DTD-1002")];
     const g = agruparPorContenedor([todas[0]], datos, todas);
     expect(g[0].cajas).toBe(10);
+  });
+
+  it("SDD-0690: `completo.clientes` trae a todos los clientes del contenedor aunque el filtro deje uno", () => {
+    const datos: ContenedoresDeEmbarques = {
+      contenedores: [cont("c64", 64)],
+      porEmbarque: { a1: "c64", a2: "c64", b1: "c64" },
+      cajasPorEmbarque: { a1: 10, a2: 5, b1: 3 },
+    };
+    const todas = [envio("a1", "DTD-1001"), envio("a2", "DTD-1001"), envio("b1", "DTD-1002")];
+    const [g] = agruparPorContenedor([todas[1]], datos, todas);
+    expect(g.clientes.map((c) => [c.clientMarkbox, c.shipments.length])).toEqual([["DTD-1001", 1]]);
+    expect(g.completo.clientes.map((c) => [c.clientMarkbox, c.shipments.length, c.cajas])).toEqual([
+      ["DTD-1001", 2, 15],
+      ["DTD-1002", 1, 3],
+    ]);
+    // Sin filtro, son los mismos clientes.
+    const [sin] = agruparPorContenedor(todas, datos, todas);
+    expect(sin.completo.clientes).toBe(sin.clientes);
+  });
+
+  it("SDD-0690 §3.5: «Facturado» exige factura emitida viva en todos los clientes del contenedor entero", () => {
+    const datos: ContenedoresDeEmbarques = {
+      contenedores: [cont("c64", 64)],
+      porEmbarque: { a1: "c64", b1: "c64" },
+      cajasPorEmbarque: {},
+    };
+    const todas = [envio("a1", "DTD-1001"), envio("b1", "DTD-1002")];
+    const doc = (id: string, preorden: boolean, status = preorden ? "borrador" : "emitida") => ({
+      id: `i-${id}`, invoice_code: `F-${id}`, shipment_id: id, currency: "USD",
+      total_amount: "10", paid_amount: "0", status,
+    });
+    const [g] = agruparPorContenedor([todas[0]], datos, todas);
+    // Uno facturado y otro sin precio: no.
+    expect(contenedorFacturado(g, montosPorEmbarque([doc("a1", false)]))).toBe(false);
+    // Uno facturado y otro con la pre-orden pendiente: no.
+    expect(contenedorFacturado(g, montosPorEmbarque([doc("a1", false), doc("b1", true)]))).toBe(false);
+    // Los dos emitidos (aunque el filtro deje uno): sí.
+    expect(contenedorFacturado(g, montosPorEmbarque([doc("a1", false), doc("b1", false)]))).toBe(true);
+    // Una anulada no cuenta como factura viva.
+    expect(
+      contenedorFacturado(g, montosPorEmbarque([doc("a1", false), doc("b1", false, "anulada")])),
+    ).toBe(false);
+    expect(clienteFacturado({ documentos: [] })).toBe(false);
   });
 
   it("sumarCajas: un embarque sin dato suma 0", () => {

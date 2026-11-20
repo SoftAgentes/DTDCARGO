@@ -208,6 +208,14 @@ exceso a estos borradores.
 - **«Facturado»:** cuando todos los clientes del contenedor tienen factura emitida viva, la cabecera
   muestra la insignia «Facturado» y `FacturarContenedor` no muestra ningún botón. El contenedor se queda
   en Embarques. El historial de los entregados al 100 % es la SDD-0691.
+- **Sobre el contenedor entero** (revisión de la PR, 2026-11-20): los clientes, las pre-órdenes,
+  «Facturar todo» y «Facturado» se calculan sobre todos los envíos del contenedor, sin la pestaña, el
+  servicio ni la búsqueda. Así, un cliente cuya pre-orden cuelga de un envío que el filtro dejó fuera no
+  aparece con el monto para teclear.
+- **Pre-orden sin monto válido:** un cliente con una pre-orden viva en $0 o en otra moneda no va al camino
+  tecleado. La fila dice «Pre-orden sin monto válido: corrígela en Facturación», con el enlace a la
+  pre-orden y sin botón. En la base, `exc0674_facturar` (redefinida en la 0569) rechaza el monto tecleado
+  de un cliente con una pre-orden viva en el contenedor (`exc0674:tiene_preorden`).
 - **Los rótulos del dinero, para cerrar el pendiente de la 0689:**
   - **«Sin facturar» = la suma de las pre-órdenes**, igual que en el encabezado. Esto es firme (Sam,
     2026-11-20).
@@ -273,7 +281,7 @@ Documentos:
 
 Base de datos:
 - `supabase/migrations/0569_exc0674_emitir_borradores.sql`;
-- `supabase/desarmes/0569_desarme.sql`;
+- el desarme de la 0569 en `supabase/desarmes/` (mismo número, sufijo `_desarme`; no se escribe el nombre entero porque el contrato `spec-migration-refs` busca todo `NNNN_*.sql` en `supabase/migrations/`);
 - `supabase/tests/0569_exc0674_emitir_borradores.test.sql`;
 - `supabase/tests/0569_exc0674_emitir_borradores_carrera.test.sql`;
 - la plomería que el runbook y la CI piden para una migración nueva, igual que la 0564 (#684):
@@ -295,9 +303,14 @@ Embarques:
 - `lib/studio/exc0674-queries.ts`;
 - `lib/studio/embarques-contenedores.ts` (Total, Pagado, Saldo y «Sin facturar»);
 - `lib/studio/embarques-contenedores-queries.ts`, **solo** agregar `id, invoice_code` al `select` de
-  `invoices` en `leerMontosDeContenedores`: el enlace a la factura o a la pre-orden y «Facturar» los
-  necesitan. Es la misma consulta, con la misma puerta de `montos`; ninguna lectura nueva. Para los roles
-  sin `montos` no llegan al navegador (prueba en `page-monto-por-rol.test.ts`). OK del DG del 2026-11-20.
+  `invoices` en `leerMontosDeContenedores`, con sus dos líneas de mapeo y su comentario: el enlace a la
+  factura o a la pre-orden y «Facturar» los necesitan. Es la misma consulta, con la misma puerta de
+  `montos`; ninguna lectura nueva. Para los roles sin `montos` no llegan al navegador (prueba en
+  `page-monto-por-rol.test.ts`). OK del DG del 2026-11-20.
+- `lib/studio/exc0674.ts` (`mensajeErrorExc0674`) y su prueba `lib/studio/__tests__/exc0674.test.ts`,
+  **solo** los textos de los errores nuevos de la 0569 (`tiene_preorden`, `no_borrador`, `moneda`,
+  `borrador_alterado`, `factura_inexistente`, `envio_fuera_del_contenedor`). Fuera de la allowlist
+  original; lo autorizó el DG en la revisión de la PR (2026-11-20).
 
 Pruebas de Embarques:
 - `app/studio/(app)/embarques/__tests__/facturar-exc0674-action.test.ts`;

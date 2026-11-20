@@ -176,17 +176,35 @@ describe("EmbarquesClient · encabezado del contenedor (SDD-0689)", () => {
     expect(within(monto).queryByRole("button")).toBeNull();
   });
 
-  it("todo emitido, sin borradores: dice «Facturado»", () => {
+  /** SDD-0690: una factura emitida (no pre-orden) en USD. */
+  const emitida = (id: string, total: number) => ({
+    facturas: 1, totalUsd: total, pagadoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0,
+    documentos: [{ invoiceId: `i-${id}`, invoiceCode: `F-${id}`, preorden: false, totalUsd: total }],
+  });
+
+  it("todos los clientes con factura emitida viva: «Facturado», también como insignia de la cabecera (SDD-0690 §3.5)", () => {
     const emitido: MontosDeContenedores = {
       estado: "lista",
-      porEmbarque: {
-        a1: { facturas: 1, totalUsd: 1500, pagadoUsd: 0, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0, documentos: [] },
-      },
+      porEmbarque: { a1: emitida("a1", 1500), a2: emitida("a2", 20), a4: emitida("a4", 9) },
     };
     render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={emitido} />);
     const monto = within(region()).getByTestId("total-sin-facturar");
     expect(monto.textContent).toBe("Facturado");
     expect(within(monto).queryByRole("button")).toBeNull();
+    expect(within(cabecera()).getByTestId("encabezado-facturado").textContent).toBe("Facturado");
+  });
+
+  it("uno facturado y otro sin precio: no dice «Facturado» (SDD-0690 §3.5)", () => {
+    const parcial: MontosDeContenedores = { estado: "lista", porEmbarque: { a1: emitida("a1", 1500) } };
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={parcial} />);
+    const monto = within(region()).getByTestId("total-sin-facturar");
+    expect(monto.textContent).toBe("Clientes sin precio");
+    expect(within(region()).queryByTestId("encabezado-facturado")).toBeNull();
+  });
+
+  it("sin montos no hay insignia «Facturado» en la cabecera", () => {
+    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    expect(within(region()).queryByTestId("encabezado-facturado")).toBeNull();
   });
 
   it("borradores solo en otra moneda: nunca «$0.00»", () => {
@@ -268,6 +286,19 @@ describe("EmbarquesClient · el encabezado no depende de la pestaña (SDD-0689)"
       expect(monto.textContent).toBe("Sin facturar$550.00");
     },
   );
+
+  it("SDD-0690 §5.7: con un filtro puesto, el «Peso total» de la franja y del pie es el del encabezado", async () => {
+    render(
+      <EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} montos={MONTOS_MIXTO} />,
+    );
+    filtrar("Activos", "puerta_a_puerta_DDP", "S-m1");
+    await abrir();
+    expect(cabecera().textContent ?? "").toContain("150 kg");
+    const franja = within(region()).getByText("Peso total").parentElement!;
+    expect(franja.textContent ?? "").toContain("150 kg");
+    const pie = within(region()).getByRole("row", { name: /Total del contenedor/ });
+    expect(pie.textContent ?? "").toContain("150 kg");
+  });
 
   it("sin montos tampoco hay dinero en ninguna pestaña", () => {
     render(<EmbarquesClient shipments={MIXTO} adjuntos={undefined} contenedores={DATOS_MIXTO} />);
