@@ -293,10 +293,17 @@ Dir_DTD:
     `client_data_request_claim(p_client_id, p_campo)` que:
     - toma `pg_advisory_xact_lock(hashtextextended(p_client_id::text || ':' || p_campo, 0))`;
     - mira si hay una fila de ese cliente y ese campo en las últimas 24 horas;
-    - si no la hay, inserta la fila y devuelve `ok = true`; si la hay, devuelve `ok = false` con la hora del
-      último pedido, sin insertar.
+    - si no la hay, inserta la fila y devuelve `ok = true` **con el `id` de la fila reclamada**; si la hay,
+      devuelve `ok = false` con la hora del último pedido, sin insertar.
   - El correo sale **solo** con `ok = true`. Con `ok = false`, el botón dice «Ya se pidió hoy, a las …».
-  - Si `sendEmail` falla después del `claim`, se borra esa fila para no bloquear el reintento.
+  - **Cuenta como enviado** si `sendEmail` devuelve `ok: true`, también con `queued: true`. En ese caso el
+    correo quedó registrado y se reintenta solo, así que el reclamo se conserva.
+  - Si `sendEmail` devuelve `ok: false`, se borra **por `id`** la fila reclamada, la que devolvió el
+    `claim`, nunca por cliente y campo. Así un fallo tardío de un operador no puede borrar el reclamo de
+    otro y dejar pasar un duplicado. El reintento queda libre.
+  - **Límite conocido y aceptado:** si el proceso muere entre el `claim` y el envío, la fila queda y bloquea
+    ese pedido durante 24 horas sin que haya salido ningún correo. El operador ve «Ya se pidió hoy» y puede
+    usar WhatsApp.
   - Sin correo, no hay acción de correo.
 - **Rastro sin PII:**
   - El correo del sistema deja un evento en `entity_audit_log` (AUD-01) con solo
@@ -559,7 +566,9 @@ Recomendación de la skill: que otro modelo revise esta sección antes de implem
      - a las 23 h 59 min el segundo pedido da `ok = false`, y a las 24 h 1 min da `ok = true`;
      - otro campo del mismo cliente no queda bloqueado;
      - con `ok = false` no se llama a `sendEmail`;
-     - si `sendEmail` falla, la fila se borra y el reintento sale.
+     - si `sendEmail` da `ok: false`, se borra la fila **por su `id`** y el reintento sale. Con dos reclamos
+       seguidos (el de A vence y después B reclama), el fallo tardío de A no borra el de B;
+     - con `ok: true, queued: true`, el reclamo se conserva y el segundo pedido da `ok = false`.
 8. **A-1.**
    - Un aviso `status:in_warehouse` de un cliente sin dirección lleva el recuadro y el botón a `/portal/perfil`.
    - Con dirección, no lo lleva.
