@@ -1,6 +1,6 @@
 ---
 sdd: "0697"
-title: "Etiquetas de color en Almacén China: catálogo propio, historial y lo que ve Venezuela"
+title: "Indicadores de carga en Almacén China: catálogo propio, historial, consecuencias y lo que ve Venezuela"
 status: draft
 author: "Claude (Worker) + Sam"
 created: 2026-11-20
@@ -11,7 +11,7 @@ related: ["0008", "0039", "0067", "0139", "0152", "0196", "0476", "0522", "0531"
 confidencialidad: interno
 ---
 
-# SDD-0697 — Etiquetas de color en Almacén China
+# SDD-0697 — Indicadores de carga en Almacén China (etiquetas de color)
 
 > Sam, 2026-11-20: en China le ponen etiquetas de color a los embarques, y cada embarque tiene un historial.
 > El almacén de China tiene que poder crear sus propias etiquetas, con una lógica clara. Ejemplos:
@@ -92,7 +92,7 @@ Segunda vuelta: corrige la revisión independiente sobre `fc390fd77`.
 
 ## 2. La lógica propuesta
 
-### 2.0 Color de fila y avisos: dos cosas distintas (Sam, 2026-11-20)
+### 2.0 Indicadores de carga: la leyenda de la hoja, el color de fila y sus consecuencias (Sam, 2026-11-20)
 
 Sam mostró la hoja de cálculo con la que trabaja hoy el almacén de China, una pestaña por contenedor. Cada
 fila va pintada entera (verde, naranja, blanco), la columna de observaciones lleva códigos arancelarios y
@@ -100,28 +100,58 @@ notas en chino, y un bloque lleva al lado 封门 («puerta sellada»). Y plante�
 puede tener dos situaciones a la vez (marca sin registro confirmado **y** carga especial), y una fila no
 puede tener dos colores.
 
-Así lo resuelven los sistemas de almacén y de carga (WMS/TMS): separan dos capas.
+**La leyenda de la hoja (Sam, 2026-11-20, respuesta a la pregunta 0).** La hoja tiene un cuadro «Indicadores
+de carga». Los colores de fila **no son estados: son indicadores**.
 
-| Capa | Cuántas por fila | Cómo se ve | Ejemplo |
-|---|---|---|---|
-| **Estado** | una sola | el color de la fila, como en la hoja | verde, naranja |
-| **Avisos** | varios | íconos con texto en una columna propia | «Marca sin autorización» + «Montacargas» |
+| Color en la hoja | Indicador |
+|---|---|
+| Ámbar | Marca o piratería |
+| Rojo | Carga especial |
+| Verde | Tax refund, o elementos en la puerta del contenedor |
+| Celeste | Revisión o remedida |
+| Rosa | Uso de elevador o montacargas |
 
-- El color de fila responde «¿en qué paso va?». Es uno solo y lo decide una regla, no la mano.
-- Los avisos responden «¿qué hay que saber de esta carga?». Se suman sin combinarse: nunca se crea un aviso
-  «marca sin autorización con montacargas». Dos situaciones = dos avisos.
+Así lo resuelven los sistemas de almacén y de carga (WMS/TMS): la fila puede llevar varias marcas a la vez,
+y ninguna se combina con otra.
+
+| Qué | Cuántos por fila | Cómo se ve |
+|---|---|---|
+| **Indicadores** | varios | una insignia por indicador, con su color y su texto, en la columna «Indicadores» |
+| **Color de la fila** | uno | el color del indicador de **mayor prioridad** (el campo `orden` del catálogo), como en la hoja |
+| **Estado** | uno | la insignia de estado que ya existe (pendiente, consolidado, incidencia); no pinta la fila |
+
+- Una carga con marca sin autorización **y** montacargas: la fila se pinta ámbar (si la marca tiene más
+  prioridad) y la columna muestra las dos insignias. El color de la fila sirve para leer rápido, como hoy;
+  las insignias evitan perder la segunda situación.
+- Nunca se crea un indicador combinado («marca con montacargas»). Dos situaciones = dos indicadores.
+- «Tax refund, o elementos en la puerta del contenedor» son dos situaciones con un solo color. Propuesta:
+  dos indicadores que comparten el verde, «Devolución de impuestos» y «Va en la puerta del contenedor»
+  (pregunta 10, §7). 封门 («puerta sellada») en la hoja marca ese bloque.
+- Celeste y rosa no existen en la paleta de `BRAND.md` (§2.2): agregarlos necesita OK de diseño.
+
+**Los indicadores tienen consecuencias (Sam, 2026-11-20).** No son solo información: pueden generar un cobro,
+un costo o una segunda tarea.
+
+- **Tax refund:** la oficina cobra, el proveedor en China cobra algo y a veces se le cobra algo al cliente.
+- **Montacargas:** puede generar extras, en China y en Venezuela.
+- **Batería de litio** (carga especial): factura más cara.
+
+Por eso cada indicador del catálogo declara su **efecto** (§2.1). En esta spec el efecto solo se registra y
+se muestra: en Venezuela, la lista de recepciones o embarques con un indicador que «genera cobro» sirve para
+no olvidar el cargo al facturar. **El monto y el cargo en la factura o la pre-orden van en otra SDD**,
+porque son dinero (montos que China no ve, SDD-0039 B.9) y tocan Facturación.
+
+**Nombre (Sam, 2026-11-20, respuesta a la pregunta 1):** «Indicadores de carga», como lo llama el equipo
+técnico. No choca con «Etiquetas CN». En el resto de esta spec, «aviso» y «etiqueta» se leen como
+**indicador**; los nombres de pantalla, ruta, componentes y capabilities ya usan «indicador».
 - Para que no se multipliquen, el catálogo se ordena en tres grupos: **Carga especial** (rasgo de la
   mercancía: montacargas, batería de litio, frágil), **Documentos y aduana** (marca sin autorización, falta
   factura) y **Trámite con el proveedor** (devolución de impuestos). Los dos últimos se resuelven y se
   quitan; el primero acompaña la carga hasta Venezuela.
 - La pantalla «En almacén» se ve como la hoja: columnas en el mismo orden (marca, descripción, cajas,
-  piezas, peso, CBM, recibido, observaciones), filas pintadas por estado, totales abajo y la columna de
-  avisos. Al consolidar, la fila sale del almacén y pasa a «En camino», que hace el papel del documento
-  «consolidado» (SDD-0682).
-- Falta saber qué significa hoy cada color de la hoja (pregunta 0, §7). Si un color ya es un aviso (por
-  ejemplo, naranja = «hay un problema»), se vuelve aviso y el color de fila queda para el estado.
-
-En esta spec, «etiqueta» se lee como **aviso** hasta que Sam elija el nombre (pregunta 1).
+  piezas, peso, CBM, recibido, observaciones), filas pintadas por el indicador de mayor prioridad, totales
+  abajo y la columna «Indicadores». Al consolidar, la fila sale del almacén y pasa a «En camino», que hace
+  el papel del documento «consolidado» (SDD-0682).
 
 ### 2.1 Qué responde cada aviso
 
@@ -133,9 +163,24 @@ nada en esta spec.
 |---|---|---|
 | Nombre (es-VE y zh-CN) | Lo que se lee en la insignia | «Montacargas» / 叉车 |
 | Grupo | Carga especial, documentos y aduana, o trámite con el proveedor | carga especial |
-| Color | Distinguir de un vistazo, de una paleta fija | dorado (atención) |
+| Color | Distinguir de un vistazo y pintar la fila, de una paleta fija | rosa (como en la hoja) |
+| Prioridad (`orden`) | Qué color gana cuando la fila tiene varios | 5 |
 | Descripción (es-VE y zh-CN) | Qué significa y qué hay que hacer | «Carga pesada o paletizada: hace falta montacargas para bajarla. En China lo paga el proveedor; en Venezuela hay que tenerlo listo.» |
 | ¿La ve Venezuela? | Si sale en Almacén VE, Embarques y Tracking | sí |
+| Efecto | Si genera cobro al cliente, costo del proveedor, los dos, una tarea o nada | cobro y costo |
+
+**Catálogo inicial (sembrado en la migración B, a confirmar con las preguntas 4, 7, 8 y 10):**
+
+| Prioridad | Indicador (es-VE / zh-CN) | Color | Grupo | ¿Venezuela? | Efecto |
+|---|---|---|---|---|---|
+| 1 | Marca sin autorización / 品牌无授权 | ámbar | documentos y aduana | sí | tarea |
+| 2 | Carga especial / 特殊货物 | rojo | carga especial | sí | cobro al cliente |
+| 3 | Devolución de impuestos / 退税 | verde | trámite con el proveedor | no | cobro y costo |
+| 4 | Va en la puerta del contenedor / 装在柜门口 | verde | carga especial | sí | ninguno |
+| 5 | Uso de montacargas / 需要叉车 | rosa | carga especial | sí | cobro y costo |
+| 6 | Revisión o remedida / 复查或复量 | celeste | trámite con el proveedor | no | tarea |
+
+Los textos zh-CN los revisa un hablante nativo antes de producción.
 
 ### 2.2 Catálogo por tenant
 
@@ -145,10 +190,18 @@ nada en esta spec.
   marca «sin traducir» (§5).
 - **No se borra: se archiva.** Una etiqueta archivada no se puede asignar, pero sigue leyéndose en el
   historial y en las recepciones que ya la tienen.
-- Paleta fija de seis claves, todas de variables existentes: `rojo` (`--danger`), `dorado` (`--warning`),
-  `verde` (`--success`), `azul` (acción), `navy` (`--ink`) y `gris` (`--ink-soft`). La insignia siempre lleva
-  texto: el color ayuda, no informa solo. Un color nuevo necesita OK de diseño y una migración, no se agrega
-  desde la pantalla.
+- Paleta fija de ocho claves. Seis salen de variables existentes: `ambar` (`--warning`), `rojo` (`--danger`),
+  `verde` (`--success`), `azul` (acción), `navy` (`--ink`) y `gris` (`--ink-soft`). Dos son los de la leyenda
+  de la hoja que no existen en `BRAND.md`: `celeste` y `rosa`. Esas dos necesitan **OK de diseño** (`/ui-check`
+  y el dueño de la marca) para agregar sus variables, en claro y oscuro, con contraste medido. Mientras no
+  haya OK, se pintan con `azul` y `rojo` en tono suave, y la leyenda lo dice. La insignia siempre lleva
+  texto: el color ayuda, no informa solo. Un color nuevo necesita una migración, no se agrega desde la
+  pantalla.
+- **Color de fila:** el del indicador vivo con menor `orden` (mayor prioridad), en tono suave para que el
+  texto se lea. Sin indicadores, la fila va sin color.
+- **Efecto:** `ninguno`, `cobro_cliente`, `costo_proveedor`, `cobro_y_costo` o `tarea`. En esta spec solo se
+  muestra (ícono de moneda o de tarea en la insignia) y permite filtrar «genera cobro» en Venezuela. No
+  calcula montos ni toca facturas (§2.0).
 - **Quién crea y edita** (propuesta, pregunta 2): `admin`, o `warehouse` de región `cn`. Venezuela no edita
   el catálogo de China.
 
@@ -162,7 +215,7 @@ nada en esta spec.
 - Se puede asignar en cualquier estado de la recepción, también después de consolidar (en «En camino»). No
   en una recepción borrada.
 - Quitar una etiqueta no la borra: marca `removed_at` y queda en el historial (pregunta 5).
-- Varias etiquetas por recepción; en la tabla se ven como insignias en la columna de avisos, hasta tres y
+- Varias etiquetas por recepción; en la tabla se ven como insignias en la columna «Indicadores», hasta tres y
   «+N».
 - Filtro por etiqueta en «En almacén» y «En camino».
 
@@ -264,8 +317,10 @@ create table public.warehouse_tags (
   descripcion_es text check (descripcion_es is null or length(descripcion_es) <= 280),
   descripcion_zh text check (descripcion_zh is null or length(descripcion_zh) <= 140),
   grupo          text not null check (grupo in ('carga_especial', 'documentos_aduana', 'tramite_proveedor')),
-  color          text not null check (color in ('rojo', 'dorado', 'verde', 'azul', 'navy', 'gris')),
+  color          text not null check (color in ('ambar', 'rojo', 'verde', 'celeste', 'rosa', 'azul', 'navy', 'gris')),
   visible_ve     boolean not null default false,
+  efecto         text not null default 'ninguno'
+                 check (efecto in ('ninguno', 'cobro_cliente', 'costo_proveedor', 'cobro_y_costo', 'tarea')),
   orden          smallint not null default 0,
   created_by     uuid references auth.users(id),
   created_at     timestamptz not null default now(),
@@ -430,7 +485,7 @@ no juzga al proveedor. El chino lo debe revisar un hablante nativo antes de prod
 ## 6. Alcance, fases y allowlist
 
 **No entra:** etiquetas que bloqueen o cambien un estado; etiquetas creadas por Venezuela; la app del
-teléfono (`/m/cn`); avisos por correo o Telegram al asignar; reportes y KPI por etiqueta; el portal del
+teléfono (`/m/cn`); notificaciones por correo o Telegram al asignar; reportes y KPI por etiqueta; el portal del
 cliente; mostrar las notas `note` en el panel; llenar `source_receipt_cn_id`; el vínculo persistente del
 embarque partido.
 
@@ -439,9 +494,9 @@ embarque partido.
 | Fase | Qué | Depende de |
 |---|---|---|
 | **F0** | Esta spec aprobada por Sam, con las preguntas del §7 contestadas | — |
-| **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna de avisos; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
+| **F1** | Migraciones A y B; catálogo; asignar y quitar en Almacén China («En almacén» y «En camino»); columna «Indicadores»; filtro; panel de historial; capabilities; i18n | F0 y la **0682 fase 2 fusionada** |
 | **F2** | Lectura en Venezuela: Almacén VE, Embarques y Tracking, solo `visible_ve` | F1 en producción |
-| **F3** | La pantalla con forma de hoja (columnas y color de fila por estado, §2.0) | pregunta 0 contestada; puede ir antes de F2 |
+| **F3** | La pantalla con forma de hoja (columnas de la hoja y fila pintada por el indicador de mayor prioridad, §2.0), con la leyenda visible | F1; los colores celeste y rosa con OK de diseño |
 
 La 0682 fase 2 («Pendiente por liberar») toca la misma pantalla (`page.tsx`, `VistasAlmacen.tsx`,
 `warehouse-cn-queries.ts`) y trae su propia migración. Por eso F1 arranca después de que se fusione, y el DG
@@ -461,9 +516,9 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `lib/studio/almacen-cn-contenedores-queries.ts`: las etiquetas en «En camino».
 - `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/tag-actions.ts` (nuevo, server actions que llaman a las RPC).
 - `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`, `CaminoCn.tsx`, `FilaCamino.tsx`.
-- `app/studio/(app)/cn/_components/AvisosRecepcion.tsx`, `CatalogoAvisos.tsx`, `HistorialRecepcion.tsx` (nuevos).
+- `app/studio/(app)/cn/_components/IndicadoresRecepcion.tsx`, `CatalogoIndicadores.tsx`, `HistorialRecepcion.tsx` (nuevos).
 - `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`.
-- Pruebas: `app/studio/(app)/cn/__tests__/tag-actions.test.ts`, `app/studio/(app)/cn/_components/__tests__/AvisosRecepcion.test.tsx`, `HistorialRecepcion.test.tsx`, `CatalogoAvisos.test.tsx`, `lib/studio/__tests__/warehouse-tags-queries.test.ts`.
+- Pruebas: `app/studio/(app)/cn/__tests__/tag-actions.test.ts`, `app/studio/(app)/cn/_components/__tests__/IndicadoresRecepcion.test.tsx`, `HistorialRecepcion.test.tsx`, `CatalogoIndicadores.test.tsx`, `lib/studio/__tests__/warehouse-tags-queries.test.ts`.
 - `docs/specs/0697-etiquetas-color-almacen-china/spec.md`, `docs/specs/README.md`, `.agents/handoffs/`.
 
 **F2**
@@ -471,7 +526,7 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 - `app/studio/(app)/ve/page.tsx`, `app/studio/(app)/ve/_components/AlmacenVeClient.tsx`.
 - `app/studio/(app)/embarques/page.tsx`, `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`.
 - `app/studio/(app)/tracking/[id]/page.tsx`, `app/studio/(app)/tracking/[id]/_components/ShipmentHeader.tsx`.
-- `app/studio/_components/AvisosSoloLectura.tsx` (nuevo) y sus pruebas.
+- `app/studio/_components/IndicadoresSoloLectura.tsx` (nuevo) y sus pruebas.
 - Prueba de que el portal no recibe etiquetas: `lib/portal/__tests__/sin-etiquetas-almacen.test.ts` (nueva).
 
 **F3**: se define con la respuesta a la pregunta 0; toca `AlmacenCnClient.tsx` y `ReceiptStatusBadge.tsx`.
@@ -486,13 +541,13 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 | AUD-01 | cumplimiento | Asignar y quitar dejan `tag_added`/`tag_removed` con actor (`auth.uid()`) y fecha, en la misma transacción, y el trigger del §2.7 hace que esos dos tipos solo salgan de las RPC. Los cambios al catálogo van a `entity_audit_log` por `append_audit_event`, con precheck. Sin el trigger, el historial de etiquetas no contaría como evento auditable |
 | AUD-02 | cumplimiento parcial | Consulta: el panel de historial (§2.4). Conservación: las asignaciones y los eventos no se borran (P4). Exportación: no aplica en esta spec |
 | FRM-01 | cumplimiento | Formulario del catálogo: al menos un nombre, nombre único, largos del §2.7, error en línea por campo, envío deshabilitado solo mientras guarda |
-| TBL-01 | cumplimiento | Una columna nueva («Avisos») con tope de tres insignias y «+N»; el filtro por etiqueta se suma a los existentes; no cambia la densidad |
-| A11Y-01 | cumplimiento | Insignias con texto, nunca solo color; el dorado como punto con texto en tinta (`BRAND.md:137`); menú de asignar operable con teclado (rol `menu`/`listbox`), foco visible y nombre accesible en «+N» |
+| TBL-01 | cumplimiento | Una columna nueva («Indicadores») con tope de tres insignias y «+N»; el filtro por etiqueta se suma a los existentes; no cambia la densidad |
+| A11Y-01 | cumplimiento | Insignias con texto, nunca solo color; el ámbar como punto con texto en tinta (`BRAND.md:137`); menú de asignar operable con teclado (rol `menu`/`listbox`), foco visible y nombre accesible en «+N»; el color de fila nunca es la única señal: la columna «Indicadores» repite cada uno con texto |
 | VIS-01 / VIS-02 | cumplimiento | Solo variables existentes (§2.2) |
 | Privacidad China | cumplimiento | §3 |
 
 **Módulo y permisos de la pantalla del catálogo:** vive dentro del módulo `cn` (no es un módulo nuevo), en
-`/studio/cn/avisos`, para no chocar con `/studio/etiquetas`. La ven quienes ven `cn`
+`/studio/cn/indicadores`, para no chocar con `/studio/etiquetas`. La ven quienes ven `cn`
 (`lib/studio/rbac.ts:70`); editar exige `manage_warehouse_tags`. Asignar exige `assign_warehouse_tags`.
 `support` solo lee.
 
@@ -501,8 +556,9 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 0. **Los colores de la hoja.** ¿Qué quiere decir hoy el verde, el naranja y el blanco en la hoja del
    contenedor, y qué es 封门? Ejemplo: «verde = ya recibido con papeles; naranja = recibido con algo
    pendiente».
-1. **Nombre.** Ya existe «Etiquetas CN» (la impresión de etiquetas con QR). ¿Cómo llamamos a esto? Ejemplo:
-   «Avisos» en el menú y en la columna.
+   **Contestada (2026-11-20):** son indicadores, no estados (leyenda en el §2.0). Y tienen consecuencias de
+   cobro, costo o tarea.
+1. **Nombre.** **Contestada (2026-11-20):** «Indicadores de carga», como lo llama el equipo técnico.
 2. **Quién crea.** ¿Quién puede crear y editar etiquetas, y quién ponerlas? Ejemplo: el jefe del almacén de
    China crea «Montacargas»; un operario solo la pone.
 3. **Dónde va.** ¿A la recepción o al embarque? Ejemplo: la WR-2099-0001 llega con una marca sin papeles y
@@ -513,8 +569,15 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
    queda en el historial quién la quitó y cuándo.
 6. **El cliente.** ¿El cliente nunca ve ninguna? Ejemplo: el importador no ve «Montacargas» en su portal.
 7. **Texto de la marca.** ¿«Marca sin autorización», «Marca sin documentos» o «Marca por verificar»?
-8. **Las otras.** ¿Qué otras etiquetas usan hoy en China, con su color? Ejemplo: «Frágil», en rojo.
+8. **Las otras.** Además de las cinco de la leyenda, ¿hay otras? Ejemplo: «Batería de litio», ¿va dentro de
+   «Carga especial» o aparte, por su cobro propio?
 9. **Nota.** ¿La etiqueta lleva una nota corta? Ejemplo: «Montacargas · 2 paletas de 800 kg».
+10. **El verde.** ¿Partimos «Tax refund o elementos en la puerta del contenedor» en dos indicadores verdes?
+    Ejemplo: una carga en la puerta sin tax refund no debería salir como «cobro y costo».
+11. **Prioridad.** Cuando una fila tiene dos indicadores, ¿qué color gana? Ejemplo: marca y montacargas → la
+    fila ámbar, con las dos insignias.
+12. **Cobro.** ¿Quién en Venezuela debe ver «genera cobro» al facturar? Ejemplo: Contabilidad ve los
+    embarques del 65 con «Uso de montacargas» antes de la pre-orden.
 
 ## 8. Criterios de aceptación y pruebas
 

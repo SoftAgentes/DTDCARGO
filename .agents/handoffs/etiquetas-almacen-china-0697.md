@@ -52,3 +52,10 @@ Checks: build-docs-index --check PASÓ; check-numbering PASÓ; verify NO EJECUTA
 - D: trigger para que `tag_added`/`tag_removed` salgan solo de las RPC; corregido lo de «sin rastro» y AUD-01.
 - E: pruebas 12-17 (anon, service_role, quitar una ajena o ya quitada, historial solo por RPC, actor, auditoría).
 - F: costo detallado de cerrar `visible_ve` en la base (§2.5).
+
+## Respuestas de Sam (2026-11-20)
+
+- Pregunta 0: los colores de la hoja son indicadores, no estados. La leyenda «Indicadores de carga» va en el §2.0 de la spec.
+- Pregunta 1: el nombre es «Indicadores de carga», como lo llama el equipo técnico.
+- Los indicadores generan cobros, costos o tareas (tax refund, montacargas, batería de litio). La spec agrega el campo «efecto»; el monto va en otra SDD.
+- Mensaje de Sam al Director: el contenedor 65 entra primero por Almacén China. Lo deja pendiente para analizar y no es de esta tarea.
