@@ -104,6 +104,17 @@ Corregido en la tanda siguiente:
   - eslint de los archivos tocados: PASÓ.
   - `pnpm verify` completo: NO EJECUTADO (fuera del turno; lo cubre la CI).
 
+- Turno de PC del DG, 2026-11-20, sobre `001ed1b2c` (línea vigente):
+  - typecheck (`tsc --noEmit`): PASÓ.
+  - vitest de lo tocado (lo de arriba más `lib/portal` y las pruebas de tracking-contenedores): 2235/2235
+    PASÓ, 129 archivos.
+  - eslint de los archivos tocados: PASÓ.
+  - `pnpm verify` completo: NO EJECUTADO (lo cubre la CI).
+- CI de `b0cfd5375`: rojo en «Calidad local sin secretos», en una prueba ajena a esta rama
+  (`chatwoot-portal-puerta4.migration.test.ts`, el mutante «no compara el corte» de la 0524). `main` en
+  `c45dea138` cayó en el mismo job con otra prueba (`PortalVistaSelector`). Por decisión del DG, la
+  inestabilidad de esas dos pruebas va en una tarea aparte; no se arregla aquí.
+
 ## Pendiente de esta tarea
 
 - Correr las comprobaciones con turno, PR de la fase 1, revisión independiente (la lanza el DG).
