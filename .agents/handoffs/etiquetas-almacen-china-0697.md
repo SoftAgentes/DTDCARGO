@@ -43,3 +43,12 @@ Corregido en la spec:
 - Sin códigos de la hoja de Sam; el ejemplo de recepción es inventado.
 
 Checks: build-docs-index --check PASÓ; check-numbering PASÓ; verify NO EJECUTADO (solo docs).
+
+## Tercera vuelta (revisión sobre `f7a8bc31c`, ajustes A-F)
+
+- A: la prueba va en `supabase/tests/etiquetas_almacen.test.sql`.
+- B: reglas de las RPC: actor `auth.uid()`, rol y región leídos en la base, todo calificado con `public.`/`pg_catalog.` y `search_path` vacío.
+- C: auditoría por `append_audit_event` con el precheck de la 0563; revoke también a `service_role`.
+- D: trigger para que `tag_added`/`tag_removed` salgan solo de las RPC; corregido lo de «sin rastro» y AUD-01.
+- E: pruebas 12-17 (anon, service_role, quitar una ajena o ya quitada, historial solo por RPC, actor, auditoría).
+- F: costo detallado de cerrar `visible_ve` en la base (§2.5).

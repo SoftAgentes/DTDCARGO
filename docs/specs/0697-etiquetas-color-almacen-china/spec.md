@@ -172,10 +172,17 @@ nada en esta spec.
   enum: `tag_added` y `tag_removed`. La `description` guarda una foto del nombre en los dos idiomas y la nota
   (formato en el §2.7), para que el historial se siga leyendo igual aunque después renombren o archiven la
   etiqueta.
-- Lo escribe la misma RPC que asigna, en la misma transacción, para que no haya etiqueta sin rastro ni
-  rastro sin etiqueta.
+- Lo escribe la misma RPC que asigna, en la misma transacción: por esa vía no hay etiqueta sin rastro.
+- **Quién más escribe esos dos tipos.** La política de `warehouse_receipt_events` es «for all» por tenant
+  (`supabase/migrations/0012_rls_perf_and_rpc_guards.sql:273-274`), así que la tabla, por diseño, acepta
+  filas de cualquier miembro del tenant con su sesión. Para que `tag_added`/`tag_removed` salgan solo de las
+  RPC, la migración B agrega un trigger `before insert or update or delete` en `warehouse_receipt_events`
+  que rechaza esos dos tipos (en la fila nueva o en la vieja) cuando `current_user` es `authenticated` o
+  `anon`. Dentro de una RPC `security definer`, `current_user` es su dueño y el trigger deja pasar. Los demás
+  tipos no cambian. Con ese trigger, el historial de etiquetas es tan confiable como las tablas de
+  asignación; sin él, sería un registro de lo que dijo la RPC más lo que cualquier miembro quiso agregar.
 - Los cambios al catálogo (crear, renombrar, cambiar color, grupo o visibilidad, archivar) quedan en
-  `entity_audit_log` desde sus RPC (AUD-01).
+  `entity_audit_log` por `append_audit_event` (§2.7, AUD-01).
 - **Panel de historial por recepción en Almacén China** (§1.2: hoy no existe), sobre `listEventsForReceipt`.
   Muestra los tipos `received`, `consolidated`, `incident`, `status_change`, `tag_added` y `tag_removed`. Las
   notas (`note`) quedan fuera de la fase 1: varias las escribe el sistema (§1.2) y su contenido no pasó la
@@ -208,9 +215,22 @@ nada en esta spec.
   puede leer las etiquetas internas de China. Se declara como **límite conocido**, igual que hace
   `lib/studio/privacidad-cn.ts` con su regla: el catálogo no lleva datos personales ni montos, y lo que se
   esconde es ruido operativo, no un secreto. La nota libre sí podría llevar algo, y por eso tiene sus reglas
-  (§3). Si Sam quiere que la base lo cierre, la salida es partir la política de lectura de las dos tablas
-  por región: `visible_ve = true or` región `cn` del lector `or` rol `admin`. Cuesta una consulta a
-  `user_tenants` por fila; se decide en la revisión de la migración.
+  (§3). Si Sam quiere que la base lo cierre, la salida es partir la política de lectura por región:
+  `visible_ve = true or` región `cn` del lector `or` rol `admin`. Lo que cuesta:
+  - **Lectura de región y rol:** una subconsulta a `user_tenants` por `(user_id, tenant_id)`. Escrita como
+    `(select …)` corre una vez por consulta (initplan), no una vez por fila.
+  - **`warehouse_receipt_tags`:** `visible_ve` vive en el catálogo, así que la política necesita un `exists`
+    a `warehouse_tags` por su clave primaria **por cada fila** de asignación. En listas de 100 recepciones
+    son unos cientos de búsquedas por índice: barato, pero no gratis.
+  - **El historial no queda cubierto.** Los eventos `tag_added`/`tag_removed` guardan el nombre en
+    `description` y no tienen `tag_id`. Para que Venezuela no lea ahí las etiquetas internas hay que
+    agregar `tag_id` a `warehouse_receipt_events` y una política de lectura por tipo y región en esa tabla,
+    que hoy es «for all» y la leen otras pantallas y el resumen del CEO. Ese es el costo real: tocar la
+    política de una tabla compartida.
+  - Las lecturas del servidor con cliente de servicio no pasan por RLS: el filtro de la aplicación sigue
+    haciendo falta igual.
+
+  Recomendación: límite conocido en la F1 y F2; cerrarlo en la base solo si Sam lo pide.
 
 ### 2.6 El cliente no ve ninguna
 
@@ -303,9 +323,43 @@ create policy "warehouse_receipt_tags lectura miembro activo"
       and ut.disabled_at is null));
 ```
 
-RPC `security definer`, `set search_path = ''`, `grant execute … to authenticated`, `revoke … from public,
-anon`. Cada una resuelve el tenant con `get_user_tenant_id()` y repite el candado de rol contra
-`user_tenants` (`disabled_at is null`), con el patrón de `0563:281-284`:
+```sql
+-- Solo las RPC escriben los dos tipos de etiqueta en el historial (§2.4).
+create function public.warehouse_receipt_events_tags_solo_rpc()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if (tg_op <> 'INSERT' and old.event_type in ('tag_added', 'tag_removed'))
+     or (tg_op <> 'DELETE' and new.event_type in ('tag_added', 'tag_removed')) then
+    if current_user in ('authenticated', 'anon') then
+      raise exception 'las etiquetas del historial se escriben solo por su RPC' using errcode = '42501';
+    end if;
+  end if;
+  return coalesce(new, old);
+end $$;
+create trigger warehouse_receipt_events_tags_solo_rpc
+  before insert or update or delete on public.warehouse_receipt_events
+  for each row execute function public.warehouse_receipt_events_tags_solo_rpc();
+```
+
+**Reglas de las cinco RPC** (todas, sin excepción):
+
+- `security definer`, `set search_path = ''` y **todo calificado**: tablas y funciones con `public.`,
+  funciones del sistema con `pg_catalog.` (`pg_catalog.now()`, `pg_catalog.btrim`, `pg_catalog.lower`).
+- **El actor es `auth.uid()`.** Ninguna recibe un `p_actor`, `p_user_id` ni `p_role`. Si `auth.uid()` es nulo,
+  `42501`.
+- **El rol y la región se leen siempre en la base**, en `user_tenants` (`user_id = auth.uid()`, tenant de
+  `public.get_user_tenant_id()`, `disabled_at is null`), con el patrón de `0563:281-284`. Nunca del JWT ni de
+  un parámetro.
+- `revoke all … from public, anon, authenticated, service_role` y después `grant execute … to authenticated`,
+  como la 0563 (`0563:523`, `:918`). El cliente de servicio no las llama.
+- **Auditoría del catálogo por `public.append_audit_event`** (0267/0294), con el mismo precheck que
+  `0563:173-182`: la migración aborta si la función no existe, no es `security definer` con `search_path`
+  vacío o el rol que aplica no puede ejecutarla. Tipo de entidad `warehouse_tag`, fuente `studio`,
+  `before`/`after` con los campos cambiados.
+- La migración B empieza con un precheck de roles (`authenticated`, `anon`, `service_role`) y de las
+  columnas que lee, como `0563:53-54`.
+
+Candados por RPC:
 
 | RPC | Candado | Qué hace |
 |---|---|---|
@@ -313,7 +367,7 @@ anon`. Cada una resuelve el tenant con `get_user_tenant_id()` y repite el candad
 | `editar_etiqueta_almacen(p_id, ...)` | ídem | Cambia nombre, descripción, grupo, color, visibilidad u orden; audita antes y después |
 | `archivar_etiqueta_almacen(p_id, p_archivar boolean)` | ídem | Archiva o desarchiva; audita |
 | `asignar_etiqueta_recepcion(p_receipt_id, p_tag_id, p_nota)` | `admin`, `warehouse` u `operations` | Valida recepción viva del tenant y etiqueta no archivada; inserta la asignación y el evento `tag_added` |
-| `quitar_etiqueta_recepcion(p_asignacion_id)` | ídem | Marca `removed_*` y escribe `tag_removed` |
+| `quitar_etiqueta_recepcion(p_asignacion_id)` | ídem | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed`. Cualquiera con el candado puede quitar una puesta por otro: el historial dice quién la puso y quién la quitó |
 
 - La `description` del evento: `«<nombre_es> · <nombre_zh>»` y, si hay nota, `« — <nota>»`. Con un solo
   idioma, ese solo. Es la foto del §2.4.
@@ -390,7 +444,7 @@ Provisional: se cierra al programar cada fase, contra la base de ese momento.
 
 **F1**
 - `supabase/migrations/NNNN_etiquetas_almacen_enum.sql` (A) y `supabase/migrations/NNNN_etiquetas_almacen.sql` (B).
-- `supabase/migrations/NNNN_etiquetas_almacen.test.sql`: las pruebas del §8.
+- `supabase/tests/etiquetas_almacen.test.sql`: las pruebas del §8.1.
 - `lib/studio/rbac.ts`: las dos capabilities.
 - `lib/studio/warehouse-tags-types.ts` y `lib/studio/warehouse-tags-queries.ts` (nuevos): catálogo, asignaciones vivas por recepción, filtro.
 - `lib/studio/warehouse-cn-queries.ts`: el filtro por etiqueta y las etiquetas de cada fila.
@@ -420,7 +474,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 | Política | Clasificación | Evidencia |
 |---|---|---|
 | MP-01 | cumplimiento | Asignar y quitar: R1, con **Deshacer** 10 s y sin diálogo; quitar es reversible y no pierde nada (`removed_at`, se puede volver a asignar). Archivar una etiqueta del catálogo: R2, `ConfirmDialog` con el nombre y la consecuencia («deja de poder asignarse; las recepciones que la tienen la conservan»); desarchivar la restaura. No hay borrado físico. Los eventos son P4 (fila «Operación logística», `docs/governance/policies/mp-01.md:67`) |
-| AUD-01 | cumplimiento | Asignar y quitar dejan `tag_added`/`tag_removed` con actor y fecha, en la misma transacción. Los cambios al catálogo van a `entity_audit_log` desde sus RPC |
+| AUD-01 | cumplimiento | Asignar y quitar dejan `tag_added`/`tag_removed` con actor (`auth.uid()`) y fecha, en la misma transacción, y el trigger del §2.7 hace que esos dos tipos solo salgan de las RPC. Los cambios al catálogo van a `entity_audit_log` por `append_audit_event`, con precheck. Sin el trigger, el historial de etiquetas no contaría como evento auditable |
 | AUD-02 | cumplimiento parcial | Consulta: el panel de historial (§2.4). Conservación: las asignaciones y los eventos no se borran (P4). Exportación: no aplica en esta spec |
 | FRM-01 | cumplimiento | Formulario del catálogo: al menos un nombre, nombre único, largos del §2.7, error en línea por campo, envío deshabilitado solo mientras guarda |
 | TBL-01 | cumplimiento | Una columna nueva («Avisos») con tope de tres insignias y «+N»; el filtro por etiqueta se suma a los existentes; no cambia la densidad |
@@ -455,7 +509,7 @@ Fuera de la allowlist: escrituras de datos en producción, cambios al portal y a
 
 ## 8. Criterios de aceptación y pruebas
 
-### 8.1 Pruebas SQL (`NNNN_etiquetas_almacen.test.sql`, PGlite o Postgres local)
+### 8.1 Pruebas SQL (`supabase/tests/etiquetas_almacen.test.sql`, PGlite o Postgres local)
 
 Con dos tenants (T1, T2) y usuarios sintéticos: admin T1, `warehouse` región `cn` T1, `warehouse` región `ve`
 T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un cliente del portal de T1.
@@ -482,6 +536,20 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
 9. **Atomicidad:** si el insert del evento falla (forzado), no queda asignación.
 10. **Recepción borrada:** asignar a una recepción con `deleted_at` falla.
 11. **Conteo del CEO intacto:** los eventos nuevos no suben el conteo de `incident`.
+12. **Anon no ejecuta:** con el rol `anon`, las cinco RPC fallan por permiso (`has_function_privilege` falso y
+    llamada rechazada). `service_role` tampoco tiene `execute`.
+13. **Quitar ajena:** `operations` quita una asignación puesta por `warehouse` del mismo tenant → pasa, y el
+    evento `tag_removed` lleva a `operations` como actor. `warehouse` de T2 intenta quitar una de T1 → falla
+    y no escribe evento.
+14. **Quitar dos veces:** quitar una asignación ya quitada falla (`P0001`), no cambia `removed_by` ni
+    `removed_at` y no escribe un segundo `tag_removed`.
+15. **Historial solo por RPC:** como `authenticated` (miembro activo de T1), insertar directo en
+    `warehouse_receipt_events` un `tag_added` falla con `42501`; actualizar o borrar uno existente, también.
+    Insertar directo un `note` sigue pasando (no se cambia lo que ya funciona).
+16. **Actor desde la sesión:** ninguna RPC acepta un actor por parámetro; `assigned_by` y el `created_by` del
+    evento son `auth.uid()` del que llama.
+17. **Auditoría del catálogo:** crear, editar y archivar dejan una fila en `entity_audit_log` con tipo
+    `warehouse_tag` y actor; si la llamada falla, no queda fila.
 
 ### 8.2 Pruebas de aplicación
 
