@@ -63,11 +63,31 @@ Decisiones tomadas dentro del alcance:
   - El comando que cito es el documentado en el repo, `publicar-web.sh publicar <sha>`. Dir_DTD lo llamó
     `publicar.sh`.
 
+- **Revisión de Dir_DTD sobre `cb7de5ed8` (CHANGES_REQUESTED), atendida:**
+  - Alta: dos capas. Por ruta, las `page.tsx` de las zonas con sesión van a revisión, y se suman palabras
+    nuevas (`clientes`, `perfil`, `profile`, `ficha`, `contacto`, `gps`, `ubicacion`, `tms`, `admin`, `rbac`,
+    `backfill`). Por contenido, una pantalla en ruta segura va a revisión si una línea agregada o quitada toca
+    puertas, sesión, lecturas o escrituras. Sin el diff, una pantalla da revisión. Las pruebas cubren los casos
+    del revisor.
+  - Media: el JSON v2 trae `head`. `--pr` compara la cabeza antes y después del diff, y el runbook pide que el
+    tren fusione con `--match-head-commit <head>`. `project-rules`, `publicacion-automatica-web` y `.harness/` van
+    a revisión. En el §5 de migraciones, publicar pide su propia autorización y arrastra las PR rápidas
+    pendientes.
+  - Baja: `--help` sale con 2. Los ayudantes de `e2e/` y `lib/i18n/*.ts` son código. Los documentos fechados
+    quedan como están, con una nota en el runbook. En `publicar-web.sh` solo se tocó el comentario.
+  - En el árbol, con el contenido de cada archivo como diff, quedan 239 pantallas en `rapido`. Dos traen un
+    `fetch` GET de lectura (`ZipButton.tsx` y `BugReplayPlayer.tsx`).
+
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
 |---|---|---|
 | `node --test scripts/tests/carril.node.mjs` | `d4bdcb406` | PASÓ (108/108) |
+| `node --test scripts/tests/carril.node.mjs` tras la revisión | `d6249d98a` y siguientes | PASÓ (149/149) |
+| Mutaciones de la capa nueva: sin contenido sensible, sin «sin-contenido», sin chequeo de cabeza, sin `(?<!Array)` | copia restaurada | PASÓ: 18, 3, 1 y 1 en rojo |
+| `--pr 727/724/723/715` contra GitHub, con `head` | PRs fusionadas | PASÓ: rapido (docs), rapido (docs), revision (skill), rapido (docs) |
+| Simulación de `carril.yml` con un merge real de prueba (`--diff --head HEAD^2`) | diff de esta PR | PASÓ: revision, `head` correcto, exit 0 |
+| `bash -n infra/ops/web/publicar-web.sh` | comentario | PASÓ |
 | Mutaciones a mano: carril fijo en rapido, sin causantes, `---` dentro de un hunk, temas aplicados a docs | copia de trabajo, restaurada | PASÓ: 48, 5, 1 y 24 pruebas en rojo, en ese orden |
 | `node --test` de `harness-discovery` y `verify-harness-discovery` | `d4bdcb406` | PASÓ (5/5) |
 | Simulación del paso de `carril.yml` en un worktree descartable (commit sintético sobre la base) | diff de esta PR | PASÓ: da `revision` (gobernanza y ci), resumen y anotación correctos, exit 0 |
