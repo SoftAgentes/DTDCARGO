@@ -122,7 +122,7 @@ Viven en `app/studio/_components/ui/`:
 
 - `Avatar` · iniciales + color (wine | success | info | neutral)
 - `Badge` · tonos `success` / `warning` / `danger` / `info` / `wine` / `neutral`,
-  sizes `xs` / `sm` / `md`. El tono `wine` está en revisión por BD-076
+  sizes `xs` / `sm` / `md`. El tono `wine` se retira (BD-076 regla 7): `neutral` si informa, `success` si confirma, tinta si cuenta una selección. Antes estaba en revisión por BD-076
   (SDD-0686 §10): no lo uses en badges nuevos.
 - `EmptyState` · eyebrow + título + descripción + action opcional
 - `KpiCard` · número grande + label + sub
