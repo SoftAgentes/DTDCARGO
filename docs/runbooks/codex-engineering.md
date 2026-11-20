@@ -356,7 +356,10 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
    - texto plano: `.txt` de `app/` o `public/` y diccionarios `.json` de `lib/i18n/`;
    - pruebas: `__tests__/`, `*.test.*`, `*.spec.*` y `scripts/tests/*.node.mjs`. En `e2e/` solo cuentan los
      `*.spec.*`; los ayudantes y los diagnósticos son código;
-   - estilos: `.css` y `lib/design-tokens.ts`;
+   - estilos: `.css` y `.scss`;
+   - tokens de diseño: `lib/design-tokens.ts`. Es TypeScript ejecutable (lo importan decenas de pantallas, con
+     `buildWhatsAppLink`), así que se lee como una pantalla: su contenido y sus imports pasan por la capa 4. La
+     palabra «tokens» de su nombre no cuenta como tema;
    - pantallas y componentes: `.tsx` de `app/` o `components/`, salvo `layout.tsx` y `template.tsx`;
    - imágenes y fuentes de `public/`, `docs/` y `lib/font-files/`.
 4. **Contenido de las pantallas, por archivo y por lo que importan.** Para cada pantalla que llegó hasta aquí,
@@ -374,12 +377,22 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
      `*-actions`);
    - otras: `@supabase/` y `lib/db` o `@/lib/auth`.
 
-   Además, **los imports con código** de la pantalla (`@/…` y relativos; no los `import type`) se leen en **dos
-   niveles**: lo que importa la pantalla y lo que importan esos módulos. Si un módulo importado cae en una regla
-   fija o en un tema por su ruta (por ejemplo `lib/studio/accounting/…`, `lib/marca/access.ts` o
-   `WhatsAppFAB.tsx`), o si su contenido trae una marca (incluido `"use server"`), la pantalla va a `revision`. Así
-   caen la pantalla que llama a `voidExpenseEntriesForExpense` (escribe asientos con service role) y la que usa la
-   puerta `hasBrandAccess` con otro nombre. Los módulos de estilos y de textos (`lib/design-tokens.ts`) no cuentan.
+   Además, se recorre **el cierre completo de los imports con código** de la pantalla (`@/…` y relativos; no los
+   `import type`): lo que importa, lo que importan esos módulos, y así hasta el final, por lotes y sin repetir. La
+   pantalla va a `revision` si algún módulo del cierre cumple una de estas condiciones:
+   - cae en una regla fija o en un tema por su ruta, por ejemplo `lib/studio/accounting/…`,
+     `lib/marca/access.ts` o `WhatsAppFAB.tsx`;
+   - su contenido trae una marca, incluido `"use server"`;
+   - es un archivo de prueba (`__tests__/`, `*.test.*`, `*.spec.*`): código de producción que importa una prueba
+     va a revisión.
+
+   Todo `.ts`/`.tsx` importado se lee, también `lib/design-tokens.ts` y las pruebas. Así caen la pantalla que llama
+   a `voidExpenseEntriesForExpense` (escribe asientos con service role), la que usa la puerta `hasBrandAccess` con
+   otro nombre y la que usa una función de `design-tokens` a la que se le agregó un `fetch`.
+
+   El recorrido tiene un tope de **10 niveles o 2.000 archivos** (`TOPE_IMPORTS`). Si se llega al tope, la
+   pantalla va a `revision`: lo que no se pudo mirar no se da por limpio. Los ciclos de imports se detectan y no
+   cuelgan.
 
    Decidir por archivo cierra el hueco de mirar solo las líneas cambiadas. Quitar `.is("deleted_at", null)` o una
    puerta `canAccessModule(…)` cae en revisión porque la base las tenía, aunque el `.from(` o el import estén en
@@ -393,23 +406,31 @@ archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y o
    - un import trae un salto de línea en su ruta;
    - la salida de `git cat-file --batch` no cuadra con lo pedido (eso es un error, código `2`).
 
-   Los documentos, los estilos, el texto plano y las pruebas no se leen.
+   - el recorrido de imports llega al tope.
+
+   Los documentos, los estilos, el texto plano y las pruebas no se leen cuando cambian ellos mismos. Sí se leen
+   cuando una pantalla los importa.
 5. Todo lo demás: `revision` («sin-clasificar»). Esto incluye la lógica de `lib/` (también los diccionarios
    `lib/i18n/**/*.ts`, que son TypeScript ejecutable), los scripts y los ayudantes de `e2e/`.
 
-En el carril rápido quedan los componentes de presentación cuyo archivo y cuyos imports (dos niveles) no traen
-ninguna marca ni caen en un tema. Se suman los estilos, el texto plano, los documentos y las pruebas. Al
-2026-11-20 son **131 pantallas** del árbol. Antes de leer los imports eran 216, y antes de leer el archivo
-completo, 239. Son casi todas tarjetas, tablas, insignias, iconos y bloques de texto. La regla de imports es
-conservadora: las páginas públicas que usan `WhatsAppFAB` caen por su ruta («whatsapp», integraciones).
+En el carril rápido quedan los componentes de presentación cuyo archivo y cuyo cierre de imports no traen
+ninguna marca ni caen en un tema, más `lib/design-tokens.ts` mientras siga limpio. Se suman los estilos, el texto
+plano, los documentos y las pruebas. Al 2026-11-20 son **128 pantallas** del árbol. La cifra fue bajando con cada
+capa:
 
-**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve estos casos:
+| Capa | Pantallas en rápido |
+|---|---|
+| Solo por ruta | 239 |
+| Más el archivo completo (base y cabeza) | 216 |
+| Más dos niveles de imports | 131 |
+| Más el cierre completo de imports | 128 |
 
-- una lectura o escritura que está a **tres niveles o más** de la pantalla (pantalla → módulo → módulo → la
-  función que escribe), cuando los dos primeros niveles no traen marca ni caen en un tema;
-- un permiso que llega por prop, o un callback que escribe cuando la llamada no le pasa un objeto
-  (`onSave(id)`). La escritura vive en el padre, que suele ser una `page.tsx` de una zona con sesión y va a
-  revisión, pero un cambio solo en el hijo no.
+Son casi todas tarjetas, tablas, insignias, iconos y bloques de texto. La regla de imports es conservadora: las
+páginas públicas que usan `WhatsAppFAB` caen por su ruta («whatsapp», integraciones).
+
+**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve un permiso que llega por
+prop, ni un callback que escribe cuando la llamada no le pasa un objeto (`onSave(id)`). La escritura vive en el
+padre, que suele ser una `page.tsx` de una zona con sesión y va a revisión, pero un cambio solo en el hijo no.
 
 Esa es la razón de la revisión de madrugada. Las reglas nuevas para tapar un caso así, o para ampliar la lista de
 rutas seguras, van en una PR con revisión previa, porque tocan `scripts/carril.mjs`.
@@ -428,6 +449,10 @@ Las pruebas viven en `scripts/tests/carril.node.mjs` y corren con `pnpm harness:
 - los casos de la tercera revisión dan `revision`: una pantalla que llama a `voidExpenseEntriesForExpense`
   (`lib/studio/accounting/expense-posting.ts`), la que importa `lib/marca/access.ts` (`hasBrandAccess`), un
   módulo sensible en el segundo nivel y un import con salto de línea; un `import type` no cuenta;
+- los casos de la cuarta revisión: `lib/design-tokens.ts` con un `fetch` POST da `revision` (sola o importada por
+  una pantalla) y limpia da `rapido`; una pantalla que importa un archivo de `__tests__/` da `revision`; una
+  marca en el cuarto nivel se encuentra; los ciclos no cuelgan, y llegar al tope de niveles o de archivos da
+  `revision`;
 - el contrato de abajo.
 
 ### Contrato para el tren del Director
@@ -450,8 +475,8 @@ node scripts/carril.mjs --json --pr <N>
   la cabeza tiene que ser esa: si no, es un error.
 - **De dónde salen los archivos.** `--pr` trae la cabeza con `git fetch --no-tags origin pull/<N>/head` y calcula
   la base como el merge-base de la cabeza con `origin/main` (otra rama con `--base <ref>`). Lee las pantallas y
-  sus imports en tres versiones (la base, la cabeza y `origin/main` tal como está en la copia del tren), con un
-  `git cat-file --batch` por vuelta. Por eso se corre en una copia del repo con `origin` recién traído. Si git
+  el cierre de sus imports en tres versiones (la base, la cabeza y `origin/main` tal como está en la copia del
+  tren), con un `git cat-file --batch` por nivel. Por eso se corre en una copia del repo con `origin` recién traído. Si git
   falla, o su salida no cuadra con lo pedido, es un error.
 - **Lo que no lee.** Los cambios que lleguen a `main` después de esa lectura no se ven. No hace falta: el tren
   clasifica la cabeza ya actualizada, porque exige que la PR no esté BEHIND de `main`, y fusiona con

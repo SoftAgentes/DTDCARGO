@@ -112,6 +112,18 @@ Decisiones tomadas dentro del alcance:
   - En el árbol quedan **131 pantallas** en `rapido` (antes, 216). El costo más grande de la regla de imports son
     las 19 páginas que importan `WhatsAppFAB`, que cae por la palabra «whatsapp».
 
+- **Cuarta revisión de Dir_DTD sobre `0bdd05ba8` (CHANGES_REQUESTED), atendida:**
+  - `lib/design-tokens.ts` sale de «estilos» y se lee como una pantalla (regla `tokens-de-diseno`). La palabra
+    «tokens» de su nombre no cuenta como tema. La excepción de los módulos importados vale solo para lo que no es
+    código: todo `.ts`/`.tsx` importado se lee, también `design-tokens` y las pruebas.
+  - Si código de producción importa un archivo de prueba (`__tests__/`, `*.test.*`, `*.spec.*`), va a revisión.
+    Un archivo de prueba cambiado por sí solo sigue en el carril rápido.
+  - El recorrido de imports ya no tiene profundidad fija: recorre el cierre completo, por lotes, con un tope de 10
+    niveles o 2.000 archivos (`TOPE_IMPORTS`). Si llega al tope, la pantalla va a revisión. Detecta los ciclos.
+  - En el árbol quedan **128 pantallas** en `rapido`, más `design-tokens` limpio (antes, 131). Salieron justo
+    las tres que midió el revisor: `BloqueProveedor.tsx`, `DayDrawer.tsx` y `ShipmentDetailDrawer.tsx`. Ninguna
+    llega al tope.
+
 ## VALIDACIÓN
 
 | Comprobación | Alcance | Resultado |
@@ -131,6 +143,9 @@ Decisiones tomadas dentro del alcance:
 | Mutaciones de la tercera vuelta: sin imports de nivel 1, sin nivel 2, `import type` cuenta, sin chequeo de que cuadre, sin exención de estilos, sin marca `fetch(` | copia restaurada | PASÓ: 2, 1, 1, 1, 1 y 1 en rojo |
 | `--pr 727/721/726` con git real (tres versiones) | PRs | PASÓ: rapido, revision (15 de 36), revision; 7 a 12 s |
 | Simulación de `carril.yml` sobre un merge real | más `ZzAnula.tsx`, que llama a `voidExpenseEntriesForExpense` | PASÓ: `ZzAnula.tsx` da revision por el import y `ZzNuevo.tsx` da rapido |
+| `node --test scripts/tests/carril.node.mjs` tras la cuarta revisión | cabeza de esta vuelta | PASÓ (197/197) |
+| Mutaciones de la cuarta vuelta: sin regla de prueba importada, `design-tokens` vuelve a estilos, sin excepción de nombre, sin tope, sin recursión | copia restaurada | PASÓ: 1, 1, 3, 1 y 3 en rojo |
+| `--pr 721/727` con git real | PRs | PASÓ: revision (15 de 36) y rapido; 7 a 9 s |
 | Mutaciones a mano: carril fijo en rapido, sin causantes, `---` dentro de un hunk, temas aplicados a docs | copia de trabajo, restaurada | PASÓ: 48, 5, 1 y 24 pruebas en rojo, en ese orden |
 | `node --test` de `harness-discovery` y `verify-harness-discovery` | `d4bdcb406` | PASÓ (5/5) |
 | Simulación del paso de `carril.yml` en un worktree descartable (commit sintético sobre la base) | diff de esta PR | PASÓ: da `revision` (gobernanza y ci), resumen y anotación correctos, exit 0 |
