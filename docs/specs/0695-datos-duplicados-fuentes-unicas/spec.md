@@ -434,10 +434,19 @@ Propuesta, sujeta a P-1:
     antes del `update` hace `perform set_config('request.jwt.claim.sub', p_actor::text, true)`. Eso dura solo
     en la transacción. Así `auth.uid()` devuelve al operador dentro del trigger, y el audit registra
     `'user'` con su id;
+  - **`p_actor` se valida en la RPC.** Si es nulo, o no es un usuario del Studio del tenant del cliente con
+    permiso para editar clientes, la RPC termina con error y no cambia nada. En la acción,
+    `updateClientAction` lo toma de `supabase.auth.getUser()` **después** de `moduleEditDenial`, y **nunca de
+    `formData`**. Lo vigila una prueba de contrato;
+  - **`set_config(…, true)` vale solo en la transacción.** Al terminar, el claim vuelve a quedar vacío para
+    cualquier otra transacción de la misma conexión del pool;
   - **el orden en la acción:** cuando el correo cambia, `updateClientAction` guarda los demás campos **sin
     `email`** y después llama a la RPC, que es **la única que escribe `clients.email`** en ese flujo. La
     acción no hace otro `update` del correo. Si la RPC falla, la acción responde con el error del correo, y
     el mensaje dice que los demás datos sí se guardaron.
+- **Borrar el correo de una ficha con acceso activo se rechaza.** La acción responde con un error de campo:
+  «Este cliente entra al portal con su correo. Para quitarlo, primero revoca su acceso». La RPC también lo
+  rechaza si `p_new_email` llega vacío. Sin acceso activo, se puede dejar la ficha sin correo, como hoy.
 - La tarjeta de acceso de la ficha dice «Sin comprobar desde …» y el botón «Reenviar comprobación» sirve
   para cualquier cuenta, no solo para las del enlace.
 
@@ -522,8 +531,20 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
 
 **Diseño, en este orden:**
 
-1. **Primero, una sola RPC atómica** para el cambio de predeterminada:
-   - `client_delivery_address_save(p_client_id, p_address_id, …, p_make_default)`:
+1. **Primero, un solo camino de escritura.** Desde `app/` y `lib/`, toda escritura de
+   `client_delivery_addresses` pasa por una de estas dos RPC:
+   - `client_delivery_address_save`, para quien tiene sesión;
+   - `client_delivery_address_save_service`, con la misma lógica, `security definer` y **solo para
+     service_role**, para el registro de la página, que no tiene sesión de usuario.
+
+   **Las dos nacen en la 0694 F-2**, que es la primera que las necesita (el alta del Studio y la dirección
+   rápida del registro). La F-9a de esta spec pasa a ellas a los llamadores que quedan y agrega la prueba de
+   contrato. Si la 0694 F-2 todavía no está en `main` cuando arranque la F-9a, la F-9a las crea con la
+   misma definición, y la 0694 F-2 las reutiliza. Las RPC SQL que escriben dentro de su propia transacción
+   (el registro por enlace, la copia de la 0694 §4.1 y el `_complete` de la 0696) cumplen la regla porque
+   son una sola transacción.
+
+   Detalle de `client_delivery_address_save(p_client_id, p_address_id, …, p_make_default)`:
      - es `security invoker`, así que rige la RLS de la 0198;
      - tiene `search_path = ''` y `revoke` de `public` y `anon`. Solo la ejecuta `authenticated`;
    - cubre los tres flujos de hoy, que son alta, edición y elegir predeterminada:
@@ -595,7 +616,8 @@ Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
   | `clientCompleteness` → `hasDeliveryAddress` | 0694 F-1 | La 0695 F-8 cambia el cálculo por la vista, conservando la regla, y va después |
   | Ciudad y estado | 0694, decisión 8 (cerrada) | La 0695 no pregunta de nuevo |
   | La persona de la ficha fusionada (`person_id` en `merge_clients`, `coalesce` en `0361:258`) | 0695 F-3 (§4.4) | La F-3 no toca `merge_clients`: el caso de dos personas lo marca la vista (`persona_por_revisar`). La 0694 F-2 conserva la línea tal cual al redefinir `merge_clients`, y la 0695 F-6 también |
-  | La regla de una sola predeterminada (§4.10) | 0695 F-9 | La 0694 no la repite. Su helper lee «la más reciente» mientras tanto |
+  | Las RPC de escritura `client_delivery_address_save` y `_save_service` | 0694 F-2, que las crea | La 0695 F-9a pasa a ellas a los demás llamadores y es dueña de la prueba de contrato del camino único (§4.10) |
+  | La regla de una sola predeterminada (los triggers y el preflight, §4.10) | 0695 F-9b | La 0694 no la repite. Su helper lee «la más reciente» mientras tanto |
 
   La misma tabla se cita en la 0694 (§8).
 - **0696** (cliente final del aliado): el cliente final guarda su dirección en la misma fuente única,
@@ -714,9 +736,19 @@ Cada pregunta trae la recomendación primero.
      interna y `pending_email` en el nuevo. **Un caso de control** crea la fila con `pending_email` igual al
      nuevo y comprueba que el trigger no actúa. Así queda probado por qué el orden importa.
    - Con `p_actor`, el evento de `audit_d5_clients_contact` tiene `actor_type = 'user'` y ese id, no
-     `'system'`.
+     `'system'`. **Esta prueba carga la definición real de `auth.uid()` de Supabase**, que lee
+     `request.jwt.claim.sub` y, si no está, `request.jwt.claims`. No usa el reemplazo que devuelve null de
+     `oficina-despachador.test.ts:39`. Comprueba que `claim.sub` manda.
+   - **En una segunda transacción**, en la misma conexión, `current_setting('request.jwt.claim.sub', true)`
+     está vacío y `auth.uid()` es null: el actor no se filtró.
+   - `p_actor` nulo, un actor de otro tenant, uno sin permiso de edición y uno inexistente: la RPC rechaza
+     los cuatro y no crea fila ni cambia el correo.
+   - Una prueba de contrato comprueba que `updateClientAction` obtiene el actor de `auth.getUser()`, después
+     de `moduleEditDenial`, y que no lee ningún `actor` de `formData`.
    - `client_email_change_service` solo la ejecuta service_role (`has_function_privilege`). Si el `update`
      falla (por ejemplo, un correo inválido), no queda ninguna fila nueva en `client_email_checks`.
+   - Borrar el correo de una ficha con acceso activo da el error de campo y no cambia nada. Sin acceso
+     activo, se puede.
    - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
    - Si crear la fila de comprobación falla, el correo de la ficha no cambia.
    - Cambiar el dueño de una tarjeta con ficha cambia `advisor_id`, y el portal muestra el mismo asesor que
@@ -733,9 +765,13 @@ Cada pregunta trae la recomendación primero.
      - Mi perfil (`addAddressAction` con sus dos ramas, `updateAddressAction` y `setDefaultAddressAction`) y
        la tarjeta del Studio cambian la predeterminada en **una sola llamada** a
        `client_delivery_address_save`;
-     - una prueba de contrato falla si `clearDefaultForClient`, `setDefaultDeliveryAddress`, o
-       `insertClientDeliveryAddress` y `updateClientDeliveryAddress` con `isDefault`, vuelven a llamarse
-       fuera de la RPC en `app/` o `lib/`;
+     - una prueba de contrato falla si en `app/` o `lib/` aparece una escritura de
+       `client_delivery_addresses` que no pase por `client_delivery_address_save` o
+       `client_delivery_address_save_service`. Eso incluye llamadas a `clearDefaultForClient`,
+       `setDefaultDeliveryAddress`, `insertClientDeliveryAddress` y `updateClientDeliveryAddress`, y un
+       `.from("client_delivery_addresses")` con `insert`, `update` o `upsert`. **El alta del Studio y el
+       registro de la 0694 entran en la misma regla**, no en una excepción;
+     - `client_delivery_address_save_service` no la puede ejecutar `authenticated` ni `anon`;
      - funcionan por los dos caminos: agregar una predeterminada, elegir otra existente y editar la
        predeterminada sin cambiar la marca;
      - desmarcar la única predeterminada devuelve el error de campo y no cambia nada;
@@ -806,7 +842,7 @@ migraciones las numera Dir_DTD.
     `lib/studio/client-types.ts`;
   - las reimplementaciones de fecha de D-9.
 - **F-9a:**
-  - `NNNN_client_delivery_address_save.sql`, con su `.test.sql`;
+  - `NNNN_client_delivery_address_save.sql` y su `.test.sql`, **solo si** la 0694 F-2 no los trajo antes;
   - `lib/studio/client-address-queries.ts`;
   - `app/portal/(app)/perfil/address-actions.ts` (`addAddressAction`, `updateAddressAction` y `setDefaultAddressAction`) y
     `app/studio/(app)/clientes/actions.ts` (`addClientAddressAction` y `setDefaultClientAddressAction`);

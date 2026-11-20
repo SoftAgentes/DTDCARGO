@@ -146,3 +146,13 @@
   registra al operador. La RPC es la única que escribe `clients.email` en ese flujo.
 - **`persona_por_revisar`.** Pasa a la F-3 como la vista mínima `client_person_review`.
 - **Plan B.** El aviso está en la allowlist de la F-2 (`facturacion/page.tsx` y `Aviso.tsx`).
+
+## Sexta vuelta (sobre 4c91ef618), corregida
+
+- **Un solo camino de escritura.** Las RPC `client_delivery_address_save` y `_service` nacen en la 0694 F-2.
+  La F-9a mueve a ellas el resto de los llamadores, y la prueba de contrato no deja excepciones para la
+  0694. Las dos tablas de dueñas quedaron actualizadas (la 0694 va en 04de4d326).
+- **`p_actor`.** Se valida en la RPC: no puede ser nulo ni de otro tenant, tiene que tener permiso y tiene
+  que existir. Sale de `auth.getUser()` después de `moduleEditDenial`.
+- **`set_config`.** Hay una prueba en una segunda transacción, con la definición real de `auth.uid()`.
+- **Correo vacío con acceso activo.** Se rechaza.
