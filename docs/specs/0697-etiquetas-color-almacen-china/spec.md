@@ -478,10 +478,12 @@ create table public.warehouse_tags (
   archived_by    uuid references auth.users(id),
   check (nombre_es is not null or nombre_zh is not null),
   check ((archived_at is null) = (archived_by is null)),
-  check ((efecto_fijado_at is null) = (efecto_fijado_por is null)),
+  -- Quien fija implica cuándo, no al revés: la siembra queda con fijado_at = now() y fijado_por nulo,
+  -- que significa «fijado por la migración».
+  check (efecto_fijado_por is null or efecto_fijado_at is not null),
   check (efecto_fijado_at is not null or efecto = 'ninguno')
 );
--- El catálogo inicial nace fijado (efecto_fijado_at = momento de la migración).
+-- El catálogo inicial nace fijado: efecto_fijado_at = pg_catalog.now() y efecto_fijado_por nulo.
 
 create unique index warehouse_tags_nombre_es_vivo_uq
   on public.warehouse_tags (tenant_id, lower(btrim(nombre_es)))
@@ -557,8 +559,8 @@ revoke all on function public.warehouse_receipt_events_tags_solo_rpc()
 ```
 
 **Migración C — etapa 2, solicitudes y comentarios (F2).** Empieza con el mismo precheck de roles, columnas y
-`append_audit_event` que la B, y comprueba que el cuerpo vigente de `comment_entity_in_tenant` es el de la
-0215 antes de reemplazarlo.
+`append_audit_event` que la B, y comprueba por md5 de `prosrc` que el cuerpo vigente de `comment_entity_in_tenant` es
+uno de los conocidos antes de reemplazarlo.
 
 ```sql
 -- Indicadores que pone Venezuela en el embarque (§2.3.1).
@@ -624,8 +626,14 @@ create policy "warehouse_tag_change_requests lectura miembro activo"
 -- vigente (leída del catálogo en el precheck) más los dos nuevos.
 --   'warehouse_receipt_tag', 'shipment_tag'
 -- comment_entity_in_tenant: cuerpo completo (las nueve ramas de 0215:107-143 más las dos nuevas).
--- Precheck antes de reemplazar: md5 del prosrc vigente = md5 del cuerpo de la 0215; si no coincide,
--- la migración aborta (alguien la cambió después y hay que mirar antes de pisarla).
+-- Precheck antes de reemplazar, como la 0473 (0473:41-45): se hashea pg_proc.prosrc (el texto entre
+-- los $$, no la definición entera) y se acepta un CONJUNTO de md5:
+--   '86d37a438337bc91e2f44e204d2051d4'  -- cuerpo del archivo 0215 (1557 bytes; CI lo verifica)
+--   '473bd66fcd3a2ccc1fe83f0d1699b63a'  -- cuerpo vivo en producción (1418 bytes; medido por el DG
+--                                          el 2026-11-20 solo en el catálogo: la 0215 perdió dos
+--                                          comentarios al aplicarse)
+--   '<md5 del cuerpo de abajo>'         -- la propia C: re-aplicarla no cambia nada
+-- Cualquier otro md5 aborta: alguien la cambió después y hay que mirar antes de pisarla.
 create or replace function public.comment_entity_in_tenant(
   p_entity_type text,
   p_entity_id   uuid,
@@ -707,7 +715,7 @@ Candados por RPC:
 | `quitar_etiqueta_recepcion(p_asignacion_id, p_motivo)` | `admin`, o `warehouse`/`operations` de región `cn`; si el indicador tiene efecto de dinero, solo por solicitud aprobada | Exige que la asignación sea del tenant del actor y siga viva; marca `removed_*` y escribe `tag_removed` con el motivo. Venezuela no puede |
 | `poner_indicador_embarque(p_shipment_id, p_tag_id, p_nota)` (C) | `admin`, o `warehouse`/`operations` de región `ve` | Valida embarque vivo del tenant e indicador no archivado; inserta en `shipment_tags` y audita |
 | `quitar_indicador_embarque(p_asignacion_id, p_motivo)` (C) | ídem; con efecto de dinero, solo por solicitud aprobada | Marca `removed_*` y audita |
-| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve` | Compare-and-set: `update public.warehouse_tags set efecto = p_efecto, efecto_fijado_at = pg_catalog.now(), efecto_fijado_por = auth.uid() where id = p_id and tenant_id = <tenant> and efecto_fijado_at is null returning id`; si no devuelve fila, `P0001` («el efecto ya está fijado; pide el cambio»). Audita |
+| `fijar_efecto_indicador(p_id, p_efecto)` (C) | `admin`, o `operations`/`accounting` de región `ve` | Compare-and-set sobre un indicador **vivo**: `update public.warehouse_tags set efecto = p_efecto, efecto_fijado_at = pg_catalog.now(), efecto_fijado_por = auth.uid() where id = p_id and tenant_id = <tenant> and archived_at is null and efecto_fijado_at is null returning id`. `p_efecto = 'ninguno'` se permite: fija «sin efecto» y lo cierra igual; si no devuelve fila, `P0001` («el efecto ya está fijado; pide el cambio»). Audita |
 | `pedir_cambio_indicador(p_accion, p_objetivo_id, p_cambios, p_motivo)` (C) | quien podría hacer ese cambio si el indicador no tuviera dinero | Crea la solicitud `pendiente` |
 | `aprobar_cambio_indicador(p_id, p_comentario)` (C) | `admin` o `accounting` (`approve_tag_changes`), distinto de quien pidió | Llama a `aplicar_cambio_indicador` en la misma transacción y cierra la solicitud |
 | `rechazar_cambio_indicador(p_id, p_comentario)` (C) | ídem | Cierra la solicitud sin cambios |
@@ -976,12 +984,19 @@ T1, `operations` T1, `support` T1, miembro deshabilitado T1, `warehouse` T2 y un
     auditoría.
 29. **No se reabre:** una solicitud aprobada lleva un efecto de `cobro_cliente` a `ninguno` → `efecto_fijado_at`
     sigue con valor y `fijar_efecto_indicador` falla.
-30. **Crear desde China:** `warehouse` de región `cn` crea un indicador con efecto `cobro_cliente` → falla; sin
-    efecto → nace `ninguno` y sin fijar. `operations` de región `ve` lo crea con `tarea` → nace fijado.
+30. **Crear desde China y siembra:** `warehouse` de región `cn` crea un indicador con efecto `cobro_cliente` →
+    falla; sin efecto → nace `ninguno` y sin fijar. `operations` de región `ve` lo crea con `tarea` → nace
+    fijado con su `efecto_fijado_por`. Con la migración B aplicada de verdad, los ocho sembrados existen con
+    `efecto_fijado_at` no nulo y `efecto_fijado_por` nulo, y `fijar_efecto_indicador` sobre uno de ellos falla.
+    `fijar` sobre un indicador archivado falla; `fijar` con `ninguno` sobre uno sin fijar pasa y lo cierra.
 31. **Regresión de comentarios:** después de la migración C, comentar en cada uno de los nueve tipos que ya
     existían (`shipment`, `client`, `invoice`, `quote`, `dispatch_order`, `supplier_bill`,
     `warehouse_receipt_cn`, `warehouse_receipt_ve`, `bitacora_task`) sigue pasando con una entidad del tenant y
     falla con una de otro tenant; un tipo desconocido sigue fallando.
+33. **md5 del cuerpo de la 0215 en CI:** una prueba lee `supabase/migrations/0215_bitacora_enums.sql`, toma el
+    texto entre los `$$` de `comment_entity_in_tenant` y comprueba que su md5 es
+    `86d37a438337bc91e2f44e204d2051d4`, el que acepta el precheck de la C (patrón de
+    `lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts`).
 32. **Cancelar ajena o cerrada:** cancelar una solicitud de otro usuario, o una ya aprobada, rechazada o
     cancelada, falla con `42501` y no cambia la fila.
 
