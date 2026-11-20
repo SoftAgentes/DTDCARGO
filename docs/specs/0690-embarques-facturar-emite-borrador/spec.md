@@ -279,7 +279,9 @@ Base de datos:
 - la plomería que el runbook y la CI piden para una migración nueva, igual que la 0564 (#684):
   `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json`,
   `supabase/migrations.lock.json`, `scripts/ci-sql-tests-control.sh` (montaje del desarme) y
-  `scripts/__tests__/invoice-read-boundary.test.mjs` (inventario de lecturas de facturas).
+  `scripts/__tests__/invoice-read-boundary.test.mjs` (inventario de lecturas de facturas);
+- `lib/studio/rbac-actions-guard.test.ts`, solo el inventario de acciones exportadas (496 → 497) y su
+  comentario, igual que la 0674.
 
 Cargador:
 - `scripts/consolidados/generar-lote.ts` y `scripts/consolidados/lote-sql.ts` (modo `--solo-facturas`);
