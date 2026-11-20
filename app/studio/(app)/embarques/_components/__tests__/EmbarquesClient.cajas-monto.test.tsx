@@ -2,8 +2,9 @@
  * SDD-0661 · Render del diseño elegido por Sam («Franja + Excel»):
  *  - cabecera cerrada: clientes, envíos, cajas y m³;
  *  - al abrir: franja de totales y detalle por cliente con «Total del contenedor»;
- *  - «Por cobrar» y «Cobrado» sólo si la página pasó `montos`; sin facturas,
- *    «Sin facturar», nunca $0.00.
+ *  - SDD-0690 (versión B): «Total del embarque», «Pagado» y «Saldo» sólo si la página pasó
+ *    `montos`, con «Sin facturar» (las pre-órdenes) como desglose; sin facturas, «Sin precio»,
+ *    nunca $0.00. El total del detalle lleva a la factura o a la pre-orden.
  * Datos inventados.
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -64,8 +65,8 @@ const DATOS: ContenedoresDeEmbarques = {
 const MONTOS: MontosDeContenedores = {
   estado: "lista",
   porEmbarque: {
-    a1: { facturas: 1, porCobrarUsd: 12000, cobradoUsd: 5000, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0 },
-    a2: { facturas: 2, porCobrarUsd: 345.5, cobradoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 345.5 },
+    a1: { facturas: 1, totalUsd: 12000, pagadoUsd: 5000, otraMoneda: 0, borradores: 0, sinFacturarUsd: 0, documentos: [] },
+    a2: { facturas: 2, totalUsd: 345.5, pagadoUsd: 0, otraMoneda: 1, borradores: 1, sinFacturarUsd: 345.5, documentos: [] },
   },
 };
 
@@ -111,7 +112,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(franja.textContent).toContain("Cajas1.235");
     expect(franja.textContent).toContain("Cajas recibidas1.200");
     expect(franja.textContent).toContain("CBM total3 m³");
-    expect(screen.queryByText(/Por cobrar|Cobrado|Sin facturar/)).toBeNull();
+    expect(screen.queryByText(/Total del embarque|Pagado|Saldo|Sin facturar|Por cobrar|Cobrado/)).toBeNull();
 
     const tabla = within(region("DDP 64")).getByRole("table");
     expect(fila(tabla, /Cliente Uno/)).toEqual(["2", "1.234", "1.200", "2", "Sin peso"]);
@@ -128,32 +129,34 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     expect(fila(tabla, /Total del contenedor/)).toEqual(["1", "8", "Sin recepción", "1", "Sin peso"]);
   });
 
-  it("con montos (contabilidad): por cobrar y cobrado en la franja y en columnas", async () => {
+  it("con montos (contabilidad): total, pagado y saldo en la franja y en columnas", async () => {
     render(
       <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     await userEvent.click(cabecera("DDP 64"));
     const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
-    expect(franja.textContent).toContain("Por cobrar$12,345.50");
-    expect(franja.textContent).toContain("Cobrado$5,000.00");
+    expect(franja.textContent).toContain("Total del embarque$12,345.50Sin facturar $345.50");
+    expect(franja.textContent).toContain("Pagado$5,000.00");
+    expect(franja.textContent).toContain("Saldo$7,345.50");
+    expect(franja.textContent).not.toMatch(/Por cobrar|Cobrado/);
     expect(within(region("DDP 64")).getByText(/1 factura está en otra moneda/)).toBeTruthy();
 
     const tabla = within(region("DDP 64")).getByRole("table");
-    expect(fila(tabla, /Cliente Uno/).slice(5)).toEqual(["$12,000.00", "$5,000.00"]);
-    expect(fila(tabla, /Cliente Dos/).slice(5)).toEqual(["$345.50", "$0.00"]);
-    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["$12,345.50", "$5,000.00"]);
+    expect(fila(tabla, /Cliente Uno/).slice(5)).toEqual(["$12,000.00", "$5,000.00", "$7,000.00"]);
+    expect(fila(tabla, /Cliente Dos/).slice(5)).toEqual(["$345.50", "$0.00", "$345.50"]);
+    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["$12,345.50", "$5,000.00", "$7,345.50"]);
   });
 
-  it("sin facturas dice «Sin facturar», nunca $0.00", async () => {
+  it("sin facturas dice «Sin precio», nunca $0.00", async () => {
     render(
       <EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} montos={MONTOS} />,
     );
     await userEvent.click(cabecera("DDP 65"));
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
-    expect(franja.textContent).toContain("Por cobrarSin facturar");
+    expect(franja.textContent).toContain("Total del embarqueSin precio");
     expect(franja.textContent).not.toContain("$0.00");
     const tabla = within(region("DDP 65")).getByRole("table");
-    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["Sin facturar", "Sin facturar"]);
+    expect(fila(tabla, /Total del contenedor/).slice(5)).toEqual(["Sin precio", "Sin precio", "Sin precio"]);
   });
 
   it("si la lectura del monto falló, lo dice", async () => {
@@ -167,7 +170,7 @@ describe("EmbarquesClient · franja y detalle por cliente (SDD-0661)", () => {
     );
     await userEvent.click(cabecera("DDP 64"));
     const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
-    expect(franja.textContent).toContain("Por cobrarNo disponible");
+    expect(franja.textContent).toContain("Total del embarqueNo disponible");
   });
 
   it("al abrir el contenedor, el acordeón por cliente también dice sus cajas", async () => {
