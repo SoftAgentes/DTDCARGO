@@ -286,27 +286,27 @@ mide cada consulta y su lectura en términos cualitativos.
 
 | Hallazgo | Consulta | Qué cuenta | Lectura (2026-11-20) |
 |---|---|---|---|
-| D-8 | Q1 a Q4 | Grupos de fichas vivas con el mismo correo, el mismo teléfono (`phone_match_key`), el mismo documento o el mismo Shipping Mark sin distinguir mayúsculas | **Pocos** grupos por correo y por teléfono. **Ninguno** por documento ni por código |
-| D-1, D-2 | Q5 | Por canal de registro: fichas sin ninguna dirección, solo con la vieja, solo con la nueva, con las dos, y con ciudad | **Más de la mitad** de los clientes del portal no tiene ninguna dirección. Los importados del sistema viejo la tienen en las dos fuentes. Es materia de la 0694 |
-| D-1 | Q6 | Fichas con las dos fuentes y textos distintos | **Ninguna** |
-| D-1 | Q7 | Fichas con direcciones nuevas y ninguna predeterminada | **Algunas decenas.** Mientras tanto, el helper de la 0694 las lee como «la más reciente, sin predeterminada». La regla de integridad va en esta spec (§4.10, F-9) |
-| D-2 | Q8 | Fusiones en las que se perdió la ciudad | **Ninguna** hasta hoy |
-| D-3 | Q9 | Fichas sin `person_id`, por canal | **Casi todos** los clientes nuevos del portal. Ninguno de los importados. **Es el daño más grande medido** |
-| D-3 | Q10, Q11 | Personas ligadas que no coinciden con su ficha, y personas sueltas con la cédula de una ficha | **Casi ninguna** y **ninguna** |
-| D-4 | Q12, Q13 | Accesos activos cuyo correo no es el de la ficha, y Auth frente a `client_users` | **Muy pocos**, y **ninguno** |
-| D-5 | Q14 | Tarjetas con ficha cuyo dueño difiere del asesor de la ficha | **Ninguna** |
-| D-6 | Q15 | Copias de `client_name` distintas de la ficha (embarques, recepciones CN e ítems de consolidado) | **Ninguna:** el riesgo está latente, sin daño todavía |
-| D-7 | Q16, Q18 | Filas de `exc0674_*`, embarques, facturas y prealertas con el código de una ficha fusionada o inexistente | **Ninguna** |
+| D-8 | Q1 a Q4 | Grupos de fichas vivas con el mismo correo, el mismo teléfono (`phone_match_key`), el mismo documento o el mismo Shipping Mark sin distinguir mayúsculas | **Hay** por correo y por teléfono. **No hay** por documento ni por código |
+| D-1, D-2 | Q5 | Por canal de registro: fichas sin ninguna dirección, solo con la vieja, solo con la nueva, con las dos, y con ciudad | **Hay** clientes del portal sin ninguna dirección. Es materia de la 0694 |
+| D-1 | Q6 | Fichas con las dos fuentes y textos distintos | **No hay** |
+| D-1 | Q7 | Fichas con direcciones nuevas y ninguna predeterminada | **Hay.** Mientras tanto, el helper de la 0694 las lee como «la más reciente, sin predeterminada». La regla de integridad va en esta spec (§4.10, F-9) |
+| D-2 | Q8 | Fusiones en las que se perdió la ciudad | **No hay** |
+| D-3 | Q9 | Fichas sin `person_id`, por canal | **Hay**, en los clientes nuevos. **No hay** en los importados. Es el hallazgo con daño actual que más pesa en el Club y en Academia (F-3) |
+| D-3 | Q10, Q11 | Personas ligadas que no coinciden con su ficha, y personas sueltas con la cédula de una ficha | Q10: **hay** en el correo y **no hay** en el nombre ni en el documento. Q11: **no hay** |
+| D-4 | Q12, Q13 | Accesos activos cuyo correo no es el de la ficha, y Auth frente a `client_users` | Medido. El resultado va por chat |
+| D-5 | Q14 | Tarjetas con ficha cuyo dueño difiere del asesor de la ficha | **No hay** |
+| D-6 | Q15 | Copias de `client_name` distintas de la ficha (embarques, recepciones CN e ítems de consolidado) | **No hay:** el riesgo está latente |
+| D-7 | Q16, Q18 | Filas de `exc0674_*`, embarques, facturas y prealertas con el código de una ficha fusionada o inexistente | **No hay** |
 | D-9 | Q19 | La zona horaria de la sesión de la base | **UTC.** Confirma la inferencia |
-| D-9 | Q20, Q21 | Facturas cuyo año de correlativo no es el de `issued_at`, y facturas cuyo mes UTC no es el de Caracas | **Ninguna:** el riesgo es **preventivo**, con fecha límite el 31 de diciembre |
-| 0696 | Q17 | Clientes de aliado sin dirección | **No hay** clientes de aliado cargados todavía |
+| D-9 | Q20, Q21 | Facturas cuyo año de correlativo no es el de `issued_at`, y facturas cuyo mes UTC no es el de Caracas | **No hay:** el riesgo es **preventivo**, con fecha límite el 31 de diciembre |
+| 0696 | Q17 | Clientes de aliado sin dirección | Medido. Es insumo de la 0696 |
 
 **Cómo cambian las prioridades:**
 
-- La identidad (F-3) es el daño mayor de hoy.
+- La identidad (F-3) tiene daño hoy.
 - Las fechas fiscales (F-2) no tienen daño, pero sí fecha límite.
-- Los duplicados, el nombre copiado, el Shipping Mark y el asesor salieron limpios o casi. Siguen como
-  prevención, en ese orden.
+- El nombre copiado, el Shipping Mark y el asesor no tienen daño hoy, y siguen como prevención. Los
+  duplicados existen y se revisan con la oficina (P-8).
 
 ## 4. Diseño: la regla para que no vuelva a pasar
 
@@ -391,10 +391,22 @@ Propuesta, sujeta a P-1:
 
   El correo anterior deja de servir para entrar desde ese momento. Después de comprobar, el correo de
   entrada y el de los avisos son el mismo.
-- **Cuentas sin fila en `client_email_checks`** (invitación de la 0080 y `/registro`). Antes del `update`
-  de `clients.email`, `updateClientAction` crea la fila: con el `auth_user_id` de `client_users`, el
-  `internal_email` generado igual que en la 0559 y `pending_email` con el correo nuevo. Así el trigger de la
-  0559 (`0559:700-739`) y `dejarCuentaSinComprobar` las cubren **sin cambiar su cuerpo**.
+- **Cuentas sin fila en `client_email_checks`** (invitación de la 0080 y `/registro`). La secuencia está
+  verificada contra el trigger de la 0559, que solo actúa cuando `pending_email` **es distinto** del correo
+  nuevo (`0559:714-731`):
+  1. **Antes del `update`**, `updateClientAction` crea la fila con:
+     - el `auth_user_id` de `client_users`;
+     - el `internal_email` generado igual que en la 0559;
+     - **`pending_email` con el correo anterior** (el que tiene hoy `clients.email`);
+     - `verified_at` en null y `auth_interno` en false.
+  2. El `update` de `clients.email` al correo nuevo dispara el trigger. Como `pending_email` (el anterior)
+     es distinto del nuevo, el trigger pasa `client_users.email` a la dirección interna y deja
+     `pending_email` con el nuevo (`0559:714-731`).
+  3. `dejarCuentaSinComprobar` (`clientes/actions.ts:452-513`) encuentra la fila sin `verified_at` y con
+     `auth_interno` en false, y pasa la cuenta de Auth a la dirección interna.
+
+  Así el trigger y `dejarCuentaSinComprobar` las cubren **sin cambiar su cuerpo**. Los pasos 1 y 2 van en la
+  misma transacción, en una RPC: si el `update` falla, no queda la fila creada.
   - Si crear la fila falla, el cambio de correo no se guarda y la acción devuelve el error. No queda un
     estado a medias.
 - La tarjeta de acceso de la ficha dice «Sin comprobar desde …» y el botón «Reenviar comprobación» sirve
@@ -465,29 +477,51 @@ de §4.1.
 
 ### 4.10 Una sola predeterminada por cliente (Q7)
 
-Es una regla de integridad de `client_delivery_addresses`, no de pantalla. Lo que existe hoy:
+Es una regla de integridad de `client_delivery_addresses`, no de pantalla.
 
-- el índice único parcial `client_delivery_addresses_default_uidx` (`0198:44-46`) ya garantiza **como máximo
-  una** predeterminada vigente por cliente;
-- falta garantizar **al menos una** cuando el cliente tiene filas vivas.
+**Lo que existe hoy:**
 
-Diseño:
+- el índice único parcial `client_delivery_addresses_default_uidx` (`0198:44-46`) garantiza **como
+  máximo una** predeterminada vigente por cliente;
+- falta garantizar **al menos una** cuando el cliente tiene filas vivas;
+- **la app cambia la predeterminada en dos peticiones PostgREST separadas**, es decir, en dos
+  transacciones: `clearDefaultForClient` y después `insertClientDeliveryAddress`
+  (`lib/studio/client-address-queries.ts:78-116`), o `clearDefaultForClient` y después
+  `setDefaultDeliveryAddress` (`:146-160`). Las usan Mi perfil (`app/portal/(app)/perfil/address-actions.ts`)
+  y la tarjeta del Studio (`app/studio/(app)/clientes/actions.ts`). Entre las dos peticiones, el cliente se
+  queda sin predeterminada. Por eso un chequeo al confirmar rompería esos dos flujos.
 
-- **Un constraint trigger diferido** (`deferrable initially deferred`, `after insert or update or delete`,
-  por fila) sobre `client_delivery_addresses`. Al cerrar la transacción, comprueba que cada cliente tocado
-  que tenga filas vivas (`deleted_at is null`) tenga exactamente una con `is_default`. Si no, la
-  transacción falla con un error claro.
-- Va **diferido** para que las escrituras de varios pasos no fallen a mitad de camino: mover la
-  predeterminada de una fila a otra (la 0694 y el `_complete` de la 0696) y la fusión de fichas.
-- **Al borrar (lógico) la predeterminada:** un trigger `before update of deleted_at` pasa `is_default` a la
-  siguiente fila viva del mismo cliente, la más reciente por `created_at`, antes de que corra la
-  comprobación. Si no queda ninguna fila viva, el cliente se queda sin predeterminada, y eso es válido.
-- **Al insertar la primera fila viva** de un cliente sin `is_default`, el mismo trigger la marca
-  predeterminada.
-- **Las fichas que hoy no tienen predeterminada no se arreglan con esta migración.** La migración solo crea
-  los triggers. Arreglar esas fichas es una operación de datos en producción: va aparte, con su acta de
-  conteo y el OK nominal de Sam, y **antes** de crear el trigger. Si quedan fichas sin arreglar, la primera
-  escritura que toque a uno de esos clientes fallaría.
+**Diseño, en este orden:**
+
+1. **Primero, una sola RPC atómica** para el cambio de predeterminada:
+   - `client_delivery_address_save(p_client_id, p_address_id, …, p_make_default)`, `security invoker` (rige
+     la RLS de la 0198);
+   - en una transacción, hace el `update … set is_default = false` de la predeterminada actual y después el
+     `insert` o el `update` de la fila elegida.
+   - Mi perfil y la tarjeta del Studio pasan a usarla, y `clearDefaultForClient` deja de llamarse por
+     separado. **El trigger del punto 3 no entra hasta que la app use esta RPC en `main` y en producción.**
+2. **Marcar la primera fila.** Un trigger `before insert` (normal, no de restricción, porque un constraint
+   trigger no puede modificar `new`): si el cliente no tiene ninguna fila viva predeterminada, pone
+   `new.is_default = true`.
+3. **Promover al borrar.** Un trigger **`after update of deleted_at`** por fila. Si la fila que se borró
+   lógicamente era la predeterminada, marca predeterminada a la fila viva más reciente del mismo cliente.
+   Va en `after` porque ahí la fila borrada ya no cuenta para el índice parcial (`where is_default and
+   deleted_at is null`). En `before`, la promoción chocaría con el índice. Sin filas vivas, el cliente se
+   queda sin predeterminada, y eso es válido.
+4. **El chequeo**, un constraint trigger diferido (`deferrable initially deferred`):
+   - `after insert or delete or update of is_default, deleted_at, client_id`, por fila. No dispara con
+     cambios de otras columnas;
+   - revisa **los dos clientes**, el de `old.client_id` y el de `new.client_id`, porque la fusión mueve
+     filas de un cliente a otro;
+   - falla si alguno de los dos tiene filas vivas y no exactamente una predeterminada;
+   - `security definer` con `search_path = ''`, para contar todas las filas del cliente aunque la RLS del
+     que escribe solo le deje ver algunas. Devuelve solo el error, sin datos.
+5. **Preflight en la migración.** Antes de crear los triggers, un bloque `do` cuenta los clientes con filas
+   vivas y sin predeterminada (la condición de Q7). Si encuentra alguno, aborta la migración con un error
+   claro. Así no se puede aplicar mientras queden fichas sin arreglar.
+6. **Las fichas que hoy no tienen predeterminada no se arreglan con esta migración.** Arreglarlas es una
+   operación de datos en producción, aparte, con su acta de conteo y **el OK nominal de Sam**, y se hace
+   **antes** de aplicar la migración. El preflight lo comprueba.
 
 ## 5. Dependencias
 
@@ -500,6 +534,10 @@ Diseño:
   | `merge_clients`: dirección, ciudad y estado | 0694 F-2 | La 0695 F-6 parte de la versión vigente (la de la 0694 F-2), solo agrega el Shipping Mark y va después |
   | `clientCompleteness` → `hasDeliveryAddress` | 0694 F-1 | La 0695 F-8 cambia el cálculo por la vista, conservando la regla, y va después |
   | Ciudad y estado | 0694, decisión 8 (cerrada) | La 0695 no pregunta de nuevo |
+  | La persona de la ficha fusionada (`person_id` en `merge_clients`, `coalesce` en `0361:258`) | 0695 F-3 | La 0694 F-2 conserva esa línea tal cual al redefinir `merge_clients`, y la 0695 F-6 también |
+  | La regla de una sola predeterminada (§4.10) | 0695 F-9 | La 0694 no la repite. Su helper lee «la más reciente» mientras tanto |
+
+  La misma tabla se cita en la 0694 (§8).
 - **0696** (cliente final del aliado): el cliente final guarda su dirección en la misma fuente única,
   `client_delivery_addresses`, de su propia ficha. La 0696 define quién la carga y cómo.
 - **0576** y **0660** (fechas): esta spec retoma lo que la 0576 dejó fuera, como el helper SQL y el cierre
@@ -514,13 +552,13 @@ Diseño:
 | F-0 | Esta spec y los conteos de §3. | No | Aprobación de Sam. |
 | **F-1** | El registro `fuentes-unicas.md` y la guardia de CI de §4.8, con sus listas congeladas de hoy. | No | Es lo que evita que el problema vuelva a crecer. Va primero porque no cambia comportamiento. |
 | F-2 | Fechas fiscales: `dia_caracas()`, los correlativos, el Libro de Ventas y los `today` en UTC de los reportes (§4.9, puntos 1 a 4). | Sí | **Antes del 31 de diciembre de 2026**, por el cambio de año de las facturas. Es preventiva: no hay daño medido. **Plan B** si no está en producción el 28 de diciembre: la oficina no emite facturas, asientos, recibos ni CxP entre las 20:00 y las 24:00 del 31 de diciembre. Dir_DTD vuelve a correr Q20 el 1 de enero. |
-| F-3 | Identidad (§4.4): el trigger de alta, la vinculación por cédula y la vista `persona_vigente`. | Sí | Arregla el Club en el portal. **Es el daño mayor medido** (§3). Puede ir en paralelo con la F-2: no comparten archivos. |
+| F-3 | Identidad (§4.4): el trigger de alta, la vinculación por cédula y la vista `persona_vigente`. | Sí | Arregla el Club en el portal. **Tiene daño hoy** (§3). Puede ir en paralelo con la F-2: no comparten archivos. |
 | F-4 | Correo (§4.5) y asesor (§4.6). | No, salvo que crear la fila de comprobación requiera una RPC | El trigger de la 0559 no cambia. |
 | F-5 | Duplicados (§4.3): el aviso en el alta del Studio y en Kommo, y después los índices, si los conteos dan cero. | Sí, después de limpiar | La limpieza con la herramienta de fusión es una operación de la oficina, con su propio OK. |
 | F-6 | El Shipping Mark (D-7): `rename_client_markbox` cubre `exc0674_*`. `merge_clients` reescribe el texto o deja el alias de la 0367. | Sí | Q16 y Q18 salieron limpios: es preventiva. La redefinición de `merge_clients` parte de la versión de la 0694 F-2 y va después. |
 | F-7 | Nombre copiado (§4.7). | Sí (trigger) | Según P-4. |
 | F-8 | El resto de las fechas (§4.9, puntos 5 a 7) y la vista de completitud (§4.2). | Sí | La vista requiere la 0694 F-1 en `main`. |
-| F-9 | Una sola predeterminada por cliente (§4.10). | Sí (triggers) | Va después del helper de la 0694 F-1. Requiere que antes se arreglen las fichas sin predeterminada (una operación de datos aparte, con su acta y el OK nominal de Sam). |
+| F-9 | Una sola predeterminada por cliente (§4.10), en dos pasos: **F-9a**, la RPC atómica y el cambio de Mi perfil y de la tarjeta del Studio para usarla; **F-9b**, los triggers y el preflight. | F-9a: sí (la RPC). F-9b: sí (los triggers) | Va después del helper de la 0694 F-1. La F-9b entra solo con la F-9a publicada y con las fichas sin predeterminada ya arregladas: eso es una operación de datos aparte, con su acta y el OK nominal de Sam, y lo comprueba el preflight. |
 
 Cada fase lleva su PR y su `pnpm verify`. Las migraciones las numera Dir_DTD y las aplica con el runbook de
 producción y el OK nominal de Sam. **Ninguna corrige datos de producción** sin un acta de conteo previa y su
@@ -534,8 +572,8 @@ Esto no es asesoría legal. Estados posibles: `ENCONTRADO`, `CORRECTO` y `NO VER
    `persons` (D-3), y el correo en tres lugares (D-4). Cada copia es otra superficie donde un dato viejo o
    borrado sigue vivo.
 2. **Minimización.** Al leer de la ficha (§4.4, §4.7), se dejan de mantener copias de PII. Es a favor.
-3. **Exactitud.** `ENCONTRADO`: el Club muestra el nombre y la cédula de la copia de 0170, y los avisos
-   pueden salir a un correo con el que el cliente ya no entra. Estas fases lo corrigen.
+3. **Exactitud.** `ENCONTRADO`: el Club muestra el nombre y la cédula de la copia de 0170, y el correo de
+   contacto y el de entrada pueden quedar distintos (D-4). Estas fases lo corrigen.
 4. **Supresión.** `NO VERIFICABLE`: si borrar o anonimizar una ficha alcanza a su fila de `persons` y a las
    9 copias de `client_name`. Es una pregunta para la fase de supresión, fuera de esta spec (§8).
 5. **China (PIPL).** Leer el nombre en vivo tiene que pasar por el mismo ocultamiento de la región `cn`
@@ -572,7 +610,7 @@ Cada pregunta trae la recomendación primero.
   (§4.3).
 - **P-6 (día de China).** En la bodega de Yiwu, ¿la fecha de recepción es el día de China o el de Caracas?
   *Recomendado:* el de China en la recepción, y el de Caracas en la contabilidad.
-- **P-7 (prioridad).** Los conteos muestran que la identidad (F-3) es el daño mayor de hoy, y que las
+- **P-7 (prioridad).** Los conteos muestran que la identidad (F-3) tiene daño hoy, y que las
   fechas fiscales (F-2) no tienen daño todavía pero sí tienen fecha límite. ¿Hacemos la F-2 y la F-3 en
   paralelo? *Recomendado: sí,* porque no comparten archivos. Si es una sola, primero la F-2, por el 31 de
   diciembre, con el plan B de la §6.
@@ -611,6 +649,10 @@ Cada pregunta trae la recomendación primero.
    - Cambiar el correo de una cuenta activa nacida en `/registro`, en el enlace **o en una invitación de la
      0080**, deja el acceso «sin comprobar» en el acto y manda la comprobación. El correo anterior ya no
      entra.
+   - Un `.test.sql` reproduce la secuencia de §4.5 contra el trigger real de la 0559: con la fila creada con
+     `pending_email` igual al correo anterior, el `update` al nuevo deja `client_users.email` en la dirección
+     interna y `pending_email` en el nuevo. **Un caso de control** crea la fila con `pending_email` igual al
+     nuevo y comprueba que el trigger no actúa. Así queda probado por qué el orden importa.
    - Después de comprobar, `client_users.email` y `auth.users.email` coinciden con la ficha.
    - Si crear la fila de comprobación falla, el correo de la ficha no cambia.
    - Cambiar el dueño de una tarjeta con ficha cambia `advisor_id`, y el portal muestra el mismo asesor que
@@ -622,15 +664,24 @@ Cada pregunta trae la recomendación primero.
    lo prueba un `.test.sql` de RLS.
 8. **F-5, duplicados.** El alta del Studio con un correo existente responde según P-5. El índice único
    existe solo si Q1 dio cero.
-9. **F-9, una predeterminada.** Las pruebas son `.test.sql` en PGlite:
-   - una transacción que deja un cliente con filas vivas y sin predeterminada falla al confirmar;
-   - mover la predeterminada de una fila a otra en la misma transacción (con el `update` y después el
-     `insert`) pasa;
-   - el borrado lógico de la predeterminada la pasa a la fila viva más reciente;
-   - borrar la última fila viva deja al cliente sin predeterminada, y pasa;
-   - la primera fila de un cliente queda como predeterminada aunque llegue con `is_default = false`;
-   - `merge_clients` (la versión de la 0694 F-2) sigue pasando con dos clientes que tienen predeterminada
-     cada uno.
+9. **F-9, una predeterminada.**
+   - **F-9a**, con Vitest y `.test.sql`. Mi perfil y la tarjeta del Studio cambian la predeterminada en
+     **una sola llamada** a `client_delivery_address_save`. Una prueba de contrato falla si
+     `clearDefaultForClient` vuelve a llamarse fuera de la RPC. Agregar una dirección como predeterminada y
+     elegir otra existente como predeterminada funcionan por los dos caminos.
+   - **F-9b**, con `.test.sql` en PGlite y los triggers ya creados:
+     - el flujo real de la F-9a (la RPC) pasa: cambiar la predeterminada, agregar una predeterminada nueva
+       y agregar una no predeterminada;
+     - una transacción que deja un cliente con filas vivas y sin predeterminada falla al confirmar. Por
+       ejemplo, dos peticiones separadas que imitan el flujo viejo: la primera ya falla;
+     - el borrado lógico de la predeterminada pasa la marca a la fila viva más reciente, sin violar el
+       índice;
+     - borrar la última fila viva deja al cliente sin predeterminada, y pasa;
+     - la primera fila de un cliente queda como predeterminada aunque llegue con `is_default = false`;
+     - cambiar una columna que no es `is_default`, `deleted_at` ni `client_id` no dispara el chequeo;
+     - `merge_clients` (la versión de la 0694 F-2) pasa con dos clientes que tienen predeterminada cada
+       uno, y el chequeo revisa a los dos clientes;
+     - con un cliente sembrado sin predeterminada, el preflight aborta la migración.
 
 ## 11. Archivos (allowlist provisional)
 
@@ -669,8 +720,14 @@ migraciones las numera Dir_DTD.
   - `lib/studio/client-name.ts` (`nombreCliente`);
   - `app/studio/(app)/tracking/nuevo/actions.ts` y `app/studio/(app)/cn/actions.ts`;
   - los lectores de D-6.
-- **F-9:** `NNNN_una_predeterminada_por_cliente.sql`, con su `.test.sql`. El arreglo de las fichas actuales
-  no va en el repo como migración: es una operación de datos con acta.
+- **F-9a:**
+  - `NNNN_client_delivery_address_save.sql`, con su `.test.sql`;
+  - `lib/studio/client-address-queries.ts`;
+  - `app/portal/(app)/perfil/address-actions.ts` y `app/studio/(app)/clientes/actions.ts`
+    (`addClientAddressAction` y `setDefaultClientAddressAction`);
+  - sus pruebas.
+- **F-9b:** `NNNN_una_predeterminada_por_cliente.sql` (los tres triggers y el preflight), con su `.test.sql`.
+  El arreglo de las fichas actuales no va en el repo como migración: es una operación de datos con acta.
 - **F-8:**
   - `NNNN_defaults_dia_caracas.sql` y `NNNN_client_completeness.sql`;
   - `lib/shared/eta.ts`, `app/studio/(app)/naviera/actions.ts` (`refreshTracking`), `lib/portal/seguimiento-estimado.ts` y

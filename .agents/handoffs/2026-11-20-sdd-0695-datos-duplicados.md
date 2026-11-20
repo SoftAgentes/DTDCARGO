@@ -91,7 +91,7 @@
   - La F-2 tiene plan B.
 - **6.** La validación dice PASÓ. Los correlativos se cuentan como «una veintena de funciones», con el conteo
   crudo de apariciones y archivos.
-- **Conteos.** Q20 y Q21 dieron cero: la F-2 queda como **preventiva**. Q9 es el daño mayor, y la F-3 puede ir
+- **Conteos.** Q20 y Q21 dieron cero: la F-2 queda como **preventiva**. Q9 muestra daño actual, y la F-3 puede ir
   en paralelo.
 
 ## Pedido de Dir_DTD (2026-11-20): regla de una predeterminada
@@ -100,3 +100,22 @@
   hay filas vivas, y el traspaso al borrar. La aceptación es la 9.
 - Arreglar las fichas actuales sin predeterminada es una operación de datos aparte, con el OK nominal de
   Sam. En la spec solo va el diseño.
+
+## Tercera vuelta (sobre a1aacbf17), corregida
+
+- **1. §4.5.** La fila se crea con `pending_email` igual al correo **anterior**, y después se hace el update al
+  nuevo. Es la secuencia que verifiqué contra `0559:714-731`. Las dos cosas van en una RPC de una sola
+  transacción. La aceptación 5 trae un `.test.sql` con un caso de control.
+- **2 a 5. §4.10 y F-9.**
+  - La F-9a lleva el cambio de predeterminada a una RPC atómica y pasa Mi perfil y la tarjeta del Studio a
+    usarla.
+  - La F-9b trae los triggers:
+    - `before insert` para marcar la primera fila;
+    - `after update of deleted_at` para promover otra al borrar;
+    - un constraint trigger diferido que se limita a `is_default`, `deleted_at` y `client_id`, revisa
+      `old` y `new`, y es `security definer`;
+    - un preflight que aborta si queda algún cliente sin predeterminada.
+  - El arreglo de esas fichas va aparte y lleva el OK nominal de Sam.
+- **6.** Los conteos de la spec dicen solo «hay» o «no hay». Q12 y Q17 aparecen como «medido».
+- **7.** La tabla de dueñas tiene filas para la persona de la ficha fusionada y para la regla de la
+  predeterminada. La tabla se cita en la 0694.
