@@ -1,0 +1,79 @@
+name: Carril de integración
+
+# Informa en cada PR a main en qué carril cae (rápido o con revisión previa), con scripts/carril.mjs. Es
+# informativo: no bloquea ni es check requerido. La barrera es el tren del Director, que corre el mismo
+# clasificador desde main (contrato en docs/runbooks/codex-engineering.md, «Carriles de integración»).
+#
+# Liviano a propósito: sin pnpm install ni la suite; solo git y el Node que trae el runner. Corre también en
+# borradores (son segundos), así el carril se ve desde el primer push.
+#
+# El clasificador que manda es el de la base (main): la PR no puede cambiar su propio carril editando
+# scripts/carril.mjs. Solo si la base todavía no lo tiene (la PR que lo agrega) se usa el de la PR.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carril-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  carril:
+    name: Carril (informativo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # El merge de la PR con main y su primer padre (la base): basta para el diff.
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Clasificar el diff
+        run: |
+          set -u
+          dir="$RUNNER_TEMP/carril"
+          mkdir -p "$dir"
+          if git cat-file -e HEAD^1:scripts/carril.mjs 2>/dev/null; then
+            git show HEAD^1:scripts/carril.mjs > "$dir/carril.mjs"
+            origen="main"
+          else
+            cp scripts/carril.mjs "$dir/carril.mjs"
+            origen="la PR (main todavía no lo tiene)"
+          fi
+          # --no-renames: un renombre aparece como borrado + alta, con la ruta vieja y la nueva.
+          git diff --name-only --no-renames HEAD^1 HEAD > "$dir/archivos.txt"
+          set +e
+          node "$dir/carril.mjs" --json < "$dir/archivos.txt" > "$dir/carril.json"
+          codigo=$?
+          set -e
+          node -e '
+            const fs = require("node:fs");
+            const [json, codigo, origen, resumen] = process.argv.slice(1);
+            let r;
+            try { r = JSON.parse(fs.readFileSync(json, "utf8")); } catch { r = { carril: "revision", error: "salida ilegible" }; }
+            const lineas = [];
+            if (codigo === "2" || r.error) {
+              lineas.push("## Carril: revisión previa (no se pudo clasificar)", "", `Error: ${r.error ?? "código " + codigo}`);
+              console.log(`::warning title=Carril::no se pudo clasificar; cuenta como revisión previa (${r.error ?? codigo})`);
+            } else {
+              const titulo = r.carril === "rapido" ? "rápido" : "con revisión previa";
+              lineas.push(`## Carril: ${titulo}`, "", r.motivo, "");
+              if (r.causantes.length > 0) {
+                lineas.push("| Archivo | Regla | Motivo |", "|---|---|---|");
+                for (const c of r.causantes.slice(0, 50)) lineas.push(`| \`${c.ruta}\` | ${c.regla} | ${c.motivo} |`);
+                if (r.causantes.length > 50) lineas.push(`| … | | ${r.causantes.length - 50} más |`);
+              }
+              console.log(`::notice title=Carril ${titulo}::${r.motivo}`);
+            }
+            lineas.push("", `Clasificador de ${origen}. Informativo: la barrera es el tren del Director.`);
+            fs.appendFileSync(resumen, lineas.join("\n") + "\n");
+          ' "$dir/carril.json" "$codigo" "$origen" "$GITHUB_STEP_SUMMARY"
+          cat "$dir/carril.json"
