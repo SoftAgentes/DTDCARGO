@@ -88,5 +88,7 @@ describe("/privacidad · Microsoft Clarity (SDD-0684 fase 2)", () => {
     const t = await texto("privacidad");
     expect(t).not.toContain("Datos técnicos anónimos de uso del sitio (solo si aceptas las cookies de analítica)");
     expect(t).not.toContain("(analítica anónima)");
+    // C2: la versión 1 decía que Google recibe datos solo con las cookies aceptadas.
+    expect(t).not.toContain("Google (Analytics y Ads), solo si aceptas las cookies opcionales");
   });
 });
