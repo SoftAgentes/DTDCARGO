@@ -59,7 +59,7 @@ la etiqueta «Dirección actual del cliente» para las facturas viejas.
 
 - **Factura a nombre del aliado** (0674 con aliado raíz): no está claro si «Entregar en» debe llevar las
   direcciones de los clientes finales. Se le pasa a la SDD-0696 y lo coordina Dir_DTD (spec §12).
-- `lib/studio/invoice-client-doc.ts:28` (ya en `main`) cita un conteo de clientes de producción en un
+- `lib/studio/invoice-client-doc.ts:29` (ya en `main`) cita un conteo de clientes de producción en un
   comentario de un repo público. No lo toqué. Dir_DTD decide si se quita.
 
 ## Impacto documental
