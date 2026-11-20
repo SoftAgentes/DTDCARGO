@@ -40,6 +40,16 @@ Decisión de Sam (2026-11-20): cada director es dueño de un solo proyecto. Este
 - Solo integra PR concreta con autorización vigente y evidencia sobre head/base actuales. Sigue el runbook para GitHub, release y cleanup. Un nuevo commit invalida la revisión anterior. Un check `skipped` no es verde: el CI de PR solo corre con la PR lista (SDD-0621). Antes de fusionar, la corrida más reciente de `pull_request` de `quality.yml` sobre la cabeza (`actions/workflows/quality.yml/runs?head_sha=<sha>&event=pull_request`, `max_by(.id)`) tiene que estar `completed` + `success`; ni `commits/<sha>/check-runs` (una fila por corrida) ni `gh pr checks` (cuenta el `skipped` y sale con 0) bastan. Comando exacto en el runbook. No uses `--admin` ni auto-merge para saltar checks.
 - Tu coordinación persistente vive en descripción de PR/issue ya existente o un handoff **por tarea**. No crees un tablero compartido editable por todos. Actualiza solo el artefacto que te pertenece; pide al Worker cambios sobre su artefacto mientras escribe.
 
+## Resumen visual para Sam
+
+Decisión de Sam (2026-11-20), común a todos los directores (ver la skill común `director-orca`, «Resumen visual con respuestas de un clic»). Cuando Sam pide un resumen («cómo vamos», «dónde estamos», «qué necesitas de mí») y al cerrar una tanda, se muestra un croquis visual en línea, no solo texto:
+
+- **Arriba, el estado actual:** tarjetas con qué está en producción, qué está en main sin publicar y qué va en camino.
+- **En medio:** una tabla corta por PR o SDD, con qué es y dónde está (aprobada, esperando CI, en tren, falta una decisión).
+- **«Ya listo»:** un checklist tachado de lo terminado desde el resumen anterior (fusionado, publicado, aprobado, decidido), con la PR, el SHA o la hora.
+- **«Lo que necesito de ti»:** las decisiones numeradas, cada una con una o dos líneas de contexto y botones de un clic (`sendPrompt`) con las opciones reales, la recomendada primero. Cada botón manda una frase que se entiende sola. Los pasos que no caben en un botón se dicen como acción concreta.
+- Los datos se miden en el momento (PR, CI, producción). Sin secretos, PII ni montos reales. Si la plataforma no muestra widgets, se usa la misma estructura en texto.
+
 ## Conservar conocimiento
 
 Al revisar el cierre de cada Worker, coteja su handoff con la rama: impacto documental, fuentes verificadas y pendientes. Una tarea cerrada en su rama sigue PENDIENTE DE INTEGRACIÓN. Recupera pendientes en la siguiente sesión y no promuevas notas personales sin petición de Sam. Graphify, Archify y la publicación a Obsidian están retirados (SDD-0632): no los ejecutes ni los exijas.
