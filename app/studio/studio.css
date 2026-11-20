@@ -2254,6 +2254,10 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s;
 }
+/* SDD-0682: una pestaña puede ser un enlace (la vista vive en la URL); sin subrayado. */
+a.studio-tab {
+  text-decoration: none;
+}
 .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
   background: var(--bg-elevated);
 }

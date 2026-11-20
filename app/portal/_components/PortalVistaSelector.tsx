@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setPortalVistaAction } from "../actions";
 import { NOMBRE_VISTA, type PortalVista } from "@/lib/portal/vista-preferida";
@@ -60,17 +60,23 @@ export function PortalVistaSelector({ vista }: { vista: PortalVista }) {
   const [pendiente, startTransition] = useTransition();
 
   // El aviso de error se cierra solo o con Escape: no tapa la barra para siempre.
-  useEffect(() => {
+  // Escape se escucha desde que el aviso está en el DOM: un efecto de layout corre
+  // en el mismo commit que lo pinta. Con `useEffect` quedaba un hueco entre el
+  // aviso pintado y el listener puesto (el aviso llega dentro de una transición, y
+  // sus efectos pasivos se agendan para otra tarea): un Escape en ese hueco se perdía.
+  useLayoutEffect(() => {
     if (!error) return;
-    const t = window.setTimeout(() => setError(""), AVISO_ERROR_MS);
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setError("");
     }
     document.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(t);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
+  }, [error]);
+  // La cuenta de AVISO_ERROR_MS empieza con el aviso ya a la vista.
+  useEffect(() => {
+    if (!error) return;
+    const t = window.setTimeout(() => setError(""), AVISO_ERROR_MS);
+    return () => window.clearTimeout(t);
   }, [error]);
 
   function elegir(siguiente: PortalVista) {

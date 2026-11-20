@@ -1,10 +1,10 @@
 ---
 sdd: "0682"
 title: "Almacén China en una pantalla: en almacén, en camino y pendiente por liberar"
-status: approved
+status: in-progress
 author: "Claude (Worker) + Sam"
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-20
 supersedes: null
 superseded_by: null
 related: ["0016", "0029", "0039", "0047", "0531", "0543", "0643", "0659", "0674"]
@@ -103,18 +103,41 @@ tres vistas de la misma pantalla. No se manda a nadie a Tracking.
 
 | Vista | Qué muestra | Dato |
 |---|---|---|
-| **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia` | ya existe |
+| **En almacén** (por defecto) | Recepciones `pendiente_consolidacion` + `incidencia`, y las `consolidado` cuyo contenedor no ha zarpado | ya existe |
 | **En camino** | Contenedores en el mar: contador de días y porcentaje | ya existe |
 | **Pendiente por liberar** | Contenedores en el mar sin telex release | **falta** (§2.4) |
 
 ### 2.1 En almacén (vista por defecto)
 
-- Sin filtro en la URL, la tabla muestra `pendiente_consolidacion` + `incidencia`: lo que está físicamente
-  en la bodega. El selector de estado queda con «En almacén» por defecto; «Consolidado» y «Todos» siguen a
-  un clic (Sam: «si»).
+- Sin filtro en la URL, la tabla muestra lo que está físicamente en la bodega: `pendiente_consolidacion`,
+  `incidencia` y las `consolidado` cuyo contenedor no ha zarpado (ver la decisión de abajo). El selector de
+  estado queda con «En almacén» por defecto; «Consolidado» y «Todos» siguen a un clic (Sam: «si»).
 - Arriba de la tabla, una línea: «N recepciones ya consolidadas no se muestran», con enlace a «En camino».
-- Sin migración: es un filtro de lectura sobre `warehouse_receipts_cn.status` (índice
-  `warehouse_receipts_cn_tenant_status_idx`, migración 0008). Los KPI ya cuentan así.
+  N cuenta solo las de contenedores `zarpado`, con los mismos filtros de bodega y búsqueda: son las que se
+  ven en «En camino», así el enlace dice la verdad.
+- Sin migración: es lectura de `warehouse_receipts_cn`, `consolidation_items` y `consolidations`. Los KPI no
+  cambian.
+
+**Decisión de Sam (2026-11-20), vía el DG: «Quedan en almacén».** Una recepción `consolidado` cuyo
+contenedor está `consolidando` o `cerrado` sigue en «En almacén», con la etiqueta «En contenedor DTD #N, sin
+zarpar» (el número de `notes`; si no hay, la referencia). Al zarpar el contenedor pasa a «En camino»; al
+arribar sale de las dos vistas. Lo decide el servidor con la misma regla de «En camino»
+(`situacionDeRecepcion` en `lib/studio/almacen-cn-contenedores.ts`). El contenedor de una recepción es el
+**vigente** de su envío, con la regla del proyecto: si el envío tiene más de una línea en
+`consolidation_items`, gana la más reciente (`created_at`) en un contenedor vivo (SDD-0643 §3.2, SDD-0661,
+`lib/portal/consolidation-queries.ts`). Dos líneas del mismo envío quieren decir que se movió de contenedor;
+partir un envío (SDD-0563/0673) pone la línea nueva en el mismo contenedor. La aplica `lineaVigentePorEnvio`,
+y la leen igual «En almacén», su aviso y «En camino» (`leerContenedorVigentePorEnvio`). Así, un envío que
+pasó de un contenedor zarpado o arribado a uno que se llena sigue en la bodega con el contenedor nuevo, y no
+sale en «En camino». Una `consolidado` sin contenedor vigente también se queda, sin etiqueta: ninguna
+recepción se pierde ni sale dos veces. La lista se lee por páginas y salta lo que ya salió, para que las
+recepciones de un contenedor zarpado no tapen a las que siguen en la bodega.
+
+**Costo conocido.** En cada carga, «En almacén» recorre todas las recepciones `consolidado` que pasan los
+filtros, con sus líneas y contenedores, para decidir qué sale. La lista se pide en páginas de 200, hasta 25
+páginas (5.000 filas), para llenar sus 100 filas. Si la bodega llegara a tener más de 5.000 recepciones
+recorridas antes de juntar 100 que se quedan, la lista mostraría menos de 100. Se acepta en esta fase; si
+crece, la salida es mover la decisión a la base (una vista o un RPC).
 
 ### 2.2 En camino
 
@@ -191,6 +214,60 @@ cambio exacto propuesto, opción (a):
 La alternativa «sin cambio, solo la insignia» y la opción (b) (plegar los zarpados) quedan descartadas.
 La regla de las pestañas vive en un solo lugar (`lib/studio/shipment-queries.ts`), para que el conteo y el
 filtro no se separen.
+
+### 2.6 Implementación por fases
+
+- **Fase 1 (sin migración):** §2.1, §2.2 y §2.5. PR propia; se puede fusionar y publicar sin ataduras.
+- **Fase 2 (migración 0568):** §2.3 y §2.4, telex release. Otra PR; Dir_DTD la fusiona solo con el camino
+  despejado (revisión, CI verde y OK de Sam para aplicar a la vista), porque una migración en espera congela
+  la publicación de la web.
+
+**Cómo quedó la §2.2 en la fase 1:** la fila dice «DTD #64» (de `consolidations.notes`, con
+`numeroDtdDeNotas`) y, debajo, la referencia y el número físico; la columna es «Naviera»
+(`sailings.carrier_id` → `carriers.name`). «Ver recepciones (N)» abre las recepciones del contenedor:
+las `warehouse_receipts_cn` en `consolidado` cuyo `shipment_id` está en sus ítems, con código, MARKBOX,
+cajas y CBM. Las pendientes no se listan ahí: siguen en «En almacén».
+
+**Decisión de Sam (2026-11-20), vía el DG:** «721: solo los que ya zarparon». «En camino» muestra solo
+los contenedores `zarpado`; los `consolidando` y `cerrado` no entran, así ninguna recepción sale en dos
+pantallas (una recepción pendiente de un contenedor que se llena sigue en «En almacén»). La primera versión
+de la fase 1 los incluía en un grupo «Cargados, sin zarpar»; se quitó.
+
+### 2.7 Allowlist exacta de la fase 1
+
+Producto:
+- `app/studio/(app)/cn/page.tsx`, `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`
+- `app/studio/(app)/cn/_components/CaminoCn.tsx`, `FilaCamino.tsx`, `EncabezadoCn.tsx`, `VistasAlmacen.tsx` (nuevos)
+- `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
+- `app/studio/studio.css` (solo `a.studio-tab { text-decoration: none }`)
+- `lib/studio/warehouse-cn-queries.ts`, `lib/studio/warehouse-cn-types.ts`, `lib/studio/shipment-queries.ts`
+- `lib/studio/almacen-cn-vistas.ts`, `almacen-cn-contenedores.ts`, `almacen-cn-contenedores-queries.ts` (nuevos)
+- `lib/i18n/es-VE/warehouse.ts`, `lib/i18n/zh-CN/warehouse.ts`
+
+Pruebas:
+- `lib/studio/__tests__/almacen-cn-vistas.test.ts`, `almacen-cn-contenedores.test.ts`, `almacen-cn-contenedores-queries.test.ts`, `almacen-cn-en-almacen.test.ts`, `embarques-pestanas.test.ts` (nuevas)
+- `app/studio/(app)/cn/_components/__tests__/FilaCamino.test.tsx` (nueva)
+- `app/studio/(app)/cn/__tests__/regla-nombres-compartida.test.ts`: la página le pasa además a `listReceipts`
+  lo que ya salió de la bodega; la aserción sigue exacta.
+- `lib/studio/__tests__/listados-double.ts` (doble compartido): ordena como PostgREST, el primer `order` manda y
+  los siguientes desempatan. Antes mandaba el último, y el desempate por `id` de `listReceipts` lo destapó.
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.pestanas.test.tsx` (nueva)
+- `EmbarquesClient.{abrir,adjuntos,borrado,cajas-monto,contenedores,facturar,peso}.test.tsx`: abren en «Todos»
+  (prueban contenedores y montos, no pestañas). `EmbarquesClient.encabezado-cliente.test.tsx` (SDD-0689):
+  abre en «En camino», el camino real del 64.
+
+Fuera de la allowlist: ninguna migración, ninguna escritura de datos, ninguna server action.
+
+### 2.8 Clasificación de gobernanza de la fase 1
+
+| Política | Clasificación | Evidencia |
+|---|---|---|
+| A11Y-01 (pestañas) | cumplimiento | `<nav aria-label>` + `.studio-tabs`, enlaces con `aria-current`; `pestanas-contract.test.ts` verde |
+| BTN-01 | cumplimiento | La única acción nueva es la del `<Aviso>` (botón secundario del componente); no hay mutaciones |
+| ERR-01 / LOD-01 | cumplimiento | Si falla la lectura de «En camino», `<Aviso tono="error">` lo dice; no se muestra vacío como si no hubiera |
+| VIS-01 / VIS-02 | cumplimiento | Solo tokens de `tokens.css`; tipografía y clases existentes |
+| MP-01 / AUD-01 / AUD-02 | no aplica | Solo lectura: no se crea, mueve ni borra nada |
+| Privacidad China (SDD-0039 B.9, SDD-0531) | cumplimiento | «En camino» no envía nombres de importador. Al abrir un contenedor viaja el MARKBOX de cada recepción, que es lo que China sí ve (§2.2); el de los ítems no se copia. Pruebas en `almacen-cn-contenedores.test.ts` y `almacen-cn-contenedores-queries.test.ts` |
 
 ## 3. Fuera de alcance
 

@@ -287,7 +287,11 @@ begin
     perform pg_temp.assert_true(not exists (select 1 from unnest(v) e where e ->> 'tipo' = 'contacto'
       and (select array_agg(k order by k) from jsonb_object_keys(e) k) <> array['cliente', 'identificador', 'nombre', 'tipo']),
       'el contacto no lleva más campos que los del formato');
-    select string_agg(e::text, '\n') into v_texto from unnest(v) e;
+    -- Los identificadores reservados van al azar (gen_random_uuid): en hex, un uuid puede traer
+    -- «5550101» por puro azar y la búsqueda caía sin fuga. Se tapan esos dos valores exactos, y nada
+    -- más, antes de buscar: lo que vaya en su lugar que no sea el reservado se sigue viendo.
+    select replace(replace(string_agg(e::text, '\n'), pg_temp.identificador('A')::text, '<identificador A>'),
+      pg_temp.identificador('B')::text, '<identificador B>') into v_texto from unnest(v) e;
     perform pg_temp.assert_true(position('5550101' in v_texto) = 0 and position('DTD-S' in v_texto) = 0,
       'nunca sale el teléfono ni el Shipping Mark');
     -- Las conversaciones: el estado traducido, el archivado resolved con su nota.

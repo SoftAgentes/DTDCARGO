@@ -116,6 +116,7 @@ then
   # Los contratos de los cargadores de una sola vez (SDD-0616) incluyen su script con \ir ../cargas/…
   if [ -d "$REPO/supabase/cargas" ]; then cp -r "$REPO/supabase/cargas" "$W/c4/supabase/"; fi
   # El contrato 0564 (SDD-0674) ensaya su desarme con pg_read_file('/sb/desarmes/0564_desarme.sql').
+  # Igual el contrato 0569 (SDD-0690) con '/sb/desarmes/0569_desarme.sql'.
   if [ -d "$REPO/supabase/desarmes" ]; then cp -r "$REPO/supabase/desarmes" "$W/c4/supabase/"; fi
   correr c4 SQL_TEST_PG_IMAGE="$LENTA"
   if [ "$(rc c4)" = 0 ] && tiene c4 "contratos de SQL en verde"; then

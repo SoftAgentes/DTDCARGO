@@ -21,17 +21,23 @@
  * - SDD-0661 (diseño elegido por Sam, «Franja + Excel»): la cabecera cerrada
  *   dice clientes, envíos, cajas y m³. Al abrir el contenedor, una franja de
  *   totales (clientes, cajas, cajas recibidas, CBM) y el detalle por cliente
- *   como en el Excel, con la fila «Total del contenedor». «Por cobrar» y
- *   «Cobrado» sólo se pintan si la página los pasó: los lee sólo para quien
- *   ve Facturación, así que aquí no se decide permiso.
+ *   como en el Excel, con la fila «Total del contenedor». El dinero sólo se
+ *   pinta si la página lo pasó: lo lee sólo para quien ve Facturación, así que
+ *   aquí no se decide permiso.
+ * - SDD-0690 (versión B de Sam): el dinero es «Total del embarque» / «Pagado» /
+ *   «Saldo», con «Sin facturar» (las pre-órdenes) como desglose del total. El
+ *   total en color lleva a la factura o a la pre-orden en Facturación.
  */
 
 import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
-  computeClientStats,
+  contarPorPestana,
+  filtrarPorPestana,
   groupShipmentsByClient,
+  PESTANA_POR_DEFECTO,
+  type PestanaEmbarques,
   type ShipmentListRow,
 } from "@/lib/studio/shipment-queries";
 import {
@@ -65,17 +71,20 @@ import {
 } from "@/lib/studio/borrado/reglas";
 import { deleteShipmentsAction } from "../actions";
 import { AsistenteBorrado } from "./AsistenteBorrado";
-import { FacturarContenedor } from "./FacturarContenedor";
+import { FacturarContenedor, type PreordenDeCliente } from "./FacturarContenedor";
 import type { FacturacionExc0674 } from "@/lib/studio/exc0674";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import {
   agruparPorContenedor,
   clienteCoincide,
   contenedorCoincide,
+  contenedorFacturado,
   formatFecha,
   type ClienteDeContenedor,
   type ContenedoresDeEmbarques,
   type GrupoContenedor,
+  documentoDeEnlace,
+  saldoUsd,
   sumarMontos,
   type MontoAcumulado,
   type MontosDeContenedores,
@@ -109,23 +118,9 @@ interface Seleccionable {
 const BORRADO_SIN_CONFIRMAR =
   "No se pudo confirmar el borrado. Recarga la lista para ver cómo quedó.";
 
-type Tab = "all" | "active" | "delivered" | "alerts";
+// SDD-0682 §2.5: las pestañas y su regla viven en `shipment-queries.ts`.
+type Tab = PestanaEmbarques;
 type ServiceFilter = ShipmentService | "all";
-
-const TERMINAL_STATUSES = new Set<ShipmentStatus>(["delivered", "cancelled"]);
-
-function filterByTab(rows: ShipmentListRow[], tab: Tab): ShipmentListRow[] {
-  switch (tab) {
-    case "all":
-      return rows;
-    case "active":
-      return rows.filter((r) => !TERMINAL_STATUSES.has(r.status));
-    case "delivered":
-      return rows.filter((r) => r.status === "delivered");
-    case "alerts":
-      return rows.filter((r) => r.status === "exception");
-  }
-}
 
 function statusBadgeTone(
   status: ShipmentStatus,
@@ -154,6 +149,7 @@ export function EmbarquesClient({
   montos,
   facturacion,
   tope,
+  pestanaInicial = PESTANA_POR_DEFECTO,
 }: {
   shipments: ShipmentListRow[];
   /**
@@ -182,6 +178,8 @@ export function EmbarquesClient({
   facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
+  /** SDD-0682 §2.5: pestaña con la que abre. La pantalla real abre en «Activos». */
+  pestanaInicial?: Tab;
 }) {
   const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set());
   // SDD-0560: el embarque cuyo asistente de borrado está abierto.
@@ -230,7 +228,7 @@ export function EmbarquesClient({
     [shipments, seleccion, eliminacion],
   );
 
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<Tab>(pestanaInicial);
   const [q, setQ] = useState("");
   const [qContenedor, setQContenedor] = useState("");
   const [qCliente, setQCliente] = useState("");
@@ -239,15 +237,7 @@ export function EmbarquesClient({
   const [drawerShipmentId, setDrawerShipmentId] = useState<string | null>(null);
 
   // Counts globales para los tabs (sin search aplicado)
-  const tabCounts = useMemo(() => {
-    const stats = computeClientStats(shipments);
-    return {
-      all: stats.count,
-      active: stats.activeCount,
-      delivered: shipments.filter((r) => r.status === "delivered").length,
-      alerts: stats.alertCount,
-    };
-  }, [shipments]);
+  const tabCounts = useMemo(() => contarPorPestana(shipments), [shipments]);
 
   const contenedorPorId = useMemo(
     () => new Map((contenedores?.contenedores ?? []).map((c) => [c.id, c])),
@@ -256,7 +246,7 @@ export function EmbarquesClient({
 
   // Apply tab + service + search → filas
   const filtradas = useMemo(() => {
-    let rows = filterByTab(shipments, tab);
+    let rows = filtrarPorPestana(shipments, tab);
 
     if (serviceFilter !== "all") {
       rows = rows.filter((r) => r.shipment_service === serviceFilter);
@@ -429,10 +419,11 @@ export function EmbarquesClient({
       >
         {(
           [
-            { value: "all", label: "Todos", count: tabCounts.all },
             { value: "active", label: "Activos", count: tabCounts.active },
+            { value: "camino", label: "En camino", count: tabCounts.camino },
             { value: "delivered", label: "Entregados", count: tabCounts.delivered },
             { value: "alerts", label: "Con alertas", count: tabCounts.alerts },
+            { value: "all", label: "Todos", count: tabCounts.all },
           ] as { value: Tab; label: string; count: number }[]
         ).map((t) => {
           const active = tab === t.value;
@@ -686,7 +677,9 @@ export function EmbarquesClient({
                   ? "Sin envíos con alertas activas."
                   : tab === "delivered"
                     ? "Sin envíos entregados todavía."
-                    : "Sin envíos activos."
+                    : tab === "camino"
+                      ? "Ningún envío va en el mar ahora."
+                      : "Sin envíos activos en origen ni en destino."
           }
           description={
             hayFiltroTexto
@@ -1014,6 +1007,9 @@ function ListaDeContenedores({
         // Peso y dinero se suman sobre el contenedor entero, no sobre lo que dejó pasar la pestaña.
         const dinero =
           montos?.estado === "lista" ? sumarMontos(g.completo.envios, montos.porEmbarque) : null;
+        // SDD-0690 §3.5: «Facturado» = todos los clientes del contenedor entero con factura emitida viva.
+        const facturado =
+          !!c && montos?.estado === "lista" && contenedorFacturado(g, montos.porEmbarque);
         return (
           <section
             key={g.key}
@@ -1116,6 +1112,13 @@ function ListaDeContenedores({
                   justifyContent: "flex-end",
                 }}
               >
+                {facturado && (
+                  <span data-testid="encabezado-facturado">
+                    <Badge tone="success" size="sm">
+                      Facturado
+                    </Badge>
+                  </span>
+                )}
                 {g.alertas > 0 && (
                   <Badge tone="danger" size="sm">
                     {g.alertas} alerta{g.alertas === 1 ? "" : "s"}
@@ -1154,7 +1157,7 @@ function ListaDeContenedores({
             {c && dinero && (
               <MontoOculto
                 texto={dinero.sinFacturarUsd > 0 ? fmtUsd(dinero.sinFacturarUsd) : null}
-                sinMonto={textoSinMonto(dinero)}
+                sinMonto={textoSinMonto(dinero, facturado)}
                 contenedor={g.nombre}
               />
             )}
@@ -1175,7 +1178,11 @@ function ListaDeContenedores({
                     <FranjaDeTotales grupo={g} montos={montos} />
                     <DetallePorCliente grupo={g} montos={montos} onAbrirCliente={onAbrirCliente} />
                     {facturacion?.estado === "lista" && facturacion.contenedores.includes(c.id) && (
-                      <FacturarContenedor grupo={g} facturados={facturacion.facturados[c.id] ?? {}} />
+                      <FacturarContenedor
+                        grupo={g}
+                        facturados={facturacion.facturados[c.id] ?? {}}
+                        preordenes={preordenesDeGrupo(g, montos)}
+                      />
                     )}
                   </>
                 )}
@@ -1189,6 +1196,9 @@ function ListaDeContenedores({
         .emb-cont-header { background: transparent; }
         .emb-cont-header:hover { background: var(--bg-elevated); }
         .emb-cliente-link { all: unset; cursor: pointer; border-radius: var(--r-sm); }
+        .emb-doc-link { color: var(--wine-text); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
+        .emb-doc-link:hover { text-decoration: underline; }
+        .emb-doc-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
         .emb-cliente-link:hover { text-decoration: underline; }
         .emb-ojo:hover { background: var(--bg-elevated) !important; }
         .emb-ojo:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
@@ -1213,15 +1223,44 @@ function ListaDeContenedores({
 export const SEGUNDOS_MONTO_VISIBLE = 4;
 
 /**
- * SDD-0689: qué dice el encabezado cuando no hay monto en USD que ocultar.
+ * SDD-0689 → SDD-0690: qué dice el encabezado cuando no hay monto en USD que ocultar.
  *  - sin facturas: «Sin precios cargados»;
- *  - con facturas y sin borradores: «Facturado» (Sam, 2026-11-20);
- *  - con borradores que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
+ *  - todos los clientes del contenedor con factura emitida viva (§3.5): «Facturado»;
+ *  - sin pre-órdenes pero con algún cliente sin precio: «Clientes sin precio»;
+ *  - con pre-órdenes que no suman en USD (otra moneda): «Sin monto en USD». Nunca «$0.00».
  */
-function textoSinMonto(m: { facturas: number; borradores: number }): string {
+function textoSinMonto(
+  m: { facturas: number; borradores: number; otraMoneda: number },
+  facturado: boolean,
+): string {
   if (m.facturas === 0) return "Sin precios cargados";
-  if (m.borradores === 0) return "Facturado";
-  return "Sin monto en USD";
+  if (facturado) return "Facturado";
+  if (m.borradores === 0) return "Clientes sin precio";
+  // SDD-0690: pre-órdenes en USD que suman $0 no son «otra moneda».
+  return m.otraMoneda > 0 ? "Sin monto en USD" : "Pre-orden sin monto";
+}
+
+/**
+ * SDD-0690 · La pre-orden pendiente de cada cliente del contenedor ENTERO (sin filtro), por Shipping
+ * Mark en MAYÚSCULAS, para «Facturar». Una pre-orden en $0 o en otra moneda también viaja (con
+ * `totalUsd` null o 0): ese cliente no va al camino tecleado, se corrige en Facturación. Sale de los
+ * mismos `montos` que decide la página: sin ellos, nada.
+ */
+function preordenesDeGrupo(
+  g: GrupoContenedor,
+  montos: MontosDeContenedores | undefined,
+): Record<string, PreordenDeCliente> {
+  const out: Record<string, PreordenDeCliente> = {};
+  if (montos?.estado !== "lista") return out;
+  for (const cl of g.completo.clientes) {
+    const mb = (cl.clientMarkbox ?? "").trim().toUpperCase();
+    if (!mb) continue;
+    const pres = sumarMontos(cl.shipments, montos.porEmbarque).documentos.filter((d) => d.preorden);
+    // La válida primero; si no hay, la inválida, para avisar en vez de ofrecer teclear.
+    const po = pres.find((d) => d.totalUsd != null && d.totalUsd > 0) ?? pres[0];
+    if (po) out[mb] = { invoiceId: po.invoiceId, invoiceCode: po.invoiceCode, totalUsd: po.totalUsd };
+  }
+  return out;
 }
 
 /**
@@ -1320,11 +1359,36 @@ function textoPesoCliente(c: ClienteDeContenedor): string {
 }
 
 /**
- * SDD-0661: un monto en dólares, o «Sin facturar» si no hay facturas (el
- * contenedor 64 se cargó sin facturas: nunca $0.00 inventado).
+ * SDD-0690 · Versión B de Sam (2026-11-20): Total del embarque / Pagado / Saldo. Sin facturas ni
+ * pre-órdenes no hay precio cargado: «Sin precio», nunca $0.00 inventado.
  */
-function textoMonto(m: MontoAcumulado, campo: "porCobrarUsd" | "cobradoUsd"): string {
-  return m.facturas === 0 ? "Sin facturar" : fmtUsd(m[campo]);
+type CampoDinero = "total" | "pagado" | "saldo";
+
+function textoMonto(m: MontoAcumulado, campo: CampoDinero): string {
+  if (m.facturas === 0) return "Sin precio";
+  if (campo === "total") return fmtUsd(m.totalUsd);
+  if (campo === "pagado") return fmtUsd(m.pagadoUsd);
+  return fmtUsd(saldoUsd(m));
+}
+
+/**
+ * SDD-0690 · El total en color lleva a su documento en Facturación: la factura si ya está emitida; si
+ * no, la pre-orden. Ahí se edita, con el RBAC de Facturación.
+ */
+function MontoConEnlace({ m }: { m: MontoAcumulado }) {
+  const doc = documentoDeEnlace(m);
+  const texto = textoMonto(m, "total");
+  if (!doc || m.facturas === 0) return <>{texto}</>;
+  const que = doc.preorden ? "la pre-orden" : "la factura";
+  return (
+    <Link
+      href={`/studio/facturacion/${encodeURIComponent(doc.invoiceCode)}`}
+      className="emb-doc-link"
+      title={`Abrir ${que} ${doc.invoiceCode} en Facturación`}
+    >
+      {texto}
+    </Link>
+  );
 }
 
 /** SDD-0661: franja de totales al abrir el contenedor. */
@@ -1335,28 +1399,35 @@ function FranjaDeTotales({
   grupo: GrupoContenedor;
   montos?: MontosDeContenedores;
 }) {
+  // SDD-0690: dinero y peso del contenedor entero, como el encabezado (no lo filtrado por la vista).
   const total =
-    montos?.estado === "lista"
-      ? sumarMontos(
-          grupo.clientes.flatMap((c) => c.shipments),
-          montos.porEmbarque,
-        )
-      : null;
-  const fichas: { etiqueta: string; valor: string; dinero?: boolean }[] = [
+    montos?.estado === "lista" ? sumarMontos(grupo.completo.envios, montos.porEmbarque) : null;
+  const fichas: { etiqueta: string; valor: string; dinero?: boolean; detalle?: string }[] = [
     { etiqueta: "Clientes", valor: grupo.clientes.length.toLocaleString("es-VE") },
     { etiqueta: "Cajas", valor: (grupo.cajas ?? 0).toLocaleString("es-VE") },
     { etiqueta: "Cajas recibidas", valor: textoRecibidas(grupo.recibidas) },
     { etiqueta: "CBM total", valor: `${formatCbm(grupo.totalCbm)} m³` },
     {
       etiqueta: "Peso total",
-      valor: grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg),
+      valor:
+        grupo.completo.enviosSinPeso === grupo.completo.envios.length
+          ? "Sin peso"
+          : textoPeso(grupo.completo.pesoKg),
     },
   ];
   if (montos) {
     const nd = "No disponible";
     fichas.push(
-      { etiqueta: "Por cobrar", valor: total ? textoMonto(total, "porCobrarUsd") : nd, dinero: true },
-      { etiqueta: "Cobrado", valor: total ? textoMonto(total, "cobradoUsd") : nd, dinero: true },
+      {
+        etiqueta: "Total del embarque",
+        valor: total ? textoMonto(total, "total") : nd,
+        dinero: true,
+        // «Sin facturar» = las pre-órdenes, como desglose del total.
+        detalle:
+          total && total.borradores > 0 ? `Sin facturar ${fmtUsd(total.sinFacturarUsd)}` : undefined,
+      },
+      { etiqueta: "Pagado", valor: total ? textoMonto(total, "pagado") : nd, dinero: true },
+      { etiqueta: "Saldo", valor: total ? textoMonto(total, "saldo") : nd, dinero: true },
     );
   }
   return (
@@ -1394,10 +1465,23 @@ function FranjaDeTotales({
             >
               {f.valor}
             </dd>
+            {f.detalle && (
+              <dd
+                style={{
+                  margin: "var(--s-1) 0 0",
+                  font: "600 12px/1.2 var(--f-mono)",
+                  color: "var(--ink-soft)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {f.detalle}
+              </dd>
+            )}
           </div>
         ))}
       </dl>
-      {grupo.enviosSinPeso > 0 && grupo.enviosSinPeso < grupo.embarques && (
+      {grupo.completo.enviosSinPeso > 0 &&
+        grupo.completo.enviosSinPeso < grupo.completo.envios.length && (
         <p
           style={{
             margin: "var(--s-2) 0 0",
@@ -1405,8 +1489,8 @@ function FranjaDeTotales({
             color: "var(--ink-soft)",
           }}
         >
-          {grupo.enviosSinPeso} {grupo.enviosSinPeso === 1 ? "envío" : "envíos"} sin peso cargado: el
-          peso total no los incluye.
+          {grupo.completo.enviosSinPeso} {grupo.completo.enviosSinPeso === 1 ? "envío" : "envíos"} sin
+          peso cargado: el peso total no los incluye.
         </p>
       )}
       {total && total.otraMoneda > 0 && (
@@ -1457,9 +1541,13 @@ function DetallePorCliente({
   onAbrirCliente: (c: ClienteDeContenedor) => void;
 }) {
   const lista = montos?.estado === "lista" ? montos.porEmbarque : null;
-  const celdaDinero = (filas: readonly ShipmentListRow[], campo: "porCobrarUsd" | "cobradoUsd") =>
-    lista ? textoMonto(sumarMontos(filas, lista), campo) : "—";
-  const todas = grupo.clientes.flatMap((c) => c.shipments);
+  const celdaDinero = (filas: readonly ShipmentListRow[], campo: CampoDinero) => {
+    if (!lista) return "—";
+    const m = sumarMontos(filas, lista);
+    return campo === "total" ? <MontoConEnlace m={m} /> : textoMonto(m, campo);
+  };
+  // SDD-0690: la fila «Total del contenedor» suma el contenedor entero en peso y dinero.
+  const todas = grupo.completo.envios;
   return (
     <div style={{ overflowX: "auto" }}>
       <table
@@ -1467,7 +1555,7 @@ function DetallePorCliente({
           width: "100%",
           borderCollapse: "collapse",
           fontVariantNumeric: "tabular-nums",
-          minWidth: montos ? 720 : 520,
+          minWidth: montos ? 820 : 520,
         }}
       >
         <caption
@@ -1503,10 +1591,13 @@ function DetallePorCliente({
             {montos && (
               <>
                 <th scope="col" style={TH_DETALLE}>
-                  Por cobrar
+                  Total
                 </th>
                 <th scope="col" style={TH_DETALLE}>
-                  Cobrado
+                  Pagado
+                </th>
+                <th scope="col" style={TH_DETALLE}>
+                  Saldo
                 </th>
               </>
             )}
@@ -1551,8 +1642,9 @@ function DetallePorCliente({
               <td style={TD_DETALLE}>{textoPesoCliente(c)}</td>
               {montos && (
                 <>
-                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "porCobrarUsd")}</td>
-                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "cobradoUsd")}</td>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "total")}</td>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "pagado")}</td>
+                  <td style={TD_DETALLE}>{celdaDinero(c.shipments, "saldo")}</td>
                 </>
               )}
             </tr>
@@ -1571,12 +1663,15 @@ function DetallePorCliente({
             <td style={PIE_DETALLE}>{textoRecibidas(grupo.recibidas)}</td>
             <td style={PIE_DETALLE}>{formatCbm(grupo.totalCbm)}</td>
             <td style={PIE_DETALLE}>
-              {grupo.enviosSinPeso === grupo.embarques ? "Sin peso" : textoPeso(grupo.pesoKg)}
+              {grupo.completo.enviosSinPeso === grupo.completo.envios.length
+                ? "Sin peso"
+                : textoPeso(grupo.completo.pesoKg)}
             </td>
             {montos && (
               <>
-                <td style={PIE_DETALLE}>{celdaDinero(todas, "porCobrarUsd")}</td>
-                <td style={PIE_DETALLE}>{celdaDinero(todas, "cobradoUsd")}</td>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "total")}</td>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "pagado")}</td>
+                <td style={PIE_DETALLE}>{celdaDinero(todas, "saldo")}</td>
               </>
             )}
           </tr>
