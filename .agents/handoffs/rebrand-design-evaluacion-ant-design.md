@@ -124,3 +124,6 @@ Sin cambios en `app/`, `lib/`, `components/`, `supabase/`, `public/` ni la web p
 - `docs/engineering/project-rules.md` resume las fuentes permitidas como «solo Archivo + JetBrains Mono + Noto Sans SC», desfasado frente a Nunito Sans y Sora (vigentes desde 2026-05-31).
 - `BRAND.md:324` enumera 6 variantes de botón que no coinciden con las 5 del Studio.
 - El analizador de cifras trata un solo separador como decimal; con el formato nuevo en pantalla puede guardar montos mil veces menores si no se define la regla (riesgo R1 del borrador).
+
+### Decisión añadida (2026-11-20, Sam)
+- A «Al teclear «1.234» en un campo de dinero, ¿qué debe entender el sistema?», Sam eligió «Pedir que se aclare». En dinero, el campo rechaza un punto seguido de exactamente tres cifras y pide escribirlo con coma decimal o sin punto. Falta la regla de CBM y peso. Registrado en el borrador del SDD (§1.5 y riesgo R1).

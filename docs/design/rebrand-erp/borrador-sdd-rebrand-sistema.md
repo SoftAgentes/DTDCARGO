@@ -10,16 +10,17 @@
 2. **Pantallas:** «Tres o cinco pantallas que más me molestan. Tú tienes que revisar con calma, tómate el tiempo necesario; todas las vamos a cambiar.» → se revisan y se cambian **todas**; el orden lo propone esta revisión (sección 3).
 3. **Marca:** «Si hay que cambiar el branding completo, se puede cambiar. Si hay que eliminar algo que nos pueda dar errores adentro del brand.md, hay que cambiarlo.» → autoriza reescribir las reglas de `BRAND.md` que choquen (sección 5).
 4. **Cifras:** «El formato que se usa va a ser el segundo, el que dice 1.235,50: la coma siempre va a ser los decimales.» → **punto para miles, coma para decimales**. Sustituye la decisión del 2026-08-11 (`$1,234.50`, cabecera de `lib/money.ts`).
+5. **Tecleo de cifras:** a la pregunta «Al teclear «1.234» en un campo de dinero, ¿qué debe entender el sistema?», Sam eligió «Pedir que se aclare». → en campos de **dinero**, un punto seguido de exactamente tres cifras **no se interpreta**: el campo lo rechaza y pide escribirlo con coma decimal o sin punto. El sistema nunca adivina un monto.
 
 **Lo que estas decisiones NO cubren** (se pide aparte, con el tramo a la vista): fusionar, publicar a producción, escribir en la base de datos y cambiar el logo.
 
-## 2. Lo que falta confirmar antes de tocar código (cuatro puntos)
+## 2. Lo que falta confirmar antes de tocar código (tres puntos; el tecleo ya está decidido)
 
 | # | Punto | Mi propuesta | Por qué importa |
 |---|---|---|---|
 | 1 | **Tono exacto del azul** | Partir de `#1F4FA8` (claro) y `#7FAAF0` (oscuro) y **verlo en la imagen de prueba** antes de fijarlo | Son valores calculados; nadie los ha visto en pantalla |
 | 2 | **Símbolo de moneda** con el formato nuevo | `$1.234,50` (símbolo adelante, sin espacio) | `Intl` en `es-VE` escribe `USD 1.234,50`; hay que elegir una sola forma |
-| 3 | **Escritura de cifras en los campos** | Ver riesgo R1 abajo: definir qué significa `1.234` al teclear | Puede multiplicar o dividir un monto por mil |
+| 3 | ~~Escritura de cifras en los campos~~ | **Decidido por Sam (2026-11-20): pedir que se aclare.** Falta solo la regla para CBM y peso, donde `0.125` es legítimo | Puede multiplicar o dividir un monto por mil |
 | 4 | **Logo y wordmark** («DTD» en vino) | No se tocan en este SDD | Son archivos de diseño (4 variantes PNG); rehacerlos es trabajo de Cloud Design |
 
 ## 3. Revisión de todas las pantallas
@@ -144,7 +145,7 @@ Líneas de `BRAND.md` (**C**) que hoy obligarían a un agente a deshacer el camb
 
 ### 6.2 Riesgos (los tres importan)
 
-- **R1 · Lo que se teclea.** Hoy el analizador (`lib/studio/util/parse-numeric-expression.ts:273-302`) trata **un solo separador como decimal**: `1.234` se guarda como **1,234** (uno coma dos tres cuatro), no como mil doscientos treinta y cuatro. Con el formato nuevo en pantalla, alguien que copie o teclee `1.234` esperando mil doscientos treinta y cuatro guardaría un monto mil veces menor. Y al revés no se puede «adivinar»: en CBM `0.125` es legítimo. **Hay que decidir la regla y probarla** (propuesta: en campos de dinero, un punto seguido de exactamente tres cifras se rechaza con un mensaje que pide escribirlo con coma decimal o sin punto; en CBM y peso se mantiene el punto decimal con aviso visible del valor interpretado).
+- **R1 · Lo que se teclea.** Hoy el analizador (`lib/studio/util/parse-numeric-expression.ts:273-302`) trata **un solo separador como decimal**: `1.234` se guarda como **1,234** (uno coma dos tres cuatro), no como mil doscientos treinta y cuatro. Con el formato nuevo en pantalla, alguien que copie o teclee `1.234` esperando mil doscientos treinta y cuatro guardaría un monto mil veces menor. Y al revés no se puede «adivinar»: en CBM `0.125` es legítimo. **Decidido para dinero (Sam, 2026-11-20): se rechaza y se pide aclarar**, con un mensaje de campo (ERR-01) que dice cómo escribirlo con coma decimal o sin punto. **Queda por decidir CBM y peso** (propuesta: se mantiene el punto decimal, con el valor interpretado a la vista). La prueba del tramo T3 debe cubrir `1.234`, `1.234,50`, `1234,5`, `1,234` y `0.125`, con mutante.
 - **R2 · Lo que sale del sistema.** Excel y CSV (`exceljs`), PDF de factura y estado de cuenta, textos de WhatsApp del cotizador y correos: cada uno necesita decisión. Propuesta: **documentos para personas, `1.234,50`; archivos para máquinas (CSV, Excel con celdas numéricas), número real** sin texto formateado.
 - **R3 · Dos idiomas.** El ERP también se muestra en chino (`zh-CN`), donde `lib/i18n/format.ts` escribe `12,323.50`. Hay que decidir si la regla es por idioma de la persona o fija para todos. Propuesta: fija, `1.234,50`, también en chino, porque las cifras se comparan entre oficinas.
 
