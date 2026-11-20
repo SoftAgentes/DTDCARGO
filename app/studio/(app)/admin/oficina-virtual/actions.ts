@@ -27,7 +27,7 @@ import {
 import { platformAdminDenial } from "@/lib/studio/platform-admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
-const RUTA = "/studio/admin/oficina";
+const RUTA = "/studio/admin/oficina-virtual";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONVERSACION = /^[0-9a-f-]{1,40}$/;
 

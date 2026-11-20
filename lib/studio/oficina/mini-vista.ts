@@ -10,7 +10,7 @@
  * - **Qué columnas.** Solo las que la regla del cable deja sin datos personales (R5 · AUD-01 §5): identificadores,
  *   referencias, estados, horas, costos y los textos que pasan por `exigirTextosDelCable` (`titulo`, `resumen`).
  *   Nunca `meta_datos` ni `clave_dedupe`, y nunca el borrador ni el texto del cliente (eso vive en
- *   `/studio/admin/oficina`, con su propio candado en la base).
+ *   `/studio/admin/oficina-virtual`, con su propio candado en la base).
  * - **Cuánto.** Las últimas filas de cada tabla (`LIMITES`), de lo nuevo a lo viejo, y un conteo por estado.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
