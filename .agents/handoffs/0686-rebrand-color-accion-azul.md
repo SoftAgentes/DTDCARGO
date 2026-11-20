@@ -33,7 +33,11 @@ Sam decidió el 2026-11-20 pasar el color de acción del vino al azul en web, Po
 2. Fase 1: tokens `--accion*`, `studio.css` y contratos (`color-accion-contract.test.ts` nuevo).
 3. Imagen de prueba para que Sam fije el tono.
 4. Fases 2 a 5, cada una con su allowlist y su PR. **Condición de publicación (spec §8.1):** entre la fase 1 y el final de la fase 2 no se publica ni se fusiona a `main`, salvo que la pantalla quede coherente.
-5. Decisiones abiertas de Sam: tono exacto, color del Shipping Mark, correos/PDF/Chatwoot y el badge `wine` (spec §10).
+5. **Observaciones menores de la revisión independiente de la PR #715** (aprobada sobre `d10f228c2`; por orden del Director no se corrigen allí, se llevan a la PR de esta SDD):
+   - Actualizar `.agents/handoffs/rebrand-design-evaluacion-ant-design.md:8-10`: dice «sin push, sin PR» y cita una base vieja; ya existe la PR #715.
+   - Enlazar las reservas 0686, 0687 y 0688 desde `docs/design/rebrand-erp/borrador-sdd-rebrand-sistema.md` al adoptar el borrador.
+   - Cambiar «acciones por lote» por «acciones sobre varias filas» en `docs/design/rebrand-erp/checklist-y-color.md:127` y `docs/design/rebrand-erp/evaluacion-carbon.md:44`.
+6. Decisiones abiertas de Sam: tono exacto, color del Shipping Mark, correos/PDF/Chatwoot y el badge `wine` (spec §10).
 
 ## FUERA DE ALCANCE DETECTADO
 
