@@ -65,6 +65,26 @@ Fecha: 2026-11-20.
 | docs:check / sdd:check | PASÓ |
 | Contratos SQL (`run-sql-tests.mjs`, Postgres efímero en Docker; turno del DG) | PASÓ: 317 contratos con rollback, incluidos la 0564, la 0569 y sus dos carreras |
 
+## revisar-datos-ve (acotado al diff, 2026-11-20)
+
+No es asesoría legal: es un inventario técnico.
+
+- **Inventario.** No hay campos personales nuevos. Se tratan los mismos datos que la 0564:
+  - `invoices`: titular `billed_markbox` y nombre que sella el trigger 0466;
+  - `client_markbox` del envío;
+  - `exc0674_facturas`: `tecleado_por` (uid de quien emite).
+  - La columna nueva `origen_monto` no es un dato personal.
+- **CORRECTO:**
+  - La auditoría de la 0569 guarda Shipping Marks, código y montos, pero no nombres
+    (`0569_exc0674_emitir_borradores.sql:320-326`).
+  - La acción usa el nombre solo para el correo `invoice_emitted` en el servidor, y al navegador le
+    devuelve Shipping Mark, código y total (`facturar-actions.ts:160-171`, `:181-188`).
+  - Los avisos del cargador `--solo-facturas` llevan solo conteos (`lote-sql.ts:1382`, `:1480`, `:1517`,
+    `:1552`).
+  - El `id` y el código de factura solo viajan con `montos` (prueba en `page-monto-por-rol.test.ts:127`).
+- **NO VERIFICABLE:** la carga real del 64 y sus datos, porque es producción y no se leyó. La revisión
+  legal del aviso al cliente al emitir y de la retención del rastro `exc0674_*` es para un abogado.
+
 ## Pendientes de esta tarea
 
 1. `revisar-datos-ve`, la PR de implementación y la revisión que lanza el DG.
