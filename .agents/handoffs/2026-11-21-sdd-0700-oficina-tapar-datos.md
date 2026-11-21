@@ -24,7 +24,7 @@ de SDD-0626. Rama `sdd/0626-tapar-datos-entrada`, desde `origin/main` en `f67daa
   SDD el texto llega tapado. *Nota del 21/11/2026:* la v0.1 corregía además la fila del proveedor (decía «respaldo
   DeepSeek quitado», y entonces el agente tenía glm-5.3 de principal y deepseek-chat de respaldo). Esa corrección se
   descartó en el merge con la 0703 (#757): Sam decidió en D-2 que la Oficina_Virtual va con Anthropic, y la fila de
-  `main` ya lo dice. Hoy el agente usa claude-sonnet-5-5 y, si falla, claude-haiku-5-5. Viñeta nueva con lo que NO se tapa. Spec en
+  `main` ya lo dice. Hoy el agente usa Anthropic (claude-sonnet-5-5). Viñeta nueva con lo que NO se tapa. Spec en
   `docs/specs/0700-oficina-tapar-datos/spec.md`.
 
 ## v0.2 · Revisión de la #755 (CHANGES_REQUESTED sobre `e909ddb52`)

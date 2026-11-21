@@ -25,7 +25,7 @@ confidencialidad: interno
 La Oficina_Virtual (SDD-0626, «el cable») lee la bandeja de Chatwoot y le pide un borrador al agente
 `soporte-chatwoot` de Hermes. Cuando se escribió esta SDD el agente llamaba a Z.AI (glm-5.3) y, si fallaba, a
 DeepSeek (deepseek-chat), dos proveedores con sede en China. Desde el 21/11/2026 (decisión de Sam, D-2) llama a
-Anthropic: claude-sonnet-5-5 y, si falla, claude-haiku-5-5, sin respaldo de otro proveedor. Un respaldo con OpenAI
+Anthropic (claude-sonnet-5-5), sin respaldo. Un respaldo con OpenAI
 tiene su propia SDD, la 0703. En cualquier caso, desde aquí no se puede verificar qué guarda el proveedor
 (privacidad.md, hallazgo 13 y §4). La etapa 1
 (datos inventados) se cerró y firmó el 20/11/2026. Antes de la etapa 2 los dos directores acordaron el punto (a):
@@ -169,12 +169,12 @@ mira el texto sin tapar, en memoria, como antes.
 - **v0.2 (21/11/2026).** Por la revisión de la #755 (CHANGES_REQUESTED): lista propia de la Oficina_Virtual (B1, B2,
   M1 a M3, L3), `quedanDatos` mira la cola de un número tapado a medias, código `marcador` (L2) y las pruebas de todos
   los casos (M4). `control.ts` vuelve a quedar como en `main`. L1 queda declarado en §5.
-- **v0.4 (21/11/2026, texto).** Tras el merge con la 0703: el contexto (§1), el alcance (§2) y lo pendiente (§7) dejan
-  de nombrar Z.AI y DeepSeek como proveedores vigentes. Sin cambios de código.
 - **v0.3 (21/11/2026).** Por la segunda revisión (sobre `2005f6c56`): M5, la cédula con espacios de miles («cédula 12 345
   678», «V 12 345 678», «CI 12 345 678») se tapa entera en las tres expresiones de cédula. El espacio no entra en la cola
   de `quedanDatos` («[teléfono] 3 cajas» no escala). L4: «la torre a la que va» ya no se tapa; «torre A» sí, antes de un
   signo, del final o de «piso», «apto»…
+- **v0.4 (21/11/2026, texto).** Tras el merge con la 0703: el contexto (§1), el alcance (§2) y lo pendiente (§7) dejan
+  de nombrar Z.AI y DeepSeek como proveedores vigentes. Sin cambios de código.
 
 ## 7. Pendiente del punto (a)
 
