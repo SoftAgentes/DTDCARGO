@@ -37,6 +37,8 @@
   M4: sumar un modelo al catálogo es una migración con OK nominal; sin el chat se cambia la cadena entre modelos que
   ya existen (§3.2).
 
+- **v6**: D-6 decidida por Sam y registrada en §12; la fase 0 de §11 ya no la lista como pendiente.
+
 ## Comprobaciones
 
 | Comprobación | Resultado |
@@ -48,7 +50,8 @@
 
 ## Decisiones (spec §12)
 
-D-1 a D-5 **decididas por Sam** el 2026-11-21 (las recomendadas). **Abierta:** D-6.
+D-1 a D-6 **decididas por Sam** el 2026-11-21 (las recomendadas). D-6, textual: «SDD-0704 D-6: opción A, un aviso por
+función y puesto al día».
 
 - D-1 · Ubicación: tarjeta «IA» en Administración › PRO (decidida).
 - D-2 · Vuelta al 1.º: cada llamada empieza por el 1.º, con cortacircuito desde la fase 2 (decidida).
@@ -56,8 +59,7 @@ D-1 a D-5 **decididas por Sam** el 2026-11-21 (las recomendadas). **Abierta:** D
 - D-4 · Membresías: 0 USD, se cuentan llamadas y tokens, con tope de llamadas propio (decidida).
 - D-5 · Quién afloja el freno: subir el tope es del superadmin con AAL2 (decidida); la
   extensión a plan fijo, bajar una tarifa y quitar el tope de llamadas viene del bloqueante 1.
-- D-6 · Avisos por salto: uno por función, puesto y día (recomendada); uno por cada salto, o un
-  resumen diario. **ABIERTA.**
+- D-6 · Avisos por salto: uno por función, puesto y día (decidida, opción A).
 
 ## Pendiente de esta tarea
 

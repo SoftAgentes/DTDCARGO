@@ -25,7 +25,7 @@ confidencialidad: interno
 >
 > Sam aprobó «arranca la construcción de la pantalla IA con tres niveles».
 >
-> **Estado: propuesta, solo spec (v4).** Sam decidió la D-1 a la D-5 el 2026-11-21 (§12); queda abierta la D-6.
+> **Estado: propuesta, solo spec (v6).** Sam decidió las seis decisiones (D-1 a D-6) el 2026-11-21 (§12).
 > Esta spec **amplía** la SDD-0639, no la reemplaza: lo que la 0639 llama «principal y respaldo» pasa a ser una
 > **cadena de hasta tres puestos**, y se suma el **costo** en la misma pantalla. No toca código, ni la base, ni
 > producción, ni el `.env`. El repo es público: sin llaves, montos reales, IP ni datos de clientes. Las tarifas, los
@@ -460,7 +460,7 @@ PGlite.
 
 | Fase | Qué entrega | Depende de |
 |---|---|---|
-| **0 · Esta spec** | Aprobación de la spec (D-1 a D-5 ya decididas) y decisión D-6 | Sam |
+| **0 · Esta spec** | Aprobación de la spec (D-1 a D-6 ya decididas) | Sam |
 | **1 · Lo mínimo sin el chat** | `/studio/admin/ia` con «Funciones» (A1 y A2), «Gasto» y «Cuentas y tarifas» (sin llaves); módulo `ia`; migraciones de fase 1. **Costo:** el despachador de la Oficina lee tope, tarifa por modelo y tipo de cobro de la base, con las variables de entorno de respaldo. **Cadena:** A1 y A2 (las primeras de la 0639 D-4) con hasta tres modelos **de Anthropic**, con la llave que ya existe y el cambio automático de §4; es el nivel 1 de la 0639 (modelo, no proveedor), así que no necesita el motor. Registro en `ia_eventos`; aviso solo dentro del Studio (§4.4). **Con esto Sam cambia el modelo de A1 y A2 y el tope de la Oficina sin el chat** | **0638 fase 1** (clasificador, sin base); migraciones con OK nominal de Sam |
 | **1b · La Oficina obedece la cadena** | Fila de la Oficina editable en «Funciones»; el despachador recorre la cadena (§4.2-§4.3) por el camino de la D-3. **Con esto Sam cambia el modelo de la Oficina sin el chat** | Fase 1; Ofi_Hermes (§6.3) |
 | **2 · Motor y llaves** | Fase 2 de la 0639 con cadena de tres: adaptadores de otros proveedores, llaves en Vault y cortacircuitos | Fase 1 |
@@ -470,8 +470,10 @@ PGlite.
 
 **Decididas por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «SDD-0704: apruebo las cinco opciones
 recomendadas (A en las cinco)». Lo decidió **sobre la v1** (`c24353a6b`) y cubre la D-1 a la D-5 tal como estaban ahí.
-La D-5 que sigue es más amplia que la de la v1, por la revisión independiente (ver su nota). Queda **abierta** la
-D-6, que nació en la revisión independiente y Sam no ha decidido. Se conservan las alternativas y los bocetos como
+La D-5 que sigue es más amplia que la de la v1, por la revisión independiente (ver su nota).
+
+**D-6, decidida por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «SDD-0704 D-6: opción A, un aviso por
+función y puesto al día». Nació en la revisión independiente. Se conservan las alternativas y los bocetos como
 registro.
 
 ### D-1 · ¿Dónde va la pantalla? — DECIDIDA
@@ -547,9 +549,9 @@ registro.
      alta con tarifa menor, pasar a plan fijo          → «Confirma con tu segundo factor»
 ```
 
-### D-6 · ¿Cuántos avisos por salto? — ABIERTA
+### D-6 · ¿Cuántos avisos por salto? — DECIDIDA
 
-- **Recomendada: uno por función, puesto y día.** El primer salto del día desde un puesto avisa; los siguientes del
+- **Decidida (Sam, 2026-11-21): opción A, uno por función, puesto y día.** El primer salto del día desde un puesto avisa; los siguientes del
   mismo día solo se cuentan en la pantalla.
 - Alternativas: uno por cada salto (más ruido en una caída larga) o un resumen diario (puede llegar tarde).
 
