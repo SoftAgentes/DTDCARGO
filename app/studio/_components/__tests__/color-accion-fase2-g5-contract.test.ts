@@ -51,6 +51,6 @@ describe("SDD-0686 fase 2 · grupo 5: la operación de la oficina queda sin vino
 
   it("mutante: un KPI de flota en vino se detecta", () => {
     const objetivo = "app/studio/(app)/tms/_components/IncidentsTab.tsx";
-    expect(mutar(objetivo, 'sub="Programados"\n          valueColor="var(--ink)"', 'sub="Programados"\n          valueColor="var(--wine-text)"')).toBe(1);
+    expect(mutar(objetivo, 'sub="Programados"\n', 'sub="Programados"\n          valueColor="var(--wine-text)"\n')).toBe(1);
   });
 });

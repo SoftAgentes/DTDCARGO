@@ -138,14 +138,12 @@ export function AcademiaClient({
         <KpiCard
           value={stats.enCurso}
           label="Cohortes en curso"
-          valueColor="var(--ink)"
           sub="activas ahora"
         />
         <KpiCard value={stats.alumnos} label="Alumnos" sub="inscritos" />
         <KpiCard
           value={stats.diplomasListos}
           label="Diplomas listos"
-          valueColor={stats.diplomasListos > 0 ? "var(--success)" : "var(--ink)"}
           sub="para emitir"
         />
       </div>

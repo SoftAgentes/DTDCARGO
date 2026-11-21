@@ -107,6 +107,27 @@ describe("PermissionsSection · palabras y alcance", () => {
     expect(toastOk).toHaveBeenCalledWith("Contabilidad: CRM ahora en «Solo ver» para 2 personas.");
   });
 
+  it("al desmontar cancela el destello de guardado pendiente (sin setState tras desmontar)", async () => {
+    // En CI el destello de 700 ms se disparó después del desmontaje del entorno
+    // y tumbó la corrida con «window is not defined» (#748).
+    const u = userEvent.setup();
+    const pone = vi.spyOn(globalThis, "setTimeout");
+    const quita = vi.spyOn(globalThis, "clearTimeout");
+    const { unmount } = render(<PermissionsSection members={MIEMBROS} nombres={NOMBRES} />);
+    await u.click(celda(/^Contabilidad, CRM: Sin acceso/));
+    const panel = screen.getByRole("dialog", { name: "CRM · todo el rol Contabilidad" });
+    await u.click(within(panel).getByRole("radio", { name: /^Solo ver/ }));
+    await u.click(within(panel).getByRole("button", { name: "Aplicar a las 2" }));
+    const i = pone.mock.calls.findLastIndex((c) => c[1] === 700);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const destello = pone.mock.results[i].value;
+    quita.mockClear();
+    unmount();
+    expect(quita).toHaveBeenCalledWith(destello);
+    pone.mockRestore();
+    quita.mockRestore();
+  });
+
   it("un extra que solo ve sí sobra cuando el rol pasa a «Solo ver»", async () => {
     const u = userEvent.setup();
     render(<PermissionsSection members={MIEMBROS} grants={[{ ...EXTRA_CB, canEdit: false }]} nombres={NOMBRES} />);

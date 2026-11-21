@@ -123,12 +123,10 @@ export function ActivosFijosTab({
         <KpiCard
           value={`$${fmtAmount(totalAccum)}`}
           label="Depreciación acumulada"
-          valueColor="var(--ink)"
         />
         <KpiCard
           value={`$${fmtAmount(totalNet)}`}
           label="Valor neto en libros"
-          valueColor="var(--success)"
         />
         <KpiCard
           value={`$${fmtAmount(totalMonthly)}`}

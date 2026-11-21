@@ -161,19 +161,17 @@ export function CostingClient({
             value={money(totals.revenue)}
             label={totals.sinTasa > 0 ? "Revenue · subtotal convertido" : "Revenue total"}
             sub={totals.sinTasa > 0 ? `${totals.sinTasa} embarque${totals.sinTasa === 1 ? "" : "s"} sin tasa · conversión incompleta` : currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
-            valueColor="var(--ink)"
           />
           <KpiCard
             value={money(totals.cost)}
             label="Costo total"
             sub={totals.sinTasa > 0 ? "costos conocidos · ingreso incompleto" : `${Math.round(costPctOfRevenue(totals))}% del revenue`}
-            valueColor="var(--warning)"
           />
           <KpiCard
             value={totals.sinTasa > 0 ? "—" : money(totals.margin)}
             label="Margen bruto"
             sub={totals.sinTasa > 0 ? "Pendiente · conversión incompleta" : `${totals.avgMarginPct.toFixed(1)}% promedio`}
-            valueColor={totals.sinTasa > 0 ? "var(--ink)" : totals.margin < 0 ? "var(--danger)" : "var(--success)"}
+            status={totals.sinTasa > 0 ? undefined : totals.margin < 0 ? { tono: "danger", texto: "Con pérdida" } : { tono: "success", texto: "Con margen" }}
           />
           <KpiCard
             value={`${profitable}/${rows.length}`}
@@ -182,7 +180,7 @@ export function CostingClient({
               (losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida")
               + (conSinTasa > 0 ? ` · ${conSinTasa} sin tasa` : "")
             }
-            valueColor={conSinTasa > 0 ? "var(--ink)" : losing > 0 ? "var(--danger)" : "var(--success)"}
+            status={conSinTasa > 0 ? undefined : losing > 0 ? { tono: "danger", texto: "Hay pérdidas" } : { tono: "success", texto: "Todos con margen" }}
           />
         </div>
       )}

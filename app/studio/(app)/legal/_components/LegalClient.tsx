@@ -862,21 +862,15 @@ function AcceptancesView({
         <KpiCard
           value={kpis.total}
           label="Aceptaciones totales"
-          valueColor="var(--ink)"
         />
         <KpiCard
           value={kpis.thisMonth}
           label="Este mes"
-          valueColor="var(--ink)"
         />
         <KpiCard
           value={`${kpis.onCurrent}/${kpis.total}`}
           label="En versión vigente"
-          valueColor={
-            kpis.total > 0 && kpis.onCurrent === kpis.total
-              ? "var(--success)"
-              : "var(--ink)"
-          }
+          status={kpis.total > 0 && kpis.onCurrent === kpis.total ? { tono: "success", texto: "Todos al día" } : undefined}
           sub="Cubren la versión vigente de cada doc"
         />
       </div>

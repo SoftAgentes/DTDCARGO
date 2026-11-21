@@ -60,7 +60,8 @@ function FinRow({
 
 export function FinanceHealthCard({ health }: { health: FinanceHealth }) {
   const coverage = health.coberturaPct;
-  const coverTone = coverage >= 100 ? "var(--success)" : "var(--warning)";
+  // La cifra y la barra van en tinta (Sam, opción A); el estado va aparte, con punto y palabra.
+  const cubre = coverage >= 100;
   const barWidth = Math.min(100, Math.max(0, coverage));
 
   return (
@@ -136,7 +137,7 @@ export function FinanceHealthCard({ health }: { health: FinanceHealth }) {
           <span
             style={{
               font: "800 13px/1 var(--f-mono)",
-              color: coverTone,
+              color: "var(--ink)",
             }}
           >
             {coverage.toFixed(0)}%
@@ -161,11 +162,34 @@ export function FinanceHealthCard({ health }: { health: FinanceHealth }) {
             style={{
               width: `${barWidth}%`,
               height: "100%",
-              background: coverTone,
+              background: "var(--ink)",
               borderRadius: "var(--r-pill)",
               transition: "width var(--dur) var(--ease)",
             }}
           />
+        </div>
+        <div
+          data-kpi-estado={cubre ? "success" : "warning"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginTop: 6,
+            font: "600 12px/1.2 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: cubre ? "var(--success)" : "var(--warning)",
+              flexShrink: 0,
+            }}
+          />
+          {cubre ? "Cubre los pagos" : "No alcanza para los pagos"}
         </div>
       </div>
     </div>

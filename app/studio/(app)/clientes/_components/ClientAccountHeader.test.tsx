@@ -69,7 +69,7 @@ describe("ClientAccountHeader · con saldo", () => {
     expect(screen.queryByText(/1,220/)).toBeNull();
   });
 
-  it("el vencido va en rojo, con el tramo más antiguo y su moneda", () => {
+  it("el vencido va en tinta con su estado «Requiere cobro», el tramo más antiguo y su moneda", () => {
     render(
       <ClientAccountHeader
         canViewStatement={false}
@@ -85,7 +85,10 @@ describe("ClientAccountHeader · con saldo", () => {
     );
     const t = tarjeta("Vencido");
     const valor = within(t).getByText("USD 270.00");
-    expect(valor.style.color).toBe("var(--danger)");
+    // Cifra en tinta y estado aparte (SDD-0686, decisión de Sam: opción A).
+    expect(valor.style.color).toBe("var(--ink)");
+    const estado = within(t).getByText("Requiere cobro");
+    expect(estado.getAttribute("data-kpi-estado")).toBe("danger");
     expect(within(t).getByText("Más antiguo: 31–60 días, en USD · 2 facturas vencidas")).toBeTruthy();
   });
 
