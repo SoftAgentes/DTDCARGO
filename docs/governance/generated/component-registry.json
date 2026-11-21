@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-11-18T00:00:00.000Z",
-  "sourceCommit": "b406f1e68f3d87d2986521adbe8ea9141300f2b0",
+  "sourceCommit": "8daea8b83cae57520715f6d40bfe3976d0722368",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -366,14 +366,12 @@
         "--border-strong",
         "--ink",
         "--ink-soft",
-        "--wine",
-        "--wine-text",
-        "--ink-side-strong",
         "--shadow-pop",
         "--r-md",
         "--r-lg",
         "--f-mono",
-        "--f-sans"
+        "--f-sans",
+        "--ink-inv"
       ],
       "accessibility": {
         "keyboard": "verified",
@@ -647,17 +645,15 @@
         "--r-lg",
         "--border-strong",
         "--bg-surface",
-        "--wine",
-        "--wine-text",
         "--ink-soft",
         "--ink-inv",
         "--shadow-sm",
         "--r-md",
-        "--wine-tint",
         "--ink",
         "--s-1",
         "--s-3",
-        "--s-4"
+        "--s-4",
+        "--accion"
       ],
       "accessibility": {
         "keyboard": "verified",

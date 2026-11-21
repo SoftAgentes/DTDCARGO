@@ -35,17 +35,15 @@
     "--r-lg",
     "--border-strong",
     "--bg-surface",
-    "--wine",
-    "--wine-text",
     "--ink-soft",
     "--ink-inv",
     "--shadow-sm",
     "--r-md",
-    "--wine-tint",
     "--ink",
     "--s-1",
     "--s-3",
-    "--s-4"
+    "--s-4",
+    "--accion"
   ],
   "accessibility": {
     "keyboard": "verified",
