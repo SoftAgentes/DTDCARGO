@@ -170,7 +170,7 @@ export function ClosingDateDrawer({
           <div>
             <label className="studio-label" htmlFor="closing-date">
               Cerrar hasta la fecha{" "}
-              <span style={{ color: "var(--wine-text)" }}>*</span>
+              <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="closing-date"

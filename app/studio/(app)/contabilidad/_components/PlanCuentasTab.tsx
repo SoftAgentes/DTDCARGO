@@ -193,7 +193,7 @@ export function PlanCuentasTab({
                 <span
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     flexShrink: 0,
                     minWidth: 52,
                   }}

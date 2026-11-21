@@ -30,7 +30,7 @@ export function GastosKpis({
         value={formatCurrency(totalUsd, "USD", locale)}
         label={t(locale, "expenses.kpi.month_total_usd")}
         sub={t(locale, "expenses.kpi.month_total_sub")}
-        valueColor="var(--wine-text)"
+        valueColor="var(--ink)"
       />
       <KpiCard
         value={formatCurrency(kpis.shipmentTotalUsd, "USD", locale)}

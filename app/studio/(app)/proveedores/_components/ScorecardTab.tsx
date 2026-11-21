@@ -86,7 +86,7 @@ export function ScorecardTab({
         <KpiCard
           value={stats.avgScore ?? "—"}
           label="Rating prom."
-          valueColor={stats.avgScore != null ? "var(--wine)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub="sobre 100"
         />
         <KpiCard
@@ -425,7 +425,7 @@ function ScorecardDetailDrawer({
                     <div
                       style={{
                         font: "700 11.5px/1.2 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink)",
                       }}
                     >
                       {c.claim_code}

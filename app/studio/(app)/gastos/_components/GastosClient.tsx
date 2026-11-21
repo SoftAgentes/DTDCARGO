@@ -414,7 +414,7 @@ export function AlertBanner({
               borderRadius: "var(--r-md)",
             }}
           >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--ink)" }}>
               {a.shipment_code ?? "—"}
             </code>
             <span
@@ -595,7 +595,7 @@ function ExpenseRow({
             <code
               style={{
                 font: "700 11px/1 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
               }}
             >
               {shipmentCode}
@@ -645,7 +645,7 @@ function ExpenseRow({
       <span
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: "var(--wine-text)",
+          color: "var(--ink)",
           textAlign: "right",
         }}
       >

@@ -224,7 +224,7 @@ export function ReclamosTab({
               <code
                 style={{
                   font: "700 12px/1.2 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {c.claim_code}

@@ -474,7 +474,7 @@ function CheckRow({
           value="1"
           defaultChecked={defaultChecked}
           disabled={disabled}
-          style={{ width: 16, height: 16, accentColor: "var(--wine)" }}
+          style={{ width: 16, height: 16, accentColor: "var(--accion)" }}
         />
         {/* Disabled (no-admin) → texto atenuado pero legible, para que el bloqueo
             se note en todo el form y no solo en el banner superior. */}

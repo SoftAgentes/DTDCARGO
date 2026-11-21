@@ -134,7 +134,7 @@ export function AjustesDelCierre({ estado }: { estado: EstadoCierre }) {
                 checked={modo === m}
                 onChange={() => setModo(m)}
                 disabled={pending}
-                style={{ accentColor: "var(--wine)", marginTop: 2 }}
+                style={{ accentColor: "var(--accion)", marginTop: 2 }}
               />
               <span>
                 <strong>{ETIQUETA_MODO[m]}</strong>

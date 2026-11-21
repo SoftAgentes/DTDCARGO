@@ -38,7 +38,7 @@ export function Field({
     <div style={{ flex: 1, minWidth: 0 }}>
       <label className="studio-label" htmlFor={control ? controlId : undefined}>
         {label}
-        {required && <span style={{ color: "var(--wine-text)" }}> *</span>}
+        {required && <span style={{ color: "var(--ink-soft)" }}> *</span>}
       </label>
       {control
         ? cloneElement(control, {

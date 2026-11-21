@@ -190,7 +190,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
           >
             <div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                <Badge tone={line.direction === "credit" ? "success" : "wine"} size="sm">
+                <Badge tone={line.direction === "credit" ? "success" : "neutral"} size="sm">
                   {lineDirectionLabel(line.direction)}
                 </Badge>
                 <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
@@ -278,7 +278,7 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
                 >
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {c.entry_code}
                       </code>
                       {c.alreadyLinked ? (

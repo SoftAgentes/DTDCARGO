@@ -96,10 +96,10 @@ export function GenerarFiniquitoDrawer({
                     gap: 10,
                     alignItems: "flex-start",
                     padding: "10px 12px",
-                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                     borderRadius: "var(--r-sm)",
                     cursor: "pointer",
-                    background: active ? "var(--wine-tint)" : "var(--bg-surface)",
+                    background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
                   }}
                 >
                   <input

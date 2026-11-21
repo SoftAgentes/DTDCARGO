@@ -297,7 +297,7 @@ function StatementDetail({
           label="Débitos"
           value={balance.totalDebit}
           sign="−"
-          color="var(--wine-soft)"
+          color="var(--ink)"
         />
         <BalanceCell label="Saldo final" value={statement.closing_balance} />
         <BalanceCell
@@ -385,7 +385,7 @@ function MovementRow({
             marginBottom: 4,
           }}
         >
-          <Badge tone={isCredit ? "success" : "wine"} size="sm">
+          <Badge tone={isCredit ? "success" : "neutral"} size="sm">
             {lineDirectionLabel(line.direction)}
           </Badge>
         </div>
@@ -407,7 +407,7 @@ function MovementRow({
             style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
           >
             Sugerido:{" "}
-            <code style={{ color: "var(--wine-text)" }}>{suggestion.entry_code}</code>
+            <code style={{ color: "var(--ink)" }}>{suggestion.entry_code}</code>
           </span>
         ) : (
           <span

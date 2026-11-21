@@ -168,7 +168,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="acct-code">
-                Código <span style={{ color: "var(--wine-text)" }}>*</span>
+                Código <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="acct-code"
@@ -187,7 +187,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="acct-name">
-                Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
+                Nombre <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="acct-name"
@@ -289,7 +289,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
               type="checkbox"
               checked={isPostable}
               onChange={(e) => setIsPostable(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             Postable (hoja donde se asienta · si no, es un grupo que solo agrega)
           </label>

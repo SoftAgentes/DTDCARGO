@@ -117,7 +117,7 @@ export function LedgerTab({
           label="Saldo neto · USD"
           valueColor={
             balance.net_usd > 0
-              ? "var(--wine)"
+              ? "var(--ink)"
               : balance.net_usd < 0
                 ? "var(--success)"
                 : "var(--ink)"
@@ -135,7 +135,7 @@ export function LedgerTab({
           label="Saldo neto · RMB"
           valueColor={
             balance.net_rmb > 0
-              ? "var(--wine)"
+              ? "var(--ink)"
               : balance.net_rmb < 0
                 ? "var(--success)"
                 : "var(--ink)"
@@ -173,8 +173,8 @@ export function LedgerTab({
                 padding: "5px 12px",
                 borderRadius: "var(--r-sm)",
                 background:
-                  currencyView === c ? "var(--wine-tint)" : "transparent",
-                color: currencyView === c ? "var(--wine)" : "var(--ink-soft)",
+                  currencyView === c ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
+                color: currencyView === c ? "var(--ink)" : "var(--ink-soft)",
                 font: "700 11px/1 var(--f-sans)",
                 border: "none",
                 cursor: "pointer",
@@ -299,7 +299,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "800 12px/1 var(--f-mono)",
-                    color: run > 0 ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                   }}
                 >
                   {fmt(run)}

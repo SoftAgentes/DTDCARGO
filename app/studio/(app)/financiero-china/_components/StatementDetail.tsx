@@ -280,7 +280,7 @@ export function StatementDetail({
           {
             label: "Conciliado",
             v: `${pct}%`,
-            c: pct === 100 ? "var(--success)" : "var(--wine-soft)",
+            c: pct === 100 ? "var(--success)" : "var(--ink-side)",
           },
           {
             label: "A revisar",
@@ -459,8 +459,8 @@ function LineRow({
       }}
       className="studio-tracking-row"
       style={{
-        background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+        border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
         borderRadius: "var(--r-lg)",
         padding: "14px 18px",
         cursor: "pointer",
@@ -807,7 +807,7 @@ function LineDetailPanel({
                         style={candidateBtnStyle()}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                          <code style={{ font: "700 10.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                             {e.entry_code}
                           </code>
                           <div
