@@ -27,7 +27,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { listFrictionReports } from "@/lib/studio/marketing/friction-queries";
 import { FrictionReportsPanel } from "./_components/FrictionReportsPanel";
 
-export const metadata = { title: "Marketing · DTD Studio" };
+export const metadata = { title: "Marketing" };
 export const dynamic = "force-dynamic";
 
 const VE_TZ = "America/Caracas";

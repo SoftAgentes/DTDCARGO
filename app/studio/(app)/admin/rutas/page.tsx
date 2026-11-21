@@ -16,7 +16,7 @@ import {
 import { RoutesClient } from "./_components/RoutesClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Rutas y ciudades · DTD Studio" };
+export const metadata = { title: "Rutas y ciudades" };
 
 export default async function AdminRoutesPage() {
   // SDD-0624: el gate va también en la página, no sólo en el layout: un

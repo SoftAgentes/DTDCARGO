@@ -225,7 +225,9 @@ export default async function StudioAppLayout({
                 className="studio-content"
                 style={{
                   flex: 1,
-                  padding: "var(--s-6) var(--s-8)",
+                  // Abajo, 68 px más: el botón flotante mide 44 px y va a 24 px
+                  // del borde, y no debe tapar lo último de la pantalla.
+                  padding: "var(--s-6) var(--s-8) calc(var(--s-6) + 68px)",
                   width: "100%",
                   margin: "0 auto",
                 }}

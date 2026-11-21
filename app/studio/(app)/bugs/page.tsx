@@ -22,7 +22,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 const STALE_DAYS = 7;
 
-export const metadata = { title: "Bug Tracker · DTD Studio" };
+export const metadata = { title: "Bug Tracker" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined };

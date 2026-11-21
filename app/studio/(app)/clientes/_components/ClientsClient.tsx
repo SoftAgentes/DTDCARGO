@@ -394,8 +394,8 @@ function ClientsTable({
   // pudo contar.
   const columnas =
     adjuntos === null
-      ? "120px 120px 1.5fr 100px 1.2fr 140px"
-      : "120px 120px 1.5fr 100px 96px 1.2fr 140px";
+      ? "120px 120px minmax(0, 1.5fr) 100px minmax(0, 1.2fr) 140px"
+      : "120px 120px minmax(0, 1.5fr) 100px 96px minmax(0, 1.2fr) 140px";
 
   // SDD-0255 · índices por cliente-padre y por id. El aliado ES un cliente, así
   // que en el listado hay que poder distinguirlo de un vistazo: hoy se ven los

@@ -29,7 +29,7 @@ import {
 } from "@/lib/studio/notifications/notification-staff-queries";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Estado del motor de avisos · DTD Studio" };
+export const metadata = { title: "Estado del motor de avisos" };
 export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<NotificationStatus, BadgeTone> = {

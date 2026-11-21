@@ -125,7 +125,8 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
 
   return (
     <svg
-      viewBox={`0 0 ${W} ${H + 36}`}
+      // La leyenda va de H+30 a H+40: el lienzo llega a H+48 para no cortarla.
+      viewBox={`0 0 ${W} ${H + 48}`}
       style={{ width: "100%", height: "auto" }}
       role="img"
       aria-label="Volumen mensual de embarques y CBM"

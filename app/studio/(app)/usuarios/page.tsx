@@ -36,7 +36,7 @@ import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
 import { cargarAgentesBandeja, type AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
 import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 
-export const metadata = { title: "Usuarios · DTD Studio" };
+export const metadata = { title: "Usuarios" };
 export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage({

@@ -60,7 +60,7 @@ export function RecoveryForm() {
               className="studio-display"
               style={{ fontSize: 30, color: "#FFFFFF", margin: "12px 0 12px" }}
             >
-              Recupera tu <span style={{ color: "#C2747F" }}>acceso</span>.
+              Recupera tu acceso.
             </h1>
             <p
               style={{
@@ -128,11 +128,11 @@ export function RecoveryForm() {
             paddingTop: 20,
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
             font: "500 11.5px/1.5 Archivo, sans-serif",
-            color: "rgba(255, 255, 255, 0.45)",
+            color: "rgba(255, 255, 255, 0.6)",
             textAlign: "center",
           }}
         >
-          <Link href="/studio/login" style={{ color: "#C2747F", textDecoration: "none" }}>
+          <Link href="/studio/login" style={{ color: "var(--accion-soft)", textDecoration: "underline" }}>
             ← Volver a entrar
           </Link>
         </div>

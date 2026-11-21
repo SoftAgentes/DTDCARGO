@@ -163,7 +163,9 @@
 
 .studio-dark {
   min-height: 100vh;
-  background: var(--studio-ink);
+  /* Navy fijo en los dos temas (revisión visual de SDD-0686): --studio-ink es
+     --ink, que en oscuro se vuelve claro y dejaba beige alrededor de la tarjeta. */
+  background: var(--bg-sidebar);
   color: #FFFFFF;
   font-family: var(--f-sans);
   display: grid;

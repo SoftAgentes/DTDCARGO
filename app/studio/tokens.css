@@ -240,7 +240,7 @@
   --grad-wine-soft:  linear-gradient(135deg,rgba(158,21,34,.20),rgba(90,9,16,.14));
   --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
   --grad-navy:       radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
-  --grad-page:       radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+  --grad-page:       radial-gradient(90% 70% at 100% 0%,rgba(31,79,168,.05),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
   --grad-card:       linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
 }
 
@@ -286,7 +286,7 @@
   --grad-wine:       linear-gradient(135deg,#CE4552 0%,#A8323E 50%,#6E1420 100%);
   --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#CE4552 0%,#A8323E 42%,#5A0F1A 100%);
   --grad-navy:       radial-gradient(120% 125% at 18% -22%,#2E4A80 0%,#0B1428 54%,#03060F 100%);
-  --grad-page:       radial-gradient(62% 55% at 100% 0%,rgba(168,50,62,.28),transparent 56%),radial-gradient(70% 60% at 0% 100%,rgba(31,48,85,.6),transparent 55%),var(--bg-base);
+  --grad-page:       radial-gradient(62% 55% at 100% 0%,rgba(127,170,240,.10),transparent 56%),radial-gradient(70% 60% at 0% 100%,rgba(31,48,85,.6),transparent 55%),var(--bg-base);
   --grad-card:       linear-gradient(160deg,#193056 0%,#16264A 100%);
 
   --bg-base: #0B1428;

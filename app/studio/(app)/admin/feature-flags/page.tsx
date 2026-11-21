@@ -16,7 +16,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { FeatureFlagsClient } from "./_components/FeatureFlagsClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Feature flags · DTD Studio" };
+export const metadata = { title: "Feature flags" };
 export const dynamic = "force-dynamic";
 
 export default async function FeatureFlagsPage() {

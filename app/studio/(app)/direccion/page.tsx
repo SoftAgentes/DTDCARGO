@@ -29,7 +29,7 @@ import { SinFacturarCard } from "./_components/SinFacturarCard";
 import { reporteSinFacturar } from "@/lib/studio/rate-snapshots/sin-facturar";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Dirección · DTD Studio" };
+export const metadata = { title: "Dirección" };
 export const dynamic = "force-dynamic";
 
 export default async function DireccionPage() {

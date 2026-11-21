@@ -16,7 +16,7 @@ import {
   type BrandContext,
 } from "@/lib/shared/brand-context";
 
-export const metadata = { title: "Etiquetas CN · DTD Studio" };
+export const metadata = { title: "Etiquetas CN" };
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 

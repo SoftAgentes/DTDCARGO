@@ -15,7 +15,7 @@ import Link from "next/link";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 
-export const metadata = { title: "Calendario · Marketing · DTD Studio" };
+export const metadata = { title: "Calendario · Marketing" };
 export const dynamic = "force-dynamic";
 
 const YEAR = 2026;

@@ -12,7 +12,7 @@ import { NoticiasTabs } from "../../_components/NoticiasTabs";
 import { RetiroForm } from "../../publicadas/_components/RetiroForm";
 import { puertaNoticiasAdmin } from "../../publicadas/_gate";
 
-export const metadata = { title: "Retirar noticia · DTD Studio" };
+export const metadata = { title: "Retirar noticia" };
 export const dynamic = "force-dynamic";
 
 export default async function RetirarNoticiaPage({ params }: { params: Promise<{ id: string }> }) {

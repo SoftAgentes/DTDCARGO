@@ -13,7 +13,7 @@ import { canSpecial } from "@/lib/studio/rbac";
 import { listAssignableProfiles } from "@/lib/studio/bitacora/bitacora-queries";
 import { NuevaReunionClient } from "./_components/NuevaReunionClient";
 
-export const metadata = { title: "Nueva conversación · Bitácora · DTD Studio" };
+export const metadata = { title: "Nueva conversación · Bitácora" };
 
 export const dynamic = "force-dynamic";
 

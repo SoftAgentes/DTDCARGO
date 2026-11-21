@@ -14,7 +14,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getStockByWarehouse } from "@/lib/studio/inventory/queries";
 import { InventarioClient } from "./_components/InventarioClient";
 
-export const metadata = { title: "Inventario · WMS — DTD Studio" };
+export const metadata = { title: "Inventario · WMS" };
 
 export default async function InventarioPage() {
   await requireModuleView("inventory");

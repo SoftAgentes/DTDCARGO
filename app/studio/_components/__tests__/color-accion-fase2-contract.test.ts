@@ -42,10 +42,6 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 1,
     motivo: "tono `wine` obsoleto (BD-076 regla 7); lo usa el móvil hasta la fase 3",
   },
-  "app/studio/_components/ui/EmptyState.tsx": {
-    cuenta: 1,
-    motivo: "eyebrow de identidad, igual que el guión de `.studio-eyebrow`",
-  },
   "app/studio/(app)/dashboard/page.tsx": {
     cuenta: 1,
     motivo: "panel de bienvenida con degradado de marca (BD-034): identidad",

@@ -35,7 +35,7 @@ import type { RenditionPreview } from "@/lib/studio/renditions/types";
 import { RendicionesClient } from "./_components/RendicionesClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Rendiciones · Operadora · DTD Studio" };
+export const metadata = { title: "Rendiciones · Operadora" };
 export const dynamic = "force-dynamic";
 
 export type QuincenaCard = {
