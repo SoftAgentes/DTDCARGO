@@ -79,7 +79,7 @@ Estado del 2026-11-20, tarde:
    - 44 títulos sin sufijo doble;
    - margen para el botón flotante.
 
-   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). Esperan a Sam: las cifras KPI de estado y el logo de la barra. Pendiente: 115 usos de `--ink-mute` como texto.
+   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). Las cifras KPI de estado se decidieron después (opción A, #748). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)», confirmado: «Sí, el logo se cambia a la opción A»); va en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. Una nota anterior de la #748 (`ee44876d2`) lo daba como «hoy»: queda sin efecto. Pendiente: 115 usos de `--ink-mute` como texto.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

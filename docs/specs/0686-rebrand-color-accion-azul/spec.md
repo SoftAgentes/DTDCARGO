@@ -717,7 +717,7 @@ El Director revisó `main` (`d590ea3f3`) con el Studio en local, datos ficticios
 **Fuera de esta PR, a la espera de Sam:**
 - ~~la banda de bienvenida del Dashboard~~: Sam la decidió (opción A) y va en esta misma PR, en su propio commit (ver la última fila de la tabla);
 - las cifras KPI con color de estado y las barras de las gráficas en `--success`;
-- ~~el logo «DTD» de la barra lateral~~: Sam lo decidió el 2026-11-21 («Sí, opción A (Recomendado)») y va en su propia PR, en la rama `claude/sdd-0686-logo-vino-claro` (ver la fila 12).
+- ~~el logo «DTD» de la barra lateral~~: Sam lo decidió el 2026-11-21 («Sí, opción A (Recomendado)») y va en su propia PR, en la rama `claude/sdd-0686-logo-vino-claro` (ver la fila 12). Lo confirmó después: «Sí, el logo se cambia a la opción A». Si una nota de la #748 (`ee44876d2`) lo da como «hoy», queda sin efecto: manda esta.
 
 El Portal y la web pública van en sus fases.
 
