@@ -131,7 +131,9 @@ describe("agruparLote con excluirMarkbox", () => {
       "el contenedor completo (con los excluidos por markbox) suma 10 cajas",
     );
     // Los avisos de las filas excluidas no salen (el Remitente corregido de una fila excluida, p. ej.).
-    const corregida = excluir(["DTD-0000"], {}, FILAS.map((f) => (f.remitente === "DTD-0000-02" ? { ...f, remitente: "dtd-0000-02 " } : f)));
+    const conGuionBajo = FILAS.map((f) => (f.remitente === "DTD-0000-02" ? { ...f, remitente: "DTD-0000_02" } : f));
+    expect(agruparLote(RASTREO, conGuionBajo, { eta: "2026-10-19" }).avisos).toContain("Fila 7: el Remitente «DTD-0000_02» se corrige a «DTD-0000-02».");
+    const corregida = excluir(["DTD-0000"], {}, conGuionBajo);
     expect(corregida.avisos.slice(0, -1).join(" | ")).not.toContain("DTD-0000");
     expect(corregida.avisos.at(-1)).toMatch(/^Excluidos por markbox/);
   });
