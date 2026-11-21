@@ -25,14 +25,15 @@ confidencialidad: interno
 >
 > Sam aprobó «arranca la construcción de la pantalla IA con tres niveles».
 >
-> **Estado: propuesta, solo spec (v3).** Esta spec **amplía** la SDD-0639, no la reemplaza: lo que la 0639 llama
-> «principal y respaldo» pasa a ser una **cadena de hasta tres puestos**, y se suma el **costo** en la misma pantalla.
-> No toca código, ni la base, ni producción, ni el `.env`. El repo es público: sin llaves, montos reales, IP ni datos
-> de clientes. Las tarifas, los topes y los nombres de modelo de los bocetos son de ejemplo.
+> **Estado: propuesta, solo spec (v4).** Sam decidió la D-1 a la D-5 el 2026-11-21 (§12); queda abierta la D-6.
+> Esta spec **amplía** la SDD-0639, no la reemplaza: lo que la 0639 llama «principal y respaldo» pasa a ser una
+> **cadena de hasta tres puestos**, y se suma el **costo** en la misma pantalla. No toca código, ni la base, ni
+> producción, ni el `.env`. El repo es público: sin llaves, montos reales, IP ni datos de clientes. Las tarifas, los
+> topes y los nombres de modelo de los bocetos son de ejemplo.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no verificado. Base:
-`origin/main` `9ae885c88`. La 0702 y la 0703 aún no están en `main`: se leyeron en sus ramas
-(`origin/sdd/0626-modelo-real` y `origin/claude/sdd-0703-openai-respaldo-741f7a`, PR #757) y se citan como **D**.
+`origin/main` `05c356a74` (ya trae la 0702). La 0703 aún no está en `main`: se leyó en su rama
+(`origin/claude/sdd-0703-openai-respaldo-741f7a`, PR #757) y se cita como **D**.
 
 **Frontera con la Oficina:** la 0704 diseña y el ERP guarda la cadena; cualquier cambio en el VPS de Hermes lo ejecuta
 Ofi_Hermes.
@@ -46,18 +47,18 @@ Ofi_Hermes.
 | La 0639 fija **un principal y un respaldo**, y dice expresamente «No es una cadena larga» | D `docs/specs/0639-ia-cambio-de-proveedor/spec.md:72-82` |
 | La 0703 repite «una sola vez … No hay cadena larga ni un tercer proveedor» para A3-A5 | D 0703 §7 |
 | Hoy A1 noticias y A2 brief tienen el modelo fijo en el código; A3, A4 y A5 lo leen de una variable | D 0639 §1 · D 0638 §2.1 |
-| La Oficina **no elige el modelo desde el ERP**: el cable llama a Hermes con `model: "soporte-chatwoot"` (el alias del perfil) y Hermes decide | C `lib/studio/oficina/runtime-cliente.ts:62-69` |
+| La Oficina **no elige el modelo desde el ERP**: el cable llama a Hermes con `model: "soporte-chatwoot"` (el alias del perfil) y Hermes decide | C `lib/studio/oficina/runtime-cliente.ts:54-69` |
 | El ERP solo ve el status del runtime (`http_<status>`, `red`, `json`), no el error del proveedor de fondo | C `runtime-cliente.ts:73-82` · D 0638 §5.4 |
-| Hoy un error del runtime **escala la conversación al momento** (`runtime:<código>`): no hay segundo intento con otro modelo desde el ERP | C `lib/studio/oficina/despachador.ts:207-209` |
+| Hoy un error del runtime **escala la conversación al momento** (`runtime:<código>`): no hay segundo intento con otro modelo desde el ERP | C `lib/studio/oficina/despachador.ts:216-218` |
 | El respaldo del perfil se configura con `fallback_model`, que se quitó el 2026-11-16. Cuántos respaldos admite Hermes (uno o una lista) es **NV** | D `docs/runbooks/oficina-cable.md:330` |
-| Hermes v0.23.1 no devuelve el modelo real en `/v1/chat/completions`; la 0702 lo lee de la sesión y lo deja en `task_events.modelo_usado` | D 0702 §1-§2 · C `despachador.ts:233` |
+| Hermes v0.23.1 no devuelve el modelo real en `/v1/chat/completions`; la 0702 (ya en `main`) lo lee de la sesión antes de borrarla y lo deja en `task_events.modelo_usado` | D `docs/specs/0702-oficina-modelo-real/spec.md` §1-§2 · C `despachador.ts:212-214`, `:242` |
 | Estado del 2026-11-21: `soporte-chatwoot` en `claude-sonnet-5-5`, con `claude-haiku-5-5` de respaldo; Z.AI y DeepSeek fuera del perfil | D informe de Ofi_Hermes al DG (citado en 0703 §5.2 y en el encargo). **NV** desde el repo |
 | Tope y tarifa de la Oficina son variables de entorno: `OFICINA_TOPE_MENSUAL_USD`, `OFICINA_PRECIO_ENTRADA_USD_MTOK`, `OFICINA_PRECIO_SALIDA_USD_MTOK`, con valores por defecto en el código | C `lib/studio/oficina/despachador-config.ts:14-21`, `:101`, `:109-112` |
 | **Techo en el código:** `TOPE_MENSUAL_MAXIMO_USD = 15`; un tope mayor vale 15 (D5 de la 0626) | C `despachador-config.ts:33`, `:101` |
-| La tarifa de la Oficina es **una sola, global**, no por modelo | C `despachador-config.ts:120-123`, `despachador.ts:232` |
+| La tarifa de la Oficina es **una sola, global**, no por modelo | C `despachador-config.ts:120-123`, `despachador.ts:241` |
 | El 2026-11-21 se corrigieron a mano en el `.env` de producción la tarifa y el tope de la Oficina (valores fuera del repo) | D encargo de Dir_DTD |
 | El gasto del mes es la suma de `task_events.costo_usd` del mes en UTC; la auto-pausa al 80 % **solo pausa** | C `supabase/migrations/0548_oficina_despachador.sql:411-420`, `:422-451` |
-| `task_events` guarda `costo_usd` y `modelo_usado`, **no** los tokens (van solo en el texto del `resumen`) | C `supabase/migrations/0541_oficina_cable_tablas.sql:165-174` · C `despachador.ts:231` |
+| `task_events` guarda `costo_usd` y `modelo_usado`, **no** los tokens (van solo en el texto del `resumen`) | C `supabase/migrations/0541_oficina_cable_tablas.sql:165-174` · C `despachador.ts:240` |
 | Por corrida de la Oficina: como mucho 2 llamadas (la llamada y un reintento) y 24 000 tokens | C `despachador-config.ts:104-105` |
 | Un módulo de `SUPERADMIN_ONLY_MODULES` no se puede conceder por persona: el guard exige `is_platform_admin()` | C `lib/studio/rbac-guard.ts:170-174` |
 | Llaves en Vault: el patrón de Kommo guarda solo el nombre del secreto | C `supabase/migrations/0082_kommo_mirror_schema.sql:9`, `:18` |
@@ -73,7 +74,7 @@ Oficina depende de lo que mida y configure Ofi_Hermes (§6).
 
 Ruta `/studio/admin/ia`, tarjeta **«IA»** en Administración › PRO, junto a Agentes. Es la misma pantalla que la 0638
 llama «Estado de la IA» y la 0639 usa para elegir proveedor: **una sola pantalla**, no tres. La 0638 dejó abierta su
-D-1; aquí se recomienda la tarjeta (§12, D-1).
+D-1; aquí Sam decidió la tarjeta (§12, D-1).
 
 ### 2.2 Cuatro pestañas
 
@@ -207,7 +208,7 @@ todo, la Oficina **no salta** hasta tener la causa.
 
 ### 4.5 Cuándo vuelve al 1.º
 
-Recomendación (§12, D-2): **cada llamada nueva empieza por el 1.º**. A partir de la fase 2, cuando los puestos puedan
+Decidido por Sam (§12, D-2): **cada llamada nueva empieza por el 1.º**. A partir de la fase 2, cuando los puestos puedan
 ser de cuentas distintas, se suma un cortacircuito corto:
 
 - si el 1.º falló con `falta_de_pago`, `cuenta_suspendida` o `llave_invalida`, queda **abierto**: las llamadas lo
@@ -247,11 +248,11 @@ Las pruebas que fallan si el catálogo lo permite están en §10.
 
 | Camino | Cómo funciona | A favor | En contra |
 |---|---|---|---|
-| **A · El ERP pide el modelo en cada llamada** (recomendado) | El despachador lee la cadena de `ia_cadenas`, llama a Hermes pidiendo el **puesto 1**, y si el runtime falla con una clase que salta (§4.2), vuelve a llamar pidiendo el **puesto 2**, y luego el 3. Hermes deja de tener respaldo propio | Una sola cadena y una sola regla (§4) para todo el ERP; el ERP sabe qué modelo pidió, así que la tarifa por modelo sale exacta; el cambio vale en la llamada siguiente, sin reiniciar nada | Que Hermes acepte el modelo por llamada es **NV**; la clase es gruesa mientras Hermes no pase la causa (§4.2) |
+| **A · El ERP pide el modelo en cada llamada** (decidido, D-3) | El despachador lee la cadena de `ia_cadenas`, llama a Hermes pidiendo el **puesto 1**, y si el runtime falla con una clase que salta (§4.2), vuelve a llamar pidiendo el **puesto 2**, y luego el 3. Hermes deja de tener respaldo propio | Una sola cadena y una sola regla (§4) para todo el ERP; el ERP sabe qué modelo pidió, así que la tarifa por modelo sale exacta; el cambio vale en la llamada siguiente, sin reiniciar nada | Que Hermes acepte el modelo por llamada es **NV**; la clase es gruesa mientras Hermes no pase la causa (§4.2) |
 | **B · Sincronizar hacia Hermes** | El ERP expone la cadena en un endpoint de solo lectura con el token del cable; un proceso en el VPS, que monta Ofi_Hermes, la lee cada pocos minutos y reescribe el modelo y el respaldo del perfil | El ERP no cambia su forma de llamar | Si Hermes admite un solo respaldo (**NV**), el 3.º puesto no cabe; hay que reiniciar el gateway; dos fuentes de verdad durante la sincronización; la tarifa depende de la 0702 |
 | **C · Dejarlo en Hermes y solo mostrarlo** | La pantalla muestra la cadena como dato, sin editarla | Cero trabajo en el VPS | No cumple lo que pidió Sam |
 
-**Recomendación: A** (§12, D-3). Si la fase 1b demuestra que Hermes no acepta el modelo por llamada, se pasa a **B**,
+**Decidido por Sam: A** (§12, D-3). Si la fase 1b demuestra que Hermes no acepta el modelo por llamada, se pasa a **B**,
 con dos puestos si Hermes admite un solo respaldo, y la pantalla lo dice («El 3.º puesto no se aplica en la Oficina»).
 
 ### 6.2 Cómo se pide el modelo en el camino A (NV)
@@ -447,19 +448,22 @@ PGlite.
 
 | Fase | Qué entrega | Depende de |
 |---|---|---|
-| **0 · Esta spec** | Aprobación y decisiones D-1 a D-6 | Sam |
+| **0 · Esta spec** | Aprobación de la spec (D-1 a D-5 ya decididas) y decisión D-6 | Sam |
 | **1 · Lo mínimo sin el chat** | `/studio/admin/ia` con «Funciones» (A1 y A2), «Gasto» y «Cuentas y tarifas» (sin llaves); módulo `ia`; migraciones de fase 1. **Costo:** el despachador de la Oficina lee tope, tarifa por modelo y tipo de cobro de la base, con las variables de entorno de respaldo. **Cadena:** A1 y A2 (las primeras de la 0639 D-4) con hasta tres modelos **de Anthropic**, con la llave que ya existe y el cambio automático de §4; es el nivel 1 de la 0639 (modelo, no proveedor), así que no necesita el motor. Registro en `ia_eventos`; aviso solo dentro del Studio (§4.4). **Con esto Sam cambia el modelo de A1 y A2 y el tope de la Oficina sin el chat** | **0638 fase 1** (clasificador, sin base); migraciones con OK nominal de Sam |
-| **1b · La Oficina obedece la cadena** | Fila de la Oficina editable en «Funciones»; el despachador recorre la cadena (§4.2-§4.3) por el camino de la D-3. **Con esto Sam cambia el modelo de la Oficina sin el chat** | Fase 1; Ofi_Hermes (§6.3); la 0702 fusionada |
+| **1b · La Oficina obedece la cadena** | Fila de la Oficina editable en «Funciones»; el despachador recorre la cadena (§4.2-§4.3) por el camino de la D-3. **Con esto Sam cambia el modelo de la Oficina sin el chat** | Fase 1; Ofi_Hermes (§6.3) |
 | **2 · Motor y llaves** | Fase 2 de la 0639 con cadena de tres: adaptadores de otros proveedores, llaves en Vault y cortacircuitos | Fase 1 |
 | **3 · El resto de funciones** | A1 y A2 con proveedores distintos (0639 D-1); A3-A5 con respaldo no chino (0703); A8; auto-pausa por función; aviso externo | Fase 2; **0638 fase 5** (aviso) para el aviso fuera del Studio |
 
-## 12. Decisiones para Sam
+## 12. Decisiones
 
-Cada una con la recomendada primero y con su boceto.
+**Decididas por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «SDD-0704: apruebo las cinco opciones
+recomendadas (A en las cinco)». Cubre la D-1 a la D-5 tal como estaban en la v1 (`c24353a6b`). Queda **abierta** la
+D-6, que nació en la revisión independiente y Sam no ha decidido. Se conservan las alternativas y los bocetos como
+registro.
 
-### D-1 · ¿Dónde va la pantalla?
+### D-1 · ¿Dónde va la pantalla? — DECIDIDA
 
-- **Recomendada: tarjeta «IA» en Administración › PRO**, con las cuatro pestañas de §2.2. Junta lo de la 0638, la
+- **Decidida (Sam, 2026-11-21): tarjeta «IA» en Administración › PRO**, con las cuatro pestañas de §2.2. Junta lo de la 0638, la
   0639 y esta spec en un solo lugar.
 - Alternativa: una sección «IA» propia en la barra lateral.
 
@@ -472,9 +476,9 @@ Cada una con la recomendada primero y con su boceto.
                    └───────────────┘
 ```
 
-### D-2 · ¿Cuándo vuelve al 1.º?
+### D-2 · ¿Cuándo vuelve al 1.º? — DECIDIDA
 
-- **Recomendada: cada llamada empieza por el 1.º**, con cortacircuito desde la fase 2 (§4.5).
+- **Decidida (Sam, 2026-11-21): cada llamada empieza por el 1.º**, con cortacircuito desde la fase 2 (§4.5).
 - Alternativa: pegajoso, como Hermes hoy (0626 §7): tras un salto se queda en el 2.º durante 24 h.
 
 ```
@@ -484,10 +488,11 @@ Cada una con la recomendada primero y con su boceto.
  10:02  1.º ✓                             …       2.º hasta mañana 10:00
 ```
 
-### D-3 · ¿Cómo manda la pantalla a la Oficina?
+### D-3 · ¿Cómo manda la pantalla a la Oficina? — DECIDIDA
 
-- **Recomendada: A, el ERP pide el modelo en cada llamada** (§6.1), con alias por puesto en Hermes que crea
-  Ofi_Hermes. Si Hermes no lo permite, B.
+- **Decidida (Sam, 2026-11-21): A, el ERP pide el modelo en cada llamada** (§6.1), con alias por puesto en Hermes
+  que crea Ofi_Hermes. Si Hermes no lo permite, B. Que Hermes lo acepte sigue siendo **NV** (§6.2): lo mide Ofi_Hermes
+  en la fase 1b.
 - Alternativas: B (sincronizar hacia Hermes) o C (solo mostrar).
 
 ```
@@ -497,9 +502,9 @@ Cada una con la recomendada primero y con su boceto.
  ERP ──«usa el 2.º»──▶ Hermes          Hermes decide el salto con su propia regla
 ```
 
-### D-4 · Membresías: ¿cómo se cuentan?
+### D-4 · Membresías: ¿cómo se cuentan? — DECIDIDA
 
-- **Recomendada: plan fijo = 0 USD, cuenta llamadas y tokens, con un tope de llamadas propio** (§7.1). La cuota del
+- **Decidida (Sam, 2026-11-21): plan fijo = 0 USD, cuenta llamadas y tokens, con un tope de llamadas propio** (§7.1). La cuota del
   plan, si la quieres ver, va aparte y no entra en el tope.
 - Alternativa: además, mostrar «lo que costaría por token» con una tarifa de referencia. Más claro para comparar,
   pero es un número que nadie paga y puede confundir.
@@ -512,11 +517,13 @@ Cada una con la recomendada primero y con su boceto.
                                    (•) Plan fijo
 ```
 
-### D-5 · ¿Quién afloja el freno?
+### D-5 · ¿Quién afloja el freno? — DECIDIDA
 
-- **Recomendada: con Editar se aprieta el freno; aflojarlo es solo del superadministrador con verificación en dos
-  pasos** (§8): subir el tope, subir o quitar el tope de llamadas, bajar una tarifa o pasar a plan fijo. Bajar el
-  gasto nunca es un riesgo; cualquiera de esas cuatro acciones permite gastar más.
+- **Decidida (Sam, 2026-11-21): con Editar solo se baja el tope; subirlo es del superadministrador con verificación
+  en dos pasos.** Es la opción recomendada de la v1.
+- **Extensión por la revisión (bloqueante 1, no es texto de Sam):** como pasar a plan fijo, bajar una tarifa o quitar
+  el tope de llamadas también permiten gastar más sin «subir» el tope, esas acciones piden lo mismo: superadmin con
+  AAL2 (§8). Lo indicó Dir_DTD al registrar la decisión. Bajar el gasto nunca es un riesgo.
 - Alternativa: Editar hace todo.
 
 ```
@@ -526,7 +533,7 @@ Cada una con la recomendada primero y con su boceto.
      pasar a plan fijo                                 → «Confirma con tu segundo factor»
 ```
 
-### D-6 · ¿Cuántos avisos por salto?
+### D-6 · ¿Cuántos avisos por salto? — ABIERTA
 
 - **Recomendada: uno por función, puesto y día.** El primer salto del día desde un puesto avisa; los siguientes del
   mismo día solo se cuentan en la pantalla.

@@ -25,6 +25,12 @@
 
   Frontera: la 0704 diseña y el ERP guarda la cadena; cualquier cambio en el VPS de Hermes lo ejecuta Ofi_Hermes.
 
+- **v4**: fusiona `origin/main` (`05c356a74`, ya trae la 0702) sin conflictos y actualiza las citas de
+  `runtime-cliente.ts` y `despachador.ts`, que se corrieron. Registra en §12 las decisiones de Sam, textual
+  (2026-11-21, por Dir_DTD): «SDD-0704: apruebo las cinco opciones recomendadas (A en las cinco)». D-1 a D-5 quedan
+  decididas; la extensión de la D-5 a plan fijo, bajar una tarifa y quitar el tope de llamadas se marca como
+  bloqueante 1 de la revisión, no como texto de Sam. La D-6 sigue abierta.
+
 ## Comprobaciones
 
 | Comprobación | Resultado |
@@ -34,20 +40,22 @@
 | `pnpm verify` | NO EJECUTADO (cambio solo de documentos; sin turno de PC) |
 | Pruebas de producto | NO APLICA en la etapa 1 |
 
-## Decisiones para Sam (spec §12)
+## Decisiones (spec §12)
 
-- D-1 · Ubicación: tarjeta «IA» en Administración › PRO (recomendada) o una sección en la barra lateral.
-- D-2 · Vuelta al 1.º: cada llamada empieza por el 1.º, con cortacircuito desde la fase 2 (recomendada), o pegajosa 24 h.
-- D-3 · Oficina: A, el ERP pide el modelo en cada llamada (recomendada); B, sincronizar; C, solo mostrar.
-- D-4 · Membresías: 0 USD, se cuentan llamadas y tokens, con tope de llamadas propio (recomendada), o además con tarifa
-  de referencia.
-- D-5 · Quién afloja el freno: solo el superadmin con AAL2 (recomendada), o Editar hace todo.
-- D-6 · Avisos por salto: uno por función, puesto y día (recomendada); uno por cada salto, o un resumen diario.
+D-1 a D-5 **decididas por Sam** el 2026-11-21 (las recomendadas). **Abierta:** D-6.
+
+- D-1 · Ubicación: tarjeta «IA» en Administración › PRO (decidida).
+- D-2 · Vuelta al 1.º: cada llamada empieza por el 1.º, con cortacircuito desde la fase 2 (decidida).
+- D-3 · Oficina: A, el ERP pide el modelo en cada llamada, con alias por puesto; B si Hermes no lo acepta (decidida; NV).
+- D-4 · Membresías: 0 USD, se cuentan llamadas y tokens, con tope de llamadas propio (decidida).
+- D-5 · Quién afloja el freno: subir el tope es del superadmin con AAL2 (decidida); la
+  extensión a plan fijo, bajar una tarifa y quitar el tope de llamadas viene del bloqueante 1.
+- D-6 · Avisos por salto: uno por función, puesto y día (recomendada); uno por cada salto, o un
+  resumen diario. **ABIERTA.**
 
 ## Pendiente de esta tarea
 
-- Etapa 2 (implementación, fase 1): arranca solo con la confirmación de Dir_DTD de que la spec está aprobada y Sam
-  decidió.
+- Etapa 2 (implementación, fase 1): arranca solo cuando la spec quede APPROVED y fusionada (Dir_DTD).
 - Al aprobarse, ajustar los textos de la 0639 §3.4 («no es una cadena larga») y la 0703 §7 («sin tercer proveedor»).
 
 ## FUERA DE ALCANCE DETECTADO
