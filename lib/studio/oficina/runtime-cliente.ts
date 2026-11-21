@@ -84,15 +84,70 @@ export async function llamarAgente(o: LlamadaAgente): Promise<RespuestaAgente> {
   const eleccion = obj(Array.isArray(cuerpo?.choices) ? cuerpo.choices[0] : null);
   const mensaje = obj(eleccion?.message);
   const uso = obj(cuerpo?.usage);
-  const runtime = obj(cuerpo?.runtime);
-  const proveedor = typeof runtime?.provider === "string" ? runtime.provider : null;
-  const modelo = typeof runtime?.model === "string" ? runtime.model : typeof cuerpo?.model === "string" ? cuerpo.model : null;
   return {
     contenido: typeof mensaje?.content === "string" ? mensaje.content : null,
     entrada: entero(uso?.prompt_tokens),
     salida: entero(uso?.completion_tokens),
-    modelo: modelo ? (proveedor ? `${proveedor}/${modelo}` : modelo).slice(0, 100) : null,
+    modelo: modeloDeRespuesta(cuerpo),
   };
+}
+
+/**
+ * Hermes v0.23.1 no dice en `/v1/chat/completions` qué modelo respondió: el campo `model` repite el alias que se
+ * pidió (`soporte-chatwoot`, el nombre del agente) y no trae bloque `runtime`. Por eso el alias se descarta (null =
+ * «no consta», nunca el nombre del agente). Si una versión futura trae `runtime.provider/model`, se usa.
+ */
+export const ALIAS_DEL_AGENTE = "soporte-chatwoot";
+
+/**
+ * Un id de proveedor o modelo: sin espacios ni texto libre, tope 100 (el CHECK de `modelo_usado`). Nunca una URL:
+ * con `://` se rechaza, para que un `https://usuario:clave@host/x` no llegue a la bitácora.
+ */
+export function idDeModelo(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t && t.length <= 100 && !t.includes("://") && /^[A-Za-z0-9._:@/+-]+$/.test(t) ? t : null;
+}
+
+function unir(proveedor: string | null, modelo: string | null): string | null {
+  if (!modelo || modelo === ALIAS_DEL_AGENTE) return null;
+  const junto = proveedor && !modelo.startsWith(`${proveedor}/`) ? `${proveedor}/${modelo}` : modelo;
+  return junto.length <= 100 ? junto : modelo;
+}
+
+function modeloDeRespuesta(cuerpo: Record<string, unknown> | null): string | null {
+  const runtime = obj(cuerpo?.runtime);
+  return unir(idDeModelo(runtime?.provider), idDeModelo(runtime?.model) ?? idDeModelo(cuerpo?.model));
+}
+
+/**
+ * SDD-0702 (hija de la 0626) · modelo real. Lee `GET /api/sessions/<id>` ANTES del borrado y devuelve solo `session.model`: Hermes
+ * v0.23.1 reescribe esa columna con el modelo de la primera llamada con consumo (`hermes_state_usage.py`,
+ * `first_accounted_route`), así que tras un fallback dice el de respaldo. El proveedor (`billing_provider`) no sale
+ * por la API en la v0.23.1; si alguna versión lo publicara como `session.provider` o `session.billing_provider`,
+ * se antepone. Del resto de la sesión (vista previa, título,
+ * tokens) no se lee ni se guarda nada. Nunca lanza: null = no consta.
+ */
+export async function leerModeloDeSesion(o: {
+  url: string;
+  token: string;
+  sesionId: string;
+  fetch?: typeof fetch;
+}): Promise<string | null> {
+  const f = o.fetch ?? fetch;
+  try {
+    const r = await f(`${o.url}/api/sessions/${encodeURIComponent(o.sesionId)}`, {
+      method: "GET",
+      headers: { authorization: `Bearer ${o.token}` },
+      signal: AbortSignal.timeout(5_000),
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    const sesion = obj(obj(await r.json())?.session);
+    return unir(idDeModelo(sesion?.provider ?? sesion?.billing_provider), idDeModelo(sesion?.model));
+  } catch {
+    return null;
+  }
 }
 
 /** Borra la sesión de la corrida en la oficina. 200 o 404 = ya no está. Nunca lanza: devuelve si quedó borrada. */
