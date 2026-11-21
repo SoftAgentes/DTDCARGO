@@ -330,7 +330,7 @@
 }
 .studio-input-dark:focus-visible {
   border-color: var(--accion-soft);
-  box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.22);
+  box-shadow: 0 0 0 3px rgba(127, 170, 240, 0.22); /* SDD-0686: azul de acción, como el borde */
 }
 .studio-input-dark:disabled {
   opacity: 0.5;
