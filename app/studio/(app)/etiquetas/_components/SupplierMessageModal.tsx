@@ -241,7 +241,7 @@ function MsgBlock({
           onClick={onCopy}
           style={{
             font: "700 11.5px/1 var(--f-sans)",
-            color: copied ? "var(--success)" : "var(--wine)",
+            color: copied ? "var(--success)" : "var(--accion-text)",
             background: "transparent",
             border: 0,
             cursor: "pointer",

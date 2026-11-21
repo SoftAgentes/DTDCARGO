@@ -89,7 +89,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
                 h.country === "CN" ? "var(--cal-cn-soft)" : "var(--cal-ve-soft)",
               border: "1px solid var(--border)",
               borderLeft: `3px solid ${
-                h.country === "CN" ? "var(--wine)" : "var(--success)"
+                h.country === "CN" ? "var(--warning)" : "var(--success)"
               }`,
               borderRadius: 8,
               display: "flex",
@@ -97,7 +97,7 @@ export function DayDrawer({ isoDate, events, holidays, fairs, onClose }: Props) 
               alignItems: "center",
             }}
           >
-            <Badge tone={h.country === "CN" ? "wine" : "success"} size="sm">
+            <Badge tone={h.country === "CN" ? "warning" : "success"} size="sm">
               {h.country}
             </Badge>
             <div>

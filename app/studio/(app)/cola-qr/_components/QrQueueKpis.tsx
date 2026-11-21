@@ -17,7 +17,7 @@ export function QrQueueKpis({ kpis }: { kpis: KpisData }) {
         label="Pendientes"
         value={String(kpis.pendientes)}
         sub={kpis.urgentes > 0 ? `${kpis.urgentes} urgentes` : "en cola"}
-        tone={kpis.urgentes > 0 ? "warning" : "wine"}
+        tone={kpis.urgentes > 0 ? "warning" : "neutral"}
       />
       <Kpi
         label="Imprimiendo"
@@ -50,10 +50,9 @@ function Kpi({
   label: string;
   value: string;
   sub: string;
-  tone: "wine" | "info" | "success" | "warning" | "neutral";
+  tone: "info" | "success" | "warning" | "neutral";
 }) {
   const color: Record<typeof tone, string> = {
-    wine: "var(--wine)",
     info: "var(--info)",
     success: "var(--success)",
     warning: "var(--warning)",

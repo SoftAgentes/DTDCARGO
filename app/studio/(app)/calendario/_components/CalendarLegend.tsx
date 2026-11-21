@@ -65,12 +65,12 @@ export function CalendarLegend() {
       <Chip
         label="Feriado CN · crítico"
         bg="var(--cal-cn-critical)"
-        border="var(--wine-soft)"
+        border="var(--warning)"
       />
       <Chip
         label="Feriado CN"
         bg="var(--cal-cn-soft)"
-        border="var(--wine-soft)"
+        border="var(--warning)"
       />
       <Chip
         label="Feriado VE"
@@ -79,7 +79,7 @@ export function CalendarLegend() {
       />
       <Chip label="Tarea de Bitácora" bg="var(--neutral-bg)" border="var(--border)" />
       <Chip label="Fin de semana" bg="var(--cal-weekend)" border="var(--border)" />
-      <Chip label="Hoy" bg="var(--wine)" />
+      <Chip label="Hoy" bg="var(--ink)" />
     </div>
   );
 }

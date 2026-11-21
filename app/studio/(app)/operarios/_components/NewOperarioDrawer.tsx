@@ -129,7 +129,7 @@ export function NewOperarioDrawer({
 
         <div>
           <label htmlFor="op-warehouse" className="studio-label">
-            Warehouse <span style={{ color: "var(--wine-text)" }}>*</span>
+            Warehouse <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="op-warehouse"
@@ -155,7 +155,7 @@ export function NewOperarioDrawer({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label htmlFor="op-name" className="studio-label">
-              Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
+              Nombre <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="op-name"
@@ -190,7 +190,7 @@ export function NewOperarioDrawer({
 
         <div>
           <label htmlFor="op-role" className="studio-label">
-            Rol <span style={{ color: "var(--wine-text)" }}>*</span>
+            Rol <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="op-role"
@@ -243,7 +243,7 @@ export function NewOperarioDrawer({
         ) : (
           <div>
             <label htmlFor="op-pin" className="studio-label">
-              PIN <span style={{ color: "var(--wine-text)" }}>*</span>
+              PIN <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="op-pin"

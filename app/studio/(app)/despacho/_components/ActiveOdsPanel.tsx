@@ -35,7 +35,7 @@ export function ActiveOdsPanel({
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine-text)", marginBottom: 14 }}
+        style={{ marginBottom: 14 }}
       >
         Órdenes activas · {ods.length}
       </div>
@@ -64,7 +64,7 @@ export function ActiveOdsPanel({
                   padding: 12,
                   background: "var(--bg-elevated)",
                   border: "1px solid var(--border)",
-                  borderLeft: "3px solid var(--wine)",
+                  borderLeft: "3px solid var(--ink)",
                   borderRadius: "var(--r-sm)",
                 }}
               >
@@ -76,7 +76,7 @@ export function ActiveOdsPanel({
                     marginBottom: 6,
                   }}
                 >
-                  <code style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                  <code style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                     {od.order_code}
                   </code>
                   <Badge tone={tone} size="sm">

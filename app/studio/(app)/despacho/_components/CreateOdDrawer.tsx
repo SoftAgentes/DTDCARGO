@@ -201,7 +201,7 @@ export function CreateOdDrawer({
               }}
             >
               No hay rutas activas en {hub}. Crea una en{" "}
-              <a href="/studio/admin/rutas" style={{ color: "var(--wine-text)" }}>
+              <a href="/studio/admin/rutas" style={{ color: "var(--accion-text)" }}>
                 Rutas y ciudades
               </a>
               .
@@ -271,7 +271,7 @@ export function CreateOdDrawer({
             >
               <span
                 className="studio-eyebrow"
-                style={{ color: "var(--wine-soft)" }}
+                style={{ color: "var(--ink-side)" }}
               >
                 Ocupación del camión
               </span>
@@ -323,7 +323,7 @@ export function CreateOdDrawer({
                 return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {p.markbox}
                       </code>
                       <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink)", marginLeft: 8 }}>
@@ -389,7 +389,7 @@ function CapBar({
   total: string;
 }) {
   const display = Math.min(100, pct);
-  const color = pct > 100 ? "var(--danger)" : pct > 90 ? "var(--warning)" : "var(--wine-soft)";
+  const color = pct > 100 ? "var(--danger)" : pct > 90 ? "var(--warning)" : "var(--ink-side-strong)";
   return (
     <div>
       <div

@@ -75,7 +75,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
           <code
             style={{
               font: "800 12.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               letterSpacing: "0.02em",
             }}
           >
@@ -158,7 +158,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
               <Avatar
                 initials={initialsFrom(r.driver.name)}
                 size={26}
-                color="wine"
+                color="neutral"
               />
               <span
                 style={{

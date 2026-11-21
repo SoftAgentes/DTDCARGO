@@ -112,7 +112,7 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
         {/* Cliente */}
         <div>
           <label className="studio-label" htmlFor="cl-client">
-            Cliente <span style={{ color: "var(--wine-text)" }}>*</span>
+            Cliente <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="cl-client"
@@ -185,7 +185,7 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
         {/* Tipo */}
         <div>
           <label className="studio-label" htmlFor="cl-type">
-            Tipo de reclamo <span style={{ color: "var(--wine-text)" }}>*</span>
+            Tipo de reclamo <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="cl-type"
@@ -209,7 +209,7 @@ export function ClaimDrawer({ mode, claim, clients, shipments, onClose }: Props)
         {/* Descripción */}
         <div>
           <label className="studio-label" htmlFor="cl-desc">
-            Descripción <span style={{ color: "var(--wine-text)" }}>*</span>
+            Descripción <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <textarea
             id="cl-desc"

@@ -353,7 +353,7 @@ Además rige una condición propia: **no cambiar el significado de ningún estad
 | Conciliación (`ConciliacionTab.tsx:388`) y match de línea (`LineMatchDrawer.tsx:193`) | Badge «Débito» (crédito en `success`) | `neutral` | Informa la dirección (regla 7); la etiqueta lo dice | El texto del Badge («Débito» / «Crédito») |
 | Extracto bancario (`StatementDrawer.tsx:435`) | «− Débitos» en la tira navy de saldos | `--ink-side` | Ídem; sobre navy fijo | La etiqueta «− Débitos» |
 | Libro mayor (`LibroMayorTab.tsx:179`, `:267`) | Código de cuenta y saldo destacado | `--ink` | Cifra | No distinguía estado: era el total destacado, que sigue en peso 800 |
-| Financiero China (`LedgerTab.tsx:120`, `:138`, `:302`) | Saldo neto > 0, «Le debemos al socio», y su saldo corriente | `--ink` | Es deuda corriente, no vencida; «el socio nos debe» sigue en `--success` y el texto debajo dice quién debe | KPI: el texto debajo («Le debemos al socio» / «El socio nos retiene / nos debe»). **Columna «Saldo» de la tabla: solo el color decía que el positivo es deuda nuestra; se suma una leyenda sobre la tabla:** «Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe.» El negativo ya lleva signo (`-$` en USD, `−¥` en RMB) |
+| Financiero China (`LedgerTab.tsx:120`, `:138`, `:302`) | Saldo neto > 0, «Le debemos al socio», y su saldo corriente | `--ink` | Es deuda corriente, no vencida; «el socio nos debe» sigue en `--success` y el texto debajo dice quién debe | KPI: el texto debajo («Le debemos al socio» / «El socio nos retiene / nos debe»). **Columna «Saldo» de la tabla: solo el color decía que el positivo es deuda nuestra; se suma una leyenda sobre la tabla:** «Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe o nos retiene. «—»: saldo en cero.» (texto ajustado en el grupo 5) El negativo ya lleva signo (`-$` en USD, `−¥` en RMB) |
 | Estado del socio (`StatementDetail.tsx:283`) | «Conciliado» por debajo de 100 % en la tira navy | `--ink-side` | Es avance; lo que pide atención («A revisar») ya va en `--warning`, y el 100 % en `--success` | El porcentaje mismo («Conciliado 80 %») |
 | SENIAT (`CustomsKpis.tsx:43`, `CustomsTaxTab.tsx:9`, `:160`) | «Impuestos pagados», aranceles en el desglose y total | `--ink` | Pagado, no vencido. En el desglose, el arancel es una serie más: IGTF `--warning`, IVA `--info` y agente `--success` no cambian | Las etiquetas («Impuestos pagados», «Aranceles de importación») |
 | SENIAT (`CreateFilingDrawer.tsx:383`, `FilingDetailDrawer.tsx:293`) | Rótulo «Total a pagar SENIAT» en la tira navy | `--ink-side` | Rótulo; el monto sigue en blanco | Es un rótulo; dice «Total a pagar SENIAT» |
@@ -381,6 +381,73 @@ Además rige una condición propia: **no cambiar el significado de ningún estad
 - La nota «Candado» usa tinta sobre `--warning-bg`, el mismo par que `Aviso` en atención.
 
 El contrato del grupo 4 congela las dos cuentas de identidad, mide al menos 100 archivos y trae dos mutantes: el KPI «Por pagar» en vino y el Badge de débito en vino.
+
+### Fase 2 · grupo 5 · operación de la oficina: allowlist y reparto (2026-11-21)
+
+Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `claude/sdd-0686-fase2-g5`. El grupo reúne los ocho módulos con vino que más usa la oficina: despacho, calendario, tms, operarios, etiquetas, cola-qr, tarifas y reclamos (**I:** orden por uso diario en la operación, no medido). Son 136 usos en 40 archivos. Rigen las condiciones del grupo 4: identidad, lo que se guarda, el contraste en los dos temas, los bloques `data-theme` y qué lo dice sin el color.
+
+- **Identidad:** no queda ninguna. El grupo cierra con cero usos de vino.
+- **Lo que se guarda:** nada. En estas carpetas, `localStorage` guarda solo anchos de columna; los tonos se calculan al pintar. `public.carriers.tone` es de naviera y no entra aquí.
+- **`data-theme`:** no hay bloques fijos. Las tiras navy (la ocupación del camión del despacho) usan `--ink-side*`, que no se invierte con el tema.
+- **Arreglos menores de la revisión de la #740:**
+  - el comentario de `proveedores/_components/ProveedoresClient.tsx:887-888`, que todavía decía «valor wine»;
+  - la leyenda del socio en `financiero-china/_components/LedgerTab.tsx`, que ahora nombra «nos retiene» y explica la raya del saldo en cero.
+
+**Allowlist (rutas desde `app/studio/`):**
+  - `(app)/calendario` (8): `_components/AgendaView.tsx`, `_components/CalendarClient.tsx`, `_components/CalendarLegend.tsx`, `_components/DayDrawer.tsx`, `_components/FairsPanel.tsx`, `_components/MonthView.tsx`, `_components/UpcomingHolidaysCard.tsx`, `_components/WeekView.tsx`
+  - `(app)/cola-qr` (4): `_components/BatchPrintDrawer.tsx`, `_components/QrQueueClient.tsx`, `_components/QrQueueKpis.tsx`, `_components/QrQueueTable.tsx`
+  - `(app)/despacho` (7): `_components/ActiveOdsPanel.tsx`, `_components/CreateOdDrawer.tsx`, `_components/DispatchKpis.tsx`, `_components/DispatchQueueTable.tsx`, `dashboard/_components/DispatchDashboardClient.tsx`, `page.tsx`, `reglas/_components/RulesClient.tsx`
+  - `(app)/etiquetas` (2): `_components/LabelGeneratorClient.tsx`, `_components/SupplierMessageModal.tsx`
+  - `(app)/financiero-china` (1): `_components/LedgerTab.tsx`
+  - `(app)/operarios` (7): `_components/EditOperarioDrawer.tsx`, `_components/MotivoField.tsx`, `_components/NewOperarioDrawer.tsx`, `_components/OperariosClient.tsx`, `_components/PinRevealBlock.tsx`, `_components/PinViewDialog.tsx`, `_components/ResetPinDrawer.tsx`
+  - `(app)/proveedores` (1): `_components/ProveedoresClient.tsx`
+  - `(app)/reclamos` (2): `_components/ClaimDrawer.tsx`, `_components/ReclamosClient.tsx`
+  - `(app)/tarifas` (2): `_components/RateDrawer.tsx`, `_components/TarifasClient.tsx`
+  - `(app)/tms` (8): `_components/DriverDrawer.tsx`, `_components/DriversTab.tsx`, `_components/FleetTab.tsx`, `_components/GpsLiveTab.tsx`, `_components/IncidentsTab.tsx`, `_components/RouteDrawer.tsx`, `_components/RoutesTab.tsx`, `_components/TmsKpis.tsx`
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g5-contract.test.ts`, esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Calendario (`AgendaView`, `DayDrawer`, `FairsPanel`, `WeekView`, `MonthView:132`, `CalendarLegend:68`, `:73`, `UpcomingHolidaysCard:25`) | Feriado de China, y «crítico» cuando cierra la fábrica | `--warning` (borde, punto y Badge) | El Badge dice «CN» y la leyenda «Feriado CN · crítico». Pide atención: no es error, así que va en atención y no en peligro |
+| Calendario (`MonthView:192`, `UpcomingHolidaysCard:24`) | Texto del nombre del feriado chino | `--ink` | El nombre mismo. `--warning` no llega a 4,5:1 como texto chico |
+| Calendario (`CalendarClient:327`) | Punto de «Arribos · ETA» en los filtros | `--ink-soft` | La etiqueta; igual que la ETA del grupo 3, que pinta neutral |
+| Calendario (`MonthView:160`, `WeekView:66`, `:91`, `CalendarLegend:82`) | Día de hoy | `--ink` (fondo de tinta y número en `--bg-surface`) | La leyenda «Hoy» y el círculo; como el día de hoy del grupo 1 |
+| Despacho (`CreateOdDrawer.tsx:392`) | Ocupación normal del camión (≤ 90 %) en la tira navy | `--ink-side-strong` | El porcentaje y la cifra «usado / total». Arriba de 90 % sigue `--warning`, y arriba de 100 % `--danger` |
+| Despacho, cola QR (`DispatchKpis`, `QrQueueKpis`, `DispatchDashboardClient:109`) | KPI «En cola», «Pendientes» sin urgentes y «Total ODs» | `neutral` | Las etiquetas. Con urgentes, «Pendientes» sigue en `--warning` y el texto dice «N urgentes» |
+| Despacho (`DispatchDashboardClient:235`) | Barra del primer lugar en «Top ciudades» | `--ink` (las demás, tinta al 30 %) | El orden de la lista y el número «N ODs» |
+| TMS (`IncidentsTab:44`, `TmsKpis:18`) | «Mantenimientos» cuando hay, y «Flota total» | `--ink` | Las etiquetas y el texto «Programados» |
+| TMS (`RoutesTab:207`, `GpsLiveTab:301`) | Avance de la ruta por debajo de 100 % | `--ink` | El porcentaje. Al 100 % sigue `--success` |
+| TMS (`RouteDrawer:268`) | Última parada (destino) del recorrido | `--success` | Es la entrega, como POD en el calendario. La primera parada sigue en tinta y el orden lo dice la lista |
+| Reclamos (`ReclamosClient:215`, `:397`, `:629`) | «Monto expuesto» de reclamos abiertos y montos | `--ink` | La etiqueta «Monto expuesto» y «reclamos abiertos». No es un vencido |
+| Reclamos (`ReclamosClient:669`, `:692`) | Pasos alcanzados del reclamo | `--ink` | El número del paso y la etiqueta |
+| Operarios (`OperariosClient:409`) | Badge del rol supervisor | `neutral` | El texto del rol. Como el rol admin del grupo 3 |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | Casillas y el control deslizante de reglas; enlaces a reglas de despacho, rutas y clientes VIP; «+ Agregar parada intermedia» del TMS; «Copiar» del mensaje al proveedor |
+| Tinta (selección) | Política y estrategia elegidas en las reglas de despacho, fila elegida de la cola, opción elegida del lote de impresión, barra de selección de la cola QR, copias por caja y formato elegidos de etiquetas |
+| Tinta (datos) | Códigos de OD, ruta, embarque, Shipping Mark sin destino propio (regla 6) y orden; valores de las reglas; el PIN que se muestra una vez; la tarifa |
+| Neutro | Asteriscos de obligatorio, rótulos y eyebrows (vuelven al color de `.studio-eyebrow`), la flecha entre paradas, avatares de choferes y operarios, la caja del Shipping Mark de etiquetas y la nota del tier elevado (`--neutral-bg` con borde `--border-strong`) |
+
+**Contraste:**
+- `--ink-side` sobre `--bg-sidebar` da 12,14:1 en claro y 14,97:1 en oscuro.
+- `--ink-side-strong` (blanco) sobre la misma tira da más que eso.
+- La tinta, `--ink-soft` y `--warning` como borde (forma) usan los pares ya medidos en los grupos 1 a 4.
+
+**Pendiente fuera de esta PR:** los tintes `--cal-cn-soft` y `--cal-cn-critical` de `tokens.css` siguen en la familia roja (`rgba(168,50,62,…)` en claro y `rgba(224,119,133,…)` en oscuro). Son de la fase 1, y pasarlos a un tinte de atención va con el próximo tramo que toque `tokens.css`, con su propia revisión.
+
+El contrato del grupo 5 exige cero vino en las ocho carpetas, mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
+
+**Orden de los módulos que quedan (grupo 6 en adelante, de 5 a 8 por grupo; I: por uso):**
+1. Grupo 6: reportes, dirección, bugs, mis-bugs, costing, legal y ve.
+2. Grupo 7: naviera (con la prueba de caída del `wine` guardado en `public.carriers.tone`), fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario.
+3. Grupo 8: conversaciones, menciones, rendiciones, servicios, ajustes, `(panel)` y los restos de un uso en cobranzas, dashboard, mailing e inspecciones.
+
+El vino de identidad que ya está permitido (diploma, informe de inspección, firma de correo, Guía y libros fiscales impresos) y la acción de noticias-web, que espera la fase 3, no cuentan como pendientes.
 
 ### Fases 2 a 5
 

@@ -204,8 +204,8 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
             alignItems: "center",
             gap: "var(--s-3)",
             padding: "var(--s-3)",
-            background: "var(--wine-tint)",
-            border: "1px solid var(--wine)",
+            background: "color-mix(in srgb, var(--ink) 8%, transparent)",
+            border: "1px solid var(--ink)",
             borderRadius: "var(--r-md)",
             marginBottom: 14,
           }}

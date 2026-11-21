@@ -129,7 +129,7 @@ export function MonthView({
                 borderRight: isRightEdge ? "none" : "1px solid var(--border)",
                 borderLeft: "none",
                 borderBottom: "none",
-                boxShadow: criticalCN ? "inset 3px 0 0 var(--wine)" : undefined,
+                boxShadow: criticalCN ? "inset 3px 0 0 var(--warning)" : undefined,
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
@@ -157,7 +157,7 @@ export function MonthView({
                     height: isToday ? 26 : 22,
                     minWidth: isToday ? 26 : "auto",
                     borderRadius: isToday ? "50%" : 0,
-                    background: isToday ? "var(--wine)" : "transparent",
+                    background: isToday ? "var(--ink)" : "transparent",
                     color: isToday
                       ? "var(--bg-surface)"
                       : cell.inMonth
@@ -189,7 +189,7 @@ export function MonthView({
                         style={{
                           font: "700 8.5px/1.2 var(--f-sans)",
                           fontFamily: "var(--f-sans), var(--f-cn)",
-                          color: "var(--wine-text)",
+                          color: "var(--ink)",
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
                           textAlign: "right",

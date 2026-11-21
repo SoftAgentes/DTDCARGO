@@ -213,7 +213,7 @@ export function LedgerTab({
               borderBottom: "1px solid var(--border)",
             }}
           >
-            Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe.
+            Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe o nos retiene. «—»: saldo en cero.
           </p>
           {/* Header */}
           <div
