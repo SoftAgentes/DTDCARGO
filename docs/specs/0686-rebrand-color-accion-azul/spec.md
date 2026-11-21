@@ -251,6 +251,40 @@ Lo asignó el Director General después de fusionar la #722: «Sigue con la 0686
 
 El contrato del grupo 3 congela las cuatro cuentas de identidad (la lista solo baja), mide al menos 150 archivos y trae un mutante. Para `lib/studio` exige cero `"wine"` como valor fuera de las uniones de tipo, mide al menos 300 archivos y al menos 10 uniones que todavía lo nombran, y trae un mutante sobre el rol admin.
 
+#### Grupo 3 · revisión uno por uno de los tonos de `lib/` (2026-11-21)
+
+El Director General pidió revisar cada tono de `lib/` para ver si era identidad o acción, sin hacerlo en automático, y confirmar que ninguno se guarda. En `origin/main` `72d7f04ec` había 53 `"wine"` en `lib/` (**M**): 26 nombran el tono dentro de una unión de tipo y no pintan nada; 27 son valores en `lib/studio` y se revisaron uno por uno; el que queda en `lib/portal/alertas.ts:49` es del Portal y entra en la fase 3.
+
+**Ninguno de los 27 es identidad.** Identidad es la marca, la bienvenida o el sello. Estos tonos marcan una categoría, un rol, un tipo o un estado, y casi todos llegan a un `<Badge>`, donde el tono `wine` está retirado (regla 7: `neutral` si informa, `success` si confirma). No se deja ninguno.
+
+| Archivo | Qué marcaba el vino | Destino | Dónde se pinta |
+|---|---|---|---|
+| `account-types.ts` | Cuenta de patrimonio (PT) | `neutral` | Badge |
+| `agent-types.ts` | Modelo Opus («premium») | `neutral` | Badge |
+| `audit-types.ts` | Actor «operario» | `neutral` | Badge |
+| `bug-types.ts` | Categoría «sugerencia» | `neutral` | Badge |
+| `calendar-events-types.ts` (2) y `calendar-events-queries.ts` (2) | ETA y llegada planificada | `neutral` | Chip del calendario: `toneVar` y `toneBgVar` dan `--ink-soft` y `--neutral-bg` |
+| `client-types.ts` | Nivel «premium» | `neutral` | Badge |
+| `club/club-member-types.ts` | Plan «mayorista» | `neutral` | Badge |
+| `conversaciones/conversations-types.ts` | Canal «portal» | `neutral` | Badge. El portal es un canal de DTD, pero el badge informa el canal, no es la marca |
+| `documents/types.ts` | Carpeta «Logísticas» | `neutral` | `var(--neutral-bg)` y `var(--neutral)`; los dos tokens existen en claro, oscuro e impresión |
+| `fidelizacion/types.ts` | Nivel «Platinum» | `neutral` | Badge, y `tierColor`, que da `--ink-mute` |
+| `fidelizacion/types.ts` | Referido «aplicado» | `success` | Badge: confirma |
+| `inspecciones/types.ts` | Auditoría de fábrica | `neutral` | Badge |
+| `mail-types.ts` | Categoría «comercial» | `neutral` | Badge |
+| `no-olvidar-types.ts` (3) | Tarjeta; rotación de clave y recuperación; rol admin | `neutral` | Badge. El rol admin ya no se distingue por color: lo dice la etiqueta |
+| `nomina/attendance-types.ts` | Feriado de empresa | `neutral` | Badge |
+| `nomina/ficha-empleado.ts` (2) | Préstamo; consulta de la cuenta bancaria | `neutral` | La línea de tiempo de la ficha no pinta el tono hoy (`FichaEmpleadoVista.tsx:645-655`) |
+| `nomina/position-types.ts` | Cargo de contabilidad | `neutral` | Badge |
+| `op-calendar-types.ts` | Feria | `neutral` | Badge |
+| `proveedores/scorecard-types.ts` | Reclamo «abierto» | `warning` | Badge: pide intervención |
+| `qr-queue-types.ts` | Prioridad «urgente» | `neutral` | Badge. **I:** lo urgente ya lo dice la etiqueta; si Sam quiere que resalte, va `warning`, nunca vino |
+| `user-types.ts` | Rol admin | `neutral` | Badge |
+
+**Nada de esto se guarda** (**C**, búsqueda en `supabase/`, `*.sql`, `*.json` y `localStorage`). Los 27 son constantes o funciones puras que se calculan al pintar. Ninguno se escribe en preferencias, en JSON de la base ni en un enum de SQL, así que no hace falta una caída del valor viejo.
+
+**Único tono guardado en la base, fuera de este grupo:** `public.carriers.tone` (`supabase/migrations/0096_naviera_consolidacion.sql:36`, texto libre con `'neutral'` por defecto), que `lib/studio/naviera/queries.ts:71` lee tal cual. No se toca aquí. Si alguna fila guarda `'wine'`, se sigue pintando sin error, porque `Badge` todavía acepta ese tono como obsoleto (grupo 1). Su reparto va con naviera, en el grupo que la incluya, con la prueba de caída que pide el Director.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

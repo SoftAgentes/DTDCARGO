@@ -491,7 +491,9 @@ export function roleLabel(r: NoOlvidarUserRole): string {
 }
 
 export function roleBadgeTone(r: NoOlvidarUserRole): BadgeTone {
-  return r === "admin" ? "neutral" : "neutral";
+  // Sin vino desde BD-076: el rol se lee en la etiqueta y todos van en neutro.
+  void r;
+  return "neutral";
 }
 
 export const KEK_STATUS_LABELS: Record<NoOlvidarKekStatus, string> = {
