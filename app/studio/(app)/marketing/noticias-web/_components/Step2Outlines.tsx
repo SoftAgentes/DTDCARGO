@@ -123,11 +123,11 @@ export function Step2Outlines({
               className="text-left transition-colors"
               style={{
                 background: isSelected
-                  ? "var(--wine-tint, rgba(127,15,26,0.06))"
+                  ? "var(--color-grey-100, #F2F0EC)"
                   : "var(--bg-surface, #FFFFFF)",
                 border: `2px solid ${
                   isSelected
-                    ? "var(--wine, #7F0F1A)"
+                    ? "var(--color-ink, #0F1E3D)"
                     : "var(--border, rgba(15,30,61,0.12))"
                 }`,
                 borderRadius: "var(--r-lg, 12px)",
@@ -154,11 +154,11 @@ export function Step2Outlines({
                       borderRadius: "50%",
                       border: `2px solid ${
                         isSelected
-                          ? "var(--wine, #7F0F1A)"
+                          ? "var(--color-ink, #0F1E3D)"
                           : "var(--border, rgba(15,30,61,0.30))"
                       }`,
                       background: isSelected
-                        ? "var(--wine, #7F0F1A)"
+                        ? "var(--color-ink, #0F1E3D)"
                         : "transparent",
                       display: "grid",
                       placeItems: "center",
@@ -184,7 +184,7 @@ export function Step2Outlines({
                         textTransform: "uppercase",
                         letterSpacing: "0.06em",
                         color: isSelected
-                          ? "var(--wine, #7F0F1A)"
+                          ? "var(--color-ink, #0F1E3D)"
                           : "var(--ink-soft, #4B5563)",
                       }}
                     >
@@ -263,7 +263,7 @@ export function Step2Outlines({
                     >
                       <span
                         style={{
-                          color: "var(--wine, #7F0F1A)",
+                          color: "var(--color-grey-500, #6B6B6B)",
                           fontWeight: 700,
                           flexShrink: 0,
                           minWidth: 18,

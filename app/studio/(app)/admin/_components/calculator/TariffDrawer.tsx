@@ -136,7 +136,7 @@ export function TariffDrawer({
         ) : (
           <div>
             <label className="studio-label" htmlFor="tariff-city">
-              Ciudad <span style={{ color: "var(--wine-text)" }}>*</span>
+              Ciudad <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <select
               id="tariff-city"
@@ -170,7 +170,7 @@ export function TariffDrawer({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
             <div>
               <label className="studio-label" htmlFor="tariff-cost">
-                Costo /m³ <span style={{ color: "var(--wine-text)" }}>*</span>
+                Costo /m³ <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="tariff-cost"
@@ -188,7 +188,7 @@ export function TariffDrawer({
             </div>
             <div>
               <label className="studio-label" htmlFor="tariff-price">
-                Venta /m³ <span style={{ color: "var(--wine-text)" }}>*</span>
+                Venta /m³ <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="tariff-price"

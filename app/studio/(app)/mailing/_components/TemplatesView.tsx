@@ -69,9 +69,9 @@ export function TemplatesView({ templates }: Props) {
                     style={{
                       fontFamily: "var(--font-mono, 'JetBrains Mono')",
                       fontSize: 11,
-                      color: "var(--wine, #7F0F1A)",
+                      color: "var(--ink)",
                       padding: "2px 6px",
-                      background: "var(--wine-tint, #FBE9EC)",
+                      background: "var(--bg-elevated)",
                       borderRadius: 4,
                     }}
                   >

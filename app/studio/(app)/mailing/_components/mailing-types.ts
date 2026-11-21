@@ -111,7 +111,7 @@ export const MAIL_LOG_STATUS_TONE: Record<MailLogStatus, string> = {
   sent: "info",          // en tránsito, sin confirmación aún
   delivered: "success",  // confirmado en inbox
   opened: "success",     // engagement +1 (mismo verde que delivered, igual señal positiva)
-  clicked: "wine",       // engagement máximo (acento de marca)
+  clicked: "success",    // engagement máximo (sin vino desde BD-076)
   bounced: "danger",
   complained: "danger",
   failed: "danger",

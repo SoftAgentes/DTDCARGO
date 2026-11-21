@@ -112,8 +112,8 @@ export default async function SkillDetailPage({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             borderRadius: "var(--r-lg)",
           }}
         >
@@ -122,7 +122,7 @@ export default async function SkillDetailPage({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             className="studio-eyebrow"
-            style={{ marginBottom: 8, color: "var(--wine-text)" }}
+            style={{ marginBottom: 8 }}
           >
             {skill.category} · v{skill.version}
           </div>
@@ -173,7 +173,7 @@ export default async function SkillDetailPage({
         </SummaryCard>
         <SummaryCard label="Costo estimado por run">
           <span
-            style={{ font: "700 16px/1 var(--f-mono)", color: "var(--wine-text)" }}
+            style={{ font: "700 16px/1 var(--f-mono)", color: "var(--ink)" }}
           >
             {formatCostUsd(skill.cost_estimate_usd)}
           </span>
@@ -231,8 +231,8 @@ export default async function SkillDetailPage({
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: "var(--wine-tint)",
-                    color: "var(--wine-text)",
+                    background: "var(--bg-elevated)",
+                    color: "var(--ink)",
                     borderRadius: "var(--r-sm)",
                     font: "700 11px/1 var(--f-mono)",
                   }}
@@ -262,7 +262,7 @@ export default async function SkillDetailPage({
           padding: "20px 22px",
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--wine)",
+          borderLeft: "3px solid var(--ink)",
           borderRadius: "var(--r-lg)",
           display: "flex",
           alignItems: "center",

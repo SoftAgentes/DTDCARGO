@@ -51,7 +51,7 @@ Estado del 2026-11-20, tarde:
 
    En la #722 (`d32d6d3e9`), los contratos dieron 355/355. NO EJECUTADO: `tsc` del proyecto, lint, build, e2e y el recorrido visual. Las correcciones de la revisión de la #736 (catálogo del dashboard) se prueban de nuevo con turno.
 2. PR #736 abierta en borrador, apilada sobre la #722, que quedó APPROVED en `d32d6d3e9`. La #736 recibió CHANGES_REQUESTED sobre `fd14803a4` por el catálogo del dashboard, ya corregido. Entra a `main` junto con la #722 (§8.1).
-3. Grupo 3: las funciones de `lib/studio` que devuelven `"wine"` como tono de badge (nivel VIP, plan mayorista, ETA del calendario, modelo de agente, auditoría y otras), y el resto de módulos por grupos de 5 a 8.
+3. ~~Grupo 3~~ Hecho el 2026-11-21 en la rama `claude/sdd-0686-fase2-g3` (desde `origin/main` `72d7f04ec`; la #722 y la #736 ya están en `main`): 27 tonos `"wine"` de `lib/studio` y 69 archivos en línea de admin, marketing, academia, mailing, inspecciones, usuarios, bitácora y `_components/` fuera de `ui`. Allowlist y reparto en la spec, §5 «Fase 2 · grupo 3». Contrato `color-accion-fase2-g3-contract.test.ts`. Siguiente: grupo 4 (dinero) y el resto de los módulos, cuando el Director lo asigne.
 4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

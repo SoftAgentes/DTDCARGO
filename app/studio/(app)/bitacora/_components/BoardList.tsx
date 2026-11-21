@@ -561,7 +561,7 @@ function PersonView({
       >
         <span
           className="studio-eyebrow"
-          style={{ color: "var(--wine-text)", whiteSpace: "nowrap" }}
+          style={{ whiteSpace: "nowrap" }}
         >
           Progreso del equipo
         </span>

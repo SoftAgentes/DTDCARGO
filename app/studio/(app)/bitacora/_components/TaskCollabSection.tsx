@@ -181,7 +181,7 @@ export function TaskCollabSection({
       <section>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine-text)", marginBottom: 10 }}
+          style={{ marginBottom: 10 }}
         >
           Prueba de avance
           {list.length > 0 && (
@@ -448,8 +448,8 @@ function Thumb({ attachment }: { attachment: TaskAttachment }) {
   return <span style={box}>{attachment.kind === "video" ? Icon.camera(18) : Icon.download(18)}</span>;
 }
 
-function kindTone(kind: TaskAttachment["kind"]): "info" | "wine" | "neutral" {
-  return kind === "foto" ? "info" : kind === "video" ? "wine" : "neutral";
+function kindTone(kind: TaskAttachment["kind"]): "info" | "neutral" {
+  return kind === "foto" ? "info" : "neutral";
 }
 
 function formatSize(bytes: number | null): string {

@@ -38,7 +38,7 @@ export function calKindLabel(k: CalKind): string {
 }
 
 export function calKindTone(k: CalKind): BadgeTone {
-  return k === "holiday" ? "info" : "wine";
+  return k === "holiday" ? "info" : "neutral";
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

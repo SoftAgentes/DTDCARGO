@@ -88,7 +88,7 @@ export function FrictionReportsPanel({
             marginBottom: 14,
           }}
         >
-          <span style={{ color: "var(--wine-text)", flexShrink: 0 }}>
+          <span style={{ color: "var(--ink-soft)", flexShrink: 0 }}>
             {Icon.spark(22)}
           </span>
           <div>

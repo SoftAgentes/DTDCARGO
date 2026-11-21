@@ -13,7 +13,7 @@ const STATUS: Record<NewsletterCampaignStatus, { label: string; tone: BadgeTone 
   draft: { label: "Borrador", tone: "neutral" },
   pending_approval: { label: "Por aprobar", tone: "warning" },
   approved: { label: "Aprobada", tone: "info" },
-  sending: { label: "Enviando", tone: "wine" },
+  sending: { label: "Enviando", tone: "neutral" },
   sent: { label: "Enviada", tone: "success" },
   partial: { label: "Parcial", tone: "warning" },
   failed: { label: "Falló", tone: "danger" },
@@ -34,7 +34,7 @@ export default async function NewsletterCampaignsPage({ searchParams }: { search
   return (
     <div style={{ maxWidth: 1280 }}>
       <header style={{ marginBottom: "var(--s-7)" }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}>Marketing · Actualidad</div>
+        <div className="studio-eyebrow" style={{ marginBottom: "var(--s-2)" }}>Marketing · Actualidad</div>
         <h1 className="studio-display" style={{ margin: "0 0 var(--s-2)", fontSize: 30, color: "var(--ink)" }}>Campañas por email</h1>
         <p style={{ margin: 0, maxWidth: "68ch", color: "var(--ink-soft)", font: "500 14px/1.5 var(--f-sans)" }}>
           Redacta, revisa y aprueba cada envío. Publicar una noticia nunca dispara una campaña automáticamente.

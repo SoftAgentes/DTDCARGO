@@ -269,7 +269,7 @@ export function PublishModal({
             <div className="flex items-center gap-2">
               <span
                 className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold text-white"
-                style={{ background: "var(--color-wine, #7F0F1A)" }}
+                style={{ background: "var(--color-ink, #0F1E3D)" }}
               >
                 {catInfo.label}
               </span>

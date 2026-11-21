@@ -196,7 +196,7 @@ describe("máquina de estados del reclamo", () => {
     expect(supplierClaimStatusTone("resuelto")).toBe("success");
     expect(supplierClaimStatusTone("rechazado")).toBe("neutral");
     expect(supplierClaimStatusTone("en_revision")).toBe("info");
-    expect(supplierClaimStatusTone("abierto")).toBe("wine");
+    expect(supplierClaimStatusTone("abierto")).toBe("warning");
   });
 
   it("labels de tipo", () => {

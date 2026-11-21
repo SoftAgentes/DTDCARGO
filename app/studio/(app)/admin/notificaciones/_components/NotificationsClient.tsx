@@ -595,9 +595,9 @@ const selectStyle: React.CSSProperties = {
 function pillStyle(activePill: boolean): React.CSSProperties {
   return {
     font: "600 12px/1 var(--font-sans, 'Archivo')",
-    color: activePill ? "#fff" : "var(--ink)",
-    background: activePill ? "var(--wine)" : "var(--bg-surface)",
-    border: `1px solid ${activePill ? "var(--wine)" : "var(--border-strong)"}`,
+    color: activePill ? "var(--ink-inv)" : "var(--ink)",
+    background: activePill ? "var(--ink)" : "var(--bg-surface)",
+    border: `1px solid ${activePill ? "var(--ink)" : "var(--border-strong)"}`,
     borderRadius: 999,
     padding: "8px 14px",
     cursor: "pointer",
@@ -606,9 +606,9 @@ function pillStyle(activePill: boolean): React.CSSProperties {
 function primaryBtn(pending: boolean): React.CSSProperties {
   return {
     font: "600 12.5px/1 var(--font-sans, 'Archivo')",
-    color: "#fff",
-    background: "var(--wine)",
-    border: "1px solid var(--wine)",
+    color: "var(--on-accion)",
+    background: "var(--accion)",
+    border: "1px solid var(--accion)",
     borderRadius: 8,
     padding: "9px 16px",
     cursor: pending ? "wait" : "pointer",

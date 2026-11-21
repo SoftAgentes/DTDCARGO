@@ -18,7 +18,7 @@ export function WorkflowsSection() {
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--wine)",
+          borderLeft: "3px solid var(--ink)",
           borderRadius: "var(--r-lg)",
           padding: "22px 24px",
           display: "flex",
@@ -51,7 +51,7 @@ export function WorkflowsSection() {
           padding: "var(--s-5) var(--s-6)",
         }}
       >
-        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--wine-text)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
+        <div style={{ font: "700 10px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
           Workflows tenant-wide · por implementar
         </div>
         <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0, maxWidth: "64ch" }}>

@@ -587,7 +587,7 @@ function VersionUpload({ doc }: { doc: DocumentRow }) {
           setError(null);
           setOpen(true);
         }}
-        style={{ alignSelf: "flex-start", color: "var(--wine-text)" }}
+        style={{ alignSelf: "flex-start", color: "var(--accion-text)" }}
       >
         + Subir nueva versión
       </button>
@@ -791,11 +791,11 @@ export function VersionHistoryDrawer({
                     gap: 6,
                     padding: "11px 13px",
                     border: v.is_current
-                      ? "1px solid var(--wine)"
+                      ? "1px solid var(--ink)"
                       : "1px solid var(--border)",
                     borderRadius: "var(--r-md)",
                     background: v.is_current
-                      ? "var(--wine-tint)"
+                      ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                       : "var(--bg-surface)",
                   }}
                 >

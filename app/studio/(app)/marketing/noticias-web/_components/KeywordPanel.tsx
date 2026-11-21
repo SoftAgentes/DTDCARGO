@@ -61,12 +61,12 @@ export function KeywordPanel({
             Keywords SEO
           </span>
           {hasFocus && (
-            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-wine text-[10.5px] font-semibold">
+            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-ink text-[10.5px] font-semibold">
               1 focus
             </span>
           )}
           {secondaryKeywords.length > 0 && (
-            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-wine text-[10.5px] font-semibold">
+            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-ink text-[10.5px] font-semibold">
               {secondaryKeywords.length} secundarias
             </span>
           )}
@@ -154,7 +154,7 @@ export function KeywordPanel({
                     key={i}
                     className="flex items-start gap-2 text-[12.5px] text-grey-700 leading-snug"
                   >
-                    <span className="text-wine mt-0.5 flex-shrink-0" aria-hidden>
+                    <span className="text-grey-500 mt-0.5 flex-shrink-0" aria-hidden>
                       •
                     </span>
                     <span className="flex-1">{p}</span>

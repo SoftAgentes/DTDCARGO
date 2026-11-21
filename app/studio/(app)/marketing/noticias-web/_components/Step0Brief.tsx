@@ -65,7 +65,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           className="mt-3 text-ink"
           style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}
         >
-          ¿Sobre qué <span className="text-wine">quieres escribir</span>?
+          ¿Sobre qué <span className="text-ink">quieres escribir</span>?
         </h2>
         <p className="mt-2 text-[13.5px] text-grey-500 max-w-[70ch] leading-relaxed">
           Cuéntale el tema, pégale links de referencia si los tienes, y deja claro
@@ -80,7 +80,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           htmlFor="brief-topic"
           className="text-[13px] font-semibold text-ink"
         >
-          Tema <span className="text-wine">*</span>
+          Tema <span className="text-grey-500">*</span>
         </label>
         <textarea
           id="brief-topic"

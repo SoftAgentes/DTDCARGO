@@ -171,7 +171,7 @@ export function CategoryDetector({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10.5px] uppercase tracking-wider font-semibold text-wine">
+            <span className="text-[10.5px] uppercase tracking-wider font-semibold text-grey-500">
               Sugerido por IA
             </span>
             <span className="text-[11px] text-grey-500">

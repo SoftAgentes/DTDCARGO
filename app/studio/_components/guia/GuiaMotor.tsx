@@ -622,7 +622,7 @@ export function GuiaMotor({
             left: geo.ancla.left - 4,
             width: geo.ancla.width + 8,
             height: geo.ancla.height + 8,
-            border: "2px solid var(--wine-text)",
+            border: "2px solid var(--accion)",
             borderRadius: "var(--r-md)",
             pointerEvents: "none",
             zIndex: 89,

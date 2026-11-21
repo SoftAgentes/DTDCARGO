@@ -272,7 +272,7 @@ export function CityDrawer({
               type="checkbox"
               checked={isHq}
               onChange={(e) => setIsHq(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             <span>HQ del tenant</span>
           </label>
@@ -281,7 +281,7 @@ export function CityDrawer({
               type="checkbox"
               checked={active}
               onChange={(e) => setActive(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             <span>Activa</span>
           </label>

@@ -141,7 +141,7 @@ export function lineaDeTiempo(f: FuentesLinea): Hecho[] {
       detalle: [p.concept, p.status === "activo" ? null : p.status === "pagado" ? "pagado" : "cancelado"]
         .filter(Boolean)
         .join(" · ") || undefined,
-      tono: "wine",
+      tono: "neutral",
     });
   }
   for (const a of f.amonestaciones) {
@@ -191,7 +191,7 @@ const EVENTO: Record<string, { titulo: string; tono: HechoTono }> = {
   user_unlinked: { titulo: "Se quitó el enlace con su usuario", tono: "warning" },
   photo_set: { titulo: "Se cambió la foto", tono: "neutral" },
   photo_removed: { titulo: "Se quitó la foto", tono: "neutral" },
-  bank_account_revealed: { titulo: "Se consultó la cuenta bancaria completa", tono: "wine" },
+  bank_account_revealed: { titulo: "Se consultó la cuenta bancaria completa", tono: "neutral" },
   payroll_settlement_voided: { titulo: "Se anuló un finiquito", tono: "danger" },
 };
 

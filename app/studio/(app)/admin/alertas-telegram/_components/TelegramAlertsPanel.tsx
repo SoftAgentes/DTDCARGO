@@ -328,7 +328,7 @@ function LinkInstructions({
             href={link}
             target="_blank"
             rel="noreferrer"
-            style={{ color: "var(--wine-text)", textDecoration: "underline" }}
+            style={{ color: "var(--accion-text)", textDecoration: "underline" }}
           >
             {link}
           </a>

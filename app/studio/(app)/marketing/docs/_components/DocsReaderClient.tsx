@@ -79,7 +79,7 @@ export function DocsReaderClient({ docs }: { docs: MarketingDoc[] }) {
       {/* Panel izquierdo: buscador + lista */}
       <aside className="mkdocs-side">
         <div style={{ marginBottom: 12 }}>
-          <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <span className="studio-eyebrow">
             Marketing · Documentos
           </span>
           <p style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "6px 0 0" }}>
@@ -150,10 +150,10 @@ const STYLES = `
 .mkdocs-grp { font:700 9.5px/1 var(--f-sans); letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); padding:8px 8px 6px; }
 .mkdocs-item { display:block; width:100%; text-align:left; background:none; border:0; cursor:pointer; border-radius:var(--r-md); padding:8px 10px; margin-bottom:1px; font-family:var(--f-sans); line-height:1.3; }
 .mkdocs-item:hover { background:var(--bg-elevated); }
-.mkdocs-item.active { background:var(--bg-elevated); box-shadow:inset 3px 0 0 var(--wine-soft); }
+.mkdocs-item.active { background:var(--bg-elevated); box-shadow:inset 3px 0 0 var(--ink); }
 .mkdocs-item-t { display:block; font-size:13px; font-weight:600; color:var(--ink); }
 .mkdocs-item-f { display:block; font:500 10.5px var(--f-mono); color:var(--ink-mute); margin-top:1px; }
-.mkdocs-item.active .mkdocs-item-t { color:var(--wine-text); }
+.mkdocs-item.active .mkdocs-item-t { color:var(--ink); }
 .mkdocs-main { min-width:0; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:26px 32px 48px; }
 .mkdocs-crumb { font:600 11.5px/1 var(--f-mono); color:var(--ink-soft); margin-bottom:18px; word-break:break-all; }
 
@@ -166,16 +166,16 @@ const STYLES = `
 .mkdocs-body p { margin:0 0 12px; }
 .mkdocs-body strong { font-weight:700; color:var(--ink); }
 .mkdocs-body del { color:var(--ink-mute); }
-.mkdocs-body a { color:var(--wine-text); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.mkdocs-body a { color:var(--accion-text); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
 .mkdocs-body a.mdoc-ext::after { content:"↗"; font-size:.8em; margin-left:2px; opacity:.7; }
 .mkdocs-body a.mdoc-dead { color:var(--ink-mute); text-decoration:underline dotted; cursor:help; }
-.mkdocs-body code { font-family:var(--f-mono); font-size:.85em; background:var(--bg-elevated); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--wine-text); }
+.mkdocs-body code { font-family:var(--f-mono); font-size:.85em; background:var(--bg-elevated); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--accion-text); }
 .mkdocs-body pre { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--r-md); padding:13px 15px; overflow-x:auto; margin:0 0 14px; }
 .mkdocs-body pre code { background:none; border:0; padding:0; color:var(--ink); font-size:12.5px; line-height:1.55; }
 .mkdocs-body ul, .mkdocs-body ol { margin:0 0 13px; padding-left:22px; }
 .mkdocs-body li { margin:4px 0; }
 .mkdocs-body li > ul, .mkdocs-body li > ol { margin:4px 0 2px; }
-.mkdocs-body blockquote { margin:0 0 14px; padding:10px 15px; border-left:3px solid var(--wine-soft); background:var(--bg-elevated); border-radius:0 var(--r-md) var(--r-md) 0; }
+.mkdocs-body blockquote { margin:0 0 14px; padding:10px 15px; border-left:3px solid var(--ink); background:var(--bg-elevated); border-radius:0 var(--r-md) var(--r-md) 0; }
 .mkdocs-body blockquote > :last-child { margin-bottom:0; }
 .mkdocs-body hr { border:0; border-top:1px solid var(--border); margin:24px 0; }
 .mkdocs-tablewrap { overflow-x:auto; margin:0 0 15px; border:1px solid var(--border); border-radius:var(--r-md); }
@@ -184,7 +184,7 @@ const STYLES = `
 .mkdocs-body th { background:var(--bg-elevated); font-weight:700; font-size:10.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--ink-soft); white-space:nowrap; }
 .mkdocs-body tr:last-child td { border-bottom:0; }
 .mkdocs-body td code { white-space:nowrap; }
-.mkdocs-chk { color:var(--wine-text); font-weight:700; }
+.mkdocs-chk { color:var(--ink); font-weight:700; }
 
 @media (max-width:860px){
   .mkdocs { grid-template-columns:1fr; }
