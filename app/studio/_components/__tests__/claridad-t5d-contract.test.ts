@@ -61,10 +61,10 @@ const ESPERADO: Record<string, Cuenta> = {
   "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // Excepción: «Cargando la ficha…» es texto en status, sin caja.
   "crm/_components/TarjetaFichaDrawer.tsx": { aviso: 1, rol: 1, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
-  // El vino es el contador de mensajes sin leer (pastilla de estado, no se toca).
-  "conversaciones/_components/ConversationList.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 1, fueraDeTab: 1, tablist: 0, tab: 0, vino: 1 },
-  // El vino es la burbuja del mensaje saliente (identidad, no se oprime). El hilo no es región viva.
-  "conversaciones/_components/ConversationThread.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 1 },
+  // El contador de mensajes sin leer es una cifra: va en tinta (BD-076, SDD-0686 grupo 8): vino 0.
+  "conversaciones/_components/ConversationList.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 1, fueraDeTab: 1, tablist: 0, tab: 0, vino: 0 },
+  // La burbuja del mensaje saliente va en tinta (BD-076: el vino es solo logo y wordmark; SDD-0686 grupo 8): vino 0. El hilo no es región viva.
+  "conversaciones/_components/ConversationThread.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
 };
 
 const ARCHIVOS = Object.keys(ESPERADO);
@@ -349,7 +349,7 @@ describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversa
 
     it("la fila elegida de Conversaciones vuelve al vino → rompe", () => {
       expect(muta("conversaciones/_components/ConversationList.tsx", '"var(--ctl-border)"', '"var(--wine)"')).toEqual([
-        expect.stringContaining("vino = 2"),
+        expect.stringContaining("vino = 1"),
       ]);
     });
 

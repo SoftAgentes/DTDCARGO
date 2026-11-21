@@ -613,7 +613,7 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 |---|---|---|---|
 | Conversaciones, lista (`ConversationList.tsx`) | Conteo de no leídos | Tinta: pastilla `--ink` con la cifra en `--ink-inv` | La cifra misma |
 | Conversaciones, lista (`ConversationList.tsx`) | Avatar del agente cuando la conversación es un caso | `neutral` | El Badge «Caso» de la misma fila |
-| Conversaciones, hilo (`ConversationThread.tsx`) | Mensaje saliente | Tinta: burbuja `--ink` con texto `--ink-inv` | La alineación a la derecha y la esquina recortada del lado propio |
+| Conversaciones, hilo (`ConversationThread.tsx`) | Mensaje saliente | Tinta: burbuja `--ink` con texto `--ink-inv`. El tramo 5d de la SDD-0603 la había anotado como identidad; con BD-076 el vino es solo logo y wordmark, así que el contrato `claridad-t5d-contract.test.ts` pasa su cuenta de vino a 0, igual que la del contador | La alineación a la derecha y la esquina recortada del lado propio |
 | Menciones (`MentionsInboxClient.tsx`) | Mención no leída (fondo, borde y punto) | Tinta: fondo de selección al 8 %, borde y punto `--ink` | Texto oculto «No leída.» al inicio del botón (nuevo); antes solo había un punto `aria-hidden` |
 | Menciones (`MentionsInboxClient.tsx`) | Tipo de entidad y su código | `--ink-soft` | El texto mismo |
 | Servicios (`ServiciosClient.tsx`) | Servicio principal (★) | `--ink` | La estrella, ahora con `role="img"` y «Servicio principal» (nuevo) |
