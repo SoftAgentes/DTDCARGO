@@ -20,7 +20,7 @@ import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useTransition } from "react";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { Avatar, type AvatarColor } from "@/app/studio/_components/ui/Avatar";
@@ -1502,12 +1502,14 @@ function AgingView({ aging }: { aging: AgingReport }) {
           title="Antigüedad de CxC"
           side={aging.cxc}
           emptyLabel="Sin saldos por cobrar."
+          estadoVencido="Requiere cobro"
         />
         <AgingSideCard
           eyebrow="Cuentas por pagar"
           title="Antigüedad de CxP"
           side={aging.cxp}
           emptyLabel="Sin saldos por pagar."
+          estadoVencido="Requiere pago"
         />
       </div>
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
@@ -1529,11 +1531,14 @@ function AgingSideCard({
   title,
   side,
   emptyLabel,
+  estadoVencido,
 }: {
   eyebrow: string;
   title: string;
   side: AgingSide;
   emptyLabel: string;
+  /** Palabra del estado del vencido (la cifra va en tinta, SDD-0686). */
+  estadoVencido: string;
 }) {
   // Tono por tramo: escala semántica del sistema (corriente neutro → atención →
   // alarma), no un color por tramo inventado.
@@ -1565,7 +1570,7 @@ function AgingSideCard({
               <div
                 style={{
                   font: "800 18px/1 var(--f-mono)",
-                  color: side.overdue > 0 ? "var(--danger)" : "var(--ink-soft)",
+                  color: "var(--ink)",
                 }}
               >
                 {fmtUsd(side.overdue)}
@@ -1573,6 +1578,11 @@ function AgingSideCard({
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Vencido
               </div>
+              {side.overdue > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <KpiEstado status={{ tono: "danger", texto: estadoVencido }} />
+                </div>
+              )}
             </div>
           </div>
 
