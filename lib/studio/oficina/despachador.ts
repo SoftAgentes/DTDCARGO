@@ -18,7 +18,8 @@
  *
  * Paso 3b: el dinero (un cobro, un pago, una tarifa) se escala con prioridad 3 SIN llamar al agente; la sesión de
  * una llamada abortada se vuelve a borrar en cada tick durante 15 min; y cada borrador nuevo avisa a Discord
- * «hay N pendientes» (sin el texto). El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
+ * «hay N pendientes» (sin el texto). SDD-0701: un enlace del CLIENTE también escala sin llamar al agente
+ * (`cliente:enlace`, prioridad 2; `tema-enlace.ts`). El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
  *
  * PRIVACIDAD: el texto del cliente solo existe en memoria y en la llamada al agente. No va a ningún log, ni a
  * `task_events`, ni a `office_tasks`, ni al borrador (que guarda lo que redactó el agente). La sesión de la
@@ -35,6 +36,7 @@ import { GUIONES_SOPORTE, type Guion, VERSION_GUIONES } from "./guiones-soporte"
 import { ErrorDelRuntime, type RespuestaAgente } from "./runtime-cliente";
 import { type SalidaAgente, interpretarSalida } from "./salida-agente";
 import { hablaDeDinero } from "./tema-dinero";
+import { clienteMandoEnlace } from "./tema-enlace";
 
 export interface DepsDespachador {
   config: ConfigDespachador;
@@ -173,6 +175,8 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
     if (!mensajes.some((m) => m.rol === "cliente")) throw new Escalar("sin_mensaje_del_cliente");
     // Paso 3b: dinero = prioridad 3 y escalado, sin llamar al agente (el texto no sale hacia el proveedor).
     if (tarea.prioridad === 3 || hablaDeDinero(mensajes)) return await escalar("dinero", 3);
+    // SDD-0701: un enlace del cliente puede ser una estafa; lo ve una persona, sin llamar al agente.
+    if (clienteMandoEnlace(mensajes)) return await escalar("cliente:enlace", 2);
 
     const usuario = JSON.stringify({
       conversacion_id: conversacionId,
