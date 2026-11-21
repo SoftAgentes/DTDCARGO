@@ -12,8 +12,8 @@
  */
 import { PGlite } from "@electric-sql/pglite";
 import { afterEach, describe, expect, it } from "vitest";
-import { agruparLote, type FilaPacking, type Lote, type Rastreo } from "../consolidados/modelo";
-import { generarSql, MARCA_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
+import { agruparLote, excluirPorMarkbox, type FilaPacking, type Lote, type Rastreo } from "../consolidados/modelo";
+import { generarSql, idDelPaquete, MARCA_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -241,6 +241,46 @@ describe("SDD-0690 · --solo-facturas: una pre-orden por cliente (PGlite)", { ti
       "solo-facturas: 1 envíos del lote no tienen Shipping Mark",
     );
     // El aplicar quedó a medias en su transacción: se cierra como lo cerraría psql (ON_ERROR_STOP).
+    await db!.exec("rollback");
+    const n = await db!.query<{ n: number }>("select count(*)::int as n from public.invoices");
+    expect(n.rows[0].n).toBe(0);
+  });
+});
+
+// SDD-0690 · --excluir-markbox: la clave DTD-A116 está mapeada al comodín DTD-0000 y su envío sigue ahí.
+describe("SDD-0690 · --solo-facturas con --excluir-markbox (PGlite)", { timeout: 60_000 }, () => {
+  const MAPA = { "DTD-A116": "DTD-0000" };
+  const CON: OpcionesSql = { ...SOLO, excluirMarkbox: ["DTD-0000"] };
+
+  async function correrExcluyendo(duenos: Record<string, string>): Promise<{ preordenes: Preorden[]; aviso: string }> {
+    const l = excluirPorMarkbox(agruparLote(RASTREO, FILAS, { eta: "2026-10-19", mapa: MAPA, excesoPeso: false }), ["DTD-0000"], MAPA);
+    const sql = generarSql(l, CON, { rastreo: "a".repeat(64), packing: "d".repeat(64) })
+      .aplicar.split("\n").filter((x) => !x.startsWith("\\")).join("\n");
+    db = new PGlite();
+    await db.exec(ESQUEMA + envios(duenos));
+    const avisos: string[] = [];
+    await db.exec(sql, { onNotice: (n) => avisos.push(n.message ?? "") });
+    const r = await db.query<Preorden>(`
+      select client_markbox, shipment_code, base_amount::text as base_amount, notes,
+             (select string_agg(l ->> 'shipmentCode', ',' order by l ->> 'shipmentCode')
+                from jsonb_array_elements(lines) l) as codigos
+        from public.invoices where status = 'borrador' order by client_markbox`);
+    return { preordenes: r.rows, aviso: avisos.find((a) => a.startsWith("solo-facturas lote")) ?? "" };
+  }
+
+  it("los envíos del markbox excluido no llevan pre-orden ni línea, y el aviso nombra el paquete nuevo", async () => {
+    const { preordenes, aviso } = await correrExcluyendo({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-5001", "DTD-A116-06": "DTD-0000" });
+    expect(preordenes.map((p) => [p.client_markbox, p.codigos, p.base_amount])).toEqual([["DTD-5001", "DTD-J031-05,DTD-J031-06", "2400.00"]]);
+    expect(preordenes.some((p) => p.client_markbox === "DTD-0000")).toBe(false);
+    expect(aviso).toBe(
+      `solo-facturas lote ${idDelPaquete(CON)} · contenedor ABCU1234567 · 1 Shipping Marks · 1 clientes con pre-orden nueva · 0 saltados (ya tenían factura viva) · 0 sin líneas`,
+    );
+  });
+
+  it("aborta sin escribir si un envío que entra está hoy en el markbox excluido", async () => {
+    await expect(
+      correrExcluyendo({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-0000", "DTD-A116-06": "DTD-0000" }),
+    ).rejects.toThrow("solo-facturas: 1 envíos del lote están hoy en un Shipping Mark excluido (--excluir-markbox); vuelve a generar");
     await db!.exec("rollback");
     const n = await db!.query<{ n: number }>("select count(*)::int as n from public.invoices");
     expect(n.rows[0].n).toBe(0);

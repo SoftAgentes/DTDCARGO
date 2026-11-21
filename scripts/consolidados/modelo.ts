@@ -175,6 +175,20 @@ export interface Lote {
   filas: FilaPacking[];
   totales: Totales;
   avisos: string[];
+  /**
+   * Sólo con `--excluir-markbox` (con `--solo-facturas`): los Shipping Marks que se dejaron
+   * fuera del lote y cuántos clientes, envíos y filas del Excel salieron. Sin la opción no
+   * existe, y el lote queda igual que antes byte a byte.
+   */
+  excluidos?: ExclusionPorMarkbox;
+}
+
+/** Lo que `excluirPorMarkbox` dejó fuera del lote: sólo conteos y los Shipping Marks (códigos, nunca nombres). */
+export interface ExclusionPorMarkbox {
+  markbox: string[];
+  clientes: number;
+  envios: number;
+  filas: number;
 }
 
 export interface OpcionesLote {
@@ -523,4 +537,84 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
   }
 
   return { rastreo, modalidad, dueno, gastoEspacio, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos };
+}
+
+/** Un Shipping Mark que se puede pasar a `--excluir-markbox`: un código (`DTD-0000`), nunca un texto con nombre. */
+export const RE_MARKBOX_EXCLUIBLE = /^[A-Z]{2,4}-[A-Z]?\d{1,5}$/;
+
+/**
+ * Normaliza la lista de `--excluir-markbox`: mayúsculas, sin repetidos y ordenada, para
+ * que la huella del paquete no dependa del orden en que se escribieron.
+ */
+export function normalizarExclusiones(markbox: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const crudo of markbox) {
+    const m = normalizarCodigo(crudo);
+    if (!RE_MARKBOX_EXCLUIBLE.test(m)) throw new Error(`--excluir-markbox: «${crudo}» no es un Shipping Mark (PREFIJO-NNNN)`);
+    out.add(m);
+  }
+  return [...out].sort();
+}
+
+/**
+ * El Shipping Mark que el lote le asigna a un cliente: el que decidió el mapa a mano
+ * (`marcas-mapa.json`), o su clave si no está mapeado. Es la misma búsqueda de `agruparLote`.
+ */
+export function markboxDelCliente(c: Pick<Cliente, "clave" | "marca">, mapa: Record<string, string> = {}): string {
+  const m = normalizarMapa(mapa);
+  return m[c.marca.clave] ?? m[`${c.marca.prefijo}-${c.marca.numero}`] ?? c.clave;
+}
+
+/**
+ * SDD-0690 · `--excluir-markbox`: deja fuera del lote a los clientes cuyo Shipping Mark
+ * (mapa o clave) está en la lista, con sus envíos, sus filas del Excel y sus líneas. Los
+ * totales se recalculan con lo que queda, así que lo excluido no suma en ninguna pre-orden.
+ * El caso del 64: 23 envíos siguen en el comodín DTD-0000 y se cargan aparte, después
+ * de reasignarlos. Cada Shipping Mark de la lista tiene que tener al menos un cliente en
+ * el lote (un error de tipeo no pasa callado). Agrega un aviso con conteos, sin montos.
+ */
+export function excluirPorMarkbox(lote: Lote, markbox: readonly string[], mapa: Record<string, string> = {}): Lote {
+  const lista = normalizarExclusiones(markbox);
+  if (lista.length === 0) return lote;
+  const fuera = new Set(lista);
+  const vistos = new Set<string>();
+  const clientes: Cliente[] = [];
+  const clavesFuera = new Set<string>();
+  for (const c of lote.clientes) {
+    const mb = markboxDelCliente(c, mapa);
+    if (fuera.has(mb)) {
+      vistos.add(mb);
+      clavesFuera.add(c.clave);
+    } else {
+      clientes.push(c);
+    }
+  }
+  const sinClientes = lista.filter((m) => !vistos.has(m));
+  if (sinClientes.length) {
+    throw new Error(`--excluir-markbox: ningún cliente del lote tiene el Shipping Mark ${sinClientes.join(", ")}`);
+  }
+  if (clientes.length === 0) throw new Error("--excluir-markbox deja el lote sin clientes: no hay pre-órdenes que cargar");
+  const embarques = lote.embarques.filter((e) => !clavesFuera.has(e.clave));
+  const remitentesFuera = new Set(lote.embarques.filter((e) => clavesFuera.has(e.clave)).map((e) => e.remitente));
+  const filas = lote.filas.filter((f) => !remitentesFuera.has(f.remitente));
+  const totales: Totales = {
+    filas: filas.length,
+    embarques: embarques.length,
+    clientes: clientes.length,
+    cajas: embarques.reduce((s, e) => s + e.cajas, 0),
+    pesoKg: round2(embarques.reduce((s, e) => s + e.pesoKg, 0)),
+    cbmChina: round3(embarques.reduce((s, e) => s + e.cbmChina, 0)),
+    cbmFactura: round3(embarques.reduce((s, e) => s + e.cbmFactura, 0)),
+    base: round2(clientes.reduce((s, c) => s + c.base, 0)),
+    excesoPeso: round2(clientes.reduce((s, c) => s + c.excesoPeso, 0)),
+    totalFacturadoExcel: round2(filas.reduce((s, f) => s + num(f.totalFacturado), 0)),
+  };
+  const excluidos: ExclusionPorMarkbox = {
+    markbox: lista,
+    clientes: lote.clientes.length - clientes.length,
+    envios: lote.embarques.length - embarques.length,
+    filas: lote.filas.length - filas.length,
+  };
+  const aviso = `Excluidos por markbox (${lista.join(", ")}): ${excluidos.envios} envíos de ${excluidos.clientes} claves del Excel (${excluidos.filas} filas) quedan fuera del lote; no llevan pre-orden ni línea y no suman en los totales.`;
+  return { ...lote, clientes, embarques, filas, totales, avisos: [...lote.avisos, aviso], excluidos };
 }
