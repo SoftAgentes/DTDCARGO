@@ -57,25 +57,31 @@ Igual que el dinero (`lib/studio/oficina/tema-dinero.ts`, Paso 3b de SDD-0626):
 
 ### Qué cuenta como enlace
 
-- **Con esquema o `www.`:** `http://`, `https://`, `ftp://` (cualquier `esquema://`) y `www.…`. Incluye IPs
-  (`http://192.168.0.10`).
-- **Sin esquema:** `nombre.tld` (con o sin ruta) cuando el TLD está en una lista cerrada de los que se ven en enlaces
-  y estafas (`com`, `net`, `org`, `io`, `co`, `me`, `ly`, `ve`, `xyz`, `shop`, `link`, …; la lista está en el
-  archivo). Ejemplos: `bit.ly/abc`, `t.me/alguien`, `seguimiento.com.ve`.
+- **Con esquema o `www.`:** `http://`, `https://`, `ftp://`, `hxxp://` (cualquier `esquema://`) y `www.…`.
+  Incluye IPs (`http://192.168.0.10`).
+- **Sin esquema y con ruta:** `nombre.tld/…` con **cualquier** TLD de letras y en cualquier caja: la barra después
+  del TLD ya dice que es una dirección. Ejemplos: `youtu.be/abc`, `amzn.to/x`, `linktr.ee/tienda`, `rb.gy/x`,
+  `shorturl.at/x`, `s.id/x`, `bit.do/x`, `instagr.am/p/x`, `algo.es/x`.
+- **Sin esquema ni ruta:** `nombre.tld` cuando el TLD está en una lista cerrada de los que se ven en enlaces y estafas
+  (`com`, `net`, `org`, `io`, `co`, `me`, `ly`, `ve`, `xyz`, `shop`, `link`, los gratuitos `ml`, `ga`, `cf`, `gq`, …;
+  la lista está en el archivo) **y** va todo en minúsculas o todo en mayúsculas. Ejemplos: `bit.ly`, `t.me`,
+  `seguimiento.com.ve`, `premio.ml`, `PAGOS.COM`.
 - **No cuenta:** un punto entre dos palabras («ok.gracias», «Llegó.Mañana»), cifras («1.500 kg»), puntos
   suspensivos, siglas («S.A.», «C.A.»), «DTD Cargo» y los correos (`ana@gmail.com`: el dominio va pegado a la `@`).
-- **TLD que se dejan fuera a propósito**, porque en español son palabras y saldrían de un punto mal puesto: `la`,
+  Tampoco un TLD de la lista con mayúscula inicial y sin ruta («Gracias.Me avisas», «Ok.Ve a la oficina», «Hola.Com
+  permiso», «Dpto.Info»): es una frase a la que le falta el espacio después del punto.
+- **TLD que no están en la lista a propósito**, porque en español son palabras y saldrían de un punto mal puesto: `la`,
   `no`, `si`, `de`, `do`, `to`, `se`, `ya`, `al`, `es`, `am`, `pa` («Voy.pa la oficina», «Lo necesito.Es urgente»).
-  El costo: un enlace sin esquema a un `.es` o un `.do` no escala. Con esquema o `www.` sí escala siempre.
-- **Lo que no se ve:** una IP sin esquema (`192.168.0.10/login`) y los enlaces escritos para esquivar
-  («bit punto ly», «hxxp://»). Ninguno abre con un toque; quedan anotados para revisar en la etapa 2.
+  El costo: `algo.es` o `bit.do` **sin ruta ni esquema** no escalan; con ruta, con esquema o con `www.` sí.
+- **Lo que no se ve:** una IP sin esquema (`192.168.0.10/login`), un dominio con mayúscula inicial en el TLD y sin
+  ruta («Pagos.Com») y los enlaces escritos en palabras («bit punto ly»). Quedan anotados para revisar en la etapa 2.
 
 ## Pruebas
 
 Todos los textos de las pruebas son sintéticos: no se copia nada de la conversación real de la etapa 1.
 
-- `lib/studio/oficina/__tests__/enlace-cliente.test.ts` (nuevo): con enlace (con esquema, `www.`, sin esquema), un
-  dominio propio, URLs sin esquema, textos con un punto que no son URL, que solo mira al cliente y que los guiones de
+- `lib/studio/oficina/__tests__/enlace-cliente.test.ts` (nuevo): con enlace (con esquema, `www.`, sin esquema con y
+  sin ruta, acortadores y TLD gratuitos), un dominio propio, URLs sin esquema, textos con un punto que no son URL, que solo mira al cliente y que los guiones de
   la etapa 1 no cuentan como enlace.
 - `lib/studio/__tests__/oficina-paso3b.test.ts` (sobre PGlite, sin red): la conversación con enlace del cliente sale
   `escalado`, motivo `cliente:enlace`, prioridad 2, `guion` nulo, el aviso «hay 1 pendiente» y **0 llamadas** al

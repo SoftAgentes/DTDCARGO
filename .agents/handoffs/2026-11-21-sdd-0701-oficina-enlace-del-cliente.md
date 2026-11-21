@@ -18,13 +18,16 @@ normal. Los directores acordaron arreglarlo antes de la etapa 2, en su propio SD
 
 - **Prioridad 2**, la de un mensaje normal del cliente. Dinero + enlace → gana el dinero (3).
 - **`dtdcargo.com` también cuenta** como enlace: es fácil de imitar y la Oficina_Virtual no juzga qué es nuestro.
-- **Sin esquema, solo TLD de una lista cerrada.** Se dejan fuera los TLD que en español son palabras (`es`, `la`,
-  `no`, `pa`, …) para que «ok.gracias» o «Lo necesito.Es urgente» no escalen. Costo: `algo.es` sin esquema no
-  escala. Detalle en la spec.
+- **Sin esquema:** con ruta (`nombre.tld/…`) cuenta cualquier TLD de letras; sin ruta, solo una lista cerrada
+  (con los gratuitos `ml`, `ga`, `cf`, `gq`) y en minúsculas o todo en mayúsculas. Así «ok.gracias», «Hola.Com
+  permiso» o «Lo necesito.Es urgente» no escalan. Costo: `algo.es` sin ruta ni esquema no escala. Detalle en la spec.
+- **Revisión del 21/11 (Dir_DTD) atendida:** M1 (acortadores, TLD gratuitos, `algo.es/x`), B1 (mayúscula inicial)
+  y B2 (`hxxp://` sí se detecta).
 
 ## Pendiente / fuera de esta PR
 
-- No se ven: IP sin esquema y enlaces disfrazados («bit punto ly», «hxxp://»). Revisar en la etapa 2.
+- No se ven: IP sin esquema, «Pagos.Com» (TLD con mayúscula inicial y sin ruta) y enlaces escritos en palabras
+  («bit punto ly»). Revisar en la etapa 2.
 - La spec de SDD-0626 no se tocó; si el DG quiere, una línea en §3.5 que apunte a este SDD.
 - No se tocó producción. Entra con el despliegue normal del ERP, sin migración.
 

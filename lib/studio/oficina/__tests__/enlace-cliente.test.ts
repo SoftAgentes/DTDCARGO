@@ -33,6 +33,41 @@ describe("tema-enlace · ¿el cliente mandó un enlace?", () => {
   });
 
   it.each([
+    "youtu.be/abc",
+    "amzn.to/x",
+    "linktr.ee/tienda",
+    "rb.gy/x",
+    "shorturl.at/x",
+    "s.id/x",
+    "bit.do/x",
+    "instagr.am/p/x",
+    "algo.es/x",
+    "BIT.LY/ABC",
+    "Mi pedido: Tienda.Com/pedido/9",
+  ])("sin esquema y con ruta, cualquier TLD de letras: «%s» es enlace (revisión M1)", (texto) => {
+    expect(tieneEnlace(texto)).toBe(true);
+  });
+
+  it.each(["premio.ml", "pagos.ga", "cuenta.cf", "banco.gq", "seguro.ml/login", "PAGOS.COM", "linktr.ee"])(
+    "TLD gratuitos de phishing y otros de la lista, sin ruta: «%s» es enlace (revisión M1)",
+    (texto) => {
+      expect(tieneEnlace(texto)).toBe(true);
+    },
+  );
+
+  it.each(["Gracias.Me avisas", "Ok.Ve a la oficina", "Hola.Com permiso", "Dpto.Info", "Listo.Gracias"])(
+    "un punto sin espacio antes de una palabra con mayúscula: «%s» no es enlace (revisión B1)",
+    (texto) => {
+      expect(tieneEnlace(texto)).toBe(false);
+    },
+  );
+
+  it("«hxxp://» y otros esquemas sí cuentan", () => {
+    expect(tieneEnlace("hxxp://estafa.example/x")).toBe(true);
+    expect(tieneEnlace("abre hxxps://pago.example")).toBe(true);
+  });
+
+  it.each([
     "Mira dtdcargo.com/rastreo",
     "https://dtdcargo.com/portal",
     "dtdcargo.com.otro.io",
