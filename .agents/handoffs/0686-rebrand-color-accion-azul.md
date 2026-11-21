@@ -62,8 +62,8 @@ Estado del 2026-11-20, tarde:
 8. Grupo 8 y cierre de la fase 2, 2026-11-21, rama `claude/sdd-0686-fase2-g8`: conversaciones, menciones, rendiciones, servicios, ajustes, el panel de Chatwoot, los restos de cobranzas y embarques, y los comentarios compartidos, sin vino.
    - El contrato del grupo 8 recorre todo `app/studio` y solo admite la lista de identidad y primitivas, con su cuenta exacta.
    - Los impresos fiscales y el del constructor anclan `--wine-text` al valor claro.
-   - Por decidir: el `color = "wine"` por defecto de `Avatar` (barra superior y foto de empleado).
-4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
+   - `Avatar` pasa a neutral por decisión de Sam (2026-11-21): sin tono `wine`, con `neutral` por defecto y las iniciales en `--ink`.
+4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 
 ## FUERA DE ALCANCE DETECTADO

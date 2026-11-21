@@ -646,8 +646,7 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 | `mailing/_components/SignaturesView.tsx` | 1 | Franja de la firma de correo (regla 8) |
 | `_components/guia/GuiaTarjeta.tsx` | 6 | Superficie de la Guía con el tinte de marca |
 | `_components/ui/EmptyState.tsx` | 1 | Eyebrow del estado vacío (identidad, grupo 1) |
-| `_components/ui/Avatar.tsx` | 3 | Tono `wine` y su valor por defecto: **por decidir** |
-| `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla lo usa; se borra con la primitiva |
+| `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla del Studio lo usa; lo usa el móvil hasta la fase 3 |
 
 Quedan fuera de ese recorrido:
 - `tokens.css` y `studio.css`, que definen los tokens;
@@ -657,9 +656,19 @@ El contrato trae además:
 - cuatro mutantes: el mensaje saliente, el Shipping Mark del panel, un avatar de comentario y un vino nuevo fuera de los grupos;
 - las comprobaciones de los impresos y del aviso «No leída».
 
-**Pendiente de decisión:**
-- `Avatar` todavía tiene `color = "wine"` por defecto. Hoy lo usan sin `color` la barra superior (`StudioTopbar.tsx`, el avatar del usuario) y la foto de empleado de nómina (`FotoEmpleado.tsx`).
-- Si las iniciales de una persona no son identidad, el valor por defecto pasa a `neutral` y el tono `wine` sale de la primitiva junto con el de `Badge`.
+**`Avatar` pasa a neutral.**
+- La decisión es de Sam, del 2026-11-21: «Pasa a neutral (Recomendado)». Las iniciales de una persona no son identidad; el vino queda para el logo.
+- `Avatar` pierde el tono `wine`, su tipo ya no lo admite y su valor por defecto pasa a `neutral`.
+- En `neutral`, las iniciales pasan de `--ink-soft` a `--ink` («tinta sobre gris», como pidió Sam). Con `--ink-soft` daban 4,15:1 sobre `--bg-elevated` en claro, debajo del 4,5:1 del texto. Con `--ink` dan:
+  - en claro: 14,50:1 sobre `--bg-surface`, 12,83:1 sobre `--bg-elevated` y 13,92:1 sobre `--bg-base`;
+  - en oscuro: 10,43:1, 9,14:1 y 13,14:1.
+- El cambio alcanza a todos los avatares neutros del Studio, que ganan contraste.
+- `Avatar` sale de la lista del contrato de cierre y de la del grupo 1 (`color-accion-fase2-contract.test.ts`). El contrato del grupo 8 comprueba que no tiene vino y que su valor por defecto es `neutral` en tinta.
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Barra superior (`StudioTopbar.tsx`) | Avatar del usuario, sin `color` (tomaba el vino por defecto) | `neutral`: iniciales en `--ink` sobre `--neutral-bg`, en el botón de fondo `--bg-surface` con borde `--ink-soft` | El nombre del usuario al lado y el `aria-label` del menú |
+| Nómina, foto de empleado (`FotoEmpleado.tsx`) | Iniciales cuando no hay foto, sin `color` | `neutral`, igual | Las iniciales del empleado y el nombre en la ficha |
 
 ### Fases 2 a 5
 

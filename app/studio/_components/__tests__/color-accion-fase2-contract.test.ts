@@ -38,10 +38,6 @@ const GRUPO_1 = [
 
 /** Lo único que puede quedar en vino en el grupo 1, con su motivo. */
 const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
-  "app/studio/_components/ui/Avatar.tsx": {
-    cuenta: 2,
-    motivo: "tono `wine` del avatar (iniciales): decoración de persona, no acción; se decide con el resto de avatares",
-  },
   "app/studio/_components/ui/Badge.tsx": {
     cuenta: 1,
     motivo: "tono `wine` obsoleto (BD-076 regla 7); lo usa el móvil hasta la fase 3",

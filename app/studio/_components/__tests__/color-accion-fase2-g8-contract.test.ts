@@ -7,8 +7,9 @@
  *
  * El cierre de la fase recorre todo `app/studio` con el mismo detector y
  * admite solo el vino de la lista, cada uno con su motivo: identidad de
- * documentos y superficies de marca, y las primitivas del grupo 1 que esperan
- * decisión. Quedan fuera:
+ * documentos y superficies de marca, el eyebrow de `EmptyState` y el tono
+ * retirado de `Badge`, que el móvil usa hasta la fase 3. `Avatar` ya no tiene
+ * vino: su valor por defecto es `neutral` (decisión de Sam). Quedan fuera:
  * - `tokens.css` y `studio.css`, que definen los tokens (fases 1 y 3);
  * - noticias-web, cuyo vino de acción en el bloque claro cuenta el contrato del
  *   grupo 3 y espera `--color-accion*` de la fase 3.
@@ -71,13 +72,9 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 1,
     motivo: "eyebrow del estado vacío: identidad (spec, grupo 1)",
   },
-  "app/studio/_components/ui/Avatar.tsx": {
-    cuenta: 3,
-    motivo: "tono `wine` de Avatar (iniciales de persona) y su valor por defecto: por decidir (spec §10)",
-  },
   "app/studio/_components/ui/Badge.tsx": {
     cuenta: 1,
-    motivo: "tono `wine` de Badge, retirado (regla 7): ninguna pantalla lo usa; se borra con la primitiva",
+    motivo: "tono `wine` de Badge, retirado (regla 7): ninguna pantalla del Studio lo usa; lo usa el móvil hasta la fase 3",
   },
 };
 
@@ -122,6 +119,13 @@ describe("SDD-0686 fase 2 · grupo 8: conversaciones, menciones y el panel sin v
   it("mutante: un avatar de comentario otra vez en tono vino se detecta", () => {
     const objetivo = "app/studio/(app)/_components/comments/MentionDropdown.tsx";
     expect(mutar(objetivo, 'size={24} color="neutral"', 'size={24} color="wine"')).toBe(1);
+  });
+
+  it("Avatar no tiene vino y su valor por defecto es neutral, en tinta (decisión de Sam)", () => {
+    const fuente = leer(join(RAIZ, "app/studio/_components/ui/Avatar.tsx"));
+    expect(cuentaVino(fuente)).toBe(0);
+    expect(fuente).toContain('color = "neutral",');
+    expect(fuente).toContain('neutral: { bg: "var(--neutral-bg)", fg: "var(--ink)" },');
   });
 
   it("la mención no leída se anuncia, no solo se pinta", () => {
