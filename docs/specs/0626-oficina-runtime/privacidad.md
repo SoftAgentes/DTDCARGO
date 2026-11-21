@@ -22,7 +22,7 @@ No es una auditoría del cable completo, ni de Chatwoot, ni del runtime de la of
   - la Constitución, arts. 28 (habeas data) y 60 (vida privada);
   - la SC 332/2001: finalidad, calidad y temporalidad;
   - la SC 759/2025: derecho al olvido.
-- **PIPL (China):** `NO VERIFICABLE`. No consta en el repo dónde corren el runtime de la oficina ni el proveedor del modelo glm-5.3 (ver §4).
+- **PIPL (China):** `NO VERIFICABLE`. Desde el 2026-11-21 el runtime de la oficina usa Anthropic (claude-sonnet-5-5), sin proveedor chino en el pool (informe de Ofi_Hermes al DG); la PIPL deja de ser el motivo principal. No consta en el repo dónde corre el runtime de la oficina (ver §4).
 
 En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tablas.sql`.
 
@@ -155,7 +155,7 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 | ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
 | Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
 | Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
-| Proveedor del modelo: Z.AI (glm-5.3). El respaldo DeepSeek (deepseek-chat) está quitado hasta que haya una llave propia del agente (Sam, 16/11/2026) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+| Proveedor del modelo: Anthropic (claude-sonnet-5-5), sin respaldo. Z.AI y DeepSeek salieron del pool y del `.env` el 2026-11-21 (Sam; informe de Ofi_Hermes al DG). Un respaldo OpenAI está en la SDD-0703 | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
 
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
@@ -279,7 +279,7 @@ Si la marca sobrevive como fila, el borrado no borra (`ENCONTRADO`). Si sobreviv
 ## 4 · No verificable
 
 - **Los respaldos de la base.** Vaciar el resumen no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Un resumen sigue en los respaldos mientras estos existan.
-- **Los proveedores del modelo (Z.AI y DeepSeek):** qué guardan de cada llamada y por cuánto tiempo, y en qué país procesan. Las dos son empresas con sede en China, así que la PIPL (punto 9) probablemente aplica; no consta dónde procesan. El runtime de la oficina ya está medido (hallazgo 13).
+- **El proveedor del modelo (Anthropic; OpenAI si se suma, SDD-0703):** qué guarda de cada llamada y por cuánto tiempo, y en qué país procesa. Desde el 2026-11-21 ya no hay proveedores con sede en China en el pool. El runtime de la oficina ya está medido (hallazgo 13).
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
 - **Producción:**
   - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;
