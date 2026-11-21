@@ -5,7 +5,7 @@
  *
  * Portado 1:1 del mockup del Norte (erp/modules/comments.jsx):
  *  - avatar + nombre + rol + timestamp
- *  - burbuja con menciones resaltadas (.mention-chip wine-tint)
+ *  - burbuja con menciones resaltadas (.mention-chip)
  *  - pills de reacciones + picker de 5 emojis al hover
  *  - editar / borrar para el autor (el botón "Responder" del mockup queda
  *    diferido: threading = §2 NO incluye)
@@ -65,7 +65,7 @@ export function CommentItem({
       <Avatar
         initials={comment.author?.avatar ?? "??"}
         size={32}
-        color={isMine ? "wine" : "neutral"}
+        color="neutral"
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div

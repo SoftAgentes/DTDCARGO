@@ -52,7 +52,7 @@ export function ConversationsIndicator({
         <span
           aria-hidden="true"
           className="studio-contador-icono"
-          data-tono="vino"
+          data-tono="tinta"
         >
           {count > 9 ? "9+" : count}
         </span>

@@ -177,7 +177,7 @@ export default async function RenditionPrintPage({
               <div
                 style={{
                   font: "800 16px/1.2 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 3,
                 }}
               >
@@ -387,7 +387,6 @@ export default async function RenditionPrintPage({
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
             --ink-mute: #9A958C;
-            --wine: #7F0F1A;
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             --bg-base: #FBFAF7;

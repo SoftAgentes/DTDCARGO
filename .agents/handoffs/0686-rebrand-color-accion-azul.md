@@ -58,8 +58,18 @@ Estado del 2026-11-20, tarde:
 7. Grupo 7 (naviera, fidelización y órdenes), 2026-11-21, rama `claude/sdd-0686-fase2-g7` desde `main` con la #742. Abarca naviera, fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario, sin vino.
    - Sobrecapacidad del contenedor a peligro; carga suelta pendiente a atención.
    - `carriers.tone` cae a neutral al leerlo (`carrierTone`, con su prueba), sin tocar la base.
-   - Arrastres de la #742: donut en grados de 82 %, 66 % y 50 % con trazo, y sin el `--wine` muerto en las impresas de legal.
-4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
+   - Arrastres de la #742: donut en grados de 82 %, 66 % y 50 % con trazo, y sin el `--wine` muerto en las impresas de legal. Fusionado con la #744 (`af943ed7c`).
+8. Grupo 8 y cierre de la fase 2, 2026-11-21, rama `claude/sdd-0686-fase2-g8`: conversaciones, menciones, rendiciones, servicios, ajustes, el panel de Chatwoot, los restos de cobranzas y embarques, y los comentarios compartidos, sin vino.
+   - El contrato del grupo 8 recorre todo `app/studio` y solo admite la lista de identidad y primitivas, con su cuenta exacta.
+   - Los impresos fiscales y el del constructor anclan `--wine-text` al valor claro.
+   - `Avatar` pasa a neutral por decisión de Sam (2026-11-21): sin tono `wine`, con `neutral` por defecto y las iniciales en `--ink`.
+   - Ronda de la revisión de la #745:
+     - contador de la barra superior en tinta, chip de @mención en acción y destello de permiso en éxito;
+     - `studio.css` congelado en el contrato de cierre (18, por regla);
+     - el detector ve `eyebrow-wine` y `data-tono="vino"`;
+     - Menciones sin leer en `--ink`.
+   - Pendientes para la fase 3, a decidir por Sam con el Director: Tracking en vivo, la matriz de permisos y la alerta de pestaña de proveedores.
+4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 
 ## FUERA DE ALCANCE DETECTADO

@@ -558,9 +558,10 @@
   box-shadow: 0 0 0 2px var(--bg-surface);
   pointer-events: none;
 }
-.studio-contador-icono[data-tono="vino"] {
-  background: var(--wine);
-  color: var(--ink-side-strong);
+/* La cifra va en tinta (BD-076: cifras en tinta; SDD-0686 grupo 8). */
+.studio-contador-icono[data-tono="tinta"] {
+  background: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-contador-icono[data-tono="peligro"] {
   background: var(--danger);
@@ -921,12 +922,14 @@
   background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-/* Chip de @mención en comentarios (SDD-0045). Wine-tint + texto wine, igual
-   que el mockup. El contenido ya viene escapado por renderMentionHtml (el body
+/* Chip de @mención en comentarios (SDD-0045). Es una referencia que se abre:
+   va en acción (SDD-0686 grupo 8). El tinte es el 8 % de --accion, no
+   --accion-tint: el 14 % del tema oscuro dejaba el texto en 4,29:1 sobre la
+   burbuja (--bg-elevated); al 8 % da 4,79:1 en oscuro y 5,96:1 en claro. El contenido ya viene escapado por renderMentionHtml (el body
    se escapa ANTES de inyectar el span), así que es seguro estilarlo así. */
 .mention-chip {
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--accion) 8%, transparent);
+  color: var(--accion-text);
   font-weight: 600;
   padding: 0 4px;
   border-radius: 4px;
@@ -1985,7 +1988,7 @@ details[open] > .calc-why-summary .calc-why-chev {
    rastro visual de que el guardado ocurrió. */
 @keyframes studio-permcell-saved {
   0% {
-    box-shadow: 0 0 0 3px var(--wine);
+    box-shadow: 0 0 0 3px var(--success);
   }
   100% {
     box-shadow: 0 0 0 3px transparent;
@@ -2000,7 +2003,7 @@ details[open] > .calc-why-summary .calc-why-chev {
   }
   .studio-permcell-flash {
     animation: none;
-    box-shadow: 0 0 0 3px var(--wine);
+    box-shadow: 0 0 0 3px var(--success);
   }
 }
 

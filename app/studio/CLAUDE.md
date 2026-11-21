@@ -120,7 +120,7 @@ Los drawers viejos que usaban `requestSubmit()` ya fueron migrados
 
 Viven en `app/studio/_components/ui/`:
 
-- `Avatar` · iniciales + color (wine | success | info | neutral)
+- `Avatar` · iniciales + color (`neutral` por defecto | `info` | `success` | `warning`); ya no admite `wine` (BD-076, decisión de Sam del 2026-11-21)
 - `Badge` · tonos `success` / `warning` / `danger` / `info` / `wine` / `neutral`,
   sizes `xs` / `sm` / `md`. El tono `wine` se retira (BD-076 regla 7): `neutral` si informa, `success` si confirma, tinta si cuenta una selección. Antes estaba en revisión por BD-076
   (SDD-0686 §10): no lo uses en badges nuevos.

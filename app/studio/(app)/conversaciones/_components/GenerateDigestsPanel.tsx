@@ -65,17 +65,8 @@ export function GenerateDigestsPanel() {
         <button
           type="submit"
           disabled={pending}
-          style={{
-            height: 34,
-            padding: "0 14px",
-            borderRadius: "var(--r-md)",
-            border: "none",
-            cursor: pending ? "not-allowed" : "pointer",
-            opacity: pending ? 0.55 : 1,
-            background: "var(--wine)",
-            color: "var(--ink-side-strong)",
-            font: "700 12px/1 var(--f-sans)",
-          }}
+          aria-busy={pending}
+          className="studio-btn studio-btn-primary studio-btn-sm"
         >
           {pending ? "Generando…" : "Generar ahora"}
         </button>
