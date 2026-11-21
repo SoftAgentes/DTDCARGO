@@ -256,6 +256,302 @@ comparar equivalencia del cambio porque head no será ancestro. No rebase de ram
 compartidas. El Director no programa producto durante revisión: devuelve correcciones
 al Worker.
 
+## Carriles de integración
+
+Aprobados por Sam el 2026-11-20 («Carriles: sí, arranca hoy con los pasos 1 a 3»), a prueba durante una
+semana. Antes, toda PR esperaba su turno en un único tren serial: revisión independiente APPROVED más CI verde
+sobre la cabeza exacta. Cada PR que entraba dejaba atrasada a la siguiente, que volvía a correr el CI completo.
+Ahora hay dos carriles según el riesgo.
+
+### Los dos carriles
+
+- **Carril rápido.** La PR entra con el CI en verde (la corrida `pull_request` de `quality.yml` sobre la cabeza
+  exacta, con la regla de siempre: `success`, no `skipped`) y se revisa **después**, en la revisión de
+  madrugada. Cubre pantallas que solo leen, textos, estilos, documentos y pruebas.
+  No aplica si la PR lleva migraciones, RLS o permisos, facturación, pagos o montos, escrituras de datos
+  personales, registro o acceso al portal, o integraciones (correo, Meta, Chatwoot, Kommo).
+- **Carril con revisión previa.** Todo lo demás. Sigue la regla de siempre: revisión independiente APPROVED,
+  que lanza el Director, más el CI verde en la cabeza exacta, ambas antes de fusionar.
+
+El carril lo decide el clasificador (`scripts/carril.mjs`), no el autor. Una PR que mezcla rutas de los dos
+carriles va con revisión previa. Si el autor cree que el clasificador se equivocó, la PR igual va con revisión
+previa, y la corrección de la regla es otra PR (que también va con revisión previa: ver abajo).
+
+**Reversión.** Si `main` queda en rojo después de una PR del carril rápido, se revierte con su propia PR,
+`git revert -m 1 <merge>` en una rama nueva. Toca las mismas rutas que la PR revertida, así que el clasificador
+también la da `rapido`. Primero se revierte y después se investiga. La corrección vuelve como PR nueva, por el carril que le toque.
+
+**Revisión de madrugada.** La lanza el Director a las 2:00 de Caracas sobre todo lo que entró por el carril
+rápido en las últimas 24 h (los merges a `main` cuyo carril registrado fue `rapido`). Las correcciones pequeñas
+que encuentre van como PR del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam. De noche
+no se publica: lo que se fusione de madrugada sale en la ventana de las 11:00.
+
+**Fusionar y publicar son pasos distintos.** Hoy un push a `main` no publica: el vigilante de la publicación
+automática (SDD-0541) está detenido desde el 2026-10-25 y el servidor no tiene crontab. Publicar es un paso
+manual del Director (`publicar-web.sh publicar <sha>` en el VPS). Por eso el tren fusiona a cualquier hora, en cuanto la PR cumple su carril.
+
+**Ventanas de publicación.** Rigen solo para publicar: 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam
+para lo que ya está integrado en `main`. Si el vigilante vuelve a activarse (cada push a `main` publicaría
+otra vez), esta regla se revisa antes, porque fusionar volvería a ser publicar. Las migraciones y encender interruptores (feature
+flags) en producción siguen pidiendo un OK nominal de Sam, como dice el
+[runbook de migraciones](aplicar-migraciones-prod.md). El OK fijo no cubre los smokes que pida una espera
+concreta.
+
+**Prueba de una semana.** Del 2026-11-20 al 2026-11-27 se mide:
+
+- el tiempo de cada PR desde que está lista (`ready_for_review`, o la apertura si nació lista) hasta que su SHA
+  está en producción (la evidencia de publicación de `publicar-web.sh`), separado por carril;
+- las reversiones: cuántas PR del carril rápido hubo que revertir, y por qué;
+- los hallazgos de la revisión de madrugada: cuántos, de qué gravedad y cuántos fueron PR de corrección.
+
+El Director registra el carril de cada PR (la salida JSON del clasificador) junto a su merge, para poder medirlo.
+Al cerrar la semana, Sam decide si los carriles siguen, cambian o se retiran.
+
+### GitHub no es la barrera
+
+Las reglas de GitHub de «revisor requerido por ruta» (CODEOWNERS con revisión obligatoria) no sirven aquí: todas
+las PR salen de la misma cuenta y GitHub no deja aprobar las propias, así que bloquearían todo. **No se proponen
+como barrera.** La barrera es el tren del Director con el clasificador. El check «Carril (informativo)»
+(`.github/workflows/carril.yml`) solo muestra el carril en cada PR. No es check requerido ni bloquea.
+
+### El clasificador
+
+`scripts/carril.mjs`, en Node y sin dependencias. Es conservador: lo que no reconoce es `revision`, y basta un
+archivo `revision` para que lo sea toda la PR. Tiene dos capas, una por ruta y otra por contenido. En este orden:
+
+1. **Reglas fijas por ruta** (siempre `revision`, también para documentos y pruebas que vivan ahí):
+   - Base de datos y secretos: `supabase/`, cualquier `.sql`, `lib/db/` y `.env*`.
+   - CI e infraestructura: `.github/`, `infra/`, `Dockerfile` y compose, y `scripts/consolidados/`.
+   - Registro y acceso: `app/registro/`, `app/entrar/`, `app/invitar/`, `app/acceso/`, `app/abrir/`,
+     `app/activar/`, `app/verificar/`, los grupos `(auth)` de `app/`, `lib/auth/`, `proxy.ts` y
+     `middleware.ts`.
+   - Legal: `lib/studio/legal/`, `lib/legal-public.ts` y las páginas de términos, privacidad y cookies.
+   - Fuera y dependencias: `app/api/`, cualquier `route.ts` y `private/`; también las dependencias y la
+     configuración global (`package.json`, el lockfile, `next.config`, `eslint.config`, `tsconfig`,
+     `vitest.config` y similares).
+   - Dos reglas que no alcanzan a las pruebas:
+     - Las server actions: `actions.ts`, `*-actions.ts` y `_actions/`.
+     - Las **páginas de las zonas con sesión**: `page.tsx` dentro de `app/studio/`, `app/portal/`, `app/m/`,
+       `app/back/`, `app/interno/` o `app/admin/`. Suelen llevar las puertas `require*()` y las lecturas con
+       `createAdminClient()`.
+   - Por último, las reglas mismas: `AGENTS.md` y `CLAUDE.md` en cualquier carpeta, `.agents/` (salvo
+     `.agents/handoffs/`), `.claude/`, `.harness/`, `docs/governance/`, `docs/engineering/project-rules.md`,
+     este runbook, el de migraciones en producción, el de publicación automática, `scripts/carril.mjs`, sus
+     pruebas y el contrato del CI. Así una PR no puede rebajar su propio carril.
+2. **Temas sensibles por palabra en la ruta**, solo para código:
+   - facturación, pagos, contabilidad, tarifas y montos (`facturacion`, `pagos`, `contabilidad`, `fiscal`,
+     `tesoreria`, `nomina`, `tarifas`, `cotizador`, `calculadora`, `bcv`…);
+   - permisos y acceso (`auth`, `login`, `permisos`, `roles`, `usuarios`, `admin`, `rbac`, `token`, `legal`,
+     `consent`, `cookies`…);
+   - datos personales (`clientes`, `perfil`, `profile`, `ficha`, `contacto`, `gps`, `ubicacion`, `tms`,
+     `backfill`, `crm`, `lead`, `comment`, `bug`, `borrado`, `purga`, `export`, `import`, `personas`, `empleados`, `direccion`, `attachments`,
+     `upload`, `form`, `analytics`, `clarity`…);
+   - integraciones (`chatwoot`, `kommo`, `meta`, `whatsapp`, `email`, `mail`, `correo`, `newsletter`,
+     `webhooks`, `push`, `notif`, `cron`, `api`, `oficina`, `agent`…).
+
+   La ruta se corta por `/ - _ . ( ) [ ]` y por mayúsculas, así que `WhatsAppFAB.tsx`, `GpsBlock.tsx` o
+   `estado-de-cuenta/` caen. La lista exacta está en el script.
+3. **Rutas seguras**, candidatas a `rapido`:
+   - documentos: `docs/` y `*.md` fuera de las reglas fijas, incluidos los handoffs;
+   - texto plano: `.txt` de `app/` o `public/` y diccionarios `.json` de `lib/i18n/`;
+   - pruebas: `__tests__/`, `*.test.*`, `*.spec.*` y `scripts/tests/*.node.mjs`. En `e2e/` solo cuentan los
+     `*.spec.*`; los ayudantes y los diagnósticos son código;
+   - estilos: `.css` y `.scss`;
+   - tokens de diseño: `lib/design-tokens.ts`. Es TypeScript ejecutable (lo importan decenas de pantallas, con
+     `buildWhatsAppLink`), así que se lee como una pantalla: su contenido y sus imports pasan por la capa 4. La
+     palabra «tokens» de su nombre no cuenta como tema;
+   - pantallas y componentes: `.tsx` de `app/` o `components/`, salvo `layout.tsx` y `template.tsx`;
+   - imágenes y fuentes de `public/`, `docs/` y `lib/font-files/`.
+4. **Contenido de las pantallas, por archivo y por lo que importan.** Para cada pantalla que llegó hasta aquí,
+   el clasificador lee el archivo **completo** en la base (el merge-base) y en la cabeza; con `--pr`, también en
+   la versión actual de `origin/main`. Si **cualquiera de esas versiones** trae una de estas marcas, va a
+   `revision` (`contenido-sensible`):
+   - puertas o sesión: `require*(`, `canAccess*`, `has*Access`, `getStudioAccess`, `isAdmin`, `hasRole`, `can(`,
+     `puede*(`, `getUser`, `getSession`, `rbac`, `redirect(`, `notFound(`, `cookies()` y `headers()`;
+   - lecturas sin RLS: `createAdminClient` y `service_role`;
+   - consultas o escrituras: `.from(`, `.rpc(`, `.insert(`, `.update(`, `.upsert(` y `.delete(`;
+   - escrituras por HTTP o por formulario: cualquier `fetch(`, `method:`, `<form … method=`, `action={`,
+     `formAction`, `sendBeacon(` y `XMLHttpRequest`;
+   - props de acción llamadas con un objeto: `onSave({`, `onSubmit({`, `onDelete…({` y `onConfirm({`;
+   - acciones del servidor: `"use server"` y cualquier import cuya ruta lleve `action` (`_actions/`, `/actions`,
+     `*-actions`);
+   - otras: `@supabase/` y `lib/db` o `@/lib/auth`.
+
+   Además, se recorre **el cierre completo de los imports con código** de la pantalla (`@/…` y relativos; no los
+   `import type`): lo que importa, lo que importan esos módulos, y así hasta el final, por lotes y sin repetir. La
+   pantalla va a `revision` si algún módulo del cierre cumple una de estas condiciones:
+   - cae en una regla fija o en un tema por su ruta, por ejemplo `lib/studio/accounting/…`,
+     `lib/marca/access.ts` o `WhatsAppFAB.tsx`;
+   - su contenido trae una marca, incluido `"use server"`;
+   - es un archivo de prueba (`__tests__/`, `*.test.*`, `*.spec.*`): código de producción que importa una prueba
+     va a revisión.
+
+   Todo `.ts`/`.tsx` importado se lee, también `lib/design-tokens.ts` y las pruebas. Así caen la pantalla que llama
+   a `voidExpenseEntriesForExpense` (escribe asientos con service role), la que usa la puerta `hasBrandAccess` con
+   otro nombre y la que usa una función de `design-tokens` a la que se le agregó un `fetch`.
+
+   El recorrido tiene un tope de **10 niveles o 2.000 archivos** (`TOPE_IMPORTS`). Si se llega al tope, la
+   pantalla va a `revision`: lo que no se pudo mirar no se da por limpio. Los ciclos de imports se detectan y no
+   cuelgan.
+
+   Decidir por archivo cierra el hueco de mirar solo las líneas cambiadas. Quitar `.is("deleted_at", null)` o una
+   puerta `canAccessModule(…)` cae en revisión porque la base las tenía, aunque el `.from(` o el import estén en
+   otra línea. Como el archivo que importa una acción o un módulo sensible ya va a revisión, también caen sus
+   llamadas.
+
+   Se falla cerrado. Da `revision` (`sin-contenido` o `contenido-sensible`) en estos casos:
+   - el archivo no se puede leer como texto: un byte NUL, UTF-8 inválido o «Binary files» en el diff;
+   - el archivo no aparece ni en la base ni en la cabeza;
+   - no se leyó, porque solo se pasaron nombres por argumento o por stdin;
+   - un import trae un salto de línea en su ruta;
+   - la salida de `git cat-file --batch` no cuadra con lo pedido (eso es un error, código `2`).
+
+   - el recorrido de imports llega al tope.
+
+   Los documentos, los estilos, el texto plano y las pruebas no se leen cuando cambian ellos mismos. Sí se leen
+   cuando una pantalla los importa.
+5. Todo lo demás: `revision` («sin-clasificar»). Esto incluye la lógica de `lib/` (también los diccionarios
+   `lib/i18n/**/*.ts`, que son TypeScript ejecutable), los scripts y los ayudantes de `e2e/`.
+
+En el carril rápido quedan los componentes de presentación cuyo archivo y cuyo cierre de imports no traen
+ninguna marca ni caen en un tema, más `lib/design-tokens.ts` mientras siga limpio. Se suman los estilos, el texto
+plano, los documentos y las pruebas. Al 2026-11-20 son **128 pantallas** del árbol. La cifra fue bajando con cada
+capa:
+
+| Capa | Pantallas en rápido |
+|---|---|
+| Solo por ruta | 239 |
+| Más el archivo completo (base y cabeza) | 216 |
+| Más dos niveles de imports | 131 |
+| Más el cierre completo de imports | 128 |
+
+Son casi todas tarjetas, tablas, insignias, iconos y bloques de texto. La regla de imports es conservadora: las
+páginas públicas que usan `WhatsAppFAB` caen por su ruta («whatsapp», integraciones).
+
+**Límite conocido.** La capa de contenido busca palabras, no entiende el código. No ve un permiso que llega por
+prop, ni un callback que escribe cuando la llamada no le pasa un objeto (`onSave(id)`). La escritura vive en el
+padre, que suele ser una `page.tsx` de una zona con sesión y va a revisión, pero un cambio solo en el hijo no.
+
+Esa es la razón de la revisión de madrugada. Las reglas nuevas para tapar un caso así, o para ampliar la lista de
+rutas seguras, van en una PR con revisión previa, porque tocan `scripts/carril.mjs`.
+
+Las pruebas viven en `scripts/tests/carril.node.mjs` y corren con `pnpm harness:test` o con
+`node --test scripts/tests/carril.node.mjs`. Verifican lo siguiente:
+
+- una ruta de cada frontera sensible da `revision`, incluidas las pantallas que citó la revisión del 2026-11-20
+  (`app/studio/(app)/admin/page.tsx`, `app/m/cn/page.tsx`, `PortalBackfillSection.tsx`, `GpsBlock.tsx`,
+  `ProfileModal.tsx`, el perfil del portal y los clientes del Studio);
+- las pantallas de la segunda revisión dan `revision`: quitar `.is("deleted_at", null)` de `GenerateBLModal.tsx`
+  o `canAccessModule(…)` de `CrmEmbudosSlot.tsx` (la base lo tenía), y los imports de `_actions/` de
+  `CommentsThread.tsx` y `DeletedCommentsPanel.tsx`;
+- cada clase de ruta segura da `rapido` con un archivo de presentación;
+- cada marca de contenido da `revision`, y también un `.tsx` binario o un import de un archivo con `"use server"`;
+- los casos de la tercera revisión dan `revision`: una pantalla que llama a `voidExpenseEntriesForExpense`
+  (`lib/studio/accounting/expense-posting.ts`), la que importa `lib/marca/access.ts` (`hasBrandAccess`), un
+  módulo sensible en el segundo nivel y un import con salto de línea; un `import type` no cuenta;
+- los casos de la cuarta revisión: `lib/design-tokens.ts` con un `fetch` POST da `revision` (sola o importada por
+  una pantalla) y limpia da `rapido`; una pantalla que importa un archivo de `__tests__/` da `revision`; una
+  marca en el cuarto nivel se encuentra; los ciclos no cuelgan, y llegar al tope de niveles o de archivos da
+  `revision`;
+- el contrato de abajo.
+
+### Contrato para el tren del Director
+
+El tren (`tren.sh`) vive fuera del repo y lo cambia el Director. Usa el clasificador así:
+
+```bash
+node scripts/carril.mjs --json --pr <N>
+```
+
+- **Desde qué copia.** Se corre desde una copia de `origin/main` recién actualizada (`git fetch origin` y el
+  script de `origin/main`), nunca desde la cabeza de la PR. Así la PR no decide su carril con su propia versión
+  del clasificador. El check de CI hace lo mismo: usa el script de la base.
+- **De dónde salen las rutas.** `--pr <N>` lee el diff completo con `gh pr diff <N> --color=never` y toma de
+  las cabeceras de cada archivo las dos rutas, la vieja y la nueva. No usa `gh pr diff --name-only`, que en un
+  renombre da solo la ruta nueva: un archivo sensible se escondería renombrándolo a una ruta segura. Si GitHub no
+  da el diff (por ejemplo, `HTTP 406` en un diff muy grande), es un error y la PR va con revisión previa.
+- **Atado a una cabeza.** `--pr` lee la cabeza con `gh pr view <N> --json headRefOid` antes del diff y otra vez
+  después. Si cambió en el medio, es un error. El JSON devuelve esa cabeza en `head`. Con `--head <sha>`, además,
+  la cabeza tiene que ser esa: si no, es un error.
+- **De dónde salen los archivos.** `--pr` trae la cabeza con `git fetch --no-tags origin pull/<N>/head` y calcula
+  la base como el merge-base de la cabeza con `origin/main` (otra rama con `--base <ref>`). Lee las pantallas y
+  el cierre de sus imports en tres versiones (la base, la cabeza y `origin/main` tal como está en la copia del
+  tren), con un `git cat-file --batch` por nivel. Por eso se corre en una copia del repo con `origin` recién traído. Si git
+  falla, o su salida no cuadra con lo pedido, es un error.
+- **Lo que no lee.** Los cambios que lleguen a `main` después de esa lectura no se ven. No hace falta: el tren
+  clasifica la cabeza ya actualizada, porque exige que la PR no esté BEHIND de `main`, y fusiona con
+  `--match-head-commit`. Si `main` avanza, la PR queda BEHIND, se actualiza y se clasifica otra vez.
+- **Otras entradas.** Para consultas:
+  - `git diff --no-renames <base> <cabeza> | node scripts/carril.mjs --json --diff --base <base> --head <cabeza>`
+    exige que los dos sean commits del repositorio y que el diff de stdin sea exactamente ese `git diff`. Si no,
+    es un error. Así lo usa el check de CI, con el merge de prueba como cabeza.
+  - `--diff` sin `--base` ni `--head` solo ve nombres.
+  - Las rutas solas, por argumento (`node scripts/carril.mjs --json <ruta>...`) o por stdin (una por línea),
+    tampoco leen nada, así que una pantalla da `revision`.
+
+  Con stdin vacío o sin rutas, sale con error. **Para el tren solo vale `origen: "pr"`**: un JSON de otra entrada
+  no ata la cabeza de la PR y se trata como `revision`.
+
+**Cómo fusiona el tren una PR del carril rápido.** Lo hace en este orden:
+
+1. Corre `node scripts/carril.mjs --json --pr <N>` y lee `head` del JSON.
+2. Comprueba el CI de **esa** cabeza con la regla de siempre: la corrida `pull_request` más reciente de
+   `quality.yml` sobre `head_sha=<head>`, en `completed` y `success`.
+3. Fusiona con `gh pr merge <N> --merge --match-head-commit <head>`. Si llegó un push después de clasificar,
+   GitHub rechaza el merge y el tren vuelve al paso 1.
+4. Registra el JSON (con `head` y el SHA del merge) junto al merge, para la revisión de madrugada y la medición.
+
+El carril, el CI y el merge van sobre el mismo SHA. Para el carril con revisión previa vale lo mismo: la revisión
+APPROVED también tiene que ser de esa cabeza.
+
+**Códigos de salida:**
+
+| Código | Significado | Qué hace el tren |
+|---|---|---|
+| `0` | `rapido` | puede fusionar la cabeza `head` con el CI verde en esa cabeza, sin esperar la revisión |
+| `1` | `revision` | exige revisión independiente APPROVED y CI verde en la cabeza exacta |
+| `2` | error (uso, `gh` o `git`, diff sin archivos o distinto del de `--base`/`--head`, cabeza que cambió) o `--help` | lo trata como `revision` |
+
+El tren va por el carril rápido solo si el código es `0` **y** el JSON dice `"carril": "rapido"`, `"origen": "pr"` y
+trae un `head` de 40 caracteres. Cualquier otro caso, incluido un código inesperado o un JSON ilegible, va con revisión previa.
+
+**Salida JSON** (`--json`, en stdout; los mensajes de error van además a stderr):
+
+```json
+{
+  "version": 3,
+  "carril": "revision",
+  "motivo": "1 de 2 archivos piden revisión previa (contenido-sensible)",
+  "total": 2,
+  "contenido": true,
+  "causantes": [
+    { "ruta": "components/Footer.tsx", "regla": "contenido-sensible", "motivo": "el archivo (en la base o en la cabeza) toca puertas, sesión o datos («createAdminClient»)" }
+  ],
+  "archivos": [
+    { "ruta": "docs/a.md", "carril": "rapido", "regla": "documentos", "motivo": "documento" },
+    { "ruta": "components/Footer.tsx", "carril": "revision", "regla": "contenido-sensible", "motivo": "el archivo (en la base o en la cabeza) toca puertas, sesión o datos («createAdminClient»)" }
+  ],
+  "origen": "pr",
+  "pr": 123,
+  "head": "<sha de 40 caracteres>",
+  "base": "<sha del merge-base>"
+}
+```
+
+- `carril`: `rapido` o `revision`. `motivo`: una frase para el registro.
+- `contenido`: `true` si se leyeron los archivos (`--pr`, o `--diff` con `--base` y `--head`) y `false` si solo
+  los nombres.
+- `causantes`: los archivos que piden revisión, con su `regla` y su `motivo`. Si el carril es `rapido`, viene vacío.
+- `archivos`: todos los archivos, cada uno con su carril. `total`: cuántos son, sin repetidos.
+- `origen`: `pr`, `diff`, `args` o `stdin`. `pr`: el número, solo con `--pr`. `head` y `base`: la cabeza
+  clasificada y la base contra la que se leyó, con `--pr` y con `--diff --base --head`.
+- `version`: sube si cambia la forma del JSON (la 2 agregó `head` y `contenido`; la 3, `base` y la lectura por archivo). El tren debe rechazar, y tratar
+  como `revision`, una versión que no conoce.
+- En error: `{ "version": 3, "carril": "revision", "error": "<qué pasó>" }` y código `2`.
+
+**Cuándo se clasifica.** El carril vale solo para `head`. Un push nuevo a la PR obliga a clasificar otra vez, y el
+`--match-head-commit` del merge lo hace cumplir.
+
 ## Validación y producción
 
 `pnpm verify` ya incluye build (no repetir sin razón). Reporta SKIPs
@@ -315,6 +611,19 @@ producción, no publica esta revisión, no mergea main y no despliega.
 > `publicar-web.sh` (journal del vigilante y `publicaciones.json`), y el
 > redeploy de una versión conocida, como `publicar-web.sh volver` o
 > `publicar <sha>`, que corre la sesión de Contabo.
+>
+> **Nota del 2026-11-20 · el vigilante está detenido.** Desde el 2026-10-25 la
+> publicación automática está detenida a propósito: un merge a `main` arma su
+> imagen pero no publica, y la web la publica el Director a mano
+> (`publicar-web.sh publicar <sha>`). Fusionar y publicar son pasos distintos
+> (ver [Carriles de integración](#carriles-de-integración)). Si el vigilante
+> vuelve a activarse, esta nota y los carriles se revisan.
+> Los documentos fechados que todavía dicen que fusionar publica se quedan como
+> están porque son registro histórico: `docs/audits/2026-10-18-contabilidad-anexo-planes.md`,
+> `docs/specs/0586-chatwoot-enrutamiento-segmento-e10/spec.md`,
+> `docs/specs/0589-guia-motor-studio/spec.md` y la nota del 2026-10-19 de arriba.
+> Los avisos de `infra/ops/web/publicar-web.sh` sobre el próximo merge dicen desde
+> el 2026-11-20 que valen solo con el vigilante encendido.
 
 Release requiere evidencia: autorización, PR/SHA integrado, checks aplicables,
 migraciones por nombre y una por vez según runbook, ID de deployment READY y
