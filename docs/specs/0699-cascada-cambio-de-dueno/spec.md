@@ -62,7 +62,8 @@ vacío.
 **F-0, verificado por Dir_DTD el 2026-11-21:** **0466, 0467, 0497, 0551, 0552, 0564 y 0569 están
 aplicadas en producción.** Lo leyó con una consulta de solo lectura a
 `supabase_migrations.schema_migrations`. Sus cabeceras «NO APLICADA» son texto viejo y esta spec no edita
-esos `.sql`. **NO VERIFICADO:** 0464 y 0494, que no entraron en esa medición.
+esos `.sql`. Dir_DTD midió después, igual, la **0464** y la **0494**: también están aplicadas. Esa medición es
+del Director; este Worker no consultó producción.
 
 ### 2.1 Cómo se ata cada cosa al cliente
 
@@ -128,9 +129,24 @@ esos `.sql`. **NO VERIFICADO:** 0464 y 0494, que no entraron en esa medición.
   recibo** baja el pagado y devuelve la factura a `emitida` o `parcial`; una anulada o un borrador no
   reviven (`0467:380-390`).
 - **Un recibo puede quedar sin factura:** el estado `recibido_sin_ref` exige `invoice_id null`
-  (`0122:90-100`), e `identify_collection_receipt` lo aplica después a una factura (`0467:252-330`,
-  guarda en `:287`). Hoy ese estado nace sin copia del cliente (`lib/studio/collections-actions.ts:314`,
-  `:342-360`).
+  (`0122:90-100`). Hoy ese estado nace sin copia del cliente (`lib/studio/collections-actions.ts:314`,
+  `:342-360`), y la CHECK de los snapshots solo lo permite en ese estado (`0122:103-109`).
+- **Asientos de un recibo, hoy:**
+  - **cobro con factura:** DR caja / CR 1.1.2 «Cuentas por cobrar clientes» (`0078:205`);
+  - **pago sin referencia:** DR caja / CR **2.1.8 «Fondos por identificar»**, una cuenta puente de pasivo
+    (`lib/studio/accounting/receipt-posting.ts:30-35`, `:375-378`; `collections-actions.ts:312-316`);
+  - **al identificarlo:** la app reclasifica DR 2.1.8 / CR 1.1.2 con fecha `received_at`, por fuera de la
+    transacción y en modo best-effort. Es idempotente por `source = 'receipt_reclass'`
+    (`receipt-posting.ts:451-460`; `collections-actions.ts:418-423`).
+- **`identify_collection_receipt`** (`0467:252-330`) aplica un recibo sin referencia a una factura:
+  - exige que esté `recibido_sin_ref` (`:287`);
+  - rechaza un monto mayor que el saldo de la factura, `PAYMENT_EXCEEDS_BALANCE` (`:306-308`), así que no
+    hay aplicación parcial;
+  - **sobrescribe el cliente del recibo con el de la factura** (`:310-314`).
+- **`rendido`** existe en el CHECK, para fondos de terceros incluidos en una rendición, pero su transición
+  está «definida pero sin wiring» (`0122:10-12`, `:53`, `:92`).
+- **No hay cuenta de anticipos de clientes.** La única cuenta de anticipos es 1.1.4 «Anticipos a
+  proveedores / navieras», del activo (`0078:207`). En 2.1.x el último código en uso es 2.1.8.
 - **Anular una factura** (`void_invoice_with_audit_reason`, `0497:740-872`):
   - solo `admin` o `accounting` (`0497:772-777`);
   - no anula si está `pagada` (`0497:782`), si tiene recibos vivos (`:787-791`) ni si `paid_amount > 0`
@@ -164,9 +180,10 @@ esos `.sql`. **NO VERIFICADO:** 0464 y 0494, que no entraron en esa medición.
 - **Consecuencias:**
   - la deuda **sí** sigue al que sobrevive, porque `client_outstanding` recorre la cadena de fusiones y
     el historial de códigos (`0492:61-66`);
-  - **el Portal no**: compara el texto con el Shipping Mark vigente, así que el que sobrevive no ve los
-    embarques ni las facturas que quedaron con el código de la ficha retirada. Es la D-7 de la SDD-0695
-    (`docs/specs/0695-datos-duplicados-fuentes-unicas/spec.md:175-179`), que la 0695 F-6 corrige.
+  - **INFERENCIA, no medida:** el Portal no la sigue. Compara el texto con el Shipping Mark vigente
+    (`0367:14-17`), así que el que sobrevive no vería los embarques ni las facturas que quedaron con el
+    código de la ficha retirada. La SDD-0695 lo deja como inferencia en su D-7 y lo mide con la consulta
+    Q18 (`docs/specs/0695-datos-duplicados-fuentes-unicas/spec.md:175-179`). La corrige la 0695 F-6.
 
 ### 2.6 Cambiar el código de un cliente (`rename_client_markbox`, `0552:702-875`)
 
@@ -181,7 +198,7 @@ mismo cliente** con otro código: el titular sellado no cambia.
   (`0267:710-714`).
 - **No hay deshacer genérico.** Lo más cercano es la pista `recovery` en el evento (`0551:447`).
 
-## 3. Principios (propuestos)
+## 3. Principios
 
 1. **Un documento emitido no cambia de dueño.** Se anula (con su reverso, `0497`) y se rehace a nombre
    del cliente correcto. Así el titular sellado (`0466`) sigue siendo verdad, y el cliente que recibió
@@ -204,20 +221,20 @@ Notación: **A** es el cliente actual, **B** el cliente nuevo y **E** el embarqu
 
 ### 4.1 Matriz de qué pasa con cada cosa
 
-| Objeto atado a E | Hoy (0551) | Propuesta |
+| Objeto atado a E | Hoy (0551) | Con esta spec |
 |---|---|---|
 | Pre-orden **solo de E** | Se mueve a B, sin titular fiscal (`0551:410-413`) | **Igual.** Sin cambio. |
 | Pre-orden **de A que también cobra otros embarques** | Bloquea `factura_varios_embarques` | **Se parte** (§4.2): las líneas de E salen de la pre-orden de A y van a la pre-orden viva de B en ese contenedor, o a una nueva. Se recalculan las dos. |
-| Factura **emitida sin pagos** solo de E | Bloquea `factura_emitida` | **Anular y rehacer** (§4.3): se anula con reverso y se crea una **pre-orden** de B con las mismas líneas. Pide la pregunta P1. |
-| Factura **emitida que cobra E y otros embarques** | Bloquea | **Anular y rehacer dos:** pre-orden de A con las líneas que quedan y pre-orden de B con las de E. Pide P1 y P2. |
-| Factura **con pagos** (`parcial` o `pagada`) | Bloquea | **Soltar y rehacer** (§4.4): los recibos se sueltan, se anula, se rehace. Pide P3 y P4. |
-| Recibo de cobro aplicado | No se toca | **Se suelta** a `recibido_sin_ref` **conservando el pagador** (§4.4). |
+| Factura **emitida sin pagos** solo de E | Bloquea `factura_emitida` | **Anular y rehacer** (§4.3): se anula con reverso y se crea una **pre-orden** de B con las mismas líneas (P1). |
+| Factura **emitida que cobra E y otros embarques** | Bloquea | **Anular y rehacer dos:** pre-orden de A con las líneas que quedan y pre-orden de B con las de E (P1, P2). |
+| Factura **con pagos** (`parcial` o `pagada`) | Bloquea | **Soltar y rehacer** (§4.4): los recibos se sueltan, se anula, se rehace (P3, P4). |
+| Recibo de cobro aplicado | No se toca | **Se suelta** al estado nuevo `liberado`, **conservando el pagador** (§4.4). |
 | Reporte de pago del Portal pendiente | No se toca | **Bloquea** mientras esté pendiente: lo resuelve primero Cobranzas, porque lo envió A desde su Portal. |
 | Crédito de referido aplicado | No se toca | **Bloquea**, como hoy en la anulación (`0497:793-795`): se revierte antes con su acción. |
 | Factura anulada o eliminada | No se mueve | **Igual:** es historia de A. |
 | Cotización o estimado (`quotes`) | No se toca | **Igual:** la cotización fue a A. Si se convirtió, la vista previa la nombra, sin moverla. |
 | Recepciones CN y cajas | Se mueven | **Igual.** |
-| Tarifa congelada (`0496`) | Avisa | **Igual por defecto**, o se reemplaza por la de B si Sam elige la opción b de P5. |
+| Tarifa congelada (`0496`) | Avisa | **Igual:** se avisa y contabilidad la reemplaza (P5). |
 | Líneas de consolidación | Se mueven | **Igual.** |
 | Documentos del Portal | Se mueven, y avisa lo que verá B | **Igual.** |
 | Avisos `scheduled` | Se mueven; los enviados se quedan | **Igual.** |
@@ -241,10 +258,23 @@ DTDU-0001, DTDU-0002 y DTDU-0003. DTDU-0003 es en realidad de DTD-9002.
    - si no, se crea una pre-orden nueva con `next_invoice_code`, `shipment_id = E` y las líneas de E.
      Va sin titular fiscal, que se sella al emitir (`0466`).
 4. **Si la pre-orden de A queda sin líneas**, se elimina con borrado lógico (`deleted_at`), porque no es
-   contable. Pide la pregunta P6.
+   contable (P6).
 5. **Líneas sin `shipmentCode`** (cargos a mano, como un descuento): **se quedan en A** y la vista previa
-   lo dice. Si Sam elige la opción b de P2, se reparten.
-6. La vista previa muestra, solo en pantalla, el total antes y después de las dos pre-órdenes.
+   lo dice (P2).
+6. **Si a la pre-orden de A solo le quedan líneas sin `shipmentCode`** (B2 de la revisión):
+   - con total mayor que 0 se conserva, con el aviso «Esta pre-orden ya no cobra ningún embarque; revísala
+     antes de emitirla»;
+   - con total en 0 o negativo (por ejemplo, solo un descuento), **bloquea** con `preorden_sin_embarques`.
+     Contabilidad la corrige primero en Facturación. La P6 no aplica, porque la pre-orden no queda sin
+     líneas, y nadie borra un descuento en silencio.
+7. **El total se conserva** (B3 de la revisión):
+   - la suma de las **bases** (cantidad × precio de cada línea) de A y de B es **exactamente** la misma
+     antes y después, porque las líneas se mueven sin cambiar;
+   - el IVA se recalcula por pre-orden, con la misma regla y el redondeo de siempre: a dos decimales,
+     mitad hacia arriba. Por eso **el total de A más B puede diferir en ±0,01 por cada pre-orden
+     recalculada**, y nunca más;
+   - la vista previa muestra esa diferencia, si la hay, como «ajuste de redondeo».
+8. La vista previa muestra, solo en pantalla, el total antes y después de las dos pre-órdenes.
 
 ### 4.3 Factura emitida: anular y rehacer
 
@@ -254,45 +284,148 @@ No hay nota de crédito (§2.4), así que la regla contable es la que ya existe:
    período abierto, y el motivo es el de la reasignación con el prefijo de la operación.
 2. Se crea una **pre-orden** de B con las líneas de E (y una de A con el resto, si cobraba otros
    embarques).
-3. **Recomendado: B queda en pre-orden** y contabilidad la emite con el botón de siempre. La alternativa
-   (emitirla en la misma operación) obliga a que quien reasigna tenga permiso de facturación y a pasar
-   la puerta legal AUT-04 (SDD-0690 §3.4). Es la pregunta P1.
-4. La factura anulada **queda a nombre de A** y A la sigue viendo anulada en su Portal. No se reescribe
+3. **B queda en pre-orden** y contabilidad la emite con el botón de siempre (P1). Así la puerta legal
+   AUT-04 (SDD-0690 §3.4) se aplica como siempre al emitir.
+4. **Orden dentro de la transacción:** primero se sueltan los recibos (§4.4). Soltarlos baja el pagado y
+   devuelve la factura a `emitida`, con la misma regla de anular un recibo (`0467:380-390`). Entonces `void_invoice_with_audit_reason` la acepta (`0497:782-795`).
+   Después se crean las pre-órdenes.
+5. La factura anulada **queda a nombre de A** y A la sigue viendo anulada en su Portal. No se reescribe
    su `client_markbox`.
-5. Si la factura entró por la excepción EXC-0674 (`exc0674_facturas`), la anulación marca `anulada_at`
+6. Si la factura entró por la excepción EXC-0674 (`exc0674_facturas`), la anulación marca `anulada_at`
    como hoy (`0564:231`), y eso deja facturar de nuevo.
 
 ### 4.4 Pagos: soltar sin perder
 
 Hoy, para anular una factura con cobros, primero hay que anular los recibos (`0497:787-791`). Anular un
 recibo quiere decir «ese dinero no entró», y eso **no es verdad** aquí: el dinero entró, solo estaba
-aplicado a la factura equivocada.
+aplicado a la factura equivocada. Por eso hay una acción nueva, **«soltar el recibo»**, distinta de
+anularlo. Las decisiones son P3 y P4.
 
-Propuesta: una acción nueva, **«soltar el recibo»**, distinta de anularlo:
+#### 4.4.1 Qué recibos se sueltan
 
-- El recibo pasa de `identificado`/`aplicado` a `recibido_sin_ref` con `invoice_id = null`: es el estado
-  que ya existe (`0122:90-100`). La factura baja su `paid_amount` igual que al anular un recibo
-  (`0467:380-390`).
-- **Conserva el pagador:** `client_markbox` y `client_name` del recibo siguen siendo los de quien pagó
-  (A). Hoy el `recibido_sin_ref` nace sin cliente (`collections-actions.ts:342-360`). La CHECK de 0122
-  solo exige el cliente cuando el recibo **no** está sin referencia (`0122:104-109`), así que guardarlo
-  es posible. Hay que confirmarlo con la prueba de la F-1.
-- **Asiento:** el cobro ya tiene su asiento (`0079:81-82`). Soltarlo no anula el dinero; lo pasa de
-  «cobro de la factura X» a «cobro por aplicar». Cómo se refleja en el plan de cuentas (reclasificación
-  a anticipos de clientes, o asiento intacto con la factura anulada) es la pregunta P4, de contabilidad.
-- **Después,** el recibo suelto se aplica con `identify_collection_receipt` (`0467:252-330`):
-  - a la factura nueva de B, **solo si se marca en la vista previa** («Lo pagó A por B: aplicarlo a la
-    factura nueva»), y solo cuando esté emitida, porque una pre-orden no recibe abonos;
-  - o a otra factura de A;
-  - o queda **pendiente de aplicar a nombre de A** en Cobranzas, que es la opción por defecto.
-- **Nunca se pierde:** la vista previa dice cuántos recibos se sueltan y su monto (solo en pantalla), y
-  el evento guarda los ids de los recibos, no los montos (§6.2).
+| Estado del recibo | Qué pasa |
+|---|---|
+| `identificado` o `aplicado`, vivo, de la factura que se anula | **Se suelta** |
+| `rendido` (fondos de terceros ya incluidos en una rendición, `0122:10-12`) | **Bloquea** con `recibo_rendido`. Ese dinero ya se rindió a un tercero, y soltarlo cambiaría una rendición cerrada. Hoy la transición a `rendido` no tiene wiring (`0122:53`); si se llega a usar, su salida se diseña aparte (B1 de la revisión). |
+| Anulado (`deleted_at`) | No cuenta: es historia |
+
+#### 4.4.2 El estado nuevo `liberado`
+
+**No se reusa `recibido_sin_ref`.** Ese estado quiere decir «no sabemos de quién es»: nace sin cliente y
+su asiento usa la cuenta puente 2.1.8 (§2.4). Si un recibo soltado pasara a ese estado, la reaplicación
+de hoy lo reclasificaría desde 2.1.8 sin que nunca hubiera pasado por ahí. La cuenta puente quedaría
+negativa y Clientes se acreditaría dos veces (H1 de la revisión).
+
+Por eso el recibo soltado pasa a un estado nuevo, **`liberado`**: se sabe de quién es, pero no está
+aplicado a ninguna factura.
+
+- **Esquema (F-2):**
+  - `application_status` suma `liberado` al CHECK de `0122:92`;
+  - la CHECK de `0122:96-99` pasa a `(application_status in ('recibido_sin_ref','liberado')) = (invoice_id is null)`;
+  - la de los snapshots (`0122:103-109`) **sigue exigiendo el cliente** en `liberado`, porque solo
+    exime a `recibido_sin_ref`;
+  - una columna nueva, `released_from_invoice_id`, guarda la factura de la que salió.
+- **La identificación de hoy no lo toca.** `identify_collection_receipt` exige `recibido_sin_ref`
+  (`0467:287`), así que rechaza un recibo `liberado`. La reclasificación de la app
+  (`postReceiptReclassEntry`) solo se llama desde la identificación. Nada lo trata como un pago sin
+  referencia.
+
+#### 4.4.3 Los asientos (P4: aprobada; contabilidad la valida antes de la F-2)
+
+La cuenta nueva es la **2.1.9 «Anticipos de clientes»**, un pasivo corriente. El número se confirma en la
+F-2; hoy está libre (§2.4). **La 2.1.8 no se toca.**
+
+| Paso | Asiento | Fecha |
+|---|---|---|
+| Soltar el recibo | DR 1.1.2 Clientes / CR **2.1.9** Anticipos de clientes, por el monto del recibo | la de la operación |
+| Anular la factura de A | El reverso de siempre (`0497:829-849`) | la que calcula la 0497 |
+| Reaplicar a una factura emitida (de B o de A) | DR **2.1.9** / CR 1.1.2 Clientes, por el monto aplicado | la de la reaplicación |
+
+- **Funciona igual, venga el recibo de donde venga.**
+  - Si entró con factura, su asiento fue DR caja / CR 1.1.2.
+  - Si entró sin referencia y se identificó, su neto también es DR caja / CR 1.1.2, por la
+    reclasificación.
+  - En los dos casos, soltarlo devuelve el crédito a Clientes y lo pasa a Anticipos.
+- **Fecha:** el día de Caracas en que se hace la operación. Si ese día cae en el cierre o antes
+  (`get_accounting_closing_date`), el asiento va al día siguiente del cierre. Es la misma regla del
+  reverso de la 0497 (`0497:829-833`). **Nunca `received_at`**, para no escribir en un período cerrado
+  (principio 6).
+- **Misma transacción** (principio 5). Los dos asientos los escribe la RPC, no la app en modo best-effort
+  como la reclasificación de hoy, así que si un asiento falla no se suelta nada.
+  - Llevan el `receipt_id` y un `source` propio: `receipt_release` y `receipt_reapply`.
+  - Son idempotentes por (`receipt_id`, `source`, correlación).
+- **Cuadre** (§10, criterio 4b): al terminar, 1.1.2 de A, 1.1.2 de B y 2.1.9 suman lo mismo que antes.
+  Solo se apartan el reverso de la factura anulada y la emisión de la nueva, que se compensan entre sí.
+
+Ejemplo inventado: una factura de A por 100, con un abono de 30, se pasa a B.
+
+```text
+Antes:      A debe 70 (1.1.2)                          Anticipos 0
+Soltar:     DR 1.1.2 30 / CR 2.1.9 30   → A debe 100   Anticipos 30
+Anular:     reverso CR 1.1.2 100        → A debe 0     Anticipos 30
+Emitir B:   DR 1.1.2 100 / CR ventas    → B debe 100   Anticipos 30
+Reaplicar:  DR 2.1.9 30 / CR 1.1.2 30   → B debe 70    Anticipos 0
+```
+
+#### 4.4.4 El pagador se conserva (P3; H2 de la revisión)
+
+- **Columnas nuevas `payer_client_markbox` y `payer_client_name`** en `payment_receipts`. Al soltar el
+  recibo se llenan con su cliente de ese momento, y después **no cambian**: un trigger las congela.
+- **`client_markbox` sigue siendo el de la factura aplicada**, como hoy, porque es lo que lee la RLS del
+  Portal (`0195:57`). Así, el Portal de B ve el abono aplicado a su factura, sin el nombre ni el código de
+  A, y el de A deja de verlo. Qué muestra el Portal en detalle se confirma en la F-2.
+- **En el Studio** se ven los dos datos, por ejemplo: «Pagó DTD-9001 · aplicado a F-2026-0960 de
+  DTD-9002».
+
+#### 4.4.5 Reaplicar: una RPC propia, con aplicación parcial
+
+La reaplicación **no usa** `identify_collection_receipt`: esa función sobrescribe el cliente
+(`0467:310-314`) y no deja aplicar una parte (`0467:306-308`). Usa una RPC nueva,
+`apply_released_receipt(p_receipt_id, p_invoice_id, p_amount, p_reason)`, que:
+
+- **exige** un recibo `liberado` y una factura emitida o parcial (ni borrador ni anulada), de la misma
+  moneda y del mismo tenant;
+- **permite aplicar una parte:** `p_amount` puede ser menor que el recibo, pero nunca mayor que el saldo
+  de la factura destino.
+  - Si `p_amount` cubre todo el recibo, el recibo pasa a `aplicado` con esa factura.
+  - Si cubre una parte, se crea un **recibo hijo** (`split_from_receipt_id`) por lo aplicado. El hijo nace
+    `aplicado` y sin asiento de caja, porque el dinero ya entró con el padre. El padre queda `liberado`
+    por el resto, y los hijos más el resto suman exactamente el monto original.
+- **deja el resto como saldo a favor de quien pagó,** en la 2.1.9. Cobranzas lo ve en «Pendiente de
+  aplicar», a nombre del pagador, y después se aplica con la misma RPC, a otra factura de A o de B;
+- escribe el asiento DR 2.1.9 / CR 1.1.2 de la §4.4.3 y el evento `receipt_reapplied`, en la misma
+  transacción.
+
+**En la vista previa de la reasignación:**
+
+- cada recibo que se suelta sale con su monto, solo en pantalla;
+- la casilla «Lo pagó A por B: aplicarlo a la factura nueva cuando se emita» **no aplica nada en ese
+  momento**, porque la factura de B nace en pre-orden (P1). Deja una **instrucción pendiente** en el
+  recibo (`apply_on_emit_invoice_id`). Cuando contabilidad emite la pre-orden de B, la emisión llama a
+  `apply_released_receipt` por el menor entre el resto del recibo y el saldo de la factura, y lo dice en
+  su confirmación;
+- si el abono es mayor que lo que costará la factura de B, avisa: «El abono es mayor que la factura nueva;
+  el resto queda como saldo a favor de DTD-9001».
+
+#### 4.4.6 Nunca se pierde
+
+- La vista previa dice cuántos recibos se sueltan y por cuánto, solo en pantalla.
+- Los eventos guardan los ids de los recibos, no los montos (§6.2).
+- Un recibo `liberado` no se anula sin motivo, y al anularlo se reversa también su asiento en la 2.1.9.
 
 ### 4.5 Qué sigue bloqueando
 
-Reclamo vivo, prealerta viva, orden de despacho viva, reporte de pago pendiente del Portal, crédito de
-referido aplicado, y factura en un período cerrado **cuyo reverso no se pueda asentar**. Cada uno lleva
-su texto llano y la acción que lo desbloquea.
+Cada bloqueo lleva su texto llano y la acción que lo desbloquea:
+
+- reclamo vivo;
+- prealerta viva;
+- orden de despacho viva;
+- reporte de pago pendiente del Portal;
+- crédito de referido aplicado;
+- recibo `rendido` (§4.4.1);
+- pre-orden que queda con total en 0 o negativo (`preorden_sin_embarques`, §4.2);
+- factura en un período cerrado **cuyo reverso no se pueda asentar**;
+- otra reasignación del mismo embarque, ya preparada y a la espera de confirmación (§6.3).
 
 ## 5. Caso 2 — Fusionar dos clientes duplicados
 
@@ -300,10 +433,10 @@ Notación: **R** es la ficha que se retira y **S** la que sobrevive. Es **el mis
 la regla cambia: **no se anula nada.** La factura emitida a R se emitió a esa persona, y sigue siendo
 verdad con el código de S. Es el mismo razonamiento de `rename_client_markbox` (§2.6).
 
-| Objeto de R | Hoy (`0361`) | Propuesta |
+| Objeto de R | Hoy (`0361`) | Con esta spec |
 |---|---|---|
 | Embarques, recepciones, consolidación y documentos (por texto) | No se mueven; S no los ve en el Portal | **Se reescriben** al Shipping Mark de S, como hace `rename_client_markbox` (`0552:808-856`). Es la 0695 F-6; esta spec la adopta y no la duplica. |
-| Pre-órdenes de R | No se mueven | **Se reescriben** a S. Si S tiene una pre-orden viva en el mismo contenedor, **se unen** (P7). |
+| Pre-órdenes de R | No se mueven | **Se reescriben** a S. Si S tiene una pre-orden viva en el mismo contenedor, **se unen** en la de S y se elimina la de R (P7). |
 | Facturas emitidas, parciales y pagadas de R | No se mueven | **Se reescribe solo `client_markbox`.** El titular sellado se queda como se emitió (`0466:262-273`). |
 | Facturas anuladas de R | No se mueven | **Se reescriben** también, para que el historial de S esté completo (P8). |
 | Recibos y reportes de pago | No se mueven | **Se reescriben** a S. Los saldos ya siguen la cadena (`0492:61-66`). |
@@ -318,7 +451,9 @@ verdad con el código de S. Es el mismo razonamiento de `rename_client_markbox` 
 **Vista previa y motivo:** hoy la fusión no tiene ninguna de las dos (§2.5). Esta spec agrega a
 `merge_clients` el mismo patrón `p_dry_run` + `p_reason` de la 0551, con conteos por tabla.
 
-**Deshacer:** la fusión sigue siendo **irreversible** en el sentido de SGE-00 (P3). La vista previa lo
+**Saldos de signo contrario** (B4 de la revisión): si R tiene saldo a favor (un sobrepago o un recibo `liberado`) y S debe, la fusión **no los compensa sola**. Un sobrepago no compensa otra factura (`0492:56-57`). La vista previa lo avisa: «DTD-9001 tiene saldo a favor y DTD-9002 tiene facturas abiertas; Cobranzas puede aplicarlo después». El recibo `liberado` se aplica después con `apply_released_receipt` (§4.4.5). Un sobrepago que no está en un recibo `liberado` queda fuera de esta spec (§7).
+
+**Deshacer:** la fusión sigue siendo **irreversible** en el sentido de SGE-00 (permanencia P3). La vista previa lo
 dice y la bitácora guarda, por tabla, los ids que se reescribieron: con eso se puede rastrear y, si hace
 falta, deshacer a mano con un procedimiento asistido.
 
@@ -375,30 +510,94 @@ Motivo (obligatorio)  [_______________________]
 - **Un evento por operación** en la entidad principal (`shipment_client_reassigned` ampliado, o
   `client_merged` ampliado, `0455:231-279`), más **un evento por documento tocado** en su propia entidad:
   `invoice_split`, `invoice_voided_by_reassign`, `invoice_recreated`, `receipt_released`,
-  `receipt_reapplied`. Todos llevan la misma correlación (`sdd-0699:<operación>:<txid>`).
+  `receipt_reapplied`, más los del flujo de dos pasos (§6.3.2). Todos llevan la misma correlación (`sdd-0699:<operación>:<txid>`).
 - Motivo obligatorio, de 4 a 1000 caracteres, en la columna `reason` (AUD-01), con el aviso de no escribir
   datos personales (SDD-0645 §5).
 - `payload` **sin texto libre ni montos**: ids, códigos de documento, Shipping Marks, conteos y el
   vocabulario cerrado de `accion`. Los montos ya quedan en las facturas mismas y en su auditoría
   `audit_d2_invoices`.
-- `permanence`:
+- `permanence` (la escala de SGE-00, no las preguntas de la §9):
   - **P1** para mover y partir borradores (se puede volver a pasar);
   - **P2** para anular y rehacer, y para soltar un recibo (se rastrea y se corrige, pero la anulación no
     se deshace);
   - **P3** para la fusión.
 - **Deshacer:** no hay un botón de deshacer genérico. La ficha del embarque y la del cliente muestran el
-  historial con la correlación, y desde ella se puede volver a pasar (P1) o seguir el rastro de cada
-  documento (P2/P3).
+  historial con la correlación. Desde él se puede volver a pasar (permanencia P1) o seguir el rastro de
+  cada documento (permanencias P2 y P3).
 
-### 6.3 Permisos
+### 6.3 Permisos y confirmación en dos pasos (P9)
 
-| Operación | Propuesta | Hoy |
-|---|---|---|
-| Pasar un embarque **sin documentos emitidos** (mover o partir pre-órdenes) | `reassign_shipment_owner`: operations, commercial y admin | Igual (`rbac.ts:324-331`; D2 de la 0645) |
-| Pasar un embarque **con factura emitida o pagos** | `reassign_shipment_owner` **y** permiso del módulo `invoices` (accounting o admin, `rbac.ts:121`), porque anula y suelta cobros | La anulación ya es de accounting o admin (`0497:772-777`) |
-| Fusionar clientes | Acción RBAC nueva `merge_clients_cascade`; si hay documentos emitidos, también `invoices` | `moduleEditDenial(clients)` y cinco roles (`0361:73-75`) |
+**Un paso** cuando la operación solo mueve o parte pre-órdenes y no anula nada (permanencia P1). Lo hace
+quien tiene `reassign_shipment_owner`: operations, commercial y admin (`rbac.ts:324-331`; D2 de la 0645).
+Es lo de hoy, más el partido de la §4.2.
 
-Pide la pregunta P9: puede que Sam prefiera que operaciones lo pida y contabilidad lo confirme.
+**Dos pasos** cuando la operación anula una factura emitida o suelta un recibo (permanencia P2). Es lo que
+decidió Sam en la P9: **la prepara operaciones o comercial, y la confirma contabilidad o un admin.** Hoy
+nadie, salvo un admin, tiene a la vez `reassign_shipment_owner` (`rbac.ts:331`) y el módulo `invoices`
+(`rbac.ts:121`). Por eso la operación se parte en dos personas.
+
+#### 6.3.1 Dónde queda la operación preparada
+
+Una tabla nueva, `ownership_change_requests` (F-3):
+
+| Columna | Qué guarda |
+|---|---|
+| `id`, `tenant_id` | — |
+| `kind` | `reassign_shipment` (y `merge_clients` si la F-4 lo adopta) |
+| `shipment_id`, `target_client_id` | el embarque y el cliente nuevo |
+| `preview_token` | la huella de la vista previa que vio quien preparó (§6.1) |
+| `cascade_summary` | la lista de la vista previa **sin montos**: acciones, códigos de documento e ids de recibos |
+| `apply_on_emit` | las casillas marcadas de la §4.4.5 |
+| `reason` | el motivo de quien prepara, de 4 a 1000 caracteres |
+| `status` | `preparada` · `confirmada` · `rechazada` · `cancelada` · `vencida` |
+| `prepared_by`, `prepared_at`, `expires_at` | — |
+| `decided_by`, `decided_at`, `decision_reason` | quien confirma o rechaza, y su motivo |
+
+- **Una sola preparada por embarque:** un índice único parcial sobre `shipment_id` donde `status =
+  'preparada'`. Mientras hay una, el embarque no se puede reasignar por otro camino (§4.5).
+- **RLS:** la leen quien la preparó y los roles que pueden confirmarla, en su tenant. Se escribe solo por
+  RPC.
+
+#### 6.3.2 El flujo
+
+1. **Preparar** (`prepare_ownership_change`). Lo hace quien tiene `reassign_shipment_owner`.
+   - Corre la vista previa, guarda la fila `preparada` con la huella y el resumen, y no cambia nada más.
+   - Evento `ownership_change_prepared`.
+2. **Confirmar** (`confirm_ownership_change(p_request_id, p_reason)`). Lo hace `accounting` o `admin`
+   activo del tenant:
+   - **Nunca quien preparó** (separación de funciones), aunque sea admin. Si un tenant tiene un solo
+     admin y nadie de contabilidad, la operación no se puede confirmar. Es intencional: el caso se
+     levanta a Sam.
+   - La RPC **vuelve a calcular la vista previa**:
+     - si la huella **coincide**, ejecuta todo en una transacción (§4.2-§4.4, auditoría incluida) y la
+       fila pasa a `confirmada`;
+     - si **no coincide** (alguien emitió, cobró o editó algo en el medio), no ejecuta nada y responde
+       `40001`. La pantalla muestra la vista previa nueva junto a la vieja, y quien confirma solo puede
+       **rechazarla**. Quien preparó la prepara de nuevo, con otra huella.
+3. **Rechazar** (`reject_ownership_change`). Lo hace quien puede confirmar, con motivo. La fila pasa a
+   `rechazada` y no cambia nada más.
+4. **Cancelar**. Lo hace quien preparó, mientras siga `preparada`.
+5. **Vencer.** A las **72 horas** de `prepared_at`, una fila `preparada` se trata como `vencida`. El
+   índice parcial la excluye y no se puede confirmar. El plazo se confirma en la F-3.
+
+Cada paso deja su evento (`ownership_change_confirmed`, `_rejected`, `_cancelled` y `_expired`), con la
+misma correlación de la operación.
+
+#### 6.3.3 Qué ve cada rol
+
+| Rol | Ve |
+|---|---|
+| Quien preparó | En el embarque, «Cambio de cliente pendiente de confirmar por contabilidad», con la vista previa, la fecha de vencimiento y el botón «Cancelar». |
+| `accounting` y `admin` (no quien preparó) | En Facturación, la bandeja «Cambios de cliente por confirmar», con la vista previa **recalculada al abrirla** (montos solo en pantalla) y los botones «Confirmar» y «Rechazar». |
+| Otros con acceso al embarque | La marca «Cambio de cliente pendiente», sin montos ni botones. |
+| Equipo de China (SDD-0531) | Nada nuevo: no ve nombres de clientes. |
+| Portal | Nada, hasta que se confirma. |
+
+#### 6.3.4 Fusión
+
+La P9 trata de las reasignaciones. Para la fusión, esta spec **propone** una acción RBAC propia,
+`merge_clients_cascade`, que hoy no existe (`0361:73-75` usa cinco roles y la app, `moduleEditDenial`).
+Como la fusión no anula nada, va en un paso, con vista previa y motivo. Se decide en la F-4.
 
 ## 7. Fuera de alcance
 
@@ -409,15 +608,17 @@ Pide la pregunta P9: puede que Sam prefiera que operaciones lo pida y contabilid
 - Avisar a A o a B por correo o WhatsApp del cambio.
 - Corregir datos de producción: el 64 se carga aparte, y cualquier corrida sobre producción lleva su OK.
 - Mover aceptaciones legales.
+- Compensar automáticamente un sobrepago que no está en un recibo `liberado` (§5).
+- Soltar un recibo `rendido` (§4.4.1).
 
-## 8. Fases propuestas (cada una con su PR; las migraciones con OK nominal)
+## 8. Fases (cada una con su PR; las migraciones con OK nominal)
 
 | Fase | Qué | Depende de |
 |---|---|---|
-| F-0 | **Hecha. Verificada por Dir_DTD el 2026-11-21** en el ledger, con solo lectura: 0466, 0467, 0497, 0551, 0552, 0564 y 0569 están aplicadas. Sus cabeceras «NO APLICADA» quedaron viejas y no se editan (§2). | — |
+| F-0 | **Hecha. Verificada por Dir_DTD el 2026-11-21** en el ledger, con solo lectura: 0464, 0466, 0467, 0494, 0497, 0551, 0552, 0564 y 0569 están aplicadas. Sus cabeceras «NO APLICADA» quedaron viejas y no se editan (§2). | — |
 | F-1 | Partir y unir pre-órdenes al pasar un embarque (§4.2). Redefine `reassign_shipment_client` con `cascade` y la huella. Es la que desbloquea el caso del 64. | F-0, P2, P6 (decididas) |
-| F-2 | Soltar un recibo conservando el pagador (§4.4), como acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
-| F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con F-2 dentro. | F-1, F-2, P1, P9 (decididas) |
+| F-2 | Soltar un recibo y reaplicarlo (§4.4): estado `liberado`, columnas del pagador, cuenta 2.1.9, asientos en la misma transacción y `apply_released_receipt` con aplicación parcial. Es una acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
+| F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con la F-2 dentro, y el flujo de dos pasos (§6.3): `ownership_change_requests`, preparar, confirmar, rechazar, cancelar y vencer. | F-1, F-2, P1, P9 (decididas) |
 | F-4 | Fusión con vista previa, motivo y cascada (§5). Va después de la 0694 F-2 y la 0695 F-6, que redefinen `merge_clients`. | 0695 F-6, P7, P8 (decididas) |
 
 ## 9. Decisiones de Sam (2026-11-21)
@@ -433,10 +634,10 @@ Dir_DTD se lo pasó a este Worker el 2026-11-21.
 | P1 | **a)** La factura de B nace en pre-orden y la emite contabilidad. |
 | P2 | **a)** Los cargos sin embarque se quedan en A, con aviso en la vista previa. |
 | P3 | **a)** El abono se suelta y queda pendiente de aplicar a nombre de quien pagó. Pasa a la factura de B solo si se marca. |
-| P4 | **a)** El asiento se reclasifica a anticipos de clientes y se revierte al aplicarlo. **Nota:** está aprobado, pero **contabilidad lo valida antes de implementarlo** (antes de la F-2). |
+| P4 | **a)** El asiento se reclasifica a anticipos de clientes (cuenta 2.1.9, §4.4.3) y se revierte al aplicarlo. **Nota:** está aprobado, pero **contabilidad lo valida antes de implementarlo** (antes de la F-2). |
 | P5 | **a)** La tarifa congelada se avisa, como hoy, y contabilidad la reemplaza. |
 | P6 | **a)** La pre-orden que queda sin líneas se elimina con borrado lógico y queda en la bitácora. |
-| P7 | **a)** Al fusionar, las pre-órdenes del mismo contenedor se unen en la de S. |
+| P7 | **a)** Al fusionar, las pre-órdenes del mismo contenedor se unen en la de S y se elimina la de R. |
 | P8 | **a)** Al fusionar, las facturas anuladas de R también pasan al código de S. |
 | P9 | **a)** La reasignación que anula facturas o suelta pagos la prepara operaciones o comercial, y la confirma contabilidad o un admin. |
 
@@ -503,16 +704,35 @@ Esta conviene confirmarla con quien lleva la contabilidad.
 
 1. Pasar E desde una pre-orden compartida la parte: A queda con sus otras líneas y B con las de E, con
    los totales recalculados, y la vista previa da los mismos números que el cambio real.
+1b. **El total se conserva.** La suma de las bases de A y de B es exactamente la misma antes y después.
+    El total de A más B difiere, como máximo, en ±0,01 por pre-orden recalculada, y la vista previa
+    muestra ese ajuste de redondeo.
+1c. Si a A solo le quedan cargos sin embarque con total en 0 o negativo, la operación bloquea con
+    `preorden_sin_embarques`; con total mayor que 0, pasa con el aviso.
 2. Con una pre-orden viva de B en el mismo contenedor, las líneas se suman a ella; sin ella, se crea una.
-3. Con una factura emitida, la operación la anula con reverso, rehace según P1, y la anulada sigue a
-   nombre de A.
-4. Con un abono, el recibo queda `recibido_sin_ref` **con** el pagador, la factura baja su pagado, y
-   ningún recibo se anula.
+3. Con una factura emitida, la operación la anula con reverso, crea la pre-orden de B (P1), y la anulada
+   sigue a nombre de A.
+4. Con un abono, el recibo queda `liberado`, con `payer_client_markbox` del pagador. La factura baja su
+   pagado, ningún recibo se anula y `identify_collection_receipt` rechaza el recibo `liberado`.
+4b. **Cuadre contable.** Después de soltar, anular, emitir y reaplicar, la cuenta 1.1.2 de A, la de B y
+    la 2.1.9 suman lo mismo que antes, salvo el reverso de la factura anulada y la emisión de la nueva,
+    que se compensan entre sí. La 2.1.8 no se mueve.
+4c. Los asientos de soltar y reaplicar van en la misma transacción que el cambio: si falla uno, no
+    cambia nada. Con el cierre en el día de la operación o después, el asiento va al día siguiente del
+    cierre, nunca a `received_at`.
+4d. `apply_released_receipt` aplica una parte: crea el recibo hijo, el padre queda `liberado` por el
+    resto, la suma es exacta y el pagador no cambia. Rechaza un monto mayor que el saldo de la factura
+    destino.
+4e. Un recibo `rendido` bloquea con `recibo_rendido`.
 5. Confirmar con una huella vieja da `40001` y no cambia nada.
+5b. **Dos pasos.** Una reasignación que anula o suelta queda `preparada` sin cambiar nada más. No la
+    confirma quien la preparó, ni un rol fuera de `accounting` o `admin`. Vencida, no se confirma.
+    Con dos preparadas para el mismo embarque, la segunda falla.
 6. Con un bloqueo de §4.5, o si falla un evento de auditoría, ninguna fila cambia.
 7. Ningún evento, log ni error lleva montos o texto libre fuera de `reason`.
 8. La fusión con vista previa reescribe el código de R en embarques, facturas y recibos. S ve en el Portal
-   lo que era de R, y el titular sellado de las facturas emitidas no cambia.
+   lo que era de R, y el titular sellado de las facturas emitidas no cambia. Con saldos de signo
+   contrario, la vista previa avisa y no compensa nada.
 9. Los roles fuera de §6.3 reciben `42501`, y un admin de otro tenant no encuentra nada.
 10. En un período cerrado, el reverso va al período abierto.
 

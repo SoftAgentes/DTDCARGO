@@ -38,12 +38,38 @@ Sam aprobó, en el chat de Dir_DTD, las nueve opciones recomendadas: «SDD-0699:
 recomendadas». Dir_DTD se lo pasó a este Worker el mismo día. Quedaron en la §9 de la spec, que pasó a `approved`
 (aprobada para planear). La reclasificación de la P4 está aprobada, pero contabilidad la valida antes de implementarla.
 
+## REVISIÓN INDEPENDIENTE (6334e4940, CHANGES_REQUESTED) Y CÓMO SE ATENDIÓ
+
+Comentario: https://github.com/SoftAgentes/DTDCARGO/pull/751#issuecomment-7068022803
+
+- **H1, asiento:**
+  - el recibo soltado no vuelve a `recibido_sin_ref`: pasa al estado nuevo `liberado`;
+  - cuenta nueva 2.1.9 «Anticipos de clientes». Soltar es DR 1.1.2 / CR 2.1.9 y reaplicar, DR 2.1.9 / CR 1.1.2;
+  - la 2.1.8 no se toca;
+  - los asientos van en la misma transacción, con la fecha de la operación y la regla del cierre de la 0497;
+  - el cuadre quedó como criterio de aceptación (§4.4.2-§4.4.3, §10 4b-4c).
+- **H2, pagador:**
+  - columnas congeladas `payer_client_*`;
+  - RPC propia `apply_released_receipt`, con aplicación parcial (recibo hijo), y el resto como saldo a favor
+    del pagador;
+  - la casilla de la vista previa deja una instrucción que se aplica al emitir (§4.4.4-§4.4.5).
+- **H3, dos pasos:** `ownership_change_requests`, preparar, confirmar, rechazar, cancelar y vencer a las 72 h. No
+  confirma quien preparó, la huella se recalcula al confirmar, y la spec dice qué ve cada rol (§6.3).
+- **Notas bajas:**
+  - B1: un recibo `rendido` bloquea;
+  - B2: una pre-orden que queda con total en 0 o menos bloquea;
+  - B3: el total se conserva, con ±0,01 por pre-orden;
+  - B4: los saldos de signo contrario se avisan y no se compensan;
+  - B5: limpié las frases previas a la aprobación y la P7 completa;
+  - B6: la 0464 y la 0494 quedaron como aplicadas, según Dir_DTD;
+  - B7: lo del Portal en la fusión volvió a decir INFERENCIA.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Revisión independiente de la PR #751 (la lanza Dir_DTD).
 - **F-0, hecha:** Dir_DTD la verificó el 2026-11-21 en el ledger, con solo lectura. 0466, 0467, 0497, 0551,
-  0552, 0564 y 0569 están aplicadas; sus cabeceras «NO APLICADA» quedaron viejas y no se editan. 0464 y 0494
-  no entraron en esa medición.
+  0552, 0564 y 0569 están aplicadas; sus cabeceras «NO APLICADA» quedaron viejas y no se editan. Después midió
+  igual 0464 y 0494: también están aplicadas.
 - Validación de contabilidad de la P4, antes de la F-2.
 - Cada fase trae su allowlist en una enmienda de la spec.
 
