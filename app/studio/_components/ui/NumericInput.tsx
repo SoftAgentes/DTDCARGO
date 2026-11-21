@@ -237,7 +237,7 @@ export function NumericInput({
       ? "var(--danger)"
       : previewTone === "neutral"
         ? "var(--ink-soft)"
-        : "var(--ink-mute)";
+        : "var(--ink-soft)";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;

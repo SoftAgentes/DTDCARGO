@@ -68,7 +68,7 @@ function tierColor(tone: BadgeTone): string {
     case "danger":
       return "var(--danger)";
     default:
-      return "var(--ink-mute)";
+      return "var(--ink-soft)";
   }
 }
 

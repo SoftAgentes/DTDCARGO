@@ -135,7 +135,7 @@ export function ChartWidget({
                     {pt.value}
                   </text>
                 )}
-                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-mute)" textAnchor="middle" letterSpacing="0.08em">
+                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle" letterSpacing="0.08em">
                   {pt.label}
                 </text>
               </g>

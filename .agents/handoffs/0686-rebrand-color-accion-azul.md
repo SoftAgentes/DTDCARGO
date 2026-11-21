@@ -79,7 +79,13 @@ Estado del 2026-11-20, tarde:
    - 44 títulos sin sufijo doble;
    - margen para el botón flotante.
 
-   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)»; confirmado: «Sí, el logo se cambia a la opción A»), en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. La nota «hoy» de `ee44876d2` queda sin efecto. Las cifras KPI se decidieron después (ver 10). Los textos en `--ink-mute` se cerraron el 2026-11-21 (Sam: «a recomendada», opción A): 165 pasan a `--ink-soft` en la rama `claude/sdd-0686-cierre-color-studio` (Noticias web, fase 3); quedan tres deshabilitados.
+   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)»; confirmado: «Sí, el logo se cambia a la opción A»), en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. La nota «hoy» de `ee44876d2` queda sin efecto. Las cifras KPI se decidieron después (ver 10). Los textos en `--ink-mute` se cerraron el 2026-11-21 (Sam: «a recomendada», opción A): 180 usos pasan a `--ink-soft` en la rama `claude/sdd-0686-cierre-color-studio` (PR #759); quedan cinco deshabilitados y lo que no es texto, con lista cerrada en `cierre-color-studio-contract.test.ts`.
+
+    **Pendiente de la fase 3 (Noticias web, bloque `data-theme="light"` fijo):** los grises de `RouteIdeaPanel.tsx:260`, `Step3Article.tsx:397` y `Step3Article.tsx:435`, y los enlaces «Volver a Publicadas» en `--color-wine-text` (`publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`). Esperan `--color-accion*` y un gris web fijo.
+
+    **Evidencia de la #759:**
+    - verificado: vitest de los directorios tocados (276 archivos, 3161 pasaron y 3 fallaron; los tres eran contratos que había que poner al día y se corrigieron) y su repetición (39 archivos, 528 pruebas); tsc sin errores fuera de `.next/`; `docs:check`; tras la revisión, vitest de `_components` y de notificaciones, crm, dashboard, fidelización, tracking, reportes y SENIAT: 1306 pasaron y 3 se cortaron por tiempo (20 s) en contratos que recorren todo el árbol bajo carga; repetidos solos, g8, cifras KPI y cierre pasan (42 pruebas);
+    - no ejecutado: `pnpm verify` completo, lint, build y e2e en local (los corre el CI) y el recorrido visual en claro y oscuro.
 10. Cifras KPI en tinta (Sam, opción A), 2026-11-21, rama `claude/sdd-0686-kpi-tinta`:
    - `KpiCard` sin `valueColor` y con `status`;
    - las 81 cifras semánticas, a tinta con su estado aparte;

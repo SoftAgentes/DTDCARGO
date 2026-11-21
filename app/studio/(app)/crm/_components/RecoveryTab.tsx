@@ -39,7 +39,7 @@ export type RecoveryCounts = {
 };
 
 function ageTone(days: number | null): string {
-  if (days == null) return "var(--ink-mute)";
+  if (days == null) return "var(--ink-soft)";
   if (days >= 180) return "var(--danger)";
   if (days >= 30) return "var(--warning)";
   return "var(--ink-soft)";

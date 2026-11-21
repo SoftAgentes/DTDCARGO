@@ -33,7 +33,7 @@ function bulletBorder(state: TimelineStepState): string {
 function bulletText(state: TimelineStepState): string {
   if (state === "done" || state === "active" || state === "exception")
     return "var(--bg-surface)";
-  return "var(--ink-mute)";
+  return "var(--ink-soft)";
 }
 
 function metaLabel(state: TimelineStepState): string {
