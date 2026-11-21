@@ -32,8 +32,8 @@ confidencialidad: interno
 > topes y los nombres de modelo de los bocetos son de ejemplo.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no verificado. Base:
-`origin/main` `05c356a74` (ya trae la 0702). La 0703 aún no está en `main`: se leyó en su rama
-(`origin/claude/sdd-0703-openai-respaldo-741f7a`, PR #757) y se cita como **D**.
+`origin/main` `74a76b2d7` (ya trae la 0702 y la 0703, PR #754 y #757). La 0703 se cita como **D**
+(`docs/specs/0703-ia-respaldo-openai/spec.md`).
 
 **Frontera con la Oficina:** la 0704 diseña y el ERP guarda la cadena; cualquier cambio en el VPS de Hermes lo ejecuta
 Ofi_Hermes.
