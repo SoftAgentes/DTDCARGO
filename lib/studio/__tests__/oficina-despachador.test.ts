@@ -299,6 +299,61 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
     }
   }, 60_000);
 
+  it("SDD-0702 modelo real: si la respuesta no lo dice, se lee de la sesión ANTES de borrarla; sin dato queda null", async () => {
+    for (const [lectura, esperado] of [
+      ["deepseek/deepseek-chat", "deepseek/deepseek-chat"],
+      [null, null],
+      ["lanza", null],
+      [undefined, null],
+    ] as const) {
+      const db = await base();
+      try {
+        await despausar(db);
+        await eventoEnTriaje(db);
+        const { d, doble } = deps(db);
+        const orden: string[] = [];
+        const llamarOriginal = d.llamar;
+        d.llamar = async (o) => ({ ...(await llamarOriginal(o)), modelo: null });
+        const borrarOriginal = d.borrarSesion;
+        d.borrarSesion = async (id) => {
+          orden.push(`borrar:${id}`);
+          return borrarOriginal(id);
+        };
+        if (lectura !== undefined) {
+          d.modeloDeSesion = async (id) => {
+            orden.push(`leer:${id}`);
+            if (lectura === "lanza") throw new Error("red");
+            return lectura;
+          };
+        }
+        expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "borrador" } });
+        const [ev] = await filas(db, "select modelo_usado from public.task_events where tipo = 'modelo.respuesta'");
+        expect(ev.modelo_usado).toBe(esperado);
+        const sesion = doble.sesionesBorradas[0];
+        expect(orden).toEqual(lectura === undefined ? [`borrar:${sesion}`] : [`leer:${sesion}`, `borrar:${sesion}`]);
+      } finally {
+        await db.close();
+      }
+    }
+  }, 120_000);
+
+  it("SDD-0702 modelo real: si la respuesta ya trae el modelo, no se consulta la sesión", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d } = deps(db);
+      const leer = vi.fn(async () => "otro");
+      d.modeloDeSesion = leer;
+      await tick(d);
+      expect(leer).not.toHaveBeenCalled();
+      const [ev] = await filas(db, "select modelo_usado from public.task_events where tipo = 'modelo.respuesta'");
+      expect(ev.modelo_usado).toBe("zai/glm-5.3");
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("JSON inválido: reintenta UNA vez; si sigue mal, escala (y si el segundo sale bien, guarda el borrador)", async () => {
     const db = await base();
     try {
