@@ -25,38 +25,10 @@
  * tipo todavía lo nombran (las limpia la fase 3), pero ninguna función ni mapa
  * lo devuelve.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-const RAIZ = join(__dirname, "..", "..", "..", "..");
-
-/** Tokens de vino del Studio y de la web, usados como valor. */
-const VINO_TOKEN = /var\(--(?:grad-|color-)?wine[a-z-]*/g;
-/** Clases Tailwind de vino, con o sin variante (`hover:`, `focus-within:`…). */
-const VINO_CLASE =
-  /(?<=^|[\s"'`])(?:[a-z-]+:)*(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/gm;
-
-/**
- * Tonos `"wine"` dados como valor. Se quitan antes las uniones de tipo
- * (`"a" | "wine"` en una línea, o una línea que empieza con `|`) y las
- * comparaciones (`=== "wine"`), que no pintan nada.
- */
-function tonosVino(texto: string): number {
-  let n = 0;
-  for (const cruda of texto.split("\n")) {
-    if (/^\s*\|/.test(cruda)) continue;
-    const linea = cruda
-      .replace(/["'][a-z-]+["'](?:\s*\|\s*["'][a-z-]+["'])+/g, "")
-      .replace(/[!=]==?\s*["']wine["']/g, "");
-    n += (linea.match(/["']wine["']/g) ?? []).length;
-  }
-  return n;
-}
-
-function cuentaVino(texto: string): number {
-  return (texto.match(VINO_TOKEN) ?? []).length + (texto.match(VINO_CLASE) ?? []).length + tonosVino(texto);
-}
+import { cuentaVino, fuentesDe, RAIZ, rel, tonosVino } from "./vino-detector";
 
 /** Carpetas del grupo 3. `_components/ui` es del grupo 1 y se salta. */
 const GRUPO_3 = [
@@ -122,21 +94,6 @@ function accionDeNoticiasWeb(cuentas: Record<string, number>): Record<string, { 
   );
 }
 
-function fuentesDe(dir: string, extension: RegExp): string[] {
-  const salida: string[] = [];
-  for (const nombre of readdirSync(dir)) {
-    const ruta = join(dir, nombre);
-    if (statSync(ruta).isDirectory()) {
-      if (nombre === "__tests__") continue;
-      salida.push(...fuentesDe(ruta, extension));
-    } else if (extension.test(nombre) && !/\.test\.tsx?$/.test(nombre)) {
-      salida.push(ruta);
-    }
-  }
-  return salida;
-}
-
-const rel = (ruta: string) => relative(RAIZ, ruta).split(sep).join("/");
 const leer = (ruta: string) => readFileSync(ruta, "utf8");
 
 function archivosGrupo3(): string[] {

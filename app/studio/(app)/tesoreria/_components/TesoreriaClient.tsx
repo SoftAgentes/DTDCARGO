@@ -212,7 +212,7 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor={kpis.porPagar > 0 ? "var(--wine-text)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
@@ -589,7 +589,7 @@ function PaymentsTab({
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor={remesasTotal > 0 ? "var(--wine-text)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>
@@ -730,7 +730,7 @@ function PaymentsTab({
               <span
                 style={{
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                 }}
               >
                 {openingBillId === p.bill_id ? "Abriendo…" : "Ver CxP"}

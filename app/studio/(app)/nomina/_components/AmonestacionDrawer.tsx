@@ -116,7 +116,7 @@ export function AmonestacionDrawer({
                   style={{
                     height: 4,
                     borderRadius: 999,
-                    background: done || active ? "var(--wine)" : "var(--border)",
+                    background: done || active ? "var(--ink)" : "var(--border)",
                   }}
                 />
                 <div

@@ -303,7 +303,7 @@ export function WithholdingsView({
                       {r.voucherNumber}
                     </td>
                     <td style={tdStyle}>
-                      <Badge tone={r.withholdingType === "iva" ? "wine" : "info"} size="sm">
+                      <Badge tone={r.withholdingType === "iva" ? "neutral" : "info"} size="sm">
                         {withholdingTypeShort(r.withholdingType)}
                       </Badge>
                     </td>

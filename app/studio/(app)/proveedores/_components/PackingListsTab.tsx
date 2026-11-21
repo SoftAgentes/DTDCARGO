@@ -194,7 +194,7 @@ export function PackingListsTab({
                 <code
                   style={{
                     font: "700 11.5px/1.2 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}

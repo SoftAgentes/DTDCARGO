@@ -166,7 +166,7 @@ export function IngresoDelPeriodoCard({
       {revisar && (
         <a
           href={ENLACE_POR_CONTABILIZAR}
-          style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--wine-text)" }}
+          style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--accion-text)" }}
         >
           Revisa qué falta en Por contabilizar
         </a>

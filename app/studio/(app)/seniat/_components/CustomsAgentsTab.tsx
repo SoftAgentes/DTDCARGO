@@ -67,7 +67,7 @@ function AgentCard({ agent }: { agent: CustomsAgent }) {
         <Avatar
           initials={initialsFrom(agent.contact_name ?? agent.name)}
           size={42}
-          color="wine"
+          color="neutral"
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -189,7 +189,7 @@ function Stat({
       <div
         style={{
           font: `${mono ? "700" : "600"} 12.5px/1.3 ${mono ? "var(--f-mono)" : "var(--f-sans)"}`,
-          color: accent ? "var(--wine)" : "var(--ink)",
+          color: "var(--ink)",
           marginTop: 5,
           overflow: "hidden",
           textOverflow: "ellipsis",

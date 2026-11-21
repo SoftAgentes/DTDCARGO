@@ -146,7 +146,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 1. Shipment */}
           <div>
             <label htmlFor="cf-shipment" className="studio-label">
-              Shipment <span style={{ color: "var(--wine-text)" }}>*</span>
+              Shipment <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             {shipments.length === 0 ? (
               <Aviso tono="atencion" compacto>
@@ -187,7 +187,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           >
             <div>
               <label htmlFor="cf-port" className="studio-label">
-                Puerto <span style={{ color: "var(--wine-text)" }}>*</span>
+                Puerto <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <select
                 id="cf-port"
@@ -232,7 +232,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
           {/* 3. HS codes */}
           <div>
             <label htmlFor="cf-hs" className="studio-label">
-              HS codes <span style={{ color: "var(--wine-text)" }}>*</span>
+              HS codes <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <div style={{ display: "flex", gap: "var(--s-2)" }}>
               <input
@@ -280,8 +280,8 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       alignItems: "center",
                       gap: 5,
                       padding: "var(--s-1) var(--s-2)",
-                      background: "var(--wine-tint)",
-                      color: "var(--wine-text)",
+                      background: "var(--bg-elevated)",
+                      color: "var(--ink)",
                       borderRadius: "var(--r-sm)",
                       font: "700 11.5px/1 var(--f-mono)",
                     }}
@@ -294,7 +294,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                       style={{
                         background: "transparent",
                         border: 0,
-                        color: "var(--wine-text)",
+                        color: "var(--ink-soft)",
                         cursor: "pointer",
                         padding: 0,
                         display: "inline-flex",
@@ -380,7 +380,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                 <span
                   style={{
                     font: "700 11px/1 var(--f-sans)",
-                    color: "var(--wine-soft)",
+                    color: "var(--ink-side)",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                   }}

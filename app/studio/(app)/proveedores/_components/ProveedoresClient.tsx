@@ -234,7 +234,7 @@ export function ProveedoresClient({
           value={stats.byStatus.consolidada}
           label="Consolidadas"
           valueColor={
-            stats.byStatus.consolidada > 0 ? "var(--wine)" : "var(--ink)"
+            "var(--ink)"
           }
           sub="atadas a un envío"
         />
@@ -611,7 +611,7 @@ function IncomingTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -652,7 +652,7 @@ function IncomingTab({
             title={cbm == null ? "Se mide al recibir en el almacén CN" : undefined}
             style={{
               font: "600 12px/1 var(--f-mono)",
-              color: cbm != null ? "var(--wine)" : "var(--ink-mute)",
+              color: cbm != null ? "var(--ink)" : "var(--ink-mute)",
               textAlign: "right",
               display: "block",
             }}
@@ -928,7 +928,7 @@ function IncomingTab({
                 <span
                   style={{
                     font: "800 13px/1 var(--f-mono)",
-                    color: t.value === "—" ? "var(--ink-mute)" : "var(--wine)",
+                    color: t.value === "—" ? "var(--ink-mute)" : "var(--ink)",
                   }}
                 >
                   {t.value}
@@ -1003,7 +1003,7 @@ function SortableHeaderCell({
         font: "inherit",
         letterSpacing: "inherit",
         textTransform: "inherit",
-        color: active ? "var(--wine)" : "inherit",
+        color: active ? "var(--ink)" : "inherit",
       }}
     >
       {col.label}
@@ -1131,7 +1131,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
               <span
                 style={{
                   font: "700 12.5px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 #{s.supplier_seq}

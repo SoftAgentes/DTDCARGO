@@ -203,7 +203,7 @@ export default async function QuoteDetailPage({
           )}
           <span>
             Vigencia:{" "}
-            <strong style={{ color: "var(--wine-soft)", fontWeight: 700 }}>
+            <strong style={{ color: "var(--ink-side)", fontWeight: 700 }}>
               {quote.valid_until}
             </strong>
           </span>
