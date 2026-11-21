@@ -398,6 +398,49 @@ test("imports: el cierre completo llega al tercer nivel y más", () => {
   assert.match(r.motivo, /«@\/lib\/zz\/a» → «\.\/b» → «\.\/c» → «\.\/d»/);
 });
 
+test("imports: un ciclo compartido entre dos pantallas no deja un rapido falso (Uno primero, Dos después)", () => {
+  // Revisión de Dir_DTD sobre b3521a27c: Uno → MA → [MB, MS]; MB → MA; MS → expense-posting. Dos → MB.
+  // Con la memoria de antes, MB quedaba guardado como limpio mientras MA estaba en curso, y Dos salía rapido.
+  const archivos = {
+    "components/zz/Uno.tsx": 'import { a } from "@/lib/zz/ma";\nexport const Uno = () => <p>{a}</p>;',
+    "components/zz/Dos.tsx": 'import { b } from "@/lib/zz/mb";\nexport const Dos = () => <p>{b}</p>;',
+    "lib/zz/ma.ts": 'import { b } from "./mb";\nimport { s } from "./ms";\nexport const a = b + s;',
+    "lib/zz/mb.ts": 'import { a } from "./ma";\nexport const b = 1;',
+    "lib/zz/ms.ts": 'import { anular } from "@/lib/studio/accounting/expense-posting";\nexport const s = anular;',
+  };
+  for (const orden of [
+    ["components/zz/Uno.tsx", "components/zz/Dos.tsx"],
+    ["components/zz/Dos.tsx", "components/zz/Uno.tsx"],
+  ]) {
+    const c = cargarContenido(orden, [SHA_A], delArbol(archivos));
+    for (const ruta of orden) {
+      const r = clasificarArchivo(ruta, c.get(ruta));
+      assert.equal(r.carril, "revision", `${ruta} con el orden ${orden.join(", ")}`);
+      assert.match(r.motivo, /expense-posting/);
+    }
+  }
+  // Clasificado solo, Dos también da revision (la misma respuesta que juntos).
+  const solo = cargarContenido(["components/zz/Dos.tsx"], [SHA_A], delArbol(archivos));
+  assert.equal(clasificarArchivo("components/zz/Dos.tsx", solo.get("components/zz/Dos.tsx")).carril, "revision");
+});
+
+test("imports: el resultado por archivo no depende del orden ni de qué otras pantallas trae la PR", () => {
+  const archivos = {
+    "components/zz/A.tsx": 'import { x } from "@/lib/zz/x";\nexport const A = () => <p>{x}</p>;',
+    "components/zz/B.tsx": 'import { y } from "@/lib/zz/y";\nexport const B = () => <p>{y}</p>;',
+    "lib/zz/x.ts": 'import { y } from "./y";\nexport const x = y;',
+    "lib/zz/y.ts": 'import { z } from "./z";\nimport { x } from "./x";\nexport const y = z;',
+    "lib/zz/z.ts": 'import { x } from "./x";\nexport const z = () => createAdminClient();',
+  };
+  const rutas = ["components/zz/A.tsx", "components/zz/B.tsx"];
+  const juntos = cargarContenido(rutas, [SHA_A], enMemoria(archivos));
+  for (const ruta of rutas) {
+    const solo = cargarContenido([ruta], [SHA_A], enMemoria(archivos));
+    assert.equal(clasificarArchivo(ruta, juntos.get(ruta)).carril, clasificarArchivo(ruta, solo.get(ruta)).carril, ruta);
+    assert.equal(clasificarArchivo(ruta, juntos.get(ruta)).carril, "revision", ruta);
+  }
+});
+
 test("imports: los ciclos no cuelgan y un cierre limpio da rapido", () => {
   const archivos = {
     "components/zz/C.tsx": 'import { a } from "@/lib/zz/a";\nexport const C = () => <p>{a}</p>;',

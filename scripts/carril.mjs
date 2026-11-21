@@ -498,6 +498,7 @@ export function cargarContenido(rutas, refs, leerVarios, tope = TOPE_IMPORTS) {
         const hijos = texto === null ? [] : importsLocales(c, texto);
         const raro = hijos.find((h) => h.raro);
         nodos.set(ck, {
+          ref,
           ruta: c,
           propio: raro ? `trae un import con salto de línea («${raro.spec.trim()}»)` : moduloSensible(c, texto),
           imports: hijos.filter((h) => !h.raro),
@@ -511,39 +512,44 @@ export function cargarContenido(rutas, refs, leerVarios, tope = TOPE_IMPORTS) {
     pendientes = siguientes;
   }
 
-  // Por qué un nodo es sensible (él o lo que importa), con memoria. Un nodo que el recorrido no expandió por el tope
-  // cuenta como sensible.
-  const memo = new Map();
-  const sensible = (clave, ref, enCurso = new Set()) => {
-    if (memo.has(clave)) return memo.get(clave);
-    if (enCurso.has(clave)) return null; // ciclo: lo resuelve quien lo empezó
-    const nodo = nodos.get(clave);
-    if (!nodo) return null;
-    if (nodo.propio) {
-      memo.set(clave, { motivo: nodo.propio, cadena: [] });
-      return memo.get(clave);
-    }
-    enCurso.add(clave);
-    let r = null;
+  // Por qué un nodo es sensible (él o lo que importa). Es alcanzabilidad: un nodo es sensible si llega a uno que lo es
+  // por sí mismo. Se calcula hacia atrás, desde los sensibles, con un solo recorrido en anchura sobre las aristas
+  // invertidas: el resultado es exacto con ciclos y no depende del orden de las pantallas (antes, una memoria
+  // recursiva guardaba como limpio un nodo cuyo ciclo seguía abierto). Un nodo con un import que el recorrido no
+  // expandió por el tope cuenta como sensible.
+  const resultado = new Map(); // clave → { motivo, cadena }
+  const padres = new Map(); // clave del hijo → [[clave del padre, spec]]
+  const cola = [];
+  for (const [clave, nodo] of nodos) {
+    let semilla = nodo.propio ? { motivo: nodo.propio, cadena: [] } : null;
     for (const imp of nodo.imports) {
-      const k = claveImport(ref, imp);
+      const k = claveImport(nodo.ref, imp);
       if (!resueltos.has(k)) {
-        if (topeAlcanzado) r = { motivo: "el recorrido de imports llegó al tope sin terminar", cadena: [imp.spec] };
-        if (r) break;
+        if (topeAlcanzado && !semilla) {
+          semilla = { motivo: "el recorrido de imports llegó al tope sin terminar", cadena: [imp.spec] };
+        }
         continue;
       }
       const hijo = resueltos.get(k);
       if (!hijo) continue;
-      const s = sensible(hijo, ref, enCurso);
-      if (s) {
-        r = { motivo: s.motivo, cadena: [imp.spec, ...s.cadena] };
-        break;
-      }
+      if (!padres.has(hijo)) padres.set(hijo, []);
+      padres.get(hijo).push([clave, imp.spec]);
     }
-    enCurso.delete(clave);
-    memo.set(clave, r);
-    return r;
-  };
+    if (semilla) {
+      resultado.set(clave, semilla);
+      cola.push(clave);
+    }
+  }
+  for (let i = 0; i < cola.length; i++) {
+    const hijo = cola[i];
+    const r = resultado.get(hijo);
+    for (const [padre, spec] of padres.get(hijo) ?? []) {
+      if (resultado.has(padre)) continue;
+      resultado.set(padre, { motivo: r.motivo, cadena: [spec, ...r.cadena] });
+      cola.push(padre);
+    }
+  }
+  const sensible = (clave) => resultado.get(clave) ?? null;
 
   for (const { ruta, ref, imports } of raices) {
     const entrada = contenido.get(ruta);
@@ -559,7 +565,7 @@ export function cargarContenido(rutas, refs, leerVarios, tope = TOPE_IMPORTS) {
       }
       const hijo = resueltos.get(k);
       if (!hijo) continue;
-      const s = sensible(hijo, ref);
+      const s = sensible(hijo);
       if (s) {
         const cadena = [imp.spec, ...s.cadena].map((x) => `«${x}»`).join(" → ");
         entrada.importa = s.cadena.length === 0 ? `importa ${cadena}, que es sensible: ${s.motivo}` : `importa ${cadena}, sensible: ${s.motivo}`;
