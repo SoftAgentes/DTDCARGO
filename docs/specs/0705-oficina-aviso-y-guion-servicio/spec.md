@@ -13,7 +13,7 @@ confidencialidad: interno
 
 # SDD-0705 — Oficina_Virtual: aviso al cliente y guion explicar-servicio
 
-> La primera respuesta de la Oficina_Virtual avisa que atiende un asistente virtual y que una persona revisa cada
+> La primera respuesta de la Oficina_Virtual termina con un aviso de que atiende un asistente virtual y que una persona revisa cada
 > respuesta. Además, el agente ya puede explicar cómo funciona el servicio sin escalar. Hijo de SDD-0626; va antes de
 > la etapa 2 (clientes reales).
 
@@ -76,8 +76,8 @@ Sam los aprobó el 21/11/2026 con sus palabras: «Sí, apruebo».
 
 > Hola, soy el asistente virtual de DTD Cargo. Una persona del equipo revisa cada respuesta antes de enviártela.
 
-- **Dónde:** el despachador lo pone delante del texto del borrador, separado por una línea en blanco, justo antes de
-  `entregar`, después de `revisarRespuesta`.
+- **Dónde (v0.2):** el despachador lo pone **al final** del texto del borrador, separado por una línea en blanco,
+  después de `revisarRespuesta` y justo antes de `entregar`. En la v0.1 iba delante; ver «Enmienda v0.2».
 - **Cuándo:** solo si es la primera respuesta de DTD, es decir, si entre los mensajes leídos no hay ninguno con
   `rol: "agente"` (el agente o una persona del equipo). Nunca lo duplica.
 
@@ -113,6 +113,42 @@ PR de SDD-0700 (#755).
   - la corrida buena guarda el borrador con el aviso delante, una sola vez;
   - con una respuesta anterior de DTD en la conversación, el borrador no lleva el aviso.
 - Corridas en local: los 6 archivos de la Oficina_Virtual afectados, 155/155 en verde.
+
+## Enmienda v0.2 (21/11/2026, tras la revisión independiente de la #760)
+
+La revisión de la #760 salió aprobada y dejó cuatro puntos menores. Van en una PR posterior:
+
+1. **Doble saludo → el aviso va al final.** Delante, el aviso («Hola, soy el asistente virtual…») chocaba con el
+   «¡Hola! Gracias por escribirle…» del guion `acuse-general`, y el cliente leía dos saludos seguidos. Sam lo
+   decidió el 21/11/2026 con sus palabras: «Doble saludo: opción B, el aviso va al final». El texto del aviso no
+   cambia. `conAvisoAlCliente` lo agrega al final y no lo duplica si el texto ya lo trae en cualquier lugar.
+2. **Tope de 4000 caracteres.** `office_borradores.texto` admite hasta 4000 (check de la 0548), y el aviso suma 112.
+   Antes, un borrador que se pasaba lo rechazaba la base y la corrida escalaba como `fallo_interno`. Ahora
+   `cabeEnBorrador` mide como la base (caracteres, sin espacios a los lados) y, si no cabe, la corrida escala con
+   `borrador_largo`: lo ve una persona y no se guarda texto.
+3. **Runbook §14:** dice explícitamente que el tapado rige desde que la #755 (SDD-0700) está en `main` y publicada.
+4. **Políticas y allowlist exacta** (abajo).
+
+### Políticas
+
+| Política | Aplica |
+|---|---|
+| IA-01 v1.0 | **Sí, nivel I2** (prepara un borrador; la persona lo revisa antes de enviarlo). El aviso cumple «el usuario sabe qué hace la IA». El guion no inventa estado del ERP: no da precios, fechas ni estados, y la revisión automática escala si aparecen. La salida segura es escalar a una persona. Sin acción I3 ni I4. |
+| AUD-01 | Sin datos personales nuevos. Los borradores siguen con su retención de 90 días (SDD-0626). |
+| BTN-01, UPL-01, NUM-01 | No aplican: sin botones, archivos ni montos. |
+
+### Allowlist exacta de implementación
+
+- `lib/studio/oficina/aviso-cliente.ts`
+- `lib/studio/oficina/despachador.ts`
+- `lib/studio/oficina/guiones-soporte.ts`
+- `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`
+- `lib/studio/__tests__/oficina-despachador.test.ts`
+- `docs/runbooks/oficina-cable.md`
+- `docs/specs/0705-oficina-aviso-y-guion-servicio/spec.md`
+- `docs/specs/README.md`
+- `.agents/handoffs/2026-11-21-sdd-0705-aviso-y-guion-servicio.md`
+- `.agents/handoffs/2026-11-21-sdd-0705-v02-aviso-al-final.md`
 
 ## Vuelta atrás
 
