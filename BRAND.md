@@ -37,6 +37,7 @@
 
 - Fuente: **`Archivo Black`** (font-weight 900)
 - `DTD` color wine `#7F0F1A` · `Cargo` color ink `#0F1E3D` (primary)
+- `DTD` color wine-on-dark `#D59FA7` · `Cargo` color cream `#FBFAF7` (reverse, sobre navy). Decisión de Sam del 2026-11-21 (SDD-0686, «Sí, opción A (Recomendado)»): el wine sólido medía 1,56:1 sobre `#0F1E3D`; el wine-on-dark es el mismo tono con más luz y mide 7,34:1 (8,64:1 sobre `#060D1C`)
 - Letter-spacing: `-0.02em`
 - Gap entre palabras: `0.15em` vía `<span style="display:inline-block; width:0.15em">` (no espacio HTML, no margin-left)
 - **Nunca** "DTDCARGO" todo mayúsculas — siempre "DTD Cargo"
@@ -46,7 +47,7 @@
 
 1. **Nunca** `dtdcargo-isologo-primary.png` sobre fondo navy/wine — ratio 1.1:1 → invisible.
 2. **Nunca** `filter: brightness(0) invert(1)` sobre el isólogo. Ya existe `mono-light` que es cream sólido nativo.
-3. **Nunca** usar `var(--color-wine-soft)` en el texto "DTD" del wordmark. `wine-soft` es acento decorativo (charts, badges, hover), no del logo.
+3. **Nunca** usar `var(--color-wine-soft)` en el texto "DTD" del wordmark. `wine-soft` es acento decorativo (charts, badges, hover), no del logo. Sobre navy (variante reverse) el "DTD" va en `--color-wine-on-dark` `#D59FA7`, no en wine-soft (ver Wordmark).
 4. **Nunca** inventar variantes nuevas. Son exactamente 4: primary · reverse · mono-light · mono-dark.
 5. **Nunca** usar `Inter`, `Roboto`, `system-ui` para el wordmark. Solo `Archivo Black`.
 

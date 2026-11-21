@@ -14,6 +14,11 @@ import Link from "next/link";
  * - Gap entre DTD y Cargo: 0.15em vía inline-block span (no margin).
  * - Letter-spacing: -0.02em (era -0.01em).
  * - `wine-soft` se prohibió para el wordmark — sigue siendo decorativo.
+ * - Reverse (SDD-0686, decisión de Sam del 2026-11-21: «Sí, opción A
+ *   (Recomendado)»): «DTD» en el vino de identidad para fondo oscuro,
+ *   `--color-wine-on-dark` (#D59FA7), el mismo tono del vino con más luz. El
+ *   vino sólido daba 1,56:1 sobre el navy: no se leía. Mide 7,34:1 sobre
+ *   #0F1E3D y 8,64:1 sobre #060D1C. El isólogo y «Cargo» no cambian.
  */
 
 type Variant = "primary" | "reverse" | "mono-light" | "mono-dark";
@@ -29,7 +34,7 @@ const VARIANT_CONFIG: Record<
   },
   reverse: {
     file: "/brand/dtdcargo-isologo-reverse.png",
-    dtd: "#7F0F1A", // wine sólido (NO wine-soft, regla del brand book)
+    dtd: "#D59FA7", // = --color-wine-on-dark (app/globals.css), vino de identidad sobre navy
     cargo: "#FBFAF7", // cream
   },
   "mono-light": {

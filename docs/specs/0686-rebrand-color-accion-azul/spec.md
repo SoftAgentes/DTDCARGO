@@ -717,7 +717,7 @@ El Director revisó `main` (`d590ea3f3`) con el Studio en local, datos ficticios
 **Fuera de esta PR, a la espera de Sam:**
 - ~~la banda de bienvenida del Dashboard~~: Sam la decidió (opción A) y va en esta misma PR, en su propio commit (ver la última fila de la tabla);
 - las cifras KPI con color de estado y las barras de las gráficas en `--success`;
-- el logo «DTD» de la barra lateral.
+- ~~el logo «DTD» de la barra lateral~~: Sam lo decidió el 2026-11-21 («Sí, opción A (Recomendado)») y va en su propia PR, en la rama `claude/sdd-0686-logo-vino-claro` (ver la fila 12).
 
 El Portal y la web pública van en sus fases.
 
@@ -752,6 +752,7 @@ El Portal y la web pública van en sus fases.
 | 9 | Títulos de pestaña | 44 rutas con «· DTD Studio» en `metadata.title`, y la plantilla de `app/studio/layout.tsx` lo volvía a agregar | Sin el sufijo; lo pone solo la plantilla | No aplica | No aplica |
 | 10 | Contenido del Studio (`(app)/layout.tsx`) | El botón flotante (44 px, a 24 px del borde) tapaba lo último de la pantalla | Margen inferior del contenido de `var(--s-6)` + 68 px | No aplica | No aplica |
 | 11 | Dashboard, banda de bienvenida (`dashboard/page.tsx`, `tokens.css`). Decisión de Sam: «Banda del Dashboard: opción A, navy de marca con guion vino» | `--grad-wine-panel`: degradado vino, con sombra vino | `--grad-bienvenida`, navy de marca: en claro, `#0F1E3D` hacia `#1F3A6B`; en oscuro, `--bg-surface` hacia `--bg-elevated`, con borde sutil `--bienvenida-borde` (blanco al 10 %). Sombra navy. El vino queda solo en el guión del eyebrow; la marca de agua del isotipo sigue a .08 | Título blanco: 11,20 a 16,49 en claro y 13,03 a 14,89 en oscuro. Subtítulo y eyebrow `--ink-side`: 8,57 a 12,15 en claro y 10,44 a 11,81 en oscuro. Guión vino, como forma: 3,25 a 4,79 en claro y 3,78 a 4,32 en oscuro | El saludo, la fecha y el nombre de la empresa en el texto. No hay rojo de peligro en ningún tema. `--grad-wine-panel` sale del Studio: era su único consumidor. El de la web pública (`app/globals.css`) es otro token y no se toca |
+| 12 | Logo «DTD» sobre navy, variante reverse de `components/BrandMark.tsx`: barra lateral del Studio, web pública (pie y fichas de servicio), portal en oscuro, `/entrar`, baja de correo y el selector de modos del móvil. Decisión de Sam: «Sí, opción A (Recomendado)» | «DTD» en vino sólido `#7F0F1A`: 1,56:1 sobre `#0F1E3D` y 1,84:1 sobre `#060D1C`; no se leía | «DTD» en `--color-wine-on-dark` `#D59FA7`, el vino de identidad para fondo oscuro que ya existía en `app/globals.css`: el mismo tono con más luz. El isólogo PNG y «Cargo» no cambian; tampoco las otras tres variantes | 7,34:1 sobre `--bg-sidebar` en claro (`#0F1E3D`) y 8,64:1 en oscuro (`#060D1C`); 4,98:1 en el fondo navy más claro de la web (`#1F3A6B`) | El nombre «DTD Cargo» escrito y el `alt` del isólogo. El vino solo identifica la marca: no dice ningún estado |
 
 **Contrato nuevo (`revision-visual-0686-contract.test.ts`):** comprueba
 - el navy fijo del login;
