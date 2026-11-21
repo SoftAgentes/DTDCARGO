@@ -138,8 +138,11 @@ Todo lo demás de la 0639 sigue igual: catálogo aprobado en código, habilitaci
     **habilitados** (los que pasaron su prueba de contrato). La Oficina entra con marca `con_datos` (0703 §4, **I**:
     los datos llegan tapados por la 0700, pero el texto sigue siendo la conversación de un cliente).
 - **En la base**, una tabla `ia_catalogo_modelos` (proveedor, modelo, origen) sembrada por la migración. Así la base
-  puede limitar lo que se guarda (§5) sin leer el código. Una prueba compara la siembra con el catálogo en código:
-  sumar un modelo es una PR con los dos cambios.
+  puede limitar lo que se guarda (§5) sin leer el código. Una prueba compara la siembra con el catálogo en código.
+- **Sumar un modelo al catálogo es una migración**: una PR con los dos cambios, y aplicarla en producción pide el **OK
+  nominal de Sam** (§9). Lo que se cambia sin el chat, desde la pantalla, es la **cadena entre los modelos que ya
+  están en el catálogo**, sus tarifas y los topes. Un modelo nuevo de un proveedor no aparece en la lista hasta que
+  su migración esté aplicada.
 
 ## 4. El cambio automático
 
@@ -313,6 +316,11 @@ de salida en USD por millón de tokens, `vigente_desde`. La tarifa **vive con el
 - Un modelo de una cuenta **por token** exige tarifa mayor que 0: con 0 la auto-pausa no saltaría nunca (la misma
   regla de `despachador-config.ts:67-72`). Uno de **plan fijo** no lleva tarifa.
 - Cambiar una tarifa vale desde ese momento; lo ya gastado no se recalcula.
+- **Valor efectivo previo de la tarifa de un modelo:** la de su fila en `ia_modelos`; si no tiene fila, la que se le
+  aplicaría hoy (en la Oficina, la regla del punto siguiente: la más alta declarada de la cuenta o, si no hay, la de
+  las variables de entorno). **Dar de alta un modelo con una tarifa menor que ese valor previo afloja el freno**, igual
+  que bajar una tarifa existente: pide superadmin con AAL2 (§8). Ejemplo: sin modelos declarados y con la variable de
+  entorno de salida en 10, dar de alta el modelo de la Oficina con salida 8 pide AAL2; con salida 12, no.
 - **Oficina:** cada llamada se cobra con la tarifa del modelo que consta en `modelo_usado` (0702); en el camino A, con
   la del modelo que el ERP pidió. Si el modelo no consta o no está declarado en `ia_modelos`, se cobra con la **tarifa
   más alta** de los modelos declarados de la cuenta de la Oficina (estimación conservadora, 0703 §8). Sin ningún modelo
@@ -379,6 +387,7 @@ Boceto de la pestaña «Gasto» (para que Dir_DTD lo dibuje):
     - subir el tope en USD;
     - subir o quitar el tope de llamadas;
     - bajar una tarifa o borrarla (al borrarla, el valor efectivo cambia);
+    - dar de alta un modelo con una tarifa menor que su valor efectivo previo (§7.2);
     - pasar una cuenta de por token a plan fijo;
     - cargar o borrar llaves (0639 D-7).
   - La regla se valida en el servidor **y** en la base (la función que guarda compara con el valor efectivo y exige el
@@ -436,7 +445,10 @@ PGlite.
   - subir el tope no despausa.
 - **Permisos (frenos):** con Editar y sin AAL2 de superadmin, **se rechazan**: subir el tope en USD, subir o quitar el
   tope de llamadas, bajar o borrar una tarifa y pasar a plan fijo. Se compara con el valor efectivo: con la pantalla
-  vacía y la variable de entorno en 4, guardar 6 se rechaza. Con Editar sí se puede apretar el freno. Lo mismo directo
+  vacía y la variable de entorno en 4, guardar 6 se rechaza. **Alta de un modelo:** sin modelos declarados y con la
+  tarifa de la variable de entorno en 10, dar de alta un modelo con tarifa 8 se rechaza sin AAL2 y con tarifa 12 se
+  acepta; con un modelo declarado en 10, dar de alta otro de la misma cuenta con 8 se rechaza sin AAL2. Con Editar sí
+  se puede apretar el freno. Lo mismo directo
   en la base (PGlite). Cada cambio queda en la auditoría con su motivo.
 - **Llaves:** una llave falsa sembrada no aparece en el HTML, las respuestas, los logs ni la auditoría (0639 §6).
 - **Sin literales de modelo** fuera de la configuración y el catálogo.
@@ -457,7 +469,8 @@ PGlite.
 ## 12. Decisiones
 
 **Decididas por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «SDD-0704: apruebo las cinco opciones
-recomendadas (A en las cinco)». Cubre la D-1 a la D-5 tal como estaban en la v1 (`c24353a6b`). Queda **abierta** la
+recomendadas (A en las cinco)». Lo decidió **sobre la v1** (`c24353a6b`) y cubre la D-1 a la D-5 tal como estaban ahí.
+La D-5 que sigue es más amplia que la de la v1, por la revisión independiente (ver su nota). Queda **abierta** la
 D-6, que nació en la revisión independiente y Sam no ha decidido. Se conservan las alternativas y los bocetos como
 registro.
 
@@ -519,18 +532,19 @@ registro.
 
 ### D-5 · ¿Quién afloja el freno? — DECIDIDA
 
-- **Decidida (Sam, 2026-11-21): con Editar solo se baja el tope; subirlo es del superadministrador con verificación
-  en dos pasos.** Es la opción recomendada de la v1.
-- **Extensión por la revisión (bloqueante 1, no es texto de Sam):** como pasar a plan fijo, bajar una tarifa o quitar
-  el tope de llamadas también permiten gastar más sin «subir» el tope, esas acciones piden lo mismo: superadmin con
-  AAL2 (§8). Lo indicó Dir_DTD al registrar la decisión. Bajar el gasto nunca es un riesgo.
+- **Decidida (Sam, 2026-11-21, sobre la v1): con Editar solo se baja el tope; subirlo es del superadministrador con
+  verificación en dos pasos.** Es la opción recomendada de la v1.
+- **Extensión por la revisión (no es texto de Sam):** la D-5 de la v3 es más amplia que la que Sam aprobó sobre la v1.
+  Es la aplicación del bloqueante 1 de la revisión independiente: pasar a plan fijo, bajar una tarifa, quitar el tope
+  de llamadas y dar de alta un modelo con tarifa menor que su valor efectivo previo también permiten gastar más sin
+  «subir» el tope, así que piden lo mismo: superadmin con AAL2 (§8). Bajar el gasto nunca es un riesgo.
 - Alternativa: Editar hace todo.
 
 ```
  Tope del mes: [ 6,00 ] USD   (efectivo hoy: 4,00 · máximo 15,00)
    ↓ Bajar, poner tope de llamadas, subir tarifa      → cualquiera con Editar
    ↑ Subir, quitar tope de llamadas, bajar tarifa,
-     pasar a plan fijo                                 → «Confirma con tu segundo factor»
+     alta con tarifa menor, pasar a plan fijo          → «Confirma con tu segundo factor»
 ```
 
 ### D-6 · ¿Cuántos avisos por salto? — ABIERTA

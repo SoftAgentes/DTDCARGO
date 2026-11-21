@@ -31,6 +31,12 @@
   decididas; la extensión de la D-5 a plan fijo, bajar una tarifa y quitar el tope de llamadas se marca como
   bloqueante 1 de la revisión, no como texto de Sam. La D-6 sigue abierta.
 
+- **v5**: menores M1-M4 de la revisión APPROVED sobre `73c961013`. M1: dar de alta un modelo con tarifa menor que su
+  valor efectivo previo pide AAL2 (§7.2, §8, §10). M2: §12 anota que Sam decidió sobre la v1 y que la D-5 de la v3 es
+  la aplicación del bloqueante 1. M3: `origin/main` (`05c356a74`) ya estaba fusionado en la v4; citas e índice al día.
+  M4: sumar un modelo al catálogo es una migración con OK nominal; sin el chat se cambia la cadena entre modelos que
+  ya existen (§3.2).
+
 ## Comprobaciones
 
 | Comprobación | Resultado |
