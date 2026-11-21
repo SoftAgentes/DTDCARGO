@@ -161,7 +161,7 @@ export function CostingClient({
             value={money(totals.revenue)}
             label={totals.sinTasa > 0 ? "Revenue · subtotal convertido" : "Revenue total"}
             sub={totals.sinTasa > 0 ? `${totals.sinTasa} embarque${totals.sinTasa === 1 ? "" : "s"} sin tasa · conversión incompleta` : currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
-            valueColor="var(--wine-text)"
+            valueColor="var(--ink)"
           />
           <KpiCard
             value={money(totals.cost)}
@@ -390,7 +390,7 @@ function Card({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             padding: "18px 20px 0",
@@ -432,7 +432,7 @@ function OverviewView({
             label="Revenue"
             value={money(totals.revenue)}
             pct={100}
-            tone="var(--wine)"
+            tone="var(--ink)"
           />
           <CompositionBar
             label="Costo total"
@@ -607,7 +607,7 @@ function RankingView({
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -735,7 +735,7 @@ function RankingView({
                 onClick={() => onEdit(r)}
                 title="Editar costos"
                 aria-label={`Editar costos de ${r.shipment.code}`}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--wine)")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accion)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-soft)")}
                 style={{
                   background: "transparent",
@@ -876,7 +876,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.origin || "—"}
             </span>
-            <span style={{ color: "var(--wine-text)" }}>→</span>
+            <span style={{ color: "var(--ink-soft)" }}>→</span>
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.destination || "—"}
             </span>
@@ -1159,7 +1159,7 @@ function TemplatesView({
                 <TplCell v={money(t.insurance)} />
                 <TplCell v={money(t.commission)} />
                 <TplCell v={money(t.other)} />
-                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
+                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
                   {money(total)}
                 </span>
                 <div style={{ textAlign: "center" }}>
@@ -1168,7 +1168,7 @@ function TemplatesView({
                     onClick={() => onEdit(t)}
                     title="Editar template"
                     aria-label={`Editar template ${t.name}`}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--wine)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accion)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-soft)")}
                     style={{
                       background: "transparent",
@@ -1255,7 +1255,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
           <ForecastMetric
             label="Margen proyectado"
             value={money(totals.margin)}
-            color={totals.margin < 0 ? "var(--wine-soft)" : "var(--success)"}
+            color={totals.margin < 0 ? "var(--color-status-danger-on-dark)" : "var(--success)"}
           />
           <ForecastMetric
             label="Margen % estimado"

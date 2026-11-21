@@ -147,7 +147,7 @@ export default async function DireccionPage() {
           value={fmtUsd(finance.caja)}
           label="Caja + bancos"
           sub="Consolidado USD"
-          valueColor="var(--wine-text)"
+          valueColor="var(--ink)"
         />
         <KpiCard
           value={fmtUsd(finance.posicionNeta)}

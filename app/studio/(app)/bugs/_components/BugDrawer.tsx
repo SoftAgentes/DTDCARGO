@@ -62,7 +62,6 @@ const TONE_BG: Record<string, string> = {
   warning: "var(--warning-bg, #FBF1DF)",
   danger: "var(--danger-bg, #FCEDED)",
   info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--wine-tint, #FBE9EC)",
   neutral: "var(--neutral-bg, #F2F0EC)",
 };
 
@@ -71,7 +70,6 @@ const TONE_FG: Record<string, string> = {
   warning: "var(--warning, #B8893A)",
   danger: "var(--danger, #A8323E)",
   info: "var(--info, #2A6FDB)",
-  wine: "var(--wine, #7F0F1A)",
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
@@ -383,11 +381,11 @@ function ConversationTab({
                   padding: "10px 14px",
                   background:
                     m.author_type === "admin"
-                      ? "var(--wine-tint, #FBE9EC)"
+                      ? "var(--neutral-bg)"
                       : "var(--bg-elevated, #F2F0EC)",
                   borderLeft:
                     m.author_type === "admin"
-                      ? "3px solid var(--wine, #7F0F1A)"
+                      ? "3px solid var(--ink)"
                       : "3px solid var(--ink-soft, #6B6B6B)",
                   borderRadius: 4,
                   fontSize: 13,
@@ -740,7 +738,7 @@ function ActionsTab({
         <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink-soft)" }}>
           Pega el prompt en Claude Code (otra ventana), revisa el fix que te propone
           y aplícalo tú. Cuando lo commitees usa{" "}
-          <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--wine-text)" }}>
+          <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--ink)" }}>
             fix: {bug.folio}
           </code>{" "}
           como convención de trazabilidad. <strong>Después</strong> cambia el estado a
