@@ -321,16 +321,16 @@ describe("SDD-0690 · --solo-facturas con --excluir-markbox (PGlite)", { timeout
   }
 
   it("B1: la consulta de exclusión de la previa corre y cuenta cada caso", async () => {
-    // Un envío que entra (DTD-J031-06) está en el comodín y hay otro del contenedor en el comodín que el Excel no trae.
+    // Un envío que entra (DTD-J031-06) está en el comodín y hay dos del contenedor en el comodín que el Excel no trae.
     expect(
-      await previaExclusion({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-0000", "DTD-A116-06": "DTD-0000", "DTD-OTRO-01": "DTD-0000" }),
+      await previaExclusion({ "DTD-J031-05": "DTD-5001", "DTD-J031-06": "DTD-0000", "DTD-A116-06": "DTD-0000", "DTD-OTRO-01": "DTD-0000", "DTD-OTRO-02": "DTD-0000" }),
     ).toEqual({
       excluidos_por_markbox: 1,
       excluidos_en_el_contenedor: 1,
       excluidos_hoy_en_markbox_excluido: 1,
       excluidos_en_otro_markbox: 0,
       incluidos_en_markbox_excluido: 1,
-      otros_del_contenedor_en_markbox_excluido: 1,
+      otros_del_contenedor_en_markbox_excluido: 2,
     });
     await db!.close();
     // El excluido ya se reasignó (M1): la columna que tiene que dar 0 da 1.

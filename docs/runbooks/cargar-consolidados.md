@@ -135,12 +135,29 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     - **Emitir no es parte de la carga.** Decisión de Sam (2026-11-20, por el DG), literal: «64: la oficina emite con Facturar todo cuando las revise». Después de `verificar` nadie emite: la oficina revisa las pre-órdenes en Facturación y emite desde Embarques con «Facturar todo».
 - **Dejar fuera los envíos de un Shipping Mark (`--excluir-markbox`, SDD-0690).** Solo va con `--solo-facturas`. Sirve para cargar hoy las pre-órdenes de los clientes reales y dejar para después los envíos que siguen en el comodín `DTD-0000`. Si se cargaran juntos, esos envíos quedarían en una sola pre-orden del comodín, y el lunes «Asignar cliente» (0551) se negaría a moverlos con `factura_varios_embarques`. Decisión de Sam para el 64: «camino A, cargar hoy sin el comodín».
   - Se escribe `--excluir-markbox DTD-0000`. Es repetible y acepta comas: `--excluir-markbox DTD-0000,DTD-NNNN`. Solo acepta códigos `PREFIJO-NNNN`, nunca un nombre. Cada Shipping Mark de la lista tiene que tener al menos un cliente en el lote: si no, el generador se niega, para que un error de tipeo no pase callado.
-  - **Qué queda fuera.** Sale cada cliente del Excel cuyo Shipping Mark, el del `--mapa` o, si no está mapeado, su clave, está en la lista. Con él salen sus envíos, sus filas y sus líneas. No generan pre-orden ni línea y no suman en los totales del manifiesto.
-  - **Qué lo dice.** El generador imprime `excluidos por markbox: N envíos (…)`. `resumen.md` y el `manifiesto.json` (campo `excluidos`) llevan los conteos y el motivo, sin montos por cliente. La cabecera de cada `.sql` también lo dice. La `previa` agrega una consulta `=== excluidos por markbox: N` con tres columnas:
-    - `excluidos_por_markbox`: los N del Excel;
-    - `excluidos_hoy_en_markbox_excluido`: los envíos del contenedor que no entran y que hoy siguen en un Shipping Mark de la lista;
-    - `incluidos_en_markbox_excluido`: tiene que dar **0**.
-  - **La guarda.** `aplicar` y `simulacro` abortan sin escribir si un envío que entra está hoy, en la base, en un Shipping Mark de la lista: `solo-facturas: N envíos del lote están hoy en un Shipping Mark excluido`. Así el comodín no recibe una pre-orden aunque el Excel resuelva el envío a otro cliente. Si pasa, se revisa el mapa y se vuelve a generar.
+  - **Qué queda fuera.** Sale cada fila del Excel cuyo Shipping Mark, el del `--mapa` o, si no está mapeado, su clave, está en la lista. Sale antes de agrupar, así que con ella salen sus envíos, sus clientes y sus líneas. No generan pre-orden ni línea y no suman en los totales del manifiesto.
+    - Los avisos del resumen también se calculan sin esas filas: excesos de peso, diferencia contra el TOTAL FACTURADO y remitentes corregidos.
+    - La excepción es la fila de totales del Excel: se compara con el contenedor completo (lo que entra más lo excluido), porque es un control del Excel y no del paquete.
+  - **Qué lo dice.** Solo con conteos, sin montos por cliente:
+    - el generador imprime `excluidos por markbox: N envíos (…)`;
+    - `resumen.md` y el `manifiesto.json` (campo `excluidos`) llevan los conteos y el motivo, sin los códigos de los envíos;
+    - la cabecera de cada `.sql` lo dice;
+    - la `previa` agrega una consulta `=== excluidos por markbox: N`.
+  - **Las columnas de la previa:**
+
+    | Columna | Qué cuenta | Qué tiene que dar |
+    |---|---|---|
+    | `excluidos_por_markbox` | los N envíos que el Excel deja fuera | N |
+    | `excluidos_en_el_contenedor` | de esos N, los que están vivos y vigentes en el contenedor | lo normal es N |
+    | `excluidos_hoy_en_markbox_excluido` | de esos, los que siguen hoy en un Shipping Mark de la lista | lo normal es N |
+    | `excluidos_en_otro_markbox` | los excluidos que ya están en otro Shipping Mark (ya reasignados) | **0** (si no, aplicar aborta) |
+    | `incluidos_en_markbox_excluido` | los envíos que entran y están hoy en un Shipping Mark de la lista | **0** (si no, aplicar aborta) |
+    | `otros_del_contenedor_en_markbox_excluido` | envíos del contenedor en la lista que el Excel no trae | informativo |
+
+  - **Las dos guardas.** `aplicar` y `simulacro` abortan sin escribir en dos casos.
+    - **Un envío que entra está hoy, en la base, en un Shipping Mark de la lista.** El error es `solo-facturas: N envíos del lote están hoy en un Shipping Mark excluido`. Así el comodín no recibe una pre-orden aunque el Excel resuelva el envío a otro cliente.
+    - **Un envío excluido ya está, en el contenedor, en un Shipping Mark fuera de la lista** (la oficina ya lo reasignó). El error es `solo-facturas: N envíos excluidos ya están en un Shipping Mark fuera de la lista`. Sin esta guarda, su dueño recibiría hoy una pre-orden sin ese envío, `verificar` daría PASÓ y el lote chico de después se saltaría a ese cliente por la idempotencia: el envío quedaría sin facturar sin que nada falle.
+    - En los dos casos se revisa el mapa contra la base y se vuelve a generar. Si los excluidos ya se reasignaron todos, el paquete se genera sin `--excluir-markbox`.
   - **Otro id.** El paquete ya no es el mismo, así que cambia la huella: `carga-consolidado:64:<8 hex>:facturas`. Los 8 hex salen del sha256 del id de la carga más la lista ordenada de exclusiones, y no dependen del orden en que se escribieron. El id nuevo va en el manifiesto, en cada `.sql` y en el aviso del simulacro. El OK de Sam tiene que citar **ese** id: el del paquete completo (`…:6303f821:facturas`) no sirve. El contenedor se sigue buscando por el id de la carga.
   - Sin la opción, el paquete es idéntico byte a byte al de antes.
   - **Ejemplo, el 64 sin el comodín.** Mismos argumentos que arriba, más la opción y una carpeta `--salida` nueva:
@@ -151,6 +168,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 
     La primera línea trae el id nuevo, y la línea `excluidos por markbox:` tiene que decir los envíos que siguen en el comodín. Ese id es el que va en `AUTORIZACION.txt`. Después del simulacro, `S Shipping Marks` cuenta solo los clientes reales.
   - **Después, el lote chico.** Cuando la oficina ya reasignó los envíos del comodín con «Asignar cliente», se genera el paquete `--solo-facturas` **sin** `--excluir-markbox`, con el mismo Excel. Tiene el id del paquete completo (`…:6303f821:facturas`), así que lleva su propio OK. Por la idempotencia por cliente, los clientes que ya tienen pre-orden se saltan (`M saltados`) y solo salen las de los envíos reasignados. Si un cliente reasignado ya tenía pre-orden del primer paquete, también se salta: esos envíos no le entran a esa pre-orden y hay que agregárselos a mano en Facturación. Conviene revisarlo con la `previa` (`clientes_con_factura_viva`).
+  - **`deshacer` y `purgar` no distinguen los dos paquetes.** Solo existen en prueba. Filtran por el id de la carga y la marca `pre-orden cargada aparte (SDD-0690)`, no por el id del paquete. Si una carga tiene dos paquetes de pre-órdenes (el de hoy y el chico), deshacer o purgar uno se lleva también los borradores del otro. En producción no aplica, porque el paquete no los trae.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.
