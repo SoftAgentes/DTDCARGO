@@ -13,7 +13,8 @@ en `main` (local), falta el gatillo de prod.
 > runbook describe un deploy de junio de 2026, cuando producción era Supabase
 > Cloud (`xpfuzqombmjmxvprjgmi`) y Vercel publicaba `main`. Desde el corte del
 > 2026-10-14 (02:00Z) la base es el Supabase del servidor propio, y desde el
-> 2026-10-16 la web corre en ese servidor y se publica sola con el vigilante.
+> 2026-10-16 la web corre en ese servidor y se publicaba sola con el vigilante
+> (detenido desde el 2026-10-25: hoy la publica el Director a mano).
 > Hoy las migraciones se aplican con
 > [`aplicar-migraciones-prod.md`](aplicar-migraciones-prod.md) y la publicación
 > sigue [`publicacion-automatica-web.md`](publicacion-automatica-web.md). Cloud
