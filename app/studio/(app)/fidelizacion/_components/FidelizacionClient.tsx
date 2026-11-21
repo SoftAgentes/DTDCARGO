@@ -412,19 +412,16 @@ function DashboardTab({
         <KpiCard
           value={stats.activos}
           label="Referidos activos"
-          valueColor={stats.activos > 0 ? "var(--info)" : "var(--ink)"}
           sub={`${stats.total} en el programa`}
         />
         <KpiCard
           value={fmtUsd(stats.creditsIssued)}
           label="Créditos emitidos"
-          valueColor={stats.creditsIssued > 0 ? "var(--success)" : "var(--ink)"}
           sub={`${stats.acreditados} acreditados`}
         />
         <KpiCard
           value={`${stats.convRate.toFixed(0)}%`}
           label="Tasa de conversión"
-          valueColor={stats.convRate > 0 ? "var(--warning)" : "var(--ink)"}
           sub="referido → acreditado"
         />
       </div>

@@ -586,9 +586,9 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" valueColor="var(--ink)" />
+        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" />
         <KpiCard value={fmtNum(overview.cbm)} label="CBM movido" sub="metros cúbicos" />
-        <KpiCard value={fmtUsdCompact(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(overview.revenueUsd)} label="Revenue" sub="facturado · USD"  />
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
 
@@ -941,7 +941,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--ink)" />
+        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" />
         <KpiCard value={fmtNum(ranked.filter((r) => r.billing.state === "completo" && r.billing.subtotalUsd !== "0.00").length)} label="Facturación verificable" sub="últimos 12 meses" />
         <KpiCard value={formatAnnualUsd(data.billing.subtotalUsd)} label={data.billing.state === "completo" ? "Facturado" : "Subtotal conocido"} sub={billingStatus(data.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
@@ -1095,8 +1095,8 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--ink)" />
-        <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
+        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" />
+        <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`}  />
         <KpiCard value={t.clients === null ? "—" : fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
         <KpiCard value={formatAnnualUsd(t.billing.subtotalUsd)} label="Facturación atribuida" sub={billingStatus(t.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
@@ -1196,9 +1196,9 @@ function RepurchaseView({ data }: { data: RepurchaseReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.overdueCount)} label={`Vencidos (≥${data.overdueDays}d)`} sub="recompra perdida" valueColor="var(--danger)" />
-        <KpiCard value={fmtNum(data.windowCount)} label={`En ventana (${data.windowDays}–${data.overdueDays}d)`} sub="contactar ya" valueColor="var(--warning)" />
-        <KpiCard value={fmtNum(data.activeCount)} label="En curso" sub="con embarque activo" valueColor="var(--success)" />
+        <KpiCard value={fmtNum(data.overdueCount)} label={`Vencidos (≥${data.overdueDays}d)`} sub="recompra perdida" status={data.overdueCount > 0 ? { tono: "danger", texto: "Requiere acción" } : undefined} />
+        <KpiCard value={fmtNum(data.windowCount)} label={`En ventana (${data.windowDays}–${data.overdueDays}d)`} sub="contactar ya" status={data.windowCount > 0 ? { tono: "warning", texto: "Requiere atención" } : undefined} />
+        <KpiCard value={fmtNum(data.activeCount)} label="En curso" sub="con embarque activo"  />
         <KpiCard value={fmtNum(data.totalWithHistory)} label="Con historial" sub="al menos 1 embarque" />
       </div>
 
@@ -1300,15 +1300,15 @@ function PipelineView({ data }: { data: PipelineReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} valueColor="var(--ink)" />
+        <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} />
         <KpiCard value={fmtUsdCompact(data.openUsd)} label="USD en pipeline" sub="borrador + enviadas" />
         <KpiCard
           value={`${data.pctOfTarget}%`}
           label="De la meta"
           sub={`${fmtNum(data.avgMonthlyOpenCbm)} vs ${data.monthlyTargetCbm} CBM/mes`}
-          valueColor={data.pctOfTarget >= 100 ? "var(--success)" : "var(--ink)"}
+          status={data.monthlyTargetCbm > 0 ? (data.pctOfTarget >= 100 ? { tono: "success", texto: "Meta cumplida" } : { tono: "warning", texto: "Bajo la meta" }) : undefined}
         />
-        <KpiCard value={fmtUsdCompact(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`} valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`}  />
       </div>
 
       <Card eyebrow="Avance vs meta" title={`${fmtNum(data.avgMonthlyOpenCbm)} de ${data.monthlyTargetCbm} CBM/mes`}>
@@ -1632,14 +1632,14 @@ function IvaView({ iva }: { iva: IvaPosition }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsd(iva.debito)} label="Débito fiscal" sub="IVA en ventas" valueColor="var(--success)" />
-        <KpiCard value={fmtUsd(iva.credito)} label="Crédito fiscal" sub="IVA en compras" valueColor="var(--warning)" />
+        <KpiCard value={fmtUsd(iva.debito)} label="Débito fiscal" sub="IVA en ventas"  />
+        <KpiCard value={fmtUsd(iva.credito)} label="Crédito fiscal" sub="IVA en compras"  />
         <KpiCard value={fmtUsd(iva.cuota)} label="Cuota tributaria" sub="débito − crédito" />
         <KpiCard
           value={fmtUsd(outcomeValue)}
           label={aPagar ? "IVA a pagar" : "Excedente a favor"}
           sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
-          valueColor={aPagar ? "var(--ink)" : "var(--success)"}
+          
         />
       </div>
 
@@ -1773,10 +1773,10 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
-        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} />
+        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
-        <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
+        <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" status={cashflow.overdue > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined} />
       </div>
 
       <Card eyebrow="Facturado contra cobrado" title="Serie mensual · USD">
@@ -1843,7 +1843,7 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
             <g key={p.month}>
               <title>{`${p.label}: facturado ${fmtUsd(p.billed)}, cobrado ${fmtUsd(p.collected)}${(p.facturasSinTasa ?? 0) + (p.recibosSinTasa ?? 0) > 0 ? ` · subtotales conocidos · ${p.facturasSinTasa ?? 0} factura(s) y ${p.recibosSinTasa ?? 0} recibo(s) sin tasa` : ""}`}</title>
               <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--ink)" rx="2" />
-              <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
+              <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="color-mix(in srgb, var(--ink) 50%, var(--bg-surface))" rx="2" />
               <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle">
                 {p.label}
               </text>
@@ -1853,7 +1853,8 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
       </svg>
       <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
         <LegendDot color="var(--ink)" label={ROTULO_FACTURADO_CON_IVA} />
-        <LegendDot color="var(--success)" label="Cobrado" />
+        {/* Cobrado en tinta al 50 % (3,25:1 en claro y 4,36:1 en oscuro): gráficas en tinta (Sam). */}
+        <LegendDot color="color-mix(in srgb, var(--ink) 50%, var(--bg-surface))" label="Cobrado" />
       </div>
     </div>
   );
@@ -1926,9 +1927,9 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" valueColor="var(--ink)" />
-        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" />
+        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`}  />
+        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
       <ConversionNote count={t.sinTasa} unit="embarque" />

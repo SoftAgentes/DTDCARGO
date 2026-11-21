@@ -69,6 +69,13 @@ Estado del 2026-11-20, tarde:
      - el detector ve `eyebrow-wine` y `data-tono="vino"`;
      - Menciones sin leer en `--ink`.
    - ~~Pendientes para la fase 3~~ Sam decidió las tres familias el mismo día («Apruebo las tres»). Van en `claude/sdd-0686-pendientes-studio-css`, apilada sobre la #745: Tracking en tinta y acción, «Todo» en tinta sólida, «Cambiado» en acción y la alerta de proveedores como pastilla ámbar con icono. `studio.css` queda con 1 uso (el alias del eyebrow).
+10. Cifras KPI en tinta (Sam, opción A), 2026-11-21, rama `claude/sdd-0686-kpi-tinta`:
+   - `KpiCard` sin `valueColor` y con `status`;
+   - las 81 cifras semánticas, a tinta con su estado aparte;
+   - las barras «Cobrado» y la cobertura de Dirección, en tinta;
+   - contrato con mutante.
+
+   Sigue esperando a Sam: el logo de la barra lateral.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

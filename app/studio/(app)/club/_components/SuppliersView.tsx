@@ -87,7 +87,6 @@ export function SuppliersView({
         <KpiCard
           value={stats.publicados}
           label="Publicados"
-          valueColor={stats.publicados > 0 ? "var(--success)" : "var(--ink)"}
           sub="visibles en el portal"
         />
         <KpiCard value={stats.total} label="Total" sub="vivos" />

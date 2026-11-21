@@ -94,7 +94,6 @@ export function ScheduledView({ scheduled }: Props) {
         <KpiCard
           value={queuedCount}
           label="En cola"
-          valueColor="var(--ink)"
         />
         <KpiCard value={scheduled.length} label="Programados (total)" />
       </div>

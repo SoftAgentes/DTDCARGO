@@ -118,7 +118,7 @@ export default async function EmbarquesSinFacturarPage() {
                 {!r.completo && <><br /><span>Solo la parte leída</span></>}
               </>
             }
-            valueColor={e === "llego_sin_factura" ? "var(--danger)" : "var(--ink)"}
+            status={e === "llego_sin_factura" ? { tono: "danger", texto: "Requiere acción" } : undefined}
             style={{ minWidth: 0 }}
           />
         ))}

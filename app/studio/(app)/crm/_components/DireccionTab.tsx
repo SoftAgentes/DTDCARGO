@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, type KpiStatus } from "@/app/studio/_components/ui/KpiCard";
 import { Progress } from "@/app/studio/(app)/reportes/_components/charts";
 import type { KommoDireccionData, OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { WritebackGate, WritebackStatus } from "@/lib/studio/kommo-writeback";
@@ -262,8 +262,13 @@ export function DireccionTab({
       ]
     : topOwners;
 
-  const emailTone =
-    email.pct >= 40 ? "var(--success)" : email.pct >= 15 ? "var(--warning)" : "var(--danger)";
+  // Estado de la cobertura de email: la cifra va en tinta y el estado aparte (Sam, opción A).
+  const emailEstado: KpiStatus =
+    email.pct >= 40
+      ? { tono: "success", texto: "Buena cobertura" }
+      : email.pct >= 15
+        ? { tono: "warning", texto: "Cobertura baja" }
+        : { tono: "danger", texto: "Requiere acción" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -301,29 +306,24 @@ export function DireccionTab({
         <KpiCard
           value={fmtConvPct(conversion.wonOfClosedPct)}
           label="Conversión del CRM"
-          valueColor={
-            conversion.closed > 0 && conversion.won === 0
-              ? "var(--danger)"
-              : "var(--ink)"
-          }
+          status={conversion.closed > 0 && conversion.won === 0 ? { tono: "danger", texto: "Sin ganadas" } : undefined}
           sub={`${conversion.won} ganados · ${conversion.lost} perdidos · ${conversion.open} abiertos`}
         />
         <KpiCard
           value={convertedCount ?? "—"}
           label="Convertidos a cliente"
-          valueColor="var(--ink)"
           sub="Leads que ya son cliente DTD"
         />
         <KpiCard
           value={pct1(email.pct)}
           label="Cobertura email"
-          valueColor={emailTone}
+          status={emailEstado}
           sub={`${email.withEmail} de ${email.total} contactos`}
         />
         <KpiCard
           value={formatAnnualUsd(value.billing.subtotalUsd)}
           label="Facturación ERP atribuida"
-          valueColor={value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)"}
+          status={value.billing.state === "completo" ? { tono: "success", texto: "Completa" } : undefined}
           sub={billingStatus(value.billing)}
           style={{ overflowWrap: "anywhere" }}
         />

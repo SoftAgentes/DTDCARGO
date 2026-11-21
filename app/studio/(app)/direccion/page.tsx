@@ -135,27 +135,23 @@ export default async function DireccionPage() {
               )}
             </>
           }
-          valueColor="var(--success)"
         />
         <KpiCard
           value={textos.utilidad.valor}
           label={textos.utilidad.label}
           sub={textos.utilidad.sub}
-          valueColor={finance.utilidad >= 0 ? "var(--ink)" : "var(--danger)"}
+          status={finance.utilidad < 0 ? { tono: "danger", texto: "Pérdida" } : undefined}
         />
         <KpiCard
           value={fmtUsd(finance.caja)}
           label="Caja + bancos"
           sub="Consolidado USD"
-          valueColor="var(--ink)"
         />
         <KpiCard
           value={fmtUsd(finance.posicionNeta)}
           label="Posición neta"
           sub="caja + CxC − CxP"
-          valueColor={
-            finance.posicionNeta >= 0 ? "var(--success)" : "var(--danger)"
-          }
+          status={finance.posicionNeta >= 0 ? { tono: "success", texto: "Positiva" } : { tono: "danger", texto: "Negativa" }}
         />
       </section>
 

@@ -146,13 +146,7 @@ export default async function EstadoAvisosPage() {
         <KpiCard
           value={`${adoption.adoptionPct}%`}
           label="Escaneadas vs tipeadas"
-          valueColor={
-            adoption.adoptionPct >= 60
-              ? "var(--success)"
-              : adoption.total === 0
-                ? "var(--ink-mute)"
-                : "var(--warning)"
-          }
+          status={adoption.total === 0 ? undefined : adoption.adoptionPct >= 60 ? { tono: "success", texto: "Buena adopción" } : { tono: "warning", texto: "Bajo la meta" }}
           sub={
             adoption.total === 0
               ? "Aún no hay recepciones en China."
@@ -186,13 +180,7 @@ export default async function EstadoAvisosPage() {
             key={s}
             value={statusCounts[s]}
             label={NOTIFICATION_STATUS_LABELS[s]}
-            valueColor={
-              s === "failed" && statusCounts[s] > 0
-                ? "var(--danger)"
-                : s === "sent" && statusCounts[s] > 0
-                  ? "var(--success)"
-                  : "var(--ink)"
-            }
+            status={s === "failed" && statusCounts[s] > 0 ? { tono: "danger", texto: "Requiere revisión" } : undefined}
             highlightWhenPositive={s === "sent"}
           />
         ))}

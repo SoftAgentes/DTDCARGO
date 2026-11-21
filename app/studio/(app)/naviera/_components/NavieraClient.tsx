@@ -197,13 +197,12 @@ export function NavieraClient({
         <KpiCard
           value={kpis.consolidating}
           label="Contenedores consolidando"
-          valueColor={kpis.consolidating > 0 ? "var(--warning)" : "var(--ink)"}
           sub="LCL → FCL abiertos"
         />
         <KpiCard
           value={`${kpis.looseCbm.toFixed(1)} CBM`}
           label="Carga suelta en CN"
-          valueColor={kpis.looseCbm > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.looseCbm > 0 ? { tono: "warning", texto: "Sin asignar" } : undefined}
           sub={`${kpis.looseCount} embarque(s) sin asignar`}
         />
         <KpiCard

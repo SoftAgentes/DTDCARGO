@@ -185,25 +185,23 @@ export function CobranzasClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porCobrar)}`}
           label="Por cobrar"
-          valueColor="var(--ink)"
           sub={`${kpis.casos} caso(s) abierto(s)`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.vencido)}`}
           label="Vencido"
-          valueColor={kpis.vencido > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.vencido > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined}
           sub={kpis.vencido > 0 ? "Requiere gestión" : "Sin vencidos"}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.enPromesa)}`}
           label="En promesa de pago"
-          valueColor={kpis.enPromesa > 0 ? "var(--info)" : "var(--ink)"}
           sub="Comprometido por el cliente"
         />
         <KpiCard
           value={`${kpis.tasaCobro}%`}
           label="Tasa de cobro"
-          valueColor={kpis.tasaCobro >= 80 ? "var(--success)" : "var(--ink)"}
+          status={kpis.tasaCobro >= 80 ? { tono: "success", texto: "Meta cumplida" } : undefined}
           sub="Al día sobre el total por cobrar"
         />
       </div>

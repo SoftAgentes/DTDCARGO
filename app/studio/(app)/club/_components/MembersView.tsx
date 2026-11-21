@@ -83,14 +83,12 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
         <KpiCard
           value={stats.activos}
           label="Activos"
-          valueColor={stats.activos > 0 ? "var(--success)" : "var(--ink)"}
           sub="membresía activa"
         />
         <KpiCard value={stats.importadores} label="Importadores" sub="plan" />
         <KpiCard
           value={stats.mayoristas}
           label="Mayoristas"
-          valueColor="var(--ink)"
           sub="plan"
         />
       </div>

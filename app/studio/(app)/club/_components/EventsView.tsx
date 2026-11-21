@@ -123,7 +123,6 @@ export function EventsView({
         <KpiCard
           value={stats.proximos}
           label="Próximos eventos"
-          valueColor={stats.proximos > 0 ? "var(--info)" : "var(--ink)"}
           sub="por venir"
         />
         <KpiCard value={stats.total} label="Total de eventos" sub="vivos" />

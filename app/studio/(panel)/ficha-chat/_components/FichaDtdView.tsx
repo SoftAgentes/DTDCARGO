@@ -106,7 +106,7 @@ function Dinero({ cuenta }: { cuenta: ClientAccountSummary }) {
       <KpiCard
         label={t("bandeja.ficha.overdue")}
         value={vencidos.length ? formatInvoiceAmount(vencidos[0].vencido, vencidos[0].currency) : alDia}
-        valueColor={vencidos.length ? "var(--danger-text)" : undefined}
+        status={vencidos.length > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined}
         highlightWhenPositive={false}
         sub={vencidos.length > 1 ? <Lineas lineas={vencidos.slice(1).map((s) => formatInvoiceAmount(s.vencido, s.currency))} /> : undefined}
       />
