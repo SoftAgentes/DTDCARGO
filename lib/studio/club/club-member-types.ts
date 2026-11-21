@@ -74,9 +74,9 @@ export function planLabel(p: ClubPlan): string {
 }
 
 /** Tono de Badge para el plan (tonos del sistema). */
-export function planBadgeTone(p: ClubPlan): "neutral" | "info" | "wine" {
+export function planBadgeTone(p: ClubPlan): "neutral" | "info" {
   return { comunidad: "neutral", importador: "info", mayorista: "neutral" }[p] as
-    "neutral" | "info" | "wine";
+    "neutral" | "info";
 }
 
 export function memberStatusLabel(s: ClubMemberStatus): string {

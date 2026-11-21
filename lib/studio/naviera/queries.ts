@@ -12,6 +12,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
+  carrierTone,
   containerStats,
   type Booking,
   type Carrier,
@@ -68,7 +69,7 @@ function coerceCarrier(r: Record<string, unknown>): Carrier {
     name: String(r.name ?? ""),
     name_cn: (r.name_cn as string | null) ?? null,
     scac: (r.scac as string | null) ?? null,
-    tone: String(r.tone ?? "neutral"),
+    tone: carrierTone(r.tone),
     active: r.active !== false,
     notes: (r.notes as string | null) ?? null,
     created_at: String(r.created_at),

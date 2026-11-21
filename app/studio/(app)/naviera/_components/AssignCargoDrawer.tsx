@@ -6,7 +6,7 @@
  * Eliges una pieza de carga suelta (loose_cargo) o la cargas a mano, ajustas
  * CBM/peso/bultos, y se asigna como consolidation_item. Preview EN VIVO de la
  * utilización resultante con guard de capacidad ADVISORY (§4.4): si supera el
- * CBM/kg del tipo, avisa en wine pero NO bloquea — se asigna igual.
+ * CBM/kg del tipo, avisa en peligro pero NO bloquea — se asigna igual.
  */
 
 import { useMemo, useState } from "react";
@@ -199,7 +199,7 @@ export function AssignCargoDrawer({
             <div
               style={{
                 font: "600 11.5px/1.4 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--danger-text)",
               }}
             >
               {guard.message}

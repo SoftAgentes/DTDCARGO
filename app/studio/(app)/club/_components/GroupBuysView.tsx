@@ -124,7 +124,7 @@ export function GroupBuysView({
         <KpiCard
           value={stats.enConsolidacion}
           label="En consolidación"
-          valueColor={stats.enConsolidacion > 0 ? "var(--wine-text)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub="rondas cerradas"
         />
         <KpiCard value={fmtCbm(stats.cbmAbierto)} label="CBM comprometido" sub="en rondas abiertas" />
@@ -319,7 +319,7 @@ function GroupBuyCard({
               style={{
                 width: `${pct}%`,
                 height: "100%",
-                background: pct >= 100 ? "var(--success)" : "var(--wine)",
+                background: pct >= 100 ? "var(--success)" : "var(--ink)",
               }}
             />
           </div>

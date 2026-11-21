@@ -218,6 +218,31 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
   );
 }
 
+// ── Grados de tinta para gráficas por categoría (SDD-0686, BD-076) ─────
+/**
+ * Cifras y gráficas en tinta. Cuatro grados de `--ink` mezclados con la
+ * tarjeta; el más claro (50 %) da 3,25:1 en claro y 4,36:1 en oscuro contra
+ * `--bg-surface`, por encima del 3:1 de las formas.
+ */
+export const GRADOS_DE_TINTA = [
+  "var(--ink)",
+  "color-mix(in srgb, var(--ink) 82%, var(--bg-surface))",
+  "color-mix(in srgb, var(--ink) 66%, var(--bg-surface))",
+  "color-mix(in srgb, var(--ink) 50%, var(--bg-surface))",
+] as const;
+
+/**
+ * Grado de tinta de la categoría `index` de `total`. Los grados se repiten
+ * de cuatro en cuatro; en el donut el último segmento toca al primero, así
+ * que si le tocaría el mismo grado que el primero toma uno del medio.
+ */
+export function gradoDeTinta(index: number, total: number): string {
+  const n = GRADOS_DE_TINTA.length;
+  const grado = index % n;
+  if (index > 0 && index === total - 1 && grado === 0) return GRADOS_DE_TINTA[2];
+  return GRADOS_DE_TINTA[grado];
+}
+
 // ── Donut con leyenda ──────────────────────────────────────────
 export type DonutSlice = { label: string; value: number; color: string };
 
@@ -276,7 +301,9 @@ export function Donut({
             A ${R} ${R} 0 ${large} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)}
             L ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)}
             A ${r} ${r} 0 ${large} 0 ${cx + r * Math.cos(a0)} ${cy + r * Math.sin(a0)} Z`;
-          return <path key={i} d={path} fill={d.color} />;
+          // Trazo del color de la tarjeta: separa los segmentos vecinos,
+          // que van en grados de tinta parecidos.
+          return <path key={i} d={path} fill={d.color} stroke="var(--bg-surface)" strokeWidth={2} strokeLinejoin="round" />;
         })}
         <text
           x={cx}

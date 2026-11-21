@@ -104,7 +104,7 @@ export function InventarioClient({ cn, ve }: Props) {
           flexWrap: "wrap",
         }}
       >
-        <Badge tone={isCN ? "wine" : "info"} size="md">
+        <Badge tone={isCN ? "neutral" : "info"} size="md">
           {isCN ? "Modo consolidación · entrada" : "Modo despacho · salida"}
         </Badge>
         <span style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -133,7 +133,6 @@ export function InventarioClient({ cn, ve }: Props) {
           label="Volumen"
           value={`${formatCbm(stock.kpis.cbm)} m³`}
           sub="CBM acumulado"
-          valueColor="var(--wine-text)"
         />
         <KpiCard
           label="Peso"
@@ -239,7 +238,7 @@ export function InventarioClient({ cn, ve }: Props) {
                   font: "600 10px/1 var(--f-sans)",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--wine-soft)",
+                  color: "var(--ink-side)",
                 }}
               >
                 Listo para consolidar
@@ -381,7 +380,7 @@ function StockTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {r.markbox}

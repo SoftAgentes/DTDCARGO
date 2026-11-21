@@ -23,7 +23,6 @@ export type BadgeTone =
   | "warning"
   | "danger"
   | "info"
-  | "wine"
   | "neutral";
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -238,13 +237,33 @@ export function spaceTone(space: string): BadgeTone {
 // ║ Filas persistidas                                         ║
 // ╚═══════════════════════════════════════════════════════════╝
 
+/** Tonos que puede tener una naviera guardada. */
+const CARRIER_TONES: ReadonlySet<string> = new Set<BadgeTone>([
+  "success",
+  "warning",
+  "danger",
+  "info",
+  "neutral",
+]);
+
+/**
+ * Tono de la naviera leído de `carriers.tone` (texto libre en la base).
+ *
+ * El vino se retiró de los badges (SDD-0686, BD-076 regla 7) y la base no se
+ * toca: un `"wine"` guardado antes, o cualquier valor que no sea un tono del
+ * sistema, cae a `"neutral"` sin error.
+ */
+export function carrierTone(raw: unknown): BadgeTone {
+  return typeof raw === "string" && CARRIER_TONES.has(raw) ? (raw as BadgeTone) : "neutral";
+}
+
 export type Carrier = {
   id: string;
   tenant_id: string;
   name: string;
   name_cn: string | null;
   scac: string | null;
-  tone: string;
+  tone: BadgeTone;
   active: boolean;
   notes: string | null;
   created_at: string;
