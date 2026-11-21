@@ -64,6 +64,23 @@ Comentario: https://github.com/SoftAgentes/DTDCARGO/pull/751#issuecomment-706802
   - B6: la 0464 y la 0494 quedaron como aplicadas, según Dir_DTD;
   - B7: lo del Portal en la fusión volvió a decir INFERENCIA.
 
+## RE-REVISIÓN (0e64553fe, CHANGES_REQUESTED por H4) Y CÓMO SE ATENDIÓ
+
+Comentario: https://github.com/SoftAgentes/DTDCARGO/pull/751#issuecomment-7068429690
+
+- **H4:** se quitó el recibo hijo, y la spec adopta la alternativa de la revisión, una tabla `receipt_applications`:
+  - el recibo es uno solo; su `amount` no cambia y el disponible se calcula;
+  - un estado nuevo, `reaplicado`, para cuando el disponible llega a 0;
+  - la tabla de lectores de la §4.4.7 dice cómo cuenta una sola vez cada uno: Reportes, «Por contabilizar», el
+    cruce de 1.1.2 y 2.1.9, Rendiciones, Cobranzas y `client_outstanding`;
+  - criterio 4f, por lector.
+- **N1:** el cuadre se mide por cliente (con `client_outstanding` y los disponibles) y en el libro (total de 1.1.2
+  más 2.1.9).
+- **N2:** soltar un cobro sin asiento vivo bloquea con `cobro_sin_asiento` (§4.4.6, criterio 4g).
+- **N3:** el cruce de la 1.1.2 suma los orígenes `receipt_release` y `receipt_reapply`.
+- **Dato:** ningún tenant de producción tiene la cuenta 2.1.9. Lo verificó Dir_DTD el 2026-11-21, con solo lectura;
+  la F-2 lo vuelve a medir.
+
 ## PENDIENTES DE ESTA TAREA
 
 - Revisión independiente de la PR #751 (la lanza Dir_DTD).

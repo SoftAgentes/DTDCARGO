@@ -320,10 +320,11 @@ Por eso el recibo soltado pasa a un estado nuevo, **`liberado`**: se sabe de qui
 aplicado a ninguna factura.
 
 - **Esquema (F-2):**
-  - `application_status` suma `liberado` al CHECK de `0122:92`;
-  - la CHECK de `0122:96-99` pasa a `(application_status in ('recibido_sin_ref','liberado')) = (invoice_id is null)`;
-  - la de los snapshots (`0122:103-109`) **sigue exigiendo el cliente** en `liberado`, porque solo
-    exime a `recibido_sin_ref`;
+  - `application_status` suma `liberado` y `reaplicado` al CHECK de `0122:92`;
+  - la CHECK de `0122:96-99` pasa a `(application_status in ('recibido_sin_ref','liberado','reaplicado')) = (invoice_id is null)`;
+  - la de los snapshots (`0122:103-109`) **sigue exigiendo el cliente** en `liberado` y `reaplicado`,
+    porque solo exime a `recibido_sin_ref`;
+  - la tabla nueva `receipt_applications` guarda las partes aplicadas (§4.4.5);
   - una columna nueva, `released_from_invoice_id`, guarda la factura de la que salió.
 - **La identificación de hoy no lo toca.** `identify_collection_receipt` exige `recibido_sin_ref`
   (`0467:287`), así que rechaza un recibo `liberado`. La reclasificación de la app
@@ -333,7 +334,10 @@ aplicado a ninguna factura.
 #### 4.4.3 Los asientos (P4: aprobada; contabilidad la valida antes de la F-2)
 
 La cuenta nueva es la **2.1.9 «Anticipos de clientes»**, un pasivo corriente. El número se confirma en la
-F-2; hoy está libre (§2.4). **La 2.1.8 no se toca.**
+F-2. Está libre en el repo (§2.4) y, **verificado por Dir_DTD el 2026-11-21** con un conteo de solo
+lectura sobre `public.accounts`, ningún tenant de producción tiene una cuenta 2.1.9. Como la app deja
+crear cuentas a mano (`app/studio/(app)/contabilidad/actions.ts:628`), la F-2 lo vuelve a medir antes de
+sembrarla. **La 2.1.8 no se toca.**
 
 | Paso | Asiento | Fecha |
 |---|---|---|
@@ -354,8 +358,13 @@ F-2; hoy está libre (§2.4). **La 2.1.8 no se toca.**
   como la reclasificación de hoy, así que si un asiento falla no se suelta nada.
   - Llevan el `receipt_id` y un `source` propio: `receipt_release` y `receipt_reapply`.
   - Son idempotentes por (`receipt_id`, `source`, correlación).
-- **Cuadre** (§10, criterio 4b): al terminar, 1.1.2 de A, 1.1.2 de B y 2.1.9 suman lo mismo que antes.
-  Solo se apartan el reverso de la factura anulada y la emisión de la nueva, que se compensan entre sí.
+- **Cuadre** (§10, criterio 4b; N1 de la revisión). Los asientos no llevan cliente (§2.1), así que se
+  mide en dos planos:
+  - **por cliente**, con el saldo que calcula la app con facturas y recibos (`client_outstanding`, 0492),
+    más el disponible de los recibos `liberado` de cada pagador;
+  - **en el libro**, con el total de la 1.1.2 más el de la 2.1.9. Ese total no cambia al soltar ni al
+    reaplicar; solo lo mueven el reverso de la factura anulada y la emisión de la nueva, que se
+    compensan entre sí.
 
 Ejemplo inventado: una factura de A por 100, con un abono de 30, se pasa a B.
 
@@ -369,49 +378,119 @@ Reaplicar:  DR 2.1.9 30 / CR 1.1.2 30   → B debe 70    Anticipos 0
 
 #### 4.4.4 El pagador se conserva (P3; H2 de la revisión)
 
-- **Columnas nuevas `payer_client_markbox` y `payer_client_name`** en `payment_receipts`. Al soltar el
-  recibo se llenan con su cliente de ese momento, y después **no cambian**: un trigger las congela.
-- **`client_markbox` sigue siendo el de la factura aplicada**, como hoy, porque es lo que lee la RLS del
-  Portal (`0195:57`). Así, el Portal de B ve el abono aplicado a su factura, sin el nombre ni el código de
-  A, y el de A deja de verlo. Qué muestra el Portal en detalle se confirma en la F-2.
-- **En el Studio** se ven los dos datos, por ejemplo: «Pagó DTD-9001 · aplicado a F-2026-0960 de
+- **El recibo es uno solo y no cambia de dueño.** Su `client_markbox` y su `client_name` siguen siendo
+  los de quien pagó (A).
+  - Nada los sobrescribe, porque `identify_collection_receipt` rechaza un recibo `liberado` (§4.4.2).
+  - Un trigger los congela mientras el recibo está `liberado` o `reaplicado`. Solo los cambian
+    `rename_client_markbox` y la fusión (§5), porque ahí se trata del mismo cliente.
+  - Así no hacen falta las columnas `payer_client_*` de la versión anterior. Hacían falta cuando
+    `client_markbox` seguía a la factura aplicada; ahora la factura se ve por `receipt_applications`.
+- **El Portal de B** ve el abono aplicado a su factura leyendo `receipt_applications` (§4.4.5), sin el
+  nombre ni el código de A.
+- **El Portal de A** ve su pago como «Aplicado a otra cuenta», sin el código de la factura de B. Qué se
+  muestra en detalle se confirma en la F-2.
+- **El Studio** muestra los dos datos, por ejemplo: «Pagó DTD-9001 · aplicado a F-2026-0960 de
   DTD-9002».
 
-#### 4.4.5 Reaplicar: una RPC propia, con aplicación parcial
+#### 4.4.5 Reaplicar: una tabla de aplicaciones, no recibos hijos (H4)
 
-La reaplicación **no usa** `identify_collection_receipt`: esa función sobrescribe el cliente
-(`0467:310-314`) y no deja aplicar una parte (`0467:306-308`). Usa una RPC nueva,
-`apply_released_receipt(p_receipt_id, p_invoice_id, p_amount, p_reason)`, que:
+La reaplicación **no usa** `identify_collection_receipt`, que sobrescribe el cliente (`0467:310-314`) y
+no deja aplicar una parte (`0467:306-308`). **Tampoco crea recibos hijos.** El recibo sigue siendo una
+sola fila, con su monto, su fecha y su asiento de caja, y se aplica por partes con una tabla nueva:
 
-- **exige** un recibo `liberado` y una factura emitida o parcial (ni borrador ni anulada), de la misma
-  moneda y del mismo tenant;
-- **permite aplicar una parte:** `p_amount` puede ser menor que el recibo, pero nunca mayor que el saldo
-  de la factura destino.
-  - Si `p_amount` cubre todo el recibo, el recibo pasa a `aplicado` con esa factura.
-  - Si cubre una parte, se crea un **recibo hijo** (`split_from_receipt_id`) por lo aplicado. El hijo nace
-    `aplicado` y sin asiento de caja, porque el dinero ya entró con el padre. El padre queda `liberado`
-    por el resto, y los hijos más el resto suman exactamente el monto original.
-- **deja el resto como saldo a favor de quien pagó,** en la 2.1.9. Cobranzas lo ve en «Pendiente de
-  aplicar», a nombre del pagador, y después se aplica con la misma RPC, a otra factura de A o de B;
-- escribe el asiento DR 2.1.9 / CR 1.1.2 de la §4.4.3 y el evento `receipt_reapplied`, en la misma
-  transacción.
+**`receipt_applications`** (F-2), una fila por cada parte aplicada:
+
+| Columna | Qué guarda |
+|---|---|
+| `id`, `tenant_id` | — |
+| `receipt_id` | el recibo `liberado` (FK) |
+| `invoice_id` | la factura emitida o parcial a la que se aplica (FK) |
+| `amount` | lo aplicado, mayor que 0, en la moneda del recibo |
+| `journal_entry_id` | su asiento DR 2.1.9 / CR 1.1.2 (§4.4.3), obligatorio |
+| `applied_at`, `applied_by`, `correlation_id` | — |
+| `voided_at`, `voided_by`, `void_reason` | para deshacer una aplicación |
+
+- **El monto original** es `payment_receipts.amount`, que **nunca cambia**.
+- **El disponible** se calcula: `amount − suma de las aplicaciones vivas`. Una guarda en la base impide
+  que esa suma pase de `amount`. Ningún otro recibo nace de la aplicación, así que no hay nada que
+  heredar: el recibo conserva `received_at`, `fund_class`, `cash_account_id` y su `journal_entry_id`.
+- **El estado del recibo:**
+  - `liberado` mientras el disponible sea mayor que 0;
+  - `reaplicado` cuando el disponible llega a 0, con `invoice_id` en null;
+  - la CHECK de `0122:96-99` incluye a los dos en el lado de `invoice_id is null` (§4.4.2).
+- **La factura destino** sube su `paid_amount` por lo aplicado y pasa a `parcial` o `pagada`, con la
+  regla de `0467:236-240`. `client_outstanding` (0492) lo lee de ahí sin cambios.
+
+**La RPC `apply_released_receipt(p_receipt_id, p_invoice_id, p_amount, p_reason)`:**
+
+- exige un recibo `liberado` y una factura emitida o parcial (ni borrador ni anulada), de la misma moneda
+  y del mismo tenant;
+- exige una factura con la **misma clase de fondos** (`fund_class`) que el recibo. Si no coincide,
+  bloquea, para que una rendición nunca mezcle fondos propios y de terceros;
+- `p_amount` va de 0,01 al menor entre el disponible y el saldo de la factura;
+- escribe la aplicación, su asiento, el `paid_amount` y el evento `receipt_reapplied` en una
+  transacción;
+- **el resto queda como saldo a favor de quien pagó**, en la 2.1.9. Cobranzas lo ve en «Pendiente de
+  aplicar» a nombre del pagador, y después se aplica con la misma RPC a otra factura de A o de B.
+
+**Deshacer una aplicación** (`void_receipt_application`, con motivo):
+
+- marca `voided_at`, baja el `paid_amount` de la factura y reversa su asiento (DR 1.1.2 / CR 2.1.9);
+- el recibo vuelve a `liberado`.
+
+**Anular el recibo:**
+
+- un recibo `liberado` o `reaplicado` solo se anula sin aplicaciones vivas;
+- al anularlo se reversan su asiento de caja y el de soltar.
+
+**Anular una factura que tiene aplicaciones:** ya lo bloquea el `paid_amount > 0` de `0497:793-795`.
+Primero se deshacen sus aplicaciones.
 
 **En la vista previa de la reasignación:**
 
 - cada recibo que se suelta sale con su monto, solo en pantalla;
 - la casilla «Lo pagó A por B: aplicarlo a la factura nueva cuando se emita» **no aplica nada en ese
   momento**, porque la factura de B nace en pre-orden (P1). Deja una **instrucción pendiente** en el
-  recibo (`apply_on_emit_invoice_id`). Cuando contabilidad emite la pre-orden de B, la emisión llama a
-  `apply_released_receipt` por el menor entre el resto del recibo y el saldo de la factura, y lo dice en
-  su confirmación;
+  recibo (`apply_on_emit_invoice_id`). Cuando contabilidad emite esa pre-orden, la emisión llama a
+  `apply_released_receipt` por el menor entre el disponible y el saldo de la factura, y lo dice en su
+  confirmación;
 - si el abono es mayor que lo que costará la factura de B, avisa: «El abono es mayor que la factura nueva;
   el resto queda como saldo a favor de DTD-9001».
 
-#### 4.4.6 Nunca se pierde
+#### 4.4.6 Un cobro sin asiento no se suelta (N2)
+
+El asiento del cobro se publica hoy en modo best-effort, así que puede faltar: es lo que muestra
+«Por contabilizar» (`libro-control-queries.ts:379-403`). Si se soltara un recibo sin asiento vivo, el
+DR 1.1.2 / CR 2.1.9 descuadraría el libro.
+
+**Soltar exige** que el recibo tenga su asiento vivo:
+
+- `source = 'receipt'`;
+- y, si entró sin referencia, también el de `receipt_reclass`.
+
+Si falta, **bloquea** con `cobro_sin_asiento`, con el texto «Este cobro todavía no está contabilizado:
+contabilízalo en Contabilidad › Por contabilizar y vuelve a intentarlo». La vista previa lo muestra como
+bloqueo.
+
+#### 4.4.7 Los lectores de `payment_receipts` cuentan una sola vez (H4)
+
+Como el recibo es uno solo y su monto no cambia, cada lector cuenta una vez:
+
+| Lector | Qué lee hoy | Con esta spec |
+|---|---|---|
+| Reportes, «Cobrado» (`lib/studio/reports/queries.ts:806-811`, `:856-872`) | `amount` de todo recibo vivo, por `received_at` | **Sin cambio.** El recibo cuenta una vez, en su fecha. Soltar y reaplicar no son dinero nuevo. |
+| Contabilidad, «Por contabilizar» (`libro-control-queries.ts:379-403`) | recibos sin asiento vivo | **Sin cambio para el recibo**, que conserva su asiento. Las aplicaciones nacen con su asiento en la misma transacción, así que nunca aparecen como pendientes. |
+| Libro de control, cruce de 1.1.2 por origen (`libro-control-queries.ts:55-75`) | `receipt`, `receipt_reclass`, `invoice_reversal` y los documentales | **Se suman los orígenes `receipt_release` y `receipt_reapply`** (N3). El cruce nuevo de la 2.1.9 dice que su saldo es igual a la suma de los disponibles de los recibos `liberado`. |
+| Rendiciones (`lib/studio/renditions/queries.ts:271`, `:453`; `renditions/actions-helpers.ts:204`, `:297`) | recibos `third_party` en `aplicado` | **Excluyen `liberado` y `reaplicado`** hasta que la F-2 enseñe a rendir por aplicación. Un recibo soltado no estaba rendido, porque el estado `rendido` bloquea (§4.4.1), así que nada se rinde dos veces. |
+| Cobranzas (`lib/studio/payment-queries.ts:41`, `:153`) | recibos por `invoice_id` | **Lee además `receipt_applications`** por factura. Los pagos de una factura son sus recibos más sus aplicaciones vivas, y suman su `paid_amount`. |
+| `client_outstanding` (`0492`) | `paid_amount` de las facturas | **Sin cambio.** |
+
+#### 4.4.8 Nunca se pierde
 
 - La vista previa dice cuántos recibos se sueltan y por cuánto, solo en pantalla.
-- Los eventos guardan los ids de los recibos, no los montos (§6.2).
-- Un recibo `liberado` no se anula sin motivo, y al anularlo se reversa también su asiento en la 2.1.9.
+- Los eventos guardan los ids de los recibos y de las aplicaciones, no los montos (§6.2).
+- El disponible de un recibo nunca queda negativo, y la suma de sus aplicaciones vivas más su disponible
+  es siempre su monto original.
 
 ### 4.5 Qué sigue bloqueando
 
@@ -423,6 +502,7 @@ Cada bloqueo lleva su texto llano y la acción que lo desbloquea:
 - reporte de pago pendiente del Portal;
 - crédito de referido aplicado;
 - recibo `rendido` (§4.4.1);
+- cobro sin asiento vivo (`cobro_sin_asiento`, §4.4.6);
 - pre-orden que queda con total en 0 o negativo (`preorden_sin_embarques`, §4.2);
 - factura en un período cerrado **cuyo reverso no se pueda asentar**;
 - otra reasignación del mismo embarque, ya preparada y a la espera de confirmación (§6.3).
@@ -510,7 +590,7 @@ Motivo (obligatorio)  [_______________________]
 - **Un evento por operación** en la entidad principal (`shipment_client_reassigned` ampliado, o
   `client_merged` ampliado, `0455:231-279`), más **un evento por documento tocado** en su propia entidad:
   `invoice_split`, `invoice_voided_by_reassign`, `invoice_recreated`, `receipt_released`,
-  `receipt_reapplied`, más los del flujo de dos pasos (§6.3.2). Todos llevan la misma correlación (`sdd-0699:<operación>:<txid>`).
+  `receipt_reapplied` y `receipt_application_voided`, más los del flujo de dos pasos (§6.3.2). Todos llevan la misma correlación (`sdd-0699:<operación>:<txid>`).
 - Motivo obligatorio, de 4 a 1000 caracteres, en la columna `reason` (AUD-01), con el aviso de no escribir
   datos personales (SDD-0645 §5).
 - `payload` **sin texto libre ni montos**: ids, códigos de documento, Shipping Marks, conteos y el
@@ -617,7 +697,7 @@ Como la fusión no anula nada, va en un paso, con vista previa y motivo. Se deci
 |---|---|---|
 | F-0 | **Hecha. Verificada por Dir_DTD el 2026-11-21** en el ledger, con solo lectura: 0464, 0466, 0467, 0494, 0497, 0551, 0552, 0564 y 0569 están aplicadas. Sus cabeceras «NO APLICADA» quedaron viejas y no se editan (§2). | — |
 | F-1 | Partir y unir pre-órdenes al pasar un embarque (§4.2). Redefine `reassign_shipment_client` con `cascade` y la huella. Es la que desbloquea el caso del 64. | F-0, P2, P6 (decididas) |
-| F-2 | Soltar un recibo y reaplicarlo (§4.4): estado `liberado`, columnas del pagador, cuenta 2.1.9, asientos en la misma transacción y `apply_released_receipt` con aplicación parcial. Es una acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
+| F-2 | Soltar un recibo y reaplicarlo (§4.4): estados `liberado` y `reaplicado`, cuenta 2.1.9, `receipt_applications`, asientos en la misma transacción, `apply_released_receipt` con aplicación parcial, y los lectores de la §4.4.7 (Reportes, libro de control, Rendiciones y Cobranzas). Es una acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
 | F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con la F-2 dentro, y el flujo de dos pasos (§6.3): `ownership_change_requests`, preparar, confirmar, rechazar, cancelar y vencer. | F-1, F-2, P1, P9 (decididas) |
 | F-4 | Fusión con vista previa, motivo y cascada (§5). Va después de la 0694 F-2 y la 0695 F-6, que redefinen `merge_clients`. | 0695 F-6, P7, P8 (decididas) |
 
@@ -712,17 +792,30 @@ Esta conviene confirmarla con quien lleva la contabilidad.
 2. Con una pre-orden viva de B en el mismo contenedor, las líneas se suman a ella; sin ella, se crea una.
 3. Con una factura emitida, la operación la anula con reverso, crea la pre-orden de B (P1), y la anulada
    sigue a nombre de A.
-4. Con un abono, el recibo queda `liberado`, con `payer_client_markbox` del pagador. La factura baja su
-   pagado, ningún recibo se anula y `identify_collection_receipt` rechaza el recibo `liberado`.
-4b. **Cuadre contable.** Después de soltar, anular, emitir y reaplicar, la cuenta 1.1.2 de A, la de B y
-    la 2.1.9 suman lo mismo que antes, salvo el reverso de la factura anulada y la emisión de la nueva,
-    que se compensan entre sí. La 2.1.8 no se mueve.
+4. Con un abono, el recibo queda `liberado` y su `client_markbox` sigue siendo el del pagador. La factura
+   baja su pagado, ningún recibo se anula y `identify_collection_receipt` rechaza el recibo `liberado`.
+4b. **Cuadre contable.**
+    - Por cliente: el saldo de A, el de B (con `client_outstanding`) y el disponible de los recibos
+      `liberado` suman lo mismo antes y después, salvo la factura anulada y la nueva.
+    - En el libro: el total de la 1.1.2 más el de la 2.1.9 solo lo mueven el reverso y la emisión.
+    - El saldo de la 2.1.9 es igual a la suma de los disponibles de los recibos `liberado`.
+    - La 2.1.8 no se mueve.
 4c. Los asientos de soltar y reaplicar van en la misma transacción que el cambio: si falla uno, no
     cambia nada. Con el cierre en el día de la operación o después, el asiento va al día siguiente del
     cierre, nunca a `received_at`.
-4d. `apply_released_receipt` aplica una parte: crea el recibo hijo, el padre queda `liberado` por el
-    resto, la suma es exacta y el pagador no cambia. Rechaza un monto mayor que el saldo de la factura
-    destino.
+4d. `apply_released_receipt` aplica una parte: crea una fila en `receipt_applications`, el recibo queda
+    `liberado` por el resto y su `amount` no cambia. Las aplicaciones vivas más el disponible suman el
+    monto original, y el pagador no cambia. Rechaza un monto mayor que el disponible o que el saldo de la
+    factura destino, y una factura de otra clase de fondos. Al llegar el disponible a 0, el recibo pasa a
+    `reaplicado`.
+4f. **Cada lector cuenta una vez** (§4.4.7), con un recibo soltado y aplicado en dos partes:
+    - Reportes, «Cobrado», suma su monto una vez, en su `received_at`;
+    - «Por contabilizar» no lista el recibo ni sus aplicaciones;
+    - el cruce de la 1.1.2 incluye `receipt_release` y `receipt_reapply`, y el de la 2.1.9 cuadra con
+      los disponibles;
+    - Rendiciones no lo incluye mientras esté `liberado` o `reaplicado`;
+    - en Cobranzas, los pagos de cada factura destino suman su `paid_amount`.
+4g. Soltar un recibo sin asiento de cobro vivo bloquea con `cobro_sin_asiento` (§4.4.6).
 4e. Un recibo `rendido` bloquea con `recibo_rendido`.
 5. Confirmar con una huella vieja da `40001` y no cambia nada.
 5b. **Dos pasos.** Una reasignación que anula o suelta queda `preparada` sin cambiar nada más. No la
