@@ -128,9 +128,10 @@ afterEach(async () => {
 type Preorden = { client_markbox: string; status: string; base_amount: string; total_amount: string; codigos: string; notes: string };
 
 /** La base después del paquete de hoy: una pre-orden de DTD-5001 con los dos envíos de DTD-J031. */
-async function baseDeHoy(): Promise<PGlite> {
+async function baseDeHoy(antes = ""): Promise<PGlite> {
   db = new PGlite();
   await db.exec(ESQUEMA);
+  if (antes) await db.exec(antes);
   await db.exec(sinPsql(paqueteHoy().aplicar));
   return db;
 }
@@ -192,6 +193,7 @@ describe("SDD-0690 · --agregar-a-preorden (PGlite)", { timeout: 90_000 }, () =>
       ya_con_linea_en_factura_viva: 0,
       preordenes_destino_no_borrador: 0,
       clientes_con_varias_preordenes: 0,
+      preordenes_destino_otro_titular: 0,
       clientes_ya_emitidos_en_el_contenedor: 0,
       a_preorden_existente: 1,
       a_preorden_nueva: 1,
@@ -288,6 +290,77 @@ describe("SDD-0690 · --agregar-a-preorden (PGlite)", { timeout: 90_000 }, () =>
     await aplicarLunes();
     await db!.exec("update public.invoices set total_amount = total_amount + 1 where client_markbox = 'DTD-5001'");
     await expect(verificar()).rejects.toThrow("verificar agregar: 1 pre-órdenes tocadas con base, IVA o total distintos de la suma de sus líneas");
+  });
+
+  // M1 de la revisión de la #756: dos clientes del mismo aliado raíz. La pre-orden de uno no recibe las líneas del otro.
+  const ALIADO = `
+insert into public.clients values
+  ('00000000-0000-0000-0000-0000000005a3', '${T}', 'DTD-5003', 'Sub Uno', null, null, '00000000-0000-0000-0000-0000000000a1', null),
+  ('00000000-0000-0000-0000-0000000005a4', '${T}', 'DTD-5004', 'Sub Dos', null, null, '00000000-0000-0000-0000-0000000000a1', null),
+  ('00000000-0000-0000-0000-0000000005a9', '${T}', 'DTD-5009', 'Raíz', null, null, null, null);
+insert into public.aliados values ('00000000-0000-0000-0000-0000000000a1', null, '00000000-0000-0000-0000-0000000005a9');
+update public.shipments set client_markbox = 'DTD-5003' where code like 'DTD-J031-%';`;
+
+  it("M1: con aliado raíz, el envío reasignado a otro cliente del aliado lleva su propia pre-orden", async () => {
+    await baseDeHoy(ALIADO);
+    // El sábado: la pre-orden de DTD-5003 (sus envíos DTD-J031), facturada a la raíz DTD-5009.
+    expect((await preordenes()).map((x) => [x.client_markbox, x.codigos])).toEqual([["DTD-5009", "DTD-J031-05,DTD-J031-06"]]);
+    // El lunes: DTD-A116-06 pasa a DTD-5004 (mismo aliado, sin pre-orden) y DTD-B200-01 a DTD-5003 (con pre-orden).
+    await reasignar({ "DTD-A116-06": "DTD-5004", "DTD-B200-01": "DTD-5003" });
+    expect(await previa()).toMatchObject({ a_preorden_existente: 1, a_preorden_nueva: 1, preordenes_destino_otro_titular: 0, clientes_con_varias_preordenes: 0 });
+    expect(await aplicarLunes()).toContain("· 2 envíos · 2 Shipping Marks · 1 pre-órdenes con líneas agregadas · 1 pre-órdenes nuevas ·");
+    const r = await db!.query<{ dueno: string; client_markbox: string; codigos: string; base_amount: string }>(`
+      select s.client_markbox as dueno, iv.client_markbox, iv.base_amount::text as base_amount,
+             (select string_agg(l ->> 'shipmentCode', ',' order by l ->> 'shipmentCode') from jsonb_array_elements(iv.lines) l) as codigos
+        from public.invoices iv join public.shipments s on s.id = iv.shipment_id order by s.client_markbox`);
+    expect(r.rows).toEqual([
+      { dueno: "DTD-5003", client_markbox: "DTD-5009", codigos: "DTD-B200-01,DTD-J031-05,DTD-J031-06", base_amount: "3100.00" },
+      { dueno: "DTD-5004", client_markbox: "DTD-5009", codigos: "DTD-A116-06", base_amount: "375.00" },
+    ]);
+    expect(await verificar()).toContain("PASÓ · 2 de 2 envíos");
+  });
+
+  it("M1: verificar falla si el envío quedó en la pre-orden de otro cliente del mismo aliado", async () => {
+    await baseDeHoy(ALIADO);
+    await reasignar({ "DTD-A116-06": "DTD-5004", "DTD-B200-01": "DTD-5003" });
+    await aplicarLunes();
+    // Se simula el error de antes: las líneas de DTD-A116-06 terminan en la pre-orden de DTD-5003 (mismo titular).
+    await db!.exec(`
+      update public.invoices iv set lines = iv.lines || (select n.lines from public.invoices n join public.shipments s on s.id = n.shipment_id where s.code = 'DTD-A116-06')
+        from public.shipments s where s.id = iv.shipment_id and s.code = 'DTD-J031-05';
+      update public.invoices iv set deleted_at = now() from public.shipments s where s.id = iv.shipment_id and s.code = 'DTD-A116-06';
+      update public.invoices set base_amount = 3475, total_amount = 3475 where deleted_at is null;`);
+    await expect(verificar()).rejects.toThrow("verificar agregar: 1 envíos en una factura que no es una pre-orden de esta carga de su cliente");
+  });
+
+  it("M1: si la pre-orden del cliente factura a otro titular, aborta y la previa lo cuenta", async () => {
+    await baseDeHoy();
+    await db!.exec("update public.invoices set client_markbox = 'DTD-5002'");
+    await reasignar({ "DTD-A116-06": "DTD-5001", "DTD-B200-01": "DTD-5002" });
+    expect((await previa()).preordenes_destino_otro_titular).toBe(1);
+    const antes = await preordenes();
+    await expect(aplicarLunes()).rejects.toThrow("agregar: la pre-orden de la marca DTD-A116 factura a otro titular; resuélvelo a mano");
+    await sinCambios(antes);
+  });
+
+  it("B1: con IVA, la pre-orden existente recalcula con su propio IVA y la nueva con el del tenant", async () => {
+    // El sábado con IVA (16 %); el lunes el tenant ya no lo cobra: la existente conserva su 16 %, la nueva sale en 0.
+    await baseDeHoy(`update public.tenants set iva_enabled = true`);
+    expect((await preordenes()).map((x) => [x.base_amount, x.total_amount])).toEqual([["2400.00", "2784.00"]]);
+    await db!.exec("update public.tenants set iva_enabled = false");
+    await reasignar({ "DTD-A116-06": "DTD-5001", "DTD-B200-01": "DTD-5002" });
+    await aplicarLunes();
+    const r = await db!.query<{ client_markbox: string; iva_rate: string; base_amount: string; iva_amount: string; total_amount: string }>(`
+      select client_markbox, iva_rate::text as iva_rate, base_amount::text as base_amount, iva_amount::text as iva_amount, total_amount::text as total_amount
+        from public.invoices order by client_markbox`);
+    expect(r.rows).toEqual([
+      { client_markbox: "DTD-5001", iva_rate: "16", base_amount: "2775.00", iva_amount: "444.00", total_amount: "3219.00" },
+      { client_markbox: "DTD-5002", iva_rate: "0", base_amount: "700.00", iva_amount: "0.00", total_amount: "700.00" },
+    ]);
+    expect(await verificar()).toContain("PASÓ · 2 de 2 envíos en una pre-orden de su cliente · 2 pre-órdenes tocadas cuadran");
+    // Con un IVA descuadrado, verificar lo ve.
+    await db!.exec("update public.invoices set iva_amount = iva_amount + 1, total_amount = total_amount + 1 where client_markbox = 'DTD-5001'");
+    await expect(verificar()).rejects.toThrow("1 pre-órdenes tocadas con base, IVA o total distintos");
   });
 
   it("verificar falla si un envío quedó en la factura de otro cliente", async () => {

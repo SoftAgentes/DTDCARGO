@@ -1896,8 +1896,10 @@ const ANCLA_DECLARE_SOLO_FACTURAS = "  v_n_marcas int := 0;\nbegin\n";
  *  - si el cliente ya tiene en el contenedor una factura de la regla 0564/0569 viva, aborta;
  *  - si tiene una pre-orden de esta carga que no está en borrador (emitida, pagada o anulada), o más
  *    de una en borrador, aborta: nunca toca una emitida;
- *  - si tiene una en borrador, le agrega las líneas de sus envíos nuevos y recalcula base, IVA y
- *    total desde todas sus líneas;
+ *  - si tiene una en borrador (la de su Shipping Mark vivo, con el criterio de la 0569: el envío de la
+ *    pre-orden es suyo y está vigente en el contenedor), le agrega las líneas de sus envíos nuevos y
+ *    recalcula base, IVA y total desde todas sus líneas, con el IVA de la pre-orden. Si esa pre-orden
+ *    factura a otro titular, aborta. La de otro cliente del mismo aliado raíz no cuenta;
  *  - si no tiene, crea la pre-orden como `--solo-facturas`.
  */
 function cuerpoAgregar(o: OpcionesSql, markboxOrigen: string[]): string {
@@ -2002,13 +2004,21 @@ function cuerpoAgregar(o: OpcionesSql, markboxOrigen: string[]): string {
       raise exception 'agregar: el cliente de la marca % ya tiene factura emitida en el contenedor; no se toca', v_etiqueta;
     end if;
 
-    -- La pre-orden destino: la de esta carga y este cliente, viva.
+    -- La pre-orden destino, con el criterio de la 0569: una pre-orden viva de esta carga cuyo envío
+    -- (shipment_id) está hoy, vigente en este contenedor, en el MISMO Shipping Mark vivo (v_mb). La de otro
+    -- cliente del mismo aliado raíz no sirve: al emitirla, la 0569 sólo cubriría los envíos de aquel.
     select count(*), count(*) filter (where iv.status = 'borrador'), (array_agg(iv.id) filter (where iv.status = 'borrador'))[1]
       into v_n_dest, v_n_borr, v_dest_id
       from public.invoices iv
+      join public.shipments s on s.id = iv.shipment_id and s.tenant_id = v_tenant and s.deleted_at is null
      where iv.tenant_id = v_tenant and iv.deleted_at is null
        and iv.notes like '%' || cab.lote || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%'
-       and upper(btrim(iv.client_markbox)) = upper(btrim(v_fact.markbox));
+       and upper(btrim(s.client_markbox)) = v_mb
+       and (select ci.consolidation_id
+              from public.consolidation_items ci
+             where ci.tenant_id = v_tenant and ci.shipment_id = s.id
+             order by ci.created_at desc, ci.id desc
+             limit 1) = v_cons;
     if v_n_dest > v_n_borr then
       raise exception 'agregar: la pre-orden de la marca % ya no está en borrador (emitida, pagada o anulada); no se toca', v_etiqueta;
     end if;
@@ -2020,6 +2030,9 @@ function cuerpoAgregar(o: OpcionesSql, markboxOrigen: string[]): string {
       select * into v_dest from public.invoices where id = v_dest_id for update;
       if v_dest.status <> 'borrador' or v_dest.deleted_at is not null then
         raise exception 'agregar: la pre-orden de la marca % dejó de ser borrador mientras se cargaba', v_etiqueta;
+      end if;
+      if upper(btrim(v_dest.client_markbox)) is distinct from upper(btrim(v_fact.markbox)) then
+        raise exception 'agregar: la pre-orden de la marca % factura a otro titular; resuélvelo a mano', v_etiqueta;
       end if;
       v_todas := coalesce(v_dest.lines, '[]'::jsonb) || v_lines;
       select coalesce(round(sum((l ->> 'qty')::numeric * (l ->> 'unitPrice')::numeric), 2), 0) into v_base
@@ -2128,9 +2141,13 @@ destino as (
     left join tope tp on tp.code = cl.code and tp.client_id is not null
     left join public.clients fc on fc.id = coalesce(tp.client_id, cl.client_id)
 ),
+-- Con el criterio de la 0569: el dueño de una pre-orden es el Shipping Mark vivo de su envío (shipment_id),
+-- vigente en este contenedor.
 preordenes as (
-  select iv.id, iv.status, upper(btrim(iv.client_markbox)) as client_markbox
+  select iv.id, iv.status, upper(btrim(iv.client_markbox)) as client_markbox, upper(btrim(sp.client_markbox)) as owner_markbox
     from public.invoices iv
+    join public.shipments sp on sp.id = iv.shipment_id and sp.tenant_id = iv.tenant_id and sp.deleted_at is null
+    join vigente vp on vp.shipment_id = sp.id and vp.consolidation_id in (select id from cons)
    where iv.tenant_id = (select id from tenant) and iv.deleted_at is null
      and iv.notes like '%' || ${litSql(o.lote)} || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%'
 )`;
@@ -2177,19 +2194,21 @@ select
                           or exists (select 1 from jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
                                       where upper(l ->> 'shipmentCode') = cg.code)))) as ya_con_linea_en_factura_viva,
   (select count(distinct p.id) from preordenes p
-    where p.status <> 'borrador' and p.client_markbox in (select d.fact_markbox from destino d)) as preordenes_destino_no_borrador,
-  (select count(*) from (select d.fact_markbox from destino d join preordenes p on p.client_markbox = d.fact_markbox and p.status = 'borrador'
-                          group by d.fact_markbox having count(distinct p.id) > 1) v) as clientes_con_varias_preordenes,
+    where p.status <> 'borrador' and p.owner_markbox in (select d.markbox from destino d)) as preordenes_destino_no_borrador,
+  (select count(*) from (select d.markbox from destino d join preordenes p on p.owner_markbox = d.markbox and p.status = 'borrador'
+                          group by d.markbox having count(distinct p.id) > 1) v) as clientes_con_varias_preordenes,
+  (select count(distinct p.id) from preordenes p join destino d on p.owner_markbox = d.markbox
+    where p.status = 'borrador' and p.client_markbox is distinct from d.fact_markbox) as preordenes_destino_otro_titular,
   (select count(distinct d.markbox) from destino d
     where exists (select 1 from public.exc0674_facturas f
                    where f.tenant_id = (select id from tenant) and f.consolidation_id in (select id from cons)
                      and f.client_markbox = d.markbox and f.anulada_at is null)) as clientes_ya_emitidos_en_el_contenedor,
   -- A dónde va cada envío.
   (select count(*) from destino d
-    where exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox and p.status = 'borrador')
-      and not exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox and p.status <> 'borrador')) as a_preorden_existente,
+    where exists (select 1 from preordenes p where p.owner_markbox = d.markbox and p.status = 'borrador')
+      and not exists (select 1 from preordenes p where p.owner_markbox = d.markbox and p.status <> 'borrador')) as a_preorden_existente,
   (select count(*) from destino d
-    where d.fact_markbox is not null and not exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox)) as a_preorden_nueva;
+    where d.fact_markbox is not null and not exists (select 1 from preordenes p where p.owner_markbox = d.markbox)) as a_preorden_nueva;
 
 rollback;
 `;
@@ -2197,7 +2216,8 @@ rollback;
 
 /**
  * Verificación de `--agregar-a-preorden`: cada envío del lote con líneas tiene todas sus líneas en una
- * sola pre-orden viva de esta carga, que es de su cliente a facturar, y cada pre-orden que tiene líneas
+ * sola pre-orden viva de esta carga, que es de su cliente (el Shipping Mark vivo de su envío, criterio de
+ * la 0569) y va a su titular a facturar, y cada pre-orden que tiene líneas
  * del lote cuadra: base = Σ(qty × precio) de todas sus líneas, IVA y total. Sólo lee; sólo conteos.
  */
 function verificarAgregar(lote: Lote, o: OpcionesSql): string {
@@ -2219,8 +2239,11 @@ begin
   ),
   lineas as (
     select upper(l ->> 'shipmentCode') as code, iv.id, upper(btrim(iv.client_markbox)) as client_markbox,
+           upper(btrim(sp.client_markbox)) as owner_markbox,
            iv.notes like '%' || ${litSql(o.lote)} || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%' as de_la_carga
-      from public.invoices iv, jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+      from public.invoices iv
+      cross join lateral jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+      left join public.shipments sp on sp.id = iv.shipment_id and sp.tenant_id = iv.tenant_id and sp.deleted_at is null
      where iv.tenant_id = (select id from tenant) and iv.deleted_at is null and iv.status <> 'anulada'
        and upper(l ->> 'shipmentCode') in (select e.code from esperadas e where e.code is not null)
   ),
@@ -2228,7 +2251,9 @@ begin
     select e.code, e.n,
            (select count(distinct li.id) from lineas li where li.code = e.code) as facturas,
            (select count(*) from lineas li where li.code = e.code) as lineas,
-           (select bool_and(li.de_la_carga and li.client_markbox = d.fact_markbox)
+           -- De su cliente con el criterio de la 0569: el envío de la factura es del mismo Shipping Mark vivo,
+           -- y la factura va a su titular (el del aliado raíz, si lo hay).
+           (select bool_and(li.de_la_carga and li.owner_markbox is not distinct from d.markbox and li.client_markbox = d.fact_markbox)
               from lineas li left join destino d on d.code = li.code where li.code = e.code) as de_su_cliente
       from esperadas e where e.code is not null
   )
