@@ -335,7 +335,7 @@ export default async function InvoiceDetailPage({
               <strong
                 style={{
                   font: "700 12px/1 var(--f-mono)",
-                  color: overdue ? "var(--color-status-danger-on-dark, #F6929A)" : "var(--ink-side-strong)",
+                  color: overdue ? "var(--color-status-danger-on-dark)" : "var(--ink-side-strong)",
                 }}
               >
                 {invoice.due_date}

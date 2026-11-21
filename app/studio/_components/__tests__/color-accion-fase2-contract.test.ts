@@ -123,3 +123,70 @@ describe("SDD-0686 fase 2 · grupo 1: el vino que queda es identidad", () => {
     expect(dash).not.toMatch(/tone: "wine"/);
   });
 });
+
+/**
+ * El color del dashboard también llega por variable: el catálogo
+ * (`lib/studio/dashboard/`) da a cada KPI un tono, `TONE_TO_VALUE_COLOR` lo
+ * vuelve token y el editor arma `var(--${meta.tone})` para el icono. Si el
+ * catálogo vuelve a decir `"wine"`, el valor y el icono se pintan en vino
+ * aunque ningún TSX lo escriba. Sam: «cifras y gráficas en tinta» (§10.5).
+ */
+const LIB_DASHBOARD = join(RAIZ, "lib", "studio", "dashboard");
+const fuentesLib = () =>
+  readdirSync(LIB_DASHBOARD)
+    .filter((n) => /\.ts$/.test(n) && !/\.test\.ts$/.test(n))
+    .map((n) => ({ ruta: rel(join(LIB_DASHBOARD, n)), texto: leer(join(LIB_DASHBOARD, n)) }));
+
+/** Lo que pinta en vino desde el catálogo: un tono "wine" o un token de vino. */
+const VINO_POR_VARIABLE = /\btone:\s*[^,\n}]*"wine"|\bwine:\s*"var\(--wine|var\(--wine/;
+
+function vinoEnCatalogo(archivos: { ruta: string; texto: string }[]): string[] {
+  return archivos.filter((a) => VINO_POR_VARIABLE.test(a.texto)).map((a) => a.ruta);
+}
+
+describe("SDD-0686 fase 2 · el catálogo del dashboard no pinta en vino por variable", () => {
+  it("mide algo: el catálogo y las consultas de KPI existen y dan tonos", () => {
+    const archivos = fuentesLib();
+    expect(archivos.map((a) => a.ruta)).toEqual(
+      expect.arrayContaining([
+        "lib/studio/dashboard/dashboard-catalog.ts",
+        "lib/studio/dashboard/dashboard-kpi-queries.ts",
+      ]),
+    );
+    const tonos = archivos.map((a) => (a.texto.match(/\btone:\s*"/g) ?? []).length).reduce((x, y) => x + y, 0);
+    expect(tonos).toBeGreaterThanOrEqual(10);
+  });
+
+  it("ningún archivo de lib/studio/dashboard da un tono o un token de vino", () => {
+    expect(vinoEnCatalogo(fuentesLib())).toEqual([]);
+  });
+
+  it("KpiTone no admite \"wine\" y TONE_TO_VALUE_COLOR no tiene clave de vino", () => {
+    const catalogo = leer(join(LIB_DASHBOARD, "dashboard-catalog.ts"));
+    const tipo = catalogo.match(/export type KpiTone =([^;]+);/)?.[1] ?? "";
+    expect(tipo).toMatch(/"neutral"/);
+    expect(tipo).not.toMatch(/"wine"/);
+    const mapa = catalogo.match(/TONE_TO_VALUE_COLOR[^=]*=\s*\{([\s\S]*?)\};/)?.[1] ?? "";
+    expect(mapa).toMatch(/neutral:/);
+    expect(mapa).not.toMatch(/\bwine\b/);
+  });
+
+  it("mutante: volver a poner el vino en un KPI del catálogo rompe el contrato", () => {
+    const archivos = fuentesLib().map((a) =>
+      a.ruta.endsWith("dashboard-catalog.ts")
+        ? { ...a, texto: a.texto.replace('icon: "box",       tone: "neutral"', 'icon: "box",       tone: "wine"') }
+        : a,
+    );
+    expect(archivos.some((a) => a.texto.includes('tone: "wine"'))).toBe(true);
+    expect(vinoEnCatalogo(archivos)).toEqual(["lib/studio/dashboard/dashboard-catalog.ts"]);
+  });
+
+  it("mutante: un tono condicional en vino en las consultas también se detecta", () => {
+    const archivos = fuentesLib().map((a) =>
+      a.ruta.endsWith("dashboard-kpi-queries.ts")
+        ? { ...a, texto: a.texto.replace('>= 0 ? "neutral" : "danger"', '>= 0 ? "wine" : "danger"') }
+        : a,
+    );
+    expect(vinoEnCatalogo(archivos)).toEqual(["lib/studio/dashboard/dashboard-kpi-queries.ts"]);
+  });
+});

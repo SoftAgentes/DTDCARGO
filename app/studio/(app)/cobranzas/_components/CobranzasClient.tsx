@@ -185,7 +185,7 @@ export function CobranzasClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porCobrar)}`}
           label="Por cobrar"
-          valueColor={kpis.porCobrar > 0 ? "var(--ink)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub={`${kpis.casos} caso(s) abierto(s)`}
         />
         <KpiCard

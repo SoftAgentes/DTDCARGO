@@ -20,7 +20,7 @@ confidencialidad: interno
 
 **Aprobada por Sam el 2026-11-20** para empezar las fases 0 y 1. Pregunta: «¿Apruebas la spec de la SDD-0686 para empezar con las fases 0 y 1?». Respuesta literal: «Sí, empieza». La aprobación cubre el diseño y la implementación de esas dos fases; no cubre fusionar ni publicar.
 
-**Fase 0 escrita** (BD-076, `BRAND.md`, VIS-01 v1.1, BTN-01 v1.2, nota del Norte, `app/studio/CLAUDE.md`). **Fase 1 sin empezar.** Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
+**Fase 0 escrita** (BD-076, `BRAND.md`, VIS-01 v1.1, BTN-01 v1.2, nota del Norte, `app/studio/CLAUDE.md`). **Fase 1 escrita** (PR #722, aprobada en revisión independiente sobre `d32d6d3e9`). **Fase 2, grupos 1 y 2, escrita** (PR #736, apilada sobre la #722). Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
 
 ## 1. Problema
 
@@ -163,6 +163,14 @@ Sin contar comentarios, el vino aparecía en **74 líneas** de declaraciones y q
 
 Alias retirados: `--studio-wine` y `--studio-wine-deep` (su único consumidor era el botón principal). `--studio-wine-soft` se queda para el eyebrow. El foco global de `tokens.css` pasa a `var(--accion)` en los dos temas y desaparece la regla oscura que usaba `--wine-soft`.
 
+### Fase 1 · archivos fuera de la allowlist escrita (anotados el 2026-11-20)
+
+La PR #722 tocó también estos archivos, que la allowlist de arriba no nombra:
+- Las cuatro fichas de componentes que pasaron a BTN-01 1.2 y VIS-01 1.1 por `components:check`: `docs/governance/components/action-menu.json`, `aviso.json`, `confirm-dialog.json` y `segmented-control.json`.
+- El pedido a Cloud Design (`docs/design/studio/pedido-cloud-design-2026-11-20-azul-de-accion.md`).
+
+Quedan registrados aquí. **Pendiente fuera de la #736:** el foco del campo oscuro (`studio.css:331`, `.studio-input-dark:focus-visible`) conserva un halo rosado (`rgba(194, 116, 127, 0.22)`) junto al borde `--accion-soft`. `studio.css` es de la fase 1 y la #722 está aprobada; se corrige en el próximo tramo que toque `studio.css`.
+
 ### Fase 2 · grupo 1 · allowlist y reparto (2026-11-20)
 
 Lo abrió Sam con «Lo que no necesita mi aprobación, avances. Con esto que te di puedes ir avanzando», después de cerrar las decisiones de §10. Va en la rama `claude/sdd-0686-fase2-g1`, apilada sobre la PR de la fase 1. No se fusiona ni se publica sola (§8.1).
@@ -171,7 +179,24 @@ Lo abrió Sam con «Lo que no necesita mi aprobación, avances. Con esto que te 
 - Marco del Studio: `StudioSidebar.tsx`, `StudioTopbar.tsx`, `BandejaBadge.tsx` y `comments/CommentItem.tsx`.
 - Primitivas: `SegmentedControl`, `KpiCard`, `SplitActionButton`, `DateField`, `DataTable`, `ClientCombobox`, `RealtimeIndicator`, `columns/ColumnConfig` y `Badge` (el tono `wine` queda marcado como obsoleto).
 - Dashboard: `page.tsx`, `DashboardWidgets`, `DashboardEditorDrawer`, `RecentActivityCard` y `RecentQuotesCard`.
-- Los 19 `<Badge tone="wine">` del Studio, en 18 archivos (incluida la barra superior), con un cambio de una línea cada uno.
+- Los 19 `<Badge tone="wine">` del Studio, en 18 archivos y con un cambio de una línea cada uno. Rutas bajo `app/studio/`:
+  - `(app)/_components/StudioTopbar.tsx`
+  - `(app)/academia/_components/AcademiaClient.tsx` y `CourseEditorDrawer.tsx` (dos badges)
+  - `(app)/admin/rutas/_components/RoutesClient.tsx`
+  - `(app)/clientes/_components/DeliveryAddressesCard.tsx`
+  - `(app)/cola-qr/_components/QrQueueClient.tsx`
+  - `(app)/crm/_components/ConvertLeadDrawer.tsx`
+  - `(app)/etiquetas/_components/LabelGeneratorClient.tsx`
+  - `(app)/fidelizacion/_components/FidelizacionClient.tsx`
+  - `(app)/ordenes-venta/_components/OrdenesVentaClient.tsx`
+  - `(app)/reportes/_components/BuilderView.tsx`
+  - `(app)/seniat/_components/CustomsAgentsTab.tsx` y `FilingDetailDrawer.tsx`
+  - `(app)/tarifas/_components/TarifasClient.tsx`
+  - `(app)/tesoreria/_components/TesoreriaClient.tsx`
+  - `(panel)/ficha-chat/_components/FichaDtdView.tsx`
+  - `_components/documents/DocsPanel.tsx` (pasa a `success`)
+  - `_components/wiring/GenerateBLModal.tsx`
+- **Catálogo del dashboard** (revisión independiente de la #736): `lib/studio/dashboard/dashboard-catalog.ts` y `dashboard-kpi-queries.ts`. Tres KPI del catálogo y dos de las consultas pasan de `"wine"` a `"neutral"`. `KpiTone` deja de admitir `"wine"` y `TONE_TO_VALUE_COLOR` pierde esa clave, así que el valor del KPI y el icono del editor (`var(--${meta.tone})`) ya no pueden salir en vino. El contrato lo vigila por variable y trae dos mutantes.
 - La enmienda de BD-011 y el contrato nuevo `color-accion-fase2-contract.test.ts`.
 
 | Destino | Qué |

@@ -44,8 +44,13 @@ Estado del 2026-11-20, tarde:
 - Fase 2, grupos 1 y 2, en la rama local `claude/sdd-0686-fase2-g1` (`e1864b03e` y `ad71ada61`), apilada sobre la PR #722.
 - Se pidió turno de PC al Director para vitest; sin respuesta.
 
-1. **Vitest con turno:** `color-accion-fase2-contract.test.ts` (nuevo) y los contratos de `app/studio/_components/__tests__/`, más las pruebas de los módulos tocados. Hasta ahora solo hay comprobación de sintaxis TypeScript (67 archivos, 0 errores), no de tipos.
-2. Publicar la rama de la fase 2 y abrir su PR solo con la orden del Director o de Sam. Entra a `main` junto con la #722 (§8.1).
+1. **Vitest con turno (2026-11-20, rama de la fase 2, `fd14803a4`), todo PASÓ:**
+   - contratos `app/studio/_components/__tests__/`: 361/361;
+   - módulos: tracking 128/128, embarques 201/201, facturacion 107/107, crm 247/247, cn 95/95, clientes 235/235, cobranzas 33/33 y dashboard 24/24;
+   - marco, primitivas y los 13 módulos de un badge: 470/470.
+
+   En la #722 (`d32d6d3e9`), los contratos dieron 355/355. NO EJECUTADO: `tsc` del proyecto, lint, build, e2e y el recorrido visual. Las correcciones de la revisión de la #736 (catálogo del dashboard) se prueban de nuevo con turno.
+2. PR #736 abierta en borrador, apilada sobre la #722, que quedó APPROVED en `d32d6d3e9`. La #736 recibió CHANGES_REQUESTED sobre `fd14803a4` por el catálogo del dashboard, ya corregido. Entra a `main` junto con la #722 (§8.1).
 3. Grupo 3: las funciones de `lib/studio` que devuelven `"wine"` como tono de badge (nivel VIP, plan mayorista, ETA del calendario, modelo de agente, auditoría y otras), y el resto de módulos por grupos de 5 a 8.
 4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).

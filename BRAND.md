@@ -175,7 +175,7 @@ Pedido de Sam: el vino «visualmente la gente lo ve como algo negativo o como bo
 --ink:         #F2F0EC
 --ink-soft:    #A8B0C4
 
-/* Acción en oscuro (BD-076; valores propuestos) */
+/* Acción en oscuro (BD-076; tono fijado por Sam el 2026-11-20) */
 --accion:        #7FAAF0
 --accion-hover:  #9BBDF4
 --on-accion:     #0F1E3D   /* navy, nunca blanco: blanco sobre #7FAAF0 mide 2,36:1 */
@@ -221,7 +221,7 @@ Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese huec
 - En dark, texto sobre cualquier relleno semántico → `--ink-inv`, nunca blanco (excepción: `--wine` dark sí acepta blanco).
 
 ### Rol de `--wine` en dark
-Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark). Desde BD-076 se reserva para identidad: **los enlaces pasan a `--accion-text`; saldos, KPI y pestañas activas, a tinta.** El Shipping Mark por fila y el badge tono wine se deciden en SDD-0686 §10. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
+Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark). Desde BD-076 se reserva para identidad: **los enlaces pasan a `--accion-text`; saldos, KPI y pestañas activas, a tinta.** El Shipping Mark va en tinta, o en azul con subrayado si lleva a algún lugar (BD-076, regla 6), y el badge tono wine se retira (regla 7); los dos se decidieron el 2026-11-20. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
 
 ### Wine sobre las bandas navy de la web pública
 El sitio público escribe wine sobre `--grad-navy-hero` (#16274B → **#26406F**). El peor caso es siempre el **extremo claro #26406F**: `--wine-soft #C2747F` mide ahí **2.98:1** y reprueba (los eyebrows son de 12px). Token canónico para ese uso: **`--color-wine-on-dark` (#D59FA7)** — mismo tono y saturación que `wine-soft`, solo más claro → **4.57:1** sobre #26406F · 6.55:1 sobre #16274B · 8.64:1 sobre el #060D1C del collage. Lo consumen los alias `--wine-on-dark` de `.home-surface`, `.sm-surface` y `.cx-surface`. Es token de **web pública**: el ERP no lo usa (su equivalente es `--wine-text` dark).
@@ -341,7 +341,7 @@ Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal. Adoptada en producció
 - **Lo que se oprime** lleva relleno o contorno de tinta. Contorno de control ≥ 3:1 contra su fondo.
 - **Lo que avisa** es una franja plana con icono, sin contorno ni sombra.
 - **Lo que solo se lee** es texto. Los estados van con texto e icono, sin cajón.
-- **La acción principal** va en azul (`--accion`, BD-076, enmienda del 2026-11-20); **el vino** queda solo para la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono (vino hasta que ese tramo migre en SDD-0686). Es una excepción registrada a VIS-01 §3.
+- **La acción principal** va en azul (`--accion`, BD-076, enmienda del 2026-11-20); **el vino** queda solo para la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con el icono en la misma tinta (desde la fase 2 de SDD-0686; antes, vino). Es una excepción registrada a VIS-01 §3.
 - **Las tarjetas** conservan su borde suave: el contorno fuerte queda para lo oprimible.
 - **Vista predeterminada:** compacta. El Studio abre en tema oscuro y el Portal en claro (enmienda del 2026-11-17, SDD-0654 D-14). Cada persona puede cambiarlas en la barra superior, y en el Portal quien ya eligió oscuro lo conserva. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
 - **Elevación** (enmienda del 2026-11-12, aprobada por Sam): la sombra marca el nivel. Principal `--shadow-md`; relleno (oscuro, advertencia, peligro) `--shadow-sm`; secundario `--shadow-xs` con contorno de 1,5 px en `--ink` (`--ctl-border`). Avisos, estados y deshabilitados van planos. En oscuro, todo control con relleno lleva `--ctl-edge-hi`, una luz arriba y un aro `--ink-soft`. Los verbos de botón van en peso 700 o más. Sin colores nuevos.

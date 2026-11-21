@@ -264,7 +264,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
  * Franja de cada pendiente, como en `<Aviso>` (BRAND §Estados): el tono va en
  * el fondo suave y en la forma del icono; el texto, siempre en tinta. En
  * atención el icono va en tinta: el dorado no llega a 3:1 sobre su franja en
- * claro. `wine` y `neutral` no son estados: se leen como información.
+ * claro. `neutral` no es un estado: se lee como información.
  */
 const ESTADO_DE_ALERTA: Record<
   KpiTone,
@@ -274,7 +274,6 @@ const ESTADO_DE_ALERTA: Record<
   warning: { fondo: "var(--warning-bg)", icono: "warning", color: "var(--ink)" },
   success: { fondo: "var(--success-bg)", icono: "success", color: "var(--success)" },
   info: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
-  wine: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
   neutral: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
 };
 

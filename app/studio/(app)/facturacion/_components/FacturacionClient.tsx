@@ -176,7 +176,7 @@ export function FacturacionClient({
         <KpiCard
           value={`$${fmtMoney(kpis.outstanding)}`}
           label="Por cobrar"
-          valueColor={kpis.outstanding > 0 ? "var(--ink)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub={`${counts.pending + counts.overdue} factura(s) con saldo`}
         />
         <KpiCard

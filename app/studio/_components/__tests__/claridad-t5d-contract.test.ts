@@ -54,10 +54,10 @@ const ESPERADO: Record<string, Cuenta> = {
   "crm/_components/KommoBoardView.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   "crm/_components/LeadDrawer.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   // Excepciones: el canal de anuncio del arrastre (status + aria-live, DND-01) y «Moviendo…» (status, texto).
-  // El vino es la señal de la columna mientras se arrastra encima, igual que en Bitácora.
+  // La señal de la columna mientras se arrastra encima es azul de acción (BD-076, SDD-0686 fase 2): vino 0.
   // SDD-0671: el único «Abrir ficha de …» es el nombre, y es la parada de Tab (fueraDeTab 0).
   "crm/_components/CrmTableroKanban.tsx": { aviso: 0, rol: 2, vivo: 1, contorno: 0, abrir: 1, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
-  // El vino es color de dato: un KPI y la primera barra de la cartera.
+  // El KPI y la primera barra de la cartera son datos: van en tinta (BD-076, SDD-0686 fase 2): vino 0.
   "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // Excepción: «Cargando la ficha…» es texto en status, sin caja.
   "crm/_components/TarjetaFichaDrawer.tsx": { aviso: 1, rol: 1, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
