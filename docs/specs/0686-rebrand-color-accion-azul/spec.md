@@ -808,7 +808,12 @@ Decisión de Sam: «Cifras KPI: opción A, cifra en tinta y estado con punto y t
 - Cobranzas, separación de fondos: fondos de terceros e ingreso local, sin estado; sin identificar > 0: «Requiere revisión».
 - Detalle de factura: saldo en cero, «Pagada».
 
-El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de peso 800/900 y 20 px o más cuyo `color` en línea lleve `--success`, `--warning`, `--danger` o `--info`, con dos mutantes. Un círculo con icono (`borderRadius: "50%"`) no cuenta como cifra.
+El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de peso 800/900 y 20 px o más cuyo `color` en línea lleve `--success`, `--warning`, `--danger` o `--info`, con dos mutantes. Los dos círculos con check (`OAuthFlowModal.tsx` y `PodModal.tsx`) se exceptúan por ruta y con cuenta exacta, no por forma.
+
+**Notas de la revisión de la #748 (van en la PR del logo):**
+- N1: la excepción es por ruta; con `borderRadius: "50%"` una cifra en un círculo se colaba. Mutante: una cifra en círculo en un archivo exceptuado rompe.
+- N2: el umbral baja a 18 px. Entran el «Vencido» de la antigüedad de Reportes («Requiere cobro» en CxC, «Requiere pago» en CxP) y el monto de la línea bancaria de Conciliación (`LineMatchDrawer.tsx`), que iba en verde en los créditos: queda en tinta, sin estado, porque el badge de al lado ya dice «Crédito» o «Débito».
+- Detalle de factura: con saldo negativo dice «Saldo a favor»; «Pagada» queda para el saldo cero. Palabra nueva: Sam la ve antes de fusionar.
 
 ### Fases 2 a 5
 

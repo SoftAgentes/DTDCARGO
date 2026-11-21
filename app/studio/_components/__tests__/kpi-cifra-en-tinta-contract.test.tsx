@@ -60,12 +60,36 @@ const FUENTE_GRANDE = /font:\s*["`](?:800|900)\s+(?:(\d+(?:\.\d+)?)px|var\(--kpi
 const COLOR_DE_ESTADO = /var\(--(?:success|warning|danger|info)\b/;
 
 /**
- * Cifras destacadas fuera de KpiCard (peso 800/900 y 20 px o más) cuyo `color`
- * lleva un color de estado (H1 de la revisión de la #748). La cifra va en tinta y
- * el estado aparte con `KpiEstado`. Un círculo con icono (`borderRadius: "50%"`,
- * como el check de un paso cumplido) no es una cifra.
+ * Excepciones por ruta, con cuenta exacta: el check de un paso cumplido, un
+ * círculo verde con icono que no es una cifra. Se excluye por ruta y no por forma
+ * (nota N1 de la revisión de la #748): con `borderRadius: "50%"` una cifra puesta
+ * en un círculo se colaría.
+ */
+const CIRCULOS_CON_ICONO: Record<string, number> = {
+  "app/studio/_components/wiring/OAuthFlowModal.tsx": 1,
+  "app/m/ve/camionero/_components/PodModal.tsx": 1,
+};
+
+/**
+ * Cifras destacadas fuera de KpiCard (peso 800/900 y 18 px o más) cuyo `color`
+ * lleva un color de estado (H1 y N2 de la revisión de la #748). La cifra va en
+ * tinta y el estado aparte con `KpiEstado`.
  */
 function cifrasGrandesConEstado(fuente: (ruta: string) => string): string[] {
+  const hallados = cifrasGrandesConEstadoSinExcepciones(fuente);
+  const porArchivo = new Map<string, number>();
+  for (const h of hallados) {
+    const ruta = h.replace(/:\d+$/, "");
+    porArchivo.set(ruta, (porArchivo.get(ruta) ?? 0) + 1);
+  }
+  // Una excepción vale solo con su cuenta exacta: una cifra nueva en el mismo archivo rompe.
+  return hallados.filter((h) => {
+    const ruta = h.replace(/:\d+$/, "");
+    return porArchivo.get(ruta) !== CIRCULOS_CON_ICONO[ruta];
+  });
+}
+
+function cifrasGrandesConEstadoSinExcepciones(fuente: (ruta: string) => string): string[] {
   return ["app/studio", "app/portal", "app/m"]
     .flatMap((b) => {
       try {
@@ -79,7 +103,7 @@ function cifrasGrandesConEstado(fuente: (ruta: string) => string): string[] {
       bloquesDeEstilo(fuente(ruta))
         .filter(({ txt }) => {
           const m = FUENTE_GRANDE.exec(txt);
-          if (!m || (m[1] && Number(m[1]) < 20) || /borderRadius:\s*["']50%/.test(txt)) return false;
+          if (!m || (m[1] && Number(m[1]) < 18)) return false;
           const color = /\bcolor:([\s\S]*?)(?:,\s*\n|\n\s*\}\})/.exec(txt)?.[1] ?? "";
           return COLOR_DE_ESTADO.test(color);
         })
@@ -110,6 +134,37 @@ describe("SDD-0686 · cifras KPI en tinta (Sam, opción A)", () => {
     const encontrados = cifrasGrandesConEstado((ruta) => (rel(ruta) === objetivo ? mutado : readFileSync(ruta, "utf8")));
     expect(encontrados).toHaveLength(1);
     expect(encontrados[0]).toMatch(new RegExp(`^${objetivo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\d+$`));
+  });
+
+  it("mutante N2: el «Vencido» de 18 px de Reportes en rojo se detecta", () => {
+    const objetivo = "app/studio/(app)/reportes/_components/ReportesClient.tsx";
+    const de = 'font: "800 18px/1 var(--f-mono)",\n                  color: "var(--ink)",';
+    const original = leer(objetivo);
+    expect(original.split(de).length - 1).toBe(1);
+    const mutado = original.replace(de, 'font: "800 18px/1 var(--f-mono)",\n                  color: side.overdue > 0 ? "var(--danger)" : "var(--ink-soft)",');
+    const encontrados = cifrasGrandesConEstado((ruta) => (rel(ruta) === objetivo ? mutado : readFileSync(ruta, "utf8")));
+    expect(encontrados).toHaveLength(1);
+    expect(encontrados[0].startsWith(`${objetivo}:`)).toBe(true);
+  });
+
+  it("mutante N1: una cifra en círculo dentro de un archivo exceptuado se detecta (la excepción es por cuenta)", () => {
+    const objetivo = "app/studio/_components/wiring/OAuthFlowModal.tsx";
+    const original = leer(objetivo);
+    // Las excepciones son exactamente las de la lista: el check de cada archivo.
+    expect(cifrasGrandesConEstadoSinExcepciones((ruta) => readFileSync(ruta, "utf8")).map((h) => h.replace(/:\d+$/, "")).sort()).toEqual(
+      Object.keys(CIRCULOS_CON_ICONO).sort(),
+    );
+    const cifra = '\n<div style={{\n  borderRadius: "50%",\n  font: "900 24px/1 var(--f-display)",\n  color: "var(--danger)",\n}}>3</div>\n';
+    const mutado = original + cifra;
+    const encontrados = cifrasGrandesConEstado((ruta) => (rel(ruta) === objetivo ? mutado : readFileSync(ruta, "utf8")));
+    expect(encontrados.every((h) => h.startsWith(`${objetivo}:`))).toBe(true);
+    expect(encontrados).toHaveLength(2);
+  });
+
+  it("el saldo de la factura dice «Saldo a favor» si es negativo y «Pagada» si es cero", () => {
+    const pagina = leer("app/studio/(app)/facturacion/[code]/page.tsx");
+    expect(pagina).toContain('texto: balance < 0 ? "Saldo a favor" : "Pagada"');
+    expect(pagina).toContain("{balance <= 0 && (");
   });
 
   it("KpiEstado sobre el navy usa --ink-side y el rojo para fondo oscuro", () => {
