@@ -161,8 +161,8 @@ export function ConvertLeadDrawer({
                     gap: 12,
                     padding: "10px 12px",
                     borderRadius: "var(--r-md)",
-                    border: `1px solid ${on ? "var(--wine)" : "var(--border)"}`,
-                    background: on ? "var(--wine-tint)" : "var(--bg-surface)",
+                    border: `1px solid ${on ? "var(--ink)" : "var(--border)"}`,
+                    background: on ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
                     cursor: "pointer",
                   }}
                 >
@@ -190,7 +190,7 @@ export function ConvertLeadDrawer({
                     </div>
                   </div>
                   {on && (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Elegido
                     </Badge>
                   )}

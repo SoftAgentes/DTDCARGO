@@ -2,8 +2,8 @@
  * TrackingTimeline — vista operativa de los hitos del embarque (SDD-0013).
  *
  * Reusa el STATUS_FLOW desde tracking-progress. Pinta steps:
- *  - done    → bullet wine con ✓
- *  - active  → bullet wine con número actual
+ *  - done    → bullet de tinta con ✓ (estado, no acción: BD-076)
+ *  - active  → bullet de tinta con número actual
  *  - pending → bullet hueco con número
  *  - exception → bullet rojo
  */
@@ -19,13 +19,13 @@ type Props = {
 };
 
 function bulletFill(state: TimelineStepState): string {
-  if (state === "done" || state === "active") return "var(--wine)";
+  if (state === "done" || state === "active") return "var(--ink)";
   if (state === "exception") return "var(--danger)";
   return "var(--bg-elevated)";
 }
 
 function bulletBorder(state: TimelineStepState): string {
-  if (state === "done" || state === "active") return "var(--wine)";
+  if (state === "done" || state === "active") return "var(--ink)";
   if (state === "exception") return "var(--danger)";
   return "var(--border-strong)";
 }
@@ -50,7 +50,7 @@ function metaLabel(state: TimelineStepState): string {
 }
 
 function metaColor(state: TimelineStepState): string {
-  if (state === "active") return "var(--wine)";
+  if (state === "active") return "var(--ink)";
   if (state === "exception") return "var(--danger)";
   return "var(--ink-soft)";
 }
@@ -69,7 +69,7 @@ export function TrackingTimeline({ shipment }: Props) {
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine-text)", marginBottom: 16 }}
+        style={{ marginBottom: 16 }}
       >
         Eventos del embarque
       </div>
@@ -78,7 +78,7 @@ export function TrackingTimeline({ shipment }: Props) {
         {steps.map((step, i) => {
           const isLast = i === steps.length - 1;
           const lineColor =
-            step.state === "done" ? "var(--wine)" : "var(--border)";
+            step.state === "done" ? "var(--ink)" : "var(--border)";
 
           return (
             <div

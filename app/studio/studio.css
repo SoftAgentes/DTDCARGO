@@ -20,7 +20,7 @@
    gradual sin tocar todos los componentes ya construidos.
 
    PARA CÓDIGO NUEVO: usá las variables del diseño directo
-   (var(--wine), var(--ink), var(--bg-base), etc.). Ver tokens.css.
+   (var(--accion), var(--ink), var(--bg-base), etc.). Ver tokens.css. El vino es identidad (BD-076).
    ─────────────────────────────────────────────────────────── */
 :root {
   /* Escala tipográfica modular del Studio (legacy — uso interno) */
@@ -34,8 +34,9 @@
   --studio-fs-hero: 36px;
 
   /* Alias colores: --studio-* apuntan a los tokens del diseño v1 */
-  --studio-wine: var(--wine);
-  --studio-wine-deep: var(--wine-deep);
+  /* --studio-wine y --studio-wine-deep se retiraron con SDD-0686 (fase 1): su
+     único consumidor era el botón principal, que pasó a --accion. Queda
+     --studio-wine-soft como identidad (guión del eyebrow). */
   --studio-wine-soft: var(--wine-soft);
   --studio-ink: var(--ink);
   --studio-ink-2: var(--bg-surface);      /* antes #16264A para card login dark */
@@ -242,8 +243,8 @@
   border-color: var(--studio-ink);
 }
 .studio-input:focus-visible {
-  border-color: var(--wine-text);
-  box-shadow: 0 0 0 1px var(--wine-text);
+  border-color: var(--accion-text);
+  box-shadow: 0 0 0 1px var(--accion-text);
 }
 .studio-input[aria-invalid="true"] {
   border-color: var(--danger);
@@ -262,7 +263,7 @@
 /* Checkbox nativo del Studio: foco visible por teclado (WCAG 2.4.7).
    El inline style no cubre pseudo-clases, por eso la regla vive acá. */
 .studio-checkbox:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -302,7 +303,7 @@
   cursor: not-allowed;
 }
 .studio-file:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -326,7 +327,7 @@
   border-color: rgba(255, 255, 255, 0.30);
 }
 .studio-input-dark:focus-visible {
-  border-color: var(--studio-wine-soft);
+  border-color: var(--accion-soft);
   box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.22);
 }
 .studio-input-dark:disabled {
@@ -405,20 +406,20 @@
 }
 
 .studio-btn-primary {
-  background: var(--studio-wine);
-  color: var(--ink-side-strong);
+  background: var(--accion);
+  color: var(--on-accion);
   --btn-edge: var(--ctl-edge-hi);
   --btn-lift: var(--shadow-md);
 }
 .studio-btn-primary:hover:not(:disabled) {
-  background: var(--studio-wine-deep);
+  background: var(--accion-hover);
   --btn-lift: var(--shadow-lg);
 }
 .studio-btn-primary:active:not(:disabled) {
   --btn-lift: var(--shadow-xs);
 }
 .studio-btn-primary:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -428,7 +429,7 @@
   --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-dark:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -447,7 +448,7 @@
   color: var(--ink-inv);
 }
 .studio-btn-ghost:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -724,7 +725,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--wine-text);
+  color: var(--accion-text);
   font: 700 12px/1.4 var(--f-sans);
   text-decoration: underline;
   text-underline-offset: calc(var(--s-1) / 2);
@@ -739,7 +740,7 @@
 
 .studio-toast-action:focus-visible,
 .studio-toast-close:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -842,7 +843,7 @@
   background: var(--studio-paper-2);
 }
 .studio-tracking-row:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
   background: var(--studio-paper-2);
 }
@@ -856,7 +857,7 @@
 /* ───────────────────────────────────────────────────────────
    Fila accionable — primitiva <ActionableRow> (DataTable.tsx)
    `<tr>` operable por teclado (WCAG 2.1.1). El color del ring lo hereda
-   del :focus-visible global (--wine / --wine-soft en dark), acá solo
+   del :focus-visible global (--accion, BD-076), acá solo
    metemos el ring HACIA ADENTRO (offset -2px) para que no lo recorte el
    overflow-x del <TableFrame>. Motion por tokens, no en px/segundos crudos.
    ─────────────────────────────────────────────────────────── */
@@ -887,7 +888,7 @@
 }
 .studio-link-quiet:hover,
 .studio-link-quiet:focus-visible {
-  color: var(--wine-text);
+  color: var(--accion-text);
   text-decoration-color: currentColor;
   text-decoration-thickness: 2px;
 }
@@ -906,7 +907,7 @@
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 .kommo-contact-pick:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 /* Tintes persistentes (Cobranzas): mantienen la clase studio-tracking-row
@@ -917,7 +918,7 @@
   background: var(--danger-bg);
 }
 .studio-row-selected {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 /* Chip de @mención en comentarios (SDD-0045). Wine-tint + texto wine, igual
@@ -1079,7 +1080,7 @@
   border-color: rgba(255, 255, 255, 0.20);
 }
 .studio-icon-btn:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1355,7 +1356,7 @@
   color: var(--ink);
 }
 .studio-tracking-ops-kpis dd[data-acento="true"] {
-  color: var(--wine-text);
+  color: var(--ink);
 }
 .studio-tracking-ops-kpis dd[data-mono="true"] {
   font: 800 16px/1.2 var(--f-mono);
@@ -1586,7 +1587,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--border-strong) !important;
 }
 .studio-shipment-card:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1639,16 +1640,16 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--ink-soft);
 }
 .studio-cal-nav-btn:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
-/* Botón "HOY" — pill wine */
+/* Botón "HOY" — pill de acción (BD-076) */
 .studio-cal-today-btn {
   padding: 8px 14px;
   border-radius: 7px;
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: var(--accion-tint);
+  color: var(--accion-text);
   border: 1px solid transparent;
   font: 700 11px/1 var(--f-sans);
   letter-spacing: 0.06em;
@@ -1659,11 +1660,11 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
     border-color var(--dur) var(--ease);
 }
 .studio-cal-today-btn:hover:not(:disabled) {
-  background: var(--wine);
-  color: var(--bg-surface);
+  background: var(--accion);
+  color: var(--on-accion);
 }
 .studio-cal-today-btn:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .studio-cal-today-btn:disabled {
@@ -1684,7 +1685,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   box-shadow: inset 0 0 0 1.5px var(--border-strong);
 }
 .studio-cal-daycell:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
 }
 
@@ -1731,7 +1732,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
 
 /* ── BugFAB · tono "Fantasma" (SDD-0036 refinamiento) ─────────
    Utilitario de MENOR jerarquía: contorno + ícono navy suave sobre fondo
-   transparente, sin pulso. El wine sigue siendo el único color de acción.
+   transparente, sin pulso. El azul (--accion) es el único color de acción (BD-076).
    Oculto por defecto (se enciende con Alt+B). El botón es la caja de toque
    (44px); el disco visible mide 38px (.bug-fab-disc). */
 
@@ -1775,7 +1776,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   cursor: grabbing;
 }
 .bug-fab-button:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 3px;
   border-radius: var(--r-pill);
 }
@@ -1837,10 +1838,10 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   text-transform: uppercase;
 }
 .bug-fab-ghost[data-active="true"] {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
   border-style: solid;
-  border-color: var(--wine);
-  color: var(--wine-text);
+  border-color: var(--ink);
+  color: var(--ink);
   transform: scale(1.12);
 }
 
@@ -1865,7 +1866,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--border-strong) !important;
 }
 .studio-doc-thumb:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1882,7 +1883,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   transform: translateY(-1px);
 }
 .studio-card-link:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1907,7 +1908,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   background: var(--bg-elevated) !important;
 }
 .studio-adminnav-item:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1939,7 +1940,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--ink-soft);
 }
 .calc-why-summary:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .calc-why-chev {
@@ -1968,15 +1969,15 @@ details[open] > .calc-why-summary .calc-why-chev {
   filter: brightness(0.94);
 }
 .studio-permcell:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .studio-permcell-reset:hover:not(:disabled) {
-  border-color: var(--wine);
-  color: var(--wine);
+  border-color: var(--accion);
+  color: var(--accion-text);
 }
 .studio-permcell-reset:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 1px;
 }
 /* Destello al guardar (SDD-0252, feedback del founder): la celda cicla entre
@@ -2030,7 +2031,7 @@ details[open] > .calc-why-summary .calc-why-chev {
   max-height: calc(100vh - 240px); min-height: 360px;
   border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface);
 }
-.studio-mx-wrap:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-wrap:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
 .studio-mx { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
 .studio-mx th, .studio-mx td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
 /* Fila de roles fija arriba */
@@ -2138,9 +2139,9 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-mx-opt b { font: 650 12.5px/1.2 var(--f-sans); }
 .studio-mx-opt span { font: 400 11.5px/1.35 var(--f-sans); color: var(--ink-soft); }
 .studio-mx-opt:hover:not(:disabled) { border-color: var(--ink); }
-.studio-mx-opt:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
-.studio-mx-opt[aria-checked="true"] { border-color: var(--wine); background: var(--wine-tint); }
-.studio-mx-opt[aria-checked="true"] b { color: var(--wine-text); }
+.studio-mx-opt:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
+.studio-mx-opt[aria-checked="true"] { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.studio-mx-opt[aria-checked="true"] b { color: var(--ink); }
 .studio-mx-opt:disabled { cursor: not-allowed; opacity: .6; }
 .studio-mx-fab { margin: 0; padding: var(--s-2) 10px; border-radius: var(--r-sm); background: var(--bg-elevated); font: 400 12px/1.45 var(--f-sans); }
 .studio-mx-fab b { font-weight: 700; }
@@ -2148,8 +2149,8 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   display: inline; padding: 0; border: 0; background: none; cursor: pointer;
   font: inherit; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px;
 }
-.studio-mx-link:hover:not(:disabled) { color: var(--wine-text); }
-.studio-mx-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-link:hover:not(:disabled) { color: var(--accion-text); }
+.studio-mx-link:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
 .studio-mx-aviso { margin: 0; font: 400 11.5px/1.45 var(--f-sans); color: var(--ink-soft); }
 .studio-mx-actions { display: flex; justify-content: flex-end; gap: var(--s-2); }
 
@@ -2161,7 +2162,7 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   transition: background 0.12s;
 }
 .studio-row-linkable:hover {
-  background: var(--wine-tint);
+  background: var(--accion-tint);
 }
 .studio-row-linkable:focus-visible {
   outline: 2px solid var(--info);
@@ -2304,7 +2305,7 @@ a.studio-tab {
    bottom, right, width) va inline porque depende del gap y del padding de
    cada tabla; acá van el cursor, la línea y sus estados. La línea en reposo
    es un divisor decorativo; hover, foco y arrastre la pintan con
-   --wine-text, que pasa 3:1 en claro y en oscuro.
+   --accion-text, que pasa 3:1 en claro y en oscuro (BD-076).
    ─────────────────────────────────────────────────────────── */
 .studio-col-resize {
   position: absolute;
@@ -2327,10 +2328,10 @@ a.studio-tab {
 .studio-col-resize:focus-visible::before,
 .studio-col-resize[data-resizing="true"]::before {
   width: 2px;
-  background: var(--wine-text);
+  background: var(--accion-text);
 }
 .studio-col-resize:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
   border-radius: var(--r-xs);
 }
@@ -2616,7 +2617,7 @@ a.studio-tab {
   cursor: pointer;
 }
 .studio-date-field__trigger:hover:not(:disabled) {
-  background: var(--wine-tint);
+  background: var(--accion-tint);
   color: var(--ink);
 }
 .studio-date-field__trigger:disabled {
@@ -2641,5 +2642,5 @@ a.studio-tab {
   outline-offset: 1px;
 }
 .studio-date-field__cell:hover:not([aria-disabled="true"]):not([aria-pressed]) {
-  background: var(--wine-tint);
+  background: var(--accion-tint);
 }

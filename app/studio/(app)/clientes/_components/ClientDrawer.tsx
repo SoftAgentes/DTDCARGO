@@ -402,7 +402,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
           {/* Tipo de documento · persona (cédula) / empresa (RIF) — SDD-0131 */}
           <div>
             <label className="studio-label">
-              Tipo de cliente <span style={{ color: "var(--wine-text)" }}>*</span>
+              Tipo de cliente <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             {/* Hidden input: el value entra al FormData tanto en create
                 (new FormData(formEl)) como en edit (form action). */}
@@ -431,9 +431,9 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                     className="studio-btn"
                     style={{
                       justifyContent: "center",
-                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
-                      background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-                      color: active ? "var(--wine)" : "var(--ink-soft)",
+                      border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
+                      background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                      color: active ? "var(--ink)" : "var(--ink-soft)",
                       fontWeight: active ? 700 : 500,
                     }}
                   >
@@ -448,7 +448,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
           <div>
             <label className="studio-label" htmlFor="cl-name">
               {isCompany ? "Razón social" : "Nombre"}{" "}
-              <span style={{ color: "var(--wine-text)" }}>*</span>
+              <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="cl-name"
@@ -490,7 +490,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
           {/* Tier */}
           <div>
             <label className="studio-label" htmlFor="cl-tier">
-              Tier <span style={{ color: "var(--wine-text)" }}>*</span>
+              Tier <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <select
               id="cl-tier"

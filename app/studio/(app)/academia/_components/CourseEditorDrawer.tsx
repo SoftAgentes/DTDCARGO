@@ -142,7 +142,7 @@ export function CourseEditorDrawer({
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: "var(--s-2)" }}>
-                  <Badge tone="wine" size="sm">
+                  <Badge tone="neutral" size="sm">
                     {tierLabel(tree.tier)}
                   </Badge>
                   <Badge tone={courseStatusTone(tree.status)} size="sm">
@@ -386,7 +386,7 @@ function ModuleBlock({
                     {lessonStatusLabel(l.status)}
                   </Badge>
                   {l.free_preview && (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Preview gratis
                     </Badge>
                   )}

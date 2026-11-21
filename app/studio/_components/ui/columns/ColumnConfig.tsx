@@ -100,7 +100,7 @@ export function useColumnConfig(
 
 /**
  * Botón "Columnas N" + popover del gestor (§4 del handoff): ▲▼ reordena
- * (swap), checkbox muestra/oculta (accent wine), Restablecer al default.
+ * (swap), checkbox muestra/oculta (accent azul de acción, BD-076), Restablecer al default.
  */
 export function ColumnManager({
   cfg,
@@ -147,11 +147,11 @@ export function ColumnManager({
           gap: 6,
           height: 32,
           padding: "0 11px",
-          background: open ? "var(--wine-tint)" : "var(--bg-surface)",
-          border: `1px solid ${open ? "var(--wine)" : "var(--border)"}`,
+          background: open ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+          border: `1px solid ${open ? "var(--ink)" : "var(--border)"}`,
           borderRadius: "var(--r-md)",
           font: "600 12px/1 var(--f-sans)",
-          color: open ? "var(--wine)" : "var(--ink-soft)",
+          color: open ? "var(--ink)" : "var(--ink-soft)",
           cursor: "pointer",
         }}
       >
@@ -204,7 +204,7 @@ export function ColumnManager({
                 onClick={reset}
                 style={{
                   font: "600 11px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   padding: "3px 6px",
                   background: "transparent",
                   border: "none",
@@ -283,7 +283,7 @@ export function ColumnManager({
                         onChange={() => toggle(idx)}
                         // La última visible no se puede ocultar (tabla vacía).
                         disabled={c.visible && visibleCount === 1}
-                        style={{ accentColor: "var(--wine)", flexShrink: 0 }}
+                        style={{ accentColor: "var(--accion)", flexShrink: 0 }}
                       />
                       <span style={{ minWidth: 0 }}>
                         <span

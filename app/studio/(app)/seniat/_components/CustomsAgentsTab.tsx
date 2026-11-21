@@ -100,7 +100,7 @@ function AgentCard({ agent }: { agent: CustomsAgent }) {
           )}
         </div>
         {agent.port_code && (
-          <Badge tone="wine" size="sm">
+          <Badge tone="neutral" size="sm">
             {agent.port_code}
           </Badge>
         )}

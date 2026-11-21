@@ -818,7 +818,7 @@ export function VersionHistoryDrawer({
                       {v.name}
                     </span>
                     {v.is_current && (
-                      <Badge tone="wine" size="sm">
+                      <Badge tone="success" size="sm">
                         Vigente
                       </Badge>
                     )}

@@ -974,7 +974,7 @@ function CityRow({
         )}
       </td>
       <td style={{ ...tdStyle, textAlign: "center" }}>
-        {c.is_hq ? <Badge tone="wine" size="sm">HQ</Badge> : "—"}
+        {c.is_hq ? <Badge tone="neutral" size="sm">HQ</Badge> : "—"}
       </td>
       <td style={{ ...tdStyle, textAlign: "center" }}>
         <Badge tone={c.active ? "success" : "neutral"} size="sm">

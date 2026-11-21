@@ -185,7 +185,7 @@ export function CobranzasClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porCobrar)}`}
           label="Por cobrar"
-          valueColor={kpis.porCobrar > 0 ? "var(--wine-text)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub={`${kpis.casos} caso(s) abierto(s)`}
         />
         <KpiCard
@@ -695,7 +695,7 @@ function ReceivablesTable({
               <div
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 3,
                 }}
               >

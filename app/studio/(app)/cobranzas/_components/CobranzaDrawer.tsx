@@ -734,7 +734,7 @@ function CobroForm({
                 El pagador declaró que los fondos corresponden a la operación y
                 son de origen lícito.
                 {!licitDeclared && (
-                  <span style={{ color: "var(--wine-text)", fontWeight: 600 }}>
+                  <span style={{ color: "var(--ink)", fontWeight: 600 }}>
                     {" "}
                     · requerido para registrar un pago de tercero
                   </span>
@@ -1086,8 +1086,8 @@ function HistorySection({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "var(--wine-tint)",
-                    color: "var(--wine-text)",
+                    background: "var(--bg-elevated)",
+                    color: "var(--ink)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",

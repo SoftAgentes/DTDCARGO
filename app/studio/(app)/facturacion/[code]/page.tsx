@@ -274,7 +274,7 @@ export default async function InvoiceDetailPage({
             <div
               style={{
                 font: "900 42px/1 var(--f-display)",
-                color: balance > 0 ? "var(--wine-soft)" : "var(--success)",
+                color: balance > 0 ? "var(--ink-side-strong)" : "var(--success)",
                 letterSpacing: "-0.02em",
                 marginTop: 8,
               }}
@@ -335,7 +335,7 @@ export default async function InvoiceDetailPage({
               <strong
                 style={{
                   font: "700 12px/1 var(--f-mono)",
-                  color: overdue ? "var(--wine-soft)" : "var(--ink-side-strong)",
+                  color: overdue ? "var(--color-status-danger-on-dark)" : "var(--ink-side-strong)",
                 }}
               >
                 {invoice.due_date}

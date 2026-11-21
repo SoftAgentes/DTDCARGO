@@ -64,7 +64,7 @@ export function RegistrosLinkClient({
         Lo que escribió cada cliente al completar su ficha con el link de registro, al lado de
         lo que tenía antes. Revisa y marca comprobado. Si sale un posible duplicado, resuélvelo
         en{" "}
-        <Link href="/studio/clientes/duplicados" style={{ color: "var(--wine-text)", fontWeight: 600 }}>
+        <Link href="/studio/clientes/duplicados" style={{ color: "var(--accion-text)", fontWeight: 600 }}>
           Posibles duplicados
         </Link>
         .

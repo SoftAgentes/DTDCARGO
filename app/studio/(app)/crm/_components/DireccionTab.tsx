@@ -311,7 +311,7 @@ export function DireccionTab({
         <KpiCard
           value={convertedCount ?? "—"}
           label="Convertidos a cliente"
-          valueColor="var(--wine-text)"
+          valueColor="var(--ink)"
           sub="Leads que ya son cliente DTD"
         />
         <KpiCard
@@ -425,7 +425,7 @@ export function DireccionTab({
                   o.pct >= 90
                     ? "var(--danger)"
                     : i === 0
-                      ? "var(--wine)"
+                      ? "var(--ink)"
                       : "var(--info)"
                 }
               />

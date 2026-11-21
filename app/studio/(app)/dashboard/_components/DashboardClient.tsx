@@ -281,7 +281,7 @@ export function DashboardClient({
                     label={meta.label}
                     valueColor={value === "—" ? "var(--ink-mute)" : TONE_TO_VALUE_COLOR[tone]}
                     sub={meta.status === "wip" ? "Próximamente" : v?.sub}
-                    // KPI destacado (BD-034): el primero va en relleno vino + "D".
+                    // KPI destacado (BD-034): el primero va en degradado navy + "D" (cifras en tinta, BD-076).
                     feature={i === 0}
                   />
                 );

@@ -143,7 +143,7 @@ export async function financeInvoiceKpis(
     avgTicket: {
       value: money(avgTicket),
       sub: `${ytdCount} factura(s) en el año · sin IVA${tercerosDelAnio}`,
-      tone: "wine",
+      tone: "neutral",
     },
   };
 }
@@ -156,7 +156,7 @@ export async function marginKpi(supabase: SupabaseClient): Promise<KpiValue> {
     return {
       value: `${totals.avgMarginPct.toFixed(1)}%`,
       sub: `${totals.profitable} rentable(s) · ${totals.losing} en pérdida`,
-      tone: totals.avgMarginPct >= 0 ? "wine" : "danger",
+      tone: totals.avgMarginPct >= 0 ? "neutral" : "danger",
     };
   } catch (e) {
     console.error("[marginKpi]", (e as Error).message);

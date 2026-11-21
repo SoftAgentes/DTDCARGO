@@ -414,7 +414,7 @@ function RatesTable({
               alignItems: "flex-start",
             }}
           >
-            <Badge tone="wine" size="sm">
+            <Badge tone="neutral" size="sm">
               {SERVICE_LABELS[rate.service].primary}
             </Badge>
             {rate.status === "published" && rate.is_public && (

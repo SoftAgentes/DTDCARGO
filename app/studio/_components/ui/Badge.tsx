@@ -8,6 +8,9 @@ export type BadgeTone =
   | "warning"
   | "danger"
   | "info"
+  /** @deprecated Retirado por BD-076 (regla 7): usa `neutral` si informa y `success`
+   *  si confirma. El Studio ya no lo usa; queda solo hasta que la fase 3 de
+   *  SDD-0686 migre el móvil. */
   | "wine"
   | "neutral";
 

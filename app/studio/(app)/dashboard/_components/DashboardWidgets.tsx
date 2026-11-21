@@ -70,7 +70,7 @@ export function ChartWidget({
     <WCard>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow">
             VOLUMEN RECIBIDO
           </div>
           <div style={{ font: "900 20px/1.1 var(--f-display)", color: "var(--ink)", marginTop: 6, letterSpacing: "-0.02em" }}>
@@ -129,9 +129,9 @@ export function ChartWidget({
             const isLast = i === points.length - 1;
             return (
               <g key={i}>
-                <rect x={x} y={y} width={w} height={Math.max(0, h)} fill="var(--wine)" opacity={isLast ? 1 : 0.5} rx="2" />
+                <rect x={x} y={y} width={w} height={Math.max(0, h)} fill="var(--ink)" opacity={isLast ? 1 : 0.4} rx="2" />
                 {isLast && pt.value > 0 && (
-                  <text x={x + w / 2} y={y - 6} fontFamily="var(--f-display)" fontSize="11" fill="var(--wine-text)" textAnchor="middle">
+                  <text x={x + w / 2} y={y - 6} fontFamily="var(--f-display)" fontSize="11" fill="var(--ink)" textAnchor="middle">
                     {pt.value}
                   </text>
                 )}
@@ -217,7 +217,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
   return (
     <WCard>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           PRÓXIMOS POR LLEGAR
         </div>
         <Link href="/studio/calendario" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
@@ -242,7 +242,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
                 textDecoration: "none",
               }}
             >
-              <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>{Icon.ship(15)}</span>
+              <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>{Icon.ship(15)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "700 12px/1.2 var(--f-mono)", color: "var(--ink)" }}>{s.code}</div>
                 <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -264,7 +264,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
  * Franja de cada pendiente, como en `<Aviso>` (BRAND §Estados): el tono va en
  * el fondo suave y en la forma del icono; el texto, siempre en tinta. En
  * atención el icono va en tinta: el dorado no llega a 3:1 sobre su franja en
- * claro. `wine` y `neutral` no son estados: se leen como información.
+ * claro. `neutral` no es un estado: se lee como información.
  */
 const ESTADO_DE_ALERTA: Record<
   KpiTone,
@@ -274,14 +274,13 @@ const ESTADO_DE_ALERTA: Record<
   warning: { fondo: "var(--warning-bg)", icono: "warning", color: "var(--ink)" },
   success: { fondo: "var(--success-bg)", icono: "success", color: "var(--success)" },
   info: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
-  wine: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
   neutral: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
 };
 
 export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
   return (
     <WCard>
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 12 }}>
+      <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
         ATENCIÓN REQUERIDA
       </div>
       {alerts.length === 0 ? (
@@ -347,7 +346,7 @@ export function QuickActionsWidget() {
   ];
   return (
     <WCard>
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 12 }}>
+      <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
         ACCIONES RÁPIDAS
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -389,7 +388,7 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
   return (
     <WCard>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           NÓMINA · RESUMEN
         </div>
         <Link href="/studio/nomina" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>

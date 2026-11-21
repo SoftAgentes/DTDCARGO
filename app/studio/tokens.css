@@ -7,8 +7,19 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
-  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Fill de botones sigue en --wine. */
+  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Desde BD-076 el vino es identidad, no acción. */
   --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
+
+  /* Acción (BD-076, SDD-0686): azul = lo que se oprime; rojo = peligro; vino = identidad.
+     Tono fijado por Sam el 2026-11-20 (opción B de tres). Contraste
+     y distancia de tono contra --danger los vigila color-accion-contract.test.ts.
+     No referencian --wine*: si la identidad cambia, la acción no se mueve. */
+  --accion: #1F4FA8;                    /* relleno del botón principal · acento de acción */
+  --accion-hover: #183E86;              /* hover del relleno */
+  --on-accion: #FFFFFF;                 /* texto e ícono sobre el relleno (7,66:1) */
+  --accion-text: #1F4FA8;               /* acción como texto: enlaces (7,34:1 sobre --bg-base) */
+  --accion-tint: rgba(31,79,168,0.08);  /* fondo suave de acción */
+  --accion-soft: #7FAAF0;               /* foco sobre superficies siempre oscuras (menú lateral) */
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -253,6 +264,14 @@
   --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
   --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
 
+  /* Acción en oscuro (BD-076). Texto navy sobre el relleno: blanco sobre #7FAAF0 mide 2,36:1. */
+  --accion: #7FAAF0;
+  --accion-hover: #9BBDF4;
+  --on-accion: #0F1E3D;
+  --accion-text: #7FAAF0;
+  --accion-tint: rgba(127,170,240,0.14);
+  --accion-soft: #7FAAF0;
+
   /* Glass (BD-031) · override oscuro: vidrio navy translúcido + texto crema. */
   --glass-bg: linear-gradient(160deg, rgba(31,48,85,0.55), rgba(15,30,61,0.34));
   --glass-border: rgba(255,255,255,0.22);
@@ -367,6 +386,12 @@
     --wine-tint: rgba(127,15,26,0.08);
     --wine-text: #7F0F1A;
     --on-warning: #0F1E3D;
+    --accion: #1F4FA8;
+    --accion-hover: #183E86;
+    --on-accion: #FFFFFF;
+    --accion-text: #1F4FA8;
+    --accion-tint: rgba(31,79,168,0.08);
+    --accion-soft: #7FAAF0;
     --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.44));
     --glass-border: rgba(255,255,255,0.9);
     --glass-hi: inset 0 1px 0 rgba(255,255,255,0.9);
@@ -499,11 +524,11 @@ a { color: inherit; text-decoration: none; }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */
-:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; border-radius: var(--r-sm); }
+/* Foco en el color de acción (BD-076): --accion mide 7,34:1 sobre --bg-base en claro y
+   ~7,8:1 en oscuro (#7FAAF0 sobre #0B1428), así que un solo token sirve para los dos temas.
+   Antes era --wine, que en oscuro daba 2,79:1 y necesitaba --wine-soft. */
+:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; border-radius: var(--r-sm); }
 button:focus-visible, a:focus-visible { outline-offset: 3px; }
-/* En dark, --wine (#A8323E) da 2.79:1 contra el fondo → falla WCAG 1.4.11 (≥3:1).
-   El acento visible en dark es --wine-soft (#D89AA4, ~6:1). Ver BRAND.md ♿ + DS Cloud Design. */
-[data-theme="dark"] :focus-visible { outline-color: var(--wine-soft); }
 /* BD-017: sobre superficies navy fijas (sidebar) --wine es invisible (1.56:1) en cualquier
    tema → foco en cream/--ink-side. Aplicar el hook al contenedor navy. */
 [data-surface="navy"] :focus-visible,

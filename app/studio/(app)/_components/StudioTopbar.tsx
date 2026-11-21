@@ -358,7 +358,7 @@ function UserMenuDropdown({
           {email}
         </div>
         <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <Badge tone="wine" size="sm">
+          <Badge tone="neutral" size="sm">
             Admin
           </Badge>
           <Badge tone="neutral" size="sm">

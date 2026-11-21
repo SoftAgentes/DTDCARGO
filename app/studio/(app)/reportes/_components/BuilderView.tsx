@@ -448,7 +448,7 @@ export function BuilderView({
                 Conversión incompleta · {result.sinTasa} documento{result.sinTasa === 1 ? "" : "s"} sin tasa
               </div>}
             </div>
-            <Badge tone="wine" size="md">
+            <Badge tone="neutral" size="md">
               {aggLabel}
             </Badge>
           </div>

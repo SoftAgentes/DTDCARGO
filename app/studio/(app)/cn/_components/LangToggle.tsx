@@ -88,7 +88,7 @@ export function LangToggle() {
               aria-hidden="true"
               style={{
                 font: "700 9px/1 var(--f-mono)",
-                color: active ? "var(--wine)" : "var(--ink-mute)",
+                color: active ? "var(--ink)" : "var(--ink-mute)",
                 letterSpacing: "0.06em",
                 minWidth: 16,
                 textAlign: "center",

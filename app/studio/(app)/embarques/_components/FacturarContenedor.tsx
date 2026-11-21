@@ -272,7 +272,7 @@ export function FacturarContenedor({
                 <tr key={c.groupKey}>
                   <th scope="row" style={{ ...TD, font: "600 13px/1.3 var(--f-sans)", textAlign: "left", whiteSpace: "normal" }}>
                     {c.clientName}
-                    <span style={{ marginLeft: "var(--s-2)", font: "700 11px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                    <span style={{ marginLeft: "var(--s-2)", font: "700 11px/1 var(--f-mono)", color: "var(--ink)" }}>
                       {c.clientMarkbox}
                     </span>
                   </th>
@@ -400,9 +400,9 @@ export function FacturarContenedor({
         </div>
       )}
       <style>{`
-        .emb-doc-link { color: var(--wine-text); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
+        .emb-doc-link { color: var(--accion-text); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
         .emb-doc-link:hover { text-decoration: underline; }
-        .emb-doc-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+        .emb-doc-link:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
       `}</style>
 
       {pedido && (
@@ -516,7 +516,7 @@ function Confirmacion({
             >
               <span style={{ font: "600 13px/1.3 var(--f-sans)" }}>
                 {c.clientName}{" "}
-                <span style={{ font: "700 11px/1 var(--f-mono)", color: "var(--wine-text)" }}>{c.clientMarkbox}</span>
+                <span style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink)" }}>{c.clientMarkbox}</span>
                 <span style={{ display: "block", font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
                   {c.stats.count.toLocaleString("es-VE")} envíos · {(c.cajas ?? 0).toLocaleString("es-VE")} cajas · {cbm(c)} m³
                 </span>

@@ -432,7 +432,7 @@ export function FilingDetailDrawer({
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {filing.hs_codes.map((code) => (
-                  <Badge key={code} tone="wine" size="md">
+                  <Badge key={code} tone="neutral" size="md">
                     {code}
                   </Badge>
                 ))}

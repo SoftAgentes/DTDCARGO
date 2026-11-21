@@ -185,7 +185,7 @@ export function ShipmentDataPanel({
                 onClick={() => setShowChangeDest(true)}
                 style={{
                   font: "600 10px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   background: "transparent",
                   border: 0,
                   cursor: "pointer",
