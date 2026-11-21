@@ -445,6 +445,11 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 - La barra de ocupación blanca del despacho da 2,83:1 contra su pista en claro (antes 1,21) y 3,65:1 en oscuro. La acompaña la cifra «usado / total». Llevarla a 3:1 en claro queda pendiente.
 - ~~La marca «crítico» de `UpcomingHolidaysCard.tsx`, en `--warning` a 3,14:1, venía de `main`.~~ Resuelto en esta PR: pasa a `--danger-text` (fila del feriado crítico).
 
+**Seguimiento de la revisión de la #741 (PR aparte, 2026-11-21):**
+- La vista semana (`calendario/_components/WeekView.tsx`) marca el feriado crítico de China como el mes. La barra va en `--danger`, con 5,92:1 en claro y 4,45:1 en oscuro contra el chip. Lleva además un ícono de alerta y la palabra «· crítico».
+- El nombre accesible del botón del día sale de una sola función para el mes y la semana, `dayCellLabel` en `lib/studio/calendar-helpers.ts`. Anuncia los feriados (y si son críticos), las ferias y los eventos, que el `aria-label` tapaba.
+- La prueba 2 de `MonthView.test.tsx` pasa a esperar «…, feriado en China». La prueba nueva es `WeekView.test.tsx`.
+
 El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carpetas (los hex escritos a mano son de la fase 4). Mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
 
 **Orden de los módulos que quedan (grupo 6 en adelante, de 5 a 8 por grupo; I: por uso):**

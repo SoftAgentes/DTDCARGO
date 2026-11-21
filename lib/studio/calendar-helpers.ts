@@ -111,6 +111,30 @@ export function holidaysForDate(
   return all.filter((h) => isoDate >= h.startDate && isoDate <= h.endDate);
 }
 
+/**
+ * Nombre accesible del botón de un día del calendario (mes y semana).
+ *
+ * El botón lleva `aria-label`, y ese nombre tapa todo el texto de adentro:
+ * si los feriados, las ferias y los eventos no están aquí, el lector de
+ * pantalla no los dice. El feriado crítico de China (la operación se para)
+ * se anuncia como tal, para no decirlo solo con color (SDD-0686, BD-076).
+ */
+export function dayCellLabel(
+  isoDate: string,
+  dayHolidays: Holiday[],
+  fairsCount: number,
+  eventsCount: number,
+): string {
+  const partes = [`Ver eventos del ${isoDate}`];
+  for (const h of dayHolidays) {
+    const pais = h.country === "CN" ? "China" : "Venezuela";
+    partes.push(h.critical ? `feriado crítico en ${pais}` : `feriado en ${pais}`);
+  }
+  if (fairsCount > 0) partes.push(fairsCount === 1 ? "1 feria" : `${fairsCount} ferias`);
+  if (eventsCount > 0) partes.push(eventsCount === 1 ? "1 evento" : `${eventsCount} eventos`);
+  return partes.join(", ");
+}
+
 /** Devuelve las ferias que incluyen una fecha dada (rangos inclusivos). */
 export function fairsForDate(isoDate: string, all: Fair[]): Fair[] {
   return all.filter((f) => isoDate >= f.startDate && isoDate <= f.endDate);
