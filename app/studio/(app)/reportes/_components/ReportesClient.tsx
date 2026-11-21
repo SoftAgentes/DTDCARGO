@@ -1639,7 +1639,6 @@ function IvaView({ iva }: { iva: IvaPosition }) {
           value={fmtUsd(outcomeValue)}
           label={aPagar ? "IVA a pagar" : "Excedente a favor"}
           sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
-          
         />
       </div>
 

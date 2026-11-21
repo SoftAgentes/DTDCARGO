@@ -801,6 +801,14 @@ Decisión de Sam: «Cifras KPI: opción A, cifra en tinta y estado con punto y t
 
 **Tablero (`DashboardClient.tsx`):** `estadoDelKpi` convierte el tono del catálogo o de la consulta en estado. Solo lo hace con `warning` («Requiere atención») y `danger` («Requiere acción»), y solo si la cifra no es cero ni falta. Así «Facturas vencidas» en cero no muestra nada.
 
+**Cifras destacadas fuera de `KpiCard` (H1 de la revisión de la #748).** El estado sale a `KpiEstado`, exportado desde `KpiCard.tsx` (con `sobreOscuro` para el navy). Ocho cifras con estilo en línea pasan a tinta:
+- CRM, pestaña Dirección: la mediana de días sin movimiento (≥ 180: «Requiere acción»); «Valor en el CRM» en cero, en tinta y sin estado; «Facturación ERP» completa: «Completa».
+- Bandeja, «Portal → Chatwoot»: los atascados (> 0: «Requiere acción», clave `bandeja.portal.atascados_estado`).
+- Cobranzas, separación de fondos: fondos de terceros e ingreso local, sin estado; sin identificar > 0: «Requiere revisión».
+- Detalle de factura: saldo en cero, «Pagada».
+
+El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de peso 800/900 y 20 px o más cuyo `color` en línea lleve `--success`, `--warning`, `--danger` o `--info`, con dos mutantes. Un círculo con icono (`borderRadius: "50%"`) no cuenta como cifra.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { KpiCard } from "../ui/KpiCard";
+import { KpiCard, KpiEstado } from "../ui/KpiCard";
 import { fuentesDe, RAIZ, rel } from "./vino-detector";
 
 afterEach(cleanup);
@@ -39,7 +39,90 @@ function conValueColor(fuente: (ruta: string) => string): string[] {
     .map(rel);
 }
 
+/** Bloques `style={{ … }}` de una fuente, con llaves balanceadas, y su línea. */
+function bloquesDeEstilo(src: string): { linea: number; txt: string }[] {
+  const out: { linea: number; txt: string }[] = [];
+  let i = 0;
+  while ((i = src.indexOf("style={{", i)) !== -1) {
+    let prof = 0;
+    let j = i + 7;
+    for (; j < src.length; j++) {
+      if (src[j] === "{") prof++;
+      else if (src[j] === "}" && --prof === 0) break;
+    }
+    out.push({ linea: src.slice(0, i).split("\n").length, txt: src.slice(i, j + 1) });
+    i = j;
+  }
+  return out;
+}
+
+const FUENTE_GRANDE = /font:\s*["`](?:800|900)\s+(?:(\d+(?:\.\d+)?)px|var\(--kpi-fs\))/;
+const COLOR_DE_ESTADO = /var\(--(?:success|warning|danger|info)\b/;
+
+/**
+ * Cifras destacadas fuera de KpiCard (peso 800/900 y 20 px o más) cuyo `color`
+ * lleva un color de estado (H1 de la revisión de la #748). La cifra va en tinta y
+ * el estado aparte con `KpiEstado`. Un círculo con icono (`borderRadius: "50%"`,
+ * como el check de un paso cumplido) no es una cifra.
+ */
+function cifrasGrandesConEstado(fuente: (ruta: string) => string): string[] {
+  return ["app/studio", "app/portal", "app/m"]
+    .flatMap((b) => {
+      try {
+        return fuentesDe(join(RAIZ, b), /\.tsx$/);
+      } catch {
+        return [];
+      }
+    })
+    .filter((ruta) => !/\.test\.tsx$/.test(ruta))
+    .flatMap((ruta) =>
+      bloquesDeEstilo(fuente(ruta))
+        .filter(({ txt }) => {
+          const m = FUENTE_GRANDE.exec(txt);
+          if (!m || (m[1] && Number(m[1]) < 20) || /borderRadius:\s*["']50%/.test(txt)) return false;
+          const color = /\bcolor:([\s\S]*?)(?:,\s*\n|\n\s*\}\})/.exec(txt)?.[1] ?? "";
+          return COLOR_DE_ESTADO.test(color);
+        })
+        .map(({ linea }) => `${rel(ruta)}:${linea}`),
+    );
+}
+
 describe("SDD-0686 · cifras KPI en tinta (Sam, opción A)", () => {
+  it("ninguna cifra destacada fuera de KpiCard lleva color de estado", () => {
+    expect(cifrasGrandesConEstado((ruta) => readFileSync(ruta, "utf8"))).toEqual([]);
+  });
+
+  it.each([
+    [
+      "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx",
+      'font: "800 20px/1.2 var(--f-mono)",\n                  color: "var(--ink)",',
+      'font: "800 20px/1.2 var(--f-mono)",\n                  color: resumen.atascados > 0 ? "var(--danger-text)" : "var(--ink)",',
+    ],
+    [
+      "app/studio/(app)/facturacion/[code]/page.tsx",
+      'font: "900 42px/1 var(--f-display)",\n                color: "var(--ink-side-strong)",\n                letterSpacing: "-0.02em",\n                marginTop: 8,\n              }}\n            >\n              ${fmt(balance)}',
+      'font: "900 42px/1 var(--f-display)",\n                color: balance > 0 ? "var(--ink-side-strong)" : "var(--success)",\n                letterSpacing: "-0.02em",\n                marginTop: 8,\n              }}\n            >\n              ${fmt(balance)}',
+    ],
+  ])("mutante: una cifra destacada en color de estado se detecta (%s)", (objetivo, de, a) => {
+    const original = leer(objetivo);
+    expect(original.split(de).length - 1).toBe(1);
+    const mutado = original.replace(de, a);
+    const encontrados = cifrasGrandesConEstado((ruta) => (rel(ruta) === objetivo ? mutado : readFileSync(ruta, "utf8")));
+    expect(encontrados).toHaveLength(1);
+    expect(encontrados[0]).toMatch(new RegExp(`^${objetivo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\d+$`));
+  });
+
+  it("KpiEstado sobre el navy usa --ink-side y el rojo para fondo oscuro", () => {
+    render(
+      <>
+        <KpiEstado status={{ tono: "success", texto: "Pagada" }} sobreOscuro />
+        <KpiEstado status={{ tono: "danger", texto: "Requiere acción" }} sobreOscuro />
+      </>,
+    );
+    expect(screen.getByText("Pagada").getAttribute("style")).toContain("color: var(--ink-side)");
+    expect(screen.getByText("Requiere acción").getAttribute("style")).toContain("color: var(--color-status-danger-on-dark)");
+  });
+
   it("KpiCard no tiene prop de color libre para la cifra", () => {
     const fuente = leer("app/studio/_components/ui/KpiCard.tsx");
     expect(fuente).not.toMatch(/valueColor/);

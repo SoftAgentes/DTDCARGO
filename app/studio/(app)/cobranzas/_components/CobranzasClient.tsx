@@ -21,7 +21,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -443,7 +443,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: "var(--info)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.thirdPartyUsd)}
@@ -462,7 +462,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: sinTasa > 0 ? "var(--ink)" : "var(--success)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.localRevenueUsd)}
@@ -481,14 +481,16 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color:
-                separation.unidentifiedUsd > 0
-                  ? "var(--warning)"
-                  : "var(--ink)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.unidentifiedUsd)}
           </div>
+          {separation.unidentifiedUsd > 0 && (
+            <div style={{ marginTop: 6 }}>
+              <KpiEstado status={{ tono: "warning", texto: "Requiere revisión" }} />
+            </div>
+          )}
           <div
             style={{
               font: "600 11px/1.4 var(--f-sans)",

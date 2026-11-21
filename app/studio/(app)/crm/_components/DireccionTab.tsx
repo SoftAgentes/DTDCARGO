@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard, type KpiStatus } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, KpiEstado, type KpiStatus } from "@/app/studio/_components/ui/KpiCard";
 import { Progress } from "@/app/studio/(app)/reportes/_components/charts";
 import type { KommoDireccionData, OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { WritebackGate, WritebackStatus } from "@/lib/studio/kommo-writeback";
@@ -379,7 +379,7 @@ export function DireccionTab({
               style={{
                 font: "900 30px/1 var(--f-display)",
                 fontVariantNumeric: "tabular-nums",
-                color: aging.medianDays >= 180 ? "var(--danger)" : "var(--ink)",
+                color: "var(--ink)",
                 letterSpacing: "-0.02em",
               }}
             >
@@ -389,6 +389,11 @@ export function DireccionTab({
               días · mediana sin movimiento
             </span>
           </div>
+          {aging.medianDays >= 180 && (
+            <div style={{ marginBottom: 8 }}>
+              <KpiEstado status={{ tono: "danger", texto: "Requiere acción" }} />
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {aging.buckets.map((b) => (
               <BarRow key={b.key} label={b.label} count={b.count} pct={b.pct} tone={b.tone} />
@@ -445,7 +450,7 @@ export function DireccionTab({
                   style={{
                     font: "900 26px/1 var(--f-display)",
                     fontVariantNumeric: "tabular-nums",
-                    color: value.kommoPipelineValueUsd > 0 ? "var(--ink)" : "var(--danger)",
+                    color: "var(--ink)",
                     letterSpacing: "-0.02em",
                   }}
                 >
@@ -471,12 +476,17 @@ export function DireccionTab({
                   style={{
                     font: "900 26px/1 var(--f-display)",
                     fontVariantNumeric: "tabular-nums",
-                    color: value.billing.state === "completo" ? "var(--success)" : "var(--ink-soft)",
+                    color: "var(--ink)",
                     letterSpacing: "-0.02em",
                   }}
                 >
                   {formatAnnualUsd(value.billing.subtotalUsd)}
                 </div>
+                {value.billing.state === "completo" && (
+                  <div style={{ marginTop: 6 }}>
+                    <KpiEstado status={{ tono: "success", texto: "Completa" }} />
+                  </div>
+                )}
                 <div
                   style={{
                     font: "600 10.5px/1.3 var(--f-sans)",

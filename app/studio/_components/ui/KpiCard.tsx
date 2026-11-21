@@ -27,6 +27,51 @@ const PUNTO: Record<Exclude<KpiStatus["tono"], "danger">, string> = {
   warning: "var(--warning)",
 };
 
+/**
+ * Estado aparte de una cifra: punto de 7 px del color de estado y la palabra en
+ * --ink-soft; en peligro, icono de alerta y la palabra en --danger-text. Lo usa
+ * KpiCard y cualquier cifra destacada fuera de él (la cifra va en tinta).
+ * `sobreOscuro`: sobre el navy fijo (--ink-side* y el rojo para fondo oscuro).
+ */
+export function KpiEstado({ status, sobreOscuro = false }: { status: KpiStatus; sobreOscuro?: boolean }) {
+  return (
+    <div
+      data-kpi-estado={status.tono}
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        font: "600 12px/1.2 var(--f-sans)",
+        color:
+          status.tono === "danger"
+            ? sobreOscuro
+              ? "var(--color-status-danger-on-dark)"
+              : "var(--danger-text)"
+            : sobreOscuro
+              ? "var(--ink-side)"
+              : "var(--ink-soft)",
+      }}
+    >
+      {status.tono === "danger" ? (
+        <StatusIcon tone="warning" size={13} />
+      ) : (
+        <span
+          aria-hidden
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            background: PUNTO[status.tono],
+            flexShrink: 0,
+          }}
+        />
+      )}
+      {status.texto}
+    </div>
+  );
+}
+
 interface KpiCardProps {
   value: number | string;
   label: string;
@@ -125,40 +170,7 @@ export function KpiCard({
       >
         {label}
       </div>
-      {status && (
-        <div
-          data-kpi-estado={status.tono}
-          style={{
-            position: "relative",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            font: "600 12px/1.2 var(--f-sans)",
-            color:
-              status.tono === "danger"
-                ? feature
-                  ? "var(--color-status-danger-on-dark)"
-                  : "var(--danger-text)"
-                : subColor,
-          }}
-        >
-          {status.tono === "danger" ? (
-            <StatusIcon tone="warning" size={13} />
-          ) : (
-            <span
-              aria-hidden
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: PUNTO[status.tono],
-                flexShrink: 0,
-              }}
-            />
-          )}
-          {status.texto}
-        </div>
-      )}
+      {status && <KpiEstado status={status} sobreOscuro={feature} />}
       {sub && (
         <div
           style={{
