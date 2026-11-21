@@ -131,7 +131,7 @@ export function RouteDrawer({
         {/* Shipment select */}
         <div>
           <label htmlFor="tms-route-shipment" className="studio-label">
-            Embarque a entregar <span style={{ color: "var(--wine-text)" }}>*</span>
+            Embarque a entregar <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           {eligibleShipments.length === 0 ? (
             <Aviso tono="atencion" compacto>
@@ -230,9 +230,9 @@ export function RouteDrawer({
             <span
               style={{
                 font: "700 11px/1 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 padding: "2px 8px",
-                background: "var(--wine-tint)",
+                background: "var(--bg-elevated)",
                 borderRadius: "var(--r-sm)",
               }}
             >
@@ -262,11 +262,9 @@ export function RouteDrawer({
                     height: 32,
                     borderRadius: "50%",
                     background:
-                      i === 0
+                      i === 0 || i === stops.length - 1
                         ? "var(--ink)"
-                        : i === stops.length - 1
-                          ? "var(--wine)"
-                          : "var(--bg-elevated)",
+                        : "var(--bg-elevated)",
                     color:
                       i === 0 || i === stops.length - 1
                         ? "var(--ink-inv)"
@@ -332,7 +330,7 @@ export function RouteDrawer({
               border: "1px dashed var(--border-strong)",
               background: "transparent",
               font: "600 12px/1 var(--f-sans)",
-              color: "var(--wine-text)",
+              color: "var(--accion-text)",
               display: "inline-flex",
               alignItems: "center",
               gap: 6,

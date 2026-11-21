@@ -250,21 +250,21 @@ function LabelGeneratorInner({
               style={{
                 marginTop: 10,
                 padding: "10px 12px",
-                background: "var(--wine-tint)",
-                border: "1px solid var(--wine)",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-strong)",
                 borderRadius: "var(--r-sm)",
               }}
             >
               <div
                 className="studio-eyebrow"
-                style={{ color: "var(--wine-text)", marginBottom: "var(--s-1)" }}
+                style={{ marginBottom: "var(--s-1)" }}
               >
                 Shipping Mark
               </div>
               <code
                 style={{
                   font: "900 20px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {client.markbox}
@@ -451,8 +451,8 @@ function LabelGeneratorInner({
                       style={{
                         padding: "10px 6px",
                         borderRadius: "var(--r-sm)",
-                        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
-                        background: active ? "var(--wine)" : "var(--bg-surface)",
+                        border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
+                        background: active ? "var(--ink)" : "var(--bg-surface)",
                         color: active ? "var(--ink-inv)" : "var(--ink)",
                         font: "900 16px/1 var(--f-mono)",
                         cursor: "pointer",
@@ -503,7 +503,7 @@ function LabelGeneratorInner({
                 style={{
                   marginTop: "var(--s-1)",
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {startBox}/{totalBoxes} → {totalBoxes}/{totalBoxes}
@@ -525,15 +525,15 @@ function LabelGeneratorInner({
                       textAlign: "left",
                       padding: "10px 12px",
                       borderRadius: "var(--r-sm)",
-                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
-                      background: active ? "var(--wine-tint)" : "var(--bg-surface)",
+                      border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
+                      background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
                       cursor: "pointer",
                     }}
                   >
                     <div
                       style={{
                         font: "700 12.5px/1.2 var(--f-sans)",
-                        color: active ? "var(--wine)" : "var(--ink)",
+                        color: "var(--ink)",
                       }}
                     >
                       {f.label}
@@ -566,7 +566,7 @@ function LabelGeneratorInner({
                 type="checkbox"
                 checked={qr}
                 onChange={(e) => setQr(e.target.checked)}
-                style={{ accentColor: "var(--wine)" }}
+                style={{ accentColor: "var(--accion)" }}
               />
               Incluir código QR escaneable (lleva a /verificar)
             </label>
@@ -753,7 +753,7 @@ function Card({
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine-text)", marginBottom: 10 }}
+        style={{ marginBottom: 10 }}
       >
         {eyebrow}
       </div>

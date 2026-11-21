@@ -63,7 +63,7 @@ export function WeekView({
             className="studio-cal-daycell"
             style={{
               background: "var(--bg-surface)",
-              border: `1px solid ${isToday ? "var(--wine)" : "var(--border)"}`,
+              border: `1px solid ${isToday ? "var(--ink)" : "var(--border)"}`,
               borderRadius: 8,
               padding: "var(--s-3)",
               minHeight: 340,
@@ -88,7 +88,7 @@ export function WeekView({
             <div
               style={{
                 font: "900 22px/1 var(--f-display)",
-                color: isToday ? "var(--wine)" : "var(--ink)",
+                color: "var(--ink)",
                 marginBottom: "var(--s-1)",
               }}
             >
@@ -107,7 +107,7 @@ export function WeekView({
                         ? "var(--cal-cn-soft)"
                         : "var(--cal-ve-soft)",
                     borderLeft: `3px solid ${
-                      h.country === "CN" ? "var(--wine)" : "var(--success)"
+                      h.country === "CN" ? "var(--warning)" : "var(--success)"
                     }`,
                     font: "600 10.5px/1.3 var(--f-sans)",
                     fontFamily: "var(--f-sans), var(--f-cn)",

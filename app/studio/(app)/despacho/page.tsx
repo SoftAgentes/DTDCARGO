@@ -89,7 +89,7 @@ export default async function DispatchPage({
             según las{" "}
             <a
               href="/studio/despacho/reglas"
-              style={{ color: "var(--wine-text)", textDecoration: "underline" }}
+              style={{ color: "var(--accion-text)", textDecoration: "underline" }}
             >
               reglas
             </a>{" "}

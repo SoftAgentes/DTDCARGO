@@ -90,8 +90,8 @@ export function BatchPrintDrawer({
                   alignItems: "center",
                   gap: "var(--s-3)",
                   padding: 14,
-                  background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                  border: `1.5px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                  background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
+                  border: `1.5px solid ${active ? "var(--ink)" : "var(--border)"}`,
                   borderRadius: "var(--r-md)",
                   textAlign: "left",
                   cursor: p.online ? "pointer" : "not-allowed",
@@ -103,7 +103,7 @@ export function BatchPrintDrawer({
                   checked={active}
                   readOnly
                   disabled={!p.online}
-                  style={{ accentColor: "var(--wine)" }}
+                  style={{ accentColor: "var(--accion)" }}
                 />
                 <div style={{ flex: 1 }}>
                   <div

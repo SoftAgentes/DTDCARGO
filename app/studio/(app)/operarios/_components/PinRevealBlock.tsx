@@ -52,10 +52,10 @@ export function PinRevealBlock({ pin, region }: { pin: string; region: OperarioR
           margin: 0,
           padding: "20px 32px",
           background: "var(--bg-elevated)",
-          border: "2px dashed var(--wine)",
+          border: "2px dashed var(--ink)",
           borderRadius: "var(--r-md)",
           font: "900 38px/1 var(--f-mono)",
-          color: "var(--wine-text)",
+          color: "var(--ink)",
           letterSpacing: "0.16em",
         }}
       >

@@ -885,7 +885,7 @@ function IncomingTab({
             </div>
           ))}
           {/* Totales sobre lo filtrado (patrón almacén CN: Σ label mute +
-              valor wine con peso — se lee de un vistazo) */}
+              valor en tinta con peso, BD-076 — se lee de un vistazo) */}
           <div
             style={{
               display: "flex",

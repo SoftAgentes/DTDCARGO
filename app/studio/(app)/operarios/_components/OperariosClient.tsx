@@ -345,8 +345,8 @@ function OperarioRowItem({
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "var(--wine-tint, rgba(127,15,26,0.08))",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -406,7 +406,7 @@ function OperarioRowItem({
 
       {/* Rol */}
       <div style={{ minWidth: 0 }}>
-        <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
+        <Badge tone="neutral" size="sm">
           {operarioRolLabel(op.role)}
         </Badge>
       </div>

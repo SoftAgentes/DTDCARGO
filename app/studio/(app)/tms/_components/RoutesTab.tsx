@@ -126,7 +126,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
           <code
             style={{
               font: "700 11.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {r.shipment?.code ?? "—"}
@@ -157,7 +157,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                   }}
                 >
                   {j > 0 && (
-                    <span style={{ color: "var(--wine-text)", fontWeight: 700 }}>
+                    <span style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
                       →
                     </span>
                   )}
@@ -204,7 +204,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                   width: `${r.progress_pct}%`,
                   height: "100%",
                   background:
-                    r.progress_pct === 100 ? "var(--success)" : "var(--wine)",
+                    r.progress_pct === 100 ? "var(--success)" : "var(--ink)",
                   borderRadius: "var(--r-pill)",
                   transition: "width var(--dur) var(--ease)",
                 }}

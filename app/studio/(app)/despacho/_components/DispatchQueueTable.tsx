@@ -108,7 +108,7 @@ export function DispatchQueueTable({
                   key={p.id}
                   style={{
                     borderTop: "1px solid var(--border)",
-                    background: selected ? "var(--wine-tint)" : "transparent",
+                    background: selected ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                     cursor: "pointer",
                   }}
                   onClick={() => onToggle(p)}
@@ -122,7 +122,7 @@ export function DispatchQueueTable({
                         onToggle(p);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ accentColor: "var(--wine)", width: 16, height: 16 }}
+                      style={{ accentColor: "var(--accion)", width: 16, height: 16 }}
                     />
                   </td>
                   <td style={{ padding: "10px 12px" }}>
