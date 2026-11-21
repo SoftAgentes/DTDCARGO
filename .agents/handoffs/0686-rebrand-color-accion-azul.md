@@ -58,7 +58,11 @@ Estado del 2026-11-20, tarde:
 7. Grupo 7 (naviera, fidelización y órdenes), 2026-11-21, rama `claude/sdd-0686-fase2-g7` desde `main` con la #742. Abarca naviera, fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario, sin vino.
    - Sobrecapacidad del contenedor a peligro; carga suelta pendiente a atención.
    - `carriers.tone` cae a neutral al leerlo (`carrierTone`, con su prueba), sin tocar la base.
-   - Arrastres de la #742: donut en grados de 82 %, 66 % y 50 % con trazo, y sin el `--wine` muerto en las impresas de legal.
+   - Arrastres de la #742: donut en grados de 82 %, 66 % y 50 % con trazo, y sin el `--wine` muerto en las impresas de legal. Fusionado con la #744 (`af943ed7c`).
+8. Grupo 8 y cierre de la fase 2, 2026-11-21, rama `claude/sdd-0686-fase2-g8`: conversaciones, menciones, rendiciones, servicios, ajustes, el panel de Chatwoot, los restos de cobranzas y embarques, y los comentarios compartidos, sin vino.
+   - El contrato del grupo 8 recorre todo `app/studio` y solo admite la lista de identidad y primitivas, con su cuenta exacta.
+   - Los impresos fiscales y el del constructor anclan `--wine-text` al valor claro.
+   - Por decidir: el `color = "wine"` por defecto de `Avatar` (barra superior y foto de empleado).
 4. `Avatar` con tono `wine` y el eyebrow `.eyebrow-wine`: decidir si son identidad.
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

@@ -199,7 +199,7 @@ function ServicioCard({
         >
           {config?.title_public || catalog.nombre}
           {catalog.principal && (
-            <span style={{ color: "var(--wine-text)", marginLeft: 6 }}>★</span>
+            <span role="img" aria-label="Servicio principal" title="Servicio principal" style={{ color: "var(--ink)", marginLeft: 6 }}>★</span>
           )}
         </h3>
         <Badge tone={isPublic ? "success" : "neutral"} size="sm">
@@ -208,7 +208,7 @@ function ServicioCard({
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <Badge tone={catalog.tipo === "nucleo" ? "wine" : "neutral"} size="sm">
+        <Badge tone="neutral" size="sm">
           {catalog.tipo === "nucleo" ? "Núcleo" : "Add-on"}
         </Badge>
         <Badge tone="info" size="sm">

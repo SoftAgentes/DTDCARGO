@@ -471,7 +471,7 @@ function PrintLayout({
           #dtd-fiscal-print {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
+            --wine-text: #7F0F1A; /* SDD-0686: el eyebrow impreso usa --wine-text; se ancla al valor claro */
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             display: block !important;

@@ -391,7 +391,7 @@ export function ConversationThread({
                     borderRadius: out
                       ? "var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg)"
                       : "var(--r-lg) var(--r-lg) var(--r-lg) var(--r-xs)",
-                    background: out ? "var(--wine)" : "var(--bg-surface)",
+                    background: out ? "var(--ink)" : "var(--bg-surface)",
                     border: out ? "none" : "1px solid var(--border)",
                     color: out ? "var(--ink-inv)" : "var(--ink)",
                     font: "500 13px/1.5 var(--f-sans)",

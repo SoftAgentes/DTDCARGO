@@ -239,8 +239,8 @@ export function ConversationList({
                       height: 18,
                       padding: "0 5px",
                       borderRadius: "var(--r-pill)",
-                      background: "var(--wine)",
-                      color: "var(--ink-side-strong)",
+                      background: "var(--ink)",
+                      color: "var(--ink-inv)",
                       font: "700 10px/18px var(--f-sans)",
                       textAlign: "center",
                     }}
@@ -279,7 +279,7 @@ export function ConversationList({
                   <Avatar
                     initials={initialsOf(c.agent.name)}
                     size={18}
-                    color={c.is_case ? "wine" : "neutral"}
+                    color="neutral"
                   />
                 ) : (
                   <Badge tone="danger" size="sm">

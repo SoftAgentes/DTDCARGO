@@ -22,7 +22,7 @@ import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 function statusBadgeTone(
   status: ShipmentStatus,
-): "neutral" | "info" | "success" | "warning" | "danger" | "wine" {
+): "neutral" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered") return "success";
   if (status === "cancelled") return "neutral";
   if (status === "exception" || status === "delayed_warehouse") return "danger";

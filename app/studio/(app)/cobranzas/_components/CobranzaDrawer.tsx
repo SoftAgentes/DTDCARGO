@@ -150,7 +150,7 @@ export function CobranzaDrawer({
             padding: "14px 16px",
             borderRadius: "var(--r-md)",
             // stageTone() solo devuelve success|danger|warning|info|neutral
-            // (payment-types.ts), nunca "wine", por lo que el -bg interpolado
+            // (payment-types.ts), nunca «wine», por lo que el -bg interpolado
             // siempre existe en tokens.css. No usar wine acá: --wine-bg no existe.
             background: `var(--${stageTone(receivable.stage)}-bg)`,
             borderLeft: `4px solid var(--${stageTone(receivable.stage)})`,

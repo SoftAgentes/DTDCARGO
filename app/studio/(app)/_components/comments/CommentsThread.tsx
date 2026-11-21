@@ -243,7 +243,7 @@ export function CommentsThread({
           marginBottom: 14,
         }}
       >
-        <div className="eyebrow eyebrow-wine">COMENTARIOS ({comments.length})</div>
+        <div className="eyebrow">COMENTARIOS ({comments.length})</div>
         {authorIds.length > 0 && (
           <div style={{ display: "flex", gap: 4 }}>
             {authorIds.slice(0, 4).map((uid) => {
@@ -361,7 +361,7 @@ export function CommentsThread({
             minWidth: 0,
           }}
         >
-          <Avatar initials={currentUser.avatar} size={28} color="wine" />
+          <Avatar initials={currentUser.avatar} size={28} color="neutral" />
           <div style={{ flex: "1 1 12rem", width: "100%", minWidth: 0 }}>
             <textarea
               ref={textareaRef}

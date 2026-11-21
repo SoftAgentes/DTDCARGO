@@ -582,6 +582,85 @@ Sigue el orden del grupo 5 y empieza al fusionarse la #742, en la rama `claude/s
 - `tierBadgeTone` de `lib/studio/client-types.ts` todavía declara «wine» en su tipo de retorno, aunque no lo devuelve. Es de clientes.
 - El Excel de `lib/studio/document-import/export.ts` usa el hex del vino como identidad de la plantilla (fase 4).
 
+### Fase 2 · grupo 8 · conversaciones, menciones y el panel: allowlist, reparto y cierre de la fase (2026-11-21)
+
+El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c`), en la rama `claude/sdd-0686-fase2-g8`.
+- **Módulos:** conversaciones, menciones, rendiciones, servicios, ajustes y el panel de Chatwoot `(panel)/ficha-chat`. Además, los restos de cobranzas, embarques y los comentarios compartidos de `(app)/_components/comments`.
+- **Condiciones:** las mismas de los grupos anteriores.
+- **Lo que no es de este grupo:** mailing e inspecciones, que figuraban en el orden, ya están permitidos desde el grupo 3 como identidad. El dashboard conserva su panel de bienvenida (identidad, BD-034).
+
+- **Identidad:** no queda ninguna en estas carpetas.
+- **Lo que se guarda:** ningún tono. Son estilos en línea y tonos de `Avatar` y `Badge`.
+- **`data-theme`:** no hay bloques fijos. El panel de Chatwoot sigue el tema que le pasa Chatwoot (`FichaDtdClient.tsx`), así que sus tokens se invierten con el tema como el resto del Studio.
+- **Regla 4 de botones:** el botón «Generar ahora» de los resúmenes era un `<button>` armado a mano en vino. Pasa a `studio-btn studio-btn-primary studio-btn-sm`, con `aria-busy`. No se agrega ninguna variante nueva.
+
+**Allowlist (rutas desde la raíz):**
+  - `app/studio/(app)/conversaciones` (3): `_components/ConversationList.tsx`, `_components/ConversationThread.tsx`, `_components/GenerateDigestsPanel.tsx`
+  - `app/studio/(app)/menciones` (1): `_components/MentionsInboxClient.tsx`
+  - `app/studio/(app)/rendiciones` (2): `[code]/page.tsx`, `_components/RendicionesClient.tsx`
+  - `app/studio/(app)/servicios` (1): `_components/ServiciosClient.tsx`
+  - `app/studio/(app)/ajustes` (1): `page.tsx`
+  - `app/studio/(app)/cobranzas` (2): `recibo/[code]/page.tsx`, `_components/CobranzaDrawer.tsx` (comentario)
+  - `app/studio/(app)/embarques` (2): `_components/EmbarquesClient.tsx`, `_components/ShipmentDetailDrawer.tsx`
+  - `app/studio/(app)/_components/comments` (3): `CommentItem.tsx`, `CommentsThread.tsx`, `MentionDropdown.tsx`
+  - `app/studio/(panel)/ficha-chat/_components` (3): `FichaDtdView.tsx`, `CostoChatCard.tsx`, `VincularCliente.tsx`
+  - Impresos de grupos anteriores (3): `app/studio/(app)/fiscal/_components/FiscalClient.tsx`, `WithholdingsView.tsx` y `app/studio/(app)/reportes/_components/BuilderView.tsx`
+- **Además:** el contrato `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`, esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Conversaciones, lista (`ConversationList.tsx`) | Conteo de no leídos | Tinta: pastilla `--ink` con la cifra en `--ink-inv` | La cifra misma |
+| Conversaciones, lista (`ConversationList.tsx`) | Avatar del agente cuando la conversación es un caso | `neutral` | El Badge «Caso» de la misma fila |
+| Conversaciones, hilo (`ConversationThread.tsx`) | Mensaje saliente | Tinta: burbuja `--ink` con texto `--ink-inv` | La alineación a la derecha y la esquina recortada del lado propio |
+| Menciones (`MentionsInboxClient.tsx`) | Mención no leída (fondo, borde y punto) | Tinta: fondo de selección al 8 %, borde y punto `--ink` | Texto oculto «No leída.» al inicio del botón (nuevo); antes solo había un punto `aria-hidden` |
+| Menciones (`MentionsInboxClient.tsx`) | Tipo de entidad y su código | `--ink-soft` | El texto mismo |
+| Servicios (`ServiciosClient.tsx`) | Servicio principal (★) | `--ink` | La estrella, ahora con `role="img"` y «Servicio principal» (nuevo) |
+| Servicios (`ServiciosClient.tsx`) | Badge «Núcleo» | `neutral` | El texto «Núcleo» frente a «Add-on» |
+| Rendición impresa (`rendiciones/[code]/page.tsx`) | Código de la rendición | `--ink`, que el bloque de impresión ancla al valor claro | Es un dato, no identidad. Antes usaba `--wine-text`, que el bloque de impresión no anclaba |
+| Panel de Chatwoot (`FichaDtdView.tsx`, `VincularCliente.tsx`) | Shipping Mark del cliente | `--ink` (regla 6) | En la ficha, el rótulo «Shipping Mark»; al vincular, el nombre del cliente al lado |
+| Comentarios (`CommentItem.tsx`, `CommentsThread.tsx`, `MentionDropdown.tsx`) | Avatar propio, del que escribe y de las sugerencias de mención | `neutral`, como en el grupo 3 | El nombre al lado del avatar |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | El enlace del código en el listado de rendiciones, «Ir a Administración» en ajustes, la fuente del costo en el panel y el botón «Generar ahora» |
+| Neutro | El rótulo del panel de Chatwoot (`EYEBROW`) y el `eyebrow` «Comentarios», que pierde la clase `eyebrow-wine` |
+| Tipos | La unión de tono de los estados de embarque pierde «wine» (`EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`) |
+
+**Impresos:**
+- Salen las declaraciones `--wine: #7F0F1A` del recibo de cobranza y de la rendición, que nadie usaba.
+- El libro fiscal, el comprobante de retención y el constructor de reportes declaraban `--wine` en su bloque de impresión, pero el encabezado de marca se pinta con `--wine-text`. Impreso desde el tema oscuro, salía en el vino claro del tema oscuro (`#D89AA4`). Ahora anclan `--wine-text` al valor claro (`#7F0F1A`).
+
+**Cierre de la fase 2.** El contrato del grupo 8 recorre todo `app/studio` con el detector común y admite solo esta lista, con su cuenta exacta:
+
+| Archivo | Cuenta | Motivo |
+|---|---|---|
+| `academia/diplomas/_components/DiplomaPrint.tsx` | 26 | Diploma impreso (regla 8; fase 4) |
+| `dashboard/page.tsx` | 1 | Panel de bienvenida con el isotipo (BD-034) |
+| `fiscal/_components/FiscalClient.tsx` y `WithholdingsView.tsx` | 1 y 1 | Encabezado impreso (regla 8) |
+| `reportes/_components/BuilderView.tsx` | 1 | Encabezado impreso (regla 8) |
+| `inspecciones/_components/report-css.ts` | 2 | Wordmark y rótulo del informe (regla 8) |
+| `mailing/_components/SignaturesView.tsx` | 1 | Franja de la firma de correo (regla 8) |
+| `_components/guia/GuiaTarjeta.tsx` | 6 | Superficie de la Guía con el tinte de marca |
+| `_components/ui/EmptyState.tsx` | 1 | Eyebrow del estado vacío (identidad, grupo 1) |
+| `_components/ui/Avatar.tsx` | 3 | Tono `wine` y su valor por defecto: **por decidir** |
+| `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla lo usa; se borra con la primitiva |
+
+Quedan fuera de ese recorrido:
+- `tokens.css` y `studio.css`, que definen los tokens;
+- noticias-web, cuyo vino de acción en el bloque claro lo cuenta el contrato del grupo 3 y espera `--color-accion*` de la fase 3.
+
+El contrato trae además:
+- cuatro mutantes: el mensaje saliente, el Shipping Mark del panel, un avatar de comentario y un vino nuevo fuera de los grupos;
+- las comprobaciones de los impresos y del aviso «No leída».
+
+**Pendiente de decisión:**
+- `Avatar` todavía tiene `color = "wine"` por defecto. Hoy lo usan sin `color` la barra superior (`StudioTopbar.tsx`, el avatar del usuario) y la foto de empleado de nómina (`FotoEmpleado.tsx`).
+- Si las iniciales de una persona no son identidad, el valor por defecto pasa a `neutral` y el tono `wine` sale de la primitiva junto con el de `Badge`.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

@@ -394,7 +394,6 @@ export default async function ReceiptPrintPage({
           #recibo-cobranza {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             --bg-base: #FBFAF7;
