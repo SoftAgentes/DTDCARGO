@@ -23,7 +23,7 @@ los pagos y todo lo que está atado se arrastran en cascada, con un aviso previo
 | `node scripts/build-docs-index.mjs --check` (docs:check) | PASÓ (678 specs) |
 | `node scripts/check-numbering.mjs` (sdd:check) | PASÓ (solo choques históricos ya conocidos) |
 | `pnpm verify` | NO APLICA: la PR solo trae docs (spec, índice, handoff) |
-| Ledger de producción: qué cuerpos están vivos | NO VERIFICADO: la F-0 lo pide a Dir_DTD |
+| Ledger de producción (F-0): 0466, 0467, 0497, 0551, 0552, 0564 y 0569 | VERIFICADO por Dir_DTD el 2026-11-21 (solo lectura): aplicadas |
 
 Los scripts se corrieron con `node` directo, sin `pnpm install`, porque el worktree no tiene `node_modules`.
 
@@ -41,8 +41,9 @@ recomendadas». Dir_DTD se lo pasó a este Worker el mismo día. Quedaron en la 
 ## PENDIENTES DE ESTA TAREA
 
 - Revisión independiente de la PR #751 (la lanza Dir_DTD).
-- **Pendiente de Dir_DTD (F-0):** verificar en el ledger las cabeceras «NO APLICADA» de 0466, 0467, 0497, 0551,
-  0552, 0564 y 0569.
+- **F-0, hecha:** Dir_DTD la verificó el 2026-11-21 en el ledger, con solo lectura. 0466, 0467, 0497, 0551,
+  0552, 0564 y 0569 están aplicadas; sus cabeceras «NO APLICADA» quedaron viejas y no se editan. 0464 y 0494
+  no entraron en esa medición.
 - Validación de contabilidad de la P4, antes de la F-2.
 - Cada fase trae su allowlist en una enmienda de la spec.
 

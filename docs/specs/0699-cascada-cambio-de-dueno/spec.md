@@ -20,8 +20,7 @@ confidencialidad: interno
 > La spec no trae código, ni migraciones, ni cambios de producto. Aprobarla no autoriza implementar
 > ninguna fase ni aplicar ninguna migración. La implementación toca migraciones, facturación y pagos, así
 > que va por el **carril con revisión previa**: cada fase lleva su PR, con revisión independiente APPROVED,
-> y cada migración, su **OK nominal de Sam**. Antes de la F-1 queda pendiente la F-0 (§8), que verifica
-> Dir_DTD.
+> y cada migración, su **OK nominal de Sam**. La F-0 (§8) la verificó Dir_DTD el 2026-11-21.
 >
 > Los ejemplos son inventados. No hay nombres de clientes, Shipping Marks reales, montos ni conteos de
 > producción.
@@ -57,9 +56,13 @@ Esa regla dice tres cosas:
 
 Las citas `NNNN:línea` son de `supabase/migrations/`. **Verificado** quiere decir que se leyó el archivo,
 no que se midió en producción. Varias cabeceras dicen «NO APLICADA A PRODUCCIÓN» (0464, 0466, 0467, 0494,
-0497, 0551, 0564, 0569), mientras que `supabase/migrations-baseline.json` tiene `pendingBelowCutoff`
-vacío. **NO VERIFICADO:** qué cuerpo de cada función está vivo en producción. Lo mide el Director con
-el ledger antes de la F-1 (§8).
+0497, 0551, 0552, 0564, 0569), mientras que `supabase/migrations-baseline.json` tiene `pendingBelowCutoff`
+vacío.
+
+**F-0, verificado por Dir_DTD el 2026-11-21:** **0466, 0467, 0497, 0551, 0552, 0564 y 0569 están
+aplicadas en producción.** Lo leyó con una consulta de solo lectura a
+`supabase_migrations.schema_migrations`. Sus cabeceras «NO APLICADA» son texto viejo y esta spec no edita
+esos `.sql`. **NO VERIFICADO:** 0464 y 0494, que no entraron en esa medición.
 
 ### 2.1 Cómo se ata cada cosa al cliente
 
@@ -411,7 +414,7 @@ Pide la pregunta P9: puede que Sam prefiera que operaciones lo pida y contabilid
 
 | Fase | Qué | Depende de |
 |---|---|---|
-| F-0 | **Pendiente de Dir_DTD.** Medir en el ledger qué cuerpos están vivos: 0466, 0467, 0497, 0551, 0552, 0564 y 0569. Sus cabeceras dicen «NO APLICADA», y `migrations-baseline.json` no registra esperas (§2). | — |
+| F-0 | **Hecha. Verificada por Dir_DTD el 2026-11-21** en el ledger, con solo lectura: 0466, 0467, 0497, 0551, 0552, 0564 y 0569 están aplicadas. Sus cabeceras «NO APLICADA» quedaron viejas y no se editan (§2). | — |
 | F-1 | Partir y unir pre-órdenes al pasar un embarque (§4.2). Redefine `reassign_shipment_client` con `cascade` y la huella. Es la que desbloquea el caso del 64. | F-0, P2, P6 (decididas) |
 | F-2 | Soltar un recibo conservando el pagador (§4.4), como acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
 | F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con F-2 dentro. | F-1, F-2, P1, P9 (decididas) |
