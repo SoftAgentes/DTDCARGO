@@ -57,6 +57,18 @@ export interface OpcionesSql {
    * paquete es el mismo de antes byte a byte.
    */
   excluirMarkbox?: string[];
+  /**
+   * SDD-0690 · `--solo-markbox` (sólo con `--agregar-a-preorden`): los Shipping Marks del mapa cuyos
+   * envíos entran (`agruparLote` con `soloMarkbox`). Para el lote chico de los envíos del comodín.
+   */
+  soloMarkbox?: string[];
+  /**
+   * SDD-0690 · `--agregar-a-preorden` (con `--solo-facturas` y `--solo-markbox`): a cada cliente con una
+   * pre-orden borrador de esta carga se le agregan las líneas de sus envíos; al que no tiene, se le crea.
+   * Aborta si la pre-orden ya no es borrador, si un envío sigue en el Shipping Mark de origen o si ya
+   * tiene línea en una factura viva. Tiene id propio.
+   */
+  agregarAPreorden?: boolean;
 }
 
 export interface PuertoDestino {
@@ -153,6 +165,8 @@ export interface Manifiesto {
   modo?: "solo-facturas";
   /** SDD-0690 · sólo con `--excluir-markbox`: qué Shipping Marks y cuántos envíos quedaron fuera, y por qué. Sin montos. */
   excluidos?: { markbox: string[]; clientes: number; envios: number; filas: number; motivo: string };
+  /** SDD-0690 · sólo con `--agregar-a-preorden`: qué Shipping Marks de origen entran y cuántos envíos. Sin montos. */
+  agregarAPreorden?: { soloMarkbox: string[]; clientes: number; envios: number; filas: number; enviosFuera: number; motivo: string };
 }
 
 export interface SalidaSql {
@@ -779,6 +793,7 @@ $lote$;
 
 function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
   const excluidos = normalizarExclusiones(o.excluirMarkbox ?? []);
+  if (o.agregarAPreorden) return [cab(lote, o, pod, nav), datos(lote, o), cuerpoAgregar(o, normalizarExclusiones(o.soloMarkbox ?? [])).trim()].join("\n\n");
   const cuerpo = !o.soloFacturas ? CUERPO_APLICAR : excluidos.length ? cuerpoSoloFacturasExcluyendo(o, excluidos, lote.excluidos?.remitentes ?? []) : CUERPO_SOLO_FACTURAS;
   return [cab(lote, o, pod, nav), datos(lote, o), cuerpo.trim()].join("\n\n");
 }
@@ -1206,8 +1221,17 @@ export const SUFIJO_SOLO_FACTURAS = ":facturas";
  * `aplicar-lote.sh` acepta, el OK de Sam del paquete completo no le sirve y la guarda de «no
  * aplicar dos veces» no lo confunde con el completo. El contenedor se sigue buscando por `o.lote`.
  */
-export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas" | "excluirMarkbox">): string {
+export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas" | "excluirMarkbox" | "soloMarkbox" | "agregarAPreorden">): string {
   if (!o.soloFacturas) return o.lote;
+  if (o.agregarAPreorden) {
+    // SDD-0690 · --agregar-a-preorden: otra huella, con su propia etiqueta en el sha256, para que no
+    // coincida con la de la carga, la del paquete completo ni la de --excluir-markbox.
+    const partes = o.lote.split(":");
+    if (partes.length !== 3 || partes[0] !== "carga-consolidado") throw new Error(`id de carga inesperado: ${o.lote}`);
+    const lista = normalizarExclusiones(o.soloMarkbox ?? []);
+    const huella = createHash("sha256").update(`${o.lote}\n--agregar-a-preorden --solo-markbox ${lista.join(",")}`).digest("hex").slice(0, 8);
+    return `${partes[0]}:${partes[1]}:${huella}${SUFIJO_SOLO_FACTURAS}`;
+  }
   const excluidos = normalizarExclusiones(o.excluirMarkbox ?? []);
   if (excluidos.length === 0) return `${o.lote}${SUFIJO_SOLO_FACTURAS}`;
   const partes = o.lote.split(":");
@@ -1757,6 +1781,14 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
   if (excluidos.join(",") !== (lote.excluidos?.markbox ?? []).join(",")) {
     throw new Error("--excluir-markbox: el lote no se filtró con la misma lista (pasa la misma lista a agruparLote)");
   }
+  const soloMb = normalizarExclusiones(o.soloMarkbox ?? []);
+  if (o.agregarAPreorden && !o.soloFacturas) throw new Error("--agregar-a-preorden sólo va con --solo-facturas");
+  if (o.agregarAPreorden && !soloMb.length) throw new Error("--agregar-a-preorden exige --solo-markbox");
+  if (soloMb.length && !o.agregarAPreorden) throw new Error("--solo-markbox sólo va con --agregar-a-preorden");
+  if (o.agregarAPreorden && excluidos.length) throw new Error("--agregar-a-preorden y --excluir-markbox no van juntos");
+  if (soloMb.join(",") !== (lote.seleccion?.markbox ?? []).join(",")) {
+    throw new Error("--solo-markbox: el lote no se filtró con la misma lista (pasa la misma lista a agruparLote)");
+  }
   const pod = puertoDestino(lote.rastreo.puertoLlegada);
   const nav = naviera(lote.rastreo.naviera);
   const items = lote.embarques.reduce((s, e) => s + e.filas.length, 0);
@@ -1816,16 +1848,439 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
           },
         }
       : {}),
+    ...(o.agregarAPreorden && lote.seleccion
+      ? {
+          agregarAPreorden: {
+            soloMarkbox: lote.seleccion.markbox,
+            clientes: lote.seleccion.clientes,
+            envios: lote.seleccion.envios,
+            filas: lote.seleccion.filas,
+            enviosFuera: lote.seleccion.enviosFuera,
+            motivo: "--agregar-a-preorden: los envíos que estaban en estos Shipping Marks, ya reasignados; sus líneas van a la pre-orden borrador de su cliente o a una nueva",
+          },
+        }
+      : {}),
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);
-  const cabecera = `${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}${lote.excluidos ? `-- SDD-0690 · --excluir-markbox ${lote.excluidos.markbox.join(",")}: excluidos por markbox: ${lote.excluidos.envios} envíos, fuera de este paquete\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
+  const cabecera = `${o.agregarAPreorden && lote.seleccion ? `-- SDD-0690 · --agregar-a-preorden --solo-markbox ${lote.seleccion.markbox.join(",")}: ${lote.seleccion.envios} envíos a cargar; agrega líneas a la pre-orden borrador del cliente o crea una\n` : ""}${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}${lote.excluidos ? `-- SDD-0690 · --excluir-markbox ${lote.excluidos.markbox.join(",")}: excluidos por markbox: ${lote.excluidos.envios} envíos, fuera de este paquete\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
-    previa: o.soloFacturas ? previaSoloFacturas(lote, o) : previa(lote, o, pod, nav),
+    previa: o.agregarAPreorden ? previaAgregar(lote, o) : o.soloFacturas ? previaSoloFacturas(lote, o) : previa(lote, o, pod, nav),
     aplicar: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
     simulacro: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- SIMULACRO: corre todo y deshace al final. No deja nada en la base.\nbegin;\n\n${cuerpo}\n\nrollback;\n`,
-    verificar: o.soloFacturas ? verificarSoloFacturas(lote, o) : verificar(lote, o, manifiesto),
-    deshacer: o.soloFacturas ? deshacerSoloFacturas(lote, o) : deshacer(lote, o),
+    verificar: o.agregarAPreorden ? verificarAgregar(lote, o) : o.soloFacturas ? verificarSoloFacturas(lote, o) : verificar(lote, o, manifiesto),
+    deshacer: o.agregarAPreorden ? deshacerAgregar(lote, o) : o.soloFacturas ? deshacerSoloFacturas(lote, o) : deshacer(lote, o),
     purgar: o.soloFacturas ? purgarSoloFacturas(lote, o) : purgar(lote, o),
     manifiesto,
   };
+}
+
+// ── SDD-0690 · --agregar-a-preorden: el lote chico de los envíos que estaban en el comodín ──
+
+/** Marca que distingue en `invoices.notes` las líneas que agregó `--agregar-a-preorden` (y las pre-órdenes que creó). */
+export const MARCA_AGREGADO = "líneas agregadas aparte (SDD-0690)";
+
+/** El inicio del bucle de `--solo-facturas`: lo de antes (preflight, `lote_cargados`, guardas) se reutiliza tal cual. */
+const ANCLA_BUCLE_SOLO_FACTURAS = "  -- ── Una pre-orden por CLIENTE (Shipping Mark vivo de los envíos al correr), en borrador, si no tiene\n";
+/** Donde terminan las variables del bloque de `--solo-facturas`: ahí van las de `--agregar-a-preorden`. */
+const ANCLA_DECLARE_SOLO_FACTURAS = "  v_n_marcas int := 0;\nbegin\n";
+
+/**
+ * Cuerpo de aplicar.sql y simulacro.sql con `--agregar-a-preorden`. Reutiliza el preflight de
+ * `--solo-facturas` (contenedor vivo con la marca de la carga y en `exc0674_contenedores`, todos los
+ * envíos del lote cargados y vigentes en él, todos con Shipping Mark, toda línea colgada de un envío
+ * cargado) y cambia el bucle. Antes de escribir nada, aborta si:
+ *  - un envío del lote sigue en un Shipping Mark de `--solo-markbox` (no se reasignó);
+ *  - un envío del lote ya tiene una línea, o es el envío, de una factura viva: correr el lote dos
+ *    veces no duplica.
+ * Después, por cliente (Shipping Mark vivo, facturado a él o a su aliado raíz):
+ *  - si el cliente ya tiene en el contenedor una factura de la regla 0564/0569 viva, aborta;
+ *  - si tiene una pre-orden de esta carga que no está en borrador (emitida, pagada o anulada), o más
+ *    de una en borrador, aborta: nunca toca una emitida;
+ *  - si tiene una en borrador, le agrega las líneas de sus envíos nuevos y recalcula base, IVA y
+ *    total desde todas sus líneas;
+ *  - si no tiene, crea la pre-orden como `--solo-facturas`.
+ */
+function cuerpoAgregar(o: OpcionesSql, markboxOrigen: string[]): string {
+  if (CUERPO_SOLO_FACTURAS.split(ANCLA_BUCLE_SOLO_FACTURAS).length !== 2 || CUERPO_SOLO_FACTURAS.split(ANCLA_DECLARE_SOLO_FACTURAS).length !== 2) {
+    throw new Error("--agregar-a-preorden: el cuerpo de --solo-facturas cambió; revisa ANCLA_BUCLE_SOLO_FACTURAS y ANCLA_DECLARE_SOLO_FACTURAS");
+  }
+  const preambulo = CUERPO_SOLO_FACTURAS.split(ANCLA_BUCLE_SOLO_FACTURAS)[0].replace(
+    ANCLA_DECLARE_SOLO_FACTURAS,
+    () =>
+      [
+        "  v_n_marcas int := 0;",
+        "  v_dest record;",
+        "  v_dest_id uuid;",
+        "  v_n_dest int;",
+        "  v_n_borr int;",
+        "  v_todas jsonb;",
+        "  v_embarques text;",
+        "  v_n_agregadas int := 0;",
+        "  v_n_nuevas int := 0;",
+        "  v_n_envios int := 0;",
+        "begin",
+        "",
+      ].join("\n"),
+  );
+  const origen = `array[${markboxOrigen.map(litSql).join(", ")}]::text[]`;
+  return `${preambulo}  -- ── --agregar-a-preorden: las guardas, antes de escribir nada ──
+  -- Un envío que sigue en un Shipping Mark de --solo-markbox no se reasignó: no se le carga nada.
+  select count(*) into v_n_mb from lote_cargados where markbox = any(${origen});
+  if v_n_mb > 0 then
+    raise exception 'agregar: % envíos del lote siguen en un Shipping Mark de --solo-markbox; reasígnalos antes de cargar', v_n_mb;
+  end if;
+  -- Ningún envío del lote puede tener ya una línea (o ser el envío) de una factura viva: así correr el lote
+  -- dos veces no duplica, y un envío que ya cubre una factura emitida no se toca.
+  select count(*) into v_n_mb
+    from lote_cargados lc
+   where exists (
+     select 1 from public.invoices iv
+      where iv.tenant_id = v_tenant and iv.deleted_at is null and iv.status <> 'anulada'
+        and (iv.shipment_id = lc.shipment_id
+             or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = lc.shipment_id)
+             or exists (select 1 from jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+                         where upper(l ->> 'shipmentCode') = upper(lc.code))));
+  if v_n_mb > 0 then
+    raise exception 'agregar: % envíos del lote ya tienen línea en una factura viva; no se cargan dos veces', v_n_mb;
+  end if;
+
+  -- ── Por CLIENTE (Shipping Mark vivo): agrega a su pre-orden borrador de esta carga, o crea una ──
+  for c in
+    select lc.markbox, min(lc.orden) as primero
+      from lote_cargados lc
+     group by lc.markbox
+     order by min(lc.orden)
+  loop
+    v_mb := c.markbox;
+    select lt.etiqueta into v_etiqueta
+      from lote_clientes lt
+     where lt.clave = (select lc.clave from lote_cargados lc where lc.orden = c.primero);
+    select array_agg(lc.shipment_id order by lc.orden) into v_ships
+      from lote_cargados lc where lc.markbox = c.markbox;
+    select string_agg(lc.remitente, ', ' order by lc.orden) into v_embarques
+      from lote_cargados lc where lc.markbox = c.markbox;
+
+    perform pg_advisory_xact_lock(hashtextextended('exc0674:' || v_tenant::text || ':' || v_cons::text || ':' || v_mb, 0));
+
+    select count(*),
+           coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price, 'shipmentCode', remitente) order by orden), '[]'::jsonb)
+      into v_n_lineas, v_lines
+      from lote_lineas ll
+     where exists (select 1 from lote_cargados lc
+                    where lc.markbox = c.markbox and upper(lc.remitente) = upper(ll.remitente));
+    if v_n_lineas = 0 then
+      v_n_sin_lineas := v_n_sin_lineas + 1;
+      continue;
+    end if;
+
+    select x.client_id into v_client_id from public.resolve_markbox(v_tenant, v_mb) x limit 1;
+    if v_client_id is null or exists (select 1 from public.clients where id = v_client_id and deleted_at is not null) then
+      raise exception 'agregar: el Shipping Mark de la marca % no resuelve a un cliente vivo', v_etiqueta;
+    end if;
+    select aliado_id into v_aliado from public.clients where id = v_client_id;
+    v_fact_id := v_client_id;
+    v_root_client := null;
+    if v_aliado is not null then
+      loop
+        select parent_aliado_id, client_id into v_padre, v_root_client from public.aliados where id = v_aliado;
+        exit when v_padre is null;
+        v_aliado := v_padre;
+      end loop;
+      if v_root_client is not null then
+        v_fact_id := v_root_client;
+      end if;
+    end if;
+    select fc.id, fc.markbox, fc.name, fc.rif, fc.doc_kind into v_fact from public.clients fc where fc.id = v_fact_id;
+    if v_fact.markbox is null then
+      raise exception 'agregar: el cliente a facturar por % no tiene Shipping Mark', v_etiqueta;
+    end if;
+
+    -- Ya facturado en el contenedor por la regla 0564/0569 (emitida desde Embarques): no se toca.
+    if exists (select 1 from public.exc0674_facturas f
+                where f.tenant_id = v_tenant and f.consolidation_id = v_cons
+                  and f.client_markbox = v_mb and f.anulada_at is null) then
+      raise exception 'agregar: el cliente de la marca % ya tiene factura emitida en el contenedor; no se toca', v_etiqueta;
+    end if;
+
+    -- La pre-orden destino: la de esta carga y este cliente, viva.
+    select count(*), count(*) filter (where iv.status = 'borrador'), (array_agg(iv.id) filter (where iv.status = 'borrador'))[1]
+      into v_n_dest, v_n_borr, v_dest_id
+      from public.invoices iv
+     where iv.tenant_id = v_tenant and iv.deleted_at is null
+       and iv.notes like '%' || cab.lote || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%'
+       and upper(btrim(iv.client_markbox)) = upper(btrim(v_fact.markbox));
+    if v_n_dest > v_n_borr then
+      raise exception 'agregar: la pre-orden de la marca % ya no está en borrador (emitida, pagada o anulada); no se toca', v_etiqueta;
+    end if;
+    if v_n_borr > 1 then
+      raise exception 'agregar: la marca % tiene % pre-órdenes en borrador de esta carga; resuélvelo a mano', v_etiqueta, v_n_borr;
+    end if;
+
+    if v_n_borr = 1 then
+      select * into v_dest from public.invoices where id = v_dest_id for update;
+      if v_dest.status <> 'borrador' or v_dest.deleted_at is not null then
+        raise exception 'agregar: la pre-orden de la marca % dejó de ser borrador mientras se cargaba', v_etiqueta;
+      end if;
+      v_todas := coalesce(v_dest.lines, '[]'::jsonb) || v_lines;
+      select coalesce(round(sum((l ->> 'qty')::numeric * (l ->> 'unitPrice')::numeric), 2), 0) into v_base
+        from jsonb_array_elements(v_todas) l;
+      v_iva := round(v_base * coalesce(v_dest.iva_rate, 0) / 100, 2);
+      v_total := round(v_base + v_iva, 2);
+      update public.invoices
+         set lines = v_todas, base_amount = v_base, iva_amount = v_iva, total_amount = v_total,
+             notes = coalesce(notes, '') || ' · agregados: ' || v_embarques || ' · ${MARCA_AGREGADO}'
+       where id = v_dest_id and status = 'borrador' and deleted_at is null;
+      if not found then
+        raise exception 'agregar: la pre-orden de la marca % dejó de ser borrador mientras se cargaba', v_etiqueta;
+      end if;
+      v_n_agregadas := v_n_agregadas + 1;
+      perform public.append_audit_event(
+        v_tenant, 'invoice', v_dest_id, 'system', null, 'invoice_lines_appended', 'job', 'succeeded',
+        'Líneas agregadas a la pre-orden en borrador del contenedor DTD #' || cab.numero::text || ' (SDD-0690, --agregar-a-preorden)',
+        jsonb_build_object('invoice_code', v_dest.invoice_code, 'base_amount', v_dest.base_amount, 'lineas', jsonb_array_length(coalesce(v_dest.lines, '[]'::jsonb))),
+        jsonb_build_object('invoice_code', v_dest.invoice_code, 'base_amount', v_base, 'lineas', jsonb_array_length(v_todas)),
+        jsonb_build_object('lote', cab.lote, 'contenedor', cab.contenedor, 'modo', 'agregar-a-preorden', 'envios', jsonb_array_length(to_jsonb(v_ships))),
+        cab.lote, 1, 'internal');
+    else
+      select coalesce(round(sum(qty * unit_price), 2), 0) into v_base
+        from lote_lineas ll
+       where exists (select 1 from lote_cargados lc
+                      where lc.markbox = c.markbox and upper(lc.remitente) = upper(ll.remitente));
+      v_iva := round(v_base * v_iva_rate / 100, 2);
+      v_total := round(v_base + v_iva, 2);
+      select lc.shipment_id, lc.code into v_first_ship, v_first_code
+        from lote_cargados lc where lc.markbox = c.markbox order by lc.orden limit 1;
+      v_code := public.next_invoice_code(v_tenant);
+      insert into public.invoices
+        (tenant_id, invoice_code, client_markbox, client_name, client_rif, client_doc_kind, shipment_id, shipment_code,
+         currency, iva_rate, base_amount, iva_amount, total_amount, status, lines, notes, fund_class)
+      values
+        (v_tenant, v_code, v_fact.markbox, v_fact.name, v_fact.rif, v_fact.doc_kind, v_first_ship, v_first_code,
+         'USD', v_iva_rate, v_base, v_iva, v_total, 'borrador', v_lines,
+         'Carga ' || cab.lote || ' · contenedor DTD #' || cab.numero::text || ' (' || cab.contenedor || ') · embarques: ' || v_embarques
+           || case when v_fact_id <> v_client_id then ' · facturado al aliado raíz de ' || v_mb else '' end
+           || ' · ${MARCA_SOLO_FACTURAS} · ${MARCA_AGREGADO}',
+         'third_party')
+      returning id into v_inv;
+      v_n_nuevas := v_n_nuevas + 1;
+      perform public.append_audit_event(
+        v_tenant, 'invoice', v_inv, 'system', null, 'invoice_imported', 'job', 'succeeded',
+        'Pre-orden en borrador del contenedor DTD #' || cab.numero::text || ' ya cargado (SDD-0690, --agregar-a-preorden)',
+        null, jsonb_build_object('invoice_code', v_code, 'status', 'borrador', 'base_amount', v_base, 'client_markbox', v_fact.markbox),
+        jsonb_build_object('lote', cab.lote, 'contenedor', cab.contenedor, 'shipment_code', v_first_code, 'modo', 'agregar-a-preorden'),
+        cab.lote, 1, 'internal');
+    end if;
+    v_n_envios := v_n_envios + coalesce(array_length(v_ships, 1), 0);
+  end loop;
+
+  -- El aviso nombra el id del PAQUETE (aplicar-lote.sh lo busca en la evidencia del simulacro).
+  raise notice 'agregar-a-preorden lote % · contenedor % · % envíos · % Shipping Marks · % pre-órdenes con líneas agregadas · % pre-órdenes nuevas · % sin líneas',
+    ${litSql(idDelPaquete(o))}, cab.contenedor, v_n_envios, v_n_marcas, v_n_agregadas, v_n_nuevas, v_n_sin_lineas;
+end
+$lote$;
+`;
+}
+
+/**
+ * CTE de lectura con el destino de cada envío cargado del lote: su Shipping Mark vivo, el cliente que
+ * resuelve y el Shipping Mark a facturar (el del aliado raíz, como en aplicar). Termina en `destino`.
+ */
+function cteDestino(lote: Lote, o: OpcionesSql): string {
+  const contenedor = litSql(normalizarCodigo(lote.rastreo.contenedor));
+  const envios = lote.embarques.length ? lote.embarques.map((e) => `(${litSql(e.remitente.toUpperCase())})`).join(",\n    ") : "(null::text)";
+  return `with recursive tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+cons as (
+  select cn.id from public.consolidations cn
+   where cn.tenant_id = (select id from tenant) and cn.deleted_at is null
+     and upper(coalesce(cn.container_no, '')) = ${contenedor} and cn.notes like '%' || ${litSql(o.lote)} || '%'
+),
+envios(remitente) as (values
+    ${envios}
+),
+vigente as (
+  select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id
+    from public.consolidation_items ci
+   where ci.tenant_id = (select id from tenant) and ci.shipment_id is not null
+   order by ci.shipment_id, ci.created_at desc, ci.id desc
+),
+cargados as (
+  select sx.id, upper(sx.code) as code, coalesce(upper(btrim(sx.client_markbox)), '') as markbox
+    from envios ev
+    join public.shipments sx on upper(sx.code) = ev.remitente and sx.tenant_id = (select id from tenant) and sx.deleted_at is null
+    join vigente vg on vg.shipment_id = sx.id and vg.consolidation_id in (select id from cons)
+),
+cliente as (
+  select cg.id, cg.code, cg.markbox,
+         (select x.client_id from public.resolve_markbox((select id from tenant), cg.markbox) x limit 1) as client_id
+    from cargados cg
+),
+cadena(code, aliado_id) as (
+  select cl.code, c.aliado_id from cliente cl join public.clients c on c.id = cl.client_id where c.aliado_id is not null
+  union all
+  select ca.code, a.parent_aliado_id from cadena ca join public.aliados a on a.id = ca.aliado_id where a.parent_aliado_id is not null
+),
+tope as (
+  select ca.code, a.client_id from cadena ca join public.aliados a on a.id = ca.aliado_id where a.parent_aliado_id is null
+),
+destino as (
+  select cl.id, cl.code, cl.markbox, cl.client_id, upper(btrim(fc.markbox)) as fact_markbox
+    from cliente cl
+    left join tope tp on tp.code = cl.code and tp.client_id is not null
+    left join public.clients fc on fc.id = coalesce(tp.client_id, cl.client_id)
+),
+preordenes as (
+  select iv.id, iv.status, upper(btrim(iv.client_markbox)) as client_markbox
+    from public.invoices iv
+   where iv.tenant_id = (select id from tenant) and iv.deleted_at is null
+     and iv.notes like '%' || ${litSql(o.lote)} || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%'
+)`;
+}
+
+/**
+ * Previa de `--agregar-a-preorden`: sólo lee y sólo cuenta. Las que tienen que dar 0 lo dicen en el
+ * nombre del runbook; aplicar aborta si alguna no da 0.
+ */
+function previaAgregar(lote: Lote, o: OpcionesSql): string {
+  const sel = lote.seleccion!;
+  const origen = `array[${sel.markbox.map(litSql).join(", ")}]::text[]`;
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · lectura previa del paquete ${idDelPaquete(o)}: --agregar-a-preorden sobre la carga ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
+-- Sólo lee. Termina en rollback. Sólo conteos: ni montos ni nombres.
+begin transaction read only;
+
+\\echo === contenedor cargado y lista exc0674
+with tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+cons as (
+  select cn.id from public.consolidations cn
+   where cn.tenant_id = (select id from tenant) and cn.deleted_at is null
+     and upper(coalesce(cn.container_no, '')) = ${litSql(normalizarCodigo(lote.rastreo.contenedor))} and cn.notes like '%' || ${litSql(o.lote)} || '%'
+)
+select (select count(*) from cons) as contenedor_cargado_con_el_lote,
+       (select count(*) from public.exc0674_contenedores xc
+         where xc.tenant_id = (select id from tenant) and xc.consolidation_id in (select id from cons)) as en_lista_exc0674;
+
+\\echo === agregar a pre-orden: envíos a cargar ${sel.envios}
+${cteDestino(lote, o)}
+select
+  ${sel.envios} as envios_a_cargar,
+  (select count(*) from cargados) as envios_cargados,
+  -- Tienen que dar 0: aplicar aborta.
+  (select count(*) from cargados where markbox = any(${origen})) as siguen_en_markbox_de_origen,
+  (select count(*) from cargados where markbox = '') as sin_shipping_mark,
+  (select count(*) from destino where fact_markbox is null) as sin_cliente_a_facturar,
+  (select count(*) from cargados cg
+    where exists (select 1 from public.invoices iv
+                   where iv.tenant_id = (select id from tenant) and iv.deleted_at is null and iv.status <> 'anulada'
+                     and (iv.shipment_id = cg.id
+                          or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = cg.id)
+                          or exists (select 1 from jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+                                      where upper(l ->> 'shipmentCode') = cg.code)))) as ya_con_linea_en_factura_viva,
+  (select count(distinct p.id) from preordenes p
+    where p.status <> 'borrador' and p.client_markbox in (select d.fact_markbox from destino d)) as preordenes_destino_no_borrador,
+  (select count(*) from (select d.fact_markbox from destino d join preordenes p on p.client_markbox = d.fact_markbox and p.status = 'borrador'
+                          group by d.fact_markbox having count(distinct p.id) > 1) v) as clientes_con_varias_preordenes,
+  (select count(distinct d.markbox) from destino d
+    where exists (select 1 from public.exc0674_facturas f
+                   where f.tenant_id = (select id from tenant) and f.consolidation_id in (select id from cons)
+                     and f.client_markbox = d.markbox and f.anulada_at is null)) as clientes_ya_emitidos_en_el_contenedor,
+  -- A dónde va cada envío.
+  (select count(*) from destino d
+    where exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox and p.status = 'borrador')
+      and not exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox and p.status <> 'borrador')) as a_preorden_existente,
+  (select count(*) from destino d
+    where d.fact_markbox is not null and not exists (select 1 from preordenes p where p.client_markbox = d.fact_markbox)) as a_preorden_nueva;
+
+rollback;
+`;
+}
+
+/**
+ * Verificación de `--agregar-a-preorden`: cada envío del lote con líneas tiene todas sus líneas en una
+ * sola pre-orden viva de esta carga, que es de su cliente a facturar, y cada pre-orden que tiene líneas
+ * del lote cuadra: base = Σ(qty × precio) de todas sus líneas, IVA y total. Sólo lee; sólo conteos.
+ */
+function verificarAgregar(lote: Lote, o: OpcionesSql): string {
+  const porEnvio = new Map<string, number>();
+  for (const c of lote.clientes) for (const l of c.lineas) porEnvio.set(l.remitente.toUpperCase(), (porEnvio.get(l.remitente.toUpperCase()) ?? 0) + 1);
+  const esperadas = porEnvio.size ? [...porEnvio].map(([r, n]) => `(${litSql(r)}, ${n})`).join(",\n    ") : "(null::text, 0)";
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · verificación del paquete ${idDelPaquete(o)} (--agregar-a-preorden sobre la carga ${o.lote}). Sólo lee; sólo conteos.
+begin transaction read only;
+
+do $v$
+declare
+  n_envios int; n_bien int; n_sin int; n_varias int; n_cuenta int; n_ajeno int; n_tocadas int; n_descuadre int;
+begin
+  ${cteDestino(lote, o).replace(/\n/g, "\n  ")},
+  esperadas(code, n) as (values
+    ${esperadas}
+  ),
+  lineas as (
+    select upper(l ->> 'shipmentCode') as code, iv.id, upper(btrim(iv.client_markbox)) as client_markbox,
+           iv.notes like '%' || ${litSql(o.lote)} || '%' and iv.notes like '%${MARCA_SOLO_FACTURAS}%' as de_la_carga
+      from public.invoices iv, jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+     where iv.tenant_id = (select id from tenant) and iv.deleted_at is null and iv.status <> 'anulada'
+       and upper(l ->> 'shipmentCode') in (select e.code from esperadas e where e.code is not null)
+  ),
+  por_envio as (
+    select e.code, e.n,
+           (select count(distinct li.id) from lineas li where li.code = e.code) as facturas,
+           (select count(*) from lineas li where li.code = e.code) as lineas,
+           (select bool_and(li.de_la_carga and li.client_markbox = d.fact_markbox)
+              from lineas li left join destino d on d.code = li.code where li.code = e.code) as de_su_cliente
+      from esperadas e where e.code is not null
+  )
+  select count(*),
+         count(*) filter (where facturas = 1 and lineas = n and de_su_cliente),
+         count(*) filter (where facturas = 0),
+         count(*) filter (where facturas > 1),
+         count(*) filter (where facturas = 1 and lineas <> n),
+         count(*) filter (where facturas = 1 and lineas = n and not coalesce(de_su_cliente, false))
+    into n_envios, n_bien, n_sin, n_varias, n_cuenta, n_ajeno
+    from por_envio;
+  with tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+  tocadas as (
+    select iv.* from public.invoices iv
+     where iv.tenant_id = (select id from tenant) and iv.deleted_at is null and iv.status <> 'anulada'
+       and exists (select 1 from jsonb_array_elements(coalesce(iv.lines, '[]'::jsonb)) l
+                    where upper(l ->> 'shipmentCode') in (${porEnvio.size ? [...porEnvio.keys()].map(litSql).join(", ") : "null"}))
+  ),
+  cuadre as (
+    select t.id, t.base_amount, t.iva_amount, t.total_amount, coalesce(t.iva_rate, 0) as iva_rate,
+           (select coalesce(round(sum((l ->> 'qty')::numeric * (l ->> 'unitPrice')::numeric), 2), 0)
+              from jsonb_array_elements(coalesce(t.lines, '[]'::jsonb)) l) as suma
+      from tocadas t
+  )
+  select count(*),
+         count(*) filter (where base_amount <> suma or iva_amount <> round(suma * iva_rate / 100, 2) or total_amount <> round(suma + round(suma * iva_rate / 100, 2), 2))
+    into n_tocadas, n_descuadre
+    from cuadre;
+  if n_sin > 0 then raise exception 'verificar agregar: % envíos del lote sin línea en una factura viva', n_sin; end if;
+  if n_varias > 0 then raise exception 'verificar agregar: % envíos con líneas en más de una factura viva', n_varias; end if;
+  if n_cuenta > 0 then raise exception 'verificar agregar: % envíos con otra cantidad de líneas que el lote (duplicadas o faltantes)', n_cuenta; end if;
+  if n_ajeno > 0 then raise exception 'verificar agregar: % envíos en una factura que no es una pre-orden de esta carga de su cliente', n_ajeno; end if;
+  if n_descuadre > 0 then raise exception 'verificar agregar: % pre-órdenes tocadas con base, IVA o total distintos de la suma de sus líneas', n_descuadre; end if;
+  raise notice 'verificar agregar: PASÓ · % de % envíos en una pre-orden de su cliente · % pre-órdenes tocadas cuadran con sus líneas', n_bien, n_envios, n_tocadas;
+end
+$v$;
+
+rollback;
+`;
+}
+
+/** Deshacer de `--agregar-a-preorden`: no se deshace por partes (las líneas viven en pre-órdenes que ya existían). */
+function deshacerAgregar(lote: Lote, o: OpcionesSql): string {
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · deshacer el paquete ${idDelPaquete(o)} (--agregar-a-preorden sobre la carga ${o.lote}, contenedor DTD #${lote.rastreo.numero}).
+-- No se deshace por partes: las líneas se agregaron a pre-órdenes que ya existían. En prueba, purgar.sql
+-- borra todas las pre-órdenes de esta carga; en producción el paquete no trae este archivo.
+do $undo$
+begin
+  raise exception 'deshacer agregar: no se deshace por partes; en prueba usa purgar.sql (borra todas las pre-órdenes de la carga ${o.lote})';
+end
+$undo$;
+`;
 }
