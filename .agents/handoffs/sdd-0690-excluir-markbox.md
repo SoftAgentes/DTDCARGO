@@ -35,13 +35,25 @@ Una opción del generador para dejar fuera del lote los envíos de uno o varios 
 
 ## VALIDACIÓN
 
-Ver la sección al pie (se completa al correr, con el turno de PC del Director).
+Se corrió con el turno de PC de Dir_DTD, en este worktree, el 2026-11-21.
+
+- `pnpm install --frozen-lockfile`: PASÓ.
+- Vitest de los 6 archivos `scripts/__tests__/consolidados-*` (modelo, excel, sql, previa-corte, solo-facturas-pglite y excluir-markbox): **PASÓ, 99 de 99**. De esos, 25 son de `excluir-markbox` y `solo-facturas-pglite`, y salen listados uno por uno en `--reporter=verbose`.
+- `tsc --noEmit -p .`: PASÓ (código de salida 0).
+- `eslint` de `scripts/consolidados` y de las dos pruebas: 0 errores. Quedan 3 avisos `_c/_e/_a` en `generar-lote.ts:342`, que ya estaban en main y no son de esta tarea.
+- **Byte a byte contra `origin/main`:** el `generarSql` de main y el de la rama, con reloj fijo y datos sintéticos, en 5 variantes. Las variantes: producción `--solo-facturas`, producción `--solo-facturas --sin-exceso-peso`, producción con la carga completa, prueba con `--crear-clientes-faltantes` y prueba con `--sin-facturas`. Resultado: **IGUAL en las 5**, con el mismo sha de todo el `SalidaSql`. Control: con un cambio plantado en la rama (`vessel`), las 5 salen DISTINTO, así que el comparador sí mira. El guion está fuera del repo, en el scratchpad de la sesión (`byte-compare.mts`).
+- **Mutantes** sobre `excluir-markbox` y `solo-facturas-pglite`. Con cada mutante fallan pruebas y con la base limpia pasan 25 de 25:
+  - los envíos excluidos se quedan en el lote: 7 fallan;
+  - los clientes excluidos se quedan con sus líneas: 9 fallan;
+  - la guarda SQL no mira nada (`select 0`): 2 fallan, el texto y PGlite;
+  - la huella no cambia: 1 falla.
+- `pnpm verify`: NO EJECUTADO en local. El cambio es solo de `scripts/consolidados`, sus pruebas y documentación, y el portón es el CI de la PR.
+- `infra/ops/tests/prueba-aplicar-lote.sh`: NO APLICA, porque `aplicar-lote.sh` no cambió. Que el id nuevo cumple su expresión regular lo prueba la unidad.
+- `node scripts/carril.mjs`: **revisión previa** (3 de 7 archivos son de consolidados).
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr tipos y vitest con turno de PC (pedido a Dir_DTD).
-- Hacer la comparación byte a byte contra `origin/main` y probar el mutante.
-- Push y PR.
+- La revisión independiente y el CI verde en la cabeza de la PR. Los lanza el Director.
 
 ## FUERA DE ALCANCE DETECTADO
 

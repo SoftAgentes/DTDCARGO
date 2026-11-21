@@ -165,7 +165,7 @@ describe("generarSql con --excluir-markbox", () => {
   });
 
   it("no va sin --solo-facturas ni con un lote filtrado con otra lista", () => {
-    const { soloFacturas: _s, ...completo } = SOLO;
+    const completo: OpcionesSql = { ...SOLO, soloFacturas: false };
     expect(() => generarSql(excluirPorMarkbox(lote(), ["DTD-0000"]), { ...completo, excluirMarkbox: ["DTD-0000"] }, FUENTES)).toThrow(/sólo va con --solo-facturas/);
     expect(() => generarSql(lote(), { ...SOLO, excluirMarkbox: ["DTD-0000"] }, FUENTES)).toThrow(/no se filtró con la misma lista/);
     expect(() => generarSql(excluirPorMarkbox(lote(), ["DTD-0000"]), SOLO, FUENTES)).toThrow(/no se filtró con la misma lista/);
@@ -191,7 +191,7 @@ describe("sin --excluir-markbox no cambia nada", () => {
   });
 
   it("la carga completa tampoco cambia", () => {
-    const { soloFacturas: _s, ...completo } = SOLO;
+    const completo: OpcionesSql = { ...SOLO, soloFacturas: false };
     const a = generarSql(lote(), completo, FUENTES);
     const b = generarSql(lote(), { ...completo, excluirMarkbox: [] }, FUENTES);
     expect(JSON.stringify(b)).toBe(JSON.stringify(a));
