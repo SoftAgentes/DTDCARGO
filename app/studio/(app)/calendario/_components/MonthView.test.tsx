@@ -1,7 +1,8 @@
 /**
  * SDD-0686 · grupo 5 (revisión de la #741): el feriado crítico de China no se
  * dice solo con color. El botón del día lleva `aria-label`, que tapa el texto
- * de adentro, así que el estado tiene que estar en ese nombre accesible.
+ * de adentro, así que los feriados (y si es crítico) tienen que estar en ese
+ * nombre accesible (`dayCellLabel`).
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -40,10 +41,10 @@ describe("MonthView · feriado crítico de China", () => {
     expect(dia).toHaveAccessibleName("Ver eventos del 2027-02-08, feriado crítico en China");
   });
 
-  it("un feriado común no se anuncia como crítico", () => {
+  it("un feriado común se anuncia, pero no como crítico", () => {
     pintar([feriado(false)]);
     expect(screen.queryByRole("button", { name: /feriado crítico/ })).toBeNull();
-    expect(screen.getByRole("button", { name: "Ver eventos del 2027-02-08" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver eventos del 2027-02-08, feriado en China" })).toBeInTheDocument();
   });
 
   it("el crítico lleva la barra en peligro, no en atención", () => {
