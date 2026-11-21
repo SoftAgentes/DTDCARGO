@@ -171,14 +171,18 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 - **Agregar los envíos reasignados a la pre-orden del cliente (`--solo-markbox` con `--agregar-a-preorden`, SDD-0690).** Es el lote chico, después de que la oficina reasigna con «Asignar cliente» los envíos que estaban en el comodín. Va con `--solo-facturas` y las dos opciones van juntas.
   - **Qué entra.** `--solo-markbox DTD-0000` es lo contrario de `--excluir-markbox`: entran **solo** las filas del Excel cuyo Shipping Mark (el del `--mapa` o la clave) está en la lista. Es repetible y acepta comas. Se usan el mismo Excel y el mismo mapa de la carga.
   - **Qué hace, por cliente** (el Shipping Mark que tienen los envíos *al correr*, facturado a él o a su aliado raíz, como siempre):
-    - si tiene una pre-orden **en borrador** de esta carga, le **agrega las líneas** de sus envíos nuevos y recalcula base, IVA y total desde todas sus líneas. En las notas queda `agregados: <envíos> · líneas agregadas aparte (SDD-0690)`;
+    - si tiene una pre-orden **en borrador** de esta carga, le **agrega las líneas** de sus envíos nuevos y recalcula base, IVA y total desde todas sus líneas. El IVA es el de esa pre-orden, no el que tenga hoy el tenant. En las notas queda `agregados: <envíos> · líneas agregadas aparte (SDD-0690)`;
     - si no tiene, le **crea** la pre-orden, como `--solo-facturas`;
     - nunca toca una factura que no esté en borrador.
+  - **De quién es una pre-orden.** Se usa el criterio de la 0569 al emitir: el dueño es el Shipping Mark vivo del envío de la pre-orden (`shipment_id`), vigente en el contenedor. No es el titular a facturar (`client_markbox`).
+    - Con aliado raíz, dos clientes del mismo aliado facturan al mismo titular, pero cada uno tiene su propia pre-orden. Si un envío se reasigna a un cliente del aliado que no tenía pre-orden, se le crea una. No va a la pre-orden del otro cliente: al emitirla, la 0569 solo cubriría los envíos de ese otro y el envío quedaría «sin facturar».
+    - Si la pre-orden del cliente factura a otro titular (alguien la editó), aborta.
   - **Cuándo aborta, sin escribir nada** (`aplicar` y `simulacro`):
     - un envío del lote **sigue** en un Shipping Mark de `--solo-markbox`, es decir, no se reasignó;
     - un envío del lote **ya tiene línea** en una factura viva, o es su envío o está en sus envíos cubiertos. Así, correr el paquete dos veces no duplica;
     - la pre-orden del cliente **ya no está en borrador** (emitida, pagada o anulada);
     - el cliente tiene **más de una** pre-orden borrador de esta carga;
+    - la pre-orden del cliente **factura a otro titular**;
     - el cliente ya está **facturado en el contenedor** por la regla 0564/0569 (`exc0674_facturas` vivo).
   - **Otro id.** `carga-consolidado:64:<8 hex>:facturas`. Los 8 hex salen del sha256 del id de la carga, la etiqueta `--agregar-a-preorden` y la lista de `--solo-markbox`, así que no coinciden con los de la carga, el paquete completo ni el de `--excluir-markbox`. El sufijo sigue siendo `:facturas` porque es la forma que acepta `aplicar-lote.sh`; así no hay que cambiar el guion del VPS. El OK de Sam tiene que citar **este** id.
   - **Las columnas de la previa** (`=== agregar a pre-orden: envíos a cargar N`). Solo conteos:
@@ -193,13 +197,14 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     | `ya_con_linea_en_factura_viva` | los que ya están en una factura viva | **0** |
     | `preordenes_destino_no_borrador` | pre-órdenes destino que ya no están en borrador | **0** |
     | `clientes_con_varias_preordenes` | clientes con más de una pre-orden borrador de la carga | **0** |
+    | `preordenes_destino_otro_titular` | pre-órdenes destino que facturan a otro titular que el del cliente | **0** |
     | `clientes_ya_emitidos_en_el_contenedor` | clientes con factura 0564/0569 viva en el contenedor | **0** |
     | `a_preorden_existente` | envíos cuyas líneas van a una pre-orden que ya existe | informativo |
     | `a_preorden_nueva` | envíos cuyo cliente no tiene pre-orden: se le crea | informativo |
 
   - **`simulacro`** termina con `NOTICE: agregar-a-preorden lote <id> · contenedor … · N envíos · S Shipping Marks · E pre-órdenes con líneas agregadas · C pre-órdenes nuevas · K sin líneas` y `ROLLBACK`.
   - **`verificar`** da PASÓ cuando se cumplen dos cosas:
-    - cada envío del lote tiene **todas sus líneas, y solo esas**, en **una sola** factura viva, y esa factura es una pre-orden de esta carga de su cliente a facturar;
+    - cada envío del lote tiene **todas sus líneas, y solo esas**, en **una sola** factura viva. Esa factura es una pre-orden de esta carga, su dueño (criterio 0569) es el Shipping Mark vivo del envío, y factura al titular del cliente;
     - en cada pre-orden que tiene líneas del lote, base, IVA y total son iguales a la suma de sus líneas.
   - **`deshacer`** no existe por partes, porque las líneas viven en pre-órdenes que ya estaban. En prueba, `purgar.sql` borra todas las pre-órdenes de la carga. En producción el paquete no trae ninguno de los dos.
   - **La receta del lunes, el 64.** La oficina ya reasignó los envíos que estaban en `DTD-0000`. El paquete usa el mismo Excel y el mismo mapa de la carga y de las pre-órdenes de hoy, y va en una carpeta `--salida` nueva:
@@ -211,8 +216,9 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
     1. **Generar.** La primera línea trae el id nuevo. La línea `agregar a pre-orden:` tiene que decir los envíos que estaban en el comodín (23 en el 64) y que los otros quedan fuera.
     2. **`previa`.** Las columnas que tienen que dar **0**, en 0. `envios_cargados` igual a `envios_a_cargar`. Si `siguen_en_markbox_de_origen` no da 0, la oficina no terminó de reasignar: se espera y se vuelve a correr la previa. No hace falta regenerar, porque el paquete no depende de quién es el dueño.
     3. **OK de Sam.** El OK nominal va en `AUTORIZACION.txt` con el id nuevo y la palabra «pre-órdenes». Por ejemplo: «Autorizo agregar a las pre-órdenes del 64 los envíos reasignados del comodín, lote carga-consolidado:64:<id>:facturas, en producción».
-    4. **`simulacro`, `aplicar` y `verificar`.** Se corren con `aplicar-lote.sh` en `/srv/ops/paquetes/lote-64-agregar`, como cualquier paquete. Después se borra el paquete del servidor.
-    5. **No se emite.** La oficina revisa las pre-órdenes y emite desde Embarques con «Facturar todo», como con las de hoy.
+    4. **Nadie edita pre-órdenes del 64 durante la carga.** Antes del `simulacro` se avisa a la oficina que no abra ni guarde pre-órdenes del 64 en Facturación hasta que `verificar` dé PASÓ. Un formulario del Studio abierto desde antes y guardado después pisa las líneas agregadas sin avisar: `updateInvoice` lee `write_version` al guardar, no al abrir.
+    5. **`simulacro`, `aplicar` y `verificar`.** Se corren con `aplicar-lote.sh` en `/srv/ops/paquetes/lote-64-agregar`, como cualquier paquete. Después se borra el paquete del servidor.
+    6. **No se emite enseguida.** La oficina revisa las pre-órdenes y emite desde Embarques con «Facturar todo», como con las de hoy. **Justo antes de emitir se vuelve a correr `verificar`**, que solo lee. Así se ve si alguien editó una pre-orden después de la carga. Si no da PASÓ, no se emite: se revisa a mano.
   - **`deshacer` y `purgar` no distinguen los dos paquetes.** Solo existen en prueba. Filtran por el id de la carga y la marca `pre-orden cargada aparte (SDD-0690)`, no por el id del paquete. Si una carga tiene dos paquetes de pre-órdenes (el de hoy y el chico), deshacer o purgar uno se lleva también los borradores del otro. En producción no aplica, porque el paquete no los trae.
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.

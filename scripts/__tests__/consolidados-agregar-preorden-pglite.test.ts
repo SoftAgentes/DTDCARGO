@@ -358,8 +358,8 @@ update public.shipments set client_markbox = 'DTD-5003' where code like 'DTD-J03
       { client_markbox: "DTD-5002", iva_rate: "0", base_amount: "700.00", iva_amount: "0.00", total_amount: "700.00" },
     ]);
     expect(await verificar()).toContain("PASÓ · 2 de 2 envíos en una pre-orden de su cliente · 2 pre-órdenes tocadas cuadran");
-    // Con un IVA descuadrado, verificar lo ve.
-    await db!.exec("update public.invoices set iva_amount = iva_amount + 1, total_amount = total_amount + 1 where client_markbox = 'DTD-5001'");
+    // Con el IVA descuadrado (aunque el total siga cuadrando con las líneas), verificar lo ve.
+    await db!.exec("update public.invoices set iva_amount = iva_amount + 1 where client_markbox = 'DTD-5001'");
     await expect(verificar()).rejects.toThrow("1 pre-órdenes tocadas con base, IVA o total distintos");
   });
 

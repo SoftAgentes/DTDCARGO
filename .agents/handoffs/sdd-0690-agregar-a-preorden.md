@@ -63,13 +63,41 @@ Con el turno de PC de Dir_DTD, en este worktree, el 2026-11-21:
 - `pnpm verify`: NO EJECUTADO en local. El portón es el CI de la PR.
 - `infra/ops/tests/prueba-aplicar-lote.sh`: NO APLICA, porque `aplicar-lote.sh` no cambió.
 
+## Ronda 2 · revisión de la #756 sobre `8f9476f04`
+
+- **M1 (bloqueaba), resuelto.** El destino se buscaba por el titular a facturar. Con aliado raíz, las líneas de un cliente M caían en la pre-orden de otro cliente M2 del mismo aliado. Al emitir, la 0569 solo cubre los envíos de M2, así que el envío de M quedaba «sin facturar».
+  - Ahora `aplicar`, la previa y `verificar` usan el criterio de la 0569: el dueño de una pre-orden es el Shipping Mark vivo de su `shipment_id`, vigente en el contenedor.
+  - Si el cliente no tiene la suya, se crea una nueva. Si la suya factura a otro titular, aborta. La previa suma `preordenes_destino_otro_titular`, que tiene que dar 0.
+  - Pruebas PGlite nuevas:
+    - aliado con dos clientes: cada uno queda con su pre-orden, las dos facturadas a la raíz;
+    - `verificar` falla si el envío quedó en la pre-orden del otro cliente;
+    - otro titular, que aborta.
+- **B1, resuelto.** Prueba con IVA: el sábado con 16 % y el lunes con el tenant ya sin IVA. La pre-orden existente recalcula con su propio 16 % y la nueva sale en 0. `verificar` detecta un IVA descuadrado aunque el total cuadre.
+- **B2, resuelto en el runbook** (§2b, receta del lunes):
+  - nadie edita pre-órdenes del 64 durante la carga, porque un formulario del Studio abierto desde antes pisa las líneas;
+  - `verificar` se vuelve a correr justo antes de emitir.
+- **Validación de la ronda 2:**
+  - vitest de los 7 archivos `consolidados-*`: **123/123** (19 en `agregar-preorden`);
+  - `tsc` limpio;
+  - **18 mutantes**, todos muertos. Los nuevos:
+    - destino por titular, como antes;
+    - no mira el titular de la pre-orden;
+    - `verificar` sin el dueño 0569;
+    - previa `a_preorden_existente` por titular;
+    - previa `otro_titular` vacía;
+    - IVA del tenant en la existente;
+    - sin IVA en el recálculo;
+    - `verificar` no mira el IVA. En la primera corrida sobrevivía, porque la prueba subía también el total; ahora sube solo el IVA.
+
+  Los 10 de la ronda 1 siguen muertos. La rama está 1 commit detrás de `origin/main` y el merge sale limpio en `merge-tree`. No lo hice.
+
 ## PENDIENTES DE ESTA TAREA
 
-- La revisión independiente y el CI verde en la cabeza de la PR. Los lanza el Director.
+- La re-revisión independiente y el CI verde en la cabeza nueva. Los lanza el Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **El sufijo es `:facturas`, no `:facturas-agregar`.** El Director lo propuso «por ejemplo». Un sufijo nuevo obliga a cambiar la expresión regular de `aplicar-lote.sh` (`^carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)?$`) y a publicar el guion en el VPS antes del lunes. La huella propia ya separa el paquete para la idempotencia y para el OK. Si se quiere el sufijo, es una PR aparte de `infra/ops`.
+- **Sufijo `:facturas` con huella propia: aceptado por Dir_DTD** (2026-11-21), sin PR de infra.
 - **Las pre-órdenes de `--solo-facturas` no llenan `exc0674_factura_envios`.** Eso lo hace la emisión (0569). La guarda de duplicados mira las tres vías: `shipment_id`, envíos cubiertos y `lines[].shipmentCode`.
 - **`deshacer`/`purgar` en prueba** siguen sin distinguir paquetes de una misma carga (B3 de la #750).
 
