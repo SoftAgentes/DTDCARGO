@@ -42,7 +42,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "n
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leerPacking, leerRastreo } from "./leer-excel";
-import { agruparLote, excluirPorMarkbox, ISO_FECHA, normalizarCodigo, normalizarExclusiones, type FilaPacking, type Lote, type Modalidad, type ServicioFcl } from "./modelo";
+import { agruparLote, ISO_FECHA, normalizarCodigo, normalizarExclusiones, type FilaPacking, type Lote, type Modalidad, type ServicioFcl } from "./modelo";
 import { generarSql, type OpcionesSql, type SalidaSql } from "./lote-sql";
 
 export interface Argumentos {
@@ -407,7 +407,7 @@ export async function generar(
     filas = packing.filas;
   }
   const mapa = leerMapa(args.mapa);
-  const loteCompleto = agruparLote(rastreo, filas, {
+  const lote = agruparLote(rastreo, filas, {
     eta: args.eta,
     etd: args.etd,
     fechaCarga: args.fechaCarga,
@@ -419,9 +419,9 @@ export async function generar(
     cbmFcl: args.cbmFcl ?? null,
     kgFcl: args.kgFcl ?? null,
     gastoEspacio: args.gastoEspacio != null && args.gastoUsuario ? { monto: args.gastoEspacio, usuarioEmail: args.gastoUsuario } : null,
+    // SDD-0690 · --excluir-markbox: las filas de esos Shipping Marks salen antes de agrupar.
+    ...(args.excluirMarkbox?.length ? { excluirMarkbox: args.excluirMarkbox } : {}),
   });
-  // SDD-0690 · --excluir-markbox: los envíos de esos Shipping Marks salen antes de armar el SQL.
-  const lote = args.excluirMarkbox?.length ? excluirPorMarkbox(loteCompleto, args.excluirMarkbox, mapa) : loteCompleto;
   const fuentes = { rastreo: sha256(args.rastreo), packing: args.packing ? sha256(args.packing) : "" };
   const huellaLote = (fuentes.packing || fuentes.rastreo).slice(0, 8);
   const opciones: OpcionesSql = {
