@@ -152,14 +152,13 @@ export function InspeccionesClient({
           label="Aprobadas"
           value={kpis.month_approved}
           sub="del mes"
-          valueColor={kpis.month_approved > 0 ? "var(--success)" : "var(--ink)"}
           highlightWhenPositive={false}
         />
         <KpiCard
           label="Con observaciones"
           value={kpis.month_observed}
           sub="observadas o rechazadas"
-          valueColor={kpis.month_observed > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.month_observed > 0 ? { tono: "warning", texto: "Requiere revisión" } : undefined}
           highlightWhenPositive={false}
         />
         <KpiCard label="Borradores" value={kpis.draft_count} sub="sin emitir" />

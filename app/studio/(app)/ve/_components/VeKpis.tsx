@@ -24,7 +24,6 @@ export function VeKpis({ kpis }: { kpis: KpisType }) {
             ? "Trámite aduanal en curso"
             : "Sin trámites activos"
         }
-        valueColor={kpis.inCustoms > 0 ? "var(--warning)" : "var(--ink)"}
       />
       <KpiCard
         label="Listos para retiro"
@@ -34,7 +33,6 @@ export function VeKpis({ kpis }: { kpis: KpisType }) {
             ? "Liberados aduana, esperando reparto"
             : "Sin liberados pendientes"
         }
-        valueColor={kpis.readyForPickup > 0 ? "var(--info)" : "var(--ink)"}
       />
       <KpiCard
         label="En reparto"
@@ -44,13 +42,11 @@ export function VeKpis({ kpis }: { kpis: KpisType }) {
             ? "DDP en camino al cliente"
             : "Ningún reparto activo"
         }
-        valueColor="var(--ink)"
       />
       <KpiCard
         label="Entregados este mes"
         value={kpis.deliveredThisMonth}
         sub="POD firmado"
-        valueColor={kpis.deliveredThisMonth > 0 ? "var(--success)" : "var(--ink)"}
       />
     </div>
   );

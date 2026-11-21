@@ -179,15 +179,11 @@ export function OrdenesCompraClient({
         <KpiCard
           value={abiertas}
           label="Abiertas"
-          valueColor={abiertas > 0 ? "var(--warning)" : "var(--ink)"}
           sub="borrador · confirmada · recibida"
         />
         <KpiCard
           value={stats.byStatus.facturada}
           label="Facturadas"
-          valueColor={
-            stats.byStatus.facturada > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="cuenta por pagar generada"
         />
         <KpiCard

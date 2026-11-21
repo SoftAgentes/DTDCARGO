@@ -4,19 +4,81 @@
  * Card con valor grande + label + sub-line opcional.
  * Border-top de tinta 2px cuando value > 0 (cifras en tinta, BD-076 · SDD-0686).
  *
+ * La cifra va SIEMPRE en tinta (decisión de Sam, 2026-11-21: «Cifras KPI: opción
+ * A, cifra en tinta y estado con punto y texto»). El estado, si lo hay, va aparte
+ * bajo la etiqueta: un punto de 7 px del color de estado y una palabra en
+ * --ink-soft. En peligro, la palabra va en --danger-text con icono de alerta.
+ * Sin estado no hay punto. No hay color libre para la cifra.
+ *
  * Reusa tokens del sistema, light + dark theme aware.
  */
 
 import type { CSSProperties, ReactNode } from "react";
+import { StatusIcon } from "@/components/StatusIcon";
+
+/** Estado de un KPI: el tono del punto y la palabra que lo dice. */
+export type KpiStatus = {
+  tono: "success" | "warning" | "danger";
+  texto: string;
+};
+
+const PUNTO: Record<Exclude<KpiStatus["tono"], "danger">, string> = {
+  success: "var(--success)",
+  warning: "var(--warning)",
+};
+
+/**
+ * Estado aparte de una cifra: punto de 7 px del color de estado y la palabra en
+ * --ink-soft; en peligro, icono de alerta y la palabra en --danger-text. Lo usa
+ * KpiCard y cualquier cifra destacada fuera de él (la cifra va en tinta).
+ * `sobreOscuro`: sobre el navy fijo (--ink-side* y el rojo para fondo oscuro).
+ */
+export function KpiEstado({ status, sobreOscuro = false }: { status: KpiStatus; sobreOscuro?: boolean }) {
+  return (
+    <div
+      data-kpi-estado={status.tono}
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        font: "600 12px/1.2 var(--f-sans)",
+        color:
+          status.tono === "danger"
+            ? sobreOscuro
+              ? "var(--color-status-danger-on-dark)"
+              : "var(--danger-text)"
+            : sobreOscuro
+              ? "var(--ink-side)"
+              : "var(--ink-soft)",
+      }}
+    >
+      {status.tono === "danger" ? (
+        <StatusIcon tone="warning" size={13} />
+      ) : (
+        <span
+          aria-hidden
+          style={{
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            background: PUNTO[status.tono],
+            flexShrink: 0,
+          }}
+        />
+      )}
+      {status.texto}
+    </div>
+  );
+}
 
 interface KpiCardProps {
   value: number | string;
   label: string;
   /** Texto secundario debajo del label (ej: "8 enviadas · 3 aceptadas"). */
   sub?: ReactNode;
-  /** Color del valor (default var(--ink)). Útil para diferenciar tonos
-   *  semánticos: success/warning/danger. */
-  valueColor?: string;
+  /** Estado del KPI, aparte de la cifra (que siempre va en tinta). */
+  status?: KpiStatus;
   /** Si false, no muestra el border-top de tinta aunque value > 0. */
   highlightWhenPositive?: boolean;
   /**
@@ -31,7 +93,7 @@ export function KpiCard({
   value,
   label,
   sub,
-  valueColor = "var(--ink)",
+  status,
   highlightWhenPositive = true,
   feature = false,
   style,
@@ -45,7 +107,7 @@ export function KpiCard({
 
   // En feature el texto va sobre el degradado navy, oscuro en los dos temas: --ink-side*,
   // que no voltea (SDD-0603; el relleno pasó de vino a navy con BD-076).
-  const valColor = feature ? "var(--ink-side-strong)" : valueColor;
+  const valColor = feature ? "var(--ink-side-strong)" : "var(--ink)";
   const labelColor = feature ? "var(--ink-side-strong)" : "var(--ink)";
   const subColor = feature ? "var(--ink-side)" : "var(--ink-soft)";
 
@@ -108,6 +170,7 @@ export function KpiCard({
       >
         {label}
       </div>
+      {status && <KpiEstado status={status} sobreOscuro={feature} />}
       {sub && (
         <div
           style={{

@@ -155,19 +155,18 @@ export function DocumentosHubClient({
           value={kpis.pending}
           label="Pendientes de firma"
           sub="requieren acción"
-          valueColor={kpis.pending ? "var(--warning)" : "var(--ink)"}
+          status={kpis.pending ? { tono: "warning", texto: "Pendiente" } : undefined}
         />
         <KpiCard
           value={kpis.expiring}
           label="Por vencer / vencidos"
           sub="permisos & certificados"
-          valueColor={kpis.expiring ? "var(--danger)" : "var(--ink)"}
+          status={kpis.expiring ? { tono: "danger", texto: "Requiere acción" } : undefined}
         />
         <KpiCard
           value={kpis.unlinked}
           label="Sin transacción"
           sub="clasificar / vincular"
-          valueColor={kpis.unlinked ? "var(--info)" : "var(--ink)"}
         />
       </div>
 

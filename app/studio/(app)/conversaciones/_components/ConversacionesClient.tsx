@@ -119,25 +119,24 @@ export function ConversacionesClient({
           label="Abiertas"
           value={kpis.open}
           sub={`${kpis.unread} mensaje${kpis.unread === 1 ? "" : "s"} sin leer`}
-          valueColor={kpis.open > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.open > 0 ? { tono: "warning", texto: "Por atender" } : undefined}
         />
         <KpiCard
           label="Sin asignar"
           value={kpis.unassigned}
           sub="requieren agente"
-          valueColor={kpis.unassigned > 0 ? "var(--danger)" : "var(--success)"}
+          status={kpis.unassigned > 0 ? { tono: "danger", texto: "Requiere acción" } : { tono: "success", texto: "Al día" }}
         />
         <KpiCard
           label="Casos abiertos"
           value={kpis.openCases}
           sub="prioridad alta"
-          valueColor={kpis.openCases > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.openCases > 0 ? { tono: "danger", texto: "Requiere acción" } : undefined}
         />
         <KpiCard
           label="Resueltas hoy"
           value={kpis.resolvedToday}
           sub="cerradas con cliente"
-          valueColor={kpis.resolvedToday > 0 ? "var(--success)" : "var(--ink)"}
         />
       </div>
 

@@ -149,15 +149,11 @@ export function OrdenesVentaClient({
         <KpiCard
           value={enCurso}
           label="En curso"
-          valueColor={enCurso > 0 ? "var(--warning)" : "var(--ink)"}
           sub="confirmada · parcial"
         />
         <KpiCard
           value={stats.byStatus.facturada}
           label="Facturadas"
-          valueColor={
-            stats.byStatus.facturada > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="venta completa"
         />
         <KpiCard
