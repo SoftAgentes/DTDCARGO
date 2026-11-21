@@ -81,22 +81,34 @@ const LENGUAJE_CALLE =
 const COMPRA_MENOS =
   /\b(?:compra(?:r)? menos|compre menos|comprar menos|reduce tus compras|reduzca sus compras|reducir tus compras|baja(?:r)? el volumen|reduce el volumen)\b/;
 
-const DATOS_PERSONALES: RegExp[] = [
+export type TipoDatoPersonal = "correo" | "telefono" | "cedula" | "rif" | "direccion";
+
+/**
+ * Los datos personales, cada uno con su tipo. Se buscan sobre `normalizarTexto` (minúsculas y sin tildes).
+ * SDD-0700 (Oficina_Virtual) usa esta MISMA lista para taparlos en el texto del cliente antes de la llamada al
+ * modelo (`lib/studio/oficina/tapar-datos.ts`): una sola lista de expresiones para detectar y para tapar.
+ */
+export const PATRONES_DATOS_PERSONALES: ReadonlyArray<{ tipo: TipoDatoPersonal; re: RegExp }> = [
   // Correo.
-  /[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+/,
+  { tipo: "correo", re: /[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+/ },
   // Teléfono de Venezuela (0412, +58 414, 58-424…).
-  /(?:\+?58[\s.-]?)?\(?0?4(?:12|14|16|22|24|26)\)?[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/,
+  { tipo: "telefono", re: /(?:\+?58[\s.-]?)?\(?0?4(?:12|14|16|22|24|26)\)?[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}/ },
   // Teléfono internacional con prefijo.
-  /\+\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}/,
+  { tipo: "telefono", re: /\+\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}/ },
   // Cédula: V-12.345.678, E 1234567, C.I. 12345678.
-  /\b[ve][\s.-]?\d{1,2}\.?\d{3}\.?\d{3}\b/,
-  /\bc\.?\s?i\.?\s*:?\s*\d{6,9}\b/,
-  /\bcedula\s*(?:de identidad)?\s*(?:n[°o.]?\s*)?:?\s*\d/,
+  { tipo: "cedula", re: /\b[ve][\s.-]?\d{1,2}\.?\d{3}\.?\d{3}\b/ },
+  { tipo: "cedula", re: /\bc\.?\s?i\.?\s*:?\s*\d{6,9}\b/ },
+  { tipo: "cedula", re: /\bcedula\s*(?:de identidad)?\s*(?:n[°o.]?\s*)?:?\s*\d/ },
   // RIF: J-12345678-9.
-  /\b[jgvep][\s-]?\d{8}[\s-]?\d\b/,
+  { tipo: "rif", re: /\b[jgvep][\s-]?\d{8}[\s-]?\d\b/ },
   // Dirección de calle: la palabra y un número cerca.
-  /\b(?:calle|avenida|av\.|carrera|urbanizacion|urb\.|edificio|edif\.|residencias|apartamento|apto\.?)\s+[^\n]{0,30}?\d/,
+  {
+    tipo: "direccion",
+    re: /\b(?:calle|avenida|av\.|carrera|urbanizacion|urb\.|edificio|edif\.|residencias|apartamento|apto\.?)\s+[^\n]{0,30}?\d/,
+  },
 ];
+
+const DATOS_PERSONALES: RegExp[] = PATRONES_DATOS_PERSONALES.map((p) => p.re);
 
 /** Dominios propios: un enlace a ellos no necesita fuente. */
 const DOMINIOS_PROPIOS = ["dtdcargo.com"];

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 677 specs)
+### Índice de specs (generado · 678 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -715,6 +715,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0696 | Dirección de entrega del cliente final de un aliado: la carga… | approved | interno |
 | 0697 | Indicadores de carga en Almacén China: catálogo propio, histo… | approved | interno |
 | 0698 | Factura: Facturar a y Entregar en | approved | interno |
+| 0700 | Oficina_Virtual: tapar los datos personales antes del modelo | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692, 0699 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

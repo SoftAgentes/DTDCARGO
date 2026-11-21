@@ -102,7 +102,7 @@ export function crearRevisorDeTextos(detector: (texto: string) => boolean) {
  * de otra forma, como los móviles de China (+86 138 1234 5678). La oficina habla con
  * proveedores de China, así que el cable lo suma; la regla de noticias no cambia.
  */
-const TELEFONO_INTERNACIONAL = /\+\d{1,3}(?:[\s.-]?\d){8,13}(?!\d)/;
+export const TELEFONO_INTERNACIONAL = /\+\d{1,3}(?:[\s.-]?\d){8,13}(?!\d)/;
 
 /** El detector del cable: la regla de noticias y el teléfono internacional agrupado. */
 export const detectorDelCable = (texto: string): boolean =>
