@@ -38,7 +38,6 @@ const TONE_BG: Record<string, string> = {
   warning: "var(--warning-bg, #FBF1DF)",
   danger: "var(--danger-bg, #FCEDED)",
   info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--neutral-bg, #F2F0EC)",
   neutral: "var(--neutral-bg, #F2F0EC)",
 };
 
@@ -47,7 +46,6 @@ const TONE_FG: Record<string, string> = {
   warning: "var(--warning, #B8893A)",
   danger: "var(--danger, #A8323E)",
   info: "var(--info, #2A6FDB)",
-  wine: "var(--ink-soft, #6B6B6B)",
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 

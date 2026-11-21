@@ -533,7 +533,6 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -562,7 +561,6 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -768,7 +766,7 @@ function SummaryCard({
       <div
         style={{
           font: "700 10.5px/1 var(--f-sans)",
-          color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
+          color: "var(--ink-side)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: 8,
@@ -782,7 +780,7 @@ function SummaryCard({
           flexDirection: "column",
           gap: 5,
           font: "500 12.5px/1.6 var(--f-sans)",
-          color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
+          color: "var(--ink-side)",
         }}
       >
         <div>
@@ -790,7 +788,7 @@ function SummaryCard({
           <b style={{ color: "#fff" }}>
             {regionCfg.flag} {regionCfg.officeLabel}
           </b>{" "}
-          <span style={{ color: "var(--ink-inv-soft, rgba(255,255,255,0.85))" }}>
+          <span style={{ color: "var(--ink-side)" }}>
             ({regionCfg.locale} · {regionCfg.currency})
           </span>
         </div>

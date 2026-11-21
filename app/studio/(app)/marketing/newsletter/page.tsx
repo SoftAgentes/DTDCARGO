@@ -13,7 +13,7 @@ const STATUS: Record<NewsletterCampaignStatus, { label: string; tone: BadgeTone 
   draft: { label: "Borrador", tone: "neutral" },
   pending_approval: { label: "Por aprobar", tone: "warning" },
   approved: { label: "Aprobada", tone: "info" },
-  sending: { label: "Enviando", tone: "wine" },
+  sending: { label: "Enviando", tone: "neutral" },
   sent: { label: "Enviada", tone: "success" },
   partial: { label: "Parcial", tone: "warning" },
   failed: { label: "Falló", tone: "danger" },

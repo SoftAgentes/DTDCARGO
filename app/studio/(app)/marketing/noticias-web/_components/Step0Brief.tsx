@@ -65,7 +65,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           className="mt-3 text-ink"
           style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}
         >
-          ¿Sobre qué <span className="text-wine">quieres escribir</span>?
+          ¿Sobre qué <span className="text-[var(--ink)]">quieres escribir</span>?
         </h2>
         <p className="mt-2 text-[13.5px] text-grey-500 max-w-[70ch] leading-relaxed">
           Cuéntale el tema, pégale links de referencia si los tienes, y deja claro
@@ -80,7 +80,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           htmlFor="brief-topic"
           className="text-[13px] font-semibold text-ink"
         >
-          Tema <span className="text-wine">*</span>
+          Tema <span className="text-[var(--ink-soft)]">*</span>
         </label>
         <textarea
           id="brief-topic"
@@ -90,7 +90,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           rows={3}
           required
           placeholder="Ej: Cómo calcular el costo real de importar electrónica desde Yiwu con DDP en 2026"
-          className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine focus:outline-none transition-colors resize-y"
+          className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[14px] text-ink placeholder:text-grey-300 focus:border-[var(--accion)] focus:outline-none transition-colors resize-y"
         />
         <div className="flex justify-end text-[11px] text-grey-500">
           {topic.length} / {TOPIC_MAX}
@@ -128,13 +128,13 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
                 value={ref}
                 onChange={(e) => updateRef(i, e.target.value)}
                 placeholder="https://…"
-                className="flex-1 bg-white border border-grey-200 rounded-lg px-3 py-2 text-[13.5px] text-ink placeholder:text-grey-300 focus:border-wine focus:outline-none transition-colors"
+                className="flex-1 bg-white border border-grey-200 rounded-lg px-3 py-2 text-[13.5px] text-ink placeholder:text-grey-300 focus:border-[var(--accion)] focus:outline-none transition-colors"
               />
               {(refs.length > 1 || ref.trim().length > 0) && (
                 <button
                   type="button"
                   onClick={() => removeRef(i)}
-                  className="text-grey-500 hover:text-wine p-1 rounded transition-colors flex-shrink-0"
+                  className="text-grey-500 hover:text-[var(--accion-text)] p-1 rounded transition-colors flex-shrink-0"
                   aria-label="Quitar este link"
                   title="Quitar este link"
                 >
@@ -147,7 +147,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
             <button
               type="button"
               onClick={addRef}
-              className="inline-flex items-center gap-1 self-start text-[12.5px] font-semibold text-grey-700 hover:text-wine transition-colors mt-1"
+              className="inline-flex items-center gap-1 self-start text-[12.5px] font-semibold text-grey-700 hover:text-[var(--accion-text)] transition-colors mt-1"
             >
               <span className="inline-flex" aria-hidden>
                 {Icon.plus(14)}
@@ -177,7 +177,7 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           maxLength={ANGLE_MAX}
           rows={2}
           placeholder="Ej: El importador VE típico subestima IVA + flete interno y termina pagando 25% más sin saberlo"
-          className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine focus:outline-none transition-colors resize-y"
+          className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[14px] text-ink placeholder:text-grey-300 focus:border-[var(--accion)] focus:outline-none transition-colors resize-y"
         />
         <div className="flex justify-end text-[11px] text-grey-500">
           {angle.length} / {ANGLE_MAX}

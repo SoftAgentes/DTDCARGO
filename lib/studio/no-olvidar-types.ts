@@ -490,9 +490,8 @@ export function roleLabel(r: NoOlvidarUserRole): string {
   return USER_ROLE_LABELS[r];
 }
 
-export function roleBadgeTone(r: NoOlvidarUserRole): BadgeTone {
-  // Sin vino desde BD-076: el rol se lee en la etiqueta y todos van en neutro.
-  void r;
+/** Sin vino desde BD-076: el rol se lee en la etiqueta y todos van en neutro. */
+export function roleBadgeTone(): BadgeTone {
   return "neutral";
 }
 

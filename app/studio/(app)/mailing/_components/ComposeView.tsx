@@ -170,7 +170,7 @@ export function ComposeView({ templates, signatures }: Props) {
     return (
       <SuccessScreen
         icon={Icon.clock(28)}
-        tone="wine"
+        tone="neutral"
         title="Envío programado"
         onReset={resetForm}
       >
@@ -702,7 +702,7 @@ function SuccessScreen({
   onReset,
 }: {
   icon: React.ReactNode;
-  tone: "success" | "wine";
+  tone: "success" | "neutral";
   title: string;
   children: React.ReactNode;
   onReset: () => void;

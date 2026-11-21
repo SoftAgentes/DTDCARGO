@@ -18,8 +18,8 @@
  *
  * Visual (tono "Fantasma", SDD-0036 refinamiento): utilitario de menor
  * jerarquía — contorno + ícono navy suave sobre fondo transparente, sin
- * pulso; en hover se rellena y eleva. El wine sigue siendo el único color de
- * acción. Ver `.bug-fab-*` en studio.css.
+ * pulso; en hover se rellena y eleva. El color de acción es el azul
+ * (`--accion`, BD-076); el vino queda solo para la identidad. Ver `.bug-fab-*` en studio.css.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

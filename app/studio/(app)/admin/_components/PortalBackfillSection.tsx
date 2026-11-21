@@ -251,7 +251,7 @@ function fmtPhone(phone: string): string {
   return phone && phone.trim() ? phone.trim() : "—";
 }
 
-/** Pill de filtro/orden segmentado (activo = wine). */
+/** Pill de filtro/orden segmentado (activo = tinta, BD-076). */
 function Chip({
   active,
   onClick,

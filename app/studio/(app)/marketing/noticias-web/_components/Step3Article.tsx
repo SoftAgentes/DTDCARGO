@@ -95,7 +95,7 @@ export function Step3Article({
           type="button"
           onClick={handleCopy}
           disabled={loading || !markdown}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-[var(--accion)] hover:text-[var(--accion-text)] text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           style={
             copied
               ? {
@@ -347,7 +347,7 @@ export function Step3Article({
                   ? `Resuelve los ${score.verifyMarkers.length} marcadores [VERIFICAR] antes de publicar`
                   : undefined
               }
-              className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-[var(--accion)] text-[var(--on-accion)] px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-[var(--accion-hover)] transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
             >
               <span className="inline-flex" aria-hidden>
                 {Icon.upload(16)}
@@ -360,7 +360,7 @@ export function Step3Article({
               type="button"
               onClick={onRegenerate}
               disabled={loading}
-              className="inline-flex items-center gap-2 bg-white border border-grey-200 text-grey-700 px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:border-wine hover:text-wine transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-white border border-grey-200 text-grey-700 px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:border-[var(--accion)] hover:text-[var(--accion-text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span
                 className={loading ? "inline-flex animate-spin" : "inline-flex"}

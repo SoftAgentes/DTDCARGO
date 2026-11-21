@@ -124,7 +124,7 @@ export function ManualPromptModal({
             onClick={onClose}
             disabled={loading}
             aria-label="Cerrar modal"
-            className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-wine hover:text-wine transition-colors flex-shrink-0 disabled:opacity-50"
+            className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-[var(--accion)] hover:text-[var(--accion-text)] transition-colors flex-shrink-0 disabled:opacity-50"
           >
             {Icon.close(14)}
           </button>
@@ -140,7 +140,7 @@ export function ManualPromptModal({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-grey-200 text-[12px] font-semibold text-grey-700 hover:border-wine hover:text-wine transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-grey-200 text-[12px] font-semibold text-grey-700 hover:border-[var(--accion)] hover:text-[var(--accion-text)] transition-colors"
                   style={
                     copied
                       ? {
@@ -159,7 +159,7 @@ export function ManualPromptModal({
                   href="https://claude.ai/new"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-grey-200 text-[12px] font-semibold text-grey-700 hover:border-wine hover:text-wine transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-grey-200 text-[12px] font-semibold text-grey-700 hover:border-[var(--accion)] hover:text-[var(--accion-text)] transition-colors"
                 >
                   Abrir claude.ai
                   <span className="inline-flex" aria-hidden>
@@ -191,7 +191,7 @@ export function ManualPromptModal({
               rows={8}
               disabled={loading}
               placeholder={placeholder ?? "Pega acá la respuesta de Claude..."}
-              className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[13px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-y font-mono leading-relaxed disabled:opacity-60"
+              className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[13px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-[var(--accion)] transition-colors resize-y font-mono leading-relaxed disabled:opacity-60"
             />
             {error && (
               <p className="text-[12.5px] text-[color:var(--color-status-danger)]">
@@ -207,7 +207,7 @@ export function ManualPromptModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="inline-flex items-center px-4 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-[var(--accion)] hover:text-[var(--accion-text)] text-[13px] font-semibold transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -215,7 +215,7 @@ export function ManualPromptModal({
             type="button"
             onClick={handleSubmit}
             disabled={loading || !text.trim()}
-            className="inline-flex items-center gap-2 bg-wine text-white px-5 py-2 rounded-md font-semibold text-[13.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-[var(--accion)] text-[var(--on-accion)] px-5 py-2 rounded-md font-semibold text-[13.5px] hover:bg-[var(--accion-hover)] transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
           >
             {loading && (
               <span className="inline-flex animate-spin" aria-hidden>

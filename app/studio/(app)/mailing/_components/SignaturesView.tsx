@@ -158,7 +158,7 @@ export function SignaturesView({ signatures, members }: Props) {
               >
                 <Avatar
                   initials={m.initials}
-                  color={isActive ? "wine" : "neutral"}
+                  color="neutral"
                   size={32}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>

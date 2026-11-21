@@ -343,7 +343,7 @@ function TaskCard({
                 <Avatar
                   key={a.user_id}
                   initials={initialsOf(nameByUserId[a.user_id])}
-                  color="wine"
+                  color="neutral"
                   size={20}
                 />
               ))}

@@ -232,24 +232,63 @@ Lo asignó el Director General después de fusionar la #722: «Sigue con la 0686
 **Allowlist (**M**, `git diff --name-only`):**
 - **`lib/studio`, 21 archivos de tipos:** cada función o mapa que devolvía `"wine"` como valor. 27 valores en total: `account-types`, `agent-types`, `audit-types`, `bug-types`, `calendar-events-queries`, `calendar-events-types`, `client-types`, `club/club-member-types`, `conversaciones/conversations-types` (canal portal), `documents/types`, `fidelizacion/types`, `inspecciones/types`, `mail-types`, `no-olvidar-types`, `nomina/attendance-types`, `nomina/ficha-empleado`, `nomina/position-types`, `op-calendar-types`, `proveedores/scorecard-types`, `qr-queue-types` y `user-types`. Las uniones de tipo (`| "wine"`) se quedan: no pintan nada y las limpia la fase 3, cuando el móvil deje de usar el tono.
 - **Dos pruebas de `lib/studio`** que fijaban el tono viejo: `__tests__/scorecard-types.test.ts` y `conversaciones/__tests__/conversaciones.test.ts`.
-- **69 archivos en línea bajo `app/studio/`:** `(app)/admin` (28), `(app)/marketing` (10), `(app)/bitacora` (8), `(app)/mailing` (7), `(app)/academia` (3), `(app)/inspecciones` (3), `(app)/usuarios` (1) y `_components/` fuera de `ui` (`bug-reporter` 2, `documents` 1, `guia` 1, `wiring` 5).
+- **84 archivos bajo `app/studio/`** (TSX, `.ts` y una hoja `.css`), con su ruta desde `app/studio/`:
+  - `(app)/academia` (3): `_components/AcademiaClient.tsx`, `_components/LessonDrawer.tsx`, `diplomas/_components/DiplomasClient.tsx`
+  - `(app)/admin` (28): `_components/ApiIntegrationSection.tsx`, `_components/AppearanceSection.tsx`, `_components/CalendarSection.tsx`, `_components/CompanySection.tsx`, `_components/ExchangeRatesSection.tsx`, `_components/ImportExportSection.tsx`, `_components/MasterDataSection.tsx`, `_components/NumberingSection.tsx`, `_components/PortalBackfillSection.tsx`, `_components/WebhookDrawer.tsx`, `_components/WorkflowsSection.tsx`, `_components/calculator/CityDrawer.tsx`, `_components/calculator/TariffDrawer.tsx`, `_components/calculator/TransportistasPanel.tsx`, `_components/calculator/WeightModelExplainer.tsx`, `agentes/[skillSlug]/page.tsx`, `agentes/_components/AgentKpisRow.tsx`, `agentes/_components/RunAgentModal.tsx`, `agentes/_components/RunsTable.tsx`, `agentes/_components/SkillCard.tsx`, `agentes/page.tsx`, `alertas-telegram/_components/TelegramAlertsPanel.tsx`, `notificaciones/_components/NotificationsClient.tsx`, `page.tsx`, `rutas/_components/CityDrawer.tsx`, `rutas/_components/CityPicker.tsx`, `rutas/_components/RouteDrawer.tsx`, `rutas/_components/RoutesClient.tsx`
+  - `(app)/bitacora` (8): `_components/AgentQueue.tsx`, `_components/BitacoraClient.tsx`, `_components/BoardKanban.tsx`, `_components/BoardList.tsx`, `_components/ExportMenu.tsx`, `_components/TaskCollabSection.tsx`, `nueva/_components/ActaReview.tsx`, `nueva/_components/NuevaReunionClient.tsx`
+  - `(app)/inspecciones` (3): `_components/InspeccionDrawer.tsx`, `_components/InspeccionesClient.tsx`, `_components/report-css.ts`
+  - `(app)/mailing` (8): `_components/ComposeView.tsx`, `_components/MailingClient.tsx`, `_components/RulesView.tsx`, `_components/ScheduledView.tsx`, `_components/SignaturesView.tsx`, `_components/TemplateEditorDrawer.tsx`, `_components/TemplatesView.tsx`, `_components/mailing-types.ts`
+  - `(app)/marketing` (22): `_components/FrictionReportsPanel.tsx`, `calendario/page.tsx`, `docs/_components/DocsReaderClient.tsx`, `hub/page.tsx`, `newsletter/_components/CampaignComposer.tsx`, `newsletter/page.tsx`, `noticias-web/_components/CategoryDetector.tsx`, `noticias-web/_components/KeywordPanel.tsx`, `noticias-web/_components/ManualPromptModal.tsx`, `noticias-web/_components/NoticiasTabs.tsx`, `noticias-web/_components/NoticiasWebClient.tsx`, `noticias-web/_components/PublishModal.tsx`, `noticias-web/_components/RouteIdeaPanel.tsx`, `noticias-web/_components/Step0Brief.tsx`, `noticias-web/_components/Step1Headlines.tsx`, `noticias-web/_components/Step2Outlines.tsx`, `noticias-web/_components/Step3Article.tsx`, `noticias-web/page.tsx`, `noticias-web/publicadas/[id]/page.tsx`, `noticias-web/publicadas/page.tsx`, `noticias-web/retirar/[id]/page.tsx`, `page.tsx`
+  - `(app)/usuarios` (3): `_components/InviteUserDrawer.tsx`, `_components/MembersTable.tsx`, `_components/acceso/permisos.css`
+  - `_components/bug-reporter` (2): `BugFABButton.tsx`, `BugReportModal.tsx`
+  - `_components/documents` (1): `DocsPanel.tsx`
+  - `_components/guia` (1): `GuiaMotor.tsx`
+  - `_components/wiring` (5): `GenerateBLModal.tsx`, `GlobalSearchModal.tsx`, `OAuthFlowModal.tsx`, `ProfileModal.tsx`, `ShortcutsModal.tsx`
 - El contrato nuevo `app/studio/_components/__tests__/color-accion-fase2-g3-contract.test.ts`, esta spec y el handoff.
 
 | Destino | Qué |
 |---|---|
-| Neutro (`lib/studio`) | Rol admin, tipo de cuenta, modelo Opus del agente, eventos del calendario, nivel del cliente, plan del club, canal portal, tipos de documento, nivel platino, inspecciones, etiquetas de correo, recordatorios, asistencia y cargos de nómina, cola QR |
-| Éxito y atención (`lib/studio`) | Canje «aplicado» de fidelización → `success`; reclamo «abierto» al proveedor → `warning`, porque pide intervención |
+| Neutro (`lib/studio`) | Rol admin, tipo de cuenta, modelo Opus del agente, eventos del calendario, nivel del cliente, plan del club, canal portal, tipos de documento, inspecciones, etiquetas de correo, recordatorios, asistencia y cargos de nómina, cola QR |
+| Éxito y atención (`lib/studio`) | Canje «aplicado» y nivel Platinum de fidelización → `success` (Platinum así se distingue de Bronze, que es `neutral`); reclamo «abierto» al proveedor → `warning`, porque pide intervención |
 | Acción | Enlaces y botones de texto («Editar →», «Ver», «+ Subir nueva versión», «CC», «Agregar ciudad»); casillas (`accentColor`); foco; interruptores encendidos; botón principal de notificaciones; la columna del kanban de bitácora donde se suelta una tarjeta; el aro con el que la Guía señala un control; el hover del buscador global |
 | Tinta (selección) | Pestañas, pastillas y tarjetas elegidas (fondo `color-mix(in srgb, var(--ink) 8%, transparent)`, o fondo de tinta con texto `--ink-inv` si el relleno era sólido); opción elegida del esquema de noticias, del diseño de firma y del rol al invitar; versión vigente de un documento; franja lateral del ítem activo |
 | Tinta (datos y cifras) | Códigos y variables en mono, porcentaje y barra de avance de la invitación al Portal, conteos, el nombre en el saludo de marketing |
-| Neutro (en línea) | Rótulos en mayúscula (`--ink-soft`, como `.studio-eyebrow`), eyebrows con clase (sin color en línea), asterisco de obligatorio, iconos informativos, fichas de icono de agentes y marketing (`--bg-elevated` y tinta), mapas de tono de mailing (la clave `wine` pinta como `neutral`), puntaje bajo de una ruta |
+| Neutro (en línea) | Rótulos en mayúscula (`--ink-soft`, como `.studio-eyebrow`), eyebrows con clase (sin color en línea), asterisco de obligatorio, iconos informativos, fichas de icono de agentes y marketing (`--bg-elevated` y tinta), mapas de tono de mailing (sin clave `wine`; el clic del registro de correo pasa a `success`), puntaje bajo de una ruta |
 | Información | Aviso de sugerencia editorial de Claude en noticias web (`--info` e `--info-bg`) |
-| Atención | «Falta el almacén» en el resumen oscuro de la invitación (`--warning`) |
+| Atención | «Falta el almacén» en el resumen oscuro de la invitación (`--warning`). **Pendiente:** en claro, `--warning` (`#B8893A`) da 4,14:1 en el extremo `#1F3055` del degradado y 5,24 en `#0F1E3D`; no llega a 4,5 en todo el fondo. No empeora (antes, 3,78 a 4,79). Hace falta un token de atención sobre fondo oscuro fijo, que hoy no existe; no se inventa hex |
 | Se queda: identidad | Diploma impreso (26 usos; documento de marca, regla 8, se revisa con los PDF de la fase 4); informe de inspección impreso, wordmark y rótulo del encabezado (2; la banda «muestra» pasa a tinta); franja de la vista previa de la firma de correo (1, regla 8); tarjeta de la Guía con su tinte de marca (6) |
 
-`Avatar`, `Badge` y `EmptyState` son del grupo 1 y no se tocan aquí.
+`Avatar`, `Badge` y `EmptyState` son del grupo 1 y no se tocan aquí. Sí se tocan los que llaman a `Avatar` con `color="wine"` dentro del grupo: los responsables del tablero de bitácora, la firma elegida de mailing y el rol marketing de usuarios pasan a `neutral`.
 
-El contrato del grupo 3 congela las cuatro cuentas de identidad (la lista solo baja), mide al menos 150 archivos y trae un mutante. Para `lib/studio` exige cero `"wine"` como valor fuera de las uniones de tipo, mide al menos 300 archivos y al menos 10 uniones que todavía lo nombran, y trae un mutante sobre el rol admin.
+El contrato del grupo 3 ve el vino se escriba como se escriba: `var(--wine…)`, `var(--grad-wine…)`, `var(--color-wine…)`, clases Tailwind (`bg-wine`, `hover:border-wine`…) y tonos `"wine"` por valor, en `.ts`, `.tsx` y `.css`. Congela las cuatro cuentas de identidad (la lista solo baja), mide al menos 150 archivos y al menos un `.css`, y trae un mutante por forma. Quedan fuera de la cuenta, por ser identidad que nombra el token como texto, las variables `--wine:` que declara el diploma para imprimir (`DiplomasClient.tsx:324-325`) y la muestra de paleta de Apariencia (`AppearanceSection.tsx:41-42`). Para `lib/studio` (`.ts` y `.tsx`) exige cero `"wine"` como valor: quita antes las uniones de tipo y las comparaciones, y detecta un valor en la misma línea que una unión. Mide al menos 300 archivos y al menos 10 uniones que todavía lo nombran, y trae dos mutantes. No detecta un tono armado con plantilla (`` `${x}` ``); hoy no hay ninguno.
+
+#### Grupo 3 · correcciones de la revisión independiente de la #739 (2026-11-21)
+
+La revisión sobre `a31e77dd3` pidió cambios. Decisión del Director General: el grupo 3 cierra sin vino de acción en sus carpetas, se escriba como se escriba. Lo que se corrigió:
+
+- **Contraste del resumen de la invitación** (`usuarios/_components/InviteUserDrawer.tsx`). El fondo es navy fijo (`#0F1E3D` → `#1F3055`). `--ink-inv-soft` se invierte con el tema y en oscuro quedaba navy sobre navy (1,00 a 1,19:1). El rótulo, el paréntesis de región y el cuerpo de la tarjeta pasan a `--ink-side`, que no cambia con el tema (blanco al 85 %, como el texto del menú lateral). **El cuerpo (`:785`) ya venía igual desde `main`:** se arregla aquí por estar en el mismo bloque.
+- **noticias-web**, con clases Tailwind y tokens web:
+  - **Botones principales** (`Step1Headlines`, `Step2Outlines`, `Step3Article`, `CategoryDetector`, `KeywordPanel`, `ManualPromptModal`): pasan a `bg-[var(--accion)]`, `text-[var(--on-accion)]` y `hover:bg-[var(--accion-hover)]`.
+  - **Hover y foco de bordes y textos:** pasan a `--accion` y `--accion-text`.
+  - **Titular elegido, pestaña activa y acentos de los títulos:** pasan a tinta.
+  - **Asteriscos, iconos y rótulos:** pasan a `--ink-soft`.
+  - **Enlaces de volver** (`publicadas/[id]`, `retirar/[id]`): pasan a `--accion-text`.
+  - **Chip de categoría de `PublishModal`:** fondo de tinta con texto `--ink-inv`.
+  - Los tokens `--accion*` son los del Studio. La web y el Portal reciben los suyos (`--color-accion*`) en la fase 3.
+- **`usuarios/_components/acceso/permisos.css`:**
+  - anillos de foco, casilla y enlace pasan a `--accion` y `--accion-text`;
+  - las opciones marcadas pasan a la selección en tinta;
+  - el cambio pendiente de la matriz pasa a `--warning`;
+  - la franja de la barra fija pasa a tinta;
+  - la etiqueta «estado» pasa a neutro.
+- **Badges y avatares por valor:** el país VE en Empresa, «Enviando» del boletín, el flujo B de la ruta de ideas y el tono del video adjunto en bitácora pasan a `neutral`. `SuccessScreen` de mailing deja el nombre `wine` por `neutral`.
+- **Menores:**
+  - el comentario de `BugFABButton.tsx`;
+  - el parámetro que sobraba en `roleBadgeTone` de No olvidar, que no tiene llamadas;
+  - los espacios al final de línea;
+  - Platinum, que ahora se distingue de Bronze.
+
+Ninguna carpeta queda fuera del grupo 3: noticias-web es de marketing y `permisos.css` es de usuarios.
 
 #### Grupo 3 · revisión uno por uno de los tonos de `lib/` (2026-11-21)
 
@@ -268,7 +307,7 @@ El Director General pidió revisar cada tono de `lib/` para ver si era identidad
 | `club/club-member-types.ts` | Plan «mayorista» | `neutral` | Badge |
 | `conversaciones/conversations-types.ts` | Canal «portal» | `neutral` | Badge. El portal es un canal de DTD, pero el badge informa el canal, no es la marca |
 | `documents/types.ts` | Carpeta «Logísticas» | `neutral` | `var(--neutral-bg)` y `var(--neutral)`; los dos tokens existen en claro, oscuro e impresión |
-| `fidelizacion/types.ts` | Nivel «Platinum» | `neutral` | Badge, y `tierColor`, que da `--ink-mute` |
+| `fidelizacion/types.ts` | Nivel «Platinum» | `success` | Badge, y `tierColor`, que da `--success`. Primero fue `neutral`, igual que Bronze (`--ink-mute`); la revisión de la #739 pidió que se distinga |
 | `fidelizacion/types.ts` | Referido «aplicado» | `success` | Badge: confirma |
 | `inspecciones/types.ts` | Auditoría de fábrica | `neutral` | Badge |
 | `mail-types.ts` | Categoría «comercial» | `neutral` | Badge |

@@ -139,7 +139,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
                 alignItems: "center",
               }}
             >
-              <Badge tone={o.country === "VE" ? "wine" : "info"} size="sm">
+              <Badge tone={o.country === "VE" ? "neutral" : "info"} size="sm">
                 {officeCountryLabel(o.country)}
               </Badge>
               <div>

@@ -64,7 +64,7 @@ export const TIERS: Tier[] = [
   {
     id: "platinum",
     label: "Platinum",
-    tone: "neutral",
+    tone: "success",
     min: 300000,
     benefits: [
       "−15% en almacenaje",
