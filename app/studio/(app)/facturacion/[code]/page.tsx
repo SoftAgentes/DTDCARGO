@@ -284,7 +284,7 @@ export default async function InvoiceDetailPage({
             </div>
             {balance <= 0 && (
               <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end" }}>
-                <KpiEstado status={{ tono: "success", texto: "Pagada" }} sobreOscuro />
+                <KpiEstado status={{ tono: "success", texto: balance < 0 ? "Saldo a favor" : "Pagada" }} sobreOscuro />
               </div>
             )}
             {balance > 0 && <EquivalenteBs eq={bsSaldo} tono="oscuro" align="right" />}
