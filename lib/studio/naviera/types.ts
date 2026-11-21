@@ -250,7 +250,7 @@ const CARRIER_TONES: ReadonlySet<string> = new Set<BadgeTone>([
  * Tono de la naviera leído de `carriers.tone` (texto libre en la base).
  *
  * El vino se retiró de los badges (SDD-0686, BD-076 regla 7) y la base no se
- * toca: un `"wine"` guardado antes, o cualquier valor que no sea un tono del
+ * toca: un «wine» guardado antes, o cualquier valor que no sea un tono del
  * sistema, cae a `"neutral"` sin error.
  */
 export function carrierTone(raw: unknown): BadgeTone {
@@ -401,7 +401,7 @@ export type ContainerStats = {
  * (cada item es un embarque/cliente asignado, igual que el Norte).
  *
  * Si el tipo es desconocido, `cap=null` y los % quedan en 0 (no divide por cero).
- * El % puede superar 100 (sobre-capacidad) → la UI lo pinta wine (advisory, §4.4).
+ * El % puede superar 100 (sobre-capacidad) → la UI lo pinta en peligro (advisory, §4.4; SDD-0686).
  */
 export function containerStats(
   items: StatItem[],
