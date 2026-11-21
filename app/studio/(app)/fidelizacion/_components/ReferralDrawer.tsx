@@ -132,7 +132,7 @@ export function ReferralDrawer({
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: done ? "var(--wine)" : "var(--bg-elevated)",
+                        background: done ? "var(--ink)" : "var(--bg-elevated)",
                         color: done ? "var(--ink-inv)" : "var(--ink-soft)",
                         border: done ? "none" : "1px solid var(--border)",
                       }}
@@ -149,7 +149,7 @@ export function ReferralDrawer({
                       style={{
                         font: `${isCurrent ? "700" : "500"} 10px/1.2 var(--f-sans)`,
                         color: isCurrent
-                          ? "var(--wine)"
+                          ? "var(--ink)"
                           : done
                             ? "var(--ink)"
                             : "var(--ink-mute)",
@@ -165,7 +165,7 @@ export function ReferralDrawer({
                         flex: 1,
                         height: 2,
                         background:
-                          i < stt.step ? "var(--wine)" : "var(--border)",
+                          i < stt.step ? "var(--ink)" : "var(--border)",
                         marginBottom: 18,
                       }}
                     />
@@ -317,7 +317,7 @@ export function ReferralDrawer({
             <div
               style={{
                 font: "700 10.5px/1 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--ink-soft)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 marginBottom: 6,
@@ -501,7 +501,7 @@ function ApplyCreditPanel({
       style={{
         padding: "16px 18px",
         background: "var(--bg-surface)",
-        border: "1px solid var(--wine)",
+        border: "1px solid var(--accion)",
         borderRadius: "var(--r-md)",
         display: "flex",
         flexDirection: "column",
@@ -512,7 +512,7 @@ function ApplyCreditPanel({
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
             marginBottom: 6,

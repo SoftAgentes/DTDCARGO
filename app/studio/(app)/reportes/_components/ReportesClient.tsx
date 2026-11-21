@@ -56,7 +56,7 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "@/lib/studio/reports/builder-types";
-import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
+import { VolumeBars, Donut, Progress, HeaderRow, gradoDeTinta, type DonutSlice } from "./charts";
 import { BuilderView } from "./BuilderView";
 import { fmtUsd, fmtUsdCompact } from "@/lib/money";
 import { IngresoDelPeriodoCard } from "@/app/studio/(app)/contabilidad/_components/IngresoDelPeriodoCard";
@@ -869,12 +869,12 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
     );
   }
 
-  // Paleta tokenizada para el donut (sin colores inventados).
-  const palette = ["var(--ink)", "color-mix(in srgb, var(--ink) 70%, var(--bg-surface))", "color-mix(in srgb, var(--ink) 45%, var(--bg-surface))", "color-mix(in srgb, var(--ink) 22%, var(--bg-surface))"];
+  // Grados de tinta del donut y de las barras (SDD-0686): misma categoría,
+  // mismo grado en las dos tarjetas.
   const donut: DonutSlice[] = services.map((s, i) => ({
     label: s.label,
     value: s.count,
-    color: palette[i % palette.length],
+    color: gradoDeTinta(i, services.length),
   }));
   const maxRev = Math.max(1, ...services.map((s) => s.revenue));
 
@@ -896,7 +896,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
               </div>
               {(s.facturasSinTasa ?? 0) === 0 && <Progress
                 value={(s.revenue / maxRev) * 100}
-                tone={palette[i % palette.length]}
+                tone={gradoDeTinta(i, services.length)}
                 height={10}
               />}
               <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>

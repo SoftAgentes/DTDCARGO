@@ -59,8 +59,6 @@ const TABS: { value: Tab; label: string }[] = [
 /** Color sólido del tono de un nivel (para barras/acentos). */
 function tierColor(tone: BadgeTone): string {
   switch (tone) {
-    case "wine":
-      return "var(--wine)";
     case "warning":
       return "var(--warning)";
     case "info":
@@ -542,7 +540,7 @@ function DashboardTab({
               onClick={onGoReferidos}
               style={{
                 font: "600 12px/1 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--accion-text)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -581,7 +579,7 @@ function DashboardTab({
                   <span
                     style={{
                       font: "900 14px/1 var(--f-display)",
-                      color: i === 0 ? "var(--wine)" : "var(--ink-soft)",
+                      color: i === 0 ? "var(--ink)" : "var(--ink-soft)",
                     }}
                   >
                     {i + 1}
@@ -598,7 +596,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "500 10.5px/1 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -666,8 +664,8 @@ function DashboardTab({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "var(--wine)",
-                    color: "var(--ink-side-strong)",
+                    background: "var(--ink)",
+                    color: "var(--ink-inv)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -954,7 +952,7 @@ function ReferidosTab({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {r.referrer_markbox}
@@ -996,7 +994,7 @@ function ReferidosTab({
                       r.status === "acreditado"
                         ? "var(--success)"
                         : r.status === "aplicado"
-                          ? "var(--wine-text)"
+                          ? "var(--ink)"
                           : "var(--ink-mute)",
                   }}
                 >
@@ -1234,7 +1232,7 @@ function ClientesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: refs > 0 ? "var(--wine)" : "var(--ink-mute)",
+                    color: refs > 0 ? "var(--ink)" : "var(--ink-mute)",
                   }}
                 >
                   {refs || "—"}

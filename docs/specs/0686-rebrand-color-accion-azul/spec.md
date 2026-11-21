@@ -482,13 +482,13 @@ Sigue el orden que dejó el grupo 5, al fusionarse la #741 (`d81f7c504`), en la 
 | Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
 |---|---|---|---|
 | Costing (`CostEditorDrawer.tsx:120`, `CostingClient.tsx:1258`) | Margen negativo, en la tira navy (positivo en `--success`) | `--color-status-danger-on-dark`: 7,46:1 en claro y 8,78:1 en oscuro sobre `--bg-sidebar` | El signo (`-$`) y el porcentaje. Un margen negativo es pérdida, así que va en peligro |
-| Reportes, recompra (`ReportesClient.tsx:1200`) | KPI «En ventana · contactar ya» (vencidos en `--danger`, en curso en `--success`) | `--warning`: 3,14:1 en claro y 7,15:1 en oscuro sobre `--bg-surface`. Alcanza porque es texto grande: la cifra del KPI (`KpiCard.tsx:92`) va en peso 900 a `--kpi-fs`, que mide 30 px en densidad normal y 24 px en compacta (`tokens.css:186` y `:477`), y el umbral es 18,66 px en negrita. No existe `--warning-text`; si la cifra bajara de 18,66 px, haría falta un tono de 4,5:1 | La etiqueta «En ventana» y «contactar ya» |
+| Reportes, recompra (`ReportesClient.tsx:1200`) | KPI «En ventana · contactar ya» (vencidos en `--danger`, en curso en `--success`) | `--warning`: 3,14:1 en claro y 7,15:1 en oscuro sobre `--bg-surface`. Alcanza porque es texto grande: la cifra del KPI (`KpiCard.tsx:92`) va en peso 900 a `--kpi-fs`, que mide 30 px en densidad normal y 24 px en compacta (`tokens.css:186` y `:477`), y el umbral es 18,66 px en negrita. En el extremo del degradado de la tarjeta da 3,01:1, apenas sobre el 3:1 (medido en la revisión de la #742). No existe `--warning-text`; si la cifra bajara de 18,66 px, haría falta un tono de 4,5:1 | La etiqueta «En ventana» y «contactar ya» |
 | Reportes, recompra (`ReportesClient.tsx:1248`) | Días desde la última compra, cuando no está vencida | `--ink` | El Badge «Ventana» o «Vencida» al lado. Lo vencido sigue en `--danger` |
 | Reportes, IVA (`ReportesClient.tsx:1642`) | «IVA a pagar» (el excedente a favor, en `--success`) | `--ink` | La etiqueta «IVA a pagar» y «luego de retenciones». Es un monto que se debe, no un vencido |
 | Reportes, meta (`ReportesClient.tsx:1309`, `:1315`) | Avance contra la meta por debajo de 100 % | `--ink` | El porcentaje y «N vs meta CBM/mes». Al 100 %, `--success` |
 | Reportes, margen por ruta (`ReportesClient.tsx:2151`) | Barra de margen positivo (negativo en `--danger`) | `--ink` | La cifra al lado |
 | Reportes, margen bruto (`ReportesClient.tsx:1931`) | KPI «Margen bruto», siempre en vino | `--ink` | El signo y el porcentaje de margen. El vino no cambiaba con el signo |
-| Reportes, gráficas (`charts.tsx`, `ReportesClient.tsx:685` a `:1855`, `BuilderView.tsx:491`) | Barras, líneas, donut y barra «facturado» (cobrado en `--success`) | Tinta: barras en `--ink`, línea de CBM en `--ink-soft`; en el donut y en las barras del constructor, tinta en grados (70 %, 45 % y 22 % sobre la superficie) | La leyenda de cada serie y las cifras. Regla de Sam: cifras y gráficas en tinta |
+| Reportes, gráficas (`charts.tsx`, `ReportesClient.tsx:685` a `:1855`, `BuilderView.tsx:491`) | Barras, líneas, donut y barra «facturado» (cobrado en `--success`) | Tinta: barras en `--ink`, línea de CBM en `--ink-soft`; en el donut y en las barras del constructor, tinta en grados (70 %, 45 % y 22 % sobre la superficie; el donut pasa a 82 %, 66 % y 50 % con trazo en el grupo 7) | La leyenda de cada serie y las cifras. Regla de Sam: cifras y gráficas en tinta |
 | Dirección, proyección (`ForecastCard.tsx:100`) | Semana en curso en vino; las siguientes en vino claro | `--ink` para la semana en curso y tinta al 45 % para las siguientes | La etiqueta de la semana y el monto |
 | Dirección, operaciones (`OpsCard.tsx:18`) | Cut-off de la naviera a más de 3 días (a 3 o menos, `--danger`) | `neutral` | Los días que faltan |
 | Legal (`LegalClient.tsx:403`, `:410`) | Versión vigente del documento | Selección en tinta | El Badge «Vigente» de la fila |
@@ -506,6 +506,81 @@ Sigue el orden que dejó el grupo 5, al fusionarse la #741 (`d81f7c504`), en la 
 Los mapas de tono locales de bugs y mis-bugs pierden la clave `wine`. Son `Record<string, …>`, y el tono «sugerencia» ya llega como `neutral` desde `lib/studio/bug-types.ts` (grupo 3).
 
 El contrato del grupo 6 congela la única cuenta de identidad, mide al menos 40 archivos y trae dos mutantes: el margen negativo y la barra de las gráficas.
+
+### Fase 2 · grupo 7 · naviera, fidelización y órdenes: allowlist y reparto (2026-11-21)
+
+Sigue el orden del grupo 5 y empieza al fusionarse la #742, en la rama `claude/sdd-0686-fase2-g7`.
+- **Módulos:** naviera, fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario.
+- **Tamaño:** 52 líneas con vino en 13 archivos de pantalla, más las uniones de tono de sus tipos en `lib/studio`.
+- **Condiciones:** las mismas del grupo 5.
+- **Arrastres de la revisión de la #742:** el donut de reportes y las dos impresas de legal.
+
+- **Identidad:** no queda ningún vino de identidad en estas carpetas.
+- **Lo que se guarda:**
+  - `public.carriers.tone` es texto libre y su comentario de 0096 nombra «wine». La base no se toca. Al leerla, `carrierTone()` (`lib/studio/naviera/types.ts`) deja pasar solo los tonos del sistema y lleva a `neutral` un «wine» viejo o cualquier valor desconocido, sin error. `coerceCarrier` lo usa, y `Carrier.tone` pasa de `string` a `BadgeTone`. Lo prueba `lib/studio/naviera/__tests__/carrier-tone.test.ts`, también a través de `listCarriers`. Hoy ninguna pantalla pinta ese tono.
+  - `localStorage` guarda solo el orden de las compras. No guarda ningún tono.
+- **`data-theme`:** no hay bloques fijos. La cola «Listo para consolidar» de inventario está sobre `--bg-sidebar` y usa `--ink-side`, como la invitación del grupo 3.
+- **Tonos armados con plantilla:** las cabeceras de estado de `PoDrawer` y `OvDrawer` y las carpetas de documentos usan `var(--${tono})`, que el detector no ve. Ahora el tipo de esos tonos ya no incluye «wine», así que tsc impide que vuelva.
+
+**Allowlist (rutas desde la raíz):**
+  - `app/studio/(app)/naviera` (3): `_components/AssignCargoDrawer.tsx`, `_components/NavieraClient.tsx`, `_components/UtilizationBar.tsx`
+  - `app/studio/(app)/fidelizacion` (2): `_components/FidelizacionClient.tsx`, `_components/ReferralDrawer.tsx`
+  - `app/studio/(app)/documentos` (1): `_components/DocumentosHubClient.tsx`
+  - `app/studio/(app)/ordenes-compra` (1): `_components/OrdenesCompraClient.tsx`
+  - `app/studio/(app)/ordenes-venta` (2): `_components/OrdenesVentaClient.tsx`, `_components/OvDrawer.tsx`
+  - `app/studio/(app)/club` (3): `_components/ClubClient.tsx`, `_components/GroupBuysView.tsx`, `_components/MembersView.tsx`
+  - `app/studio/(app)/inventario` (1): `_components/InventarioClient.tsx`
+  - `lib/studio` (9): `naviera/types.ts`, `naviera/queries.ts`, `naviera/client-palette.ts` (comentario), `naviera/__tests__/consolidation-request-status.test.ts`, `documents/types.ts`, `purchase-orders/types.ts`, `sales-orders/types.ts`, `club/club-member-types.ts` y `club/group-buy-types.ts`
+  - Arrastres de la #742 (4): `app/studio/(app)/reportes/_components/charts.tsx` y `ReportesClient.tsx`, y `app/studio/(app)/legal/evidencia/[code]/page.tsx` y `expediente/[code]/page.tsx`
+- **Además:**
+  - el contrato `app/studio/_components/__tests__/color-accion-fase2-g7-contract.test.ts`;
+  - las pruebas `lib/studio/naviera/__tests__/carrier-tone.test.ts` y `app/studio/(app)/reportes/_components/charts.donut.test.tsx`;
+  - esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Naviera, utilización (`UtilizationBar.tsx`) | Contenedor por encima del 100 % (80 % a 100 % en `--warning`, el resto en `--success`) | `--danger` | El porcentaje y «usado / capacidad». La sobrecapacidad avisa pero no bloquea |
+| Naviera, asignar carga (`AssignCargoDrawer.tsx`) | Mensaje de sobrecapacidad | `--danger-text` | El mensaje mismo, que nombra el exceso |
+| Naviera, KPI «Carga suelta en CN» (`NavieraClient.tsx`) | Hay carga sin asignar | `--warning` en el KPI: texto grande, como «En ventana» del grupo 6 | «N embarque(s) sin asignar» |
+| Naviera, contenedores (`NavieraClient.tsx`) | Contenedor seleccionado (borde y código) | Selección en tinta: borde `--ink` con sombra | `aria-pressed` en la tarjeta (nuevo) |
+| Naviera, reservas (`NavieraClient.tsx`) | Badge FCL | `neutral` | El texto «FCL» frente a «LCL» en `info` |
+| Fidelización, progreso del referido (`ReferralDrawer.tsx`) | Pasos cumplidos, paso actual y conector | Tinta: círculo `--ink` con el check en `--ink-inv`, conector `--ink` | El check en los pasos cumplidos y el peso 700 del paso actual |
+| Fidelización, referidos (`FidelizacionClient.tsx`) | Monto de un crédito «aplicado» (acreditado en `--success`) | `--ink` | La columna de estado de la fila |
+| Fidelización, aplicar crédito (`ReferralDrawer.tsx`) | Borde del panel de acción | `--accion` | El título «Aplicar $N a una factura» y su botón |
+| Documentos (`DocumentosHubClient.tsx`) | Carpeta y vista activas | Selección en tinta (`color-mix` al 8 % y texto `--ink`) | El peso 700 y `aria-current` en el enlace (nuevo) |
+| Órdenes de compra (`OrdenesCompraClient.tsx`) | Columna ordenada | `--ink` | La flecha ▲/▼ |
+| Club, compras grupales (`GroupBuysView.tsx`) | Avance de la ronda por debajo de 100 % | `--ink` (al 100 %, `--success`) | `role="progressbar"` con su valor |
+| Inventario (`InventarioClient.tsx`) | Badge del modo consolidación | `neutral` | El texto «Modo consolidación · entrada» frente a «Modo despacho · salida» en `info` |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | «Ver todos» de los embajadores y el enlace a PreAlertas de servicios |
+| Tinta (datos) | Shipping Mark sin destino propio (regla 6), códigos de compra, venta, estimado, pago y factura, totales de compras, el primer lugar de los embajadores, el conteo de referidos y los KPI de club e inventario |
+| Neutro | El rótulo «Club DTD», el código para compartir, «Crédito aplicado» y los números de los pasos del programa (círculo `--ink` con `--ink-inv`) |
+
+**Arrastres de la revisión de la #742**
+- **Donut de «Mix de servicios»:**
+  - Los grados de tinta pasan a `GRADOS_DE_TINTA` en `charts.tsx`: 100 %, 82 %, 66 % y 50 % de `--ink` sobre `--bg-surface`.
+  - El más claro da 3,25:1 en claro y 4,36:1 en oscuro; antes, el de 22 % daba 1,58:1 y 1,91:1.
+  - Los segmentos se separan con un trazo de 2 px en `--bg-surface`.
+  - `gradoDeTinta(i, total)` evita que el último segmento, que toca al primero, repita su grado. Con cinco toma el del medio.
+  - Las barras de «Revenue por servicio» usan los mismos grados, así que cada servicio tiene el mismo grado en las dos tarjetas.
+- **Impresas de legal:** sale la declaración `--wine: #7F0F1A` de evidencia y expediente. Nadie la usaba.
+- **«En ventana»:** su nota quedó en la tabla del grupo 6.
+
+**Contrato del grupo 7:**
+- exige cero vino en las siete carpetas y en los tipos de `lib/studio` del grupo;
+- mide al menos 60 archivos;
+- trae tres mutantes: la sobrecapacidad, el badge FCL y la carpeta activa de documentos;
+- comprueba que las dos impresas de legal ya no declaran `--wine`.
+
+**Fuera de este grupo:**
+- `tierBadgeTone` de `lib/studio/client-types.ts` todavía declara «wine» en su tipo de retorno, aunque no lo devuelve. Es de clientes.
+- El Excel de `lib/studio/document-import/export.ts` usa el hex del vino como identidad de la plantilla (fase 4).
 
 ### Fases 2 a 5
 

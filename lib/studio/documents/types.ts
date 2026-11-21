@@ -127,7 +127,6 @@ export type BadgeTone =
   | "warning"
   | "danger"
   | "info"
-  | "wine"
   | "neutral";
 
 /** Catálogo de estados (label + tono de badge). Espeja DOC_STATUS del Norte. */
