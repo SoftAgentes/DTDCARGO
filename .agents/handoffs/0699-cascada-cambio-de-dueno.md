@@ -32,9 +32,19 @@ Los scripts se corrieron con `node` directo, sin `pnpm install`, porque el workt
 - Spec nueva y el índice `docs/specs/README.md` regenerado. Ningún documento canónico cambia.
 - Cuando Sam conteste la §9, se enmienda la spec y la 0645 apunta a esta como su continuación.
 
+## DECISIONES DE SAM (2026-11-21)
+
+Sam aprobó, en el chat de Dir_DTD, las nueve opciones recomendadas: «SDD-0699: apruebo las nueve opciones
+recomendadas». Dir_DTD se lo pasó a este Worker el mismo día. Quedaron en la §9 de la spec, que pasó a `approved`
+(aprobada para planear). La reclasificación de la P4 está aprobada, pero contabilidad la valida antes de implementarla.
+
 ## PENDIENTES DE ESTA TAREA
 
-- Respuestas de Sam a P1-P9 (§9). Después, la spec pasa a `approved` y cada fase trae su allowlist.
+- Revisión independiente de la PR #751 (la lanza Dir_DTD).
+- **Pendiente de Dir_DTD (F-0):** verificar en el ledger las cabeceras «NO APLICADA» de 0466, 0467, 0497, 0551,
+  0552, 0564 y 0569.
+- Validación de contabilidad de la P4, antes de la F-2.
+- Cada fase trae su allowlist en una enmienda de la spec.
 
 ## FUERA DE ALCANCE DETECTADO
 

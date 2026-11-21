@@ -1,7 +1,7 @@
 ---
 sdd: "0699"
 title: "Cascada al cambiar el dueño: reasignar un embarque o fusionar clientes arrastra factura, pre-orden y pagos, con aviso previo"
-status: draft
+status: approved
 author: "Claude (Worker) + Sam"
 created: 2026-11-21
 updated: 2026-11-21
@@ -13,10 +13,15 @@ confidencialidad: interno
 
 # SDD-0699 — Cascada al cambiar el dueño de un embarque o al fusionar clientes
 
-> **Estado: borrador.** Esta spec no trae código, migraciones ni cambios de producto. La implementación
-> toca migraciones, facturación y pagos: va por el **carril con revisión previa**, con revisión
-> independiente APPROVED, y cada migración lleva su **OK nominal de Sam**. Antes de diseñar las fases,
-> Sam tiene que contestar las preguntas de la §9.
+> **Estado: aprobada para planear (2026-11-21).** Sam contestó las nueve preguntas de la §9, en el chat de
+> Dir_DTD: «SDD-0699: apruebo las nueve opciones recomendadas». Dir_DTD le pasó el texto a este Worker el
+> mismo día. Las decisiones están en la §9.
+>
+> La spec no trae código, ni migraciones, ni cambios de producto. Aprobarla no autoriza implementar
+> ninguna fase ni aplicar ninguna migración. La implementación toca migraciones, facturación y pagos, así
+> que va por el **carril con revisión previa**: cada fase lleva su PR, con revisión independiente APPROVED,
+> y cada migración, su **OK nominal de Sam**. Antes de la F-1 queda pendiente la F-0 (§8), que verifica
+> Dir_DTD.
 >
 > Los ejemplos son inventados. No hay nombres de clientes, Shipping Marks reales, montos ni conteos de
 > producción.
@@ -406,15 +411,34 @@ Pide la pregunta P9: puede que Sam prefiera que operaciones lo pida y contabilid
 
 | Fase | Qué | Depende de |
 |---|---|---|
-| F-0 | Dir_DTD mide en el ledger qué cuerpos están vivos: 0466, 0467, 0497, 0551, 0552, 0564 y 0569. | — |
-| F-1 | Partir y unir pre-órdenes al pasar un embarque (§4.2). Redefine `reassign_shipment_client` con `cascade` y la huella. Es la que desbloquea el caso del 64. | F-0, P2, P6 |
-| F-2 | Soltar un recibo conservando el pagador (§4.4), como acción propia en Cobranzas. | F-0, P3, P4 |
-| F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con F-2 dentro. | F-1, F-2, P1, P9 |
-| F-4 | Fusión con vista previa, motivo y cascada (§5). Va después de la 0694 F-2 y la 0695 F-6, que redefinen `merge_clients`. | 0695 F-6, P7, P8 |
+| F-0 | **Pendiente de Dir_DTD.** Medir en el ledger qué cuerpos están vivos: 0466, 0467, 0497, 0551, 0552, 0564 y 0569. Sus cabeceras dicen «NO APLICADA», y `migrations-baseline.json` no registra esperas (§2). | — |
+| F-1 | Partir y unir pre-órdenes al pasar un embarque (§4.2). Redefine `reassign_shipment_client` con `cascade` y la huella. Es la que desbloquea el caso del 64. | F-0, P2, P6 (decididas) |
+| F-2 | Soltar un recibo conservando el pagador (§4.4), como acción propia en Cobranzas. | F-0, P3, P4 (decididas); la validación de contabilidad de la P4 |
+| F-3 | Anular y rehacer facturas emitidas al pasar un embarque (§4.3), con F-2 dentro. | F-1, F-2, P1, P9 (decididas) |
+| F-4 | Fusión con vista previa, motivo y cascada (§5). Va después de la 0694 F-2 y la 0695 F-6, que redefinen `merge_clients`. | 0695 F-6, P7, P8 (decididas) |
 
-## 9. Preguntas para Sam
+## 9. Decisiones de Sam (2026-11-21)
 
-Cada pregunta trae sus opciones; la recomendada va primero.
+Sam aprobó las nueve opciones recomendadas. Su texto, en el chat de Dir_DTD, fue:
+
+> «SDD-0699: apruebo las nueve opciones recomendadas»
+
+Dir_DTD se lo pasó a este Worker el 2026-11-21.
+
+| Pregunta | Decisión de Sam (2026-11-21) |
+|---|---|
+| P1 | **a)** La factura de B nace en pre-orden y la emite contabilidad. |
+| P2 | **a)** Los cargos sin embarque se quedan en A, con aviso en la vista previa. |
+| P3 | **a)** El abono se suelta y queda pendiente de aplicar a nombre de quien pagó. Pasa a la factura de B solo si se marca. |
+| P4 | **a)** El asiento se reclasifica a anticipos de clientes y se revierte al aplicarlo. **Nota:** está aprobado, pero **contabilidad lo valida antes de implementarlo** (antes de la F-2). |
+| P5 | **a)** La tarifa congelada se avisa, como hoy, y contabilidad la reemplaza. |
+| P6 | **a)** La pre-orden que queda sin líneas se elimina con borrado lógico y queda en la bitácora. |
+| P7 | **a)** Al fusionar, las pre-órdenes del mismo contenedor se unen en la de S. |
+| P8 | **a)** Al fusionar, las facturas anuladas de R también pasan al código de S. |
+| P9 | **a)** La reasignación que anula facturas o suelta pagos la prepara operaciones o comercial, y la confirma contabilidad o un admin. |
+
+Debajo quedan las preguntas como se le hicieron a Sam. Cada una trae sus opciones; la recomendada va
+primero, y es la que se aprobó.
 
 **P1. Cuando se anula una factura emitida para pasar el embarque, ¿la de B nace emitida o en pre-orden?**
 
