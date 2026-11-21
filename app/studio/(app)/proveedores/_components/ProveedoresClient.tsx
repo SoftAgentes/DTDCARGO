@@ -277,13 +277,20 @@ export function ProveedoresClient({
               className="studio-tab"
             >
               {tDef.label}
-              <span
-                className="studio-tab-n"
-                data-alerta={alert ? "true" : undefined}
-                title={alert ? `${pendingServices} pendientes por atender` : undefined}
-              >
-                {alert ? pendingServices : count}
-              </span>
+              {alert ? (
+                <span
+                  className="studio-tab-n"
+                  data-alerta="true"
+                  role="img"
+                  aria-label={`${pendingServices} pendientes por atender`}
+                  title={`${pendingServices} pendientes por atender`}
+                >
+                  {Icon.warn(10)}
+                  {pendingServices}
+                </span>
+              ) : (
+                <span className="studio-tab-n">{count}</span>
+              )}
             </button>
           );
         })}

@@ -41,9 +41,6 @@ const FUERA = [/^app\/studio\/tokens\.css$/, /^app\/studio\/\(app\)\/marketing\/
  */
 const STUDIO_CSS_PERMITIDO: { selector: RegExp; motivo: string }[] = [
   { selector: /^:root$/, motivo: "alias --studio-wine-soft: guión del eyebrow (identidad, fase 1)" },
-  { selector: /\.studio-tracking-ops-/, motivo: "Tracking en vivo: pendiente, se decide viendo la pantalla (spec, cierre de la fase 2)" },
-  { selector: /\.studio-mx-(st|chg|dot)\b/, motivo: "matriz de permisos: pendiente (spec, cierre de la fase 2)" },
-  { selector: /\.studio-tab-n\[data-alerta/, motivo: "contador de alerta de pestaña: pendiente (spec, cierre de la fase 2)" },
 ];
 
 /** Bloques `selector { … }` de un CSS, sin comentarios (el envoltorio de @media queda fuera). */
@@ -56,10 +53,22 @@ function bloquesCss(css: string): { selector: string; cuerpo: string }[] {
   }));
 }
 
+/**
+ * Una regla está permitida solo si cada selector de su lista (separada por
+ * comas) está en la lista. Así un selector mixto como
+ * `.pantalla-x, .studio-permitida` no se cuela por la parte permitida.
+ */
+function permitida(selector: string, lista: { selector: RegExp }[] = STUDIO_CSS_PERMITIDO): boolean {
+  return selector
+    .split(",")
+    .map((parte) => parte.trim())
+    .every((parte) => lista.some((p) => p.selector.test(parte)));
+}
+
 function reglasFuera(css: string): string[] {
   return bloquesCss(css)
     .filter((b) => cuentaVino(b.cuerpo) > 0)
-    .filter((b) => !STUDIO_CSS_PERMITIDO.some((p) => p.selector.test(b.selector)))
+    .filter((b) => !permitida(b.selector))
     .map((b) => b.selector);
 }
 
@@ -98,8 +107,8 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     motivo: "superficie, franja y rótulos de la Guía con el tinte de marca",
   },
   "app/studio/studio.css": {
-    cuenta: 18,
-    motivo: "alias de identidad del eyebrow y tres familias pendientes (Tracking en vivo, matriz de permisos, alerta de pestaña); las reglas están en STUDIO_CSS_PERMITIDO",
+    cuenta: 1,
+    motivo: "alias --studio-wine-soft del guión del eyebrow (identidad). Tracking en vivo, la matriz de permisos y la alerta de pestaña ya no tienen vino (decisión de Sam)",
   },
   "app/studio/_components/ui/EmptyState.tsx": {
     cuenta: 1,
@@ -189,6 +198,37 @@ describe("SDD-0686 · cierre de la fase 2: todo app/studio", () => {
   it("mutante: una regla nueva con vino en studio.css se detecta", () => {
     const css = `${leer(join(RAIZ, "app/studio/studio.css"))}\n.x-nueva { color: var(--wine); }\n`;
     expect(reglasFuera(css)).toEqual([".x-nueva"]);
+  });
+
+  it.each([
+    ["Tracking en vivo: el marcador activo", "fill: var(--accion);\n  stroke: var(--bg-base);", "fill: var(--wine);\n  stroke: var(--bg-base);"],
+    ["Tracking en vivo: la ruta recorrida", "stroke: var(--ink);\n  stroke-width: 2.6;", "stroke: var(--wine-text);\n  stroke-width: 2.6;"],
+    ["la matriz: «Todo»", '[data-n="all"] { background: var(--ink); color: var(--ink-inv); }', '[data-n="all"] { background: var(--wine-tint); color: var(--wine-text); }'],
+    ["la alerta de pestaña", "background: color-mix(in srgb, var(--warning) 22%, var(--bg-surface));", "background: var(--wine-tint);"],
+  ])("mutante: %s otra vez en vino se detecta", (_, de, a) => {
+    const css = leer(join(RAIZ, "app/studio/studio.css"));
+    expect(css).toContain(de);
+    expect(reglasFuera(css.replace(de, a))).toHaveLength(1);
+  });
+
+  it("la alerta de pestaña de proveedores es una pastilla con icono y nombre, no ámbar como texto", () => {
+    const tsx = leer(join(RAIZ, "app/studio/(app)/proveedores/_components/ProveedoresClient.tsx"));
+    expect(tsx).toMatch(/data-alerta="true"\s+role="img"\s+aria-label=\{`\$\{pendingServices\} pendientes por atender`\}/);
+    expect(tsx).toContain("{Icon.warn(10)}");
+    const regla = bloquesCss(leer(join(RAIZ, "app/studio/studio.css"))).find((b) => b.selector.includes("studio-tab-n[data-alerta"));
+    expect(regla?.cuerpo).toContain("color: var(--ink);");
+    expect(regla?.cuerpo).not.toMatch(/(^|[^-])color:\s*var\(--warning/);
+  });
+
+  it("mutante: un selector mixto no se cuela por la parte permitida", () => {
+    const css = `${leer(join(RAIZ, "app/studio/studio.css"))}\n:root,\n.pantalla-x { color: var(--wine); }\n`;
+    expect(reglasFuera(css)).toEqual([":root,\n.pantalla-x"]);
+    // Con un patrón sin anclar, como los de las familias que ya salieron, la
+    // parte permitida no salva a la otra; antes se comparaba el selector entero.
+    const lista = [{ selector: /\.studio-tracking-ops-/ }];
+    expect(permitida(".pantalla-x, .studio-tracking-ops-falso", lista)).toBe(false);
+    expect(lista[0].selector.test(".pantalla-x, .studio-tracking-ops-falso")).toBe(true);
+    expect(permitida(".studio-tracking-ops-a, .studio-tracking-ops-b", lista)).toBe(true);
   });
 
   it("el detector ve eyebrow-wine y data-tono=\"vino\"", () => {
