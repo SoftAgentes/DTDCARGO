@@ -32,7 +32,7 @@ export default async function RetirarNoticiaPage({ params }: { params: Promise<{
       ) : (
         <p style={{ fontSize: 14 }}>
           Esa noticia no está publicada (puede que ya la hayan retirado).{" "}
-          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--accion-text)", textDecoration: "underline" }}>
+          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--color-wine-text, #7F0F1A)" }}>
             Ver Publicadas y Retiradas
           </Link>
         </p>

@@ -6,7 +6,6 @@
  *   `--ink-soft` y `--ink-mute` queda para bordes, fondos y deshabilitados.
  *   La única excepción es el texto deshabilitado, que WCAG exceptúa del contraste.
  * - El brillo del foco de los campos oscuros es azul de acción, no vino suave.
- * - «Volver a Publicadas» de Noticias web es un enlace: azul de acción.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -19,7 +18,12 @@ const leer = (ruta: string) => readFileSync(join(RAIZ, ruta), "utf8");
 function textosEnMute(fuente: (ruta: string) => string): string[] {
   const re = /(^|[^-A-Za-z])color["']?\s*:\s*([^,;{}]*?)var\(--ink-mute\)/g;
   return fuentesDe(join(RAIZ, "app/studio"), /\.(tsx|ts|css)$/)
-    .filter((ruta) => !/\.test\.tsx?$/.test(ruta) && !ruta.endsWith("tokens.css"))
+    // Noticias web pinta en un bloque `data-theme="light"` fijo: los tokens del Studio
+    // tomarían su valor oscuro sobre fondo claro. Su color va en la fase 3 (como en g3).
+    .filter(
+      (ruta) =>
+        !/\.test\.tsx?$/.test(ruta) && !ruta.endsWith("tokens.css") && !rel(ruta).includes("/marketing/noticias-web/"),
+    )
     .flatMap((ruta) => {
       const src = fuente(ruta);
       const fuera: string[] = [];
@@ -48,14 +52,12 @@ describe("SDD-0686 · cierre del color del Studio", () => {
   });
 
   it.each([
-    ["un texto de TSX", "app/studio/(app)/dashboard/_components/DashboardWidgets.tsx"],
-    ["una regla de studio.css", "app/studio/studio.css"],
-  ])("mutante: %s vuelto a --ink-mute se detecta", (_, objetivo) => {
+    ["un texto de TSX", "app/studio/(app)/dashboard/_components/DashboardWidgets.tsx", /(^|[^-A-Za-z])color["']?\s*:\s*[^,;{}]*?var\(--ink-soft\)/],
+    ["una regla de studio.css", "app/studio/studio.css", /\.studio-toast-close \{[^}]*?color: var\(--ink-soft\)/],
+  ])("mutante: %s vuelto a --ink-mute se detecta", (_, objetivo, ancla) => {
     const original = leer(objetivo);
-    const i = original.indexOf("var(--ink-soft)");
-    expect(i).toBeGreaterThan(-1);
-    // El primer `color` en --ink-soft del archivo vuelve a --ink-mute.
-    const m = /(^|[^-A-Za-z])color["']?\s*:\s*[^,;{}]*?var\(--ink-soft\)/.exec(original);
+    // Ese `color` en --ink-soft vuelve a --ink-mute.
+    const m = ancla.exec(original);
     expect(m).not.toBeNull();
     const fin = (m!.index ?? 0) + m![0].length;
     const mutado = original.slice(0, fin - "var(--ink-soft)".length) + "var(--ink-mute)" + original.slice(fin);
@@ -70,14 +72,4 @@ describe("SDD-0686 · cierre del color del Studio", () => {
     expect(regla).not.toMatch(/194,\s*116,\s*127/);
   });
 
-  it("«Volver a Publicadas» de Noticias web es azul de acción con subrayado", () => {
-    for (const f of [
-      "app/studio/(app)/marketing/noticias-web/publicadas/[id]/page.tsx",
-      "app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx",
-    ]) {
-      const fuente = leer(f);
-      expect(fuente).not.toContain("--color-wine-text");
-      expect(fuente).toContain('style={{ color: "var(--accion-text)", textDecoration: "underline" }}');
-    }
-  });
 });

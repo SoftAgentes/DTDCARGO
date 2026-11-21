@@ -825,7 +825,7 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en l
 
 **Decisión de Sam del 2026-11-21:** vio las dos opciones dibujadas y respondió «a recomendada». Va la **A**.
 
-**Aplicado (M):** 166 textos en 91 archivos pasan a `--ink-soft`. El conteo de la propuesta (162 en 85) no veía los ternarios repartidos en varias líneas; los 8 archivos que se suman son de los mismos módulos (calendario, clientes, contabilidad, facturación, fidelización y tracking) y siguen la misma regla. Quedan en `--ink-mute` **tres textos deshabilitados**, que WCAG exceptúa del contraste y deben verse apagados: `DateField.tsx`, `FiscalConfig.tsx` y `.studio-cal-today-btn:disabled` en `studio.css`. Los bordes y fondos en `--ink-mute` no cambian.
+**Aplicado (M):** 165 textos en 90 archivos pasan a `--ink-soft`. Noticias web queda fuera: pinta en un bloque `data-theme="light"` fijo, donde con el Studio en oscuro `--ink-soft` sería un gris claro sobre fondo claro. Su color va en la fase 3, igual que su acción. El conteo de la propuesta (162 en 85) no veía los ternarios repartidos en varias líneas; los 8 archivos que se suman son de los mismos módulos (calendario, clientes, contabilidad, facturación, fidelización y tracking) y siguen la misma regla. Quedan en `--ink-mute` **tres textos deshabilitados**, que WCAG exceptúa del contraste y deben verse apagados: `DateField.tsx`, `FiscalConfig.tsx` y `.studio-cal-today-btn:disabled` en `studio.css`. Los bordes y fondos en `--ink-mute` no cambian.
 
 **Contrato:** `cierre-color-studio-contract.test.ts` prohíbe un `color` en `--ink-mute` fuera de un deshabilitado. Trae dos mutantes, uno en TSX y otro en `studio.css`, y fija los tres deshabilitados.
 
@@ -834,13 +834,13 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en l
 | Uso | Destino |
 |---|---|
 | Brillo del foco de `.studio-input-dark` (`studio.css:333`), `rgba(194,116,127,.22)`: vino suave en un estado de acción | Azul de acción tenue (`rgba(127,170,240,.22)`, el `--accion` oscuro), igual que el borde, que ya es `--accion-soft` |
-| «Volver a Publicadas» de Noticias web (`marketing/noticias-web/publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`), `--color-wine-text` en un enlace | `--accion-text` (regla 1: azul = acción) |
+| «Volver a Publicadas» de Noticias web (`marketing/noticias-web/publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`), `--color-wine-text` en un enlace | Se queda hasta la fase 3. Noticias web pinta dentro de un bloque `data-theme="light"`: con el Studio en oscuro, `--accion-text` tomaría su valor oscuro sobre el fondo claro (revisión de la #739). Pasa a azul cuando la fase 3 traiga `--color-accion*`; lo vigila `color-accion-fase2-g3-contract.test.ts` |
 | Respaldo `#A8323E` en `var(--danger, …)` (bugs, mailing, usuarios, perfil, reportador de bugs) | Se queda: es el rojo de peligro |
 | `--danger` impreso de legal (evidencia y expediente) | Se queda: peligro en papel |
 | Diplomas, `report-css.ts`, anclas de impresión (Fiscal, Retenciones, Constructor) y la paleta de Apariencia | Se quedan: identidad e impresos, ya en la lista permitida |
 | Etiquetas (`etiquetas/_components/Label.tsx`) y el botón del correo de recuperación (`(auth)/login/recuperar/actions.ts`) | Fase 5: impresos y correo (regla 8) |
 
-**Allowlist de la parte 2:** `app/studio/studio.css`, `app/studio/(app)/marketing/noticias-web/publicadas/[id]/page.tsx` y `app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx`.
+**Allowlist de la parte 2:** `app/studio/studio.css`.
 
 **Además:** un contrato con mutante, esta spec y el handoff.
 
