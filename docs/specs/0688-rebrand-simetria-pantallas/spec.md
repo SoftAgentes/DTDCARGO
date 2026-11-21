@@ -238,9 +238,9 @@ Color (SDD-0686), formato de cifras (SDD-0687), las **medidas** en el Portal (an
      - bien hecha: medidas propias del Studio, montada sobre los estilos de texto con nombre de la fase 2;
      - rápida: `zoom` de CSS. Rompe el piso de 32 px y obliga a revisar arrastres y posiciones calculadas.
    - **Decisión de Sam del 2026-11-21: «Bien hecha, con la 0688».** Entra en la fase 2.
-   - **Pendiente:** dónde se guarda la preferencia. Hoy es por navegador. Que quede en el perfil de cada usuario, como dice el pedido («adentro de cada usuario»), exige una migración y su OK nominal (**I**: se puede empezar por navegador y pasarla después).
+   - **Dónde se guarda la preferencia: decidido el 2026-11-21, «Por navegador».** Sam eligió esa opción sabiendo que la otra guardaba la última elección en el perfil de cada usuario. Se guarda en el navegador, como hoy el tema y la densidad, y no lleva migración.
 
-Con esto, todos los pendientes de decisión de esta spec quedan cerrados, salvo el lugar donde se guarda la preferencia de vista (punto 5).
+Con esto, todos los pendientes de decisión de esta spec quedan cerrados.
 
 ## 12. Límites
 
