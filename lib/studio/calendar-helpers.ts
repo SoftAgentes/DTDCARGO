@@ -119,6 +119,8 @@ export function holidaysForDate(
  * pantalla no los dice. El feriado crítico de China (la operación se para)
  * se anuncia como tal, para no decirlo solo con color (SDD-0686, BD-076).
  */
+const MAX_FERIADOS_EN_NOMBRE = 2;
+
 export function dayCellLabel(
   isoDate: string,
   dayHolidays: Holiday[],
@@ -126,10 +128,16 @@ export function dayCellLabel(
   eventsCount: number,
 ): string {
   const partes = [`Ver eventos del ${isoDate}`];
-  for (const h of dayHolidays) {
+  // Tope para que el nombre no se vuelva una oración larga: el crítico va
+  // primero (es lo que no se puede perder), luego los demás, y el resto se
+  // resume. Ferias y eventos ya van como conteo.
+  const ordenados = [...dayHolidays].sort((a, b) => Number(Boolean(b.critical)) - Number(Boolean(a.critical)));
+  for (const h of ordenados.slice(0, MAX_FERIADOS_EN_NOMBRE)) {
     const pais = h.country === "CN" ? "China" : "Venezuela";
     partes.push(h.critical ? `feriado crítico en ${pais}` : `feriado en ${pais}`);
   }
+  const resto = ordenados.length - MAX_FERIADOS_EN_NOMBRE;
+  if (resto > 0) partes.push(resto === 1 ? "y 1 feriado más" : `y ${resto} feriados más`);
   if (fairsCount > 0) partes.push(fairsCount === 1 ? "1 feria" : `${fairsCount} ferias`);
   if (eventsCount > 0) partes.push(eventsCount === 1 ? "1 evento" : `${eventsCount} eventos`);
   return partes.join(", ");

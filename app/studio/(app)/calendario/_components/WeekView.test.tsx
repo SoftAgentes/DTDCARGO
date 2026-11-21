@@ -65,4 +65,20 @@ describe("dayCellLabel", () => {
     expect(dayCellLabel("2027-02-09", [], 0, 1)).toBe("Ver eventos del 2027-02-09, 1 evento");
     expect(dayCellLabel("2027-02-10", [], 2, 0)).toBe("Ver eventos del 2027-02-10, 2 ferias");
   });
+
+  it("con muchos feriados y eventos el nombre tiene tope: dos feriados, «y N más», y los eventos contados", () => {
+    const comun = (id: string, country: "CN" | "VE"): Holiday => ({
+      id, country, startDate: "2027-02-08", endDate: "2027-02-08", name: id, shortName: id,
+    });
+    const muchos = [comun("a", "VE"), comun("b", "CN"), feriado(true), comun("c", "VE"), comun("d", "CN")];
+    const nombre = dayCellLabel("2027-02-08", muchos, 4, 37);
+    // El crítico va primero aunque llegue de tercero.
+    expect(nombre).toBe(
+      "Ver eventos del 2027-02-08, feriado crítico en China, feriado en Venezuela, y 3 feriados más, 4 ferias, 37 eventos",
+    );
+    expect(nombre.split(", ").length).toBeLessThanOrEqual(6);
+    expect(dayCellLabel("2027-02-08", [comun("a", "VE"), comun("b", "CN"), comun("c", "VE")], 0, 0)).toBe(
+      "Ver eventos del 2027-02-08, feriado en Venezuela, feriado en China, y 1 feriado más",
+    );
+  });
 });
