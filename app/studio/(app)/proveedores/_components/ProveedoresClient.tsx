@@ -211,31 +211,21 @@ export function ProveedoresClient({
         <KpiCard
           value={stats.byStatus.anunciada}
           label="Anunciadas"
-          valueColor={stats.byStatus.anunciada > 0 ? "var(--info)" : "var(--ink)"}
           sub="esperando salida del proveedor"
         />
         <KpiCard
           value={stats.byStatus.en_camino}
           label="En camino"
-          valueColor={
-            stats.byStatus.en_camino > 0 ? "var(--warning)" : "var(--ink)"
-          }
           sub="rumbo al almacén CN"
         />
         <KpiCard
           value={stats.byStatus.recibida}
           label="Recibidas en CN"
-          valueColor={
-            stats.byStatus.recibida > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="llegaron al hub"
         />
         <KpiCard
           value={stats.byStatus.consolidada}
           label="Consolidadas"
-          valueColor={
-            "var(--ink)"
-          }
           sub="atadas a un envío"
         />
         <KpiCard

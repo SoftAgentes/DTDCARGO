@@ -133,6 +133,11 @@ export function PermissionsSection({
   const [soloCambiados, setSoloCambiados] = useState(false);
   const [sombra, setSombra] = useState({ x: false, y: false });
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Al desmontar se cancela el destello pendiente: sin esto, el setState de los
+  // 700 ms corre sobre un componente ya desmontado (y en las pruebas, sin window).
+  useEffect(() => () => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+  }, []);
   const wrapRef = useRef<HTMLDivElement>(null);
   const celdas = useRef(new Map<string, HTMLButtonElement>());
   const [, startTransition] = useTransition();

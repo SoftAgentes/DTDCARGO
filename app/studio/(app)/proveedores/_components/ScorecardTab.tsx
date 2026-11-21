@@ -86,7 +86,6 @@ export function ScorecardTab({
         <KpiCard
           value={stats.avgScore ?? "—"}
           label="Rating prom."
-          valueColor="var(--ink)"
           sub="sobre 100"
         />
         <KpiCard
@@ -97,7 +96,7 @@ export function ScorecardTab({
         <KpiCard
           value={stats.openClaims}
           label="Reclamos"
-          valueColor={stats.openClaims > 0 ? "var(--warning)" : "var(--ink)"}
+          status={stats.openClaims > 0 ? { tono: "warning", texto: "Requiere atención" } : undefined}
           sub="abiertos / en revisión"
         />
       </div>

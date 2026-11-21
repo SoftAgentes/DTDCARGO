@@ -253,6 +253,7 @@ export const bandeja: BandejaDict = {
   "bandeja.portal.off": "已关闭：门户聊天不会发往 Chatwoot。",
   "bandeja.portal.sin_llegar": "超过 15 分钟未送达",
   "bandeja.portal.atascados": "卡住",
+  "bandeja.portal.atascados_estado": "需要处理",
   "bandeja.portal.retry": "重试卡住的消息",
   "bandeja.portal.retrying": "正在重试…",
   "bandeja.portal.none": "没有卡住的消息。",
