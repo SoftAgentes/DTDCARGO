@@ -560,7 +560,8 @@ export function StudioSidebar({
         zIndex: 50,
       }}
     >
-      {/* Fondo de marca (BD-034): glow wine en la esquina superior + marca de agua
+      {/* Fondo de marca (BD-034): brillo azul tenue en la esquina superior (el rojo
+          no va de ambiente, SDD-0686) + marca de agua
           "D" (isotipo mono-light, wallpaper .03) recortada por overflow:hidden.
           Decorativa y detrás del contenido (z-index:-1 dentro del stacking del aside)
           → no toca los items del nav, no captura clicks. */}
@@ -572,7 +573,7 @@ export function StudioSidebar({
           zIndex: -1,
           pointerEvents: "none",
           background:
-            "radial-gradient(55% 40% at 100% 0%, rgba(168,50,62,0.28), transparent 58%)",
+            "radial-gradient(55% 40% at 100% 0%, rgba(127,170,240,0.12), transparent 58%)",
         }}
       >
         <div

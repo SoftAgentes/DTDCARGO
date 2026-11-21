@@ -32,7 +32,7 @@ import {
 import { PrintButton } from "./PrintButton";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Rendición · Operadora · DTD Studio" };
+export const metadata = { title: "Rendición · Operadora" };
 export const dynamic = "force-dynamic";
 
 const LABEL: React.CSSProperties = {

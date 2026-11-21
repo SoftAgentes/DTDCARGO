@@ -7,7 +7,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getDispatchRules } from "@/lib/studio/dispatch-rules-queries";
 import { RulesClient } from "./_components/RulesClient";
 
-export const metadata = { title: "Reglas de Despacho · DTD Studio" };
+export const metadata = { title: "Reglas de Despacho" };
 
 export default async function DispatchRulesPage() {
   await requireModuleView("despacho-rules");

@@ -22,7 +22,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { MentionsInboxClient } from "./_components/MentionsInboxClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Menciones · DTD Studio" };
+export const metadata = { title: "Menciones" };
 export const dynamic = "force-dynamic";
 
 export default async function MencionesPage() {

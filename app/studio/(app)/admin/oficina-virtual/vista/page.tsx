@@ -26,7 +26,7 @@ import {
 import { isPlatformAdmin } from "@/lib/studio/platform-admin";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Oficina_Virtual · mini-vista · DTD Studio" };
+export const metadata = { title: "Oficina_Virtual · mini-vista" };
 export const dynamic = "force-dynamic";
 
 const parrafo: React.CSSProperties = { font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 12px", maxWidth: "76ch" };

@@ -18,7 +18,7 @@ import { ultimoAnalisis } from "@/lib/studio/chatwoot/analisis-queries";
 import { ActualizacionesPanel } from "./_components/ActualizacionesPanel";
 
 export const metadata = {
-  title: "Actualizaciones · DTD Studio",
+  title: "Actualizaciones",
 };
 
 export const dynamic = "force-dynamic";

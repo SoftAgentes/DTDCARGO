@@ -24,7 +24,7 @@ import {
 import type { ClaimFinancials } from "@/lib/studio/reclamos/claims-types";
 import { ReclamosClient } from "./_components/ReclamosClient";
 
-export const metadata = { title: "Reclamos y siniestros · DTD Studio" };
+export const metadata = { title: "Reclamos y siniestros" };
 
 export default async function ReclamosPage() {
   const role = await requireModuleView("reclamos");

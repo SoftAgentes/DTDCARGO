@@ -16,7 +16,7 @@ import {
 import { parseQrQueueFilters } from "@/lib/studio/qr-queue-types";
 import { QrQueueClient } from "./_components/QrQueueClient";
 
-export const metadata = { title: "Cola de QR · DTD Studio" };
+export const metadata = { title: "Cola de QR" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined };

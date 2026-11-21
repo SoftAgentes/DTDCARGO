@@ -34,7 +34,7 @@ import { BrandAccessPanel } from "./_components/BrandAccessPanel";
 import { BrandInternalPanel } from "./_components/BrandInternalPanel";
 import { BrandCatalogManager } from "./_components/BrandCatalogManager";
 
-export const metadata = { title: "HUB de marca · Marketing · DTD Studio" };
+export const metadata = { title: "HUB de marca · Marketing" };
 export const dynamic = "force-dynamic";
 
 type SectionRow = { id: string; slug: string; title: string; intro: string | null };

@@ -6,7 +6,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { CampaignComposer } from "./_components/CampaignComposer";
 import { CampaignActions } from "./_components/CampaignActions";
 
-export const metadata = { title: "Campañas de Actualidad · DTD Studio" };
+export const metadata = { title: "Campañas de Actualidad" };
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<NewsletterCampaignStatus, { label: string; tone: BadgeTone }> = {

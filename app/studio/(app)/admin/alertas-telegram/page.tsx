@@ -26,7 +26,7 @@ import { DiscordChannelsStatus } from "./_components/DiscordChannelsStatus";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = {
-  title: "Alertas del equipo · DTD Studio",
+  title: "Alertas del equipo",
 };
 
 export const dynamic = "force-dynamic";

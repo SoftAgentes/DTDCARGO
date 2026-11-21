@@ -299,16 +299,24 @@ export type BadgeTone =
   | "warning"
   | "danger"
   | "info"
-  | "wine"
   | "neutral";
 
+/**
+ * Un rol es una categoría, no un estado: no es éxito, aviso ni peligro, así que
+ * todos van en neutro y se distinguen por su nombre (revisión visual de SDD-0686).
+ */
+const ROLE_BADGE_TONE: Record<StudioUserRole, BadgeTone> = {
+  admin: "neutral",
+  commercial: "neutral",
+  operations: "neutral",
+  accounting: "neutral",
+  warehouse: "neutral",
+  support: "neutral",
+  marketing: "neutral",
+};
+
 export function roleBadgeTone(r: StudioUserRole): BadgeTone {
-  if (r === "admin") return "neutral";
-  if (r === "commercial") return "info";
-  if (r === "operations") return "warning";
-  if (r === "accounting") return "success";
-  if (r === "marketing") return "danger"; // 6º tono libre (rojo); ajustable si el founder prefiere otro
-  return "neutral"; // warehouse + support
+  return ROLE_BADGE_TONE[r];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────

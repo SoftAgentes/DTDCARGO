@@ -34,7 +34,7 @@ import { CrmPestanas } from "../crm/_components/CrmPestanas";
 import { pestanasCrm } from "../crm/_components/kommo-tabs.shared";
 import { BandejaClient, type BandejaEstado } from "./_components/BandejaClient";
 
-export const metadata = { title: "Bandeja · CRM · DTD Studio" };
+export const metadata = { title: "Bandeja · CRM" };
 
 export default async function BandejaPage({
   searchParams,

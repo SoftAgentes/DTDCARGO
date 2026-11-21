@@ -10,7 +10,7 @@ import { NoticiasTabs } from "../_components/NoticiasTabs";
 import { PublicadasClient } from "./_components/PublicadasClient";
 import { puertaNoticiasAdmin } from "./_gate";
 
-export const metadata = { title: "Noticias publicadas · DTD Studio" };
+export const metadata = { title: "Noticias publicadas" };
 export const dynamic = "force-dynamic";
 
 export default async function NoticiasPublicadasPage() {

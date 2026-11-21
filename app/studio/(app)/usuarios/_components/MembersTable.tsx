@@ -49,10 +49,10 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-/** `Avatar` no tiene tono `danger`; el rol marketing lo usa y va en neutro (sin vino desde BD-076). */
+/** `Avatar` no tiene tono `danger`: si un rol llegara con ese tono, va en neutro (hoy todos los roles son neutros, SDD-0686). */
 type AvatarColor = "info" | "success" | "warning" | "neutral";
 function avatarColor(tone: BadgeTone): AvatarColor {
-  return tone === "danger" || tone === "wine" ? "neutral" : tone;
+  return tone === "danger" ? "neutral" : tone;
 }
 
 export function MembersTable({

@@ -14,7 +14,7 @@ import { listRules } from "@/lib/studio/notifications/client-notification-rules-
 import { NotificationsClient } from "./_components/NotificationsClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Notificaciones al cliente · DTD Studio" };
+export const metadata = { title: "Notificaciones al cliente" };
 export const dynamic = "force-dynamic";
 
 interface ClientRow {

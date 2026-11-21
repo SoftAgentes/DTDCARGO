@@ -20,7 +20,7 @@ import { listMeetings } from "@/lib/studio/bitacora/bitacora-meeting-queries";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import { BitacoraClient } from "./_components/BitacoraClient";
 
-export const metadata = { title: "Bitácora · DTD Studio" };
+export const metadata = { title: "Bitácora" };
 
 export const dynamic = "force-dynamic";
 
