@@ -181,6 +181,17 @@ export interface Lote {
    * existe, y el lote queda igual que antes byte a byte.
    */
   excluidos?: ExclusionPorMarkbox;
+  /** Sólo con `--solo-markbox` (con `--agregar-a-preorden`): qué Shipping Marks entran y cuántos envíos quedan fuera. */
+  seleccion?: SeleccionPorMarkbox;
+}
+
+/** Lo que `--solo-markbox` deja entrar: los Shipping Marks (códigos), lo que entra y cuántos envíos quedan fuera. Sin montos. */
+export interface SeleccionPorMarkbox {
+  markbox: string[];
+  clientes: number;
+  envios: number;
+  filas: number;
+  enviosFuera: number;
 }
 
 /**
@@ -221,6 +232,12 @@ export interface OpcionesLote {
    * clientes, líneas, totales y avisos salen ya sin ellas. Vacío o ausente, no cambia nada.
    */
   excluirMarkbox?: readonly string[];
+  /**
+   * SDD-0690 · `--solo-markbox`: lo contrario de `excluirMarkbox`. Entran sólo las filas de los
+   * clientes con estos Shipping Marks (por el mapa o por la clave); el resto sale antes de agrupar.
+   * Es el lote chico de los envíos que estaban en el comodín, con `--agregar-a-preorden`.
+   */
+  soloMarkbox?: readonly string[];
 }
 
 /**
@@ -416,6 +433,12 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
   const mapa = normalizarMapa(opciones.mapa);
   const listaFuera = normalizarExclusiones(opciones.excluirMarkbox ?? []);
   const fuera = new Set(listaFuera);
+  // SDD-0690 · --solo-markbox: lo contrario de --excluir-markbox; entran sólo esas filas.
+  const listaSolo = normalizarExclusiones(opciones.soloMarkbox ?? []);
+  if (listaFuera.length && listaSolo.length) throw new Error("--excluir-markbox y --solo-markbox no van juntos");
+  const solo = new Set(listaSolo);
+  const soloVistos = new Set<string>();
+  const clavesSolo = new Set<string>();
   const fueraVistos = new Set<string>();
   const clavesFuera = new Set<string>();
   const remitentesFuera = new Set<string>();
@@ -440,7 +463,11 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
     }
     // SDD-0690 · --excluir-markbox: la fila sale antes de agrupar y antes de dar sus avisos.
     const markbox = mapa[marca.clave] ?? mapa[`${marca.prefijo}-${marca.numero}`] ?? marca.clave;
-    if (fuera.has(markbox)) {
+    if (solo.has(markbox)) {
+      soloVistos.add(markbox);
+      clavesSolo.add(marca.clave);
+    }
+    if (fuera.has(markbox) || (listaSolo.length > 0 && !solo.has(markbox))) {
       fueraVistos.add(markbox);
       clavesFuera.add(marca.clave);
       remitentesFuera.add(remitente);
@@ -552,7 +579,7 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
   }
   // La fila de totales del Excel describe el contenedor completo: con --excluir-markbox se compara
   // contra lo que entra más lo excluido (es un control del Excel, no del paquete).
-  const completo = listaFuera.length
+  const completo = listaFuera.length || listaSolo.length
     ? {
         cajas: totales.cajas + sumaFuera.cajas,
         cbmFactura: round3(totales.cbmFactura + sumaFuera.cbmFactura),
@@ -566,7 +593,7 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
     const dKg = round2(completo.pesoKg - num(totalesExcel.pesoKg));
     if (dCajas !== 0 || Math.abs(dCbm) > 0.001 || Math.abs(dKg) > 0.01) {
       avisos.push(
-        `La fila de totales del Excel (fila ${totalesExcel.filaExcel}) dice ${totalesExcel.cajas} cajas, ${round3(num(totalesExcel.cbmFactura))} m³ y ${round2(num(totalesExcel.pesoKg))} kg; ${listaFuera.length ? "el contenedor completo (con los excluidos por markbox)" : "el lote"} suma ${completo.cajas} cajas, ${completo.cbmFactura} m³ y ${completo.pesoKg} kg (diferencia ${dCajas} cajas, ${dCbm} m³, ${dKg} kg). Suele ser un rango de SUM que no cubre todas las filas; revisar.`,
+        `La fila de totales del Excel (fila ${totalesExcel.filaExcel}) dice ${totalesExcel.cajas} cajas, ${round3(num(totalesExcel.cbmFactura))} m³ y ${round2(num(totalesExcel.pesoKg))} kg; ${listaFuera.length ? "el contenedor completo (con los excluidos por markbox)" : listaSolo.length ? "el contenedor completo (con las filas fuera de --solo-markbox)" : "el lote"} suma ${completo.cajas} cajas, ${completo.cbmFactura} m³ y ${completo.pesoKg} kg (diferencia ${dCajas} cajas, ${dCbm} m³, ${dKg} kg). Suele ser un rango de SUM que no cubre todas las filas; revisar.`,
       );
     }
   }
@@ -580,6 +607,15 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
       `Excluidos por markbox (${listaFuera.join(", ")}): ${excluidos.envios} envíos de ${excluidos.clientes} claves del Excel (${excluidos.filas} filas) quedan fuera del lote; no llevan pre-orden ni línea y no suman en los totales.`,
     );
   }
+  let seleccion: SeleccionPorMarkbox | undefined;
+  if (listaSolo.length) {
+    const sinClientes = listaSolo.filter((m) => !soloVistos.has(m));
+    if (sinClientes.length) throw new Error(`--solo-markbox: ningún cliente del lote tiene el Shipping Mark ${sinClientes.join(", ")}`);
+    seleccion = { markbox: listaSolo, clientes: clavesSolo.size, envios: embarques.length, filas: filasUtiles.length, enviosFuera: remitentesFuera.size };
+    avisos.push(
+      `Sólo markbox (${listaSolo.join(", ")}): entran ${seleccion.envios} envíos de ${seleccion.clientes} claves del Excel (${seleccion.filas} filas); los otros ${seleccion.enviosFuera} envíos quedan fuera de este paquete.`,
+    );
+  }
   if (embarques.length === 0 && modalidad !== "fcl") throw new Error("El packing list no trae filas con Remitente.");
   if (dueno && clientes.some((c) => c.clave === dueno!.marca.clave)) {
     throw new Error(`El dueño ${dueno.marca.clave} también aparece como cliente DDP del packing list; decide con Sam cómo cargarlo.`);
@@ -588,6 +624,7 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
   return {
     rastreo, modalidad, dueno, gastoEspacio, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos,
     ...(excluidos ? { excluidos } : {}),
+    ...(seleccion ? { seleccion } : {}),
   };
 }
 
