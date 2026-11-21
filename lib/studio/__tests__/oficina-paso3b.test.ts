@@ -263,6 +263,25 @@ describe("despachador · pendientes del 3a (Paso 3b)", () => {
     expect(doble.avisos).toEqual([1]);
   }, 60_000);
 
+  it("SDD-0701 · un enlace del cliente sale escalado («cliente:enlace», prioridad 2) y SIN llamar al agente", async () => {
+    const db = await base();
+    await eventoEnTriaje(db, 6);
+    const { d, doble } = despachador(db, { mensajes: { 6: "Hola, mi guía está aquí: bit.ly/x7Kp2" } });
+    expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "escalado", motivo: "cliente:enlace" } });
+    expect(doble.llamadas).toBe(0);
+    const [b] = await q(db, "select tipo, prioridad, guion, motivo from public.office_borradores");
+    expect(b).toMatchObject({ tipo: "escalado", prioridad: 2, guion: null, motivo: "cliente:enlace" });
+    expect(doble.avisos).toEqual([1]);
+  }, 60_000);
+
+  it("SDD-0701 · dinero y enlace a la vez: gana el dinero (prioridad 3)", async () => {
+    const db = await base();
+    await eventoEnTriaje(db, 8);
+    const { d, doble } = despachador(db, { mensajes: { 8: "Ya pagué, el comprobante: https://pagos.example/x" } });
+    expect(await tick(d)).toMatchObject({ resultado: { fin: "escalado", motivo: "dinero" } });
+    expect(doble.llamadas).toBe(0);
+  }, 60_000);
+
   it("un evento de dinero (prioridad 3 por etiqueta) también escala sin llamar al agente", async () => {
     const db = await base();
     await eventoEnTriaje(db, 5, 3);
