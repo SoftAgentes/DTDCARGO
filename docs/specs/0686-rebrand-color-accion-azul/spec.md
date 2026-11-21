@@ -447,7 +447,7 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 
 **Seguimiento de la revisión de la #741 (PR aparte, 2026-11-21):**
 - La vista semana (`calendario/_components/WeekView.tsx`) marca el feriado crítico de China como el mes. La barra va en `--danger`, con 5,92:1 en claro y 4,45:1 en oscuro contra el chip. Lleva además un ícono de alerta y la palabra «· crítico».
-- El nombre accesible del botón del día sale de una sola función para el mes y la semana, `dayCellLabel` en `lib/studio/calendar-helpers.ts`. Anuncia los feriados (y si son críticos), las ferias y los eventos, que el `aria-label` tapaba.
+- El nombre accesible del botón del día sale de una sola función para el mes y la semana, `dayCellLabel` en `lib/studio/calendar-helpers.ts`. Anuncia los feriados (y si son críticos), las ferias y los eventos, que el `aria-label` tapaba. Tiene un tope para no volverse una oración larga: dos feriados como máximo, con el crítico primero, «y N feriados más» para el resto, y las ferias y los eventos como conteo.
 - La prueba 2 de `MonthView.test.tsx` pasa a esperar «…, feriado en China». La prueba nueva es `WeekView.test.tsx`.
 
 El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carpetas (los hex escritos a mano son de la fase 4). Mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
