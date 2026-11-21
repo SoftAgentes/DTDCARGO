@@ -78,10 +78,6 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 26,
     motivo: "diploma impreso: documento de marca (regla 8); se revisa con los PDF en la fase 4",
   },
-  "app/studio/(app)/dashboard/page.tsx": {
-    cuenta: 1,
-    motivo: "panel de bienvenida con el isotipo (BD-034): superficie de marca",
-  },
   "app/studio/(app)/fiscal/_components/FiscalClient.tsx": {
     cuenta: 1,
     motivo: "encabezado impreso del libro fiscal (regla 8)",

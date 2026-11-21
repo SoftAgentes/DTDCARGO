@@ -50,6 +50,18 @@ describe("SDD-0686 · revisión visual", () => {
     expect(leer("app/studio/layout.tsx")).toContain('template: "%s · DTD Studio"');
   });
 
+  it("la banda de bienvenida del Dashboard es navy de marca, sin vino ni rojo (Sam, opción A)", () => {
+    const pagina = leer("app/studio/(app)/dashboard/page.tsx");
+    expect(pagina).toContain('background: "var(--grad-bienvenida)",');
+    expect(pagina).not.toMatch(/wine|127,\s*15,\s*26|--danger/);
+    const tokens = leer("app/studio/tokens.css");
+    expect(tokens).not.toContain("--grad-wine-panel");
+    for (const linea of tokens.split("\n").filter((l) => l.includes("--grad-bienvenida:"))) {
+      expect(linea).toMatch(/#0F1E3D|#16264A/);
+      expect(linea).not.toMatch(/#[AC][E0-9A-F]{5}|#7F0F1A/i);
+    }
+  });
+
   it("la leyenda de «Embarques y CBM por mes» cabe en el lienzo", () => {
     expect(leer("app/studio/(app)/reportes/_components/charts.tsx")).toContain("viewBox={`0 0 ${W} ${H + 48}`}");
   });
