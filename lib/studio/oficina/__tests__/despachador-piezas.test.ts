@@ -173,6 +173,9 @@ describe("el cable hacia el runtime", () => {
       [{ provider: "", model: "deepseek-chat" }, "deepseek-chat"],
       [{ provider: "zai", model: "texto con espacios" }, null],
       [{ provider: "zai", model: "x".repeat(101) }, null],
+      [{ provider: "zai", model: "https://u:p@host/x" }, null],
+      [{ provider: "https://u:p@host", model: "glm-5.3" }, "glm-5.3"],
+      [{ provider: "zai", model: "glm-5.3＠host" }, null],
     ];
     for (const [runtime, esperado] of casos) {
       const f = vi.fn(async () => json({ model: "soporte-chatwoot", choices: [{ message: { content: "{}" } }], runtime }));

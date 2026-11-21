@@ -99,11 +99,14 @@ export async function llamarAgente(o: LlamadaAgente): Promise<RespuestaAgente> {
  */
 export const ALIAS_DEL_AGENTE = "soporte-chatwoot";
 
-/** Un id de proveedor o modelo: sin espacios ni texto libre, tope 100 (el CHECK de `modelo_usado`). */
+/**
+ * Un id de proveedor o modelo: sin espacios ni texto libre, tope 100 (el CHECK de `modelo_usado`). Nunca una URL:
+ * con `://` se rechaza, para que un `https://usuario:clave@host/x` no llegue a la bitácora.
+ */
 export function idDeModelo(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const t = v.trim();
-  return t && t.length <= 100 && /^[A-Za-z0-9._:@/+-]+$/.test(t) ? t : null;
+  return t && t.length <= 100 && !t.includes("://") && /^[A-Za-z0-9._:@/+-]+$/.test(t) ? t : null;
 }
 
 function unir(proveedor: string | null, modelo: string | null): string | null {
@@ -121,7 +124,8 @@ function modeloDeRespuesta(cuerpo: Record<string, unknown> | null): string | nul
  * SDD-0702 (hija de la 0626) · modelo real. Lee `GET /api/sessions/<id>` ANTES del borrado y devuelve solo `session.model`: Hermes
  * v0.23.1 reescribe esa columna con el modelo de la primera llamada con consumo (`hermes_state_usage.py`,
  * `first_accounted_route`), así que tras un fallback dice el de respaldo. El proveedor (`billing_provider`) no sale
- * por la API; si viniera como `session.provider`, se antepone. Del resto de la sesión (vista previa, título,
+ * por la API en la v0.23.1; si alguna versión lo publicara como `session.provider` o `session.billing_provider`,
+ * se antepone. Del resto de la sesión (vista previa, título,
  * tokens) no se lee ni se guarda nada. Nunca lanza: null = no consta.
  */
 export async function leerModeloDeSesion(o: {
