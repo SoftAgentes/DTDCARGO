@@ -731,6 +731,9 @@ El Portal y la web pública van en sus fases.
 - **Además:**
   - el contrato nuevo `app/studio/_components/__tests__/revision-visual-0686-contract.test.ts`;
   - los contratos del grupo 1 y de cierre, de los que sale `EmptyState`;
+  - `app/studio/(app)/usuarios/_components/MembersTable.tsx`, que dejó de comparar el tono del rol con «wine» (tsc);
+  - el contrato del grupo 3 (`color-accion-fase2-g3-contract.test.ts`), cuyo mutante del rol pasó al mapa nuevo;
+  - el contrato de contraste del tema oscuro (`dark-theme-contrast-contract.test.ts`), que nombra `--grad-bienvenida` en lugar de `--grad-wine-panel`;
   - esta spec y el handoff.
 
 **Qué cambia, punto por punto**
@@ -756,7 +759,7 @@ El Portal y la web pública van en sus fases.
 **Contrato nuevo (`revision-visual-0686-contract.test.ts`):** comprueba
 - el navy fijo del login;
 - que el login y la recuperación no usen el vino suave ni el pie al 45 %;
-- que el brillo de fondo no sea rojo;
+- que el brillo de fondo sea azul de acción o navy neutro. Es una lista blanca: desde la revisión de la #747, cualquier otro `rgba` o un hex rompe, con un mutante para cada caso;
 - que ningún rol tenga tono de estado;
 - que ningún título repita el sufijo;
 - que la leyenda quepa en el lienzo.
