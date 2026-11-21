@@ -85,6 +85,7 @@ describe("/privacidad · mensajes por WhatsApp y chat (SDD-0585, 2.6)", () => {
   });
 
   it("la fecha de la política se movió con el cambio (T4)", () => {
-    expect(texto).toContain('const UPDATED = "8 de noviembre de 2026";');
+    // SDD-0684 fase 2: la fecha se movió otra vez con Microsoft Clarity (la confirma el DG antes de fusionar).
+    expect(texto).toContain('const UPDATED = "20 de noviembre de 2026";');
   });
 });

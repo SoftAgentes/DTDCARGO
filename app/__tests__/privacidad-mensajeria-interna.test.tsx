@@ -64,6 +64,7 @@ describe("/privacidad · mensajería interna del equipo (SDD-0606, SDD-0608)", (
     const texto = plano((await pagina()).textContent);
     expect(texto).not.toMatch(/discord/i);
     // SDD-0586 (T4): la fecha se movió otra vez el 2026-11-08, con T2 y T3 del chat de Soporte.
-    expect(texto).toContain("Última actualización: 8 de noviembre de 2026");
+    // SDD-0684 fase 2: y el 2026-11-20, con Microsoft Clarity (la confirma el DG antes de fusionar).
+    expect(texto).toContain("Última actualización: 20 de noviembre de 2026");
   });
 });

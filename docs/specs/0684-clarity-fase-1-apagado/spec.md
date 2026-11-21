@@ -136,10 +136,77 @@ La e2e no entra en `pnpm test:e2e`: la suite general corre sin ID, que es como s
 
 ## Encendido (fases 2 y 3, no en esta SDD)
 
-1. Publicar el texto de `/privacidad` y `/cookies` (evaluación §3.5). Según la sesión que evaluó Clarity, Sam ya aprobó el texto de las cookies; el cambio de las páginas lo asigna el DG en otra PR.
+1. Publicar el texto de `/privacidad` y `/cookies` (evaluación §3.5). Ver «Fase 2» abajo. *Corrección 2026-11-20: esta línea decía que Sam ya había aprobado el texto de las cookies. No era exacto: Sam aprobó la idea, pero el texto todavía no existía. Lo aprobó el 2026-11-20 (Fase 2).*
 2. Proyecto en clarity.microsoft.com con una cuenta de la empresa: enmascarado **Balanced** y **«requiere consentimiento»** (según esa misma sesión, Sam ya lo dejó así); acceso solo para el equipo de Venezuela.
 3. La **variable de repositorio** `NEXT_PUBLIC_CLARITY_ID` (GitHub → Settings → Secrets and variables → Actions → Variables) ya existe y vale `off` (la creó la sesión que evaluó Clarity, por decisión de Sam). Para encender, Sam la cambia por el ID real y se reconstruye la imagen de producción. `prueba` ya va con `off` fijo. Encender en producción, y el modo de consentimiento de §3, necesitan la **confirmación y el OK nominal de Sam**.
 4. Medir LCP, INP y CLS de `/`, `/tarifas` y `/calculadora` antes y después.
+
+## Fase 2: texto de `/privacidad` y `/cookies`
+
+Archivos asignados por el DG el 2026-11-20: `app/privacidad/page.tsx`, `app/cookies/page.tsx` y esta spec. Las pruebas que fijan la fecha y el texto, solo si el DG las asigna.
+
+### Decisiones de Sam (2026-11-20)
+
+- **Opción A** (D): el código de esta SDD carga Clarity en las páginas públicas **sin cookies aunque no haya consentimiento** (§3). La política lo dice tal cual, en vez de cambiar el código para no cargar nada sin consentimiento (opción B, descartada: el aviso solo sale en `/entrar` y `/registro`, y Clarity casi no vería visitas).
+- **Texto aprobado «tal cual»** (D): el borrador `clarity-fase-2-borrador-privacidad-cookies.md` (notas de la sesión, fuera del repo), con sha256 corto `4cc400bf00ba` (**huella de la versión 1, superada**: la vigente es la de la versión 3, abajo). Si el abogado o la revisión cambian una palabra, se le vuelve a preguntar a Sam.
+
+- **Versión 2, aprobada el mismo día** (D): la revisión independiente encontró que `/cookies` §3c negaba que GA4 cargue en `/registro` y `/cotizador`, y sí carga (`PRIVATE_PREFIXES` no los tiene; `RegisterForm.tsx` llama a `trackLead("registro")`). Sam eligió corregir el texto y no el código («Sí, corregir texto», en el chat del DG) y aprobó palabra por palabra **C1** (`/cookies` §3c separa GA4 de Clarity) y **C2** (`/privacidad` §4: sin consentimiento, Google recibe avisos de visita sin cookies; esto ya era inexacto antes de esta SDD). Su texto: «Apruebo C1 y C2». Mismo archivo de notas, sección «Versión 2».
+
+- **Versión 3, aprobada el mismo día** (D): la segunda revisión encontró que sin consentimiento Google también recibe **eventos** sin cookies (la conversión de Ads al tocar WhatsApp y `generate_lead` en `components/Analytics.tsx`), no solo visitas. Sam aprobó palabra por palabra **C2 v3** (`/privacidad` §4: avisos sin cookies de visitas y de acciones) y **C3** («Mejorar el sitio»: sin consentimiento, la medición de campañas va sin cookies). Su texto: «Apruebo C2 y C3».
+- **Huella final del texto aprobado:** el archivo de notas `clarity-fase-2-borrador-privacidad-cookies.md` (carpeta de notas compartidas de la sesión del DG, fuera del repo), cerrado después de la versión 3, mide sha256 corto **`37f2982775b4`**. No se vuelve a editar. Las páginas y la prueba no citan huellas: la única es esta.
+
+### Qué cambia
+
+| Página | Sección | Cambio |
+|---|---|---|
+| `/cookies` | §2 | Las herramientas de Google y Clarity arrancan sin guardar nada; Clarity igual registra cada página por separado. |
+| `/cookies` | §3c | Filas `_clck` (1 año) y `_clsk` (1 día); los dos solo en páginas públicas, ninguno en el Portal, el inicio de sesión ni direcciones con datos; Clarity tampoco en el registro ni el cotizador, donde GA4 sí cuenta visitas y el registro completado (C1); qué hace Clarity, qué oculta y sus plazos (30 días y 9 meses). |
+| `/cookies` | §4 | Sin datos del Portal para Google ni Microsoft; si algún día se mide el Portal, aviso previo y política cambiada antes (condición 1 de la fase 5). |
+| `/cookies` | §5 | Google **y Microsoft**; cookies de Clarity bajo nuestro dominio; sin cookies publicitarias de Microsoft (coherente con §5: `c.bing.com` fuera de la CSP). Enlace a la declaración de privacidad de Microsoft. |
+| `/cookies` | §6 | Sin consentimiento, Clarity solo registra cada página por separado, sin cookies. |
+| `/privacidad` | Datos, «Navegación» | Qué se registra, con lo escrito oculto; sin cookies por página, con cookies la visita completa. |
+| `/privacidad` | Finalidades | «Mejorar el sitio» con analítica seudónima; sin consentimiento, la medición de campañas va sin cookies; la medición con cookies y la visita completa, solo con consentimiento (C3). |
+| `/privacidad` | §4 | Google: sin consentimiento, avisos sin cookies de visitas y de acciones (WhatsApp, formularios, registro); sus cookies, solo con consentimiento (C2 v3). Clarity solo en páginas públicas; **Microsoft trata los datos también para sus propios fines**; no recibe nombre, documento, correo, teléfono ni Shipping Mark. |
+| `/privacidad` | §6 | Plazos de Clarity y **sin borrado por persona** antes de esos plazos (evaluación §1). |
+| Ambas | Fecha | `UPDATED` = 2026-11-20. |
+
+Las duraciones de `_clck` y `_clsk` salen de la documentación de Clarity (**D**); se confirman en el navegador al encender (**NO VERIFICADO** hasta la fase 3).
+
+### Objeción del DG: el texto y el interruptor (decidida por Sam: acoplar)
+
+**Evidencia (medida por el DG el 2026-11-20):** en producción `NEXT_PUBLIC_CLARITY_ID` no está en el `.env` del servidor, tiene largo 0 en el contenedor `dtd-cargo-web-2` y ningún archivo servido menciona `clarity.ms`. La variable de repositorio vale `off`. **Hoy Clarity no recoge nada.**
+
+Si este texto se publica antes del encendido, la política describe una recolección que no ocurre. Dos salidas:
+
+1. **Redacción condicional:** el texto dice qué pasa *cuando la medición está activa*, y queda cierto encendido o apagado. Cambia palabras del texto aprobado, así que vuelve a Sam.
+2. **Acoplar la publicación al encendido:** la PR se fusiona solo con el OK de encendido de Sam, y la variable pasa al ID en el mismo tren, sin otra fusión de por medio. Conserva el texto aprobado. Queda un hueco de minutos entre la imagen con el texto y la imagen con el ID, salvo que el DG ordene ambos pasos juntos.
+
+**Decisión de Sam (2026-11-20): «Junto con encender»** (salida 2, D). El texto aprobado no cambia. La PR estuvo **en borrador hasta el día del encendido** (decisión del DG): si se fusionara antes y alguien publicara `main`, el texto saldría con Clarity apagado, que es justo lo que Sam quiso evitar. El 2026-11-20, día del encendido, el DG ordenó **marcarla lista** para que corriera el CI (`quality.yml` no corre en borradores, SDD-0621). La guarda pasó a ser el título «[NO FUSIONAR — tren del DG a las 22:00Z]» y la primera línea del cuerpo.
+
+**Por qué el `.env` del servidor no enciende nada (D).** `NEXT_PUBLIC_CLARITY_ID` es un `ARG` de build del `Dockerfile`, que `build-image.yml` toma de la variable de repositorio `vars.NEXT_PUBLIC_CLARITY_ID`. Como es `NEXT_PUBLIC_*`, Next la **incrusta en el bundle del cliente al construir la imagen**. Cambiarla en el `.env` del VPS no tiene efecto. Encender exige tres cosas: la variable de repositorio con el ID, **una imagen reconstruida** con ella y **publicar esa imagen**.
+
+**Tren del encendido (orden del DG, hueco cero),** en una sola sesión:
+
+1. El DG confirma la fecha de `UPDATED` y se cambia en los **cinco** sitios: `app/privacidad/page.tsx`, `app/cookies/page.tsx`, `privacidad-chat.test.ts`, `privacidad-mensajeria-interna.test.tsx` y `faq-seguimiento-coherente.test.tsx`. La fecha es la de Venezuela el día que se publica: el 2026-11-20 sirve si el tren corre antes de las 04:00Z del 21.
+2. El DG lanza la revisión independiente (después del pase del abogado, no antes) y se espera el CI verde en la cabeza exacta.
+3. El DG fusiona esta PR por el tren. **Todavía no se publica.**
+4. La variable de repositorio pasa de `off` al ID real, con el OK nominal de Sam.
+5. Se reconstruye la imagen de la cabeza de `main` con la variable ya puesta, relanzando `build-image.yml` a mano por `workflow_dispatch` (unos 3 a 5 minutos). No se cambia la variable antes de fusionar: eso dejaría unos minutos una imagen con Clarity encendido y el texto viejo.
+6. Se publica **esa** imagen: una sola publicación con el texto y la medición juntos.
+
+### Para el abogado
+
+- `/privacidad` §3, «Base para el tratamiento», no nombra la base de lo que Clarity registra **sin** consentimiento (cada página por separado, sin cookies). No es falso, es un silencio: decidirlo con el abogado.
+- La política cubre el marco venezolano. Si alguna vez el panel de Clarity se consulta desde otro país, se revisa antes la ley de ese país.
+
+### Para Sam y el abogado, después del encendido (tercera revisión, no son falsas)
+
+- `/cookies` §3c no dice que en `/registro` y `/cotizador` también se cuenta el toque a WhatsApp. No dice «solo», así que no es falso.
+- `/cookies` §2 y §6 nombran solo a Clarity como el que registra sin consentimiento, y no dicen que Google recibe avisos sin cookies. Es un silencio: `/privacidad` §4 ya lo explica.
+
+### Lo que esta fase no autoriza
+
+Fusionar (portón: CI verde en la cabeza exacta y revisión independiente que lanza el DG) ni encender `NEXT_PUBLIC_CLARITY_ID`, que necesita el OK nominal de Sam en el chat del DG.
 
 ## Criterios de aceptación
 

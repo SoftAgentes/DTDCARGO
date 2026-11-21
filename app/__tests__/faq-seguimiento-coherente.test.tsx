@@ -142,7 +142,9 @@ describe("fuentes estáticas alineadas y privacidad", () => {
     // SDD-0587: la fecha se movió al nombrar Instagram entre los canales de chat y en la fila de Meta.
     // SDD-0606/0608: y otra vez el 2026-11-06, con la mensajería interna del equipo que aprobó Sam.
     // SDD-0586 (T4): y el 2026-11-08, con el chat de Soporte del portal (T2 y T3, aprobados por Sam).
-    expect(plano(container.textContent)).toContain("8 de noviembre de 2026");
+    // SDD-0684 fase 2: y el 2026-11-20, con Microsoft Clarity (texto aprobado por Sam). La fecha
+    // definitiva la confirma el DG antes de fusionar: es el día en que se publique.
+    expect(plano(container.textContent)).toContain("20 de noviembre de 2026");
   });
 
   // SDD-0587, 2026-11-05: lo que lee la persona, ya renderizado. Texto aprobado por Sam.
