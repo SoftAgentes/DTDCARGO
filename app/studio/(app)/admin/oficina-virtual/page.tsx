@@ -19,7 +19,7 @@ import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/Tarjet
 import { TarjetaCierre } from "./_components/TarjetaCierre";
 import { registrarCierreAction, revisarBorradorAction } from "./actions";
 
-export const metadata = { title: "Oficina_Virtual · revisión · DTD Studio" };
+export const metadata = { title: "Oficina_Virtual · revisión" };
 export const dynamic = "force-dynamic";
 
 const AVISOS: Record<string, string> = {

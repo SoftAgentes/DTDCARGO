@@ -15,7 +15,7 @@ import {
 } from "@/lib/studio/dispatch-queries";
 import { DispatchDashboardClient } from "./_components/DispatchDashboardClient";
 
-export const metadata = { title: "Dashboard Despacho · DTD Studio" };
+export const metadata = { title: "Dashboard Despacho" };
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 

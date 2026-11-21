@@ -9,7 +9,7 @@ import { NoticiasTabs } from "../../_components/NoticiasTabs";
 import { EditarNoticiaForm } from "../_components/EditarNoticiaForm";
 import { puertaNoticiasAdmin } from "../_gate";
 
-export const metadata = { title: "Corregir noticia · DTD Studio" };
+export const metadata = { title: "Corregir noticia" };
 export const dynamic = "force-dynamic";
 
 export default async function EditarNoticiaPage({ params }: { params: Promise<{ id: string }> }) {

@@ -154,7 +154,7 @@ export function FiscalClient({
           Libros de Ventas y Compras en formato SENIAT, generados según la{" "}
           <strong style={{ color: "var(--ink)" }}>configuración fiscal</strong> de tu
           empresa.{" "}
-          <strong style={{ color: moduleOn ? "var(--success)" : "var(--ink-mute)" }}>
+          <strong style={{ color: moduleOn ? "var(--success)" : "var(--ink-soft)" }}>
             Módulo {moduleOn ? "activo" : "desactivado"}
           </strong>
           {moduleOn && (

@@ -22,7 +22,7 @@ import { getAcceptanceEvidence } from "@/lib/studio/legal/queries";
 import { PrintButton } from "./PrintButton";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Expediente de aceptación · DTD Studio" };
+export const metadata = { title: "Expediente de aceptación" };
 export const dynamic = "force-dynamic";
 
 /** ISO → "dd/mm/aaaa hh:mm:ss (UTC)" — la evidencia se muestra en UTC. */

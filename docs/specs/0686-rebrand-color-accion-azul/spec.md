@@ -710,6 +710,61 @@ La #745 dejó tres familias de `studio.css` pendientes para la fase 3. Sam las d
 
 El contrato de cierre trae un mutante por familia: el marcador activo, la ruta recorrida, «Todo» y la alerta. También comprueba que la alerta tiene icono y nombre accesible, y que su regla no usa `--warning` como color de texto.
 
+### Fase 2 · correcciones de la revisión visual (2026-11-21)
+
+El Director revisó `main` (`d590ea3f3`) con el Studio en local, datos ficticios y capturas en claro y oscuro. Los diez puntos aplican reglas vigentes, sin decisión nueva de Sam. Van en la rama `claude/sdd-0686-revision-visual`.
+
+**Fuera de esta PR, a la espera de Sam:**
+- ~~la banda de bienvenida del Dashboard~~: Sam la decidió (opción A) y va en esta misma PR, en su propio commit (ver la última fila de la tabla);
+- las cifras KPI con color de estado y las barras de las gráficas en `--success`;
+- el logo «DTD» de la barra lateral.
+
+El Portal y la web pública van en sus fases.
+
+**Allowlist (rutas desde la raíz):**
+  - Login (3): `app/studio/studio.css` (`.studio-dark`), `app/studio/(auth)/login/LoginForm.tsx` y `app/studio/(auth)/login/recuperar/RecoveryForm.tsx`
+  - Brillo de fondo (2): `app/studio/tokens.css` (`--grad-page` de los dos temas) y `app/studio/(app)/_components/StudioSidebar.tsx`
+  - Primitiva (1): `app/studio/_components/ui/EmptyState.tsx`
+  - Roles (1): `lib/studio/user-types.ts`
+  - Pantallas (5): `app/studio/(app)/reportes/_components/charts.tsx`, `app/studio/(app)/clientes/_components/ClientsClient.tsx`, `app/studio/(app)/fiscal/_components/FiscalClient.tsx`, `app/studio/(app)/cn/_components/LangToggle.tsx` y `app/studio/(app)/layout.tsx`
+  - Títulos de pestaña (44): los `page.tsx` de `app/studio` cuyo `metadata.title` terminaba en «· DTD Studio» o «— DTD Studio»
+- **Además:**
+  - el contrato nuevo `app/studio/_components/__tests__/revision-visual-0686-contract.test.ts`;
+  - los contratos del grupo 1 y de cierre, de los que sale `EmptyState`;
+  - esta spec y el handoff.
+
+**Qué cambia, punto por punto**
+
+| # | Pantalla y archivo | Antes | Después | Contraste (claro / oscuro) | Qué lo dice sin el color |
+|---|---|---|---|---|---|
+| 1 | Login y recuperación, fondo de la página (`.studio-dark`) | `--studio-ink` (= `--ink`), que en oscuro es claro: beige alrededor de la tarjeta | `--bg-sidebar`, navy en los dos temas | La tarjeta `#16264A` es fija | No aplica: es fondo |
+| 2 | Login, «Recupérala acá» y «Volver» de recuperación | `#C2747F` (vino suave), sin subrayado | `--accion-soft` (azul para superficies siempre oscuras), subrayado | 6,32:1 sobre la tarjeta | El subrayado y el texto del enlace |
+| 2 | Login, botón de mostrar la contraseña | Vino suave al activarse; inactivo, blanco al 45 % | `--accion-soft` al activarse; inactivo, blanco al 60 % | 6,32 y 6,26:1 | Su nombre accesible y el texto del botón |
+| 2 | Login, «Studio» del título y «acceso» de recuperación | Vino suave | El color del título (blanco) | 14,9:1 | No aplica |
+| 2 | Login y recuperación, pie de texto | Blanco al 45 %: 4,17:1 | Blanco al 60 % | 6,26:1 | No aplica |
+| 3 | Fondo de página (`--grad-page`) y menú lateral | Brillo rojo (`rgba(158,21,34,.09)` en claro, `rgba(168,50,62,.28)` en oscuro y en el menú) | Azul de acción tenue: `rgba(31,79,168,.05)` en claro, `rgba(127,170,240,.10)` en oscuro y `.12` en el menú | Ambiente, sin texto encima | No aplica: es decoración |
+| 4 | `EmptyState`, eyebrow | Texto `--wine-text` sin guión | Patrón `.studio-eyebrow`: guión de identidad (`--studio-wine-soft`) y texto `--ink-soft` | 5,33 / 6,86 sobre `--bg-surface` | El texto mismo |
+| 5 | Usuarios → Roles y permisos (`roleBadgeTone`) | Marketing con la X de peligro, Operaciones con el triángulo ámbar, Comercial `info` y Contabilidad `success` | Todos `neutral`: sin icono de estado | Texto `--ink` del Badge | El nombre del rol. Un rol es una categoría, no un estado |
+| 6 | Reportes, «Embarques y CBM por mes» (`charts.tsx`) | `viewBox` hasta H+36, con la leyenda de H+30 a H+40: cortada | `viewBox` hasta H+48 | No cambia | La leyenda completa |
+| 7 | Clientes, listado (`ClientsClient.tsx`) | Columnas `1.5fr` y `1.2fr`: su mínimo es el contenido, y una nota larga empujaba el resto | `minmax(0, 1.5fr)` y `minmax(0, 1.2fr)`; la nota ya tenía elipsis | No cambia | La elipsis |
+| 8 | Fiscal, «Módulo desactivado» | `--ink-mute`: 2,66:1 | `--ink-soft` | 5,11 / 8,45 sobre `--bg-base` | La palabra «desactivado» frente a «activo» en `--success` |
+| 8 | Almacén CN, selector CN/ES (`LangToggle.tsx`) | Sigla inactiva en `--ink-mute`: 2,44:1 sobre `--bg-elevated` | `--ink-soft` | 4,68 / 6,00 sobre `--bg-elevated` | `aria-pressed`, el fondo de la opción activa y su peso 700 |
+| 9 | Títulos de pestaña | 44 rutas con «· DTD Studio» en `metadata.title`, y la plantilla de `app/studio/layout.tsx` lo volvía a agregar | Sin el sufijo; lo pone solo la plantilla | No aplica | No aplica |
+| 10 | Contenido del Studio (`(app)/layout.tsx`) | El botón flotante (44 px, a 24 px del borde) tapaba lo último de la pantalla | Margen inferior del contenido de `var(--s-6)` + 68 px | No aplica | No aplica |
+| 11 | Dashboard, banda de bienvenida (`dashboard/page.tsx`, `tokens.css`). Decisión de Sam: «Banda del Dashboard: opción A, navy de marca con guion vino» | `--grad-wine-panel`: degradado vino, con sombra vino | `--grad-bienvenida`, navy de marca: en claro, `#0F1E3D` hacia `#1F3A6B`; en oscuro, `--bg-surface` hacia `--bg-elevated`, con borde sutil `--bienvenida-borde` (blanco al 10 %). Sombra navy. El vino queda solo en el guión del eyebrow; la marca de agua del isotipo sigue a .08 | Título blanco: 11,20 a 16,49 en claro y 13,03 a 14,89 en oscuro. Subtítulo y eyebrow `--ink-side`: 8,57 a 12,15 en claro y 10,44 a 11,81 en oscuro. Guión vino, como forma: 3,25 a 4,79 en claro y 3,78 a 4,32 en oscuro | El saludo, la fecha y el nombre de la empresa en el texto. No hay rojo de peligro en ningún tema. `--grad-wine-panel` sale del Studio: era su único consumidor. El de la web pública (`app/globals.css`) es otro token y no se toca |
+
+**Contrato nuevo (`revision-visual-0686-contract.test.ts`):** comprueba
+- el navy fijo del login;
+- que el login y la recuperación no usen el vino suave ni el pie al 45 %;
+- que el brillo de fondo no sea rojo;
+- que ningún rol tenga tono de estado;
+- que ningún título repita el sufijo;
+- que la leyenda quepa en el lienzo.
+
+El contrato de cierre comprueba además que `EmptyState` no tiene vino y usa `.studio-eyebrow`.
+
+**Pendiente anotado (otra pasada):** quedan 115 usos de `color: var(--ink-mute)` como texto en línea, en 66 archivos de `app/studio`. `--ink-mute` da 2,44 a 2,78:1 en claro, debajo del 4,5:1 del texto. El Director contó 97; esta cuenta incluye además los placeholders y los rótulos de un carácter. Se reproduce con `git grep -cE "color: ?[\"']?var\(--ink-mute" -- app/studio ':!**/*.test.*'`. Se revisan uno por uno: los que son texto que se lee pasan a `--ink-soft`; los que son decoración o un estado deshabilitado se anotan.
+
 ### Cifras KPI en tinta y estado aparte (2026-11-21)
 
 Decisión de Sam: «Cifras KPI: opción A, cifra en tinta y estado con punto y texto». Va en la rama `claude/sdd-0686-kpi-tinta`, desde `main`, después de la #747.

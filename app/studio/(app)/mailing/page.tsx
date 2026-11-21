@@ -34,7 +34,7 @@ import type {
 } from "./_components/mailing-types";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Mailing · DTD Studio" };
+export const metadata = { title: "Mailing" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined };

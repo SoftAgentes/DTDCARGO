@@ -29,7 +29,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { NoticiasWebClient } from "./_components/NoticiasWebClient";
 import { NoticiasTabs } from "./_components/NoticiasTabs";
 
-export const metadata = { title: "Noticias Web · DTD Studio" };
+export const metadata = { title: "Noticias Web" };
 export const dynamic = "force-dynamic";
 
 export default async function NoticiasWebPage() {

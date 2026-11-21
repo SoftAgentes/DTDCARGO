@@ -7,7 +7,7 @@
  *
  * El cierre de la fase recorre todo `app/studio` con el mismo detector y
  * admite solo el vino de la lista, cada uno con su motivo: identidad de
- * documentos y superficies de marca, el eyebrow de `EmptyState` y el tono
+ * documentos y superficies de marca, y el tono
  * retirado de `Badge`, que el móvil usa hasta la fase 3. `Avatar` ya no tiene
  * vino: su valor por defecto es `neutral` (decisión de Sam). Quedan fuera:
  * - `tokens.css`, que define los tokens (fases 1 y 3). `studio.css` sí entra:
@@ -78,10 +78,6 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 26,
     motivo: "diploma impreso: documento de marca (regla 8); se revisa con los PDF en la fase 4",
   },
-  "app/studio/(app)/dashboard/page.tsx": {
-    cuenta: 1,
-    motivo: "panel de bienvenida con el isotipo (BD-034): superficie de marca",
-  },
   "app/studio/(app)/fiscal/_components/FiscalClient.tsx": {
     cuenta: 1,
     motivo: "encabezado impreso del libro fiscal (regla 8)",
@@ -109,10 +105,6 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
   "app/studio/studio.css": {
     cuenta: 1,
     motivo: "alias --studio-wine-soft del guión del eyebrow (identidad). Tracking en vivo, la matriz de permisos y la alerta de pestaña ya no tienen vino (decisión de Sam)",
-  },
-  "app/studio/_components/ui/EmptyState.tsx": {
-    cuenta: 1,
-    motivo: "eyebrow del estado vacío: identidad (spec, grupo 1)",
   },
   "app/studio/_components/ui/Badge.tsx": {
     cuenta: 1,
@@ -229,6 +221,12 @@ describe("SDD-0686 · cierre de la fase 2: todo app/studio", () => {
     expect(permitida(".pantalla-x, .studio-tracking-ops-falso", lista)).toBe(false);
     expect(lista[0].selector.test(".pantalla-x, .studio-tracking-ops-falso")).toBe(true);
     expect(permitida(".studio-tracking-ops-a, .studio-tracking-ops-b", lista)).toBe(true);
+  });
+
+  it("EmptyState usa el patrón de eyebrow: guión de identidad y texto neutro", () => {
+    const fuente = leer(join(RAIZ, "app/studio/_components/ui/EmptyState.tsx"));
+    expect(cuentaVino(fuente)).toBe(0);
+    expect(fuente).toContain('<span className="studio-eyebrow">{eyebrow}</span>');
   });
 
   it("el detector ve eyebrow-wine y data-tono=\"vino\"", () => {

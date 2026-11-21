@@ -48,7 +48,7 @@ import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { PrintButton } from "./PrintButton";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Recibo de cobranza · DTD Studio" };
+export const metadata = { title: "Recibo de cobranza" };
 export const dynamic = "force-dynamic";
 
 const FIELD_LABEL: React.CSSProperties = {

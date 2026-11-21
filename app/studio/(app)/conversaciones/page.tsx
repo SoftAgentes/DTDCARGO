@@ -20,7 +20,7 @@ import { trabaPortal } from "@/lib/studio/chatwoot/portal-solo-lectura";
 import { ConversacionesClient } from "./_components/ConversacionesClient";
 import { GenerateDigestsPanel } from "./_components/GenerateDigestsPanel";
 
-export const metadata = { title: "Conversaciones · DTD Studio" };
+export const metadata = { title: "Conversaciones" };
 
 export default async function ConversacionesPage({
   searchParams,

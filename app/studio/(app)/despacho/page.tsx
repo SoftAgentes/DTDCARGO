@@ -19,7 +19,7 @@ import { rankPackagesByScore } from "@/lib/studio/dispatch-scoring";
 import { parseDispatchFilters } from "@/lib/studio/dispatch-types";
 import { DispatchClient } from "./_components/DispatchClient";
 
-export const metadata = { title: "Despacho · DTD Studio" };
+export const metadata = { title: "Despacho" };
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 

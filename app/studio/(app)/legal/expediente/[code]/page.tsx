@@ -36,7 +36,7 @@ import { canSpecial } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { PrintButton } from "./PrintButton";
 
-export const metadata = { title: "Expediente de defensa · DTD Studio" };
+export const metadata = { title: "Expediente de defensa" };
 export const dynamic = "force-dynamic";
 
 /** ISO → "dd/mm/aaaa hh:mm:ss (UTC)" — la evidencia se muestra en UTC. */

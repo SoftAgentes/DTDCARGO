@@ -185,7 +185,7 @@ describe("SDD-0686 fase 2 · lib/studio no devuelve el tono \"wine\"", () => {
   it("mutante: volver a dar \"wine\" al rol admin rompe el contrato", () => {
     const archivos = fuentesLib().map((a) =>
       a.ruta === "lib/studio/user-types.ts"
-        ? { ...a, texto: a.texto.replace('if (r === "admin") return "neutral";', 'if (r === "admin") return "wine";') }
+        ? { ...a, texto: a.texto.replace('  admin: "neutral",', '  admin: "wine",') }
         : a,
     );
     expect(vinoPorValor(archivos)).toEqual(["lib/studio/user-types.ts"]);

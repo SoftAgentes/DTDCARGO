@@ -19,7 +19,7 @@ import {
 } from "@/lib/studio/inspecciones/photos";
 import { InspeccionesClient } from "./_components/InspeccionesClient";
 
-export const metadata = { title: "Inspecciones de calidad · DTD Studio" };
+export const metadata = { title: "Inspecciones de calidad" };
 
 export default async function InspeccionesPage() {
   const role = await requireModuleView("inspecciones");

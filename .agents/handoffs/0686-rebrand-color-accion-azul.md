@@ -69,6 +69,17 @@ Estado del 2026-11-20, tarde:
      - el detector ve `eyebrow-wine` y `data-tono="vino"`;
      - Menciones sin leer en `--ink`.
    - ~~Pendientes para la fase 3~~ Sam decidió las tres familias el mismo día («Apruebo las tres»). Van en `claude/sdd-0686-pendientes-studio-css`, apilada sobre la #745: Tracking en tinta y acción, «Todo» en tinta sólida, «Cambiado» en acción y la alerta de proveedores como pastilla ámbar con icono. `studio.css` queda con 1 uso (el alias del eyebrow).
+9. Revisión visual de `main` (`d590ea3f3`), 2026-11-21, rama `claude/sdd-0686-revision-visual`:
+   - login con navy fijo y enlaces en `--accion-soft`;
+   - brillo de fondo azul tenue;
+   - `EmptyState` con el patrón de eyebrow;
+   - roles en neutro;
+   - leyenda de la gráfica y columnas de clientes;
+   - «Módulo desactivado» y el selector CN/ES en `--ink-soft`;
+   - 44 títulos sin sufijo doble;
+   - margen para el botón flotante.
+
+   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). Esperan a Sam: el logo de la barra (las cifras KPI se decidieron después: ver 10). Pendiente: 115 usos de `--ink-mute` como texto.
 10. Cifras KPI en tinta (Sam, opción A), 2026-11-21, rama `claude/sdd-0686-kpi-tinta`:
    - `KpiCard` sin `valueColor` y con `status`;
    - las 81 cifras semánticas, a tinta con su estado aparte;
