@@ -61,7 +61,7 @@ export function HeaderRow({
 // ── Barra de progreso (reusable) ───────────────────────────────
 export function Progress({
   value, // 0..100
-  tone = "var(--wine)",
+  tone = "var(--ink)",
   height = 8,
 }: {
   value: number;
@@ -155,7 +155,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
               y={H - h}
               width={bw * 0.52}
               height={Math.max(0, h)}
-              fill="var(--wine)"
+              fill="var(--ink)"
               rx="2"
             />
             <text
@@ -174,7 +174,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
       })}
 
       {/* línea de CBM */}
-      <path d={cbmPath} fill="none" stroke="var(--wine-soft)" strokeWidth="2" />
+      <path d={cbmPath} fill="none" stroke="var(--ink-soft)" strokeWidth="2" />
       {points.map((p, i) => {
         const x = pad + i * bw + bw / 2;
         const y = H - (p.cbm / maxCbm) * plotH;
@@ -184,14 +184,14 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
             cx={x}
             cy={y}
             r="2.5"
-            fill="var(--wine-soft)"
+            fill="var(--ink-soft)"
           />
         );
       })}
 
       {/* leyenda */}
       <g transform={`translate(${pad}, ${H + 30})`}>
-        <rect width="10" height="10" fill="var(--wine)" rx="1" />
+        <rect width="10" height="10" fill="var(--ink)" rx="1" />
         <text
           x="16"
           y="9"
@@ -202,7 +202,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
         >
           Embarques
         </text>
-        <line x1="120" x2="134" y1="5" y2="5" stroke="var(--wine-soft)" strokeWidth="2" />
+        <line x1="120" x2="134" y1="5" y2="5" stroke="var(--ink-soft)" strokeWidth="2" />
         <text
           x="140"
           y="9"

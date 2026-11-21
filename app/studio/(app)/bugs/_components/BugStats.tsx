@@ -28,7 +28,6 @@ const TONE_BG: Record<string, string> = {
   warning: "var(--warning-bg, #FBF1DF)",
   danger: "var(--danger-bg, #FCEDED)",
   info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--wine-tint, #FBE9EC)",
   neutral: "var(--neutral-bg, #F2F0EC)",
 };
 
@@ -37,7 +36,6 @@ const TONE_FG: Record<string, string> = {
   warning: "var(--warning, #B8893A)",
   danger: "var(--danger, #A8323E)",
   info: "var(--info, #2A6FDB)",
-  wine: "var(--wine, #7F0F1A)",
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
@@ -222,7 +220,7 @@ export function BugStats({ kpis, bugs }: Props) {
                     justifyContent: "space-between",
                     alignItems: "center",
                     padding: "8px 12px",
-                    background: i === 0 ? "var(--wine-tint, #FBE9EC)" : "var(--bg-elevated, #F2F0EC)",
+                    background: i === 0 ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated, #F2F0EC)",
                     borderRadius: 6,
                   }}
                 >
@@ -242,7 +240,7 @@ export function BugStats({ kpis, bugs }: Props) {
                     style={{
                       fontFamily: "var(--font-archivo-black, 'Archivo Black')",
                       fontSize: 14,
-                      color: i === 0 ? "var(--wine, #7F0F1A)" : "var(--ink)",
+                      color: "var(--ink)",
                     }}
                   >
                     {count}

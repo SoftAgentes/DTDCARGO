@@ -75,7 +75,7 @@ export function FinanceHealthCard({ health }: { health: FinanceHealth }) {
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--wine-text)",
+          color: "var(--ink-soft)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: "var(--s-3)",

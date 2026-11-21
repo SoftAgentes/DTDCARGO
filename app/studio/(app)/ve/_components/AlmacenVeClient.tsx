@@ -247,7 +247,7 @@ function VeRow({
       <code
         style={{
           font: "800 11.5px/1 var(--f-mono)",
-          color: "var(--wine-text)",
+          color: "var(--ink)",
           letterSpacing: "0.02em",
         }}
       >
@@ -271,7 +271,7 @@ function VeRow({
           <code
             style={{
               font: "700 11px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {row.client_markbox}
@@ -324,7 +324,7 @@ function VeRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.volume_m3 != null ? "var(--wine)" : "var(--ink-mute)",
+          color: row.volume_m3 != null ? "var(--ink)" : "var(--ink-mute)",
           textAlign: "right",
         }}
       >

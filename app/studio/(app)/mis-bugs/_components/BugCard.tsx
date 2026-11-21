@@ -53,7 +53,7 @@ export function BugCard({ bug }: BugCardProps) {
               fontFamily: "var(--font-mono, 'JetBrains Mono')",
               fontWeight: 700,
               fontSize: 13,
-              color: "var(--wine, #7F0F1A)",
+              color: "var(--ink)",
             }}
           >
             {bug.folio}
@@ -155,7 +155,7 @@ export function BugCard({ bug }: BugCardProps) {
                   ? "var(--success, #1F8A5B)"
                   : bug.state === "descartado"
                     ? "var(--ink-soft, #6B6B6B)"
-                    : "var(--wine, #7F0F1A)",
+                    : "var(--ink)",
               transition: "width var(--dur, 180ms) var(--ease, ease-out)",
             }}
           />
@@ -210,7 +210,6 @@ const TONE_COLORS: Record<string, { bg: string; fg: string }> = {
   warning: { bg: "var(--warning-bg, #FBF1DF)", fg: "var(--warning, #B8893A)" },
   danger: { bg: "var(--danger-bg, #FCEDED)", fg: "var(--danger, #A8323E)" },
   info: { bg: "var(--info-bg, #E5EEF9)", fg: "var(--info, #2A6FDB)" },
-  wine: { bg: "var(--wine-tint, #FBE9EC)", fg: "var(--wine, #7F0F1A)" },
   neutral: { bg: "var(--neutral-bg, #F2F0EC)", fg: "var(--ink-soft, #6B6B6B)" },
 };
 

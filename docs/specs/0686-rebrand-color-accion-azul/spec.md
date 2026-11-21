@@ -459,6 +459,54 @@ El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carp
 
 El vino de identidad que ya está permitido (diploma, informe de inspección, firma de correo, Guía y libros fiscales impresos) y la acción de noticias-web, que espera la fase 3, no cuentan como pendientes.
 
+### Fase 2 · grupo 6 · reportes y dirección: allowlist y reparto (2026-11-21)
+
+Sigue el orden que dejó el grupo 5, al fusionarse la #741 (`d81f7c504`), en la rama `claude/sdd-0686-fase2-g6`. Los módulos son reportes, dirección, bugs, mis-bugs, costing, legal y ve: 112 usos en 27 archivos. Rigen las mismas condiciones del grupo 5: identidad, lo que se guarda, el contraste en los dos temas, los bloques `data-theme` y qué lo dice sin el color.
+
+- **Identidad:** queda el encabezado impreso «DTD Cargo · Constructor de reportes» (`.rpt-eyebrow` en `BuilderView.tsx`), igual que los libros fiscales del grupo 4 (regla 8).
+- **Lo que se guarda:** en estas carpetas, `localStorage` guarda los filtros del panel de bugs y las combinaciones del constructor de reportes. Ningún tono ni color.
+- **`data-theme`:** no hay bloques fijos. Las tiras navy (la proyección de costos, la cabecera del editor de costos y el encabezado de legal) usan `--ink-side*` y `--color-status-danger-on-dark`, que no se invierten con el tema.
+
+**Allowlist (rutas desde `app/studio/`):**
+  - `(app)/bugs` (5): `_components/BugDrawer.tsx`, `_components/BugKanban.tsx`, `_components/BugStats.tsx`, `_components/BugTable.tsx`, `page.tsx`
+  - `(app)/costing` (2): `_components/CostEditorDrawer.tsx`, `_components/CostingClient.tsx`
+  - `(app)/direccion` (8): `_components/AlertsCard.tsx`, `_components/CommercialCard.tsx`, `_components/FinanceHealthCard.tsx`, `_components/ForecastCard.tsx`, `_components/MiniStat.tsx`, `_components/OpsCard.tsx`, `_components/SinFacturarCard.tsx`, `page.tsx`
+  - `(app)/legal` (3): `_components/LegalClient.tsx`, `evidencia/[code]/page.tsx`, `expediente/[code]/page.tsx`
+  - `(app)/mis-bugs` (1): `_components/BugCard.tsx`
+  - `(app)/reportes` (4): `_components/BuilderView.tsx`, `_components/ReportesClient.tsx`, `_components/charts.tsx`, `page.tsx`
+  - `(app)/ve` (4): `_components/AlmacenVeClient.tsx`, `_components/VeKpis.tsx`, `_components/VeRowActions.tsx`, `page.tsx`
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g6-contract.test.ts`, esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Costing (`CostEditorDrawer.tsx:120`, `CostingClient.tsx:1258`) | Margen negativo, en la tira navy (positivo en `--success`) | `--color-status-danger-on-dark`: 7,46:1 en claro y 8,78:1 en oscuro sobre `--bg-sidebar` | El signo (`-$`) y el porcentaje. Un margen negativo es pérdida, así que va en peligro |
+| Reportes, recompra (`ReportesClient.tsx:1200`) | KPI «En ventana · contactar ya» (vencidos en `--danger`, en curso en `--success`) | `--warning`: 3,14:1 en claro y 7,15:1 en oscuro sobre `--bg-surface`. Alcanza porque es texto grande: la cifra del KPI (`KpiCard.tsx:92`) va en peso 900 a `--kpi-fs`, que mide 30 px en densidad normal y 24 px en compacta (`tokens.css:186` y `:477`), y el umbral es 18,66 px en negrita. No existe `--warning-text`; si la cifra bajara de 18,66 px, haría falta un tono de 4,5:1 | La etiqueta «En ventana» y «contactar ya» |
+| Reportes, recompra (`ReportesClient.tsx:1248`) | Días desde la última compra, cuando no está vencida | `--ink` | El Badge «Ventana» o «Vencida» al lado. Lo vencido sigue en `--danger` |
+| Reportes, IVA (`ReportesClient.tsx:1642`) | «IVA a pagar» (el excedente a favor, en `--success`) | `--ink` | La etiqueta «IVA a pagar» y «luego de retenciones». Es un monto que se debe, no un vencido |
+| Reportes, meta (`ReportesClient.tsx:1309`, `:1315`) | Avance contra la meta por debajo de 100 % | `--ink` | El porcentaje y «N vs meta CBM/mes». Al 100 %, `--success` |
+| Reportes, margen por ruta (`ReportesClient.tsx:2151`) | Barra de margen positivo (negativo en `--danger`) | `--ink` | La cifra al lado |
+| Reportes, margen bruto (`ReportesClient.tsx:1931`) | KPI «Margen bruto», siempre en vino | `--ink` | El signo y el porcentaje de margen. El vino no cambiaba con el signo |
+| Reportes, gráficas (`charts.tsx`, `ReportesClient.tsx:685` a `:1855`, `BuilderView.tsx:491`) | Barras, líneas, donut y barra «facturado» (cobrado en `--success`) | Tinta: barras en `--ink`, línea de CBM en `--ink-soft`; en el donut y en las barras del constructor, tinta en grados (70 %, 45 % y 22 % sobre la superficie) | La leyenda de cada serie y las cifras. Regla de Sam: cifras y gráficas en tinta |
+| Dirección, proyección (`ForecastCard.tsx:100`) | Semana en curso en vino; las siguientes en vino claro | `--ink` para la semana en curso y tinta al 45 % para las siguientes | La etiqueta de la semana y el monto |
+| Dirección, operaciones (`OpsCard.tsx:18`) | Cut-off de la naviera a más de 3 días (a 3 o menos, `--danger`) | `neutral` | Los días que faltan |
+| Legal (`LegalClient.tsx:403`, `:410`) | Versión vigente del documento | Selección en tinta | El Badge «Vigente» de la fila |
+| VE (`VeKpis.tsx:47`) | «DDP en camino» cuando hay repartos | `--ink` | El texto «DDP en camino al cliente» o «Ningún reparto activo» |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | Enlaces («Ver embarques sin facturar →», CRM, tesorería, naviera, el reporte sin facturar); bordes al pasar el ratón en el kanban de bugs, en las acciones de VE y en editar costos |
+| Tinta (selección) | El modo activo de reportes (fondo de tinta y texto `--ink-inv`), el primer lugar de las estadísticas de bugs y la columna ordenada |
+| Tinta (datos) | Folios, códigos de embarque, de envío y de acuse, Shipping Mark sin destino propio (regla 6), CBM, totales y KPI |
+| Neutro | Rótulos en mayúscula, la flecha de la ruta, avatares de asesores (sin `wine`), mensajes del administrador en bugs (`--neutral-bg` con borde de tinta), la marca «abierto», el ícono del encabezado de legal sobre navy (`--ink-side-strong` en un fondo translúcido) y los chips de código |
+
+Los mapas de tono locales de bugs y mis-bugs pierden la clave `wine`. Son `Record<string, …>`, y el tono «sugerencia» ya llega como `neutral` desde `lib/studio/bug-types.ts` (grupo 3).
+
+El contrato del grupo 6 congela la única cuenta de identidad, mide al menos 40 archivos y trae dos mutantes: el margen negativo y la barra de las gráficas.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

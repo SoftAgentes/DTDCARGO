@@ -193,7 +193,7 @@ export default async function EvidencePrintPage({
             <div
               style={{
                 font: "800 18px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 marginTop: 3,
               }}
             >

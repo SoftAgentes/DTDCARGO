@@ -79,7 +79,6 @@ const TONE_BG_MAP: Record<string, string> = {
   warning: "var(--warning-bg, #FBF1DF)",
   danger: "var(--danger-bg, #FCEDED)",
   info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--wine-tint, #FBE9EC)",
   neutral: "var(--neutral-bg, #F2F0EC)",
 };
 
@@ -88,7 +87,6 @@ const TONE_FG_MAP: Record<string, string> = {
   warning: "var(--warning, #B8893A)",
   danger: "var(--danger, #A8323E)",
   info: "var(--info, #2A6FDB)",
-  wine: "var(--wine, #7F0F1A)",
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
@@ -197,7 +195,7 @@ function KanbanCard({
         transition: "border-color var(--dur, 180ms) var(--ease, ease-out)",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--wine, #7F0F1A)";
+        e.currentTarget.style.borderColor = "var(--accion)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = "var(--border, #E8E6E2)";
@@ -216,7 +214,7 @@ function KanbanCard({
             fontFamily: "var(--font-mono, 'JetBrains Mono')",
             fontWeight: 700,
             fontSize: 11,
-            color: "var(--wine, #7F0F1A)",
+            color: "var(--ink)",
           }}
         >
           {bug.folio}
