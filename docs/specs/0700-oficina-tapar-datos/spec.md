@@ -71,12 +71,12 @@ cable) y la corrige ahí:
 
 | Cambio | Ejemplos (inventados) |
 |---|---|
-| Cédula entera detrás de «cédula», «C.I.», «CI:», «cédula es», «N°», con o sin puntos | «cédula 12.345.678», «CI: 12.345.678» |
+| Cédula entera detrás de «cédula», «C.I.», «CI:», «cédula es», «N°», con puntos o espacios de miles | «cédula 12.345.678», «CI 12 345 678», «V 12 345 678» |
 | RIF de 7 dígitos y con puntos | «J-1234567-8», «J-12.345.678-9» |
 | Fijos de Venezuela (02xx), con o sin paréntesis | «(0212) 555 01 01», «0241-555-0101» |
 | Borde al inicio de los números: nada pegado a una letra o a otro dígito | «YT2412345678901», «SF1412345678901» no se tocan |
 | Móvil sin el 0 ni el 58, solo si va separado | «414-555-1234» sí; «guía 4141234567» no |
-| Más palabras de calle: sector, barrio, quinta, manzana, parcela, «av» sin punto; «casa 12», «Casa N.º 14», «torre B» | «Sector El Paraíso, casa 12» |
+| Más palabras de calle: sector, barrio, quinta, manzana, parcela, «av» sin punto; «casa 12», «Casa N.º 14», «torre B» (una vocal sola solo antes de un signo, del final o de «piso», «apto»…) | «Sector El Paraíso, casa 12», «torre A, piso 4» |
 
 Una prueba fija que la regla de noticias sigue igual y que lo que ella ve lo ve también el cable, salvo los números
 pegados a otro texto, que el cable deja pasar a propósito (`tapar-datos.test.ts`, «la regla de noticias no cambió»).
@@ -150,6 +150,8 @@ mira el texto sin tapar, en memoria, como antes.
   una dirección, llegan tapados: «apto 4B de mi tía, pagué 120,50 USD» sale entero como «[dirección]», y «Edificio
   del almacén, 3 cajas de 25 kg» también. El dinero se mira antes, sobre el texto sin tapar. El agente escala si le
   falta un dato, y Sam aprueba cada borrador.
+- **«torre» con una vocal seguida de otra palabra** («torre E de la zona industrial») no se tapa por sí sola: así no se
+  tapa «la torre a la que va». Si la frase trae «piso», «apto» o un número cerca, se tapa por esa vía.
 - **Un fijo pegado a texto o sin el 0** (por ejemplo «212-555-0101») no se tapa: con el borde al inicio, se prefirió
   no tocar las guías.
 - **El detector del cable y el de noticias ya no son iguales.** El de la Oficina_Virtual ve más formatos de Venezuela y
@@ -162,6 +164,10 @@ mira el texto sin tapar, en memoria, como antes.
 - **v0.2 (21/11/2026).** Por la revisión de la #755 (CHANGES_REQUESTED): lista propia de la Oficina_Virtual (B1, B2,
   M1 a M3, L3), `quedanDatos` mira la cola de un número tapado a medias, código `marcador` (L2) y las pruebas de todos
   los casos (M4). `control.ts` vuelve a quedar como en `main`. L1 queda declarado en §5.
+- **v0.3 (21/11/2026).** Por la segunda revisión (sobre `2005f6c56`): M5, la cédula con espacios de miles («cédula 12 345
+  678», «V 12 345 678», «CI 12 345 678») se tapa entera en las tres expresiones de cédula. El espacio no entra en la cola
+  de `quedanDatos` («[teléfono] 3 cajas» no escala). L4: «la torre a la que va» ya no se tapa; «torre A» sí, antes de un
+  signo, del final o de «piso», «apto»…
 
 ## 7. Pendiente del punto (a)
 

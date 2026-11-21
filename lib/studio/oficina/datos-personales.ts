@@ -39,8 +39,8 @@ export const PALABRAS_DE_CALLE = new RegExp(`\\b(?:${CALLE}|casa|torre)(?![a-z])
 
 /** Ni una letra ni un dígito justo antes: un número pegado a otro texto es una guía o un código, no un dato. */
 const BORDE = "(?<![a-z0-9])";
-/** Una cédula de 6 a 9 dígitos, con o sin puntos de miles. */
-const NUMERO_CEDULA = "(?:\\d{1,3}(?:\\.\\d{3}){1,2}|\\d{6,9})(?![0-9])";
+/** Una cédula de 6 a 9 dígitos, con o sin separador de miles (punto o espacio: 12.345.678, 12 345 678). */
+const NUMERO_CEDULA = "(?:\\d{1,3}(?:[.\\s]\\d{3}){1,2}|\\d{6,9})(?![0-9])";
 
 export const PATRONES_DATOS_PERSONALES: ReadonlyArray<{ tipo: TipoDatoPersonal; re: RegExp }> = [
   // Correo.
@@ -60,14 +60,16 @@ export const PATRONES_DATOS_PERSONALES: ReadonlyArray<{ tipo: TipoDatoPersonal; 
   // Internacional con prefijo (la regla de noticias) y agrupado como los móviles de China (+86 138 1234 5678).
   { tipo: "telefono", re: /\+\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}/ },
   { tipo: "telefono", re: /\+\d{1,3}(?:[\s.-]?\d){8,13}(?!\d)/ },
-  // Cédula con letra: V-12.345.678, E 1234567.
-  { tipo: "cedula", re: new RegExp(`${BORDE}[ve][\\s.-]?\\d{1,2}\\.?\\d{3}\\.?\\d{3}(?![0-9])`) },
-  // Cédula con «C.I.» o «CI»: C.I. 12.345.678, CI: 12345678.
+  // Cédula con letra: V-12.345.678, E 1234567, V 12 345 678.
+  { tipo: "cedula", re: new RegExp(`${BORDE}[ve][\\s.-]?\\d{1,2}[.\\s]?\\d{3}[.\\s]?\\d{3}(?![0-9])`) },
+  // Cédula con «C.I.» o «CI»: C.I. 12.345.678, CI: 12345678, CI 12 345 678.
   { tipo: "cedula", re: new RegExp(`\\bc\\.?\\s?i\\.?\\s*:?\\s*(?:n[°o.]*\\s*)?${NUMERO_CEDULA}`) },
-  // Cédula detrás de la palabra, entera: «cédula 12.345.678», «cédula de identidad N° …», «mi cédula es V-…».
+  // Cédula detrás de la palabra, entera: «cédula 12.345.678», «cédula 12 345 678», «cédula de identidad N° …»,
+  // «mi cédula es V-…». El espacio solo cuenta como separador de miles (seguido de tres dígitos y nada más): en
+  // «cédula 12345678 2 cajas» el «2» no es parte del número.
   {
     tipo: "cedula",
-    re: /\bcedula\s*(?:de identidad)?\s*(?:(?:es|n[°o.]?|numero|nro\.?)\s*)*:?\s*(?:[ve][\s.-]?)?\d(?:[.-]?\d)*/,
+    re: /\bcedula\s*(?:de identidad)?\s*(?:(?:es|n[°o.]?|numero|nro\.?)\s*)*:?\s*(?:[ve][\s.-]?)?\d(?:[.-]?\d|\s\d{3}(?!\d))*/,
   },
   // RIF: J-30123456-7, J-1234567-8, J-12.345.678-9. Va después de la cédula: si cubren lo mismo, gana la cédula.
   { tipo: "rif", re: new RegExp(`${BORDE}[jgvep][\\s-]?(?:\\d{7,8}|\\d{1,2}\\.\\d{3}\\.\\d{3})[\\s-]?\\d(?![0-9])`) },
@@ -75,8 +77,12 @@ export const PATRONES_DATOS_PERSONALES: ReadonlyArray<{ tipo: TipoDatoPersonal; 
   { tipo: "direccion", re: new RegExp(`\\b(?:${CALLE})\\s+[^\\n]{0,30}?\\d`) },
   // «casa 12», «Casa N.º 14».
   { tipo: "direccion", re: /\bcasa\s+(?:n[°o.]*\s*)?\d/ },
-  // «torre B», «torre 2».
-  { tipo: "direccion", re: /\btorre\s+(?:[a-z]|\d+)\b/ },
+  // «torre B», «torre 2». Una vocal sola (o «y») solo cuenta al final, antes de un signo o antes de «piso», «apto»…:
+  // «torre A,» y «torre A piso 4» sí; «la torre a la que va» no.
+  {
+    tipo: "direccion",
+    re: /\btorre\s+(?:[b-df-np-tv-xz]\b|[aeouy](?=\s*(?:[,.;:!?)\n]|$)|\s+(?:piso|apto|apartamento|nivel|planta|oficina|ofic|local|\d))|\d+\b)/,
+  },
 ];
 
 /** ¿El texto trae un correo, teléfono, cédula, RIF o dirección? */

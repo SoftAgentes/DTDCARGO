@@ -108,6 +108,14 @@ describe("revisión de la #755", () => {
     ["Vivo en el Sector La Vega, casa 7, Caracas", "Vivo en el [dirección]"],
     ["Residencias Los Pinos, torre B", "[dirección]"],
     ["Av Bolivar casa 3", "[dirección]"],
+    // M5: la cédula con espacios de miles, entera.
+    ["cédula 12 345 678", "[cédula]"],
+    ["mi cédula: V 12 345 678", "mi [cédula]"],
+    ["CI 12 345 678", "[cédula]"],
+    ["soy V 12 345 678, gracias", "soy [cédula], gracias"],
+    // L4: «torre» con una letra o número.
+    ["Residencias Los Pinos, torre A, piso 4", "[dirección]"],
+    ["torre A piso 4", "[dirección]"],
     // L3: RIF de 7 dígitos y con puntos.
     ["J-1234567-8", "[RIF]"],
     ["RIF J-12.345.678-9", "RIF [RIF]"],
@@ -127,6 +135,9 @@ describe("revisión de la #755", () => {
     "MSKU1234567 y 1Z999AA10123456784",
     "Pagué 120,50 USD el 12/11/2026 por 0,25 CBM",
     "F-2026-0001 y DTD-A123",
+    // L4: «torre» seguida de una palabra que empieza con vocal no es una dirección.
+    "la torre a la que va el contenedor",
+    "la torre de control",
   ])("no toca: %s", (t) => {
     expect(taparDatosPersonales(t)).toBe(t);
   });
@@ -136,6 +147,9 @@ describe("revisión de la #755", () => {
     expect(quedanDatos([{ rol: "cliente", texto: "mi [teléfono]-0101" }])).toBe(true);
     // Un número suelto después del marcador no es una cola: «llamé al [teléfono] 3 veces».
     expect(quedanDatos([{ rol: "cliente", texto: "llamé al [teléfono] 3 veces" }])).toBe(false);
+    expect(quedanDatos([{ rol: "cliente", texto: "[teléfono] 3 cajas" }])).toBe(false);
+    // M5: con el espacio de miles la cédula sale entera, y el número que sigue después no se la come.
+    expect(taparDatosPersonales("cédula 12345678 2 cajas")).toBe("[cédula] 2 cajas");
   });
 
   it("L2: un borrador que trae un marcador no se guarda (`marcador`)", () => {

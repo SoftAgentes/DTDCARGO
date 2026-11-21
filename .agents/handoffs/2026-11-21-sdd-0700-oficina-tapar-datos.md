@@ -40,6 +40,15 @@ de SDD-0626. Rama `sdd/0626-tapar-datos-entrada`, desde `origin/main` en `f67daa
 - **M4:** pruebas de todos los casos de la revisión (tapa / no toca), de la cola de un número tapado a medias, del
   código `marcador` y de que la regla de noticias sigue igual. **L1** (tapar de más) queda declarado en la spec §5.
 
+## v0.3 · Segunda revisión (CHANGES_REQUESTED sobre `2005f6c56`)
+
+- **M5:** espacio como separador de miles en las tres expresiones de cédula (`datos-personales.ts`): «cédula 12 345 678»,
+  «mi cédula: V 12 345 678» y «CI 12 345 678» salen enteras como «[cédula]». En la de la palabra, el espacio solo cuenta
+  seguido de tres dígitos (en «cédula 12345678 2 cajas» el «2» queda). `COLA_DE_NUMERO` no cambió: «[teléfono] 3 cajas»
+  no escala.
+- **L4:** «torre» + vocal sola solo cuenta antes de un signo, del final o de «piso», «apto»…; «la torre a la que va» ya no
+  se tapa. El límite que queda está declarado en la spec §5.
+
 ## Lo que NO cambió (a propósito)
 
 Sin migración, sin tocar producción, el `.env` ni la base. La regla de noticias (`control.ts`) igual. El chequeo de dinero sigue sobre
