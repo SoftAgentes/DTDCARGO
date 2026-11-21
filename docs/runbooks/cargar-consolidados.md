@@ -88,6 +88,51 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
   - Adentro queda `pid` con el dueño. Si ese `pid` no se puede escribir (disco lleno, permisos), el guion se niega (3) y suelta el candado: no corre un paso con un candado sin dueño. Al salir, también por una señal (HUP 129, INT 130, TERM 143), el guion solo suelta el candado si sigue siendo suyo; nunca suelta uno ajeno.
   - Si quedó de una corrida muerta, comprueba con `ps -o lstart=,args= -p <pid>` que ese pid no existe o que es otro proceso: compara la hora de inicio y el comando con `aplicar-lote.sh`, porque los pid se reciclan. Recién entonces bórralo a mano (`rm -r`).
 - Un lote generado para prueba se rechaza en `dtd-cargo`, y uno generado para producción se rechaza en un `*-staging`.
+- **Pre-órdenes de un contenedor ya cargado (`--solo-facturas`, SDD-0690).** El paquete tiene **id propio**: el de la carga más `:facturas` (`carga-consolidado:64:6303f821:facturas`). Ese es el id que va en `manifiesto.json`, en cada `.sql`, en el aviso del simulacro y en `AUTORIZACION.txt`. Así:
+  - la guarda de idempotencia no lo confunde con la carga del contenedor, que tiene el id sin sufijo, y un segundo `aplicar` de las pre-órdenes sigue negándose;
+  - un OK de Sam para la carga no sirve para las pre-órdenes, y al revés tampoco: el guion busca el id como palabra entera, así que un OK con `…:facturas` no autoriza el paquete de la carga. El OK nuevo cita el id con `:facturas` y dice «pre-órdenes».
+  - El contenedor y sus envíos se siguen buscando por el id de la carga, que es lo que quedó en sus notas. Por eso se genera con **el mismo Excel** de la carga (y el mismo `--mapa` y `--correlativo-origen`).
+  - El exceso de peso se elige al generar: con `--sin-exceso-peso` las pre-órdenes no llevan esas líneas. Para el 64, Sam eligió sin exceso (2026-11-20), como el 59.
+  - **Las pre-órdenes del 64, para copiar.** Antes de esto tiene que estar aplicada la 0569, y el 64, en `exc0674_contenedores`. Los valores salen de la carga v2 del 2026-11-16 (`DTD-consolidados/64/2026-11-16-produccion-v2`):
+    - `--eta 2026-12-12` y la modalidad `ddp` (que es el valor por defecto) salen de su `manifiesto.json`;
+    - el packing es el mismo: su sha256 empieza con `6303f821`, que es la huella del id;
+    - el rastreo tiene un sha256 que empieza con `e1ebd577`;
+    - el `--mapa` no queda en el manifiesto. Se identificó así: con `marcas-mapa-prod-v2.json`, el `lote_clientes` generado es idéntico al de la v2 (sin contar el nombre), y sin mapa cambia;
+    - `--correlativo-origen 61` hace falta porque el título del packing dice #61, y no cambia el id.
+
+    En la PC, desde un worktree con `node_modules` (no uses `pnpm` en el checkout principal), con una carpeta `--salida` nueva:
+
+    ```bash
+    node_modules/.bin/tsx scripts/consolidados/generar-lote.ts --rastreo "C:\Users\AKX generator\Desktop\DTD-consolidados\DTD RASTREO DE CONTENEDORES 2026-11-13.xlsx" --packing "C:\Users\AKX generator\Desktop\DTD-consolidados\64\64-produccion-v2.xlsx" --contenedor 64 --correlativo-origen 61 --eta 2026-12-12 --modalidad ddp --entorno produccion --solo-facturas --sin-exceso-peso --mapa "C:\Users\AKX generator\Desktop\DTD-consolidados\64\marcas-mapa-prod-v2.json" --salida "C:\Users\AKX generator\Desktop\DTD-consolidados\64\2026-11-20-produccion-solo-facturas"
+    ```
+
+    El id esperado es **`carga-consolidado:64:6303f821:facturas`**, y tiene que salir así en la primera línea del generador y en `manifiesto.json`. Si sale otro, el Excel o los argumentos no son los de la carga: no se sigue.
+
+    El OK de Sam va literal en `AUTORIZACION.txt`, dentro de la carpeta, y tiene que citar el id con `:facturas` y la palabra «pre-órdenes». Por ejemplo, para que Sam lo repita: «Autorizo cargar las pre-órdenes del 64, lote carga-consolidado:64:6303f821:facturas, en producción». Después se sube la carpeta a `/srv/ops/paquetes/lote-64-facturas` y se corren los pasos de a uno, leyendo la evidencia entre paso y paso:
+
+    ```bash
+    scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\64\2026-11-20-produccion-solo-facturas" root@217.216.54.70:/srv/ops/paquetes/lote-64-facturas
+    ```
+
+    En el VPS:
+
+    ```bash
+    /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso previa
+    /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso simulacro
+    /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso aplicar
+    /srv/ops/consolidados/aplicar-lote.sh --proyecto dtd-cargo --confirm dtd-cargo --lote /srv/ops/paquetes/lote-64-facturas --paso verificar
+    ```
+
+    - **`previa`** solo cuenta. Revisa el contenedor cargado con el lote, los envíos y los clientes que resuelven.
+    - **`simulacro`** termina con `NOTICE: solo-facturas lote carga-consolidado:64:6303f821:facturas · contenedor … · S Shipping Marks · N clientes con pre-orden nueva · M saltados (ya tenían factura viva) · K sin líneas` y `ROLLBACK`.
+      - **Sale una pre-orden por cliente:** por el Shipping Mark que tienen los envíos *al correr*, no por la marca del Excel. Si dos marcas del Excel son del mismo dueño, salen en una sola pre-orden. Si los envíos de una marca quedaron con dos dueños (por ejemplo, después de «Pasar a otro cliente»), sale una para cada uno.
+      - Por eso **S = N + M + K = los Shipping Marks vivos de los 111 envíos en ese momento**. No son las 59 marcas del Excel.
+      - Para comparar antes de aplicar está la columna `shipping_marks_vivos` de la `previa`.
+      - Primero se reasignan los envíos del comodín y después se carga. Con la pre-orden ya creada, la 0551 no puede pasar a otro cliente un envío cuya pre-orden también factura otros envíos (`factura_varios_embarques`).
+    - **`aplicar`** se niega sin ese simulacro, y también si ya hay un `aplicar` PASÓ de ese id.
+    - **`verificar`** es PASÓ cuando cada cliente con líneas tiene exactamente una factura viva.
+    - Al terminar, se borra el paquete del servidor, igual que en cualquier lote.
+    - **Emitir no es parte de la carga.** Decisión de Sam (2026-11-20, por el DG), literal: «64: la oficina emite con Facturar todo cuando las revise». Después de `verificar` nadie emite: la oficina revisa las pre-órdenes en Facturación y emite desde Embarques con «Facturar todo».
 - **Idempotente.**
   - Si ya hay un `aplicar` PASÓ del lote en la evidencia de esa base, el segundo `aplicar` se niega (3) sin tocar la base.
   - Sin esa evidencia, el preflight de `aplicar.sql` encuentra el contenedor o los envíos ya cargados, aborta y psql sale con 6 sin escribir nada.

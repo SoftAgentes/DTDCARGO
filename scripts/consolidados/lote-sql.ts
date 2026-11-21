@@ -43,6 +43,12 @@ export interface OpcionesSql {
    * registrado en el manifiesto; no cambia el SQL.
    */
   correlativoOrigen?: number;
+  /**
+   * SDD-0690 · `--solo-facturas`: el contenedor ya está cargado (el 64 se cargó con
+   * `--sin-facturas`). aplicar.sql y simulacro.sql escriben sólo las pre-órdenes en
+   * borrador; no tocan consolidación, envíos, recepciones ni ítems. Exige `facturas`.
+   */
+  soloFacturas?: boolean;
 }
 
 export interface PuertoDestino {
@@ -135,6 +141,8 @@ export interface Manifiesto {
   embarques: { remitente: string; clave: string; cajas: number; cbm: number; kg: number; filas: number }[];
   clientes: { clave: string; etiqueta: string; nombreExcel: string; candidatos: string[]; embarques: number; base: number }[];
   avisos: string[];
+  /** SDD-0690 · sólo con `--solo-facturas`: el paquete escribe nada más las pre-órdenes. */
+  modo?: "solo-facturas";
 }
 
 export interface SalidaSql {
@@ -760,7 +768,8 @@ $lote$;
 `;
 
 function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
-  return [cab(lote, o, pod, nav), datos(lote, o), CUERPO_APLICAR.trim()].join("\n\n");
+  const cuerpo = o.soloFacturas ? CUERPO_SOLO_FACTURAS : CUERPO_APLICAR;
+  return [cab(lote, o, pod, nav), datos(lote, o), cuerpo.trim()].join("\n\n");
 }
 
 function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
@@ -1163,15 +1172,456 @@ commit;
 `;
 }
 
+// ── SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya cargado ──
+
+/** Marca que distingue en `invoices.notes` las pre-órdenes de `--solo-facturas`; va después de la marca del lote. */
+export const MARCA_SOLO_FACTURAS = "pre-orden cargada aparte (SDD-0690)";
+
+/**
+ * SDD-0690 · El paquete `--solo-facturas` tiene id propio: el de la carga más este sufijo
+ * (`carga-consolidado:64:6303f821:facturas`). Así `aplicar-lote.sh` no lo confunde con la carga del
+ * contenedor (su guarda de «no aplicar dos veces» sigue valiendo), y el OK de Sam para las pre-órdenes no
+ * se cumple con el de la carga. El contenedor y sus envíos se siguen buscando por el id de la carga
+ * (`o.lote`), que es lo que quedó en sus notas.
+ */
+export const SUFIJO_SOLO_FACTURAS = ":facturas";
+
+/** El id del paquete: el de la carga, o con {@link SUFIJO_SOLO_FACTURAS} en `--solo-facturas`. */
+export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas">): string {
+  return o.soloFacturas ? `${o.lote}${SUFIJO_SOLO_FACTURAS}` : o.lote;
+}
+
+/**
+ * Cuerpo de aplicar.sql y simulacro.sql con `--solo-facturas`. Escribe sólo
+ * facturas en borrador (el mismo borrador del bloque de facturas de arriba) y su
+ * evento `invoice_imported`. Su preflight reemplaza al normal: el contenedor tiene
+ * que estar vivo con la marca del lote, con todos los envíos DDP del Excel
+ * cargados y vigentes en él, y en `exc0674_contenedores`. No aborta porque el
+ * lote ya tenga facturas: por cliente es idempotente (un cliente con una factura
+ * viva sobre cualquiera de sus envíos del contenedor se salta). Los avisos y el
+ * resumen llevan sólo conteos.
+ */
+const CUERPO_SOLO_FACTURAS = String.raw`
+do $lote$
+declare
+  cab record;
+  v_tenant uuid;
+  v_cons uuid;
+  v_n_cons int;
+  v_n_env int;
+  v_n_cargados int;
+  c record;
+  v_fact record;
+  v_etiqueta text;
+  v_ships uuid[];
+  v_mb text;
+  v_n_mb int;
+  v_client_id uuid;
+  v_aliado uuid;
+  v_padre uuid;
+  v_root_client uuid;
+  v_fact_id uuid;
+  v_inv uuid;
+  v_code text;
+  v_iva_on boolean;
+  v_iva_rate numeric;
+  v_n_lineas int;
+  v_base numeric;
+  v_iva numeric;
+  v_total numeric;
+  v_lines jsonb;
+  v_first_ship uuid;
+  v_first_code text;
+  v_n_facturas int := 0;
+  v_n_saltados int := 0;
+  v_n_sin_lineas int := 0;
+  v_n_marcas int := 0;
+begin
+  select * into cab from lote_cab;
+  select id into v_tenant from public.tenants where slug = cab.tenant_slug;
+  if v_tenant is null then
+    raise exception 'lote: no existe el tenant %', cab.tenant_slug;
+  end if;
+  if cab.crear_faltantes then
+    raise exception 'solo-facturas: no crea clientes; el contenedor ya está cargado';
+  end if;
+  if not cab.facturas then
+    raise exception 'solo-facturas: el lote se generó sin facturas';
+  end if;
+  if cab.entorno = 'prueba' and not exists (select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid) then
+    raise exception 'lote: esta base no es la de prueba (no está el cliente sintético de la semilla); el lote se generó para prueba';
+  end if;
+
+  -- ── Preflight solo-facturas: el contenedor ya está cargado y en la lista ──
+  if to_regclass('public.exc0674_contenedores') is null or to_regclass('public.exc0674_factura_envios') is null then
+    raise exception 'preflight solo-facturas: falta la migración 0564 (exc0674_contenedores, exc0674_factura_envios)';
+  end if;
+  select count(*), (array_agg(id))[1] into v_n_cons, v_cons
+    from public.consolidations
+   where tenant_id = v_tenant and deleted_at is null
+     and upper(coalesce(container_no, '')) = upper(cab.contenedor)
+     and notes like '%' || cab.lote || '%';
+  if v_n_cons = 0 then
+    raise exception 'preflight solo-facturas: el contenedor % no está cargado vivo con el lote % (genera con el mismo Excel de la carga)', cab.contenedor, cab.lote;
+  end if;
+  if v_n_cons > 1 then
+    raise exception 'preflight solo-facturas: hay % contenedores vivos % con el lote %', v_n_cons, cab.contenedor, cab.lote;
+  end if;
+  if not exists (
+    select 1 from public.exc0674_contenedores xc
+     where xc.tenant_id = v_tenant and xc.consolidation_id = v_cons
+  ) then
+    raise exception 'preflight solo-facturas: el contenedor % no está en exc0674_contenedores; no se cargan pre-órdenes fuera de la lista', cab.contenedor;
+  end if;
+
+  -- Envíos DDP del Excel que están vivos y vigentes en este contenedor: la
+  -- asignación más reciente de cada envío es este contenedor (la regla de la 0564).
+  create temp table lote_cargados (
+    orden int primary key, clave text, remitente text, shipment_id uuid, code text, markbox text
+  ) on commit drop;
+  insert into lote_cargados
+  with vigente as (
+    select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id
+      from public.consolidation_items ci
+     where ci.tenant_id = v_tenant and ci.shipment_id is not null
+     order by ci.shipment_id, ci.created_at desc, ci.id desc
+  )
+  select le.orden, le.clave, le.remitente, sh.id, sh.code, upper(btrim(sh.client_markbox))
+    from lote_envios le
+    join public.shipments sh on upper(sh.code) = upper(le.remitente) and sh.tenant_id = v_tenant and sh.deleted_at is null
+    join vigente vg on vg.shipment_id = sh.id and vg.consolidation_id = v_cons;
+  select count(*) into v_n_env from lote_envios;
+  select count(*) into v_n_cargados from lote_cargados;
+  if v_n_env = 0 then
+    raise exception 'preflight solo-facturas: el lote no trae envíos DDP';
+  end if;
+  if v_n_cargados <> v_n_env then
+    raise exception 'preflight solo-facturas: % de % envíos del lote no están cargados vivos en el contenedor %', v_n_env - v_n_cargados, v_n_env, cab.contenedor;
+  end if;
+
+  select coalesce(iva_enabled, false) into v_iva_on from public.tenants where id = v_tenant;
+  v_iva_rate := case when v_iva_on then 16 else 0 end;
+
+  -- Cada envío tiene que tener dueño: sin Shipping Mark no hay a quién facturar.
+  select count(*) into v_n_mb from lote_cargados where markbox is null or markbox = '';
+  if v_n_mb > 0 then
+    raise exception 'solo-facturas: % envíos del lote no tienen Shipping Mark', v_n_mb;
+  end if;
+  -- Toda línea del Excel cuelga de un envío cargado: si no, se perdería al repartirlas por dueño.
+  select count(*) into v_n_mb
+    from lote_lineas ll
+   where not exists (select 1 from lote_cargados lc where upper(lc.remitente) = upper(ll.remitente));
+  if v_n_mb > 0 then
+    raise exception 'solo-facturas: % líneas del lote no cuelgan de un envío cargado', v_n_mb;
+  end if;
+  select count(distinct markbox) into v_n_marcas from lote_cargados;
+
+  -- ── Una pre-orden por CLIENTE (Shipping Mark vivo de los envíos al correr), en borrador, si no tiene
+  --    ya una factura viva. Junta las líneas de todas sus claves del Excel: el rastro de la 0564/0569
+  --    admite un solo cliente vivo por contenedor, y dos pre-órdenes del mismo dueño no se podrían
+  --    emitir. Una clave repartida entre dos dueños da una pre-orden a cada uno, con las líneas de sus
+  --    envíos (SDD-0690, después de la #733). ──
+  for c in
+    select lc.markbox, min(lc.orden) as primero
+      from lote_cargados lc
+     group by lc.markbox
+     order by min(lc.orden)
+  loop
+    v_mb := c.markbox;
+    -- En los raise va la etiqueta (PREFIJO-#n) de su primera clave, nunca la clave: termina en la evidencia.
+    select lt.etiqueta into v_etiqueta
+      from lote_clientes lt
+     where lt.clave = (select lc.clave from lote_cargados lc where lc.orden = c.primero);
+    select array_agg(lc.shipment_id order by lc.orden)
+      into v_ships
+      from lote_cargados lc where lc.markbox = c.markbox;
+
+    -- Misma llave que exc0674_facturar (0564): esta carga y «Facturar» no se cruzan.
+    perform pg_advisory_xact_lock(hashtextextended('exc0674:' || v_tenant::text || ':' || v_cons::text || ':' || v_mb, 0));
+
+    -- Idempotencia: una factura viva (borrador o emitida, no anulada) sobre
+    -- cualquiera de sus envíos del contenedor, por shipment_id o por la tabla de
+    -- envíos cubiertos de la 0564, y el cliente se salta.
+    if exists (
+      select 1 from public.invoices iv
+       where iv.tenant_id = v_tenant and iv.deleted_at is null and iv.status <> 'anulada'
+         and (iv.shipment_id = any(v_ships)
+              or exists (select 1 from public.exc0674_factura_envios fe
+                          where fe.invoice_id = iv.id and fe.shipment_id = any(v_ships)))
+    ) then
+      v_n_saltados := v_n_saltados + 1;
+      continue;
+    end if;
+
+    select count(*),
+           coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price, 'shipmentCode', remitente) order by orden), '[]'::jsonb),
+           coalesce(round(sum(qty * unit_price), 2), 0)
+      into v_n_lineas, v_lines, v_base
+      from lote_lineas ll
+     where exists (select 1 from lote_cargados lc
+                    where lc.markbox = c.markbox and upper(lc.remitente) = upper(ll.remitente));
+    if v_n_lineas = 0 then
+      v_n_sin_lineas := v_n_sin_lineas + 1;
+      continue;
+    end if;
+    v_iva := round(v_base * v_iva_rate / 100, 2);
+    v_total := round(v_base + v_iva, 2);
+
+    -- El cliente es el de los envíos cargados; se factura a él o a su aliado raíz.
+    select x.client_id into v_client_id from public.resolve_markbox(v_tenant, v_mb) x limit 1;
+    if v_client_id is null or exists (select 1 from public.clients where id = v_client_id and deleted_at is not null) then
+      raise exception 'solo-facturas: el Shipping Mark de la marca % no resuelve a un cliente vivo', v_etiqueta;
+    end if;
+    select aliado_id into v_aliado from public.clients where id = v_client_id;
+    v_fact_id := v_client_id;
+    v_root_client := null;
+    if v_aliado is not null then
+      loop
+        select parent_aliado_id, client_id into v_padre, v_root_client from public.aliados where id = v_aliado;
+        exit when v_padre is null;
+        v_aliado := v_padre;
+      end loop;
+      if v_root_client is not null then
+        v_fact_id := v_root_client;
+      end if;
+    end if;
+    select fc.id, fc.markbox, fc.name, fc.rif, fc.doc_kind into v_fact from public.clients fc where fc.id = v_fact_id;
+    if v_fact.markbox is null then
+      raise exception 'solo-facturas: el cliente a facturar por % no tiene Shipping Mark', v_etiqueta;
+    end if;
+
+    select lc.shipment_id, lc.code into v_first_ship, v_first_code
+      from lote_cargados lc where lc.markbox = c.markbox order by lc.orden limit 1;
+    v_code := public.next_invoice_code(v_tenant);
+    insert into public.invoices
+      (tenant_id, invoice_code, client_markbox, client_name, client_rif, client_doc_kind, shipment_id, shipment_code,
+       currency, iva_rate, base_amount, iva_amount, total_amount, status, lines, notes, fund_class)
+    values
+      (v_tenant, v_code, v_fact.markbox, v_fact.name, v_fact.rif, v_fact.doc_kind, v_first_ship, v_first_code,
+       'USD', v_iva_rate, v_base, v_iva, v_total, 'borrador', v_lines,
+       'Carga ' || cab.lote || ' · contenedor DTD #' || cab.numero::text || ' (' || cab.contenedor || ') · embarques: '
+         || (select string_agg(lc.remitente, ', ' order by lc.orden) from lote_cargados lc where lc.markbox = c.markbox)
+         || case when v_fact_id <> v_client_id then ' · facturado al aliado raíz de ' || v_mb else '' end
+         || ' · ${MARCA_SOLO_FACTURAS}',
+       'third_party')
+    returning id into v_inv;
+    v_n_facturas := v_n_facturas + 1;
+    perform public.append_audit_event(
+      v_tenant, 'invoice', v_inv, 'system', null, 'invoice_imported', 'job', 'succeeded',
+      'Pre-orden en borrador del contenedor DTD #' || cab.numero::text || ' ya cargado (SDD-0690, --solo-facturas)',
+      null, jsonb_build_object('invoice_code', v_code, 'status', 'borrador', 'base_amount', v_base, 'client_markbox', v_fact.markbox),
+      jsonb_build_object('lote', cab.lote, 'contenedor', cab.contenedor, 'shipment_code', v_first_code, 'modo', 'solo-facturas'),
+      cab.lote, 1, 'internal');
+  end loop;
+
+  -- El aviso nombra el id del PAQUETE (aplicar-lote.sh lo busca en la evidencia del simulacro).
+  -- N + M + K = Shipping Marks vivos de los envíos al correr.
+  raise notice 'solo-facturas lote % · contenedor % · % Shipping Marks · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas',
+    cab.lote || ':facturas', cab.contenedor, v_n_marcas, v_n_facturas, v_n_saltados, v_n_sin_lineas;
+end
+$lote$;
+`;
+
+/** Envíos DDP del lote con la etiqueta de su cliente, para los scripts de sólo lectura: nunca la clave. */
+function enviosConEtiqueta(lote: Lote, soloConLineas: boolean): string {
+  const etiquetas = new Map(marcasDelLote(lote).map((m) => [m.clave, m.etiqueta]));
+  const conLineas = new Set(lote.clientes.filter((c) => c.lineas.length > 0).map((c) => c.clave));
+  const filas = lote.embarques
+    .filter((e) => !soloConLineas || conLineas.has(e.clave))
+    .map((e) => `(${litSql(e.remitente)}, ${litSql(etiquetas.get(e.clave) ?? e.clave)})`);
+  return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
+}
+
+/**
+ * SDD-0690 · Los envíos que tienen alguna línea PROPIA (por `remitente`), con su etiqueta. Es el mismo
+ * criterio de `aplicar` con `--solo-facturas`, que reparte las líneas por el dueño de cada envío: un
+ * dueño cuyos envíos no tienen ninguna línea no lleva pre-orden, y `verificar` no tiene que pedírsela.
+ */
+function enviosConLineasPropias(lote: Lote): string {
+  const etiquetas = new Map(marcasDelLote(lote).map((m) => [m.clave, m.etiqueta]));
+  const conLinea = new Set(lote.clientes.flatMap((c) => c.lineas.map((l) => (l.remitente ?? "").toUpperCase())));
+  const filas = lote.embarques
+    .filter((e) => conLinea.has(e.remitente.toUpperCase()))
+    .map((e) => `(${litSql(e.remitente)}, ${litSql(etiquetas.get(e.clave) ?? e.clave)})`);
+  return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
+}
+
+function previaSoloFacturas(lote: Lote, o: OpcionesSql): string {
+  const contenedor = litSql(normalizarCodigo(lote.rastreo.contenedor));
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · lectura previa del paquete ${idDelPaquete(o)}: --solo-facturas sobre la carga ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
+-- Sólo lee. Termina en rollback. Sólo conteos: ni montos ni nombres.
+begin transaction read only;
+
+\\echo === contenedor cargado, lista exc0674 y clientes que ya tienen factura viva
+with tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+cons as (
+  select cn.id from public.consolidations cn
+   where cn.tenant_id = (select id from tenant) and cn.deleted_at is null
+     and upper(coalesce(cn.container_no, '')) = ${contenedor} and cn.notes like '%' || ${litSql(o.lote)} || '%'
+),
+envios(remitente, etiqueta) as (values
+    ${enviosConEtiqueta(lote, false)}
+),
+vigente as (
+  select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id
+    from public.consolidation_items ci
+   where ci.tenant_id = (select id from tenant) and ci.shipment_id is not null
+   order by ci.shipment_id, ci.created_at desc, ci.id desc
+),
+cargados as (
+  select ev.etiqueta, sx.id, sx.tenant_id, upper(btrim(sx.client_markbox)) as markbox
+    from envios ev
+    join public.shipments sx on upper(sx.code) = upper(ev.remitente) and sx.tenant_id = (select id from tenant) and sx.deleted_at is null
+    join vigente vg on vg.shipment_id = sx.id and vg.consolidation_id in (select id from cons)
+)
+select
+  (select count(*) from cons) as contenedor_cargado_con_el_lote,
+  (select count(*) from public.exc0674_contenedores xc
+    where xc.tenant_id = (select id from tenant) and xc.consolidation_id in (select id from cons)) as en_lista_exc0674,
+  (select count(*) from envios where remitente is not null) as envios_del_lote,
+  (select count(*) from cargados) as envios_cargados,
+  (select count(distinct etiqueta) from envios where remitente is not null) as claves_del_excel,
+  -- SDD-0690: sale una pre-orden por Shipping Mark vivo, no por clave del Excel.
+  (select count(distinct cg.markbox) from cargados cg) as shipping_marks_vivos,
+  (select count(distinct cg.markbox) from cargados cg
+    where exists (
+      select 1 from public.invoices iv
+       where iv.tenant_id = cg.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
+         and (iv.shipment_id = cg.id
+              or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = cg.id)))) as clientes_con_factura_viva;
+
+rollback;
+`;
+}
+
+function verificarSoloFacturas(lote: Lote, o: OpcionesSql): string {
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · verificación del paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}): cada cliente con líneas
+-- tiene exactamente una factura viva sobre sus envíos. Sólo lee; sólo conteos.
+begin transaction read only;
+
+do $v$
+declare
+  n_clientes int; n_una int; n_ninguna int; n_varias int; n_preordenes int;
+begin
+  with envios(remitente, etiqueta) as (values
+    ${enviosConLineasPropias(lote)}
+  ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+  -- SDD-0690: por Shipping Mark vivo de los envíos (el cliente), no por clave del Excel.
+  por_cliente as (
+    select upper(btrim(sx.client_markbox)) as markbox,
+           count(distinct iv.id) as facturas
+      from public.shipments sx
+      left join public.invoices iv on iv.tenant_id = sx.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
+       and (iv.shipment_id = sx.id
+            or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = sx.id))
+     where sx.tenant_id = (select id from tenant) and sx.deleted_at is null
+       and upper(sx.code) in (select upper(e2.remitente) from envios e2 where e2.remitente is not null)
+     group by upper(btrim(sx.client_markbox))
+  )
+  select count(*), count(*) filter (where facturas = 1), count(*) filter (where facturas = 0), count(*) filter (where facturas > 1)
+    into n_clientes, n_una, n_ninguna, n_varias
+    from por_cliente;
+  select count(*) into n_preordenes
+    from public.invoices
+   where tenant_id = (select id from public.tenants where slug = ${litSql(o.tenantSlug)}) and deleted_at is null
+     and notes like '%' || ${litSql(o.lote)} || '%' and notes like '%${MARCA_SOLO_FACTURAS}%';
+  if n_ninguna > 0 then raise exception 'verificar solo-facturas: % clientes con líneas sin factura viva', n_ninguna; end if;
+  if n_varias > 0 then raise exception 'verificar solo-facturas: % clientes con más de una factura viva', n_varias; end if;
+  raise notice 'verificar solo-facturas: PASÓ · % de % clientes con una factura viva · % pre-órdenes de esta carga', n_una, n_clientes, n_preordenes;
+end
+$v$;
+
+rollback;
+`;
+}
+
+/** Deshacer de `--solo-facturas`: borrado lógico de las pre-órdenes de esta carga que sigan en borrador. */
+function deshacerSoloFacturas(lote: Lote, o: OpcionesSql): string {
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · deshacer el paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}, contenedor DTD #${lote.rastreo.numero}).
+-- Borrado lógico de las pre-órdenes de esta carga; no toca el contenedor ni sus envíos.
+-- Se niega si alguna dejó de ser borrador.
+begin;
+
+do $undo$
+declare
+  v_tenant uuid;
+  v_lote text := ${litSql(o.lote)};
+  n_inv int;
+begin
+  select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
+${o.entorno === "prueba" ? guardaBasePrueba("deshacer") : ""}
+  if exists (
+    select 1 from public.invoices
+     where tenant_id = v_tenant and deleted_at is null and notes like '%' || v_lote || '%'
+       and notes like '%${MARCA_SOLO_FACTURAS}%' and status <> 'borrador'
+  ) then
+    raise exception 'deshacer solo-facturas: hay pre-órdenes de esta carga que ya no son borrador; no se deshace';
+  end if;
+  perform set_config('dtd.audit_reason', 'Deshacer las pre-órdenes de ' || v_lote || ' (SDD-0690)', true);
+  update public.invoices set deleted_at = now()
+   where tenant_id = v_tenant and deleted_at is null and notes like '%' || v_lote || '%'
+     and notes like '%${MARCA_SOLO_FACTURAS}%' and status = 'borrador';
+  get diagnostics n_inv = row_count;
+  raise notice 'deshacer solo-facturas: % pre-órdenes eliminadas (borrado lógico)', n_inv;
+end
+$undo$;
+
+commit;
+`;
+}
+
+/** Purga de `--solo-facturas`, sólo en prueba: borra físicamente las pre-órdenes de esta carga y exige conteo cero. */
+function purgarSoloFacturas(lote: Lote, o: OpcionesSql): string {
+  return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
+-- SDD-0690 · PURGA de las pre-órdenes del paquete ${idDelPaquete(o)} (--solo-facturas sobre la carga ${o.lote}, contenedor DTD #${lote.rastreo.numero}).
+-- SÓLO PRUEBA. No toca el contenedor ni sus envíos.
+begin;
+
+do $purga$
+declare
+  v_tenant uuid;
+  v_lote text := ${litSql(o.lote)};
+  n_inv int;
+  resto int;
+begin
+  select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
+  if not exists (select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid) then
+    raise exception 'purgar: esta base no es la de prueba (no está el cliente sintético de la semilla); no se purga';
+  end if;
+  delete from public.invoices
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%' and notes like '%${MARCA_SOLO_FACTURAS}%';
+  get diagnostics n_inv = row_count;
+  select count(*) into resto from public.invoices
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%' and notes like '%${MARCA_SOLO_FACTURAS}%';
+  if resto <> 0 then
+    raise exception 'purgar: quedaron % pre-órdenes del lote %', resto, v_lote;
+  end if;
+  raise notice 'purgar solo-facturas: PASÓ · % pre-órdenes borradas · conteo cero', n_inv;
+end
+$purga$;
+
+commit;
+`;
+}
+
 export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: string; packing: string }): SalidaSql {
   revisarDelimitadores(lote);
+  if (o.soloFacturas && !o.facturas) throw new Error("--solo-facturas y --sin-facturas no van juntos");
+  if (o.soloFacturas && o.crearClientesFaltantes) throw new Error("--solo-facturas no crea clientes: el contenedor ya está cargado");
   const pod = puertoDestino(lote.rastreo.puertoLlegada);
   const nav = naviera(lote.rastreo.naviera);
   const items = lote.embarques.reduce((s, e) => s + e.filas.length, 0);
   const marcas = marcasDelLote(lote);
   const marcaDueno = lote.dueno ? marcas[marcas.length - 1] : null;
   const manifiesto: Manifiesto = {
-    lote: o.lote,
+    lote: idDelPaquete(o),
     sdd: "0543",
     entorno: o.entorno,
     generadoEn: new Date().toISOString(),
@@ -1211,16 +1661,17 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     embarques: lote.embarques.map((e) => ({ remitente: e.remitente, clave: e.clave, cajas: e.cajas, cbm: e.cbmFactura, kg: e.pesoKg, filas: e.filas.length })),
     clientes: lote.clientes.map((c, i) => ({ clave: c.clave, etiqueta: etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1), nombreExcel: c.marca.nombreExcel, candidatos: c.marca.candidatos, embarques: c.embarques.length, base: c.base })),
     avisos: lote.avisos,
+    ...(o.soloFacturas ? { modo: "solo-facturas" as const } : {}),
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);
-  const cabecera = `-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
+  const cabecera = `${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
-    previa: previa(lote, o, pod, nav),
+    previa: o.soloFacturas ? previaSoloFacturas(lote, o) : previa(lote, o, pod, nav),
     aplicar: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
     simulacro: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- SIMULACRO: corre todo y deshace al final. No deja nada en la base.\nbegin;\n\n${cuerpo}\n\nrollback;\n`,
-    verificar: verificar(lote, o, manifiesto),
-    deshacer: deshacer(lote, o),
-    purgar: purgar(lote, o),
+    verificar: o.soloFacturas ? verificarSoloFacturas(lote, o) : verificar(lote, o, manifiesto),
+    deshacer: o.soloFacturas ? deshacerSoloFacturas(lote, o) : deshacer(lote, o),
+    purgar: o.soloFacturas ? purgarSoloFacturas(lote, o) : purgar(lote, o),
     manifiesto,
   };
 }

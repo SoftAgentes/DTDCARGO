@@ -301,10 +301,40 @@ printf '   # Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU12345
 printf 'Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-renderizado.txt"
 printf 'OK de Sam:\n> # Lote carga-consolidado:61:cafebabe · contenedor DTD #61\n' > "${T}/resumen-citado.txt"
 printf 'OK carga-consolidado:61:cafebabe\n| Marca | Etiqueta en la evidencia | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |\n' > "${T}/resumen-tabla.txt"
-for v in bom sangria renderizado citado tabla; do
+# SDD-0690: el resumen de un paquete --solo-facturas lleva el id con «:facturas» antes del « · ».
+printf '# Lote carga-consolidado:61:cafebabe:facturas · contenedor DTD #61 (ABCU1234567)
+' > "${T}/resumen-solo-facturas.txt"
+for v in bom sangria renderizado citado tabla solo-facturas; do
   out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/resumen-${v}.txt" --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "copia de resumen.md (${v}) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md (${v}) rc=${rc}: ${out}"
 done
+# SDD-0690: un OK de las pre-órdenes («<id>:facturas») no autoriza el paquete de la carga (<id>).
+printf 'Sam: autorizo las pre-órdenes, lote carga-consolidado:61:cafebabe:facturas\n' > "${T}/ok-pre-ordenes.txt"
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-pre-ordenes.txt" --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"no cita el lote carga-consolidado:61:cafebabe"* && -z "$(ls -A "${EP5}")" ]] && ok "un OK de las pre-órdenes (:facturas) no sirve para la carga (3)" || ko "OK de pre-órdenes para la carga rc=${rc}: ${out}"
+# SDD-0690: el id del manifiesto tiene que tener la forma de una carga o de sus pre-órdenes; si no, se
+# rechaza antes de usarlo en un grep -E. Cada variante es un paquete coherente (scripts, manifiesto,
+# SHA256SUMS y autorización con ese mismo id): sólo la forma lo hace fallar.
+paquete_con_id() {  # $1 = id; arma ${T}/lote-forma a partir de ${P}
+  PM="${T}/lote-forma"; EPM="${T}/evid-forma"; rm -rf "${PM}" "${EPM}"; mkdir -p "${PM}" "${EPM}"
+  for f in previa simulacro verificar aplicar; do
+    awk -v id="$1" '{ gsub(/carga-consolidado:61:cafebabe/, id); print }' "${P}/${f}.sql" > "${PM}/${f}.sql"
+  done
+  awk -v id="$1" '{ gsub(/carga-consolidado:61:cafebabe/, id); print }' "${P}/manifiesto.json" > "${PM}/manifiesto.json"
+  ( cd "${PM}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+  printf 'Sam: autorizo las pre-órdenes del lote %s\n' "$1" > "${PM}/AUTORIZACION.txt"
+}
+for malo in 'carga-consolidado:61:.*' 'carga-consolidado:61:CAFEBABE' 'carga-consolidado:61:cafebabe:otra' 'otro-lote:61:cafebabe'; do
+  paquete_con_id "${malo}"
+  out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${PM}" --evidence-dir "${EPM}" --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"no tiene la forma esperada"* && -z "$(ls -A "${EPM}")" ]] && ok "id con otra forma (${malo}) rechazado sin dejar evidencia (3)" || ko "id ${malo} rc=${rc}: ${out}"
+done
+# El mismo paquete con un id de pre-órdenes bien formado pasa la guarda.
+paquete_con_id 'carga-consolidado:61:cafebabe:facturas'
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${PM}" --evidence-dir "${EPM}" --paso previa >/dev/null 2>&1 && ok "un id de pre-órdenes (…:facturas) bien formado pasa la previa" || ko "un id …:facturas bien formado se rechazó"
+# … y el id seguido de puntuación (fin de frase, paréntesis) sí vale.
+printf 'Sam: autorizo carga-consolidado:61:cafebabe.\n' > "${T}/ok-con-punto.txt"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-punto.txt" --paso previa >/dev/null 2>&1 && ok "un OK con el id seguido de punto sigue valiendo" || ko "un OK con el id seguido de punto se rechazó"
 # Un OK legítimo que nombra el lote (incluso empezando con «Lote <id>» o mencionando «# Lote») sigue valiendo.
 printf 'Sam: autorizo carga-consolidado:61:cafebabe (ver # Lote en el resumen)\n' > "${T}/ok-con-almohadilla.txt"
 bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» sin el título del resumen sigue valiendo" || ko "un OK válido con «# Lote» se rechazó"
