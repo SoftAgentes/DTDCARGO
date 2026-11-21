@@ -34,8 +34,9 @@ Base: `main` `9ae885c88`. Las especificaciones 0700 y 0702 aún no están en `ma
 
 **No:**
 
-- **Los Agentes y Skills (A6)** quedan fuera (D-5 de la 0639). Incluirlos es una decisión de Sam (§10, P-2).
-- Cambiar el principal de nadie: sigue siendo Anthropic.
+- **Los Agentes y Skills (A6)** quedan fuera (D-5 de la 0639). Incluirlos es una decisión de Sam (§11, P-2).
+- Cambiar el principal: el de las funciones del ERP sigue siendo Anthropic. El de la **Oficina** ya pasó de GLM a
+  Anthropic el 2026-11-21 por decisión de Sam (§5.2); esta spec no lo cambia, solo suma el respaldo.
 - Funciones «sin datos de clientes» (A1, A2, A8): su cadena es la de la 0639 (GLM → DeepSeek) y no se toca.
 - Abrir la cuenta de OpenAI o cargar la llave: lo hace Sam (§6).
 
@@ -62,7 +63,7 @@ Base: `main` `9ae885c88`. Las especificaciones 0700 y 0702 aún no están en `ma
 
 ## 3. Adaptador de OpenAI en el motor de la 0639 (A3, A4, A5)
 
-Interfaz del motor (0639 §3.1): **texto libre**, **respuesta con forma fija** y **documento**. El adaptador
+Interfaz del motor (0639 §3, punto 1): **texto libre**, **respuesta con forma fija** y **documento**. El adaptador
 `openai` implementa las tres sobre la API de OpenAI. Los nombres exactos de endpoint y parámetros se confirman en
 la documentación de OpenAI al implementar (**NV**); aquí se fija el contrato, no la sintaxis.
 
@@ -86,7 +87,7 @@ la documentación de OpenAI al implementar (**NV**); aquí se fija el contrato, 
 | Capacidad de Anthropic | Qué pasa con OpenAI | Degradación |
 |---|---|---|
 | `countTokens` previo (A5 lo usa para el tope de 180 000 tokens) | OpenAI no cuenta tokens de un PDF antes de enviarlo con el mismo método (**NV**) | Ese tope previo **no se puede aplicar igual**. El adaptador usa el tope de bytes y de páginas del propio A5 más el `max_tokens` de salida, y el presupuesto diario de tokens (`reserveLimit`) sigue siendo la barrera. Si no se puede acotar, A5 **no ofrece OpenAI** (queda sin respaldo) |
-| Páginas, tablas y escaneos con la lectura de PDF de Anthropic | La lectura de PDF de OpenAI puede dar otra calidad con escaneos o tablas densas (**NV**) | La función **no ofrece OpenAI hasta pasar su evaluación** (§8). Antes de eso, A5 sigue sin respaldo. El llenado manual sigue como salida |
+| Páginas, tablas y escaneos con la lectura de PDF de Anthropic | La lectura de PDF de OpenAI puede dar otra calidad con escaneos o tablas densas (**NV**) | La función **no ofrece OpenAI hasta pasar su evaluación** (§9). Antes de eso, A5 sigue sin respaldo. El llenado manual sigue como salida |
 | Salida estructurada con ciertos esquemas (campos opcionales, uniones, profundidad) | La salida estricta de OpenAI exige un subconjunto de JSON Schema (**NV**) | Si el esquema no cabe, el adaptador lo declara **no soportado para esa función** y no se habilita. Se prefiere simplificar el esquema a aflojar la validación |
 | `tool_choice` | No se usa en el respaldo | Reemplazado por la salida estructurada; no hace falta |
 | Hojas de cálculo en A5 | Ya viajan como JSON de celdas, no como PDF | Sin diferencia: es texto |
@@ -97,9 +98,9 @@ no se reintenta con otro proveedor ni se guarda nada a medias.
 
 ## 4. Catálogo: dónde aparece OpenAI
 
-| Función | Marca (0639 §4) | OpenAI como respaldo | Condición |
+| Función | Marca de datos | OpenAI como respaldo | Condición |
 |---|---|---|---|
-| **Oficina_Virtual** `soporte-chatwoot` | Con datos de clientes (tapados por la 0700) | **Sí** | Configuración en Hermes (§5). Principal Anthropic |
+| **Oficina_Virtual** `soporte-chatwoot` | Con datos de clientes, tapados por la 0700 (**I**: la 0639 §4 no la clasifica; se la trata como «con datos» por la 0626 y la 0700) | **Sí** | Configuración en Hermes (§5). Principal Anthropic |
 | **A3** actas de Bitácora (acta y escucha) | Con datos de clientes | **Sí** | Pasa la prueba de contrato y la evaluación |
 | **A4a** resumen interno | Con datos de clientes | **Sí** | Ídem |
 | **A4b** resumen para el portal | Con datos de clientes | **Sí** | Ídem. Es el texto que ve el cliente: la evaluación incluye tono y que no invente |
@@ -131,36 +132,41 @@ esta spec; si Sam la quiere, es otra decisión (P-5).
 
 ### 5.1 La Oficina: lo que hay que cambiar para que la regla se cumpla
 
-- **Quitar el piso chino.** La 0626 §7 dice «cadena por agente con piso glm-5.3». Con la decisión de Sam
-  (Anthropic principal, OpenAI respaldo) esa línea debe corregirse en la 0626 (otra PR, no en esta): el perfil
-  `soporte-chatwoot` **no** puede tener GLM ni DeepSeek en su cadena mientras maneje conversaciones de clientes.
-  La 0702 ya nota que la elección del proveedor es de Sam.
-- **La cadena del perfil es Anthropic → OpenAI.** Es configuración de Hermes en la oficina (VPS): no la ejecuta
-  esta spec ni ninguna PR del ERP. Hermes soporta varios proveedores y respaldo (**NV** para OpenAI en la versión
-  instalada: se verifica en la fase 1).
+- **Quitar el piso chino de los documentos.** El cambio de proveedor **ya está aplicado** (§5.2), pero la 0626 sigue
+  diciendo GLM en varias líneas (§5.3). Es una contradicción entre documento y realidad que se corrige ya.
+- **La cadena del perfil pasa a Anthropic → OpenAI** cuando Sam configure el respaldo. Es configuración de Hermes en la
+  oficina (VPS): no la ejecuta esta spec ni ninguna PR del ERP. Que Hermes soporte OpenAI como proveedor en la versión
+  instalada es **NV**: se verifica en la fase 1.
 - **Registro del modelo real.** La 0702 deja en `task_events.modelo_usado` quién respondió. Para la auditoría de
   esta spec hace falta que ahí se vea `anthropic/…` u `openai/…` (D 0702 §2).
 
-### 5.2 Sin respaldo, qué pasa hoy (decisión de Sam, vía Dir_DTD)
+### 5.2 Estado real de la Oficina hoy (D)
 
-Hoy la Oficina apunta a `claude-sonnet-5-5` **sin respaldo**; el cambio de proveedor en el VPS lo corre Sam. Si Anthropic
-se cae, Sam decidió que **basta con la tarjeta interna (`runtime:*`), sin pausa automática**: la conversación queda para
-una persona. El respaldo de OpenAI es lo que evitaría esa caída. Esto significa que **la Oficina funciona sin esta
-spec**: OpenAI baja la frecuencia de las tarjetas, no es un requisito para la etapa 2.
+**D, informe de Ofi_Hermes al DG (2026-11-21):** Sam aplicó el cambio en el VPS el 2026-11-21 a las 21:59:29Z.
+`soporte-chatwoot` quedó en `claude-sonnet-5-5` vía Anthropic, **sin respaldo**; Z.AI y DeepSeek salieron del pool y del
+`.env`; la prueba con texto inventado pasó; la Oficina sigue en pausa. La configuración no se ve desde el repo, así que
+esto se cita como dato del informe y no como código leído.
 
-### 5.3 Documentos que hay que corregir al aplicar el cambio
+Sam decidió además que, si Anthropic se cae, **basta con la tarjeta interna (`runtime:*`), sin pausa automática**: la
+conversación queda para una persona. El respaldo de OpenAI evitaría esa caída. Por tanto **la Oficina funciona sin esta
+spec**: OpenAI baja la frecuencia de las tarjetas por caída; no es un requisito para la etapa 2.
 
-- `docs/specs/0626-oficina-runtime/privacidad.md`:
-  - **hallazgo 13, línea 158** (tabla de destinos): dice «Proveedor del modelo: Z.AI (glm-5.3)… respaldo DeepSeek». Debe
-    decir Anthropic como principal y OpenAI como respaldo, con lo que cada uno retiene según su documentación;
-  - **línea 282** (pendientes): «Los proveedores del modelo (Z.AI y DeepSeek)… PIPL». Pasa a Anthropic y OpenAI; la PIPL
-    deja de ser el motivo principal y se reemplaza por la retención de §6.
-- `docs/specs/0626-oficina-runtime/spec.md` §7: el «piso glm-5.3» (ver §5.1).
-Se corrigen en la misma PR que aplique el cambio en Hermes, no antes: hoy describen lo que de verdad está configurado.
+### 5.3 Documentos que se corrigen en esta PR (por el cambio ya aplicado)
+
+Estas líneas describen un proveedor que **ya no está configurado**; se corrigen en esta misma PR, solo en los
+documentos de la 0626 (sin código):
+
+- `docs/specs/0626-oficina-runtime/privacidad.md`: `:25` (PIPL por glm-5.3), `:158` (hallazgo 13, Z.AI y respaldo
+  DeepSeek) y `:282` (pendientes). `:295` (la revisión por transferencia internacional y terceros antes de la etapa 2)
+  se **conserva** y pasa a apuntar a Anthropic (y a OpenAI cuando entre; §12).
+- `docs/specs/0626-oficina-runtime/spec.md`: `:28`, `:39`, `:207`, `:252`, `:551` y `:640` (GLM como principal, como
+  respaldo o como piso).
+
+Cuando Sam sume OpenAI, esas mismas líneas se actualizan con el respaldo; por ahora dicen «sin respaldo».
 
 ### 5.4 La prueba que impide el atajo
 
-Una prueba de catálogo (§8) falla si una función «con datos de clientes» tiene GLM o DeepSeek como principal **o**
+Una prueba de catálogo (§9) falla si una función «con datos de clientes» tiene GLM o DeepSeek como principal **o**
 como respaldo. Para la Oficina, donde la cadena vive en Hermes, el equivalente es una **comprobación de la
 configuración del perfil** antes de activar la etapa 2: el runbook de la oficina pide verificar que la cadena del
 perfil solo tiene proveedores no chinos (es un paso humano con evidencia, no una prueba de CI, porque el ERP no
@@ -185,7 +191,7 @@ documentación el día de la configuración** (**NV**):
 1. Abre la cuenta de OpenAI y crea los dos proyectos (Oficina y ERP).
 2. Configura en el panel la retención y la facturación (§7) de cada proyecto.
 3. **Carga la llave desde la pantalla «Estado de la IA»**, que la guarda en **Supabase Vault**, solo escritura y con
-   AAL2 (D-7 de la 0639 §3.7). La llave del proyecto de la Oficina va en la configuración de Hermes en el VPS, por
+   AAL2 (D-7 de la 0639; §3, punto 7). La llave del proyecto de la Oficina va en la configuración de Hermes en el VPS, por
    el gestor de secretos que ya usa la oficina, **no** en el repo ni en el chat.
 4. Nadie pega una llave en el chat, en un archivo del repo ni en un PR. Ningún Worker la ve.
 
@@ -193,7 +199,7 @@ Esta spec no registra ni exige ver ningún valor de llave; las pruebas usan llav
 
 ## 7. Cambio automático
 
-**La misma regla de la 0639 §3.4**, sin reglas nuevas:
+**La misma regla de la 0639 §3, punto 4**, sin reglas nuevas, para las funciones del ERP (A3, A4, A5):
 
 - Si el principal (Anthropic) responde con `falta_de_pago`, `cuenta_suspendida`, `llave_invalida` o
   **`proveedor_caido`** (clasificador de la 0638 §5.1), esa llamada se reintenta **una sola vez** con OpenAI.
@@ -209,6 +215,15 @@ Esta spec no registra ni exige ver ningún valor de llave; las pruebas usan llav
   `insufficient_quota` de OpenAI llega como 429, y la 0638 §5.1 ya manda a `falta_de_pago` el código de saldo
   **aunque el status sea 429**; el adaptador tiene que pasar ese código al clasificador y no tirarlo.
 
+### 7.1 En la Oficina el cambio lo hace Hermes (NV)
+
+La regla de arriba es del motor del ERP. En la Oficina quien cambia de proveedor es **Hermes**, y su política escrita
+es otra: la 0626 §7 dice «402/401 salta proveedor 24 h · 429/503 reintenta ×2 · timeout salta», es decir, un salto
+**pegajoso** (24 h), no «una sola vez por llamada». Por tanto, para la Oficina es **NV** que se cumpla «una sola vez ante
+`proveedor_caido`, no ante un 400, y vuelta al principal». La **fase 1 exige verificarlo con evidencia** (una prueba
+con texto inventado y el principal caído a propósito) **antes de configurar OpenAI** en la Oficina. Si Hermes no
+puede cumplirla, Sam acepta la semántica de Hermes por escrito o se deja la Oficina sin respaldo.
+
 ## 8. Tope de gasto por llave
 
 - **En el panel de OpenAI (lo configura Sam):** un tope mensual **duro** por proyecto, bajo. Para la Oficina, que no
@@ -216,7 +231,7 @@ Esta spec no registra ni exige ver ningún valor de llave; las pruebas usan llav
   Si el panel no permite un tope duro, se usa un aviso de umbral y la regla siguiente.
 - **En el ERP:** el respaldo **hereda los topes que la función ya tiene**:
   - Oficina: el tope mensual, el 80 % que auto-pausa y los topes por corrida (pasos, llamadas, tokens, tiempo) de la
-    0626 (C `despachador-config.ts`). La tarifa para el costo pasa a ser por modelo (0639 §3.8); mientras el cable use
+    0626 (C `despachador-config.ts`). La tarifa para el costo pasa a ser por modelo (0639 §3, punto 8); mientras el cable use
     una tarifa fija, queda anotado que es una estimación y se usa la **más alta** de las dos.
   - A5: sus trabajos por día y su presupuesto diario de tokens (`reserveLimit`).
   - A3/A4: solo vigilan por el aviso de la pantalla (hoy no tienen tope, D 0638 §2.1). **No se agrega un tope nuevo
@@ -225,7 +240,7 @@ Esta spec no registra ni exige ver ningún valor de llave; las pruebas usan llav
 - **Una llave, un tope, un uso:** si un proyecto se pasa de gasto, se revoca solo esa llave y las demás funciones
   siguen.
 - Las tarifas de OpenAI no se escriben en el repo (cambian y son datos de cuenta): van a la configuración por modelo
-  de la 0639 §3.8, que se llena en la fase 2.
+  de la 0639 §3, punto 8, que se llena en la fase 2.
 
 ## 9. Pruebas previstas
 
@@ -255,14 +270,14 @@ Esta spec no registra ni exige ver ningún valor de llave; las pruebas usan llav
 | Fase | Qué entrega | Necesita |
 |---|---|---|
 | **0 · Esta spec** | Aprobar la spec y decidir P-1 a P-5 | Sam |
-| **1 · Cuenta y Oficina** | Sam abre la cuenta y los proyectos, configura retención y topes (§6, §8); se verifica en Hermes que existe el proveedor y se pone la cadena Anthropic → OpenAI; se corrige la 0626 §7 (sin piso chino). Se confirma el modelo real con la 0702 | Sam (cuenta y llave). La 0702 y la 0700 fusionadas |
+| **1 · Cuenta y Oficina** | Sam abre la cuenta y los proyectos, configura retención y topes (§6, §8); se verifica en Hermes que existe el proveedor y se pone la cadena Anthropic → OpenAI; **antes de configurarlo, se verifica con evidencia cómo cambia Hermes de proveedor (§7.1)**. Se confirma el modelo real con la 0702. Revisión con `revisar-datos-ve` del envío a OpenAI (§12) | Sam (cuenta y llave). La 0702 y la 0700 fusionadas |
 | **2 · Adaptador en el motor** | Adaptador `openai`, catálogo con la marca «no chino», prueba de contrato y regla de datos. **Depende de que exista el motor de la 0639** (hoy no existe: fase 2 de esa spec) | Motor de la 0639 y llave del proyecto ERP en Vault |
-| **3 · A3 y A4** | Habilitar OpenAI como respaldo, tras su evaluación | Fase 2 |
-| **4 · A5** | Habilitar, solo si la evaluación de PDF y el tope de costo lo permiten | Fase 2 |
+| **3 · A3 y A4** | Habilitar OpenAI como respaldo, tras su evaluación y tras la revisión con `.claude/skills/revisar-datos-ve/SKILL.md` (tercero que recibe datos de clientes sin máscara) | Fase 2 |
+| **4 · A5** | Habilitar, solo si la evaluación de PDF y el tope de costo lo permiten, y tras la misma revisión `revisar-datos-ve` | Fase 2 |
 | — | A6 Agentes | Fuera (P-2) |
 
 **Orden respecto a la Oficina:** la fase 1 (Oficina) **no necesita el motor**, porque es configuración de Hermes. Por
-eso puede ir **primero** y no esperar al motor de la 0639. Es la recomendación de P-3. Si el motor se
+eso puede ir **primero** y no esperar al motor de la 0639. Es la recomendación de P-3 (por menor esfuerzo, no por urgencia: §5.2). Si el motor se
 implementa antes, el orden es indiferente.
 
 ## 11. Decisiones abiertas para Sam
@@ -283,8 +298,8 @@ Cada una con la opción recomendada primero.
   - Alternativa: incluirlos en una fase posterior, con spec aparte. Habría que implementar el bucle de herramientas
     en el adaptador y recalcular las tarifas.
 - **P-3 · ¿Orden respecto a la Oficina?**
-  - **Recomendada: Oficina primero** (fase 1, configuración de Hermes, sin esperar al motor). Es lo que tiene la
-    etapa 2 detenida y no depende de código nuevo del ERP.
+  - **Recomendada: Oficina primero** (fase 1, configuración de Hermes, sin esperar al motor). Es configuración sin código nuevo del ERP y baja las
+    tarjetas por caída de Anthropic. **No** es requisito de la etapa 2 (§5.2).
   - Alternativa: todo junto después del motor. Más limpio, pero la Oficina espera más.
 - **P-4 · Retención.**
   - **Recomendada:** pedir retención cero si la cuenta es elegible; si no, aceptar el plazo por defecto **solo con**
@@ -305,12 +320,15 @@ Cada una con la opción recomendada primero.
 - **El motor no existe.** Las fases 2 a 4 dependen de la 0639; si se atrasa, solo corre la fase 1 (Oficina).
 - **La cadena de Hermes no se ve desde el ERP.** La regla D-2 de la Oficina depende de una verificación humana de la
   configuración (§5.4); queda como paso del runbook.
+- **Revisión de datos personales pendiente.** Sumar OpenAI es sumar un tercero con transferencia internacional. Antes de
+  las fases 1, 3 y 4 se pasa por `.claude/skills/revisar-datos-ve/SKILL.md` y se atiende el pendiente de
+  `0626-oficina-runtime/privacidad.md:295`.
 - **Datos de la cuenta de OpenAI.** Los datos de retención y las tarifas son NV hasta que Sam abra la cuenta.
 
 ## 13. Fuera de alcance
 
 - Código, migraciones, el `.env` y producción.
 - Los Agentes (A6) y las funciones sin datos de clientes (A1, A2, A8).
-- Corregir la 0626 §7 (queda anotada para otra PR) y cambiar la 0639.
+- Cambiar la 0639. De la 0626 solo se corrigen en esta PR las líneas de §5.3 (lo que ya contradice la configuración real); lo demás no se toca.
 - Elegir el modelo por calidad: es la evaluación de la fase 1.
 - Abrir la cuenta, pagar o cargar la llave: lo hace Sam.

@@ -45,3 +45,11 @@ P-4 retención (cero si es elegible, si no «no guardar la respuesta» y riesgo 
 - Spec §5.2 y §5.3: la Oficina hoy apunta a `claude-sonnet-5-5` sin respaldo; si Anthropic cae basta la tarjeta interna
   (`runtime:*`), sin pausa automática (decisión de Sam). §5.3 nombra `docs/specs/0626-oficina-runtime/privacidad.md`
   (hallazgo 13, línea 158, y línea 282, aún con Z.AI + DeepSeek) como documento a corregir al aplicar el cambio.
+
+## Revisión CHANGES_REQUESTED sobre e4e449cbc (atendida)
+- B1/B2: la Oficina ya está en Anthropic sin respaldo desde el 2026-11-21 21:59:29Z (D, informe de Ofi_Hermes al DG).
+  Corregidas en esta PR `0626-oficina-runtime/privacidad.md` (:25, :158, :282) y `spec.md` (:28, :39, :207, :252, :551,
+  :640). §1, §5.1-5.3 y §13 de la 0703 alineados.
+- B3: §7.1 marca NV que Hermes cumpla «una sola vez / no ante 400 / vuelta»; la fase 1 lo verifica antes de configurar OpenAI.
+- M1-M5: referencias, marca de la Oficina (I), P-3 única, `revisar-datos-ve` en fases 1/3/4, citas a la 0639 como «§3, punto N».
+- Sin código. docs:check y sdd:check PASARON.
