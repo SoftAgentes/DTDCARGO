@@ -402,7 +402,7 @@
     --grad-wine: linear-gradient(135deg,#AE1A28 0%,#7F0F1A 50%,#4A0710 100%);
     --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
     --grad-navy: radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
-    --grad-page: radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+    --grad-page: radial-gradient(90% 70% at 100% 0%,rgba(31,79,168,.05),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
     --grad-card: linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
     --bg-base: #FBFAF7;
     --bg-surface: #FFFFFF;
