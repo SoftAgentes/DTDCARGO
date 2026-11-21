@@ -212,12 +212,25 @@ describe("SDD-0690 · --agregar-a-preorden (PGlite)", { timeout: 90_000 }, () =>
     expect(audit.rows.map((r) => r.event_type)).toEqual(["invoice_imported", "invoice_imported", "invoice_lines_appended"]);
   });
 
+  it("dos envíos reasignados a un cliente sin pre-orden dan UNA pre-orden nueva con los dos", async () => {
+    await baseDeHoy();
+    await reasignar({ "DTD-A116-06": "DTD-5002", "DTD-B200-01": "DTD-5002" });
+    expect(await previa()).toMatchObject({ a_preorden_existente: 0, a_preorden_nueva: 2 });
+    expect(await aplicarLunes()).toContain("· 2 envíos · 1 Shipping Marks · 0 pre-órdenes con líneas agregadas · 1 pre-órdenes nuevas ·");
+    expect((await preordenes()).map((x) => [x.client_markbox, x.codigos, x.base_amount])).toEqual([
+      ["DTD-5001", "DTD-J031-05,DTD-J031-06", "2400.00"],
+      ["DTD-5002", "DTD-A116-06,DTD-B200-01", "1075.00"],
+    ]);
+    expect(await verificar()).toContain("PASÓ · 2 de 2 envíos");
+  });
+
   it("una segunda corrida se niega y no duplica", async () => {
     await baseDeHoy();
     await reasignar({ "DTD-A116-06": "DTD-5001", "DTD-B200-01": "DTD-5002" });
     await aplicarLunes();
     const antes = await preordenes();
-    expect((await previa()).ya_con_linea_en_factura_viva).toBe(2);
+    // Ahora los dos destinos tienen pre-orden: la previa los cuenta como existentes, ninguno nuevo.
+    expect(await previa()).toMatchObject({ ya_con_linea_en_factura_viva: 2, a_preorden_existente: 2, a_preorden_nueva: 0 });
     await expect(aplicarLunes()).rejects.toThrow("agregar: 2 envíos del lote ya tienen línea en una factura viva; no se cargan dos veces");
     await sinCambios(antes);
   });
