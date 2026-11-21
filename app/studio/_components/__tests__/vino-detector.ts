@@ -3,7 +3,8 @@
  * escriba. Lo comparten los contratos de los grupos 3 y 4.
  *
  * Ve: `var(--wine…)`, `var(--grad-wine…)`, `var(--color-wine…)`, clases
- * Tailwind (`bg-wine`, `hover:border-wine`…) y tonos `"wine"` dados como valor.
+ * Tailwind (`bg-wine`, `hover:border-wine`…), tonos `"wine"` dados como valor,
+ * la clase `eyebrow-wine` y el atributo `data-tono="vino"` (revisión de la #745).
  * No ve, y se anota en la spec: la variante arbitraria (`[&>svg]:text-wine`),
  * el alias `--studio-wine*`, un hex de la familia vino escrito a mano (fase 4)
  * ni un tono armado con plantilla.
@@ -36,8 +37,18 @@ export function tonosVino(texto: string): number {
   return n;
 }
 
+/** Clase de eyebrow en vino (`tokens.css`) y el tono «vino» del contador de iconos. */
+const VINO_EYEBROW = /(?<=^|[\s"'`])eyebrow-wine(?![\w-])/gm;
+const VINO_DATA_TONO = /data-tono=["'{]*vino["'}]*/g;
+
 export function cuentaVino(texto: string): number {
-  return (texto.match(VINO_TOKEN) ?? []).length + (texto.match(VINO_CLASE) ?? []).length + tonosVino(texto);
+  return (
+    (texto.match(VINO_TOKEN) ?? []).length +
+    (texto.match(VINO_CLASE) ?? []).length +
+    (texto.match(VINO_EYEBROW) ?? []).length +
+    (texto.match(VINO_DATA_TONO) ?? []).length +
+    tonosVino(texto)
+  );
 }
 
 export function fuentesDe(dir: string, extension: RegExp): string[] {

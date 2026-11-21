@@ -10,7 +10,8 @@
  * documentos y superficies de marca, el eyebrow de `EmptyState` y el tono
  * retirado de `Badge`, que el móvil usa hasta la fase 3. `Avatar` ya no tiene
  * vino: su valor por defecto es `neutral` (decisión de Sam). Quedan fuera:
- * - `tokens.css` y `studio.css`, que definen los tokens (fases 1 y 3);
+ * - `tokens.css`, que define los tokens (fases 1 y 3). `studio.css` sí entra:
+ *   pinta pantallas por clase, y sus reglas con vino están en `STUDIO_CSS_PERMITIDO`;
  * - noticias-web, cuyo vino de acción en el bloque claro cuenta el contrato del
  *   grupo 3 y espera `--color-accion*` de la fase 3.
  * Un vino nuevo en cualquier otra pantalla del Studio rompe este contrato.
@@ -32,7 +33,35 @@ const GRUPO_8 = [
   "app/studio/(panel)",
 ];
 
-const FUERA = [/^app\/studio\/(tokens|studio)\.css$/, /^app\/studio\/\(app\)\/marketing\/noticias-web\//];
+const FUERA = [/^app\/studio\/tokens\.css$/, /^app\/studio\/\(app\)\/marketing\/noticias-web\//];
+
+/**
+ * Reglas de `studio.css` que todavía pueden pintar vino (revisión de la #745),
+ * cada una con su motivo. Solo baja: una regla nueva con vino rompe.
+ */
+const STUDIO_CSS_PERMITIDO: { selector: RegExp; motivo: string }[] = [
+  { selector: /^:root$/, motivo: "alias --studio-wine-soft: guión del eyebrow (identidad, fase 1)" },
+  { selector: /\.studio-tracking-ops-/, motivo: "Tracking en vivo: pendiente, se decide viendo la pantalla (spec, cierre de la fase 2)" },
+  { selector: /\.studio-mx-(st|chg|dot)\b/, motivo: "matriz de permisos: pendiente (spec, cierre de la fase 2)" },
+  { selector: /\.studio-tab-n\[data-alerta/, motivo: "contador de alerta de pestaña: pendiente (spec, cierre de la fase 2)" },
+];
+
+/** Bloques `selector { … }` de un CSS, sin comentarios (el envoltorio de @media queda fuera). */
+function bloquesCss(css: string): { selector: string; cuerpo: string }[] {
+  const limpio = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  // El selector es lo que sigue al último `;` (un @import antes del primer bloque no cuenta).
+  return [...limpio.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1].split(";").pop() ?? "").trim(),
+    cuerpo: m[2],
+  }));
+}
+
+function reglasFuera(css: string): string[] {
+  return bloquesCss(css)
+    .filter((b) => cuentaVino(b.cuerpo) > 0)
+    .filter((b) => !STUDIO_CSS_PERMITIDO.some((p) => p.selector.test(b.selector)))
+    .map((b) => b.selector);
+}
 
 /** Lo único que puede quedar en vino en el Studio al cerrar la fase 2. */
 const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
@@ -67,6 +96,10 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
   "app/studio/_components/guia/GuiaTarjeta.tsx": {
     cuenta: 6,
     motivo: "superficie, franja y rótulos de la Guía con el tinte de marca",
+  },
+  "app/studio/studio.css": {
+    cuenta: 18,
+    motivo: "alias de identidad del eyebrow y tres familias pendientes (Tracking en vivo, matriz de permisos, alerta de pestaña); las reglas están en STUDIO_CSS_PERMITIDO",
   },
   "app/studio/_components/ui/EmptyState.tsx": {
     cuenta: 1,
@@ -149,6 +182,21 @@ describe("SDD-0686 fase 2 · grupo 8: conversaciones, menciones y el panel sin v
 });
 
 describe("SDD-0686 · cierre de la fase 2: todo app/studio", () => {
+  it("studio.css solo pinta vino en las reglas de la lista", () => {
+    expect(reglasFuera(leer(join(RAIZ, "app/studio/studio.css")))).toEqual([]);
+  });
+
+  it("mutante: una regla nueva con vino en studio.css se detecta", () => {
+    const css = `${leer(join(RAIZ, "app/studio/studio.css"))}\n.x-nueva { color: var(--wine); }\n`;
+    expect(reglasFuera(css)).toEqual([".x-nueva"]);
+  });
+
+  it("el detector ve eyebrow-wine y data-tono=\"vino\"", () => {
+    expect(cuentaVino(`<div className="eyebrow eyebrow-wine">`)).toBe(1);
+    expect(cuentaVino(`<span data-tono="vino">`)).toBe(1);
+    expect(cuentaVino(`<span data-tono="tinta">`)).toBe(0);
+  });
+
   it("cada archivo del Studio con vino está en la lista, con su cuenta exacta", () => {
     const esperado = Object.fromEntries(Object.entries(PERMITIDO).map(([f, v]) => [f, v.cuenta]));
     expect(cuentasEn(["app/studio"], leer)).toEqual(esperado);

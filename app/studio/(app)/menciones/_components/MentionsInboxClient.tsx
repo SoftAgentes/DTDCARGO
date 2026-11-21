@@ -122,7 +122,8 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   <span
                     style={{
                       font: "600 10px/1 var(--f-sans)",
-                      color: "var(--ink-soft)",
+                      // Sin leer, el fondo es el tinte de tinta: --ink-soft daría 4,36:1.
+                      color: unread ? "var(--ink)" : "var(--ink-soft)",
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                     }}
@@ -133,7 +134,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-soft)",
+                      color: unread ? "var(--ink)" : "var(--ink-soft)",
                       marginLeft: "auto",
                     }}
                   >
@@ -143,7 +144,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                 <div
                   style={{
                     font: "500 12.5px/1.5 var(--f-sans)",
-                    color: "var(--ink-soft)",
+                    color: unread ? "var(--ink)" : "var(--ink-soft)",
                     overflow: "hidden",
                     display: "-webkit-box",
                     WebkitLineClamp: 2,

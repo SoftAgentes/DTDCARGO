@@ -605,7 +605,12 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
   - `app/studio/(app)/_components/comments` (3): `CommentItem.tsx`, `CommentsThread.tsx`, `MentionDropdown.tsx`
   - `app/studio/(panel)/ficha-chat/_components` (3): `FichaDtdView.tsx`, `CostoChatCard.tsx`, `VincularCliente.tsx`
   - Impresos de grupos anteriores (3): `app/studio/(app)/fiscal/_components/FiscalClient.tsx`, `WithholdingsView.tsx` y `app/studio/(app)/reportes/_components/BuilderView.tsx`
-- **Además:** el contrato `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`, esta spec y el handoff.
+  - Primitiva y guía (2): `app/studio/_components/ui/Avatar.tsx` y `app/studio/CLAUDE.md` (la línea de `Avatar`)
+  - Ronda de la revisión de la #745 (3): `app/studio/studio.css`, `app/studio/(app)/_components/ConversationsIndicator.tsx` y `app/studio/_components/__tests__/vino-detector.ts`
+- **Además:**
+  - el contrato nuevo `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`;
+  - dos contratos anteriores que bajan su cuenta: `color-accion-fase2-contract.test.ts` (grupo 1, sale `Avatar`) y `claridad-t5d-contract.test.ts` (SDD-0603, el vino de conversaciones pasa a 0);
+  - esta spec y el handoff.
 
 **Estados y señales, caso por caso**
 
@@ -615,7 +620,7 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 | Conversaciones, lista (`ConversationList.tsx`) | Avatar del agente cuando la conversación es un caso | `neutral` | El Badge «Caso» de la misma fila |
 | Conversaciones, hilo (`ConversationThread.tsx`) | Mensaje saliente | Tinta: burbuja `--ink` con texto `--ink-inv`. El tramo 5d de la SDD-0603 la había anotado como identidad; con BD-076 el vino es solo logo y wordmark, así que el contrato `claridad-t5d-contract.test.ts` pasa su cuenta de vino a 0, igual que la del contador | La alineación a la derecha y la esquina recortada del lado propio |
 | Menciones (`MentionsInboxClient.tsx`) | Mención no leída (fondo, borde y punto) | Tinta: fondo de selección al 8 %, borde y punto `--ink` | Texto oculto «No leída.» al inicio del botón (nuevo); antes solo había un punto `aria-hidden` |
-| Menciones (`MentionsInboxClient.tsx`) | Tipo de entidad y su código | `--ink-soft` | El texto mismo |
+| Menciones (`MentionsInboxClient.tsx`) | Tipo de entidad y su código, la hora y el extracto | `--ink` mientras la mención no está leída, `--ink-soft` después. Sobre el tinte de no leída, `--ink-soft` daba 4,36:1 en claro (revisión de la #745); `--ink` da 13,50:1 | El texto mismo |
 | Servicios (`ServiciosClient.tsx`) | Servicio principal (★) | `--ink` | La estrella, ahora con `role="img"` y «Servicio principal» (nuevo) |
 | Servicios (`ServiciosClient.tsx`) | Badge «Núcleo» | `neutral` | El texto «Núcleo» frente a «Add-on» |
 | Rendición impresa (`rendiciones/[code]/page.tsx`) | Código de la rendición | `--ink`, que el bloque de impresión ancla al valor claro | Es un dato, no identidad. Antes usaba `--wine-text`, que el bloque de impresión no anclaba |
@@ -632,7 +637,7 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 
 **Impresos:**
 - Salen las declaraciones `--wine: #7F0F1A` del recibo de cobranza y de la rendición, que nadie usaba.
-- El libro fiscal, el comprobante de retención y el constructor de reportes declaraban `--wine` en su bloque de impresión, pero el encabezado de marca se pinta con `--wine-text`. Impreso desde el tema oscuro, salía en el vino claro del tema oscuro (`#D89AA4`). Ahora anclan `--wine-text` al valor claro (`#7F0F1A`).
+- El libro fiscal, el comprobante de retención y el constructor de reportes declaraban `--wine` en su bloque de impresión, pero el encabezado de marca se pinta con `--wine-text`. El ancla nueva de `--wine-text` en ese contenedor (`#7F0F1A`) es redundante: `tokens.css:382-387` ya devuelve `--wine-text` a `#7F0F1A` en `@media print` desde `b717aa986`. Se deja porque declara el token que el encabezado de verdad usa, en lugar del `--wine` que nadie usaba.
 
 **Cierre de la fase 2.** El contrato del grupo 8 recorre todo `app/studio` con el detector común y admite solo esta lista, con su cuenta exacta:
 
@@ -648,13 +653,26 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 | `_components/ui/EmptyState.tsx` | 1 | Eyebrow del estado vacío (identidad, grupo 1) |
 | `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla del Studio lo usa; lo usa el móvil hasta la fase 3 |
 
+| `studio.css` | 18 | El alias `--studio-wine-soft` del eyebrow (identidad, fase 1) y las tres familias pendientes de abajo. Las reglas permitidas están en `STUDIO_CSS_PERMITIDO`: una regla nueva con vino rompe |
+
 Quedan fuera de ese recorrido:
-- `tokens.css` y `studio.css`, que definen los tokens;
+- `tokens.css`, que define los tokens;
 - noticias-web, cuyo vino de acción en el bloque claro lo cuenta el contrato del grupo 3 y espera `--color-accion*` de la fase 3.
 
 El contrato trae además:
-- cuatro mutantes: el mensaje saliente, el Shipping Mark del panel, un avatar de comentario y un vino nuevo fuera de los grupos;
-- las comprobaciones de los impresos y del aviso «No leída».
+- cinco mutantes: el mensaje saliente, el Shipping Mark del panel, un avatar de comentario, un vino nuevo fuera de los grupos y una regla nueva con vino en `studio.css`;
+- las comprobaciones de los impresos, del aviso «No leída» y de los dos huecos de clase que ahora ve el detector: `eyebrow-wine` y `data-tono="vino"`.
+
+**Familias de `studio.css` que la fase 1 dejó pendientes (revisión de la #745).**
+
+| Familia | Decisión | Detalle |
+|---|---|---|
+| Contador de no leídos de la barra superior (`.studio-contador-icono`, `ConversationsIndicator.tsx`) | Tinta: `data-tono="tinta"`, fondo `--ink` y cifra `--ink-inv`; el tono «vino» desaparece | Es una cifra, igual que el contador de `ConversationList`. Lo dice sin el color: la cifra y el `aria-label` «N sin leer» del enlace |
+| Chip de @mención (`.mention-chip`, lo arma `lib/studio/comments/mention-parse.ts`) | Acción: `--accion-text` sobre el 8 % de `--accion` | Es una referencia que se abre. No usa `--accion-tint`, porque su 14 % del tema oscuro dejaba el texto en 4,29:1 sobre la burbuja (`--bg-elevated`). Al 8 % da 5,96:1 en claro y 4,79:1 en oscuro. Lo dice sin el color: la @ y el peso 600 |
+| Destello al guardar un permiso (`studio-permcell-saved`, `.studio-permcell-flash`) | `--success` | Confirma un guardado. Anillo de 3 px: 3,81:1 o más en claro y 6,75:1 o más en oscuro contra los fondos. Con movimiento reducido el anillo queda fijo |
+| Tracking en vivo (`.studio-tracking-ops-*`: barra, mapa, hitos, eyebrow, fila resaltada y código; 12 usos) | **Pendiente**: fase 3, la decide Sam con el Director viendo la pantalla | Mezcla progreso, posición en el mapa, estado de hitos y selección. Ninguna regla vigente resuelve las seis piezas a la vez |
+| Matriz de permisos (`.studio-mx-st[data-n="all"]`, `.studio-mx-chg`, `.studio-mx-dot`; 4 usos) | **Pendiente**: fase 3, la decide Sam con el Director | «Todo» es un nivel de acceso y el punto marca un cambio. Hace falta decidir si el acceso total es un estado (tinta) o una advertencia |
+| Contador de alerta de pestaña (`.studio-tab-n[data-alerta]`, proveedores; 1 uso) | **Pendiente**: fase 3, la decide Sam con el Director | Marca servicios «pendientes por atender». Es atención, pero no existe `--warning-text` para texto de 12 px: `--warning` da 3,14:1 |
 
 **`Avatar` pasa a neutral.**
 - La decisión es de Sam, del 2026-11-21: «Pasa a neutral (Recomendado)». Las iniciales de una persona no son identidad; el vino queda para el logo.

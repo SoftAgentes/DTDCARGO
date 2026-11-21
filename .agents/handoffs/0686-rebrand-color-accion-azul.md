@@ -63,6 +63,12 @@ Estado del 2026-11-20, tarde:
    - El contrato del grupo 8 recorre todo `app/studio` y solo admite la lista de identidad y primitivas, con su cuenta exacta.
    - Los impresos fiscales y el del constructor anclan `--wine-text` al valor claro.
    - `Avatar` pasa a neutral por decisión de Sam (2026-11-21): sin tono `wine`, con `neutral` por defecto y las iniciales en `--ink`.
+   - Ronda de la revisión de la #745:
+     - contador de la barra superior en tinta, chip de @mención en acción y destello de permiso en éxito;
+     - `studio.css` congelado en el contrato de cierre (18, por regla);
+     - el detector ve `eyebrow-wine` y `data-tono="vino"`;
+     - Menciones sin leer en `--ink`.
+   - Pendientes para la fase 3, a decidir por Sam con el Director: Tracking en vivo, la matriz de permisos y la alerta de pestaña de proveedores.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 
