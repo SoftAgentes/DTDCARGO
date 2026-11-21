@@ -111,7 +111,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
                         style={{
                           marginLeft: 6,
                           font: "700 9px/1 var(--f-sans)",
-                          color: "var(--warning)",
+                          color: "var(--danger-text)",
                           letterSpacing: "0.06em",
                           textTransform: "uppercase",
                         }}

@@ -113,7 +113,7 @@ export function MonthView({
               key={cell.isoDate}
               onClick={() => cell.inMonth && onDayClick(cell.isoDate)}
               disabled={!cell.inMonth}
-              aria-label={`Ver eventos del ${cell.isoDate}`}
+              aria-label={`Ver eventos del ${cell.isoDate}${criticalCN ? ", feriado crítico en China" : ""}`}
               className="studio-cal-daycell"
               style={{
                 minHeight: 116,
@@ -201,7 +201,8 @@ export function MonthView({
                       >
                         {/* Crítico = la operación en China se para (Año Nuevo
                             Chino, Golden Week): además de la barra en peligro,
-                            un ícono y el texto, para no decirlo solo con color. */}
+                            un ícono y el estado en el nombre accesible del botón (aria-label),
+                            para no decirlo solo con color. */}
                         {criticalCN && (
                           <span
                             aria-hidden
@@ -211,7 +212,6 @@ export function MonthView({
                           </span>
                         )}
                         {cnHoliday.shortName}
-                        {criticalCN && <span className="studio-sr-only"> · feriado crítico</span>}
                       </span>
                     )}
                     {veHoliday && (

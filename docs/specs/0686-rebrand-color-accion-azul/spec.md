@@ -404,14 +404,14 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
   - `(app)/reclamos` (2): `_components/ClaimDrawer.tsx`, `_components/ReclamosClient.tsx`
   - `(app)/tarifas` (2): `_components/RateDrawer.tsx`, `_components/TarifasClient.tsx`
   - `(app)/tms` (8): `_components/DriverDrawer.tsx`, `_components/DriversTab.tsx`, `_components/FleetTab.tsx`, `_components/GpsLiveTab.tsx`, `_components/IncidentsTab.tsx`, `_components/RouteDrawer.tsx`, `_components/RoutesTab.tsx`, `_components/TmsKpis.tsx`
-- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g5-contract.test.ts`, esta spec y el handoff.
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g5-contract.test.ts`, la prueba nueva `(app)/calendario/_components/MonthView.test.tsx`, esta spec y el handoff.
 
 **Estados y señales, caso por caso**
 
 | Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
 |---|---|---|---|
 | Calendario (`AgendaView`, `DayDrawer`, `FairsPanel`, `WeekView`, `MonthView:132`, `CalendarLegend:68`, `:73`, `UpcomingHolidaysCard:25`) | Feriado de China | `--warning` (borde, punto y Badge) | El Badge dice «CN». Un feriado común avisa: va en atención, no en peligro |
-| Calendario, mes (`MonthView:132`) y leyenda (`CalendarLegend:66-68`) | Feriado **crítico** de China: la operación se para (Año Nuevo Chino, Golden Week) | Barra en `--danger`: 4,62:1 en claro y 3,11:1 en oscuro contra la celda. Con `--warning` daba 2,21:1 en claro (revisión de la #741, que corrige la decisión anterior: el crítico sí es peligro) | Un ícono de alerta junto al nombre del feriado en la celda, el título «· feriado crítico» y el mismo texto para lectores de pantalla. En la agenda y el cajón del día ya decían «Operación CN paralizada» y «Crítico» |
+| Calendario, mes (`MonthView:132`) y leyenda (`CalendarLegend:66-68`) | Feriado **crítico** de China: la operación se para (Año Nuevo Chino, Golden Week) | Barra en `--danger`: 4,62:1 en claro y 3,11:1 en oscuro contra la celda. Con `--warning` daba 2,21:1 en claro (revisión de la #741, que corrige la decisión anterior: el crítico sí es peligro) | Un ícono de alerta junto al nombre del feriado en la celda y el título «· feriado crítico». Para lectores de pantalla, el estado va en el nombre accesible del botón del día («Ver eventos del AAAA-MM-DD, feriado crítico en China»): el botón lleva `aria-label`, que tapa el texto de adentro (revisión de la #741). Lo vigila `calendario/_components/MonthView.test.tsx`. En la agenda y el cajón del día el texto ya decía «Operación CN paralizada» y «Crítico». El Badge «Crítico» de `FairsPanel.tsx` pasa a `danger` y la marca «crítico» de `UpcomingHolidaysCard.tsx` a `--danger-text`: como texto de 9 px da 5,78:1 en claro y 5,89:1 en oscuro sobre `--bg-elevated` (con `--danger` en oscuro daba 4,43:1, por debajo de AA) |
 | Calendario (`MonthView:192`, `UpcomingHolidaysCard:24`) | Texto del nombre del feriado chino | `--ink` | El nombre mismo. `--warning` no llega a 4,5:1 como texto chico |
 | Calendario (`CalendarClient:327`) | Punto de «Arribos · ETA» en los filtros | `--ink-soft` | La etiqueta; igual que la ETA del grupo 3, que pinta neutral |
 | Calendario (`MonthView:160`, `WeekView:66`, `:91`, `CalendarLegend:82`) | Día de hoy | `--ink` (fondo de tinta y número en `--bg-surface`) | La leyenda «Hoy» y el círculo; como el día de hoy del grupo 1 |
@@ -443,7 +443,7 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 - Los tintes `--cal-cn-soft` y `--cal-cn-critical` de `tokens.css` siguen en la familia roja (`rgba(168,50,62,…)` en claro y `rgba(224,119,133,…)` en oscuro). Son de la fase 1. Se deciden junto con la barra del feriado crítico del mes, en el próximo tramo que toque `tokens.css` y con su propia revisión.
 - La etiqueta impresa (`etiquetas/_components/Label.tsx:153`, `:162` y `:200`) conserva `#7F0F1A` escrito a mano, incluido el Shipping Mark, que es un dato. El detector no ve hex: va con la fase 4, donde están los hex de la familia vino. Por eso esta carpeta tiene cero vino **por token y por clase**, no cero vino.
 - La barra de ocupación blanca del despacho da 2,83:1 contra su pista en claro (antes 1,21) y 3,65:1 en oscuro. La acompaña la cifra «usado / total». Llevarla a 3:1 en claro queda pendiente.
-- **Fuera de alcance detectado:** en `calendario/_components/UpcomingHolidaysCard.tsx:109-120`, la marca «crítico» (9 px) va en `--warning`, que da 3,14:1 sobre la tarjeta en claro. Ya estaba así en `main`.
+- ~~La marca «crítico» de `UpcomingHolidaysCard.tsx`, en `--warning` a 3,14:1, venía de `main`.~~ Resuelto en esta PR: pasa a `--danger-text` (fila del feriado crítico).
 
 El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carpetas (los hex escritos a mano son de la fase 4). Mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
 

@@ -128,7 +128,7 @@ export function FairsPanel({ country, fairs, holidays }: Props) {
               >
                 {h.name}
                 {h.critical && (
-                  <Badge tone="warning" size="sm">
+                  <Badge tone="danger" size="sm">
                     Crítico
                   </Badge>
                 )}
