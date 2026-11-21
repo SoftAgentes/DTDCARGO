@@ -68,7 +68,7 @@ describe("SDD-0686 fase 2 · grupo 4: en las pantallas de dinero solo queda iden
 
   it("mutante: devolver el vino al KPI «Por pagar» de tesorería rompe el contrato", () => {
     const objetivo = "app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx";
-    expect(mutar(objetivo, 'label="Por pagar"\n          valueColor="var(--ink)"', 'label="Por pagar"\n          valueColor="var(--wine-text)"')).toBe(1);
+    expect(mutar(objetivo, 'label="Por pagar"\n', 'label="Por pagar"\n          valueColor="var(--wine-text)"\n')).toBe(1);
   });
 
   it("mutante: un débito en vino por tono de Badge se detecta", () => {
