@@ -34,8 +34,8 @@ Sam pidió el 2026-11-20 que el ERP se vea simétrico en todas las secciones, co
    - anchos de panel, opción A (520, 640 y 760);
    - Portal, opción 2 (reglas ya, en la fase 10; medidas con su rediseño);
    - los ocho extras, cada uno en su fase (11 a 18). El Director confirmó que manda la respuesta de Sam.
-   Queda abierto el **BRAND-CHECK de la regla 4** (destructivo en tres énfasis), que hay que registrar como decisión de marca o reducir a variantes existentes antes de la fase 4.
-3. Fase 1 (reglas en políticas); luego fases 2 a 9, cada una con su allowlist y su PR.
+   Queda abierto el **BRAND-CHECK de la regla 4** (destructivo en tres énfasis): no está vigente hasta que Sam confirme la excepción con sus palabras, y esa pregunta la hace el Director General. La pieza de §4 y su parte de la fase 4 están condicionadas a ese cierre.
+3. Fase 1 (reglas en políticas); luego fases 2 a 18, cada una con su allowlist y su PR.
 4. Localizar el texto normativo de AVS-01: el registro la da por «verificada», pero no hay archivo en `docs/governance/policies/`.
 
 ## FUERA DE ALCANCE DETECTADO

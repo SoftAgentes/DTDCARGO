@@ -41,7 +41,7 @@ Spec propuesta. **Nada implementado.** Número asignado por el Director General 
 | Qué | Lo medido |
 |---|---|
 | Título de página | 91 `<h1>` a mano en 87 archivos: 7 tamaños (30 px en 60), 20 combinaciones de margen, 10 clases. Solo una página tiene un componente de encabezado, y es local (`calendario/page.tsx:83`) |
-| Panel lateral | 117 `DrawerShell` con 13 anchos (de 480 a 760 px); `width` es un número libre (`drawer/DrawerShell.tsx:39`) |
+| Panel lateral | 117 `DrawerShell` con 13 anchos (de 480 a 760 px). Uno usa el ancho por defecto y 116 reciben un número libre (`drawer/DrawerShell.tsx:39`) |
 | Pie del panel | 45 archivos usan `DrawerShell` sin `DrawerFooter` |
 | Tablas | 73 `<table>` crudas en 50 archivos; `TableFrame` se usa 10 veces en 8 archivos |
 | Tamaños de letra | 22 tamaños escritos en línea, de 9 a 34 px |
@@ -70,6 +70,8 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 
 ## 3. Reglas nuevas (cambian políticas; aprobadas por Sam el 2026-11-20, §11)
 
+> **Salvedad · regla 4.** Sam aprobó las seis reglas de botones, pero no se le mostró que la 4 contradice `BRAND.md:324`. La regla 4 queda **pendiente de BRAND-CHECK**: no está vigente hasta que Sam confirme la excepción con sus palabras (`BRAND.md:11`). Esa pregunta la hace el Director General. Las reglas 1 a 3, 5 y 6 sí están vigentes.
+
 Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su código y en su documentación pública (ver `docs/design/rebrand-erp/evaluacion-carbon.md` §4). **No se instala ninguna librería.**
 
 **Para BTN-01 (pasaría a v1.3; la v1.2 la tomó SDD-0686 para el color de `primary`):**
@@ -77,7 +79,7 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 1. Etiqueta de **verbo + sustantivo** («Guardar cambios», «Crear embarque»), salvo los comunes («Guardar», «Cancelar», «Cerrar», «Eliminar»). El verbo sale siempre del vocabulario de BTN-01 §3. La regla no lo cambia: le agrega el objeto cuando sin él la acción queda ambigua. «Guardar» a secas sigue siendo válido en el pie de un formulario de un solo objeto (**I**: así se concilia con `btn-01.md:60`). Lo que Sam vio como «así no» fueron «OK» y «Aceptar».
 2. **Máximo tres acciones visibles por grupo de botones** (encabezado, pie de panel, barra de herramientas); la cuarta va al menú de acciones. **No relaja la fila de tabla:** ahí sigue el máximo de dos acciones de bajo énfasis de BTN-01 §4 (`btn-01.md:92`).
 3. **Un solo tamaño dentro de un grupo** de botones.
-4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo. Ver el BRAND-CHECK de abajo: la variante nueva queda **pendiente de registrar como decisión de marca** antes de la fase 4.
+4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo. **Pendiente de BRAND-CHECK** (ver abajo): no está vigente.
 5. **Posición fija del icono** respecto del texto. Hoy va a la izquierda (`ActionButton.tsx:213-214`); se fija así.
 6. **La etiqueta no se corta**: si no cabe, baja de línea.
 
@@ -85,7 +87,9 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 >
 > - **Lo que se pide:** un botón destructivo en tres énfasis (relleno, contorno, texto).
 > - **Regla que toca:** `BRAND.md:324` («6 variantes oficiales… No inventes») y la regla de `BRAND.md:11` de avisar antes de una variante nueva. Hoy existe un solo `danger`, con relleno.
-> - **Estado:** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca. **Pendiente:** registrarla en `BRAND-DECISIONS.md` con un número que asigne el Director (o reducirla a variantes que ya existen: `danger` y `ghost` con texto de peligro) antes de abrir la fase 4. Mientras tanto no se implementa.
+> - **Estado: abierto.** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca.
+> - **Cómo se cierra:** Sam confirma la excepción con sus palabras. Se lo pregunta el Director General. Si la confirma, se registra en `BRAND-DECISIONS.md`. Si no, la regla 4 se retira o se reduce a variantes que ya existen.
+> - **Mientras tanto:** en BTN-01 v1.3 se escribe como «pendiente de BRAND-CHECK», no como vigente. La pieza de §4 y su parte de la fase 4 no se implementan.
 
 **Para los mensajes (enmienda de AVS-01; no contradice ERR-01, que ya pide el error cerca de su causa):**
 
@@ -95,7 +99,7 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 
 **Medidas (aprobadas por Sam, §11.2):**
 
-10. **Tres anchos de panel lateral** en vez de 13: `sm` 520, `md` 640 y `lg` 760 px. Es la opción A que eligió Sam (§11.2). Hoy hay 520 en 19 paneles, 560 en 37, 640 en 12 y 720/760 en 8.
+10. **Tres anchos de panel lateral** en vez de 13: `sm` 520, `md` 640 y `lg` 760 px. Es la opción A que eligió Sam (§11.2). Hoy hay 520 en 19 paneles, 560 en 37, 640 en 12 y 720/760 en 8 (**M**, sobre `main` `2daee8546`). Se leyó la etiqueta `<DrawerShell …>` completa de los TSX de producción: 117 paneles, de los cuales 116 tienen `width` numérico. La primera versión de esta spec decía 560 en 36 y 720/760 en 7, porque contaba con una búsqueda por líneas que perdía las etiquetas largas. Corregido aquí.
 11. **Un solo tamaño y un solo margen para el título de página.**
 
 ## 4. Piezas compartidas
@@ -113,7 +117,7 @@ Cada una entra por CMP-01 como `proposed`, con su ficha en `docs/governance/comp
 | `Ficha` | Pares etiqueta y valor para lo que solo se lee | — |
 | `Campo` | Etiqueta, ayuda, error y marca de obligatorio iguales (FRM-01) | Ayudantes en `tms/_components/TruckDrawer.tsx` (deuda anotada en `app/studio/CLAUDE.md`, «Deuda técnica conocida») |
 | `TableFrame` extendido | Densidad, cifras a la derecha, encabezado fijo, orden anunciado | `ui/DataTable.tsx` |
-| Variante destructiva en tres énfasis | Regla 4 | `.studio-btn-danger` |
+| Variante destructiva en tres énfasis (**condicionada al cierre del BRAND-CHECK de la regla 4**) | Regla 4 | `.studio-btn-danger` |
 
 ## 5. Fases
 
@@ -121,10 +125,10 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 
 | Fase | Qué | Tamaño |
 |---|---|---|
-| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam | S |
+| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entra marcada como «pendiente de BRAND-CHECK», no como vigente | S |
 | **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra | M |
 | **3** | **Paneles:** `tamano` y `DrawerFooter` obligatorio; migración de los 117 paneles por grupos | M-L |
-| **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px, los 11 sin `type`, y la variante destructiva en tres énfasis | M |
+| **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px y los 11 sin `type`. La variante destructiva en tres énfasis entra **solo si se cerró el BRAND-CHECK de la regla 4**; si no, la fase sigue sin ella | M |
 | **5** | **Encabezados:** los 91 títulos, por grupos de módulos | L, varias PR |
 | **6** | **Rastro de fila** (`useRowHighlight`) en todos los listados con acciones | M |
 | **7** | **Tablas:** `TableFrame` extendido y adopción de TBL-01 por módulo | L, varias PR |
@@ -162,6 +166,18 @@ Cada regla se vigila con un contrato que mide comportamiento o estructura, con p
 - **Tablas:** las tablas adoptadas anuncian el orden (`aria-sort`) y distinguen «sin datos» de «sin coincidencias».
 - **Sin regresión:** siguen pasando los contratos de SDD-0603, SDD-0628 y SDD-0678.
 - Ningún texto visible cambia salvo las etiquetas de botón que la regla 1 obligue a completar; esas se listan en la PR, una por una, para aprobación.
+- **Portal (fase 10):** los contratos de botones (alto mínimo, `type`, etiqueta con verbo del vocabulario, un tamaño por grupo, a lo sumo tres a la vista) y de mensajes (tipo con nombre, persistencia, aviso del formulario encima del pie) corren también sobre `app/portal/`, con su propia lista congelada que solo baja. Las medidas del Portal no se miden en esta fase.
+- **Extras (fases 11 a 18):** cada uno trae su contrato con piso y mutante antes de cerrar su fase. Por ejemplo:
+  - cerrar un panel con cambios pregunta antes de perderlos;
+  - toda ruta del grupo 2 tiene `loading.tsx`;
+  - un botón deshabilitado expone su motivo con `aria-describedby`;
+  - la barra por lote solo aparece con selección y dice cuántas filas;
+  - las páginas de error y «no encontrado» ofrecen cómo volver;
+  - las migas de pan reflejan la ruta;
+  - hay un solo componente de «Copiar»;
+  - la lista paginada no carga más de una página (TBL-01).
+
+  El criterio exacto se fija al abrir cada fase (**I**).
 
 ## 7. Gate VIS-01
 
@@ -197,7 +213,7 @@ Color (SDD-0686), formato de cifras (SDD-0687), las **medidas** en el Portal (an
 1. ~~Reglas de botones 1 a 6 de §3.~~ **Aprobadas el 2026-11-20.** Sam vio las seis dibujadas, cada una con su «así no» y su «así sí», y respondió: «Reglas de botones: aprobadas las seis». Entran en BTN-01 v1.3.
    Las reglas 7 a 9 (mensajes) quedaron **aprobadas el 2026-11-20**. Sam vio dibujados los cuatro tipos (en línea, toast, accionable y llamada), cada uno con su persistencia, y el lugar fijo del aviso del formulario encima de la fila de botones del pie. Respondió: «Reglas de mensajes: aprobadas las tres». Se escriben como enmienda de AVS-01.
 2. ~~Los tres anchos de panel (regla 10).~~ **Decidido el 2026-11-20: opción A, `sm` 520, `md` 640 y `lg` 760 px.** Sam comparó dos opciones dibujadas sobre una pantalla de 1.400 px:
-   - **A** (520 · 640 · 760): no cambian 32 de los 116 paneles y se achican unos 49, sobre todo los 37 que hoy miden 560 y pasan a 520.
+   - **A** (520 · 640 · 760): no cambian 32 de los 116 paneles con ancho numérico y se achican unos 49, sobre todo los 37 que hoy miden 560 y pasan a 520.
    - **B** (560 · 640 · 720, la recomendada): no cambian 56 y se achica 1.
 
    Respondió: «Anchos de panel: opción A, 520, 640 y 760». **Cómo se aplica (M, conteo de `width={N}` en `<DrawerShell>`):**
