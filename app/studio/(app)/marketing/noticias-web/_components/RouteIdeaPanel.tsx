@@ -257,7 +257,7 @@ function RouteIdeaResultView({
                     background: yes
                       ? "var(--success-bg)"
                       : "var(--neutral-bg)",
-                    color: yes ? "var(--success)" : "var(--ink-mute)",
+                    color: yes ? "var(--success)" : "var(--ink-soft)",
                   }}
                   aria-hidden
                 >

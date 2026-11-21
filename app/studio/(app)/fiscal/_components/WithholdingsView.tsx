@@ -288,7 +288,7 @@ export function WithholdingsView({
               {rows.map((r) => {
                 const anulado = r.status === "anulado";
                 const strike: React.CSSProperties = anulado
-                  ? { textDecoration: "line-through", color: "var(--ink-mute)" }
+                  ? { textDecoration: "line-through", color: "var(--ink-soft)" }
                   : {};
                 return (
                   <tr key={r.id}>

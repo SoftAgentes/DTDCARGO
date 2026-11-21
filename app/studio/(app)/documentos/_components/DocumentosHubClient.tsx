@@ -275,7 +275,7 @@ export function DocumentosHubClient({
                     <span
                       style={{
                         font: "700 10.5px/1 var(--f-mono)",
-                        color: topActive ? "var(--ink)" : "var(--ink-mute)",
+                        color: topActive ? "var(--ink)" : "var(--ink-soft)",
                       }}
                     >
                       {folderTreeCount(counts, g.id)}

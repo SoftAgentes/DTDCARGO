@@ -232,7 +232,7 @@ export function RecoveryTab({
               {k.label}
             </div>
             {"sub" in k && k.sub ? (
-              <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)", marginTop: 2 }}>
+              <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
                 {k.sub}
               </div>
             ) : null}
@@ -593,7 +593,7 @@ export function RecoveryTab({
                         style={{
                           textAlign: "center",
                           font: "600 12px/1 var(--f-sans)",
-                          color: r.email ? "var(--success)" : "var(--ink-mute)",
+                          color: r.email ? "var(--success)" : "var(--ink-soft)",
                         }}
                         title={r.email ?? "Sin email"}
                       >
@@ -618,7 +618,7 @@ export function RecoveryTab({
                             WhatsApp →
                           </a>
                         ) : (
-                          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                             Nº no usable
                           </span>
                         )}

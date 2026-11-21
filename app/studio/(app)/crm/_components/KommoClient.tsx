@@ -719,7 +719,7 @@ function LeadsTable({
                       {fmtUsd(kommoPrice)}
                     </span>
                   ) : (
-                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                       —
                     </span>
                   )}

@@ -221,7 +221,7 @@ const COLUMNS: ColDef[] = [
           {done}/{t.checklist.length}
         </code>
       ) : (
-        <span style={{ color: "var(--ink-mute)" }}>—</span>
+        <span style={{ color: "var(--ink-soft)" }}>—</span>
       );
     },
   },
@@ -245,7 +245,7 @@ const COLUMNS: ColDef[] = [
           {title}
         </span>
       ) : (
-        <span style={{ color: "var(--ink-mute)" }}>—</span>
+        <span style={{ color: "var(--ink-soft)" }}>—</span>
       );
     },
   },

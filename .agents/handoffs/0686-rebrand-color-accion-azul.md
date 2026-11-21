@@ -79,7 +79,7 @@ Estado del 2026-11-20, tarde:
    - 44 títulos sin sufijo doble;
    - margen para el botón flotante.
 
-   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)»; confirmado: «Sí, el logo se cambia a la opción A»), en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. La nota «hoy» de `ee44876d2` queda sin efecto. Las cifras KPI se decidieron después (ver 10). Pendiente: 115 usos de `--ink-mute` como texto.
+   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)»; confirmado: «Sí, el logo se cambia a la opción A»), en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. La nota «hoy» de `ee44876d2` queda sin efecto. Las cifras KPI se decidieron después (ver 10). Los textos en `--ink-mute` se cerraron el 2026-11-21 (Sam: «a recomendada», opción A): 166 pasan a `--ink-soft` en la rama `claude/sdd-0686-cierre-color-studio`; quedan tres deshabilitados.
 10. Cifras KPI en tinta (Sam, opción A), 2026-11-21, rama `claude/sdd-0686-kpi-tinta`:
    - `KpiCard` sin `valueColor` y con `status`;
    - las 81 cifras semánticas, a tinta con su estado aparte;

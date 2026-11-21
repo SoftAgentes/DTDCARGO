@@ -435,7 +435,7 @@ function NameRow({
             ? highlight
               ? "var(--danger)"
               : "var(--ink)"
-            : "var(--ink-mute)",
+            : "var(--ink-soft)",
           wordBreak: "break-word",
         }}
       >

@@ -601,7 +601,7 @@ function ExpenseRow({
               {shipmentCode}
             </code>
           ) : (
-            <span style={{ color: "var(--ink-mute)" }}>—</span>
+            <span style={{ color: "var(--ink-soft)" }}>—</span>
           )}
         </span>
       )}
@@ -617,7 +617,7 @@ function ExpenseRow({
       <span
         style={{
           font: "500 12.5px/1.3 var(--f-sans)",
-          color: row.note ? "var(--ink)" : "var(--ink-mute)",
+          color: row.note ? "var(--ink)" : "var(--ink-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -658,7 +658,7 @@ function ExpenseRow({
       </span>
 
       {/* Recibo (indicador · link diferido a task export) */}
-      <span style={{ textAlign: "center", color: row.receipt_path || row.receipt_document_id ? "var(--ink-soft)" : "var(--ink-mute)" }}>
+      <span style={{ textAlign: "center", color: row.receipt_path || row.receipt_document_id ? "var(--ink-soft)" : "var(--ink-soft)" }}>
         {row.receipt_path || row.receipt_document_id ? Icon.camera(14) : "—"}
       </span>
 

@@ -485,7 +485,7 @@ function ClientsTable({
             role="cell"
             style={{
               font: "600 12px/1 var(--f-mono)",
-              color: c.rif ? "var(--ink)" : "var(--ink-mute)",
+              color: c.rif ? "var(--ink)" : "var(--ink-soft)",
               letterSpacing: "0.02em",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -520,7 +520,7 @@ function ClientsTable({
                   title={`Cliente de ${aliadoPorId.get(c.aliado_id)!.tradeName}`}
                   style={{
                     font: "600 10px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     letterSpacing: "0.06em",
                     whiteSpace: "nowrap",
                   }}
@@ -590,7 +590,7 @@ function ClientsTable({
                 {c.phone}
               </div>
             )}
-            {!c.email && !c.phone && <span style={{ color: "var(--ink-mute)" }}>—</span>}
+            {!c.email && !c.phone && <span style={{ color: "var(--ink-soft)" }}>—</span>}
           </div>
           <span
             role="cell"

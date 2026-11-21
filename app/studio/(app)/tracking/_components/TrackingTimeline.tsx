@@ -134,7 +134,7 @@ export function TrackingTimeline({ shipment }: Props) {
                     font: `${step.state === "active" ? "800" : "600"} 13.5px/1.2 var(--f-sans)`,
                     color:
                       step.state === "pending"
-                        ? "var(--ink-mute)"
+                        ? "var(--ink-soft)"
                         : "var(--ink)",
                   }}
                 >

@@ -38,7 +38,7 @@ export function SaldoPendienteContexto({
     <div>
       <div style={ETIQUETA}>Saldo pendiente</div>
       {loading ? (
-        <span style={{ ...NOTA, color: "var(--ink-mute)" }}>—</span>
+        <span style={{ ...NOTA, color: "var(--ink-soft)" }}>—</span>
       ) : !context ? (
         <span style={NOTA}>—</span>
       ) : saldo === null || saldo === undefined ? (
