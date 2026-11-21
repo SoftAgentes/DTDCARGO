@@ -158,10 +158,12 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 | Proveedor del modelo: Z.AI (glm-5.3) como principal y DeepSeek (deepseek-chat) como respaldo, desde el 16/11/2026 a las 12:10Z (comprobado el 20/11/2026 con `hermes fallback list`). *Corrección del 21/11/2026: esta fila decía que el respaldo DeepSeek estaba quitado, y no era así* | El prompt de la llamada: instrucciones, guiones y los mensajes **con los datos personales tapados** desde SDD-0700 (antes llegaban completos) | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | `hermes fallback list` del perfil `soporte-chatwoot` (VPS Oficina) |
 
 - **Datos tapados antes del modelo (SDD-0700, 21/11/2026).** Es la primera parte del punto (a) acordado para la etapa 2.
-  `tapar-datos.ts` usa las mismas expresiones que el detector de la salida (`detectorDelCable`), así que lo que se
-  revisa en la respuesta es lo mismo que se tapa en la entrada. **No se tapan** los nombres de personas, los números de
-  guía ni los textos libres que no encajan en ningún patrón (por ejemplo, una dirección sin número o un teléfono escrito
-  en palabras): siguen llegando al proveedor. Quedan pendientes del punto (a): revisar a los proveedores y avisar al cliente.
+  `tapar-datos.ts` usa la misma lista que el detector de la salida (`detectorDelCable`, `datos-personales.ts`), así que
+  lo que se revisa en la respuesta es lo mismo que se tapa en la entrada. Esa lista es propia de la Oficina_Virtual
+  (la de noticias no cambió) y cubre los móviles y los fijos de Venezuela, las cédulas y los RIF con o sin puntos, los
+  correos y las direcciones con número. **No se tapan** los nombres de personas ni los textos que no encajan en ningún
+  patrón (una dirección sin número, un teléfono escrito en palabras, un fijo sin el 0 o pegado a otro texto): siguen
+  llegando al proveedor. Los números de guía no son datos personales y van tal cual. Quedan pendientes del punto (a): revisar a los proveedores y avisar al cliente.
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
 - **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.

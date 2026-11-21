@@ -6,42 +6,37 @@
  * cédulas, RIF y direcciones por un marcador estable: «[correo]», «[teléfono]», «[cédula]», «[RIF]» y
  * «[dirección]». El agente no los necesita para redactar: los guiones no usan datos del cliente.
  *
- * Las expresiones son las MISMAS que detectan los datos en la salida (`detectorDelCable`, que usa
- * `revisarRespuesta` en eval-automatico.ts): la lista `PATRONES_DATOS_PERSONALES` de la regla de noticias y el
- * teléfono internacional agrupado del cable. Aquí no hay ninguna expresión de datos nueva.
+ * Las expresiones son las MISMAS que detectan los datos en la salida: la lista de la Oficina_Virtual
+ * (`datos-personales.ts`), que usa `detectorDelCable` y, con él, `revisarRespuesta` en eval-automatico.ts.
  *
  * Cómo se tapa:
  *   - Se busca sobre el texto normalizado (minúsculas, sin tildes), como el detector, y cada hallazgo se lleva de
  *     vuelta a su lugar en el texto original con un mapa de posiciones. Así «Urbanización» y «URB.» se tapan igual.
  *   - Si dos hallazgos se pisan (un RIF «V-12345678-9» también parece una cédula), se juntan en uno con el tipo del
  *     que empieza antes o es más largo.
- *   - Un hallazgo se estira sobre los dígitos que le siguen pegados, para que no quede la cola de un número.
+ *   - Un hallazgo se estira sobre los dígitos que le siguen pegados (también tras un «.» o un «-»), para que no quede
+ *     la cola de un número.
  *   - Una dirección se estira hasta el final de la frase (salto de línea, «?», «!», «;» o un punto que no sea de una
  *     abreviatura como «Av.»), con un tope de 120 caracteres, y hacia atrás hasta la primera palabra de calle de la
  *     misma frase (60 caracteres como mucho): el detector solo ve la palabra y el primer número, y el resto de la
  *     dirección también es dato personal. Se tapa de más a propósito.
  *
- * Después de tapar, `quedanDatos` vuelve a pasar el detector: si todavía ve algo, el despachador escala sin llamar
- * al modelo (conservador: ante la duda, el texto no sale).
+ * Después de tapar, `quedanDatos` vuelve a pasar el detector y mira que ningún marcador tenga dígitos pegados (un
+ * número tapado a medias). Si ve algo, el despachador escala sin llamar al modelo: ante la duda, el texto no sale.
  */
-import { PATRONES_DATOS_PERSONALES, type TipoDatoPersonal, normalizarTexto } from "@/lib/news/autopublicar/control";
+import { normalizarTexto } from "@/lib/news/autopublicar/control";
 
-import { TELEFONO_INTERNACIONAL, detectorDelCable } from "./cable-textos";
+import { detectorDelCable } from "./cable-textos";
 import type { MensajeLeido } from "./chatwoot-lectura";
+import { MARCADORES, PALABRAS_DE_CALLE, PATRONES_DATOS_PERSONALES, type TipoDatoPersonal } from "./datos-personales";
 
-export const MARCADORES: Readonly<Record<TipoDatoPersonal, string>> = {
-  correo: "[correo]",
-  telefono: "[teléfono]",
-  cedula: "[cédula]",
-  rif: "[RIF]",
-  direccion: "[dirección]",
-};
+export { MARCADORES } from "./datos-personales";
 
 /** Las expresiones del detector, en modo global para encontrar todos los hallazgos. */
-const PATRONES: ReadonlyArray<{ tipo: TipoDatoPersonal; re: RegExp }> = [
-  ...PATRONES_DATOS_PERSONALES,
-  { tipo: "telefono" as const, re: TELEFONO_INTERNACIONAL },
-].map(({ tipo, re }) => ({ tipo, re: new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`) }));
+const PATRONES = PATRONES_DATOS_PERSONALES.map(({ tipo, re }) => ({
+  tipo,
+  re: new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`),
+}));
 
 const TOPE_DIRECCION = 120;
 const TOPE_ATRAS = 60;
@@ -77,11 +72,19 @@ interface Tramo {
   desde: number;
   hasta: number;
   tipo: TipoDatoPersonal;
+  /** El largo de lo que vio la expresión, antes de estirar: desempata «V-12345678-9» (RIF) contra la cédula. */
+  visto: number;
 }
 
+const esDigito = (c: string | undefined) => c !== undefined && c >= "0" && c <= "9";
+
+/** Sobre los dígitos que siguen pegados, también tras un «.» o un «-» («12.345.678», «555-0101»). */
 function estirarDigitos(texto: string, hasta: number): number {
-  while (hasta < texto.length && /\d/.test(texto[hasta])) hasta += 1;
-  return hasta;
+  for (;;) {
+    if (esDigito(texto[hasta])) hasta += 1;
+    else if ((texto[hasta] === "." || texto[hasta] === "-") && esDigito(texto[hasta + 1])) hasta += 2;
+    else return hasta;
+  }
 }
 
 /**
@@ -105,20 +108,11 @@ function estirarDireccion(texto: string, hasta: number, desde: number): number {
 }
 
 /**
- * Las palabras de calle de la MISMA expresión de dirección (`calle|avenida|av\.|…`), sacadas de su código. Sirven
- * para tapar también lo que va antes del hallazgo en la misma frase: en «Av. Bolívar, Edif. Torre Sur, piso 3» la
- * expresión solo ve «Edif. … 3» (pide el número a menos de 30 caracteres de la palabra) y «Av. Bolívar» quedaría a
- * la vista. Si la expresión cambia de forma y no se puede leer, no se estira hacia atrás (la prueba lo detecta).
+ * Desde dónde empieza la dirección: la primera palabra de calle de la misma frase, hasta 60 caracteres antes. En
+ * «Av. Bolívar, Edif. Torre Sur, piso 3» la expresión solo ve «Edif. … 3» (pide el número a menos de 30 caracteres
+ * de la palabra), y «Av. Bolívar» quedaría a la vista.
  */
-export const PALABRAS_DE_CALLE: RegExp | null = (() => {
-  const dir = PATRONES_DATOS_PERSONALES.find((p) => p.tipo === "direccion")?.re.source ?? "";
-  const m = /^\\b\(\?:([^)]+)\)/.exec(dir);
-  return m ? new RegExp(`\\b(?:${m[1]})`, "g") : null;
-})();
-
-/** Desde dónde empieza la dirección: la primera palabra de calle de la misma frase, hasta 60 caracteres antes. */
 function inicioDeDireccion(normal: string, desde: number): number {
-  if (!PALABRAS_DE_CALLE) return desde;
   let limite = desde;
   while (limite > 0 && desde - limite < TOPE_ATRAS && !finDeFrase(normal, limite - 1)) limite -= 1;
   const m = new RegExp(PALABRAS_DE_CALLE.source, "g").exec(normal.slice(limite, desde));
@@ -135,10 +129,12 @@ function tramos(texto: string): Tramo[] {
       const desde = inicio[tipo === "direccion" ? inicioDeDireccion(normal, m.index) : m.index];
       let hasta = estirarDigitos(texto, fin[m.index + m[0].length - 1]);
       if (tipo === "direccion") hasta = estirarDireccion(texto, hasta, desde);
-      crudos.push({ desde, hasta, tipo });
+      crudos.push({ desde, hasta, tipo, visto: m[0].length });
     }
   }
-  crudos.sort((a, b) => a.desde - b.desde || b.hasta - b.desde - (a.hasta - a.desde));
+  // Por inicio; a igual inicio, el más largo; a igual largo, el que la expresión vio más largo; y si no, el que va
+  // antes en la lista (la cédula antes que el RIF: «V-12345678» es cédula).
+  crudos.sort((a, b) => a.desde - b.desde || b.hasta - a.hasta || b.visto - a.visto);
   const juntos: Tramo[] = [];
   for (const t of crudos) {
     const ultimo = juntos[juntos.length - 1];
@@ -167,7 +163,17 @@ export function taparMensajes(mensajes: readonly MensajeLeido[]): MensajeLeido[]
   return mensajes.map((m) => ({ ...m, texto: taparDatosPersonales(m.texto) }));
 }
 
-/** ¿El detector todavía ve un dato personal en algún mensaje ya tapado? Si es así, no se llama al modelo. */
+/** Un marcador con dígitos pegados detrás: un número que se tapó a medias («[cédula].345.678»). */
+const COLA_DE_NUMERO = new RegExp(
+  `(?:${Object.values(MARCADORES)
+    .map((m) => m.replace(/[[\]]/g, "\\$&"))
+    .join("|")})[.\\-/]?\\d`,
+);
+
+/**
+ * ¿Queda algo después de tapar? El detector todavía ve un dato, o un marcador tiene la cola de un número pegada. Si es
+ * así, no se llama al modelo.
+ */
 export function quedanDatos(mensajes: readonly MensajeLeido[]): boolean {
-  return mensajes.some((m) => detectorDelCable(m.texto));
+  return mensajes.some((m) => detectorDelCable(m.texto) || COLA_DE_NUMERO.test(m.texto));
 }
