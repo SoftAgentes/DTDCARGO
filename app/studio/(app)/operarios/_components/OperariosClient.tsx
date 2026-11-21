@@ -345,7 +345,7 @@ function OperarioRowItem({
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "var(--bg-elevated))",
+            background: "var(--bg-elevated)",
             color: "var(--ink)",
             display: "inline-flex",
             alignItems: "center",

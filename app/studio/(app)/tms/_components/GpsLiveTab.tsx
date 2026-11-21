@@ -19,7 +19,7 @@ export function GpsLiveTab({
   // Alertas computadas simples
   const alerts: {
     icon: "cog" | "warn" | "clock";
-    tone: "warning" | "info" | "wine";
+    tone: "warning" | "info";
     title: string;
     meta: string;
   }[] = [];

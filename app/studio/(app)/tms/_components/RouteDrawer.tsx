@@ -262,11 +262,9 @@ export function RouteDrawer({
                     height: 32,
                     borderRadius: "50%",
                     background:
-                      i === 0
+                      i === 0 || i === stops.length - 1
                         ? "var(--ink)"
-                        : i === stops.length - 1
-                          ? "var(--success)"
-                          : "var(--bg-elevated)",
+                        : "var(--bg-elevated)",
                     color:
                       i === 0 || i === stops.length - 1
                         ? "var(--ink-inv)"

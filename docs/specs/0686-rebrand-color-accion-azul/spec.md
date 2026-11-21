@@ -386,7 +386,7 @@ El contrato del grupo 4 congela las dos cuentas de identidad, mide al menos 100 
 
 Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `claude/sdd-0686-fase2-g5`. El grupo reúne los ocho módulos con vino que más usa la oficina: despacho, calendario, tms, operarios, etiquetas, cola-qr, tarifas y reclamos (**I:** orden por uso diario en la operación, no medido). Son 136 usos en 40 archivos. Rigen las condiciones del grupo 4: identidad, lo que se guarda, el contraste en los dos temas, los bloques `data-theme` y qué lo dice sin el color.
 
-- **Identidad:** no queda ninguna. El grupo cierra con cero usos de vino.
+- **Identidad:** no queda ninguna. El grupo cierra con cero usos de vino por token, clase y tono; quedan los hex escritos a mano de la etiqueta impresa, para la fase 4.
 - **Lo que se guarda:** nada. En estas carpetas, `localStorage` guarda solo anchos de columna; los tonos se calculan al pintar. `public.carriers.tone` es de naviera y no entra aquí.
 - **`data-theme`:** no hay bloques fijos. Las tiras navy (la ocupación del camión del despacho) usan `--ink-side*`, que no se invierte con el tema.
 - **Arreglos menores de la revisión de la #740:**
@@ -410,7 +410,8 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 
 | Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
 |---|---|---|---|
-| Calendario (`AgendaView`, `DayDrawer`, `FairsPanel`, `WeekView`, `MonthView:132`, `CalendarLegend:68`, `:73`, `UpcomingHolidaysCard:25`) | Feriado de China, y «crítico» cuando cierra la fábrica | `--warning` (borde, punto y Badge) | El Badge dice «CN» y la leyenda «Feriado CN · crítico». Pide atención: no es error, así que va en atención y no en peligro |
+| Calendario (`AgendaView`, `DayDrawer`, `FairsPanel`, `WeekView`, `MonthView:132`, `CalendarLegend:68`, `:73`, `UpcomingHolidaysCard:25`) | Feriado de China | `--warning` (borde, punto y Badge) | El Badge dice «CN». Un feriado común avisa: va en atención, no en peligro |
+| Calendario, mes (`MonthView:132`) y leyenda (`CalendarLegend:66-68`) | Feriado **crítico** de China: la operación se para (Año Nuevo Chino, Golden Week) | Barra en `--danger`: 4,62:1 en claro y 3,11:1 en oscuro contra la celda. Con `--warning` daba 2,21:1 en claro (revisión de la #741, que corrige la decisión anterior: el crítico sí es peligro) | Un ícono de alerta junto al nombre del feriado en la celda, el título «· feriado crítico» y el mismo texto para lectores de pantalla. En la agenda y el cajón del día ya decían «Operación CN paralizada» y «Crítico» |
 | Calendario (`MonthView:192`, `UpcomingHolidaysCard:24`) | Texto del nombre del feriado chino | `--ink` | El nombre mismo. `--warning` no llega a 4,5:1 como texto chico |
 | Calendario (`CalendarClient:327`) | Punto de «Arribos · ETA» en los filtros | `--ink-soft` | La etiqueta; igual que la ETA del grupo 3, que pinta neutral |
 | Calendario (`MonthView:160`, `WeekView:66`, `:91`, `CalendarLegend:82`) | Día de hoy | `--ink` (fondo de tinta y número en `--bg-surface`) | La leyenda «Hoy» y el círculo; como el día de hoy del grupo 1 |
@@ -419,7 +420,7 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 | Despacho (`DispatchDashboardClient:235`) | Barra del primer lugar en «Top ciudades» | `--ink` (las demás, tinta al 30 %) | El orden de la lista y el número «N ODs» |
 | TMS (`IncidentsTab:44`, `TmsKpis:18`) | «Mantenimientos» cuando hay, y «Flota total» | `--ink` | Las etiquetas y el texto «Programados» |
 | TMS (`RoutesTab:207`, `GpsLiveTab:301`) | Avance de la ruta por debajo de 100 % | `--ink` | El porcentaje. Al 100 % sigue `--success` |
-| TMS (`RouteDrawer:268`) | Última parada (destino) del recorrido | `--success` | Es la entrega, como POD en el calendario. La primera parada sigue en tinta y el orden lo dice la lista |
+| TMS (`RouteDrawer:266-269`) | Última parada (destino) del recorrido | `--ink`, igual que la primera | El orden y el número de la parada. No va en `--success`: una parada sin recorrer no está confirmada, y el número sobre verde daba 4,15:1 en claro |
 | Reclamos (`ReclamosClient:215`, `:397`, `:629`) | «Monto expuesto» de reclamos abiertos y montos | `--ink` | La etiqueta «Monto expuesto» y «reclamos abiertos». No es un vencido |
 | Reclamos (`ReclamosClient:669`, `:692`) | Pasos alcanzados del reclamo | `--ink` | El número del paso y la etiqueta |
 | Operarios (`OperariosClient:409`) | Badge del rol supervisor | `neutral` | El texto del rol. Como el rol admin del grupo 3 |
@@ -438,9 +439,13 @@ Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `
 - `--ink-side-strong` (blanco) sobre la misma tira da más que eso.
 - La tinta, `--ink-soft` y `--warning` como borde (forma) usan los pares ya medidos en los grupos 1 a 4.
 
-**Pendiente fuera de esta PR:** los tintes `--cal-cn-soft` y `--cal-cn-critical` de `tokens.css` siguen en la familia roja (`rgba(168,50,62,…)` en claro y `rgba(224,119,133,…)` en oscuro). Son de la fase 1, y pasarlos a un tinte de atención va con el próximo tramo que toque `tokens.css`, con su propia revisión.
+**Pendientes fuera de esta PR:**
+- Los tintes `--cal-cn-soft` y `--cal-cn-critical` de `tokens.css` siguen en la familia roja (`rgba(168,50,62,…)` en claro y `rgba(224,119,133,…)` en oscuro). Son de la fase 1. Se deciden junto con la barra del feriado crítico del mes, en el próximo tramo que toque `tokens.css` y con su propia revisión.
+- La etiqueta impresa (`etiquetas/_components/Label.tsx:153`, `:162` y `:200`) conserva `#7F0F1A` escrito a mano, incluido el Shipping Mark, que es un dato. El detector no ve hex: va con la fase 4, donde están los hex de la familia vino. Por eso esta carpeta tiene cero vino **por token y por clase**, no cero vino.
+- La barra de ocupación blanca del despacho da 2,83:1 contra su pista en claro (antes 1,21) y 3,65:1 en oscuro. La acompaña la cifra «usado / total». Llevarla a 3:1 en claro queda pendiente.
+- **Fuera de alcance detectado:** en `calendario/_components/UpcomingHolidaysCard.tsx:109-120`, la marca «crítico» (9 px) va en `--warning`, que da 3,14:1 sobre la tarjeta en claro. Ya estaba así en `main`.
 
-El contrato del grupo 5 exige cero vino en las ocho carpetas, mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
+El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carpetas (los hex escritos a mano son de la fase 4). Mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
 
 **Orden de los módulos que quedan (grupo 6 en adelante, de 5 a 8 por grupo; I: por uso):**
 1. Grupo 6: reportes, dirección, bugs, mis-bugs, costing, legal y ve.

@@ -65,7 +65,7 @@ export function CalendarLegend() {
       <Chip
         label="Feriado CN · crítico"
         bg="var(--cal-cn-critical)"
-        border="var(--warning)"
+        border="var(--danger)"
       />
       <Chip
         label="Feriado CN"

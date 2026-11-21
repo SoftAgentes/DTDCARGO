@@ -3,10 +3,11 @@
  * de la oficina: despacho, calendario, tms, operarios, etiquetas, cola-qr,
  * tarifas y reclamos.
  *
- * El grupo cierra sin vino, se escriba como se escriba (lo cuenta
- * `vino-detector.ts`); aquí no hay identidad que conservar. El feriado de
- * China, que el vino marcaba como crítico, pasa a atención (`--warning`) y
- * sigue diciendo «CN» en su Badge.
+ * El grupo cierra sin vino por token, clase ni tono (lo cuenta
+ * `vino-detector.ts`); aquí no hay identidad que conservar. Los hex escritos
+ * a mano de la etiqueta impresa (`Label.tsx`) son de la fase 4: el detector
+ * no los ve. El feriado de China pasa a atención (`--warning`) con su Badge
+ * «CN»; el crítico, que para la operación, va en peligro con su ícono.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

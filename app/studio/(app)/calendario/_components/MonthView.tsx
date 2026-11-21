@@ -129,7 +129,7 @@ export function MonthView({
                 borderRight: isRightEdge ? "none" : "1px solid var(--border)",
                 borderLeft: "none",
                 borderBottom: "none",
-                boxShadow: criticalCN ? "inset 3px 0 0 var(--warning)" : undefined,
+                boxShadow: criticalCN ? "inset 3px 0 0 var(--danger)" : undefined,
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
@@ -185,7 +185,7 @@ export function MonthView({
                   >
                     {cnHoliday && (
                       <span
-                        title={cnHoliday.name}
+                        title={criticalCN ? `${cnHoliday.name} · feriado crítico` : cnHoliday.name}
                         style={{
                           font: "700 8.5px/1.2 var(--f-sans)",
                           fontFamily: "var(--f-sans), var(--f-cn)",
@@ -199,7 +199,19 @@ export function MonthView({
                           maxWidth: "100%",
                         }}
                       >
+                        {/* Crítico = la operación en China se para (Año Nuevo
+                            Chino, Golden Week): además de la barra en peligro,
+                            un ícono y el texto, para no decirlo solo con color. */}
+                        {criticalCN && (
+                          <span
+                            aria-hidden
+                            style={{ color: "var(--danger)", display: "inline-flex", verticalAlign: "-1px", marginRight: 2 }}
+                          >
+                            {Icon.warn(9)}
+                          </span>
+                        )}
                         {cnHoliday.shortName}
+                        {criticalCN && <span className="studio-sr-only"> · feriado crítico</span>}
                       </span>
                     )}
                     {veHoliday && (
