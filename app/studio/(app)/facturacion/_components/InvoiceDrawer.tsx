@@ -310,7 +310,7 @@ export function InvoiceDrawer({
           >
             <div>
               <label className="studio-label" htmlFor="ivd-markbox">
-                Shipping Mark <span style={{ color: "var(--wine-text)" }}>*</span>
+                Shipping Mark <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="ivd-markbox"
@@ -328,7 +328,7 @@ export function InvoiceDrawer({
             </div>
             <div>
               <label className="studio-label" htmlFor="ivd-clname">
-                Nombre del cliente <span style={{ color: "var(--wine-text)" }}>*</span>
+                Nombre del cliente <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="ivd-clname"
@@ -636,7 +636,7 @@ export function InvoiceDrawer({
                 type="checkbox"
                 checked={emitOnCreate}
                 onChange={(e) => setEmitOnCreate(e.target.checked)}
-                style={{ accentColor: "var(--wine)" }}
+                style={{ accentColor: "var(--accion)" }}
               />
               Emitir al crear (si no, queda en borrador)
             </label>

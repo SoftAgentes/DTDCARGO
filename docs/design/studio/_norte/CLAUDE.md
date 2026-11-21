@@ -72,6 +72,13 @@ Abrir **`Logo Oficial.html`** — el carrusel muestra las 4 variantes con sus fo
 
 Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX cuando exista un token equivalente.
 
+> **Enmienda local · BD-076 · 2026-11-20 (SDD-0686).** Sam decidió que el color de acción
+> es **azul** en web, Portal y ERP: azul = acción (botón principal, enlaces, foco), rojo =
+> peligro y error, vino = identidad (logo, wordmark, sello, documentos de marca), tinta =
+> selección y cifras. Donde este archivo diga que `--wine` es «acento primario · CTAs · links»
+> o que la acción principal es vino, **manda BD-076** y `BRAND.md` §Sistema de color. El resto
+> de este Norte se actualiza en el próximo NORTE-SYNC; no se edita aquí localmente.
+
 ### Estados y mensajes · decisión del founder · 2026-09-05
 
 Esta política sustituye el uso de vino como tono informativo y de rojo para

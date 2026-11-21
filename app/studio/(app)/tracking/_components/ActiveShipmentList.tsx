@@ -275,7 +275,7 @@ export function ActiveShipmentList({
                         height: "100%",
                         background: isAlert
                           ? "var(--warning)"
-                          : "var(--wine)",
+                          : "var(--ink)",
                         transition: "width 240ms",
                       }}
                     />

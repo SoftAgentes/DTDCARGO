@@ -56,7 +56,7 @@ export function ChatwootConversacionesCard({ conversaciones }: { conversaciones:
                       {t(`bandeja.status.${c.status}` as I18nKey)}
                     </span>
                     {c.unread_count > 0 ? (
-                      <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--wine-text)", marginLeft: "var(--s-2)" }}>
+                      <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--ink)", marginLeft: "var(--s-2)" }}>
                         {t("bandeja.card.unread", { n: c.unread_count })}
                       </span>
                     ) : null}

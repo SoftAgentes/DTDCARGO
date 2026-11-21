@@ -257,7 +257,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                 <Row
                   label="Tipo"
                   value={
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       {BL_TYPES.find((t) => t.value === type)?.label ?? type}
                     </Badge>
                   }

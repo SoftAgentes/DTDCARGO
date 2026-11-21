@@ -41,7 +41,7 @@ export function EncabezadoCn({
           style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
         >
           {titlePrefix} ·{" "}
-          <span style={{ fontFamily: '"Noto Sans SC", var(--f-sans)', color: "var(--wine-text)" }}>
+          <span style={{ fontFamily: '"Noto Sans SC", var(--f-sans)', color: "var(--ink-soft)" }}>
             中国
           </span>
         </h1>

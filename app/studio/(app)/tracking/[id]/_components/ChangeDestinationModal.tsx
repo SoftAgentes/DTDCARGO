@@ -365,7 +365,7 @@ function FormPhase({
       {/* Nuevo destino */}
       <div>
         <label className="studio-label" htmlFor="cd-new-dest">
-          Nuevo destino <span style={{ color: "var(--wine-text)" }}>*</span>
+          Nuevo destino <span style={{ color: "var(--ink-soft)" }}>*</span>
         </label>
         <input
           id="cd-new-dest"
@@ -413,7 +413,7 @@ function FormPhase({
       {/* Fee */}
       <div>
         <label className="studio-label" htmlFor="cd-fee">
-          Fee del cambio <span style={{ color: "var(--wine-text)" }}>*</span>
+          Fee del cambio <span style={{ color: "var(--ink-soft)" }}>*</span>
         </label>
         <NumericInput
           id="cd-fee"
@@ -439,7 +439,7 @@ function FormPhase({
       {/* Motivo */}
       <div>
         <label className="studio-label" htmlFor="cd-reason">
-          Motivo <span style={{ color: "var(--wine-text)" }}>*</span>
+          Motivo <span style={{ color: "var(--ink-soft)" }}>*</span>
         </label>
         <textarea
           id="cd-reason"
@@ -600,7 +600,7 @@ function ConfirmPhase({
           }}
         >
           Fee:{" "}
-          <strong style={{ color: "var(--wine-text)", fontWeight: 700 }}>
+          <strong style={{ color: "var(--ink)", fontWeight: 700 }}>
             {feeLabel}
           </strong>
         </div>

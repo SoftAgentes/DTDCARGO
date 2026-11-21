@@ -32,11 +32,11 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "var(--ink-mute)",
   quoted: "var(--info)",
   confirmed: "var(--info)",
-  in_transit: "var(--wine)",
+  in_transit: "var(--info)",
   customs: "var(--warning)",
   arrived_destination: "var(--info)",
-  out_for_delivery: "var(--wine)",
-  last_mile: "var(--wine)",
+  out_for_delivery: "var(--info)",
+  last_mile: "var(--info)",
   delivered: "var(--success)",
   delayed: "var(--warning)",
   exception: "var(--danger)",
@@ -72,7 +72,7 @@ export function RecentActivityCard({ items }: { items: RecentActivityItem[] }) {
         <Link
           href="/studio/tracking"
           style={{
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             font: "600 12px/1 var(--f-sans)",
             textDecoration: "none",
             alignSelf: "flex-start",
@@ -107,7 +107,7 @@ export function RecentActivityCard({ items }: { items: RecentActivityItem[] }) {
         <Link
           href="/studio/tracking"
           style={{
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             font: "600 11px/1 var(--f-sans)",
             textDecoration: "none",
           }}
@@ -187,7 +187,7 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
           <code
             style={{
               font: "700 11.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {item.shipment_code}

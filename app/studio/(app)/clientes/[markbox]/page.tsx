@@ -687,7 +687,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
           style={{
             width: `${completeness.pct}%`,
             height: "100%",
-            background: completeness.isComplete ? "var(--success)" : "var(--wine)",
+            background: completeness.isComplete ? "var(--success)" : "var(--ink)",
           }}
         />
       </div>
@@ -749,7 +749,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
                 style={{
                   marginLeft: "auto",
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink-soft)",
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
                 }}

@@ -165,7 +165,7 @@ function Grupo({ grupo }: { grupo: GrupoAdjuntos }) {
             <>
               <Link
                 href={`/studio/tracking/${grupo.embarque.id}`}
-                style={{ color: "var(--wine-text)", textDecoration: "none" }}
+                style={{ color: "var(--accion-text)", textDecoration: "none" }}
               >
                 Embarque{" "}
                 <span style={{ font: "700 12px/1 var(--f-mono)" }}>{grupo.embarque.code}</span>

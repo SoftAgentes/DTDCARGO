@@ -30,7 +30,7 @@
 |---|---|---|---|
 | **primary** | `/brand/dtdcargo-isologo-primary.png` | light, paper, white | 14.8 : 1 |
 | **reverse** | `/brand/dtdcargo-isologo-reverse.png` | navy, ink, sidebar | 12.4 : 1 |
-| **mono-light** | `/brand/dtdcargo-isologo-mono-light.png` | wine, CTAs, alertas | 7.2 : 1 |
+| **mono-light** | `/brand/dtdcargo-isologo-mono-light.png` | wine (sello y piezas de marca), alertas. **Nunca sobre el azul de acción ni dentro de un botón** (BD-076 regla 9) | 7.2 : 1 |
 | **mono-dark** | `/brand/dtdcargo-isologo-mono-dark.png` | paper, B&W, sello jurídico | 15.3 : 1 |
 
 ### Wordmark · "DTD Cargo" (DOS palabras, NO "DTDCARGO")
@@ -101,7 +101,8 @@ esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
 | Atención | Riesgo o intervención necesaria | Acento dorado, texto neutro legible y siguiente acción | La carga requiere cotización con un asesor |
 | Éxito | Confirmación real de una operación | Icono verde y texto neutro | Pago confirmado; entrega completada |
 | Error | Entrada inválida o fallo real | Rojo localizado en icono, borde o campo; cuerpo neutro | No se pudo guardar; corrige el formato |
-| Marca | Identidad, selección o acción | Vino en el acento o CTA | Cotizar envío |
+| Acción | Lo que se oprime: CTA, enlace, foco | Azul de acción (`--accion`) en el relleno o el texto | Cotizar envío |
+| Marca | Identidad: logo, wordmark, sello, documentos de marca | Vino; nunca en botones, enlaces ni cifras | Wordmark «DTD Cargo» |
 
 - Un recargo calculado es información: explica el importe o la regla; no acusa un error.
 - Exceder el alcance de la calculadora deriva al asesor con advertencia, sin marcar el peso como inválido.
@@ -116,11 +117,35 @@ esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
   oscuro. Un acento que no alcance contraste se usa decorativamente junto al icono
   neutro y la explicación; no como texto pequeño.
 
+### Azul de acción, rojo de peligro, vino de identidad (BD-076, Sam 2026-11-20)
+
+Pedido de Sam: el vino «visualmente la gente lo ve como algo negativo o como borrar». Decisión: «opcion 2  Completamente todo el proyecto web, portal y ERP; todo el sistema completo.» Detalle, valores y contrastes en SDD-0686 y en `BRAND-DECISIONS.md` (BD-076).
+
+1. **Azul = acción.** Botón principal, enlaces, foco y acento de «esto se oprime».
+2. **Rojo = peligro y error.** Es el único rojo de la interfaz.
+3. **Vino = identidad.** Logo, wordmark «DTD», sello y documentos de marca. No pinta botones, enlaces ni cifras.
+4. **Tinta = selección** (pestaña, filtro; BD-037) **y cifras** (saldos, KPI, montos). Un saldo va en rojo solo si está vencido.
+5. Un estado nunca se comunica solo con color: el peligro conserva icono y verbo. Azul y rojo tienen luminosidad parecida y se distinguen por tono.
+6. **Un dato va en azul solo si lleva a algún lugar.** El Shipping Mark, el cliente, la factura, el contenedor y el tracking van en tinta. Pasan a azul, siempre con subrayado fino, solo cuando ese dato, por sí solo, abre otra pantalla o su información. Si toda la fila se abre al tocarla, en impresión o sin destino, el dato queda en tinta. Lo que ya parece botón conserva su forma de botón. Sam lo aprobó el 2026-11-20 («Sí, la regla del Shipping Mark queda así»).
+
+**Adopción por fases (SDD-0686).** Mientras una superficie no se migra, sigue con el vino; no es un error que corregir a mano fuera de su fase. Lo nuevo que se escriba ya usa los tokens de acción.
+
+```
+/* Acción · ERP (app/studio/tokens.css); en web y Portal, --color-accion* en app/globals.css */
+/* Tono fijado por Sam el 2026-11-20 (opción B de tres; SDD-0686 §3)                      */
+--accion:        #1F4FA8   /* Relleno del botón principal · acento de acción */
+--accion-hover:  #183E86   /* Hover del relleno */
+--on-accion:     #FFFFFF   /* Texto e icono sobre el relleno */
+--accion-text:   #1F4FA8   /* Acción como texto: enlaces */
+--accion-tint:   rgba(31,79,168,0.08)   /* Fondo suave de acción */
+--accion-soft:   #7FAAF0   /* Foco sobre superficies siempre oscuras (menú lateral) */
+```
+
 ### Light theme
 ```
---wine:        #7F0F1A   /* Acento primario · CTAs · links · acentos */
---wine-deep:   #5E0A12   /* Hover de wine */
---wine-soft:   #C2747F   /* Acento secundario · solo sobre fondo oscuro */
+--wine:        #7F0F1A   /* Identidad: logo, wordmark, sello, documentos de marca (BD-076). No CTAs ni links */
+--wine-deep:   #5E0A12   /* Variante profunda de identidad */
+--wine-soft:   #C2747F   /* Acento de identidad · solo sobre fondo oscuro */
 
 --bg-base:     #FBFAF7   /* Fondo de página */
 --bg-surface:  #FFFFFF   /* Cards */
@@ -149,7 +174,16 @@ esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
 --bg-elevated: #1F3055
 --ink:         #F2F0EC
 --ink-soft:    #A8B0C4
+
+/* Acción en oscuro (BD-076; tono fijado por Sam el 2026-11-20) */
+--accion:        #7FAAF0
+--accion-hover:  #9BBDF4
+--on-accion:     #0F1E3D   /* navy, nunca blanco: blanco sobre #7FAAF0 mide 2,36:1 */
+--accion-text:   #7FAAF0
+--accion-tint:   rgba(127,170,240,0.14)
 ```
+
+En oscuro `--wine` (`#A8323E`) es el mismo hex que `--danger` del tema claro: por eso deja de ser el color de acción (BD-076).
 
 ### ❌ Colores PROHIBIDOS
 - **NUNCA** uses verde fosforescente, lima, neón, fucsia eléctrico o ningún color saturado fuera de la paleta.
@@ -159,7 +193,7 @@ esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
 - **NUNCA** uses gradientes coloridos / arcoíris / "AI slop". Los **coloridos/arcoíris siguen prohibidos**; lo permitido es **tonal navy → ink** (familia `#0B1428`→`#0F1E3D`→`#1F3055`), **nunca hacia blanco**. En heros con texto (left-aligned) va **horizontal, azul FUERTE a la izquierda → navy más claro a la derecha**: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 44%, #1F3055 100%)` (BD-022). **Hex explícito siempre, nunca `var(--ink)`/`var(--ink2)` dentro del gradiente** (BD-023) — si el token no resuelve, el fondo cae a blanco con texto claro encima (invisible); en dark, `var(--ink)` además se invierte a cream y voltea la tarjeta. En cards/botones chicos el diagonal `135deg` del mismo par es aceptable.
   - **Glow de fondo (BD-030, 2026-07-12):** además del hero, se **permite —y se recomienda para no dejar fondos planos—** un **glow radial *tonal* navy→ink** como fondo: `radial-gradient(135% 100% at 50% -12%, #1F3055 0%, #0F1E3D 42%, #0B1428 100%)` en dark; en claro, el equivalente sutil en papel `#FBFAF7`→`#F2F0EC`. Token: **`var(--bg-glow)`** (`app/globals.css`). Sigue las reglas de BD-022/023 (hex explícito, nunca hacia blanco en la familia navy) y **no** sustituye el gradiente de hero horizontal. Es **tonal, no colorido** — el glow no es una puerta a gradientes de color.
   - **Texto display editorial (autorizado por el founder, 2026-07-23):** en infografías, portadas sociales, cifras KPI y titulares grandes se permite aplicar el mismo **degradado tonal monocromático navy**, de izquierda a derecha, para evitar que el azul se vea plano: `linear-gradient(90deg, #0B1428 0%, #0F1E3D 55%, #1F3055 100%)`. El cambio debe ser sutil — navy profundo a navy ligeramente más claro, sin pasar a azul brillante, cian ni blanco. Se usa únicamente en texto display grande, con fallback sólido `#0F1E3D`; cuerpo, subtítulos pequeños y datos técnicos permanecen en color sólido para conservar legibilidad. **Nunca se aplica al isólogo, al wordmark ni a ninguna variante oficial del logo.**
-- **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón.
+- **NUNCA** uses morados, púrpuras o azules brillantes para alertas. El warning es **dorado** (#B8893A), no naranja chillón. El azul de acción (`--accion*`, BD-076) no es una alerta: solo marca lo que se oprime. **Nunca** se usa para avisar, informar ni pintar un estado.
 
 ---
 
@@ -180,13 +214,14 @@ Los hex de la paleta no dicen **qué par se lee**. Estas reglas cierran ese huec
 `--success / --warning / --danger / --info` marcan estado. Como texto chico sobre blanco no siempre alcanzan AA → úsalos en texto grande o como relleno con `--ink`/blanco encima (verifica el par).
 
 ### Relleno + texto (CTAs / badges)
-- Sobre `--wine` / `--danger` → texto **blanco** (10.6:1 / 6.6:1).
+- Sobre `--accion` → texto **`--on-accion`**: blanco en claro (7,66:1), navy en oscuro (7,00:1). Es el par del botón principal (BD-076).
+- Sobre `--wine` (identidad) / `--danger` → texto **blanco** (10.6:1 / 6.6:1).
 - Sobre `--warning` → texto `--ink` (5.24:1), **nunca** blanco. Token canónico ambos temas: **`--on-warning`** (#0F1E3D fijo · BD-027) — `--ink` en dark es cream y falla (~1.7:1) sobre el gold.
 - Sobre `--success` → texto `--ink`, o blanco solo en texto grande.
 - En dark, texto sobre cualquier relleno semántico → `--ink-inv`, nunca blanco (excepción: `--wine` dark sí acepta blanco).
 
 ### Rol de `--wine` en dark
-Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark) — usalo en Shipping Mark por fila, saldos, tabs activas, KPI values, links y badge tono wine. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
+Como **texto** sobre fondos oscuros falla (`#A8323E` → 2.79:1). En dark, `--wine` es **relleno** (texto blanco encima, 6.58:1); el acento de **texto** en dark es `--wine-soft #D89AA4` (7.93:1). **Token canónico para wine-como-texto en ambos temas: `--wine-text`** (BD-026: `#7F0F1A` light · `#D89AA4` dark). Desde BD-076 se reserva para identidad: **los enlaces pasan a `--accion-text`; saldos, KPI y pestañas activas, a tinta.** El Shipping Mark va en tinta, o en azul con subrayado si lleva a algún lugar (BD-076, regla 6), y el badge tono wine se retira (regla 7); los dos se decidieron el 2026-11-20. Los tokens dark que falten (`--ink-mute`, `--border`, semánticos) se toman de `docs/design/studio/_norte/erp/tokens.css` — **no inventar**.
 
 ### Wine sobre las bandas navy de la web pública
 El sitio público escribe wine sobre `--grad-navy-hero` (#16274B → **#26406F**). El peor caso es siempre el **extremo claro #26406F**: `--wine-soft #C2747F` mide ahí **2.98:1** y reprueba (los eyebrows son de 12px). Token canónico para ese uso: **`--color-wine-on-dark` (#D59FA7)** — mismo tono y saturación que `wine-soft`, solo más claro → **4.57:1** sobre #26406F · 6.55:1 sobre #16274B · 8.64:1 sobre el #060D1C del collage. Lo consumen los alias `--wine-on-dark` de `.home-surface`, `.sm-surface` y `.cx-surface`. Es token de **web pública**: el ERP no lo usa (su equivalente es `--wine-text` dark).
@@ -306,7 +341,7 @@ Aprobada por Sam el 2026-11-04. Aplica a Studio y Portal. Adoptada en producció
 - **Lo que se oprime** lleva relleno o contorno de tinta. Contorno de control ≥ 3:1 contra su fondo.
 - **Lo que avisa** es una franja plana con icono, sin contorno ni sombra.
 - **Lo que solo se lee** es texto. Los estados van con texto e icono, sin cajón.
-- **El vino** queda para la acción principal y la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con icono vino. Es una excepción registrada a VIS-01 §3.
+- **La acción principal** va en azul (`--accion`, BD-076, enmienda del 2026-11-20); **el vino** queda solo para la identidad. **La selección** (pestaña, filtro) va con relleno de tinta; en el menú lateral, blanco con el icono en la misma tinta (desde la fase 2 de SDD-0686; antes, vino). Es una excepción registrada a VIS-01 §3.
 - **Las tarjetas** conservan su borde suave: el contorno fuerte queda para lo oprimible.
 - **Vista predeterminada:** compacta. El Studio abre en tema oscuro y el Portal en claro (enmienda del 2026-11-17, SDD-0654 D-14). Cada persona puede cambiarlas en la barra superior, y en el Portal quien ya eligió oscuro lo conserva. Nada que se oprima baja de 32 px. Al imprimir se pasa a claro.
 - **Elevación** (enmienda del 2026-11-12, aprobada por Sam): la sombra marca el nivel. Principal `--shadow-md`; relleno (oscuro, advertencia, peligro) `--shadow-sm`; secundario `--shadow-xs` con contorno de 1,5 px en `--ink` (`--ctl-border`). Avisos, estados y deshabilitados van planos. En oscuro, todo control con relleno lleva `--ctl-edge-hi`, una luz arriba y un aro `--ink-soft`. Los verbos de botón van en peso 700 o más. Sin colores nuevos.
@@ -322,7 +357,8 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 - **Siempre** usa los componentes existentes antes de crear uno nuevo: `<Btn>`, `<Input>`, `<Select>`, `<Badge>`, `<Card>`, `<Table>`, `<KPI>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<Avatar>`, `<Progress>`, `<EmptyState>`.
 - Si te falta un componente, **constrúyelo siguiendo el estilo de los existentes** (mismas variables, mismo radius, mismas sombras) y deja un comentario `/* TODO: brand-review */` para que el equipo de diseño lo apruebe.
 - **Botones**: usar las 6 variantes oficiales — `primary`, `secondary`, `ghost`, `danger`, `dark`, `soft`. No inventes.
-- **Badges**: usar tonos `success`, `warning`, `danger`, `info`, `wine`, `neutral`. No inventes tonos.
+- **Badges**: usar tonos `success`, `warning`, `danger`, `info`, `wine`, `neutral`. No inventes tonos. **El tono `wine` se retira** (BD-076 regla 7, decisión de Sam del 2026-11-20). Cada badge toma el tono de lo que dice: `neutral` si solo informa (rol, servicio, método, cantidad, nivel), `success` si confirma algo bueno («Vigente») y tinta si cuenta una selección. Ningún badge va en azul, porque no se oprime. No lo uses en badges nuevos; los que existen migran en la fase 2.
+- **Color del botón `primary`:** azul de acción (`--accion`) desde BD-076, por fases (SDD-0686). En el Studio las variantes vigentes son las de `app/studio/CLAUDE.md` (SDD-0603).
 
 ---
 
@@ -397,6 +433,7 @@ Pedido de Sam: «El rojo siempre llama como si fuera un error: lo cambiamos por 
 - **Contraste:** 4,79:1 en claro y 7,13:1 en noche. Lo mide `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
 - **Duración y revisión:** hasta la prueba con clientes (D-12); se revisa 90 días después de encender la Vista simple o al cerrar esa prueba, lo que ocurra primero. Sam decide si pasa a regla o se extiende.
 - **Dueño:** Sam aprueba; el Director General custodia el registro. Detalle en `docs/design/studio/_norte/BRAND-DECISIONS.md` (EXC-0654-01) y SDD-0654 §6.3.
+- **Cierre previsto (BD-076):** cuando la fase 3 de SDD-0686 llegue a la Vista simple, el azul de acción sustituye este vino claro y la excepción se cierra con fecha. Hasta entonces sigue vigente.
 
 ---
 

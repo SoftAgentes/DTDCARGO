@@ -1216,7 +1216,7 @@ function ClientesTab({
                       </div>
                     </>
                   ) : (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Nivel máximo
                     </Badge>
                   )}
