@@ -21,8 +21,9 @@
  * `shipments.code` (= Remitente), `warehouse_receipts_cn.receipt_code`
  * (`WR-C<NN>-<remitente>`) y la marca del lote en `notes`.
  */
+import { createHash } from "node:crypto";
 import type { Lote, Marca } from "./modelo";
-import { litSql, normalizarCodigo } from "./modelo";
+import { litSql, normalizarCodigo, normalizarExclusiones } from "./modelo";
 
 export interface OpcionesSql {
   /** `prueba` o `produccion`. Sólo en prueba se pueden crear clientes faltantes. */
@@ -49,6 +50,13 @@ export interface OpcionesSql {
    * borrador; no tocan consolidación, envíos, recepciones ni ítems. Exige `facturas`.
    */
   soloFacturas?: boolean;
+  /**
+   * SDD-0690 · `--excluir-markbox` (sólo con `--solo-facturas`): los Shipping Marks cuyos envíos
+   * quedaron fuera del lote (`agruparLote` con `excluirMarkbox`). Cambia el id del paquete y agrega una guarda:
+   * aplicar aborta si un envío que entra está hoy en un markbox excluido. Vacío o ausente, el
+   * paquete es el mismo de antes byte a byte.
+   */
+  excluirMarkbox?: string[];
 }
 
 export interface PuertoDestino {
@@ -143,6 +151,8 @@ export interface Manifiesto {
   avisos: string[];
   /** SDD-0690 · sólo con `--solo-facturas`: el paquete escribe nada más las pre-órdenes. */
   modo?: "solo-facturas";
+  /** SDD-0690 · sólo con `--excluir-markbox`: qué Shipping Marks y cuántos envíos quedaron fuera, y por qué. Sin montos. */
+  excluidos?: { markbox: string[]; clientes: number; envios: number; filas: number; motivo: string };
 }
 
 export interface SalidaSql {
@@ -768,7 +778,8 @@ $lote$;
 `;
 
 function cuerpoAplicar(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
-  const cuerpo = o.soloFacturas ? CUERPO_SOLO_FACTURAS : CUERPO_APLICAR;
+  const excluidos = normalizarExclusiones(o.excluirMarkbox ?? []);
+  const cuerpo = !o.soloFacturas ? CUERPO_APLICAR : excluidos.length ? cuerpoSoloFacturasExcluyendo(o, excluidos, lote.excluidos?.remitentes ?? []) : CUERPO_SOLO_FACTURAS;
   return [cab(lote, o, pod, nav), datos(lote, o), cuerpo.trim()].join("\n\n");
 }
 
@@ -1186,9 +1197,73 @@ export const MARCA_SOLO_FACTURAS = "pre-orden cargada aparte (SDD-0690)";
  */
 export const SUFIJO_SOLO_FACTURAS = ":facturas";
 
-/** El id del paquete: el de la carga, o con {@link SUFIJO_SOLO_FACTURAS} en `--solo-facturas`. */
-export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas">): string {
-  return o.soloFacturas ? `${o.lote}${SUFIJO_SOLO_FACTURAS}` : o.lote;
+/**
+ * El id del paquete: el de la carga, o con {@link SUFIJO_SOLO_FACTURAS} en `--solo-facturas`.
+ *
+ * Con `--excluir-markbox` el paquete es otro (le faltan envíos), así que lleva otra huella: los
+ * 8 hex de sha256(id de la carga + la lista ordenada de Shipping Marks excluidos) en lugar de los
+ * del packing list (`carga-consolidado:64:<otra huella>:facturas`). Conserva la forma que
+ * `aplicar-lote.sh` acepta, el OK de Sam del paquete completo no le sirve y la guarda de «no
+ * aplicar dos veces» no lo confunde con el completo. El contenedor se sigue buscando por `o.lote`.
+ */
+export function idDelPaquete(o: Pick<OpcionesSql, "lote" | "soloFacturas" | "excluirMarkbox">): string {
+  if (!o.soloFacturas) return o.lote;
+  const excluidos = normalizarExclusiones(o.excluirMarkbox ?? []);
+  if (excluidos.length === 0) return `${o.lote}${SUFIJO_SOLO_FACTURAS}`;
+  const partes = o.lote.split(":");
+  if (partes.length !== 3 || partes[0] !== "carga-consolidado") throw new Error(`id de carga inesperado: ${o.lote}`);
+  const huella = createHash("sha256").update(`${o.lote}\n--excluir-markbox ${excluidos.join(",")}`).digest("hex").slice(0, 8);
+  return `${partes[0]}:${partes[1]}:${huella}${SUFIJO_SOLO_FACTURAS}`;
+}
+
+/** El aviso del bloque nombra el id del paquete; sin exclusiones lo arma con `cab.lote` (como siempre). */
+const ID_EN_EL_AVISO = "cab.lote || ':facturas', cab.contenedor,";
+/** Después de contar los Shipping Marks vivos va la guarda de `--excluir-markbox`. */
+const ANCLA_GUARDA_EXCLUSION = "  select count(distinct markbox) into v_n_marcas from lote_cargados;\n";
+
+/**
+ * SDD-0690 · El cuerpo de `--solo-facturas` con `--excluir-markbox`: el aviso nombra el id del
+ * paquete nuevo (aplicar-lote.sh lo busca en la evidencia del simulacro) y, antes de crear nada,
+ * aborta en dos casos, sin escribir nada:
+ *  - un envío que entra está HOY en un markbox excluido: el comodín no recibe una pre-orden
+ *    aunque el Excel resuelva el envío a otro cliente;
+ *  - un envío excluido está HOY, en este contenedor, en un Shipping Mark que NO es de la lista
+ *    (ya se reasignó). Si siguiera, su dueño recibiría hoy una pre-orden sin ese envío y el lote
+ *    chico de después se lo saltaría por la idempotencia por cliente: quedaría sin facturar.
+ */
+function cuerpoSoloFacturasExcluyendo(o: OpcionesSql, excluidos: string[], remitentesFuera: string[]): string {
+  if (CUERPO_SOLO_FACTURAS.split(ID_EN_EL_AVISO).length !== 2 || CUERPO_SOLO_FACTURAS.split(ANCLA_GUARDA_EXCLUSION).length !== 2) {
+    throw new Error("--excluir-markbox: el cuerpo de --solo-facturas cambió; revisa ID_EN_EL_AVISO y ANCLA_GUARDA_EXCLUSION");
+  }
+  const lista = `array[${excluidos.map(litSql).join(", ")}]::text[]`;
+  const fuera = `array[${remitentesFuera.map((r) => litSql(r.toUpperCase())).join(", ")}]::text[]`;
+  const guarda = [
+    "  -- --excluir-markbox: ningún envío que entra puede estar hoy en un Shipping Mark excluido.",
+    `  select count(*) into v_n_mb from lote_cargados where markbox = any(${lista});`,
+    "  if v_n_mb > 0 then",
+    "    raise exception 'solo-facturas: % envíos del lote están hoy en un Shipping Mark excluido (--excluir-markbox); vuelve a generar', v_n_mb;",
+    "  end if;",
+    "  -- --excluir-markbox: ningún envío excluido puede estar hoy, en este contenedor, en un Shipping Mark fuera de la lista",
+    "  -- (ya reasignado): su dueño recibiría una pre-orden sin él y el lote de después se lo saltaría.",
+    "  select count(*) into v_n_mb",
+    "    from public.shipments sh",
+    "    join (select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id",
+    "            from public.consolidation_items ci",
+    "           where ci.tenant_id = v_tenant and ci.shipment_id is not null",
+    "           order by ci.shipment_id, ci.created_at desc, ci.id desc) vg",
+    "      on vg.shipment_id = sh.id and vg.consolidation_id = v_cons",
+    "   where sh.tenant_id = v_tenant and sh.deleted_at is null",
+    `     and upper(sh.code) = any(${fuera})`,
+    `     and not (coalesce(upper(btrim(sh.client_markbox)), '') = any(${lista}));`,
+    "  if v_n_mb > 0 then",
+    "    raise exception 'solo-facturas: % envíos excluidos ya están en un Shipping Mark fuera de la lista (--excluir-markbox): quedarían sin facturar; vuelve a generar sin excluirlos', v_n_mb;",
+    "  end if;",
+    "",
+  ].join("\n");
+  return CUERPO_SOLO_FACTURAS.replace(ID_EN_EL_AVISO, () => `${litSql(idDelPaquete(o))}, cab.contenedor,`).replace(
+    ANCLA_GUARDA_EXCLUSION,
+    () => guarda + ANCLA_GUARDA_EXCLUSION,
+  );
 }
 
 /**
@@ -1446,6 +1521,68 @@ function enviosConLineasPropias(lote: Lote): string {
   return filas.length ? filas.join(",\n    ") : "(null::text, null::text)";
 }
 
+/**
+ * SDD-0690 · La parte de la previa que agrega `--excluir-markbox`. Sólo conteos:
+ *  - `excluidos_por_markbox`: los envíos que el Excel deja fuera (N);
+ *  - `excluidos_en_el_contenedor`: de esos N, los que están vivos y vigentes en el contenedor;
+ *  - `excluidos_hoy_en_markbox_excluido`: de esos, los que siguen hoy en un Shipping Mark de la lista;
+ *  - `excluidos_en_otro_markbox`: los que ya están en otro Shipping Mark. **Tiene que dar 0**: aplicar aborta;
+ *  - `incluidos_en_markbox_excluido`: los que entran y están hoy en uno de la lista. **Tiene que dar 0**: aplicar aborta;
+ *  - `otros_del_contenedor_en_markbox_excluido`: envíos del contenedor en la lista que el Excel no trae (informativo).
+ */
+function previaExclusion(lote: Lote, o: OpcionesSql, contenedor: string): string {
+  const ex = lote.excluidos;
+  if (!ex) return "";
+  const lista = `array[${ex.markbox.map(litSql).join(", ")}]::text[]`;
+  const valores = (codigos: string[]) => (codigos.length ? codigos.map((r) => `(${litSql(r.toUpperCase())})`).join(",\n    ") : "(null::text)");
+  const incluidos = valores(lote.embarques.map((e) => e.remitente));
+  const excluidos = valores(ex.remitentes);
+  return `
+\\echo === excluidos por markbox: ${ex.envios}
+with tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)}),
+cons as (
+  select cn.id from public.consolidations cn
+   where cn.tenant_id = (select id from tenant) and cn.deleted_at is null
+     and upper(coalesce(cn.container_no, '')) = ${contenedor} and cn.notes like '%' || ${litSql(o.lote)} || '%'
+),
+incluidos(remitente) as (values
+    ${incluidos}
+),
+excluidos(remitente) as (values
+    ${excluidos}
+),
+vigente as (
+  select distinct on (ci.shipment_id) ci.shipment_id, ci.consolidation_id
+    from public.consolidation_items ci
+   where ci.tenant_id = (select id from tenant) and ci.shipment_id is not null
+   order by ci.shipment_id, ci.created_at desc, ci.id desc
+),
+en_el_contenedor as (
+  select upper(sx.code) as code, coalesce(upper(btrim(sx.client_markbox)), '') as markbox
+    from public.shipments sx
+    join vigente vg on vg.shipment_id = sx.id and vg.consolidation_id in (select id from cons)
+   where sx.tenant_id = (select id from tenant) and sx.deleted_at is null
+)
+select
+  ${ex.envios} as excluidos_por_markbox,
+  (select count(*) from en_el_contenedor ec
+    where ec.code in (select x.remitente from excluidos x where x.remitente is not null)) as excluidos_en_el_contenedor,
+  (select count(*) from en_el_contenedor ec
+    where ec.markbox = any(${lista})
+      and ec.code in (select x.remitente from excluidos x where x.remitente is not null)) as excluidos_hoy_en_markbox_excluido,
+  (select count(*) from en_el_contenedor ec
+    where not (ec.markbox = any(${lista}))
+      and ec.code in (select x.remitente from excluidos x where x.remitente is not null)) as excluidos_en_otro_markbox,
+  (select count(*) from en_el_contenedor ec
+    where ec.markbox = any(${lista})
+      and ec.code in (select i.remitente from incluidos i where i.remitente is not null)) as incluidos_en_markbox_excluido,
+  (select count(*) from en_el_contenedor ec
+    where ec.markbox = any(${lista})
+      and ec.code not in (select i.remitente from incluidos i where i.remitente is not null)
+      and ec.code not in (select x.remitente from excluidos x where x.remitente is not null)) as otros_del_contenedor_en_markbox_excluido;
+`;
+}
+
 function previaSoloFacturas(lote: Lote, o: OpcionesSql): string {
   const contenedor = litSql(normalizarCodigo(lote.rastreo.contenedor));
   return `\\set ON_ERROR_STOP on
@@ -1491,7 +1628,7 @@ select
        where iv.tenant_id = cg.tenant_id and iv.deleted_at is null and iv.status <> 'anulada'
          and (iv.shipment_id = cg.id
               or exists (select 1 from public.exc0674_factura_envios fe where fe.invoice_id = iv.id and fe.shipment_id = cg.id)))) as clientes_con_factura_viva;
-
+${previaExclusion(lote, o, contenedor)}
 rollback;
 `;
 }
@@ -1615,6 +1752,11 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
   revisarDelimitadores(lote);
   if (o.soloFacturas && !o.facturas) throw new Error("--solo-facturas y --sin-facturas no van juntos");
   if (o.soloFacturas && o.crearClientesFaltantes) throw new Error("--solo-facturas no crea clientes: el contenedor ya está cargado");
+  const excluidos = normalizarExclusiones(o.excluirMarkbox ?? []);
+  if (excluidos.length && !o.soloFacturas) throw new Error("--excluir-markbox sólo va con --solo-facturas");
+  if (excluidos.join(",") !== (lote.excluidos?.markbox ?? []).join(",")) {
+    throw new Error("--excluir-markbox: el lote no se filtró con la misma lista (pasa la misma lista a agruparLote)");
+  }
   const pod = puertoDestino(lote.rastreo.puertoLlegada);
   const nav = naviera(lote.rastreo.naviera);
   const items = lote.embarques.reduce((s, e) => s + e.filas.length, 0);
@@ -1662,9 +1804,21 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     clientes: lote.clientes.map((c, i) => ({ clave: c.clave, etiqueta: etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1), nombreExcel: c.marca.nombreExcel, candidatos: c.marca.candidatos, embarques: c.embarques.length, base: c.base })),
     avisos: lote.avisos,
     ...(o.soloFacturas ? { modo: "solo-facturas" as const } : {}),
+    ...(lote.excluidos
+      ? {
+          excluidos: {
+            // Los códigos de los envíos excluidos no van al manifiesto: sólo los conteos.
+            markbox: lote.excluidos.markbox,
+            clientes: lote.excluidos.clientes,
+            envios: lote.excluidos.envios,
+            filas: lote.excluidos.filas,
+            motivo: "--excluir-markbox: envíos que siguen en estos Shipping Marks (p. ej. el comodín DTD-0000); se cargan en otro paquete después de reasignarlos",
+          },
+        }
+      : {}),
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);
-  const cabecera = `${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
+  const cabecera = `${o.soloFacturas ? `-- SDD-0690 · paquete ${idDelPaquete(o)} · --solo-facturas: sólo pre-órdenes en borrador; no toca consolidación, envíos, recepciones ni ítems\n` : ""}${lote.excluidos ? `-- SDD-0690 · --excluir-markbox ${lote.excluidos.markbox.join(",")}: excluidos por markbox: ${lote.excluidos.envios} envíos, fuera de este paquete\n` : ""}-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
     previa: o.soloFacturas ? previaSoloFacturas(lote, o) : previa(lote, o, pod, nav),
     aplicar: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,

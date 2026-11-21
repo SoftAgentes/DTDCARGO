@@ -175,6 +175,25 @@ export interface Lote {
   filas: FilaPacking[];
   totales: Totales;
   avisos: string[];
+  /**
+   * Sólo con `--excluir-markbox` (con `--solo-facturas`): los Shipping Marks que se dejaron
+   * fuera del lote y cuántos clientes, envíos y filas del Excel salieron. Sin la opción no
+   * existe, y el lote queda igual que antes byte a byte.
+   */
+  excluidos?: ExclusionPorMarkbox;
+}
+
+/**
+ * Lo que `--excluir-markbox` dejó fuera del lote: los Shipping Marks (códigos, nunca nombres),
+ * conteos y los códigos de los envíos excluidos. Los remitentes sólo viajan al SQL (la guarda
+ * de los excluidos reasignados); el manifiesto lleva los conteos.
+ */
+export interface ExclusionPorMarkbox {
+  markbox: string[];
+  clientes: number;
+  envios: number;
+  filas: number;
+  remitentes: string[];
 }
 
 export interface OpcionesLote {
@@ -196,6 +215,12 @@ export interface OpcionesLote {
   cbmFcl?: number | null;
   kgFcl?: number | null;
   gastoEspacio?: GastoEspacio | null;
+  /**
+   * SDD-0690 · `--excluir-markbox`: las filas de los clientes con estos Shipping Marks (por el
+   * mapa o por la clave) no entran al lote. Se descartan antes de agrupar, así que envíos,
+   * clientes, líneas, totales y avisos salen ya sin ellas. Vacío o ausente, no cambia nada.
+   */
+  excluirMarkbox?: readonly string[];
 }
 
 /**
@@ -389,6 +414,13 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
     avisos.push(`El número de contenedor «${rastreo.contenedor}» no tiene la forma ISO (4 letras + 7 dígitos); se carga tal cual.`);
   }
   const mapa = normalizarMapa(opciones.mapa);
+  const listaFuera = normalizarExclusiones(opciones.excluirMarkbox ?? []);
+  const fuera = new Set(listaFuera);
+  const fueraVistos = new Set<string>();
+  const clavesFuera = new Set<string>();
+  const remitentesFuera = new Set<string>();
+  let filasFuera = 0;
+  const sumaFuera = { cajas: 0, cbmFactura: 0, pesoKg: 0 };
 
   const embarquesPorRemitente = new Map<string, Embarque>();
   const filasUtiles: FilaPacking[] = [];
@@ -400,13 +432,25 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
       avisos.push(`Fila ${fila.filaExcel} sin Remitente: se descarta (${fila.cajas} cajas, ${round3(num(fila.cbmFactura))} m³, ${round2(num(fila.pesoKg))} kg).`);
       continue;
     }
-    if (corregido) avisos.push(`Fila ${fila.filaExcel}: el Remitente «${fila.remitente}» se corrige a «${remitente}».`);
     let marca: Marca;
     try {
       marca = interpretarMarca(fila.marcaTexto, remitente);
     } catch (e) {
       throw new Error(`Fila ${fila.filaExcel}: ${(e as Error).message}`);
     }
+    // SDD-0690 · --excluir-markbox: la fila sale antes de agrupar y antes de dar sus avisos.
+    const markbox = mapa[marca.clave] ?? mapa[`${marca.prefijo}-${marca.numero}`] ?? marca.clave;
+    if (fuera.has(markbox)) {
+      fueraVistos.add(markbox);
+      clavesFuera.add(marca.clave);
+      remitentesFuera.add(remitente);
+      filasFuera++;
+      sumaFuera.cajas += num(fila.cajas);
+      sumaFuera.cbmFactura += num(fila.cbmFactura);
+      sumaFuera.pesoKg += num(fila.pesoKg);
+      continue;
+    }
+    if (corregido) avisos.push(`Fila ${fila.filaExcel}: el Remitente «${fila.remitente}» se corrige a «${remitente}».`);
     const f: FilaPacking = { ...fila, remitente };
     filasUtiles.push(f);
     let e = embarquesPorRemitente.get(remitente);
@@ -506,21 +550,69 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
   if (Math.abs(diferencia) > 0.01) {
     avisos.push(`La base de flete calculada no coincide con Σ TOTAL FACTURADO del Excel: diferencia $${diferencia.toFixed(2)} (filas con precio distinto o fórmulas sin resultado).`);
   }
-  const totalesExcel = descartadas.filter((d) => num(d.cajas) >= totales.cajas * 0.5).sort((a, b) => num(b.cajas) - num(a.cajas))[0];
+  // La fila de totales del Excel describe el contenedor completo: con --excluir-markbox se compara
+  // contra lo que entra más lo excluido (es un control del Excel, no del paquete).
+  const completo = listaFuera.length
+    ? {
+        cajas: totales.cajas + sumaFuera.cajas,
+        cbmFactura: round3(totales.cbmFactura + sumaFuera.cbmFactura),
+        pesoKg: round2(totales.pesoKg + sumaFuera.pesoKg),
+      }
+    : totales;
+  const totalesExcel = descartadas.filter((d) => num(d.cajas) >= completo.cajas * 0.5).sort((a, b) => num(b.cajas) - num(a.cajas))[0];
   if (totalesExcel) {
-    const dCajas = totales.cajas - num(totalesExcel.cajas);
-    const dCbm = round3(totales.cbmFactura - num(totalesExcel.cbmFactura));
-    const dKg = round2(totales.pesoKg - num(totalesExcel.pesoKg));
+    const dCajas = completo.cajas - num(totalesExcel.cajas);
+    const dCbm = round3(completo.cbmFactura - num(totalesExcel.cbmFactura));
+    const dKg = round2(completo.pesoKg - num(totalesExcel.pesoKg));
     if (dCajas !== 0 || Math.abs(dCbm) > 0.001 || Math.abs(dKg) > 0.01) {
       avisos.push(
-        `La fila de totales del Excel (fila ${totalesExcel.filaExcel}) dice ${totalesExcel.cajas} cajas, ${round3(num(totalesExcel.cbmFactura))} m³ y ${round2(num(totalesExcel.pesoKg))} kg; el lote suma ${totales.cajas} cajas, ${totales.cbmFactura} m³ y ${totales.pesoKg} kg (diferencia ${dCajas} cajas, ${dCbm} m³, ${dKg} kg). Suele ser un rango de SUM que no cubre todas las filas; revisar.`,
+        `La fila de totales del Excel (fila ${totalesExcel.filaExcel}) dice ${totalesExcel.cajas} cajas, ${round3(num(totalesExcel.cbmFactura))} m³ y ${round2(num(totalesExcel.pesoKg))} kg; ${listaFuera.length ? "el contenedor completo (con los excluidos por markbox)" : "el lote"} suma ${completo.cajas} cajas, ${completo.cbmFactura} m³ y ${completo.pesoKg} kg (diferencia ${dCajas} cajas, ${dCbm} m³, ${dKg} kg). Suele ser un rango de SUM que no cubre todas las filas; revisar.`,
       );
     }
+  }
+  let excluidos: ExclusionPorMarkbox | undefined;
+  if (listaFuera.length) {
+    const sinClientes = listaFuera.filter((m) => !fueraVistos.has(m));
+    if (sinClientes.length) throw new Error(`--excluir-markbox: ningún cliente del lote tiene el Shipping Mark ${sinClientes.join(", ")}`);
+    if (clientes.length === 0) throw new Error("--excluir-markbox deja el lote sin clientes: no hay pre-órdenes que cargar");
+    excluidos = { markbox: listaFuera, clientes: clavesFuera.size, envios: remitentesFuera.size, filas: filasFuera, remitentes: [...remitentesFuera] };
+    avisos.push(
+      `Excluidos por markbox (${listaFuera.join(", ")}): ${excluidos.envios} envíos de ${excluidos.clientes} claves del Excel (${excluidos.filas} filas) quedan fuera del lote; no llevan pre-orden ni línea y no suman en los totales.`,
+    );
   }
   if (embarques.length === 0 && modalidad !== "fcl") throw new Error("El packing list no trae filas con Remitente.");
   if (dueno && clientes.some((c) => c.clave === dueno!.marca.clave)) {
     throw new Error(`El dueño ${dueno.marca.clave} también aparece como cliente DDP del packing list; decide con Sam cómo cargarlo.`);
   }
 
-  return { rastreo, modalidad, dueno, gastoEspacio, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos };
+  return {
+    rastreo, modalidad, dueno, gastoEspacio, fechaCarga, fechaRecepcion, etd, eta: opciones.eta, excesoPeso, clientes, embarques, filas: filasUtiles, totales, avisos,
+    ...(excluidos ? { excluidos } : {}),
+  };
+}
+
+/** Un Shipping Mark que se puede pasar a `--excluir-markbox`: un código (`DTD-0000`), nunca un texto con nombre. */
+export const RE_MARKBOX_EXCLUIBLE = /^[A-Z]{2,4}-[A-Z]?\d{1,5}$/;
+
+/**
+ * Normaliza la lista de `--excluir-markbox`: mayúsculas, sin repetidos y ordenada, para
+ * que la huella del paquete no dependa del orden en que se escribieron.
+ */
+export function normalizarExclusiones(markbox: readonly string[]): string[] {
+  const out = new Set<string>();
+  for (const crudo of markbox) {
+    const m = normalizarCodigo(crudo);
+    if (!RE_MARKBOX_EXCLUIBLE.test(m)) throw new Error(`--excluir-markbox: «${crudo}» no es un Shipping Mark (PREFIJO-NNNN)`);
+    out.add(m);
+  }
+  return [...out].sort();
+}
+
+/**
+ * El Shipping Mark que el lote le asigna a un cliente: el que decidió el mapa a mano
+ * (`marcas-mapa.json`), o su clave si no está mapeado. Es la misma búsqueda de `agruparLote`.
+ */
+export function markboxDelCliente(c: Pick<Cliente, "clave" | "marca">, mapa: Record<string, string> = {}): string {
+  const m = normalizarMapa(mapa);
+  return m[c.marca.clave] ?? m[`${c.marca.prefijo}-${c.marca.numero}`] ?? c.clave;
 }
