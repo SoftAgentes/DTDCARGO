@@ -10,6 +10,7 @@
 import {
   buildMonthGrid,
   fairsForDate,
+  dayCellLabel,
   holidaysForDate,
   type MonthCursor,
 } from "@/lib/studio/calendar-helpers";
@@ -113,7 +114,7 @@ export function MonthView({
               key={cell.isoDate}
               onClick={() => cell.inMonth && onDayClick(cell.isoDate)}
               disabled={!cell.inMonth}
-              aria-label={`Ver eventos del ${cell.isoDate}${criticalCN ? ", feriado crítico en China" : ""}`}
+              aria-label={dayCellLabel(cell.isoDate, cell.inMonth ? dayHolidays : [], dayFairs.length, dayEvents.length)}
               className="studio-cal-daycell"
               style={{
                 minHeight: 116,
@@ -201,7 +202,7 @@ export function MonthView({
                       >
                         {/* Crítico = la operación en China se para (Año Nuevo
                             Chino, Golden Week): además de la barra en peligro,
-                            un ícono y el estado en el nombre accesible del botón (aria-label),
+                            un ícono y el estado en el nombre accesible del botón (`dayCellLabel`),
                             para no decirlo solo con color. */}
                         {criticalCN && (
                           <span
