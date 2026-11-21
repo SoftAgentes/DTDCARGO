@@ -53,10 +53,22 @@ function bloquesCss(css: string): { selector: string; cuerpo: string }[] {
   }));
 }
 
+/**
+ * Una regla está permitida solo si cada selector de su lista (separada por
+ * comas) está en la lista. Así un selector mixto como
+ * `.pantalla-x, .studio-permitida` no se cuela por la parte permitida.
+ */
+function permitida(selector: string, lista: { selector: RegExp }[] = STUDIO_CSS_PERMITIDO): boolean {
+  return selector
+    .split(",")
+    .map((parte) => parte.trim())
+    .every((parte) => lista.some((p) => p.selector.test(parte)));
+}
+
 function reglasFuera(css: string): string[] {
   return bloquesCss(css)
     .filter((b) => cuentaVino(b.cuerpo) > 0)
-    .filter((b) => !STUDIO_CSS_PERMITIDO.some((p) => p.selector.test(b.selector)))
+    .filter((b) => !permitida(b.selector))
     .map((b) => b.selector);
 }
 
@@ -206,6 +218,17 @@ describe("SDD-0686 · cierre de la fase 2: todo app/studio", () => {
     const regla = bloquesCss(leer(join(RAIZ, "app/studio/studio.css"))).find((b) => b.selector.includes("studio-tab-n[data-alerta"));
     expect(regla?.cuerpo).toContain("color: var(--ink);");
     expect(regla?.cuerpo).not.toMatch(/(^|[^-])color:\s*var\(--warning/);
+  });
+
+  it("mutante: un selector mixto no se cuela por la parte permitida", () => {
+    const css = `${leer(join(RAIZ, "app/studio/studio.css"))}\n:root,\n.pantalla-x { color: var(--wine); }\n`;
+    expect(reglasFuera(css)).toEqual([":root,\n.pantalla-x"]);
+    // Con un patrón sin anclar, como los de las familias que ya salieron, la
+    // parte permitida no salva a la otra; antes se comparaba el selector entero.
+    const lista = [{ selector: /\.studio-tracking-ops-/ }];
+    expect(permitida(".pantalla-x, .studio-tracking-ops-falso", lista)).toBe(false);
+    expect(lista[0].selector.test(".pantalla-x, .studio-tracking-ops-falso")).toBe(true);
+    expect(permitida(".studio-tracking-ops-a, .studio-tracking-ops-b", lista)).toBe(true);
   });
 
   it("el detector ve eyebrow-wine y data-tono=\"vino\"", () => {

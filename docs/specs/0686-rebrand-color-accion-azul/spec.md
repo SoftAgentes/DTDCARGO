@@ -652,8 +652,7 @@ El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c
 | `_components/guia/GuiaTarjeta.tsx` | 6 | Superficie de la Guía con el tinte de marca |
 | `_components/ui/EmptyState.tsx` | 1 | Eyebrow del estado vacío (identidad, grupo 1) |
 | `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla del Studio lo usa; lo usa el móvil hasta la fase 3 |
-
-| `studio.css` | 18 | El alias `--studio-wine-soft` del eyebrow (identidad, fase 1) y las tres familias pendientes de abajo. Las reglas permitidas están en `STUDIO_CSS_PERMITIDO`: una regla nueva con vino rompe |
+| `studio.css` | 1 | El alias `--studio-wine-soft` del guión del eyebrow (identidad, fase 1). Las tres familias que la #745 dejó pendientes ya no tienen vino (ver «cierre de `studio.css`»). Las reglas permitidas están en `STUDIO_CSS_PERMITIDO`: una regla nueva con vino rompe, y en un selector mixto cada parte tiene que estar en la lista |
 
 Quedan fuera de ese recorrido:
 - `tokens.css`, que define los tokens;
