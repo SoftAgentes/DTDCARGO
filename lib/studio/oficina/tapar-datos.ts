@@ -2,7 +2,7 @@
  * SDD-0700 (hijo de SDD-0626, punto (a) de privacidad) · Tapar los datos personales ANTES de la llamada al modelo.
  *
  * El despachador de la Oficina_Virtual manda la conversación al agente, y el agente la pasa a un proveedor de
- * fuera (Z.AI y, de respaldo, DeepSeek). Desde este cambio, en cada mensaje se cambian los correos, teléfonos,
+ * fuera (hoy Anthropic; ver privacidad.md, hallazgo 13). Desde este cambio, en cada mensaje se cambian los correos, teléfonos,
  * cédulas, RIF y direcciones por un marcador estable: «[correo]», «[teléfono]», «[cédula]», «[RIF]» y
  * «[dirección]». El agente no los necesita para redactar: los guiones no usan datos del cliente.
  *

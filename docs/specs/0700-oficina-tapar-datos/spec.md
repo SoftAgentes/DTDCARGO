@@ -23,8 +23,11 @@ confidencialidad: interno
 ## 1. Contexto
 
 La Oficina_Virtual (SDD-0626, «el cable») lee la bandeja de Chatwoot y le pide un borrador al agente
-`soporte-chatwoot` de Hermes, que llama a Z.AI (glm-5.3) y, si falla, a DeepSeek (deepseek-chat). Los dos proveedores
-tienen sede en China y no se puede verificar desde aquí qué guardan (privacidad.md, hallazgo 13 y §4). La etapa 1
+`soporte-chatwoot` de Hermes. Cuando se escribió esta SDD el agente llamaba a Z.AI (glm-5.3) y, si fallaba, a
+DeepSeek (deepseek-chat), dos proveedores con sede en China. Desde el 21/11/2026 (decisión de Sam, D-2) llama a
+Anthropic: claude-sonnet-5-5 y, si falla, claude-haiku-5-5, sin respaldo de otro proveedor. Un respaldo con OpenAI
+tiene su propia SDD, la 0703. En cualquier caso, desde aquí no se puede verificar qué guarda el proveedor
+(privacidad.md, hallazgo 13 y §4). La etapa 1
 (datos inventados) se cerró y firmó el 20/11/2026. Antes de la etapa 2 los dos directores acordaron el punto (a):
 
 1. tapar los datos personales antes de la llamada al modelo (**esta SDD**);
@@ -51,7 +54,9 @@ que trae datos personales, con `detectorDelCable`.
 - `eval-automatico.ts`: código nuevo `marcador`. Un borrador que trae «[teléfono]» u otro marcador escala.
 - `lib/news/autopublicar/control.ts` **no cambia** (v0.2, por la revisión de la #755): el detector de noticias queda
   como estaba.
-- `privacidad.md`, hallazgo 13: se corrige lo del respaldo DeepSeek y se anota el tapado.
+- `privacidad.md`, hallazgo 13: se anota el tapado (fila del ERP, columna «Qué llega» del proveedor y una viñeta con
+  lo que no se tapa). La corrección del respaldo DeepSeek que traía la v0.1 se descartó en el merge con la 0703: esa
+  fila ahora es la de `main` (Anthropic, sin Z.AI ni DeepSeek).
 
 **No entra:** los nombres de personas, la revisión de proveedores y el aviso al cliente (las otras dos partes del
 punto (a)).
@@ -164,6 +169,8 @@ mira el texto sin tapar, en memoria, como antes.
 - **v0.2 (21/11/2026).** Por la revisión de la #755 (CHANGES_REQUESTED): lista propia de la Oficina_Virtual (B1, B2,
   M1 a M3, L3), `quedanDatos` mira la cola de un número tapado a medias, código `marcador` (L2) y las pruebas de todos
   los casos (M4). `control.ts` vuelve a quedar como en `main`. L1 queda declarado en §5.
+- **v0.4 (21/11/2026, texto).** Tras el merge con la 0703: el contexto (§1), el alcance (§2) y lo pendiente (§7) dejan
+  de nombrar Z.AI y DeepSeek como proveedores vigentes. Sin cambios de código.
 - **v0.3 (21/11/2026).** Por la segunda revisión (sobre `2005f6c56`): M5, la cédula con espacios de miles («cédula 12 345
   678», «V 12 345 678», «CI 12 345 678») se tapa entera en las tres expresiones de cédula. El espacio no entra en la cola
   de `quedanDatos` («[teléfono] 3 cajas» no escala). L4: «la torre a la que va» ya no se tapa; «torre A» sí, antes de un
@@ -171,4 +178,5 @@ mira el texto sin tapar, en memoria, como antes.
 
 ## 7. Pendiente del punto (a)
 
-Revisar a los proveedores (Z.AI, DeepSeek) y avisar al cliente, antes de la etapa 2. Están fuera de esta SDD.
+Revisar al proveedor vigente (Anthropic y, si entra la 0703, OpenAI) y avisar al cliente, antes de la etapa 2. Están
+fuera de esta SDD.

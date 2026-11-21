@@ -20,10 +20,11 @@ de SDD-0626. Rama `sdd/0626-tapar-datos-entrada`, desde `origin/main` en `f67daa
   V-12.345.678, E 1234567, C.I., J-…, correos, direcciones con «Av.» y «Edif.», el +86 de China, texto sin datos, el
   guion y el `conversacion_id` intactos). En `oficina-despachador.test.ts`, la prueba de privacidad ahora mira lo que
   recibe el agente: trae `[teléfono]` y no `0414-555-1234`.
-- **Docs.** `privacidad.md`, hallazgo 13: la fila del proveedor decía «respaldo DeepSeek quitado» y era falso. Desde el
-  16/11/2026 a las 12:10Z el agente `soporte-chatwoot` tiene glm-5.3 (Z.AI) de principal y deepseek-chat de respaldo
-  (comprobado el 20/11 con `hermes fallback list`). Se corrigió con la fecha, y la fila del ERP y la del proveedor
-  anotan que desde esta SDD el texto llega tapado. Viñeta nueva con lo que NO se tapa. Spec en
+- **Docs.** `privacidad.md`, hallazgo 13: la fila del ERP y la columna «Qué llega» del proveedor anotan que desde esta
+  SDD el texto llega tapado. *Nota del 21/11/2026:* la v0.1 corregía además la fila del proveedor (decía «respaldo
+  DeepSeek quitado», y entonces el agente tenía glm-5.3 de principal y deepseek-chat de respaldo). Esa corrección se
+  descartó en el merge con la 0703 (#757): Sam decidió en D-2 que la Oficina_Virtual va con Anthropic, y la fila de
+  `main` ya lo dice. Hoy el agente usa claude-sonnet-5-5 y, si falla, claude-haiku-5-5. Viñeta nueva con lo que NO se tapa. Spec en
   `docs/specs/0700-oficina-tapar-datos/spec.md`.
 
 ## v0.2 · Revisión de la #755 (CHANGES_REQUESTED sobre `e909ddb52`)
@@ -59,7 +60,7 @@ el texto sin tapar (en memoria). Los nombres de personas no se tapan; los númer
 - **Publicar:** el cambio entra en la próxima corrida del despachador tras el deploy. Coordinar con «Director Ofi_Hermes»
   para no publicar a mitad de una tanda. Un escalado con motivo `datos_sin_tapar` significa que el tapado dejó algo
   que el detector ve: mirar el caso (sin copiar el texto a ningún lado) y sumar la prueba.
-- **Lo que falta del punto (a):** revisar a los proveedores (Z.AI y DeepSeek: qué guardan, dónde procesan) y avisar al
-  cliente. Fuera de esta SDD.
+- **Lo que falta del punto (a):** revisar al proveedor vigente (Anthropic y, si entra la 0703, OpenAI: qué guardan,
+  dónde procesan) y avisar al cliente. Fuera de esta SDD.
 - **Nombres.** Si se quieren tapar nombres de personas hace falta otro enfoque (no hay regla fiable por expresión); la
   conversación ya llega sin el nombre del contacto de Chatwoot, pero el cliente puede escribirlo.
