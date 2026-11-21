@@ -267,6 +267,7 @@ export const bandeja = {
   "bandeja.portal.off": "Apagado: el chat del portal no va a Chatwoot.",
   "bandeja.portal.sin_llegar": "Sin llegar hace más de 15 min",
   "bandeja.portal.atascados": "Atascados",
+  "bandeja.portal.atascados_estado": "Requiere acción",
   "bandeja.portal.retry": "Reintentar los atascados",
   "bandeja.portal.retrying": "Reintentando…",
   "bandeja.portal.none": "No hay mensajes atascados.",

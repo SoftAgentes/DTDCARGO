@@ -16,7 +16,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { StatusIcon } from "@/components/StatusIcon";
 import { STATUS_LABELS } from "@/lib/shared/shipment-public";
-import { TONE_TO_VALUE_COLOR, type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
+import { type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
 import { CHART_PERIODS } from "@/lib/studio/dashboard/dashboard-catalog";
 import type { ActiveShipmentPreview, MonthlyVolumePoint } from "@/lib/studio/dashboard/dashboard-widget-queries";
 import type { KpiValue } from "@/lib/studio/dashboard/dashboard-kpi-queries";
@@ -398,7 +398,7 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {stats.map((s) => (
           <div key={s.label} style={{ padding: "10px 0" }}>
-            <div style={{ font: "800 17px/1 var(--f-display)", color: TONE_TO_VALUE_COLOR[s.v.tone ?? "neutral"] }}>{s.v.value}</div>
+            <div style={{ font: "800 17px/1 var(--f-display)", color: "var(--ink)" }}>{s.v.value}</div>
             <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>{s.label}</div>
           </div>
         ))}

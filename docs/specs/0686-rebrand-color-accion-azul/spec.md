@@ -731,6 +731,9 @@ El Portal y la web pública van en sus fases.
 - **Además:**
   - el contrato nuevo `app/studio/_components/__tests__/revision-visual-0686-contract.test.ts`;
   - los contratos del grupo 1 y de cierre, de los que sale `EmptyState`;
+  - `app/studio/(app)/usuarios/_components/MembersTable.tsx`, que dejó de comparar el tono del rol con «wine» (tsc);
+  - el contrato del grupo 3 (`color-accion-fase2-g3-contract.test.ts`), cuyo mutante del rol pasó al mapa nuevo;
+  - el contrato de contraste del tema oscuro (`dark-theme-contrast-contract.test.ts`), que nombra `--grad-bienvenida` en lugar de `--grad-wine-panel`;
   - esta spec y el handoff.
 
 **Qué cambia, punto por punto**
@@ -756,7 +759,7 @@ El Portal y la web pública van en sus fases.
 **Contrato nuevo (`revision-visual-0686-contract.test.ts`):** comprueba
 - el navy fijo del login;
 - que el login y la recuperación no usen el vino suave ni el pie al 45 %;
-- que el brillo de fondo no sea rojo;
+- que el brillo de fondo sea azul de acción o navy neutro. Es una lista blanca: desde la revisión de la #747, cualquier otro `rgba` o un hex rompe, con un mutante para cada caso;
 - que ningún rol tenga tono de estado;
 - que ningún título repita el sufijo;
 - que la leyenda quepa en el lienzo.
@@ -764,6 +767,47 @@ El Portal y la web pública van en sus fases.
 El contrato de cierre comprueba además que `EmptyState` no tiene vino y usa `.studio-eyebrow`.
 
 **Pendiente anotado (otra pasada):** quedan 115 usos de `color: var(--ink-mute)` como texto en línea, en 66 archivos de `app/studio`. `--ink-mute` da 2,44 a 2,78:1 en claro, debajo del 4,5:1 del texto. El Director contó 97; esta cuenta incluye además los placeholders y los rótulos de un carácter. Se reproduce con `git grep -cE "color: ?[\"']?var\(--ink-mute" -- app/studio ':!**/*.test.*'`. Se revisan uno por uno: los que son texto que se lee pasan a `--ink-soft`; los que son decoración o un estado deshabilitado se anotan.
+
+### Cifras KPI en tinta y estado aparte (2026-11-21)
+
+Decisión de Sam: «Cifras KPI: opción A, cifra en tinta y estado con punto y texto». Va en la rama `claude/sdd-0686-kpi-tinta`, desde `main`, después de la #747.
+
+**Componente (`app/studio/_components/ui/KpiCard.tsx`):**
+- Sale `valueColor`. La cifra va siempre en `--ink`; en la variante destacada, en `--ink-side-strong` sobre el navy.
+- Entra `status?: { tono: "success" | "warning" | "danger"; texto: string }`. El estado va bajo la etiqueta:
+  - un punto de 7 px del color de estado y la palabra en `--ink-soft` (5,33 / 6,86 sobre la tarjeta);
+  - en peligro, la palabra va en `--danger-text` (5,78 / 5,89) con el icono de alerta en lugar del punto;
+  - sin estado no hay punto.
+- No hay color libre. El contrato `kpi-cifra-en-tinta-contract.test.tsx` prohíbe volver a pasar `valueColor` a un `KpiCard` en `app/studio`, `app/portal` y `app/m`, con un mutante. También pinta la tarjeta y comprueba la cifra, el punto, el icono y el caso sin estado.
+
+**Gráficas en tinta:**
+- Las barras «Cobrado» de Reportes (y su leyenda) pasan a tinta al 50 %, el mismo grado del donut: 3,25 / 4,36. «Facturado» sigue en `--ink`.
+- La cobertura de Dirección (`FinanceHealthCard.tsx`) pasa a tinta en la cifra y la barra. Su estado va aparte, con punto y palabra: «Cubre los pagos» o «No alcanza para los pagos».
+- La cifra del widget de nómina del Dashboard (`DashboardWidgets.tsx`) también pasa a tinta.
+
+**Criterio del estado.** Solo lleva estado lo que es un estado: vencido, pendiente, alerta, meta, cuadre, pérdida o cobertura. Un conteo de cosas buenas o en curso («Activos», «Publicados», «Entregados», «En ruta», «Facturadas») queda solo con la cifra en tinta, sin punto: su etiqueta ya lo dice. Antes la cifra se pintaba de verde, azul o ámbar sin palabra.
+
+| Estado | KPI (pantalla) | Palabra |
+|---|---|---|
+| Peligro | Vencido (cobranzas, facturación, encabezado de cuenta del cliente, flujo de caja de Reportes, ficha del panel de Chatwoot) | «Requiere cobro» |
+| Peligro | Vencido (tesorería) | «Requiere pago» |
+| Peligro | Sin asignar y casos abiertos (conversaciones), por vencer o vencidos (documentos), con alertas (SENIAT), vencidos de recompra (Reportes), «llegó sin factura» (embarques sin facturar) | «Requiere acción» |
+| Peligro | Incidencias (Almacén CN), multas (TMS), envíos fallidos (estado del motor de avisos) | «Requiere revisión» |
+| Peligro | Margen bruto negativo y embarques con pérdida (costing), utilidad negativa y posición neta negativa (Dirección), conversión sin ganadas y cobertura de email baja (CRM) | «Con pérdida», «Hay pérdidas», «Pérdida», «Negativa», «Sin ganadas», «Requiere acción» |
+| Atención | Pendientes (Almacén CN, conciliación, documentos por firmar, estados de cuenta de China), carga suelta (naviera), observadas (inspecciones), reclamos abiertos (reclamos y scorecard), en ventana (Reportes), abiertas (conversaciones), mantenimiento (TMS) | «Pendiente», «Sin asignar», «Requiere revisión», «Requiere atención», «Por atender», «Fuera de servicio» |
+| Atención | Adopción baja (motor de avisos), meta no alcanzada (Reportes), tira de saldos descuadrada (conciliación), cobertura de email media (CRM) | «Bajo la meta», «Descuadrada», «Cobertura baja» |
+| Éxito | Tasa de cobro ≥ 80 %, meta cumplida, tira cuadrada, todos en versión vigente (legal), sin asignar en cero, margen y embarques con margen, posición neta positiva, facturación ERP completa, buena adopción y buena cobertura de email | «Meta cumplida», «Cuadrada», «Todos al día», «Al día», «Con margen», «Todos con margen», «Positiva», «Completa», «Buena adopción», «Buena cobertura» |
+| Sin estado | Los demás: conteos de cosas buenas o en curso, montos (revenue, débito y crédito fiscal, costo, aceptado), saldos del socio de China (su leyenda dice el signo), «info» (en promesa, próximos, en ruta, listos para retiro, sin transacción) | — |
+
+**Tablero (`DashboardClient.tsx`):** `estadoDelKpi` convierte el tono del catálogo o de la consulta en estado. Solo lo hace con `warning` («Requiere atención») y `danger` («Requiere acción»), y solo si la cifra no es cero ni falta. Así «Facturas vencidas» en cero no muestra nada.
+
+**Cifras destacadas fuera de `KpiCard` (H1 de la revisión de la #748).** El estado sale a `KpiEstado`, exportado desde `KpiCard.tsx` (con `sobreOscuro` para el navy). Ocho cifras con estilo en línea pasan a tinta:
+- CRM, pestaña Dirección: la mediana de días sin movimiento (≥ 180: «Requiere acción»); «Valor en el CRM» en cero, en tinta y sin estado; «Facturación ERP» completa: «Completa».
+- Bandeja, «Portal → Chatwoot»: los atascados (> 0: «Requiere acción», clave `bandeja.portal.atascados_estado`).
+- Cobranzas, separación de fondos: fondos de terceros e ingreso local, sin estado; sin identificar > 0: «Requiere revisión».
+- Detalle de factura: saldo en cero, «Pagada».
+
+El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de peso 800/900 y 20 px o más cuyo `color` en línea lleve `--success`, `--warning`, `--danger` o `--info`, con dos mutantes. Un círculo con icono (`borderRadius: "50%"`) no cuenta como cifra.
 
 ### Fases 2 a 5
 

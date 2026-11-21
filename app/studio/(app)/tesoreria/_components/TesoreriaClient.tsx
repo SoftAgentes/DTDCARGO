@@ -212,19 +212,17 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor="var(--ink)"
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.vencido)}`}
           label="Vencido"
-          valueColor={kpis.vencido > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.vencido > 0 ? { tono: "danger", texto: "Requiere pago" } : undefined}
           sub={kpis.vencido > 0 ? "Requiere pago" : "Sin vencidos"}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.pagadoMes)}`}
           label="Pagado en el mes"
-          valueColor={kpis.pagadoMes > 0 ? "var(--success)" : "var(--ink)"}
           sub="Órdenes de pago del mes en curso"
         />
         <KpiCard
@@ -589,7 +587,6 @@ function PaymentsTab({
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor="var(--ink)"
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>

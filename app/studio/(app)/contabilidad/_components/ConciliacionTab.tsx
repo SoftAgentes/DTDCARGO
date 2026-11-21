@@ -252,12 +252,11 @@ function StatementDetail({
           value={kpis.reconciled}
           label="Conciliados"
           sub={`${kpis.reconciledPct}% del extracto`}
-          valueColor="var(--success)"
         />
         <KpiCard
           value={kpis.pending}
           label="Pendientes"
-          valueColor={kpis.pending > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.pending > 0 ? { tono: "warning", texto: "Pendiente" } : undefined}
           sub={kpis.pending > 0 ? "requieren acción" : "todos al día"}
         />
         <KpiCard
@@ -267,7 +266,7 @@ function StatementDetail({
               : `$${fmtAmount(Math.abs(balance.difference))}`
           }
           label="Tira de saldos"
-          valueColor={balance.balanced ? "var(--success)" : "var(--warning)"}
+          status={balance.balanced ? { tono: "success", texto: "Cuadrada" } : { tono: "warning", texto: "Descuadrada" }}
           sub={balance.balanced ? "cuadra" : "revisa el extracto"}
           highlightWhenPositive={false}
         />

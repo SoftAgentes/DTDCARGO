@@ -15,7 +15,7 @@
  */
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, type KpiStatus } from "@/app/studio/_components/ui/KpiCard";
 import { Icon } from "@/app/studio/_components/icons";
 import { RecentActivityCard } from "./RecentActivityCard";
 import { DashboardEditorDrawer } from "./DashboardEditorDrawer";
@@ -31,11 +31,11 @@ import {
 } from "./DashboardWidgets";
 import {
   MAX_KPIS,
-  TONE_TO_VALUE_COLOR,
   kpiById,
   widgetById,
   type ChartPeriod,
   type KpiCatalogEntry,
+  type KpiTone,
   type WidgetCatalogEntry,
 } from "@/lib/studio/dashboard/dashboard-catalog";
 import type { DashboardConfig } from "@/lib/studio/dashboard/dashboard-types";
@@ -47,6 +47,20 @@ import {
   saveDashboardConfigAction,
   type SaveDashboardState,
 } from "../actions";
+
+/**
+ * Estado de un KPI del tablero (Sam, opción A): la cifra va en tinta y el estado
+ * aparte. El tono del catálogo o de la consulta solo se vuelve estado cuando es
+ * atención o peligro y la cifra no es cero ni falta; «éxito», «info» y «neutral»
+ * no marcan nada.
+ */
+function estadoDelKpi(value: string | number, tone: KpiTone): KpiStatus | undefined {
+  const texto = String(value);
+  if (texto === "—" || !/[1-9]/.test(texto)) return undefined;
+  if (tone === "danger") return { tono: "danger", texto: "Requiere acción" };
+  if (tone === "warning") return { tono: "warning", texto: "Requiere atención" };
+  return undefined;
+}
 
 export type DashboardWidgetData = {
   activeShipments: ActiveShipmentPreview[];
@@ -279,7 +293,7 @@ export function DashboardClient({
                     key={meta.id}
                     value={value}
                     label={meta.label}
-                    valueColor={value === "—" ? "var(--ink-mute)" : TONE_TO_VALUE_COLOR[tone]}
+                    status={estadoDelKpi(value, tone)}
                     sub={meta.status === "wip" ? "Próximamente" : v?.sub}
                     // KPI destacado (BD-034): el primero va en degradado navy + "D" (cifras en tinta, BD-076).
                     feature={i === 0}

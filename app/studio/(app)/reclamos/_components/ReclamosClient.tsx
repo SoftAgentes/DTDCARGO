@@ -206,13 +206,12 @@ export function ReclamosClient({
           label="Reclamos abiertos"
           value={kpis.open_count}
           sub="en evaluación o aprobados"
-          valueColor={kpis.open_count > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.open_count > 0 ? { tono: "warning", texto: "Requiere atención" } : undefined}
         />
         <KpiCard
           label="Monto expuesto"
           value={USD(kpis.exposed_usd)}
           sub="reclamos abiertos"
-          valueColor="var(--ink)"
           highlightWhenPositive={false}
         />
         <KpiCard
@@ -224,7 +223,6 @@ export function ReclamosClient({
           label="Pagado"
           value={USD(kpis.paid_usd)}
           sub="indemnizaciones"
-          valueColor={kpis.paid_usd > 0 ? "var(--success)" : "var(--ink)"}
           highlightWhenPositive={false}
         />
       </div>

@@ -137,7 +137,7 @@ function TarjetaVencido({ cuenta }: { cuenta: ClientAccountSummary }) {
     <KpiCard
       label="Vencido"
       value={monto(conVencido[0], "vencido")}
-      valueColor="var(--danger)"
+      status={{ tono: "danger", texto: "Requiere cobro" }}
       sub={
         <Lineas
           lineas={[

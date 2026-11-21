@@ -115,13 +115,6 @@ export function LedgerTab({
         <KpiCard
           value={fmtUsd(balance.net_usd)}
           label="Saldo neto · USD"
-          valueColor={
-            balance.net_usd > 0
-              ? "var(--ink)"
-              : balance.net_usd < 0
-                ? "var(--success)"
-                : "var(--ink)"
-          }
           sub={
             balance.net_usd > 0
               ? "Le debemos al socio"
@@ -133,13 +126,6 @@ export function LedgerTab({
         <KpiCard
           value={fmtRmb(balance.net_rmb)}
           label="Saldo neto · RMB"
-          valueColor={
-            balance.net_rmb > 0
-              ? "var(--ink)"
-              : balance.net_rmb < 0
-                ? "var(--success)"
-                : "var(--ink)"
-          }
           sub="Posición en yuanes"
         />
         <KpiCard

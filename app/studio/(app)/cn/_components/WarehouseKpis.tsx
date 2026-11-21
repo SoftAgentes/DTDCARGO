@@ -47,9 +47,7 @@ export function WarehouseKpis({
             ? t(locale, "warehouse_cn.kpi.pending_consolidation_sub_some")
             : t(locale, "warehouse_cn.kpi.pending_consolidation_sub_none")
         }
-        valueColor={
-          kpis.pendingCount > 0 ? "var(--warning)" : "var(--ink)"
-        }
+        status={kpis.pendingCount > 0 ? { tono: "warning", texto: "Pendiente" } : undefined}
       />
       <KpiCard
         label={t(locale, "warehouse_cn.kpi.cbm_in_warehouse")}
@@ -64,9 +62,7 @@ export function WarehouseKpis({
             ? t(locale, "warehouse_cn.kpi.incidents_sub_some")
             : t(locale, "warehouse_cn.kpi.incidents_sub_none")
         }
-        valueColor={
-          kpis.incidentsCount > 0 ? "var(--danger)" : "var(--ink)"
-        }
+        status={kpis.incidentsCount > 0 ? { tono: "danger", texto: "Requiere revisión" } : undefined}
       />
     </div>
   );

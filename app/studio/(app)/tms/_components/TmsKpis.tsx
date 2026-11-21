@@ -15,7 +15,6 @@ export function TmsKpis({ kpis }: { kpis: KpisType }) {
         label="Flota total"
         value={kpis.fleetTotal}
         sub={`${kpis.fleetOwned} propios · ${kpis.fleetContracted} contratados`}
-        valueColor="var(--ink)"
       />
       <KpiCard
         label="En ruta ahora"
@@ -25,7 +24,6 @@ export function TmsKpis({ kpis }: { kpis: KpisType }) {
             ? `${kpis.driversInRoute} ${kpis.driversInRoute === 1 ? "chofer activo" : "choferes activos"}`
             : "Nadie en ruta"
         }
-        valueColor={kpis.inRoute > 0 ? "var(--info)" : "var(--ink)"}
       />
       <KpiCard
         label="Disponibles"
@@ -35,7 +33,6 @@ export function TmsKpis({ kpis }: { kpis: KpisType }) {
             ? "Listos para asignar"
             : "Sin disponibles ahora"
         }
-        valueColor={kpis.available > 0 ? "var(--success)" : "var(--ink)"}
       />
       <KpiCard
         label="Mantenimiento"
@@ -45,7 +42,7 @@ export function TmsKpis({ kpis }: { kpis: KpisType }) {
             ? "Requiere atención"
             : "Todos operativos"
         }
-        valueColor={kpis.maintenance > 0 ? "var(--warning)" : "var(--ink)"}
+        status={kpis.maintenance > 0 ? { tono: "warning", texto: "Fuera de servicio" } : undefined}
       />
     </div>
   );
