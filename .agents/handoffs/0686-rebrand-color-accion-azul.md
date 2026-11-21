@@ -79,14 +79,14 @@ Estado del 2026-11-20, tarde:
    - 44 títulos sin sufijo doble;
    - margen para el botón flotante.
 
-   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). Esperan a Sam: el logo de la barra (las cifras KPI se decidieron después: ver 10). Pendiente: 115 usos de `--ink-mute` como texto.
+   La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra lo decidió Sam el 2026-11-21 («hoy»): identidad aceptada, `BrandMark` no se toca. Las cifras KPI se decidieron después (ver 10). Pendiente: 115 usos de `--ink-mute` como texto.
 10. Cifras KPI en tinta (Sam, opción A), 2026-11-21, rama `claude/sdd-0686-kpi-tinta`:
    - `KpiCard` sin `valueColor` y con `status`;
    - las 81 cifras semánticas, a tinta con su estado aparte;
    - las barras «Cobrado» y la cobertura de Dirección, en tinta;
    - contrato con mutante.
 
-   Sigue esperando a Sam: el logo de la barra lateral.
+   Sam aprobó sus palabras de estado el 2026-11-21 («Apruebo las palabras de estado de las cifras KPI»). El logo de la barra quedó decidido el mismo día: identidad aceptada.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

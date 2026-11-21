@@ -716,8 +716,8 @@ El Director revisó `main` (`d590ea3f3`) con el Studio en local, datos ficticios
 
 **Fuera de esta PR, a la espera de Sam:**
 - ~~la banda de bienvenida del Dashboard~~: Sam la decidió (opción A) y va en esta misma PR, en su propio commit (ver la última fila de la tabla);
-- las cifras KPI con color de estado y las barras de las gráficas en `--success`;
-- el logo «DTD» de la barra lateral.
+- ~~las cifras KPI con color de estado y las barras de las gráficas en `--success`~~: Sam las decidió (opción A) y van en la #748 (ver «Cifras KPI en tinta y estado aparte»). El 2026-11-21 aprobó también sus palabras: «Apruebo las palabras de estado de las cifras KPI»;
+- ~~el logo «DTD» de la barra lateral~~: **decisión de Sam del 2026-11-21, identidad aceptada.** Vio las opciones A, B y la actual, y respondió «hoy». `BrandMark` se queda como está, con «DTD» en vino sobre el navy: es identidad (regla 3), no se cambia.
 
 El Portal y la web pública van en sus fases.
 
