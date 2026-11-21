@@ -179,7 +179,7 @@ export const FOLDERS: FolderGroup[] = [
   {
     id: "log",
     label: "Logísticas",
-    tone: "wine",
+    tone: "neutral",
     children: [
       { id: "log-bl", label: "BL & conocimiento" },
       { id: "log-packing", label: "Packing & factura comercial" },

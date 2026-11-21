@@ -118,7 +118,7 @@ export async function listCalendarEvents(
     const planningTimeZone = normalizeCalendarTimeZone(s.planning_timezone);
     const planned = [
       [s.planned_departure_at, "zarpe_planificado", "info"],
-      [s.planned_arrival_at, "arribo_planificado", "wine"],
+      [s.planned_arrival_at, "arribo_planificado", "neutral"],
       [s.planned_delivery_at, "entrega_planificada", "success"],
     ] as const;
     for (const [timestamp, type, tone] of planned) {
@@ -152,7 +152,7 @@ export async function listCalendarEvents(
         title: s.code,
         clientName: s.client_name ?? undefined,
         destination: s.destination ?? undefined,
-        tone: "wine",
+        tone: "neutral",
       });
     }
     if (

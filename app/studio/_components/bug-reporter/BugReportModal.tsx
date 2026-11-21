@@ -297,7 +297,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                       <code
                         style={{
                           fontFamily: "var(--font-mono, 'JetBrains Mono')",
-                          color: "var(--wine-text)",
+                          color: "var(--ink)",
                           fontWeight: 700,
                         }}
                       >
@@ -670,10 +670,10 @@ function ChipButton({
         height: compact ? 32 : 38,
         padding: `0 ${compact ? 8 : 12}px`,
         border: active
-          ? "1px solid var(--wine, #7F0F1A)"
+          ? "1px solid var(--ink)"
           : "1px solid var(--border, #E8E6E2)",
-        background: active ? "var(--wine-tint, #FBE9EC)" : "var(--bg-surface)",
-        color: active ? "var(--wine, #7F0F1A)" : "var(--ink)",
+        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+        color: "var(--ink)",
         borderRadius: 6,
         cursor: "pointer",
         fontFamily: "inherit",

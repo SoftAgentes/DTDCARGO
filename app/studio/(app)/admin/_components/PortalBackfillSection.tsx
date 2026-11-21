@@ -115,7 +115,7 @@ function AdoptionFunnel({ stats }: { stats: PortalAdoptionStats }) {
           <div
             style={{
               font: "600 11px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               marginTop: 3,
             }}
           >
@@ -175,7 +175,7 @@ function CampaignProgress({ stats }: { stats: PortalAdoptionStats }) {
             {invited}
           </strong>{" "}
           de {total} con correo ya invitados ·{" "}
-          <strong style={{ color: "var(--wine-text)" }}>{pctDone}%</strong> · faltan{" "}
+          <strong style={{ color: "var(--ink)" }}>{pctDone}%</strong> · faltan{" "}
           <strong style={{ color: "var(--ink)" }}>{pending}</strong>
         </span>
       </div>
@@ -196,7 +196,7 @@ function CampaignProgress({ stats }: { stats: PortalAdoptionStats }) {
           style={{
             width: `${pctDone}%`,
             height: "100%",
-            background: "var(--wine)",
+            background: "var(--ink)",
             borderRadius: "var(--r-pill)",
             transition: "width 240ms ease",
           }}
@@ -270,11 +270,10 @@ function Chip({
         appearance: "none",
         cursor: "pointer",
         font: `${active ? 700 : 600} 11.5px/1 var(--f-sans)`,
-        // Sobre vino, `--ink-side-strong` (blanco en los dos temas), como el
-        // botón primario: la tinta invertida se vuelve navy en oscuro.
-        color: active ? "var(--ink-side-strong)" : "var(--ink-soft)",
-        background: active ? "var(--wine)" : "var(--bg-elevated)",
-        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+        // Selección en tinta (BD-076): fondo de tinta y texto invertido.
+        color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+        background: active ? "var(--ink)" : "var(--bg-elevated)",
+        border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
         borderRadius: "var(--r-pill)",
         padding: "5px 11px",
       }}
@@ -316,7 +315,7 @@ function InviteCountBadge({
   const color = saturated
     ? "var(--warning)"
     : on
-      ? "var(--wine)"
+      ? "var(--ink)"
       : "var(--ink-soft)";
   return (
     <span
@@ -325,7 +324,7 @@ function InviteCountBadge({
         font: "700 10px/1 var(--f-mono)",
         color,
         background: saturated ? "var(--warning-tint, var(--bg-elevated))" : "var(--bg-elevated)",
-        border: `1px solid ${saturated ? "var(--warning)" : on ? "var(--wine)" : "var(--border)"}`,
+        border: `1px solid ${saturated ? "var(--warning)" : on ? "var(--ink)" : "var(--border)"}`,
         borderRadius: "var(--r-pill)",
         padding: "2px 6px",
         whiteSpace: "nowrap",
@@ -508,7 +507,7 @@ function CandidateRow({
     <div
       style={{
         borderTop: first ? 0 : "1px solid var(--border)",
-        background: on ? "var(--wine-tint)" : "transparent",
+        background: on ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
       }}
     >
       <div
@@ -564,7 +563,7 @@ function CandidateRow({
           )}
         </span>
         <code
-          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
+          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--ink)" }}
         >
           {c.markbox || "—"}
         </code>
@@ -608,7 +607,7 @@ function CandidateRow({
               appearance: "none",
               cursor: "pointer",
               border: "1px solid var(--border)",
-              background: isEditing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              background: isEditing ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
               borderRadius: "var(--r-sm)",
               color: "var(--ink-soft)",
               font: "600 11px/1 var(--f-sans)",
@@ -1143,7 +1142,7 @@ function ColdRow({
     <div
       style={{
         borderTop: first ? 0 : "1px solid var(--border)",
-        background: on ? "var(--wine-tint)" : "transparent",
+        background: on ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
       }}
     >
       <div
@@ -1201,7 +1200,7 @@ function ColdRow({
           )}
         </span>
         <code
-          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
+          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--ink)" }}
         >
           {c.markbox || "—"}
         </code>
@@ -1229,7 +1228,7 @@ function ColdRow({
               appearance: "none",
               cursor: "pointer",
               border: "1px solid var(--border)",
-              background: isEditing ? "var(--wine-tint)" : "var(--bg-elevated)",
+              background: isEditing ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
               borderRadius: "var(--r-sm)",
               color: "var(--ink-soft)",
               font: "600 11px/1 var(--f-sans)",
@@ -1669,7 +1668,7 @@ function ContactCaptureRow({
         {client.name || "—"}
       </span>
       <code
-        style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
+        style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--ink)" }}
       >
         {client.markbox || "—"}
       </code>
@@ -1744,7 +1743,7 @@ function ContactlessPanel({ clients }: { clients: PortalContactlessClient[] }) {
           color: "var(--ink)",
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--wine)",
+          borderLeft: "3px solid var(--ink)",
           borderRadius: "var(--r-sm)",
           padding: "11px 14px",
         }}

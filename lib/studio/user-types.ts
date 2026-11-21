@@ -303,7 +303,7 @@ export type BadgeTone =
   | "neutral";
 
 export function roleBadgeTone(r: StudioUserRole): BadgeTone {
-  if (r === "admin") return "wine";
+  if (r === "admin") return "neutral";
   if (r === "commercial") return "info";
   if (r === "operations") return "warning";
   if (r === "accounting") return "success";

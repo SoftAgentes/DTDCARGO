@@ -123,7 +123,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                 <div style={{ marginTop: 6 }}>
                   <Aviso tono="atencion" compacto>
                     No hay embarques activos. Crea uno desde{" "}
-                    <a href="/studio/embarques" style={{ color: "var(--wine-text)" }}>
+                    <a href="/studio/embarques" style={{ color: "var(--accion-text)" }}>
                       Embarques
                     </a>{" "}
                     primero.
@@ -163,15 +163,15 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                         textAlign: "left",
                         padding: "10px 12px",
                         borderRadius: "var(--r-sm)",
-                        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
-                        background: active ? "var(--wine-tint)" : "var(--bg-surface)",
+                        border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
+                        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
                         cursor: "pointer",
                       }}
                     >
                       <div
                         style={{
                           font: "700 12.5px/1 var(--f-sans)",
-                          color: active ? "var(--wine)" : "var(--ink)",
+                          color: "var(--ink)",
                         }}
                       >
                         {t.label}

@@ -159,7 +159,7 @@ export function NuevaReunionClient({
       </Link>
 
       <div style={{ marginBottom: "var(--s-5)" }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           Operación · Equipo
         </div>
         <h1

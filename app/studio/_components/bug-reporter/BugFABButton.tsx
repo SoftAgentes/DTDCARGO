@@ -399,7 +399,7 @@ function CornerMenu({
             {isActive && (
               <span
                 style={{
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   font: "700 10px/1 var(--f-sans)",
                 }}
               >
@@ -455,7 +455,7 @@ function CornerGlyph({ corner }: { corner: Corner }) {
     width: 5,
     height: 5,
     borderRadius: 1,
-    background: "var(--wine)",
+    background: "var(--ink)",
   };
   const dotPos: React.CSSProperties =
     corner === "top-left"

@@ -105,7 +105,7 @@ export function AgentQueue({ tasks, onOpen }: Props) {
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow">
             Para Claude Code
           </div>
           <div

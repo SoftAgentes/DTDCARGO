@@ -249,7 +249,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
       {children}
     </div>
   );

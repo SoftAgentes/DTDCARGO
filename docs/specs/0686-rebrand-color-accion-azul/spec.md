@@ -4,7 +4,7 @@ title: "Color de acción azul en web, Portal y ERP: el rojo queda para el peligr
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 supersedes: null
 superseded_by: null
 related: ["0603", "0441", "0654", "0687", "0688"]
@@ -223,7 +223,33 @@ En la misma rama. Son 104 usos en línea, en 33 archivos de `embarques`, `tracki
 | Neutro | El asterisco de campo obligatorio (`--ink-soft`, porque no es un error), las etiquetas «pendiente», el contador de no leídos, el bloque de traducción y el chino del encabezado del almacén |
 | Peligro | La fecha vencida sobre el panel oscuro de la factura (`--color-status-danger-on-dark`) |
 
-Quedan para un grupo siguiente las funciones de `lib/studio` que devuelven el tono `"wine"` a un `<Badge>` por variable (nivel VIP, plan mayorista, ETA del calendario y otras). Cada una necesita su propio reparto por función, y el contrato de hoy solo detecta el literal `tone="wine"`.
+Quedan para un grupo siguiente las funciones de `lib/studio` que devuelven el tono `"wine"` a un `<Badge>` por variable (nivel VIP, plan mayorista, ETA del calendario y otras). Cada una necesita su propio reparto por función, y el contrato de hoy solo detecta el literal `tone="wine"`. **Hecho en el grupo 3.**
+
+### Fase 2 · grupo 3 · allowlist y reparto (2026-11-21)
+
+Lo asignó el Director General después de fusionar la #722: «Sigue con la 0686 fase 2, grupo 3: los tonos «wine» de lib/studio y el resto de los módulos». Va en la rama `claude/sdd-0686-fase2-g3`, desde `origin/main` `72d7f04ec`. El grupo 4 será dinero (tesorería, contabilidad, cotizador y afines) y después el resto de los módulos.
+
+**Allowlist (**M**, `git diff --name-only`):**
+- **`lib/studio`, 21 archivos de tipos:** cada función o mapa que devolvía `"wine"` como valor. 27 valores en total: `account-types`, `agent-types`, `audit-types`, `bug-types`, `calendar-events-queries`, `calendar-events-types`, `client-types`, `club/club-member-types`, `conversaciones/conversations-types` (canal portal), `documents/types`, `fidelizacion/types`, `inspecciones/types`, `mail-types`, `no-olvidar-types`, `nomina/attendance-types`, `nomina/ficha-empleado`, `nomina/position-types`, `op-calendar-types`, `proveedores/scorecard-types`, `qr-queue-types` y `user-types`. Las uniones de tipo (`| "wine"`) se quedan: no pintan nada y las limpia la fase 3, cuando el móvil deje de usar el tono.
+- **Dos pruebas de `lib/studio`** que fijaban el tono viejo: `__tests__/scorecard-types.test.ts` y `conversaciones/__tests__/conversaciones.test.ts`.
+- **69 archivos en línea bajo `app/studio/`:** `(app)/admin` (28), `(app)/marketing` (10), `(app)/bitacora` (8), `(app)/mailing` (7), `(app)/academia` (3), `(app)/inspecciones` (3), `(app)/usuarios` (1) y `_components/` fuera de `ui` (`bug-reporter` 2, `documents` 1, `guia` 1, `wiring` 5).
+- El contrato nuevo `app/studio/_components/__tests__/color-accion-fase2-g3-contract.test.ts`, esta spec y el handoff.
+
+| Destino | Qué |
+|---|---|
+| Neutro (`lib/studio`) | Rol admin, tipo de cuenta, modelo Opus del agente, eventos del calendario, nivel del cliente, plan del club, canal portal, tipos de documento, nivel platino, inspecciones, etiquetas de correo, recordatorios, asistencia y cargos de nómina, cola QR |
+| Éxito y atención (`lib/studio`) | Canje «aplicado» de fidelización → `success`; reclamo «abierto» al proveedor → `warning`, porque pide intervención |
+| Acción | Enlaces y botones de texto («Editar →», «Ver», «+ Subir nueva versión», «CC», «Agregar ciudad»); casillas (`accentColor`); foco; interruptores encendidos; botón principal de notificaciones; la columna del kanban de bitácora donde se suelta una tarjeta; el aro con el que la Guía señala un control; el hover del buscador global |
+| Tinta (selección) | Pestañas, pastillas y tarjetas elegidas (fondo `color-mix(in srgb, var(--ink) 8%, transparent)`, o fondo de tinta con texto `--ink-inv` si el relleno era sólido); opción elegida del esquema de noticias, del diseño de firma y del rol al invitar; versión vigente de un documento; franja lateral del ítem activo |
+| Tinta (datos y cifras) | Códigos y variables en mono, porcentaje y barra de avance de la invitación al Portal, conteos, el nombre en el saludo de marketing |
+| Neutro (en línea) | Rótulos en mayúscula (`--ink-soft`, como `.studio-eyebrow`), eyebrows con clase (sin color en línea), asterisco de obligatorio, iconos informativos, fichas de icono de agentes y marketing (`--bg-elevated` y tinta), mapas de tono de mailing (la clave `wine` pinta como `neutral`), puntaje bajo de una ruta |
+| Información | Aviso de sugerencia editorial de Claude en noticias web (`--info` e `--info-bg`) |
+| Atención | «Falta el almacén» en el resumen oscuro de la invitación (`--warning`) |
+| Se queda: identidad | Diploma impreso (26 usos; documento de marca, regla 8, se revisa con los PDF de la fase 4); informe de inspección impreso, wordmark y rótulo del encabezado (2; la banda «muestra» pasa a tinta); franja de la vista previa de la firma de correo (1, regla 8); tarjeta de la Guía con su tinte de marca (6) |
+
+`Avatar`, `Badge` y `EmptyState` son del grupo 1 y no se tocan aquí.
+
+El contrato del grupo 3 congela las cuatro cuentas de identidad (la lista solo baja), mide al menos 150 archivos y trae un mutante. Para `lib/studio` exige cero `"wine"` como valor fuera de las uniones de tipo, mide al menos 300 archivos y al menos 10 uniones que todavía lo nombran, y trae un mutante sobre el rol admin.
 
 ### Fases 2 a 5
 

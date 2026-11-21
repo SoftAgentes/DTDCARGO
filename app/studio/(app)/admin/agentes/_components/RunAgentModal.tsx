@@ -138,7 +138,7 @@ export function RunAgentModal({
           <div>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine-text)", marginBottom: 4 }}
+              style={{ marginBottom: 4 }}
             >
               Ejecutar manualmente
             </div>

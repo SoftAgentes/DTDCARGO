@@ -83,7 +83,7 @@ export function AcademiaClient({
         }}
       >
         <div>
-          <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <span className="studio-eyebrow">
             Academia DTD
           </span>
           <h1
@@ -138,7 +138,7 @@ export function AcademiaClient({
         <KpiCard
           value={stats.enCurso}
           label="Cohortes en curso"
-          valueColor={stats.enCurso > 0 ? "var(--wine-text)" : "var(--ink)"}
+          valueColor="var(--ink)"
           sub="activas ahora"
         />
         <KpiCard value={stats.alumnos} label="Alumnos" sub="inscritos" />
@@ -361,7 +361,7 @@ function CohortsTab({
                 padding: "14px 16px",
                 borderRadius: "var(--r-lg)",
                 background: "var(--bg-surface)",
-                border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                 boxShadow: active ? "var(--shadow-sm)" : "none",
                 cursor: "pointer",
                 transition: "border-color var(--dur-fast) var(--ease)",
@@ -379,7 +379,7 @@ function CohortsTab({
                 <span
                   style={{
                     font: "700 13px/1.2 var(--f-sans)",
-                    color: active ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -464,7 +464,7 @@ function CohortDetailView({
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+            <div className="studio-eyebrow">
               {cohortStatusLabel(c.status)} · {fmtDate(c.starts_at)}
             </div>
             <h2
@@ -733,7 +733,7 @@ function RosterRowView({
           <code
             style={{
               font: "700 10px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {e.client_markbox}

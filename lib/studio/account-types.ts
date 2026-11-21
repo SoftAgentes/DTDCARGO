@@ -146,7 +146,7 @@ export function acctTypeBadgeTone(
     case "P":
       return "warning";
     case "PT":
-      return "wine";
+      return "neutral";
     case "I":
       return "success";
     case "CGS":

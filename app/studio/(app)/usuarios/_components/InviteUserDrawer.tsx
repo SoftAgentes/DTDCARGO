@@ -305,7 +305,7 @@ export function InviteUserDrawer({ onClose }: Props) {
                 checked={twoFa}
                 onChange={(e) => setTwoFa(e.target.checked)}
                 style={{
-                  accentColor: "var(--wine)",
+                  accentColor: "var(--accion)",
                   width: 16,
                   height: 16,
                   marginTop: 2,
@@ -428,9 +428,9 @@ function OfficePicker({
                 padding: "12px 14px",
                 textAlign: "left",
                 background: sel
-                  ? "var(--wine-tint, #FBE9EC)"
+                  ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                   : "var(--bg-surface)",
-                border: `1.5px solid ${sel ? "var(--wine)" : "var(--border)"}`,
+                border: `1.5px solid ${sel ? "var(--ink)" : "var(--border)"}`,
                 borderRadius: 7,
                 cursor: disabled ? "not-allowed" : "pointer",
                 font: "inherit",
@@ -444,7 +444,7 @@ function OfficePicker({
                 <div
                   style={{
                     font: "700 13px/1.2 var(--f-sans)",
-                    color: sel ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                   }}
                 >
                   {cfg.officeLabel}
@@ -533,7 +533,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine-text)",
+          
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -562,7 +562,7 @@ function ScopeSection({
       <div
         className="studio-eyebrow"
         style={{
-          color: "var(--wine-text)",
+          
           marginBottom: 8,
           fontSize: 10,
         }}
@@ -618,8 +618,8 @@ function ScopeSection({
                 style={{
                   padding: 12,
                   textAlign: "left",
-                  background: sel ? "var(--wine-tint, #FBE9EC)" : "var(--bg-surface)",
-                  border: `1.5px solid ${sel ? "var(--wine)" : "var(--border)"}`,
+                  background: sel ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                  border: `1.5px solid ${sel ? "var(--ink)" : "var(--border)"}`,
                   borderRadius: 7,
                   cursor: "pointer",
                   font: "inherit",
@@ -628,7 +628,7 @@ function ScopeSection({
                 <div
                   style={{
                     font: "700 12.5px/1.2 var(--f-sans)",
-                    color: sel ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                   }}
                 >
                   {t(opt.labelKey)}
@@ -668,8 +668,8 @@ function WarehouseCheckbox({
         gap: 10,
         padding: "10px 12px",
         cursor: "pointer",
-        background: checked ? "var(--wine-tint, #FBE9EC)" : "var(--bg-surface)",
-        border: `1px solid ${checked ? "var(--wine)" : "var(--border)"}`,
+        background: checked ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+        border: `1px solid ${checked ? "var(--ink)" : "var(--border)"}`,
         borderRadius: 7,
       }}
     >
@@ -677,7 +677,7 @@ function WarehouseCheckbox({
         type="checkbox"
         checked={checked}
         onChange={onToggle}
-        style={{ accentColor: "var(--wine)" }}
+        style={{ accentColor: "var(--accion)" }}
       />
       <span style={{ fontSize: 16 }}>{warehouse.flag}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -712,8 +712,8 @@ function ScopeBadge({ count }: { count: number }) {
         alignItems: "center",
         height: 20,
         padding: "0 var(--s-2)",
-        background: "var(--wine-tint, #FBE9EC)",
-        color: "var(--wine, #7F0F1A)",
+        background: "var(--bg-elevated)",
+        color: "var(--ink)",
         borderRadius: 4,
         fontSize: 11,
         fontWeight: 700,
@@ -768,7 +768,7 @@ function SummaryCard({
       <div
         style={{
           font: "700 10.5px/1 var(--f-sans)",
-          color: "var(--wine-soft, #C2747F)",
+          color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           marginBottom: 8,
@@ -790,7 +790,7 @@ function SummaryCard({
           <b style={{ color: "#fff" }}>
             {regionCfg.flag} {regionCfg.officeLabel}
           </b>{" "}
-          <span style={{ color: "var(--wine-soft, #C2747F)" }}>
+          <span style={{ color: "var(--ink-inv-soft, rgba(255,255,255,0.85))" }}>
             ({regionCfg.locale} · {regionCfg.currency})
           </span>
         </div>
@@ -815,7 +815,7 @@ function SummaryCard({
               )
             </div>
           ) : (
-            <div style={{ color: "var(--wine-soft, #C2747F)" }}>
+            <div style={{ color: "var(--warning)" }}>
               {t("users.summary.missing_warehouse")}
             </div>
           )

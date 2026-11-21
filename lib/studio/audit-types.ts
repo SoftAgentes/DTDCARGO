@@ -146,7 +146,7 @@ export function auditActorTone(actor: AuditActorType): BadgeTone {
     case "user":
       return "info";
     case "operario":
-      return "wine";
+      return "neutral";
     case "system":
       return "neutral";
     case "agent":

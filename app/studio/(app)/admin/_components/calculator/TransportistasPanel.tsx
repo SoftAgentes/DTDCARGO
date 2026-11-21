@@ -169,7 +169,7 @@ export function TransportistasPanel({
           borderRadius: "var(--r-md)",
         }}
       >
-        <span style={{ color: "var(--wine)", flexShrink: 0, marginTop: 1 }}>{Icon.info(15)}</span>
+        <span style={{ color: "var(--ink-soft)", flexShrink: 0, marginTop: 1 }}>{Icon.info(15)}</span>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--ink-soft)" }}>
           {predeterminado ? (
             <>
@@ -346,7 +346,7 @@ export function TransportistasPanel({
                                   if (el) el.indeterminate = algunaVisibleMarcada && !todasVisiblesMarcadas;
                                 }}
                                 onChange={alternarVisibles}
-                                style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                                style={{ width: 16, height: 16, accentColor: "var(--accion)", cursor: "pointer" }}
                               />
                             </Casilla>
                           </Th>
@@ -388,7 +388,7 @@ export function TransportistasPanel({
                                     aria-label={`Seleccionar ${ciudad}`}
                                     checked={marcadas.has(t.id)}
                                     onChange={() => alternar(t.id)}
-                                    style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                                    style={{ width: 16, height: 16, accentColor: "var(--accion)", cursor: "pointer" }}
                                   />
                                 </Casilla>
                               </Td>
@@ -546,7 +546,7 @@ function TarjetaTransportista({
   return (
     <div
       style={{
-        border: `1px solid ${activo ? "var(--wine)" : "var(--border)"}`,
+        border: `1px solid ${activo ? "var(--ink)" : "var(--border)"}`,
         borderRadius: "var(--r-md)",
         padding: "var(--s-3)",
         minWidth: 230,
@@ -594,7 +594,7 @@ function TarjetaTransportista({
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--wine-text)",
+              color: "var(--accion-text)",
               background: "none",
               border: 0,
               padding: 0,

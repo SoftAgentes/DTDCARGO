@@ -902,7 +902,7 @@ export type BadgeTone =
 
 export function categoryBadgeTone(c: MailCategory): BadgeTone {
   if (c === "cobranza") return "danger";
-  if (c === "comercial") return "wine";
+  if (c === "comercial") return "neutral";
   if (c === "operativo") return "info";
   if (c === "cliente") return "success";
   if (c === "sistema") return "neutral";

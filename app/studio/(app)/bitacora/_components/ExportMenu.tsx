@@ -89,7 +89,7 @@ export function ExportMenu({ filterParams }: Props) {
               width: 13,
               height: 13,
               border: "2px solid var(--border-strong)",
-              borderTopColor: "var(--wine)",
+              borderTopColor: "var(--ink)",
               borderRadius: "50%",
             }}
           />

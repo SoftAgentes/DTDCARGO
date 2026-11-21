@@ -430,7 +430,7 @@ export type BadgeTone =
 
 export function categoryBadgeTone(c: NoOlvidarCategory): BadgeTone {
   if (c === "login") return "info";
-  if (c === "card") return "wine";
+  if (c === "card") return "neutral";
   if (c === "totp") return "warning";
   return "neutral";
 }
@@ -454,7 +454,7 @@ export function actionLabel(a: NoOlvidarAuditAction): string {
 
 export function actionBadgeTone(a: NoOlvidarAuditAction): BadgeTone {
   if (a === "delete") return "danger";
-  if (a === "kek_rotated" || a === "recovery_executed") return "wine";
+  if (a === "kek_rotated" || a === "recovery_executed") return "neutral";
   if (a === "recovery_requested" || a === "recovery_approved") return "warning";
   if (a === "create" || a === "unlock") return "success";
   if (a === "edit") return "info";
@@ -491,7 +491,7 @@ export function roleLabel(r: NoOlvidarUserRole): string {
 }
 
 export function roleBadgeTone(r: NoOlvidarUserRole): BadgeTone {
-  return r === "admin" ? "wine" : "neutral";
+  return r === "admin" ? "neutral" : "neutral";
 }
 
 export const KEK_STATUS_LABELS: Record<NoOlvidarKekStatus, string> = {

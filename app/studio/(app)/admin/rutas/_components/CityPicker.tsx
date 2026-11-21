@@ -200,7 +200,7 @@ export function CityPicker({
           height: 38,
           padding: "0 12px",
           background: "var(--bg-surface)",
-          border: `1px solid ${open ? "var(--wine)" : "var(--border)"}`,
+          border: `1px solid ${open ? "var(--ink)" : "var(--border)"}`,
           borderRadius: "var(--r-md)",
           font: "500 13.5px/1 var(--f-sans)",
           color: value ? "var(--ink)" : "var(--ink-soft)",
@@ -211,7 +211,7 @@ export function CityPicker({
           gap: 8,
           cursor: disabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.6 : 1,
-          boxShadow: open ? "0 0 0 3px var(--wine-tint)" : "none",
+          boxShadow: open ? "0 0 0 2px var(--accion)" : "none",
           transition:
             "border-color 160ms ease, color 160ms ease, opacity 160ms ease, box-shadow 160ms ease",
         }}
@@ -314,13 +314,13 @@ export function CityPicker({
                         width: "100%",
                         padding: "9px 12px",
                         textAlign: "left",
-                        background: sel ? "var(--wine-tint)" : "transparent",
+                        background: sel ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
                         gap: 8,
                         font: `${sel ? "700" : "500"} 13px/1.2 var(--f-sans)`,
-                        color: sel ? "var(--wine)" : "var(--ink)",
+                        color: "var(--ink)",
                         borderBottom: "1px solid var(--border)",
                         border: 0,
                         cursor: "pointer",
@@ -360,7 +360,7 @@ export function CityPicker({
                         </code>
                       )}
                       {sel && (
-                        <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>
+                        <span style={{ color: "var(--ink)", display: "inline-flex" }}>
                           {Icon.check(13)}
                         </span>
                       )}
@@ -379,7 +379,7 @@ export function CityPicker({
                 style={{
                   padding: "11px 12px",
                   background: "var(--bg-elevated)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   borderTop: "1px solid var(--border)",
                   border: 0,
                   borderTopWidth: 1,

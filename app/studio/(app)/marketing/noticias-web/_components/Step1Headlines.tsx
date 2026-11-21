@@ -125,13 +125,13 @@ export function Step1Headlines({
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-lg border"
           style={{
-            background: "var(--wine-tint, rgba(127,15,26,0.06))",
-            borderColor: "var(--wine, #7F0F1A)",
+            background: "var(--info-bg))",
+            borderColor: "var(--info)",
           }}
         >
           <span
             className="inline-flex flex-shrink-0 mt-0.5"
-            style={{ color: "var(--wine, #7F0F1A)" }}
+            style={{ color: "var(--info)" }}
             aria-hidden
           >
             {Icon.info(16)}
@@ -139,7 +139,7 @@ export function Step1Headlines({
           <div className="flex-1 min-w-0">
             <div
               className="text-[12.5px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--wine, #7F0F1A)" }}
+              style={{ color: "var(--info)" }}
             >
               Sugerencia editorial de Claude
             </div>

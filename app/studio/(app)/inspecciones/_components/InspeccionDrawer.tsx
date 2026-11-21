@@ -109,7 +109,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Tipo */}
         <div>
           <label className="studio-label" htmlFor="ins-type">
-            Tipo de inspección <span style={{ color: "var(--wine-text)" }}>*</span>
+            Tipo de inspección <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="ins-type"
@@ -160,7 +160,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Título */}
         <div>
           <label className="studio-label" htmlFor="ins-title">
-            Título <span style={{ color: "var(--wine-text)" }}>*</span>
+            Título <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <input
             id="ins-title"

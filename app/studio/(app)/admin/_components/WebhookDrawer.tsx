@@ -111,7 +111,7 @@ export function WebhookDrawer({
                   color: "var(--ink)",
                 }}
               >
-                <input type="checkbox" checked={events.includes(ev.key)} onChange={() => toggleEvent(ev.key)} style={{ accentColor: "var(--wine)" }} />
+                <input type="checkbox" checked={events.includes(ev.key)} onChange={() => toggleEvent(ev.key)} style={{ accentColor: "var(--accion)" }} />
                 <span style={{ flex: 1 }}>{ev.label}</span>
                 <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--ink-soft)" }}>{ev.key}</code>
               </label>
@@ -121,7 +121,7 @@ export function WebhookDrawer({
         </div>
 
         <label style={{ display: "flex", alignItems: "center", gap: 10, font: "600 12.5px/1 var(--f-sans)", color: "var(--ink)", cursor: "pointer" }}>
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} style={{ accentColor: "var(--wine)" }} />
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} style={{ accentColor: "var(--accion)" }} />
           <span>Activo</span>
         </label>
 

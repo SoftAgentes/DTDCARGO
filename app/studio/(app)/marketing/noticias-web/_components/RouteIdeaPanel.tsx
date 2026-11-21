@@ -354,7 +354,7 @@ function ScorePill({ score }: { score: number }) {
   const tone =
     score >= 3
       ? { bg: "var(--success-bg)", fg: "var(--success)" }
-      : { bg: "var(--wine-tint)", fg: "var(--wine)" };
+      : { bg: "var(--bg-elevated)", fg: "var(--ink-soft)" };
   return (
     <div
       className="flex flex-col items-center justify-center rounded-xl px-4 py-2 flex-shrink-0"

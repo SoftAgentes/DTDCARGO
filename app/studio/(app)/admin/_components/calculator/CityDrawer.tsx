@@ -107,7 +107,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
           {/* Nombre visible */}
           <div>
             <label className="studio-label" htmlFor="label">
-              Nombre <span style={{ color: "var(--wine-text)" }}>*</span>
+              Nombre <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="label"
@@ -164,7 +164,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="km">
-                Km desde Valencia <span style={{ color: "var(--wine-text)" }}>*</span>
+                Km desde Valencia <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="km"
@@ -228,7 +228,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
                 marginTop: 2,
                 width: 16,
                 height: 16,
-                accentColor: "var(--wine)",
+                accentColor: "var(--accion)",
                 cursor: "pointer",
               }}
             />

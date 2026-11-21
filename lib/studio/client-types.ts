@@ -156,7 +156,7 @@ export function tierBadgeTone(tier: ClientTier): "neutral" | "info" | "wine" {
     case "vip":
       return "info";
     case "premium":
-      return "wine";
+      return "neutral";
   }
 }
 

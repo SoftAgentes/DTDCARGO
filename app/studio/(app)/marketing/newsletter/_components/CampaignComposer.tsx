@@ -65,7 +65,7 @@ export function CampaignComposer({ campaign }: { campaign?: NewsletterCampaign |
     <section style={{ marginBottom: "var(--s-8)" }}>
       <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: "var(--s-4)", marginBottom: "var(--s-4)", flexWrap: "wrap" }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}>Editor de campaña</div>
+          <div className="studio-eyebrow" style={{ marginBottom: "var(--s-2)" }}>Editor de campaña</div>
           <h2 className="studio-display" style={{ margin: 0, fontSize: 22, color: "var(--ink)" }}>
             {form.id ? "Editar borrador" : "Nueva campaña"}
           </h2>

@@ -76,7 +76,7 @@ export const QR_PRIORITY_LABELS: Record<QrOrderPriority, string> = {
 };
 
 export const QR_PRIORITY_TONES: Record<QrOrderPriority, BadgeTone> = {
-  urgent: "wine",
+  urgent: "neutral",
   normal: "neutral",
 };
 

@@ -303,7 +303,7 @@ export function ActaReview({
       </button>
 
       <div style={{ marginBottom: 18 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           Revisar y confirmar
         </div>
         <p
@@ -702,7 +702,7 @@ function VinculoPanel({
     <section
       style={{
         border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--wine)",
+        borderLeft: "3px solid var(--ink)",
         borderRadius: "var(--r-md)",
         background: "var(--bg-surface)",
         padding: "14px 16px",
@@ -712,7 +712,7 @@ function VinculoPanel({
         gap: 10,
       }}
     >
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+      <div className="studio-eyebrow">
         Vínculo con cliente
       </div>
       <div style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -822,7 +822,7 @@ function EscuchaPanel({
     <section
       style={{
         border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--wine)",
+        borderLeft: "3px solid var(--ink)",
         borderRadius: "var(--r-lg)",
         background: "var(--bg-elevated)",
         padding: "16px 18px",
@@ -834,7 +834,7 @@ function EscuchaPanel({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--s-3)", flexWrap: "wrap" }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow">
             Escucha Activa · privado
           </div>
           <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "5px 0 0", maxWidth: 560 }}>
@@ -981,7 +981,7 @@ function TaskGroup({
 }: TaskGroupProps) {
   return (
     <section style={{ marginBottom: "var(--s-4)" }}>
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
+      <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
         {title}
       </div>
       {tasks.length === 0 ? (

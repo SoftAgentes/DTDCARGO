@@ -311,7 +311,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
                     <code
                       style={{
                         fontFamily: "var(--font-mono, 'JetBrains Mono')",
-                        color: "var(--wine, #7F0F1A)",
+                        color: "var(--ink)",
                         minWidth: 160,
                       }}
                     >
