@@ -126,7 +126,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 | Fase | Qué | Tamaño |
 |---|---|---|
 | **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entra marcada como «pendiente de BRAND-CHECK», no como vigente | S |
-| **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra | M |
+| **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra. Incluye las **tres vistas** (§11.5): Normal, Compacta y Súper compacta, montadas sobre esos estilos | M |
 | **3** | **Paneles:** `tamano` y `DrawerFooter` obligatorio; migración de los 117 paneles por grupos | M-L |
 | **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px y los 11 sin `type`. La variante destructiva en tres énfasis entra **solo si se cerró el BRAND-CHECK de la regla 4**; si no, la fase sigue sin ella | M |
 | **5** | **Encabezados:** los 91 títulos, por grupos de módulos | L, varias PR |
@@ -224,6 +224,21 @@ Color (SDD-0686), formato de cifras (SDD-0687), las **medidas** en el Portal (an
    - **Entran ahora al Portal:** las reglas de botones (1 a 6) y las de mensajes (7 a 9). Son reglas de comportamiento, así que el cliente las ve igual que la oficina (**I**: el motivo es el de la propuesta que Sam eligió, no palabras suyas). Se hacen en la fase 10.
    - **Esperan al rediseño del Portal:** las medidas (anchos de panel, encabezado y escala de texto), para no rehacerlas cuando llegue el portal nuevo.
 4. ~~Cuáles extras de §9 entran.~~ **Decidido el 2026-11-20: entran los ocho.** Sam marcó en una lista con casillas: «Aviso de cambios sin guardar, Esqueleto de carga, Explicación del botón deshabilitado, Barra de acciones por lote, Páginas de error y no encontrado, Migas de pan, Botón único de Copiar, Paginación en servidor». Cada uno va en su propia fase (fases 11 a 18 de §5). Que vayan después de las piezas compartidas (§4) y que la paginación siga TBL-01 es **I**, no palabras de Sam.
+5. **Tres vistas para compactar el Studio (pedido de Sam del 2026-11-21).**
+   - **El pedido:** «una opción de tres vistas de zoom, o más bien de compactar»: la original, «Compactar» y «Súper compactar». Sirve para que nadie oprima Control Menos en Chrome, «que lo hace ver mal». Sam quiere que la opción venga incorporada.
+   - **La propuesta que vio dibujada:**
+     - un selector «Vista» de tres opciones en la barra superior, que reemplaza el botón «Compacto»; también en Administración › Apariencia, donde «Amplio» sale;
+     - por defecto, «Compacta», como hoy.
+     - Las tres vistas:
+       - **Normal:** texto de 14 px y filas de 44 px;
+       - **Compacta:** la densidad actual, filas de 36 px;
+       - **Súper compacta:** texto un 10 % más chico y filas de 32 px.
+     - Piso en todas: texto de 12 px y nada que se oprima bajo 32 px (SDD-0603). El zoom del navegador no se bloquea. El color y el contraste no cambian.
+   - **Opciones de construcción:**
+     - bien hecha: medidas propias del Studio, montada sobre los estilos de texto con nombre de la fase 2;
+     - rápida: `zoom` de CSS. Rompe el piso de 32 px y obliga a revisar arrastres y posiciones calculadas.
+   - **Decisión de Sam del 2026-11-21: «Bien hecha, con la 0688».** Entra en la fase 2.
+   - **Dónde se guarda la preferencia: decidido el 2026-11-21, «Por navegador».** Sam eligió esa opción sabiendo que la otra guardaba la última elección en el perfil de cada usuario. Se guarda en el navegador, como hoy el tema y la densidad, y no lleva migración. En el chat de la sesión «Rebrand Design», el mismo día, Sam respondió además «Navegador, luego perfil». La fase 2 la guarda en el navegador. Pasarla después al perfil de cada usuario es un paso aparte, con su migración y su OK nominal, que no entra en esta spec.
 
 Con esto, todos los pendientes de decisión de esta spec quedan cerrados.
 
