@@ -42,6 +42,11 @@ export interface DepsDespachador {
   leer(conversacionId: number, signal: AbortSignal): Promise<MensajeLeido[]>;
   llamar(o: { sesionId: string; idempotencia: string; sistema: string; usuario: string; signal: AbortSignal }): Promise<RespuestaAgente>;
   borrarSesion(sesionId: string): Promise<boolean>;
+  /**
+   * SDD-0702 (hija de la 0626) · modelo real: si la respuesta no dijo qué modelo respondió, se lee de la sesión ANTES de borrarla.
+   * Nunca lanza; null = no consta. Opcional: sin ella, `modelo_usado` queda en null.
+   */
+  modeloDeSesion?: (sesionId: string) => Promise<string | null>;
   /** Paso 3b (D4): el aviso de Discord «hay N pendientes», sin el texto. Nunca lanza hacia el despachador. */
   avisar?: (pendientes: number) => Promise<void>;
   guiones?: readonly Guion[];
@@ -200,6 +205,10 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
           usuario,
           signal: control.signal,
         });
+        if (!r.modelo && deps.modeloDeSesion) {
+          const modelo = await deps.modeloDeSesion(sesionId).catch(() => null);
+          if (modelo) r = { ...r, modelo };
+        }
       } catch (e) {
         if (esAborto(e, control.signal)) throw e;
         throw new Escalar(`runtime:${e instanceof ErrorDelRuntime ? e.codigo : "error"}`);
