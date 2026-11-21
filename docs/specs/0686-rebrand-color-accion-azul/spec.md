@@ -670,9 +670,9 @@ El contrato trae además:
 | Contador de no leídos de la barra superior (`.studio-contador-icono`, `ConversationsIndicator.tsx`) | Tinta: `data-tono="tinta"`, fondo `--ink` y cifra `--ink-inv`; el tono «vino» desaparece | Es una cifra, igual que el contador de `ConversationList`. Lo dice sin el color: la cifra y el `aria-label` «N sin leer» del enlace |
 | Chip de @mención (`.mention-chip`, lo arma `lib/studio/comments/mention-parse.ts`) | Acción: `--accion-text` sobre el 8 % de `--accion` | Es una referencia que se abre. No usa `--accion-tint`, porque su 14 % del tema oscuro dejaba el texto en 4,29:1 sobre la burbuja (`--bg-elevated`). Al 8 % da 5,96:1 en claro y 4,79:1 en oscuro. Lo dice sin el color: la @ y el peso 600 |
 | Destello al guardar un permiso (`studio-permcell-saved`, `.studio-permcell-flash`) | `--success` | Confirma un guardado. Anillo de 3 px: 3,81:1 o más en claro y 6,75:1 o más en oscuro contra los fondos. Con movimiento reducido el anillo queda fijo |
-| Tracking en vivo (`.studio-tracking-ops-*`: barra, mapa, hitos, eyebrow, fila resaltada y código; 12 usos) | **Pendiente**: fase 3, la decide Sam con el Director viendo la pantalla | Mezcla progreso, posición en el mapa, estado de hitos y selección. Ninguna regla vigente resuelve las seis piezas a la vez |
-| Matriz de permisos (`.studio-mx-st[data-n="all"]`, `.studio-mx-chg`, `.studio-mx-dot`; 4 usos) | **Pendiente**: fase 3, la decide Sam con el Director | «Todo» es un nivel de acceso y el punto marca un cambio. Hace falta decidir si el acceso total es un estado (tinta) o una advertencia |
-| Contador de alerta de pestaña (`.studio-tab-n[data-alerta]`, proveedores; 1 uso) | **Pendiente**: fase 3, la decide Sam con el Director | Marca servicios «pendientes por atender». Es atención, pero no existe `--warning-text` para texto de 12 px: `--warning` da 3,14:1 |
+| Tracking en vivo (`.studio-tracking-ops-*`: barra, mapa, hitos, eyebrow, fila resaltada y código; 12 usos) | ~~Pendiente~~ Decidida por Sam el mismo día (ver «cierre de `studio.css`») | Mezcla progreso, posición en el mapa, estado de hitos y selección. Ninguna regla vigente resuelve las seis piezas a la vez |
+| Matriz de permisos (`.studio-mx-st[data-n="all"]`, `.studio-mx-chg`, `.studio-mx-dot`; 4 usos) | ~~Pendiente~~ Decidida por Sam (ver «cierre de `studio.css`») | «Todo» es un nivel de acceso y el punto marca un cambio. Hace falta decidir si el acceso total es un estado (tinta) o una advertencia |
+| Contador de alerta de pestaña (`.studio-tab-n[data-alerta]`, proveedores; 1 uso) | ~~Pendiente~~ Decidida por Sam: opción A (ver «cierre de `studio.css`») | Marca servicios «pendientes por atender». Es atención, pero no existe `--warning-text` para texto de 12 px: `--warning` da 3,14:1 |
 
 **`Avatar` pasa a neutral.**
 - La decisión es de Sam, del 2026-11-21: «Pasa a neutral (Recomendado)». Las iniciales de una persona no son identidad; el vino queda para el logo.
@@ -687,6 +687,29 @@ El contrato trae además:
 |---|---|---|---|
 | Barra superior (`StudioTopbar.tsx`) | Avatar del usuario, sin `color` (tomaba el vino por defecto) | `neutral`: iniciales en `--ink` sobre `--neutral-bg`, en el botón de fondo `--bg-surface` con borde `--ink-soft` | El nombre del usuario al lado y el `aria-label` del menú |
 | Nómina, foto de empleado (`FotoEmpleado.tsx`) | Iniciales cuando no hay foto, sin `color` | `neutral`, igual | Las iniciales del empleado y el nombre en la ficha |
+
+### Fase 2 · cierre de `studio.css`: las tres familias pendientes (2026-11-21)
+
+La #745 dejó tres familias de `studio.css` pendientes para la fase 3. Sam las decidió el mismo día sobre el croquis del Director: «Apruebo las tres». Van en la rama `claude/sdd-0686-pendientes-studio-css`, apilada sobre la #745. Con esto, en `studio.css` solo queda el alias `--studio-wine-soft` del guión del eyebrow (identidad), y el contrato de cierre baja su cuenta de 18 a 1.
+
+**Allowlist (rutas desde la raíz):** `app/studio/studio.css`, `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx`, el contrato `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`, esta spec y el handoff.
+
+**Lo que se guarda:** nada. **`data-theme`:** no hay bloques fijos. Las medidas son contra los fondos reales, en claro y en oscuro.
+
+| Pantalla y regla | Qué marcaba el vino | Destino | Contraste (claro / oscuro) | Qué lo dice sin el color |
+|---|---|---|---|---|
+| Tracking en vivo, barra de avance (`.studio-tracking-ops-bar > span`) | Avance del envío | `--ink`; con alerta sigue en `--warning` | 15,80 / 16,12 contra la pista `--bg-base` | El porcentaje y la etapa en el texto de la tarjeta |
+| Tracking en vivo, mapa (`.studio-tracking-ops-map-done`) | Ruta recorrida | `--ink` | 15,80 / 16,12 contra `--bg-base` | Trazo continuo y más grueso (2,6) frente a la ruta pendiente, punteada |
+| Tracking en vivo, mapa (marcador activo) | Núcleo y halo del contenedor elegido | Núcleo `--accion` con borde `--bg-base`; halo `--accion` al 22 % | 7,34 / 7,78 contra `--bg-base` | El rótulo del marcador activo sube a 13 px; el resto de los halos va en `--ink-soft` |
+| Tracking en vivo, hitos (`.studio-tracking-ops-hito-punto` y su línea) | Hitos hechos, hito activo y la línea hasta ahí | Hechos y línea en `--ink`; el activo en `--accion` con borde `--bg-surface` y aro `--accion` de 2 px; la excepción sigue en `--danger` | Tinta 15,80 / 16,12; acción 7,66 / 6,32 contra `--bg-surface` | El nombre y la fecha de cada hito; el activo lleva aro y los pendientes quedan en blanco con borde |
+| Tracking en vivo, tabla (`tr[data-resaltado]`) | Fila del envío pedido por `?id=` | `--accion` al 8 % de fondo | Texto en tinta: 14,55 / 11,34 | Llega por el enlace y la fila es la que se nombra; el fondo solo ayuda a ubicarla |
+| Tracking en vivo, buscador (`.studio-tracking-ops-resultados h3 code`) | Código del resultado | `--ink` | Tinta de texto | Es un dato |
+| Tracking en vivo, eyebrow «Posición actual» | Texto del rótulo | `--ink-soft`; el guión de `.studio-eyebrow` sigue en vino (identidad) | 4,68 / 5,47 contra `--bg-surface` | El texto mismo |
+| Permisos, nivel «Todo» (`.studio-mx-st[data-n="all"]`) | Acceso total de Administración | Tinta sólida: fondo `--ink`, texto `--ink-inv` | 15,80 / 14,49 | Su icono y la palabra «Todo» (los otros niveles: «Edita», «Ve», «No»), y la leyenda «solo Administración» |
+| Permisos, «Cambiado» (`.studio-mx-chg`, `.studio-mx-dot`) | Celda distinta de lo de fábrica | Texto `--accion-text` y punto `--accion` | 7,66 / 6,32 contra `--bg-surface` | La palabra «Cambiado» y el nombre accesible de la celda («…, cambiado respecto a lo de fábrica») |
+| Proveedores, alerta de pestaña (`.studio-tab-n[data-alerta]`), opción A | Servicios pendientes por atender | Pastilla ámbar suave y opaca (`--warning` al 22 % sobre `--bg-surface`), número en `--ink` e icono de alerta. Nunca ámbar como texto: `--warning` daba 3,14:1 a 12 px | Número 13,23 / 8,55; la pastilla también se lee dentro de la pestaña activa, que es de tinta (13,23 / 8,55) | El icono de alerta y el nombre accesible «N pendientes por atender» (`role="img"`) |
+
+El contrato de cierre trae un mutante por familia: el marcador activo, la ruta recorrida, «Todo» y la alerta. También comprueba que la alerta tiene icono y nombre accesible, y que su regla no usa `--warning` como color de texto.
 
 ### Fases 2 a 5
 

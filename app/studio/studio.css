@@ -1169,10 +1169,11 @@
   background: var(--bg-base);
   overflow: hidden;
 }
+/* Avance en tinta; la alerta sigue en atención (SDD-0686, decisión de Sam). */
 .studio-tracking-ops-bar > span {
   display: block;
   height: 100%;
-  background: var(--wine-text);
+  background: var(--ink);
 }
 .studio-tracking-ops-bar > span[data-alerta="true"] {
   background: var(--warning);
@@ -1226,8 +1227,9 @@
   font: 500 12.5px/1.4 var(--f-mono);
   color: var(--ink-soft);
 }
+/* El guión de identidad lo pone .studio-eyebrow; el texto va en neutro. */
 .studio-tracking-ops-eyebrow {
-  color: var(--wine-text);
+  color: var(--ink-soft);
 }
 .studio-tracking-ops-aviso {
   padding: 0 var(--s-5) var(--s-3);
@@ -1275,7 +1277,7 @@
 }
 .studio-tracking-ops-map-done {
   fill: none;
-  stroke: var(--wine-text);
+  stroke: var(--ink);
   stroke-width: 2.6;
   stroke-linecap: round;
 }
@@ -1305,7 +1307,7 @@
   font: 700 11px var(--f-mono);
 }
 .studio-tracking-ops-map-halo {
-  fill: var(--wine-text);
+  fill: var(--ink-soft);
   opacity: 0.22;
 }
 .studio-tracking-ops-map-core {
@@ -1313,14 +1315,15 @@
   stroke: var(--bg-base);
   stroke-width: 1.5;
 }
+/* El marcador activo es lo que se mira: acción, con borde del fondo del mapa. */
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-core {
-  fill: var(--wine);
-  stroke: var(--ink);
+  fill: var(--accion);
+  stroke: var(--bg-base);
   stroke-width: 2;
 }
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-halo {
-  fill: var(--wine);
-  opacity: 0.4;
+  fill: var(--accion);
+  opacity: 0.22;
 }
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-label {
   font-size: 13px;
@@ -1404,7 +1407,7 @@
 }
 .studio-tracking-ops-hitos li[data-estado="done"]::before,
 .studio-tracking-ops-hitos li[data-estado="active"]::before {
-  background: var(--wine-text);
+  background: var(--ink);
 }
 .studio-tracking-ops-hito-punto {
   position: relative;
@@ -1417,12 +1420,14 @@
   border: 2px solid var(--border-strong);
 }
 li[data-estado="done"] > .studio-tracking-ops-hito-punto {
-  background: var(--wine-text);
-  border-color: var(--wine-text);
-}
-li[data-estado="active"] > .studio-tracking-ops-hito-punto {
-  background: var(--wine);
+  background: var(--ink);
   border-color: var(--ink);
+}
+/* Hito activo: acción con anillo (borde de la tarjeta y aro de acción). */
+li[data-estado="active"] > .studio-tracking-ops-hito-punto {
+  background: var(--accion);
+  border-color: var(--bg-surface);
+  box-shadow: 0 0 0 2px var(--accion);
 }
 li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   background: var(--danger);
@@ -1505,7 +1510,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   font: 600 12.5px/1 var(--f-mono);
 }
 .studio-tracking-ops-tabla tr[data-resaltado="true"] td {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--accion) 8%, transparent);
 }
 
 /* Buscador */
@@ -1547,7 +1552,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
 }
 .studio-tracking-ops-resultados h3 code {
   font: 600 12px/1 var(--f-mono);
-  color: var(--wine-text);
+  color: var(--ink);
 }
 .studio-tracking-ops-resultados ul {
   list-style: none;
@@ -2087,15 +2092,16 @@ details[open] > .calc-why-summary .calc-why-chev {
 .studio-mx-st[data-n="edit"] svg { color: var(--success); }
 .studio-mx-st[data-n="view"] { background: var(--neutral-bg); color: var(--ink); }
 .studio-mx-st[data-n="none"] { background: transparent; color: var(--ink-soft); border-color: var(--border); }
-.studio-mx-st[data-n="all"] { background: var(--wine-tint); color: var(--wine-text); }
+/* «Todo»: tinta sólida con su icono, se distingue sin color (SDD-0686, decisión de Sam). */
+.studio-mx-st[data-n="all"] { background: var(--ink); color: var(--ink-inv); }
 button.studio-mx-st { cursor: pointer; }
 button.studio-mx-st:hover:not(:disabled) { border-color: var(--border-strong); }
 button.studio-mx-st[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
 button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-mx-st[data-locked="true"] { border-style: dashed; border-color: var(--border-strong); }
 .studio-mx-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
-.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--wine-text); }
-.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--wine); }
+.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--accion-text); }
+.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accion); }
 
 /* Leyenda en el pie fijo, siempre a la vista */
 .studio-mx-legend {
@@ -2285,10 +2291,6 @@ a.studio-tab {
   color: var(--ink-soft);
   cursor: not-allowed;
 }
-.studio-tab-n[data-alerta="true"] {
-  color: var(--wine-text);
-  font-weight: 800;
-}
 .studio-tab-n {
   font: 600 12px/1 var(--f-mono);
   font-variant-numeric: tabular-nums;
@@ -2300,6 +2302,19 @@ a.studio-tab {
 .studio-tab[data-activa="true"] .studio-tab-n {
   background: transparent;
   color: var(--ink-inv);
+}
+/* Alerta de pestaña (SDD-0686, opción A de Sam): pastilla ámbar suave y opaca,
+   para que no dependa del fondo de la pestaña (activa es tinta), con el
+   número en --ink y un icono de alerta. El ámbar nunca es color de texto:
+   --warning da 3,14:1 en texto de 12 px. Va después de la regla de la
+   pestaña activa para ganarle. */
+.studio-tab .studio-tab-n[data-alerta="true"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: color-mix(in srgb, var(--warning) 22%, var(--bg-surface));
+  color: var(--ink);
+  font-weight: 800;
 }
 
 /* ───────────────────────────────────────────────────────────

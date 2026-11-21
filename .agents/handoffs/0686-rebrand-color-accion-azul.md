@@ -68,7 +68,7 @@ Estado del 2026-11-20, tarde:
      - `studio.css` congelado en el contrato de cierre (18, por regla);
      - el detector ve `eyebrow-wine` y `data-tono="vino"`;
      - Menciones sin leer en `--ink`.
-   - Pendientes para la fase 3, a decidir por Sam con el Director: Tracking en vivo, la matriz de permisos y la alerta de pestaña de proveedores.
+   - ~~Pendientes para la fase 3~~ Sam decidió las tres familias el mismo día («Apruebo las tres»). Van en `claude/sdd-0686-pendientes-studio-css`, apilada sobre la #745: Tracking en tinta y acción, «Todo» en tinta sólida, «Cambiado» en acción y la alerta de proveedores como pastilla ámbar con icono. `studio.css` queda con 1 uso (el alias del eyebrow).
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 
