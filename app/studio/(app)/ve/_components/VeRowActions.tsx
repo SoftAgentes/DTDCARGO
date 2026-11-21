@@ -298,8 +298,8 @@ export function VeRowActions({
                     } else if (isDetail) {
                       e.currentTarget.style.background = "var(--bg-elevated)";
                     } else {
-                      e.currentTarget.style.background = "var(--wine-tint)";
-                      e.currentTarget.style.color = "var(--wine)";
+                      e.currentTarget.style.background = "var(--accion-tint)";
+                      e.currentTarget.style.color = "var(--accion-text)";
                     }
                   }
                 }}

@@ -94,7 +94,7 @@ export function AlertsCard({ alerts }: { alerts: DireccionAlert[] }) {
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}

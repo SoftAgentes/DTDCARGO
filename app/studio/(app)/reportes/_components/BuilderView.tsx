@@ -244,7 +244,7 @@ export function BuilderView({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             marginBottom: 14,
@@ -488,7 +488,7 @@ export function BuilderView({
               </span>
               {r.sinTasa > 0 ? <span style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>Subtotal conocido · {r.sinTasa} documento{r.sinTasa === 1 ? "" : "s"} sin tasa</span> : <Progress
                 value={((r.value ?? 0) / maxV) * 100}
-                tone={i === 0 ? "var(--wine)" : "var(--wine-soft)"}
+                tone={i === 0 ? "var(--ink)" : "color-mix(in srgb, var(--ink) 45%, var(--bg-surface))"}
                 height={18}
               />}
               <span
@@ -542,7 +542,7 @@ export function BuilderView({
           <div
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--wine-text)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: 12,

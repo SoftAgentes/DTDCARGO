@@ -353,7 +353,7 @@ export default async function DefenseFilePage({
             <div
               style={{
                 font: "800 18px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 marginTop: 3,
               }}
             >
@@ -451,7 +451,7 @@ export default async function DefenseFilePage({
                         marginBottom: 6,
                       }}
                     >
-                      <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {a.acceptance_code}
                       </code>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -460,7 +460,7 @@ export default async function DefenseFilePage({
                             style={{
                               font: "700 9px/1 var(--f-sans)",
                               color: "var(--ink-inv)",
-                              background: "var(--wine)",
+                              background: "var(--ink)",
                               borderRadius: "var(--r-sm)",
                               padding: "4px 7px",
                               textTransform: "uppercase",
