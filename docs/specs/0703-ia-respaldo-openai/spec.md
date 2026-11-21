@@ -141,7 +141,24 @@ esta spec; si Sam la quiere, es otra decisión (P-5).
 - **Registro del modelo real.** La 0702 deja en `task_events.modelo_usado` quién respondió. Para la auditoría de
   esta spec hace falta que ahí se vea `anthropic/…` u `openai/…` (D 0702 §2).
 
-### 5.2 La prueba que impide el atajo
+### 5.2 Sin respaldo, qué pasa hoy (decisión de Sam, vía Dir_DTD)
+
+Hoy la Oficina apunta a `claude-sonnet-5-5` **sin respaldo**; el cambio de proveedor en el VPS lo corre Sam. Si Anthropic
+se cae, Sam decidió que **basta con la tarjeta interna (`runtime:*`), sin pausa automática**: la conversación queda para
+una persona. El respaldo de OpenAI es lo que evitaría esa caída. Esto significa que **la Oficina funciona sin esta
+spec**: OpenAI baja la frecuencia de las tarjetas, no es un requisito para la etapa 2.
+
+### 5.3 Documentos que hay que corregir al aplicar el cambio
+
+- `docs/specs/0626-oficina-runtime/privacidad.md`:
+  - **hallazgo 13, línea 158** (tabla de destinos): dice «Proveedor del modelo: Z.AI (glm-5.3)… respaldo DeepSeek». Debe
+    decir Anthropic como principal y OpenAI como respaldo, con lo que cada uno retiene según su documentación;
+  - **línea 282** (pendientes): «Los proveedores del modelo (Z.AI y DeepSeek)… PIPL». Pasa a Anthropic y OpenAI; la PIPL
+    deja de ser el motivo principal y se reemplaza por la retención de §6.
+- `docs/specs/0626-oficina-runtime/spec.md` §7: el «piso glm-5.3» (ver §5.1).
+Se corrigen en la misma PR que aplique el cambio en Hermes, no antes: hoy describen lo que de verdad está configurado.
+
+### 5.4 La prueba que impide el atajo
 
 Una prueba de catálogo (§8) falla si una función «con datos de clientes» tiene GLM o DeepSeek como principal **o**
 como respaldo. Para la Oficina, donde la cadena vive en Hermes, el equivalente es una **comprobación de la
@@ -287,7 +304,7 @@ Cada una con la opción recomendada primero.
   la habilitación exige evaluación firmada y la Oficina conserva la revisión de Sam en la etapa 2.
 - **El motor no existe.** Las fases 2 a 4 dependen de la 0639; si se atrasa, solo corre la fase 1 (Oficina).
 - **La cadena de Hermes no se ve desde el ERP.** La regla D-2 de la Oficina depende de una verificación humana de la
-  configuración (§5.2); queda como paso del runbook.
+  configuración (§5.4); queda como paso del runbook.
 - **Datos de la cuenta de OpenAI.** Los datos de retención y las tarifas son NV hasta que Sam abra la cuenta.
 
 ## 13. Fuera de alcance

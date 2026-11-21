@@ -40,3 +40,8 @@ P-4 retención (cero si es elegible, si no «no guardar la respuesta» y riesgo 
 ## FUERA DE ALCANCE DETECTADO
 
 - El motor de la 0639 sigue sin implementarse; A3/A4 aún muestran texto crudo del proveedor en mensajes/logs (0638 §5.2).
+
+## Actualización (pedido de Dir_DTD)
+- Spec §5.2 y §5.3: la Oficina hoy apunta a `claude-sonnet-5-5` sin respaldo; si Anthropic cae basta la tarjeta interna
+  (`runtime:*`), sin pausa automática (decisión de Sam). §5.3 nombra `docs/specs/0626-oficina-runtime/privacidad.md`
+  (hallazgo 13, línea 158, y línea 282, aún con Z.AI + DeepSeek) como documento a corregir al aplicar el cambio.
