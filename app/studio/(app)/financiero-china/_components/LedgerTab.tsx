@@ -202,6 +202,19 @@ export function LedgerTab({
             opacity: loading ? 0.6 : 1,
           }}
         >
+          {/* Qué dice el signo del saldo. Antes lo marcaba el vino; con las
+              cifras en tinta (BD-076) lo dice el texto. */}
+          <p
+            style={{
+              margin: 0,
+              padding: "var(--s-2) var(--s-5)",
+              font: "500 11.5px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe.
+          </p>
           {/* Header */}
           <div
             style={{

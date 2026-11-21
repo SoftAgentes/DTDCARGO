@@ -344,25 +344,25 @@ Además rige una condición propia: **no cambiar el significado de ningún estad
   - `(app)/tesoreria` (1): `_components/TesoreriaClient.tsx`
 - Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g4-contract.test.ts`, el módulo común `_components/__tests__/vino-detector.ts` (la detección del vino que comparten los grupos 3 y 4) y el contrato del grupo 3, que pasa a usar ese módulo sin cambiar lo que mide.
 
-**Estados de dinero, caso por caso.** Ningún vino de estas pantallas marcaba un vencido, una mora ni un error. Marcaba montos, saldos, deudas y el lado de un movimiento. Por la regla 4 (cifras en tinta; rojo solo si está vencido) van a tinta. En las tiras navy fijas van a `--ink-side`, que no se invierte con el tema. Nada pasa a `--danger`, porque nada significaba peligro.
+**Estados de dinero, caso por caso.** Ningún vino de estas pantallas marcaba un vencido, una mora ni un error. Marcaba montos, saldos, deudas y el lado de un movimiento. Por la regla 4 (cifras en tinta; rojo solo si está vencido) van a tinta. En las tiras navy fijas van a `--ink-side`, que no se invierte con el tema. Nada pasa a `--danger`, porque nada significaba peligro. A pedido del Director General se revisó, fila por fila, que ningún saldo negativo o deuda quedara distinguido solo por el vino: la última columna dice qué lo distingue sin color. El único caso que dependía del color era la columna «Saldo» del mayor del socio, y ahora lo dice una leyenda.
 
-| Pantalla y archivo | Qué marcaba el vino | Destino | Por qué no es `--danger` |
-|---|---|---|---|
-| Activos fijos (`ActivosFijosTab.tsx:126`, `:269`; `AssetDrawer.tsx:336`) | Depreciación acumulada: KPI, fila y vista previa | `--ink` | Es un monto contable, no una alerta |
-| Conciliación (`ConciliacionTab.tsx:300`) | Total de débitos del extracto | `--ink` | El débito es un lado del movimiento; el crédito sigue en `--success` |
-| Conciliación (`ConciliacionTab.tsx:388`) y match de línea (`LineMatchDrawer.tsx:193`) | Badge «Débito» (crédito en `success`) | `neutral` | Informa la dirección (regla 7); la etiqueta lo dice |
-| Extracto bancario (`StatementDrawer.tsx:435`) | «− Débitos» en la tira navy de saldos | `--ink-side` | Ídem; sobre navy fijo |
-| Libro mayor (`LibroMayorTab.tsx:179`, `:267`) | Código de cuenta y saldo destacado | `--ink` | Cifra |
-| Financiero China (`LedgerTab.tsx:120`, `:138`, `:302`) | Saldo neto > 0, «Le debemos al socio», y su saldo corriente | `--ink` | Es deuda corriente, no vencida; «el socio nos debe» sigue en `--success` y el texto debajo dice quién debe |
-| Estado del socio (`StatementDetail.tsx:283`) | «Conciliado» por debajo de 100 % en la tira navy | `--ink-side` | Es avance; lo que pide atención («A revisar») ya va en `--warning`, y el 100 % en `--success` |
-| SENIAT (`CustomsKpis.tsx:43`, `CustomsTaxTab.tsx:9`, `:160`) | «Impuestos pagados», aranceles en el desglose y total | `--ink` | Pagado, no vencido. En el desglose, el arancel es una serie más: IGTF `--warning`, IVA `--info` y agente `--success` no cambian |
-| SENIAT (`CreateFilingDrawer.tsx:383`, `FilingDetailDrawer.tsx:293`) | Rótulo «Total a pagar SENIAT» en la tira navy | `--ink-side` | Rótulo; el monto sigue en blanco |
-| Cotizador (`[code]/page.tsx:206`, `QuoteDrawer.tsx:844`) | Fecha «Válida hasta» en el panel navy del total | `--ink-side` | Es una fecha. Una cotización vencida se ve en su estado, no en este color |
-| Cotizador (`CotizadorClient.tsx:448`) | Total de la fila | `--ink` | Cifra |
-| Tesorería (`TesoreriaClient.tsx:215`, `:592`) | KPI «Por pagar» y «Remesas a China» cuando hay saldo | `--ink` | Saldo pendiente, no vencido (como «por cobrar» en el grupo 2) |
-| Gastos (`GastosClient.tsx:648`, `GastosKpis.tsx:33`, `ExpenseDrawer.tsx:415`) | Monto en USD, total del mes y vista previa | `--ink` | Cifra |
-| Proveedores (`ProveedoresClient.tsx:237`, `:655`, `:931`; `ScorecardTab.tsx:89`; `PackingListDrawer.tsx:350`) | KPI de consolidadas, CBM, totales, rating y total destacado | `--ink` | Cifra |
-| Retenciones (`WithholdingsView.tsx:306`) | Badge «IVA» (ISLR en `info`) | `neutral` | Informa el tipo |
+| Pantalla y archivo | Qué marcaba el vino | Destino | Por qué no es `--danger` | Qué lo dice sin el color |
+|---|---|---|---|---|
+| Activos fijos (`ActivosFijosTab.tsx:126`, `:269`; `AssetDrawer.tsx:336`) | Depreciación acumulada: KPI, fila y vista previa | `--ink` | Es un monto contable, no una alerta | La etiqueta «Depreciación acumulada» y «Acumulada a hoy» |
+| Conciliación (`ConciliacionTab.tsx:300`) | Total de débitos del extracto | `--ink` | El débito es un lado del movimiento; el crédito sigue en `--success` | La etiqueta «Débitos» y el signo «−» de la celda |
+| Conciliación (`ConciliacionTab.tsx:388`) y match de línea (`LineMatchDrawer.tsx:193`) | Badge «Débito» (crédito en `success`) | `neutral` | Informa la dirección (regla 7); la etiqueta lo dice | El texto del Badge («Débito» / «Crédito») |
+| Extracto bancario (`StatementDrawer.tsx:435`) | «− Débitos» en la tira navy de saldos | `--ink-side` | Ídem; sobre navy fijo | La etiqueta «− Débitos» |
+| Libro mayor (`LibroMayorTab.tsx:179`, `:267`) | Código de cuenta y saldo destacado | `--ink` | Cifra | No distinguía estado: era el total destacado, que sigue en peso 800 |
+| Financiero China (`LedgerTab.tsx:120`, `:138`, `:302`) | Saldo neto > 0, «Le debemos al socio», y su saldo corriente | `--ink` | Es deuda corriente, no vencida; «el socio nos debe» sigue en `--success` y el texto debajo dice quién debe | KPI: el texto debajo («Le debemos al socio» / «El socio nos retiene / nos debe»). **Columna «Saldo» de la tabla: solo el color decía que el positivo es deuda nuestra; se suma una leyenda sobre la tabla:** «Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe.» El negativo ya lleva signo (`-$` en USD, `−¥` en RMB) |
+| Estado del socio (`StatementDetail.tsx:283`) | «Conciliado» por debajo de 100 % en la tira navy | `--ink-side` | Es avance; lo que pide atención («A revisar») ya va en `--warning`, y el 100 % en `--success` | El porcentaje mismo («Conciliado 80 %») |
+| SENIAT (`CustomsKpis.tsx:43`, `CustomsTaxTab.tsx:9`, `:160`) | «Impuestos pagados», aranceles en el desglose y total | `--ink` | Pagado, no vencido. En el desglose, el arancel es una serie más: IGTF `--warning`, IVA `--info` y agente `--success` no cambian | Las etiquetas («Impuestos pagados», «Aranceles de importación») |
+| SENIAT (`CreateFilingDrawer.tsx:383`, `FilingDetailDrawer.tsx:293`) | Rótulo «Total a pagar SENIAT» en la tira navy | `--ink-side` | Rótulo; el monto sigue en blanco | Es un rótulo; dice «Total a pagar SENIAT» |
+| Cotizador (`[code]/page.tsx:206`, `QuoteDrawer.tsx:844`) | Fecha «Válida hasta» en el panel navy del total | `--ink-side` | Es una fecha. Una cotización vencida se ve en su estado, no en este color | El texto «Vigencia:» / «Válida hasta» |
+| Cotizador (`CotizadorClient.tsx:448`) | Total de la fila | `--ink` | Cifra | No distinguía estado: era el total de la fila |
+| Tesorería (`TesoreriaClient.tsx:215`, `:592`) | KPI «Por pagar» y «Remesas a China» cuando hay saldo | `--ink` | Saldo pendiente, no vencido (como «por cobrar» en el grupo 2) | Las etiquetas «Por pagar» y «Remesas a China», y el texto debajo («N proveedor(es) con saldo») |
+| Gastos (`GastosClient.tsx:648`, `GastosKpis.tsx:33`, `ExpenseDrawer.tsx:415`) | Monto en USD, total del mes y vista previa | `--ink` | Cifra | No distinguía estado: es el monto |
+| Proveedores (`ProveedoresClient.tsx:237`, `:655`, `:931`; `ScorecardTab.tsx:89`; `PackingListDrawer.tsx:350`) | KPI de consolidadas, CBM, totales, rating y total destacado | `--ink` | Cifra | Las etiquetas del KPI; el CBM vacío sigue en `--ink-mute` con «—» |
+| Retenciones (`WithholdingsView.tsx:306`) | Badge «IVA» (ISLR en `info`) | `neutral` | Informa el tipo | El texto del Badge («IVA» / «ISLR») |
 
 **Resto del reparto**
 
