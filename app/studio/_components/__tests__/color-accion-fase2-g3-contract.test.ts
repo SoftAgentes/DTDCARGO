@@ -15,6 +15,12 @@
  * (`DiplomasClient.tsx`) y la muestra de paleta de Apariencia
  * (`AppearanceSection.tsx`), que nombran el token como texto.
  *
+ * Lo que este contrato no ve (hoy no hay ninguno en el grupo): la variante
+ * arbitraria de Tailwind (`[&>svg]:text-wine`), el alias `--studio-wine*` de
+ * `studio.css`, un hex de la familia vino escrito a mano (fase 4), un tono
+ * armado con plantilla y `var(--wine)` en un `.tsx` de `lib/studio` que no sea
+ * tono.
+ *
  * En `lib/studio` (`.ts` y `.tsx`) ningún tono vale `"wine"`: las uniones de
  * tipo todavía lo nombran (las limpia la fase 3), pero ninguna función ni mapa
  * lo devuelve.
@@ -83,7 +89,38 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 6,
     motivo: "superficie, franja y rótulos propios de la Guía con el tinte de marca: identidad, no acción",
   },
+  ...accionDeNoticiasWeb({
+    "_components/CategoryDetector.tsx": 4,
+    "_components/KeywordPanel.tsx": 6,
+    "_components/ManualPromptModal.tsx": 11,
+    "_components/NoticiasWebClient.tsx": 2,
+    "_components/PublishModal.tsx": 6,
+    "_components/RouteIdeaPanel.tsx": 3,
+    "_components/Step0Brief.tsx": 5,
+    "_components/Step1Headlines.tsx": 8,
+    "_components/Step2Outlines.tsx": 4,
+    "_components/Step3Article.tsx": 6,
+    "publicadas/[id]/page.tsx": 1,
+    "retirar/[id]/page.tsx": 1,
+  }),
 };
+
+/**
+ * noticias-web pinta dentro de un bloque `data-theme="light"` y ningún CSS
+ * define ese selector: con el Studio en oscuro, los tokens del Studio toman su
+ * valor oscuro sobre el fondo claro (revisión de la #739). Por eso ahí solo van
+ * tokens web fijos (`--color-ink`, `--color-grey-*`). La acción (botón
+ * principal, hover, foco y enlaces de volver) sigue en `--color-wine` hasta que
+ * la fase 3 traiga `--color-accion*`; lo que no es acción ya no está en vino.
+ */
+function accionDeNoticiasWeb(cuentas: Record<string, number>): Record<string, { cuenta: number; motivo: string }> {
+  return Object.fromEntries(
+    Object.entries(cuentas).map(([ruta, cuenta]) => [
+      `app/studio/(app)/marketing/noticias-web/${ruta}`,
+      { cuenta, motivo: "acción en vino dentro del bloque claro: espera `--color-accion*` de la fase 3" },
+    ]),
+  );
+}
 
 function fuentesDe(dir: string, extension: RegExp): string[] {
   const salida: string[] = [];

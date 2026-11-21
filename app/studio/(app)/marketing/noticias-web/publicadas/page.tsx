@@ -23,7 +23,7 @@ export default async function NoticiasPublicadasPage() {
       eyebrow="Marketing · Noticias Web"
       titulo={
         <>
-          Noticias <span style={{ color: "var(--ink)" }}>publicadas</span>
+          Noticias <span style={{ color: "var(--color-ink, #0F1E3D)" }}>publicadas</span>
         </>
       }
       descripcion="Corrige un dato, retira una noticia con su motivo o vuelve a publicar una retirada. El enlace de cada noticia no cambia. En el sitio, el cambio se ve en hasta 5 minutos."

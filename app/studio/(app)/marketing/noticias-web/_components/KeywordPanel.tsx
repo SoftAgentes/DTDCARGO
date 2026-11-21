@@ -61,12 +61,12 @@ export function KeywordPanel({
             Keywords SEO
           </span>
           {hasFocus && (
-            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-[var(--ink)] text-[10.5px] font-semibold">
+            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-ink text-[10.5px] font-semibold">
               1 focus
             </span>
           )}
           {secondaryKeywords.length > 0 && (
-            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-[var(--ink)] text-[10.5px] font-semibold">
+            <span className="inline-flex px-2 py-0.5 rounded-full bg-grey-100 text-ink text-[10.5px] font-semibold">
               {secondaryKeywords.length} secundarias
             </span>
           )}
@@ -92,7 +92,7 @@ export function KeywordPanel({
               type="button"
               onClick={onRequestSuggest}
               disabled={suggesting || !topicReady}
-              className="inline-flex items-center gap-2 bg-[var(--accion)] text-[var(--on-accion)] px-4 py-2 rounded-md text-[13px] font-semibold hover:bg-[var(--accion-hover)] transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-wine text-white px-4 py-2 rounded-md text-[13px] font-semibold hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
             >
               <span
                 className={
@@ -122,7 +122,7 @@ export function KeywordPanel({
               value={focusKeyword}
               onChange={(e) => onChangeFocus(e.target.value)}
               placeholder='Ej "puerta a puerta china venezuela"'
-              className="w-full bg-white border border-grey-200 rounded-md px-3 py-2 text-[14px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-[var(--accion)] transition-colors"
+              className="w-full bg-white border border-grey-200 rounded-md px-3 py-2 text-[14px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors"
             />
             <p className="text-[11.5px] text-grey-500 leading-snug">
               La keyword principal del post. Aparecerá en intro + 1 H2 + body
@@ -154,7 +154,7 @@ export function KeywordPanel({
                     key={i}
                     className="flex items-start gap-2 text-[12.5px] text-grey-700 leading-snug"
                   >
-                    <span className="text-[var(--ink-soft)] mt-0.5 flex-shrink-0" aria-hidden>
+                    <span className="text-grey-500 mt-0.5 flex-shrink-0" aria-hidden>
                       •
                     </span>
                     <span className="flex-1">{p}</span>
@@ -164,7 +164,7 @@ export function KeywordPanel({
                         onChangePain(painPoints.filter((_, idx) => idx !== i))
                       }
                       aria-label={`Quitar pain point: ${p}`}
-                      className="text-grey-300 hover:text-[var(--accion-text)] transition-colors flex-shrink-0"
+                      className="text-grey-300 hover:text-wine transition-colors flex-shrink-0"
                     >
                       {Icon.close(10)}
                     </button>
@@ -211,7 +211,7 @@ function KeywordChipInput({ values, onChange, placeholder }: ChipProps) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 bg-white border border-grey-200 rounded-md p-2 focus-within:border-[var(--accion)] transition-colors">
+    <div className="flex flex-wrap items-center gap-1.5 bg-white border border-grey-200 rounded-md p-2 focus-within:border-wine transition-colors">
       {values.map((v, i) => (
         <span
           key={`${v}-${i}`}
@@ -222,7 +222,7 @@ function KeywordChipInput({ values, onChange, placeholder }: ChipProps) {
             type="button"
             onClick={() => removeChip(i)}
             aria-label={`Eliminar ${v}`}
-            className="inline-flex w-4 h-4 items-center justify-center rounded-full text-grey-500 hover:text-[var(--accion-text)]"
+            className="inline-flex w-4 h-4 items-center justify-center rounded-full text-grey-500 hover:text-wine"
           >
             {Icon.close(10)}
           </button>

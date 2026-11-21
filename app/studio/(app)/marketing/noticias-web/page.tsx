@@ -96,7 +96,7 @@ export default async function NoticiasWebPage() {
           }}
         >
           Generar nueva{" "}
-          <span style={{ color: "var(--ink)" }}>noticia</span>
+          <span style={{ color: "var(--color-ink, #0F1E3D)" }}>noticia</span>
         </h1>
         <p
           style={{

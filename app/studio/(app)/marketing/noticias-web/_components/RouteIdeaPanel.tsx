@@ -87,7 +87,7 @@ export function RouteIdeaPanel({
           className="mt-3 text-ink"
           style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}
         >
-          ¿Qué <span className="text-[var(--ink)]">idea</span> tienes en mente?
+          ¿Qué <span className="text-ink">idea</span> tienes en mente?
         </h2>
         <p className="mt-2 text-[13.5px] text-grey-500 max-w-[70ch] leading-relaxed">
           Mete el tema y un título. El cerebro corre el Test de Noticia y decide
@@ -104,7 +104,7 @@ export function RouteIdeaPanel({
             htmlFor="idea-nombre"
             className="text-[13px] font-semibold text-ink"
           >
-            Nombre o tema de la idea <span className="text-[var(--ink-soft)]">*</span>
+            Nombre o tema de la idea <span className="text-grey-500">*</span>
           </label>
           <input
             id="idea-nombre"
@@ -113,7 +113,7 @@ export function RouteIdeaPanel({
             onChange={(e) => setNombre(e.target.value)}
             maxLength={NOMBRE_MAX}
             placeholder="Ej: Comprar repartido por mes en vez de cada 3 meses"
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-[var(--accion)] transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine transition-colors"
           />
         </div>
 
@@ -123,7 +123,7 @@ export function RouteIdeaPanel({
             htmlFor="idea-titulo"
             className="text-[13px] font-semibold text-ink"
           >
-            Título propuesto <span className="text-[var(--ink-soft)]">*</span>
+            Título propuesto <span className="text-grey-500">*</span>
           </label>
           <input
             id="idea-titulo"
@@ -132,7 +132,7 @@ export function RouteIdeaPanel({
             onChange={(e) => setTitulo(e.target.value)}
             maxLength={TITULO_MAX}
             placeholder="Ej: Por qué comprar cada 3 meses te está costando plata"
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-[var(--accion)] transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine transition-colors"
           />
         </div>
 
@@ -149,7 +149,7 @@ export function RouteIdeaPanel({
             id="idea-angulo"
             value={angulo}
             onChange={(e) => setAngulo(e.target.value as Angulo | "")}
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink focus:border-[var(--accion)] transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink focus:border-wine transition-colors"
           >
             <option value="">Que lo decida el cerebro</option>
             {ALL_ANGULOS.map((a) => (
@@ -314,7 +314,7 @@ function RouteIdeaResultView({
               className="flex items-start gap-2.5 text-[13.5px] text-ink bg-grey-100 border border-grey-200 rounded-lg px-3 py-2.5"
             >
               <span
-                className="inline-flex text-[var(--ink-soft)] mt-0.5 flex-shrink-0"
+                className="inline-flex text-grey-500 mt-0.5 flex-shrink-0"
                 aria-hidden
               >
                 {Icon.tag(13)}
@@ -354,7 +354,7 @@ function ScorePill({ score }: { score: number }) {
   const tone =
     score >= 3
       ? { bg: "var(--success-bg)", fg: "var(--success)" }
-      : { bg: "var(--bg-elevated)", fg: "var(--ink-soft)" };
+      : { bg: "var(--color-grey-100, #F2F0EC)", fg: "var(--color-grey-700, #333333)" };
   return (
     <div
       className="flex flex-col items-center justify-center rounded-xl px-4 py-2 flex-shrink-0"

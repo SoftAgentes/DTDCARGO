@@ -123,11 +123,11 @@ export function Step2Outlines({
               className="text-left transition-colors"
               style={{
                 background: isSelected
-                  ? "color-mix(in srgb, var(--ink) 8%, transparent))"
+                  ? "var(--color-grey-100, #F2F0EC)"
                   : "var(--bg-surface, #FFFFFF)",
                 border: `2px solid ${
                   isSelected
-                    ? "var(--ink)"
+                    ? "var(--color-ink, #0F1E3D)"
                     : "var(--border, rgba(15,30,61,0.12))"
                 }`,
                 borderRadius: "var(--r-lg, 12px)",
@@ -154,11 +154,11 @@ export function Step2Outlines({
                       borderRadius: "50%",
                       border: `2px solid ${
                         isSelected
-                          ? "var(--ink)"
+                          ? "var(--color-ink, #0F1E3D)"
                           : "var(--border, rgba(15,30,61,0.30))"
                       }`,
                       background: isSelected
-                        ? "var(--ink)"
+                        ? "var(--color-ink, #0F1E3D)"
                         : "transparent",
                       display: "grid",
                       placeItems: "center",
@@ -184,7 +184,7 @@ export function Step2Outlines({
                         textTransform: "uppercase",
                         letterSpacing: "0.06em",
                         color: isSelected
-                          ? "var(--ink)"
+                          ? "var(--color-ink, #0F1E3D)"
                           : "var(--ink-soft, #4B5563)",
                       }}
                     >
@@ -224,7 +224,7 @@ export function Step2Outlines({
                     onChange={(e) => updateThesis(idx, e.target.value)}
                     rows={3}
                     maxLength={250}
-                    className="w-full bg-white border border-grey-200 rounded p-2 text-[13px] text-ink leading-snug focus:outline-none focus:border-[var(--accion)] resize-y"
+                    className="w-full bg-white border border-grey-200 rounded p-2 text-[13px] text-ink leading-snug focus:outline-none focus:border-wine resize-y"
                     style={SERIF}
                   />
                 ) : (
@@ -263,7 +263,7 @@ export function Step2Outlines({
                     >
                       <span
                         style={{
-                          color: "var(--ink-soft)",
+                          color: "var(--color-grey-500, #6B6B6B)",
                           fontWeight: 700,
                           flexShrink: 0,
                           minWidth: 18,
@@ -279,7 +279,7 @@ export function Step2Outlines({
                           onChange={(e) =>
                             updateSection(idx, secIdx, "title", e.target.value)
                           }
-                          className="flex-1 bg-transparent text-ink font-semibold border-none focus:outline-none focus:border-b focus:border-[var(--accion)]"
+                          className="flex-1 bg-transparent text-ink font-semibold border-none focus:outline-none focus:border-b focus:border-wine"
                           style={{ minWidth: 0 }}
                         />
                       ) : (
@@ -323,7 +323,7 @@ export function Step2Outlines({
           type="button"
           onClick={onGenerateArticle}
           disabled={loading || !hasSelection}
-          className="inline-flex items-center gap-2 bg-[var(--accion)] text-[var(--on-accion)] px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-[var(--accion-hover)] transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed self-start"
+          className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed self-start"
         >
           <span
             className={loading ? "inline-flex animate-spin" : "inline-flex"}

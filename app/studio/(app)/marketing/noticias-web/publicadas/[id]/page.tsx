@@ -27,7 +27,7 @@ export default async function EditarNoticiaPage({ params }: { params: Promise<{ 
         <>
           El enlace <code>/noticias/{noticia.slug}</code> no cambia. Al guardar queda registrado quién y cuándo
           corrigió; en el sitio el cambio se ve en hasta 5 minutos.{" "}
-          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--accion-text)" }}>
+          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--color-wine-text, #7F0F1A)" }}>
             Volver a Publicadas
           </Link>
         </>
