@@ -2,7 +2,7 @@
 
 **Pedido:** el Director Ofi_Hermes, 21/11/2026. Es para la revisión de privacidad de la etapa 2: saber qué modelo
 escribió cada borrador. Hoy `task_events.modelo_usado` dice «soporte-chatwoot», y no se sabe si la #35 y la #36
-salieron por GLM o por DeepSeek.
+salieron por el modelo principal o por el de respaldo.
 
 Rama `sdd/0626-modelo-real` desde `origin/main` (`f67daa778`). **Sin migración.** No se tocó producción, ni la
 oficina, ni staging.
@@ -36,14 +36,21 @@ cable borraba esa sesión sin leerla. Detalle y fuentes: spec §1.
 - `tsc --noEmit`: sin errores en lo tocado.
 - No corrí la suite completa (queda para el CI).
 
+## Nota D-2 (21/11/2026)
+
+Por la regla D-2 de Sam, ningún dato real de un cliente pasa por un proveedor chino, y el proveedor lo elige Sam.
+La spec quedó neutral respecto al proveedor, a pedido del Director DTD. Según el Director Ofi_Hermes, la etapa 1
+solo usó texto inventado, la Oficina_Virtual está en pausa y queda anulada la etapa 2 con los proveedores que se
+habían pensado. El código no elige proveedor: guarda el que respondió.
+
 ## Pendiente
 
 - **La prueba en staging (§5) NO se ejecutó.** Antes hay que avisar al Director Ofi_Hermes: él toca el perfil de
   staging, y hay que abrir el túnel temporal con su OK.
-- El formato con proveedor (`zai/glm-5.3`) solo aparece si Hermes lo publica. Con la v0.23.1 lo normal es el modelo
-  solo (`glm-5.3` o `deepseek-chat`).
+- El formato con proveedor (`proveedor/modelo`) solo aparece si Hermes lo publica. Con la v0.23.1 lo normal es el
+  modelo solo.
 - La #35 y la #36 no se pueden recuperar desde el ERP: las sesiones ya se borraron. La única fuente posible es el
   log del gateway en la oficina.
-- Límite: si un turno mezcla modelos (primera llamada con GLM y otra posterior con DeepSeek), la sesión dice GLM.
+- Límite: si un turno mezcla modelos (primera llamada con el principal y otra posterior con el de respaldo), la sesión dice el principal.
   Con el perfil de hoy (una llamada, sin herramientas) no pasa.
 - Merge: lo hace el Director DTD.

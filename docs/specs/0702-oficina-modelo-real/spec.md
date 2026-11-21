@@ -14,8 +14,13 @@ confidencialidad: interno
 # SDD-0702 — Oficina_Virtual: el modelo real de cada llamada
 
 > Hija de SDD-0626. En `task_events.modelo_usado` queda hoy «soporte-chatwoot», que es el nombre del agente y no
-> el modelo. Para la revisión de privacidad de la etapa 2 hay que saber qué proveedor y qué modelo escribieron cada
-> borrador: GLM (principal) o DeepSeek (respaldo de Hermes).
+> el modelo. Para auditar el destino de los datos hay que saber qué proveedor y qué modelo escribieron cada
+> borrador: el modelo principal o el modelo de respaldo de Hermes.
+>
+> **Nota D-2.** Por la regla D-2 de Sam, ningún dato real de un cliente pasa por un proveedor chino, y el proveedor
+> lo elige Sam. Esta spec no elige ni cambia proveedores. Es neutral respecto al proveedor: solo deja registrado
+> cuál respondió. Según el Director Ofi_Hermes (21/11/2026), la etapa 1 solo usó texto inventado, la Oficina_Virtual
+> está en pausa y queda anulada la etapa 2 con los proveedores que se habían pensado.
 
 **Sin migración.** El dato cabe en `modelo_usado` (`text`, CHECK ≤ 100). No se tocó producción, ni la oficina, ni
 staging.
@@ -49,20 +54,21 @@ respuesta**, pero **sí queda en la sesión**, y el cable la borra al terminar (
    token y un tope de 5 s. Toma **solo** `session.model`, y si viniera, `session.provider` o `billing_provider`.
    Lo hace justo después de la respuesta y antes del `DELETE` de siempre. Nunca lanza: si falla, queda `null`.
 3. **Se guarda en `modelo_usado`** del evento `modelo.respuesta`, como hasta ahora. Formato: `proveedor/modelo` si
-   se sabe el proveedor; si no, el modelo solo (p. ej. `glm-5.3` o `deepseek-chat`). Solo se aceptan ids limpios
+   se sabe el proveedor; si no, el modelo solo (p. ej. `proveedor/modelo` o `modelo`). Solo se aceptan ids limpios
    (`[A-Za-z0-9._:@/+-]`, ≤ 100). Un texto con espacios o más largo queda `null`.
 
 **Proveedor:** la API de la v0.23.1 no publica `billing_provider`, así que con la versión actual lo normal es que
-quede el modelo solo. Para la oficina el modelo alcanza: `glm-*` sale por Z.AI y `deepseek-*` por DeepSeek. Si
-Hermes empieza a publicarlo, se antepone solo.
+quede el modelo solo. Para la auditoría el modelo alcanza si el nombre identifica al proveedor de forma única en
+la configuración que elija Sam. Si no lo identifica, hay que cruzarlo con la configuración del perfil vigente en esa
+fecha. Si Hermes empieza a publicar el proveedor, se antepone solo.
 
 **Privacidad:** la respuesta de `GET /api/sessions/<id>` trae también `preview` (un trozo de la conversación),
 `title` y tokens. El cable no lee ni guarda nada de eso: lee el JSON en memoria y saca un solo campo. No se loguea
 nada. No sale ningún dato nuevo hacia la oficina (es una lectura de la sesión que el cable mismo creó).
 
 **Límite conocido:** Hermes guarda una sola ruta por sesión, la de la primera llamada con consumo. Si dentro de UN
-turno la primera llamada al modelo sale bien con GLM y una llamada posterior del mismo turno salta a DeepSeek
-(turnos con herramientas), la sesión sigue diciendo GLM. El perfil `soporte-chatwoot` responde en una sola llamada,
+turno la primera llamada sale bien con el modelo principal y una llamada posterior del mismo turno salta al modelo
+de respaldo (turnos con herramientas), la sesión sigue diciendo el modelo principal. El perfil `soporte-chatwoot` responde en una sola llamada,
 sin herramientas, así que en la práctica la fila coincide con quien escribió el borrador. Si eso cambia, hará falta
 `/v1/runs` o el desglose por modelo de Hermes (`session_model_usage`), que la API de hoy no expone.
 
@@ -92,7 +98,7 @@ para esas dos corridas el modelo no consta. La fuente que queda es el registro d
 
 - `lib/studio/oficina/__tests__/despachador-piezas.test.ts`:
   - la forma real de la respuesta de v0.23.1 (sin `runtime`, `model` = alias) da `null`;
-  - ids del `runtime`: `zai` + `glm-5.3` da `zai/glm-5.3`; no se repite el proveedor; sin proveedor queda el modelo
+  - ids del `runtime`: `proveedor` + `modelo` da `proveedor/modelo`; no se repite el proveedor; sin proveedor queda el modelo
     solo; con espacios o más de 100 caracteres, `null`;
   - `leerModeloDeSesion`: `GET /api/sessions/<id>` con el token; devuelve solo el modelo aunque la sesión traiga
     vista previa y título; antepone `billing_provider`; alias, `null`, texto sucio, 404, cuerpo que no es JSON y
@@ -117,28 +123,31 @@ Precondiciones:
 - Oficina despausada solo en staging.
 - Bandeja de prueba (11) con 3 conversaciones de prueba sin dinero.
 - Una ventana anotada de inicio a fin (UTC).
-- Perfil `soporte-chatwoot` de staging con `fallback_model` a DeepSeek, igual que en producción.
+- Perfil `soporte-chatwoot` de staging con un modelo principal y un `fallback_model` (modelo de respaldo), los dos
+  elegidos por Sam y conformes a la D-2.
+- Solo texto inventado: ningún dato real de un cliente.
 - Se anota el md5 de su `config.yaml` antes de empezar, para devolverlo igual.
 
-**Prueba M1 · camino normal (GLM):**
+**Prueba M1 · camino normal (modelo principal):**
 
 1. Un mensaje de prueba en la bandeja 11. Esperar el tick del despachador.
 2. Esperado:
-   - `modelo.respuesta` con `modelo_usado` = `glm-5.3` (o `zai/glm-5.3`);
+   - `modelo.respuesta` con `modelo_usado` = el modelo principal (`modelo` o `proveedor/modelo`);
    - borrador en «aprobación»;
    - la sesión `cable-<run>-1` borrada (`GET /api/sessions/<id>` da 404).
 
 **Prueba M2 · forzar el respaldo una vez:**
 
 1. En el perfil de staging, dejar el principal sin servicio de forma reversible. Lo preferido: apuntar el modelo
-   principal a uno que no existe en el mismo proveedor. Si no, la llave de Z.AI de ese perfil por una inválida.
+   principal a uno que no existe en el mismo proveedor. Si no, la llave del proveedor principal de ese perfil por
+   una inválida.
    Nunca se escribe una llave en chat ni en Git. Reiniciar ese gateway.
 2. Un mensaje de prueba. Esperar el tick.
 3. Esperado:
-   - `modelo_usado` = `deepseek-chat` (o `deepseek/deepseek-chat`);
+   - `modelo_usado` = el modelo de respaldo (`modelo` o `proveedor/modelo`);
    - en el log del gateway, el aviso del fallback;
    - borrador en «aprobación»; no sale nada.
-4. Devolver la configuración (comparar el md5) y reiniciar. Repetir M1 para ver GLM de nuevo.
+4. Devolver la configuración (comparar el md5) y reiniciar. Repetir M1 para ver de nuevo el modelo principal.
 
 **Prueba M3 · los dos proveedores cortados:**
 
