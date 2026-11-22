@@ -50,7 +50,7 @@ export default async function AlertasTelegramPage() {
 
   return (
     <div style={{ maxWidth: 800 }}>
-      <span className="studio-eyebrow">Administración</span>
+      <span className="studio-eyebrow">Equipo y seguridad</span>
       <h1
         className="studio-display"
         style={{ fontSize: 30, margin: "8px 0 32px", color: "var(--ink)" }}
