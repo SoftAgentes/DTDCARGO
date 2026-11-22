@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "var(--ink-mute)",
+  draft: "var(--ink-soft)",
   quoted: "var(--info)",
   confirmed: "var(--info)",
   in_transit: "var(--info)",
@@ -40,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: "var(--success)",
   delayed: "var(--warning)",
   exception: "var(--danger)",
-  cancelled: "var(--ink-mute)",
+  cancelled: "var(--ink-soft)",
 };
 
 export function RecentActivityCard({ items }: { items: RecentActivityItem[] }) {

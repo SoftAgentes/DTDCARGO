@@ -82,5 +82,5 @@ export default async function NewsletterCampaignsPage({ searchParams }: { search
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
-  return <div><div style={{ color: "var(--ink)", font: "800 16px/1 var(--f-display)" }}>{value}</div><div style={{ marginTop: 4, color: "var(--ink-mute)", font: "600 10px/1.2 var(--f-sans)" }}>{label}</div></div>;
+  return <div><div style={{ color: "var(--ink)", font: "800 16px/1 var(--f-display)" }}>{value}</div><div style={{ marginTop: 4, color: "var(--ink-soft)", font: "600 10px/1.2 var(--f-sans)" }}>{label}</div></div>;
 }

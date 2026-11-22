@@ -649,7 +649,7 @@ function IncomingTab({
             title={cbm == null ? "Se mide al recibir en el almacén CN" : undefined}
             style={{
               font: "600 12px/1 var(--f-mono)",
-              color: cbm != null ? "var(--ink)" : "var(--ink-mute)",
+              color: cbm != null ? "var(--ink)" : "var(--ink-soft)",
               textAlign: "right",
               display: "block",
             }}
@@ -671,7 +671,7 @@ function IncomingTab({
         <span
           style={{
             font: "600 12px/1 var(--f-mono)",
-            color: p.est_value_usd != null ? "var(--ink)" : "var(--ink-mute)",
+            color: p.est_value_usd != null ? "var(--ink)" : "var(--ink-soft)",
             textAlign: "right",
             display: "block",
           }}
@@ -785,7 +785,7 @@ function IncomingTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -925,7 +925,7 @@ function IncomingTab({
                 <span
                   style={{
                     font: "800 13px/1 var(--f-mono)",
-                    color: t.value === "—" ? "var(--ink-mute)" : "var(--ink)",
+                    color: t.value === "—" ? "var(--ink-soft)" : "var(--ink)",
                   }}
                 >
                   {t.value}
@@ -1062,7 +1062,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -1158,7 +1158,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
               <span
                 style={{
                   font: "500 12px/1.3 var(--f-sans)",
-                  color: s.city ? "var(--ink)" : "var(--ink-mute)",
+                  color: s.city ? "var(--ink)" : "var(--ink-soft)",
                 }}
               >
                 {s.city || "—"}
@@ -1167,7 +1167,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
                 <div
                   style={{
                     font: "500 12px/1.3 var(--f-sans)",
-                    color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
+                    color: s.wechat ? "var(--ink)" : "var(--ink-soft)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",

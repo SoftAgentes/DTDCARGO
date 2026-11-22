@@ -232,7 +232,7 @@ export function DashboardClient({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span
             aria-live="polite"
-            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)", minWidth: 64, textAlign: "right" }}
+            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)", minWidth: 64, textAlign: "right" }}
           >
             {saveState.error
               ? "No se guardó"

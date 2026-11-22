@@ -163,7 +163,7 @@ export function MonthView({
                       ? "var(--bg-surface)"
                       : cell.inMonth
                         ? "var(--ink)"
-                        : "var(--ink-mute)",
+                        : "var(--ink-soft)",
                     font: `${isToday ? "900" : "700"} 13px/1 var(--f-display)`,
                     padding: isToday ? 0 : "0 2px",
                     flexShrink: 0,

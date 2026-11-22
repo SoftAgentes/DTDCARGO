@@ -110,7 +110,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
               {r.hub_code}
             </Badge>
           ) : (
-            <span style={{ color: "var(--ink-mute)" }}>—</span>
+            <span style={{ color: "var(--ink-soft)" }}>—</span>
           )}
 
           {r.owned ? (
@@ -176,7 +176,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
             <span
               style={{
                 font: "500 11.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               —

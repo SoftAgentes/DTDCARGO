@@ -61,7 +61,7 @@ const TARJETA: CSSProperties = {
   gap: "var(--s-3)",
 };
 const TITULO: CSSProperties = { font: "800 15px/1.2 var(--f-display)", color: "var(--ink)", margin: 0 };
-const TENUE: CSSProperties = { margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)" };
+const TENUE: CSSProperties = { margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" };
 /** Un `<summary>` también se oprime: nada que se oprima baja de 32 px (SDD-0603). */
 const SUMARIO: CSSProperties = {
   cursor: "pointer",
@@ -154,7 +154,7 @@ function Conversacion({ item, puedeVerTexto }: { item: ItemPanel; puedeVerTexto:
         style={{
           margin: 0,
           font: "400 13px/1.45 var(--f-sans)",
-          color: item.texto ? "var(--ink)" : "var(--ink-mute)",
+          color: item.texto ? "var(--ink)" : "var(--ink-soft)",
           display: "-webkit-box",
           WebkitLineClamp: 2,
           WebkitBoxOrient: "vertical",
@@ -167,7 +167,7 @@ function Conversacion({ item, puedeVerTexto }: { item: ItemPanel; puedeVerTexto:
         ) : null}
         {textoVisible}
       </p>
-      {fecha ? <span style={{ font: "400 12px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>{fecha}</span> : null}
+      {fecha ? <span style={{ font: "400 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>{fecha}</span> : null}
     </li>
   );
 }
@@ -281,7 +281,7 @@ function ChatsUnidos({
                     {u.canal
                       ? t(`bandeja.ficha.channel.${u.canal}` as I18nKey)
                       : t("bandeja.ficha.contact", { n: u.chatwootContactId })}
-                    <span style={{ color: "var(--ink-mute)", marginLeft: "var(--s-2)" }}>{t(`bandeja.ficha.origin.${u.origen}` as I18nKey)}</span>
+                    <span style={{ color: "var(--ink-soft)", marginLeft: "var(--s-2)" }}>{t(`bandeja.ficha.origin.${u.origen}` as I18nKey)}</span>
                   </span>
                   {/* La unión del portal la pone el sistema y se va con la ficha: no se quita a mano. */}
                   {puedeUnir && u.origen !== "portal" ? (

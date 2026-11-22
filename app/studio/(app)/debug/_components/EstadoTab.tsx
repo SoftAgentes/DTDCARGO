@@ -329,7 +329,7 @@ export function EstadoTab({
                   background: present
                     ? "var(--success-bg)"
                     : "var(--neutral-bg)",
-                  color: present ? "var(--success)" : "var(--ink-mute)",
+                  color: present ? "var(--success)" : "var(--ink-soft)",
                   border: present
                     ? "1px solid var(--success)"
                     : "1px solid var(--border)",

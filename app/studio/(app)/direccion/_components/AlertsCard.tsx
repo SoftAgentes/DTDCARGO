@@ -47,7 +47,7 @@ function AlertRow({ alert, first }: { alert: DireccionAlert; first: boolean }) {
         {alert.text}
       </span>
       {alert.href && (
-        <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+        <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
           {Icon.arrowR(13)}
         </span>
       )}

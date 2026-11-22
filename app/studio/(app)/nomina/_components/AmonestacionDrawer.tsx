@@ -122,7 +122,7 @@ export function AmonestacionDrawer({
                 <div
                   style={{
                     font: `${active ? 700 : 500} 10px/1.4 var(--f-sans)`,
-                    color: active ? "var(--ink)" : "var(--ink-mute)",
+                    color: active ? "var(--ink)" : "var(--ink-soft)",
                     marginTop: 5,
                     overflow: "hidden",
                     textOverflow: "ellipsis",

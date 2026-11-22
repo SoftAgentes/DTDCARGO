@@ -36,7 +36,7 @@ export function ReceiptRateCell({
   if (!disponible) {
     return (
       <span
-        style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}
+        style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
         title={t("warehouse_cn.rate.unavailable")}
       >
         {t("warehouse_cn.rate.cell.unavailable")}

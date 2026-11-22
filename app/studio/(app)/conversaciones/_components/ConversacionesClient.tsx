@@ -191,7 +191,7 @@ export function ConversacionesClient({
               eyebrow="Bandeja"
               title="Sin conversación seleccionada"
               description="Elige una conversación de la lista para ver el hilo completo. Cuando un cliente escriba desde el portal, aparecerá acá."
-              action={<span style={{ color: "var(--ink-mute)" }}>{Icon.mail(22)}</span>}
+              action={<span style={{ color: "var(--ink-soft)" }}>{Icon.mail(22)}</span>}
             />
           </div>
         )}

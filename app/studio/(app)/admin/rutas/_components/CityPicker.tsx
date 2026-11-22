@@ -227,7 +227,7 @@ export function CityPicker({
         </span>
         <span
           style={{
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             transform: `rotate(${open ? 180 : 0}deg)`,
             transition: "transform 160ms ease",
             display: "inline-flex",
@@ -268,7 +268,7 @@ export function CityPicker({
                   background: "var(--bg-elevated)",
                 }}
               >
-                <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+                <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
                   {Icon.search(13)}
                 </span>
                 <input
