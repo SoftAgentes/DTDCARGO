@@ -614,6 +614,144 @@
     animation: none;
   }
 }
+/* SDD-0709 · Menú lateral cerrado: un botón por grupo y, al oprimirlo, una lista flotante
+   con los módulos del grupo. El grupo del módulo activo va en azul de acción (--accion-soft
+   sobre --bg-sidebar, ≥ 7:1 en los dos temas). Mínimo de toque 32 px; foco siempre visible. */
+.studio-sb-grupo-cerrado {
+  margin-bottom: 6px;
+}
+.studio-sb-grupo-btn {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-side-strong);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-sb-grupo-btn:hover,
+.studio-sb-grupo-btn[aria-expanded="true"] {
+  background: var(--bg-sidebar-hover);
+}
+.studio-sb-grupo-btn[data-activo="true"] {
+  color: var(--accion-soft);
+  background: color-mix(in srgb, var(--accion-soft) 16%, transparent);
+}
+.studio-sb-grupo-btn[data-activo="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--accion-soft);
+}
+.studio-sb-grupo-btn:focus-visible,
+.studio-sb-flot__item:focus-visible {
+  outline: 2px solid var(--accion-soft);
+  outline-offset: -2px;
+}
+.studio-sb-grupo-btn:hover .studio-sb-icono,
+.studio-sb-grupo-btn:focus-visible .studio-sb-icono {
+  transform: translateX(3px);
+}
+.studio-sb-flot {
+  position: fixed;
+  z-index: 90;
+  min-width: 220px;
+  max-width: 300px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border-side);
+  border-radius: var(--r-md);
+  background: var(--bg-sidebar);
+  box-shadow: var(--shadow-lg);
+}
+.studio-sb-flot__titulo {
+  padding: 8px 10px 6px;
+  font: 800 11px/1 var(--f-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-side-soft);
+}
+.studio-sb-flot__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 4px;
+  font: 700 12px/1 var(--f-sans);
+  color: var(--ink-side);
+}
+.studio-sb-flot__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--ink-side-strong);
+  font: 600 14px/1.15 var(--f-sans);
+  text-decoration: none;
+}
+.studio-sb-flot__item[data-sub="true"] {
+  padding-left: 26px;
+  font-size: 13.5px;
+}
+.studio-sb-flot__item:hover {
+  background: var(--bg-sidebar-hover);
+}
+.studio-sb-flot__item[data-activo="true"] {
+  background: var(--ink-side-strong);
+  color: var(--on-warning);
+  font-weight: 800;
+}
+.studio-sb-flot__item[data-activo="true"]:focus-visible {
+  outline-color: var(--accion);
+}
+.studio-sb-flot__icono {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-side);
+}
+.studio-sb-flot__item[data-activo="true"] .studio-sb-flot__icono {
+  color: var(--on-warning);
+}
+.studio-sb-flot__texto {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-sb-flot__cuenta {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--warning);
+  color: var(--on-warning);
+  font: 800 10px/1 var(--f-mono);
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-sb-grupo-btn {
+    transition: none;
+  }
+  .studio-sb-grupo-btn:hover .studio-sb-icono,
+  .studio-sb-grupo-btn:focus-visible .studio-sb-icono {
+    transform: none;
+  }
+}
 @media (max-width: 767px) {
   .studio-densidad__texto {
     display: none;
