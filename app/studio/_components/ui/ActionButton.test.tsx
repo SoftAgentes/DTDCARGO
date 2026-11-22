@@ -60,4 +60,20 @@ describe("ActionButton · temporizador del flash de éxito", () => {
     expect(vi.getTimerCount()).toBe(0);
     expect(() => vi.advanceTimersByTime(5000)).not.toThrow();
   });
+
+  it("si onAction termina DESPUÉS del desmontaje, no se crea ningún temporizador", async () => {
+    let terminar: () => void = () => {};
+    const onAction = () => new Promise<void>((r) => (terminar = r));
+    const { unmount } = render(
+      <ActionButton idleLabel="Enviar" successLabel="Enviado" onAction={onAction} />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    unmount();
+    await act(async () => {
+      terminar();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
