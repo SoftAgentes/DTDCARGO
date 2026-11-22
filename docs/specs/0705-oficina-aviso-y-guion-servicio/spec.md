@@ -168,7 +168,7 @@ spec y `.agents/handoffs/2026-11-22-sdd-0705-v03-menores.md`.
 ## Enmienda v0.4 (22/11/2026): los tres guiones del encargo B
 
 Hermes DIRECTOR redactó cuatro guiones (buzón Kanban t_a5065638, 21/11/2026 23:11Z). Sam aprobó tres con sus
-palabras: «Apruebo 1, 2 y 3». Van en `guiones-soporte.ts` v0.4:
+palabras, el 22/11/2026: «Apruebo 1, 2 y 3». Van en `guiones-soporte.ts` v0.4:
 
 | Guion | Cuándo | Límite duro |
 |---|---|---|
@@ -184,6 +184,18 @@ palabras: «Apruebo 1, 2 y 3». Van en `guiones-soporte.ts` v0.4:
 - **`derivar-equipo`** ya no cubre los reclamos: van con `quejas`.
 - **`estado-con-guia`**, el cuarto del encargo, queda para el SDD de WhatsApp: hoy el agente no ve el sistema de
   envíos y solo podría derivar.
+- **Los servicios informan, no venden.** `precios-tiempos` no trae precios, plazos, descuentos ni ofertas, ni un
+  llamado a comprar: solo dice que depende del paquete y deriva a una persona, que da la cotización con los datos del
+  ERP. Si el agente le agrega una cifra, un plazo o una promesa («te garantizo», «gratis», «descuento»), la revisión
+  automática escala con `dato_inventado` (lo cubren las pruebas).
+
+### Allowlist v0.4
+
+- `lib/studio/oficina/guiones-soporte.ts`
+- `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`
+- `lib/studio/__tests__/oficina-paso3b.test.ts` (solo cambia `pedir-guia` por `estado-sin-guia`)
+- `docs/specs/0705-oficina-aviso-y-guion-servicio/spec.md`
+- `.agents/handoffs/2026-11-22-sdd-0705-v04-guiones.md`
 
 Pruebas: `aviso-guion-servicio.test.ts` (los tres pasan la revisión tal cual; un precio, plazo, estado o promesa
 agregados escalan con `dato_inventado`; no traen cifras, enlaces ni marcadores; `pedir-guia` ya no existe).
