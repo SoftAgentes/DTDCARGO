@@ -514,7 +514,7 @@ en ninguna superficie visible"*, con reemplazos canónicos:
 - **Dato variable:** como el QR incluye el número de cartón, **un embarque de 5 cartones son 5 etiquetas distintas**. No se imprime un diseño y se repite. Igual que el folio del sello (BD-062).
 - **Validación obligatoria:** módulo **≥ 0,5 mm** para lectura con cámara de teléfono. Si el payload se alarga, sube la versión del QR y el módulo se encoge: la validación tiene que fallar ruidosamente, no imprimir una etiqueta ilegible.
 - **Se eliminó a propósito:** las clases `.smark*` del arte anterior (isólogo + `PCS/CTN` + QR de 54 px decorativo). No reponer. En Norte se borra el arte viejo, no se archiva.
-- **Dependencia de backend:** la ruta `/c/…` tiene que existir **antes** de imprimir el primer millar — un QR que lleva a 404 es peor que no tener QR. Ver `backend/API-CONTRACT.md`.
+- **Dependencia de backend:** la ruta `/c/…` tiene que existir **antes** de imprimir el primer millar — un QR que lleva a 404 es peor que no tener QR. Ver `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].
 - **Regla viva en:** `packaging/Packaging Logístico · DTD-Cargo.html` §02·, con el contrato de implementación para Claude Code.
 
 ---

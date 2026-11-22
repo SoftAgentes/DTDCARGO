@@ -70,10 +70,7 @@ export default async function OficinaRevisionPage({
 
   return (
     <div style={{ maxWidth: 920 }}>
-      <Link href="/studio/admin" style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)", textDecoration: "none" }}>
-        ← Volver a Administración
-      </Link>
-      <span className="studio-eyebrow" style={{ display: "block", marginTop: 12 }}>
+      <span className="studio-eyebrow" style={{ display: "block" }}>
         <span style={{ textTransform: "none" }}>Oficina_Virtual</span> · SDD-0626 · etapa {etapa}
       </span>
       <h1 className="studio-display" style={{ fontSize: 30, margin: "8px 0", color: "var(--ink)" }}>

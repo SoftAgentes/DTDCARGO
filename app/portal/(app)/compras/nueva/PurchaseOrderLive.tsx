@@ -12,8 +12,8 @@
  * guardar las solicitudes de servicio.
  *
  * Sólo tokens `var(--*)` (BRAND.md). El tema oscuro es el default del portal y
- * los tokens con nombre de color voltean, así que sobre relleno wine va
- * `--color-on-accent`, nunca `text-white`.
+ * los tokens con nombre de color voltean, así que sobre relleno de acción va
+ * `--color-on-accion`, nunca `text-white`.
  */
 
 import { DocIcon } from "@/components/Icon";
@@ -47,13 +47,13 @@ export function PurchaseOrderLive({
     <div
       className="rounded-[14px] p-4 border"
       style={{
-        borderColor: "var(--color-wine)",
+        borderColor: "var(--color-grey-300)",
         background: "var(--color-paper)",
       }}
     >
       <div
         className="flex items-center gap-2 text-[10px] font-bold tracking-[0.1em] uppercase"
-        style={{ color: "var(--color-wine-text)" }}
+        style={{ color: "var(--color-grey-700)" }}
       >
         <DocIcon size={13} />
         Así queda tu orden a DTD — en vivo

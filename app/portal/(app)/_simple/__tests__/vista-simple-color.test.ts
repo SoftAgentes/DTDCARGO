@@ -1,10 +1,10 @@
 // @vitest-environment node
 /**
- * SDD-0654 fase 2 · AC-17 y EXC-0654-01: el color de la Vista simple.
+ * SDD-0654 fase 2 · AC-17 y el color de la Vista simple.
  *
- *   · El vino claro (`--vs-principal-bg`) solo pinta sus tres usos: botón
- *     principal, avatar y parte «proveedor» del código. Su texto es siempre
- *     `--on-warning` (#0F1E3D) y pasa AA en claro y en noche.
+ *   · EXC-0654-01 cerrada (SDD-0686, Sam: «Portal: Vista simple A»,
+ *     2026-11-22): el botón principal es azul de acción; el avatar y la parte
+ *     «proveedor» del código van en tinta. El bloque `.vs` no nombra el vino.
  *   · Ningún archivo de la Vista simple usa `--color-wine)` ni el rojo de error
  *     (`--color-status-danger`), ni hex sueltos.
  *   · El dorado (`--color-status-warning`) no aparece en los componentes: solo
@@ -47,38 +47,29 @@ function token(cabecera: string, nombre: string): string {
 /** El bloque CSS de la Vista simple (desde su cabecera hasta el final del archivo). */
 const bloqueVs = globals.slice(globals.indexOf("SDD-0654 fase 2 · Vista simple del portal"));
 
-describe("EXC-0654-01 · vino claro con texto navy", () => {
-  it("los tokens de la Vista simple apuntan a los de la marca", () => {
-    expect(token(".vs", "--vs-principal-bg")).toBe("var(--color-wine-soft)");
-    expect(token(".vs", "--vs-principal-ink")).toBe("var(--on-warning)");
-    expect(token('[data-portal-theme="dark"] .vs', "--vs-principal-bg")).toBe("var(--color-wine-text)");
+describe("EXC-0654-01 cerrada (SDD-0686, Sam: «Portal: Vista simple A»)", () => {
+  it("el botón principal es azul de acción y el avatar y la parte «proveedor», tinta", () => {
+    const regla = (sel: string) => {
+      const i = bloqueVs.indexOf(`${sel} {`);
+      expect(i, sel).toBeGreaterThanOrEqual(0);
+      return bloqueVs.slice(i, bloqueVs.indexOf("}", i));
+    };
+    expect(regla(".vs .vs-btn-principal")).toMatch(/background: var\(--color-accion\);\s*color: var\(--color-on-accion\);/);
+    expect(regla(".vs .vs-btn-principal:hover")).toContain("var(--color-accion-hover)");
+    expect(regla(".vs .vs-avatar,\n.vs .vs-codigo-proveedor")).toMatch(/background: var\(--color-ink\);\s*color: var\(--color-paper\);/);
+    expect(regla(".vs .vs-codigo-parte.vs-codigo-proveedor")).toContain("background: var(--color-ink);");
   });
 
-  it("pasa AA en claro (4,79:1) y en noche (7,13:1)", () => {
-    const navy = token(":root", "--on-warning");
-    const vinoClaro = token("@theme", "--color-wine-soft");
-    const vinoNoche = token('[data-portal-theme="dark"]', "--color-wine-text");
-    expect(navy.toLowerCase()).toBe("#0f1e3d");
-    expect(contraste(vinoClaro, navy)).toBeGreaterThanOrEqual(4.5);
-    expect(contraste(vinoNoche, navy)).toBeGreaterThanOrEqual(4.5);
-    expect(contraste(vinoClaro, navy)).toBeCloseTo(4.79, 1);
-    expect(contraste(vinoNoche, navy)).toBeCloseTo(7.13, 1);
-    // Por qué no `--color-ink`: en noche es crema y no llega.
-    expect(contraste(vinoNoche, token('[data-portal-theme="dark"]', "--color-ink"))).toBeLessThan(4.5);
+  it("el bloque de la Vista simple ya no nombra el vino", () => {
+    const codigo = bloqueVs.slice(0, bloqueVs.indexOf(".vs .vs-proveedor {")).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(codigo).not.toMatch(/wine/);
+    expect(codigo).not.toMatch(/--vs-principal|--tint-wine/);
   });
 
-  it("el vino claro solo pinta sus tres usos", () => {
-    const selectores = [...bloqueVs.matchAll(/([^{}]+)\{([^}]*var\(--vs-principal-bg\)[^}]*)\}/g)]
-      .map((m) => m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim())
-      .filter((sel) => !/^\.vs$|^\[data-portal-theme="dark"\] \.vs$/.test(sel));
-    const usos = selectores.flatMap((s) => s.split(",").map((x) => x.trim()));
-    expect(usos.sort()).toEqual(
-      [".vs .vs-avatar", ".vs .vs-btn-principal", ".vs .vs-codigo-parte.vs-codigo-proveedor", ".vs .vs-codigo-proveedor"].sort(),
-    );
-    // Y donde pinta, el texto es el navy fijo.
-    for (const m of bloqueVs.matchAll(/\{([^}]*background:\s*var\(--vs-principal-bg\)[^}]*)\}/g)) {
-      expect(m[1]).toMatch(/color:\s*var\(--vs-principal-ink\)/);
-    }
+  it("los pares del botón pasan AA en claro y en noche", () => {
+    const oscuro = '[data-portal-theme="dark"]';
+    expect(contraste(token("@theme", "--color-accion"), token("@theme", "--color-on-accion"))).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(token(oscuro, "--color-accion"), token(oscuro, "--color-on-accion"))).toBeGreaterThanOrEqual(4.5);
   });
 
   it("la selección va en tinta, nunca en vino claro", () => {

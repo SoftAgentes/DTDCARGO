@@ -298,7 +298,7 @@ preferís la alternativa?
 > de marca se lleva COMPLETA a Claude Code, que la aplica en el repo de producción ("Norte").
 > El módulo **Estudio de Redes** (ERP → Administración → Marca) consume `ERPData.SHIPMENTS` y
 > el seam `localStorage['dtd-piezas-log']` (lo escribe el Generador Redes al descargar) — en
-> producción ambos van a la API (ver `backend/API-CONTRACT.md`).
+> producción ambos van a la API (ver `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]).
 
 **Protocolo — cuando recibas este proyecto con una actualización de marca:**
 
@@ -335,7 +335,7 @@ preferís la alternativa?
   cara al cliente vive además embebida en `erp/modules/admin-legal.jsx` (`LEGAL_BODY.tyc`) y
   el modal del Portal — si cambia, actualizar ambos y subir la versión.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
-- **Backend (producción):** carpeta `backend/` — `API-CONTRACT.md` mapea cada seam
+- **Backend (producción):** carpeta `backend/` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] — `API-CONTRACT.md` mapea cada seam
   (`window.DTDData`/`DTDFlags`/`LegalData`) a su endpoint REST. El prototipo es 100% mock en el
   navegador; para producto real se reescribe el cuerpo de los seams (misma firma, llama a la API).
 
