@@ -124,7 +124,7 @@ export function PortalDashboardNorte({
       {/* ── 4 KPIs con acento ── */}
       <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <NorteKpi
-          tone="wine"
+          tone="ink"
           icon={<BoxIcon size={18} />}
           label="Envíos activos"
           value={String(kpis.activeShipments)}
@@ -196,7 +196,7 @@ export function PortalDashboardNorte({
             </div>
             <Link
               href="/portal/envios"
-              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-wine-text hover:underline"
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold text-accion-text hover:underline"
             >
               Ver todos <ArrowIcon size={14} />
             </Link>
@@ -431,10 +431,10 @@ function HeroStat({
   );
 }
 
-type KpiTone = "wine" | "success" | "info" | "warning";
+type KpiTone = "ink" | "success" | "info" | "warning";
 
 const TONE_COLOR: Record<KpiTone, string> = {
-  wine: "var(--color-wine)",
+  ink: "var(--color-ink)",
   success: "var(--color-status-success)",
   info: "var(--portal-info)",
   warning: "var(--color-status-warning)",

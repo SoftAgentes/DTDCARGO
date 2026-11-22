@@ -97,7 +97,7 @@ export function PendingAcceptanceCard({
                     >
                       {formatInvoiceAmount(p.totalAmount, p.currency as InvoiceCurrency)}
                     </span>
-                    <ArrowIcon size={15} className="text-grey-300 group-hover:text-wine-text transition-colors" />
+                    <ArrowIcon size={15} className="text-grey-300 group-hover:text-accion-text transition-colors" />
                   </span>
                 </Link>
               </li>

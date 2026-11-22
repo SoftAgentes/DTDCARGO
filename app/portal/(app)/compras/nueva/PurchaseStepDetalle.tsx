@@ -206,7 +206,7 @@ export function PurchaseStepDetalle({
               onChange={() => mark("description")}
               placeholder="Ej. 3 cajas de zapatos deportivos"
               disabled={pending}
-              className="mt-2 w-full px-4 py-3 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-2 w-full px-4 py-3 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
             />
             {state.fieldErrors?.description && (
               <PortalFieldError>{state.fieldErrors.description}</PortalFieldError>
@@ -228,7 +228,7 @@ export function PurchaseStepDetalle({
                 onChange={() => mark("boxes")}
                 placeholder="1"
                 disabled={pending}
-                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
                 style={{
                   fontFamily:
                     "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -252,7 +252,7 @@ export function PurchaseStepDetalle({
                 onChange={() => mark("estValueUsd")}
                 placeholder="—"
                 disabled={pending}
-                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
                 style={{
                   fontFamily:
                     "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -274,7 +274,7 @@ export function PurchaseStepDetalle({
               onChange={() => mark("trackingCn")}
               placeholder="Ej. SF1234567890"
               disabled={pending}
-              className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-2 w-full h-12 px-4 rounded-lg bg-grey-100 border-0 outline-none text-base text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               style={{
                 fontFamily:
                   "var(--font-jetbrains-mono), ui-monospace, monospace",

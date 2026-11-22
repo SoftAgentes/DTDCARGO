@@ -106,6 +106,13 @@ Estado del 2026-11-20, tarde:
    - contrato con mutante.
 
    Sam aprobó sus palabras de estado el 2026-11-21 («Apruebo las palabras de estado de las cifras KPI»). El logo de la barra: opción A (ver arriba).
+12. Fase 3b-1 de la 0686 (Portal del cliente), en la rama `claude/sdd-0686-fase3b-portal-web-623a6c`. Sam: «Rebrand: arranca la fase 3b del color (Portal y resto de la web)».
+   - **División:** el inventario pasó de 40 archivos (Portal 75, web 68). Esta PR es la 3b-1; la 3b-2 (web pública y `components/`) va después. `app/portal/(auth)` es de la fase 4.
+   - **Hecho:** 264 usos de vino en 75 archivos repartidos en acción, tinta, tinta suave o neutro (tabla en la spec). Tokens oscuros `--color-accion*` en `[data-portal-theme="dark"]`, `--color-accion-tint`, `#portal-shell .btn-primary` en azul y `.eyebrow-tinta`.
+   - **Contrato nuevo:** `color-accion-fase3b-portal-contract.test.ts`, con cuatro mutantes.
+   - **Decidido por Sam el 2026-11-22:** «Portal: Vista simple A, Próximo arribo B». La EXC-0654-01 queda cerrada (BRAND.md y BRAND-DECISIONS) y el héroe usa `--color-accion-on-dark`: #7faaf0 en claro y #9bbdf4 en oscuro, con AA en el peor caso. La revisión de la #780 salió CHANGES_REQUESTED: se corrigieron el bloqueante (`avisos-portal-contract`) y los cuatro menores. Para la fase 4 queda `--portal-nav-active`, en vino hex.
+   - **Fuera de alcance:** `--doc-wine` del comprobante de pago (fase 5); el tono `"wine"` de `lib/portal/alertas.ts` (fase 4).
+   - **Evidencia:** ver el cierre de la PR.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

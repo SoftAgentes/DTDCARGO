@@ -24,7 +24,7 @@ export const metadata: Metadata = { title: "Referidos" };
  * y los datos se leen mediante una RPC que deriva cliente y tenant desde la
  * sesión. La tabla `referrals` permanece cerrada al Portal.
  *
- * Marca del PORTAL (paper/wine + clases del sitio público). El único fondo oscuro
+ * Marca del PORTAL (paper/tinta + clases del sitio público). El único fondo oscuro
  * es el hero del código (gradiente navy→ink permitido por el brand para el portal
  * hero). Créditos con copy HONESTO: en V1 son advisory (el asesor los aplica), no
  * se descuentan automático (SDD-0051).
@@ -248,9 +248,9 @@ function HowItWorks({ program }: { program: PortalReferralProgram }) {
         {steps.map((s) => (
           <div key={s.n} className="flex flex-col gap-2">
             <span
-              className="w-8 h-8 rounded-full grid place-items-center text-[13px] text-[color:var(--color-on-accent)]"
+              className="w-8 h-8 rounded-full grid place-items-center text-[13px] text-[color:var(--color-paper)]"
               style={{
-                background: "var(--color-wine)",
+                background: "var(--color-ink)",
                 fontFamily: "var(--font-archivo-black)",
               }}
             >
@@ -281,8 +281,8 @@ function TierCard({ program }: { program: PortalReferralProgram }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-wine-text"
-            style={{ background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-ink"
+            style={{ background: "color-mix(in srgb, var(--color-ink) 8%, transparent)" }}
             aria-hidden
           >
             <StarIcon size={22} />
@@ -318,7 +318,7 @@ function TierCard({ program }: { program: PortalReferralProgram }) {
               className="h-full rounded-full"
               style={{
                 width: `${Math.max(0, Math.min(100, pct))}%`,
-                background: "var(--color-wine)",
+                background: "var(--color-ink)",
               }}
             />
           </div>
@@ -415,7 +415,7 @@ const REFERRAL_BADGE: Record<ReferralStatus, { label: string; color: string }> =
   },
   acreditado: { label: "Acreditado", color: "var(--color-status-success)" },
   // SDD-0137: crédito ya aplicado a una factura del referidor.
-  aplicado: { label: "Aplicado", color: "var(--color-wine)" },
+  aplicado: { label: "Aplicado", color: "var(--color-status-success)" },
 };
 
 function ReferralStatusBadge({ status }: { status: ReferralStatus }) {

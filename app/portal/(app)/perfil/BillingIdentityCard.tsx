@@ -35,7 +35,7 @@ export function BillingIdentityCard({
       <div className="flex items-center justify-between gap-3">
         <h2
           id="empresa-titulo"
-          className="flex items-center gap-2 text-[12px] font-extrabold tracking-[0.14em] uppercase text-wine-text"
+          className="flex items-center gap-2 text-[12px] font-extrabold tracking-[0.14em] uppercase text-grey-700"
         >
           {isCompany ? <BuildingIcon /> : <PersonIcon />}
           {title}
@@ -43,7 +43,7 @@ export function BillingIdentityCard({
         {secondary ? (
           <Link
             href="/portal/perfil/empresa"
-            className="inline-flex min-h-11 items-center px-3 text-[14px] font-extrabold text-wine-text hover:text-wine-deep rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="inline-flex min-h-11 items-center px-3 text-[14px] font-extrabold text-accion-text hover:text-accion-hover rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Editar
           </Link>
