@@ -152,11 +152,18 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 
 | Dónde | Qué llega | Cuánto tiempo | Evidencia |
 |---|---|---|---|
-| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
+| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto). **Desde SDD-0700 tapa en cada mensaje los correos, teléfonos, cédulas, RIF y direcciones** («[correo]», «[teléfono]», «[cédula]», «[RIF]», «[dirección]») antes de armar la llamada; si el detector todavía ve un dato, escala sin llamar | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, `tapar-datos.ts`, prueba «ninguna fila ni log» |
 | Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
 | Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
-| Proveedor del modelo: Anthropic (claude-sonnet-5-5), sin respaldo. Z.AI y DeepSeek salieron del pool y del `.env` el 2026-11-21 (Sam; informe de Ofi_Hermes al DG). Un respaldo OpenAI está en la SDD-0703 | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+| Proveedor del modelo: Anthropic (claude-sonnet-5-5), sin respaldo. Z.AI y DeepSeek salieron del pool y del `.env` el 2026-11-21 (Sam; informe de Ofi_Hermes al DG). Un respaldo OpenAI está en la SDD-0703 | El prompt de la llamada: instrucciones, guiones y los mensajes **con los datos personales tapados** desde SDD-0700 (antes llegaban completos) | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
 
+- **Datos tapados antes del modelo (SDD-0700, 21/11/2026).** Es la primera parte del punto (a) acordado para la etapa 2.
+  `tapar-datos.ts` usa la misma lista que el detector de la salida (`detectorDelCable`, `datos-personales.ts`), así que
+  lo que se revisa en la respuesta es lo mismo que se tapa en la entrada. Esa lista es propia de la Oficina_Virtual
+  (la de noticias no cambió) y cubre los móviles y los fijos de Venezuela, las cédulas y los RIF con o sin puntos, los
+  correos y las direcciones con número. **No se tapan** los nombres de personas ni los textos que no encajan en ningún
+  patrón (una dirección sin número, un teléfono escrito en palabras, un fijo sin el 0 o pegado a otro texto): siguen
+  llegando al proveedor. Los números de guía no son datos personales y van tal cual. Quedan pendientes del punto (a): revisar a los proveedores y avisar al cliente.
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
 - **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.
