@@ -1,7 +1,7 @@
 ---
 sdd: "0706"
 title: "Studio: verificación en dos pasos (AAL2/TOTP) para las acciones sensibles"
-status: proposed
+status: approved
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
@@ -16,7 +16,7 @@ confidencialidad: interno
 > Pedido de Sam (2026-11-21), textual, sobre la pantalla IA de la SDD-0704: «Pantalla IA: opción A, pedir la
 > contraseña otra vez; y abre después la SDD de verificación en dos pasos».
 >
-> **Estado: propuesta, solo spec.** No lleva código, ni migración, ni cambios en la configuración de Supabase Auth ni
+> **Estado: aprobada, solo spec (Sam decidió D-1 a D-6 el 2026-11-22, §10).** No lleva código, ni migración, ni cambios en la configuración de Supabase Auth ni
 > en producción. Las decisiones de Sam están en §10 (D-1 a D-6), cada una con opciones A/B, una recomendación y,
 > cuando es visual, un boceto para dibujarlo. El repo es público: sin llaves, secretos TOTP, correos, IP ni montos.
 
@@ -252,7 +252,12 @@ PR por fase; las fases 2 a 5 no se mezclan entre sí.
 
 Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DTD la dibuja antes de pedir respuesta.
 
-### D-1 · ¿A quién se le exige el segundo paso?
+**Decididas por Sam (2026-11-22), textual, por el chat de Dir_DTD:** «Dos pasos 1 quien: A superadmin admin contabilidad · Dos pasos 2 cuando: A gradual · Dos pasos 3 recuperar: A otro superadmin · Dos pasos 4 momento: A en la accion · Dos pasos 5 contrasena: A solo codigo · Dos pasos 6 pantalla: A pantalla propia»
+
+Resultado: **A en las seis.** Se conservan las alternativas y los bocetos como registro. La fase 1 (medición) y las
+siguientes se asignan aparte, una por Worker.
+
+### D-1 · ¿A quién se le exige el segundo paso? — DECIDIDA: A
 
 - **A (recomendada): superadministrador, `admin` y `accounting`.** Son los roles con acciones que mueven plata,
   permisos o llaves (§3). `operations` queda opcional hasta ver el PIN.
@@ -270,7 +275,7 @@ Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DT
  resto       ○ opcional                    resto       ○ opcional
 ```
 
-### D-2 · ¿Cuándo se vuelve obligatorio?
+### D-2 · ¿Cuándo se vuelve obligatorio? — DECIDIDA: A
 
 - **A (recomendada): gradual.** Fase 3: avisa dentro del Studio durante 14 días; fase 4: desde esa fecha, sin segundo
   paso no se hacen las acciones sensibles (lo demás sigue funcionando).
@@ -282,7 +287,7 @@ Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DT
  día 14  se corta lo sensible                        a quien no activó
 ```
 
-### D-3 · ¿Cómo se recupera una cuenta con el teléfono perdido?
+### D-3 · ¿Cómo se recupera una cuenta con el teléfono perdido? — DECIDIDA: A
 
 - **A (recomendada): segundo dispositivo + restablecimiento por otro superadministrador + runbook de la consola**
   (§5.1, capas 1-3). Nada nuevo que guardar.
@@ -297,7 +302,7 @@ Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DT
                                              (y debo guardar los 10 códigos)
 ```
 
-### D-4 · ¿Cuándo se pide el código?
+### D-4 · ¿Cuándo se pide el código? — DECIDIDA: A
 
 - **A (recomendada): solo en la acción sensible.** Se entra con contraseña como hoy; el código se pide al aflojar un
   tope, cambiar permisos o emitir una factura (§7.2).
@@ -310,7 +315,7 @@ Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DT
  Acción delicada ─ código ─▶ hecho           Acción delicada ─ código ─▶ hecho
 ```
 
-### D-5 · ¿Qué pasa con la contraseña de 5 minutos cuando el segundo paso sea obligatorio?
+### D-5 · ¿Qué pasa con la contraseña de 5 minutos cuando el segundo paso sea obligatorio? — DECIDIDA: A
 
 - **A (recomendada): se retira para los obligados** (fase 4-5): solo vale un código `totp` de hace 5 minutos o menos.
   Es lo que hace a la barrera «de dos pasos» de verdad.
@@ -322,7 +327,7 @@ Sam decide viendo: cada decisión con boceto está dibujada arriba (§7); Dir_DT
  aflojar tope → código de 6 dígitos           aflojar tope → código  o  contraseña
 ```
 
-### D-6 · ¿Cómo se ve el enrolamiento? (boceto en §7.1)
+### D-6 · ¿Cómo se ve el enrolamiento? (boceto en §7.1) — DECIDIDA: A
 
 - **A (recomendada): pantalla propia en Mi cuenta › Seguridad**, tres pasos visibles.
 - B: diálogo modal en tres pantallas.
