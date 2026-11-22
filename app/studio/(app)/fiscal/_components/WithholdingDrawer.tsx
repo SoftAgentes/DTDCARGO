@@ -212,6 +212,7 @@ export function WithholdingDrawer({
               id="wh-base"
               name="base"
               type="decimal"
+              modo="dinero"
               precision={2}
               min={0}
               value={base}
@@ -234,6 +235,8 @@ export function WithholdingDrawer({
               id="wh-pct"
               name="pct"
               type="decimal"
+              modo="porcentaje"
+              decimales={3}
               unit="%"
               precision={3}
               min={0}

@@ -126,6 +126,7 @@ export function UnidentifiedPaymentDrawer({
             <NumericInput
               id="unid-fx"
               type="decimal"
+              modo="tasa"
               min={0}
               placeholder="36.50"
               value={fxRate === "" ? null : Number(fxRate)}

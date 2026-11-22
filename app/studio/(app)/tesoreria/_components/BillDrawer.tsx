@@ -876,6 +876,7 @@ export function NewBillDrawer({
             <NumericInput
               id="nb-fx"
               type="decimal"
+              modo="tasa"
               min={0}
               placeholder="ej. 36.50"
               value={fxRate === "" ? null : Number(fxRate)}

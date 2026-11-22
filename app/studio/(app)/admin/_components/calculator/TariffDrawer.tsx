@@ -337,6 +337,8 @@ export function TariffDrawer({
                 type="currency"
                 min={0}
                 precision={2}
+                // ft3 se guarda con 4 decimales (cbmAFt3); dinero acepta 2 por defecto.
+                decimales={4}
                 placeholder="3,50"
                 defaultValue={tariff?.priceUsdFt3 ?? null}
                 onChange={setFt3}
