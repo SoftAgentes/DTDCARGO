@@ -194,12 +194,15 @@ palabras, el 22/11/2026: «Apruebo 1, 2 y 3». Van en `guiones-soporte.ts` v0.4:
 - `lib/studio/oficina/guiones-soporte.ts`
 - `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`
 - `lib/studio/__tests__/oficina-paso3b.test.ts` (solo cambia `pedir-guia` por `estado-sin-guia`)
+- `lib/studio/oficina/eval-automatico.ts` (solo exporta normal y PATRONES para las pruebas)
 - `docs/specs/0705-oficina-aviso-y-guion-servicio/spec.md`
 - `.agents/handoffs/2026-11-22-sdd-0705-v04-guiones.md`
 
 Pruebas: `aviso-guion-servicio.test.ts` (los tres pasan la revisión tal cual; un precio, plazo, estado o promesa
 agregados escalan con `dato_inventado`; no traen cifras, enlaces ni marcadores; `pedir-guia` ya no existe).
-`oficina-paso3b.test.ts` usa `estado-sin-guia` donde usaba `pedir-guia`.
+M2 (revisión de la #771): un `toBe` literal fija el texto completo de cada uno de los tres guiones, y otra prueba
+recorre `PATRONES` de `eval-automatico.ts` sobre el texto normalizado (`normal`) de cada uno y exige cero
+coincidencias. `oficina-paso3b.test.ts` usa `estado-sin-guia` donde usaba `pedir-guia`.
 
 ## Vuelta atrás
 
