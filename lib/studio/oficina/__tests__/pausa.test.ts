@@ -347,6 +347,14 @@ describe("pausa · la tarjeta", () => {
     expect(pintar({ ok: true, pausada: true, vigente: vigente(true) })).not.toContain("La pausó la auto-pausa por tope");
   });
 
+  it("pausada por las llamadas del plan fijo (0570): también avisa, sin decir «tope de gasto»", () => {
+    const motivo = "Auto-pausa: las llamadas del mes (90) llegaron al 90 % del tope del plan fijo (100). SDD-0704 §7.5.";
+    const html = pintar({ ok: true, pausada: true, vigente: vigente(true, motivo) });
+    expect(html).toContain("La pausó la auto-pausa por tope");
+    expect(html).not.toContain("tope de gasto");
+    expect(html).toContain("llamadas del plan fijo");
+  });
+
   it("sin permiso no pinta nada; sin la 0541 lo dice y no ofrece ningún botón", () => {
     expect(pintar({ ok: false, motivo: "sin_permiso" })).toBe("");
     const html = pintar({ ok: false, motivo: "sin_migracion" });

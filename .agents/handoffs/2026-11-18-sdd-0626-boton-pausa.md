@@ -18,12 +18,12 @@ que no fue un clic del titular.
   - `leerPausa({ esAdmin, crearAdmin })` lee la última fila de `office_paused`. Esa tabla solo la lee `service_role`,
     así que usa el candado de la mini-vista: el cliente de servicio solo se crea después del «sí» de
     `is_platform_admin()`. Sin filas, pausada.
-- **`app/studio/(app)/admin/oficina/actions.ts`:** `cambiarPausaAction`. Los dos candados de las demás acciones antes
+- **`app/studio/(app)/admin/oficina-virtual/actions.ts`:** `cambiarPausaAction`. Los dos candados de las demás acciones antes
   de leer el formulario; despausar exige la casilla `confirmo`; el motivo pasa por `motivoDe` (regla del cable).
 - **`_components/TarjetaPausa.tsx`** y la página: el bloque arriba de la revisión, con un solo botón.
 - **`lib/studio/oficina/mini-vista.ts`:** exporta `cambioDePausa` (antes privada) para no repetirla.
-- **Guardas:** `rbac-actions-guard.test.ts` (488 → 489) y `oficina-contraste.test.ts` (suma la tarjeta).
-- **Docs:** spec 0.9 (apartado y allowlist al final de §3) y runbook §15 (el §14 es del tapado, 0700/0705).
+- **Guardas:** `rbac-actions-guard.test.ts` (502 → 503: main trae 502 por la 0704 F1-A; esta PR suma `cambiarPausaAction`) y `oficina-contraste.test.ts` (suma la tarjeta).
+- **Docs:** spec 0.15 (apartado y allowlist al final de §3; la idea original fue la 0.9) y runbook §15 (el §14 es del tapado, 0700/0705).
 
 ## Decisiones tomadas en esta PR (revisables)
 
@@ -52,7 +52,7 @@ El #664 ya está en main. Se hizo `git merge origin/main` (sin rebase ni force) 
   candados (`moduleEditDenial("admin")` y `platformAdminDenial`); la tarjeta no se pinta sin `is_platform_admin`
   (`leerPausa` devuelve `sin_permiso`). Colores solo con variables (`--bg-surface`, `--ink`, `--border`); el botón
   pasó a `studio-btn-primary` (azul de acción). Sin vino.
-- Los candados de rama: `docs:check`, tsc y eslint (ver PR). Vitest (`pausa`, `oficina-contraste`, `rbac-actions-guard`): 3 archivos y 537 pruebas en verde sobre 6742b42eb (turno de PC dado por Sam).
+- Candados de rama: `docs:check`, tsc y eslint PASARON. **Vitest (`pausa`, `oficina-contraste`, `rbac-actions-guard`): pendiente de volver a correr sobre la cabeza actual** (se agregó un caso en `pausa.test.ts`); espera el «tu turno» de Dir_DTD. Antes del caso nuevo: 537 pruebas en verde sobre 6742b42eb y sobre 6c72f2a00.
 - **Auto-pausa:** el texto de la tarjeta, el runbook §15 y la spec ya no dicen solo «tope de gasto»: la 0570 también pausa por las llamadas del plan fijo.
 
 ## Qué se ejecutó y qué no
