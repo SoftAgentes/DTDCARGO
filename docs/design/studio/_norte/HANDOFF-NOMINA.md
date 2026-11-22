@@ -2,7 +2,7 @@
 
 > Estado del **módulo de nómina** (RRHH · LOTTT · Venezuela). Cubre el ERP web (admin) y la
 > app del empleado, más la integración con el dashboard. Hoy es **100% mock en el navegador**;
-> el seam para backend está en `backend/API-CONTRACT.md` (sección 10).
+> el seam para backend está en `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] (sección 10).
 
 ---
 
@@ -44,7 +44,7 @@ Pacífico) ve **solo su nómina**, con aislamiento real (las mutaciones no tocan
 - `erp/modules/nomina.jsx` — UI admin (`window.ModuleNomina`).
 - `empleado/app.jsx` + `App del Empleado.html` — app del empleado.
 - `erp/modules/dashboard.jsx` — widget + KPIs de nómina.
-- `backend/API-CONTRACT.md` §10 — **seam para backend** (mismas firmas, otra implementación).
+- `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] §10 — **seam para backend** (mismas firmas, otra implementación).
 
 Regla de migración: el **cálculo debe moverse al servidor** (frontera de seguridad y fuente de
 verdad fiscal). El prototipo lee/escribe `localStorage` (`dtd_nomina_*`).

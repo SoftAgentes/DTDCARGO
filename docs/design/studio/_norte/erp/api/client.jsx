@@ -6,7 +6,7 @@
    Regla de migración: window.ERPData sigue siendo LA INTERFAZ. Lo que
    cambia es de dónde se llena:
      · mode 'mock' → resuelve desde window.ERPData / DTDData / localStorage
-     · mode 'rest' → fetch contra el backend (ver backend/API-CONTRACT.md)
+     · mode 'rest' → fetch contra el backend (ver backend/API-CONTRACT.md [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio])
    El backend resuelve tenantId del JWT; acá solo mandamos el token.
    Flip de una línea:  window.DTDApi.config({ mode:'rest', baseUrl:'…' })
    ════════════════════════════════════════════════════════════════════ */

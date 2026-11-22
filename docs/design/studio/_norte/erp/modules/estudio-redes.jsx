@@ -11,7 +11,7 @@ const _SR_GEN = 'Generador Redes · DTD-Cargo.html';
 // ── Etiquetas de contenido · seam compartido con Master Data ───
 // Dos ejes: ESTADO del flujo (idea→publicado) y TIPO de contenido.
 // Editable en Administración → Master data → Etiquetas de contenido;
-// en producción va a la API (ver backend/API-CONTRACT.md).
+// en producción va a la API (ver backend/API-CONTRACT.md [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]).
 const _CT_KEY = 'dtd-etiquetas-contenido';
 const CT_DEFAULTS = {
   flow: [
