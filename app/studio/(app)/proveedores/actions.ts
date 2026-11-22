@@ -17,6 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { parseDinero } from "@/lib/shared/cifras";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   PSR_STATUSES,
@@ -61,14 +62,18 @@ export async function updateServiceRequestAction(
   }
   const nextStatus = status as PrealertaServiceRequestStatus;
 
-  // Monto cotizado (advisory): opcional, ≥ 0, coma o punto decimal.
+  // Monto cotizado (advisory): opcional, ≥ 0, en formato 1.234,50
+  // (SDD-0687: «1.250» se pide aclarar, no se guarda como 1,25).
   let quoted: number | null = null;
   if (quotedRaw) {
-    const n = Number(quotedRaw.replace(",", "."));
-    if (!Number.isFinite(n) || n < 0) {
+    const leido = parseDinero(quotedRaw);
+    if (!leido.ok) {
+      return { error: `Monto cotizado: ${leido.mensaje}` };
+    }
+    if (leido.valor < 0) {
       return { error: "El monto cotizado debe ser un número válido (o vacío)." };
     }
-    quoted = Math.round(n * 100) / 100;
+    quoted = leido.valor;
   }
 
   const resolved = RESOLVED.has(nextStatus);

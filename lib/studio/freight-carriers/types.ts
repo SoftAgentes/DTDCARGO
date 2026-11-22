@@ -8,6 +8,8 @@
  * Validación manual, sin Zod — convención del repo.
  */
 
+import { parseDinero } from "@/lib/shared/cifras";
+
 /** Un transportista terrestre. */
 export type FreightCarrier = {
   id: string;
@@ -193,14 +195,15 @@ export type TariffInput = {
 };
 
 /**
- * Acepta coma o punto decimal: el equipo carga estas tarifas desde una foto que
- * manda el proveedor, y en Venezuela se escribe `123,60`.
+ * Monto en formato 1.234,50: el equipo carga estas tarifas desde una foto que
+ * manda el proveedor, y en Venezuela se escribe `123,60`. «1.250» puede ser
+ * mil doscientos cincuenta o uno con veinticinco: no se adivina y vuelve
+ * `null`, que el formulario muestra como monto no válido (SDD-0687).
  */
-export function parseMonto(raw: string): number | null {
-  const limpio = raw.trim().replace(/\s/g, "").replace(",", ".");
-  if (limpio === "") return null;
-  const n = Number(limpio);
-  return Number.isFinite(n) ? n : null;
+export function parseMonto(raw: string, decimales = 2): number | null {
+  const limpio = raw.trim().replace(/\s/g, "");
+  const leido = parseDinero(limpio, { decimales });
+  return leido.ok ? leido.valor : null;
 }
 
 export function validateTariffInput(
@@ -225,7 +228,8 @@ export function validateTariffInput(
 
   // El precio de venta se puede cargar en CBM o en pie cúbico: el proveedor
   // cotiza en ft³ y la UI convierte al vuelo. Con que venga uno de los dos basta.
-  const ft3 = parseMonto(str("priceUsdFt3"));
+  // El precio por ft³ se guarda con 4 decimales (cbmAFt3).
+  const ft3 = parseMonto(str("priceUsdFt3"), 4);
   let venta = parseMonto(str("priceUsdCbm"));
   if (venta == null && ft3 != null) venta = ft3ACbm(ft3);
   if (venta == null) errors.priceUsdCbm = "Escribe el precio de venta, por m³ o por pie cúbico.";

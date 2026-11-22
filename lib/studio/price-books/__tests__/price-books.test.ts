@@ -170,6 +170,16 @@ describe("validateDescuento", () => {
     expect(validateDescuento("12,5")).toEqual({ value: 12.5 });
   });
 
+  it("rechaza más de 2 decimales en vez de redondearlos (SDD-0687)", () => {
+    expect(validateDescuento("12,345").error).toMatch(/máximo 2 decimales/i);
+    expect(validateDescuento("1.234").error).toMatch(/máximo 2 decimales/i);
+    expect(validateDescuento("12.5")).toEqual({ value: 12.5 });
+  });
+
+  it("un porcentaje sobre 100 dice el máximo", () => {
+    expect(validateDescuento("150").error).toMatch(/no puede llegar a 100/);
+  });
+
   it("rechaza el 0, el 100 y lo que no es número", () => {
     expect(validateDescuento("0").error).toBeTruthy();
     expect(validateDescuento("100").error).toBeTruthy();
@@ -186,6 +196,12 @@ describe("validateBasePerCbm", () => {
   it("tolera cómo se teclea de verdad: con $, con espacios y con coma", () => {
     expect(validateBasePerCbm("$690")).toEqual({ value: 690 });
     expect(validateBasePerCbm(" 690,50 ")).toEqual({ value: 690.5 });
+  });
+
+  it("lee $1.250,50 y pide aclarar «1.250» (SDD-0687)", () => {
+    expect(validateBasePerCbm("$1.250,50")).toEqual({ value: 1250.5 });
+    expect(validateBasePerCbm("1.250").error).toMatch(/se puede leer de dos maneras/);
+    expect(validateBasePerCbm("690,505").error).toMatch(/máximo 2 decimales/);
   });
 
   it("rechaza el 0, el negativo y el error de tecleo", () => {

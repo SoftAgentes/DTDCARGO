@@ -57,6 +57,13 @@ describe("validateFreezeInput", () => {
     expect(input).toMatchObject({ perCbm: 812.5, minCharge: 0, reason: MOTIVO, rateId: null, quoteId: null });
   });
 
+  it("el monto del congelado se lee en formato 1.234,50 y no adivina «1.250» (SDD-0687)", () => {
+    expect(validateFreezeInput({ receiptId: RECEIPT, source: "manual", perCbm: "1.250,50", reason: MOTIVO }).input)
+      .toMatchObject({ perCbm: 1250.5 });
+    expect(validateFreezeInput({ receiptId: RECEIPT, source: "manual", perCbm: "1.250", reason: MOTIVO }).fieldErrors)
+      .toEqual({ perCbm: "warehouse_cn.rate.err.amount_invalid" });
+  });
+
   it("1.000 kg/m³ exige motivo; otro peso se rechaza", () => {
     expect(validateFreezeInput({ receiptId: RECEIPT, source: "tarifario", rateId: RATE, includedKgPerCbm: 1000 }).fieldErrors)
       .toEqual({ reason: "warehouse_cn.rate.err.reason_required" });

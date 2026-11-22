@@ -14,6 +14,7 @@
  */
 
 import type { Rate } from "../rate-types";
+import { parseDinero, parsePorcentaje } from "@/lib/shared/cifras";
 
 export type PriceBook = {
   id: string;
@@ -131,13 +132,19 @@ export function validateDescuento(raw: string | null | undefined): {
   value?: number | null;
   error?: string;
 } {
-  const s = (raw ?? "").trim().replace(",", ".");
+  const s = (raw ?? "").trim();
   if (s === "") return { value: null };
 
-  const n = Number(s);
-  if (!Number.isFinite(n)) {
+  // Modo porcentaje (SDD-0687): coma o punto decimal, máximo 2 decimales.
+  const leido = parsePorcentaje(s);
+  if (!leido.ok && leido.motivo === "decimales") return { error: leido.mensaje };
+  if (!leido.ok && leido.motivo === "rango") {
+    return { error: `El descuento no puede llegar a 100 %. El máximo es ${DESCUENTO_MAX} %.` };
+  }
+  if (!leido.ok) {
     return { error: "El descuento es un número, por ejemplo 12 o 12,5." };
   }
+  const n = leido.valor;
   if (n <= 0) {
     return { error: "Un descuento de 0 % no es un descuento: déjalo vacío." };
   }
@@ -156,13 +163,18 @@ export function validateBasePerCbm(raw: string | null | undefined): {
   value?: number | null;
   error?: string;
 } {
-  const s = (raw ?? "").trim().replace(/[$\s]/g, "").replace(",", ".");
+  const s = (raw ?? "").trim().replace(/[$\s]/g, "");
   if (s === "") return { value: null };
 
-  const n = Number(s);
-  if (!Number.isFinite(n)) {
+  // Modo dinero (SDD-0687): «1.250» se pide aclarar; nunca se lee 1,25.
+  const leido = parseDinero(s);
+  if (!leido.ok && (leido.motivo === "ambiguo" || leido.motivo === "decimales")) {
+    return { error: leido.mensaje };
+  }
+  if (!leido.ok) {
     return { error: "El precio pactado es un número, por ejemplo 690 o 690,50." };
   }
+  const n = leido.valor;
   if (n <= 0) {
     return { error: "Un precio de $0 el CBM no es un acuerdo: déjalo vacío." };
   }

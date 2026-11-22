@@ -247,6 +247,21 @@ describe("Admin › Tasas · validación", () => {
     );
   });
 
+  // SDD-0687 modo tasa: la coma es el decimal; el punto con tres cifras se aclara.
+  it.each([
+    ["36,500", 36.5],
+    ["36,51259999", 36.51259999],
+    ["1.036,5", 1036.5],
+  ])("lee «%s» como %s", (rate, esperado) => {
+    expect(validateExchangeRateInput(fd({ pair: "VES/USD", rate, valid_on: "2026-10-20" })).input?.rate).toBe(esperado);
+  });
+
+  it.each(["36.500", "1,036.50"])("no adivina «%s»: devuelve el mensaje y no guarda", (rate) => {
+    const r = validateExchangeRateInput(fd({ pair: "VES/USD", rate, valid_on: "2026-10-20" }));
+    expect(r.input).toBeUndefined();
+    expect(r.error).toMatch(/dos maneras|1\.234,50/);
+  });
+
   it("rechaza una nota de más de 500 caracteres", () => {
     const r = validateExchangeRateInput(fd({ pair: "VES/USD", rate: "36.5", valid_on: "2026-10-20", note: "x".repeat(501) }));
     expect(r.error).toBe("La nota no puede pasar de 500 caracteres.");

@@ -13,6 +13,7 @@ import { StatusIcon } from "@/components/StatusIcon";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { fechaCaracas, isCalendarDate } from "@/lib/shared/fechas-caracas";
+import { parseTasa } from "@/lib/shared/cifras";
 import { recordExchangeRateAction } from "../exchange-rates-actions";
 import {
   FX_PAIRS,
@@ -28,6 +29,7 @@ const INITIAL: ExchangeRateActionState = {};
 
 /** Liga el mensaje «fuera de rango» con el campo «Tasa». */
 const FUERA_DE_RANGO_ID = "fx-rate-fuera-de-rango";
+const TASA_ILEGIBLE_ID = "fx-rate-ilegible";
 
 const FUENTE: Record<"bcv" | "manual" | "operacion", string> = {
   bcv: "BCV",
@@ -81,9 +83,15 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
     }
   }, [state, toast]);
 
-  const rateNum = Number(rate.replace(",", "."));
+  // Modo tasa (SDD-0687): «36,500» = 36,5; «36.500» se pide aclarar.
+  const rateLeida = parseTasa(rate);
+  const rateNum = rateLeida.ok ? rateLeida.valor : Number.NaN;
+  const rateError = !rateLeida.ok && rateLeida.motivo !== "vacio" ? rateLeida.mensaje : null;
   const outOfRange = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && isFxOutOfRange(pair, rateNum);
   const canSubmit = rate.trim() !== "" && Number.isFinite(rateNum) && rateNum > 0 && validOn !== "";
+  const rateDescribedBy = [rateError ? TASA_ILEGIBLE_ID : null, outOfRange ? FUERA_DE_RANGO_ID : null]
+    .filter(Boolean)
+    .join(" ") || undefined;
   const latestVes = metadataDeTasa(data.latest.find((last) => last.pair === "VES/USD"));
   const bcvTodayConfirmed = latestVes?.source === "bcv" && latestVes.validOn === hoyEnCaracas();
 
@@ -156,8 +164,9 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
                 onChange={(e) => setRate(e.target.value)}
                 className="studio-input studio-input-mono"
                 inputMode="decimal"
-                aria-describedby={outOfRange ? FUERA_DE_RANGO_ID : undefined}
-                placeholder={pair === "CNY/USD" ? "7.24" : "40.00"}
+                aria-invalid={rateError ? true : undefined}
+                aria-describedby={rateDescribedBy}
+                placeholder={pair === "CNY/USD" ? "7,24" : "40,00"}
                 style={{ marginTop: 6, minHeight: "var(--s-12)" }}
               />
             </div>
@@ -193,6 +202,22 @@ export function ExchangeRatesSection({ data }: { data: ExchangeRatesOverview }) 
           {/* Mensaje del campo «Tasa», no aviso: aparece y desaparece al
               escribir, así que no va en una región viva. Es texto con icono,
               ligado al campo por `aria-describedby` (ERR-01 «Campo»). */}
+          {rateError && (
+            <p
+              id={TASA_ILEGIBLE_ID}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "var(--s-2)",
+                margin: 0,
+                font: "600 12.5px/1.4 var(--f-sans)",
+                color: "var(--ink)",
+              }}
+            >
+              <StatusIcon tone="warning" size={16} style={{ marginTop: 1 }} />
+              <span>{rateError}</span>
+            </p>
+          )}
           {outOfRange && (
             <p
               id={FUERA_DE_RANGO_ID}
