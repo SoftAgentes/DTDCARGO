@@ -66,41 +66,41 @@
           "name": "ia_guardar_tope",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:49"
+            "app/studio/(app)/admin/ia/actions.ts:73"
           ]
         },
         {
           "name": "ia_borrar_tope",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:56"
+            "app/studio/(app)/admin/ia/actions.ts:80"
           ]
         },
         {
           "name": "ia_guardar_cuenta",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:85"
+            "app/studio/(app)/admin/ia/actions.ts:109"
           ]
         },
         {
           "name": "ia_guardar_modelo",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:109"
+            "app/studio/(app)/admin/ia/actions.ts:133"
           ]
         },
         {
           "name": "ia_borrar_modelo",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:124"
+            "app/studio/(app)/admin/ia/actions.ts:148"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/admin/ia/actions.ts:50",
+          "site": "app/studio/(app)/admin/ia/actions.ts:74",
           "contains": "volver(\"gasto\", error ? codigoDeError(error) : \"ok_tope\");",
           "degradation": "Sin la 0570 la RPC no existe (PGRST202 o 42883): codigoDeError la vuelve «sin_migracion» y la acción regresa a la pantalla con ese aviso, sin escribir nada."
         }

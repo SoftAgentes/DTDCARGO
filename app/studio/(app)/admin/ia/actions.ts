@@ -4,9 +4,14 @@
  * SDD-0704 F1-A · Acciones de la pantalla «IA»: tope de la Oficina, cuentas con tipo de cobro y tarifas por modelo.
  *
  * El control real está en la base (0570): cada función exige `is_platform_admin()`, el motivo y, para lo que afloja
- * el freno, AAL2 (`ia_exigir_aal2_si`). Aquí se avisa antes (los dos candados de siempre), se validan los números y
- * se revisa que el motivo no lleve datos personales, porque queda en la auditoría para siempre. Ninguna acción toca
- * llaves.
+ * el freno, AAL2 o una autenticación con contraseña de menos de 5 minutos (`ia_exigir_aal2_si`, D-5 de Sam del
+ * 2026-11-21: «Pantalla IA: opción A, pedir la contraseña otra vez»). Aquí se avisa antes (los dos candados de
+ * siempre), se validan los números y se revisa que el motivo no lleve datos personales, porque queda en la auditoría
+ * para siempre. Ninguna acción toca llaves.
+ *
+ * LA CONTRASEÑA: si el formulario la trae, se vuelve a autenticar con ella (`signInWithPassword`, la sesión queda
+ * renovada y su JWT lleva el `amr` que mira la base). Nunca se guarda, nunca va a un log, a la auditoría ni a la URL,
+ * y un error de autenticación vuelve solo como «contrasena_incorrecta».
  */
 import { redirect } from "next/navigation";
 
@@ -27,11 +32,30 @@ function volver(pestana: Pestana, codigo: string): never {
   redirect(`${RUTA}?${q.toString()}`);
 }
 
-async function candados(pestana: Pestana) {
+async function candados(pestana: Pestana, formData: FormData) {
   const supabase = await createClient();
   if (await moduleEditDenial(supabase, "admin")) volver(pestana, "sin_permiso");
   if (await platformAdminDenial(supabase)) volver(pestana, "solo_superadmin");
+  await reautenticar(supabase, formData, pestana);
   return supabase;
+}
+
+/** D-5: con la contraseña, una autenticación nueva para lo que afloja el freno. Sin contraseña no hace nada. */
+async function reautenticar(supabase: Awaited<ReturnType<typeof createClient>>, formData: FormData, pestana: Pestana) {
+  const contrasena = formData.get("contrasena");
+  if (typeof contrasena !== "string" || contrasena.length === 0) return;
+  if (contrasena.length > 200) volver(pestana, "contrasena_incorrecta");
+  const { data } = await supabase.auth.getUser();
+  const correo = data?.user?.email;
+  if (!correo) volver(pestana, "sin_sesion");
+  let fallo = true;
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email: correo, password: contrasena });
+    fallo = Boolean(error);
+  } catch {
+    fallo = true;
+  }
+  if (fallo) volver(pestana, "contrasena_incorrecta");
 }
 
 function motivoDe(formData: FormData, pestana: Pestana): string {
@@ -42,7 +66,7 @@ function motivoDe(formData: FormData, pestana: Pestana): string {
 }
 
 export async function guardarTopeAction(formData: FormData): Promise<void> {
-  const supabase = await candados("gasto");
+  const supabase = await candados("gasto", formData);
   const tope = leerNumero(formData.get("tope"));
   if (tope === null || tope <= 0) volver("gasto", "invalido");
   const motivo = motivoDe(formData, "gasto");
@@ -51,14 +75,14 @@ export async function guardarTopeAction(formData: FormData): Promise<void> {
 }
 
 export async function quitarTopeAction(formData: FormData): Promise<void> {
-  const supabase = await candados("gasto");
+  const supabase = await candados("gasto", formData);
   const motivo = motivoDe(formData, "gasto");
   const { error } = await supabase.rpc("ia_borrar_tope", { p_funcion: "oficina", p_motivo: motivo });
   volver("gasto", error ? codigoDeError(error) : "ok_tope_quitado");
 }
 
 export async function guardarCuentaAction(formData: FormData): Promise<void> {
-  const supabase = await candados("cuentas");
+  const supabase = await candados("cuentas", formData);
   const idCrudo = String(formData.get("id") ?? "");
   const id = idCrudo ? (UUID.test(idCrudo) ? idCrudo : volver("cuentas", "invalido")) : null;
   const alias = String(formData.get("alias") ?? "").trim();
@@ -95,7 +119,7 @@ export async function guardarCuentaAction(formData: FormData): Promise<void> {
 }
 
 export async function guardarModeloAction(formData: FormData): Promise<void> {
-  const supabase = await candados("cuentas");
+  const supabase = await candados("cuentas", formData);
   const cuentaId = String(formData.get("cuenta") ?? "");
   const modelo = String(formData.get("modelo") ?? "");
   const conTarifa = formData.get("plan_fijo") !== "1";
@@ -117,7 +141,7 @@ export async function guardarModeloAction(formData: FormData): Promise<void> {
 }
 
 export async function quitarModeloAction(formData: FormData): Promise<void> {
-  const supabase = await candados("cuentas");
+  const supabase = await candados("cuentas", formData);
   const id = String(formData.get("id") ?? "");
   if (!UUID.test(id)) volver("cuentas", "invalido");
   const motivo = motivoDe(formData, "cuentas");

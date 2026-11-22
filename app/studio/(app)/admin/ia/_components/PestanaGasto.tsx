@@ -10,6 +10,7 @@ import { type PantallaIa, cifra, entero } from "@/lib/studio/ia/pantalla";
 import { quitarTopeAction, guardarTopeAction } from "../actions";
 import { CampoMotivo } from "./CampoMotivo";
 import { BotonEnviar } from "./BotonEnviar";
+import { CampoContrasena } from "./CampoContrasena";
 
 const texto = { font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" } as const;
 const suave = { font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" } as const;
@@ -138,10 +139,11 @@ export function PestanaGasto({ datos, costo, techoUsd }: { datos: PantallaIa; co
           aria-describedby="ia-tope-ayuda"
         />
         <p id="ia-tope-ayuda" style={{ ...suave, margin: 0 }}>
-          Usa la coma para los decimales. Bajarlo lo puedes hacer ya. Subirlo (o ponerlo por primera vez) pide la
-          verificación en dos pasos.
+          Usa la coma para los decimales. Bajarlo lo puedes hacer ya. Subirlo (o ponerlo por primera vez) pide tu
+          contraseña.
         </p>
         <CampoMotivo id="ia-tope-motivo" />
+        <CampoContrasena id="ia-tope-contrasena" />
         <div>
           <BotonEnviar variante="primary" tamano="sm">Guardar tope</BotonEnviar>
         </div>
@@ -151,6 +153,7 @@ export function PestanaGasto({ datos, costo, techoUsd }: { datos: PantallaIa; co
         <form action={quitarTopeAction} style={{ display: "grid", gap: 10, maxWidth: 420 }}>
           <h3 style={{ ...texto, fontWeight: 700, margin: 0 }}>Volver al tope de las variables de entorno</h3>
           <CampoMotivo id="ia-quitar-motivo" />
+          <CampoContrasena id="ia-quitar-contrasena" />
           <div>
             <BotonEnviar variante="ghost" tamano="sm">Quitar el tope de la pantalla</BotonEnviar>
           </div>

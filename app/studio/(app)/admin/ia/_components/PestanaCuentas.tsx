@@ -11,6 +11,7 @@ import { type CuentaIa, type PantallaIa, cifra, entero } from "@/lib/studio/ia/p
 import { guardarCuentaAction, guardarModeloAction, quitarModeloAction } from "../actions";
 import { CampoMotivo } from "./CampoMotivo";
 import { BotonEnviar } from "./BotonEnviar";
+import { CampoContrasena } from "./CampoContrasena";
 
 const texto = { font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" } as const;
 const suave = { font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" } as const;
@@ -75,8 +76,9 @@ function FormularioCuenta({ cuenta, hayOficina }: { cuenta: CuentaIa | null; hay
         Obligatorio en un plan fijo. Al llegar al 80 % de las llamadas, la Oficina se pausa sola.
       </p>
       <CampoMotivo id={`${pre}-motivo`} />
+      <CampoContrasena id={`${pre}-contrasena`} />
       <p style={{ ...suave, margin: 0 }}>
-        Pasar a plan fijo y subir o quitar el tope de llamadas permiten gastar más: piden la verificación en dos pasos.
+        Pasar a plan fijo y subir o quitar el tope de llamadas permiten gastar más: piden tu contraseña.
       </p>
       <div>
         <BotonEnviar variante="primary" tamano="sm">{cuenta ? "Guardar la cuenta" : "Crear la cuenta"}</BotonEnviar>
@@ -144,6 +146,7 @@ export function PestanaCuentas({ datos }: { datos: PantallaIa }) {
                           <form action={quitarModeloAction} style={{ ...rejilla, marginTop: 8 }}>
                             <input type="hidden" name="id" value={m.id} />
                             <CampoMotivo id={`quitar-${m.id}`} />
+                            <CampoContrasena id={`quitar-${m.id}-contrasena`} />
                             <div>
                               <BotonEnviar variante="danger" tamano="xs">Quitar {m.modelo}</BotonEnviar>
                             </div>
@@ -183,11 +186,12 @@ export function PestanaCuentas({ datos }: { datos: PantallaIa }) {
                     <input id={`${c.id}-salida`} name="salida" className="studio-input" inputMode="decimal" required autoComplete="off" />
                     <p style={{ ...suave, margin: 0 }}>
                       Subir una tarifa lo puedes hacer ya. Bajarla, poner la primera de la cuenta o sumar un modelo más
-                      barato que el más caro que ya está piden la verificación en dos pasos.
+                      barato que el más caro que ya está piden tu contraseña.
                     </p>
                   </>
                 )}
                 <CampoMotivo id={`${c.id}-modelo-motivo`} />
+                <CampoContrasena id={`${c.id}-modelo-contrasena`} />
                 <div>
                   <BotonEnviar variante="primary" tamano="sm">Guardar el modelo</BotonEnviar>
                 </div>

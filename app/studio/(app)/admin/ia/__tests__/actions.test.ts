@@ -13,6 +13,9 @@ const m = vi.hoisted(() => ({
   superadmin: null as string | null,
   llamadas: [] as Array<{ fn: string; args: Record<string, unknown> }>,
   error: null as { code?: string; message?: string } | null,
+  correo: "sam@empresa.prueba" as string | null,
+  contrasenaBuena: "clave-de-prueba-1",
+  ingresos: [] as Array<{ email: string; password: string }>,
 }));
 
 class Redireccion extends Error {
@@ -33,6 +36,13 @@ vi.mock("@/lib/db/server", () => ({
       m.llamadas.push({ fn, args });
       return { data: null, error: m.error };
     },
+    auth: {
+      getUser: async () => ({ data: { user: m.correo ? { email: m.correo } : null } }),
+      signInWithPassword: async (c: { email: string; password: string }) => {
+        m.ingresos.push(c);
+        return { error: c.password === m.contrasenaBuena ? null : { message: "Invalid login credentials" } };
+      },
+    },
   }),
 }));
 vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: async () => m.modulo }));
@@ -52,11 +62,14 @@ function form(campos: Record<string, string>): FormData {
   return f;
 }
 
+const destinos: string[] = [];
+
 async function resultado(p: Promise<void>): Promise<{ tab: string | null; r: string | null }> {
   try {
     await p;
   } catch (e) {
     if (e instanceof Redireccion) {
+      destinos.push(e.destino);
       const u = new URL(e.destino, "http://x");
       expect(u.pathname).toBe("/studio/admin/ia");
       return { tab: u.searchParams.get("tab"), r: u.searchParams.get("r") };
@@ -71,6 +84,9 @@ beforeEach(() => {
   m.superadmin = null;
   m.llamadas = [];
   m.error = null;
+  m.correo = "sam@empresa.prueba";
+  m.ingresos = [];
+  destinos.length = 0;
 });
 
 describe("candados", () => {
@@ -168,5 +184,53 @@ describe("modelos", () => {
   it("quitar un modelo exige un id válido", async () => {
     expect((await resultado(quitarModeloAction(form({ id: "x", motivo: "quitar el modelo" })))).r).toBe("invalido");
     expect((await resultado(quitarModeloAction(form({ id: CUENTA, motivo: "quitar el modelo" })))).r).toBe("ok_modelo_quitado");
+  });
+});
+
+describe("contraseña para aflojar el freno (D-5 de Sam)", () => {
+  it("con la contraseña correcta reautentica y después llama a la base", async () => {
+    expect((await resultado(guardarTopeAction(form({ tope: "9", motivo: "subir el tope", contrasena: m.contrasenaBuena })))).r).toBe("ok_tope");
+    expect(m.ingresos).toEqual([{ email: "sam@empresa.prueba", password: m.contrasenaBuena }]);
+    expect(m.llamadas.map((l) => l.fn)).toEqual(["ia_guardar_tope"]);
+  });
+
+  it("con la contraseña equivocada no toca la base", async () => {
+    expect((await resultado(guardarTopeAction(form({ tope: "9", motivo: "subir el tope", contrasena: "otra" })))).r).toBe("contrasena_incorrecta");
+    expect(m.llamadas).toHaveLength(0);
+  });
+
+  it("sin contraseña no reautentica (apretar el freno no la pide)", async () => {
+    await resultado(guardarTopeAction(form({ tope: "1", motivo: "bajar el tope" })));
+    expect(m.ingresos).toHaveLength(0);
+    expect(m.llamadas).toHaveLength(1);
+  });
+
+  it("la contraseña nunca viaja a la base, a la URL ni a la consola", async () => {
+    const espia = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    for (const accion of [guardarTopeAction, quitarTopeAction, guardarCuentaAction, guardarModeloAction, quitarModeloAction]) {
+      await resultado(
+        accion(
+          form({
+            tope: "9", motivo: "aflojar el freno", contrasena: m.contrasenaBuena, id: CUENTA, cuenta: CUENTA, modelo: "claude-haiku-5-5",
+            entrada: "1", salida: "5", alias: "Cuenta", proveedor: "anthropic", uso: "erp", tipo_cobro: "por_token",
+          }),
+        ),
+      );
+    }
+    for (const otra of ["otra-clave-mala"]) {
+      await resultado(guardarTopeAction(form({ tope: "9", motivo: "aflojar el freno", contrasena: otra })));
+    }
+    const todo = JSON.stringify(m.llamadas) + destinos.join(" ") + JSON.stringify([...espia.mock.calls, ...log.mock.calls]);
+    expect(todo).not.toContain(m.contrasenaBuena);
+    expect(todo).not.toContain("otra-clave-mala");
+    espia.mockRestore();
+    log.mockRestore();
+  });
+
+  it("sin correo en la sesión, vuelve con sin_sesion", async () => {
+    m.correo = null;
+    expect((await resultado(guardarTopeAction(form({ tope: "9", motivo: "subir el tope", contrasena: "x" })))).r).toBe("sin_sesion");
+    expect(m.llamadas).toHaveLength(0);
   });
 });

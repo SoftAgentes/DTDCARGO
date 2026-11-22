@@ -602,11 +602,19 @@ local o efímera; en producción piden el OK nominal de Sam.
 visibilidad en Faro (0637 D-3) quedan para una PR posterior, con la decisión de Sam. Por eso la F1-A **no** toca
 `lib/studio/modules.ts`, `lib/studio/rbac.ts`, `lib/studio/user-module-grants.ts` ni el catálogo de Faro.
 
-**Nota de implementación (barrera de AAL2):** la base no conoce las variables de entorno, así que cuando el valor
-efectivo previo sale del `.env` (la primera tarifa de una cuenta por token o el primer tope de una función) exige AAL2
-siempre. Es más estricto que §7.3 y §8, nunca menos. La barrera vive en una sola función SQL,
-`ia_exigir_aal2_si(boolean)`. Hoy el Studio no tiene verificación en dos pasos; cómo se cumple (AAL2 real o una
-reautenticación reciente) lo decide Sam, y cambiar la barrera es tocar solo esa función y la acción del servidor.
+**Nota de implementación (barrera para aflojar el freno):** la base no conoce las variables de entorno, así que
+cuando el valor efectivo previo sale del `.env` (la primera tarifa de una cuenta por token o el primer tope de una
+función) pide la barrera siempre. Es más estricto que §7.3 y §8, nunca menos. La barrera vive en una sola función SQL,
+`ia_exigir_aal2_si(boolean)`.
+
+**Enmienda de la D-5, decidida por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «Pantalla IA: opción A, pedir
+la contraseña otra vez; y abre después la SDD de verificación en dos pasos». El Studio todavía no tiene verificación en
+dos pasos, así que lo que afloja el freno pasa con **AAL2 o con una autenticación por contraseña de menos de 5
+minutos** (el claim `amr` del JWT, método `password`). La pantalla pide la contraseña y el servidor vuelve a autenticar
+(`signInWithPassword`); la contraseña nunca se guarda, nunca va a un log, a la auditoría ni a la URL. La auditoría
+registra quién aflojó qué y con qué método (`aal2`, `contrasena_reciente` o `no_hace_falta`). Cuando exista la SDD de
+verificación en dos pasos, la misma barrera acepta AAL2 sin otro cambio. Esa SDD la abre Dir_DTD aparte. Que el
+GoTrue instalado ponga `amr` con método `password` y su hora en el JWT es **NV** hasta probarlo en staging.
 
 - **Comunes:** `docs/specs/0704-ia-pantalla-cadena-y-costo/spec.md`, `docs/specs/README.md` (índice) y
   `.agents/handoffs/2026-11-21-sdd-0704-f1-pantalla-ia.md`. Si se suma una variable de entorno, `.env.example` e

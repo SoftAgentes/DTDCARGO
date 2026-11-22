@@ -3,7 +3,7 @@
  * tipo de cobro y la tarifa de cada modelo. Solo el superadministrador (lo exige el layout y la base).
  *
  * Nunca muestra llaves. Las cifras van en tinta y con coma decimal. Lo que afloja el freno lo corta la base si no hay
- * verificación en dos pasos (`ia_exigir_aal2_si`); la pantalla lo explica en vez de esconder los formularios.
+ * AAL2 ni una contraseña de hace menos de 5 minutos (`ia_exigir_aal2_si`, D-5): el formulario la pide.
  */
 import Link from "next/link";
 

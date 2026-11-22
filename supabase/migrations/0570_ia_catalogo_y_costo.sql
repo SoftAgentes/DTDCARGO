@@ -30,7 +30,8 @@
 --    ia_guardar_cuenta, ia_guardar_modelo, ia_borrar_modelo, ia_guardar_tope y
 --    ia_borrar_tope. Solo el superadministrador (F1-A; el módulo `ia` por persona
 --    va en su propia PR). Motivo obligatorio (4-200). Todo lo que AFLOJA el
---    freno exige AAL2 (D-5 + bloqueante 1 de la revisión): subir el tope,
+--    freno exige AAL2 o la contraseña de hace menos de 5 minutos (D-5 de Sam
+--    del 2026-11-21 + bloqueante 1 de la revisión): subir el tope,
 --    quitarlo, subir o quitar el tope de llamadas, pasar a plan fijo, bajar o
 --    borrar una tarifa y dar de alta un modelo con tarifa menor que la mayor ya
 --    declarada en su cuenta. La base no conoce las variables de entorno: cuando
@@ -351,17 +352,38 @@ begin
 end;
 $function$;
 
--- Lo que afloja el freno exige AAL2 (verificación en dos pasos de esta sesión).
+-- LA BARRERA (D-5 de Sam, 2026-11-21: «Pantalla IA: opción A, pedir la contraseña otra vez; y abre después la SDD de
+-- verificación en dos pasos»). Lo que afloja el freno exige AAL2 o una autenticación con contraseña de hace menos de
+-- 5 minutos (claim amr del JWT, que la pantalla consigue pidiendo la contraseña otra vez). Devuelve el método, que va
+-- a la auditoría: 'aal2', 'contrasena_reciente' o 'no_hace_falta'. Cuando el Studio tenga la verificación en dos
+-- pasos, esta misma función ya acepta AAL2 sin otro cambio.
 create or replace function public.ia_exigir_aal2_si(p_afloja boolean)
-returns void
+returns text
 language plpgsql
 stable
 set search_path = ''
 as $function$
+declare
+  v_jwt jsonb := coalesce(auth.jwt(), '{}'::jsonb);
+  v_ahora numeric := extract(epoch from pg_catalog.now());
 begin
-  if p_afloja and coalesce(auth.jwt() ->> 'aal', '') <> 'aal2' then
-    raise exception 'ia:requiere_aal2' using errcode = '42501';
+  if p_afloja is not true then
+    return 'no_hace_falta';
   end if;
+  if coalesce(v_jwt ->> 'aal', '') = 'aal2' then
+    return 'aal2';
+  end if;
+  if pg_catalog.jsonb_typeof(v_jwt -> 'amr') = 'array' and exists (
+    select 1
+      from pg_catalog.jsonb_array_elements(v_jwt -> 'amr') as a(e)
+     where pg_catalog.jsonb_typeof(a.e) = 'object'
+       and a.e ->> 'method' = 'password'
+       and (a.e ->> 'timestamp') ~ '^[0-9]{1,12}$'
+       and (a.e ->> 'timestamp')::numeric between v_ahora - 300 and v_ahora + 60
+  ) then
+    return 'contrasena_reciente';
+  end if;
+  raise exception 'ia:requiere_aal2' using errcode = '42501';
 end;
 $function$;
 
@@ -385,11 +407,12 @@ declare
   v_antes public.ia_cuentas%rowtype;
   v_despues public.ia_cuentas%rowtype;
   v_afloja boolean;
+  v_metodo text;
 begin
   if p_id is null then
     -- Alta: plan fijo deja de sumar USD → afloja.
     v_afloja := p_tipo_cobro = 'plan_fijo';
-    perform public.ia_exigir_aal2_si(v_afloja);
+    v_metodo := public.ia_exigir_aal2_si(v_afloja);
     insert into public.ia_cuentas (tenant_id, alias, proveedor, uso, tipo_cobro, tope_llamadas_mes, actualizado_por)
     values (v_tenant, p_alias, p_proveedor, p_uso, p_tipo_cobro, p_tope_llamadas, v_uid)
     returning * into v_despues;
@@ -402,7 +425,7 @@ begin
       (v_antes.tipo_cobro = 'por_token' and p_tipo_cobro = 'plan_fijo')
       or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas is null)
       or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas > v_antes.tope_llamadas_mes);
-    perform public.ia_exigir_aal2_si(v_afloja);
+    v_metodo := public.ia_exigir_aal2_si(v_afloja);
     update public.ia_cuentas
        set alias = p_alias, proveedor = p_proveedor, uso = p_uso, tipo_cobro = p_tipo_cobro,
            tope_llamadas_mes = p_tope_llamadas, actualizado_en = pg_catalog.now(), actualizado_por = v_uid
@@ -418,7 +441,7 @@ begin
     pg_catalog.jsonb_build_object(
       'alias', v_despues.alias, 'proveedor', v_despues.proveedor, 'uso', v_despues.uso,
       'tipo_cobro', v_despues.tipo_cobro, 'tope_llamadas_mes', v_despues.tope_llamadas_mes),
-    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_afloja),
+    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_afloja, 'metodo', v_metodo),
     null, 1, 'internal');
   return v_despues.id;
 end;
@@ -445,6 +468,7 @@ declare
   v_max_entrada numeric;
   v_max_salida numeric;
   v_afloja boolean := false;
+  v_metodo text;
 begin
   select * into v_cuenta from public.ia_cuentas c where c.id = p_cuenta_id and c.tenant_id = v_tenant for update;
   if not found then
@@ -467,7 +491,7 @@ begin
                   or p_tarifa_entrada < v_max_entrada or p_tarifa_salida < v_max_salida;
     end if;
   end if;
-  perform public.ia_exigir_aal2_si(coalesce(v_afloja, true));
+  v_metodo := public.ia_exigir_aal2_si(coalesce(v_afloja, true));
 
   if v_antes.id is null then
     insert into public.ia_modelos (tenant_id, cuenta_id, proveedor, modelo, tarifa_entrada_usd_mtok,
@@ -490,7 +514,7 @@ begin
     pg_catalog.jsonb_build_object(
       'cuenta_id', v_despues.cuenta_id, 'proveedor', v_despues.proveedor, 'modelo', v_despues.modelo,
       'tarifa_entrada', v_despues.tarifa_entrada_usd_mtok, 'tarifa_salida', v_despues.tarifa_salida_usd_mtok),
-    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', coalesce(v_afloja, true)),
+    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', coalesce(v_afloja, true), 'metodo', v_metodo),
     null, 1, 'internal');
   return v_despues.id;
 end;
@@ -506,13 +530,14 @@ declare
   v_tenant uuid := public.ia_contexto_de_escritura(p_motivo);
   v_uid uuid := auth.uid();
   v_antes public.ia_modelos%rowtype;
+  v_metodo text;
 begin
   select * into v_antes from public.ia_modelos m where m.id = p_id and m.tenant_id = v_tenant for update;
   if not found then
     return false;
   end if;
   -- Borrar una tarifa cambia el valor efectivo (pasa a la más alta declarada o al .env): afloja.
-  perform public.ia_exigir_aal2_si(v_antes.tarifa_entrada_usd_mtok is not null);
+  v_metodo := public.ia_exigir_aal2_si(v_antes.tarifa_entrada_usd_mtok is not null);
   delete from public.ia_modelos where id = p_id;
   perform public.append_audit_event(
     v_tenant, 'ia_config', p_id, 'user', v_uid, 'ia_modelo_quitado', 'studio', 'succeeded', p_motivo,
@@ -520,7 +545,7 @@ begin
       'cuenta_id', v_antes.cuenta_id, 'proveedor', v_antes.proveedor, 'modelo', v_antes.modelo,
       'tarifa_entrada', v_antes.tarifa_entrada_usd_mtok, 'tarifa_salida', v_antes.tarifa_salida_usd_mtok),
     null,
-    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_antes.tarifa_entrada_usd_mtok is not null),
+    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_antes.tarifa_entrada_usd_mtok is not null, 'metodo', v_metodo),
     null, 1, 'internal');
   return true;
 end;
@@ -538,12 +563,13 @@ declare
   v_antes numeric;
   v_id uuid;
   v_afloja boolean;
+  v_metodo text;
 begin
   select t.tope_usd into v_antes from public.ia_topes t
    where t.tenant_id = v_tenant and t.funcion = p_funcion for update;
   -- Sin fila, el previo es el .env, que la base no conoce: AAL2 siempre.
   v_afloja := v_antes is null or p_tope_usd > v_antes;
-  perform public.ia_exigir_aal2_si(v_afloja);
+  v_metodo := public.ia_exigir_aal2_si(v_afloja);
   insert into public.ia_topes (tenant_id, funcion, tope_usd, actualizado_por)
   values (v_tenant, p_funcion, p_tope_usd, v_uid)
   on conflict (tenant_id, funcion) do update
@@ -553,7 +579,7 @@ begin
     v_tenant, 'ia_config', v_id, 'user', v_uid, 'ia_tope_guardado', 'studio', 'succeeded', p_motivo,
     case when v_antes is null then null else pg_catalog.jsonb_build_object('funcion', p_funcion, 'tope_usd', v_antes) end,
     pg_catalog.jsonb_build_object('funcion', p_funcion, 'tope_usd', p_tope_usd),
-    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_afloja),
+    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', v_afloja, 'metodo', v_metodo),
     null, 1, 'internal');
   return p_tope_usd;
 end;
@@ -570,6 +596,7 @@ declare
   v_uid uuid := auth.uid();
   v_antes numeric;
   v_id uuid;
+  v_metodo text;
 begin
   select t.tope_usd, t.id into v_antes, v_id from public.ia_topes t
    where t.tenant_id = v_tenant and t.funcion = p_funcion for update;
@@ -577,12 +604,12 @@ begin
     return false;
   end if;
   -- Volver al .env puede subir el tope: afloja.
-  perform public.ia_exigir_aal2_si(true);
+  v_metodo := public.ia_exigir_aal2_si(true);
   delete from public.ia_topes where id = v_id;
   perform public.append_audit_event(
     v_tenant, 'ia_config', v_id, 'user', v_uid, 'ia_tope_quitado', 'studio', 'succeeded', p_motivo,
     pg_catalog.jsonb_build_object('funcion', p_funcion, 'tope_usd', v_antes), null,
-    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', true),
+    pg_catalog.jsonb_build_object('sdd', '0704', 'afloja', true, 'metodo', v_metodo),
     null, 1, 'internal');
   return true;
 end;

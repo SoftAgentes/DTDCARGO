@@ -24,6 +24,8 @@
 --  11. Privilegios: anon nada; authenticated lee (con RLS) y no escribe tablas; no ejecuta las del despachador;
 --      service_role no ejecuta las de la pantalla.
 --  12. El desarme deja la base sin objetos de la 0570; repetirlo no falla.
+--  13. La barrera (D-5 de Sam, 2026-11-21): aflojar pasa con AAL2 o con la contraseña de hace menos de 5 minutos
+--      (amr «password»); una contraseña vieja u otro método no alcanzan. La auditoría guarda el método.
 
 begin;
 
@@ -41,8 +43,20 @@ $roles$;
 create schema if not exists auth;
 create or replace function auth.uid() returns uuid
 language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
+-- auth.jwt(): el aal de test.aal y, con test.amr, una autenticación por contraseña reciente, vieja o por otro método.
 create or replace function auth.jwt() returns jsonb
-language sql stable as $$ select pg_catalog.jsonb_build_object('aal', coalesce(nullif(current_setting('test.aal', true), ''), 'aal1')) $$;
+language sql stable as $$
+  select pg_catalog.jsonb_build_object(
+    'aal', coalesce(nullif(current_setting('test.aal', true), ''), 'aal1'),
+    'amr', case coalesce(current_setting('test.amr', true), '')
+      when 'reciente' then pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'method', 'password', 'timestamp', extract(epoch from pg_catalog.now())::bigint - 30))
+      when 'vieja' then pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'method', 'password', 'timestamp', extract(epoch from pg_catalog.now())::bigint - 600))
+      when 'otp' then pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+        'method', 'otp', 'timestamp', extract(epoch from pg_catalog.now())::bigint - 30))
+      else '[]'::jsonb end)
+$$;
 grant usage on schema public, auth to anon, authenticated, service_role;
 grant execute on function auth.uid(), auth.jwt() to anon, authenticated, service_role;
 
@@ -417,6 +431,35 @@ begin
   reset role;
   perform pg_catalog.set_config('test.uid', '', true);
 end $c11$;
+
+-- 13. La barrera: contraseña reciente o AAL2, y el método en la auditoría.
+do $c13$
+declare
+  sa text := '00000000-0000-0000-0000-0000000005a1';
+begin
+  perform pg_catalog.set_config('test.amr', 'reciente', true);
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1',
+    $$select public.ia_guardar_tope('oficina', 2.5, 'subir con contraseña')$$), 'ok', 'CONTRATO 13 contraseña reciente');
+  perform pg_catalog.set_config('test.amr', 'vieja', true);
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1',
+    $$select public.ia_guardar_tope('oficina', 3, 'subir con contraseña vieja')$$), '%ia:requiere_aal2%', 'CONTRATO 13 contraseña vieja');
+  perform pg_catalog.set_config('test.amr', 'otp', true);
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1',
+    $$select public.ia_guardar_tope('oficina', 3, 'subir con otro método')$$), '%ia:requiere_aal2%', 'CONTRATO 13 otro método');
+  perform pg_catalog.set_config('test.amr', '', true);
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal2',
+    $$select public.ia_guardar_tope('oficina', 3, 'subir con dos pasos')$$), 'ok', 'CONTRATO 13 AAL2');
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1',
+    $$select public.ia_guardar_tope('oficina', 2, 'bajar sin nada')$$), 'ok', 'CONTRATO 13 apretar');
+  if (select payload ->> 'metodo' from public.entity_audit_log where reason = 'subir con contraseña') <> 'contrasena_reciente'
+     or (select payload ->> 'metodo' from public.entity_audit_log where reason = 'subir con dos pasos') <> 'aal2'
+     or (select payload ->> 'metodo' from public.entity_audit_log where reason = 'bajar sin nada') <> 'no_hace_falta' then
+    raise exception 'CONTRATO 13: la auditoría no guardó el método de cada cambio';
+  end if;
+  if exists (select 1 from public.entity_audit_log where reason in ('subir con contraseña vieja', 'subir con otro método')) then
+    raise exception 'CONTRATO 13: un cambio rechazado dejó evento';
+  end if;
+end $c13$;
 
 -- 12. Desarme.
 \ir ../desarmes/0570_desarme.sql

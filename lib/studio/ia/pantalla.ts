@@ -176,7 +176,8 @@ export const AVISOS_IA: Readonly<Record<string, string>> = {
   ok_modelo: "Tarifa guardada. Vale desde ahora; lo ya gastado no se recalcula.",
   ok_modelo_quitado: "Modelo quitado de la cuenta.",
   requiere_aal2:
-    "Este cambio permite gastar más y pide la verificación en dos pasos, que el Studio todavía no tiene. Por ahora solo puedes apretar el freno: bajar el tope, subir una tarifa o poner un tope de llamadas.",
+    "Este cambio permite gastar más: escribe tu contraseña en el formulario para confirmarlo (vale 5 minutos). Para bajar el gasto no hace falta.",
+  contrasena_incorrecta: "La contraseña no es correcta, así que no se hizo el cambio.",
   solo_superadmin: "Esta pantalla es solo del superadministrador.",
   sin_sesion: "Tu sesión venció. Vuelve a entrar.",
   motivo: "Falta el motivo (de 4 a 200 caracteres, sin espacios al principio ni al final).",
