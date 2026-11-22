@@ -10,6 +10,7 @@ import { type CuentaIa, type PantallaIa, cifra, entero } from "@/lib/studio/ia/p
 
 import { guardarCuentaAction, guardarModeloAction, quitarModeloAction } from "../actions";
 import { CampoMotivo } from "./CampoMotivo";
+import { BotonEnviar } from "./BotonEnviar";
 
 const texto = { font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" } as const;
 const suave = { font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" } as const;
@@ -78,9 +79,7 @@ function FormularioCuenta({ cuenta, hayOficina }: { cuenta: CuentaIa | null; hay
         Pasar a plan fijo y subir o quitar el tope de llamadas permiten gastar más: piden la verificación en dos pasos.
       </p>
       <div>
-        <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm">
-          {cuenta ? "Guardar la cuenta" : "Crear la cuenta"}
-        </button>
+        <BotonEnviar variante="primary" tamano="sm">{cuenta ? "Guardar la cuenta" : "Crear la cuenta"}</BotonEnviar>
       </div>
     </form>
   );
@@ -146,9 +145,7 @@ export function PestanaCuentas({ datos }: { datos: PantallaIa }) {
                             <input type="hidden" name="id" value={m.id} />
                             <CampoMotivo id={`quitar-${m.id}`} />
                             <div>
-                              <button type="submit" className="studio-btn studio-btn-danger studio-btn-xs">
-                                Quitar {m.modelo}
-                              </button>
+                              <BotonEnviar variante="danger" tamano="xs">Quitar {m.modelo}</BotonEnviar>
                             </div>
                           </form>
                         </details>
@@ -192,9 +189,7 @@ export function PestanaCuentas({ datos }: { datos: PantallaIa }) {
                 )}
                 <CampoMotivo id={`${c.id}-modelo-motivo`} />
                 <div>
-                  <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm">
-                    Guardar el modelo
-                  </button>
+                  <BotonEnviar variante="primary" tamano="sm">Guardar el modelo</BotonEnviar>
                 </div>
               </form>
             </details>

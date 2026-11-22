@@ -9,6 +9,7 @@ import { type PantallaIa, cifra, entero } from "@/lib/studio/ia/pantalla";
 
 import { quitarTopeAction, guardarTopeAction } from "../actions";
 import { CampoMotivo } from "./CampoMotivo";
+import { BotonEnviar } from "./BotonEnviar";
 
 const texto = { font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" } as const;
 const suave = { font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" } as const;
@@ -142,9 +143,7 @@ export function PestanaGasto({ datos, costo, techoUsd }: { datos: PantallaIa; co
         </p>
         <CampoMotivo id="ia-tope-motivo" />
         <div>
-          <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm">
-            Guardar tope
-          </button>
+          <BotonEnviar variante="primary" tamano="sm">Guardar tope</BotonEnviar>
         </div>
       </form>
 
@@ -153,9 +152,7 @@ export function PestanaGasto({ datos, costo, techoUsd }: { datos: PantallaIa; co
           <h3 style={{ ...texto, fontWeight: 700, margin: 0 }}>Volver al tope de las variables de entorno</h3>
           <CampoMotivo id="ia-quitar-motivo" />
           <div>
-            <button type="submit" className="studio-btn studio-btn-ghost studio-btn-sm">
-              Quitar el tope de la pantalla
-            </button>
+            <BotonEnviar variante="ghost" tamano="sm">Quitar el tope de la pantalla</BotonEnviar>
           </div>
         </form>
       ) : null}
