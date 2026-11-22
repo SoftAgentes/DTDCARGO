@@ -1,7 +1,7 @@
 ---
 sdd: "0708"
 title: "Studio · Administración: entrar directo a cada sección y reordenar el panel"
-status: proposed
+status: in-progress
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
@@ -18,8 +18,9 @@ confidencialidad: interno
 > como con un doble clic innecesario. No entiendo por qué se hizo esto, pero hay que corregirlo». Y: «Revisa el panel
 > de administración; reorganicemos o revisemos qué mejoras se pueden hacer».
 >
-> **Estado: propuesta, solo spec.** No lleva código. Las decisiones de Sam están en §6 (D-1 a D-4), con bocetos para
-> dibujarlas. El repo es público: sin datos de clientes, correos ni montos.
+> **Estado: en curso.** Sam eligió el 2026-11-22, viendo el simulador: «Elijo B (el menú acompaña) y el menú ordenado
+> por tema (R1)» (§6). La fase 1 se implementa en la misma rama. El repo es público: sin datos de clientes, correos ni
+> montos.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia. Base: `main` `8c15a4bb0`.
 
@@ -215,7 +216,8 @@ quien no es superadministrador, sumar Oficina Virtual en Pro y traducir los cuat
 | `app/studio/(app)/admin/_components/AdminNav.tsx` (nuevo) | El menú lateral sale de `page.tsx` a un componente reutilizable; enlace directo al `href`, marca activa por ruta | ✓ | ✓ |
 | `app/studio/(app)/admin/_components/admin-sections.ts` (nuevo) | Catálogo de secciones como dato puro, compartido por página, layout y pruebas | ✓ | ✓ |
 | `app/studio/(app)/admin/layout.tsx` (nuevo) | Pinta el menú alrededor de `/studio/admin/*` solo para quien pasa `admin`; **no** agrega guardias | — | ✓ |
-| `app/studio/(app)/admin/{etiquetas,feature-flags,notificaciones,alertas-telegram,rutas,agentes,actualizaciones,ia,oficina-virtual}/page.tsx` | A: unificar el «← Administración». B: quitar el «Volver» y el encabezado repetido | ✓ | ✓ |
+| `app/studio/(app)/admin/{etiquetas,feature-flags,notificaciones,ia,oficina-virtual}/page.tsx` | A: unificar el «← Administración». B: quitar el «Volver» (las demás subpáginas no tenían) | ✓ | ✓ |
+| `app/studio/(app)/admin/_components/WorkflowsSection.tsx` (se borra) | Era un atajo a Servicios · Flujo con su propio botón «Abrir»; ahora el ítem «Flujos automáticos» enlaza directo (↗). También se retira el atajo en línea de Permisos | ✓ | ✓ |
 | `app/studio/(app)/admin/__tests__/admin-sections.test.ts` (nuevo) | Pruebas de §7 | ✓ | ✓ |
 
 **Fuera de la allowlist:** migraciones, RLS, `lib/studio/rbac*.ts`, `lib/studio/modules.ts` (el menú principal no
@@ -224,6 +226,13 @@ cambia en esta fase), las pantallas internas de cada módulo, el contenido de la
 **Carril:** revisión previa (toca la navegación de un área con guardias de permisos, aunque no las cambie).
 
 ## 6. Decisiones de Sam
+
+**Elegido (2026-11-22, textual):** «Elijo B (el menú acompaña) y el menú ordenado por tema (R1).» D-3 y D-4 no se
+nombraron: la fase 1 aplica las recomendaciones (Rutas y ciudades en los dos menús; M-a, los marcadores de Marca salen
+del menú; P-a, Apariencia se queda en Equipo y seguridad). Si Sam cambia alguna, es un ajuste del catálogo.
+
+Sam aclaró además que la «pantalla de guía» que mencionó es la de IA (SDD-0704). En esta spec entra solo su acceso:
+un clic, grupo Inteligencia artificial y visible solo al superadministrador. Su contenido sigue en la 0704.
 
 | # | Pregunta | Opciones | Recomendación |
 |---|---|---|---|
@@ -236,11 +245,12 @@ cambia en esta fase), las pantallas internas de cada módulo, el contenido de la
 
 1. Para cada sección con `href`, el ítem del menú enlaza al `href` (prueba sobre el catálogo: ninguna sección con
    `href` se pinta con tarjeta; `LinkedSectionCTA` ya no existe).
-2. `/studio/admin?section=<id>` con `href` responde 307 a ese `href`, para los 9 `id` de §2.
+2. `/studio/admin?section=<id>` con `href` responde 307 a ese `href` (los 9 puentes de §2 más los atajos `permissions`
+   y `workflows`, que con la fase 1 también enlazan directo).
 3. Un admin que no es superadministrador no ve IA ni Oficina Virtual en el menú, y sus rutas siguen dando 404.
 4. Un usuario `operations` entra a `/studio/admin/rutas` igual que hoy (sin menú de Admin, sin redirección).
 5. Ningún `id` de sección cambia; los enlaces existentes con `?section=…&tab=…` siguen abriendo lo mismo.
-6. (Solo B) Las 9 subpáginas muestran el menú con su ítem marcado y sin «← Volver».
+6. (Solo B) Las subpáginas de `/studio/admin/*` muestran el menú con su ítem marcado y sin «← Volver».
 7. `/ui-check` sobre el diff y capturas claro/oscuro de: Administración (sección en línea), IA, Rutas y ciudades.
 8. `pnpm verify` con turno del Director.
 
