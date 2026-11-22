@@ -587,3 +587,47 @@ Lo esperado: el conteo en `a936f1ab6c7dd3a58a4c14ce58f9af36` (0560) y la lista d
 No se deshace una fila: se agrega otra. Una corrección equivocada se arregla con otra corrección (manda la última).
 Una exclusión no se revierte desde la API; si hiciera falta, la decide el DG con Sam y queda escrita en el
 desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conteo deje de mirar las dos tablas.
+
+## 14 · Lo que se tapa antes del modelo y el aviso al cliente (SDD-0700 y SDD-0705)
+
+### Qué se tapa (SDD-0700; criterio de Hermes DIRECTOR, 21/11/2026)
+
+> **Rige desde que la #755 (SDD-0700, en `main` desde el 22/11/2026) está publicada en producción.** Antes de
+> esa publicación, el texto del cliente llega completo al modelo y solo se revisa la salida.
+
+Antes de mandar la conversación al agente, el despachador tapa en el texto del cliente:
+
+- correos → `[correo]`;
+- teléfonos → `[teléfono]`;
+- cédulas → `[cédula]`;
+- RIF → `[RIF]`;
+- direcciones → `[dirección]`.
+
+Si después de tapar todavía se detecta un dato, la corrida escala con `datos_sin_tapar`, sin llamar al modelo.
+
+**Qué NO se tapa, a propósito:**
+
+- **El nombre de la persona:** el agente lo usa para dirigirse al cliente.
+- **El número de guía o de casillero:** hace falta para dar el estado o derivarlo.
+
+Ese es el alcance aprobado para la etapa 2. **Ampliarlo o reducirlo requiere el OK de Sam**, escrito en el SDD que lo
+cambie. Nadie lo amplía por su cuenta, ni siquiera «para estar más seguros».
+
+La revisión de la salida (`revisarRespuesta`) sigue igual: si el borrador repite un correo, un teléfono, una cédula,
+un RIF o una dirección, escala con `datos_personales`.
+
+### El aviso al cliente (SDD-0705; texto aprobado por Sam el 21/11/2026)
+
+La primera respuesta de DTD en cada conversación **termina** con esta nota (Sam, 21/11/2026: «Doble saludo:
+opción B, el aviso va al final»; así el borrador abre con el guion y no se leen dos saludos seguidos):
+
+> Hola, soy el asistente virtual de DTD Cargo. Una persona del equipo revisa cada respuesta antes de enviártela.
+
+- **Largo:** el borrador admite hasta 4000 caracteres. Si con el aviso se pasa, la corrida escala con `borrador_largo`
+  y la conversación la atiende una persona.
+
+- Va en el **borrador**, así que Sam lo ve en la tarjeta antes de aprobar, y lo que se envía es exactamente lo
+  aprobado: la huella no cambia.
+- «Primera» significa que entre los últimos 20 mensajes leídos no hay ninguno del lado de DTD (ni del agente ni de
+  una persona del equipo). Si ya respondió alguien, no se repite.
+- Cambiar el texto del aviso requiere el OK de Sam y un SDD.
