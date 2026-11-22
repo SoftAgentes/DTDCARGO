@@ -150,7 +150,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 ### Fase 1 · allowlist
 
 - `docs/specs/0688-rebrand-simetria-pantallas/spec.md`, `docs/specs/README.md`
-- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (localizado: `docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md`, §17), `docs/governance/README.md` y `docs/governance/generated/`
+- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (localizado: `docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md`, §17), `docs/governance/README.md`, `docs/governance/generated/` y las fichas de `docs/governance/components/` que citan la versión de BTN-01 (`action-menu`, `confirm-dialog`, `segmented-control`)
 - `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»), `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-077), `BRAND.md` (solo el puntero a BD-077 en la línea de botones)
 - `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
