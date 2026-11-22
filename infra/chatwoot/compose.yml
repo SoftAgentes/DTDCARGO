@@ -4,7 +4,7 @@
 #               en cada `up` y rails/sidekiq esperan a que salga 0.
 #   rails     → Puma (panel, API, ActionCable), detrás de Traefik en CHATWOOT_HOST.
 #   sidekiq   → trabajos: correo, webhooks, canales, crons de Chatwoot.
-#   postgres  → Postgres 16 con pgvector (el esquema de 4.19 hace `enable_extension "vector"`).
+#   postgres  → Postgres 16 con pgvector (el esquema desde 4.19 hace `enable_extension "vector"`).
 #   redis     → colas de Sidekiq y ActionCable. Sin desalojo: perder una llave es perder un trabajo.
 #
 # Convive con la producción de DTD en el mismo host (decisión E0-D1 de Sam). Por eso:
@@ -44,9 +44,11 @@ x-logging: &logging
     max-file: "5"
 
 x-imagen: &imagen
-  # Fija por etiqueta Y por digest (medido con `docker pull` el 2026-10-29). Subir de
-  # versión es la etapa E3: runbook de versiones, nunca un `pull` suelto.
-  image: chatwoot/chatwoot:v4.19.1-ce@sha256:04895c7bd0550d9e74b45b7202787b56f7ee4e891ebbde0c429c8c32901b97cf
+  # Fija por etiqueta Y por digest. Subir de versión es la etapa E3: runbook de versiones,
+  # nunca un `pull` suelto. SDD-0679: v4.20.0-ce, digest del índice multiplataforma leído
+  # del registro de Docker Hub el 2026-11-19 (linux/amd64 = sha256:1cf633d4a484…; imagen
+  # creada el 2026-11-18T09:07Z). Antes: v4.19.1-ce@sha256:04895c7bd055… (2026-10-29).
+  image: chatwoot/chatwoot:v4.20.0-ce@sha256:03cc2004299fec8142481a411906947928678fa0e126beb5248962183593f8be
 
 x-entorno: &entorno
   RAILS_ENV: production

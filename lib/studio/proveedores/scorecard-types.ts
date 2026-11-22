@@ -67,7 +67,8 @@ export function supplierClaimStatusTone(s: SupplierClaimStatus): BadgeTone {
       return "info";
     case "abierto":
     default:
-      return "wine";
+      // Abierto pide intervención: atención, no vino (BD-076; política de Estados).
+      return "warning";
   }
 }
 

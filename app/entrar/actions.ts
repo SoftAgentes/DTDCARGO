@@ -4,13 +4,17 @@ import { createHash } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
+import { esDominioInterno } from "@/lib/portal/correo-comprobacion";
 import { emailIlikePattern, sameEmail } from "@/lib/shared/email-literal";
 import { resendPuedeEnviar } from "@/lib/studio/mail/resend-api";
 import { mintPortalMagicToken, portalOpenUrl } from "@/lib/studio/portal/magic-link";
 import { sendPortalMagicLinkEmail } from "@/lib/studio/portal/magic-link-email";
 import { correoSinComprobar } from "@/lib/studio/portal/correo-comprobacion";
-import { findClienteSinAcceso } from "@/lib/studio/portal/sin-acceso";
+import { buscarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso";
 import { avisarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso-aviso";
+import { emitirLinkAutoservicio } from "@/lib/studio/portal/autoservicio-link";
+import type { EntrarResultado } from "@/lib/portal/entrar-resultado";
+import { esperarTiempoMinimo } from "@/lib/portal/tiempo-minimo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 const THROTTLE_TABLE = "portal_registro_throttle";
@@ -25,23 +29,45 @@ const VARIOS_PEDIDOS =
   "Hubo varios pedidos seguidos y por seguridad no mandamos más enlaces por ahora. Si ya tienes uno en tu correo, úsalo. Si no, vuelve a pedirlo dentro de una hora.";
 const NO_PUDIMOS_ATENDER =
   "No pudimos atender tu pedido y no salió ningún enlace. Vuelve a intentarlo en unos minutos.";
+/**
+ * SDD-0672 · el correo tiene acceso, pero el envío falló. Desde que la pantalla
+ * dice qué pasó con cada correo, esto se puede decir: antes (SDD-0597) se
+ * callaba porque distinguirlo de «sin cuenta» abría el oráculo.
+ */
+const NO_SALIO_EL_ENLACE =
+  "No pudimos enviarte el enlace ahora. Vuelve a intentarlo en unos minutos; si sigue sin llegar, escríbenos por WhatsApp.";
 
 export type PortalLoginState = {
   error?: string;
   /**
-   * Se recibió el pedido. NO quiere decir que salió un correo: la respuesta es la
-   * misma para un correo sin cuenta y para un envío que falló, porque distinguirlos
-   * le diría a un enumerador qué correos son clientes (SDD-0597).
+   * SDD-0672 · qué pasó con el correo, dicho en pantalla (decisión de Sam,
+   * 2026-11-18: «Decirlo en pantalla»). Reemplaza la respuesta única de la
+   * SDD-0597. `enlace` sí quiere decir que el correo salió: si el envío falla,
+   * la acción devuelve `error`.
    */
-  requested?: boolean;
-  /** Pedidos seguidos desde esta pantalla: es lo que hace notar un reintento. */
+  resultado?: EntrarResultado;
+  /** Pedidos de enlace seguidos desde esta pantalla: es lo que hace notar un reintento. */
   requests?: number;
+  /**
+   * Sólo con `sin_portal`: al equipo le llegó el aviso (SDD-0279). La pantalla no
+   * lo afirma si no salió.
+   */
+  equipoAvisado?: boolean;
   /** Email que escribió la persona, para mostrarlo y para volver a pedir. */
   email?: string;
 };
 
-function requestReceived(prev: PortalLoginState, email: string): PortalLoginState {
-  return { requested: true, requests: (Number(prev.requests) || 0) + 1, email };
+function conResultado(
+  prev: PortalLoginState,
+  resultado: EntrarResultado,
+  email: string,
+): PortalLoginState {
+  // El contador sólo cuenta reintentos del mismo pedido de enlace.
+  const requests =
+    resultado === "enlace" && prev.resultado === "enlace" && prev.email === email
+      ? (Number(prev.requests) || 0) + 1
+      : 1;
+  return { resultado, requests, email };
 }
 
 /**
@@ -56,8 +82,8 @@ function requestReceived(prev: PortalLoginState, email: string): PortalLoginStat
  * SDD-0646 D-1 · sólo se llama DESPUÉS de preguntar `correoSinComprobar`: un
  * correo sin comprobar no llega aquí. Lo vigila la prueba de inventario.
  *
- * Su error se registra y no llega a la pantalla: a un correo sin cuenta Auth le
- * responde otra cosa que a uno con cuenta, y mostrarlo abriría el oráculo.
+ * Sólo se llama para un correo CON acceso, así que su error ya no abre nada: se
+ * dice que el enlace no salió (SDD-0672).
  */
 async function sendMagicLinkLegacy(
   prev: PortalLoginState,
@@ -71,8 +97,11 @@ async function sendMagicLinkLegacy(
       shouldCreateUser: false,
     },
   });
-  if (error) console.error("[entrar] Auth no mandó el enlace:", error.status, error.code);
-  return requestReceived(prev, email);
+  if (error) {
+    console.error("[entrar] Auth no mandó el enlace:", error.status, error.code);
+    return { error: NO_SALIO_EL_ENLACE, email };
+  }
+  return conResultado(prev, "enlace", email);
 }
 
 type ThrottleResult = "ok" | "limit" | "error";
@@ -97,10 +126,6 @@ async function touchThrottle(
   return insertError ? "error" : "ok";
 }
 
-/**
- * Los cerrojos pueden decir lo que pasó porque corren ANTES de mirar si el correo
- * existe: a cualquier dirección le pasa igual, así que no revelan nada.
- */
 function throttled(result: Exclude<ThrottleResult, "ok">, email: string): PortalLoginState {
   return { error: result === "limit" ? VARIOS_PEDIDOS : NO_PUDIMOS_ATENDER, email };
 }
@@ -109,20 +134,32 @@ function throttled(result: Exclude<ThrottleResult, "ok">, email: string): Portal
  * Pide el enlace de acceso al portal. Método ÚNICO de entrada (SDD-0094): el
  * cliente entra con su email, no con su Shipping Mark.
  *
- * Sólo manda a emails habilitados, pero **una vez que mira el correo responde igual
- * pase lo que pase** —sin cuenta, entregado o con el envío caído— para no confirmarle
- * a un enumerador qué correos son clientes. Por eso esa respuesta nunca afirma que
- * algo salió (SDD-0597).
+ * SDD-0672 · **mira el correo ANTES de mandar nada y dice en pantalla qué pasó**
+ * (decisión de Sam, 2026-11-18). Cuatro resultados:
+ *
+ *  - `enlace` → tiene acceso; salió el enlace de entrada.
+ *  - `crear_portal` → es cliente del ERP sin acceso al portal, y le salió a su
+ *    correo el enlace de autoservicio para crearlo (entrega 2, migración 0562).
+ *  - `sin_portal` → es cliente del ERP sin acceso al portal y el enlace de
+ *    autoservicio no aplica (o no salió). Se avisa al equipo y al cliente
+ *    (SDD-0279), como antes.
+ *  - `sin_comprobar` → es el correo de una cuenta que nació del link de registro
+ *    y su dueño todavía no lo comprobó (SDD-0646 D-1). No sale ningún enlace.
+ *  - `sin_cuenta` → no lo encontramos. No sale ningún correo: es lo que impide
+ *    que `/entrar` sirva para mandarle correo de DTD a un tercero cualquiera.
+ *
+ * 🔴 Esto deja averiguar si un correo es cliente de DTD Cargo; la SDD-0597 lo
+ * evitaba. Sam lo aceptó a sabiendas: `/registro` ya lo decía («Este correo ya
+ * tiene una cuenta…»). Lo que queda en pie son los dos cerrojos de abajo (8 por
+ * hora por origen y 5 por correo), que corren ANTES de mirar nada.
  *
  * SDD-0278 · el enlace se acuña como `token_hash` y lo mandamos nosotros, no Auth:
  * así funciona aunque el correo se abra en otro navegador, y queda en `mail_logs`.
  * El camino viejo sigue vivo abajo como plan B.
  *
- * ⚠️ Cambió un invariante: antes decía "el login nunca crea `auth.users`". Ahora
- * puede crearlo, pero **sólo** para un email que ya tiene fila en `client_users`
- * (`invited` o `active`) — o sea alguien a quien el equipo ya habilitó. Sin eso,
- * los 14 clientes en estado `invited` (ninguno con `auth_user_id`) no podían
- * entrar nunca por su cuenta: Auth no manda nada para un usuario que no existe.
+ * ⚠️ El login puede crear `auth.users`, pero **sólo** para un email que ya tiene
+ * fila en `client_users` (`invited` o `active`): alguien a quien el equipo ya
+ * habilitó.
  */
 export async function requestMagicLink(
   prev: PortalLoginState,
@@ -132,14 +169,27 @@ export async function requestMagicLink(
   if (!email || !email.includes("@") || email.length < 5) {
     return { error: "Ingresa un email válido." };
   }
+  // SDD-0672 · todas las respuestas, pase lo que pase con el correo, tardan al
+  // menos lo mismo (ver `lib/portal/tiempo-minimo.ts` y su límite). `finally`:
+  // una excepción (por ejemplo, un envío que tira) tampoco se salta el piso.
+  const inicio = Date.now();
+  try {
+    return await resolverPedido(prev, email);
+  } finally {
+    await esperarTiempoMinimo(inicio);
+  }
+}
 
+async function resolverPedido(
+  prev: PortalLoginState,
+  email: string,
+): Promise<PortalLoginState> {
   let admin;
   try {
     admin = createAdminClient();
   } catch {
     // SDD-0646 D-1 · sin el cliente admin no se puede preguntar si el correo
     // está sin comprobar, así que no sale ningún enlace por ningún camino.
-    // Falla igual para cualquier correo: no revela nada.
     return { error: NO_PUDIMOS_ATENDER, email };
   }
 
@@ -161,6 +211,10 @@ export async function requestMagicLink(
   );
   if (perEmail !== "ok") return throttled(perEmail, email);
 
+  // La dirección interna de una cuenta sin comprobar (`…@sin-comprobar.invalid`)
+  // no es de nadie: no recibe correo ni sirve para entrar.
+  if (esDominioInterno(email)) return conResultado(prev, "sin_cuenta", email);
+
   const { data: clientUser, error: clientUserError } = await admin
     .from("client_users")
     .select("id, tenant_id, email")
@@ -168,40 +222,50 @@ export async function requestMagicLink(
     .in("status", ["invited", "active"])
     .limit(1)
     .maybeSingle<{ id: string; tenant_id: string; email: string }>();
-  // Una consulta caída falla igual para cualquier correo: decirlo no revela nada.
+  // Una consulta caída no dice nada del correo: no se puede afirmar ningún caso.
   if (clientUserError) return { error: NO_PUDIMOS_ATENDER, email };
 
   // SDD-0646 D-1 · un correo que su dueño todavía no comprobó (cuenta que nació
-  // del link de registro) no recibe enlace de entrada. Se pregunta SIEMPRE, para
-  // cualquier correo y antes de bifurcar, y un correo así sigue el mismo camino
-  // que uno que no existe: mismas consultas, ningún envío, la misma respuesta.
-  // Si la consulta falla, falla para cualquier correo (no revela nada).
+  // del link de registro) no recibe enlace de entrada. Se pregunta SIEMPRE, antes
+  // de bifurcar. Si la consulta falla, no sale nada por ningún camino.
   const sinComprobar = await correoSinComprobar(admin, email);
   if (sinComprobar.estado === "error") return { error: NO_PUDIMOS_ATENDER, email };
   const bloqueado = sinComprobar.estado === "ok" && sinComprobar.bloquea;
   const pendiente = sinComprobar.estado === "ok" && sinComprobar.pendiente;
 
+  if (bloqueado) return conResultado(prev, "sin_comprobar", email);
+
   // `sameEmail` y no sólo la fila: `*` no se puede escapar (ver `email-literal.ts`).
   // Sin esto se le acuña un enlace y una cuenta de Auth al correo que escribió, sin
   // que el equipo lo haya habilitado.
-  if (bloqueado || !clientUser || !sameEmail(clientUser.email, email)) {
+  if (!clientUser || !sameEmail(clientUser.email, email)) {
+    // Un correo por comprobar SÍ tiene acceso (entró por WhatsApp): no es «cliente
+    // sin acceso», y no se le manda ningún correo desde aquí.
+    if (pendiente) return conResultado(prev, "sin_comprobar", email);
+
     // SDD-0279 · sin fila de acceso NO quiere decir "desconocido". La mayoría de
-    // los clientes vivos del ERP nunca fue invitada al portal: pedían el enlace
-    // y esperaban para siempre un correo que nadie mandaba.
-    //
-    // Si es cliente, se le avisa a él y al equipo, y un humano le devuelve el
-    // acceso por el flujo de invitación. NO se le manda a `/registro`: con
-    // documento cargado choca contra el dedup y vuelve acá (bucle), y sin
+    // los clientes vivos del ERP nunca fue invitada al portal. Si es cliente, se
+    // le avisa a él y al equipo, y un humano le devuelve el acceso. NO se le
+    // manda a `/registro`: con documento cargado choca contra el dedup, y sin
     // documento le emite un Shipping Mark nuevo que le parte el historial
     // (medido en `lib/studio/portal/sin-acceso.ts`).
-    //
-    // Si NO es cliente, no sale ningún correo. Es lo que impide que `/entrar`
-    // sirva para mandarle correo de DTD a un tercero cualquiera.
-    const cliente = await findClienteSinAcceso(admin, email);
-    // Un correo sin comprobar SÍ tiene acceso (por WhatsApp): no es «cliente sin
-    // acceso», y no se le manda ningún correo desde aquí.
-    if (cliente && !bloqueado && !pendiente) await avisarClienteSinAcceso(admin, cliente, email);
-    return requestReceived(prev, email);
+    const busqueda = await buscarClienteSinAcceso(admin, email);
+    // Sin poder preguntar, decir «no encontramos una cuenta» engañaría a un cliente.
+    if (busqueda.estado === "error") return { error: NO_PUDIMOS_ATENDER, email };
+    if (busqueda.cliente) {
+      // SDD-0672 entrega 2 · si la base lo permite (migración 0562), le llega a su
+      // correo un enlace para crear su portal, con la guarda de cédula o WhatsApp.
+      // Si no aplica, falta la migración o el correo no sale, queda el aviso al
+      // equipo de la SDD-0279, como en la entrega 1.
+      const link = await emitirLinkAutoservicio(admin, busqueda.cliente, email);
+      if (link.estado === "enviado") return conResultado(prev, "crear_portal", email);
+      const aviso = await avisarClienteSinAcceso(admin, busqueda.cliente, email);
+      return {
+        ...conResultado(prev, "sin_portal", email),
+        equipoAvisado: aviso?.avisadoEquipo === true,
+      };
+    }
+    return conResultado(prev, "sin_cuenta", email);
   }
 
   // 🔴 Para Auth, acuñar cuenta como envío: `generateLink` escribe
@@ -221,9 +285,11 @@ export async function requestMagicLink(
   });
   // Ya se acuñó: Auth no puede cubrirlo. El detalle queda en `mail_logs`, y de ahí
   // lo levanta `/api/cron/mail-health`; acá va sin el correo ni el texto del
-  // proveedor, que puede repetirlo.
+  // proveedor, que puede repetirlo. `queued` = registrado, NO enviado (nadie lo
+  // reintenta): tampoco salió.
   if (!sent.ok || sent.queued) {
     console.error("[entrar] el enlace no salió:", sent.ok ? "queued" : "failed");
+    return { error: NO_SALIO_EL_ENLACE, email };
   }
-  return requestReceived(prev, email);
+  return conResultado(prev, "enlace", email);
 }

@@ -16,7 +16,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { StatusIcon } from "@/components/StatusIcon";
 import { STATUS_LABELS } from "@/lib/shared/shipment-public";
-import { TONE_TO_VALUE_COLOR, type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
+import { type ChartPeriod, type KpiTone } from "@/lib/studio/dashboard/dashboard-catalog";
 import { CHART_PERIODS } from "@/lib/studio/dashboard/dashboard-catalog";
 import type { ActiveShipmentPreview, MonthlyVolumePoint } from "@/lib/studio/dashboard/dashboard-widget-queries";
 import type { KpiValue } from "@/lib/studio/dashboard/dashboard-kpi-queries";
@@ -70,7 +70,7 @@ export function ChartWidget({
     <WCard>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow">
             VOLUMEN RECIBIDO
           </div>
           <div style={{ font: "900 20px/1.1 var(--f-display)", color: "var(--ink)", marginTop: 6, letterSpacing: "-0.02em" }}>
@@ -102,7 +102,7 @@ export function ChartWidget({
             padding: "36px 16px",
             textAlign: "center",
             font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           Sin volumen registrado en el período.
@@ -129,13 +129,13 @@ export function ChartWidget({
             const isLast = i === points.length - 1;
             return (
               <g key={i}>
-                <rect x={x} y={y} width={w} height={Math.max(0, h)} fill="var(--wine)" opacity={isLast ? 1 : 0.5} rx="2" />
+                <rect x={x} y={y} width={w} height={Math.max(0, h)} fill="var(--ink)" opacity={isLast ? 1 : 0.4} rx="2" />
                 {isLast && pt.value > 0 && (
-                  <text x={x + w / 2} y={y - 6} fontFamily="var(--f-display)" fontSize="11" fill="var(--wine-text)" textAnchor="middle">
+                  <text x={x + w / 2} y={y - 6} fontFamily="var(--f-display)" fontSize="11" fill="var(--ink)" textAnchor="middle">
                     {pt.value}
                   </text>
                 )}
-                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-mute)" textAnchor="middle" letterSpacing="0.08em">
+                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle" letterSpacing="0.08em">
                   {pt.label}
                 </text>
               </g>
@@ -162,7 +162,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
       >
         <div>
           <div style={{ font: "900 14px/1 var(--f-display)", color: "var(--ink)" }}>Embarques en curso</div>
-          <div style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+          <div style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
             {items.length} activo(s) · recientes primero
           </div>
         </div>
@@ -171,7 +171,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
         </Link>
       </div>
       {items.length === 0 ? (
-        <div style={{ padding: "28px 20px", textAlign: "center", font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ padding: "28px 20px", textAlign: "center", font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           No hay embarques activos ahora mismo.
         </div>
       ) : (
@@ -196,7 +196,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
                 <div style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {s.clientName ?? "Sin cliente"}
                 </div>
-                <div style={{ font: "500 11px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 2 }}>
+                <div style={{ font: "500 11px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
                   {s.destination ?? "Destino —"}
                 </div>
               </div>
@@ -217,7 +217,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
   return (
     <WCard>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           PRÓXIMOS POR LLEGAR
         </div>
         <Link href="/studio/calendario" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
@@ -225,7 +225,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
         </Link>
       </div>
       {next.length === 0 ? (
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>Sin embarques activos.</div>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>Sin embarques activos.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {next.map((s) => (
@@ -242,7 +242,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
                 textDecoration: "none",
               }}
             >
-              <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>{Icon.ship(15)}</span>
+              <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>{Icon.ship(15)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "700 12px/1.2 var(--f-mono)", color: "var(--ink)" }}>{s.code}</div>
                 <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -264,7 +264,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
  * Franja de cada pendiente, como en `<Aviso>` (BRAND §Estados): el tono va en
  * el fondo suave y en la forma del icono; el texto, siempre en tinta. En
  * atención el icono va en tinta: el dorado no llega a 3:1 sobre su franja en
- * claro. `wine` y `neutral` no son estados: se leen como información.
+ * claro. `neutral` no es un estado: se lee como información.
  */
 const ESTADO_DE_ALERTA: Record<
   KpiTone,
@@ -274,18 +274,17 @@ const ESTADO_DE_ALERTA: Record<
   warning: { fondo: "var(--warning-bg)", icono: "warning", color: "var(--ink)" },
   success: { fondo: "var(--success-bg)", icono: "success", color: "var(--success)" },
   info: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
-  wine: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
   neutral: { fondo: "var(--info-bg)", icono: "info", color: "var(--info)" },
 };
 
 export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
   return (
     <WCard>
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 12 }}>
+      <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
         ATENCIÓN REQUERIDA
       </div>
       {alerts.length === 0 ? (
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           Todo en orden. Sin pendientes críticos.
         </div>
       ) : (
@@ -347,7 +346,7 @@ export function QuickActionsWidget() {
   ];
   return (
     <WCard>
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 12 }}>
+      <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
         ACCIONES RÁPIDAS
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -389,7 +388,7 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
   return (
     <WCard>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           NÓMINA · RESUMEN
         </div>
         <Link href="/studio/nomina" className="studio-btn studio-btn-ghost studio-btn-xs" style={{ textDecoration: "none" }}>
@@ -399,8 +398,8 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {stats.map((s) => (
           <div key={s.label} style={{ padding: "10px 0" }}>
-            <div style={{ font: "800 17px/1 var(--f-display)", color: TONE_TO_VALUE_COLOR[s.v.tone ?? "neutral"] }}>{s.v.value}</div>
-            <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>{s.label}</div>
+            <div style={{ font: "800 17px/1 var(--f-display)", color: "var(--ink)" }}>{s.v.value}</div>
+            <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginTop: 5 }}>{s.label}</div>
           </div>
         ))}
       </div>

@@ -50,7 +50,13 @@
  *   - Editar (form drawer normal con submit estándar)
  */
 
-import { useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { useT } from "@/lib/i18n";
 
 const DEFAULT_SUCCESS_MS = 2500;
@@ -126,6 +132,23 @@ export function ActionButton({
   const effectiveLoadingLabel = loadingLabel ?? t("chrome.action.processing");
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
+  // Temporizador del flash de éxito: se limpia al desmontar para que no
+  // dispare setState sobre un botón que ya no existe (ni sobre un jsdom
+  // cerrado en las pruebas).
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // `onAction` es async: puede terminar DESPUÉS del desmontaje (el cleanup de abajo ya corrió). Sin este flag, el
+  // temporizador se crearía igual sobre un botón muerto y volvería el rojo falso del CI.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleClick = () => {
     if (isPending || success || disabled) return;
@@ -138,9 +161,13 @@ export function ActionButton({
           return;
         }
         onSuccess?.();
-        if (successLabel != null) {
+        if (successLabel != null && mountedRef.current) {
           setSuccess(true);
-          setTimeout(() => setSuccess(false), successMs);
+          if (successTimerRef.current) clearTimeout(successTimerRef.current);
+          successTimerRef.current = setTimeout(() => {
+            successTimerRef.current = null;
+            setSuccess(false);
+          }, successMs);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

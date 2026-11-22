@@ -10,14 +10,14 @@
  * cualquier etapa con teclado o con el dedo. El verbo de etapa vive en la misma
  * tarjeta, igual que `StageControl`, porque un kanban que no mueve nada enseña
  * que la pantalla no sirve (SDD-0256). SDD-0648: el menú reemplaza al selector
- * y al botón «Abrir» para que la tarjeta quepa en dos líneas.
+ * para que la tarjeta quepa en dos líneas. SDD-0671: sin botón «Abrir»; toda la
+ * tarjeta abre la ficha.
  *
  * Es presentacional: quien la monta decide qué hacer con `onMove` (pedir
  * motivo si la etapa es de cierre, llamar a la acción, avisar).
  */
 
 import { useRef, useState, type DragEvent } from "react";
-import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/app/studio/_components/ui/ActionMenu";
 import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
@@ -125,8 +125,8 @@ export function CrmTableroKanban({
               onDrop={(e) => canEdit && soltar(e, etapa)}
               style={{
                 minWidth: 0,
-                background: encima ? "var(--wine-tint)" : "var(--bg-surface)",
-                border: `1px ${encima ? "dashed var(--wine)" : "solid var(--border)"}`,
+                background: encima ? "var(--accion-tint)" : "var(--bg-surface)",
+                border: `1px ${encima ? "dashed var(--accion)" : "solid var(--border)"}`,
                 borderRadius: "var(--r-lg)",
                 overflow: "hidden",
                 display: "flex",
@@ -244,13 +244,18 @@ export function CrmTableroKanban({
 }
 
 /**
- * Tarjeta compacta (SDD-0648 §1). Dos líneas y una sola acción visible:
- *   1. logo del canal + nombre (abre la ficha; es parada de teclado otra vez);
+ * Tarjeta compacta (SDD-0648 §1, SDD-0671). Dos líneas y una sola acción visible:
+ *   1. logo del canal + nombre (abre la ficha; es la parada de teclado);
  *   2. segmento o Shipping Mark · dueño · días;
  *   3. solo si existen: tareas y de dónde vino.
  * «Mover», «Abrir ficha» y «Abrir chat» viven en un `ActionMenu` de 32 × 32
  * (BTN-01 §7, BD-037): nada oprimible baja de 32 px y la fila de controles ya
  * no ocupa media tarjeta.
+ *
+ * SDD-0671 (Sam: «eso de abrir está muy grande. Elimínalo, porque ya al oprimir
+ * se abre automáticamente»): no hay botón «Abrir». Un clic en cualquier parte
+ * de la tarjeta que no sea el menú abre la ficha; con teclado, el nombre es un
+ * botón con nombre accesible «Abrir ficha de …» (Enter o Espacio).
  */
 function TarjetaCard({
   tarjeta: t,
@@ -313,6 +318,13 @@ function TarjetaCard({
       }}
       onDragEnd={onDragEnd}
       aria-busy={enCurso}
+      onClick={(e) => {
+        // SDD-0671: toda la tarjeta abre la ficha, salvo los controles propios
+        // (el nombre ya llama a `onOpen`; el menú hace lo suyo).
+        if (enCurso) return;
+        if ((e.target as HTMLElement).closest("button, a, [role='menu'], [role='menuitem']")) return;
+        onOpen();
+      }}
       className="studio-row-hover"
       style={{
         background: "var(--bg-base)",
@@ -320,20 +332,20 @@ function TarjetaCard({
         borderRadius: "var(--r-md)",
         padding: "var(--s-1) var(--s-1) var(--s-1) var(--s-2)",
         opacity: enCurso ? 0.6 : 1,
-        cursor: canEdit && !enCurso ? "grab" : "default",
+        cursor: enCurso ? "default" : canEdit ? "grab" : "pointer",
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr) auto",
         columnGap: "var(--s-1)",
         alignItems: "center",
       }}
     >
-      {/* SDD-0648 (/ui-check): el nombre abre la ficha con el ratón y abarca las
-          dos líneas, así es un objetivo de 32 px (BD-037). Sale del Tab: la
-          parada de teclado y de lector es «Abrir», a la derecha (SDD-0603 5d).
-          Un clic fantasma tras soltar lo descarta `onOpen`. */}
+      {/* SDD-0648 (/ui-check): el nombre abre la ficha y abarca las dos líneas,
+          así es un objetivo de 32 px (BD-037). SDD-0671: vuelve a ser la parada
+          de teclado y de lector («Abrir ficha de …»), porque ya no hay botón
+          «Abrir». Un clic fantasma tras soltar lo descarta `onOpen`. */}
       <button
         type="button"
-        tabIndex={-1}
+        aria-label={`Abrir ficha de ${nombre}`}
         onClick={onOpen}
         className="studio-link-quiet"
         style={{
@@ -354,6 +366,10 @@ function TarjetaCard({
       >
         <span style={{ display: "flex", alignItems: "center", gap: "var(--s-1)", minWidth: 0 }}>
           {canal && <CanalLogo canal={canal} />}
+          {/* SDD-0676: los otros canales vinculados a la ficha del cliente. */}
+          {(t.canalesExtra ?? []).map((c) => (
+            <CanalLogo key={c} canal={c} />
+          ))}
           <span
             style={{
               minWidth: 0,
@@ -421,20 +437,7 @@ function TarjetaCard({
             Moviendo…
           </span>
         ) : (
-          <>
-            {/* No es arrastrable por sí mismo: la tarjeta lo es. Un clic no
-                inicia arrastre, y el clic fantasma tras soltar lo descarta `onOpen`. */}
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-sm"
-              aria-label={`Abrir ficha de ${nombre}`}
-              onClick={onOpen}
-            >
-              Abrir
-              {Icon.chevR(14)}
-            </button>
-            <ActionMenu items={acciones} ariaLabel={`Acciones de ${nombre}`} align="end" size="sm" />
-          </>
+          <ActionMenu items={acciones} ariaLabel={`Acciones de ${nombre}`} align="end" size="sm" />
         )}
       </div>
 

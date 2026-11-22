@@ -162,6 +162,7 @@ export type ContenedorVista = {
   etaFuente: "naviera" | "itinerario" | null;
   diasRestantes: number | null;
   progreso: number;
+  /** Clientes distintos del contenedor, no ítems: un cliente con tres cargas cuenta una vez. */
   clientes: number;
   usedCbm: number;
   capCbm: number | null;
@@ -312,6 +313,22 @@ export function nombreDelContenedor(c: Pick<ContenedorCrudo, "ref" | "container_
   return c.ref ?? c.container_no ?? "Contenedor sin referencia";
 }
 
+/**
+ * Clientes distintos entre los ítems de un contenedor. Misma llave que
+ * Embarques (`embarques-contenedores.ts`): el Shipping Mark o, si falta, el
+ * nombre. Así las dos pantallas dan el mismo número para el mismo contenedor.
+ */
+export function contarClientes(
+  items: readonly Pick<ItemCrudo, "client_markbox" | "client_name">[],
+): number {
+  return new Set(
+    items.map(
+      (it) =>
+        it.client_markbox?.trim() || `__name:${(it.client_name ?? "").trim().toLowerCase()}`,
+    ),
+  ).size;
+}
+
 export function armarContenedor(
   c: ContenedorCrudo,
   items: readonly ItemCrudo[],
@@ -368,7 +385,7 @@ export function armarContenedor(
     etaFuente: etaNaviera ? "naviera" : eta ? "itinerario" : null,
     diasRestantes: grupo === "mar" || grupo === "origen" ? diasHasta(eta, ahora) : null,
     progreso: progresoDelContenedor(grupo, statusEnvio, posicion),
-    clientes: clientes.length,
+    clientes: contarClientes(items),
     usedCbm: clientes.reduce((s, x) => s + (Number(x.cbm) || 0), 0),
     capCbm: cap,
     alertas: estados.filter((s) => s !== null && ESTADOS_DE_ALERTA.has(s)).length,

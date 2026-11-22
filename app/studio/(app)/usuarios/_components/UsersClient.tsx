@@ -347,7 +347,13 @@ export function UsersClient({
 
       {tab === "bandeja" ? (
         agentesBandeja ? (
-          <AgentesBandeja vinculos={agentesBandeja.vinculos} miembros={agentesBandeja.miembros} salud={agentesBandeja.salud} />
+          <AgentesBandeja
+            vinculos={agentesBandeja.vinculos}
+            miembros={agentesBandeja.miembros}
+            salud={agentesBandeja.salud}
+            agentes={agentesBandeja.agentes}
+            agentesCompletos={agentesBandeja.agentesCompletos}
+          />
         ) : (
           <EmptyState
             title="No pudimos leer los agentes de la Bandeja"

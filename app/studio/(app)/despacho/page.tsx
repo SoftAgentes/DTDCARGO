@@ -19,7 +19,7 @@ import { rankPackagesByScore } from "@/lib/studio/dispatch-scoring";
 import { parseDispatchFilters } from "@/lib/studio/dispatch-types";
 import { DispatchClient } from "./_components/DispatchClient";
 
-export const metadata = { title: "Despacho · DTD Studio" };
+export const metadata = { title: "Despacho" };
 
 type SearchParams = { [key: string]: string | string[] | undefined };
 
@@ -89,7 +89,7 @@ export default async function DispatchPage({
             según las{" "}
             <a
               href="/studio/despacho/reglas"
-              style={{ color: "var(--wine-text)", textDecoration: "underline" }}
+              style={{ color: "var(--accion-text)", textDecoration: "underline" }}
             >
               reglas
             </a>{" "}

@@ -150,6 +150,8 @@ export function AccesoPanel({
     const lista = [...cambios];
     startTransition(async () => {
       let guardados = 0;
+      // SDD-0675: guardado pero Chatwoot pendiente (Bandeja). Se avisa una vez.
+      let aviso: string | null = null;
       for (const c of lista) {
         const g = porId.get(c.moduleId);
         const res =
@@ -173,14 +175,17 @@ export function AccesoPanel({
             `${c.label}: ${res.error}${guardados > 0 ? ` Los ${guardados === 1 ? "cambio anterior quedó guardado" : `${guardados} cambios anteriores quedaron guardados`}.` : ""}`,
           );
           if (guardados > 0) setResultado(`${guardados} ${guardados === 1 ? "cambio guardado" : "cambios guardados"} para ${persona}.`);
+          if (aviso) toast.warning(aviso);
           return;
         }
+        if (res.aviso) aviso = res.aviso;
         guardados += 1;
       }
       setPendientes({});
       const msg = `${guardados} ${guardados === 1 ? "cambio guardado" : "cambios guardados"} para ${persona}.`;
-      setResultado(msg);
+      setResultado(aviso ? `${msg} ${aviso}` : msg);
       toast.success(msg);
+      if (aviso) toast.warning(aviso);
     });
   }
 
@@ -324,7 +329,9 @@ const SIN_CONEXION = "No se pudo guardar: se cortó la conexión. Revisa tu red 
  * `{ error }`: sin esto el usuario no vería nada. Se traduce al mismo formato
  * de error del panel.
  */
-async function llamar(fn: () => Promise<{ ok?: true; error?: string }>): Promise<{ ok?: true; error?: string }> {
+type ResultadoAccion = { ok?: true; error?: string; aviso?: string };
+
+async function llamar(fn: () => Promise<ResultadoAccion>): Promise<ResultadoAccion> {
   try {
     return await fn();
   } catch {

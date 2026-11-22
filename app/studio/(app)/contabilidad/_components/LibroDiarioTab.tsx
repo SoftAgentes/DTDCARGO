@@ -202,7 +202,7 @@ export function LibroDiarioTab({
               <span>{aviso}</span>
               <a
                 href={enlaceDelDiario()}
-                style={{ color: "var(--wine-text)", fontWeight: 700 }}
+                style={{ color: "var(--accion-text)", fontWeight: 700 }}
               >
                 {ROTULO_DIARIO_CSV}
               </a>
@@ -417,7 +417,7 @@ export function LibroDiarioTab({
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     —

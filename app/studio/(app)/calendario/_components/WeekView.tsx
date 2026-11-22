@@ -10,10 +10,12 @@
 import {
   buildMonthGrid,
   fairsForDate,
+  dayCellLabel,
   holidaysForDate,
   type MonthCursor,
 } from "@/lib/studio/calendar-helpers";
 import type { Fair, Holiday } from "@/lib/studio/calendar-data";
+import { Icon } from "@/app/studio/_components/icons";
 import {
   EVENT_TYPE_META,
   groupEventsByDate,
@@ -59,11 +61,11 @@ export function WeekView({
             type="button"
             key={cell.isoDate}
             onClick={() => onDayClick(cell.isoDate)}
-            aria-label={`Ver eventos del ${cell.isoDate}`}
+            aria-label={dayCellLabel(cell.isoDate, dayHolidays, dayFairs.length, dayEvents.length)}
             className="studio-cal-daycell"
             style={{
               background: "var(--bg-surface)",
-              border: `1px solid ${isToday ? "var(--wine)" : "var(--border)"}`,
+              border: `1px solid ${isToday ? "var(--ink)" : "var(--border)"}`,
               borderRadius: 8,
               padding: "var(--s-3)",
               minHeight: 340,
@@ -88,7 +90,7 @@ export function WeekView({
             <div
               style={{
                 font: "900 22px/1 var(--f-display)",
-                color: isToday ? "var(--wine)" : "var(--ink)",
+                color: "var(--ink)",
                 marginBottom: "var(--s-1)",
               }}
             >
@@ -106,15 +108,23 @@ export function WeekView({
                       h.country === "CN"
                         ? "var(--cal-cn-soft)"
                         : "var(--cal-ve-soft)",
+                    // Crítico = la operación en China se para: barra en peligro,
+                    // ícono y la palabra, como en el mes (SDD-0686).
                     borderLeft: `3px solid ${
-                      h.country === "CN" ? "var(--wine)" : "var(--success)"
+                      h.critical ? "var(--danger)" : h.country === "CN" ? "var(--warning)" : "var(--success)"
                     }`,
                     font: "600 10.5px/1.3 var(--f-sans)",
                     fontFamily: "var(--f-sans), var(--f-cn)",
                     color: "var(--ink)",
                   }}
                 >
+                  {h.critical && (
+                    <span aria-hidden style={{ color: "var(--danger)", display: "inline-flex", verticalAlign: "-1px", marginRight: 4 }}>
+                      {Icon.warn(10)}
+                    </span>
+                  )}
                   Feriado {h.country} · {h.shortName}
+                  {h.critical && " · crítico"}
                 </span>
               ))}
               {dayFairs.map((f) => (

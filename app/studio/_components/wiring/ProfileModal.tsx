@@ -827,7 +827,7 @@ function PrefCheck({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
-        style={{ marginTop: 1, accentColor: "var(--wine)", cursor: "inherit" }}
+        style={{ marginTop: 1, accentColor: "var(--accion)", cursor: "inherit" }}
       />
       <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <span
@@ -1263,7 +1263,7 @@ function TelegramSection({
             rel="noopener noreferrer"
             style={{
               font: "700 12.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               wordBreak: "break-all",
             }}
           >

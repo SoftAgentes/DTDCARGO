@@ -5,6 +5,7 @@
  * Click → entra a la pantalla de scan del receipt.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/db/admin";
@@ -82,7 +83,7 @@ export default async function ReceptionListPage() {
             <div
               style={{
                 font: "700 9.5px/1 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--ink-soft)",
                 letterSpacing: "0.16em",
                 textTransform: "uppercase",
               }}
@@ -162,7 +163,7 @@ function ReceiptCard({
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderLeft: `4px solid ${
-          isActive ? "var(--wine)" : "var(--border-strong)"
+          isActive ? "var(--ink)" : "var(--border-strong)"
         }`,
         borderRadius: "var(--r-md)",
         textDecoration: "none",
@@ -179,7 +180,7 @@ function ReceiptCard({
           alignItems: "center",
         }}
       >
-        <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+        <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
           {receipt.receipt_code}
         </code>
         <Badge tone={tone} size="sm">
@@ -219,7 +220,7 @@ function ReceiptCard({
         {receipt.port && <span>📍 {receipt.port}</span>}
         {receipt.eta && <span>ETA {receipt.eta}</span>}
         <span>{receipt.expected_boxes} cj</span>
-        {receipt.expected_cbm != null && <span>{Number(receipt.expected_cbm).toFixed(1)} cbm</span>}
+        {receipt.expected_cbm != null && <span>{formatCbm(Number(receipt.expected_cbm))} cbm</span>}
       </div>
 
       {/* Progress bar */}
@@ -251,7 +252,7 @@ function ReceiptCard({
             style={{
               width: `${pct}%`,
               height: "100%",
-              background: pct === 100 ? "var(--success)" : "var(--wine)",
+              background: pct === 100 ? "var(--success)" : "var(--ink)",
               transition: "width var(--dur) var(--ease)",
             }}
           />

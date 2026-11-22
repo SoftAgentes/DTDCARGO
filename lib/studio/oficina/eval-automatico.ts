@@ -1,24 +1,30 @@
 /**
  * SDD-0626 Anexo A §A.7 · Lo automatizable de eval.md, antes de guardar un borrador.
  *
- * - `sin_acuse`: el texto no empieza con el acuse (la primera frase que confirma lo que se entendió).
+ * - `sin_acuse`: el texto no empieza con el acuse (la primera frase que confirma lo que se entendió). Se comparan
+ *   las palabras, sin signos ni tildes (`empiezaConAcuse`). Es el único código que el despachador deja reintentar,
+ *   una vez: los demás escalan al momento.
  * - `guion_desconocido`: el guion no es uno de los aprobados (guiones-soporte.ts).
  * - `dato_inventado`: aparece una cifra, un monto, una fecha o un plazo, un estado de envío o una promesa que
  *   no está en el texto del guion usado. En el Paso 3a el agente no ve el sistema de envíos, así que la única
  *   fuente permitida es el guion. Conservador a propósito: ante la duda, se escala.
  * - `datos_personales`: el texto trae un correo, teléfono, cédula, RIF o dirección (la regla del cable).
  * - `enlace` (Paso 3b): el texto trae una URL o un dominio que no está en el guion usado (`enlacesAjenos`).
+ * - `marcador` (SDD-0700): el texto trae un marcador de dato tapado («[teléfono]», «[correo]»…). La entrada del agente
+ *   llega tapada; un borrador con un marcador le diría al cliente «[teléfono]» en vez de responderle.
  *
  * Cualquier código → el despachador escala en vez de guardar la respuesta. Lo que eval.md pide y no se puede
  * automatizar (cierre en ≤ 3 intercambios, tono) lo revisa Sam en la aprobación.
  */
 import { detectorDelCable } from "./cable-textos";
+import { tieneMarcador } from "./datos-personales";
 import type { Guion } from "./guiones-soporte";
 import type { SalidaAgente } from "./salida-agente";
 
-export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace";
+export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace" | "marcador";
 
-function normal(s: string): string {
+/** Exportada solo para las pruebas de los guiones (SDD-0705 v0.4, M2): mismo texto normalizado que usa la revisión. */
+export function normal(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -31,7 +37,7 @@ const MESES = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|seti
 const DIAS = "lunes|martes|miercoles|jueves|viernes|sabado|domingo";
 
 /** Lo que solo puede venir del sistema o de un guion. Se busca sobre el texto normalizado (sin tildes). */
-const PATRONES: readonly RegExp[] = [
+export const PATRONES: readonly RegExp[] = [
   /\d+(?:[.,:/-]\d+)*/g, // cifras, montos, fechas, horas, guías
   /(?:us)?\$|\bbs\.?(?=\s|$)|\bbolivares?\b|\bdolares?\b|\busd\b|\beuros?\b|\byuan(?:es)?\b/g, // dinero
   new RegExp(`\\b(?:${MESES}|${DIAS}|manana|pasado manana|esta semana|la proxima semana|el proximo mes|hoy mismo)\\b`, "g"),
@@ -40,26 +46,61 @@ const PATRONES: readonly RegExp[] = [
   /\b(?:te garantizo|garantizado|te prometo|seguro que llega|llegara|llega el|estara listo|sin costo|gratis|reembolso|descuento|te devolvemos)\b/g,
 ];
 
+/** Solo letras y números, en minúsculas y sin tildes: «¡Hola! Gracias…» y «Hola, gracias…» son la misma frase. */
+function soloPalabras(s: string): string {
+  return normal(s)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * ¿El texto EMPIEZA con el acuse? Se comparan las palabras, no los signos: una coma o un «¡» de diferencia entre los
+ * dos campos no es «sin acuse» (etapa 1, 18/11/2026: un saludo simple escaló por eso). Sigue fallando si el acuse va
+ * vacío, si solo trae signos, si el texto empieza con otra cosa o si el acuse aparece más adelante y no al inicio.
+ */
+export function empiezaConAcuse(texto: string, acuse: string): boolean {
+  const a = soloPalabras(acuse);
+  const t = soloPalabras(texto);
+  return a.length > 0 && (t === a || t.startsWith(`${a} `));
+}
+
+/**
+ * SDD-0705 v0.4: lo que queda del texto (ya normalizado) al quitarle las frases del guion copiadas tal cual. Una cifra
+ * o una fecha solo se permite DENTRO de su frase del guion: «en general estamos entre 60 y 90 días» pasa, pero un
+ * «60» en otra frase («cuesta 60», «llega en 60 días») queda en el resto y escala. Antes bastaba con que la cifra
+ * apareciera en cualquier parte del guion. Las frases se cortan tras «.», «?» o «!» (no tras «1.» de una lista) y en
+ * cada salto de línea; se quitan de la más larga a la más corta.
+ */
+export function sinFrasesDelGuion(textoNormal: string, textoGuion: string): string {
+  const frases = textoGuion
+    .split(/(?<=\D[.?!])\s+|\n/)
+    .map(normal)
+    .filter((f) => f.length > 0)
+    .sort((a, b) => b.length - a.length);
+  let resto = textoNormal;
+  for (const f of frases) resto = resto.split(f).join(" ");
+  return resto;
+}
+
 export function revisarRespuesta(
   r: Extract<SalidaAgente, { tipo: "respuesta" }>,
   guiones: readonly Guion[],
 ): CodigoEval[] {
   const codigos: CodigoEval[] = [];
   const texto = normal(r.texto);
-  const acuse = normal(r.acuse);
-  if (!acuse || !texto.startsWith(acuse)) codigos.push("sin_acuse");
+  if (!empiezaConAcuse(r.texto, r.acuse)) codigos.push("sin_acuse");
 
   const guion = guiones.find((g) => g.id === r.guion);
   if (!guion) codigos.push("guion_desconocido");
 
-  const permitido = guion ? normal(guion.texto) : "";
-  const inventado = PATRONES.some((patron) =>
-    [...texto.matchAll(new RegExp(patron.source, patron.flags))].some((m) => !permitido.includes(m[0].trim())),
-  );
+  const resto = sinFrasesDelGuion(texto, guion?.texto ?? "");
+  const inventado = PATRONES.some((patron) => new RegExp(patron.source, patron.flags).test(resto));
   if (inventado) codigos.push("dato_inventado");
 
   if (detectorDelCable(r.texto)) codigos.push("datos_personales");
   if (enlacesAjenos(r.texto, guion?.texto ?? "").length > 0) codigos.push("enlace");
+  if (tieneMarcador(r.texto)) codigos.push("marcador");
   return codigos;
 }
 

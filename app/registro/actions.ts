@@ -62,6 +62,7 @@ import {
 import { linkReferralOnRegister } from "@/lib/portal/referral-link";
 import {
   duplicateFieldError,
+  REGISTRO_YA_ERES_CLIENTE,
   validateRegisterInput,
   type RegisterActionState,
   type RegisterInput,
@@ -289,8 +290,7 @@ export async function registerClientAction(
     if (clientErr?.code === "23505") {
       return {
         fieldErrors: {
-          document:
-            "Este documento ya tiene una cuenta en DTD Cargo. Entra con tu Shipping Mark o pide recuperar tu contraseña.",
+          document: `Este documento ya tiene una cuenta en DTD Cargo. ${REGISTRO_YA_ERES_CLIENTE}`,
         },
       };
     }
@@ -377,15 +377,17 @@ export async function registerClientAction(
     if (msg.includes("already") || msg.includes("registered")) {
       return {
         markbox,
+        // SDD-0672 · no existe «entrar con el Shipping Mark» ni «recuperar la
+        // contraseña»: con otra cuenta en ese correo, el acceso lo arregla el equipo.
         warning:
-          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entra con tu Shipping Mark o pide recuperar tu contraseña.",
+          "Tu cuenta quedó creada con tu Shipping Mark, pero ese correo ya tenía otra cuenta y no pudimos activar tu acceso al portal. Escríbenos por WhatsApp y lo resolvemos.",
       };
     }
     console.error("[registerClientAction] createUser error:", authErr);
     return {
       markbox,
       warning:
-        "Tu cuenta quedó creada con tu Shipping Mark, pero no pudimos activar el login automático. Pide recuperar tu contraseña desde el login.",
+        "Tu cuenta quedó creada con tu Shipping Mark, pero no pudimos activar tu acceso al portal. Escríbenos por WhatsApp y lo activamos.",
     };
   }
 

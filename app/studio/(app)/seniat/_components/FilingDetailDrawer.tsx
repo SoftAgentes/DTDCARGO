@@ -222,7 +222,7 @@ export function FilingDetailDrawer({
               {shipment.client_markbox && (
                 <>
                   {" · "}
-                  <code style={{ color: "var(--wine-text)" }}>
+                  <code style={{ color: "var(--ink)" }}>
                     {shipment.client_markbox}
                   </code>
                 </>
@@ -290,7 +290,7 @@ export function FilingDetailDrawer({
                 <span
                   style={{
                     font: "700 11px/1 var(--f-sans)",
-                    color: "var(--wine-soft)",
+                    color: "var(--ink-side)",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                   }}
@@ -432,7 +432,7 @@ export function FilingDetailDrawer({
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {filing.hs_codes.map((code) => (
-                  <Badge key={code} tone="wine" size="md">
+                  <Badge key={code} tone="neutral" size="md">
                     {code}
                   </Badge>
                 ))}
@@ -460,7 +460,7 @@ export function FilingDetailDrawer({
                 <Avatar
                   initials={initialsFrom(agent.contact_name ?? agent.name)}
                   size={44}
-                  color="wine"
+                  color="neutral"
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
@@ -556,7 +556,7 @@ export function FilingDetailDrawer({
                       background: t.done
                         ? "var(--success)"
                         : "var(--bg-elevated)",
-                      color: t.done ? "var(--ink-inv)" : "var(--ink-mute)",
+                      color: t.done ? "var(--ink-inv)" : "var(--ink-soft)",
                       border: `2px solid ${t.done ? "var(--success)" : "var(--border-strong)"}`,
                       display: "flex",
                       alignItems: "center",

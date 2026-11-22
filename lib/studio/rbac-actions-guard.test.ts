@@ -252,19 +252,23 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // el estado de la guía por usuario.
   // SDD-0625 sumó `marketing/noticias-web/publicadas/actions.ts` (81 → 82, exactos
   // 57 → 58): corregir, retirar y volver a publicar noticias del sitio.
-  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
+  // SDD-0626 (Paso 3b) sumó `admin/oficina-virtual/actions.ts` (82 → 83, exactos 58 → 59): la revisión de Sam de los
   // borradores del agente.
   // SDD-0652 fase 2 sumó `nomina/empleados/[codigo]/actions.ts` (83 → 84, exactos
   // 59 → 60): enlace, foto y revelado de la cuenta en la ficha del empleado.
   // SDD-0650 F2 sumó `clientes/conversaciones-actions.ts` (84 → 85, con prefijo 24 → 25): unir y quitar un chat
   // de la ficha.
-  it("la superficie escaneada es la esperada (85 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0676 sumó `bandeja/vincular-actions.ts` (85 → 86, con prefijo 25 → 26): buscar un cliente y vincularle el
+  // chat desde la Ficha DTD.
+  // SDD-0674 sumó `embarques/facturar-actions.ts` (86 → 87, con prefijo 26 → 27): «Facturar» del contenedor 64.
+  // SDD-0704 F1-A sumó `admin/ia/actions.ts` (87 → 88, exactos 60 → 61): la pantalla «IA» del superadministrador.
+  it("la superficie escaneada es la esperada (88 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 85,
-      exactos: 60,
-      conPrefijo: 25,
+      total: 88,
+      exactos: 61,
+      conPrefijo: 27,
     });
   });
 
@@ -397,10 +401,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `getFichaEmpleadoAccess` (rol admin/accounting activo, que deja fuera al
   // acceso extra) y la ficha se devuelve solo si es del tenant de esa membresía,
   // con la cuenta enmascarada. La RLS de Nómina (0160) repite el candado de rol.
-  // SDD-0626 (Paso 3b) sumó `admin/oficina/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
+  // SDD-0626 (Paso 3b) sumó `admin/oficina-virtual/actions.ts::revisarBorradorAction` (477 → 478): `moduleEditDenial(supabase,
   // "admin")` y `platformAdminDenial` antes de leer nada; escribe SOLO por la RPC `office_revisar_borrador` (0549), que
   // repite `is_platform_admin()`.
-  // SDD-0626 (0558) sumó `admin/oficina/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
+  // SDD-0626 (0558) sumó `admin/oficina-virtual/actions.ts::registrarCierreAction` (478 → 479): los mismos dos candados al tope
   // y escribe SOLO por la RPC `office_registrar_cierre` (0558), que repite `is_platform_admin()`; revisarBorradorAction
   // pasa a `office_revisar_borrador_v2`.
   // SDD-0652 fase 2 sumó seis (479 → 485):
@@ -424,11 +428,35 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `moduleEditGate(supabase, "bandeja")` al tope y el tenant dueño de la cuenta de Chatwoot; escriben SOLO por las
   // RPC `chatwoot_unir_contacto_manual` y `chatwoot_quitar_union` (0554, solo service_role), llamadas con el cliente
   // de servicio después del candado, que vuelven a comprobar al actor, el tenant y la ficha, y auditan.
-  // SDD-0626 (botón de pausa) sumó `admin/oficina/actions.ts::cambiarPausaAction` (488 → 489): los mismos dos candados
-  // al tope (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`) y escribe SOLO por la RPC
+  // SDD-0676 sumó `bandeja/vincular-actions.ts::buscarClientesParaVincular` y `::vincularContactoDeConversacion`
+  // (488 → 490): `moduleEditGate(supabase, "bandeja")` al tope y, después, el módulo encendido, el módulo Clientes y
+  // el tenant dueño de la cuenta de Chatwoot. Buscar lee con el cliente de sesión (RLS de `clients`). Vincular escribe
+  // SOLO por la RPC `chatwoot_vincular_contacto` (solo service_role), llamada con el cliente de servicio después de los
+  // candados, que vuelve a comprobar al actor, el tenant y la ficha, y audita.
+  // SDD-0673 sumó cinco en `tracking/[id]/actions.ts` (490 → 495):
+  // `::previewCorrectShipmentMeasures`, `::correctShipmentMeasures`, `::previewSplitShipment` y
+  // `::splitShipment` llaman a `capabilityDenial(supabase, "correct_shipment_measures" | "split_shipment")`
+  // antes de leer nada y escriben SOLO por las RPC `correct_shipment_measures` y `split_shipment` (0563),
+  // que repiten operations/admin activo y el tenant de la sesión. `::updateShipmentGroupReference`
+  // llama a `moduleEditDenial(supabase, "tracking")` al tope y escribe una sola columna nota por la RLS.
+  // SDD-0674 sumó `embarques/facturar-actions.ts::facturarExc0674Action` (495 → 496):
+  // `moduleEditDenial(supabase, "invoices")` al tope y después `rolFacturaExc0674` (solo accounting y
+  // admin; Sam, 2026-11-18). Escribe SOLO por la RPC `exc0674_facturar` (0564, security definer), que
+  // repite en la base el rol, el tenant y la lista transitoria y deja el evento en la misma transacción.
+  // El cliente de servicio se usa después, solo para el correo.
+  // SDD-0690 sumó `embarques/facturar-actions.ts::emitirPreordenesExc0674Action` (496 → 497): los mismos
+  // candados al tope (`moduleEditDenial(supabase, "invoices")` y `rolFacturaExc0674`). Escribe SOLO por la
+  // RPC `exc0674_emitir_borradores` (0569, security definer), que repite rol, tenant, lista transitoria y
+  // estado `borrador`, y deja el evento en la misma transacción. El cliente de servicio, solo para el correo.
+  // SDD-0704 F1-A sumó `admin/ia/actions.ts::guardarTopeAction`, `quitarTopeAction`, `guardarCuentaAction`,
+  // `guardarModeloAction` y `quitarModeloAction` (497 → 502): `moduleEditDenial(supabase, "admin")` al tope, luego
+  // `platformAdminDenial` y la reautenticación con contraseña si afloja el freno. Escriben SOLO por las RPC de la 0570
+  // (security definer), que repiten superadministrador, tenant, motivo y barrera, y dejan el evento `ia_config`.
+  // SDD-0626 (botón de pausa) sumó `admin/oficina-virtual/actions.ts::cambiarPausaAction` (502 → 503): los mismos dos
+  // candados al tope (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`) y escribe SOLO por la RPC
   // `office_cambiar_pausa` (0541), con la sesión del usuario, que repite `is_platform_admin()` y exige el motivo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(489);
+    expect(reportes.length).toBe(503);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

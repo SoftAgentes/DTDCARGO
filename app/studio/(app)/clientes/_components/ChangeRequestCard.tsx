@@ -106,7 +106,7 @@ export function ChangeRequestCard({
               >
                 {d.from ?? "—"}
               </span>
-              <span aria-hidden style={{ color: "var(--ink-mute)" }}>
+              <span aria-hidden style={{ color: "var(--ink-soft)" }}>
                 →
               </span>
               <span style={{ color: "var(--ink)", fontWeight: 600 }}>{d.to}</span>

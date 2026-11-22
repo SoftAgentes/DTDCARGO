@@ -59,8 +59,6 @@ const TABS: { value: Tab; label: string }[] = [
 /** Color sólido del tono de un nivel (para barras/acentos). */
 function tierColor(tone: BadgeTone): string {
   switch (tone) {
-    case "wine":
-      return "var(--wine)";
     case "warning":
       return "var(--warning)";
     case "info":
@@ -70,7 +68,7 @@ function tierColor(tone: BadgeTone): string {
     case "danger":
       return "var(--danger)";
     default:
-      return "var(--ink-mute)";
+      return "var(--ink-soft)";
   }
 }
 
@@ -414,19 +412,16 @@ function DashboardTab({
         <KpiCard
           value={stats.activos}
           label="Referidos activos"
-          valueColor={stats.activos > 0 ? "var(--info)" : "var(--ink)"}
           sub={`${stats.total} en el programa`}
         />
         <KpiCard
           value={fmtUsd(stats.creditsIssued)}
           label="Créditos emitidos"
-          valueColor={stats.creditsIssued > 0 ? "var(--success)" : "var(--ink)"}
           sub={`${stats.acreditados} acreditados`}
         />
         <KpiCard
           value={`${stats.convRate.toFixed(0)}%`}
           label="Tasa de conversión"
-          valueColor={stats.convRate > 0 ? "var(--warning)" : "var(--ink)"}
           sub="referido → acreditado"
         />
       </div>
@@ -542,7 +537,7 @@ function DashboardTab({
               onClick={onGoReferidos}
               style={{
                 font: "600 12px/1 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--accion-text)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -581,7 +576,7 @@ function DashboardTab({
                   <span
                     style={{
                       font: "900 14px/1 var(--f-display)",
-                      color: i === 0 ? "var(--wine)" : "var(--ink-soft)",
+                      color: i === 0 ? "var(--ink)" : "var(--ink-soft)",
                     }}
                   >
                     {i + 1}
@@ -598,7 +593,7 @@ function DashboardTab({
                     <div
                       style={{
                         font: "500 10.5px/1 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink-soft)",
                         marginTop: 3,
                       }}
                     >
@@ -666,8 +661,8 @@ function DashboardTab({
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "var(--wine)",
-                    color: "var(--ink-side-strong)",
+                    background: "var(--ink)",
+                    color: "var(--ink-inv)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -954,7 +949,7 @@ function ReferidosTab({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {r.referrer_markbox}
@@ -996,8 +991,8 @@ function ReferidosTab({
                       r.status === "acreditado"
                         ? "var(--success)"
                         : r.status === "aplicado"
-                          ? "var(--wine-text)"
-                          : "var(--ink-mute)",
+                          ? "var(--ink)"
+                          : "var(--ink-soft)",
                   }}
                 >
                   {r.status === "acreditado" || r.status === "aplicado"
@@ -1216,7 +1211,7 @@ function ClientesTab({
                       </div>
                     </>
                   ) : (
-                    <Badge tone="wine" size="sm">
+                    <Badge tone="neutral" size="sm">
                       Nivel máximo
                     </Badge>
                   )}
@@ -1225,7 +1220,7 @@ function ClientesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: credits > 0 ? "var(--success)" : "var(--ink-mute)",
+                    color: credits > 0 ? "var(--success)" : "var(--ink-soft)",
                   }}
                 >
                   {credits > 0 ? fmtUsd(credits) : "—"}
@@ -1234,7 +1229,7 @@ function ClientesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: refs > 0 ? "var(--wine)" : "var(--ink-mute)",
+                    color: refs > 0 ? "var(--ink)" : "var(--ink-soft)",
                   }}
                 >
                   {refs || "—"}

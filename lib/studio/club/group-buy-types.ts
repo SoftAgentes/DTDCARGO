@@ -8,6 +8,7 @@
  * financiero). `committed_cbm` es DERIVADO (no se persiste).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import { slugify } from "@/lib/studio/academia/types";
 
 export { slugify };
@@ -106,14 +107,14 @@ export function groupBuyStatusLabel(s: GroupBuyStatus): string {
 
 export function groupBuyStatusTone(
   s: GroupBuyStatus,
-): "success" | "warning" | "wine" | "info" | "neutral" {
+): "success" | "warning" | "info" | "neutral" {
   return {
     abierta: "info",
     cerrada: "neutral",
     en_consolidacion: "info",
     completada: "success",
     cancelada: "neutral",
-  }[s] as "success" | "warning" | "wine" | "info" | "neutral";
+  }[s] as "success" | "warning" | "info" | "neutral";
 }
 
 export function participantStatusLabel(s: ParticipantStatus): string {
@@ -153,7 +154,7 @@ export function groupBuyStatsFrom(details: GroupBuyDetail[]): GroupBuyStats {
       enConsolidacion += 1;
     }
   }
-  return { abiertas, enConsolidacion, cbmAbierto: Math.round(cbmAbierto * 1000) / 1000 };
+  return { abiertas, enConsolidacion, cbmAbierto: roundCbm(cbmAbierto) };
 }
 
 // ── Validación (sin Zod) ─────────────────────────────────────

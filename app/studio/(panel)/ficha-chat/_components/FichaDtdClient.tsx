@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { pedirFichaDtd } from "@/app/studio/(app)/bandeja/actions";
 import { leerContextoChatwoot, PEDIR_CONTEXTO, type ContextoFicha } from "@/lib/studio/chatwoot/dashboard-app";
 import { FichaDtdView, type EstadoFichaDtd } from "./FichaDtdView";
+import { VincularCliente } from "./VincularCliente";
 
 export function FichaDtdClient({
   origenChat,
@@ -43,7 +44,11 @@ export function FichaDtdClient({
         ? { tipo: "error", error: r.error }
         : r.ficha
           ? { tipo: "ficha", ficha: r.ficha, costo: r.costo }
-          : { tipo: "sin_ficha", costo: r.costo };
+          : {
+              tipo: "sin_ficha",
+              costo: r.costo,
+              vincularEn: r.puedeVincular === true ? { conversacionId: ctx.conversacionId, agenteId: ctx.agenteId } : undefined,
+            };
     } catch {
       siguiente = { tipo: "error", error: "service" };
     }
@@ -71,5 +76,17 @@ export function FichaDtdClient({
     if (ultimo.current) void cargar(ultimo.current);
   }, [cargar]);
 
-  return <FichaDtdView estado={estado} onRetry={reintentar} />;
+  // SDD-0676: en «Sin ficha», quien puede vincular ve el botón. Al vincular se vuelve a
+  // pedir la ficha, que ya sale completa.
+  const en = estado.tipo === "sin_ficha" ? estado.vincularEn : undefined;
+  const vincular = en ? (
+    <VincularCliente
+      key={`${en.conversacionId}-${en.agenteId}`}
+      conversacionId={en.conversacionId}
+      agenteId={en.agenteId}
+      onVinculado={reintentar}
+    />
+  ) : undefined;
+
+  return <FichaDtdView estado={estado} onRetry={reintentar} vincular={vincular} />;
 }

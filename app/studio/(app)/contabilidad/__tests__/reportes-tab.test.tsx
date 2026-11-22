@@ -89,7 +89,9 @@ describe("ReportesTab", () => {
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent(/al revés/);
-    expect(screen.getByLabelText("Desde")).toHaveValue("2025-03-10");
+    // SDD-0660: el campo muestra dd/mm/aaaa; lo que viaja sigue en ISO.
+    expect(screen.getByLabelText("Desde")).toHaveValue("10/03/2025");
+    expect(document.querySelector('input[type="hidden"][name="desde"]')).toHaveValue("2025-03-10");
     expect(screen.getByLabelText("Desde")).toHaveAttribute("aria-invalid", "true");
     expect(screen.queryByText(/Balance de comprobación/)).toBeNull();
     expect(screen.queryByLabelText("Ingreso del período")).toBeNull();

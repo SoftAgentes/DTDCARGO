@@ -20,7 +20,6 @@ const VALID_TONES = new Set([
   "warning",
   "danger",
   "info",
-  "wine",
   "neutral",
 ]);
 

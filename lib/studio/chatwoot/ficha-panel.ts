@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { canAccessModule, canEditModule, type RoleModuleOverrides, type UserModuleGrants } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 
+import { esCanalUnion, type CanalUnion } from "./canal-union";
 import { chatwootFichaConfigPara } from "./config";
 import {
   armarPanel,
@@ -42,7 +43,9 @@ export type EstadoPanel =
 
 export interface UnionDeLaFicha {
   chatwootContactId: number;
-  origen: "webhook" | "kommo" | "manual";
+  origen: "webhook" | "kommo" | "manual" | "portal";
+  /** SDD-0676: canal del contacto, para el logo. null en las uniones anteriores o sin la migración. */
+  canal: CanalUnion | null;
 }
 
 const SIN_MIGRACION: ReadonlySet<string> = new Set(["PGRST205", "42P01", "PGRST202", "42883"]);
@@ -59,19 +62,27 @@ export async function listarUniones(
   tenantId: string,
   clientId: string,
 ): Promise<UnionDeLaFicha[] | null> {
-  const { data, error } = await supabase
-    .from("chatwoot_contact_links")
-    .select("chatwoot_contact_id, origen")
-    .eq("tenant_id", tenantId)
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: true })
-    .limit(20);
+  const leer = (columnas: string) =>
+    supabase
+      .from("chatwoot_contact_links")
+      .select(columnas)
+      .eq("tenant_id", tenantId)
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: true })
+      .limit(20);
+  let { data, error } = await leer("chatwoot_contact_id, origen, canal_chat");
+  // Sin la migración de la SDD-0676 la columna no existe (42703): se lee como antes, sin canal.
+  if (error?.code === "42703") ({ data, error } = await leer("chatwoot_contact_id, origen"));
   if (error) {
     if (!SIN_MIGRACION.has(error.code ?? "")) console.warn(`[ficha] uniones: ${error.code ?? "sin código"}`);
     return null;
   }
-  return ((data ?? []) as { chatwoot_contact_id: number | string; origen: UnionDeLaFicha["origen"] }[])
-    .map((f) => ({ chatwootContactId: Number(f.chatwoot_contact_id), origen: f.origen }))
+  return ((data ?? []) as unknown as { chatwoot_contact_id: number | string; origen: UnionDeLaFicha["origen"]; canal_chat?: unknown }[])
+    .map((f) => ({
+      chatwootContactId: Number(f.chatwoot_contact_id),
+      origen: f.origen,
+      canal: esCanalUnion(f.canal_chat) ? f.canal_chat : null,
+    }))
     .filter((u) => Number.isSafeInteger(u.chatwootContactId) && u.chatwootContactId > 0);
 }
 

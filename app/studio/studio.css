@@ -20,7 +20,7 @@
    gradual sin tocar todos los componentes ya construidos.
 
    PARA CÓDIGO NUEVO: usá las variables del diseño directo
-   (var(--wine), var(--ink), var(--bg-base), etc.). Ver tokens.css.
+   (var(--accion), var(--ink), var(--bg-base), etc.). Ver tokens.css. El vino es identidad (BD-076).
    ─────────────────────────────────────────────────────────── */
 :root {
   /* Escala tipográfica modular del Studio (legacy — uso interno) */
@@ -34,8 +34,9 @@
   --studio-fs-hero: 36px;
 
   /* Alias colores: --studio-* apuntan a los tokens del diseño v1 */
-  --studio-wine: var(--wine);
-  --studio-wine-deep: var(--wine-deep);
+  /* --studio-wine y --studio-wine-deep se retiraron con SDD-0686 (fase 1): su
+     único consumidor era el botón principal, que pasó a --accion. Queda
+     --studio-wine-soft como identidad (guión del eyebrow). */
   --studio-wine-soft: var(--wine-soft);
   --studio-ink: var(--ink);
   --studio-ink-2: var(--bg-surface);      /* antes #16264A para card login dark */
@@ -162,7 +163,9 @@
 
 .studio-dark {
   min-height: 100vh;
-  background: var(--studio-ink);
+  /* Navy fijo en los dos temas (revisión visual de SDD-0686): --studio-ink es
+     --ink, que en oscuro se vuelve claro y dejaba beige alrededor de la tarjeta. */
+  background: var(--bg-sidebar);
   color: #FFFFFF;
   font-family: var(--f-sans);
   display: grid;
@@ -242,8 +245,8 @@
   border-color: var(--studio-ink);
 }
 .studio-input:focus-visible {
-  border-color: var(--wine-text);
-  box-shadow: 0 0 0 1px var(--wine-text);
+  border-color: var(--accion-text);
+  box-shadow: 0 0 0 1px var(--accion-text);
 }
 .studio-input[aria-invalid="true"] {
   border-color: var(--danger);
@@ -262,7 +265,7 @@
 /* Checkbox nativo del Studio: foco visible por teclado (WCAG 2.4.7).
    El inline style no cubre pseudo-clases, por eso la regla vive acá. */
 .studio-checkbox:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -302,7 +305,7 @@
   cursor: not-allowed;
 }
 .studio-file:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -326,8 +329,8 @@
   border-color: rgba(255, 255, 255, 0.30);
 }
 .studio-input-dark:focus-visible {
-  border-color: var(--studio-wine-soft);
-  box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.22);
+  border-color: var(--accion-soft);
+  box-shadow: 0 0 0 3px rgba(127, 170, 240, 0.22); /* SDD-0686: azul de acción, como el borde */
 }
 .studio-input-dark:disabled {
   opacity: 0.5;
@@ -405,20 +408,20 @@
 }
 
 .studio-btn-primary {
-  background: var(--studio-wine);
-  color: var(--ink-side-strong);
+  background: var(--accion);
+  color: var(--on-accion);
   --btn-edge: var(--ctl-edge-hi);
   --btn-lift: var(--shadow-md);
 }
 .studio-btn-primary:hover:not(:disabled) {
-  background: var(--studio-wine-deep);
+  background: var(--accion-hover);
   --btn-lift: var(--shadow-lg);
 }
 .studio-btn-primary:active:not(:disabled) {
   --btn-lift: var(--shadow-xs);
 }
 .studio-btn-primary:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -428,7 +431,7 @@
   --btn-edge: var(--ctl-edge-hi);
 }
 .studio-btn-dark:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -447,7 +450,7 @@
   color: var(--ink-inv);
 }
 .studio-btn-ghost:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -557,9 +560,10 @@
   box-shadow: 0 0 0 2px var(--bg-surface);
   pointer-events: none;
 }
-.studio-contador-icono[data-tono="vino"] {
-  background: var(--wine);
-  color: var(--ink-side-strong);
+/* La cifra va en tinta (BD-076: cifras en tinta; SDD-0686 grupo 8). */
+.studio-contador-icono[data-tono="tinta"] {
+  background: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-contador-icono[data-tono="peligro"] {
   background: var(--danger);
@@ -724,7 +728,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--wine-text);
+  color: var(--accion-text);
   font: 700 12px/1.4 var(--f-sans);
   text-decoration: underline;
   text-underline-offset: calc(var(--s-1) / 2);
@@ -739,7 +743,7 @@
 
 .studio-toast-action:focus-visible,
 .studio-toast-close:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -761,7 +765,7 @@
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
-  color: var(--ink-mute);
+  color: var(--ink-soft);
   cursor: pointer;
 }
 
@@ -842,7 +846,7 @@
   background: var(--studio-paper-2);
 }
 .studio-tracking-row:focus-visible {
-  outline: 2px solid var(--studio-wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
   background: var(--studio-paper-2);
 }
@@ -856,7 +860,7 @@
 /* ───────────────────────────────────────────────────────────
    Fila accionable — primitiva <ActionableRow> (DataTable.tsx)
    `<tr>` operable por teclado (WCAG 2.1.1). El color del ring lo hereda
-   del :focus-visible global (--wine / --wine-soft en dark), acá solo
+   del :focus-visible global (--accion, BD-076), acá solo
    metemos el ring HACIA ADENTRO (offset -2px) para que no lo recorte el
    overflow-x del <TableFrame>. Motion por tokens, no en px/segundos crudos.
    ─────────────────────────────────────────────────────────── */
@@ -887,7 +891,7 @@
 }
 .studio-link-quiet:hover,
 .studio-link-quiet:focus-visible {
-  color: var(--wine-text);
+  color: var(--accion-text);
   text-decoration-color: currentColor;
   text-decoration-thickness: 2px;
 }
@@ -906,7 +910,7 @@
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 .kommo-contact-pick:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 /* Tintes persistentes (Cobranzas): mantienen la clase studio-tracking-row
@@ -917,35 +921,148 @@
   background: var(--danger-bg);
 }
 .studio-row-selected {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-/* Chip de @mención en comentarios (SDD-0045). Wine-tint + texto wine, igual
-   que el mockup. El contenido ya viene escapado por renderMentionHtml (el body
+/* Chip de @mención en comentarios (SDD-0045). Es una referencia que se abre:
+   va en acción (SDD-0686 grupo 8). El tinte es el 8 % de --accion, no
+   --accion-tint: el 14 % del tema oscuro dejaba el texto en 4,29:1 sobre la
+   burbuja (--bg-elevated); al 8 % da 4,79:1 en oscuro y 5,96:1 en claro. El contenido ya viene escapado por renderMentionHtml (el body
    se escapa ANTES de inyectar el span), así que es seguro estilarlo así. */
 .mention-chip {
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--accion) 8%, transparent);
+  color: var(--accion-text);
   font-weight: 600;
   padding: 0 4px;
   border-radius: 4px;
   white-space: nowrap;
 }
 
-/* ───────────────────────────────────────────────────────────
-   Tracking — grid del detalle (2 cols desktop, 1 col mobile)
-   ─────────────────────────────────────────────────────────── */
-.studio-detail-grid {
+/* Ficha del embarque (SDD-0662) · ancho completo en tres zonas.
+   Angosto: una columna. Mediano: datos a la izquierda, operación y seguimiento
+   apiladas a la derecha. Ancho: las tres en fila. */
+.studio-ficha-embarque-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "datos" "operacion" "seguimiento";
+  gap: var(--s-6);
   align-items: start;
 }
-@media (max-width: 900px) {
-  .studio-detail-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+.studio-ficha-embarque-zona {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.studio-ficha-embarque-zona[data-zona="datos"] { grid-area: datos; }
+.studio-ficha-embarque-zona[data-zona="operacion"] { grid-area: operacion; }
+.studio-ficha-embarque-zona[data-zona="seguimiento"] { grid-area: seguimiento; }
+@media (min-width: 901px) {
+  .studio-ficha-embarque-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-areas: "datos operacion" "datos seguimiento";
+    /* La zona de datos ocupa las dos filas: la segunda absorbe lo que sobre. */
+    grid-template-rows: auto 1fr;
   }
+}
+@media (min-width: 1600px) {
+  .studio-ficha-embarque-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "datos operacion seguimiento";
+    grid-template-rows: auto;
+  }
+}
+/* Franja «Cliente»: Shipping Mark, aviso y la acción de cambiarlo. */
+.studio-ficha-embarque-franja {
+  margin-bottom: var(--s-5);
+}
+.studio-ficha-embarque-cliente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+}
+.studio-ficha-embarque-cliente .studio-eyebrow {
+  margin-bottom: var(--s-1);
+}
+.studio-ficha-embarque-cliente-marca {
+  font: 700 14px/1.2 var(--f-mono);
+  color: var(--ink);
+}
+.studio-ficha-embarque-cliente .studio-aviso {
+  flex: 1 1 18rem;
+}
+.studio-ficha-embarque-cliente > .studio-btn {
+  margin-left: auto;
+}
+/* SDD-0673 · Franja «Carga»: cajas, CBM y peso, grupo de WeChat y sus acciones. */
+.studio-ficha-embarque-carga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-5);
+  margin-top: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-elevated);
+}
+.studio-ficha-embarque-carga-datos {
+  display: grid;
+  gap: var(--s-1);
+  justify-items: start;
+}
+.studio-ficha-embarque-carga-datos strong {
+  font: 700 14px/1.2 var(--f-mono);
+  color: var(--ink);
+}
+.studio-ficha-embarque-carga-nota {
+  font: 400 12px/1.45 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-ficha-embarque-carga-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-left: auto;
+}
+.studio-ficha-embarque-modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--scrim);
+  backdrop-filter: var(--scrim-blur);
+}
+.studio-ficha-embarque-modal {
+  display: grid;
+  gap: var(--s-4);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+.studio-ficha-embarque-medidas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--s-3);
+}
+.studio-ficha-embarque-modal-pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s-3);
 }
 
 /* Icon button (logout, eye toggle, etc.) */
@@ -968,7 +1085,7 @@
   border-color: rgba(255, 255, 255, 0.20);
 }
 .studio-icon-btn:focus-visible {
-  outline: 2px solid var(--studio-wine-soft);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1054,10 +1171,11 @@
   background: var(--bg-base);
   overflow: hidden;
 }
+/* Avance en tinta; la alerta sigue en atención (SDD-0686, decisión de Sam). */
 .studio-tracking-ops-bar > span {
   display: block;
   height: 100%;
-  background: var(--wine-text);
+  background: var(--ink);
 }
 .studio-tracking-ops-bar > span[data-alerta="true"] {
   background: var(--warning);
@@ -1111,8 +1229,9 @@
   font: 500 12.5px/1.4 var(--f-mono);
   color: var(--ink-soft);
 }
+/* El guión de identidad lo pone .studio-eyebrow; el texto va en neutro. */
 .studio-tracking-ops-eyebrow {
-  color: var(--wine-text);
+  color: var(--ink-soft);
 }
 .studio-tracking-ops-aviso {
   padding: 0 var(--s-5) var(--s-3);
@@ -1160,7 +1279,7 @@
 }
 .studio-tracking-ops-map-done {
   fill: none;
-  stroke: var(--wine-text);
+  stroke: var(--ink);
   stroke-width: 2.6;
   stroke-linecap: round;
 }
@@ -1190,7 +1309,7 @@
   font: 700 11px var(--f-mono);
 }
 .studio-tracking-ops-map-halo {
-  fill: var(--wine-text);
+  fill: var(--ink-soft);
   opacity: 0.22;
 }
 .studio-tracking-ops-map-core {
@@ -1198,14 +1317,15 @@
   stroke: var(--bg-base);
   stroke-width: 1.5;
 }
+/* El marcador activo es lo que se mira: acción, con borde del fondo del mapa. */
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-core {
-  fill: var(--wine);
-  stroke: var(--ink);
+  fill: var(--accion);
+  stroke: var(--bg-base);
   stroke-width: 2;
 }
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-halo {
-  fill: var(--wine);
-  opacity: 0.4;
+  fill: var(--accion);
+  opacity: 0.22;
 }
 .studio-tracking-ops-map-marker[data-activo="true"] .studio-tracking-ops-map-label {
   font-size: 13px;
@@ -1244,7 +1364,7 @@
   color: var(--ink);
 }
 .studio-tracking-ops-kpis dd[data-acento="true"] {
-  color: var(--wine-text);
+  color: var(--ink);
 }
 .studio-tracking-ops-kpis dd[data-mono="true"] {
   font: 800 16px/1.2 var(--f-mono);
@@ -1289,7 +1409,7 @@
 }
 .studio-tracking-ops-hitos li[data-estado="done"]::before,
 .studio-tracking-ops-hitos li[data-estado="active"]::before {
-  background: var(--wine-text);
+  background: var(--ink);
 }
 .studio-tracking-ops-hito-punto {
   position: relative;
@@ -1302,12 +1422,14 @@
   border: 2px solid var(--border-strong);
 }
 li[data-estado="done"] > .studio-tracking-ops-hito-punto {
-  background: var(--wine-text);
-  border-color: var(--wine-text);
-}
-li[data-estado="active"] > .studio-tracking-ops-hito-punto {
-  background: var(--wine);
+  background: var(--ink);
   border-color: var(--ink);
+}
+/* Hito activo: acción con anillo (borde de la tarjeta y aro de acción). */
+li[data-estado="active"] > .studio-tracking-ops-hito-punto {
+  background: var(--accion);
+  border-color: var(--bg-surface);
+  box-shadow: 0 0 0 2px var(--accion);
 }
 li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   background: var(--danger);
@@ -1390,7 +1512,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   font: 600 12.5px/1 var(--f-mono);
 }
 .studio-tracking-ops-tabla tr[data-resaltado="true"] td {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--accion) 8%, transparent);
 }
 
 /* Buscador */
@@ -1432,7 +1554,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
 }
 .studio-tracking-ops-resultados h3 code {
   font: 600 12px/1 var(--f-mono);
-  color: var(--wine-text);
+  color: var(--ink);
 }
 .studio-tracking-ops-resultados ul {
   list-style: none;
@@ -1475,7 +1597,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--border-strong) !important;
 }
 .studio-shipment-card:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1528,16 +1650,16 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--ink-soft);
 }
 .studio-cal-nav-btn:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
-/* Botón "HOY" — pill wine */
+/* Botón "HOY" — pill de acción (BD-076) */
 .studio-cal-today-btn {
   padding: 8px 14px;
   border-radius: 7px;
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: var(--accion-tint);
+  color: var(--accion-text);
   border: 1px solid transparent;
   font: 700 11px/1 var(--f-sans);
   letter-spacing: 0.06em;
@@ -1548,11 +1670,11 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
     border-color var(--dur) var(--ease);
 }
 .studio-cal-today-btn:hover:not(:disabled) {
-  background: var(--wine);
-  color: var(--bg-surface);
+  background: var(--accion);
+  color: var(--on-accion);
 }
 .studio-cal-today-btn:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .studio-cal-today-btn:disabled {
@@ -1573,7 +1695,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   box-shadow: inset 0 0 0 1.5px var(--border-strong);
 }
 .studio-cal-daycell:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
 }
 
@@ -1620,7 +1742,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
 
 /* ── BugFAB · tono "Fantasma" (SDD-0036 refinamiento) ─────────
    Utilitario de MENOR jerarquía: contorno + ícono navy suave sobre fondo
-   transparente, sin pulso. El wine sigue siendo el único color de acción.
+   transparente, sin pulso. El azul (--accion) es el único color de acción (BD-076).
    Oculto por defecto (se enciende con Alt+B). El botón es la caja de toque
    (44px); el disco visible mide 38px (.bug-fab-disc). */
 
@@ -1664,7 +1786,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   cursor: grabbing;
 }
 .bug-fab-button:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 3px;
   border-radius: var(--r-pill);
 }
@@ -1726,10 +1848,10 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   text-transform: uppercase;
 }
 .bug-fab-ghost[data-active="true"] {
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
   border-style: solid;
-  border-color: var(--wine);
-  color: var(--wine-text);
+  border-color: var(--ink);
+  color: var(--ink);
   transform: scale(1.12);
 }
 
@@ -1754,7 +1876,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--border-strong) !important;
 }
 .studio-doc-thumb:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 
@@ -1771,7 +1893,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   transform: translateY(-1px);
 }
 .studio-card-link:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1796,7 +1918,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   background: var(--bg-elevated) !important;
 }
 .studio-adminnav-item:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1828,7 +1950,7 @@ li[data-estado="exception"] > .studio-tracking-ops-hito-punto {
   border-color: var(--ink-soft);
 }
 .calc-why-summary:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .calc-why-chev {
@@ -1857,15 +1979,15 @@ details[open] > .calc-why-summary .calc-why-chev {
   filter: brightness(0.94);
 }
 .studio-permcell:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 2px;
 }
 .studio-permcell-reset:hover:not(:disabled) {
-  border-color: var(--wine);
-  color: var(--wine);
+  border-color: var(--accion);
+  color: var(--accion-text);
 }
 .studio-permcell-reset:focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion);
   outline-offset: 1px;
 }
 /* Destello al guardar (SDD-0252, feedback del founder): la celda cicla entre
@@ -1873,7 +1995,7 @@ details[open] > .calc-why-summary .calc-why-chev {
    rastro visual de que el guardado ocurrió. */
 @keyframes studio-permcell-saved {
   0% {
-    box-shadow: 0 0 0 3px var(--wine);
+    box-shadow: 0 0 0 3px var(--success);
   }
   100% {
     box-shadow: 0 0 0 3px transparent;
@@ -1888,7 +2010,7 @@ details[open] > .calc-why-summary .calc-why-chev {
   }
   .studio-permcell-flash {
     animation: none;
-    box-shadow: 0 0 0 3px var(--wine);
+    box-shadow: 0 0 0 3px var(--success);
   }
 }
 
@@ -1919,7 +2041,7 @@ details[open] > .calc-why-summary .calc-why-chev {
   max-height: calc(100vh - 240px); min-height: 360px;
   border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface);
 }
-.studio-mx-wrap:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-wrap:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
 .studio-mx { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
 .studio-mx th, .studio-mx td { padding: 0; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
 /* Fila de roles fija arriba */
@@ -1972,15 +2094,16 @@ details[open] > .calc-why-summary .calc-why-chev {
 .studio-mx-st[data-n="edit"] svg { color: var(--success); }
 .studio-mx-st[data-n="view"] { background: var(--neutral-bg); color: var(--ink); }
 .studio-mx-st[data-n="none"] { background: transparent; color: var(--ink-soft); border-color: var(--border); }
-.studio-mx-st[data-n="all"] { background: var(--wine-tint); color: var(--wine-text); }
+/* «Todo»: tinta sólida con su icono, se distingue sin color (SDD-0686, decisión de Sam). */
+.studio-mx-st[data-n="all"] { background: var(--ink); color: var(--ink-inv); }
 button.studio-mx-st { cursor: pointer; }
 button.studio-mx-st:hover:not(:disabled) { border-color: var(--border-strong); }
 button.studio-mx-st[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
 button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-mx-st[data-locked="true"] { border-style: dashed; border-color: var(--border-strong); }
 .studio-mx-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
-.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--wine-text); }
-.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--wine); }
+.studio-mx-chg { display: inline-flex; align-items: center; gap: var(--s-1); font: 600 11px/1 var(--f-sans); color: var(--accion-text); }
+.studio-mx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accion); }
 
 /* Leyenda en el pie fijo, siempre a la vista */
 .studio-mx-legend {
@@ -2027,9 +2150,9 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-mx-opt b { font: 650 12.5px/1.2 var(--f-sans); }
 .studio-mx-opt span { font: 400 11.5px/1.35 var(--f-sans); color: var(--ink-soft); }
 .studio-mx-opt:hover:not(:disabled) { border-color: var(--ink); }
-.studio-mx-opt:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
-.studio-mx-opt[aria-checked="true"] { border-color: var(--wine); background: var(--wine-tint); }
-.studio-mx-opt[aria-checked="true"] b { color: var(--wine-text); }
+.studio-mx-opt:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
+.studio-mx-opt[aria-checked="true"] { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.studio-mx-opt[aria-checked="true"] b { color: var(--ink); }
 .studio-mx-opt:disabled { cursor: not-allowed; opacity: .6; }
 .studio-mx-fab { margin: 0; padding: var(--s-2) 10px; border-radius: var(--r-sm); background: var(--bg-elevated); font: 400 12px/1.45 var(--f-sans); }
 .studio-mx-fab b { font-weight: 700; }
@@ -2037,8 +2160,8 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   display: inline; padding: 0; border: 0; background: none; cursor: pointer;
   font: inherit; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 2px;
 }
-.studio-mx-link:hover:not(:disabled) { color: var(--wine-text); }
-.studio-mx-link:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+.studio-mx-link:hover:not(:disabled) { color: var(--accion-text); }
+.studio-mx-link:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
 .studio-mx-aviso { margin: 0; font: 400 11.5px/1.45 var(--f-sans); color: var(--ink-soft); }
 .studio-mx-actions { display: flex; justify-content: flex-end; gap: var(--s-2); }
 
@@ -2050,7 +2173,7 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   transition: background 0.12s;
 }
 .studio-row-linkable:hover {
-  background: var(--wine-tint);
+  background: var(--accion-tint);
 }
 .studio-row-linkable:focus-visible {
   outline: 2px solid var(--info);
@@ -2142,6 +2265,10 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   cursor: pointer;
   transition: color 0.14s, border-color 0.14s;
 }
+/* SDD-0682: una pestaña puede ser un enlace (la vista vive en la URL); sin subrayado. */
+a.studio-tab {
+  text-decoration: none;
+}
 .studio-tab:hover:not(:disabled):not([data-activa="true"]) {
   background: var(--bg-elevated);
 }
@@ -2166,10 +2293,6 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   color: var(--ink-soft);
   cursor: not-allowed;
 }
-.studio-tab-n[data-alerta="true"] {
-  color: var(--wine-text);
-  font-weight: 800;
-}
 .studio-tab-n {
   font: 600 12px/1 var(--f-mono);
   font-variant-numeric: tabular-nums;
@@ -2182,6 +2305,19 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   background: transparent;
   color: var(--ink-inv);
 }
+/* Alerta de pestaña (SDD-0686, opción A de Sam): pastilla ámbar suave y opaca,
+   para que no dependa del fondo de la pestaña (activa es tinta), con el
+   número en --ink y un icono de alerta. El ámbar nunca es color de texto:
+   --warning da 3,14:1 en texto de 12 px. Va después de la regla de la
+   pestaña activa para ganarle. */
+.studio-tab .studio-tab-n[data-alerta="true"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: color-mix(in srgb, var(--warning) 22%, var(--bg-surface));
+  color: var(--ink);
+  font-weight: 800;
+}
 
 /* ───────────────────────────────────────────────────────────
    Asa para ajustar el ancho de una columna · SDD-0520
@@ -2189,7 +2325,7 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
    bottom, right, width) va inline porque depende del gap y del padding de
    cada tabla; acá van el cursor, la línea y sus estados. La línea en reposo
    es un divisor decorativo; hover, foco y arrastre la pintan con
-   --wine-text, que pasa 3:1 en claro y en oscuro.
+   --accion-text, que pasa 3:1 en claro y en oscuro (BD-076).
    ─────────────────────────────────────────────────────────── */
 .studio-col-resize {
   position: absolute;
@@ -2212,10 +2348,10 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 .studio-col-resize:focus-visible::before,
 .studio-col-resize[data-resizing="true"]::before {
   width: 2px;
-  background: var(--wine-text);
+  background: var(--accion-text);
 }
 .studio-col-resize:focus-visible {
-  outline: 2px solid var(--wine-text);
+  outline: 2px solid var(--accion);
   outline-offset: -2px;
   border-radius: var(--r-xs);
 }
@@ -2335,48 +2471,97 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
   }
 }
 
-/* ─── Ficha del cliente · tres columnas (SDD-0650 F1) ─────────────────────
-   Datos · operación · conversaciones. Sin acceso a la Bandeja no hay panel y
-   quedan dos columnas. Por debajo de 1440 px de ventana (con el menú lateral, la
-   columna central bajaba a ~430 px y la fila de envíos se cortaba) las
-   conversaciones bajan a todo el ancho; por debajo de 900 px, una sola columna. */
-.studio-ficha-grid {
+/* ─── Ficha del cliente · franja, pestañas y conversaciones (SDD-0669) ────
+   Sustituye a las tres columnas de la SDD-0650 F1, que dejaban una columna
+   larguísima y movían las conversaciones según el ancho.
+   · Franja: identidad y acciones, fija bajo la barra del Studio. No es fija en
+     pantallas bajas (< 700 px de alto) ni en móvil, donde la barra pasa a dos
+     filas y su alto ya no es `--topbar-h`.
+   · Cuerpo: las pestañas y, con acceso a la Bandeja, las conversaciones a la
+     derecha en todas las pestañas (360 px, fijas al bajar). Por debajo de
+     1024 px de ventana van debajo de las pestañas, a todo el ancho. */
+.studio-ficha-franja {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-4);
+  margin: 0 0 var(--s-5);
+  padding: var(--s-3) 0;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border);
+}
+.studio-ficha-identidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-width: 0;
+  flex: 1 1 420px;
+}
+@media (max-height: 700px), (max-width: 767px) {
+  .studio-ficha-franja { position: static; }
+}
+.studio-ficha-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: var(--s-5) 0 0;
+}
+.studio-ficha-nota { white-space: pre-line; overflow-wrap: anywhere; }
+.studio-ficha-nota[data-plegada="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.studio-ficha-cuerpo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
-  grid-template-areas: "datos operacion conversaciones";
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--s-6);
   align-items: start;
+  margin-top: var(--s-6);
 }
-.studio-ficha-grid--sin-panel {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-  grid-template-areas: "datos operacion";
+.studio-ficha-cuerpo--sin-panel { grid-template-columns: minmax(0, 1fr); }
+.studio-ficha-principal { min-width: 0; }
+.studio-ficha-conversaciones {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--s-4));
+  min-width: 0;
 }
-.studio-ficha-col {
+@media (max-width: 1023px) {
+  .studio-ficha-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .studio-ficha-conversaciones { position: static; }
+}
+.studio-ficha-pestanas .studio-tabs { margin-bottom: var(--s-5); }
+/* En móvil las pestañas se desplazan en horizontal en vez de partirse. */
+@media (max-width: 767px) {
+  .studio-ficha-pestanas .studio-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+  }
+}
+.studio-ficha-col,
+.studio-ficha-configuracion {
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
   min-width: 0;
 }
-.studio-ficha-col--datos { grid-area: datos; }
-.studio-ficha-col--operacion { grid-area: operacion; }
-.studio-ficha-col--conversaciones { grid-area: conversaciones; }
-/* `:not(--sin-panel)`: esta regla es posterior y de igual especificidad; sin la
-   exclusión, pisaba la de dos columnas sin panel y dejaba una fila vacía. */
-@media (max-width: 1440px) {
-  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
-    grid-template-areas:
-      "datos operacion"
-      "conversaciones conversaciones";
-  }
+.studio-ficha-resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-6);
+  align-items: start;
 }
+.studio-ficha-resumen-ancho { grid-column: 1 / -1; min-width: 0; }
 @media (max-width: 900px) {
-  /* Misma especificidad que la regla de 1440 px (0,2,0) y posterior: gana. */
-  .studio-ficha-grid:not(.studio-ficha-grid--sin-panel),
-  .studio-ficha-grid.studio-ficha-grid--sin-panel {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "operacion" "conversaciones" "datos";
-  }
+  .studio-ficha-resumen { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── SDD-0648 · CRM › Embudos ─────────────────────────────────────────────
@@ -2393,4 +2578,89 @@ button.studio-mx-st:disabled { cursor: wait; opacity: .55; }
 @media print {
   [data-theme="dark"] .crm-logo-dtd-claro { display: block; }
   [data-theme="dark"] .crm-logo-dtd-oscuro { display: none; }
+}
+
+/* ── Campo de fecha <DateField> (SDD-0660) ────────────────────────────────
+   El formato `dd/mm/aaaa` se pinta en gris DETRÁS del texto, con la misma
+   letra monoespaciada: lo escrito tapa su parte y el resto queda a la vista.
+   La caja lleva el fondo porque el campo es transparente. */
+.studio-date-field__box {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--r-md);
+}
+.studio-date-field__box[data-disabled] {
+  background: var(--studio-paper-2);
+}
+.studio-date-field__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  /* 12 px de padding del campo + 1 px de su borde. */
+  padding: 0 13px;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  white-space: pre;
+  color: var(--studio-text-soft);
+  pointer-events: none;
+  overflow: hidden;
+}
+.studio-input.studio-date-field__input {
+  position: relative;
+  background: transparent;
+  font: 500 14px/1.2 var(--f-mono);
+  letter-spacing: 0.02em;
+  padding-right: 40px;
+}
+.studio-input.studio-date-field__input:disabled {
+  background: transparent;
+}
+[data-density="compact"] .studio-date-field__ghost,
+[data-density="compact"] .studio-input.studio-date-field__input {
+  font-size: 13.5px;
+}
+.studio-date-field__trigger {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.studio-date-field__trigger:hover:not(:disabled) {
+  background: var(--accion-tint);
+  color: var(--ink);
+}
+.studio-date-field__trigger:disabled {
+  cursor: not-allowed;
+}
+.studio-date-field__error {
+  margin-top: 4px;
+  font: 500 12px/1.3 var(--f-sans);
+  color: var(--danger-text);
+}
+.studio-date-field__btn:hover {
+  border-color: var(--ink-soft);
+}
+.studio-date-field__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.studio-date-field__btn:focus-visible,
+.studio-date-field__cell:focus-visible,
+.studio-date-field__trigger:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+.studio-date-field__cell:hover:not([aria-disabled="true"]):not([aria-pressed]) {
+  background: var(--accion-tint);
 }

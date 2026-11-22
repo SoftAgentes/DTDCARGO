@@ -32,6 +32,7 @@
  * rápida del operador.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import {
   useEffect,
   useId,
@@ -218,6 +219,7 @@ export function NumericInput({
     currency,
     unit: suffixUnit,
     precision: resolvedPrecision,
+    precisionIsDefault: precision === undefined,
     outOfRange: showLocalError && outOfRange,
     showError: showLocalError,
     min,
@@ -235,7 +237,7 @@ export function NumericInput({
       ? "var(--danger)"
       : previewTone === "neutral"
         ? "var(--ink-soft)"
-        : "var(--ink-mute)";
+        : "var(--ink-soft)";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
@@ -394,6 +396,7 @@ interface BuildPreviewArgs {
   currency: Currency;
   unit: string;
   precision: number;
+  precisionIsDefault: boolean;
   outOfRange: boolean;
   showError: boolean;
   min?: number;
@@ -408,6 +411,7 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
     currency,
     unit,
     precision,
+    precisionIsDefault,
     outOfRange,
     showError,
     min,
@@ -432,7 +436,11 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
   }
 
   // Formato según type.
-  const formatted = formatNumber(parsed.value, precision);
+  // CBM: hasta 4 decimales sin ceros de relleno (lib/shared/cbm).
+  const formatted =
+    type === "volume" && precisionIsDefault
+      ? formatCbm(parsed.value, { locale: "en-US" })
+      : formatNumber(parsed.value, precision);
   if (type === "currency") {
     return `= ${currency} ${formatted}`;
   }

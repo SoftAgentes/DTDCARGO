@@ -1,3 +1,4 @@
+import { formatCbm } from "@/lib/shared/cbm";
 import type { ComponentProps } from "react";
 import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -220,7 +221,7 @@ export function PortalShipmentDetailNorte({
             {shipment.volumeM3 != null ? (
               <Field
                 label="Volumen"
-                value={`${shipment.volumeM3.toFixed(2)} m³`}
+                value={formatCbm(shipment.volumeM3, { unit: true, locale: "en-US" })}
                 mono
               />
             ) : null}

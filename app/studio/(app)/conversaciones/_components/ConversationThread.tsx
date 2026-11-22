@@ -277,13 +277,13 @@ export function ConversationThread({
               </Link>
               {conv.ref && (
                 <>
-                  <span style={{ color: "var(--ink-mute)" }}>·</span>
+                  <span style={{ color: "var(--ink-soft)" }}>·</span>
                   <code style={{ font: "500 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                     {conv.ref}
                   </code>
                 </>
               )}
-              <span style={{ color: "var(--ink-mute)" }}>·</span>
+              <span style={{ color: "var(--ink-soft)" }}>·</span>
               <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {relativeAge(conv.last_message_at)}
               </span>
@@ -391,7 +391,7 @@ export function ConversationThread({
                     borderRadius: out
                       ? "var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg)"
                       : "var(--r-lg) var(--r-lg) var(--r-lg) var(--r-xs)",
-                    background: out ? "var(--wine)" : "var(--bg-surface)",
+                    background: out ? "var(--ink)" : "var(--bg-surface)",
                     border: out ? "none" : "1px solid var(--border)",
                     color: out ? "var(--ink-inv)" : "var(--ink)",
                     font: "500 13px/1.5 var(--f-sans)",
@@ -607,7 +607,7 @@ function ClientContextPanel({
           Envíos activos
         </div>
         {loading ? (
-          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>—</span>
+          <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>—</span>
         ) : context && context.activeShipments.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {context.activeShipments.map((s) => (

@@ -9,6 +9,7 @@
  * Submit con HTML5 form id + DrawerFooter.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useActionState, useState } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
@@ -200,7 +201,7 @@ export function CreateOdDrawer({
               }}
             >
               No hay rutas activas en {hub}. Crea una en{" "}
-              <a href="/studio/admin/rutas" style={{ color: "var(--wine-text)" }}>
+              <a href="/studio/admin/rutas" style={{ color: "var(--accion-text)" }}>
                 Rutas y ciudades
               </a>
               .
@@ -270,7 +271,7 @@ export function CreateOdDrawer({
             >
               <span
                 className="studio-eyebrow"
-                style={{ color: "var(--wine-soft)" }}
+                style={{ color: "var(--ink-side)" }}
               >
                 Ocupación del camión
               </span>
@@ -285,7 +286,7 @@ export function CreateOdDrawer({
             </div>
             <CapBar pct={usage.kg_pct} label="Peso" used={`${usage.kg_used.toFixed(0)} kg`} total={`${capacity.capacity_kg} kg`} />
             <div style={{ height: 8 }} />
-            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${usage.cbm_used.toFixed(1)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
+            <CapBar pct={usage.cbm_pct} label="Volumen" used={`${formatCbm(usage.cbm_used)} cbm`} total={`${capacity.capacity_cbm} cbm`} />
             {usage.overflow && (
               <div
                 style={{
@@ -322,7 +323,7 @@ export function CreateOdDrawer({
                 return (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {p.markbox}
                       </code>
                       <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink)", marginLeft: 8 }}>
@@ -388,7 +389,7 @@ function CapBar({
   total: string;
 }) {
   const display = Math.min(100, pct);
-  const color = pct > 100 ? "var(--danger)" : pct > 90 ? "var(--warning)" : "var(--wine-soft)";
+  const color = pct > 100 ? "var(--danger)" : pct > 90 ? "var(--warning)" : "var(--ink-side-strong)";
   return (
     <div>
       <div

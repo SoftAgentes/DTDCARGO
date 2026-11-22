@@ -60,7 +60,15 @@ function base(opciones: { segmento?: unknown; fichas?: Fila[]; fallaRpc?: boolea
   consulta.limit = vi.fn(async () =>
     opciones.fallaFichas ? { data: null, error: { code: "57014" } } : { data: opciones.fichas ?? [{ markbox: CODIGO }], error: null },
   );
+  // SDD-0676: el manejador mira primero la unión del contacto; aquí nadie está unido
+  // (ese camino tiene su prueba en contacto-erp-union.test.ts).
+  const sinUniones = {
+    select: () => sinUniones,
+    eq: () => sinUniones,
+    limit: async () => ({ data: [], error: null }),
+  };
   const from = vi.fn((tabla: string) => {
+    if (tabla === "chatwoot_contact_links") return sinUniones;
     if (tabla !== "clients") throw new Error(`tabla inesperada ${tabla}`);
     return consulta;
   });
@@ -161,7 +169,8 @@ describe("marcarContactoErp (SDD-0649)", () => {
     api.leerAtributosContacto.mockResolvedValueOnce({ ok: true, data: { dtd_segmento: "cliente", dtd_shipping_mark: CODIGO } });
     const e = evento();
     await marcarContactoErp({ admin: b.admin, tenantId: T1, contacto: e.contacto }, e.evento, REGISTRO);
-    expect(b.from).not.toHaveBeenCalled();
+    // La unión del contacto se mira siempre (SDD-0676); la ficha por teléfono, no.
+    expect(b.from).not.toHaveBeenCalledWith("clients");
     expect(api.escribirAtributosContacto).toHaveBeenCalledWith(expect.anything(), 5, {
       dtd_segmento: "lead_nuevo",
       dtd_shipping_mark: null,

@@ -162,6 +162,24 @@ describe("altaAgente (SDD-0585, 2.5)", () => {
     expect(m.crear).not.toHaveBeenCalled();
   });
 
+  it("SDD-0675: un rol sin Bandeja con el acceso adicional vigente sí se da de alta, como agente", async () => {
+    tablas.studio_user_module_grants = [
+      { tenant_id: T1, user_id: OPE, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null },
+    ];
+    expect(await altaAgente(INICIAL, form({ user_id: OPE }))).toEqual({ ok: true, error: null });
+    expect(m.agregar).toHaveBeenCalledWith(7, CFG, "agent");
+  });
+
+  it("SDD-0675: el acceso vencido, de otro tenant o de otro módulo no alcanza", async () => {
+    tablas.studio_user_module_grants = [
+      { tenant_id: T1, user_id: OPE, module_id: "bandeja", can_view: true, can_edit: false, expires_at: "2020-01-01T00:00:00Z" },
+      { tenant_id: T2, user_id: OPE, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null },
+      { tenant_id: T1, user_id: OPE, module_id: "kommo", can_view: true, can_edit: false, expires_at: null },
+    ];
+    expect(await altaAgente(INICIAL, form({ user_id: OPE }))).toEqual({ ok: false, error: "sin_bandeja" });
+    expect(m.crear).not.toHaveBeenCalled();
+  });
+
   it("ya vinculado: duplicate", async () => {
     tablas.chatwoot_agent_links.push({ tenant_id: T1, user_id: ANA, chatwoot_user_id: 9 });
     expect(await altaAgente(INICIAL, form({ user_id: ANA }))).toEqual({ ok: false, error: "duplicate" });

@@ -212,19 +212,17 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor={kpis.porPagar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.vencido)}`}
           label="Vencido"
-          valueColor={kpis.vencido > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.vencido > 0 ? { tono: "danger", texto: "Requiere pago" } : undefined}
           sub={kpis.vencido > 0 ? "Requiere pago" : "Sin vencidos"}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.pagadoMes)}`}
           label="Pagado en el mes"
-          valueColor={kpis.pagadoMes > 0 ? "var(--success)" : "var(--ink)"}
           sub="Órdenes de pago del mes en curso"
         />
         <KpiCard
@@ -589,7 +587,6 @@ function PaymentsTab({
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor={remesasTotal > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>
@@ -690,7 +687,7 @@ function PaymentsTab({
               </span>
               <span>
                 {isChinaRemittance(p.method, p.currency) ? (
-                  <Badge tone="wine" size="sm">
+                  <Badge tone="neutral" size="sm">
                     {paymentMethodLabel(p.method)}
                   </Badge>
                 ) : (
@@ -730,7 +727,7 @@ function PaymentsTab({
               <span
                 style={{
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                 }}
               >
                 {openingBillId === p.bill_id ? "Abriendo…" : "Ver CxP"}
@@ -744,7 +741,7 @@ function PaymentsTab({
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     —

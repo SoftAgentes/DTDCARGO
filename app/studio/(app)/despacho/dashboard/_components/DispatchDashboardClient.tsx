@@ -106,7 +106,7 @@ export function DispatchDashboardClient({
           label="Total ODs"
           value={String(stats.totalOds)}
           sub="creadas en periodo"
-          tone="wine"
+          tone="neutral"
           icon={Icon.truck(18)}
         />
         <Kpi
@@ -150,7 +150,7 @@ export function DispatchDashboardClient({
             borderRadius: "var(--r-md)",
           }}
         >
-          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
             Ranking de rutas · eficiencia
           </div>
           {ranking.length === 0 ? (
@@ -172,7 +172,7 @@ export function DispatchDashboardClient({
                   return (
                     <tr key={r.route_id} style={{ borderTop: "1px solid var(--border)" }}>
                       <td style={{ padding: 12, font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
-                        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)", marginRight: 8 }}>
+                        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--ink)", marginRight: 8 }}>
                           {r.route_code}
                         </code>
                         {r.route_name}
@@ -200,7 +200,7 @@ export function DispatchDashboardClient({
             borderRadius: "var(--r-md)",
           }}
         >
-          <div className="studio-eyebrow" style={{ marginBottom: 14, color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
             Top ciudades por volumen
           </div>
           {topCities.length === 0 ? (
@@ -216,7 +216,7 @@ export function DispatchDashboardClient({
                   <div key={c.city}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)" }}>{c.city}</span>
-                      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {c.ods} ODs
                       </span>
                     </div>
@@ -232,7 +232,7 @@ export function DispatchDashboardClient({
                         style={{
                           height: "100%",
                           width: `${pct}%`,
-                          background: i === 0 ? "var(--wine)" : "var(--wine-tint)",
+                          background: i === 0 ? "var(--ink)" : "color-mix(in srgb, var(--ink) 30%, transparent)",
                           borderRadius: 999,
                         }}
                       />
@@ -274,18 +274,16 @@ function Kpi({
   label: string;
   value: string;
   sub: string;
-  tone: "wine" | "success" | "info" | "warning" | "neutral";
+  tone: "success" | "info" | "warning" | "neutral";
   icon?: React.ReactNode;
 }) {
   const color: Record<typeof tone, string> = {
-    wine: "var(--wine)",
     success: "var(--success)",
     info: "var(--info)",
     warning: "var(--warning)",
     neutral: "var(--ink-soft)",
   };
   const bgTone: Record<typeof tone, string> = {
-    wine: "var(--wine-tint)",
     success: "var(--success-bg)",
     info: "var(--info-bg)",
     warning: "var(--warning-bg)",

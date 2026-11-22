@@ -185,7 +185,7 @@ function PinRequest({
 
         <div>
           <label htmlFor={passwordId} className="studio-label">
-            Tu contraseña del Studio <span style={{ color: "var(--wine-text)" }}>*</span>
+            Tu contraseña del Studio <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <input
             ref={passwordRef}

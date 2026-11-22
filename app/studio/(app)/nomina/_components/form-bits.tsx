@@ -5,10 +5,12 @@
 
 import { cloneElement, isValidElement, useId, type ReactNode } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 type ControlProps = { id?: string; "aria-invalid"?: boolean; "aria-describedby"?: string };
 
-const CONTROLES: unknown[] = ["input", "select", "textarea"];
+// SDD-0660: <DateField> acepta id, aria-invalid y aria-describedby como un control nativo.
+const CONTROLES: unknown[] = ["input", "select", "textarea", DateField];
 
 export function Field({
   label,
@@ -36,7 +38,7 @@ export function Field({
     <div style={{ flex: 1, minWidth: 0 }}>
       <label className="studio-label" htmlFor={control ? controlId : undefined}>
         {label}
-        {required && <span style={{ color: "var(--wine-text)" }}> *</span>}
+        {required && <span style={{ color: "var(--ink-soft)" }}> *</span>}
       </label>
       {control
         ? cloneElement(control, {

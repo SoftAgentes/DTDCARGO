@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { WithholdingDrawer } from "./WithholdingDrawer";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", {
@@ -78,6 +79,10 @@ export function WithholdingsView({
   const router = useRouter();
   const totals = useMemo(() => withholdingTotals(rows), [rows]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // SDD-0660: el selector de mes no vive en un <form>; a medio escribir `period`
+  // se queda en el último mes válido. Exportar y «Nuevo comprobante» (que manda el
+  // período en un oculto que el drawer no muestra) esperan a un mes válido.
+  const [periodValid, setPeriodValid] = useState(true);
   const [pending, startTransition] = useTransition();
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [confirmVoidId, setConfirmVoidId] = useState<string | null>(null);
@@ -147,14 +152,14 @@ export function WithholdingsView({
           >
             ←
           </button>
-          <input
-            type="month"
+          <DateField
+            mode="month"
             value={period}
-            onChange={(e) => {
-              const v = e.target.value;
+            onChange={(v) => {
               if (/^\d{4}-\d{2}$/.test(v)) onPeriod(v);
             }}
-            className="studio-input studio-input-mono"
+            onValidityChange={setPeriodValid}
+            required
             style={{ width: 160 }}
             aria-label="Período fiscal"
           />
@@ -172,7 +177,7 @@ export function WithholdingsView({
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={exportCsv}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || !periodValid}
           >
             {Icon.doc(14)} Exportar CSV
           </button>
@@ -180,7 +185,7 @@ export function WithholdingsView({
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={() => window.print()}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || !periodValid}
           >
             Exportar PDF
           </button>
@@ -189,6 +194,7 @@ export function WithholdingsView({
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setDrawerOpen(true)}
+              disabled={!periodValid}
             >
               {Icon.plus(14)} Nuevo comprobante
             </button>
@@ -246,6 +252,7 @@ export function WithholdingsView({
                 type="button"
                 className="studio-btn studio-btn-primary studio-btn-sm"
                 onClick={() => setDrawerOpen(true)}
+                disabled={!periodValid}
               >
                 Nuevo comprobante
               </button>
@@ -281,7 +288,7 @@ export function WithholdingsView({
               {rows.map((r) => {
                 const anulado = r.status === "anulado";
                 const strike: React.CSSProperties = anulado
-                  ? { textDecoration: "line-through", color: "var(--ink-mute)" }
+                  ? { textDecoration: "line-through", color: "var(--ink-soft)" }
                   : {};
                 return (
                   <tr key={r.id}>
@@ -296,7 +303,7 @@ export function WithholdingsView({
                       {r.voucherNumber}
                     </td>
                     <td style={tdStyle}>
-                      <Badge tone={r.withholdingType === "iva" ? "wine" : "info"} size="sm">
+                      <Badge tone={r.withholdingType === "iva" ? "neutral" : "info"} size="sm">
                         {withholdingTypeShort(r.withholdingType)}
                       </Badge>
                     </td>
@@ -464,7 +471,7 @@ function PrintLayout({
           #dtd-fiscal-print {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
+            --wine-text: #7F0F1A; /* SDD-0686: el eyebrow impreso usa --wine-text; se ancla al valor claro */
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             display: block !important;

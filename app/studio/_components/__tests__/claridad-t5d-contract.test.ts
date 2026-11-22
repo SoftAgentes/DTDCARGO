@@ -9,6 +9,9 @@ import { describe, expect, it } from "vitest";
  *     estilo en línea: la activa va con relleno de tinta;
  *   - lo que abre un registro es un botón real «Abrir <nombre>» y la tarjeta o
  *     la fila sale del orden de Tab;
+ *   - enmienda SDD-0671 (tarjeta del CRM): el botón «Abrir ficha de <nombre>» es
+ *     el propio nombre (único, en el Tab, con `studio-link-quiet`), no hay botón
+ *     «Abrir» aparte y un clic en la tarjeta abre, salvo en el menú;
  *   - lo que avisa es `<Aviso>` (SDD-0628), no una caja hecha a mano;
  *   - el vino queda para la acción principal y la identidad.
  *
@@ -51,16 +54,17 @@ const ESPERADO: Record<string, Cuenta> = {
   "crm/_components/KommoBoardView.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   "crm/_components/LeadDrawer.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 1, tab: 1, vino: 0 },
   // Excepciones: el canal de anuncio del arrastre (status + aria-live, DND-01) y «Moviendo…» (status, texto).
-  // El vino es la señal de la columna mientras se arrastra encima, igual que en Bitácora.
-  "crm/_components/CrmTableroKanban.tsx": { aviso: 0, rol: 2, vivo: 1, contorno: 0, abrir: 1, fueraDeTab: 1, tablist: 0, tab: 0, vino: 2 },
-  // El vino es color de dato: un KPI y la primera barra de la cartera.
-  "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 2 },
+  // La señal de la columna mientras se arrastra encima es azul de acción (BD-076, SDD-0686 fase 2): vino 0.
+  // SDD-0671: el único «Abrir ficha de …» es el nombre, y es la parada de Tab (fueraDeTab 0).
+  "crm/_components/CrmTableroKanban.tsx": { aviso: 0, rol: 2, vivo: 1, contorno: 0, abrir: 1, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
+  // El KPI y la primera barra de la cartera son datos: van en tinta (BD-076, SDD-0686 fase 2): vino 0.
+  "crm/_components/DireccionTab.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
   // Excepción: «Cargando la ficha…» es texto en status, sin caja.
   "crm/_components/TarjetaFichaDrawer.tsx": { aviso: 1, rol: 1, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
-  // El vino es el contador de mensajes sin leer (pastilla de estado, no se toca).
-  "conversaciones/_components/ConversationList.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 1, fueraDeTab: 1, tablist: 0, tab: 0, vino: 1 },
-  // El vino es la burbuja del mensaje saliente (identidad, no se oprime). El hilo no es región viva.
-  "conversaciones/_components/ConversationThread.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 1 },
+  // El contador de mensajes sin leer es una cifra: va en tinta (BD-076, SDD-0686 grupo 8): vino 0.
+  "conversaciones/_components/ConversationList.tsx": { aviso: 0, rol: 0, vivo: 0, contorno: 0, abrir: 1, fueraDeTab: 1, tablist: 0, tab: 0, vino: 0 },
+  // La burbuja del mensaje saliente va en tinta (BD-076: el vino es solo logo y wordmark; SDD-0686 grupo 8): vino 0. El hilo no es región viva.
+  "conversaciones/_components/ConversationThread.tsx": { aviso: 1, rol: 0, vivo: 0, contorno: 0, abrir: 0, fueraDeTab: 0, tablist: 0, tab: 0, vino: 0 },
 };
 
 const ARCHIVOS = Object.keys(ESPERADO);
@@ -143,6 +147,30 @@ function violaciones(ruta: string, texto: string): string[] {
     if (!t.includes("aria-selected=")) fallas.push(`${ruta}: pestaña sin aria-selected`);
     if (!t.includes("data-activa=")) fallas.push(`${ruta}: pestaña sin data-activa (el relleno de tinta)`);
   }
+  if (ruta === KANBAN) fallas.push(...formaTarjeta(codigo));
+  return fallas;
+}
+
+const KANBAN = "crm/_components/CrmTableroKanban.tsx";
+
+/**
+ * Forma de la tarjeta del CRM (SDD-0671, enmienda de BD-037 en la tarjeta): el
+ * nombre es el único botón «Abrir ficha de …», enfocable y con aspecto de enlace
+ * (`studio-link-quiet`: subrayado siempre, SDD-0603); no vuelve el botón «Abrir»
+ * con su chevrón; el menú sigue; y el clic en la tarjeta no abre desde el menú.
+ */
+function formaTarjeta(codigo: string): string[] {
+  const fallas: string[] = [];
+  const i = codigo.search(PATRONES.abrir);
+  const nombre = i === -1 ? "" : etiquetaEn(codigo, i);
+  if (!/^<button\b/.test(nombre)) fallas.push(`${KANBAN}: «Abrir ficha de …» no es un <button>`);
+  if (!nombre.includes('className="studio-link-quiet"')) fallas.push(`${KANBAN}: el nombre perdió studio-link-quiet`);
+  if (/tabIndex/.test(nombre)) fallas.push(`${KANBAN}: el nombre salió del orden de Tab`);
+  if (/Icon\.chevR\(|>\s*Abrir\s*[<{]/.test(codigo)) fallas.push(`${KANBAN}: volvió un botón «Abrir» visible`);
+  if (!/<ActionMenu items=\{acciones\}/.test(codigo)) fallas.push(`${KANBAN}: falta el menú de acciones`);
+  if (!codigo.includes(`closest("button, a, [role='menu'], [role='menuitem']")`)) {
+    fallas.push(`${KANBAN}: el clic en la tarjeta ya no excluye el menú`);
+  }
   return fallas;
 }
 
@@ -174,8 +202,9 @@ describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversa
     expect(grupos).toBe(TOTAL_PESTANAS);
   });
 
-  it("«Abrir» de tarjetas y filas es un secundario de tabla con verbo visible", () => {
-    for (const ruta of ["crm/_components/CrmTableroKanban.tsx", "conversaciones/_components/ConversationList.tsx"]) {
+  // SDD-0671: la tarjeta del CRM sale de esta regla (su «Abrir» es el nombre; ver formaTarjeta).
+  it("«Abrir» de las filas de Conversaciones es un secundario de tabla con verbo visible", () => {
+    for (const ruta of ["conversaciones/_components/ConversationList.tsx"]) {
       const codigo = sinComentarios(fuentes.get(ruta)!);
       const i = codigo.search(PATRONES.abrir);
       const boton = codigo.slice(codigo.lastIndexOf("<button", i), codigo.indexOf("</button>", i));
@@ -261,15 +290,66 @@ describe("SDD-0603 · tramo 5d · pestañas, tarjetas y avisos de CRM y Conversa
       ]);
     });
 
-    it("el nombre de la tarjeta vuelve a ser parada de Tab → rompe", () => {
-      expect(muta("crm/_components/CrmTableroKanban.tsx", "tabIndex={-1}", "tabIndex={0}")).toEqual([
-        expect.stringContaining("fueraDeTab = 0"),
+    // SDD-0671: la regla de la tarjeta cambió; estos mutantes la vigilan.
+    const NOMBRE_TARJETA = "aria-label={`Abrir ficha de ${nombre}`}";
+
+    it("el nombre de la tarjeta sale del Tab → rompe", () => {
+      expect(muta(KANBAN, NOMBRE_TARJETA, `${NOMBRE_TARJETA}
+        tabIndex={-1}`)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("fueraDeTab = 1"),
+          expect.stringContaining("el nombre salió del orden de Tab"),
+        ]),
+      );
+    });
+
+    it("vuelve un botón «Abrir» aparte → rompe", () => {
+      expect(
+        muta(
+          KANBAN,
+          "<ActionMenu items={acciones}",
+          '<button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" aria-label={`Abrir ficha de ${nombre}`} onClick={onOpen}>Abrir{Icon.chevR(14)}</button>\n          <ActionMenu items={acciones}',
+        ),
+      ).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("abrir = 2"),
+          expect.stringContaining("volvió un botón «Abrir» visible"),
+        ]),
+      );
+    });
+
+    it("el nombre deja de ser botón → rompe", () => {
+      const original = fuentes.get(KANBAN)!;
+      const i = original.indexOf(NOMBRE_TARJETA);
+      const inicio = original.lastIndexOf("<button", i);
+      const mutado = `${original.slice(0, inicio)}<span${original.slice(inicio + "<button".length)}`;
+      expect(mutado).not.toBe(original);
+      expect(violaciones(KANBAN, mutado)).toEqual(
+        expect.arrayContaining([expect.stringContaining("no es un <button>")]),
+      );
+    });
+
+    it("el nombre pierde el aspecto de enlace → rompe", () => {
+      expect(muta(KANBAN, 'className="studio-link-quiet"', 'className="studio-btn studio-btn-sm"')).toEqual([
+        expect.stringContaining("el nombre perdió studio-link-quiet"),
+      ]);
+    });
+
+    it("el menú «…» abre la ficha (el clic en la tarjeta deja de excluirlo) → rompe", () => {
+      expect(
+        muta(KANBAN, `closest("button, a, [role='menu'], [role='menuitem']")`, `closest("button, a")`),
+      ).toEqual([expect.stringContaining("el clic en la tarjeta ya no excluye el menú")]);
+    });
+
+    it("se quita el menú de acciones → rompe", () => {
+      expect(muta(KANBAN, /<ActionMenu items=\{acciones\}[^>]*\/>/, "")).toEqual([
+        expect.stringContaining("falta el menú de acciones"),
       ]);
     });
 
     it("la fila elegida de Conversaciones vuelve al vino → rompe", () => {
       expect(muta("conversaciones/_components/ConversationList.tsx", '"var(--ctl-border)"', '"var(--wine)"')).toEqual([
-        expect.stringContaining("vino = 2"),
+        expect.stringContaining("vino = 1"),
       ]);
     });
 

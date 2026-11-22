@@ -9,11 +9,15 @@
  * - Empty state cuando no hay rows
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { hrefDeVista, statusDelSelector } from "@/lib/studio/almacen-cn-vistas";
+import { nombreParaEtiqueta } from "@/lib/studio/almacen-cn-contenedores";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   HUB_GROUPS,
@@ -91,6 +95,11 @@ interface Props {
   tarifas?: TarifasCn;
   /** SDD-0571: puede congelar en lote (admin, operations, warehouse, accounting). */
   puedeCongelarTarifas?: boolean;
+  /**
+   * SDD-0682: recepciones consolidadas que la vista «En almacén» deja fuera.
+   * `null`/ausente = no se contó (otra vista, o la cuenta falló): sin aviso.
+   */
+  consolidadasOcultas?: number | null;
 }
 
 /** SDD-0571 · Lo que la tabla sabe de las tarifas congeladas. */
@@ -133,6 +142,7 @@ function AlmacenCnView({
   eliminacion,
   tarifas,
   puedeCongelarTarifas = false,
+  consolidadasOcultas = null,
 }: Props) {
   const alertSet = new Set(alertShipmentIds);
   // SDD-0571: el cajón de la tarifa de una recepción.
@@ -155,7 +165,8 @@ function AlmacenCnView({
   // Filtros locales sincronizados con URL
   const [q, setQ] = useState(params.get("q") ?? "");
   const [hub, setHub] = useState(params.get("hub") ?? "");
-  const [status, setStatus] = useState(params.get("status") ?? "");
+  // SDD-0682: un `?status=` que no existe se lee como «En almacén», igual que el servidor.
+  const [status, setStatus] = useState(statusDelSelector(params.get("status")));
 
   // Bulk selection (set de receipt IDs)
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -271,7 +282,9 @@ function AlmacenCnView({
               pushFilters({ q, hub, status: e.target.value });
             }}
           >
-            <option value="">{t("warehouse_cn.filter.status_all")}</option>
+            {/* SDD-0682: sin estado en la URL = «En almacén» (pendiente + incidencia). */}
+            <option value="">{t("warehouse_cn.filter.status_en_almacen")}</option>
+            <option value="all">{t("warehouse_cn.filter.status_all")}</option>
             {RECEIPT_STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(RECEIPT_STATUS_LABEL_KEYS[opt.value])}
@@ -307,9 +320,9 @@ function AlmacenCnView({
               alignItems: "center",
               gap: 6,
               ...(showClientNames && {
-                background: "var(--wine-tint)",
-                color: "var(--wine-text)",
-                borderColor: "var(--wine)",
+                background: "color-mix(in srgb, var(--ink) 8%, transparent)",
+                color: "var(--ink)",
+                borderColor: "var(--ink)",
               }),
             }}
             onClick={() => setShowClientNames((v) => !v)}
@@ -330,23 +343,44 @@ function AlmacenCnView({
         )}
       </div>
 
+      {/* SDD-0682: lo consolidado ya salió de la bodega; se dice y se ofrece dónde verlo. */}
+      {!status && consolidadasOcultas !== null && consolidadasOcultas > 0 && (
+        <div style={{ marginBottom: "var(--s-4)" }}>
+          <Aviso
+            tono="info"
+            compacto
+            accion={{
+              etiqueta: t("warehouse_cn.view.hidden_link"),
+              onClick: () =>
+                router.push(
+                  hrefDeVista(pathname, Object.fromEntries(params.entries()), "camino"),
+                ),
+            }}
+          >
+            {consolidadasOcultas === 1
+              ? t("warehouse_cn.view.hidden_notice_one")
+              : t("warehouse_cn.view.hidden_notice", { count: consolidadasOcultas })}
+          </Aviso>
+        </div>
+      )}
+
       {/* Tabla o empty */}
       {receipts.length === 0 ? (
         <EmptyState
           eyebrow={
             hasActiveFilters
               ? t("chrome.empty.no_results")
-              : t("warehouse_cn.empty.title")
+              : t("warehouse_cn.view.en_almacen")
           }
           title={
             hasActiveFilters
               ? t("warehouse_cn.empty.filtered_title")
-              : t("warehouse_cn.empty.title")
+              : t("warehouse_cn.empty.en_almacen_title")
           }
           description={
             hasActiveFilters
               ? t("warehouse_cn.empty.filtered_description")
-              : t("warehouse_cn.empty.description")
+              : t("warehouse_cn.empty.en_almacen_description")
           }
           action={
             !hasActiveFilters ? (
@@ -505,7 +539,7 @@ function ReceiptsTable({
             }}
             onChange={onToggleAll}
             style={{
-              accentColor: "var(--wine)",
+              accentColor: "var(--accion)",
               cursor: "pointer",
               width: 16,
               height: 16,
@@ -591,12 +625,7 @@ function ReceiptRow({
         : `${row.warehouse.hub_name_es} · ${row.warehouse.hub_name_cn}`;
 
   const cbmDisplay =
-    row.total_cbm != null
-      ? Number(row.total_cbm).toLocaleString("es-VE", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })
-      : "—";
+    formatCbm(row.total_cbm);
 
   const weightDisplay =
     row.total_weight_kg != null
@@ -618,7 +647,7 @@ function ReceiptRow({
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         alignItems: "center",
-        background: selected ? "var(--wine-tint)" : "transparent",
+        background: selected ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
         transition: "background var(--dur-fast) var(--ease)",
       }}
     >
@@ -629,7 +658,7 @@ function ReceiptRow({
           checked={selected}
           onChange={onToggle}
           style={{
-            accentColor: "var(--wine)",
+            accentColor: "var(--accion)",
             cursor: "pointer",
             width: 16,
             height: 16,
@@ -690,7 +719,7 @@ function ReceiptRow({
             <span
               style={{
                 font: "600 12.5px/1.2 var(--f-sans)",
-                color: showClientNames ? "var(--ink)" : "var(--ink-mute)",
+                color: showClientNames ? "var(--ink)" : "var(--ink-soft)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -708,9 +737,9 @@ function ReceiptRow({
               <code
                 style={{
                   font: "800 11px/1 var(--f-mono)",
-                  // En selected row el bg pasa a wine-tint → wine sobre wine-tint
-                  // pierde contraste AA. Usamos --ink en ese caso.
-                  color: selected ? "var(--ink)" : "var(--wine)",
+                  // El Shipping Mark es un dato: va en tinta, también en la fila
+                  // seleccionada (BD-076, regla 6).
+                  color: "var(--ink)",
                 }}
               >
                 {row.client_markbox}
@@ -753,7 +782,7 @@ function ReceiptRow({
             )}
           </>
         ) : (
-          <span style={{ color: "var(--ink-mute)" }}>—</span>
+          <span style={{ color: "var(--ink-soft)" }}>—</span>
         )}
       </div>
 
@@ -803,7 +832,7 @@ function ReceiptRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.total_cbm != null ? "var(--wine)" : "var(--ink-mute)",
+          color: row.total_cbm != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -816,7 +845,7 @@ function ReceiptRow({
         style={{
           font: "500 11.5px/1 var(--f-mono)",
           color:
-            row.total_weight_kg != null ? "var(--ink-soft)" : "var(--ink-mute)",
+            row.total_weight_kg != null ? "var(--ink-soft)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -842,6 +871,17 @@ function ReceiptRow({
       {/* Status + payment + destino · stacked */}
       <span style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
+        {/* SDD-0682: consolidada, pero su contenedor aún no zarpa: sigue en la bodega. */}
+        {row.contenedor_sin_zarpar && (
+          <span
+            data-testid="en-contenedor-sin-zarpar"
+            style={{ font: "600 11px/1.25 var(--f-sans)", color: "var(--ink)" }}
+          >
+            {tRow("warehouse_cn.view.in_container_unsailed", {
+              container: nombreParaEtiqueta(row.contenedor_sin_zarpar),
+            })}
+          </span>
+        )}
         <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
           {PAYMENT_STATUS_LABELS[row.payment_status]}
         </Badge>

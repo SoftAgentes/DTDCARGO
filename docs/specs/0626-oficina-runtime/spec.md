@@ -4,7 +4,7 @@ title: "Oficina-runtime — El Cable Vertical"
 status: approved
 author: "Hermes (redacción) · Sam (aprobación)"
 created: 2026-11-12
-updated: 2026-11-18
+updated: 2026-11-20
 supersedes: null
 superseded_by: null
 related: ["0020", "0021"]
@@ -12,7 +12,7 @@ confidencialidad: interno
 ---
 
 # SDD-0626 · Oficina-runtime — El Cable Vertical
-**Versión 0.9 (botón de pausa de la oficina) · 18/11/2026**
+**Versión 0.15 (botón de pausa de la oficina, al día con el nombre Oficina_Virtual) · 22/11/2026**
 
 | Control | Valor |
 |---|---|
@@ -25,7 +25,7 @@ confidencialidad: interno
 ## 1 · Objetivo y alcance
 
 Que una conversación real de Chatwoot sea atendida de principio a fin por
-`soporte-chatwoot` (glm-5.3), con autonomía que sube por etapas (AC-1) y solo
+`soporte-chatwoot` (claude-sonnet-5-5, Anthropic), con autonomía que sube por etapas (AC-1) y solo
 pasa a responder sola si cumple la regla de seguir o parar (AC-7), con cada
 paso anotado y visible en una vista de prueba estilo V3. **Incluye:** 4 tablas mínimas
 (las 3 del cable y la bandera `office_paused`), webhook de Chatwoot, filtro nivel 1, despachador mínimo, 1 corrida, ficha del
@@ -36,7 +36,7 @@ completas, los 6 eventos (Fase B), aprobaciones L1 con dinero.
 
 - **VPS DTD** (construcción + datos): tablas, webhook, despachador, mini-vista.
 - **VPS Oficina** (ejecución): runtime Hermes con perfil `soporte-chatwoot`
-  (glm-5.3). El despachador lo invoca por red interna autenticada (token en
+  (claude-sonnet-5-5, Anthropic). El despachador lo invoca por red interna autenticada (token en
   gestor de secretos). El ERP no sabe qué modelo corre: contrato "ejecuta
   agente X con tarea Y → resultado + bitácora".
 - **PC de Sam**: aprobaciones y monitoreo (Discord + mini-vista).
@@ -204,7 +204,7 @@ invoca el runtime → recibe resultado → verifica contra eval.md (anexo A.7) �
 cierra o escala. Frenos: cooldown 10s · 1 corrida por agente · máx 20 pasos ·
 timeout 300s (tope por corrida, presupuesto de doble carril).
 
-**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, glm-5.3 (respaldo deepseek-chat).
+**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, claude-sonnet-5-5 (Anthropic), con respaldo claude-haiku-5-5 (mismo proveedor; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); un tercer nivel con OpenAI en la SDD-0703.
 Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 
 **Decisiones de Sam del 16/11/2026 («Sí a todo», D1 a D6):**
@@ -249,8 +249,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
   - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
   - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
-- **El agente (VPS Oficina).** glm-5.3, **sin respaldo** hasta que Sam cree la llave propia de DeepSeek con tope de
-  gasto (16/11/2026; después, respaldo deepseek-chat); instrucciones con la esencia del Anexo A y salida
+- **El agente (VPS Oficina).** claude-sonnet-5-5 (Anthropic) con respaldo claude-haiku-5-5 del mismo proveedor (21/11/2026: Sam quitó Z.AI y DeepSeek
+  y pidió Sonnet → Haiku; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z; un tercer nivel no chino con OpenAI está en la SDD-0703); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
 - **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta la cuenta del cable e ignora los avisos de
@@ -286,7 +286,7 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   marcó «cero datos inventados». Cumple con el mínimo (etapa 1: 10; etapa 2: 20), el 90 % correctas (9 de 10, 18 de 20)
   y cero inventados. La etapa de cada revisión la fija `OFICINA_ETAPA` (1 por defecto). Las demás condiciones de AC-1
   (AC-3 a AC-6) se siguen comprobando aparte; Sam firma el paso.
-- **B · La página (D4): `/studio/admin/oficina`**, solo para `is_platform_admin`: el layout corta con `notFound()` y la
+- **B · La página (D4): `/studio/admin/oficina-virtual` (antes `/studio/admin/oficina`, que redirige; v0.14)**, solo para `is_platform_admin`: el layout corta con `notFound()` y la
   base lo vuelve a exigir en cada función (`office_borradores_pendientes`, `office_revisar_borrador`,
   `office_conteo_revisiones`). Muestra el borrador (o el motivo del escalado) **siempre como texto plano**, las 5
   casillas, el motivo obligatorio (sin datos personales: la regla del cable) y los botones Aprobar y Rechazar. Rechazado
@@ -400,6 +400,58 @@ migración **0560** (sin aplicar):
 - `supabase/migrations-baseline.json` (la espera)
 - esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
 
+**Etapa 1: exclusiones del conteo y corrección de cierres (la 0567).** Después de la tanda 1 (18/11/2026), el conteo
+quedó en «5 de 10, 1 correctas» por dos cosas que no son del agente: una conversación de la prueba del encendido entró
+al conteo, y dos cierres quedaron guardados en «Falló» cuando Sam marcó «Cumple». `office_cierres` es de solo agregar
+y admite un cierre por conversación y etapa, así que no se puede editar ni repetir. Decisión del DG (18/11/2026): no se
+borra ni se edita nada (AUD-01); se agregan filas nuevas que dicen qué se corrige, por qué, quién y cuándo. Va en la
+migración **0567**, **aplicada en producción el 2026-11-18 a las 23:43:42Z** (ledger `version` 20261118234342, md5 `92701f0d57da88cd437d8ea44b5662a0`, 25780 bytes; evidencia `/srv/ops/evidencias/apply-0567-dtd-cargo-20261118T234341Z`; OK de Sam: «OK, aplica 0567»). Las filas de la tanda 1, escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30»:
+- **`office_conteo_exclusiones`**: conversación, etapa, motivo, actor y fecha; una por conversación y etapa. La
+  conversación listada no cuenta en esa etapa, ni a favor ni en contra, y no aparece en «Conversaciones por cerrar».
+- **`office_cierres_correcciones`**: conversación, etapa, «cumple», motivo, actor y fecha; puede haber varias, y en el
+  conteo manda la última en lugar del cierre original. El original sigue en `office_cierres`.
+- **Solo agregar**: las dos tablas llevan los disparadores ALWAYS de `office_solo_insertar`, RLS sin policies y ningún
+  permiso de escritura para los roles de la API (solo `service_role` lee).
+- **La vía de escritura**: `office_excluir_conversacion()` y `office_corregir_cierre()`, sin EXECUTE para anon,
+  authenticated ni service_role. Solo las llama el dueño, en una sesión directa, con el OK nominal de Sam en el chat
+  del DG (runbook `oficina-cable` §13b). La página no gana botones.
+- **La migración no escribe filas.** Las primeras van aparte, con su OK: excluir la conversación de la prueba del
+  encendido y corregir a «cumple» los dos cierres. Con eso, la tanda 1 queda en 4 conversaciones y 3 correctas.
+
+**Archivos de la 0567 (allowlist):**
+- `supabase/migrations/0567_oficina_conteo_exclusiones.sql`, `supabase/desarmes/0567_desarme.sql` y
+  `supabase/tests/0567_oficina_conteo_exclusiones.test.sql`
+- `lib/studio/__tests__/oficina-conteo-exclusiones.migration.test.ts`
+- `supabase/migrations-baseline.json` (la espera)
+- esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
+
+**Etapa 1: el acuse en una respuesta (ficha 0.3).** En la primera tanda de la etapa 1 en producción (18/11/2026), un
+saludo con una pregunta general no llegó a Sam como respuesta: el despachador lo escaló con `eval:sin_acuse`. El freno
+funcionó y no salió nada, pero la conversación no cuenta como correcta (decisión del DG: un escalado cuyo motivo empieza
+por `eval:` es un defecto del borrador). Sam pidió el arreglo el 18/11/2026.
+- **La causa está en la forma, no en el guion.** La salida del agente ya lleva el acuse como campo propio
+  (`{acuse, texto, guion}`), y `sin_acuse` salta cuando `texto` no empieza con `acuse`. Las instrucciones lo pedían en
+  una sola línea («acuse: primera frase de texto»), que deja al agente partir el mensaje en dos (el acuse en un campo y
+  el resto en el otro), y la comparación era letra por letra: una coma o un «¡» de diferencia también escalaban. El
+  texto exacto que devolvió el agente ese día no se guarda (R5), así que cuál de los dos deslices fue queda NO
+  VERIFICADO; el arreglo cubre los dos.
+- **Qué cambia (los guiones siguen en v0.2, sin tocar una letra):**
+  1. **Las instrucciones** dicen que `texto` es el mensaje completo y empieza con la frase de `acuse`, copiada tal cual,
+     con el guion `acuse-general` como ejemplo de la forma (`REGLA_DEL_ACUSE`).
+  2. **La comparación** mira las palabras, sin signos ni tildes (`empiezaConAcuse`). Sigue fallando si el acuse va
+     vacío, si el texto empieza con otra cosa o si el acuse aparece más adelante.
+  3. **Un reintento, solo por el acuse.** Si lo único que falla es `sin_acuse`, el despachador se lo pide una vez más
+     al agente con una línea fija de corrección, dentro del tope de 2 llamadas por corrida, y lo anota
+     (`eval.reintento`). Si el segundo intento tampoco lo trae, escala como antes. Un dato inventado, un dato
+     personal, un enlace o un guion desconocido **nunca se reintentan**: escalan al momento.
+- **Qué no cambia.** El ERP no escribe ni corrige el texto: lo redacta el agente y lo aprueba Sam. Lo que se envía es lo
+  aprobado. `eval:sin_acuse` sigue existiendo como respaldo, y Sam la juzga con «Acuse» en «Falló».
+
+**Archivos de la ficha 0.3 (allowlist):**
+- `lib/studio/oficina/despachador.ts` y `lib/studio/oficina/eval-automatico.ts`
+- `lib/studio/__tests__/oficina-despachador.test.ts` y `lib/studio/oficina/__tests__/despachador-piezas.test.ts`
+- esta spec (Anexo A), `docs/runbooks/oficina-cable.md` §10 y su handoff en `.agents/handoffs/`
+
 **Un solo contestador por bandeja.** Una bandeja de Chatwoot solo puede tener
 un contestador automático. `soporte-chatwoot` y el `dtd-bot` de la SDD-0618
 nunca comparten bandeja. Se hace cumplir en el Paso 3 del cable (§3.4 y §3.5),
@@ -409,7 +461,7 @@ cuando el agente empiece a responder.
 bitácora y la bandera) — maqueta de la V3, solo lectura.
 
 **Cómo se construyó §3.6 (Paso 4).** Sam la pidió el 18/11/2026, con la etapa 1 ya encendida. No lleva migración.
-- **Dónde: `/studio/admin/oficina/vista`**, bajo el mismo layout de la revisión (solo `is_platform_admin`, `notFound()`
+- **Dónde: `/studio/admin/oficina-virtual/vista` (antes `/studio/admin/oficina/vista`, que redirige; v0.14)**, bajo el mismo layout de la revisión (solo `is_platform_admin`, `notFound()`
   para los demás). **Nace apagada:** sin `OFICINA_VISTA_ACTIVA` (`1` o `true`) la página es un 404, también para el
   superadministrador, y la revisión de borradores no la enlaza.
 - **Qué muestra, de lo nuevo a lo viejo:**
@@ -438,6 +490,34 @@ bitácora y la bandera) — maqueta de la V3, solo lectura.
 - `.env.example` e `infra/dtd-cargo/.env.example`
 - esta spec, `docs/runbooks/oficina-cable.md` §13 y su handoff en `.agents/handoffs/`
 
+### El nombre: Oficina_Virtual (v0.14, pedido de Sam del 20/11/2026)
+
+Sam pidió que «la oficina» se llame **Oficina_Virtual** en todos lados: en pantalla, con guion bajo, tal cual.
+
+- **En pantalla:** el título de la pestaña (`Oficina_Virtual · revisión` y `Oficina_Virtual · mini-vista`), el
+  encabezado de las dos páginas (`Oficina_Virtual · SDD-0626 · …`; el nombre no pasa a mayúsculas aunque el resto del
+  encabezado sí), los textos de la mini-vista que nombran la pausa y el título del aviso de Discord
+  (`Oficina_Virtual: hay N borradores pendientes de revisión`).
+- **La ruta:** `/studio/admin/oficina-virtual` y `/studio/admin/oficina-virtual/vista`. La dirección vieja
+  `/studio/admin/oficina` y sus subrutas redirigen con un 308 permanente (`next.config.ts`), con el query string, para
+  que sigan sirviendo los enlaces de los avisos de Discord ya enviados y los marcadores. `revalidatePath` y los enlaces
+  internos usan la ruta nueva.
+- **Lo interno no cambia de nombre:** las tablas y funciones `office_*` (migraciones de solo agregar, en producción),
+  las variables `OFICINA_*`, la carpeta `lib/studio/oficina/`, los crons `oficina-*`, el webhook
+  `/api/oficina/webhook-chatwoot` y el id de esta SDD. Sin migración.
+- Administración no tiene hoy una tarjeta que lleve a la página (solo el superadministrador la ve, y entra por el
+  aviso o por la dirección). Este cambio no la agrega.
+
+**Archivos (allowlist):**
+- `app/studio/(app)/admin/oficina-virtual/` (movida desde `admin/oficina/`: página, mini-vista, layout, acciones y
+  componentes)
+- `next.config.ts` (las dos redirecciones) y `lib/studio/oficina/aviso-pendientes.ts` (la ruta y el título del aviso)
+- comentarios con la ruta en `lib/studio/oficina/config.ts`, `mini-vista.ts` y `revisiones.ts`, y en las dos
+  `.env.example`
+- las pruebas que nombran la ruta o el texto (`mini-vista`, `paso3b-piezas`, `acuse-escalado-pantalla`,
+  `oficina-contraste`, `rbac-actions-guard`) y la nueva `lib/studio/oficina/__tests__/oficina-virtual-nombre.test.ts`
+- esta spec, `docs/runbooks/oficina-cable.md` y su handoff en `.agents/handoffs/`
+
 **El botón de pausa (§3.1 · SGE-AG-01 §7).** Hasta el 18/11/2026 la oficina solo se pausaba o despausaba con SQL:
 `office_cambiar_pausa` (0541) existía, pero ninguna pantalla la llamaba. La etapa 1 le pide a Sam pausar al terminar
 cada sesión, así que Sam pidió el botón («Sí, haz el botón»). No lleva migración.
@@ -460,10 +540,10 @@ cada sesión, así que Sam pidió el botón («Sí, haz el botón»). No lleva m
 **Archivos del botón de pausa (allowlist):**
 - `lib/studio/oficina/pausa.ts`, `lib/studio/oficina/mini-vista.ts` (exporta `cambioDePausa`) y
   `lib/studio/oficina/__tests__/pausa.test.ts`
-- `app/studio/(app)/admin/oficina/` (página, `actions.ts` y `_components/TarjetaPausa.tsx`)
+- `app/studio/(app)/admin/oficina-virtual/` (página, `actions.ts` y `_components/TarjetaPausa.tsx`)
 - `lib/studio/rbac-actions-guard.test.ts` (el inventario de acciones: suma `cambiarPausaAction`) y
   `lib/studio/__tests__/oficina-contraste.test.ts` (suma la tarjeta)
-- esta spec, `docs/runbooks/oficina-cable.md` §14 y su handoff en `.agents/handoffs/`
+- esta spec, `docs/runbooks/oficina-cable.md` §15 y su handoff en `.agents/handoffs/`
 
 ## 4 · Fase B (semanas 4-5) — resumen para planificar
 Los 6 disparadores (pago, pre-alerta, contenedor, reclamo, run fallido,
@@ -495,7 +575,7 @@ el prototipo `oficina-dtd.html` (DTD Brand, día/noche).
   internos firmados por el despachador.
 
 ## 7 · Fallback (Fase B, no en el cable)
-Cadena por agente con piso glm-5.3 · clasificador de errores (402/401 salta
+Cadena por agente con piso por definir (Anthropic hoy; sin proveedores chinos, D-2) · clasificador de errores (402/401 salta
 proveedor 24h · 429/503 reintenta ×2 · timeout salta) · cortacircuitos · sonda
 de suscripción 2×día · modo degradado de dos vías.
 
@@ -584,21 +664,27 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
   redacta. Antes (v0.1): `chatwoot_read_conversation` · `chatwoot_send_message` · `guiones`.
 - **schemas:** entrada `{conversacion_id, mensajes[], guiones}` → salida, solo JSON,
   `{"respuesta": {acuse, texto, guion}}` o `{"escalado": {motivo, prioridad}}`.
-- **model_chain:** glm-5.3 → deepseek-chat (piso glm).
+- **model_chain:** claude-sonnet-5-5 → claude-haiku-5-5 (Anthropic, misma llave; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); tercer nivel OpenAI en la SDD-0703.
 - **presupuesto:** $15/mes piloto · por corrida: 20 pasos / 5 min.
 - **umbral de activación:** inbox de prueba (piloto); producción ≥30
   conversaciones/semana.
 - **eval.md (§A.7):** ✓ acuse en primera respuesta · ✓ guión o escalado · ✓
   cero datos inventados · ✓ PII no repetida fuera del contexto · ✓ cierre o
   escalado en ≤3 intercambios.
-- **versión:** 0.2 · changelog: 0.2 (16/11/2026, D1) sin herramientas, el ERP entrega mensajes y guiones, salida JSON;
+- **versión:** 0.3 · changelog: 0.3 (18/11/2026, pedido de Sam tras la tanda 1) las instrucciones dicen que `texto`
+  empieza con la frase de `acuse`, con un ejemplo; el acuse se compara por palabras; un reintento solo por el acuse.
+  Los guiones siguen en v0.2 · 0.2 (16/11/2026, D1) sin herramientas, el ERP entrega mensajes y guiones, salida JSON;
   memoria apagada · 0.1 alta inicial (SDD-0626).
 
 ## Historial de versiones
 
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 0.9 | 18/11/2026 | **El botón de pausa** (pedido de Sam del 18/11/2026: «Sí, haz el botón»): cómo se construyó y su allowlist, al final de §3. En `/studio/admin/oficina`, un botón para pausar o despausar la oficina con motivo obligatorio; llama a `office_cambiar_pausa` (0541) con la sesión del usuario. Despausar pide una confirmación. Sin migración y sin interruptor de entorno: pausar tiene que estar siempre a mano |
+| 0.15 | 22/11/2026 | **El botón de pausa** (pedido de Sam del 18/11/2026: «Sí, haz el botón»; puesto al día el 22/11/2026 con la ruta `/studio/admin/oficina-virtual`, el contador de acciones en 503 y los avisos de resultado de la 0678. La idea original fue la 0.9): cómo se construyó y su allowlist, al final de §3. En `/studio/admin/oficina-virtual`, un botón para pausar o despausar la oficina con motivo obligatorio; llama a `office_cambiar_pausa` (0541) con la sesión del usuario. Despausar pide una confirmación. Sin migración y sin interruptor de entorno: pausar tiene que estar siempre a mano |
+| 0.14 | 20/11/2026 | **El nombre: Oficina_Virtual** (pedido de Sam del 20/11/2026): en pantalla la oficina se llama «Oficina_Virtual», con guion bajo; la ruta pasa a `/studio/admin/oficina-virtual` (y `/vista`) y la vieja redirige con un 308 permanente, con sus subrutas. Nada interno cambia de nombre (`office_*`, `OFICINA_*`, `lib/studio/oficina/`). Sin migración. Al final de §3 |
+| 0.13 | 18/11/2026 | **La 0567, aplicada en producción** el 2026-11-18 a las 23:43:42Z, con el OK de Sam «OK, aplica 0567» (ledger `version` 20261118234342, md5 `92701f0d57da88cd437d8ea44b5662a0`, 25780 bytes, verificación PASÓ con los cuerpos vivos iguales; evidencia `/srv/ops/evidencias/apply-0567-dtd-cargo-20261118T234341Z`; paquete del SHA `1f8bad1b2`). Espera retirada y migración sellada en el candado. Las filas (excluir la 25, corregir la 27 y la 30), escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30» |
+| 0.12 | 18/11/2026 | **Etapa 1: exclusiones del conteo y corrección de cierres** (decisión del DG, tras la tanda 1): §3.5 suma la **0567** (sin aplicar) y su allowlist: `office_conteo_exclusiones` (la conversación excluida no cuenta) y `office_cierres_correcciones` (la última corrección reemplaza en el conteo al cierre original, que queda), de solo agregar, escritas solo por el dueño en una sesión directa con el OK nominal de Sam. La migración no escribe filas. La versión 0.11 (botón de pausa) va en su propia PR |
+| 0.10 | 18/11/2026 | **Ficha 0.3: el acuse en una respuesta** (pedido de Sam del 18/11/2026, tras la tanda 1 de la etapa 1, donde un saludo escaló con `eval:sin_acuse`): §3.5 suma la causa, el arreglo y su allowlist. Las instrucciones dicen que `texto` empieza con la frase de `acuse`, con un ejemplo; el acuse se compara por palabras, sin signos; y el despachador reintenta una vez solo por el acuse, dentro del tope de 2 llamadas. Los guiones siguen en v0.2. Sin migración. La versión 0.9 (botón de pausa) va en su propia PR |
 | 0.8 | 18/11/2026 | **Paso 4: la mini-vista** (pedido de Sam del 18/11/2026, con la etapa 1 ya encendida): cómo se construyó §3.6 y su allowlist. Página de solo lectura `/studio/admin/oficina/vista` (bandera, cola, eventos, bitácora y gasto del mes), solo para `is_platform_admin`, apagada por defecto con `OFICINA_VISTA_ACTIVA`. Sin migración: lee con el cliente de servicio, que solo se crea después del «sí» de `is_platform_admin()`. No pausa ni despausa. Mapa de pasos: Paso 4 construido |
 | 0.7 | 17/11/2026 | **Etapa 1: «Acuse» en los escalados** (decisión del DG por delegación de Sam): §3.5 suma la **0560** (sin aplicar) y su allowlist: en un escalado, «Acuse» en «No evaluado» no cuenta en contra; en una respuesta nada cambia; la pantalla deja «Acuse» en «No evaluado» en los escalados y el aviso junto a los botones dice lo que de verdad hace el conteo. La 0558, aplicada en producción el 2026-11-17 a las 22:21Z |
 | 0.6 | 17/11/2026 | **Seguimiento de la prueba F** (F cerrada en verde el 17/11/2026; decisión del DG por delegación de Sam): §3.5 suma cómo se construyó la **0558** (aplicada en producción el 2026-11-17 a las 22:21Z) y su allowlist. H2: tres estados por criterio («cumple», «falló», «no evaluado»), «marca lo que falló» en la pantalla, un rechazo exige un «Falló» y solo un `false` explícito cuenta como dato inventado. H3: 4 criterios por mensaje y el cierre una vez por conversación (`office_cierres`); en la etapa 2 solo cuentan las conversaciones con cierre. Las filas de la 0549 no se tocan ni cuentan (columna `regla_casillas`). La F no cuenta para la etapa 1. §9: filas «Paso a etapa 2» y «Paso a etapa 3». Contraste del borrador con los tokens del Studio (#604) |

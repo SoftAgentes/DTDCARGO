@@ -31,6 +31,7 @@ import {
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "inspection-drawer-form";
 const initialState: InspectionActionState = {};
@@ -108,7 +109,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Tipo */}
         <div>
           <label className="studio-label" htmlFor="ins-type">
-            Tipo de inspección <span style={{ color: "var(--wine-text)" }}>*</span>
+            Tipo de inspección <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <select
             id="ins-type"
@@ -159,7 +160,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
         {/* Título */}
         <div>
           <label className="studio-label" htmlFor="ins-title">
-            Título <span style={{ color: "var(--wine-text)" }}>*</span>
+            Título <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <input
             id="ins-title"
@@ -205,13 +206,7 @@ export function InspeccionDrawer({ mode, report, clients, onClose }: Props) {
             <label className="studio-label" htmlFor="ins-date">
               Fecha de inspección
             </label>
-            <input
-              id="ins-date"
-              name="inspection_date"
-              type="date"
-              className="studio-input"
-              defaultValue={report?.inspection_date ?? ""}
-            />
+            <DateField id="ins-date" name="inspection_date" defaultValue={report?.inspection_date ?? ""} />
             {state.fieldErrors?.inspection_date && (
               <FieldError msg={state.fieldErrors.inspection_date} />
             )}

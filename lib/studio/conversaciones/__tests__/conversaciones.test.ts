@@ -63,7 +63,7 @@ describe("type guards de enums", () => {
 describe("labels + badge tones", () => {
   it("canal mapea label y tono esperados", () => {
     expect(channelLabel("portal")).toBe("Portal");
-    expect(channelTone("portal")).toBe("wine");
+    expect(channelTone("portal")).toBe("neutral");
     expect(channelTone("whatsapp")).toBe("success");
     expect(channelTone("email")).toBe("info");
     // cobertura total del enum

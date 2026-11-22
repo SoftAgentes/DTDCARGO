@@ -7,6 +7,7 @@
  * Solo tokens var(--*). Cada celda deep-linkea a su módulo.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OpsSummary } from "@/lib/studio/direccion/queries";
@@ -14,7 +15,7 @@ import { MiniStat } from "./MiniStat";
 
 export function OpsCard({ ops }: { ops: OpsSummary }) {
   const cutoffValue = ops.cutoffDays != null ? `${ops.cutoffDays}d` : "—";
-  const cutoffTone = ops.cutoffDays != null && ops.cutoffDays <= 3 ? "danger" : "wine";
+  const cutoffTone = ops.cutoffDays != null && ops.cutoffDays <= 3 ? "danger" : "neutral";
 
   return (
     <div
@@ -36,7 +37,7 @@ export function OpsCard({ ops }: { ops: OpsSummary }) {
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -47,7 +48,7 @@ export function OpsCard({ ops }: { ops: OpsSummary }) {
           href="/studio/naviera"
           style={{
             font: "600 11.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             display: "inline-flex",
             alignItems: "center",
             gap: "var(--s-1)",
@@ -75,7 +76,7 @@ export function OpsCard({ ops }: { ops: OpsSummary }) {
         />
         <MiniStat
           label="Carga suelta CN"
-          value={ops.looseCbm.toFixed(1)}
+          value={formatCbm(ops.looseCbm)}
           sub="CBM por consolidar"
           icon={Icon.warehouse(16)}
           href="/studio/naviera"

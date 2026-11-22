@@ -54,7 +54,7 @@ export const INSPECTION_TYPE_META: Record<
     label: "Auditoría de fábrica",
     short: "Fábrica",
     prefix: "DTD-FA-",
-    tone: "wine",
+    tone: "neutral",
   },
 };
 

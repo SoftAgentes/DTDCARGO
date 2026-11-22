@@ -16,6 +16,7 @@ import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
 import { createHolidayAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "feriado-form";
 const initial: NominaActionState = {};
@@ -60,7 +61,7 @@ export function FeriadoDrawer({ onClose }: { onClose: () => void }) {
 
         <Row>
           <Field label="Fecha" error={state.fieldErrors?.holiday_date} required>
-            <input name="holiday_date" type="date" className="studio-input" required />
+            <DateField name="holiday_date" required />
           </Field>
           <Field label="Alcance" error={state.fieldErrors?.scope}>
             <select name="scope" className="studio-input" defaultValue="nacional">

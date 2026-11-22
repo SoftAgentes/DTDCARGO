@@ -193,7 +193,7 @@ export function PlanCuentasTab({
                 <span
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     flexShrink: 0,
                     minWidth: 52,
                   }}
@@ -252,7 +252,7 @@ export function PlanCuentasTab({
                 style={{
                   font: "800 12px/1 var(--f-mono)",
                   color:
-                    bal && bal.balance !== 0 ? "var(--ink)" : "var(--ink-mute)",
+                    bal && bal.balance !== 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >

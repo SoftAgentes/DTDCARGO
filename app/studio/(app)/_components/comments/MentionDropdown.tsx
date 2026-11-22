@@ -85,7 +85,7 @@ export function MentionDropdown({
             e.currentTarget.style.background = "transparent";
           }}
         >
-          <Avatar initials={u.avatar} size={24} color="wine" />
+          <Avatar initials={u.avatar} size={24} color="neutral" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{

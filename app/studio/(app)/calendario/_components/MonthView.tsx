@@ -10,6 +10,7 @@
 import {
   buildMonthGrid,
   fairsForDate,
+  dayCellLabel,
   holidaysForDate,
   type MonthCursor,
 } from "@/lib/studio/calendar-helpers";
@@ -113,7 +114,7 @@ export function MonthView({
               key={cell.isoDate}
               onClick={() => cell.inMonth && onDayClick(cell.isoDate)}
               disabled={!cell.inMonth}
-              aria-label={`Ver eventos del ${cell.isoDate}`}
+              aria-label={dayCellLabel(cell.isoDate, cell.inMonth ? dayHolidays : [], dayFairs.length, dayEvents.length)}
               className="studio-cal-daycell"
               style={{
                 minHeight: 116,
@@ -129,7 +130,7 @@ export function MonthView({
                 borderRight: isRightEdge ? "none" : "1px solid var(--border)",
                 borderLeft: "none",
                 borderBottom: "none",
-                boxShadow: criticalCN ? "inset 3px 0 0 var(--wine)" : undefined,
+                boxShadow: criticalCN ? "inset 3px 0 0 var(--danger)" : undefined,
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
@@ -157,12 +158,12 @@ export function MonthView({
                     height: isToday ? 26 : 22,
                     minWidth: isToday ? 26 : "auto",
                     borderRadius: isToday ? "50%" : 0,
-                    background: isToday ? "var(--wine)" : "transparent",
+                    background: isToday ? "var(--ink)" : "transparent",
                     color: isToday
                       ? "var(--bg-surface)"
                       : cell.inMonth
                         ? "var(--ink)"
-                        : "var(--ink-mute)",
+                        : "var(--ink-soft)",
                     font: `${isToday ? "900" : "700"} 13px/1 var(--f-display)`,
                     padding: isToday ? 0 : "0 2px",
                     flexShrink: 0,
@@ -185,11 +186,11 @@ export function MonthView({
                   >
                     {cnHoliday && (
                       <span
-                        title={cnHoliday.name}
+                        title={criticalCN ? `${cnHoliday.name} · feriado crítico` : cnHoliday.name}
                         style={{
                           font: "700 8.5px/1.2 var(--f-sans)",
                           fontFamily: "var(--f-sans), var(--f-cn)",
-                          color: "var(--wine-text)",
+                          color: "var(--ink)",
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
                           textAlign: "right",
@@ -199,6 +200,18 @@ export function MonthView({
                           maxWidth: "100%",
                         }}
                       >
+                        {/* Crítico = la operación en China se para (Año Nuevo
+                            Chino, Golden Week): además de la barra en peligro,
+                            un ícono y el estado en el nombre accesible del botón (`dayCellLabel`),
+                            para no decirlo solo con color. */}
+                        {criticalCN && (
+                          <span
+                            aria-hidden
+                            style={{ color: "var(--danger)", display: "inline-flex", verticalAlign: "-1px", marginRight: 2 }}
+                          >
+                            {Icon.warn(9)}
+                          </span>
+                        )}
                         {cnHoliday.shortName}
                       </span>
                     )}

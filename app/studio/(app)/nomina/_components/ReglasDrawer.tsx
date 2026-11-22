@@ -33,6 +33,7 @@ import { savePayrollRulesAction } from "../actions";
 import { Field, Row, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
 import { PistaLey } from "./PistaLey";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "reglas-form";
 const initial: NominaActionState = {};
@@ -254,7 +255,7 @@ export function ReglasDrawer({
         <GroupTitle>Vigencia de esta versión</GroupTitle>
         <Row>
           <Field label="Rige desde (informativa)" error={state.fieldErrors?.vigente_desde}>
-            <input name="vigente_desde" type="date" min={VIGENTE_DESDE_MIN} max={hoy} disabled={espera} className="studio-input" defaultValue={hoy} />
+            <DateField name="vigente_desde" min={VIGENTE_DESDE_MIN} max={hoy} disabled={espera} defaultValue={hoy} />
           </Field>
           <Field label="Fuente legal" error={state.fieldErrors?.fuente_legal}>
             <input

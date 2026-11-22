@@ -1353,7 +1353,7 @@ plantilla del plan maestro y la aprobación de Sam con su mano.
 `docs/operaciones/instrucciones-gerente-2026-08-06.md`, `prompt-roles-y-permisos.md`;
 `docs/specs/0085-rbac-modulos/spec.md`, `0140-perfiles-puesto-alta-unificada/spec.md`,
 `0076-configuracion-servicios/assets/FASE-FUTURA-motor-flujo-interno-y-rbac.md`;
-`docs/design/studio/_norte/HANDOFF.md`, `backend/README.md`; `lib/studio/modules.ts`,
+`docs/design/studio/_norte/HANDOFF.md`; `lib/studio/modules.ts`,
 `rbac.ts`, `user-types.ts`, `platform-admin.ts`, `privacidad-cn.ts`;
 `supabase/migrations/0204_nomina_positions.sql`; `app/api/cron/ceo-brief/route.ts`;
 `infra/dtd-cargo/cron/crontab`; y, como **documento sin publicar**, el estudio de GoHighLevel del 2026-10-13 (`docs/marketing/crm-gohighlevel-transicion.md` en el worktree `DTD-worktrees/crm-ghl-evaluacion-20261013`; no está en `main`).

@@ -132,13 +132,12 @@ export function ReconciliationTab({
           <KpiCard
             value={openStatements.length}
             label="A reconciliar"
-            valueColor={openStatements.length > 0 ? "var(--warning)" : "var(--ink)"}
+            status={openStatements.length > 0 ? { tono: "warning", texto: "Pendiente" } : undefined}
             sub={openStatements.length > 0 ? "Requieren revisión" : "Todo cerrado"}
           />
           <KpiCard
             value={closedStatements.length}
             label="Cerrados"
-            valueColor={closedStatements.length > 0 ? "var(--success)" : "var(--ink)"}
             sub="Períodos confirmados"
           />
         </div>

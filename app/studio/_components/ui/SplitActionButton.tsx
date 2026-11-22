@@ -17,7 +17,7 @@
  *   └─────────────────────────────┴──┘
  *   ↓ click en chevron:
  *   ┌──────────────────────────────────┐
- *   │  ● Crear y cerrar (actual)       │   ← punto wine = default actual
+ *   │  ● Crear y cerrar (actual)       │   ← punto de tinta = default actual
  *   │  ○ Crear y dejar abierta         │
  *   │  ○ Crear y empezar otra          │
  *   └──────────────────────────────────┘
@@ -155,6 +155,18 @@ export function SplitActionButton({
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  // Igual que en ActionButton: el temporizador del flash de éxito se cancela al desmontar y no se crea si la
+  // acción async termina con el componente ya desmontado (en CI salía «window is not defined» tras cerrar jsdom).
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+      if (temporizador.current !== null) clearTimeout(temporizador.current);
+      temporizador.current = null;
+    };
+  }, []);
 
   // Cargar la última opción guardada (solo client-side · evita hydration mismatch).
   useEffect(() => {
@@ -244,9 +256,13 @@ export function SplitActionButton({
           return;
         }
         onSuccess?.(action.key);
-        if (action.successLabel != null) {
+        if (action.successLabel != null && montado.current) {
           setSuccessKey(action.key);
-          setTimeout(() => setSuccessKey(null), successMs);
+          if (temporizador.current !== null) clearTimeout(temporizador.current);
+          temporizador.current = setTimeout(() => {
+            temporizador.current = null;
+            setSuccessKey(null);
+          }, successMs);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -564,7 +580,7 @@ function SplitActionMenu({
               <span
                 style={{
                   font: "700 9px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
                 }}
@@ -588,7 +604,7 @@ function RadioDot({ active }: { active: boolean }) {
         width: 12,
         height: 12,
         borderRadius: "50%",
-        border: `1.5px solid ${active ? "var(--wine)" : "var(--ink-mute)"}`,
+        border: `1.5px solid ${active ? "var(--ink)" : "var(--ink-mute)"}`,
         position: "relative",
         flexShrink: 0,
       }}
@@ -602,7 +618,7 @@ function RadioDot({ active }: { active: boolean }) {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "var(--wine)",
+            background: "var(--ink)",
           }}
         />
       )}

@@ -46,3 +46,23 @@ export async function codigosConCaida(
     return [vigente];
   }
 }
+
+/**
+ * SDD-0669 · Pestañas de la ficha. La activa viaja en `?pestana=`. Solo vale
+ * una de las que la página armó PARA ESTE ROL (`disponibles`): un valor
+ * desconocido, vacío o de una pestaña que el rol no tiene cae en «resumen». Así
+ * la URL nunca abre algo que la página no le pintó.
+ */
+export const PESTANAS_FICHA = ["resumen", "envios", "documentos", "configuracion"] as const;
+export type IdPestanaFicha = (typeof PESTANAS_FICHA)[number];
+
+export function pestanaDeLaFicha(
+  valor: string | string[] | null | undefined,
+  disponibles: readonly IdPestanaFicha[],
+): IdPestanaFicha {
+  const v = Array.isArray(valor) ? (valor[0] ?? null) : (valor ?? null);
+  return disponibles.find((p) => p === v) ?? "resumen";
+}
+
+/** Cuántos envíos muestra el Resumen; el resto, en la pestaña Envíos. */
+export const ENVIOS_EN_RESUMEN = 5;

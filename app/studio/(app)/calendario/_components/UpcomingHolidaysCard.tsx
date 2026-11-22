@@ -21,8 +21,8 @@ function countryBadge(country: Holiday["country"]) {
     return {
       label: "CN",
       bg: "var(--cal-cn-soft)",
-      color: "var(--wine-text)",
-      border: "var(--wine-soft)",
+      color: "var(--ink)",
+      border: "var(--warning)",
     };
   }
   return {
@@ -48,7 +48,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine-text)", marginBottom: 14 }}
+        style={{ marginBottom: 14 }}
       >
         Próximos feriados
       </div>
@@ -111,7 +111,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
                         style={{
                           marginLeft: 6,
                           font: "700 9px/1 var(--f-sans)",
-                          color: "var(--warning)",
+                          color: "var(--danger-text)",
                           letterSpacing: "0.06em",
                           textTransform: "uppercase",
                         }}
@@ -132,7 +132,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
                   {formatShortDate(h.startDate)}
                   {isRange && (
                     <>
-                      <span style={{ color: "var(--ink-mute)" }}>→</span>
+                      <span style={{ color: "var(--ink-soft)" }}>→</span>
                       {formatShortDate(h.endDate)}
                     </>
                   )}

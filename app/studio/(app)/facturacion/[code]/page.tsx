@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
@@ -274,13 +275,18 @@ export default async function InvoiceDetailPage({
             <div
               style={{
                 font: "900 42px/1 var(--f-display)",
-                color: balance > 0 ? "var(--wine-soft)" : "var(--success)",
+                color: "var(--ink-side-strong)",
                 letterSpacing: "-0.02em",
                 marginTop: 8,
               }}
             >
               ${fmt(balance)}
             </div>
+            {balance <= 0 && (
+              <div style={{ marginTop: 6, display: "flex", justifyContent: "flex-end" }}>
+                <KpiEstado status={{ tono: "success", texto: balance < 0 ? "Saldo a favor" : "Pagada" }} sobreOscuro />
+              </div>
+            )}
             {balance > 0 && <EquivalenteBs eq={bsSaldo} tono="oscuro" align="right" />}
           </div>
         </div>
@@ -335,7 +341,7 @@ export default async function InvoiceDetailPage({
               <strong
                 style={{
                   font: "700 12px/1 var(--f-mono)",
-                  color: overdue ? "var(--wine-soft)" : "var(--ink-side-strong)",
+                  color: overdue ? "var(--color-status-danger-on-dark)" : "var(--ink-side-strong)",
                 }}
               >
                 {invoice.due_date}

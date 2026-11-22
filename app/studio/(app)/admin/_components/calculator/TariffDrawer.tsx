@@ -30,6 +30,7 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Icon } from "@/app/studio/_components/icons";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export type CityOption = { slug: string; label: string };
 
@@ -135,7 +136,7 @@ export function TariffDrawer({
         ) : (
           <div>
             <label className="studio-label" htmlFor="tariff-city">
-              Ciudad <span style={{ color: "var(--wine-text)" }}>*</span>
+              Ciudad <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <select
               id="tariff-city"
@@ -169,7 +170,7 @@ export function TariffDrawer({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-3)" }}>
             <div>
               <label className="studio-label" htmlFor="tariff-cost">
-                Costo /m³ <span style={{ color: "var(--wine-text)" }}>*</span>
+                Costo /m³ <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="tariff-cost"
@@ -187,7 +188,7 @@ export function TariffDrawer({
             </div>
             <div>
               <label className="studio-label" htmlFor="tariff-price">
-                Venta /m³ <span style={{ color: "var(--wine-text)" }}>*</span>
+                Venta /m³ <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="tariff-price"
@@ -370,23 +371,15 @@ export function TariffDrawer({
               <label className="studio-label" htmlFor="tariff-from">
                 Vigente desde
               </label>
-              <input
-                id="tariff-from"
-                name="validFrom"
-                type="date"
-                className="studio-input"
-                defaultValue={tariff?.validFrom ?? ""}
-              />
+              <DateField id="tariff-from" name="validFrom" defaultValue={tariff?.validFrom ?? ""} />
             </div>
             <div>
               <label className="studio-label" htmlFor="tariff-to">
                 Vigente hasta
               </label>
-              <input
+              <DateField
                 id="tariff-to"
                 name="validTo"
-                type="date"
-                className="studio-input"
                 defaultValue={tariff?.validTo ?? ""}
                 aria-invalid={state.fieldErrors?.validTo ? true : undefined}
               />

@@ -329,6 +329,13 @@ export const CAPABILITIES = {
    * migración sólo mostraría el botón a quien la base igual rechaza.
    */
   reassign_shipment_owner: ["operations", "commercial"],
+  /**
+   * Corregir cajas, CBM y peso de un embarque y partirlo en dos (SDD-0673):
+   * operations + admin implícito (D1 del DG, 2026-11-18). La base repite el
+   * candado: las RPC de la migr 0563 exigen `operations` o `admin` activo.
+   */
+  correct_shipment_measures: ["operations"],
+  split_shipment: ["operations"],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;

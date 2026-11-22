@@ -116,7 +116,7 @@ export function ServiceRequestsTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -245,7 +245,7 @@ export function ServiceRequestsTab({
                 <code
                   style={{
                     font: "700 11.5px/1.2 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}

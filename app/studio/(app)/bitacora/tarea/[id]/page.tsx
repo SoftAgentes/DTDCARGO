@@ -11,7 +11,7 @@
 import { redirect } from "next/navigation";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Tarea · Bitácora · DTD Studio" };
+export const metadata = { title: "Tarea · Bitácora" };
 export const dynamic = "force-dynamic";
 
 export default async function BitacoraTaskDeepLink({

@@ -18,7 +18,8 @@
  * (page.tsx) como el cliente (editor) — igual que rbac.ts.
  */
 
-export type KpiTone = "wine" | "success" | "warning" | "danger" | "info" | "neutral";
+/** Sin `wine`: las cifras del dashboard van en tinta (BD-076; Sam, SDD-0686 §10.5). */
+export type KpiTone = "success" | "warning" | "danger" | "info" | "neutral";
 
 /** De dónde sale el valor del KPI (bundle server-side). */
 export type KpiSource =
@@ -58,7 +59,7 @@ export const CHART_PERIODS: readonly ChartPeriod[] = ["1M", "3M", "1A", "YTD"];
 /** ~18 KPIs heredados del Norte + campos `module`/`source`/`status`. */
 export const KPI_CATALOG: readonly KpiCatalogEntry[] = [
   // ─── Operación ───────────────────────────────────────────────
-  { id: "shipmentsActive", label: "Embarques activos",      icon: "box",       tone: "wine",    cat: "Operación", module: "tracking", source: "operational", status: "ready" },
+  { id: "shipmentsActive", label: "Embarques activos",      icon: "box",       tone: "neutral",    cat: "Operación", module: "tracking", source: "operational", status: "ready" },
   { id: "onTime",          label: "On-time delivery",       icon: "check",     tone: "success", cat: "Operación", module: "tracking", source: "desempeno",   status: "ready" },
   { id: "cbmInTransit",    label: "CBM en tránsito",        icon: "ship",      tone: "neutral", cat: "Operación", module: "naviera",  source: "naviera",     status: "ready" },
   { id: "avgTransit",      label: "Tránsito promedio",      icon: "truck",     tone: "info",    cat: "Operación", module: "tracking", source: "desempeno",   status: "ready" },
@@ -67,14 +68,14 @@ export const KPI_CATALOG: readonly KpiCatalogEntry[] = [
   // ─── Finanzas ────────────────────────────────────────────────
   { id: "monthRevenue",    label: "Ingresos del mes",       icon: "chart",     tone: "success", cat: "Finanzas",  module: "invoices", source: "finance",     status: "ready" },
   { id: "invoicesDue",     label: "Facturas vencidas",      icon: "invoice",   tone: "warning", cat: "Finanzas",  module: "invoices", source: "finance",     status: "ready" },
-  { id: "marginYTD",       label: "Margen sobre embarques", icon: "chart",     tone: "wine",    cat: "Finanzas",  module: "costing",  source: "finance",     status: "ready" },
+  { id: "marginYTD",       label: "Margen sobre embarques", icon: "chart",     tone: "neutral",    cat: "Finanzas",  module: "costing",  source: "finance",     status: "ready" },
   { id: "pendingCollect",  label: "Por cobrar",             icon: "invoice",   tone: "info",    cat: "Finanzas",  module: "invoices", source: "finance",     status: "ready" },
   // ─── Comercial ───────────────────────────────────────────────
   // SDD-0614 S0b: sale del espejo `kommo_leads`; Kommo está oculto del Studio hasta la migración completa.
   { id: "newLeads",        label: "Leads en pipeline",      icon: "spark",     tone: "info",    cat: "Comercial", module: "kommo",    source: "leads",       status: "ready", oculto: true },
   { id: "wonEstimados",    label: "Estimados aceptados (mes)", icon: "check",  tone: "success", cat: "Comercial", module: "quotes",   source: "quotes",      status: "ready" },
   { id: "activeClients",   label: "Clientes",               icon: "users",     tone: "neutral", cat: "Comercial", module: "clients",  source: "clients",     status: "ready" },
-  { id: "avgTicket",       label: "Ticket promedio",        icon: "tag",       tone: "wine",    cat: "Comercial", module: "invoices", source: "finance",     status: "ready" },
+  { id: "avgTicket",       label: "Ticket promedio",        icon: "tag",       tone: "neutral",    cat: "Comercial", module: "invoices", source: "finance",     status: "ready" },
   // ─── Nómina / RRHH ───────────────────────────────────────────
   { id: "nominaNeto",      label: "Neto del corte",         icon: "invoice",   tone: "success", cat: "Nómina",    module: "nomina",   source: "nomina",      status: "ready" },
   { id: "nominaPrestamos", label: "Saldo de préstamos",     icon: "tag",       tone: "warning", cat: "Nómina",    module: "nomina",   source: "nomina",      status: "ready" },
@@ -119,7 +120,6 @@ export const MAX_KPIS = 12;
 
 /** Mapa tone → token CSS para el color del valor del KpiCard. */
 export const TONE_TO_VALUE_COLOR: Record<KpiTone, string> = {
-  wine: "var(--wine-text)",
   success: "var(--success)",
   warning: "var(--warning)",
   danger: "var(--danger)",

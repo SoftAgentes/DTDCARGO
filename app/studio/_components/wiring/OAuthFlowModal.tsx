@@ -110,7 +110,7 @@ export function OAuthFlowModal({
                 width: 48,
                 height: 48,
                 border: "3px solid var(--border)",
-                borderTopColor: "var(--wine)",
+                borderTopColor: "var(--ink)",
                 borderRadius: "50%",
                 animation: "dtd-spin 0.7s linear infinite",
               }}

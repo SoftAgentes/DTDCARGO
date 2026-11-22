@@ -18,7 +18,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TarjetaPausa } from "@/app/studio/(app)/admin/oficina/_components/TarjetaPausa";
+import { TarjetaPausa } from "@/app/studio/(app)/admin/oficina-virtual/_components/TarjetaPausa";
 
 import { COLUMNAS } from "../mini-vista";
 import { type LecturaPausa, cambiarPausa, leerPausa } from "../pausa";
@@ -62,13 +62,13 @@ vi.mock("@/lib/studio/platform-admin", () => ({
 }));
 
 async function accionar(campos: Record<string, string>): Promise<string> {
-  const { cambiarPausaAction } = await import("@/app/studio/(app)/admin/oficina/actions");
+  const { cambiarPausaAction } = await import("@/app/studio/(app)/admin/oficina-virtual/actions");
   const fd = new FormData();
   for (const [k, v] of Object.entries(campos)) fd.set(k, v);
   try {
     await cambiarPausaAction(fd);
   } catch (e) {
-    const m = /^REDIRECT \/studio\/admin\/oficina\?r=(.+)$/.exec((e as Error).message);
+    const m = /^REDIRECT \/studio\/admin\/oficina-virtual\?r=([^&]+)/.exec((e as Error).message);
     if (m) return decodeURIComponent(m[1]);
     throw e;
   }
@@ -284,7 +284,7 @@ describe("pausa · la acción", () => {
   });
 
   it("las acciones de la oficina nunca usan el cliente de servicio", () => {
-    const acciones = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/actions.ts"), "utf8");
+    const acciones = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/actions.ts"), "utf8");
     expect(acciones).not.toMatch(/lib\/db\/admin|createAdminClient/);
     const lib = readFileSync(resolve(ROOT, "lib/studio/oficina/pausa.ts"), "utf8");
     // pausa.ts recibe los clientes: no crea ninguno.
@@ -292,7 +292,7 @@ describe("pausa · la acción", () => {
   });
 
   it("cada aviso que devuelve la acción de pausa tiene su texto en la página", () => {
-    const pagina = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/page.tsx"), "utf8");
+    const pagina = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/page.tsx"), "utf8");
     for (const codigo of ["ok_pausada", "ok_despausada", "sin_confirmar", "sin_tablas", "pausa_sin_permiso", "pausa_invalida", "pausa_error", "sin_motivo", "motivo_con_datos"]) {
       expect(pagina, codigo).toMatch(new RegExp(`\\b${codigo}:\\s`));
     }
@@ -358,7 +358,7 @@ describe("pausa · la tarjeta", () => {
     const html = pintar({ ok: true, pausada: true, vigente: vigente(true, '<img src=x onerror="alert(1)">') });
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
-    const fuente = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/_components/TarjetaPausa.tsx"), "utf8");
+    const fuente = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/_components/TarjetaPausa.tsx"), "utf8");
     expect(fuente).not.toMatch(/dangerouslySetInnerHTML\s*=/);
   });
 });

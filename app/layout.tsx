@@ -9,6 +9,7 @@ import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/public/site-meta";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
+import { Clarity } from "@/components/Clarity";
 import { AvisoEntornoPrueba } from "@/components/AvisoEntornoPrueba";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Agentation } from "agentation";
@@ -309,6 +310,8 @@ export default function RootLayout({
         <AvisoEntornoPrueba />
         {children}
         <Analytics />
+        {/* Microsoft Clarity: apagado sin NEXT_PUBLIC_CLARITY_ID (fase 1). */}
+        <Clarity />
         <CookieConsentBanner />
         {process.env.NODE_ENV === "development" &&
           process.env.E2E_ENVIRONMENT_KIND !== "ephemeral" && <Agentation />}

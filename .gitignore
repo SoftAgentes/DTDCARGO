@@ -19,6 +19,7 @@
 /.next/
 # Salida del paso `build` del gate (SDD-0280) — efímera, se borra sola
 /.next-verify/
+/.next-clarity-e2e/
 /out/
 
 # production

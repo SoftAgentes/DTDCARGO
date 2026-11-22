@@ -176,7 +176,7 @@ export function LibroMayorTab({
               <span
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {m.entry_code}
@@ -195,7 +195,7 @@ export function LibroMayorTab({
               <span
                 style={{
                   font: "500 11.5px/1 var(--f-mono)",
-                  color: m.debit > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: m.debit > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >
@@ -204,7 +204,7 @@ export function LibroMayorTab({
               <span
                 style={{
                   font: "500 11.5px/1 var(--f-mono)",
-                  color: m.credit > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: m.credit > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >
@@ -264,7 +264,7 @@ function Stat({
       <span
         style={{
           font: `${strong ? "800" : "600"} 13px/1 var(--f-mono)`,
-          color: strong ? "var(--wine)" : "var(--ink)",
+          color: "var(--ink)",
         }}
       >
         {value}

@@ -30,16 +30,9 @@ export function EmptyState({ eyebrow, title, description, action }: EmptyStatePr
       }}
     >
       {eyebrow && (
-        <div
-          style={{
-            font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            marginBottom: "var(--s-3)",
-          }}
-        >
-          {eyebrow}
+        <div style={{ marginBottom: "var(--s-3)" }}>
+          {/* Patrón de eyebrow del Studio: guión de identidad y texto neutro (SDD-0686). */}
+          <span className="studio-eyebrow">{eyebrow}</span>
         </div>
       )}
       <div

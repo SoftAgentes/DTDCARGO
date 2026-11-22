@@ -17,6 +17,7 @@ import { useId, useRef } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { useT } from "@/lib/i18n";
 import { useDialogA11y } from "./useDialogA11y";
+import { EtiquetaEstable } from "../EtiquetaEstable";
 
 export function DrawerShell({
   title,
@@ -189,13 +190,20 @@ export function DrawerFooter({
       >
         {cancelLabel ?? t("chrome.action.cancel")}
       </button>
+      {/* SDD-0678 · BTN-01 §5: mientras guarda, `aria-busy`, el verbo en progreso con spinner y el MISMO ancho. */}
       <button
         type="submit"
         form={formId}
         className="studio-btn studio-btn-primary"
         disabled={isPending || !canSubmit}
+        aria-busy={isPending}
+        style={{ minWidth: "max-content" }}
       >
-        {isPending ? (pendingLabel ?? t("chrome.drawer.submitting")) : submitLabel}
+        <EtiquetaEstable
+          enCurso={isPending}
+          reposo={submitLabel}
+          textoEnCurso={pendingLabel ?? t("chrome.drawer.submitting")}
+        />
       </button>
     </footer>
   );

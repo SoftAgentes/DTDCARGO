@@ -37,7 +37,7 @@ import {
 } from "@/lib/studio/access-link-bulk";
 import { getStudioAccess, moduleEditDenial, moduleViewDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
 import { SENSITIVE_MODULE_EFFECTS_VERSION, isKnownModule } from "@/lib/studio/rbac";
-import { isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
+import { AVISO_CHATWOOT_PENDIENTE, isSensitiveModule, moduleCoverage, reasonError } from "@/lib/studio/user-module-grants";
 import { sincronizarAgenteDeUsuario } from "@/lib/studio/chatwoot/agentes-usuario";
 import { platformAdminCheck } from "@/lib/studio/platform-admin";
 import { sendEmail } from "@/lib/studio/mail/send-email";
@@ -1304,7 +1304,7 @@ function mensajeDeAcceso(err: { code?: string; message?: string }): string {
 
 export async function grantUserModuleAction(
   input: GrantModuleInput,
-): Promise<{ ok?: true; error?: string }> {
+): Promise<{ ok?: true; error?: string; aviso?: string }> {
   const supabase = await createClient();
   const gate = await tenantAdminGate(supabase);
   if (!gate.ok) return { error: gate.denied };
@@ -1340,15 +1340,24 @@ export async function grantUserModuleAction(
     p_effects_version: sensible ? SENSITIVE_MODULE_EFFECTS_VERSION : null,
   });
   if (error) return { error: mensajeDeAcceso(error) };
+  // SDD-0675: la Bandeja por acceso adicional entra a Chatwoot ya (bandejas de
+  // Leads y Clientes). Igual que el cambio de rol: nunca cambia el resultado,
+  // pero si Chatwoot quedó pendiente se lo dice al admin.
+  const aviso = input.moduleId === "bandeja" ? await avisoChatwoot(input.targetUserId) : null;
   revalidatePath("/studio/usuarios");
-  return { ok: true };
+  return aviso ? { ok: true, aviso } : { ok: true };
+}
+
+async function avisoChatwoot(targetUserId: string): Promise<string | null> {
+  const alDia = await sincronizarAgenteDeUsuario(targetUserId).catch(() => false);
+  return alDia === false ? AVISO_CHATWOOT_PENDIENTE : null;
 }
 
 export async function revokeUserModuleGrantAction(input: {
   targetUserId: string;
   moduleId: string;
   reason: string;
-}): Promise<{ ok?: true; error?: string }> {
+}): Promise<{ ok?: true; error?: string; aviso?: string }> {
   const supabase = await createClient();
   const gate = await tenantAdminGate(supabase);
   if (!gate.ok) return { error: gate.denied };
@@ -1365,8 +1374,11 @@ export async function revokeUserModuleGrantAction(input: {
     p_reason: motivo,
   });
   if (error) return { error: mensajeDeAcceso(error) };
+  // SDD-0675: sin el acceso, el ciclo la saca de Chatwoot en el momento. Si
+  // Chatwoot falla, lo revocado queda guardado y el admin sabe que falta.
+  const aviso = input.moduleId === "bandeja" ? await avisoChatwoot(input.targetUserId) : null;
   revalidatePath("/studio/usuarios");
-  return { ok: true };
+  return aviso ? { ok: true, aviso } : { ok: true };
 }
 
 /**

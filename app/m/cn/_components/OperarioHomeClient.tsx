@@ -7,6 +7,7 @@
  * últimas recepciones del hub. UI es pura (no fetcha).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -167,7 +168,7 @@ export function OperarioHomeClient({
           <div
             style={{
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--wine-text)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: "var(--s-1)",
@@ -219,7 +220,7 @@ export function OperarioHomeClient({
             marginBottom: "var(--s-5)",
           }}
         >
-          <KpiCard label={t(lang, "Recepciones", "接收")} value={today.receipts} tone="wine" />
+          <KpiCard label={t(lang, "Recepciones", "接收")} value={today.receipts} tone="ink" />
           <KpiCard label="CBM" value={today.cbm} tone="info" />
           <KpiCard label={t(lang, "Pendientes", "待处理")} value={today.pending} tone="warning" />
         </section>
@@ -228,7 +229,7 @@ export function OperarioHomeClient({
         <section style={{ marginBottom: "var(--s-5)" }}>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}
+            style={{ marginBottom: "var(--s-2)" }}
           >
             {t(lang, "Acciones rápidas", "快捷操作")}
           </div>
@@ -240,7 +241,7 @@ export function OperarioHomeClient({
               padding: "var(--s-3)",
               background: "var(--bg-surface)",
               border: "1px solid var(--border)",
-              borderLeft: "4px solid var(--wine)",
+              borderLeft: "4px solid var(--accion)",
               borderRadius: "var(--r-md)",
               display: "flex",
               alignItems: "center",
@@ -254,8 +255,8 @@ export function OperarioHomeClient({
                 width: 44,
                 height: 44,
                 borderRadius: "var(--r-md)",
-                background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
-                color: "var(--wine-text)",
+                background: "var(--accion-tint)",
+                color: "var(--accion-text)",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -288,7 +289,7 @@ export function OperarioHomeClient({
                 )}
               </span>
             </span>
-            <span style={{ color: "var(--wine-text)" }}>{Icon.chevR(14)}</span>
+            <span style={{ color: "var(--accion-text)" }}>{Icon.chevR(14)}</span>
           </button>
         </section>
 
@@ -299,7 +300,6 @@ export function OperarioHomeClient({
           <div
             className="studio-eyebrow"
             style={{
-              color: "var(--wine-text)",
               marginBottom: "var(--s-2)",
               marginTop: "var(--s-3)",
             }}
@@ -438,7 +438,7 @@ function ReceiptRow({
 }) {
   const isIncident = r.status === "incidencia";
   const isOrphan = r.clientMarkbox === null;
-  const cbmFmt = r.cbm.toFixed(2);
+  const cbmFmt = formatCbm(r.cbm);
   return (
     <button
       type="button"
@@ -471,8 +471,8 @@ function ReceiptRow({
           borderRadius: "var(--r-sm)",
           background: isIncident
             ? "var(--danger-bg, rgba(168, 50, 62, 0.08))"
-            : "var(--wine-tint, rgba(127, 15, 26, 0.08))",
-          color: isIncident ? "var(--danger)" : "var(--wine)",
+            : "var(--bg-elevated)",
+          color: isIncident ? "var(--danger)" : "var(--ink-soft)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -489,8 +489,8 @@ function ReceiptRow({
             <span
               style={{
                 font: "700 9px/1 var(--f-sans)",
-                color: "var(--wine-text)",
-                background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
+                color: "var(--ink-soft)",
+                background: "var(--bg-elevated)",
                 padding: "2px 5px",
                 borderRadius: "var(--r-xs)",
                 letterSpacing: "0.06em",
@@ -680,7 +680,7 @@ function ReceiptDetailModal({
               <code
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 4,
                   display: "inline-block",
                 }}
@@ -729,7 +729,7 @@ function ReceiptDetailModal({
             value={r.supplier ?? "—"}
           />
           <DetailRow label={t(lang, "Cajas", "箱")} value={String(r.boxes)} mono />
-          <DetailRow label="CBM" value={`${r.cbm.toFixed(2)} m³`} mono />
+          <DetailRow label="CBM" value={`${formatCbm(r.cbm)} m³`} mono />
           <DetailRow
             label={t(lang, "Recibido", "接收时间")}
             value={formatRelativeTime(r.createdAt, lang)}
@@ -738,7 +738,7 @@ function ReceiptDetailModal({
             <DetailRow
               label={t(lang, "Registrado por", "登记人")}
               value={t(lang, "Tú", "我")}
-              tone="var(--wine)"
+              tone="var(--ink)"
             />
           )}
         </div>
@@ -748,7 +748,7 @@ function ReceiptDetailModal({
           <div style={{ marginTop: "var(--s-3)" }}>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}
+              style={{ marginBottom: "var(--s-2)" }}
             >
               {t(lang, `Fotos (${photos.length})`, `照片 (${photos.length})`)}
             </div>
@@ -791,8 +791,8 @@ function ReceiptDetailModal({
               gap: 8,
               marginTop: "var(--s-4)",
               padding: "12px 16px",
-              background: "var(--wine)",
-              color: "var(--ink-side-strong)",
+              background: "var(--accion)",
+              color: "var(--on-accion)",
               borderRadius: "var(--r-md)",
               font: "700 13px/1 var(--f-sans)",
               textDecoration: "none",
@@ -1111,8 +1111,8 @@ function MenuModal({
               width: 44,
               height: 44,
               borderRadius: "50%",
-              background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
-              color: "var(--wine-text)",
+              background: "var(--bg-elevated)",
+              color: "var(--ink)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1178,8 +1178,8 @@ function MenuModal({
                   style={{
                     padding: "6px 12px",
                     borderRadius: "var(--r-sm)",
-                    background: active ? "var(--wine)" : "transparent",
-                    color: active ? "#FFFFFF" : "var(--ink-soft)",
+                    background: active ? "var(--ink)" : "transparent",
+                    color: active ? "var(--ink-inv)" : "var(--ink-soft)",
                     border: 0,
                     font: `700 12px/1 ${
                       o.v === "cn" ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"

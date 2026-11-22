@@ -5,7 +5,7 @@
  * - Desde la 0558 (decisión del DG por delegación de Sam, 17/11/2026) cada mensaje se revisa con 4 criterios de
  *   TRES estados: «cumple» (sin marca), «falló» (marcado) y «no evaluado» (null). «Cierre o escalado en 3
  *   intercambios o menos» no se juzga por mensaje: se registra una vez por conversación (`registrarCierre`).
- * - La página (`/studio/admin/oficina`) llama a las funciones de la 0549 y la 0558 con la sesión del usuario
+ * - La página (`/studio/admin/oficina-virtual`) llama a las funciones de la 0549 y la 0558 con la sesión del usuario
  *   (authenticated). La base exige `is_platform_admin()` en cada una; aquí no se decide nada de permisos.
  * - El borrador y el motivo se muestran SIEMPRE como texto plano (React los escapa; nunca HTML ni Markdown).
  * - Sin la 0549 las funciones no existen: se devuelve `sin_migracion`. Sin la 0558, revisar y cerrar devuelven

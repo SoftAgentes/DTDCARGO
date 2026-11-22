@@ -360,6 +360,7 @@ const SECTIONS: AdminSection[] = [
     href: "/studio/admin/agentes",
   },
   { id: "chatwoot-updates", group: "PRO", label: "Actualizaciones de Chatwoot", icon: "refresh", description: "Versión instalada de la Bandeja, la publicada y qué trae cada una. Pedir una actualización la deja registrada; no instala nada.", href: "/studio/admin/actualizaciones", sddRef: "SDD-0588" },
+  { id: "ia", group: "PRO", label: "IA", icon: "spark", description: "Gasto del mes, tope de la Oficina_Virtual y lo que cobra cada cuenta de IA (por token o plan fijo). Solo el superadministrador.", href: "/studio/admin/ia", sddRef: "SDD-0704" },
 ];
 
 const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "MARCA", "INTERMEDIO", "PRO"];
@@ -490,7 +491,7 @@ export default async function AdminPage({
         <div>
           <div
             className="studio-eyebrow"
-            style={{ marginBottom: 10, color: "var(--wine-text)" }}
+            style={{ marginBottom: 10 }}
           >
             Configuración · Studio
           </div>
@@ -522,8 +523,8 @@ export default async function AdminPage({
             alignItems: "center",
             gap: 6,
             padding: "6px 10px",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             borderRadius: "var(--r-pill)",
             font: "700 11px/1 var(--f-sans)",
             letterSpacing: "0.04em",
@@ -534,7 +535,7 @@ export default async function AdminPage({
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "var(--wine)",
+              background: "var(--ink-soft)",
             }}
           />
           Acceso restringido · Admin
@@ -621,8 +622,8 @@ function SideNav({
                   alignItems: "center",
                   gap: 10,
                   padding: "10px 14px",
-                  background: isActive ? "var(--wine-tint)" : "transparent",
-                  color: isActive ? "var(--wine)" : "var(--ink)",
+                  background: isActive ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
+                  color: "var(--ink)",
                   font: `${isActive ? "700" : "500"} 13px/1 var(--f-sans)`,
                   textDecoration: "none",
                   position: "relative",
@@ -637,14 +638,14 @@ function SideNav({
                       top: 8,
                       bottom: 8,
                       width: 3,
-                      background: "var(--wine)",
+                      background: "var(--ink)",
                       borderRadius: 2,
                     }}
                   />
                 )}
                 <span
                   style={{
-                    color: isActive ? "var(--wine)" : "var(--ink-soft)",
+                    color: isActive ? "var(--ink)" : "var(--ink-soft)",
                     display: "inline-flex",
                     flexShrink: 0,
                   }}
@@ -706,7 +707,7 @@ function Content({
       <div style={{ marginBottom: 20 }}>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine-text)", marginBottom: 6 }}
+          style={{ marginBottom: 6 }}
         >
           {section.group}
         </div>
@@ -810,7 +811,7 @@ function LinkedSectionCTA({ section }: { section: AdminSection }) {
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--wine)",
+        borderLeft: "3px solid var(--ink)",
         borderRadius: "var(--r-lg)",
         padding: "22px 24px",
         display: "flex",
@@ -883,7 +884,7 @@ function PendingSectionPanel({ section }: { section: AdminSection }) {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}

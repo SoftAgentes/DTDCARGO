@@ -190,7 +190,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
 
           <div>
             <label className="studio-label" htmlFor="asset-name">
-              Nombre del activo <span style={{ color: "var(--wine-text)" }}>*</span>
+              Nombre del activo <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="asset-name"
@@ -206,7 +206,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
 
           <div>
             <label className="studio-label" htmlFor="asset-account">
-              Cuenta del activo (1.2.x) <span style={{ color: "var(--wine-text)" }}>*</span>
+              Cuenta del activo (1.2.x) <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <select
               id="asset-account"
@@ -231,7 +231,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="asset-cost">
-                Costo <span style={{ color: "var(--wine-text)" }}>*</span>
+                Costo <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="asset-cost"
@@ -268,7 +268,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="asset-acquired">
-                Fecha de adquisición <span style={{ color: "var(--wine-text)" }}>*</span>
+                Fecha de adquisición <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="asset-acquired"
@@ -284,7 +284,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="asset-life">
-                Vida útil (meses) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Vida útil (meses) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="asset-life"
@@ -333,7 +333,7 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
                 <PreviewRow
                   label={`Acumulada a hoy (${preview.monthsElapsed} m)`}
                   value={preview.accumulated}
-                  color="var(--wine-soft)"
+                  color="var(--ink)"
                 />
                 <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
                 <PreviewRow

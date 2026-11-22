@@ -6,9 +6,9 @@
  * del bridge (Despacho, Bodeguero, Camionero).
  *
  * Estados:
- *   - connected  · wine dot pulsante · "En vivo"
+ *   - connected  · punto verde pulsante · "En vivo" (estado, no acción: BD-076)
  *   - connecting · neutral dot · "Conectando…"
- *   - error      · danger dot · "Sin conexión live · refrescá"
+ *   - error      · danger dot · "Sin conexión live · refresca"
  *   - closed     · neutral dot · "Desconectado"
  *   - idle       · oculto
  */
@@ -23,7 +23,7 @@ const STATUS_META: Record<
   RealtimeStatus,
   { label: string; tone: string; pulse: boolean; show: boolean }
 > = {
-  idle: { label: "", tone: "var(--ink-mute)", pulse: false, show: false },
+  idle: { label: "", tone: "var(--ink-soft)", pulse: false, show: false },
   connecting: {
     label: "Conectando…",
     tone: "var(--ink-soft)",
@@ -32,19 +32,19 @@ const STATUS_META: Record<
   },
   connected: {
     label: "En vivo",
-    tone: "var(--wine)",
+    tone: "var(--success)",
     pulse: true,
     show: true,
   },
   error: {
-    label: "Sin conexión live · refrescá la página",
+    label: "Sin conexión live · refresca la página",
     tone: "var(--danger)",
     pulse: false,
     show: true,
   },
   closed: {
     label: "Desconectado",
-    tone: "var(--ink-mute)",
+    tone: "var(--ink-soft)",
     pulse: false,
     show: true,
   },

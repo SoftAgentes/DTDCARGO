@@ -83,14 +83,12 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
         <KpiCard
           value={stats.activos}
           label="Activos"
-          valueColor={stats.activos > 0 ? "var(--success)" : "var(--ink)"}
           sub="membresía activa"
         />
         <KpiCard value={stats.importadores} label="Importadores" sub="plan" />
         <KpiCard
           value={stats.mayoristas}
           label="Mayoristas"
-          valueColor={stats.mayoristas > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub="plan"
         />
       </div>
@@ -195,7 +193,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                       padding: "10px 14px",
                       textAlign: "center",
                       font: "500 12px/1 var(--f-mono)",
-                      color: m.cargo_markbox ? "var(--ink-soft)" : "var(--ink-mute)",
+                      color: m.cargo_markbox ? "var(--ink-soft)" : "var(--ink-soft)",
                       background: "transparent",
                       border: "none",
                     }}
@@ -208,7 +206,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                         Alumno
                       </Badge>
                     ) : (
-                      <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                      <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                         —
                       </span>
                     )}

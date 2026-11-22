@@ -56,6 +56,7 @@ import {
   type DocumentRow,
   type DocumentVersionRow,
 } from "@/lib/studio/documents/types";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const initial: DocActionState = {};
 
@@ -88,6 +89,7 @@ export function DocsPanel({
   title = "Documentos",
   badge,
   subtitle = "Adjuntos clasificados que también aparecen en el hub de Documentos.",
+  formularioPlegado = false,
 }: {
   entityType: DocumentEntityType;
   entityId: string;
@@ -98,12 +100,34 @@ export function DocsPanel({
   badge?: { tone: BadgeTone; label: string };
   /** Subtítulo distintivo (quién los ve). Default genérico. */
   subtitle?: string;
+  /**
+   * SDD-0669: el formulario de subir queda plegado tras un botón «Subir
+   * documento» (la ficha del cliente). Por defecto, siempre abierto como antes.
+   */
+  formularioPlegado?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(uploadDocument, initial);
   const formRef = useRef<HTMLFormElement>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [opening, startOpen] = useTransition();
   const [historyFor, setHistoryFor] = useState<DocumentRow | null>(null);
+  const [formularioAbierto, setFormularioAbierto] = useState(!formularioPlegado);
+  // SDD-0669: al abrir, el foco va al primer campo; al cancelar, vuelve al
+  // botón «Subir documento» (no cae al body). Solo tras un clic, no al montar.
+  const botonSubirRef = useRef<HTMLButtonElement>(null);
+  const focoPendiente = useRef<"abrir" | "cerrar" | null>(null);
+  useEffect(() => {
+    if (focoPendiente.current === "abrir") {
+      document.getElementById(`doc_folder_${entityId}`)?.focus();
+    } else if (focoPendiente.current === "cerrar") {
+      botonSubirRef.current?.focus();
+    }
+    focoPendiente.current = null;
+  }, [formularioAbierto, entityId]);
+  function plegar(abrir: boolean) {
+    focoPendiente.current = abrir ? "abrir" : "cerrar";
+    setFormularioAbierto(abrir);
+  }
 
   // Limpiar el form tras una subida exitosa (evita re-subir el mismo archivo).
   useEffect(() => {
@@ -312,8 +336,22 @@ export function DocsPanel({
         </ul>
       )}
 
+      {!formularioAbierto ? (
+        <div>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            ref={botonSubirRef}
+            aria-expanded={false}
+            onClick={() => plegar(true)}
+          >
+            {Icon.upload(13)} Subir documento
+          </button>
+        </div>
+      ) : (
       <form
         ref={formRef}
+        id={`doc_form_${entityId}`}
         action={formAction}
         style={{ display: "flex", flexDirection: "column", gap: 10 }}
       >
@@ -381,12 +419,7 @@ export function DocsPanel({
             <label className="studio-label" htmlFor={`doc_valid_${entityId}`}>
               Vence (opcional)
             </label>
-            <input
-              id={`doc_valid_${entityId}`}
-              name="valid_until"
-              type="date"
-              className="studio-input"
-            />
+            <DateField id={`doc_valid_${entityId}`} name="valid_until" />
           </div>
         </div>
 
@@ -463,8 +496,20 @@ export function DocsPanel({
           >
             {isPending ? "Subiendo…" : "Subir documento"}
           </button>
+          {formularioPlegado ? (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              style={{ marginLeft: "var(--s-2)" }}
+              disabled={isPending}
+              onClick={() => plegar(false)}
+            >
+              Cancelar
+            </button>
+          ) : null}
         </div>
       </form>
+      )}
 
       {historyFor && (
         <VersionHistoryDrawer
@@ -542,7 +587,7 @@ function VersionUpload({ doc }: { doc: DocumentRow }) {
           setError(null);
           setOpen(true);
         }}
-        style={{ alignSelf: "flex-start", color: "var(--wine-text)" }}
+        style={{ alignSelf: "flex-start", color: "var(--accion-text)" }}
       >
         + Subir nueva versión
       </button>
@@ -746,11 +791,11 @@ export function VersionHistoryDrawer({
                     gap: 6,
                     padding: "11px 13px",
                     border: v.is_current
-                      ? "1px solid var(--wine)"
+                      ? "1px solid var(--ink)"
                       : "1px solid var(--border)",
                     borderRadius: "var(--r-md)",
                     background: v.is_current
-                      ? "var(--wine-tint)"
+                      ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                       : "var(--bg-surface)",
                   }}
                 >
@@ -773,7 +818,7 @@ export function VersionHistoryDrawer({
                       {v.name}
                     </span>
                     {v.is_current && (
-                      <Badge tone="wine" size="sm">
+                      <Badge tone="success" size="sm">
                         Vigente
                       </Badge>
                     )}

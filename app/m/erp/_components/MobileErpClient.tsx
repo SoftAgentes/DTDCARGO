@@ -235,8 +235,8 @@ function MobileTopBar({ user }: { user: UserInfo }) {
           width: 36,
           height: 36,
           borderRadius: "var(--r-pill)",
-          background: "var(--wine-tint, rgba(255,255,255,0.1))",
-          color: "var(--wine-soft, rgba(255,255,255,0.85))",
+          background: "var(--surface-inv)",
+          color: "var(--ink-side)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -253,8 +253,8 @@ function MobileTopBar({ user }: { user: UserInfo }) {
           width: 36,
           height: 36,
           borderRadius: "var(--r-pill)",
-          background: "var(--wine)",
-          color: "#fff",
+          background: "var(--surface-inv)",
+          color: "var(--ink-side-strong)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -296,7 +296,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 11px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -337,7 +337,7 @@ function HomeScreen({
           label="Embarques activos"
           value={String(shipmentsCount)}
           sub="toca para ver"
-          tone="wine"
+          tone="neutral"
           onClick={() => setTab("tracking")}
         />
         <MobileMini
@@ -366,7 +366,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,
@@ -399,7 +399,7 @@ function HomeScreen({
             icon={Icon.plus}
             label="Cargar gasto"
             desc="Monto + categoría"
-            tone="wine"
+            tone="accion"
             onClick={onNewExpense}
           />
           <QuickAction
@@ -427,7 +427,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 11px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
           }}
@@ -605,7 +605,7 @@ function ShipmentCard({ s, onClick }: { s: MobileShipment; onClick: () => void }
           }}
         >
           {s.origin ?? "—"} → {s.destination ?? "—"} ·{" "}
-          <span style={{ color: "var(--wine-text)", font: "700 11.5px/1.3 var(--f-sans)" }}>
+          <span style={{ color: "var(--ink)", font: "700 11.5px/1.3 var(--f-sans)" }}>
             {service.primary}
             {service.sub && (
               <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
@@ -710,7 +710,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               {s.client_markbox && (
                 <span
                   style={{
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     font: "700 12px/1.2 var(--f-mono)",
                     marginLeft: 8,
                   }}
@@ -779,7 +779,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               cx={60 + (340 - 60) * (progress / 100)}
               cy={80 - 35 * Math.sin((progress / 100) * Math.PI)}
               r="6"
-              fill="#C2747F"
+              fill="var(--ink)"
             />
             <text
               x="60"
@@ -879,8 +879,8 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
             style={{
               display: "block",
               padding: "12px",
-              background: "var(--wine)",
-              color: "#fff",
+              background: "var(--accion)",
+              color: "var(--on-accion)",
               borderRadius: "var(--r-md)",
               textDecoration: "none",
               textAlign: "center",
@@ -1280,7 +1280,8 @@ function BannerLine({
 function ClientCard({ c }: { c: ClientWithDistance }) {
   const phoneClean = (c.phone ?? "").replace(/[^\d+]/g, "");
   const tierTone =
-    c.tier === "premium" ? "wine" : c.tier === "vip" ? "info" : "neutral";
+    // SDD-0686 regla 7: sin tono vino; el nombre del nivel lo dice.
+    c.tier === "vip" ? "info" : "neutral";
 
   return (
     <div
@@ -1306,7 +1307,7 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
           <code
             style={{
               font: "800 12px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               letterSpacing: "0.02em",
             }}
           >
@@ -1344,7 +1345,7 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
             <span
               style={{
                 font: "700 10.5px/1 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 letterSpacing: "0.02em",
               }}
             >
@@ -1407,8 +1408,8 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
           href={`/studio/clientes/${c.markbox}`}
           style={{
             padding: "10px",
-            background: "var(--wine)",
-            color: "#fff",
+            background: "var(--accion)",
+            color: "var(--on-accion)",
             borderRadius: "var(--r-sm)",
             textDecoration: "none",
             textAlign: "center",
@@ -1468,8 +1469,8 @@ function ExpensesScreen({
             width: 38,
             height: 38,
             borderRadius: "var(--r-pill)",
-            background: "var(--wine)",
-            color: "#fff",
+            background: "var(--accion)",
+            color: "var(--on-accion)",
             border: 0,
             display: "inline-flex",
             alignItems: "center",
@@ -1934,9 +1935,9 @@ function NewExpenseModal({
                   onClick={() => setCategory(opt.value)}
                   style={{
                     padding: "8px 12px",
-                    background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                    color: active ? "var(--wine)" : "var(--ink-soft)",
-                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    background: active ? "var(--ink)" : "var(--bg-elevated)",
+                    color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+                    border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                     borderRadius: "var(--r-pill)",
                     font: "700 11px/1 var(--f-sans)",
                     cursor: "pointer",
@@ -2223,8 +2224,8 @@ function MoreScreen({ user }: { user: UserInfo }) {
             width: 60,
             height: 60,
             borderRadius: "var(--r-pill)",
-            background: "var(--wine)",
-            color: "#fff",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -2256,7 +2257,7 @@ function MoreScreen({ user }: { user: UserInfo }) {
           >
             {user.email}
           </div>
-          <Badge tone="wine" size="sm" style={{ marginTop: 8 }}>
+          <Badge tone="neutral" size="sm" style={{ marginTop: 8 }}>
             {user.role}
           </Badge>
         </div>
@@ -2336,7 +2337,7 @@ function SectionLabel({
     <div
       style={{
         font: "700 10.5px/1 var(--f-sans)",
-        color: "var(--wine-text)",
+        color: "var(--ink-soft)",
         letterSpacing: "0.16em",
         textTransform: "uppercase",
         marginBottom: 10,
@@ -2379,7 +2380,7 @@ function MenuLink({
           width: 36,
           height: 36,
           background: "var(--bg-elevated)",
-          color: "var(--wine-text)",
+          color: "var(--ink-soft)",
           borderRadius: "var(--r-sm)",
           display: "inline-flex",
           alignItems: "center",
@@ -2491,7 +2492,7 @@ function EmptyMobile({ title, desc }: { title: string; desc: string }) {
 }
 
 const TONE_BG: Record<MiniTone, string> = {
-  wine: "var(--wine-tint)",
+  accion: "var(--accion-tint)",
   warning: "var(--warning-bg)",
   info: "var(--info-bg)",
   success: "var(--success-bg)",
@@ -2499,14 +2500,14 @@ const TONE_BG: Record<MiniTone, string> = {
 };
 
 const TONE_FG: Record<MiniTone, string> = {
-  wine: "var(--wine)",
+  accion: "var(--accion-text)",
   warning: "var(--warning)",
   info: "var(--info)",
   success: "var(--success)",
   neutral: "var(--ink-soft)",
 };
 
-type MiniTone = "wine" | "warning" | "info" | "success" | "neutral";
+type MiniTone = "accion" | "warning" | "info" | "success" | "neutral";
 
 function MobileMini({
   label,
@@ -2526,6 +2527,7 @@ function MobileMini({
     <Component
       type={onClick ? "button" : undefined}
       onClick={onClick}
+      data-tone={tone}
       style={{
         padding: "14px 14px",
         background: "var(--bg-surface)",
@@ -2551,7 +2553,8 @@ function MobileMini({
       <div
         style={{
           font: "900 24px/1 var(--f-display)",
-          color: TONE_FG[tone],
+          // Cifra en tinta (SDD-0686, Sam: opción A); el tono queda para el ícono.
+          color: "var(--ink)",
           letterSpacing: "-0.02em",
         }}
       >
@@ -2883,9 +2886,9 @@ function EditExpenseSheet({
                   onClick={() => setCategory(opt.value)}
                   style={{
                     padding: "8px 12px",
-                    background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                    color: active ? "var(--wine)" : "var(--ink-soft)",
-                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    background: active ? "var(--ink)" : "var(--bg-elevated)",
+                    color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+                    border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                     borderRadius: "var(--r-pill)",
                     font: "700 11px/1 var(--f-sans)",
                     cursor: "pointer",
@@ -3166,7 +3169,7 @@ function EditExpenseSheet({
                 style={{
                   background: "transparent",
                   border: 0,
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   font: "700 11px/1.4 var(--f-sans)",
                   cursor: "pointer",
                   padding: 0,

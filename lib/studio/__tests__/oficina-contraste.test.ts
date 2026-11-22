@@ -11,11 +11,11 @@ import { describe, expect, it } from "vitest";
 const RAIZ = join(__dirname, "..", "..", "..");
 const TOKENS = readFileSync(join(RAIZ, "app/studio/tokens.css"), "utf8");
 const ARCHIVOS = [
-  "app/studio/(app)/admin/oficina/_components/TarjetaBorrador.tsx",
-  "app/studio/(app)/admin/oficina/page.tsx",
-  "app/studio/(app)/admin/oficina/_components/TarjetaCierre.tsx",
-  "app/studio/(app)/admin/oficina/vista/page.tsx",
-  "app/studio/(app)/admin/oficina/_components/TarjetaPausa.tsx",
+  "app/studio/(app)/admin/oficina-virtual/_components/TarjetaBorrador.tsx",
+  "app/studio/(app)/admin/oficina-virtual/page.tsx",
+  "app/studio/(app)/admin/oficina-virtual/_components/TarjetaCierre.tsx",
+  "app/studio/(app)/admin/oficina-virtual/vista/page.tsx",
+  "app/studio/(app)/admin/oficina-virtual/_components/TarjetaPausa.tsx",
 ];
 
 function bloque(selector: string): Record<string, string> {

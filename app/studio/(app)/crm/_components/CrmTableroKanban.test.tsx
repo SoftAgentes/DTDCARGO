@@ -191,14 +191,13 @@ describe("CrmTableroKanban · mover y abrir (DND-01)", () => {
     expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
   });
 
-  it("«Abrir» es la parada de teclado (SDD-0603 5d); la segunda es el menú", async () => {
+  it("SDD-0671: no hay botón «Abrir»; el nombre es la parada de teclado y la segunda es el menú", async () => {
     const user = userEvent.setup();
     const { onOpen } = pintar();
-    expect(abrir().textContent).toBe("Abrir");
-    expect(abrir().className.split(" ")).toEqual(
-      expect.arrayContaining(["studio-btn", "studio-btn-ghost", "studio-btn-sm"]),
-    );
+    expect(screen.queryByText("Abrir", { exact: true })).toBeNull();
     expect(screen.getAllByRole("button", { name: /^Abrir ficha de / })).toHaveLength(1);
+    expect(abrir().tabIndex).toBe(0);
+    expect(abrir().textContent).toContain("Lead de prueba");
     await user.tab();
     expect(document.activeElement).toBe(abrir());
     await user.tab();
@@ -206,18 +205,30 @@ describe("CrmTableroKanban · mover y abrir (DND-01)", () => {
     await user.keyboard("{Escape}");
     abrir().focus();
     await user.keyboard("{Enter}");
+    expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(lead);
   });
 
-  it("el nombre abre con el ratón, abarca las dos líneas (32 px, BD-037) y sale del Tab", async () => {
+  it("el nombre abre con el ratón, una sola vez, y abarca las dos líneas (32 px, BD-037)", async () => {
     const user = userEvent.setup();
     const { onOpen } = pintar();
-    const nombre = screen.getByText("Lead de prueba").closest("button")!;
-    expect(nombre.tabIndex).toBe(-1);
-    expect(nombre.style.minHeight).toBe("32px");
-    expect(nombre.textContent).toContain("Registrado · Asesora de prueba");
-    await user.click(nombre);
+    expect(abrir().style.minHeight).toBe("32px");
+    expect(abrir().textContent).toContain("Registrado · Asesora de prueba");
+    await user.click(abrir());
+    expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(lead);
+  });
+
+  it("SDD-0671: un clic en cualquier parte de la tarjeta abre la ficha; el menú no", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = pintar();
+    await user.click(screen.getByText("1 tarea vencida"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(lead);
+    await user.click(screen.getByRole("button", { name: "Acciones de Lead de prueba" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("menuitem", { name: "Mover a Contactado" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
   it("sin permiso de edición: no hay arrastre, pero la ficha se abre", () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
 import { useRouter } from "next/navigation";
@@ -117,8 +118,7 @@ const fmtMoney = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtW = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-const fmtCbm = (n: number) =>
-  n.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 4 });
+const fmtCbm = (n: number) => formatCbm(n, { locale: "en-US" });
 
 /** Marca de tiempo corta para el estado de autoguardado / historial. */
 function fmtTs(ts: number): string {

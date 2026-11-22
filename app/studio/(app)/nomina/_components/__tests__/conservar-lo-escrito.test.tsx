@@ -98,9 +98,14 @@ type Campo = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 const formulario = () => screen.getByRole("dialog").querySelector("form") as HTMLFormElement;
 
+/** SDD-0660: el campo visible de `<DateField>` no lleva `name`; el suyo es el del oculto que viaja. */
+const esFecha = (el: Campo) => el.closest("[data-date-field]") != null;
+const nombreDe = (el: Campo) =>
+  el.name || (esFecha(el) ? el.closest("[data-date-field]")?.querySelector<HTMLInputElement>('input[type="hidden"]')?.name ?? "" : "");
+
 function campos(form: HTMLFormElement): Campo[] {
   return (Array.from(form.elements) as Campo[]).filter((el) => {
-    if (!["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) || el.disabled || !el.name) return false;
+    if (!["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) || el.disabled || !nombreDe(el)) return false;
     return !["hidden", "radio", "file"].includes(el.type);
   });
 }
@@ -114,7 +119,8 @@ function llenar(form: HTMLFormElement) {
     else if (el.tagName === "SELECT") {
       const opciones = Array.from((el as HTMLSelectElement).options).filter((o) => !o.disabled && o.value !== el.value);
       if (opciones.length) fireEvent.change(el, { target: { value: opciones[opciones.length - 1].value } });
-    } else if (el.type === "number") fireEvent.change(el, { target: { value: "123" } });
+    } else if (esFecha(el)) fireEvent.change(el, { target: { value: "15/03/2026" } });
+    else if (el.type === "number") fireEvent.change(el, { target: { value: "123" } });
     else if (el.type === "date") fireEvent.change(el, { target: { value: "2026-03-15" } });
     else if (el.type === "time") fireEvent.change(el, { target: { value: "08:30" } });
     else if (el.type === "email") fireEvent.change(el, { target: { value: "ana@example.test" } });
@@ -137,7 +143,7 @@ describe("una respuesta con errores conserva lo escrito", () => {
       return f;
     });
     llenar(form);
-    const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
+    const escrito = campos(form).map((el) => [nombreDe(el), valorDe(el)]);
     expect(escrito.length).toBeGreaterThan(0);
 
     fireEvent.submit(form);
@@ -145,7 +151,7 @@ describe("una respuesta con errores conserva lo escrito", () => {
     await act(async () => {});
 
     expect(mocks.accion).toHaveBeenCalledOnce();
-    expect(campos(formulario()).map((el) => [el.name, valorDe(el)])).toEqual(escrito);
+    expect(campos(formulario()).map((el) => [nombreDe(el), valorDe(el)])).toEqual(escrito);
   });
 
   it("RevisarSolicitudDrawer, al rechazar", async () => {
@@ -153,14 +159,14 @@ describe("una respuesta con errores conserva lo escrito", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Rechazar/ }));
     const form = screen.getByRole("dialog").querySelector("#rechazar-solicitud-form") as HTMLFormElement;
     llenar(form);
-    const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
+    const escrito = campos(form).map((el) => [nombreDe(el), valorDe(el)]);
     expect(escrito.length).toBeGreaterThan(0);
 
     fireEvent.submit(form);
     expect(await screen.findByText(MSG)).toBeInTheDocument();
     await act(async () => {});
 
-    expect(campos(form).map((el) => [el.name, valorDe(el)])).toEqual(escrito);
+    expect(campos(form).map((el) => [nombreDe(el), valorDe(el)])).toEqual(escrito);
   });
 
   it("AmonestacionDrawer, que sólo envía campos ocultos con estado, sigue enviándolos", async () => {
@@ -181,6 +187,8 @@ describe("una respuesta con errores conserva lo escrito", () => {
     expect(datos.get("employee_id")).toBe("e1");
     expect(datos.get("principal_usd")).toBe("123");
     expect(datos.get("concept")).toBe("Texto de prueba");
+    // SDD-0660: se escribe dd/mm/aaaa y la acción sigue recibiendo ISO.
+    expect(datos.get("granted_on")).toBe("2026-03-15");
   });
 
   // Sin `action`, jsdom no nota la diferencia; el navegador sí mandaría los campos por la URL.

@@ -170,14 +170,14 @@ export function ComposeView({ templates, signatures }: Props) {
     return (
       <SuccessScreen
         icon={Icon.clock(28)}
-        tone="wine"
+        tone="neutral"
         title="Envío programado"
         onReset={resetForm}
       >
         Se enviará a <b style={{ color: "var(--ink)" }}>{to.split(",")[0].trim()}</b>{" "}
         el <b style={{ color: "var(--ink)" }}>{when}</b>. Lo puedes ver y
         cancelar en la pestaña{" "}
-        <b style={{ color: "var(--wine-text)" }}>Programados</b>.
+        <b style={{ color: "var(--ink)" }}>Programados</b>.
       </SuccessScreen>
     );
   }
@@ -228,7 +228,7 @@ export function ComposeView({ templates, signatures }: Props) {
         >
           <span
             className="studio-eyebrow"
-            style={{ color: "var(--wine-text)" }}
+
           >
             Canal
           </span>
@@ -314,7 +314,7 @@ export function ComposeView({ templates, signatures }: Props) {
                   background: "transparent",
                   cursor: "pointer",
                   font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -684,7 +684,7 @@ function SideCard({
       {eyebrow && (
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine-text)", marginBottom: 10 }}
+          style={{ marginBottom: 10 }}
         >
           {eyebrow}
         </div>
@@ -702,13 +702,13 @@ function SuccessScreen({
   onReset,
 }: {
   icon: React.ReactNode;
-  tone: "success" | "wine";
+  tone: "success" | "neutral";
   title: string;
   children: React.ReactNode;
   onReset: () => void;
 }) {
-  const bg = tone === "success" ? "var(--success-bg)" : "var(--wine-tint)";
-  const fg = tone === "success" ? "var(--success)" : "var(--wine)";
+  const bg = tone === "success" ? "var(--success-bg)" : "var(--bg-elevated)";
+  const fg = tone === "success" ? "var(--success)" : "var(--ink)";
   return (
     <div
       style={{

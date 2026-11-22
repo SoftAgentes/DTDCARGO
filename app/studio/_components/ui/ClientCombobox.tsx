@@ -301,7 +301,7 @@ export function ClientCombobox({
                   padding: "8px 10px",
                   borderRadius: "var(--r-sm)",
                   cursor: "pointer",
-                  background: isActive ? "var(--wine-tint)" : "transparent",
+                  background: isActive ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                   display: "flex",
                   flexDirection: "column",
                   gap: 2,
@@ -317,12 +317,22 @@ export function ClientCombobox({
                   <span
                     style={{
                       font: "700 12.5px/1 var(--f-mono)",
-                      color: isActive ? "var(--wine)" : "var(--ink)",
+                      color: "var(--ink)",
                       letterSpacing: "0.02em",
                     }}
                   >
                     {hit.markbox}
                   </span>
+                  {hit.codigoAnterior && (
+                    <span
+                      style={{
+                        font: "600 11px/1 var(--f-mono)",
+                        color: "var(--ink-soft)",
+                      }}
+                    >
+                      antes {hit.codigoAnterior}
+                    </span>
+                  )}
                   <span
                     style={{
                       font: "600 11px/1 var(--f-mono)",

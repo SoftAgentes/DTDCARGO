@@ -10,6 +10,9 @@
  * exacto tolerante a formato (`find_client_by_cedula`, RPC 0174) y lo pone al
  * tope; siempre además corre `listClients` ilike (nombre/markbox/rif/email/
  * teléfono); dedup por `id`; tope `LIMIT` resultados.
+ *
+ * SDD-0664: `listClients` también encuentra por un Shipping Mark anterior
+ * (historial o fusión); el resultado lo trae en `codigoAnterior`.
  */
 
 "use server";
@@ -27,6 +30,8 @@ export type ClientSearchHit = {
   name: string;
   rif: string | null;
   person_id: string | null;
+  /** SDD-0664 · Shipping Mark anterior por el que apareció, si fue por eso. */
+  codigoAnterior?: string | null;
 };
 
 export type ClientSearchResult = {
@@ -70,6 +75,7 @@ export async function searchClientsAction(q: string): Promise<ClientSearchResult
     name: string;
     rif: string | null;
     person_id: string | null;
+    codigo_anterior?: string | null;
   }) => {
     if (seen.has(c.id)) return;
     seen.add(c.id);
@@ -79,6 +85,8 @@ export async function searchClientsAction(q: string): Promise<ClientSearchResult
       name: c.name,
       rif: c.rif,
       person_id: c.person_id,
+      // Solo cuando apareció por un código anterior: el resto queda como antes.
+      ...(c.codigo_anterior ? { codigoAnterior: c.codigo_anterior } : {}),
     });
   };
 

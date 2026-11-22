@@ -1,7 +1,9 @@
 # AGENTS.md — DTD Cargo
 
+Dueño: Director de ingeniería · Estado: vigente · Actualizado: 2026-11-20 · Metodología: SDD-0444.
+
 Fuente de instrucciones del repositorio para Codex; `CLAUDE.md` conserva su puente de carga.
-Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultados y límites con evidencia.
+Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultados y límites con evidencia. El idioma rige también el copy del producto, los prompts, los comentarios de código y la documentación, no solo la conversación con Sam.
 
 ## Ejecución y límites
 
@@ -11,6 +13,30 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 - **PR es la frontera de integración.** Worker no mergea a `main`. Commits selectivos y coherentes; nunca `git add -A`, reset destructivo, force push que sobrescriba historia, cambio de rama de otro Worker o limpieza por antigüedad. Verifica rama antes de commit. Publicar la rama propia/PR requiere autorización del encargo; una vez dada, no se pide otra vez. «Cerrar» produce cierre y handoff, no autoriza implícitamente merge/deploy.
 - Preserva trabajo preexistente. No copies cambios ajenos al worktree propio. Director serializa integración de PRs y valida el SHA/base revisados. Merge y producción son operaciones distintas; conserva sus autorizaciones específicas.
 - No elimines worktrees ni ramas sin evidencia de integración o descarte autorizado, respaldo remoto, estado limpio y ausencia comprobada de sesiones consumidoras. Si falta evidencia, conserva.
+
+## Carriles de integración
+
+Aprobados por Sam el 2026-11-20; prueba de una semana. Detalle y contrato del tren en el [runbook](docs/runbooks/codex-engineering.md#carriles-de-integración).
+
+- **Carril rápido:** la PR entra con el CI en verde y se revisa después, en la revisión de madrugada. Cubre pantallas que solo leen, textos, estilos, documentos y pruebas. No aplica si la PR lleva migraciones, RLS o permisos, facturación, pagos o montos, escrituras de datos personales, registro o acceso al portal, o integraciones (correo, Meta, Chatwoot, Kommo).
+- **Carril con revisión previa:** todo lo demás, con la regla de siempre: revisión independiente APPROVED y CI verde en la cabeza exacta.
+- El carril lo decide `node scripts/carril.mjs`, por ruta y conservador: ante la duda, revisión previa, y basta un archivo sensible para que toda la PR lo sea. El check «Carril (informativo)» lo muestra en cada PR; la barrera es el tren del Director, no GitHub.
+- **Reversión:** si `main` queda en rojo después de una PR del carril rápido, se revierte con su propia PR del carril rápido.
+- **Revisión de madrugada:** la lanza el Director a las 2:00 de Caracas, sobre lo que entró por el carril rápido en las últimas 24 h. Las correcciones pequeñas van como PR del carril rápido; lo del otro carril espera a Sam. De noche no se publica.
+- **Fusionar y publicar van aparte:** hoy un push a `main` no publica (el vigilante está detenido; publicar es un paso manual del Director), así que el tren fusiona a cualquier hora. Si el vigilante vuelve a activarse, esta regla se revisa.
+- **Ventanas de publicación:** solo para publicar, a las 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam para lo integrado. Las migraciones y encender interruptores en producción siguen pidiendo OK nominal.
+
+## Comandos de supervivencia
+
+| Comando | Para qué |
+|---|---|
+| `pnpm install` | dependencias del worktree (lockfile congelado) |
+| `pnpm verify` | cierre canónico de producto: lint, tipos, tests, build y gates |
+| `pnpm sdd:check` | colisiones de numeración SDD |
+| `pnpm docs:check` | índice de specs sincronizado |
+| `pnpm governance:check` | cápsula de gobernanza sincronizada |
+
+Tabla canónica de comandos: [project-rules.md §Comandos](docs/engineering/project-rules.md#comandos).
 
 ## Requisitos y calidad
 
@@ -28,8 +54,9 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 ## Fronteras críticas del proyecto
 
 - Público ↔ ERP: HTTP a `NEXT_PUBLIC_HAILUWAY_API`; público no importa `@/lib/studio`, `@/lib/db` ni `@supabase/*`. Puente compartido: `lib/shared/`. Studio y móvil sí usan Supabase; Back no importa Studio. Onboarding `app/invitar/` usa DB por diseño. Conserva los límites ESLint.
-- Producción Supabase es real. No leer filas de negocio/PII sin autorización explícita. No escribir datos ni aplicar migraciones sin aprobación concreta de Sam y el [runbook de producción](docs/runbooks/aplicar-migraciones-prod.md). Nunca PAT `sbp_*` dentro del repo, aunque esté ignorado. No copiar secretos automáticamente a worktrees.
-- Antes de visuales: [BRAND.md](BRAND.md), [diseño](docs/design/README.md) y Norte vigente (CLAUDE → HANDOFF → CHANGELOG). Antes de backend Studio: `_norte/backend/README.md`. UI sustancial pasa por `/ui-check`; no invoques el inexistente `ui-ux-designer`.
+- Producción Supabase es real. No leer filas de negocio/PII sin autorización explícita. No escribir datos ni aplicar migraciones sin aprobación concreta de Sam y el [runbook de producción](docs/runbooks/aplicar-migraciones-prod.md). Nunca PAT `sbp_*` dentro del repo, aunque esté ignorado. Los archivos `.env*` nunca se commitean ni se copian entre worktrees. No copiar secretos automáticamente a worktrees.
+- Producción web: hoy fusionar no publica. El vigilante propio (SDD-0541) está detenido desde el 2026-10-25 y la web la publica el Director a mano (`publicar-web.sh publicar <sha>` en el VPS, [publicación automática](docs/runbooks/publicacion-automatica-web.md)); Vercel en pausa. Publicar exige autorización propia: el OK fijo de las ventanas o el nominal que toque. Cada push a `main` sigue armando su imagen. Si el vigilante vuelve a activarse, un merge vuelve a ser publicación web y esta regla y la de los carriles se revisan.
+- Antes de visuales: [BRAND.md](BRAND.md), [diseño](docs/design/README.md) y Norte vigente (CLAUDE → HANDOFF → CHANGELOG). UI sustancial pasa por `/ui-check`; no invoques el inexistente `ui-ux-designer`.
 - Captura/movimiento/borrado de datos personales pasa por `.claude/skills/revisar-datos-ve/SKILL.md`. Nunca secretos, PII ni contratos/financieros crudos en Git.
 
 ## Lecturas por tarea y precedencia

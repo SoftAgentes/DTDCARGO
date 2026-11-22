@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 // bundler y no resuelve el alias `@/`.
 import { originFromEnv } from "./lib/runtime/supabase-origin";
 import { chatwootOriginFromEnv } from "./lib/runtime/chatwoot-origin";
+import { clarityIdFromEnv } from "./lib/clarity";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -78,6 +79,41 @@ const cspHeader = [
   `form-action 'self'`,
   `object-src 'none'`,
 ].join("; ");
+
+/**
+ * CSP del SITIO PÚBLICO: la estricta de arriba + Microsoft Clarity cuando hay
+ * `NEXT_PUBLIC_CLARITY_ID` (fase 1, `docs/marketing/clarity-evaluacion.md` §2.4).
+ *
+ * - Clarity entra SOLO en `script-src`, `connect-src` e `img-src` (no en
+ *   `default-src`, como sugiere Microsoft) y SOLO en la CSP pública. Las rutas
+ *   privadas (`PRIVATE_CSP_PATH`) y las reglas propias (`/m`, `/marca`, embeds,
+ *   Bandeja, Bitácora…) siguen con `cspHeader` tal cual. `frame-ancestors` no
+ *   se toca.
+ * - Sin ID (o con `off`) es idéntica a `cspHeader`: el apagado tampoco abre la
+ *   CSP. Como es `NEXT_PUBLIC_*`, el valor queda fijado en el build.
+ * - `https://c.bing.com` queda fuera: es el dominio de las cookies de terceros
+ *   de Microsoft y la publicidad siempre va denegada (ver `lib/clarity.ts`).
+ */
+function withSources(csp: string, directive: string, sources: readonly string[]): string {
+  return csp
+    .split("; ")
+    .map((part) => (part.startsWith(`${directive} `) ? `${part} ${sources.join(" ")}` : part))
+    .join("; ");
+}
+/**
+ * Orígenes de Clarity ([Clarity CSP](https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-csp)).
+ * Viven aquí y no en `lib/clarity.ts`: ese módulo lo importa el componente
+ * cliente y con Clarity apagado ningún chunk del navegador debe nombrar
+ * `clarity.ms` (lo comprueba `build-image-prueba.yml`).
+ */
+const CLARITY_CSP_SOURCES = ["https://www.clarity.ms", "https://*.clarity.ms"] as const;
+const clarityEnabled = clarityIdFromEnv(process.env.NEXT_PUBLIC_CLARITY_ID) !== "";
+const publicCspHeader = clarityEnabled
+  ? ["script-src", "connect-src", "img-src"].reduce(
+      (csp, directive) => withSources(csp, directive, CLARITY_CSP_SOURCES),
+      cspHeader,
+    )
+  : cspHeader;
 
 /**
  * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book vigente (material de
@@ -175,6 +211,40 @@ const securityHeaders = [
     value: "max-age=63072000; includeSubDomains; preload",
   },
 ];
+
+/** Los mismos headers con la CSP pública (Clarity, si está encendido). */
+const publicSecurityHeaders = securityHeaders.map((h) =>
+  h.key === "Content-Security-Policy" ? { key: h.key, value: publicCspHeader } : h,
+);
+
+/**
+ * Rutas privadas para la CSP: las que excluye la guarda de Clarity por ruta
+ * (`isClarityExcludedUrl` en `components/Clarity.tsx`: `PRIVATE_PREFIXES` de GA
+ * + `/registro`, `/entrar`, `/abrir` + `/track/<código>`) y que no tienen regla
+ * propia más abajo. `/m/*`, `/marca*`, `/tarifas/embed` y `/fcl/embed` ya
+ * llevan la CSP estricta en sus reglas. La paridad con la guarda la mide
+ * `lib/runtime/__tests__/next-config-clarity.test.ts`.
+ */
+const PRIVATE_CSP_SEGMENTS = [
+  "studio",
+  "portal",
+  "back",
+  "invitar",
+  "acceso",
+  "entrar",
+  "abrir",
+  "verificar",
+  "p",
+  "interno",
+  "registro",
+  // Contenido de documentos importados como texto (revisión de la #710).
+  "cotizador",
+];
+const PRIVATE_CSP_ALTERNATIVES = `(?:${PRIVATE_CSP_SEGMENTS.join("|")})`;
+/** Las rutas de Studio con regla propia (Bitácora, Bandeja, ficha, cierre). */
+const STUDIO_OWN_RULES =
+  "studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$";
+const PRIVATE_CSP_PATH = `/:path((?:(?!${STUDIO_OWN_RULES})(?:${PRIVATE_CSP_ALTERNATIVES}(?:/.*)?|track/.+|m)))`;
 
 // Los embeds de calculadora (`/tarifas/embed` = CBM/LCL, `/fcl/embed` = FCL) los
 // enmarca el FAB del portal (ventana flotante Norte) en un iframe SAME-ORIGIN.
@@ -343,14 +413,17 @@ const nextConfig: NextConfig = {
           : h,
     );
     // Ficha DTD (SDD-0585, paso 2.4, E2-D28): la Dashboard App que Chatwoot
-    // enmarca al lado de cada conversación. SOLO el chat puede enmarcarla:
-    // `frame-ancestors <chat>` y sin `X-Frame-Options` (no sabe nombrar un
-    // origen; con DENY el navegador la bloquearía). El resto, la CSP estricta.
+    // enmarca al lado de cada conversación. Solo el chat y Studio la pueden
+    // enmarcar, sin `X-Frame-Options` (no sabe nombrar un origen; con DENY el
+    // navegador la bloquearía). El resto, la CSP estricta.
+    // SDD-0680: dentro de /studio/bandeja la ficha queda enmarcada DOS veces
+    // (Studio › chat › ficha) y `frame-ancestors` revisa todos los ancestros:
+    // sin `'self'`, el de arriba (Studio) la bloquea y sale en blanco.
     const fichaChatHeaders = securityHeaders
       .filter((h) => h.key !== "X-Frame-Options")
       .map((h) =>
         h.key === "Content-Security-Policy"
-          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors ${chatwootOrigin}`) }
+          ? { key: h.key, value: cspHeader.replace("frame-ancestors 'none'", `frame-ancestors 'self' ${chatwootOrigin}`) }
           : h,
       );
     // Salida de Studio (SDD-0585, paso 2.7, E2-D13): `/studio/cerrar-chat` abre
@@ -517,11 +590,18 @@ const nextConfig: NextConfig = {
         headers: calcEmbedHeaders,
       },
       {
+        // Rutas privadas: CSP estricta, sin Clarity. Mutuamente excluyente con
+        // el catch-all público de abajo (dos CSP en la misma URL se intersectan).
+        source: PRIVATE_CSP_PATH,
+        headers: securityHeaders,
+      },
+      {
+        // Catch-all PÚBLICO: CSP del sitio público (Clarity solo con ID).
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
-        source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed).*)",
-        headers: securityHeaders,
+        // `m$` y `track/.`: `/m` exacto y `/track/<código>` van a la privada.
+        source: `/:path((?!m/|marca|norte\\.html|studio/bitacora|studio/bandeja(?:/|$)|studio/ficha-chat$|studio/cerrar-chat$|tarifas/embed|fcl/embed|${PRIVATE_CSP_ALTERNATIVES}(?:/|$)|track/.|m$).*)`,
+        headers: publicSecurityHeaders,
       },
     ];
   },
@@ -593,6 +673,11 @@ const nextConfig: NextConfig = {
       // string, así que los deep-links `?tab=…&pipeline=…` siguen sirviendo.
       { source: "/studio/kommo", destination: "/studio/crm", permanent: true },
       { source: "/studio/leads", destination: "/studio/crm", permanent: true },
+      // SDD-0626 · la oficina de agentes se llama «Oficina_Virtual» (Sam, 2026-11-20): `/studio/admin/oficina` se
+      // mudó a `/studio/admin/oficina-virtual`. 308 permanente, con sus subrutas (`/vista`) y el query string
+      // (`?r=…` del aviso), para no romper el enlace de los avisos de Discord ya enviados ni los marcadores.
+      { source: "/studio/admin/oficina", destination: "/studio/admin/oficina-virtual", permanent: true },
+      { source: "/studio/admin/oficina/:path*", destination: "/studio/admin/oficina-virtual/:path*", permanent: true },
       // SDD-0276: el login del portal se mudó a `/entrar`, la puerta única del
       // sitio público. 301 permanente para no romper los correos de bienvenida
       // e invitación ya enviados; Next preserva el query string, así que los

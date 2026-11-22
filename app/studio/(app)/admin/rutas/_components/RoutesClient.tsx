@@ -284,7 +284,7 @@ function RoutesTab({
               left: 12,
               top: "50%",
               transform: "translateY(-50%)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               pointerEvents: "none",
             }}
           >
@@ -394,7 +394,7 @@ function RouteRowCard({
               marginBottom: 6,
             }}
           >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--ink)" }}>
               {route.route_code}
             </code>
             <div
@@ -442,12 +442,12 @@ function RouteRowCard({
               Origen:{" "}
               <b style={{ color: "var(--ink)" }}>{route.origin_city}</b>
             </span>
-            <span style={{ color: "var(--ink-mute)" }}>·</span>
+            <span style={{ color: "var(--ink-soft)" }}>·</span>
             <span>
               Destino:{" "}
               <b style={{ color: "var(--ink)" }}>{route.destination_city}</b>
             </span>
-            <span style={{ color: "var(--ink-mute)" }}>·</span>
+            <span style={{ color: "var(--ink-soft)" }}>·</span>
             <span>SLA {route.sla_hours}h</span>
           </div>
           {!isDir && intermediates.length > 0 && (
@@ -493,7 +493,7 @@ function RouteRowCard({
                   </span>
                   <span
                     style={{
-                      color: "var(--wine-text)",
+                      color: "var(--ink)",
                       font: "700 11px/1 var(--f-mono)",
                     }}
                   >
@@ -953,7 +953,7 @@ function CityRow({
             {Icon.pin(10)} {barrios.length}
           </span>
         ) : (
-          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             —
           </span>
         )}
@@ -974,7 +974,7 @@ function CityRow({
         )}
       </td>
       <td style={{ ...tdStyle, textAlign: "center" }}>
-        {c.is_hq ? <Badge tone="wine" size="sm">HQ</Badge> : "—"}
+        {c.is_hq ? <Badge tone="neutral" size="sm">HQ</Badge> : "—"}
       </td>
       <td style={{ ...tdStyle, textAlign: "center" }}>
         <Badge tone={c.active ? "success" : "neutral"} size="sm">
@@ -996,8 +996,8 @@ function CityRow({
               gap: 5,
               padding: "3px 8px",
               borderRadius: "var(--r-sm)",
-              background: "var(--wine-tint)",
-              color: "var(--wine-text)",
+              background: "var(--bg-elevated)",
+              color: "var(--ink)",
               font: "800 11px/1 var(--f-sans)",
             }}
           >

@@ -75,6 +75,42 @@ const BASELINE = {
   // El display usa ultimaTasa/fx_rates con ese mismo cliente, nunca admin.
   "lib/studio/costing/queries.ts": 1,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
+  // SDD-0661: +1 archivo y +1 lectura. `leerMontosDeContenedores` (Embarques
+  // por contenedor) lee `shipment_id, currency, total_amount, paid_amount,
+  // status` de las facturas vivas (`deleted_at is null`) y no anuladas de los
+  // embarques que van en un contenedor, para «Por cobrar» y «Cobrado».
+  // Revisión del contrato:
+  //   · candado: la llama SOLO `app/studio/(app)/embarques/page.tsx`, y solo si
+  //     el rol es accounting o admin Y `moduleViewDenial(…, "invoices")` deja
+  //     pasar. Sin eso no se consulta y la prop `montos` no existe;
+  //   · tenant: cliente de SESIÓN bajo `invoices_accounting_select` (0414,
+  //     accounting/admin del propio tenant); nunca el admin client;
+  //   · uso: solo lectura; al cliente cruzan sumas por embarque (facturas,
+  //     por cobrar, cobrado, cuántas en otra moneda), sin código, id, cliente
+  //     ni RIF de la factura.
+  "lib/studio/embarques-contenedores-queries.ts": 1,
+  // SDD-0674 · regla transitoria EXC-0674 («Facturar» en Embarques, contenedor
+  // 64): +0 llamadas y ninguna excepción de rol. Facturan y ven el monto solo
+  // accounting y admin, los mismos de la 0414 (Sam, 2026-11-18: «El rol
+  // operaciones no factura y tampoco ve los valores.»). No se lee `invoices`
+  // con un literal:
+  //   · Embarques lee `exc0674_contenedores` y `exc0674_facturas` (migr 0564;
+  //     RLS accounting/admin del tenant) y la RPC `exc0674_facturar` (security
+  //     definer, accounting/admin) crea y emite;
+  //   · `reporteSinFacturar` (0574) lee la vista `exc0674_envios_cubiertos`
+  //     (security_invoker sobre invoices: la RLS 0414 manda), con código y
+  //     estado, sin montos;
+  //   · candado: `rolFacturaExc0674(role)` en `app/studio/(app)/embarques/page.tsx`
+  //     y en `facturar-actions.ts`; el contrato de la RPC y la vista está
+  //     congelado en lib/studio/__tests__/exc0674.migration.test.ts.
+  // Si una versión futura lee `invoices` para esto, entra aquí con su número.
+  // SDD-0690 · EXC-0674 ampliada a pre-orden («Facturar» emite el borrador y
+  // «Facturar todo»): +0 llamadas literales desde la migración. La RPC
+  // `exc0674_emitir_borradores` (migr 0569; security definer, accounting/admin
+  // del tenant) lee y emite los borradores dentro de la base y deja el rastro
+  // en `exc0674_facturas` con `origen_monto = 'borrador'`. Si la pantalla lee
+  // `invoices` para listar las pre-órdenes, ese caller entra aquí con su número
+  // y su candado (rol accounting/admin y moduleViewDenial de `invoices`).
   // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
   // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
   // avisa la pantalla de Fidelización).
@@ -211,7 +247,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0558: 20 → 19. Sale `lib/studio/kommo-contact-status.ts` entero.
     // SDD-0574: 19 → 20. Entra `lib/studio/rate-snapshots/sin-facturar.ts`.
     // SDD-0576: 20 → 21 por el readback de fecha persistida de Warehouse.
-    expect(Object.keys(actual)).toHaveLength(21);
+    // SDD-0661: 21 → 22. Entra `lib/studio/embarques-contenedores-queries.ts`.
+    expect(Object.keys(actual)).toHaveLength(22);
     // El total va aparte del mapa a propósito: si alguien «arregla» el mapa
     // moviendo una llamada de un archivo a otro, el mapa vuelve a cuadrar y
     // este número no.
@@ -230,7 +267,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     // SDD-0573 I2: una lectura literal de metadata adicional, mismas 20 rutas del compuesto.
     // SDD-0572: 46 → 45, solo sale la lectura de display latestVesFxRate.
     // SDD-0576: 45 → 46, exclusivamente issued_at ausente tras emisión real.
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
+    // SDD-0661: 46 → 47 por `leerMontosDeContenedores` (Embarques por contenedor).
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(47);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

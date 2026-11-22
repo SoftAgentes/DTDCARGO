@@ -291,7 +291,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
             gap: 10,
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(16)}
           </span>
           <input
@@ -491,9 +491,9 @@ function ScopeChip({
       style={{
         padding: "4px 10px",
         borderRadius: "var(--r-pill)",
-        border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
-        background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-        color: active ? "var(--wine)" : "var(--ink-soft)",
+        border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
+        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
+        color: active ? "var(--ink)" : "var(--ink-soft)",
         font: "600 11.5px/1 var(--f-sans)",
         cursor: "pointer",
       }}
@@ -567,7 +567,7 @@ function CommandRow({
         margin: "0 4px",
         borderRadius: "var(--r-sm)",
         cursor: "pointer",
-        background: active ? "var(--wine-tint)" : "transparent",
+        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
       }}
     >
       <span
@@ -629,13 +629,13 @@ function HitRow({
         margin: "0 4px",
         borderRadius: "var(--r-sm)",
         cursor: "pointer",
-        background: active ? "var(--wine-tint)" : "transparent",
+        background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
       }}
     >
       <span
         style={{
           font: "700 12px/1 var(--f-mono)",
-          color: active ? "var(--wine)" : "var(--ink)",
+          color: "var(--ink)",
           flexShrink: 0,
         }}
       >
@@ -694,7 +694,7 @@ function LockedBlock({
         alignItems: "flex-start",
       }}
     >
-      <span style={{ color: "var(--ink-mute)", display: "inline-flex", marginTop: 1 }}>
+      <span style={{ color: "var(--ink-soft)", display: "inline-flex", marginTop: 1 }}>
         {Icon.lock(14)}
       </span>
       <div>
@@ -779,13 +779,13 @@ function RecentsBlock({
             color: "var(--ink-soft)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--wine-tint)";
+            e.currentTarget.style.background = "var(--accion-tint)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           {term}

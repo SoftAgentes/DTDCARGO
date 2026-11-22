@@ -23,7 +23,7 @@ que no fue un clic del titular.
 - **`_components/TarjetaPausa.tsx`** y la página: el bloque arriba de la revisión, con un solo botón.
 - **`lib/studio/oficina/mini-vista.ts`:** exporta `cambioDePausa` (antes privada) para no repetirla.
 - **Guardas:** `rbac-actions-guard.test.ts` (488 → 489) y `oficina-contraste.test.ts` (suma la tarjeta).
-- **Docs:** spec 0.9 (apartado y allowlist al final de §3) y runbook §14.
+- **Docs:** spec 0.9 (apartado y allowlist al final de §3) y runbook §15 (el §14 es del tapado, 0700/0705).
 
 ## Decisiones tomadas en esta PR (revisables)
 
@@ -35,11 +35,24 @@ que no fue un clic del titular.
 - **Los avisos de la pausa tienen su propio texto** (`pausa_sin_permiso`, `pausa_invalida`, `pausa_error`): los de la
   revisión dicen «no se guardó la revisión», que aquí confundiría.
 
-## Va detrás del #664
+## Puesta al día con main (2026-11-22, Worker que adoptó la rama)
 
-La rama se cortó de `claude/0626-paso4-mini-vista` (c241e296d) porque las dos tocan la página de revisión, la spec y el
-runbook. Cuando el #664 se fusione: `git rebase --onto origin/main c241e296d`. Al rebasar hay que volver a mirar el
-número del inventario en `rbac-actions-guard.test.ts` (aquí 489 = el de la base + 1).
+El #664 ya está en main. Se hizo `git merge origin/main` (sin rebase ni force) y se resolvió así:
+
+- **Ruta:** la oficina pasó a `/studio/admin/oficina-virtual` (#720). Git movió `TarjetaPausa.tsx`; `actions.ts`
+  y las pruebas (`pausa.test.ts`, `oficina-contraste.test.ts`) apuntan a la ruta nueva. En `pausa.test.ts` el
+  regex del REDIRECT ahora acepta `&c=…&n=…` (la 0678 agrega parámetros al aviso).
+- **Avisos:** los códigos de la pausa siguen en el mapa `AVISOS` de la página, que ya usa `AvisoResultado` (0678):
+  `ok_*` sale en tono éxito y el resto en error. Sin cambios de lógica.
+- **Contador del inventario (`rbac-actions-guard.test.ts`):** main trae **502** (0704 F1-A); esta PR suma una
+  acción exportada, `cambiarPausaAction` → **503**. Los 502 de main no se tocaron.
+- **Docs:** runbook — main ya usa el §14 (tapado 0700/0705), la pausa pasó a **§15**. Spec — versión 0.15, fila
+  nueva en la tabla y allowlist con la ruta nueva; se conserva todo lo de main (Anthropic y Haiku de respaldo, 0.14, etc.).
+- **Verificación del botón:** sigue llamando a `office_cambiar_pausa` (0541) con la sesión del usuario, con los dos
+  candados (`moduleEditDenial("admin")` y `platformAdminDenial`); la tarjeta no se pinta sin `is_platform_admin`
+  (`leerPausa` devuelve `sin_permiso`). Colores solo con variables (`--bg-surface`, `--ink`, `--border`); el botón
+  pasó a `studio-btn-primary` (azul de acción). Sin vino.
+- Los candados de rama: `docs:check`, tsc y eslint (ver PR). Vitest pendiente de turno de PC.
 
 ## Qué se ejecutó y qué no
 

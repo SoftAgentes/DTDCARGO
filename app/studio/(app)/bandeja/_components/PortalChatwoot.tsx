@@ -13,6 +13,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useT } from "@/lib/i18n";
 import type { I18nKey } from "@/lib/i18n/dict";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
+import { KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import type { ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import { destrabarPortal, type DestrabarState } from "../actions";
 
@@ -60,11 +61,16 @@ export function PortalChatwoot({ resumen }: { resumen: ResumenPortal }) {
                 style={{
                   margin: 0,
                   font: "800 20px/1.2 var(--f-mono)",
-                  color: resumen.atascados > 0 ? "var(--danger-text)" : "var(--ink)",
+                  color: "var(--ink)",
                 }}
               >
                 {resumen.atascados}
               </dd>
+              {resumen.atascados > 0 && (
+                <dd style={{ margin: "4px 0 0" }}>
+                  <KpiEstado status={{ tono: "danger", texto: t("bandeja.portal.atascados_estado") }} />
+                </dd>
+              )}
             </div>
           </dl>
           <form action={accion}>

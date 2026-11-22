@@ -13,6 +13,7 @@
  * Mark" en labels (no MARKBOX).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -35,8 +36,6 @@ const TABS: Array<{ key: Warehouse; label: string }> = [
 ];
 
 const fmt = (n: number) => n.toLocaleString("es-VE");
-const fmt2 = (n: number) =>
-  n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function InventarioClient({ cn, ve }: Props) {
   const [warehouse, setWarehouse] = useState<Warehouse>("CN");
@@ -105,7 +104,7 @@ export function InventarioClient({ cn, ve }: Props) {
           flexWrap: "wrap",
         }}
       >
-        <Badge tone={isCN ? "wine" : "info"} size="md">
+        <Badge tone={isCN ? "neutral" : "info"} size="md">
           {isCN ? "Modo consolidación · entrada" : "Modo despacho · salida"}
         </Badge>
         <span style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -132,9 +131,8 @@ export function InventarioClient({ cn, ve }: Props) {
         <KpiCard label="Cajas" value={fmt(stock.kpis.boxes)} sub="bultos en bodega" />
         <KpiCard
           label="Volumen"
-          value={`${fmt2(stock.kpis.cbm)} m³`}
+          value={`${formatCbm(stock.kpis.cbm)} m³`}
           sub="CBM acumulado"
-          valueColor="var(--wine-text)"
         />
         <KpiCard
           label="Peso"
@@ -220,7 +218,7 @@ export function InventarioClient({ cn, ve }: Props) {
                 marginTop: "var(--s-2)",
               }}
             >
-              {fmt2(stock.occupancy.usedCbm)} / {fmt(stock.occupancy.capacityCbm)} CBM ·
+              {formatCbm(stock.occupancy.usedCbm)} / {fmt(stock.occupancy.capacityCbm)} CBM ·
               contenedor 40&apos;HC
             </div>
           </div>
@@ -240,7 +238,7 @@ export function InventarioClient({ cn, ve }: Props) {
                   font: "600 10px/1 var(--f-sans)",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--wine-soft)",
+                  color: "var(--ink-side)",
                 }}
               >
                 Listo para consolidar
@@ -264,7 +262,7 @@ export function InventarioClient({ cn, ve }: Props) {
               <span
                 style={{ font: "500 14px var(--f-sans)", color: "var(--ink-side-soft)" }}
               >
-                partidas · {fmt2(stock.readyQueue.cbm)} m³
+                partidas · {formatCbm(stock.readyQueue.cbm)} m³
               </span>
             </div>
             <div
@@ -382,7 +380,7 @@ function StockTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {r.markbox}
@@ -423,7 +421,7 @@ function StockTable({
                     textAlign: "right",
                   }}
                 >
-                  {fmt2(r.cbm)}
+                  {formatCbm(r.cbm)}
                 </td>
                 <td
                   style={{

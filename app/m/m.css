@@ -42,7 +42,7 @@
    WCAG 2.4.7 (Focus Visible). Solo activo cuando el browser detecta
    navegación por teclado (no aparece al tap táctil). */
 .m-root :focus-visible {
-  outline: 2px solid var(--wine);
+  outline: 2px solid var(--accion); /* SDD-0686: el foco es acción */
   outline-offset: 2px;
   border-radius: var(--r-sm);
 }

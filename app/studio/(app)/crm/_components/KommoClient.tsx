@@ -79,7 +79,7 @@ function daysSince(iso: string | null): number | null {
  * La antigüedad no se borra — baja a ámbar y conserva su `title`.
  */
 function ageTone(days: number | null): string {
-  if (days == null) return "var(--ink-mute)";
+  if (days == null) return "var(--ink-soft)";
   if (days >= 30) return "var(--warning)";
   return "var(--ink-soft)";
 }
@@ -719,7 +719,7 @@ function LeadsTable({
                       {fmtUsd(kommoPrice)}
                     </span>
                   ) : (
-                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                       —
                     </span>
                   )}

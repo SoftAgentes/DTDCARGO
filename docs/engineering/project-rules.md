@@ -50,33 +50,9 @@ la cápsula generada y cualquier plugin son derivados read-only.
 - Sólo reglas aprobadas pueden bloquear. Investigación o recomendaciones no se
   elevan automáticamente.
 
-### ⚠️ El último commit del push decide si hay deploy
+### ⚠️ Producción web: fusionar no publica, publica el Director
 
-> **Histórico desde el 2026-10-16.** Vercel está en pausa y sin integración de
-> Git: ya no publica `main`. La web se publica sola en el servidor propio con el
-> vigilante (SDD-0541, [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md)),
-> que construye una imagen por cada push a `main`, sin excluir documentación. No
-> redespliegues desde Vercel. Lo de abajo explica el comportamiento anterior.
-
-`vercel.json` trae un `ignoreCommand` que **cancela el build cuando el commit
-no toca nada fuera de `docs/**` y `*.md`**. Está bien pensado —evita
-desplegar por un cambio de documentación—, pero mira **sólo `HEAD^ HEAD`**, o
-sea el último commit, no el push completo.
-
-**Consecuencia:** si empujas código y documentación juntos y el último commit
-es doc-only, **el deploy se cancela en silencio** y el código se queda en
-`main` sin publicar. Pasó el 2026-08-02 con SDD-0238: el sistema navegable de
-`/marca` viajó en un commit y el último del push era una respuesta a Cloud
-Design en `.md`.
-
-**Cómo evitarlo:** que el ÚLTIMO commit del push toque código, o redesplegar a
-mano desde Vercel. **Cómo detectarlo sin adivinar** — se ejecuta el mismo
-comando que corre Vercel; si sale `0`, no va a desplegar:
-
-```bash
-git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' \
-  && git diff --quiet HEAD^ HEAD -- docs/marketing && echo "NO despliega"
-```
+La web corre en el servidor propio. El vigilante (SDD-0541) que publicaba cada push a `main` está detenido desde el 2026-10-25: cada push a `main` sigue armando su imagen `sha-*`, pero la web no cambia hasta que el Director la publica a mano (`publicar-web.sh publicar <sha>` en el VPS), con autorización propia (el OK fijo de las ventanas de [carriles](../runbooks/codex-engineering.md#carriles-de-integración) o el nominal que toque). Si el vigilante vuelve a activarse, un merge a `main` vuelve a ser publicación web y esta regla se revisa. Hasta el 2026-11-20 aquí decía «cada push a `main` construye y publica; un merge a `main` es publicación web». Vercel está en pausa desde el 2026-10-16 y su `ignoreCommand` ya no decide nada. Detalle e historia del `ignoreCommand` y la pausa: [`codex-engineering.md`](../runbooks/codex-engineering.md) (nota del 2026-10-19); detalle del vigilante: [`publicacion-automatica-web.md`](../runbooks/publicacion-automatica-web.md). `vercel.json` conserva `ignoreCommand` mientras Vercel esté en pausa; si se reactiva, revisar esa sección antes.
 
 ## Stack
 
@@ -97,6 +73,12 @@ pnpm test / test:watch   # Vitest
 pnpm test:e2e            # Playwright
 pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
+pnpm verify              # cierre canónico de producto: lint, tipos, tests, build y gates
+pnpm governance:check    # cápsula de gobernanza sincronizada (verify lo incluye)
+pnpm components:check    # registro de componentes canonical/deprecated al día (verify lo incluye)
+pnpm sdd:check           # colisiones de numeración SDD (specs y reservas)
+pnpm skills:check        # manifiesto de skills repo-scoped consistente
+pnpm harness:test        # pruebas del harness (.node.mjs); Vitest no las descubre
 node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres desechable
 node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (el script cuenta solo)
 node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
@@ -176,137 +158,13 @@ consolidado), **`/tarifas/embed`**, **`/fcl`** y **`/calculadora-terrestre`**.
 - **Tokens**: solo `var(--*)` desde `app/studio/tokens.css`. Sobre fondo navy usar `--ink-inv-soft` / `--ink-inv-mute`, nunca `rgba(255,255,255,X)` inline.
 - **MARKBOX** = ID de cliente (`DTD-NNNN`), autogenerado por `rpc('next_markbox')`. Nombre VISIBLE al usuario: **"Shipping Mark"** (SDD-0065, display-only); `markbox` sigue siendo el identificador interno (columnas, RPCs, props).
 - **Dónde va el código nuevo**: dominio con ≥3 archivos → carpeta `lib/studio/<feature>/`; 1-2 → par plano `<entidad>-{queries,types}.ts`. Transversal (push/mail/telegram/agents) → `lib/studio/<feature>/`. Compartido público↔ERP → `lib/shared/`. Util genérico sin dominio → `lib/`. API (webhook/cron/externo) → `app/api/.../route.ts` fino (sin lógica de negocio).
+- **Multi-tenant**: el tenant sale de la sesión/token y el cliente nunca lo elige; RLS y el servidor son la frontera (ocultar en la UI no es control). Canónico: [aud-01.md](../governance/policies/aud-01.md) y [aud-02.md](../governance/policies/aud-02.md).
 
 ## Contratos que miden el comportamiento, no el texto
 
-Un contrato —prueba anti-drift, aserción de guion de smoke, vigilante de CI— puede
-estar **verde sin medir nada**. La diferencia entre uno que protege y uno que
-acompaña no es la suerte ni el esfuerzo: es si comprueba **el comportamiento** o
-comprueba **que el texto del guard aparece en el archivo**.
+Resumen — detalle, los cinco casos y el contraejemplo en [contratos-de-comportamiento.md](./contratos-de-comportamiento.md).
 
-El 2026-09-20 la misma forma apareció cinco veces en un día. Los cinco casos, con
-lo que cada uno **afirmaba** y lo que **debería** haber afirmado. Las líneas son
-de `main` `4febc876`.
-
-| # | Dónde | Afirmaba | Debería afirmar |
-|---|---|---|---|
-| 1 | `lib/studio/rbac-actions-guard.test.ts:88` | que el **archivo** contiene alguno de cuatro nombres de guard (`GUARDS.some((g) => src.includes(g))`) | que **cada acción exportada** llama a un guard antes de tocar datos |
-| 2 | `app/studio/(app)/crm/__tests__/stage-control.test.ts:74` | que el fuente de `crm/actions.ts`, leído como **texto**, contiene `moduleEditDenial(supabase, "kommo")` | que un rol sin `kommo` recibe la denegación y **no** se escribe nada |
-| 3 | `app/studio/_components/ui/ConfirmDialog.test.tsx:363` | que dos clics producen **una sola** llamada a `onConfirm` | que el candado **se suelta** después, o sea que un clic legítimo posterior sigue funcionando |
-| 4 | `.agents/handoffs/smokes-app-l14-0454-0472-guion.md:160` (paso 3) | que aparece «**un solo** reporte nuevo» | **cuántas filas quedan en pantalla en total**, y qué combinación sería falla |
-| 5 | un vigilante de CI armado con `gh pr checks <n> ... \|\| echo '[]'` | nada: el fallback convertía cada respuesta en `[]` | que el **silencio sea detectable** —cambios de estado más un latido, o marca de tiempo si lo lee un `tail`— y emisión en **todos** los estados terminales |
-
-**Por qué cada uno pasaba igual:**
-
-1. Un archivo con siete acciones gateadas y una abierta contiene la cadena. Así
-   estuvo verde sobre los ocho huecos de SDD-0497. Además `findActions`
-   (`:70`) sólo recoge archivos llamados **exactamente** `actions.ts`: escanea
-   54 archivos y deja fuera los **19** `*-actions.ts` del Studio
-   (`calendar-actions.ts`, `document-actions.ts`, `merge-actions.ts`…).
-   **SDD-0498 lo mejoró sin cerrarlo**, y por eso sigue en esta lista: pasó de
-   exigir un nombre a aceptar cuatro (`:47`), lo que eliminó el falso negativo
-   de `carrier-actions.ts` —gateado con su propio `tenantAdminGate`—, pero el
-   alcance de la aserción **sigue siendo el archivo**. Una mejora no es un
-   arreglo si no cambia lo que la aserción alcanza.
-2. Esa cadena aparece **cinco** veces en `crm/actions.ts`: quitar una deja las
-   otras cuatro y la aserción sigue cierta. Se comprobó con un mutante.
-3. Un candado **trabado para siempre** también produce exactamente una llamada.
-   El caso de al lado (`:313`) es el que sí los distingue, porque sigue usando el
-   diálogo después.
-4. El paso 2 cancela un reporte y un cancelado **se conserva por diseño**, así
-   que en pantalla quedan dos filas. Sin el total, Sam leyó eso como duplicación
-   y detuvo un smoke sobre un sistema que funcionaba: acá la falta de observable
-   produjo un **rojo falso**, no un verde falso. Es la misma causa.
-5. `gh pr checks` sale con código **distinto de cero** mientras haya checks
-   pendientes — medido el 2026-09-20 sobre una PR con checks en curso: `exit 8`,
-   contra `exit 0` de `gh pr view --json statusCheckRollup`, que es la llamada
-   correcta para un bucle. El monitor dio 55 vueltas sin emitir una línea y
-   terminó «sin producir salida» — indistinguible de «no pasó nada».
-   **La propiedad a conservar es que el silencio sea detectable**; la forma
-   concreta depende de **quién lee**. Si lee una persona el hilo: cambios de
-   estado más un **latido** espaciado — si el latido para, el vigilante dejó de
-   medir. Si sólo lo consume un `tail -N` sobre el final, una línea por vuelta
-   **con marca de tiempo** vale igual, porque ahí la repetición no cuesta
-   atención y el hueco en los tiempos delata la parada.
-   Elegir mal la forma no es inocuo en ninguna de las dos direcciones: un
-   vigilante mudo se delata por ausencia, pero **uno ruidoso parece estar
-   trabajando** y entrena a saltear sus líneas, y entonces el cambio de estado
-   pasa entre nueve repeticiones sin que nadie lo vea. Mismo final, otra puerta.
-
-> **No des por buena una aserción hasta haberla matado con un mutante.** Si
-> puedes romper el comportamiento y el contrato sigue verde, no es un contrato.
-> Y cuenta los mutantes **del diff**, no los del archivo: una cadena que aparece
-> cinco veces tiene cuatro apariciones ajenas a tu cambio, y mutarlas mide el
-> trabajo de otro.
->
-> El atajo para reconocerlos: si la aserción se puede satisfacer **sin ejecutar
-> el código** —leyendo el fuente, contando apariciones de un nombre— entonces
-> mide el texto. Si exige correr algo y observar qué salió, mide comportamiento.
-
-### Cómo se ve uno que sí mide
-
-`scripts/__tests__/invoice-read-boundary.test.mjs` (SDD-0357) es el contraejemplo
-y conviene leerlo antes de escribir un contrato nuevo. No busca texto: **parsea el
-AST** de ~1.600 módulos de `app/`, `lib/` y `supabase/functions` y cuenta las
-llamadas literales `.from("invoices")` por archivo. Después:
-
-- **Congela el inventario exacto** contra un `BASELINE` nombrado: `toEqual`, más
-  19 archivos y 45 llamadas como números explícitos (`:135-141`). Un lector nuevo
-  de `invoices` rompe la prueba, y para pasarla hay que **justificarlo por escrito
-  en el `BASELINE`** — sus comentarios son el registro de por qué cada lectura es
-  legítima. El total va **aparte del mapa a propósito** (`:137-141`): si alguien
-  «arregla» el mapa moviendo una llamada de un archivo a otro, el mapa vuelve a
-  cuadrar y el total no. Dos aserciones que fallan por caminos distintos valen
-  más que una más estricta.
-- **Se prueba a sí mismo**: distingue una llamada real de la misma cadena dentro
-  de un comentario o un string, y cubre los escapes que esquivarían su prefiltro.
-  Un detector sin sus propios casos es otra cosa que nadie está midiendo.
-- **Mide también la consecuencia**, no sólo la forma (`:161`): los cuatro widgets
-  financieros siguen detrás del módulo `invoices`, y **ningún override por rol**
-  los abre para los cinco roles que no deben verlos.
-
-Que exija justificar cada lector nuevo es lo que lo vuelve útil, y lo que hace
-que su rojo valga. **Un rojo suyo se lee como estorbo y es un hallazgo**, y el
-ejemplo está en el propio archivo: la entrada de
-`lib/studio/fidelizacion/referral-credit-queries.ts` en el `BASELINE` (`:32-53`,
-SDD-0495) cuenta que al exigir revisar «el guard y el tenant» de un lector nuevo
-apareció que `invoices_accounting_select` (migr 0414) **niega el SELECT a
-`commercial` y `support`, que son justo los roles de esa pantalla**: con el
-cliente de sesión el aviso devolvía cero filas y no se pintaba nunca. Léelo
-entero: además del hallazgo, deja escritos los candados con que se resolvió, cuál
-es la forma correcta y qué exige (RPC `security definer`, migración y OK nominal).
-
-**El rojo era el mensajero, no el problema.** Y la lección de fondo: la matriz de
-módulos de `rbac.ts` y la RLS de la tabla **no dicen lo mismo**, y sólo un
-contrato que mide comportamiento los enfrenta.
-
-> **Sus dos rojos no son el mismo, y confundirlos es cómo se pierde.** El de
-> **contenido** —el inventario dejó de coincidir con el `BASELINE`— es el
-> hallazgo: hay un lector nuevo de `invoices` y alguien tiene que justificarlo.
-> El de **tiempo** —agota su tope de 60 s— es contención de la máquina: lee y
-> parsea ~1.600 archivos, y con otra suite al lado llegó a 92 s (SDD-0486 §3).
->
-> Ante un rojo por tiempo **no se salta la prueba ni se relaja su tope**: se
-> vuelve a correr con la máquina quieta, y si persiste estando libre, entonces sí
-> es la prueba y se perfila. Eso fue SDD-0486 con las cuatro intermitentes de esa
-> ronda: **ninguna resultó ser «la carga»**. Acá la causa era suya —`readFileSync`
-> uno por uno y punteros al padre que el recorrido no usa—, y se arregló leyendo
-> en paralelo y prefiltrando, sin tocar el runner ni debilitar una aserción.
->
-> Importa porque un contrato valioso **y** ocasionalmente lento es el candidato
-> perfecto a que alguien lo marque inestable y lo saltee — y un `skip` no se ve
-> en verde ni en rojo: **se ve en nada**, que es el modo de falla de toda esta
-> lista. Sería absurdo que el contraejemplo de esta sección acabara saltado por
-> lento.
-
-Arreglar el contrato del caso 1 es tarea propia y ya está encolada; no la diseñes
-de paso desde otra tarea.
-
-Y esta sección se aplica a sí misma. La regla del caso 5 se escribió como «una
-línea por iteración», se usó el mismo día y se corrigió: cumplía su propósito y
-ahogaba la señal. **Una regla que sólo se sostiene mientras nadie la usa no es
-una regla** — igual que un contrato que sólo se sostiene mientras nadie lo mira.
-Si al aplicar algo de acá te estorba, eso es un dato sobre la regla, no sobre ti.
+Un contrato —prueba anti-drift, aserción de guion de smoke, vigilante de CI— puede estar verde sin medir nada: la diferencia es si comprueba el comportamiento o si comprueba que el texto del guard aparece en el archivo. El atajo para reconocerlos: si la aserción se puede satisfacer sin ejecutar el código —leyendo el fuente, contando apariciones de un nombre— mide texto; si exige correr algo y observar qué salió, mide comportamiento. No des por buena una aserción hasta haberla matado con un mutante, y cuenta los mutantes del diff, no los del archivo.
 
 ## Proceso UI/UX
 
@@ -331,7 +189,7 @@ Fork MIT de [Carlos Domínguez](https://github.com/Carlos-Dominguez-faber/revisa
 - **⚠️ El Brand Book se publica DOS veces, y son cosas distintas.** El book es el índice de un sistema de 35 documentos que se enlazan entre sí: (1) el **standalone autocontenido** que se descarga para trabajar sin internet — se sube por el HUB y se apunta con las constantes de `lib/marca/brand-book.ts`; (2) el **sistema navegable** que se lee en pantalla, donde `<a href="Logo Oficial.html">` de verdad abre — se publica con `pnpm tsx scripts/upload-brand-proyecto.ts "<carpeta del PROYECTO COMPLETO>"`. **Si sólo se hace (1), el navegable se queda en la versión anterior sin avisar.** Se corre sobre el proyecto completo de Cloud Design, **no** sobre la carpeta `Handoff v5.0/`: esa trae 7 de los 54 documentos que el book enlaza. Qué se publica y qué no (el producto interno queda fuera) vive en `lib/marca/proyecto.ts`.
 - **🛑 No republiques desde una copia vieja: hoy PRODUCCIÓN es la copia más completa que existe.** El subidor hace `upsert`, así que pisa lo publicado — y la carpeta que produjo lo que está vivo ya no existe intacta en ningún disco. Medido el 2026-08-11 por huella (la clave lleva un hash de la ruta original): `dtd-cargo/project` reproduce 231 de 319 claves, `Handoff v5.0` otras 110, y **las dos fusionadas 297 (93,1%)**; los 22 que faltan (`erp-mockups-v5/`) sólo sobreviven en el bucket. De las 297 que sí coinciden, **40 difieren en contenido**. Republicar desde `Downloads/` regresaría 40 archivos y dejaría 22 colgando. Hazlo sólo con la carpeta que llegue por NORTE-SYNC, y con `--dry-run` primero. El detalle está en la cabecera del script.
 - **⚠️ El `--dry-run` de ese script NO dice si los documentos funcionan.** Sólo resuelve archivos locales: no ve los `<script src>` a CDN —eso lo decide la CSP de `/marca/doc/*` en `next.config.ts` (`CDN_DOCUMENTOS`)— ni distingue una referencia real de un string dentro de `<script>` o de un `<pre>`. El 2026-08-11 decía "0 referencias rotas" con 14 de 35 documentos rotos en producción. Para saber si funcionan, se abren en el navegador. Ver [`docs/design/studio/cloud-design-2026-08-11-isotipo-y-favicons-falsos-positivos.md`](../../docs/design/studio/cloud-design-2026-08-11-isotipo-y-favicons-falsos-positivos.md).
-- **Protocolo UI handoff-first** → el **norte vigente** (diseño de Cloud Design, actualizado vía NORTE-SYNC; **la versión vigente vive al tope de `_norte/HANDOFF.md` en `## 🟢 Estado actual · vX.Y` — no se hardcodea acá para no desfasarse; corre `/radar` para detectar drift de versión**) vive en `docs/design/studio/_norte/`. Al iniciar sesión visual, leer ahí **en orden**: `CLAUDE.md` (marca), `HANDOFF.md` (ESTADO ACTUAL al tope), `CHANGELOG.md` (bitácora). **Backend del Studio** → leer `backend/README.md` (modelo multi-tenant + auth + endpoints). **Ver el norte navegable:** `node scripts/norte.mjs` → `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte. Aplica a módulos nuevos, redesigns, ajustes visuales no triviales. Si no hay diseño aprobado → avisar antes de inventar (`DESIGN-CHECK`). *(Las carpetas de diseño pre-Norte se **eliminaron** del working tree el 2026-06-10 — la historia vive en git. El único material de diseño vigente es `_norte/`.)*
+- **Protocolo UI handoff-first** → el **norte vigente** (diseño de Cloud Design, actualizado vía NORTE-SYNC; **la versión vigente vive al tope de `_norte/HANDOFF.md` en `## 🟢 Estado actual · vX.Y` — no se hardcodea acá para no desfasarse; corre `/radar` para detectar drift de versión**) vive en `docs/design/studio/_norte/`. Al iniciar sesión visual, leer ahí **en orden**: `CLAUDE.md` (marca), `HANDOFF.md` (ESTADO ACTUAL al tope), `CHANGELOG.md` (bitácora). **Ver el norte navegable:** `node scripts/norte.mjs` → `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte. Aplica a módulos nuevos, redesigns, ajustes visuales no triviales. Si no hay diseño aprobado → avisar antes de inventar (`DESIGN-CHECK`). *(Las carpetas de diseño pre-Norte se **eliminaron** del working tree el 2026-06-10 — la historia vive en git. El único material de diseño vigente es `_norte/`.)*
 
 ## Marketing / SEO / Ads → tree único `docs/marketing/`
 

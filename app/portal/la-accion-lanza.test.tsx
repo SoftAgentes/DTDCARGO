@@ -228,13 +228,13 @@ describe("la acción lanza: el formulario sigue, con lo escrito y un aviso hones
     expect(screen.getByText(/Se creará/)).toHaveTextContent("Proveedor Nuevo");
   });
 
-  it("MagicRequested: un corte al pedir otro enlace tampoco tumba la pantalla", async () => {
-    h.accion.mockResolvedValueOnce({ requested: true, requests: 1, email: "ana@example.test" });
+  it("ResultadoEntrar: un corte al pedir otro enlace tampoco tumba la pantalla", async () => {
+    h.accion.mockResolvedValueOnce({ resultado: "enlace", requests: 1, email: "ana@example.test" });
     const { container } = render(<Barrera><EntrarForm notice={null} authedNotBound={false} /></Barrera>);
     const form = elFormulario(container);
     fireEvent.change(form.querySelector('[name="email"]')!, { target: { value: "ana@example.test" } });
     fireEvent.submit(form);
-    await screen.findByText(/revisa tu correo/);
+    await screen.findByRole("heading", { name: /Revisa tu correo/ });
 
     h.accion.mockRejectedValueOnce(new TypeError("Failed to fetch"));
     fireEvent.submit(screen.getByRole("button", { name: /Pedir otro enlace/ }).closest("form")!);

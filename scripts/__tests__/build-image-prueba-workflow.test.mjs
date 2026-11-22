@@ -17,6 +17,10 @@ import { describe, expect, it } from "vitest";
  * `.next/static` con Google Analytics o Ads. El Dockerfile recibe `APP_ENV` como
  * ARG de la etapa build y producción (`build-image.yml`) no manda ninguno de los
  * dos.
+ *
+ * SDD-0684: tercer build-arg fijo, `NEXT_PUBLIC_CLARITY_ID=off`, y el chequeo
+ * del bundle exige 0 archivos de `.next/static` que nombren `clarity.ms`.
+ * Producción toma Clarity de la variable del repositorio.
  */
 const fromEslint = createRequire(createRequire(import.meta.url).resolve("eslint/package.json"));
 const { load: loadYaml } = fromEslint("js-yaml");
@@ -26,7 +30,7 @@ const WF = loadYaml(TEXTO);
 const DOCKERFILE = readFileSync(resolve("Dockerfile"), "utf8");
 const PRODUCCION = readFileSync(resolve(".github/workflows/build-image.yml"), "utf8");
 /** Build-args fijos de la SDD-0544: no salen de variables y tienen que estar. */
-const FIJOS = ["APP_ENV=staging", "NEXT_PUBLIC_GA_ID=off"];
+const FIJOS = ["APP_ENV=staging", "NEXT_PUBLIC_GA_ID=off", "NEXT_PUBLIC_CLARITY_ID=off"];
 // js-yaml lee la clave `on` como `true` (YAML 1.1): se aceptan las dos.
 const disparos = (wf) => wf.on ?? wf[true];
 const pasos = (wf) => wf.jobs["build-image-prueba"].steps;
@@ -86,6 +90,8 @@ function assertContrato(wf) {
   if (!/\$\(s G-25CD7BZH98\) \$\(s AW-561290482\)/.test(chequeo)) throw new Error("no se cuentan los dos IDs en .next/static");
   if (!/n_js.*-ge 1/.test(chequeo)) throw new Error("el chequeo no exige JS en .next/static");
   if (!/s_ga.*-eq 0 && .*s_ads.*-eq 0/.test(chequeo)) throw new Error("el chequeo no exige 0 archivos con GA y Ads en .next/static");
+  if (!/\$\(s clarity\.ms\)/.test(chequeo)) throw new Error("no se cuenta clarity.ms en .next/static");
+  if (!/s_clarity.*-eq 0/.test(chequeo)) throw new Error("el chequeo no exige 0 archivos con Clarity en .next/static");
   for (const s of pasos(wf)) {
     if (Object.hasOwn(s, "continue-on-error")) throw new Error(`paso tolerante: ${s.name}`);
   }
@@ -126,6 +132,10 @@ function assertProduccion(texto) {
   if (/NEXT_PUBLIC_GA_ID\s*=\s*off\b/.test(codigo)) throw new Error("build-image.yml apaga GA");
   if (!/^\s*NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}\s*$/m.test(codigo)) {
     throw new Error("el GA de producción ya no sale de la variable del repositorio");
+  }
+  if (/NEXT_PUBLIC_CLARITY_ID\s*=\s*off\b/.test(codigo)) throw new Error("build-image.yml apaga Clarity a mano");
+  if (!/^\s*NEXT_PUBLIC_CLARITY_ID=\$\{\{ vars\.NEXT_PUBLIC_CLARITY_ID \}\}\s*$/m.test(codigo)) {
+    throw new Error("el Clarity de producción no sale de la variable del repositorio");
   }
 }
 
@@ -218,6 +228,19 @@ describe("SDD-0540 · workflow de la imagen de prueba", () => {
       const s = pasos(wf).find((x) => /--network none/.test(x.run ?? ""));
       s.run = s.run.split("\n").filter((l) => !/n_js.*-ge 1/.test(l)).join("\n");
     }],
+    // SDD-0684 · Clarity apagado en prueba y contado en el bundle.
+    ["sin NEXT_PUBLIC_CLARITY_ID=off", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] = b.with["build-args"].replace("NEXT_PUBLIC_CLARITY_ID=off\n", "");
+    }],
+    ["un segundo NEXT_PUBLIC_CLARITY_ID pisa el apagado", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] += "NEXT_PUBLIC_CLARITY_ID=${{ vars.PRUEBA_CLARITY_ID }}\n";
+    }],
+    ["Clarity en el bundle no hace fallar", (wf) => {
+      const s = pasos(wf).find((x) => /--network none/.test(x.run ?? ""));
+      s.run = s.run.split("\n").filter((l) => !/s_clarity.*-eq 0/.test(l)).join("\n");
+    }],
   ])("rechaza: %s", (_n, mutar) => {
     const wf = structuredClone(WF);
     mutar(wf);
@@ -251,6 +274,10 @@ describe("SDD-0544 · Dockerfile y workflow de producción", () => {
       t.replace(/^(\s*)NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}$/m, "$1APP_ENV=staging\n$&")],
     ["GA apagado en producción", (t) =>
       t.replace(/NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}/, "NEXT_PUBLIC_GA_ID=off")],
+    ["Clarity sin la variable en producción", (t) =>
+      t.replace(/^\s*NEXT_PUBLIC_CLARITY_ID=\$\{\{ vars\.NEXT_PUBLIC_CLARITY_ID \}\}\n/m, "")],
+    ["Clarity con un ID escrito en producción", (t) =>
+      t.replace(/NEXT_PUBLIC_CLARITY_ID=\$\{\{ vars\.NEXT_PUBLIC_CLARITY_ID \}\}/, "NEXT_PUBLIC_CLARITY_ID=abc123def")],
   ])("build-image.yml rechaza: %s", (_n, mutar) => {
     const mutado = mutar(PRODUCCION);
     expect(mutado).not.toBe(PRODUCCION);

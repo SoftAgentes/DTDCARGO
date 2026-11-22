@@ -13,6 +13,7 @@
  * de §6.3 (CN) / §6.4 (VE). Solo CBM/kg — nunca valor en USD (§6.2).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DEFAULT_CONTAINER_CBM,
@@ -177,7 +178,7 @@ async function getStockCN(
   const readyQueue: ReadyQueue = {
     marks: new Set(readyRows.map((r) => r.markbox)).size,
     rows: readyRows.length,
-    cbm: Math.round(readyRows.reduce((a, r) => a + r.cbm, 0) * 100) / 100,
+    cbm: roundCbm(readyRows.reduce((a, r) => a + r.cbm, 0)),
   };
 
   return { warehouse: "CN", rows, kpis, occupancy, readyQueue };
@@ -259,7 +260,7 @@ async function getStockVE(
       clientName: acc.clientName,
       contents: (rec.container_code as string | null) || "—",
       boxes: acc.boxes,
-      cbm: Math.round(acc.cbm * 1000) / 1000,
+      cbm: roundCbm(acc.cbm),
       weightKg: Math.round(acc.weightKg * 100) / 100,
       daysInWarehouse: daysBetween(refDate, now),
       status: deriveVeStatus(String(rec.status ?? "")),

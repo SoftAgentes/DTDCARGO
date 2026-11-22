@@ -14,6 +14,7 @@
  * Solo CBM/kg — NUNCA valor en USD (decisión §6.2).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { BadgeTone } from "@/app/studio/_components/ui/Badge";
 
 /** Almacén/modo del módulo. */
@@ -152,7 +153,7 @@ export function kpisFromRows(rows: StockRow[]): WarehouseKpis {
     cbm += r.cbm;
     weightKg += r.weightKg;
   }
-  return { marks: marks.size, boxes, cbm: round2(cbm), weightKg: round2(weightKg) };
+  return { marks: marks.size, boxes, cbm: roundCbm(cbm), weightKg: round2(weightKg) };
 }
 
 /** Ocupación del contenedor a partir del CBM usado y la capacidad. */
@@ -160,7 +161,7 @@ export function occupancyFrom(usedCbm: number, capacityCbm: number): ContainerOc
   const cap = capacityCbm > 0 ? capacityCbm : DEFAULT_CONTAINER_CBM;
   const pct = Math.min(100, Math.round((usedCbm / cap) * 100));
   const tone: BadgeTone = pct > 85 ? "danger" : pct > 60 ? "warning" : "success";
-  return { usedCbm: round2(usedCbm), capacityCbm: cap, pct, tone };
+  return { usedCbm: roundCbm(usedCbm), capacityCbm: cap, pct, tone };
 }
 
 function round2(n: number): number {

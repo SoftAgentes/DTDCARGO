@@ -192,7 +192,7 @@ export function TelegramAlertsPanel({
               <legend
                 style={{
                   font: "500 12px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
                   padding: 0,
@@ -235,7 +235,7 @@ export function TelegramAlertsPanel({
                         <span
                           style={{
                             font: "400 12px/1.5 var(--f-sans)",
-                            color: "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                           }}
                         >
                           {TELEGRAM_ALERT_CATEGORY_HINTS[cat]}
@@ -319,7 +319,7 @@ function LinkInstructions({
         <p
           style={{
             font: "400 12px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "8px 0 0",
           }}
         >
@@ -328,7 +328,7 @@ function LinkInstructions({
             href={link}
             target="_blank"
             rel="noreferrer"
-            style={{ color: "var(--wine-text)", textDecoration: "underline" }}
+            style={{ color: "var(--accion-text)", textDecoration: "underline" }}
           >
             {link}
           </a>
@@ -337,7 +337,7 @@ function LinkInstructions({
       <p
         style={{
           font: "400 12px/1.5 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "8px 0 0",
         }}
       >

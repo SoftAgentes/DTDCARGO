@@ -42,7 +42,7 @@ export function ChatwootConversacionesCard({ conversaciones }: { conversaciones:
         {t("bandeja.card.title")}
       </h2>
       {conversaciones.length === 0 ? (
-        <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>{t("bandeja.card.empty")}</p>
+        <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.card.empty")}</p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {conversaciones.map((c) => {
@@ -56,13 +56,13 @@ export function ChatwootConversacionesCard({ conversaciones }: { conversaciones:
                       {t(`bandeja.status.${c.status}` as I18nKey)}
                     </span>
                     {c.unread_count > 0 ? (
-                      <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--wine-text)", marginLeft: "var(--s-2)" }}>
+                      <span style={{ font: "700 12px/1 var(--f-sans)", color: "var(--ink)", marginLeft: "var(--s-2)" }}>
                         {t("bandeja.card.unread", { n: c.unread_count })}
                       </span>
                     ) : null}
                   </span>
                   {fecha ? (
-                    <span style={{ font: "400 12px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
+                    <span style={{ font: "400 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
                       {t("bandeja.card.last_activity", { fecha })}
                     </span>
                   ) : null}

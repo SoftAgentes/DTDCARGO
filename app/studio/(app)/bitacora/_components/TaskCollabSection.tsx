@@ -181,7 +181,7 @@ export function TaskCollabSection({
       <section>
         <div
           className="studio-eyebrow"
-          style={{ color: "var(--wine-text)", marginBottom: 10 }}
+          style={{ marginBottom: 10 }}
         >
           Prueba de avance
           {list.length > 0 && (
@@ -311,7 +311,7 @@ export function TaskCollabSection({
                         display: "inline-flex",
                         alignItems: "center",
                         padding: 6,
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         background: "transparent",
                         border: 0,
                         cursor: "pointer",
@@ -431,7 +431,7 @@ function Thumb({ attachment }: { attachment: TaskAttachment }) {
     alignItems: "center",
     justifyContent: "center",
     background: "var(--bg-elevated)",
-    color: "var(--ink-mute)",
+    color: "var(--ink-soft)",
   };
   if (attachment.kind === "foto" && attachment.signedUrl) {
     return (
@@ -448,8 +448,8 @@ function Thumb({ attachment }: { attachment: TaskAttachment }) {
   return <span style={box}>{attachment.kind === "video" ? Icon.camera(18) : Icon.download(18)}</span>;
 }
 
-function kindTone(kind: TaskAttachment["kind"]): "info" | "wine" | "neutral" {
-  return kind === "foto" ? "info" : kind === "video" ? "wine" : "neutral";
+function kindTone(kind: TaskAttachment["kind"]): "info" | "neutral" {
+  return kind === "foto" ? "info" : "neutral";
 }
 
 function formatSize(bytes: number | null): string {

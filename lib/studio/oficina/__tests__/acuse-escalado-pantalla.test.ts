@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { TarjetaBorrador } from "@/app/studio/(app)/admin/oficina/_components/TarjetaBorrador";
+import { TarjetaBorrador } from "@/app/studio/(app)/admin/oficina-virtual/_components/TarjetaBorrador";
 import { CASILLAS, type BorradorPendiente } from "@/lib/studio/oficina/revisiones";
 
 const BASE: BorradorPendiente = {

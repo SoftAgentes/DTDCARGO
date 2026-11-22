@@ -164,7 +164,8 @@ const ENV = {
 const respuesta = (guion: string, texto: string, acuse = texto.split(".")[0] + ".") =>
   JSON.stringify({ respuesta: { acuse, texto, guion } });
 const ACUSE_GENERAL = "¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto. Cuéntame un poco más de lo que necesitas.";
-const PEDIR_GUIA = "Para revisar tu envío necesito tu número de guía o de casillero. ¿Me lo compartes, por favor? Apenas lo tenga, el equipo lo revisa.";
+// Guiones v0.4: estado-sin-guia reemplaza a pedir-guia.
+const PEDIR_GUIA = "Entendí que quieres saber de tu paquete. Para verlo necesito tu número de guía. ¿Me lo compartes?";
 
 function despachador(db: PGlite, o: { mensajes?: Record<number, string>; contenido?: string | "lento"; sinBorrar?: boolean } = {}) {
   const doble = { llamadas: 0, borradas: [] as string[], avisos: [] as number[], registros: [] as string[] };
@@ -263,6 +264,25 @@ describe("despachador · pendientes del 3a (Paso 3b)", () => {
     expect(doble.avisos).toEqual([1]);
   }, 60_000);
 
+  it("SDD-0701 · un enlace del cliente sale escalado («cliente:enlace», prioridad 2) y SIN llamar al agente", async () => {
+    const db = await base();
+    await eventoEnTriaje(db, 6);
+    const { d, doble } = despachador(db, { mensajes: { 6: "Hola, mi guía está aquí: bit.ly/x7Kp2" } });
+    expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "escalado", motivo: "cliente:enlace" } });
+    expect(doble.llamadas).toBe(0);
+    const [b] = await q(db, "select tipo, prioridad, guion, motivo from public.office_borradores");
+    expect(b).toMatchObject({ tipo: "escalado", prioridad: 2, guion: null, motivo: "cliente:enlace" });
+    expect(doble.avisos).toEqual([1]);
+  }, 60_000);
+
+  it("SDD-0701 · dinero y enlace a la vez: gana el dinero (prioridad 3)", async () => {
+    const db = await base();
+    await eventoEnTriaje(db, 8);
+    const { d, doble } = despachador(db, { mensajes: { 8: "Ya pagué, el comprobante: https://pagos.example/x" } });
+    expect(await tick(d)).toMatchObject({ resultado: { fin: "escalado", motivo: "dinero" } });
+    expect(doble.llamadas).toBe(0);
+  }, 60_000);
+
   it("un evento de dinero (prioridad 3 por etiqueta) también escala sin llamar al agente", async () => {
     const db = await base();
     await eventoEnTriaje(db, 5, 3);
@@ -334,7 +354,7 @@ describe("envío (Paso 3b, C)", () => {
     // El agente redacta las 3 (respuestas de guion). Nada sale todavía.
     const contenidos: Record<number, string> = {
       31: respuesta("acuse-general", ACUSE_GENERAL, "¡Hola!"),
-      32: respuesta("pedir-guia", PEDIR_GUIA, "Para revisar tu envío necesito tu número de guía o de casillero."),
+      32: respuesta("estado-sin-guia", PEDIR_GUIA, "Entendí que quieres saber de tu paquete."),
       33: respuesta("acuse-general", ACUSE_GENERAL, "¡Hola!"),
     };
     let actual = 31;

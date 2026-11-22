@@ -19,7 +19,7 @@ export function GpsLiveTab({
   // Alertas computadas simples
   const alerts: {
     icon: "cog" | "warn" | "clock";
-    tone: "warning" | "info" | "wine";
+    tone: "warning" | "info";
     title: string;
     meta: string;
   }[] = [];
@@ -71,7 +71,6 @@ export function GpsLiveTab({
               className="studio-eyebrow"
               style={{
                 font: "700 10.5px/1 var(--f-sans)",
-                color: "var(--wine-text)",
               }}
             >
               Rutas activas · {activeRoutes.length}{" "}
@@ -170,7 +169,6 @@ export function GpsLiveTab({
           className="studio-eyebrow"
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
             marginBottom: 14,
           }}
         >
@@ -278,7 +276,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
         <code
           style={{
             font: "700 11px/1 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
           }}
         >
           {r.shipment?.code ?? "—"}
@@ -298,7 +296,7 @@ function ActiveRouteCard({ route: r }: { route: TmsRouteRow }) {
           style={{
             width: `${r.progress_pct}%`,
             height: "100%",
-            background: "var(--wine)",
+            background: "var(--ink)",
             borderRadius: "var(--r-pill)",
             transition: "width var(--dur) var(--ease)",
           }}

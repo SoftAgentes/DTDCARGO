@@ -199,7 +199,7 @@ export function QrScanner({
             style={{
               position: "absolute",
               inset: "12%",
-              border: "2px solid var(--wine-soft)",
+              border: "2px solid var(--accion-soft)",
               borderRadius: "var(--r-md)",
               pointerEvents: "none",
               boxShadow: "0 0 0 9999px var(--scrim-soft)",
@@ -215,7 +215,7 @@ export function QrScanner({
               right: "12%",
               top: "50%",
               height: 2,
-              background: "var(--wine-soft)",
+              background: "var(--accion-soft)",
               pointerEvents: "none",
               opacity: 0.65,
             }}

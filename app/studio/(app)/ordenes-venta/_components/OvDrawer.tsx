@@ -232,7 +232,7 @@ export function OvDrawer({
                     <code
                       style={{
                         font: "700 12px/1.2 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink)",
                       }}
                     >
                       {so.quote_code}
@@ -325,7 +325,7 @@ export function OvDrawer({
                   <code
                     style={{
                       font: "700 11px/1.2 var(--f-mono)",
-                      color: "var(--wine-text)",
+                      color: "var(--ink)",
                     }}
                   >
                     {p.code}
@@ -426,7 +426,7 @@ export function OvDrawer({
                   <code
                     style={{
                       font: "700 11px/1.2 var(--f-mono)",
-                      color: "var(--wine-text)",
+                      color: "var(--ink)",
                     }}
                   >
                     {inv.invoice_code}

@@ -28,19 +28,16 @@ export function CustomsKpis({ kpis }: { kpis: KpisType }) {
             ? "Esperando liberación SENIAT"
             : "Sin trámites activos"
         }
-        valueColor={kpis.inProcess > 0 ? "var(--warning)" : "var(--ink)"}
       />
       <KpiCard
         label="Liberados YTD"
         value={kpis.clearedYtd}
         sub="Completados este año"
-        valueColor={kpis.clearedYtd > 0 ? "var(--success)" : "var(--ink)"}
       />
       <KpiCard
         label="Impuestos pagados"
         value={totalPaidDisplay}
         sub="Aranceles + IGTF + IVA + agente"
-        valueColor="var(--wine-text)"
       />
       <KpiCard
         label="Con alertas"
@@ -50,7 +47,7 @@ export function CustomsKpis({ kpis }: { kpis: KpisType }) {
             ? "Requieren atención inmediata"
             : "Todos los trámites OK"
         }
-        valueColor={kpis.withAlert > 0 ? "var(--danger)" : "var(--ink)"}
+        status={kpis.withAlert > 0 ? { tono: "danger", texto: "Requiere acción" } : undefined}
       />
     </div>
   );

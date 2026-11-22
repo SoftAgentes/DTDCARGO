@@ -11,9 +11,11 @@
  * Las cabeceras (`frame-src`, micrófono delegado) las pone `next.config.ts`.
  *
  * SDD-0655: la Bandeja es una pestaña de CRM. Esta ruta se queda (sus cabeceras
- * y los `?c=N` ya entregados apuntan aquí): pinta la cabecera y la barra del CRM,
- * con Embudos solo si quien mira ve el módulo `kommo`. «Agentes vinculados» se
- * mudó a Usuarios › Bandeja; al admin le queda el enlace.
+ * y los `?c=N` ya entregados apuntan aquí). Las pestañas del CRM llevan Embudos
+ * solo si quien mira ve el módulo `kommo`. «Agentes vinculados» se mudó a
+ * Usuarios › Bandeja; al admin le queda el enlace.
+ * SDD-0680 (variante C): sin la cabecera grande del CRM. Las pestañas van en la
+ * fila de la Bandeja, junto al estado y las acciones (`BandejaClient`).
  */
 import { cookies } from "next/headers";
 
@@ -28,11 +30,11 @@ import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
 import { listEventosDescartados, type EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import { parseChatwootUserId, urlPanel } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, ssoVigentePara } from "@/lib/studio/chatwoot/sso-cookie";
-import { CrmCabecera, CrmPestanas } from "../crm/_components/CrmPestanas";
+import { CrmPestanas } from "../crm/_components/CrmPestanas";
 import { pestanasCrm } from "../crm/_components/kommo-tabs.shared";
 import { BandejaClient, type BandejaEstado } from "./_components/BandejaClient";
 
-export const metadata = { title: "Bandeja · CRM · DTD Studio" };
+export const metadata = { title: "Bandeja · CRM" };
 
 export default async function BandejaPage({
   searchParams,
@@ -76,11 +78,14 @@ export default async function BandejaPage({
   }
 
   return (
-    // Sin `maxWidth`: el panel del chat usa todo el ancho, como antes de SDD-0655.
-    <div>
-      <CrmCabecera bajada="Las conversaciones con clientes y leads. Responde aquí sin salir de Studio." />
-      <CrmPestanas pestanas={pestanasCrm({ embudos, bandeja: true })} activa="bandeja" />
-      <BandejaClient estado={estado} panelUrl={panelUrl} inicioUrl={inicioUrl} conversacion={conversacion} admin={admin} />
-    </div>
+    // Sin `maxWidth`: el panel del chat usa todo el ancho (`data-ancho-completo` en la sección).
+    <BandejaClient
+      estado={estado}
+      panelUrl={panelUrl}
+      inicioUrl={inicioUrl}
+      conversacion={conversacion}
+      pestanas={<CrmPestanas pestanas={pestanasCrm({ embudos, bandeja: true })} activa="bandeja" compacta />}
+      admin={admin}
+    />
   );
 }

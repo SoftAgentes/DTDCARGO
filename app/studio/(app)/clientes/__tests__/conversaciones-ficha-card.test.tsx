@@ -81,12 +81,34 @@ describe("ConversacionesFichaCard", () => {
 
   it("unir y quitar solo con permiso de edición", () => {
     montar();
-    expect(screen.queryByText("Unir un chat a esta ficha")).toBeNull();
+    expect(screen.queryByText("Vincular otra red")).toBeNull();
     expect(screen.queryByRole("button", { name: "Quitar" })).toBeNull();
     cleanup();
     montar(PANEL, { puedeUnir: true });
-    expect(screen.getByText("Unir un chat a esta ficha")).toBeTruthy();
+    expect(screen.getByText("Vincular otra red")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Quitar" })).toBeTruthy();
+  });
+});
+
+describe("ConversacionesFichaCard · el chat del portal (SDD-0676)", () => {
+  it("su chip dice «Portal · del portal» y no trae «Quitar», aunque la persona pueda quitar las demás", () => {
+    render(
+      <ConversacionesFichaCard
+        panel={PANEL}
+        uniones={[
+          { chatwootContactId: 501, origen: "kommo" },
+          { chatwootContactId: 777, origen: "portal", canal: "portal" },
+        ]}
+        puedeUnir
+        puedeVerTexto
+        clientId={FICHA}
+        markbox="DTD-0001"
+      />,
+    );
+    expect(screen.getByText("Portal")).toBeTruthy();
+    expect(screen.getByText("del portal")).toBeTruthy();
+    // Un solo «Quitar»: el de la unión del Archivo Kommo.
+    expect(screen.getAllByRole("button", { name: "Quitar" })).toHaveLength(1);
   });
 });
 

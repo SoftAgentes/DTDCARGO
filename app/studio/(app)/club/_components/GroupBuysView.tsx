@@ -7,6 +7,7 @@
  * drawers; baja con confirm. Trazabilidad: highlight warm de la ronda creada.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -38,7 +39,7 @@ function fmtDate(iso: string | null): string {
 }
 function fmtCbm(n: number | null): string {
   if (n == null) return "—";
-  return `${(Math.round(n * 1000) / 1000).toLocaleString("es-VE")} m³`;
+  return formatCbm(n, { unit: true });
 }
 
 export function GroupBuysView({
@@ -117,13 +118,11 @@ export function GroupBuysView({
         <KpiCard
           value={stats.abiertas}
           label="Rondas abiertas"
-          valueColor={stats.abiertas > 0 ? "var(--success)" : "var(--ink)"}
           sub="reciben volumen"
         />
         <KpiCard
           value={stats.enConsolidacion}
           label="En consolidación"
-          valueColor={stats.enConsolidacion > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub="rondas cerradas"
         />
         <KpiCard value={fmtCbm(stats.cbmAbierto)} label="CBM comprometido" sub="en rondas abiertas" />
@@ -318,7 +317,7 @@ function GroupBuyCard({
               style={{
                 width: `${pct}%`,
                 height: "100%",
-                background: pct >= 100 ? "var(--success)" : "var(--wine)",
+                background: pct >= 100 ? "var(--success)" : "var(--ink)",
               }}
             />
           </div>

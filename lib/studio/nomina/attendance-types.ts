@@ -63,7 +63,7 @@ export const HOLIDAY_SCOPE_META: Record<
   { label: string; tone: NominaBadgeTone }
 > = {
   nacional: { label: "Nacional", tone: "info" },
-  empresa: { label: "Empresa", tone: "wine" },
+  empresa: { label: "Empresa", tone: "neutral" },
 };
 
 export const HOLIDAY_SCOPE_OPTIONS: { value: HolidayScope; label: string }[] =

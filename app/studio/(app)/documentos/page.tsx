@@ -22,7 +22,7 @@ import {
 import type { DocumentRow } from "@/lib/studio/documents/types";
 import { DocumentosHubClient } from "./_components/DocumentosHubClient";
 
-export const metadata = { title: "Documentos · DTD Studio" };
+export const metadata = { title: "Documentos" };
 
 export type HubView = "all" | "por-vencer" | "pendientes" | "sin-vincular";
 

@@ -179,15 +179,11 @@ export function OrdenesCompraClient({
         <KpiCard
           value={abiertas}
           label="Abiertas"
-          valueColor={abiertas > 0 ? "var(--warning)" : "var(--ink)"}
           sub="borrador · confirmada · recibida"
         />
         <KpiCard
           value={stats.byStatus.facturada}
           label="Facturadas"
-          valueColor={
-            stats.byStatus.facturada > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="cuenta por pagar generada"
         />
         <KpiCard
@@ -493,7 +489,7 @@ function DtdTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -624,7 +620,7 @@ function DtdTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -721,7 +717,7 @@ function DtdTab({
             </button>
           ))}
           {/* Totales sobre lo filtrado (patrón almacén CN: Σ label mute +
-              valor wine con peso — se lee de un vistazo) */}
+              valor en tinta con peso — se lee de un vistazo) */}
           <div
             style={{
               display: "flex",
@@ -757,7 +753,7 @@ function DtdTab({
                 <span
                   style={{
                     font: "800 13px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {t.value}
@@ -814,7 +810,7 @@ function SortableHeaderCell({
         font: "inherit",
         letterSpacing: "inherit",
         textTransform: "inherit",
-        color: active ? "var(--wine)" : "inherit",
+        color: active ? "var(--ink)" : "inherit",
       }}
     >
       {col.label}
@@ -865,7 +861,7 @@ function ClienteTab({
         <a
           href="/studio/proveedores"
           className="studio-link-quiet"
-          style={{ color: "var(--wine-text)" }}
+          style={{ color: "var(--accion-text)" }}
         >
           PreAlertas de servicios
         </a>
@@ -895,7 +891,7 @@ function ClienteTab({
             <code
               style={{
                 font: "700 12px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}

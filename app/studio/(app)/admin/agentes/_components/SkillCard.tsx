@@ -59,7 +59,7 @@ export function SkillCard({ skill }: { skill: Skill }) {
         padding: "20px 22px",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
-        borderTop: "2px solid var(--wine-soft)",
+        borderTop: "2px solid var(--ink)",
         borderRadius: "var(--r-lg)",
         textDecoration: "none",
         color: "inherit",
@@ -83,8 +83,8 @@ export function SkillCard({ skill }: { skill: Skill }) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             borderRadius: "var(--r-md)",
           }}
         >

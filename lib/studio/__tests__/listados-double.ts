@@ -103,6 +103,7 @@ export function dobleListados(
       select(_cols?: string, opts?: { count?: string; head?: boolean }) {
         let visibles = (tablas[table] ?? []).map(copia);
         let tope = Infinity;
+        const claves: { col: string; asc: boolean }[] = [];
         const contar = opts?.count === "exact";
         const head = opts?.head === true;
         const registrar = (op: string, col: string, val: unknown) =>
@@ -178,10 +179,15 @@ export function dobleListados(
             return chain;
           },
           order(col: string, opts?: { ascending?: boolean }) {
-            const asc = opts?.ascending !== false;
-            visibles = [...visibles].sort((a, b) =>
-              asc ? comparar(a[col], b[col]) : comparar(b[col], a[col]),
-            );
+            // Como PostgREST: el primer `order` manda y los siguientes desempatan.
+            claves.push({ col, asc: opts?.ascending !== false });
+            visibles = [...visibles].sort((a, b) => {
+              for (const k of claves) {
+                const c = k.asc ? comparar(a[k.col], b[k.col]) : comparar(b[k.col], a[k.col]);
+                if (c !== 0) return c;
+              }
+              return 0;
+            });
             return chain;
           },
           limit(n: number) {

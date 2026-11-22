@@ -52,7 +52,7 @@ export function positionRoleBadgeTone(role: StudioUserRole | null): NominaBadgeT
     case "admin":
       return "danger";
     case "accounting":
-      return "wine";
+      return "neutral";
     case "commercial":
       return "info";
     case "operations":
