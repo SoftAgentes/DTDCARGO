@@ -38,7 +38,7 @@ const supplierInitial: SupplierActionState = {};
 const deleteSupplierInitial: DeleteSupplierActionState = {};
 
 /**
- * "Tus proveedores" (SDD-0057 · Slice B). Piel real del portal (paper/wine +
+ * "Tus proveedores" (SDD-0057 · Slice B). Piel real del portal (paper/tinta +
  * clases del sitio público), sólo tokens `var(--*)`, es-VE / voseo. El Norte
  * (PortalSuppliers) es referencia de LAYOUT/flujo, no de tipografía.
  *
@@ -71,7 +71,7 @@ export function SuppliersClient({
           </h1>
           <p className="lead mt-3 max-w-[64ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
-            <strong className="text-wine-text">prealerta</strong>: nos avisas que viene
+            <strong className="text-ink">prealerta</strong>: nos avisas que viene
             mercancía de China para esperarla y procesarla más rápido. Genera el
             código y las etiquetas para tus proveedores, o vuelve a comprarle a uno
             que ya tengas.
@@ -207,7 +207,7 @@ function WhyItem({
     <div className="flex gap-3">
       <span
         className="w-9 h-9 rounded-[10px] grid place-items-center flex-shrink-0"
-        style={{ background: "var(--color-paper)", color: "var(--color-wine)" }}
+        style={{ background: "var(--color-paper)", color: "var(--color-ink)" }}
       >
         {icon}
       </span>
@@ -245,8 +245,8 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
       <span
         className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0 text-[14px] font-bold"
         style={{
-          background: "color-mix(in srgb, var(--color-wine) 14%, var(--color-white))",
-          color: "var(--color-wine)",
+          background: "color-mix(in srgb, var(--color-ink) 8%, var(--color-white))",
+          color: "var(--color-ink)",
           fontFamily: "var(--font-archivo-black)",
         }}
       >
@@ -270,7 +270,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
         >
           {supplier.orderCount} compra{supplier.orderCount === 1 ? "" : "s"} ·
           próxima:{" "}
-          <span className="text-wine-text font-bold">{supplier.nextCode}</span>
+          <span className="text-ink font-bold">{supplier.nextCode}</span>
         </div>
         {deleteState.error && (
           <PortalFieldError>{deleteState.error}</PortalFieldError>
@@ -285,7 +285,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
             <button
               type="submit"
               disabled={deletePending}
-              className="btn btn-ghost text-wine-text disabled:opacity-60"
+              className="btn btn-ghost text-accion-text disabled:opacity-60"
             >
               {deletePending ? "Borrando…" : "Sí, borrar"}
             </button>
@@ -373,7 +373,7 @@ function EditSupplierForm({
         autoFocus
         defaultValue={supplier.name}
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
         <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
@@ -387,7 +387,7 @@ function EditSupplierForm({
         defaultValue={supplier.wechat ?? ""}
         placeholder="WeChat ID o número"
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       <FieldLabel htmlFor={`${uid}-contact`}>Contacto</FieldLabel>
@@ -398,7 +398,7 @@ function EditSupplierForm({
         defaultValue={supplier.contact ?? ""}
         placeholder="Nombre de la persona de contacto"
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       <FieldLabel htmlFor={`${uid}-notes`}>Notas</FieldLabel>
@@ -408,7 +408,7 @@ function EditSupplierForm({
         rows={2}
         defaultValue={supplier.notes ?? ""}
         disabled={pending}
-        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       {state.error && (
@@ -471,7 +471,7 @@ function AddSupplierForm({
         autoFocus
         placeholder="Ej. Guangzhou Textile Co"
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
       {state.fieldErrors?.name && (
         <PortalFieldError>{state.fieldErrors.name}</PortalFieldError>
@@ -484,7 +484,7 @@ function AddSupplierForm({
         name="wechat"
         placeholder="WeChat ID o número"
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       <FieldLabel htmlFor={`${uid}-contact`}>Contacto</FieldLabel>
@@ -494,7 +494,7 @@ function AddSupplierForm({
         name="contact"
         placeholder="Nombre de la persona de contacto"
         disabled={pending}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       <FieldLabel htmlFor={`${uid}-notes`}>Notas</FieldLabel>
@@ -503,7 +503,7 @@ function AddSupplierForm({
         name="notes"
         rows={2}
         disabled={pending}
-        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
       />
 
       {state.error && (

@@ -88,7 +88,7 @@ export function NewPurchaseForm({
             defaultValue={selectedWechat}
             placeholder="WeChat ID o número — opcional"
             disabled={pending}
-            className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
           />
           <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
             ¿Prefieres no escribir el ID? Sube una captura (screenshot) del
@@ -113,7 +113,7 @@ export function NewPurchaseForm({
             rows={2}
             placeholder="Ej. 3 cajas de zapatos deportivos"
             disabled={pending}
-            className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
           />
           {state.fieldErrors?.description && (
             <PortalFieldError>{state.fieldErrors.description}</PortalFieldError>
@@ -132,7 +132,7 @@ export function NewPurchaseForm({
               defaultValue={1}
               required
               disabled={pending}
-              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
             />
             {state.fieldErrors?.boxes && (
@@ -149,7 +149,7 @@ export function NewPurchaseForm({
               step="0.01"
               placeholder="—"
               disabled={pending}
-              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
             />
             {state.fieldErrors?.estValueUsd && (
@@ -166,7 +166,7 @@ export function NewPurchaseForm({
             name="trackingCn"
             placeholder="Ej. SF1234567890"
             disabled={pending}
-            className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
             style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
           />
         </div>

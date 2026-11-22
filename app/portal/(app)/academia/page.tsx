@@ -42,7 +42,7 @@ export default async function PortalAcademiaPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <span className="eyebrow eyebrow-wine">Academia DTD</span>
+        <span className="eyebrow eyebrow-tinta">Academia DTD</span>
         <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
           Tu Academia.
         </h1>
@@ -109,10 +109,10 @@ function MisCursos({ courses }: { courses: { courseId: string; title: string; ti
             <Link
               key={c.courseId}
               href={`/portal/academia/${c.courseId}`}
-              className="rounded-xl border border-grey-200 bg-white p-4 flex flex-col gap-3 hover:border-wine transition-colors"
+              className="rounded-xl border border-grey-200 bg-white p-4 flex flex-col gap-3 hover:border-accion transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-wine-text">{tierLabel(c.tier)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-grey-700">{tierLabel(c.tier)}</span>
                 {c.completed && (
                   <span className="text-[11px] font-bold uppercase tracking-wide text-status-success">Completado</span>
                 )}
@@ -127,7 +127,7 @@ function MisCursos({ courses }: { courses: { courseId: string; title: string; ti
                   aria-label={`Progreso: ${pct}%`}
                   className="h-2 w-full rounded-full bg-grey-100 overflow-hidden"
                 >
-                  <div className="h-full rounded-full bg-wine" style={{ width: `${pct}%` }} />
+                  <div className="h-full rounded-full bg-ink" style={{ width: `${pct}%` }} />
                 </div>
                 <span className="text-[11px] font-semibold text-grey-500">{pct}% completado</span>
               </div>
@@ -153,7 +153,7 @@ function MisDiplomas({ diplomas }: { diplomas: { id: string; folio: string; cour
               <span className="text-[11px] text-grey-500">{d.issuedAt}</span>
               <Link
                 href={`/verificar?c=${encodeURIComponent(d.folio)}`}
-                className="text-[12px] font-semibold text-wine-text hover:underline"
+                className="text-[12px] font-semibold text-accion-text hover:underline"
               >
                 Verificar
               </Link>

@@ -140,7 +140,7 @@ export default async function PortalFinanzasPage() {
 
           <Link
             href="/portal/facturas"
-            className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine-text hover:underline underline-offset-2"
+            className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accion-text hover:underline underline-offset-2"
           >
             Ver tabla completa <ArrowIcon size={13} />
           </Link>
@@ -167,7 +167,7 @@ function AccesoChip({
 }) {
   const inner = (
     <>
-      <span className="text-wine-text flex-shrink-0">{icon}</span>
+      <span className="text-ink flex-shrink-0">{icon}</span>
       <span className="text-[13px] font-semibold text-ink">{label}</span>
       {soon && (
         <span className="text-[9px] font-bold tracking-[0.1em] uppercase text-grey-500 bg-grey-100 rounded-full px-1.5 py-0.5">

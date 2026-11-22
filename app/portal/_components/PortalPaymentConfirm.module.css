@@ -29,7 +29,7 @@
   cursor: pointer;
 }
 .scope :global(.studio-btn-ghost) { background: var(--color-white); color: var(--color-ink); }
-.scope :global(.studio-btn-primary) { background: var(--color-wine); color: var(--color-on-accent); }
+.scope :global(.studio-btn-primary) { background: var(--color-accion); color: var(--color-on-accion); }
 .scope :global(.studio-btn-danger) { background: var(--color-white); color: var(--danger); border-color: var(--danger); }
 .scope :global(.studio-btn:hover:not(:disabled)) { text-decoration: underline; }
 .scope :global(.studio-btn:active:not(:disabled)) { transform: translateY(1px); }

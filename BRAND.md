@@ -423,7 +423,7 @@ El glassmorphism dejó de estar prohibido en bloque: se **permite acotado** a su
 - **ERP Studio · fondos (BD-034):** las superficies vino/navy llevan **degradado tonal `--grad-*`** (sidebar navy, hero vino, KPI destacado, fondo de página, cards) + **marca de agua del isotipo "D"** (`public/brand/dtdcargo-isologo-mono-light.png`, wallpaper, opacidad baja .05–.10). Extiende BD-030 (tonal, **nunca** rainbow ni textura).
 - **ERP Studio · tipografía (BD-035):** el ERP corre en **Nunito Sans** (cuerpo/nav) + **Sora** (títulos) vía `--f-sans`/`--f-display` scopeados a `.studio-sys` (`app/studio/tokens.css`) — alinea el ERP con su fuente de diseño del Norte (BD-001). El wordmark `<BrandMark>` no migra. Desde el 2026-10-13 las dos fuentes se sirven desde el repositorio (SDD-0505).
 
-### ✅ Excepción · Vino claro en la Vista simple del portal (EXC-0654-01, Sam 2026-11-17)
+### ⛔ Excepción cerrada · Vino claro en la Vista simple del portal (EXC-0654-01, Sam 2026-11-17 · cerrada 2026-11-22)
 
 Pedido de Sam: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobada con la D-16 de SDD-0654 («Sí, ambas», 2026-11-17).
 
@@ -434,7 +434,7 @@ Pedido de Sam: «El rojo siempre llama como si fuera un error: lo cambiamos por 
 - **Contraste:** 4,79:1 en claro y 7,13:1 en noche. Lo mide `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
 - **Duración y revisión:** hasta la prueba con clientes (D-12); se revisa 90 días después de encender la Vista simple o al cerrar esa prueba, lo que ocurra primero. Sam decide si pasa a regla o se extiende.
 - **Dueño:** Sam aprueba; el Director General custodia el registro. Detalle en `docs/design/studio/_norte/BRAND-DECISIONS.md` (EXC-0654-01) y SDD-0654 §6.3.
-- **Cierre previsto (BD-076):** cuando la fase 3 de SDD-0686 llegue a la Vista simple, el azul de acción sustituye este vino claro y la excepción se cierra con fecha. Hasta entonces sigue vigente.
+- **Cerrada el 2026-11-22 (BD-076, SDD-0686 fase 3b-1).** Sam vio las dos opciones dibujadas y respondió «Portal: Vista simple A, Próximo arribo B». El botón principal pasa a azul de acción (`--color-accion` con `--color-on-accion`), y el avatar y la parte «proveedor» del código, a tinta (`--color-ink` con `--color-paper`). El tinte del bloque del proveedor pasa a `--tint-ink`. El vino queda solo en el logo.
 
 ---
 

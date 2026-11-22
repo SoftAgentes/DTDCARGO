@@ -111,7 +111,7 @@ export default async function PortalSoportePage({
     <div>
       {/* Realtime + fallback: refresca el hilo cuando entra una respuesta (SDD-0148 #3). */}
       <PortalChatLive conversationId={conversationId} />
-      <span className="eyebrow eyebrow-wine">Atención al cliente</span>
+      <span className="eyebrow eyebrow-tinta">Atención al cliente</span>
       <h1
         className="mt-2 h-display"
         style={{ fontSize: "clamp(28px, 4.2vw, 44px)" }}
@@ -181,7 +181,7 @@ function AsesorChatCard({
       {/* Header · identidad + horario honesto */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-grey-200">
         <span
-          className="flex shrink-0 items-center justify-center rounded-full bg-wine text-[color:var(--color-on-accent)]"
+          className="flex shrink-0 items-center justify-center rounded-full bg-ink text-[color:var(--color-paper)]"
           style={{
             width: 40,
             height: 40,
@@ -225,7 +225,7 @@ function AsesorChatCard({
                   className={`max-w-[85%] rounded-[14px] px-3.5 py-2.5 text-[13.5px] leading-[1.5] whitespace-pre-wrap break-words ${
                     out
                       ? "bg-grey-100 text-ink"
-                      : "bg-wine text-[color:var(--color-on-accent)]"
+                      : "bg-accion text-[color:var(--color-on-accion)]"
                   }`}
                 >
                   {m.body}
@@ -273,7 +273,7 @@ function ResumenMensualCard({
             key={d.id}
             className="rounded-[12px] bg-grey-100 px-4 py-3"
           >
-            <div className="text-[11.5px] font-bold text-wine-text capitalize">
+            <div className="text-[11.5px] font-bold text-ink capitalize">
               {fmtPeriod(d.period)}
             </div>
             <p className="mt-1.5 text-[13px] text-ink leading-[1.55] whitespace-pre-wrap break-words">
@@ -331,7 +331,7 @@ function OtrosCanalesCard({
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine-text shrink-0">
+          <span className="text-ink shrink-0">
             <WhatsAppIcon size={16} />
           </span>
           <span className="min-w-0">
@@ -345,7 +345,7 @@ function OtrosCanalesCard({
           href={`mailto:${CONTACT.ve.email}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine-text shrink-0">
+          <span className="text-ink shrink-0">
             <MailIcon size={16} />
           </span>
           <span className="min-w-0">
@@ -359,7 +359,7 @@ function OtrosCanalesCard({
           href={`tel:${CONTACT.ve.phoneRaw}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200"
         >
-          <span className="text-wine-text shrink-0">
+          <span className="text-ink shrink-0">
             <PhoneIcon size={16} />
           </span>
           <span className="min-w-0">
