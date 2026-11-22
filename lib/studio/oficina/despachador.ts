@@ -19,7 +19,8 @@
  * Paso 3b: el dinero (un cobro, un pago, una tarifa) se escala con prioridad 3 SIN llamar al agente; la sesión de
  * una llamada abortada se vuelve a borrar en cada tick durante 15 min; y cada borrador nuevo avisa a Discord
  * «hay N pendientes» (sin el texto). SDD-0701: un enlace del CLIENTE también escala sin llamar al agente
- * (`cliente:enlace`, prioridad 2; `tema-enlace.ts`). El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
+ * (`cliente:enlace`, prioridad 2; `tema-enlace.ts`). SDD-0705: la primera respuesta de DTD lleva delante el aviso de
+ * que atiende un asistente virtual (`aviso-cliente.ts`). El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
  *
  * PRIVACIDAD: el texto del cliente solo existe en memoria y en la llamada al agente, y a la llamada llega con los
  * correos, teléfonos, cédulas, RIF y direcciones tapados (SDD-0700, `tapar-datos.ts`). No va a ningún log, ni a
@@ -28,6 +29,7 @@
  */
 import { randomUUID } from "node:crypto";
 
+import { conAvisoAlCliente } from "./aviso-cliente";
 import { ErrorDeLectura, type MensajeLeido, conversacionDeReferencia } from "./chatwoot-lectura";
 import { type ConfigDespachador, costoDeLlamada } from "./despachador-config";
 import { type AlmacenDespachador, SinMigracion, type TareaTomada, textoSeguro } from "./despachador-almacen";
@@ -295,7 +297,8 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
       taskId: tarea.taskId,
       runId: tarea.runId,
       tipo: "respuesta",
-      texto: salida.texto,
+      // SDD-0705: en la primera respuesta de DTD, el aviso al cliente va delante (Sam lo ve antes de aprobar).
+      texto: conAvisoAlCliente(salida.texto, mensajes),
       guion: salida.guion,
       actor: actorAgente,
       resumen: `Borrador con el guion ${salida.guion}, listo para la revisión de Sam. No se envió nada.`,

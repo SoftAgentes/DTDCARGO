@@ -17,6 +17,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AVISO_CLIENTE } from "../oficina/aviso-cliente";
 import type { MensajeLeido } from "../oficina/chatwoot-lectura";
 import {
   CORRECCION_DEL_ACUSE,
@@ -286,6 +287,9 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(t.estado).toBe("aprobación");
       const [b] = await filas(db, "select tipo, guion, texto from public.office_borradores");
       expect(b).toMatchObject({ tipo: "respuesta", guion: "derivar-equipo" });
+      // SDD-0705: primera respuesta de DTD (solo hay mensajes del cliente) → el aviso va delante, una vez.
+      expect(String(b.texto).startsWith(`${AVISO_CLIENTE}\n\n`)).toBe(true);
+      expect(String(b.texto).split(AVISO_CLIENTE)).toHaveLength(2);
       const ev = await filas(db, "select tipo, actor, costo_usd::float8 as costo, modelo_usado from public.task_events order by ts, tipo");
       expect(ev.map((e) => e.tipo)).toEqual(expect.arrayContaining(["tarea.creada", "run.iniciada", "conversacion.leida", "modelo.respuesta", "run.terminada"]));
       const modelo = ev.find((e) => e.tipo === "modelo.respuesta")!;
@@ -294,6 +298,26 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(doble).toMatchObject({ llamadas: 1, lecturas: 1 });
       expect(doble.sesionesBorradas).toHaveLength(1);
       expect(doble.sesionesBorradas[0]).toMatch(/^cable-[0-9a-f-]{36}-1$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("SDD-0705: si DTD ya respondió en la conversación, el borrador NO repite el aviso al cliente", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d } = deps(db);
+      d.leer = async () => [
+        { rol: "cliente", texto: "Hola" },
+        { rol: "agente", texto: "Hola, ¿en qué te ayudo?" },
+        { rol: "cliente", texto: "¿Dónde está mi caja?" },
+      ];
+      const r = await tick(d);
+      expect(r).toMatchObject({ estado: "corrida", resultado: { fin: "borrador" } });
+      const [b] = await filas(db, "select texto from public.office_borradores");
+      expect(String(b.texto)).not.toContain(AVISO_CLIENTE);
     } finally {
       await db.close();
     }
