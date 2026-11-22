@@ -185,8 +185,8 @@ export function RulesClient({
                 alignItems: "center",
                 gap: 12,
                 padding: 14,
-                background: policy === p ? "var(--wine-tint)" : "var(--bg-elevated)",
-                border: `1.5px solid ${policy === p ? "var(--wine)" : "var(--border)"}`,
+                background: policy === p ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
+                border: `1.5px solid ${policy === p ? "var(--ink)" : "var(--border)"}`,
                 borderRadius: "var(--r-md)",
                 cursor: "pointer",
               }}
@@ -195,7 +195,7 @@ export function RulesClient({
                 type="radio"
                 checked={policy === p}
                 onChange={() => setPolicy(p)}
-                style={{ accentColor: "var(--wine)" }}
+                style={{ accentColor: "var(--accion)" }}
               />
               <div>
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
@@ -353,11 +353,11 @@ export function RulesClient({
             <div
               style={{
                 padding: "10px 12px",
-                background: "var(--wine-tint)",
-                border: "1px solid var(--wine)",
+                background: "var(--neutral-bg)",
+                border: "1px solid var(--border-strong)",
                 borderRadius: "var(--r-sm)",
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -372,7 +372,7 @@ export function RulesClient({
                 href="/studio/clientes?tier=vip"
                 style={{
                   font: "700 11px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   textDecoration: "underline",
                 }}
               >
@@ -531,7 +531,7 @@ function Card({
           {collapsible && (
             <span
               style={{
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 4,
                 fontSize: 12,
                 transform: `rotate(${isOpen ? 90 : 0}deg)`,
@@ -548,7 +548,7 @@ function Card({
             {eyebrow && (
               <div
                 className="studio-eyebrow"
-                style={{ color: "var(--wine-text)", marginBottom: 6 }}
+                style={{ marginBottom: 6 }}
               >
                 {eyebrow}
               </div>
@@ -591,7 +591,7 @@ function WeightSlider({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--ink)" }}>{label}</span>
-        <code style={{ font: "800 14px/1 var(--f-mono)", color: "var(--wine-text)" }}>{value}</code>
+        <code style={{ font: "800 14px/1 var(--f-mono)", color: "var(--ink)" }}>{value}</code>
       </div>
       <input
         type="range"
@@ -600,7 +600,7 @@ function WeightSlider({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ width: "100%", accentColor: "var(--wine)" }}
+        style={{ width: "100%", accentColor: "var(--accion)" }}
       />
       <p style={{ ...hintStyle, marginTop: 4 }}>{hint}</p>
     </div>
@@ -635,7 +635,7 @@ function Toggle({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ marginTop: 3, accentColor: "var(--wine)" }}
+        style={{ marginTop: 3, accentColor: "var(--accion)" }}
       />
       <div>
         <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{label}</div>
@@ -713,9 +713,9 @@ function PreviewLive({
               onClick={() => setSelectedId(s.id)}
               style={{
                 padding: "var(--s-2) var(--s-3)",
-                background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                color: active ? "var(--wine)" : "var(--ink-soft)",
-                border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-elevated)",
+                color: active ? "var(--ink)" : "var(--ink-soft)",
+                border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                 borderRadius: "var(--r-pill)",
                 font: "700 11px/1 var(--f-sans)",
                 cursor: "pointer",
@@ -804,7 +804,7 @@ function PreviewLive({
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,
@@ -825,7 +825,7 @@ function PreviewLive({
                 background: line.muted ? "transparent" : "var(--bg-elevated)",
                 borderRadius: "var(--r-sm)",
                 font: "500 12.5px/1.2 var(--f-sans)",
-                color: line.muted ? "var(--ink-mute)" : "var(--ink)",
+                color: line.muted ? "var(--ink-soft)" : "var(--ink)",
                 textDecoration: line.muted ? "line-through" : "none",
               }}
             >
@@ -833,7 +833,7 @@ function PreviewLive({
               <code
                 style={{
                   font: "800 13px/1 var(--f-mono)",
-                  color: line.muted ? "var(--ink-mute)" : "var(--wine)",
+                  color: line.muted ? "var(--ink-soft)" : "var(--ink)",
                 }}
               >
                 {line.pts > 0 ? `+${line.pts}` : "0"} pts

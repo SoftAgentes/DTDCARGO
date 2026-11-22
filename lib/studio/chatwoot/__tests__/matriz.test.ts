@@ -210,3 +210,43 @@ describe("planificarMiembros", () => {
     ).toEqual([]);
   });
 });
+
+// ── SDD-0675: acceso adicional de Bandeja → Leads y Clientes ────────────────
+describe("destinosDe con acceso adicional (SDD-0675)", () => {
+  it("un rol sin bandejas con el acceso: Clientes y Leads, con sus equipos", () => {
+    expect(destinosDe("accounting", CFG, true)).toEqual({ bandejas: [10, 20], equipos: [30, 40] });
+    expect(destinosDe("operations", CFG, true)).toEqual({ bandejas: [10, 20], equipos: [30, 40] });
+    expect(destinosDe("accounting", SIN_LEADS, true)).toEqual({ bandejas: [10], equipos: [30] });
+  });
+
+  it("sin el acceso, igual que antes: ninguna", () => {
+    expect(destinosDe("accounting", CFG)).toEqual({ bandejas: [], equipos: [] });
+    expect(destinosDe("accounting", CFG, false)).toEqual({ bandejas: [], equipos: [] });
+  });
+
+  it("comercial y atención no cambian aunque llegue porAcceso", () => {
+    expect(destinosDe("commercial", CFG, true)).toEqual({ bandejas: [20], equipos: [40] });
+    expect(destinosDe("support", CFG, true)).toEqual({ bandejas: [10], equipos: [30] });
+  });
+
+  it("el acceso adicional nunca hace administrador de Chatwoot", () => {
+    expect(rolChatwootDe("accounting")).toBe("agent");
+  });
+
+  it("planificarMiembros mete en las dos bandejas al agente con porAcceso", () => {
+    const cambios = planificarMiembros({
+      agentes: [{ chatwootUserId: 12, rol: "accounting", porAcceso: true }],
+      enCuenta: new Set([SERVICIO, 12]),
+      servicioId: SERVICIO,
+      actuales: new Map([
+        [10, []],
+        [20, []],
+      ]),
+      destinos: (rol, a) => destinosDe(rol, CFG, a.porAcceso).bandejas,
+    });
+    expect(cambios).toEqual([
+      { id: 10, userIds: [12] },
+      { id: 20, userIds: [12] },
+    ]);
+  });
+});

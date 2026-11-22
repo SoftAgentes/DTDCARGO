@@ -325,7 +325,7 @@ function ClaimStepper({
                   width: 9,
                   height: 9,
                   borderRadius: "50%",
-                  background: done ? "var(--wine)" : "var(--border)",
+                  background: done ? "var(--ink)" : "var(--border)",
                   flexShrink: 0,
                 }}
               />

@@ -98,7 +98,7 @@ export function DiplomasClient({
                   padding: "12px 14px",
                   borderRadius: "var(--r-lg)",
                   background: "var(--bg-surface)",
-                  border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                  border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                   boxShadow: active ? "var(--shadow-sm)" : "none",
                   cursor: "pointer",
                   transition: "border-color var(--dur-fast) var(--ease)",
@@ -107,7 +107,7 @@ export function DiplomasClient({
                 <div
                   style={{
                     font: "700 12.5px/1.3 var(--f-sans)",
-                    color: active ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -136,7 +136,7 @@ export function DiplomasClient({
                     marginTop: 6,
                   }}
                 >
-                  <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                  <code style={{ font: "600 10.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                     {d.folio}
                   </code>
                   <span style={{ font: "500 10px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
@@ -165,7 +165,7 @@ export function DiplomasClient({
 function Header() {
   return (
     <div data-print-hide style={{ marginBottom: "var(--s-5)" }}>
-      <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+      <span className="studio-eyebrow">
         Academia DTD
       </span>
       <h1

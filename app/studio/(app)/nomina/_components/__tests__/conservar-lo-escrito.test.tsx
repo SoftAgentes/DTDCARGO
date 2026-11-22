@@ -56,6 +56,15 @@ vi.mock("../../actions", () => {
     savePayrollRulesAction: a,
     approveRegistrationAction: a,
     rejectRegistrationAction: a,
+    // SDD-0652 fase 2 (N2): el panel pide los datos de la revisión al abrirse.
+    getRegistrationReviewAction: async () => ({
+      ok: true,
+      registration: {
+        id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", status: "pendiente", created_at: "2026-11-17T00:00:00Z",
+        national_id: "V-1", phone: "0", cargo: "Operario", start_date: null, bank_name: "B", bank_account_type: null,
+        bank_account_masked: "••••",
+      },
+    }),
   };
 });
 vi.mock("@/lib/i18n", () => ({ useT: () => (key: string) => key }));
@@ -65,7 +74,7 @@ const cerrar = () => {};
 const EMPLEADOS = [{ id: "e1", full_name: "Ana Pérez", employee_code: "E-1" }] as never;
 const PRESTADORES = [{ id: "c1", full_name: "Luis Díaz", contractor_code: "P-1" }] as never;
 const PRESTAMO = { id: "l1", employee_name: "Ana Pérez", employee_code: "E-1", installment_usd: 25, balance_usd: 300 } as never;
-const SOLICITUD = { id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", phone: "0", national_id: "V-1", cargo: "Operario", bank_name: "B", bank_account: "1" } as never;
+const SOLICITUD = { id: "s1", full_name: "Eva Ruiz", email: "eva@example.test", status: "pendiente", created_at: "2026-11-17T00:00:00Z" } as never;
 
 const PANELES: [string, ReactElement][] = [
   ["AsistenciaDrawer", <AsistenciaDrawer key="a" record={null} employees={EMPLEADOS} employeeName={null} onClose={cerrar} />],
@@ -80,7 +89,8 @@ const PANELES: [string, ReactElement][] = [
   ["PrestadorDrawer", <PrestadorDrawer key="j" contractor={null} onClose={cerrar} />],
   ["PrestamoDrawer", <PrestamoDrawer key="k" employees={EMPLEADOS} onClose={cerrar} />],
   ["PuestoDrawer", <PuestoDrawer key="l" position={null} onClose={cerrar} />],
-  ["ReglasDrawer", <ReglasDrawer key="m" rules={null} onClose={cerrar} />],
+  ["ReglasDrawer", <ReglasDrawer key="m" rules={null} ampliada onClose={cerrar} />],
+  ["ReglasDrawer, sin la 0556 (campos nuevos en espera)", <ReglasDrawer key="m2" rules={null} ampliada={false} onClose={cerrar} />],
   ["RevisarSolicitudDrawer, al aprobar", <RevisarSolicitudDrawer key="n" registration={SOLICITUD} onClose={cerrar} />],
 ];
 
@@ -88,9 +98,14 @@ type Campo = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 const formulario = () => screen.getByRole("dialog").querySelector("form") as HTMLFormElement;
 
+/** SDD-0660: el campo visible de `<DateField>` no lleva `name`; el suyo es el del oculto que viaja. */
+const esFecha = (el: Campo) => el.closest("[data-date-field]") != null;
+const nombreDe = (el: Campo) =>
+  el.name || (esFecha(el) ? el.closest("[data-date-field]")?.querySelector<HTMLInputElement>('input[type="hidden"]')?.name ?? "" : "");
+
 function campos(form: HTMLFormElement): Campo[] {
   return (Array.from(form.elements) as Campo[]).filter((el) => {
-    if (!["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) || el.disabled || !el.name) return false;
+    if (!["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) || el.disabled || !nombreDe(el)) return false;
     return !["hidden", "radio", "file"].includes(el.type);
   });
 }
@@ -104,7 +119,8 @@ function llenar(form: HTMLFormElement) {
     else if (el.tagName === "SELECT") {
       const opciones = Array.from((el as HTMLSelectElement).options).filter((o) => !o.disabled && o.value !== el.value);
       if (opciones.length) fireEvent.change(el, { target: { value: opciones[opciones.length - 1].value } });
-    } else if (el.type === "number") fireEvent.change(el, { target: { value: "123" } });
+    } else if (esFecha(el)) fireEvent.change(el, { target: { value: "15/03/2026" } });
+    else if (el.type === "number") fireEvent.change(el, { target: { value: "123" } });
     else if (el.type === "date") fireEvent.change(el, { target: { value: "2026-03-15" } });
     else if (el.type === "time") fireEvent.change(el, { target: { value: "08:30" } });
     else if (el.type === "email") fireEvent.change(el, { target: { value: "ana@example.test" } });
@@ -120,9 +136,14 @@ beforeEach(() => {
 describe("una respuesta con errores conserva lo escrito", () => {
   it.each(PANELES)("%s", async (_nombre, panel) => {
     render(panel);
-    const form = formulario();
+    // El panel de solicitudes carga sus datos antes de mostrar el formulario.
+    const form = await waitFor(() => {
+      const f = formulario();
+      if (!f) throw new Error("todavía sin formulario");
+      return f;
+    });
     llenar(form);
-    const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
+    const escrito = campos(form).map((el) => [nombreDe(el), valorDe(el)]);
     expect(escrito.length).toBeGreaterThan(0);
 
     fireEvent.submit(form);
@@ -130,22 +151,22 @@ describe("una respuesta con errores conserva lo escrito", () => {
     await act(async () => {});
 
     expect(mocks.accion).toHaveBeenCalledOnce();
-    expect(campos(formulario()).map((el) => [el.name, valorDe(el)])).toEqual(escrito);
+    expect(campos(formulario()).map((el) => [nombreDe(el), valorDe(el)])).toEqual(escrito);
   });
 
   it("RevisarSolicitudDrawer, al rechazar", async () => {
     render(<RevisarSolicitudDrawer registration={SOLICITUD} onClose={cerrar} />);
-    fireEvent.click(screen.getByRole("button", { name: /^Rechazar/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Rechazar/ }));
     const form = screen.getByRole("dialog").querySelector("#rechazar-solicitud-form") as HTMLFormElement;
     llenar(form);
-    const escrito = campos(form).map((el) => [el.name, valorDe(el)]);
+    const escrito = campos(form).map((el) => [nombreDe(el), valorDe(el)]);
     expect(escrito.length).toBeGreaterThan(0);
 
     fireEvent.submit(form);
     expect(await screen.findByText(MSG)).toBeInTheDocument();
     await act(async () => {});
 
-    expect(campos(form).map((el) => [el.name, valorDe(el)])).toEqual(escrito);
+    expect(campos(form).map((el) => [nombreDe(el), valorDe(el)])).toEqual(escrito);
   });
 
   it("AmonestacionDrawer, que sólo envía campos ocultos con estado, sigue enviándolos", async () => {
@@ -166,6 +187,8 @@ describe("una respuesta con errores conserva lo escrito", () => {
     expect(datos.get("employee_id")).toBe("e1");
     expect(datos.get("principal_usd")).toBe("123");
     expect(datos.get("concept")).toBe("Texto de prueba");
+    // SDD-0660: se escribe dd/mm/aaaa y la acción sigue recibiendo ISO.
+    expect(datos.get("granted_on")).toBe("2026-03-15");
   });
 
   // Sin `action`, jsdom no nota la diferencia; el navegador sí mandaría los campos por la URL.

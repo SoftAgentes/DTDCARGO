@@ -263,7 +263,7 @@ export function ExpenseDrawer({
               <div>
                 <label htmlFor="ex-shipment" className="studio-label">
                   {t("expenses.field.shipment")}{" "}
-                  <span style={{ color: "var(--wine-text)" }}>*</span>
+                  <span style={{ color: "var(--ink-soft)" }}>*</span>
                 </label>
                 <select
                   id="ex-shipment"
@@ -286,7 +286,7 @@ export function ExpenseDrawer({
             <div>
               <label htmlFor="ex-category" className="studio-label">
                 {t("expenses.field.category")}{" "}
-                <span style={{ color: "var(--wine-text)" }}>*</span>
+                <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <select
                 id="ex-category"
@@ -307,7 +307,7 @@ export function ExpenseDrawer({
               <div>
                 <label htmlFor="ex-amount" className="studio-label">
                   {t("expenses.field.amount")}{" "}
-                  <span style={{ color: "var(--wine-text)" }}>*</span>
+                  <span style={{ color: "var(--ink-soft)" }}>*</span>
                 </label>
                 <NumericInput
                   id="ex-amount"
@@ -365,7 +365,7 @@ export function ExpenseDrawer({
               >
                 <label htmlFor="ex-fx" className="studio-label" style={{ margin: 0 }}>
                   {t("expenses.fx.label", { pair })}{" "}
-                  <span style={{ color: "var(--wine-text)" }}>*</span>
+                  <span style={{ color: "var(--ink-soft)" }}>*</span>
                 </label>
                 <NumericInput
                   id="ex-fx"
@@ -412,7 +412,7 @@ export function ExpenseDrawer({
                   <p
                     style={{
                       font: "700 13px/1 var(--f-mono)",
-                      color: "var(--wine-text)",
+                      color: "var(--ink)",
                       margin: 0,
                     }}
                   >
@@ -517,7 +517,7 @@ export function ExpenseDrawer({
                 type="checkbox"
                 checked={billable}
                 onChange={(e) => setBillable(e.target.checked)}
-                style={{ accentColor: "var(--wine)", width: 16, height: 16 }}
+                style={{ accentColor: "var(--accion)", width: 16, height: 16 }}
               />
               {t("expenses.field.billable")}
             </label>
@@ -571,8 +571,8 @@ function ScopeCard({
         transition: "border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease)",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--wine)";
-        e.currentTarget.style.background = "var(--wine-tint)";
+        e.currentTarget.style.borderColor = "var(--accion)";
+        e.currentTarget.style.background = "var(--accion-tint)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = "var(--border)";
@@ -587,8 +587,8 @@ function ScopeCard({
           display: "grid",
           placeItems: "center",
           borderRadius: "var(--r-md)",
-          background: "var(--wine-tint)",
-          color: "var(--wine-text)",
+          background: "var(--bg-elevated)",
+          color: "var(--ink)",
         }}
       >
         {icon}

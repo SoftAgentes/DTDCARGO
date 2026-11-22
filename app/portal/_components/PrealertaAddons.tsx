@@ -186,12 +186,12 @@ export function PrealertaServiceVideo({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-[10px] px-3 py-2.5 text-[12.5px] font-semibold inline-flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-        style={{ background: "var(--color-paper)", color: "var(--color-wine)" }}
+        className="w-full rounded-[10px] px-3 py-2.5 text-[12.5px] font-semibold inline-flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
+        style={{ background: "var(--color-paper)", color: "var(--color-accion-text)" }}
       >
         <span
           className="w-5 h-5 rounded-full grid place-items-center flex-shrink-0"
-          style={{ background: "var(--color-wine)", color: "var(--color-on-accent)" }}
+          style={{ background: "var(--color-accion)", color: "var(--color-on-accion)" }}
           aria-hidden
         >
           <PlayIcon size={11} />
@@ -239,7 +239,7 @@ function AddonRow({
     <div
       className="rounded-[10px] border transition-colors"
       style={{
-        borderColor: checked ? "var(--color-wine)" : "var(--color-grey-200)",
+        borderColor: checked ? "var(--color-ink)" : "var(--color-grey-200)",
         background: checked ? "var(--color-paper)" : "var(--color-white)",
       }}
     >
@@ -250,7 +250,7 @@ function AddonRow({
           value={addon.code}
           checked={checked}
           onChange={onToggle}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-wine)]"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-accion)]"
         />
         <span className="min-w-0">
           <span className="block text-[13.5px] font-bold text-ink">
@@ -274,14 +274,14 @@ function AddonRow({
             name={`notes_${addon.code}`}
             rows={2}
             placeholder={addon.notasPlaceholder ?? "Notas para el equipo (opcional)"}
-            className="w-full px-3 py-2 rounded-[10px] bg-white border border-grey-200 outline-none text-[13px] text-ink resize-none focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="w-full px-3 py-2 rounded-[10px] bg-white border border-grey-200 outline-none text-[13px] text-ink resize-none focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
           />
           {addon.multiTracking && (
             <textarea
               name={`trackings_${addon.code}`}
               rows={2}
               placeholder="Trackings a unificar — uno por línea o separados por coma"
-              className="w-full px-3 py-2 rounded-[10px] bg-white border border-grey-200 outline-none text-[13px] text-ink resize-none focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="w-full px-3 py-2 rounded-[10px] bg-white border border-grey-200 outline-none text-[13px] text-ink resize-none focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               style={{
                 fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
               }}
@@ -342,7 +342,7 @@ export function PrealertaAddonPicker({
   // Revelado de una vía (no colapsa de vuelta → no se pierde la selección): el
   // teaser deja claro que hay servicios sin cargar el modal de entrada (UX review).
   if (!show) {
-    // El asistente usa el teaser del Norte: una pregunta grande en wine, que
+    // El asistente usa el teaser del Norte: una pregunta grande en azul de acción, que
     // invita en vez de anunciar. El resto sigue con el bloque discreto.
     if (teaser === "invite") {
       return (
@@ -352,13 +352,13 @@ export function PrealertaAddonPicker({
           aria-expanded={false}
           className="w-full flex items-center justify-between gap-3 text-left rounded-[14px] p-4 border"
           style={{
-            borderColor: "var(--color-wine)",
+            borderColor: "var(--color-accion)",
             background: "var(--color-paper)",
           }}
         >
           <span
             className="text-[15px] font-bold leading-[1.3]"
-            style={{ color: "var(--color-wine-text)" }}
+            style={{ color: "var(--color-accion-text)" }}
           >
             ¿Sabías que puedes pedir servicios extra para esta compra?
           </span>
@@ -367,8 +367,8 @@ export function PrealertaAddonPicker({
             style={{
               width: 34,
               height: 34,
-              background: "var(--color-wine)",
-              color: "var(--color-on-accent)",
+              background: "var(--color-accion)",
+              color: "var(--color-on-accion)",
             }}
           >
             <ArrowIcon size={16} className="rotate-90" />
@@ -431,7 +431,7 @@ export function PrealertaAddonPicker({
             type="checkbox"
             name="consent"
             required
-            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-wine)]"
+            className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-accion)]"
           />
           <span>
             Entiendo que estos servicios los coordina y cotiza mi asesor, y que

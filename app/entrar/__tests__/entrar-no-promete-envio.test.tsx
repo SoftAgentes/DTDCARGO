@@ -1,6 +1,6 @@
 /**
- * `/entrar` no dice que salió un correo que no salió, y tampoco revela si el
- * correo existe.
+ * `/entrar` no dice que salió un correo que no salió, y dice en pantalla qué pasó
+ * con cada correo (SDD-0672; antes, SDD-0597, la pantalla era una sola para todos).
  *
  * Los dobles están en el borde de red y NO en la acción: `sendEmail`,
  * `resendSend`, `magic-link.ts` y `resolveAppEnv` corren de verdad. Lo que se dobla
@@ -14,7 +14,7 @@
  *    plan B parecería funcionar.
  *
  * `useActionState` se dobla porque `fireEvent.submit` no lo dispara en jsdom
- * (medido en este repo, ver `MagicRequested`). Con el doble, la pantalla se dibuja
+ * (medido en este repo, ver `ResultadoEntrar`). Con el doble, la pantalla se dibuja
  * con el estado que devolvió la acción real, y eso es lo que se afirma.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,6 +56,12 @@ vi.mock("react", async (importOriginal) => {
 
 vi.mock("@/app/portal/actions", () => ({
   signOutAction: vi.fn(async () => {}),
+}));
+
+// SDD-0672 · el piso de tiempo, doblado: con el reloj congelado, la espera real
+// duraría el piso entero en cada pedido. Su prueba está en `tiempo-minimo.test.ts`.
+vi.mock("@/lib/portal/tiempo-minimo", () => ({
+  esperarTiempoMinimo: async () => {},
 }));
 
 vi.mock("@/lib/http/request-ip", () => ({
@@ -167,6 +173,12 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
     if (!mocks.adminDisponible) throw new Error("admin no disponible");
     return {
+      // SDD-0646 D-1 · `/entrar` pregunta siempre si el correo está sin comprobar.
+      // En estos casos ninguno lo está: ni bloqueado ni pendiente.
+      rpc: async (name: string) =>
+        name === "portal_email_sin_comprobar"
+          ? { data: [{ bloquea: false, pendiente: false }], error: null }
+          : { data: null, error: { code: "PGRST202", message: "no existe" } },
       auth: {
         admin: {
           generateLink: async ({ email }: { email: string }) => {
@@ -245,8 +257,9 @@ vi.mock("@/lib/db/admin", () => ({
   },
 }));
 
+
 import { requestMagicLink } from "../actions";
-import { EntrarForm, MagicRequested } from "../EntrarForm";
+import { EntrarForm, ResultadoEntrar } from "../EntrarForm";
 
 const CLIENTE = "cliente@example.com";
 const NADIE = "nadie@example.com";
@@ -288,8 +301,15 @@ async function pedir(email: string) {
   return { estado: mocks.estado, pantalla: container.textContent ?? "", html: container.innerHTML };
 }
 
-/** Lo que nunca puede decir la pantalla: que el correo ya salió. */
+/** Lo que la pantalla sólo puede decir si el correo salió de verdad. */
 const AFIRMA_ENVIO = /te enviamos|te mandamos|enviado|ya sali[oó]|te lleg[oó]/i;
+
+/** Nada salió por ningún camino. */
+function nadaSalio() {
+  expect(mocks.acunados).toBe(0);
+  expect(fetchResend).not.toHaveBeenCalled();
+  expect(mocks.otpRespuestas).toEqual([]);
+}
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-02T15:00:00Z") });
@@ -334,17 +354,20 @@ afterEach(() => {
 describe("/entrar · con Resend caído", () => {
   beforeEach(() => resendCaido());
 
-  it("la pantalla no dice que salió un correo que no salió", async () => {
-    const { pantalla } = await pedir(CLIENTE);
+  it("la pantalla no dice que salió un correo que no salió: dice que no salió", async () => {
+    const { pantalla, estado } = await pedir(CLIENTE);
 
     expect(aceptadosPorResend()).toBe(0);
     expect(mocks.buzonAuth).toEqual([]);
     expect(pantalla).not.toMatch(AFIRMA_ENVIO);
+    expect(estado.resultado).toBeUndefined();
+    expect(screen.getByRole("alert").textContent).toMatch(/no pudimos enviarte el enlace/i);
   });
 
-  it("deja volver a intentar, y el segundo intento tampoco promete nada", async () => {
-    await pedir(CLIENTE);
-    expect(screen.getByRole("button", { name: /pedir otro enlace/i })).toBeTruthy();
+  it("deja volver a intentar con el mismo correo, y el segundo intento tampoco promete nada", async () => {
+    const { html } = await pedir(CLIENTE);
+    expect(html).toContain(`value="${CLIENTE}"`);
+    expect(screen.getByRole("button", { name: /envíame el enlace/i })).toBeTruthy();
 
     pasarElTiempo(61_000);
     const { pantalla } = await pedir(CLIENTE);
@@ -355,14 +378,15 @@ describe("/entrar · con Resend caído", () => {
     expect(fetchResend).toHaveBeenCalledTimes(2);
   });
 
-  it("cuando Resend vuelve, el siguiente intento sí sale", async () => {
+  it("cuando Resend vuelve, el siguiente intento sí sale y lo dice", async () => {
     await pedir(CLIENTE);
     resendAcepta();
 
     pasarElTiempo(61_000);
-    await pedir(CLIENTE);
+    const { pantalla } = await pedir(CLIENTE);
 
     expect(aceptadosPorResend()).toBe(1);
+    expect(pantalla).toMatch(/te enviamos un enlace/i);
   });
 
   it("no llama al /otp después de acuñar: sería un 429 seguro", async () => {
@@ -381,65 +405,78 @@ describe("/entrar · con Resend caído", () => {
   });
 });
 
-describe("/entrar · sin revelar si el correo existe", () => {
-  /** Cada caso prepara el mundo y pide con su correo. */
-  const CASOS: Array<[string, string, () => void]> = [
-    ["cuenta activa, entregado", CLIENTE, () => {}],
-    ["correo desconocido", NADIE, () => {}],
-    ["cliente del ERP sin acceso", DEL_ERP, () => {}],
+describe("/entrar · dice en pantalla qué pasó con el correo (SDD-0672)", () => {
+  /** [caso, correo, preparar, resultado esperado (o error), título] */
+  const CASOS: Array<[string, string, () => void, string, RegExp]> = [
+    ["cuenta activa, entregado", CLIENTE, () => {}, "enlace", /revisa tu correo/i],
+    ["correo desconocido", NADIE, () => {}, "sin_cuenta", /no encontramos una cuenta/i],
+    ["cliente del ERP sin acceso", DEL_ERP, () => {}, "sin_portal", /ya eres cliente/i],
+    ["cuenta activa, sin llave de Resend", CLIENTE, () => vi.stubEnv("RESEND_API_KEY", ""), "enlace", /revisa tu correo/i],
+    ["cuenta activa, en el entorno de prueba", CLIENTE, () => vi.stubEnv("APP_ENV", "staging"), "enlace", /revisa tu correo/i],
+  ];
+
+  it.each(CASOS)("%s → su pantalla", async (_nombre, email, preparar, resultado, titulo) => {
+    preparar();
+    const { estado } = await pedir(email);
+
+    expect(estado.error).toBeUndefined();
+    expect(estado.resultado).toBe(resultado);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(titulo);
+  });
+
+  /** Casos con acceso en los que el correo NO salió: lo dice, y no afirma nada. */
+  const NO_SALIO: Array<[string, string, () => void]> = [
     ["cuenta activa, Resend caído", CLIENTE, resendCaido],
     [
       "cuenta activa, en blacklist",
       CLIENTE,
       () => {
-        mocks.tablas.blacklist = [
-          { tenant_id: "tenant-1", email: CLIENTE, reason: "rebote" },
-        ];
+        mocks.tablas.blacklist = [{ tenant_id: "tenant-1", email: CLIENTE, reason: "rebote" }];
       },
     ],
-    ["cuenta activa, sin llave de Resend", CLIENTE, () => vi.stubEnv("RESEND_API_KEY", "")],
-    ["cuenta activa, en el entorno de prueba", CLIENTE, () => vi.stubEnv("APP_ENV", "staging")],
-    [
-      "cuenta activa, sin cliente admin",
-      CLIENTE,
-      () => {
-        mocks.adminDisponible = false;
-      },
-    ],
-    [
-      "invitada sin auth.users y sin llave",
-      INVITADO,
-      () => vi.stubEnv("RESEND_API_KEY", ""),
-    ],
+    ["invitada sin auth.users y sin llave", INVITADO, () => vi.stubEnv("RESEND_API_KEY", "")],
   ];
 
-  /** La misma pantalla para todos: se quita sólo el correo que escribió la persona. */
-  const sinElCorreo = (html: string, email: string) => html.replaceAll(email, "<correo>");
-
-  it.each(CASOS)("%s → la misma pantalla", async (_nombre, email, preparar) => {
-    const referencia = await pedir(CLIENTE);
-    const referenciaHtml = sinElCorreo(referencia.html, CLIENTE);
-    expect(referencia.pantalla).not.toMatch(AFIRMA_ENVIO);
-
-    // Otro cliente de prueba: el mundo limpio, sólo lo que el caso prepara.
-    mocks.estado = {};
-    mocks.tablas.throttle = [];
-    mocks.recoverySentAt = new Map();
+  it.each(NO_SALIO)("%s → dice que no salió", async (_nombre, email, preparar) => {
     preparar();
+    const { estado, pantalla } = await pedir(email);
 
-    const { html, pantalla, estado } = await pedir(email);
-
-    expect(estado.error).toBeUndefined();
+    expect(estado.resultado).toBeUndefined();
+    expect(estado.error).toMatch(/no pudimos enviarte el enlace/i);
     expect(pantalla).not.toMatch(AFIRMA_ENVIO);
-    expect(sinElCorreo(html, email)).toBe(referenciaHtml);
+    expect(aceptadosPorResend()).toBe(0);
+    expect(mocks.buzonAuth).toEqual([]);
   });
 
-  it("un correo desconocido no le manda nada a nadie", async () => {
+  it("⭐ un correo desconocido no le manda nada a nadie", async () => {
     await pedir(NADIE);
 
-    expect(fetchResend).not.toHaveBeenCalled();
-    expect(mocks.buzonAuth).toEqual([]);
-    expect(mocks.acunados).toBe(0);
+    nadaSalio();
+    expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+  });
+
+  it("⭐ «ya eres cliente» no muestra el nombre ni el Shipping Mark de la ficha", async () => {
+    const { html } = await pedir(DEL_ERP);
+
+    expect(html).not.toContain("DTD-1234");
+    expect(html).not.toContain("Comercial Andina");
+    nadaSalio();
+    expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledOnce();
+  });
+
+  // SDD-0646 D-1 · sin el cliente admin no se puede saber si el correo está sin
+  // comprobar, así que no sale nada, y no se afirma ningún caso.
+  it("sin cliente admin no sale nada y la respuesta es igual para cualquier correo", async () => {
+    mocks.adminDisponible = false;
+    const conCuenta = await pedir(CLIENTE);
+    expect(conCuenta.estado.error).toBeTruthy();
+    expect(conCuenta.estado.resultado).toBeUndefined();
+
+    mocks.estado = {};
+    const sinCuenta = await pedir(NADIE);
+    expect(sinCuenta.estado.error).toBe(conCuenta.estado.error);
+
+    nadaSalio();
   });
 });
 
@@ -456,15 +493,16 @@ describe("/entrar · entorno de prueba: Resend simulado y Auth en Mailpit", () =
     expect(mocks.tablas.mailLogs).toEqual([]);
   });
 
-  it("dentro de la ventana de 60 s el segundo no sale y la pantalla no lo afirma", async () => {
+  it("dentro de la ventana de 60 s el segundo no sale y la pantalla dice que no salió", async () => {
     await pedir(CLIENTE);
     pasarElTiempo(10_000);
-    const { pantalla } = await pedir(CLIENTE);
+    const { pantalla, estado } = await pedir(CLIENTE);
 
     expect(mocks.otpRespuestas).toEqual([200, 429]);
     expect(mocks.buzonAuth).toEqual([CLIENTE]);
     expect(pantalla).not.toMatch(AFIRMA_ENVIO);
-    // El 429 no es invisible para quien opera, aunque la pantalla no cambie.
+    expect(estado.error).toMatch(/no pudimos enviarte el enlace/i);
+    // El 429 no es invisible para quien opera.
     expect(consoleError.mock.calls.flat().join(" ")).toContain("429");
   });
 
@@ -506,7 +544,8 @@ describe("/entrar · el freno anti-abuso", () => {
     expect(pantalla).not.toMatch(AFIRMA_ENVIO);
   });
 
-  it("un correo con cuenta y uno sin cuenta reciben la misma respuesta", async () => {
+  it("⭐ con el cupo gastado, un correo con cuenta y uno sin cuenta reciben la misma respuesta", async () => {
+    // El freno corre ANTES de mirar el correo: lo único que sigue sin revelar nada.
     await gastarCupoDelCorreo(CLIENTE);
     const conCuenta = await pedir(CLIENTE);
 
@@ -580,10 +619,8 @@ describe("/entrar · el correo se compara literal, no como patrón", () => {
   const CON_GUION_BAJO = "juan_perez@example.com";
 
   /** Lo que nunca le puede pasar a quien escribió un parecido. */
-  function nadaSalio() {
-    expect(mocks.acunados).toBe(0);
-    expect(fetchResend).not.toHaveBeenCalled();
-    expect(mocks.otpRespuestas).toEqual([]);
+  function nadaSalioNiAviso() {
+    nadaSalio();
     expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
   }
 
@@ -610,19 +647,20 @@ describe("/entrar · el correo se compara literal, no como patrón", () => {
 
       const { estado } = await pedir(parecido);
 
-      nadaSalio();
+      nadaSalioNiAviso();
       expect(mocks.authUsers.size).toBe(usuariosAntes);
-      // La misma respuesta que para cualquier correo desconocido.
-      expect(estado).toEqual({ requested: true, requests: 1, email: parecido });
+      // Para la pantalla, un parecido es un correo que no encontramos.
+      expect(estado).toEqual({ resultado: "sin_cuenta", requests: 1, email: parecido });
     });
   });
 
   it.each(["del_erp@example.com", "del%@example.com", "%@example.com", "*@example.com"])(
-    "%s no dispara el aviso de un cliente del ERP que nadie nombró",
+    "%s no dispara el aviso de un cliente del ERP que nadie nombró, ni dice «ya eres cliente»",
     async (parecido) => {
-      await pedir(parecido);
+      const { estado } = await pedir(parecido);
 
-      nadaSalio();
+      nadaSalioNiAviso();
+      expect(estado.resultado).toBe("sin_cuenta");
     },
   );
 
@@ -688,10 +726,11 @@ describe("/entrar · el correo se compara literal, no como patrón", () => {
         email: "otra_empresa@example.com",
       });
 
-      await pedir("otra_empresa@example.com");
+      const { estado } = await pedir("otra_empresa@example.com");
 
       expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledOnce();
       expect(mocks.avisarClienteSinAcceso.mock.calls[0][1].markbox).toBe("DTD-5678");
+      expect(estado.resultado).toBe("sin_portal");
     });
 
     it("el aviso del ERP sigue saliendo para el correo exacto", async () => {
@@ -711,7 +750,7 @@ describe("/entrar · el correo se compara literal, no como patrón", () => {
   });
 });
 
-describe("/entrar · la pantalla de pedido recibido", () => {
+describe("/entrar · la pantalla del enlace enviado", () => {
   it("conserva el camino de volver a pedir con el mismo correo", async () => {
     const { html } = await pedir(CLIENTE);
 
@@ -726,28 +765,36 @@ describe("/entrar · la pantalla de pedido recibido", () => {
 
   it("un segundo pedido se nota en la pantalla, y avisa que vale el último enlace", async () => {
     const primero = await pedir(CLIENTE);
-    expect(primero.pantalla).toMatch(/pedido recibido/i);
+    expect(screen.getByRole("status").textContent).toMatch(/enlace enviado/i);
 
     pasarElTiempo(61_000);
     const segundo = await pedir(CLIENTE);
 
     expect(segundo.pantalla).not.toBe(primero.pantalla);
-    expect(screen.getByRole("status").textContent).toMatch(/2 pedidos/i);
+    expect(screen.getByRole("status").textContent).toMatch(/2 enlaces/i);
     expect(screen.getByRole("status").textContent).toMatch(/último/i);
   });
 
-  it("le da una salida a quien ya es cliente, además de crear cuenta", async () => {
+  it("le da una salida por WhatsApp y NO le ofrece crear otra cuenta: ya tiene una", async () => {
     await pedir(CLIENTE);
 
     const whatsapp = screen.getByRole("link", { name: /whatsapp/i });
     expect(whatsapp.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/\d+/);
     // El correo no viaja en la URL: quedaría en el historial y en la analítica.
     expect(decodeURIComponent(whatsapp.getAttribute("href") ?? "")).not.toContain(CLIENTE);
-    expect(screen.getByRole("link", { name: /crear mi cuenta/i })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /crear mi cuenta/i })).toBeNull();
   });
 
   it("mientras se envía, el botón conserva el foco y no deja pedir dos veces", () => {
-    render(<MagicRequested email={CLIENTE} action={vi.fn()} pending />);
+    render(
+      <ResultadoEntrar
+        resultado="enlace"
+        email={CLIENTE}
+        action={vi.fn()}
+        pending
+        onOtroCorreo={vi.fn()}
+      />,
+    );
 
     const boton = screen.getByRole("button", { name: /pidiendo/i });
     // `disabled` soltaría el foco a `body` en un navegador real; jsdom no lo reproduce,
@@ -762,9 +809,84 @@ describe("/entrar · la pantalla de pedido recibido", () => {
     await pedir(CLIENTE);
 
     expect(document.activeElement).toBe(
-      screen.getByRole("heading", { name: /si tienes acceso, revisa tu correo/i }),
+      screen.getByRole("heading", { name: /revisa tu correo/i }),
     );
   });
+});
+
+describe("/entrar · las otras pantallas (SDD-0672)", () => {
+  it("⭐ «no encontramos»: crear la cuenta es la acción principal, y el correo no viaja a /registro", async () => {
+    await pedir(NADIE);
+
+    const crear = screen.getByRole("link", { name: /crear mi cuenta/i });
+    expect(crear.getAttribute("href")).toBe("/registro");
+    expect(crear.className).toContain("btn-primary");
+    const whatsapp = screen.getByRole("link", { name: /whatsapp/i });
+    expect(decodeURIComponent(whatsapp.getAttribute("href") ?? "")).not.toContain(NADIE);
+    expect(screen.getByText(NADIE).className).toContain("[overflow-wrap:anywhere]");
+  });
+
+  it("⭐ «ya eres cliente»: NO ofrece crear otra cuenta, y sí WhatsApp", async () => {
+    await pedir(DEL_ERP);
+
+    expect(screen.queryByRole("link", { name: /crear mi cuenta/i })).toBeNull();
+    expect(screen.getByRole("link", { name: /whatsapp/i })).toBeTruthy();
+    expect(screen.getByText(/no crees otra cuenta/i)).toBeTruthy();
+  });
+
+  it("⭐ «ya eres cliente» sólo dice que avisamos al equipo si el aviso salió", async () => {
+    await pedir(DEL_ERP);
+    expect(screen.getByText(/ya le avisamos al equipo/i)).toBeTruthy();
+
+    cleanup();
+    render(
+      <ResultadoEntrar resultado="sin_portal" email={DEL_ERP} equipoAvisado={false} action={vi.fn()} pending={false} onOtroCorreo={vi.fn()} />,
+    );
+    expect(screen.queryByText(/avisamos/i)).toBeNull();
+    expect(screen.getByRole("link", { name: /whatsapp/i }).className).toContain("btn-primary");
+  });
+
+  it.each(["sin_portal", "sin_comprobar", "sin_cuenta"] as const)(
+    "⭐ %s · sin enlace de por medio, la pantalla no afirma ningún envío",
+    (resultado) => {
+      const { container } = render(
+        <ResultadoEntrar resultado={resultado} email={CLIENTE} equipoAvisado action={vi.fn()} pending={false} onOtroCorreo={vi.fn()} />,
+      );
+      expect(container.textContent).not.toMatch(AFIRMA_ENVIO);
+    },
+  );
+
+  it("«correo sin comprobar»: explica qué falta y no ofrece crear otra cuenta", () => {
+    render(
+      <ResultadoEntrar resultado="sin_comprobar" email={CLIENTE} action={vi.fn()} pending={false} onOtroCorreo={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("heading", { name: /todavía no está comprobado/i })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /crear mi cuenta/i })).toBeNull();
+    expect(screen.getByRole("link", { name: /whatsapp/i })).toBeTruthy();
+  });
+
+  it("«probar con otro correo» vuelve al formulario con el correo escrito, para corregirlo", async () => {
+    await pedir(NADIE);
+
+    fireEvent.click(screen.getByRole("button", { name: /probar con otro correo/i }));
+
+    const campo = screen.getByRole("textbox") as HTMLInputElement;
+    expect(campo.value).toBe(NADIE);
+    expect(screen.getByRole("button", { name: /envíame el enlace/i })).toBeTruthy();
+  });
+
+  it.each(["enlace", "sin_portal", "sin_comprobar", "sin_cuenta"] as const)(
+    "%s · el botón de otro correo tiene objetivo táctil (A11Y-01)",
+    (resultado) => {
+      render(
+        <ResultadoEntrar resultado={resultado} email={CLIENTE} action={vi.fn()} pending={false} onOtroCorreo={vi.fn()} />,
+      );
+      expect(screen.getByRole("button", { name: /probar con otro correo/i }).className).toContain(
+        "min-h-[44px]",
+      );
+    },
+  );
 });
 
 async function hashDelOrigen() {

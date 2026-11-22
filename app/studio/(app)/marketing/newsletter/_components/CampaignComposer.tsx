@@ -65,7 +65,7 @@ export function CampaignComposer({ campaign }: { campaign?: NewsletterCampaign |
     <section style={{ marginBottom: "var(--s-8)" }}>
       <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: "var(--s-4)", marginBottom: "var(--s-4)", flexWrap: "wrap" }}>
         <div>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}>Editor de campaña</div>
+          <div className="studio-eyebrow" style={{ marginBottom: "var(--s-2)" }}>Editor de campaña</div>
           <h2 className="studio-display" style={{ margin: 0, fontSize: 22, color: "var(--ink)" }}>
             {form.id ? "Editar borrador" : "Nueva campaña"}
           </h2>
@@ -110,7 +110,7 @@ export function CampaignComposer({ campaign }: { campaign?: NewsletterCampaign |
         <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
           <div style={{ padding: "var(--s-3) var(--s-4)", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", gap: "var(--s-3)" }}>
             <span className="studio-label">Vista previa</span>
-            <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>640 px · email</span>
+            <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>640 px · email</span>
           </div>
           <iframe title="Vista previa del correo" srcDoc={preview} style={{ display: "block", width: "100%", height: 650, border: 0, background: "var(--bg)" }} />
         </div>
@@ -124,7 +124,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <label style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: "var(--s-3)" }}>
       <span className="studio-label">{label}</span>
       {children}
-      {hint && <span style={{ font: "500 11px/1.35 var(--f-sans)", color: "var(--ink-mute)" }}>{hint}</span>}
+      {hint && <span style={{ font: "500 11px/1.35 var(--f-sans)", color: "var(--ink-soft)" }}>{hint}</span>}
     </label>
   );
 }

@@ -14,7 +14,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { NominaActionState } from "@/lib/studio/nomina/employee-types";
-import type { Employee } from "@/lib/studio/nomina/employee-types";
+import type { EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import type { PayrollRules } from "@/lib/studio/nomina/payroll-rules-types";
 import {
   TERMINATION_CAUSES,
@@ -24,6 +24,7 @@ import {
 import { generarFiniquitoAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
 import { submitKeepingDraft } from "@/lib/shared/submit-keeping-draft";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 const FORM_ID = "generar-finiquito-form";
 const initial: NominaActionState = {};
@@ -37,7 +38,7 @@ export function GenerarFiniquitoDrawer({
   rules,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   rules: PayrollRules | null;
   onClose: () => void;
 }) {
@@ -95,10 +96,10 @@ export function GenerarFiniquitoDrawer({
                     gap: 10,
                     alignItems: "flex-start",
                     padding: "10px 12px",
-                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                     borderRadius: "var(--r-sm)",
                     cursor: "pointer",
-                    background: active ? "var(--wine-tint)" : "var(--bg-surface)",
+                    background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
                   }}
                 >
                   <input
@@ -124,13 +125,7 @@ export function GenerarFiniquitoDrawer({
         </Field>
 
         <Field label="Fecha de egreso" error={state.fieldErrors?.termination_date} required>
-          <input
-            name="termination_date"
-            type="date"
-            className="studio-input"
-            defaultValue={todayIso()}
-            required
-          />
+          <DateField name="termination_date" defaultValue={todayIso()} required />
         </Field>
 
         <div

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 622 specs)
+### Índice de specs (generado · 687 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -660,6 +660,71 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0635 | Acceso por persona interactivo y matriz de roles legible: map… | approved | interno |
 | 0636 | Política de roles: solo el superadministrador crea administra… | in-progress | interno |
 | 0637 | Faro: asistente de ayuda con IA dentro del Studio, con recort… | proposed | interno |
+| 0638 | Pagos de IA: estado de cada proveedor, errores de cobro y rec… | approved | interno |
+| 0639 | IA: cambiar de modelo o de proveedor por función, con princip… | approved | interno |
+| 0640 | Revisar contenedor: la persona de operaciones revisa y aprueb… | proposed | interno |
+| 0641 | GEO y AEO: radar de respuestas de IA y auditoría por página, … | proposed | interno |
+| 0642 | Auditoría GEO/AEO por página: script de solo lectura (Fase A … | in-progress | interno |
+| 0643 | Embarques por contenedor: la vista empieza por el contenedor,… | in-progress | interno |
+| 0644 | Chatwoot: nivel «gestión» (ve y edita todo, no elimina) y enm… | proposed | interno |
+| 0645 | Pasar embarque a otro cliente: operaciones corrige el dueño d… | in-progress | interno |
+| 0646 | Invitación al portal por link: el cliente del legado completa… | in-progress | interno |
+| 0647 | CRM › Embudos por segmento: Clientes, Leads y Leads con código | proposed | interno |
+| 0648 | CRM › Embudos: tarjeta compacta, logo por canal, ancho comple… | in-progress | interno |
+| 0649 | Shipping Mark y segmento del ERP en el contacto de Chatwoot | in-progress | interno |
+| 0650 | Ficha 360° del cliente en el Studio | in-progress | interno |
+| 0651 | Fusión de clientes v2: campo por campo, con saldos y chats | proposed | interno |
+| 0652 | Ficha 360° del empleado en el Studio: datos, nómina, acceso, … | in-progress | interno |
+| 0653 | Nómina: reglas al día con la ley a noviembre de 2026 y un est… | in-progress | interno |
+| 0654 | Versión light del portal del cliente: Vista simple, Vista Pro… | approved | interno |
+| 0655 | La Bandeja pasa a ser una pestaña de CRM | in-progress | interno |
+| 0656 | Actualizar el stack: inventario, riesgos, avisos de seguridad… | in-progress | interno |
+| 0657 | Enlaces internos e indexación del sitio público | in-progress | interno |
+| 0658 | Nómina: el finiquito lee y conserva los ajustes de liquidació… | in-progress | interno |
+| 0659 | Tracking en vivo por contenedor: mesa de control con mapa cen… | in-progress | interno |
+| 0660 | Estándar de fechas del Studio: campo con máscara, calendario … | in-progress | interno |
+| 0661 | Embarques por contenedor: franja de totales y detalle por cli… | in-progress | interno |
+| 0662 | Ficha del embarque: ancho completo y «Asignar cliente» a la v… | in-progress | interno |
+| 0663 | Subaliados como jobs: estado de cuenta por trabajo, sección A… | proposed | interno |
+| 0664 | Clientes migrados: código viejo visible, buscable y enlazable | in-progress | interno |
+| 0665 | Embarques: peso total del contenedor y por cliente | in-progress | interno |
+| 0666 | Portal del aliado: sus clientes, prealertas y marca blanca | proposed | interno |
+| 0667 | CBM hasta 4 decimales, sin ceros de relleno al mostrar | in-progress | interno |
+| 0668 | Portal: el cliente ve su código anterior, como dato informativo | proposed | interno |
+| 0669 | Ficha del cliente: reorganizar la presentación | in-progress | interno |
+| 0671 | CRM: tarjetas sin botón Abrir y Bandeja visible para la oficina | proposed | interno |
+| 0672 | /entrar reconoce el correo y dice en pantalla qué pasó | in-progress | interno |
+| 0673 | Partir un embarque en dos, corregir sus medidas y anotar la r… | in-progress | interno |
+| 0674 | Embarques: botón «Facturar» para los contenedores montados si… | approved | interno |
+| 0675 | Bandeja como acceso adicional por persona, con las bandejas d… | in-progress | interno |
+| 0676 | Vincular a cliente: un chat sin teléfono se une a mano a una … | in-progress | interno |
+| 0677 | Bandeja: pantalla completa y abrir Chatwoot sin error | proposed | interno |
+| 0678 | Botones que muestran que están trabajando: «Guardando…», sin … | in-progress | interno |
+| 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
+| 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
+| 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
+| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | in-progress | interno |
+| 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
+| 0686 | Color de acción azul en web, Portal y ERP: el rojo queda para… | in-progress | interno |
+| 0688 | Simetría de pantallas: un encabezado, tres anchos de panel, u… | proposed | interno |
+| 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
+| 0690 | Embarques: «Facturar» emite el borrador con los precios del E… | in-progress | interno |
+| 0693 | La aceptación de T&C limita el portal, no la facturación | approved | interno |
+| 0694 | Dirección de entrega: una sola fuente, aviso y pedirla desde … | approved | interno |
+| 0695 | Datos duplicados y fuentes únicas: identidad, correo, asesor,… | approved | interno |
+| 0696 | Dirección de entrega del cliente final de un aliado: la carga… | approved | interno |
+| 0697 | Indicadores de carga en Almacén China: catálogo propio, histo… | approved | interno |
+| 0698 | Factura: Facturar a y Entregar en | approved | interno |
+| 0699 | Cascada al cambiar el dueño: reasignar un embarque o fusionar… | approved | interno |
+| 0700 | Oficina_Virtual: tapar los datos personales antes del modelo | proposed | interno |
+| 0701 | Oficina_Virtual: un enlace del cliente escala | proposed | interno |
+| 0702 | Oficina_Virtual: el modelo real de cada llamada | proposed | interno |
+| 0703 | IA: OpenAI como respaldo no chino de Anthropic (Oficina_Virtu… | proposed | interno |
+| 0704 | IA: pantalla con cadena de tres modelos por función, cambio a… | proposed | interno |
+| 0705 | Oficina_Virtual: aviso al cliente y guion explicar-servicio | proposed | interno |
+| 0706 | Studio: verificación en dos pasos (AAL2/TOTP) para las accion… | approved | interno |
+| 0707 | El nombre «Conversaciones» pasa a «Soporte» en todo el sistema | approved | interno |
+| 0708 | Studio · Administración: entrar directo a cada sección y reor… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

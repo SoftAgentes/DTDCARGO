@@ -187,12 +187,12 @@ function KpiEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <span className="studio-eyebrow">
             EN EL DASHBOARD · {config.kpis.length}/{MAX_KPIS}
           </span>
           <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
           {config.kpis.length > 1 && (
-            <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>Arrastra para reordenar</span>
+            <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>Arrastra para reordenar</span>
           )}
         </div>
         {config.kpis.length === 0 ? (
@@ -203,7 +203,7 @@ function KpiEditor({
               border: "1px dashed var(--border-strong)",
               borderRadius: "var(--r-md)",
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             No hay KPIs seleccionados. Agrega alguno de la lista de abajo.
@@ -242,14 +242,14 @@ function KpiEditor({
                     alignItems: "center",
                     gap: 10,
                     padding: "10px 12px",
-                    background: isOver ? "var(--wine-tint)" : "var(--bg-surface)",
-                    border: `1px solid ${isOver ? "var(--wine)" : "var(--border)"}`,
+                    background: isOver ? "var(--accion-tint)" : "var(--bg-surface)",
+                    border: `1px solid ${isOver ? "var(--accion)" : "var(--border)"}`,
                     borderRadius: "var(--r-md)",
                     cursor: "grab",
                     opacity: dragIdx === idx ? 0.4 : 1,
                   }}
                 >
-                  <span style={{ color: "var(--ink-mute)", display: "flex" }} aria-hidden>
+                  <span style={{ color: "var(--ink-soft)", display: "flex" }} aria-hidden>
                     <DragHandle />
                   </span>
                   <span
@@ -269,7 +269,7 @@ function KpiEditor({
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ font: "600 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{meta.label}</div>
-                    <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 3, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                       {meta.cat}
                       {meta.status === "wip" && " · próximamente"}
                     </div>
@@ -330,7 +330,7 @@ function KpiEditor({
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {Object.entries(byCat).map(([cat, items]) => (
               <div key={cat}>
-                <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
                   {cat}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -369,7 +369,7 @@ function KpiEditor({
                         {(Icon as Record<string, ((n?: number) => React.ReactNode) | undefined>)[meta.icon]?.(13)}
                       </span>
                       <span style={{ flex: 1, font: "500 12.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>{meta.label}</span>
-                      <span style={{ color: "var(--wine-text)", display: "inline-flex" }}>{Icon.plus(13)}</span>
+                      <span style={{ color: "var(--accion-text)", display: "inline-flex" }}>{Icon.plus(13)}</span>
                     </button>
                   ))}
                 </div>
@@ -422,7 +422,7 @@ function WidgetEditor({
             width: 34,
             height: 20,
             borderRadius: 999,
-            background: on ? "var(--wine)" : "var(--border-strong)",
+            background: on ? "var(--accion)" : "var(--border-strong)",
             position: "relative",
             flexShrink: 0,
             marginTop: 1,
@@ -445,7 +445,7 @@ function WidgetEditor({
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{w.label}</div>
-          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 3 }}>{w.desc}</div>
+          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>{w.desc}</div>
         </div>
       </button>
     );
@@ -455,7 +455,7 @@ function WidgetEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {left.length > 0 && (
         <section>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
             COLUMNA PRINCIPAL · 2/3
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -467,7 +467,7 @@ function WidgetEditor({
       )}
       {right.length > 0 && (
         <section>
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 10 }}>
+          <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
             COLUMNA LATERAL · 1/3
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

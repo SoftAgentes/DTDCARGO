@@ -3,7 +3,7 @@
 # Horarios en UTC (los mismos que agenda Vercel). ${CRON_SECRET} se queda literal:
 # lo resuelve el contenedor `cron` (entrypoint con envsubst, o sh -c) desde su entorno.
 
-# 22 crons de vercel.json, en su mismo orden.
+# 23 crons de vercel.json, en su mismo orden.
 * * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-drain
 17 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-cleanup
 0 11 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ceo-brief
@@ -19,6 +19,7 @@
 0 5 1 * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/conversation-digests
 0 14 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/portal-cold-reminder
 */5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bug-notifications-drain
+5 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bug-daily-digest
 */5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/workflow-drain
 0 13 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/rate-expiry-alert
 */30 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/mail-health
@@ -38,5 +39,9 @@
 15 4 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/oficina-vaciado
 # /api/cron/noticias-purga-actor: diario, 04:45 UTC · SDD-0611 §11.4.1 · vacía el uuid de las 4 columnas actor_id de noticias a los 12 meses (privacidad, decisión de Sam 2026-11-14) · no borra filas · nace APAGADO: sin NOTICIAS_PURGA_ACTOR_ACTIVO no llama a la base
 45 4 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/noticias-purga-actor
+# /api/cron/purge-employee-photo-orphans: diario, 05:20 UTC · SDD-0652 fase 2 · borra del bucket privado employee-photos las fotos que ninguna ficha viva referencia (cambio, quite o ficha borrada), con más de 1 día · nace APAGADO: sin PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED=true solo cuenta
+20 5 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/purge-employee-photo-orphans
 # /api/cron/oficina-despachador: cada minuto · SDD-0626 §3.4 (Paso 3a) · una tanda de ticks cada 10 s; el agente redacta y NADA se envía · una tanda a la vez (turno en la base) · nace APAGADO: sin OFICINA_DESPACHADOR_ACTIVO no llama a la base
 * * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/oficina-despachador
+# /api/cron/oficina-envio: cada minuto · SDD-0626 Paso 3b · envía a Chatwoot SOLO lo que Sam aprobó, SOLO a la bandeja de prueba, una vez por borrador (mira otra vez la pausa y la huella) · nace APAGADO: sin OFICINA_ENVIO_ACTIVO no llama a la base
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/oficina-envio

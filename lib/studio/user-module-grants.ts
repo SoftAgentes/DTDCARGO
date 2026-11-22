@@ -46,10 +46,11 @@ export type GrantCoverage = "covered" | "money_phase" | "admin_base" | "superadm
  *     deciden con `user_has_module`/`user_has_any_module`, así que el extra entra
  *     por ahí (también en `chatwoot_conversations`, solo lectura).
  *   - suppliers: RLS solo por tenant (0236); el extra no necesita cambio en la base.
+ *   - bandeja (SDD-0675, migr 0565): la RLS ya usa `user_has_module('bandeja')`
+ *     (0540, 0554); el ciclo de agentes de Chatwoot suma el extra y le da Leads y
+ *     Clientes (decisión de Sam del 2026-11-18). Sin la 0565 la RPC lo rechaza.
  *
  * Fuera a propósito, con su motivo en `COVERAGE_HINT`:
- *   - bandeja: el ciclo de agentes de Chatwoot (`lib/studio/chatwoot/agentes-*`)
- *     decide quién es agente solo por rol; tocarlo es del carril de Chatwoot.
  *   - users / direccion: sus páginas exigen hoy el rol admin en la aplicación.
  */
 const COVERED: ReadonlySet<string> = new Set([
@@ -61,6 +62,7 @@ const COVERED: ReadonlySet<string> = new Set([
   "conversaciones",
   "rates",
   "suppliers",
+  "bandeja",
 ]);
 
 export function moduleCoverage(moduleId: string): GrantCoverage {
@@ -131,9 +133,12 @@ export const AREA_LABEL: Record<Group, string> = {
 /** Módulos que se ofrecen en el buscador «Agregar módulo o área…» (los visibles del registro). */
 export const GRANTABLE_MODULES = MODULES.filter((m) => !m.hidden || m.id === "legal");
 
-/** Atajo «Agregar todo Comercial»: los comerciales cubiertos. */
+/**
+ * Atajo «Agregar todo Comercial»: los comerciales cubiertos, menos la Bandeja
+ * (SDD-0675): abre chats y una cuenta en Chatwoot, así que se da a propósito.
+ */
 export const COMMERCIAL_COVERED = MODULES.filter(
-  (m) => m.group === "COMERCIAL" && COVERED.has(m.id),
+  (m) => m.group === "COMERCIAL" && COVERED.has(m.id) && m.id !== "bandeja",
 ).map((m) => m.id);
 
 /** Validación de motivo idéntica a la RPC (0538): 5 a 500 caracteres sin bordes. */
@@ -149,6 +154,12 @@ export function reasonError(reason: string): string | null {
  * del extra, que lee la persona destinataria, y en `entity_audit_log`, que se
  * ve en Actividad. El límite de 5 a 500 caracteres lo pone `reasonError`.
  */
+/**
+ * SDD-0675: lo que ve el admin cuando conceder o quitar la Bandeja quedó
+ * guardado pero no llegó todavía a Chatwoot. El ciclo diario lo completa.
+ */
+export const AVISO_CHATWOOT_PENDIENTE = "Guardado; Chatwoot quedó pendiente hasta el próximo ciclo.";
+
 export const MOTIVO_AVISO_PII =
   "No escribas datos personales en el motivo (cédula, teléfono, salud): queda guardado en Actividad.";
 

@@ -62,7 +62,19 @@ function metaDe(a: Adjunto): string {
     .join(" · ");
 }
 
-export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }) {
+/**
+ * SDD-0669: con `soloEmbarques`, la sección muestra solo los adjuntos de sus
+ * embarques; los de la ficha van en su propio panel (con subir, versiones y
+ * borrar) y no se repiten.
+ */
+export function TodosLosAdjuntos({
+  datos: todos,
+  soloEmbarques = false,
+}: {
+  datos: AdjuntosDelCliente | null;
+  soloEmbarques?: boolean;
+}) {
+  const datos = soloEmbarques && todos !== null ? deSusEmbarques(todos) : todos;
   return (
     <section
       id="adjuntos"
@@ -78,7 +90,7 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
         {/* h2: los grupos son h3 y la ficha no debe saltar de h1 a h3. */}
         <h2 className="studio-eyebrow" id="adjuntos-titulo" style={{ margin: 0 }}>
-          Todos los adjuntos
+          {soloEmbarques ? "De sus embarques" : "Todos los adjuntos"}
         </h2>
         {datos !== null && datos.total > 0 && (
           <span style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
@@ -93,8 +105,9 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
           margin: "0 0 14px",
         }}
       >
-        Los documentos de esta ficha y los de sus embarques, en un solo lugar.
-        Para subir o eliminar, usa el panel de la ficha o el del embarque.
+        {soloEmbarques
+          ? "Los documentos de sus embarques, agrupados por embarque. Para subir o eliminar, abre el embarque."
+          : "Los documentos de esta ficha y los de sus embarques, en un solo lugar. Para subir o eliminar, usa el panel de la ficha o el del embarque."}
       </p>
 
       {datos === null ? (
@@ -112,7 +125,9 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
             color: "var(--ink-soft)",
           }}
         >
-          Este cliente todavía no tiene adjuntos, ni en su ficha ni en sus embarques.
+          {soloEmbarques
+            ? "Sus embarques todavía no tienen adjuntos."
+            : "Este cliente todavía no tiene adjuntos, ni en su ficha ni en sus embarques."}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
@@ -123,6 +138,11 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
       )}
     </section>
   );
+}
+
+function deSusEmbarques(d: AdjuntosDelCliente): AdjuntosDelCliente {
+  const grupos = d.grupos.filter((g) => g.origen === "embarque");
+  return { ...d, grupos, total: grupos.reduce((n, g) => n + g.adjuntos.length, 0) };
 }
 
 function Grupo({ grupo }: { grupo: GrupoAdjuntos }) {
@@ -145,7 +165,7 @@ function Grupo({ grupo }: { grupo: GrupoAdjuntos }) {
             <>
               <Link
                 href={`/studio/tracking/${grupo.embarque.id}`}
-                style={{ color: "var(--wine-text)", textDecoration: "none" }}
+                style={{ color: "var(--accion-text)", textDecoration: "none" }}
               >
                 Embarque{" "}
                 <span style={{ font: "700 12px/1 var(--f-mono)" }}>{grupo.embarque.code}</span>

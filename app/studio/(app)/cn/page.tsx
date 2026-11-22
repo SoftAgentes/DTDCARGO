@@ -5,6 +5,11 @@
  * paralelo y delega la UI interactiva al AlmacenCnClient.
  *
  * Reemplaza el placeholder previo del módulo.
+ *
+ * SDD-0682: dos vistas en la misma pantalla. «En almacén» (por defecto) solo
+ * muestra lo que sigue en la bodega; lo consolidado ya salió y se ve en «En
+ * camino» (`?vista=camino`), con los contenedores, el contador de días a la ETA y
+ * el porcentaje del viaje.
  */
 
 import { createClient } from "@/lib/db/server";
@@ -14,6 +19,7 @@ import { leerInfoRecepciones } from "@/lib/studio/borrado/servidor";
 import { listClients } from "@/lib/studio/client-queries";
 import {
   computeWarehouseKpis,
+  leerSalidasDeAlmacen,
   listReceipts,
   listWarehouses,
   parseReceiptFiltersFromSearchParams,
@@ -23,13 +29,17 @@ import { canSeeClientNames as reglaNombresDeClientes } from "@/lib/studio/privac
 import { activeAlertShipmentIds } from "@/lib/studio/expense-alerts-queries";
 import { listLiveRatesForReceipts } from "@/lib/studio/rate-snapshots/queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
-import { t } from "@/lib/i18n";
+import { vistaDeUrl } from "@/lib/studio/almacen-cn-vistas";
+import { leerContenedoresEnCamino } from "@/lib/studio/almacen-cn-contenedores-queries";
+import type { ContenedorEnCamino } from "@/lib/studio/almacen-cn-contenedores";
 import {
   AlmacenCnClient,
   type EliminacionRecepciones,
   type TarifasCn,
 } from "./_components/AlmacenCnClient";
-import { HeaderActions } from "./_components/HeaderActions";
+import { CaminoCn } from "./_components/CaminoCn";
+import { EncabezadoCn } from "./_components/EncabezadoCn";
+import { VistasAlmacen } from "./_components/VistasAlmacen";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
 
 export const metadata = { title: "Almacén CN" };
@@ -75,14 +85,40 @@ export default async function CnPage({
   // lib/studio/privacidad-cn.ts (SDD-0531): Tracking y Naviera leen la misma.
   const canSeeClientNames = reglaNombresDeClientes(ut);
 
+  // SDD-0682: «En camino» no lee la tabla de «En almacén»: lee los contenedores
+  // que ya zarparon y, de cada uno, sus recepciones consolidadas (con MARKBOX).
+  // Si la lectura falla, la vista lo dice.
+  const vista = vistaDeUrl(rawParams.vista);
+  if (vista === "camino") {
+    let contenedores: ContenedorEnCamino[] | null;
+    try {
+      contenedores = await leerContenedoresEnCamino(supabase, new Date());
+    } catch {
+      contenedores = null;
+    }
+    return (
+      <div style={{ maxWidth: 1480 }}>
+        <EncabezadoCn locale={locale} conAcciones={false} />
+        <VistasAlmacen locale={locale} vista={vista} params={rawParams} />
+        <CaminoCn locale={locale} contenedores={contenedores} />
+      </div>
+    );
+  }
+
   // SDD-0522: eliminar recepciones es de admin. A quien puede se le lee qué
   // bloquea cada una, con la misma regla que aplica el borrado.
   const { role } = await getStudioAccess(supabase);
   const puedeEliminar = canSpecial(role, "delete_warehouse_receipts");
 
+  // SDD-0682: qué recepciones consolidadas ya salieron de la bodega (su contenedor
+  // zarpó o llegó). Se lee una vez: lo usan la tabla y el aviso.
+  const salidas =
+    filters.status === "en_almacen" ? await leerSalidasDeAlmacen(supabase, filters) : undefined;
+  const consolidadas = salidas ? salidas.enCamino : null;
+
   const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
     await Promise.all([
-      listReceipts(supabase, filters, { redactClientNames: !canSeeClientNames }),
+      listReceipts(supabase, filters, { redactClientNames: !canSeeClientNames, salidas }),
       listWarehouses(supabase),
       listClients(supabase),
       computeWarehouseKpis(supabase),
@@ -113,62 +149,10 @@ export default async function CnPage({
     eliminacion = info === null ? { estado: "no_disponible" } : { estado: "lista", info };
   }
 
-  // Header: título queda compuesto "<prefijo> · 中国" — el sufijo 中国 va
-  // siempre en CN como guiño visual (cuando el locale es zh-CN ya se dobla,
-  // pero el design canónico lo mantiene como signature).
-  const titlePrefix = t(locale, "warehouse_cn.page.title_prefix");
-  const description = t(locale, "warehouse_cn.page.description_template", {
-    hubs: t(locale, "warehouse_cn.page.hubs_label"),
-  });
-
   return (
     <div style={{ maxWidth: 1480 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: "var(--s-6)",
-          marginBottom: "var(--s-6)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">
-            {t(locale, "warehouse_cn.page.eyebrow")}
-          </span>
-          <h1
-            className="studio-display"
-            style={{
-              fontSize: 30,
-              margin: "var(--s-2) 0 var(--s-2)",
-              color: "var(--ink)",
-            }}
-          >
-            {titlePrefix} ·{" "}
-            <span
-              style={{
-                fontFamily: '"Noto Sans SC", var(--f-sans)',
-                color: "var(--wine-text)",
-              }}
-            >
-              中国
-            </span>
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "70ch",
-            }}
-          >
-            {description}
-          </p>
-        </div>
-        <HeaderActions />
-      </div>
+      <EncabezadoCn locale={locale} />
+      <VistasAlmacen locale={locale} vista={vista} params={rawParams} />
 
       {/* KPIs */}
       <WarehouseKpis kpis={kpis} locale={locale} />
@@ -185,6 +169,7 @@ export default async function CnPage({
         eliminacion={eliminacion}
         tarifas={tarifas}
         puedeCongelarTarifas={puedeCongelarTarifas}
+        consolidadasOcultas={consolidadas}
       />
     </div>
   );

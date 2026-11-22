@@ -63,6 +63,12 @@ const COPY = {
   },
 };
 
+const MANAGED_COPY={
+  zh:{description:"添加照片或备份文件。附加的 Excel 不会自动填写共享文件。请核对已有数据并确认发货，之后才能获取箱标。",distinction:"附件已作为备份接收，不会自动填入共享文件。请核对已有数据并确认发货后获取箱标。"},
+  es:{description:"Adjunta fotos o archivos de respaldo. Este Excel no rellena automáticamente el documento compartido. Revisa los datos ya cargados y confirma el despacho para obtener las etiquetas.",distinction:"Archivo recibido como respaldo; no rellena automáticamente el documento compartido. Revisa los datos ya cargados y confirma el despacho para obtener las etiquetas."},
+  en:{description:"Attach photos or supporting files. This Excel does not automatically fill in the shared document. Review the existing data and confirm dispatch to get carton labels.",distinction:"File received as supporting evidence; it does not automatically fill in the shared document. Review the existing data and confirm dispatch to get carton labels."},
+};
+
 function fmtSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -80,6 +86,7 @@ export function SupplierUploadSection({
   request = fetch,
   onUploadState,
   showHeading = true,
+  documentManaged = false,
 }: {
   token: string;
   locale?: SupplierUploadLocale;
@@ -87,12 +94,13 @@ export function SupplierUploadSection({
   request?: typeof fetch;
   onUploadState?: (status: SupplierUploadStatus) => void;
   showHeading?: boolean;
+  documentManaged?: boolean;
 }) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [state, setState] = useState<UploadState>({ kind: "idle", uploaded: 0, selected: 0 });
-  const text = COPY[locale];
+  const text = documentManaged?{...COPY[locale],...MANAGED_COPY[locale]}:COPY[locale];
   const sending = state.kind === "sending";
   const uncertain = state.kind === "partial" || (state.kind === "error" && (state.error === "network" || state.error === "unconfirmed"));
 
@@ -241,12 +249,12 @@ export function SupplierUploadSection({
   );
 }
 /** Receipt-only presentation; File objects stay in the mounted upload component. */
-export function SupplierUploadSummary({ locale, status }: { locale: SupplierUploadLocale; status: SupplierUploadStatus }) {
+export function SupplierUploadSummary({ locale, status,documentManaged=false }: { locale: SupplierUploadLocale; status: SupplierUploadStatus;documentManaged?:boolean }) {
   const text = COPY[locale];
   const summary = status.kind === "received" ? text.received(status.uploaded)
     : status.kind === "partial" ? text.partial(status.uploaded, status.selected)
     : status.kind === "sending" ? text.sending
     : status.kind === "error" ? text[status.error]
     : status.selected ? text.selected(status.selected) : text.empty;
-  return <p role="status" className="text-sm leading-relaxed text-grey-700">{summary}</p>;
+  return <p role="status" className="text-sm leading-relaxed text-grey-700">{summary}{documentManaged&&status.kind==="received"&&<> · {MANAGED_COPY[locale].distinction}</>}</p>;
 }

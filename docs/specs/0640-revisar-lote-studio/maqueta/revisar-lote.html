@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisar contenedor · maqueta</title>
+<!--
+  Maqueta estática de la SDD «Revisar contenedor». TODOS LOS DATOS SON INVENTADOS:
+  marcas DTD-Z9xx / ZZ-0xx, «Cliente de ejemplo N», contenedor ZZZU0000000.
+  Este repositorio es público: nunca reemplazar por datos reales.
+  Fuentes: en producto se sirven desde el repositorio (BRAND.md). La maqueta no
+  carga fuentes externas: usa Sora, Nunito Sans y JetBrains Mono si están
+  instaladas y, si no, las del sistema.
+  Colores: tokens de app/studio/tokens.css, sin valores nuevos.
+-->
+<style>
+  :root, [data-theme="light"] {
+    --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-text:#7F0F1A; --wine-tint:rgba(127,15,26,0.08);
+    --on-warning:#0F1E3D;
+    --bg-base:#FBFAF7; --bg-surface:#FFFFFF; --bg-elevated:#F2F0EC; --bg-sidebar:#0F1E3D;
+    --ink:#0F1E3D; --ink-soft:#6B6B6B; --ink-mute:#9B9B9B; --ink-inv:#FBFAF7;
+    --border:#E8E6E2; --border-strong:#D8D4CE;
+    --success:#1F8A5B; --success-bg:rgba(31,138,91,0.10);
+    --warning:#B8893A; --warning-bg:rgba(184,137,58,0.12);
+    --danger:#A8323E; --danger-text:#A8323E; --danger-bg:rgba(168,50,62,0.10);
+    --neutral-bg:rgba(107,107,107,0.10);
+    --r-sm:5px; --r-md:7px; --r-lg:10px; --r-pill:999px;
+    --f-display:'Sora', system-ui, sans-serif;
+    --f-body:'Nunito Sans', system-ui, sans-serif;
+    --f-mono:'JetBrains Mono', ui-monospace, monospace;
+  }
+  [data-theme="dark"] {
+    --wine:#A8323E; --wine-text:#D89AA4; --wine-tint:rgba(168,50,62,0.14);
+    --bg-base:#0B1428; --bg-surface:#16264A; --bg-elevated:#1F3055;
+    --ink:#F2F0EC; --ink-soft:#A8B0C4; --ink-mute:#6E7896; --ink-inv:#0B1428;
+    --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.14);
+    --success:#5BCFA0; --success-bg:rgba(91,207,160,0.14);
+    --warning:#DCAB6B; --warning-bg:rgba(220,171,107,0.14);
+    --danger:#E07785; --danger-text:#F6929A; --danger-bg:rgba(224,119,133,0.14);
+    --neutral-bg:rgba(168,176,196,0.12);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg-base); color:var(--ink); font:15px/1.5 var(--f-body); }
+  .shell { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  .side { background:var(--bg-sidebar); color:rgba(255,255,255,0.85); padding:20px 14px; font-size:14px; }
+  .side .brand { font-family:'Archivo Black', var(--f-display); font-weight:900; font-size:18px; color:#fff; margin-bottom:24px; }
+  .side .grp { font-size:11px; letter-spacing:.08em; color:rgba(255,255,255,0.55); margin:18px 0 6px; }
+  .side a { display:block; color:inherit; text-decoration:none; padding:6px 10px; border-radius:var(--r-sm); }
+  .side a.on { background:rgba(255,255,255,0.10); color:#fff; }
+  .side a.sub { padding-left:22px; font-size:13px; }
+  main { padding:24px 32px 64px; max-width:1180px; }
+  .crumbs { font-size:13px; color:var(--ink-soft); margin-bottom:6px; }
+  .crumbs a { color:var(--wine-text); }
+  h1 { font:700 24px/1.25 var(--f-display); margin:0 0 4px; }
+  h2 { font:600 17px/1.3 var(--f-display); margin:0 0 12px; }
+  .mono { font-family:var(--f-mono); font-size:13px; }
+  .soft { color:var(--ink-soft); }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; margin-top:18px; }
+  .head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:3px 10px; border-radius:var(--r-pill); background:var(--neutral-bg); color:var(--ink); }
+  .badge .dot { width:8px; height:8px; border-radius:50%; background:var(--ink-soft); }
+  .badge.warn .dot { background:var(--warning); }
+  .badge.ok .dot { background:var(--success); }
+  .badge.err .dot { background:var(--danger); }
+  .progress { margin-top:14px; }
+  .bar { height:8px; background:var(--bg-elevated); border-radius:var(--r-pill); overflow:hidden; }
+  .bar > span { display:block; height:100%; width:0; background:var(--wine); transition:width .2s; }
+  .progress p { margin:6px 0 0; font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px 20px; }
+  .grid dt { font-size:12px; color:var(--ink-soft); }
+  .grid dd { margin:2px 0 0; font-weight:600; }
+  .totals { display:flex; gap:24px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .totals b { font:600 18px var(--f-display); display:block; }
+  .filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip { border:1px solid var(--border-strong); background:var(--bg-surface); color:var(--ink); border-radius:var(--r-pill); padding:5px 12px; font:600 13px var(--f-body); cursor:pointer; }
+  .chip[aria-pressed="true"] { background:var(--ink); color:var(--ink-inv); border-color:var(--ink); }
+  .search { flex:1; min-width:200px; padding:7px 12px; border:1px solid var(--border-strong); border-radius:var(--r-md); background:var(--bg-surface); color:var(--ink); font:inherit; }
+  .client { border-top:1px solid var(--border); padding:12px 0 6px; }
+  .client:first-of-type { border-top:0; }
+  .client h3 { margin:0 0 6px; font-size:15px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .client h3 .mono { color:var(--wine-text); font-size:14px; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  col.c-ref { width:24%; } col.c-n { width:9%; } col.c-notas { width:23%; } col.c-rev { width:26%; }
+  td.mono { white-space:nowrap; }
+  th { text-align:left; font-size:12px; color:var(--ink-soft); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--border); }
+  td { padding:8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.line.corregir td:first-child { box-shadow:inset 3px 0 0 var(--danger); }
+  tr.line.bien td:first-child { box-shadow:inset 3px 0 0 var(--success); }
+  .tag { display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:2px 8px; border-radius:var(--r-pill); background:var(--warning-bg); color:var(--ink); margin:0 4px 4px 0; }
+  .tag::before { content:"!"; font-weight:700; width:14px; height:14px; display:inline-grid; place-items:center; border-radius:50%; background:var(--warning); color:var(--on-warning); font-size:10px; }
+  .tag.info { background:var(--neutral-bg); }
+  .tag.info::before { content:"i"; background:var(--ink-soft); color:var(--bg-surface); }
+  .verdict { display:flex; gap:6px; }
+  .btn { font:600 13px var(--f-body); border-radius:var(--r-md); padding:6px 12px; cursor:pointer; border:1px solid var(--border-strong); background:var(--bg-surface); color:var(--ink); }
+  .btn:focus-visible, .chip:focus-visible, .search:focus-visible, textarea:focus-visible { outline:2px solid var(--wine); outline-offset:2px; }
+  .btn[aria-pressed="true"].ok { background:var(--success-bg); border-color:var(--success); }
+  .btn[aria-pressed="true"].fix { background:var(--danger-bg); border-color:var(--danger); }
+  .btn.primary { background:var(--wine); border-color:var(--wine); color:#fff; padding:9px 18px; font-size:14px; }
+  .btn.primary:hover:not(:disabled) { background:var(--wine-deep); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--wine-text); }
+  textarea { width:100%; min-height:56px; margin-top:6px; padding:7px 10px; border:1px solid var(--border-strong); border-radius:var(--r-md); background:var(--bg-surface); color:var(--ink); font:inherit; resize:vertical; }
+  textarea[aria-invalid="true"] { border-color:var(--danger); }
+  .field-err { color:var(--danger-text); font-size:12px; margin-top:4px; }
+  .q { border-top:1px solid var(--border); padding:12px 0; }
+  .q:first-of-type { border-top:0; }
+  .q a { color:var(--wine-text); }
+  .approve { display:flex; justify-content:space-between; gap:20px; align-items:flex-end; flex-wrap:wrap; }
+  .missing { margin:0; padding-left:18px; font-size:14px; }
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--ink-inv); padding:10px 16px; border-radius:var(--r-md); font-size:14px; display:none; }
+  .history li { font-size:13px; margin:4px 0; }
+  .empty { padding:18px; text-align:center; color:var(--ink-soft); }
+  .note-maq { font-size:12px; color:var(--ink-soft); border:1px dashed var(--border-strong); border-radius:var(--r-md); padding:8px 12px; margin-top:12px; }
+  @media (max-width: 860px) { .shell { grid-template-columns:1fr; } .side { display:none; } main { padding:16px; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" aria-label="Menú del Studio">
+    <div class="brand">DTD Cargo</div>
+    <div class="grp">OPERACIÓN</div>
+    <a href="#">Almacén CN</a>
+    <a href="#">Tracking</a>
+    <a href="#" class="on">Naviera &amp; Consolidación</a>
+    <a href="#" class="sub on" aria-current="page">Revisar contenedores</a>
+    <a href="#">Almacén VE</a>
+  </nav>
+
+  <main>
+    <div class="crumbs"><a href="#">Naviera &amp; Consolidación</a> › <a href="#">Revisar contenedores</a> › Contenedor 99</div>
+    <div class="head">
+      <div>
+        <h1>Revisar contenedor · contenedor 99</h1>
+        <div class="row soft" style="font-size:13px">
+          <span class="mono">carga-consolidado:99:a1b2c3d4</span>
+          <span>·</span><span>Subido por Dirección General el 16/11/2026, 09:40</span>
+        </div>
+      </div>
+      <div class="row">
+        <span class="badge warn" id="estado"><span class="dot"></span><span>En revisión</span></span>
+        <button class="btn ghost" type="button" id="tema" aria-label="Cambiar a tema oscuro">Tema oscuro</button>
+      </div>
+    </div>
+
+    <div class="progress" aria-live="polite">
+      <div class="bar" role="progressbar" aria-label="Avance de la revisión" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="barra"></span></div>
+      <p id="progreso-texto"></p>
+    </div>
+
+    <section class="card" aria-labelledby="t-cont">
+      <h2 id="t-cont">Contenedores</h2>
+      <dl class="grid">
+        <div><dt>Contenedor</dt><dd class="mono">ZZZU0000000</dd></div>
+        <div><dt>Precinto</dt><dd class="mono">PR-000000</dd></div>
+        <div><dt>Naviera</dt><dd>Naviera de ejemplo</dd></div>
+        <div><dt>Llega a</dt><dd>La Guaira</dd></div>
+        <div><dt>Fecha de carga</dt><dd class="mono">2026-11-02</dd></div>
+        <div><dt>ETD · ETA</dt><dd class="mono">2026-11-03 · 2027-01-05</dd></div>
+        <div><dt>Modalidad</dt><dd>DDP</dd></div>
+      </dl>
+      <div class="totals" id="totales"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-cli">
+      <h2 id="t-cli">Clientes del contenedor</h2>
+      <div class="row" style="margin-bottom:10px">
+        <div class="filters" role="group" aria-label="Filtrar líneas" id="filtros"></div>
+        <input class="search" type="search" id="buscar" placeholder="Buscar por Shipping Mark o Remitente" aria-label="Buscar por Shipping Mark o Remitente">
+      </div>
+      <div id="clientes"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-preg">
+      <h2 id="t-preg">Preguntas abiertas</h2>
+      <div id="preguntas"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-apr">
+      <h2 id="t-apr">Aprobación</h2>
+      <div class="approve">
+        <div style="flex:1;min-width:260px">
+          <div id="faltan"></div>
+          <label for="nota" class="soft" style="font-size:13px;display:block;margin-top:12px">Nota para la carga (opcional)</label>
+          <textarea id="nota" placeholder="Por ejemplo: revisado contra las fotos del almacén"></textarea>
+        </div>
+        <div style="text-align:right">
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn" type="button" id="copiar">Copiar respuestas</button>
+            <button class="btn primary" type="button" id="aprobar" disabled>Aprobar contenedor</button>
+          </div>
+          <p class="soft" style="font-size:12px;margin:8px 0 0">Apruebas como <b>Operaciones · usuario de ejemplo</b></p>
+        </div>
+      </div>
+      <div id="aprobado" hidden style="margin-top:14px"></div>
+      <h2 style="margin-top:20px;font-size:15px">Historial</h2>
+      <ul class="history" id="historial"><li>16/11/2026 09:40 · Dirección General subió el contenedor 99 (huella <span class="mono">9f3e…c210</span>)</li></ul>
+      <p class="note-maq">Maqueta: los datos son inventados y nada se guarda. En el Studio, cada marca, respuesta y la aprobación quedan en la base con su auditoría; el historial sale del registro de eventos.</p>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const NOTAS = {
+  sin_identificar: ["Sin identificar", "warn"],
+  falta_codigo_aliado: ["Falta el código del aliado", "warn"],
+  solo_prefijo: ["Solo el prefijo", "warn"],
+  remitente_corregido: ["Remitente corregido", "info"],
+  sin_peso: ["Sin peso", "warn"],
+  precio_cero: ["Línea a $0", "info"],
+};
+const clientes = [
+  { clave:"DTD-Z901", etiqueta:"Cliente de ejemplo 1", lineas:[
+    { ref:"DTD-Z901-01", cajas:12, kg:340.5, cbm:1.82, notas:[] },
+    { ref:"DTD-Z901-02", cajas:4, kg:96, cbm:0.51, notas:["remitente_corregido"] } ]},
+  { clave:"DTD-Z902", etiqueta:"Cliente de ejemplo 2", lineas:[
+    { ref:"DTD-Z902-01", cajas:30, kg:812, cbm:4.4, notas:[] } ]},
+  { clave:"DTD-Z903", etiqueta:"Cliente de ejemplo 3", lineas:[
+    { ref:"DTD-Z903", cajas:6, kg:150, cbm:0.9, notas:["solo_prefijo"] } ]},
+  { clave:"ZZ-0", etiqueta:"Aliado de ejemplo (sin código de cliente)", lineas:[
+    { ref:"ZZ-0-07", cajas:9, kg:210, cbm:1.12, notas:["falta_codigo_aliado"] },
+    { ref:"ZZ-0-08", cajas:3, kg:0, cbm:0.3, notas:["falta_codigo_aliado","sin_peso"] } ]},
+  { clave:"ZZ-041", etiqueta:"Cliente de aliado de ejemplo", lineas:[
+    { ref:"ZZ-041-03", cajas:15, kg:420, cbm:2.05, notas:[] },
+    { ref:"ZZ-041-04", cajas:2, kg:30, cbm:0.26, notas:["precio_cero"] } ]},
+  { clave:"(sin marca)", etiqueta:"Paquete sin identificar", lineas:[
+    { ref:"SIN-MARCA-#1", cajas:1, kg:18, cbm:0.08, notas:["sin_identificar"] } ]},
+  { clave:"DTD-Z907", etiqueta:"Cliente de ejemplo 7", lineas:[
+    { ref:"DTD-Z907-11", cajas:22, kg:605, cbm:3.3, notas:[] },
+    { ref:"DTD-Z907-12", cajas:8, kg:190, cbm:1.0, notas:[] } ]},
+];
+const preguntas = [
+  { id:"p1", texto:"El paquete sin identificar (1 caja, 18 kg): ¿de quién es? Si no se sabe, ¿se carga como huérfano o se deja en el almacén?", lineas:["SIN-MARCA-#1"] },
+  { id:"p2", texto:"El aliado de ejemplo trae envíos sin código de cliente. ¿A qué cliente corresponden?", lineas:["ZZ-0-07","ZZ-0-08"] },
+  { id:"p3", texto:"El total de la fila de totales del Excel no cuadra con la suma de las filas (3 cajas de diferencia). ¿Cuál vale?", lineas:[] },
+];
+const estado = { v:{}, c:{}, r:{}, filtro:"todas", q:"", aprobado:false };
+const lineas = clientes.flatMap(c => c.lineas.map(l => ({...l, clave:c.clave})));
+const $ = id => document.getElementById(id);
+const fmt = (n, d=0) => n.toLocaleString("es-VE", {minimumFractionDigits:d, maximumFractionDigits:d});
+
+function totales() {
+  const t = lineas.reduce((a,l) => ({cajas:a.cajas+l.cajas, kg:a.kg+l.kg, cbm:a.cbm+l.cbm}), {cajas:0,kg:0,cbm:0});
+  $("totales").innerHTML = [["Clientes", clientes.length],["Embarques", lineas.length],["Cajas", fmt(t.cajas)],["Kg", fmt(t.kg,2)],["CBM", fmt(t.cbm,3)]]
+    .map(([k,v]) => `<div><span class="soft" style="font-size:12px">${k}</span><b>${v}</b></div>`).join("");
+}
+function cuenta(f) {
+  return lineas.filter(l => f==="todas" || (f==="sin" && !estado.v[l.ref]) || (f==="corregir" && estado.v[l.ref]==="corregir") || (f==="nota" && l.notas.length)).length;
+}
+function filtros() {
+  const fs = [["todas","Todas"],["sin","Sin revisar"],["corregir","Para corregir"],["nota","Con nota"]];
+  $("filtros").innerHTML = fs.map(([k,t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${estado.filtro===k}">${t} · ${cuenta(k)}</button>`).join("");
+}
+function visible(l) {
+  const f = estado.filtro, q = estado.q.trim().toUpperCase();
+  const ok = f==="todas" || (f==="sin" && !estado.v[l.ref]) || (f==="corregir" && estado.v[l.ref]==="corregir") || (f==="nota" && l.notas.length);
+  return ok && (!q || l.ref.toUpperCase().includes(q) || l.clave.toUpperCase().includes(q));
+}
+function pintarClientes() {
+  const html = clientes.map(c => {
+    const ls = c.lineas.filter(l => visible({...l, clave:c.clave}));
+    if (!ls.length) return "";
+    return `<div class="client"><h3><span class="mono">${c.clave}</span><span>${c.etiqueta}</span><span class="soft" style="font-size:13px;font-weight:400">${c.lineas.length} remitente${c.lineas.length>1?"s":""}</span></h3>
+      <table><colgroup><col class="c-ref"><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-notas"><col class="c-rev"></colgroup><thead><tr><th>Remitente</th><th class="num">Cajas</th><th class="num">Kg</th><th class="num">CBM</th><th>Notas</th><th>Revisión</th></tr></thead><tbody>
+      ${ls.map(l => {
+        const v = estado.v[l.ref] || "";
+        const err = v==="corregir" && !(estado.c[l.ref]||"").trim();
+        return `<tr class="line ${v}" id="l-${l.ref}"><td class="mono">${l.ref}</td><td class="num">${fmt(l.cajas)}</td><td class="num">${fmt(l.kg,2)}</td><td class="num">${fmt(l.cbm,3)}</td>
+          <td>${l.notas.map(n => `<span class="tag ${NOTAS[n][1]==="info"?"info":""}">${NOTAS[n][0]}</span>`).join("") || '<span class="soft">—</span>'}</td>
+          <td><div class="verdict" role="group" aria-label="Revisión de ${l.ref}">
+            <button type="button" class="btn ok" data-ref="${l.ref}" data-v="bien" aria-pressed="${v==="bien"}" ${estado.aprobado?"disabled":""}>✓ Bien</button>
+            <button type="button" class="btn fix" data-ref="${l.ref}" data-v="corregir" aria-pressed="${v==="corregir"}" ${estado.aprobado?"disabled":""}>✕ Corregir</button></div>
+            ${v==="corregir" ? `<label class="soft" style="font-size:12px" for="c-${l.ref}">Qué hay que corregir (obligatorio)</label>
+            <textarea id="c-${l.ref}" data-c="${l.ref}" aria-invalid="${err}" ${err?`aria-describedby="e-${l.ref}"`:""} ${estado.aprobado?"disabled":""}>${estado.c[l.ref]||""}</textarea>
+            ${err?`<div class="field-err" id="e-${l.ref}">Escribe qué hay que corregir.</div>`:""}` : ""}
+          </td></tr>`;
+      }).join("")}</tbody></table></div>`;
+  }).join("");
+  $("clientes").innerHTML = html || `<div class="empty">No hay líneas con este filtro.</div>`;
+}
+function pintarPreguntas() {
+  $("preguntas").innerHTML = preguntas.map(p => `<div class="q"><p style="margin:0 0 4px"><b>${p.texto}</b></p>
+    ${p.lineas.length ? `<p class="soft" style="margin:0;font-size:13px">Líneas: ${p.lineas.map(r => `<a href="#l-${r}" class="mono">${r}</a>`).join(", ")}</p>` : ""}
+    <label class="soft" style="font-size:12px;display:block;margin-top:6px" for="r-${p.id}">Respuesta</label>
+    <textarea id="r-${p.id}" data-r="${p.id}" ${estado.aprobado?"disabled":""}>${estado.r[p.id]||""}</textarea></div>`).join("");
+}
+function faltantes() {
+  const sin = lineas.filter(l => !estado.v[l.ref]).length;
+  const corr = lineas.filter(l => estado.v[l.ref]==="corregir").length;
+  const corrSinTexto = lineas.filter(l => estado.v[l.ref]==="corregir" && !(estado.c[l.ref]||"").trim()).length;
+  const preg = preguntas.filter(p => !(estado.r[p.id]||"").trim()).length;
+  return {sin, corr, corrSinTexto, preg};
+}
+function pintarEstado() {
+  const f = faltantes();
+  const hechas = (lineas.length - f.sin) + (preguntas.length - f.preg);
+  const total = lineas.length + preguntas.length;
+  const pct = Math.round(hechas*100/total);
+  $("barra").style.width = pct + "%";
+  document.querySelector('[role="progressbar"]').setAttribute("aria-valuenow", pct);
+  $("progreso-texto").textContent = `${lineas.length - f.sin} de ${lineas.length} líneas revisadas · ${preguntas.length - f.preg} de ${preguntas.length} preguntas respondidas`
+    + (f.corr ? ` · ${f.corr} para corregir` : "");
+  const items = [];
+  if (f.sin) items.push(`Faltan ${f.sin} línea${f.sin>1?"s":""} por revisar.`);
+  if (f.preg) items.push(`Faltan ${f.preg} pregunta${f.preg>1?"s":""} por responder.`);
+  if (f.corrSinTexto) items.push(`${f.corrSinTexto} línea${f.corrSinTexto>1?"s":""} en «Corregir» sin explicación.`);
+  if (f.corr && !f.corrSinTexto) items.push(`Hay ${f.corr} línea${f.corr>1?"s":""} para corregir: el contenedor se devuelve a Dirección General para regenerarlo.`);
+  $("faltan").innerHTML = estado.aprobado ? "" : (items.length ? `<p style="margin:0 0 6px;font-weight:600">Antes de aprobar:</p><ul class="missing">${items.map(i => `<li>${i}</li>`).join("")}</ul>` : `<p style="margin:0">Todo revisado. Puedes aprobar el contenedor.</p>`);
+  const btn = $("aprobar");
+  const devolver = f.corr > 0;
+  btn.textContent = devolver ? "Devolver para corregir" : "Aprobar contenedor";
+  btn.disabled = estado.aprobado || f.sin > 0 || f.preg > 0 || f.corrSinTexto > 0;
+  filtros();
+}
+function render() { pintarClientes(); pintarPreguntas(); pintarEstado(); }
+function toast(t) { const el = $("toast"); el.textContent = t; el.style.display = "block"; setTimeout(() => el.style.display = "none", 2600); }
+function ahora() { return new Date().toLocaleString("es-VE", {day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.f) { estado.filtro = b.dataset.f; pintarClientes(); filtros(); return; }
+  if (b.dataset.ref) {
+    const r = b.dataset.ref;
+    estado.v[r] = estado.v[r] === b.dataset.v ? undefined : b.dataset.v;
+    pintarClientes(); pintarEstado();
+    const sel = document.querySelector(`button[data-ref="${r}"][data-v="${b.dataset.v}"]`);
+    if (estado.v[r] === "corregir") $("c-" + r)?.focus(); else sel?.focus();
+    return;
+  }
+  if (b.id === "aprobar") {
+    const f = faltantes();
+    const devolver = f.corr > 0;
+    const msg = devolver ? "¿Devolver el contenedor 99 (huella a1b2c3d4) a Dirección General para corregirlo?" : "¿Aprobar el contenedor 99 (huella a1b2c3d4)? Después no se puede cambiar.";
+    if (!confirm(msg)) return;
+    estado.aprobado = true;
+    const est = $("estado");
+    est.className = "badge " + (devolver ? "err" : "ok");
+    est.querySelector("span:last-child").textContent = devolver ? "Devuelto" : "Aprobado";
+    $("aprobado").hidden = false;
+    $("aprobado").innerHTML = `<span class="badge ${devolver?"err":"ok"}"><span class="dot"></span>${devolver ? "Devuelto para corregir" : "Aprobado"} por Operaciones · usuario de ejemplo el ${ahora()}</span>`;
+    $("historial").insertAdjacentHTML("beforeend", `<li>${ahora()} · Operaciones · usuario de ejemplo ${devolver ? "devolvió el contenedor para corregir" : "aprobó el contenedor"}</li>`);
+    $("nota").disabled = true;
+    render();
+    return;
+  }
+  if (b.id === "copiar") {
+    const corr = lineas.filter(l => estado.v[l.ref]==="corregir").map(l => `- ${l.ref} (${l.clave}): ${estado.c[l.ref]||"(sin explicación)"}`);
+    const resp = preguntas.map((p,i) => `${i+1}. ${p.texto}\n   → ${estado.r[p.id]||"(sin respuesta)"}`);
+    const f = faltantes();
+    const txt = `Revisión del contenedor 99 (huella a1b2c3d4)\n${lineas.length - f.sin}/${lineas.length} líneas revisadas\n\nPara corregir:\n${corr.join("\n") || "- ninguna"}\n\nPreguntas:\n${resp.join("\n")}`;
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Respuestas copiadas"), () => toast("No se pudo copiar: el navegador no dio permiso"));
+    return;
+  }
+  if (b.id === "tema") {
+    const dark = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    b.textContent = dark ? "Tema claro" : "Tema oscuro";
+    b.setAttribute("aria-label", dark ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
+  }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.c) { estado.c[t.dataset.c] = t.value; pintarEstado();
+    const err = !t.value.trim(); t.setAttribute("aria-invalid", err);
+    const box = document.getElementById("e-" + t.dataset.c);
+    if (!err && box) box.remove();
+  }
+  if (t.dataset.r) { estado.r[t.dataset.r] = t.value; pintarEstado(); }
+  if (t.id === "buscar") { estado.q = t.value; pintarClientes(); }
+});
+totales(); render();
+</script>
+</body>
+</html>

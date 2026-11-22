@@ -14,6 +14,21 @@ function pick(files: File[], label = "Elegir archivos") {
 }
 
 describe("SupplierUploadSection", () => {
+  it("en documento compartido adjunta Excel como respaldo y no promete rellenar ni confirmar",async()=>{
+    const request=vi.fn<typeof fetch>().mockResolvedValue(receipt(1));
+    render(<SupplierUploadSection token={TOKEN} locale="es" request={request} documentManaged/>);
+    expect(screen.getByText(/Este Excel no rellena automáticamente el documento compartido/)).toBeVisible();
+    expect(screen.queryByText(/sin llenar el formulario online/)).not.toBeInTheDocument();
+    pick([excel()]);fireEvent.click(screen.getByRole("button",{name:"Subir archivos"}));
+    await screen.findByText("1 archivo recibido");expect(screen.getByText(/Archivo recibido como respaldo; no rellena automáticamente/)).toBeVisible();
+    expect(screen.queryByText(/Si usaste Excel, no necesitas llenarlo de nuevo/)).not.toBeInTheDocument();
+  });
+  it("el resumen managed distingue archivo recibido de despacho confirmado",()=>{
+    const view=render(<SupplierUploadSummary locale="es" status={{kind:"received",uploaded:1,selected:1}} documentManaged/>);
+    expect(screen.getByRole("status")).toHaveTextContent("confirma el despacho para obtener las etiquetas");
+    view.rerender(<SupplierUploadSummary locale="en" status={{kind:"partial",uploaded:1,selected:2}} documentManaged/>);
+    expect(screen.getByRole("status")).toHaveTextContent("Partial upload: 1 of 2 files received");expect(screen.getByRole("status")).not.toHaveTextContent("File received as supporting evidence");
+  });
   it("comienza en chino y permite continuar sin adjuntos", () => {
     render(<SupplierUploadSection token={TOKEN} />);
     expect(screen.getByRole("heading", { name: "照片和文件" })).toBeVisible();

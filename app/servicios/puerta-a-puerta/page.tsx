@@ -19,7 +19,7 @@ import {
 } from "@/components/servicios/FichaF2";
 
 const DESC =
-  "Puerta a Puerta de China a Venezuela: marítimo todo pagado hasta tu puerta. Nosotros consolidamos, embarcamos, nacionalizamos y entregamos — pagas al llegar. Cotiza por volumen (CBM) y peso.";
+  "Puerta a Puerta de China a Venezuela: marítimo todo pagado hasta tu puerta. Consolidamos, embarcamos, nacionalizamos y entregamos; pagas al llegar.";
 
 export const metadata: Metadata = {
   title: "Puerta a Puerta — de China a tu puerta, todo pagado",
@@ -134,6 +134,15 @@ export default function PuertaAPuertaPage() {
                   (se pide en «Otros servicios», no en la pre-alerta), pensado
                   para empresas. Ahí llegamos hasta el puerto y tú manejas aduana
                   e impuestos.
+                </XrefF2>
+                {/* SDD-0657 · Enlaces a la guía del concepto y a las ciudades:
+                    /puerta-a-puerta y /importar-de-china no tenían enlaces
+                    desde fuera de su propio grupo. */}
+                <XrefF2>
+                  <b>¿Quieres entender bien qué incluye?</b> Lee{" "}
+                  <Link href="/puerta-a-puerta">qué es puerta a puerta (DDP)</Link>{" "}
+                  o mira{" "}
+                  <Link href="/importar-de-china">cómo llega tu carga a tu ciudad</Link>.
                 </XrefF2>
               </SecF2>
 

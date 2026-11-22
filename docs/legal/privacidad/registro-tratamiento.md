@@ -53,7 +53,11 @@
 | Tabla · campo | Qué es | Sensible | Finalidad | Base | Conservación |
 |---|---|:-:|---|---|---|
 | `nomina_employees.*` | Nombre, nacimiento, banco, salario | no | Nómina | Obligación legal laboral | ⬜ |
-| `nomina_employee_registrations.*` | + cédula y foto de **candidatos** | no | Alta de personal | ⬜ | 🔴 **indefinida por diseño**, incluso si se rechaza |
+| `nomina_employee_registrations.*` (desde SDD-0652 fase 2 la bandeja del Studio no lee la cédula, la cuenta ni la foto; la cédula y la cuenta enmascarada se ven solo al revisar una solicitud pendiente) | + cédula y foto de **candidatos** | no | Alta de personal | ⬜ | 🔴 **indefinida por diseño**, incluso si se rechaza |
+| `nomina_employees.photo_path` + archivo en `employee-photos` (SDD-0652 fase 2, **migración 0555 en espera: todavía no existe en producción**) | **Foto de la persona** (imagen, CRBV art. 60). Se guarda reescalada a 512 px, en WebP y **sin metadatos EXIF** | 🟠 imagen | Reconocer a la persona en Nómina. La ven solo `admin` y `accounting` (D4), con URL firmada de 10 minutos | ⬜ (abogado; el consentimiento del empleado llega con el autoservicio C1) | Mientras la ficha viva. Al cambiarla o quitarla, el archivo anterior lo borra la reconciliación `purge-employee-photo-orphans` (nace apagada) |
+| `nomina_employees.auth_user_id` (ya existía, 0181) | Unión de la ficha con su usuario del Studio | no | Ver el acceso de la persona desde su ficha. Desde la fase 2 lo enlaza un admin **a mano, con motivo**; aprobar una solicitud ya no reutiliza una cuenta existente | ⬜ | La de la ficha |
+| `nomina_employees.bank_account` · consulta completa (SDD-0652 fase 2) | Cuenta bancaria. **Viaja enmascarada**; el número completo solo sale con «Mostrar», con motivo | 🟠 financiero | Pagar la nómina | Obligación legal laboral | La de la ficha. Cada consulta deja `bank_account_revealed` (quién, cuándo, motivo; **sin el número**), clase `security`, 2 años. Excepción a AUD-02 §3: [`excepcion-aud-02-revelado-cuenta-nomina-2026-11-17.md`](../../governance/reviews/excepcion-aud-02-revelado-cuenta-nomina-2026-11-17.md) |
+| Eventos `user_linked`, `user_unlinked`, `photo_set`, `photo_removed` en `entity_audit_log` (SDD-0652 fase 2) | Quién enlazó, desenlazó o cambió la foto, y cuándo. Sin la imagen, sin la ruta y sin el correo | no | Trazabilidad | ⬜ | Clase `security`, 2 años (calendario v1.0) |
 | `tms_drivers.cedula`, `address` | Identidad del chofer | no | Operación de flota | Contrato laboral | ⬜ |
 | `tms_drivers.emergency_contact` | **Nombre y teléfono de un familiar** | no | Emergencias | 🔴 **el titular nunca consintió** | ⬜ |
 | `tms_drivers.rating` | Calificación 0.0–5.0 | no | ⬜ no evidente | ⬜ | ⬜ |
@@ -74,6 +78,7 @@
 | `prealerta-docs` | Facturas, packing, fotos y capturas de proveedor | 🟠 | ⬜ | borrado integral NO VERIFICABLE |
 | `expense-receipts` | Recibos de Gastos | 🟠 | ⬜ | Studio conserva; móvil elimina: comportamiento contradictorio |
 | `bug-replays` | Replays técnicos comprimidos | ⚠️ puede contener datos | ⬜ | creación/policies no trazadas en migraciones; NO VERIFICABLE |
+| `employee-photos` (SDD-0652 fase 2; **lo crea la migración 0555, en espera: no existe todavía en producción**, por eso el conteo de 12 de abajo no lo incluye) | Foto del empleado, WebP de 512 px sin EXIF, en `{tenant}/{ficha}/{uuid}.webp` | 🟠 imagen | Mientras la ficha la referencie | Privado, 2 MB, solo JPEG/PNG/WebP, **sin policies**: sube y firma el servidor. Los huérfanos los borra `purge-employee-photo-orphans` (apagado por omisión) |
 
 ✅ Los 12 observados en Producción son `public = false`.
 

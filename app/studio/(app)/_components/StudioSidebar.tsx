@@ -46,6 +46,7 @@ import {
 } from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { BandejaBadge } from "./BandejaBadge";
+import { accesoCrm, destinoCrm, esRutaCrm } from "@/lib/studio/crm-acceso";
 import type { ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 
 const STORAGE_KEY = "studio_sidebar_collapsed";
@@ -70,8 +71,9 @@ interface Props {
   /** Alertas de gastos activas (badge en el item "Gastos"). */
   expenseAlertCount?: number;
   /**
-   * Conversaciones de Chatwoot abiertas con no leídos (SDD-0585, E2-D21): badge del
-   * item "Bandeja", vivo por Realtime. Solo se pinta si el item se ve (rol + flag).
+   * Conversaciones de Chatwoot abiertas con no leídos (SDD-0585, E2-D21), vivo por
+   * Realtime. Desde SDD-0655 la Bandeja es una pestaña de CRM: el badge cuelga del
+   * item «CRM» y solo se pinta si quien mira ve la Bandeja (rol + flag).
    */
   bandeja?: { tenantId: string | null; initial: ConversacionNoLeida[] };
   /**
@@ -281,9 +283,43 @@ export function StudioSidebar({
     }
   };
 
+  // Nombre del módulo con el menú cerrado: tooltip propio (el `title` nativo tarda ~1 s).
+  // Va con `position: fixed` porque el aside recorta lo que sale de su borde.
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  const mostrarTip = (el: HTMLElement, label: string) => {
+    const r = el.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 10 });
+  };
+  useEffect(() => {
+    if (collapsed) return;
+    queueMicrotask(() => setTip(null));
+  }, [collapsed]);
+  // WCAG 1.4.13: el tooltip se puede descartar con Escape, y se cierra al hacer scroll
+  // del menú (si no, quedaría flotando donde estaba el enlace).
+  useEffect(() => {
+    if (!tip) return;
+    const cerrar = () => setTip(null);
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") cerrar();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("scroll", cerrar, true);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("scroll", cerrar, true);
+    };
+  }, [tip]);
+
   // Match active: exacto o prefijo + "/"
   const isActive = (slug: string) =>
     pathname === slug || pathname.startsWith(slug + "/");
+
+  // SDD-0655: «CRM» (id `kommo`) reúne Embudos y la Bandeja. El ítem se ve si se
+  // ve alguna de las dos, lleva a la primera visible y queda activo en ambas.
+  const crm = accesoCrm(role, flags, overrides, grants);
+  const crmDestino = destinoCrm(crm);
+  const hrefDe = (m: ModuleDef) => (m.id === "kommo" ? (crmDestino ?? m.slug) : m.slug);
+  const activoEn = (m: ModuleDef) => (m.id === "kommo" ? esRutaCrm(pathname) : isActive(m.slug));
 
   // ── Unidades de una sección: hoja (módulo suelto) o cluster (parent + hijos) ──
   // El cluster se emite en la posición del PRIMER hijo, juntando a todos sus
@@ -314,13 +350,15 @@ export function StudioSidebar({
 
   // Render de un ítem-hoja (módulo). `indent` = sangría px para hijos anidados.
   const renderLeaf = (m: ModuleDef, indent = 0) => {
-    const active = isActive(m.slug);
+    const active = activoEn(m);
     const moduleLabel = m.labelKey ? t(m.labelKey) : m.label;
     return (
       <Link
         key={m.id}
-        href={m.slug}
-        title={collapsed ? moduleLabel : undefined}
+        href={hrefDe(m)}
+        aria-current={active ? "page" : undefined}
+        aria-label={collapsed ? moduleLabel : undefined}
+        className={collapsed ? "studio-sb-link--cerrado" : undefined}
         style={{
           width: "100%",
           display: "flex",
@@ -329,7 +367,7 @@ export function StudioSidebar({
           padding: collapsed ? "10px 0" : `var(--sb-item-y) 12px var(--sb-item-y) ${12 + indent}px`,
           justifyContent: collapsed ? "center" : "flex-start",
           // SDD-0603: blanco con tinta fija, el mayor contraste de la paleta en los dos
-          // temas. --wine sobre navy mide 1,56:1 (BD-017), por eso el vino va en el icono.
+          // temas. El icono de la selección va en la misma tinta (BD-037; sin vino desde BD-076).
           background: active ? "var(--ink-side-strong)" : "transparent",
           color: active ? "var(--on-warning)" : "var(--ink-side-strong)",
           borderRadius: "var(--r-md)",
@@ -342,14 +380,25 @@ export function StudioSidebar({
         onMouseEnter={(e) => {
           if (!active)
             e.currentTarget.style.background = "var(--bg-sidebar-hover)";
+          if (collapsed) mostrarTip(e.currentTarget, moduleLabel);
         }}
         onMouseLeave={(e) => {
           if (!active) e.currentTarget.style.background = "transparent";
+          // Con el foco de teclado en este enlace el nombre se queda hasta que salga.
+          const conFoco =
+            document.activeElement === e.currentTarget && e.currentTarget.matches(":focus-visible");
+          if (!conFoco) setTip(null);
         }}
+        onFocus={(e) => {
+          if (collapsed && e.currentTarget.matches(":focus-visible"))
+            mostrarTip(e.currentTarget, moduleLabel);
+        }}
+        onBlur={() => setTip(null)}
       >
         <span
+          className="studio-sb-icono"
           style={{
-            color: active ? "var(--wine)" : "var(--ink-side)",
+            color: active ? "var(--on-warning)" : "var(--ink-side)",
             flexShrink: 0,
             display: "inline-flex",
           }}
@@ -369,7 +418,7 @@ export function StudioSidebar({
             {moduleLabel}
           </span>
         )}
-        {!collapsed && m.id === "bandeja" && bandeja?.tenantId ? (
+        {!collapsed && m.id === "kommo" && crm.bandeja && bandeja?.tenantId ? (
           <BandejaBadge tenantId={bandeja.tenantId} initial={bandeja.initial} />
         ) : null}
         {!collapsed && m.id === "expenses" && expenseAlertCount > 0 && (
@@ -401,7 +450,7 @@ export function StudioSidebar({
   const renderParent = (parent: ParentDef, children: ModuleDef[]) => {
     if (collapsed) return children.map((c) => renderLeaf(c, 0));
     const pid = parent.id;
-    const childActive = children.some((c) => isActive(c.slug));
+    const childActive = children.some((c) => activoEn(c));
     const pOpen = childActive || openParents[pid] === true;
     const parentLabel = parent.labelKey ? t(parent.labelKey) : parent.label;
     return (
@@ -475,11 +524,14 @@ export function StudioSidebar({
   // el filtro de rol usa la matriz ROLE_MODULE_ACCESS (admin ve todo,
   // fail-closed para roles nulos); el scope esconde el lado no asignado
   // (SDD-0139; admin no se filtra por scope).
+  // SDD-0655: el ítem «CRM» se ve con Embudos O con la Bandeja (ver `accesoCrm`).
   const visibleModules = MODULES.filter(
     (m) =>
       !m.hidden &&
-      isModuleEnabled(m.id, flags) &&
-      canAccessModule(role, m.id, overrides, grants) &&
+      !m.dentroDe && // SDD-0655: una pestaña de otro módulo no es ítem del menú
+      (m.id === "kommo"
+        ? crmDestino !== null
+        : isModuleEnabled(m.id, flags) && canAccessModule(role, m.id, overrides, grants)) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
 
@@ -508,7 +560,8 @@ export function StudioSidebar({
         zIndex: 50,
       }}
     >
-      {/* Fondo de marca (BD-034): glow wine en la esquina superior + marca de agua
+      {/* Fondo de marca (BD-034): brillo azul tenue en la esquina superior (el rojo
+          no va de ambiente, SDD-0686) + marca de agua
           "D" (isotipo mono-light, wallpaper .03) recortada por overflow:hidden.
           Decorativa y detrás del contenido (z-index:-1 dentro del stacking del aside)
           → no toca los items del nav, no captura clicks. */}
@@ -520,7 +573,7 @@ export function StudioSidebar({
           zIndex: -1,
           pointerEvents: "none",
           background:
-            "radial-gradient(55% 40% at 100% 0%, rgba(168,50,62,0.28), transparent 58%)",
+            "radial-gradient(55% 40% at 100% 0%, rgba(127,170,240,0.12), transparent 58%)",
         }}
       >
         <div
@@ -653,7 +706,7 @@ export function StudioSidebar({
                         width: 5,
                         height: 5,
                         borderRadius: "var(--r-pill)",
-                        background: "var(--wine-soft)",
+                        background: "var(--ink-side-strong)",
                         flexShrink: 0,
                       }}
                     />
@@ -695,6 +748,12 @@ export function StudioSidebar({
           </div>
         )}
       </nav>
+
+      {tip && collapsed && (
+        <span aria-hidden="true" className="studio-sb-tip" style={{ top: tip.top, left: tip.left }}>
+          {tip.label}
+        </span>
+      )}
 
       {/* Footer: collapse toggle */}
       <div
@@ -762,14 +821,14 @@ export function StudioSidebar({
             justifyContent: "flex-end",
           }}
         >
-          {/* Línea visible: hairline en reposo → wine-soft en hover/drag */}
+          {/* Línea visible: hairline en reposo → azul de acción claro en hover/drag (BD-076) */}
           <span
             aria-hidden
             style={{
               width: resizeHover ? 2 : 1,
               height: "100%",
               background: resizeHover
-                ? "var(--wine-soft)"
+                ? "var(--accion-soft)"
                 : "var(--border-side)",
               transition:
                 "background var(--dur-fast) var(--ease), width var(--dur-fast) var(--ease)",

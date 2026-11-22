@@ -1,3 +1,4 @@
+import { formatCbm } from "@/lib/shared/cbm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -154,7 +155,7 @@ export default async function AcceptTermsPage({ params }: Props) {
                       {doc.version}
                     </span>
                   </span>
-                  <span className="text-[12px] font-semibold text-wine-text">
+                  <span className="text-[12px] font-semibold text-accion-text">
                     Ver / ocultar
                   </span>
                 </summary>
@@ -164,7 +165,7 @@ export default async function AcceptTermsPage({ params }: Props) {
                   tabIndex={0}
                   role="region"
                   aria-label={doc.name}
-                  className="px-6 pb-6 pt-1 border-t border-grey-200 flex flex-col gap-4 max-h-[420px] overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+                  className="px-6 pb-6 pt-1 border-t border-grey-200 flex flex-col gap-4 max-h-[420px] overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
                 >
                   {doc.body.map(([heading, paragraph], i) => (
                     <div key={i}>
@@ -202,7 +203,7 @@ export default async function AcceptTermsPage({ params }: Props) {
               </p>
               <a
                 href="#documentos-legales"
-                className="mt-1.5 inline-block text-[13px] font-semibold text-wine-text hover:underline"
+                className="mt-1.5 inline-block text-[13px] font-semibold text-accion-text hover:underline"
               >
                 {REACCEPTANCE_LINK_LABEL}
               </a>
@@ -279,7 +280,7 @@ export default async function AcceptTermsPage({ params }: Props) {
                 <Field label="Envío asociado" value={order.shipmentCode} mono />
               ) : null}
               {medida.cbm != null ? (
-                <Field label={medida.varios ? "Volumen total" : "Volumen"} value={`${medida.cbm.toFixed(2)} m³`} mono />
+                <Field label={medida.varios ? "Volumen total" : "Volumen"} value={`${formatCbm(medida.cbm, { locale: "en-US" })} m³`} mono />
               ) : null}
               {medida.weightKg != null ? (
                 <Field label={medida.varios ? "Peso total" : "Peso"} value={`${medida.weightKg.toFixed(0)} kg`} mono />

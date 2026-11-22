@@ -1,3 +1,4 @@
+import { formatCbm } from "@/lib/shared/cbm";
 import type { ComponentProps } from "react";
 import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -119,7 +120,7 @@ export function PortalShipmentDetailNorte({
           </div>
           <div className="mt-3 flex items-center gap-2.5 flex-wrap text-[15px]">
             <span className="font-bold text-ink">{cityOf(shipment.origin)}</span>
-            <span className="text-wine-text">→</span>
+            <span className="text-grey-500">→</span>
             <span className="font-bold text-ink">
               {cityOf(shipment.destination)}
             </span>
@@ -220,7 +221,7 @@ export function PortalShipmentDetailNorte({
             {shipment.volumeM3 != null ? (
               <Field
                 label="Volumen"
-                value={`${shipment.volumeM3.toFixed(2)} m³`}
+                value={formatCbm(shipment.volumeM3, { unit: true, locale: "en-US" })}
                 mono
               />
             ) : null}
@@ -345,19 +346,19 @@ function Stepper({
             : exception
               ? "var(--color-status-danger)"
               : reached
-                ? "var(--color-wine)"
+                ? "var(--color-ink)"
                 : "var(--color-grey-100)";
           const dotBorder = exception
             ? "var(--color-status-danger)"
             : reached
-              ? "var(--color-wine)"
+              ? "var(--color-ink)"
               : "var(--color-grey-300)";
-          // El paso ACTUAL se distingue como anillo wine hueco ("estás aquí"); los
-          // completados van en wine sólido con ✓.
+          // El paso ACTUAL se distingue como anillo de tinta hueco ("estás aquí"); los
+          // completados van en tinta sólida con ✓.
           const dotColor = active
-            ? "var(--color-wine)"
+            ? "var(--color-ink)"
             : reached
-              ? "var(--color-on-accent)"
+              ? "var(--color-paper)"
               : "var(--color-grey-500)";
           return (
             <div
@@ -373,7 +374,7 @@ function Stepper({
                     left: "calc(-50% + 13px)",
                     right: "calc(50% + 13px)",
                     background: reached
-                      ? "var(--color-wine)"
+                      ? "var(--color-ink)"
                       : "var(--color-grey-200)",
                   }}
                 />
@@ -387,7 +388,7 @@ function Stepper({
                   border: `2px solid ${dotBorder}`,
                   color: dotColor,
                   boxShadow: active
-                    ? "0 0 0 3px color-mix(in srgb, var(--color-wine) 28%, transparent)"
+                    ? "0 0 0 3px color-mix(in srgb, var(--color-ink) 22%, transparent)"
                     : undefined,
                 }}
               >
@@ -550,7 +551,7 @@ function NavieraCard({
           Naviera
         </h2>
         {statusText ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-[color:var(--color-on-accent)] bg-wine">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-[color:var(--color-paper)] bg-ink">
             {statusText}
           </span>
         ) : null}
@@ -629,7 +630,7 @@ function Field({
       </dt>
       <dd
         className={`text-[15.5px] ${
-          highlight ? "font-extrabold text-wine-text" : "font-semibold text-ink"
+          highlight ? "font-extrabold text-ink" : "font-semibold text-ink"
         }`}
         style={
           mono

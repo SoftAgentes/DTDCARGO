@@ -18,6 +18,7 @@
  */
 
 import { useActionState, useCallback, useState } from "react";
+import Link from "next/link";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   DrawerShell,
@@ -61,6 +62,7 @@ export function UserDetailDrawer({
   pestana: pestanaInicial = "perfil",
   personasDelRol,
   onIrARoles,
+  fichaEmpleado,
 }: {
   member: UserMembershipWithProfile;
   /** El admin se está mirando a sí mismo — cambia el aviso del correo. */
@@ -77,6 +79,11 @@ export function UserDetailDrawer({
   personasDelRol?: number;
   /** SDD-0635: lleva a «Roles y permisos» (cambios para todo el rol). */
   onIrARoles?: () => void;
+  /**
+   * SDD-0652: código de su ficha de empleado, `null` si no tiene, `undefined`
+   * si no se pudo saber (entonces no se dice nada).
+   */
+  fichaEmpleado?: string | null;
 }) {
   const [pestana, setPestana] = useState<FichaPestana>(pestanaInicial);
   // SDD-0635 §3.3: cambios de acceso elegidos y sin guardar. Cerrar la ficha,
@@ -209,6 +216,22 @@ export function UserDetailDrawer({
           gap: "var(--s-5)",
         }}
       >
+        {/* SDD-0652 F1: enlace a su ficha 360° de empleado. */}
+        {fichaEmpleado !== undefined && (
+          <p style={{ margin: 0, font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            {fichaEmpleado ? (
+              <>
+                Ficha de empleado <span style={{ fontFamily: "var(--f-mono)", color: "var(--ink)" }}>{fichaEmpleado}</span>{" · "}
+                <Link href={`/studio/nomina/empleados/${encodeURIComponent(fichaEmpleado)}`} className="studio-link-quiet">
+                  Ver ficha de empleado
+                </Link>
+              </>
+            ) : (
+              "No tiene ficha de empleado enlazada."
+            )}
+          </p>
+        )}
+
         {/* ── Acceso ─────────────────────────────────────────── */}
         <Seccion titulo="Acceso">
           {/* Correo · editable (SDD-0272). Va detrás de un gesto explícito y

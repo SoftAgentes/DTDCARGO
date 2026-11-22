@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-09-18
+updated: 2026-11-16
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -300,3 +300,157 @@ IA-01 I2: preview humana antes de aplicar; nunca envío/confirmación automátic
 no son instrucciones. Auditoría sin prompts completos, secretos ni contenido de documentos en logs.
 Riesgo R3 de identidad/logística; validación proporcional documentada en handoff. Lectura de producción,
 llamadas IA reales con datos cliente y publicación en bóveda compartida fuera de autorización.
+
+## Retoma 2026-11-16 · PR #319 recortada en P1 y P2
+
+Sam decidió que la #319 siga («Que siga»). El DG aprobó partirla y que cada parte salga
+desde main en una PR propia. La #319 queda abierta como archivo histórico y no se fusiona:
+cuando entren P1 y P2, el DG la cierra sin merge.
+
+**GLM descartado.** El lector GLM de la #319 (`glm.ts` y `provider.ts`) mandaba el PDF del cliente
+a Z.AI para OCR y lectura asistida. Choca con la regla D-2 de Sam
+([SDD-0639 §4](../0639-ia-cambio-de-proveedor/spec.md)): los datos de clientes nunca van a un
+proveedor chino. No entra en P1 ni en P2. Lo mismo vale para el contrato intermedio que solo usaba
+GLM (`extraction-contract.ts` y `draft-from-extraction.ts`), los mensajes `qa_glm_*`, el arnés QA
+de `qa/portal-confirmacion/` y la bitácora de sesiones. La lectura asistida existente
+(`extract.ts` → `anthropic.ts`) y la lectura nativa de XLSX/CSV no cambian de proveedor.
+
+### P1 · núcleo, PDF confirmado y fuentes
+
+- **Documento compartido** (`lib/shared/document-import.ts`): validación de confirmación
+  y logística revisable por campo y por grupo. Logística una sola vez por grupo, valor por producto.
+- **Servicio y HTTP** (`service.ts`, `http.ts`): `action=labels` y `action=pdf`
+  (`surface=packing-list|labels`, `workspaceId`, `expectedRevision`). `getDocumentLabels`
+  autoriza y valida la revisión antes y después del render. Con una revisión vieja devuelve 409
+  y ningún PDF. La respuesta es `application/pdf` privada (`no-store`).
+- **PDF** (`pdf.tsx`): Packing List + Factura y etiquetas, con los mismos datos y códigos físicos
+  del gate. No lleva fuentes privadas, identidad del cliente ni códigos inventados.
+  - Para CJK exige `DOCUMENT_IMPORT_PDF_CJK_FONT_PATH`. Sin una fuente compatible responde
+    503 `pdf_font_unavailable`: no hay fallback ni omite caracteres.
+  - `DOCUMENT_IMPORT_PDF_TEST_OUTPUT_DIR` es solo para pruebas; vacío, no escribe nada.
+- **Estimado y exportación** (`estimate.ts`, `export.ts`, `extract.ts`): el flete se calcula
+  sobre la revisión guardada y el Excel sale de esa misma revisión.
+- **Fuentes estáticas para PDF** (`lib/font-files/pdf/`): Nunito Sans 400, Sora 600,
+  JetBrains Mono 400 y Archivo Black 400 en TTF. Son las familias de marca que ya están en
+  `lib/font-files/`, sin modificar. Licencia SIL OFL 1.1: permite redistribuirlas junto con el
+  software si se incluyen el copyright y la licencia. Las cuatro licencias, con su URL y commit de
+  origen, están completas en `lib/font-files/pdf/README.md`. No se redistribuye ninguna fuente CJK.
+
+Allowlist exacta de P1:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p1-nucleo-pdf-20261116.md`
+- `.env.example`
+- `infra/dtd-cargo/.env.example`
+- `lib/shared/document-import.ts`
+- `lib/shared/__tests__/document-import.test.ts`
+- `lib/studio/document-import/estimate.ts`
+- `lib/studio/document-import/estimate.test.ts`
+- `lib/studio/document-import/export.ts`
+- `lib/studio/document-import/export.test.ts`
+- `lib/studio/document-import/extract.ts`
+- `lib/studio/document-import/extract.test.ts`
+- `lib/studio/document-import/http.ts`
+- `lib/studio/document-import/http.test.ts`
+- `lib/studio/document-import/service.ts`
+- `lib/studio/document-import/service.test.ts`
+- `lib/studio/document-import/migration.test.ts`
+- `lib/studio/document-import/pdf.tsx`
+- `lib/studio/document-import/pdf.test.tsx`
+- `lib/font-files/pdf/README.md`
+- `lib/font-files/pdf/archivo-black-400.ttf`
+- `lib/font-files/pdf/jetbrains-mono-400.ttf`
+- `lib/font-files/pdf/nunito-sans-400.ttf`
+- `lib/font-files/pdf/sora-600.ttf`
+- `next.config.ts`: solo la clave `outputFileTracingIncludes["/api/document-import"]`
+
+**Fuentes en producción.** `pdf.tsx` lee las TTF con `fs` desde `process.cwd()`, así que el tracer
+no las ve solo. `next.config.ts` las declara en `outputFileTracingIncludes` para `/api/document-import`.
+
+**Sin puertas de proveedor.** `extractDocument` ya no acepta las dependencias `pdf`/`nativeOnly` del
+diseño GLM. Toda lectura asistida pasa por `anthropic.ts`; un proveedor nuevo exige spec y la D-2.
+
+Sin migraciones: la tabla de workspaces es la 0457, que ya está en main. No se encienden banderas
+(`DOCUMENT_IMPORT_ENABLED` y `DOCUMENT_IMPORT_PORTAL_ENABLED` siguen como estén).
+
+### P2 · interfaz (apilada sobre P1)
+
+P2 lleva la interfaz al contrato de P1. Las dos se revisan por separado y entran juntas:
+P2 se fusiona en la rama de P1 y después P1 entra a main, así main nunca queda con
+la API nueva y la interfaz vieja.
+
+- **Cotizador y calculadora:** mandan `expectedRevisions` y comprueban `documentRevisions`.
+  Las baterías y la carga especial se leen de las declaraciones guardadas en el documento.
+  Al guardar se manda `documentEdit`, solo con las ediciones de negocio, y se adopta el workspace del recibo.
+- **Portal de compras:** el documento compartido reemplaza la precarga local en las compras
+  gestionadas. Las descargas en PDF y XLSX van ligadas a la revisión. Las etiquetas finales
+  exigen una revisión confirmada.
+- **Proveedor (`/p/[token]`):** abre la revisión compartida, corrige peso bruto y CBM, confirma
+  y descarga. Ve la proyección `projectSupplierDocument`: sin fuentes, decisiones ni mensajes privados.
+- **Portal apagado (decisión DG, 2026-11-16):** si `portalEnabled()` es falso, `/p/[token]` no consulta
+  el documento compartido y el proveedor ve el formulario de siempre, aunque exista un workspace.
+  Con el portal encendido, si la lectura falla, la vista queda cerrada (`sharedUnavailable`).
+  El proveedor se autoriza solo por su token, nunca por la sesión: `authorizeSupplierWorkspace` (seguimiento).
+- **Sin GLM:** no entran los mensajes `qa_glm_*`. Los tests usan un texto de divulgación neutral.
+
+Revisión `revisar-datos-ve` (2026-11-16, lectura de código, inventario técnico, no asesoría legal):
+- **Correctos:** la proyección al proveedor (`sources` vacío, `issues` genéricos, sin `fieldDecisions`),
+  el control de acceso por token y por dueño, `Cache-Control: private, no-store` en descargas,
+  logs sin datos, y el PDF y el QR renderizados en local, sin terceros nuevos.
+- **Abiertos:** el plazo de retención de los workspaces ligados a compra (la 0457 los guarda sin
+  `expires_at`), la purga de los anónimos vencidos y la fila del registro de tratamiento.
+  Vienen de la 0457 y ya están en main; quedan como pendientes del handoff de P2.
+
+Allowlist exacta de P2:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p2-interfaz-20261116.md`
+- `app/cotizador/CotizadorClient.tsx`
+- `app/cotizador/cotizador.test.tsx`
+- `app/p/[token]/ProviderShareClient.tsx`
+- `app/p/[token]/SharedSupplierDocument.test.tsx`
+- `app/p/[token]/SharedSupplierDocument.tsx`
+- `app/p/[token]/SupplierUploadSection.test.tsx`
+- `app/p/[token]/SupplierUploadSection.tsx`
+- `app/p/[token]/page.shared-document.test.tsx`
+- `app/p/[token]/page.tsx`
+- `app/portal/(app)/compras/[code]/_components/PackingListDelProveedor.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.test.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.test.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+- `app/portal/(app)/compras/[code]/page.test.tsx`
+- `app/portal/(app)/compras/[code]/page.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.test.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx`
+- `app/portal/_components/ShareProviderButton.tsx`
+- `components/document-import/DocumentCalculator.test.tsx`
+- `components/document-import/DocumentCalculator.tsx`
+- `components/document-import/DocumentEditor.test.tsx`
+- `components/document-import/DocumentEditor.tsx`
+- `components/document-import/DocumentImportEntry.test.tsx`
+- `components/document-import/DocumentImportEntry.tsx`
+- `components/document-import/DocumentImportPanel.test.tsx`
+- `components/document-import/DocumentImportPanel.tsx`
+- `components/document-import/document-client.test.ts`
+- `components/document-import/document-client.ts`
+- `components/document-import/document-import.module.css`
+
+### Seguimiento · menores de la revisión de P2 (2026-11-16)
+
+Después de que P1 y P2 entraron a main (#609), una PR corta atiende los menores del DG:
+- `authorizeSupplierWorkspace(admin, workspace, token)` autoriza al proveedor sin parámetro de sesión.
+  Niega workspaces anónimos o vencidos y exige el portal encendido. `authorizeWorkspace` delega en el mismo camino.
+- La prueba con el portal apagado afirma que no se consulta `document_workspaces`. Un caso nuevo fija
+  que un error al leerlo, con el portal encendido, deja la vista cerrada.
+- El handoff de P2 registra como FALLÓ la corrida amplia con timeouts, y aparte la corrida aislada en verde.
+
+Allowlist exacta del seguimiento:
+
+- `docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md`
+- `.agents/handoffs/0473-p2-interfaz-20261116.md`
+- `lib/studio/document-import/access.ts`
+- `lib/studio/document-import/access.test.ts`
+- `app/p/[token]/page.tsx`
+- `app/p/[token]/page.shared-document.test.tsx`

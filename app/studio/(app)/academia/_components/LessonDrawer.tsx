@@ -231,7 +231,7 @@ export function LessonDrawer({
             type="checkbox"
             checked={freePreview}
             onChange={(e) => setFreePreview(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: "var(--wine)" }}
+            style={{ width: 16, height: 16, accentColor: "var(--accion)" }}
           />
           Preview gratis (visible sin compra)
         </label>

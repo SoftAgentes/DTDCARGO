@@ -31,10 +31,14 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
  */
 
 const DESC =
-  "Puerta a puerta (DDP): tu mercancía de China llega hasta tu dirección en Venezuela con flete, aduana e impuestos incluidos. Pagas cuando tu carga llega — sujeto a aprobación.";
+  "Puerta a puerta (DDP): tu mercancía de China llega a tu dirección en Venezuela con flete, aduana e impuestos incluidos. Pagas al llegar, sujeto a aprobación.";
 
-/** El mismo título va en `metadata` y en el nodo `WebPage`. */
-const TITLE = "Puerta a puerta";
+/**
+ * El mismo título va en `metadata` y en el nodo `WebPage`. SDD-0657: antes era
+ * solo «Puerta a puerta»; ahora nombra la modalidad y el trayecto, que es lo
+ * que se busca. Con el sufijo « · DTD Cargo» queda en 54 caracteres.
+ */
+const TITLE = "Puerta a puerta (DDP) de China a Venezuela";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -48,7 +52,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/puerta-a-puerta" },
   ...socialMeta({
-    title: "Puerta a puerta · DTD Cargo",
+    title: `${TITLE} · DTD Cargo`,
     description: DESC,
     path: "/puerta-a-puerta",
   }),
@@ -195,13 +199,23 @@ export default async function PuertaAPuertaPage() {
                   </div>
                 ))}
               </dl>
-              <p className="mt-8">
-                <Link
-                  href="/faq"
-                  className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
-                >
-                  Ver todas las preguntas frecuentes <ArrowIcon size={14} />
-                </Link>
+              {/* SDD-0657 · Enlaces a la ficha del servicio y a las ciudades:
+                  sin ellos esta página y el grupo /importar-de-china quedaban
+                  aislados del resto del sitio. */}
+              <p className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+                {[
+                  { href: "/servicios/puerta-a-puerta", label: "Ver la ficha del servicio" },
+                  { href: "/importar-de-china", label: "Entregas en tu ciudad" },
+                  { href: "/faq", label: "Ver todas las preguntas frecuentes" },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
+                  >
+                    {label} <ArrowIcon size={14} />
+                  </Link>
+                ))}
               </p>
             </div>
           </section>

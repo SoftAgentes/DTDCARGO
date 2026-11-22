@@ -565,6 +565,7 @@ export function CalculadoraForm({
             lado que mira a la columna de entrada, sin importar en qué orden
             caiga cada una. */}
         <div
+          data-clarity-mask="True"
           className={`p-6 lg:p-9 flex flex-col gap-4 ${esConsolidado ? "lg:order-1" : "lg:order-2"}`}
           style={{
             background: "rgba(0,0,0,0.15)",
@@ -639,7 +640,8 @@ export function CalculadoraForm({
           (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
           vincular). En modo directWhatsApp NO hay captura → no se muestra. */}
       {!directWhatsApp && savedEstimateCode && (
-        <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        // SDD-0684: el código EST identifica el estimado de una persona.
+        <div data-clarity-mask="True" className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
               Estimado guardado ·{" "}

@@ -95,9 +95,9 @@ function Chip({
     <label
       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border cursor-pointer text-[12.5px] font-bold transition-colors"
       style={{
-        borderColor: checked ? "var(--color-wine)" : "var(--color-grey-200)",
+        borderColor: checked ? "var(--color-ink)" : "var(--color-grey-200)",
         background: checked ? "var(--color-paper)" : "transparent",
-        color: checked ? "var(--color-wine-text)" : "var(--color-grey-700)",
+        color: checked ? "var(--color-ink)" : "var(--color-grey-700)",
       }}
     >
       <input
@@ -148,7 +148,7 @@ function SupplierProfileFields({ disabled }: { disabled?: boolean }) {
           name="industry"
           disabled={disabled}
           placeholder="Ej. calzado deportivo, iluminación LED…"
-          className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
         />
       </div>
 
@@ -177,7 +177,7 @@ function SupplierProfileFields({ disabled }: { disabled?: boolean }) {
                 ? "¿Quién te lo recomendó?"
                 : "¿Dónde lo encontraste?"
             }
-            className="mt-2 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="mt-2 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
           />
         )}
       </div>
@@ -504,7 +504,7 @@ export function SupplierPicker({
              Name). Las instrucciones de teclado van por `aria-describedby`,
              que es su lugar — un nombre no se usa para explicar. */
           aria-describedby={`${uid}-ayuda-teclado`}
-          className="w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          className="w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
         />
         <span id={`${uid}-ayuda-teclado`} className="sr-only">
           Escribe para buscar. Usa las flechas arriba y abajo para recorrer la
@@ -544,7 +544,7 @@ export function SupplierPicker({
                       : esCrear
                         ? "var(--color-paper)"
                         : undefined,
-                    color: esCrear ? "var(--color-wine-text)" : undefined,
+                    color: esCrear ? "var(--color-accion-text)" : undefined,
                   }}
                 >
                   {/* La opción activa no se distingue SÓLO por color (WCAG
@@ -620,7 +620,7 @@ export function SupplierPicker({
                   width: 20,
                   height: 20,
                   background: "var(--color-paper)",
-                  color: "var(--color-wine-text)",
+                  color: "var(--color-ink)",
                 }}
               >
                 #{s.supplierSeq}
@@ -667,7 +667,7 @@ export function SupplierPicker({
               setSupplierOpen(true);
             }}
             className="btn btn-ghost min-h-12 shrink-0 whitespace-normal text-xs font-semibold"
-            style={{ color: "var(--color-wine-text)" }}
+            style={{ color: "var(--color-accion-text)" }}
           >
             Cambiar proveedor
           </button>
@@ -680,14 +680,13 @@ export function SupplierPicker({
           className="mt-3 rounded-[12px] p-4 border"
           style={{
             background: "var(--color-paper)",
-            borderColor: "var(--color-wine)",
+            borderColor: "var(--color-grey-300)",
           }}
         >
-          {/* `text-wine-text` crudo mide 3.70:1 en el portal oscuro (medido): el wine
-              como TEXTO va por --color-wine-text, que sí alcanza en ambos temas. */}
+          {/* Eyebrow en tinta suave (SDD-0686): el vino queda para la identidad. */}
           <p
             className="text-[10px] font-bold tracking-[0.08em] uppercase"
-            style={{ color: "var(--color-wine-text)" }}
+            style={{ color: "var(--color-grey-700)" }}
           >
             Datos del proveedor nuevo
           </p>

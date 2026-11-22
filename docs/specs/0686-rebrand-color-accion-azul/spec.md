@@ -1,0 +1,1258 @@
+---
+sdd: "0686"
+title: "Color de acción azul en web, Portal y ERP: el rojo queda para el peligro y el vino para la identidad"
+status: in-progress
+author: "Claude Worker (Sam)"
+created: 2026-11-20
+updated: 2026-11-22
+supersedes: null
+superseded_by: null
+related: ["0603", "0441", "0654", "0687", "0688"]
+confidencialidad: interno
+---
+
+# SDD-0686 — Color de acción azul en web, Portal y ERP
+
+> El botón principal y el botón de borrar se ven del mismo rojo. Quien opera no debe dudar entre «haz esto» y «cuidado».
+> Sin migraciones, sin datos de producción y sin PII. Etiquetas: **C** código leído · **M** medido · **I** inferencia · **NV** sin verificar.
+
+## Estado (2026-11-20)
+
+**Aprobada por Sam el 2026-11-20** para empezar las fases 0 y 1. Pregunta: «¿Apruebas la spec de la SDD-0686 para empezar con las fases 0 y 1?». Respuesta literal: «Sí, empieza». La aprobación cubre el diseño y la implementación de esas dos fases; no cubre fusionar ni publicar.
+
+**Fase 0 escrita** (BD-076, `BRAND.md`, VIS-01 v1.1, BTN-01 v1.2, nota del Norte, `app/studio/CLAUDE.md`). **Fase 1 escrita** (PR #722, aprobada en revisión independiente sobre `d32d6d3e9`). **Fase 2, grupos 1 y 2, escrita** (PR #736, apilada sobre la #722). Número asignado por el Director General el 2026-11-20 (reserva `codex/sdd-reserve-0686`, `c20842933`). Va primero de tres: SDD-0687 (formato de cifras) y SDD-0688 (simetría de pantallas) siguen después, cada una con su PR.
+
+## 1. Problema
+
+**Pedido de Sam, 2026-11-20, literal, en el chat de la sesión «Rebrand Design»:**
+
+- «El rojo que tenemos, el vino tinto, visualmente la gente lo ve como algo negativo o como borrar.»
+- «¿qué otras opciones tenemos para hacer un cambio total en el rojo? Todos estos cambios los vamos a hacer en conjunto, a nivel de portal del cliente y a nivel de ERP».
+- Vistas cinco opciones con su contraste: «opcion 2  Completamente todo el proyecto web, portal y ERP; todo el sistema completo.»
+- «Si hay que cambiar el branding completo, se puede cambiar. Si hay que eliminar algo que nos pueda dar errores adentro del brand.md, hay que cambiarlo.»
+
+Antecedente del mismo dolor: el 2026-11-17 Sam dijo «El rojo siempre llama como si fuera un error» y aprobó la excepción EXC-0654-01 (vino claro en la Vista simple del Portal, `BRAND.md`).
+
+**Causa medida** (`app/studio/tokens.css`, **C** y **M**):
+
+| Hecho | Medición |
+|---|---|
+| El vino y el rojo de peligro comparten tono | `--wine` `#7F0F1A` y `--danger` `#A8323E`: ambos a 354°; contrastan 1,61:1 entre sí |
+| En tema oscuro el botón principal usa el mismo hex que el peligro del tema claro | `--wine` oscuro = `#A8323E` = `--danger` claro |
+| En oscuro, el botón principal casi no se separa de la tarjeta | `#A8323E` sobre `--bg-surface` `#16264A`: 2,26:1 (mínimo 3:1). SDD-0603 lo compensó con un aro (`--ctl-edge-hi`) |
+| El Studio abre oscuro por defecto | SDD-0603 / BD-037 |
+| El vino también pinta enlaces, pestañas, saldos y KPI | 1.018 usos por token en `app/studio`, 259 en `app/portal`, 612 en la web y `components/`, 131 en `app/m` |
+
+## 2. La regla
+
+1. **Azul = acción.** Botón principal, enlaces, foco y acento de «esto se oprime».
+2. **Rojo = peligro y error.** Es el único rojo de la interfaz.
+3. **Vino = identidad.** Logo, wordmark «DTD», sello y documentos de marca. No pinta botones, enlaces ni cifras.
+4. **Tinta = selección** (pestaña, filtro), como ya fija BD-037, **y cifras** (saldos, KPI, montos). Un saldo va en rojo solo si está vencido.
+5. Un estado nunca se comunica solo con color: el peligro conserva icono y verbo (BRAND §Estados).
+
+## 3. Decisión de marca
+
+Cambia la apariencia respecto al Norte. Aprobada por Sam (cita en §1). Se registra como **BD-076** en `docs/design/studio/_norte/BRAND-DECISIONS.md` y en `BRAND.md`.
+
+Por qué BD-076 y no BD-071 (número asignado por el Director General el 2026-11-20, comprobado por valor en todo `origin/main` `2ea18799a`): el registro llega a BD-070, pero BD-071 ya la usa `docs/specs/0654-version-light-portal/spec.md`, y BD-074 y BD-075 están reclamadas en `docs/design/studio/respuesta-cloud-design-2026-08-02-v6-verificacion.md` y en esa misma spec. BD-072 y BD-073 no aparecen en ningún archivo: son huecos y **no se reutilizan**.
+
+**BRAND-CHECK.**
+
+```
+Lo que se pide:          azul como color de acción en web, Portal y ERP
+Regla que rompe:         BRAND §Sistema de color («--wine: Acento primario · CTAs · links»),
+                         regla 1 («cero hex inventados»), VIS-01 §3 («Wine: identidad, selección
+                         y acción primaria») y BD-037 («El vino queda para la acción principal»)
+Por qué va:              el vino y el peligro comparten tono (354°) y en oscuro comparten hex;
+                         Sam lo vio y lo decidió
+Alternativa dentro del sistema: tinta (navy/crema), sin colores nuevos; descartada por Sam porque
+                         se confunde con la selección
+Resultado:               excepción convertida en regla; BD-076; el Norte recibe la enmienda
+                         por NORTE-SYNC (el Norte no se edita localmente salvo la nota de enmienda,
+                         como en SDD-0441)
+```
+
+### Valores propuestos
+
+Misma familia de tono que el navy de la marca (219° frente a 220° de `--ink`). **Tono fijado por Sam el 2026-11-20:** vio tres tonos en claro y en oscuro, junto al rojo de peligro y al vino del logo: A `#2B5FC7`, B `#1F4FA8` y C `#173F8A`. Respondió «eligo la b». Quedan los valores de esta tabla, sin cambios.
+
+| Token (ERP) | Claro | Oscuro | Para qué |
+|---|---|---|---|
+| `--accion` | `#1F4FA8` | `#7FAAF0` | Relleno del botón principal; acento de acción |
+| `--accion-hover` | `#183E86` | `#9BBDF4` | Hover del relleno |
+| `--on-accion` | `#FFFFFF` | `#0F1E3D` | Texto e icono sobre el relleno |
+| `--accion-text` | `#1F4FA8` | `#7FAAF0` | Acción como texto: enlaces |
+| `--accion-tint` | `rgba(31,79,168,0.08)` | `rgba(127,170,240,0.14)` | Fondo suave de acción |
+| `--accion-soft` | `#7FAAF0` | `#7FAAF0` | Anillo de foco sobre superficies siempre oscuras (menú lateral) |
+
+En la web, el Portal y el móvil los pares son `--color-accion`, `--color-accion-hover`, `--color-on-accion`, `--color-accion-text`, `--color-accion-tint`, declarados en `app/globals.css` (claro en el tema base y oscuro en `[data-portal-theme="dark"]`).
+
+**Contraste medido** (fórmula WCAG, valores de `tokens.css`):
+
+| Par | Claro | Oscuro | Mínimo |
+|---|---|---|---|
+| `--on-accion` sobre `--accion` | 7,66 | 7,00 | 4,5 |
+| `--on-accion` sobre `--accion-hover` | 10,13 | 8,62 | 4,5 |
+| `--accion` contra `--bg-surface` (forma) | 7,66 | 6,32 | 3 |
+| `--accion` contra `--bg-elevated` (forma) | 6,73 | 5,53 | 3 |
+| `--accion-text` sobre `--bg-base` | 7,34 | 7,78 | 4,5 |
+| `--accion-text` sobre `--accion-tint` (compuesto sobre la tarjeta) | 6,76 | 4,90 | 4,5 |
+| `--accion-soft` contra `--bg-sidebar` (foco) | 7,00 | 8,23 | 3 |
+
+En oscuro el texto sobre el relleno es navy y **no** blanco: blanco sobre `#7FAAF0` mide 2,36:1.
+
+**Límite conocido.** Azul y rojo de peligro tienen luminosidad parecida (1,16:1 en claro): se distinguen por tono, no por claridad. Por eso la regla 5 es obligatoria y un botón destructivo nunca queda como única señal por su color.
+
+## 4. Qué pasa con el vino
+
+- `--wine`, `--wine-deep`, `--wine-soft`, `--wine-text` y `--wine-tint` **se conservan** como tokens de identidad. No se borran: el logo, los documentos y los gradientes de marca los usan.
+- Los alias `--studio-wine*` de `app/studio/studio.css:37-39` se retiran cuando su último consumidor pase a `--accion*`.
+- Cada uso actual del vino se reparte en tres destinos: **acción** → `--accion*`; **cifra o selección** → `--ink`; **identidad** → se queda.
+- **EXC-0654-01** (vino claro en la Vista simple del Portal) se cierra cuando la fase 3 llegue a esa pantalla: la sustituye el azul.
+
+## 5. Fases
+
+AGENT-BRIEF prohíbe el barrido masivo: **una fase, una rama, una PR**. Cada fase fija su allowlist archivo por archivo antes de empezar y la añade a esta spec.
+
+| Fase | Qué | Superficie | Tamaño |
+|---|---|---|---|
+| **0** | Marca y políticas: BD-076, `BRAND.md`, VIS-01 §3, BTN-01 §2, nota de enmienda en el Norte | Documentos | S |
+| **1** | Tokens de acción y clases compartidas del Studio: botón principal, foco, enlaces y acentos de `studio.css`; contratos de contraste | ERP | M |
+| **2** | Usos en línea del Studio (`var(--wine…)` en TSX), repartidos en acción, tinta o identidad, por grupos de módulos | ERP | L, en varias PR |
+| **3** | Tokens y clases de la web, el Portal y el móvil (`bg-wine`, `text-wine-text`, `var(--color-wine…)`) | Web, Portal, móvil | L, en varias PR |
+| **4** | Colores de la familia vino escritos a mano (unos 190) y el inicio de sesión | Todas | M |
+| **5** | Documentos y correos de marca, según decida Sam; cierre de EXC-0654-01; NORTE-SYNC | Documentos | M |
+
+### Fase 0 · allowlist
+
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`, `docs/specs/README.md`
+- `BRAND.md`
+- `docs/design/studio/_norte/BRAND-DECISIONS.md`
+- `docs/design/studio/_norte/CLAUDE.md` (solo la nota de enmienda local al tope de §Sistema de color; el resto llega por NORTE-SYNC)
+- `docs/governance/policies/vis-01.md`, `docs/governance/policies/btn-01.md`, `docs/governance/generated/` (lo que regenere `pnpm governance:check`)
+- `app/studio/CLAUDE.md` (tabla de variantes: `primary` deja de ser «wine»)
+- `docs/governance/README.md` (filas de VIS-01 y BTN-01)
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- Observaciones de la revisión de la PR #715, que por orden del Director entran aquí: `.agents/handoffs/rebrand-design-evaluacion-ant-design.md`, `docs/design/rebrand-erp/borrador-sdd-rebrand-sistema.md`, `docs/design/rebrand-erp/checklist-y-color.md` y `docs/design/rebrand-erp/evaluacion-carbon.md`
+
+Líneas de `BRAND.md` que se reescriben (**C**, sobre `main` `2ea18799a`): `:104` (fila «Marca»), `:121-123` y `:145-146` (rol de `--wine`), `:162` (los azules siguen prohibidos **para alertas**; el de acción no es alerta), `:183`, `:186` y `:188-189` (relleno y texto), `:309` (BD-037: «el vino queda para la acción principal»), `:324-325` (variantes de botón y tono de badge) y `:389-398` (EXC-0654-01, que queda con fecha de cierre).
+
+### Fase 1 · allowlist
+
+- `app/studio/tokens.css` (tokens nuevos en claro, oscuro e impresión)
+- `app/studio/studio.css` (las 83 líneas que nombran el vino: cada una pasa a acción, a tinta o se queda como identidad, con el motivo en la PR)
+- `app/studio/_components/__tests__/claridad-controles-contract.test.ts` (hoy mide `--ink-side-strong` sobre `--wine`, `:93`)
+- `app/studio/_components/__tests__/dark-theme-contrast-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-contract.test.ts` (nuevo)
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`, `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+
+Sin tocar ningún TSX: lo que cambia en pantalla tras la fase 1 es todo lo que se pinta por clase (`.studio-btn-primary`, anillos de foco, enlaces y chips de `studio.css`). Los usos en línea siguen en vino hasta la fase 2; **es un estado intermedio visible y aceptado**, y por eso la fase 1 no se publica sola (condición de publicación, §8.1).
+
+### Fase 1 · reparto aplicado en `studio.css` (2026-11-20)
+
+Sin contar comentarios, el vino aparecía en **74 líneas** de declaraciones y queda en **24** (**M**, contando líneas sin comentarios antes y después). Cada una queda con su motivo:
+
+| Destino | Qué | Reglas |
+|---|---|---|
+| Acción (`--accion*`) | Botón principal (relleno, hover, texto `--on-accion`), todos los anillos de foco (44 reglas `:focus-visible`, ninguna en vino), borde de foco de campos, enlace del aviso, enlace discreto, botón «Hoy» del calendario, restablecer permiso, enlaces de la matriz, hover de fila y de fecha clicables, asa de ancho de columna | `.studio-btn-primary*`, `.studio-input:focus-visible`, `.studio-toast-action`, `.studio-link-quiet`, `.studio-cal-today-btn*`, `.studio-permcell-reset*`, `.studio-mx-link*`, `.studio-row-linkable:hover`, `.studio-date-field__*:hover`, `.studio-col-resize*` y los `:focus-visible` |
+| Tinta (selección, BD-037) | Fila seleccionada, opción marcada de la matriz, estado activo del botón fantasma | `.studio-row-selected`, `.studio-mx-opt[aria-checked]`, `.bug-fab-ghost[data-active]`. El fondo es `color-mix(in srgb, var(--ink) 8%, transparent)`: sin color nuevo |
+| Tinta (cifras) | Valor KPI con acento en Tracking | `.studio-tracking-ops-kpis dd[data-acento]` |
+| Se queda: identidad | Guión del eyebrow; tono «vino» del contador de iconos (lo elige quien lo usa) | `.studio-eyebrow*::before`, `.studio-contador-icono[data-tono="vino"]` |
+| Se queda: **pendiente de decisión en la fase 2** | Vista de Tracking en vivo (barra, mapa, hitos, eyebrow, fila resaltada, código); chip de @mención; destello al guardar un permiso; estado y cambio de la matriz de permisos; contador de alerta de pestaña | `.studio-tracking-ops-*`, `.mention-chip`, `studio-permcell-saved`, `.studio-mx-st/chg/dot`, `.studio-tab-n[data-alerta]`. Son datos o estados, no acción; se deciden viendo la pantalla, con su consumidor en TSX |
+
+Alias retirados: `--studio-wine` y `--studio-wine-deep` (su único consumidor era el botón principal). `--studio-wine-soft` se queda para el eyebrow. El foco global de `tokens.css` pasa a `var(--accion)` en los dos temas y desaparece la regla oscura que usaba `--wine-soft`.
+
+### Fase 1 · archivos fuera de la allowlist escrita (anotados el 2026-11-20)
+
+La PR #722 tocó también estos archivos, que la allowlist de arriba no nombra:
+- Las cuatro fichas de componentes que pasaron a BTN-01 1.2 y VIS-01 1.1 por `components:check`: `docs/governance/components/action-menu.json`, `aviso.json`, `confirm-dialog.json` y `segmented-control.json`.
+- El pedido a Cloud Design (`docs/design/studio/pedido-cloud-design-2026-11-20-azul-de-accion.md`).
+
+Quedan registrados aquí. **Pendiente fuera de la #736:** el foco del campo oscuro (`studio.css:331`, `.studio-input-dark:focus-visible`) conserva un halo rosado (`rgba(194, 116, 127, 0.22)`) junto al borde `--accion-soft`. `studio.css` es de la fase 1 y la #722 está aprobada; se corrige en el próximo tramo que toque `studio.css`.
+
+### Fase 2 · grupo 1 · allowlist y reparto (2026-11-20)
+
+Lo abrió Sam con «Lo que no necesita mi aprobación, avances. Con esto que te di puedes ir avanzando», después de cerrar las decisiones de §10. Va en la rama `claude/sdd-0686-fase2-g1`, apilada sobre la PR de la fase 1. No se fusiona ni se publica sola (§8.1).
+
+**Archivos:**
+- Marco del Studio: `StudioSidebar.tsx`, `StudioTopbar.tsx`, `BandejaBadge.tsx` y `comments/CommentItem.tsx`.
+- Primitivas: `SegmentedControl`, `KpiCard`, `SplitActionButton`, `DateField`, `DataTable`, `ClientCombobox`, `RealtimeIndicator`, `columns/ColumnConfig` y `Badge` (el tono `wine` queda marcado como obsoleto).
+- Dashboard: `page.tsx`, `DashboardWidgets`, `DashboardEditorDrawer`, `RecentActivityCard` y `RecentQuotesCard`.
+- Los 19 `<Badge tone="wine">` del Studio, en 18 archivos y con un cambio de una línea cada uno. Rutas bajo `app/studio/`:
+  - `(app)/_components/StudioTopbar.tsx`
+  - `(app)/academia/_components/AcademiaClient.tsx` y `CourseEditorDrawer.tsx` (dos badges)
+  - `(app)/admin/rutas/_components/RoutesClient.tsx`
+  - `(app)/clientes/_components/DeliveryAddressesCard.tsx`
+  - `(app)/cola-qr/_components/QrQueueClient.tsx`
+  - `(app)/crm/_components/ConvertLeadDrawer.tsx`
+  - `(app)/etiquetas/_components/LabelGeneratorClient.tsx`
+  - `(app)/fidelizacion/_components/FidelizacionClient.tsx`
+  - `(app)/ordenes-venta/_components/OrdenesVentaClient.tsx`
+  - `(app)/reportes/_components/BuilderView.tsx`
+  - `(app)/seniat/_components/CustomsAgentsTab.tsx` y `FilingDetailDrawer.tsx`
+  - `(app)/tarifas/_components/TarifasClient.tsx`
+  - `(app)/tesoreria/_components/TesoreriaClient.tsx`
+  - `(panel)/ficha-chat/_components/FichaDtdView.tsx`
+  - `_components/documents/DocsPanel.tsx` (pasa a `success`)
+  - `_components/wiring/GenerateBLModal.tsx`
+- **Catálogo del dashboard** (revisión independiente de la #736): `lib/studio/dashboard/dashboard-catalog.ts` y `dashboard-kpi-queries.ts`. Tres KPI del catálogo y dos de las consultas pasan de `"wine"` a `"neutral"`. `KpiTone` deja de admitir `"wine"` y `TONE_TO_VALUE_COLOR` pierde esa clave, así que el valor del KPI y el icono del editor (`var(--${meta.tone})`) ya no pueden salir en vino. El contrato lo vigila por variable y trae dos mutantes.
+- La enmienda de BD-011 y el contrato nuevo `color-accion-fase2-contract.test.ts`.
+
+| Destino | Qué |
+|---|---|
+| Acción (`--accion*`) | Anillo de foco y borde al pasar el ratón de `SegmentedControl` (el anillo pasa de un tinte que no llegaba a 3:1 a 2 px de `--accion`); casilla y «Restablecer» de columnas; asa de ancho del menú (`--accion-soft`, sobre navy); enlaces del dashboard; zona donde se suelta un widget, «+» e interruptor del editor del dashboard |
+| Tinta (selección, BD-037) | Segmento y tarjeta activos; opción por defecto del botón dividido; día elegido del calendario (texto `--ink-inv`); día de hoy; fila activa de `DataTable`; opción activa del buscador de clientes; botón «Columnas» abierto; reacción propia en comentarios; icono y punto del módulo activo del menú |
+| Tinta (cifras, aprobado por Sam) | Barras, etiquetas y KPI «en curso» del dashboard; monto de los estimados; código del embarque en la actividad; KPI destacado en degradado navy (antes vino) |
+| Neutro o estado | Estados de viaje en `--info`; «En vivo» en `--success`; contador de la bandeja en una pastilla blanca con tinta fija, como la selección del menú; badges en `neutral` y «Vigente» en `success` |
+| Se queda: identidad | Brillo de marca del menú (BD-034), panel de bienvenida del dashboard (BD-034) y eyebrow de `EmptyState` |
+| Se queda: por decidir | Tono `wine` de `Avatar`, que son iniciales de persona: no es acción ni cifra |
+
+También corrige el voseo «refrescá» del indicador en vivo, que pasa a «refresca».
+
+### Fase 2 · grupo 2 · operación diaria (2026-11-20)
+
+En la misma rama. Son 104 usos en línea, en 33 archivos de `embarques`, `tracking`, `clientes`, `cn`, `cobranzas`, `facturacion` y `crm`. Ninguno queda en vino. El contrato `color-accion-fase2-contract.test.ts` suma estas siete carpetas, con cero usos permitidos.
+
+| Destino | Qué |
+|---|---|
+| Acción | Enlaces de documento y su foco; casillas (`accentColor`); botones de texto («Agregar dirección», «Cambiar destino», «Usar esta»); enlaces a duplicados, adjuntos y WhatsApp; el hover de las acciones de recepción; el botón «Traducir»; la columna del kanban donde se suelta una tarjeta |
+| Acción con subrayado (regla 6) | El Shipping Mark que, él solo, lleva a la ficha del cliente: en la tabla de embarques y en el panel del embarque |
+| Tinta (cifras y datos) | Saldos y KPI «por cobrar» o «pendiente»; montos de la factura; CBM; código del recibo; Shipping Mark que no lleva a ninguna parte; valor de la tarifa; tarjeta del fee |
+| Tinta (selección y estado) | Filas y tarjetas elegidas; opción activa del tipo de cliente, del idioma y del titular; botón «ver nombres» encendido; dirección predeterminada; progreso del tracking y su línea de tiempo; completitud de la ficha |
+| Neutro | El asterisco de campo obligatorio (`--ink-soft`, porque no es un error), las etiquetas «pendiente», el contador de no leídos, el bloque de traducción y el chino del encabezado del almacén |
+| Peligro | La fecha vencida sobre el panel oscuro de la factura (`--color-status-danger-on-dark`) |
+
+Quedan para un grupo siguiente las funciones de `lib/studio` que devuelven el tono `"wine"` a un `<Badge>` por variable (nivel VIP, plan mayorista, ETA del calendario y otras). Cada una necesita su propio reparto por función, y el contrato de hoy solo detecta el literal `tone="wine"`. **Hecho en el grupo 3.**
+
+### Fase 2 · grupo 3 · allowlist y reparto (2026-11-21)
+
+Lo asignó el Director General después de fusionar la #722: «Sigue con la 0686 fase 2, grupo 3: los tonos «wine» de lib/studio y el resto de los módulos». Va en la rama `claude/sdd-0686-fase2-g3`, desde `origin/main` `72d7f04ec`. El grupo 4 será dinero (tesorería, contabilidad, cotizador y afines) y después el resto de los módulos.
+
+**Allowlist (**M**, `git diff --name-only`):**
+- **`lib/studio`, 21 archivos de tipos:** cada función o mapa que devolvía `"wine"` como valor. 27 valores en total: `account-types`, `agent-types`, `audit-types`, `bug-types`, `calendar-events-queries`, `calendar-events-types`, `client-types`, `club/club-member-types`, `conversaciones/conversations-types` (canal portal), `documents/types`, `fidelizacion/types`, `inspecciones/types`, `mail-types`, `no-olvidar-types`, `nomina/attendance-types`, `nomina/ficha-empleado`, `nomina/position-types`, `op-calendar-types`, `proveedores/scorecard-types`, `qr-queue-types` y `user-types`. Las uniones de tipo (`| "wine"`) se quedan: no pintan nada y las limpia la fase 3, cuando el móvil deje de usar el tono.
+- **Dos pruebas de `lib/studio`** que fijaban el tono viejo: `__tests__/scorecard-types.test.ts` y `conversaciones/__tests__/conversaciones.test.ts`.
+- **79 archivos bajo `app/studio/`** (TSX, `.ts` y una hoja `.css`), con su ruta desde `app/studio/`:
+  - `(app)/academia` (3): `_components/AcademiaClient.tsx`, `_components/LessonDrawer.tsx`, `diplomas/_components/DiplomasClient.tsx`
+  - `(app)/admin` (28): `_components/ApiIntegrationSection.tsx`, `_components/AppearanceSection.tsx`, `_components/CalendarSection.tsx`, `_components/CompanySection.tsx`, `_components/ExchangeRatesSection.tsx`, `_components/ImportExportSection.tsx`, `_components/MasterDataSection.tsx`, `_components/NumberingSection.tsx`, `_components/PortalBackfillSection.tsx`, `_components/WebhookDrawer.tsx`, `_components/WorkflowsSection.tsx`, `_components/calculator/CityDrawer.tsx`, `_components/calculator/TariffDrawer.tsx`, `_components/calculator/TransportistasPanel.tsx`, `_components/calculator/WeightModelExplainer.tsx`, `agentes/[skillSlug]/page.tsx`, `agentes/_components/AgentKpisRow.tsx`, `agentes/_components/RunAgentModal.tsx`, `agentes/_components/RunsTable.tsx`, `agentes/_components/SkillCard.tsx`, `agentes/page.tsx`, `alertas-telegram/_components/TelegramAlertsPanel.tsx`, `notificaciones/_components/NotificationsClient.tsx`, `page.tsx`, `rutas/_components/CityDrawer.tsx`, `rutas/_components/CityPicker.tsx`, `rutas/_components/RouteDrawer.tsx`, `rutas/_components/RoutesClient.tsx`
+  - `(app)/bitacora` (8): `_components/AgentQueue.tsx`, `_components/BitacoraClient.tsx`, `_components/BoardKanban.tsx`, `_components/BoardList.tsx`, `_components/ExportMenu.tsx`, `_components/TaskCollabSection.tsx`, `nueva/_components/ActaReview.tsx`, `nueva/_components/NuevaReunionClient.tsx`
+  - `(app)/inspecciones` (3): `_components/InspeccionDrawer.tsx`, `_components/InspeccionesClient.tsx`, `_components/report-css.ts`
+  - `(app)/mailing` (8): `_components/ComposeView.tsx`, `_components/MailingClient.tsx`, `_components/RulesView.tsx`, `_components/ScheduledView.tsx`, `_components/SignaturesView.tsx`, `_components/TemplateEditorDrawer.tsx`, `_components/TemplatesView.tsx`, `_components/mailing-types.ts`
+  - `(app)/marketing` (17): `_components/FrictionReportsPanel.tsx`, `calendario/page.tsx`, `docs/_components/DocsReaderClient.tsx`, `hub/page.tsx`, `newsletter/_components/CampaignComposer.tsx`, `newsletter/page.tsx`, `noticias-web/_components/CategoryDetector.tsx`, `noticias-web/_components/KeywordPanel.tsx`, `noticias-web/_components/NoticiasTabs.tsx`, `noticias-web/_components/PublishModal.tsx`, `noticias-web/_components/RouteIdeaPanel.tsx`, `noticias-web/_components/Step0Brief.tsx`, `noticias-web/_components/Step1Headlines.tsx`, `noticias-web/_components/Step2Outlines.tsx`, `noticias-web/page.tsx`, `noticias-web/publicadas/page.tsx`, `page.tsx`
+  - `(app)/usuarios` (3): `_components/InviteUserDrawer.tsx`, `_components/MembersTable.tsx`, `_components/acceso/permisos.css`
+  - `_components/bug-reporter` (2): `BugFABButton.tsx`, `BugReportModal.tsx`
+  - `_components/documents` (1): `DocsPanel.tsx`
+  - `_components/guia` (1): `GuiaMotor.tsx`
+  - `_components/wiring` (5): `GenerateBLModal.tsx`, `GlobalSearchModal.tsx`, `OAuthFlowModal.tsx`, `ProfileModal.tsx`, `ShortcutsModal.tsx`
+- El contrato nuevo `app/studio/_components/__tests__/color-accion-fase2-g3-contract.test.ts`, esta spec y el handoff.
+
+| Destino | Qué |
+|---|---|
+| Neutro (`lib/studio`) | Rol admin, tipo de cuenta, modelo Opus del agente, eventos del calendario, nivel del cliente, plan del club, canal portal, tipos de documento, inspecciones, etiquetas de correo, recordatorios, asistencia y cargos de nómina, cola QR |
+| Éxito y atención (`lib/studio`) | Canje «aplicado» y nivel Platinum de fidelización → `success` (Platinum así se distingue de Bronze, que es `neutral`); reclamo «abierto» al proveedor → `warning`, porque pide intervención |
+| Acción | Enlaces y botones de texto («Editar →», «Ver», «+ Subir nueva versión», «CC», «Agregar ciudad»); casillas (`accentColor`); foco; interruptores encendidos; botón principal de notificaciones; la columna del kanban de bitácora donde se suelta una tarjeta; el aro con el que la Guía señala un control; el hover del buscador global |
+| Tinta (selección) | Pestañas, pastillas y tarjetas elegidas (fondo `color-mix(in srgb, var(--ink) 8%, transparent)`, o fondo de tinta con texto `--ink-inv` si el relleno era sólido); opción elegida del esquema de noticias, del diseño de firma y del rol al invitar; versión vigente de un documento; franja lateral del ítem activo |
+| Tinta (datos y cifras) | Códigos y variables en mono, porcentaje y barra de avance de la invitación al Portal, conteos, el nombre en el saludo de marketing |
+| Neutro (en línea) | Rótulos en mayúscula (`--ink-soft`, como `.studio-eyebrow`), eyebrows con clase (sin color en línea), asterisco de obligatorio, iconos informativos, fichas de icono de agentes y marketing (`--bg-elevated` y tinta), mapas de tono de mailing (sin clave `wine`; el clic del registro de correo pasa a `success`), puntaje bajo de una ruta |
+| Atención | «Falta el almacén» en el resumen oscuro de la invitación (`--warning`). **Pendiente:** en claro, `--warning` (`#B8893A`) da 4,14:1 en el extremo `#1F3055` del degradado y 5,24 en `#0F1E3D`; no llega a 4,5 en todo el fondo. No empeora (antes, 3,78 a 4,79). Hace falta un token de atención sobre fondo oscuro fijo, que hoy no existe; no se inventa hex |
+| Se queda: identidad | Diploma impreso (26 usos; documento de marca, regla 8, se revisa con los PDF de la fase 4); informe de inspección impreso, wordmark y rótulo del encabezado (2; la banda «muestra» pasa a tinta); franja de la vista previa de la firma de correo (1, regla 8); tarjeta de la Guía con su tinte de marca (6) |
+
+`Avatar`, `Badge` y `EmptyState` son del grupo 1 y no se tocan aquí. Sí se tocan los que llaman a `Avatar` con `color="wine"` dentro del grupo: los responsables del tablero de bitácora, la firma elegida de mailing y el rol marketing de usuarios pasan a `neutral`.
+
+El contrato del grupo 3 ve el vino se escriba como se escriba: `var(--wine…)`, `var(--grad-wine…)`, `var(--color-wine…)`, clases Tailwind (`bg-wine`, `hover:border-wine`…) y tonos `"wine"` por valor, en `.ts`, `.tsx` y `.css`. Congela las cuatro cuentas de identidad (la lista solo baja), mide al menos 150 archivos y al menos un `.css`, y trae un mutante por forma. Quedan fuera de la cuenta, por ser identidad que nombra el token como texto, las variables `--wine:` que declara el diploma para imprimir (`DiplomasClient.tsx:324-325`) y la muestra de paleta de Apariencia (`AppearanceSection.tsx:41-42`). Para `lib/studio` (`.ts` y `.tsx`) exige cero `"wine"` como valor: quita antes las uniones de tipo y las comparaciones, y detecta un valor en la misma línea que una unión. Mide al menos 300 archivos y al menos 10 uniones que todavía lo nombran, y trae dos mutantes. No detecta, y hoy no hay ninguno en el grupo, la variante arbitraria de Tailwind (`[&>svg]:text-wine`), el alias `--studio-wine*` de `studio.css`, un hex de la familia vino escrito a mano (fase 4), un tono armado con plantilla ni un `var(--wine)` de un `.tsx` de `lib/studio` que no sea tono. noticias-web entra a la lista permitida con su acción en vino (12 archivos), hasta la fase 3.
+
+#### Grupo 3 · correcciones de la revisión independiente de la #739 (2026-11-21)
+
+La revisión sobre `a31e77dd3` pidió cambios. Decisión del Director General: el grupo 3 cierra sin vino de acción en sus carpetas, se escriba como se escriba. Lo que se corrigió:
+
+- **Contraste del resumen de la invitación** (`usuarios/_components/InviteUserDrawer.tsx`). El fondo es navy fijo (`#0F1E3D` → `#1F3055`). `--ink-inv-soft` se invierte con el tema y en oscuro quedaba navy sobre navy (1,00 a 1,19:1). El rótulo, el paréntesis de región y el cuerpo de la tarjeta pasan a `--ink-side`, que no cambia con el tema (blanco al 85 %, como el texto del menú lateral). **El cuerpo (`:785`) ya venía igual desde `main`:** se arregla aquí por estar en el mismo bloque.
+- **noticias-web** (segunda revisión, sobre `be7ba878d`). Todo su contenido vive en un bloque `data-theme="light"` (`noticias-web/page.tsx:69`, `NoticiasShell.tsx:22`, `ManualPromptModal.tsx:91`, `PublishModal.tsx:226`) y ningún CSS define ese selector. Con el Studio en oscuro, el tema por defecto, los tokens del Studio toman su valor oscuro sobre el fondo claro: `--ink` daba entre 1,00 y 1,14:1. Decisión del Director General, la opción más chica: en noticias-web, solo tokens web fijos, que no cambian con el tema.
+  - Titular elegido, pestaña activa, acentos de los títulos, chips de palabras clave, prefijo del titular y chip de categoría pasan a `text-ink` o `var(--color-ink)`: 14,49 a 16,49:1.
+  - Asteriscos, iconos, rótulos y el número del titular pasan a `text-grey-500` o `var(--color-grey-500)`: 4,68:1 sobre `grey-100`, 5,11 sobre `paper` y 5,33 sobre blanco.
+  - El aviso de sugerencia editorial pasa a `--color-grey-100` con borde `--color-grey-300` y texto `--color-ink`. La opción elegida del esquema pasa a `--color-grey-100` y `--color-ink`. El puntaje bajo de una ruta pasa a `--color-grey-100` y `--color-grey-700`: 11,10:1.
+  - **La acción se queda en vino hasta la fase 3:** el botón principal (`bg-wine`), los bordes y textos al pasar el ratón o con foco, y los enlaces de volver (`--color-wine-text`). No hay `--color-accion*` en la web todavía. El contrato los permite archivo por archivo con ese motivo, y la lista solo baja.
+  - **Pendiente de la fase 3, con su propia revisión:** un bloque `[data-theme="light"]` en `tokens.css` que devuelva los tokens del Studio a su valor claro, como ya hace `@media print`. Esta PR no toca `tokens.css`.
+- **`usuarios/_components/acceso/permisos.css`:**
+  - anillos de foco, casilla y enlace pasan a `--accion` y `--accion-text`;
+  - las opciones marcadas pasan a la selección en tinta;
+  - el cambio pendiente de la matriz pasa a `--warning`;
+  - la franja de la barra fija pasa a tinta;
+  - la etiqueta «estado» pasa a neutro.
+- **Badges y avatares por valor:** el país VE en Empresa, «Enviando» del boletín, el flujo B de la ruta de ideas y el tono del video adjunto en bitácora pasan a `neutral`. `SuccessScreen` de mailing deja el nombre `wine` por `neutral`.
+- **Menores:**
+  - el comentario de `BugFABButton.tsx`;
+  - el parámetro que sobraba en `roleBadgeTone` de No olvidar, que no tiene llamadas;
+  - los espacios al final de línea;
+  - Platinum, que ahora se distingue de Bronze.
+
+Ninguna carpeta queda fuera del grupo 3: noticias-web es de marketing y `permisos.css` es de usuarios.
+
+#### Grupo 3 · revisión uno por uno de los tonos de `lib/` (2026-11-21)
+
+El Director General pidió revisar cada tono de `lib/` para ver si era identidad o acción, sin hacerlo en automático, y confirmar que ninguno se guarda. En `origin/main` `72d7f04ec` había 53 `"wine"` en `lib/` (**M**): 26 nombran el tono dentro de una unión de tipo y no pintan nada; 27 son valores en `lib/studio` y se revisaron uno por uno; el que queda en `lib/portal/alertas.ts:49` es del Portal y entra en la fase 3.
+
+**Ninguno de los 27 es identidad.** Identidad es la marca, la bienvenida o el sello. Estos tonos marcan una categoría, un rol, un tipo o un estado, y casi todos llegan a un `<Badge>`, donde el tono `wine` está retirado (regla 7: `neutral` si informa, `success` si confirma). No se deja ninguno.
+
+| Archivo | Qué marcaba el vino | Destino | Dónde se pinta |
+|---|---|---|---|
+| `account-types.ts` | Cuenta de patrimonio (PT) | `neutral` | Badge |
+| `agent-types.ts` | Modelo Opus («premium») | `neutral` | Badge |
+| `audit-types.ts` | Actor «operario» | `neutral` | Badge |
+| `bug-types.ts` | Categoría «sugerencia» | `neutral` | Badge |
+| `calendar-events-types.ts` (2) y `calendar-events-queries.ts` (2) | ETA y llegada planificada | `neutral` | Chip del calendario: `toneVar` y `toneBgVar` dan `--ink-soft` y `--neutral-bg` |
+| `client-types.ts` | Nivel «premium» | `neutral` | Badge |
+| `club/club-member-types.ts` | Plan «mayorista» | `neutral` | Badge |
+| `conversaciones/conversations-types.ts` | Canal «portal» | `neutral` | Badge. El portal es un canal de DTD, pero el badge informa el canal, no es la marca |
+| `documents/types.ts` | Carpeta «Logísticas» | `neutral` | `var(--neutral-bg)` y `var(--neutral)`; los dos tokens existen en claro, oscuro e impresión |
+| `fidelizacion/types.ts` | Nivel «Platinum» | `success` | Badge, y `tierColor`, que da `--success`. Primero fue `neutral`, igual que Bronze (`--ink-mute`); la revisión de la #739 pidió que se distinga |
+| `fidelizacion/types.ts` | Referido «aplicado» | `success` | Badge: confirma |
+| `inspecciones/types.ts` | Auditoría de fábrica | `neutral` | Badge |
+| `mail-types.ts` | Categoría «comercial» | `neutral` | Badge |
+| `no-olvidar-types.ts` (3) | Tarjeta; rotación de clave y recuperación; rol admin | `neutral` | Badge. El rol admin ya no se distingue por color: lo dice la etiqueta |
+| `nomina/attendance-types.ts` | Feriado de empresa | `neutral` | Badge |
+| `nomina/ficha-empleado.ts` (2) | Préstamo; consulta de la cuenta bancaria | `neutral` | La línea de tiempo de la ficha no pinta el tono hoy (`FichaEmpleadoVista.tsx:645-655`) |
+| `nomina/position-types.ts` | Cargo de contabilidad | `neutral` | Badge |
+| `op-calendar-types.ts` | Feria | `neutral` | Badge |
+| `proveedores/scorecard-types.ts` | Reclamo «abierto» | `warning` | Badge: pide intervención |
+| `qr-queue-types.ts` | Prioridad «urgente» | `neutral` | Badge. **I:** lo urgente ya lo dice la etiqueta; si Sam quiere que resalte, va `warning`, nunca vino |
+| `user-types.ts` | Rol admin | `neutral` | Badge |
+
+**Nada de esto se guarda** (**C**, búsqueda en `supabase/`, `*.sql`, `*.json` y `localStorage`). Los 27 son constantes o funciones puras que se calculan al pintar. Ninguno se escribe en preferencias, en JSON de la base ni en un enum de SQL, así que no hace falta una caída del valor viejo.
+
+**Único tono guardado en la base, fuera de este grupo:** `public.carriers.tone` (`supabase/migrations/0096_naviera_consolidacion.sql:36`, texto libre con `'neutral'` por defecto), que `lib/studio/naviera/queries.ts:71` lee tal cual. No se toca aquí. Si alguna fila guarda `'wine'`, se sigue pintando sin error, porque `Badge` todavía acepta ese tono como obsoleto (grupo 1). Su reparto va con naviera, en el grupo que la incluya, con la prueba de caída que pide el Director.
+
+### Fase 2 · grupo 4 · dinero: allowlist y reparto (2026-11-21)
+
+Lo asignó el Director General al fusionarse la #739. El grupo es contabilidad, financiero-china, seniat, fiscal, cotizador, nómina, proveedores, tesorería y gastos. Va en la rama `claude/sdd-0686-fase2-g4`, desde `origin/main` `f569411d6`, con revisión previa. Rigen las condiciones del grupo 3:
+- revisar uno por uno si el vino es identidad;
+- confirmar que ningún tono se guarda;
+- medir el contraste en los dos temas.
+
+Además rige una condición propia: **no cambiar el significado de ningún estado de dinero**. Un vino que significara peligro o vencido iría a `--danger`, no a neutro.
+
+**Inventario (M, con el mismo detector del contrato):** 140 usos en 49 archivos, entre token, clase, tono por valor y `.css`. No hay bloques `data-theme` fijos en estas carpetas. Ningún tono del grupo se guarda: son estilos en línea y tonos de Badge y Avatar calculados al pintar. `lib/studio` ya quedó sin `"wine"` como valor en el grupo 3.
+
+**Allowlist (rutas desde `app/studio/`):**
+  - `(app)/contabilidad` (14): `_components/AccountDrawer.tsx`, `_components/ActivosFijosTab.tsx`, `_components/AjustesDelCierre.tsx`, `_components/AssetDrawer.tsx`, `_components/ClosingDateDrawer.tsx`, `_components/ConciliacionTab.tsx`, `_components/EntryDrawer.tsx`, `_components/IngresoDelPeriodoCard.tsx`, `_components/LibroDiarioTab.tsx`, `_components/LibroMayorTab.tsx`, `_components/LineMatchDrawer.tsx`, `_components/PlanCuentasTab.tsx`, `_components/PorContabilizarTab.tsx`, `_components/StatementDrawer.tsx`
+  - `(app)/cotizador` (4): `[code]/page.tsx`, `_components/CotizadorClient.tsx`, `_components/QuoteDetailClient.tsx`, `_components/QuoteDrawer.tsx`
+  - `(app)/financiero-china` (2): `_components/LedgerTab.tsx`, `_components/StatementDetail.tsx`
+  - `(app)/fiscal` (3): `_components/FiscalClient.tsx`, `_components/FiscalConfig.tsx`, `_components/WithholdingsView.tsx`
+  - `(app)/gastos` (3): `_components/ExpenseDrawer.tsx`, `_components/GastosClient.tsx`, `_components/GastosKpis.tsx`
+  - `(app)/nomina` (7): `_components/AmonestacionDrawer.tsx`, `_components/EmpleadoDrawer.tsx`, `_components/GenerarFiniquitoDrawer.tsx`, `_components/NominaClient.tsx`, `_components/PuestoDrawer.tsx`, `_components/PuestosTab.tsx`, `_components/form-bits.tsx`
+  - `(app)/proveedores` (8): `_components/PackingListDrawer.tsx`, `_components/PackingListsTab.tsx`, `_components/ProveedoresClient.tsx`, `_components/ReclamosTab.tsx`, `_components/ScorecardTab.tsx`, `_components/ServiceRequestDrawer.tsx`, `_components/ServiceRequestsTab.tsx`, `_components/SupplierClaimDrawer.tsx`
+  - `(app)/seniat` (7): `_components/CostHelpers.tsx`, `_components/CreateFilingDrawer.tsx`, `_components/CustomsAgentsTab.tsx`, `_components/CustomsFilingsList.tsx`, `_components/CustomsKpis.tsx`, `_components/CustomsTaxTab.tsx`, `_components/FilingDetailDrawer.tsx`
+  - `(app)/tesoreria` (1): `_components/TesoreriaClient.tsx`
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g4-contract.test.ts`, el módulo común `_components/__tests__/vino-detector.ts` (la detección del vino que comparten los grupos 3 y 4) y el contrato del grupo 3, que pasa a usar ese módulo sin cambiar lo que mide.
+
+**Estados de dinero, caso por caso.** Ningún vino de estas pantallas marcaba un vencido, una mora ni un error. Marcaba montos, saldos, deudas y el lado de un movimiento. Por la regla 4 (cifras en tinta; rojo solo si está vencido) van a tinta. En las tiras navy fijas van a `--ink-side`, que no se invierte con el tema. Nada pasa a `--danger`, porque nada significaba peligro. A pedido del Director General se revisó, fila por fila, que ningún saldo negativo o deuda quedara distinguido solo por el vino: la última columna dice qué lo distingue sin color. El único caso que dependía del color era la columna «Saldo» del mayor del socio, y ahora lo dice una leyenda.
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Por qué no es `--danger` | Qué lo dice sin el color |
+|---|---|---|---|---|
+| Activos fijos (`ActivosFijosTab.tsx:126`, `:269`; `AssetDrawer.tsx:336`) | Depreciación acumulada: KPI, fila y vista previa | `--ink` | Es un monto contable, no una alerta | La etiqueta «Depreciación acumulada» y «Acumulada a hoy» |
+| Conciliación (`ConciliacionTab.tsx:300`) | Total de débitos del extracto | `--ink` | El débito es un lado del movimiento; el crédito sigue en `--success` | La etiqueta «Débitos» y el signo «−» de la celda |
+| Conciliación (`ConciliacionTab.tsx:388`) y match de línea (`LineMatchDrawer.tsx:193`) | Badge «Débito» (crédito en `success`) | `neutral` | Informa la dirección (regla 7); la etiqueta lo dice | El texto del Badge («Débito» / «Crédito») |
+| Extracto bancario (`StatementDrawer.tsx:435`) | «− Débitos» en la tira navy de saldos | `--ink-side` | Ídem; sobre navy fijo | La etiqueta «− Débitos» |
+| Libro mayor (`LibroMayorTab.tsx:179`, `:267`) | Código de cuenta y saldo destacado | `--ink` | Cifra | No distinguía estado: era el total destacado, que sigue en peso 800 |
+| Financiero China (`LedgerTab.tsx:120`, `:138`, `:302`) | Saldo neto > 0, «Le debemos al socio», y su saldo corriente | `--ink` | Es deuda corriente, no vencida; «el socio nos debe» sigue en `--success` y el texto debajo dice quién debe | KPI: el texto debajo («Le debemos al socio» / «El socio nos retiene / nos debe»). **Columna «Saldo» de la tabla: solo el color decía que el positivo es deuda nuestra; se suma una leyenda sobre la tabla:** «Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe o nos retiene. «—»: saldo en cero.» (texto ajustado en el grupo 5) El negativo ya lleva signo (`-$` en USD, `−¥` en RMB) |
+| Estado del socio (`StatementDetail.tsx:283`) | «Conciliado» por debajo de 100 % en la tira navy | `--ink-side` | Es avance; lo que pide atención («A revisar») ya va en `--warning`, y el 100 % en `--success` | El porcentaje mismo («Conciliado 80 %») |
+| SENIAT (`CustomsKpis.tsx:43`, `CustomsTaxTab.tsx:9`, `:160`) | «Impuestos pagados», aranceles en el desglose y total | `--ink` | Pagado, no vencido. En el desglose, el arancel es una serie más: IGTF `--warning`, IVA `--info` y agente `--success` no cambian | Las etiquetas («Impuestos pagados», «Aranceles de importación») |
+| SENIAT (`CreateFilingDrawer.tsx:383`, `FilingDetailDrawer.tsx:293`) | Rótulo «Total a pagar SENIAT» en la tira navy | `--ink-side` | Rótulo; el monto sigue en blanco | Es un rótulo; dice «Total a pagar SENIAT» |
+| Cotizador (`[code]/page.tsx:206`, `QuoteDrawer.tsx:844`) | Fecha «Válida hasta» en el panel navy del total | `--ink-side` | Es una fecha. Una cotización vencida se ve en su estado, no en este color | El texto «Vigencia:» / «Válida hasta» |
+| Cotizador (`CotizadorClient.tsx:448`) | Total de la fila | `--ink` | Cifra | No distinguía estado: era el total de la fila |
+| Tesorería (`TesoreriaClient.tsx:215`, `:592`) | KPI «Por pagar» y «Remesas a China» cuando hay saldo | `--ink` | Saldo pendiente, no vencido (como «por cobrar» en el grupo 2) | Las etiquetas «Por pagar» y «Remesas a China», y el texto debajo («N proveedor(es) con saldo») |
+| Gastos (`GastosClient.tsx:648`, `GastosKpis.tsx:33`, `ExpenseDrawer.tsx:415`) | Monto en USD, total del mes y vista previa | `--ink` | Cifra | No distinguía estado: es el monto |
+| Proveedores (`ProveedoresClient.tsx:237`, `:655`, `:931`; `ScorecardTab.tsx:89`; `PackingListDrawer.tsx:350`) | KPI de consolidadas, CBM, totales, rating y total destacado | `--ink` | Cifra | Las etiquetas del KPI; el CBM vacío sigue en `--ink-mute` con «—» |
+| Retenciones (`WithholdingsView.tsx:306`) | Badge «IVA» (ISLR en `info`) | `neutral` | Informa el tipo | El texto del Badge («IVA» / «ISLR») |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | Casillas (`accentColor`, 8); enlaces a lo que falta contabilizar, al diario y a los anulados; «Ver CxP» de tesorería; la zona de adjuntos al pasar el ratón en gastos |
+| Tinta (selección) | Servicio y extras elegidos del cotizador, moneda elegida y estado activo del financiero China, opción elegida del finiquito, columna ordenada de proveedores (fondo `color-mix(in srgb, var(--ink) 8%, transparent)` y borde de tinta) |
+| Tinta (datos) | Códigos de asiento, de compra, de embarque y de expediente; Shipping Mark que no lleva a otro lugar (regla 6); acento lateral del detalle de cotización; pasos hechos de la amonestación y del reclamo |
+| Neutro | Asteriscos de obligatorio (`--ink-soft`, 27); rótulos en mayúscula; eyebrow de Fiscal (vuelve al de `.studio-eyebrow`); chips de HS y su «Quitar»; avatares de agentes aduanales y del empleado (`neutral` y `--bg-elevated`); icono del adjunto |
+| Atención | La nota «Candado» de un puesto de nómina (`PuestosTab.tsx:149-151`): pasa a `--warning-bg` con borde `--warning` y texto de tinta. Es una regla que restringe, no un error |
+| Se queda: identidad | El encabezado impreso de los libros de IVA y de retenciones (`.fp-eyebrow` en `FiscalClient.tsx` y `WithholdingsView.tsx`): documento de marca, regla 8 |
+
+**Contraste** (fórmula WCAG, hex de `tokens.css`):
+- `--ink-side` sobre `--bg-sidebar` da 12,14:1 en claro y 14,97:1 en oscuro.
+- La tinta y `--ink-soft` sobre superficie dan las mismas cifras que en los grupos 1 a 3.
+- La nota «Candado» usa tinta sobre `--warning-bg`, el mismo par que `Aviso` en atención.
+
+El contrato del grupo 4 congela las dos cuentas de identidad, mide al menos 100 archivos y trae dos mutantes: el KPI «Por pagar» en vino y el Badge de débito en vino.
+
+### Fase 2 · grupo 5 · operación de la oficina: allowlist y reparto (2026-11-21)
+
+Lo asignó el Director General al fusionarse la #740 (`cae9687e2`), en la rama `claude/sdd-0686-fase2-g5`. El grupo reúne los ocho módulos con vino que más usa la oficina: despacho, calendario, tms, operarios, etiquetas, cola-qr, tarifas y reclamos (**I:** orden por uso diario en la operación, no medido). Son 136 usos en 40 archivos. Rigen las condiciones del grupo 4: identidad, lo que se guarda, el contraste en los dos temas, los bloques `data-theme` y qué lo dice sin el color.
+
+- **Identidad:** no queda ninguna. El grupo cierra con cero usos de vino por token, clase y tono; quedan los hex escritos a mano de la etiqueta impresa, para la fase 4.
+- **Lo que se guarda:** nada. En estas carpetas, `localStorage` guarda solo anchos de columna; los tonos se calculan al pintar. `public.carriers.tone` es de naviera y no entra aquí.
+- **`data-theme`:** no hay bloques fijos. Las tiras navy (la ocupación del camión del despacho) usan `--ink-side*`, que no se invierte con el tema.
+- **Arreglos menores de la revisión de la #740:**
+  - el comentario de `proveedores/_components/ProveedoresClient.tsx:887-888`, que todavía decía «valor wine»;
+  - la leyenda del socio en `financiero-china/_components/LedgerTab.tsx`, que ahora nombra «nos retiene» y explica la raya del saldo en cero.
+
+**Allowlist (rutas desde `app/studio/`):**
+  - `(app)/calendario` (8): `_components/AgendaView.tsx`, `_components/CalendarClient.tsx`, `_components/CalendarLegend.tsx`, `_components/DayDrawer.tsx`, `_components/FairsPanel.tsx`, `_components/MonthView.tsx`, `_components/UpcomingHolidaysCard.tsx`, `_components/WeekView.tsx`
+  - `(app)/cola-qr` (4): `_components/BatchPrintDrawer.tsx`, `_components/QrQueueClient.tsx`, `_components/QrQueueKpis.tsx`, `_components/QrQueueTable.tsx`
+  - `(app)/despacho` (7): `_components/ActiveOdsPanel.tsx`, `_components/CreateOdDrawer.tsx`, `_components/DispatchKpis.tsx`, `_components/DispatchQueueTable.tsx`, `dashboard/_components/DispatchDashboardClient.tsx`, `page.tsx`, `reglas/_components/RulesClient.tsx`
+  - `(app)/etiquetas` (2): `_components/LabelGeneratorClient.tsx`, `_components/SupplierMessageModal.tsx`
+  - `(app)/financiero-china` (1): `_components/LedgerTab.tsx`
+  - `(app)/operarios` (7): `_components/EditOperarioDrawer.tsx`, `_components/MotivoField.tsx`, `_components/NewOperarioDrawer.tsx`, `_components/OperariosClient.tsx`, `_components/PinRevealBlock.tsx`, `_components/PinViewDialog.tsx`, `_components/ResetPinDrawer.tsx`
+  - `(app)/proveedores` (1): `_components/ProveedoresClient.tsx`
+  - `(app)/reclamos` (2): `_components/ClaimDrawer.tsx`, `_components/ReclamosClient.tsx`
+  - `(app)/tarifas` (2): `_components/RateDrawer.tsx`, `_components/TarifasClient.tsx`
+  - `(app)/tms` (8): `_components/DriverDrawer.tsx`, `_components/DriversTab.tsx`, `_components/FleetTab.tsx`, `_components/GpsLiveTab.tsx`, `_components/IncidentsTab.tsx`, `_components/RouteDrawer.tsx`, `_components/RoutesTab.tsx`, `_components/TmsKpis.tsx`
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g5-contract.test.ts`, la prueba nueva `(app)/calendario/_components/MonthView.test.tsx`, esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Calendario (`AgendaView`, `DayDrawer`, `FairsPanel`, `WeekView`, `MonthView:132`, `CalendarLegend:68`, `:73`, `UpcomingHolidaysCard:25`) | Feriado de China | `--warning` (borde, punto y Badge) | El Badge dice «CN». Un feriado común avisa: va en atención, no en peligro |
+| Calendario, mes (`MonthView:132`) y leyenda (`CalendarLegend:66-68`) | Feriado **crítico** de China: la operación se para (Año Nuevo Chino, Golden Week) | Barra en `--danger`: 4,62:1 en claro y 3,11:1 en oscuro contra la celda. Con `--warning` daba 2,21:1 en claro (revisión de la #741, que corrige la decisión anterior: el crítico sí es peligro) | Un ícono de alerta junto al nombre del feriado en la celda y el título «· feriado crítico». Para lectores de pantalla, el estado va en el nombre accesible del botón del día («Ver eventos del AAAA-MM-DD, feriado crítico en China»): el botón lleva `aria-label`, que tapa el texto de adentro (revisión de la #741). Lo vigila `calendario/_components/MonthView.test.tsx`. En la agenda y el cajón del día el texto ya decía «Operación CN paralizada» y «Crítico». El Badge «Crítico» de `FairsPanel.tsx` pasa a `danger` y la marca «crítico» de `UpcomingHolidaysCard.tsx` a `--danger-text`: como texto de 9 px da 5,78:1 en claro y 5,89:1 en oscuro sobre `--bg-elevated` (con `--danger` en oscuro daba 4,43:1, por debajo de AA) |
+| Calendario (`MonthView:192`, `UpcomingHolidaysCard:24`) | Texto del nombre del feriado chino | `--ink` | El nombre mismo. `--warning` no llega a 4,5:1 como texto chico |
+| Calendario (`CalendarClient:327`) | Punto de «Arribos · ETA» en los filtros | `--ink-soft` | La etiqueta; igual que la ETA del grupo 3, que pinta neutral |
+| Calendario (`MonthView:160`, `WeekView:66`, `:91`, `CalendarLegend:82`) | Día de hoy | `--ink` (fondo de tinta y número en `--bg-surface`) | La leyenda «Hoy» y el círculo; como el día de hoy del grupo 1 |
+| Despacho (`CreateOdDrawer.tsx:392`) | Ocupación normal del camión (≤ 90 %) en la tira navy | `--ink-side-strong` | El porcentaje y la cifra «usado / total». Arriba de 90 % sigue `--warning`, y arriba de 100 % `--danger` |
+| Despacho, cola QR (`DispatchKpis`, `QrQueueKpis`, `DispatchDashboardClient:109`) | KPI «En cola», «Pendientes» sin urgentes y «Total ODs» | `neutral` | Las etiquetas. Con urgentes, «Pendientes» sigue en `--warning` y el texto dice «N urgentes» |
+| Despacho (`DispatchDashboardClient:235`) | Barra del primer lugar en «Top ciudades» | `--ink` (las demás, tinta al 30 %) | El orden de la lista y el número «N ODs» |
+| TMS (`IncidentsTab:44`, `TmsKpis:18`) | «Mantenimientos» cuando hay, y «Flota total» | `--ink` | Las etiquetas y el texto «Programados» |
+| TMS (`RoutesTab:207`, `GpsLiveTab:301`) | Avance de la ruta por debajo de 100 % | `--ink` | El porcentaje. Al 100 % sigue `--success` |
+| TMS (`RouteDrawer:266-269`) | Última parada (destino) del recorrido | `--ink`, igual que la primera | El orden y el número de la parada. No va en `--success`: una parada sin recorrer no está confirmada, y el número sobre verde daba 4,15:1 en claro |
+| Reclamos (`ReclamosClient:215`, `:397`, `:629`) | «Monto expuesto» de reclamos abiertos y montos | `--ink` | La etiqueta «Monto expuesto» y «reclamos abiertos». No es un vencido |
+| Reclamos (`ReclamosClient:669`, `:692`) | Pasos alcanzados del reclamo | `--ink` | El número del paso y la etiqueta |
+| Operarios (`OperariosClient:409`) | Badge del rol supervisor | `neutral` | El texto del rol. Como el rol admin del grupo 3 |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | Casillas y el control deslizante de reglas; enlaces a reglas de despacho, rutas y clientes VIP; «+ Agregar parada intermedia» del TMS; «Copiar» del mensaje al proveedor |
+| Tinta (selección) | Política y estrategia elegidas en las reglas de despacho, fila elegida de la cola, opción elegida del lote de impresión, barra de selección de la cola QR, copias por caja y formato elegidos de etiquetas |
+| Tinta (datos) | Códigos de OD, ruta, embarque, Shipping Mark sin destino propio (regla 6) y orden; valores de las reglas; el PIN que se muestra una vez; la tarifa |
+| Neutro | Asteriscos de obligatorio, rótulos y eyebrows (vuelven al color de `.studio-eyebrow`), la flecha entre paradas, avatares de choferes y operarios, la caja del Shipping Mark de etiquetas y la nota del tier elevado (`--neutral-bg` con borde `--border-strong`) |
+
+**Contraste:**
+- `--ink-side` sobre `--bg-sidebar` da 12,14:1 en claro y 14,97:1 en oscuro.
+- `--ink-side-strong` (blanco) sobre la misma tira da más que eso.
+- La tinta, `--ink-soft` y `--warning` como borde (forma) usan los pares ya medidos en los grupos 1 a 4.
+
+**Pendientes fuera de esta PR:**
+- Los tintes `--cal-cn-soft` y `--cal-cn-critical` de `tokens.css` siguen en la familia roja (`rgba(168,50,62,…)` en claro y `rgba(224,119,133,…)` en oscuro). Son de la fase 1. Se deciden junto con la barra del feriado crítico del mes, en el próximo tramo que toque `tokens.css` y con su propia revisión.
+- La etiqueta impresa (`etiquetas/_components/Label.tsx:153`, `:162` y `:200`) conserva `#7F0F1A` escrito a mano, incluido el Shipping Mark, que es un dato. El detector no ve hex: va con la fase 4, donde están los hex de la familia vino. Por eso esta carpeta tiene cero vino **por token y por clase**, no cero vino.
+- La barra de ocupación blanca del despacho da 2,83:1 contra su pista en claro (antes 1,21) y 3,65:1 en oscuro. La acompaña la cifra «usado / total». Llevarla a 3:1 en claro queda pendiente.
+- ~~La marca «crítico» de `UpcomingHolidaysCard.tsx`, en `--warning` a 3,14:1, venía de `main`.~~ Resuelto en esta PR: pasa a `--danger-text` (fila del feriado crítico).
+
+**Seguimiento de la revisión de la #741 (PR aparte, 2026-11-21):**
+- La vista semana (`calendario/_components/WeekView.tsx`) marca el feriado crítico de China como el mes. La barra va en `--danger`, con 5,92:1 en claro y 4,45:1 en oscuro contra el chip. Lleva además un ícono de alerta y la palabra «· crítico».
+- El nombre accesible del botón del día sale de una sola función para el mes y la semana, `dayCellLabel` en `lib/studio/calendar-helpers.ts`. Anuncia los feriados (y si son críticos), las ferias y los eventos, que el `aria-label` tapaba. Tiene un tope para no volverse una oración larga: dos feriados como máximo, con el crítico primero, «y N feriados más» para el resto, y las ferias y los eventos como conteo.
+- La prueba 2 de `MonthView.test.tsx` pasa a esperar «…, feriado en China». La prueba nueva es `WeekView.test.tsx`.
+
+El contrato del grupo 5 exige cero vino por token, clase y tono en las ocho carpetas (los hex escritos a mano son de la fase 4). Mide al menos 60 archivos y trae dos mutantes: el feriado de China y un KPI de flota.
+
+**Orden de los módulos que quedan (grupo 6 en adelante, de 5 a 8 por grupo; I: por uso):**
+1. Grupo 6: reportes, dirección, bugs, mis-bugs, costing, legal y ve.
+2. Grupo 7: naviera (con la prueba de caída del `wine` guardado en `public.carriers.tone`), fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario.
+3. Grupo 8: conversaciones, menciones, rendiciones, servicios, ajustes, `(panel)` y los restos de un uso en cobranzas, dashboard, mailing e inspecciones.
+
+El vino de identidad que ya está permitido (diploma, informe de inspección, firma de correo, Guía y libros fiscales impresos) y la acción de noticias-web, que espera la fase 3, no cuentan como pendientes.
+
+### Fase 2 · grupo 6 · reportes y dirección: allowlist y reparto (2026-11-21)
+
+Sigue el orden que dejó el grupo 5, al fusionarse la #741 (`d81f7c504`), en la rama `claude/sdd-0686-fase2-g6`. Los módulos son reportes, dirección, bugs, mis-bugs, costing, legal y ve: 112 usos en 27 archivos. Rigen las mismas condiciones del grupo 5: identidad, lo que se guarda, el contraste en los dos temas, los bloques `data-theme` y qué lo dice sin el color.
+
+- **Identidad:** queda el encabezado impreso «DTD Cargo · Constructor de reportes» (`.rpt-eyebrow` en `BuilderView.tsx`), igual que los libros fiscales del grupo 4 (regla 8).
+- **Lo que se guarda:** en estas carpetas, `localStorage` guarda los filtros del panel de bugs y las combinaciones del constructor de reportes. Ningún tono ni color.
+- **`data-theme`:** no hay bloques fijos. Las tiras navy (la proyección de costos, la cabecera del editor de costos y el encabezado de legal) usan `--ink-side*` y `--color-status-danger-on-dark`, que no se invierten con el tema.
+
+**Allowlist (rutas desde `app/studio/`):**
+  - `(app)/bugs` (5): `_components/BugDrawer.tsx`, `_components/BugKanban.tsx`, `_components/BugStats.tsx`, `_components/BugTable.tsx`, `page.tsx`
+  - `(app)/costing` (2): `_components/CostEditorDrawer.tsx`, `_components/CostingClient.tsx`
+  - `(app)/direccion` (8): `_components/AlertsCard.tsx`, `_components/CommercialCard.tsx`, `_components/FinanceHealthCard.tsx`, `_components/ForecastCard.tsx`, `_components/MiniStat.tsx`, `_components/OpsCard.tsx`, `_components/SinFacturarCard.tsx`, `page.tsx`
+  - `(app)/legal` (3): `_components/LegalClient.tsx`, `evidencia/[code]/page.tsx`, `expediente/[code]/page.tsx`
+  - `(app)/mis-bugs` (1): `_components/BugCard.tsx`
+  - `(app)/reportes` (4): `_components/BuilderView.tsx`, `_components/ReportesClient.tsx`, `_components/charts.tsx`, `page.tsx`
+  - `(app)/ve` (4): `_components/AlmacenVeClient.tsx`, `_components/VeKpis.tsx`, `_components/VeRowActions.tsx`, `page.tsx`
+- Además: el contrato nuevo `_components/__tests__/color-accion-fase2-g6-contract.test.ts`, esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Costing (`CostEditorDrawer.tsx:120`, `CostingClient.tsx:1258`) | Margen negativo, en la tira navy (positivo en `--success`) | `--color-status-danger-on-dark`: 7,46:1 en claro y 8,78:1 en oscuro sobre `--bg-sidebar` | El signo (`-$`) y el porcentaje. Un margen negativo es pérdida, así que va en peligro |
+| Reportes, recompra (`ReportesClient.tsx:1200`) | KPI «En ventana · contactar ya» (vencidos en `--danger`, en curso en `--success`) | `--warning`: 3,14:1 en claro y 7,15:1 en oscuro sobre `--bg-surface`. Alcanza porque es texto grande: la cifra del KPI (`KpiCard.tsx:92`) va en peso 900 a `--kpi-fs`, que mide 30 px en densidad normal y 24 px en compacta (`tokens.css:186` y `:477`), y el umbral es 18,66 px en negrita. En el extremo del degradado de la tarjeta da 3,01:1, apenas sobre el 3:1 (medido en la revisión de la #742). No existe `--warning-text`; si la cifra bajara de 18,66 px, haría falta un tono de 4,5:1 | La etiqueta «En ventana» y «contactar ya» |
+| Reportes, recompra (`ReportesClient.tsx:1248`) | Días desde la última compra, cuando no está vencida | `--ink` | El Badge «Ventana» o «Vencida» al lado. Lo vencido sigue en `--danger` |
+| Reportes, IVA (`ReportesClient.tsx:1642`) | «IVA a pagar» (el excedente a favor, en `--success`) | `--ink` | La etiqueta «IVA a pagar» y «luego de retenciones». Es un monto que se debe, no un vencido |
+| Reportes, meta (`ReportesClient.tsx:1309`, `:1315`) | Avance contra la meta por debajo de 100 % | `--ink` | El porcentaje y «N vs meta CBM/mes». Al 100 %, `--success` |
+| Reportes, margen por ruta (`ReportesClient.tsx:2151`) | Barra de margen positivo (negativo en `--danger`) | `--ink` | La cifra al lado |
+| Reportes, margen bruto (`ReportesClient.tsx:1931`) | KPI «Margen bruto», siempre en vino | `--ink` | El signo y el porcentaje de margen. El vino no cambiaba con el signo |
+| Reportes, gráficas (`charts.tsx`, `ReportesClient.tsx:685` a `:1855`, `BuilderView.tsx:491`) | Barras, líneas, donut y barra «facturado» (cobrado en `--success`) | Tinta: barras en `--ink`, línea de CBM en `--ink-soft`; en el donut y en las barras del constructor, tinta en grados (70 %, 45 % y 22 % sobre la superficie; el donut pasa a 82 %, 66 % y 50 % con trazo en el grupo 7) | La leyenda de cada serie y las cifras. Regla de Sam: cifras y gráficas en tinta |
+| Dirección, proyección (`ForecastCard.tsx:100`) | Semana en curso en vino; las siguientes en vino claro | `--ink` para la semana en curso y tinta al 45 % para las siguientes | La etiqueta de la semana y el monto |
+| Dirección, operaciones (`OpsCard.tsx:18`) | Cut-off de la naviera a más de 3 días (a 3 o menos, `--danger`) | `neutral` | Los días que faltan |
+| Legal (`LegalClient.tsx:403`, `:410`) | Versión vigente del documento | Selección en tinta | El Badge «Vigente» de la fila |
+| VE (`VeKpis.tsx:47`) | «DDP en camino» cuando hay repartos | `--ink` | El texto «DDP en camino al cliente» o «Ningún reparto activo» |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | Enlaces («Ver embarques sin facturar →», CRM, tesorería, naviera, el reporte sin facturar); bordes al pasar el ratón en el kanban de bugs, en las acciones de VE y en editar costos |
+| Tinta (selección) | El modo activo de reportes (fondo de tinta y texto `--ink-inv`), el primer lugar de las estadísticas de bugs y la columna ordenada |
+| Tinta (datos) | Folios, códigos de embarque, de envío y de acuse, Shipping Mark sin destino propio (regla 6), CBM, totales y KPI |
+| Neutro | Rótulos en mayúscula, la flecha de la ruta, avatares de asesores (sin `wine`), mensajes del administrador en bugs (`--neutral-bg` con borde de tinta), la marca «abierto», el ícono del encabezado de legal sobre navy (`--ink-side-strong` en un fondo translúcido) y los chips de código |
+
+Los mapas de tono locales de bugs y mis-bugs pierden la clave `wine`. Son `Record<string, …>`, y el tono «sugerencia» ya llega como `neutral` desde `lib/studio/bug-types.ts` (grupo 3).
+
+El contrato del grupo 6 congela la única cuenta de identidad, mide al menos 40 archivos y trae dos mutantes: el margen negativo y la barra de las gráficas.
+
+### Fase 2 · grupo 7 · naviera, fidelización y órdenes: allowlist y reparto (2026-11-21)
+
+Sigue el orden del grupo 5 y empieza al fusionarse la #742, en la rama `claude/sdd-0686-fase2-g7`.
+- **Módulos:** naviera, fidelización, documentos, órdenes de compra, órdenes de venta, club e inventario.
+- **Tamaño:** 52 líneas con vino en 13 archivos de pantalla, más las uniones de tono de sus tipos en `lib/studio`.
+- **Condiciones:** las mismas del grupo 5.
+- **Arrastres de la revisión de la #742:** el donut de reportes y las dos impresas de legal.
+
+- **Identidad:** no queda ningún vino de identidad en estas carpetas.
+- **Lo que se guarda:**
+  - `public.carriers.tone` es texto libre y su comentario de 0096 nombra «wine». La base no se toca. Al leerla, `carrierTone()` (`lib/studio/naviera/types.ts`) deja pasar solo los tonos del sistema y lleva a `neutral` un «wine» viejo o cualquier valor desconocido, sin error. `coerceCarrier` lo usa, y `Carrier.tone` pasa de `string` a `BadgeTone`. Lo prueba `lib/studio/naviera/__tests__/carrier-tone.test.ts`, también a través de `listCarriers`. Hoy ninguna pantalla pinta ese tono.
+  - `localStorage` guarda solo el orden de las compras. No guarda ningún tono.
+- **`data-theme`:** no hay bloques fijos. La cola «Listo para consolidar» de inventario está sobre `--bg-sidebar` y usa `--ink-side`, como la invitación del grupo 3.
+- **Tonos armados con plantilla:** las cabeceras de estado de `PoDrawer` y `OvDrawer` y las carpetas de documentos usan `var(--${tono})`, que el detector no ve. Ahora el tipo de esos tonos ya no incluye «wine», así que tsc impide que vuelva.
+
+**Allowlist (rutas desde la raíz):**
+  - `app/studio/(app)/naviera` (3): `_components/AssignCargoDrawer.tsx`, `_components/NavieraClient.tsx`, `_components/UtilizationBar.tsx`
+  - `app/studio/(app)/fidelizacion` (2): `_components/FidelizacionClient.tsx`, `_components/ReferralDrawer.tsx`
+  - `app/studio/(app)/documentos` (1): `_components/DocumentosHubClient.tsx`
+  - `app/studio/(app)/ordenes-compra` (1): `_components/OrdenesCompraClient.tsx`
+  - `app/studio/(app)/ordenes-venta` (2): `_components/OrdenesVentaClient.tsx`, `_components/OvDrawer.tsx`
+  - `app/studio/(app)/club` (3): `_components/ClubClient.tsx`, `_components/GroupBuysView.tsx`, `_components/MembersView.tsx`
+  - `app/studio/(app)/inventario` (1): `_components/InventarioClient.tsx`
+  - `lib/studio` (9): `naviera/types.ts`, `naviera/queries.ts`, `naviera/client-palette.ts` (comentario), `naviera/__tests__/consolidation-request-status.test.ts`, `documents/types.ts`, `purchase-orders/types.ts`, `sales-orders/types.ts`, `club/club-member-types.ts` y `club/group-buy-types.ts`
+  - Arrastres de la #742 (4): `app/studio/(app)/reportes/_components/charts.tsx` y `ReportesClient.tsx`, y `app/studio/(app)/legal/evidencia/[code]/page.tsx` y `expediente/[code]/page.tsx`
+- **Además:**
+  - el contrato `app/studio/_components/__tests__/color-accion-fase2-g7-contract.test.ts`;
+  - las pruebas `lib/studio/naviera/__tests__/carrier-tone.test.ts` y `app/studio/(app)/reportes/_components/charts.donut.test.tsx`;
+  - esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Naviera, utilización (`UtilizationBar.tsx`) | Contenedor por encima del 100 % (80 % a 100 % en `--warning`, el resto en `--success`) | `--danger` | El porcentaje y «usado / capacidad». La sobrecapacidad avisa pero no bloquea |
+| Naviera, asignar carga (`AssignCargoDrawer.tsx`) | Mensaje de sobrecapacidad | `--danger-text` | El mensaje mismo, que nombra el exceso |
+| Naviera, KPI «Carga suelta en CN» (`NavieraClient.tsx`) | Hay carga sin asignar | `--warning` en el KPI: texto grande, como «En ventana» del grupo 6 | «N embarque(s) sin asignar» |
+| Naviera, contenedores (`NavieraClient.tsx`) | Contenedor seleccionado (borde y código) | Selección en tinta: borde `--ink` con sombra | `aria-pressed` en la tarjeta (nuevo) |
+| Naviera, reservas (`NavieraClient.tsx`) | Badge FCL | `neutral` | El texto «FCL» frente a «LCL» en `info` |
+| Fidelización, progreso del referido (`ReferralDrawer.tsx`) | Pasos cumplidos, paso actual y conector | Tinta: círculo `--ink` con el check en `--ink-inv`, conector `--ink` | El check en los pasos cumplidos y el peso 700 del paso actual |
+| Fidelización, referidos (`FidelizacionClient.tsx`) | Monto de un crédito «aplicado» (acreditado en `--success`) | `--ink` | La columna de estado de la fila |
+| Fidelización, aplicar crédito (`ReferralDrawer.tsx`) | Borde del panel de acción | `--accion` | El título «Aplicar $N a una factura» y su botón |
+| Documentos (`DocumentosHubClient.tsx`) | Carpeta y vista activas | Selección en tinta (`color-mix` al 8 % y texto `--ink`) | El peso 700 y `aria-current` en el enlace (nuevo) |
+| Órdenes de compra (`OrdenesCompraClient.tsx`) | Columna ordenada | `--ink` | La flecha ▲/▼ |
+| Club, compras grupales (`GroupBuysView.tsx`) | Avance de la ronda por debajo de 100 % | `--ink` (al 100 %, `--success`) | `role="progressbar"` con su valor |
+| Inventario (`InventarioClient.tsx`) | Badge del modo consolidación | `neutral` | El texto «Modo consolidación · entrada» frente a «Modo despacho · salida» en `info` |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | «Ver todos» de los embajadores y el enlace a PreAlertas de servicios |
+| Tinta (datos) | Shipping Mark sin destino propio (regla 6), códigos de compra, venta, estimado, pago y factura, totales de compras, el primer lugar de los embajadores, el conteo de referidos y los KPI de club e inventario |
+| Neutro | El rótulo «Club DTD», el código para compartir, «Crédito aplicado» y los números de los pasos del programa (círculo `--ink` con `--ink-inv`) |
+
+**Arrastres de la revisión de la #742**
+- **Donut de «Mix de servicios»:**
+  - Los grados de tinta pasan a `GRADOS_DE_TINTA` en `charts.tsx`: 100 %, 82 %, 66 % y 50 % de `--ink` sobre `--bg-surface`.
+  - El más claro da 3,25:1 en claro y 4,36:1 en oscuro; antes, el de 22 % daba 1,58:1 y 1,91:1.
+  - Los segmentos se separan con un trazo de 2 px en `--bg-surface`.
+  - `gradoDeTinta(i, total)` evita que el último segmento, que toca al primero, repita su grado. Con cinco toma el del medio.
+  - Las barras de «Revenue por servicio» usan los mismos grados, así que cada servicio tiene el mismo grado en las dos tarjetas.
+- **Impresas de legal:** sale la declaración `--wine: #7F0F1A` de evidencia y expediente. Nadie la usaba.
+- **«En ventana»:** su nota quedó en la tabla del grupo 6.
+
+**Contrato del grupo 7:**
+- exige cero vino en las siete carpetas y en los tipos de `lib/studio` del grupo;
+- mide al menos 60 archivos;
+- trae tres mutantes: la sobrecapacidad, el badge FCL y la carpeta activa de documentos;
+- comprueba que las dos impresas de legal ya no declaran `--wine`.
+
+**Fuera de este grupo:**
+- `tierBadgeTone` de `lib/studio/client-types.ts` todavía declara «wine» en su tipo de retorno, aunque no lo devuelve. Es de clientes.
+- El Excel de `lib/studio/document-import/export.ts` usa el hex del vino como identidad de la plantilla (fase 4).
+
+### Fase 2 · grupo 8 · conversaciones, menciones y el panel: allowlist, reparto y cierre de la fase (2026-11-21)
+
+El grupo 8 es el último de la fase 2. Empieza al fusionarse la #744 (`af943ed7c`), en la rama `claude/sdd-0686-fase2-g8`.
+- **Módulos:** conversaciones, menciones, rendiciones, servicios, ajustes y el panel de Chatwoot `(panel)/ficha-chat`. Además, los restos de cobranzas, embarques y los comentarios compartidos de `(app)/_components/comments`.
+- **Condiciones:** las mismas de los grupos anteriores.
+- **Lo que no es de este grupo:** mailing e inspecciones, que figuraban en el orden, ya están permitidos desde el grupo 3 como identidad. El dashboard conserva su panel de bienvenida (identidad, BD-034).
+
+- **Identidad:** no queda ninguna en estas carpetas.
+- **Lo que se guarda:** ningún tono. Son estilos en línea y tonos de `Avatar` y `Badge`.
+- **`data-theme`:** no hay bloques fijos. El panel de Chatwoot sigue el tema que le pasa Chatwoot (`FichaDtdClient.tsx`), así que sus tokens se invierten con el tema como el resto del Studio.
+- **Regla 4 de botones:** el botón «Generar ahora» de los resúmenes era un `<button>` armado a mano en vino. Pasa a `studio-btn studio-btn-primary studio-btn-sm`, con `aria-busy`. No se agrega ninguna variante nueva.
+
+**Allowlist (rutas desde la raíz):**
+  - `app/studio/(app)/conversaciones` (3): `_components/ConversationList.tsx`, `_components/ConversationThread.tsx`, `_components/GenerateDigestsPanel.tsx`
+  - `app/studio/(app)/menciones` (1): `_components/MentionsInboxClient.tsx`
+  - `app/studio/(app)/rendiciones` (2): `[code]/page.tsx`, `_components/RendicionesClient.tsx`
+  - `app/studio/(app)/servicios` (1): `_components/ServiciosClient.tsx`
+  - `app/studio/(app)/ajustes` (1): `page.tsx`
+  - `app/studio/(app)/cobranzas` (2): `recibo/[code]/page.tsx`, `_components/CobranzaDrawer.tsx` (comentario)
+  - `app/studio/(app)/embarques` (2): `_components/EmbarquesClient.tsx`, `_components/ShipmentDetailDrawer.tsx`
+  - `app/studio/(app)/_components/comments` (3): `CommentItem.tsx`, `CommentsThread.tsx`, `MentionDropdown.tsx`
+  - `app/studio/(panel)/ficha-chat/_components` (3): `FichaDtdView.tsx`, `CostoChatCard.tsx`, `VincularCliente.tsx`
+  - Impresos de grupos anteriores (3): `app/studio/(app)/fiscal/_components/FiscalClient.tsx`, `WithholdingsView.tsx` y `app/studio/(app)/reportes/_components/BuilderView.tsx`
+  - Primitiva y guía (2): `app/studio/_components/ui/Avatar.tsx` y `app/studio/CLAUDE.md` (la línea de `Avatar`)
+  - Ronda de la revisión de la #745 (3): `app/studio/studio.css`, `app/studio/(app)/_components/ConversationsIndicator.tsx` y `app/studio/_components/__tests__/vino-detector.ts`
+- **Además:**
+  - el contrato nuevo `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`;
+  - dos contratos anteriores que bajan su cuenta: `color-accion-fase2-contract.test.ts` (grupo 1, sale `Avatar`) y `claridad-t5d-contract.test.ts` (SDD-0603, el vino de conversaciones pasa a 0);
+  - esta spec y el handoff.
+
+**Estados y señales, caso por caso**
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Conversaciones, lista (`ConversationList.tsx`) | Conteo de no leídos | Tinta: pastilla `--ink` con la cifra en `--ink-inv` | La cifra misma |
+| Conversaciones, lista (`ConversationList.tsx`) | Avatar del agente cuando la conversación es un caso | `neutral` | El Badge «Caso» de la misma fila |
+| Conversaciones, hilo (`ConversationThread.tsx`) | Mensaje saliente | Tinta: burbuja `--ink` con texto `--ink-inv`. El tramo 5d de la SDD-0603 la había anotado como identidad; con BD-076 el vino es solo logo y wordmark, así que el contrato `claridad-t5d-contract.test.ts` pasa su cuenta de vino a 0, igual que la del contador | La alineación a la derecha y la esquina recortada del lado propio |
+| Menciones (`MentionsInboxClient.tsx`) | Mención no leída (fondo, borde y punto) | Tinta: fondo de selección al 8 %, borde y punto `--ink` | Texto oculto «No leída.» al inicio del botón (nuevo); antes solo había un punto `aria-hidden` |
+| Menciones (`MentionsInboxClient.tsx`) | Tipo de entidad y su código, la hora y el extracto | `--ink` mientras la mención no está leída, `--ink-soft` después. Sobre el tinte de no leída, `--ink-soft` daba 4,36:1 en claro (revisión de la #745); `--ink` da 13,50:1 | El texto mismo |
+| Servicios (`ServiciosClient.tsx`) | Servicio principal (★) | `--ink` | La estrella, ahora con `role="img"` y «Servicio principal» (nuevo) |
+| Servicios (`ServiciosClient.tsx`) | Badge «Núcleo» | `neutral` | El texto «Núcleo» frente a «Add-on» |
+| Rendición impresa (`rendiciones/[code]/page.tsx`) | Código de la rendición | `--ink`, que el bloque de impresión ancla al valor claro | Es un dato, no identidad. Antes usaba `--wine-text`, que el bloque de impresión no anclaba |
+| Panel de Chatwoot (`FichaDtdView.tsx`, `VincularCliente.tsx`) | Shipping Mark del cliente | `--ink` (regla 6) | En la ficha, el rótulo «Shipping Mark»; al vincular, el nombre del cliente al lado |
+| Comentarios (`CommentItem.tsx`, `CommentsThread.tsx`, `MentionDropdown.tsx`) | Avatar propio, del que escribe y de las sugerencias de mención | `neutral`, como en el grupo 3 | El nombre al lado del avatar |
+
+**Resto del reparto**
+
+| Destino | Qué |
+|---|---|
+| Acción | El enlace del código en el listado de rendiciones, «Ir a Administración» en ajustes, la fuente del costo en el panel y el botón «Generar ahora» |
+| Neutro | El rótulo del panel de Chatwoot (`EYEBROW`) y el `eyebrow` «Comentarios», que pierde la clase `eyebrow-wine` |
+| Tipos | La unión de tono de los estados de embarque pierde «wine» (`EmbarquesClient.tsx`, `ShipmentDetailDrawer.tsx`) |
+
+**Impresos:**
+- Salen las declaraciones `--wine: #7F0F1A` del recibo de cobranza y de la rendición, que nadie usaba.
+- El libro fiscal, el comprobante de retención y el constructor de reportes declaraban `--wine` en su bloque de impresión, pero el encabezado de marca se pinta con `--wine-text`. El ancla nueva de `--wine-text` en ese contenedor (`#7F0F1A`) es redundante: `tokens.css:382-387` ya devuelve `--wine-text` a `#7F0F1A` en `@media print` desde `b717aa986`. Se deja porque declara el token que el encabezado de verdad usa, en lugar del `--wine` que nadie usaba.
+
+**Cierre de la fase 2.** El contrato del grupo 8 recorre todo `app/studio` con el detector común y admite solo esta lista, con su cuenta exacta:
+
+| Archivo | Cuenta | Motivo |
+|---|---|---|
+| `academia/diplomas/_components/DiplomaPrint.tsx` | 26 | Diploma impreso (regla 8; fase 4) |
+| `dashboard/page.tsx` | 1 | Panel de bienvenida con el isotipo (BD-034) |
+| `fiscal/_components/FiscalClient.tsx` y `WithholdingsView.tsx` | 1 y 1 | Encabezado impreso (regla 8) |
+| `reportes/_components/BuilderView.tsx` | 1 | Encabezado impreso (regla 8) |
+| `inspecciones/_components/report-css.ts` | 2 | Wordmark y rótulo del informe (regla 8) |
+| `mailing/_components/SignaturesView.tsx` | 1 | Franja de la firma de correo (regla 8) |
+| `_components/guia/GuiaTarjeta.tsx` | 6 | Superficie de la Guía con el tinte de marca |
+| `_components/ui/EmptyState.tsx` | 1 | Eyebrow del estado vacío (identidad, grupo 1) |
+| `_components/ui/Badge.tsx` | 1 | Tono `wine` retirado (regla 7). Ninguna pantalla del Studio lo usa; lo usa el móvil hasta la fase 3 |
+| `studio.css` | 1 | El alias `--studio-wine-soft` del guión del eyebrow (identidad, fase 1). Las tres familias que la #745 dejó pendientes ya no tienen vino (ver «cierre de `studio.css`»). Las reglas permitidas están en `STUDIO_CSS_PERMITIDO`: una regla nueva con vino rompe, y en un selector mixto cada parte tiene que estar en la lista |
+
+Quedan fuera de ese recorrido:
+- `tokens.css`, que define los tokens;
+- noticias-web, cuyo vino de acción en el bloque claro lo cuenta el contrato del grupo 3 y espera `--color-accion*` de la fase 3.
+
+El contrato trae además:
+- cinco mutantes: el mensaje saliente, el Shipping Mark del panel, un avatar de comentario, un vino nuevo fuera de los grupos y una regla nueva con vino en `studio.css`;
+- las comprobaciones de los impresos, del aviso «No leída» y de los dos huecos de clase que ahora ve el detector: `eyebrow-wine` y `data-tono="vino"`.
+
+**Familias de `studio.css` que la fase 1 dejó pendientes (revisión de la #745).**
+
+| Familia | Decisión | Detalle |
+|---|---|---|
+| Contador de no leídos de la barra superior (`.studio-contador-icono`, `ConversationsIndicator.tsx`) | Tinta: `data-tono="tinta"`, fondo `--ink` y cifra `--ink-inv`; el tono «vino» desaparece | Es una cifra, igual que el contador de `ConversationList`. Lo dice sin el color: la cifra y el `aria-label` «N sin leer» del enlace |
+| Chip de @mención (`.mention-chip`, lo arma `lib/studio/comments/mention-parse.ts`) | Acción: `--accion-text` sobre el 8 % de `--accion` | Es una referencia que se abre. No usa `--accion-tint`, porque su 14 % del tema oscuro dejaba el texto en 4,29:1 sobre la burbuja (`--bg-elevated`). Al 8 % da 5,96:1 en claro y 4,79:1 en oscuro. Lo dice sin el color: la @ y el peso 600 |
+| Destello al guardar un permiso (`studio-permcell-saved`, `.studio-permcell-flash`) | `--success` | Confirma un guardado. Anillo de 3 px: 3,81:1 o más en claro y 6,75:1 o más en oscuro contra los fondos. Con movimiento reducido el anillo queda fijo |
+| Tracking en vivo (`.studio-tracking-ops-*`: barra, mapa, hitos, eyebrow, fila resaltada y código; 12 usos) | ~~Pendiente~~ Decidida por Sam el mismo día (ver «cierre de `studio.css`») | Mezcla progreso, posición en el mapa, estado de hitos y selección. Ninguna regla vigente resuelve las seis piezas a la vez |
+| Matriz de permisos (`.studio-mx-st[data-n="all"]`, `.studio-mx-chg`, `.studio-mx-dot`; 4 usos) | ~~Pendiente~~ Decidida por Sam (ver «cierre de `studio.css`») | «Todo» es un nivel de acceso y el punto marca un cambio. Hace falta decidir si el acceso total es un estado (tinta) o una advertencia |
+| Contador de alerta de pestaña (`.studio-tab-n[data-alerta]`, proveedores; 1 uso) | ~~Pendiente~~ Decidida por Sam: opción A (ver «cierre de `studio.css`») | Marca servicios «pendientes por atender». Es atención, pero no existe `--warning-text` para texto de 12 px: `--warning` da 3,14:1 |
+
+**`Avatar` pasa a neutral.**
+- La decisión es de Sam, del 2026-11-21: «Pasa a neutral (Recomendado)». Las iniciales de una persona no son identidad; el vino queda para el logo.
+- `Avatar` pierde el tono `wine`, su tipo ya no lo admite y su valor por defecto pasa a `neutral`.
+- En `neutral`, las iniciales pasan de `--ink-soft` a `--ink` («tinta sobre gris», como pidió Sam). Con `--ink-soft` daban 4,15:1 sobre `--bg-elevated` en claro, debajo del 4,5:1 del texto. Con `--ink` dan:
+  - en claro: 14,50:1 sobre `--bg-surface`, 12,83:1 sobre `--bg-elevated` y 13,92:1 sobre `--bg-base`;
+  - en oscuro: 10,43:1, 9,14:1 y 13,14:1.
+- El cambio alcanza a todos los avatares neutros del Studio, que ganan contraste.
+- `Avatar` sale de la lista del contrato de cierre y de la del grupo 1 (`color-accion-fase2-contract.test.ts`). El contrato del grupo 8 comprueba que no tiene vino y que su valor por defecto es `neutral` en tinta.
+
+| Pantalla y archivo | Qué marcaba el vino | Destino | Qué lo dice sin el color |
+|---|---|---|---|
+| Barra superior (`StudioTopbar.tsx`) | Avatar del usuario, sin `color` (tomaba el vino por defecto) | `neutral`: iniciales en `--ink` sobre `--neutral-bg`, en el botón de fondo `--bg-surface` con borde `--ink-soft` | El nombre del usuario al lado y el `aria-label` del menú |
+| Nómina, foto de empleado (`FotoEmpleado.tsx`) | Iniciales cuando no hay foto, sin `color` | `neutral`, igual | Las iniciales del empleado y el nombre en la ficha |
+
+### Fase 2 · cierre de `studio.css`: las tres familias pendientes (2026-11-21)
+
+La #745 dejó tres familias de `studio.css` pendientes para la fase 3. Sam las decidió el mismo día sobre el croquis del Director: «Apruebo las tres». Van en la rama `claude/sdd-0686-pendientes-studio-css`, apilada sobre la #745. Con esto, en `studio.css` solo queda el alias `--studio-wine-soft` del guión del eyebrow (identidad), y el contrato de cierre baja su cuenta de 18 a 1.
+
+**Allowlist (rutas desde la raíz):** `app/studio/studio.css`, `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx`, el contrato `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`, esta spec y el handoff.
+
+**Lo que se guarda:** nada. **`data-theme`:** no hay bloques fijos. Las medidas son contra los fondos reales, en claro y en oscuro.
+
+| Pantalla y regla | Qué marcaba el vino | Destino | Contraste (claro / oscuro) | Qué lo dice sin el color |
+|---|---|---|---|---|
+| Tracking en vivo, barra de avance (`.studio-tracking-ops-bar > span`) | Avance del envío | `--ink`; con alerta sigue en `--warning` | 15,80 / 16,12 contra la pista `--bg-base` | El porcentaje y la etapa en el texto de la tarjeta |
+| Tracking en vivo, mapa (`.studio-tracking-ops-map-done`) | Ruta recorrida | `--ink` | 15,80 / 16,12 contra `--bg-base` | Trazo continuo y más grueso (2,6) frente a la ruta pendiente, punteada |
+| Tracking en vivo, mapa (marcador activo) | Núcleo y halo del contenedor elegido | Núcleo `--accion` con borde `--bg-base`; halo `--accion` al 22 % | 7,34 / 7,78 contra `--bg-base` | El rótulo del marcador activo sube a 13 px; el resto de los halos va en `--ink-soft` |
+| Tracking en vivo, hitos (`.studio-tracking-ops-hito-punto` y su línea) | Hitos hechos, hito activo y la línea hasta ahí | Hechos y línea en `--ink`; el activo en `--accion` con borde `--bg-surface` y aro `--accion` de 2 px; la excepción sigue en `--danger` | Tinta 15,80 / 16,12; acción 7,66 / 6,32 contra `--bg-surface` | El nombre y la fecha de cada hito; el activo lleva aro y los pendientes quedan en blanco con borde |
+| Tracking en vivo, tabla (`tr[data-resaltado]`) | Fila del envío pedido por `?id=` | `--accion` al 8 % de fondo | Texto en tinta: 14,55 / 11,34 | Llega por el enlace y la fila es la que se nombra; el fondo solo ayuda a ubicarla |
+| Tracking en vivo, buscador (`.studio-tracking-ops-resultados h3 code`) | Código del resultado | `--ink` | Tinta de texto | Es un dato |
+| Tracking en vivo, eyebrow «Posición actual» | Texto del rótulo | `--ink-soft`; el guión de `.studio-eyebrow` sigue en vino (identidad) | 4,68 / 5,47 contra `--bg-surface` | El texto mismo |
+| Permisos, nivel «Todo» (`.studio-mx-st[data-n="all"]`) | Acceso total de Administración | Tinta sólida: fondo `--ink`, texto `--ink-inv` | 15,80 / 14,49 | Su icono y la palabra «Todo» (los otros niveles: «Edita», «Ve», «No»), y la leyenda «solo Administración» |
+| Permisos, «Cambiado» (`.studio-mx-chg`, `.studio-mx-dot`) | Celda distinta de lo de fábrica | Texto `--accion-text` y punto `--accion` | 7,66 / 6,32 contra `--bg-surface` | La palabra «Cambiado» y el nombre accesible de la celda («…, cambiado respecto a lo de fábrica») |
+| Proveedores, alerta de pestaña (`.studio-tab-n[data-alerta]`), opción A | Servicios pendientes por atender | Pastilla ámbar suave y opaca (`--warning` al 22 % sobre `--bg-surface`), número en `--ink` e icono de alerta. Nunca ámbar como texto: `--warning` daba 3,14:1 a 12 px | Número 13,23 / 8,55; la pastilla también se lee dentro de la pestaña activa, que es de tinta (13,23 / 8,55) | El icono de alerta y el nombre accesible «N pendientes por atender» (`role="img"`) |
+
+El contrato de cierre trae un mutante por familia: el marcador activo, la ruta recorrida, «Todo» y la alerta. También comprueba que la alerta tiene icono y nombre accesible, y que su regla no usa `--warning` como color de texto.
+
+### Fase 2 · correcciones de la revisión visual (2026-11-21)
+
+El Director revisó `main` (`d590ea3f3`) con el Studio en local, datos ficticios y capturas en claro y oscuro. Los diez puntos aplican reglas vigentes, sin decisión nueva de Sam. Van en la rama `claude/sdd-0686-revision-visual`.
+
+**Fuera de esta PR, a la espera de Sam:**
+- ~~la banda de bienvenida del Dashboard~~: Sam la decidió (opción A) y va en esta misma PR, en su propio commit (ver la última fila de la tabla);
+- ~~las cifras KPI con color de estado y las barras de las gráficas en `--success`~~: Sam las decidió (opción A) y van en la #748 (ver «Cifras KPI en tinta y estado aparte»). El 2026-11-21 aprobó también sus palabras: «Apruebo las palabras de estado de las cifras KPI»;
+- ~~el logo «DTD» de la barra lateral~~: Sam lo decidió el 2026-11-21 («Sí, opción A (Recomendado)»; lo confirmó: «Sí, el logo se cambia a la opción A») y va en su propia PR, en la rama `claude/sdd-0686-logo-vino-claro` (ver la fila 12). La nota anterior de la #748 (`ee44876d2`), que lo daba como «hoy», queda sin efecto.
+
+El Portal y la web pública van en sus fases.
+
+**Allowlist (rutas desde la raíz):**
+  - Login (3): `app/studio/studio.css` (`.studio-dark`), `app/studio/(auth)/login/LoginForm.tsx` y `app/studio/(auth)/login/recuperar/RecoveryForm.tsx`
+  - Brillo de fondo (2): `app/studio/tokens.css` (`--grad-page` de los dos temas) y `app/studio/(app)/_components/StudioSidebar.tsx`
+  - Primitiva (1): `app/studio/_components/ui/EmptyState.tsx`
+  - Roles (1): `lib/studio/user-types.ts`
+  - Pantallas (5): `app/studio/(app)/reportes/_components/charts.tsx`, `app/studio/(app)/clientes/_components/ClientsClient.tsx`, `app/studio/(app)/fiscal/_components/FiscalClient.tsx`, `app/studio/(app)/cn/_components/LangToggle.tsx` y `app/studio/(app)/layout.tsx`
+  - Títulos de pestaña (44): los `page.tsx` de `app/studio` cuyo `metadata.title` terminaba en «· DTD Studio» o «— DTD Studio»
+- **Además:**
+  - el contrato nuevo `app/studio/_components/__tests__/revision-visual-0686-contract.test.ts`;
+  - los contratos del grupo 1 y de cierre, de los que sale `EmptyState`;
+  - `app/studio/(app)/usuarios/_components/MembersTable.tsx`, que dejó de comparar el tono del rol con «wine» (tsc);
+  - el contrato del grupo 3 (`color-accion-fase2-g3-contract.test.ts`), cuyo mutante del rol pasó al mapa nuevo;
+  - el contrato de contraste del tema oscuro (`dark-theme-contrast-contract.test.ts`), que nombra `--grad-bienvenida` en lugar de `--grad-wine-panel`;
+  - esta spec y el handoff.
+
+**Qué cambia, punto por punto**
+
+| # | Pantalla y archivo | Antes | Después | Contraste (claro / oscuro) | Qué lo dice sin el color |
+|---|---|---|---|---|---|
+| 1 | Login y recuperación, fondo de la página (`.studio-dark`) | `--studio-ink` (= `--ink`), que en oscuro es claro: beige alrededor de la tarjeta | `--bg-sidebar`, navy en los dos temas | La tarjeta `#16264A` es fija | No aplica: es fondo |
+| 2 | Login, «Recupérala acá» y «Volver» de recuperación | `#C2747F` (vino suave), sin subrayado | `--accion-soft` (azul para superficies siempre oscuras), subrayado | 6,32:1 sobre la tarjeta | El subrayado y el texto del enlace |
+| 2 | Login, botón de mostrar la contraseña | Vino suave al activarse; inactivo, blanco al 45 % | `--accion-soft` al activarse; inactivo, blanco al 60 % | 6,32 y 6,26:1 | Su nombre accesible y el texto del botón |
+| 2 | Login, «Studio» del título y «acceso» de recuperación | Vino suave | El color del título (blanco) | 14,9:1 | No aplica |
+| 2 | Login y recuperación, pie de texto | Blanco al 45 %: 4,17:1 | Blanco al 60 % | 6,26:1 | No aplica |
+| 3 | Fondo de página (`--grad-page`) y menú lateral | Brillo rojo (`rgba(158,21,34,.09)` en claro, `rgba(168,50,62,.28)` en oscuro y en el menú) | Azul de acción tenue: `rgba(31,79,168,.05)` en claro, `rgba(127,170,240,.10)` en oscuro y `.12` en el menú | Ambiente, sin texto encima | No aplica: es decoración |
+| 4 | `EmptyState`, eyebrow | Texto `--wine-text` sin guión | Patrón `.studio-eyebrow`: guión de identidad (`--studio-wine-soft`) y texto `--ink-soft` | 5,33 / 6,86 sobre `--bg-surface` | El texto mismo |
+| 5 | Usuarios → Roles y permisos (`roleBadgeTone`) | Marketing con la X de peligro, Operaciones con el triángulo ámbar, Comercial `info` y Contabilidad `success` | Todos `neutral`: sin icono de estado | Texto `--ink` del Badge | El nombre del rol. Un rol es una categoría, no un estado |
+| 6 | Reportes, «Embarques y CBM por mes» (`charts.tsx`) | `viewBox` hasta H+36, con la leyenda de H+30 a H+40: cortada | `viewBox` hasta H+48 | No cambia | La leyenda completa |
+| 7 | Clientes, listado (`ClientsClient.tsx`) | Columnas `1.5fr` y `1.2fr`: su mínimo es el contenido, y una nota larga empujaba el resto | `minmax(0, 1.5fr)` y `minmax(0, 1.2fr)`; la nota ya tenía elipsis | No cambia | La elipsis |
+| 8 | Fiscal, «Módulo desactivado» | `--ink-mute`: 2,66:1 | `--ink-soft` | 5,11 / 8,45 sobre `--bg-base` | La palabra «desactivado» frente a «activo» en `--success` |
+| 8 | Almacén CN, selector CN/ES (`LangToggle.tsx`) | Sigla inactiva en `--ink-mute`: 2,44:1 sobre `--bg-elevated` | `--ink-soft` | 4,68 / 6,00 sobre `--bg-elevated` | `aria-pressed`, el fondo de la opción activa y su peso 700 |
+| 9 | Títulos de pestaña | 44 rutas con «· DTD Studio» en `metadata.title`, y la plantilla de `app/studio/layout.tsx` lo volvía a agregar | Sin el sufijo; lo pone solo la plantilla | No aplica | No aplica |
+| 10 | Contenido del Studio (`(app)/layout.tsx`) | El botón flotante (44 px, a 24 px del borde) tapaba lo último de la pantalla | Margen inferior del contenido de `var(--s-6)` + 68 px | No aplica | No aplica |
+| 11 | Dashboard, banda de bienvenida (`dashboard/page.tsx`, `tokens.css`). Decisión de Sam: «Banda del Dashboard: opción A, navy de marca con guion vino» | `--grad-wine-panel`: degradado vino, con sombra vino | `--grad-bienvenida`, navy de marca: en claro, `#0F1E3D` hacia `#1F3A6B`; en oscuro, `--bg-surface` hacia `--bg-elevated`, con borde sutil `--bienvenida-borde` (blanco al 10 %). Sombra navy. El vino queda solo en el guión del eyebrow; la marca de agua del isotipo sigue a .08 | Título blanco: 11,20 a 16,49 en claro y 13,03 a 14,89 en oscuro. Subtítulo y eyebrow `--ink-side`: 8,57 a 12,15 en claro y 10,44 a 11,81 en oscuro. Guión vino, como forma: 3,25 a 4,79 en claro y 3,78 a 4,32 en oscuro | El saludo, la fecha y el nombre de la empresa en el texto. No hay rojo de peligro en ningún tema. `--grad-wine-panel` sale del Studio: era su único consumidor. El de la web pública (`app/globals.css`) es otro token y no se toca |
+| 12 | Logo «DTD» sobre navy, variante reverse de `components/BrandMark.tsx`: barra lateral del Studio, web pública (pie y fichas de servicio), portal en oscuro, `/entrar`, baja de correo y el selector de modos del móvil. Decisión de Sam: «Sí, opción A (Recomendado)» | «DTD» en vino sólido `#7F0F1A`: 1,56:1 sobre `#0F1E3D` y 1,84:1 sobre `#060D1C`; no se leía | «DTD» en `--color-wine-on-dark` `#D59FA7`, el vino de identidad para fondo oscuro que ya existía en `app/globals.css`: el mismo tono con más luz. El isólogo PNG y «Cargo» no cambian; tampoco las otras tres variantes | 7,34:1 sobre `--bg-sidebar` en claro (`#0F1E3D`) y 8,64:1 en oscuro (`#060D1C`); 4,98:1 en el fondo navy más claro de la web (`#1F3A6B`) | El nombre «DTD Cargo» escrito y el `alt` del isólogo. El vino solo identifica la marca: no dice ningún estado |
+
+**Contrato nuevo (`revision-visual-0686-contract.test.ts`):** comprueba
+- el navy fijo del login;
+- que el login y la recuperación no usen el vino suave ni el pie al 45 %;
+- que el brillo de fondo sea azul de acción o navy neutro. Es una lista blanca: desde la revisión de la #747, cualquier otro `rgba` o un hex rompe, con un mutante para cada caso;
+- que ningún rol tenga tono de estado;
+- que ningún título repita el sufijo;
+- que la leyenda quepa en el lienzo.
+
+El contrato de cierre comprueba además que `EmptyState` no tiene vino y usa `.studio-eyebrow`.
+
+**Pendiente anotado (otra pasada):** quedan 115 usos de `color: var(--ink-mute)` como texto en línea, en 66 archivos de `app/studio`. `--ink-mute` da 2,44 a 2,78:1 en claro, debajo del 4,5:1 del texto. El Director contó 97; esta cuenta incluye además los placeholders y los rótulos de un carácter. Se reproduce con `git grep -cE "color: ?[\"']?var\(--ink-mute" -- app/studio ':!**/*.test.*'`. Se revisan uno por uno: los que son texto que se lee pasan a `--ink-soft`; los que son decoración o un estado deshabilitado se anotan.
+
+### Cifras KPI en tinta y estado aparte (2026-11-21)
+
+Decisión de Sam: «Cifras KPI: opción A, cifra en tinta y estado con punto y texto». Va en la rama `claude/sdd-0686-kpi-tinta`, desde `main`, después de la #747.
+
+**Componente (`app/studio/_components/ui/KpiCard.tsx`):**
+- Sale `valueColor`. La cifra va siempre en `--ink`; en la variante destacada, en `--ink-side-strong` sobre el navy.
+- Entra `status?: { tono: "success" | "warning" | "danger"; texto: string }`. El estado va bajo la etiqueta:
+  - un punto de 7 px del color de estado y la palabra en `--ink-soft` (5,33 / 6,86 sobre la tarjeta);
+  - en peligro, la palabra va en `--danger-text` (5,78 / 5,89) con el icono de alerta en lugar del punto;
+  - sin estado no hay punto.
+- No hay color libre. El contrato `kpi-cifra-en-tinta-contract.test.tsx` prohíbe volver a pasar `valueColor` a un `KpiCard` en `app/studio`, `app/portal` y `app/m`, con un mutante. También pinta la tarjeta y comprueba la cifra, el punto, el icono y el caso sin estado.
+
+**Gráficas en tinta:**
+- Las barras «Cobrado» de Reportes (y su leyenda) pasan a tinta al 50 %, el mismo grado del donut: 3,25 / 4,36. «Facturado» sigue en `--ink`.
+- La cobertura de Dirección (`FinanceHealthCard.tsx`) pasa a tinta en la cifra y la barra. Su estado va aparte, con punto y palabra: «Cubre los pagos» o «No alcanza para los pagos».
+- La cifra del widget de nómina del Dashboard (`DashboardWidgets.tsx`) también pasa a tinta.
+
+**Criterio del estado.** Solo lleva estado lo que es un estado: vencido, pendiente, alerta, meta, cuadre, pérdida o cobertura. Un conteo de cosas buenas o en curso («Activos», «Publicados», «Entregados», «En ruta», «Facturadas») queda solo con la cifra en tinta, sin punto: su etiqueta ya lo dice. Antes la cifra se pintaba de verde, azul o ámbar sin palabra.
+
+| Estado | KPI (pantalla) | Palabra |
+|---|---|---|
+| Peligro | Vencido (cobranzas, facturación, encabezado de cuenta del cliente, flujo de caja de Reportes, ficha del panel de Chatwoot) | «Requiere cobro» |
+| Peligro | Vencido (tesorería) | «Requiere pago» |
+| Peligro | Sin asignar y casos abiertos (conversaciones), por vencer o vencidos (documentos), con alertas (SENIAT), vencidos de recompra (Reportes), «llegó sin factura» (embarques sin facturar) | «Requiere acción» |
+| Peligro | Incidencias (Almacén CN), multas (TMS), envíos fallidos (estado del motor de avisos) | «Requiere revisión» |
+| Peligro | Margen bruto negativo y embarques con pérdida (costing), utilidad negativa y posición neta negativa (Dirección), conversión sin ganadas y cobertura de email baja (CRM) | «Con pérdida», «Hay pérdidas», «Pérdida», «Negativa», «Sin ganadas», «Requiere acción» |
+| Atención | Pendientes (Almacén CN, conciliación, documentos por firmar, estados de cuenta de China), carga suelta (naviera), observadas (inspecciones), reclamos abiertos (reclamos y scorecard), en ventana (Reportes), abiertas (conversaciones), mantenimiento (TMS) | «Pendiente», «Sin asignar», «Requiere revisión», «Requiere atención», «Por atender», «Fuera de servicio» |
+| Atención | Adopción baja (motor de avisos), meta no alcanzada (Reportes), tira de saldos descuadrada (conciliación), cobertura de email media (CRM) | «Bajo la meta», «Descuadrada», «Cobertura baja» |
+| Éxito | Tasa de cobro ≥ 80 %, meta cumplida, tira cuadrada, todos en versión vigente (legal), sin asignar en cero, margen y embarques con margen, posición neta positiva, facturación ERP completa, buena adopción y buena cobertura de email | «Meta cumplida», «Cuadrada», «Todos al día», «Al día», «Con margen», «Todos con margen», «Positiva», «Completa», «Buena adopción», «Buena cobertura» |
+| Sin estado | Los demás: conteos de cosas buenas o en curso, montos (revenue, débito y crédito fiscal, costo, aceptado), saldos del socio de China (su leyenda dice el signo), «info» (en promesa, próximos, en ruta, listos para retiro, sin transacción) | — |
+
+**Tablero (`DashboardClient.tsx`):** `estadoDelKpi` convierte el tono del catálogo o de la consulta en estado. Solo lo hace con `warning` («Requiere atención») y `danger` («Requiere acción»), y solo si la cifra no es cero ni falta. Así «Facturas vencidas» en cero no muestra nada.
+
+**Cifras destacadas fuera de `KpiCard` (H1 de la revisión de la #748).** El estado sale a `KpiEstado`, exportado desde `KpiCard.tsx` (con `sobreOscuro` para el navy). Ocho cifras con estilo en línea pasan a tinta:
+- CRM, pestaña Dirección: la mediana de días sin movimiento (≥ 180: «Requiere acción»); «Valor en el CRM» en cero, en tinta y sin estado; «Facturación ERP» completa: «Completa».
+- Bandeja, «Portal → Chatwoot»: los atascados (> 0: «Requiere acción», clave `bandeja.portal.atascados_estado`).
+- Cobranzas, separación de fondos: fondos de terceros e ingreso local, sin estado; sin identificar > 0: «Requiere revisión».
+- Detalle de factura: saldo en cero, «Pagada».
+
+El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de peso 800/900 y 20 px o más cuyo `color` en línea lleve `--success`, `--warning`, `--danger` o `--info`, con dos mutantes. Los dos círculos con check (`OAuthFlowModal.tsx` y `PodModal.tsx`) se exceptúan por ruta y con cuenta exacta, no por forma.
+
+**Notas de la revisión de la #748 (van en la PR del logo):**
+- N1: la excepción es por ruta; con `borderRadius: "50%"` una cifra en un círculo se colaba. Mutante: una cifra en círculo en un archivo exceptuado rompe.
+- N2: el umbral baja a 18 px. Entran el «Vencido» de la antigüedad de Reportes («Requiere cobro» en CxC, «Requiere pago» en CxP) y el monto de la línea bancaria de Conciliación (`LineMatchDrawer.tsx`), que iba en verde en los créditos: queda en tinta, sin estado, porque el badge de al lado ya dice «Crédito» o «Débito».
+- Detalle de factura: con saldo negativo dice «Saldo a favor»; «Pagada» queda para el saldo cero. Palabra nueva: Sam la ve antes de fusionar.
+
+### Cierre del color del Studio (2026-11-21)
+
+Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en la rama `claude/sdd-0686-cierre-color-studio`, desde `main`.
+
+**1. Textos en `--ink-mute` (M):** 162 usos como `color` en 85 archivos de `app/studio`. Hoy miden 2,44 a 2,78:1 en claro y 2,97 a 4,18:1 en oscuro, bajo el mínimo de 4,5:1 para texto. La decisión es visual y le toca a Sam:
+- **A:** cada texto pasa a `--ink-soft` (4,68 a 5,33 / 6,00 a 8,45). `--ink-mute` queda para bordes, fondos y deshabilitados.
+- **B:** se oscurece el token (#707070 / #929BB5). Sobre `--bg-elevated` en claro sigue sin pasar (4,35) y también oscurece los bordes y deshabilitados.
+
+**Decisión de Sam del 2026-11-21:** vio las dos opciones dibujadas y respondió «a recomendada». Va la **A**.
+
+**Aplicado (M):** 180 usos de `--ink-mute` como texto pasan a `--ink-soft`, en 94 archivos. Entran con la revisión de la #759 los que el primer conteo no veía:
+- el respaldo `var(--ink-mute, …)`;
+- el `return` de las funciones de tono (`ageTone` del CRM, `bulletText` de tracking, `tierColor` de fidelización);
+- los mapas de estado (`RecentActivityCard`, `RealtimeIndicator`);
+- el `fill=` del texto SVG del dashboard;
+- la vista previa de `NumericInput`.
+
+**Quedan en `--ink-mute`, con lista cerrada en el contrato:**
+- **cinco textos deshabilitados**, que WCAG exceptúa del contraste y deben verse apagados: `DateField.tsx`, `FiscalConfig.tsx`, `ReportesClient.tsx` (opción de período deshabilitada), `.perm-opt:disabled` en `permisos.css` y `.studio-cal-today-btn:disabled` en `studio.css`;
+- lo que no es texto: bordes, fondos de interruptor, puntos, el ícono de un documento opcional en SENIAT, la raya del subrayado en Mailing y las barras de la miniatura de firma.
+
+**Noticias web queda fuera** y va en la fase 3, igual que su acción. Pinta en un bloque `data-theme="light"` fijo, donde, con el Studio en oscuro, `--ink-soft` sería un gris claro sobre fondo claro. Pendientes: `RouteIdeaPanel.tsx:260`, `Step3Article.tsx:397` y `Step3Article.tsx:435`.
+
+**Allowlist de la parte 1 (rutas exactas):**
+- `app/studio/(app)/academia/_components/AcademiaClient.tsx`
+- `app/studio/(app)/academia/diplomas/_components/DiplomaPrint.tsx`
+- `app/studio/(app)/admin/_components/AppearanceSection.tsx`
+- `app/studio/(app)/admin/_components/PortalBackfillSection.tsx`
+- `app/studio/(app)/admin/alertas-telegram/_components/TelegramAlertsPanel.tsx`
+- `app/studio/(app)/admin/notificaciones/_components/NotificationsClient.tsx`
+- `app/studio/(app)/admin/notificaciones/estado/page.tsx`
+- `app/studio/(app)/admin/rutas/_components/CityPicker.tsx`
+- `app/studio/(app)/admin/rutas/_components/RoutesClient.tsx`
+- `app/studio/(app)/bitacora/_components/BoardList.tsx`
+- `app/studio/(app)/bitacora/_components/TaskCollabSection.tsx`
+- `app/studio/(app)/bitacora/_components/TaskDrawer.tsx`
+- `app/studio/(app)/bitacora/nueva/_components/ActaReview.tsx`
+- `app/studio/(app)/bitacora/nueva/_components/NuevaReunionClient.tsx`
+- `app/studio/(app)/calendario/_components/MonthView.tsx`
+- `app/studio/(app)/calendario/_components/UpcomingHolidaysCard.tsx`
+- `app/studio/(app)/clientes/[markbox]/estado-de-cuenta/page.tsx`
+- `app/studio/(app)/clientes/[markbox]/page.tsx`
+- `app/studio/(app)/clientes/_components/ChangeRequestCard.tsx`
+- `app/studio/(app)/clientes/_components/ChangeRequestHistory.tsx`
+- `app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`
+- `app/studio/(app)/clientes/_components/ClientsClient.tsx`
+- `app/studio/(app)/clientes/_components/ConversacionesFichaCard.tsx`
+- `app/studio/(app)/clientes/_components/DuplicadosClient.tsx`
+- `app/studio/(app)/clientes/_components/IdentityVerificationCard.tsx`
+- `app/studio/(app)/club/_components/MembersView.tsx`
+- `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`
+- `app/studio/(app)/cn/_components/ReceiptRateCell.tsx`
+- `app/studio/(app)/cn/_components/ReceiptRowActions.tsx`
+- `app/studio/(app)/cola-qr/_components/QrQueueTable.tsx`
+- `app/studio/(app)/contabilidad/_components/ActivosFijosTab.tsx`
+- `app/studio/(app)/contabilidad/_components/EntryDrawer.tsx`
+- `app/studio/(app)/contabilidad/_components/LibroDiarioTab.tsx`
+- `app/studio/(app)/contabilidad/_components/LibroMayorTab.tsx`
+- `app/studio/(app)/contabilidad/_components/PlanCuentasTab.tsx`
+- `app/studio/(app)/contabilidad/_components/StatementDrawer.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversacionesClient.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversationList.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversationThread.tsx`
+- `app/studio/(app)/conversaciones/_components/SaldoPendienteContexto.tsx`
+- `app/studio/(app)/crm/_components/KommoBoardView.tsx`
+- `app/studio/(app)/crm/_components/KommoClient.tsx`
+- `app/studio/(app)/crm/_components/PuntoConversacion.tsx`
+- `app/studio/(app)/crm/_components/RecoveryTab.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardClient.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardEditorDrawer.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardWidgets.tsx`
+- `app/studio/(app)/dashboard/_components/RecentActivityCard.tsx`
+- `app/studio/(app)/debug/_components/EstadoTab.tsx`
+- `app/studio/(app)/despacho/reglas/_components/RulesClient.tsx`
+- `app/studio/(app)/direccion/_components/AlertsCard.tsx`
+- `app/studio/(app)/documentos/_components/DocumentosHubClient.tsx`
+- `app/studio/(app)/error.tsx`
+- `app/studio/(app)/facturacion/_components/FacturacionClient.tsx`
+- `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx`
+- `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
+- `app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ChargesTab.tsx`
+- `app/studio/(app)/financiero-china/_components/ClaimOffsetsTab.tsx`
+- `app/studio/(app)/financiero-china/_components/LedgerTab.tsx`
+- `app/studio/(app)/fiscal/_components/WithholdingsView.tsx`
+- `app/studio/(app)/gastos/_components/GastosClient.tsx`
+- `app/studio/(app)/inspecciones/_components/InspeccionesClient.tsx`
+- `app/studio/(app)/legal/_components/LegalClient.tsx`
+- `app/studio/(app)/marketing/_components/FrictionReportsPanel.tsx`
+- `app/studio/(app)/marketing/docs/_components/DocsReaderClient.tsx`
+- `app/studio/(app)/marketing/newsletter/_components/CampaignComposer.tsx`
+- `app/studio/(app)/marketing/newsletter/page.tsx`
+- `app/studio/(app)/marketing/page.tsx`
+- `app/studio/(app)/naviera/_components/NavieraClient.tsx`
+- `app/studio/(app)/nomina/_components/AmonestacionDrawer.tsx`
+- `app/studio/(app)/operarios/_components/OperariosClient.tsx`
+- `app/studio/(app)/ordenes-compra/_components/OrdenesCompraClient.tsx`
+- `app/studio/(app)/proveedores/_components/PackingListsTab.tsx`
+- `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx`
+- `app/studio/(app)/proveedores/_components/ReclamosTab.tsx`
+- `app/studio/(app)/proveedores/_components/ScorecardTab.tsx`
+- `app/studio/(app)/proveedores/_components/ServiceRequestsTab.tsx`
+- `app/studio/(app)/reportes/_components/BuilderView.tsx`
+- `app/studio/(app)/reportes/_components/ReportesClient.tsx`
+- `app/studio/(app)/seniat/_components/FilingDetailDrawer.tsx`
+- `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx`
+- `app/studio/(app)/tms/_components/FleetTab.tsx`
+- `app/studio/(app)/tms/_components/RoutesTab.tsx`
+- `app/studio/(app)/tracking/_components/TrackingTimeline.tsx`
+- `app/studio/(app)/usuarios/_components/MembersTable.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/permisos.css`
+- `app/studio/(app)/ve/_components/AlmacenVeClient.tsx`
+- `app/studio/(app)/ve/_components/VeRowActions.tsx`
+- `app/studio/_components/ui/NumericInput.tsx`
+- `app/studio/_components/ui/RealtimeIndicator.tsx`
+- `app/studio/_components/ui/columns/ColumnConfig.tsx`
+- `app/studio/_components/wiring/GlobalSearchModal.tsx`
+- `app/studio/studio.css`
+
+**Contrato:** `cierre-color-studio-contract.test.ts`.
+- Cuenta todo `var(--ink-mute` de `app/studio`, fuera de las pruebas, de `tokens.css` y de Noticias web. Cada archivo tiene que estar en la lista cerrada, con su cuenta exacta y su motivo, y la lista solo puede bajar.
+- Fija los cinco deshabilitados.
+- Trae un mutante por patrón: el respaldo, el `return`, el `fill=` y la clase `text-[var(--ink-mute)]`.
+- Ancla cada uso que no es texto a su línea, para que un texto nuevo no se cuele como borde o fondo en un archivo permitido (nota de la revisión de la #759, aplicada en la fase 3).
+
+**Otros contratos que se ponen al día:** `color-accion-fase2-g7-contract.test.ts`, cuyo mutante de la carpeta de documentos sigue al gris nuevo (`--ink-soft`), y `color-accion-fase2-g3-contract.test.ts`, al que se le restan los dos enlaces de Noticias web cuando la fase 3 los pasa a azul.
+
+**2. Vinos escritos a mano que quedan en `app/studio` (M, 32):**
+
+| Uso | Destino |
+|---|---|
+| Brillo del foco de `.studio-input-dark` (`studio.css:333`), `rgba(194,116,127,.22)`: vino suave en un estado de acción | Azul de acción tenue (`rgba(127,170,240,.22)`, el `--accion` oscuro), igual que el borde, que ya es `--accion-soft` |
+| «Volver a Publicadas» de Noticias web (`marketing/noticias-web/publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`), `--color-wine-text` en un enlace | Se queda hasta la fase 3. Noticias web pinta dentro de un bloque `data-theme="light"`: con el Studio en oscuro, `--accion-text` tomaría su valor oscuro sobre el fondo claro (revisión de la #739). Pasa a azul cuando la fase 3 traiga `--color-accion*`; lo vigila `color-accion-fase2-g3-contract.test.ts` |
+| Respaldo `#A8323E` en `var(--danger, …)` (bugs, mailing, usuarios, perfil, reportador de bugs) | Se queda: es el rojo de peligro |
+| `--danger` impreso de legal (evidencia y expediente) | Se queda: peligro en papel |
+| Diplomas, `report-css.ts`, anclas de impresión (Fiscal, Retenciones, Constructor) y la paleta de Apariencia | Se quedan: identidad e impresos, ya en la lista permitida |
+| Etiquetas (`etiquetas/_components/Label.tsx`) y el botón del correo de recuperación (`(auth)/login/recuperar/actions.ts`) | Fase 5: impresos y correo (regla 8) |
+
+**Allowlist de la parte 2:** `app/studio/studio.css`.
+
+**Además:** un contrato con mutante, esta spec y el handoff.
+
+### Fase 3 · app móvil del ERP y Noticias web (2026-11-22)
+
+Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 2». Va en la rama `claude/sdd-0686-fase3-movil-noticias`, desde `main`. Lleva también las dos notas menores de la revisión de la #759.
+
+**App móvil (`app/m`, M: unos 140 usos en 25 archivos).** Usa los tokens del Studio, así que sigue el reparto de la fase 2:
+- botones y CTA → `--accion` con `--on-accion` (`BigButton`, «Editar», «Abrir en el Studio», el botón flotante y «Tomar foto»); foco de `m.css` → `--accion`; guía del lector QR → `--accion-soft`;
+- selección → tinta: pestañas, chips, idioma, la tarjeta de orden y la parada actual. Sobre navy, la selección es `--surface-sel`, que deja el tinte vino (`rgba(168,50,62,.22)`) por un blanco (`rgba(255,255,255,.16)`). En `app/m` lo consumen Estiba y Modos. El menú de permisos del Studio (`permisos.css`) dejaba de usarlo: su hover y su opción activa pasan a `--bg-surface`, que se distingue de su contenedor `.perm-options` en `--bg-elevated`. Hoy esa clase no la usa ninguna pantalla (revisión de la #770);
+- Shipping Mark, número de orden y de recepción → `--ink` (regla 6); eyebrows → `--ink-soft`, o `--ink-side*` sobre navy;
+- cifras de `KpiCard` y `MobileMini` → tinta (opción A de Sam); sale el tono `"wine"` (regla 7);
+- avatar y botones del encabezado sobre navy → chrome neutro (`--surface-inv`, `--ink-side*`).
+
+**Decididas por Sam el 2026-11-22.** Vio el croquis de las dos piezas y respondió «A en las dos»:
+- **Rótulo «OPERARIO» o «DESPACHO VE»** junto a «DTD», en el inicio y en los dos login. Es identidad y va en el vino claro del logo, `var(--color-wine-on-dark)` (#d59fa7, sin respaldo: el token llega a `/m` por `app/layout.tsx`, que importa `globals.css`), que da 7,34:1 sobre `#0F1E3D`. El rótulo de arriba («DTD Cargo · 操作员») va en `--ink-side` y los puntos del PIN, en `--accion-soft`.
+- **Tarjeta de la ruta del camionero** (`CamioneroClient.tsx`). Pasa al navy de marca, `--grad-bienvenida`, como la banda del Dashboard. Su texto deja `--ink-inv`, que en oscuro es navy, y pasa a `--ink-side-strong`, claro fijo.
+
+**Noticias web (57 usos en 12 archivos, más 3 grises).** Pinta en un bloque `data-theme="light"` fijo. Por eso entran a `app/globals.css` tokens web fijos con los valores claros del Studio:
+- `--color-accion` (#1f4fa8) y `--color-accion-hover` (#183e86);
+- `--color-on-accion` (#ffffff);
+- `--color-accion-text` (#1f4fa8).
+
+Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y `focus-within:` en vino pasan a `*-accion`. Los dos «Volver a Publicadas» pasan a `--color-accion-text` con subrayado. Los tres grises en `--ink-mute` pasan al gris web fijo `--color-grey-500` (#6b6b6b, 5,33:1). Noticias web deja de ser excepción en los contratos de los grupos 3 y 8 y en el de cierre.
+
+**Notas menores de la #759:**
+- la spec nombra el contrato del grupo 7;
+- el contrato de cierre ancla cada `--ink-mute` que no es texto a su forma, con un mutante.
+
+**Allowlist (rutas exactas):**
+- `app/globals.css`
+- `app/m/_components/BigButton.tsx`
+- `app/m/_components/KpiCard.tsx`
+- `app/m/_components/QrScanner.tsx`
+- `app/m/cn/_components/OperarioHomeClient.tsx`
+- `app/m/cn/estibar/_components/EstibaClient.tsx`
+- `app/m/cn/login/page.tsx`
+- `app/m/cn/nueva/_components/NuevaRecepcionClient.tsx`
+- `app/m/cn/recepcion/[id]/editar/_components/EditarRecepcionClient.tsx`
+- `app/m/cn/recibir/_components/RecibirClient.tsx`
+- `app/m/emp/_components/EmpClient.tsx`
+- `app/m/emp/_components/MensajesTab.tsx`
+- `app/m/erp/_components/ErpBottomNav.tsx`
+- `app/m/erp/_components/MobileErpClient.tsx`
+- `app/m/erp/bitacora/_components/HoyClient.tsx`
+- `app/m/erp/bitacora/tarea/[id]/_components/TareaDetailClient.tsx`
+- `app/m/m.css`
+- `app/m/page.tsx`
+- `app/m/ve/bodeguero/_components/BodegueroClient.tsx`
+- `app/m/ve/bodeguero/recepcion/_components/ReceptionScanClient.tsx`
+- `app/m/ve/bodeguero/recepcion/page.tsx`
+- `app/m/ve/camionero/_components/CamioneroClient.tsx`
+- `app/m/ve/camionero/_components/CurrentDelivery.tsx`
+- `app/m/ve/camionero/_components/PodModal.tsx`
+- `app/m/ve/login/page.tsx`
+- `app/m/ve/modos/_components/ModosClient.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/CategoryDetector.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/KeywordPanel.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/ManualPromptModal.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/NoticiasWebClient.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/PublishModal.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/RouteIdeaPanel.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step0Brief.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step1Headlines.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step2Outlines.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step3Article.tsx`
+- `app/studio/(app)/marketing/noticias-web/publicadas/[id]/page.tsx`
+- `app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/permisos.css`
+- `app/studio/tokens.css`
+- `app/studio/_components/__tests__/color-accion-fase3-movil-contract.test.ts` (nuevo)
+- `app/studio/_components/__tests__/cierre-color-studio-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase2-g3-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+
+**Contrato nuevo:** `color-accion-fase3-movil-contract.test.ts`.
+- Lista cerrada de `app/m`: solo los tres rótulos de identidad junto a «DTD».
+- Noticias web, sin vino.
+- `app/m`, sin hex de la familia vino.
+- `--surface-sel` en tinta y los tokens web de acción con los valores del Studio.
+- Tres mutantes: un botón y un tono `"wine"` en `app/m`, y una clase `bg-wine` en Noticias web.
+
+### Fase 3b-1 · Portal del cliente (2026-11-22)
+
+Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del color (Portal y resto de la web)». Va en la rama `claude/sdd-0686-fase3b-portal-web-623a6c`, desde `main` `8c15a4bb0`.
+
+**Inventario (M, con el detector de los contratos):** `app/portal` tenía 264 usos en 75 archivos; la web pública y `components/`, 432 en 68 (sin contar Noticias web, ya hecha en la 3a). Pasa de 40 archivos, así que la fase se divide: **3b-1 Portal** (esta PR) y **3b-2 web** (después). El inicio de sesión del Portal (`app/portal/(auth)`) va en la fase 4.
+
+**Tokens.** En `app/globals.css`:
+- `--color-accion-tint` (`rgba(31,79,168,.08)`) entra junto a los tokens web de acción de la 3a;
+- `[data-portal-theme="dark"]` redefine `--color-accion` (#7faaf0), `--color-accion-hover` (#9bbdf4), `--color-on-accion` (#0f1e3d), `--color-accion-text` (#7faaf0) y `--color-accion-tint`, los mismos valores oscuros del Studio. Noticias web no lleva ese atributo y conserva los claros fijos;
+- `#portal-shell .btn-primary` pasa a azul con `--color-on-accion`. El `.btn-primary` de la web conserva el vino hasta la 3b-2;
+- `.eyebrow-tinta`: el texto del eyebrow en `--color-grey-700` (el `--ink-soft` del portal); el guión sigue en vino (identidad).
+
+| Destino | Qué |
+|---|---|
+| Acción (`--color-accion*`) | Botones con relleno (error, «=» y botón flotante de la calculadora, «+» de nueva compra, cámara del avatar, servicios extra), anillos y bordes de foco, casillas y radios, enlaces y su hover, flechas de fila al pasar el ratón, botones fantasma con texto, asa de la calculadora, botón «Crear» del menú lateral y su menú, burbuja propia del chat de Soporte (BD-076 regla 8: la burbuja en azul) |
+| Tinta (selección, BD-037) | Pestañas activas, proveedor y servicio marcados, tipo de facturación elegido, dirección principal, lección actual, pestaña de la calculadora |
+| Tinta (cifras y códigos, reglas 4 y 6) | Saldo final y filas destacadas del estado de cuenta, total destacado de la factura y del envío, monto de «reportar pago», días de la próxima salida, KPI «Envíos activos» (`tone="ink"`), código siguiente del proveedor, Shipping Mark de la Vista simple, barras de progreso (Academia, referidos, alertas, pasos del asistente y del envío) |
+| Tinta (avatares y badges, regla 7 y fase 3a) | Avatares (menú de cuenta, perfil, asesor, Soporte), badges y contadores (campana, «Principal», Club, «Cuenta personal»), tonos `wine` de los mapas de badges a `--color-ink`; «Aplicado» de referidos a `success` |
+| Tinta suave | Eyebrows y rótulos en mayúscula |
+| Neutro | Marcos de las tarjetas del asistente de compra (`--color-grey-300`), línea de la bandeja de avisos |
+
+**Decididas por Sam el 2026-11-22.** Vio las dos piezas dibujadas en el chat del Director y respondió «Portal: Vista simple A, Próximo arribo B»:
+1. **Vista simple A (EXC-0654-01 cerrada).** El botón principal pasa a `--color-accion` con `--color-on-accion` y su hover, a `--color-accion-hover`. El avatar y la parte «proveedor» del código pasan a `--color-ink` con `--color-paper`, y el bloque del proveedor deja `--tint-wine` por `--tint-ink`. Salen `--vs-principal-*`, `--tint-wine` y `.vs-tinte-wine`. `BRAND.md` y `BRAND-DECISIONS.md` registran el cierre con fecha.
+2. **Próximo arribo B.** `--hero-accent` pasa al token nuevo `--color-accion-on-dark`, declarado en `@theme` (#7faaf0, el `--accion-soft` del Studio). En el portal oscuro sube a #9bbdf4, porque el héroe se aclara a #25406c. Con el valor claro de #7faaf0, ese extremo daba 4,39:1 y no llegaba a AA para texto. Peor caso medido: 5,53:1 sobre #1f3055 en claro y 5,41:1 sobre #25406c en oscuro. Los dos eyebrows de «Tu código» en Perfil también usaban `--hero-accent`; no se tocan, así que pasan a `--hero-soft` (tinta suave sobre navy) y la decisión B no se extiende a ellos.
+
+**Revisión independiente de la #780 (CHANGES_REQUESTED sobre `c499fa999`), corregida en el mismo commit:**
+- **Bloqueante:** `app/portal/__tests__/avisos-portal-contract.test.ts` contaba los acentos en vino de `PortalAlertasHub` (3) y `SuppliersClient` (2). Ahora son 0, y se corrigieron sus comentarios.
+- `#{s.supplierSeq}` de `SupplierPicker` es un código y va en tinta.
+- La sombra de `#portal-shell .btn-primary` pasa a `color-mix` del token.
+- El contrato compara con el Studio los cuatro tokens oscuros (relleno, hover, texto encima y texto) y también detecta `bg-accion text-white`.
+
+**Fuera de esta fase:** `--portal-nav-active` (`app/globals.css`, el ítem activo del menú lateral) sigue con un degradado vino en hex, en claro y en oscuro: va en la fase 4 (hex escritos a mano). El comprobante de pago (`facturas/[code]/comprobante`) lleva `--doc-wine`: es documento de marca (fase 5). El tono `"wine"` de `lib/portal/alertas.ts` (pre-alerta) se pinta en tinta por el mapa del Portal; el tipo en `lib/` queda para la fase 4.
+
+**Allowlist (rutas exactas):**
+- `BRAND.md` (decisiones de Sam y revisión de la #780)
+- `docs/design/studio/_norte/BRAND-DECISIONS.md` (decisiones de Sam y revisión de la #780)
+- `app/portal/__tests__/avisos-portal-contract.test.ts` (decisiones de Sam y revisión de la #780)
+- `app/portal/(app)/_simple/__tests__/InicioSimple.test.tsx` (decisiones de Sam y revisión de la #780)
+- `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts` (decisiones de Sam y revisión de la #780)
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/globals.css`
+- `app/portal/(app)/_components/PendingAcceptanceCard.tsx`
+- `app/portal/(app)/_components/PortalAdvisorCard.tsx`
+- `app/portal/(app)/_components/PortalDashboardNorte.tsx`
+- `app/portal/(app)/_components/PortalNextSailingCard.tsx`
+- `app/portal/(app)/_components/PortalVerifyGate.tsx`
+- `app/portal/(app)/_simple/InicioSimple.tsx`
+- `app/portal/(app)/academia/[courseId]/[lessonId]/page.tsx`
+- `app/portal/(app)/academia/[courseId]/page.tsx`
+- `app/portal/(app)/academia/page.tsx`
+- `app/portal/(app)/club/page.tsx`
+- `app/portal/(app)/compras/[code]/_components/PackingListDelProveedor.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/ServiceSection.tsx`
+- `app/portal/(app)/compras/[code]/page.tsx`
+- `app/portal/(app)/compras/ComprasList.tsx`
+- `app/portal/(app)/compras/nueva/NewPurchaseForm.tsx`
+- `app/portal/(app)/compras/nueva/NewPurchaseWizard.tsx`
+- `app/portal/(app)/compras/nueva/page.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseOrderLive.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepConfirm.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseSummaryPanel.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseWizardSteps.tsx`
+- `app/portal/(app)/compras/nueva/SupplierPicker.tsx`
+- `app/portal/(app)/compras/page.tsx`
+- `app/portal/(app)/cotizaciones/page.tsx`
+- `app/portal/(app)/documentos/DocumentsClient.tsx`
+- `app/portal/(app)/envios/[code]/_components/PortalShipmentDetailNorte.tsx`
+- `app/portal/(app)/envios/_components/PortalAlertasHub.tsx`
+- `app/portal/(app)/error.tsx`
+- `app/portal/(app)/estimados/page.tsx`
+- `app/portal/(app)/facturas/[code]/aceptar/AcceptanceForm.tsx`
+- `app/portal/(app)/facturas/[code]/aceptar/page.tsx`
+- `app/portal/(app)/facturas/[code]/page.tsx`
+- `app/portal/(app)/facturas/[code]/reportar/page.tsx`
+- `app/portal/(app)/facturas/_components/StatementLedgerTable.tsx`
+- `app/portal/(app)/facturas/page.tsx`
+- `app/portal/(app)/finanzas/page.tsx`
+- `app/portal/(app)/mensajes/PortalMessageForm.tsx`
+- `app/portal/(app)/perfil/AvatarEditor.tsx`
+- `app/portal/(app)/perfil/BillingIdentityCard.tsx`
+- `app/portal/(app)/perfil/BillingKindSelector.tsx`
+- `app/portal/(app)/perfil/CedulaPhotoRow.tsx`
+- `app/portal/(app)/perfil/DataChangeEditor.tsx`
+- `app/portal/(app)/perfil/empresa/BillingIdentityForm.tsx`
+- `app/portal/(app)/perfil/page.tsx`
+- `app/portal/(app)/perfil/PortalAddresses.tsx`
+- `app/portal/(app)/perfil/ProfilePendingBanner.tsx`
+- `app/portal/(app)/proveedores/SuppliersClient.tsx`
+- `app/portal/(app)/reclamos/_components/PortalClaims.tsx`
+- `app/portal/(app)/referidos/page.tsx`
+- `app/portal/(app)/soporte/page.tsx`
+- `app/portal/_components/InvoiceRow.tsx`
+- `app/portal/_components/NewPurchaseButton.tsx`
+- `app/portal/_components/PortalAccountMenu.tsx`
+- `app/portal/_components/PortalAvisosBell.tsx`
+- `app/portal/_components/PortalCalcFab.tsx`
+- `app/portal/_components/PortalDocsCard.tsx`
+- `app/portal/_components/PortalFieldError.tsx`
+- `app/portal/_components/PortalFooter.tsx`
+- `app/portal/_components/PortalNotificationHistory.tsx`
+- `app/portal/_components/PortalPaymentConfirm.module.css`
+- `app/portal/_components/PortalPending.tsx`
+- `app/portal/_components/PortalPushOptIn.tsx`
+- `app/portal/_components/PortalSidebar.tsx`
+- `app/portal/_components/PortalTopbar.tsx`
+- `app/portal/_components/PortalTrackingEnConstruccion.tsx`
+- `app/portal/_components/PrealertaAddons.tsx`
+- `app/portal/_components/PrealertaServiceBadge.tsx`
+- `app/portal/_components/PrealertaStatusBadge.tsx`
+- `app/portal/_components/ReferralInviteForm.tsx`
+- `app/portal/_components/ServiceRequestButton.tsx`
+- `app/portal/_components/ShipmentRow.tsx`
+- `app/studio/_components/__tests__/color-accion-fase3b-portal-contract.test.ts`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b-portal-contract.test.ts`.
+- `app/portal` (sin `(auth)`) queda sin vino: la lista cerrada está vacía.
+- Cinco mutantes: un enlace, un foco, un botón, un tono `"wine"` de KPI y el Shipping Mark de la Vista simple. Uno más devuelve el vino al héroe «Próximo arribo».
+- El bloque `.vs` no nombra el vino y el acento del héroe pasa AA en los dos temas.
+- Los tokens oscuros de acción del portal coinciden con el Studio.
+- `#portal-shell .btn-primary` es azul y el de la web sigue en vino.
+- Ningún relleno de acción lleva `--color-on-accent` encima (en oscuro sería blanco sobre azul claro).
+
+### Fases 2 a 5
+
+Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):
+
+| Superficie | Por token o clase | Familia vino escrita a mano |
+|---|---|---|
+| `app/studio` | 1.018 usos en 276 archivos | 97 en 36 |
+| `app/portal` | 259 en 73 | 2 en 1 |
+| Web (`app/*` público + `components/`) | 612 en 64 | 30 en 7 |
+| `app/m` | 131 en 25 | 2 en 2 |
+| `lib/` | 20 en 9 | 49 en 22 |
+| `app/back`, `app/marca`, `app/invitar` | 11 en 6 | 14 en 5 |
+
+Orden de los grupos de la fase 2: lo que se ve siempre (menú lateral, barra superior), operación diaria (`dashboard`, `embarques`, `tracking`, `clientes`, `cn`, `cobranzas`, `facturacion`, `crm`) y el resto por grupos de 5 a 8 módulos.
+
+## 6. Aceptación
+
+### Fase 0
+
+- `BRAND.md`, VIS-01 y BTN-01 dicen lo mismo que §2 y no quedan frases que asignen la acción al vino.
+- BD-076 registrado con cita literal, superficie, tokens, contraste y fecha.
+- `pnpm docs:check`, `pnpm sdd:check` y `pnpm governance:check` pasan.
+
+### Fase 1
+
+Lo vigila `color-accion-contract.test.ts`, leyendo los valores reales de `tokens.css`. Cada regla tiene piso (cuenta mínima de lo que mide) y al menos un mutante que la rompe:
+
+- `--on-accion` sobre `--accion` y sobre `--accion-hover` mide al menos 4,5:1 en los dos temas.
+- `--accion` mide al menos 3:1 contra `--bg-surface` y `--bg-elevated` en los dos temas.
+- `--accion-text` mide al menos 4,5:1 sobre `--bg-base`, `--bg-surface` y `--bg-elevated` en los dos temas.
+- **La acción y el peligro no comparten tono:** la distancia de tono entre `--accion` y `--danger` es de al menos 90° en los dos temas. Mutante: devolver `--accion` a `#A8323E`.
+- Ninguna regla de `.studio-btn-primary` nombra `--wine` ni `--studio-wine`.
+- Los tokens `--accion*` no referencian tokens `--wine*`.
+- Al imprimir, los tokens de acción vuelven a su valor claro, como cada token que el tema oscuro sobrescribe.
+- Todo lo de SDD-0603 sigue valiendo: contornos de al menos 3:1, nada oprimible bajo 32 px, elevación por niveles y verbos en peso 700.
+
+### Fases 2 a 4
+
+- Un contrato congela la lista de archivos con `var(--wine` o clases `*-wine*`, con cuenta exacta por archivo, y la lista solo puede bajar. Al cerrar, quedan únicamente los usos de identidad, cada uno con su motivo escrito.
+- Ningún saldo, monto ni KPI usa `--wine-text`.
+- La selección sigue en tinta (BD-037); ningún tramo la pasa a azul.
+
+## 7. Gate VIS-01
+
+| Punto | Clasificación |
+|---|---|
+| Presupuesto de énfasis | Cumple: sigue habiendo un único relleno de acción por contexto; cambia su color |
+| Acción dominante | Cumple: no cambia la cantidad de primarios |
+| Semántica de color | **Cambio de política aprobado por Sam:** VIS-01 §3 pasa de «Wine: identidad, selección y acción primaria» a acción en azul e identidad en vino. Se enmienda la política en la fase 0 |
+| Contraste | Cumple en valores medidos; lo vigila el contrato de la fase 1 |
+| Tokens | Seis tokens de color nuevos, registrados en el BD |
+| Estados sin color | Cumple: el peligro conserva icono y verbo; ver «Límite conocido» en §3 |
+| Light/dark | Cumple en contrato. Falta el recorrido en pantalla (§8) |
+| Móvil | Sin cambio de disposición; `app/m` entra en la fase 3 |
+| Movimiento reducido | No aplica: no se agrega movimiento |
+
+## 8. Verificación y publicación
+
+- **Imagen de prueba** (rama que no se fusiona) con las fases 1 y 2 juntas, para que Sam vea el azul en el Studio en claro, oscuro y compacto antes de fijar el tono. Datos tapados, sin escribir.
+- `/ui-check` por PR y `/ui-pro` sobre las pantallas principales al cierre.
+- `pnpm verify` con turno del Director; CI verde sobre la cabeza exacta; revisión independiente que lanza el Director General.
+- Fusionar y publicar a producción piden cada uno su autorización. Las decisiones de Sam del 2026-11-20 cubren el diseño.
+
+### 8.1 Condición de publicación
+
+**Entre la fase 1 y el final de la fase 2 no se publica**, salvo que lo que queda en pantalla sea coherente. Confirmada por el Director General el 2026-11-20.
+
+- **Por qué:** la fase 1 cambia lo que se pinta por clase y la fase 2 lo que se pinta en línea. Publicar la primera sin la segunda deja botones azules junto a enlaces y acentos en vino, que es peor que no haber empezado.
+- **Alcanza a la fusión, no solo al despliegue:** en este repo cada push a `main` publica la web (SDD-0541). Mientras la condición no se cumpla, la PR de la fase 1 no entra a `main`.
+- **Qué es «coherente» y cómo se comprueba:** en lo que se ve siempre (menú lateral, barra superior) y en la operación diaria (los ocho módulos de §5) no queda ningún botón principal, enlace ni acento de acción en vino. Lo mide el contrato de la fase 2 (§6): para esos grupos, la lista de usos de `var(--wine` solo contiene usos de identidad, cada uno con su motivo.
+- **Cómo se llega sin publicar a medias:** lo decide el Director al abrir la fase 1. Propuesta: las PR de la fase 1 y de los dos primeros grupos de la fase 2 se revisan una por una, pero entran a `main` juntas, en una sola fusión.
+- Ninguna excepción a esta condición se toma por el Worker: la autoriza Sam.
+
+## 9. Lo que esta spec no cubre
+
+- **Logo y wordmark:** las 4 variantes PNG y el «DTD» en vino no se tocan.
+- **Formato de cifras:** SDD-0687. **Encabezados, drawers, tablas y espaciados:** SDD-0688.
+- **Correos y plantillas guardadas en la base de datos:** 8 migraciones ya aplicadas llevan el vino en plantillas. Cambiarlas exige migración nueva y escritura en producción con OK nominal de Sam y el runbook; se decide en la fase 5.
+- **Chatwoot** (`infra/chatwoot`) y **`infra/dtd-cargo`**: se despliegan aparte.
+- **PDF de factura, estado de cuenta, etiquetas y diplomas:** son documentos de marca; conservan el vino salvo decisión contraria de Sam.
+
+## 10. Pendientes de decisión
+
+1. ~~Tono exacto del azul.~~ **Decidido el 2026-11-20:** opción B, `#1F4FA8` en claro y `#7FAAF0` en oscuro.
+2. ~~Color del **Shipping Mark**.~~ **Decidido el 2026-11-20** (BD-076, regla 6). Va en tinta, y en azul con subrayado fino solo si la marca, ella sola, lleva a otro lugar. Si toda la fila se abre al tocarla, va en tinta. El chip de la ficha sigue siendo botón. En impresión y sin destino, va en tinta. La regla vale para cualquier dato que lleve a algún lugar (cliente, factura, contenedor, tracking). Respuesta de Sam: «Sí, la regla del Shipping Mark queda así».
+3. ~~Qué hacer con correos, PDF y Chatwoot (§9).~~ **Decidido el 2026-11-20** (BD-076, regla 8). **Correo:** logo y línea del encabezado en vino; botones y enlaces en azul; montos en tinta. **PDF** (factura, estado de cuenta, etiquetas): vino solo en el logo y en la línea del encabezado; sin azul, porque en papel nada se oprime; datos y cifras en tinta. **Chatwoot:** la burbuja del chat en azul. Sam vio las tres piezas dibujadas y respondió: «Correos, PDF y Chatwoot: queda como la propuesta». La decisión fija el color. **Aplicarlo necesita su propio OK** cuando llegue la fase 5: las plantillas de correo guardadas en la base de datos exigen una migración y una escritura en producción, y Chatwoot se configura en su servidor de producción (§9).
+4. ~~El tono de badge `wine`.~~ **Decidido el 2026-11-20** (BD-076, regla 7). El tono se retira y cada badge toma el tono de su función: `neutral` si informa, `success` si confirma y tinta si cuenta una selección; ninguno en azul. Hay unos 30 usos en el Studio, el Portal y el móvil, que migran en la fase 2. Sam vio los casos reales dibujados y respondió: «se retira, cada uno por su función como en la propuesta quitar vino».
+5. **Gráficos y dashboard (choque con BD-011), para decidir antes de la fase 2.** BD-011 (2026-06-20) fija la paleta de gráficos con el «wine protagonista». El dashboard del Studio pinta en vino su gráfica de barras, las etiquetas de sección y los íconos (`dashboard/_components/DashboardWidgets.tsx`). También el estado «en tránsito», «en reparto» y «última milla» (`dashboard/_components/RecentActivityCard.tsx:35-39`), que además choca con la política de Estados de `BRAND.md`: estar en camino no es riesgo. Propuesta mostrada a Sam el 2026-11-20: cifras y gráficas en tinta, con rampa por opacidad y sin colores nuevos; estados de viaje en `--info` (neutro); el rojo solo para la excepción. El azul queda fuera de los gráficos, para que una barra no parezca un botón. **Aprobada por Sam el 2026-11-20**: a «¿Apruebas la propuesta del dashboard: cifras y gráficas en tinta, y estados neutros?» respondió «Sí, así». BD-011 se enmienda en la misma PR de la fase 2, junto con el dashboard.
+
+## 11. Límites
+
+Los valores de §3 son calculados; nadie los ha visto en pantalla. Los conteos de §5 son por texto en el código. No se midió accesibilidad en vivo ni se probó con personas con daltonismo.

@@ -35,9 +35,11 @@ export const metadata: Metadata = {
   applicationName: "DTD Cargo",
   appleWebApp: {
     capable: true,
-    // El shell del portal nace en tema oscuro (`data-portal-theme="dark"` en
-    // `(app)/layout.tsx`) y la barra lateral es navy: `black-translucent` deja
-    // que el contenido suba hasta el notch en vez de cortar con una franja.
+    // El shell del portal nace en tema claro (SDD-0654 1b; `data-portal-theme` en
+    // `(app)/layout.tsx`, oscuro solo si el cliente lo eligió) y la barra lateral
+    // es navy en los dos temas: `black-translucent` deja que el contenido suba
+    // hasta el notch en vez de cortar con una franja. Pendiente comprobar en iOS
+    // (PWA) que la barra de estado se lee bien sobre el tema claro.
     statusBarStyle: "black-translucent",
     title: "DTD Cargo",
     startupImage: ["/portal/icon-512.png"],

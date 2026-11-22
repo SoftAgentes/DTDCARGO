@@ -68,7 +68,7 @@ export function BillingIdentityForm({
           placeholder={isCompany ? "Importadora Pérez C.A." : "Carlos Pérez"}
           aria-invalid={err.legalName ? true : undefined}
           aria-describedby={`legal_name-hint${err.legalName ? " legal_name-error" : ""}`}
-          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-accion focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         />
       </Field>
 
@@ -90,7 +90,7 @@ export function BillingIdentityForm({
           placeholder={isCompany ? "J-12345678-9" : "V-12345678"}
           aria-invalid={err.doc ? true : undefined}
           aria-describedby={`doc-hint${err.doc ? " doc-error" : ""}`}
-          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-accion focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />
       </Field>
@@ -112,7 +112,7 @@ export function BillingIdentityForm({
             placeholder="Av. Bolívar Norte, C.C. Camoruco, local 14, Valencia"
             aria-invalid={err.fiscalAddress ? true : undefined}
             aria-describedby={`fiscal_address-hint${err.fiscalAddress ? " fiscal_address-error" : ""}`}
-            className="w-full resize-none rounded-[10px] border border-grey-500 bg-white px-4 py-3 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="w-full resize-none rounded-[10px] border border-grey-500 bg-white px-4 py-3 text-[16px] font-semibold text-ink focus:border-accion focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />
         </Field>
       ) : null}
@@ -125,7 +125,7 @@ export function BillingIdentityForm({
             checked={setDefault}
             onChange={(e) => setSetDefault(e.target.checked)}
             className="mt-0.5 h-[22px] w-[22px] flex-shrink-0"
-            style={{ accentColor: "var(--color-wine)" }}
+            style={{ accentColor: "var(--color-accion)" }}
           />
           <span className="flex flex-col gap-0.5">
             <span className="text-[15px] font-extrabold text-ink">
@@ -187,7 +187,7 @@ function Field({
         {optional ? (
           <span className="font-semibold text-grey-500">(opcional)</span>
         ) : (
-          <span className="text-wine-text" aria-hidden>*</span>
+          <span className="text-ink" aria-hidden>*</span>
         )}
       </label>
       {children}

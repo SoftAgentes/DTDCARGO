@@ -56,7 +56,7 @@ export function MotivoField({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
       <div>
         <label htmlFor={id} className="studio-label">
-          Motivo <span style={{ color: "var(--wine-text)" }}>*</span>
+          Motivo <span style={{ color: "var(--ink-soft)" }}>*</span>
         </label>
         <select
           id={id}
@@ -83,7 +83,7 @@ export function MotivoField({
       {otro && (
         <div>
           <label htmlFor={textoId} className="studio-label">
-            Escribe el motivo <span style={{ color: "var(--wine-text)" }}>*</span>
+            Escribe el motivo <span style={{ color: "var(--ink-soft)" }}>*</span>
           </label>
           <input
             id={textoId}

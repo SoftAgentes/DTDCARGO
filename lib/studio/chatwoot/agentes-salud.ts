@@ -25,6 +25,8 @@ export interface EstadoMiembroStudio {
   puedeBandeja: boolean;
   /** Para la matriz del 2.7. */
   rol?: StudioUserRole;
+  /** SDD-0675: ve la Bandeja por un acceso adicional vigente, no por su rol. */
+  porAcceso?: boolean;
 }
 
 export interface VinculoAgente {
@@ -43,6 +45,10 @@ export type AlertaSalud =
   | "cierre_pendiente"
   | "degradacion_bloqueada"
   | "matriz_incompleta"
+  // SDD-0675: no se pudieron leer los accesos adicionales de Bandeja; las bajas «sin_bandeja» y la matriz esperan.
+  | "accesos_no_leidos"
+  // SDD-0675 (absorbe la SDD-0677): no se pudieron leer los miembros o los desvíos por rol; no hay bajas ni matriz.
+  | "miembros_no_leidos"
   // SDD-0586 (10.5, PR 1b): el webhook de cuenta (`webhook-salud.ts`).
   | "webhook_falta"
   | "webhook_sin_mensajes"

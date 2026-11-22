@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { canAccessModule, type RoleModuleOverrides } from "@/lib/studio/rbac";
+import { DECISION_COLUMNS, grantsFromRows, type GrantDecisionRow } from "@/lib/studio/user-module-grants-queries";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { drainOperarioPushOutbox, enqueueUserPush } from "@/lib/studio/notify/operario-push-outbox";
 import type { ChatwootConfig } from "./config";
@@ -62,33 +63,77 @@ export interface ResultadoSincronizacion {
   cierresPendientes: number;
   matriz?: Omit<ResultadoMatriz, "miembrosCuenta">;
   salud: SaludBandeja;
-  /** Sin la 0503: no hay vínculos que revisar. */
+  /** Sin la 0503 (no hay vínculos que revisar): no se toca nada. */
   omitido?: true;
+  /**
+   * SDD-0675: bajas «sin_bandeja» que esperan porque no se pudieron leer los
+   * accesos adicionales. Las de «desactivado» y «fuera_del_tenant» sí se aplican.
+   */
+  sinBandejaEnEspera?: number;
+  /**
+   * SDD-0675 (absorbe la SDD-0677): no se pudieron leer los miembros
+   * (`user_tenants`) o los desvíos por rol. Sin eso todos parecerían fuera del
+   * tenant o con los permisos por defecto: no se aplica ninguna baja ni la matriz.
+   */
+  sinEstado?: true;
 }
 
 type FilaVinculo = { user_id: string; chatwoot_user_id: number };
 type FilaMiembro = { user_id: string; role: StudioUserRole; disabled_at: string | null };
 type FilaOverride = { role: string; module_id: string; can_view: boolean; can_edit: boolean };
 
-async function estadoEnStudio(ctx: ContextoAgentes): Promise<Map<string, EstadoMiembroStudio>> {
-  const [{ data: miembros }, { data: overridesFilas }] = await Promise.all([
+/**
+ * Estado de cada miembro en Studio. SDD-0675: `puedeBandeja` suma el acceso
+ * adicional vigente de la persona (`studio_user_module_grants`, 0538), igual que
+ * `canAccessModule` en la pantalla. Si esa lectura falla, `accesosLeidos` es
+ * false: el ciclo aplica igual las bajas que no dependen del acceso
+ * (desactivado, fuera del tenant) y deja en espera las «sin_bandeja».
+ *
+ * Si falla la lectura de los miembros o de los desvíos por rol, `estadoLeido`
+ * es false: un mapa vacío haría que todos parecieran «fuera_del_tenant» (baja
+ * masiva) y sin desvíos se decidiría con los permisos por defecto.
+ */
+async function estadoEnStudio(
+  ctx: ContextoAgentes,
+): Promise<{ mapa: Map<string, EstadoMiembroStudio>; accesosLeidos: boolean; estadoLeido: boolean }> {
+  const [{ data: miembros, error: errorMiembros }, { data: overridesFilas, error: errorOverrides }, accesos] = await Promise.all([
     ctx.admin.from("user_tenants").select("user_id, role, disabled_at").eq("tenant_id", ctx.tenantId),
     ctx.admin.from("studio_role_module_overrides").select("role, module_id, can_view, can_edit").eq("tenant_id", ctx.tenantId),
+    ctx.admin
+      .from("studio_user_module_grants")
+      .select(DECISION_COLUMNS)
+      .eq("tenant_id", ctx.tenantId)
+      .eq("module_id", "bandeja"),
   ]);
+  const estadoLeido = !errorMiembros && !errorOverrides;
+  if (!estadoLeido) {
+    console.warn(
+      `[chatwoot-agentes] estado de Studio no disponible: miembros ${errorMiembros?.code ?? "ok"}, desvíos ${errorOverrides?.code ?? "ok"}`,
+    );
+  }
+  const accesosLeidos = !accesos.error;
+  if (accesos.error) {
+    console.warn(`[chatwoot-agentes] accesos por persona no disponibles: ${accesos.error.code ?? "sin código"}`);
+  }
+  const filasAcceso = accesosLeidos ? ((accesos.data ?? []) as GrantDecisionRow[]) : [];
   const overrides: Record<string, { view: boolean; edit: boolean }> = {};
   for (const o of (overridesFilas ?? []) as FilaOverride[]) {
     overrides[`${o.role}:${o.module_id}`] = { view: o.can_view, edit: o.can_edit };
   }
   const mapa = new Map<string, EstadoMiembroStudio>();
   for (const fila of (miembros ?? []) as FilaMiembro[]) {
+    const grants = grantsFromRows(filasAcceso.filter((g) => g.user_id === fila.user_id && g.module_id === "bandeja"));
+    const porRol = canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides);
+    const conAcceso = canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides, grants);
     mapa.set(fila.user_id, {
       userId: fila.user_id,
       activo: fila.disabled_at === null,
-      puedeBandeja: canAccessModule(fila.role, "bandeja", overrides as RoleModuleOverrides),
+      puedeBandeja: conAcceso,
       rol: fila.role,
+      porAcceso: conAcceso && !porRol,
     });
   }
-  return mapa;
+  return { mapa, accesosLeidos, estadoLeido };
 }
 
 export async function sincronizarAgentes(
@@ -114,16 +159,32 @@ export async function sincronizarAgentes(
     userId: f.user_id,
     chatwootUserId: f.chatwoot_user_id,
   }));
-  const [estado, cuenta] = await Promise.all([estadoEnStudio(ctx), listarMiembrosCuenta(ctx.cfg)]);
+  const [{ mapa: estado, accesosLeidos, estadoLeido }, cuenta] = await Promise.all([
+    estadoEnStudio(ctx),
+    listarMiembrosCuenta(ctx.cfg),
+  ]);
   let miembrosCuenta: MiembroCuenta[] = cuenta.ok ? [...cuenta.data] : [];
   const quedan: VinculoAgente[] = [];
   let bajas = 0;
   let bloqueadas = 0;
   let fallidas = 0;
   let cierresPendientes = 0;
+  let sinBandejaEnEspera = 0;
 
   for (const v of vinculos) {
-    if (decidirBaja(estado.get(v.userId)) === null) {
+    // Sin el estado de Studio no se decide ninguna baja: todos se quedan.
+    if (!estadoLeido) {
+      quedan.push(v);
+      continue;
+    }
+    const motivo = decidirBaja(estado.get(v.userId));
+    if (motivo === null) {
+      quedan.push(v);
+      continue;
+    }
+    // Sin los accesos no se sabe si le falta la Bandeja o la tiene por un extra: espera.
+    if (motivo === "sin_bandeja" && !accesosLeidos) {
+      sinBandejaEnEspera += 1;
       quedan.push(v);
       continue;
     }
@@ -178,7 +239,9 @@ export async function sincronizarAgentes(
   }
 
   let matriz: ResultadoMatriz | undefined;
-  if (cuenta.ok) {
+  // Sin los accesos, la matriz sacaría de sus bandejas a quien entra por un extra: espera.
+  // Ni sin el estado de Studio: degradaría roles con datos incompletos.
+  if (cuenta.ok && accesosLeidos && estadoLeido) {
     const agentes = await agentesDeLaMatriz(ctx, opciones.soloUsuario ? null : quedan, estado);
     if (agentes) {
       matriz = await aplicarMatriz(ctx, agentes, miembrosCuenta);
@@ -195,10 +258,22 @@ export async function sincronizarAgentes(
   if (cierresPendientes > 0) salud.alertas.push("cierre_pendiente");
   if (matriz && matriz.bloqueadas > 0) salud.alertas.push("degradacion_bloqueada");
   if (matriz && matriz.fallidas > 0) salud.alertas.push("matriz_incompleta");
+  if (!estadoLeido) salud.alertas.push("miembros_no_leidos");
+  else if (!accesosLeidos) salud.alertas.push("accesos_no_leidos");
   const resumenMatriz = matriz
     ? { roles: matriz.roles, bloqueadas: matriz.bloqueadas, bandejas: matriz.bandejas, equipos: matriz.equipos, fallidas: matriz.fallidas }
     : undefined;
-  return { revisados: vinculos.length, bajas, bloqueadas, fallidas, cierresPendientes, matriz: resumenMatriz, salud };
+  return {
+    revisados: vinculos.length,
+    bajas,
+    bloqueadas,
+    fallidas,
+    cierresPendientes,
+    matriz: resumenMatriz,
+    salud,
+    ...(accesosLeidos || !estadoLeido ? {} : { sinBandejaEnEspera }),
+    ...(estadoLeido ? {} : { sinEstado: true as const }),
+  };
 }
 
 /**
@@ -224,7 +299,8 @@ async function agentesDeLaMatriz(
   for (const v of lista) {
     const m = estado.get(v.userId);
     if (!m?.rol || decidirBaja(m) !== null) continue;
-    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol });
+    // porAcceso solo viaja cuando es verdadero: quien la tiene por rol queda igual que antes.
+    agentes.push({ chatwootUserId: v.chatwootUserId, rol: m.rol, ...(m.porAcceso === true ? { porAcceso: true } : {}) });
   }
   return agentes;
 }
@@ -238,6 +314,8 @@ const TEXTO_ALERTA: Record<AlertaSalud, string> = {
   cierre_pendiente: "una baja salió de la cuenta pero sus sesiones siguen abiertas",
   degradacion_bloqueada: "un cambio de rol quedó bloqueado para no dejar la cuenta sin administrador",
   matriz_incompleta: "no se pudieron aplicar todos los permisos de la matriz",
+  accesos_no_leidos: "no se pudieron leer los accesos adicionales de la Bandeja",
+  miembros_no_leidos: "no se pudieron leer los usuarios o los permisos por rol del Studio",
   webhook_falta: "falta el webhook de cuenta hacia el Studio",
   webhook_sin_mensajes: "el webhook de cuenta no recibe los mensajes",
   webhook_sin_ip_publica: "el webhook de cuenta apunta a un servidor sin IP pública",

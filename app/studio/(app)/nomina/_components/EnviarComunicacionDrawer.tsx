@@ -12,7 +12,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import type { NominaActionState, Employee } from "@/lib/studio/nomina/employee-types";
+import type { NominaActionState, EmployeeRef } from "@/lib/studio/nomina/employee-types";
 import { COMM_TYPES, commTypeLabel, commTypeRequiresAck } from "@/lib/studio/nomina/comms-types";
 import { sendCommAction } from "../actions";
 import { Field, ErrorBox } from "./form-bits";
@@ -26,7 +26,7 @@ export function EnviarComunicacionDrawer({
   presetEmployeeId,
   onClose,
 }: {
-  employees: Employee[];
+  employees: EmployeeRef[];
   presetEmployeeId?: string;
   onClose: () => void;
 }) {

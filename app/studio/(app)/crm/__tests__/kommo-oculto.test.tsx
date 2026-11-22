@@ -52,6 +52,11 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
   requireModuleView: vi.fn(async () => undefined),
   moduleEditDenial: vi.fn(async () => null),
 }));
+// SDD-0655: la página pregunta si quien mira ve la Bandeja. No es lectura de Kommo.
+const acceso = vi.hoisted(() => ({ bandeja: false }));
+vi.mock("@/lib/studio/crm-acceso-server", () => ({
+  leerAccesoCrm: vi.fn(async () => ({ embudos: true, bandeja: acceso.bandeja })),
+}));
 vi.mock("@/lib/studio/kommo-analytics", async (original) => ({
   ...(await original<typeof import("@/lib/studio/kommo-analytics")>()),
   getKommoAnalytics: prohibir("getKommoAnalytics"),
@@ -114,6 +119,7 @@ import { KOMMO_TABS, resolveKommoTab } from "../_components/kommo-tabs.shared";
 
 afterEach(() => {
   cleanup();
+  acceso.bandeja = false;
   for (const fn of prohibidas.values()) fn.mockClear();
 });
 
@@ -216,5 +222,24 @@ describe("ocultar no es borrar (SDD-0614 §2.1): el código de Kommo sigue en el
   it("la lista de pestañas de Kommo se conserva, oculta, en el resolver", () => {
     const shared = read(`${DIR}/_components/kommo-tabs.shared.ts`);
     for (const key of PESTANAS_KOMMO) expect(shared).toContain(`"${key}"`);
+  });
+});
+
+describe("la Bandeja es una pestaña del CRM (SDD-0655)", () => {
+  it("quien ve la Bandeja tiene la pestaña después de Embudos, y apunta a /studio/bandeja", async () => {
+    acceso.bandeja = true;
+    render(await abrir({}));
+    const pestanas = screen.getAllByRole("tab");
+    expect(pestanas.map((b) => b.textContent)).toEqual(["Embudos", "Bandeja"]);
+    expect(pestanas[0]).toHaveAttribute("aria-selected", "true");
+    expect(pestanas[1]).toHaveAttribute("aria-selected", "false");
+    expect(pestanas[1]).toHaveAttribute("data-tab", "bandeja");
+    for (const fn of prohibidas.values()) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("quien ve CRM y no la Bandeja no tiene la pestaña", async () => {
+    acceso.bandeja = false;
+    render(await abrir({}));
+    expect(screen.getAllByRole("tab").map((b) => b.textContent)).toEqual(["Embudos"]);
   });
 });

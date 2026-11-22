@@ -28,6 +28,9 @@ import {
   type CrmFichaTarjeta,
 } from "@/lib/studio/crm-ficha";
 import { FUENTE_LABEL, nombreEtapa, type CrmEtapa } from "@/lib/studio/crm-tablero";
+import { canalConChat, canalDeTarjeta } from "@/lib/studio/crm-canal";
+import { useChatPermitido } from "./ChatPermitido";
+import { rutaChatTarjeta } from "./CrmTableroKanban";
 import {
   agregarNotaTarjetaAction,
   agregarTareaTarjetaAction,
@@ -88,6 +91,9 @@ export function TarjetaFichaDrawer({
       onClose={onClose}
       pending={false}
       width={600}
+      // SDD-0648, D8 (Sam, 2026-11-17): «Sí, que no se cierre». Un clic fuera no
+      // cierra la ficha; solo el botón cerrar o Escape.
+      closeOnBackdrop={false}
     >
       <div style={{ padding: "var(--s-5) var(--s-6)", overflowY: "auto", flex: 1 }}>
         {estado.fase === "cargando" && (
@@ -131,6 +137,7 @@ function Ficha({
   onCambio: () => void;
 }) {
   const utm = Object.entries(f.utm).filter(([, v]) => v);
+  const chatPermitido = useChatPermitido();
   // Un solo reloj por lectura de la ficha: se fija al montar, no en cada render.
   const [ahoraMs] = useState(() => Date.now());
 
@@ -166,6 +173,15 @@ function Ficha({
         <Dueno ficha={f} canEdit={canEdit} onCambio={onCambio} />
         <div style={{ marginTop: "var(--s-4)" }}>
           <span className="studio-label">Quién contesta el chat (Chatwoot)</span>
+          {/* SDD-0648 (D7): el chat se lee y se contesta en la Bandeja, a pantalla
+              completa; la ficha sigue a media pantalla. */}
+          {chatPermitido && (f.chat != null || canalConChat(canalDeTarjeta(f.fuente))) && (
+            <p style={{ margin: "0 0 var(--s-2)" }}>
+              <a href={rutaChatTarjeta(f.id)} className="studio-btn studio-btn-primary studio-btn-sm">
+                Abrir chat
+              </a>
+            </p>
+          )}
           <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
             {f.chat == null
               ? "Sin conversación en Chatwoot ligada a esta ficha."
@@ -292,6 +308,66 @@ function Ficha({
           </ol>
         )}
       </Seccion>
+
+      {/* SDD-0676: lo que traía la tarjeta de lead que este cliente absorbió al vincular su chat. */}
+      {(f.absorbidas ?? []).map((a) => (
+        <Seccion key={a.id} titulo={`Antes, como lead de ${FUENTE_LABEL[a.fuente] ?? a.fuente}`}>
+          <p style={{ ...NOTA_SUAVE, margin: "0 0 var(--s-2)" }}>
+            Tarjeta creada el {fechaCorta(a.creadaAt)}. Su chat se vinculó a esta ficha: esto es lo que traía, solo
+            para leer. Si se quita la unión desde la ficha del cliente, vuelve a su tablero.
+          </p>
+          {a.tareas.length + a.notas.length + a.historial.length === 0 ? (
+            <p style={NOTA_SUAVE}>No tenía tareas, notas ni movimientos.</p>
+          ) : (
+            <ul style={LISTA}>
+              {a.tareas.map((k) => (
+                <li key={`t-${k.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)", overflowWrap: "anywhere" }}>
+                    Tarea: {k.texto}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {k.completadaAt ? `Hecha el ${fechaCorta(k.completadaAt)}` : "Abierta"}
+                    {k.venceAt ? ` · Vence ${fechaCorta(k.venceAt)}` : ""}
+                    {k.asignado ? ` · ${k.asignado}` : ""}
+                  </p>
+                </li>
+              ))}
+              {a.notas.map((n) => (
+                <li key={`n-${n.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      font: "400 13px/1.45 var(--f-sans)",
+                      color: "var(--ink)",
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    Nota: {n.texto}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {n.autor ?? "Sistema"} · {fechaCorta(n.creadaAt)}
+                  </p>
+                </li>
+              ))}
+              {a.historial.map((h) => (
+                <li key={`h-${h.id}`} style={{ ...ITEM, display: "block" }}>
+                  <p style={{ margin: 0, font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                    {h.tablero === "leads" ? "Leads" : "Clientes"}:{" "}
+                    {h.de ? `${nombreEtapa(etapas, h.tablero, h.de)} → ` : ""}
+                    {nombreEtapa(etapas, h.tablero, h.a)}
+                  </p>
+                  <p style={NOTA_SUAVE}>
+                    {ORIGEN_MOVIMIENTO_LABEL[h.origen] ?? h.origen}
+                    {h.actor ? ` · ${h.actor}` : ""} · {fechaCorta(h.ocurrioAt)}
+                    {h.motivo ? ` · Motivo: ${h.motivo}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Seccion>
+      ))}
     </>
   );
 }

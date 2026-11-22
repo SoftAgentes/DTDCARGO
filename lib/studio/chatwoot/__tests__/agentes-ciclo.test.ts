@@ -354,3 +354,129 @@ describe("avisarSaludAAdmins (2.5)", () => {
     expect(m.encolar).not.toHaveBeenCalled();
   });
 });
+
+// ── SDD-0675: la Bandeja por acceso adicional por persona ───────────────────
+describe("sincronizarAgentes con acceso adicional de Bandeja (SDD-0675)", () => {
+  const PEPA = "20000000-0000-4000-8000-000000000005";
+  const FUTURO = "2099-01-01T00:00:00Z";
+  const PASADO = "2020-01-01T00:00:00Z";
+
+  function conPepa(acceso: Fila[]): void {
+    tablas.chatwoot_agent_links.push({ tenant_id: T1, user_id: PEPA, chatwoot_user_id: 12 });
+    tablas.user_tenants.push({ tenant_id: T1, user_id: PEPA, role: "accounting", disabled_at: null });
+    tablas.studio_user_module_grants = acceso;
+    m.listar.mockResolvedValue({ ok: true, data: [...CUENTA, { userId: 12, rol: "agent" }] });
+  }
+  const agentesDeMatriz = () => m.matriz.mock.calls.at(-1)?.[1] as { chatwootUserId: number; porAcceso?: boolean }[];
+
+  it("contabilidad con el acceso vigente: se queda y llega a la matriz con porAcceso", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: FUTURO }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(0);
+    expect(m.quitar).not.toHaveBeenCalled();
+    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 12)).toMatchObject({ porAcceso: true });
+    // Quien la tiene por rol no lleva porAcceso.
+    expect(agentesDeMatriz().find((a) => a.chatwootUserId === 7)?.porAcceso).toBeUndefined();
+  });
+
+  it("sin vencimiento también cuenta", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: true, expires_at: null }]);
+    expect((await sincronizarAgentes(ctx())).bajas).toBe(0);
+  });
+
+  it("acceso vencido: baja por sin_bandeja", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: PASADO }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(1);
+    expect(m.quitar).toHaveBeenCalledWith(12, CFG);
+  });
+
+  it("el acceso de otro tenant o de otro módulo no cuenta", async () => {
+    conPepa([
+      { tenant_id: T2, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null },
+      { tenant_id: T1, user_id: PEPA, module_id: "kommo", can_view: true, can_edit: false, expires_at: null },
+    ]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(1);
+    expect(m.quitar).toHaveBeenCalledWith(12, CFG);
+  });
+
+  it("el acceso de otra persona no le sirve", async () => {
+    conPepa([{ tenant_id: T1, user_id: ANA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null }]);
+    expect((await sincronizarAgentes(ctx())).bajas).toBe(1);
+  });
+
+  it("si no se pueden leer los accesos: «sin_bandeja» espera, sin matriz, con alerta de salud", async () => {
+    conPepa([]);
+    admin = doble(tablas, { tabla: "studio_user_module_grants" });
+    const r = await sincronizarAgentes(ctx());
+    expect(r.omitido).toBeUndefined();
+    expect(r).toMatchObject({ bajas: 0, sinBandejaEnEspera: 1 });
+    expect(m.quitar).not.toHaveBeenCalled();
+    expect(m.matriz).not.toHaveBeenCalled();
+    expect(r.salud.alertas).toContain("accesos_no_leidos");
+  });
+
+  it("si no se pueden leer los accesos: «desactivado» y «fuera_del_tenant» se aplican igual", async () => {
+    conPepa([]);
+    // LUIS desactivado y un vínculo cuyo usuario ya no está en el tenant.
+    tablas.user_tenants = tablas.user_tenants.map((f) =>
+      f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+    );
+    const FUERA = "20000000-0000-4000-8000-000000000006";
+    tablas.chatwoot_agent_links.push({ tenant_id: T1, user_id: FUERA, chatwoot_user_id: 13 });
+    m.listar.mockResolvedValue({ ok: true, data: [...CUENTA, { userId: 12, rol: "agent" }, { userId: 13, rol: "agent" }] });
+    admin = doble(tablas, { tabla: "studio_user_module_grants" });
+    const r = await sincronizarAgentes(ctx());
+    expect(r).toMatchObject({ bajas: 2, sinBandejaEnEspera: 1 });
+    expect(m.quitar).toHaveBeenCalledWith(8, CFG);
+    expect(m.quitar).toHaveBeenCalledWith(13, CFG);
+    expect(m.quitar).not.toHaveBeenCalledWith(12, CFG);
+    expect(r.salud.alertas).toContain("accesos_no_leidos");
+  });
+
+  // SDD-0675 (absorbe la SDD-0677): sin miembros o sin desvíos, ninguna baja ni matriz.
+  it.each(["user_tenants", "studio_role_module_overrides"])(
+    "si falla la lectura de %s: ninguna baja ni matriz, alerta miembros_no_leidos",
+    async (tabla) => {
+      conPepa([]);
+      // Hay bajas que con el estado leído sí se aplicarían: LUIS desactivado, PEPA sin acceso.
+      tablas.user_tenants = tablas.user_tenants.map((f) =>
+        f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+      );
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      admin = doble(tablas, { tabla });
+      const r = await sincronizarAgentes(ctx());
+      expect(r).toMatchObject({ bajas: 0, sinEstado: true });
+      expect(r.omitido).toBeUndefined();
+      expect(r.sinBandejaEnEspera).toBeUndefined();
+      expect(m.quitar).not.toHaveBeenCalled();
+      expect(m.cerrar).not.toHaveBeenCalled();
+      expect(m.matriz).not.toHaveBeenCalled();
+      expect(admin.borrados).toEqual([]);
+      expect(r.salud.alertas).toContain("miembros_no_leidos");
+      expect(r.salud.alertas).not.toContain("accesos_no_leidos");
+      // El aviso lleva solo códigos, ni ids ni correos.
+      expect(JSON.stringify(warn.mock.calls)).not.toMatch(/20000000-/);
+      warn.mockRestore();
+    },
+  );
+
+  it("control: con el estado leído, esas mismas bajas sí se aplican", async () => {
+    conPepa([]);
+    tablas.user_tenants = tablas.user_tenants.map((f) =>
+      f.user_id === LUIS && f.tenant_id === T1 ? { ...f, disabled_at: "2026-11-01T00:00:00Z" } : f,
+    );
+    const r = await sincronizarAgentes(ctx());
+    expect(r.bajas).toBe(2);
+    expect(r.sinEstado).toBeUndefined();
+    expect(r.salud.alertas).not.toContain("miembros_no_leidos");
+  });
+
+  it("con los accesos leídos no hay alerta ni sinBandejaEnEspera", async () => {
+    conPepa([{ tenant_id: T1, user_id: PEPA, module_id: "bandeja", can_view: true, can_edit: false, expires_at: null }]);
+    const r = await sincronizarAgentes(ctx());
+    expect(r.sinBandejaEnEspera).toBeUndefined();
+    expect(r.salud.alertas).not.toContain("accesos_no_leidos");
+  });
+});

@@ -14,6 +14,7 @@ import { colocarTarjeta, MARGEN, SEPARACION } from "../posicion";
 import { ROLES_ASIGNAR } from "../preferencias";
 import {
   buscarRecorrido,
+  PASO_ACCESO_BANDEJA,
   PASO_QUITAR_ACCESO,
   RECORRIDOS,
   RECORRIDO_ACTUALIZACIONES,
@@ -236,11 +237,12 @@ describe("9.5 · recorridos por rol", () => {
     expect(ROLES_ASIGNAR).toEqual(["admin", "commercial", "support"]);
   });
 
-  it("U1 (Vínculos) va al final de la Bandeja y solo la ve admin; U3 también es de admin", () => {
-    expect(pasosDe("admin", "bandeja")?.at(-1)).toBe("U1");
-    for (const rol of ["commercial", "support", "accounting"] as const) {
-      expect(pasosDe(rol, "bandeja"), rol).not.toContain("U1");
+  it("U1 salió de la Bandeja con Vínculos (SDD-0655) y, como U3, es de admin", () => {
+    for (const rol of ["admin", "commercial", "support", "accounting"] as const) {
+      expect(pasosDe(rol, "bandeja") ?? [], rol).not.toContain("U1");
     }
+    expect(pasosDe("admin", "bandeja")?.at(-1)).toBe("F1");
+    expect(PASO_ACCESO_BANDEJA.roles).toEqual(["admin"]);
     expect(PASO_QUITAR_ACCESO.roles).toEqual(["admin"]);
   });
 

@@ -7,6 +7,7 @@
  * CONFIRMADOS) — no se persiste, no puede driftear. Una sola pasada (evita N+1).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   countsTowardCommitted,
@@ -111,7 +112,7 @@ export async function listGroupBuysWithDetail(
     );
     return {
       ...g,
-      committed_cbm: Math.round(committed * 1000) / 1000,
+      committed_cbm: roundCbm(committed),
       participants_count: rows.length,
       participants: rows,
     };

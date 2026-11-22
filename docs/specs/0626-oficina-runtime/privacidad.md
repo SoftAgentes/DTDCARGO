@@ -22,7 +22,7 @@ No es una auditoría del cable completo, ni de Chatwoot, ni del runtime de la of
   - la Constitución, arts. 28 (habeas data) y 60 (vida privada);
   - la SC 332/2001: finalidad, calidad y temporalidad;
   - la SC 759/2025: derecho al olvido.
-- **PIPL (China):** `NO VERIFICABLE`. No consta en el repo dónde corren el runtime de la oficina ni el proveedor del modelo glm-5.3 (ver §4).
+- **PIPL (China):** `NO VERIFICABLE`. Desde el 2026-11-21 el runtime de la oficina usa Anthropic (claude-sonnet-5-5), sin proveedor chino en el pool (informe de Ofi_Hermes al DG); la PIPL deja de ser el motivo principal. No consta en el repo dónde corre el runtime de la oficina (ver §4).
 
 En este archivo, `0541` quiere decir `supabase/migrations/0541_oficina_cable_tablas.sql`.
 
@@ -152,11 +152,18 @@ Para redactar, el despachador manda el texto de la conversación fuera del VPS D
 
 | Dónde | Qué llega | Cuánto tiempo | Evidencia |
 |---|---|---|---|
-| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto) | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, prueba «ninguna fila ni log» |
+| ERP (VPS DTD) | Lee de Chatwoot los últimos 20 mensajes (rol y texto, sin nombres ni contacto). **Desde SDD-0700 tapa en cada mensaje los correos, teléfonos, cédulas, RIF y direcciones** («[correo]», «[teléfono]», «[cédula]», «[RIF]», «[dirección]») antes de armar la llamada; si el detector todavía ve un dato, escala sin llamar | Solo en memoria, mientras dura la corrida (≤ 200 s) | `chatwoot-lectura.ts`, `tapar-datos.ts`, prueba «ninguna fila ni log» |
 | Cable (túnel SSH ERP → oficina) | El mismo texto, cifrado por el túnel | Nada se guarda en el camino | runbook §8 |
 | Hermes, perfil `soporte-chatwoot` (VPS Oficina) | El texto y la respuesta, como un turno del API server | **Hermes v0.23.1 guarda cada turno en su `state.db` y no se puede apagar.** El despachador borra la sesión de cada llamada al terminar (`DELETE /api/sessions/<id>`); si falla, la purga diaria de la oficina (`hermes-soporte-purga.timer`) borra toda sesión del API server de más de 24 h. **Máximo: 48 h.** Quedan además las marcas de idempotencia (7 días, sin el texto) y, hasta el próximo VACUUM, las páginas libres de SQLite | sección B del Paso 3a (`.agents/handoffs/2026-11-16-sdd-0626-paso3a-despachador.md`) |
-| Proveedor del modelo: Z.AI (glm-5.3). El respaldo DeepSeek (deepseek-chat) está quitado hasta que haya una llave propia del agente (Sam, 16/11/2026) | El prompt completo de la llamada | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
+| Proveedor del modelo: Anthropic (claude-sonnet-5-5), con respaldo claude-haiku-5-5 del mismo proveedor y la misma llave (D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z). Z.AI y DeepSeek salieron del pool y del `.env` el 2026-11-21 (Sam; informe de Ofi_Hermes al DG). Un tercer nivel con OpenAI está en la SDD-0703 | El prompt de la llamada: instrucciones, guiones y los mensajes **con los datos personales tapados** desde SDD-0700 (antes llegaban completos) | Lo que diga cada proveedor: **no verificable** desde aquí (§4) | — |
 
+- **Datos tapados antes del modelo (SDD-0700, 21/11/2026).** Es la primera parte del punto (a) acordado para la etapa 2.
+  `tapar-datos.ts` usa la misma lista que el detector de la salida (`detectorDelCable`, `datos-personales.ts`), así que
+  lo que se revisa en la respuesta es lo mismo que se tapa en la entrada. Esa lista es propia de la Oficina_Virtual
+  (la de noticias no cambió) y cubre los móviles y los fijos de Venezuela, las cédulas y los RIF con o sin puntos, los
+  correos y las direcciones con número. **No se tapan** los nombres de personas ni los textos que no encajan en ningún
+  patrón (una dirección sin número, un teléfono escrito en palabras, un fijo sin el 0 o pegado a otro texto): siguen
+  llegando al proveedor. Los números de guía no son datos personales y van tal cual. Quedan pendientes del punto (a): revisar a los proveedores y avisar al cliente.
 - El agente no tiene memoria ni herramientas: no guarda nada por su cuenta (`memory.memory_enabled: false`, toolsets vacíos).
 - Los logs de Hermes no registran el texto de los turnos del API server; se vuelve a comprobar en la prueba de staging (E).
 - **Alcance hoy:** solo la cuenta 2 y la bandeja 11, de prueba, con texto inventado.
@@ -211,6 +218,10 @@ cualquier envío: ninguna decisión sale sin una persona.
   - **B:** aceptar el resto, sabiendo que el texto es de la bandeja de prueba e inventado hasta la etapa 2.
 - **Decisión de Sam (16/11/2026, «Sí a todo»):** **B** mientras solo haya datos de prueba. **A es OBLIGATORIA antes
   de la etapa 2** (clientes reales): la compactación semanal tiene que estar instalada y probada antes de ese paso.
+- **Paso 3b (16/11/2026): A instalada y probada.** `hermes-soporte-compactar.timer`, domingos 05:10 UTC (runbook §11).
+  La primera corrida dejó 0 páginas libres y el WAL vacío, y los restos de la marca de la prueba E en `state.db`
+  pasaron de 1 a 0. Entre dos compactaciones los bytes pueden quedar hasta 7 días; con el borrado de la sesión al
+  momento, las filas siguen sin pasar de segundos.
 
 #### `ENCONTRADO` 17 · Hermes conserva la respuesta del agente 7 días tras el borrado (baja)
 
@@ -248,10 +259,34 @@ Se propone para la prueba de staging (E), con el OK de Sam:
 
 Si la marca sobrevive como fila, el borrado no borra (`ENCONTRADO`). Si sobrevive solo como bytes sueltos del archivo, es el 16.
 
+### Revisión del Paso 3b (16/11/2026): la revisión de Sam y el envío
+
+#### `CORRECTO` 19 · La revisión guarda la decisión, no el texto (D2)
+
+- `office_revisiones` (0549) guarda el veredicto, las 5 casillas, el motivo, el revisor (`auth.uid()`, un identificador)
+  y la hora. Del borrador guarda solo su huella sha256: cuando el borrador se purga a los 90 días (D3), la revisión
+  queda para el conteo sin el texto.
+- **El motivo es texto libre de Sam y se guarda para siempre** (solo se agregan filas). Por eso la acción de la página
+  lo rechaza si trae un correo, un teléfono, una cédula, un RIF o una dirección (la regla del cable,
+  `app/studio/(app)/admin/oficina/actions.ts`), y la página lo pide «sin datos personales».
+- RLS sin policies; anon y authenticated no leen la tabla; la página la usa solo por funciones que exigen
+  `is_platform_admin()`. El aviso de Discord lleva el número de pendientes y el enlace, nunca el texto (`MinimalAlert`).
+
+#### `CORRECTO` 20 · Lo que sale hacia el cliente lo aprobó Sam, y una sola vez
+
+- Solo el ERP envía, solo lo aprobado y solo a la bandeja de prueba (`lib/studio/oficina/envio.ts`). No se aprueba un
+  envío con las casillas de datos inventados o datos personales sin marcar (la base lo impide).
+- El texto que sale es el mismo que Sam vio: la huella se compara en el ERP y otra vez en la base antes de reservar.
+- `office_envios` no guarda el texto: el mensaje enviado vive en Chatwoot, con la retención de Chatwoot (§4).
+- **Dinero:** una conversación de dinero se escala sin llamar al agente, así que su texto ni sale hacia el proveedor
+  del modelo (`tema-dinero.ts`).
+- **Sesiones abortadas:** se vuelven a borrar en la oficina cada tick durante 15 min (`office_sesiones_por_borrar`, solo
+  el id). Lo que dice el hallazgo 14 vale ahora también para las llamadas cortadas a mitad.
+
 ## 4 · No verificable
 
 - **Los respaldos de la base.** Vaciar el resumen no llega a los dumps (`docs/runbooks/backup-restore-servidor.md`). Un resumen sigue en los respaldos mientras estos existan.
-- **Los proveedores del modelo (Z.AI y DeepSeek):** qué guardan de cada llamada y por cuánto tiempo, y en qué país procesan. Las dos son empresas con sede en China, así que la PIPL (punto 9) probablemente aplica; no consta dónde procesan. El runtime de la oficina ya está medido (hallazgo 13).
+- **El proveedor del modelo (Anthropic; OpenAI si se suma, SDD-0703):** qué guarda de cada llamada y por cuánto tiempo, y en qué país procesa. Desde el 2026-11-21 ya no hay proveedores con sede en China en el pool. El runtime de la oficina ya está medido (hallazgo 13).
 - **Chatwoot:** guarda la conversación completa. Su retención es la de Chatwoot, no la de estas tablas.
 - **Producción:**
   - que el dueño de las tablas sea `postgres` y que service_role tenga BYPASSRLS. La revisión de la #572 lo infiere y no lo mide;

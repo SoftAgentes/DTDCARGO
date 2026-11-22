@@ -16,6 +16,7 @@
  * Iconografía: Icon set Studio. Cero emojis decorativos.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import {
   startTransition,
   useActionState,
@@ -413,7 +414,7 @@ function Steps({ current }: { current: 1 | 2 | 3 | 4 }) {
           style={{
             height: 4,
             borderRadius: 999,
-            background: n <= current ? "var(--wine)" : "var(--bg-elevated)",
+            background: n <= current ? "var(--ink)" : "var(--bg-elevated)",
           }}
         />
       ))}
@@ -574,8 +575,8 @@ function PhotoAddTile({
       htmlFor={inputId}
       style={{
         aspectRatio: "4 / 3",
-        background: "var(--wine)",
-        color: "#FFFFFF",
+        background: "var(--accion)",
+        color: "var(--on-accion)",
         border: 0,
         borderRadius: "var(--r-md)",
         display: "flex",
@@ -622,17 +623,17 @@ function PhotoSlot({
       style={{
         position: "relative",
         aspectRatio: "4 / 3",
-        // Diferenciado del slot "+ Tomar foto": fondo wine-tint claro +
+        // Diferenciado del slot "+ Tomar foto" (azul de acción): fondo neutro +
         // check verde top-left para confirmar visualmente que la foto
-        // está capturada (no es slot vacío).
-        background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
+        // está capturada (no es slot vacío). SDD-0686: sin vino.
+        background: "var(--bg-elevated)",
         borderRadius: "var(--r-md)",
-        border: "1px solid var(--wine-soft, #C2747F)",
+        border: "1px solid var(--border-strong)",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--wine-text)",
+        color: "var(--ink-soft)",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -828,9 +829,9 @@ function Step2Identify({
                       gap: "var(--s-3)",
                       padding: "var(--s-3)",
                       background: selected
-                        ? "var(--wine-tint, rgba(127,15,26,0.08))"
+                        ? "var(--bg-elevated)"
                         : "var(--bg-surface)",
-                      border: `1px solid ${selected ? "var(--wine)" : "var(--border)"}`,
+                      border: `${selected ? "1.5px" : "1px"} solid ${selected ? "var(--ink)" : "var(--border)"}`,
                       borderRadius: "var(--r-md)",
                       alignItems: "center",
                       textAlign: "left",
@@ -840,13 +841,13 @@ function Step2Identify({
                     <code
                       style={{
                         font: "800 12px/1 var(--f-mono)",
-                        color: selected ? "var(--wine)" : "var(--ink)",
+                        color: "var(--ink)",
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
                       {c.markbox}
                     </code>
-                    {selected && <span style={{ color: "var(--wine-text)" }}>{Icon.check(14)}</span>}
+                    {selected && <span style={{ color: "var(--ink)" }}>{Icon.check(14)}</span>}
                   </button>
                 );
               })}
@@ -1236,7 +1237,7 @@ function Step4Confirm({
         >
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}
+            style={{ marginBottom: "var(--s-3)" }}
           >
             {t(lang, "pwa.receipt.summary")}
           </div>
@@ -1255,7 +1256,7 @@ function Step4Confirm({
           )}
           <SummaryRow label={t(lang, "pwa.receipt.supplier_label")} value={reception.supplier || "—"} />
           <SummaryRow label={t(lang, "pwa.receipt.boxes_short")} value={reception.boxes} mono />
-          <SummaryRow label="CBM" value={`${reception.cbm} m³`} mono />
+          <SummaryRow label="CBM" value={formatCbm(reception.cbm, { unit: true })} mono />
           {reception.weight && (
             <SummaryRow label={t(lang, "pwa.receipt.weight_label")} value={`${reception.weight} kg`} mono />
           )}
@@ -1435,12 +1436,12 @@ function UploadingPhotos({
             position: "absolute",
             inset: 0,
             borderRadius: "50%",
-            border: "3px solid var(--wine-tint, rgba(127,15,26,0.15))",
-            borderTopColor: "var(--wine)",
+            border: "3px solid var(--border)",
+            borderTopColor: "var(--ink)",
             animation: "spin 1s linear infinite",
           }}
         />
-        <span style={{ font: "900 22px/1 var(--f-display)", color: "var(--wine-text)" }}>
+        <span style={{ font: "900 22px/1 var(--f-display)", color: "var(--ink)" }}>
           {count}/{total}
         </span>
       </div>
@@ -1607,7 +1608,7 @@ function Done({
             background: "var(--bg-elevated)",
             borderRadius: "var(--r-sm)",
             font: "800 15px/1 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             letterSpacing: "0.04em",
           }}
         >

@@ -14,7 +14,7 @@ export function DispatchKpis({ kpis }: { kpis: KpisData }) {
         gap: 10,
       }}
     >
-      <Kpi label="En cola" value={String(kpis.packagesInQueue)} sub="paquetes" tone="wine" />
+      <Kpi label="En cola" value={String(kpis.packagesInQueue)} sub="paquetes" tone="neutral" />
       <Kpi label="ODs activas" value={String(kpis.activeOds)} sub="en proceso" tone="info" />
       <Kpi label="Creadas hoy" value={String(kpis.todayCreated)} sub="del día" tone="neutral" />
       <Kpi label="Entregadas hoy" value={String(kpis.todayCompleted)} sub="completadas" tone="success" />
@@ -43,10 +43,9 @@ function Kpi({
   label: string;
   value: string;
   sub: string;
-  tone: "wine" | "info" | "success" | "warning" | "danger" | "neutral";
+  tone: "info" | "success" | "warning" | "danger" | "neutral";
 }) {
   const color: Record<typeof tone, string> = {
-    wine: "var(--wine)",
     info: "var(--info)",
     success: "var(--success)",
     warning: "var(--warning)",

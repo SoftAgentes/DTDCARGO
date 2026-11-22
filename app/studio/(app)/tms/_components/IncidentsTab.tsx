@@ -29,19 +29,16 @@ export function IncidentsTab({
           label="Total mes"
           value={`$${kpis.totalCost.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
           sub={`${kpis.totalCount} ${kpis.totalCount === 1 ? "evento" : "eventos"}`}
-          valueColor={kpis.totalCost > 0 ? "var(--warning)" : "var(--ink)"}
         />
         <KpiCard
           label="Combustible"
           value={`$${kpis.fuelCost.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
           sub="Mensual"
-          valueColor="var(--info)"
         />
         <KpiCard
           label="Mantenimientos"
           value={kpis.maintenanceCount}
           sub="Programados"
-          valueColor={kpis.maintenanceCount > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           label="Multas"
@@ -51,7 +48,7 @@ export function IncidentsTab({
               ? `$${kpis.finesCost.toLocaleString("en-US", { maximumFractionDigits: 0 })} acumulado`
               : "Sin multas"
           }
-          valueColor={kpis.finesCount > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.finesCount > 0 ? { tono: "danger", texto: "Requiere revisión" } : undefined}
         />
       </div>
 
@@ -79,7 +76,7 @@ export function IncidentsTab({
           >
             <div
               className="studio-eyebrow"
-              style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--wine-text)" }}
+              style={{ font: "700 10.5px/1 var(--f-sans)" }}
             >
               Incidencias · Últimos 30 días
             </div>
@@ -107,7 +104,7 @@ export function IncidentsTab({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {inc.truck?.plate ?? "—"}

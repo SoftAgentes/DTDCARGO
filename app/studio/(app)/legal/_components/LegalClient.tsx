@@ -281,8 +281,8 @@ function DocCard({
             width: 40,
             height: 40,
             borderRadius: "var(--r-md)",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -400,14 +400,14 @@ function DocCard({
               borderTop: i > 0 ? "1px solid var(--border)" : 0,
               background:
                 v.status === "vigente"
-                  ? "var(--wine-tint)"
+                  ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                   : "var(--bg-surface)",
             }}
           >
             <code
               style={{
                 font: "800 12.5px/1 var(--f-mono)",
-                color: v.status === "vigente" ? "var(--wine)" : "var(--ink)",
+                color: "var(--ink)",
               }}
             >
               {v.version}
@@ -521,8 +521,8 @@ function DocsView({
             width: 44,
             height: 44,
             borderRadius: "var(--r-md)",
-            background: "var(--wine)",
-            color: "var(--wine-soft)",
+            background: "color-mix(in srgb, var(--ink-side-strong) 14%, transparent)",
+            color: "var(--ink-side-strong)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -535,7 +535,7 @@ function DocsView({
           <div
             style={{
               font: "700 10.5px/1 var(--f-sans)",
-              color: "var(--wine-soft)",
+              color: "var(--ink-side)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
@@ -738,7 +738,7 @@ function DocModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
       subtitle={
         <>
           <code
-            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}
+            style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}
           >
             {doc.version}
           </code>{" "}
@@ -862,21 +862,15 @@ function AcceptancesView({
         <KpiCard
           value={kpis.total}
           label="Aceptaciones totales"
-          valueColor="var(--ink)"
         />
         <KpiCard
           value={kpis.thisMonth}
           label="Este mes"
-          valueColor={kpis.thisMonth > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard
           value={`${kpis.onCurrent}/${kpis.total}`}
           label="En versión vigente"
-          valueColor={
-            kpis.total > 0 && kpis.onCurrent === kpis.total
-              ? "var(--success)"
-              : "var(--ink)"
-          }
+          status={kpis.total > 0 && kpis.onCurrent === kpis.total ? { tono: "success", texto: "Todos al día" } : undefined}
           sub="Cubren la versión vigente de cada doc"
         />
       </div>
@@ -991,7 +985,7 @@ function AcceptancesView({
               <code
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {a.acceptance_code}
@@ -1035,7 +1029,7 @@ function AcceptancesView({
               </span>
               <span
                 style={{
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   display: "flex",
                   justifyContent: "flex-end",
                 }}

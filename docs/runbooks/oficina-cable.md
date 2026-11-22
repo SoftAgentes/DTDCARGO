@@ -1,7 +1,8 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2 y 3a)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a, 3b y 4)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
+**Nombre en pantalla:** desde el 2026-11-20 (pedido de Sam) la oficina se llama **Oficina_Virtual** en el ERP: la revisión vive en `/studio/admin/oficina-virtual` y la mini-vista en `/studio/admin/oficina-virtual/vista`. La dirección vieja `/studio/admin/oficina` (y `/vista`) redirige con un 308 permanente. Lo interno no cambia: tablas `office_*`, variables `OFICINA_*`, crons `oficina-*`. En este runbook, «la oficina» sigue siendo también el VPS donde corre el agente.
 **Sin secretos:** este archivo solo nombra servicios, usuarios, puertos y rutas. La llave vive en los servidores y nunca va al repo, a un log, a un PR ni a un chat.
 
 ## 1 · Qué es
@@ -161,6 +162,7 @@ cron del servidor, diario 04:15 UTC ────────▶  /api/cron/ofici
 | `OFICINA_WEBHOOK_ACTIVO` | Enciende el webhook y el filtro. Solo vale `1` o `true` (cualquier otra cosa, apagado) | El webhook responde 200 sin hacer nada y no escribe; el filtro no llama a la base |
 | `OFICINA_WEBHOOK_SECRET` | El «secret» del webhook de Chatwoot que apunta a este endpoint. **Propio del cable**, no el de `/api/chatwoot/webhook` | Se rechaza todo (503) |
 | `OFICINA_CHATWOOT_INBOX_PRUEBA` | Id numérico de la única bandeja que el cable atiende | Se rechaza todo (503). Cualquier otra bandeja se ignora |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` | Id numérico de la cuenta de Chatwoot de esa bandeja (la cuenta de prueba). **Propia del cable:** el webhook, el despachador, la lectura y el envío usan solo esta, nunca `CHATWOOT_ACCOUNT_ID` (la cuenta real del ERP, que sigue siendo la de la Bandeja) | Se rechaza todo (503); el despachador y el envío responden `sin_config`. Los avisos de otra cuenta se ignoran |
 | `OFICINA_ETIQUETAS_DINERO`, `OFICINA_ETIQUETAS_INTERNO` | Etiquetas de Chatwoot (separadas por comas) que dan prioridad 3 (dinero) o 1 (interno). Opcionales | Valen las del código: dinero, pago, cobro, cobranza, factura, reembolso / interno, prueba. Sin etiqueta clara, cliente (2) |
 | `OFICINA_VACIADO_ACTIVO` | Enciende el vaciado diario del resumen. **Interruptor propio**: no lo enciende el del webhook. Solo vale `1` o `true` | No llama a la base |
 
@@ -280,7 +282,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 | `OFICINA_RUNTIME_URL` / `OFICINA_RUNTIME_TOKEN` | El cable (§3); ya están |
 | `OFICINA_CHATWOOT_TOKEN_LECTURA` | Token de un usuario **agente** de Chatwoot que solo es miembro de la bandeja de prueba. El despachador solo hace GET con él |
 | `OFICINA_CHATWOOT_API_URL` | Opcional: la URL interna de la API de Chatwoot (sin ella, `CHATWOOT_URL`) |
-| `CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la bandeja permitidas (las mismas del webhook). Sin la cuenta, el webhook rechaza todo |
 | `OFICINA_TOPE_MENSUAL_USD` | El tope del mes (D5: 15; solo se puede bajar). **Etapa 1: `1`** (Sam, 16/11/2026). Al 80 % la oficina se auto-pausa |
 | `OFICINA_TOPE_LLAMADAS_CORRIDA` / `OFICINA_TOPE_TOKENS_CORRIDA` | Topes por corrida (2 y 24000) |
 | `OFICINA_PRECIO_ENTRADA_USD_MTOK` / `OFICINA_PRECIO_SALIDA_USD_MTOK` | La tarifa con la que se estima el costo (1,00 y 3,20 USD por millón de tokens). 0, negativo o inválido vale el de por defecto |
@@ -299,6 +301,9 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 
 - `task_events`: `tarea.creada`, `run.iniciada`, `conversacion.leida`, `modelo.respuesta` (con modelo y costo) y el
   cierre (`run.terminada`, `run.escalada`, `run.abortada` o `run.interrumpida`).
+- `eval.reintento` (ficha 0.3): el borrador no empezaba con su acuse y el despachador se lo pidió una vez más al
+  agente. Esa corrida tiene dos `modelo.respuesta`, cada una con su costo. Si aparece seguido, revisar las
+  instrucciones del agente; si después viene un escalado `eval:sin_acuse`, el segundo intento tampoco lo trajo.
 - `office_borradores`: una fila por corrida. Solo un administrador la lee, con service_role (no hay pantalla hasta el 3b).
 - `office_gasto_del_mes()`: la suma del mes. La auto-pausa deja en `office_paused` una fila con el motivo «Auto-pausa…».
 - En los logs del web solo aparecen códigos (`[oficina-despachador] …`), nunca el texto del cliente.
@@ -315,7 +320,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 - El despachador usa una sesión propia por llamada (`cable-<run>-<intento>`) y la borra al terminar.
 - El timer `hermes-soporte-purga` (§2) borra lo que haya quedado con más de 24 h. **Máximo en disco: 48 h.**
 - La copia previa a `hermes update` está apagada en el perfil (`updates.pre_update_backup: "off"`).
-- Pendiente de decisión de Sam: los bytes borrados quedan en páginas libres de SQLite hasta un `VACUUM` (privacidad.md, hallazgo 16).
+- Los bytes borrados quedan en páginas libres de SQLite hasta un `VACUUM`: desde el 16/11/2026 hay una compactación semanal (§11; privacidad.md, hallazgo 16).
 - Lo demás está en [privacidad.md](../specs/0626-oficina-runtime/privacidad.md), hallazgo 13.
 
 ### Llaves del agente (D5)
@@ -329,5 +334,301 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 
 ### Lo que este paso NO hace
 
-- No envía nada a Chatwoot. No tiene página de aprobación (Paso 3b, D2 y D4).
-- La prueba con el modelo real en staging (sección E del pedido) todavía no se hizo.
+- No envía nada a Chatwoot. La página de aprobación y el envío son del Paso 3b (§11).
+- La prueba con el modelo real en staging (sección E del pedido) se hizo el 16/11/2026 (spec §3.5).
+
+## 11 · Paso 3b: la revisión de Sam y el envío (SDD-0626 D2 y D4 · AC-1 etapa 1)
+
+**Qué hace.** El despachador deja cada borrador en «aprobación» y avisa a Discord «hay N pendientes» (solo el número).
+Sam revisa en **`/studio/admin/oficina-virtual`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
+falló** en los 4 criterios de eval.md (por criterio, «Falló» o «No evaluado»; sin marca = cumple), escribe el motivo y
+aprueba o rechaza. El quinto criterio («Cierre o escalado en 3 intercambios o menos») lo registra una vez por
+conversación, al cerrarla o escalarla, en «Conversaciones por cerrar» (desde la 0558). Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
+solo a la bandeja de prueba. Detalle: spec §3.5, «Cómo se construyó el Paso 3b».
+
+### Las variables (solo en el `.env` del entorno; nombres en `.env.example`, sin valores)
+
+| Variable | Para qué |
+|---|---|
+| `OFICINA_ENVIO_ACTIVO` | El interruptor del envío. Solo `1` o `true` enciende; vacío = apagado. Independiente del despachador |
+| `OFICINA_CHATWOOT_TOKEN_ENVIO` | Token de **escritura** de un usuario agente de Chatwoot que solo es miembro de la bandeja de prueba. Chatwoot 4.19.1 no tiene tokens con alcance: el límite es el del usuario |
+| `OFICINA_CHATWOOT_ACCOUNT_ID` / `OFICINA_CHATWOOT_INBOX_PRUEBA` | La cuenta y la única bandeja a la que se envía (las del webhook). Si la bandeja coincide con una del ERP (portal, clientes, leads), no hay a dónde enviar |
+| `OFICINA_ETAPA` | La etapa de AC-1 en la que se cuentan las revisiones (1 por defecto). 2 solo cuando Sam firme el paso |
+| `DISCORD_TENANT_ID` y `DISCORD_WEBHOOK_EQUIPO` | El aviso «hay N pendientes» (SDD-0606). En staging Discord está apagado |
+
+### Requisitos para encenderlo (con OK de Sam y aviso al DG)
+
+1. La migración **0549** aplicada en esa base (sin ella el envío responde `sin_migracion` y la página lo dice) y, para
+   revisar con la regla de tres estados, la **0558** (sin ella la página dice «Falta la migración 0558» y no guarda
+   revisiones ni cierres; el envío de lo ya aprobado no cambia).
+2. Lo del Paso 3a encendido (§10) para que haya borradores.
+3. El token de escritura en el `.env` sin pasar por el chat; recrear el web; después `OFICINA_ENVIO_ACTIVO=1`.
+
+### Qué revisar
+
+- `office_revisiones`: una fila por borrador revisado (veredicto, casillas, motivo, revisor, hora). Solo se agregan filas.
+  Columna `regla_casillas`: 1 = la regla de la 0549 (5 casillas booleanas); 2 = la de la 0558 (4 criterios: `true` cumple,
+  `false` falló, `null` no evaluado; `c_cierre_3` queda `null`). El conteo solo mira criterio 2.
+- `office_cierres` (0558): el cierre de cada conversación (cumple o no, motivo, revisor, hora, etapa), uno por
+  conversación y etapa. Solo se agregan filas.
+- `office_envios`: `enviando` → `enviado` (con el id del mensaje de Chatwoot) o `fallido`; o `bloqueado` (con su código:
+  `borrador_cambio`, `conversacion_cambio`, `aprobacion_vencida`, `otra_bandeja`, `ya_contestada`, `cliente_escribio`,
+  `forma_desconocida`). Nada de eso se reintenta solo.
+  - **`fallido`:** Chatwoot RECHAZÓ el envío (4xx): el mensaje no se entregó. Ver el código, corregir la causa (token,
+    bandeja) y, si Sam quiere, redactar de nuevo desde una conversación nueva. No hay botón de reenvío.
+  - **`enviando` atascado** (sin `enviado` ni `fallido` detrás, con o sin el evento `envio.incierto`): **el mensaje pudo
+    haber llegado.** No reenviarlo. Abrir la conversación en Chatwoot (bandeja de prueba) y mirar si el mensaje está:
+    - si está, cerrar como el dueño en su sesión: `select office_cerrar_envio('<revisión>', 'enviado', null, <id del mensaje>)`;
+    - si no está, cerrar como `fallido` con el código `no_llego` y dejarlo anotado. Las dos cosas solo con el OK de Sam.
+  - **`bloqueado`:** la tarea ya terminó. Si el cliente volvió a escribir, su mensaje abre una tarea nueva.
+- `task_events`: `revision.aprobada` / `revision.rechazada` (actor `persona:<uuid>`), `envio.reservado`, `envio.hecho`,
+  `envio.fallido`, `envio.bloqueado`.
+- El conteo de AC-1 (y AC-7): `office_conteo_revisiones(1)` desde la página, o en la base como el dueño. Con la 0558:
+  correcta = aprobada con los 4 criterios en «cumple» y sin un cierre que falló; dato inventado = «Cero datos
+  inventados» en `false` explícito; en la etapa 2 solo cuentan las conversaciones con cierre. **Con la 0560** (sin
+  aplicar): en un escalado, «Acuse» en «No evaluado» no cuenta en contra (en «Falló» sí); en una respuesta, las cuatro
+  en «cumple». **Requisito duro de orden: la 0560 se aplica en producción ANTES de fusionar su PR y de publicar el
+  web.** Esa pantalla deja «Acuse» en «No evaluado» en los escalados, justo las filas que harían abortar el preflight
+  de la 0560 si llegara después. Las revisiones de la
+  prueba F (staging, criterio 1, clics del DG) no cuentan para la etapa 1. **Con la 0567** (aplicada el 2026-11-18 23:43:42Z): las
+  conversaciones de `office_conteo_exclusiones` no cuentan y, si un cierre tiene corrección, cuenta la última (§13b).
+- En los logs del web solo aparecen códigos (`[oficina-envio] …`), nunca el texto.
+
+### Cómo se apaga
+
+- **Pausa:** `office_cambiar_pausa(true, motivo)`. El envío la mira antes de cada mensaje y otra vez dentro de la reserva.
+- **Apagado:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el web. Lo aprobado queda esperando; no se pierde ni se manda luego
+  sin que alguien lo encienda.
+
+### Sesiones de una llamada abortada
+
+Si la pausa o el tope de tiempo abortan una llamada (o el `DELETE` falla), el despachador anota la sesión en
+`office_sesiones_por_borrar` y la vuelve a borrar en cada tick durante 15 min, también con la oficina pausada. La purga
+diaria de la oficina sigue como red de seguridad.
+
+### Compactación semanal del `state.db` (E · hallazgo 16 A, obligatoria antes de la etapa 2)
+
+| Pieza (VPS Oficina) | Detalle |
+|---|---|
+| `/usr/local/libexec/hermes-soporte-compactar.sh` | root 755. Para `hermes-gateway-soporte-chatwoot`, corre `hermes sessions optimize` (FTS merge + VACUUM) como `agentes-soporte`, vacía el WAL (`wal_checkpoint(TRUNCATE)`) y arranca el gateway **siempre** (trap), esperando a que escuche en `127.0.0.1:8642`. Solo imprime tamaños y conteos |
+| `hermes-soporte-compactar.service` / `.timer` | root, oneshot. **Domingos 05:10 UTC**, `Persistent=true` (después de la purga diaria de las 04:40) |
+| Ventana | unos 10 s sin agente. Si el despachador está encendido en ese momento, la corrida escala por `runtime:red` |
+| Reversión | `/srv/oficina/backups/compactar-soporte-20261116T123857Z/REVERTIR.txt` |
+
+Probado el 2026-11-16 a las 12:39Z: `state.db` de 0,6 a 0,5 MB, 0 páginas libres y WAL en 0; los restos de la marca de
+la prueba E (hallazgo 18) pasaron de 1 a 0; el gateway volvió y `GET /v1/models` responde 200 con su llave y 401 sin ella.
+
+### Lo que este paso NO hace
+
+- No sube a la etapa 2: eso lo firma Sam con el conteo y las demás condiciones de AC-1.
+- No reintenta un envío fallido ni manda a otra bandeja que no sea la de prueba.
+- La prueba F en staging (3 conversaciones; Sam aprueba 2 y rechaza 1) todavía no se hizo: necesita el OK de Sam.
+
+## 12 · Encender la etapa 1 en producción (lista)
+
+La etapa 1 de AC-1 corre en producción, solo en la bandeja de prueba de la **cuenta de prueba** de Chatwoot (no en la
+cuenta real del ERP: decisión del DG, 17/11/2026). Todo pide el **OK nominal de Sam en la sesión del DG**, con los
+interruptores nombrados. Los valores secretos van de archivo a archivo, nunca por el chat, el repo ni los logs.
+
+**Antes:** la #652 (0558) fusionada y publicada en producción con la prueba rápida en verde; y esta pieza (la cuenta
+propia del cable) también publicada. El `cron` ya tiene `oficina-despachador` y `oficina-envio`: no se toca.
+
+### Lo que se pone (servicio `web`, `/srv/dtd-cargo/.env`, root 0600, con copia `.env.bak-<ts>` antes)
+
+| Variable | Valor | Nota |
+|---|---|---|
+| `OFICINA_CHATWOOT_ACCOUNT_ID` | id de la cuenta de prueba | **No** se toca `CHATWOOT_ACCOUNT_ID` (la del ERP) |
+| `OFICINA_CHATWOOT_INBOX_PRUEBA` | id de la bandeja de prueba de esa cuenta | No puede ser `CHATWOOT_INBOX_PORTAL_ID`, `_CLIENTES_ID` ni `_LEADS_ID`: si coincide, el código la anula |
+| `OFICINA_WEBHOOK_SECRET` | secreto | El mismo «secret» del webhook de Chatwoot (evento `message_created`, en la cuenta de prueba) que apunta a `/api/oficina/webhook-chatwoot` |
+| `OFICINA_CHATWOOT_TOKEN_LECTURA` | secreto | Usuario agente que solo es miembro de la bandeja de prueba; solo GET |
+| `OFICINA_CHATWOOT_TOKEN_ENVIO` | secreto | OTRO usuario agente, también solo miembro de la bandeja de prueba (Chatwoot 4.19.1 no tiene tokens con alcance) |
+| `OFICINA_TOPE_MENSUAL_USD` | `1` | Al 80 % la oficina se auto-pausa |
+| `OFICINA_VACIADO_ACTIVO` | `1` | Requisito del despachador |
+| `OFICINA_WEBHOOK_ACTIVO` | `1` | |
+| `OFICINA_DESPACHADOR_ACTIVO` | `1` | |
+| `OFICINA_ENVIO_ACTIVO` | `1` | |
+| `OFICINA_ETAPA` | sin definir | Vale 1 |
+
+`OFICINA_RUNTIME_URL` y `OFICINA_RUNTIME_TOKEN` ya están desde el Paso 0 (§3): no se tocan.
+
+**Antes de recrear:** comprobar, por nombre y sin imprimir los valores, que `OFICINA_CHATWOOT_ACCOUNT_ID` es
+**distinta** de `CHATWOOT_ACCOUNT_ID` en producción (por ejemplo, comparando los dos valores dentro de un script que solo
+imprima «iguales» o «distintas»). Si son iguales, no se sigue. El código no lo exige, porque staging usa la misma cuenta
+de prueba para las dos.
+
+Después, recrear **solo** el `web`.
+
+### En Chatwoot y en la base
+
+1. **Reactivar la cuenta de prueba** con `rails runner` y `Account#update!` (nunca `compose up`), con motivo, hora y
+   evidencia root-600.
+2. **Crear el webhook en la cuenta de prueba** (no en la cuenta real): URL `https://<dominio del ERP>/api/oficina/webhook-chatwoot`,
+   evento `message_created`. Su «secret» va al `.env` como `OFICINA_WEBHOOK_SECRET`, de archivo a archivo.
+3. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
+4. Despausar la oficina: `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
+5. **Verificar, después de encender:**
+   - un aviso firmado de **otra cuenta** (la del ERP) al webhook del cable responde `{"ok":true,"ignorado":"cuenta"}` y no
+     escribe;
+   - un mensaje de prueba en la bandeja de prueba queda como una fila en la bandeja del cable (la prueba del webhook real
+     antes de la conversación 1);
+   - `curl` de los crons con la llave: `oficina-despachador` responde `estado` `hecha` u `ocupado` (nunca `sin_config`
+     ni `sin_vaciado`); `oficina-envio` responde `hecho` o `pausada` (nunca `apagado` ni `sin_config`).
+6. Sam entra en `/studio/admin/oficina-virtual` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
+
+### Vuelta atrás y cierre
+
+- **Al instante, sin recrear nada:** `office_cambiar_pausa(true, '<motivo>')`. El envío la mira antes de cada mensaje y
+  dentro de la reserva; el despachador, en cada tanda.
+- **Solo el envío:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el `web`. Lo aprobado queda esperando.
+- **Todo el cable:** además `OFICINA_DESPACHADOR_ACTIVO` y `OFICINA_WEBHOOK_ACTIVO` vacíos, recrear el `web`; o borrar
+  o pausar el webhook en Chatwoot.
+- **Quitar `OFICINA_CHATWOOT_ACCOUNT_ID`** (y recrear el `web`) apaga el webhook (503), el despachador y el envío
+  (`sin_config`). El cron `oficina-filtro` sigue procesando las filas que ya están en la base: no llama a Chatwoot. Para
+  pararlo también, `OFICINA_WEBHOOK_ACTIVO` vacío.
+- **Al cerrar la etapa (o si algo sale mal):** volver a **suspender la cuenta de prueba** (`Account#update!`, con
+  motivo, hora y evidencia), **rotar los dos tokens** (lectura y envío) y borrarlos del `.env`, y dejar la oficina
+  pausada. La base no se toca: no hay desarme, las filas solo se agregan.
+
+### Staging
+
+Staging usa la misma pieza: antes de la próxima prueba en staging hay que definir ahí `OFICINA_CHATWOOT_ACCOUNT_ID`
+(la cuenta de prueba). Sin ella, el cable de staging queda apagado (503 / `sin_config`).
+
+## 13 · Paso 4: la mini-vista (SDD-0626 §3.6, solo lectura)
+
+`/studio/admin/oficina-virtual/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
+últimos 10 cambios y el gasto del mes contra el tope), la cola (`office_tasks`), los eventos (`event_inbox`) y la
+bitácora (`task_events`). Es de **solo lectura**: no tiene botones ni formularios, y **no pausa ni despausa**.
+
+### La variable (solo en el `.env` del entorno; el nombre está en `.env.example`, sin valor)
+
+| Variable | Valor | Qué hace |
+|---|---|---|
+| `OFICINA_VISTA_ACTIVA` | vacío (apagada) · `1` para encender | Apagada, la página es un 404 y la revisión no la enlaza |
+
+No pide ninguna migración ni ningún secreto nuevo. Lee con el `service_role` que el web ya tiene, y solo después de que
+la base contesta que quien mira es `is_platform_admin()`.
+
+### Cómo se enciende (con OK de Sam y aviso al DG)
+
+1. Copia del `.env` (`.env.bak-<ts>`, 0600).
+2. `OFICINA_VISTA_ACTIVA=1` en `/srv/dtd-cargo/.env`.
+3. Relevar el contenedor `web` (solo ese).
+4. Sam entra en `/studio/admin/oficina-virtual`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
+
+### Qué revisar
+
+- Con la variable apagada, `/studio/admin/oficina-virtual/vista` responde 404 para todos.
+- Encendida, un administrador del tenant que no es superadministrador recibe 404.
+- La bandera coincide con `office_esta_pausada()` y el gasto con `office_gasto_del_mes()`.
+- En ninguna fila aparece el texto de un cliente ni un dato de contacto: solo referencias, estados, horas y costos.
+
+### Cómo se apaga
+
+Vaciar `OFICINA_VISTA_ACTIVA` y relevar el `web`. No hay nada que deshacer en la base: la vista no escribe.
+
+### Lo que este paso NO hace
+
+- No pausa ni despausa la oficina: sigue siendo `office_cambiar_pausa`, de un superadministrador.
+- No muestra el borrador ni el texto del cliente (eso es de la revisión, §11).
+- No se actualiza sola: para ver lo último se recarga la página.
+
+## 13b · Excluir una conversación del conteo o corregir un cierre (la 0567)
+
+Para cuando el conteo de AC-1 o AC-7 tiene una conversación que no debe contar (una prueba del encendido) o un cierre
+guardado con el valor equivocado. Nada se borra ni se edita: se agrega una fila con motivo, actor y fecha. Requiere la
+0567 aplicada (lo está desde el 2026-11-18 23:43:42Z).
+
+### Antes de escribir
+
+- **OK nominal de Sam en el chat del DG**, que nombre la conversación, la etapa, lo que se hace (excluir, o corregir a
+  «cumple» o a «falló») y el motivo. Un OK por lote; un OK de otro día no vale.
+- Se corre como el dueño, en una sesión directa a la base de producción (la del runbook `aplicar-migraciones-prod`).
+  Las dos funciones no tienen EXECUTE para la API: desde la página o con la llave del servidor fallan.
+
+### Cómo
+
+```sql
+begin;
+-- La conversación no cuenta en la etapa 1 (una vez; repetirla falla).
+select public.office_excluir_conversacion('<conversación>', 1::smallint, '<motivo>', '<actor: quién y con qué OK>');
+-- El cierre que cuenta pasa a «cumple» (si hay varias, manda la última; el cierre original queda).
+select public.office_corregir_cierre('<conversación>', 1::smallint, true, '<motivo>', '<actor>');
+-- Revisar el conteo antes de confirmar (como el dueño no pasa por office_exigir_admin: leer las tablas).
+select * from public.office_conteo_exclusiones order by excluida_en;
+select * from public.office_cierres_correcciones order by orden;
+commit;
+```
+
+Sam ve el conteo nuevo en la página de revisión (`office_conteo_revisiones(1)`) **recién después del `commit`**:
+antes, la página sigue mostrando el conteo viejo.
+
+**Antes de aplicar la 0567**, en la misma sesión del runbook, medir los cuerpos vivos en el catálogo (solo lectura):
+
+```sql
+select p.proname, md5(p.prosrc) from pg_proc p
+ where p.oid in ('public.office_conteo_revisiones(smallint)'::regprocedure,
+                 'public.office_conversaciones_por_cerrar(smallint)'::regprocedure);
+```
+
+Lo esperado: el conteo en `a936f1ab6c7dd3a58a4c14ce58f9af36` (0560) y la lista de por cerrar en
+`7bc6356c6e653c2109cca49cbecba9b3` (0558). Si cualquiera de los dos es distinto, no se aplica: el preflight de la
+0567 abortaría igual. En ese caso, avisar al DG.
+
+### El primer lote (tanda 1 de la etapa 1, 18/11/2026; escritas el 2026-11-18 a las 23:45:50Z con el OK de Sam «Sí, corrige 25, 27, 30»)
+
+- Excluir la conversación de la prueba del encendido, motivo «prueba del encendido; decisión del DG, 2026-11-18».
+- Corregir a «cumple» los cierres de las dos conversaciones en que Sam marcó «Cumple» y quedó guardado «Falló», motivo
+  «Sam marcó Cumple; quedó guardado Falló; 2026-11-18».
+- Resultado esperado: 4 conversaciones contadas y 3 correctas.
+
+### Deshacer
+
+No se deshace una fila: se agrega otra. Una corrección equivocada se arregla con otra corrección (manda la última).
+Una exclusión no se revierte desde la API; si hiciera falta, la decide el DG con Sam y queda escrita en el
+desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conteo deje de mirar las dos tablas.
+
+## 14 · Lo que se tapa antes del modelo y el aviso al cliente (SDD-0700 y SDD-0705)
+
+### Qué se tapa (SDD-0700; criterio de Hermes DIRECTOR, 21/11/2026)
+
+> **Rige desde que la #755 (SDD-0700, en `main` desde el 21/11/2026 hora de Caracas, `d81452ba7`) está publicada en producción.** Antes de
+> esa publicación, el texto del cliente llega completo al modelo y solo se revisa la salida.
+
+Antes de mandar la conversación al agente, el despachador tapa en el texto del cliente:
+
+- correos → `[correo]`;
+- teléfonos → `[teléfono]`;
+- cédulas → `[cédula]`;
+- RIF → `[RIF]`;
+- direcciones → `[dirección]`.
+
+Si después de tapar todavía se detecta un dato, la corrida escala con `datos_sin_tapar`, sin llamar al modelo.
+
+**Qué NO se tapa, a propósito:**
+
+- **El nombre de la persona:** el agente lo usa para dirigirse al cliente.
+- **El número de guía o de casillero:** hace falta para dar el estado o derivarlo.
+
+Ese es el alcance aprobado para la etapa 2. **Ampliarlo o reducirlo requiere el OK de Sam**, escrito en el SDD que lo
+cambie. Nadie lo amplía por su cuenta, ni siquiera «para estar más seguros».
+
+La revisión de la salida (`revisarRespuesta`) sigue igual: si el borrador repite un correo, un teléfono, una cédula,
+un RIF o una dirección, escala con `datos_personales`.
+
+### El aviso al cliente (SDD-0705; texto aprobado por Sam el 21/11/2026)
+
+La primera respuesta de DTD en cada conversación **termina** con esta nota (Sam, 21/11/2026: «Doble saludo:
+opción B, el aviso va al final»; así el borrador abre con el guion y no se leen dos saludos seguidos):
+
+> Hola, soy el asistente virtual de DTD Cargo. Una persona del equipo revisa cada respuesta antes de enviártela.
+
+- **Largo:** el borrador admite hasta 4000 caracteres, medidos como la base (solo se descartan los espacios de los
+  lados). Si el borrador final se pasa, lleve el aviso o no, la corrida escala con `borrador_largo`
+  y la conversación la atiende una persona.
+
+- Va en el **borrador**, así que Sam lo ve en la tarjeta antes de aprobar, y lo que se envía es exactamente lo
+  aprobado: la huella no cambia.
+- «Primera» significa que entre los últimos 20 mensajes leídos no hay ninguno del lado de DTD (ni del agente ni de
+  una persona del equipo). Si ya respondió alguien, no se repite.
+- Cambiar el texto del aviso requiere el OK de Sam y un SDD.

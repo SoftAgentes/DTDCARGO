@@ -40,7 +40,7 @@ function fmtDate(iso: string): string {
 }
 
 const INPUT_CLASS =
-  "px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1";
+  "px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1";
 
 export function PortalClaims({
   claims,
@@ -83,7 +83,7 @@ export function PortalClaims({
     <div>
       {embedded ? (
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="eyebrow eyebrow-wine">Tus casos</div>
+          <div className="eyebrow eyebrow-tinta">Tus casos</div>
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}

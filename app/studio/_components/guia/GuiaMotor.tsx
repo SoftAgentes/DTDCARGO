@@ -152,7 +152,7 @@ const ESPERA_MS = 250;
  */
 const VIGENCIA_PEDIDO_MS = REINTENTOS_TRAS_PESTANA * ESPERA_MS;
 /** Tamaño de referencia antes de medir la tarjeta real. */
-const TARJETA_ESTIMADA = { width: 360, height: 240 };
+const TARJETA_ESTIMADA = { width: 300, height: 200 };
 
 interface Activo {
   recorrido: GuiaRecorrido;
@@ -622,7 +622,7 @@ export function GuiaMotor({
             left: geo.ancla.left - 4,
             width: geo.ancla.width + 8,
             height: geo.ancla.height + 8,
-            border: "2px solid var(--wine-text)",
+            border: "2px solid var(--accion)",
             borderRadius: "var(--r-md)",
             pointerEvents: "none",
             zIndex: 89,

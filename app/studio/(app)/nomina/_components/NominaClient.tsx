@@ -8,6 +8,7 @@
  */
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -15,7 +16,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import {
   employeeStatusLabel,
   employeeStatusTone,
-  type Employee,
+  type EmployeeListItem,
   type EmployeeKpis,
 } from "@/lib/studio/nomina/employee-types";
 import {
@@ -25,13 +26,7 @@ import {
   type ContractorPayment,
   type ContractorKpis,
 } from "@/lib/studio/nomina/contractor-types";
-import {
-  payFrequencyLabel,
-  dayMethodLabel,
-  payrollRulesStatusLabel,
-  payrollRulesStatusTone,
-  type PayrollRules,
-} from "@/lib/studio/nomina/payroll-rules-types";
+import type { PayrollRules } from "@/lib/studio/nomina/payroll-rules-types";
 import {
   loanStatusLabel,
   loanStatusTone,
@@ -56,9 +51,11 @@ import {
   anularAmonestacionAction,
 } from "../actions";
 import { EmpleadoDrawer } from "./EmpleadoDrawer";
+import { EditarEmpleadoDrawer } from "./EditarEmpleadoDrawer";
 import { PrestadorDrawer } from "./PrestadorDrawer";
 import { PagoPrestadorDrawer } from "./PagoPrestadorDrawer";
 import { ReglasDrawer } from "./ReglasDrawer";
+import { ReglasTab } from "./ReglasTab";
 import { AsistenciaTab } from "./AsistenciaTab";
 import { PrestamoDrawer } from "./PrestamoDrawer";
 import { CuotaPrestamoDrawer } from "./CuotaPrestamoDrawer";
@@ -74,7 +71,7 @@ import { ComunicacionesTab } from "./ComunicacionesTab";
 import type { EmployeeComm } from "@/lib/studio/nomina/comms-types";
 import type { Settlement, SettlementKpis } from "@/lib/studio/nomina/settlement-types";
 import type { EmployeeInvite } from "@/lib/studio/nomina/invite-types";
-import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
+import type { RegistrationListItem } from "@/lib/studio/nomina/registration-types";
 import type { RegistrationKpis } from "@/lib/studio/nomina/registration-queries";
 import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 import type { Position } from "@/lib/studio/nomina/position-types";
@@ -112,6 +109,11 @@ function initialsOf(name: string): string {
   );
 }
 
+/** ¿Es un valor de pestaña conocido? Se usa con `?tab=` de la URL (SDD-0652). */
+export function isNominaTab(v: unknown): v is Tab {
+  return typeof v === "string" && TABS.some((t) => t.value === v);
+}
+
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
   { value: "puestos", label: "Puestos" },
@@ -132,6 +134,7 @@ export function NominaClient({
   contractors,
   payments,
   rules,
+  reglasAmpliada,
   attendance,
   holidays,
   loans,
@@ -149,13 +152,18 @@ export function NominaClient({
   settlementKpis,
   registrationKpis,
   canManageUsers,
+  initialTab,
 }: {
-  employees: Employee[];
+  employees: EmployeeListItem[];
+  /** Pestaña con la que abre (`?tab=`); al volver de una ficha se conserva. */
+  initialTab?: string;
   positions: Position[];
   canManageUsers: boolean;
   contractors: Contractor[];
   payments: ContractorPayment[];
   rules: PayrollRules | null;
+  /** SDD-0653 A2b: ¿la base tiene la migración 0556? Sin ella, los campos nuevos del formulario esperan. */
+  reglasAmpliada: boolean;
   attendance: Attendance[];
   holidays: Holiday[];
   loans: LoanWithBalance[];
@@ -163,7 +171,7 @@ export function NominaClient({
   runs: PayrollRun[];
   settlements: Settlement[];
   invites: EmployeeInvite[];
-  registrations: EmployeeRegistration[];
+  registrations: RegistrationListItem[];
   comms: EmployeeComm[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
@@ -173,8 +181,21 @@ export function NominaClient({
   settlementKpis: SettlementKpis;
   registrationKpis: RegistrationKpis;
 }) {
-  const [tab, setTab] = useState<Tab>("empleados");
-  const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
+  const [tab, setTabState] = useState<Tab>(isNominaTab(initialTab) ? initialTab : "empleados");
+  // La pestaña va en la URL (sin nombres ni correos): volver de la ficha de un
+  // empleado deja a la persona donde estaba (SDD-0652 §5.4).
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try {
+      const url = new URL(window.location.href);
+      if (t === "empleados") url.searchParams.delete("tab");
+      else url.searchParams.set("tab", t);
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {
+      /* sin URL no se pierde nada: la pestaña sigue en el estado */
+    }
+  };
+  const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employeeId: string }>(null);
   const [puestoDrawer, setPuestoDrawer] = useState<null | { mode: "new" } | { mode: "edit"; position: Position }>(null);
   const [prestDrawer, setPrestDrawer] = useState<null | { mode: "new" } | { mode: "edit"; contractor: Contractor }>(null);
   const [pagoOpen, setPagoOpen] = useState(false);
@@ -185,7 +206,7 @@ export function NominaClient({
   const [corteOpen, setCorteOpen] = useState(false);
   const [finiquitoOpen, setFiniquitoOpen] = useState(false);
   const [invitacionOpen, setInvitacionOpen] = useState(false);
-  const [reviewReg, setReviewReg] = useState<EmployeeRegistration | null>(null);
+  const [reviewReg, setReviewReg] = useState<RegistrationListItem | null>(null);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
   const employeeName = new Map(
@@ -288,7 +309,7 @@ export function NominaClient({
         <EmpleadosTab
           employees={employees}
           onNew={() => setEmpDrawer({ mode: "new" })}
-          onEdit={(employee) => setEmpDrawer({ mode: "edit", employee })}
+          onEdit={(employee) => setEmpDrawer({ mode: "edit", employeeId: employee.id })}
         />
       )}
       {tab === "puestos" && (
@@ -355,11 +376,20 @@ export function NominaClient({
         <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
       )}
 
-      {empDrawer && (
+      {empDrawer?.mode === "new" && (
         <EmpleadoDrawer
-          employee={empDrawer.mode === "edit" ? empDrawer.employee : null}
+          employee={null}
           positions={positions.filter((p) => p.active)}
           canManageUsers={canManageUsers}
+          onClose={() => setEmpDrawer(null)}
+        />
+      )}
+      {/* SDD-0652 F1: la lista no trae cédula, sueldo ni cuenta. Al editar se
+          pide la ficha al servidor, con la cuenta ya enmascarada. */}
+      {empDrawer?.mode === "edit" && (
+        <EditarEmpleadoDrawer
+          employeeId={empDrawer.employeeId}
+          positions={positions.filter((p) => p.active)}
           onClose={() => setEmpDrawer(null)}
         />
       )}
@@ -382,7 +412,7 @@ export function NominaClient({
         />
       )}
       {reglasOpen && (
-        <ReglasDrawer rules={rules} onClose={() => setReglasOpen(false)} />
+        <ReglasDrawer rules={rules} ampliada={reglasAmpliada} onClose={() => setReglasOpen(false)} />
       )}
       {prestamoOpen && (
         <PrestamoDrawer
@@ -420,173 +450,18 @@ export function NominaClient({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Reglas de cálculo (payroll_rules · Slice B)
-// ─────────────────────────────────────────────────────────────
-function fmtBs(n: number): string {
-  return new Intl.NumberFormat("es-VE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
-function ReglasTab({
-  rules,
-  onEdit,
-}: {
-  rules: PayrollRules | null;
-  onEdit: () => void;
-}) {
-  if (!rules) {
-    return (
-      <EmptyState
-        eyebrow="Sin reglas"
-        title="Aún no defines las reglas de cálculo."
-        description="Los parámetros LOTTT (salario mínimo, cestaticket, deducciones, topes, recargos y provisiones) que la nómina del período va a usar. Es config, no cálculo."
-        action={
-          <button type="button" className="studio-btn studio-btn-primary" onClick={onEdit}>
-            Definir reglas
-          </button>
-        }
-      />
-    );
-  }
-
-  const moneyRows: { label: string; value: string }[] = [
-    { label: "Salario mínimo", value: `Bs ${fmtBs(rules.min_salary)}` },
-    { label: "Cestaticket", value: `Bs ${fmtBs(rules.cestaticket)}` },
-    { label: "Bono de guerra", value: `Bs ${fmtBs(rules.bono_guerra)}` },
-  ];
-  const pctRows: { label: string; value: string }[] = [
-    { label: "SSO / IVSS", value: `${rules.sso_pct} %` },
-    { label: "RPE", value: `${rules.rpe_pct} %` },
-    { label: "FAOV", value: `${rules.faov_pct} %` },
-    { label: "Tope IVSS", value: `${rules.sso_cap_sm} SM` },
-    { label: "Tope RPE", value: `${rules.rpe_cap_sm} SM` },
-  ];
-  const recargoRows: { label: string; value: string }[] = [
-    { label: "Hora extra diurna", value: `${rules.overtime_pct} %` },
-    { label: "Bono nocturno", value: `${rules.night_pct} %` },
-    { label: "Día feriado", value: `${rules.holiday_pct} %` },
-  ];
-  const provisionRows: { label: string; value: string }[] = [
-    { label: "Utilidades", value: `${rules.utilidades_days} días` },
-    { label: "Bono vacacional", value: `${rules.bono_vacacional_days} días` },
-    { label: "Vacaciones", value: `${rules.vacaciones_days} días` },
-  ];
-
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "var(--s-4)",
-          gap: "var(--s-3)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
-          <Badge tone={payrollRulesStatusTone(rules.status)} size="sm">
-            {payrollRulesStatusLabel(rules.status)} · v{rules.version}
-          </Badge>
-          <span style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-            {payFrequencyLabel(rules.pay_frequency)} · {dayMethodLabel(rules.day_method)}
-          </span>
-        </div>
-        <button type="button" className="studio-btn studio-btn-primary" onClick={onEdit}>
-          Editar reglas
-        </button>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: "var(--s-4)",
-        }}
-      >
-        <RulesCard title="Montos base (Bs)" rows={moneyRows} />
-        <RulesCard title="Deducciones y topes" rows={pctRows} />
-        <RulesCard title="Recargos" rows={recargoRows} />
-        <RulesCard title="Provisiones / prestaciones" rows={provisionRows} />
-      </div>
-
-      {rules.notes && (
-        <p
-          style={{
-            font: "400 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: "var(--s-4) 0 0",
-            maxWidth: "62ch",
-          }}
-        >
-          {rules.notes}
-        </p>
-      )}
-    </>
-  );
-}
-
-function RulesCard({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { label: string; value: string }[];
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-lg)",
-        padding: "16px 18px",
-      }}
-    >
-      <div
-        style={{
-          font: "700 9.5px/1 var(--f-sans)",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--ink-soft)",
-          marginBottom: "var(--s-3)",
-        }}
-      >
-        {title}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {rows.map((r) => (
-          <div
-            key={r.label}
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}
-          >
-            <span style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
-              {r.label}
-            </span>
-            <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
-              {r.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // Empleados
 // ─────────────────────────────────────────────────────────────
-const EMP_COLS = "minmax(220px,1.4fr) 1fr 120px 96px 150px";
+const EMP_COLS = "minmax(220px,1.4fr) 1fr minmax(180px,1fr) 96px 150px";
 
 function EmpleadosTab({
   employees,
   onNew,
   onEdit,
 }: {
-  employees: Employee[];
+  employees: EmployeeListItem[];
   onNew: () => void;
-  onEdit: (e: Employee) => void;
+  onEdit: (e: EmployeeListItem) => void;
 }) {
   return (
     <>
@@ -620,7 +495,7 @@ function EmpleadosTab({
           <TableHeader cols={EMP_COLS}>
             <span>Empleado</span>
             <span>Cargo · Departamento</span>
-            <span style={{ textAlign: "right" }}>Sueldo / mes</span>
+            <span>Correo de contacto</span>
             <span>Estado</span>
             <span style={{ textAlign: "right" }}>Acciones</span>
           </TableHeader>
@@ -638,9 +513,9 @@ function EmpleadoRow({
   first,
   onEdit,
 }: {
-  e: Employee;
+  e: EmployeeListItem;
   first: boolean;
-  onEdit: (e: Employee) => void;
+  onEdit: (e: EmployeeListItem) => void;
 }) {
   const dimmed = e.status !== "activo";
   return (
@@ -656,34 +531,60 @@ function EmpleadoRow({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", minWidth: 0 }}>
-        <span
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "var(--wine-tint)",
-            color: "var(--wine-text)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            font: "800 12px/1 var(--f-display)",
-            flexShrink: 0,
-          }}
-        >
-          {initialsOf(e.full_name)}
-        </span>
-        <div style={{ minWidth: 0 }}>
-          <div
+        {e.photo_url ? (
+          // SDD-0652 fase 2: foto con URL firmada y corta. Decorativa aquí: el nombre está al lado.
+          // eslint-disable-next-line @next/next/no-img-element -- bucket privado; no pasa por el optimizador
+          <img
+            src={e.photo_url}
+            alt=""
+            width={36}
+            height={36}
+            loading="lazy"
+            decoding="async"
             style={{
-              font: "700 13px/1.2 var(--f-sans)",
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "1px solid var(--border)",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <span
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "var(--bg-elevated)",
               color: "var(--ink)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              font: "800 12px/1 var(--f-display)",
+              flexShrink: 0,
+            }}
+          >
+            {initialsOf(e.full_name)}
+          </span>
+        )}
+        <div style={{ minWidth: 0 }}>
+          {/* SDD-0652 F1: el nombre es el enlace a la ficha (`<a href>`, BTN-01).
+              La fila no es clicable: el interruptor y el lápiz siguen siendo botones. */}
+          <Link
+            href={`/studio/nomina/empleados/${encodeURIComponent(e.employee_code)}`}
+            aria-label={`Abrir ficha de ${e.full_name}`}
+            className="studio-link-quiet"
+            style={{
+              display: "block",
+              font: "700 13px/1.2 var(--f-sans)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
             }}
           >
             {e.full_name}
-          </div>
+          </Link>
           <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
             {e.employee_code}
           </div>
@@ -699,9 +600,23 @@ function EmpleadoRow({
         </div>
       </div>
 
-      <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
-        {fmtUsd(e.salary_usd)}
-      </span>
+      <div style={{ minWidth: 0 }}>
+        <div
+          title={e.email ?? undefined}
+          style={{
+            font: "500 12.5px/1.3 var(--f-sans)",
+            color: e.email ? "var(--ink)" : "var(--ink-soft)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {e.email ?? "Sin correo"}
+        </div>
+        <div style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+          {e.has_account ? "Tiene cuenta" : "Sin cuenta"}
+        </div>
+      </div>
 
       <Badge tone={employeeStatusTone(e.status)} size="sm">
         {employeeStatusLabel(e.status)}

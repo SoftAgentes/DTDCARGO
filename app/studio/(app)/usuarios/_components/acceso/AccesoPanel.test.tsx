@@ -29,8 +29,9 @@ vi.mock("../../actions", () => ({
   changeUserRoleAction: vi.fn(),
   changeWarehouseScopeAction: vi.fn(),
 }));
+const toastWarning = vi.fn();
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
+  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: toastWarning }),
 }));
 
 const { AccesoPanel } = await import("./AccesoPanel");
@@ -104,13 +105,40 @@ describe("AccesoPanel · mapa y detalle (0635 §3.1-3.2)", () => {
     expect(screen.getByText(/reserva este módulo al rol administrador/)).toBeTruthy();
   });
 
-  it("Bandeja (Chatwoot) tampoco se puede dar", async () => {
+  it("Bandeja (Chatwoot) se puede dar como extra (SDD-0675; antes la 0622 la dejaba fuera)", async () => {
     const u = userEvent.setup();
     render(<AccesoPanel member={miembro()} grants={[]} overrides={{}} nombres={{}} />);
-    for (const b of screen.getAllByRole("button", { name: /todavía no se pueden? dar como extra/ })) await u.click(b);
     await u.click(chip("Bandeja"));
-    expect(screen.queryByRole("radiogroup", { name: /^Acceso extra/ })).toBeNull();
-    expect(screen.getByText(/Falta revisar su base/)).toBeTruthy();
+    const grupo = screen.getByRole("radiogroup", { name: "Acceso extra a Bandeja" });
+    for (const n of ["Sin extra", "Solo ver", "Ver y editar"]) {
+      expect(within(grupo).getByRole("radio", { name: new RegExp(n) })).toBeTruthy();
+    }
+    expect(screen.queryByText(/Falta revisar su base/)).toBeNull();
+  });
+
+  it("si Chatwoot queda pendiente, guarda igual y avisa al admin (SDD-0675)", async () => {
+    const u = userEvent.setup();
+    const AVISO = "Guardado; Chatwoot quedó pendiente hasta el próximo ciclo.";
+    revokeMock.mockResolvedValueOnce({ ok: true, aviso: AVISO });
+    render(<AccesoPanel member={miembro()} grants={[extra({ moduleId: "bandeja", canEdit: false })]} overrides={{}} nombres={{}} />);
+    await u.click(chip("Bandeja"));
+    await u.click(screen.getByRole("radio", { name: /Quitar extra/ }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Ya no atiende chats");
+    await u.click(screen.getByRole("button", { name: "Guardar cambio" }));
+    expect(revokeMock).toHaveBeenCalledWith({ targetUserId: PERSONA, moduleId: "bandeja", reason: "Ya no atiende chats" });
+    expect(await screen.findByText(new RegExp(`1 cambio guardado para Persona de contabilidad\\. ${AVISO}`))).toBeTruthy();
+    expect(toastWarning).toHaveBeenCalledWith(AVISO);
+  });
+
+  it("sin aviso de la acción no hay aviso de Chatwoot", async () => {
+    const u = userEvent.setup();
+    render(<AccesoPanel member={miembro()} grants={[extra({ moduleId: "bandeja", canEdit: false })]} overrides={{}} nombres={{}} />);
+    await u.click(chip("Bandeja"));
+    await u.click(screen.getByRole("radio", { name: /Quitar extra/ }));
+    await u.type(screen.getByLabelText("Motivo (obligatorio)"), "Ya no atiende chats");
+    await u.click(screen.getByRole("button", { name: "Guardar cambio" }));
+    expect(await screen.findByText("1 cambio guardado para Persona de contabilidad.")).toBeTruthy();
+    expect(toastWarning).not.toHaveBeenCalled();
   });
 
   it("soporte no ofrece «Ver y editar»", async () => {
@@ -274,6 +302,8 @@ describe("AccesoPanel · bandeja (0635 §3.3)", () => {
     const bandeja = screen.getByRole("region", { name: /cambios para Persona de contabilidad/ });
     expect(within(bandeja).getByText("+ CRM · ver y editar")).toBeTruthy();
     expect(within(bandeja).queryByText(/Tarifas/)).toBeNull(); // su rol ya lo da
+    // SDD-0675: la Bandeja abre chats y Chatwoot; el atajo no la suma.
+    expect(within(bandeja).queryByText(/Bandeja/)).toBeNull();
   });
 
   it("avisa al cajón cuántos cambios quedan sin guardar", async () => {

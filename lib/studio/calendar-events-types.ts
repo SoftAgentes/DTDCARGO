@@ -97,10 +97,10 @@ export const EVENT_TYPE_META: Record<
   { label: string; short: string; tone: CalendarEventTone }
 > = {
   zarpe: { label: "Zarpe", short: "ETD", tone: "info" },
-  arribo: { label: "Arribo", short: "ETA", tone: "wine" },
+  arribo: { label: "Arribo", short: "ETA", tone: "neutral" },
   entrega: { label: "Entrega", short: "POD", tone: "success" },
   zarpe_planificado: { label: "Salida planificada", short: "ETD plan", tone: "info" },
-  arribo_planificado: { label: "Llegada planificada", short: "ETA plan", tone: "wine" },
+  arribo_planificado: { label: "Llegada planificada", short: "ETA plan", tone: "neutral" },
   entrega_planificada: { label: "Entrega planificada", short: "POD plan", tone: "success" },
   tarea: { label: "Tarea", short: "TAREA", tone: "neutral" },
 };

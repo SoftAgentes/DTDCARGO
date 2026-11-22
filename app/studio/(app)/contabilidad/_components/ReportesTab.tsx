@@ -34,6 +34,7 @@ import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { StatusIcon } from "@/components/StatusIcon";
 import { fmtAmount } from "./format";
 import { IngresoDelPeriodoCard } from "./IngresoDelPeriodoCard";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 export function ReportesTab({
   reportes,
@@ -91,30 +92,34 @@ function FiltroDelPeriodo({ filtro }: { filtro: FiltroReportes }) {
     >
       <input type="hidden" name="tab" value="reportes" />
       <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--s-3)", flexWrap: "wrap" }}>
-        <label style={{ display: "flex", flexDirection: "column" }}>
-          <span className="studio-label">Desde</span>
-          <input
-            type="date"
+        {/* SDD-0660: etiqueta con htmlFor; envolver el campo le sumaría al nombre la ayuda del formato. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label className="studio-label" htmlFor={`${id}-desde`}>
+            Desde
+          </label>
+          <DateField
+            id={`${id}-desde`}
             name="desde"
-            className="studio-input"
             defaultValue={filtro.desde}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}
             style={{ minWidth: 160 }}
           />
-        </label>
-        <label style={{ display: "flex", flexDirection: "column" }}>
-          <span className="studio-label">Hasta (corte)</span>
-          <input
-            type="date"
+        </div>
+        {/* SDD-0660: etiqueta con htmlFor; envolver el campo le sumaría al nombre la ayuda del formato. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <label className="studio-label" htmlFor={`${id}-hasta`}>
+            Hasta (corte)
+          </label>
+          <DateField
+            id={`${id}-hasta`}
             name="hasta"
-            className="studio-input"
             defaultValue={filtro.hasta}
             aria-invalid={invalido}
             aria-describedby={filtro.error ? errorId : undefined}
             style={{ minWidth: 160 }}
           />
-        </label>
+        </div>
         <button type="submit" className="studio-btn studio-btn-primary studio-btn-sm">
           Aplicar
         </button>

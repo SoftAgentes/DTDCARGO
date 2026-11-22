@@ -10,6 +10,7 @@
  * congelada de la SDD-0571): el contenedor `C-` mezcla clientes.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
@@ -44,7 +45,7 @@ const AYUDA: Record<EstadoSinFacturar, string> = {
 };
 
 function fmtCbm(n: number | null): string {
-  return n == null ? "—" : n.toLocaleString("es-VE", { maximumFractionDigits: 3 });
+  return formatCbm(n);
 }
 
 /** El agregado llega exacto: no atraviesa Number ni el formateador por fila. */
@@ -117,7 +118,7 @@ export default async function EmbarquesSinFacturarPage() {
                 {!r.completo && <><br /><span>Solo la parte leída</span></>}
               </>
             }
-            valueColor={e === "llego_sin_factura" ? "var(--danger)" : "var(--ink)"}
+            status={e === "llego_sin_factura" ? { tono: "danger", texto: "Requiere acción" } : undefined}
             style={{ minWidth: 0 }}
           />
         ))}

@@ -9,7 +9,7 @@ import { NoticiasTabs } from "../../_components/NoticiasTabs";
 import { EditarNoticiaForm } from "../_components/EditarNoticiaForm";
 import { puertaNoticiasAdmin } from "../_gate";
 
-export const metadata = { title: "Corregir noticia · DTD Studio" };
+export const metadata = { title: "Corregir noticia" };
 export const dynamic = "force-dynamic";
 
 export default async function EditarNoticiaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +27,7 @@ export default async function EditarNoticiaPage({ params }: { params: Promise<{ 
         <>
           El enlace <code>/noticias/{noticia.slug}</code> no cambia. Al guardar queda registrado quién y cuándo
           corrigió; en el sitio el cambio se ve en hasta 5 minutos.{" "}
-          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--color-wine-text, #7F0F1A)" }}>
+          <Link href="/studio/marketing/noticias-web/publicadas" style={{ color: "var(--color-accion-text, #1F4FA8)", textDecoration: "underline" }}>
             Volver a Publicadas
           </Link>
         </>

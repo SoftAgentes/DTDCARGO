@@ -41,6 +41,7 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   mode: "create" | "edit";
@@ -221,7 +222,7 @@ export function RateDrawer({
           {/* Servicio */}
           <div>
             <label className="studio-label" htmlFor="service">
-              Servicio <span style={{ color: "var(--wine-text)" }}>*</span>
+              Servicio <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <select
               id="service"
@@ -252,7 +253,7 @@ export function RateDrawer({
           >
             <div>
               <label className="studio-label" htmlFor="origin">
-                Origen <span style={{ color: "var(--wine-text)" }}>*</span>
+                Origen <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="origin"
@@ -269,7 +270,7 @@ export function RateDrawer({
             </div>
             <div>
               <label className="studio-label" htmlFor="destination">
-                Destino <span style={{ color: "var(--wine-text)" }}>*</span>
+                Destino <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="destination"
@@ -290,7 +291,7 @@ export function RateDrawer({
           {mode$ === "per_cbm" ? (
             <div>
               <label className="studio-label" htmlFor="per_cbm">
-                Tarifa por CBM (USD) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Tarifa por CBM (USD) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="per_cbm"
@@ -315,7 +316,7 @@ export function RateDrawer({
             <div>
               <label className="studio-label" htmlFor="flat_rate">
                 Tarifa flat por contenedor (USD){" "}
-                <span style={{ color: "var(--wine-text)" }}>*</span>
+                <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="flat_rate"
@@ -394,13 +395,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_from">
                 Válida desde
               </label>
-              <input
-                id="valid_from"
-                name="valid_from"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_from ?? ""}
-              />
+              <DateField id="valid_from" name="valid_from" defaultValue={rate?.valid_from ?? ""} />
               {state.fieldErrors?.valid_from && (
                 <FieldError msg={state.fieldErrors.valid_from} />
               )}
@@ -409,13 +404,7 @@ export function RateDrawer({
               <label className="studio-label" htmlFor="valid_until">
                 Válida hasta
               </label>
-              <input
-                id="valid_until"
-                name="valid_until"
-                type="date"
-                className="studio-input"
-                defaultValue={rate?.valid_until ?? ""}
-              />
+              <DateField id="valid_until" name="valid_until" defaultValue={rate?.valid_until ?? ""} />
               {state.fieldErrors?.valid_until && (
                 <FieldError msg={state.fieldErrors.valid_until} />
               )}
@@ -452,7 +441,7 @@ export function RateDrawer({
                   marginTop: 2,
                   width: 16,
                   height: 16,
-                  accentColor: "var(--wine)",
+                  accentColor: "var(--accion)",
                   cursor: "pointer",
                 }}
               />
@@ -506,7 +495,7 @@ export function RateDrawer({
                     marginTop: 2,
                     width: 16,
                     height: 16,
-                    accentColor: "var(--wine)",
+                    accentColor: "var(--accion)",
                     cursor: "pointer",
                   }}
                 />

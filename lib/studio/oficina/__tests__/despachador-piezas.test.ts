@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ErrorDeLectura, conversacionDeReferencia, leerConversacion } from "../chatwoot-lectura";
 import { costoDeLlamada } from "../despachador-config";
-import { revisarRespuesta } from "../eval-automatico";
+import { empiezaConAcuse, revisarRespuesta } from "../eval-automatico";
 import { GUIONES_SOPORTE } from "../guiones-soporte";
-import { ErrorDelRuntime, borrarSesion, llamarAgente } from "../runtime-cliente";
+import { ErrorDelRuntime, borrarSesion, leerModeloDeSesion, llamarAgente } from "../runtime-cliente";
 import { interpretarSalida } from "../salida-agente";
 
 const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), { status, headers: { "content-type": "application/json" } });
@@ -46,6 +46,26 @@ describe("revisarRespuesta (eval.md automatizable)", () => {
   it("sin acuse al inicio o con un guion que no existe: falla", () => {
     expect(revisarRespuesta(r("Se la paso al equipo. Entiendo tu consulta."), GUIONES_SOPORTE)).toContain("sin_acuse");
     expect(revisarRespuesta(r("Entiendo tu consulta.", "Entiendo tu consulta.", "inventado"), GUIONES_SOPORTE)).toContain("guion_desconocido");
+  });
+  // Ficha 0.3 (18/11/2026): el acuse se compara por palabras, no por signos.
+  it("el acuse al inicio pasa aunque cambie un signo, una tilde o una mayúscula entre los dos campos", () => {
+    const guion = "acuse-general";
+    const texto = "¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto.";
+    for (const acuse of ["¡Hola! Gracias por escribirle a DTD Cargo.", "Hola, gracias por escribirle a DTD Cargo", "hola gracias por escribirle a dtd cargo", "¡Hola!"]) {
+      expect(revisarRespuesta(r(texto, acuse, guion), GUIONES_SOPORTE), acuse).toEqual([]);
+    }
+    expect(empiezaConAcuse("Entiendo tu consulta.", "Entiendo tu consulta.")).toBe(true);
+  });
+  it("sigue siendo «sin acuse»: partido entre los campos, más adelante en el texto, solo signos, o media palabra", () => {
+    // El caso de la etapa 1: el acuse en un campo y el resto en el otro.
+    expect(empiezaConAcuse("Ya vi tu mensaje y te ayudo con gusto.", "¡Hola! Gracias por escribirle a DTD Cargo.")).toBe(false);
+    expect(empiezaConAcuse("Se la paso al equipo. Entiendo tu consulta.", "Entiendo tu consulta.")).toBe(false);
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "¡!")).toBe(false);
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "   ")).toBe(false);
+    // «Hola» no es el inicio de «Holanda»: tiene que coincidir la palabra entera.
+    expect(empiezaConAcuse("Holanda queda lejos.", "Hola")).toBe(false);
+    // Otro acuse que el del texto.
+    expect(empiezaConAcuse("¡Hola! Te ayudo.", "Entiendo tu consulta.")).toBe(false);
   });
   it.each([
     "Entiendo tu consulta. Tu envío llega en 3 días.",
@@ -137,6 +157,57 @@ describe("el cable hacia el runtime", () => {
     expect(init.method).toBe("POST");
     expect(init.headers).toMatchObject({ "x-hermes-session-id": "cable-r-1", "idempotency-key": "r:1" });
     expect(JSON.parse(String(init.body))).toMatchObject({ model: "soporte-chatwoot", stream: false });
+  });
+
+  it("SDD-0702 modelo real: la respuesta real de Hermes v0.23.1 (sin runtime, model = alias) no guarda el nombre del agente", async () => {
+    const f = vi.fn(async () =>
+      json({ object: "chat.completion", model: "soporte-chatwoot", choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 3, completion_tokens: 1 } }),
+    );
+    expect((await llamarAgente({ ...o, fetch: f as unknown as typeof fetch })).modelo).toBeNull();
+  });
+
+  it("SDD-0702 modelo real: del runtime solo se toman ids limpios; el proveedor no se repite", async () => {
+    const casos: Array<[unknown, string | null]> = [
+      [{ provider: "zai", model: "glm-5.3" }, "zai/glm-5.3"],
+      [{ provider: "zai", model: "zai/glm-5.3" }, "zai/glm-5.3"],
+      [{ provider: "", model: "deepseek-chat" }, "deepseek-chat"],
+      [{ provider: "zai", model: "texto con espacios" }, null],
+      [{ provider: "zai", model: "x".repeat(101) }, null],
+      [{ provider: "zai", model: "https://u:p@host/x" }, null],
+      [{ provider: "https://u:p@host", model: "glm-5.3" }, "glm-5.3"],
+      [{ provider: "zai", model: "glm-5.3＠host" }, null],
+    ];
+    for (const [runtime, esperado] of casos) {
+      const f = vi.fn(async () => json({ model: "soporte-chatwoot", choices: [{ message: { content: "{}" } }], runtime }));
+      expect((await llamarAgente({ ...o, fetch: f as unknown as typeof fetch })).modelo).toBe(esperado);
+    }
+  });
+
+  it("SDD-0702 modelo real: leerModeloDeSesion hace GET /api/sessions/<id> y devuelve solo el modelo", async () => {
+    const f = vi.fn(async () =>
+      json({ object: "hermes.session", session: { id: "cable-r-1", model: "deepseek-chat", preview: "texto del cliente", title: "t", input_tokens: 9 } }),
+    );
+    expect(await leerModeloDeSesion({ url: o.url, token: o.token, sesionId: "cable-a b", fetch: f as unknown as typeof fetch })).toBe("deepseek-chat");
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("http://runtime.prueba/api/sessions/cable-a%20b");
+    expect(init.method).toBe("GET");
+    expect(init.headers).toMatchObject({ authorization: "Bearer llave" });
+  });
+
+  it("SDD-0702 modelo real: leerModeloDeSesion antepone el proveedor si viene y nunca lanza", async () => {
+    const con = (cuerpo: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(cuerpo), { status })) as unknown as typeof fetch;
+    const leer = (f: typeof fetch) => leerModeloDeSesion({ url: o.url, token: o.token, sesionId: "s", fetch: f });
+    expect(await leer(con({ session: { model: "glm-5.3", billing_provider: "zai" } }))).toBe("zai/glm-5.3");
+    expect(await leer(con({ session: { model: "soporte-chatwoot" } }))).toBeNull();
+    expect(await leer(con({ session: { model: null } }))).toBeNull();
+    expect(await leer(con({ session: { model: "glm 5.3" } }))).toBeNull();
+    expect(await leer(con({ error: "no" }, 404))).toBeNull();
+    expect(await leer((async () => new Response("no es json")) as unknown as typeof fetch)).toBeNull();
+    expect(
+      await leer((async () => {
+        throw new Error("red");
+      }) as unknown as typeof fetch),
+    ).toBeNull();
   });
 
   it("un error del runtime solo lleva el código", async () => {

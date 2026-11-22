@@ -6,6 +6,7 @@ import {
   type CrmEtapa,
   type CrmTarjetaTablero,
 } from "@/lib/studio/crm-tablero";
+import { ChatPermitido } from "./ChatPermitido";
 import { CrmTableroKanban } from "./CrmTableroKanban";
 
 afterEach(cleanup);
@@ -30,6 +31,8 @@ const lead: CrmTarjetaTablero = {
   asesorNombre: "Asesora de prueba",
   tareasAbiertas: 2,
   tareasVencidas: 1,
+  fuente: "manual",
+  utmSource: null,
 };
 
 function pintar({
@@ -37,22 +40,26 @@ function pintar({
   tarjetas = [lead],
   onMove = vi.fn<(t: CrmTarjetaTablero, d: CrmEtapa) => void>(),
   onOpen = vi.fn<(t: CrmTarjetaTablero) => void>(),
+  chat = false,
 }: {
+  chat?: boolean;
   canEdit?: boolean;
   tarjetas?: CrmTarjetaTablero[];
   onMove?: Mock<(t: CrmTarjetaTablero, d: CrmEtapa) => void>;
   onOpen?: Mock<(t: CrmTarjetaTablero) => void>;
 } = {}) {
   render(
-    <CrmTableroKanban
-      tablero="leads"
-      columnas={armarColumnas(ETAPAS, tarjetas, "leads")}
-      etapas={ETAPAS}
-      canEdit={canEdit}
-      moviendo={new Set()}
-      onMove={onMove}
-      onOpen={onOpen}
-    />,
+    <ChatPermitido valor={chat}>
+      <CrmTableroKanban
+        tablero="leads"
+        columnas={armarColumnas(ETAPAS, tarjetas, "leads")}
+        etapas={ETAPAS}
+        canEdit={canEdit}
+        moviendo={new Set()}
+        onMove={onMove}
+        onOpen={onOpen}
+      />
+    </ChatPermitido>,
   );
   return { onMove, onOpen };
 }
@@ -73,73 +80,92 @@ describe("CrmTableroKanban · columnas y tarjeta", () => {
   it("dice de dónde vino, el dueño, el segmento y la tarea vencida", () => {
     pintar();
     expect(screen.getByText(/Volvió de Clientes · Postventa/)).toBeTruthy();
-    expect(screen.getByText("Asesora de prueba")).toBeTruthy();
-    expect(screen.getByText("Registrado")).toBeTruthy();
+    expect(screen.getByText("Registrado · Asesora de prueba")).toBeTruthy();
     expect(screen.getByText("1 tarea vencida")).toBeTruthy();
     // La antigüedad no depende solo del color.
     expect(screen.getByText(/más de 30 días/)).toBeTruthy();
   });
-});
 
-describe("CrmTableroKanban · mover (DND-01)", () => {
-  it("con teclado: el selector alcanza cualquier etapa activa del tablero, sin la actual", async () => {
-    const user = userEvent.setup();
-    const { onMove } = pintar();
-    const selector = screen.getByRole("combobox", { name: "Mover Lead de prueba a otra etapa" });
-    const opciones = within(selector)
-      .getAllByRole("option")
-      .map((o) => o.textContent);
-    expect(opciones).toEqual(["Mover a…", "Contactado", "Perdido"]);
-
-    await user.selectOptions(selector, "contactado");
-    expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
-  });
-
-  it("arrastrando: soltar en otra columna mueve; soltar en la misma no", () => {
-    const { onMove } = pintar();
-    const store: Record<string, string> = {};
-    const dataTransfer = {
-      setData: (k: string, v: string) => {
-        store[k] = v;
-      },
-      getData: (k: string) => store[k] ?? "",
-      effectAllowed: "",
-    };
-    const card = document.querySelector('[data-tarjeta-id="t-1"]')!;
-    fireEvent.dragStart(card, { dataTransfer });
-
-    fireEvent.drop(screen.getByRole("region", { name: "Etapa Nuevo" }), { dataTransfer });
-    expect(onMove).not.toHaveBeenCalled();
-
-    fireEvent.drop(screen.getByRole("region", { name: "Etapa Contactado" }), { dataTransfer });
-    expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
-  });
-
-  it("abrir la ficha es un botón propio, aparte del arrastre", async () => {
-    const user = userEvent.setup();
-    const { onOpen } = pintar();
-    await user.click(screen.getByRole("button", { name: "Abrir ficha de Lead de prueba" }));
-    expect(onOpen).toHaveBeenCalledWith(lead);
-  });
-
-  it("sin permiso de edición: no hay selector ni arrastre, pero la ficha se abre", () => {
-    const { onMove } = pintar({ canEdit: false });
-    expect(screen.queryByRole("combobox")).toBeNull();
-    const card = document.querySelector('[data-tarjeta-id="t-1"]')!;
-    expect(card.getAttribute("draggable")).toBe("false");
-    const dataTransfer = { getData: () => "t-1", setData: () => {} };
-    fireEvent.drop(screen.getByRole("region", { name: "Etapa Contactado" }), { dataTransfer });
-    expect(onMove).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Abrir ficha de Lead de prueba" })).toBeTruthy();
+  it("las columnas se reparten el ancho con un mínimo de 232 px (SDD-0648 §3)", () => {
+    pintar();
+    const tablero = document.querySelector('[data-guia="embudo.tablero"]') as HTMLElement;
+    expect(tablero.style.display).toBe("grid");
+    expect(tablero.style.gridAutoColumns).toBe("minmax(232px, 1fr)");
   });
 });
 
-/**
- * SDD-0603 · tramo 5d (BD-037): la ficha se abre con un control real, «Abrir»,
- * que es la única parada de teclado de la tarjeta. El nombre sigue abriendo con
- * el ratón, fuera del orden de Tab. Y nada de esto estorba al arrastre.
- */
-describe("CrmTableroKanban · «Abrir» en la tarjeta (SDD-0603, tramo 5d)", () => {
+describe("CrmTableroKanban · logo del canal (SDD-0648 §2)", () => {
+  it("pinta el canal con su nombre accesible", () => {
+    pintar({ tarjetas: [{ ...lead, fuente: "instagram" }] });
+    expect(screen.getByRole("img", { name: "Instagram" })).toBeTruthy();
+  });
+
+  it("una alta manual no pinta logo", () => {
+    pintar({ tarjetas: [{ ...lead, fuente: "manual" }] });
+    expect(document.querySelector("[data-canal]")).toBeNull();
+  });
+
+  it("TikTok sale del utm del registro web", () => {
+    pintar({ tarjetas: [{ ...lead, fuente: "web_registro", utmSource: "tiktok" }] });
+    expect(screen.getByRole("img", { name: "TikTok" })).toBeTruthy();
+  });
+});
+
+describe("CrmTableroKanban · menú de la tarjeta (SDD-0648 §1)", () => {
+  const disparador = () => screen.getByRole("button", { name: "Acciones de Lead de prueba" });
+
+  it("el menú es un control de 32 × 32 con nombre que dice de quién es", () => {
+    pintar();
+    const b = disparador();
+    expect(b.style.height).toBe("32px");
+    expect(b.style.minWidth).toBe("32px");
+    expect(b.getAttribute("aria-haspopup")).toBe("menu");
+  });
+
+  it("con teclado: el menú alcanza cualquier etapa activa del tablero, sin la actual", async () => {
+    const user = userEvent.setup();
+    const { onMove } = pintar();
+    await user.click(disparador());
+    const opciones = screen.getAllByRole("menuitem").map((o) => o.textContent?.trim());
+    expect(opciones).toEqual(["Abrir ficha", "Mover a Contactado", "Mover a Perdido"]);
+
+    await user.click(screen.getByRole("menuitem", { name: "Mover a Contactado" }));
+    expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
+  });
+
+  it("«Abrir chat» navega a la ruta que resuelve la conversación cuando el canal es de Chatwoot", async () => {
+    const user = userEvent.setup();
+    pintar({ tarjetas: [{ ...lead, fuente: "whatsapp_leads" }], chat: true });
+    await user.click(disparador());
+    const chat = screen.getByRole("menuitem", { name: "Abrir chat" });
+    expect(chat.tagName).toBe("A");
+    expect(chat.getAttribute("href")).toBe("/studio/crm/chat/t-1");
+  });
+
+  it("sin entrada a la Bandeja (rol o flag) no ofrece «Abrir chat» aunque el canal sea de Chatwoot", async () => {
+    const user = userEvent.setup();
+    pintar({ tarjetas: [{ ...lead, fuente: "whatsapp_leads" }], chat: false });
+    await user.click(disparador());
+    expect(screen.queryByRole("menuitem", { name: "Abrir chat" })).toBeNull();
+  });
+
+  it("sin canal de chat ni ficha no ofrece «Abrir chat»", async () => {
+    const user = userEvent.setup();
+    pintar({ tarjetas: [{ ...lead, fuente: "manual" }], chat: true });
+    await user.click(disparador());
+    expect(screen.queryByRole("menuitem", { name: "Abrir chat" })).toBeNull();
+  });
+
+  it("sin permiso de edición: el menú solo abre, no mueve", async () => {
+    const user = userEvent.setup();
+    pintar({ canEdit: false });
+    await user.click(disparador());
+    const opciones = screen.getAllByRole("menuitem").map((o) => o.textContent?.trim());
+    expect(opciones).toEqual(["Abrir ficha"]);
+  });
+});
+
+describe("CrmTableroKanban · mover y abrir (DND-01)", () => {
   const abrir = () => screen.getByRole("button", { name: "Abrir ficha de Lead de prueba" }) as HTMLButtonElement;
   const transferencia = () => {
     const store: Record<string, string> = {};
@@ -152,55 +178,79 @@ describe("CrmTableroKanban · «Abrir» en la tarjeta (SDD-0603, tramo 5d)", () 
     };
   };
 
-  it("«Abrir» es un secundario de tabla, enfocable, con verbo visible y nombre que dice qué abre", () => {
-    pintar();
-    const b = abrir();
-    expect(b.textContent).toBe("Abrir");
-    expect(b.tabIndex).toBe(0);
-    expect(b.className.split(" ")).toEqual(
-      expect.arrayContaining(["studio-btn", "studio-btn-ghost", "studio-btn-sm"]),
-    );
-    // Uno solo por tarjeta: el nombre ya no se anuncia como «Abrir ficha de…».
+  it("arrastrando: soltar en otra columna mueve; soltar en la misma no", () => {
+    const { onMove } = pintar();
+    const dataTransfer = transferencia();
+    const card = document.querySelector('[data-tarjeta-id="t-1"]')!;
+    fireEvent.dragStart(card, { dataTransfer });
+
+    fireEvent.drop(screen.getByRole("region", { name: "Etapa Nuevo" }), { dataTransfer });
+    expect(onMove).not.toHaveBeenCalled();
+
+    fireEvent.drop(screen.getByRole("region", { name: "Etapa Contactado" }), { dataTransfer });
+    expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
+  });
+
+  it("SDD-0671: no hay botón «Abrir»; el nombre es la parada de teclado y la segunda es el menú", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = pintar();
+    expect(screen.queryByText("Abrir", { exact: true })).toBeNull();
     expect(screen.getAllByRole("button", { name: /^Abrir ficha de / })).toHaveLength(1);
-  });
-
-  it("el nombre sigue abriendo con el ratón, pero sale del Tab", async () => {
-    const user = userEvent.setup();
-    const { onOpen } = pintar();
-    const nombre = screen.getByText("Lead de prueba").closest("button")!;
-    expect(nombre.tabIndex).toBe(-1);
-    await user.click(nombre);
-    expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onOpen).toHaveBeenCalledWith(lead);
-  });
-
-  it("con teclado: Tab llega a «Abrir» sin pasar por el nombre, y Enter abre la ficha", async () => {
-    const user = userEvent.setup();
-    const { onOpen } = pintar();
-    // Paradas de la tarjeta, en orden: el selector «Mover a…» y «Abrir».
-    await user.tab();
-    expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Mover Lead de prueba a otra etapa" }));
+    expect(abrir().tabIndex).toBe(0);
+    expect(abrir().textContent).toContain("Lead de prueba");
     await user.tab();
     expect(document.activeElement).toBe(abrir());
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Acciones de Lead de prueba" }));
+    await user.keyboard("{Escape}");
+    abrir().focus();
     await user.keyboard("{Enter}");
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(lead);
   });
 
-  it("no estorba al arrastre: la tarjeta sigue arrastrable, el botón no lo es y soltar mueve sin abrir", () => {
+  it("el nombre abre con el ratón, una sola vez, y abarca las dos líneas (32 px, BD-037)", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = pintar();
+    expect(abrir().style.minHeight).toBe("32px");
+    expect(abrir().textContent).toContain("Registrado · Asesora de prueba");
+    await user.click(abrir());
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(lead);
+  });
+
+  it("SDD-0671: un clic en cualquier parte de la tarjeta abre la ficha; el menú no", async () => {
+    const user = userEvent.setup();
+    const { onOpen } = pintar();
+    await user.click(screen.getByText("1 tarea vencida"));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(lead);
+    await user.click(screen.getByRole("button", { name: "Acciones de Lead de prueba" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("menuitem", { name: "Mover a Contactado" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin permiso de edición: no hay arrastre, pero la ficha se abre", () => {
+    const { onMove } = pintar({ canEdit: false });
+    const card = document.querySelector('[data-tarjeta-id="t-1"]')!;
+    expect(card.getAttribute("draggable")).toBe("false");
+    const dataTransfer = { getData: () => "t-1", setData: () => {} };
+    fireEvent.drop(screen.getByRole("region", { name: "Etapa Contactado" }), { dataTransfer });
+    expect(onMove).not.toHaveBeenCalled();
+    expect(abrir()).toBeTruthy();
+  });
+
+  it("no estorba al arrastre: el arrastre que empieza sobre el nombre mueve sin abrir", () => {
     const { onMove, onOpen } = pintar();
     const card = document.querySelector('[data-tarjeta-id="t-1"]')!;
     expect(card.getAttribute("draggable")).toBe("true");
-    expect(card.contains(abrir())).toBe(true);
     expect(abrir().hasAttribute("draggable")).toBe(false);
-
     const dataTransfer = transferencia();
-    // El arrastre que empieza sobre el botón burbujea hasta la tarjeta.
     fireEvent.dragStart(abrir(), { dataTransfer });
     expect(dataTransfer.getData("text/plain")).toBe("t-1");
     fireEvent.drop(screen.getByRole("region", { name: "Etapa Contactado" }), { dataTransfer });
     expect(onMove).toHaveBeenCalledTimes(1);
-    expect(onMove).toHaveBeenCalledWith(lead, expect.objectContaining({ clave: "contactado" }));
     expect(onOpen).not.toHaveBeenCalled();
   });
 
@@ -220,12 +270,5 @@ describe("CrmTableroKanban · «Abrir» en la tarjeta (SDD-0603, tramo 5d)", () 
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("sin permiso de edición: «Abrir» queda como única parada de la tarjeta", async () => {
-    const user = userEvent.setup();
-    pintar({ canEdit: false });
-    await user.tab();
-    expect(document.activeElement).toBe(abrir());
   });
 });

@@ -25,6 +25,7 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 interface Props {
   bankAccounts: Account[];
@@ -217,7 +218,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="stmt-account">
-                Cuenta banco / caja <span style={{ color: "var(--wine-text)" }}>*</span>
+                Cuenta banco / caja <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <select
                 id="stmt-account"
@@ -238,14 +239,13 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="stmt-period">
-                Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Período (YYYY-MM) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
-              <input
+              <DateField
                 id="stmt-period"
-                type="month"
-                className="studio-input"
+                mode="month"
                 value={periodLabel}
-                onChange={(e) => setPeriodLabel(e.target.value)}
+                onChange={setPeriodLabel}
               />
               {state.fieldErrors?.period_label && (
                 <FieldError msg={state.fieldErrors.period_label} />
@@ -346,13 +346,9 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                     alignItems: "start",
                   }}
                 >
-                  <input
-                    type="date"
-                    className="studio-input"
+                  <DateField
                     value={l.line_date}
-                    onChange={(e) =>
-                      updateLine(idx, { line_date: e.target.value })
-                    }
+                    onChange={(iso) => updateLine(idx, { line_date: iso })}
                     aria-label={`Fecha movimiento ${idx + 1}`}
                   />
                   <input
@@ -403,7 +399,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                       border: "1px solid var(--border)",
                       background: "var(--bg-surface)",
                       color:
-                        lines.length <= 1 ? "var(--ink-mute)" : "var(--danger)",
+                        lines.length <= 1 ? "var(--ink-soft)" : "var(--danger)",
                       cursor: lines.length <= 1 ? "not-allowed" : "pointer",
                     }}
                   >
@@ -436,7 +432,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <SaldoRow label="Saldo inicial" value={Number(opening) || 0} />
             <SaldoRow label="+ Créditos" value={balance.totalCredit} color="var(--success)" />
-            <SaldoRow label="− Débitos" value={balance.totalDebit} color="var(--wine-soft)" />
+            <SaldoRow label="− Débitos" value={balance.totalDebit} color="var(--ink-side)" />
             <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
             <SaldoRow label="Saldo final esperado" value={balance.expectedClosing} />
             <div

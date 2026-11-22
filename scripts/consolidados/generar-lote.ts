@@ -6,19 +6,50 @@
  *     --packing "<NUEVO FORMATO CONTENEDOR 59.xlsx>" --contenedor 59 \
  *     --eta 2026-10-19 --salida "C:\...\DTD-consolidados\59\2026-10-16" \
  *     [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
- *     [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
- *     [--pol NGB] [--tipo 40HC] [--tenant dtd]
+ *     [--crear-clientes-faltantes] [--sin-facturas | --solo-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json]
+ *     [--pol NGB] [--tipo 40HC] [--tenant dtd] [--correlativo-origen N]
  *
- * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
- * deshacer.sql y purgar.sql (sólo en prueba), manifiesto.json, resumen.md y SHA256SUMS. Nada de
- * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
+ * `--solo-facturas` (SDD-0690): para un contenedor que YA está cargado (el 64 se
+ * cargó con `--sin-facturas`). Con el mismo Excel de la carga, aplicar.sql escribe
+ * sólo las pre-órdenes en borrador, una por cliente, y no toca consolidación,
+ * envíos, recepciones ni ítems. Su preflight exige el contenedor vivo con la marca
+ * del lote, todos sus envíos cargados y el contenedor en `exc0674_contenedores`.
+ * Por cliente es idempotente: si ya tiene una factura viva (borrador o emitida) en
+ * el contenedor, se salta. simulacro.sql es el ensayo: corre lo mismo y termina en
+ * rollback. Los avisos llevan sólo conteos. No va con `--sin-facturas` ni con
+ * `--crear-clientes-faltantes` ni con `--gasto-espacio`.
+ *
+ * `--excluir-markbox DTD-0000` (SDD-0690, sólo con `--solo-facturas`): deja fuera del
+ * paquete a los clientes de esos Shipping Marks (por el mapa o por la clave), con sus
+ * envíos, filas y líneas. Repetible o separado por comas. No generan pre-orden ni línea
+ * ni suman en los totales; el manifiesto, el resumen y la previa dicen cuántos envíos
+ * salieron («excluidos por markbox: N»), y el id del paquete cambia de huella. aplicar
+ * aborta si un envío que entra está hoy en un Shipping Mark excluido.
+ *
+ * `--solo-markbox DTD-0000 --agregar-a-preorden` (SDD-0690, con `--solo-facturas`): el lote chico
+ * de los envíos que estaban en el comodín, ya reasignados. Entran sólo las filas que el mapa (o la
+ * clave) manda a esos Shipping Marks. A cada cliente con una pre-orden borrador de esta carga se le
+ * agregan las líneas de sus envíos y se recalculan los totales; al que no tiene, se le crea. Aborta
+ * si un envío sigue en el Shipping Mark de origen, si ya tiene línea en una factura viva o si la
+ * pre-orden del cliente ya no es borrador. Tiene id propio.
+ *
+ * `--correlativo-origen N`: el título del packing list trae el correlativo del
+ * almacén de China («CONTENEDOR DTD #61») y el lote es otro número DTD (`--contenedor 64`).
+ * El título tiene que decir exactamente N, y el mapeo queda en el manifiesto y el resumen.
+ *
+ * Escribe en --salida el paquete que sube al servidor (empaque mínimo, 2026-11-14):
+ * previa.sql, aplicar.sql, simulacro.sql, verificar.sql, deshacer.sql y purgar.sql
+ * (sólo en prueba), manifiesto.json (sin nombres de marca, candidatos, remitentes
+ * ni avisos) y SHA256SUMS de esos archivos. En la carpeta hermana `<salida>-local/`
+ * deja resumen.md y manifiesto-completo.json, que NO suben. Nada de esto entra a
+ * Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, lstatSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { leerPacking, leerRastreo } from "./leer-excel";
-import { agruparLote, ISO_FECHA, normalizarCodigo, type FilaPacking, type Lote, type Modalidad, type ServicioFcl } from "./modelo";
+import { agruparLote, ISO_FECHA, normalizarCodigo, normalizarExclusiones, type FilaPacking, type Lote, type Modalidad, type ServicioFcl } from "./modelo";
 import { generarSql, type OpcionesSql, type SalidaSql } from "./lote-sql";
 
 export interface Argumentos {
@@ -33,6 +64,8 @@ export interface Argumentos {
   entorno: "prueba" | "produccion";
   crearClientesFaltantes: boolean;
   facturas: boolean;
+  /** SDD-0690 · `--solo-facturas`: sólo las pre-órdenes de un contenedor ya cargado. */
+  soloFacturas: boolean;
   excesoPeso: boolean;
   mapa?: string;
   pol: string;
@@ -48,30 +81,57 @@ export interface Argumentos {
   gastoUsuario?: string;
   /** Sólo para pruebas locales: el título del packing list no tiene que coincidir con --contenedor. */
   ignorarTituloPacking: boolean;
+  /**
+   * Correlativo de China que trae el título del packing list cuando no es el número
+   * DTD (`--correlativo-origen 61` con `--contenedor 64`). Tiene que coincidir con el
+   * título; vale en prueba y en producción, y queda en el manifiesto y el resumen.
+   */
+  correlativoOrigen?: number;
+  /**
+   * SDD-0690 · `--excluir-markbox`, sólo con `--solo-facturas`: Shipping Marks cuyos envíos
+   * quedan fuera del paquete (normalizados y ordenados). Sin la opción no existe.
+   */
+  excluirMarkbox?: string[];
+  /** SDD-0690 · `--solo-markbox`, sólo con `--agregar-a-preorden`: Shipping Marks de origen cuyos envíos entran. */
+  soloMarkbox?: string[];
+  /** SDD-0690 · `--agregar-a-preorden`: agrega las líneas a la pre-orden borrador del cliente o crea una. */
+  agregarAPreorden?: boolean;
 }
 
 const USO = `Uso: generar-lote --rastreo <xlsx> [--packing <xlsx>] --contenedor <N> --eta YYYY-MM-DD --salida <dir>
       [--modalidad ddp|fcl|mixto] [--dueno <marca>] [--servicio-fcl fcl_directo|fcl_bodega] [--cbm-fcl N] [--kg-fcl N]
       [--gasto-espacio <monto USD> --gasto-usuario <correo del Studio>]
       [--etd YYYY-MM-DD] [--fecha-carga YYYY-MM-DD] [--entorno prueba|produccion]
-      [--crear-clientes-faltantes] [--sin-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
-      [--ignorar-titulo-packing]`;
+      [--crear-clientes-faltantes] [--sin-facturas | --solo-facturas] [--sin-exceso-peso] [--mapa marcas-mapa.json] [--pol NGB] [--tipo 40HC] [--tenant dtd]
+      [--excluir-markbox DTD-0000[,…] (repetible; sólo con --solo-facturas)]
+      [--solo-markbox DTD-0000[,…] --agregar-a-preorden (con --solo-facturas: el lote chico de los envíos reasignados)]
+      [--correlativo-origen <N del título del packing>] [--ignorar-titulo-packing (sólo prueba)]`;
 
 export function parsearArgumentos(argv: string[]): Argumentos {
   const valores = new Map<string, string>();
   const banderas = new Set<string>();
+  const excluir: string[] = [];
+  const soloMb: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (!a.startsWith("--")) throw new Error(`Argumento inesperado: ${a}\n${USO}`);
     const k = a.slice(2);
-    if (["crear-clientes-faltantes", "sin-facturas", "sin-exceso-peso", "ignorar-titulo-packing"].includes(k)) {
+    if (["crear-clientes-faltantes", "sin-facturas", "solo-facturas", "sin-exceso-peso", "ignorar-titulo-packing", "agregar-a-preorden"].includes(k)) {
       banderas.add(k);
       continue;
     }
     const v = argv[i + 1];
     if (v == null || v.startsWith("--")) throw new Error(`Falta el valor de --${k}\n${USO}`);
-    valores.set(k, v);
     i++;
+    if (k === "excluir-markbox") {
+      excluir.push(...v.split(","));
+      continue;
+    }
+    if (k === "solo-markbox") {
+      soloMb.push(...v.split(","));
+      continue;
+    }
+    valores.set(k, v);
   }
   const req = (k: string) => {
     const v = valores.get(k);
@@ -86,6 +146,22 @@ export function parsearArgumentos(argv: string[]): Argumentos {
   if (entorno !== "prueba" && entorno !== "produccion") throw new Error("--entorno debe ser prueba o produccion");
   const crear = banderas.has("crear-clientes-faltantes");
   if (crear && entorno !== "prueba") throw new Error("--crear-clientes-faltantes sólo se permite con --entorno prueba");
+  const soloFacturas = banderas.has("solo-facturas");
+  if (soloFacturas && banderas.has("sin-facturas")) throw new Error(`--solo-facturas y --sin-facturas no van juntos\n${USO}`);
+  if (soloFacturas && crear) throw new Error("--solo-facturas no crea clientes: el contenedor ya está cargado");
+  if (soloFacturas && valores.has("gasto-espacio")) throw new Error("--solo-facturas no registra el gasto por espacio: ya quedó con la carga");
+  const excluirMarkbox = excluir.length ? normalizarExclusiones(excluir) : undefined;
+  if (excluirMarkbox && !soloFacturas) {
+    throw new Error("--excluir-markbox sólo va con --solo-facturas: en una carga completa esos envíos no entrarían al contenedor");
+  }
+  const soloMarkbox = soloMb.length ? normalizarExclusiones(soloMb) : undefined;
+  const agregarAPreorden = banderas.has("agregar-a-preorden");
+  if (agregarAPreorden && !soloFacturas) throw new Error("--agregar-a-preorden sólo va con --solo-facturas");
+  if (agregarAPreorden && !soloMarkbox) throw new Error("--agregar-a-preorden exige --solo-markbox <Shipping Mark de origen>");
+  if (soloMarkbox && !agregarAPreorden) {
+    throw new Error("--solo-markbox sólo va con --agregar-a-preorden: sin agregar, los clientes que ya tienen pre-orden se saltarían");
+  }
+  if (agregarAPreorden && excluirMarkbox) throw new Error("--agregar-a-preorden y --excluir-markbox no van juntos");
   for (const k of ["etd", "fecha-carga"]) {
     const v = valores.get(k);
     if (v && !ISO_FECHA.test(v)) throw new Error(`--${k} debe ser YYYY-MM-DD`);
@@ -111,6 +187,19 @@ export function parsearArgumentos(argv: string[]): Argumentos {
   if (gastoEspacio != null && modalidad !== "mixto") throw new Error("--gasto-espacio sólo aplica a la modalidad mixto");
   const packing = valores.get("packing");
   if (modalidad !== "fcl" && !packing) throw new Error(`--modalidad ${modalidad} exige --packing <xlsx>`);
+  const ignorarTituloPacking = banderas.has("ignorar-titulo-packing");
+  if (ignorarTituloPacking && entorno !== "prueba") {
+    throw new Error("--ignorar-titulo-packing sólo se permite con --entorno prueba; para un correlativo de China usa --correlativo-origen <N>");
+  }
+  let correlativoOrigen: number | undefined;
+  if (valores.has("correlativo-origen")) {
+    const t = valores.get("correlativo-origen")!.trim();
+    correlativoOrigen = /^\d{1,4}$/.test(t) ? Number(t) : NaN;
+    if (!Number.isInteger(correlativoOrigen) || correlativoOrigen <= 0) throw new Error("--correlativo-origen debe ser un entero positivo");
+    if (correlativoOrigen === contenedor) throw new Error("--correlativo-origen es igual a --contenedor: no hace falta");
+    if (!packing) throw new Error("--correlativo-origen exige --packing <xlsx> (es el número de su título)");
+    if (ignorarTituloPacking) throw new Error("--correlativo-origen y --ignorar-titulo-packing no van juntos");
+  }
   return {
     rastreo: req("rastreo"),
     packing,
@@ -122,6 +211,7 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     entorno,
     crearClientesFaltantes: crear,
     facturas: !banderas.has("sin-facturas"),
+    soloFacturas,
     excesoPeso: !banderas.has("sin-exceso-peso"),
     mapa: valores.get("mapa"),
     pol,
@@ -135,8 +225,37 @@ export function parsearArgumentos(argv: string[]): Argumentos {
     kgFcl: numOpc("kg-fcl"),
     gastoEspacio,
     gastoUsuario,
-    ignorarTituloPacking: banderas.has("ignorar-titulo-packing"),
+    ignorarTituloPacking,
+    correlativoOrigen,
+    ...(excluirMarkbox ? { excluirMarkbox } : {}),
+    ...(soloMarkbox ? { soloMarkbox, agregarAPreorden: true } : {}),
   };
+}
+
+/**
+ * Contrasta el número del título del packing list con el lote. Sin bandera, el
+ * título tiene que decir el número DTD (`--contenedor`). Con `--correlativo-origen N`,
+ * tiene que decir exactamente N: así un packing de otro contenedor no pasa por
+ * error. Devuelve el aviso para el resumen, o null si no hay nada que avisar.
+ */
+export function revisarTituloPacking(
+  numeroTitulo: number | null,
+  args: Pick<Argumentos, "contenedor" | "correlativoOrigen" | "ignorarTituloPacking">,
+): string | null {
+  if (args.correlativoOrigen != null) {
+    if (numeroTitulo == null) {
+      throw new Error(`Pediste --correlativo-origen ${args.correlativoOrigen}, pero no leo el número del título del packing list («CONTENEDOR DTD #N»)`);
+    }
+    if (numeroTitulo !== args.correlativoOrigen) {
+      throw new Error(`El packing list dice contenedor #${numeroTitulo} y --correlativo-origen dice ${args.correlativoOrigen}`);
+    }
+    return `Correlativo de origen: el título del packing list dice #${numeroTitulo} (correlativo de China); el lote es del contenedor DTD #${args.contenedor} (--correlativo-origen ${args.correlativoOrigen}).`;
+  }
+  if (numeroTitulo == null || numeroTitulo === args.contenedor) return null;
+  if (!args.ignorarTituloPacking) {
+    throw new Error(`El packing list dice contenedor #${numeroTitulo} y pediste el #${args.contenedor}; si es el correlativo de China, usa --correlativo-origen ${numeroTitulo}`);
+  }
+  return `El packing list dice contenedor #${numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`;
 }
 
 export function sha256(ruta: string): string {
@@ -166,10 +285,10 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
   const avisos = [...avisosExcel, ...lote.avisos];
   return `# Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no})
 
-- Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
+${m.modo === "solo-facturas" ? "- Modo: **--solo-facturas** (SDD-0690): el contenedor ya está cargado; aplicar.sql escribe sólo las pre-órdenes en borrador de los clientes que no tienen una factura viva. Las cifras de la tabla describen el contenedor, no lo que se escribe.\n" : ""}- Modalidad: **${m.modalidad}**${m.dueno ? ` · dueño del contenedor: ${m.dueno.clave} (${m.dueno.etiqueta} en la evidencia) · envío FCL \`${m.dueno.codigo}\` (${m.dueno.servicio}${m.dueno.cbm != null ? `, ${m.dueno.cbm} m³` : ""}${m.dueno.kg != null ? `, ${m.dueno.kg} kg` : ""}), sin recepción ni factura` : ""}${m.gastoEspacio ? ` · gasto por el espacio: $${m.gastoEspacio.monto.toFixed(2)} (expenses, categoría otro, colgado del envío FCL)` : ""}
 - Entorno: **${m.entorno}** · facturas: ${m.opciones.facturas ? "sí (borrador, una por cliente DDP)" : "no"} · exceso de peso: ${m.opciones.excesoPeso ? "se cobra en líneas aparte" : "NO se cobra"} · crear clientes faltantes: ${m.opciones.crearClientesFaltantes ? "sí (sólo prueba)" : "no"}
 - Naviera ${m.contenedor.naviera} · ${m.contenedor.pol} → ${m.contenedor.pod} · carga ${m.contenedor.fechaCarga} · recepciones ${m.contenedor.fechaRecepcion} · ETD ${m.contenedor.etd} · ETA ${m.contenedor.eta} · ${m.opciones.containerType}
-- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
+${m.agregarAPreorden ? `- **Agregar a pre-orden (\`--agregar-a-preorden\`): ${m.agregarAPreorden.envios}** envíos (${m.agregarAPreorden.clientes} claves del Excel, ${m.agregarAPreorden.filas} filas) de ${m.agregarAPreorden.soloMarkbox.join(", ")}: sus líneas van a la pre-orden borrador de su cliente, o a una nueva. Los otros ${m.agregarAPreorden.enviosFuera} envíos quedan fuera de este paquete.\n` : ""}${m.excluidos ? `- **Excluidos por markbox: ${m.excluidos.envios}** envíos (${m.excluidos.clientes} claves del Excel, ${m.excluidos.filas} filas) de ${m.excluidos.markbox.join(", ")}: no llevan pre-orden ni línea y no suman en las cifras de abajo; se cargan en otro paquete después de reasignarlos (\`--excluir-markbox\`).\n` : ""}${m.contenedor.correlativoOrigen != null ? `- Correlativo de origen: **${m.contenedor.correlativoOrigen} (China) → ${m.contenedor.numero} (DTD)**: el título del packing list usa el número del almacén de China\n` : ""}- Fuentes: rastreo sha256 ${m.fuentes.rastreo.slice(0, 12)}… · packing sha256 ${m.fuentes.packing.slice(0, 12)}…
 - Generado ${m.generadoEn}
 
 ## Lo que escribe aplicar.sql
@@ -220,7 +339,7 @@ export const SOLO_PRUEBA = ["deshacer.sql", "purgar.sql"] as const;
  * ya los niega en producción, y el `deshacer.sql` de producción no trae la guarda
  * de base de prueba, así que un psql directo lo correría.
  */
-export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql, resumen: string): Record<string, string> {
+export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSql): Record<string, string> {
   const archivos: Record<string, string> = {
     "previa.sql": salida.previa,
     "simulacro.sql": salida.simulacro,
@@ -231,9 +350,36 @@ export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSq
     archivos["deshacer.sql"] = salida.deshacer;
     archivos["purgar.sql"] = salida.purgar;
   }
-  archivos["manifiesto.json"] = JSON.stringify(salida.manifiesto, null, 2) + "\n";
-  archivos["resumen.md"] = resumen;
+  archivos["manifiesto.json"] = JSON.stringify(manifiestoDelPaquete(salida.manifiesto), null, 2) + "\n";
   return archivos;
+}
+
+/** Lo que el manifiesto del paquete deja afuera: nombres de marca, candidatos, remitentes y avisos con texto del Excel. */
+export const FUERA_DEL_PAQUETE = ["clientes", "embarques", "avisos"] as const;
+export type ManifiestoDelPaquete = Omit<SalidaSql["manifiesto"], (typeof FUERA_DEL_PAQUETE)[number]>;
+
+/**
+ * Empaque mínimo (SDD-0543, 2026-11-14): el manifiesto que sube al servidor lleva
+ * sólo lo que `aplicar-lote.sh` lee (el id, el entorno y los conteos esperados)
+ * y los datos del contenedor. Los nombres de marca del Excel (`nombreExcel`), los
+ * candidatos, los remitentes y los avisos se quedan en la PC, en el manifiesto completo.
+ */
+export function manifiestoDelPaquete(m: SalidaSql["manifiesto"]): ManifiestoDelPaquete {
+  const { clientes: _c, embarques: _e, avisos: _a, ...paquete } = m;
+  return paquete;
+}
+
+/** Carpeta hermana de `--salida` con lo que no sube: `resumen.md` y el manifiesto completo. */
+export function carpetaLocal(salida: string): string {
+  return `${salida.replace(/[\\/]+$/, "")}-local`;
+}
+
+/** Archivos de la carpeta local: el resumen que cruza etiquetas con nombres y el manifiesto completo. */
+export function archivosLocales(salida: SalidaSql, resumen: string): Record<string, string> {
+  return {
+    "resumen.md": resumen,
+    "manifiesto-completo.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
+  };
 }
 
 /**
@@ -241,18 +387,22 @@ export function archivosDelLote(entorno: Argumentos["entorno"], salida: SalidaSq
  * un enlace simbólico roto también cuenta (`existsSync` sigue el enlace y diría
  * que no existe).
  */
-export function sobrantesSoloPrueba(dir: string): string[] {
-  return SOLO_PRUEBA.filter((n) => {
-    try {
-      lstatSync(path.join(dir, n));
-      return true;
-    } catch {
-      return false;
-    }
-  });
+function existeSinSeguir(ruta: string): boolean {
+  try {
+    lstatSync(ruta);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[] }> {
+export function sobrantesSoloPrueba(dir: string): string[] {
+  return SOLO_PRUEBA.filter((n) => existeSinSeguir(path.join(dir, n)));
+}
+
+export async function generar(
+  args: Argumentos,
+): Promise<{ lote: Lote; salida: SalidaSql; archivos: string[]; carpetaLocal: string; locales: string[] }> {
   if (args.entorno === "produccion") {
     // Antes de leer nada ni escribir nada: un deshacer.sql o purgar.sql de una
     // corrida anterior quedaría al lado del paquete nuevo (fuera de SHA256SUMS,
@@ -260,6 +410,13 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     const sobrantes = sobrantesSoloPrueba(args.salida);
     if (sobrantes.length) {
       throw new Error(`La carpeta de salida ya trae ${sobrantes.join(" y ")}: un lote de producción no los lleva; usa una carpeta nueva.`);
+    }
+  }
+  // Empaque mínimo: un resumen.md de una corrida anterior quedaría dentro del
+  // paquete que sube al servidor. Ahora va en la carpeta local.
+  for (const n of ["resumen.md", "manifiesto-completo.json"]) {
+    if (existeSinSeguir(path.join(args.salida, n))) {
+      throw new Error(`La carpeta de salida ya trae ${n}: con el empaque mínimo va en ${carpetaLocal(args.salida)}; usa una carpeta nueva.`);
     }
   }
   for (const ruta of [args.rastreo, args.packing].filter((r): r is string => !!r)) {
@@ -271,12 +428,8 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
   if (args.packing) {
     const packing = await leerPacking(args.packing);
     avisosExcel.push(...packing.avisos);
-    if (packing.numeroTitulo != null && packing.numeroTitulo !== args.contenedor) {
-      if (!args.ignorarTituloPacking) {
-        throw new Error(`El packing list dice contenedor #${packing.numeroTitulo} y pediste el #${args.contenedor}`);
-      }
-      avisosExcel.push(`El packing list dice contenedor #${packing.numeroTitulo} y el lote es del #${args.contenedor} (--ignorar-titulo-packing: sólo para pruebas locales).`);
-    }
+    const avisoTitulo = revisarTituloPacking(packing.numeroTitulo, args);
+    if (avisoTitulo) avisosExcel.push(avisoTitulo);
     filas = packing.filas;
   }
   const mapa = leerMapa(args.mapa);
@@ -292,6 +445,9 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     cbmFcl: args.cbmFcl ?? null,
     kgFcl: args.kgFcl ?? null,
     gastoEspacio: args.gastoEspacio != null && args.gastoUsuario ? { monto: args.gastoEspacio, usuarioEmail: args.gastoUsuario } : null,
+    // SDD-0690 · --excluir-markbox: las filas de esos Shipping Marks salen antes de agrupar.
+    ...(args.excluirMarkbox?.length ? { excluirMarkbox: args.excluirMarkbox } : {}),
+    ...(args.agregarAPreorden && args.soloMarkbox?.length ? { soloMarkbox: args.soloMarkbox } : {}),
   });
   const fuentes = { rastreo: sha256(args.rastreo), packing: args.packing ? sha256(args.packing) : "" };
   const huellaLote = (fuentes.packing || fuentes.rastreo).slice(0, 8);
@@ -305,11 +461,20 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     vessel: "Por confirmar",
     lote: `carga-consolidado:${args.contenedor}:${huellaLote}`,
     tenantSlug: args.tenant,
+    ...(args.soloFacturas ? { soloFacturas: true } : {}),
+    ...(args.correlativoOrigen != null ? { correlativoOrigen: args.correlativoOrigen } : {}),
+    ...(args.excluirMarkbox?.length ? { excluirMarkbox: args.excluirMarkbox } : {}),
+    ...(args.agregarAPreorden && args.soloMarkbox?.length ? { soloMarkbox: args.soloMarkbox, agregarAPreorden: true } : {}),
   };
   const salida = generarSql(lote, opciones, fuentes);
 
-  const archivos = archivosDelLote(args.entorno, salida, resumenMarkdown(lote, salida, avisosExcel));
+  // El paquete (lo que sube al servidor) va en --salida, con SHA256SUMS sólo de
+  // sus archivos; el resumen y el manifiesto completo, en la carpeta local hermana.
+  const archivos = archivosDelLote(args.entorno, salida);
+  const locales = archivosLocales(salida, resumenMarkdown(lote, salida, avisosExcel));
+  const dirLocal = carpetaLocal(args.salida);
   mkdirSync(args.salida, { recursive: true });
+  mkdirSync(dirLocal, { recursive: true });
   const sumas: string[] = [];
   for (const [nombre, contenido] of Object.entries(archivos)) {
     const ruta = path.join(args.salida, nombre);
@@ -317,18 +482,28 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     sumas.push(`${createHash("sha256").update(contenido).digest("hex")}  ${nombre}`);
   }
   writeFileSync(path.join(args.salida, "SHA256SUMS"), sumas.join("\n") + "\n", { encoding: "utf8" });
-  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"] };
+  for (const [nombre, contenido] of Object.entries(locales)) {
+    writeFileSync(path.join(dirLocal, nombre), contenido, { encoding: "utf8" });
+  }
+  return { lote, salida, archivos: [...Object.keys(archivos), "SHA256SUMS"], carpetaLocal: dirLocal, locales: Object.keys(locales) };
 }
 
 async function main(): Promise<void> {
   const args = parsearArgumentos(process.argv.slice(2));
-  const { lote, salida, archivos } = await generar(args);
+  const { lote, salida, archivos, carpetaLocal: dirLocal, locales } = await generar(args);
   const m = salida.manifiesto;
   console.log(`Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no}) · ${m.entorno}`);
   console.log(`  modalidad ${m.modalidad}${m.dueno ? ` · dueño ${m.dueno.clave} → ${m.dueno.codigo}` : ""}${m.gastoEspacio ? ` · gasto espacio $${m.gastoEspacio.monto}` : ""}`);
   console.log(`  ${m.esperado.envios} envíos · ${m.esperado.recepciones} recepciones · ${m.esperado.items} items · ${m.esperado.cajas} cajas · ${m.esperado.clientes} clientes · ${m.esperado.facturas} facturas`);
   console.log(`  ${m.esperado.cbm} m³ · ${m.esperado.kg} kg · base $${m.esperado.base.toFixed(2)} (Excel $${lote.totales.totalFacturadoExcel.toFixed(2)})`);
-  console.log(`  avisos: ${lote.avisos.length} · archivos en ${args.salida}: ${archivos.join(", ")}`);
+  if (m.agregarAPreorden) {
+    console.log(`  agregar a pre-orden: ${m.agregarAPreorden.envios} envíos (${m.agregarAPreorden.clientes} claves, ${m.agregarAPreorden.filas} filas) de ${m.agregarAPreorden.soloMarkbox.join(", ")} · quedan fuera ${m.agregarAPreorden.enviosFuera}`);
+  }
+  if (m.excluidos) {
+    console.log(`  excluidos por markbox: ${m.excluidos.envios} envíos (${m.excluidos.clientes} claves, ${m.excluidos.filas} filas) de ${m.excluidos.markbox.join(", ")} · quedan fuera: sin pre-orden ni línea`);
+  }
+  console.log(`  avisos: ${lote.avisos.length} · paquete (sube al servidor) en ${args.salida}: ${archivos.join(", ")}`);
+  console.log(`  en la PC, NO sube: ${dirLocal}: ${locales.join(", ")}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -59,7 +59,7 @@ const MOTIVO_S2 =
   "No se puede eliminar: tiene 1 factura sin anular (Facturación). Primero anula, elimina o desvincula eso en su módulo.";
 
 function pintar(eliminacion?: Parameters<typeof EmbarquesClient>[0]["eliminacion"], shipments = ENVIOS) {
-  return render(<EmbarquesClient shipments={shipments} adjuntos={undefined} eliminacion={eliminacion} />);
+  return render(<EmbarquesClient pestanaInicial="all" shipments={shipments} adjuntos={undefined} eliminacion={eliminacion} />);
 }
 
 beforeEach(() => {

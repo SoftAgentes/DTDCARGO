@@ -18,7 +18,7 @@ import {
 import {
   registrationStatusLabel,
   registrationStatusTone,
-  type EmployeeRegistration,
+  type RegistrationListItem,
 } from "@/lib/studio/nomina/registration-types";
 import { revokeInviteAction } from "../actions";
 
@@ -39,9 +39,9 @@ export function SolicitudesTab({
   onReview,
 }: {
   invites: EmployeeInvite[];
-  registrations: EmployeeRegistration[];
+  registrations: RegistrationListItem[];
   onNewInvite: () => void;
-  onReview: (r: EmployeeRegistration) => void;
+  onReview: (r: RegistrationListItem) => void;
 }) {
   const activeInvites = invites.filter((i) => i.status === "activa");
   const pending = registrations.filter((r) => r.status === "pendiente");
@@ -92,7 +92,7 @@ export function SolicitudesTab({
           }}
         >
           <TableHeader cols={REG_COLS}>
-            <span>Candidato · Cédula</span>
+            <span>Candidato · Recibida</span>
             <span>Correo</span>
             <span>Estado</span>
             <span style={{ textAlign: "right" }}>Acciones</span>
@@ -114,8 +114,9 @@ export function SolicitudesTab({
                 <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.full_name}
                 </div>
-                <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-soft)" }}>
-                  {r.national_id}
+                {/* SDD-0652 N2: la cédula ya no viaja en la lista; se ve al revisar una pendiente. */}
+                <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+                  {fmtDate(r.created_at)}
                 </div>
               </div>
               <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

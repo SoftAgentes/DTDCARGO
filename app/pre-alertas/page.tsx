@@ -45,8 +45,11 @@ const DESC = TRACKING_EN_CONSTRUCCION
   ? "Pre-alerta tu carga antes de que salga de China: registra tu compra, define la modalidad de envío y tu Shipping Mark la identifica desde la bodega en Yiwu hasta tu puerta en Venezuela."
   : "Pre-alerta tu carga antes de que salga de China: registra tu compra, define la modalidad de envío y sigue cada paso con tu Shipping Mark, desde la bodega en Yiwu hasta tu puerta en Venezuela.";
 
+/** SDD-0657 · El título solo decía «Pre-alertas»: ahora dice qué se hace y desde dónde. */
+const TITLE = "Pre-alerta tu carga desde China";
+
 export const metadata: Metadata = {
-  title: "Pre-alertas",
+  title: TITLE,
   description: DESC,
   keywords: [
     "pre-alerta de carga",
@@ -58,7 +61,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/pre-alertas" },
   ...socialMeta({
-    title: "Pre-alertas · DTD Cargo",
+    title: `${TITLE} · DTD Cargo`,
     description: DESC,
     path: "/pre-alertas",
   }),

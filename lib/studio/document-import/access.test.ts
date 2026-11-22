@@ -31,6 +31,7 @@ vi.mock("@/lib/studio/prealertas/queries", () => ({ getPrealertaIdsByToken: mock
 import {
   ImportHttpError,
   UUID,
+  authorizeSupplierWorkspace,
   authorizeWorkspace,
   enabled,
   hashToken,
@@ -474,6 +475,45 @@ describe("share token de proveedor re-resuelto contra la prealerta viva", () => 
       ),
     ).rejects.toMatchObject(NEGADO);
     expect(mocks.principal).not.toHaveBeenCalled();
+  });
+});
+
+describe("authorizeSupplierWorkspace: el enlace del proveedor sin sesión", () => {
+  it("autoriza con el token re-resuelto y solo consulta el cliente admin", async () => {
+    const admin = makeDb({ clients: { data: { id: CLIENT }, error: null } });
+    mocks.idsByToken.mockResolvedValue({ prealertaId: COMPRA, tenantId: TENANT, markbox: MARKBOX, code: "P-7" });
+    const actor = await authorizeSupplierWorkspace(admin.client, workspace({ prealerta_id: COMPRA }), TOKEN_PROVEEDOR);
+    expect(actor).toEqual({
+      kind: "supplier",
+      id: `supplier:${createHash("sha256").update(TOKEN_PROVEEDOR).digest("hex").slice(0, 24)}`,
+    });
+    expect(mocks.idsByToken).toHaveBeenCalledWith(admin.client, TOKEN_PROVEEDOR);
+    expect(mocks.principal).not.toHaveBeenCalled();
+  });
+
+  it("niega un workspace anónimo, vencido o de otra compra, y un token que no es UUID", async () => {
+    mocks.idsByToken.mockResolvedValue({ prealertaId: COMPRA, tenantId: TENANT, markbox: MARKBOX, code: "P-8" });
+    const casos: Array<[WorkspaceRow, string]> = [
+      [workspace({ prealerta_id: COMPRA, anonymous_hash: "a".repeat(64) }), TOKEN_PROVEEDOR],
+      [workspace({ prealerta_id: COMPRA, expires_at: "2000-01-01T00:00:00Z" }), TOKEN_PROVEEDOR],
+      [workspace({ prealerta_id: OTRA_COMPRA }), TOKEN_PROVEEDOR],
+      [workspace({ prealerta_id: COMPRA }), "' or true --"],
+    ];
+    for (const [fila, token] of casos) {
+      const admin = makeDb({ clients: { data: { id: CLIENT }, error: null } });
+      await expect(authorizeSupplierWorkspace(admin.client, fila, token)).rejects.toMatchObject(NEGADO);
+    }
+    expect(mocks.principal).not.toHaveBeenCalled();
+  });
+
+  it("con el portal apagado no abre el documento de compra", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
+    const admin = makeDb({ clients: { data: { id: CLIENT }, error: null } });
+    mocks.idsByToken.mockResolvedValue({ prealertaId: COMPRA, tenantId: TENANT, markbox: MARKBOX, code: "P-9" });
+    await expect(
+      authorizeSupplierWorkspace(admin.client, workspace({ prealerta_id: COMPRA }), TOKEN_PROVEEDOR),
+    ).rejects.toMatchObject({ status: 503, code: "portal_not_enabled" });
+    expect(mocks.idsByToken).not.toHaveBeenCalled();
   });
 });
 

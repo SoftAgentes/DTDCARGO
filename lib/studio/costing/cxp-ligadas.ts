@@ -15,6 +15,7 @@
  *    flete estimado a mano y la CxP real del mismo flete nunca se suman.
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import { usdOrNull } from "@/lib/shared/fx";
 import {
   COST_CATEGORY_KEYS,
@@ -308,7 +309,7 @@ export function marginByContainer(
         status: c.status,
         containerType: c.container_type,
         shipments: seen.size,
-        cbm: Math.round(cbm * 1000) / 1000,
+        cbm: roundCbm(cbm),
         revenue,
         cost,
         cxpCost: allocation.cxpByContainer.get(c.id) ?? 0,

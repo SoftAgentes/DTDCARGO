@@ -27,12 +27,13 @@ import {
 } from "@/components/Icon";
 
 export const metadata: Metadata = {
-  title: "Brochure",
+  // SDD-0657 · Antes solo «Brochure».
+  title: "Brochure: logística China–Venezuela",
   description:
     "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
-    title: "Brochure · DTD Cargo",
+    title: "Brochure: logística China–Venezuela · DTD Cargo",
     description:
       "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 15 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
     path: "/brochure",

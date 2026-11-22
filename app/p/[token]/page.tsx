@@ -1,12 +1,13 @@
 import { getLabelPresentation } from "@/lib/studio/label-presentation-queries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { jetbrainsMonoUi } from "@/lib/fonts";
+import { jetbrainsMonoUi,sora,nunitoSans } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
 import { getPrealertaIdsByToken, getProviderShareByToken } from "@/lib/studio/prealertas/queries";
-import { parseDocumentDraft, toPackingDraft } from "@/lib/shared/document-import";
-import { isPackingListCurrency } from "@/lib/studio/prealertas/packlist-form";
+import { authorizeSupplierWorkspace, portalEnabled, type WorkspaceRow } from "@/lib/studio/document-import/access";
+import { WORKSPACE_SELECT, projectWorkspace } from "@/lib/studio/document-import/service";
+import type { DocumentWorkspace } from "@/components/document-import/document-client";
 import { buildLabels, buildLabelsFromBoxes } from "@/lib/studio/prealertas/types";
 import { ProviderShareClient } from "./ProviderShareClient";
 
@@ -50,39 +51,31 @@ export default async function ProviderSharePage({
 
   const presentation = await getLabelPresentation(admin, data.tenantId);
 
-  /**
-   * SDD-0473 · El documento que el cliente ya cargó. La idea entera del enlace es
-   * que el proveedor no transcriba lo que ya está: llega precargado y sólo
-   * corrige y confirma.
-   *
-   * Es best-effort a propósito. Si la tabla todavía no existe, si la lectura
-   * falla o si el borrador viene corrupto, el proveedor ve el formulario vacío
-   * como siempre — precargar es una comodidad, nunca un requisito para poder
-   * despachar. Los archivos originales del cliente NO se exponen: sólo viajan los
-   * datos normalizados.
-   */
-  let prefill = null;
-  try {
-    const ids = await getPrealertaIdsByToken(admin, token);
-    if (ids) {
-      const { data: workspace } = await admin
-        .from("document_workspaces")
-        .select("draft")
-        .eq("prealerta_id", ids.prealertaId)
-        .eq("tenant_id", ids.tenantId)
-        .maybeSingle();
-      if (workspace?.draft) {
-        const { rows, currency, ...cabecera } = toPackingDraft(parseDocumentDraft(workspace.draft));
-        // El formulario sólo maneja USD/RMB/EUR. Si el documento trae otra moneda
-        // no se fuerza ninguna: el proveedor la elige, en vez de heredar una
-        // equivocada sin enterarse.
-        prefill = rows?.length
-          ? { ...cabecera, ...(isPackingListCurrency(currency) ? { currency } : {}), rows }
-          : null;
+  let sharedWorkspace:DocumentWorkspace|null = null;
+  let sharedUnavailable=false;
+  // Con el portal apagado, el proveedor siempre ve el formulario de siempre,
+  // aunque exista un documento compartido (decisión DG, SDD-0473).
+  if (portalEnabled()) {
+    try {
+      const ids = await getPrealertaIdsByToken(admin, token);
+      if (ids) {
+        const { data: workspace, error } = await admin
+          .from("document_workspaces")
+          .select(WORKSPACE_SELECT)
+          .eq("prealerta_id", ids.prealertaId)
+          .eq("tenant_id", ids.tenantId)
+          .maybeSingle();
+        if (error) sharedUnavailable = true;
+        else if (workspace) {
+          const row = workspace as unknown as WorkspaceRow;
+          // Esta página no tiene sesión de cliente: el proveedor entra solo por su token.
+          const actor = await authorizeSupplierWorkspace(admin, row, token);
+          sharedWorkspace = projectWorkspace(row, actor);
+        }
       }
+    } catch {
+      sharedUnavailable = true;
     }
-  } catch {
-    /* Sin documento compartido el proveedor completa a mano, como siempre. */
   }
   const labels =
     data.predeclaredBoxes.length > 0
@@ -92,7 +85,7 @@ export default async function ProviderSharePage({
   // Monta --font-jetbrains-mono (instancia única de lib/fonts.ts) para los
   // códigos/etiquetas en mono del share del proveedor.
   return (
-    <div className={jetbrainsMonoUi.variable}>
+    <div className={`${jetbrainsMonoUi.variable} ${sora.variable} ${nunitoSans.variable}`}>
       <ProviderShareClient
         token={token}
         code={data.code}
@@ -100,7 +93,8 @@ export default async function ProviderSharePage({
         supplierName={data.supplierName}
         supplierWechat={data.supplierWechat}
         labels={labels}
-        prefill={prefill}
+        sharedWorkspace={sharedWorkspace}
+        sharedUnavailable={sharedUnavailable}
         brand={brand}
         presentation={presentation.settings}
       />

@@ -18,6 +18,7 @@
  *  - Sin emojis decorativos (handoff usaba 🚢 / 📦).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -196,7 +197,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
               <div
                 style={{
                   font: "700 9.5px/1 var(--f-sans)",
-                  color: "var(--wine-soft)",
+                  color: "var(--ink-side-soft)",
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
                 }}
@@ -253,7 +254,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                   letterSpacing: "-0.02em",
                 }}
               >
-                {progress.scannedCbm.toFixed(1)}
+                {formatCbm(progress.scannedCbm)}
                 <span
                   style={{
                     font: "700 14px/1 var(--f-display)",
@@ -261,7 +262,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                   }}
                 >
                   {" / "}
-                  {totalCbmExpected.toFixed(1)} m³
+                  {formatCbm(totalCbmExpected)} m³
                 </span>
               </div>
               <div
@@ -293,7 +294,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                 background:
                   progress.pct === 100
                     ? "var(--success)"
-                    : "var(--wine-soft)",
+                    : "var(--ink-side-strong)",
                 transition: "width var(--dur) var(--ease)",
               }}
             />
@@ -466,7 +467,7 @@ function ClientGroup({
           <code
             style={{
               font: "800 12px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {group.markbox}
@@ -554,7 +555,7 @@ function ClientGroup({
                     marginTop: 4,
                   }}
                 >
-                  {Number(b.cbm).toFixed(2)} m³
+                  {formatCbm(Number(b.cbm))} m³
                 </div>
               )}
             </div>

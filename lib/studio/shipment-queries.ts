@@ -8,6 +8,7 @@
  * automaticamente. No se pasa tenant_id como param.
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isShipmentService } from "./shipment-types";
 import type {
@@ -50,7 +51,8 @@ const DETAIL_COLUMNS =
 
 /**
  * Lista de envios vivos con filtros opcionales. RLS filtra por tenant.
- * Devuelve hasta 100 mas recientes.
+ * Devuelve hasta 100 mas recientes (`opts.limit` cambia el tope; SDD-0643:
+ * Embarques pide más para no cortar un contenedor a la mitad).
  *
  * SDD-0509: la RLS NO excluye los eliminados — la 0230 sacó `deleted_at is
  * null` de la policy FOR ALL porque bloqueaba el propio soft delete. El
@@ -59,13 +61,14 @@ const DETAIL_COLUMNS =
 export async function listShipments(
   supabase: SupabaseClient,
   filters: ShipmentFilters = {},
+  opts: { limit?: number } = {},
 ) {
   let query = supabase
     .from("shipments")
     .select(LIST_COLUMNS)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(opts.limit ?? 100);
 
   if (filters.service && filters.service !== "all") {
     query = query.eq("shipment_service", filters.service);
@@ -403,6 +406,57 @@ const TERMINAL_STATUSES_SET = new Set<ShipmentStatus>([
   "cancelled",
 ]);
 
+// ─────────────────────────────────────────────────────────────
+// SDD-0682 §2.5 · pestañas de Embarques (opción (a), elegida por Sam)
+// ─────────────────────────────────────────────────────────────
+
+/** Pestañas de la lista de Embarques, en el orden en que se muestran. */
+export const PESTANAS_EMBARQUES = ["active", "camino", "delivered", "alerts", "all"] as const;
+export type PestanaEmbarques = (typeof PESTANAS_EMBARQUES)[number];
+
+/** La pantalla abre en «Activos». */
+export const PESTANA_POR_DEFECTO: PestanaEmbarques = "active";
+
+/** Lo que va en el mar: «En camino». */
+const ESTADOS_EN_CAMINO = new Set<ShipmentStatus>(["shipped", "in_transit"]);
+
+/**
+ * Regla única de las pestañas: el filtro y el conteo salen de aquí, así no se
+ * separan. «Activos» = lo que pide trabajo en origen o en destino: todo lo que
+ * no va en el mar, no está entregado y no está cancelado.
+ */
+export function enPestana(status: ShipmentStatus, pestana: PestanaEmbarques): boolean {
+  switch (pestana) {
+    case "all":
+      return true;
+    case "active":
+      return !TERMINAL_STATUSES_SET.has(status) && !ESTADOS_EN_CAMINO.has(status);
+    case "camino":
+      return ESTADOS_EN_CAMINO.has(status);
+    case "delivered":
+      return status === "delivered";
+    case "alerts":
+      return status === "exception";
+  }
+}
+
+export function filtrarPorPestana<T extends { status: ShipmentStatus }>(
+  rows: readonly T[],
+  pestana: PestanaEmbarques,
+): T[] {
+  return rows.filter((r) => enPestana(r.status, pestana));
+}
+
+export function contarPorPestana(
+  rows: readonly { status: ShipmentStatus }[],
+): Record<PestanaEmbarques, number> {
+  const conteo = { active: 0, camino: 0, delivered: 0, alerts: 0, all: 0 };
+  for (const r of rows) {
+    for (const p of PESTANAS_EMBARQUES) if (enPestana(r.status, p)) conteo[p]++;
+  }
+  return conteo;
+}
+
 /**
  * Calcula stats agregadas de un grupo de envíos del mismo cliente.
  */
@@ -421,7 +475,7 @@ export function computeClientStats(rows: ShipmentListRow[]): ClientGroupStats {
     count: rows.length,
     activeCount,
     alertCount,
-    totalCbm: Math.round(totalCbm * 1000) / 1000,
+    totalCbm: roundCbm(totalCbm),
     totalWeight: Math.round(totalWeight * 100) / 100,
   };
 }

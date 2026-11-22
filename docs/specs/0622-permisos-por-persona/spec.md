@@ -547,6 +547,8 @@ Detalles de diseño que se fijaron al construir:
   pantalla ni por RPC**, hasta que se cubra algún sensible (§13.3.3). Abrir uno es moverlo a `COVERED` y a
   `studio_module_is_grantable` cuando su base acepte el extra.
 - **Bandeja:** no se ofrece; el ciclo de agentes de Chatwoot decide solo por rol y es del carril de Chatwoot.
+  **Enmendado por SDD-0675 (2026-11-18, decisión de Sam):** pasa a `COVERED` y a `studio_module_is_grantable`
+  (migración 0565). El ciclo de agentes suma el extra y le da Leads y Clientes.
 - **Rol `custom` (fase 6):** no está en la #509.
 - **Acciones sacadas de DEUDA** del anti-drift: `lookupSuggestedRate`, `lookupRateForNewDestination` y
   `previewRatesImportAction`.
@@ -577,5 +579,6 @@ tenants por persona habría que filtrar por el tenant activo.
   lógico de las 5 tablas con la sesión y con un rol que no es dueño de la fila (sección 7, de 7a a 7e).
 - La propuesta de tarifa de la CN (`cn/rate-snapshot-actions.ts`) lee con la sesión de almacén; es del carril CN.
 - `bandeja/page.tsx:100` y `lib/studio/chatwoot/agentes-ciclo.ts:87` evalúan la Bandeja de terceros solo por rol y
-  desvío; habrá que tocarlos si se abre.
+  desvío; habrá que tocarlos si se abre. **Hecho en SDD-0675:** esa lectura vive hoy en
+  `lib/studio/chatwoot/agentes-bandeja-admin.ts`, y junto con el ciclo y `altaAgente` ya suma el extra.
 - `listUnreadConversationsForBadge` sigue consultando aunque no se pinte el indicador (costo menor).

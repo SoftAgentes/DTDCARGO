@@ -11,11 +11,18 @@
  *   `secret` que firma cada entrega). PROPIO del cable: no se reutiliza el del webhook de la Bandeja.
  * - `OFICINA_CHATWOOT_INBOX_PRUEBA`: id numérico de la ÚNICA bandeja que el cable atiende (la de
  *   prueba). Vacía o inválida = se rechaza todo. Cualquier otra bandeja se ignora.
+ * - `OFICINA_CHATWOOT_ACCOUNT_ID`: id numérico de la cuenta de Chatwoot de esa bandeja (la cuenta de prueba,
+ *   «DTD Prueba»). PROPIA del cable (decisión del DG, 17/11/2026): el cable NUNCA lee la variable de cuenta
+ *   del ERP (la cuenta real: la Bandeja, el portal, los leads). Ausente, vacía o inválida = el webhook
+ *   rechaza todo y el despachador, la lectura y el envío quedan sin configuración (`sin_config`): falla hacia
+ *   apagado. Los eventos de otra cuenta se ignoran.
  * - `OFICINA_ETIQUETAS_DINERO` y `OFICINA_ETIQUETAS_INTERNO` (opcionales): etiquetas de Chatwoot,
  *   separadas por comas, que clasifican un evento como dinero (3) o interno (1). Sin ellas valen
  *   las de `ETIQUETAS_DINERO_POR_DEFECTO` y `ETIQUETAS_INTERNO_POR_DEFECTO`.
  * - `OFICINA_VACIADO_ACTIVO`: enciende el vaciado diario de `task_events.resumen` (privacidad,
  *   decisión A de Sam del 15/11/2026). Interruptor PROPIO: corre aunque la oficina esté pausada.
+ * - `OFICINA_VISTA_ACTIVA`: enciende la mini-vista de solo lectura (§3.6, Paso 4), `/studio/admin/oficina-virtual/vista`.
+ *   Apagado = la página no existe (404), también para el superadministrador. No enciende ni apaga nada más.
  */
 import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 
@@ -36,8 +43,8 @@ export interface ConfigWebhookOficina {
   secreto: string | null;
   /** Id de la bandeja de prueba; null si falta o es inválido (se rechaza todo). */
   bandejaPrueba: number | null;
-  /** Cuenta de Chatwoot (`CHATWOOT_ACCOUNT_ID`). Obligatoria: sin ella el webhook rechaza todo (Paso 3a); los
-   *  eventos de otra cuenta se ignoran. */
+  /** Cuenta de Chatwoot del cable (`OFICINA_CHATWOOT_ACCOUNT_ID`, nunca la del ERP). Obligatoria: sin ella el
+   *  webhook rechaza todo y nada más corre; los eventos de otra cuenta se ignoran. */
   cuenta: number | null;
   reglas: ReglasPrioridad;
 }
@@ -59,7 +66,8 @@ function bandejasDelERP(env: Entorno): Set<string> {
 
 export function configWebhookOficina(env: Entorno = process.env): ConfigWebhookOficina {
   const bandeja = (env.OFICINA_CHATWOOT_INBOX_PRUEBA ?? "").trim();
-  const cuenta = (env.CHATWOOT_ACCOUNT_ID ?? "").trim();
+  // SOLO la variable propia del cable: sin caída a la cuenta del ERP.
+  const cuenta = (env.OFICINA_CHATWOOT_ACCOUNT_ID ?? "").trim();
   return {
     activo: interruptorEncendido(env.OFICINA_WEBHOOK_ACTIVO),
     secreto: firstConfiguredSecret(env.OFICINA_WEBHOOK_SECRET),
@@ -71,4 +79,9 @@ export function configWebhookOficina(env: Entorno = process.env): ConfigWebhookO
 
 export function vaciadoActivo(env: Entorno = process.env): boolean {
   return interruptorEncendido(env.OFICINA_VACIADO_ACTIVO);
+}
+
+/** La mini-vista (§3.6) nace apagada: solo `1` o `true` la enciende. */
+export function vistaActiva(env: Entorno = process.env): boolean {
+  return interruptorEncendido(env.OFICINA_VISTA_ACTIVA);
 }

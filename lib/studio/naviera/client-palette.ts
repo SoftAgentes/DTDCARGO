@@ -2,9 +2,9 @@
  * SDD-0152 · Paleta categórica por cliente (identidad, NO estado).
  *
  * Por qué una paleta nueva y no los tonos que ya existen:
- *   · Los tokens semánticos ya tienen dueño. `--wine` significa "sobre
+ *   · Los tokens semánticos ya tienen dueño. `--danger` significa "sobre
  *     capacidad" en `utilizationTone()` (UtilizationBar.tsx) — y esa barra vive
- *     en LA MISMA tarjeta que el visor. Pintar "Importadora Vega" de wine ahí
+ *     en LA MISMA tarjeta que el visor. Pintar "Importadora Vega" de rojo ahí
  *     sería decir dos cosas con el mismo color.
  *   · La única paleta categórica del repo (ReportesClient.tsx, `palette`) tiene
  *     4 colores y dos son grises de texto (`--ink`, `--ink-soft`): no alcanza

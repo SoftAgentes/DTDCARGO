@@ -20,6 +20,9 @@ import { renombrarMarkboxAction } from "../actions";
  * abre un panel. **Si no hay historial, no ocupa nada** — que era justo la queja
  * del founder.
  */
+/** SDD-0664 · Cuántos Shipping Marks anteriores se leen sin abrir el panel. */
+const CODIGOS_A_LA_VISTA = 2;
+
 export function ShippingMarkChip({
   clientId,
   markbox,
@@ -92,6 +95,14 @@ export function ShippingMarkChip({
         {markbox}
         {historial.length > 0 && (
           <span
+            data-testid="codigo-anterior"
+            style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}
+          >
+            antes {historial.slice(0, CODIGOS_A_LA_VISTA).map((h) => h.markbox).join(" · ")}
+          </span>
+        )}
+        {historial.length > CODIGOS_A_LA_VISTA && (
+          <span
             title={`${historial.length} Shipping Mark anterior${historial.length === 1 ? "" : "es"}`}
             style={{
               font: "700 11px/1 var(--f-sans)",
@@ -102,7 +113,7 @@ export function ShippingMarkChip({
               padding: "3px 7px",
             }}
           >
-            +{historial.length}
+            +{historial.length - CODIGOS_A_LA_VISTA}
           </span>
         )}
         {hayAlgoQueMostrar && (

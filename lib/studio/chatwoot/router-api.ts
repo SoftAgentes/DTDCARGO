@@ -17,6 +17,8 @@ import { interpretarContacto, interpretarConversacion, type ContactoEntrada, typ
  *   POST /conversations/{id}/labels       → reemplaza TODAS las etiquetas
  *   POST /conversations/{id}/assignments  → { team_id }: asigna el equipo
  *   POST /conversations/{id}/messages     → la respuesta del bot, saliente y pública
+ *   GET  /contacts/{id}                   → los atributos del contacto (SDD-0649)
+ *   PATCH /contacts/{id}                  → { custom_attributes }: se mezclan (SDD-0649)
  *
  * En el envío, `red` (caída o tiempo agotado), un 5xx y un 408 son INCIERTOS:
  * un proxy puede responder 502/504 después de que Chatwoot aceptó el mensaje
@@ -45,7 +47,7 @@ async function llamar(
 async function llamarCuenta(
   cfg: CuentaChatwoot,
   ruta: string,
-  init: { method: "GET" | "POST"; body?: unknown } = { method: "GET" },
+  init: { method: "GET" | "POST" | "PATCH"; body?: unknown } = { method: "GET" },
 ): Promise<ChatwootResult<unknown>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -88,7 +90,8 @@ export async function obtenerConversacion(
 
 /** Para el reproceso de la entrada de leads (SDD-0587, 6.4): la conversación y su contacto. */
 export async function obtenerConversacionYContacto(
-  cfg: ChatwootRouterConfig,
+  // SDD-0650 F2: solo usa la cuenta; también la llama «Unir este chat a la ficha».
+  cfg: CuentaChatwoot,
   conversacionId: number,
 ): Promise<ChatwootResult<{ conversacion: ConversacionChatwoot; contacto: ContactoEntrada }>> {
   const r = await llamar(cfg, String(conversacionId));
@@ -209,6 +212,39 @@ export async function buscarContactoPortal(
   return { ok: true, data: null };
 }
 
+/**
+ * SDD-0649: los atributos personalizados del contacto (`custom_attributes`).
+ * `GET /contacts/{id}` responde `{ payload: contacto }`. Devuelve solo el objeto
+ * de atributos: ni nombre ni teléfono salen de aquí.
+ */
+export async function leerAtributosContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+): Promise<ChatwootResult<Record<string, unknown>>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return { ok: false, error: "respuesta_invalida" };
+  const atributos = (payload as { custom_attributes?: unknown }).custom_attributes;
+  if (atributos === null || atributos === undefined) return { ok: true, data: {} };
+  return typeof atributos === "object" && !Array.isArray(atributos)
+    ? { ok: true, data: atributos as Record<string, unknown> }
+    : { ok: false, error: "respuesta_invalida" };
+}
+
+/**
+ * SDD-0649: `PATCH /contacts/{id}` con `custom_attributes`. Chatwoot 4.19.1 los
+ * MEZCLA con los que ya tiene (`contacts_controller.rb:185-200`): no borra otros.
+ */
+export async function escribirAtributosContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+  atributos: Record<string, string | null>,
+): Promise<ChatwootResult<null>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}`, { method: "PATCH", body: { custom_attributes: atributos } });
+  return r.ok ? { ok: true, data: null } : r;
+}
+
 export async function listarConversacionesContacto(
   cfg: CuentaChatwoot,
   contactoId: number,
@@ -224,6 +260,22 @@ export async function listarConversacionesContacto(
     if (id !== null) out.push({ id, inboxId: ENTERO(fila?.inbox_id) });
   }
   return { ok: true, data: out };
+}
+
+/**
+ * SDD-0650 F2: las conversaciones de UN contacto, tal como vienen, para el panel de la
+ * ficha (`ficha-panel.ts`), con el token de la cuenta de servicio (D2). Quien llama las
+ * reduce con `resumirConversacion` y no guarda ni registra nada: traen el texto del
+ * último mensaje y el nombre del contacto.
+ */
+export async function leerConversacionesDeContacto(
+  cfg: CuentaChatwoot,
+  contactoId: number,
+): Promise<ChatwootResult<unknown[]>> {
+  const r = await llamarCuenta(cfg, `contacts/${contactoId}/conversations`);
+  if (!r.ok) return r;
+  const payload = (r.data as { payload?: unknown } | null)?.payload;
+  return Array.isArray(payload) ? { ok: true, data: payload } : { ok: false, error: "respuesta_invalida" };
 }
 
 export async function crearConversacionPortal(

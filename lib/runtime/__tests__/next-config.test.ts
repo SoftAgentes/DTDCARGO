@@ -209,7 +209,26 @@ describe("SDD-0585 · Bandeja de Chatwoot: frame-src y micrófono solo en su rut
   });
 });
 
-describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)", () => {
+describe("SDD-0655 · la Bandeja es pestaña de CRM sin mover sus cabeceras ni redirigir", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("/studio/crm (Embudos) no hereda el frame-src ni el micrófono de la Bandeja", async () => {
+    const headers = await headersFor(await loadConfig({}), "/studio/crm");
+    const csp = values(headers, "Content-Security-Policy");
+    expect(csp).toHaveLength(1);
+    expect(() => directive(csp[0], "frame-src")).toThrow();
+    expect(values(headers, "Permissions-Policy")[0]).toContain("microphone=()");
+  });
+
+  it("ningún redirect toca /studio/bandeja: los ?c=N de fichas y avisos push llegan directo", async () => {
+    const cfg = await loadConfig({});
+    const redirects = (await cfg.redirects?.()) ?? [];
+    const toca = redirects.filter((r) => /studio\/bandeja/.test(r.source) || /studio\/bandeja/.test(String(r.destination)));
+    expect(toca).toEqual([]);
+  });
+});
+
+describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat y Studio la pueden enmarcar (E2-D28, SDD-0680)", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   for (const pathname of ["/studio/ficha-chat"]) {
@@ -217,7 +236,9 @@ describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)"
       const headers = await headersFor(await loadConfig({}), pathname);
       const csp = values(headers, "Content-Security-Policy");
       expect(csp).toHaveLength(1);
-      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors https://chat.dtdcargo.com");
+      // SDD-0680: también 'self'. En /studio/bandeja la ficha queda en Studio › chat › ficha,
+      // y frame-ancestors revisa todos los ancestros.
+      expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'self' https://chat.dtdcargo.com");
       expect(values(headers, "X-Frame-Options")).toEqual([]);
       // El resto de la CSP es la estricta: no enmarca nada ni delega el micrófono.
       expect(() => directive(csp[0], "frame-src")).toThrow();
@@ -240,7 +261,7 @@ describe("SDD-0585 · 2.4 · Ficha DTD: solo el chat la puede enmarcar (E2-D28)"
 
   it("CHATWOOT_URL cambia el origen de frame-ancestors", async () => {
     const headers = await headersFor(await loadConfig({ CHATWOOT_URL: "https://chat.ejemplo.test/" }), "/studio/ficha-chat");
-    expect(directive(values(headers, "Content-Security-Policy")[0], "frame-ancestors")).toBe("frame-ancestors https://chat.ejemplo.test");
+    expect(directive(values(headers, "Content-Security-Policy")[0], "frame-ancestors")).toBe("frame-ancestors 'self' https://chat.ejemplo.test");
   });
 });
 

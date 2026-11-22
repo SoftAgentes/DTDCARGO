@@ -261,7 +261,7 @@ export default async function EstadoDeCuentaPage({
         <p
           style={{
             font: "400 12px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             margin: "12px 0 0",
             maxWidth: "70ch",
           }}

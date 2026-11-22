@@ -3483,6 +3483,195 @@
         "fecha": "2026-11-16",
         "forma": "exacta"
       }
+    },
+    "0549_oficina_revisiones_envio": {
+      "sha256": "8b0cf629455b1d1a1606bce850745118d6a542ddb5106e0a46f979f26eddd9d3",
+      "md5": "4083f60eb93fa7ad9f5c43b68cefda2d",
+      "bytes": 40270,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0550_faro_registro": {
+      "sha256": "196547d34efd2434f854faee074ed6bd9a65a2bc20a2212a884b385b01b2148c",
+      "md5": "20ab1801d8b0b68f0f397d82f3912817",
+      "bytes": 28560,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0551_pasar_embarque_a_otro_cliente": {
+      "sha256": "6bedb8869c073a194d47d093f6b8e9d114466e3be47a0ada9ad3fffa82531abd",
+      "md5": "176bfd515507ba1e51d36384578ce1f4",
+      "bytes": 26210,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0552_registro_portal_por_link": {
+      "sha256": "75e116578669d547d8d9cf3451054d9e195d144cff75808d87f63bb5cee9c521",
+      "md5": "09ca8cc1d33ef4f417c856e61be4f976",
+      "bytes": 43842,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0553_crm_tarjetas_clientes_con_carga": {
+      "sha256": "4b579d09859f6bfa1de3b1fe41835d34269631bd0139f5209c988ab2c62fc7b2",
+      "md5": "ce792ec6e9bce0aab8ffd9cab3d1522b",
+      "bytes": 7909,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0554_chatwoot_contact_links": {
+      "sha256": "c5f3f697ef3deb730dc2c939ac58d2809711e69c7ecc201ce025643b3117b382",
+      "md5": "f61a779386165d8cbddc2f0a97ca0de1",
+      "bytes": 26269,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0555_nomina_ficha_empleado_identidad_foto": {
+      "sha256": "4f786fcf6d611eb5bba4d404efbfbe335bf8a069c31943e8fe1b031c6faf2cd4",
+      "md5": "36debb54e643898cc15f77ee9ac72974",
+      "bytes": 29489,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0556_nomina_reglas_vigencia_y_aportes": {
+      "sha256": "70abeec7119e2b3507433870a133d0ec934920f82db049f48ec5273f95b31414",
+      "md5": "89d094f27f14302a9cf3e4200b4f56da",
+      "bytes": 24812,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0557_portal_vista_preferida": {
+      "sha256": "82ce84ec200719a60adfe6c627292e40a8eddbc8f3c762a633676a1b22764f96",
+      "md5": "fe1c8d05334658e1502a90676986c67d",
+      "bytes": 14921,
+      "ledger": {
+        "fecha": "2026-11-17",
+        "forma": "exacta"
+      }
+    },
+    "0558_oficina_casillas_tres_estados": {
+      "sha256": "d9b023075b57edb89b4476293e77de63a6e6ce0c956a13c53f681a32fa92497d",
+      "md5": "465efbee2f535040ec2c45479d27c24c",
+      "bytes": 26283,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0559_registro_link_correo_comprobado": {
+      "sha256": "9723e29d0f4286b8227a05351e27524aed8b05593958ae5c6d0026d65bd781d2",
+      "md5": "ced040575315354b54ad0fb8e2a295f2",
+      "bytes": 38715,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0560_oficina_acuse_en_escalados": {
+      "sha256": "f5949e34dcea1644844048910c098f3486444fe67638c2a1a7ff42161862728f",
+      "md5": "fb276a12571eaeb7ece938117909f5c8",
+      "bytes": 10398,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0562_registro_link_autoservicio": {
+      "sha256": "ce4aea9b82d449cb829385fda27d277ee8cdfbdc5b3afea703348d859f0a7c3a",
+      "md5": "637b3740d2ea71e9981da1b3d171161e",
+      "bytes": 34441,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0563_partir_embarque_y_medidas": {
+      "sha256": "a193fd5ddee9313dfbae29efbca39a2143f21789a1c139f8468f5b92032797a9",
+      "md5": "0bd55ef482794f52bb0baffdf2376352",
+      "bytes": 51433,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0564_exc0674_facturar_contenedor": {
+      "sha256": "51c99c4f8b9e6bec561337d01c379a007818c9e2e627a8a2ead3b36220c74f9a",
+      "md5": "98c061b05735b1b12bd63e2a3c1d3b2a",
+      "bytes": 36660,
+      "ledger": {
+        "fecha": "2026-11-18",
+        "forma": "exacta"
+      }
+    },
+    "0565_bandeja_concedible_por_persona": {
+      "sha256": "9e9345c08e16d9e733f480bd13651946dcbbcca610cde0a9de9aaf6e83370e67",
+      "md5": "479cefea6117e822a7bcd896902f6bdf",
+      "bytes": 5486,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0566_chatwoot_vincular_canal": {
+      "sha256": "6130aa83fe15310cbb377baa998b0badfa859e2e98a061c51bef4c51390bd468",
+      "md5": "d201a65bdc027b6a364285b7bc286097",
+      "bytes": 56403,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0567_oficina_conteo_exclusiones": {
+      "sha256": "5d4095118fdb702d89092a98d538791a9f7ae4d2a8810576d2a6cf25195b7645",
+      "md5": "92701f0d57da88cd437d8ea44b5662a0",
+      "bytes": 25780,
+      "ledger": {
+        "fecha": "2026-11-19",
+        "forma": "exacta"
+      }
+    },
+    "0569_exc0674_emitir_borradores": {
+      "sha256": "e65b7de5a4785b4d2818654de909b7386c5ff8ba35b8c9b7efa3142309aee40a",
+      "md5": "9cd8b758933dbc13f623bdc93f913cc2",
+      "bytes": 41875,
+      "ledger": {
+        "fecha": "2026-11-20",
+        "forma": "exacta"
+      }
+    },
+    "0570_ia_catalogo_y_costo": {
+      "sha256": "e0b8a81d321f9bec58f4d93a2f3bf216f46f181dee619e31f4c767f153012fb5",
+      "md5": "c3fa477c15ac2d3516b77ebfb448a73d",
+      "bytes": 40193,
+      "ledger": {
+        "fecha": "2026-11-22",
+        "forma": "exacta"
+      }
+    },
+    "0571_ia_cadenas_y_eventos": {
+      "sha256": "9d11a12d89c8bcc47d688b7a00a8bb6871ad19add47c2b66b7f7b63d1d10600b",
+      "md5": "8a627ab294f4347769025660a389670a",
+      "bytes": 21368,
+      "ledger": {
+        "fecha": "2026-11-22",
+        "forma": "exacta"
+      }
     }
   }
 }

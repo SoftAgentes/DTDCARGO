@@ -61,8 +61,18 @@ export function rolChatwootDe(rol: StudioUserRole): RolCuenta {
 
 const presentes = (...ids: (number | null)[]) => ids.filter((id): id is number => id !== null);
 
-export function destinosDe(rol: StudioUserRole, cfg: ConfigMatriz): { bandejas: number[]; equipos: number[] } {
-  if (rol === "admin") {
+/**
+ * Bandejas y equipos que le tocan a un agente. SDD-0675: a quien tiene la
+ * Bandeja por **acceso adicional** (no por su rol) le tocan Clientes y Leads
+ * (decisión de Sam del 2026-11-18: «Sí, siempre las dos»). El rol de la cuenta
+ * de Chatwoot no cambia: sigue `agent` (`rolChatwootDe`).
+ */
+export function destinosDe(
+  rol: StudioUserRole,
+  cfg: ConfigMatriz,
+  porAcceso = false,
+): { bandejas: number[]; equipos: number[] } {
+  if (rol === "admin" || (porAcceso && rol !== "commercial" && rol !== "support")) {
     return {
       bandejas: presentes(cfg.bandejaClientes, cfg.bandejaLeads),
       equipos: presentes(cfg.equipoClientes, cfg.equipoLeads),
@@ -77,6 +87,8 @@ export function destinosDe(rol: StudioUserRole, cfg: ConfigMatriz): { bandejas: 
 export interface AgenteMatriz {
   chatwootUserId: number;
   rol: StudioUserRole;
+  /** SDD-0675: la Bandeja le llega por acceso adicional, no por su rol. */
+  porAcceso?: boolean;
 }
 
 export interface CambioRol {
@@ -144,7 +156,7 @@ export function planificarMiembros(entrada: {
   enCuenta: ReadonlySet<number>;
   servicioId: number | null;
   actuales: ReadonlyMap<number, readonly number[]>;
-  destinos: (rol: StudioUserRole) => number[];
+  destinos: (rol: StudioUserRole, agente: AgenteMatriz) => number[];
 }): CambioMiembros[] {
   const cambios: CambioMiembros[] = [];
   for (const [id, actuales] of entrada.actuales) {
@@ -152,7 +164,7 @@ export function planificarMiembros(entrada: {
     for (const a of entrada.agentes) {
       if (a.chatwootUserId === entrada.servicioId) continue;
       if (!entrada.enCuenta.has(a.chatwootUserId)) continue;
-      if (entrada.destinos(a.rol).includes(id)) deseados.add(a.chatwootUserId);
+      if (entrada.destinos(a.rol, a).includes(id)) deseados.add(a.chatwootUserId);
     }
     if (entrada.servicioId !== null && actuales.includes(entrada.servicioId)) deseados.add(entrada.servicioId);
     const lista = [...deseados].sort((x, y) => x - y);

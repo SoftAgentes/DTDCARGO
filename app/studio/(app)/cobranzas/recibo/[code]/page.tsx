@@ -48,7 +48,7 @@ import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { PrintButton } from "./PrintButton";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Recibo de cobranza · DTD Studio" };
+export const metadata = { title: "Recibo de cobranza" };
 export const dynamic = "force-dynamic";
 
 const FIELD_LABEL: React.CSSProperties = {
@@ -242,7 +242,7 @@ export default async function ReceiptPrintPage({
               <div
                 style={{
                   font: "800 16px/1.2 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 3,
                 }}
               >
@@ -394,7 +394,6 @@ export default async function ReceiptPrintPage({
           #recibo-cobranza {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             --bg-base: #FBFAF7;

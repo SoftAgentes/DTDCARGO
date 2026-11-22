@@ -206,13 +206,12 @@ export function ReclamosClient({
           label="Reclamos abiertos"
           value={kpis.open_count}
           sub="en evaluación o aprobados"
-          valueColor={kpis.open_count > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.open_count > 0 ? { tono: "warning", texto: "Requiere atención" } : undefined}
         />
         <KpiCard
           label="Monto expuesto"
           value={USD(kpis.exposed_usd)}
           sub="reclamos abiertos"
-          valueColor="var(--wine-text)"
           highlightWhenPositive={false}
         />
         <KpiCard
@@ -224,7 +223,6 @@ export function ReclamosClient({
           label="Pagado"
           value={USD(kpis.paid_usd)}
           sub="indemnizaciones"
-          valueColor={kpis.paid_usd > 0 ? "var(--success)" : "var(--ink)"}
           highlightWhenPositive={false}
         />
       </div>
@@ -394,7 +392,7 @@ function ClaimsTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -626,7 +624,7 @@ function ClaimDetail({
           <div
             style={{
               font: "800 26px/1 var(--f-display)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               marginTop: 6,
             }}
           >
@@ -666,7 +664,7 @@ function ClaimDetail({
                     height: 30,
                     borderRadius: 999,
                     margin: "0 auto",
-                    background: reached ? "var(--wine)" : "var(--bg-elevated)",
+                    background: reached ? "var(--ink)" : "var(--bg-elevated)",
                     color: reached ? "var(--ink-inv)" : "var(--ink-soft)",
                     font: "700 13px/30px var(--f-display)",
                     textAlign: "center",
@@ -689,7 +687,7 @@ function ClaimDetail({
                   style={{
                     flex: "0 0 50px",
                     height: 2,
-                    background: i + 1 < step ? "var(--wine)" : "var(--border)",
+                    background: i + 1 < step ? "var(--ink)" : "var(--border)",
                   }}
                 />
               )}

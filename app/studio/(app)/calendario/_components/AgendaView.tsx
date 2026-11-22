@@ -205,13 +205,13 @@ export function AgendaView({ cursor, events, holidays, fairs }: Props) {
                     background: "var(--bg-surface)",
                     border: "1px solid var(--border)",
                     borderLeft: `3px solid ${
-                      h.country === "CN" ? "var(--wine)" : "var(--success)"
+                      h.country === "CN" ? "var(--warning)" : "var(--success)"
                     }`,
                     borderRadius: 8,
                     alignItems: "center",
                   }}
                 >
-                  <Badge tone={h.country === "CN" ? "wine" : "success"} size="sm">
+                  <Badge tone={h.country === "CN" ? "warning" : "success"} size="sm">
                     {h.country}
                   </Badge>
                   <div>

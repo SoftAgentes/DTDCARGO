@@ -130,7 +130,7 @@ export function QrQueueTable({
                       type="checkbox"
                       checked={allSelected}
                       onChange={onToggleSelectAll}
-                      style={{ accentColor: "var(--wine)" }}
+                      style={{ accentColor: "var(--accion)" }}
                     />
                   )}
                 </th>
@@ -153,7 +153,7 @@ export function QrQueueTable({
                   key={o.id}
                   style={{
                     borderTop: "1px solid var(--border)",
-                    background: checked ? "var(--wine-tint)" : "transparent",
+                    background: checked ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                   }}
                 >
                   {tab === "cola" && (
@@ -163,10 +163,10 @@ export function QrQueueTable({
                           type="checkbox"
                           checked={checked}
                           onChange={() => onToggleSelect(o.id)}
-                          style={{ accentColor: "var(--wine)" }}
+                          style={{ accentColor: "var(--accion)" }}
                         />
                       ) : (
-                        <span style={{ color: "var(--ink-mute)" }}>—</span>
+                        <span style={{ color: "var(--ink-soft)" }}>—</span>
                       )}
                     </td>
                   )}
@@ -174,7 +174,7 @@ export function QrQueueTable({
                     <code
                       style={{
                         font: "800 12.5px/1 var(--f-mono)",
-                        color: "var(--wine-text)",
+                        color: "var(--ink)",
                       }}
                     >
                       {o.order_code}
@@ -219,7 +219,7 @@ export function QrQueueTable({
                   </td>
                   <td style={tdStyle}>
                     {o.supplier_name ?? (
-                      <span style={{ color: "var(--ink-mute)" }}>—</span>
+                      <span style={{ color: "var(--ink-soft)" }}>—</span>
                     )}
                   </td>
                   <td

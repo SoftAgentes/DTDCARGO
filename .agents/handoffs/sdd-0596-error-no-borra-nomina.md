@@ -46,7 +46,7 @@ Sin publicar. Se publica cuando el Director lo indique.
 
 1. Decisión del Director General sobre publicar.
 2. «Calidad local sin secretos» en verde sobre la cabeza, ya publicada.
-3. Smoke en el Studio con sesión real: provocar un error en Nómina y comprobar que lo escrito sigue ahí.
+3. Smoke en el Studio con sesión real: provocar un error en Nómina y comprobar que lo escrito sigue ahí. **Hecho el 2026-11-04 sobre `55a65a602`, 19 PASÓ en tres paneles:** ver `smoke-foco-portal-20261104.md`.
 
 ## FUERA DE ALCANCE DETECTADO
 

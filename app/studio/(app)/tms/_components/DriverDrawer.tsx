@@ -168,7 +168,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             type="checkbox"
             checked={safety === "true"}
             onChange={(e) => setSafety(e.target.checked ? "true" : "false")}
-            style={{ accentColor: "var(--wine)", width: 16, height: 16 }}
+            style={{ accentColor: "var(--accion)", width: 16, height: 16 }}
           />
           <span
             style={{

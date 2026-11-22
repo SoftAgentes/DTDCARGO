@@ -15,10 +15,11 @@ import {
   BenesF2,
   RulesF2,
   PriceF2,
+  XrefF2,
 } from "@/components/servicios/FichaF2";
 
 const DESC =
-  "Consolidado LCL China a Venezuela: llevamos tu carga consolidada hasta el puerto con tu propio BL, para que nacionalices la mercancía a nombre de tu empresa. Pensado para importadores.";
+  "Consolidado LCL China a Venezuela: llevamos tu carga hasta el puerto con tu propio BL para que la nacionalices a nombre de tu empresa. Para importadores.";
 
 export const metadata: Metadata = {
   title: "Consolidado LCL — hasta puerto, con tu propio BL",
@@ -191,6 +192,12 @@ export default function LclPage() {
                     </>,
                   ]}
                 />
+                {/* SDD-0657 · Enlace a la calculadora que ya estima el LCL. */}
+                <XrefF2>
+                  <b>¿Quieres un estimado ya?</b> La{" "}
+                  <Link href="/tarifas">calculadora de envío</Link> saca el LCL
+                  hasta puerto por volumen (CBM), sin registro.
+                </XrefF2>
               </SecF2>
 
               <SecF2 title="Precio" price>

@@ -4,7 +4,8 @@
 # El lote lo genera `pnpm consolidados:lote` en un checkout (scripts/consolidados/)
 # y llega al servidor por scp como una carpeta con previa.sql, simulacro.sql,
 # aplicar.sql, verificar.sql, deshacer.sql y purgar.sql (sólo en prueba),
-# manifiesto.json, resumen.md y SHA256SUMS. Este script corre uno de esos scripts con psql dentro de
+# manifiesto.json y SHA256SUMS. resumen.md y el manifiesto completo se quedan en
+# la PC (<salida>-local/, empaque mínimo). Este script corre uno de esos scripts con psql dentro de
 # `<proyecto>-db-1`, como `postgres`, y deja la evidencia sin nombres de
 # clientes (sólo la salida de psql, los conteos y las huellas).
 #
@@ -32,7 +33,8 @@
 #   Previa, simulacro, aplicar y verificar van de a uno. `deshacer` y `purgar`
 #   están deshabilitados: borrar en producción lo corre Sam, no este script. Un
 #   paquete de producción que traiga deshacer.sql o purgar.sql se rechaza (el
-#   generador no los emite para producción).
+#   generador no los emite para producción), y también uno que traiga resumen.md
+#   o un manifiesto.json con `"nombreExcel"` (empaque mínimo, 2026-11-14).
 #
 # Candado: simulacro, aplicar, deshacer y purgar toman
 # LOTES_CANDADO (por defecto /run/lock/dtd-lotes.lock.d), un directorio que se
@@ -131,6 +133,9 @@ SCRIPT="${LOTE}/${PASO}.sql"
   || refuse "${PASO}.sql no empieza con \\set ON_ERROR_STOP on"
 LOTE_ID="$(sed -nE 's/^[[:space:]]*"lote":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ -n "${LOTE_ID}" ]] || refuse "manifiesto.json no trae el id del lote"
+# La forma del id, antes de usarlo en un grep -E o en una regex (SDD-0690, revisión de la #733): la carga
+# (`carga-consolidado:<N>:<hash>`) o sus pre-órdenes (`…:facturas`). Nada más.
+[[ "${LOTE_ID}" =~ ^carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)?$ ]] || refuse "el id del lote no tiene la forma esperada"
 grep -qF -- "${LOTE_ID}" "${SCRIPT}" || refuse "${PASO}.sql no es del lote ${LOTE_ID}"
 ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ "${ENTORNO}" == "${ENTORNO_ESPERADO}" ]] || refuse "el lote se generó para «${ENTORNO}», no para ${ENTORNO_ESPERADO} (${PROJECT})"
@@ -145,6 +150,13 @@ if [[ ${ES_PROD} -eq 1 ]]; then
     [[ -e "${LOTE}/${f}" || -L "${LOTE}/${f}" ]] \
       && refuse "el paquete de producción trae ${f}: el generador no lo emite para producción; regenera el lote en una carpeta nueva"
   done
+  # Empaque mínimo (SDD-0543, 2026-11-14): al servidor sube sólo lo que este
+  # guion necesita. resumen.md y el manifiesto completo (con los nombres de las
+  # marcas del Excel) se quedan en la PC, en <salida>-local/.
+  [[ -e "${LOTE}/resumen.md" || -L "${LOTE}/resumen.md" ]] \
+    && refuse "el paquete de producción trae resumen.md: se queda en la PC (<salida>-local/); regenera el lote con el generador de main"
+  grep -q '"nombreExcel"' -- "${LOTE}/manifiesto.json" \
+    && refuse "el manifiesto.json del paquete de producción trae nombreExcel: regenera el lote con el generador de main (el manifiesto completo se queda en la PC)"
   # Enlace simbólico: la guarda de carpeta de abajo resuelve el DIRECTORIO de la
   # ruta, no el último componente, así que un enlace fuera del lote que apunte al
   # manifiesto (que cita el id y lleva nombres) la pasaría; y el destino de un
@@ -172,10 +184,13 @@ if [[ ${ES_PROD} -eq 1 ]]; then
   # Se reconoce por su título («Lote <id> · contenedor DTD #N», en cualquier
   # lugar de la línea: con BOM, sangría, cita o renderizado sin «#») o por las
   # cabeceras fijas de su tabla de clientes. Bytes, no caracteres (LC_ALL=C).
-  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+ · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
+  if LC_ALL=C grep -qE 'Lote carga-consolidado:[0-9]+:[0-9a-f]+(:facturas)? · contenedor DTD #|Nombre \(Excel\)|Candidatos a resolver' -- "${AUT_COPIA}"; then
     refuse "la autorización parece una copia de resumen.md (trae su título «Lote … · contenedor DTD #» o las cabeceras de su tabla): tiene que ser el OK literal de Sam"
   fi
-  grep -qF -- "${LOTE_ID}" "${AUT_COPIA}" \
+  # El id como palabra entera: «carga-consolidado:64:6303f821:facturas» (pre-órdenes, SDD-0690) cita el id
+  # de la carga como prefijo, y ese OK no sirve para el paquete de la carga. El id sólo trae
+  # [a-z0-9:-], que en ERE no son especiales. Un «:» suelto después del id («<id>: autorizado») sí vale.
+  LC_ALL=C grep -qE -- "${LOTE_ID}(\$|[^:[:alnum:]_-]|:(\$|[^[:alnum:]]))" "${AUT_COPIA}" \
     || refuse "la autorización no cita el lote ${LOTE_ID}: el OK de Sam tiene que nombrar el id completo de cada lote"
 fi
 case "${PASO}" in

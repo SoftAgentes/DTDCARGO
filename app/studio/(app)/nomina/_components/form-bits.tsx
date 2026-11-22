@@ -5,20 +5,25 @@
 
 import { cloneElement, isValidElement, useId, type ReactNode } from "react";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 type ControlProps = { id?: string; "aria-invalid"?: boolean; "aria-describedby"?: string };
 
-const CONTROLES: unknown[] = ["input", "select", "textarea"];
+// SDD-0660: <DateField> acepta id, aria-invalid y aria-describedby como un control nativo.
+const CONTROLES: unknown[] = ["input", "select", "textarea", DateField];
 
 export function Field({
   label,
   error,
   required,
+  ayuda,
   children,
 }: {
   label: string;
   error?: string;
   required?: boolean;
+  /** Texto visible junto al campo (p. ej. «Sin configurar · propuesta: 9»); queda enlazado con `aria-describedby`. */
+  ayuda?: ReactNode;
   children: ReactNode;
 }) {
   const baseId = useId();
@@ -28,21 +33,29 @@ export function Field({
   const control = isValidElement<ControlProps>(children) && CONTROLES.includes(children.type) ? children : null;
   const controlId = control?.props.id ?? baseId;
   const errorId = `${baseId}-error`;
+  const ayudaId = `${baseId}-ayuda`;
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       <label className="studio-label" htmlFor={control ? controlId : undefined}>
         {label}
-        {required && <span style={{ color: "var(--wine-text)" }}> *</span>}
+        {required && <span style={{ color: "var(--ink-soft)" }}> *</span>}
       </label>
       {control
         ? cloneElement(control, {
             id: controlId,
-            ...(error && {
-              "aria-invalid": true,
-              "aria-describedby": [control.props["aria-describedby"], errorId].filter(Boolean).join(" "),
+            ...(error && { "aria-invalid": true }),
+            ...((error || ayuda) && {
+              "aria-describedby": [control.props["aria-describedby"], ayuda ? ayudaId : null, error ? errorId : null]
+                .filter(Boolean)
+                .join(" "),
             }),
           })
         : children}
+      {ayuda && (
+        <p id={ayudaId} style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", margin: "var(--s-1) 0 0" }}>
+          {ayuda}
+        </p>
+      )}
       {error && (
         <p id={errorId} style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--danger)", margin: "var(--s-1) 0 0" }}>
           {error}

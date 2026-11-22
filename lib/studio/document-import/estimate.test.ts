@@ -15,8 +15,8 @@
  * sale, no que se haya llamado a una función.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyDocumentDraft, type DocumentDraft } from "@/lib/shared/document-import";
-import type { CalcParams, Ciudad } from "@/lib/calculadora";
+import { confirmationIssues, emptyDocumentDraft, toPackingPayload, type DocumentDraft } from "@/lib/shared/document-import";
+import { calcularEnvioLCL, type CalcParams, type Ciudad } from "@/lib/calculadora";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PortalClientPrincipal } from "@/lib/portal/portal-queries";
 
@@ -58,7 +58,7 @@ let seq = 0;
 const uuid = (n: number) => `${String(n).padStart(4, "0")}abcd-0000-4000-8000-000000000000`;
 /** Compra con cajas declaradas: 10 piezas en `cartons` cajas iguales. */
 function packed(p: { cbm: number | null; weight: number | null; cartons: number | null; price?: number | null; declaredCbm?: number | null }): DocumentDraft {
-  const d = emptyDocumentDraft();
+  const d = emptyDocumentDraft(); d.transportDeclarations = { battery: false, specialCargo: false };
   const priced = p.price === undefined ? 2 : p.price;
   d.products = [{ id: "p1", name: "Taza", nameZh: "", code: "T-1", brand: "", material: "", quantity: 10, unitPrice: priced, currency: priced === null ? null : "USD", unit: "pcs" }];
   d.groups = [{ id: "g1", label: "CTN1", cartons: p.cartons, grossWeightKg: p.weight, cbm: p.cbm, items: [{ productId: "p1", quantity: 10 }] }];
@@ -67,8 +67,8 @@ function packed(p: { cbm: number | null; weight: number | null; cartons: number 
 }
 /** Compra con totales globales del documento y SIN desglose de cajas. */
 function declaredOnly(p: { cbm: number | null; weight: number | null; cartons: number | null; amount?: number }): DocumentDraft {
-  const d = emptyDocumentDraft();
-  d.products = [{ id: "p1", name: "Taza", nameZh: "", code: "T-1", brand: "", material: "", quantity: 10, unitPrice: 2, currency: "USD", unit: "pcs" }];
+  const d = emptyDocumentDraft(); d.transportDeclarations = { battery: false, specialCargo: false };
+  d.products = [{ id: "p1", name: "Taza", nameZh: "", code: "T-1", brand: "", material: "", quantity: 10, unitPrice: p.amount === undefined ? 2 : p.amount / 10, currency: "USD", unit: "pcs" }];
   d.declaredTotals = { cartons: p.cartons, grossWeightKg: p.weight, cbm: p.cbm, amount: p.amount ?? null };
   return d;
 }
@@ -137,7 +137,8 @@ describe("Estimado de transporte: varias compras, un solo envío", () => {
 
   it("aplica batería sobre el mínimo del envío compartido usando los params del ERP", () => {
     const rows = [workspace(packed({ cbm: 0.5, weight: 100, cartons: 2 }))];
-    const estimado = estimateDocuments(rows, { cityId: "maracaibo", battery: true }, rates());
+    rows[0].draft = { ...rows[0].draft as DocumentDraft, transportDeclarations: { battery: true, specialCargo: false } };
+    const estimado = estimateDocuments(rows, { cityId: "maracaibo", battery: false }, rates());
 
     // Flete previo: $50 de volumen + $200 del piso del tramo = $250.
     // El mínimo comercial lo completa a $380; batería ×1,5 cobra $190 sobre ese piso.
@@ -150,7 +151,8 @@ describe("Estimado de transporte: varias compras, un solo envío", () => {
 
   it("aplica el embalaje especial y el multiplicador de baterías sobre el envío, no sobre cada compra", () => {
     const rows = [0, 1, 2].map(() => workspace(packed({ cbm: 2, weight: 300, cartons: 2 })));
-    const body = { cityId: "maracaibo", packaging: "especial", battery: true };
+    for (const row of rows) (row.draft as DocumentDraft).transportDeclarations = { battery: true, specialCargo: false };
+    const body = { cityId: "maracaibo", packaging: "especial", battery: false };
     const juntas = estimateDocuments(rows, body, rates());
     const sueltas = rows.map((r) => estimateDocuments([r], body, rates()).result.total).reduce((a, b) => a + b, 0);
 
@@ -255,11 +257,13 @@ describe("Estimado de transporte: varias compras, un solo envío", () => {
 
   it("cuando el motor deriva al asesor no devuelve un precio: devuelve la alerta", () => {
     const rows = [workspace(packed({ cbm: 2, weight: 300, cartons: 2 }))];
-    const especial = estimateDocuments(rows, { cityId: "maracaibo", specialCargo: true }, rates());
+    (rows[0].draft as DocumentDraft).transportDeclarations = { battery: false, specialCargo: true };
+    const especial = estimateDocuments(rows, { cityId: "maracaibo", specialCargo: false }, rates());
     expect(especial.result.alerta?.tipo).toBe("carga_especial");
     expect(especial.result.total).toBe(0);
 
     // Destino sin tarifa confirmada: nunca se inventa el tramo nacional.
+    (rows[0].draft as DocumentDraft).transportDeclarations = { battery: false, specialCargo: false };
     const sinTarifa = estimateDocuments(rows, { cityId: "maracaibo" }, rates({}, [{ ...MARACAIBO, ventaCbm: null, minCharge: null }]));
     expect(sinTarifa.result.alerta?.tipo).toBe("ciudad_sin_tarifa");
     expect(sinTarifa.result.total).toBe(0);
@@ -278,6 +282,7 @@ describe("Estimado de transporte: varias compras, un solo envío", () => {
     expect(laxo.result.total).toBe(400);
 
     // Y el valor exacto sí los enciende: ($200 + $200 + $75) × 1,5.
+    (rows[0].draft as DocumentDraft).transportDeclarations = { battery: true, specialCargo: false };
     const exacto = estimateDocuments(rows, { cityId: "maracaibo", packaging: "especial", battery: true }, rates());
     expect(exacto.result.recargoEmbalaje).toBe(75);
     expect(exacto.result.total).toBe(712.5);
@@ -310,18 +315,150 @@ describe("Tarifa vigente", () => {
   });
 });
 
+describe("S2: revisiones y declaraciones autoritativas", () => {
+  const requestBody = (rows: WorkspaceRow[]) => ({ workspaceIds: rows.map(w => w.id), expectedRevisions: rows.map(w => ({ workspaceId: w.id, revision: w.revision })), cityId: "maracaibo" });
+  it("estima globales revisados con grupos parcialmente pesados sin repartir ni confirmar cajas", () => {
+    const d = packed({ cbm: null, weight: null, cartons: 2 });
+    d.declaredTotals = { cartons: 2, grossWeightKg: 300, cbm: 2, amount: null };
+    const before = JSON.stringify(d);
+    const result = estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates());
+    expect(result.totals).toEqual({ cartons: 2, grossWeightKg: 300, cbm: 2 });
+    expect(result.result.total).toBe(400); expect(JSON.stringify(d)).toBe(before);
+    d.groups.push({ id: "g2", label: "B", cartons: null, grossWeightKg: 301, cbm: null, items: [] });
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it("no transforma una declaración ausente en no, ni oculta un sí de otra compra", () => {
+    const a = packed({ cbm: 1, weight: 200, cartons: 2 }), b = packed({ cbm: 1, weight: 200, cartons: 2 });
+    a.transportDeclarations = { battery: true, specialCargo: false }; delete b.transportDeclarations;
+    const error = expectFail(() => estimateDocuments([workspace(a), workspace(b)], { cityId: "maracaibo", battery: false, specialCargo: false }, rates()), 422, "transport_review_required");
+    expect(error.message).toContain("incluye baterías");
+    b.transportDeclarations = { battery: false, specialCargo: false };
+    const result = estimateDocuments([workspace(a), workspace(b)], { cityId: "maracaibo", battery: false }, rates());
+    expect(result.input.bateria).toBe(true); expect(result.result.recargoBateria).toBeGreaterThan(0);
+  });
+  it("mantiene los desacuerdos monetarios y logísticos bloqueantes aunque no falte peso", () => {
+    const d = packed({ cbm: 2, weight: 300, cartons: 2 }); d.currency = "USD"; d.declaredTotals.amount = 99;
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it("cruza la misma entrada explícita al motor vigente: mínimo, densidad, batería y embalaje del conjunto", () => {
+    const a = packed({ cbm: 0.5, weight: 750, cartons: 2 }); a.transportDeclarations = { battery: true, specialCargo: false };
+    const result = estimateDocuments([workspace(a), workspace(a)], { cityId: "maracaibo", packaging: "especial" }, rates());
+    expect(result.input).toEqual({ modo: "ddp", cbmTotal: 1, pesoKg: 1500, ciudadId: "maracaibo", embalaje: "especial", bateria: true, cargaEspecial: false, tarifaCBMOverride: 100, minChargeOverride: 380 });
+    expect(result.result).toEqual(calcularEnvioLCL({ modo: "ddp", cbmTotal: 1, pesoKg: 1500, ciudadId: "maracaibo", embalaje: "especial", bateria: true, cargaEspecial: false, tarifaCBMOverride: 100, minChargeOverride: 380 }, PARAMS, [MARACAIBO]));
+  });
+  it("rechaza revisión ausente o vieja antes de obtener tarifa", async () => {
+    const rows = [workspace(packed({ cbm: 2, weight: 300, cartons: 2 }))]; serve(rows);
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo" }), 400, "invalid_revision");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { ...requestBody(rows), expectedRevisions: [{ workspaceId: rows[0].id, revision: 2 }] }), 409, "revision_conflict");
+    expect(mocks.cbmRate).not.toHaveBeenCalled();
+  });
+  it.each(["revision", "authorization"])("revalida %s después de esperar la tarifa y nunca devuelve un precio obsoleto", async mode => {
+    const rows = [workspace(packed({ cbm: 2, weight: 300, cartons: 2 }))]; serve(rows);
+    mocks.cbmRate.mockImplementationOnce(async () => {
+      if (mode === "revision") mocks.getWorkspace.mockResolvedValue({ ...rows[0], revision: 4 });
+      else mocks.authorizeWorkspace.mockRejectedValue(new ImportHttpError(404, "not_found", "No disponible."));
+      return { per_cbm: 100, min_charge: 380, valid_until: null };
+    });
+    await expect(estimateForRequest(admin, session, new Headers(), requestBody(rows))).rejects.toMatchObject({ status: mode === "revision" ? 409 : 404 });
+  });
+  it("si cambia mientras se guarda, el snapshot no se anuncia como vigente", async () => {
+    const rows = [workspace(packed({ cbm: 2, weight: 300, cartons: 2 }))]; serve(rows);
+    const single = vi.fn(async () => { mocks.getWorkspace.mockResolvedValue({ ...rows[0], revision: 4 }); return { data: { id: "snapshot-synthetic" }, error: null }; });
+    const db = { from: () => ({ insert: () => ({ select: () => ({ single }) }) }) } as unknown as SupabaseClient;
+    await expect(estimateForRequest(db, session, new Headers(), { ...requestBody(rows), save: true })).rejects.toMatchObject({ status: 409, code: "revision_conflict" });
+    expect(single).toHaveBeenCalledOnce();
+  });
+});
+
+describe("S2: cobertura logística independiente por campo", () => {
+  function byField(globalField: "grossWeightKg" | "cbm") {
+    const d = packed({ cbm: null, weight: null, cartons: 1 });
+    d.supplier.email = "supplier@synthetic.example";
+    d.groups = [
+      { id: "g1", label: "A", cartons: 1, grossWeightKg: globalField === "cbm" ? 60 : null, cbm: globalField === "grossWeightKg" ? 0.3 : null, items: [{ productId: "p1", quantity: 5 }] },
+      { id: "g2", label: "B", cartons: 1, grossWeightKg: globalField === "cbm" ? 80 : null, cbm: globalField === "grossWeightKg" ? 0.5 : null, items: [{ productId: "p1", quantity: 5 }] },
+    ];
+    d.declaredTotals = { cartons: 2, grossWeightKg: globalField === "grossWeightKg" ? 140 : null, cbm: globalField === "cbm" ? 0.8 : null, amount: null };
+    return d;
+  }
+  function expectExistingEngine(drafts: DocumentDraft[], cbm: number, pesoKg: number, bateria = false, cargaEspecial = false) {
+    const rows = drafts.map(d => workspace(d));
+    const snapshot = rates();
+    const actual = estimateDocuments(rows, { cityId: "maracaibo" }, snapshot);
+    const input = { modo: "ddp" as const, cbmTotal: cbm, pesoKg, ciudadId: "maracaibo", embalaje: "estandar" as const, bateria, cargaEspecial, tarifaCBMOverride: snapshot.rate.per_cbm, minChargeOverride: snapshot.rate.min_charge ?? undefined };
+    expect(actual.input).toEqual(input);
+    expect(actual.totals).toMatchObject({ cbm, grossWeightKg: pesoKg });
+    expect(actual.result).toEqual(calcularEnvioLCL(input, PARAMS, [MARACAIBO]));
+    expect(actual.rates).toEqual({ rate: snapshot.rate, params: PARAMS, city: MARACAIBO });
+    return actual;
+  }
+  it.each(["cbm", "grossWeightKg"] as const)("usa %s global y el otro campo completo de grupos una vez, conservando el despacho pendiente", field => {
+    const d = byField(field), before = JSON.stringify(d);
+    expectExistingEngine([d], 0.8, 140);
+    expect(JSON.stringify(d)).toBe(before);
+    expect(d.declaredTotals[field === "cbm" ? "grossWeightKg" : "cbm"]).toBeNull();
+    expect(confirmationIssues(d).some(i => i.code === `${field}_missing` && i.blocking)).toBe(true);
+    expect(() => toPackingPayload(d)).toThrow();
+  });
+  it.each(["empty", "partial"])("conserva ambos globales con grupos %s sin fabricar reparto", mode => {
+    const d = byField("cbm"); d.declaredTotals.grossWeightKg = 140;
+    if (mode === "empty") d.groups = [];
+    else d.groups.forEach(g => { g.grossWeightKg = null; g.cbm = null; });
+    const before = JSON.stringify(d); expectExistingEngine([d], 0.8, 140);
+    expect(JSON.stringify(d)).toBe(before); expect(() => toPackingPayload(d)).toThrow();
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("un %s realmente faltante o cero sigue sin cotizar", field => {
+    for (const value of [null, 0]) {
+      const d = byField(field); d.declaredTotals[field] = value;
+      expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "missing_logistics");
+    }
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("un subtotal %s conocido que supera el global nunca se oculta por otro grupo incompleto", field => {
+    const d = byField(field); d.groups[0][field] = field === "cbm" ? 0.9 : 141;
+    expect(confirmationIssues(d).some(i => i.code === "declared_total_mismatch")).toBe(true);
+    expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "review_required");
+  });
+  it.each(["cbm", "grossWeightKg"] as const)("la suma %s completa distinta del global conserva el bloqueo numérico", field => {
+    const d = byField(field);
+    d.groups[0][field] = field === "cbm" ? 0.2 : 50;
+    d.groups[1][field] = field === "cbm" ? 0.4 : 70;
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it("un conflicto explícito de fuente sigue bloqueando aunque ambos totales del motor estén disponibles", () => {
+    const d = byField("cbm");
+    d.issues = [{ id: "source-conflict", code: "source_conflict", path: "declaredTotals.cbm", message: "Valores distintos por revisar.", blocking: true, severity: "error" }];
+    expectFail(() => combinedLogistics([workspace(d)]), 422, "review_required");
+  });
+  it.each(["battery", "specialCargo"] as const)("no oculta %s=true con otra compra pendiente y recupera sólo tras declaración humana", key => {
+    const a = byField("cbm"), b = byField("grossWeightKg");
+    a.transportDeclarations![key] = true; b.transportDeclarations![key] = null;
+    const error = expectFail(() => estimateDocuments([workspace(a), workspace(b)], { cityId: "maracaibo", battery: false, specialCargo: false }, rates()), 422, "transport_review_required");
+    expect(error.message).toContain(key === "battery" ? "incluye baterías" : "incluye carga especial");
+    b.transportDeclarations![key] = false;
+    const result = expectExistingEngine([a, b], 1.6, 280, key === "battery", key === "specialCargo");
+    if (key === "specialCargo") expect(result.result.alerta?.tipo).toBe("carga_especial");
+  });
+  it("la lectura IA pendiente permanece bloqueante; revisar no fabrica la distribución", () => {
+    const d = byField("cbm");
+    d.issues = [{ id: "ai_review_required:document", code: "ai_review_required", path: "document", message: "Revisa la lectura.", blocking: true, severity: "error" }];
+    expectFail(() => estimateDocuments([workspace(d)], { cityId: "maracaibo" }, rates()), 422, "review_required");
+    d.issues[0].resolved = true; expectExistingEngine([d], 0.8, 140);
+    expect(() => toPackingPayload(d)).toThrow();
+  });
+});
+
 describe("Quién puede pedir un estimado combinado", () => {
   it("sin el portal sólo se cotiza el documento del cotizador: combinar o guardar se niega antes de leer nada", async () => {
     vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
     const rows = [workspace(packed({ cbm: 1, weight: 200, cartons: 2 })), workspace(packed({ cbm: 1, weight: 200, cartons: 2 }))];
     serve(rows);
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" }), 503, "portal_not_enabled");
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo", save: true }), 503, "portal_not_enabled");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo" }), 503, "portal_not_enabled");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], expectedRevisions: [{ workspaceId: rows[0].id, revision: rows[0].revision }], cityId: "maracaibo", save: true }), 503, "portal_not_enabled");
     expect(mocks.requirePortal).not.toHaveBeenCalled();
     expect(mocks.getWorkspace).not.toHaveBeenCalled();
 
     mocks.authorizeWorkspace.mockResolvedValue({ kind: "anonymous", id: rows[0].id });
-    expect(await estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo" })).toMatchObject({ kind: "transport_estimate" });
+    expect(await estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], expectedRevisions: [{ workspaceId: rows[0].id, revision: rows[0].revision }], cityId: "maracaibo" })).toMatchObject({ kind: "transport_estimate" });
   });
 
 
@@ -329,7 +466,7 @@ describe("Quién puede pedir un estimado combinado", () => {
     const rows = [workspace(packed({ cbm: 1, weight: 200, cartons: 2 })), workspace(packed({ cbm: 1, weight: 200, cartons: 2 }))];
     serve(rows);
     mocks.requirePortal.mockRejectedValue(new ImportHttpError(401, "login_required", "Inicia sesión."));
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" }), 401, "login_required");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo" }), 401, "login_required");
     expect(mocks.getWorkspace).not.toHaveBeenCalled();
   });
 
@@ -337,14 +474,14 @@ describe("Quién puede pedir un estimado combinado", () => {
     const rows = [workspace(packed({ cbm: 1, weight: 200, cartons: 2 })), workspace(packed({ cbm: 1, weight: 200, cartons: 2 }))];
     serve(rows);
     mocks.authorizeWorkspace.mockResolvedValue({ kind: "supplier", id: "supplier:abc" });
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo" }), 403, "not_allowed");
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" }), 403, "not_allowed");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], expectedRevisions: [{ workspaceId: rows[0].id, revision: rows[0].revision }], cityId: "maracaibo" }), 403, "not_allowed");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo" }), 403, "not_allowed");
 
     // El enlace anónimo cotiza SU compra, pero no puede combinarla con otra.
     mocks.authorizeWorkspace.mockResolvedValue({ kind: "anonymous", id: rows[0].id });
-    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" }), 403, "not_allowed");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo" }), 403, "not_allowed");
     mocks.authorizeWorkspace.mockResolvedValue({ kind: "client", id: PRINCIPAL.userId, principal: PRINCIPAL });
-    expect(await estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" })).toMatchObject({ kind: "transport_estimate" });
+    expect(await estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo" })).toMatchObject({ kind: "transport_estimate" });
   });
 
   it("no deja contar dos veces la misma compra ni pedir más de 50 a la base", async () => {
@@ -367,7 +504,7 @@ describe("Quién puede pedir un estimado combinado", () => {
     const guardado: Record<string, unknown>[] = [];
     const insert = vi.fn((payload: Record<string, unknown>) => { guardado.push(payload); return { select: () => ({ single }) }; });
     const db = { from: vi.fn(() => ({ insert })) } as unknown as SupabaseClient;
-    const body = { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo", save: true, tenant_id: "tenant-ajeno", client_id: "cliente-ajeno", created_by: "usuario-ajeno" };
+    const body = { workspaceIds: rows.map((r) => r.id), expectedRevisions: rows.map(r => ({ workspaceId: r.id, revision: r.revision })), cityId: "maracaibo", save: true, tenant_id: "tenant-ajeno", client_id: "cliente-ajeno", created_by: "usuario-ajeno" };
 
     expect(await estimateForRequest(db, session, new Headers(), body)).toMatchObject({ savedId: "snap-1" });
     // El dueño del estimado sale del principal vivo, nunca del cuerpo del request.

@@ -149,15 +149,11 @@ export function OrdenesVentaClient({
         <KpiCard
           value={enCurso}
           label="En curso"
-          valueColor={enCurso > 0 ? "var(--warning)" : "var(--ink)"}
           sub="confirmada · parcial"
         />
         <KpiCard
           value={stats.byStatus.facturada}
           label="Facturadas"
-          valueColor={
-            stats.byStatus.facturada > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="venta completa"
         />
         <KpiCard
@@ -254,7 +250,7 @@ function OrdersTable({
             <code
               style={{
                 font: "700 12px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
@@ -301,7 +297,7 @@ function OrdersTable({
                 </Badge>
               )}
               {cajas > 0 && (
-                <Badge tone="wine" size="sm">
+                <Badge tone="neutral" size="sm">
                   {cajas} {cajas === 1 ? "caja" : "cajas"}
                 </Badge>
               )}

@@ -8,9 +8,10 @@
  * - Incidencias (danger si > 0)
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import type { WarehouseKpis as KpisType } from "@/lib/studio/warehouse-cn-queries";
-import { t, formatNumber, type Locale } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 
 export function WarehouseKpis({
   kpis,
@@ -21,10 +22,7 @@ export function WarehouseKpis({
 }) {
   const cbmDisplay =
     kpis.cbmInWarehouse > 0
-      ? formatNumber(kpis.cbmInWarehouse, locale, {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 3,
-        })
+      ? formatCbm(kpis.cbmInWarehouse, { locale: locale === "zh-CN" ? "zh-CN" : "es-VE" })
       : "0";
 
   return (
@@ -49,9 +47,7 @@ export function WarehouseKpis({
             ? t(locale, "warehouse_cn.kpi.pending_consolidation_sub_some")
             : t(locale, "warehouse_cn.kpi.pending_consolidation_sub_none")
         }
-        valueColor={
-          kpis.pendingCount > 0 ? "var(--warning)" : "var(--ink)"
-        }
+        status={kpis.pendingCount > 0 ? { tono: "warning", texto: "Pendiente" } : undefined}
       />
       <KpiCard
         label={t(locale, "warehouse_cn.kpi.cbm_in_warehouse")}
@@ -66,9 +62,7 @@ export function WarehouseKpis({
             ? t(locale, "warehouse_cn.kpi.incidents_sub_some")
             : t(locale, "warehouse_cn.kpi.incidents_sub_none")
         }
-        valueColor={
-          kpis.incidentsCount > 0 ? "var(--danger)" : "var(--ink)"
-        }
+        status={kpis.incidentsCount > 0 ? { tono: "danger", texto: "Requiere revisión" } : undefined}
       />
     </div>
   );

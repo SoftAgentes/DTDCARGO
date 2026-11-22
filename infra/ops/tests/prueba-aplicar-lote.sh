@@ -132,12 +132,11 @@ cat > "${P}/manifiesto.json" <<'JSON'
 {
   "lote": "carga-consolidado:61:cafebabe",
   "entorno": "produccion",
-  "esperado": { "envios": 1, "recepciones": 0, "items": 0, "cajas": 0, "clientes": 1, "facturas": 0, "cbm": 0, "kg": 0, "base": 0 },
-  "clientes": [{ "clave": "MG-0019", "nombreExcel": "NOMBRE SECRETO PRUEBA" }]
+  "esperado": { "envios": 1, "recepciones": 0, "items": 0, "cajas": 0, "clientes": 1, "facturas": 0, "cbm": 0, "kg": 0, "base": 0 }
 }
 JSON
-echo "# resumen · NOMBRE SECRETO PRUEBA" > "${P}/resumen.md"
-( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+# Empaque mínimo: el paquete de producción no trae resumen.md ni nombres en el manifiesto.
+( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
 prod() { bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP}" "$@"; }
 antes="$(wc -l < "${DOBLE_LOG}")"
 out="$(prod --paso previa 2>&1)"; rc=$?
@@ -158,7 +157,7 @@ done
 # --autorizacion apuntando a un archivo del lote que cita el id (el manifiesto): rechazo, y no llega a la evidencia.
 out="$(prod --paso previa --autorizacion "${P}/manifiesto.json" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"sólo vale AUTORIZACION.txt"* && -z "$(ls -A "${EP}")" ]] && ok "--autorizacion a manifiesto.json del lote rechazada sin dejar evidencia (3)" || ko "manifiesto como autorización rc=${rc}: ${out}"
-out="$(prod --paso previa --autorizacion "${P}/../lote-prod/resumen.md" 2>&1)"; rc=$?
+out="$(prod --paso previa --autorizacion "${P}/../lote-prod/manifiesto.json" 2>&1)"; rc=$?
 [[ ${rc} -eq 3 ]] && ok "--autorizacion a un archivo del lote por ruta con .. también rechazada (3)" || ko "ruta con .. rc=${rc}: ${out}"
 # Un texto con forma de manifiesto no es el OK de Sam, aunque cite el id (H3).
 printf '{ "lote": "carga-consolidado:61:cafebabe" }\n' > "${P}/AUTORIZACION.txt"
@@ -169,12 +168,27 @@ prod --paso previa >/dev/null 2>&1; [[ $? -eq 3 && -z "$(ls -A "${EP}")" ]] && o
 # Un paquete de producción que trae deshacer.sql o purgar.sql se rechaza entero (H6).
 for f in deshacer purgar; do
   printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:61:cafebabe · %s\n' "${f}" > "${P}/${f}.sql"
-  ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+  ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
   echo "Sam: autorizo carga-consolidado:61:cafebabe" > "${P}/AUTORIZACION.txt"
   out="$(prod --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"trae ${f}.sql"* ]] && ok "paquete de producción con ${f}.sql rechazado en la previa (3)" || ko "${f}.sql en producción rc=${rc}: ${out}"
-  rm -f "${P}/${f}.sql"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+  rm -f "${P}/${f}.sql"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
 done
+# Empaque mínimo (2026-11-14): un paquete de producción con resumen.md, o con un
+# manifiesto que trae nombreExcel, se rechaza entero, sin tocar docker ni dejar evidencia.
+antes_em="$(wc -l < "${DOBLE_LOG}")"
+echo "# resumen · NOMBRE SECRETO PRUEBA" > "${P}/resumen.md"
+( cd "${P}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"trae resumen.md"* && -z "$(ls -A "${EP}")" ]] && ok "paquete de producción con resumen.md rechazado sin dejar evidencia (3)" || ko "resumen.md en producción rc=${rc}: ${out}"
+rm -f "${P}/resumen.md"
+cp "${P}/manifiesto.json" "${T}/manifiesto-limpio.json"
+printf '{\n  "lote": "carga-consolidado:61:cafebabe",\n  "entorno": "produccion",\n  "clientes": [{ "clave": "MG-0019", "nombreExcel": "NOMBRE SECRETO PRUEBA" }]\n}\n' > "${P}/manifiesto.json"
+( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+out="$(prod --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"trae nombreExcel"* && -z "$(ls -A "${EP}")" ]] && ok "manifiesto de producción con nombreExcel rechazado sin dejar evidencia (3)" || ko "nombreExcel en el manifiesto rc=${rc}: ${out}"
+cp "${T}/manifiesto-limpio.json" "${P}/manifiesto.json"; ( cd "${P}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+[[ "$(wc -l < "${DOBLE_LOG}")" -eq "${antes_em}" ]] && ok "los rechazos del empaque mínimo no llamaron a docker" || ko "un rechazo del empaque mínimo llamó a docker"
 echo "Sam, 2026-11-13: autorizo cargar el lote carga-consolidado:61:cafebabe en producción" > "${P}/AUTORIZACION.txt"
 out="$(prod --paso deshacer --confirm-deshacer carga-consolidado:61:cafebabe 2>&1)"; rc=$?
 [[ ${rc} -eq 3 && "${out}" == *"deshabilitado en producción"* ]] && ok "deshacer en producción deshabilitado aunque esté confirmado (3)" || ko "deshacer en producción rc=${rc}: ${out}"
@@ -287,10 +301,40 @@ printf '   # Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU12345
 printf 'Lote carga-consolidado:61:cafebabe · contenedor DTD #61 (ABCU1234567)\n' > "${T}/resumen-renderizado.txt"
 printf 'OK de Sam:\n> # Lote carga-consolidado:61:cafebabe · contenedor DTD #61\n' > "${T}/resumen-citado.txt"
 printf 'OK carga-consolidado:61:cafebabe\n| Marca | Etiqueta en la evidencia | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |\n' > "${T}/resumen-tabla.txt"
-for v in bom sangria renderizado citado tabla; do
+# SDD-0690: el resumen de un paquete --solo-facturas lleva el id con «:facturas» antes del « · ».
+printf '# Lote carga-consolidado:61:cafebabe:facturas · contenedor DTD #61 (ABCU1234567)
+' > "${T}/resumen-solo-facturas.txt"
+for v in bom sangria renderizado citado tabla solo-facturas; do
   out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/resumen-${v}.txt" --paso previa 2>&1)"; rc=$?
   [[ ${rc} -eq 3 && "${out}" == *"copia de resumen.md"* && -z "$(ls -A "${EP5}")" ]] && ok "copia de resumen.md (${v}) rechazada sin dejar evidencia (3)" || ko "copia de resumen.md (${v}) rc=${rc}: ${out}"
 done
+# SDD-0690: un OK de las pre-órdenes («<id>:facturas») no autoriza el paquete de la carga (<id>).
+printf 'Sam: autorizo las pre-órdenes, lote carga-consolidado:61:cafebabe:facturas\n' > "${T}/ok-pre-ordenes.txt"
+out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-pre-ordenes.txt" --paso previa 2>&1)"; rc=$?
+[[ ${rc} -eq 3 && "${out}" == *"no cita el lote carga-consolidado:61:cafebabe"* && -z "$(ls -A "${EP5}")" ]] && ok "un OK de las pre-órdenes (:facturas) no sirve para la carga (3)" || ko "OK de pre-órdenes para la carga rc=${rc}: ${out}"
+# SDD-0690: el id del manifiesto tiene que tener la forma de una carga o de sus pre-órdenes; si no, se
+# rechaza antes de usarlo en un grep -E. Cada variante es un paquete coherente (scripts, manifiesto,
+# SHA256SUMS y autorización con ese mismo id): sólo la forma lo hace fallar.
+paquete_con_id() {  # $1 = id; arma ${T}/lote-forma a partir de ${P}
+  PM="${T}/lote-forma"; EPM="${T}/evid-forma"; rm -rf "${PM}" "${EPM}"; mkdir -p "${PM}" "${EPM}"
+  for f in previa simulacro verificar aplicar; do
+    awk -v id="$1" '{ gsub(/carga-consolidado:61:cafebabe/, id); print }' "${P}/${f}.sql" > "${PM}/${f}.sql"
+  done
+  awk -v id="$1" '{ gsub(/carga-consolidado:61:cafebabe/, id); print }' "${P}/manifiesto.json" > "${PM}/manifiesto.json"
+  ( cd "${PM}" && sha256sum -- *.sql manifiesto.json > SHA256SUMS )
+  printf 'Sam: autorizo las pre-órdenes del lote %s\n' "$1" > "${PM}/AUTORIZACION.txt"
+}
+for malo in 'carga-consolidado:61:.*' 'carga-consolidado:61:CAFEBABE' 'carga-consolidado:61:cafebabe:otra' 'otro-lote:61:cafebabe'; do
+  paquete_con_id "${malo}"
+  out="$(bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${PM}" --evidence-dir "${EPM}" --paso previa 2>&1)"; rc=$?
+  [[ ${rc} -eq 3 && "${out}" == *"no tiene la forma esperada"* && -z "$(ls -A "${EPM}")" ]] && ok "id con otra forma (${malo}) rechazado sin dejar evidencia (3)" || ko "id ${malo} rc=${rc}: ${out}"
+done
+# El mismo paquete con un id de pre-órdenes bien formado pasa la guarda.
+paquete_con_id 'carga-consolidado:61:cafebabe:facturas'
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${PM}" --evidence-dir "${EPM}" --paso previa >/dev/null 2>&1 && ok "un id de pre-órdenes (…:facturas) bien formado pasa la previa" || ko "un id …:facturas bien formado se rechazó"
+# … y el id seguido de puntuación (fin de frase, paréntesis) sí vale.
+printf 'Sam: autorizo carga-consolidado:61:cafebabe.\n' > "${T}/ok-con-punto.txt"
+bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-punto.txt" --paso previa >/dev/null 2>&1 && ok "un OK con el id seguido de punto sigue valiendo" || ko "un OK con el id seguido de punto se rechazó"
 # Un OK legítimo que nombra el lote (incluso empezando con «Lote <id>» o mencionando «# Lote») sigue valiendo.
 printf 'Sam: autorizo carga-consolidado:61:cafebabe (ver # Lote en el resumen)\n' > "${T}/ok-con-almohadilla.txt"
 bash "${APLICAR}" --proyecto dtd-cargo --confirm dtd-cargo --lote "${P}" --evidence-dir "${EP5}" --autorizacion "${T}/ok-con-almohadilla.txt" --paso previa >/dev/null 2>&1 && ok "un OK que menciona «# Lote» sin el título del resumen sigue valiendo" || ko "un OK válido con «# Lote» se rechazó"

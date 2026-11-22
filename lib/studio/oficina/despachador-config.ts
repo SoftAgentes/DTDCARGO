@@ -9,7 +9,7 @@
  * - `OFICINA_CHATWOOT_TOKEN_LECTURA`: token del usuario agente de Chatwoot que SOLO es miembro de la bandeja de
  *   prueba. El despachador solo hace GET con él (leer la conversación); nunca envía (D1: solo el ERP envía, y
  *   solo tras la aprobación de Sam, Paso 3b). `OFICINA_CHATWOOT_API_URL` (opcional) es la URL interna de la API
- *   de Chatwoot; sin ella se usa `CHATWOOT_URL`. La cuenta es `CHATWOOT_ACCOUNT_ID` y la bandeja,
+ *   de Chatwoot; sin ella se usa `CHATWOOT_URL`. La cuenta es `OFICINA_CHATWOOT_ACCOUNT_ID` (nunca la del ERP) y la bandeja,
  *   `OFICINA_CHATWOOT_INBOX_PRUEBA` (la misma regla que el webhook: no puede ser una bandeja del ERP).
  * - `OFICINA_TOPE_MENSUAL_USD`: el tope del mes (D5: 15 USD). Solo se puede BAJAR: más de 15 vale 15.
  *   Al 80 % la oficina se auto-pausa (`office_autopausar_por_tope`, que solo pausa).

@@ -248,8 +248,8 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Cómo me registro y qué obtengo al instante?",
     respuesta: TRACKING_EN_CONSTRUCCION
-      ? "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal del cliente. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo."
-      : "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar.",
+      ? "Regístrate gratis en dtdcargo.com/registro y en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal del cliente. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo."
+      : "Regístrate gratis en dtdcargo.com/registro y en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar.",
     categoria: "bodega-china-shipping-mark",
   },
   {
@@ -332,8 +332,8 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Cómo entro a mi portal de cliente y qué puedo hacer ahí?",
     respuesta: TRACKING_EN_CONSTRUCCION
-      ? "Tu portal es tu panel privado en dtdcargo.com/portal: entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí tienes tus compras y pre-alertas, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo."
-      : "Tu portal es tu panel privado en dtdcargo.com/portal: entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso.",
+      ? "Tu portal es tu panel privado en dtdcargo.com/portal y entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí tienes tus compras y pre-alertas, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso. El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp. Te avisaremos apenas esté activo."
+      : "Tu portal es tu panel privado en dtdcargo.com/portal y entras con tu correo —te llega un enlace de acceso, sin contraseña— y ahí ves tus envíos y pre-alertas paso a paso, tus facturas y saldos, tus documentos y tus mensajes con el equipo. Si el enlace te dice que tu correo todavía no tiene el portal habilitado, pídele a tu asesor que te active el acceso.",
     categoria: "rastreo",
   },
   {
@@ -354,7 +354,7 @@ export const FAQS: Faq[] = [
     pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
     respuesta: TRACKING_EN_CONSTRUCCION
       ? "El seguimiento de la carga dentro del portal está en construcción. Para conocer el estado de tu envío, escríbenos por WhatsApp e indícanos tu Shipping Mark o número de envío para que nuestro equipo lo ubique. Te avisaremos apenas esté activo."
-      : "Sí. El seguimiento se hace entrando a tu portal del cliente en dtdcargo.com/portal: ahí ves los eventos de cada envío en vivo, con su BL (Bill of Lading) y su código DTDU. Entras con un enlace que te llega a tu correo, sin contraseña. Si no tienes acceso a la mano, escríbenos por WhatsApp y te ayudamos a entrar.",
+      : "Sí. El seguimiento se hace entrando a tu portal del cliente en dtdcargo.com/portal y ahí ves los eventos de cada envío en vivo, con su BL (Bill of Lading) y su código DTDU. Entras con un enlace que te llega a tu correo, sin contraseña. Si no tienes acceso a la mano, escríbenos por WhatsApp y te ayudamos a entrar.",
     categoria: "rastreo",
   },
   {
@@ -362,7 +362,7 @@ export const FAQS: Faq[] = [
       "¿Puedo rastrear con el número que me dio mi proveedor chino?",
     respuesta: TRACKING_EN_CONSTRUCCION
       ? "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para conocer el estado de tu envío con DTD, escríbenos por WhatsApp e indícanos tu Shipping Mark o número de envío. El seguimiento de la carga dentro del portal está en construcción. Te avisaremos apenas esté activo."
-      : "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD entra a tu portal del cliente en dtdcargo.com/portal: ahí aparece el embarque con el código que te damos al abrirlo.",
+      : "No. Ese número es del courier interno de China y solo sirve para el trayecto hasta nuestra bodega en Yiwu. Para seguir tu envío con DTD entra a tu portal del cliente en dtdcargo.com/portal y ahí aparece el embarque con el código que te damos al abrirlo.",
     categoria: "rastreo",
   },
   {

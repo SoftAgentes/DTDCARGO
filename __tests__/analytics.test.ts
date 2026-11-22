@@ -57,6 +57,11 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     // Iframes del FAB del portal (clientes ya captados): calc CBM/LCL + FCL.
     "/tarifas/embed",
     "/fcl/embed",
+    // SDD-0684 fase 2: subrutas del registro con un enlace personal en la ruta.
+    "/registro/link/token-sintetico-analytics",
+    "/registro/activar/token-sintetico-analytics",
+    "/registro/correo/token-sintetico-analytics",
+    "/registro/link",
   ])("excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(true);
   });
@@ -67,7 +72,8 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/tarifas", // la calc pública SÍ se mide (la del embed no)
     "/fcl",
     "/contacto",
-    "/registro",
+    "/registro", // la conversión de registro (`trackLead("registro")`) se sigue midiendo
+    "/registro/linkedin", // ≠ /registro/link
     "/track", // el buscador ES público; solo la página del código se excluye
     "/track/",
     "/noticias/importar-de-china",

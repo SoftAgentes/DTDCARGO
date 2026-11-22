@@ -629,7 +629,7 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
     printf '%s\n' "${previo}" > "${ESTADO}/publicada"
     log "vuelta atrás bien: la web sigue en $(corto "$(sha_de_ref "${previo}")"); $(corto "${sha}") queda rechazada"
     olvidar_aviso
-    avisar "DTD Cargo · vuelta atrás: $(corto "${sha}") falló (${fallo}). La web volvió a $(corto "$(sha_de_ref "${previo}")") y pasó la prueba rápida. Se publica sola de nuevo con el próximo merge. Evidencia: ${EVID}"
+    avisar "DTD Cargo · vuelta atrás: $(corto "${sha}") falló (${fallo}). La web volvió a $(corto "$(sha_de_ref "${previo}")") y pasó la prueba rápida. La próxima publica sola con el próximo merge si el vigilante está encendido; si no, la publica el Director a mano. Evidencia: ${EVID}"
     kuma down "$(corto "${sha}") falló y volvió: ${fallo}"
     cerrar_evidencia
     return 1
@@ -712,11 +712,13 @@ publicar_a_mano() { # $1 = sha, $2 = --aunque-congelado (opcional)
   publicar_imagen "${sha}" "${dig}" a-mano; rc=$?
   if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar "${IMAGEN}:${ETIQUETA}"; then
     # Para que el vigilante no la pise en el próximo minuto: la :publicable de
-    # ahora queda rechazada y la automática vuelve con el próximo merge.
+    # ahora queda rechazada y la automática vuelve con el próximo merge, solo si
+    # el vigilante está encendido. Desde el 2026-10-25 está detenido y publica el
+    # Director a mano (docs/runbooks/codex-engineering.md, carriles).
     pdig="$(digest_de "${IMAGEN}:${ETIQUETA}")"; prev="$(etiqueta_de "${IMAGEN}:${ETIQUETA}" org.opencontainers.image.revision)"
     if [ -n "${pdig}" ] && [ "${pdig}" != "${dig}" ]; then
       marcar_rechazo "${pdig}" "${prev}" "reemplazada a mano por ${sha:0:8}"
-      log ":${ETIQUETA} ($(corto "${prev}")) no se publica sola hasta el próximo merge"
+      log ":${ETIQUETA} ($(corto "${prev}")) queda fuera hasta el próximo merge (si el vigilante está encendido)"
     fi
   fi
   return "${rc}"

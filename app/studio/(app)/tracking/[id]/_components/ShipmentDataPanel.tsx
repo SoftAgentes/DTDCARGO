@@ -40,9 +40,12 @@ const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
 export function ShipmentDataPanel({
   shipment,
   nombresOcultos = false,
+  enContenedor = false,
 }: {
   shipment: Shipment;
   nombresOcultos?: boolean;
+  /** SDD-0673: en un contenedor, peso y CBM se cambian con «Corregir medidas». */
+  enContenedor?: boolean;
 }) {
   const action = (
     nombresOcultos ? updateShipmentSinUbicacion : updateShipment
@@ -61,8 +64,8 @@ export function ShipmentDataPanel({
       (fd.get("origin") ?? "") !== (shipment.origin ?? "") ||
       (fd.get("destination") ?? "") !== (shipment.destination ?? "") ||
       (fd.get("destination_gps") ?? "") !== (shipment.destination_gps ?? "") ||
-      String(fd.get("weight_kg") ?? "") !== String(shipment.weight_kg ?? "") ||
-      String(fd.get("volume_m3") ?? "") !== String(shipment.volume_m3 ?? "") ||
+      (!enContenedor && String(fd.get("weight_kg") ?? "") !== String(shipment.weight_kg ?? "")) ||
+      (!enContenedor && String(fd.get("volume_m3") ?? "") !== String(shipment.volume_m3 ?? "")) ||
       (fd.get("vehicle_category") ?? "") !== (shipment.vehicle_category ?? "") ||
       (fd.get("vehicle_model") ?? "") !== (shipment.vehicle_model ?? "") ||
       (fd.get("notes") ?? "") !== (shipment.notes ?? "");
@@ -182,7 +185,7 @@ export function ShipmentDataPanel({
                 onClick={() => setShowChangeDest(true)}
                 style={{
                   font: "600 10px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                   background: "transparent",
                   border: 0,
                   cursor: "pointer",
@@ -287,10 +290,11 @@ export function ShipmentDataPanel({
           </label>
           <NumericInput
             id="weight_kg"
-            name="weight_kg"
+            name={enContenedor ? undefined : "weight_kg"}
             type="weight"
             min={0}
             defaultValue={shipment.weight_kg ?? null}
+            disabled={enContenedor}
           />
         </div>
         <div>
@@ -299,13 +303,26 @@ export function ShipmentDataPanel({
           </label>
           <NumericInput
             id="volume_m3"
-            name="volume_m3"
+            name={enContenedor ? undefined : "volume_m3"}
             type="volume"
             min={0}
             defaultValue={shipment.volume_m3 ?? null}
+            disabled={enContenedor}
           />
         </div>
       </div>
+      {enContenedor && (
+        <p
+          style={{
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "-6px 0 14px",
+          }}
+        >
+          Este embarque va en un contenedor: el peso y el CBM se cambian con «Corregir medidas», arriba, para que
+          cuadren también el contenedor y la recepción del Almacén CN.
+        </p>
+      )}
 
       {showVehicle && (
         <div

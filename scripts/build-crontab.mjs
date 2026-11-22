@@ -86,10 +86,22 @@ export const EXTRA_CRONS = [
       "diario, 04:45 UTC · SDD-0611 §11.4.1 · vacía el uuid de las 4 columnas actor_id de noticias a los 12 meses (privacidad, decisión de Sam 2026-11-14) · no borra filas · nace APAGADO: sin NOTICIAS_PURGA_ACTOR_ACTIVO no llama a la base",
   },
   {
+    path: "/api/cron/purge-employee-photo-orphans",
+    schedule: "20 5 * * *",
+    reason:
+      "diario, 05:20 UTC · SDD-0652 fase 2 · borra del bucket privado employee-photos las fotos que ninguna ficha viva referencia (cambio, quite o ficha borrada), con más de 1 día · nace APAGADO: sin PURGE_EMPLOYEE_PHOTO_ORPHANS_ENABLED=true solo cuenta",
+  },
+  {
     path: "/api/cron/oficina-despachador",
     schedule: "* * * * *",
     reason:
       "cada minuto · SDD-0626 §3.4 (Paso 3a) · una tanda de ticks cada 10 s; el agente redacta y NADA se envía · una tanda a la vez (turno en la base) · nace APAGADO: sin OFICINA_DESPACHADOR_ACTIVO no llama a la base",
+  },
+  {
+    path: "/api/cron/oficina-envio",
+    schedule: "* * * * *",
+    reason:
+      "cada minuto · SDD-0626 Paso 3b · envía a Chatwoot SOLO lo que Sam aprobó, SOLO a la bandeja de prueba, una vez por borrador (mira otra vez la pausa y la huella) · nace APAGADO: sin OFICINA_ENVIO_ACTIVO no llama a la base",
   },
 ];
 

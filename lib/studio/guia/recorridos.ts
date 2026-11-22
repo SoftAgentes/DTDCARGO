@@ -31,8 +31,9 @@ export const ANCLA_MARCO_BANDEJA = "bandeja.marco";
 /**
  * Bandeja (guion: recorrido 1 y F1). Las anclas de B1 a F1 están dentro del panel
  * de Chatwoot: las resuelve el puente de 9.4 con `chatwoot-selectores.json` y, si
- * no aparecen, la tarjeta va al marco. U1 (guion: recorrido 5) está en Vínculos,
- * debajo del marco, que la página solo monta para admin.
+ * no aparecen, la tarjeta va al marco. U1 (guion: recorrido 5) salió de este
+ * recorrido con SDD-0655: Vínculos se mudó a Usuarios › Bandeja (ver
+ * `PASO_ACCESO_BANDEJA`).
  */
 export const RECORRIDO_BANDEJA: GuiaRecorrido = {
   id: "bandeja",
@@ -52,8 +53,20 @@ export const RECORRIDO_BANDEJA: GuiaRecorrido = {
     { id: "B5", ancla: "bandeja.plantillas", clave: "guide.inbox.templates", respaldo: ANCLA_MARCO_BANDEJA },
     { id: "B6", ancla: "bandeja.nota-privada", clave: "guide.inbox.note", respaldo: ANCLA_MARCO_BANDEJA },
     { id: "F1", ancla: "ficha.panel", clave: "guide.dtdcard.panel", respaldo: ANCLA_MARCO_BANDEJA },
-    { id: "U1", ancla: "usuarios.acceso-bandeja", clave: "guide.users.grant", roles: ["admin"] },
   ],
+};
+
+/**
+ * U1 (guion: recorrido 5), «Dar acceso a la Bandeja». SDD-0655: el ancla está en
+ * «Agentes vinculados», que se mudó de la Bandeja a la pestaña Bandeja de
+ * Usuarios. Como U3, el paso queda sin recorrido: un recorrido de Usuarios que
+ * abra esa pestaña es trabajo aparte (SDD-0589). Texto aprobado sin cambios.
+ */
+export const PASO_ACCESO_BANDEJA: GuiaPaso = {
+  id: "U1",
+  ancla: "usuarios.acceso-bandeja",
+  clave: "guide.users.grant",
+  roles: ["admin"],
 };
 
 /**

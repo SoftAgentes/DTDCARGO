@@ -30,7 +30,7 @@ import {
 export const revalidate = 300;
 
 const DESC =
-  "Calcula tu envío China → Venezuela por volumen (CBM) al instante: puerta a puerta todo incluido, o LCL consolidado hasta puerto con tu propio Bill of Lading. Sin registro. El precio en firme lo cierra un asesor por WhatsApp.";
+  "Calcula tu envío China → Venezuela por volumen (CBM) al instante: puerta a puerta todo incluido o LCL hasta puerto con tu propio BL. Sin registro.";
 
 /** El mismo título va en `metadata` y en el nodo `WebPage`. */
 const TITLE = "Tarifas y calculadora de envíos (CBM · LCL)";
@@ -94,10 +94,18 @@ export default async function TarifasPage() {
               Calcula tu envío,{" "}
               <span className="accent">China a tu puerta.</span>
             </h1>
+            {/* SDD-0657 · Las dos modalidades enlazan a su ficha de servicio
+                (`.rp-hero a:not(.btn)` en recursos.css les da el estilo). */}
             <p>
               Dos formas de traer tu carga por volumen (CBM):{" "}
-              <b>puerta a puerta</b>, todo incluido hasta tu dirección, o{" "}
-              <b>LCL consolidado</b>, hasta puerto y con tu propio Bill of Lading.
+              <b>
+                <Link href="/servicios/puerta-a-puerta">puerta a puerta</Link>
+              </b>
+              , todo incluido hasta tu dirección, o{" "}
+              <b>
+                <Link href="/servicios/lcl">LCL consolidado</Link>
+              </b>
+              , hasta puerto y con tu propio Bill of Lading.
               Saca tu estimado al instante — la tarifa en firme la confirma un
               asesor por WhatsApp.
             </p>

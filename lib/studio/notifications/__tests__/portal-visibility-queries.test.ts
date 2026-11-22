@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getHiddenPortalStatuses,
   getHiddenPortalStatusesForPortal,
+  getHiddenPortalStatusesStrict,
 } from "../portal-visibility-queries";
 
 type RuleRow = {
@@ -163,6 +164,57 @@ describe("getHiddenPortalStatusesForPortal", () => {
         "fetch failed",
       );
       expectLogWithoutIds(log.mock.calls);
+    } finally {
+      log.mockRestore();
+    }
+  });
+});
+
+describe("getHiddenPortalStatusesStrict · SDD-0654 FC-14", () => {
+  const db = (respuesta: { data: unknown; error: unknown } | Error) =>
+    ({
+      rpc: vi.fn(async () => {
+        if (respuesta instanceof Error) throw respuesta;
+        return respuesta;
+      }),
+    }) as unknown as SupabaseClient;
+
+  it("con la RPC bien devuelve ok y los ocultos", async () => {
+    const r = await getHiddenPortalStatusesStrict(
+      db({ data: [{ status: "in_customs" }, { status: " delivered " }], error: null }),
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && [...r.ocultos].sort()).toEqual(["delivered", "in_customs"]);
+  });
+
+  it("sin ocultos devuelve ok con el conjunto vacío", async () => {
+    const r = await getHiddenPortalStatusesStrict(db({ data: [], error: null }));
+    expect(r).toEqual({ ok: true, ocultos: new Set() });
+  });
+
+  it("ante error, respuesta rara, fila sin status o excepción: ok false, nunca «muestra todo»", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      for (const r of [
+        { data: null, error: { code: "PGRST202", message: "not found" } },
+        { data: { status: "x" }, error: null },
+        { data: [{ status: "in_customs" }, { status: "" }], error: null },
+        new Error("red"),
+      ]) {
+        await expect(getHiddenPortalStatusesStrict(db(r))).resolves.toEqual({ ok: false });
+      }
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("la función de hoy sigue devolviendo vacío ante error (no cambió)", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const r = await getHiddenPortalStatusesForPortal(
+        db({ data: null, error: { code: "PGRST202", message: "not found" } }),
+      );
+      expect(r).toEqual(new Set());
     } finally {
       log.mockRestore();
     }

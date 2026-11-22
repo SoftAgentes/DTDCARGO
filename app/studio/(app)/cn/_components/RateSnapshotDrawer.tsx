@@ -13,6 +13,7 @@
  * previa de la misma RPC que congela.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -54,7 +55,7 @@ const NONE_KEYS: Record<Extract<PropuestaTarifa, { kind: "ninguna" }>["motivo"],
 };
 
 function fmtCbm(n: number): string {
-  return n.toLocaleString("es-VE", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  return formatCbm(n);
 }
 
 function fmtFecha(iso: string): string {
@@ -82,7 +83,7 @@ function Resumen({ s }: { s: RateSnapshot }) {
         {fmtCbm(s.cbm)} m³{s.weight_kg != null ? ` · ${fmtCbm(s.weight_kg)} kg` : ""}
       </dd>
       <dt className="studio-label" style={{ margin: 0 }}>{t("warehouse_cn.rate.drawer.to_invoice")}</dt>
-      <dd className="mono" style={{ margin: 0, font: "800 14px/1.3 var(--f-mono)", color: "var(--wine-text)" }}>
+      <dd className="mono" style={{ margin: 0, font: "800 14px/1.3 var(--f-mono)", color: "var(--ink)" }}>
         {fmtUsd(s.amount_to_invoice)}
       </dd>
       <dt className="studio-label" style={{ margin: 0 }}>{t("warehouse_cn.rate.drawer.source")}</dt>

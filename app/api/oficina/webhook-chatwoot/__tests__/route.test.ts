@@ -20,14 +20,14 @@ import { POST } from "../route";
 
 const SECRETO = "secreto-sintetico-del-cable";
 
-function peticion(o: { inbox?: number; secreto?: string } = {}) {
+function peticion(o: { inbox?: number; secreto?: string; cuenta?: number } = {}) {
   const cuerpo = JSON.stringify({
     event: "message_created",
     id: 55,
     message_type: "incoming",
     private: false,
     content: "Hola, soy Juan Pérez, mi correo es juan@correo.test",
-    account: { id: 1 },
+    account: { id: o.cuenta ?? 1 },
     conversation: { id: 33, inbox_id: o.inbox ?? 7, status: "open", labels: ["pago"] },
   });
   const ts = String(Math.floor(Date.now() / 1000));
@@ -45,7 +45,7 @@ beforeEach(() => {
   vi.stubEnv("OFICINA_WEBHOOK_ACTIVO", "1");
   vi.stubEnv("OFICINA_WEBHOOK_SECRET", SECRETO);
   vi.stubEnv("OFICINA_CHATWOOT_INBOX_PRUEBA", "7");
-  vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+  vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "1");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -94,5 +94,44 @@ describe("POST /api/oficina/webhook-chatwoot (SDD-0626 §3.2)", () => {
       { onConflict: "clave_dedupe", ignoreDuplicates: true },
     );
     expect(JSON.stringify(m.upsert.mock.calls)).not.toContain("Juan");
+  });
+
+  describe("la cuenta: SOLO OFICINA_CHATWOOT_ACCOUNT_ID, nunca la del ERP (decisión del DG, 17/11/2026)", () => {
+    it("(i) con la cuenta del ERP puesta y sin la del cable: 503 y sin cliente de base (no cae a CHATWOOT_ACCOUNT_ID)", async () => {
+      vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", undefined);
+      vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+      const r = await POST(peticion({ cuenta: 1 }));
+      expect(r.status).toBe(503);
+      expect(m.admins).toBe(0);
+      expect(m.upsert).not.toHaveBeenCalled();
+    });
+
+    it.each(["", "   ", "0", "-2", "2.5", "dos", "2abc"])(
+      "(ii) OFICINA_CHATWOOT_ACCOUNT_ID=%j: 503 y ninguna llamada",
+      async (valor) => {
+        vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", valor);
+        vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+        const r = await POST(peticion({ cuenta: 1 }));
+        expect(r.status).toBe(503);
+        expect(m.admins).toBe(0);
+        expect(m.upsert).not.toHaveBeenCalled();
+      },
+    );
+
+    it("(iii) un aviso de otra cuenta (la del ERP) se ignora aunque la bandeja coincida", async () => {
+      vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
+      vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+      const r = await POST(peticion({ cuenta: 1 }));
+      expect(await r.json()).toEqual({ ok: true, ignorado: "cuenta" });
+      expect(m.upsert).not.toHaveBeenCalled();
+    });
+
+    it("control: el aviso de la cuenta del cable sí se guarda", async () => {
+      vi.stubEnv("OFICINA_CHATWOOT_ACCOUNT_ID", "2");
+      vi.stubEnv("CHATWOOT_ACCOUNT_ID", "1");
+      const r = await POST(peticion({ cuenta: 2 }));
+      expect(await r.json()).toEqual({ ok: true, resultado: "guardado" });
+      expect(m.upsert).toHaveBeenCalledTimes(1);
+    });
   });
 });

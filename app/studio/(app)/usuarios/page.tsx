@@ -11,6 +11,10 @@
  *
  * SDD-0274: la matriz de permisos dejó de vivir en Administración y los
  * overrides se cargan acá para la pestaña Roles.
+ *
+ * SDD-0655: «Agentes vinculados» (Studio ↔ Chatwoot, SDD-0585) se mudó de la
+ * Bandeja a la pestaña Bandeja de este módulo. Solo aparece con el flag
+ * `chatwoot_inbox` encendido y la Bandeja conectada; mismas acciones y lectura.
  */
 
 import { redirect } from "next/navigation";
@@ -26,12 +30,23 @@ import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queri
 import { listTenantModuleGrants } from "@/lib/studio/user-module-grants-queries";
 import { isSensitiveModule } from "@/lib/studio/user-module-grants";
 import { UsersClient } from "./_components/UsersClient";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, requireModuleView } from "@/lib/studio/rbac-guard";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { isModuleEnabled } from "@/lib/studio/feature-flags-types";
+import { cargarAgentesBandeja, type AgentesBandejaDatos } from "@/lib/studio/chatwoot/agentes-bandeja-admin";
+import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 
-export const metadata = { title: "Usuarios · DTD Studio" };
+export const metadata = { title: "Usuarios" };
 export const dynamic = "force-dynamic";
 
-export default async function UsuariosPage() {
+export default async function UsuariosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const tabParam = (await searchParams).tab;
+  // SDD-0655: la Platform API de Chatwoot (timeout 10 s) solo se llama al abrir la pestaña Bandeja.
+  const enPestanaBandeja = (Array.isArray(tabParam) ? tabParam[0] : tabParam) === "bandeja";
   // SDD-0624: el gate va también en la página, no sólo en el layout: un
   // layout compartido no se vuelve a ejecutar en la navegación parcial.
   await requireModuleView("users");
@@ -68,7 +83,7 @@ export default async function UsuariosPage() {
     }
   })();
 
-  const [membersRaw, invitations, roleModuleOverrides, moduleGrants] = await Promise.all([
+  const [membersRaw, invitations, roleModuleOverrides, moduleGrants, agentesBandeja] = await Promise.all([
     // includeDisabled: sin esto el desactivado se esfuma de la tabla y el botón
     // "Reactivar" (único unban) queda inalcanzable (hallazgo review 2026-07-02).
     listMembers(supabaseAdminForListing ?? supabase, {
@@ -82,7 +97,25 @@ export default async function UsuariosPage() {
     // SDD-0622: accesos extra del tenant (vigentes y vencidos). La RLS de la
     // 0538 deja leer todas al admin con su sesión; sin la 0538 llega vacío.
     listTenantModuleGrants(supabase, isSensitiveModule),
+    // SDD-0655: los vínculos de la Bandeja. Si algo falla, la pestaña no sale y el resto de Usuarios sigue.
+    leerAgentesBandeja(supabase, enPestanaBandeja),
   ]);
+
+  // SDD-0652 F1: qué personas tienen ficha de empleado enlazada, para el
+  // enlace «Ver ficha de empleado». Solo el código, que no es dato personal.
+  // Usuarios es solo de admin y la RLS de Nómina deja leer al admin. Si la
+  // lectura falla no se dice nada (ni «tiene» ni «no tiene»).
+  const { data: fichasRaw, error: fichasError } = await supabase
+    .from("nomina_employees")
+    .select("auth_user_id, employee_code")
+    .eq("tenant_id", link.tenant_id)
+    .not("auth_user_id", "is", null)
+    .is("deleted_at", null);
+  const fichasEmpleado: Record<string, string> | undefined = fichasError
+    ? undefined
+    : Object.fromEntries(
+        (fichasRaw ?? []).map((f) => [f.auth_user_id as string, f.employee_code as string]),
+      );
 
   // Resolver emails de auth.users via service_role admin client.
   // La query de listMembers devuelve email='' como placeholder.
@@ -196,7 +229,30 @@ export default async function UsuariosPage() {
         currentUserId={userResp.user.id}
         roleModuleOverrides={roleModuleOverrides}
         grants={moduleGrants}
+        fichasEmpleado={fichasEmpleado}
+        bandejaDisponible={agentesBandeja.disponible}
+        agentesBandeja={agentesBandeja.datos}
       />
     </div>
   );
+}
+
+/**
+ * Mismo gate y misma lectura que tenía la Bandeja para el admin (SDD-0585, 2.5).
+ * `disponible`: flag encendido y Bandeja conectada (barato: sin red), decide si
+ * hay pestaña. `datos`: solo con la pestaña abierta, porque llama a la Platform
+ * API de Chatwoot. Si algo falla, `datos` queda en null y el resto de Usuarios sigue.
+ */
+async function leerAgentesBandeja(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  conDatos: boolean,
+): Promise<{ disponible: boolean; datos: AgentesBandejaDatos | null }> {
+  try {
+    const [access, flags] = await Promise.all([getStudioAccess(supabase), listFeatureFlags(supabase)]);
+    const disponible = isModuleEnabled("bandeja", flags) && chatwootConfig() !== null;
+    if (!disponible || !conDatos) return { disponible, datos: null };
+    return { disponible, datos: await cargarAgentesBandeja(supabase, access, createAdminClient) };
+  } catch {
+    return { disponible: false, datos: null };
+  }
 }

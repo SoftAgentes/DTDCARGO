@@ -69,6 +69,28 @@ function noVigente(expiresAt: unknown): boolean {
   return !Number.isFinite(instante) || instante <= Date.now();
 }
 
+/** Camino del proveedor: el token se re-resuelve contra la prealerta viva y su dueño. */
+async function supplierActor(admin: SupabaseClient, workspace: WorkspaceRow, shareToken: string): Promise<ImportActor> {
+  if (!UUID.test(shareToken)) return notFound();
+  const ids = await getPrealertaIdsByToken(admin,shareToken);
+  if (!ids || ids.prealertaId !== workspace.prealerta_id || ids.tenantId !== workspace.tenant_id) return notFound();
+  const {data:owner,error} = await admin.from("clients").select("id").eq("id",workspace.client_id)
+    .eq("tenant_id",ids.tenantId).eq("markbox",ids.markbox).is("deleted_at",null).maybeSingle();
+  if (error || !owner) return notFound();
+  return {kind:"supplier",id:`supplier:${hashToken(shareToken).slice(0,24)}`};
+}
+
+/**
+ * Autoriza al proveedor por su enlace, sin sesión de cliente (página `/p/[token]`).
+ * No recibe cliente de sesión a propósito: así nadie puede pasarle el admin como
+ * sesión ni degradar al camino del portal. Un workspace anónimo nunca es de compra.
+ */
+export async function authorizeSupplierWorkspace(admin: SupabaseClient, workspace: WorkspaceRow, shareToken: string): Promise<ImportActor> {
+  if (noVigente(workspace.expires_at) || workspace.anonymous_hash) return notFound();
+  requirePortalScope();
+  return supplierActor(admin,workspace,shareToken);
+}
+
 /** Never authorize by a supplied tenant/client/markbox. Re-resolve the live principal/capability. */
 export async function authorizeWorkspace(admin: SupabaseClient, session: SupabaseClient, workspace: WorkspaceRow, headers: Headers): Promise<ImportActor> {
   if (noVigente(workspace.expires_at)) return notFound();
@@ -80,15 +102,7 @@ export async function authorizeWorkspace(admin: SupabaseClient, session: Supabas
   // Todo lo que no es anónimo es documento de compra: cliente o proveedor.
   requirePortalScope();
   const shareToken = headers.get("x-supplier-token");
-  if (shareToken) {
-    if (!UUID.test(shareToken)) return notFound();
-    const ids = await getPrealertaIdsByToken(admin,shareToken);
-    if (!ids || ids.prealertaId !== workspace.prealerta_id || ids.tenantId !== workspace.tenant_id) return notFound();
-    const {data:owner,error} = await admin.from("clients").select("id").eq("id",workspace.client_id)
-      .eq("tenant_id",ids.tenantId).eq("markbox",ids.markbox).is("deleted_at",null).maybeSingle();
-    if (error || !owner) return notFound();
-    return {kind:"supplier",id:`supplier:${hashToken(shareToken).slice(0,24)}`};
-  }
+  if (shareToken) return supplierActor(admin,workspace,shareToken);
   const principal = await requirePortal(session);
   if (workspace.tenant_id !== principal.tenantId || workspace.client_id !== principal.client.id) return notFound();
   if (workspace.prealerta_id) await purchaseForClient(session,principal,workspace.prealerta_id);

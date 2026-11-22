@@ -110,8 +110,8 @@ export function BoardKanban({
             }}
             onDrop={(e) => canEdit && handleDrop(e, estado)}
             style={{
-              background: isOver ? "var(--wine-tint)" : "var(--bg-elevated)",
-              border: `1px ${isOver ? "dashed var(--wine)" : "solid var(--border)"}`,
+              background: isOver ? "var(--accion-tint)" : "var(--bg-elevated)",
+              border: `1px ${isOver ? "dashed var(--accion)" : "solid var(--border)"}`,
               borderRadius: "var(--r-lg)",
               padding: 10,
               minHeight: 160,
@@ -151,10 +151,10 @@ export function BoardKanban({
                       padding: "10px",
                       textAlign: "center",
                       font: "600 11px/1.4 var(--f-sans)",
-                      color: "var(--wine-text)",
-                      border: "1px dashed var(--wine)",
+                      color: "var(--accion-text)",
+                      border: "1px dashed var(--accion)",
                       borderRadius: "var(--r-md)",
-                      background: "var(--wine-tint)",
+                      background: "var(--accion-tint)",
                     }}
                   >
                     Suelta para mover a {meta.label}
@@ -273,7 +273,7 @@ function TaskCard({
         flexDirection: "column",
         gap: "var(--s-2)",
         opacity: dragging ? 0.55 : task.estado === "hecho" ? 0.75 : 1,
-        outline: dragging ? "2px solid var(--wine)" : "none",
+        outline: dragging ? "2px solid var(--accion)" : "none",
         outlineOffset: dragging ? 2 : 0,
       }}
     >
@@ -324,17 +324,26 @@ function TaskCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
           gap: "var(--s-2)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "var(--s-1) 6px",
+            minWidth: 0,
+          }}
+        >
           {task.assignees.length > 0 ? (
             <div style={{ display: "flex", gap: 2 }}>
               {task.assignees.slice(0, 3).map((a) => (
                 <Avatar
                   key={a.user_id}
                   initials={initialsOf(nameByUserId[a.user_id])}
-                  color="wine"
+                  color="neutral"
                   size={20}
                 />
               ))}
@@ -387,6 +396,7 @@ function TaskCard({
               alignItems: "center",
               gap: "var(--s-1)",
               flexShrink: 0,
+              marginLeft: "auto",
               font: "600 10.5px/1 var(--f-sans)",
               color: "var(--ink-soft)",
             }}

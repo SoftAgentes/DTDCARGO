@@ -18,7 +18,10 @@
  */
 
 import { useState, type CSSProperties } from "react";
+import { useFormStatus } from "react-dom";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Spinner } from "@/app/studio/_components/ui/EtiquetaEstable";
+import { FormularioAccion } from "@/app/studio/_components/ui/FormularioAccion";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   ColumnResizeHandle,
@@ -342,8 +345,8 @@ function OperarioRowItem({
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "var(--wine-tint, rgba(127,15,26,0.08))",
-            color: "var(--wine-text)",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -403,7 +406,7 @@ function OperarioRowItem({
 
       {/* Rol */}
       <div style={{ minWidth: 0 }}>
-        <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
+        <Badge tone="neutral" size="sm">
           {operarioRolLabel(op.role)}
         </Badge>
       </div>
@@ -412,7 +415,7 @@ function OperarioRowItem({
       <span
         style={{
           font: "500 12px/1.2 var(--f-sans)",
-          color: op.last_login_at ? "var(--ink-soft)" : "var(--ink-mute)",
+          color: op.last_login_at ? "var(--ink-soft)" : "var(--ink-soft)",
           ...ellipsis,
         }}
       >
@@ -480,17 +483,35 @@ function ActiveToggle({
     );
   }
   return (
-    <form action={setOperarioActiveAction}>
+    // SDD-0678 · BTN-01 §5: el formulario se bloquea mientras corre (sin doble envío) y el interruptor lo dice.
+    <FormularioAccion action={setOperarioActiveAction}>
       <input type="hidden" name="operario_id" value={op.id} />
       <input type="hidden" name="active" value="false" />
-      <button
-        type="submit"
-        aria-label={`Desactivar a ${op.display_name}`}
-        style={toggleStyle(true)}
-      >
-        <span aria-hidden style={knobStyle(true)} />
-      </button>
-    </form>
+      <DesactivarBoton nombre={op.display_name} />
+    </FormularioAccion>
+  );
+}
+
+/** Hijo del formulario para leer `useFormStatus`. El ancho es fijo (38 px): no cambia al trabajar. */
+function DesactivarBoton({ nombre }: { nombre: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      aria-label={pending ? `Desactivando a ${nombre}…` : `Desactivar a ${nombre}`}
+      title={pending ? "Desactivando…" : undefined}
+      style={{ ...toggleStyle(true), cursor: pending ? "progress" : "pointer" }}
+    >
+      <span aria-hidden style={knobStyle(true)}>
+        {pending ? (
+          <span className="studio-spin" style={{ display: "grid", placeItems: "center", width: 18, height: 18, color: "var(--success)" }}>
+            <Spinner size={12} />
+          </span>
+        ) : null}
+      </span>
+    </button>
   );
 }
 

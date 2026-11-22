@@ -77,9 +77,9 @@ export default async function AgentesPage({
       <header style={{ marginBottom: 24 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine-text)" }}
+          style={{ marginBottom: 10 }}
         >
-          Administración · SDD-0020
+          Inteligencia artificial
         </div>
         <h1
           className="studio-display"

@@ -7,8 +7,9 @@
  * muestre al cliente un "costo de importación" que no incluye aranceles.
  * Cada prueba de acá fija una de esas fronteras.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { emptyDocumentDraft } from "@/lib/shared/document-import";
 import type { EnvioCotizacion } from "@/lib/calculadora";
 import { DocumentCalculator, type DocumentEstimate } from "./DocumentCalculator";
 import { DocumentRequestError, type DocumentClient } from "./document-client";
@@ -16,6 +17,7 @@ import { DocumentRequestError, type DocumentClient } from "./document-client";
 afterEach(cleanup);
 
 const IDS = ["00000000-0000-4000-8000-000000000001"];
+const WORKSPACES = IDS.map(id => ({ id, revision: 2, confirmedRevision: null, expiresAt: null, draft: { ...emptyDocumentDraft(), transportDeclarations: { battery: false, specialCargo: false } } }));
 
 /** Una cotización con desglose que reconcilia: base + ciudad = total. */
 function cotizacion(patch: Partial<EnvioCotizacion> = {}): EnvioCotizacion {
@@ -100,9 +102,39 @@ async function calcular(ciudad = "ccs") {
 }
 
 describe("DocumentCalculator (SDD-0473)", () => {
+  it("envía revisión explícita y retira un resultado al cambiar la revisión guardada", async () => {
+    const { client, calls } = cliente(); const view = render(<DocumentCalculator workspaces={WORKSPACES} client={client}/>);
+    await calcular(); expect(await screen.findByText("USD 500,00")).toBeVisible();
+    expect(calls.find(c => c.action === "estimate")?.body).toMatchObject({ expectedRevisions: [{ workspaceId: IDS[0], revision: 2 }] });
+    view.rerender(<DocumentCalculator workspaces={[{ ...WORKSPACES[0], revision: 3 }]} client={client}/>);
+    expect(screen.queryByText("USD 500,00")).not.toBeInTheDocument();
+  });
+  it.each(["revision", "destination", "selection", "dirty", "unmount"])("ignora la respuesta tardía tras cambiar %s", async mode => {
+    let resolve!: (value: DocumentEstimate) => void;
+    const pending = new Promise<DocumentEstimate>(done => { resolve = done; });
+    const { client } = cliente(); vi.mocked(client.post).mockImplementationOnce(async () => pending as never);
+    const view = render(<DocumentCalculator workspaces={WORKSPACES} client={client}/>); await calcular();
+    if (mode === "revision") view.rerender(<DocumentCalculator workspaces={[{ ...WORKSPACES[0], revision: 3 }]} client={client}/>);
+    if (mode === "destination") fireEvent.change(screen.getByLabelText("Destino en Venezuela"), { target: { value: "mcbo" } });
+    if (mode === "selection") view.rerender(<DocumentCalculator workspaces={[{ ...WORKSPACES[0], id: "other-workspace" }]} client={client}/>);
+    if (mode === "dirty") view.rerender(<DocumentCalculator workspaces={WORKSPACES} client={client} disabled/>);
+    if (mode === "unmount") view.unmount();
+    await act(async () => { resolve(estimado()); await pending; });
+    expect(screen.queryByText("USD 500,00")).not.toBeInTheDocument();
+  });
+  it("no transforma pendiente en no ni oculta un sí de otra compra", async () => {
+    const { client } = cliente();
+    const a = { ...WORKSPACES[0], draft: { ...WORKSPACES[0].draft, transportDeclarations: { battery: true, specialCargo: false } } };
+    const b = { ...WORKSPACES[0], id: "other", draft: emptyDocumentDraft() };
+    render(<DocumentCalculator workspaces={[a, b]} client={client}/>);
+    await waitFor(() => expect(screen.getByLabelText("Destino en Venezuela")).toBeEnabled());
+    expect(screen.getByText(/Sí · faltan compras por revisar/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Calcular el transporte" })).toBeDisabled();
+    expect(client.post).not.toHaveBeenCalled();
+  });
   it("toma el volumen y el peso del documento, sin pedírselos otra vez al cliente", async () => {
     const { client, calls } = cliente();
-    render(<DocumentCalculator workspaceIds={IDS} client={client} />);
+    render(<DocumentCalculator workspaces={WORKSPACES} client={client} />);
     await calcular();
 
     // El precio sale del servidor, que corre el MISMO motor que /tarifas.
@@ -127,7 +159,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
       ),
     });
     render(
-      <DocumentCalculator workspaceIds={IDS} client={client} onNeedsDocument={volver} />,
+      <DocumentCalculator workspaces={WORKSPACES} client={client} onNeedsDocument={volver} />,
     );
     await calcular();
 
@@ -146,7 +178,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
         result: cotizacion({ precioBase: 67.2, recargoCiudad: 0, ajusteMinimo: 182.8, total: 250 }),
       }),
     });
-    render(<DocumentCalculator workspaceIds={IDS} client={client} />);
+    render(<DocumentCalculator workspaces={WORKSPACES} client={client} />);
     await calcular();
 
     expect(await screen.findByText("USD 250,00")).toBeInTheDocument();
@@ -159,7 +191,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
     const { client } = cliente();
     render(
       <DocumentCalculator
-        workspaceIds={IDS}
+        workspaces={WORKSPACES}
         client={client}
         merchandise={{ amount: 1200, currency: "USD" }}
       />,
@@ -175,7 +207,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
 
   it("cambiar el destino borra el estimado anterior en vez de dejarlo en pantalla", async () => {
     const { client } = cliente();
-    render(<DocumentCalculator workspaceIds={IDS} client={client} />);
+    render(<DocumentCalculator workspaces={WORKSPACES} client={client} />);
     await calcular("ccs");
     expect(await screen.findByText("USD 500,00")).toBeInTheDocument();
 
@@ -190,7 +222,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
     const { client } = cliente({
       estimate: estimado({ totals: { cbm: 2.5, grossWeightKg: 15, cartons: null } }),
     });
-    render(<DocumentCalculator workspaceIds={IDS} client={client} />);
+    render(<DocumentCalculator workspaces={WORKSPACES} client={client} />);
     await calcular();
 
     expect(await screen.findByText("Sin declarar")).toBeInTheDocument();
@@ -206,7 +238,7 @@ describe("DocumentCalculator (SDD-0473)", () => {
         }),
       }),
     });
-    render(<DocumentCalculator workspaceIds={IDS} client={client} />);
+    render(<DocumentCalculator workspaces={WORKSPACES} client={client} />);
     await calcular();
 
     expect(await screen.findByText("No llegamos hasta ese destino.")).toBeInTheDocument();

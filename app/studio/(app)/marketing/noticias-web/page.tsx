@@ -29,7 +29,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { NoticiasWebClient } from "./_components/NoticiasWebClient";
 import { NoticiasTabs } from "./_components/NoticiasTabs";
 
-export const metadata = { title: "Noticias Web · DTD Studio" };
+export const metadata = { title: "Noticias Web" };
 export const dynamic = "force-dynamic";
 
 export default async function NoticiasWebPage() {
@@ -96,7 +96,7 @@ export default async function NoticiasWebPage() {
           }}
         >
           Generar nueva{" "}
-          <span style={{ color: "var(--color-wine, #7F0F1A)" }}>noticia</span>
+          <span style={{ color: "var(--color-ink, #0F1E3D)" }}>noticia</span>
         </h1>
         <p
           style={{

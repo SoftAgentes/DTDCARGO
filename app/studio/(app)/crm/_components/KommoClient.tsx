@@ -40,7 +40,8 @@ import {
   type KommoPipelineRow,
   type KommoStatusRow,
 } from "@/lib/studio/kommo-types";
-import { CRM_TAB_POR_DEFECTO, KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
+import { pestanasCrm, type KommoTabKey } from "./kommo-tabs.shared";
+import { CrmCabecera, CrmPestanas } from "./CrmPestanas";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 import { LeadActionsButton } from "./LeadActionsButton";
 import { StageControl } from "./StageControl";
@@ -78,7 +79,7 @@ function daysSince(iso: string | null): number | null {
  * La antigüedad no se borra — baja a ámbar y conserva su `title`.
  */
 function ageTone(days: number | null): string {
-  if (days == null) return "var(--ink-mute)";
+  if (days == null) return "var(--ink-soft)";
   if (days >= 30) return "var(--warning)";
   return "var(--ink-soft)";
 }
@@ -116,8 +117,11 @@ export function KommoClient({
   staleOpsByLead,
   canEdit,
   responsibleUsers,
+  bandeja = false,
 }: {
   tab: KommoTabKey;
+  /** SDD-0655: quien mira ve la Bandeja (rol + flag) → la barra suma su pestaña. */
+  bandeja?: boolean;
   /** Slot server-renderizado con el tablero Dirección. */
   direccion: ReactNode;
   /** Slot server-renderizado con el Tablero kanban del embudo. */
@@ -232,13 +236,6 @@ export function KommoClient({
     return () => clearTimeout(t);
   }, [params, q]);
 
-  const goTab = (key: KommoTabKey) => {
-    if (key === tab) return;
-    startTransition(() => {
-      router.push(key === CRM_TAB_POR_DEFECTO ? "/studio/crm" : `/studio/crm?tab=${key}`);
-    });
-  };
-
   const statusName = new Map<string, string>(
     statuses.map((s) => [`${s.pipeline_id}:${s.id}`, s.name ?? `#${s.id}`]),
   );
@@ -250,84 +247,24 @@ export function KommoClient({
   const hasFilters = Boolean(filters.q) || Boolean(pipeline) || Boolean(asesor) || Boolean(aged);
 
   return (
-    <div style={{ maxWidth: 1280 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">Comercial</span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-2)", color: "var(--ink)" }}
-          >
-            CRM.
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "64ch",
-            }}
-          >
-            Leads y clientes, por etapa. En Embudos, lo que mueves o guardas
-            queda en Studio.
-          </p>
-        </div>
-        {/* Estado del espejo: solo en las pestañas de Kommo, ocultas desde SDD-0614 S0. */}
-        {overview && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 6,
-            }}
-          >
-            <Badge tone={connTone(overview.connStatus)}>
-              {connLabel(overview.connStatus)}
-            </Badge>
-            <span
-              style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}
-            >
-              Último sync: {fmtDateTime(overview.lastSyncAt)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Pestañas · SDD-0603 tramo 5d: la clase única del Studio; la activa va
-          con relleno de tinta (BD-037). El margen y la espera van en el
-          envoltorio, para que el tablist no lleve estilo propio. */}
-      <div style={{ marginBottom: 20, opacity: isPending ? 0.7 : 1 }}>
-        <div role="tablist" aria-label="Tablero CRM" className="studio-tabs">
-          {KOMMO_TABS.map((t) => {
-            const isActive = t.key === tab;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                data-activa={isActive ? "true" : undefined}
-                data-tab={t.key}
-                onClick={() => goTab(t.key)}
-                className="studio-tab"
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    // SDD-0648 §3: Embudos usa todo el ancho; las pestañas de Kommo conservan su tope.
+    <div style={{ maxWidth: tab === "embudos" ? "none" : 1280 }}>
+      {/* Cabecera y pestañas compartidas con la Bandeja (SDD-0655). */}
+      <CrmCabecera
+        bajada="Leads y clientes, por etapa. En Embudos, lo que mueves o guardas queda en Studio."
+        extra={
+          // Estado del espejo: solo en las pestañas de Kommo, ocultas desde SDD-0614 S0.
+          overview ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+              <Badge tone={connTone(overview.connStatus)}>{connLabel(overview.connStatus)}</Badge>
+              <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
+                Último sync: {fmtDateTime(overview.lastSyncAt)}
+              </span>
+            </div>
+          ) : null
+        }
+      />
+      <CrmPestanas pestanas={pestanasCrm({ embudos: true, bandeja })} activa={tab} />
 
       {/* Contenido */}
       {tab === "direccion" ? (
@@ -782,7 +719,7 @@ function LeadsTable({
                       {fmtUsd(kommoPrice)}
                     </span>
                   ) : (
-                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
                       —
                     </span>
                   )}

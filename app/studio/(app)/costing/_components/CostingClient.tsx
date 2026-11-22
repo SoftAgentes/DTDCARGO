@@ -14,6 +14,7 @@
  * agregados llegan ya calculados desde el server (page.tsx).
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useMemo, useState } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -160,19 +161,17 @@ export function CostingClient({
             value={money(totals.revenue)}
             label={totals.sinTasa > 0 ? "Revenue · subtotal convertido" : "Revenue total"}
             sub={totals.sinTasa > 0 ? `${totals.sinTasa} embarque${totals.sinTasa === 1 ? "" : "s"} sin tasa · conversión incompleta` : currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
-            valueColor="var(--wine-text)"
           />
           <KpiCard
             value={money(totals.cost)}
             label="Costo total"
             sub={totals.sinTasa > 0 ? "costos conocidos · ingreso incompleto" : `${Math.round(costPctOfRevenue(totals))}% del revenue`}
-            valueColor="var(--warning)"
           />
           <KpiCard
             value={totals.sinTasa > 0 ? "—" : money(totals.margin)}
             label="Margen bruto"
             sub={totals.sinTasa > 0 ? "Pendiente · conversión incompleta" : `${totals.avgMarginPct.toFixed(1)}% promedio`}
-            valueColor={totals.sinTasa > 0 ? "var(--ink)" : totals.margin < 0 ? "var(--danger)" : "var(--success)"}
+            status={totals.sinTasa > 0 ? undefined : totals.margin < 0 ? { tono: "danger", texto: "Con pérdida" } : { tono: "success", texto: "Con margen" }}
           />
           <KpiCard
             value={`${profitable}/${rows.length}`}
@@ -181,7 +180,7 @@ export function CostingClient({
               (losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida")
               + (conSinTasa > 0 ? ` · ${conSinTasa} sin tasa` : "")
             }
-            valueColor={conSinTasa > 0 ? "var(--ink)" : losing > 0 ? "var(--danger)" : "var(--success)"}
+            status={conSinTasa > 0 ? undefined : losing > 0 ? { tono: "danger", texto: "Hay pérdidas" } : { tono: "success", texto: "Todos con margen" }}
           />
         </div>
       )}
@@ -389,7 +388,7 @@ function Card({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             padding: "18px 20px 0",
@@ -431,7 +430,7 @@ function OverviewView({
             label="Revenue"
             value={money(totals.revenue)}
             pct={100}
-            tone="var(--wine)"
+            tone="var(--ink)"
           />
           <CompositionBar
             label="Costo total"
@@ -606,7 +605,7 @@ function RankingView({
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -734,7 +733,7 @@ function RankingView({
                 onClick={() => onEdit(r)}
                 title="Editar costos"
                 aria-label={`Editar costos de ${r.shipment.code}`}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--wine)")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accion)")}
                 onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-soft)")}
                 style={{
                   background: "transparent",
@@ -875,7 +874,7 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.origin || "—"}
             </span>
-            <span style={{ color: "var(--wine-text)" }}>→</span>
+            <span style={{ color: "var(--ink-soft)" }}>→</span>
             <span style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
               {r.destination || "—"}
             </span>
@@ -977,7 +976,7 @@ function ContainersView({
           <div style={{ minWidth: 0 }}>
             <div style={{ font: "700 13px/1.2 var(--f-mono)", color: "var(--ink)" }}>{c.ref}</div>
             <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: "var(--s-1)" }}>
-              {[c.containerType, c.status, `${c.cbm.toLocaleString("es-VE")} CBM`].filter(Boolean).join(" · ")}
+              {[c.containerType, c.status, formatCbm(c.cbm, { unit: "CBM" })].filter(Boolean).join(" · ")}
             </div>
           </div>
           <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
@@ -1158,7 +1157,7 @@ function TemplatesView({
                 <TplCell v={money(t.insurance)} />
                 <TplCell v={money(t.commission)} />
                 <TplCell v={money(t.other)} />
-                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
+                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
                   {money(total)}
                 </span>
                 <div style={{ textAlign: "center" }}>
@@ -1167,7 +1166,7 @@ function TemplatesView({
                     onClick={() => onEdit(t)}
                     title="Editar template"
                     aria-label={`Editar template ${t.name}`}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--wine)")}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accion)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-soft)")}
                     style={{
                       background: "transparent",
@@ -1254,7 +1253,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
           <ForecastMetric
             label="Margen proyectado"
             value={money(totals.margin)}
-            color={totals.margin < 0 ? "var(--wine-soft)" : "var(--success)"}
+            color={totals.margin < 0 ? "var(--color-status-danger-on-dark)" : "var(--success)"}
           />
           <ForecastMetric
             label="Margen % estimado"

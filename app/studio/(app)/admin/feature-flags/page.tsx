@@ -10,13 +10,12 @@
  */
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { FeatureFlagsClient } from "./_components/FeatureFlagsClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Feature flags · DTD Studio" };
+export const metadata = { title: "Feature flags" };
 export const dynamic = "force-dynamic";
 
 export default async function FeatureFlagsPage() {
@@ -41,21 +40,7 @@ export default async function FeatureFlagsPage() {
   return (
     <div style={{ maxWidth: 920 }}>
       <div style={{ marginBottom: "var(--s-6)" }}>
-        <Link
-          href="/studio/admin"
-          style={{
-            font: "500 12px/1 var(--font-sans, 'Archivo')",
-            color: "var(--ink-soft)",
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--s-1)",
-            marginBottom: "var(--s-3)",
-          }}
-        >
-          ← Volver a Administración
-        </Link>
-        <span className="studio-eyebrow">Sistema · Casos de uso</span>
+        <span className="studio-eyebrow">Integraciones</span>
         <h1
           className="studio-display"
           style={{

@@ -23,6 +23,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "./mail/send-email";
+import { correoSinComprobar } from "./portal/correo-comprobacion";
 
 /** Base del sitio (el portal del cliente vive en una ruta de este dominio). */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -88,6 +89,10 @@ export type PortalInviteResult =
 
 const SUBJECT = "Te damos acceso a tu portal · DTD Cargo";
 
+/** Lo que lee el equipo cuando la invitación no sale por un correo sin comprobar. */
+export const PORTAL_INVITE_CORREO_SIN_COMPROBAR =
+  "el correo de este cliente está sin comprobar: no se le manda enlace de entrada. Usa «Reenviar comprobación» en Registros por link o el acceso por WhatsApp";
+
 /** Escapa lo mínimo para no romper el HTML del correo con el nombre del cliente. */
 function esc(s: string): string {
   return s
@@ -139,6 +144,17 @@ export async function sendPortalInviteEmail(
 ): Promise<PortalInviteResult> {
   if (!input.email || !input.email.trim()) {
     return { ok: false, error: "cliente sin email" };
+  }
+
+  // SDD-0646 D-1: este correo lleva un enlace que ABRE el portal. Si el correo
+  // es el de una cuenta por link que su dueño todavía no comprobó, no sale: para
+  // esas cuentas la entrada va por el acceso de WhatsApp. Falla cerrado.
+  const sinComprobar = await correoSinComprobar(supabaseAdmin, input.email);
+  if (sinComprobar.estado === "error") {
+    return { ok: false, error: "no se pudo confirmar que el correo esté comprobado" };
+  }
+  if (sinComprobar.estado === "ok" && sinComprobar.bloquea) {
+    return { ok: false, error: PORTAL_INVITE_CORREO_SIN_COMPROBAR };
   }
 
   // Enlace directo de un clic; si no se pudo generar, fallback al login con el

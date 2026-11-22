@@ -11,7 +11,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SELECTORES_CHATWOOT } from "../puente-chatwoot";
-import { ANCLA_MARCO_BANDEJA, PASO_QUITAR_ACCESO, RECORRIDOS } from "../recorridos";
+import { ANCLA_MARCO_BANDEJA, PASO_ACCESO_BANDEJA, PASO_QUITAR_ACCESO, RECORRIDOS } from "../recorridos";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const leer = (ruta: string) => readFileSync(resolve(ROOT, ruta), "utf8");
@@ -19,7 +19,7 @@ const leer = (ruta: string) => readFileSync(resolve(ROOT, ruta), "utf8");
 /** Archivos donde vive cada recorrido. */
 const PANTALLAS: Record<string, string[]> = {
   dashboard: ["app/studio/(app)/dashboard/page.tsx", "app/studio/(app)/dashboard/_components/DashboardClient.tsx"],
-  bandeja: ["app/studio/(app)/bandeja/_components/BandejaClient.tsx", "app/studio/(app)/bandeja/_components/VinculosAdmin.tsx"],
+  bandeja: ["app/studio/(app)/bandeja/_components/BandejaClient.tsx"],
   embudo: ["app/studio/(app)/crm/_components/CrmTableroKanban.tsx"],
   cliente: ["app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx"],
   actualizaciones: ["app/studio/(app)/admin/actualizaciones/_components/ActualizacionesPanel.tsx"],
@@ -52,14 +52,16 @@ describe("anclas de Studio en sus pantallas", () => {
         revisadas += 1;
       }
     }
-    // Dashboard 4, Bandeja 2 (el marco y U1), Embudo 4, Cliente 1 y Actualizaciones 3.
-    expect(revisadas).toBeGreaterThanOrEqual(14);
+    // Dashboard 4, Bandeja 1 (el marco; U1 salió con SDD-0655), Embudo 4, Cliente 1 y Actualizaciones 3.
+    expect(revisadas).toBeGreaterThanOrEqual(13);
   });
 
-  it("U1 está en Vínculos, que BandejaClient solo monta con datos de admin", () => {
-    const vinculos = leer("app/studio/(app)/bandeja/_components/VinculosAdmin.tsx");
-    expect(anclaEnFuente(vinculos, "usuarios.acceso-bandeja")).toBe(true);
-    expect(anclaEnFuente(leer("app/studio/(app)/bandeja/_components/BandejaClient.tsx"), "usuarios.acceso-bandeja")).toBe(false);
+  it("U1 está en Agentes vinculados, en Usuarios (SDD-0655), sin recorrido", () => {
+    const agentes = leer("app/studio/(app)/usuarios/_components/AgentesBandeja.tsx");
+    expect(anclaEnFuente(agentes, PASO_ACCESO_BANDEJA.ancla)).toBe(true);
+    expect(anclaEnFuente(leer("app/studio/(app)/bandeja/_components/BandejaClient.tsx"), PASO_ACCESO_BANDEJA.ancla)).toBe(false);
+    // Su ancla ya no está en la Bandeja: ningún recorrido la usa.
+    expect(RECORRIDOS.flatMap((r) => r.pasos).some((p) => p.ancla === PASO_ACCESO_BANDEJA.ancla)).toBe(false);
   });
 
   it("U3 tiene su ancla en la ficha de la persona, sin recorrido hasta la 9.6", () => {

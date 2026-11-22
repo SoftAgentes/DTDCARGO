@@ -17,7 +17,7 @@ vi.setConfig({ testTimeout: 120_000 });
  * temas: es casi blanco en claro (#FBFAF7) y navy en oscuro (#0F1E3D). Eso está
  * bien mientras el fondo también voltee. El bug aparece cuando se usa sobre una
  * superficie que es oscura en LOS DOS temas (`--bg-sidebar`, `--wine`,
- * `--grad-wine-panel`): en tema Oscuro queda navy sobre casi-negro.
+ * `--grad-bienvenida`): en tema Oscuro queda navy sobre casi-negro.
  *
  * Medido sobre los tokens reales antes de este contrato:
  *
@@ -43,7 +43,7 @@ vi.setConfig({ testTimeout: 120_000 });
 const SUPERFICIES_OSCURAS = [
   "var(--bg-sidebar)",
   "var(--wine)",
-  "var(--grad-wine-panel)",
+  "var(--grad-bienvenida)",
 ];
 
 const RAICES = ["app/studio", "app/portal", "app/m"];

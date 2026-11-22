@@ -75,7 +75,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
           <code
             style={{
               font: "800 12.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               letterSpacing: "0.02em",
             }}
           >
@@ -110,7 +110,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
               {r.hub_code}
             </Badge>
           ) : (
-            <span style={{ color: "var(--ink-mute)" }}>—</span>
+            <span style={{ color: "var(--ink-soft)" }}>—</span>
           )}
 
           {r.owned ? (
@@ -158,7 +158,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
               <Avatar
                 initials={initialsFrom(r.driver.name)}
                 size={26}
-                color="wine"
+                color="neutral"
               />
               <span
                 style={{
@@ -176,7 +176,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
             <span
               style={{
                 font: "500 11.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
               }}
             >
               —

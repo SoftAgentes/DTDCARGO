@@ -27,6 +27,8 @@
  * detectarlo es de 6.6, que es el paso de los movimientos automáticos.
  */
 
+import type { CrmCanal } from "@/lib/studio/crm-canal";
+
 export type CrmTablero = "leads" | "clientes";
 export type CrmSegmento = "cliente" | "lead_registrado" | "lead_nuevo";
 
@@ -63,6 +65,88 @@ export function resolverTablero(raw: string | null | undefined): CrmTablero {
   return esTablero(raw) ? raw : "leads";
 }
 
+/*
+ * ── Vistas (segmentos que se ven como pestañas) · SDD-0647 ──────────────────
+ * Regla de Sam (2026-11-16):
+ *   · Clientes: prueba de carga con DTD alguna vez (segmento `cliente` de la
+ *     0506: envío no borrado salvo borrador o cancelado —entregado cuenta—, o
+ *     recibo de China no borrado y no huérfano, con cualquiera de sus códigos,
+ *     incluidos los de fichas fusionadas). Una cotización sola no cuenta.
+ *   · Leads con código: ficha con Shipping Mark y sin prueba de carga.
+ *   · Leads: sin ficha, o ficha sin Shipping Mark, y sin prueba de carga.
+ * Las tres son disjuntas y cubren todas las tarjetas. «Leads» y «Leads con
+ * código» comparten las etapas del tablero `leads`: la vista es un filtro, no
+ * otro embudo guardado. Para sumar un filtro después, se agrega una entrada a
+ * `CRM_VISTAS` con su tablero de etapas y su predicado.
+ */
+export type CrmVista = "clientes" | "leads" | "leads_con_codigo";
+
+export interface CrmVistaDef {
+  key: CrmVista;
+  label: string;
+  /** Embudo de etapas en el que se pintan sus tarjetas. */
+  tablero: CrmTablero;
+  /** Frase corta para avisos («Ninguna tarjeta de … coincide»). */
+  nombre: string;
+  incluye: (t: Pick<CrmTarjetaTablero, "segmento" | "shippingMark">) => boolean;
+}
+
+/** ¿Tiene Shipping Mark? Un código en blanco no cuenta. */
+export function tieneCodigo(shippingMark: string | null | undefined): boolean {
+  return (shippingMark ?? "").trim() !== "";
+}
+
+export const CRM_VISTAS: ReadonlyArray<CrmVistaDef> = [
+  {
+    key: "clientes",
+    label: "Clientes",
+    tablero: "clientes",
+    nombre: "Clientes",
+    incluye: (t) => t.segmento === "cliente",
+  },
+  {
+    key: "leads",
+    label: "Leads",
+    tablero: "leads",
+    nombre: "Leads",
+    incluye: (t) => t.segmento !== "cliente" && !tieneCodigo(t.shippingMark),
+  },
+  {
+    key: "leads_con_codigo",
+    label: "Leads con código",
+    tablero: "leads",
+    nombre: "Leads con código",
+    incluye: (t) => t.segmento !== "cliente" && tieneCodigo(t.shippingMark),
+  },
+];
+
+export function esVista(v: unknown): v is CrmVista {
+  return CRM_VISTAS.some((d) => d.key === v);
+}
+
+/** La vista de la URL (`?embudo=`); lo que no se entiende abre Leads. */
+export function resolverVista(raw: string | null | undefined): CrmVista {
+  return esVista(raw) ? raw : "leads";
+}
+
+export function vistaDef(key: CrmVista): CrmVistaDef {
+  return CRM_VISTAS.find((d) => d.key === key) ?? CRM_VISTAS[1];
+}
+
+/** La vista de una tarjeta: la primera cuyo predicado la incluye. */
+export function vistaDeTarjeta(t: Pick<CrmTarjetaTablero, "segmento" | "shippingMark">): CrmVista {
+  return (CRM_VISTAS.find((d) => d.incluye(t)) ?? CRM_VISTAS[1]).key;
+}
+
+/** Conteo por vista (cada tarjeta suma en todas las vistas que la incluyen). */
+export function contarPorVista(
+  tarjetas: readonly Pick<CrmTarjetaTablero, "segmento" | "shippingMark">[],
+): Record<CrmVista, number> {
+  const c = Object.fromEntries(CRM_VISTAS.map((d) => [d.key, 0])) as Record<CrmVista, number>;
+  for (const t of tarjetas) for (const d of CRM_VISTAS) if (d.incluye(t)) c[d.key] += 1;
+  return c;
+}
+
 export function esSegmento(v: unknown): v is CrmSegmento {
   return v === "cliente" || v === "lead_registrado" || v === "lead_nuevo";
 }
@@ -93,6 +177,7 @@ export const FUENTE_LABEL: Record<string, string> = {
   cotizador: "Cotizador",
   kommo: "CRM anterior",
   manual: "Creada en Studio",
+  carga_erp: "Cliente con carga en el ERP",
 };
 
 export interface CrmEtapa {
@@ -116,6 +201,8 @@ export interface CrmTarjetaFila {
   etapa_clientes_at: string;
   asesor_id: string | null;
   fuente: string;
+  /** Atribución de la tarjeta (0506); la vista la usa para el logo del canal. */
+  utm_source?: string | null;
   ultima_actividad_at: string;
 }
 
@@ -203,6 +290,15 @@ export interface CrmTarjetaTablero {
   asesorNombre: string | null;
   tareasAbiertas: number;
   tareasVencidas: number;
+  /** Fuente de entrada (`FUENTE_LABEL`), para el logo del canal. */
+  fuente: string;
+  /** `utm_source` de la tarjeta (p. ej. «tiktok») o null. */
+  utmSource: string | null;
+  /**
+   * SDD-0676: canales de los chats vinculados a la ficha, además del de la fuente
+   * (un cliente de WhatsApp que también escribe por Instagram lleva los dos logos).
+   */
+  canalesExtra?: CrmCanal[];
 }
 
 export interface CrmColumna {
@@ -220,6 +316,7 @@ export function armarColumnas(
   etapas: readonly CrmEtapa[],
   tarjetas: readonly CrmTarjetaTablero[],
   tablero: CrmTablero,
+  vista?: CrmVistaDef,
 ): CrmColumna[] {
   const propias = [...etapas]
     .filter((e) => e.tablero === tablero)
@@ -230,6 +327,7 @@ export function armarColumnas(
   const primera = propias.find((e) => e.activa)?.clave ?? propias[0]?.clave;
   for (const t of tarjetas) {
     if (t.tablero !== tablero) continue;
+    if (vista && !vista.incluye(t)) continue;
     const destino = porEtapa.has(t.etapa) ? t.etapa : primera;
     if (destino == null) continue;
     porEtapa.get(destino)!.push(t);

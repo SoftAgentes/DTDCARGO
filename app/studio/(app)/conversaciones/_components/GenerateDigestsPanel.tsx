@@ -8,6 +8,7 @@
  */
 
 import { useActionState } from "react";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 import { generateDigestsAction } from "../actions";
 import type { DigestGenState } from "@/lib/studio/conversaciones/conversations-types";
 
@@ -52,36 +53,20 @@ export function GenerateDigestsPanel() {
         action={formAction}
         style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
       >
-        <input
-          type="month"
+        {/* SDD-0660: el estándar de fechas del Studio (sin las rayas del campo de mes del navegador). */}
+        <DateField
+          mode="month"
           name="month"
           required
           aria-label="Mes a resumir"
-          style={{
-            height: 34,
-            padding: "0 10px",
-            background: "var(--bg-base)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-md)",
-            font: "500 13px/1 var(--f-sans)",
-            color: "var(--ink)",
-            outline: "none",
-          }}
+          style={{ width: 150 }}
+          inputStyle={{ minHeight: 34, paddingBlock: 0 }}
         />
         <button
           type="submit"
           disabled={pending}
-          style={{
-            height: 34,
-            padding: "0 14px",
-            borderRadius: "var(--r-md)",
-            border: "none",
-            cursor: pending ? "not-allowed" : "pointer",
-            opacity: pending ? 0.55 : 1,
-            background: "var(--wine)",
-            color: "var(--ink-side-strong)",
-            font: "700 12px/1 var(--f-sans)",
-          }}
+          aria-busy={pending}
+          className="studio-btn studio-btn-primary studio-btn-sm"
         >
           {pending ? "Generando…" : "Generar ahora"}
         </button>

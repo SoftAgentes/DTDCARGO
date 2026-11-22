@@ -22,7 +22,7 @@ import { getAcceptanceEvidence } from "@/lib/studio/legal/queries";
 import { PrintButton } from "./PrintButton";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Expediente de aceptación · DTD Studio" };
+export const metadata = { title: "Expediente de aceptación" };
 export const dynamic = "force-dynamic";
 
 /** ISO → "dd/mm/aaaa hh:mm:ss (UTC)" — la evidencia se muestra en UTC. */
@@ -193,7 +193,7 @@ export default async function EvidencePrintPage({
             <div
               style={{
                 font: "800 18px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 marginTop: 3,
               }}
             >
@@ -312,7 +312,6 @@ export default async function EvidencePrintPage({
           #legal-expediente {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             --success: #1F8A5B;

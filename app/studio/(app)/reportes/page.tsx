@@ -108,7 +108,7 @@ export default async function ReportesPage({
         {/* SDD-0574: «Embarques sin facturar» vive en su propia página. */}
         <p style={{ margin: "0 0 var(--s-3)", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
           ¿Qué falta por facturar?{" "}
-          <Link href="/studio/reportes/embarques-sin-facturar" style={{ color: "var(--wine-text)", fontWeight: 600 }}>
+          <Link href="/studio/reportes/embarques-sin-facturar" style={{ color: "var(--accion-text)", fontWeight: 600 }}>
             Ver embarques sin facturar →
           </Link>
         </p>

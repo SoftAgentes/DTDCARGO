@@ -401,8 +401,8 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     style={{
                       padding: "12px 14px",
                       textAlign: "left",
-                      background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                      background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                      border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                       borderRadius: "var(--r-md)",
                       cursor: "pointer",
                     }}
@@ -410,7 +410,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     <div
                       style={{
                         font: "700 12.5px/1.2 var(--f-sans)",
-                        color: active ? "var(--wine)" : "var(--ink)",
+                        color: "var(--ink)",
                       }}
                     >
                       {SERVICE_LABELS[s.value].primary}
@@ -418,7 +418,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     <div
                       style={{
                         font: "600 11px/1.3 var(--f-mono)",
-                        color: active ? "var(--wine)" : "var(--ink-soft)",
+                        color: active ? "var(--ink)" : "var(--ink-soft)",
                         marginTop: 4,
                       }}
                     >
@@ -442,7 +442,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="qd-clname">
-                Cliente <span style={{ color: "var(--wine-text)" }}>*</span>
+                Cliente <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <ClientCombobox
                 id="qd-clname"
@@ -463,7 +463,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="qd-markbox">
-                Shipping Mark <span style={{ color: "var(--wine-text)" }}>*</span>
+                Shipping Mark <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="qd-markbox"
@@ -487,7 +487,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="qd-origin">
-                Origen <span style={{ color: "var(--wine-text)" }}>*</span>
+                Origen <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="qd-origin"
@@ -505,7 +505,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="qd-dest">
-                Destino <span style={{ color: "var(--wine-text)" }}>*</span>
+                Destino <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="qd-dest"
@@ -548,7 +548,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             >
               <div>
                 <label className="studio-label" htmlFor="qd-cbm">
-                  CBM <span style={{ color: "var(--wine-text)" }}>*</span>
+                  CBM <span style={{ color: "var(--ink-soft)" }}>*</span>
                 </label>
                 <NumericInput
                   id="qd-cbm"
@@ -620,7 +620,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           {mode$ === "per_cbm" ? (
             <div>
               <label className="studio-label" htmlFor="qd-rate-cbm">
-                Tarifa por CBM (USD) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Tarifa por CBM (USD) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="qd-rate-cbm"
@@ -643,7 +643,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           ) : (
             <div>
               <label className="studio-label" htmlFor="qd-rate-flat">
-                Tarifa flat (USD) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Tarifa flat (USD) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <NumericInput
                 id="qd-rate-flat"
@@ -682,8 +682,8 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                       gap: 12,
                       padding: "10px 12px",
                       borderRadius: "var(--r-md)",
-                      background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                      background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                      border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                       cursor: "pointer",
                     }}
                   >
@@ -692,13 +692,13 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                       name="packaging-radio"
                       checked={active}
                       onChange={() => setPackaging(p.id)}
-                      style={{ accentColor: "var(--wine)" }}
+                      style={{ accentColor: "var(--accion)" }}
                     />
                     <span
                       style={{
                         flex: 1,
                         font: "600 13px/1 var(--f-sans)",
-                        color: active ? "var(--wine)" : "var(--ink)",
+                        color: "var(--ink)",
                       }}
                     >
                       {p.label}
@@ -707,7 +707,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                       <span
                         style={{
                           font: "700 12px/1 var(--f-mono)",
-                          color: active ? "var(--wine)" : "var(--ink-soft)",
+                          color: active ? "var(--ink)" : "var(--ink-soft)",
                         }}
                       >
                         +${p.extra}
@@ -725,7 +725,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="qd-valid">
-                Válida hasta <span style={{ color: "var(--wine-text)" }}>*</span>
+                Válida hasta <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="qd-valid"
@@ -841,7 +841,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 }}
               >
                 Total estimado<br />
-                <span style={{ color: "var(--wine-soft)", fontWeight: 700 }}>
+                <span style={{ color: "var(--ink-side)", fontWeight: 700 }}>
                   Válida hasta {validUntil}
                 </span>
               </div>

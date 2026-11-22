@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 /**
- * Toggle de tema del portal (oscuro/claro). Founder 2026-06-20: el portal del demo
- * nace en OSCURO; el cliente puede pasarlo a claro. Persiste por cookie
+ * Toggle de tema del portal (oscuro/claro). El portal nace en CLARO (SDD-0654 1b,
+ * enmienda de BD-037); el cliente puede pasarlo a oscuro. Persiste por cookie
  * (`portal-theme`, que lee el layout server-side → sin flash en SSR) y aplica el
  * atributo `data-portal-theme` en el shell (#portal-shell) al instante — el CSS
- * reacciona, sin recargar. `initialTheme` lo provee el layout (= cookie o "dark").
+ * reacciona, sin recargar. `initialTheme` lo provee el layout (= "dark" solo si la
+ * cookie dice "dark"; si no, "light").
  */
 export function PortalThemeToggle({
   initialTheme,

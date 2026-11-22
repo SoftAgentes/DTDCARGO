@@ -5,7 +5,7 @@
 > **Snapshot:** 2026-07-03 · migraciones hasta `0211` · ≈198 tablas en 206 migraciones. **Próxima migr libre = `0212`.**
 > **Método:** generado por barrido de `CREATE TABLE` en todas las migraciones + verificación adversarial (cada `✅` cita una tabla real; cada `❌` confirmado por ausencia total de candidata). Regenerable con `/radar` o re-corriendo el reconciliador.
 >
-> ⚠️ **Fuente del blueprint:** NO existe un `schema.prisma` en `_norte/` — el backend del Norte es un **handoff documental** (prototipo 100% mock en `localStorage`). Las entidades se derivan de `_norte/backend/API-CONTRACT.md` (mapea cada seam a un recurso REST), corroborado por los stores mock de `_norte/erp/data.jsx`.
+> ⚠️ **Fuente del blueprint:** NO existe un `schema.prisma` en `_norte/` — el backend del Norte es un **handoff documental** (prototipo 100% mock en `localStorage`). Las entidades se derivan de `API-CONTRACT.md` (fuente histórica retirada del repo en la PR #706; vive en git; mapea cada seam a un recurso REST), corroborado por los stores mock de `_norte/erp/data.jsx`.
 
 ## Resumen · core API-CONTRACT (22 entidades)
 
@@ -51,7 +51,7 @@
 
 ## Re-derivación contra el Norte v4.5 (2026-06-21)
 
-> Las 22 de arriba son el **API-CONTRACT core**. El Norte v4.2–v4.5 expandió el prototipo a **~13 dominios / ~146 formas de entidad**. Esta sección reconcilia esa superficie ampliada contra las **145 tablas reales** (`information_schema`, 2026-06-21). Método: barrido de `_norte/backend/API-CONTRACT.md` + stores mock (`erp/data.jsx`, `erp/modules/*-data.jsx`, `portal/*`, `academia-data.jsx`, `naviera-data.jsx`, `nomina-data.jsx`, `reclamos/`, `packlist/`, `inventario/`) cruzado contra las tablas reales. Las cifras `~` son aproximadas; los **huecos** de abajo están verificados (ausencia de tabla en las 145).
+> Las 22 de arriba son el **API-CONTRACT core**. El Norte v4.2–v4.5 expandió el prototipo a **~13 dominios / ~146 formas de entidad**. Esta sección reconcilia esa superficie ampliada contra las **145 tablas reales** (`information_schema`, 2026-06-21). Método: barrido de `API-CONTRACT.md` (fuente histórica retirada del repo en la PR #706; vive en git) + stores mock (`erp/data.jsx`, `erp/modules/*-data.jsx`, `portal/*`, `academia-data.jsx`, `naviera-data.jsx`, `nomina-data.jsx`, `reclamos/`, `packlist/`, `inventario/`) cruzado contra las tablas reales. Las cifras `~` son aproximadas; los **huecos** de abajo están verificados (ausencia de tabla en las 145).
 
 **Cobertura ampliada:** ~146 formas → **~120 con tabla** · **~16 vistas/derivados** (no son entidad) · **~10 huecos sin tabla**. *(Actualizado 2026-06-26 tras `0169`–`0177`: el **motor de Nómina/RRHH** pasó de 🟡 a ✅ BUILT (payroll_run/rules/attendance/holidays/loans/warnings); se sumó el dominio **Inspecciones** (`0176`) y **Academia↔persona** (`0177`); se corrigió **Vault/No-olvidar** — ya estaba BUILT (`0017`), no es hueco. Huecos restantes ≈3: Supplier↔Client WeChat, detección de ferias IA, y las piezas finales de nómina/finiquito.)* *(Actualizado 2026-07-03 tras `0178`–`0211`: finiquito y app del empleado cerraron (`0179`–`0182`); se sumaron **Club DTD**, **Administración/empresa**, **pagos reportados del portal** y **puestos de nómina** — 19 tablas nuevas. Huecos restantes ≈2: Supplier↔Client WeChat y detección de ferias IA, más las 2 piezas gate-contador de nómina.)*
 

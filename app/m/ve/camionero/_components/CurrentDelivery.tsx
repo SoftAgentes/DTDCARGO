@@ -14,6 +14,7 @@
  * No-emojis · tokens var(--*) · prefers-reduced-motion en uploads.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -153,8 +154,8 @@ export function CurrentDelivery({
       <header
         style={{
           padding: "10px 12px",
-          background: readOnly ? "var(--success-bg)" : "var(--wine-tint)",
-          color: readOnly ? "var(--success)" : "var(--wine)",
+          background: readOnly ? "var(--success-bg)" : "var(--bg-elevated)",
+          color: readOnly ? "var(--success)" : "var(--ink)",
           font: "800 11px/1 var(--f-mono)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -293,7 +294,7 @@ export function CurrentDelivery({
           <code
             style={{
               font: "700 11px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {pkg.markbox}
@@ -377,7 +378,7 @@ export function CurrentDelivery({
         >
           <span>{pkg.boxes_shipped} cj</span>
           <span>{pkg.weight_kg.toFixed(0)} kg</span>
-          {pkg.cbm > 0 && <span>{pkg.cbm.toFixed(1)} cbm</span>}
+          {pkg.cbm > 0 && <span>{formatCbm(pkg.cbm)} cbm</span>}
         </div>
 
         {/* Description */}

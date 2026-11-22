@@ -152,14 +152,13 @@ export function InspeccionesClient({
           label="Aprobadas"
           value={kpis.month_approved}
           sub="del mes"
-          valueColor={kpis.month_approved > 0 ? "var(--success)" : "var(--ink)"}
           highlightWhenPositive={false}
         />
         <KpiCard
           label="Con observaciones"
           value={kpis.month_observed}
           sub="observadas o rechazadas"
-          valueColor={kpis.month_observed > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.month_observed > 0 ? { tono: "warning", texto: "Requiere revisión" } : undefined}
           highlightWhenPositive={false}
         />
         <KpiCard label="Borradores" value={kpis.draft_count} sub="sin emitir" />
@@ -360,7 +359,7 @@ function ReportsTable({
                   style={{
                     padding: "12px 14px",
                     font: "600 12px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -424,7 +423,7 @@ function ReportsTable({
                     <span
                       style={{
                         font: "500 12px/1 var(--f-sans)",
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                       }}
                     >
                       —

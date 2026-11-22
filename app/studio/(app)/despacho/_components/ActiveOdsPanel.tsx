@@ -5,6 +5,7 @@
  * Click en una OD abre el drawer de cancel (Fase 1) — en Fase 2 abre detalle.
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
@@ -34,7 +35,7 @@ export function ActiveOdsPanel({
     >
       <div
         className="studio-eyebrow"
-        style={{ color: "var(--wine-text)", marginBottom: 14 }}
+        style={{ marginBottom: 14 }}
       >
         Órdenes activas · {ods.length}
       </div>
@@ -63,7 +64,7 @@ export function ActiveOdsPanel({
                   padding: 12,
                   background: "var(--bg-elevated)",
                   border: "1px solid var(--border)",
-                  borderLeft: "3px solid var(--wine)",
+                  borderLeft: "3px solid var(--ink)",
                   borderRadius: "var(--r-sm)",
                 }}
               >
@@ -75,7 +76,7 @@ export function ActiveOdsPanel({
                     marginBottom: 6,
                   }}
                 >
-                  <code style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                  <code style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                     {od.order_code}
                   </code>
                   <Badge tone={tone} size="sm">
@@ -110,7 +111,7 @@ export function ActiveOdsPanel({
                 >
                   <span>{od.package_count} pkg</span>
                   <span>{od.total_kg.toFixed(0)} kg</span>
-                  <span>{od.total_cbm.toFixed(1)} cbm</span>
+                  <span>{formatCbm(od.total_cbm)} cbm</span>
                 </div>
                 {canCancel && (
                   <button

@@ -181,8 +181,8 @@ export function HoyClient({
             width: 36,
             height: 36,
             borderRadius: "var(--r-pill)",
-            background: "var(--wine-tint)",
-            color: "var(--wine-soft)",
+            background: "var(--surface-inv)",
+            color: "var(--ink-side)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -401,7 +401,7 @@ export function HoyClient({
             />
             <TaskGroup
               label="Para hoy"
-              tone="var(--wine)"
+              tone="var(--ink)"
               tasks={groups.paraHoy}
               {...{ hoyISO, canEdit, nameByUserId, afterMove, toast }}
             />

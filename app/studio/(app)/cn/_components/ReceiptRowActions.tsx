@@ -361,7 +361,7 @@ export function ReceiptRowActions({
                       minHeight: 32,
                       border: 0,
                       background: isCurrent ? "var(--bg-elevated)" : "transparent",
-                      color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
+                      color: isCurrent ? "var(--ink-soft)" : "var(--ink)",
                       font: "500 12.5px/1.2 var(--f-sans)",
                       cursor: isCurrent || pending ? "default" : "pointer",
                       borderRadius: "var(--r-sm)",
@@ -371,8 +371,8 @@ export function ReceiptRowActions({
                     }}
                     onMouseEnter={(e) => {
                       if (!isCurrent && !pending) {
-                        e.currentTarget.style.background = "var(--wine-tint)";
-                        e.currentTarget.style.color = "var(--wine)";
+                        e.currentTarget.style.background = "var(--accion-tint)";
+                        e.currentTarget.style.color = "var(--accion-text)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -426,7 +426,7 @@ export function ReceiptRowActions({
                       minHeight: 32,
                       border: 0,
                       background: isCurrent ? "var(--bg-elevated)" : "transparent",
-                      color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
+                      color: isCurrent ? "var(--ink-soft)" : "var(--ink)",
                       font: "500 12.5px/1.2 var(--f-sans)",
                       cursor: isCurrent || pending ? "default" : "pointer",
                       borderRadius: "var(--r-sm)",
@@ -436,8 +436,8 @@ export function ReceiptRowActions({
                     }}
                     onMouseEnter={(e) => {
                       if (!isCurrent && !pending) {
-                        e.currentTarget.style.background = "var(--wine-tint)";
-                        e.currentTarget.style.color = "var(--wine)";
+                        e.currentTarget.style.background = "var(--accion-tint)";
+                        e.currentTarget.style.color = "var(--accion-text)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -480,7 +480,7 @@ export function ReceiptRowActions({
                   style={{
                     padding: "8px 10px",
                     font: "500 12.5px/1.2 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     display: "flex",
                     alignItems: "center",
                     gap: "var(--s-2)",
@@ -521,8 +521,8 @@ export function ReceiptRowActions({
                 }}
                 onMouseEnter={(e) => {
                   if (!pending) {
-                    e.currentTarget.style.background = "var(--wine-tint)";
-                    e.currentTarget.style.color = "var(--wine)";
+                    e.currentTarget.style.background = "var(--accion-tint)";
+                    e.currentTarget.style.color = "var(--accion-text)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -553,7 +553,7 @@ export function ReceiptRowActions({
                 <span
                   style={{
                     font: "700 9.5px/1 var(--f-sans)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink-soft)",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                   }}

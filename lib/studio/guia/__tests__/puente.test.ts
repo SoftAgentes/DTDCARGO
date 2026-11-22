@@ -31,10 +31,10 @@ describe("archivo de selectores (un solo archivo)", () => {
   });
 
   it("cada ancla de Chatwoot del recorrido Bandeja está en el archivo, y nada sobra", () => {
-    // Los pasos de Chatwoot caen al marco; U1 es de Studio (Vínculos) y no lo necesita.
+    // Los pasos de Chatwoot caen al marco. U1 (de Studio) salió con Vínculos a Usuarios (SDD-0655).
     const deChatwoot = RECORRIDO_BANDEJA.pasos.filter((p) => p.respaldo === ANCLA_MARCO_BANDEJA);
     expect(Object.keys(BASE.anclas).sort()).toEqual(deChatwoot.map((p) => p.ancla).sort());
-    expect(RECORRIDO_BANDEJA.pasos.filter((p) => !deChatwoot.includes(p)).map((p) => p.id)).toEqual(["U1"]);
+    expect(RECORRIDO_BANDEJA.pasos.filter((p) => !deChatwoot.includes(p)).map((p) => p.id)).toEqual([]);
   });
 
   it("detecta selectores vacíos, largos o de más, anclas mal escritas y versión rara", () => {

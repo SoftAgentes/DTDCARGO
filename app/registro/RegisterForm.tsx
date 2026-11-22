@@ -1403,7 +1403,7 @@ function Obligatorio() {
  * abre texto libre para ambos: perder el lead de un pueblo pequeño sería peor
  * que guardar un texto sin normalizar.
  */
-function CiudadEntrega({
+export function CiudadEntrega({
   cities,
   city,
   state,
@@ -1537,7 +1537,7 @@ function CiudadEntrega({
 }
 
 /** Explica el asterisco. Un símbolo sin leyenda no informa a nadie. */
-function LeyendaObligatorio() {
+export function LeyendaObligatorio() {
   return (
     <p className="text-[11.5px] text-grey-500 leading-[1.4] -mt-1">
       Los campos con <span className="text-wine font-semibold">*</span> son obligatorios.
@@ -1545,7 +1545,7 @@ function LeyendaObligatorio() {
   );
 }
 
-function Field({
+export function Field({
   id,
   label,
   value,
@@ -1613,7 +1613,7 @@ function Field({
 const SELECT_ARROW =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
 
-function CedulaInput({
+export function CedulaInput({
   id,
   value,
   onChange,
@@ -1715,7 +1715,7 @@ const COUNTRY_CODES: { c: string; dial: string }[] = [
   { c: "CN", dial: "+86" },
 ];
 
-function PhoneInput({
+export function PhoneInput({
   id,
   label,
   onChange,
@@ -1809,7 +1809,7 @@ function PhoneInput({
   );
 }
 
-function TypeCard({
+export function TypeCard({
   active,
   label,
   desc,

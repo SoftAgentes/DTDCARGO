@@ -40,6 +40,46 @@ function Controlado({ inicial, locale = "es" as const }: { inicial: DocumentDraf
 }
 
 describe("DocumentEditor (SDD-0473)", () => {
+  it("permite recorrer toda la evidencia y distingue origen seleccionado de alternativa", () => {
+    const d = mixto(); d.sources = [{id:"s1",kind:"invoice",fileName:"synthetic.xlsx",locations:Array.from({length:41},(_,i)=>({path:"products.p1.name",sheet:"Datos",cell:`A${i+1}`,page:null,evidenceId:`e${i}`,observedValue:i===40?"Última alternativa":"Vasos"}))}];
+    d.fieldDecisions = [{path:"products.p1.name",origin:"source",references:[{sourceId:"s1",evidenceId:"e0"}]}];
+    render(<DocumentEditor draft={d}/>);
+    fireEvent.click(screen.getByText("Fuentes extraídas · por revisar"));
+    expect(screen.getByText(/Fuente seleccionada/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button",{name:"Siguientes referencias"}));
+    expect(screen.getByText("Última alternativa")).toBeVisible();
+    expect(screen.getByRole("button",{name:"Siguientes referencias"})).toBeDisabled();
+  });
+  it("edita neto separado y vuelve a pedir las declaraciones cuando cambia la mercancía", () => {
+    const d = mixto(); d.groups[0].netWeightKg = 12;
+    render(<Controlado inicial={d}/>);
+    const battery = screen.getByRole("combobox", { name: "Lleva baterías" });
+    const regulated = screen.getByRole("combobox", { name: "Carga especial o regulada" });
+    expect(battery).toHaveValue(""); expect(regulated).toHaveValue("");
+    fireEvent.change(battery, { target: { value: "yes" } }); fireEvent.change(regulated, { target: { value: "no" } });
+    expect(battery).toHaveValue("yes"); expect(regulated).toHaveValue("no");
+    fireEvent.change(screen.getByRole("textbox", { name: "Peso neto TOTAL (kg)" }), { target: { value: "11" } });
+    expect(screen.getByRole("textbox", { name: "Peso bruto TOTAL (kg)" })).toHaveValue("15");
+    expect(screen.getByRole("textbox", { name: "Peso neto TOTAL (kg)" })).toHaveValue("11");
+    expect(battery).toHaveValue(""); expect(regulated).toHaveValue("");
+  });
+  it("permite escribir CBM decimal progresivo y peso con coma sin borrar el separador",()=>{
+    render(<Controlado inicial={mixto()}/>);
+    const cbm=screen.getByRole("textbox",{name:"CBM TOTAL (m³)"});
+    fireEvent.change(cbm,{target:{value:"0"}});fireEvent.change(cbm,{target:{value:"0."}});expect(cbm).toHaveValue("0.");fireEvent.change(cbm,{target:{value:"0.6"}});expect(cbm).toHaveValue("0.6");
+    const weight=screen.getByRole("textbox",{name:"Peso bruto TOTAL (kg)"});
+    fireEvent.change(weight,{target:{value:"120,"}});expect(weight).toHaveValue("120,");fireEvent.change(weight,{target:{value:"120,5"}});expect(weight).toHaveValue("120,5");
+    expect(within(totales()).getByText("120,5 kg")).toBeVisible();
+  });
+  it("el formato estándar reemplaza campos guiados y conserva edición al volver desde la línea",()=>{
+    render(<Controlado inicial={mixto()}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Formato estándar"}));
+    expect(screen.queryByRole("textbox",{name:"Empresa"})).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button",{name:"Editar Vasos"})[0]);
+    const name=screen.getByRole("textbox",{name:"Producto"});expect(name).toHaveValue("Vasos");
+    fireEvent.change(name,{target:{value:"Vasos corregidos"}});fireEvent.click(screen.getByRole("button",{name:"Guardar producto"}));
+    fireEvent.click(screen.getByRole("button",{name:"Formato estándar"}));expect(screen.getAllByText("Vasos corregidos")[0]).toBeVisible();
+  });
   it("cuenta las cajas, el peso y el volumen una sola vez aunque dos productos las compartan", () => {
     render(<DocumentEditor draft={mixto()} locale="es" />);
     const t = totales();

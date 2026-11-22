@@ -83,7 +83,7 @@ export function PackingListDrawer({
           <div>
             <span style={label}>Compra</span>
             <code
-              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine-text)" }}
+              style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--ink)" }}
             >
               {prealertaCode ?? "—"}
             </code>
@@ -347,7 +347,7 @@ function TotalCell({ v, strong = false }: { v: string; strong?: boolean }) {
     <span
       style={{
         font: `${strong ? 800 : 700} 11.5px/1 var(--f-mono)`,
-        color: strong ? "var(--wine)" : "var(--ink)",
+        color: "var(--ink)",
         textAlign: "right",
       }}
     >

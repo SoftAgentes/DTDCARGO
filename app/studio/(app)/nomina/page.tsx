@@ -17,7 +17,7 @@ import {
   listContractors,
   listContractorPayments,
 } from "@/lib/studio/nomina/contractor-queries";
-import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
+import { getVigentePayrollRulesConEstado } from "@/lib/studio/nomina/payroll-rules-queries";
 import {
   listAttendance,
   listHolidays,
@@ -32,7 +32,10 @@ import {
   computeRegistrationKpis,
 } from "@/lib/studio/nomina/registration-queries";
 import { listAllComms } from "@/lib/studio/nomina/comms-queries";
-import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
+import { computeEmployeeKpis, toEmployeeListItem } from "@/lib/studio/nomina/employee-types";
+import { createAdminClient } from "@/lib/db/admin";
+import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
+import { firmarFotos, rutasDeFoto } from "@/lib/studio/nomina/employee-photo";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
 import { computeWarningKpis } from "@/lib/studio/nomina/warning-types";
@@ -42,7 +45,13 @@ import { NominaClient } from "./_components/NominaClient";
 
 export const metadata = { title: "Nómina" };
 
-export default async function NominaPage() {
+export default async function NominaPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string | string[] }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const initialTab = typeof params.tab === "string" ? params.tab : undefined;
   const role = await requireModuleView("nomina");
   // Dar acceso al sistema (invitar usuario) es admin-only (Usuarios). Gatea la
   // sección de acceso del alta unificada; la action lo re-valida server-side.
@@ -54,7 +63,7 @@ export default async function NominaPage() {
     positions,
     contractors,
     payments,
-    rules,
+    reglasEstado,
     attendance,
     holidays,
     warnings,
@@ -68,7 +77,7 @@ export default async function NominaPage() {
     listPositions(supabase),
     listContractors(supabase),
     listContractorPayments(supabase),
-    getVigentePayrollRules(supabase),
+    getVigentePayrollRulesConEstado(supabase),
     listAttendance(supabase),
     listHolidays(supabase),
     listWarnings(supabase),
@@ -79,8 +88,32 @@ export default async function NominaPage() {
     listAllComms(supabase),
   ]);
 
+  // SDD-0653 A2b: las reglas y si la base ya tiene la migración 0556 (campos nuevos del formulario).
+  const rules = reglasEstado.rules;
+  const reglasAmpliada = reglasEstado.ampliada;
+
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
   const loans = await listLoansWithBalance(supabase, employees);
+
+  // SDD-0652 fase 2: fotos de la fila. Solo para rol admin o accounting activo
+  // (D4); se firman aquí, en el servidor, con vida corta. La ruta del bucket no
+  // viaja. Sin la migración 0555 aplicada no hay columna y nadie tiene foto.
+  const fotos = new Map<string, string>();
+  const accesoFicha = await getFichaEmpleadoAccess(supabase);
+  if (accesoFicha.ok && employees.length > 0) {
+    const rutas = await rutasDeFoto(
+      supabase,
+      accesoFicha.tenantId,
+      employees.filter((e) => e.tenant_id === accesoFicha.tenantId).map((e) => e.id),
+    );
+    if (rutas.size > 0) {
+      const firmadas = await firmarFotos(createAdminClient(), [...rutas.values()]);
+      for (const [id, ruta] of rutas) {
+        const url = firmadas.get(ruta);
+        if (url) fotos.set(id, url);
+      }
+    }
+  }
 
   const employeeKpis = computeEmployeeKpis(employees);
   const contractorKpis = computeContractorKpis(contractors, payments);
@@ -114,11 +147,18 @@ export default async function NominaPage() {
       </div>
 
       <NominaClient
-        employees={employees}
+        // SDD-0652 F1: al navegador va la proyección de lista, sin cédula,
+        // sueldo, nacimiento, teléfono ni cuenta. La fila completa se queda en
+        // el servidor (KPIs y préstamos se calculan aquí arriba). Las solicitudes
+        // (fase 2, N2) también llegan como proyección: `listRegistrations` ni
+        // siquiera lee la cédula ni la cuenta.
+        employees={employees.map((e) => toEmployeeListItem(e, fotos.get(e.id) ?? null))}
+        initialTab={initialTab}
         positions={positions}
         contractors={contractors}
         payments={payments}
         rules={rules}
+        reglasAmpliada={reglasAmpliada}
         attendance={attendance}
         holidays={holidays}
         loans={loans}

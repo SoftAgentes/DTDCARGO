@@ -22,7 +22,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 const STALE_DAYS = 7;
 
-export const metadata = { title: "Bug Tracker · DTD Studio" };
+export const metadata = { title: "Bug Tracker" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -127,9 +127,9 @@ export default async function BugsAdminPage({
             style={{
               fontFamily: "var(--font-mono, 'JetBrains Mono')",
               fontSize: 12,
-              color: "var(--wine-text)",
+              color: "var(--ink)",
               padding: "2px 6px",
-              background: "var(--wine-tint, #FBE9EC)",
+              background: "var(--bg-elevated)",
               borderRadius: 4,
             }}
           >

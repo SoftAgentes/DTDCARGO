@@ -9,31 +9,32 @@
  *   - con vínculo y sin marca → el cliente pide el enlace de un solo uso.
  * `?c=N` (desde la ficha o el aviso push) abre esa conversación (E2-D24).
  * Las cabeceras (`frame-src`, micrófono delegado) las pone `next.config.ts`.
+ *
+ * SDD-0655: la Bandeja es una pestaña de CRM. Esta ruta se queda (sus cabeceras
+ * y los `?c=N` ya entregados apuntan aquí). Las pestañas del CRM llevan Embudos
+ * solo si quien mira ve el módulo `kommo`. «Agentes vinculados» se mudó a
+ * Usuarios › Bandeja; al admin le queda el enlace.
+ * SDD-0680 (variante C): sin la cabecera grande del CRM. Las pestañas van en la
+ * fila de la Bandeja, junto al estado y las acciones (`BandejaClient`).
  */
 import { cookies } from "next/headers";
 
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
-import { chatwootConfig, chatwootServicioUserId } from "@/lib/studio/chatwoot/config";
-import { listarMiembrosCuenta } from "@/lib/studio/chatwoot/platform-api";
-import { evaluarSalud, type SaludBandeja } from "@/lib/studio/chatwoot/agentes-salud";
-import { revisarWebhookCuenta, sumarAlertasWebhook } from "@/lib/studio/chatwoot/webhook-salud";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { accesoCrm, RUTA_AGENTES_VINCULADOS } from "@/lib/studio/crm-acceso";
+import { chatwootConfig } from "@/lib/studio/chatwoot/config";
 import { resumenPortal, type ResumenPortal } from "@/lib/studio/chatwoot/portal";
-import { getVinculoPropio, listVinculos } from "@/lib/studio/chatwoot/links-queries";
+import { getVinculoPropio } from "@/lib/studio/chatwoot/links-queries";
 import { listEventosDescartados, type EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
 import { parseChatwootUserId, urlPanel } from "@/lib/studio/chatwoot/chatwoot-types";
 import { SSO_COOKIE, ssoVigentePara } from "@/lib/studio/chatwoot/sso-cookie";
-import { listMembers } from "@/lib/studio/user-queries";
-import { canAccessModule } from "@/lib/studio/rbac";
+import { CrmPestanas } from "../crm/_components/CrmPestanas";
+import { pestanasCrm } from "../crm/_components/kommo-tabs.shared";
 import { BandejaClient, type BandejaEstado } from "./_components/BandejaClient";
-import type { MiembroOpcion, VinculoFila } from "./_components/VinculosAdmin";
 
-export const metadata = { title: "Bandeja · DTD Studio" };
-
-function nombreDe(profile: { first_name: string | null; last_name: string | null } | null): string {
-  return `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim();
-}
+export const metadata = { title: "Bandeja · CRM" };
 
 export default async function BandejaPage({
   searchParams,
@@ -43,7 +44,9 @@ export default async function BandejaPage({
   const { c } = await searchParams;
   const conversacion = parseChatwootUserId(Array.isArray(c) ? c[0] : c);
   const supabase = await createClient();
-  const access = await getStudioAccess(supabase);
+  const [access, flags] = await Promise.all([getStudioAccess(supabase), listFeatureFlags(supabase)]);
+  // El layout ya exigió rol + flag de la Bandeja; aquí solo se decide si se pinta Embudos.
+  const { embudos } = accesoCrm(access.role, flags, access.overrides, access.grants);
   const cfg = chatwootConfig();
   const vinculo =
     cfg && access.tenantId && access.userId
@@ -61,51 +64,28 @@ export default async function BandejaPage({
     estado === "listo" && access.userId && ssoVigentePara(marca, access.userId) ? panelUrl : null;
 
   let admin: {
-    vinculos: VinculoFila[];
-    miembros: MiembroOpcion[];
     descartados: EventoDescartado[];
-    salud: SaludBandeja;
     portal: ResumenPortal | null;
+    agentesHref: string;
   } | null = null;
   if (access.role === "admin" && access.tenantId && cfg) {
-    const [vinculos, miembros, descartados, cuenta, webhook, portal] = await Promise.all([
-      listVinculos(supabase, access.tenantId),
-      listMembers(supabase, { tenantId: access.tenantId }),
+    const [descartados, portal] = await Promise.all([
       listEventosDescartados(supabase, access.tenantId),
-      listarMiembrosCuenta(cfg),
-      revisarWebhookCuenta(cfg, chatwootServicioUserId()),
       // SDD-0586 (10.5, PR 1b): la cola del portal es solo de service_role; el gate de admin es el de arriba.
       resumenPortal(createAdminClient(), access.tenantId),
     ]);
-    // Paso 2.5: la misma salud que mide el cron diario, leída al abrir la página.
-    const salud = evaluarSalud({
-      miembrosCuenta: cuenta,
-      servicioId: chatwootServicioUserId(),
-      vinculos: vinculos.map((v) => ({ userId: v.user_id, chatwootUserId: v.chatwoot_user_id })),
-    });
-    // SDD-0586 (10.5, PR 1b): el webhook de cuenta, por donde llegan las respuestas al portal.
-    sumarAlertasWebhook(salud, webhook);
-    const nombres = new Map(miembros.map((m) => [m.user_id, nombreDe(m.profile)]));
-    admin = {
-      vinculos: vinculos.map((v) => ({
-        userId: v.user_id,
-        nombre: nombres.get(v.user_id) || v.user_id.slice(0, 8),
-        chatwootUserId: v.chatwoot_user_id,
-      })),
-      miembros: miembros
-        .filter((m) => !vinculos.some((v) => v.user_id === m.user_id))
-        .map((m) => ({
-          userId: m.user_id,
-          nombre: nombreDe(m.profile) || m.user_id.slice(0, 8),
-          puedeBandeja: canAccessModule(m.role, "bandeja", access.overrides),
-        })),
-      descartados,
-      salud,
-      portal,
-    };
+    admin = { descartados, portal, agentesHref: RUTA_AGENTES_VINCULADOS };
   }
 
   return (
-    <BandejaClient estado={estado} panelUrl={panelUrl} inicioUrl={inicioUrl} conversacion={conversacion} admin={admin} />
+    // Sin `maxWidth`: el panel del chat usa todo el ancho (`data-ancho-completo` en la sección).
+    <BandejaClient
+      estado={estado}
+      panelUrl={panelUrl}
+      inicioUrl={inicioUrl}
+      conversacion={conversacion}
+      pestanas={<CrmPestanas pestanas={pestanasCrm({ embudos, bandeja: true })} activa="bandeja" compacta />}
+      admin={admin}
+    />
   );
 }

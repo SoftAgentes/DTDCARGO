@@ -16,7 +16,7 @@ import {
 import { RoutesClient } from "./_components/RoutesClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Rutas y ciudades · DTD Studio" };
+export const metadata = { title: "Rutas y ciudades" };
 
 export default async function AdminRoutesPage() {
   // SDD-0624: el gate va también en la página, no sólo en el layout: un
@@ -44,7 +44,7 @@ export default async function AdminRoutesPage() {
         }}
       >
         <div>
-          <span className="studio-eyebrow">Administración · Despacho</span>
+          <span className="studio-eyebrow">Operación · Despacho</span>
           <h1
             className="studio-display"
             style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}

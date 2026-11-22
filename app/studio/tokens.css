@@ -7,8 +7,19 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
-  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Fill de botones sigue en --wine. */
+  --wine-text: #7F0F1A;                 /* wine como TEXTO (AA en ambos temas). --wine crudo NO es texto: falla AA en dark (2.79:1). Desde BD-076 el vino es identidad, no acción. */
   --on-warning: #0F1E3D;                /* texto/ícono sobre relleno --warning sólido (navy fijo, ambos temas) */
+
+  /* Acción (BD-076, SDD-0686): azul = lo que se oprime; rojo = peligro; vino = identidad.
+     Tono fijado por Sam el 2026-11-20 (opción B de tres). Contraste
+     y distancia de tono contra --danger los vigila color-accion-contract.test.ts.
+     No referencian --wine*: si la identidad cambia, la acción no se mueve. */
+  --accion: #1F4FA8;                    /* relleno del botón principal · acento de acción */
+  --accion-hover: #183E86;              /* hover del relleno */
+  --on-accion: #FFFFFF;                 /* texto e ícono sobre el relleno (7,66:1) */
+  --accion-text: #1F4FA8;               /* acción como texto: enlaces (7,34:1 sobre --bg-base) */
+  --accion-tint: rgba(31,79,168,0.08);  /* fondo suave de acción */
+  --accion-soft: #7FAAF0;               /* foco sobre superficies siempre oscuras (menú lateral) */
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -155,7 +166,7 @@
   --surface-inv-soft: rgba(255,255,255,0.06);   /* chrome más suave (modos) */
   --surface-inv-strong: rgba(255,255,255,0.94); /* chip casi opaco (erp) */
   --border-inv: rgba(255,255,255,0.12);         /* borde/línea fina sobre navy */
-  --surface-sel: rgba(168,50,62,0.22);          /* item seleccionado (modos) */
+  --surface-sel: rgba(255,255,255,0.16);        /* item seleccionado sobre navy (modos): tinta, no vino (SDD-0686) */
   --danger-bg-strong: rgba(168,50,62,0.18);     /* pill de error sobre navy */
   --danger-border: rgba(168,50,62,0.35);        /* borde pill de error */
   --badge-remove: rgba(217,28,28,0.92);         /* badge eliminar foto (erp) */
@@ -227,9 +238,12 @@
      + mid pulled-in → el degradado se nota más sin salir de la familia tonal. */
   --grad-wine:       linear-gradient(135deg,#AE1A28 0%,#7F0F1A 50%,#4A0710 100%);
   --grad-wine-soft:  linear-gradient(135deg,rgba(158,21,34,.20),rgba(90,9,16,.14));
-  --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
+  /* Banda de bienvenida del Dashboard: navy de marca (Sam, 2026-11-21, opción A;
+     SDD-0686). Reemplaza al degradado vino que solo usaba esta banda. */
+  --grad-bienvenida: linear-gradient(135deg,#0F1E3D 0%,#1F3A6B 100%);
+  --bienvenida-borde: transparent;
   --grad-navy:       radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
-  --grad-page:       radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+  --grad-page:       radial-gradient(90% 70% at 100% 0%,rgba(31,79,168,.05),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
   --grad-card:       linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
 }
 
@@ -253,6 +267,14 @@
   --wine-text: #D89AA4;                 /* = --wine-soft dark: wine legible como texto en oscuro (~6-8:1) */
   --on-warning: #0F1E3D;                /* navy fijo: el fill del warning cambia, el texto no */
 
+  /* Acción en oscuro (BD-076). Texto navy sobre el relleno: blanco sobre #7FAAF0 mide 2,36:1. */
+  --accion: #7FAAF0;
+  --accion-hover: #9BBDF4;
+  --on-accion: #0F1E3D;
+  --accion-text: #7FAAF0;
+  --accion-tint: rgba(127,170,240,0.14);
+  --accion-soft: #7FAAF0;
+
   /* Glass (BD-031) · override oscuro: vidrio navy translúcido + texto crema. */
   --glass-bg: linear-gradient(160deg, rgba(31,48,85,0.55), rgba(15,30,61,0.34));
   --glass-border: rgba(255,255,255,0.22);
@@ -265,9 +287,10 @@
   /* Fondos de superficie (BD-034) · override oscuro. --grad-wine-soft hereda de light. */
   /* Intensidad +30% (founder 2026-07-19) · dark. --grad-wine-soft hereda de light. */
   --grad-wine:       linear-gradient(135deg,#CE4552 0%,#A8323E 50%,#6E1420 100%);
-  --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#CE4552 0%,#A8323E 42%,#5A0F1A 100%);
+  --grad-bienvenida: linear-gradient(135deg,#16264A 0%,#1F3055 100%); /* --bg-surface → --bg-elevated */
+  --bienvenida-borde: rgba(255,255,255,0.10);
   --grad-navy:       radial-gradient(120% 125% at 18% -22%,#2E4A80 0%,#0B1428 54%,#03060F 100%);
-  --grad-page:       radial-gradient(62% 55% at 100% 0%,rgba(168,50,62,.28),transparent 56%),radial-gradient(70% 60% at 0% 100%,rgba(31,48,85,.6),transparent 55%),var(--bg-base);
+  --grad-page:       radial-gradient(62% 55% at 100% 0%,rgba(127,170,240,.10),transparent 56%),radial-gradient(70% 60% at 0% 100%,rgba(31,48,85,.6),transparent 55%),var(--bg-base);
   --grad-card:       linear-gradient(160deg,#193056 0%,#16264A 100%);
 
   --bg-base: #0B1428;
@@ -367,6 +390,12 @@
     --wine-tint: rgba(127,15,26,0.08);
     --wine-text: #7F0F1A;
     --on-warning: #0F1E3D;
+    --accion: #1F4FA8;
+    --accion-hover: #183E86;
+    --on-accion: #FFFFFF;
+    --accion-text: #1F4FA8;
+    --accion-tint: rgba(31,79,168,0.08);
+    --accion-soft: #7FAAF0;
     --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.44));
     --glass-border: rgba(255,255,255,0.9);
     --glass-hi: inset 0 1px 0 rgba(255,255,255,0.9);
@@ -375,9 +404,10 @@
     --glass-key: rgba(255,255,255,0.55);
     --glass-inset: rgba(255,255,255,0.5);
     --grad-wine: linear-gradient(135deg,#AE1A28 0%,#7F0F1A 50%,#4A0710 100%);
-    --grad-wine-panel: radial-gradient(135% 135% at 14% -12%,#AE1A28 0%,#7F0F1A 40%,#3C060B 100%);
+    --grad-bienvenida: linear-gradient(135deg,#0F1E3D 0%,#1F3A6B 100%);
+    --bienvenida-borde: transparent;
     --grad-navy: radial-gradient(120% 125% at 18% -20%,#2B4A85 0%,#0F1E3D 48%,#050A16 100%);
-    --grad-page: radial-gradient(90% 70% at 100% 0%,rgba(158,21,34,.09),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
+    --grad-page: radial-gradient(90% 70% at 100% 0%,rgba(31,79,168,.05),transparent 55%),radial-gradient(80% 70% at 0% 100%,rgba(15,30,61,.07),transparent 55%),var(--bg-base);
     --grad-card: linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
     --bg-base: #FBFAF7;
     --bg-surface: #FFFFFF;
@@ -499,11 +529,11 @@ a { color: inherit; text-decoration: none; }
 .h-pad { padding: var(--s-6) var(--s-8); }
 
 /* Focus rings */
-:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; border-radius: var(--r-sm); }
+/* Foco en el color de acción (BD-076): --accion mide 7,34:1 sobre --bg-base en claro y
+   ~7,8:1 en oscuro (#7FAAF0 sobre #0B1428), así que un solo token sirve para los dos temas.
+   Antes era --wine, que en oscuro daba 2,79:1 y necesitaba --wine-soft. */
+:focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; border-radius: var(--r-sm); }
 button:focus-visible, a:focus-visible { outline-offset: 3px; }
-/* En dark, --wine (#A8323E) da 2.79:1 contra el fondo → falla WCAG 1.4.11 (≥3:1).
-   El acento visible en dark es --wine-soft (#D89AA4, ~6:1). Ver BRAND.md ♿ + DS Cloud Design. */
-[data-theme="dark"] :focus-visible { outline-color: var(--wine-soft); }
 /* BD-017: sobre superficies navy fijas (sidebar) --wine es invisible (1.56:1) en cualquier
    tema → foco en cream/--ink-side. Aplicar el hook al contenedor navy. */
 [data-surface="navy"] :focus-visible,

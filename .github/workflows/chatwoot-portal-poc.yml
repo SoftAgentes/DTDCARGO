@@ -26,6 +26,9 @@ on:
       - "lib/studio/chatwoot/__tests__/portal-vuelta.poc.test.ts"
       - "lib/studio/chatwoot/portal-conciliar.ts"
       - "lib/studio/chatwoot/__tests__/portal-estado.poc.test.ts"
+      - "lib/studio/chatwoot/__tests__/contacto-erp.poc.test.ts"
+      - "lib/studio/chatwoot/__tests__/ficha-conversaciones.poc.test.ts"
+      - "lib/studio/chatwoot/ficha-conversaciones.ts"
       - "supabase/migrations/0519_chatwoot_portal.sql"
       - "supabase/tests/0519_chatwoot_portal.test.sql"
       - "supabase/tests/0519_chatwoot_portal_carrera.test.sql"
@@ -61,8 +64,8 @@ jobs:
       - name: Preparar pnpm 11 y Node 24
         uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
-          version: 11.19.0
-          runtime: node@24.22.1
+          version: 11.28.12
+          runtime: node@24.22.3
           cache: true
           install: false
 

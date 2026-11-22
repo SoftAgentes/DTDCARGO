@@ -10,11 +10,14 @@
  */
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
-import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, idDelPaquete, MARCA_SOLO_FACTURAS, naviera, puertoDestino, SUFIJO_SOLO_FACTURAS, type OpcionesSql } from "../consolidados/lote-sql";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { archivosDelLote, generar, parsearArgumentos, resumenMarkdown, SOLO_PRUEBA, sobrantesSoloPrueba } from "../consolidados/generar-lote";
+import ExcelJS from "exceljs";
+import {
+  archivosDelLote, carpetaLocal, generar, manifiestoDelPaquete, parsearArgumentos, resumenMarkdown, revisarTituloPacking, SOLO_PRUEBA, sobrantesSoloPrueba,
+} from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
   numero: 59,
@@ -408,20 +411,21 @@ describe("parsearArgumentos", () => {
 describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimiento de la #534)", () => {
   it("con --entorno produccion no se emiten deshacer.sql ni purgar.sql; en prueba sí", () => {
     const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
-    const archivosProd = archivosDelLote("produccion", prod, resumenMarkdown(lote(), prod, []));
-    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json", "resumen.md"]);
+    const archivosProd = archivosDelLote("produccion", prod);
+    expect(Object.keys(archivosProd)).toEqual(["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json"]);
     for (const n of SOLO_PRUEBA) expect(archivosProd).not.toHaveProperty(n);
-    expect(archivosProd["resumen.md"]).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
-    expect(archivosProd["resumen.md"]).not.toContain("--crear-clientes-faltantes");
+    const resumenProd = resumenMarkdown(lote(), prod, []);
+    expect(resumenProd).toContain("no trae** `deshacer.sql` ni `purgar.sql`");
+    expect(resumenProd).not.toContain("--crear-clientes-faltantes");
 
     const prueba = generarSql(lote(), OPCIONES, FUENTES);
-    const archivosPrueba = archivosDelLote("prueba", prueba, resumenMarkdown(lote(), prueba, []));
+    const archivosPrueba = archivosDelLote("prueba", prueba);
     expect(Object.keys(archivosPrueba)).toEqual([
-      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json", "resumen.md",
+      "previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "deshacer.sql", "purgar.sql", "manifiesto.json",
     ]);
     expect(archivosPrueba["deshacer.sql"]).toBe(prueba.deshacer);
     expect(archivosPrueba["purgar.sql"]).toBe(prueba.purgar);
-    expect(archivosPrueba["resumen.md"]).toContain("`purgar.sql` para el borrado definitivo en prueba");
+    expect(resumenMarkdown(lote(), prueba, [])).toContain("`purgar.sql` para el borrado definitivo en prueba");
   });
 
   it("generar() con --entorno produccion se niega si la carpeta de salida ya trae deshacer.sql o purgar.sql, sin escribir nada", async () => {
@@ -446,5 +450,368 @@ describe("SDD-0543 F2 · paquete de producción sin deshacer ni purgar (seguimie
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+/** Nombres de marca inventados: tienen que quedar en la carpeta local y nunca en el paquete de producción. */
+const NOMBRES_SECRETOS = ["NOMBRESECRETOUNO", "NOMBRESECRETODOS"];
+
+/** Rastreo y packing inventados del contenedor DTD #64, con el número de título que se pida. */
+async function armarLibros(dir: string, tituloPacking: number): Promise<{ rastreo: string; packing: string }> {
+  const rastreo = path.join(dir, "rastreo.xlsx");
+  const packing = path.join(dir, `packing-${tituloPacking}.xlsx`);
+  const wr = new ExcelJS.Workbook();
+  const wsr = wr.addWorksheet("DTD");
+  wsr.getRow(3).values = [undefined, "# CONTENEDOR", "FCL/DDP", "NOMBRE PUERTO", "FECHA DE CARGA", "NRO DE CONTENEDOR", "PRECINTO", "EMPRESA", "LLEGA A PUERTO", "FECHA APROX. DE LLEGADA"];
+  wsr.getRow(4).values = [undefined, "DTD#64", "DDP", "YIWU", new Date(Date.UTC(2026, 8, 29)), "ABCU6464646", undefined, "CMA CGM", "la guaira", new Date(Date.UTC(2026, 11, 12))];
+  await wr.xlsx.writeFile(rastreo);
+  const wp = new ExcelJS.Workbook();
+  const wsp = wp.addWorksheet("Hoja1");
+  wsp.getRow(2).getCell(1).value = `CONTENEDOR DTD # ${tituloPacking} YW: SEPTIEMBRE 2026 SALIDA`;
+  wsp.getRow(3).values = ["marca de la caja", "Remitente", "Descripciones de paquetes", "cajas", "Peso (kg)", "CBM CHINA", "CBM A FACTURA", "CONSOLIDADO KG EXTRA", "PRECIO X KG EXTRA", "VALOR $ KG EXTRA", "PRECIO VENTA CBM", "TOTAL FACTURADO", "Agente"];
+  wsp.getRow(4).values = [`DTD-J031 ${NOMBRES_SECRETOS[0]}`, "DTD-J031-05", "Cajas de prueba", 2, 100, 1, 1, 0, 0, 0, 500, 500, "Agente Prueba"];
+  wsp.getRow(5).values = [`DC-014 ${NOMBRES_SECRETOS[1]}`, "DC-014-11", "Cajas de prueba", 3, 120, 0.5, 0.5, 0, 0, 0, 600, 300, "Agente Prueba"];
+  await wp.xlsx.writeFile(packing);
+  return { rastreo, packing };
+}
+
+describe("SDD-0543 F2 · --correlativo-origen: el título del packing trae el correlativo de China", () => {
+  const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out"];
+
+  it("parsearArgumentos valida la bandera y deja --ignorar-titulo-packing sólo para prueba", () => {
+    expect(parsearArgumentos(base).correlativoOrigen).toBeUndefined();
+    expect(parsearArgumentos([...base, "--correlativo-origen", "61"])).toMatchObject({ contenedor: 64, correlativoOrigen: 61, ignorarTituloPacking: false });
+    expect(parsearArgumentos([...base, "--entorno", "produccion", "--correlativo-origen", "61"])).toMatchObject({ entorno: "produccion", correlativoOrigen: 61 });
+    for (const malo of ["0", "-3", "6x", "61.5", "12345"]) {
+      expect(() => parsearArgumentos([...base, "--correlativo-origen", malo])).toThrow(/entero positivo|Falta el valor/);
+    }
+    expect(() => parsearArgumentos([...base, "--correlativo-origen", "64"])).toThrow(/igual a --contenedor/);
+    expect(() => parsearArgumentos([...base, "--correlativo-origen", "61", "--ignorar-titulo-packing"])).toThrow(/no van juntos/);
+    const fcl = ["--rastreo", "r.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out", "--modalidad", "fcl", "--dueno", "DTD-9038"];
+    expect(() => parsearArgumentos([...fcl, "--correlativo-origen", "61"])).toThrow(/exige --packing/);
+    expect(parsearArgumentos([...base, "--ignorar-titulo-packing"]).ignorarTituloPacking).toBe(true);
+    expect(() => parsearArgumentos([...base, "--entorno", "produccion", "--ignorar-titulo-packing"])).toThrow(/sólo se permite con --entorno prueba/);
+  });
+
+  for (const entorno of ["prueba", "produccion"] as const) {
+    it(`revisarTituloPacking (${entorno}): igual pasa, distinto sin bandera se niega, bandera correcta pasa con el mapeo, bandera incorrecta se niega`, () => {
+      const sin = parsearArgumentos([...base, "--entorno", entorno]);
+      const con = parsearArgumentos([...base, "--entorno", entorno, "--correlativo-origen", "61"]);
+      // Título igual al contenedor, sin bandera: pasa sin aviso (también sin número legible en el título).
+      expect(revisarTituloPacking(64, sin)).toBeNull();
+      expect(revisarTituloPacking(null, sin)).toBeNull();
+      // Título distinto, sin bandera: el rechazo de siempre, que ahora sugiere la bandera.
+      expect(() => revisarTituloPacking(61, sin)).toThrow("El packing list dice contenedor #61 y pediste el #64");
+      // Bandera correcta: pasa y el aviso registra el mapeo.
+      expect(revisarTituloPacking(61, con)).toBe(
+        "Correlativo de origen: el título del packing list dice #61 (correlativo de China); el lote es del contenedor DTD #64 (--correlativo-origen 61).",
+      );
+      // Bandera que no coincide con el título, o título sin número: se niega.
+      expect(() => revisarTituloPacking(62, con)).toThrow("El packing list dice contenedor #62 y --correlativo-origen dice 61");
+      expect(() => revisarTituloPacking(64, con)).toThrow("--correlativo-origen dice 61");
+      expect(() => revisarTituloPacking(null, con)).toThrow(/no leo el número del título/);
+    });
+  }
+
+
+  it("generar() en producción: con la bandera correcta escribe el mapeo en manifiesto y resumen; sin bandera o con otra se niega sin escribir", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-correlativo-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 61);
+      const argv = (salida: string, ...extra: string[]) =>
+        parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", "produccion", ...extra]);
+
+      const negada = path.join(dir, "negada");
+      await expect(generar(argv(negada))).rejects.toThrow("El packing list dice contenedor #61 y pediste el #64");
+      await expect(generar(argv(negada, "--correlativo-origen", "62"))).rejects.toThrow("--correlativo-origen dice 62");
+      expect(readdirSync(dir).sort()).toEqual(["packing-61.xlsx", "rastreo.xlsx"]);
+
+      const salida = path.join(dir, "lote");
+      const { archivos } = await generar(argv(salida, "--correlativo-origen", "61"));
+      expect(archivos).not.toContain("deshacer.sql");
+      const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+      expect(man.entorno).toBe("produccion");
+      expect(man.lote).toMatch(/^carga-consolidado:64:[0-9a-f]{8}$/);
+      expect(man.contenedor).toMatchObject({ numero: 64, correlativoOrigen: 61, container_no: "ABCU6464646" });
+      const resumen = readFileSync(path.join(carpetaLocal(salida), "resumen.md"), "utf8");
+      expect(resumen).toContain("Correlativo de origen: **61 (China) → 64 (DTD)**");
+      expect(resumen).toContain("(--correlativo-origen 61)");
+      // El mapeo no cambia el SQL: el aplicar habla del contenedor DTD #64, nunca del 61.
+      const aplicar = readFileSync(path.join(salida, "aplicar.sql"), "utf8");
+      expect(aplicar).toContain("contenedor DTD #64");
+      expect(aplicar).not.toMatch(/#61\b/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("generar(): con el título igual al contenedor y sin bandera pasa, sin mapeo en el manifiesto", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-correlativo-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      for (const entorno of ["prueba", "produccion"]) {
+        const salida = path.join(dir, `lote-${entorno}`);
+        await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", entorno]));
+        const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+        expect(man.contenedor.numero).toBe(64);
+        expect(man.contenedor).not.toHaveProperty("correlativoOrigen");
+        expect(readFileSync(path.join(carpetaLocal(salida), "resumen.md"), "utf8")).not.toContain("Correlativo de origen");
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("SDD-0543 F2 · empaque mínimo: al servidor sube sólo lo que aplicar-lote.sh necesita", () => {
+  it("manifiestoDelPaquete deja afuera clientes, embarques y avisos, y conserva lo que lee el guion", () => {
+    const s = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const p = manifiestoDelPaquete(s.manifiesto);
+    for (const k of ["clientes", "embarques", "avisos"]) expect(p).not.toHaveProperty(k);
+    expect(p).toMatchObject({ lote: s.manifiesto.lote, entorno: "produccion", esperado: s.manifiesto.esperado, contenedor: s.manifiesto.contenedor });
+    expect(JSON.stringify(p)).not.toContain("nombreExcel");
+    // El original en memoria sigue completo: verificar.sql y el resumen lo usan.
+    expect(s.manifiesto.clientes.length).toBeGreaterThan(0);
+  });
+
+  it("generar() en producción: paquete sin resumen ni nombres, SHA256SUMS sólo del paquete, y lo local en <salida>-local", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      const r = await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", "produccion"]));
+      const paquete = ["previa.sql", "simulacro.sql", "aplicar.sql", "verificar.sql", "manifiesto.json"];
+      expect(readdirSync(salida).sort()).toEqual([...paquete, "SHA256SUMS"].sort());
+      expect(r.archivos).toEqual([...paquete, "SHA256SUMS"]);
+      expect(r.carpetaLocal).toBe(`${salida}-local`);
+      expect(readdirSync(r.carpetaLocal).sort()).toEqual(["manifiesto-completo.json", "resumen.md"]);
+      // SHA256SUMS cubre exactamente los archivos del paquete, y nada de la carpeta local.
+      const sumas = readFileSync(path.join(salida, "SHA256SUMS"), "utf8").trim().split("\n").map((l) => l.split("  ")[1]);
+      expect(sumas).toEqual(paquete);
+      // Ningún archivo del paquete trae los nombres de marca del Excel ni la clave nombreExcel.
+      for (const n of readdirSync(salida)) {
+        const t = readFileSync(path.join(salida, n), "utf8");
+        for (const nombre of NOMBRES_SECRETOS) expect(t, `${n} trae un nombre de marca`).not.toContain(nombre);
+        expect(t, `${n} trae nombreExcel`).not.toContain("nombreExcel");
+      }
+      const man = JSON.parse(readFileSync(path.join(salida, "manifiesto.json"), "utf8"));
+      expect(man).toMatchObject({ entorno: "produccion", esperado: { envios: 2, recepciones: 2 } });
+      expect(man.lote).toMatch(/^carga-consolidado:64:[0-9a-f]{8}$/);
+      // La carpeta local sí los trae: es la que cruza etiquetas con nombres.
+      const completo = readFileSync(path.join(r.carpetaLocal, "manifiesto-completo.json"), "utf8");
+      const resumen = readFileSync(path.join(r.carpetaLocal, "resumen.md"), "utf8");
+      for (const nombre of NOMBRES_SECRETOS) {
+        expect(completo).toContain(nombre);
+        expect(resumen).toContain(nombre);
+      }
+      expect(JSON.parse(completo).lote).toBe(man.lote);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("en prueba el nombre de la marca sigue viajando (lo usan los clientes faltantes), pero tampoco hay resumen en el paquete", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      await generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--crear-clientes-faltantes"]));
+      expect(readdirSync(salida)).not.toContain("resumen.md");
+      expect(readdirSync(salida)).toEqual(expect.arrayContaining(["deshacer.sql", "purgar.sql"]));
+      expect(readFileSync(path.join(salida, "aplicar.sql"), "utf8")).toContain(NOMBRES_SECRETOS[0]);
+      expect(readFileSync(path.join(salida, "manifiesto.json"), "utf8")).not.toContain("nombreExcel");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("--sin-facturas: aplicar.sql y simulacro.sql no traen las líneas con precio; con facturas sí", () => {
+    const con = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    const sin = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false, facturas: false }, FUENTES);
+    expect(con.aplicar).toContain("insert into lote_lineas values");
+    for (const t of [sin.aplicar, sin.simulacro]) {
+      expect(t).toContain("create temp table lote_lineas");
+      expect(t).not.toContain("insert into lote_lineas values");
+      expect(t).not.toContain("Flete DDP ·");
+    }
+    expect(sin.manifiesto.esperado).toMatchObject({ facturas: 0, base: 0 });
+  });
+
+  it("generar() se niega si la carpeta de salida ya trae un resumen.md de una corrida anterior, sin escribir nada", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "consolidados-empaque-"));
+    try {
+      const { rastreo, packing } = await armarLibros(dir, 64);
+      const salida = path.join(dir, "lote");
+      mkdirSync(salida);
+      writeFileSync(path.join(salida, "resumen.md"), "# viejo\n");
+      for (const entorno of ["prueba", "produccion"]) {
+        await expect(
+          generar(parsearArgumentos(["--rastreo", rastreo, "--packing", packing, "--contenedor", "64", "--eta", "2026-12-12", "--salida", salida, "--entorno", entorno])),
+        ).rejects.toThrow("La carpeta de salida ya trae resumen.md");
+      }
+      expect(readdirSync(salida)).toEqual(["resumen.md"]);
+      expect(readdirSync(dir)).not.toContain("lote-local");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("SDD-0690 · --solo-facturas: las pre-órdenes de un contenedor ya cargado", () => {
+  const SOLO: OpcionesSql = { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false, soloFacturas: true };
+  const solo = () => generarSql(lote(), SOLO, FUENTES);
+  const bloque = (t: string) => t.slice(t.indexOf("do $lote$"), t.indexOf("$lote$;"));
+
+  it("aplicar y simulacro no escriben consolidación, envíos, recepciones ni ítems: sólo facturas en borrador", () => {
+    const s = solo();
+    for (const t of [s.aplicar, s.simulacro]) {
+      expect(t).not.toMatch(
+        /insert\s+into\s+public\.(consolidations|consolidation_items|shipments|shipment_events|warehouse_receipts_cn|warehouse_receipt_items|warehouse_receipt_events|sailings|carriers|ports|clients|aliados|expenses)\b/i,
+      );
+      expect(t).not.toMatch(/\bupdate\s+public\./i);
+      expect(t).not.toMatch(/\bdelete\s+from\s+public\./i);
+      expect(t.match(/insert into public\.invoices/g)).toHaveLength(1);
+      expect(t).toContain("'USD', v_iva_rate, v_base, v_iva, v_total, 'borrador', v_lines");
+      expect(t).toContain("v_code := public.next_invoice_code(v_tenant);");
+      expect(t).toContain("'invoice_imported'");
+      expect(t.match(/public\.append_audit_event\(/g)).toHaveLength(1);
+      // Las mismas líneas que hoy: las de la preorden del Excel, con su shipmentCode.
+      expect(t).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+      expect(t).toContain("'shipmentCode', remitente");
+      // La marca del lote en notes, más la de esta carga.
+      expect(t).toContain("'Carga ' || cab.lote || ' · contenedor DTD #'");
+      expect(t).toContain(`' · ${MARCA_SOLO_FACTURAS}'`);
+      // Ningún alias de tabla de una letra igual a una variable del bloque.
+      expect(bloque(t)).not.toMatch(/\b(?:from|join)\s+[^\s(]+\s+(?:as\s+)?[cefrm]\b(?!\.)/i);
+    }
+    expect(s.manifiesto.modo).toBe("solo-facturas");
+    expect(manifiestoDelPaquete(s.manifiesto).modo).toBe("solo-facturas");
+    expect(generarSql(lote(), OPCIONES, FUENTES).manifiesto.modo).toBeUndefined();
+  });
+
+  it("su preflight exige el contenedor cargado con el lote y en exc0674_contenedores, y no aborta porque ya haya facturas", () => {
+    const t = solo().aplicar;
+    expect(t).toContain("from public.exc0674_contenedores xc");
+    expect(t).toContain("where xc.tenant_id = v_tenant and xc.consolidation_id = v_cons");
+    expect(t).toContain("raise exception 'preflight solo-facturas: el contenedor % no está en exc0674_contenedores; no se cargan pre-órdenes fuera de la lista'");
+    expect(t).toContain("raise exception 'preflight solo-facturas: el contenedor % no está cargado vivo con el lote %");
+    expect(t).toContain("raise exception 'preflight solo-facturas: % de % envíos del lote no están cargados vivos en el contenedor %'");
+    expect(t).toContain("join vigente vg on vg.shipment_id = sh.id and vg.consolidation_id = v_cons;");
+    // El preflight normal no va: el contenedor y las facturas del lote ya existen.
+    expect(t).not.toContain("preflight: el contenedor % ya está cargado");
+    expect(t).not.toContain("preflight: ya hay facturas del lote");
+    expect(t).not.toContain("preflight: el lote % ya está aplicado");
+    for (const aviso of ["no está en exc0674_contenedores", "no están cargados vivos"]) {
+      expect(t.indexOf(aviso)).toBeLessThan(t.indexOf("insert into public.invoices"));
+    }
+    // El script normal no conoce la lista.
+    expect(generarSql(lote(), OPCIONES, FUENTES).aplicar).not.toContain("exc0674");
+  });
+
+  it("por cliente es idempotente: con una factura viva sobre sus envíos se salta, antes de pedir código", () => {
+    const t = solo().aplicar;
+    expect(t).toContain(
+      [
+        "    if exists (",
+        "      select 1 from public.invoices iv",
+        "       where iv.tenant_id = v_tenant and iv.deleted_at is null and iv.status <> 'anulada'",
+        "         and (iv.shipment_id = any(v_ships)",
+        "              or exists (select 1 from public.exc0674_factura_envios fe",
+        "                          where fe.invoice_id = iv.id and fe.shipment_id = any(v_ships)))",
+        "    ) then",
+        "      v_n_saltados := v_n_saltados + 1;",
+        "      continue;",
+        "    end if;",
+      ].join("\n"),
+    );
+    expect(t.indexOf("v_n_saltados := v_n_saltados + 1;")).toBeLessThan(t.indexOf("public.next_invoice_code(v_tenant)"));
+    expect(t).toContain("v_n_sin_lineas := v_n_sin_lineas + 1;");
+    // Misma llave de bloqueo que exc0674_facturar (0564).
+    expect(t).toContain("pg_advisory_xact_lock(hashtextextended('exc0674:' || v_tenant::text || ':' || v_cons::text || ':' || v_mb, 0))");
+    // Avisos con conteos, nunca montos ni nombres.
+    const avisos = t.split("\n").filter((l) => /raise (notice|exception)/.test(l));
+    expect(avisos.length).toBeGreaterThan(0);
+    for (const l of avisos) expect(l).not.toMatch(/v_base|v_total|v_iva\b|nombre|\.name|c\.clave/);
+    expect(t).toContain("raise notice 'solo-facturas lote % · contenedor % · % Shipping Marks · % clientes con pre-orden nueva · % saltados (ya tenían factura viva) · % sin líneas'");
+    // SDD-0690: una pre-orden por Shipping Mark vivo de los envíos, no por clave del Excel.
+    expect(t).toContain("select lc.markbox, min(lc.orden) as primero\n      from lote_cargados lc\n     group by lc.markbox");
+    expect(t).not.toContain("group by lc.clave");
+    expect(t).not.toContain("no comparten un Shipping Mark");
+  });
+
+  it("el paquete tiene id propio (carga + «:facturas»); el contenedor se sigue buscando por el id de la carga", () => {
+    const s = solo();
+    const id = `${SOLO.lote}${SUFIJO_SOLO_FACTURAS}`;
+    expect(SUFIJO_SOLO_FACTURAS).toBe(":facturas");
+    expect(idDelPaquete(SOLO)).toBe(id);
+    expect(idDelPaquete(OPCIONES)).toBe(OPCIONES.lote);
+    expect(s.manifiesto.lote).toBe(id);
+    expect(manifiestoDelPaquete(s.manifiesto).lote).toBe(id);
+    // La carga normal no cambia de id.
+    expect(generarSql(lote(), OPCIONES, FUENTES).manifiesto.lote).toBe(OPCIONES.lote);
+    // aplicar-lote.sh exige el id del paquete dentro de cada script que corre (grep -F).
+    for (const t of [s.previa, s.simulacro, s.aplicar, s.verificar, s.deshacer, s.purgar]) expect(t).toContain(id);
+    // El aviso del simulacro nombra el id del paquete: es lo que aplicar-lote.sh busca en su evidencia.
+    expect(s.simulacro).toContain("cab.lote || ':facturas', cab.contenedor, v_n_marcas, v_n_facturas, v_n_saltados, v_n_sin_lineas;");
+    // lote_cab y el preflight siguen con el id de la carga, que es el que quedó en las notas del contenedor.
+    expect(s.aplicar).toContain(`'${SOLO.lote}', 'ABCU1234567'`);
+    expect(s.aplicar).not.toContain(`'${id}', 'ABCU1234567'`);
+    expect(s.aplicar).toContain("and notes like '%' || cab.lote || '%';");
+    expect(s.previa).toContain(`cn.notes like '%' || '${SOLO.lote}' || '%'`);
+  });
+
+  it("el exceso de peso se elige al generar: con o sin sus líneas", () => {
+    const con = generarSql(lote(), SOLO, FUENTES).aplicar;
+    const sin = generarSql(agruparLote(RASTREO, FILAS, { eta: "2026-10-19", excesoPeso: false }), SOLO, FUENTES).aplicar;
+    expect(con).toContain("'Exceso de peso · DTD-A116-06");
+    expect(sin).not.toContain("Exceso de peso");
+    expect(sin).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "59", "--eta", "2026-10-19", "--salida", "x", "--solo-facturas", "--entorno", "produccion"];
+    expect(parsearArgumentos([...base, "--sin-exceso-peso"])).toMatchObject({ soloFacturas: true, excesoPeso: false });
+    expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: true, excesoPeso: true });
+  });
+
+  it("--solo-facturas no va con --sin-facturas, ni crea clientes ni registra el gasto", () => {
+    const base = ["--rastreo", "r.xlsx", "--packing", "p.xlsx", "--contenedor", "64", "--eta", "2026-12-12", "--salida", "out"];
+    expect(parsearArgumentos(base)).toMatchObject({ soloFacturas: false, facturas: true });
+    expect(parsearArgumentos([...base, "--solo-facturas", "--entorno", "produccion"])).toMatchObject({ soloFacturas: true, facturas: true, entorno: "produccion" });
+    expect(() => parsearArgumentos([...base, "--solo-facturas", "--sin-facturas"])).toThrow(/--solo-facturas y --sin-facturas no van juntos/);
+    expect(() => parsearArgumentos([...base, "--sin-facturas", "--solo-facturas"])).toThrow(/no van juntos/);
+    expect(() => parsearArgumentos([...base, "--solo-facturas", "--crear-clientes-faltantes"])).toThrow(/no crea clientes/);
+    expect(() =>
+      parsearArgumentos([...base, "--solo-facturas", "--modalidad", "mixto", "--dueno", "HR", "--gasto-espacio", "100", "--gasto-usuario", "a@b.test"]),
+    ).toThrow(/gasto por espacio/);
+    expect(() => generarSql(lote(), { ...SOLO, facturas: false }, FUENTES)).toThrow(/no van juntos/);
+    expect(() => generarSql(lote(), { ...SOLO, entorno: "prueba", crearClientesFaltantes: true }, FUENTES)).toThrow(/no crea clientes/);
+  });
+
+  it("el ensayo (simulacro.sql) corre el mismo cuerpo y termina en rollback; aplicar es una transacción con commit", () => {
+    const s = solo();
+    expect(s.simulacro.startsWith("\\set ON_ERROR_STOP on")).toBe(true);
+    expect(s.simulacro.match(/^begin;$/gm)).toHaveLength(1);
+    expect(s.simulacro.trimEnd().endsWith("rollback;")).toBe(true);
+    expect(s.simulacro).not.toMatch(/^commit;$/m);
+    expect(s.aplicar.match(/^begin;$/gm)).toHaveLength(1);
+    expect(s.aplicar.trimEnd().endsWith("commit;")).toBe(true);
+    expect(s.aplicar).not.toMatch(/^rollback;$/m);
+    expect(bloque(s.simulacro)).toBe(bloque(s.aplicar));
+  });
+
+  it("previa y verificar sólo leen y sólo cuentan; deshacer y purgar tocan sólo sus pre-órdenes", () => {
+    const s = generarSql(lote(), { ...SOLO, entorno: "prueba" }, FUENTES);
+    for (const t of [s.previa, s.verificar]) {
+      expect(t).toMatch(/^begin transaction read only;$/m);
+      expect(t.trimEnd().endsWith("rollback;")).toBe(true);
+      expect(t).not.toMatch(/base_amount|total_amount|client_name|PRUEBA O''HIGGINS|ALIADO PRUEBA MM/);
+    }
+    expect(s.previa).toContain("as en_lista_exc0674");
+    expect(s.previa).toContain("as clientes_con_factura_viva");
+    expect(s.verificar).toContain("clientes con más de una factura viva");
+    for (const t of [s.deshacer, s.purgar]) {
+      expect(t).toContain(`notes like '%${MARCA_SOLO_FACTURAS}%'`);
+      expect(t).not.toMatch(/public\.(consolidations|shipments|warehouse_receipts_cn|consolidation_items|clients)\b(?! where id = '05400000)/);
+      expect(t).toContain("'05400000-0000-4000-8000-000000000101'::uuid");
+    }
+    expect(s.deshacer).toContain("status <> 'borrador'");
   });
 });

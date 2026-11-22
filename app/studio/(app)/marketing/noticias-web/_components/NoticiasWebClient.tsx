@@ -959,7 +959,7 @@ export function NoticiasWebClient() {
                 type="button"
                 onClick={handleBack}
                 disabled={isPending}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-accion hover:text-accion-text text-[13px] font-semibold transition-colors disabled:opacity-50"
               >
                 <span className="inline-flex" aria-hidden>
                   {Icon.arrowL(14)}

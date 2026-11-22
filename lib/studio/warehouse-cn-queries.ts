@@ -5,6 +5,10 @@
  * global (todos los autenticados ven los activos).
  */
 
+import { roundCbm } from "@/lib/shared/cbm";
+import { fetchAllPaged } from "@/lib/db/paginate";
+import { situacionDeRecepcion } from "./almacen-cn-contenedores";
+import { leerContenedorVigentePorEnvio } from "./almacen-cn-contenedores-queries";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   WarehouseCN,
@@ -26,8 +30,24 @@ export type ReceiptFilters = {
   hub?: string;
   /** Code exacto de un warehouse: 'YIW-A1', etc. (más específico que hub) */
   warehouseCode?: string;
-  status?: WarehouseReceiptStatus | "all";
+  /**
+   * SDD-0682: `en_almacen` (por defecto) = lo que está físicamente en la bodega
+   * (pendiente de consolidar + incidencia). `all` trae también lo consolidado,
+   * que ya salió hacia un contenedor.
+   */
+  status?: WarehouseReceiptStatus | "all" | "en_almacen";
 };
+
+/**
+ * SDD-0682: estados que se piden a la base para «En almacén». Lo consolidado
+ * entra también, y después `leerSalidasDeAlmacen` saca lo que ya zarpó o llegó
+ * (Sam, 2026-11-20: hasta que el contenedor zarpe, «quedan en almacén»).
+ */
+export const ESTADOS_EN_ALMACEN: readonly WarehouseReceiptStatus[] = [
+  "pendiente_consolidacion",
+  "incidencia",
+  "consolidado",
+];
 
 const VALID_STATUSES: WarehouseReceiptStatus[] = [
   "pendiente_consolidacion",
@@ -102,64 +122,54 @@ export async function listWarehouses(
 export async function listReceipts(
   supabase: SupabaseClient,
   filters: ReceiptFilters = {},
-  opts: { redactClientNames?: boolean } = {},
+  opts: { redactClientNames?: boolean; salidas?: SalidasDeAlmacen } = {},
 ): Promise<WarehouseReceiptRow[]> {
-  let query = supabase
-    .from("warehouse_receipts_cn")
-    .select(RECEIPT_LIST_SELECT)
-    .is("deleted_at", null)
-    .order("received_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const bodegas = await bodegasDelFiltro(supabase, filters);
+  if (bodegas === "ninguna") return [];
+  const busqueda = busquedaDelFiltro(filters);
 
-  if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
-  }
-
-  // Filtro exacto por warehouse_code → resolver a id primero
-  if (filters.warehouseCode && filters.warehouseCode.trim()) {
-    const { data: wh } = await supabase
-      .from("warehouses_cn")
-      .select("id")
-      .eq("code", filters.warehouseCode.trim())
-      .maybeSingle<{ id: string }>();
-    if (wh?.id) {
-      query = query.eq("warehouse_id", wh.id);
-    } else {
-      // warehouse_code inválido → no rows
-      return [];
+  // Cada página arma su consulta desde cero: un builder de supabase-js no se reusa.
+  const armar = () => {
+    let query = supabase
+      .from("warehouse_receipts_cn")
+      .select(RECEIPT_LIST_SELECT)
+      .is("deleted_at", null)
+      .order("received_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (filters.status === "en_almacen") {
+      query = query.in("status", [...ESTADOS_EN_ALMACEN]);
+    } else if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
     }
-  } else if (filters.hub && VALID_HUB_PREFIXES.includes(filters.hub)) {
-    // Filtro por prefix de hub → resolver a array de ids
-    const { data: hubs } = await supabase
-      .from("warehouses_cn")
-      .select("id")
-      .eq("hub_code", filters.hub)
-      .eq("active", true);
-    const ids = (hubs ?? []).map((h: { id: string }) => h.id);
-    if (ids.length === 0) return [];
-    query = query.in("warehouse_id", ids);
-  }
+    if (bodegas) query = query.in("warehouse_id", bodegas);
+    if (busqueda) query = query.or(busqueda);
+    return query;
+  };
 
-  if (filters.q && filters.q.trim()) {
-    const q = filters.q
-      .trim()
-      .replace(/[,()]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    query = query.or(
-      [
-        `receipt_code.ilike.%${q}%`,
-        `client_name.ilike.%${q}%`,
-        `client_markbox.ilike.%${q}%`,
-        `supplier_name.ilike.%${q}%`,
-        `supplier_name_translated.ilike.%${q}%`,
-      ].join(","),
-    );
+  let data: unknown[];
+  let salidas: SalidasDeAlmacen | null = null;
+  if (filters.status === "en_almacen") {
+    // SDD-0682: se pide por páginas y se salta lo que ya salió de la bodega, para
+    // que las recepciones de un contenedor zarpado no tapen a las que siguen aquí.
+    salidas = opts.salidas ?? (await leerSalidasDeAlmacen(supabase, filters));
+    const quedan: unknown[] = [];
+    for (let pagina = 0; pagina < PAGINAS_EN_ALMACEN && quedan.length < TOPE_LISTA; pagina++) {
+      const desde = pagina * TAMANO_PAGINA;
+      const { data: filas, error } = await armar().range(desde, desde + TAMANO_PAGINA - 1);
+      if (error) throw error;
+      const lista = (filas ?? []) as unknown as { id: string }[];
+      for (const f of lista) {
+        if (!salidas.fuera.has(f.id)) quedan.push(f);
+      }
+      if (lista.length < TAMANO_PAGINA) break;
+    }
+    data = quedan.slice(0, TOPE_LISTA);
+  } else {
+    const { data: filas, error } = await armar().limit(TOPE_LISTA);
+    if (error) throw error;
+    data = filas ?? [];
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
 
   // Supabase devuelve las relaciones como arrays incluso en FK 1:1
   // (`warehouse` viene `[{...}]`, `items_count` viene `[{count: N}]`).
@@ -199,6 +209,8 @@ export async function listReceipts(
       items_count: Array.isArray(r.items_count)
         ? (r.items_count[0]?.count ?? 0)
         : (r.items_count ?? 0),
+      // SDD-0682: consolidada en un contenedor que aún no zarpa.
+      contenedor_sin_zarpar: salidas?.sinZarpar.get(r.id) ?? null,
     } satisfies WarehouseReceiptRow;
   });
 }
@@ -311,9 +323,120 @@ export async function computeWarehouseKpis(
   return {
     receiptsThisMonth,
     pendingCount,
-    cbmInWarehouse: Math.round(cbmInWarehouse * 1000) / 1000,
+    cbmInWarehouse: roundCbm(cbmInWarehouse),
     incidentsCount,
   };
+}
+
+/**
+ * Bodegas que deja pasar el filtro de hub o de código. `null` = sin filtro de
+ * bodega; `"ninguna"` = el filtro no coincide con ninguna bodega (cero filas).
+ */
+async function bodegasDelFiltro(
+  supabase: SupabaseClient,
+  filters: ReceiptFilters,
+): Promise<string[] | null | "ninguna"> {
+  // Filtro exacto por warehouse_code → resolver a id primero
+  if (filters.warehouseCode && filters.warehouseCode.trim()) {
+    const { data: wh } = await supabase
+      .from("warehouses_cn")
+      .select("id")
+      .eq("code", filters.warehouseCode.trim())
+      .maybeSingle<{ id: string }>();
+    return wh?.id ? [wh.id] : "ninguna";
+  }
+  if (filters.hub && VALID_HUB_PREFIXES.includes(filters.hub)) {
+    // Filtro por prefix de hub → resolver a array de ids
+    const { data: hubs } = await supabase
+      .from("warehouses_cn")
+      .select("id")
+      .eq("hub_code", filters.hub)
+      .eq("active", true);
+    const ids = (hubs ?? []).map((h: { id: string }) => h.id);
+    return ids.length === 0 ? "ninguna" : ids;
+  }
+  return null;
+}
+
+/** Expresión `or` de PostgREST para la búsqueda de texto; `null` sin búsqueda. */
+function busquedaDelFiltro(filters: ReceiptFilters): string | null {
+  if (!filters.q || !filters.q.trim()) return null;
+  const q = filters.q
+    .trim()
+    .replace(/[,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return [
+    `receipt_code.ilike.%${q}%`,
+    `client_name.ilike.%${q}%`,
+    `client_markbox.ilike.%${q}%`,
+    `supplier_name.ilike.%${q}%`,
+    `supplier_name_translated.ilike.%${q}%`,
+  ].join(",");
+}
+
+const TOPE_LISTA = 100;
+const TAMANO_PAGINA = 200;
+/** Hasta 5.000 filas recorridas para llenar las 100 de «En almacén». */
+const PAGINAS_EN_ALMACEN = 25;
+
+/**
+ * SDD-0682: qué recepciones consolidadas ya no están en la bodega.
+ *  - `fuera`: ids que no van en «En almacén» (su contenedor zarpó o llegó).
+ *  - `enCamino`: cuántas van en un contenedor zarpado: las que se ven en «En
+ *    camino». Es el número del aviso, así su enlace dice la verdad.
+ *  - `sinZarpar`: las que siguen en la bodega dentro de un contenedor que aún no
+ *    zarpa, con su nombre para la etiqueta.
+ */
+export type SalidasDeAlmacen = {
+  fuera: Set<string>;
+  enCamino: number;
+  sinZarpar: Map<string, { numeroDtd: number | null; ref: string | null }>;
+};
+
+/**
+ * Lee las recepciones consolidadas (con los mismos filtros de bodega y búsqueda
+ * que la tabla; RLS acota al tenant), el contenedor vigente de cada envío
+ * (`leerContenedorVigentePorEnvio`: la línea más reciente en un contenedor vivo,
+ * la misma que usa «En camino») y decide con `situacionDeRecepcion`. Solo lee.
+ */
+export async function leerSalidasDeAlmacen(
+  supabase: SupabaseClient,
+  filters: ReceiptFilters = {},
+): Promise<SalidasDeAlmacen> {
+  const out: SalidasDeAlmacen = { fuera: new Set(), enCamino: 0, sinZarpar: new Map() };
+  const bodegas = await bodegasDelFiltro(supabase, filters);
+  if (bodegas === "ninguna") return out;
+  const busqueda = busquedaDelFiltro(filters);
+
+  const consolidadas = await fetchAllPaged<{ id: string; shipment_id: string | null }>((d, h) => {
+    let q = supabase
+      .from("warehouse_receipts_cn")
+      .select("id, shipment_id")
+      .is("deleted_at", null)
+      .eq("status", "consolidado");
+    if (bodegas) q = q.in("warehouse_id", bodegas);
+    if (busqueda) q = q.or(busqueda);
+    return q.order("id", { ascending: true }).range(d, h);
+  });
+  if (!consolidadas.complete) throw new Error("Las recepciones consolidadas superan el tope de lectura.");
+  const envios = consolidadas.rows.map((r) => r.shipment_id).filter((x): x is string => !!x);
+  if (envios.length === 0) return out;
+  const vigente = await leerContenedorVigentePorEnvio(supabase, envios);
+
+  for (const r of consolidadas.rows) {
+    const c = r.shipment_id ? (vigente.get(r.shipment_id) ?? null) : null;
+    const situacion = situacionDeRecepcion("consolidado", c);
+    if (situacion === "camino") {
+      out.fuera.add(r.id);
+      out.enCamino++;
+    } else if (situacion === "llego") {
+      out.fuera.add(r.id);
+    } else if (c) {
+      out.sinZarpar.set(r.id, { numeroDtd: c.numeroDtd, ref: c.ref });
+    }
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -332,10 +455,14 @@ export function parseReceiptFiltersFromSearchParams(
   };
 
   const statusRaw = single("status");
+  // SDD-0682: sin `?status=` (o con un valor que no existe) la pantalla abre en
+  // «En almacén». `?status=all` es la forma explícita de ver todo.
   const status: ReceiptFilters["status"] =
-    statusRaw && VALID_STATUSES.includes(statusRaw as WarehouseReceiptStatus)
-      ? (statusRaw as WarehouseReceiptStatus)
-      : "all";
+    statusRaw === "all"
+      ? "all"
+      : statusRaw && VALID_STATUSES.includes(statusRaw as WarehouseReceiptStatus)
+        ? (statusRaw as WarehouseReceiptStatus)
+        : "en_almacen";
 
   const hubRaw = single("hub");
   const hub =

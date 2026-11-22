@@ -3,7 +3,7 @@
 /**
  * MentionsInboxClient (SDD-0045) — lista interactiva de la bandeja de menciones.
  *
- * - read_at null → fila resaltada (dot wine) = no leída.
+ * - read_at null → fila resaltada (tinta y punto) = no leída; el lector lo oye como «No leída».
  * - click en una mención → marca leída (markMentionsRead) + navega a la entidad.
  * - "Marcar todas leídas" → markMentionsRead() sin scope.
  *
@@ -82,8 +82,8 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                 textAlign: "left",
                 width: "100%",
                 padding: "12px 14px",
-                background: unread ? "var(--wine-tint)" : "var(--bg-surface)",
-                border: `1px solid ${unread ? "var(--wine)" : "var(--border)"}`,
+                background: unread ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                border: `1px solid ${unread ? "var(--ink)" : "var(--border)"}`,
                 borderRadius: "var(--r-md)",
               }}
             >
@@ -93,11 +93,12 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   width: 8,
                   height: 8,
                   borderRadius: "var(--r-pill)",
-                  background: unread ? "var(--wine)" : "transparent",
+                  background: unread ? "var(--ink)" : "transparent",
                   marginTop: 6,
                   flexShrink: 0,
                 }}
               />
+              {unread && <span className="studio-sr-only">No leída. </span>}
               <Avatar
                 initials={item.author?.avatar ?? "??"}
                 size={32}
@@ -121,7 +122,8 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   <span
                     style={{
                       font: "600 10px/1 var(--f-sans)",
-                      color: "var(--wine-text)",
+                      // Sin leer, el fondo es el tinte de tinta: --ink-soft daría 4,36:1.
+                      color: unread ? "var(--ink)" : "var(--ink-soft)",
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                     }}
@@ -132,7 +134,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-soft)",
+                      color: unread ? "var(--ink)" : "var(--ink-soft)",
                       marginLeft: "auto",
                     }}
                   >
@@ -142,7 +144,7 @@ export function MentionsInboxClient({ items }: { items: MentionInboxItem[] }) {
                 <div
                   style={{
                     font: "500 12.5px/1.5 var(--f-sans)",
-                    color: "var(--ink-soft)",
+                    color: unread ? "var(--ink)" : "var(--ink-soft)",
                     overflow: "hidden",
                     display: "-webkit-box",
                     WebkitLineClamp: 2,

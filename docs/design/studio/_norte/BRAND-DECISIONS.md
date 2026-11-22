@@ -200,6 +200,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Decisión:** paleta de charts **categórica** (orden fijo de 6 tokens, wine protagonista), **semántica** (success/warning/danger/info/neutral solo para significado) y **secuencial** (un token con opacidad escalonada — **cero hex nuevos**). Máximo 6 series; verde/rojo nunca como categoría.
 - **Por qué:** `CLAUDE.md` prohibía colores random en charts pero no definía la secuencia oficial; el primer dashboard real la iba a improvisar.
 - **Regla viva en:** `Sistema de Datos · DTD-Cargo.html` · tokens en Brand Book §06.
+- **Enmienda (2026-11-20, BD-076 · SDD-0686 fase 2):** la serie protagonista y la rampa secuencial pasan de vino a **tinta** (`--ink` con opacidad escalonada, sin hex nuevos). Los estados de viaje («en tránsito», «en reparto», «última milla») van en `--info`, que es neutro. El rojo queda para la excepción. El azul no entra en los gráficos, para que una barra no parezca un botón. Sam aprobó la propuesta («cifras y gráficas en tinta, y estados neutros») con «Sí, así». El resto de BD-011 sigue igual: categórica de 6, semántica solo con significado, sin verde ni rojo como categoría.
 
 ### BD-012 · Accesibilidad → matriz de contraste de texto (WCAG)
 - **Fecha:** 2026-06-20
@@ -490,7 +491,9 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Contexto:** el contorno del botón secundario y de los campos medía 1,48:1 contra la tarjeta (mínimo 3:1), y botones, avisos y estados compartían el mismo cajón claro.
 - **Excepción:** VIS-01 §3 asigna la selección al vino. Un relleno vino en cada pestaña competiría con la acción principal (VIS-01 §5). Revisada por Sam el 2026-11-15, al cerrar SDD-0603: la excepción se mantiene (selección en tinta, no en vino).
 - **Enmienda de elevación (2026-11-12, aprobada por Sam):** los controles suben de nivel con sombra (primario `--shadow-md`, relleno `--shadow-sm`, secundario `--shadow-xs` con contorno de 1,5 px en `--ink`), los rellenos llevan en oscuro un borde propio (`--ctl-edge-hi`: luz arriba y aro `--ink-soft`, 6,86:1 contra la tarjeta, porque el vino solo da 2,26:1) y los verbos de botón van en peso 700 o más. Dos tokens nuevos de forma, `--ctl-border` y `--ctl-edge-hi`; ningún color nuevo. Detalle y tabla de niveles en SDD-0603 §Enmienda de elevación. Pendiente de llevar al Brand Book en el próximo NORTE-SYNC.
-- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603.
+- **Enmienda del tema del Portal (2026-11-17, aprobada por Sam):** el Portal del cliente abre en tema claro; el Studio sigue en oscuro. Quien ya eligió oscuro con el botón del Portal lo conserva: la cookie `portal-theme=dark` sigue mandando. Literal de Sam, en el chat del Director General, ante la pregunta «¿el portal del cliente abre en tema claro para todos?»: «Sí, tema claro». Es la D-14 de SDD-0654 (fase 1b). Ningún token ni color nuevo: el tema claro del Portal ya existía (tokens base más `[data-portal-theme]`, `app/globals.css:123`) y su contraste ya lo cubre el caso `claro-explicito` de `app/portal/__tests__/avisos-portal-contract.test.ts`.
+- **Regla viva en:** `BRAND.md` §Controles · `app/studio/studio.css` · `app/studio/CLAUDE.md` · SDD-0603 · `app/portal/(app)/layout.tsx` (tema del Portal, SDD-0654).
+- **Enmienda de color (2026-11-20, BD-076):** «El vino queda para la acción principal y la identidad» pasa a «el azul es la acción principal; el vino queda para la identidad». En el menú lateral, el icono de la selección deja el vino al migrar ese tramo. El resto de BD-037 sigue igual.
 
 ---
 
@@ -505,6 +508,52 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Valores:** claro `0 6px 8px -6px rgba(15,30,61,0.28)` y `6px 0 8px -6px rgba(15,30,61,0.28)`; oscuro con negro al 60 %. Al imprimir vuelven al claro, como el resto.
 - **Contexto:** en la `/ui-check` de la SDD-0635 (§14.1, hallazgo 3) las sombras de los bordes fijos estaban escritas con `rgba` sueltos, contra la regla de usar solo sombras del sistema.
 - **Regla viva en:** `BRAND.md` §Sombras · `app/studio/tokens.css` · SDD-0635 §3.8.
+
+---
+
+### EXC-0654-01 · Vino claro en la Vista simple del portal
+- **Fecha:** 2026-11-17
+- **Tipo:** Excepción L3 (VIS-01 §7), acotada y con fecha de revisión
+- **Estado:** Aprobada por Sam. Se aplica en la fase 2 de SDD-0654, con el interruptor `PORTAL_VISTA_SIMPLE` apagado hasta que Sam lo encienda.
+- **Autorizado por:** Sam (founder). Pedido literal: «El rojo siempre llama como si fuera un error: lo cambiamos por un rosado, un vino claro ya probado». Aprobación en el chat del Director General, a la pregunta «¿Apruebas las decisiones recomendadas de nómina (#631) y de la Vista simple (#633)?»: «Sí, ambas» (D-16).
+- **Objetivo:** que la acción principal no se confunda con un error en la vista para clientes nuevos.
+- **Regla que rompe:** `BRAND.md` §Light theme (`--wine-soft` «solo sobre fondo oscuro») y VIS-01 §3 (el vino es la acción primaria).
+- **Superficie:** solo la Vista simple del portal (`.vs`). La Vista Pro, el Studio y la web pública no cambian.
+- **Usos:** botón principal, avatar y parte «proveedor» del código. No selección, no texto, no error.
+- **Tokens:** relleno `--color-wine-soft` (claro) y `--color-wine-text` (noche); texto `--on-warning` (#0F1E3D) en los dos temas. Tintes declarados, sin colores nuevos: `--tint-ink`, `--tint-wine`, `--tint-ok`, `--tint-warn` (mezclas `color-mix` de tokens existentes), en el bloque `.vs` de `app/globals.css`.
+- **Contraste:** 4,79:1 en claro y 7,13:1 en noche (AC-17), medido por `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts`.
+- **Alternativa que respeta la regla:** dejar el botón principal en vino (#7F0F1A) con texto blanco, como la Vista Pro.
+- **Duración:** hasta la prueba con clientes (D-12). Si funciona, Sam decide si pasa a regla o se extiende.
+- **Fecha de revisión:** 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero.
+- **Dueño:** Sam (aprueba); Director General (custodia del registro).
+- **Regla viva en:** `BRAND.md` §Excepción · Vino claro en la Vista simple · `app/globals.css` (bloque `.vs`) · SDD-0654 §6.3.
+- **Cerrada el 2026-11-22:** la sustituye BD-076 en la fase 3b-1 de SDD-0686. Sam: «Portal: Vista simple A, Próximo arribo B». Botón principal en azul de acción; avatar y parte «proveedor» en tinta; sin `--tint-wine`.
+
+---
+
+### BD-076 · Azul de acción en web, Portal y ERP; el vino queda para la identidad
+- **Fecha:** 2026-11-20
+- **Tipo:** Cambio normativo (color nuevo de acción; enmienda VIS-01 §3, BTN-01 §2 y la parte de color de BD-037)
+- **Estado:** Aprobada por Sam. **Adopción por fases** (SDD-0686): fase 0 documentos; fase 1 tokens y clases del Studio; fases 2 a 5 el resto. Mientras una superficie no se migra, sigue con el vino.
+- **Autorizado por:** Sam (founder), en el chat de la sesión «Rebrand Design». Ante cinco opciones con su contraste: «opcion 2  Completamente todo el proyecto web, portal y ERP; todo el sistema completo.» Y: «Si hay que cambiar el branding completo, se puede cambiar. Si hay que eliminar algo que nos pueda dar errores adentro del brand.md, hay que cambiarlo.» Aprobó la spec a la pregunta «¿Apruebas la spec de la SDD-0686 para empezar con las fases 0 y 1?»: «Sí, empieza».
+- **Numeración:** BD-076, asignada por el Director General. BD-071 la usa la spec 0654; BD-074 y BD-075 están reclamadas en `docs/design/studio/respuesta-cloud-design-2026-08-02-v6-verificacion.md`; BD-072 y BD-073 son huecos y no se reutilizan.
+- **Aplica a:** Studio, Portal, web pública y móvil. No cambia el logo ni el wordmark.
+- **Decisión:**
+  1. **Azul = acción:** botón principal, enlaces, foco y acento de «esto se oprime».
+  2. **Rojo = peligro y error.** Es el único rojo de la interfaz.
+  3. **Vino = identidad:** logo, wordmark «DTD», sello y documentos de marca. No pinta botones, enlaces ni cifras.
+  4. **Tinta = selección** (como fija BD-037) **y cifras** (saldos, KPI, montos).
+  5. Un estado nunca se comunica solo con color: el peligro conserva icono y verbo.
+  6. **Datos que llevan a algún lugar (precisión del 2026-11-20).** Todo dato va en tinta: Shipping Mark, cliente, factura, contenedor, tracking. Va en azul (`--accion-text`) solo si ese dato, él solo, lleva a otro lugar o abre su información. Ese azul lleva siempre subrayado fino, porque contra la tinta da unos 2,0:1 y el color solo no basta (WCAG 1.4.1). Si al tocar cualquier parte de la fila se abre el detalle, el dato queda en tinta: lo que se oprime es la fila. Lo que ya parece botón, como el chip del Shipping Mark en la ficha, sigue con su forma de botón. En impresión, PDF, etiquetas, sin permiso o sin destino, va en tinta: no hay azul que no lleve a ninguna parte. Esto sustituye el uso de `--wine-text` para el Shipping Mark que indica el Norte (§Contraste). Sam vio cuatro casos dibujados y respondió: «Sí, la regla del Shipping Mark queda así». Antes había dicho que la propuesta era la tinta, «pero si realmente tiene información adentro (o sea, si oprimo el mouse o hago un clic adentro y tiene información), debería ser la azul».
+  7. **Badge `wine` retirado (2026-11-20).** El mismo badge vino decía cosas distintas: un rol («Admin»), un dato («3 cajas»), un estado («Vigente») y una selección («4 seleccionadas»). Además se parecía al botón de eliminar. Ahora cada badge toma el tono de su función: `neutral` si informa, `success` si confirma algo bueno y tinta si cuenta una selección. Ninguno va en azul, porque no se oprime, y no hay tonos nuevos. Sam vio los casos reales dibujados y respondió: «se retira, cada uno por su función como en la propuesta quitar vino».
+  8. **Correos, PDF y Chatwoot (2026-11-20).** En el correo, el logo y la línea del encabezado van en vino, y los botones y enlaces en azul. En el PDF (factura, estado de cuenta, etiquetas), el vino queda solo en el logo y en la línea del encabezado; no lleva azul, porque en papel nada se oprime. La burbuja de Chatwoot va en azul. En los tres, cifras y datos en tinta. Sam: «Correos, PDF y Chatwoot: queda como la propuesta». Aplicarlo en las plantillas guardadas en la base de datos y en Chatwoot exige un OK aparte para producción (SDD-0686 §9).
+  9. **El logo no va sobre el azul (2026-11-20).** La variante `mono-light` se usa sobre vino (sello, piezas de marca) y el `reverse` sobre navy. Ninguna va sobre el azul de acción ni dentro de un botón, porque el azul es para lo que se oprime y un logo sobre azul se lee como botón. El contraste no es el motivo: el claro sobre el azul mide cerca de 6,7:1. La regla no cambia el logo ni sus 4 variantes; solo corrige el «sobre wine, CTAs» del Norte. Sam: «Logo: no va sobre azul, como la propuesta».
+- **Tokens nuevos (tono fijado por Sam el 2026-11-20, opción B de tres: «eligo la b»):** `--accion` `#1F4FA8` / `#7FAAF0`, `--accion-hover` `#183E86` / `#9BBDF4`, `--on-accion` `#FFFFFF` / `#0F1E3D`, `--accion-text` `#1F4FA8` / `#7FAAF0`, `--accion-tint` `rgba(31,79,168,0.08)` / `rgba(127,170,240,0.14)`, `--accion-soft` `#7FAAF0`. En web y Portal, los pares `--color-accion*`. Los tokens `--wine*` se conservan como identidad.
+- **Contraste (WCAG, contra `tokens.css`):** texto sobre el relleno 7,66:1 en claro y 7,00:1 en oscuro; el relleno contra la tarjeta 7,66:1 y 6,32:1; enlaces sobre el fondo 7,34:1 y 7,78:1. Detalle en SDD-0686 §3.
+- **Por qué:** el vino (`#7F0F1A`) y el peligro (`#A8323E`) comparten tono (354°); en oscuro el botón principal usaba el mismo hex que el peligro del tema claro. La gente leía el botón principal como «borrar».
+- **Límite conocido:** azul y rojo tienen luminosidad parecida (1,16:1 en claro); se distinguen por tono. Por eso la regla 5 es obligatoria.
+- **Condición de publicación:** entre la fase 1 y el final de la fase 2 de SDD-0686 no se fusiona a `main` ni se publica, salvo que la pantalla quede coherente (SDD-0686 §8.1).
+- **Regla viva en:** `BRAND.md` §Sistema de color y §Controles · VIS-01 §3 · BTN-01 §2 · `app/studio/CLAUDE.md` · `app/studio/tokens.css` (desde la fase 1) · SDD-0686. Pendiente de llevar al Brand Book en el próximo NORTE-SYNC.
 
 ---
 
@@ -550,6 +599,8 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
 | BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada. Adoptada en producción el 2026-11-15 (SDD-0603); quedan siete pantallas que dependen de la PR #318 |
 | BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
+| EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Cerrada el 2026-11-22: la sustituye BD-076 (SDD-0686 fase 3b-1, Sam: «Vista simple A») |
+| BD-076 | Azul de acción en web, Portal y ERP; rojo solo peligro; vino solo identidad | Normativo (enmienda VIS-01 §3, BTN-01 §2 y el color de BD-037) | Aprobada — adopción por fases (SDD-0686) |
 
 ---
 

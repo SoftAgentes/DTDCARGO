@@ -88,7 +88,7 @@ export function FrictionReportsPanel({
             marginBottom: 14,
           }}
         >
-          <span style={{ color: "var(--wine-text)", flexShrink: 0 }}>
+          <span style={{ color: "var(--ink-soft)", flexShrink: 0 }}>
             {Icon.spark(22)}
           </span>
           <div>
@@ -281,7 +281,7 @@ export function FrictionReportsPanel({
                 <span
                   style={{
                     font: "500 11px/1.3 var(--f-sans)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                   }}
                 >
                   {mine ? "Tú" : "Equipo"} · {formatDate(r.created_at)}

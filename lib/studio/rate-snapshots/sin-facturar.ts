@@ -284,6 +284,13 @@ export async function reporteSinFacturar(
       .range(from, to),
   );
 
+  // SDD-0674 · EXC-0674: las facturas de «Facturar» en Embarques cubren varios envíos y, con aliado
+  // raíz, llevan el Shipping Mark del aliado. La 0564 guarda qué envíos cubre cada una, con el Shipping
+  // Mark del cliente real; la vista es security_invoker, así que la RLS de invoices (0414) sigue
+  // decidiendo. Se suman a las facturas con la misma llave envío|Shipping Mark. Sin la 0564 la vista no
+  // existe y el reporte queda como antes.
+  const cubiertos = await leerEnviosCubiertosExc0674(supabase, envioIds);
+
   const vivas = await listLiveRatesForReceipts(
     supabase,
     recepciones.rows.map((r) => r.id),
@@ -300,11 +307,11 @@ export async function reporteSinFacturar(
     }
   }
 
-  const completo = recepciones.complete && envios.complete && facturas.complete;
+  const completo = recepciones.complete && envios.complete && facturas.complete && cubiertos.complete;
   const { filas, resumen, total } = clasificarSinFacturar({
     recepciones: recepciones.rows,
     envios: envios.rows,
-    facturas: facturas.rows,
+    facturas: [...facturas.rows, ...cubiertos.rows],
     tarifas,
     hoy,
     lecturaCompleta: completo,
@@ -316,4 +323,54 @@ export async function reporteSinFacturar(
     completo,
     tarifasDisponibles: vivas.disponible,
   };
+}
+
+/** PostgREST sin la relación (la 0564 sin aplicar). */
+const SIN_RELACION = new Set(["PGRST205", "42P01"]);
+
+/**
+ * SDD-0674 · EXC-0674: los envíos que cubre una factura de «Facturar» en Embarques, como filas de
+ * factura con el Shipping Mark del cliente real (`exc0674_envios_cubiertos`, migr 0564). Sin la vista
+ * devuelve vacío y completo; cualquier otro error se lanza, como las demás lecturas del reporte.
+ */
+export async function leerEnviosCubiertosExc0674(
+  supabase: SupabaseClient,
+  envioIds: readonly string[],
+): Promise<{ rows: FacturaReporte[]; complete: boolean }> {
+  if (envioIds.length === 0) return { rows: [], complete: true };
+  try {
+    const r = await fetchAllByIds<{ invoice_id: string; invoice_code: string | null; shipment_id: string; client_markbox: string; status: string }>(
+      [...envioIds],
+      (lote, from, to) =>
+        supabase
+          .from("exc0674_envios_cubiertos")
+          .select("invoice_id, invoice_code, shipment_id, client_markbox, status")
+          .in("shipment_id", lote)
+          .order("invoice_id", { ascending: true })
+          .order("shipment_id", { ascending: true })
+          .range(from, to),
+    );
+    return {
+      rows: r.rows.map((c) => ({
+        id: c.invoice_id,
+        invoice_code: c.invoice_code,
+        shipment_id: c.shipment_id,
+        client_markbox: c.client_markbox,
+        status: c.status,
+      })),
+      complete: r.complete,
+    };
+  } catch (e) {
+    const codigo = (e as { code?: string } | null)?.code;
+    const mensaje = e instanceof Error ? e.message : String(e);
+    // fetchAllPaged relanza solo el mensaje: «Could not find the table … in the schema cache»
+    // (PGRST205) o «relation … does not exist» (42P01).
+    const sinVista =
+      (codigo !== undefined && SIN_RELACION.has(codigo)) ||
+      (/exc0674_envios_cubiertos/.test(mensaje) && /(could not find|does not exist|schema cache)/i.test(mensaje));
+    if (sinVista) {
+      return { rows: [], complete: true };
+    }
+    throw e;
+  }
 }

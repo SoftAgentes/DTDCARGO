@@ -63,8 +63,10 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
 
   // SDD-0585 sumó /api/cron/chatwoot-reintentos (19 → 20): el reintento propio de
   // los eventos de Chatwoot, cada 5 minutos (Chatwoot 4.19.1 no reintenta webhooks).
-  it("cubre los 22 crons de vercel.json con su mismo horario, más searates-refresh semanal, BCV único cada hora al minuto 5 y los tres del cable (filtro y despachador cada minuto, vaciado diario)", () => {
-    expect(vercelCrons).toHaveLength(22);
+  // La enmienda D-13 de la SDD-0036 sumó /api/cron/bug-daily-digest (22 → 23): el
+  // resumen diario de reportes a Discord #bugs, a las 12:05 UTC.
+  it("cubre los 23 crons de vercel.json con su mismo horario, más searates-refresh semanal, BCV único cada hora al minuto 5 y los tres del cable (filtro y despachador cada minuto, vaciado diario)", () => {
+    expect(vercelCrons).toHaveLength(23);
     const jobs = jobLines(committed);
     expect(jobs).toHaveLength(vercelCrons.length + EXTRA_CRONS.length);
 
@@ -80,14 +82,18 @@ describe("SDD-0505 · crontab generado desde vercel.json", () => {
       expect.objectContaining({ path: "/api/cron/oficina-filtro", schedule: "* * * * *" }),
       expect.objectContaining({ path: "/api/cron/oficina-vaciado", schedule: "15 4 * * *" }),
       expect.objectContaining({ path: "/api/cron/noticias-purga-actor", schedule: "45 4 * * *" }),
+      expect.objectContaining({ path: "/api/cron/purge-employee-photo-orphans", schedule: "20 5 * * *" }),
       expect.objectContaining({ path: "/api/cron/oficina-despachador", schedule: "* * * * *" }),
+      expect.objectContaining({ path: "/api/cron/oficina-envio", schedule: "* * * * *" }),
     ]);
     expect(jobs[vercelCrons.length]).toBe(`0 6 * * 1 ${CURL_PREFIX}/api/cron/searates-refresh`);
-    expect(jobs.at(-5)).toBe(`5 * * * * ${CURL_PREFIX}/api/cron/bcv-rates`);
-    expect(jobs.at(-4)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-filtro`);
-    expect(jobs.at(-3)).toBe(`15 4 * * * ${CURL_PREFIX}/api/cron/oficina-vaciado`);
-    expect(jobs.at(-2)).toBe(`45 4 * * * ${CURL_PREFIX}/api/cron/noticias-purga-actor`);
-    expect(jobs.at(-1)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-despachador`);
+    expect(jobs.at(-7)).toBe(`5 * * * * ${CURL_PREFIX}/api/cron/bcv-rates`);
+    expect(jobs.at(-6)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-filtro`);
+    expect(jobs.at(-5)).toBe(`15 4 * * * ${CURL_PREFIX}/api/cron/oficina-vaciado`);
+    expect(jobs.at(-4)).toBe(`45 4 * * * ${CURL_PREFIX}/api/cron/noticias-purga-actor`);
+    expect(jobs.at(-3)).toBe(`20 5 * * * ${CURL_PREFIX}/api/cron/purge-employee-photo-orphans`);
+    expect(jobs.at(-2)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-despachador`);
+    expect(jobs.at(-1)).toBe(`* * * * * ${CURL_PREFIX}/api/cron/oficina-envio`);
     expect(jobs.filter((line) => line.endsWith("/api/cron/bcv-rates"))).toHaveLength(1);
     // Y no está en vercel.json: si algún día se agenda allí, el extra sobra (duplicado).
     expect(vercelCrons.some((c) => c.path === "/api/cron/searates-refresh")).toBe(false);

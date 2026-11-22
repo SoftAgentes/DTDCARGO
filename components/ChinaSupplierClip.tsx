@@ -23,6 +23,21 @@ import { FlagCN } from "@/components/Icon";
  * por WhatsApp". Sin prop (uso en /contacto) → comportamiento original: input
  * manual + footer. Retrocompatible.
  */
+/**
+ * El mensaje para el proveedor en China (dirección del almacén, contacto,
+ * WeChat, horario y el código que va en cada caja). Función pura para que la
+ * Vista simple del portal (SDD-0654) copie exactamente el mismo texto, con el
+ * código de esa compra en lugar del Shipping Mark (AC-13).
+ */
+export function buildChinaSupplierClipText(code: string): string {
+  const cn = CONTACT.cn;
+  return `仓库地址：${cn.addressCjk}
+联系人：${cn.supplierContactCjk}（${cn.supplierContactEs}）：${cn.phoneCjk}
+微信（WeChat）：${cn.wechatId}
+收货时间：${cn.hoursCjk}
+客户编码（请写在每个箱子上）：${code}`;
+}
+
 export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
   const fixed = typeof markbox === "string" && markbox.trim() !== "";
   const [typed, setTyped] = useState("");
@@ -33,12 +48,7 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
     ? markbox!.trim().toUpperCase()
     : typed.trim() || placeholder;
 
-  const cn = CONTACT.cn;
-  const clipText = `仓库地址：${cn.addressCjk}
-联系人：${cn.supplierContactCjk}（${cn.supplierContactEs}）：${cn.phoneCjk}
-微信（WeChat）：${cn.wechatId}
-收货时间：${cn.hoursCjk}
-客户编码（请写在每个箱子上）：${codeForClip}`;
+  const clipText = buildChinaSupplierClipText(codeForClip);
 
   async function copyToClipboard() {
     try {

@@ -7,7 +7,7 @@
 #      ni `pnpm test` ni `verify` las corren)
 #   A  control SIN redacción: los datos sintéticos TIENEN que aparecer en los logs
 #   B  stack real:
-#      C1 GET /api → versión 4.19.1           C5 access log: whoami sí, Chatwoot no
+#      C1 GET /api → versión del compose      C5 access log: whoami sí, Chatwoot no
 #      C2 registro cerrado (valor efectivo)    C6 redacción: cero datos sintéticos en logs
 #      C3 sin X-Frame-Options, frame-ancestors C7 MAX_USER_SESSIONS y telemetría
 #      C4 /super_admin: 403 desde «internet»,  C8 consumo con docker stats
@@ -36,6 +36,10 @@ AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ORIGEN="$(cd "$AQUI/.." && pwd)"
 TRABAJO="${ENSAYO_TRABAJO:-${TEMP:-/tmp}/cw-e1}"
 TRABAJO="$(cd "$(dirname "$TRABAJO")" && pwd)/$(basename "$TRABAJO")"
+# Versión esperada: la de la etiqueta fijada en compose.yml (SDD-0679). Así la subida de
+# versión no obliga a tocar este script y C1/R3b no pueden quedar midiendo la vieja.
+VERSION_ESPERADA="$(sed -n 's/^ *image: chatwoot\/chatwoot:v\([0-9.]*\)-ce@sha256:.*/\1/p' "$ORIGEN/compose.yml" | head -n 1)"
+[ -n "$VERSION_ESPERADA" ] || { echo "no encuentro la etiqueta de Chatwoot en $ORIGEN/compose.yml"; exit 2; }
 HOST_CHAT="chat.prueba.test"
 HOST_RESTAURADO="chat-restaurado.prueba.test"
 URL="http://127.0.0.1:18080"
@@ -175,7 +179,7 @@ fi
 log "   arranque desde cero (prepare + rails + sidekiq): $(( $(date +%s) - T0 )) s"
 
 API="$(curl -s -H "Host: $HOST_CHAT" "$URL/api")"
-echo "$API" | grep -q '"version":"4.19.1"'
+echo "$API" | grep -q "\"version\":\"$VERSION_ESPERADA\""
 check C1 $? "GET /api por Traefik → $(echo "$API" | grep -o '"version":"[^"]*"')"
 
 SIGNUP="$(dc "$D" chatwoot-prueba exec -T rails bundle exec rails runner 'print GlobalConfigService.account_signup_enabled?' 2>/dev/null | tail -n 1)"
@@ -264,7 +268,7 @@ H_SEC_O="$(echo "$SEMBRADO" | sed -n 's/^huella_secreto=//p')"; H_SEC_R="$(echo 
 [ -n "$H_ADJ_O" ] && [ "$H_ADJ_O" = "$H_ADJ_R" ] && [ -n "$H_SEC_O" ] && [ "$H_SEC_O" = "$H_SEC_R" ]
 check R3 $? "restaurado: adjunto ${H_ADJ_R:0:12}… = origen ${H_ADJ_O:0:12}…; secreto cifrado ${H_SEC_R:0:12}… = origen ${H_SEC_O:0:12}…"
 API_R="$(curl -s -H "Host: $HOST_RESTAURADO" "$URL/api" | grep -o '"version":"[^"]*"')"
-[ "$API_R" = '"version":"4.19.1"' ]
+[ "$API_R" = "\"version\":\"$VERSION_ESPERADA\"" ]
 check R3b $? "el restaurado responde por Traefik en su propio host: $API_R"
 
 # Control: misma base y adjuntos, OTRAS claves → el secreto no se puede leer.
@@ -294,7 +298,7 @@ mkdir -p "$J"; JW="$(cd "$J" && pwd -W 2>/dev/null || pwd)"
 node "$(cd "$ORIGEN/pruebas" && pwd -W 2>/dev/null || pwd)/firmar-jwt-prueba.mjs" "$JW" "$TEAM" "$AUD" "$CORREO" >/dev/null
 [ -s "$J/tokens.env" ] && [ -s "$J/cdn-cgi/access/certs" ] || mal D0 "no se generaron las claves y los tokens de prueba en $J"
 docker run -d --rm --name jwks-prueba --network chatwoot_edge_prueba -v "$JW:/srv:ro" \
-  node:24.22.1-alpine node -e "const h=require('http'),f=require('fs');h.createServer((q,s)=>{try{s.writeHead(200,{'content-type':'application/json'});s.end(f.readFileSync('/srv'+q.url.split('?')[0]))}catch{s.writeHead(404);s.end()}}).listen(8080)" >/dev/null
+  node:24.22.3-alpine node -e "const h=require('http'),f=require('fs');h.createServer((q,s)=>{try{s.writeHead(200,{'content-type':'application/json'});s.end(f.readFileSync('/srv'+q.url.split('?')[0]))}catch{s.writeHead(404);s.end()}}).listen(8080)" >/dev/null
 cat >>"$D/.env" <<EOF
 CHATWOOT_CF_ACCESS_TEAM_DOMAIN=$TEAM
 CHATWOOT_CF_ACCESS_AUD=$AUD

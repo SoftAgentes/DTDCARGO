@@ -25,6 +25,45 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-11-18 · doortudoor.com en Cloudflare, buscadores avisados y enlaces internos (SDD-0657)
+
+**Qué pasó.** doortudoor.com estaba caído: su DNS apuntaba a Vercel, y la cuenta de Vercel, impaga, respondía 402. El 301 a dtdcargo.com no funcionaba y el traslado de dominio de Search Console (activo desde 2026-06-07) se quedaba sin destino.
+
+**Hecho fuera del código el 2026-11-18:**
+
+- **Cloudflare, zona doortudoor.com:**
+  - DNS proxied;
+  - Single Redirect rules: un 301 general que conserva ruta y query, más 9 reglas para URL viejas de WordPress que llevan a su página equivalente;
+  - regla WAF 403 para el spam del hackeo, como `/202-2/` y `/najti-rabotajuschee-…`. Ese spam queda excluido del 301 general.
+- **Vercel:** se quitaron las entradas de doortudoor.com y dtdcargo.com.
+- **Cloudflare, zona dtdcargo.com:**
+  - Bot Fight Mode apagado, porque bloqueaba a PerplexityBot, ClaudeBot, Claude-SearchBot y DuckAssistBot;
+  - ofuscación de correos apagada, con lo que se cierra la **P-a**.
+- **Buscadores:**
+  - IndexNow recibió las 48 URL del sitemap (`node scripts/indexnow-enviar.mjs --enviar`, respuesta 200);
+  - Google aceptó la solicitud de indexación de 11 páginas: `/puerta-a-puerta`, `/servicios/puerta-a-puerta`, `/servicios/fcl`, `/servicios/lcl`, `/shipping-mark`, `/pre-alertas`, `/llenado`, `/importar-de-china`, y Puerto Ordaz, Maturín y San Cristóbal;
+  - **Bing Webmaster Tools** quedó registrado por importación desde Search Console (con la cuenta de Google dueña de la propiedad), con el sitemap de dtdcargo.com enviado.
+
+**La causa de la falta de indexación es interna** ([SDD-0657](../specs/0657-seo-enlaces-indexacion/spec.md)):
+
+- cuatro páginas del sitemap no tenían ningún enlace interno;
+- el grupo `/importar-de-china` solo se enlazaba a sí mismo;
+- las ciudades comparten entre el 82 % y el 87 % del texto.
+
+La SDD agrega:
+
+- enlaces en el pie y dentro del contenido;
+- títulos que nombran el trayecto;
+- descripciones de 160 caracteres o menos;
+- un 301 de `/favicon.ico`.
+
+También quita el 404 de `/registro:` que salía de una FAQ.
+
+**Pendiente de Sam:**
+
+- dar datos locales reales para diferenciar las ciudades;
+- decidir si se fusionan `/puerta-a-puerta` y `/servicios/puerta-a-puerta`, con datos de Search Console de 3 o 4 semanas.
+
 ### 2026-11-07 · Auditoría técnica de SEO, GEO y AEO (PR #422, en main desde el tren #483)
 
 Medida sobre el sitio publicado (43 URL del sitemap y 9 rutas fuera de él) y en el código. El detalle, los scripts y las tablas completas están en [`.agents/handoffs/seo-auditoria-tecnica-20261107.md`](../../.agents/handoffs/seo-auditoria-tecnica-20261107.md).
@@ -59,7 +98,7 @@ Medida sobre el sitio publicado (43 URL del sitemap y 9 rutas fuera de él) y en
 - Datos de campo: CrUX dice «No hay datos» en todas las páginas, así que no hay INP ni LCP reales que afirmar.
 
 **Propuestas sin hacer:** cada una espera a Sam, al Director General o a su propia tarea.
-- P-a: apagar la ofuscación de correos de Cloudflare. Su enlace da 404 sin JavaScript en 45 páginas.
+- ~~P-a: apagar la ofuscación de correos de Cloudflare. Su enlace da 404 sin JavaScript en 45 páginas.~~ Hecho el 2026-11-18 (ver arriba).
 - P-b: `/enlaces` no tiene `h1`.
 - P-c: el contraste del pie.
 - P-d: títulos largos.

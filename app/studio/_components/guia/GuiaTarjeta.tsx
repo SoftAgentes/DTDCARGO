@@ -11,6 +11,11 @@
  *
  * TODO: brand-review — componente nuevo construido con tokens existentes;
  * su revisión visual y la prueba con quien atiende son de 9.6.
+ *
+ * Ajuste del 2026-11-16 (SDD-0589 §9): la tarjeta se distingue del sistema
+ * sin gritar —superficie con tinte vino, barra de acento arriba y etiqueta
+ * «Guía» en vino— y es más compacta (300 px, menos aire, texto de 13 px).
+ * El botón Cerrar muestra su palabra, no solo la X.
  */
 
 import {
@@ -52,6 +57,9 @@ export interface GuiaTarjetaProps {
 
 const ID_TITULO = "studio-guia-titulo";
 const ID_CUERPO = "studio-guia-cuerpo";
+/** Botones de la tarjeta un punto más bajos que `studio-btn-sm` (36 px): compacta, y aun así sobre los 24 px de WCAG 2.5.8. */
+const BTN_COMPACTO: CSSProperties = { minHeight: 32, height: 32 };
+const BTN_SECUNDARIO: CSSProperties = { minHeight: 28, height: 28, padding: "0 var(--s-2)", fontSize: 12 };
 
 export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
   function GuiaTarjeta(props, ref) {
@@ -105,18 +113,22 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
       top,
       left,
       zIndex: 90, // sobre el topbar (70), debajo de drawers (100), avisos (150) y confirmaciones (200)
-      width: "min(360px, calc(100vw - 2 * var(--s-4)))",
-      maxHeight: "calc(100vh - 2 * var(--s-4))",
+      width: "min(300px, calc(100vw - 2 * var(--s-4)))",
+      maxHeight: "min(340px, calc(100vh - 2 * var(--s-4)))",
       overflowY: "auto",
-      background: "var(--bg-surface)",
+      // Superficie propia: el tinte vino de la marca sobre la superficie del
+      // tema. Se distingue de las tarjetas del sistema en claro y en oscuro.
+      background: "linear-gradient(var(--wine-tint), var(--wine-tint)), var(--bg-surface)",
       color: "var(--ink)",
       border: "1px solid var(--border-strong)",
+      // Barra de acento: marca la tarjeta como ayuda, no como una ventana más.
+      borderTop: "3px solid var(--wine-text)",
       borderRadius: "var(--r-lg)",
       boxShadow: "var(--shadow-pop)",
-      padding: "var(--s-4)",
+      padding: "var(--s-3)",
       display: "flex",
       flexDirection: "column",
-      gap: "var(--s-3)",
+      gap: "var(--s-2)",
       textAlign: "left",
       opacity: visible ? 1 : 0,
       transform: visible || reducido ? "none" : "translateY(4px)",
@@ -139,67 +151,70 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--s-2)" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", minWidth: 0 }}>
-            <span style={{ font: "600 11px/1.2 var(--f-sans)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
-              {t("guide.chrome.toggle")} · {t("guide.chrome.step_of", { n, total })}
+            <span style={{ display: "flex", alignItems: "center", gap: "var(--s-1)", font: "700 11px/1.2 var(--f-sans)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--wine-text)" }}>
+              <span aria-hidden style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: "var(--wine-text)", flexShrink: 0 }} />
+              <span>{t("guide.chrome.toggle")}</span>
+              <span style={{ color: "var(--ink-soft)", fontWeight: 600 }}>· {t("guide.chrome.step_of", { n, total })}</span>
             </span>
-            <h2 id={ID_TITULO} style={{ margin: 0, font: "700 15px/1.25 var(--f-display)", color: "var(--ink)" }}>
+            <h2 id={ID_TITULO} style={{ margin: 0, font: "700 14px/1.25 var(--f-display)", color: "var(--ink)" }}>
               {titulo}
             </h2>
           </div>
           <button
             type="button"
             className="studio-btn studio-btn-ghost"
+            // El nombre accesible contiene la palabra visible (WCAG 2.5.3).
             aria-label={t("guide.chrome.close_aria")}
-            title={t("guide.chrome.close")}
             onClick={onCerrar}
-            style={{ width: 32, height: 32, minWidth: 32, padding: 0, flexShrink: 0, justifyContent: "center" }}
+            style={{ minHeight: 28, height: 28, padding: "0 var(--s-2)", gap: "var(--s-1)", flexShrink: 0, font: "600 12px/1 var(--f-sans)" }}
           >
-            {Icon.close(14)}
+            {Icon.close(12)}
+            {t("guide.chrome.close")}
           </button>
         </div>
 
-        <div id={ID_CUERPO} style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+        <div id={ID_CUERPO} style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
           {faltaAncla && (
             <Aviso tono="info" compacto>
               {t("guide.chrome.missing_target")}
             </Aviso>
           )}
-          <p style={{ margin: 0, font: "400 14px/1.5 var(--f-sans)", color: "var(--ink)" }}>{que}</p>
+          <p style={{ margin: 0, font: "400 13px/1.45 var(--f-sans)", color: "var(--ink)" }}>{que}</p>
           {antes && (
             <div>
-              <div style={{ font: "700 11px/1.3 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: "var(--s-1)" }}>
+              <div style={{ font: "700 10.5px/1.3 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: "var(--s-1)" }}>
                 {t("guide.chrome.label_before")}
               </div>
-              <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>{antes}</p>
+              <p style={{ margin: 0, font: "400 12.5px/1.45 var(--f-sans)", color: "var(--ink-soft)" }}>{antes}</p>
             </div>
           )}
           {ahora && (
             <div>
-              <div style={{ font: "700 11px/1.3 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--wine-text)", marginBottom: "var(--s-1)" }}>
+              <div style={{ font: "700 10.5px/1.3 var(--f-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--wine-text)", marginBottom: "var(--s-1)" }}>
                 {t("guide.chrome.label_now")}
               </div>
-              <p style={{ margin: 0, font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" }}>{ahora}</p>
+              <p style={{ margin: 0, font: "400 12.5px/1.45 var(--f-sans)", color: "var(--ink)" }}>{ahora}</p>
             </div>
           )}
         </div>
 
         {(onNoMostrar || onDesdeElPrincipio) && (
           // Acciones sobre la guía misma, no sobre datos: botones fantasma pequeños.
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-2)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-1)" }}>
             {onDesdeElPrincipio && (
-              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onDesdeElPrincipio}>
+              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" style={BTN_SECUNDARIO} onClick={onDesdeElPrincipio}>
                 {t("guide.chrome.restart")}
               </button>
             )}
             {onNoMostrar && (
-              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" onClick={onNoMostrar}>
+              <button type="button" className="studio-btn studio-btn-ghost studio-btn-sm" style={BTN_SECUNDARIO} onClick={onNoMostrar}>
                 {t("guide.chrome.dont_show")}
               </button>
             )}
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-2)", paddingTop: "var(--s-1)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-2)" }}>
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -209,11 +224,11 @@ export const GuiaTarjeta = forwardRef<HTMLElement, GuiaTarjetaProps>(
             onClick={() => {
               if (puedeAtras) onAnterior();
             }}
-            style={puedeAtras ? undefined : { opacity: 0.5, cursor: "not-allowed" }}
+            style={puedeAtras ? BTN_COMPACTO : { ...BTN_COMPACTO, opacity: 0.5, cursor: "not-allowed" }}
           >
             {t("guide.chrome.prev")}
           </button>
-          <button type="button" className="studio-btn studio-btn-primary studio-btn-sm" onClick={onSiguiente}>
+          <button type="button" className="studio-btn studio-btn-primary studio-btn-sm" style={BTN_COMPACTO} onClick={onSiguiente}>
             {esUltimo ? t("guide.chrome.done") : t("guide.chrome.next")}
           </button>
         </div>

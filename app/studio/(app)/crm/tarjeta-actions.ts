@@ -237,6 +237,49 @@ export async function cargarFichaTarjetaAction(
 
   const nombre = (id: string | null) => (id ? (equipo.porId.get(id) ?? "Usuario sin nombre") : null);
 
+  // SDD-0676: las tarjetas de lead que esta absorbió, con lo suyo, solo para leer. La RLS
+  // de la 0506 acota al tenant. Sin la migración (42703) o si falla, la ficha sale sin el bloque.
+  const absorbidas: NonNullable<CrmFichaTarjeta["absorbidas"]> = [];
+  const hijas = await supabase
+    .from("crm_tarjetas")
+    .select("id, fuente, created_at")
+    .eq("absorbida_en", tarjetaId)
+    .is("anonimizada_at", null)
+    .order("created_at", { ascending: true })
+    .limit(5);
+  for (const hija of ((hijas.error ? [] : hijas.data) ?? []) as { id: string; fuente: string; created_at: string }[]) {
+    const [hh, ht, hn] = await Promise.all([
+      supabase
+        .from("crm_historial_etapas")
+        .select("id, tablero, de, a, origen, actor_id, motivo, ocurrio_at")
+        .eq("tarjeta_id", hija.id)
+        .order("ocurrio_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(50),
+      supabase
+        .from("crm_tareas")
+        .select("id, texto, vence_at, asignado_a, completada_at, origen, created_at")
+        .eq("tarjeta_id", hija.id)
+        .order("completada_at", { ascending: true, nullsFirst: true })
+        .order("vence_at", { ascending: true, nullsFirst: false })
+        .limit(50),
+      supabase
+        .from("crm_notas")
+        .select("id, texto, autor_id, created_at")
+        .eq("tarjeta_id", hija.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    absorbidas.push({
+      id: hija.id,
+      fuente: hija.fuente,
+      creadaAt: hija.created_at,
+      historial: ((hh.data ?? []) as FilaHistorial[]).map((h) => historialDe(h, nombre)),
+      tareas: ((ht.data ?? []) as FilaTarea[]).map((k) => tareaDe(k, nombre)),
+      notas: ((hn.data ?? []) as FilaNota[]).map((n) => notaDe(n, nombre)),
+    });
+  }
+
   return {
     ok: true,
     ficha: {
@@ -261,53 +304,67 @@ export async function cargarFichaTarjetaAction(
       dueno: { id: t.asesor_id, nombre: nombre(t.asesor_id) },
       asesores: equipo.asesores,
       chat,
-      historial: ((historial.data ?? []) as {
-        id: number;
-        tablero: string;
-        de: string | null;
-        a: string;
-        origen: string;
-        actor_id: string | null;
-        motivo: string | null;
-        ocurrio_at: string;
-      }[]).map((h) => ({
-        id: h.id,
-        tablero: esTablero(h.tablero) ? h.tablero : "leads",
-        de: h.de,
-        a: h.a,
-        origen: h.origen,
-        actor: nombre(h.actor_id),
-        motivo: h.motivo,
-        ocurrioAt: h.ocurrio_at,
-      })),
-      tareas: ((tareas.data ?? []) as {
-        id: string;
-        texto: string;
-        vence_at: string | null;
-        asignado_a: string | null;
-        completada_at: string | null;
-        origen: string;
-      }[]).map((k) => ({
-        id: k.id,
-        texto: k.texto,
-        venceAt: k.vence_at,
-        asignado: nombre(k.asignado_a),
-        completadaAt: k.completada_at,
-        origen: k.origen,
-      })),
-      notas: ((notas.data ?? []) as {
-        id: string;
-        texto: string;
-        autor_id: string | null;
-        created_at: string;
-      }[]).map((n) => ({
-        id: n.id,
-        texto: n.texto,
-        autor: nombre(n.autor_id),
-        creadaAt: n.created_at,
-      })),
+      historial: ((historial.data ?? []) as FilaHistorial[]).map((h) => historialDe(h, nombre)),
+      tareas: ((tareas.data ?? []) as FilaTarea[]).map((k) => tareaDe(k, nombre)),
+      notas: ((notas.data ?? []) as FilaNota[]).map((n) => notaDe(n, nombre)),
+      ...(absorbidas.length > 0 ? { absorbidas } : {}),
     },
   };
+}
+
+type NombreDe = (id: string | null) => string | null;
+
+interface FilaHistorial {
+  id: number;
+  tablero: string;
+  de: string | null;
+  a: string;
+  origen: string;
+  actor_id: string | null;
+  motivo: string | null;
+  ocurrio_at: string;
+}
+interface FilaTarea {
+  id: string;
+  texto: string;
+  vence_at: string | null;
+  asignado_a: string | null;
+  completada_at: string | null;
+  origen: string;
+}
+interface FilaNota {
+  id: string;
+  texto: string;
+  autor_id: string | null;
+  created_at: string;
+}
+
+function historialDe(h: FilaHistorial, nombre: NombreDe): CrmFichaTarjeta["historial"][number] {
+  return {
+    id: h.id,
+    tablero: esTablero(h.tablero) ? h.tablero : "leads",
+    de: h.de,
+    a: h.a,
+    origen: h.origen,
+    actor: nombre(h.actor_id),
+    motivo: h.motivo,
+    ocurrioAt: h.ocurrio_at,
+  };
+}
+
+function tareaDe(k: FilaTarea, nombre: NombreDe): CrmFichaTarjeta["tareas"][number] {
+  return {
+    id: k.id,
+    texto: k.texto,
+    venceAt: k.vence_at,
+    asignado: nombre(k.asignado_a),
+    completadaAt: k.completada_at,
+    origen: k.origen,
+  };
+}
+
+function notaDe(n: FilaNota, nombre: NombreDe): CrmFichaTarjeta["notas"][number] {
+  return { id: n.id, texto: n.texto, autor: nombre(n.autor_id), creadaAt: n.created_at };
 }
 
 /** Agrega una nota a la tarjeta. Las notas solo se agregan (0506). */

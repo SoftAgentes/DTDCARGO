@@ -100,11 +100,12 @@ export function TesoreriaClient({
    * es lo que evita que la pantalla siga mostrando el saldo de antes.
    */
   const openBillId = selectedBillId ?? consultPayable?.bill.id ?? null;
+  // Mismo resultado que antes; separado en dos pasos porque TypeScript 6
+  // marcaba el `?? null` anidado en el ternario (TS2871, SDD-0656 B).
+  const payableDeLaCola =
+    openBillId != null ? payables.find((p) => p.bill.id === openBillId) ?? null : null;
   const selectedPayable =
-    (openBillId != null
-      ? payables.find((p) => p.bill.id === openBillId) ?? null
-      : null) ??
-    (consultPayable?.bill.id === openBillId ? consultPayable : null);
+    payableDeLaCola ?? (consultPayable?.bill.id === openBillId ? consultPayable : null);
 
   const closeDrawer = () => {
     setSelectedBillId(null);
@@ -211,19 +212,17 @@ export function TesoreriaClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porPagar)}`}
           label="Por pagar"
-          valueColor={kpis.porPagar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.proveedoresActivos} proveedor(es) con saldo`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.vencido)}`}
           label="Vencido"
-          valueColor={kpis.vencido > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.vencido > 0 ? { tono: "danger", texto: "Requiere pago" } : undefined}
           sub={kpis.vencido > 0 ? "Requiere pago" : "Sin vencidos"}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.pagadoMes)}`}
           label="Pagado en el mes"
-          valueColor={kpis.pagadoMes > 0 ? "var(--success)" : "var(--ink)"}
           sub="Órdenes de pago del mes en curso"
         />
         <KpiCard
@@ -588,7 +587,6 @@ function PaymentsTab({
         <KpiCard
           value={`$${fmtMoney(remesasTotal)}`}
           label="Remesas a China"
-          valueColor={remesasTotal > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${remesas.length} orden(es) USDT / CNY / Alipay`}
         />
       </div>
@@ -689,7 +687,7 @@ function PaymentsTab({
               </span>
               <span>
                 {isChinaRemittance(p.method, p.currency) ? (
-                  <Badge tone="wine" size="sm">
+                  <Badge tone="neutral" size="sm">
                     {paymentMethodLabel(p.method)}
                   </Badge>
                 ) : (
@@ -729,7 +727,7 @@ function PaymentsTab({
               <span
                 style={{
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--accion-text)",
                 }}
               >
                 {openingBillId === p.bill_id ? "Abriendo…" : "Ver CxP"}
@@ -743,7 +741,7 @@ function PaymentsTab({
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     —

@@ -17,6 +17,7 @@ import { useId, useRef } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { useT } from "@/lib/i18n";
 import { useDialogA11y } from "./useDialogA11y";
+import { EtiquetaEstable } from "../EtiquetaEstable";
 
 export function DrawerShell({
   title,
@@ -28,6 +29,7 @@ export function DrawerShell({
   closeLabel,
   variant = "drawer",
   titleAccessory,
+  closeOnBackdrop = true,
 }: {
   title: string;
   subtitle?: React.ReactNode;
@@ -41,6 +43,11 @@ export function DrawerShell({
   variant?: "drawer" | "centered";
   /** Nodo inline a la derecha del título (ej. un badge de estado). */
   titleAccessory?: React.ReactNode;
+  /**
+   * `false` = un clic en el fondo no cierra: solo el botón cerrar o Escape
+   * (SDD-0648, D8: la ficha del CRM se cerraba por error). Default `true`.
+   */
+  closeOnBackdrop?: boolean;
 }) {
   const t = useT();
   const titleId = useId();
@@ -52,7 +59,7 @@ export function DrawerShell({
 
   return (
     <div
-      onClick={() => !pending && onClose()}
+      onClick={() => closeOnBackdrop && !pending && onClose()}
       style={{
         position: "fixed",
         inset: 0,
@@ -183,13 +190,20 @@ export function DrawerFooter({
       >
         {cancelLabel ?? t("chrome.action.cancel")}
       </button>
+      {/* SDD-0678 · BTN-01 §5: mientras guarda, `aria-busy`, el verbo en progreso con spinner y el MISMO ancho. */}
       <button
         type="submit"
         form={formId}
         className="studio-btn studio-btn-primary"
         disabled={isPending || !canSubmit}
+        aria-busy={isPending}
+        style={{ minWidth: "max-content" }}
       >
-        {isPending ? (pendingLabel ?? t("chrome.drawer.submitting")) : submitLabel}
+        <EtiquetaEstable
+          enCurso={isPending}
+          reposo={submitLabel}
+          textoEnCurso={pendingLabel ?? t("chrome.drawer.submitting")}
+        />
       </button>
     </footer>
   );

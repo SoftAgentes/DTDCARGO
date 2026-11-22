@@ -50,7 +50,7 @@ export function ContactoForm() {
   }
 
   return (
-    <form className="cx-form" onSubmit={onSubmit}>
+    <form className="cx-form" onSubmit={onSubmit} data-clarity-mask="True">
       <div className="cx-form-row">
         <div className="cx-field">
           <label htmlFor="cxNombre">Nombre</label>

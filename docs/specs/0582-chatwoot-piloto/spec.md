@@ -4,7 +4,7 @@ title: "Programa Kommo → Chatwoot dentro de Studio, con checklist y avance med
 status: proposed
 author: "Claude Worker «Chatwoot piloto» (Sam)"
 created: 2026-10-28
-updated: 2026-10-29
+updated: 2026-11-19
 supersedes: null
 superseded_by: null
 related: ["0020", "0056", "0089", "0114", "0147", "0326", "0535", "0564"]
@@ -55,7 +55,7 @@ Respuestas y aportes:
 - WhatsApp (número API), Messenger, Instagram, TikTok (condicional) y correo;
 - historial de Kommo cargado;
 - embudo propio y reemplazos de lo que hoy hace Kommo en el ERP;
-- bot propio con modos;
+- ~~bot propio con modos~~ (sale de la línea base v5, 2026-11-19; ver «Cambio de alcance v5: corte sin esperar el bot propio»);
 - guía interactiva;
 - corte, salida de Kommo y limpieza del ERP;
 - dos números de WhatsApp, uno de leads y otro de clientes, con enrutamiento por segmento desde el ERP (línea base v2, E10).
@@ -184,7 +184,17 @@ Consecuencias:
 - ~~Que esa respuesta no se cobre dentro de la ventana de servicio~~: **refutado en la v3**. Desde el 2026-10-01 cuenta contra el cupo de 1.000 mensajes de servicio gratis al mes del número (ver «Cambio de alcance v3»).
 - **Botón CTA URL:** Meta documenta el mensaje interactivo `cta_url` (**D**, V2-3). Que Chatwoot lo envíe está **NV**, así que el enlace va en el texto.
 - **Usuario con username y sin teléfono (BSUID):** el bot no pide códigos ni teléfono. Contesta lo mismo a todos, «si ya eres cliente, escríbenos aquí», y guarda el BSUID (10.3). Así no revela si un número o un código existe. (Diseño, **I**.)
-- **No se le escribe al cliente desde el número de clientes.** Un mensaje iniciado por la empresa exige una plantilla pagada y consentimiento previo, y con el enlace basta, porque lo inicia el cliente (**I**: regla general de Meta, sin fuente leída en esta tarea). La excepción es el aviso de cambio de número de (b): si sale del número nuevo, es un mensaje iniciado por DTD y cuenta contra el tope de (c) (**I**).
+- ~~**No se le escribe al cliente desde el número de clientes.**~~ **Enmendada el 2026-11-16** (ver la entrada de Seguimiento de esa fecha).
+  - La **redirección** sigue igual: el bot no le escribe primero al cliente desde el número de clientes, porque con el enlace basta y el cliente es quien inicia.
+  - **Sí se permite** que DTD le escriba primero desde el número de clientes, con **plantillas aprobadas por Meta**. Condiciones:
+    - utilidad, solo con un embarque, pago, documento o entrega real de ese cliente;
+    - marketing, solo a quien aceptó avisos de DTD Cargo por WhatsApp, como máximo uno por persona a la semana, y con el botón «Detener promociones».
+
+    El juego propuesto está en [`docs/marketing/whatsapp-plantillas-por-numero.md`](../../marketing/whatsapp-plantillas-por-numero.md) §4.
+  - Fuera de la ventana de 24 h, Meta exige plantilla y consentimiento (**D**: [Meta, «Pricing»](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing) y [«Getting opt-in»](https://developers.facebook.com/documentation/business-messaging/whatsapp/getting-opt-in), leídas el 2026-11-16).
+  - Cada envío iniciado por DTD cuenta contra el tope de (c), y eso incluye el aviso de cambio de número de (b).
+  - Crear cada plantilla en Meta sigue pidiendo el OK de Sam con el texto exacto.
+  - Automatizar los envíos es otra tarea, con su SDD.
 
 ### Tickets del portal a los embudos
 
@@ -308,10 +318,57 @@ Están en la fila 2.3 del checklist.
 - Va en Studio y no en un fork de Chatwoot, porque v4.19.1 descarta el detalle de cobro que manda Meta (**C** de Chatwoot, V3-12).
 - La medición conciliada (unos 4 días) y el «portero» de Codex delante de Chatwoot quedan para **después del 100 %**.
 
+## Cambio de alcance v5: corte sin esperar el bot propio (2026-11-19)
+
+Revisión completa del plan, pedida por Sam, sobre `main` en `875767eaf`. El checklist no se tocaba desde el 2026-11-08 (línea base v4: 129,5 d, avance 49,0 %). La v5 deja el alcance en **127,75 d** y el avance en **49,7 %** (63,5 d aceptados). El detalle por paso, la evidencia y el camino al corte están en el [checklist](checklist.md), secciones «Cambios desde v4» y «Lo que falta para el corte (E8), en orden».
+
+### Decisiones de Sam, 2026-11-19 (citadas literalmente)
+
+1. «Sí, cortamos como sin esperar el bot.» El corte de Kommo (E8) **ya no depende de E7**. Sustituye a la regla de esta spec que condicionaba el bot al corte (E7 antes de 8.1, con el modo sombra de 7 días).
+2. «No hace falta ya que el bot lo tenemos siempre apagado.» El bot propio sale del camino del corte.
+3. Las plantillas C1 a C10 de Clientes, aprobadas por Meta, se usan solo desde Chatwoot (bandeja Clientes). No se recrean en Kommo. El número viejo queda para leads.
+
+### Messenger queda fuera del corte (Sam, 2026-11-19)
+
+Sam decidió, según el relato del Director General: «Deja Messenger, no los cuentes, sé que no hay casi nada.» El corte no espera a Messenger: la 8.3 corta solo Instagram, y Messenger se conecta después del corte o no se conecta. Sustituye a la espera por App Review que la 4.4 y la 4.6 tenían como camino al corte (decisión del 2026-11-03, «Mantener la espera»); la 4.6 de Instagram no cambia.
+
+### Qué se hizo con E7 y por qué
+
+- **Decisión del Worker, con criterio:** E7 pasa a **fase posterior, fuera de la línea base**, y en el checklist sus 11 pasos quedan `descartado`. No se dejó `descartado` a secas como si fuera «no se hará»: Sam no dijo eso, dijo que no hace falta *ahora*. Tampoco se dejó dentro del alcance: el bot no frena nada y mantener 18,5 d en el denominador escondería el avance real hacia el corte.
+- El estado `descartado` es el único mecanismo del script para sacar pasos del alcance conservando su historia. Retomar el bot exige una línea base nueva (v6) con reestimación; **no se pierde trabajo**: `dtd-bot` ya fusionado (núcleo puro #449, base de conocimiento y reglas duras #448, la 0522 de la cola durable #459 y #465) queda en `main`, apagado, con el flag `chatwoot_bot` apagado. SDD-0618 sigue vigente como diseño; su estado lo decide quien la retome.
+- **Lo que sí se conserva del bot:** la 7.3 (respaldar el conocimiento de la IA de Kommo y ubicar «analiza mi contestación») pasa a la **8.14** (0,5 d), porque ese conocimiento es de DTD y se pierde al cancelar la licencia.
+- **Pasos de E8 ajustados:** la **8.1** ya no espera a E7 ni al modo sombra (la convivencia de 7 días sigue); la **8.2** apagaba «la IA y los Salesbots de Kommo y el bot queda en el modo aprobado», y ahora dice que se apagan los Salesbots, que, según Sam (2026-11-19), el bot está siempre apagado y el estado de la IA y de los Salesbots de Kommo se verifica en 8.1, y que se comprueba que `dtd-bot` sigue apagado.
+- **Regla de aceptación del programa:** «Bot: "Contesta solo" activo solo si 7.2 está aprobado» deja de aplicar al corte. Mientras E7 esté fuera, `dtd-bot` no se enciende.
+
+### Trabajo nuevo que el plan no tenía (+16,75 d)
+
+| Tema | Pasos | Días | Estado |
+|---|---|---|---|
+| Plantillas de Clientes C1 a C10 | 4.10 | 1 | entregado (aprobadas por Meta el 2026-11-17) |
+| Bandeja como pestaña de CRM, gestión, acceso por persona y pantalla completa | 2.9 a 2.12 | 2,5 | 2 entregados, 1 pendiente, 1 en curso |
+| Embudos por segmento, tarjeta compacta, Ficha 360°, franja y «Vincular a cliente» | 6.11 a 6.17 | 11,75 | 5 entregados, 1 pendiente, 1 en curso |
+| Datos del ERP en el contacto de Chatwoot | 10.9 | 1 | entregado, interruptor apagado |
+| Respaldo del conocimiento de la IA de Kommo (viene de la 7.3) | 8.14 | 0,5 | pendiente |
+
+Cambian de estado sin cambiar de días: 10.5 y 10.7 (chat del portal en producción desde el 2026-11-15, flag encendido por Sam y smoke 5c suyo) pasan a `entregado`. Ninguna es `aceptado`: no hay aceptación de Sam posterior al 2026-11-08 en los registros que se revisaron.
+
+### Aprobación de la estimación (Sam, 2026-11-19)
+
+Los días de 2.10, 2.11, 2.12, 6.16 y 6.17 (0,5, 1, 0,5, 3 y 2) los estimó el Worker. Sam aprobó la estimación el 2026-11-19, según el relato del Director General, que le dio el contexto de esas cinco filas: «Ya no me acuerdo qué puse que sí en el chat. Alguien tocó, sí, yo fui el que toqué», y después del contexto, «ok avanzamos». Es aprobación de la estimación, no aceptación de los pasos. La 2.12 pasa a `entregado` con la #690 fusionada en `7f90d8483`.
+
+### Lo que esta revisión no pudo verificar (NV)
+
+- Que las alarmas del cupo de WhatsApp y del token de Instagram (código en `main` desde el 2026-11-06) estén instaladas y corriendo en el VPS.
+- Que las 10 plantillas C1 a C10 sigan aprobadas en la cuenta de Meta (viene del registro del DG del 2026-11-18).
+- La aplicación en producción de la 0553, y que la 0554 y la 0566 sigan sin aplicar (la 0566 la corrige la #696).
+- Las pantallas 2 y 10, el adjunto y revisar-datos-ve de la 10.6.
+
+No se leyó ninguna base de producción ni se consultó Meta o Kommo para este cambio.
+
 ## Metodología de avance
 
 - **Fórmula:** `avance = Σ días base de pasos aceptados ÷ Σ días base del alcance aprobado`, y **falta = 100 − avance**. Unidad: persona-día de 8 h.
-- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). La **v4 del 2026-11-07** son 129,5 días, por el rediseño de la 6.6 y la 10.5, con cinco filas nuevas (ver el checklist, «Cambio de alcance v4»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
+- **Línea base versionada.** La v1 del 2026-10-28 son 99,75 días en 10 etapas. La **v2 del 2026-10-29** son 109,25 días en 11 etapas (ver «Cambio de alcance v2»). La **v3 del mismo día** son 115,5 días, o 114,5 sin el 2.8 opcional (ver «Cambio de alcance v3»). La **v4 del 2026-11-07** son 129,5 días, por el rediseño de la 6.6 y la 10.5, con cinco filas nuevas (ver el checklist, «Cambio de alcance v4»). La **v5 del 2026-11-19** son 127,75 días: E7 sale de la línea base (−18,5) y entran 14 filas nuevas (+16,75) (ver «Cambio de alcance v5: corte sin esperar el bot propio»). Cada cambio de alcance crea una versión nueva y muestra el % antes y después.
 - **Esfuerzo aparte.** El real y el restante reestimado se informan aparte y no mueven el %. Las esperas pesan 0 y bloquean.
 - **Estados:** `pendiente`, `en curso`, `entregado`, `aceptado`, `bloqueado`, `espera externa` y `descartado`. Solo `aceptado` suma.
 - **Cálculo:** `node scripts/avance-checklist.mjs docs/specs/0582-chatwoot-piloto/checklist.md`.
@@ -327,7 +384,7 @@ Están en la fila 2.3 del checklist.
 
 - **Etapas:** cada paso del checklist está `aceptado` con evidencia (PR, commit, handoff o acta), o `descartado` con una línea base nueva aprobada.
 - **Actas:** de conciliación final firmada (8.6) y de corte (8.1).
-- **Bot:** «Contesta solo» activo solo si 7.2 está aprobado.
+- **Bot:** fuera de la línea base v5 (Sam, 2026-11-19). `dtd-bot` queda apagado; si se retoma, «Contesta solo» activo solo si 7.2 está aprobado, con una línea base nueva.
 - **Kommo:** `git grep -i kommo` en código vivo devuelve solo historia permitida (migraciones aplicadas, specs, handoffs). Las tablas están borradas con migración aprobada. La licencia está cancelada.
 - **Cierre durable (PRG-01):** runbooks, handoff y retrospectiva.
 
@@ -340,6 +397,7 @@ Están en la fila 2.3 del checklist.
 - `.agents/handoffs/0582-chatwoot-piloto.md`
 - `.agents/handoffs/0582-e0-preparacion.md`
 - `.agents/handoffs/0582-e9-guion.md`
+- `.agents/handoffs/0582-checklist-v5.md`
 - Paso 4.8, correo, que no tiene SDD hija (detalle en `e4-correo.md` §10): `infra/chatwoot/correo/{bandeja-prueba.rb,bandeja-vzla.rb,zz_dtd_correo_sistema.rb}`, `infra/chatwoot/pruebas/{prueba-correo-sistema.sh,sonda-correo-sistema.rb,sonda-bandeja-vzla.rb,compose.correo-sistema.yml,compose.correo-sistema-control.yml}`, `.github/workflows/chatwoot-correo-sistema.yml`, `docs/legal/privacidad/{revision-chatwoot-correo-2026-10-31.md,inventario-terceros.md}` y `.agents/handoffs/0582-e4-correo.md`
 
 Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan en la SDD hija de cada etapa.
@@ -379,3 +437,8 @@ Fuera del paso 4.8, el código del producto y la infraestructura se allowlistan 
 
   En la D pasaron el respaldo, las puertas (269 migraciones en el ledger, con huellas iguales) y la prueba rápida, 14 de 14. El webhook de Chatwoot responde 401 sin firma, el cron 403, y el log no tiene errores. No cambió el crontab ni el compose. El Subdirector comprobó a las 02:04Z, desde fuera, que `/privacidad` publica el texto de SDD-0587 con fecha del 5 de noviembre. **Con la D, todo lo de Chatwoot del mandato está en producción.** Lo que sigue abierto está en el checklist: 4.4 y 4.6 en espera de Meta, 4.5, 4.8, 4.9, y de E6 a E9.
 - **2026-11-05 (capacitación, pedida por Sam, todavía sin orden de empezar):** lo dijo Sam en el chat del Director General: «Hay que hacer un entrenamiento al personal para que entiendan cómo manejar esta herramienta comparada con Kommo. Hay que preparar diferencias entre Kommo y Chatwoot. Lo hacía de una manera ya en el pipeline, en el embudo, y aquí lo va a hacer casi de la misma manera o diferente.» Y: «El bug del ERP hay que ponerlo visible dentro de la herramienta cuando trabajen los empleados, o recordarles que cualquier mejora puede hacerlo en el book.» La capacitación ya es parte de 8.1 y sale de [`guia-guion.md`](guia-guion.md). De 9.2 a 9.6, lo del botón de bugs cae en 9.5. **No se empieza hasta que Sam la ordene.**
+- **2026-11-19 (línea base v5):** Sam decidió cortar Kommo sin esperar el bot propio y que las plantillas de Clientes se usen solo desde Chatwoot (ver «Cambio de alcance v5: corte sin esperar el bot propio»). Alcance 129,5 → 127,75 días; avance 49,0 % → 49,7 %. Cierre de E8 estimado entre el 2026-12-30 y el 2027-02-01, según el ritmo; el token de Instagram vence el 2026-12-30.
+- **2026-11-16 (enmienda, plantillas desde el número de clientes):** a la pregunta «¿Enmiendo la spec 0582 para permitir plantillas desde el número de Clientes?», Sam respondió en la sesión de análisis de plantillas: «Sí, enmiéndala».
+  - Cambia la regla «No se le escribe al cliente desde el número de clientes» de *Redirección sin IA*. Ahora DTD puede escribir primero con plantillas aprobadas, con las condiciones que dice esa sección. La redirección por enlace no cambia.
+  - No cambia código, no crea plantillas en Meta y no automatiza envíos. Cada uno de esos pasos va con su propio OK.
+  - Análisis: [`docs/marketing/whatsapp-plantillas-por-numero.md`](../../marketing/whatsapp-plantillas-por-numero.md).

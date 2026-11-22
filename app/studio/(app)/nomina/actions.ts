@@ -39,8 +39,10 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateEmployeeInput,
   isEmployeeStatus,
+  toEmployeeEditView,
   type NominaActionState,
   type EmployeeStatus,
+  type EmployeeEditView,
 } from "@/lib/studio/nomina/employee-types";
 import {
   validateContractorInput,
@@ -69,8 +71,18 @@ import {
   isPayrollRunStatus,
   type PayrollRunStatus,
 } from "@/lib/studio/nomina/payroll-run-types";
+import {
+  camposDeTasaParaSnapshot,
+  etiquetaDeTasa,
+  faltaTasaDelCierre,
+  hoyEnCaracas,
+  resolverTasaDeTopes,
+  tasaCongelada,
+  type TasaDeTopes,
+} from "@/lib/studio/nomina/tope-fx";
 import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
-import { listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getEmployee, listEmployees } from "@/lib/studio/nomina/employee-queries";
+import { getFichaEmpleadoAccess } from "@/lib/studio/nomina/ficha-empleado-guard";
 import {
   getPayrollRun,
   findLivePayrollRunForPeriod,
@@ -103,7 +115,12 @@ import {
 } from "@/lib/studio/accounting/period-queries";
 import { validateInviteInput } from "@/lib/studio/nomina/invite-types";
 import { validatePositionInput } from "@/lib/studio/nomina/position-types";
-import { validateApproveRegistrationInput } from "@/lib/studio/nomina/registration-types";
+import {
+  toRegistrationReview,
+  validateApproveRegistrationInput,
+  type RegistrationReview,
+} from "@/lib/studio/nomina/registration-types";
+import { discardCreatedAuthUser, ensureEmployeeAuthUser } from "@/lib/studio/nomina/employee-auth-user";
 import { getRegistration } from "@/lib/studio/nomina/registration-queries";
 import { validateSendCommInput } from "@/lib/studio/nomina/comms-types";
 import { createAdminClient } from "@/lib/db/admin";
@@ -244,9 +261,14 @@ export async function updateEmployeeAction(
   const { input, fieldErrors } = validateEmployeeInput(employeeRawFromForm(formData));
   if (fieldErrors) return { fieldErrors };
 
+  // SDD-0652 F1: el formulario ya no trae la cuenta bancaria. Un campo vacío
+  // significa «no la cambies», no «bórrala»: se quita del update.
+  const { bank_account, ...resto } = input!;
+  const cambios = bank_account === null ? resto : { ...resto, bank_account };
+
   const { error } = await supabase
     .from("nomina_employees")
-    .update({ ...input! })
+    .update(cambios)
     .eq("id", employeeId);
 
   if (error) {
@@ -257,7 +279,36 @@ export async function updateEmployeeAction(
   }
 
   revalidatePath(PATH);
+  // SDD-0652 F1: la ficha 360° también muestra estos datos.
+  revalidatePath("/studio/nomina/empleados/[codigo]", "page");
   return { ok: true };
+}
+
+/**
+ * La ficha de un empleado para el formulario de edición (SDD-0652 F1).
+ *
+ * La lista ya no manda cédula, sueldo ni cuenta al navegador, así que el lápiz
+ * pide aquí la ficha. Exige rol `admin` o `accounting` activo y busca la ficha
+ * en ese mismo tenant. Devuelve la cuenta solo enmascarada.
+ */
+export async function getEmployeeEditViewAction(
+  employeeId: string,
+): Promise<{ ok: true; employee: EmployeeEditView } | { error: string }> {
+  const supabase = await createClient();
+  // Primera puerta, la de todo el módulo (la que reconoce el inventario RBAC).
+  const denial = await moduleViewDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+  // Segunda: rol admin/accounting activo. Un acceso extra a `nomina` pasa la
+  // primera y no esta (SDD-0652 §2.2).
+  const acceso = await getFichaEmpleadoAccess(supabase);
+  if (!acceso.ok) return { error: "No tienes permiso para ver esta ficha." };
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId ?? "")) return { error: "Empleado inválido." };
+
+  const employee = await getEmployee(supabase, employeeId);
+  if (!employee || employee.tenant_id !== acceso.tenantId) {
+    return { error: "No se pudo cargar la ficha. Intenta de nuevo." };
+  }
+  return { ok: true, employee: toEmployeeEditView(employee) };
 }
 
 export async function setEmployeeStatusAction(
@@ -495,6 +546,25 @@ function payrollRulesRawFromForm(formData: FormData): Record<string, unknown> {
     bono_vacacional_days: strOrNull(formData.get("bono_vacacional_days")) ?? 0,
     vacaciones_days: strOrNull(formData.get("vacaciones_days")) ?? 0,
     salarial_bonuses: strOrNull(formData.get("salarial_bonuses")),
+    // SDD-0658: ajustes de la liquidación (0179). Sin valor = null: la versión nueva conserva los de la vigente.
+    prestaciones_method: strOrNull(formData.get("prestaciones_method")),
+    prestaciones_interest_pct: strOrNull(formData.get("prestaciones_interest_pct")),
+    ajena_78_incluye_92: strOrNull(formData.get("ajena_78_incluye_92")),
+    // SDD-0653 A2b (0556): ausentes si el formulario los deshabilitó por falta de la migración. Sin valor =
+    // null: «sin configurar» (los números) o «hereda de la versión vigente» (las monedas); nunca un default.
+    vigente_desde: strOrNull(formData.get("vigente_desde")),
+    fuente_legal: strOrNull(formData.get("fuente_legal")),
+    ingreso_minimo_integral_usd: strOrNull(formData.get("ingreso_minimo_integral_usd")),
+    cestaticket_moneda: strOrNull(formData.get("cestaticket_moneda")),
+    bono_guerra_moneda: strOrNull(formData.get("bono_guerra_moneda")),
+    sso_patronal_pct: strOrNull(formData.get("sso_patronal_pct")),
+    rpe_patronal_pct: strOrNull(formData.get("rpe_patronal_pct")),
+    faov_patronal_pct: strOrNull(formData.get("faov_patronal_pct")),
+    inces_patronal_pct: strOrNull(formData.get("inces_patronal_pct")),
+    inces_utilidades_pct: strOrNull(formData.get("inces_utilidades_pct")),
+    pension_contrib_pct: strOrNull(formData.get("pension_contrib_pct")),
+    vacaciones_extra_max: strOrNull(formData.get("vacaciones_extra_max")),
+    bono_vacacional_max_days: strOrNull(formData.get("bono_vacacional_max_days")),
     notes: strOrNull(formData.get("notes")),
   };
 }
@@ -974,10 +1044,17 @@ export async function anularAmonestacionAction(
 async function buildRunLines(
   supabase: Awaited<ReturnType<typeof createClient>>,
   run: { id: string; tenant_id: string; period_start: string; period_end: string; rules_snapshot: Record<string, unknown> },
-): Promise<{ error: string | null; totals: { gross: number; deductions: number; net: number } }> {
+): Promise<{ error: string | null; totals: { gross: number; deductions: number; net: number }; tasa?: TasaDeTopes }> {
   // Reglas mecánicas del snapshot congelado del corte (NO se relee payroll_rules,
   // así un corte viejo no cambia si editan las reglas después).
   const snap = run.rules_snapshot as Record<string, unknown>;
+  // La tasa que pasa el tope (Bs) a USD: la congelada en el snapshot; si no hay
+  // (período en curso o corte anterior a la A3), la del último día del período con
+  // el período cerrado, o la vigente hoy como PROVISIONAL (SDD-0653 D6).
+  const tasaTopes = await resolverTasaDeTopes(supabase, run.tenant_id, snap, run.period_end, hoyEnCaracas());
+  if (!tasaTopes.ok) {
+    return { error: tasaTopes.error, totals: { gross: 0, deductions: 0, net: 0 } };
+  }
   const calcRules = calcRulesFrom({
     pay_frequency: (snap.pay_frequency as "mensual" | "quincenal" | "semanal") ?? "mensual",
     day_method: (snap.day_method as "30" | "real") ?? "30",
@@ -989,7 +1066,7 @@ async function buildRunLines(
     rpe_cap_sm: Number(snap.rpe_cap_sm ?? 0),
     overtime_pct: Number(snap.overtime_pct ?? 0),
     night_pct: Number(snap.night_pct ?? 0),
-  });
+  }, tasaTopes.tasa.rate, tasaTopes.tasa.rate === null ? null : etiquetaDeTasa(tasaTopes.tasa));
 
   const employees = await listEmployees(supabase);
   const activeEmployees = employees.filter((e) => e.status === "activo");
@@ -1061,6 +1138,7 @@ async function buildRunLines(
   }
 
   return {
+    tasa: tasaTopes.tasa,
     error: null,
     totals: {
       gross: Math.round((gross + Number.EPSILON) * 100) / 100,
@@ -1112,6 +1190,13 @@ export async function generatePayrollRunAction(
     return { error: "Define primero las reglas de cálculo (pestaña Reglas)." };
   }
 
+  // La tasa que pasa el tope de SSO y RPE (Bs) a USD, resuelta ANTES de crear el
+  // corte: sin ella no se deja un borrador vacío. Con el período cerrado se congela
+  // en el snapshot (SDD-0653 D6); con el período en curso queda PROVISIONAL y no se
+  // congela: se recalcula al regenerar y confirmar la exige.
+  const tasaTopes = await resolverTasaDeTopes(supabase, tenantId, rules, input!.period_end, hoyEnCaracas());
+  if (!tasaTopes.ok) return { error: tasaTopes.error };
+
   const { data: userResp } = await supabase.auth.getUser();
 
   // 1) Crea el corte en borrador con el snapshot congelado de las reglas.
@@ -1124,7 +1209,7 @@ export async function generatePayrollRunAction(
       period_end: input!.period_end,
       pay_frequency: rules.pay_frequency,
       day_method: rules.day_method,
-      rules_snapshot: rules,
+      rules_snapshot: { ...rules, ...camposDeTasaParaSnapshot(tasaTopes.tasa) },
       status: "borrador",
       notes: input!.notes,
       created_by: userResp.user?.id ?? null,
@@ -1190,12 +1275,19 @@ export async function regeneratePayrollRunLinesAction(
   });
   if (built.error) return { error: built.error };
 
+  // Con el período ya cerrado, la tasa del cierre se congela ahora (SDD-0653 D6):
+  // un borrador provisional pasa a definitivo y confirmar deja de bloquearse.
+  const snapActual = (run.rules_snapshot ?? {}) as Record<string, unknown>;
+  const congelar =
+    built.tasa && !tasaCongelada(snapActual) ? camposDeTasaParaSnapshot(built.tasa) : {};
+
   await supabase
     .from("nomina_payroll_runs")
     .update({
       total_gross_usd: built.totals.gross,
       total_deductions_usd: built.totals.deductions,
       total_net_usd: built.totals.net,
+      ...(Object.keys(congelar).length > 0 ? { rules_snapshot: { ...snapActual, ...congelar } } : {}),
     })
     .eq("id", runId)
     .eq("status", "borrador");
@@ -1225,6 +1317,19 @@ export async function setPayrollRunStatusAction(
 
   if (!canTransitionPayrollRun(run.status, status)) {
     return { error: `No se puede pasar de ${run.status} a ${status}.` };
+  }
+
+  // El tope de SSO y RPE se calcula con la tasa del cierre del período: un corte
+  // con tasa provisional se regenera cuando exista (SDD-0653 D6).
+  if (
+    status === "confirmado" &&
+    faltaTasaDelCierre((run.rules_snapshot ?? {}) as Record<string, unknown>)
+  ) {
+    return {
+      error:
+        "Este corte usa una tasa de bolívares PROVISIONAL (el período no había cerrado o faltaba la tasa del cierre). " +
+        "Carga la tasa del último día del período en Admin › Tasas y regenera los renglones antes de confirmar.",
+    };
   }
 
   const patch: Record<string, unknown> = { status };
@@ -1744,6 +1849,31 @@ export async function revokeInviteAction(
 // ╚═══════════════════════════════════════════════════════════╝
 
 /**
+ * Lo que ve quien revisa una solicitud (SDD-0652 fase 2, N2). La bandeja ya no
+ * trae la cédula ni la cuenta: el panel las pide aquí, al abrirse, y solo para
+ * una solicitud **pendiente**. La cuenta sale enmascarada. Una solicitud ya
+ * aprobada o rechazada no devuelve nada: sus datos viven en la ficha.
+ */
+export async function getRegistrationReviewAction(
+  registrationId: string,
+): Promise<{ ok: true; registration: RegistrationReview } | { error: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+  // Rol admin/accounting activo: un acceso extra a `nomina` no alcanza (§2.2).
+  const acceso = await getFichaEmpleadoAccess(supabase);
+  if (!acceso.ok) return { error: "No tienes permiso para revisar solicitudes." };
+  if (!/^[0-9a-f-]{36}$/i.test(registrationId ?? "")) return { error: "Solicitud inválida." };
+
+  const reg = await getRegistration(supabase, registrationId);
+  if (!reg || reg.tenant_id !== acceso.tenantId) {
+    return { error: "No se pudo cargar la solicitud. Intenta de nuevo." };
+  }
+  if (reg.status !== "pendiente") return { error: "La solicitud ya fue revisada." };
+  return { ok: true, registration: toRegistrationReview(reg) };
+}
+
+/**
  * Aprueba una solicitud: MATERIALIZA la ficha nomina_employees con los datos del
  * candidato + el **sueldo que define la empresa** (NO el que pidió el candidato),
  * genera EMP-NNNN, y enlaza la solicitud (status='aprobada', employee_id). El
@@ -1785,14 +1915,16 @@ export async function approveRegistrationAction(
 
   const { data: userResp } = await supabase.auth.getUser();
 
-  // 0) Crea/enlaza el login del empleado (auth.users real, patrón Portal Cliente).
-  //    Es el paso que faltaba en Slice A. Usa el admin client (service_role) para
-  //    crear el usuario por email; si ya existe (re-aprobación / colisión) lo
-  //    reusa buscándolo por email. El auth_user_id se setea en la ficha (único).
-  const authUserId = await ensureEmployeeAuthUser(reg.email);
-  if (!authUserId) {
-    return { error: "No se pudo crear el acceso del empleado (auth). Revisa el correo." };
+  // 0) Cuenta de acceso del empleado (SDD-0652 §4 punto 6). Solo se enlaza una
+  //    cuenta CREADA aquí. Si el correo ya tiene cuenta, de quien sea, no se
+  //    reutiliza: la ficha nace sin acceso y el admin la enlaza a mano. Ante
+  //    cualquier otro error, no se crea nada (falla cerrado).
+  const admin = createAdminClient();
+  const cuenta = await ensureEmployeeAuthUser(admin, reg.email);
+  if (cuenta.kind === "error") {
+    return { error: "No se pudo comprobar el acceso del empleado. No se creó nada: intenta de nuevo." };
   }
+  const authUserId = cuenta.kind === "created" ? cuenta.userId : null;
 
   // 1) Materializa la ficha con el sueldo de la empresa.
   const { data: empData, error: empErr } = await supabase
@@ -1819,6 +1951,8 @@ export async function approveRegistrationAction(
     .single();
 
   if (empErr || !empData) {
+    // La cuenta recién creada no se queda suelta si la ficha no nació.
+    if (authUserId) await discardCreatedAuthUser(admin, authUserId);
     if (empErr?.code === "23505" && /national_id/.test(empErr.message)) {
       return { error: "Ya existe un empleado con esa cédula. Revisa antes de aprobar." };
     }
@@ -1846,6 +1980,14 @@ export async function approveRegistrationAction(
   }
 
   revalidatePath(PATH);
+  if (cuenta.kind === "exists") {
+    return {
+      ok: true,
+      createdCode: employeeCode,
+      accessWarning:
+        "Ese correo ya tiene una cuenta. La ficha se creó sin acceso. Si esa cuenta es de un usuario del Studio y es la misma persona, enlázala desde la ficha. Si es solo de la app del empleado, todavía no se puede enlazar desde la ficha: pídeselo a quien administra el sistema.",
+    };
+  }
   return { ok: true, createdCode: employeeCode };
 }
 
@@ -1880,50 +2022,6 @@ export async function rejectRegistrationAction(
 
   revalidatePath(PATH);
   return { ok: true };
-}
-
-/**
- * Crea o reutiliza el auth.users del empleado por email (login propio de /m/emp).
- * service_role: crea el usuario con email confirmado (el empleado entra con magic
- * link / reset de contraseña). Si ya existe (re-aprobación), lo busca y lo reusa.
- * Devuelve el auth user id o null si falló de forma irrecuperable.
- */
-async function ensureEmployeeAuthUser(email: string): Promise<string | null> {
-  const admin = createAdminClient();
-  const normalized = email.trim().toLowerCase();
-
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: normalized,
-    email_confirm: true,
-    user_metadata: { role: "employee", app: "m-emp" },
-  });
-  if (!createErr && created?.user?.id) return created.user.id;
-
-  // Ya existe (email_exists / 422). Reusar SOLO si el auth.user NO está ya tomado
-  // por otra identidad — evita apropiarse de un usuario ajeno por colisión de
-  // email (M-1): un auth.user enlazado a otra ficha de empleado viva, o un
-  // usuario de Studio (miembro de user_tenants), NO se reutiliza. Si está tomado,
-  // devolvemos null → la aprobación crea la ficha sin login (reintentable con otro
-  // correo); nunca enlazamos PII de un tenant al user de otra persona.
-  const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === normalized);
-  if (!found?.id) return null;
-
-  const { data: linkedEmp } = await admin
-    .from("nomina_employees")
-    .select("id")
-    .eq("auth_user_id", found.id)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (linkedEmp?.id) return null; // ya es de otro empleado vivo → no apropiar
-
-  const { count: studioMember } = await admin
-    .from("user_tenants")
-    .select("user_id", { count: "exact", head: true })
-    .eq("user_id", found.id);
-  if ((studioMember ?? 0) > 0) return null; // usuario de Studio (otra identidad)
-
-  return found.id;
 }
 
 // ╔═══════════════════════════════════════════════════════════╗

@@ -18,7 +18,7 @@ import { ultimoAnalisis } from "@/lib/studio/chatwoot/analisis-queries";
 import { ActualizacionesPanel } from "./_components/ActualizacionesPanel";
 
 export const metadata = {
-  title: "Actualizaciones · DTD Studio",
+  title: "Actualizaciones",
 };
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export default async function ActualizacionesPage() {
 
   return (
     <div style={{ maxWidth: 860 }}>
-      <span className="studio-eyebrow">Administración</span>
+      <span className="studio-eyebrow">Integraciones</span>
       <h1 className="studio-display" style={{ fontSize: 30, margin: "var(--s-2) 0 var(--s-3)", color: "var(--ink)" }}>
         Actualizaciones de Chatwoot.
       </h1>

@@ -27,6 +27,7 @@ import { fmtAmount } from "./format";
 import { AssetDrawer } from "./AssetDrawer";
 import { disposeAsset, postDepreciationAction } from "../assets-actions";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -52,6 +53,9 @@ export function ActivosFijosTab({
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState(thisMonth());
+  // SDD-0660: el campo no vive en un <form>; a medio escribir `period` conserva el
+  // último mes válido, así que «Depreciar mes» espera a que lo escrito sirva.
+  const [periodValid, setPeriodValid] = useState(true);
 
   const asOf = todayISO();
   const activos = assets.filter((a) => a.status === "activo");
@@ -119,12 +123,10 @@ export function ActivosFijosTab({
         <KpiCard
           value={`$${fmtAmount(totalAccum)}`}
           label="Depreciación acumulada"
-          valueColor="var(--wine-text)"
         />
         <KpiCard
           value={`$${fmtAmount(totalNet)}`}
           label="Valor neto en libros"
-          valueColor="var(--success)"
         />
         <KpiCard
           value={`$${fmtAmount(totalMonthly)}`}
@@ -156,11 +158,12 @@ export function ActivosFijosTab({
             {closingDate && ` Período cerrado al ${closingDate}.`}
           </div>
         </div>
-        <input
-          type="month"
-          className="studio-input"
+        <DateField
+          mode="month"
           value={period}
-          onChange={(e) => setPeriod(e.target.value)}
+          onChange={setPeriod}
+          onValidityChange={setPeriodValid}
+          required
           style={{ width: 150 }}
           aria-label="Mes a depreciar"
         />
@@ -171,7 +174,7 @@ export function ActivosFijosTab({
           loadingLabel="Posteando…"
           successLabel="Depreciado"
           idleIcon={Icon.check(14)}
-          disabled={activos.length === 0}
+          disabled={activos.length === 0 || !periodValid}
           onAction={async () => {
             setError(null);
             const r = await postDepreciationAction(period);
@@ -261,7 +264,7 @@ export function ActivosFijosTab({
               <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
                 ${fmtAmount(s.monthlyAmount)}
               </span>
-              <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
+              <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
                 ${fmtAmount(s.accumulated)}
               </span>
               <span style={{ font: "800 12.5px/1 var(--f-mono)", color: "var(--success)", textAlign: "right" }}>
@@ -284,7 +287,7 @@ export function ActivosFijosTab({
                     }}
                   />
                 ) : (
-                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>—</span>
+                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>—</span>
                 )}
               </span>
             </div>

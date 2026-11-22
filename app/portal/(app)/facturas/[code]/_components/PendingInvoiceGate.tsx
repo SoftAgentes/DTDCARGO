@@ -1,3 +1,4 @@
+import { formatCbm } from "@/lib/shared/cbm";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
 import { StatusIcon } from "@/components/StatusIcon";
@@ -26,7 +27,7 @@ export function PendingInvoiceGate({ pendiente }: { pendiente: PendingAcceptance
   const medidaTexto =
     medida.cbm == null && medida.weightKg == null
       ? "—"
-      : [medida.cbm != null ? `${medida.cbm} m³` : null, medida.weightKg != null ? `${medida.weightKg} kg` : null]
+      : [medida.cbm != null ? formatCbm(medida.cbm, { unit: true, locale: "en-US" }) : null, medida.weightKg != null ? `${medida.weightKg} kg` : null]
           .filter(Boolean)
           .join(" · ");
   return (

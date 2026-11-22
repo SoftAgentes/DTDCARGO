@@ -6,8 +6,8 @@ que `setup-resend.md` y `setup-telegram-bot.md`: el código ya está, falta
 el setup del founder (3 env vars + redeploy).
 
 > ⚠️ **Nota del 2026-10-19 · la web ya no corre en Vercel.** Desde el
-> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publica
-> sola con el vigilante ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
+> 2026-10-16 la web corre en el servidor propio (VPS de Contabo) y se publicaba
+> sola con el vigilante (detenido desde el 2026-10-25: hoy la publica el Director a mano) ([`publicacion-automatica-web.md`](publicacion-automatica-web.md));
 > Vercel está en pausa. Donde abajo dice «Vercel»:
 >
 > - **Variables:** las tres VAPID se copiaron de Vercel al `.env` del servidor

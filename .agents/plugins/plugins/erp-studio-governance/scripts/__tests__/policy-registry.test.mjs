@@ -35,7 +35,9 @@ describe("PLG-01 policy registry", () => {
     // 5 desde SDD-0263: `action-menu` entra `proposed`. La cápsula del plugin
     // es un derivado read-only del registro, así que refleja el alta.
     // 6 desde SDD-0628: `aviso` entra `proposed`.
-    expect(registry.components).toHaveLength(6);
+    // 7 desde SDD-0660: `date-field` entra `proposed`.
+    expect(registry.components).toHaveLength(7);
+    expect(registry.components.find(({ id }) => id === "date-field")?.status).toBe("proposed");
     const numericInput = registry.components.find(
       ({ id }) => id === "numeric-input",
     );

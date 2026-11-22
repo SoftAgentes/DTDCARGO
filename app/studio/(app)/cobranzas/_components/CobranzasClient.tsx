@@ -21,7 +21,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import { EquivalenteBs } from "@/app/studio/_components/EquivalenteBs";
 import { equivalenteEnBs, type TasaReferencial } from "@/lib/shared/equivalente-bs";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -185,25 +185,23 @@ export function CobranzasClient({
         <KpiCard
           value={`$${fmtMoney(kpis.porCobrar)}`}
           label="Por cobrar"
-          valueColor={kpis.porCobrar > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${kpis.casos} caso(s) abierto(s)`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.vencido)}`}
           label="Vencido"
-          valueColor={kpis.vencido > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.vencido > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined}
           sub={kpis.vencido > 0 ? "Requiere gestión" : "Sin vencidos"}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.enPromesa)}`}
           label="En promesa de pago"
-          valueColor={kpis.enPromesa > 0 ? "var(--info)" : "var(--ink)"}
           sub="Comprometido por el cliente"
         />
         <KpiCard
           value={`${kpis.tasaCobro}%`}
           label="Tasa de cobro"
-          valueColor={kpis.tasaCobro >= 80 ? "var(--success)" : "var(--ink)"}
+          status={kpis.tasaCobro >= 80 ? { tono: "success", texto: "Meta cumplida" } : undefined}
           sub="Al día sobre el total por cobrar"
         />
       </div>
@@ -445,7 +443,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: "var(--info)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.thirdPartyUsd)}
@@ -464,7 +462,7 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color: sinTasa > 0 ? "var(--ink)" : "var(--success)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.localRevenueUsd)}
@@ -483,14 +481,16 @@ function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
           <div
             style={{
               font: "800 20px/1 var(--f-mono)",
-              color:
-                separation.unidentifiedUsd > 0
-                  ? "var(--warning)"
-                  : "var(--ink)",
+              color: "var(--ink)",
             }}
           >
             ${fmtAmount(separation.unidentifiedUsd)}
           </div>
+          {separation.unidentifiedUsd > 0 && (
+            <div style={{ marginTop: 6 }}>
+              <KpiEstado status={{ tono: "warning", texto: "Requiere revisión" }} />
+            </div>
+          )}
           <div
             style={{
               font: "600 11px/1.4 var(--f-sans)",
@@ -695,7 +695,7 @@ function ReceivablesTable({
               <div
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 3,
                 }}
               >

@@ -10,6 +10,7 @@
  * - Empty state si no hay shipments en estados VE
  */
 
+import { formatCbm } from "@/lib/shared/cbm";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -223,12 +224,7 @@ function VeRow({
   hasBorderTop: boolean;
 }) {
   const cbmDisplay =
-    row.volume_m3 != null
-      ? Number(row.volume_m3).toLocaleString("es-VE", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })
-      : "—";
+    formatCbm(row.volume_m3);
 
   const deliveredDisplay = row.delivered_at
     ? formatDate(row.delivered_at)
@@ -251,7 +247,7 @@ function VeRow({
       <code
         style={{
           font: "800 11.5px/1 var(--f-mono)",
-          color: "var(--wine-text)",
+          color: "var(--ink)",
           letterSpacing: "0.02em",
         }}
       >
@@ -275,7 +271,7 @@ function VeRow({
           <code
             style={{
               font: "700 11px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {row.client_markbox}
@@ -301,7 +297,7 @@ function VeRow({
       <span
         style={{
           font: "500 12px/1.3 var(--f-sans)",
-          color: row.delivery_address ? "var(--ink-soft)" : "var(--ink-mute)",
+          color: row.delivery_address ? "var(--ink-soft)" : "var(--ink-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -316,7 +312,7 @@ function VeRow({
         className="mono"
         style={{
           font: "700 12px/1 var(--f-mono)",
-          color: row.weight_kg != null ? "var(--ink)" : "var(--ink-mute)",
+          color: row.weight_kg != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -328,7 +324,7 @@ function VeRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.volume_m3 != null ? "var(--wine)" : "var(--ink-mute)",
+          color: row.volume_m3 != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -340,7 +336,7 @@ function VeRow({
         className="mono"
         style={{
           font: "500 11.5px/1 var(--f-mono)",
-          color: row.delivered_at ? "var(--success)" : "var(--ink-mute)",
+          color: row.delivered_at ? "var(--success)" : "var(--ink-soft)",
         }}
       >
         {deliveredDisplay}

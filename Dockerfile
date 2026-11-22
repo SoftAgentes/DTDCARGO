@@ -17,7 +17,7 @@
 #     --build-arg NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com \
 #     --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon> .
 #   (el resto de NEXT_PUBLIC_* es opcional: ver ARG más abajo)
-ARG NODE_IMAGE=node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
+ARG NODE_IMAGE=node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 
 # ─── deps ───────────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS deps
@@ -27,7 +27,7 @@ WORKDIR /app
 # con pnpm 11 y otra major podría reinterpretarlo. Corepack viene con Node 24;
 # `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` evita el prompt interactivo de descarga.
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 
 # Solo los manifiestos: si no cambian, esta capa (la más lenta) se reutiliza.
 # `pnpm-workspace.yaml` trae `allowBuilds` y los `overrides`; `.npmrc`, los
@@ -39,7 +39,7 @@ RUN pnpm install --frozen-lockfile
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.28.12 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -49,6 +49,7 @@ COPY . .
 # entra por acá queda legible dentro de la imagen: nunca un secreto.
 ARG NEXT_PUBLIC_BUG_REPLAY_ENABLED
 ARG NEXT_PUBLIC_BUILD_SHA
+ARG NEXT_PUBLIC_CLARITY_ID
 ARG NEXT_PUBLIC_CONTACT_EMAIL
 ARG NEXT_PUBLIC_GA_ID
 ARG NEXT_PUBLIC_HAILUWAY_API
@@ -61,6 +62,7 @@ ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ARG NEXT_PUBLIC_WHATSAPP_NUMBER
 ENV NEXT_PUBLIC_BUG_REPLAY_ENABLED=${NEXT_PUBLIC_BUG_REPLAY_ENABLED} \
     NEXT_PUBLIC_BUILD_SHA=${NEXT_PUBLIC_BUILD_SHA} \
+    NEXT_PUBLIC_CLARITY_ID=${NEXT_PUBLIC_CLARITY_ID} \
     NEXT_PUBLIC_CONTACT_EMAIL=${NEXT_PUBLIC_CONTACT_EMAIL} \
     NEXT_PUBLIC_GA_ID=${NEXT_PUBLIC_GA_ID} \
     NEXT_PUBLIC_HAILUWAY_API=${NEXT_PUBLIC_HAILUWAY_API} \

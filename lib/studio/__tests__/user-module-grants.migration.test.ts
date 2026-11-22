@@ -12,7 +12,7 @@
  *   (rol, desvío, extra, scope) da el mismo resultado en `canAccessModule` /
  *   `canEditModule` (+ `scopeAllowsModule`) y en `user_has_module`.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -132,11 +132,18 @@ describe("SDD-0622 · la 0538 copia exacta de rbac.ts", () => {
     }
   });
 
-  it("los concedibles de la 0538 (studio_module_is_grantable) = COVERED de user-module-grants.ts", () => {
-    const fn = FILE_0538.slice(
-      FILE_0538.indexOf("create function public.studio_module_is_grantable"),
-      FILE_0538.indexOf("comment on function public.studio_module_is_grantable"),
-    );
+  // SDD-0675: la lista vigente es la ÚLTIMA migración que (re)define la función
+  // (hoy la 0565, que suma bandeja), no la de la 0538.
+  it("los concedibles vigentes de la base (studio_module_is_grantable) = COVERED de user-module-grants.ts", () => {
+    const MARCA = /create (?:or replace )?function public\.studio_module_is_grantable/;
+    const ultima = readdirSync(resolve(ROOT, "supabase/migrations"))
+      .filter((f) => /^\d{4}_.*\.sql$/.test(f))
+      .sort()
+      .map((f) => read(resolve(ROOT, "supabase/migrations", f)))
+      .filter((t) => MARCA.test(t))
+      .at(-1)!;
+    const inicio = ultima.search(MARCA);
+    const fn = ultima.slice(inicio, ultima.indexOf("comment on function public.studio_module_is_grantable", inicio));
     const sql = [...fn.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]).sort();
     const code = MODULES.map((m) => m.id).filter((id) => moduleCoverage(id) === "covered").sort();
     expect(code.length).toBeGreaterThanOrEqual(5);

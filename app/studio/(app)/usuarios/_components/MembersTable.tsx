@@ -49,10 +49,10 @@ import {
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-/** `Avatar` no tiene tono `danger`; el rol marketing lo usa. */
-type AvatarColor = "wine" | "info" | "success" | "warning" | "neutral";
+/** `Avatar` no tiene tono `danger`: si un rol llegara con ese tono, va en neutro (hoy todos los roles son neutros, SDD-0686). */
+type AvatarColor = "info" | "success" | "warning" | "neutral";
 function avatarColor(tone: BadgeTone): AvatarColor {
-  return tone === "danger" ? "wine" : tone;
+  return tone === "danger" ? "neutral" : tone;
 }
 
 export function MembersTable({
@@ -275,7 +275,7 @@ function ChipsExtra({ grants }: { grants: UserModuleGrantView[] }) {
   const vigentes = grants.filter((g) => !g.expired);
   if (vigentes.length === 0) {
     return (
-      <span aria-label="Sin accesos extra" style={{ color: "var(--ink-mute)" }}>
+      <span aria-label="Sin accesos extra" style={{ color: "var(--ink-soft)" }}>
         —
       </span>
     );

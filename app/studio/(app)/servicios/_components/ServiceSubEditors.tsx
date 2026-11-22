@@ -36,6 +36,7 @@ import {
   type ServiceCatalogEntry,
 } from "@/lib/shared/service-catalog";
 import { CHARGE_MODE_OPTIONS } from "@/lib/shared/service-offer";
+import { DateField } from "@/app/studio/_components/ui/DateField";
 
 type ActState = { ok?: boolean; error?: string };
 const initial: ActState = {};
@@ -309,8 +310,8 @@ export function PriceHistoryEditor({
             </select>
           </div>
           <div>
-            <label className="studio-label" style={labelStyle}>Vigente desde</label>
-            <input className="studio-input" type="date" name="valid_from" />
+            <label className="studio-label" style={labelStyle} htmlFor={`${serviceKey}-valid-from`}>Vigente desde</label>
+            <DateField id={`${serviceKey}-valid-from`} name="valid_from" />
           </div>
         </div>
         <label className="studio-label" style={labelStyle}>Nota (opcional)</label>

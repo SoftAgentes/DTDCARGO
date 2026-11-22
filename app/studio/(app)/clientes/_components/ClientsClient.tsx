@@ -161,6 +161,11 @@ export function ClientsClient({
                 href: "/studio/clientes/duplicados",
               },
               {
+                key: "registros-link",
+                label: "Registros por link",
+                href: "/studio/clientes/registros-link",
+              },
+              {
                 key: "legado",
                 label: "Códigos del legado",
                 href: "/studio/clientes/migrar-legado",
@@ -389,8 +394,8 @@ function ClientsTable({
   // pudo contar.
   const columnas =
     adjuntos === null
-      ? "120px 120px 1.5fr 100px 1.2fr 140px"
-      : "120px 120px 1.5fr 100px 96px 1.2fr 140px";
+      ? "120px 120px minmax(0, 1.5fr) 100px minmax(0, 1.2fr) 140px"
+      : "120px 120px minmax(0, 1.5fr) 100px 96px minmax(0, 1.2fr) 140px";
 
   // SDD-0255 · índices por cliente-padre y por id. El aliado ES un cliente, así
   // que en el listado hay que poder distinguirlo de un vistazo: hoy se ven los
@@ -480,7 +485,7 @@ function ClientsTable({
             role="cell"
             style={{
               font: "600 12px/1 var(--f-mono)",
-              color: c.rif ? "var(--ink)" : "var(--ink-mute)",
+              color: c.rif ? "var(--ink)" : "var(--ink-soft)",
               letterSpacing: "0.02em",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -515,7 +520,7 @@ function ClientsTable({
                   title={`Cliente de ${aliadoPorId.get(c.aliado_id)!.tradeName}`}
                   style={{
                     font: "600 10px/1 var(--f-mono)",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     letterSpacing: "0.06em",
                     whiteSpace: "nowrap",
                   }}
@@ -585,7 +590,7 @@ function ClientsTable({
                 {c.phone}
               </div>
             )}
-            {!c.email && !c.phone && <span style={{ color: "var(--ink-mute)" }}>—</span>}
+            {!c.email && !c.phone && <span style={{ color: "var(--ink-soft)" }}>—</span>}
           </div>
           <span
             role="cell"

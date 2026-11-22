@@ -166,6 +166,18 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     }
   });
 
+  it("reassign_shipment_owner (SDD-0645, D2 de Sam): operations y commercial entre los no-admin, como exige la 0551", () => {
+    expect(CAPABILITIES.reassign_shipment_owner).toEqual(["operations", "commercial"]);
+    expect(canSpecial("commercial", "reassign_shipment_owner")).toBe(true);
+    expect(canSpecial("admin", "reassign_shipment_owner")).toBe(true);
+    expect(canSpecial("operations", "reassign_shipment_owner")).toBe(true);
+    for (const r of NON_ADMIN.filter((x) => x !== "operations" && x !== "commercial")) {
+      expect(canSpecial(r, "reassign_shipment_owner"), `${r} no debe pasar embarques`).toBe(false);
+    }
+    expect(canSpecial(null, "reassign_shipment_owner")).toBe(false);
+    expect(canSpecial(undefined, "reassign_shipment_owner")).toBe(false);
+  });
+
   it("fix_frozen_rate (SDD-0571): SOLO accounting entre los no-admin, como exige la 0496", () => {
     expect(CAPABILITIES.fix_frozen_rate).toEqual(["accounting"]);
     expect(canSpecial("admin", "fix_frozen_rate")).toBe(true);
