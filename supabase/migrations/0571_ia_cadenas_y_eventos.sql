@@ -6,9 +6,8 @@
 --    supabase/migrations-baseline.json › pendingBelowCutoff. Aplicarla en
 --    producción exige el OK NOMINAL de Sam para este archivo y el runbook
 --    docs/runbooks/aplicar-migraciones-prod.md. Fusionar la PR NO autoriza
---    aplicarla. REQUIERE la 0570 (catálogo, cuentas, ia_contexto_de_escritura),
---    la 0258/0267 (append_audit_event) y la 0386 (is_tenant_admin): su preflight
---    para si falta algo.
+--    aplicarla. REQUIERE la 0570 (catálogo, cuentas, ia_contexto_de_escritura)
+--    y la 0258/0267 (append_audit_event): su preflight para si falta algo.
 --    ORDEN: indiferente. Sin la 0571, A1 (noticias) y A2 (brief) siguen con el
 --    modelo por defecto del código, sin cadena ni registro, como hoy.
 --
@@ -23,20 +22,16 @@
 --    que ser el de la cuenta y la cuenta, del mismo tenant.
 -- 2. ia_eventos: una fila por intento (§4.4, 0638 §5.3): función, puesto,
 --    proveedor, modelo, resultado (ok o la clase del clasificador), status,
---    código, tokens y `salto` (true solo cuando la cadena pasó al puesto
---    siguiente; un CHECK lo ata a las clases que saltan, así que un 429 o la
---    falla del último puesto nunca cuentan como salto). NUNCA texto, pregunta ni
---    respuesta. Solo se agrega.
+--    código y tokens. NUNCA texto, pregunta ni respuesta. Solo se agrega.
 -- 3. ia_guardar_cadena(función, proveedores[], modelos[], motivo): la pantalla,
 --    solo el superadministrador, con motivo y auditoría. En la F1-B solo A1 y A2
 --    (la Oficina es la fase 1b). Cambiar la cadena no afloja el freno: no pide
 --    la barrera (§8).
 -- 4. ia_cadena_de(función) e ia_registrar_evento(…): para A1, que corre con la
 --    sesión de quien redacta (no tiene por qué ser superadmin). Solo leen la
---    cadena de su tenant y solo anotan eventos de A1. Anotar exige lo mismo que
---    el gate de noticias: admin activo de su tenant (is_tenant_admin(), 0386).
---    A2 corre en un cron con la clave de servicio y lee y escribe directo, con
---    grants mínimos.
+--    cadena de su tenant y solo anotan eventos de A1; anotar exige lo mismo que
+--    el gate de noticias (admin activo de su tenant, is_tenant_admin()). A2 corre en un cron con la
+--    clave de servicio y lee y escribe directo, con grants mínimos.
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
 -- Nada existente: ni la 0570 ni el despachador de la Oficina (fase 1b).
@@ -67,7 +62,7 @@ begin
         pg_catalog.to_regprocedure('public.ia_contexto_de_escritura(text)') is not null),
       ('function public.is_platform_admin()', pg_catalog.to_regprocedure('public.is_platform_admin()') is not null),
       ('function public.get_user_tenant_id()', pg_catalog.to_regprocedure('public.get_user_tenant_id()') is not null),
-      ('function public.is_tenant_admin() (0386)', pg_catalog.to_regprocedure('public.is_tenant_admin()') is not null),
+      ('function public.is_tenant_admin() (0271)', pg_catalog.to_regprocedure('public.is_tenant_admin()') is not null),
       ('function public.append_audit_event(…)', pg_catalog.to_regprocedure(
         'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)') is not null),
       ('audit type ia_config (0570)', exists (select 1 from public.audit_entity_types where entity_type = 'ia_config'))

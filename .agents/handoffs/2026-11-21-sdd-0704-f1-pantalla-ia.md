@@ -241,8 +241,14 @@ El portón es el CI de GitHub.
 - El doble de `admin/ia/__tests__/funciones.test.ts` ahora filtra de verdad (`in`, `eq`, `neq`, `order`, `limit`) y
   anota el `limit` de cada consulta. Cinco mutantes sobre `funciones.ts`: quitar el filtro de salto, el de función,
   el orden, el `limit(1)`, y el orden al revés. Los cinco tienen que caer.
-- La 0571, que sigue sin aplicar, nombra en su cabecera y en la línea de base `is_tenant_admin()` (0386) y la columna
-  `salto`. La etiqueta del preflight dice 0386, no 0271.
+- **La 0571 no se toca** (Dir_DTD, 2026-11-22: Sam aprobó aplicar la 0570 y la 0571 con la versión de `main`, y una
+  migración aplicada queda sellada por su md5). Quedan aquí como notas, sin cambiar el archivo:
+  - `ia_registrar_evento` exige `public.is_tenant_admin()`, que nace en la **0386** (`0386_telegram_rutas_de_alerta.sql`,
+    comentario «SDD-0271»). La etiqueta «(0271)» del preflight de la 0571 nombra la SDD, no la migración.
+  - `ia_eventos.salto` es true solo cuando la cadena pasó al puesto siguiente; el CHECK `ia_eventos_salto_valido` lo
+    ata a las clases que saltan, así que un 429 o la falla del último puesto nunca cuentan.
+  - La cabecera de la 0571 y su entrada en `migrations-baseline.json` no mencionan esas dos cosas. La línea de base la
+    cambia `retirar-espera.mjs` en la PR de la aplicación.
 - Una prueba ata `CLASES_QUE_SALTAN` al CHECK `ia_eventos_salto_valido`, y otra ata `CLASES` al CHECK de
   `resultado`.
 - La nota de varias membresías está arriba; la de `maxRetries` sigue pendiente, también arriba.
