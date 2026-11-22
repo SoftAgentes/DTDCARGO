@@ -14,15 +14,19 @@
 - COMPLETADO: fase 1. Catálogo `_components/admin-sections.ts`, menú `_components/AdminNav.tsx`, marco `layout.tsx`
   (sin guardias nuevas; a quien no pasa `admin` le deja la página sola), `page.tsx` sin tarjeta puente y con
   redirección de `?section=` con ruta propia, «Volver» retirado de 5 subpáginas, `WorkflowsSection.tsx` borrado.
-- PENDIENTE DE ESTA TAREA: revisión independiente (la lanza Dir_DTD), `/ui-check` y capturas claro/oscuro con datos
-  locales, `pnpm verify` con turno.
+- Revisión independiente de `e1b71224f`: APPROVED sin bloqueantes. Correcciones pedidas por Dir_DTD, en un commit:
+  sin doble encabezado (`AdminHeader` solo en `/studio/admin`; eyebrows con el grupo del menú), conteo 30 en la spec,
+  comentario de `page.tsx`, `oficina-virtual` en la prueba y prueba de «ninguna sección en blanco».
+- PENDIENTE DE ESTA TAREA: capturas claro/oscuro (NO DISPONIBLE aquí: el worktree no tiene Supabase ni sesión del
+  Studio y los `.env` no se copian; hace falta la prueba con datos o un Supabase local), `pnpm verify` con turno.
 
 ## Validación (turno de PC dado por Dir_DTD)
 
 - `pnpm install --frozen-lockfile`: PASÓ.
 - `tsc --noEmit -p .`: PASÓ (0 errores).
 - `eslint --max-warnings=0` de los 10 archivos tocados: PASÓ.
-- `vitest admin-sections.test.ts`: PASÓ 12/12 · `oficina-virtual-nombre.test.ts`: PASÓ 7/7.
+- `vitest admin-sections.test.ts`: PASÓ 14/14 (ronda 2) · `oficina-virtual-nombre.test.ts`: PASÓ 7/7.
+- `/ui-check` del diff (ronda 2): OK con ajustes menores; ver el cuerpo de la PR.
 - `docs:check` y `sdd:check`: PASÓ.
 - `pnpm verify`: NO EJECUTADO (pide turno aparte). Capturas: NO EJECUTADO (sin Supabase local en este worktree).
 

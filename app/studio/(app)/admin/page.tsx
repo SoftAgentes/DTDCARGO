@@ -118,8 +118,8 @@ export default async function AdminPage({
     tabParam === "ciudades" || tabParam === "transportistas" ? tabParam : "parametros";
   const auditFilters = parseAuditFilters(sp);
 
-  // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
-  // para no pegarle a la DB en las secciones que aún son placeholder.
+  // Cada sección en línea pide solo sus datos: las demás quedan en null y la
+  // base no recibe consultas que la pantalla activa no va a usar.
   let companyData: CompanyData | null = null;
   let numberingData: NumberingOverview | null = null;
   let auditResult: AuditListResult | null = null;

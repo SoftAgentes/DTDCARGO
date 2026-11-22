@@ -38,9 +38,9 @@ confidencialidad: interno
 | No hay `layout.tsx` en `admin/`; cada subcarpeta trae el suyo con su guardia | C `ls app/studio/(app)/admin` |
 
 **Respuesta a «por qué se hizo»:** fue un andamio de mayo para un panel que casi no tenía módulos. Nunca se retiró, y
-hoy 10 de 27 secciones son un clic de más (**I**, sobre los hechos de arriba).
+hoy 10 de las 30 secciones del menú son un clic de más (**I**, sobre los hechos de arriba).
 
-## 2. Inventario de secciones (27)
+## 2. Inventario de secciones (30 en el menú, más la Oficina Virtual fuera de él)
 
 **En línea** = la pantalla real aparece a la derecha. **Puente** = tarjeta «Abrir X →». **Marcador** = «Por
 implementar». **Atajo** = sección que solo manda a otro módulo.
@@ -217,6 +217,8 @@ quien no es superadministrador, sumar Oficina Virtual en Pro y traducir los cuat
 | `app/studio/(app)/admin/_components/admin-sections.ts` (nuevo) | Catálogo de secciones como dato puro, compartido por página, layout y pruebas | ✓ | ✓ |
 | `app/studio/(app)/admin/layout.tsx` (nuevo) | Pinta el menú alrededor de `/studio/admin/*` solo para quien pasa `admin`; **no** agrega guardias | — | ✓ |
 | `app/studio/(app)/admin/{etiquetas,feature-flags,notificaciones,ia,oficina-virtual}/page.tsx` | A: unificar el «← Administración». B: quitar el «Volver» (las demás subpáginas no tenían) | ✓ | ✓ |
+| `app/studio/(app)/admin/_components/AdminHeader.tsx` (nuevo) | B: el título «Administración» sale solo en `/studio/admin`; en las subrutas manda el `h1` de cada página (sin doble encabezado) | — | ✓ |
+| `app/studio/(app)/admin/{alertas-telegram,actualizaciones,rutas,agentes,feature-flags,ia}/page.tsx` | B: la etiqueta pequeña (eyebrow) deja de repetir «Administración» o «Sistema» y nombra el grupo del menú (Equipo y seguridad, Integraciones, Operación · Despacho, Inteligencia artificial) | — | ✓ |
 | `app/studio/(app)/admin/_components/WorkflowsSection.tsx` (se borra) | Era un atajo a Servicios · Flujo con su propio botón «Abrir»; ahora el ítem «Flujos automáticos» enlaza directo (↗). También se retira el atajo en línea de Permisos | ✓ | ✓ |
 | `app/studio/(app)/admin/__tests__/admin-sections.test.ts` (nuevo) | Pruebas de §7 | ✓ | ✓ |
 
@@ -250,7 +252,8 @@ un clic, grupo Inteligencia artificial y visible solo al superadministrador. Su 
 3. Un admin que no es superadministrador no ve IA ni Oficina Virtual en el menú, y sus rutas siguen dando 404.
 4. Un usuario `operations` entra a `/studio/admin/rutas` igual que hoy (sin menú de Admin, sin redirección).
 5. Ningún `id` de sección cambia; los enlaces existentes con `?section=…&tab=…` siguen abriendo lo mismo.
-6. (Solo B) Las subpáginas de `/studio/admin/*` muestran el menú con su ítem marcado y sin «← Volver».
+6. (Solo B) Las subpáginas de `/studio/admin/*` muestran el menú con su ítem marcado, sin «← Volver» y con un solo
+   título: el `h1` de la página. Ninguna sección sin ruta propia queda sin pantalla en línea (prueba sobre `Content`).
 7. `/ui-check` sobre el diff y capturas claro/oscuro de: Administración (sección en línea), IA, Rutas y ciudades.
 8. `pnpm verify` con turno del Director.
 

@@ -47,7 +47,7 @@ export default async function IaPage({ searchParams }: { searchParams: Promise<R
   return (
     <div style={{ maxWidth: 960 }}>
       <span className="studio-eyebrow" style={{ display: "block" }}>
-        Sistema · SDD-0704
+        Inteligencia artificial
       </span>
       <h1 className="studio-display" style={{ fontSize: 30, margin: "8px 0", color: "var(--ink)" }}>
         IA

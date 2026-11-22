@@ -20,12 +20,12 @@ import {
 const ADMIN_DIR = join(process.cwd(), "app", "studio", "(app)", "admin");
 const leer = (rel: string) => readFileSync(join(ADMIN_DIR, rel), "utf8");
 
-/** Los `id` que existían antes de la 0708 y pueden estar en marcadores, avisos o historial. */
+/** Los `id` que pueden estar en marcadores, avisos o historial (los de antes de la 0708 y `oficina-virtual`). */
 const IDS_VIGENTES = [
   "shipping-labels", "company", "features", "client-notifications", "telegram-alerts", "masterdata", "rates",
   "fiscal", "holidays", "appearance", "routes", "permissions", "audit", "recepcion-addons", "portal-invites",
   "numbering", "legal-docs", "acceptances", "api", "workflows", "import", "calculadora", "agents",
-  "chatwoot-updates", "ia",
+  "chatwoot-updates", "ia", "oficina-virtual",
 ];
 
 describe("catálogo de secciones (SDD-0708)", () => {
@@ -86,6 +86,27 @@ describe("ítem activo del menú", () => {
 describe("página y marco", () => {
   const page = leer("page.tsx");
   const layout = leer("layout.tsx");
+
+  it("toda sección sin ruta propia tiene pantalla en Content: ninguna se pinta en blanco", () => {
+    const content = page.slice(page.indexOf("function Content("));
+    for (const s of ADMIN_SECTIONS) {
+      if (s.href) continue;
+      expect(content, s.id).toContain(`section.id === "${s.id}"`);
+    }
+  });
+
+  it("el título «Administración» sale solo en /studio/admin, no encima del h1 de cada subpágina", () => {
+    const header = leer("_components/AdminHeader.tsx");
+    expect(header).toMatch(/if \(pathname !== "\/studio\/admin"\) return null;/);
+    expect(layout).toContain("<AdminHeader />");
+    expect(layout).not.toMatch(/<h1[^>]*>[^<]*Administración/);
+    for (const rel of [
+      "alertas-telegram/page.tsx", "actualizaciones/page.tsx", "rutas/page.tsx", "agentes/page.tsx",
+      "feature-flags/page.tsx", "ia/page.tsx",
+    ]) {
+      expect(leer(rel), rel).not.toMatch(/studio-eyebrow[^]{0,80}Administración/);
+    }
+  });
 
   it("la tarjeta puente ya no existe", () => {
     expect(page).not.toContain("LinkedSectionCTA");
