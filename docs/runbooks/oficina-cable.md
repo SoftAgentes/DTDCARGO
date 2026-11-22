@@ -1,4 +1,4 @@
-# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a, 3b y 4)
+# Runbook · El cable ERP → oficina (SDD-0626, Pasos 0, 2, 3a, 3b y 4, y el botón de pausa)
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
@@ -465,7 +465,8 @@ Después, recrear **solo** el `web`.
 2. **Crear el webhook en la cuenta de prueba** (no en la cuenta real): URL `https://<dominio del ERP>/api/oficina/webhook-chatwoot`,
    evento `message_created`. Su «secret» va al `.env` como `OFICINA_WEBHOOK_SECRET`, de archivo a archivo.
 3. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
-4. Despausar la oficina: `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
+4. Despausar la oficina: el superadministrador, con el botón de `/studio/admin/oficina-virtual` (§15). Por SQL sigue siendo
+   `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
 5. **Verificar, después de encender:**
    - un aviso firmado de **otra cuenta** (la del ERP) al webhook del cable responde `{"ok":true,"ignorado":"cuenta"}` y no
      escribe;
@@ -477,7 +478,8 @@ Después, recrear **solo** el `web`.
 
 ### Vuelta atrás y cierre
 
-- **Al instante, sin recrear nada:** `office_cambiar_pausa(true, '<motivo>')`. El envío la mira antes de cada mensaje y
+- **Al instante, sin recrear nada:** el botón «Pausar la oficina» de `/studio/admin/oficina-virtual` (§15), o por SQL
+  `office_cambiar_pausa(true, '<motivo>')`. El envío la mira antes de cada mensaje y
   dentro de la reserva; el despachador, en cada tanda.
 - **Solo el envío:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el `web`. Lo aprobado queda esperando.
 - **Todo el cable:** además `OFICINA_DESPACHADOR_ACTIVO` y `OFICINA_WEBHOOK_ACTIVO` vacíos, recrear el `web`; o borrar
@@ -529,7 +531,7 @@ Vaciar `OFICINA_VISTA_ACTIVA` y relevar el `web`. No hay nada que deshacer en la
 
 ### Lo que este paso NO hace
 
-- No pausa ni despausa la oficina: sigue siendo `office_cambiar_pausa`, de un superadministrador.
+- No pausa ni despausa la oficina: eso es del botón de pausa (§15).
 - No muestra el borrador ni el texto del cliente (eso es de la revisión, §11).
 - No se actualiza sola: para ver lo último se recarga la página.
 
@@ -632,3 +634,38 @@ opción B, el aviso va al final»; así el borrador abre con el guion y no se le
 - «Primera» significa que entre los últimos 20 mensajes leídos no hay ninguno del lado de DTD (ni del agente ni de
   una persona del equipo). Si ya respondió alguien, no se repite.
 - Cambiar el texto del aviso requiere el OK de Sam y un SDD.
+
+## 15 · El botón de pausa (SDD-0626 §3.1 · SGE-AG-01 §7)
+
+Arriba en `/studio/admin/oficina-virtual` (solo `is_platform_admin`) hay un bloque que dice si la oficina está **pausada** o
+**despausada**, con el último cambio (cuándo, quién y motivo) y un solo botón: el contrario del estado.
+
+- **Pausar:** escribir el motivo y pulsar «Pausar la oficina». El despachador no toma nada nuevo y aborta la llamada en
+  vuelo; el envío no manda nada. No se borra nada: las tareas y los borradores quedan como están.
+- **Despausar:** escribir el motivo, marcar «Confirmo que quiero despausar la oficina» y pulsar «Despausar la oficina».
+- **El motivo** es obligatorio, de 1 a 500 caracteres y sin datos personales (correo, teléfono, cédula): se guarda para
+  siempre en `office_paused`, a nombre de quien pulsó.
+
+No tiene variable ni interruptor: está siempre, porque pausar tiene que estar a mano. No pide ninguna migración (usa
+`office_cambiar_pausa`, de la 0541).
+
+### Qué revisar después de publicarlo
+
+- Un administrador del tenant que no es superadministrador no ve la página (404).
+- Después de pausar, la última fila de `office_paused` tiene `pausada = true`, el `auth.uid()` de quien pulsó y el
+  motivo; `oficina-envio` responde `pausada`.
+- Después de despausar, lo mismo con `pausada = false`.
+
+### Casos que la pantalla avisa
+
+- **«No se pudo leer si la oficina está pausada»:** solo ofrece pausar. Si hay que despausar, primero se arregla la
+  lectura (o se usa el SQL de arriba).
+- **«La pausó la auto-pausa por tope»:** despausar no dura. Hay dos motivos con el prefijo «Auto-pausa»: el gasto del
+  mes sobre el 80 % de `OFICINA_TOPE_MENSUAL_USD` y, en el plan fijo, las llamadas del mes sobre el umbral de su tope
+  (0570). El despachador la vuelve a pausar mientras el consumo siga sobre el umbral; el motivo de arriba dice cuál
+  fue. Subir el tope es una decisión de Sam.
+
+### Si el botón falla
+
+El SQL sigue valiendo: `office_cambiar_pausa(true, '<motivo>')`, como platform admin. Y apagar los interruptores
+(`OFICINA_DESPACHADOR_ACTIVO`, `OFICINA_ENVIO_ACTIVO`) y relevar el `web` corta lo mismo sin pasar por la pausa.

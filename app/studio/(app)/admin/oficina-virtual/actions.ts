@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/db/server";
 import { detectorDelCable } from "@/lib/studio/oficina/cable-textos";
+import { type CodigoPausa, cambiarPausa } from "@/lib/studio/oficina/pausa";
 import {
   CASILLAS,
   type ClaveCasilla,
@@ -28,6 +29,13 @@ import { platformAdminDenial } from "@/lib/studio/platform-admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
 const RUTA = "/studio/admin/oficina-virtual";
+/** Los avisos de la pausa van con su nombre: los de la revisión («no se guardó la revisión») no dicen lo que pasó. */
+const AVISO_DE_PAUSA: Record<CodigoPausa, string> = {
+  sin_tablas: "sin_tablas",
+  sin_permiso: "pausa_sin_permiso",
+  invalido: "pausa_invalida",
+  error: "pausa_error",
+};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONVERSACION = /^[0-9a-f-]{1,40}$/;
 
@@ -93,4 +101,24 @@ export async function registrarCierreAction(formData: FormData): Promise<void> {
 
   const r = await registrarCierre(supabase, { conversacion, cumple: cumple === "si", motivo, etapa: etapaActual() });
   volver(r.ok ? "ok_cierre" : r.codigo, r.ok ? { c: conversacion, v: cumple } : { c: conversacion });
+}
+
+/**
+ * Pausar o despausar la oficina (el kill switch, SGE-AG-01 §7). El control real está en la base:
+ * `office_cambiar_pausa` (0541) exige `is_platform_admin()` y el motivo, y agrega una fila con quién y cuándo. Va con
+ * la sesión del usuario, nunca con el cliente de servicio. Despausar pide además una confirmación explícita.
+ */
+export async function cambiarPausaAction(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  if (await moduleEditDenial(supabase, "admin")) volver("pausa_sin_permiso");
+  if (await platformAdminDenial(supabase)) volver("pausa_sin_permiso");
+
+  const pausar = String(formData.get("pausar") ?? "");
+  if (pausar !== "si" && pausar !== "no") volver("pausa_invalida");
+  if (pausar === "no" && formData.get("confirmo") !== "on") volver("sin_confirmar");
+  const motivo = motivoDe(formData);
+
+  const r = await cambiarPausa(supabase, { pausar: pausar === "si", motivo });
+  if (r.ok) volver(r.pausada ? "ok_pausada" : "ok_despausada");
+  volver(AVISO_DE_PAUSA[r.codigo]);
 }

@@ -8,16 +8,20 @@
  */
 import Link from "next/link";
 
+import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { vistaActiva } from "@/lib/studio/oficina/config";
+import { leerPausa } from "@/lib/studio/oficina/pausa";
 import { etapaActual, leerConteo, leerPendientes, leerPorCerrar } from "@/lib/studio/oficina/revisiones";
+import { isPlatformAdmin } from "@/lib/studio/platform-admin";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 import { AvisoResultado } from "./_components/AvisoResultado";
 import { detalleDelCierre, tonoDelResultado } from "./_components/resultado";
 import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/TarjetaBorrador";
 import { TarjetaCierre } from "./_components/TarjetaCierre";
-import { registrarCierreAction, revisarBorradorAction } from "./actions";
+import { TarjetaPausa } from "./_components/TarjetaPausa";
+import { cambiarPausaAction, registrarCierreAction, revisarBorradorAction } from "./actions";
 
 export const metadata = { title: "Oficina_Virtual · revisión" };
 export const dynamic = "force-dynamic";
@@ -34,6 +38,13 @@ const AVISOS: Record<string, string> = {
     "No se aprueba un envío sin evaluar, o con datos inventados o datos personales repetidos: «Cero datos inventados» y «No repite datos personales» tienen que cumplir. Si fallaron, recházalo.",
   rechazo_sin_fallo: "Para rechazar, marca «Falló» en al menos un criterio.",
   marcas_cruzadas: "Un criterio no puede estar a la vez en «Falló» y en «No evaluado».",
+  ok_pausada: "La oficina quedó pausada. El agente y el envío se detienen en el próximo minuto; no se borró nada.",
+  ok_despausada: "La oficina quedó despausada. El agente vuelve a redactar; nada se envía sin tu aprobación.",
+  sin_confirmar: "Para despausar, marca la casilla de confirmación.",
+  sin_tablas: "Faltan las tablas del cable en esta base (migración 0541): no se puede cambiar la pausa.",
+  pausa_sin_permiso: "Solo el superadministrador pausa o despausa la oficina. No se cambió nada.",
+  pausa_invalida: "El cambio de pausa llegó incompleto. No se cambió nada; vuelve a intentarlo.",
+  pausa_error: "No se pudo cambiar la pausa. Mira arriba cómo quedó la oficina antes de intentarlo de nuevo.",
   ok_cierre: "Cierre registrado.",
   ya_cerrada: "Esa conversación ya tenía su cierre.",
   sin_0558: "Falta la migración 0558 en esta base: todavía no se puede revisar ni cerrar con la regla nueva.",
@@ -51,10 +62,13 @@ export default async function OficinaRevisionPage({
   await requireModuleView("admin");
   const supabase = await createClient();
   const etapa = etapaActual();
-  const [pendientes, conteo, porCerrar, sp] = await Promise.all([
+  const [pendientes, conteo, porCerrar, pausa, sp] = await Promise.all([
     leerPendientes(supabase),
     leerConteo(supabase, etapa),
     leerPorCerrar(supabase, etapa),
+    // El estado de la pausa solo lo lee service_role (0541): leerPausa crea ese cliente recién después del «sí» de
+    // is_platform_admin(). Cambiarla va por la sesión del usuario (cambiarPausaAction).
+    leerPausa({ esAdmin: () => isPlatformAdmin(supabase), crearAdmin: createAdminClient }),
     searchParams,
   ]);
   const uno = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
@@ -97,6 +111,7 @@ export default async function OficinaRevisionPage({
               : AVISOS[r])}
         </AvisoResultado>
       ) : null}
+      <TarjetaPausa pausa={pausa} accion={cambiarPausaAction} />
       {conteo.ok ? (
         <p style={{ font: "400 13px/1.4 var(--f-sans)", margin: "0 0 16px" }}>
           Conteo de la etapa {conteo.datos.etapa}: {conteo.datos.conversaciones} de {conteo.datos.minimo} conversaciones,{" "}

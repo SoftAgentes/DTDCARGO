@@ -452,8 +452,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `guardarModeloAction` y `quitarModeloAction` (497 → 502): `moduleEditDenial(supabase, "admin")` al tope, luego
   // `platformAdminDenial` y la reautenticación con contraseña si afloja el freno. Escriben SOLO por las RPC de la 0570
   // (security definer), que repiten superadministrador, tenant, motivo y barrera, y dejan el evento `ia_config`.
+  // SDD-0626 (botón de pausa) sumó `admin/oficina-virtual/actions.ts::cambiarPausaAction` (502 → 503): los mismos dos
+  // candados al tope (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`) y escribe SOLO por la RPC
+  // `office_cambiar_pausa` (0541), con la sesión del usuario, que repite `is_platform_admin()` y exige el motivo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(502);
+    expect(reportes.length).toBe(503);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

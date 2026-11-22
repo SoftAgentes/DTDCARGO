@@ -122,7 +122,8 @@ export function conversacionDe(ref: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
-function cambioDePausa(f: Fila): CambioDePausa {
+/** Una fila de `office_paused` → lo que se muestra. La usa también el botón de pausa (`pausa.ts`). */
+export function cambioDePausa(f: Record<string, unknown>): CambioDePausa {
   const quien = texto(f.cambiado_por);
   return {
     pausada: f.pausada !== false, // lo que no es un «false» explícito cuenta como pausada (falla cerrado)
