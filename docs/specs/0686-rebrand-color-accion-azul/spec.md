@@ -938,6 +938,9 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en l
 - Cuenta todo `var(--ink-mute` de `app/studio`, fuera de las pruebas, de `tokens.css` y de Noticias web. Cada archivo tiene que estar en la lista cerrada, con su cuenta exacta y su motivo, y la lista solo puede bajar.
 - Fija los cinco deshabilitados.
 - Trae un mutante por patrón: el respaldo, el `return`, el `fill=` y la clase `text-[var(--ink-mute)]`.
+- Ancla cada uso que no es texto a su línea, para que un texto nuevo no se cuele como borde o fondo en un archivo permitido (nota de la revisión de la #759, aplicada en la fase 3).
+
+**Otros contratos que se ponen al día:** `color-accion-fase2-g7-contract.test.ts`, cuyo mutante de la carpeta de documentos sigue al gris nuevo (`--ink-soft`), y `color-accion-fase2-g3-contract.test.ts`, al que se le restan los dos enlaces de Noticias web cuando la fase 3 los pasa a azul.
 
 **2. Vinos escritos a mano que quedan en `app/studio` (M, 32):**
 
@@ -953,6 +956,81 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en l
 **Allowlist de la parte 2:** `app/studio/studio.css`.
 
 **Además:** un contrato con mutante, esta spec y el handoff.
+
+### Fase 3 · app móvil del ERP y Noticias web (2026-11-22)
+
+Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 2». Va en la rama `claude/sdd-0686-fase3-movil-noticias`, desde `main`. Lleva también las dos notas menores de la revisión de la #759.
+
+**App móvil (`app/m`, M: unos 140 usos en 25 archivos).** Usa los tokens del Studio, así que sigue el reparto de la fase 2:
+- botones y CTA → `--accion` con `--on-accion` (`BigButton`, «Editar», «Abrir en el Studio», el botón flotante y «Tomar foto»); foco de `m.css` → `--accion`; guía del lector QR → `--accion-soft`;
+- selección → tinta: pestañas, chips, idioma, la tarjeta de orden y la parada actual. Sobre navy, la selección es `--surface-sel`, que deja el tinte vino (`rgba(168,50,62,.22)`) por un blanco (`rgba(255,255,255,.16)`). Su único otro consumidor, el menú de permisos del Studio (`permisos.css`), pasa su hover a `--bg-elevated`;
+- Shipping Mark, número de orden y de recepción → `--ink` (regla 6); eyebrows → `--ink-soft`, o `--ink-side*` sobre navy;
+- cifras de `KpiCard` y `MobileMini` → tinta (opción A de Sam); sale el tono `"wine"` (regla 7);
+- avatar y botones del encabezado sobre navy → chrome neutro (`--surface-inv`, `--ink-side*`).
+
+**Pendiente de Sam (croquis del 2026-11-22):**
+- el rótulo «OPERARIO» o «DESPACHO VE» junto a «DTD», en el inicio y en los dos login. Propuesta A: vino claro de identidad, como el logo; B: blanco tenue;
+- la tarjeta de la ruta del camionero (`CamioneroClient.tsx`). A: navy de marca, como la banda del Dashboard; B: vino.
+
+**Noticias web (57 usos en 12 archivos, más 3 grises).** Pinta en un bloque `data-theme="light"` fijo. Por eso entran a `app/globals.css` tokens web fijos con los valores claros del Studio:
+- `--color-accion` (#1f4fa8) y `--color-accion-hover` (#183e86);
+- `--color-on-accion` (#ffffff);
+- `--color-accion-text` (#1f4fa8).
+
+Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y `focus-within:` en vino pasan a `*-accion`. Los dos «Volver a Publicadas» pasan a `--color-accion-text` con subrayado. Los tres grises en `--ink-mute` pasan al gris web fijo `--color-grey-500` (#6b6b6b, 5,33:1). Noticias web deja de ser excepción en los contratos de los grupos 3 y 8 y en el de cierre.
+
+**Notas menores de la #759:**
+- la spec nombra el contrato del grupo 7;
+- el contrato de cierre ancla cada `--ink-mute` que no es texto a su forma, con un mutante.
+
+**Allowlist (rutas exactas):**
+- `app/globals.css`
+- `app/m/_components/BigButton.tsx`
+- `app/m/_components/KpiCard.tsx`
+- `app/m/_components/QrScanner.tsx`
+- `app/m/cn/_components/OperarioHomeClient.tsx`
+- `app/m/cn/estibar/_components/EstibaClient.tsx`
+- `app/m/cn/login/page.tsx`
+- `app/m/cn/nueva/_components/NuevaRecepcionClient.tsx`
+- `app/m/cn/recepcion/[id]/editar/_components/EditarRecepcionClient.tsx`
+- `app/m/cn/recibir/_components/RecibirClient.tsx`
+- `app/m/emp/_components/EmpClient.tsx`
+- `app/m/emp/_components/MensajesTab.tsx`
+- `app/m/erp/_components/ErpBottomNav.tsx`
+- `app/m/erp/_components/MobileErpClient.tsx`
+- `app/m/erp/bitacora/_components/HoyClient.tsx`
+- `app/m/erp/bitacora/tarea/[id]/_components/TareaDetailClient.tsx`
+- `app/m/m.css`
+- `app/m/page.tsx`
+- `app/m/ve/bodeguero/_components/BodegueroClient.tsx`
+- `app/m/ve/bodeguero/recepcion/_components/ReceptionScanClient.tsx`
+- `app/m/ve/bodeguero/recepcion/page.tsx`
+- `app/m/ve/camionero/_components/CamioneroClient.tsx`
+- `app/m/ve/camionero/_components/CurrentDelivery.tsx`
+- `app/m/ve/camionero/_components/PodModal.tsx`
+- `app/m/ve/login/page.tsx`
+- `app/m/ve/modos/_components/ModosClient.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/CategoryDetector.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/KeywordPanel.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/ManualPromptModal.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/NoticiasWebClient.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/PublishModal.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/RouteIdeaPanel.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step0Brief.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step1Headlines.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step2Outlines.tsx`
+- `app/studio/(app)/marketing/noticias-web/_components/Step3Article.tsx`
+- `app/studio/(app)/marketing/noticias-web/publicadas/[id]/page.tsx`
+- `app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/permisos.css`
+- `app/studio/tokens.css`
+
+**Contrato nuevo:** `color-accion-fase3-movil-contract.test.ts`.
+- Lista cerrada de `app/m`, que solo contiene lo pendiente de Sam.
+- Noticias web, sin vino.
+- `app/m`, sin hex de la familia vino.
+- `--surface-sel` en tinta y los tokens web de acción con los valores del Studio.
+- Tres mutantes: un botón y un tono `"wine"` en `app/m`, y una clase `bg-wine` en Noticias web.
 
 ### Fases 2 a 5
 

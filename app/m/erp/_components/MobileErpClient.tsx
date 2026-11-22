@@ -2527,6 +2527,7 @@ function MobileMini({
     <Component
       type={onClick ? "button" : undefined}
       onClick={onClick}
+      data-tone={tone}
       style={{
         padding: "14px 14px",
         background: "var(--bg-surface)",

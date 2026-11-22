@@ -195,7 +195,7 @@ export function CategoryDetector({
             onAccept(suggestion.categoria, suggestion.reason);
             setDismissed(true);
           }}
-          className="inline-flex items-center gap-1.5 bg-wine text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:bg-wine-deep transition-colors"
+          className="inline-flex items-center gap-1.5 bg-accion text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:bg-accion-hover transition-colors"
         >
           <span className="inline-flex" aria-hidden>
             {Icon.check(12)}
@@ -205,7 +205,7 @@ export function CategoryDetector({
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="inline-flex items-center px-3 py-1.5 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[12px] font-semibold transition-colors"
+          className="inline-flex items-center px-3 py-1.5 rounded-md border border-grey-200 text-grey-700 hover:border-accion hover:text-accion-text text-[12px] font-semibold transition-colors"
         >
           Mantener mi elección
         </button>

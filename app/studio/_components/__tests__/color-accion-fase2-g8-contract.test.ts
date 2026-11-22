@@ -12,8 +12,7 @@
  * vino: su valor por defecto es `neutral` (decisión de Sam). Quedan fuera:
  * - `tokens.css`, que define los tokens (fases 1 y 3). `studio.css` sí entra:
  *   pinta pantallas por clase, y sus reglas con vino están en `STUDIO_CSS_PERMITIDO`;
- * - noticias-web, cuyo vino de acción en el bloque claro cuenta el contrato del
- *   grupo 3 y espera `--color-accion*` de la fase 3.
+ *   Noticias web ya entra: la fase 3 le dio `--color-accion*` y no le queda vino.
  * Un vino nuevo en cualquier otra pantalla del Studio rompe este contrato.
  */
 import { readFileSync } from "node:fs";
@@ -33,7 +32,7 @@ const GRUPO_8 = [
   "app/studio/(panel)",
 ];
 
-const FUERA = [/^app\/studio\/tokens\.css$/, /^app\/studio\/\(app\)\/marketing\/noticias-web\//];
+const FUERA = [/^app\/studio\/tokens\.css$/];
 
 /**
  * Reglas de `studio.css` que todavía pueden pintar vino (revisión de la #745),

@@ -113,7 +113,7 @@ export function RouteIdeaPanel({
             onChange={(e) => setNombre(e.target.value)}
             maxLength={NOMBRE_MAX}
             placeholder="Ej: Comprar repartido por mes en vez de cada 3 meses"
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-accion transition-colors"
           />
         </div>
 
@@ -132,7 +132,7 @@ export function RouteIdeaPanel({
             onChange={(e) => setTitulo(e.target.value)}
             maxLength={TITULO_MAX}
             placeholder="Ej: Por qué comprar cada 3 meses te está costando plata"
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-wine transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink placeholder:text-grey-300 focus:border-accion transition-colors"
           />
         </div>
 
@@ -149,7 +149,7 @@ export function RouteIdeaPanel({
             id="idea-angulo"
             value={angulo}
             onChange={(e) => setAngulo(e.target.value as Angulo | "")}
-            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink focus:border-wine transition-colors"
+            className="w-full bg-white border border-grey-200 rounded-lg px-3 py-2.5 text-[14px] text-ink focus:border-accion transition-colors"
           >
             <option value="">Que lo decida el cerebro</option>
             {ALL_ANGULOS.map((a) => (
@@ -257,7 +257,7 @@ function RouteIdeaResultView({
                     background: yes
                       ? "var(--success-bg)"
                       : "var(--neutral-bg)",
-                    color: yes ? "var(--success)" : "var(--ink-mute)",
+                    color: yes ? "var(--success)" : "var(--color-grey-500, #6B6B6B)",
                   }}
                   aria-hidden
                 >
