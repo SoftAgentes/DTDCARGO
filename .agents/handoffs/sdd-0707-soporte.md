@@ -9,3 +9,9 @@
 - PENDIENTES: que Sam conteste D-1..D-6; luego Worker de producto para la fase 1; Ofi_Hermes la fase 2; fase 3 Chatwoot con OK nominal.
 - FUERA DE ALCANCE DETECTADO: (1) la bandeja de Chatwoot «Conversaciones del portal» se cruza por nombre en `cargar.sh`/`ensayo-portal.sh`; renombrarla a ciegas rompe el cruce. (2) «Soporte» ya es un rol (`support`).
 - NV: inventario real de bandejas/equipos/etiquetas de Chatwoot y plantillas de Meta (no se consultó producción).
+
+## v0.2 (revisión CHANGES_REQUESTED de Dir_DTD sobre 4a7ea257e)
+- Merge de origin/main (8c15a4bb0), sin rebase.
+- §3.1: la carpeta no se mueve; label/slug en modules.ts + rewrite /studio/soporte → carpeta + 308 desde la vieja. Medición pendiente en la fase 1 (bucle, revalidatePath, ítem activo). Alternativa con la lista de lo que se rompe si se mueve.
+- Inventario: alert-routing.ts:53/:66 a clase A; bandeja.ts:266 y discord/channels.ts:40 a clase A′ (atados a nombre externo); comentarios a clase C; bug-email-notify.ts:485 a clase F; catalogo.ts:78 precisado; proxy.ts verificado, no cambia. Conteos re-medidos (docs/design 27).
+- docs:check PASÓ · sdd:check PASÓ.
