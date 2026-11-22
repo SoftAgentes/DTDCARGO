@@ -144,12 +144,12 @@
       ],
       "evidence": [
         {
-          "site": "lib/studio/oficina/despachador.ts:165",
+          "site": "lib/studio/oficina/despachador.ts:167",
           "contains": "return costoDelEntorno(config);",
           "degradation": "Sin la 0570, ia_costo_oficina lanza SinMigracion: el despachador avisa una vez y sigue con el tope y la tarifa de las variables de entorno, con conTokens=false. Sin cuenta de plan fijo nunca llama a ia_oficina_autopausar_por_llamadas."
         },
         {
-          "site": "lib/studio/oficina/despachador.ts:237",
+          "site": "lib/studio/oficina/despachador.ts:239",
           "contains": "...(costo.conTokens && tokensLlamada ? { tokens: tokensLlamada } : {}),",
           "degradation": "Los tokens solo se escriben en task_events cuando ia_costo_oficina respondió (la 0570 está): sin ella el insert es el de siempre, sin las columnas nuevas."
         }
