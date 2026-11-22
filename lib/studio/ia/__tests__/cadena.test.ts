@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
 import { CATALOGO_MODELOS, MARCA_DE_LA_FUNCION, esChino, proveedorPermitido } from "../catalogo";
+import { CLASES, CLASES_QUE_SALTAN } from "../clasificar-error";
 import {
   type FuenteDeCadena,
   type Intento,
@@ -252,6 +253,18 @@ describe("la 0571 y el catálogo en código dicen lo mismo", () => {
     expect(m, "no se encontró la lista del disparador").not.toBeNull();
     const conDatos = Object.entries(MARCA_DE_LA_FUNCION).filter(([, v]) => v === "con_datos").map(([k]) => k).sort();
     expect(lista(m![1])).toEqual(conDatos);
+  });
+
+  it("las clases que saltan son las mismas en el código y en el CHECK de ia_eventos.salto", () => {
+    const m = sql.match(/constraint ia_eventos_salto_valido check \(not salto or resultado in \(([^)]*)\)/);
+    expect(m, "no se encontró el CHECK ia_eventos_salto_valido").not.toBeNull();
+    expect(lista(m![1])).toEqual([...CLASES_QUE_SALTAN].sort());
+  });
+
+  it("las clases válidas de ia_eventos.resultado son ok y las del clasificador", () => {
+    const m = sql.match(/constraint ia_eventos_resultado_valido check \(resultado in \(([^)]*)\)/);
+    expect(m, "no se encontró el CHECK ia_eventos_resultado_valido").not.toBeNull();
+    expect(lista(m![1])).toEqual(["ok", ...CLASES].sort());
   });
 
   it("las funciones válidas de ia_cadenas e ia_eventos son las de catalogo.ts", () => {
