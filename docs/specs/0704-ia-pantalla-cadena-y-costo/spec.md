@@ -640,7 +640,9 @@ GoTrue instalado ponga `amr` con método `password` y su hora en el JWT es **NV*
   - `lib/studio/ia/clasificar-error.ts` (0638 §5.1, módulo puro), `lib/studio/ia/cadena.ts` y sus pruebas;
   - `app/studio/(app)/marketing/noticias-web/actions.ts` (solo el `MODEL` de `:220` y su uso) y
     `lib/news/ceo-brief.ts` (solo el `MODEL` de `:53` y su uso), con sus pruebas;
-  - la pestaña «Funciones» en `app/studio/(app)/admin/ia/`.
+  - la pestaña «Funciones» en `app/studio/(app)/admin/ia/` (la lectura y los avisos de la pestaña también van ahí);
+  - `lib/studio/rbac-actions-guard.test.ts`, solo el contador del inventario (502 → 503) y su comentario de
+    procedencia. Lo sumó Dir_DTD el 2026-11-22.
 
 **Fuera de la allowlist, detectado:** `app/studio/(app)/admin/oficina-virtual/vista/page.tsx:84` muestra el tope del
 entorno (`configDespachador().topeMensualUsd`); con la 0570 aplicada puede no coincidir con el de la pantalla. Queda
