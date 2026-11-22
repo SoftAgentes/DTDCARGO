@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 688 specs)
+### Índice de specs (generado · 689 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -705,6 +705,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
 | 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | in-progress | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
+| 0685 | Marcar como históricas las referencias al back Norte en el pr… | in-progress | interna |
 | 0686 | Color de acción azul en web, Portal y ERP: el rojo queda para… | in-progress | interno |
 | 0687 | Cifras en formato venezolano: punto de miles y coma decimal, … | proposed | interno |
 | 0688 | Simetría de pantallas: un encabezado, tres anchos de panel, u… | proposed | interno |
@@ -727,5 +728,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0707 | El nombre «Conversaciones» pasa a «Soporte» en todo el sistema | approved | interno |
 | 0708 | Studio · Administración: entrar directo a cada sección y reor… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

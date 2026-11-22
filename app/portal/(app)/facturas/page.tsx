@@ -165,7 +165,7 @@ export default async function PortalInvoicesPage({
           </span>
           <Link
             href="/portal/facturas"
-            className="text-[12.5px] font-bold text-wine-text hover:underline"
+            className="text-[12.5px] font-bold text-accion-text hover:underline"
           >
             Ver todas →
           </Link>
@@ -438,7 +438,7 @@ function TableRow({ inv }: { inv: PortalInvoiceRow }) {
       <div className="flex justify-end">
         <ArrowIcon
           size={16}
-          className="text-grey-300 group-hover:text-wine-text transition-colors"
+          className="text-grey-300 group-hover:text-accion-text transition-colors"
         />
       </div>
     </Link>

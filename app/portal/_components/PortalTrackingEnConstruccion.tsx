@@ -61,7 +61,7 @@ export function PortalTrackingEnConstruccion({
           </p>
           <Link
             href="/portal/soporte"
-            className="mt-1 inline-flex min-h-11 items-center gap-2 rounded text-[13px] font-bold text-ink underline underline-offset-4 transition-colors hover:text-wine-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="mt-1 inline-flex min-h-11 items-center gap-2 rounded text-[13px] font-bold text-ink underline underline-offset-4 transition-colors hover:text-accion-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             ¿Dudas? Escríbenos en Soporte <ArrowIcon size={13} />
           </Link>

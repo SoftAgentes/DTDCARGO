@@ -527,7 +527,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 - **Fecha de revisión:** 90 días después de encender la Vista simple, o al cerrar la prueba con clientes, lo que ocurra primero.
 - **Dueño:** Sam (aprueba); Director General (custodia del registro).
 - **Regla viva en:** `BRAND.md` §Excepción · Vino claro en la Vista simple · `app/globals.css` (bloque `.vs`) · SDD-0654 §6.3.
-- **Cierre previsto:** la sustituye BD-076 (azul de acción) cuando la fase 3 de SDD-0686 llegue a la Vista simple. Hasta entonces sigue vigente.
+- **Cerrada el 2026-11-22:** la sustituye BD-076 en la fase 3b-1 de SDD-0686. Sam: «Portal: Vista simple A, Próximo arribo B». Botón principal en azul de acción; avatar y parte «proveedor» en tinta; sin `--tint-wine`.
 
 ---
 
@@ -599,7 +599,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-036 | Noto Serif SC solo para documento formal `zh-CN` | Excepción tipográfica | Regla de uso vigente; desde el 2026-10-13 con la serif CJK del sistema (SDD-0505), sin descargar Noto |
 | BD-037 | Claridad de controles: qué se oprime, qué avisa y qué solo se lee (Studio y Portal) | Normativo, con excepción a VIS-01 §3 | Aprobada. Adoptada en producción el 2026-11-15 (SDD-0603); quedan siete pantallas que dependen de la PR #318 |
 | BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
-| EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Aprobada — se revisa a los 90 días de encender la Vista simple o al cerrar la prueba con clientes; la sustituye BD-076 en la fase 3 de SDD-0686 |
+| EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Cerrada el 2026-11-22: la sustituye BD-076 (SDD-0686 fase 3b-1, Sam: «Vista simple A») |
 | BD-076 | Azul de acción en web, Portal y ERP; rojo solo peligro; vino solo identidad | Normativo (enmienda VIS-01 §3, BTN-01 §2 y el color de BD-037) | Aprobada — adopción por fases (SDD-0686) |
 
 ---

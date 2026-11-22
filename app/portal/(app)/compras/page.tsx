@@ -69,7 +69,7 @@ export default async function PortalPurchasesPage() {
       <EnviosHubTabs />
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="eyebrow eyebrow-wine">Tu cuenta</span>
+          <span className="eyebrow eyebrow-tinta">Tu cuenta</span>
           <h1 className="h-display mt-3" style={{ fontSize: "clamp(28px, 4.2vw, 44px)" }}>
             Mis compras
           </h1>
