@@ -6,8 +6,11 @@
  * AAL2 ni una contraseña de hace menos de 5 minutos (`ia_exigir_aal2_si`, D-5): el formulario la pide.
  */
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/db/server";
+import { isPlatformAdmin } from "@/lib/studio/platform-admin";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { AVISOS_IA, costoEfectivoOficina, leerPantallaIa, tonoDelAviso } from "@/lib/studio/ia/pantalla";
 import { TOPE_MENSUAL_MAXIMO_USD, configDespachador } from "@/lib/studio/oficina/despachador-config";
 
@@ -25,12 +28,17 @@ const PESTANAS: Array<{ clave: Pestana; etiqueta: string }> = [
 ];
 
 export default async function IaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  // Gate propio de la página (SDD-0624), además del layout.
+  await requireModuleView("admin");
+  const supabase = await createClient();
+  if (!(await isPlatformAdmin(supabase))) notFound();
+
   const sp = await searchParams;
   const uno = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
   const activa: Pestana = uno("tab") === "cuentas" ? "cuentas" : "gasto";
   const r = uno("r");
 
-  const lectura = await leerPantallaIa(await createClient());
+  const lectura = await leerPantallaIa(supabase);
   const entorno = configDespachador();
   const costo = lectura.ok
     ? costoEfectivoOficina(lectura.datos, { topeMensualUsd: entorno.topeMensualUsd, precios: entorno.precios, techoUsd: TOPE_MENSUAL_MAXIMO_USD })
