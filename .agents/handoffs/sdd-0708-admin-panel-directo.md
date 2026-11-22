@@ -17,8 +17,9 @@
 - Revisión independiente de `e1b71224f`: APPROVED sin bloqueantes. Correcciones pedidas por Dir_DTD, en un commit:
   sin doble encabezado (`AdminHeader` solo en `/studio/admin`; eyebrows con el grupo del menú), conteo 30 en la spec,
   comentario de `page.tsx`, `oficina-virtual` en la prueba y prueba de «ninguna sección en blanco».
-- PENDIENTE DE ESTA TAREA: capturas claro/oscuro (NO DISPONIBLE aquí: el worktree no tiene Supabase ni sesión del
-  Studio y los `.env` no se copian; hace falta la prueba con datos o un Supabase local), `pnpm verify` con turno.
+- PENDIENTE DE ESTA TAREA: capturas: después de publicar, Dir_DTD (en producción, con Sam). `pnpm verify` con turno.
+- PENDIENTE (ver con datos reales): la columna de contenido queda en ~1024 px; confirmar si las tablas anchas de Rutas
+  y Notificaciones piden scroll horizontal.
 
 ## Validación (turno de PC dado por Dir_DTD)
 
