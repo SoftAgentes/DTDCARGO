@@ -29,7 +29,7 @@ Spec propuesta, **esperando la aprobación de Sam**. **Nada implementado.** Núm
 
 Esto **sustituye** la decisión del 2026-08-11 que fijó `$1,234.50` como formato del ERP (cabecera de `lib/money.ts`).
 
-**Lo medido (C y M, sobre `main` `2ea18799a`):**
+**Lo medido (C y M, sobre `main` `27d8b46d9`):**
 
 | Qué | Cifra |
 |---|---|
@@ -43,7 +43,7 @@ Esto **sustituye** la decisión del 2026-08-11 que fijó `$1,234.50` como format
 | Lugares que convierten lo tecleado con `replace(",", ".")` a mano | 26 archivos |
 | Pruebas con cifras escritas como `1,234.50` | 37 archivos |
 
-Conteos por texto sobre `main` `27d8b46d9`, sin pruebas ni `docs/`; son techo, no cuenta exacta. La cuenta exacta la fija el contrato de la fase 3 (§6). Antes (2026-11-20) eran 65, 49, 54, 43, 42, 22 y 34: `main` creció con la 0680 a la 0705.
+Conteos por texto sobre `main` `27d8b46d9`, sin pruebas ni `docs/`; son techo, no cuenta exacta. La cuenta exacta la fija el contrato de la fase 3 (§6). Sobre `2ea18799a` (2026-11-20) las filas eran, en el mismo orden: 40, 65, 49, 54, 43, 42, 22 y 34; la fila de `toLocaleString` es nueva. `main` creció con la 0680 a la 0705.
 
 Hoy conviven `$1,234.50`, `1.234,50` y `USD 1.234,50` en el mismo sistema.
 
@@ -61,7 +61,8 @@ Regla de hoy: con coma **y** punto, el último es el decimal; con **un solo** se
 | `1.234,50` | 1234.5 | 1234.5 | 1234.5 |
 | `1,234.50` | 1234.5 | **Se rechaza** con mensaje: el formato es `1.234,50` | Se rechaza igual |
 | `1.234` | **1.234** (uno coma dos tres cuatro) | **Se rechaza y se pide aclarar**: «Escribe 1234 o 1.234,00 si son mil doscientos treinta y cuatro, o 1,234 si es un decimal» | 1.234, con el valor entendido a la vista (pendiente de confirmar, §9) |
-| `1,234` | 1.234 | 1.234 (la coma es decimal) | 1.234 |
+| `1,234` · `10,000` | 1.234 · 10 | **Se rechaza y se pide aclarar** (§4.2): tres decimales no caben en dinero, y en teclados en inglés es «mil doscientos treinta y cuatro» | 1,234 · 10 (la coma es decimal) |
+| `36,500` en **tasa** | 36.5 | No aplica (la tasa tiene su modo, §4.2): 36,5 | No aplica |
 | `1.234.567` | 1234567 | 1234567 | 1234567 |
 | `12.5` · `12.50` | 12.5 | 12.5: no puede ser miles, así que no hay duda; se muestra «= 12,50» (pendiente de confirmar, §9) | 12.5 |
 | `0.125` | 0.125 | Se rechaza: un punto seguido de tres cifras no se interpreta en dinero | 0.125 |
@@ -97,7 +98,7 @@ El navegador decide cómo se ve y qué acepta según el idioma del equipo; el va
 
 1. **Al mostrar:** punto de miles y coma decimal en todo el sistema, para todo número que lee una persona.
 2. **Al guardar y al enviar entre sistemas:** formato de máquina (`1234.50`). No cambia.
-3. **Al teclear dinero:** la coma es el decimal. El punto se acepta como miles bien formados cuando hay coma decimal o más de un punto (`1.234,50`, `1.234.567`). **Un punto único seguido de exactamente tres cifras no se interpreta: se rechaza y se pide aclarar.** El sistema nunca adivina un monto.
+3. **Al teclear dinero:** la coma es el decimal. El punto se acepta como miles bien formados cuando hay coma decimal o más de un punto (`1.234,50`, `1.234.567`). **Un separador único (punto o coma) seguido de exactamente tres cifras no se interpreta en dinero: se rechaza y se pide aclarar** (`1.234`, `1,234`, `10,000`). El sistema nunca adivina un monto. Cada tipo de campo fija su modo y su precisión (§4.2).
 4. **Un solo lugar para formatear y uno solo para interpretar.** Nadie formatea ni convierte a mano.
 5. **Archivos para máquinas** (CSV, Excel con celdas numéricas) llevan el número real, no texto con formato.
 
@@ -114,7 +115,21 @@ NUM-01 (`docs/governance/policies/num-01.md`) es la política aprobada de campos
 
 FRM-01 depende de NUM-01 y no cambia. La cápsula de gobernanza (`docs/governance/generated/`) se regenera en la misma PR.
 
-### 4.2 El helper compartido (propuesta)
+### 4.2 Modo y precisión por tipo de campo de entrada
+
+La precisión máxima manda: un valor con más decimales que el modo permite **se rechaza**, no se redondea en silencio. Por eso `1,234` en dinero (3 decimales) se rechaza por sí solo y el mensaje de aclaración le dice qué escribir.
+
+| Tipo de campo | Modo | Decimales | Un separador único + tres cifras | Fuente |
+|---|---|---|---|---|
+| **Dinero** (montos, costos, tarifas, pagos, descuentos en monto) | dinero | 2 | Se rechaza y se pide aclarar, con punto o con coma | norma de esta spec |
+| **Tasa de cambio** | tasa | 4 en pantalla (la base admite 8, `numeric(20,8)`) | La coma es decimal: `36,500` = 36,5 y es legítimo. El punto único con tres cifras (`36.500`) se rechaza y se pide aclarar | `lib/studio/exchange-rates-types.ts:65` |
+| **Porcentaje y descuento en %** | porcentaje | 2, entre 0 y 100 | Se rechaza (tres decimales no caben; además, un porcentaje no tiene miles) | NV: el máximo real de cada campo se fija al abrir la fase 2 |
+| **CBM** | medida | 4 | Se acepta como decimal mostrando lo entendido (decisión 2 de §9) | `lib/shared/cbm.ts` (`CBM_MAX_DECIMALS`), SDD-0667 |
+| **Peso y cantidades** | medida | las de su campo | Igual que CBM | NV: se fija campo por campo en la fase 2 |
+
+El analizador recibe el modo como argumento; no hay un modo por defecto, para que nadie lo olvide. Las pruebas de §6 se corren **por modo**.
+
+### 4.3 El helper compartido (propuesta)
 
 Un solo módulo, `lib/shared/cifras.ts`, en `lib/shared/` porque lo importan la web pública, el Portal, el Studio y el móvil (la web pública no puede importar `@/lib/studio`). `lib/money.ts` queda como fachada que reexporta, para no tocar de un golpe los 40 importadores.
 
@@ -135,9 +150,9 @@ Reglas del helper: no depende del idioma del equipo (se fija `es-VE` con opcione
 
 | Fase | Qué | Allowlist (se fija archivo por archivo al abrirla) | Tamaño |
 |---|---|---|---|
-| **1** | **Entrada única.** Un analizador con modo «dinero» y modo «medida»; `<NumericInput>` lo usa y muestra el mensaje de aclaración (ERR-01 «Campo») | `lib/studio/util/parse-numeric-expression.ts`, `app/studio/_components/ui/NumericInput.tsx`, sus pruebas, `docs/governance/components/numeric-input.json`, `docs/governance/policies/num-01.md` (v1.2, §4.1), `docs/governance/README.md` y `docs/governance/generated/` | M |
+| **1** | **Entrada única.** Un analizador con un modo por tipo de campo (dinero, tasa, porcentaje, medida; §4.2); `<NumericInput>` lo usa y muestra el mensaje de aclaración (ERR-01 «Campo») | `lib/studio/util/parse-numeric-expression.ts`, `app/studio/_components/ui/NumericInput.tsx`, sus pruebas, `docs/governance/components/numeric-input.json`, `docs/governance/policies/num-01.md` (v1.2, §4.1), `docs/governance/README.md` y `docs/governance/generated/` | M |
 | **2** | **Los conversores a mano (26 archivos)** pasan al analizador único, en servidor y cliente, empezando por dinero (reporte de pago del Portal, tasa de cambio, monto cotizado, descuentos) | los archivos de §1 y sus pruebas | M |
-| **3** | **Formateador único.** `lib/money.ts` cambia a `1.234,50`; se añaden formateadores de número, tasa y medida; cabecera reescrita con la decisión nueva | `lib/money.ts`, `lib/shared/equivalente-bs.ts`, `lib/shared/cbm.ts`, `lib/i18n/format.ts`, pruebas | M |
+| **3** | **Formateador único.** `lib/money.ts` cambia a `1.234,50`; se añaden formateadores de número, tasa y medida; cabecera reescrita con la decisión nueva | `lib/money.ts`, `lib/shared/equivalente-bs.ts`, `lib/shared/cbm.ts`, `lib/i18n/format.ts`, los formateadores propios que pasan a reexportar o a usar el helper (`lib/portal/portal-types.ts:427-432`, `lib/studio/costing/types.ts:249-256`, `lib/studio/agent-types.ts:426-444` con K y M compactos, `lib/studio/nomina/ficha-empleado.ts:106` que hoy muestra «USD …» con `es-VE` y currency, `lib/shared/annual-billing.ts:102`, `lib/studio/rate-types.ts:274`, `lib/studio/expense-types.ts:395`), pruebas | M |
 | **4** | **Formato a mano → formateador**, por grupos de módulos, con un contrato que congela la lista y solo baja | los archivos de §1 con `en-US` y `toFixed`, por grupos | L, varias PR |
 | **5** | **Lo que sale del sistema:** CSV (`lib/studio/export/comercial-csv.ts`, `lib/studio/renditions/rendition-csv.ts`), Excel, PDF, recibos, textos de WhatsApp y correos | por decisión de §9 | M |
 | **6** | **Portal, móvil y calculadoras de la web** (`components/CalculadoraForm.tsx`, `FclCalculator.tsx`, `TarifasTabs.tsx`, `app/portal`, `app/m`) | por grupos | M |
@@ -154,12 +169,12 @@ Lista por texto (no se abrió cada una); la lista exacta y congelada nace en la 
 | **Cotizador, tarifas, costos, órdenes (Studio)** | `app/studio/(app)/{cotizador,tarifas,costing,ordenes-venta,ordenes-compra}/` | en-US | 4 |
 | **Dirección, Reportes, Dashboard** | `direccion/`, `reportes/`, `dashboard/` (KPI compactos y gráficos: ejes y tooltips) | `fmtUsdCompact`; gráficos con `toFixed` | 4 |
 | **Portal del cliente** | `app/portal/(app)/{facturas,envios,compras,referidos,_components/PortalDashboardNorte}`, `lib/portal/portal-avisos.ts`, `lib/portal/portal-types.ts`; reporte de pago en `lib/portal/payment-report-types.ts` | mezcla; **entrada con `replace(",", ".")`** | 2 y 6 |
-| **`/tarifas`, calculadoras y cotizador web** | `components/TarifasTabs.tsx`, `components/CalculadoraForm.tsx`, `components/FclCalculator.tsx` | `$${n.toLocaleString("en-US")}` y `toFixed(2)` a mano; son cifras visibles al público | 6 |
+| **`/tarifas`, calculadoras y cotizador web** | `components/TarifasTabs.tsx`, `components/CalculadoraForm.tsx`, `components/FclCalculator.tsx`, `components/CbmExplicador.tsx`, `components/CotizadorFletes.tsx`, `components/UltimoKmCalculator.tsx`, `components/document-import/DocumentCalculator.tsx`, `components/document-import/DocumentEditor.tsx` | `$${n.toLocaleString("en-US")}` y `toFixed(2)` a mano; son cifras visibles al público | 6 |
 | **Proveedores (enlace por token)** | `app/p/[token]/` (packing list, documento compartido) | `toLocaleString` | 6 |
 | **Móvil** | `app/m/{emp,ve}/...` (recibo del empleado, camionero, bodeguero) | `es-VE` en el recibo, mezcla en el resto | 6 |
-| **PDF** | `app/portal/(app)/facturas/[code]/pdf/route.ts`, `facturas/estado-de-cuenta/pdf/route.ts`, `app/m/emp/recibo/[period]/pdf/route.ts`, `lib/studio/document-import/pdf.tsx`, recibo de cobranza | **NV**: las rutas no llaman a los formateadores de §1 directamente; se mide a dónde delegan al abrir la fase 5 | 5 |
-| **Correos y mensajes** | `app/api/cron/portal-cold-reminder/route.ts`, `app/api/cron/conversation-digests/route.ts`, textos de WhatsApp del cotizador y de recordatorios de cobranza | **NV**: se mide en la fase 5 | 5 |
-| **CSV y Excel** | `lib/studio/export/{csv,comercial-csv,operativo-csv}.ts`, `lib/studio/renditions/rendition-csv.ts`, `lib/studio/accounting/libro-control.ts`, `lib/studio/audit/export-service.ts`, `lib/studio/bitacora/reports.ts` | texto o número según el archivo | 5 |
+| **PDF** | `lib/studio/pdf/factura-pdf.tsx:240`, `lib/studio/pdf/estado-de-cuenta-pdf.tsx:80`, `lib/studio/pdf/pdf-doc.tsx:22`, `lib/studio/pdf/recibo-pdf.tsx:46`, `lib/studio/receipts/receipt-template.ts:98-99` (las rutas `app/portal/(app)/facturas/[code]/pdf/route.ts`, `facturas/estado-de-cuenta/pdf/route.ts` y `app/m/emp/recibo/[period]/pdf/route.ts` delegan en ellos), `lib/studio/document-import/pdf.tsx` | Formateadores propios con `en-US` (señalado por la revisión; corrige una fila anterior que decía «sin verificar») | 5 |
+| **Correos y mensajes** | `lib/studio/invoice-mail-vars.ts:34` (hace `toFixed` y convierte `NaN` en 0), `lib/public/cotizador-flete.ts:53` (texto de WhatsApp en `en-US`), `app/api/cron/portal-cold-reminder/route.ts`, `app/api/cron/conversation-digests/route.ts`, recordatorios de cobranza | `toFixed` y `en-US`; los dos últimos **NV**: se miden en la fase 5 | 5 |
+| **CSV y Excel** | `lib/studio/export/{csv,comercial-csv,operativo-csv}.ts`, `lib/studio/renditions/rendition-csv.ts`, `lib/studio/accounting/libro-control.ts`, `lib/studio/audit/export-service.ts`, `lib/studio/bitacora/reports.ts`, **`lib/studio/reports/export-csv.ts` (libros SENIAT en `FiscalClient.tsx:25` y Retenciones en `WithholdingsView.tsx:105-130`)**, **`app/studio/(app)/gastos/actions.ts:424-438` (el CSV de la contadora)**, **`buildCostingCsv` en `CostingClient.tsx:43`**, `lib/studio/document-import/export.ts:12,55`, `lib/studio/prealertas/packlist.ts` | texto o número según el archivo; **riesgo R2 directo**: una cifra `1.234,50` sin comillas parte la columna en un CSV con coma | 5 |
 
 ### 5.2 Choques con trabajo en curso (esta spec no edita ahí)
 
@@ -170,15 +185,31 @@ Lista por texto (no se abrió cada una); la lista exacta y congelada nace en la 
 
 Las fases 1 y 2 **no cambian lo que se ve**; sí cambian qué se acepta. Se pueden publicar antes que el resto y cierran el caso de §2.2 por sí solas.
 
+### 5.3 Lo que viaja a otro sistema sigue siendo numérico
+
+- Lo que sale por `NEXT_PUBLIC_HAILUWAY_API` (las props de `/tarifas`) viaja como número; **cada lado formatea** al mostrar. La web pública no recibe texto ya formateado.
+- Lo que va a Kommo (`lib/studio/kommo-writeback.ts:164-166`) también es numérico; el formato lo decide Kommo. Esta spec no lo toca.
+- **Enlace de proveedores** (`app/p/[token]/provider-format.ts:6`, `PackingListFormSection.tsx:117,121`): formatea con `zh-CN`, `es-ES` o `en-US` según el idioma del proveedor, a propósito (decisión 10 de §9). Entra en la fase 6 solo si Sam elige la opción B.
+- **Búsqueda global** (`lib/studio/global-search/classify.ts:75`): `parseAmount` ya interpreta en formato venezolano (punto de miles y coma decimal) pero quita todos los puntos sin mirar cuántas cifras siguen. Se anota en el **contrato de entrada** (§6): es un conversor más y pasa al analizador en la fase 2.
+
+### 5.4 Las cifras dependen de ICU (nota de la revisión)
+
+Con Node 24 e ICU 78, `Intl.NumberFormat("es-VE", {style: "currency", currency: "USD"})` da `USD 1.234,50`. Para `$1.234,50` hace falta `currencyDisplay: "narrowSymbol"`, y entonces el negativo sale `$-1.234,50`; el compacto sale `1,3 K` con espacio. Dos salidas, a elegir al abrir la fase 3:
+
+- **A (propuesta):** el helper no depende de ICU para el formato final: arma la cadena con `Intl.NumberFormat` solo para los dígitos y los separadores (fijando `es-VE`), y pone él mismo el símbolo, el signo y el sufijo. El negativo se escribe **`-$1.234,50`** (signo delante del símbolo, como hoy).
+- **B:** se usa ICU completo y se acepta lo que dé cada versión.
+
+Con cualquiera, la fase 3 incluye **una prueba de que el servidor (Node) y el navegador dan el mismo texto** para un conjunto fijo de valores (cero, negativo, miles, millones, compacto, `NaN`), y un contrato que fije la versión de ICU de la que se partió.
+
 ## 6. Aceptación
 
 - **Ida y vuelta (propiedad):** para cualquier monto con hasta dos decimales, mostrar y volver a interpretar lo mostrado devuelve el mismo valor. Probado con valores generados, no solo con ejemplos.
 - **Tabla de §2 como prueba**, caso por caso, en los dos modos. Cada rechazo comprueba el mensaje y que **no se guarda nada**.
-- **Mutantes obligatorios:** aceptar `1.250` como 1,25 en modo dinero; aceptar `1,234.50`; devolver el formateador a `en-US`. Los tres deben romper una prueba.
-- **Contrato de entrada:** ningún archivo fuera del analizador contiene `replace(",", ".")` aplicado a un valor tecleado; cuenta exacta, con la lista de excepciones justificadas (por ejemplo, lectores de archivos ajenos: `lib/studio/fx/bcv-parser.ts`, `lib/studio/partner-finance/statement-parser.ts`, `lib/studio/document-import/extract.ts`, que leen formatos de terceros y **no** se tocan).
+- **Mutantes obligatorios:** aceptar `1.250` como 1,25 en modo dinero; aceptar `1,234.50`; devolver el formateador a `en-US`; aceptar `1,234` o `10,000` como decimal en modo dinero; aceptar `36.500` en modo tasa. Todos deben romper una prueba.
+- **Contrato de entrada:** ningún archivo fuera del analizador contiene `replace(",", ".")` aplicado a un valor tecleado, ni quita puntos con `replace(/./g, "")` (el caso de `parseAmount` en `lib/studio/global-search/classify.ts:75`, que ya interpreta en formato venezolano y pasa al analizador); cuenta exacta, con la lista de excepciones justificadas (por ejemplo, lectores de archivos ajenos: `lib/studio/fx/bcv-parser.ts`, `lib/studio/partner-finance/statement-parser.ts`, `lib/studio/document-import/extract.ts`, que leen formatos de terceros y **no** se tocan).
 - **Contrato de salida:** ningún archivo fuera de los formateadores llama a `toLocaleString` o `Intl.NumberFormat` con `en-US` para un número que se muestra; lista congelada que solo baja (modelo `fechas-contract.test.ts`).
 - **CSV:** una prueba abre el archivo generado y comprueba que cada fila tiene el mismo número de columnas y que los montos se leen como números.
-- **Las 34 pruebas con `1,234.50` se actualizan al formato nuevo, no se debilitan ni se saltan.**
+- **Las 37 pruebas con `1,234.50` se actualizan al formato nuevo, no se debilitan ni se saltan.**
 - El acceso por lector de pantalla del mensaje de aclaración cumple ERR-01: ligado al campo con `aria-describedby`, sin región viva mientras se escribe.
 
 ## 7. Riesgos
@@ -190,8 +221,8 @@ Las fases 1 y 2 **no cambian lo que se ve**; sí cambian qué se acepta. Se pued
 | R3 | El ERP en chino (`zh-CN`) escribe `12,323.50` (`lib/i18n/format.ts`) | Decisión pendiente (§9). Propuesta: formato único en todos los idiomas, porque las cifras se comparan entre oficinas |
 | R4 | Documentos fiscales o contables con formato distinto antes y después | Decisión pendiente para la factura (§9) |
 | R5 | `<input type="number">` se comporta distinto por navegador | Dinero pasa a `<NumericInput>`; el resto se prueba en Chromium, Firefox y WebKit |
-| R7 | El teclado numérico escribe punto en equipos configurados en inglés: rechazar todo punto único frenaría a quien teclea `12.50` | Solo se rechaza el caso ambiguo (tres cifras tras un punto único); `12.5` y `12.50` se aceptan mostrando lo entendido. Decisión pendiente (§9) |
 | R6 | Lectores de archivos de terceros (BCV, extractos, importación de documentos) usan su propio formato | Fuera de alcance, listados como excepción en el contrato |
+| R7 | El teclado numérico escribe punto en equipos configurados en inglés: rechazar todo punto único frenaría a quien teclea `12.50` | Solo se rechaza el caso ambiguo (tres cifras tras un punto único); `12.5` y `12.50` se aceptan mostrando lo entendido. Decisión pendiente (§9) |
 
 ## 8. Verificación y publicación
 
@@ -215,12 +246,14 @@ Sam decide viendo: cada una se dibuja con `show_widget` (la tarjeta de un monto 
 | 7 | KPI compactos de Reportes | `$1,2K` · `$1,25M` | `$1.2K` (el punto se queda en lo compacto) |
 | 8 | Número no válido (`NaN`) | Se muestra «—» | Se sigue mostrando `$0,00` |
 | 9 | CSV y Excel exportados | Número real, sin formato (`1234.50`) | Texto con formato `1.234,50` (se lee bien al ojo; Excel en español de Venezuela lo entiende, otros no) |
+| 10 | Enlace de proveedores (`app/p/[token]/`) | Conserva el idioma del proveedor (`zh-CN`, `es-ES`, `en-US`) | Formato único `1.234,50` |
+| 11 | Coma única con tres cifras en dinero (`1,234`, `10,000`) | Se rechaza y se pide aclarar (recomendada por la revisión) | Se acepta como decimal si cabe en la precisión; con dos decimales máximo igual se rechazaría |
 
 Las fases 1 y 2 (entrada) dependen solo de la 2 y la 6; el resto de las decisiones se necesitan desde la fase 3.
 
 ## 10. Lo que esta spec no cubre
 
-Color (SDD-0686), simetría de pantallas (SDD-0688), fechas (SDD-0660), CBM de cuatro decimales (SDD-0667, que ya formatea en `es-VE`), revisar montos guardados en producción y cualquier escritura en la base de datos.
+Color (SDD-0686), simetría de pantallas (SDD-0688), fechas (SDD-0660), CBM de cuatro decimales (SDD-0667, que ya formatea en `es-VE`), revisar montos guardados en producción y cualquier escritura en la base de datos. Tampoco cubre el texto que arma la base de datos: `supabase/migrations/0497_reverso_al_anular_factura.sql:795` usa `to_char` en un mensaje de error; una migración aplicada no se toca, y ese mensaje queda en su formato.
 
 ## 11. Límites
 
