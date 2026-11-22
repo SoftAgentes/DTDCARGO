@@ -19,3 +19,8 @@
 ## v0.3
 - Sam (2026-11-22, en esta sesión, textual): «Con todas las recomendadas». D-1..D-6 = A; status approved; índice regenerado. docs:check y sdd:check PASÓ.
 - Siguiente: Worker de producto para la fase 1 (lo asigna Dir_DTD).
+
+## v0.4
+- Sam cambió D-3, D-4 y D-6 a B en el chat de Dir_DTD (después del «Con todas las recomendadas»); la última vale. §9 registra las dos citas.
+- Nuevo §2.1 (barrido chat/caso, inventario y lo que queda fuera), §2.2 (rol «Atención al cliente», id support igual), §4.1 (idioma propio de Chatwoot, costo y orden con la #776) y fases 1 a 5.
+- Queda fuera del barrido (propuesta, Sam puede sumar): Bitácora, Bugs, privacidad, contenido.
