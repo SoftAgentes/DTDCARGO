@@ -5,6 +5,7 @@ status: proposed
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
+revision: "v0.2 (cambios pedidos por Dir_DTD en la #774)"
 supersedes: null
 superseded_by: null
 related: ["0056", "0147", "0585", "0626", "0655", "0702", "0705"]
@@ -21,7 +22,7 @@ confidencialidad: interno
 > están en §9 (D-1 a D-6), con opciones A/B y una recomendada. Repo público: sin llaves, correos, IP ni montos.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no verificado.
-Base: `main` `33ef3ad82`. Conteos hechos con `git grep -il "conversaci"` (insensible a mayúsculas y tildes parciales).
+Base: `main` `8c15a4bb0` (v0.2; la v0.1 se midió sobre `33ef3ad82`; los conteos no cambiaron). Conteos hechos con `git grep -il "conversaci"` (insensible a mayúsculas y tildes parciales).
 
 ## 1. Qué existe hoy
 
@@ -51,17 +52,18 @@ se llama «Bandeja» y aparece como «conversaciones» solo dentro de textos (ta
 
 Conteo de archivos con «conversaci» (sin `docs/specs` ni `.agents/handoffs`, que son históricos y no se tocan):
 `lib/studio` 146 · `app/studio` 84 · `infra/chatwoot` 33 · `infra/ops` 31 · `supabase/tests` 26 ·
-`docs/marketing` 26 · `docs/design` 24 · `docs/runbooks` 23 · `app/api` 11 · `docs/audits` 12 · `docs/organizacion` 11 ·
+`docs/marketing` 26 · `docs/design` 27 · `docs/runbooks` 23 · `app/api` 11 · `docs/audits` 12 · `docs/organizacion` 11 ·
 `supabase/migrations` 37 · el resto con 1 a 7. La mayoría es **código** (ver B) y no se toca.
 
 | Clase | Qué incluye | Recomendación |
 |---|---|---|
-| **A · Texto visible** | Etiqueta del menú (`modules.ts:131`), `metadata.title` de la página (`conversaciones/page.tsx:23`), `ConversationsIndicator` (`label = "Conversaciones"`), `aria-label` de la columna de la ficha, tarjetas de la ficha, `lib/i18n/es-VE/bandeja.ts` (≈22 claves) y `guide.ts` (guías «Conversaciones en la ficha del cliente»), vacíos y errores, `lib/portal/simple/bloques.ts:51` («Ver mis conversaciones en la Vista Pro»), «Ver conversación» del aviso por correo (`bug-email-notify.ts:485`), el título de la guía del asistente (`asistente/contenido/catalogo.ts:78`) | **Cambiar** (fase 1) |
+| **A · Texto visible** | Etiqueta del menú (`modules.ts:131`), `metadata.title` de la página (`conversaciones/page.tsx:23`), `ConversationsIndicator` (`label = "Conversaciones"`), `aria-label` de la columna de la ficha, tarjetas de la ficha, `lib/i18n/es-VE/bandeja.ts` (≈22 claves) y `guide.ts` (guías «Conversaciones en la ficha del cliente»), vacíos y errores, `lib/portal/simple/bloques.ts:51` («Ver mis conversaciones en la Vista Pro»), la entrada del asistente en `asistente/contenido/catalogo.ts:78` (dice «Bandeja de atención: conversaciones con clientes…»: «Bandeja» depende de D-1), y en la pantalla de rutas de alerta `lib/studio/telegram/alert-routing.ts:53` (rótulo «Conversaciones del portal») y `:66` (ayuda «Un cliente escribió por el chat del portal») | **Cambiar** (fase 1) |
+| **A′ · Visible pero atado a un nombre externo** | `lib/i18n/es-VE/bandeja.ts:266` (`bandeja.portal.help`, nombra la bandeja «Conversaciones del portal» de Chatwoot) · `lib/studio/discord/channels.ts:40` (canal `#conversaciones-portal`, nombre de un canal real de Discord) | **No en la fase 1.** Cambian solo junto con el nombre externo: el primero con la fase 3 de Chatwoot, el segundo con el renombre del canal en Discord (D-5 y OK) |
 | **B · Ruta** | `/studio/conversaciones` (+ `?c=<id>`), `/api/studio/conversaciones/[id]`, `/api/conversaciones/email` | Pantalla: **cambiar** con 308. API: ver §3.3 |
-| **C · Nombre de código** | Carpeta `app/studio/(app)/conversaciones/`, `lib/studio/conversaciones/`, componentes `Conversacion*`, tipos y funciones, el id de módulo `"conversaciones"` (RBAC), la categoría de alerta `conversaciones` (Telegram/Discord), `DISCORD_WEBHOOK_CONVERSACIONES`, tablas `conversations`/`messages`, la migración `0106_conversaciones.sql`, `data-guia="cliente.conversaciones"`, clases CSS `studio-ficha-conversaciones` | **No cambiar** (D-5) |
+| **C · Nombre de código** | Carpeta `app/studio/(app)/conversaciones/` (§3.1), comentarios de código que nombran el módulo (`conversation-inbound-notify.ts:3`, `app/portal/(app)/soporte/page.tsx:40,87,161`, `app/portal/(app)/mensajes/actions.ts:11`: se dejan, porque nombran la SDD-0056 y no se ven), `lib/studio/conversaciones/`, componentes `Conversacion*`, tipos y funciones, el id de módulo `"conversaciones"` (RBAC), la categoría de alerta `conversaciones` (Telegram/Discord), `DISCORD_WEBHOOK_CONVERSACIONES`, tablas `conversations`/`messages`, la migración `0106_conversaciones.sql`, `data-guia="cliente.conversaciones"`, clases CSS `studio-ficha-conversaciones` | **No cambiar** (D-5) |
 | **D · Documentación** | `docs/runbooks` (23), `docs/marketing` (26), `docs/design` (24), `docs/organizacion` (11), `docs/audits` (12, fechados), `docs/specs/0056-conversaciones` (se conserva el nombre de la carpeta) | Runbooks y marketing **vigentes**: actualizar el nombre visible en la fase 1. Auditorías, handoffs y specs: **no**, son evidencia fechada |
 | **E · Objeto técnico de Chatwoot** | «conversación» en `lib/studio/chatwoot/*`, `account-api.ts`, `router-api.ts`, `infra/chatwoot/correo/*.rb`, plantillas `.liquid` de avisos de Chatwoot, `chatwoot_conversations` | **No cambia** (§5). Las plantillas `.liquid` son texto que ven los agentes: ver §4 |
-| **F · Texto de contenido** | `lib/news/cerebro.ts` («Pregunta / Conversación», un tipo de contenido de marketing), `scripts/bot-conocimiento.mjs`, guías públicas (`comprar-en-alibaba`, `guia-peso`) | **No cambia**: es el sentido de la palabra en español, no el módulo |
+| **F · Texto de contenido** | «Ver conversación» de `lib/studio/bug-email-notify.ts:485` (es el hilo de un bug en `/studio/mis-bugs`, no el módulo) · `lib/news/cerebro.ts` («Pregunta / Conversación», un tipo de contenido de marketing), `scripts/bot-conocimiento.mjs`, guías públicas (`comprar-en-alibaba`, `guia-peso`) | **No cambia**: es el sentido de la palabra en español, no el módulo |
 
 > Regla para quien ejecute: una frase como «tu conversación con el cliente» o «conversaciones por cerrar» de la Oficina
 > es lenguaje corriente. Se cambia **el nombre de la pantalla o del módulo**, no cada aparición del sustantivo (D-3).
@@ -69,8 +71,32 @@ Conteo de archivos con «conversaci» (sin `docs/specs` ni `.agents/handoffs`, q
 ## 3. Rutas
 
 ### 3.1 Cambio
-`/studio/conversaciones` pasa a `/studio/soporte`. Se mueve la carpeta de la pantalla (solo `app/studio/(app)/conversaciones/`
-→ `soporte/`); el módulo conserva `id: "conversaciones"` (C), solo cambian `label` y `slug`.
+La URL `/studio/conversaciones` pasa a `/studio/soporte`. **La carpeta `app/studio/(app)/conversaciones/` no se mueve**
+(D-5, clase C). En `lib/studio/modules.ts:131` cambian solo `label` («Soporte») y `slug` (`/studio/soporte`); el
+`id: "conversaciones"` queda. La URL nueva se sirve con un *rewrite* hacia la carpeta de siempre:
+
+```
+rewrites: { source: "/studio/soporte",        destination: "/studio/conversaciones" },
+          { source: "/studio/soporte/:path*", destination: "/studio/conversaciones/:path*" },
+```
+
+Ojo con el precedente: con kommo → crm **sí se movió la carpeta** (hoy existe `app/studio/(app)/crm/` y no `kommo/`).
+Aquí no se copia eso; se copia solo la redirección.
+
+**Qué se mide en la fase 1 antes de dar por buena esta vía (NV hoy):**
+- que la redirección de §3.2 y el *rewrite* no entren en bucle (Next aplica `redirects` sobre la URL que llega y el
+  *rewrite* es interno, así que no debería, pero se prueba con `curl -I` en local y en `next-config.test.ts`);
+- que los `revalidatePath("/studio/conversaciones")` de `conversaciones/actions.ts` (5) sigan invalidando la página
+  servida en `/studio/soporte`; si no, pasan a invalidar las dos rutas;
+- que el ítem del menú quede marcado como activo (compara la URL del navegador con `slug`).
+
+**Alternativa (si la medición falla): mover la carpeta.** Entonces se rompen y hay que actualizar en el mismo PR:
+`app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts:24,143` ·
+`drawer-derived-state-contract.test.ts:10` · `fechas-contract.test.ts:155` · `state-reconciliation-contract.test.ts:12` ·
+`claridad-t5d-contract.test.ts:65,67,207-219,351-369` · `lib/studio/__tests__/crm-acceso.test.ts:113` ·
+`infra/chatwoot/pruebas/portal/mutantes-solo-lectura.cjs:23-32` · `docs/governance/components/date-field.json:69,95` y
+`docs/governance/generated/component-registry.json:394,420` (regenerado y con `pnpm governance:check`). Las líneas se
+vencen: se vuelven a medir al ejecutar.
 
 ### 3.2 Redirección permanente (precedente)
 Igual que la SDD-0626 (`next.config.ts:677-680`, PR #720): redirección `permanent: true` (308) desde la vieja, con
@@ -81,18 +107,17 @@ subrutas y query string, para no romper marcadores ni avisos ya enviados:
 { source: "/studio/conversaciones/:path*",  destination: "/studio/soporte/:path*",  permanent: true },
 ```
 
-Next conserva `?c=<id>`. Prueba obligatoria: la de `lib/runtime/__tests__/next-config.test.ts` (el patrón de las
+Next conserva `?c=<id>`. `proxy.ts` está verificado: no menciona `conversaciones` ni la Bandeja (solo protege `/studio/**` con sesión) y **no cambia**. Prueba obligatoria: la de `lib/runtime/__tests__/next-config.test.ts` (el patrón de las
 redirecciones existentes), y quitar `/studio/conversaciones` de la lista de rutas «no Bandeja» de las líneas 193 y
 siguientes, o cambiarla a `/studio/soporte`.
 
 ### 3.3 Qué apunta a la ruta vieja (hay que cambiarlo a la nueva)
-Archivos de producto con `studio/conversaciones` (medido): `ConversationsIndicator.tsx:42` (`href`),
+Archivos de producto con `studio/conversaciones` (medido sobre `8c15a4bb0`). Cambian a la URL nueva los enlaces: `ConversationsIndicator.tsx:42` (`href`),
 `ConversacionesClient.tsx`, `ConversationList.tsx`, `ConversationThread.tsx`, `GenerateDigestsPanel.tsx`,
 `SaldoPendienteContexto.tsx`, `conversaciones/actions.ts` (5 `revalidatePath("/studio/conversaciones")`, **si no se
 cambian el caché no se invalida y la pantalla queda vieja**), `layout.tsx` del Studio, `lib/studio/conversation-inbound-notify.ts:107`
-(el enlace del aviso por Discord/Telegram/correo, `?c=…`), `lib/studio/conversaciones/monthly-digest.ts` y
-`digest-extract.ts` (comentarios), y las pruebas `route-auth.test.ts`, `avisos-discord-minimo.test.ts:195`,
-`crm-acceso.test.ts`.
+(el enlace del aviso por Discord/Telegram/correo, `?c=…`), y las pruebas que comparan la URL `route-auth.test.ts`, `avisos-discord-minimo.test.ts:195`,
+`crm-acceso.test.ts:90`. Los `import` de `@/lib/studio/conversaciones/*` y las rutas de archivo en pruebas de contrato **no cambian**, porque la carpeta queda. Los comentarios de `monthly-digest.ts` y `digest-extract.ts` tampoco.
 - **Avisos ya enviados** (Discord, Telegram, correo) con la ruta vieja siguen sirviendo por la redirección: es la razón
   del 308 y no hay que reenviar nada.
 - **APIs** `/api/studio/conversaciones/[id]` y `/api/conversaciones/email`: **no cambian** en esta spec. La segunda es
@@ -111,6 +136,8 @@ Alcance a decidir con Sam, de menor a mayor riesgo:
 |---|---|---|---|
 | Bandeja «**Conversaciones del portal**» (canal API, cuenta 1) | Chatwoot; `CHATWOOT_INBOX_PORTAL_ID`; `cargar.sh` y `ensayo-portal.sh` la cruzan **por nombre** | el equipo | **Alto si se renombra a ciegas**: el cruce por nombre falla y el portal puede dejar de enrutar. Renombrar exige cambiar primero el cruce a ID, o cambiar nombre y script en el mismo paso |
 | Flag «Conversaciones del portal en Chatwoot» (Studio → Admin → Feature flags) | Studio, texto | admin | Bajo; es etiqueta de Studio (fase 1) |
+| Ayuda `bandeja.portal.help` (`bandeja.ts:266`) | Studio, texto | admin | Cambia **en el mismo paso** que el nombre de la bandeja; si no, el texto nombra una bandeja que no existe |
+| Canal de Discord `#conversaciones-portal` (`discord/channels.ts:40`) | Discord | el equipo | Bajo, pero es externo: renombrar el canal en Discord y el texto juntos, con OK (D-5) |
 | Nombres de otras bandejas, equipos y **etiquetas** (labels) | Chatwoot | el equipo; las etiquetas no las ve el cliente | **NV**: no hay inventario en el repo; hay que listarlo por la API en lectura, con OK |
 | Plantillas de aviso a agentes (`infra/chatwoot/correo/views/.../*.liquid`, `generar-avisos.sh`): «Conversación nueva», «Te asignaron una conversación», «Abrir conversación» | repo + Chatwoot servidor | el equipo, por correo | Medio: el texto está en el repo y se regenera; aplicar es subir plantillas al servidor |
 | Interfaz de Chatwoot («Conversations» en su menú, «Conversaciones» en la traducción) | Chatwoot del proveedor | el equipo | Se deja: es la traducción del producto. Cambiarla es forkear el idioma (D-4) |
@@ -142,13 +169,13 @@ Portal a la vez. No rompe nada técnico, pero un texto como «Soporte ve Soporte
 
 | Fase | Contenido | Quién | Requiere |
 |---|---|---|---|
-| **1 · Studio y Portal** | §2 clases A y B de pantalla: etiqueta y `slug` en `modules.ts`, carpeta de la pantalla, 308 en `next.config.ts`, `revalidatePath`, enlaces de avisos (§3.3), i18n `bandeja.ts`/`guide.ts`, tarjetas de la ficha según D-2, ayuda del asistente, textos del Portal que dicen «conversaciones» como pantalla, runbooks vigentes y marketing con el nombre visible. Prueba del 308 y del enlace del aviso | Worker de producto | PR con revisión previa (toca rutas y notificaciones: **no** carril rápido) |
+| **1 · Studio y Portal** | §2 clases A y B de pantalla: etiqueta y `slug` en `modules.ts`, *rewrite* y 308 en `next.config.ts` (carpeta sin mover, §3.1), `revalidatePath`, enlaces de avisos (§3.3), i18n `bandeja.ts`/`guide.ts`, tarjetas de la ficha según D-2, ayuda del asistente, textos del Portal que dicen «conversaciones» como pantalla, runbooks vigentes y marketing con el nombre visible. Prueba del 308 y del enlace del aviso | Worker de producto | PR con revisión previa (toca rutas y notificaciones: **no** carril rápido) |
 | **2 · Guiones de la Oficina** | Textos que la Oficina dice al cliente y a Sam («Conversaciones por cerrar», avisos de Discord, guiones de `docs/oficina`) | Ofi_Hermes (no esta spec) | Su propio encargo; ajustar la pantalla «Conversaciones por cerrar» de `admin/oficina-virtual/page.tsx:125` solo si D-3 lo pide |
 | **3 · Chatwoot** | §4: inventario en lectura, luego renombrar bandejas/equipos/etiquetas, plantillas de agentes y textos al cliente; antes, mover el cruce de `cargar.sh`/`ensayo-portal.sh` de nombre a ID | Worker de infraestructura | **OK nominal de Sam** por cada escritura en Chatwoot de producción; plantillas de Meta: nueva aprobación |
 
 Criterios de aceptación de la fase 1 (para que la spec pueda cerrarse): (1) `/studio/conversaciones?c=x` responde 308 a
 `/studio/soporte?c=x`; (2) el menú, el título de la pestaña y el indicador dicen «Soporte»; (3) los avisos nuevos llevan la
-ruta nueva; (4) `git grep "studio/conversaciones"` solo queda en `next.config.ts`, su prueba y documentos fechados;
+ruta nueva; (4) ningún `href`, `router.push`, `redirect` ni enlace de aviso apunta a `/studio/conversaciones`; esa cadena solo queda en `next.config.ts` (destino del *rewrite* y origen del 308), en `revalidatePath` si la medición de §3.1 lo pide, en pruebas y en documentos fechados;
 (5) `pnpm verify` en verde; (6) ningún cambio en tablas, migraciones ni `id` de módulo.
 
 ## 8. Riesgos
@@ -180,8 +207,8 @@ Cada una con opciones A/B y una recomendada, dibujables con el mismo patrón de 
 - **A (recomendada):** no. Es la traducción del producto; solo se renombran bandejas, equipos y etiquetas propias (fase 3).
 - **B:** sí, con un archivo de idioma propio. Cuesta mantenerlo en cada subida de versión de Chatwoot.
 
-**D-5 · ¿Se renombra código, tablas, id de módulo o la API `/api/conversaciones/email`?**
-- **A (recomendada):** no. Solo lo visible y la ruta de la pantalla. Cero riesgo en datos, permisos y en la configuración de Resend.
+**D-5 · ¿Se renombra código (incluida la carpeta de la pantalla), tablas, id de módulo, la API `/api/conversaciones/email` o el canal de Discord `#conversaciones-portal`?**
+- **A (recomendada):** no. Solo lo visible y la URL de la pantalla (con *rewrite*). Cero riesgo en datos, permisos y en la configuración de Resend. El canal de Discord se renombra después, si Sam quiere, junto con su texto.
 - **B:** sí, carpetas y tipos en un PR de puro renombrado, sin cambio de comportamiento (ni tablas ni `id`). Se puede hacer luego; no aporta de cara al usuario.
 
 **D-6 · ¿Cómo se evita el choque con el rol «Soporte» y el chat interno del equipo?**
