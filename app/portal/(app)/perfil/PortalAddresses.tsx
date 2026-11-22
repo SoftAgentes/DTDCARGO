@@ -62,11 +62,11 @@ export function PortalAddresses({
   return (
     <div className={framed ? "mt-8 pt-6 border-t border-grey-200" : undefined}>
       <div className="flex items-center justify-between gap-3">
-        {/* Eyebrow wine cuando la card padre da el marco (hermana de "Datos de
+        {/* Eyebrow en tinta suave cuando la card padre da el marco (hermana de "Datos de
             cuenta"/"Identidad" en Mi perfil); gris cuando es sección embebida. */}
         <h2
           className={`text-[11px] font-bold tracking-[0.14em] uppercase ${
-            framed ? "text-grey-500" : "text-wine-text"
+            framed ? "text-grey-500" : "text-grey-700"
           }`}
         >
           Direcciones de entrega
@@ -75,7 +75,7 @@ export function PortalAddresses({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="text-[12.5px] font-bold text-wine-text hover:text-wine-deep inline-flex items-center gap-1"
+            className="text-[12.5px] font-bold text-accion-text hover:text-accion-hover inline-flex items-center gap-1"
           >
             + Agregar
           </button>
@@ -146,7 +146,7 @@ function AddressRow({
       className="rounded-[12px] border border-grey-200 bg-paper p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
       style={
         address.isDefault
-          ? { borderLeftWidth: 3, borderLeftColor: "var(--color-wine)" }
+          ? { borderLeftWidth: 3, borderLeftColor: "var(--color-ink)" }
           : undefined
       }
     >
@@ -157,8 +157,8 @@ function AddressRow({
           ) : null}
           {address.isDefault ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-wine-text"
-              style={{ background: "color-mix(in srgb, var(--color-wine) 12%, transparent)" }}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-ink"
+              style={{ background: "color-mix(in srgb, var(--color-ink) 8%, transparent)" }}
             >
               <CheckIcon size={11} /> Predeterminada
             </span>
@@ -207,7 +207,7 @@ function AddressRow({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="min-h-11 px-1 text-[12px] font-semibold text-wine-text hover:text-wine-deep"
+            className="min-h-11 px-1 text-[12px] font-semibold text-accion-text hover:text-accion-hover"
           >
             Editar
           </button>
@@ -216,7 +216,7 @@ function AddressRow({
           <form action={setDefaultAddressAction}>
             <input type="hidden" name="addressId" value={address.id} />
             <PendingTextButton
-              className="text-[12px] font-semibold text-wine-text hover:text-wine-deep whitespace-nowrap"
+              className="text-[12px] font-semibold text-accion-text hover:text-accion-hover whitespace-nowrap"
               idle="Predeterminar"
               pending="Guardando…"
             />
@@ -404,7 +404,7 @@ function EditForm({
   return (
     <form {...formProps} className="flex w-full flex-col gap-3">
       <input type="hidden" name="addressId" value={address.id} />
-      <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
+      <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
         Editar dirección
       </div>
       <AddressFields
@@ -485,7 +485,7 @@ function AddressFields({
             <select
               value={citySel}
               onChange={(event) => setCitySel(event.target.value)}
-              className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
+              className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-accion"
             >
               <option value="">Selecciona tu ciudad…</option>
               {cities.map((city) => (
@@ -541,7 +541,7 @@ function AddressFields({
           type="checkbox"
           name="isDefault"
           defaultChecked={address?.isDefault ?? false}
-          className="accent-wine"
+          className="accent-accion"
         />{" "}
         Marcar como predeterminada
       </label>
@@ -589,14 +589,14 @@ function Input({
     <label className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
         {label}
-        {required ? <span className="text-wine-text"> *</span> : null}
+        {required ? <span className="text-ink"> *</span> : null}
       </span>
       <input
         name={name}
         placeholder={placeholder}
         defaultValue={defaultValue}
         required={required}
-        className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
+        className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-accion"
       />
       {error ? <PortalFieldError>{error}</PortalFieldError> : null}
     </label>

@@ -211,7 +211,7 @@ export default async function PortalLabelsPage({
                       href={d.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-shrink-0 text-[12.5px] font-bold text-wine-text hover:underline"
+                      className="flex-shrink-0 text-[12.5px] font-bold text-accion-text hover:underline"
                     >
                       Ver
                     </a>

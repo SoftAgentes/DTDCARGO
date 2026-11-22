@@ -49,6 +49,7 @@ vi.mock("@/lib/studio/rbac-guard", () => ({ moduleEditDenial: async () => m.modu
 vi.mock("@/lib/studio/platform-admin", () => ({ platformAdminDenial: async () => m.superadmin }));
 
 import {
+  guardarCadenaAction,
   guardarCuentaAction,
   guardarModeloAction,
   guardarTopeAction,
@@ -232,5 +233,59 @@ describe("contraseña para aflojar el freno (D-5 de Sam)", () => {
     m.correo = null;
     expect((await resultado(guardarTopeAction(form({ tope: "9", motivo: "subir el tope", contrasena: "x" })))).r).toBe("sin_sesion");
     expect(m.llamadas).toHaveLength(0);
+  });
+});
+
+describe("guardarCadenaAction (SDD-0704 F1-B)", () => {
+  const cadena = (extra: Record<string, string> = {}) =>
+    form({ funcion: "a1_noticias", puesto_1: "anthropic/claude-sonnet-5-5", puesto_2: "anthropic/claude-haiku-5-5", motivo: "cambio de modelo", ...extra });
+
+  it("sin los candados no toca la base", async () => {
+    m.modulo = "sin permiso";
+    expect((await resultado(guardarCadenaAction(cadena()))).r).toBe("sin_permiso");
+    m.modulo = null;
+    m.superadmin = "no";
+    expect((await resultado(guardarCadenaAction(cadena()))).r).toBe("solo_superadmin");
+    expect(m.llamadas).toHaveLength(0);
+  });
+
+  it("guarda la cadena en orden y vuelve a «Funciones», sin pedir contraseña", async () => {
+    const r = await resultado(guardarCadenaAction(cadena()));
+    expect(r).toEqual({ tab: "funciones", r: "ok_cadena" });
+    expect(m.llamadas).toEqual([
+      {
+        fn: "ia_guardar_cadena",
+        args: {
+          p_funcion: "a1_noticias",
+          p_proveedores: ["anthropic", "anthropic"],
+          p_modelos: ["claude-sonnet-5-5", "claude-haiku-5-5"],
+          p_motivo: "cambio de modelo",
+        },
+      },
+    ]);
+    expect(m.ingresos).toHaveLength(0);
+  });
+
+  it("rechaza un chino, un repetido, un 1.º vacío y una función que no se edita, sin tocar la base", async () => {
+    for (const [extra, codigo] of [
+      [{ puesto_1: "zai/glm-5.3" }, "no_permitido"],
+      [{ puesto_2: "deepseek/deepseek-chat" }, "no_permitido"],
+      [{ puesto_3: "zai/glm-4.6" }, "no_permitido"],
+      [{ puesto_2: "anthropic/claude-sonnet-5-5" }, "repetido"],
+      [{ puesto_1: "" }, "cadena_invalida"],
+      [{ puesto_2: "", puesto_3: "anthropic/claude-opus-5-5" }, "cadena_invalida"],
+      [{ funcion: "oficina" }, "funcion_no_editable"],
+      [{ puesto_1: "anthropic/modelo-inventado" }, "no_permitido"],
+    ] as Array<[Record<string, string>, string]>) {
+      expect((await resultado(guardarCadenaAction(cadena(extra)))).r, JSON.stringify(extra)).toBe(codigo);
+    }
+    expect(m.llamadas).toHaveLength(0);
+  });
+
+  it("el error de la base vuelve como código, nunca como texto", async () => {
+    m.error = { code: "P0001", message: "ia:solo_superadmin texto interno de la base" };
+    const r = await resultado(guardarCadenaAction(cadena()));
+    expect(r.r).toBe("solo_superadmin");
+    expect(destinos.join(" ")).not.toContain("texto interno");
   });
 });

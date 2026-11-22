@@ -430,7 +430,7 @@ function Total({
       className="rounded-[12px] px-3.5 py-3"
       style={{
         background: destacado
-          ? "color-mix(in srgb, var(--color-wine) 10%, transparent)"
+          ? "color-mix(in srgb, var(--color-ink) 8%, transparent)"
           : "var(--color-paper)",
       }}
     >
@@ -441,9 +441,8 @@ function Total({
         className="mt-2 text-lg font-bold break-words"
         style={{
           fontFamily: MONO,
-          // `--color-wine-text` es wine COMO TEXTO (BD-026) y no voltea en el
-          // portal oscuro; `--color-wine` sí lo haría.
-          color: destacado ? "var(--color-wine-text)" : "var(--color-ink)",
+          // Lo destacado va en tinta (SDD-0686, regla 4): el fondo ya lo marca.
+          color: "var(--color-ink)",
         }}
       >
         {value}

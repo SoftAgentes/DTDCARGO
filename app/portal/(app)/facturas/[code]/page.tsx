@@ -237,7 +237,7 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
                 <dd>
                   <Link
                     href={`/portal/envios/${encodeURIComponent(inv.shipmentCode)}`}
-                    className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-wine-text hover:underline"
+                    className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-accion-text hover:underline"
                     style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
                   >
                     {inv.shipmentCode} <ArrowIcon size={14} />
@@ -322,7 +322,7 @@ function TotalRow({
       <dd
         className={`text-[14.5px] whitespace-nowrap ${
           highlight
-            ? "font-extrabold text-wine-text"
+            ? "font-extrabold text-ink"
             : strong
               ? "font-extrabold text-ink"
               : "font-semibold text-ink"

@@ -176,7 +176,7 @@ function AddServiceForm({
           value={code}
           onChange={(e) => setCode(e.target.value)}
           disabled={pending}
-          className="mt-1.5 w-full h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          className="mt-1.5 w-full h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
         >
           {available.map((a) => (
             <option key={a.code} value={a.code}>
@@ -199,7 +199,7 @@ function AddServiceForm({
               selected.notasPlaceholder ?? "Notas para el equipo (opcional)"
             }
             disabled={pending}
-            className="w-full px-3 py-2 rounded-[8px] bg-grey-100 border-0 outline-none text-[13px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="w-full px-3 py-2 rounded-[8px] bg-grey-100 border-0 outline-none text-[13px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
           />
           {selected.multiTracking && (
             <textarea
@@ -207,7 +207,7 @@ function AddServiceForm({
               rows={2}
               placeholder="Trackings a unificar — uno por línea o separados por coma"
               disabled={pending}
-              className="w-full px-3 py-2 rounded-[8px] bg-grey-100 border-0 outline-none text-[13px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="w-full px-3 py-2 rounded-[8px] bg-grey-100 border-0 outline-none text-[13px] text-ink resize-none disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               style={{
                 fontFamily:
                   "var(--font-jetbrains-mono), ui-monospace, monospace",
@@ -241,7 +241,7 @@ function AddServiceForm({
           name="consent"
           required
           disabled={pending}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-wine)]"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-accion)]"
         />
         <span>
           Entiendo que este servicio lo coordina y cotiza mi asesor, y que debo

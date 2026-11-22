@@ -55,7 +55,7 @@ erp/shell.jsx · erp/tokens.css · erp/modules/admin.jsx · erp/modules/admin-br
 CLAUDE.md · CHANGELOG.md · BRAND-DECISIONS.md
 ```
 Los seams (`window.ERPData`, `?mb/order/cliente` del Packing List) siguen mock en navegador;
-en producción se reescribe el cuerpo de cada seam contra la API (`backend/API-CONTRACT.md`).
+en producción se reescribe el cuerpo de cada seam contra la API (`backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]).
 
 ## Pendientes conocidos (no bloqueantes)
 - **A1** (CTA único en Inicio): **no aplicado a propósito** — el Inicio con 2 CTAs (Solicitar servicio + Calculadora) es mejor.

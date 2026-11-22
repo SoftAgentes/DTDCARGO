@@ -47,7 +47,7 @@ export function PurchaseWizardSteps({ step }: { step: 1 | 2 | 3 }) {
                 fontFamily: "var(--font-archivo-black)",
                 letterSpacing: "-0.02em",
                 color: active
-                  ? "var(--color-wine-text)"
+                  ? "var(--color-ink)"
                   : "var(--color-grey-500)",
               }}
             >
@@ -69,7 +69,7 @@ export function PurchaseWizardSteps({ step }: { step: 1 | 2 | 3 }) {
               style={{
                 background:
                   active || done
-                    ? "var(--color-wine)"
+                    ? "var(--color-ink)"
                     : "var(--color-grey-200)",
               }}
             />

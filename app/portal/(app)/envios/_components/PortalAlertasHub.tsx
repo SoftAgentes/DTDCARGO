@@ -48,7 +48,7 @@ export type DocPresence = { packing: boolean; factura: boolean; foto: boolean };
 
 /** Solo tiñe ICONOS y fondos (los rótulos van en `text-ink`) → umbral 3:1. */
 const TONE_COLOR: Record<AlertStageTone, string> = {
-  wine: "var(--color-wine)",
+  wine: "var(--color-ink)",
   warning: "var(--color-status-warning)",
   info: "var(--portal-info)",
   neutral: "var(--color-ink)",
@@ -125,7 +125,7 @@ export function PortalAlertasHub({
   return (
     <div>
       {/* Header + acciones */}
-      <div className="eyebrow eyebrow-wine">Alertas · mis envíos</div>
+      <div className="eyebrow eyebrow-tinta">Alertas · mis envíos</div>
       <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-4">
         <h1 className="h-display shrink-0" style={{ fontSize: "clamp(28px, 4.2vw, 44px)" }}>
           Mis envíos
@@ -196,7 +196,7 @@ export function PortalAlertasHub({
             >
               {t.l}
               <span
-                className={`text-[10.5px] ${on ? "text-wine-text" : "text-grey-500"}`}
+                className={`text-[10.5px] ${on ? "text-ink" : "text-grey-500"}`}
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 {counts[t.k]}
@@ -457,7 +457,7 @@ function SeguimientoTotal({
       >
         <ArrowIcon size={13} className="rotate-180" /> Volver a Alertas · mis envíos
       </button>
-      <div className="eyebrow eyebrow-wine">Seguimiento total</div>
+      <div className="eyebrow eyebrow-tinta">Seguimiento total</div>
       <h1 className="h-display mt-2" style={{ fontSize: "clamp(26px, 3.8vw, 38px)" }}>
         Mis envíos en camino
       </h1>
@@ -501,7 +501,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
     <div className="flex items-center gap-3 flex-wrap">
       <span
         className="grid place-items-center h-9 w-9 rounded-[10px] flex-shrink-0"
-        style={{ background: tint("var(--color-wine)", 14), color: "var(--color-wine)" }}
+        style={{ background: tint("var(--color-ink)", 8), color: "var(--color-ink)" }}
       >
         {consolidado ? <ContainerIcon size={17} /> : <ShipIcon size={17} />}
       </span>
@@ -521,8 +521,8 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
             <span
               className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
               style={{
-                background: tint("var(--color-wine)", 12),
-                color: "var(--color-wine-text)",
+                background: tint("var(--color-ink)", 8),
+                color: "var(--color-ink)",
               }}
             >
               Consolidado · {group.items.length}
@@ -542,7 +542,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
         </div>
       </div>
       {consolidado ? null : (
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-wine-text">
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-accion-text">
           Ver <ArrowIcon size={13} />
         </span>
       )}
@@ -561,7 +561,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
       >
         <div
           className="h-full rounded-full"
-          style={{ width: `${group.progress}%`, background: "var(--color-wine)" }}
+          style={{ width: `${group.progress}%`, background: "var(--color-ink)" }}
         />
       </div>
       <div
@@ -605,7 +605,7 @@ function TrackGroupCard({ group }: { group: TrackGroup }) {
               <span className="flex-1 min-w-0 truncate text-[12px] text-grey-500">
                 {t.statusLabel}
               </span>
-              <ArrowIcon size={13} className="text-wine-text flex-shrink-0" />
+              <ArrowIcon size={13} className="text-accion-text flex-shrink-0" />
             </Link>
           </li>
         ))}

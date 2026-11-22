@@ -35,7 +35,7 @@ export function PortalAdvisorCard({
 
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
-      <div className="eyebrow eyebrow-wine">Tu asesor</div>
+      <div className="eyebrow eyebrow-tinta">Tu asesor</div>
 
       <div className="mt-4 flex items-center gap-3.5">
         {model.avatarUrl ? (
@@ -50,8 +50,8 @@ export function PortalAdvisorCard({
           <span
             className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-[15px] font-bold"
             style={{
-              background: "var(--color-wine)",
-              color: "var(--color-on-accent)",
+              background: "var(--color-ink)",
+              color: "var(--color-paper)",
               fontFamily: "var(--font-archivo-black)",
             }}
             aria-hidden
@@ -77,7 +77,7 @@ export function PortalAdvisorCard({
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          <span className="text-wine-text shrink-0">
+          <span className="text-ink shrink-0">
             <WhatsAppIcon size={16} />
           </span>
           <span className="text-[12.5px] font-bold text-ink">
@@ -88,7 +88,7 @@ export function PortalAdvisorCard({
           href={`tel:${CONTACT.ve.phoneRaw}`}
           className="flex items-center gap-3 rounded-[10px] bg-grey-100 px-3 py-2.5 transition-colors hover:bg-grey-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          <span className="text-wine-text shrink-0">
+          <span className="text-ink shrink-0">
             <PhoneIcon size={16} />
           </span>
           <span

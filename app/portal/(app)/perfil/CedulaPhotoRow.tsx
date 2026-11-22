@@ -98,7 +98,7 @@ export function CedulaPhotoRow({
               href={viewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-11 rounded-[4px] px-1 inline-flex items-center text-[12.5px] font-bold text-wine-text hover:text-wine-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="min-h-11 rounded-[4px] px-1 inline-flex items-center text-[12.5px] font-bold text-accion-text hover:text-accion-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Ver
             </a>
@@ -135,7 +135,7 @@ export function CedulaPhotoRow({
               aria-expanded={done ? confirming : undefined}
               aria-controls={done && confirming ? "cedula-photo-confirm" : undefined}
               onClick={() => (done ? setConfirming(true) : openPicker())}
-              className="min-h-11 rounded-[4px] px-1 text-[12.5px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="min-h-11 rounded-[4px] px-1 text-[12.5px] font-semibold text-accion-text hover:text-accion-hover disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               {pending ? "Subiendo…" : done ? "Cambiar foto" : "Subir foto"}
             </button>
@@ -198,7 +198,7 @@ export function CedulaPhotoRow({
           </p>
           <Link
             href="/portal/soporte?tema=datos"
-            className="min-h-11 rounded-[4px] inline-flex items-center text-[12px] font-semibold text-wine-text hover:text-wine-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="min-h-11 rounded-[4px] inline-flex items-center text-[12px] font-semibold text-accion-text hover:text-accion-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Pedir ayuda con el documento
           </Link>
@@ -210,7 +210,7 @@ export function CedulaPhotoRow({
           contenido (WCAG 4.1.3 · mismo patrón que CopyCodeButton). */}
       <p
         role="status"
-        // SDD-0261 · `text-status-danger` y no `text-wine-text` (3,00:1 sobre card en
+        // SDD-0261 · `text-status-danger` y no el vino como texto (3,00:1 sobre card en
         // oscuro · BTN-01 §2: el vino no sustituye danger). Éste NO usa
         // `<PortalFieldError>` a propósito: partirlo en un nodo condicional
         // reintroduciría justo el bug que el comentario de arriba evita —la

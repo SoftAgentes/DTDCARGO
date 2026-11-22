@@ -14,7 +14,7 @@ const TONE_COLOR: Record<BadgeTone, string> = {
   warning: "var(--color-status-warning)",
   danger: "var(--color-status-danger)",
   info: "var(--color-ink)",
-  wine: "var(--color-wine)",
+  wine: "var(--color-ink)",
   neutral: "var(--color-grey-500)",
 };
 
