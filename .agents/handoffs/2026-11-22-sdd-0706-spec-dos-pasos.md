@@ -26,3 +26,8 @@
 
 ## HANDOFF AL DIRECTOR
 - Reservar número de migración solo en la fase 4. Encender TOTP en la Auth de producción pide OK nominal de Sam.
+
+## Actualización 2026-11-22 — decisiones de Sam
+- Sam decidió D-1 a D-6: A en las seis (texto textual citado en la spec §10). Estado de la spec: `approved`.
+- Rama `claude/sdd-0706-decisiones`, PR del carril rápido (solo docs). La fase 1 (código/medición) NO se arrancó: la asigna Dir_DTD.
+- `pnpm docs:check` y `pnpm sdd:check`: ver resultado en la PR.
