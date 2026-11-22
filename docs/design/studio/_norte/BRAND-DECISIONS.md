@@ -557,6 +557,13 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 
 ---
 
+### BD-077 · Botón destructivo en tres énfasis (excepción a «6 variantes oficiales»)
+
+- **Fecha y quién:** 2026-11-22 · Sam. Pregunta: regla 4 de la SDD-0688 contra `BRAND.md` («usar las 6 variantes oficiales… No inventes»). Respuesta textual: «regla a», sobre la opción A dibujada (confirmar la excepción).
+- **Decisión:** el destructivo puede llevar tres énfasis según el riesgo: relleno (el `danger` de hoy), contorno y texto. Nunca icono solo. Siguen en rojo de peligro; no cambia ningún color ni token.
+- **Alcance:** Studio y Portal. Entra en BTN-01 v1.3 (regla 4) y se implementa en la fase 4 de la SDD-0688.
+- **Límite:** no es una séptima variante de marca. Es una gradación de `danger`. La respuesta de Sam fue corta («regla a»); si quería otro alcance, se corrige aquí.
+
 ## Índice rápido
 
 | ID | Decisión | Tipo | Estado |
@@ -601,6 +608,7 @@ Cada entrada es un bloque con este formato. No se borran entradas: las decisione
 | BD-070 | Sombra de borde fijo `--shadow-sticky-top` / `--shadow-sticky-left` | Normativo (adición) | Vigente — matriz «Roles y permisos» (SDD-0635) |
 | EXC-0654-01 | Vino claro en la Vista simple del portal (botón principal, avatar y parte «proveedor» del código) | Excepción L3 con fecha de revisión | Aprobada — se revisa a los 90 días de encender la Vista simple o al cerrar la prueba con clientes; la sustituye BD-076 en la fase 3 de SDD-0686 |
 | BD-076 | Azul de acción en web, Portal y ERP; rojo solo peligro; vino solo identidad | Normativo (enmienda VIS-01 §3, BTN-01 §2 y el color de BD-037) | Aprobada — adopción por fases (SDD-0686) |
+| BD-077 | Botón destructivo en tres énfasis (relleno, contorno, texto) | Excepción a «6 variantes oficiales» (BRAND.md) | Aprobada — se implementa en la fase 4 de SDD-0688 |
 
 ---
 

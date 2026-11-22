@@ -5,7 +5,7 @@
 | Código | BTN-01 |
 | Versión | 1.3 |
 | Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: `primary` se pinta con el azul de acción (v1.2) |
-| Enmienda | 2026-11-20 · Sam (founder) · SDD-0688 §3, reglas 1 a 6: «Reglas de botones: aprobadas las seis». La regla 4 queda **pendiente de BRAND-CHECK**, no vigente (v1.3) |
+| Enmienda | 2026-11-20 · Sam (founder) · SDD-0688 §3, reglas 1 a 6: «Reglas de botones: aprobadas las seis». Regla 4 vigente tras BD-077 (2026-11-22, Sam: «regla a») (v1.3) |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-014 |
@@ -73,11 +73,9 @@ Complementan este documento y no cambian el vocabulario de §3 ni el orden de §
    la fila de tabla: allí sigue el máximo de dos acciones de bajo énfasis de §4.
 3. **Un solo tamaño dentro de un grupo** de botones.
 4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo;
-   nunca icono solo. **PENDIENTE DE BRAND-CHECK: no está vigente.** Contradice
-   `BRAND.md:324` («6 variantes oficiales… No inventes»); hoy existe un solo
-   `danger`, con relleno. Se vuelve vigente solo si Sam confirma la excepción con
-   sus palabras y queda en `BRAND-DECISIONS.md`. Si no la confirma, se retira o
-   se reduce a variantes que ya existen. Mientras tanto no se implementa.
+   nunca icono solo. Vigente: Sam confirmó la excepción a `BRAND.md` («6
+   variantes oficiales») el 2026-11-22 y consta en BD-077. No es una variante
+   nueva: gradúa `danger`, que conserva el rojo. Se implementa en la fase 4.
 5. **Posición fija del icono** respecto del texto: a la izquierda de la etiqueta.
 6. **La etiqueta no se corta**: si no cabe, baja de línea.
 

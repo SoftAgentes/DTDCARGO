@@ -469,7 +469,7 @@ Se suman a las 8 reglas y rigen en Studio y Portal. Texto normativo en
 1. Etiqueta de verbo + sustantivo («Guardar cambios», «Crear embarque»); excepto «Guardar», «Cancelar», «Cerrar», «Eliminar».
 2. Máximo tres acciones visibles por grupo; la cuarta va al menú. En la fila de tabla siguen siendo dos.
 3. Un solo tamaño dentro de un grupo.
-4. Destructivo en tres énfasis: **pendiente de BRAND-CHECK, no vigente.** No lo implementes.
+4. Destructivo en tres énfasis (relleno, contorno, texto): vigente por BD-077; se implementa en la fase 4.
 5. Icono siempre a la izquierda de la etiqueta.
 6. La etiqueta no se corta: baja de línea.
 

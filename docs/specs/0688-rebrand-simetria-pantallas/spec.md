@@ -70,7 +70,7 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 
 ## 3. Reglas nuevas (cambian políticas; aprobadas por Sam el 2026-11-20, §11)
 
-> **Salvedad · regla 4.** Sam aprobó las seis reglas de botones, pero no se le mostró que la 4 contradice `BRAND.md:324`. La regla 4 queda **pendiente de BRAND-CHECK**: no está vigente hasta que Sam confirme la excepción con sus palabras (`BRAND.md:11`). Esa pregunta la hace el Director General. Las reglas 1 a 3, 5 y 6 sí están vigentes.
+> **Salvedad · regla 4.** Sam aprobó las seis reglas de botones, pero no se le mostró que la 4 contradice `BRAND.md:324`. La regla 4 estuvo **pendiente de BRAND-CHECK**. **Cerrado el 2026-11-22:** Sam eligió la opción A dibujada («regla a») y la excepción consta en BD-077 (`BRAND-DECISIONS.md`). Las seis reglas están vigentes.
 
 Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su código y en su documentación pública (ver `docs/design/rebrand-erp/evaluacion-carbon.md` §4). **No se instala ninguna librería.**
 
@@ -87,9 +87,9 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 >
 > - **Lo que se pide:** un botón destructivo en tres énfasis (relleno, contorno, texto).
 > - **Regla que toca:** `BRAND.md:324` («6 variantes oficiales… No inventes») y la regla de `BRAND.md:11` de avisar antes de una variante nueva. Hoy existe un solo `danger`, con relleno.
-> - **Estado: abierto.** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca.
+> - **Estado: cerrado el 2026-11-22 (BD-077, «regla a»). Texto original:** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca.
 > - **Cómo se cierra:** Sam confirma la excepción con sus palabras. Se lo pregunta el Director General. Si la confirma, se registra en `BRAND-DECISIONS.md`. Si no, la regla 4 se retira o se reduce a variantes que ya existen.
-> - **Mientras tanto:** en BTN-01 v1.3 se escribe como «pendiente de BRAND-CHECK», no como vigente. La pieza de §4 y su parte de la fase 4 no se implementan.
+> - **Resultado:** cerrado con BD-077; la pieza de §4 y la parte de la fase 4 ya pueden implementarse. (Texto previo: en BTN-01 v1.3 se escribe como «pendiente de BRAND-CHECK», no como vigente. La pieza de §4 y su parte de la fase 4 no se implementan.)
 
 **Para los mensajes (enmienda de AVS-01; no contradice ERR-01, que ya pide el error cerca de su causa):**
 
@@ -125,7 +125,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 
 | Fase | Qué | Tamaño |
 |---|---|---|
-| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entra marcada como «pendiente de BRAND-CHECK», no como vigente | S |
+| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entró pendiente de BRAND-CHECK y quedó vigente el 2026-11-22 (BD-077) | S |
 | **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra. Incluye las **tres vistas** (§11.5): Normal, Compacta y Súper compacta, montadas sobre esos estilos | M |
 | **3** | **Paneles:** `tamano` y `DrawerFooter` obligatorio; migración de los 117 paneles por grupos | M-L |
 | **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px y los 11 sin `type`. La variante destructiva en tres énfasis entra **solo si se cerró el BRAND-CHECK de la regla 4**; si no, la fase sigue sin ella | M |
@@ -151,7 +151,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 
 - `docs/specs/0688-rebrand-simetria-pantallas/spec.md`, `docs/specs/README.md`
 - `docs/governance/policies/btn-01.md`, el documento de AVS-01 (localizado: `docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md`, §17), `docs/governance/README.md` y `docs/governance/generated/`
-- `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»)
+- `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»), `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-077)
 - `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
 ## 6. Aceptación
