@@ -48,7 +48,7 @@ export const PATRONES: readonly RegExp[] = [
   /\b(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieci(?:seis|siete|ocho|nueve)|veinte|treinta|un par de|unos|unas|varios|varias|pocos|pocas|algunos|algunas)\s+(?:dias?|horas?|semanas?|mes(?:es)?)\b/g,
   // SDD-0705 v0.5: cantidades en letras de veinte para arriba, solas o con unidad («cuarenta días», «cuesta sesenta»).
   // «mil gracias» queda fuera: es un agradecimiento, no una cantidad.
-  /\b(?:veinti[a-z]+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|[a-z]*cient[oa]s|quinient[oa]s|mil(?! gracias)|millon(?:es)?)\b/g,
+  /\b(?:veinti[a-z]+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|[a-z]*cient[oa]s|quinient[oa]s|mil(?! gracias\b)|millon(?:es)?)\b/g,
   /\b(?:entregad[oa]s?|en transito|en camino|despachad[oa]s?|en aduanas?|retenid[oa]s?|liberad[oa]s?|recibid[oa]s? en (?:el )?almacen|en almacen|embarcad[oa]s?|zarp[oó]|lleg[oó]|ya salio|salio de|esta listo para retirar|listo para retirar|extraviad[oa]s?|perdid[oa]s?)\b/g,
   /\b(?:te garantizo|garantizo|garantizamos|garantizado|te prometo|prometo|prometemos|te aseguro|le aseguro|seguro que llega|seguro que te llega|seguro llega|sin falta|llega antes|llegara|llega el|estara listo|sin costo|gratis|reembolso|descuento|te devolvemos)\b/g,
 ];

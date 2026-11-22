@@ -158,6 +158,24 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
         " Garantizamos la entrega.",
         " Te prometo que no pasa.",
         " Seguro que te llega.",
+        // Re-revisión de la #777 (H1): una frase por cada palabra nueva, para que ninguna quede sin vigilar.
+        " Sale el mes que viene.",
+        " Tarda trece días.",
+        " En once días.",
+        " Tarda doce días.",
+        " En unos días.",
+        " Son varias semanas.",
+        " Pocos días.",
+        " Pocas semanas.",
+        " Algunos días.",
+        " Algunas semanas.",
+        " Te lo garantizo.",
+        " Te lo prometo.",
+        " Prometemos la entrega.",
+        " Te llega en diecisiete días.",
+        " Tarda dieciocho días.",
+        " Tarda diecinueve días.",
+        " Le aseguro que llega.",
       ],
     },
     {
@@ -249,6 +267,7 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
     const revisar = (extra: string) =>
       revisarRespuesta({ tipo: "respuesta", acuse, texto: g.texto + extra, guion: g.id }, GUIONES_SOPORTE);
     expect(revisar(" Mil gracias por tu paciencia.")).toEqual([]);
+    expect(revisar(" Son mil graciasss.")).toContain("dato_inventado");
     expect(revisar(" Son mil dólares.")).toContain("dato_inventado");
     expect(revisar(" Llegaron mil cajas.")).toContain("dato_inventado");
   });

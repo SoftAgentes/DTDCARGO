@@ -8,7 +8,8 @@ adelante y algunas promesas sin cifra pasaban por `revisarRespuesta` sin escalar
 
 - `lib/studio/oficina/eval-automatico.ts`, solo `PATRONES`:
   - cantidades en letras de veinte para arriba, solas o con unidad (decenas hasta noventa, «cien», «ciento», los
-    cientos, «mil», «millón»). «mil gracias» queda fuera: es un agradecimiento (falso positivo evitado, con prueba);
+    cientos, «mil», «millón»). «mil gracias» queda fuera con `mil(?! gracias\b)`: es un agradecimiento (falso positivo
+  evitado, con prueba); «mil graciasss» sí escala;
   - cantidad + unidad de tiempo: «un», «una», del «once» al «diecinueve», «un par de», «unos», «unas», «varios»,
     «varias», «pocos», «pocas», «algunos», «algunas» antes de día, hora, semana o mes;
   - **bloqueante de la revisión:** la unidad era `meses?`, que exige «mese» y dejaba pasar «en un mes». Ahora es
@@ -16,14 +17,16 @@ adelante y algunas promesas sin cifra pasaban por `revisarRespuesta` sin escalar
   - fechas vagas: «la semana que viene», «el mes que viene», «fin de mes», «finales de mes»;
   - promesas: «te aseguro», «le aseguro», «seguro llega», «seguro que te llega», «sin falta», «llega antes»,
     «garantizo», «garantizamos», «prometo», «prometemos».
-- `aviso-guion-servicio.test.ts`: mutantes de todo lo anterior (todos escalan con `dato_inventado`) y la prueba de
-  «mil gracias» (no escala) frente a «mil dólares» y «mil cajas» (escalan).
+- `aviso-guion-servicio.test.ts`: una frase mutante por CADA palabra nueva (re-revisión H1: quitar cualquiera del
+  patrón pone una prueba en rojo), todas escalan con `dato_inventado`; y la prueba de «mil gracias» (no escala)
+  frente a «mil dólares», «mil cajas» y «mil graciasss» (escalan).
 
 ## Comprobaciones
 
 | Comprobación | Estado |
 |---|---|
-| vitest `aviso-guion-servicio.test.ts` (turno de PC del Director DTD), 29/29 | PASÓ |
+| vitest `aviso-guion-servicio.test.ts` (turno de PC del Director DTD), 29/29, con los mutantes de H1 | PASÓ |
+| Quitar cada palabra nueva del patrón y ver la prueba en rojo (mutación por palabra) | NO EJECUTADO localmente (lo hizo la revisión sobre 88780c931; cada frase nueva depende de una sola palabra) |
 | `tsc --noEmit` | PASÓ |
 | eslint de los dos archivos | PASÓ |
 | `docs:check` | PASÓ |
@@ -37,6 +40,9 @@ adelante y algunas promesas sin cifra pasaban por `revisarRespuesta` sin escalar
 - Expresiones de tiempo relativas que no cubrimos: «pronto», «en breve», «en estos días», «dentro de poco». Son
   vagas y no traen dato; si Sam quiere tratarlas como plazo, van en una v0.6 con su mutante.
 - Números ordinales y fracciones («la primera semana», «medio mes», «quincena»).
+- Variantes que la re-revisión de la #777 (H5) dejó registradas: «seguro te llega», «unos cuantos días», «par de
+  semanas» sin «un», «fin del mes», «finales del mes», «el fin de semana», «a principios de mes», «la otra semana»,
+  «semanitas».
 
 ## Lo que NO hace
 
