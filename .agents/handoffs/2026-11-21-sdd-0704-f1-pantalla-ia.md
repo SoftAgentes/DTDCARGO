@@ -204,6 +204,12 @@ El portón es el CI de GitHub.
   cuenta 2 veces los 5xx, 529 y 429 de cada puesto, así que una caída completa puede sumar hasta 9 llamadas. No lo
   cambié: poner `maxRetries: 0` también quita el reintento del 429 que hoy tienen A1 y A2, y la spec dice que el
   límite de uso se reintenta donde la función ya reintenta (§4.1). Queda para decidirlo con su prueba.
+- **Usuario con varias membresías activas** (nota de la re-revisión de la #772). `tenantAdminGate` lee `user_tenants`
+  con `limit(1)` y sin orden (`rbac-guard.ts`), así que puede dejar pasar a noticias a quien sea admin en una de sus
+  membresías. En cambio, `get_user_tenant_id()` (0453) devuelve null cuando hay más de una activa. Para esa persona,
+  `ia_cadena_de` falla y A1 usa el modelo por defecto, e `ia_registrar_evento` falla con `ia:sin_tenant` y no anota.
+  La cadena se lo traga sin romper la función. Falla cerrado: nunca lee ni escribe otro tenant. Resolverlo es decidir
+  la membresía principal en `rbac-guard`, fuera de esta SDD.
 - **Revisión de la #772** (APPROVED con tres menores, ya corregidos):
   - `ia_registrar_evento` exige `is_tenant_admin()`, el mismo permiso del gate de noticias. Tiene contrato 6 y
     mutante.
@@ -229,3 +235,14 @@ El portón es el CI de GitHub.
 
 - `app/studio/(app)/admin/oficina-virtual/vista/page.tsx:84` sigue mostrando el tope del entorno (viene de la F1-A).
 - La fila editable de la Oficina es la fase 1b y depende de Ofi_Hermes (§6.3).
+
+### Menores de la re-revisión de la #772 (rama `claude/sdd-0704-f1b-menores`)
+
+- El doble de `admin/ia/__tests__/funciones.test.ts` ahora filtra de verdad (`in`, `eq`, `neq`, `order`, `limit`) y
+  anota el `limit` de cada consulta. Cinco mutantes sobre `funciones.ts`: quitar el filtro de salto, el de función,
+  el orden, el `limit(1)`, y el orden al revés. Los cinco tienen que caer.
+- La 0571, que sigue sin aplicar, nombra en su cabecera y en la línea de base `is_tenant_admin()` (0386) y la columna
+  `salto`. La etiqueta del preflight dice 0386, no 0271.
+- Una prueba ata `CLASES_QUE_SALTAN` al CHECK `ia_eventos_salto_valido`, y otra ata `CLASES` al CHECK de
+  `resultado`.
+- La nota de varias membresías está arriba; la de `maxRetries` sigue pendiente, también arriba.
