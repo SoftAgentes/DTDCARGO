@@ -90,7 +90,10 @@ describe("0570 · catálogo y costo de la pantalla IA (PGlite)", () => {
     ["alta en plan fijo sin AAL2", mutar("    v_afloja := p_tipo_cobro = 'plan_fijo';", "    v_afloja := false;"), "CONTRATO 4"],
     [
       "subir el tope de llamadas no afloja",
-      mutar("      or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas > v_antes.tope_llamadas_mes);", ";"),
+      mutar(
+        "      or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas is not null\n          and p_tope_llamadas > v_antes.tope_llamadas_mes);",
+        ";",
+      ),
       "CONTRATO 4",
     ],
     [
@@ -120,7 +123,7 @@ describe("0570 · catálogo y costo de la pantalla IA (PGlite)", () => {
     ["un modelo fuera del catálogo", mutar("  foreign key (proveedor, modelo) references public.ia_catalogo_modelos (proveedor, modelo) on delete restrict,\n", ""), "CONTRATO 5"],
     ["por token sin tarifa", mutar("  if v_cuenta.tipo_cobro = 'por_token' and new.tarifa_entrada_usd_mtok is null then", "  if false then"), "CONTRATO 5"],
     ["subir el tope no afloja", mutar("  v_afloja := v_antes is null or p_tope_usd > v_antes;", "  v_afloja := v_antes is null;"), "CONTRATO 6"],
-    ["el primer tope no pide AAL2", mutar("  v_afloja := v_antes is null or p_tope_usd > v_antes;", "  v_afloja := p_tope_usd > v_antes;"), "CONTRATO 6"],
+    ["el primer tope no pide AAL2", mutar("  v_afloja := v_antes is null or p_tope_usd > v_antes;", "  v_afloja := coalesce(p_tope_usd > v_antes, false);"), "CONTRATO 6"],
     ["sin techo de la Oficina", mutar("check (funcion <> 'oficina' or tope_usd <= 15)", "check (true)"), "CONTRATO 6"],
     ["quitar el tope no afloja", mutar("  -- Volver al .env puede subir el tope: afloja.\n  v_metodo := public.ia_exigir_aal2_si(true);", ""), "CONTRATO 6"],
     ["la auto-pausa despausa", mutar("    values (true, null,\n            'Auto-pausa: las llamadas", "    values (false, null,\n            'Auto-pausa: las llamadas"), "CONTRATO 9"],
@@ -129,7 +132,7 @@ describe("0570 · catálogo y costo de la pantalla IA (PGlite)", () => {
     [
       "authenticated escribe las tablas",
       mutar("grant select on public.ia_catalogo_modelos, public.ia_cuentas, public.ia_modelos, public.ia_topes to authenticated;", "grant select, insert, update on public.ia_catalogo_modelos, public.ia_cuentas, public.ia_modelos, public.ia_topes to authenticated;"),
-      "CONTRATO 11",
+      "0570 postflight",
     ],
     [
       "un admin normal lee la configuración",

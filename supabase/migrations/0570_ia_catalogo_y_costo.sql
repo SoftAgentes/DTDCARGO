@@ -428,7 +428,8 @@ begin
       ((v_antes.uso = 'oficina') is distinct from (p_uso = 'oficina'))
       or (v_antes.tipo_cobro = 'por_token' and p_tipo_cobro = 'plan_fijo')
       or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas is null)
-      or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas > v_antes.tope_llamadas_mes);
+      or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas is not null
+          and p_tope_llamadas > v_antes.tope_llamadas_mes);
     v_metodo := public.ia_exigir_aal2_si(v_afloja);
     update public.ia_cuentas
        set alias = p_alias, proveedor = p_proveedor, uso = p_uso, tipo_cobro = p_tipo_cobro,

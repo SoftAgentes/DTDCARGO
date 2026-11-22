@@ -66,41 +66,41 @@
           "name": "ia_guardar_tope",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:73"
+            "app/studio/(app)/admin/ia/actions.ts:81"
           ]
         },
         {
           "name": "ia_borrar_tope",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:80"
+            "app/studio/(app)/admin/ia/actions.ts:88"
           ]
         },
         {
           "name": "ia_guardar_cuenta",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:109"
+            "app/studio/(app)/admin/ia/actions.ts:117"
           ]
         },
         {
           "name": "ia_guardar_modelo",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:133"
+            "app/studio/(app)/admin/ia/actions.ts:141"
           ]
         },
         {
           "name": "ia_borrar_modelo",
           "kind": "function",
           "callSites": [
-            "app/studio/(app)/admin/ia/actions.ts:148"
+            "app/studio/(app)/admin/ia/actions.ts:156"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/admin/ia/actions.ts:74",
+          "site": "app/studio/(app)/admin/ia/actions.ts:82",
           "contains": "volver(\"gasto\", error ? codigoDeError(error) : \"ok_tope\");",
           "degradation": "Sin la 0570 la RPC no existe (PGRST202 o 42883): codigoDeError la vuelve «sin_migracion» y la acción regresa a la pantalla con ese aviso, sin escribir nada."
         }
@@ -144,12 +144,12 @@
       ],
       "evidence": [
         {
-          "site": "lib/studio/oficina/despachador.ts:146",
+          "site": "lib/studio/oficina/despachador.ts:165",
           "contains": "return costoDelEntorno(config);",
           "degradation": "Sin la 0570, ia_costo_oficina lanza SinMigracion: el despachador avisa una vez y sigue con el tope y la tarifa de las variables de entorno, con conTokens=false. Sin cuenta de plan fijo nunca llama a ia_oficina_autopausar_por_llamadas."
         },
         {
-          "site": "lib/studio/oficina/despachador.ts:218",
+          "site": "lib/studio/oficina/despachador.ts:237",
           "contains": "...(costo.conTokens && tokensLlamada ? { tokens: tokensLlamada } : {}),",
           "degradation": "Los tokens solo se escriben en task_events cuando ia_costo_oficina respondió (la 0570 está): sin ella el insert es el de siempre, sin las columnas nuevas."
         }
