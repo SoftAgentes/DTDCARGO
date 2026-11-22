@@ -46,7 +46,7 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
               >
                 {c.label}
                 <span
-                  className={`text-[10.5px] ${on ? "text-wine-text" : "text-grey-500"}`}
+                  className={`text-[10.5px] ${on ? "text-ink" : "text-grey-500"}`}
                   style={{ fontFamily: MONO }}
                 >
                   {c.count}
@@ -119,7 +119,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
     <>
       <div className="flex items-center gap-3">
         <span
-          className="text-[10px] font-bold tracking-wide text-wine-text bg-paper border border-grey-200 rounded-md px-2 py-1 flex-shrink-0"
+          className="text-[10px] font-bold tracking-wide text-ink bg-paper border border-grey-200 rounded-md px-2 py-1 flex-shrink-0"
           style={{ fontFamily: MONO }}
         >
           {doc.typeShort}

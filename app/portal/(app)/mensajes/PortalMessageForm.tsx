@@ -50,7 +50,7 @@ export function PortalMessageForm({ prefill }: { prefill?: string }) {
           disabled={pending}
           placeholder="Escribe tu consulta o comentario para tu asesor…"
           defaultValue={prefill}
-          className="px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          className="px-3.5 py-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink leading-[1.5] resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
         />
       </label>
       {state.error && <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>}
