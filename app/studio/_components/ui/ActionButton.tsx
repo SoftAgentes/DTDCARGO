@@ -136,15 +136,19 @@ export function ActionButton({
   // dispare setState sobre un botón que ya no existe (ni sobre un jsdom
   // cerrado en las pruebas).
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
+  // `onAction` es async: puede terminar DESPUÉS del desmontaje (el cleanup de abajo ya corrió). Sin este flag, el
+  // temporizador se crearía igual sobre un botón muerto y volvería el rojo falso del CI.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       if (successTimerRef.current) {
         clearTimeout(successTimerRef.current);
         successTimerRef.current = null;
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const handleClick = () => {
     if (isPending || success || disabled) return;
@@ -157,7 +161,7 @@ export function ActionButton({
           return;
         }
         onSuccess?.();
-        if (successLabel != null) {
+        if (successLabel != null && mountedRef.current) {
           setSuccess(true);
           if (successTimerRef.current) clearTimeout(successTimerRef.current);
           successTimerRef.current = setTimeout(() => {

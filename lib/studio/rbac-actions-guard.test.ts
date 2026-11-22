@@ -261,12 +261,13 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0676 sumó `bandeja/vincular-actions.ts` (85 → 86, con prefijo 25 → 26): buscar un cliente y vincularle el
   // chat desde la Ficha DTD.
   // SDD-0674 sumó `embarques/facturar-actions.ts` (86 → 87, con prefijo 26 → 27): «Facturar» del contenedor 64.
-  it("la superficie escaneada es la esperada (87 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0704 F1-A sumó `admin/ia/actions.ts` (87 → 88, exactos 60 → 61): la pantalla «IA» del superadministrador.
+  it("la superficie escaneada es la esperada (88 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 87,
-      exactos: 60,
+      total: 88,
+      exactos: 61,
       conPrefijo: 27,
     });
   });
@@ -447,8 +448,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // candados al tope (`moduleEditDenial(supabase, "invoices")` y `rolFacturaExc0674`). Escribe SOLO por la
   // RPC `exc0674_emitir_borradores` (0569, security definer), que repite rol, tenant, lista transitoria y
   // estado `borrador`, y deja el evento en la misma transacción. El cliente de servicio, solo para el correo.
+  // SDD-0704 F1-A sumó `admin/ia/actions.ts::guardarTopeAction`, `quitarTopeAction`, `guardarCuentaAction`,
+  // `guardarModeloAction` y `quitarModeloAction` (497 → 502): `moduleEditDenial(supabase, "admin")` al tope, luego
+  // `platformAdminDenial` y la reautenticación con contraseña si afloja el freno. Escriben SOLO por las RPC de la 0570
+  // (security definer), que repiten superadministrador, tenant, motivo y barrera, y dejan el evento `ia_config`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(497);
+    expect(reportes.length).toBe(502);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

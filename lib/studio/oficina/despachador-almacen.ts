@@ -43,6 +43,8 @@ export interface PasoDeBitacora {
   resumen: string;
   costoUsd?: number;
   modelo?: string | null;
+  /** SDD-0704 (0570): tokens de la llamada. Solo se escriben si vienen (sin la 0570 la columna no existe). */
+  tokens?: { entrada: number; salida: number };
 }
 
 export type Entrega =
@@ -65,6 +67,9 @@ export interface AlmacenDespachador {
   sesionesPorBorrar?(): Promise<Array<{ sesionId: string; vencida: boolean }>>;
   quitarSesionPorBorrar?(sesionId: string): Promise<boolean>;
   contarPendientes?(): Promise<number>;
+  // SDD-0704 F1-A (0570). Opcionales: sin la 0570 lanzan SinMigracion y el despachador sigue con el entorno.
+  leerCostoOficina?(): Promise<unknown>;
+  autopausarPorLlamadas?(tope: number, umbral: number): Promise<boolean>;
 }
 
 type ErrorPg = { code?: string | null } | null;
@@ -113,29 +118,23 @@ export function crearAlmacenDespachador(admin: SupabaseClient): AlmacenDespachad
       };
     },
     async anotar(paso) {
+      const fila = (resumen: string | null) => ({
+        task_id: paso.taskId,
+        run_id: paso.runId,
+        tipo: paso.tipo,
+        actor: paso.actor,
+        resumen,
+        costo_usd: paso.costoUsd ?? 0,
+        modelo_usado: paso.modelo ?? null,
+        ...(paso.tokens ? { tokens_entrada: paso.tokens.entrada, tokens_salida: paso.tokens.salida } : {}),
+      });
       const r = await escribirEnElCable({ resumen: paso.resumen, actor: paso.actor }, async () => {
-        const { error } = await admin.from("task_events").insert({
-          task_id: paso.taskId,
-          run_id: paso.runId,
-          tipo: paso.tipo,
-          actor: paso.actor,
-          resumen: paso.resumen,
-          costo_usd: paso.costoUsd ?? 0,
-          modelo_usado: paso.modelo ?? null,
-        });
+        const { error } = await admin.from("task_events").insert(fila(paso.resumen));
         revisar(error);
       });
       if (!r.escrito) {
-        // El paso queda igual (tipo, actor, costo, modelo), sin el resumen rechazado.
-        const { error } = await admin.from("task_events").insert({
-          task_id: paso.taskId,
-          run_id: paso.runId,
-          tipo: paso.tipo,
-          actor: paso.actor,
-          resumen: null,
-          costo_usd: paso.costoUsd ?? 0,
-          modelo_usado: paso.modelo ?? null,
-        });
+        // El paso queda igual (tipo, actor, costo, modelo, tokens), sin el resumen rechazado.
+        const { error } = await admin.from("task_events").insert(fila(null));
         revisar(error);
       }
     },
@@ -163,5 +162,8 @@ export function crearAlmacenDespachador(admin: SupabaseClient): AlmacenDespachad
     },
     quitarSesionPorBorrar: (sesionId) => rpc<boolean>("office_quitar_sesion_por_borrar", { p_sesion: sesionId }),
     contarPendientes: async () => Number((await rpc<number>("office_pendientes_conteo", {})) ?? 0),
+    leerCostoOficina: () => rpc<unknown>("ia_costo_oficina", {}),
+    autopausarPorLlamadas: (tope, umbral) =>
+      rpc<boolean>("ia_oficina_autopausar_por_llamadas", { p_tope: tope, p_umbral: umbral }),
   };
 }
