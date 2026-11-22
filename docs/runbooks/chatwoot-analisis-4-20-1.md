@@ -67,8 +67,10 @@ Es una versión **de parche** (4.20.0 → 4.20.1), dos días después de la que 
 | R2 | **El smoke de la 4.20.0 no está cerrado:** V7 y S10–S13 (SSO, Bandeja, Ficha DTD, mensaje de prueba) siguen pendientes desde el 2026-11-19 | — (ya existe) | Cerrarlos **antes** de la ventana (decisión D2). Si no, un rojo después de la 4.20.1 no dice cuál de las dos versiones lo causó |
 | R3 | Se cae el tiempo real o algún cliente HTTP no entiende gzip | Muy baja (I) | S10 y S11 con Studio; el monitor de versión de Uptime Kuma |
 | R4 | Mensajes perdidos durante el corte | Baja | Drenaje de Sidekiq y respaldo en el momento (§5 del runbook). Meta reintenta los webhooks y, mientras Kommo opere, el cliente igual tiene respuesta |
-| R5 | La Oficina responde a medias durante el corte (lee o envía por la API de Chatwoot mientras no está) | Media si no se pausa | Pausar la Oficina durante la ventana (decisión D3) y avisar a la sesión del cable |
-| R6 | La versión nueva no arranca | Baja | **Sin migraciones**: la vuelta atrás es el caso (a), volver la línea de la imagen y recrear `rails` y `sidekiq` (~3–5 min). El respaldo del momento queda solo para emergencia (caso b) |
+| R5 | La Oficina responde a medias durante el corte (lee o envía por la API de Chatwoot mientras no está) | Media si no se pausa | Pausarla durante la ventana (D3) con el procedimiento del paso 7 de §6: leer y guardar el estado, pausar, y al final **volver al estado previo**. Avisar a la sesión del cable |
+| R6 | La versión nueva no arranca | Baja | **Sin migraciones**: la vuelta atrás es el caso (a) de §6 bis, que vuelve la línea de la imagen a `VIEJA` y recrea `rails` y `sidekiq` (~3–5 min). El respaldo del momento queda solo para emergencia (caso b) |
+| R9 | El respaldo del momento no restaura | Baja | **Límite:** con la 4.20.1 la restauración solo se probó en el ensayo local, con datos sintéticos. La última restauración con datos reales es la P5, del 2026-10-29: desde B2, en 200 s, con la 4.19.1 ([respaldo §6](chatwoot-respaldo-restauracion.md)). Sin migraciones, la vuelta atrás normal no la necesita |
+| R10 | `sidekiq` tarda en quedar sano al recrearlo | Media (medido) | En el ensayo local (R2), `up --wait` dio `sidekiq` *unhealthy* y diez minutos después estaba sano, con la PC cargada. En la ventana se esperan **4 min**. Si no queda sano en ese tiempo, vuelta atrás (a) |
 | R7 | Se queda en 4.20.0 con las fallas del runtime (Ruby, zlib, `net-imap`, musl) | Media (I) | Subir esta semana. No se publican detalles de esas fallas aquí |
 | R8 | El panel sigue dando «medio» por `Gemfile.lock` en cada versión | Segura | No es riesgo de la subida. Es una mejora del panel: ver Fuera de alcance |
 
@@ -84,18 +86,69 @@ Es una versión **de parche** (4.20.0 → 4.20.1), dos días después de la que 
 
 ## 6 · Orden de pasos
 
-Nada de esto lo hace este análisis. Cada paso en el VPS pide el OK nominal de Sam.
+Nada de esto lo hace este análisis. Lo ejecuta el Director en el VPS, solo desde lo que esté en `main`, con el OK nominal de Sam por el canal del Director. **El OK nominal cubre también la pausa y la vuelta de la Oficina** (pasos 7 y 11).
 
-1. **Cerrar el smoke pendiente de la 4.20.0** (V7, S10–S13), con Sam en su navegador y la cuenta 2 (D2).
-2. **Rama propia** `codex/chatwoot-v4.20.1`: cambiar en `infra/chatwoot/compose.yml` la etiqueta y el digest juntos. `ensayo-local.sh` lee la versión esperada del compose y no se toca.
-3. **Ensayo local**, una corrida pesada a la vez y con turno: `ensayo-local.sh`, `prueba-register.sh`, `prueba-revocar-sesiones.sh`, `prueba-redaccion-canales.sh` y `smoke-guia.mjs`. Exigencias y controles en rojo de [§4 del runbook](chatwoot-versiones.md#4--prueba-en-copia-local-nunca-en-el-vps).
-4. **PR en borrador** con el ensayo y la hora propuesta. **Ahí se pide el OK nominal** (versión, hora y smoke). Sin migraciones, la copia en el VPS (fase B) puede omitirse (D1).
-5. **Ventana:** avisar al equipo y a la sesión del cable; **pausar la Oficina** (D3); drenaje de Sidekiq; respaldo conjunto en el momento.
-6. **Cambio**: solo la línea de la imagen en el compose del VPS; `prepare` una vez (no hay migraciones, pero corre igual) y recrear **solo** `rails` y `sidekiq`, como en [§4 de la subida a la 4.20.0](chatwoot-subida-4-20.md#4--cambio-de-imagen-migraciones-y-recreación).
-7. **Smoke** S1–S13 y V1–V8 con `4.20.1`. Un rojo en S1–S7 es vuelta atrás (a).
-8. **Reanudar la Oficina**; Uptime Kuma «Chatwoot · versión» a `4.20.1`; fila en el [Registro](chatwoot-versiones.md#registro).
+**Imágenes**, completas:
 
-Duración esperada del corte: ≤ 10 min, sin migraciones (I; la 4.20.0, con 15 migraciones, cortó 3 min).
+```bash
+VIEJA='chatwoot/chatwoot:v4.20.0-ce@sha256:03cc2004299fec8142481a411906947928678fa0e126beb5248962183593f8be'
+NUEVA='chatwoot/chatwoot:v4.20.1-ce@sha256:5c88eb71134268cb702ae902bb399a239175c4dc24b3f0c6d6b3a2533a377e43'
+```
+
+### Antes de la ventana
+
+1. **Smoke de la 4.20.0** (D2). Cerrado el 2026-11-22. SSO OK, Bandeja OK, nota privada de prueba OK (conversación de prueba #4) y Ficha DTD carga. El contador no se midió.
+2. **Ensayo local** en verde, de una corrida a la vez y con turno del Director: `ensayo-local.sh`, `prueba-register.sh`, `prueba-revocar-sesiones.sh`, `prueba-redaccion-canales.sh` y `prueba-correo-sistema.sh`. Exigencias y controles en rojo: [§4 del runbook](chatwoot-versiones.md#4--prueba-en-copia-local-nunca-en-el-vps).
+3. **PR de la imagen** (`codex/chatwoot-v4-20-1`) revisada y en `main`.
+4. **Sam disponible durante toda la ventana** con la clave privada `age`. La vuelta atrás (b) la necesita y solo la pega Sam ([§0 paso 4 de la 4.20.0](chatwoot-subida-4-20.md#0--antes-del-día)).
+5. **Comparar variables y montajes** de `rails` y `sidekiq` contra el compose del VPS, en solo lectura, con el guion de [§0 paso 5 de la 4.20.0](chatwoot-subida-4-20.md#0--antes-del-día). Esta vez se espera **ninguna** diferencia en los dos, porque la 4.20.0 ya los igualó. Con **cualquier** diferencia no se sigue y se avisa al Director.
+6. **Bajar la imagen por digest** antes de la ventana. No corta nada:
+
+   ```bash
+   docker pull "$NUEVA"
+   docker image inspect --format '{{json .RepoDigests}}' chatwoot/chatwoot:v4.20.1-ce   # incluye @sha256:5c88eb71…
+   df -h /
+   ```
+
+### La ventana
+
+7. **Pausa de la Oficina, al estado previo.** Hoy está **activa**: Sam la reanudó a las 08:22Z del 2026-11-22. Como platform admin ([cable](oficina-cable.md)):
+   - leer y **guardar** `select public.office_esta_pausada();` en la evidencia de la ventana (`ANTES=true|false`);
+   - si `ANTES=false`: `select public.office_cambiar_pausa(true, 'subida Chatwoot 4.20.1');`
+   - avisar a la sesión del cable.
+8. **Aviso, drenaje y respaldo conjunto en el momento**, como [§2 y §3 de la 4.20.0](chatwoot-subida-4-20.md#2--el-día-estado-y-drenaje).
+9. **Cambio de una sola línea.** No se copia el compose de `main`, porque el del VPS es otro:
+
+   ```bash
+   cd /srv/chatwoot && cp -p compose.yml "$EV/compose.yml.antes"
+   [ "$(grep -c "$VIEJA" compose.yml)" = 1 ] || { echo "la línea vieja no está una sola vez: parar"; exit 1; }
+   sed -i "s|$VIEJA|$NUEVA|" compose.yml
+   diff "$EV/compose.yml.antes" compose.yml        # exactamente 1 línea: VIEJA → NUEVA
+   ```
+
+   Después: `prepare` una vez y recrear **solo** `rails` y `sidekiq`, como en [§4 de la 4.20.0](chatwoot-subida-4-20.md#4--cambio-de-imagen-migraciones-y-recreación). Si alguno no queda sano en 4 min, vuelta atrás (a).
+10. **Smoke de la 4.20.1.** S1–S9 del [runbook de versiones](chatwoot-versiones.md#6--paso-a-producción-y-smoke) y V2–V6 y V8 de la 4.20.0, con `4.20.1`. Además:
+    - **N1:** una nota privada **enviada** en la conversación de prueba #4, desde el Studio › Bandeja (SSO);
+    - **N2:** el webhook de la Oficina. Un mensaje en la bandeja de prueba del cable (webhook 4, bandeja 11) queda como fila en la bandeja del cable, se mide por conteo;
+    - **N3:** correos. `zz_dtd_correo.rb` no escribe una línea al cargar, así que se mide por comportamiento: `docker compose exec -T rails bundle exec rails runner 'p ApplicationMailer < DtdCorreo::Asuntos, ApplicationMailer.view_paths.first.to_s'` da `true` y la carpeta de `correo/views`. Lo mismo en `sidekiq`. Además, la vista previa de [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo) sale con la marca de DTD.
+
+    Un rojo en S1–S7 es vuelta atrás (a).
+11. **Oficina al estado previo.** Si `ANTES=false`, `select public.office_cambiar_pausa(false, 'fin subida Chatwoot 4.20.1');`. Si `ANTES=true`, no se toca. Nunca se deja «despausada» por defecto.
+12. **Cierre:** Uptime Kuma «Chatwoot · versión» a `4.20.1`, fila en el [Registro](chatwoot-versiones.md#registro) y aviso a la sesión del cable.
+
+### 6 bis · Vuelta atrás
+
+- **(a)** Rojo sin migraciones, que es lo esperado en este salto: `cp -p "$EV/compose.yml.antes" compose.yml`, comprobar `grep -c "$VIEJA" compose.yml` = 1 y recrear `rails` y `sidekiq` con `--no-deps --force-recreate`. Luego S1–S9 con `4.20.0`. Toma ~3–5 min.
+- **(b)** Solo si algo dañó la base: la restauración de [§6 (b) de la 4.20.0](chatwoot-subida-4-20.md#6--vuelta-atrás), con la clave de Sam. Toma ~15 min.
+- La Oficina vuelve igual a su **estado previo** (paso 11).
+
+### Tiempos
+
+| Tramo | Duración |
+|---|---|
+| Ventana total, con el smoke | **~45 min** |
+| Corte visible | ~5–10 min |
+| Si hay vuelta atrás (b) | +15 min |
 
 ## 7 · Decisiones para Sam
 
@@ -104,14 +157,14 @@ Duración esperada del corte: ≤ 10 min, sin migraciones (I; la 4.20.0, con 15 
 | D1 | ¿Cómo se prueba antes? | **Ensayo local completo, sin copia en el VPS**: no hay migraciones que medir con datos reales | Ensayo local **más** copia aislada en el VPS (fase B): un OK más y ~1 h más |
 | D2 | ¿Qué pasa con el smoke pendiente de la 4.20.0? | **Cerrarlo antes** de subir: así un rojo se le atribuye a la versión correcta | Hacerlo una sola vez, después de la 4.20.1 |
 | D3 | ¿La Oficina durante el corte? | **En pausa** los ~10 min, con aviso a la sesión del cable | Andando; sus llamadas a Chatwoot fallan y se reintentan |
-| D4 | ¿Cuándo? | **Esta semana**, en la ventana del runbook (lun–jue, 21:00–23:00 de Caracas) | Esperar a la 4.21 y subir las dos juntas: más arreglos por salto, pero las fallas del runtime siguen abiertas mientras tanto |
+| D4 | ¿Cuándo? | **Esta semana**, en la ventana del runbook (lunes a jueves, de 21:00 a 23:00 de Caracas) | Esperar a la 4.21 y subir las dos juntas: más arreglos por salto, pero las fallas del runtime siguen abiertas mientras tanto |
 
 ### Lo que decidió Sam (2026-11-22)
 
 - **D1: A.** Ensayo local completo, sin copia en el VPS. Sam: «Es importante hacer las pruebas».
 - **D2: A.** El smoke pendiente de la 4.20.0 se cierra antes de subir.
 - **D3: A.** La Oficina, en pausa durante el corte.
-- **D4: hoy mismo.** Sam, textual: «hay que hacerlo de una, o sea, todo hoy. Nadie está usando Chatwoot porque todavía no está implementado, así que no nos afecta». Como no hay clientes en Chatwoot, no hace falta la ventana nocturna. Lo que **no** cambia: el ensayo en verde antes del cambio y el OK nominal de Sam para la versión y la hora.
+- **D4: hoy mismo.** Sam, textual: «hay que hacerlo de una, o sea, todo hoy. Nadie está usando Chatwoot porque todavía no está implementado, así que no nos afecta». Como no hay clientes en Chatwoot, no hace falta la ventana nocturna. Lo que **no** cambia: el ensayo en verde antes del cambio y el OK nominal de Sam, por el canal del Director, para la versión y la hora. **El 2026-11-22 es domingo**, fuera de la regla de lunes a jueves del runbook. Se sube igual con una condición: el Director confirma con Sam que **al día siguiente hay quien atienda**, como se hizo con la 4.20.0.
 
 ## Fuera de alcance detectado
 

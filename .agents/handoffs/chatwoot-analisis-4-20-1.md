@@ -18,18 +18,18 @@ Pedido de Sam, textual: «Actualización de Chatwoot: revísame para instalar la
 
 ## VALIDACIÓN
 
-- `git diff --check`: ver PR.
+- `git diff --check`: PASÓ.
 - Pruebas de producto: NO APLICA (cambio solo de docs).
-- Ensayo de la imagen: NO EJECUTADO a propósito (instalar estaba prohibido); es el paso 3 del plan.
+- Ensayo de la imagen: va en la PR #779 (rama `codex/chatwoot-v4-20-1`), con turno del Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que Sam decida D1–D4 del informe.
+- Ninguna de decisión: D1–D4 ya están tomadas por Sam el 2026-11-22 (A, A, A y hoy). Quedan el ensayo y la revisión de la #779.
 
 ## FUERA DE ALCANCE DETECTADO
 
 - El informe «sin IA» del panel marca `Gemfile.lock` como riesgo medio en cada versión aunque no cambien las gemas de la pieza (falso positivo). Mejora: gemas por pieza.
-- Smoke de la 4.20.0 (V7, S10–S13) sigue pendiente desde el 2026-11-19.
+- El smoke de la 4.20.0 es el paso 1 del plan (§6) y se cerró el 2026-11-22: SSO, Bandeja, nota privada y Ficha DTD en verde. El contador no se midió.
 
 ## Impacto documental
 
