@@ -590,3 +590,58 @@ están): el canal de los avisos (0638 D-3), el modelo de OpenAI y la retención 
 - Elegir modelos por calidad, abrir cuentas, pagar o cargar las llaves de la Oficina: lo hacen Sam y Ofi_Hermes.
 - Cambiar el mes de UTC a la hora de Caracas.
 - Editar la 0639 o la 0703: esta spec las amplía; sus textos se ajustan cuando la 0704 se apruebe.
+
+## 15. Archivos (allowlist), enmienda del 2026-11-21
+
+La allowlist es exacta. Un archivo que no está aquí entra solo avisando antes a Dir_DTD y con una enmienda de esta
+sección. Las migraciones las numera Dir_DTD: **0570** (F1-A) y **0571** (F1-B). Ninguna se aplica fuera de una prueba
+local o efímera; en producción piden el OK nominal de Sam.
+
+**Decisión de Dir_DTD para la F1-A (2026-11-21):** la pantalla es **solo del superadministrador**: el guard de
+`admin` más `is_platform_admin()`, con la misma RLS en la base. El módulo `ia` concedible por persona (0639 D-6) y su
+visibilidad en Faro (0637 D-3) quedan para una PR posterior, con la decisión de Sam. Por eso la F1-A **no** toca
+`lib/studio/modules.ts`, `lib/studio/rbac.ts`, `lib/studio/user-module-grants.ts` ni el catálogo de Faro.
+
+**Nota de implementación (barrera para aflojar el freno):** la base no conoce las variables de entorno, así que
+cuando el valor efectivo previo sale del `.env` (la primera tarifa de una cuenta por token o el primer tope de una
+función) pide la barrera siempre. Es más estricto que §7.3 y §8, nunca menos. La barrera vive en una sola función SQL,
+`ia_exigir_aal2_si(boolean)`.
+
+**Enmienda de la D-5, decidida por Sam (2026-11-21), textual, por el chat de Dir_DTD:** «Pantalla IA: opción A, pedir
+la contraseña otra vez; y abre después la SDD de verificación en dos pasos». El Studio todavía no tiene verificación en
+dos pasos, así que lo que afloja el freno pasa con **AAL2 o con una autenticación por contraseña de menos de 5
+minutos** (el claim `amr` del JWT, método `password`). La pantalla pide la contraseña y el servidor vuelve a autenticar
+(`signInWithPassword`); la contraseña nunca se guarda, nunca va a un log, a la auditoría ni a la URL. La auditoría
+registra quién aflojó qué y con qué método (`aal2`, `contrasena_reciente` o `no_hace_falta`). Cuando exista la SDD de
+verificación en dos pasos, la misma barrera acepta AAL2 sin otro cambio. Esa SDD la abre Dir_DTD aparte. Que el
+GoTrue instalado ponga `amr` con método `password` y su hora en el JWT es **NV** hasta probarlo en staging.
+
+- **Comunes:** `docs/specs/0704-ia-pantalla-cadena-y-costo/spec.md`, `docs/specs/README.md` (índice) y
+  `.agents/handoffs/2026-11-21-sdd-0704-f1-pantalla-ia.md`. Si se suma una variable de entorno, `.env.example` e
+  `infra/dtd-cargo/.env.example`.
+- **F1-A (costo, con la Oficina):**
+  - `supabase/migrations/0570_ia_catalogo_y_costo.sql`, `supabase/tests/0570_ia_catalogo_y_costo.test.sql`,
+    `supabase/desarmes/0570_desarme.sql`, `supabase/migrations-baseline.json` y
+    `supabase/pending-migration-symbol-declarations.json`;
+  - `lib/studio/__tests__/ia-catalogo-y-costo.migration.test.ts` (el contrato en PGlite, con mutantes);
+  - `lib/studio/ia/catalogo.ts`, `lib/studio/ia/costo.ts`, `lib/studio/ia/pantalla.ts` (lecturas y mensajes de la
+    pantalla) y sus pruebas en `lib/studio/ia/__tests__/`;
+  - `lib/studio/oficina/despachador.ts`, `lib/studio/oficina/despachador-almacen.ts`,
+    `lib/studio/oficina/despachador-config.ts`, `lib/studio/__tests__/oficina-despachador.test.ts` y
+    `lib/studio/__tests__/oficina-despachador-costo.test.ts`. La ruta `app/api/cron/oficina-despachador/route.ts` no
+    se toca;
+  - `app/studio/(app)/admin/ia/layout.tsx`, `page.tsx`, `actions.ts`, `_components/*.tsx` y `__tests__/*`;
+  - `app/studio/(app)/admin/page.tsx` (solo la tarjeta «IA» en PRO);
+  - `lib/studio/rbac-actions-guard.test.ts`, solo los contadores con su comentario de procedencia (superficie 88,
+    exactos 61, inventario 502). Lo sumó Dir_DTD el 2026-11-21.
+- **F1-B (cadena de A1 y A2):**
+  - `supabase/migrations/0571_ia_cadenas_y_eventos.sql`, su `.test.sql`, su desarme, `migrations-baseline.json`,
+    `pending-migration-symbol-declarations.json` y su prueba en PGlite;
+  - `lib/studio/ia/clasificar-error.ts` (0638 §5.1, módulo puro), `lib/studio/ia/cadena.ts` y sus pruebas;
+  - `app/studio/(app)/marketing/noticias-web/actions.ts` (solo el `MODEL` de `:220` y su uso) y
+    `lib/news/ceo-brief.ts` (solo el `MODEL` de `:53` y su uso), con sus pruebas;
+  - la pestaña «Funciones» en `app/studio/(app)/admin/ia/`.
+
+**Fuera de la allowlist, detectado:** `app/studio/(app)/admin/oficina-virtual/vista/page.tsx:84` muestra el tope del
+entorno (`configDespachador().topeMensualUsd`); con la 0570 aplicada puede no coincidir con el de la pantalla. Queda
+para su propia PR.

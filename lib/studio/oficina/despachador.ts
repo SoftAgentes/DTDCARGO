@@ -29,9 +29,11 @@
  */
 import { randomUUID } from "node:crypto";
 
+import { type CostoAplicado, aplicarCosto, interpretarCostoOficina } from "@/lib/studio/ia/costo";
+
 import { cabeEnBorrador, conAvisoAlCliente } from "./aviso-cliente";
 import { ErrorDeLectura, type MensajeLeido, conversacionDeReferencia } from "./chatwoot-lectura";
-import { type ConfigDespachador, costoDeLlamada } from "./despachador-config";
+import { type ConfigDespachador, TOPE_MENSUAL_MAXIMO_USD, costoDeLlamada } from "./despachador-config";
 import { type AlmacenDespachador, SinMigracion, type TareaTomada, textoSeguro } from "./despachador-almacen";
 import { avisarUnaVez } from "./escritura";
 import { type CodigoEval, revisarRespuesta } from "./eval-automatico";
@@ -132,8 +134,57 @@ function esAborto(e: unknown, signal: AbortSignal): boolean {
   return signal.aborted || (e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError"));
 }
 
+const AVISO_SIN_0570 =
+  "[oficina-despachador] falta la 0570 en esta base: el tope y la tarifa salen de las variables de entorno (SDD-0704)";
+
+/** El costo solo con el entorno: lo de siempre, sin la 0570 o sin configuración en la pantalla. */
+export function costoDelEntorno(config: ConfigDespachador, conTokens = false): CostoAplicado {
+  return aplicarCosto(
+    null,
+    { topeMensualUsd: config.topeMensualUsd, precios: config.precios, techoUsd: TOPE_MENSUAL_MAXIMO_USD },
+    conTokens,
+  );
+}
+
+/**
+ * SDD-0704 F1-A · El tope, la tarifa por modelo y el tipo de cobro de la pantalla (0570), con el entorno de respaldo.
+ * Sin la 0570 avisa una vez y sigue con el entorno. Otro error de la base LANZA: con la configuración de la pantalla
+ * sin leer no se sabe si el tope es más bajo que el del entorno, así que no se corre nada (falla cerrado).
+ */
+export async function leerCosto(deps: DepsDespachador): Promise<CostoAplicado> {
+  const { config, almacen } = deps;
+  if (!almacen.leerCostoOficina) return costoDelEntorno(config);
+  try {
+    const base = interpretarCostoOficina(await almacen.leerCostoOficina());
+    return aplicarCosto(
+      base,
+      { topeMensualUsd: config.topeMensualUsd, precios: config.precios, techoUsd: TOPE_MENSUAL_MAXIMO_USD },
+      true,
+    );
+  } catch (e) {
+    if (e instanceof SinMigracion) {
+      avisarUnaVez("despachador-sin-0570", AVISO_SIN_0570, deps.registrar);
+      return costoDelEntorno(config);
+    }
+    throw e;
+  }
+}
+
+/** AC-5 y SDD-0704 §7.5: al 80 % del tope en USD, o de las llamadas de un plan fijo, la base PAUSA. Solo pausa. */
+async function mirarTopes(deps: DepsDespachador, costo: CostoAplicado): Promise<void> {
+  const { config, almacen } = deps;
+  await almacen.autopausar(costo.topeMensualUsd, config.umbralAutopausa);
+  if (costo.topeLlamadasMes !== null && almacen.autopausarPorLlamadas) {
+    await almacen.autopausarPorLlamadas(costo.topeLlamadasMes, config.umbralAutopausa);
+  }
+}
+
 /** Una corrida. Nunca lanza por un fallo de Chatwoot, del runtime o del agente: escala. */
-export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada): Promise<ResultadoCorrida> {
+export async function ejecutarCorrida(
+  deps: DepsDespachador,
+  tarea: TareaTomada,
+  costo: CostoAplicado = costoDelEntorno(deps.config),
+): Promise<ResultadoCorrida> {
   const { config, almacen } = deps;
   const guiones = deps.guiones ?? GUIONES_SOPORTE;
   const registrar = deps.registrar ?? ((m: string) => console.error(m));
@@ -169,8 +220,24 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
     pasos += 1;
     if (pasos > config.porCorrida.pasos) throw new Escalar("tope_pasos");
   };
-  const anotar = (tipo: string, actor: string, resumen: string, costoUsd = 0, modelo: string | null = null) =>
-    almacen.anotar({ taskId: tarea.taskId, runId: tarea.runId, tipo, actor, resumen, costoUsd, modelo });
+  const anotar = (
+    tipo: string,
+    actor: string,
+    resumen: string,
+    costoUsd = 0,
+    modelo: string | null = null,
+    tokensLlamada?: { entrada: number; salida: number },
+  ) =>
+    almacen.anotar({
+      taskId: tarea.taskId,
+      runId: tarea.runId,
+      tipo,
+      actor,
+      resumen,
+      costoUsd,
+      modelo,
+      ...(costo.conTokens && tokensLlamada ? { tokens: tokensLlamada } : {}),
+    });
   const escalar = async (motivo: string, prioridad: 1 | 2 | 3 = tarea.prioridad): Promise<ResultadoCorrida> => {
     const ok = await almacen.entregar({
       taskId: tarea.taskId,
@@ -259,11 +326,13 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
         "modelo.respuesta",
         actorAgente,
         `Intento ${intento} (guiones v${VERSION_GUIONES}): ${r.entrada} tokens de entrada y ${r.salida} de salida; JSON ${interpretada.ok ? "válido" : `inválido (${interpretada.codigo})`}.`,
-        costoDeLlamada(r.entrada, r.salida, config.precios),
+        // SDD-0704 §7.2: la tarifa del modelo que respondió (plan fijo = 0).
+        costoDeLlamada(r.entrada, r.salida, costo.precioDe(r.modelo)),
         r.modelo,
+        { entrada: r.entrada, salida: r.salida },
       );
       // AC-5: el tope del mes se mira después de cada gasto. Al 80 % la base pausa; la vigía aborta lo que siga.
-      await almacen.autopausar(config.topeMensualUsd, config.umbralAutopausa);
+      await mirarTopes(deps, costo);
       if (tokens > config.porCorrida.tokens) throw new Escalar("tope_tokens");
       if (!interpretada.ok) {
         if (intento === 2) throw new Escalar("json_invalido");
@@ -390,12 +459,14 @@ export async function tick(deps: DepsDespachador): Promise<ResultadoTick> {
     await almacen.recuperar(config.agente, config.porCorrida.segundos);
     // Privacidad: las sesiones pendientes de borrar se borran también con la oficina pausada.
     await limpiarSesiones(deps);
-    await almacen.autopausar(config.topeMensualUsd, config.umbralAutopausa);
+    // SDD-0704: el tope y la tarifa de la pantalla se leen en cada tick (un cambio vale en el siguiente).
+    const costo = await leerCosto(deps);
+    await mirarTopes(deps, costo);
     if (await almacen.estaPausada()) return { estado: "pausada" };
     const convertidas = await almacen.convertir(config.agente, 20);
     const tarea = await almacen.tomarTarea(config.agente, config.pausaEntreCorridasS, config.porCorrida.segundos);
     if (!tarea) return { estado: "sin_tareas", convertidas };
-    return { estado: "corrida", convertidas, resultado: await ejecutarCorrida(deps, tarea) };
+    return { estado: "corrida", convertidas, resultado: await ejecutarCorrida(deps, tarea, costo) };
   } catch (e) {
     if (e instanceof SinMigracion) {
       avisarUnaVez("despachador-sin-migracion", "[oficina-despachador] no hace nada: falta la 0548 (o la 0541/0544) en esta base (SDD-0626)", registrar);
