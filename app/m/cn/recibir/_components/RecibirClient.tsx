@@ -488,9 +488,9 @@ const primaryGhost: React.CSSProperties = {
   width: "100%",
   minHeight: 48,
   borderRadius: "var(--r-md)",
-  background: "var(--wine)",
+  background: "var(--accion)",
   border: 0,
-  color: "#FFFFFF",
+  color: "var(--on-accion)",
   font: "800 14px/1 var(--f-sans)",
   cursor: "pointer",
 };
@@ -500,7 +500,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     <div
       style={{
         font: "700 10px/1 var(--f-sans)",
-        color: "var(--wine-text)",
+        color: "var(--ink-side-soft)",
         letterSpacing: "0.12em",
         textTransform: "uppercase",
         marginBottom: 8,
@@ -516,7 +516,7 @@ function Mono({ children, center }: { children: React.ReactNode; center?: boolea
     <div
       style={{
         font: "700 12px/1.3 var(--f-mono)",
-        color: "var(--wine-text)",
+        color: "var(--ink-side)",
         marginTop: 3,
         textAlign: center ? "center" : "left",
       }}
@@ -564,8 +564,8 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
             style={{
               padding: "5px 10px",
               borderRadius: "var(--r-sm)",
-              background: active ? "var(--wine)" : "transparent",
-              color: active ? "#FFFFFF" : "var(--ink-side-soft)",
+              background: active ? "var(--surface-sel)" : "transparent",
+              color: active ? "var(--ink-side-strong)" : "var(--ink-side-soft)",
               border: 0,
               font: `700 11px/1 ${o.v === "cn" ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"}`,
               cursor: "pointer",

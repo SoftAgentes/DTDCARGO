@@ -138,7 +138,7 @@ export default function OperarioLoginPage() {
           }}
         >
           <span>DTD</span>
-          <span style={{ color: "var(--wine-soft)" }}>OPERARIO</span>
+          <span style={{ color: "var(--color-wine-on-dark)" }}>OPERARIO</span>
         </div>
         <LangSwitch lang={lang} setLang={setLang} />
       </div>
@@ -159,7 +159,7 @@ export default function OperarioLoginPage() {
           <div
             style={{
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--wine-soft)",
+              color: "var(--ink-side)",
               letterSpacing: "0.18em",
               textTransform: "uppercase",
             }}
@@ -206,7 +206,7 @@ export default function OperarioLoginPage() {
                 background: shake
                   ? "var(--danger)"
                   : i < pin.length
-                    ? "var(--wine-soft)"
+                    ? "var(--accion-soft)"
                     : "transparent",
                 border: `2px solid ${shake ? "var(--danger)" : "rgba(255,255,255,0.4)"}`,
                 transition: "background var(--dur-fast) var(--ease)",
@@ -387,8 +387,8 @@ function LangSwitch({
             style={{
               padding: "6px 12px",
               borderRadius: "var(--r-sm)",
-              background: active ? "var(--wine)" : "transparent",
-              color: active ? "var(--ink-inv)" : "var(--ink-inv-mute)",
+              background: active ? "var(--surface-sel)" : "transparent",
+              color: active ? "var(--ink-side-strong)" : "var(--ink-side-soft)",
               border: 0,
               font: `700 12px/1 ${
                 o.cn ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"

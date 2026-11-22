@@ -81,7 +81,20 @@ Estado del 2026-11-20, tarde:
 
    La banda de bienvenida pasa a navy de marca por decisión de Sam (opción A). El logo de la barra: Sam eligió la opción A el 2026-11-21 («Sí, opción A (Recomendado)»; confirmado: «Sí, el logo se cambia a la opción A»), en `claude/sdd-0686-logo-vino-claro`: «DTD» de la variante reverse en `--color-wine-on-dark`. La nota «hoy» de `ee44876d2` queda sin efecto. Las cifras KPI se decidieron después (ver 10). Los textos en `--ink-mute` se cerraron el 2026-11-21 (Sam: «a recomendada», opción A): 180 usos pasan a `--ink-soft` en la rama `claude/sdd-0686-cierre-color-studio` (PR #759); quedan cinco deshabilitados y lo que no es texto, con lista cerrada en `cierre-color-studio-contract.test.ts`.
 
-    **Pendiente de la fase 3 (Noticias web, bloque `data-theme="light"` fijo):** los grises de `RouteIdeaPanel.tsx:260`, `Step3Article.tsx:397` y `Step3Article.tsx:435`, y los enlaces «Volver a Publicadas» en `--color-wine-text` (`publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`). Esperan `--color-accion*` y un gris web fijo.
+    ~~**Pendiente de la fase 3 (Noticias web):** grises y enlaces «Volver a Publicadas».~~ **Resuelto en la fase 3 (PR #770, 2026-11-22):** tokens web fijos `--color-accion*` en `app/globals.css`, las clases de acción a `*-accion`, los enlaces a `--color-accion-text` y los grises a `--color-grey-500`.
+
+11. Fase 3 de la 0686, en la rama `claude/sdd-0686-fase3-movil-noticias` (PR #770). Sam: «Sí, arranca el 2» y «A en las dos».
+   - **App móvil (`app/m`):** el mismo reparto que la fase 2. El rótulo «OPERARIO» o «DESPACHO VE» va en el vino claro del logo y la tarjeta de la ruta del camionero, en navy.
+   - **Noticias web:** sin vino.
+   - **`--surface-sel`:** pasa de un tinte vino a uno blanco.
+   - **Contrato nuevo:** `color-accion-fase3-movil-contract.test.ts`.
+   - **Revisión de la #770:**
+     - B1: sin respaldo hex en el rótulo;
+     - M1 y M2: el hover de `permisos.css` en `--bg-surface`, con su aserción;
+     - M3: la allowlist completa.
+   - **Pendiente para verlo en pantalla:** el selector de idioma sobre navy, con la selección al 16 % frente al 8 % del fondo.
+   - **Fuera de alcance:** `lib/studio/client-types.ts` (`tierBadgeTone`) todavía devuelve `"wine"` para el nivel premium del Studio.
+   - **Evidencia:** tsc y eslint de los archivos tocados, `docs:check`, `components:check`, y la prueba del registro de componentes (4 de 4). El vitest de los dos archivos se corrió con turno. La tanda completa la corre el CI. El recorrido visual no se ejecutó.
 
     **Evidencia de la #759:**
     - verificado: vitest de los directorios tocados (276 archivos, 3161 pasaron y 3 fallaron; los tres eran contratos que había que poner al día y se corrigieron) y su repetición (39 archivos, 528 pruebas); tsc sin errores fuera de `.next/`; `docs:check`; tras la revisión, vitest de `_components` y de notificaciones, crm, dashboard, fidelización, tracking, reportes y SENIAT: 1306 pasaron y 3 se cortaron por tiempo (20 s) en contratos que recorren todo el árbol bajo carga; repetidos solos, g8, cifras KPI y cierre pasan (42 pruebas);

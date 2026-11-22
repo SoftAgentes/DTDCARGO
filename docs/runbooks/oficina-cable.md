@@ -592,7 +592,7 @@ desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conte
 
 ### Qué se tapa (SDD-0700; criterio de Hermes DIRECTOR, 21/11/2026)
 
-> **Rige desde que la #755 (SDD-0700, en `main` desde el 22/11/2026) está publicada en producción.** Antes de
+> **Rige desde que la #755 (SDD-0700, en `main` desde el 21/11/2026 hora de Caracas, `d81452ba7`) está publicada en producción.** Antes de
 > esa publicación, el texto del cliente llega completo al modelo y solo se revisa la salida.
 
 Antes de mandar la conversación al agente, el despachador tapa en el texto del cliente:
@@ -623,7 +623,8 @@ opción B, el aviso va al final»; así el borrador abre con el guion y no se le
 
 > Hola, soy el asistente virtual de DTD Cargo. Una persona del equipo revisa cada respuesta antes de enviártela.
 
-- **Largo:** el borrador admite hasta 4000 caracteres. Si con el aviso se pasa, la corrida escala con `borrador_largo`
+- **Largo:** el borrador admite hasta 4000 caracteres, medidos como la base (solo se descartan los espacios de los
+  lados). Si el borrador final se pasa, lleve el aviso o no, la corrida escala con `borrador_largo`
   y la conversación la atiende una persona.
 
 - Va en el **borrador**, así que Sam lo ve en la tarjeta antes de aprobar, y lo que se envía es exactamente lo

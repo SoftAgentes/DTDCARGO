@@ -197,7 +197,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
               <div
                 style={{
                   font: "700 9.5px/1 var(--f-sans)",
-                  color: "var(--wine-soft)",
+                  color: "var(--ink-side-soft)",
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
                 }}
@@ -294,7 +294,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
                 background:
                   progress.pct === 100
                     ? "var(--success)"
-                    : "var(--wine-soft)",
+                    : "var(--ink-side-strong)",
                 transition: "width var(--dur) var(--ease)",
               }}
             />
@@ -467,7 +467,7 @@ function ClientGroup({
           <code
             style={{
               font: "800 12px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {group.markbox}

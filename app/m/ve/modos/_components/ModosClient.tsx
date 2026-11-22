@@ -98,7 +98,7 @@ export function ModosClient({ operario, errorMsg }: Props) {
           <div
             style={{
               font: "700 10.5px/1 var(--f-sans)",
-              color: "var(--wine-soft)",
+              color: "var(--ink-side)",
               letterSpacing: "0.18em",
               textTransform: "uppercase",
             }}
@@ -171,7 +171,7 @@ export function ModosClient({ operario, errorMsg }: Props) {
                   background: isPicked
                     ? "var(--surface-sel)"
                     : "var(--surface-inv-soft)",
-                  border: `1.5px solid ${isPicked ? "var(--wine-soft)" : "var(--border-inv)"}`,
+                  border: `1.5px solid ${isPicked ? "var(--ink-side-strong)" : "var(--border-inv)"}`,
                   borderRadius: "var(--r-md)",
                   color: "var(--ink-inv)",
                   cursor: pickedRole === null ? "pointer" : "default",
@@ -188,9 +188,9 @@ export function ModosClient({ operario, errorMsg }: Props) {
                     height: 52,
                     borderRadius: "var(--r-sm)",
                     background: isPicked
-                      ? "var(--wine-soft)"
+                      ? "var(--ink-side-strong)"
                       : "var(--surface-inv)",
-                    color: isPicked ? "var(--ink)" : "var(--ink-inv)",
+                    color: isPicked ? "var(--bg-sidebar)" : "var(--ink-side-strong)",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -212,7 +212,7 @@ export function ModosClient({ operario, errorMsg }: Props) {
                   <div
                     style={{
                       font: "700 11px/1 var(--f-sans)",
-                      color: "var(--wine-soft)",
+                      color: "var(--ink-side-soft)",
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       marginBottom: 6,

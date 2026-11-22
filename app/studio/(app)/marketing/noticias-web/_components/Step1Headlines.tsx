@@ -191,7 +191,7 @@ export function Step1Headlines({
               onChange={(e) => onTopicChange(e.target.value)}
               rows={3}
               placeholder={`Ej tema para ${catInfo.label}: "Logística China-Venezuela se detiene por X"`}
-              className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-y"
+              className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-accion transition-colors resize-y"
               disabled={loading}
             />
             <p className="text-[11.5px] text-grey-500">
@@ -227,7 +227,7 @@ export function Step1Headlines({
               type="button"
               onClick={onGenerate}
               disabled={loading || !topic.trim()}
-              className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-accion text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-accion-hover transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
             >
               <span
                 className={loading ? "inline-flex animate-spin" : "inline-flex"}
@@ -266,7 +266,7 @@ export function Step1Headlines({
           {headlines.map((h, idx) => (
             <div
               key={idx}
-              className="card-shadow group bg-white border border-grey-200 rounded-lg p-4 flex items-start gap-4 hover:border-wine transition-colors"
+              className="card-shadow group bg-white border border-grey-200 rounded-lg p-4 flex items-start gap-4 hover:border-accion transition-colors"
             >
               <span
                 className="text-[28px] font-bold leading-none text-grey-500 select-none flex-shrink-0 pt-1"
@@ -295,7 +295,7 @@ export function Step1Headlines({
                   className={`w-9 h-9 grid place-items-center rounded-md border transition-colors ${
                     copiedIdx === idx
                       ? "border-ink text-ink"
-                      : "border-grey-200 text-grey-500 hover:border-wine hover:text-wine"
+                      : "border-grey-200 text-grey-500 hover:border-accion hover:text-accion-text"
                   }`}
                   style={
                     copiedIdx === idx
@@ -313,7 +313,7 @@ export function Step1Headlines({
                   onClick={() => onSelect(h)}
                   title="Usar este titular"
                   aria-label="Usar este titular y avanzar"
-                  className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-wine hover:text-wine transition-colors"
+                  className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-accion hover:text-accion-text transition-colors"
                 >
                   {Icon.chevR(14)}
                 </button>

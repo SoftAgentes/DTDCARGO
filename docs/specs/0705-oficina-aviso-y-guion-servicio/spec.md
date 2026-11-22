@@ -110,7 +110,7 @@ PR de SDD-0700 (#755).
   - el guion no trae precios, montos ni enlaces;
   - un precio, un plazo o un estado agregado escala con `dato_inventado`.
 - `lib/studio/__tests__/oficina-despachador.test.ts` (sobre PGlite):
-  - la corrida buena guarda el borrador con el aviso delante, una sola vez;
+  - la corrida buena guarda el borrador con el aviso (al final desde la v0.2), una sola vez;
   - con una respuesta anterior de DTD en la conversación, el borrador no lleva el aviso.
 - Corridas en local: los 6 archivos de la Oficina_Virtual afectados, 155/155 en verde.
 
@@ -149,6 +149,21 @@ La revisión de la #760 salió aprobada y dejó cuatro puntos menores. Van en un
 - `docs/specs/README.md`
 - `.agents/handoffs/2026-11-21-sdd-0705-aviso-y-guion-servicio.md`
 - `.agents/handoffs/2026-11-21-sdd-0705-v02-aviso-al-final.md`
+
+## Enmienda v0.3 (22/11/2026, tras la revisión independiente de la #765)
+
+La #765 (v0.2) salió aprobada con tres menores:
+
+- **M1. `cabeEnBorrador` mide como `btrim` de la base.** `btrim(texto)` de PostgreSQL, sin segundo argumento,
+  quita solo espacios (U+0020), no saltos de línea ni tabuladores. `String.trim()` sí los quitaba, así que un texto
+  con saltos al final podía pasar el chequeo y la base lo rechazaba. Ahora solo se descartan los espacios de los lados.
+- **M2. Fecha de la #755:** entró a `main` el 21/11/2026, hora de Caracas (`d81452ba7`). El runbook decía 22/11.
+- **M3. El tope aplica también sin el aviso.** El chequeo siempre se hizo sobre el borrador final; ahora el código,
+  el runbook y esta spec lo dicen así, y hay una prueba de una respuesta sin aviso que pasa de 4000.
+
+Allowlist de la v0.3: `lib/studio/oficina/aviso-cliente.ts`, `lib/studio/oficina/despachador.ts` (solo
+comentarios), `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`, `docs/runbooks/oficina-cable.md`, esta
+spec y `.agents/handoffs/2026-11-22-sdd-0705-v03-menores.md`.
 
 ## Vuelta atrás
 
