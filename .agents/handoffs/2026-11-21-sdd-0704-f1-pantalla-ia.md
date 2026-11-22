@@ -73,7 +73,7 @@ El portón es el CI de GitHub.
 La #763 entró a `main` el 2026-11-22 (`a6c24cc36`). **La 0570 no está aplicada en ningún lado.** Antes de pedir el OK
 hay que hacer la prueba de `amr` (paso 1 de la lista).
 
-- F1-B (0571: cadena de A1 y A2, clasificador, pestaña «Funciones»): en curso en `claude/sdd-0704-f1b-cadena`.
+- F1-B (0571: cadena de A1 y A2, clasificador, pestaña «Funciones»): en curso en `claude/sdd-0704-f1b-cadena`; ver la sección F1-B al final.
 
 ### Lista para pedir el OK nominal de la 0570 (runbook `aplicar-migraciones-prod.md` §2 y §3)
 
@@ -121,3 +121,90 @@ hay que hacer la prueba de `amr` (paso 1 de la lista).
   con el de la pantalla.
 - El Studio no tiene verificación en dos pasos: la SDD la abre Dir_DTD (decisión de Sam).
 - El espaciado de la pantalla usa px fijos, como la de la Oficina; pasarlo a `var(--s-*)` es una tanda visual aparte.
+
+---
+
+## F1-B · Cadena de hasta tres modelos para A1 y A2
+
+- Fecha: 2026-11-22 · Worker para Dir_DTD
+- Rama: `claude/sdd-0704-f1b-cadena` · Base: `origin/main` `a6c24cc36` (con la F1-A, #763)
+- Carril: revisión previa (migración, permisos, integración con Anthropic).
+
+### Hecho
+
+- **Migración 0571** (sin aplicar):
+  - `ia_cadenas`: tenant, función, puesto de 1 a 3, proveedor y modelo, con cuenta opcional.
+    - Llave foránea al catálogo de la 0570.
+    - Un modelo no se repite dentro de la misma cadena.
+    - **D-2:** un disparador copia `datos_clientes` desde la lista fija de funciones con datos, y un CHECK impide usar
+      un proveedor chino con datos de clientes. Vale en los tres puestos, aunque se escriba directo a la tabla.
+    - Si el puesto nombra una cuenta, esa cuenta tiene que tener el mismo proveedor y ser del mismo tenant.
+  - `ia_eventos`: una fila por intento.
+    - Guarda el resultado (`ok` o la clase), el status, el código y los tokens.
+    - Nunca guarda texto. Solo se agregan filas.
+  - `ia_guardar_cadena`: solo el superadmin, con motivo y auditoría con el antes y el después. Solo A1 y A2. No pide
+    la barrera, porque cambiar la cadena no afloja el freno (§8).
+  - `ia_cadena_de` e `ia_registrar_evento`: para A1, que corre con la sesión de quien redacta. Solo trabajan con el
+    tenant de esa sesión y solo con A1.
+  - A2 corre en el cron con la clave de servicio. Con los grants mínimos lee la cadena y agrega eventos, sin cambiar
+    ni borrar nada.
+  - Incluye preflight, postflight, desarme, el contrato `.test.sql` de 8 puntos y la espera en la línea de base.
+- **Clasificador** `lib/studio/ia/clasificar-error.ts` (0638 §5.1):
+  - Es puro y sigue la precedencia código → status → texto.
+  - Trae el catálogo de señales de los cuatro proveedores, que sigue **NV** porque se tomó de la documentación de
+    cada uno.
+  - Nunca devuelve el cuerpo ni el texto.
+  - Lee los errores del SDK de Anthropic por su forma, sin importar el SDK.
+- **Cadena** `lib/studio/ia/cadena.ts`:
+  - Cada llamada nueva empieza por el 1.º. Salta solo con `proveedor_caido`, `falta_de_pago`, `cuenta_suspendida` o
+    `llave_invalida`.
+  - Con otra clase relanza el error original, para que la función siga su salida manual de siempre.
+  - Si el último puesto también falla, relanza el último error.
+  - Leer la cadena o anotar un intento nunca rompe la función: sin la 0571, vale `MODELO_POR_DEFECTO`.
+  - El techo de 3 puestos está en el código y en la base.
+- **A1** (`noticias-web/actions.ts`): se quitó el `MODEL` fijo. Las 8 llamadas pasan por `crearMensaje`, que recorre
+  la cadena con la sesión del usuario.
+- **A2** (`lib/news/ceo-brief.ts`): se quitó el `MODEL` fijo. La llamada recorre la cadena con la clave de servicio y,
+  si falla, mantiene el brief de respaldo solo con números. La ruta del cron no se tocó.
+- **Pestaña «Funciones»** (ahora la primera):
+  - A1 y A2 con su 1.º (obligatorio), 2.º y 3.º. Solo ofrece modelos de Anthropic, que es la llave que existe hoy.
+  - Muestra la marca de datos en texto y el último salto.
+  - Pide motivo. La acción vuelve a validar la D-2 y el orden, y la base lo corta una tercera vez.
+
+### Comprobaciones
+
+| Comprobación | Resultado |
+|---|---|
+| `tsc --noEmit` | PASÓ |
+| eslint de lo tocado | PASÓ |
+| `check-pending-migration-symbols` | PASÓ: 0 ROJO, 5 AMARILLO declarados (2 de la 0571) |
+| 0571 en PGlite (contrato, control rojo y 18 mutantes) | pendiente del turno de PC |
+| `lib/studio/ia/__tests__` (clasificador, cadena) y `admin/ia/__tests__` | pendiente del turno de PC |
+| Contrato SQL en Postgres 17 con Docker | NO EJECUTADO (lo corre el CI) |
+| `pnpm verify` | pendiente |
+| `/ui-check` de la pestaña | pendiente |
+
+### Pendiente de esta tarea
+
+- El turno de PC para correr las pruebas, y después la PR.
+- `lib/studio/rbac-actions-guard.test.ts`: el inventario sube de 502 a 503 por `guardarCadenaAction`. Pedí a Dir_DTD
+  que lo sume a §15; sin su OK no lo toco.
+- Aplicar la 0571 en producción, después de la 0570, con el OK nominal de Sam.
+- **NV:** los códigos y textos de saldo y suspensión de cada proveedor (catálogo del clasificador).
+
+### Decisiones de implementación (para la revisión)
+
+- La confirmación con el antes y el después antes de guardar (§2.3) no está. Hoy se pide el motivo y la auditoría
+  guarda el antes y el después.
+- El contador de saltos del día en la tarjeta «IA» de Administración (§4.4) no está, porque
+  `app/studio/(app)/admin/page.tsx` no entra en la allowlist de la F1-B. El salto se ve en «Último salto».
+- La purga de `ia_eventos` a los 90 días (0638 §5.3) no está: no hay cron en la allowlist.
+- El costo de A1 y A2 no se calcula. `ia_eventos` guarda los tokens y el costo se suma cuando exista tarifa para esas
+  funciones.
+- El comentario de cabecera de `noticias-web/actions.ts` todavía nombra `claude-sonnet-4-6`. Solo se tocó el `MODEL`
+  y su uso.
+
+### FUERA DE ALCANCE DETECTADO
+
+- `app/studio/(app)/admin/oficina-virtual/vista/page.tsx:84` sigue mostrando el tope del entorno (viene de la F1-A).
+- La fila editable de la Oficina es la fase 1b y depende de Ofi_Hermes (§6.3).
