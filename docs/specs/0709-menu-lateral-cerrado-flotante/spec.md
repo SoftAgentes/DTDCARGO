@@ -37,7 +37,7 @@ Es lo que Sam describió: demasiados iconos que nadie recuerda.
 - Arriba va el **Dashboard**, suelto. Justificación: es la pantalla de inicio y se usa varias veces al día; meterlo en
   un grupo sumaría un clic a lo más frecuente. Es el único módulo suelto; no se repite dentro de la lista de OPERACIÓN.
 - El grupo del módulo activo se marca en **azul de acción**: icono en `--accion-soft`, fondo suave de ese mismo color y
-  una barra de 3 px al borde. `--accion-soft` sobre `--bg-sidebar` mide ≥ 7:1 en los temas (SDD-0686).
+  una barra de 3 px al borde. `--accion-soft` sobre `--bg-sidebar` mide 7,0:1 sobre el navy claro y 8,2:1 sobre el oscuro (SDD-0686).
 - Pasar el mouse **no abre** nada: solo muestra el tooltip con el nombre del grupo (el tooltip propio que ya existía).
 
 **Lista flotante**

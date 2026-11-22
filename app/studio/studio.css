@@ -616,7 +616,7 @@
 }
 /* SDD-0709 · Menú lateral cerrado: un botón por grupo y, al oprimirlo, una lista flotante
    con los módulos del grupo. El grupo del módulo activo va en azul de acción (--accion-soft
-   sobre --bg-sidebar, ≥ 7:1 en los dos temas). Mínimo de toque 32 px; foco siempre visible. */
+   sobre --bg-sidebar: 7,0:1 y 8,2:1, AA con holgura). Mínimo de toque 32 px; foco siempre visible. */
 .studio-sb-grupo-cerrado {
   margin-bottom: 6px;
 }

@@ -717,7 +717,8 @@ export function StudioSidebar({
                 id={group}
                 label={nombre}
                 icon={GROUP_ICONS[group]}
-                activo={items.some((m) => activoEn(m))}
+                // El Dashboard va suelto arriba: estar en él no marca a OPERACIÓN.
+                activo={items.some((m) => m.id !== MODULO_SUELTO_CERRADO && activoEn(m))}
                 unidades={unidades}
                 abierto={flotante?.group === group}
                 pos={flotante?.group === group ? flotante.pos : null}

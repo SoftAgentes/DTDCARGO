@@ -11,10 +11,12 @@ import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { FEATURE_FLAG_DEFAULTS } from "@/lib/studio/feature-flags-types";
-import { GROUP_ORDER } from "@/lib/studio/modules";
+import { accesoCrm, destinoCrm } from "@/lib/studio/crm-acceso";
+import { FEATURE_FLAG_DEFAULTS, isModuleEnabled } from "@/lib/studio/feature-flags-types";
+import { GROUP_ORDER, MODULES } from "@/lib/studio/modules";
+import { canAccessModule, scopeAllowsModule } from "@/lib/studio/rbac";
 import { GROUP_ICONS, MODULO_SUELTO_CERRADO } from "@/lib/studio/sidebar-grupos";
-import type { StudioUserRole } from "@/lib/studio/user-types";
+import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
 
 const nav = vi.hoisted(() => ({ pathname: "/studio/dashboard" }));
 vi.mock("next/navigation", () => ({
@@ -77,10 +79,96 @@ describe("menú cerrado: solo los grupos", () => {
     }
   });
 
-  it("un rol con pocos módulos no ve grupos vacíos", async () => {
-    await abrirCerrado("support");
-    expect(botones().length).toBeGreaterThan(0);
-    expect(botones().length).toBeLessThanOrEqual(GROUP_ORDER.length);
+});
+
+/** Grupos con algún módulo visible para el rol, con el mismo filtro del menú (sin el Dashboard suelto). */
+function gruposEsperados(role: StudioUserRole): Set<string> {
+  const crm = destinoCrm(accesoCrm(role, FEATURE_FLAG_DEFAULTS)) !== null;
+  return new Set(
+    MODULES.filter(
+      (m) =>
+        !m.hidden &&
+        !m.dentroDe &&
+        m.id !== MODULO_SUELTO_CERRADO &&
+        (m.id === "kommo"
+          ? crm
+          : isModuleEnabled(m.id, FEATURE_FLAG_DEFAULTS) && canAccessModule(role, m.id)) &&
+        (role === "admin" || scopeAllowsModule("all", m.id)),
+    ).map((m) => m.group),
+  );
+}
+
+/** Abre cada grupo del menú cerrado y junta los href de sus módulos, en orden. */
+function hrefsCerrado(): string[] {
+  const hrefs: string[] = [];
+  for (const b of botones()) {
+    fireEvent.click(b);
+    const menu = screen.getByRole("menu");
+    hrefs.push(...within(menu).getAllByRole("menuitem").map((i) => i.getAttribute("href") as string));
+    fireEvent.keyDown(within(menu).getAllByRole("menuitem")[0], { key: "Escape" });
+  }
+  return hrefs;
+}
+
+/** Menú abierto: abre cada grupo del acordeón y cada padre, y junta los href (sin el Dashboard). */
+function hrefsAbierto(): string[] {
+  const hrefs: string[] = [];
+  for (const g of GROUP_ORDER) {
+    const cab = document.querySelector<HTMLButtonElement>(`button[aria-controls="sidebar-group-${g}"]`);
+    if (!cab) continue;
+    if (cab.getAttribute("aria-expanded") !== "true") fireEvent.click(cab);
+    const caja = document.getElementById(`sidebar-group-${g}`) as HTMLElement;
+    for (const p of Array.from(caja.querySelectorAll<HTMLButtonElement>('button[aria-expanded="false"]'))) {
+      fireEvent.click(p);
+    }
+    hrefs.push(
+      ...Array.from(caja.querySelectorAll("a"))
+        .map((a) => a.getAttribute("href") as string)
+        .filter((h) => h !== "/studio/dashboard"),
+    );
+  }
+  return hrefs;
+}
+
+const ROLES_RESTRINGIDOS = STUDIO_USER_ROLES.filter((r) => r !== "admin");
+const ADMIN_ONLY = MODULES.filter((m) => m.adminOnly && !m.hidden);
+
+describe("permisos: el flotante muestra lo mismo que el menú abierto", () => {
+  it("hay al menos un rol que deja un grupo vacío (si no, las pruebas de abajo no miran nada)", () => {
+    expect(ROLES_RESTRINGIDOS.some((r) => gruposEsperados(r).size < GROUP_ORDER.length)).toBe(true);
+    expect(ADMIN_ONLY.length).toBeGreaterThan(0);
+  });
+
+  it.each(ROLES_RESTRINGIDOS)("%s: solo tiene botón el grupo con módulos visibles", async (rol) => {
+    await abrirCerrado(rol);
+    const esperados = GROUP_ORDER.filter((g) => gruposEsperados(rol).has(g));
+    expect(botones().map((b) => b.getAttribute("data-grupo"))).toEqual(esperados);
+    for (const g of GROUP_ORDER.filter((x) => !esperados.includes(x))) {
+      expect(document.querySelector(`[data-grupo="${g}"]`)).toBeNull();
+    }
+  });
+
+  it.each(ROLES_RESTRINGIDOS)("%s: ningún módulo solo de admin aparece en la lista", async (rol) => {
+    await abrirCerrado(rol);
+    const hrefs = hrefsCerrado();
+    for (const m of ADMIN_ONLY) expect(hrefs).not.toContain(m.slug);
+  });
+
+  it.each(ROLES_RESTRINGIDOS)("%s: la lista flotante es igual a la del menú abierto", async (rol) => {
+    await abrirCerrado(rol);
+    const cerrado = hrefsCerrado();
+    cleanup();
+    localStorage.clear();
+    render(<StudioSidebar role={rol} featureFlags={FEATURE_FLAG_DEFAULTS} />);
+    const abierto = hrefsAbierto();
+    expect(cerrado.length).toBeGreaterThan(0);
+    expect(cerrado).toEqual(abierto);
+  });
+
+  it("admin sí ve los módulos solo de admin", async () => {
+    await abrirCerrado("admin");
+    const hrefs = hrefsCerrado();
+    for (const m of ADMIN_ONLY) expect(hrefs).toContain(m.slug);
   });
 });
 
@@ -195,6 +283,19 @@ describe("grupo activo", () => {
     expect(activos.map((b) => b.getAttribute("data-grupo"))).toEqual(["COMERCIAL"]);
   });
 
+  it("en el Dashboard solo se marca el Dashboard suelto, no OPERACIÓN", async () => {
+    await abrirCerrado("admin", "/studio/dashboard");
+    expect(botones().filter((b) => b.getAttribute("data-activo") === "true")).toHaveLength(0);
+    const dash = document.querySelector('nav a[href="/studio/dashboard"]') as HTMLElement;
+    expect(dash.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("en un módulo de OPERACIÓN sí se marca OPERACIÓN", async () => {
+    await abrirCerrado("admin", "/studio/embarques");
+    const activos = botones().filter((b) => b.getAttribute("data-activo") === "true");
+    expect(activos.map((b) => b.getAttribute("data-grupo"))).toEqual(["OPERACIÓN"]);
+  });
+
   it("dentro de la lista, el módulo activo lleva aria-current", async () => {
     await abrirCerrado("admin", "/studio/clientes");
     fireEvent.click(boton(/Comercial/i));
@@ -228,11 +329,14 @@ describe("estilos y contraste", () => {
     return (x + 0.05) / (y + 0.05);
   };
 
-  it("el azul de acción sobre cada --bg-sidebar mide ≥ 4,5:1 (AA texto; el icono pide 3:1)", () => {
+  it("el azul de acción sobre cada --bg-sidebar mide ≥ 4,5:1 (AA texto) y ≈ 7:1 como dicen la spec y el CSS", () => {
     const soft = /--accion-soft:\s*(#[0-9a-f]{6})/i.exec(tokens)?.[1] as string;
     const fondos = [...tokens.matchAll(/--bg-sidebar:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1]);
     expect(fondos.length).toBeGreaterThanOrEqual(2);
-    for (const f of fondos) expect(contraste(soft, f)).toBeGreaterThanOrEqual(4.5);
+    for (const f of fondos) {
+      expect(contraste(soft, f)).toBeGreaterThanOrEqual(4.5);
+      expect(contraste(soft, f)).toBeGreaterThan(6.9);
+    }
   });
 
   it("el módulo activo de la lista (on-warning sobre blanco) mide ≥ 4,5:1", () => {
