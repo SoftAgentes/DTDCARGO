@@ -357,7 +357,7 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 - **Siempre** usa los componentes existentes antes de crear uno nuevo: `<Btn>`, `<Input>`, `<Select>`, `<Badge>`, `<Card>`, `<Table>`, `<KPI>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<Avatar>`, `<Progress>`, `<EmptyState>`.
 - Si te falta un componente, **constrúyelo siguiendo el estilo de los existentes** (mismas variables, mismo radius, mismas sombras) y deja un comentario `/* TODO: brand-review */` para que el equipo de diseño lo apruebe.
-- **Botones**: usar las 6 variantes oficiales — `primary`, `secondary`, `ghost`, `danger`, `dark`, `soft`. No inventes.
+- **Botones**: usar las 6 variantes oficiales — `primary`, `secondary`, `ghost`, `danger`, `dark`, `soft`. No inventes. **Excepción:** el destructivo puede llevar tres énfasis (relleno, contorno, texto) según el riesgo (BD-077, Sam 2026-11-22; ver `BRAND-DECISIONS.md`).
 - **Badges**: usar tonos `success`, `warning`, `danger`, `info`, `wine`, `neutral`. No inventes tonos. **El tono `wine` se retira** (BD-076 regla 7, decisión de Sam del 2026-11-20). Cada badge toma el tono de lo que dice: `neutral` si solo informa (rol, servicio, método, cantidad, nivel), `success` si confirma algo bueno («Vigente») y tinta si cuenta una selección. Ningún badge va en azul, porque no se oprime. No lo uses en badges nuevos; los que existen migran en la fase 2.
 - **Color del botón `primary`:** azul de acción (`--accion`) desde BD-076, por fases (SDD-0686). En el Studio las variantes vigentes son las de `app/studio/CLAUDE.md` (SDD-0603).
 

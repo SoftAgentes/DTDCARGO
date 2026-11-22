@@ -5,6 +5,7 @@
 | Código | BTN-01 |
 | Versión | 1.3 |
 | Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: `primary` se pinta con el azul de acción (v1.2) |
+| Enmienda | 2026-11-22 · Sam (founder) · SDD-0688: §3 prohíbe «Aceptar» (el «así no» que Sam vio el 2026-11-20); «Continuar» y «Sí» siguen con consecuencia visible (v1.3) |
 | Enmienda | 2026-11-20 · Sam (founder) · SDD-0688 §3, reglas 1 a 6: «Reglas de botones: aprobadas las seis». Regla 4 vigente tras BD-077 (2026-11-22, Sam: «regla a») (v1.3) |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
@@ -105,8 +106,9 @@ Complementan este documento y no cambian el vocabulario de §3 ni el orden de §
 | Duplicar | Crea una copia nueva e identificable | Sobrescribir el original |
 
 La etiqueta usa sentence case, verbo directo, castellano venezolano neutro y
-cero emoji decorativo. “Aceptar”, “Continuar” o “Sí” solo se permiten cuando la
-consecuencia completa permanece visible y no existe ambigüedad.
+cero emoji decorativo. “Aceptar” y “OK” no se usan (enmienda v1.3, SDD-0688).
+“Continuar” o “Sí” solo se permiten cuando la consecuencia completa permanece
+visible y no existe ambigüedad.
 
 ## 4. Orden por contexto
 
