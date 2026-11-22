@@ -75,7 +75,7 @@ export function PuntoConversacion({
           <span
             style={{
               font: "600 11px/1 var(--f-mono)",
-              color: urgente ? "var(--danger)" : "var(--ink-mute)",
+              color: urgente ? "var(--danger)" : "var(--ink-soft)",
               whiteSpace: "nowrap",
             }}
           >

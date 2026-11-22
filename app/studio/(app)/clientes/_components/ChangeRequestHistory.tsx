@@ -133,7 +133,7 @@ export function ChangeRequestHistory({
                     >
                       {d.from ?? "—"}
                     </span>
-                    <span aria-hidden style={{ color: "var(--ink-mute)" }}>
+                    <span aria-hidden style={{ color: "var(--ink-soft)" }}>
                       →
                     </span>
                     <span className="sr-only">ahora:</span>

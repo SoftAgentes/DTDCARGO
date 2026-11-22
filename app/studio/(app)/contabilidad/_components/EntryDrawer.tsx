@@ -363,7 +363,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                       border: "1px solid var(--border)",
                       background: "var(--bg-surface)",
                       color:
-                        lines.length <= 2 ? "var(--ink-mute)" : "var(--danger)",
+                        lines.length <= 2 ? "var(--ink-soft)" : "var(--danger)",
                       cursor: lines.length <= 2 ? "not-allowed" : "pointer",
                     }}
                   >

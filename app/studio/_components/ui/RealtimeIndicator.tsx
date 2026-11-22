@@ -23,7 +23,7 @@ const STATUS_META: Record<
   RealtimeStatus,
   { label: string; tone: string; pulse: boolean; show: boolean }
 > = {
-  idle: { label: "", tone: "var(--ink-mute)", pulse: false, show: false },
+  idle: { label: "", tone: "var(--ink-soft)", pulse: false, show: false },
   connecting: {
     label: "Conectando…",
     tone: "var(--ink-soft)",
@@ -44,7 +44,7 @@ const STATUS_META: Record<
   },
   closed: {
     label: "Desconectado",
-    tone: "var(--ink-mute)",
+    tone: "var(--ink-soft)",
     pulse: false,
     show: true,
   },

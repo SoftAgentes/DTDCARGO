@@ -741,7 +741,7 @@ function PaymentsTab({
                   <span
                     style={{
                       font: "500 11px/1 var(--f-sans)",
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                     }}
                   >
                     —

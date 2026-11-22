@@ -556,7 +556,7 @@ export function InvoiceDrawer({
                         background: "var(--bg-surface)",
                         color:
                           lines.length === 1
-                            ? "var(--ink-mute)"
+                            ? "var(--ink-soft)"
                             : "var(--danger)",
                         cursor: lines.length === 1 ? "not-allowed" : "pointer",
                       }}

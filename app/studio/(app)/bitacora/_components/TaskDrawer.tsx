@@ -487,7 +487,7 @@ export function TaskDrawer({
                     style={{
                       background: "transparent",
                       border: 0,
-                      color: "var(--ink-mute)",
+                      color: "var(--ink-soft)",
                       cursor: "pointer",
                       padding: 2,
                     }}

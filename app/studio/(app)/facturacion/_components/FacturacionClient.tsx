@@ -399,7 +399,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
             <span
               style={{
                 font: "600 11.5px/1 var(--f-mono)",
-                color: inv.shipment_code ? "var(--ink)" : "var(--ink-mute)",
+                color: inv.shipment_code ? "var(--ink)" : "var(--ink-soft)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",

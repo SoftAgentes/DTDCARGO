@@ -1029,7 +1029,7 @@ function AcceptancesView({
               </span>
               <span
                 style={{
-                  color: "var(--ink-mute)",
+                  color: "var(--ink-soft)",
                   display: "flex",
                   justifyContent: "flex-end",
                 }}

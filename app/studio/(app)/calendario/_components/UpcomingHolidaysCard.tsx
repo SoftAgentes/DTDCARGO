@@ -132,7 +132,7 @@ export function UpcomingHolidaysCard({ holidays, limit = 8 }: Props) {
                   {formatShortDate(h.startDate)}
                   {isRange && (
                     <>
-                      <span style={{ color: "var(--ink-mute)" }}>→</span>
+                      <span style={{ color: "var(--ink-soft)" }}>→</span>
                       {formatShortDate(h.endDate)}
                     </>
                   )}

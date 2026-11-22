@@ -275,7 +275,7 @@ function ChipsExtra({ grants }: { grants: UserModuleGrantView[] }) {
   const vigentes = grants.filter((g) => !g.expired);
   if (vigentes.length === 0) {
     return (
-      <span aria-label="Sin accesos extra" style={{ color: "var(--ink-mute)" }}>
+      <span aria-label="Sin accesos extra" style={{ color: "var(--ink-soft)" }}>
         —
       </span>
     );

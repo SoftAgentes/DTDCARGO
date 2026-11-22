@@ -10,15 +10,18 @@
  *   fuente permitida es el guion. Conservador a propósito: ante la duda, se escala.
  * - `datos_personales`: el texto trae un correo, teléfono, cédula, RIF o dirección (la regla del cable).
  * - `enlace` (Paso 3b): el texto trae una URL o un dominio que no está en el guion usado (`enlacesAjenos`).
+ * - `marcador` (SDD-0700): el texto trae un marcador de dato tapado («[teléfono]», «[correo]»…). La entrada del agente
+ *   llega tapada; un borrador con un marcador le diría al cliente «[teléfono]» en vez de responderle.
  *
  * Cualquier código → el despachador escala en vez de guardar la respuesta. Lo que eval.md pide y no se puede
  * automatizar (cierre en ≤ 3 intercambios, tono) lo revisa Sam en la aprobación.
  */
 import { detectorDelCable } from "./cable-textos";
+import { tieneMarcador } from "./datos-personales";
 import type { Guion } from "./guiones-soporte";
 import type { SalidaAgente } from "./salida-agente";
 
-export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace";
+export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace" | "marcador";
 
 function normal(s: string): string {
   return s
@@ -80,6 +83,7 @@ export function revisarRespuesta(
 
   if (detectorDelCable(r.texto)) codigos.push("datos_personales");
   if (enlacesAjenos(r.texto, guion?.texto ?? "").length > 0) codigos.push("enlace");
+  if (tieneMarcador(r.texto)) codigos.push("marcador");
   return codigos;
 }
 

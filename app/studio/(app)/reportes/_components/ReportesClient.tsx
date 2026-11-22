@@ -412,7 +412,7 @@ export function ReportesClient({
                 <span
                   style={{
                     font: "700 10.5px/1 var(--f-mono)",
-                    color: active ? "var(--ink-inv)" : "var(--ink-mute)",
+                    color: active ? "var(--ink-inv)" : "var(--ink-soft)",
                   }}
                 >
                   {c.count}
@@ -1145,7 +1145,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
               style={{
                 font: "700 13px/1 var(--f-mono)",
                 textAlign: "right",
-                color: r.convPct >= 40 ? "var(--success)" : r.convPct > 0 ? "var(--warning)" : "var(--ink-mute)",
+                color: r.convPct >= 40 ? "var(--success)" : r.convPct > 0 ? "var(--warning)" : "var(--ink-soft)",
               }}
             >
               {r.convPct}%
