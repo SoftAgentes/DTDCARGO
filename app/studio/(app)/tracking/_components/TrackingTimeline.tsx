@@ -33,7 +33,7 @@ function bulletBorder(state: TimelineStepState): string {
 function bulletText(state: TimelineStepState): string {
   if (state === "done" || state === "active" || state === "exception")
     return "var(--bg-surface)";
-  return "var(--ink-mute)";
+  return "var(--ink-soft)";
 }
 
 function metaLabel(state: TimelineStepState): string {
@@ -134,7 +134,7 @@ export function TrackingTimeline({ shipment }: Props) {
                     font: `${step.state === "active" ? "800" : "600"} 13.5px/1.2 var(--f-sans)`,
                     color:
                       step.state === "pending"
-                        ? "var(--ink-mute)"
+                        ? "var(--ink-soft)"
                         : "var(--ink)",
                   }}
                 >

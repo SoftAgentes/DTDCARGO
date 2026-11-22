@@ -556,7 +556,7 @@ export function FilingDetailDrawer({
                       background: t.done
                         ? "var(--success)"
                         : "var(--bg-elevated)",
-                      color: t.done ? "var(--ink-inv)" : "var(--ink-mute)",
+                      color: t.done ? "var(--ink-inv)" : "var(--ink-soft)",
                       border: `2px solid ${t.done ? "var(--success)" : "var(--border-strong)"}`,
                       display: "flex",
                       alignItems: "center",

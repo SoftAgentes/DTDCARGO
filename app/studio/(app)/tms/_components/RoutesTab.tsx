@@ -143,7 +143,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             }}
           >
             {r.stops.length === 0 ? (
-              <span style={{ color: "var(--ink-mute)" }}>—</span>
+              <span style={{ color: "var(--ink-soft)" }}>—</span>
             ) : (
               r.stops.map((s, j) => (
                 <span
@@ -182,7 +182,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             className="mono"
             style={{
               font: "700 12px/1 var(--f-mono)",
-              color: r.distance_km != null ? "var(--ink-soft)" : "var(--ink-mute)",
+              color: r.distance_km != null ? "var(--ink-soft)" : "var(--ink-soft)",
               textAlign: "right",
             }}
           >
@@ -238,7 +238,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                 Completar
               </button>
             ) : (
-              <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>
+              <span aria-hidden="true" style={{ color: "var(--ink-soft)" }}>
                 —
               </span>
             )}

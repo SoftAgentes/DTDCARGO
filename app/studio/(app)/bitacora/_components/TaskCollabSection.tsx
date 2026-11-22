@@ -311,7 +311,7 @@ export function TaskCollabSection({
                         display: "inline-flex",
                         alignItems: "center",
                         padding: 6,
-                        color: "var(--ink-mute)",
+                        color: "var(--ink-soft)",
                         background: "transparent",
                         border: 0,
                         cursor: "pointer",
@@ -431,7 +431,7 @@ function Thumb({ attachment }: { attachment: TaskAttachment }) {
     alignItems: "center",
     justifyContent: "center",
     background: "var(--bg-elevated)",
-    color: "var(--ink-mute)",
+    color: "var(--ink-soft)",
   };
   if (attachment.kind === "foto" && attachment.signedUrl) {
     return (

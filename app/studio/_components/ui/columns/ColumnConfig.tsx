@@ -290,7 +290,7 @@ export function ColumnManager({
                           style={{
                             display: "block",
                             font: "600 12px/1.2 var(--f-sans)",
-                            color: c.visible ? "var(--ink)" : "var(--ink-mute)",
+                            color: c.visible ? "var(--ink)" : "var(--ink-soft)",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",

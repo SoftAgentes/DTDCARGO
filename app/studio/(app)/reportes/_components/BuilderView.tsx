@@ -100,7 +100,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
         border: "none",
         cursor: "pointer",
         background: hot ? "var(--danger-bg)" : "transparent",
-        color: hot ? "var(--danger)" : "var(--ink-mute)",
+        color: hot ? "var(--danger)" : "var(--ink-soft)",
         font: "700 14px/1 var(--f-sans)",
         transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
       }}

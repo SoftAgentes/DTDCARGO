@@ -243,7 +243,7 @@ function RecentTable({ rows }: { rows: StaffNotificationItem[] }) {
                     font: "600 10.5px/1 var(--f-sans)",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "12px 14px",
                     borderBottom: "1px solid var(--border)",
                     whiteSpace: "nowrap",

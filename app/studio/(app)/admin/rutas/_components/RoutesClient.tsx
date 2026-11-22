@@ -284,7 +284,7 @@ function RoutesTab({
               left: 12,
               top: "50%",
               transform: "translateY(-50%)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
               pointerEvents: "none",
             }}
           >
@@ -442,12 +442,12 @@ function RouteRowCard({
               Origen:{" "}
               <b style={{ color: "var(--ink)" }}>{route.origin_city}</b>
             </span>
-            <span style={{ color: "var(--ink-mute)" }}>·</span>
+            <span style={{ color: "var(--ink-soft)" }}>·</span>
             <span>
               Destino:{" "}
               <b style={{ color: "var(--ink)" }}>{route.destination_city}</b>
             </span>
-            <span style={{ color: "var(--ink-mute)" }}>·</span>
+            <span style={{ color: "var(--ink-soft)" }}>·</span>
             <span>SLA {route.sla_hours}h</span>
           </div>
           {!isDir && intermediates.length > 0 && (
@@ -953,7 +953,7 @@ function CityRow({
             {Icon.pin(10)} {barrios.length}
           </span>
         ) : (
-          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
             —
           </span>
         )}

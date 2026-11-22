@@ -195,7 +195,7 @@ export function LibroMayorTab({
               <span
                 style={{
                   font: "500 11.5px/1 var(--f-mono)",
-                  color: m.debit > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: m.debit > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >
@@ -204,7 +204,7 @@ export function LibroMayorTab({
               <span
                 style={{
                   font: "500 11.5px/1 var(--f-mono)",
-                  color: m.credit > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: m.credit > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >

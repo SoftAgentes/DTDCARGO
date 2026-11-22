@@ -842,7 +842,7 @@ function AttendanceCell({
         borderRadius: "var(--r-sm)",
         border: `1px solid ${on ? "var(--success)" : "var(--border)"}`,
         background: on ? "var(--success-bg)" : "var(--bg-surface)",
-        color: on ? "var(--success)" : "var(--ink-mute)",
+        color: on ? "var(--success)" : "var(--ink-soft)",
         cursor: isPending ? "wait" : "pointer",
         transition:
           "border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",

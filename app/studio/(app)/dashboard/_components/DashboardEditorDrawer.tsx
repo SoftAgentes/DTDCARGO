@@ -192,7 +192,7 @@ function KpiEditor({
           </span>
           <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
           {config.kpis.length > 1 && (
-            <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>Arrastra para reordenar</span>
+            <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>Arrastra para reordenar</span>
           )}
         </div>
         {config.kpis.length === 0 ? (
@@ -203,7 +203,7 @@ function KpiEditor({
               border: "1px dashed var(--border-strong)",
               borderRadius: "var(--r-md)",
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              color: "var(--ink-soft)",
             }}
           >
             No hay KPIs seleccionados. Agrega alguno de la lista de abajo.
@@ -249,7 +249,7 @@ function KpiEditor({
                     opacity: dragIdx === idx ? 0.4 : 1,
                   }}
                 >
-                  <span style={{ color: "var(--ink-mute)", display: "flex" }} aria-hidden>
+                  <span style={{ color: "var(--ink-soft)", display: "flex" }} aria-hidden>
                     <DragHandle />
                   </span>
                   <span
@@ -269,7 +269,7 @@ function KpiEditor({
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ font: "600 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{meta.label}</div>
-                    <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 3, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    <div style={{ font: "500 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                       {meta.cat}
                       {meta.status === "wip" && " · próximamente"}
                     </div>
@@ -330,7 +330,7 @@ function KpiEditor({
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {Object.entries(byCat).map(([cat, items]) => (
               <div key={cat}>
-                <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--ink-mute)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                <div style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
                   {cat}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -445,7 +445,7 @@ function WidgetEditor({
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>{w.label}</div>
-          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 3 }}>{w.desc}</div>
+          <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 3 }}>{w.desc}</div>
         </div>
       </button>
     );

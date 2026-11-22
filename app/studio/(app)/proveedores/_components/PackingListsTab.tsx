@@ -91,7 +91,7 @@ export function PackingListsTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input

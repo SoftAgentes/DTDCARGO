@@ -193,7 +193,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                       padding: "10px 14px",
                       textAlign: "center",
                       font: "500 12px/1 var(--f-mono)",
-                      color: m.cargo_markbox ? "var(--ink-soft)" : "var(--ink-mute)",
+                      color: m.cargo_markbox ? "var(--ink-soft)" : "var(--ink-soft)",
                       background: "transparent",
                       border: "none",
                     }}
@@ -206,7 +206,7 @@ export function MembersView({ stats, members }: { stats: ClubStats; members: Clu
                         Alumno
                       </Badge>
                     ) : (
-                      <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+                      <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
                         —
                       </span>
                     )}

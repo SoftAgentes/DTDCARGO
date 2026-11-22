@@ -399,7 +399,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                       border: "1px solid var(--border)",
                       background: "var(--bg-surface)",
                       color:
-                        lines.length <= 1 ? "var(--ink-mute)" : "var(--danger)",
+                        lines.length <= 1 ? "var(--ink-soft)" : "var(--danger)",
                       cursor: lines.length <= 1 ? "not-allowed" : "pointer",
                     }}
                   >

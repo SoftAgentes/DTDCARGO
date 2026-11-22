@@ -196,7 +196,7 @@ export default async function MarketingPage() {
             gap: 14,
           }}
         >
-          <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>
+          <span style={{ color: "var(--ink-soft)", flexShrink: 0 }}>
             {Icon.flag(22)}
           </span>
           <div>
