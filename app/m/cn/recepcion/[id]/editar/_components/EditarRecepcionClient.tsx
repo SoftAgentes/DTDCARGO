@@ -165,7 +165,7 @@ export function EditarRecepcionClient({
           <div
             style={{
               font: "700 9.5px/1 var(--f-sans)",
-              color: "var(--wine-text)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.16em",
               textTransform: "uppercase",
             }}

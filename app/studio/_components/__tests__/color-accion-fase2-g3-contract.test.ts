@@ -61,38 +61,9 @@ const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
     cuenta: 6,
     motivo: "superficie, franja y rótulos propios de la Guía con el tinte de marca: identidad, no acción",
   },
-  ...accionDeNoticiasWeb({
-    "_components/CategoryDetector.tsx": 4,
-    "_components/KeywordPanel.tsx": 6,
-    "_components/ManualPromptModal.tsx": 11,
-    "_components/NoticiasWebClient.tsx": 2,
-    "_components/PublishModal.tsx": 6,
-    "_components/RouteIdeaPanel.tsx": 3,
-    "_components/Step0Brief.tsx": 5,
-    "_components/Step1Headlines.tsx": 8,
-    "_components/Step2Outlines.tsx": 4,
-    "_components/Step3Article.tsx": 6,
-    "publicadas/[id]/page.tsx": 1,
-    "retirar/[id]/page.tsx": 1,
-  }),
 };
 
-/**
- * noticias-web pinta dentro de un bloque `data-theme="light"` y ningún CSS
- * define ese selector: con el Studio en oscuro, los tokens del Studio toman su
- * valor oscuro sobre el fondo claro (revisión de la #739). Por eso ahí solo van
- * tokens web fijos (`--color-ink`, `--color-grey-*`). La acción (botón
- * principal, hover, foco y enlaces de volver) sigue en `--color-wine` hasta que
- * la fase 3 traiga `--color-accion*`; lo que no es acción ya no está en vino.
- */
-function accionDeNoticiasWeb(cuentas: Record<string, number>): Record<string, { cuenta: number; motivo: string }> {
-  return Object.fromEntries(
-    Object.entries(cuentas).map(([ruta, cuenta]) => [
-      `app/studio/(app)/marketing/noticias-web/${ruta}`,
-      { cuenta, motivo: "acción en vino dentro del bloque claro: espera `--color-accion*` de la fase 3" },
-    ]),
-  );
-}
+// Noticias web ya no tiene vino: la fase 3 trajo `--color-accion*` (SDD-0686).
 
 const leer = (ruta: string) => readFileSync(ruta, "utf8");
 

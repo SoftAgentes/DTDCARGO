@@ -176,7 +176,7 @@ function Header({
         <div
           style={{
             font: "700 9.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -361,7 +361,7 @@ function OdList({
               padding: 14,
               background: "var(--bg-surface)",
               border: "1px solid var(--border)",
-              borderLeft: "4px solid var(--wine)",
+              borderLeft: "4px solid var(--accion)",
               borderRadius: "var(--r-md)",
               textAlign: "left",
               cursor: "pointer",
@@ -375,7 +375,7 @@ function OdList({
                 marginBottom: 6,
               }}
             >
-              <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+              <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
                 {od.order_code}
               </code>
               <Badge tone={tone} size="sm">
@@ -515,7 +515,7 @@ function OdDetail({
             marginBottom: 8,
           }}
         >
-          <code style={{ font: "900 16px/1 var(--f-mono)", color: "var(--wine-soft)" }}>
+          <code style={{ font: "900 16px/1 var(--f-mono)", color: "var(--ink-side-strong)" }}>
             {od.order_code}
           </code>
           <Badge tone={DISPATCH_ORDER_STATUS_TONES[od.status]} size="sm">
@@ -572,8 +572,8 @@ function OdDetail({
             className="studio-btn studio-btn-ghost studio-btn-xs"
             style={{
               marginTop: 10,
-              color: "var(--wine-soft)",
-              borderColor: "var(--wine-soft)",
+              color: "var(--accion-soft)",
+              borderColor: "var(--accion-soft)",
             }}
           >
             Reasignar camión / chofer
@@ -610,7 +610,7 @@ function OdDetail({
           <span
             style={{
               marginLeft: 8,
-              color: "var(--wine-soft)",
+              color: "var(--ink-soft)",
               textTransform: "none",
               letterSpacing: 0,
               font: "500 11px/1 var(--f-sans)",
@@ -642,13 +642,13 @@ function OdDetail({
                   width: 22,
                   height: 22,
                   borderRadius: "var(--r-pill)",
-                  background: "var(--wine-tint)",
-                  color: "var(--wine-text)",
+                  background: "var(--bg-elevated)",
+                  color: "var(--ink)",
                   font: "900 11px/1 var(--f-mono)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid var(--wine)",
+                  border: "1px solid var(--border-strong)",
                 }}
               >
                 {gIdx + 1}
@@ -783,7 +783,7 @@ function PackageCard({
           gap: 8,
         }}
       >
-        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--ink)" }}>
           {pkg.markbox}
         </code>
         <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
@@ -1075,7 +1075,7 @@ function SplitModal({
             marginBottom: 14,
           }}
         >
-          <code style={{ color: "var(--wine-text)" }}>{pkg.markbox}</code> · {pkg.client_name} · {pkg.boxes_total} cajas
+          <code style={{ color: "var(--ink)" }}>{pkg.markbox}</code> · {pkg.client_name} · {pkg.boxes_total} cajas
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1089,7 +1089,7 @@ function SplitModal({
               max={pkg.boxes_total - 1}
               value={boxes}
               onChange={(e) => setBoxes(Number(e.target.value))}
-              style={{ width: "100%", accentColor: "var(--wine)", marginTop: 8 }}
+              style={{ width: "100%", accentColor: "var(--accion)", marginTop: 8 }}
             />
             <p
               style={{
@@ -1409,7 +1409,7 @@ function ReassignModal({
             margin: "0 0 14px",
           }}
         >
-          <code style={{ color: "var(--wine-text)" }}>{od.order_code}</code> · cambia
+          <code style={{ color: "var(--ink)" }}>{od.order_code}</code> · cambia
           truck o driver del OD activo. Acción destructiva · el camionero
           original deja de ver esta entrega.
         </p>
