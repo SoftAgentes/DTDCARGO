@@ -45,7 +45,7 @@ export default async function PortalClubPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <span className="eyebrow eyebrow-wine">Club DTD</span>
+        <span className="eyebrow eyebrow-tinta">Club DTD</span>
         <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
           La comunidad de importadores DTD.
         </h1>
@@ -161,7 +161,7 @@ function GroupBuyCard({ gb }: { gb: PortalClubGroupBuy }) {
           {route && <span className="text-xs font-semibold text-grey-500">{route}</span>}
         </div>
         {gb.myParticipation && (
-          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine-text">
+          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-grey-100 text-ink">
             {gb.myParticipation.statusLabel}
           </span>
         )}
@@ -233,7 +233,7 @@ function EventCard({ ev }: { ev: PortalClubEvent }) {
           {meta && <span className="text-xs font-semibold text-grey-500">{meta}</span>}
         </div>
         {ev.myRegistrationLabel && (
-          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-wine/10 text-wine-text">
+          <span className="flex-shrink-0 text-[11px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 bg-grey-100 text-ink">
             {ev.myRegistrationLabel}
           </span>
         )}

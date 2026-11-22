@@ -79,7 +79,7 @@ export default async function AgentesPage({
           className="studio-eyebrow"
           style={{ marginBottom: 10 }}
         >
-          Administración · SDD-0020
+          Inteligencia artificial
         </div>
         <h1
           className="studio-display"

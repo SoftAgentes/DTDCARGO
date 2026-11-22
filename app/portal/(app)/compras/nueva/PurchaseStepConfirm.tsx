@@ -63,7 +63,7 @@ export function PurchaseStepConfirm({
           ) : (
             <p className="text-base text-grey-700 leading-relaxed m-0">
               El enlace se está generando. Lo encuentras en el detalle de tu compra, en{" "}
-              <Link href="/portal/compras" className="text-wine-text font-semibold underline">
+              <Link href="/portal/compras" className="text-accion-text font-semibold underline">
                 Mis compras
               </Link>.
             </p>
@@ -77,7 +77,7 @@ export function PurchaseStepConfirm({
             className="mt-4 flex min-h-11 w-full items-center justify-between gap-3 border-t border-grey-200 pt-4 text-left text-sm font-semibold text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Qué encontrará tu proveedor
-            <span className="text-wine-text">{previewOpen ? "Ocultar" : "Ver pasos"}</span>
+            <span className="text-accion-text">{previewOpen ? "Ocultar" : "Ver pasos"}</span>
           </button>
           {previewOpen && (
             <div id="provider-flow-preview" className="mt-3 rounded-lg bg-grey-100 p-4 text-base leading-relaxed text-ink">

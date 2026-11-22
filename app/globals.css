@@ -31,6 +31,12 @@
   --color-accion-hover: #183e86;
   --color-on-accion: #ffffff;
   --color-accion-text: #1f4fa8;
+  --color-accion-tint: rgba(31, 79, 168, 0.08);
+  /* Azul de acción SOBRE NAVY (SDD-0686 fase 3b, «Próximo arribo B» de Sam,
+     2026-11-22). Mismo valor que --accion-soft del Studio. Medido: 7,00:1 sobre
+     #0F1E3D y 5,53:1 sobre #1F3055 (extremo claro del héroe). En el portal
+     oscuro el héroe sube a #25406C y el token sube a #9bbdf4 (5,41:1). */
+  --color-accion-on-dark: #7faaf0;
   /* Verde de éxito legible SOBRE NAVY. Hermano de --color-wine-on-dark y existe
      por la misma razón: --color-status-success (#1f8a5b) mide 2,85:1 sobre el
      panel navy del calculador (#203760) y falla AA de calle. Este mide 7,69:1
@@ -137,7 +143,7 @@ html.dtd-cjk-sistema {
   --hero-fill: rgba(255, 255, 255, 0.1);        /* cajas/chips sobre el navy */
   --hero-fill-strong: rgba(255, 255, 255, 0.15); /* badge sobre el navy */
   --hero-border: rgba(255, 255, 255, 0.3);       /* borde de botón ghost sobre navy */
-  --hero-accent: #dd8088;          /* wine suave que lee sobre navy */
+  --hero-accent: var(--color-accion-on-dark); /* azul de acción sobre navy (Sam: «Próximo arribo B») */
   --portal-info: var(--color-ink); /* SDD-0441: información operativa neutra */
 }
 
@@ -165,6 +171,16 @@ html.dtd-cjk-sistema {
   --color-wine: #c24450;      /* acento — más brillante para leer sobre navy */
   --color-wine-deep: #d35e68; /* hover del acento */
   --color-wine-text: #d89aa4; /* = --wine-soft dark de Studio: wine legible como texto en oscuro (~6-8:1). --color-wine crudo NO alcanza AA como texto pequeño (~3-3.7:1) */
+  /* SDD-0686 fase 3b · azul de acción del portal oscuro: los mismos valores que
+     --accion del Studio en oscuro. Sobre el relleno va navy, no blanco (blanco
+     sobre #7faaf0 mide 2,36:1). Noticias web no pasa por aquí: no lleva
+     [data-portal-theme] y conserva los valores claros fijos. */
+  --color-accion: #7faaf0;
+  --color-accion-hover: #9bbdf4;
+  --color-on-accion: #0f1e3d;
+  --color-accion-text: #7faaf0;
+  --color-accion-tint: rgba(127, 170, 240, 0.14);
+  --color-accion-on-dark: #9bbdf4; /* = --accion-hover oscuro del Studio: 5,41:1 sobre #25406c, el extremo claro del héroe oscuro */
   --color-status-success: #2ea36e;
   --color-status-warning: #d3a24a;
   /* SDD-0261 · era #e0606b, que medía 4,29:1 sobre la card del portal (#16264A)
@@ -539,6 +555,11 @@ html.dtd-cjk-sistema {
 .eyebrow-wine {
   color: var(--color-wine-text);
 }
+/* SDD-0686 fase 3b · eyebrow del Portal en tinta suave: el guión sigue en vino
+   (identidad, `.eyebrow::before`) y el texto deja de serlo. */
+.eyebrow-tinta {
+  color: var(--color-grey-700);
+}
 
 .h-display {
   font-family: var(--font-archivo-black);
@@ -619,6 +640,19 @@ html.dtd-cjk-sistema {
 .btn-primary:hover {
   background: var(--color-wine-deep);
   transform: translateY(-1px);
+}
+/* SDD-0686 fase 3b · en el Portal el botón principal es azul de acción (BD-076).
+   La web pública conserva el vino hasta su tramo (3b-2). `--color-on-accion`
+   voltea a navy en el portal oscuro, donde el relleno es claro. */
+#portal-shell .btn-primary {
+  background: var(--color-accion);
+  color: var(--color-on-accion);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 8px 24px -8px color-mix(in srgb, var(--color-accion) 45%, transparent);
+}
+#portal-shell .btn-primary:hover {
+  background: var(--color-accion-hover);
 }
 .btn-ghost {
   background: transparent;
@@ -5107,27 +5141,18 @@ a.svp-it:hover .nm {
    también usa la comparación de la barra. Ningún color nuevo: mezclas
    (`color-mix`) de tokens existentes, con el mismo patrón que `.portal-aviso`
    (`app/portal/claridad.css`).
-   · Tintes de fondo: `--tint-ink`, `--tint-wine`, `--tint-ok`, `--tint-warn`.
-   · Vino claro (EXC-0654-01) en TRES usos y nada más: botón principal
-     (`.vs-btn-principal`), avatar (`.vs-avatar`) y la parte «proveedor» del
-     código (`.vs-codigo-proveedor`). Texto encima SIEMPRE `--on-warning`
-     (#0F1E3D, navy fijo): 4,79:1 sobre `--color-wine-soft` en claro y 7,13:1
-     sobre `--color-wine-text` (#D89AA4) en noche. `--color-ink` no sirve: en
-     noche es crema y mediría 2,03:1.
+   · Tintes de fondo: `--tint-ink`, `--tint-ok`, `--tint-warn`.
+   · EXC-0654-01 cerrada el 2026-11-22 (SDD-0686, Sam: «Portal: Vista simple A»):
+     el botón principal es azul de acción (`--color-accion` con
+     `--color-on-accion`), y el avatar y la parte «proveedor» del código van en
+     tinta (`--color-ink` con `--color-paper`). El vino queda solo en el logo.
    · La selección va en tinta (BD-037): proveedor elegido, parte del código
      que se explica y el contorno de la guía.
    ────────────────────────────────────────────────────────────────── */
 .vs {
   --tint-ink: color-mix(in srgb, var(--color-ink) 6%, var(--color-white));
-  --tint-wine: color-mix(in srgb, var(--color-wine-soft) 18%, var(--color-white));
   --tint-ok: color-mix(in srgb, var(--color-status-success) 12%, var(--color-white));
   --tint-warn: color-mix(in srgb, var(--color-status-warning) 14%, var(--color-white));
-  --vs-principal-bg: var(--color-wine-soft);
-  --vs-principal-ink: var(--on-warning);
-}
-[data-portal-theme="dark"] .vs {
-  --tint-wine: color-mix(in srgb, var(--color-wine-text) 16%, var(--color-white));
-  --vs-principal-bg: var(--color-wine-text);
 }
 .vs .vs-bloque {
   background: var(--color-white);
@@ -5136,9 +5161,6 @@ a.svp-it:hover .nm {
 .vs .vs-tinte-ink,
 .vs .vs-recuerda {
   background: var(--tint-ink);
-}
-.vs .vs-bloque-cabeza.vs-tinte-wine {
-  background: var(--tint-wine);
 }
 .vs .vs-glosario {
   background: var(--tint-ink);
@@ -5162,8 +5184,8 @@ a.svp-it:hover .nm {
   text-align: center;
 }
 .vs .vs-btn-principal {
-  background: var(--vs-principal-bg);
-  color: var(--vs-principal-ink);
+  background: var(--color-accion);
+  color: var(--color-on-accion);
 }
 .vs .vs-btn-secundario {
   background: transparent;
@@ -5173,10 +5195,9 @@ a.svp-it:hover .nm {
 .vs .vs-btn-secundario:disabled {
   opacity: 0.5;
 }
-/* Hover sin oscurecer el relleno: oscurecer el vino claro bajaría el texto navy
-   de AA. Un aro del mismo navy marca el estado. */
+/* Hover del azul de acción: el mismo par que el botón principal del Portal. */
 .vs .vs-btn-principal:hover {
-  box-shadow: inset 0 0 0 2px var(--vs-principal-ink);
+  background: var(--color-accion-hover);
 }
 .vs .vs-btn-secundario:hover:not(:disabled) {
   background: var(--tint-ink);
@@ -5188,8 +5209,8 @@ a.svp-it:hover .nm {
 }
 .vs .vs-avatar,
 .vs .vs-codigo-proveedor {
-  background: var(--vs-principal-bg);
-  color: var(--vs-principal-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
 }
 .vs .vs-codigo-parte {
   border: 1.5px solid var(--color-grey-300);
@@ -5198,10 +5219,10 @@ a.svp-it:hover .nm {
 .vs .vs-codigo-parte.vs-codigo-compra {
   border-color: var(--color-ink);
 }
-/* La parte «proveedor» conserva el vino claro con texto navy (tercer uso). */
+/* La parte «proveedor» va en tinta llena (Sam: «Vista simple A»). */
 .vs .vs-codigo-parte.vs-codigo-proveedor {
-  background: var(--vs-principal-bg);
-  color: var(--vs-principal-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
   border-color: transparent;
 }
 .vs .vs-codigo-parte[aria-pressed="true"] {

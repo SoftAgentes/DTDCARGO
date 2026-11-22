@@ -190,7 +190,7 @@ export function PortalCalcFab() {
   };
 
   const resizeGradient = (deg: number) =>
-    `linear-gradient(${deg}deg, transparent 45%, var(--color-wine) 45%, var(--color-wine) 60%, transparent 60%, transparent 72%, var(--color-wine) 72%, var(--color-wine) 86%, transparent 86%)`;
+    `linear-gradient(${deg}deg, transparent 45%, var(--color-accion) 45%, var(--color-accion) 60%, transparent 60%, transparent 72%, var(--color-accion) 72%, var(--color-accion) 86%, transparent 86%)`;
 
   return (
     <>
@@ -284,7 +284,7 @@ export function PortalCalcFab() {
                   }`}
                   style={
                     on
-                      ? { background: "var(--color-wine)", color: "var(--color-on-accent)" }
+                      ? { background: "var(--color-ink)", color: "var(--color-paper)" }
                       : undefined
                   }
                 >
@@ -353,9 +353,9 @@ export function PortalCalcFab() {
           height: 52,
           borderRadius: "50%",
           background: open
-            ? "var(--color-wine)"
-            : "color-mix(in srgb, var(--color-wine) 78%, transparent)",
-          color: "var(--color-on-accent)",
+            ? "var(--color-accion)"
+            : "color-mix(in srgb, var(--color-accion) 78%, transparent)",
+          color: "var(--color-on-accion)",
           border: "2px solid var(--color-white)",
           cursor: "grab",
           touchAction: "none",
@@ -431,11 +431,11 @@ function QuickCalc() {
               type="button"
               onClick={() => press(k)}
               className={`py-3 rounded-[10px] border border-grey-200 text-[16px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                op ? "text-wine-text" : "text-ink bg-white hover:bg-grey-100"
+                op ? "text-accion-text" : "text-ink bg-white hover:bg-grey-100"
               }`}
               style={{
                 fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-                background: op ? "color-mix(in srgb, var(--color-wine) 14%, transparent)" : undefined,
+                background: op ? "var(--color-accion-tint)" : undefined,
               }}
             >
               {k}
@@ -448,7 +448,7 @@ function QuickCalc() {
         <button
           type="button"
           onClick={() => press("C")}
-          className="py-2.5 rounded-[10px] border border-grey-200 bg-white text-[13px] font-bold text-wine-text hover:bg-grey-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="py-2.5 rounded-[10px] border border-grey-200 bg-white text-[13px] font-bold text-accion-text hover:bg-grey-100 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           C
         </button>
@@ -466,8 +466,8 @@ function QuickCalc() {
           onClick={() => press("=")}
           className="py-2.5 rounded-[10px] text-[16px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           style={{
-            background: "var(--color-wine)",
-            color: "var(--color-on-accent)",
+            background: "var(--color-accion)",
+            color: "var(--color-on-accion)",
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
           }}
         >
@@ -478,7 +478,7 @@ function QuickCalc() {
       <button
         type="button"
         onClick={copy}
-        className="w-full mt-2 py-2.5 rounded-[10px] border border-grey-200 bg-white text-[12px] font-bold text-wine-text hover:bg-grey-100 inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="w-full mt-2 py-2.5 rounded-[10px] border border-grey-200 bg-white text-[12px] font-bold text-accion-text hover:bg-grey-100 inline-flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         {copied ? <CheckIcon size={13} /> : <DocIcon size={13} />}
         {copied ? "Copiado" : "Copiar resultado"}

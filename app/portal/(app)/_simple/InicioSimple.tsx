@@ -14,9 +14,9 @@ import { GuiaPortal } from "./GuiaPortal";
  * que aparezcan arriba ni avisos que empujen el contenido; lo urgente entra en
  * «Lo que te toca hacer». Cada bloque enlaza a su pantalla de la Vista Pro.
  *
- * Colores (§6.3, EXC-0654-01): el vino claro solo en el botón principal, el
- * avatar y la parte «proveedor» del código; la selección en tinta; el saldo en
- * navy; el dorado solo en «Atención». Los tintes viven en `app/globals.css`
+ * Colores (SDD-0686, «Vista simple A» de Sam; EXC-0654-01 cerrada): el botón
+ * principal en azul de acción; el avatar, la parte «proveedor» del código, la
+ * selección y el saldo en tinta; el dorado solo en «Atención». Los tintes viven en `app/globals.css`
  * (bloque `.vs`).
  */
 function fecha(iso: string): string {
@@ -36,14 +36,12 @@ function Bloque({
   id,
   titulo,
   ancla,
-  tinte = "ink",
   children,
 }: {
   n: number;
   id: IdBloque;
   titulo: string;
   ancla?: string;
-  tinte?: "ink" | "wine";
   children: ReactNode;
 }) {
   const enlace = ENLACE_PRO[id];
@@ -54,7 +52,7 @@ function Bloque({
       data-bloque={id}
       className="vs-bloque overflow-hidden rounded-[16px] border border-grey-200"
     >
-      <header className={`vs-bloque-cabeza flex items-center gap-3 px-4 py-3 sm:px-5 ${tinte === "wine" ? "vs-tinte-wine" : ""}`}>
+      <header className="vs-bloque-cabeza flex items-center gap-3 px-4 py-3 sm:px-5">
         <span
           aria-hidden="true"
           className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 border-ink text-[15px] font-extrabold"
@@ -95,7 +93,7 @@ export function InicioSimple({ datos, guiaVista }: { datos: Datos; guiaVista: bo
           </p>
           <p className="vs-tinte-ink mt-2 inline-flex flex-wrap items-center gap-2 rounded-[10px] px-3 py-1.5 text-[14px]">
             <span className="font-bold">Tu Shipping Mark</span>
-            <span className="font-mono font-bold" style={{ color: "var(--color-wine-text)" }}>
+            <span className="font-mono font-bold text-ink">
               {saludo.markbox}
             </span>
           </p>
@@ -287,7 +285,6 @@ export function InicioSimple({ datos, guiaVista }: { datos: Datos; guiaVista: bo
         id="proveedor"
         titulo="¿Vas a comprar en China? Envíale esto a tu proveedor"
         ancla="proveedor"
-        tinte="wine"
       >
         <BloqueProveedor proveedores={proveedores} markbox={saludo.markbox} />
       </Bloque>

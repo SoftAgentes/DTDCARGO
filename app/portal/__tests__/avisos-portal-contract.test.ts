@@ -242,13 +242,15 @@ const ESPERADO: Record<string, { franjas: Partial<Record<Tono, number>>; restos:
   // «Tu Shipping Mark» (acento vino de una tarjeta, no aviso; su borde izquierdo
   // también se queda).
   "perfil/page.tsx": { franjas: { info: 1, exito: 1 }, restos: 3, bordeIzq: 1 },
-  // Restos: el icono y la pastilla de etapa del seguimiento total y su barra de
-  // progreso (acento vino). El mapa de tonos de etapa no es un `style={{ }}`.
-  "envios/_components/PortalAlertasHub.tsx": { franjas: { info: 1 }, restos: 3 },
+  // Sin restos: el icono, la pastilla de etapa y la barra de progreso del
+  // seguimiento total pasaron a tinta (SDD-0686 fase 3b-1). El mapa de tonos de
+  // etapa no es un `style={{ }}`.
+  "envios/_components/PortalAlertasHub.tsx": { franjas: { info: 1 }, restos: 0 },
   "compras/nueva/NewPurchaseForm.tsx": { franjas: { exito: 1 }, restos: 0 },
   "facturas/[code]/reportar/PaymentReportForm.tsx": { franjas: { exito: 1 }, restos: 0 },
-  // Restos: el número del proveedor y el icono de los argumentos (acento vino).
-  "proveedores/SuppliersClient.tsx": { franjas: { info: 1 }, restos: 2 },
+  // Sin restos: el número del proveedor y el icono de los argumentos pasaron a
+  // tinta (SDD-0686 fase 3b-1).
+  "proveedores/SuppliersClient.tsx": { franjas: { info: 1 }, restos: 0 },
 };
 
 /** El código sin comentarios: un `className` citado en un comentario no cuenta. */

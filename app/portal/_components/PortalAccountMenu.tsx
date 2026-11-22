@@ -85,12 +85,12 @@ export function PortalAccountMenu({
         </span>
         {/* Avatar con iniciales (siempre visible; en mobile es el único disparador). */}
         <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-wine text-[12px] font-bold"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-[12px] font-bold"
           style={{
             fontFamily: "var(--font-archivo-black)",
-            // on-accent es estable entre temas; `text-white` vira a navy en oscuro
-            // (contraste roto sobre wine). Patrón ya usado en el portal.
-            color: "var(--color-on-accent)",
+            // Avatar en tinta (SDD-0686): el papel voltea con el tema igual que la
+            // tinta, así que el par se lee en claro y en oscuro.
+            color: "var(--color-paper)",
           }}
           aria-hidden
         >
@@ -125,7 +125,7 @@ export function PortalAccountMenu({
           <form action={signOutAction}>
             <button
               type="submit"
-              className="block w-full text-left px-3 py-2 text-[14px] font-medium text-wine-text hover:bg-grey-100 transition-colors"
+              className="block w-full text-left px-3 py-2 text-[14px] font-medium text-ink hover:bg-grey-100 transition-colors"
             >
               Cerrar sesión
             </button>

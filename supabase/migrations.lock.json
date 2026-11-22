@@ -3654,6 +3654,24 @@
         "fecha": "2026-11-20",
         "forma": "exacta"
       }
+    },
+    "0570_ia_catalogo_y_costo": {
+      "sha256": "e0b8a81d321f9bec58f4d93a2f3bf216f46f181dee619e31f4c767f153012fb5",
+      "md5": "c3fa477c15ac2d3516b77ebfb448a73d",
+      "bytes": 40193,
+      "ledger": {
+        "fecha": "2026-11-22",
+        "forma": "exacta"
+      }
+    },
+    "0571_ia_cadenas_y_eventos": {
+      "sha256": "9d11a12d89c8bcc47d688b7a00a8bb6871ad19add47c2b66b7f7b63d1d10600b",
+      "md5": "8a627ab294f4347769025660a389670a",
+      "bytes": 21368,
+      "ledger": {
+        "fecha": "2026-11-22",
+        "forma": "exacta"
+      }
     }
   }
 }

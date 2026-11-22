@@ -26,11 +26,11 @@ export function PortalFooter() {
         </span>
         <p className="text-center text-[12px] text-grey-500 sm:text-right">
           © {year} DTD Cargo · Portal del Cliente ·{" "}
-          <Link href="/terminos" className="font-semibold text-wine-text hover:underline">
+          <Link href="/terminos" className="font-semibold text-accion-text hover:underline">
             Términos
           </Link>{" "}
           ·{" "}
-          <Link href="/privacidad" className="font-semibold text-wine-text hover:underline">
+          <Link href="/privacidad" className="font-semibold text-accion-text hover:underline">
             Privacidad
           </Link>
         </p>

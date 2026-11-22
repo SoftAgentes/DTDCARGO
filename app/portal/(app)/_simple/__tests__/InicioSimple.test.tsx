@@ -121,16 +121,11 @@ describe("InicioSimple", () => {
     expect(ruta.querySelector('[aria-current="step"]')).toHaveTextContent("En camino");
   });
 
-  it("el vino claro solo va en el botón principal, el avatar y el número del proveedor", () => {
+  it("sin vino en la Vista simple: ningún bloque lleva tinte vino (SDD-0686, Vista simple A)", () => {
     const { container } = render(<InicioSimple datos={armarInicioSimple(conDatos)} guiaVista />);
-    // El único tinte de vino claro es el encabezado del bloque del proveedor (§6.3).
-    const tintes = container.querySelectorAll(".vs-tinte-wine");
-    expect(tintes).toHaveLength(1);
-    expect(tintes[0].closest("section")?.getAttribute("data-bloque")).toBe("proveedor");
+    expect(container.querySelectorAll(".vs-tinte-wine")).toHaveLength(0);
     for (const el of container.querySelectorAll("[class*='vs-']")) {
-      const clases = el.className.toString();
-      if (/vs-btn-principal|vs-avatar|vs-codigo-proveedor|vs-tinte-wine/.test(clases)) continue;
-      expect(clases).not.toMatch(/wine/);
+      expect(el.className.toString()).not.toMatch(/wine/);
     }
   });
 });
