@@ -4,7 +4,7 @@ title: "Faro: asistente de ayuda con IA dentro del Studio, con recorte por permi
 status: proposed
 author: "Claude (sesión Lumi) + Sam"
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-22
 supersedes: null
 superseded_by: null
 related: ["0020", "0036", "0589", "0603", "0622", "0626", "0635"]
@@ -19,7 +19,9 @@ confidencialidad: interno
 > de quien pregunta, guarda todo sin que se pueda editar y avisa al administrador cuando alguien pide algo fuera
 > de su área.
 
-**Decisiones:** D-1 a D-13 (§11). Decididas por Sam: D-2 a D-6 y D-9 a D-13. Abiertas: D-1, D-7 y D-8.
+**Decisiones:** D-1 a D-14 (§11). Decididas por Sam: D-2 a D-6 y D-9 a D-14. Abiertas: D-1, D-7 y D-8.
+
+**Enmienda 2026-11-22 (§7.7, D-14):** rediseño de Faro en el rebrand. En el rebrand se llama **Faro Lumi Assistant Studio**.
 
 **Estado:** `proposed`. Hay contenido (fase 1, en `main`) y una migración sin aplicar (fase 2, `0550`). **No hay
 cambios en producción.** Cada fase se programa con el visto bueno de Sam y el turno del Director General.
@@ -343,6 +345,50 @@ Faro no crea un sistema de reportes nuevo: usa el de la SDD-0036 tal como está.
 Fases: el borrador y el envío por `createBugForReporter` van en la fase 3 (servidor) y la 4 (panel); el rastro, en
 la 4. El resumen diario de Discord es del reportador de la SDD-0036, no de Faro: va en su propia tarea.
 
+### 7.7 Rediseño en el rebrand: Faro Lumi Assistant Studio (D-14, decisiones de Sam 2026-11-22)
+
+Salió de la maqueta del módulo «IA y Automatizaciones» (`Módulo IA y automatización`, `src/FaroBoton.jsx` y
+`src/Cambios.jsx`). **Reemplaza** el estilo 1 «Faro clásico» de §7.1 (azul noche, aro dorado, rayas rojas) y la
+excepción a BRAND.md de §7: el botón y el panel ahora siguen el rebrand (índigo, tipografía y tokens de la
+marca). Es solo diseño: no cambia el recorte, el registro ni las alertas.
+
+1. **Corporativo, no mascota.** Se eligió «Faro reestructurado». El dragón queda en pausa (10 diseños en la
+   maqueta, por si se retoma).
+2. **Icono.** Botón redondo índigo plano de 48 px con el faro en línea blanca; sin relieve, sin colores extra y
+   sin haz que se mueva. La luz gira en 8 s: rayitos de la izquierda, lámpara de frente, rayitos de la derecha y
+   un momento apagada. Llega como máximo al 46 % y **no se atenúa con el botón**. Al pasar el mouse sube 2 px;
+   al oprimirlo baja un poco. Con `prefers-reduced-motion` no hay luz ni transiciones.
+3. **Configuración por persona** («que no moleste a la vista, pero que siempre esté ahí»):
+
+| Opción | Valores | Por defecto |
+|---|---|---|
+| Forma | Botón redondo o pestaña vertical en el borde derecho | Redondo |
+| Tamaño | Pequeño 36 px, Normal 44 px, Grande 56 px | Normal |
+| Atenuado en reposo | 20 % a 100 %; vuelve al 100 % con el mouse y baja a la mitad al hacer scroll | 50 % |
+| Posición | Arrastrable, con imán al borde más cercano (izquierda, derecha o abajo); «Devolver a su sitio» | Abajo a la derecha, pegado al fondo |
+| Asomado | Se esconde a medias y sale completo al acercar el mouse | Apagado |
+| Atajo | F1, Ctrl+Shift+F o Alt+A (Ctrl+K no: es el buscador del Studio) | F1 |
+
+   Se guardan por persona y navegador (`localStorage`), como la posición de §7.1; sin tabla nueva.
+4. **Aviso discreto.** Un numerito gris pequeño, sin palpitar.
+5. **«Pregúntale a Faro» sobre texto marcado**, sin activar nada: al marcar texto aparece un botón pequeño
+   encima; con clic derecho sobre lo marcado sale un menú propio de la app con «Pregúntale a Faro» arriba y
+   Copiar e Imprimir debajo. Si no hay texto marcado, sale el menú normal del navegador (una web no puede agregar
+   opciones al menú nativo). Faro copia el texto, lo explica y lleva al lugar. **Privacidad:** el texto marcado es
+   una pregunta más; pasa por la depuración (E-3) y el recorte antes de llegar al modelo, y se registra igual que
+   cualquier mensaje (§6.4).
+6. **Buscador del Studio.** El buscador (`StudioTopbar.tsx`) ofrece «Pregúntale a Faro» como primera opción.
+7. **Base de conocimiento.** Faro conoce el negocio de punta a punta (mapa global, procesos, tareas automáticas,
+   agentes y Oficina), a partir del catálogo del módulo «IA y Automatizaciones». Entra por el minicerebro (§5):
+   estantes versionados, guía `aprobada` y recorte por permisos como cualquier otra entrada. No entra nada que
+   no esté aprobado, ni datos de clientes.
+
+**Fase nueva 4b (rediseño visual).** Después de la fase 4: botón con la luz, panel de configuración, imán y
+asomado, atajo, texto marcado y entrada del buscador. Se comprueba con `/ui-check`, recorrido en teléfono,
+tableta y escritorio, y e2e con motor simulado (el atajo no choca con el buscador; el menú propio solo sale con
+texto marcado; `reduced-motion` apaga la luz). Alcance exacto y allowlist, al abrir la fase con el turno del DG.
+La base de conocimiento ampliada (punto 7) es una fase aparte de contenido, con aprobación de Sam guía por guía.
+
 ### 7.5 Dependencia del motor de guía
 
 Medido el 2026-11-16: la SDD-0589 está `in-progress`. El motor y el estado por usuario (migración 0517) están en
@@ -372,7 +418,8 @@ de los usuarios se tratan como datos, nunca como instrucciones.
 | 1 | Catálogo completo y de 8 a 10 guías, contabilidad primero | Prueba de catálogo completo; aprobación de Sam guía por guía |
 | 2 | Migración: tablas, permisos, trigger, tope, valor del enum | Contrato `.test.sql` en PGlite con control rojo y mutantes |
 | 3 | Recorte, verificador, alertas, motor y ruta de API | Pruebas con los 7 roles: la guía prohibida nunca llega al modelo. Simulacro de pausa automática por tope de gasto. Pruebas de módulo único y de id de modelo (§6.5) |
-| 4 | Botón, panel y pantalla del administrador | `/ui-check`; recorrido en teléfono, tableta y escritorio; e2e con motor simulado |
+| 4 | Botón, panel y pantalla del administrador (con el estilo de §7.7) | `/ui-check`; recorrido en teléfono, tableta y escritorio; e2e con motor simulado |
+| 4b | Rediseño visual del rebrand (§7.7, D-14) | `/ui-check`, tres anchos y e2e con motor simulado |
 | 5 | Batería de unas 40 preguntas por rol y ataque con promptfoo | Al menos 95 % de aciertos y cero filtraciones. Cuesta dinero: se corre con OK de Sam |
 | 6 | Producción | `pnpm verify`, revisión independiente, portón del DG, OK nominal de Sam para la migración |
 | 7 | Hermes (§8) | Se especifica en detalle con la sesión de la Oficina |
@@ -478,6 +525,7 @@ Sam (D-11), con el riesgo anotado.
 | D-11 | ¿Faro para el equipo en China? | **Decidida por Sam el 2026-11-16: activo, sin filtro por región.** Su respuesta a «¿Dejamos Faro apagado por ahora para el equipo en China, o prefieres consultarlo antes?» fue «No es necesario ocultar a China, déjalo activo, no importa. Todavía China no va a trabajar, así que actívalo normal.» La recomendación era apagarlo para `region = 'cn'` (`privacidad.md`, E-2); el riesgo PIPL queda anotado y conviene revisarla cuando el equipo en China empiece a usar el Studio |
 | D-12 | ¿Qué captura acompaña un reporte? | **Decidida por Sam el 2026-11-16:** el rastro de los últimos pasos, sin lo escrito (§7.6). Entre «rastro de últimos pasos», «encender la grabación» y «foto de pantalla», eligió solo el rastro. La grabación y la foto siguen fuera |
 | D-13 | ¿Qué llega a Discord de los reportes? | **Decidida por Sam el 2026-11-16:** alta y crítica al momento, como hoy, más un resumen diario de lo demás, sin datos de clientes (§7.6). Tarea del reportador de la SDD-0036, aparte de Faro |
+| D-14 | Rediseño de Faro en el rebrand (§7.7) | **Decidida por Sam el 2026-11-22** en la maqueta del módulo «IA y Automatizaciones»: nombre Faro Lumi Assistant Studio, faro corporativo (dragón en pausa), botón índigo plano con luz que gira, configuración por persona, «Pregúntale a Faro» sobre texto marcado y base de conocimiento de punta a punta. Registrada por el Director DTD, sin las palabras literales de Sam |
 
 ## 12. Riesgos
 
