@@ -312,12 +312,13 @@ function OdView({
 
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Route hero (gradient wine) */}
+      {/* Tarjeta de la ruta: navy de marca, como la banda del Dashboard (Sam, opción A, 2026-11-22) */}
       <div
         style={{
           padding: 16,
-          background: "linear-gradient(135deg, var(--wine) 0%, var(--wine-deep, var(--wine)) 100%)",
-          color: "var(--ink-inv)",
+          background: "var(--grad-bienvenida)",
+          border: "1px solid var(--bienvenida-borde)",
+          color: "var(--ink-side-strong)",
           borderRadius: "var(--r-md)",
         }}
       >
@@ -329,7 +330,7 @@ function OdView({
             marginBottom: 8,
           }}
         >
-          <code style={{ font: "900 14px/1 var(--f-mono)", color: "var(--ink-inv)" }}>
+          <code style={{ font: "900 14px/1 var(--f-mono)", color: "var(--ink-side-strong)" }}>
             {od.order_code}
           </code>
           <Badge tone={DISPATCH_ORDER_STATUS_TONES[od.status]} size="sm">

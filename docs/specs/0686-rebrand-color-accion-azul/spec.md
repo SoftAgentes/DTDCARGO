@@ -968,9 +968,9 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 2». Va en l
 - cifras de `KpiCard` y `MobileMini` → tinta (opción A de Sam); sale el tono `"wine"` (regla 7);
 - avatar y botones del encabezado sobre navy → chrome neutro (`--surface-inv`, `--ink-side*`).
 
-**Pendiente de Sam (croquis del 2026-11-22):**
-- el rótulo «OPERARIO» o «DESPACHO VE» junto a «DTD», en el inicio y en los dos login. Propuesta A: vino claro de identidad, como el logo; B: blanco tenue;
-- la tarjeta de la ruta del camionero (`CamioneroClient.tsx`). A: navy de marca, como la banda del Dashboard; B: vino.
+**Decididas por Sam el 2026-11-22.** Vio el croquis de las dos piezas y respondió «A en las dos»:
+- **Rótulo «OPERARIO» o «DESPACHO VE»** junto a «DTD», en el inicio y en los dos login. Es identidad y va en el vino claro del logo, `var(--color-wine-on-dark, #D59FA7)`, que da 7,34:1 sobre `#0F1E3D`. El rótulo de arriba («DTD Cargo · 操作员») va en `--ink-side` y los puntos del PIN, en `--accion-soft`.
+- **Tarjeta de la ruta del camionero** (`CamioneroClient.tsx`). Pasa al navy de marca, `--grad-bienvenida`, como la banda del Dashboard. Su texto deja `--ink-inv`, que en oscuro es navy, y pasa a `--ink-side-strong`, claro fijo.
 
 **Noticias web (57 usos en 12 archivos, más 3 grises).** Pinta en un bloque `data-theme="light"` fijo. Por eso entran a `app/globals.css` tokens web fijos con los valores claros del Studio:
 - `--color-accion` (#1f4fa8) y `--color-accion-hover` (#183e86);
@@ -1026,7 +1026,7 @@ Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y
 - `app/studio/tokens.css`
 
 **Contrato nuevo:** `color-accion-fase3-movil-contract.test.ts`.
-- Lista cerrada de `app/m`, que solo contiene lo pendiente de Sam.
+- Lista cerrada de `app/m`: solo los tres rótulos de identidad junto a «DTD».
 - Noticias web, sin vino.
 - `app/m`, sin hex de la familia vino.
 - `--surface-sel` en tinta y los tokens web de acción con los valores del Studio.

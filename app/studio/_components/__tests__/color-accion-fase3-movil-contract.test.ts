@@ -7,8 +7,9 @@
  * - `--surface-sel`, la selección sobre navy, deja el tinte vino por un blanco.
  * - Noticias web (bloque `data-theme="light"` fijo) usa los tokens web fijos
  *   `--color-accion*` de `app/globals.css`, con los valores claros del Studio.
- * - Lista cerrada: lo que queda espera la decisión de Sam (rótulo del login y
- *   tarjeta de la ruta del camionero). Solo baja.
+ * - Lista cerrada: solo queda el rótulo junto a «DTD» (identidad, en el vino
+ *   claro del logo); la tarjeta de la ruta pasa a navy. Decisión de Sam: «A en
+ *   las dos». Solo baja.
  * - Tampoco quedan hex de la familia vino escritos a mano en `app/m`.
  */
 import { readFileSync } from "node:fs";
@@ -18,12 +19,12 @@ import { cuentaVino, fuentesDe, RAIZ, rel } from "./vino-detector";
 
 const leer = (ruta: string) => readFileSync(join(RAIZ, ruta), "utf8");
 
-const PENDIENTE_DE_SAM = "espera la decisión de Sam del croquis del 2026-11-22";
+const IDENTIDAD =
+  "identidad: el rótulo junto a «DTD» en el vino claro del logo (Sam, «A en las dos», 2026-11-22)";
 const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
-  "app/m/page.tsx": { cuenta: 1, motivo: `rótulo «OPERARIO» junto a DTD: ${PENDIENTE_DE_SAM}` },
-  "app/m/cn/login/page.tsx": { cuenta: 1, motivo: `rótulo «OPERARIO» junto a DTD: ${PENDIENTE_DE_SAM}` },
-  "app/m/ve/login/page.tsx": { cuenta: 1, motivo: `rótulo «DESPACHO VE» junto a DTD: ${PENDIENTE_DE_SAM}` },
-  "app/m/ve/camionero/_components/CamioneroClient.tsx": { cuenta: 3, motivo: `degradado de la tarjeta de la ruta: ${PENDIENTE_DE_SAM}` },
+  "app/m/page.tsx": { cuenta: 1, motivo: `«OPERARIO» · ${IDENTIDAD}` },
+  "app/m/cn/login/page.tsx": { cuenta: 1, motivo: `«OPERARIO» · ${IDENTIDAD}` },
+  "app/m/ve/login/page.tsx": { cuenta: 1, motivo: `«DESPACHO VE» · ${IDENTIDAD}` },
 };
 
 const HEX_VINO = /#(?:7F0F1A|5E0A12|5A0910|9E1522|A8323E|AE1A28|C2747F|D89AA4|D59FA7)\b/i;
@@ -85,6 +86,15 @@ describe("SDD-0686 fase 3 · app móvil y Noticias web sin vino de acción", () 
     const linea = leer("app/studio/tokens.css").split("\n").find((l) => l.includes("--surface-sel:")) ?? "";
     expect(linea).toContain("rgba(255,255,255,0.16)");
     expect(linea).not.toMatch(/168,\s*50,\s*62/);
+  });
+
+  it("el rótulo junto a «DTD» usa el vino claro del logo y la ruta del camionero es navy (Sam, A en las dos)", () => {
+    for (const f of ["app/m/page.tsx", "app/m/cn/login/page.tsx", "app/m/ve/login/page.tsx"]) {
+      expect(leer(f)).toMatch(/<span style=\{\{ color: "var\(--color-wine-on-dark, #D59FA7\)" \}\}>(OPERARIO|DESPACHO VE)<\/span>/);
+    }
+    const ruta = leer("app/m/ve/camionero/_components/CamioneroClient.tsx");
+    expect(ruta).toContain('background: "var(--grad-bienvenida)",');
+    expect(ruta).not.toMatch(/linear-gradient\([^)]*--wine/);
   });
 
   it("los tokens web de acción tienen los valores claros del Studio", () => {

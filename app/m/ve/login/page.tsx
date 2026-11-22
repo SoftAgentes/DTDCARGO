@@ -83,7 +83,7 @@ export default function OperarioVeLoginPage() {
         }}
       >
         <span>DTD</span>
-        <span style={{ color: "var(--wine-soft)" }}>DESPACHO VE</span>
+        <span style={{ color: "var(--color-wine-on-dark, #D59FA7)" }}>DESPACHO VE</span>
       </div>
 
       {/* Centro */}
