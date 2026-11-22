@@ -220,7 +220,14 @@ TOPE_SIDEKIQ=1200  # segundos: la medición de la fase C más su margen (ver «M
 
 ### Medición de sidekiq
 
-`TOPE_SIDEKIQ` sale de repetir la fase C del ensayo local: cuánto tarda `sidekiq` en pasar de *Started* a *healthy* en la restauración. La única medición hasta ahora fue la del R2 del primer ensayo: unos **800 s** desde el arranque, con la PC cargada. Por eso el tope queda en **1200 s** (la medición más ~50 %). Si la fase C repetida da otro número, el tope pasa a ser esa medición más el mismo margen, nunca menos de 900 s.
+`TOPE_SIDEKIQ` sale de repetir la fase C del ensayo local: cuánto tarda `sidekiq` en pasar de *Started* a *healthy* en la restauración. Hay dos mediciones, las dos en la PC de Sam con datos sintéticos:
+
+| Corrida | De *Started* a *healthy* | Resultado |
+|---|---|---|
+| Primer ensayo (R2), con la PC cargada por otras sesiones | unos **800 s** | `up --wait` venció y `restaurar.sh` murió antes de sus pasos 7 y 8 |
+| Fase C repetida, el 2026-11-22 (sidekiq arrancó a las 10:39:53Z) | unos **85 s**, sin pasar por *unhealthy* ni reiniciarse | `restaurar.sh` salió 0 en 305 s: conteos OK, 1 archivo OK y `CLAVES total=1 sobres=0` |
+
+El tope se queda en **1200 s**: cubre el peor caso medido, que fue con la máquina cargada, más ~50 %. Lo normal es que `sidekiq` esté sano en menos de 2 min. Una espera larga en la ventana apunta a carga del servidor, no a la versión.
 
 ## 7 · Decisiones para Sam
 
