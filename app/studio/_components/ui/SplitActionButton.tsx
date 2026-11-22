@@ -155,6 +155,18 @@ export function SplitActionButton({
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  // Igual que en ActionButton: el temporizador del flash de éxito se cancela al desmontar y no se crea si la
+  // acción async termina con el componente ya desmontado (en CI salía «window is not defined» tras cerrar jsdom).
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+      if (temporizador.current !== null) clearTimeout(temporizador.current);
+      temporizador.current = null;
+    };
+  }, []);
 
   // Cargar la última opción guardada (solo client-side · evita hydration mismatch).
   useEffect(() => {
@@ -244,9 +256,13 @@ export function SplitActionButton({
           return;
         }
         onSuccess?.(action.key);
-        if (action.successLabel != null) {
+        if (action.successLabel != null && montado.current) {
           setSuccessKey(action.key);
-          setTimeout(() => setSuccessKey(null), successMs);
+          if (temporizador.current !== null) clearTimeout(temporizador.current);
+          temporizador.current = setTimeout(() => {
+            temporizador.current = null;
+            setSuccessKey(null);
+          }, successMs);
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
