@@ -5,10 +5,10 @@
  * fila a 375px de ancho.
  */
 
-type Tone = "wine" | "info" | "warning" | "success" | "ink";
+// Sin tono "wine": las cifras van en tinta (SDD-0686, BD-076).
+type Tone = "info" | "warning" | "success" | "ink";
 
 const TONE_COLOR: Record<Tone, string> = {
-  wine: "var(--wine-text)",
   info: "var(--info)",
   warning: "var(--ink)",
   success: "var(--success)",

@@ -66,7 +66,7 @@ export default function OperarioLauncherPage() {
             <div
               style={{
                 font: "700 11px/1 var(--f-sans)",
-                color: "var(--wine-soft)",
+                color: "var(--ink-side)",
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
               }}
@@ -175,9 +175,9 @@ function LauncherCard({
           width: 48,
           height: 48,
           borderRadius: "var(--r-sm)",
-          background: "var(--wine)",
-          // blanco puro sobre wine — no hay token equivalente (igual que el wordmark)
-          color: "#FFFFFF",
+          // SDD-0686: el ícono del modo no es acción ni marca: chrome neutro sobre navy.
+          background: "var(--surface-inv)",
+          color: "var(--ink-side-strong)",
           flexShrink: 0,
         }}
       >

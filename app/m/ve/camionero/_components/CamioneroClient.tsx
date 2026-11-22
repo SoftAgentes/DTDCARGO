@@ -124,9 +124,9 @@ export function CamioneroClient({
                     onClick={() => setActiveOdId(o.id)}
                     style={{
                       padding: "8px 12px",
-                      background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
-                      color: active ? "var(--wine)" : "var(--ink-soft)",
-                      border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                      background: active ? "var(--ink)" : "var(--bg-elevated)",
+                      color: active ? "var(--ink-inv)" : "var(--ink-soft)",
+                      border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                       borderRadius: "var(--r-pill)",
                       font: "700 11px/1 var(--f-mono)",
                       flexShrink: 0,
@@ -199,7 +199,7 @@ function Header({
         <div
           style={{
             font: "700 9.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -416,15 +416,15 @@ function OdView({
                     height: 26,
                     borderRadius: "var(--r-pill)",
                     background:
-                      idx === 0 ? "var(--wine-tint)" : "var(--bg-elevated)",
-                    color: idx === 0 ? "var(--wine)" : "var(--ink-soft)",
+                      idx === 0 ? "var(--ink)" : "var(--bg-elevated)",
+                    color: idx === 0 ? "var(--ink-inv)" : "var(--ink-soft)",
                     font: "800 11px/1 var(--f-mono)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     border:
                       idx === 0
-                        ? "1px solid var(--wine)"
+                        ? "1px solid var(--ink)"
                         : "1px solid var(--border)",
                   }}
                 >

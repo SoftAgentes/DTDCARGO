@@ -102,7 +102,7 @@ export default function OperarioVeLoginPage() {
           <div
             style={{
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--wine-soft)",
+              color: "var(--ink-side)",
               letterSpacing: "0.18em",
               textTransform: "uppercase",
             }}
@@ -149,7 +149,7 @@ export default function OperarioVeLoginPage() {
                 background: shake
                   ? "var(--danger)"
                   : i < pin.length
-                    ? "var(--wine-soft)"
+                    ? "var(--accion-soft)"
                     : "transparent",
                 border: `2px solid ${shake ? "var(--danger)" : "rgba(255,255,255,0.4)"}`,
                 transition: "background var(--dur-fast) var(--ease)",
