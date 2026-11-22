@@ -452,8 +452,11 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `guardarModeloAction` y `quitarModeloAction` (497 → 502): `moduleEditDenial(supabase, "admin")` al tope, luego
   // `platformAdminDenial` y la reautenticación con contraseña si afloja el freno. Escriben SOLO por las RPC de la 0570
   // (security definer), que repiten superadministrador, tenant, motivo y barrera, y dejan el evento `ia_config`.
+  // SDD-0704 F1-B sumó `admin/ia/actions.ts::guardarCadenaAction` (502 → 503): los mismos candados al tope
+  // (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`). Escribe SOLO por la RPC `ia_guardar_cadena`
+  // (0571, security definer), que repite superadministrador, tenant y motivo, y deja el evento `ia_config`.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(502);
+    expect(reportes.length).toBe(503);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
