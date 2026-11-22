@@ -25,7 +25,7 @@ confidencialidad: interno
 La Oficina_Virtual (SDD-0626, «el cable») lee la bandeja de Chatwoot y le pide un borrador al agente
 `soporte-chatwoot` de Hermes. Cuando se escribió esta SDD el agente llamaba a Z.AI (glm-5.3) y, si fallaba, a
 DeepSeek (deepseek-chat), dos proveedores con sede en China. Desde el 21/11/2026 (decisión de Sam, D-2) llama a
-Anthropic (claude-sonnet-5-5), sin respaldo. Un respaldo con OpenAI
+Anthropic (claude-sonnet-5-5), con respaldo claude-haiku-5-5 del mismo proveedor (D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z). Un tercer nivel con OpenAI
 tiene su propia SDD, la 0703. En cualquier caso, desde aquí no se puede verificar qué guarda el proveedor
 (privacidad.md, hallazgo 13 y §4). La etapa 1
 (datos inventados) se cerró y firmó el 20/11/2026. Antes de la etapa 2 los dos directores acordaron el punto (a):
