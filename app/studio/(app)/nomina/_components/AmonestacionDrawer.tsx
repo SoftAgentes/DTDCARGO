@@ -116,13 +116,13 @@ export function AmonestacionDrawer({
                   style={{
                     height: 4,
                     borderRadius: 999,
-                    background: done || active ? "var(--wine)" : "var(--border)",
+                    background: done || active ? "var(--ink)" : "var(--border)",
                   }}
                 />
                 <div
                   style={{
                     font: `${active ? 700 : 500} 10px/1.4 var(--f-sans)`,
-                    color: active ? "var(--ink)" : "var(--ink-mute)",
+                    color: active ? "var(--ink)" : "var(--ink-soft)",
                     marginTop: 5,
                     overflow: "hidden",
                     textOverflow: "ellipsis",

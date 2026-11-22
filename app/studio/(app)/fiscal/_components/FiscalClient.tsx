@@ -144,7 +144,7 @@ export function FiscalClient({
   return (
     <div style={{ maxWidth: 1180 }}>
       <header style={{ marginBottom: 22 }}>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 6 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 6 }}>
           Fiscal · SENIAT
         </div>
         <h1 className="studio-display" style={{ font: "900 26px/1.1 var(--f-display)", color: "var(--ink)", margin: 0 }}>
@@ -154,7 +154,7 @@ export function FiscalClient({
           Libros de Ventas y Compras en formato SENIAT, generados según la{" "}
           <strong style={{ color: "var(--ink)" }}>configuración fiscal</strong> de tu
           empresa.{" "}
-          <strong style={{ color: moduleOn ? "var(--success)" : "var(--ink-mute)" }}>
+          <strong style={{ color: moduleOn ? "var(--success)" : "var(--ink-soft)" }}>
             Módulo {moduleOn ? "activo" : "desactivado"}
           </strong>
           {moduleOn && (
@@ -1061,7 +1061,7 @@ function PrintLayout({
           #dtd-fiscal-print {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
+            --wine-text: #7F0F1A; /* SDD-0686: el eyebrow impreso usa --wine-text; se ancla al valor claro */
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             display: block !important;

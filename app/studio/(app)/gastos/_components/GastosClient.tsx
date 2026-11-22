@@ -414,7 +414,7 @@ export function AlertBanner({
               borderRadius: "var(--r-md)",
             }}
           >
-            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+            <code style={{ font: "800 12px/1 var(--f-mono)", color: "var(--ink)" }}>
               {a.shipment_code ?? "—"}
             </code>
             <span
@@ -595,13 +595,13 @@ function ExpenseRow({
             <code
               style={{
                 font: "700 11px/1 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
               }}
             >
               {shipmentCode}
             </code>
           ) : (
-            <span style={{ color: "var(--ink-mute)" }}>—</span>
+            <span style={{ color: "var(--ink-soft)" }}>—</span>
           )}
         </span>
       )}
@@ -617,7 +617,7 @@ function ExpenseRow({
       <span
         style={{
           font: "500 12.5px/1.3 var(--f-sans)",
-          color: row.note ? "var(--ink)" : "var(--ink-mute)",
+          color: row.note ? "var(--ink)" : "var(--ink-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -645,7 +645,7 @@ function ExpenseRow({
       <span
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: "var(--wine-text)",
+          color: "var(--ink)",
           textAlign: "right",
         }}
       >
@@ -658,7 +658,7 @@ function ExpenseRow({
       </span>
 
       {/* Recibo (indicador · link diferido a task export) */}
-      <span style={{ textAlign: "center", color: row.receipt_path || row.receipt_document_id ? "var(--ink-soft)" : "var(--ink-mute)" }}>
+      <span style={{ textAlign: "center", color: row.receipt_path || row.receipt_document_id ? "var(--ink-soft)" : "var(--ink-soft)" }}>
         {row.receipt_path || row.receipt_document_id ? Icon.camera(14) : "—"}
       </span>
 

@@ -252,12 +252,11 @@ function StatementDetail({
           value={kpis.reconciled}
           label="Conciliados"
           sub={`${kpis.reconciledPct}% del extracto`}
-          valueColor="var(--success)"
         />
         <KpiCard
           value={kpis.pending}
           label="Pendientes"
-          valueColor={kpis.pending > 0 ? "var(--warning)" : "var(--ink)"}
+          status={kpis.pending > 0 ? { tono: "warning", texto: "Pendiente" } : undefined}
           sub={kpis.pending > 0 ? "requieren acción" : "todos al día"}
         />
         <KpiCard
@@ -267,7 +266,7 @@ function StatementDetail({
               : `$${fmtAmount(Math.abs(balance.difference))}`
           }
           label="Tira de saldos"
-          valueColor={balance.balanced ? "var(--success)" : "var(--warning)"}
+          status={balance.balanced ? { tono: "success", texto: "Cuadrada" } : { tono: "warning", texto: "Descuadrada" }}
           sub={balance.balanced ? "cuadra" : "revisa el extracto"}
           highlightWhenPositive={false}
         />
@@ -297,7 +296,7 @@ function StatementDetail({
           label="Débitos"
           value={balance.totalDebit}
           sign="−"
-          color="var(--wine-soft)"
+          color="var(--ink)"
         />
         <BalanceCell label="Saldo final" value={statement.closing_balance} />
         <BalanceCell
@@ -385,7 +384,7 @@ function MovementRow({
             marginBottom: 4,
           }}
         >
-          <Badge tone={isCredit ? "success" : "wine"} size="sm">
+          <Badge tone={isCredit ? "success" : "neutral"} size="sm">
             {lineDirectionLabel(line.direction)}
           </Badge>
         </div>
@@ -407,7 +406,7 @@ function MovementRow({
             style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}
           >
             Sugerido:{" "}
-            <code style={{ color: "var(--wine-text)" }}>{suggestion.entry_code}</code>
+            <code style={{ color: "var(--ink)" }}>{suggestion.entry_code}</code>
           </span>
         ) : (
           <span

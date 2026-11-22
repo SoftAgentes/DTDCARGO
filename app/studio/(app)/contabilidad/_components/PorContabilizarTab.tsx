@@ -252,7 +252,7 @@ export function PorContabilizarTab({ cuadre }: { cuadre: CuadreDelLibro }) {
                   <tr key={`${h.tipo}:${h.codigo}`}>
                     <td style={td}>{ETIQUETA_TIPO[h.tipo]}</td>
                     <td style={{ ...td, font: "700 12px/1 var(--f-mono)", whiteSpace: "nowrap" }}>
-                      <a href={h.enlace} style={{ color: "var(--wine-text)" }}>
+                      <a href={h.enlace} style={{ color: "var(--accion-text)" }}>
                         {h.codigo}
                       </a>
                     </td>
@@ -291,7 +291,7 @@ export function PorContabilizarTab({ cuadre }: { cuadre: CuadreDelLibro }) {
                 .filter((a) => a.n > 0)
                 .map((a) => (
                   <li key={a.tipo} style={{ font: "600 12.5px/1.4 var(--f-sans)" }}>
-                    <a href={LISTADO_POR_TIPO[a.tipo]} style={{ color: "var(--wine-text)" }}>
+                    <a href={LISTADO_POR_TIPO[a.tipo]} style={{ color: "var(--accion-text)" }}>
                       {ETIQUETA_TIPO[a.tipo]}: {a.n}
                     </a>
                   </li>

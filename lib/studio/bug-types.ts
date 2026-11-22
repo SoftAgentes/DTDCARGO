@@ -201,7 +201,7 @@ export const BUG_CATEGORY_LABELS: Record<BugCategory, string> = {
 export const BUG_CATEGORY_TONES: Record<BugCategory, BadgeTone> = {
   error: "danger",
   improve: "info",
-  suggest: "wine",
+  suggest: "neutral",
   question: "neutral",
 };
 

@@ -146,9 +146,9 @@ function PuestoCard({ p, onEdit }: { p: Position; onEdit: (p: Position) => void 
         <div
           style={{
             font: "500 11.5px/1.45 var(--f-sans)",
-            color: "var(--wine-text)",
-            background: "var(--wine-tint)",
-            border: "1px solid var(--wine)",
+            color: "var(--ink)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
             borderRadius: "var(--r-sm)",
             padding: "8px 10px",
           }}

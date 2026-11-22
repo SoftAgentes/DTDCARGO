@@ -20,7 +20,7 @@ import { billingStatus, formatAnnualUsd } from "@/lib/shared/annual-billing";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useTransition } from "react";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { KpiCard, KpiEstado } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { Avatar, type AvatarColor } from "@/app/studio/_components/ui/Avatar";
@@ -56,7 +56,7 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "@/lib/studio/reports/builder-types";
-import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
+import { VolumeBars, Donut, Progress, HeaderRow, gradoDeTinta, type DonutSlice } from "./charts";
 import { BuilderView } from "./BuilderView";
 import { fmtUsd, fmtUsdCompact } from "@/lib/money";
 import { IngresoDelPeriodoCard } from "@/app/studio/(app)/contabilidad/_components/IngresoDelPeriodoCard";
@@ -392,13 +392,13 @@ export function ReportesClient({
                 padding: "0 var(--s-4)",
                 borderRadius: "var(--r-md)",
                 cursor: disabled ? "not-allowed" : active ? "default" : "pointer",
-                background: active ? "var(--wine)" : "var(--bg-surface)",
+                background: active ? "var(--ink)" : "var(--bg-surface)",
                 color: active
                   ? "var(--ink-inv)"
                   : disabled
                     ? "var(--ink-mute)"
                     : "var(--ink-soft)",
-                border: `1px solid ${active ? "var(--wine)" : "var(--border-strong)"}`,
+                border: `1px solid ${active ? "var(--ink)" : "var(--border-strong)"}`,
                 font: "600 13px/1 var(--f-sans)",
                 opacity: disabled ? 0.65 : 1,
               }}
@@ -412,7 +412,7 @@ export function ReportesClient({
                 <span
                   style={{
                     font: "700 10.5px/1 var(--f-mono)",
-                    color: active ? "var(--ink-inv)" : "var(--ink-mute)",
+                    color: active ? "var(--ink-inv)" : "var(--ink-soft)",
                   }}
                 >
                   {c.count}
@@ -543,7 +543,7 @@ function Card({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -586,9 +586,9 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtNum(overview.shipments)} label="Embarques" sub="en el período" />
         <KpiCard value={fmtNum(overview.cbm)} label="CBM movido" sub="metros cúbicos" />
-        <KpiCard value={fmtUsdCompact(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(overview.revenueUsd)} label="Revenue" sub="facturado · USD"  />
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
 
@@ -682,7 +682,7 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
                       {r.count} · {r.pct}%
                     </span>
                   </div>
-                  <Progress value={r.pct} tone="var(--wine)" height={8} />
+                  <Progress value={r.pct} tone="var(--ink)" height={8} />
                 </div>
               ))}
             </div>
@@ -796,10 +796,10 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
               </span>
             )}
             <div style={{ marginTop: 5 }}>
-              {(r.facturasSinTasa ?? 0) === 0 && <Progress value={(r.revenue / max) * 100} tone="var(--wine)" height={3} />}
+              {(r.facturasSinTasa ?? 0) === 0 && <Progress value={(r.revenue / max) * 100} tone="var(--ink)" height={3} />}
             </div>
           </div>
-          <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)", textAlign: "right" }}>
+          <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
             {(r.facturasSinTasa ?? 0) > 0 ? "—" : `$${r.rate}/CBM`}
           </span>
         </div>
@@ -844,7 +844,7 @@ function CarriersView({ carriers }: { carriers: CarrierRow[] }) {
           <div style={{ font: "900 14px/1.1 var(--f-display)", color: "var(--ink)" }}>
             {c.name}
           </div>
-          <Progress value={(c.bookings / maxBookings) * 100} tone="var(--wine)" height={8} />
+          <Progress value={(c.bookings / maxBookings) * 100} tone="var(--ink)" height={8} />
           <span style={{ font: "800 14px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
             {c.bookings}
           </span>
@@ -869,12 +869,12 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
     );
   }
 
-  // Paleta tokenizada para el donut (sin colores inventados).
-  const palette = ["var(--wine)", "var(--wine-soft)", "var(--ink)", "var(--ink-soft)"];
+  // Grados de tinta del donut y de las barras (SDD-0686): misma categoría,
+  // mismo grado en las dos tarjetas.
   const donut: DonutSlice[] = services.map((s, i) => ({
     label: s.label,
     value: s.count,
-    color: palette[i % palette.length],
+    color: gradoDeTinta(i, services.length),
   }));
   const maxRev = Math.max(1, ...services.map((s) => s.revenue));
 
@@ -896,7 +896,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
               </div>
               {(s.facturasSinTasa ?? 0) === 0 && <Progress
                 value={(s.revenue / maxRev) * 100}
-                tone={palette[i % palette.length]}
+                tone={gradoDeTinta(i, services.length)}
                 height={10}
               />}
               <div style={{ marginTop: 5, font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -941,7 +941,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine-text)" />
+        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" />
         <KpiCard value={fmtNum(ranked.filter((r) => r.billing.state === "completo" && r.billing.subtotalUsd !== "0.00").length)} label="Facturación verificable" sub="últimos 12 meses" />
         <KpiCard value={formatAnnualUsd(data.billing.subtotalUsd)} label={data.billing.state === "completo" ? "Facturado" : "Subtotal conocido"} sub={billingStatus(data.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
@@ -1005,7 +1005,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                       {formatAnnualUsd(r.billing.subtotalUsd)}
                     </span>
                     <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
-                    {r.billedUsd !== null && <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />}
+                    {r.billedUsd !== null && <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--ink)" height={3} />}
                   </div>
                 </div>
               ))}
@@ -1027,7 +1027,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
                     {t.count} · {t.pct}%
                   </span>
                 </div>
-                <Progress value={t.pct} tone="var(--wine)" height={8} />
+                <Progress value={t.pct} tone="var(--ink)" height={8} />
               </div>
             ))}
           </div>
@@ -1050,7 +1050,7 @@ function ByClientView({ data }: { data: CommercialByClient }) {
 // ERP. El "revenue" es plata real (trailing 12m) de los clientes convertidos por
 // el asesor — no el price de Kommo ni un mock. NPS/tickets del Norte se omiten
 // (sin fuente real).
-const AGENT_AVATAR_COLORS: AvatarColor[] = ["wine", "info", "success", "warning", "neutral"];
+const AGENT_AVATAR_COLORS: AvatarColor[] = ["info", "success", "warning", "neutral"];
 
 function agentInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -1095,8 +1095,8 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`} valueColor="var(--success)" />
+        <KpiCard value={fmtNum(t.leads)} label="Estimados" sub="leads asignados" />
+        <KpiCard value={fmtNum(t.won)} label="Ganadas" sub={`${t.convPct}% conv. promedio`}  />
         <KpiCard value={t.clients === null ? "—" : fmtNum(t.clients)} label="Convertidos" sub="a cliente del ERP" />
         <KpiCard value={formatAnnualUsd(t.billing.subtotalUsd)} label="Facturación atribuida" sub={billingStatus(t.billing)} style={{ overflowWrap: "anywhere" }} />
       </div>
@@ -1145,7 +1145,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
               style={{
                 font: "700 13px/1 var(--f-mono)",
                 textAlign: "right",
-                color: r.convPct >= 40 ? "var(--success)" : r.convPct > 0 ? "var(--warning)" : "var(--ink-mute)",
+                color: r.convPct >= 40 ? "var(--success)" : r.convPct > 0 ? "var(--warning)" : "var(--ink-soft)",
               }}
             >
               {r.convPct}%
@@ -1155,7 +1155,7 @@ function ByAgentView({ data }: { data: CommercialByAgent }) {
                 {formatAnnualUsd(r.billing.subtotalUsd)}
               </span>
               <div style={{ marginTop: 5, font: "500 11px/1.4 var(--f-sans)" }}>{billingStatus(r.billing)}</div>
-              {r.revenueUsd !== null && <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--wine)" height={3} />}
+              {r.revenueUsd !== null && <Progress value={(r.revenueUsd / maxRev) * 100} tone="var(--ink)" height={3} />}
             </div>
           </div>
         ))}
@@ -1196,9 +1196,9 @@ function RepurchaseView({ data }: { data: RepurchaseReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.overdueCount)} label={`Vencidos (≥${data.overdueDays}d)`} sub="recompra perdida" valueColor="var(--danger)" />
-        <KpiCard value={fmtNum(data.windowCount)} label={`En ventana (${data.windowDays}–${data.overdueDays}d)`} sub="contactar ya" valueColor="var(--wine-text)" />
-        <KpiCard value={fmtNum(data.activeCount)} label="En curso" sub="con embarque activo" valueColor="var(--success)" />
+        <KpiCard value={fmtNum(data.overdueCount)} label={`Vencidos (≥${data.overdueDays}d)`} sub="recompra perdida" status={data.overdueCount > 0 ? { tono: "danger", texto: "Requiere acción" } : undefined} />
+        <KpiCard value={fmtNum(data.windowCount)} label={`En ventana (${data.windowDays}–${data.overdueDays}d)`} sub="contactar ya" status={data.windowCount > 0 ? { tono: "warning", texto: "Requiere atención" } : undefined} />
+        <KpiCard value={fmtNum(data.activeCount)} label="En curso" sub="con embarque activo"  />
         <KpiCard value={fmtNum(data.totalWithHistory)} label="Con historial" sub="al menos 1 embarque" />
       </div>
 
@@ -1245,7 +1245,7 @@ function RepurchaseView({ data }: { data: RepurchaseReport }) {
                 style={{
                   font: "800 13px/1 var(--f-mono)",
                   textAlign: "right",
-                  color: r.bucket === "overdue" ? "var(--danger)" : "var(--wine-text)",
+                  color: r.bucket === "overdue" ? "var(--danger)" : "var(--ink)",
                 }}
               >
                 {fmtNum(r.daysSince)}
@@ -1300,19 +1300,19 @@ function PipelineView({ data }: { data: PipelineReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} valueColor="var(--wine-text)" />
+        <KpiCard value={fmtNum(data.openCbm)} label="CBM en pipeline" sub={`${fmtNum(data.openCount)} estimados abiertos`} />
         <KpiCard value={fmtUsdCompact(data.openUsd)} label="USD en pipeline" sub="borrador + enviadas" />
         <KpiCard
           value={`${data.pctOfTarget}%`}
           label="De la meta"
           sub={`${fmtNum(data.avgMonthlyOpenCbm)} vs ${data.monthlyTargetCbm} CBM/mes`}
-          valueColor={data.pctOfTarget >= 100 ? "var(--success)" : "var(--wine-text)"}
+          status={data.monthlyTargetCbm > 0 ? (data.pctOfTarget >= 100 ? { tono: "success", texto: "Meta cumplida" } : { tono: "warning", texto: "Bajo la meta" }) : undefined}
         />
-        <KpiCard value={fmtUsdCompact(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`} valueColor="var(--success)" />
+        <KpiCard value={fmtUsdCompact(data.wonUsd)} label="Aceptado" sub={`${fmtNum(data.wonCount)} en el período`}  />
       </div>
 
       <Card eyebrow="Avance vs meta" title={`${fmtNum(data.avgMonthlyOpenCbm)} de ${data.monthlyTargetCbm} CBM/mes`}>
-        <Progress value={pct} tone={data.pctOfTarget >= 100 ? "var(--success)" : "var(--wine)"} height={12} />
+        <Progress value={pct} tone={data.pctOfTarget >= 100 ? "var(--success)" : "var(--ink)"} height={12} />
         <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "12px 0 0" }}>
           Pipeline abierto de {fmtNum(data.avgMonthlyOpenCbm)} CBM/mes en promedio sobre {data.months}{" "}
           {data.months === 1 ? "mes" : "meses"} del período, contra la meta de {data.monthlyTargetCbm}{" "}
@@ -1345,7 +1345,7 @@ function PipelineView({ data }: { data: PipelineReport }) {
                 {s.label}
               </Badge>
               {s.open && (
-                <span style={{ font: "600 10px/1 var(--f-sans)", color: "var(--wine-text)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <span style={{ font: "600 10px/1 var(--f-sans)", color: "var(--ink-soft)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   abierto
                 </span>
               )}
@@ -1359,7 +1359,7 @@ function PipelineView({ data }: { data: PipelineReport }) {
             <div>
               <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>{fmtUsdCompact(s.usd)}</span>
               <div style={{ marginTop: 5 }}>
-                <Progress value={(s.usd / maxUsd) * 100} tone="var(--wine)" height={3} />
+                <Progress value={(s.usd / maxUsd) * 100} tone="var(--ink)" height={3} />
               </div>
             </div>
           </div>
@@ -1502,12 +1502,14 @@ function AgingView({ aging }: { aging: AgingReport }) {
           title="Antigüedad de CxC"
           side={aging.cxc}
           emptyLabel="Sin saldos por cobrar."
+          estadoVencido="Requiere cobro"
         />
         <AgingSideCard
           eyebrow="Cuentas por pagar"
           title="Antigüedad de CxP"
           side={aging.cxp}
           emptyLabel="Sin saldos por pagar."
+          estadoVencido="Requiere pago"
         />
       </div>
       <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
@@ -1529,11 +1531,14 @@ function AgingSideCard({
   title,
   side,
   emptyLabel,
+  estadoVencido,
 }: {
   eyebrow: string;
   title: string;
   side: AgingSide;
   emptyLabel: string;
+  /** Palabra del estado del vencido (la cifra va en tinta, SDD-0686). */
+  estadoVencido: string;
 }) {
   // Tono por tramo: escala semántica del sistema (corriente neutro → atención →
   // alarma), no un color por tramo inventado.
@@ -1565,7 +1570,7 @@ function AgingSideCard({
               <div
                 style={{
                   font: "800 18px/1 var(--f-mono)",
-                  color: side.overdue > 0 ? "var(--danger)" : "var(--ink-soft)",
+                  color: "var(--ink)",
                 }}
               >
                 {fmtUsd(side.overdue)}
@@ -1573,6 +1578,11 @@ function AgingSideCard({
               <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
                 Vencido
               </div>
+              {side.overdue > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <KpiEstado status={{ tono: "danger", texto: estadoVencido }} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1632,14 +1642,13 @@ function IvaView({ iva }: { iva: IvaPosition }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsd(iva.debito)} label="Débito fiscal" sub="IVA en ventas" valueColor="var(--success)" />
-        <KpiCard value={fmtUsd(iva.credito)} label="Crédito fiscal" sub="IVA en compras" valueColor="var(--warning)" />
+        <KpiCard value={fmtUsd(iva.debito)} label="Débito fiscal" sub="IVA en ventas"  />
+        <KpiCard value={fmtUsd(iva.credito)} label="Crédito fiscal" sub="IVA en compras"  />
         <KpiCard value={fmtUsd(iva.cuota)} label="Cuota tributaria" sub="débito − crédito" />
         <KpiCard
           value={fmtUsd(outcomeValue)}
           label={aPagar ? "IVA a pagar" : "Excedente a favor"}
           sub={aPagar ? "luego de retenciones" : "crédito trasladable"}
-          valueColor={aPagar ? "var(--wine-text)" : "var(--success)"}
         />
       </div>
 
@@ -1773,10 +1782,10 @@ export function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
-        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} valueColor="var(--ink)" />
+        <KpiCard value={fmtUsdCompact(cashflow.totalBilled)} label={ROTULO_FACTURADO_CON_IVA} sub={(cashflow.facturasSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} />
+        <KpiCard value={fmtUsdCompact(cashflow.totalCollected)} label="Cobrado" sub={(cashflow.recibosSinTasa ?? 0) > 0 ? "subtotal conocido del período" : "en el período"} />
         <KpiCard value={fmtUsdCompact(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
-        <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
+        <KpiCard value={fmtUsdCompact(cashflow.overdue)} label="Vencido" sub="saldo vivo" status={cashflow.overdue > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined} />
       </div>
 
       <Card eyebrow="Facturado contra cobrado" title="Serie mensual · USD">
@@ -1842,8 +1851,8 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
           return (
             <g key={p.month}>
               <title>{`${p.label}: facturado ${fmtUsd(p.billed)}, cobrado ${fmtUsd(p.collected)}${(p.facturasSinTasa ?? 0) + (p.recibosSinTasa ?? 0) > 0 ? ` · subtotales conocidos · ${p.facturasSinTasa ?? 0} factura(s) y ${p.recibosSinTasa ?? 0} recibo(s) sin tasa` : ""}`}</title>
-              <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--wine)" rx="2" />
-              <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
+              <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--ink)" rx="2" />
+              <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="color-mix(in srgb, var(--ink) 50%, var(--bg-surface))" rx="2" />
               <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle">
                 {p.label}
               </text>
@@ -1852,8 +1861,9 @@ function CashflowChart({ series }: { series: CashflowReport["series"] }) {
         })}
       </svg>
       <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
-        <LegendDot color="var(--wine)" label={ROTULO_FACTURADO_CON_IVA} />
-        <LegendDot color="var(--success)" label="Cobrado" />
+        <LegendDot color="var(--ink)" label={ROTULO_FACTURADO_CON_IVA} />
+        {/* Cobrado en tinta al 50 % (3,25:1 en claro y 4,36:1 en oscuro): gráficas en tinta (Sam). */}
+        <LegendDot color="color-mix(in srgb, var(--ink) 50%, var(--bg-surface))" label="Cobrado" />
       </div>
     </div>
   );
@@ -1926,9 +1936,9 @@ function CombinedKpis({ combined }: { combined: CombinedReport }) {
           gap: 14,
         }}
       >
-        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" valueColor="var(--ink)" />
-        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
-        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} valueColor={t.sinTasa > 0 ? "var(--ink)" : "var(--wine-text)"} />
+        <KpiCard value={fmtUsdCompact(t.revenue)} label={t.sinTasa > 0 ? "Ingreso · subtotal conocido" : "Ingreso"} sub="facturado · USD" />
+        <KpiCard value={fmtUsdCompact(t.cost)} label="Costo directo" sub={t.sinTasa > 0 ? "costo conocido · USD" : `${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`}  />
+        <KpiCard value={t.sinTasa > 0 ? "—" : fmtUsd(t.margin)} label="Margen bruto" sub={t.sinTasa > 0 ? "Conversión incompleta" : `${fmtPct(t.avgMarginPct)} margen`} />
         <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
       </div>
       <ConversionNote count={t.sinTasa} unit="embarque" />
@@ -2148,7 +2158,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
                 {!incomplete && <div style={{ flex: 1 }}>
                   <Progress
                     value={(Math.max(0, m) / maxMargin) * 100}
-                    tone={m < 0 ? "var(--danger)" : "var(--wine)"}
+                    tone={m < 0 ? "var(--danger)" : "var(--ink)"}
                     height={8}
                   />
                 </div>}

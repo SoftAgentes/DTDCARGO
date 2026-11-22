@@ -52,7 +52,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
-        <Avatar initials={initialsFrom(d.name)} size={44} color="wine" />
+        <Avatar initials={initialsFrom(d.name)} size={44} color="neutral" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             className="studio-display"
@@ -91,7 +91,7 @@ function DriverCard({ driver: d }: { driver: TmsDriver }) {
         <div style={{ textAlign: "right" }}>
           <div
             className="studio-display"
-            style={{ fontSize: 16, color: "var(--wine-text)" }}
+            style={{ fontSize: 16, color: "var(--ink)" }}
           >
             {d.rating != null ? `★ ${d.rating.toFixed(1)}` : "—"}
           </div>
@@ -173,7 +173,7 @@ function Stat({
       <div
         style={{
           font: `${mono ? "700" : "600"} 12.5px/1.3 ${mono ? "var(--f-mono)" : "var(--f-sans)"}`,
-          color: accent ? "var(--ink)" : "var(--ink)",
+          color: "var(--ink)",
           marginTop: 5,
           overflow: "hidden",
           textOverflow: "ellipsis",

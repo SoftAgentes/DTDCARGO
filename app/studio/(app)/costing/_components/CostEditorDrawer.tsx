@@ -117,7 +117,7 @@ export function CostEditorDrawer({
           <HeaderMetric
             label="Margen"
             value={fmtUsd(eco.margin)}
-            color={eco.margin < 0 ? "var(--wine-soft)" : "var(--success)"}
+            color={eco.margin < 0 ? "var(--color-status-danger-on-dark)" : "var(--success)"}
             extra={`${eco.marginPct.toFixed(1)}%`}
           />
         </div>

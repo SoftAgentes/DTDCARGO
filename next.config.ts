@@ -673,6 +673,11 @@ const nextConfig: NextConfig = {
       // string, así que los deep-links `?tab=…&pipeline=…` siguen sirviendo.
       { source: "/studio/kommo", destination: "/studio/crm", permanent: true },
       { source: "/studio/leads", destination: "/studio/crm", permanent: true },
+      // SDD-0626 · la oficina de agentes se llama «Oficina_Virtual» (Sam, 2026-11-20): `/studio/admin/oficina` se
+      // mudó a `/studio/admin/oficina-virtual`. 308 permanente, con sus subrutas (`/vista`) y el query string
+      // (`?r=…` del aviso), para no romper el enlace de los avisos de Discord ya enviados ni los marcadores.
+      { source: "/studio/admin/oficina", destination: "/studio/admin/oficina-virtual", permanent: true },
+      { source: "/studio/admin/oficina/:path*", destination: "/studio/admin/oficina-virtual/:path*", permanent: true },
       // SDD-0276: el login del portal se mudó a `/entrar`, la puerta única del
       // sitio público. 301 permanente para no romper los correos de bienvenida
       // e invitación ya enviados; Next preserva el query string, así que los

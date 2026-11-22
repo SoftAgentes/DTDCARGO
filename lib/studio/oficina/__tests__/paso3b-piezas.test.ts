@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { TarjetaBorrador } from "@/app/studio/(app)/admin/oficina/_components/TarjetaBorrador";
+import { TarjetaBorrador } from "@/app/studio/(app)/admin/oficina-virtual/_components/TarjetaBorrador";
 
 import { avisoDePendientes } from "../aviso-pendientes";
 import { enlacesAjenos, revisarRespuesta } from "../eval-automatico";
@@ -86,11 +86,11 @@ describe("el aviso de Discord dice cuántos, nunca el texto (D4)", () => {
   it("solo el número y el enlace", () => {
     const a = avisoDePendientes(3, "https://prueba.dtdcargo.com/");
     expect(a).toEqual({
-      titulo: "Oficina: hay 3 borradores pendientes de revisión",
-      url: "https://prueba.dtdcargo.com/studio/admin/oficina",
+      titulo: "Oficina_Virtual: hay 3 borradores pendientes de revisión",
+      url: "https://prueba.dtdcargo.com/studio/admin/oficina-virtual",
       conteos: [{ etiqueta: "Pendientes", valor: 3 }],
     });
-    expect(avisoDePendientes(1, undefined).titulo).toBe("Oficina: hay 1 borrador pendiente de revisión");
+    expect(avisoDePendientes(1, undefined).titulo).toBe("Oficina_Virtual: hay 1 borrador pendiente de revisión");
     expect(Object.keys(a).sort()).toEqual(["conteos", "titulo", "url"]);
   });
 });
@@ -166,14 +166,14 @@ describe("la página de revisión muestra el borrador como texto plano (D4)", ()
 
   it("ningún archivo de la página usa dangerouslySetInnerHTML", () => {
     for (const f of ["page.tsx", "_components/TarjetaBorrador.tsx", "_components/TarjetaCierre.tsx", "layout.tsx", "actions.ts"]) {
-      expect(readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina", f), "utf8")).not.toMatch(/dangerouslySetInnerHTML\s*=|from ["'][^"']*(?:marked|markdown|remark|rehype)/i);
+      expect(readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual", f), "utf8")).not.toMatch(/dangerouslySetInnerHTML\s*=|from ["'][^"']*(?:marked|markdown|remark|rehype)/i);
     }
   });
 
   it("la página es solo para is_platform_admin (el layout corta con notFound)", () => {
-    const layout = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/layout.tsx"), "utf8");
+    const layout = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/layout.tsx"), "utf8");
     expect(layout).toMatch(/if \(!\(await isPlatformAdmin\(await createClient\(\)\)\)\) notFound\(\);/);
-    const acciones = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina/actions.ts"), "utf8");
+    const acciones = readFileSync(resolve(ROOT, "app/studio/(app)/admin/oficina-virtual/actions.ts"), "utf8");
     expect(acciones).toMatch(/platformAdminDenial\(supabase\)/);
   });
 });

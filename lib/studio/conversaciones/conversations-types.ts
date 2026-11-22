@@ -144,7 +144,7 @@ export const CHANNEL_LABELS: Record<ConversationChannel, string> = {
 export const CHANNEL_TONES: Record<ConversationChannel, BadgeTone> = {
   whatsapp: "success",
   email: "info",
-  portal: "wine",
+  portal: "neutral",
 };
 
 export const STATUS_LABELS: Record<ConversationStatus, string> = {

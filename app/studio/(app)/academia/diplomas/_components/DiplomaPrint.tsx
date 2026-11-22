@@ -354,7 +354,7 @@ function DiplomaStyles() {
 .dpl-qrwrap { display: flex; align-items: center; gap: 12px; }
 .dpl-qr { width: 78px; height: 78px; background: #fff; padding: 6px; border-radius: var(--r-sm); border: 1px solid var(--border); flex: 0 0 auto; box-sizing: border-box; }
 .dpl-qr svg { display: block; width: 100%; height: 100%; }
-.dpl-qr-faux { width: 100%; height: 100%; display: grid; place-items: center; font: 700 16px/1 var(--f-mono); color: var(--ink-mute); background: repeating-conic-gradient(var(--border) 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
+.dpl-qr-faux { width: 100%; height: 100%; display: grid; place-items: center; font: 700 16px/1 var(--f-mono); color: var(--ink-soft); background: repeating-conic-gradient(var(--border) 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
 .dpl-qr-cap { display: flex; flex-direction: column; gap: 3px; }
 .dpl-qr-l { font: 600 9px/1.25 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); max-width: 96px; }
 .dpl-qr-f { font: 600 13px/1 var(--f-mono); color: var(--wine-text); }

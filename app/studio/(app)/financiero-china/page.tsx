@@ -31,7 +31,7 @@ import { getPartnerFinanceHealth } from "@/lib/studio/partner-finance/posting-he
 import { FinancieroChinaClient } from "./_components/FinancieroChinaClient";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Financiero China · DTD Studio" };
+export const metadata = { title: "Financiero China" };
 export const dynamic = "force-dynamic";
 
 export default async function FinancieroChinaPage() {

@@ -109,7 +109,7 @@ export function ReclamosTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -224,7 +224,7 @@ export function ReclamosTab({
               <code
                 style={{
                   font: "700 12px/1.2 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 {c.claim_code}
@@ -257,7 +257,7 @@ export function ReclamosTab({
               <span
                 style={{
                   font: "600 12px/1 var(--f-mono)",
-                  color: c.amount_usd > 0 ? "var(--ink)" : "var(--ink-mute)",
+                  color: c.amount_usd > 0 ? "var(--ink)" : "var(--ink-soft)",
                   textAlign: "right",
                   display: "block",
                 }}

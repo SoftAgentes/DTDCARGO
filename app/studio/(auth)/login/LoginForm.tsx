@@ -49,7 +49,7 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
             margin: "12px 0 32px",
           }}
         >
-          Entra al <span style={{ color: "#C2747F" }}>Studio</span>.
+          Entra al Studio.
         </h1>
 
         {/* Acuse de "ya creaste tu contraseña" (SDD-0250). Sin esto, quien viene
@@ -121,7 +121,7 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
                   background: "transparent",
                   border: 0,
                   padding: 6,
-                  color: showPassword ? "#C2747F" : "rgba(255, 255, 255, 0.45)",
+                  color: showPassword ? "var(--accion-soft)" : "rgba(255, 255, 255, 0.6)",
                   cursor: "pointer",
                   display: "grid",
                   placeItems: "center",
@@ -191,7 +191,8 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
             paddingTop: 20,
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
             font: "500 11.5px/1.5 Archivo, sans-serif",
-            color: "rgba(255, 255, 255, 0.45)",
+            // 0,6 da 6,26:1 sobre la tarjeta #16264A (0,45 daba 4,17:1).
+            color: "rgba(255, 255, 255, 0.6)",
             textAlign: "center",
           }}
         >
@@ -200,7 +201,7 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
           ¿Olvidaste tu contraseña?{" "}
           <Link
             href="/studio/login/recuperar"
-            style={{ color: "#C2747F", textDecoration: "none" }}
+            style={{ color: "var(--accion-soft)", textDecoration: "underline" }}
           >
             Recupérala acá
           </Link>

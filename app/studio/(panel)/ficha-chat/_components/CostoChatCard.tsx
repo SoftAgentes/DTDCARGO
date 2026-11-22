@@ -38,7 +38,7 @@ export function CostoChatCard({ costo }: { costo: CostoChat }) {
       </p>
       <p style={NOTA}>
         {t("bandeja.ficha.costo.fuente", { mercado: costo.mercado, fecha: fechaCorta(costo.vigenteDesde) })}{" "}
-        <a href={costo.fuente} target="_blank" rel="noopener noreferrer" style={{ color: "var(--wine-text)" }}>
+        <a href={costo.fuente} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accion-text)" }}>
           {t("bandeja.ficha.costo.fuente_link")}
         </a>
       </p>

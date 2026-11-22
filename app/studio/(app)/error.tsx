@@ -72,7 +72,7 @@ export default function StudioModuleError({
         <code
           style={{
             font: `500 11.5px/1.4 var(--f-mono)`,
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
             padding: "var(--s-2) var(--s-3)",
             background: "var(--bg-base)",
             border: "1px solid var(--border)",

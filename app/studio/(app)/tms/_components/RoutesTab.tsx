@@ -126,7 +126,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
           <code
             style={{
               font: "700 11.5px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {r.shipment?.code ?? "—"}
@@ -143,7 +143,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             }}
           >
             {r.stops.length === 0 ? (
-              <span style={{ color: "var(--ink-mute)" }}>—</span>
+              <span style={{ color: "var(--ink-soft)" }}>—</span>
             ) : (
               r.stops.map((s, j) => (
                 <span
@@ -157,7 +157,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                   }}
                 >
                   {j > 0 && (
-                    <span style={{ color: "var(--wine-text)", fontWeight: 700 }}>
+                    <span style={{ color: "var(--ink-soft)", fontWeight: 700 }}>
                       →
                     </span>
                   )}
@@ -182,7 +182,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
             className="mono"
             style={{
               font: "700 12px/1 var(--f-mono)",
-              color: r.distance_km != null ? "var(--ink-soft)" : "var(--ink-mute)",
+              color: r.distance_km != null ? "var(--ink-soft)" : "var(--ink-soft)",
               textAlign: "right",
             }}
           >
@@ -204,7 +204,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                   width: `${r.progress_pct}%`,
                   height: "100%",
                   background:
-                    r.progress_pct === 100 ? "var(--success)" : "var(--wine)",
+                    r.progress_pct === 100 ? "var(--success)" : "var(--ink)",
                   borderRadius: "var(--r-pill)",
                   transition: "width var(--dur) var(--ease)",
                 }}
@@ -238,7 +238,7 @@ export function RoutesTab({ rows }: { rows: TmsRouteRow[] }) {
                 Completar
               </button>
             ) : (
-              <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>
+              <span aria-hidden="true" style={{ color: "var(--ink-soft)" }}>
                 —
               </span>
             )}

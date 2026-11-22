@@ -324,7 +324,7 @@ function FilterCard({
 }) {
   const rows: { k: keyof Filters; label: string; dot: string }[] = [
     { k: "zarpe", label: "Zarpes · ETD", dot: "var(--info)" },
-    { k: "arribo", label: "Arribos · ETA", dot: "var(--wine)" },
+    { k: "arribo", label: "Arribos · ETA", dot: "var(--ink-soft)" },
     { k: "entrega", label: "Entregas · POD", dot: "var(--success)" },
     { k: "tarea", label: "Tareas de Bitácora", dot: "var(--ink-soft)" },
     { k: "feriado", label: "Feriados CN / VE", dot: "var(--ink-soft)" },
@@ -340,7 +340,7 @@ function FilterCard({
         padding: "var(--s-5)",
       }}
     >
-      <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}>
+      <div className="studio-eyebrow" style={{ marginBottom: "var(--s-3)" }}>
         Filtros
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -361,7 +361,7 @@ function FilterCard({
               type="checkbox"
               checked={filters[r.k]}
               onChange={(e) => setFilters({ ...filters, [r.k]: e.target.checked })}
-              style={{ accentColor: "var(--wine)", width: 14, height: 14, flexShrink: 0 }}
+              style={{ accentColor: "var(--accion)", width: 14, height: 14, flexShrink: 0 }}
             />
             <span
               aria-hidden

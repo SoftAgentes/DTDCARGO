@@ -218,7 +218,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="stmt-account">
-                Cuenta banco / caja <span style={{ color: "var(--wine-text)" }}>*</span>
+                Cuenta banco / caja <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <select
                 id="stmt-account"
@@ -239,7 +239,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
             </div>
             <div>
               <label className="studio-label" htmlFor="stmt-period">
-                Período (YYYY-MM) <span style={{ color: "var(--wine-text)" }}>*</span>
+                Período (YYYY-MM) <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <DateField
                 id="stmt-period"
@@ -399,7 +399,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
                       border: "1px solid var(--border)",
                       background: "var(--bg-surface)",
                       color:
-                        lines.length <= 1 ? "var(--ink-mute)" : "var(--danger)",
+                        lines.length <= 1 ? "var(--ink-soft)" : "var(--danger)",
                       cursor: lines.length <= 1 ? "not-allowed" : "pointer",
                     }}
                   >
@@ -432,7 +432,7 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
           >
             <SaldoRow label="Saldo inicial" value={Number(opening) || 0} />
             <SaldoRow label="+ Créditos" value={balance.totalCredit} color="var(--success)" />
-            <SaldoRow label="− Débitos" value={balance.totalDebit} color="var(--wine-soft)" />
+            <SaldoRow label="− Débitos" value={balance.totalDebit} color="var(--ink-side)" />
             <div style={{ height: 1, background: "var(--ink-side-soft)" }} />
             <SaldoRow label="Saldo final esperado" value={balance.expectedClosing} />
             <div

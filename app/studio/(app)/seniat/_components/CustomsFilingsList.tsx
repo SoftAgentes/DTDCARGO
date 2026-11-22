@@ -117,7 +117,7 @@ function FilingRow({
         <code
           style={{
             font: "800 12px/1 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             letterSpacing: "0.02em",
           }}
         >

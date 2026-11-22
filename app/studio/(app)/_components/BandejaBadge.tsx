@@ -30,10 +30,10 @@ export function BandejaBadge({ tenantId, initial }: { tenantId: string; initial:
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 9,
-        background: "var(--wine)",
-        // Sobre vino (oscuro en los dos temas) va la tinta «side», blanca en
-        // ambos; la invertida da 2,51 en Oscuro (dark-theme-contrast-contract).
-        color: "var(--ink-side-strong)",
+        // Contador de pendientes, no acción ni identidad (BD-076): pastilla blanca
+        // con tinta fija sobre el menú navy, como la selección del menú (SDD-0603).
+        background: "var(--ink-side-strong)",
+        color: "var(--on-warning)",
         font: "800 10px/1 var(--f-mono)",
         flexShrink: 0,
       }}

@@ -169,7 +169,7 @@ export function NotificationsClient({
         <p
           style={{
             font: "400 12px/1.5 var(--font-sans, 'Archivo')",
-            color: "var(--ink-mute, var(--ink-soft))",
+            color: "var(--ink-soft)",
             margin: 0,
             maxWidth: 720,
           }}
@@ -201,7 +201,7 @@ export function NotificationsClient({
             <p
               style={{
                 font: "400 12px/1.5 var(--font-sans, 'Archivo')",
-                color: "var(--ink-mute, var(--ink-soft))",
+                color: "var(--ink-soft)",
                 margin: "var(--s-2) 0 0",
                 maxWidth: 720,
               }}
@@ -216,7 +216,7 @@ export function NotificationsClient({
                   title={ev.hint}
                   style={{
                     font: "500 11.5px/1 var(--font-sans, 'Archivo')",
-                    color: "var(--ink-mute, var(--ink-soft))",
+                    color: "var(--ink-soft)",
                     background: "transparent",
                     border: "1px dashed var(--border-strong)",
                     borderRadius: 999,
@@ -254,7 +254,7 @@ function ScopeSwitcher({
       >
         Por defecto (todos)
       </button>
-      <span style={{ color: "var(--ink-mute, var(--ink-soft))", font: "500 12px/1 var(--font-sans)" }}>
+      <span style={{ color: "var(--ink-soft)", font: "500 12px/1 var(--font-sans)" }}>
         o override para un cliente:
       </span>
       <select
@@ -595,9 +595,9 @@ const selectStyle: React.CSSProperties = {
 function pillStyle(activePill: boolean): React.CSSProperties {
   return {
     font: "600 12px/1 var(--font-sans, 'Archivo')",
-    color: activePill ? "#fff" : "var(--ink)",
-    background: activePill ? "var(--wine)" : "var(--bg-surface)",
-    border: `1px solid ${activePill ? "var(--wine)" : "var(--border-strong)"}`,
+    color: activePill ? "var(--ink-inv)" : "var(--ink)",
+    background: activePill ? "var(--ink)" : "var(--bg-surface)",
+    border: `1px solid ${activePill ? "var(--ink)" : "var(--border-strong)"}`,
     borderRadius: 999,
     padding: "8px 14px",
     cursor: "pointer",
@@ -606,9 +606,9 @@ function pillStyle(activePill: boolean): React.CSSProperties {
 function primaryBtn(pending: boolean): React.CSSProperties {
   return {
     font: "600 12.5px/1 var(--font-sans, 'Archivo')",
-    color: "#fff",
-    background: "var(--wine)",
-    border: "1px solid var(--wine)",
+    color: "var(--on-accion)",
+    background: "var(--accion)",
+    border: "1px solid var(--accion)",
     borderRadius: 8,
     padding: "9px 16px",
     cursor: pending ? "wait" : "pointer",

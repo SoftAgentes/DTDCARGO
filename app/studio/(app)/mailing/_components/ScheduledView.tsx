@@ -94,7 +94,6 @@ export function ScheduledView({ scheduled }: Props) {
         <KpiCard
           value={queuedCount}
           label="En cola"
-          valueColor={queuedCount > 0 ? "var(--wine-text)" : "var(--ink)"}
         />
         <KpiCard value={scheduled.length} label="Programados (total)" />
       </div>
@@ -112,7 +111,7 @@ export function ScheduledView({ scheduled }: Props) {
             padding: "14px 18px",
             borderBottom: "1px solid var(--border)",
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -140,8 +139,8 @@ export function ScheduledView({ scheduled }: Props) {
                   width: 36,
                   height: 36,
                   borderRadius: "var(--r-md)",
-                  background: "var(--wine-tint)",
-                  color: "var(--wine-text)",
+                  background: "var(--bg-elevated)",
+                  color: "var(--ink)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

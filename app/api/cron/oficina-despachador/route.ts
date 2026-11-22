@@ -24,7 +24,7 @@ import { leerConversacion } from "@/lib/studio/oficina/chatwoot-lectura";
 import { correrTanda } from "@/lib/studio/oficina/despachador";
 import { crearAlmacenDespachador } from "@/lib/studio/oficina/despachador-almacen";
 import { configDespachador } from "@/lib/studio/oficina/despachador-config";
-import { borrarSesion, llamarAgente } from "@/lib/studio/oficina/runtime-cliente";
+import { borrarSesion, leerModeloDeSesion, llamarAgente } from "@/lib/studio/oficina/runtime-cliente";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 290;
@@ -55,6 +55,8 @@ export async function GET(req: NextRequest) {
         leer: (conversacionId, signal) => leerConversacion({ ...chatwoot, conversacionId, signal }),
         llamar: (o) => llamarAgente({ ...o, url: runtime.url, token: runtime.token }),
         borrarSesion: (sesionId) => borrarSesion({ url: runtime.url, token: runtime.token, sesionId }),
+        // SDD-0702 · modelo real: Hermes v0.23.1 solo lo dice en la sesión; se lee antes del borrado.
+        modeloDeSesion: (sesionId) => leerModeloDeSesion({ url: runtime.url, token: runtime.token, sesionId }),
       },
       { duracionMs: DURACION_TANDA_MS },
     );

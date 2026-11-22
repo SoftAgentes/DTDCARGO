@@ -174,7 +174,7 @@ export function ResetPinDrawer({
         ) : (
           <div>
             <label htmlFor="reset-pin" className="studio-label">
-              PIN nuevo <span style={{ color: "var(--wine-text)" }}>*</span>
+              PIN nuevo <span style={{ color: "var(--ink-soft)" }}>*</span>
             </label>
             <input
               id="reset-pin"

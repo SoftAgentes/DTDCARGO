@@ -687,7 +687,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
           style={{
             width: `${completeness.pct}%`,
             height: "100%",
-            background: completeness.isComplete ? "var(--success)" : "var(--wine)",
+            background: completeness.isComplete ? "var(--success)" : "var(--ink)",
           }}
         />
       </div>
@@ -712,7 +712,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
                 display: "grid",
                 placeItems: "center",
                 borderRadius: 999,
-                color: item.done ? "var(--ink-inv)" : "var(--ink-mute)",
+                color: item.done ? "var(--ink-inv)" : "var(--ink-soft)",
                 background: item.done ? "var(--success)" : "transparent",
                 border: item.done ? "none" : "1px solid var(--border)",
               }}
@@ -749,7 +749,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
                 style={{
                   marginLeft: "auto",
                   font: "600 10.5px/1 var(--f-sans)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink-soft)",
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
                 }}
@@ -966,7 +966,7 @@ function DataRow({
           font: mono
             ? "500 13px/1.3 var(--f-mono)"
             : "500 13px/1.4 var(--f-sans)",
-          color: value ? "var(--ink)" : "var(--ink-mute)",
+          color: value ? "var(--ink)" : "var(--ink-soft)",
           wordBreak: "break-word",
         }}
       >

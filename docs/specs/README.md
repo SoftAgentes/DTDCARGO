@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 667 specs)
+### Índice de specs (generado · 685 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -703,8 +703,26 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0679 | Chatwoot: subir de v4.19.1-ce a v4.20.0-ce | proposed | interno |
 | 0680 | Bandeja: abre sola al entrar y rediseño de la pantalla | in-progress | interno |
 | 0681 | Superadministrador frente a admin del tenant: qué puede cada uno | proposed | interno |
-| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | approved | interno |
+| 0682 | Almacén China en una pantalla: en almacén, en camino y pendie… | in-progress | interno |
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
+| 0686 | Color de acción azul en web, Portal y ERP: el rojo queda para… | in-progress | interno |
+| 0688 | Simetría de pantallas: un encabezado, tres anchos de panel, u… | proposed | interno |
+| 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
+| 0690 | Embarques: «Facturar» emite el borrador con los precios del E… | in-progress | interno |
+| 0693 | La aceptación de T&C limita el portal, no la facturación | approved | interno |
+| 0694 | Dirección de entrega: una sola fuente, aviso y pedirla desde … | approved | interno |
+| 0695 | Datos duplicados y fuentes únicas: identidad, correo, asesor,… | approved | interno |
+| 0696 | Dirección de entrega del cliente final de un aliado: la carga… | approved | interno |
+| 0697 | Indicadores de carga en Almacén China: catálogo propio, histo… | approved | interno |
+| 0698 | Factura: Facturar a y Entregar en | approved | interno |
+| 0699 | Cascada al cambiar el dueño: reasignar un embarque o fusionar… | approved | interno |
+| 0700 | Oficina_Virtual: tapar los datos personales antes del modelo | proposed | interno |
+| 0701 | Oficina_Virtual: un enlace del cliente escala | proposed | interno |
+| 0702 | Oficina_Virtual: el modelo real de cada llamada | proposed | interno |
+| 0703 | IA: OpenAI como respaldo no chino de Anthropic (Oficina_Virtu… | proposed | interno |
+| 0704 | IA: pantalla con cadena de tres modelos por función, cambio a… | proposed | interno |
+| 0705 | Oficina_Virtual: aviso al cliente y guion explicar-servicio | proposed | interno |
+| 0706 | Studio: verificación en dos pasos (AAL2/TOTP) para las accion… | approved | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

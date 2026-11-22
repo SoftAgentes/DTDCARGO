@@ -2,6 +2,7 @@
 
 **SDD:** [0626](../specs/0626-oficina-runtime/spec.md) §3.0 y §9 (primera fila)
 **Estado:** Paso 0 montado el 2026-11-14 con el OK de Sam. Desde el 2026-11-16 el agente vive en su usuario propio `agentes-soporte`, sin `--force` (ver §2 y §5).
+**Nombre en pantalla:** desde el 2026-11-20 (pedido de Sam) la oficina se llama **Oficina_Virtual** en el ERP: la revisión vive en `/studio/admin/oficina-virtual` y la mini-vista en `/studio/admin/oficina-virtual/vista`. La dirección vieja `/studio/admin/oficina` (y `/vista`) redirige con un 308 permanente. Lo interno no cambia: tablas `office_*`, variables `OFICINA_*`, crons `oficina-*`. En este runbook, «la oficina» sigue siendo también el VPS donde corre el agente.
 **Sin secretos:** este archivo solo nombra servicios, usuarios, puertos y rutas. La llave vive en los servidores y nunca va al repo, a un log, a un PR ni a un chat.
 
 ## 1 · Qué es
@@ -339,7 +340,7 @@ aprobación de Sam). Detalle: spec §3.5, «Cómo se construyó §3.4 y §3.5».
 ## 11 · Paso 3b: la revisión de Sam y el envío (SDD-0626 D2 y D4 · AC-1 etapa 1)
 
 **Qué hace.** El despachador deja cada borrador en «aprobación» y avisa a Discord «hay N pendientes» (solo el número).
-Sam revisa en **`/studio/admin/oficina`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
+Sam revisa en **`/studio/admin/oficina-virtual`** (solo `is_platform_admin`): ve el borrador en texto plano, **marca lo que
 falló** en los 4 criterios de eval.md (por criterio, «Falló» o «No evaluado»; sin marca = cumple), escribe el motivo y
 aprueba o rechaza. El quinto criterio («Cierre o escalado en 3 intercambios o menos») lo registra una vez por
 conversación, al cerrarla o escalarla, en «Conversaciones por cerrar» (desde la 0558). Lo aprobado lo envía **`/api/cron/oficina-envio`** (cada minuto),
@@ -472,7 +473,7 @@ Después, recrear **solo** el `web`.
      antes de la conversación 1);
    - `curl` de los crons con la llave: `oficina-despachador` responde `estado` `hecha` u `ocupado` (nunca `sin_config`
      ni `sin_vaciado`); `oficina-envio` responde `hecho` o `pausada` (nunca `apagado` ni `sin_config`).
-6. Sam entra en `/studio/admin/oficina` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
+6. Sam entra en `/studio/admin/oficina-virtual` con su propia cuenta de platform admin y pulsa él. Nadie aprueba por él.
 
 ### Vuelta atrás y cierre
 
@@ -495,7 +496,7 @@ Staging usa la misma pieza: antes de la próxima prueba en staging hay que defin
 
 ## 13 · Paso 4: la mini-vista (SDD-0626 §3.6, solo lectura)
 
-`/studio/admin/oficina/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
+`/studio/admin/oficina-virtual/vista` muestra lo que hay en las 4 tablas del cable: la bandera (pausada o despausada, sus
 últimos 10 cambios y el gasto del mes contra el tope), la cola (`office_tasks`), los eventos (`event_inbox`) y la
 bitácora (`task_events`). Es de **solo lectura**: no tiene botones ni formularios, y **no pausa ni despausa**.
 
@@ -513,11 +514,11 @@ la base contesta que quien mira es `is_platform_admin()`.
 1. Copia del `.env` (`.env.bak-<ts>`, 0600).
 2. `OFICINA_VISTA_ACTIVA=1` en `/srv/dtd-cargo/.env`.
 3. Relevar el contenedor `web` (solo ese).
-4. Sam entra en `/studio/admin/oficina`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
+4. Sam entra en `/studio/admin/oficina-virtual`: aparece el enlace «Ver la cola, los eventos y la bitácora del cable».
 
 ### Qué revisar
 
-- Con la variable apagada, `/studio/admin/oficina/vista` responde 404 para todos.
+- Con la variable apagada, `/studio/admin/oficina-virtual/vista` responde 404 para todos.
 - Encendida, un administrador del tenant que no es superadministrador recibe 404.
 - La bandera coincide con `office_esta_pausada()` y el gasto con `office_gasto_del_mes()`.
 - En ninguna fila aparece el texto de un cliente ni un dato de contacto: solo referencias, estados, horas y costos.
@@ -586,3 +587,48 @@ Lo esperado: el conteo en `a936f1ab6c7dd3a58a4c14ce58f9af36` (0560) y la lista d
 No se deshace una fila: se agrega otra. Una corrección equivocada se arregla con otra corrección (manda la última).
 Una exclusión no se revierte desde la API; si hiciera falta, la decide el DG con Sam y queda escrita en el
 desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conteo deje de mirar las dos tablas.
+
+## 14 · Lo que se tapa antes del modelo y el aviso al cliente (SDD-0700 y SDD-0705)
+
+### Qué se tapa (SDD-0700; criterio de Hermes DIRECTOR, 21/11/2026)
+
+> **Rige desde que la #755 (SDD-0700, en `main` desde el 21/11/2026 hora de Caracas, `d81452ba7`) está publicada en producción.** Antes de
+> esa publicación, el texto del cliente llega completo al modelo y solo se revisa la salida.
+
+Antes de mandar la conversación al agente, el despachador tapa en el texto del cliente:
+
+- correos → `[correo]`;
+- teléfonos → `[teléfono]`;
+- cédulas → `[cédula]`;
+- RIF → `[RIF]`;
+- direcciones → `[dirección]`.
+
+Si después de tapar todavía se detecta un dato, la corrida escala con `datos_sin_tapar`, sin llamar al modelo.
+
+**Qué NO se tapa, a propósito:**
+
+- **El nombre de la persona:** el agente lo usa para dirigirse al cliente.
+- **El número de guía o de casillero:** hace falta para dar el estado o derivarlo.
+
+Ese es el alcance aprobado para la etapa 2. **Ampliarlo o reducirlo requiere el OK de Sam**, escrito en el SDD que lo
+cambie. Nadie lo amplía por su cuenta, ni siquiera «para estar más seguros».
+
+La revisión de la salida (`revisarRespuesta`) sigue igual: si el borrador repite un correo, un teléfono, una cédula,
+un RIF o una dirección, escala con `datos_personales`.
+
+### El aviso al cliente (SDD-0705; texto aprobado por Sam el 21/11/2026)
+
+La primera respuesta de DTD en cada conversación **termina** con esta nota (Sam, 21/11/2026: «Doble saludo:
+opción B, el aviso va al final»; así el borrador abre con el guion y no se leen dos saludos seguidos):
+
+> Hola, soy el asistente virtual de DTD Cargo. Una persona del equipo revisa cada respuesta antes de enviártela.
+
+- **Largo:** el borrador admite hasta 4000 caracteres, medidos como la base (solo se descartan los espacios de los
+  lados). Si el borrador final se pasa, lleve el aviso o no, la corrida escala con `borrador_largo`
+  y la conversación la atiende una persona.
+
+- Va en el **borrador**, así que Sam lo ve en la tarjeta antes de aprobar, y lo que se envía es exactamente lo
+  aprobado: la huella no cambia.
+- «Primera» significa que entre los últimos 20 mensajes leídos no hay ninguno del lado de DTD (ni del agente ni de
+  una persona del equipo). Si ya respondió alguien, no se repite.
+- Cambiar el texto del aviso requiere el OK de Sam y un SDD.

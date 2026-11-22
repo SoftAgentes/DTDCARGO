@@ -211,31 +211,21 @@ export function ProveedoresClient({
         <KpiCard
           value={stats.byStatus.anunciada}
           label="Anunciadas"
-          valueColor={stats.byStatus.anunciada > 0 ? "var(--info)" : "var(--ink)"}
           sub="esperando salida del proveedor"
         />
         <KpiCard
           value={stats.byStatus.en_camino}
           label="En camino"
-          valueColor={
-            stats.byStatus.en_camino > 0 ? "var(--warning)" : "var(--ink)"
-          }
           sub="rumbo al almacén CN"
         />
         <KpiCard
           value={stats.byStatus.recibida}
           label="Recibidas en CN"
-          valueColor={
-            stats.byStatus.recibida > 0 ? "var(--success)" : "var(--ink)"
-          }
           sub="llegaron al hub"
         />
         <KpiCard
           value={stats.byStatus.consolidada}
           label="Consolidadas"
-          valueColor={
-            stats.byStatus.consolidada > 0 ? "var(--wine)" : "var(--ink)"
-          }
           sub="atadas a un envío"
         />
         <KpiCard
@@ -277,13 +267,20 @@ export function ProveedoresClient({
               className="studio-tab"
             >
               {tDef.label}
-              <span
-                className="studio-tab-n"
-                data-alerta={alert ? "true" : undefined}
-                title={alert ? `${pendingServices} pendientes por atender` : undefined}
-              >
-                {alert ? pendingServices : count}
-              </span>
+              {alert ? (
+                <span
+                  className="studio-tab-n"
+                  data-alerta="true"
+                  role="img"
+                  aria-label={`${pendingServices} pendientes por atender`}
+                  title={`${pendingServices} pendientes por atender`}
+                >
+                  {Icon.warn(10)}
+                  {pendingServices}
+                </span>
+              ) : (
+                <span className="studio-tab-n">{count}</span>
+              )}
             </button>
           );
         })}
@@ -611,7 +608,7 @@ function IncomingTab({
         <code
           style={{
             font: "700 12px/1.2 var(--f-mono)",
-            color: "var(--wine-text)",
+            color: "var(--ink)",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -652,7 +649,7 @@ function IncomingTab({
             title={cbm == null ? "Se mide al recibir en el almacén CN" : undefined}
             style={{
               font: "600 12px/1 var(--f-mono)",
-              color: cbm != null ? "var(--wine)" : "var(--ink-mute)",
+              color: cbm != null ? "var(--ink)" : "var(--ink-soft)",
               textAlign: "right",
               display: "block",
             }}
@@ -674,7 +671,7 @@ function IncomingTab({
         <span
           style={{
             font: "600 12px/1 var(--f-mono)",
-            color: p.est_value_usd != null ? "var(--ink)" : "var(--ink-mute)",
+            color: p.est_value_usd != null ? "var(--ink)" : "var(--ink-soft)",
             textAlign: "right",
             display: "block",
           }}
@@ -788,7 +785,7 @@ function IncomingTab({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -885,7 +882,7 @@ function IncomingTab({
             </div>
           ))}
           {/* Totales sobre lo filtrado (patrón almacén CN: Σ label mute +
-              valor wine con peso — se lee de un vistazo) */}
+              valor en tinta con peso, BD-076 — se lee de un vistazo) */}
           <div
             style={{
               display: "flex",
@@ -928,7 +925,7 @@ function IncomingTab({
                 <span
                   style={{
                     font: "800 13px/1 var(--f-mono)",
-                    color: t.value === "—" ? "var(--ink-mute)" : "var(--wine)",
+                    color: t.value === "—" ? "var(--ink-soft)" : "var(--ink)",
                   }}
                 >
                   {t.value}
@@ -1003,7 +1000,7 @@ function SortableHeaderCell({
         font: "inherit",
         letterSpacing: "inherit",
         textTransform: "inherit",
-        color: active ? "var(--wine)" : "inherit",
+        color: active ? "var(--ink)" : "inherit",
       }}
     >
       {col.label}
@@ -1065,7 +1062,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
             borderRadius: "var(--r-sm)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           <input
@@ -1131,7 +1128,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
               <span
                 style={{
                   font: "700 12.5px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                 }}
               >
                 #{s.supplier_seq}
@@ -1161,7 +1158,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
               <span
                 style={{
                   font: "500 12px/1.3 var(--f-sans)",
-                  color: s.city ? "var(--ink)" : "var(--ink-mute)",
+                  color: s.city ? "var(--ink)" : "var(--ink-soft)",
                 }}
               >
                 {s.city || "—"}
@@ -1170,7 +1167,7 @@ function SuppliersTab({ suppliers }: { suppliers: SupplierRow[] }) {
                 <div
                   style={{
                     font: "500 12px/1.3 var(--f-sans)",
-                    color: s.wechat ? "var(--ink)" : "var(--ink-mute)",
+                    color: s.wechat ? "var(--ink)" : "var(--ink-soft)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",

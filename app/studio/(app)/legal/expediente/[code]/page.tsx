@@ -36,7 +36,7 @@ import { canSpecial } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import { PrintButton } from "./PrintButton";
 
-export const metadata = { title: "Expediente de defensa · DTD Studio" };
+export const metadata = { title: "Expediente de defensa" };
 export const dynamic = "force-dynamic";
 
 /** ISO → "dd/mm/aaaa hh:mm:ss (UTC)" — la evidencia se muestra en UTC. */
@@ -353,7 +353,7 @@ export default async function DefenseFilePage({
             <div
               style={{
                 font: "800 18px/1.2 var(--f-mono)",
-                color: "var(--wine-text)",
+                color: "var(--ink)",
                 marginTop: 3,
               }}
             >
@@ -451,7 +451,7 @@ export default async function DefenseFilePage({
                         marginBottom: 6,
                       }}
                     >
-                      <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--wine-text)" }}>
+                      <code style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
                         {a.acceptance_code}
                       </code>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -460,7 +460,7 @@ export default async function DefenseFilePage({
                             style={{
                               font: "700 9px/1 var(--f-sans)",
                               color: "var(--ink-inv)",
-                              background: "var(--wine)",
+                              background: "var(--ink)",
                               borderRadius: "var(--r-sm)",
                               padding: "4px 7px",
                               textTransform: "uppercase",
@@ -721,7 +721,6 @@ export default async function DefenseFilePage({
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
             --ink-inv: #FBFAF7;
-            --wine: #7F0F1A;
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             --bg-elevated: #F2F0EC;

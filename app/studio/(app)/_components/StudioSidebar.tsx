@@ -367,7 +367,7 @@ export function StudioSidebar({
           padding: collapsed ? "10px 0" : `var(--sb-item-y) 12px var(--sb-item-y) ${12 + indent}px`,
           justifyContent: collapsed ? "center" : "flex-start",
           // SDD-0603: blanco con tinta fija, el mayor contraste de la paleta en los dos
-          // temas. --wine sobre navy mide 1,56:1 (BD-017), por eso el vino va en el icono.
+          // temas. El icono de la selección va en la misma tinta (BD-037; sin vino desde BD-076).
           background: active ? "var(--ink-side-strong)" : "transparent",
           color: active ? "var(--on-warning)" : "var(--ink-side-strong)",
           borderRadius: "var(--r-md)",
@@ -398,7 +398,7 @@ export function StudioSidebar({
         <span
           className="studio-sb-icono"
           style={{
-            color: active ? "var(--wine)" : "var(--ink-side)",
+            color: active ? "var(--on-warning)" : "var(--ink-side)",
             flexShrink: 0,
             display: "inline-flex",
           }}
@@ -560,7 +560,8 @@ export function StudioSidebar({
         zIndex: 50,
       }}
     >
-      {/* Fondo de marca (BD-034): glow wine en la esquina superior + marca de agua
+      {/* Fondo de marca (BD-034): brillo azul tenue en la esquina superior (el rojo
+          no va de ambiente, SDD-0686) + marca de agua
           "D" (isotipo mono-light, wallpaper .03) recortada por overflow:hidden.
           Decorativa y detrás del contenido (z-index:-1 dentro del stacking del aside)
           → no toca los items del nav, no captura clicks. */}
@@ -572,7 +573,7 @@ export function StudioSidebar({
           zIndex: -1,
           pointerEvents: "none",
           background:
-            "radial-gradient(55% 40% at 100% 0%, rgba(168,50,62,0.28), transparent 58%)",
+            "radial-gradient(55% 40% at 100% 0%, rgba(127,170,240,0.12), transparent 58%)",
         }}
       >
         <div
@@ -705,7 +706,7 @@ export function StudioSidebar({
                         width: 5,
                         height: 5,
                         borderRadius: "var(--r-pill)",
-                        background: "var(--wine-soft)",
+                        background: "var(--ink-side-strong)",
                         flexShrink: 0,
                       }}
                     />
@@ -820,14 +821,14 @@ export function StudioSidebar({
             justifyContent: "flex-end",
           }}
         >
-          {/* Línea visible: hairline en reposo → wine-soft en hover/drag */}
+          {/* Línea visible: hairline en reposo → azul de acción claro en hover/drag (BD-076) */}
           <span
             aria-hidden
             style={{
               width: resizeHover ? 2 : 1,
               height: "100%",
               background: resizeHover
-                ? "var(--wine-soft)"
+                ? "var(--accion-soft)"
                 : "var(--border-side)",
               transition:
                 "background var(--dur-fast) var(--ease), width var(--dur-fast) var(--ease)",

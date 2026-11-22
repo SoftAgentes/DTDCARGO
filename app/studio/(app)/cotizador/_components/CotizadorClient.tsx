@@ -406,7 +406,7 @@ function QuotesTable({
                   <div
                     style={{
                       font: "600 11px/1 var(--f-mono)",
-                      color: "var(--wine-text)",
+                      color: "var(--ink)",
                       marginTop: 3,
                     }}
                   >
@@ -445,7 +445,7 @@ function QuotesTable({
               <span
                 style={{
                   font: "800 13px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   textAlign: "right",
                 }}
               >

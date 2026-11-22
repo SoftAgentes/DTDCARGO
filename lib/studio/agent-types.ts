@@ -415,8 +415,8 @@ export function approvalStatusBadgeTone(s: AgentApprovalStatus): BadgeTone {
 }
 
 export function modelBadgeTone(m: AgentModel): BadgeTone {
-  // Opus = wine (premium), Sonnet = info, Haiku = neutral
-  if (m === "claude-opus-4-7") return "wine";
+  // Opus = neutral (sin vino desde BD-076), Sonnet = info, Haiku = neutral
+  if (m === "claude-opus-4-7") return "neutral";
   if (m === "claude-sonnet-4-6") return "info";
   return "neutral";
 }

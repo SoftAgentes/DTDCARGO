@@ -15,14 +15,14 @@ export function MiniStat({
   value,
   sub,
   icon,
-  tone = "wine",
+  tone = "neutral",
   href,
 }: {
   label: string;
   value: ReactNode;
   sub?: string;
   icon: ReactNode;
-  tone?: "wine" | "success" | "warning" | "danger";
+  tone?: "neutral" | "success" | "warning" | "danger";
   href?: string;
 }) {
   const body = (

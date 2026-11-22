@@ -288,7 +288,7 @@ export function WithholdingsView({
               {rows.map((r) => {
                 const anulado = r.status === "anulado";
                 const strike: React.CSSProperties = anulado
-                  ? { textDecoration: "line-through", color: "var(--ink-mute)" }
+                  ? { textDecoration: "line-through", color: "var(--ink-soft)" }
                   : {};
                 return (
                   <tr key={r.id}>
@@ -303,7 +303,7 @@ export function WithholdingsView({
                       {r.voucherNumber}
                     </td>
                     <td style={tdStyle}>
-                      <Badge tone={r.withholdingType === "iva" ? "wine" : "info"} size="sm">
+                      <Badge tone={r.withholdingType === "iva" ? "neutral" : "info"} size="sm">
                         {withholdingTypeShort(r.withholdingType)}
                       </Badge>
                     </td>
@@ -471,7 +471,7 @@ function PrintLayout({
           #dtd-fiscal-print {
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
+            --wine-text: #7F0F1A; /* SDD-0686: el eyebrow impreso usa --wine-text; se ancla al valor claro */
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             display: block !important;

@@ -210,7 +210,7 @@ export function PuestoDrawer({
             type="checkbox"
             name="active"
             defaultChecked={position ? position.active : true}
-            style={{ accentColor: "var(--wine)", width: 16, height: 16 }}
+            style={{ accentColor: "var(--accion)", width: 16, height: 16 }}
           />
           Puesto activo
         </label>

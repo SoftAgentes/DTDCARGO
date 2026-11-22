@@ -45,7 +45,7 @@ const PANEL = {
 
 const EYEBROW = {
   font: "700 10.5px/1 var(--f-sans)",
-  color: "var(--wine-text)",
+  color: "var(--ink-soft)",
   letterSpacing: "0.16em",
   textTransform: "uppercase",
   margin: 0,
@@ -106,7 +106,7 @@ function Dinero({ cuenta }: { cuenta: ClientAccountSummary }) {
       <KpiCard
         label={t("bandeja.ficha.overdue")}
         value={vencidos.length ? formatInvoiceAmount(vencidos[0].vencido, vencidos[0].currency) : alDia}
-        valueColor={vencidos.length ? "var(--danger-text)" : undefined}
+        status={vencidos.length > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined}
         highlightWhenPositive={false}
         sub={vencidos.length > 1 ? <Lineas lineas={vencidos.slice(1).map((s) => formatInvoiceAmount(s.vencido, s.currency))} /> : undefined}
       />
@@ -126,10 +126,10 @@ function Ficha({ ficha, costoChat }: { ficha: FichaDtd; costoChat?: ReactNode })
       <section aria-label={t("bandeja.ficha.mark")} style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)" }}>
         <span style={{ font: "700 11px/1.2 var(--f-sans)", color: "var(--ink-soft)" }}>{t("bandeja.ficha.mark")}</span>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
-          <h1 style={{ font: "900 22px/1.15 var(--f-display)", color: "var(--wine-text)", letterSpacing: "-0.01em", margin: 0 }}>
+          <h1 style={{ font: "900 22px/1.15 var(--f-display)", color: "var(--ink)", letterSpacing: "-0.01em", margin: 0 }}>
             {ficha.markbox}
           </h1>
-          {ficha.segmento ? <Badge tone="wine">{t(`bandeja.ficha.segment.${ficha.segmento}`)}</Badge> : null}
+          {ficha.segmento ? <Badge tone="neutral">{t(`bandeja.ficha.segment.${ficha.segmento}`)}</Badge> : null}
         </div>
         {anteriores.length ? <p style={CUERPO}>{t("bandeja.ficha.previous", { codigos: anteriores.join(" · ") })}</p> : null}
       </section>

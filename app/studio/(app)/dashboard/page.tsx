@@ -175,7 +175,7 @@ export default async function DashboardPage() {
     if (!accessibleKpiIds.has(k.id)) continue;
     switch (k.id) {
       case "shipmentsActive":
-        if (operational) kpiValues[k.id] = { value: String(operational.total), sub: "en curso", tone: "wine" };
+        if (operational) kpiValues[k.id] = { value: String(operational.total), sub: "en curso", tone: "neutral" };
         break;
       case "openIncidents":
         if (operational)
@@ -294,20 +294,23 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ maxWidth: 1280 }}>
-      {/* Header · banda de bienvenida con degradado vino + marca de agua "D" (BD-034).
-          Texto en --ink-inv (cream) sobre el vino oscuro → AA. La "D" (isotipo
-          mono-light, .055) es decorativa y va detrás del texto (el contenido va en
-          un wrapper relative/zIndex:1). */}
+      {/* Header · banda de bienvenida en navy de marca + marca de agua "D" (BD-034).
+          Decisión de Sam del 2026-11-21 (opción A, SDD-0686): navy con guión vino.
+          El vino queda solo en el guión del eyebrow; la "D" (isotipo mono-light,
+          .08) es decorativa y va detrás del texto (wrapper relative/zIndex:1).
+          Texto en --ink-side* (blanco en los dos temas): ≥8,57:1 en todo el
+          degradado. En oscuro, un borde sutil la separa del fondo. */}
       <div
         data-guia="dashboard.bienvenida"
         style={{
           position: "relative",
           overflow: "hidden",
           borderRadius: "var(--r-lg)",
-          background: "var(--grad-wine-panel)",
+          background: "var(--grad-bienvenida)",
+          border: "1px solid var(--bienvenida-borde)",
           padding: "26px 30px",
           marginBottom: 28,
-          boxShadow: "0 14px 40px -18px rgba(127,15,26,0.6)",
+          boxShadow: "0 14px 40px -18px rgba(15,30,61,0.55)",
         }}
       >
         <div

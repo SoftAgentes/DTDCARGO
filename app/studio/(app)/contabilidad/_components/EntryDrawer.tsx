@@ -224,7 +224,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="entry-date">
-                Fecha <span style={{ color: "var(--wine-text)" }}>*</span>
+                Fecha <span style={{ color: "var(--ink-soft)" }}>*</span>
               </label>
               <input
                 id="entry-date"
@@ -363,7 +363,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                       border: "1px solid var(--border)",
                       background: "var(--bg-surface)",
                       color:
-                        lines.length <= 2 ? "var(--ink-mute)" : "var(--danger)",
+                        lines.length <= 2 ? "var(--ink-soft)" : "var(--danger)",
                       cursor: lines.length <= 2 ? "not-allowed" : "pointer",
                     }}
                   >
@@ -487,7 +487,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
               type="checkbox"
               checked={postOnCreate}
               onChange={(e) => setPostOnCreate(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             Asentar al crear (si no, queda en borrador)
           </label>

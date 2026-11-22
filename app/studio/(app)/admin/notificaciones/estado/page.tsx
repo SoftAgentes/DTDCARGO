@@ -29,7 +29,7 @@ import {
 } from "@/lib/studio/notifications/notification-staff-queries";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Estado del motor de avisos · DTD Studio" };
+export const metadata = { title: "Estado del motor de avisos" };
 export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<NotificationStatus, BadgeTone> = {
@@ -146,13 +146,7 @@ export default async function EstadoAvisosPage() {
         <KpiCard
           value={`${adoption.adoptionPct}%`}
           label="Escaneadas vs tipeadas"
-          valueColor={
-            adoption.adoptionPct >= 60
-              ? "var(--success)"
-              : adoption.total === 0
-                ? "var(--ink-mute)"
-                : "var(--warning)"
-          }
+          status={adoption.total === 0 ? undefined : adoption.adoptionPct >= 60 ? { tono: "success", texto: "Buena adopción" } : { tono: "warning", texto: "Bajo la meta" }}
           sub={
             adoption.total === 0
               ? "Aún no hay recepciones en China."
@@ -186,13 +180,7 @@ export default async function EstadoAvisosPage() {
             key={s}
             value={statusCounts[s]}
             label={NOTIFICATION_STATUS_LABELS[s]}
-            valueColor={
-              s === "failed" && statusCounts[s] > 0
-                ? "var(--danger)"
-                : s === "sent" && statusCounts[s] > 0
-                  ? "var(--success)"
-                  : "var(--ink)"
-            }
+            status={s === "failed" && statusCounts[s] > 0 ? { tono: "danger", texto: "Requiere revisión" } : undefined}
             highlightWhenPositive={s === "sent"}
           />
         ))}
@@ -255,7 +243,7 @@ function RecentTable({ rows }: { rows: StaffNotificationItem[] }) {
                     font: "600 10.5px/1 var(--f-sans)",
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
-                    color: "var(--ink-mute)",
+                    color: "var(--ink-soft)",
                     padding: "12px 14px",
                     borderBottom: "1px solid var(--border)",
                     whiteSpace: "nowrap",

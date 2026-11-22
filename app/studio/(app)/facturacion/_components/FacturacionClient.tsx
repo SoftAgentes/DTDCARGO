@@ -176,13 +176,12 @@ export function FacturacionClient({
         <KpiCard
           value={`$${fmtMoney(kpis.outstanding)}`}
           label="Por cobrar"
-          valueColor={kpis.outstanding > 0 ? "var(--wine-text)" : "var(--ink)"}
           sub={`${counts.pending + counts.overdue} factura(s) con saldo`}
         />
         <KpiCard
           value={`$${fmtMoney(kpis.overdue)}`}
           label="Vencido"
-          valueColor={kpis.overdue > 0 ? "var(--danger)" : "var(--ink)"}
+          status={kpis.overdue > 0 ? { tono: "danger", texto: "Requiere cobro" } : undefined}
           sub={kpis.overdue > 0 ? "Acción requerida" : "Al día"}
         />
       </div>
@@ -390,7 +389,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
               <div
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   marginTop: 3,
                 }}
               >
@@ -400,7 +399,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
             <span
               style={{
                 font: "600 11.5px/1 var(--f-mono)",
-                color: inv.shipment_code ? "var(--wine)" : "var(--ink-mute)",
+                color: inv.shipment_code ? "var(--ink)" : "var(--ink-soft)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -433,7 +432,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
             <span
               style={{
                 font: "800 12.5px/1 var(--f-mono)",
-                color: balance > 0 ? "var(--wine)" : "var(--ink-soft)",
+                color: balance > 0 ? "var(--ink)" : "var(--ink-soft)",
                 textAlign: "right",
               }}
             >

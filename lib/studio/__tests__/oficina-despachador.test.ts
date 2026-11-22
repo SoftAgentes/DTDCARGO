@@ -7,7 +7,7 @@
  *   · auto-pausa al 80 % con un tope de juguete;
  *   · caída y reinicio sin duplicar corridas;
  *   · JSON inválido → reintenta una vez y escala; cifra inventada → escala;
- *   · ninguna fila ni log guarda el texto del cliente;
+ *   · ninguna fila ni log guarda el texto del cliente, y al agente le llega con los datos tapados (SDD-0700);
  *   · con el interruptor apagado no hace nada; sin las migraciones no tumba nada.
  */
 import { readFileSync } from "node:fs";
@@ -17,6 +17,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AVISO_CLIENTE } from "../oficina/aviso-cliente";
 import type { MensajeLeido } from "../oficina/chatwoot-lectura";
 import {
   CORRECCION_DEL_ACUSE,
@@ -145,10 +146,12 @@ interface Doble {
   lecturas: number;
   /** Las instrucciones («sistema») de cada llamada al agente, en orden. */
   sistemas: string[];
+  /** Lo que recibió el agente («usuario») en cada llamada, en orden. */
+  usuarios: string[];
 }
 
 function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<string | "lento">; ajustes?: Partial<ReturnType<typeof configDespachador>> } = {}) {
-  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0, sistemas: [] };
+  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0, sistemas: [], usuarios: [] };
   const contenidos = [...(o.contenidos ?? [respuestaBuena])];
   const registros: string[] = [];
   const config = { ...configDespachador({ ...ENV, ...(o.env ?? {}) }), vigilarPausaMs: 50, tickMs: 20, ...(o.ajustes ?? {}) };
@@ -159,9 +162,10 @@ function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<
       doble.lecturas += 1;
       return MENSAJES.map((m) => ({ ...m }));
     },
-    async llamar({ signal, sistema }): Promise<RespuestaAgente> {
+    async llamar({ signal, sistema, usuario }): Promise<RespuestaAgente> {
       doble.llamadas += 1;
       doble.sistemas.push(sistema);
+      doble.usuarios.push(usuario);
       const c = contenidos.length > 1 ? contenidos.shift()! : contenidos[0];
       if (c === "lento") {
         await new Promise((_, rechazar) => {
@@ -283,6 +287,9 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(t.estado).toBe("aprobación");
       const [b] = await filas(db, "select tipo, guion, texto from public.office_borradores");
       expect(b).toMatchObject({ tipo: "respuesta", guion: "derivar-equipo" });
+      // SDD-0705 v0.2: primera respuesta de DTD (solo hay mensajes del cliente) → el aviso va al final, una vez.
+      expect(String(b.texto).endsWith(`\n\n${AVISO_CLIENTE}`)).toBe(true);
+      expect(String(b.texto).split(AVISO_CLIENTE)).toHaveLength(2);
       const ev = await filas(db, "select tipo, actor, costo_usd::float8 as costo, modelo_usado from public.task_events order by ts, tipo");
       expect(ev.map((e) => e.tipo)).toEqual(expect.arrayContaining(["tarea.creada", "run.iniciada", "conversacion.leida", "modelo.respuesta", "run.terminada"]));
       const modelo = ev.find((e) => e.tipo === "modelo.respuesta")!;
@@ -291,6 +298,98 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(doble).toMatchObject({ llamadas: 1, lecturas: 1 });
       expect(doble.sesionesBorradas).toHaveLength(1);
       expect(doble.sesionesBorradas[0]).toMatch(/^cable-[0-9a-f-]{36}-1$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("SDD-0705: si DTD ya respondió en la conversación, el borrador NO repite el aviso al cliente", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d } = deps(db);
+      d.leer = async () => [
+        { rol: "cliente", texto: "Hola" },
+        { rol: "agente", texto: "Hola, ¿en qué te ayudo?" },
+        { rol: "cliente", texto: "¿Dónde está mi caja?" },
+      ];
+      const r = await tick(d);
+      expect(r).toMatchObject({ estado: "corrida", resultado: { fin: "borrador" } });
+      const [b] = await filas(db, "select texto from public.office_borradores");
+      expect(String(b.texto)).not.toContain(AVISO_CLIENTE);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("SDD-0705 v0.2: si con el aviso el borrador pasa de 4000 caracteres, escala `borrador_largo` (no `fallo_interno`)", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const relleno = "Se la paso ya a una persona del equipo de DTD Cargo. ".repeat(80);
+      const texto = `Entiendo tu consulta. ${relleno}`.slice(0, 3950).trim();
+      const largo = JSON.stringify({ respuesta: { acuse: "Entiendo tu consulta.", texto, guion: "derivar-equipo" } });
+      const { d } = deps(db, { contenidos: [largo] });
+      expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "escalado", motivo: "borrador_largo" } });
+      const [b] = await filas(db, "select tipo, motivo, texto from public.office_borradores");
+      expect(b).toMatchObject({ tipo: "escalado", motivo: "borrador_largo", texto: null });
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("SDD-0702 modelo real: si la respuesta no lo dice, se lee de la sesión ANTES de borrarla; sin dato queda null", async () => {
+    for (const [lectura, esperado] of [
+      ["deepseek/deepseek-chat", "deepseek/deepseek-chat"],
+      [null, null],
+      ["lanza", null],
+      [undefined, null],
+    ] as const) {
+      const db = await base();
+      try {
+        await despausar(db);
+        await eventoEnTriaje(db);
+        const { d, doble } = deps(db);
+        const orden: string[] = [];
+        const llamarOriginal = d.llamar;
+        d.llamar = async (o) => ({ ...(await llamarOriginal(o)), modelo: null });
+        const borrarOriginal = d.borrarSesion;
+        d.borrarSesion = async (id) => {
+          orden.push(`borrar:${id}`);
+          return borrarOriginal(id);
+        };
+        if (lectura !== undefined) {
+          d.modeloDeSesion = async (id) => {
+            orden.push(`leer:${id}`);
+            if (lectura === "lanza") throw new Error("red");
+            return lectura;
+          };
+        }
+        expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "borrador" } });
+        const [ev] = await filas(db, "select modelo_usado from public.task_events where tipo = 'modelo.respuesta'");
+        expect(ev.modelo_usado).toBe(esperado);
+        const sesion = doble.sesionesBorradas[0];
+        expect(orden).toEqual(lectura === undefined ? [`borrar:${sesion}`] : [`leer:${sesion}`, `borrar:${sesion}`]);
+      } finally {
+        await db.close();
+      }
+    }
+  }, 120_000);
+
+  it("SDD-0702 modelo real: si la respuesta ya trae el modelo, no se consulta la sesión", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const { d } = deps(db);
+      const leer = vi.fn(async () => "otro");
+      d.modeloDeSesion = leer;
+      await tick(d);
+      expect(leer).not.toHaveBeenCalled();
+      const [ev] = await filas(db, "select modelo_usado from public.task_events where tipo = 'modelo.respuesta'");
+      expect(ev.modelo_usado).toBe("zai/glm-5.3");
     } finally {
       await db.close();
     }
@@ -545,7 +644,7 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
     }
   }, 60_000);
 
-  it("ninguna fila ni log guarda el texto del cliente (ni su teléfono)", async () => {
+  it("ninguna fila ni log guarda el texto del cliente (ni su teléfono), y al agente le llega el teléfono tapado", async () => {
     const db = await base();
     try {
       await despausar(db);
@@ -567,7 +666,15 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
         expect(a.registros.join("\n") + b.registros.join("\n")).not.toContain(prohibido);
         expect(textoDeConsola()).not.toContain(prohibido);
       }
-      // El texto sí viajó al agente (es su trabajo), y la sesión de cada llamada se borró en la oficina.
+      // El texto sí viajó al agente (es su trabajo), pero con el teléfono tapado (SDD-0700); y la sesión de cada
+      // llamada se borró en la oficina.
+      const alAgente = [...a.doble.usuarios, ...b.doble.usuarios];
+      expect(alAgente).toHaveLength(3);
+      for (const u of alAgente) {
+        expect(u).toContain(MARCA);
+        expect(u).toContain("[teléfono]");
+        expect(u).not.toContain("0414-555-1234");
+      }
       expect(a.doble.sesionesBorradas.length + b.doble.sesionesBorradas.length).toBe(3);
     } finally {
       await db.close();

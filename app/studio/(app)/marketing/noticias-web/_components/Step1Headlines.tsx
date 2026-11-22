@@ -125,13 +125,13 @@ export function Step1Headlines({
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-lg border"
           style={{
-            background: "var(--wine-tint, rgba(127,15,26,0.06))",
-            borderColor: "var(--wine, #7F0F1A)",
+            background: "var(--color-grey-100, #F2F0EC)",
+            borderColor: "var(--color-grey-300, #C9C5BE)",
           }}
         >
           <span
             className="inline-flex flex-shrink-0 mt-0.5"
-            style={{ color: "var(--wine, #7F0F1A)" }}
+            style={{ color: "var(--color-ink, #0F1E3D)" }}
             aria-hidden
           >
             {Icon.info(16)}
@@ -139,7 +139,7 @@ export function Step1Headlines({
           <div className="flex-1 min-w-0">
             <div
               className="text-[12.5px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--wine, #7F0F1A)" }}
+              style={{ color: "var(--color-ink, #0F1E3D)" }}
             >
               Sugerencia editorial de Claude
             </div>
@@ -191,12 +191,12 @@ export function Step1Headlines({
               onChange={(e) => onTopicChange(e.target.value)}
               rows={3}
               placeholder={`Ej tema para ${catInfo.label}: "Logística China-Venezuela se detiene por X"`}
-              className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-y"
+              className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-accion transition-colors resize-y"
               disabled={loading}
             />
             <p className="text-[11.5px] text-grey-500">
               Los 5 titulares arrancarán con:{" "}
-              <code className="text-wine font-semibold">
+              <code className="text-ink font-semibold">
                 {catInfo.titlePrefix}
               </code>
             </p>
@@ -227,7 +227,7 @@ export function Step1Headlines({
               type="button"
               onClick={onGenerate}
               disabled={loading || !topic.trim()}
-              className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-accion text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-accion-hover transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
             >
               <span
                 className={loading ? "inline-flex animate-spin" : "inline-flex"}
@@ -266,10 +266,10 @@ export function Step1Headlines({
           {headlines.map((h, idx) => (
             <div
               key={idx}
-              className="card-shadow group bg-white border border-grey-200 rounded-lg p-4 flex items-start gap-4 hover:border-wine transition-colors"
+              className="card-shadow group bg-white border border-grey-200 rounded-lg p-4 flex items-start gap-4 hover:border-accion transition-colors"
             >
               <span
-                className="text-[28px] font-bold leading-none text-wine select-none flex-shrink-0 pt-1"
+                className="text-[28px] font-bold leading-none text-grey-500 select-none flex-shrink-0 pt-1"
                 style={SERIF}
                 aria-hidden
               >
@@ -294,8 +294,8 @@ export function Step1Headlines({
                   aria-label="Copiar titular"
                   className={`w-9 h-9 grid place-items-center rounded-md border transition-colors ${
                     copiedIdx === idx
-                      ? "border-wine text-wine"
-                      : "border-grey-200 text-grey-500 hover:border-wine hover:text-wine"
+                      ? "border-ink text-ink"
+                      : "border-grey-200 text-grey-500 hover:border-accion hover:text-accion-text"
                   }`}
                   style={
                     copiedIdx === idx
@@ -313,7 +313,7 @@ export function Step1Headlines({
                   onClick={() => onSelect(h)}
                   title="Usar este titular"
                   aria-label="Usar este titular y avanzar"
-                  className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-wine hover:text-wine transition-colors"
+                  className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-accion hover:text-accion-text transition-colors"
                 >
                   {Icon.chevR(14)}
                 </button>

@@ -85,7 +85,7 @@ export function QuoteDetailClient({
             marginBottom: 16,
             background: "var(--bg-surface)",
             border: "1px solid var(--border)",
-            borderLeft: "3px solid var(--wine)",
+            borderLeft: "3px solid var(--ink)",
             borderRadius: "var(--r-lg)",
             padding: 20,
           }}

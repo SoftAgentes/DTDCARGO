@@ -41,14 +41,12 @@
     "--border-strong",
     "--ink",
     "--ink-soft",
-    "--wine",
-    "--wine-text",
-    "--ink-side-strong",
     "--shadow-pop",
     "--r-md",
     "--r-lg",
     "--f-mono",
-    "--f-sans"
+    "--f-sans",
+    "--ink-inv"
   ],
   "accessibility": {
     "keyboard": "verified",

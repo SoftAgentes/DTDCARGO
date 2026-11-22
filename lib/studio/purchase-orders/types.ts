@@ -17,7 +17,6 @@ export type BadgeTone =
   | "warning"
   | "danger"
   | "info"
-  | "wine"
   | "neutral";
 
 function round2(n: number): number {

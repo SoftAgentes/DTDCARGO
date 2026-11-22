@@ -197,13 +197,12 @@ export function NavieraClient({
         <KpiCard
           value={kpis.consolidating}
           label="Contenedores consolidando"
-          valueColor={kpis.consolidating > 0 ? "var(--warning)" : "var(--ink)"}
           sub="LCL → FCL abiertos"
         />
         <KpiCard
           value={`${kpis.looseCbm.toFixed(1)} CBM`}
           label="Carga suelta en CN"
-          valueColor={kpis.looseCbm > 0 ? "var(--wine-text)" : "var(--ink)"}
+          status={kpis.looseCbm > 0 ? { tono: "warning", texto: "Sin asignar" } : undefined}
           sub={`${kpis.looseCount} embarque(s) sin asignar`}
         />
         <KpiCard
@@ -425,7 +424,7 @@ function SailingsTab({
           <div
             style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink)" }}
           >
-            {s.pol} <span style={{ color: "var(--ink-mute)" }}>→</span> {s.pod}
+            {s.pol} <span style={{ color: "var(--ink-soft)" }}>→</span> {s.pod}
           </div>
           <span
             style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink)" }}
@@ -560,13 +559,14 @@ function ConsolidationTab({
             <button
               key={c.id}
               type="button"
+              aria-pressed={active}
               onClick={() => setSelectedId(c.id)}
               style={{
                 textAlign: "left",
                 padding: "14px 16px",
                 borderRadius: "var(--r-lg)",
                 background: "var(--bg-surface)",
-                border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                border: `1px solid ${active ? "var(--ink)" : "var(--border)"}`,
                 boxShadow: active ? "var(--shadow-sm)" : "none",
                 cursor: "pointer",
                 transition: "border-color var(--dur-fast) var(--ease)",
@@ -583,7 +583,7 @@ function ConsolidationTab({
                 <code
                   style={{
                     font: "700 12px/1 var(--f-mono)",
-                    color: active ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                   }}
                 >
                   {c.ref}
@@ -1248,7 +1248,7 @@ function ContainerDetail({
                 <code
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
+                    color: "var(--ink)",
                   }}
                 >
                   {it.client_markbox ?? "—"}
@@ -1641,7 +1641,7 @@ function LooseCargoTab({
               {l.code}
             </code>
             <code
-              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}
+              style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--ink)" }}
             >
               {l.client_markbox ?? "—"}
             </code>
@@ -1799,7 +1799,7 @@ function BookingsTab({
               {carrierNameById(carriers, b.carrier_id)}
             </span>
             <span>
-              <Badge tone={b.mode === "LCL" ? "info" : "wine"} size="sm">
+              <Badge tone={b.mode === "LCL" ? "info" : "neutral"} size="sm">
                 {b.mode}
               </Badge>
               {b.container_type && (

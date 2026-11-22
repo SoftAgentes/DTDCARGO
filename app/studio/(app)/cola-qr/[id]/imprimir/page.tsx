@@ -28,7 +28,7 @@ import { FORMATS } from "@/lib/studio/etiquetas-formats";
 import type { LabelWarehouseCn } from "../../../etiquetas/page";
 import { HubLabelSheet } from "../../_components/HubLabelSheet";
 
-export const metadata = { title: "Imprimir etiquetas del hub · DTD Studio" };
+export const metadata = { title: "Imprimir etiquetas del hub" };
 export const dynamic = "force-dynamic";
 
 export default async function ImprimirOrdenPage({

@@ -61,7 +61,7 @@ export function HeaderRow({
 // ── Barra de progreso (reusable) ───────────────────────────────
 export function Progress({
   value, // 0..100
-  tone = "var(--wine)",
+  tone = "var(--ink)",
   height = 8,
 }: {
   value: number;
@@ -125,7 +125,8 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
 
   return (
     <svg
-      viewBox={`0 0 ${W} ${H + 36}`}
+      // La leyenda va de H+30 a H+40: el lienzo llega a H+48 para no cortarla.
+      viewBox={`0 0 ${W} ${H + 48}`}
       style={{ width: "100%", height: "auto" }}
       role="img"
       aria-label="Volumen mensual de embarques y CBM"
@@ -155,7 +156,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
               y={H - h}
               width={bw * 0.52}
               height={Math.max(0, h)}
-              fill="var(--wine)"
+              fill="var(--ink)"
               rx="2"
             />
             <text
@@ -174,7 +175,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
       })}
 
       {/* línea de CBM */}
-      <path d={cbmPath} fill="none" stroke="var(--wine-soft)" strokeWidth="2" />
+      <path d={cbmPath} fill="none" stroke="var(--ink-soft)" strokeWidth="2" />
       {points.map((p, i) => {
         const x = pad + i * bw + bw / 2;
         const y = H - (p.cbm / maxCbm) * plotH;
@@ -184,14 +185,14 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
             cx={x}
             cy={y}
             r="2.5"
-            fill="var(--wine-soft)"
+            fill="var(--ink-soft)"
           />
         );
       })}
 
       {/* leyenda */}
       <g transform={`translate(${pad}, ${H + 30})`}>
-        <rect width="10" height="10" fill="var(--wine)" rx="1" />
+        <rect width="10" height="10" fill="var(--ink)" rx="1" />
         <text
           x="16"
           y="9"
@@ -202,7 +203,7 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
         >
           Embarques
         </text>
-        <line x1="120" x2="134" y1="5" y2="5" stroke="var(--wine-soft)" strokeWidth="2" />
+        <line x1="120" x2="134" y1="5" y2="5" stroke="var(--ink-soft)" strokeWidth="2" />
         <text
           x="140"
           y="9"
@@ -216,6 +217,31 @@ export function VolumeBars({ points }: { points: MonthlyVolumePoint[] }) {
       </g>
     </svg>
   );
+}
+
+// ── Grados de tinta para gráficas por categoría (SDD-0686, BD-076) ─────
+/**
+ * Cifras y gráficas en tinta. Cuatro grados de `--ink` mezclados con la
+ * tarjeta; el más claro (50 %) da 3,25:1 en claro y 4,36:1 en oscuro contra
+ * `--bg-surface`, por encima del 3:1 de las formas.
+ */
+export const GRADOS_DE_TINTA = [
+  "var(--ink)",
+  "color-mix(in srgb, var(--ink) 82%, var(--bg-surface))",
+  "color-mix(in srgb, var(--ink) 66%, var(--bg-surface))",
+  "color-mix(in srgb, var(--ink) 50%, var(--bg-surface))",
+] as const;
+
+/**
+ * Grado de tinta de la categoría `index` de `total`. Los grados se repiten
+ * de cuatro en cuatro; en el donut el último segmento toca al primero, así
+ * que si le tocaría el mismo grado que el primero toma uno del medio.
+ */
+export function gradoDeTinta(index: number, total: number): string {
+  const n = GRADOS_DE_TINTA.length;
+  const grado = index % n;
+  if (index > 0 && index === total - 1 && grado === 0) return GRADOS_DE_TINTA[2];
+  return GRADOS_DE_TINTA[grado];
 }
 
 // ── Donut con leyenda ──────────────────────────────────────────
@@ -276,7 +302,9 @@ export function Donut({
             A ${R} ${R} 0 ${large} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)}
             L ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)}
             A ${r} ${r} 0 ${large} 0 ${cx + r * Math.cos(a0)} ${cy + r * Math.sin(a0)} Z`;
-          return <path key={i} d={path} fill={d.color} />;
+          // Trazo del color de la tarjeta: separa los segmentos vecinos,
+          // que van en grados de tinta parecidos.
+          return <path key={i} d={path} fill={d.color} stroke="var(--bg-surface)" strokeWidth={2} strokeLinejoin="round" />;
         })}
         <text
           x={cx}

@@ -18,8 +18,8 @@
  *
  * Visual (tono "Fantasma", SDD-0036 refinamiento): utilitario de menor
  * jerarquía — contorno + ícono navy suave sobre fondo transparente, sin
- * pulso; en hover se rellena y eleva. El wine sigue siendo el único color de
- * acción. Ver `.bug-fab-*` en studio.css.
+ * pulso; en hover se rellena y eleva. El color de acción es el azul
+ * (`--accion`, BD-076); el vino queda solo para la identidad. Ver `.bug-fab-*` en studio.css.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -399,7 +399,7 @@ function CornerMenu({
             {isActive && (
               <span
                 style={{
-                  color: "var(--wine-text)",
+                  color: "var(--ink)",
                   font: "700 10px/1 var(--f-sans)",
                 }}
               >
@@ -455,7 +455,7 @@ function CornerGlyph({ corner }: { corner: Corner }) {
     width: 5,
     height: 5,
     borderRadius: 1,
-    background: "var(--wine)",
+    background: "var(--ink)",
   };
   const dotPos: React.CSSProperties =
     corner === "top-left"

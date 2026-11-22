@@ -1,5 +1,5 @@
 /**
- * /studio/admin/oficina · La revisión de Sam de los borradores del agente (SDD-0626 Paso 3b, D2 y D4).
+ * /studio/admin/oficina-virtual · La revisión de Sam de los borradores del agente (SDD-0626 Paso 3b, D2 y D4).
  *
  * SOLO para el superadministrador (`is_platform_admin`): lo exige el layout y, otra vez, la base en cada función
  * de la 0549. El borrador y el motivo se muestran SIEMPRE como texto plano: React los escapa y aquí no hay HTML
@@ -19,7 +19,7 @@ import { TarjetaBorrador, estiloTextoPlano as texto } from "./_components/Tarjet
 import { TarjetaCierre } from "./_components/TarjetaCierre";
 import { registrarCierreAction, revisarBorradorAction } from "./actions";
 
-export const metadata = { title: "Oficina · revisión · DTD Studio" };
+export const metadata = { title: "Oficina_Virtual · revisión" };
 export const dynamic = "force-dynamic";
 
 const AVISOS: Record<string, string> = {
@@ -74,7 +74,7 @@ export default async function OficinaRevisionPage({
         ← Volver a Administración
       </Link>
       <span className="studio-eyebrow" style={{ display: "block", marginTop: 12 }}>
-        Oficina · SDD-0626 · etapa {etapa}
+        <span style={{ textTransform: "none" }}>Oficina_Virtual</span> · SDD-0626 · etapa {etapa}
       </span>
       <h1 className="studio-display" style={{ fontSize: 30, margin: "8px 0", color: "var(--ink)" }}>
         Revisión de borradores
@@ -84,7 +84,7 @@ export default async function OficinaRevisionPage({
       </p>
       {vistaActiva() ? (
         <p style={{ font: "400 13px/1.4 var(--f-sans)", margin: "0 0 16px" }}>
-          <Link href="/studio/admin/oficina/vista" style={{ color: "var(--ink)" }}>
+          <Link href="/studio/admin/oficina-virtual/vista" style={{ color: "var(--ink)" }}>
             Ver la cola, los eventos y la bitácora del cable (solo lectura) →
           </Link>
         </p>

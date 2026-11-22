@@ -97,7 +97,7 @@ describe("peso del contenedor (SDD-0665)", () => {
   });
 
   it("la franja y la tabla dicen el peso; un cliente sin peso dice «Sin peso», no 0 kg", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(within(region("DDP 64")).getAllByRole("button")[0]);
     const franja = within(region("DDP 64")).getByLabelText("Totales de DDP 64");
     expect(franja.textContent).toContain("Peso total1.246,75 kg");
@@ -111,7 +111,7 @@ describe("peso del contenedor (SDD-0665)", () => {
   });
 
   it("un contenedor sin ningún peso dice «Sin peso» y no avisa envíos sueltos", async () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await userEvent.click(within(region("DDP 65")).getAllByRole("button")[0]);
     const franja = within(region("DDP 65")).getByLabelText("Totales de DDP 65");
     expect(franja.textContent).toContain("Peso totalSin peso");

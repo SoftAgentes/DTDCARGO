@@ -168,7 +168,7 @@ export function AppearanceSection() {
                 <span style={{ display: "block", font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>{r.title}</span>
                 <span style={{ display: "block", font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>{r.sub}</span>
               </span>
-              <span style={{ color: "var(--ink-mute)", flexShrink: 0, font: "600 14px/1 var(--f-sans)" }}>↗</span>
+              <span style={{ color: "var(--ink-soft)", flexShrink: 0, font: "600 14px/1 var(--f-sans)" }}>↗</span>
             </Link>
           ))}
         </div>
@@ -186,7 +186,7 @@ export function AppearanceSection() {
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: "var(--s-2)",
@@ -221,7 +221,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
       {children}
     </div>
   );

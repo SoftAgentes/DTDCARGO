@@ -125,7 +125,7 @@ export function VincularCliente({
         <h2 id={`${id}-confirmar`} style={{ font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
           {t("bandeja.vincular.confirm_title")}
         </h2>
-        <p style={{ margin: 0, font: "800 15px/1.3 var(--f-display)", color: "var(--wine-text)", overflowWrap: "anywhere" }}>
+        <p style={{ margin: 0, font: "800 15px/1.3 var(--f-display)", color: "var(--ink)", overflowWrap: "anywhere" }}>
           {elegido.markbox}
           <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)", marginLeft: "var(--s-2)" }}>{elegido.nombre}</span>
         </p>

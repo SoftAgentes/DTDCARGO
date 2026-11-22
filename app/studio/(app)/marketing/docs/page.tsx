@@ -11,7 +11,7 @@ import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getMarketingDocs } from "@/lib/studio/marketing/docs-reader";
 import { DocsReaderClient } from "./_components/DocsReaderClient";
 
-export const metadata = { title: "Documentos · Marketing · DTD Studio" };
+export const metadata = { title: "Documentos · Marketing" };
 export const dynamic = "force-dynamic";
 
 export default async function MarketingDocsPage() {

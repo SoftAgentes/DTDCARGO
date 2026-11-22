@@ -10,17 +10,21 @@
  *   fuente permitida es el guion. Conservador a propósito: ante la duda, se escala.
  * - `datos_personales`: el texto trae un correo, teléfono, cédula, RIF o dirección (la regla del cable).
  * - `enlace` (Paso 3b): el texto trae una URL o un dominio que no está en el guion usado (`enlacesAjenos`).
+ * - `marcador` (SDD-0700): el texto trae un marcador de dato tapado («[teléfono]», «[correo]»…). La entrada del agente
+ *   llega tapada; un borrador con un marcador le diría al cliente «[teléfono]» en vez de responderle.
  *
  * Cualquier código → el despachador escala en vez de guardar la respuesta. Lo que eval.md pide y no se puede
  * automatizar (cierre en ≤ 3 intercambios, tono) lo revisa Sam en la aprobación.
  */
 import { detectorDelCable } from "./cable-textos";
+import { tieneMarcador } from "./datos-personales";
 import type { Guion } from "./guiones-soporte";
 import type { SalidaAgente } from "./salida-agente";
 
-export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace";
+export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace" | "marcador";
 
-function normal(s: string): string {
+/** Exportada solo para las pruebas de los guiones (SDD-0705 v0.4, M2): mismo texto normalizado que usa la revisión. */
+export function normal(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -33,7 +37,7 @@ const MESES = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|seti
 const DIAS = "lunes|martes|miercoles|jueves|viernes|sabado|domingo";
 
 /** Lo que solo puede venir del sistema o de un guion. Se busca sobre el texto normalizado (sin tildes). */
-const PATRONES: readonly RegExp[] = [
+export const PATRONES: readonly RegExp[] = [
   /\d+(?:[.,:/-]\d+)*/g, // cifras, montos, fechas, horas, guías
   /(?:us)?\$|\bbs\.?(?=\s|$)|\bbolivares?\b|\bdolares?\b|\busd\b|\beuros?\b|\byuan(?:es)?\b/g, // dinero
   new RegExp(`\\b(?:${MESES}|${DIAS}|manana|pasado manana|esta semana|la proxima semana|el proximo mes|hoy mismo)\\b`, "g"),
@@ -61,6 +65,24 @@ export function empiezaConAcuse(texto: string, acuse: string): boolean {
   return a.length > 0 && (t === a || t.startsWith(`${a} `));
 }
 
+/**
+ * SDD-0705 v0.4: lo que queda del texto (ya normalizado) al quitarle las frases del guion copiadas tal cual. Una cifra
+ * o una fecha solo se permite DENTRO de su frase del guion: «en general estamos entre 60 y 90 días» pasa, pero un
+ * «60» en otra frase («cuesta 60», «llega en 60 días») queda en el resto y escala. Antes bastaba con que la cifra
+ * apareciera en cualquier parte del guion. Las frases se cortan tras «.», «?» o «!» (no tras «1.» de una lista) y en
+ * cada salto de línea; se quitan de la más larga a la más corta.
+ */
+export function sinFrasesDelGuion(textoNormal: string, textoGuion: string): string {
+  const frases = textoGuion
+    .split(/(?<=\D[.?!])\s+|\n/)
+    .map(normal)
+    .filter((f) => f.length > 0)
+    .sort((a, b) => b.length - a.length);
+  let resto = textoNormal;
+  for (const f of frases) resto = resto.split(f).join(" ");
+  return resto;
+}
+
 export function revisarRespuesta(
   r: Extract<SalidaAgente, { tipo: "respuesta" }>,
   guiones: readonly Guion[],
@@ -72,14 +94,13 @@ export function revisarRespuesta(
   const guion = guiones.find((g) => g.id === r.guion);
   if (!guion) codigos.push("guion_desconocido");
 
-  const permitido = guion ? normal(guion.texto) : "";
-  const inventado = PATRONES.some((patron) =>
-    [...texto.matchAll(new RegExp(patron.source, patron.flags))].some((m) => !permitido.includes(m[0].trim())),
-  );
+  const resto = sinFrasesDelGuion(texto, guion?.texto ?? "");
+  const inventado = PATRONES.some((patron) => new RegExp(patron.source, patron.flags).test(resto));
   if (inventado) codigos.push("dato_inventado");
 
   if (detectorDelCable(r.texto)) codigos.push("datos_personales");
   if (enlacesAjenos(r.texto, guion?.texto ?? "").length > 0) codigos.push("enlace");
+  if (tieneMarcador(r.texto)) codigos.push("marcador");
   return codigos;
 }
 

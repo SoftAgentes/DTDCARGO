@@ -6,7 +6,7 @@
  * alertas de Telegram, agentes, rutas…). Esta ruta no está enlazada desde
  * ningún lado y se mantiene sólo para no romper un link viejo.
  *
- * Refactor visual: eyebrow con guión wine-soft + H1 30px + spacing rítmico 8/12/32.
+ * Refactor visual: eyebrow con guión + H1 30px + spacing rítmico 8/12/32.
  */
 
 import Link from "next/link";
@@ -49,7 +49,7 @@ export default function AjustesPage() {
           href="/studio/admin"
           style={{
             font: "600 14px/1.4 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             textDecoration: "underline",
           }}
         >

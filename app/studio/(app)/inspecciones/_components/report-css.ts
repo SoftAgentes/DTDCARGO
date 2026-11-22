@@ -65,7 +65,7 @@ export const REPORT_CSS = String.raw`
 /* Marca de agua SAMPLE + franja */
 .dtd-report .wm { position:absolute; inset:0; z-index:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .dtd-report .wm span { font:900 150px/0.9 var(--f-display); color:rgba(127,15,26,0.07); letter-spacing:0.08em; transform:rotate(-32deg); white-space:nowrap; text-transform:uppercase; }
-.dtd-report .sample-band { position:absolute; top:18px; right:-54px; z-index:3; background:var(--wine); color:#fff; font:800 10px/1 var(--f-sans); letter-spacing:0.18em; text-transform:uppercase; padding:6px 64px; transform:rotate(45deg); box-shadow:var(--shadow-sm); }
+.dtd-report .sample-band { position:absolute; top:18px; right:-54px; z-index:3; background:var(--ink); color:#fff; font:800 10px/1 var(--f-sans); letter-spacing:0.18em; text-transform:uppercase; padding:6px 64px; transform:rotate(45deg); box-shadow:var(--shadow-sm); }
 
 /* Score gauge */
 .dtd-report .score-hero { display:flex; align-items:center; gap:var(--s-8); padding:var(--s-5) 0; }

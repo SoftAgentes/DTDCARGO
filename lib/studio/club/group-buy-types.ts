@@ -107,14 +107,14 @@ export function groupBuyStatusLabel(s: GroupBuyStatus): string {
 
 export function groupBuyStatusTone(
   s: GroupBuyStatus,
-): "success" | "warning" | "wine" | "info" | "neutral" {
+): "success" | "warning" | "info" | "neutral" {
   return {
     abierta: "info",
     cerrada: "neutral",
     en_consolidacion: "info",
     completada: "success",
     cancelada: "neutral",
-  }[s] as "success" | "warning" | "wine" | "info" | "neutral";
+  }[s] as "success" | "warning" | "info" | "neutral";
 }
 
 export function participantStatusLabel(s: ParticipantStatus): string {

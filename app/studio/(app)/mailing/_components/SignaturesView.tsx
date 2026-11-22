@@ -118,7 +118,7 @@ export function SignaturesView({ signatures, members }: Props) {
             borderBottom: "1px solid var(--border)",
           }}
         >
-          <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+          <div className="studio-eyebrow">
             Equipo interno
           </div>
           <div
@@ -147,7 +147,7 @@ export function SignaturesView({ signatures, members }: Props) {
                   gap: 10,
                   padding: "10px 14px",
                   borderTop: "1px solid var(--border)",
-                  background: isActive ? "var(--wine-tint)" : "transparent",
+                  background: isActive ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                   textAlign: "left",
                   cursor: "pointer",
                   border: "none",
@@ -158,7 +158,7 @@ export function SignaturesView({ signatures, members }: Props) {
               >
                 <Avatar
                   initials={m.initials}
-                  color={isActive ? "wine" : "neutral"}
+                  color="neutral"
                   size={32}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -272,7 +272,7 @@ function SignatureEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Selector de layout */}
       <Card>
-        <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
+        <div className="studio-eyebrow">
           Layout
         </div>
         <div
@@ -302,10 +302,10 @@ function SignatureEditor({
                   padding: "12px 10px",
                   textAlign: "left",
                   background: isActive
-                    ? "var(--wine-tint)"
+                    ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                     : "var(--bg-surface)",
                   border: `1.5px solid ${
-                    isActive ? "var(--wine)" : "var(--border)"
+                    isActive ? "var(--ink)" : "var(--border)"
                   }`,
                   borderRadius: "var(--r-md)",
                   cursor: "pointer",
@@ -315,7 +315,7 @@ function SignatureEditor({
                 <div
                   style={{
                     font: "700 12px/1.2 var(--f-sans)",
-                    color: isActive ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                     marginTop: 8,
                   }}
                 >
@@ -349,7 +349,7 @@ function SignatureEditor({
         <Card>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine-text)", marginBottom: 14 }}
+            style={{ marginBottom: 14 }}
           >
             Datos
           </div>
@@ -482,7 +482,7 @@ function SignatureEditor({
         <Card>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine-text)", marginBottom: 14 }}
+            style={{ marginBottom: 14 }}
           >
             Preview
           </div>

@@ -382,7 +382,7 @@ function AccessSection({
           name="give_access"
           checked={open}
           onChange={(e) => onToggle(e.target.checked)}
-          style={{ accentColor: "var(--wine)", width: 16, height: 16, marginTop: 2 }}
+          style={{ accentColor: "var(--accion)", width: 16, height: 16, marginTop: 2 }}
         />
         <div>
           <div style={{ font: "600 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>

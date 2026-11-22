@@ -89,8 +89,9 @@ describe("claridad de controles · SDD-0603", () => {
     });
 
     it("el texto de cada botón con relleno se lee (mínimo 4,5:1)", () => {
-      expect(regla(".studio-btn-primary")).toContain("color: var(--ink-side-strong)");
-      expect(contraste(tema, "--ink-side-strong", "--wine")).toBeGreaterThanOrEqual(4.5);
+      // SDD-0686 (BD-076): el principal se pinta con el azul de acción y su texto propio.
+      expect(regla(".studio-btn-primary")).toContain("color: var(--on-accion)");
+      expect(contraste(tema, "--on-accion", "--accion")).toBeGreaterThanOrEqual(4.5);
       expect(regla(".studio-btn-dark")).toContain("color: var(--ink-inv)");
       expect(contraste(tema, "--ink-inv", "--ink")).toBeGreaterThanOrEqual(4.5);
       expect(regla(".studio-btn-warning")).toContain("color: var(--on-warning)");

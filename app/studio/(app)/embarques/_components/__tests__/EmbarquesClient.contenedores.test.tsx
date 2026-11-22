@@ -64,7 +64,7 @@ function cabecera(nombre: string): HTMLElement {
 
 describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
   it("el primer nivel son los contenedores, con nombre, ISO, naviera, ETA, estado y conteos", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     const regiones = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
     expect(regiones).toEqual(["DDP 64", "FCL 63", "Sin contenedor"]);
 
@@ -85,7 +85,7 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     const user = userEvent.setup();
     const otroDelDueno = envio("f2", { client_name: "Dueño FCL", client_markbox: "DTD-9000" });
     render(
-      <EmbarquesClient
+      <EmbarquesClient pestanaInicial="all"
         shipments={[...ENVIOS, otroDelDueno]}
         adjuntos={undefined}
         contenedores={{ ...DATOS, porEmbarque: { ...DATOS.porEmbarque, f2: "c63" } }}
@@ -105,7 +105,7 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
     // El 64 lleva DDP de dos clientes y el FCL del dueño: es un mixto.
     const delDueno = envio("m1", { client_name: "Dueño FCL", client_markbox: "DTD-9000", shipment_service: "fcl_directo" });
     render(
-      <EmbarquesClient
+      <EmbarquesClient pestanaInicial="all"
         shipments={[...ENVIOS, delDueno]}
         adjuntos={undefined}
         contenedores={{ ...DATOS, porEmbarque: { ...DATOS.porEmbarque, m1: "c64" } }}
@@ -120,13 +120,18 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
 
   it("abrir el contenedor muestra sus clientes y, con pocos, sus embarques", async () => {
     const user = userEvent.setup();
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await user.click(cabecera("DDP 64"));
     const seccion = screen.getByRole("region", { name: "DDP 64" });
     // SDD-0661: el nombre también sale en el detalle por cliente; el nivel 2
-    // (acordeón) es el botón del cliente.
-    expect(within(seccion).getByRole("button", { name: /Cliente Uno/ })).toBeTruthy();
-    expect(within(seccion).getByRole("button", { name: /Cliente Dos/ })).toBeTruthy();
+    // (acordeón) es el botón del cliente. SDD-0689: en el detalle el nombre también es un botón
+    // (lleva a sus embarques), así que se busca el del acordeón.
+    const acordeon = (re: RegExp) =>
+      within(seccion)
+        .getAllByRole("button", { name: re })
+        .filter((b) => b.classList.contains("emb-group-header"));
+    expect(acordeon(/Cliente Uno/)).toHaveLength(1);
+    expect(acordeon(/Cliente Dos/)).toHaveLength(1);
     expect(within(seccion).queryByText("Cliente Tres")).toBeNull();
     expect(within(seccion).getByText("S-a1")).toBeTruthy();
     // El drawer de detalle sigue igual.
@@ -136,7 +141,7 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
 
   it("filtro «Contenedor» por número DTD y por ISO", async () => {
     const user = userEvent.setup();
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await user.type(screen.getByLabelText("Contenedor"), "63");
     expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["FCL 63"]);
     // Con un filtro de texto se abre lo que queda.
@@ -149,7 +154,7 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
 
   it("filtro «Cliente» por nombre o por Shipping Mark", async () => {
     const user = userEvent.setup();
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} />);
     await user.type(screen.getByLabelText("Cliente"), "dtd-1002");
     expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["DDP 64"]);
     expect(screen.getByText("S-a2")).toBeTruthy();
@@ -163,14 +168,14 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
   it("los tabs siguen filtrando dentro de los contenedores", async () => {
     const user = userEvent.setup();
     const conAlerta = ENVIOS.map((r) => (r.id === "a2" ? { ...r, status: "exception" as const } : r));
-    render(<EmbarquesClient shipments={conAlerta} adjuntos={undefined} contenedores={DATOS} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={conAlerta} adjuntos={undefined} contenedores={DATOS} />);
     await user.click(screen.getByRole("button", { name: /Con alertas/ }));
     expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(["DDP 64"]);
     expect(cabecera("DDP 64").textContent).toContain("1 alerta");
   });
 
   it("si no se pudieron leer los contenedores, lo dice y agrupa sólo por cliente", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={null} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={null} />);
     expect(screen.getByText(/No se pudieron leer los contenedores/)).toBeTruthy();
     expect(screen.queryAllByRole("region")).toHaveLength(0);
     expect(screen.queryByLabelText("Contenedor")).toBeNull();
@@ -178,7 +183,7 @@ describe("EmbarquesClient · por contenedor (SDD-0643)", () => {
   });
 
   it("avisa cuando la lista llegó al tope", () => {
-    render(<EmbarquesClient shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} tope={500} />);
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} contenedores={DATOS} tope={500} />);
     expect(screen.getByText(/Se muestran los 500 embarques más recientes/)).toBeTruthy();
   });
 });

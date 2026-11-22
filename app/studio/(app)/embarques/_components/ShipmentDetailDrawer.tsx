@@ -22,7 +22,7 @@ import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 
 function statusBadgeTone(
   status: ShipmentStatus,
-): "neutral" | "info" | "success" | "warning" | "danger" | "wine" {
+): "neutral" | "info" | "success" | "warning" | "danger" {
   if (status === "delivered") return "success";
   if (status === "cancelled") return "neutral";
   if (status === "exception" || status === "delayed_warehouse") return "danger";
@@ -92,8 +92,8 @@ export function ShipmentDetailDrawer({
                   href={`/studio/clientes/${shipment.client_markbox}`}
                   style={{
                     font: "700 11.5px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
-                    textDecoration: "none",
+                    color: "var(--accion-text)",
+                    textDecoration: "underline", textUnderlineOffset: 3,
                     letterSpacing: "0.02em",
                     marginTop: "var(--s-1)",
                     display: "inline-block",

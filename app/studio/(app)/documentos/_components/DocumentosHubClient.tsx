@@ -155,19 +155,18 @@ export function DocumentosHubClient({
           value={kpis.pending}
           label="Pendientes de firma"
           sub="requieren acción"
-          valueColor={kpis.pending ? "var(--warning)" : "var(--ink)"}
+          status={kpis.pending ? { tono: "warning", texto: "Pendiente" } : undefined}
         />
         <KpiCard
           value={kpis.expiring}
           label="Por vencer / vencidos"
           sub="permisos & certificados"
-          valueColor={kpis.expiring ? "var(--danger)" : "var(--ink)"}
+          status={kpis.expiring ? { tono: "danger", texto: "Requiere acción" } : undefined}
         />
         <KpiCard
           value={kpis.unlinked}
           label="Sin transacción"
           sub="clasificar / vincular"
-          valueColor={kpis.unlinked ? "var(--info)" : "var(--ink)"}
         />
       </div>
 
@@ -190,6 +189,7 @@ export function DocumentosHubClient({
         >
           <Link
             href={hubHref({})}
+            aria-current={folder === "all" && view === "all" ? "true" : undefined}
             style={{
               width: "100%",
               display: "flex",
@@ -198,17 +198,17 @@ export function DocumentosHubClient({
               padding: "var(--s-3) var(--s-4)",
               background:
                 folder === "all" && view === "all"
-                  ? "var(--wine-tint)"
+                  ? "color-mix(in srgb, var(--ink) 8%, transparent)"
                   : "transparent",
               borderBottom: "1px solid var(--border)",
               font: `${folder === "all" ? "700" : "600"} 13px/1 var(--f-sans)`,
-              color: folder === "all" ? "var(--wine)" : "var(--ink)",
+              color: "var(--ink)",
               textDecoration: "none",
             }}
           >
             <span
               style={{
-                color: folder === "all" ? "var(--wine)" : "var(--ink-soft)",
+                color: folder === "all" ? "var(--ink)" : "var(--ink-soft)",
                 display: "inline-flex",
               }}
             >
@@ -232,6 +232,7 @@ export function DocumentosHubClient({
                 <div key={g.id} style={{ marginBottom: 2 }}>
                   <Link
                     href={hubHref({ folder: g.id })}
+                    aria-current={topActive ? "true" : undefined}
                     style={{
                       width: "100%",
                       display: "flex",
@@ -274,7 +275,7 @@ export function DocumentosHubClient({
                     <span
                       style={{
                         font: "700 10.5px/1 var(--f-mono)",
-                        color: topActive ? "var(--wine)" : "var(--ink-mute)",
+                        color: topActive ? "var(--ink)" : "var(--ink-soft)",
                       }}
                     >
                       {folderTreeCount(counts, g.id)}
@@ -286,6 +287,7 @@ export function DocumentosHubClient({
                       <Link
                         key={c.id}
                         href={hubHref({ folder: c.id })}
+                        aria-current={active ? "true" : undefined}
                         style={{
                           width: "100%",
                           display: "flex",
@@ -293,10 +295,10 @@ export function DocumentosHubClient({
                           gap: 8,
                           padding: "6px 10px 6px 30px",
                           borderRadius: "var(--r-md)",
-                          background: active ? "var(--wine-tint)" : "transparent",
+                          background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
                           textDecoration: "none",
                           font: `${active ? "700" : "500"} 12px/1.2 var(--f-sans)`,
-                          color: active ? "var(--wine)" : "var(--ink-soft)",
+                          color: active ? "var(--ink)" : "var(--ink-soft)",
                         }}
                       >
                         <span
@@ -368,6 +370,7 @@ export function DocumentosHubClient({
                 <Link
                   key={v.id}
                   href={hubHref({ view: v.id })}
+                  aria-current={active ? "true" : undefined}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -375,8 +378,8 @@ export function DocumentosHubClient({
                     padding: "6px 12px",
                     borderRadius: "var(--r-pill, 999px)",
                     border: "1px solid var(--border)",
-                    background: active ? "var(--wine-tint)" : "var(--bg-surface)",
-                    color: active ? "var(--wine)" : "var(--ink-soft)",
+                    background: active ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "var(--bg-surface)",
+                    color: active ? "var(--ink)" : "var(--ink-soft)",
                     textDecoration: "none",
                     font: `${active ? "700" : "600"} 11.5px/1 var(--f-sans)`,
                   }}

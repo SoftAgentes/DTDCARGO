@@ -5,7 +5,7 @@
  *
  * Versión simple: CxP venciendo por semana (derivada de supplier_bills.due_date).
  * Barras verticales con altura proporcional al máximo de la ventana. La semana
- * en curso usa var(--wine); las siguientes var(--wine-soft). Solo tokens var(--*).
+ * en curso va en tinta y las siguientes en tinta clara (BD-076). Solo tokens var(--*).
  *
  * Forecast con ingresos esperados = V2 (fuera de scope §8).
  */
@@ -39,7 +39,7 @@ export function ForecastCard({ forecast }: { forecast: ForecastWeek[] }) {
         <span
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -50,7 +50,7 @@ export function ForecastCard({ forecast }: { forecast: ForecastWeek[] }) {
           href="/studio/tesoreria"
           style={{
             font: "600 11.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
             display: "inline-flex",
             alignItems: "center",
             gap: "var(--s-1)",
@@ -97,7 +97,7 @@ export function ForecastCard({ forecast }: { forecast: ForecastWeek[] }) {
                     maxWidth: 56,
                     height: Math.max(h, 4),
                     borderRadius: "var(--r-sm) var(--r-sm) 0 0",
-                    background: i === 0 ? "var(--wine)" : "var(--wine-soft)",
+                    background: i === 0 ? "var(--ink)" : "color-mix(in srgb, var(--ink) 45%, var(--bg-surface))",
                     transition: "height var(--dur-slow) var(--ease)",
                   }}
                 />

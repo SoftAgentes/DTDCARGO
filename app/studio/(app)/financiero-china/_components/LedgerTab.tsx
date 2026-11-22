@@ -115,13 +115,6 @@ export function LedgerTab({
         <KpiCard
           value={fmtUsd(balance.net_usd)}
           label="Saldo neto · USD"
-          valueColor={
-            balance.net_usd > 0
-              ? "var(--wine)"
-              : balance.net_usd < 0
-                ? "var(--success)"
-                : "var(--ink)"
-          }
           sub={
             balance.net_usd > 0
               ? "Le debemos al socio"
@@ -133,13 +126,6 @@ export function LedgerTab({
         <KpiCard
           value={fmtRmb(balance.net_rmb)}
           label="Saldo neto · RMB"
-          valueColor={
-            balance.net_rmb > 0
-              ? "var(--wine)"
-              : balance.net_rmb < 0
-                ? "var(--success)"
-                : "var(--ink)"
-          }
           sub="Posición en yuanes"
         />
         <KpiCard
@@ -173,8 +159,8 @@ export function LedgerTab({
                 padding: "5px 12px",
                 borderRadius: "var(--r-sm)",
                 background:
-                  currencyView === c ? "var(--wine-tint)" : "transparent",
-                color: currencyView === c ? "var(--wine)" : "var(--ink-soft)",
+                  currencyView === c ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent",
+                color: currencyView === c ? "var(--ink)" : "var(--ink-soft)",
                 font: "700 11px/1 var(--f-sans)",
                 border: "none",
                 cursor: "pointer",
@@ -202,6 +188,19 @@ export function LedgerTab({
             opacity: loading ? 0.6 : 1,
           }}
         >
+          {/* Qué dice el signo del saldo. Antes lo marcaba el vino; con las
+              cifras en tinta (BD-076) lo dice el texto. */}
+          <p
+            style={{
+              margin: 0,
+              padding: "var(--s-2) var(--s-5)",
+              font: "500 11.5px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            Saldo positivo: le debemos al socio. Con signo menos: el socio nos debe o nos retiene. «—»: saldo en cero.
+          </p>
           {/* Header */}
           <div
             style={{
@@ -281,7 +280,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: isDebe ? "var(--ink)" : "var(--ink-mute)",
+                    color: isDebe ? "var(--ink)" : "var(--ink-soft)",
                   }}
                 >
                   {isDebe ? fmt(amount) : "—"}
@@ -290,7 +289,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: !isDebe ? "var(--success)" : "var(--ink-mute)",
+                    color: !isDebe ? "var(--success)" : "var(--ink-soft)",
                   }}
                 >
                   {!isDebe ? fmt(amount) : "—"}
@@ -299,7 +298,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "800 12px/1 var(--f-mono)",
-                    color: run > 0 ? "var(--wine)" : "var(--ink)",
+                    color: "var(--ink)",
                   }}
                 >
                   {fmt(run)}

@@ -391,7 +391,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
                         {isOverride && (
                           <span
                             style={{
-                              color: "var(--wine-text)",
+                              color: "var(--ink-soft)",
                               marginLeft: 6,
                               font: "700 10.5px/1 var(--f-sans)",
                             }}
@@ -651,7 +651,7 @@ function Section({
         <span
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -741,8 +741,8 @@ function DrawerSwitch({
         width: 44,
         height: 24,
         borderRadius: 999,
-        background: on ? "var(--wine)" : "var(--bg-elevated)",
-        border: `1px solid ${on ? "var(--wine)" : "var(--border)"}`,
+        background: on ? "var(--accion)" : "var(--bg-elevated)",
+        border: `1px solid ${on ? "var(--ink)" : "var(--border)"}`,
         transition: "background-color 160ms ease, border-color 160ms ease",
         flexShrink: 0,
         cursor: "pointer",

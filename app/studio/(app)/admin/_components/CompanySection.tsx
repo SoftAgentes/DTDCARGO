@@ -93,7 +93,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
               name="iva_enabled"
               checked={ivaEnabled}
               onChange={(e) => setIvaEnabled(e.target.checked)}
-              style={{ accentColor: "var(--wine)" }}
+              style={{ accentColor: "var(--accion)" }}
             />
             <span>IVA activo en facturación</span>
           </label>
@@ -139,7 +139,7 @@ export function CompanySection({ data }: { data: CompanyData }) {
                 alignItems: "center",
               }}
             >
-              <Badge tone={o.country === "VE" ? "wine" : "info"} size="sm">
+              <Badge tone={o.country === "VE" ? "neutral" : "info"} size="sm">
                 {officeCountryLabel(o.country)}
               </Badge>
               <div>
@@ -243,7 +243,7 @@ function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="studio-eyebrow"
-      style={{ color: "var(--wine-text)", marginBottom: 14 }}
+      style={{ marginBottom: 14 }}
     >
       {children}
     </div>
@@ -287,7 +287,7 @@ function Field({
 
 const editLinkStyle: React.CSSProperties = {
   font: "600 11.5px/1 var(--f-sans)",
-  color: "var(--wine-text)",
+  color: "var(--accion-text)",
   justifySelf: "end",
   background: "transparent",
   border: 0,

@@ -102,7 +102,7 @@ export function MasterDataSection({
                 <span style={{ display: "block", font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>{r.title}</span>
                 <span style={{ display: "block", font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>{r.sub}</span>
               </span>
-              <span style={{ color: "var(--wine-text)", flexShrink: 0, font: "600 12px/1 var(--f-sans)" }}>Abrir →</span>
+              <span style={{ color: "var(--accion-text)", flexShrink: 0, font: "600 12px/1 var(--f-sans)" }}>Abrir →</span>
             </Link>
           ))}
         </div>
@@ -120,7 +120,7 @@ export function MasterDataSection({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,
@@ -172,7 +172,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="studio-eyebrow" style={{ color: "var(--wine-text)", marginBottom: 14 }}>
+    <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
       {children}
     </div>
   );

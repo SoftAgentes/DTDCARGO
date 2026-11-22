@@ -22,7 +22,7 @@ import {
 } from "@/lib/studio/bug-types";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Mis reportes · DTD Studio" };
+export const metadata = { title: "Mis reportes" };
 export const dynamic = "force-dynamic";
 
 const KPI_STATES: BugState[] = ["nuevo", "triaje", "espera", "progreso", "resuelto"];

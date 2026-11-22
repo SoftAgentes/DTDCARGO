@@ -1,9 +1,9 @@
 /**
- * /studio/admin/oficina/vista · La mini-vista del cable (SDD-0626 §3.6, Paso 4): la bandera, la cola, los eventos y la
+ * /studio/admin/oficina-virtual/vista · La mini-vista del cable (SDD-0626 §3.6, Paso 4): la bandera, la cola, los eventos y la
  * bitácora, SOLO LECTURA. Maqueta de la V3: sin botones, sin formularios y sin acciones.
  *
  * - Nace APAGADA: sin `OFICINA_VISTA_ACTIVA` la página no existe (404), también para el superadministrador.
- * - SOLO para el superadministrador (`is_platform_admin`): el layout de `/studio/admin/oficina` corta con `notFound()`,
+ * - SOLO para el superadministrador (`is_platform_admin`): el layout de `/studio/admin/oficina-virtual` corta con `notFound()`,
  *   y `leerMiniVista` lo vuelve a preguntar a la base ANTES de crear el cliente de servicio (las 4 tablas solo las lee
  *   `service_role`, 0541). Sin ese «sí», aquí también es un 404.
  * - Todo va como texto plano: React lo escapa; no hay HTML ni Markdown renderizado. No muestra el borrador ni el texto
@@ -26,7 +26,7 @@ import {
 import { isPlatformAdmin } from "@/lib/studio/platform-admin";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 
-export const metadata = { title: "Oficina · mini-vista · DTD Studio" };
+export const metadata = { title: "Oficina_Virtual · mini-vista" };
 export const dynamic = "force-dynamic";
 
 const parrafo: React.CSSProperties = { font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 12px", maxWidth: "76ch" };
@@ -85,11 +85,11 @@ export default async function OficinaMiniVistaPage() {
 
   return (
     <div style={{ maxWidth: 1080 }}>
-      <Link href="/studio/admin/oficina" style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)", textDecoration: "none" }}>
+      <Link href="/studio/admin/oficina-virtual" style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-soft)", textDecoration: "none" }}>
         ← Volver a la revisión de borradores
       </Link>
       <span className="studio-eyebrow" style={{ display: "block", marginTop: 12 }}>
-        Oficina · SDD-0626 · Paso 4
+        <span style={{ textTransform: "none" }}>Oficina_Virtual</span> · SDD-0626 · Paso 4
       </span>
       <h1 className="studio-display" style={{ fontSize: 30, margin: "8px 0", color: "var(--ink)" }}>
         Mini-vista del cable
@@ -113,14 +113,14 @@ export default async function OficinaMiniVistaPage() {
           <div style={caja}>
             <p style={{ margin: 0, font: "600 16px/1.3 var(--f-sans)" }} data-testid="vista-bandera">
               {vista.datos.pausa.vigente === null
-                ? "Sin registro de pausa: la oficina se trata como pausada."
+                ? "Sin registro de pausa: la Oficina_Virtual se trata como pausada."
                 : vista.datos.pausa.vigente.pausada
-                  ? "La oficina está PAUSADA."
-                  : "La oficina está DESPAUSADA."}
+                  ? "La Oficina_Virtual está PAUSADA."
+                  : "La Oficina_Virtual está DESPAUSADA."}
             </p>
             <p style={{ ...parrafo, margin: "8px 0 0" }}>
               Gasto del mes: {vista.datos.gastoMesUsd === null ? "?" : usd(vista.datos.gastoMesUsd)} USD de un tope de{" "}
-              {usd(tope)} USD. Al llegar al 80 % la oficina se pausa sola.
+              {usd(tope)} USD. Al llegar al 80 % la Oficina_Virtual se pausa sola.
             </p>
           </div>
           <div style={marco}>

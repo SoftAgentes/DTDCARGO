@@ -100,7 +100,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
         border: "none",
         cursor: "pointer",
         background: hot ? "var(--danger-bg)" : "transparent",
-        color: hot ? "var(--danger)" : "var(--ink-mute)",
+        color: hot ? "var(--danger)" : "var(--ink-soft)",
         font: "700 14px/1 var(--f-sans)",
         transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
       }}
@@ -244,7 +244,7 @@ export function BuilderView({
         <div
           style={{
             font: "700 10px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--ink-soft)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             marginBottom: 14,
@@ -448,7 +448,7 @@ export function BuilderView({
                 Conversión incompleta · {result.sinTasa} documento{result.sinTasa === 1 ? "" : "s"} sin tasa
               </div>}
             </div>
-            <Badge tone="wine" size="md">
+            <Badge tone="neutral" size="md">
               {aggLabel}
             </Badge>
           </div>
@@ -488,7 +488,7 @@ export function BuilderView({
               </span>
               {r.sinTasa > 0 ? <span style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>Subtotal conocido · {r.sinTasa} documento{r.sinTasa === 1 ? "" : "s"} sin tasa</span> : <Progress
                 value={((r.value ?? 0) / maxV) * 100}
-                tone={i === 0 ? "var(--wine)" : "var(--wine-soft)"}
+                tone={i === 0 ? "var(--ink)" : "color-mix(in srgb, var(--ink) 45%, var(--bg-surface))"}
                 height={18}
               />}
               <span
@@ -542,7 +542,7 @@ export function BuilderView({
           <div
             style={{
               font: "700 10px/1 var(--f-sans)",
-              color: "var(--wine-text)",
+              color: "var(--ink-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: 12,
@@ -661,7 +661,7 @@ export function BuilderView({
                mode no sangre texto gris/bordes invisibles al papel. */
             --ink: #0F1E3D;
             --ink-soft: #6B6B6B;
-            --wine: #7F0F1A;
+            --wine-text: #7F0F1A; /* SDD-0686: el eyebrow impreso usa --wine-text; se ancla al valor claro */
             --border: #E8E6E2;
             --bg-surface: #FFFFFF;
             display: block !important;

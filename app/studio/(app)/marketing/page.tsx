@@ -27,7 +27,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { listFrictionReports } from "@/lib/studio/marketing/friction-queries";
 import { FrictionReportsPanel } from "./_components/FrictionReportsPanel";
 
-export const metadata = { title: "Marketing · DTD Studio" };
+export const metadata = { title: "Marketing" };
 export const dynamic = "force-dynamic";
 
 const VE_TZ = "America/Caracas";
@@ -157,7 +157,7 @@ export default async function MarketingPage() {
       <div style={{ marginBottom: 28 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine-text)" }}
+          style={{ marginBottom: 10 }}
         >
           MARKETING · {eyebrowDateVE(now)}
         </div>
@@ -165,7 +165,7 @@ export default async function MarketingPage() {
           className="studio-display"
           style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink)" }}
         >
-          {greeting}, <span style={{ color: "var(--wine-text)" }}>{subject}</span>.
+          {greeting}, <span style={{ color: "var(--ink)" }}>{subject}</span>.
         </h1>
         <p
           style={{
@@ -196,7 +196,7 @@ export default async function MarketingPage() {
             gap: 14,
           }}
         >
-          <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>
+          <span style={{ color: "var(--ink-soft)", flexShrink: 0 }}>
             {Icon.flag(22)}
           </span>
           <div>
@@ -268,8 +268,8 @@ export default async function MarketingPage() {
                       borderRadius: 10,
                       alignItems: "center",
                       justifyContent: "center",
-                      background: "var(--wine-tint)",
-                      color: "var(--wine-text)",
+                      background: "var(--bg-elevated)",
+                      color: "var(--ink)",
                       opacity: soon ? 0.55 : 1,
                     }}
                   >
