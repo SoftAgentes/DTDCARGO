@@ -136,8 +136,8 @@ export function TareaDetailClient({
             width: 36,
             height: 36,
             borderRadius: "var(--r-pill)",
-            background: "var(--wine-tint)",
-            color: "var(--wine-soft)",
+            background: "var(--surface-inv)",
+            color: "var(--ink-side)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -323,7 +323,7 @@ export function TareaDetailClient({
             <div
               style={{
                 font: "700 10.5px/1 var(--f-sans)",
-                color: "var(--wine-text)",
+                color: "var(--ink-soft)",
                 letterSpacing: "0.16em",
                 textTransform: "uppercase",
                 marginBottom: 10,
@@ -418,7 +418,7 @@ export function TareaDetailClient({
             textDecoration: "none",
             textAlign: "center",
             font: "700 12px/1 var(--f-sans)",
-            color: "var(--wine-text)",
+            color: "var(--accion-text)",
           }}
         >
           Editar en el Studio →

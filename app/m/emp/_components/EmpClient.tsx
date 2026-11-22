@@ -138,7 +138,7 @@ function TabButton({
         flexDirection: "column",
         alignItems: "center",
         gap: 3,
-        color: active ? "var(--wine)" : "var(--ink-mute)",
+        color: active ? "var(--ink)" : "var(--ink-soft)",
         cursor: "pointer",
         position: "relative",
       }}

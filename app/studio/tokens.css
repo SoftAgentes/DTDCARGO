@@ -166,7 +166,7 @@
   --surface-inv-soft: rgba(255,255,255,0.06);   /* chrome más suave (modos) */
   --surface-inv-strong: rgba(255,255,255,0.94); /* chip casi opaco (erp) */
   --border-inv: rgba(255,255,255,0.12);         /* borde/línea fina sobre navy */
-  --surface-sel: rgba(168,50,62,0.22);          /* item seleccionado (modos) */
+  --surface-sel: rgba(255,255,255,0.16);        /* item seleccionado sobre navy (modos): tinta, no vino (SDD-0686) */
   --danger-bg-strong: rgba(168,50,62,0.18);     /* pill de error sobre navy */
   --danger-border: rgba(168,50,62,0.35);        /* borde pill de error */
   --badge-remove: rgba(217,28,28,0.92);         /* badge eliminar foto (erp) */

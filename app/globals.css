@@ -23,6 +23,14 @@
      luminosidad 61% → 73%. Medido: 4,57:1 sobre #26406F · 6,55:1 sobre #16274b
      (extremo oscuro del degradado) · 8,64:1 sobre #060D1C (fondo del collage). */
   --color-wine-on-dark: #d59fa7;
+  /* Azul de acción para la capa web (SDD-0686 fase 3, BD-076: azul = acción). Mismos
+     valores claros que --accion del Studio (tono B, decisión de Sam del 2026-11-20).
+     Fijos: los usa Noticias web dentro de su bloque data-theme="light", donde los
+     tokens del Studio tomarían su valor oscuro. */
+  --color-accion: #1f4fa8;
+  --color-accion-hover: #183e86;
+  --color-on-accion: #ffffff;
+  --color-accion-text: #1f4fa8;
   /* Verde de éxito legible SOBRE NAVY. Hermano de --color-wine-on-dark y existe
      por la misma razón: --color-status-success (#1f8a5b) mide 2,85:1 sobre el
      panel navy del calculador (#203760) y falla AA de calle. Este mide 7,69:1
