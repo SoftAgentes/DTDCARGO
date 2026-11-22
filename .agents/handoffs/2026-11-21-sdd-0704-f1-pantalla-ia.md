@@ -178,31 +178,40 @@ hay que hacer la prueba de `amr` (paso 1 de la lista).
 | `tsc --noEmit` | PASÓ |
 | eslint de lo tocado | PASÓ |
 | `check-pending-migration-symbols` | PASÓ: 0 ROJO, 5 AMARILLO declarados (2 de la 0571) |
-| 0571 en PGlite (contrato, control rojo y 18 mutantes) | pendiente del turno de PC |
-| `lib/studio/ia/__tests__` (clasificador, cadena) y `admin/ia/__tests__` | pendiente del turno de PC |
-| Contrato SQL en Postgres 17 con Docker | NO EJECUTADO (lo corre el CI) |
-| `pnpm verify` | pendiente |
-| `/ui-check` de la pestaña | pendiente |
+| 0571 en PGlite (contrato, control rojo y 18 mutantes) | PASÓ 20/20 (tras quitar el prefijo `pg_catalog` del `unnest` de dos arreglos) |
+| `lib/studio/ia/__tests__`, `admin/ia/__tests__` y `rbac-actions-guard` (503) | PASÓ 609 |
+| Contrato SQL en Postgres 17 con Docker | NO EJECUTADO (lo corre el CI, «Contratos SQL») |
+| `/ui-check` de la pestaña | OK con ajustes menores: sin hex, rgba, vino ni voseo. El `gap` 10 pasó a 12 (escala de 4). Quedan los px fijos, como en las otras pestañas. Sin decisión visual nueva |
+
+`pnpm verify` completo (local, Windows, 2026-11-22): exit 1. Por paso:
+
+| Paso | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO), sql-tests, build | PASÓ |
+| test | FALLÓ, ajeno y por carga. Primera vuelta: solo los dos timeouts de 600 s de siempre (`entorno-prueba-scripts`, `infra/ops/tests/migraciones`). En el reintento fallaron además `oficina-paso3b`, `PermissionsSection`, `MobileErpClient.fechas-caracas` y `register-error-summary`; corridos aparte pasan 68/68 |
+| schema-rebuild | FALLÓ, preexistente y ajeno: muere en la 0552 (`au.last_sign_in_at`), antes de la 0570 y la 0571 |
+| e2e | FALLÓ por entorno: los fallos son de WebKit, que no está instalado en esta PC; 166 pasaron |
+| migrations-applied | NO DISPONIBLE: el worktree no tiene `.env` |
+
+El portón es el CI de GitHub.
 
 ### Pendiente de esta tarea
 
-- El turno de PC para correr las pruebas, y después la PR.
-- `lib/studio/rbac-actions-guard.test.ts`: el inventario sube de 502 a 503 por `guardarCadenaAction`. Pedí a Dir_DTD
-  que lo sume a §15; sin su OK no lo toco.
+- La revisión previa de la PR (la lanza Dir_DTD).
 - Aplicar la 0571 en producción, después de la 0570, con el OK nominal de Sam.
 - **NV:** los códigos y textos de saldo y suspensión de cada proveedor (catálogo del clasificador).
 
-### Decisiones de implementación (para la revisión)
+### Lo que no está: en qué fase lo pone la spec
 
-- La confirmación con el antes y el después antes de guardar (§2.3) no está. Hoy se pide el motivo y la auditoría
-  guarda el antes y el después.
-- El contador de saltos del día en la tarjeta «IA» de Administración (§4.4) no está, porque
-  `app/studio/(app)/admin/page.tsx` no entra en la allowlist de la F1-B. El salto se ve en «Último salto».
-- La purga de `ia_eventos` a los 90 días (0638 §5.3) no está: no hay cron en la allowlist.
-- El costo de A1 y A2 no se calcula. `ia_eventos` guarda los tokens y el costo se suma cuando exista tarifa para esas
-  funciones.
-- El comentario de cabecera de `noticias-web/actions.ts` todavía nombra `claude-sonnet-4-6`. Solo se tocó el `MODEL`
-  y su uso.
+| Falta | Dónde lo pone la spec | Qué se hizo |
+|---|---|---|
+| Confirmación con el antes y el después al guardar la cadena | §2.3, boceto de «Funciones»: **F1** | **Recorte de la F1-B.** Hoy se pide el motivo y la auditoría guarda el antes y el después (contrato 3). La confirmación es UI pura dentro de `admin/ia/` y puede ir en una PR corta del carril rápido |
+| Contador de saltos del día en la tarjeta «IA» de Administración | §4.4, «mientras la 0638 no exista»: **F1** | **Recorte de la F1-B:** la tarjeta vive en `app/studio/(app)/admin/page.tsx`, que no está en la allowlist de la F1-B. El salto se ve en «Último salto» de la pestaña |
+| Purga de `ia_eventos` a los 90 días | 0638 §5.3; la 0704 no la pone en ninguna fase | **Fase posterior:** necesita un cron, que no está en la allowlist. Por ahora la tabla crece unas pocas filas por llamada de A1 y A2 |
+| Costo de A1 y A2 | §7 y §11: en la F1 el costo es el de la Oficina; la auto-pausa por función es de la **fase 3** | **Fase posterior.** `ia_eventos` ya guarda los tokens de cada intento |
+
+- Otra nota: el comentario de cabecera de `noticias-web/actions.ts` todavía nombra `claude-sonnet-4-6`. Solo se tocó
+  el `MODEL` y su uso, como pide la allowlist.
 
 ### FUERA DE ALCANCE DETECTADO
 

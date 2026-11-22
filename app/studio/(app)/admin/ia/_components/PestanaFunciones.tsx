@@ -50,7 +50,7 @@ export function PestanaFunciones({ datos }: { datos: DatosFunciones }) {
             key={f.clave}
             action={guardarCadenaAction}
             aria-labelledby={`ia-fn-${f.clave}`}
-            style={{ display: "grid", gap: 10, maxWidth: 560, padding: "12px 0 16px", borderTop: "1px solid var(--border)" }}
+            style={{ display: "grid", gap: 12, maxWidth: 560, padding: "12px 0 16px", borderTop: "1px solid var(--border)" }}
           >
             <input type="hidden" name="funcion" value={f.clave} />
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
