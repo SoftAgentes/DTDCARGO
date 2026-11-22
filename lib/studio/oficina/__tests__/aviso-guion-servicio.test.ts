@@ -145,6 +145,19 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
         " Te llega en una semana.",
         " Te aseguro que llega antes.",
         " Llega sin falta.",
+        // Revisión de la #777: «mes» sin plural, plazos vagos, del trece al diecinueve y más promesas.
+        " Llega en un mes.",
+        " Te llega a fin de mes.",
+        " A finales de mes lo tienes.",
+        " Sale la semana que viene.",
+        " Tarda catorce días.",
+        " Tarda dieciséis días.",
+        " En un par de semanas lo tienes.",
+        " Tarda unas semanas.",
+        " Son varios días.",
+        " Garantizamos la entrega.",
+        " Te prometo que no pasa.",
+        " Seguro que te llega.",
       ],
     },
     {
@@ -228,6 +241,16 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
         "dato_inventado",
       );
     }
+  });
+
+  it("v0.5: «mil gracias» es un agradecimiento y no escala; «mil dólares» o «mil cajas» sí", () => {
+    const g = guionPorId("quejas")!;
+    const acuse = "Entendí tu molestia, y lo siento.";
+    const revisar = (extra: string) =>
+      revisarRespuesta({ tipo: "respuesta", acuse, texto: g.texto + extra, guion: g.id }, GUIONES_SOPORTE);
+    expect(revisar(" Mil gracias por tu paciencia.")).toEqual([]);
+    expect(revisar(" Son mil dólares.")).toContain("dato_inventado");
+    expect(revisar(" Llegaron mil cajas.")).toContain("dato_inventado");
   });
 
   it("el 60 y el 90 no pasan con otro guion: fuera de precios-tiempos escalan", () => {

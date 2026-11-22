@@ -229,9 +229,15 @@ cincuenta» o «cuesta sesenta». Ya pasaba antes, pero `precios-tiempos` ahora 
 - **Cantidades en letras de veinte para arriba, solas o con unidad:** «veinti…», las decenas de treinta a noventa,
   «cien», «ciento», los cientos («doscientos», «quinientos»…), «mil» y «millón». Así, «otro rango» en letras
   («entre sesenta y noventa días», «entre cuarenta y cincuenta») escala igual que en cifras.
-- **Plazos cortos con unidad:** «un», «una», «once» y «doce» antes de día, hora, semana o mes («en una semana»,
-  «en un mes»).
-- **Promesas sin cifra:** «te aseguro», «le aseguro», «seguro llega», «sin falta» y «llega antes».
+- **Cantidad con unidad de tiempo:** «un», «una», del «once» al «diecinueve», «un par de», «unos», «unas»,
+  «varios», «pocos», «algunos» (y sus femeninos) antes de día, hora, semana o mes. La unidad del mes pasó de `meses?`
+  (que exigía «mese» y dejaba pasar «en un mes») a `mes(?:es)?`.
+- **Fechas vagas:** «la semana que viene», «el mes que viene», «fin de mes» y «finales de mes».
+- **Promesas sin cifra:** «te aseguro», «le aseguro», «seguro llega», «seguro que te llega», «sin falta», «llega
+  antes», «garantizo», «garantizamos», «prometo» y «prometemos».
+- **Falso positivo evitado:** «mil gracias» no escala (es un agradecimiento); «mil dólares» o «mil cajas» sí.
+- Fuera de alcance (v0.6, ver el handoff): promesas sin palabra vigilada, «pronto» o «en breve», ordinales y
+  fracciones.
 
 Ningún guion trae estas palabras, así que los guiones copiados tal cual siguen pasando. Si el agente parafrasea con
 una cantidad en letras, escala: es el lado seguro.
