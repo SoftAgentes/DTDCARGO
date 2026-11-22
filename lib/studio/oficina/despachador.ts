@@ -20,7 +20,7 @@
  * una llamada abortada se vuelve a borrar en cada tick durante 15 min; y cada borrador nuevo avisa a Discord
  * «hay N pendientes» (sin el texto). SDD-0701: un enlace del CLIENTE también escala sin llamar al agente
  * (`cliente:enlace`, prioridad 2; `tema-enlace.ts`). SDD-0705: la primera respuesta de DTD lleva al final el aviso de
- * que atiende un asistente virtual (`aviso-cliente.ts`); si con el aviso no cabe, escala `borrador_largo`. El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
+ * que atiende un asistente virtual (`aviso-cliente.ts`); si el borrador no cabe (con o sin aviso), escala `borrador_largo`. El envío NO es de aquí: lo hace `/api/cron/oficina-envio`, solo lo aprobado.
  *
  * PRIVACIDAD: el texto del cliente solo existe en memoria y en la llamada al agente, y a la llamada llega con los
  * correos, teléfonos, cédulas, RIF y direcciones tapados (SDD-0700, `tapar-datos.ts`). No va a ningún log, ni a
@@ -295,7 +295,8 @@ export async function ejecutarCorrida(deps: DepsDespachador, tarea: TareaTomada)
     if (codigos.length > 0) throw new Escalar(`eval:${codigos.join(",")}`);
     // SDD-0705 v0.2: en la primera respuesta de DTD, el aviso al cliente va al final (Sam lo ve antes de aprobar).
     const texto = conAvisoAlCliente(salida.texto, mensajes);
-    // Si con el aviso no cabe en office_borradores, lo ve una persona (antes la base lo rechazaba como fallo_interno).
+    // Si el borrador final (con o sin aviso) no cabe en office_borradores, lo ve una persona (antes la base lo
+    // rechazaba como fallo_interno).
     if (!cabeEnBorrador(texto)) throw new Escalar("borrador_largo");
     const ok = await almacen.entregar({
       taskId: tarea.taskId,

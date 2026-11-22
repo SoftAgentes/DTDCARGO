@@ -34,6 +34,20 @@ describe("aviso al cliente", () => {
     expect(cabeEnBorrador(`  ${"ñ".repeat(4000)}  `)).toBe(true);
   });
 
+  it("v0.3 (M1): mide como btrim de PostgreSQL, que quita solo espacios, no saltos de línea ni tabuladores", () => {
+    // 4000 caracteres + saltos al final: la base los cuenta (btrim no los quita) → no cabe.
+    expect(cabeEnBorrador(`${"a".repeat(4000)}\n\n`)).toBe(false);
+    expect(cabeEnBorrador(`\t${"a".repeat(4000)}`)).toBe(false);
+    // Los espacios sí se quitan a los dos lados.
+    expect(cabeEnBorrador(`   ${"a".repeat(4000)}   `)).toBe(true);
+  });
+
+  it("v0.3 (M3): el tope aplica también sin el aviso (respuestas que no son la primera)", () => {
+    const sinAviso = conAvisoAlCliente("a".repeat(4001), [cliente("Hola"), dtd("Hola, ¿en qué te ayudo?")]);
+    expect(sinAviso).not.toContain(AVISO_CLIENTE);
+    expect(cabeEnBorrador(sinAviso)).toBe(false);
+  });
+
   it("no se repite si DTD ya respondió (el agente o una persona del equipo)", () => {
     const mensajes = [cliente("Hola"), dtd("Hola, ¿en qué te ayudo?"), cliente("¿Cómo funciona?")];
     expect(esPrimeraRespuesta(mensajes)).toBe(false);

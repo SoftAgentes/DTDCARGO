@@ -17,8 +17,8 @@
  * el efecto es inofensivo (un aviso de más, que Sam ve antes de aprobar).
  *
  * Largo: el borrador admite hasta `TEXTO_MAXIMO_BORRADOR` caracteres (check de `office_borradores` en la 0548). El
- * aviso suma `AVISO_CLIENTE.length + 2`. Si con el aviso se pasaría, el despachador escala con `borrador_largo` (lo
- * ve una persona) en vez de dejar que la base lo rechace como `fallo_interno`.
+ * aviso suma `AVISO_CLIENTE.length + 2`. Si el borrador final no cabe, lleve el aviso o no (v0.3, M3), el despachador
+ * escala con `borrador_largo` (lo ve una persona) en vez de dejar que la base lo rechace como `fallo_interno`.
  *
  * El aviso NO pasa por `revisarRespuesta`: se agrega después de la revisión, sobre un texto que ya pasó. No trae
  * cifras, fechas, datos personales ni enlaces.
@@ -45,7 +45,10 @@ export function conAvisoAlCliente(texto: string, mensajes: readonly MensajeLeido
   return `${texto}${SEPARADOR}${AVISO_CLIENTE}`;
 }
 
-/** ¿Cabe en `office_borradores`? Se mide como la base: sin espacios a los lados. */
+/** ¿Cabe en `office_borradores`? Se mide como la base: `char_length(btrim(texto))`. */
 export function cabeEnBorrador(texto: string): boolean {
-  return [...texto.trim()].length <= TEXTO_MAXIMO_BORRADOR;
+  // `btrim(texto)` sin segundo argumento de PostgreSQL quita SOLO espacios (U+0020), no saltos de línea ni
+  // tabuladores; `char_length` cuenta caracteres, no bytes. `String.trim()` quitaría también `\n` y `\t`, y un texto
+  // con saltos al final pasaría aquí y la base lo rechazaría (SDD-0705 v0.3, M1).
+  return [...texto.replace(/^ +| +$/g, "")].length <= TEXTO_MAXIMO_BORRADOR;
 }
