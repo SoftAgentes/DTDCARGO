@@ -283,19 +283,18 @@ también la da `rapido`. Primero se revierte y después se investiga. La correcc
 
 **Revisión de madrugada.** La lanza el Director a las 2:00 de Caracas sobre todo lo que entró por el carril
 rápido en las últimas 24 h (los merges a `main` cuyo carril registrado fue `rapido`). Las correcciones pequeñas
-que encuentre van como PR del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam. De noche
-no se publica: lo que se fusione de madrugada sale en la ventana de las 11:00.
+que encuentre van como PR del carril rápido. Lo que pida el otro carril, o una decisión, espera a Sam.
 
 **Fusionar y publicar son pasos distintos.** Hoy un push a `main` no publica: el vigilante de la publicación
 automática (SDD-0541) está detenido desde el 2026-10-25 y el servidor no tiene crontab. Publicar es un paso
 manual del Director (`publicar-web.sh publicar <sha>` en el VPS). Por eso el tren fusiona a cualquier hora, en cuanto la PR cumple su carril.
 
-**Ventanas de publicación.** Rigen solo para publicar: 11:00, 15:00 y 19:00 de Caracas, con OK fijo de Sam
-para lo que ya está integrado en `main`. Si el vigilante vuelve a activarse (cada push a `main` publicaría
-otra vez), esta regla se revisa antes, porque fusionar volvería a ser publicar. Las migraciones y encender interruptores (feature
-flags) en producción siguen pidiendo un OK nominal de Sam, como dice el
-[runbook de migraciones](aplicar-migraciones-prod.md). El OK fijo no cubre los smokes que pida una espera
-concreta.
+**Publicar.** Sin horario fijo (Sam, 2026-11-22: «en el momento en que hay que publicar, que se publique»). El Director
+publica `main` cuando hay trabajo fusionado listo y nada está ocupado: ni un tren corriendo, ni otra publicación, ni
+una sesión tocando el VPS. Sigue avisando a las sesiones de la Oficina. Si el vigilante vuelve a activarse (cada push
+a `main` publicaría otra vez), esta regla se revisa antes, porque fusionar volvería a ser publicar. Las migraciones y
+encender interruptores (feature flags) en producción siguen pidiendo un OK nominal de Sam, como dice el
+[runbook de migraciones](aplicar-migraciones-prod.md).
 
 **Prueba de una semana.** Del 2026-11-20 al 2026-11-27 se mide:
 
