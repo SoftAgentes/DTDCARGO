@@ -14,8 +14,8 @@
  * proveedor y sus etiquetas. Nunca queda a mitad de camino.
  *
  * Sólo tokens `var(--*)` + clases del portal. Ojo: el tema oscuro es el DEFAULT
- * y los tokens con nombre de color voltean — sobre relleno wine va
- * `--color-on-accent`, jamás `text-white`.
+ * y los tokens con nombre de color voltean — sobre relleno de acción va
+ * `--color-on-accion`, jamás `text-white`.
  */
 
 import { useCallback, useId, useState } from "react";
@@ -166,7 +166,7 @@ export function NewPurchaseWizard({
     <div>
       <PurchaseWizardSteps step={1} />
 
-      <div className="eyebrow eyebrow-wine mb-4" style={{ fontSize: 13 }}>
+      <div className="eyebrow eyebrow-tinta mb-4" style={{ fontSize: 13 }}>
         Nueva compra · prealerta
       </div>
 
@@ -212,7 +212,7 @@ export function NewPurchaseWizard({
                 maxLength={PREALERTA_CLIENT_NOTE_MAX}
                 disabled={pending}
                 placeholder="Ej.: me dio mejor precio esta vez, pedido urgente, incluye una muestra…"
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                className="mt-1.5 w-full px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-y disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
               />
             </div>
           )}
@@ -229,7 +229,7 @@ export function NewPurchaseWizard({
               defaultValue={supplier?.wechat ?? ""}
               placeholder="WeChat ID o número — opcional"
               disabled={pending}
-              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
             />
             <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
               ¿Prefieres no escribir el ID? Sube una captura (screenshot) del
@@ -389,7 +389,7 @@ function HoldControls({
             onClick={() => step(-1)}
             disabled={holdCount <= HOLD_MIN}
             aria-label="Una compra menos"
-            className="w-8 h-8 rounded-[8px] border border-grey-200 bg-white text-ink text-[16px] font-bold grid place-items-center disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-wine"
+            className="w-8 h-8 rounded-[8px] border border-grey-200 bg-white text-ink text-[16px] font-bold grid place-items-center disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-accion"
           >
             −
           </button>
@@ -407,7 +407,7 @@ function HoldControls({
             onClick={() => step(1)}
             disabled={holdCount >= HOLD_MAX}
             aria-label="Una compra más"
-            className="w-8 h-8 rounded-[8px] border border-grey-200 bg-white text-ink text-[16px] font-bold grid place-items-center disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-wine"
+            className="w-8 h-8 rounded-[8px] border border-grey-200 bg-white text-ink text-[16px] font-bold grid place-items-center disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-accion"
           >
             +
           </button>
@@ -424,7 +424,7 @@ function HoldControls({
           type="checkbox"
           checked={holdTie}
           onChange={(e) => onHoldTie(e.target.checked)}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-wine)]"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--color-accion)]"
         />
         <span className="text-[11.5px] text-grey-700 leading-[1.5]">
           Este HOLD implica reempaque

@@ -31,6 +31,7 @@
   --color-accion-hover: #183e86;
   --color-on-accion: #ffffff;
   --color-accion-text: #1f4fa8;
+  --color-accion-tint: rgba(31, 79, 168, 0.08);
   /* Verde de éxito legible SOBRE NAVY. Hermano de --color-wine-on-dark y existe
      por la misma razón: --color-status-success (#1f8a5b) mide 2,85:1 sobre el
      panel navy del calculador (#203760) y falla AA de calle. Este mide 7,69:1
@@ -165,6 +166,15 @@ html.dtd-cjk-sistema {
   --color-wine: #c24450;      /* acento — más brillante para leer sobre navy */
   --color-wine-deep: #d35e68; /* hover del acento */
   --color-wine-text: #d89aa4; /* = --wine-soft dark de Studio: wine legible como texto en oscuro (~6-8:1). --color-wine crudo NO alcanza AA como texto pequeño (~3-3.7:1) */
+  /* SDD-0686 fase 3b · azul de acción del portal oscuro: los mismos valores que
+     --accion del Studio en oscuro. Sobre el relleno va navy, no blanco (blanco
+     sobre #7faaf0 mide 2,36:1). Noticias web no pasa por aquí: no lleva
+     [data-portal-theme] y conserva los valores claros fijos. */
+  --color-accion: #7faaf0;
+  --color-accion-hover: #9bbdf4;
+  --color-on-accion: #0f1e3d;
+  --color-accion-text: #7faaf0;
+  --color-accion-tint: rgba(127, 170, 240, 0.14);
   --color-status-success: #2ea36e;
   --color-status-warning: #d3a24a;
   /* SDD-0261 · era #e0606b, que medía 4,29:1 sobre la card del portal (#16264A)
@@ -539,6 +549,11 @@ html.dtd-cjk-sistema {
 .eyebrow-wine {
   color: var(--color-wine-text);
 }
+/* SDD-0686 fase 3b · eyebrow del Portal en tinta suave: el guión sigue en vino
+   (identidad, `.eyebrow::before`) y el texto deja de serlo. */
+.eyebrow-tinta {
+  color: var(--color-grey-700);
+}
 
 .h-display {
   font-family: var(--font-archivo-black);
@@ -619,6 +634,19 @@ html.dtd-cjk-sistema {
 .btn-primary:hover {
   background: var(--color-wine-deep);
   transform: translateY(-1px);
+}
+/* SDD-0686 fase 3b · en el Portal el botón principal es azul de acción (BD-076).
+   La web pública conserva el vino hasta su tramo (3b-2). `--color-on-accion`
+   voltea a navy en el portal oscuro, donde el relleno es claro. */
+#portal-shell .btn-primary {
+  background: var(--color-accion);
+  color: var(--color-on-accion);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 8px 24px -8px rgba(31, 79, 168, 0.45);
+}
+#portal-shell .btn-primary:hover {
+  background: var(--color-accion-hover);
 }
 .btn-ghost {
   background: transparent;

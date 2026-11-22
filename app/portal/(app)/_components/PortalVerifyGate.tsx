@@ -147,7 +147,7 @@ export function PortalVerifyGate({
           target="_blank"
           rel="noopener noreferrer"
           className="font-bold underline underline-offset-2"
-          style={{ color: "var(--color-wine-text)" }}
+          style={{ color: "var(--color-accion-text)" }}
         >
           Escríbenos por WhatsApp
         </a>
@@ -155,7 +155,7 @@ export function PortalVerifyGate({
         <a
           href={`tel:${CONTACT.ve.phoneRaw}`}
           className="font-bold underline underline-offset-2"
-          style={{ color: "var(--color-wine-text)" }}
+          style={{ color: "var(--color-accion-text)" }}
         >
           {CONTACT.ve.phone}
         </a>

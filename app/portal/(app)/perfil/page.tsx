@@ -143,7 +143,7 @@ export default async function PortalProfilePage({
         {/* ── Columna izquierda · identidad + TU CÓDIGO ── */}
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
           <AvatarEditor name={client.name} avatarUrl={avatarUrl}>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[12px] font-bold tracking-[0.04em] text-wine-text">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[12px] font-bold tracking-[0.04em] text-ink">
               {esEmpresa ? "Cuenta de empresa" : "Cuenta personal"}
             </span>
           </AvatarEditor>
@@ -224,7 +224,7 @@ export default async function PortalProfilePage({
         <div className="flex flex-col gap-6">
           {/* Datos de cuenta (read-only · mediados por el asesor) */}
           <section className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-            <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
+            <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
               Datos de cuenta
             </h2>
             <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -270,7 +270,7 @@ export default async function PortalProfilePage({
             className="scroll-mt-24 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
           >
             <div className="flex items-center gap-2.5">
-              <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
+              <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
                 Identidad y documentos
               </h2>
               {!completeness.hasPhoto && (
@@ -323,7 +323,7 @@ export default async function PortalProfilePage({
                   <StatusIcon tone="info" size={16} />
                 </span>
                 <div className="portal-aviso-cuerpo">
-                  <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
+                  <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
                     ¿Importas para tu negocio?
                   </div>
                   <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
@@ -397,9 +397,9 @@ export default async function PortalProfilePage({
           {/* Tu Shipping Mark para tus proveedores (delta prod — se conserva) */}
           <section
             className="card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-6 sm:p-8"
-            style={{ borderLeftColor: "var(--color-wine)" }}
+            style={{ borderLeftColor: "var(--color-ink)" }}
           >
-            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
+            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
               Tu Shipping Mark para tus proveedores
             </div>
             <h2
@@ -497,7 +497,7 @@ function Step({ n, title, copy }: { n: string; title: string; copy: string }) {
   return (
     <li className="flex gap-4">
       <span
-        className="flex-shrink-0 text-[18px] leading-none text-wine-text"
+        className="flex-shrink-0 text-[18px] leading-none text-ink"
         style={{ fontFamily: "var(--font-archivo-black)" }}
       >
         {n}

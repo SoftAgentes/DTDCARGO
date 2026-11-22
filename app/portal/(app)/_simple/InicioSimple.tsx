@@ -95,7 +95,7 @@ export function InicioSimple({ datos, guiaVista }: { datos: Datos; guiaVista: bo
           </p>
           <p className="vs-tinte-ink mt-2 inline-flex flex-wrap items-center gap-2 rounded-[10px] px-3 py-1.5 text-[14px]">
             <span className="font-bold">Tu Shipping Mark</span>
-            <span className="font-mono font-bold" style={{ color: "var(--color-wine-text)" }}>
+            <span className="font-mono font-bold text-ink">
               {saludo.markbox}
             </span>
           </p>

@@ -47,7 +47,7 @@ export function ProfilePendingBanner({
             <li key={it.href}>
               <a
                 href={it.href}
-                className="group flex items-center gap-3 rounded-[10px] bg-white border border-grey-500 px-4 py-2.5 hover:border-wine transition-colors"
+                className="group flex items-center gap-3 rounded-[10px] bg-white border border-grey-500 px-4 py-2.5 hover:border-accion transition-colors"
               >
                 <span
                   className="block h-2 w-2 flex-shrink-0 rounded-full"
@@ -57,7 +57,7 @@ export function ProfilePendingBanner({
                 <span className="flex-1 text-[13.5px] font-semibold text-ink">
                   {it.label}
                 </span>
-                <span className="flex-shrink-0 text-[12px] font-bold text-wine-text inline-flex items-center gap-1">
+                <span className="flex-shrink-0 text-[12px] font-bold text-accion-text inline-flex items-center gap-1">
                   Completar
                   <ArrowIcon />
                 </span>

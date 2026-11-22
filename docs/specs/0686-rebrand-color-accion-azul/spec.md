@@ -4,7 +4,7 @@ title: "Color de acción azul en web, Portal y ERP: el rojo queda para el peligr
 status: in-progress
 author: "Claude Worker (Sam)"
 created: 2026-11-20
-updated: 2026-11-21
+updated: 2026-11-22
 supersedes: null
 superseded_by: null
 related: ["0603", "0441", "0654", "0687", "0688"]
@@ -1037,6 +1037,120 @@ Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y
 - `app/m`, sin hex de la familia vino.
 - `--surface-sel` en tinta y los tokens web de acción con los valores del Studio.
 - Tres mutantes: un botón y un tono `"wine"` en `app/m`, y una clase `bg-wine` en Noticias web.
+
+### Fase 3b-1 · Portal del cliente (2026-11-22)
+
+Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del color (Portal y resto de la web)». Va en la rama `claude/sdd-0686-fase3b-portal-web-623a6c`, desde `main` `8c15a4bb0`.
+
+**Inventario (M, con el detector de los contratos):** `app/portal` tenía 264 usos en 75 archivos; la web pública y `components/`, 432 en 68 (sin contar Noticias web, ya hecha en la 3a). Pasa de 40 archivos, así que la fase se divide: **3b-1 Portal** (esta PR) y **3b-2 web** (después). El inicio de sesión del Portal (`app/portal/(auth)`) va en la fase 4.
+
+**Tokens.** En `app/globals.css`:
+- `--color-accion-tint` (`rgba(31,79,168,.08)`) entra junto a los tokens web de acción de la 3a;
+- `[data-portal-theme="dark"]` redefine `--color-accion` (#7faaf0), `--color-accion-hover` (#9bbdf4), `--color-on-accion` (#0f1e3d), `--color-accion-text` (#7faaf0) y `--color-accion-tint`, los mismos valores oscuros del Studio. Noticias web no lleva ese atributo y conserva los claros fijos;
+- `#portal-shell .btn-primary` pasa a azul con `--color-on-accion`. El `.btn-primary` de la web conserva el vino hasta la 3b-2;
+- `.eyebrow-tinta`: el texto del eyebrow en `--color-grey-700` (el `--ink-soft` del portal); el guión sigue en vino (identidad).
+
+| Destino | Qué |
+|---|---|
+| Acción (`--color-accion*`) | Botones con relleno (error, «=» y botón flotante de la calculadora, «+» de nueva compra, cámara del avatar, servicios extra), anillos y bordes de foco, casillas y radios, enlaces y su hover, flechas de fila al pasar el ratón, botones fantasma con texto, asa de la calculadora, botón «Crear» del menú lateral y su menú, burbuja propia del chat de Soporte (BD-076 regla 8: la burbuja en azul) |
+| Tinta (selección, BD-037) | Pestañas activas, proveedor y servicio marcados, tipo de facturación elegido, dirección principal, lección actual, pestaña de la calculadora |
+| Tinta (cifras y códigos, reglas 4 y 6) | Saldo final y filas destacadas del estado de cuenta, total destacado de la factura y del envío, monto de «reportar pago», días de la próxima salida, KPI «Envíos activos» (`tone="ink"`), código siguiente del proveedor, Shipping Mark de la Vista simple, barras de progreso (Academia, referidos, alertas, pasos del asistente y del envío) |
+| Tinta (avatares y badges, regla 7 y fase 3a) | Avatares (menú de cuenta, perfil, asesor, Soporte), badges y contadores (campana, «Principal», Club, «Cuenta personal»), tonos `wine` de los mapas de badges a `--color-ink`; «Aplicado» de referidos a `success` |
+| Tinta suave | Eyebrows y rótulos en mayúscula |
+| Neutro | Marcos de las tarjetas del asistente de compra (`--color-grey-300`), línea de la bandeja de avisos |
+
+**Quedan, con decisión de Sam pendiente (A/B dibujado y enviado al Director):**
+1. **Vista simple (EXC-0654-01).** El avatar, la parte «proveedor» del código y el fondo del bloque 5. A: tinta y se cierra la excepción. B: el vino claro se queda como identidad. En las dos, el botón principal pasa a azul; hasta la decisión, `.vs` no se toca.
+2. **Tarjeta «Próximo arribo»** (`--hero-accent`, vino suave sobre navy). A: blanco sobre navy, como la ruta del camionero. B: `--accion-soft`.
+
+**Fuera de esta fase:** el comprobante de pago (`facturas/[code]/comprobante`) lleva `--doc-wine`: es documento de marca (fase 5). El tono `"wine"` de `lib/portal/alertas.ts` (pre-alerta) se pinta en tinta por el mapa del Portal; el tipo en `lib/` queda para la fase 4.
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/globals.css`
+- `app/portal/(app)/_components/PendingAcceptanceCard.tsx`
+- `app/portal/(app)/_components/PortalAdvisorCard.tsx`
+- `app/portal/(app)/_components/PortalDashboardNorte.tsx`
+- `app/portal/(app)/_components/PortalNextSailingCard.tsx`
+- `app/portal/(app)/_components/PortalVerifyGate.tsx`
+- `app/portal/(app)/_simple/InicioSimple.tsx`
+- `app/portal/(app)/academia/[courseId]/[lessonId]/page.tsx`
+- `app/portal/(app)/academia/[courseId]/page.tsx`
+- `app/portal/(app)/academia/page.tsx`
+- `app/portal/(app)/club/page.tsx`
+- `app/portal/(app)/compras/[code]/_components/PackingListDelProveedor.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+- `app/portal/(app)/compras/[code]/etiquetas/ServiceSection.tsx`
+- `app/portal/(app)/compras/[code]/page.tsx`
+- `app/portal/(app)/compras/ComprasList.tsx`
+- `app/portal/(app)/compras/nueva/NewPurchaseForm.tsx`
+- `app/portal/(app)/compras/nueva/NewPurchaseWizard.tsx`
+- `app/portal/(app)/compras/nueva/page.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseOrderLive.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepConfirm.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseSummaryPanel.tsx`
+- `app/portal/(app)/compras/nueva/PurchaseWizardSteps.tsx`
+- `app/portal/(app)/compras/nueva/SupplierPicker.tsx`
+- `app/portal/(app)/compras/page.tsx`
+- `app/portal/(app)/cotizaciones/page.tsx`
+- `app/portal/(app)/documentos/DocumentsClient.tsx`
+- `app/portal/(app)/envios/[code]/_components/PortalShipmentDetailNorte.tsx`
+- `app/portal/(app)/envios/_components/PortalAlertasHub.tsx`
+- `app/portal/(app)/error.tsx`
+- `app/portal/(app)/estimados/page.tsx`
+- `app/portal/(app)/facturas/[code]/aceptar/AcceptanceForm.tsx`
+- `app/portal/(app)/facturas/[code]/aceptar/page.tsx`
+- `app/portal/(app)/facturas/[code]/page.tsx`
+- `app/portal/(app)/facturas/[code]/reportar/page.tsx`
+- `app/portal/(app)/facturas/_components/StatementLedgerTable.tsx`
+- `app/portal/(app)/facturas/page.tsx`
+- `app/portal/(app)/finanzas/page.tsx`
+- `app/portal/(app)/mensajes/PortalMessageForm.tsx`
+- `app/portal/(app)/perfil/AvatarEditor.tsx`
+- `app/portal/(app)/perfil/BillingIdentityCard.tsx`
+- `app/portal/(app)/perfil/BillingKindSelector.tsx`
+- `app/portal/(app)/perfil/CedulaPhotoRow.tsx`
+- `app/portal/(app)/perfil/DataChangeEditor.tsx`
+- `app/portal/(app)/perfil/empresa/BillingIdentityForm.tsx`
+- `app/portal/(app)/perfil/page.tsx`
+- `app/portal/(app)/perfil/PortalAddresses.tsx`
+- `app/portal/(app)/perfil/ProfilePendingBanner.tsx`
+- `app/portal/(app)/proveedores/SuppliersClient.tsx`
+- `app/portal/(app)/reclamos/_components/PortalClaims.tsx`
+- `app/portal/(app)/referidos/page.tsx`
+- `app/portal/(app)/soporte/page.tsx`
+- `app/portal/_components/InvoiceRow.tsx`
+- `app/portal/_components/NewPurchaseButton.tsx`
+- `app/portal/_components/PortalAccountMenu.tsx`
+- `app/portal/_components/PortalAvisosBell.tsx`
+- `app/portal/_components/PortalCalcFab.tsx`
+- `app/portal/_components/PortalDocsCard.tsx`
+- `app/portal/_components/PortalFieldError.tsx`
+- `app/portal/_components/PortalFooter.tsx`
+- `app/portal/_components/PortalNotificationHistory.tsx`
+- `app/portal/_components/PortalPaymentConfirm.module.css`
+- `app/portal/_components/PortalPending.tsx`
+- `app/portal/_components/PortalPushOptIn.tsx`
+- `app/portal/_components/PortalSidebar.tsx`
+- `app/portal/_components/PortalTopbar.tsx`
+- `app/portal/_components/PortalTrackingEnConstruccion.tsx`
+- `app/portal/_components/PrealertaAddons.tsx`
+- `app/portal/_components/PrealertaServiceBadge.tsx`
+- `app/portal/_components/PrealertaStatusBadge.tsx`
+- `app/portal/_components/ReferralInviteForm.tsx`
+- `app/portal/_components/ServiceRequestButton.tsx`
+- `app/portal/_components/ShipmentRow.tsx`
+- `app/studio/_components/__tests__/color-accion-fase3b-portal-contract.test.ts`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b-portal-contract.test.ts`.
+- Lista cerrada de `app/portal` (sin `(auth)`): solo el tinte de la Vista simple, a la espera de Sam. Solo baja.
+- Cuatro mutantes: un enlace, un foco, un botón y un tono `"wine"` de KPI.
+- Los tokens oscuros de acción del portal coinciden con el Studio.
+- `#portal-shell .btn-primary` es azul y el de la web sigue en vino.
+- Ningún relleno de acción lleva `--color-on-accent` encima (en oscuro sería blanco sobre azul claro).
 
 ### Fases 2 a 5
 

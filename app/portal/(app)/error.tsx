@@ -11,7 +11,7 @@
  *    que su información está a salvo, y una salida. Tampoco mostramos el digest:
  *    a un cliente no le sirve y ensucia; el error igual queda en los logs.
  *  - **Tokens del portal, no del Studio**: esta superficie usa la paleta de marca
- *    (`--color-wine` / `--color-ink` / `--color-paper`) y las fuentes que el
+ *    (`--color-accion` / `--color-ink` / `--color-paper`) y las fuentes que el
  *    wrapper `.portal-sys` remapea a Sora/Nunito. Los tokens del Studio
  *    (`--bg-surface`, `--s-4`, `.studio-btn`) NO existen acá.
  */
@@ -74,8 +74,8 @@ export default function PortalError({
           onClick={reset}
           style={{
             font: "600 13.5px/1 var(--font-archivo)",
-            color: "var(--color-on-accent)",
-            background: "var(--color-wine)",
+            color: "var(--color-on-accion)",
+            background: "var(--color-accion)",
             border: "none",
             borderRadius: "8px",
             padding: "11px 18px",

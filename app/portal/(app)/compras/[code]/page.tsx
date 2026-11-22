@@ -254,7 +254,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
                       </div>
                     </div>
                     {r.enEmbarque ? (
-                      <div className="mt-2 text-[12.5px] font-semibold text-wine-text">
+                      <div className="mt-2 text-[12.5px] font-semibold text-ink">
                         Ya asignada a un envío
                       </div>
                     ) : null}
@@ -334,7 +334,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
             <div
               className="mt-4 rounded-[12px] border p-4"
               style={{
-                borderColor: "var(--color-wine)",
+                borderColor: "var(--color-grey-300)",
                 background: "var(--color-paper)",
               }}
             >
