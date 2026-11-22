@@ -219,6 +219,27 @@ recorre `PATRONES` de `eval-automatico.ts` sobre el texto normalizado (`normal`)
 el 90 de `precios-tiempos`. Mutantes: «30 días», otro rango o un monto en la frase escalan; el 60 y el 90 en otra
 frase o con otro guion escalan. `oficina-paso3b.test.ts` usa `estado-sin-guia` donde usaba `pedir-guia`.
 
+## Enmienda v0.5 (22/11/2026): cantidades en letras y promesas sin cifra
+
+La revisión de la #771 encontró que `PATRONES` solo veía en letras de «uno» a «diez», «quince», «veinte» y
+«treinta», y solo seguidos de una unidad. Por eso pasaban sin escalar «te llega en cuarenta días», «entre cuarenta y
+cincuenta» o «cuesta sesenta». Ya pasaba antes, pero `precios-tiempos` ahora invita a hablar de tiempos. Cambios en
+`eval-automatico.ts`:
+
+- **Cantidades en letras de veinte para arriba, solas o con unidad:** «veinti…», las decenas de treinta a noventa,
+  «cien», «ciento», los cientos («doscientos», «quinientos»…), «mil» y «millón». Así, «otro rango» en letras
+  («entre sesenta y noventa días», «entre cuarenta y cincuenta») escala igual que en cifras.
+- **Plazos cortos con unidad:** «un», «una», «once» y «doce» antes de día, hora, semana o mes («en una semana»,
+  «en un mes»).
+- **Promesas sin cifra:** «te aseguro», «le aseguro», «seguro llega», «sin falta» y «llega antes».
+
+Ningún guion trae estas palabras, así que los guiones copiados tal cual siguen pasando. Si el agente parafrasea con
+una cantidad en letras, escala: es el lado seguro.
+
+Allowlist de la v0.5: `lib/studio/oficina/eval-automatico.ts` (solo `PATRONES`),
+`lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts` (mutantes en letras y promesas), esta spec y
+`.agents/handoffs/2026-11-22-sdd-0705-v05-numeros-letras.md`.
+
 ## Vuelta atrás
 
 Revertir el commit. No hay migración ni datos. Los borradores ya guardados con el aviso siguen igual: Sam los aprueba

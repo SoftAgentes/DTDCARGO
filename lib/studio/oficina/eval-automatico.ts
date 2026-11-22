@@ -41,9 +41,11 @@ export const PATRONES: readonly RegExp[] = [
   /\d+(?:[.,:/-]\d+)*/g, // cifras, montos, fechas, horas, guías
   /(?:us)?\$|\bbs\.?(?=\s|$)|\bbolivares?\b|\bdolares?\b|\busd\b|\beuros?\b|\byuan(?:es)?\b/g, // dinero
   new RegExp(`\\b(?:${MESES}|${DIAS}|manana|pasado manana|esta semana|la proxima semana|el proximo mes|hoy mismo)\\b`, "g"),
-  /\b(?:uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|veinte|treinta)\s+(?:dias?|horas?|semanas?|meses?)\b/g,
+  /\b(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|veinte|treinta)\s+(?:dias?|horas?|semanas?|meses?)\b/g,
+  // SDD-0705 v0.5: cantidades en letras de veinte para arriba, solas o con unidad («cuarenta días», «cuesta sesenta»).
+  /\b(?:veinti[a-z]+|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|[a-z]*cient[oa]s|quinient[oa]s|mil|millon(?:es)?)\b/g,
   /\b(?:entregad[oa]s?|en transito|en camino|despachad[oa]s?|en aduanas?|retenid[oa]s?|liberad[oa]s?|recibid[oa]s? en (?:el )?almacen|en almacen|embarcad[oa]s?|zarp[oó]|lleg[oó]|ya salio|salio de|esta listo para retirar|listo para retirar|extraviad[oa]s?|perdid[oa]s?)\b/g,
-  /\b(?:te garantizo|garantizado|te prometo|seguro que llega|llegara|llega el|estara listo|sin costo|gratis|reembolso|descuento|te devolvemos)\b/g,
+  /\b(?:te garantizo|garantizado|te prometo|te aseguro|le aseguro|seguro que llega|seguro llega|sin falta|llega antes|llegara|llega el|estara listo|sin costo|gratis|reembolso|descuento|te devolvemos)\b/g,
 ];
 
 /** Solo letras y números, en minúsculas y sin tildes: «¡Hola! Gracias…» y «Hola, gracias…» son la misma frase. */

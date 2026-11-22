@@ -136,6 +136,15 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
         " Con suerte en 30 días.",
         " El envío es gratis.",
         " Sale mañana.",
+        // v0.5: cantidades en letras y promesas sin cifra.
+        " Te llega en cuarenta días.",
+        " Tarda entre cuarenta y cincuenta.",
+        " Tu caja cuesta sesenta.",
+        " Sale en cien días.",
+        " Son doscientos.",
+        " Te llega en una semana.",
+        " Te aseguro que llega antes.",
+        " Llega sin falta.",
       ],
     },
     {
@@ -209,6 +218,9 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
       g.texto.replace("entre 60 y 90 días", "entre 30 y 90 días"),
       g.texto.replace("entre 60 y 90 días", "en 30 días"),
       g.texto.replace("entre 60 y 90 días", "entre 60 y 120 días"),
+      g.texto.replace("entre 60 y 90 días", "entre sesenta y noventa días"),
+      g.texto.replace("entre 60 y 90 días", "entre cuarenta y cincuenta días"),
+      g.texto.replace("entre 60 y 90 días", "en un mes"),
       g.texto.replace("en la sección Tarifas", "desde 60 USD"),
     ]) {
       expect(mutante, "el mutante sí cambió el texto").not.toBe(g.texto);
