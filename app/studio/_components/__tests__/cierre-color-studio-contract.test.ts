@@ -11,9 +11,8 @@
  *   en `PERMITIDO`, con su cuenta exacta y su motivo. La lista solo puede bajar.
  * - El brillo del foco de los campos oscuros es azul de acción, no vino suave.
  *
- * Noticias web queda fuera: pinta en un bloque `data-theme="light"` fijo, donde los
- * tokens del Studio tomarían su valor oscuro sobre fondo claro. Su color va en la
- * fase 3, igual que su acción (`color-accion-fase2-g3-contract.test.ts`).
+ * Noticias web entra desde la fase 3: pinta en un bloque `data-theme="light"` fijo y
+ * su gris secundario es el web fijo `--color-grey-500`, no `--ink-mute`.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -51,12 +50,42 @@ const DESHABILITADOS: [string, RegExp][] = [
   ["app/studio/studio.css", /\.studio-cal-today-btn:disabled \{[^}]*color: var\(--ink-mute\);/],
 ];
 
-/** Cuenta de `var(--ink-mute` por archivo de `app/studio`, fuera de pruebas, tokens y Noticias web. */
+/**
+ * Cada uso permitido anclado a su forma (nota de la revisión de la #759): en un
+ * archivo de la lista, la suma de coincidencias de sus anclas es su cuenta exacta,
+ * así un texto nuevo en mute no se cuela como si fuera un borde o un fondo.
+ */
+const ANCLAS: [string, RegExp][] = [
+  ...DESHABILITADOS,
+  ["app/studio/(app)/usuarios/_components/acceso/permisos.css", /\.perm-activity-dot\[data-kind="revoked"\] \{ background: var\(--ink-mute\); \}/g],
+  ["app/studio/studio.css", /\n\s*border-color: var\(--ink-mute\);/g],
+  ["app/studio/(app)/debug/_components/debug-tabs.shared.ts", /if \(mode === "snapshot"\) return "var\(--warning\)";\n\s*return "var\(--ink-mute\)";/g],
+  ["app/studio/(app)/mailing/_components/BlacklistView.tsx", /textDecorationColor: "var\(--ink-mute, #B5B5B5\)"/g],
+  ["app/studio/(app)/mailing/_components/MailingClient.tsx", /textDecorationColor: "var\(--ink-mute, #B5B5B5\)"/g],
+  ["app/studio/(app)/mailing/_components/SignaturesView.tsx", /const mute = "var\(--ink-mute, #B5B5B5\)";/g],
+  ["app/studio/(app)/nomina/_components/NominaClient.tsx", /background: active \? "var\(--success\)" : "var\(--ink-mute\)"/g],
+  ["app/studio/(app)/operarios/_components/OperariosClient.tsx", /background: active \? "var\(--success\)" : "var\(--ink-mute\)"/g],
+  ["app/studio/(app)/seniat/_components/FilingDetailDrawer.tsx", /const iconColor = ok[\s\S]{0,140}?: "var\(--ink-mute\)";/g],
+  ["app/studio/_components/bug-reporter/BugFABButton.tsx", /border: "1px solid var\(--ink-mute\)"/g],
+  ["app/studio/_components/ui/SplitActionButton.tsx", /border: `1\.5px solid \$\{active \? "var\(--ink\)" : "var\(--ink-mute\)"\}`/g],
+];
+
+/** Cuántas veces calzan las anclas de cada archivo. */
+function cuentasAncladas(fuente: (ruta: string) => string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [ruta, re] of ANCLAS) {
+    const n = (fuente(ruta).match(new RegExp(re.source, "g")) ?? []).length;
+    out[ruta] = (out[ruta] ?? 0) + n;
+  }
+  return out;
+}
+
+/** Cuenta de `var(--ink-mute` por archivo de `app/studio`, fuera de pruebas y de tokens.css (Noticias web ya entra: fase 3). */
 function cuentasMute(fuente: (ruta: string) => string): Record<string, number> {
   const cuentas: Record<string, number> = {};
   for (const ruta of fuentesDe(join(RAIZ, "app/studio"), /\.(tsx|ts|css)$/)) {
     const r = rel(ruta);
-    if (/\.test\.tsx?$/.test(r) || r.endsWith("tokens.css") || r.includes("/marketing/noticias-web/")) continue;
+    if (/\.test\.tsx?$/.test(r) || r.endsWith("tokens.css")) continue;
     const n = fuente(ruta).split("var(--ink-mute").length - 1;
     if (n) cuentas[r] = n;
   }
@@ -68,6 +97,19 @@ const esperado = Object.fromEntries(Object.entries(PERMITIDO).map(([f, v]) => [f
 describe("SDD-0686 · cierre del color del Studio", () => {
   it("cada --ink-mute que queda está en la lista cerrada, con su cuenta exacta", () => {
     expect(cuentasMute((ruta) => readFileSync(ruta, "utf8"))).toEqual(esperado);
+  });
+
+  it("cada uso permitido calza con su ancla: borde, fondo, punto, ícono o deshabilitado", () => {
+    expect(cuentasAncladas(leer)).toEqual(esperado);
+  });
+
+  it("mutante: un texto en mute dentro de un archivo permitido no calza con ninguna ancla", () => {
+    const objetivo = "app/studio/(app)/nomina/_components/NominaClient.tsx";
+    const mutado = `${leer(objetivo)}\nconst _etiqueta = { color: "var(--ink-mute)" };\n`;
+    const fuente = (ruta: string) => (ruta === objetivo ? mutado : leer(ruta));
+    // La cuenta sube a 2, pero las anclas siguen viendo 1: el texto nuevo no pasa por borde ni fondo.
+    expect(cuentasAncladas(fuente)[objetivo]).toBe(1);
+    expect(mutado.split("var(--ink-mute").length - 1).toBe(2);
   });
 
   it("los deshabilitados en --ink-mute son exactamente cinco", () => {

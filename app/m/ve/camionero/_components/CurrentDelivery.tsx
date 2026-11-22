@@ -154,8 +154,8 @@ export function CurrentDelivery({
       <header
         style={{
           padding: "10px 12px",
-          background: readOnly ? "var(--success-bg)" : "var(--wine-tint)",
-          color: readOnly ? "var(--success)" : "var(--wine)",
+          background: readOnly ? "var(--success-bg)" : "var(--bg-elevated)",
+          color: readOnly ? "var(--success)" : "var(--ink)",
           font: "800 11px/1 var(--f-mono)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -294,7 +294,7 @@ export function CurrentDelivery({
           <code
             style={{
               font: "700 11px/1 var(--f-mono)",
-              color: "var(--wine-text)",
+              color: "var(--ink)",
             }}
           >
             {pkg.markbox}
