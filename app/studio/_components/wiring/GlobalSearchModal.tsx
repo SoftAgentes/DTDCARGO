@@ -291,7 +291,7 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
             gap: 10,
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(16)}
           </span>
           <input
@@ -694,7 +694,7 @@ function LockedBlock({
         alignItems: "flex-start",
       }}
     >
-      <span style={{ color: "var(--ink-mute)", display: "inline-flex", marginTop: 1 }}>
+      <span style={{ color: "var(--ink-soft)", display: "inline-flex", marginTop: 1 }}>
         {Icon.lock(14)}
       </span>
       <div>
@@ -785,7 +785,7 @@ function RecentsBlock({
             e.currentTarget.style.background = "transparent";
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(13)}
           </span>
           {term}

@@ -297,7 +297,7 @@ function VeRow({
       <span
         style={{
           font: "500 12px/1.3 var(--f-sans)",
-          color: row.delivery_address ? "var(--ink-soft)" : "var(--ink-mute)",
+          color: row.delivery_address ? "var(--ink-soft)" : "var(--ink-soft)",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
@@ -312,7 +312,7 @@ function VeRow({
         className="mono"
         style={{
           font: "700 12px/1 var(--f-mono)",
-          color: row.weight_kg != null ? "var(--ink)" : "var(--ink-mute)",
+          color: row.weight_kg != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -324,7 +324,7 @@ function VeRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.volume_m3 != null ? "var(--ink)" : "var(--ink-mute)",
+          color: row.volume_m3 != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -336,7 +336,7 @@ function VeRow({
         className="mono"
         style={{
           font: "500 11.5px/1 var(--f-mono)",
-          color: row.delivered_at ? "var(--success)" : "var(--ink-mute)",
+          color: row.delivered_at ? "var(--success)" : "var(--ink-soft)",
         }}
       >
         {deliveredDisplay}

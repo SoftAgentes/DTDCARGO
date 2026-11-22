@@ -83,12 +83,12 @@
   font: 400 13px/1.3 var(--f-sans);
   color: var(--ink);
 }
-.perm-add input::placeholder { color: var(--ink-mute); }
+.perm-add input::placeholder { color: var(--ink-soft); }
 .perm-add:focus-within { box-shadow: inset 0 0 0 2px var(--accion); }
-.perm-add-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-mute); pointer-events: none; }
+.perm-add-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
 .perm-add-kbd {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  font: 500 10.5px/1 var(--f-mono); color: var(--ink-mute);
+  font: 500 10.5px/1 var(--f-mono); color: var(--ink-soft);
   border: 1px solid var(--border); border-radius: var(--r-xs); padding: 2px 5px;
 }
 .perm-options { max-height: 260px; overflow: auto; border-bottom: 1px solid var(--border); background: var(--bg-elevated); }
@@ -111,7 +111,7 @@
 .perm-grant:last-child { border-bottom: 0; }
 .perm-grant-title { font: 600 13px/1.3 var(--f-sans); color: var(--ink); display: flex; gap: 6px; align-items: center; }
 .perm-grant-sub { font: 400 12px/1.4 var(--f-sans); color: var(--ink-soft); margin-top: 2px; }
-.perm-grant[data-expired="true"] .perm-grant-title { color: var(--ink-mute); }
+.perm-grant[data-expired="true"] .perm-grant-title { color: var(--ink-soft); }
 
 /* Control Ver / Editar */
 .perm-mini { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }

@@ -531,7 +531,7 @@ function Card({
           {collapsible && (
             <span
               style={{
-                color: "var(--ink-mute)",
+                color: "var(--ink-soft)",
                 marginTop: 4,
                 fontSize: 12,
                 transform: `rotate(${isOpen ? 90 : 0}deg)`,
@@ -825,7 +825,7 @@ function PreviewLive({
                 background: line.muted ? "transparent" : "var(--bg-elevated)",
                 borderRadius: "var(--r-sm)",
                 font: "500 12.5px/1.2 var(--f-sans)",
-                color: line.muted ? "var(--ink-mute)" : "var(--ink)",
+                color: line.muted ? "var(--ink-soft)" : "var(--ink)",
                 textDecoration: line.muted ? "line-through" : "none",
               }}
             >
@@ -833,7 +833,7 @@ function PreviewLive({
               <code
                 style={{
                   font: "800 13px/1 var(--f-mono)",
-                  color: line.muted ? "var(--ink-mute)" : "var(--ink)",
+                  color: line.muted ? "var(--ink-soft)" : "var(--ink)",
                 }}
               >
                 {line.pts > 0 ? `+${line.pts}` : "0"} pts

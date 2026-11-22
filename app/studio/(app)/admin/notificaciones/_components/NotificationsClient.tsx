@@ -169,7 +169,7 @@ export function NotificationsClient({
         <p
           style={{
             font: "400 12px/1.5 var(--font-sans, 'Archivo')",
-            color: "var(--ink-mute, var(--ink-soft))",
+            color: "var(--ink-soft)",
             margin: 0,
             maxWidth: 720,
           }}
@@ -201,7 +201,7 @@ export function NotificationsClient({
             <p
               style={{
                 font: "400 12px/1.5 var(--font-sans, 'Archivo')",
-                color: "var(--ink-mute, var(--ink-soft))",
+                color: "var(--ink-soft)",
                 margin: "var(--s-2) 0 0",
                 maxWidth: 720,
               }}
@@ -216,7 +216,7 @@ export function NotificationsClient({
                   title={ev.hint}
                   style={{
                     font: "500 11.5px/1 var(--font-sans, 'Archivo')",
-                    color: "var(--ink-mute, var(--ink-soft))",
+                    color: "var(--ink-soft)",
                     background: "transparent",
                     border: "1px dashed var(--border-strong)",
                     borderRadius: 999,
@@ -254,7 +254,7 @@ function ScopeSwitcher({
       >
         Por defecto (todos)
       </button>
-      <span style={{ color: "var(--ink-mute, var(--ink-soft))", font: "500 12px/1 var(--font-sans)" }}>
+      <span style={{ color: "var(--ink-soft)", font: "500 12px/1 var(--font-sans)" }}>
         o override para un cliente:
       </span>
       <select

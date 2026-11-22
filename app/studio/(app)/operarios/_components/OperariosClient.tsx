@@ -415,7 +415,7 @@ function OperarioRowItem({
       <span
         style={{
           font: "500 12px/1.2 var(--f-sans)",
-          color: op.last_login_at ? "var(--ink-soft)" : "var(--ink-mute)",
+          color: op.last_login_at ? "var(--ink-soft)" : "var(--ink-soft)",
           ...ellipsis,
         }}
       >

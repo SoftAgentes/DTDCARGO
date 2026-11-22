@@ -424,7 +424,7 @@ function SailingsTab({
           <div
             style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink)" }}
           >
-            {s.pol} <span style={{ color: "var(--ink-mute)" }}>→</span> {s.pod}
+            {s.pol} <span style={{ color: "var(--ink-soft)" }}>→</span> {s.pod}
           </div>
           <span
             style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink)" }}

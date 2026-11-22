@@ -152,7 +152,7 @@ export function ReferralDrawer({
                           ? "var(--ink)"
                           : done
                             ? "var(--ink)"
-                            : "var(--ink-mute)",
+                            : "var(--ink-soft)",
                         textAlign: "center",
                       }}
                     >

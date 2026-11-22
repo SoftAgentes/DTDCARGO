@@ -712,7 +712,7 @@ function PerfilDelCliente({ completeness }: { completeness: ReturnType<typeof cl
                 display: "grid",
                 placeItems: "center",
                 borderRadius: 999,
-                color: item.done ? "var(--ink-inv)" : "var(--ink-mute)",
+                color: item.done ? "var(--ink-inv)" : "var(--ink-soft)",
                 background: item.done ? "var(--success)" : "transparent",
                 border: item.done ? "none" : "1px solid var(--border)",
               }}
@@ -966,7 +966,7 @@ function DataRow({
           font: mono
             ? "500 13px/1.3 var(--f-mono)"
             : "500 13px/1.4 var(--f-sans)",
-          color: value ? "var(--ink)" : "var(--ink-mute)",
+          color: value ? "var(--ink)" : "var(--ink-soft)",
           wordBreak: "break-word",
         }}
       >

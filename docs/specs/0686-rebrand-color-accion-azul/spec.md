@@ -815,6 +815,145 @@ El contrato `kpi-cifra-en-tinta-contract.test.tsx` vigila además toda cifra de 
 - N2: el umbral baja a 18 px. Entran el «Vencido» de la antigüedad de Reportes («Requiere cobro» en CxC, «Requiere pago» en CxP) y el monto de la línea bancaria de Conciliación (`LineMatchDrawer.tsx`), que iba en verde en los créditos: queda en tinta, sin estado, porque el badge de al lado ya dice «Crédito» o «Débito».
 - Detalle de factura: con saldo negativo dice «Saldo a favor»; «Pagada» queda para el saldo cero. Palabra nueva: Sam la ve antes de fusionar.
 
+### Cierre del color del Studio (2026-11-21)
+
+Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 1». Va en la rama `claude/sdd-0686-cierre-color-studio`, desde `main`.
+
+**1. Textos en `--ink-mute` (M):** 162 usos como `color` en 85 archivos de `app/studio`. Hoy miden 2,44 a 2,78:1 en claro y 2,97 a 4,18:1 en oscuro, bajo el mínimo de 4,5:1 para texto. La decisión es visual y le toca a Sam:
+- **A:** cada texto pasa a `--ink-soft` (4,68 a 5,33 / 6,00 a 8,45). `--ink-mute` queda para bordes, fondos y deshabilitados.
+- **B:** se oscurece el token (#707070 / #929BB5). Sobre `--bg-elevated` en claro sigue sin pasar (4,35) y también oscurece los bordes y deshabilitados.
+
+**Decisión de Sam del 2026-11-21:** vio las dos opciones dibujadas y respondió «a recomendada». Va la **A**.
+
+**Aplicado (M):** 180 usos de `--ink-mute` como texto pasan a `--ink-soft`, en 94 archivos. Entran con la revisión de la #759 los que el primer conteo no veía:
+- el respaldo `var(--ink-mute, …)`;
+- el `return` de las funciones de tono (`ageTone` del CRM, `bulletText` de tracking, `tierColor` de fidelización);
+- los mapas de estado (`RecentActivityCard`, `RealtimeIndicator`);
+- el `fill=` del texto SVG del dashboard;
+- la vista previa de `NumericInput`.
+
+**Quedan en `--ink-mute`, con lista cerrada en el contrato:**
+- **cinco textos deshabilitados**, que WCAG exceptúa del contraste y deben verse apagados: `DateField.tsx`, `FiscalConfig.tsx`, `ReportesClient.tsx` (opción de período deshabilitada), `.perm-opt:disabled` en `permisos.css` y `.studio-cal-today-btn:disabled` en `studio.css`;
+- lo que no es texto: bordes, fondos de interruptor, puntos, el ícono de un documento opcional en SENIAT, la raya del subrayado en Mailing y las barras de la miniatura de firma.
+
+**Noticias web queda fuera** y va en la fase 3, igual que su acción. Pinta en un bloque `data-theme="light"` fijo, donde, con el Studio en oscuro, `--ink-soft` sería un gris claro sobre fondo claro. Pendientes: `RouteIdeaPanel.tsx:260`, `Step3Article.tsx:397` y `Step3Article.tsx:435`.
+
+**Allowlist de la parte 1 (rutas exactas):**
+- `app/studio/(app)/academia/_components/AcademiaClient.tsx`
+- `app/studio/(app)/academia/diplomas/_components/DiplomaPrint.tsx`
+- `app/studio/(app)/admin/_components/AppearanceSection.tsx`
+- `app/studio/(app)/admin/_components/PortalBackfillSection.tsx`
+- `app/studio/(app)/admin/alertas-telegram/_components/TelegramAlertsPanel.tsx`
+- `app/studio/(app)/admin/notificaciones/_components/NotificationsClient.tsx`
+- `app/studio/(app)/admin/notificaciones/estado/page.tsx`
+- `app/studio/(app)/admin/rutas/_components/CityPicker.tsx`
+- `app/studio/(app)/admin/rutas/_components/RoutesClient.tsx`
+- `app/studio/(app)/bitacora/_components/BoardList.tsx`
+- `app/studio/(app)/bitacora/_components/TaskCollabSection.tsx`
+- `app/studio/(app)/bitacora/_components/TaskDrawer.tsx`
+- `app/studio/(app)/bitacora/nueva/_components/ActaReview.tsx`
+- `app/studio/(app)/bitacora/nueva/_components/NuevaReunionClient.tsx`
+- `app/studio/(app)/calendario/_components/MonthView.tsx`
+- `app/studio/(app)/calendario/_components/UpcomingHolidaysCard.tsx`
+- `app/studio/(app)/clientes/[markbox]/estado-de-cuenta/page.tsx`
+- `app/studio/(app)/clientes/[markbox]/page.tsx`
+- `app/studio/(app)/clientes/_components/ChangeRequestCard.tsx`
+- `app/studio/(app)/clientes/_components/ChangeRequestHistory.tsx`
+- `app/studio/(app)/clientes/_components/ChatwootConversacionesCard.tsx`
+- `app/studio/(app)/clientes/_components/ClientsClient.tsx`
+- `app/studio/(app)/clientes/_components/ConversacionesFichaCard.tsx`
+- `app/studio/(app)/clientes/_components/DuplicadosClient.tsx`
+- `app/studio/(app)/clientes/_components/IdentityVerificationCard.tsx`
+- `app/studio/(app)/club/_components/MembersView.tsx`
+- `app/studio/(app)/cn/_components/AlmacenCnClient.tsx`
+- `app/studio/(app)/cn/_components/ReceiptRateCell.tsx`
+- `app/studio/(app)/cn/_components/ReceiptRowActions.tsx`
+- `app/studio/(app)/cola-qr/_components/QrQueueTable.tsx`
+- `app/studio/(app)/contabilidad/_components/ActivosFijosTab.tsx`
+- `app/studio/(app)/contabilidad/_components/EntryDrawer.tsx`
+- `app/studio/(app)/contabilidad/_components/LibroDiarioTab.tsx`
+- `app/studio/(app)/contabilidad/_components/LibroMayorTab.tsx`
+- `app/studio/(app)/contabilidad/_components/PlanCuentasTab.tsx`
+- `app/studio/(app)/contabilidad/_components/StatementDrawer.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversacionesClient.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversationList.tsx`
+- `app/studio/(app)/conversaciones/_components/ConversationThread.tsx`
+- `app/studio/(app)/conversaciones/_components/SaldoPendienteContexto.tsx`
+- `app/studio/(app)/crm/_components/KommoBoardView.tsx`
+- `app/studio/(app)/crm/_components/KommoClient.tsx`
+- `app/studio/(app)/crm/_components/PuntoConversacion.tsx`
+- `app/studio/(app)/crm/_components/RecoveryTab.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardClient.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardEditorDrawer.tsx`
+- `app/studio/(app)/dashboard/_components/DashboardWidgets.tsx`
+- `app/studio/(app)/dashboard/_components/RecentActivityCard.tsx`
+- `app/studio/(app)/debug/_components/EstadoTab.tsx`
+- `app/studio/(app)/despacho/reglas/_components/RulesClient.tsx`
+- `app/studio/(app)/direccion/_components/AlertsCard.tsx`
+- `app/studio/(app)/documentos/_components/DocumentosHubClient.tsx`
+- `app/studio/(app)/error.tsx`
+- `app/studio/(app)/facturacion/_components/FacturacionClient.tsx`
+- `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx`
+- `app/studio/(app)/fidelizacion/_components/FidelizacionClient.tsx`
+- `app/studio/(app)/fidelizacion/_components/ReferralDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ChargesTab.tsx`
+- `app/studio/(app)/financiero-china/_components/ClaimOffsetsTab.tsx`
+- `app/studio/(app)/financiero-china/_components/LedgerTab.tsx`
+- `app/studio/(app)/fiscal/_components/WithholdingsView.tsx`
+- `app/studio/(app)/gastos/_components/GastosClient.tsx`
+- `app/studio/(app)/inspecciones/_components/InspeccionesClient.tsx`
+- `app/studio/(app)/legal/_components/LegalClient.tsx`
+- `app/studio/(app)/marketing/_components/FrictionReportsPanel.tsx`
+- `app/studio/(app)/marketing/docs/_components/DocsReaderClient.tsx`
+- `app/studio/(app)/marketing/newsletter/_components/CampaignComposer.tsx`
+- `app/studio/(app)/marketing/newsletter/page.tsx`
+- `app/studio/(app)/marketing/page.tsx`
+- `app/studio/(app)/naviera/_components/NavieraClient.tsx`
+- `app/studio/(app)/nomina/_components/AmonestacionDrawer.tsx`
+- `app/studio/(app)/operarios/_components/OperariosClient.tsx`
+- `app/studio/(app)/ordenes-compra/_components/OrdenesCompraClient.tsx`
+- `app/studio/(app)/proveedores/_components/PackingListsTab.tsx`
+- `app/studio/(app)/proveedores/_components/ProveedoresClient.tsx`
+- `app/studio/(app)/proveedores/_components/ReclamosTab.tsx`
+- `app/studio/(app)/proveedores/_components/ScorecardTab.tsx`
+- `app/studio/(app)/proveedores/_components/ServiceRequestsTab.tsx`
+- `app/studio/(app)/reportes/_components/BuilderView.tsx`
+- `app/studio/(app)/reportes/_components/ReportesClient.tsx`
+- `app/studio/(app)/seniat/_components/FilingDetailDrawer.tsx`
+- `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx`
+- `app/studio/(app)/tms/_components/FleetTab.tsx`
+- `app/studio/(app)/tms/_components/RoutesTab.tsx`
+- `app/studio/(app)/tracking/_components/TrackingTimeline.tsx`
+- `app/studio/(app)/usuarios/_components/MembersTable.tsx`
+- `app/studio/(app)/usuarios/_components/acceso/permisos.css`
+- `app/studio/(app)/ve/_components/AlmacenVeClient.tsx`
+- `app/studio/(app)/ve/_components/VeRowActions.tsx`
+- `app/studio/_components/ui/NumericInput.tsx`
+- `app/studio/_components/ui/RealtimeIndicator.tsx`
+- `app/studio/_components/ui/columns/ColumnConfig.tsx`
+- `app/studio/_components/wiring/GlobalSearchModal.tsx`
+- `app/studio/studio.css`
+
+**Contrato:** `cierre-color-studio-contract.test.ts`.
+- Cuenta todo `var(--ink-mute` de `app/studio`, fuera de las pruebas, de `tokens.css` y de Noticias web. Cada archivo tiene que estar en la lista cerrada, con su cuenta exacta y su motivo, y la lista solo puede bajar.
+- Fija los cinco deshabilitados.
+- Trae un mutante por patrón: el respaldo, el `return`, el `fill=` y la clase `text-[var(--ink-mute)]`.
+
+**2. Vinos escritos a mano que quedan en `app/studio` (M, 32):**
+
+| Uso | Destino |
+|---|---|
+| Brillo del foco de `.studio-input-dark` (`studio.css:333`), `rgba(194,116,127,.22)`: vino suave en un estado de acción | Azul de acción tenue (`rgba(127,170,240,.22)`, el `--accion` oscuro), igual que el borde, que ya es `--accion-soft` |
+| «Volver a Publicadas» de Noticias web (`marketing/noticias-web/publicadas/[id]/page.tsx` y `retirar/[id]/page.tsx`), `--color-wine-text` en un enlace | Se queda hasta la fase 3. Noticias web pinta dentro de un bloque `data-theme="light"`: con el Studio en oscuro, `--accion-text` tomaría su valor oscuro sobre el fondo claro (revisión de la #739). Pasa a azul cuando la fase 3 traiga `--color-accion*`; lo vigila `color-accion-fase2-g3-contract.test.ts` |
+| Respaldo `#A8323E` en `var(--danger, …)` (bugs, mailing, usuarios, perfil, reportador de bugs) | Se queda: es el rojo de peligro |
+| `--danger` impreso de legal (evidencia y expediente) | Se queda: peligro en papel |
+| Diplomas, `report-css.ts`, anclas de impresión (Fiscal, Retenciones, Constructor) y la paleta de Apariencia | Se quedan: identidad e impresos, ya en la lista permitida |
+| Etiquetas (`etiquetas/_components/Label.tsx`) y el botón del correo de recuperación (`(auth)/login/recuperar/actions.ts`) | Fase 5: impresos y correo (regla 8) |
+
+**Allowlist de la parte 2:** `app/studio/studio.css`.
+
+**Además:** un contrato con mutante, esta spec y el handoff.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

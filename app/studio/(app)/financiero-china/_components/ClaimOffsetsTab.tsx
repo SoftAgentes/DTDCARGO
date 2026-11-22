@@ -155,7 +155,7 @@ export function ClaimOffsetsTab({
                           onSuccess={() => toast.success(`Cruce avanzado a ${claimOffsetStatusLabel(next)}`)}
                         />
                       ) : (
-                        <span style={{ color: "var(--ink-mute)", fontSize: 11 }}>—</span>
+                        <span style={{ color: "var(--ink-soft)", fontSize: 11 }}>—</span>
                       )}
                     </td>
                   </tr>

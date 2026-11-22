@@ -314,7 +314,7 @@ export function VeRowActions({
               >
                 <span style={{ flex: 1 }}>{VE_ACTION_LABELS[action]}</span>
                 {isDetail && (
-                  <span style={{ color: "var(--ink-mute)" }}>
+                  <span style={{ color: "var(--ink-soft)" }}>
                     {Icon.arrowR(11)}
                   </span>
                 )}

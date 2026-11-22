@@ -287,7 +287,7 @@ export function ActivosFijosTab({
                     }}
                   />
                 ) : (
-                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>—</span>
+                  <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>—</span>
                 )}
               </span>
             </div>

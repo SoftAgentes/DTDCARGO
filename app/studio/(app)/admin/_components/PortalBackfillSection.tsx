@@ -401,7 +401,7 @@ function BatchToolbar({
           borderRadius: "var(--r-sm)",
         }}
       >
-        <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+        <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
           {Icon.search(13)}
         </span>
         <input
@@ -589,7 +589,7 @@ function CandidateRow({
           <span
             style={{
               font: "500 12px/1.3 var(--f-mono)",
-              color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
+              color: c.phone ? "var(--ink-soft)" : "var(--ink-soft)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -1210,7 +1210,7 @@ function ColdRow({
           <span
             style={{
               font: "500 12px/1.3 var(--f-mono)",
-              color: c.phone ? "var(--ink-soft)" : "var(--ink-mute)",
+              color: c.phone ? "var(--ink-soft)" : "var(--ink-soft)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -1766,7 +1766,7 @@ function ContactlessPanel({ clients }: { clients: PortalContactlessClient[] }) {
           borderRadius: "var(--r-sm)",
         }}
       >
-        <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+        <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
           {Icon.search(13)}
         </span>
         <input
