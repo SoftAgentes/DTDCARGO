@@ -97,7 +97,9 @@ describe("SDD-0686 fase 3b-1 · Portal sin vino de acción", () => {
     const portal = bloque(css, "#portal-shell .btn-primary");
     expect(portal).toContain("background: var(--color-accion);");
     expect(portal).toContain("color: var(--color-on-accion);");
-    expect(portal).not.toMatch(/rgba\(/);
+    // El halo del botón sale del token, no de un azul suelto (revisión de la #780).
+    expect(portal).not.toMatch(/rgba\(\s*31,\s*79,\s*168/);
+    expect(portal).toContain("color-mix(in srgb, var(--color-accion) 45%, transparent)");
     expect(bloque(css, "#portal-shell .btn-primary:hover")).toContain("var(--color-accion-hover)");
     expect(bloque(css, ".btn-primary")).toContain("var(--color-wine)");
   });
