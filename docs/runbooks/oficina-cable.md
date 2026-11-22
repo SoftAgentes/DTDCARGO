@@ -592,8 +592,8 @@ desarme de la 0567 (`supabase/desarmes/0567_desarme.sql`), que hace que el conte
 
 ### Qué se tapa (SDD-0700; criterio de Hermes DIRECTOR, 21/11/2026)
 
-> **Rige desde que la #755 (SDD-0700) está en `main` y publicada.** Antes de eso, el texto del cliente llega
-> completo al modelo y solo se revisa la salida.
+> **Rige desde que la #755 (SDD-0700, en `main` desde el 22/11/2026) está publicada en producción.** Antes de
+> esa publicación, el texto del cliente llega completo al modelo y solo se revisa la salida.
 
 Antes de mandar la conversación al agente, el despachador tapa en el texto del cliente:
 

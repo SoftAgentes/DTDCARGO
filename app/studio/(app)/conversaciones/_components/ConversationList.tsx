@@ -91,7 +91,7 @@ export function ConversationList({
             borderRadius: "var(--r-md)",
           }}
         >
-          <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+          <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
             {Icon.search(14)}
           </span>
           <input

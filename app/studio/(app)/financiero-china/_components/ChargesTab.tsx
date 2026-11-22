@@ -205,7 +205,7 @@ export function ChargesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: credited ? "var(--ink-mute)" : "var(--ink)",
+                    color: credited ? "var(--ink-soft)" : "var(--ink)",
                     textDecoration: credited ? "line-through" : "none",
                   }}
                 >

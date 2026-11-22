@@ -719,7 +719,7 @@ function ReceiptRow({
             <span
               style={{
                 font: "600 12.5px/1.2 var(--f-sans)",
-                color: showClientNames ? "var(--ink)" : "var(--ink-mute)",
+                color: showClientNames ? "var(--ink)" : "var(--ink-soft)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -782,7 +782,7 @@ function ReceiptRow({
             )}
           </>
         ) : (
-          <span style={{ color: "var(--ink-mute)" }}>—</span>
+          <span style={{ color: "var(--ink-soft)" }}>—</span>
         )}
       </div>
 
@@ -832,7 +832,7 @@ function ReceiptRow({
         className="mono"
         style={{
           font: "700 12.5px/1 var(--f-mono)",
-          color: row.total_cbm != null ? "var(--ink)" : "var(--ink-mute)",
+          color: row.total_cbm != null ? "var(--ink)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >
@@ -845,7 +845,7 @@ function ReceiptRow({
         style={{
           font: "500 11.5px/1 var(--f-mono)",
           color:
-            row.total_weight_kg != null ? "var(--ink-soft)" : "var(--ink-mute)",
+            row.total_weight_kg != null ? "var(--ink-soft)" : "var(--ink-soft)",
           textAlign: "right",
         }}
       >

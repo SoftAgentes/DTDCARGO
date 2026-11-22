@@ -166,7 +166,7 @@ export function QrQueueTable({
                           style={{ accentColor: "var(--accion)" }}
                         />
                       ) : (
-                        <span style={{ color: "var(--ink-mute)" }}>—</span>
+                        <span style={{ color: "var(--ink-soft)" }}>—</span>
                       )}
                     </td>
                   )}
@@ -219,7 +219,7 @@ export function QrQueueTable({
                   </td>
                   <td style={tdStyle}>
                     {o.supplier_name ?? (
-                      <span style={{ color: "var(--ink-mute)" }}>—</span>
+                      <span style={{ color: "var(--ink-soft)" }}>—</span>
                     )}
                   </td>
                   <td

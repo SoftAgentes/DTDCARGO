@@ -25,7 +25,7 @@ confidencialidad: interno
 ## 1 · Objetivo y alcance
 
 Que una conversación real de Chatwoot sea atendida de principio a fin por
-`soporte-chatwoot` (glm-5.3), con autonomía que sube por etapas (AC-1) y solo
+`soporte-chatwoot` (claude-sonnet-5-5, Anthropic), con autonomía que sube por etapas (AC-1) y solo
 pasa a responder sola si cumple la regla de seguir o parar (AC-7), con cada
 paso anotado y visible en una vista de prueba estilo V3. **Incluye:** 4 tablas mínimas
 (las 3 del cable y la bandera `office_paused`), webhook de Chatwoot, filtro nivel 1, despachador mínimo, 1 corrida, ficha del
@@ -36,7 +36,7 @@ completas, los 6 eventos (Fase B), aprobaciones L1 con dinero.
 
 - **VPS DTD** (construcción + datos): tablas, webhook, despachador, mini-vista.
 - **VPS Oficina** (ejecución): runtime Hermes con perfil `soporte-chatwoot`
-  (glm-5.3). El despachador lo invoca por red interna autenticada (token en
+  (claude-sonnet-5-5, Anthropic). El despachador lo invoca por red interna autenticada (token en
   gestor de secretos). El ERP no sabe qué modelo corre: contrato "ejecuta
   agente X con tarea Y → resultado + bitácora".
 - **PC de Sam**: aprobaciones y monitoreo (Discord + mini-vista).
@@ -204,7 +204,7 @@ invoca el runtime → recibe resultado → verifica contra eval.md (anexo A.7) �
 cierra o escala. Frenos: cooldown 10s · 1 corrida por agente · máx 20 pasos ·
 timeout 300s (tope por corrida, presupuesto de doble carril).
 
-**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, glm-5.3 (respaldo deepseek-chat).
+**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, claude-sonnet-5-5 (Anthropic), con respaldo claude-haiku-5-5 (mismo proveedor; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); un tercer nivel con OpenAI en la SDD-0703.
 Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 
 **Decisiones de Sam del 16/11/2026 («Sí a todo», D1 a D6):**
@@ -249,8 +249,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
   - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
   - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
-- **El agente (VPS Oficina).** glm-5.3, **sin respaldo** hasta que Sam cree la llave propia de DeepSeek con tope de
-  gasto (16/11/2026; después, respaldo deepseek-chat); instrucciones con la esencia del Anexo A y salida
+- **El agente (VPS Oficina).** claude-sonnet-5-5 (Anthropic) con respaldo claude-haiku-5-5 del mismo proveedor (21/11/2026: Sam quitó Z.AI y DeepSeek
+  y pidió Sonnet → Haiku; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z; un tercer nivel no chino con OpenAI está en la SDD-0703); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
 - **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta la cuenta del cable e ignora los avisos de
@@ -548,7 +548,7 @@ el prototipo `oficina-dtd.html` (DTD Brand, día/noche).
   internos firmados por el despachador.
 
 ## 7 · Fallback (Fase B, no en el cable)
-Cadena por agente con piso glm-5.3 · clasificador de errores (402/401 salta
+Cadena por agente con piso por definir (Anthropic hoy; sin proveedores chinos, D-2) · clasificador de errores (402/401 salta
 proveedor 24h · 429/503 reintenta ×2 · timeout salta) · cortacircuitos · sonda
 de suscripción 2×día · modo degradado de dos vías.
 
@@ -637,7 +637,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
   redacta. Antes (v0.1): `chatwoot_read_conversation` · `chatwoot_send_message` · `guiones`.
 - **schemas:** entrada `{conversacion_id, mensajes[], guiones}` → salida, solo JSON,
   `{"respuesta": {acuse, texto, guion}}` o `{"escalado": {motivo, prioridad}}`.
-- **model_chain:** glm-5.3 → deepseek-chat (piso glm).
+- **model_chain:** claude-sonnet-5-5 → claude-haiku-5-5 (Anthropic, misma llave; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); tercer nivel OpenAI en la SDD-0703.
 - **presupuesto:** $15/mes piloto · por corrida: 20 pasos / 5 min.
 - **umbral de activación:** inbox de prueba (piloto); producción ≥30
   conversaciones/semana.

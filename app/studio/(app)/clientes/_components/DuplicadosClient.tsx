@@ -136,7 +136,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
                   }}
                 >
                   <Badge tone={CONF_TONE[conf]}>{CONF_LABEL[conf]}</Badge>
-                  <span style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+                  <span style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
                     Coincide por {candidateReasons(c).join(", ")}
                   </span>
                 </div>
@@ -155,7 +155,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
                     name={c.legacyName}
                     destacado
                   />
-                  <span aria-hidden style={{ color: "var(--ink-mute)", fontSize: 18 }}>
+                  <span aria-hidden style={{ color: "var(--ink-soft)", fontSize: 18 }}>
                     ←
                   </span>
                   <FichaCard
@@ -269,7 +269,7 @@ function FichaCard({
           font: "700 10px/1.2 var(--f-sans)",
           letterSpacing: ".08em",
           textTransform: "uppercase",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
         }}
       >
         {rotulo}

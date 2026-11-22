@@ -324,7 +324,7 @@ export function NuevaReunionClient({
             <p
               style={{
                 font: "500 10.5px/1.4 var(--f-sans)",
-                color: transcriptOk ? "var(--ink-mute)" : "var(--ink-soft)",
+                color: transcriptOk ? "var(--ink-soft)" : "var(--ink-soft)",
                 margin: "5px 0 0",
               }}
             >

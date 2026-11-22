@@ -61,7 +61,7 @@ describe("SDD-0686 fase 2 · grupo 7: naviera, fidelización y órdenes sin vino
 
   it("mutante: la selección de carpeta de documentos otra vez en vino se detecta", () => {
     const objetivo = "app/studio/(app)/documentos/_components/DocumentosHubClient.tsx";
-    expect(mutar(objetivo, 'color: topActive ? "var(--ink)" : "var(--ink-mute)",', 'color: topActive ? "var(--wine)" : "var(--ink-mute)",')).toBe(1);
+    expect(mutar(objetivo, 'color: topActive ? "var(--ink)" : "var(--ink-soft)",', 'color: topActive ? "var(--wine)" : "var(--ink-soft)",')).toBe(1);
   });
 });
 

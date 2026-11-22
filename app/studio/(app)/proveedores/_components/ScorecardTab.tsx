@@ -117,7 +117,7 @@ export function ScorecardTab({
           borderRadius: "var(--r-sm)",
         }}
       >
-        <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+        <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
           {Icon.search(13)}
         </span>
         <input
@@ -204,7 +204,7 @@ export function ScorecardTab({
               <span
                 style={{
                   font: "500 12px/1.3 var(--f-sans)",
-                  color: s.city ? "var(--ink)" : "var(--ink-mute)",
+                  color: s.city ? "var(--ink)" : "var(--ink-soft)",
                 }}
               >
                 {s.city || "—"}
@@ -260,7 +260,7 @@ function NumCell({ value }: { value: string }) {
     <span
       style={{
         font: "600 12px/1 var(--f-mono)",
-        color: value === "—" ? "var(--ink-mute)" : "var(--ink)",
+        color: value === "—" ? "var(--ink-soft)" : "var(--ink)",
         textAlign: "right",
         display: "block",
       }}

@@ -280,7 +280,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: isDebe ? "var(--ink)" : "var(--ink-mute)",
+                    color: isDebe ? "var(--ink)" : "var(--ink-soft)",
                   }}
                 >
                   {isDebe ? fmt(amount) : "—"}
@@ -289,7 +289,7 @@ export function LedgerTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: !isDebe ? "var(--success)" : "var(--ink-mute)",
+                    color: !isDebe ? "var(--success)" : "var(--ink-soft)",
                   }}
                 >
                   {!isDebe ? fmt(amount) : "—"}

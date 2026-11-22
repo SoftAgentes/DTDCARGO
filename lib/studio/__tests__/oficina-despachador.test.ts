@@ -7,7 +7,7 @@
  *   · auto-pausa al 80 % con un tope de juguete;
  *   · caída y reinicio sin duplicar corridas;
  *   · JSON inválido → reintenta una vez y escala; cifra inventada → escala;
- *   · ninguna fila ni log guarda el texto del cliente;
+ *   · ninguna fila ni log guarda el texto del cliente, y al agente le llega con los datos tapados (SDD-0700);
  *   · con el interruptor apagado no hace nada; sin las migraciones no tumba nada.
  */
 import { readFileSync } from "node:fs";
@@ -146,10 +146,12 @@ interface Doble {
   lecturas: number;
   /** Las instrucciones («sistema») de cada llamada al agente, en orden. */
   sistemas: string[];
+  /** Lo que recibió el agente («usuario») en cada llamada, en orden. */
+  usuarios: string[];
 }
 
 function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<string | "lento">; ajustes?: Partial<ReturnType<typeof configDespachador>> } = {}) {
-  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0, sistemas: [] };
+  const doble: Doble = { llamadas: 0, sesionesBorradas: [], lecturas: 0, sistemas: [], usuarios: [] };
   const contenidos = [...(o.contenidos ?? [respuestaBuena])];
   const registros: string[] = [];
   const config = { ...configDespachador({ ...ENV, ...(o.env ?? {}) }), vigilarPausaMs: 50, tickMs: 20, ...(o.ajustes ?? {}) };
@@ -160,9 +162,10 @@ function deps(db: PGlite, o: { env?: Record<string, string>; contenidos?: Array<
       doble.lecturas += 1;
       return MENSAJES.map((m) => ({ ...m }));
     },
-    async llamar({ signal, sistema }): Promise<RespuestaAgente> {
+    async llamar({ signal, sistema, usuario }): Promise<RespuestaAgente> {
       doble.llamadas += 1;
       doble.sistemas.push(sistema);
+      doble.usuarios.push(usuario);
       const c = contenidos.length > 1 ? contenidos.shift()! : contenidos[0];
       if (c === "lento") {
         await new Promise((_, rechazar) => {
@@ -641,7 +644,7 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
     }
   }, 60_000);
 
-  it("ninguna fila ni log guarda el texto del cliente (ni su teléfono)", async () => {
+  it("ninguna fila ni log guarda el texto del cliente (ni su teléfono), y al agente le llega el teléfono tapado", async () => {
     const db = await base();
     try {
       await despausar(db);
@@ -663,7 +666,15 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
         expect(a.registros.join("\n") + b.registros.join("\n")).not.toContain(prohibido);
         expect(textoDeConsola()).not.toContain(prohibido);
       }
-      // El texto sí viajó al agente (es su trabajo), y la sesión de cada llamada se borró en la oficina.
+      // El texto sí viajó al agente (es su trabajo), pero con el teléfono tapado (SDD-0700); y la sesión de cada
+      // llamada se borró en la oficina.
+      const alAgente = [...a.doble.usuarios, ...b.doble.usuarios];
+      expect(alAgente).toHaveLength(3);
+      for (const u of alAgente) {
+        expect(u).toContain(MARCA);
+        expect(u).toContain("[teléfono]");
+        expect(u).not.toContain("0414-555-1234");
+      }
       expect(a.doble.sesionesBorradas.length + b.doble.sesionesBorradas.length).toBe(3);
     } finally {
       await db.close();

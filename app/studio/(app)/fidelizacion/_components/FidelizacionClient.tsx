@@ -68,7 +68,7 @@ function tierColor(tone: BadgeTone): string {
     case "danger":
       return "var(--danger)";
     default:
-      return "var(--ink-mute)";
+      return "var(--ink-soft)";
   }
 }
 
@@ -992,7 +992,7 @@ function ReferidosTab({
                         ? "var(--success)"
                         : r.status === "aplicado"
                           ? "var(--ink)"
-                          : "var(--ink-mute)",
+                          : "var(--ink-soft)",
                   }}
                 >
                   {r.status === "acreditado" || r.status === "aplicado"
@@ -1220,7 +1220,7 @@ function ClientesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: credits > 0 ? "var(--success)" : "var(--ink-mute)",
+                    color: credits > 0 ? "var(--success)" : "var(--ink-soft)",
                   }}
                 >
                   {credits > 0 ? fmtUsd(credits) : "—"}
@@ -1229,7 +1229,7 @@ function ClientesTab({
                   style={{
                     textAlign: "right",
                     font: "700 12px/1 var(--f-mono)",
-                    color: refs > 0 ? "var(--ink)" : "var(--ink-mute)",
+                    color: refs > 0 ? "var(--ink)" : "var(--ink-soft)",
                   }}
                 >
                   {refs || "—"}
