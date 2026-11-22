@@ -164,7 +164,8 @@ const ENV = {
 const respuesta = (guion: string, texto: string, acuse = texto.split(".")[0] + ".") =>
   JSON.stringify({ respuesta: { acuse, texto, guion } });
 const ACUSE_GENERAL = "¡Hola! Gracias por escribirle a DTD Cargo. Ya vi tu mensaje y te ayudo con gusto. Cuéntame un poco más de lo que necesitas.";
-const PEDIR_GUIA = "Para revisar tu envío necesito tu número de guía o de casillero. ¿Me lo compartes, por favor? Apenas lo tenga, el equipo lo revisa.";
+// Guiones v0.4: estado-sin-guia reemplaza a pedir-guia.
+const PEDIR_GUIA = "Entendí que quieres saber de tu paquete. Para verlo necesito tu número de guía. ¿Me lo compartes?";
 
 function despachador(db: PGlite, o: { mensajes?: Record<number, string>; contenido?: string | "lento"; sinBorrar?: boolean } = {}) {
   const doble = { llamadas: 0, borradas: [] as string[], avisos: [] as number[], registros: [] as string[] };
@@ -353,7 +354,7 @@ describe("envío (Paso 3b, C)", () => {
     // El agente redacta las 3 (respuestas de guion). Nada sale todavía.
     const contenidos: Record<number, string> = {
       31: respuesta("acuse-general", ACUSE_GENERAL, "¡Hola!"),
-      32: respuesta("pedir-guia", PEDIR_GUIA, "Para revisar tu envío necesito tu número de guía o de casillero."),
+      32: respuesta("estado-sin-guia", PEDIR_GUIA, "Entendí que quieres saber de tu paquete."),
       33: respuesta("acuse-general", ACUSE_GENERAL, "¡Hola!"),
     };
     let actual = 31;
