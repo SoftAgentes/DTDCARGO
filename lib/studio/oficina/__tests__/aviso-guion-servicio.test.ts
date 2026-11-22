@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { AVISO_CLIENTE, conAvisoAlCliente, esPrimeraRespuesta } from "../aviso-cliente";
+import { AVISO_CLIENTE, TEXTO_MAXIMO_BORRADOR, cabeEnBorrador, conAvisoAlCliente, esPrimeraRespuesta } from "../aviso-cliente";
 import type { MensajeLeido } from "../chatwoot-lectura";
 import { enlacesAjenos, revisarRespuesta } from "../eval-automatico";
 import { GUIONES_SOPORTE, VERSION_GUIONES, guionPorId } from "../guiones-soporte";
@@ -18,10 +18,20 @@ describe("aviso al cliente", () => {
     );
   });
 
-  it("va delante en la primera respuesta (solo hay mensajes del cliente)", () => {
+  it("va AL FINAL en la primera respuesta (v0.2, Sam: «el aviso va al final»): el borrador abre con el guion", () => {
     const t = conAvisoAlCliente("¡Hola! Gracias por escribirle a DTD Cargo.", [cliente("Hola"), cliente("¿Siguen ahí?")]);
-    expect(t).toBe(`${AVISO_CLIENTE}\n\n¡Hola! Gracias por escribirle a DTD Cargo.`);
-    expect(t.startsWith(AVISO_CLIENTE)).toBe(true);
+    expect(t).toBe(`¡Hola! Gracias por escribirle a DTD Cargo.\n\n${AVISO_CLIENTE}`);
+    expect(t.startsWith("¡Hola! Gracias")).toBe(true);
+    expect(t.endsWith(AVISO_CLIENTE)).toBe(true);
+  });
+
+  it("con el aviso, un borrador de más de 4000 caracteres no cabe (el despachador escala borrador_largo)", () => {
+    expect(TEXTO_MAXIMO_BORRADOR).toBe(4000);
+    const margen = TEXTO_MAXIMO_BORRADOR - (AVISO_CLIENTE.length + 2);
+    expect(cabeEnBorrador(conAvisoAlCliente("a".repeat(margen), [cliente("Hola")]))).toBe(true);
+    expect(cabeEnBorrador(conAvisoAlCliente("a".repeat(margen + 1), [cliente("Hola")]))).toBe(false);
+    // Se cuenta como la base: caracteres (no bytes) y sin espacios a los lados.
+    expect(cabeEnBorrador(`  ${"ñ".repeat(4000)}  `)).toBe(true);
   });
 
   it("no se repite si DTD ya respondió (el agente o una persona del equipo)", () => {
@@ -30,9 +40,11 @@ describe("aviso al cliente", () => {
     expect(conAvisoAlCliente("Entendí tu pregunta.", mensajes)).toBe("Entendí tu pregunta.");
   });
 
-  it("nunca lo duplica si el texto ya empieza con el aviso", () => {
-    const ya = `${AVISO_CLIENTE}\n\nHola.`;
-    expect(conAvisoAlCliente(ya, [cliente("Hola")])).toBe(ya);
+  it("nunca lo duplica si el texto ya trae el aviso (al final o en otro lugar)", () => {
+    const alFinal = `Hola.\n\n${AVISO_CLIENTE}`;
+    expect(conAvisoAlCliente(alFinal, [cliente("Hola")])).toBe(alFinal);
+    const delante = `${AVISO_CLIENTE}\n\nHola.`;
+    expect(conAvisoAlCliente(delante, [cliente("Hola")])).toBe(delante);
   });
 
   it("no trae cifras, fechas, datos personales ni enlaces (pasaría la revisión por sí solo)", () => {
