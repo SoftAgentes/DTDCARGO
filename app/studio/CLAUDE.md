@@ -95,6 +95,8 @@ import { DrawerShell, DrawerFooter } from "@/app/studio/_components/ui/drawer/Dr
 </DrawerShell>
 ```
 
+**Anchos (SDD-0688, regla 10; política, aún sin código):** tres tamaños, `sm` 520, `md` 640 y `lg` 760 px (opción A de Sam), en lugar de un número libre en `width`. Cada panel va al más cercano; si al achicarse no caben campos, tabla o pie, sube al siguiente, nunca a un cuarto ancho. Hasta la fase 3, el código sigue con `width` numérico. Regla 11: un solo tamaño y un solo margen para el título de página (fase 2).
+
 **Regla del submit:** SIEMPRE `<form id="X">` + `<button type="submit" form="X">`
 HTML5 estándar. **Nunca** `closest("aside").querySelector("form")?.requestSubmit()`
 — ese patrón está deprecado en este codebase (ver memoria
@@ -458,6 +460,20 @@ visual" arriba. Mínimo:
 - Si hay split button con memoria, el botón principal va a la derecha
   (siguiendo la regla anterior) y el chevron va al lado derecho del
   principal.
+
+### Reglas de simetría (BTN-01 v1.3 · SDD-0688) — política, aún sin código
+
+Se suman a las 8 reglas y rigen en Studio y Portal. Texto normativo en
+`docs/governance/policies/btn-01.md`. Las fases 3 y 4 de la SDD-0688 las llevan al código.
+
+1. Etiqueta de verbo + sustantivo («Guardar cambios», «Crear embarque»); excepto «Guardar», «Cancelar», «Cerrar», «Eliminar».
+2. Máximo tres acciones visibles por grupo; la cuarta va al menú. En la fila de tabla siguen siendo dos.
+3. Un solo tamaño dentro de un grupo.
+4. Destructivo en tres énfasis (relleno, contorno, texto): vigente por BD-077; se implementa en la fase 4.
+5. Icono siempre a la izquierda de la etiqueta.
+6. La etiqueta no se corta: baja de línea.
+
+**Mensajes (AVS-01 v1.1, texto en SDD-0165 §17):** cuatro tipos (en línea, toast, accionable, llamada); en línea se queda hasta cerrarla o resolver, toast es breve y su información existe en otro lado, accionable se queda, llamada no se cierra y no es para éxito ni error; el aviso del formulario va encima de la fila de botones del pie.
 
 ### Componentes que implementan estas 8 reglas
 
