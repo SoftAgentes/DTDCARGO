@@ -122,16 +122,22 @@ describe("SplitActionButton · temporizador del flash de éxito", () => {
   ];
   const principal = () => screen.getByRole("button", { name: /Crear y cerrar|Creado/ });
 
+  // successMs distintivo: así se reconoce el temporizador del flash entre los demás (React y el menú usan otros).
+  const FLASH_MS = 7777;
+
   beforeEach(() => {
     vi.useFakeTimers();
   });
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it("al desmontar durante el flash no deja ningún temporizador vivo", async () => {
+  it("al desmontar durante el flash, el temporizador del flash se cancela", async () => {
+    const crear = vi.spyOn(globalThis, "setTimeout");
+    const cancelar = vi.spyOn(globalThis, "clearTimeout");
     const { unmount } = render(
-      <SplitActionButton memoryKey="test-flash" actions={conExito(async () => {})} />,
+      <SplitActionButton memoryKey="test-flash" successMs={FLASH_MS} actions={conExito(async () => {})} />,
     );
     fireEvent.click(principal());
     await act(async () => {
@@ -139,16 +145,19 @@ describe("SplitActionButton · temporizador del flash de éxito", () => {
       await Promise.resolve();
     });
     expect(principal()).toHaveTextContent("Creado");
-    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    const i = crear.mock.calls.findIndex((c) => c[1] === FLASH_MS);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const id = crear.mock.results[i].value;
     unmount();
-    expect(vi.getTimerCount()).toBe(0);
+    expect(cancelar).toHaveBeenCalledWith(id);
   });
 
-  it("si la acción termina DESPUÉS del desmontaje, no se crea ningún temporizador", async () => {
+  it("si la acción termina DESPUÉS del desmontaje, no se crea el temporizador del flash", async () => {
+    const crear = vi.spyOn(globalThis, "setTimeout");
     let terminar: () => void = () => {};
     const onAction = () => new Promise<void>((r) => (terminar = r));
     const { unmount } = render(
-      <SplitActionButton memoryKey="test-flash-async" actions={conExito(onAction)} />,
+      <SplitActionButton memoryKey="test-flash-async" successMs={FLASH_MS} actions={conExito(onAction)} />,
     );
     fireEvent.click(principal());
     unmount();
@@ -157,6 +166,6 @@ describe("SplitActionButton · temporizador del flash de éxito", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(vi.getTimerCount()).toBe(0);
+    expect(crear.mock.calls.some((c) => c[1] === FLASH_MS)).toBe(false);
   });
 });
