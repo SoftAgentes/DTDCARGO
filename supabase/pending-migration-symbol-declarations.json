@@ -7,5 +7,153 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "0570-pantalla-ia-lectura",
+      "migration": "0570_ia_catalogo_y_costo",
+      "primarySymbol": "ia_cuentas",
+      "symbols": [
+        {
+          "name": "ia_cuentas",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/ia/pantalla.ts:63"
+          ]
+        },
+        {
+          "name": "ia_modelos",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/ia/pantalla.ts:64"
+          ]
+        },
+        {
+          "name": "ia_catalogo_modelos",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/ia/pantalla.ts:65"
+          ]
+        },
+        {
+          "name": "ia_topes",
+          "kind": "table",
+          "callSites": [
+            "lib/studio/ia/pantalla.ts:66"
+          ]
+        },
+        {
+          "name": "ia_gasto_del_mes",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/ia/pantalla.ts:67"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/ia/pantalla.ts:70",
+          "contains": "if (errores.some(faltaLa0570)) return { ok: false, motivo: \"sin_migracion\" };",
+          "degradation": "Sin la 0570 las tablas y la función no existen (42P01, PGRST205 o PGRST202): la pantalla «IA» dice que falta la migración y no muestra ni escribe nada. El despachador sigue con las variables de entorno."
+        }
+      ]
+    },
+    {
+      "id": "0570-pantalla-ia-escritura",
+      "migration": "0570_ia_catalogo_y_costo",
+      "primarySymbol": "ia_guardar_tope",
+      "symbols": [
+        {
+          "name": "ia_guardar_tope",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/ia/actions.ts:49"
+          ]
+        },
+        {
+          "name": "ia_borrar_tope",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/ia/actions.ts:56"
+          ]
+        },
+        {
+          "name": "ia_guardar_cuenta",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/ia/actions.ts:85"
+          ]
+        },
+        {
+          "name": "ia_guardar_modelo",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/ia/actions.ts:109"
+          ]
+        },
+        {
+          "name": "ia_borrar_modelo",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/admin/ia/actions.ts:124"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/admin/ia/actions.ts:50",
+          "contains": "volver(\"gasto\", error ? codigoDeError(error) : \"ok_tope\");",
+          "degradation": "Sin la 0570 la RPC no existe (PGRST202 o 42883): codigoDeError la vuelve «sin_migracion» y la acción regresa a la pantalla con ese aviso, sin escribir nada."
+        }
+      ]
+    },
+    {
+      "id": "0570-despachador-costo",
+      "migration": "0570_ia_catalogo_y_costo",
+      "primarySymbol": "ia_costo_oficina",
+      "symbols": [
+        {
+          "name": "ia_costo_oficina",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:165"
+          ]
+        },
+        {
+          "name": "ia_oficina_autopausar_por_llamadas",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:167"
+          ]
+        },
+        {
+          "name": "task_events.tokens_entrada",
+          "kind": "column",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:129",
+            "lib/studio/ia/pantalla.ts:98"
+          ]
+        },
+        {
+          "name": "task_events.tokens_salida",
+          "kind": "column",
+          "callSites": [
+            "lib/studio/oficina/despachador-almacen.ts:129",
+            "lib/studio/ia/pantalla.ts:99"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/oficina/despachador.ts:146",
+          "contains": "return costoDelEntorno(config);",
+          "degradation": "Sin la 0570, ia_costo_oficina lanza SinMigracion: el despachador avisa una vez y sigue con el tope y la tarifa de las variables de entorno, con conTokens=false. Sin cuenta de plan fijo nunca llama a ia_oficina_autopausar_por_llamadas."
+        },
+        {
+          "site": "lib/studio/oficina/despachador.ts:218",
+          "contains": "...(costo.conTokens && tokensLlamada ? { tokens: tokensLlamada } : {}),",
+          "degradation": "Los tokens solo se escriben en task_events cuando ia_costo_oficina respondió (la 0570 está): sin ella el insert es el de siempre, sin las columnas nuevas."
+        }
+      ]
+    }
+  ]
 }
