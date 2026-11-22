@@ -47,7 +47,7 @@ Es una versión **de parche** (4.20.0 → 4.20.1), dos días después de la que 
 | **Revocación de sesiones** (medio) | `Gemfile.lock` | Lo mismo. **`devise_token_auth` no cambia.** `app/channels/`, `app/controllers/platform/` y `app/models/user.rb` no cambian. (C) | **No.** Riesgo real: **bajo**. La ruta propia se agrega con `Rails.application.routes.prepend`, así que las rutas nuevas de Chatwoot no la tapan. Se mide con `prueba-revocar-sesiones.sh` y S6–S7 (NV) |
 | **Correos de DTD** (medio) | `Gemfile.lock` | Lo mismo. **`mail`, `actionmailer` y `devise` no cambian.** `app/mailers/` y las carpetas de plantillas no cambian. (C) | **No.** Riesgo real: **bajo**. Se mira con la vista previa de [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo) (NV) |
 | **Integración con Studio: rutas de inboxes** (medio) | `app/controllers/api/v1/accounts/inboxes_controller.rb` | Una línea movida: al **editar** una bandeja, ahora guarda el canal **antes** del horario de atención. (C) | **No.** Studio no edita bandejas: `lib/studio/chatwoot` no llama a `PATCH …/inboxes/:id` (busqué las rutas en el código). (C) |
-| **Integración con Studio: miembros** (no lo marca el informe) | `app/models/inbox.rb` y `app/models/team.rb` | Al agregar o quitar miembros de una bandeja o un equipo, Chatwoot ya no refresca su caché de cuenta **si no cambió nada**. (C) | **No (I).** Studio sí fija miembros (`fijarMiembrosBandeja` y el de equipos en `miembros-api.ts`, SDD-0675); cuando hay cambio, la caché se refresca igual que antes. Se confirma con M1 del paso 10 de §6 (NV) |
+| **Integración con Studio: miembros** (no lo marca el informe) | `app/models/inbox.rb` y `app/models/team.rb` | Al agregar o quitar miembros de una bandeja o un equipo, Chatwoot ya no refresca su caché de cuenta **si no cambió nada**. (C) | **No (I).** Studio sí fija miembros (`fijarMiembrosBandeja` y el de equipos en `miembros-api.ts`, SDD-0675); cuando hay cambio, la caché se refresca igual que antes. Se confirma con M1 del paso 11 de §6 (NV) |
 | **Integración con Studio: rutas** (medio) | `config/routes.rb` | Dos rutas **nuevas** de llamadas de WhatsApp (`dismiss` y `whatsapp_call_hours`). No quita ni renombra ninguna. (C) | **No.** No usamos llamadas. La ruta de la revocación entra con `prepend` |
 | **Integración con Studio: gzip** (no lo marca el informe) | `config/application.rb` | `Rack::Deflater` comprime el JSON si el cliente lo pide. (C) | **No (I).** El `fetch` de Node, el que usan Studio y el puente del cable, pide gzip y descomprime solo. `curl` sin `--compressed` no lo pide y recibe lo mismo que hoy: las pruebas y `vigilar.sh` no cambian. El monitor de versión de Uptime Kuma descomprime. Se confirma con S10, S11 y el monitor (NV) |
 | **Redacción de logs** (bajo) | — | Ningún archivo del que depende. (C) | **No.** Se mide igual con A1/C6 y `prueba-redaccion-canales.sh`, porque Ruby cambia de versión |
@@ -64,13 +64,13 @@ Es una versión **de parche** (4.20.0 → 4.20.1), dos días después de la que 
 | # | Riesgo | Probabilidad | Mitigación |
 |---|---|---|---|
 | R1 | Un initializer propio deja de cargar con Ruby 3.4.13 (candado, revocación, redacción o correos) | Baja (I) | Las cuatro corridas del ensayo local (§4 del [runbook](chatwoot-versiones.md#4--prueba-en-copia-local-nunca-en-el-vps)) con sus controles en rojo, y S2–S7 en la ventana. Un rojo en S1–S7 es vuelta atrás inmediata |
-| R2 | Un rojo de la 4.20.1 no dice cuál versión lo causó, si el smoke de la 4.20.0 no estaba cerrado | **Cerrado** el 2026-11-22 | Se cerró antes, por la decisión D2: SSO, Bandeja, nota privada y Ficha DTD en verde. El contador no se midió y queda en S11 del paso 10 |
+| R2 | Un rojo de la 4.20.1 no dice cuál versión lo causó, si el smoke de la 4.20.0 no estaba cerrado | **Cerrado** el 2026-11-22 | Se cerró antes, por la decisión D2: SSO, Bandeja, nota privada y Ficha DTD en verde. El contador no se midió y queda en S11 del paso 11 |
 | R3 | Se cae el tiempo real o algún cliente HTTP no entiende gzip | Muy baja (I) | S10 y S11 con Studio; el monitor de versión de Uptime Kuma |
 | R4 | Mensajes perdidos durante el corte | Baja | Drenaje de Sidekiq y respaldo en el momento (§5 del runbook). Meta reintenta los webhooks y, mientras Kommo opere, el cliente igual tiene respuesta |
-| R5 | La Oficina responde a medias durante el corte (lee o envía por la API de Chatwoot mientras no está) | Media si no se pausa | Pausarla durante la ventana (D3) con el procedimiento del paso 7 de §6: leer y guardar el estado, pausar, y al final **volver al estado previo**. Avisar a la sesión del cable |
+| R5 | La Oficina responde a medias durante el corte (lee o envía por la API de Chatwoot mientras no está) | Media si no se pausa | Pausarla durante la ventana (D3) con el procedimiento del paso 8 de §6: leer y guardar el estado, pausar, y al final **volver al estado previo**. Avisar a la sesión del cable |
 | R6 | La versión nueva no arranca | Baja | **Sin migraciones**: la vuelta atrás es el caso (a) de §6 bis, que vuelve la línea de la imagen a `VIEJA` y recrea `rails` y `sidekiq` (~3–5 min). El respaldo del momento queda solo para emergencia (caso b) |
 | R9 | El respaldo del momento no restaura | Baja | **Límite:** con la 4.20.1 la restauración solo se probó en el ensayo local, con datos sintéticos. La última restauración con datos reales es la P5, del 2026-10-29: desde B2, en 200 s, con la 4.19.1 ([respaldo §6](chatwoot-respaldo-restauracion.md)). Sin migraciones, la vuelta atrás normal no la necesita |
-| R10 | `sidekiq` tarda en quedar sano al recrearlo | Media (medido) | En el ensayo local (R2), `up --wait` dio `sidekiq` *unhealthy* y diez minutos después estaba sano, con la PC cargada. El paso 9 bis lo vigila con su propio bucle, distingue «arrancando» de «caído» y espera hasta `TOPE_SIDEKIQ`. N2, N3 y V6 solo corren con `sidekiq` sano |
+| R10 | `sidekiq` tarda en quedar sano al recrearlo | Media (medido) | En el ensayo local (R2), `up --wait` dio `sidekiq` *unhealthy* y diez minutos después estaba sano, con la PC cargada. El paso 10 bis lo vigila con su propio bucle, distingue «arrancando» de «caído» y espera hasta `TOPE_SIDEKIQ`. N2, N3 y V6 solo corren con `sidekiq` sano |
 | R7 | Se queda en 4.20.0 con las fallas del runtime (Ruby, zlib, `net-imap`, musl) | Media (I) | Subir esta semana. No se publican detalles de esas fallas aquí |
 | R8 | El panel sigue dando «medio» por `Gemfile.lock` en cada versión | Segura | No es riesgo de la subida. Es una mejora del panel: ver Fuera de alcance |
 
@@ -86,9 +86,9 @@ Es una versión **de parche** (4.20.0 → 4.20.1), dos días después de la que 
 
 ## 6 · Orden de pasos
 
-Nada de esto lo hace este análisis. Lo ejecuta el Director en el VPS, solo desde lo que esté en `main`, con el OK nominal de Sam por el canal del Director. **El OK nominal cubre también la pausa y la vuelta de la Oficina** (pasos 7 y 11).
+Nada de esto lo hace este análisis. Lo ejecuta el Director en el VPS, solo desde lo que esté en `main`, con el OK nominal de Sam por el canal del Director. **El OK nominal cubre también la pausa y la vuelta de la Oficina** (pasos 8 y 12).
 
-**Imágenes y evidencia.** Se definen antes de todo; el paso 7 ya escribe en `$EV`:
+**Imágenes y evidencia.** Se definen antes de todo; el paso 8 ya escribe en `$EV`:
 
 ```bash
 VIEJA='chatwoot/chatwoot:v4.20.0-ce@sha256:03cc2004299fec8142481a411906947928678fa0e126beb5248962183593f8be'
@@ -98,16 +98,17 @@ TOPE_SIDEKIQ=1200  # segundos: la medición de la fase C más su margen (ver «M
 ( umask 077; printf 'VIEJA=%q\nNUEVA=%q\nSELLO=%q\nEV=%q\nTOPE_SIDEKIQ=%q\n' "$VIEJA" "$NUEVA" "$SELLO" "$EV" "$TOPE_SIDEKIQ" >/root/.cw4201.env )
 ```
 
-**Entre tramos**, como en [§2 de la 4.20.0](chatwoot-subida-4-20.md#2--el-día-estado-y-drenaje): cada tramo nuevo (otra terminal, otra conexión SSH) empieza con `. /root/.cw4201.env`. Los bloques 9 y 9 bis empiezan con un guardia que para si falta alguna variable, para que nada escriba en `/` ni quede un bucle sin fin. Por `ssh … 'bash -s'`, todo `docker compose exec` o `run` lleva `</dev/null`.
+**Entre tramos**, como en [§2 de la 4.20.0](chatwoot-subida-4-20.md#2--el-día-estado-y-drenaje): cada tramo nuevo (otra terminal, otra conexión SSH) empieza con `. /root/.cw4201.env`. Los bloques 10 y 10 bis son **un solo `if`**: si falta una variable, la carpeta de evidencia o `/srv/chatwoot`, no corre nada. Un `: "${EV:?}"` suelto no alcanza en una sesión interactiva: cancela solo esa línea y la siguiente corre igual (medido en bash 5.3 por la revisión). Por `ssh … 'bash -s'`, todo `docker compose exec` o `run` lleva `</dev/null`.
 
 ### Antes de la ventana
 
 1. **Smoke de la 4.20.0** (D2). Cerrado el 2026-11-22: SSO OK, Bandeja OK, nota privada de prueba OK (conversación de prueba #4) y Ficha DTD carga. El contador no se midió.
-2. **Ensayo local** en verde, de una corrida a la vez y con turno del Director: `ensayo-local.sh`, `prueba-register.sh`, `prueba-revocar-sesiones.sh`, `prueba-redaccion-canales.sh` y `prueba-correo-sistema.sh`. Exigencias y controles en rojo: [§4 del runbook](chatwoot-versiones.md#4--prueba-en-copia-local-nunca-en-el-vps). **Es requisito, antes de la ventana, la medición de `sidekiq`** en la fase C repetida: segundos de *Started* a *healthy* (ver «Medición de sidekiq»). Sin ese número no se fija `TOPE_SIDEKIQ` y no se abre la ventana.
+2. **Ensayo local** en verde, de una corrida a la vez y con turno del Director: `ensayo-local.sh`, `prueba-register.sh`, `prueba-revocar-sesiones.sh`, `prueba-redaccion-canales.sh` y `prueba-correo-sistema.sh`. Exigencias y controles en rojo: [§4 del runbook](chatwoot-versiones.md#4--prueba-en-copia-local-nunca-en-el-vps). **Es requisito, antes de la ventana, la medición de `sidekiq`** en la fase C repetida: segundos de *Started* a *healthy* (ver «Medición de sidekiq»). Esa medición **confirma o ajusta** el `TOPE_SIDEKIQ=1200` de arriba. Sin ella no se abre la ventana.
 3. **PR de la imagen** (`codex/chatwoot-v4-20-1`) revisada y en `main`.
 4. **Sam disponible durante toda la ventana** con la clave privada `age`. La vuelta atrás (b) la necesita y solo la pega Sam ([§0 paso 4 de la 4.20.0](chatwoot-subida-4-20.md#0--antes-del-día)).
 5. **Comparar variables y montajes** de `rails` y `sidekiq` contra el compose del VPS, en solo lectura, con el guion de [§0 paso 5 de la 4.20.0](chatwoot-subida-4-20.md#0--antes-del-día). Esta vez se espera **ninguna** diferencia en los dos, porque la 4.20.0 ya los igualó. Con **cualquier** diferencia no se sigue y se avisa al Director.
-6. **Bajar la imagen por digest** antes de la ventana. No corta nada:
+6. **Vía para pausar la Oficina, lista.** `office_cambiar_pausa` exige un platform admin autenticado, y desde el SSH del VPS da 42501. Hoy la #666 no está fusionada, así que **la vía real es la B**: la sesión del cable, por SQL como platform admin, igual que el 2026-11-19 y hoy a las 08:22Z. La A (el botón de la #666, con Sam en su sesión de admin) vale solo si ya está publicada el día de la ventana. Se confirma antes cuál se usa y quién la ejecuta.
+7. **Bajar la imagen por digest** antes de la ventana. No corta nada:
 
    ```bash
    docker pull "$NUEVA"
@@ -117,60 +118,68 @@ TOPE_SIDEKIQ=1200  # segundos: la medición de la fase C más su margen (ver «M
 
 ### La ventana
 
-7. **Pausa de la Oficina, con dos identidades.** Hoy está **activa**: Sam la reanudó a las 08:22Z del 2026-11-22.
+8. **Pausa de la Oficina, con dos identidades.** Hoy está **activa**: Sam la reanudó a las 08:22Z del 2026-11-22.
    - **Leer** (service_role o `postgres`; `office_esta_pausada()` solo tiene grant para `service_role`, 0541): `select id, pausada, motivo, cambiado_en from public.office_paused order by id desc limit 1;`. Otra forma de leerla es la mini-vista `/studio/admin/oficina-virtual/vista`. Se guarda en `"$EV/oficina-antes.txt"` como `ANTES=true|false` más el `id` de esa fila.
-   - **Cambiar** (un platform admin **autenticado**; `office_cambiar_pausa` exige `auth.uid()` e `is_platform_admin()`): si `ANTES=false`, `office_cambiar_pausa(true, 'subida Chatwoot 4.20.1')`. Con service_role o `postgres` falla con 42501, así que **desde el SSH del VPS no se puede**. Hoy ninguna pantalla de producción llama a esa función. Hay dos vías, y una de ellas es **requisito previo**:
-     - **A:** el botón de pausa de la PR #666, ya publicado. Sam pausa y despausa con su sesión de admin, y el Director le dicta el motivo exacto.
-     - **B:** la sesión del cable lo hace por SQL como platform admin, igual que el 2026-11-19 y hoy a las 08:22Z.
+   - **Cambiar** (un platform admin **autenticado**; `office_cambiar_pausa` exige `auth.uid()` e `is_platform_admin()`): si `ANTES=false`, `office_cambiar_pausa(true, 'subida Chatwoot 4.20.1')`. Con service_role o `postgres` falla con 42501, así que **desde el SSH del VPS no se puede**. Hoy ninguna pantalla de producción llama a esa función. Se usa la vía confirmada en el paso 6 (hoy, la B por el cable).
    - **Justo después de pausar**, se relee la última fila y se guarda **su `id`** como `PAUSA_ID` en `"$EV/oficina-antes.txt"` y en `/root/.cw4201.env`. Es la pausa propia.
    - Avisar a la sesión del cable.
-8. **Aviso, drenaje y respaldo conjunto en el momento**, como [§2 y §3 de la 4.20.0](chatwoot-subida-4-20.md#2--el-día-estado-y-drenaje), con el `$EV` de arriba (no se crea otro).
-9. **Cambio de una sola línea.** No se copia el compose de `main`, porque el del VPS es otro. Sin `exit`, que cerraría la sesión SSH ([patrón de la 4.20.0](chatwoot-subida-4-20.md#3--respaldo-conjunto-en-el-momento)):
+9. **Aviso, drenaje y respaldo conjunto en el momento**, como [§2 y §3 de la 4.20.0](chatwoot-subida-4-20.md#2--el-día-estado-y-drenaje), con el `$EV` de arriba (no se crea otro).
+10. **Cambio de una sola línea.** No se copia el compose de `main`, porque el del VPS es otro. Sin `exit`, que cerraría la sesión SSH ([patrón de la 4.20.0](chatwoot-subida-4-20.md#3--respaldo-conjunto-en-el-momento)):
 
    ```bash
-   : "${EV:?falta EV}" "${VIEJA:?falta VIEJA}" "${NUEVA:?falta NUEVA}" "${TOPE_SIDEKIQ:?falta TOPE_SIDEKIQ}"
-   cd /srv/chatwoot && cp -p compose.yml "$EV/compose.yml.antes"
-   if [ "$(grep -c "$VIEJA" compose.yml)" = 1 ]; then
-     sed -i "s#$VIEJA#$NUEVA#" compose.yml
-     CAMBIOS="$(diff "$EV/compose.yml.antes" compose.yml | grep -c '^[<>]')"
-     if [ "$CAMBIOS" = 2 ] && [ "$(grep -c "$NUEVA" compose.yml)" = 1 ] && [ "$(grep -c "$VIEJA" compose.yml)" = 0 ]; then
-       docker compose config -q && echo "CAMBIO OK: una línea, VIEJA → NUEVA" \
-         || { cp -p "$EV/compose.yml.antes" compose.yml; echo "CONFIG INVÁLIDO: compose restituido, NO SE SIGUE"; }
+   # Un solo comando: si falta una variable o no se puede entrar a /srv/chatwoot, no corre nada.
+   if [ -n "${EV-}" ] && [ -d "$EV" ] && [ -n "${VIEJA-}" ] && [ -n "${NUEVA-}" ] && cd /srv/chatwoot; then
+     cp -p compose.yml "$EV/compose.yml.antes"
+     if [ "$(grep -c "$VIEJA" compose.yml)" = 1 ]; then
+       sed -i "s#$VIEJA#$NUEVA#" compose.yml
+       CAMBIOS="$(diff "$EV/compose.yml.antes" compose.yml | grep -c '^[<>]')"
+       if [ "$CAMBIOS" = 2 ] && [ "$(grep -c "$NUEVA" compose.yml)" = 1 ] && [ "$(grep -c "$VIEJA" compose.yml)" = 0 ]; then
+         docker compose config -q && echo "CAMBIO OK: una línea, VIEJA → NUEVA" \
+           || { cp -p "$EV/compose.yml.antes" compose.yml; echo "CONFIG INVÁLIDO: compose restituido, NO SE SIGUE"; }
+       else
+         cp -p "$EV/compose.yml.antes" compose.yml; echo "CAMBIO DISTINTO DE UNA LÍNEA: compose restituido, NO SE SIGUE"
+       fi
      else
-       cp -p "$EV/compose.yml.antes" compose.yml; echo "CAMBIO DISTINTO DE UNA LÍNEA: compose restituido, NO SE SIGUE"
+       echo "LA LÍNEA VIEJA NO ESTÁ UNA SOLA VEZ: NO SE SIGUE"
      fi
    else
-     echo "LA LÍNEA VIEJA NO ESTÁ UNA SOLA VEZ: NO SE SIGUE"
+     echo "FALTAN VARIABLES O /srv/chatwoot: NO SE SIGUE (cargar /root/.cw4201.env)"
    fi
    ```
 
    **Condición de parada:** sin `CAMBIO OK`, aquí termina la ventana y se avisa al Director. Con `CAMBIO OK`: corte, `prepare` una vez y recrear **solo** `rails` y `sidekiq`, como en [§4 de la 4.20.0](chatwoot-subida-4-20.md#4--cambio-de-imagen-migraciones-y-recreación) (4.2 a 4.4).
 
-9 bis. **Salud de `sidekiq`, con su propio bucle.** El healthcheck de `compose.yml` (`pgrep -f '^sidekiq'`, `start_period` 120 s y 3 reintentos de 30 s) marca *unhealthy* cerca de los **210 s** aunque el proceso siga cargando Rails: mientras carga, su línea de comando todavía no empieza con `sidekiq`. Por eso «unhealthy» solo no decide; se distingue **arrancando** de **caído**:
+10 bis. **Salud de `sidekiq`, con su propio bucle.** El healthcheck de `compose.yml` (`pgrep -f '^sidekiq'`, `start_period` 120 s y 3 reintentos de 30 s) marca *unhealthy* cerca de los **210 s** aunque el proceso siga cargando Rails: mientras carga, su línea de comando todavía no empieza con `sidekiq`. Por eso «unhealthy» solo no decide; se distingue **arrancando** de **caído**:
 
    ```bash
-   : "${EV:?falta EV}" "${VIEJA:?falta VIEJA}" "${NUEVA:?falta NUEVA}" "${TOPE_SIDEKIQ:?falta TOPE_SIDEKIQ}"
-   c="$(docker compose ps -q sidekiq)"; T0=$(date +%s); R0="$(docker inspect -f '{{.RestartCount}}' "$c")"
-   while :; do
-     t=$(( $(date +%s) - T0 ))
-     read -r estado salud reinicios <<<"$(docker inspect -f '{{.State.Status}} {{.State.Health.Status}} {{.RestartCount}}' "$c")"
-     echo "$t s · $estado $salud reinicios=$reinicios" | tee -a "$EV/sidekiq-salud.txt"
-     docker compose logs --since 15s --no-color sidekiq 2>&1 | tail -n 3 | tee -a "$EV/sidekiq-salud.txt"   # ya va redactado (S4)
-     if [ "$estado" = running ] && [ "$salud" = healthy ]; then echo "SIDEKIQ SANO a los $t s"; break; fi
-     if [ "$estado" != running ] || [ "$reinicios" != "$R0" ]; then echo "SIDEKIQ CAÍDO (salió o se reinició): vuelta atrás (a)"; break; fi
-     if [ "$t" -ge "$TOPE_SIDEKIQ" ]; then echo "TOPE SIN SALUD Y SIN CAÍDA: SE ESCALA AL DIRECTOR"; break; fi
-     sleep 10
-   done
-   docker inspect -f '{{range .State.Health.Log}}{{.ExitCode}} {{end}}' "$c" | tee -a "$EV/sidekiq-salud.txt"   # códigos del healthcheck
-   docker compose top sidekiq | awk 'NR>1{c=""; for(i=8;i<=NF;i++) c=c" "$i; print c}' | head -n 3 | tee -a "$EV/sidekiq-salud.txt"   # ¿proceso vivo? solo el comando (CMD)
+   # Un solo comando. Con la carpeta equivocada `ps -q` sale vacío y daría un falso «CAÍDO»: por eso `cd` y `[ -n "$c" ]` van en el guardia.
+   if [ -n "${EV-}" ] && [ -d "$EV" ] && [ -n "${TOPE_SIDEKIQ-}" ] && cd /srv/chatwoot \
+      && c="$(docker compose ps -q sidekiq)" && [ -n "$c" ]; then
+     T0=$(date +%s); R0="$(docker inspect -f '{{.RestartCount}}' "$c")"
+     while :; do
+       t=$(( $(date +%s) - T0 ))
+       read -r estado salud reinicios <<<"$(docker inspect -f '{{.State.Status}} {{.State.Health.Status}} {{.RestartCount}}' "$c")"
+       echo "$t s · $estado $salud reinicios=$reinicios" | tee -a "$EV/sidekiq-salud.txt"
+       # ya va redactado (S4); 15 líneas y las de error, para no perder el mensaje de una excepción
+       docker compose logs --since 15s --no-color sidekiq 2>&1 | grep -E -A3 'Error|Exception' | tail -n 15 | tee -a "$EV/sidekiq-salud.txt"
+       if [ "$estado" = running ] && [ "$salud" = healthy ]; then echo "SIDEKIQ SANO a los $t s"; break; fi
+       if [ "$estado" != running ] || [ "$reinicios" != "$R0" ]; then echo "SIDEKIQ CAÍDO (salió o se reinició): vuelta atrás (a)"; break; fi
+       if [ "$t" -ge "$TOPE_SIDEKIQ" ]; then echo "TOPE SIN SALUD Y SIN CAÍDA: SE ESCALA AL DIRECTOR"; break; fi
+       sleep 10
+     done
+     docker inspect -f '{{range .State.Health.Log}}{{.ExitCode}} {{end}}' "$c" | tee -a "$EV/sidekiq-salud.txt"   # códigos del healthcheck
+     docker compose top sidekiq | awk 'NR>1{c=""; for(i=8;i<=NF;i++) c=c" "$i; print c}' | head -n 3 | tee -a "$EV/sidekiq-salud.txt"   # ¿proceso vivo? solo CMD
+   else
+     echo "FALTAN VARIABLES, /srv/chatwoot O EL CONTENEDOR sidekiq: NO SE SIGUE (cargar /root/.cw4201.env)"
+   fi
    ```
 
-   - **Arrancando:** `running`, sin reinicios, el proceso `bundle exec sidekiq` vivo en `top` y el log sin error. Se espera hasta `TOPE_SIDEKIQ`. El log se lee **dentro** del bucle, cada 10 s; si hace falta seguirlo entero, `docker compose logs -f sidekiq` en otra terminal.
+   - **Arrancando:** `running`, sin reinicios, el proceso `bundle exec sidekiq` vivo en `top` y el log sin error. Se espera hasta `TOPE_SIDEKIQ`. El log se lee **dentro** del bucle, cada 10 s: las líneas con `Error` o `Exception` y las 3 siguientes, hasta 15. Si hace falta seguirlo entero, `docker compose logs -f sidekiq` en otra terminal.
    - **Al tope y todavía «arrancando»:** no se vuelve atrás solo. Se escala al Director con `sidekiq-salud.txt`, y él decide si espera otro tramo o vuelve atrás.
    - **Caído:** salió, se reinició (`RestartCount` cambió) o el log trae una excepción de arranque. Vuelta atrás (a) sin esperar al tope.
    - **N2, N3 y V6 se corren solo con `SIDEKIQ SANO`.**
 
-10. **Smoke de la 4.20.1.** Primero S1–S9 del [runbook de versiones](chatwoot-versiones.md#6--paso-a-producción-y-smoke) y V2–V5 y V8 de la 4.20.0, con `4.20.1`. Después, ya con `SIDEKIQ SANO`:
+11. **Smoke de la 4.20.1.** Primero S1–S9 del [runbook de versiones](chatwoot-versiones.md#6--paso-a-producción-y-smoke) y V2–V5 y V8 de la 4.20.0, con `4.20.1`. Después, ya con `SIDEKIQ SANO`:
     - **V6:** Sidekiq recupera: los encolados bajan a 0 y los muertos no crecen.
     - **S10 y N1:** desde el Studio › Bandeja (SSO), una nota privada **enviada** en la conversación de prueba #4.
     - **S11:** la Ficha DTD carga en esa conversación, y el contador del Studio se mueve con N1.
@@ -180,26 +189,26 @@ TOPE_SIDEKIQ=1200  # segundos: la medición de la fase C más su margen (ver «M
     - **N3:** correos. `zz_dtd_correo.rb` no escribe una línea al cargar, así que se mide por comportamiento y **solo en `rails`**, para no competir con `sidekiq` por CPU: `docker compose exec -T rails bundle exec rails runner 'p ApplicationMailer < DtdCorreo::Asuntos, ApplicationMailer.view_paths.first.to_s' </dev/null` da `true` y la carpeta de `correo/views`. Para `sidekiq` basta con ver que tiene el mismo montaje: `docker inspect -f '{{range .Mounts}}{{println .Destination}}{{end}}' "$(docker compose ps -q sidekiq)" | grep -c zz_dtd_correo` da 1. Además, la vista previa de [§2 ter del servidor](chatwoot-servidor.md#2-ter--correos-con-la-marca-de-dtd-cargo) sale con la marca de DTD.
 
     Un rojo en S1–S7 es vuelta atrás (a). Un rojo en S13 no lo es; se arregla el selector con su PR.
-11. **Oficina al estado previo, sin pisar a nadie.** Antes de despausar, se vuelve a leer la **última fila** de `office_paused`, con la identidad de lectura del paso 7:
-    - si su `id` es **exactamente `PAUSA_ID`** (la pausa propia, con `pausada=true` y motivo `subida Chatwoot 4.20.1`) y `ANTES=false`, se despausa por la misma vía del paso 7 (A o B): `office_cambiar_pausa(false, 'fin subida Chatwoot 4.20.1')`;
+12. **Oficina al estado previo, sin pisar a nadie.** Antes de despausar, se vuelve a leer la **última fila** de `office_paused`, con la identidad de lectura del paso 8:
+    - si su `id` es **exactamente `PAUSA_ID`** (la pausa propia, con `pausada=true` y motivo `subida Chatwoot 4.20.1`) y `ANTES=false`, se despausa por la misma vía del paso 8: `office_cambiar_pausa(false, 'fin subida Chatwoot 4.20.1')`;
     - si el `id` es **otro**, porque hubo una auto-pausa o una pausa de Sam en el medio, **no se toca** y se avisa al Director. La auto-pausa nunca se despausa sola ([cable](oficina-cable.md));
     - si `ANTES=true`, no se toca.
 
     Nunca se deja «despausada» por defecto.
-12. **Cierre:** Uptime Kuma «Chatwoot · versión» a `4.20.1`, fila en el [Registro](chatwoot-versiones.md#registro) y aviso a la sesión del cable.
+13. **Cierre:** Uptime Kuma «Chatwoot · versión» a `4.20.1`, fila en el [Registro](chatwoot-versiones.md#registro) y aviso a la sesión del cable. Al final, el archivo de variables va a la evidencia y se borra: `cp -p /root/.cw4201.env "$EV/" && rm -f /root/.cw4201.env`. Solo se conserva si la ventana terminó en vuelta atrás y sigue abierta; en ese caso se borra al cerrarla.
 
 ### 6 bis · Vuelta atrás
 
-- **(a)** Rojo sin migraciones, que es lo esperado en este salto: `cp -p "$EV/compose.yml.antes" compose.yml`, comprobar `grep -c "$VIEJA" compose.yml` = 1 y recrear `rails` y `sidekiq` con `--no-deps --force-recreate`. Luego el bucle del paso 9 bis y S1–S9 con `4.20.0`. Toma ~3–5 min más la espera de `sidekiq`. **Si la 4.20.0 también llega al tope**, el problema no es de la versión, sino del servidor (CPU, memoria o Redis). No se prueba otra cosa en caliente: `rails` queda sirviendo, `sidekiq` sigue intentando arrancar, se guardan `sidekiq-salud.txt` y `docker stats --no-stream`, y se escala al Director. Mientras tanto, la Oficina sigue pausada.
+- **(a)** Rojo sin migraciones, que es lo esperado en este salto: `cp -p "$EV/compose.yml.antes" compose.yml`, comprobar `grep -c "$VIEJA" compose.yml` = 1 y recrear `rails` y `sidekiq` con `--no-deps --force-recreate`. Luego el bucle del paso 10 bis y S1–S9 con `4.20.0`. Toma ~3–5 min más la espera de `sidekiq`. **Si la 4.20.0 también llega al tope**, el problema no es de la versión, sino del servidor (CPU, memoria o Redis). No se prueba otra cosa en caliente: `rails` queda sirviendo, `sidekiq` sigue intentando arrancar, se guardan `sidekiq-salud.txt` y `docker stats --no-stream`, y se escala al Director. Mientras tanto, la Oficina sigue pausada.
 - **(b)** Solo si algo dañó la base: la restauración de [§6 (b) de la 4.20.0](chatwoot-subida-4-20.md#6--vuelta-atrás), con la clave de Sam. Toma ~15 min.
 
   **Si `restaurar.sh` muere en su paso 6.** El script usa `set -euo pipefail` y `compose up -d --wait`, sin tope. Si `sidekiq` queda *unhealthy* (lo que se vio en el ensayo, R2), sale antes de sus pasos 7 (conteos contra el manifiesto) y 8 (`sobres=0`). Tampoco se puede volver a correr, porque el destino ya no está vacío. En ese caso:
-  1. No se borra nada. Se corre el bucle del paso 9 bis hasta `SIDEKIQ SANO`, y se comprueba que **`rails` también esté `healthy`** (`docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q rails)"`). Sin los dos sanos no se pasa al 2.
+  1. No se borra nada. Se corre el bucle del paso 10 bis hasta `SIDEKIQ SANO`, y se comprueba que **`rails` también esté `healthy`** (`docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q rails)"`). Sin los dos sanos no se pasa al 2.
   2. Se corren **a mano** los pasos 7 y 8 de `restaurar.sh`: la consulta de conteos contra `manifiesto.txt` del respaldo, los archivos de `/app/storage` y el `rails runner` de las columnas cifradas. Se copian del script, que está en el VPS. Exigencia: todo `OK` y `CLAVES … sobres=0`.
   3. Si cualquiera de los dos da distinto, se para y se avisa al Director con los datos en la mano.
 
   Arreglar el script (un tope de espera propio y que los pasos 7 y 8 se puedan correr solos) va en **otra PR**. Ver Fuera de alcance.
-- La Oficina vuelve igual a su **estado previo**, con la regla del paso 11.
+- La Oficina vuelve igual a su **estado previo**, con la regla del paso 12.
 
 ### Tiempos
 
