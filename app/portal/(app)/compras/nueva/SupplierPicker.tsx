@@ -620,7 +620,7 @@ export function SupplierPicker({
                   width: 20,
                   height: 20,
                   background: "var(--color-paper)",
-                  color: "var(--color-accion-text)",
+                  color: "var(--color-ink)",
                 }}
               >
                 #{s.supplierSeq}

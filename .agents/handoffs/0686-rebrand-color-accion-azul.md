@@ -110,7 +110,7 @@ Estado del 2026-11-20, tarde:
    - **División:** el inventario pasó de 40 archivos (Portal 75, web 68). Esta PR es la 3b-1; la 3b-2 (web pública y `components/`) va después. `app/portal/(auth)` es de la fase 4.
    - **Hecho:** 264 usos de vino en 75 archivos repartidos en acción, tinta, tinta suave o neutro (tabla en la spec). Tokens oscuros `--color-accion*` en `[data-portal-theme="dark"]`, `--color-accion-tint`, `#portal-shell .btn-primary` en azul y `.eyebrow-tinta`.
    - **Contrato nuevo:** `color-accion-fase3b-portal-contract.test.ts`, con cuatro mutantes.
-   - **Pendiente de Sam (A/B dibujado, en las notas compartidas `sdd-0686-fase3b1-opciones-ab.html`):** la Vista simple (EXC-0654-01: avatar, parte «proveedor» y tinte del bloque 5) y el acento de la tarjeta «Próximo arribo». Hasta decidir, siguen en vino claro.
+   - **Decidido por Sam el 2026-11-22:** «Portal: Vista simple A, Próximo arribo B». La EXC-0654-01 queda cerrada (BRAND.md y BRAND-DECISIONS) y el héroe usa `--color-accion-on-dark`: #7faaf0 en claro y #9bbdf4 en oscuro, con AA en el peor caso. La revisión de la #780 salió CHANGES_REQUESTED: se corrigieron el bloqueante (`avisos-portal-contract`) y los cuatro menores. Para la fase 4 queda `--portal-nav-active`, en vino hex.
    - **Fuera de alcance:** `--doc-wine` del comprobante de pago (fase 5); el tono `"wine"` de `lib/portal/alertas.ts` (fase 4).
    - **Evidencia:** ver el cierre de la PR.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).

@@ -1059,13 +1059,24 @@ Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del co
 | Tinta suave | Eyebrows y rótulos en mayúscula |
 | Neutro | Marcos de las tarjetas del asistente de compra (`--color-grey-300`), línea de la bandeja de avisos |
 
-**Quedan, con decisión de Sam pendiente (A/B dibujado y enviado al Director):**
-1. **Vista simple (EXC-0654-01).** El avatar, la parte «proveedor» del código y el fondo del bloque 5. A: tinta y se cierra la excepción. B: el vino claro se queda como identidad. En las dos, el botón principal pasa a azul; hasta la decisión, `.vs` no se toca.
-2. **Tarjeta «Próximo arribo»** (`--hero-accent`, vino suave sobre navy). A: blanco sobre navy, como la ruta del camionero. B: `--accion-soft`.
+**Decididas por Sam el 2026-11-22.** Vio las dos piezas dibujadas en el chat del Director y respondió «Portal: Vista simple A, Próximo arribo B»:
+1. **Vista simple A (EXC-0654-01 cerrada).** El botón principal pasa a `--color-accion` con `--color-on-accion` y su hover, a `--color-accion-hover`. El avatar y la parte «proveedor» del código pasan a `--color-ink` con `--color-paper`, y el bloque del proveedor deja `--tint-wine` por `--tint-ink`. Salen `--vs-principal-*`, `--tint-wine` y `.vs-tinte-wine`. `BRAND.md` y `BRAND-DECISIONS.md` registran el cierre con fecha.
+2. **Próximo arribo B.** `--hero-accent` pasa al token nuevo `--color-accion-on-dark`, declarado en `@theme` (#7faaf0, el `--accion-soft` del Studio). En el portal oscuro sube a #9bbdf4, porque el héroe se aclara a #25406c. Con el valor claro de #7faaf0, ese extremo daba 4,39:1 y no llegaba a AA para texto. Peor caso medido: 5,53:1 sobre #1f3055 en claro y 5,41:1 sobre #25406c en oscuro. Los dos eyebrows de «Tu código» en Perfil también usaban `--hero-accent`; no se tocan, así que pasan a `--hero-soft` (tinta suave sobre navy) y la decisión B no se extiende a ellos.
 
-**Fuera de esta fase:** el comprobante de pago (`facturas/[code]/comprobante`) lleva `--doc-wine`: es documento de marca (fase 5). El tono `"wine"` de `lib/portal/alertas.ts` (pre-alerta) se pinta en tinta por el mapa del Portal; el tipo en `lib/` queda para la fase 4.
+**Revisión independiente de la #780 (CHANGES_REQUESTED sobre `c499fa999`), corregida en el mismo commit:**
+- **Bloqueante:** `app/portal/__tests__/avisos-portal-contract.test.ts` contaba los acentos en vino de `PortalAlertasHub` (3) y `SuppliersClient` (2). Ahora son 0, y se corrigieron sus comentarios.
+- `#{s.supplierSeq}` de `SupplierPicker` es un código y va en tinta.
+- La sombra de `#portal-shell .btn-primary` pasa a `color-mix` del token.
+- El contrato compara con el Studio los cuatro tokens oscuros (relleno, hover, texto encima y texto) y también detecta `bg-accion text-white`.
+
+**Fuera de esta fase:** `--portal-nav-active` (`app/globals.css`, el ítem activo del menú lateral) sigue con un degradado vino en hex, en claro y en oscuro: va en la fase 4 (hex escritos a mano). El comprobante de pago (`facturas/[code]/comprobante`) lleva `--doc-wine`: es documento de marca (fase 5). El tono `"wine"` de `lib/portal/alertas.ts` (pre-alerta) se pinta en tinta por el mapa del Portal; el tipo en `lib/` queda para la fase 4.
 
 **Allowlist (rutas exactas):**
+- `BRAND.md` (decisiones de Sam y revisión de la #780)
+- `docs/design/studio/_norte/BRAND-DECISIONS.md` (decisiones de Sam y revisión de la #780)
+- `app/portal/__tests__/avisos-portal-contract.test.ts` (decisiones de Sam y revisión de la #780)
+- `app/portal/(app)/_simple/__tests__/InicioSimple.test.tsx` (decisiones de Sam y revisión de la #780)
+- `app/portal/(app)/_simple/__tests__/vista-simple-color.test.ts` (decisiones de Sam y revisión de la #780)
 - `.agents/handoffs/0686-rebrand-color-accion-azul.md`
 - `app/globals.css`
 - `app/portal/(app)/_components/PendingAcceptanceCard.tsx`
@@ -1146,8 +1157,9 @@ Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del co
 - `docs/specs/0686-rebrand-color-accion-azul/spec.md`
 
 **Contrato nuevo:** `color-accion-fase3b-portal-contract.test.ts`.
-- Lista cerrada de `app/portal` (sin `(auth)`): solo el tinte de la Vista simple, a la espera de Sam. Solo baja.
-- Cuatro mutantes: un enlace, un foco, un botón y un tono `"wine"` de KPI.
+- `app/portal` (sin `(auth)`) queda sin vino: la lista cerrada está vacía.
+- Cinco mutantes: un enlace, un foco, un botón, un tono `"wine"` de KPI y el Shipping Mark de la Vista simple. Uno más devuelve el vino al héroe «Próximo arribo».
+- El bloque `.vs` no nombra el vino y el acento del héroe pasa AA en los dos temas.
 - Los tokens oscuros de acción del portal coinciden con el Studio.
 - `#portal-shell .btn-primary` es azul y el de la web sigue en vino.
 - Ningún relleno de acción lleva `--color-on-accent` encima (en oscuro sería blanco sobre azul claro).

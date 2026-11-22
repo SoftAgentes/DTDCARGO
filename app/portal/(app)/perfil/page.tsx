@@ -161,7 +161,7 @@ export default async function PortalProfilePage({
           >
             <div
               className="text-[10.5px] font-bold tracking-[0.16em] uppercase"
-              style={{ color: "var(--hero-accent, var(--color-paper))" }}
+              style={{ color: "var(--hero-soft, var(--color-grey-200))" }}
             >
               Tu código
             </div>
@@ -192,7 +192,7 @@ export default async function PortalProfilePage({
               >
                 <div
                   className="text-[10px] font-bold tracking-[0.14em] uppercase"
-                  style={{ color: "var(--hero-accent, var(--color-paper))" }}
+                  style={{ color: "var(--hero-soft, var(--color-grey-200))" }}
                 >
                   {codigosAnteriores.length === 1 ? "Tu código anterior" : "Tus códigos anteriores"}
                 </div>
