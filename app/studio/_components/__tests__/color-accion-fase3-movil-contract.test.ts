@@ -90,11 +90,22 @@ describe("SDD-0686 fase 3 · app móvil y Noticias web sin vino de acción", () 
 
   it("el rótulo junto a «DTD» usa el vino claro del logo y la ruta del camionero es navy (Sam, A en las dos)", () => {
     for (const f of ["app/m/page.tsx", "app/m/cn/login/page.tsx", "app/m/ve/login/page.tsx"]) {
-      expect(leer(f)).toMatch(/<span style=\{\{ color: "var\(--color-wine-on-dark, #D59FA7\)" \}\}>(OPERARIO|DESPACHO VE)<\/span>/);
+      // Sin respaldo hex: el token llega a /m por app/layout.tsx, que importa globals.css.
+      expect(leer(f)).toMatch(/<span style=\{\{ color: "var\(--color-wine-on-dark\)" \}\}>(OPERARIO|DESPACHO VE)<\/span>/);
     }
     const ruta = leer("app/m/ve/camionero/_components/CamioneroClient.tsx");
     expect(ruta).toContain('background: "var(--grad-bienvenida)",');
     expect(ruta).not.toMatch(/linear-gradient\([^)]*--wine/);
+  });
+
+  it("el menú de permisos marca hover y opción activa sobre su contenedor, sin vino", () => {
+    const css = leer("app/studio/(app)/usuarios/_components/acceso/permisos.css");
+    const contenedor = /\.perm-options \{[^}]*background: var\((--[a-z-]+)\)/.exec(css)?.[1];
+    const opcion = /\.perm-opt:hover:not\(:disabled\), \.perm-opt\[data-active="true"\] \{ background: var\((--[a-z-]+)\); \}/.exec(css)?.[1];
+    expect(contenedor).toBe("--bg-elevated");
+    expect(opcion).toBe("--bg-surface");
+    expect(opcion).not.toBe(contenedor);
+    expect(css).not.toContain("--surface-sel");
   });
 
   it("los tokens web de acción tienen los valores claros del Studio", () => {

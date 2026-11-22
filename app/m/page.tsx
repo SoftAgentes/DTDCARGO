@@ -49,7 +49,7 @@ export default function OperarioLauncherPage() {
           }}
         >
           <span>DTD</span>
-          <span style={{ color: "var(--color-wine-on-dark, #D59FA7)" }}>OPERARIO</span>
+          <span style={{ color: "var(--color-wine-on-dark)" }}>OPERARIO</span>
         </div>
 
         {/* Centro */}

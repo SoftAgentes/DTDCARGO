@@ -963,13 +963,13 @@ Sam, en el chat de la sesión «Rebrand Design»: «Sí, arranca el 2». Va en l
 
 **App móvil (`app/m`, M: unos 140 usos en 25 archivos).** Usa los tokens del Studio, así que sigue el reparto de la fase 2:
 - botones y CTA → `--accion` con `--on-accion` (`BigButton`, «Editar», «Abrir en el Studio», el botón flotante y «Tomar foto»); foco de `m.css` → `--accion`; guía del lector QR → `--accion-soft`;
-- selección → tinta: pestañas, chips, idioma, la tarjeta de orden y la parada actual. Sobre navy, la selección es `--surface-sel`, que deja el tinte vino (`rgba(168,50,62,.22)`) por un blanco (`rgba(255,255,255,.16)`). Su único otro consumidor, el menú de permisos del Studio (`permisos.css`), pasa su hover a `--bg-elevated`;
+- selección → tinta: pestañas, chips, idioma, la tarjeta de orden y la parada actual. Sobre navy, la selección es `--surface-sel`, que deja el tinte vino (`rgba(168,50,62,.22)`) por un blanco (`rgba(255,255,255,.16)`). En `app/m` lo consumen Estiba y Modos. El menú de permisos del Studio (`permisos.css`) dejaba de usarlo: su hover y su opción activa pasan a `--bg-surface`, que se distingue de su contenedor `.perm-options` en `--bg-elevated`. Hoy esa clase no la usa ninguna pantalla (revisión de la #770);
 - Shipping Mark, número de orden y de recepción → `--ink` (regla 6); eyebrows → `--ink-soft`, o `--ink-side*` sobre navy;
 - cifras de `KpiCard` y `MobileMini` → tinta (opción A de Sam); sale el tono `"wine"` (regla 7);
 - avatar y botones del encabezado sobre navy → chrome neutro (`--surface-inv`, `--ink-side*`).
 
 **Decididas por Sam el 2026-11-22.** Vio el croquis de las dos piezas y respondió «A en las dos»:
-- **Rótulo «OPERARIO» o «DESPACHO VE»** junto a «DTD», en el inicio y en los dos login. Es identidad y va en el vino claro del logo, `var(--color-wine-on-dark, #D59FA7)`, que da 7,34:1 sobre `#0F1E3D`. El rótulo de arriba («DTD Cargo · 操作员») va en `--ink-side` y los puntos del PIN, en `--accion-soft`.
+- **Rótulo «OPERARIO» o «DESPACHO VE»** junto a «DTD», en el inicio y en los dos login. Es identidad y va en el vino claro del logo, `var(--color-wine-on-dark)` (#d59fa7, sin respaldo: el token llega a `/m` por `app/layout.tsx`, que importa `globals.css`), que da 7,34:1 sobre `#0F1E3D`. El rótulo de arriba («DTD Cargo · 操作员») va en `--ink-side` y los puntos del PIN, en `--accion-soft`.
 - **Tarjeta de la ruta del camionero** (`CamioneroClient.tsx`). Pasa al navy de marca, `--grad-bienvenida`, como la banda del Dashboard. Su texto deja `--ink-inv`, que en oscuro es navy, y pasa a `--ink-side-strong`, claro fijo.
 
 **Noticias web (57 usos en 12 archivos, más 3 grises).** Pinta en un bloque `data-theme="light"` fijo. Por eso entran a `app/globals.css` tokens web fijos con los valores claros del Studio:
@@ -1024,6 +1024,12 @@ Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y
 - `app/studio/(app)/marketing/noticias-web/retirar/[id]/page.tsx`
 - `app/studio/(app)/usuarios/_components/acceso/permisos.css`
 - `app/studio/tokens.css`
+- `app/studio/_components/__tests__/color-accion-fase3-movil-contract.test.ts` (nuevo)
+- `app/studio/_components/__tests__/cierre-color-studio-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase2-g3-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase2-g8-contract.test.ts`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
 
 **Contrato nuevo:** `color-accion-fase3-movil-contract.test.ts`.
 - Lista cerrada de `app/m`: solo los tres rótulos de identidad junto a «DTD».
