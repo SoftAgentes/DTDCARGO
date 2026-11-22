@@ -28,7 +28,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
   return (
     <section id={ddp.slug} className="scroll-mt-28 pt-6 lg:pt-10">
       <div className="wrap">
-        <div className="card-shadow-static bg-white border border-wine rounded-[20px] overflow-hidden">
+        <div className="card-shadow-static bg-white border border-ink rounded-[20px] overflow-hidden">
           {/* Cabecera: valor (izq) + tarjeta de acción (der) */}
           <div className="px-6 lg:px-9 pt-7 lg:pt-9 pb-7 lg:pb-8">
             <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-12 lg:items-start">
@@ -44,7 +44,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                 >
                   Puerta a puerta.
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>Pagas al llegar.</span>
+                  <span className="font-black" style={{ color: "var(--color-ink)" }}>Pagas al llegar.</span>
                 </h2>
                 <p className="mt-5 text-[15px] lg:text-[16.5px] leading-[1.55] text-grey-700 max-w-[56ch]">
                   {ddp.resumen}

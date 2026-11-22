@@ -115,7 +115,7 @@ export function ServiciosExplorer({
       {ddp && (
         <div
           id={ddp.slug}
-          className="scroll-mt-28 card-shadow-static bg-white border border-wine rounded-[18px] overflow-hidden"
+          className="scroll-mt-28 card-shadow-static bg-white border border-ink rounded-[18px] overflow-hidden"
         >
           <div className="px-6 pt-5">
             <div className="flex items-center gap-2.5 flex-wrap">

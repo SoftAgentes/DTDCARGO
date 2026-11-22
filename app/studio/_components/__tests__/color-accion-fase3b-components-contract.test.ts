@@ -5,9 +5,12 @@
  * - Foco, enlaces, hover, chevrones y botones con relleno en `--color-accion*`.
  * - Selección (chips, pestañas, tipo elegido, menú activo), cifras y el Shipping
  *   Mark en tinta; eyebrows en tinta suave; errores en rojo; «incluye» en verde.
- * - Lista cerrada: lo que queda espera la decisión A/B de Sam (acentos
- *   editoriales, ilustraciones, acentos sobre navy) o la 3b-2c (las fichas de
- *   servicios, que dependen de `.f2chip` en `globals.css`). Solo baja.
+ * - Decisión de Sam del 2026-11-22, «Web pública: A en las tres»: acentos
+ *   editoriales en tinta (negrita), comillas en tinta suave y borde insignia en
+ *   tinta; ilustraciones en navy con rampa por opacidad; sobre las bandas navy,
+ *   cifras y rótulos en crema y lo que se toca en `--color-accion-on-dark`.
+ * - Lista cerrada: el «DTD» de la calculadora (identidad) y las fichas de
+ *   servicios (3b-2c, `.f2chip` en `globals.css`). Solo baja.
  * - El logo (`BrandMark`) es identidad: sus hex no se cuentan aquí.
  */
 import { readFileSync } from "node:fs";
@@ -17,28 +20,12 @@ import { cuentaVino, fuentesDe, RAIZ, rel } from "./vino-detector";
 
 const leer = (ruta: string) => readFileSync(join(RAIZ, ruta), "utf8");
 
-const EDITORIAL = "A/B de Sam: acento editorial (palabra destacada, comillas o tarjeta insignia)";
-const ILUSTRACION = "A/B de Sam: ilustración o diagrama";
-const NAVY = "A/B de Sam: acento en vino claro sobre navy";
 const FICHAS = "3b-2c: chip `.f2chip.wine`, que vive en globals.css";
 
 const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
-  "components/CalculadoraForm.tsx": { cuenta: 12, motivo: `${NAVY}; incluye «DTD» (identidad) y el relleno del contenedor` },
-  "components/CbmAyuda.tsx": { cuenta: 3, motivo: NAVY },
-  "components/CbmExplicador.tsx": { cuenta: 8, motivo: ILUSTRACION },
-  "components/ChinaSupplierClip.tsx": { cuenta: 2, motivo: NAVY },
-  "components/CicloCliente.tsx": { cuenta: 7, motivo: ILUSTRACION },
-  "components/CicloDTD.tsx": { cuenta: 5, motivo: ILUSTRACION },
-  "components/Philosophy.tsx": { cuenta: 5, motivo: EDITORIAL },
-  "components/PuertaAPuerta.tsx": { cuenta: 1, motivo: EDITORIAL },
+  "components/CalculadoraForm.tsx": { cuenta: 1, motivo: "«DTD» del encabezado de la calculadora: identidad (Sam, bandas A)" },
   "components/servicios/ChipF2.tsx": { cuenta: 1, motivo: FICHAS },
-  "components/servicios/DdpHero.tsx": { cuenta: 2, motivo: EDITORIAL },
   "components/servicios/hub-fichas.tsx": { cuenta: 15, motivo: FICHAS },
-  "components/ServiciosExplorer.tsx": { cuenta: 1, motivo: EDITORIAL },
-  "components/Stats.tsx": { cuenta: 2, motivo: NAVY },
-  "components/Testimonials.tsx": { cuenta: 1, motivo: EDITORIAL },
-  "components/Timeline.tsx": { cuenta: 5, motivo: `${EDITORIAL} e ilustración` },
-  "components/YiwuAdvantage.tsx": { cuenta: 4, motivo: NAVY },
 };
 const esperado = Object.fromEntries(Object.entries(PERMITIDO).map(([f, v]) => [f, v.cuenta]));
 
@@ -63,6 +50,10 @@ describe("SDD-0686 fase 3b-2b · components/ sin vino de acción", () => {
     ["un hover del menú en vino", "components/NavClient.tsx", "hover:text-accion-text hover:bg-accion-tint", "hover:text-wine hover:bg-wine/15"],
     ["una selección en vino", "components/ServiciosExplorer.tsx", '"bg-ink text-paper border-ink"', '"bg-wine text-white border-wine"'],
     ["un error en vino", "components/EstimadoModal.tsx", "font-medium text-status-danger\">{error}", "font-medium text-wine\">{error}"],
+    ["un acento editorial en vino (Sam, 3A)", "components/PuertaAPuerta.tsx", 'className="font-black" style={{ color: "var(--color-ink)" }}>puerta a puerta?', 'style={{ color: "var(--color-wine)" }}>puerta a puerta?'],
+    ["una ilustración en vino (Sam, 4A)", "components/CicloDTD.tsx", '<tspan style={{ fill: "var(--ink)", fontFamily', '<tspan style={{ fill: "var(--wine)", fontFamily'],
+    ["una cifra en vino claro sobre navy (Sam, 5A)", "components/Stats.tsx", 'color: "var(--color-on-accent)",', 'color: "var(--color-wine-soft)",'],
+    ["un control en vino claro sobre navy (Sam, 5A)", "components/CbmAyuda.tsx", 'borderColor: "var(--color-accion-on-dark)",', 'borderColor: "var(--wine-on-dark, #D59FA7)",'],
   ])("mutante: %s se detecta", (_, objetivo, de, a) => {
     const original = leer(objetivo);
     expect(original).toContain(de);
@@ -86,5 +77,34 @@ describe("SDD-0686 fase 3b-2b · components/ sin vino de acción", () => {
   it("los errores de los formularios van en rojo, no en vino", () => {
     expect(leer("components/EstimadoModal.tsx")).toContain('text-status-danger">{error}</span>');
     expect(leer("components/UltimoKmCalculator.tsx")).toContain('"bg-status-danger/5 border-status-danger/30"');
+  });
+
+  it("bandas navy: el azul claro y el crema pasan AA sobre cada fondo navy donde pintan", () => {
+    const luz = (h: string) => {
+      const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((s) => (s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const contraste = (a: string, b: string) => {
+      const [x, y] = [luz(a), luz(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+    const css = leer("app/globals.css");
+    const tema = css.slice(css.indexOf("@theme {"), css.indexOf("}", css.indexOf("@theme {")));
+    const azul = /--color-accion-on-dark:\s*(#[0-9a-f]{6});/i.exec(tema)?.[1] ?? "";
+    expect(azul.toLowerCase()).toBe("#7faaf0");
+    // Fondos reales: la calculadora (#16233F → #0B1428), el panel del total
+    // (#203760), las bandas navy (#16274B → #26406F) y el héroe del portal.
+    const calc = leer("components/CalculadoraForm.tsx");
+    expect(calc).toContain("linear-gradient(180deg, #16233F 0%, #0B1428 100%)");
+    for (const fondo of ["#16233F", "#0B1428", "#203760", "#0F1E3D", "#1F3055"]) {
+      expect(contraste(azul, fondo), `azul sobre ${fondo}`).toBeGreaterThanOrEqual(4.5);
+      expect(contraste("#FFFFFF", fondo), `crema sobre ${fondo}`).toBeGreaterThanOrEqual(4.5);
+    }
+    // En el extremo claro de las bandas (#26406F) el azul solo pinta foco: 3:1.
+    expect(contraste(azul, "#26406F")).toBeGreaterThanOrEqual(3);
+  });
+
+  it("el «DTD» de la calculadora sigue en el vino del logo (identidad)", () => {
+    expect(leer("components/CalculadoraForm.tsx")).toContain('<span style={{ color: "var(--wine-on-dark, #D59FA7)" }}>DTD</span>');
   });
 });

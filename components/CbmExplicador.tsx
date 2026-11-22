@@ -107,7 +107,7 @@ export function CbmExplicador() {
       <figure className="m-0 rounded-[12px] border border-grey-200 bg-paper p-2">
         <svg
           viewBox="0 0 460 300"
-          className="block h-auto w-full [&_.cara]:stroke-[var(--color-ink)] [&_.cota]:stroke-[var(--color-wine)] [&_.cota-txt]:fill-[var(--color-wine)] [&_.punta]:fill-[var(--color-wine)]"
+          className="block h-auto w-full [&_.cara]:stroke-[var(--color-ink)] [&_.cota]:stroke-[var(--color-ink)] [&_.cota-txt]:fill-[var(--color-ink)] [&_.punta]:fill-[var(--color-ink)]"
           role="img"
           aria-label="Diagrama de una caja con sus tres medidas: largo en la base, ancho en profundidad y alto en la arista vertical."
         >
@@ -132,14 +132,14 @@ export function CbmExplicador() {
           <path
             className="cara"
             d="M 70 128 L 140 74 L 340 74 L 270 128 Z"
-            style={{ fill: "var(--color-wine)", fillOpacity: 0.1 }}
+            style={{ fill: "var(--color-ink)", fillOpacity: 0.06 }}
             strokeWidth="1.6"
             strokeLinejoin="round"
           />
           <path
             className="cara"
             d="M 270 128 L 340 74 L 340 194 L 270 248 Z"
-            style={{ fill: "var(--color-wine)", fillOpacity: 0.18 }}
+            style={{ fill: "var(--color-ink)", fillOpacity: 0.12 }}
             strokeWidth="1.6"
             strokeLinejoin="round"
           />
@@ -251,9 +251,9 @@ export function CbmExplicador() {
           className="m-0 text-center text-[clamp(15px,3.6vw,20px)] font-bold leading-[1.5] text-ink"
           style={{ fontFamily: FONT_MONO }}
         >
-          <span className="text-wine-text">Largo</span> ×{" "}
-          <span className="text-wine-text">Ancho</span> ×{" "}
-          <span className="text-wine-text">Alto</span> = CBM
+          <span className="font-bold text-ink">Largo</span> ×{" "}
+          <span className="font-bold text-ink">Ancho</span> ×{" "}
+          <span className="font-bold text-ink">Alto</span> = CBM
         </p>
         <p className="m-0 text-center text-[12.5px] text-grey-500">
           Las tres medidas en <strong className="text-grey-700">metros</strong>.

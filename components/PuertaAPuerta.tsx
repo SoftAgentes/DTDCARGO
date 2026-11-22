@@ -48,7 +48,7 @@ export function PuertaAPuerta() {
           style={{ fontSize: "clamp(28px, 4vw, 46px)" }}
         >
           ¿Qué significa{" "}
-          <span style={{ color: "var(--color-wine)" }}>puerta a puerta?</span>
+          <span className="font-black" style={{ color: "var(--color-ink)" }}>puerta a puerta?</span>
         </h2>
 
         <div className="mt-6 flex flex-col gap-4 max-w-[64ch]">

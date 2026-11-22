@@ -36,7 +36,7 @@ export function Philosophy() {
           {PHILOSOPHY.headline.split("\n").map((line, i, arr) => (
             <span key={i} className="block">
               {i === arr.length - 1 ? (
-                <span style={{ color: "var(--color-wine)" }}>{line}</span>
+                <span className="font-black" style={{ color: "var(--color-ink)" }}>{line}</span>
               ) : (
                 line
               )}
@@ -58,16 +58,16 @@ export function Philosophy() {
         {/* Pull quote */}
         <figure className="mt-12 mx-auto max-w-[720px] relative">
           <QuoteIcon
-            className="absolute -top-4 -left-4 lg:-left-10 text-wine/15"
+            className="absolute -top-4 -left-4 lg:-left-10 text-grey-700/15"
             size={64}
           />
           <blockquote
             className="text-[22px] lg:text-[26px] leading-[1.45] tracking-[-0.01em] text-ink relative z-10 pl-6 lg:pl-0"
             style={{ fontFamily: "var(--font-archivo-black)" }}
           >
-            <span style={{ color: "var(--color-wine)" }}>“</span>
+            <span style={{ color: "var(--color-grey-700)" }}>“</span>
             {PHILOSOPHY.pull}
-            <span style={{ color: "var(--color-wine)" }}>”</span>
+            <span style={{ color: "var(--color-grey-700)" }}>”</span>
           </blockquote>
         </figure>
 
@@ -81,7 +81,7 @@ export function Philosophy() {
               <div
                 className="text-[14px] tracking-[0.1em] mb-3"
                 style={{
-                  color: "var(--color-wine)",
+                  color: "var(--color-grey-700)",
                   fontFamily:
                     "var(--font-archivo-black), var(--font-noto-sc), sans-serif",
                 }}
