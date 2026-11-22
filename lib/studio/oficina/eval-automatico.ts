@@ -65,6 +65,24 @@ export function empiezaConAcuse(texto: string, acuse: string): boolean {
   return a.length > 0 && (t === a || t.startsWith(`${a} `));
 }
 
+/**
+ * SDD-0705 v0.4: lo que queda del texto (ya normalizado) al quitarle las frases del guion copiadas tal cual. Una cifra
+ * o una fecha solo se permite DENTRO de su frase del guion: «en general estamos entre 60 y 90 días» pasa, pero un
+ * «60» en otra frase («cuesta 60», «llega en 60 días») queda en el resto y escala. Antes bastaba con que la cifra
+ * apareciera en cualquier parte del guion. Las frases se cortan tras «.», «?» o «!» (no tras «1.» de una lista) y en
+ * cada salto de línea; se quitan de la más larga a la más corta.
+ */
+export function sinFrasesDelGuion(textoNormal: string, textoGuion: string): string {
+  const frases = textoGuion
+    .split(/(?<=\D[.?!])\s+|\n/)
+    .map(normal)
+    .filter((f) => f.length > 0)
+    .sort((a, b) => b.length - a.length);
+  let resto = textoNormal;
+  for (const f of frases) resto = resto.split(f).join(" ");
+  return resto;
+}
+
 export function revisarRespuesta(
   r: Extract<SalidaAgente, { tipo: "respuesta" }>,
   guiones: readonly Guion[],
@@ -76,10 +94,8 @@ export function revisarRespuesta(
   const guion = guiones.find((g) => g.id === r.guion);
   if (!guion) codigos.push("guion_desconocido");
 
-  const permitido = guion ? normal(guion.texto) : "";
-  const inventado = PATRONES.some((patron) =>
-    [...texto.matchAll(new RegExp(patron.source, patron.flags))].some((m) => !permitido.includes(m[0].trim())),
-  );
+  const resto = sinFrasesDelGuion(texto, guion?.texto ?? "");
+  const inventado = PATRONES.some((patron) => new RegExp(patron.source, patron.flags).test(resto));
   if (inventado) codigos.push("dato_inventado");
 
   if (detectorDelCable(r.texto)) codigos.push("datos_personales");
