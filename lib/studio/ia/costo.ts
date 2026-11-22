@@ -56,10 +56,8 @@ export function interpretarCostoOficina(v: unknown): CostoOficinaDeLaBase | null
   if (!raiz || raiz.version !== 1) return null;
   const c = obj(raiz.cuenta);
   const tipo = c?.tipo_cobro;
-  const cuenta =
-    c && (tipo === "por_token" || tipo === "plan_fijo")
-      ? { tipoCobro: tipo, topeLlamadasMes: numeroPositivo(c.tope_llamadas_mes) }
-      : null;
+  const tipoCobro: "por_token" | "plan_fijo" | null = tipo === "por_token" || tipo === "plan_fijo" ? tipo : null;
+  const cuenta = c && tipoCobro ? { tipoCobro, topeLlamadasMes: numeroPositivo(c.tope_llamadas_mes) } : null;
   if (cuenta?.tipoCobro === "plan_fijo" && cuenta.topeLlamadasMes === null) return null;
   const modelos: ModeloConTarifa[] = [];
   for (const m of Array.isArray(raiz.modelos) ? raiz.modelos : []) {
