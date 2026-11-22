@@ -232,7 +232,8 @@ begin
   delete from public.ia_cadenas c where c.tenant_id = v_tenant and c.funcion = p_funcion;
   insert into public.ia_cadenas (tenant_id, funcion, puesto, proveedor, modelo, actualizado_por)
   select v_tenant, p_funcion, x.puesto::smallint, x.proveedor, x.modelo, v_uid
-    from pg_catalog.unnest(p_proveedores, p_modelos) with ordinality as x(proveedor, modelo, puesto);
+    -- unnest de varios arreglos es una forma propia del FROM y no admite el prefijo pg_catalog (que igual se busca).
+    from unnest(p_proveedores, p_modelos) with ordinality as x(proveedor, modelo, puesto);
 
   select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
            'puesto', c.puesto, 'proveedor', c.proveedor, 'modelo', c.modelo) order by c.puesto)
