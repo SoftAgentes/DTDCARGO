@@ -70,13 +70,50 @@ El portón es el CI de GitHub.
 
 ## Pendiente de esta tarea
 
-- Aplicar la 0570 en producción: OK nominal de Sam y runbook.
-- **Pendiente de staging (NV):** probar que el GoTrue instalado pone en el JWT `amr` con método `password` y su
-  `timestamp` después de `signInWithPassword`. Prueba: entrar al Studio de staging como superadmin, subir el tope con la
-  contraseña y ver que pasa con método `contrasena_reciente` en `entity_audit_log`; repetirlo pasados 5 minutos sin
-  contraseña y ver que la base lo rechaza. Sin eso la D-5 no está probada de punta a punta; mientras tanto, aflojar el
-  freno queda bloqueado (falla cerrado).
-- F1-B (0571: cadena de A1 y A2, clasificador, pestaña «Funciones»): sale después de que la F1-A esté en `main`.
+La #763 entró a `main` el 2026-11-22 (`a6c24cc36`). **La 0570 no está aplicada en ningún lado.** Antes de pedir el OK
+hay que hacer la prueba de `amr` (paso 1 de la lista).
+
+- F1-B (0571: cadena de A1 y A2, clasificador, pestaña «Funciones»): en curso en `claude/sdd-0704-f1b-cadena`.
+
+### Lista para pedir el OK nominal de la 0570 (runbook `aplicar-migraciones-prod.md` §2 y §3)
+
+1. **Prueba de `amr`, antes del OK (NV hoy).** No necesita la 0570. En el entorno de prueba que nombre Sam o Dir_DTD,
+   con un superadmin de prueba: entrar con correo y contraseña, decodificar el JWT de acceso (sin pegar el token en
+   ningún lado; basta leer los campos `aal` y `amr`) y ver que `amr` trae un objeto con `method: "password"` y
+   `timestamp` en segundos de hace menos de un minuto. Repetirlo después de un refresh del token y anotar si el
+   `timestamp` se conserva (debe ser la hora de la contraseña, no la del refresh). Si `amr` no trae eso, aflojar el
+   freno queda bloqueado siempre (falla cerrado) y hay que volver a la D-5 con Sam antes de aplicar.
+2. **Qué es.** `supabase/migrations/0570_ia_catalogo_y_costo.sql`, SDD-0704 F1-A, PR #763. Blob
+   `118dd0022c776590cdb58a608a3fd7dac9e2b711` en `main`, md5 `c3fa477c15ac2d3516b77ebfb448a73d`, 40.193 bytes, sin
+   CR. Estos valores se copian otra vez de `preparar.mjs --sha <cabeza>` antes de pedir el OK, nunca de aquí.
+3. **Qué crea.**
+   - Tablas nuevas, vacías salvo el catálogo: `ia_catalogo_modelos` (7 modelos sembrados), `ia_cuentas`, `ia_modelos`
+     e `ia_topes`. Todas con RLS: solo el superadmin de su tenant las lee; nadie las escribe directo.
+   - Dos columnas nuevas, con valor nulo, en `task_events`: `tokens_entrada` y `tokens_salida` (sin reescribir la
+     tabla; no tocan filas existentes).
+   - 13 funciones con `search_path` vacío: 5 de escritura de la pantalla (superadmin, motivo, barrera y auditoría),
+     `ia_gasto_del_mes` para la pantalla, 3 del despachador (solo `service_role`) y 4 de apoyo y triggers.
+   - El tipo `ia_config` en `audit_entity_types`.
+   - Preflight y postflight propios; `lock_timeout` de 5 s.
+4. **Orden.** La PR ya está fusionada, así que no es migrate-first. El código en producción tolera que falte: el
+   despachador sigue con el `.env` (avisa una vez «falta la 0570») y la pantalla «IA» muestra que falta la migración.
+   Aplicarla no cambia nada del despachador hasta que alguien guarde una configuración en la pantalla. Lo único que
+   cambia solo es que el despachador empieza a escribir los tokens de cada llamada.
+5. **Lectura previa** (`aplicar-remoto.sh … --paso previa`): solo lee el ledger, los locks y el preflight. Va con la
+   ruta de su evidencia en el pedido.
+6. **Cómo se vuelve atrás.**
+   - Si falla antes del COMMIT, no queda nada (una sola transacción).
+   - Para deshacerla después: `supabase/desarmes/0570_desarme.sql`, que no tiene número. Se copia a
+     `supabase/migrations/` con el siguiente número libre y va con su PR y su propio OK nominal. Se pierden la
+     configuración de la pantalla y los tokens por llamada; quedan el costo de cada llamada, el modelo usado y la
+     auditoría. El despachador vuelve al `.env`. Está ensayado en el contrato 12.
+7. **Qué ve Sam después (smoke, como superadmin; nadie más ve la pantalla):**
+   - `/studio/admin/ia`, pestaña «Gasto»: gasto del mes por modelo (vacío al principio), el tope de la Oficina con
+     origen «entorno» y la barra de uso.
+   - Pestaña «Cuentas y tarifas»: vacía. Al crear la cuenta de la Oficina y su primera tarifa, la pantalla pide la
+     contraseña (es aflojar: el previo es el `.env`).
+   - Bajar el tope no pide contraseña; subirlo, sí.
+   - En `/studio/admin/oficina-virtual` nada cambia (su tope sigue saliendo del `.env`; ver FUERA DE ALCANCE).
 
 ## FUERA DE ALCANCE DETECTADO
 
