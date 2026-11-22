@@ -15,3 +15,7 @@
 - §3.1: la carpeta no se mueve; label/slug en modules.ts + rewrite /studio/soporte → carpeta + 308 desde la vieja. Medición pendiente en la fase 1 (bucle, revalidatePath, ítem activo). Alternativa con la lista de lo que se rompe si se mueve.
 - Inventario: alert-routing.ts:53/:66 a clase A; bandeja.ts:266 y discord/channels.ts:40 a clase A′ (atados a nombre externo); comentarios a clase C; bug-email-notify.ts:485 a clase F; catalogo.ts:78 precisado; proxy.ts verificado, no cambia. Conteos re-medidos (docs/design 27).
 - docs:check PASÓ · sdd:check PASÓ.
+
+## v0.3
+- Sam (2026-11-22, en esta sesión, textual): «Con todas las recomendadas». D-1..D-6 = A; status approved; índice regenerado. docs:check y sdd:check PASÓ.
+- Siguiente: Worker de producto para la fase 1 (lo asigna Dir_DTD).

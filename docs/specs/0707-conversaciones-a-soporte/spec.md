@@ -1,11 +1,11 @@
 ---
 sdd: "0707"
 title: "El nombre «Conversaciones» pasa a «Soporte» en todo el sistema"
-status: proposed
+status: approved
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
-revision: "v0.2 (cambios pedidos por Dir_DTD en la #774)"
+revision: "v0.3 (Sam aprobó todas las recomendadas, 2026-11-22)"
 supersedes: null
 superseded_by: null
 related: ["0056", "0147", "0585", "0626", "0655", "0702", "0705"]
@@ -18,8 +18,8 @@ confidencialidad: interno
 > conversación. Hay que cambiarlo y decirle al director general que haga ese cambio general, y también a Chatwoot:
 > hay un cambio total de conversaciones a soporte».
 >
-> **Estado: propuesta, solo spec.** No lleva código, ni migración, ni cambios en Chatwoot. Las decisiones que faltan
-> están en §9 (D-1 a D-6), con opciones A/B y una recomendada. Repo público: sin llaves, correos, IP ni montos.
+> **Estado: aprobada, solo spec.** No lleva código, ni migración, ni cambios en Chatwoot. Sam eligió las seis
+> recomendadas de §9 (2026-11-22, textual: «Con todas las recomendadas»): D-1 a D-6 = **A**. Repo público: sin llaves, correos, IP ni montos.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no verificado.
 Base: `main` `8c15a4bb0` (v0.2; la v0.1 se midió sobre `33ef3ad82`; los conteos no cambiaron). Conteos hechos con `git grep -il "conversaci"` (insensible a mayúsculas y tildes parciales).
@@ -187,7 +187,16 @@ ruta nueva; (4) ningún `href`, `router.push`, `redirect` ni enlace de aviso apu
 - **Guías y capturas** (Faro/asistente, `docs/design/studio/_norte`) con el nombre viejo; los HTML del Norte son versión
   fechada de diseño y no se reescriben salvo que Sam lo pida.
 
-## 9. Decisiones para Sam
+## 9. Decisiones de Sam
+
+**Resueltas el 2026-11-22.** Texto de Sam en esta sesión: «Con todas las recomendadas». Queda **A** en D-1, D-2,
+D-3, D-4, D-5 y D-6. Lo que eso fija para la fase 1: solo «Conversaciones» (SDD-0056) pasa a «Soporte» y «Bandeja»
+sigue igual; la tarjeta de la ficha se llama «Soporte»; singular, y «conversación» queda como sustantivo dentro de
+los textos; el menú propio de Chatwoot no se toca; no se renombra código, carpeta, tablas, id, API ni el canal de
+Discord; el rol «Soporte» queda y el chat interno del equipo no se llama Soporte. La fase 3 (Chatwoot) sigue
+pidiendo OK nominal por cada escritura.
+
+Opciones tal como se presentaron:
 
 Cada una con opciones A/B y una recomendada, dibujables con el mismo patrón de las demás SDD (clic para elegir).
 
