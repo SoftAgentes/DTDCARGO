@@ -71,12 +71,14 @@ describe("guion explicar-servicio (v0.3)", () => {
   const g = guionPorId("explicar-servicio")!;
   const acuse = "Entendí tu pregunta sobre cómo funciona el servicio de DTD Cargo.";
 
-  it("existe, sube la versión a 0.3 y no reemplaza a los demás", () => {
+  it("existe y sigue en la lista (v0.4 suma los tres guiones del encargo B)", () => {
     expect(g).toBeDefined();
-    expect(VERSION_GUIONES).toBe("0.3");
+    expect(VERSION_GUIONES).toBe("0.4");
     expect(GUIONES_SOPORTE.map((x) => x.id)).toEqual([
       "acuse-general",
-      "pedir-guia",
+      "estado-sin-guia",
+      "precios-tiempos",
+      "quejas",
       "derivar-equipo",
       "explicar-servicio",
       "control",
@@ -116,5 +118,56 @@ describe("guion explicar-servicio (v0.3)", () => {
 
   it("su «cuándo» prohíbe precios, fechas y estados", () => {
     expect(g.cuando).toMatch(/NUNCA da precios, fechas de entrega ni el estado de un envío/);
+  });
+});
+
+describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y 3»)", () => {
+  const casos = [
+    {
+      id: "precios-tiempos",
+      acuse: "Entendí que quieres saber el costo o los tiempos de tu envío.",
+      extras: [" Cuesta 120 USD.", " Tarda quince días.", " Llega el lunes."],
+    },
+    {
+      id: "estado-sin-guia",
+      acuse: "Entendí que quieres saber de tu paquete.",
+      extras: [" Tu envío está en tránsito.", " Ya zarpó.", " Llega mañana."],
+    },
+    {
+      id: "quejas",
+      acuse: "Entendí tu molestia, y lo siento.",
+      extras: [" Te devolvemos el dinero.", " Te garantizo que no vuelve a pasar.", " Tienes un descuento."],
+    },
+  ];
+
+  it.each(casos)("$id: existe, empieza con su acuse y pasa la revisión tal cual", ({ id, acuse }) => {
+    const g = guionPorId(id)!;
+    expect(g).toBeDefined();
+    expect(g.texto.startsWith(acuse)).toBe(true);
+    expect(revisarRespuesta({ tipo: "respuesta", acuse, texto: g.texto, guion: id }, GUIONES_SOPORTE)).toEqual([]);
+  });
+
+  it.each(casos)("$id: si el agente agrega un precio, un plazo, un estado o una promesa, escala", ({ id, acuse, extras }) => {
+    const g = guionPorId(id)!;
+    for (const extra of extras) {
+      const r = { tipo: "respuesta" as const, acuse, texto: g.texto + extra, guion: id };
+      expect(revisarRespuesta(r, GUIONES_SOPORTE), extra).toContain("dato_inventado");
+    }
+  });
+
+  it("ninguno trae cifras, montos, enlaces ni marcadores", () => {
+    for (const { id } of casos) {
+      const g = guionPorId(id)!;
+      expect(/\d/.test(g.texto), id).toBe(false);
+      expect(/\$|usd|d[oó]lar|bol[ií]var/i.test(g.texto), id).toBe(false);
+      expect(enlacesAjenos(g.texto, ""), id).toEqual([]);
+      expect(/\[[^\]]+\]/.test(g.texto), id).toBe(false);
+    }
+  });
+
+  it("pedir-guia ya no existe (lo reemplaza estado-sin-guia) y derivar-equipo ya no cubre reclamos", () => {
+    expect(guionPorId("pedir-guia")).toBeUndefined();
+    expect(guionPorId("derivar-equipo")!.cuando).not.toMatch(/reclamos/);
+    expect(guionPorId("derivar-equipo")!.cuando).toMatch(/quejas/);
   });
 });
