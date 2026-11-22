@@ -24,3 +24,10 @@
 - Sam cambió D-3, D-4 y D-6 a B en el chat de Dir_DTD (después del «Con todas las recomendadas»); la última vale. §9 registra las dos citas.
 - Nuevo §2.1 (barrido chat/caso, inventario y lo que queda fuera), §2.2 (rol «Atención al cliente», id support igual), §4.1 (idioma propio de Chatwoot, costo y orden con la #776) y fases 1 a 5.
 - Queda fuera del barrido (propuesta, Sam puede sumar): Bitácora, Bugs, privacidad, contenido.
+
+## v0.5
+- Merge de origin/main 471ea1d0b sin rebase; el merge entró limpio (cambios de main en la 0706 y el índice).
+- §2.1: conteos marcados como mínimos y completados (Pantalla 10, Oficina 15); pruebas que afirman las cadenas viejas.
+- §2.2: las firmas de correo guardan el rótulo (role_label); nueva D-7 para Sam (A recomendada: actualizar solo las que dicen exactamente «Soporte», con OK nominal).
+- Fases: la 3 va después de la 1 y de la 2; su criterio excluye la clase A′. §4.1: imagen en GHCR privado, etiqueta y digest; enmienda de chatwoot-versiones.md en la fase 5.
+- Pendiente de Sam: D-7.

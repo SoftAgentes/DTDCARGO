@@ -5,7 +5,7 @@ status: approved
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
-revision: "v0.4 (respuesta final de Sam: D-3, D-4 y D-6 en B, 2026-11-22)"
+revision: "v0.5 (re-revisión de Dir_DTD: conteos mínimos, firmas de correo, orden de fases, imagen propia)"
 supersedes: null
 superseded_by: null
 related: ["0056", "0147", "0583", "0585", "0626", "0655", "0702", "0705"]
@@ -24,7 +24,7 @@ confidencialidad: interno
 > Repo público: sin llaves, correos, IP ni montos.
 
 **Etiquetas de evidencia:** **C** código leído · **D** documento · **I** inferencia · **NV** no verificado.
-Base: `main` `8c15a4bb0` (v0.2 a v0.4; la v0.1 se midió sobre `33ef3ad82` y los conteos no cambiaron). Conteos hechos
+Base: `main` `471ea1d0b` (v0.5; la v0.2 a v0.4 sobre `8c15a4bb0` y la v0.1 sobre `33ef3ad82`; los conteos de archivos no cambiaron). Conteos hechos
 con `git grep -il "conversaci"`.
 
 ## 1. Qué existe hoy
@@ -60,7 +60,7 @@ Conteo de archivos con «conversaci» (sin `docs/specs` ni `.agents/handoffs`, q
 
 | Clase | Qué incluye | Qué se hace |
 |---|---|---|
-| **A · Nombre visible de la pantalla** | Etiqueta del menú (`modules.ts:131`), `metadata.title` de la página (`conversaciones/page.tsx:23`), `ConversationsIndicator` (`label = "Conversaciones"`), `aria-label` de la columna de la ficha y título de sus tarjetas (D-2 A), la guía «Conversaciones en la ficha del cliente» (`guide.ts:141-146`), `bandeja.card.title` (`bandeja.ts:84`), la entrada del asistente en `asistente/contenido/catalogo.ts:78` (dice «Bandeja de atención: conversaciones con clientes…»; «Bandeja» queda por D-1 A y el sustantivo va al barrido), y en la pantalla de rutas de alerta `lib/studio/telegram/alert-routing.ts:53` (rótulo «Conversaciones del portal») y `:66` (ayuda «Un cliente escribió por el chat del portal») | **Cambiar** (fase 1) |
+| **A · Nombre visible de la pantalla** | Etiqueta del menú (`modules.ts:131`), `metadata.title` de la página (`conversaciones/page.tsx:23`) y su título visible (`conversaciones/page.tsx:66`), `ConversationsIndicator` (`label = "Conversaciones"`), `aria-label` de la columna de la ficha y título de sus tarjetas (D-2 A), la guía «Conversaciones en la ficha del cliente» (`guide.ts:141-146`), `bandeja.card.title` (`bandeja.ts:84`), la entrada del asistente en `asistente/contenido/catalogo.ts:78` (dice «Bandeja de atención: conversaciones con clientes…»; «Bandeja» queda por D-1 A y el sustantivo va al barrido), y en la pantalla de rutas de alerta `lib/studio/telegram/alert-routing.ts:53` (rótulo «Conversaciones del portal») y `:66` (ayuda «Un cliente escribió por el chat del portal») | **Cambiar** (fase 1) |
 | **A′ · Visible pero atado a un nombre externo** | `lib/i18n/es-VE/bandeja.ts:266` (`bandeja.portal.help`, nombra la bandeja «Conversaciones del portal» de Chatwoot) · `lib/studio/discord/channels.ts:40` (canal `#conversaciones-portal`, nombre de un canal real de Discord) | Cambian solo junto con el nombre externo, en la fase 5: el primero con la bandeja, el segundo con el canal, y con OK |
 | **A″ · Sustantivo en textos visibles** | Ver §2.1 | **Barrido** (fase 3, D-3 B) |
 | **B · Ruta** | `/studio/conversaciones` (+ `?c=<id>`), `/api/studio/conversaciones/[id]`, `/api/conversaciones/email` | Pantalla: **cambiar** con *rewrite* y 308 (§3). API: no cambia |
@@ -83,23 +83,33 @@ Conteo de archivos con «conversaci» (sin `docs/specs` ni `.agents/handoffs`, q
 - Si una frase tiene las dos ideas, manda la acción: se **asigna un caso**, se **abre un chat**.
 - Cambia el género («la conversación» → «el chat» o «el caso»): hay que revisar artículos y concordancias, no solo la palabra.
 
-**Inventario (medido sobre `8c15a4bb0`).**
+**Inventario (medido sobre `471ea1d0b`).** Los conteos son **mínimos**: salen de una búsqueda por líneas con la
+palabra entre comillas o en JSX, y un texto partido en varias líneas o con dos cadenas en la misma línea puede
+escaparse. Quien ejecute vuelve a medir archivo por archivo.
 
 | Superficie | Dónde | Cuántos |
 |---|---|---|
 | Diccionario de la Bandeja y de la ficha | `lib/i18n/es-VE/bandeja.ts` | 22 líneas |
 | Guías del Studio y de la ficha DTD | `lib/i18n/es-VE/guide.ts` | 13 líneas |
-| Pantalla Soporte (SDD-0056) | `conversaciones/_components/ConversacionesClient.tsx:192-193`, `ConversationList.tsx:294`, `ConversationThread.tsx:215,324`, `conversaciones/actions.ts:131,251,254` | 8 |
+| Pantalla Soporte (SDD-0056) | `conversaciones/_components/ConversacionesClient.tsx:192-193`, `ConversationList.tsx:165,294`, `ConversationThread.tsx:215` (dos cadenas: «Conversación asignada» y «Conversación sin asignar»), `ConversationThread.tsx:324`, `conversaciones/actions.ts:131,251,254` | 10 como mínimo |
 | Ficha del cliente | `clientes/conversaciones-actions.ts:105,112,115` y los textos interiores de las tarjetas | ≈6 |
 | CRM | `crm/_components/CrmVistaEmbudo.tsx:25`, `TarjetaFichaDrawer.tsx:187` | 2 |
 | Bandeja, vincular | `bandeja/vincular-actions.ts:147` («Vinculado desde la conversación…», queda en el historial de la ficha) | 1 |
-| Oficina virtual (pantalla de Sam) | `admin/oficina-virtual/page.tsx:38,96,120,125`, `_components/TarjetaBorrador.tsx:37`, `TarjetaCierre.tsx:26`, `_components/resultado.ts:15`, `vista/page.tsx:166` | 8 |
+| Oficina virtual (pantalla de Sam) | `admin/oficina-virtual/page.tsx:38,96,102,116,119,120,125`, `_components/TarjetaBorrador.tsx:37,66,74`, `TarjetaCierre.tsx:23,26`, `_components/resultado.ts:15`, `vista/page.tsx:166` | 15 como mínimo |
 | Administración | `admin/page.tsx:157` («conversaciones del portal») | 1 |
 | Portal | `app/portal/(app)/soporte/page.tsx:209,264`, `lib/portal/simple/bloques.ts:51` | 3 |
 | Guías de agentes | `docs/runbooks/chatwoot-agentes.md` (3) y las guías del asistente que hablen de la Bandeja (se miden al ejecutar) | 3 o más |
 | Avisos de Chatwoot a los agentes | `infra/chatwoot/correo/generar-avisos.sh` (11) y las 5 plantillas `.liquid` de `conversation_notifications_mailer` (18) | 29, **en el repo**; aplicarlos en el servidor es la fase 5 |
 
 Los números de línea se vencen: quien ejecute vuelve a medir con `git grep -n -i "conversaci"` por valor, sin comentarios.
+
+**Pruebas que hoy afirman las cadenas viejas** (se actualizan al texto nuevo en el mismo PR; no se debilitan ni se
+borran): `conversaciones/__tests__/set-status-gate.test.ts:185,198`,
+`conversaciones/_components/ConversationList.abrir.test.tsx:67-100` («Abrir conversación de…»),
+`conversaciones/__tests__/thread-solo-lectura.test.tsx:136` («Estado de la conversación») y
+`admin/oficina-virtual/_components/AvisoResultado.test.tsx` (los textos de `detalleDelCierre` y del aviso de cierre).
+Antes de dar la fase por terminada: `git grep -n -i "conversaci"` en los `*.test.*` de esas carpetas, para encontrar las
+que falten.
 
 **Queda fuera del barrido.** Es una propuesta de este documento; si Sam quiere sumar alguna, se agrega a la fase 3.
 - **Bitácora** (`bitacora/nueva/*`, `bitacora-types.ts:471,495`, `extract.ts`, `match.ts`, `prompts.ts`,
@@ -127,8 +137,16 @@ permisos (C).
 | Documentación vigente | `docs/organizacion`, runbooks que nombren el rol | Se actualiza; auditorías y specs fechadas no |
 | **No es el rol, no cambia** | `StudioTopbar.tsx:438` (menú de ayuda), `bugs/page.tsx:106` («Soporte interno»), `ProfileModal.tsx:741` («Soporte del portal»), `components/NavClient.tsx:49` e `Icon.tsx:66` (la pantalla del Portal), `fidelizacion/types.ts:39` («Soporte estándar», un beneficio), `oficina-virtual/page.tsx:83` (`soporte-chatwoot`, el agente de la Oficina) y la base de conocimiento del bot | — |
 
-Las pruebas que comparan el rótulo se actualizan; no se debilitan. Que los **equipos** de Chatwoot no se llamen como el
-rol es **NV** (la matriz usa ids, `matriz.ts:82`); se mide en el inventario de la fase 5.
+Las pruebas que comparan el rótulo se actualizan; no se debilitan: `admin/_components/PermissionsSection.test.tsx:189,191`
+y `usuarios/_components/acceso/AccesoPanel.test.tsx:149` («Soporte nunca edita.»). Que los **equipos** de Chatwoot no
+se llamen como el rol es **NV** (la matriz usa ids, `matriz.ts:82`); se mide en el inventario de la fase 5.
+
+**Firmas de correo: el nombre del rol queda guardado en la base.** La pantalla de Mailing precarga
+`roleLabel(m.role)` (`mailing/page.tsx:225`) como cargo de la firma (`SignaturesView.tsx:245`); al guardar, ese texto
+va a la columna `role_label` (`SignaturesView.tsx:263`, `mailing/actions.ts:231`) y sale en cada correo que el cliente
+recibe. Además, al crear un usuario se escribe `ROLE_LABELS[input.role]` (`usuarios/actions.ts:253`). Consecuencia:
+cambiar el rótulo en la fase 2 arregla las firmas **nuevas**, pero **las firmas ya guardadas seguirán diciendo
+«Soporte»**. Es la decisión D-7 de §9.
 
 ## 3. Rutas
 
@@ -235,6 +253,20 @@ arma la imagen propia sobre el digest de la 4.20.1, con el idioma. Así cambia u
 informe de cada subida suma la fila «idioma propio: cadenas nuevas o cambiadas». Publicar la imagen propia en el
 servidor pide **OK nominal de Sam**.
 
+**Dónde vive la imagen y cómo se fija (propuesta, se decide en la fase 5).** El `Dockerfile` y el archivo de cadenas
+van en el repo, en `infra/chatwoot/idioma/`, sin secretos. La imagen se construye en GitHub Actions y se publica en
+el registro de paquetes de GitHub (GHCR) como **paquete privado**. En `compose.yml` se fija por **etiqueta y digest
+juntos**, igual que hoy la oficial: la etiqueta lleva la versión de Chatwoot más un sufijo propio
+(`v4.20.1-ce-dtd.1`), y el digest sale de `docker buildx imagetools inspect`. El VPS necesita un token de solo lectura
+del registro, que **no** va al repo. Alternativa sin registro: construir en el VPS y fijar por el ID local de la
+imagen. Es más simple, pero no deja un artefacto que se pueda revisar. **NV:** el costo de Actions y si el *build*
+del *frontend* cabe en el runner.
+
+**El runbook se enmienda en esa fase.** `docs/runbooks/chatwoot-versiones.md:7,79` describe hoy una sola imagen
+oficial fijada por etiqueta y digest (el paso 3 copia el digest de `chatwoot/chatwoot`). Con la imagen propia, ese
+paso pasa a ser: digest de la oficial → *build* de la propia sobre ese digest → digest de la propia en
+`compose.yml`. La enmienda va en el mismo PR de la fase 5, no en esta spec.
+
 ## 5. Lo que NO cambia
 
 - La palabra técnica «conversación» como **objeto de Chatwoot** en el código y la API (`…/conversations`, `display_id`,
@@ -260,8 +292,8 @@ pantallas. Siguen diciendo «Soporte» cosas que no son el rol ni la pantalla (m
 | Fase | Contenido | Quién | Requiere |
 |---|---|---|---|
 | **1 · Nombre y ruta** | Clases A y B: etiqueta y `slug` en `modules.ts`, *rewrite* y 308 en `next.config.ts` (carpeta sin mover, §3.1), enlaces de avisos (§3.3), título y guía de las tarjetas de la ficha (D-2 A), rótulos de rutas de alerta, catálogo del asistente, runbooks y marketing vigentes con el nombre de la pantalla. Pruebas del 308, del *rewrite* y del enlace del aviso | Worker de producto | PR con revisión previa (rutas y notificaciones: **no** carril rápido) |
-| **2 · Rol «Atención al cliente»** | §2.2: rótulo, textos, guías del asistente, comentarios y documentación vigente. Sin tocar el id `support` ni la base | Worker de producto | PR con revisión previa (toca archivos de usuarios y permisos; `carril.mjs` decide). Puede ir **en paralelo** con la 1: no comparten archivos |
-| **3 · Barrido de la palabra** | §2.1 en Studio y Portal: `bandeja.ts`, `guide.ts`, pantalla Soporte, ficha, CRM, Bandeja, Oficina virtual, Administración, Portal, guías de agentes (`chatwoot-agentes.md` y las del asistente) y los textos de los avisos `.liquid` **en el repo** (sin aplicarlos). Va **después de la 1**, porque tocan los mismos archivos | Worker de producto | PR con revisión previa; capturas claro/oscuro de las pantallas con más cambios |
+| **2 · Rol «Atención al cliente»** | §2.2: rótulo, textos, guías del asistente, comentarios, pruebas y documentación vigente. Sin tocar el id `support`. Las firmas ya guardadas, según D-7 (si se migran, es un paso aparte con OK nominal, §9) | Worker de producto | PR con revisión previa (toca archivos de usuarios y permisos; `carril.mjs` decide). Puede ir **en paralelo** con la 1: no comparten archivos |
+| **3 · Barrido de la palabra** | §2.1 en Studio y Portal: `bandeja.ts`, `guide.ts`, pantalla Soporte, ficha, CRM, Bandeja, Oficina virtual, Administración, Portal, guías de agentes (`chatwoot-agentes.md` y las del asistente) y los textos de los avisos `.liquid` **en el repo** (sin aplicarlos). Va **después de la 1 y de la 2**: con la 1 comparte las pantallas y la ficha; con la 2, `clientes/conversaciones-actions.ts` y las guías del asistente. La ayuda `bandeja.ts:266` (clase A′) **no** se toca aquí: espera a la fase 5 | Worker de producto | PR con revisión previa; capturas claro/oscuro de las pantallas con más cambios |
 | **4 · Guiones de la Oficina** | Lo que la Oficina dice al cliente y a Sam (avisos de Discord, guiones de `docs/oficina`), con el criterio de §2.1. La pantalla de la Oficina ya queda en la 3 | Ofi_Hermes (no esta spec) | Su propio encargo |
 | **5 · Chatwoot** | §4 y §4.1, en este orden: (a) inventario en lectura de bandejas, equipos, etiquetas y textos al cliente; (b) cruce de `cargar.sh`/`ensayo-portal.sh` de nombre a ID; (c) renombrar la bandeja «Conversaciones del portal» y cambiar `bandeja.ts:266` en el mismo paso; (d) subir al servidor las plantillas `.liquid` de la fase 3; (e) idioma propio, después de la subida 4.20.1 de la #776; (f) canal de Discord `#conversaciones-portal`, si Sam quiere; (g) plantillas de Meta, si alguna lo dice | Worker de infraestructura | **OK nominal de Sam** por cada escritura en Chatwoot de producción o en el servidor; Meta pide nueva aprobación |
 
@@ -275,7 +307,8 @@ pantallas. Siguen diciendo «Soporte» cosas que no son el rol ni la pantalla (m
 - **Fase 2:** ninguna pantalla nombra el rol como «Soporte»; `git grep '"support"'` da lo mismo antes y después en
   `rbac.ts`, `matriz.ts` y las migraciones; `pnpm verify` en verde.
 - **Fase 3:** `git grep -n -i "conversaci"` sobre los textos visibles de las superficies de §2.1 da cero, salvo lo que
-  §2.1 deja fuera; `pnpm verify` en verde.
+  §2.1 deja fuera y la clase A′ (`bandeja.ts:266`, «Conversaciones del portal», y `discord/channels.ts:40`), que
+  esperan a la fase 5; las pruebas de §2.1 afirman el texto nuevo; `pnpm verify` en verde.
 - **Fase 5:** cada paso con su OK nominal y su comprobación (el chat del Portal sigue llegando a la bandeja después de
   renombrarla; el menú de Chatwoot dice lo nuevo después de publicar la imagen).
 
@@ -310,6 +343,14 @@ Lo que fija para el trabajo:
 - **D-4 B:** idioma propio en la interfaz de Chatwoot (§4.1, fase 5).
 - **D-5 A:** no se renombra código, carpeta, tablas, id, API ni el canal de Discord.
 - **D-6 B:** el rol pasa a «Atención al cliente» (§2.2, fase 2), con el id `support` igual.
+
+**D-7 · Pendiente (nueva en la v0.5).** ¿Qué pasa con las **firmas de correo ya guardadas** que dicen «Soporte» (§2.2)?
+- **A (recomendada):** se actualizan una sola vez, y solo las de personas con rol `support` cuyo cargo sea
+  **exactamente** «Soporte». Las que alguien escribió a mano («Soporte China», «Coordinadora») no se tocan. Va como
+  paso aparte de la fase 2: primero un conteo (con su autorización), después la escritura con **OK nominal de Sam**
+  y el runbook de producción. Así el cliente deja de ver dos nombres para el mismo puesto.
+- **B:** se quedan como están; cada persona cambia su firma en Mailing si quiere. No toca datos, pero durante un
+  tiempo los correos salen con «Soporte» y las pantallas dicen «Atención al cliente».
 
 Opciones tal como se presentaron (con la recomendación de entonces):
 
@@ -346,7 +387,7 @@ Kommo fuera de la fase 5; migraciones; el rediseño de la pantalla (SDD-0677/068
 ## 11. Verificación de este documento
 
 - Número libre: no hay carpeta `0707-*` en `docs/specs`, rama, ni `refs/dtd/reservations/0707` en `origin` al 2026-11-22.
-- Los conteos y las líneas citadas salen de `git grep` sobre `8c15a4bb0`; las líneas se vencen si alguien edita arriba:
+- Los conteos y las líneas citadas salen de `git grep` sobre `471ea1d0b`; las líneas se vencen si alguien edita arriba:
   se vuelven a medir al ejecutar.
-- **NV:** inventario real de bandejas, equipos, etiquetas y textos al cliente de Chatwoot, plantillas de Meta y el
-  costo real de la imagen propia; no se consultó producción ni se compiló nada.
+- **NV:** inventario real de bandejas, equipos, etiquetas y textos al cliente de Chatwoot, plantillas de Meta, el
+  costo real de la imagen propia y cuántas firmas guardadas dicen «Soporte»; no se consultó producción ni se compiló nada.
