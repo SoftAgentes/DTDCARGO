@@ -106,6 +106,13 @@ Duración esperada del corte: ≤ 10 min, sin migraciones (I; la 4.20.0, con 15 
 | D3 | ¿La Oficina durante el corte? | **En pausa** los ~10 min, con aviso a la sesión del cable | Andando; sus llamadas a Chatwoot fallan y se reintentan |
 | D4 | ¿Cuándo? | **Esta semana**, en la ventana del runbook (lun–jue, 21:00–23:00 de Caracas) | Esperar a la 4.21 y subir las dos juntas: más arreglos por salto, pero las fallas del runtime siguen abiertas mientras tanto |
 
+### Lo que decidió Sam (2026-11-22)
+
+- **D1: A.** Ensayo local completo, sin copia en el VPS. Sam: «Es importante hacer las pruebas».
+- **D2: A.** El smoke pendiente de la 4.20.0 se cierra antes de subir.
+- **D3: A.** La Oficina, en pausa durante el corte.
+- **D4: hoy mismo.** Sam, textual: «hay que hacerlo de una, o sea, todo hoy. Nadie está usando Chatwoot porque todavía no está implementado, así que no nos afecta». Como no hay clientes en Chatwoot, no hace falta la ventana nocturna. Lo que **no** cambia: el ensayo en verde antes del cambio y el OK nominal de Sam para la versión y la hora.
+
 ## Fuera de alcance detectado
 
 - **El informe «sin IA» del panel da falsos positivos con `Gemfile.lock`.** Compara por nombre de archivo y no mira qué gemas cambiaron. Mejora posible: que cada pieza nombre sus gemas (`httparty`, `devise_token_auth`, `mail`) y que el informe solo marque `Gemfile.lock` si cambia una de esas. Va en su propia SDD.
