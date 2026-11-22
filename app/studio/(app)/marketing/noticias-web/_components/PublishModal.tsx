@@ -255,7 +255,7 @@ export function PublishModal({
             onClick={onClose}
             disabled={publishing}
             aria-label="Cerrar modal"
-            className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-wine hover:text-wine transition-colors flex-shrink-0 disabled:opacity-50"
+            className="w-9 h-9 grid place-items-center rounded-md border border-grey-200 text-grey-500 hover:border-accion hover:text-accion-text transition-colors flex-shrink-0 disabled:opacity-50"
           >
             {Icon.close(14)}
           </button>
@@ -294,7 +294,7 @@ export function PublishModal({
             <label htmlFor="publish-slug" className="eyebrow">
               Slug URL
             </label>
-            <div className="flex items-center gap-2 bg-white border border-grey-200 rounded-md px-3 py-2 focus-within:border-wine transition-colors">
+            <div className="flex items-center gap-2 bg-white border border-grey-200 rounded-md px-3 py-2 focus-within:border-accion transition-colors">
               <span className="text-[12px] text-grey-500 font-mono select-none">
                 /noticias/
               </span>
@@ -352,7 +352,7 @@ export function PublishModal({
                       type="button"
                       onClick={() => setWriterPopoverOpen((v) => !v)}
                       disabled={publishing}
-                      className="text-[12px] font-semibold text-grey-500 hover:text-wine underline-offset-2 hover:underline transition-colors disabled:opacity-50"
+                      className="text-[12px] font-semibold text-grey-500 hover:text-accion-text underline-offset-2 hover:underline transition-colors disabled:opacity-50"
                       aria-expanded={writerPopoverOpen}
                       aria-haspopup="true"
                     >
@@ -490,7 +490,7 @@ export function PublishModal({
             type="button"
             onClick={onClose}
             disabled={publishing}
-            className="inline-flex items-center px-4 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-accion hover:text-accion-text text-[13px] font-semibold transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>

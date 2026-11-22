@@ -1,6 +1,6 @@
 /**
  * BigButton — CTA grande del mobile (height 56). 3 variantes:
- *  - primary (default): fondo wine, texto blanco
+ *  - primary (default): azul de acción (--accion) con --on-accion (SDD-0686, BD-076)
  *  - secondary: fondo elevated, texto ink
  *  - ghost: transparente, texto ink
  *
@@ -14,7 +14,7 @@ import type { CSSProperties, ReactNode } from "react";
 type Variant = "primary" | "secondary" | "ghost";
 
 const STYLES: Record<Variant, { bg: string; fg: string; border?: string }> = {
-  primary: { bg: "var(--wine)", fg: "#FFFFFF" },
+  primary: { bg: "var(--accion)", fg: "var(--on-accion)" },
   secondary: {
     bg: "var(--bg-elevated)",
     fg: "var(--ink)",
