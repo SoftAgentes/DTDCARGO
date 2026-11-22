@@ -204,7 +204,7 @@ invoca el runtime → recibe resultado → verifica contra eval.md (anexo A.7) �
 cierra o escala. Frenos: cooldown 10s · 1 corrida por agente · máx 20 pasos ·
 timeout 300s (tope por corrida, presupuesto de doble carril).
 
-**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, claude-sonnet-5-5 (Anthropic), sin respaldo; ver SDD-0703.
+**3.5 Ejecución:** perfil `soporte-chatwoot` en el VPS Oficina, claude-sonnet-5-5 (Anthropic), con respaldo claude-haiku-5-5 (mismo proveedor; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); un tercer nivel con OpenAI en la SDD-0703.
 Tope del piloto: $15 USD/mes con auto-pausa al 80%.
 
 **Decisiones de Sam del 16/11/2026 («Sí a todo», D1 a D6):**
@@ -249,8 +249,8 @@ Tope del piloto: $15 USD/mes con auto-pausa al 80%.
   - detectar URLs y dominios en el borrador (hoy `revisarRespuesta` no los mira) y escalar si no vienen de un guion;
   - mostrar el borrador y el motivo siempre como texto plano en la página de aprobación (nunca HTML ni Markdown renderizado);
   - si una llamada se aborta a mitad (pausa o tope de tiempo), el `DELETE` de su sesión puede fallar y la sesión queda en la oficina hasta la purga diaria: dentro de las 48 h. Ver si conviene reintentar el borrado en el tick siguiente.
-- **El agente (VPS Oficina).** claude-sonnet-5-5 (Anthropic), **sin respaldo** (21/11/2026: Sam quitó Z.AI y DeepSeek; un respaldo no chino
-  está en la SDD-0703); instrucciones con la esencia del Anexo A y salida
+- **El agente (VPS Oficina).** claude-sonnet-5-5 (Anthropic) con respaldo claude-haiku-5-5 del mismo proveedor (21/11/2026: Sam quitó Z.AI y DeepSeek
+  y pidió Sonnet → Haiku; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z; un tercer nivel no chino con OpenAI está en la SDD-0703); instrucciones con la esencia del Anexo A y salida
   JSON obligatoria; memoria apagada y sin herramientas (R4); usuario propio `agentes-soporte`, que no ve los homes de
   los demás. Lo que Hermes guarda de cada turno y cómo se borra: [privacidad.md](privacidad.md), hallazgo 13.
 - **Opcionales del DG que entran aquí.** El webhook rechaza todo si falta la cuenta del cable e ignora los avisos de
@@ -637,7 +637,7 @@ Riesgos: Chatwoot sin cerrar (bloquea la prueba real) · red entre VPS
   redacta. Antes (v0.1): `chatwoot_read_conversation` · `chatwoot_send_message` · `guiones`.
 - **schemas:** entrada `{conversacion_id, mensajes[], guiones}` → salida, solo JSON,
   `{"respuesta": {acuse, texto, guion}}` o `{"escalado": {motivo, prioridad}}`.
-- **model_chain:** claude-sonnet-5-5 (Anthropic), sin respaldo; ver SDD-0703.
+- **model_chain:** claude-sonnet-5-5 → claude-haiku-5-5 (Anthropic, misma llave; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z); tercer nivel OpenAI en la SDD-0703.
 - **presupuesto:** $15/mes piloto · por corrida: 20 pasos / 5 min.
 - **umbral de activación:** inbox de prueba (piloto); producción ≥30
   conversaciones/semana.

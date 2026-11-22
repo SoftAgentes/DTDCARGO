@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 683 specs)
+### Índice de specs (generado · 684 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -716,11 +716,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0697 | Indicadores de carga en Almacén China: catálogo propio, histo… | approved | interno |
 | 0698 | Factura: Facturar a y Entregar en | approved | interno |
 | 0699 | Cascada al cambiar el dueño: reasignar un embarque o fusionar… | approved | interno |
+| 0700 | Oficina_Virtual: tapar los datos personales antes del modelo | proposed | interno |
 | 0701 | Oficina_Virtual: un enlace del cliente escala | proposed | interno |
 | 0702 | Oficina_Virtual: el modelo real de cada llamada | proposed | interno |
 | 0703 | IA: OpenAI como respaldo no chino de Anthropic (Oficina_Virtu… | proposed | interno |
 | 0704 | IA: pantalla con cadena de tres modelos por función, cambio a… | proposed | interno |
 | 0705 | Oficina_Virtual: aviso al cliente y guion explicar-servicio | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692, 0700 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
