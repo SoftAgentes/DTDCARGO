@@ -16,6 +16,12 @@ confidencialidad: interno
 > Decisión de Sam (2026-11-21): «Oficina: opción A, Anthropic, sin respaldo por ahora» y «Oficina: Anthropic y
 > además prepara la SDD de OpenAI como respaldo». Esta spec es ese respaldo.
 >
+> **Nota (2026-11-21, 22:11Z).** Después de esta decisión Sam pidió «configura ya Sonnet → Haiku en la Oficina»: se sumó
+> `claude-haiku-5-5` como respaldo de `soporte-chatwoot`, mismo proveedor y misma llave de Anthropic (D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z;
+> `hermes fallback list`: Primary claude-sonnet-5-5, Fallback 1 claude-haiku-5-5, ambos vía anthropic). **OpenAI pasa a ser el
+> tercer nivel**, ya no el primer respaldo de la Oficina. Haiku cubre sobrecargas de un modelo, **no** una caída de
+> Anthropic entera; para eso sigue valiendo esta spec.
+>
 > **Estado: propuesta, solo spec.** No toca código, ni la base, ni producción, ni el `.env`. La implementación va
 > después, con otra aprobación de Sam. El repo es público: sin llaves, montos, IP ni datos de clientes; los ejemplos
 > son inventados.
@@ -146,6 +152,8 @@ esta spec; si Sam la quiere, es otra decisión (P-5).
 `soporte-chatwoot` quedó en `claude-sonnet-5-5` vía Anthropic, **sin respaldo**; Z.AI y DeepSeek salieron del pool y del
 `.env`; la prueba con texto inventado pasó; la Oficina sigue en pausa. La configuración no se ve desde el repo, así que
 esto se cita como dato del informe y no como código leído.
+
+**Nota (2026-11-21, 22:11Z):** a las 22:11Z se sumó el respaldo `claude-haiku-5-5` (mismo proveedor y llave; D, informe de Ofi_Hermes al DG, 2026-11-21 22:11Z). La oficina quedó Sonnet → Haiku, y la frase «sin respaldo» de arriba describe el estado de las 21:59Z.
 
 Sam decidió además que, si Anthropic se cae, **basta con la tarjeta interna (`runtime:*`), sin pausa automática**: la
 conversación queda para una persona. El respaldo de OpenAI evitaría esa caída. Por tanto **la Oficina funciona sin esta
