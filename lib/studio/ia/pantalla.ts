@@ -121,12 +121,14 @@ export function costoEfectivoOficina(
 }
 
 /**
- * Un número escrito por Sam: acepta la coma decimal («2,5», «1.234,50») y el punto («2.5»). Con coma, el punto es
- * de miles. Devuelve null si no es un número finito.
+ * Un número escrito por Sam: acepta la coma decimal («2,5», «1.234,50») y el punto («2.5», «0.125»). Con coma, el
+ * punto es de miles. Sin coma, algo que parece miles («1.000», «12.500») es ambiguo y se rechaza: nunca se lee
+ * «1.000» como 1 (revisión de la #763, M4). Devuelve null si no es un número finito.
  */
 export function leerNumero(texto: unknown): number | null {
   const t = String(texto ?? "").trim().replace(/\s/g, "");
   if (!t) return null;
+  if (!t.includes(",") && /^[1-9]\d{0,2}(\.\d{3})+$/.test(t)) return null;
   const normal = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
   if (!/^\d+(\.\d+)?$/.test(normal)) return null;
   const n = Number(normal);

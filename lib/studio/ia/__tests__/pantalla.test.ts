@@ -10,6 +10,13 @@ describe("leerNumero", () => {
     expect(leerNumero("1.234,50")).toBe(1234.5);
     expect(leerNumero("2.5")).toBe(2.5);
     expect(leerNumero(" 15 ")).toBe(15);
+    expect(leerNumero("0.125")).toBe(0.125);
+    expect(leerNumero("1.000,00")).toBe(1000);
+  });
+  it("sin coma, un punto de miles es ambiguo y se rechaza (nunca «1.000» → 1)", () => {
+    for (const ambiguo of ["1.000", "12.500", "1.234.567"]) {
+      expect(leerNumero(ambiguo), ambiguo).toBeNull();
+    }
   });
   it("rechaza lo que no es un número", () => {
     for (const malo of ["", "dos", "-1", "1e3", "1,2,3", "Infinity", null, undefined]) {
@@ -45,7 +52,7 @@ describe("codigoDeError", () => {
 });
 
 describe("costoEfectivoOficina", () => {
-  const ENTORNO = { topeMensualUsd: 4, precios: { entradaPorMTok: 2, salidaPorMTok: 10 }, techoUsd: 15 };
+  const ENTORNO = { topeMensualUsd: 6, precios: { entradaPorMTok: 7, salidaPorMTok: 29 }, techoUsd: 15 };
   const datos: PantallaIa = {
     cuentas: [{ id: "c1", alias: "Oficina", proveedor: "anthropic", uso: "oficina", tipoCobro: "por_token", topeLlamadasMes: null }],
     modelos: [{ id: "m1", cuentaId: "c1", proveedor: "anthropic", modelo: "claude-haiku-5-5", entrada: 1, salida: 5 }],
@@ -60,6 +67,6 @@ describe("costoEfectivoOficina", () => {
     expect(c.precioDe("claude-haiku-5-5")).toEqual({ entradaPorMTok: 1, salidaPorMTok: 5 });
   });
   it("sin tope en la pantalla, el del entorno", () => {
-    expect(costoEfectivoOficina({ ...datos, topeOficinaUsd: null }, ENTORNO)).toMatchObject({ topeMensualUsd: 4, origenTope: "entorno" });
+    expect(costoEfectivoOficina({ ...datos, topeOficinaUsd: null }, ENTORNO)).toMatchObject({ topeMensualUsd: 6, origenTope: "entorno" });
   });
 });

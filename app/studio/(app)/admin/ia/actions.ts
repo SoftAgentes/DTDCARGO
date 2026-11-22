@@ -40,7 +40,15 @@ async function candados(pestana: Pestana, formData: FormData) {
   return supabase;
 }
 
-/** D-5: con la contraseña, una autenticación nueva para lo que afloja el freno. Sin contraseña no hace nada. */
+/**
+ * D-5: con la contraseña, una autenticación nueva para lo que afloja el freno. Sin contraseña no hace nada.
+ *
+ * La sesión anterior no se cierra a propósito (revisión de la #763, M3). `signInWithPassword` deja la sesión nueva en
+ * las cookies de este navegador, y el refresh token viejo queda sin uso: es del mismo usuario, porque el correo sale de
+ * `getUser()`, y GoTrue lo vence según su política. La única forma de revocarlo desde aquí es
+ * `signOut({ scope: "others" })`, que además cierra las sesiones del usuario en sus otros equipos (el móvil, otra PC).
+ * Eso sería una sorpresa por subir un tope. Si se quiere revocar, la SDD de verificación en dos pasos decide.
+ */
 async function reautenticar(supabase: Awaited<ReturnType<typeof createClient>>, formData: FormData, pestana: Pestana) {
   const contrasena = formData.get("contrasena");
   if (typeof contrasena !== "string" || contrasena.length === 0) return;

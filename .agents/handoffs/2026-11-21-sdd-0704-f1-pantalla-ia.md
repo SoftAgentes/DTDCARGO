@@ -40,6 +40,7 @@
 | `check-pending-migration-symbols` | PASÓ: 0 ROJO, 3 AMARILLO declarados |
 | `page-gates-sensibles` | PASÓ tras darle gate propio a `admin/ia/page.tsx` (b86a13b2f) |
 | `rbac-actions-guard` | PASÓ 507/507 con superficie 88, exactos 61 e inventario 502 (75f4557c1; §15 enmendada con OK de Dir_DTD) |
+| `/ui-check` | OK con ajustes menores: corregido el doble envío; queda el espaciado en px fijos |
 
 `pnpm verify` completo (local, Windows, 2026-11-21): exit 1, 16 de 17 pasos corrieron. Por paso:
 
@@ -52,13 +53,29 @@
 | migrations-applied | NO DISPONIBLE: el worktree no tiene `.env` (a propósito) |
 
 El portón es el CI de GitHub.
-| `/ui-check` | OK con ajustes menores: corregido el doble envío; queda el espaciado en px fijos |
+
+### Revisión de la #763 (CHANGES_REQUESTED sobre `213a19d62`)
+
+- **B1:** cambiar el `uso` de una cuenta hacia la Oficina o desde ella ahora cuenta como aflojar y pide la barrera. Se
+  cubre con el contrato 4 (sacar de la Oficina, mismo uso, meter una cuenta del ERP en plan fijo, con y sin AAL2, y
+  sin evento cuando se rechaza) y con el mutante «cambiar el uso no afloja».
+- **M1:** `ia_exigir_aal2_si(null)` falla cerrada (solo un `false` explícito pasa sin barrera). Contrato 13 y mutante.
+- **M2:** la 0570 tiene postflight: tablas con RLS, sin escritura de `anon` ni `authenticated`, sin lectura de `anon`,
+  columnas de tokens, y las 13 funciones con `search_path` vacío y sin EXECUTE de `anon`.
+- **M3:** documentado en `actions.ts` por qué no se cierra la sesión anterior: `signOut({ scope: "others" })` cerraría
+  también las sesiones del usuario en sus otros equipos.
+- **M4:** `leerNumero` rechaza «1.000» sin coma (ambiguo) y sigue aceptando «0.125» y «1.000,00». Con su prueba.
+- **M5:** los fixtures del entorno pasan a valores inventados (tope 6, tarifas 7 y 29).
+- **M6 y M7:** esta tabla y el pendiente de staging, abajo.
 
 ## Pendiente de esta tarea
 
 - Aplicar la 0570 en producción: OK nominal de Sam y runbook.
-- Probar en staging que el GoTrue instalado pone `amr` con método `password` y su hora (NV). Sin eso, aflojar el freno
-  queda bloqueado (falla cerrado).
+- **Pendiente de staging (NV):** probar que el GoTrue instalado pone en el JWT `amr` con método `password` y su
+  `timestamp` después de `signInWithPassword`. Prueba: entrar al Studio de staging como superadmin, subir el tope con la
+  contraseña y ver que pasa con método `contrasena_reciente` en `entity_audit_log`; repetirlo pasados 5 minutos sin
+  contraseña y ver que la base lo rechaza. Sin eso la D-5 no está probada de punta a punta; mientras tanto, aflojar el
+  freno queda bloqueado (falla cerrado).
 - F1-B (0571: cadena de A1 y A2, clasificador, pestaña «Funciones»): sale después de que la F1-A esté en `main`.
 
 ## FUERA DE ALCANCE DETECTADO

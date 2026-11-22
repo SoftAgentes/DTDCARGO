@@ -10,8 +10,8 @@
 --   1. Aplicar la 0570 otra vez no falla; el catálogo queda sembrado y el origen sale del proveedor (D-2).
 --   2. Solo el superadministrador escribe, con sesión, tenant y motivo (4-200).
 --   3. Cuentas: plan fijo exige tope de llamadas; la cuenta de la Oficina no es china y es una sola.
---   4. AAL2 para aflojar en cuentas: alta en plan fijo, por token → plan fijo, subir o quitar el tope de llamadas.
---      Apretar (bajarlo, plan fijo → por token) no lo pide.
+--   4. AAL2 para aflojar en cuentas: alta en plan fijo, por token → plan fijo, subir o quitar el tope de llamadas,
+--      y cambiar el uso hacia la Oficina o desde ella. Apretar (bajarlo, plan fijo → por token) no lo pide.
 --   5. Modelos: fuera del catálogo o de otro proveedor no entra; por token exige tarifa, plan fijo no la lleva.
 --      AAL2 para la primera tarifa de la cuenta (el previo es el .env), para un alta con tarifa menor que la mayor
 --      declarada, para bajar una tarifa y para quitar un modelo con tarifa. Subirla o un alta mayor no lo pide.
@@ -25,7 +25,8 @@
 --      service_role no ejecuta las de la pantalla.
 --  12. El desarme deja la base sin objetos de la 0570; repetirlo no falla.
 --  13. La barrera (D-5 de Sam, 2026-11-21): aflojar pasa con AAL2 o con la contraseña de hace menos de 5 minutos
---      (amr «password»); una contraseña vieja u otro método no alcanzan. La auditoría guarda el método.
+--      (amr «password»); una contraseña vieja u otro método no alcanzan. La auditoría guarda el método. Un null
+--      no es «no afloja»: la barrera falla cerrada.
 
 begin;
 
@@ -192,6 +193,7 @@ do $c4$
 declare
   v_plan uuid := (select id from public.ia_cuentas where alias = 'Plan de análisis');
   v_ofi uuid := (select id from public.ia_cuentas where alias = 'Oficina Anthropic');
+  v_erp uuid;
   sa text := '00000000-0000-0000-0000-0000000005a1';
 begin
   -- Plan fijo: subir el tope de llamadas afloja; bajarlo no.
@@ -213,6 +215,34 @@ begin
   perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1', pg_catalog.format(
     $$select public.ia_guardar_cuenta(%L, 'Oficina Anthropic', 'anthropic', 'oficina', 'plan_fijo', 500, 'a plan fijo')$$, v_ofi)),
     '%ia:requiere_aal2%', 'CONTRATO 4 por token a plan fijo sin AAL2');
+  -- Cambiar el uso (B1 de la revisión de la #763). Sacar la cuenta de la Oficina la devuelve al .env: afloja.
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1', pg_catalog.format(
+    $$select public.ia_guardar_cuenta(%L, 'Oficina Anthropic', 'anthropic', 'erp', 'por_token', null, 'sacar de la oficina')$$, v_ofi)),
+    '%ia:requiere_aal2%', 'CONTRATO 4 sacar de la oficina sin AAL2');
+  -- Dejar el uso igual no pide nada.
+  perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1', pg_catalog.format(
+    $$select public.ia_guardar_cuenta(%L, 'Oficina Anthropic', 'anthropic', 'oficina', 'por_token', null, 'mismo uso')$$, v_ofi)),
+    'ok', 'CONTRATO 4 mismo uso sin AAL2');
+  -- Meter a la Oficina una cuenta del ERP en plan fijo (0 USD por llamada): afloja. Va en un bloque que se deshace,
+  -- para no sumar cuentas a los contratos siguientes.
+  begin
+    insert into public.ia_cuentas (tenant_id, alias, proveedor, uso, tipo_cobro, tope_llamadas_mes)
+    select c.tenant_id, 'ERP de paso', 'openai', 'erp', 'plan_fijo', 50 from public.ia_cuentas c where c.id = v_ofi
+    returning id into v_erp;
+    perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal1', pg_catalog.format(
+      $$select public.ia_guardar_cuenta(%L, 'ERP de paso', 'openai', 'oficina', 'plan_fijo', 50, 'meter a la oficina')$$, v_erp)),
+      '%ia:requiere_aal2%', 'CONTRATO 4 meter a la oficina sin AAL2');
+    -- Con AAL2 la barrera pasa y lo corta la regla de una sola Oficina.
+    perform pg_temp.espera(pg_temp.como('authenticated', sa, 'aal2', pg_catalog.format(
+      $$select public.ia_guardar_cuenta(%L, 'ERP de paso', 'openai', 'oficina', 'plan_fijo', 50, 'meter a la oficina')$$, v_erp)),
+      '%ia_cuentas_una_oficina%', 'CONTRATO 4 meter a la oficina con AAL2');
+    raise exception 'deshacer' using errcode = 'ZZ570';
+  exception when sqlstate 'ZZ570' then
+    null;
+  end;
+  if exists (select 1 from public.entity_audit_log where reason in ('sacar de la oficina', 'meter a la oficina')) then
+    raise exception 'CONTRATO 4: un cambio de uso rechazado dejó evento';
+  end if;
 end $c4$;
 
 -- 5. Modelos y tarifas.
@@ -459,6 +489,9 @@ begin
   if exists (select 1 from public.entity_audit_log where reason in ('subir con contraseña vieja', 'subir con otro método')) then
     raise exception 'CONTRATO 13: un cambio rechazado dejó evento';
   end if;
+  -- La barrera falla cerrada con null (M1 de la revisión de la #763).
+  perform pg_temp.espera(pg_temp.como(current_user::text, sa, 'aal1', $$select public.ia_exigir_aal2_si(null)$$),
+    '%ia:requiere_aal2%', 'CONTRATO 13 null no pasa');
 end $c13$;
 
 -- 12. Desarme.

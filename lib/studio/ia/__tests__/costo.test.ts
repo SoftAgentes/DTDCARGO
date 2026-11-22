@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { aplicarCosto, esElModelo, interpretarCostoOficina } from "../costo";
 
-const ENTORNO = { topeMensualUsd: 4, precios: { entradaPorMTok: 2, salidaPorMTok: 10 }, techoUsd: 15 };
+const ENTORNO = { topeMensualUsd: 6, precios: { entradaPorMTok: 7, salidaPorMTok: 29 }, techoUsd: 15 };
 
 const base = (o: Record<string, unknown> = {}) => ({
   version: 1,
@@ -37,7 +37,7 @@ describe("interpretarCostoOficina", () => {
 describe("aplicarCosto: tope", () => {
   it("sin la 0570 o sin pantalla manda el entorno", () => {
     const c = aplicarCosto(null, ENTORNO, false);
-    expect(c).toMatchObject({ topeMensualUsd: 4, origenTope: "entorno", conTokens: false, topeLlamadasMes: null });
+    expect(c).toMatchObject({ topeMensualUsd: 6, origenTope: "entorno", conTokens: false, topeLlamadasMes: null });
   });
 
   it("el de la pantalla manda, recortado al techo", () => {

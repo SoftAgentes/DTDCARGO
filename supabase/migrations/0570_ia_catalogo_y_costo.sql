@@ -367,7 +367,8 @@ declare
   v_jwt jsonb := coalesce(auth.jwt(), '{}'::jsonb);
   v_ahora numeric := extract(epoch from pg_catalog.now());
 begin
-  if p_afloja is not true then
+  -- Falla cerrada: solo un false explícito deja pasar sin barrera; un null la exige.
+  if p_afloja is false then
     return 'no_hace_falta';
   end if;
   if coalesce(v_jwt ->> 'aal', '') = 'aal2' then
@@ -421,8 +422,11 @@ begin
     if not found then
       raise exception 'ia:cuenta_inexistente' using errcode = '22023';
     end if;
+    -- Entrar a la Oficina o salir de ella cambia su tarifa efectiva (otra cuenta, el .env o plan fijo a 0 USD):
+    -- siempre afloja (revisión de la #763, B1).
     v_afloja :=
-      (v_antes.tipo_cobro = 'por_token' and p_tipo_cobro = 'plan_fijo')
+      ((v_antes.uso = 'oficina') is distinct from (p_uso = 'oficina'))
+      or (v_antes.tipo_cobro = 'por_token' and p_tipo_cobro = 'plan_fijo')
       or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas is null)
       or (v_antes.tope_llamadas_mes is not null and p_tope_llamadas > v_antes.tope_llamadas_mes);
     v_metodo := public.ia_exigir_aal2_si(v_afloja);
@@ -762,3 +766,56 @@ comment on function public.ia_costo_oficina() is
   'SDD-0704 §7: configuración de costo de la Oficina para el despachador (service_role), o null sin configuración.';
 comment on function public.ia_oficina_autopausar_por_llamadas(integer, numeric) is
   'SDD-0704 §7.5: si las llamadas del mes llegan al umbral del tope del plan fijo, pausa la oficina. SOLO PAUSA.';
+
+-- ─── 12. Postflight ──────────────────────────────────────────
+do $postflight$
+declare
+  v_tabla text;
+  v_firma text;
+  v_rol text;
+begin
+  foreach v_tabla in array array['public.ia_catalogo_modelos', 'public.ia_cuentas', 'public.ia_modelos', 'public.ia_topes'] loop
+    if not exists (select 1 from pg_catalog.pg_class c
+                    where c.oid = pg_catalog.to_regclass(v_tabla) and c.relrowsecurity) then
+      raise exception '0570 postflight: % no existe o no tiene RLS activa', v_tabla;
+    end if;
+    foreach v_rol in array array['anon', 'authenticated'] loop
+      if pg_catalog.has_table_privilege(v_rol, v_tabla, 'INSERT,UPDATE,DELETE,TRUNCATE') then
+        raise exception '0570 postflight: % puede escribir %', v_rol, v_tabla;
+      end if;
+    end loop;
+    if pg_catalog.has_table_privilege('anon', v_tabla, 'SELECT') then
+      raise exception '0570 postflight: anon puede leer %', v_tabla;
+    end if;
+  end loop;
+  if (select pg_catalog.count(*) from information_schema.columns
+       where table_schema = 'public' and table_name = 'task_events'
+         and column_name in ('tokens_entrada', 'tokens_salida')) <> 2 then
+    raise exception '0570 postflight: faltan task_events.tokens_entrada o tokens_salida';
+  end if;
+  foreach v_firma in array array[
+    'public.ia_modelos_coherente()',
+    'public.ia_cuentas_coherente()',
+    'public.ia_contexto_de_escritura(text)',
+    'public.ia_exigir_aal2_si(boolean)',
+    'public.ia_guardar_cuenta(uuid, text, text, text, text, integer, text)',
+    'public.ia_guardar_modelo(uuid, text, numeric, numeric, text)',
+    'public.ia_borrar_modelo(uuid, text)',
+    'public.ia_guardar_tope(text, numeric, text)',
+    'public.ia_borrar_tope(text, text)',
+    'public.ia_costo_oficina()',
+    'public.ia_oficina_llamadas_del_mes()',
+    'public.ia_oficina_autopausar_por_llamadas(integer, numeric)',
+    'public.ia_gasto_del_mes()'
+  ] loop
+    if not exists (select 1 from pg_catalog.pg_proc p
+                    where p.oid = pg_catalog.to_regprocedure(v_firma)
+                      and p.proconfig @> array['search_path=""']) then
+      raise exception '0570 postflight: % no existe o no tiene search_path vacío', v_firma;
+    end if;
+    if pg_catalog.has_function_privilege('anon', v_firma, 'EXECUTE') then
+      raise exception '0570 postflight: anon puede ejecutar %', v_firma;
+    end if;
+  end loop;
+end
+$postflight$;

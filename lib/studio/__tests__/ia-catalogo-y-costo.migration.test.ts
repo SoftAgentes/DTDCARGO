@@ -81,6 +81,12 @@ describe("0570 · catálogo y costo de la pantalla IA (PGlite)", () => {
     ["cualquier método vale", mutar("       and a.e ->> 'method' = 'password'\n", ""), "CONTRATO 13"],
     ["la contraseña no vale (solo AAL2)", mutar("    return 'contrasena_reciente';", "    raise exception 'ia:requiere_aal2' using errcode = '42501';"), "CONTRATO 13"],
     ["la auditoría no guarda el método", (sql) => sql.split("'metodo', v_metodo").join("'metodo', 'x'"), "CONTRATO 13"],
+    [
+      "cambiar el uso no afloja (B1)",
+      mutar("      ((v_antes.uso = 'oficina') is distinct from (p_uso = 'oficina'))\n      or ", "      "),
+      "CONTRATO 4",
+    ],
+    ["null no exige la barrera (M1)", mutar("  if p_afloja is false then", "  if p_afloja is not true then"), "CONTRATO 13"],
     ["alta en plan fijo sin AAL2", mutar("    v_afloja := p_tipo_cobro = 'plan_fijo';", "    v_afloja := false;"), "CONTRATO 4"],
     [
       "subir el tope de llamadas no afloja",
