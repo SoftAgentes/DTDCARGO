@@ -17,6 +17,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
+import { createAdminClient } from "@/lib/db/admin";
+import { type FuenteDeCadena, conCadenaAnthropic, fuenteDeServicio } from "@/lib/studio/ia/cadena";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { sendDiscordCategoryAlert } from "@/lib/studio/alerts/dispatch-alert";
@@ -50,7 +52,17 @@ export function buildDiscordBrief(kpis?: CeoBriefKpis): MinimalAlert {
   };
 }
 
-const MODEL = "claude-sonnet-4-6";
+/**
+ * SDD-0704 F1-B: el modelo sale de la cadena de A2 en la pantalla «IA» (hasta tres, con cambio automático); sin
+ * cadena, o sin la 0571, vale el de siempre (`MODELO_POR_DEFECTO.a2_brief`). El cron corre con la clave de servicio.
+ */
+function fuenteDelBrief(tenantId: string): FuenteDeCadena | null {
+  try {
+    return fuenteDeServicio(createAdminClient(), tenantId);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * KPIs del día anterior para 1 tenant. Todo aggregate, no rows.
@@ -179,11 +191,12 @@ export async function fetchCeoBriefKpis(
 }
 
 /**
- * Llama claude-sonnet-4-6 con los KPIs y devuelve un resumen ejecutivo
+ * Llama al modelo de la cadena de A2 (SDD-0704) con los KPIs y devuelve un resumen ejecutivo
  * de 3-5 líneas en español VE. Tono directo, sin felicitaciones.
  */
 export async function generateBriefText(
   kpis: CeoBriefKpis,
+  fuente: FuenteDeCadena | null = fuenteDelBrief(kpis.tenant_id),
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -195,10 +208,15 @@ export async function generateBriefText(
   const prompt = buildBriefPrompt(kpis);
 
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 400,
-      messages: [{ role: "user", content: prompt }],
+    const response = await conCadenaAnthropic({
+      funcion: "a2_brief",
+      fuente,
+      llamar: (model) =>
+        client.messages.create({
+          model,
+          max_tokens: 400,
+          messages: [{ role: "user", content: prompt }],
+        }),
     });
 
     const block = response.content.find((b) => b.type === "text") as
