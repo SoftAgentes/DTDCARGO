@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 685 specs)
+### Índice de specs (generado · 686 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -723,6 +723,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0704 | IA: pantalla con cadena de tres modelos por función, cambio a… | proposed | interno |
 | 0705 | Oficina_Virtual: aviso al cliente y guion explicar-servicio | proposed | interno |
 | 0706 | Studio: verificación en dos pasos (AAL2/TOTP) para las accion… | proposed | interno |
+| 0707 | El nombre «Conversaciones» pasa a «Soporte» en todo el sistema | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0685, 0687, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
