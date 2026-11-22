@@ -111,7 +111,7 @@ export function DataChangeEditor({
           </p>
           <Link
             href="/portal/soporte?tema=datos"
-            className="mt-3 min-h-11 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine-text hover:text-wine-deep"
+            className="mt-3 min-h-11 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accion-text hover:text-accion-hover"
           >
             <ChatIcon size={14} /> Hablar con soporte
           </Link>
@@ -133,7 +133,7 @@ export function DataChangeEditor({
                 instante. Tu código y tu email no se editan aquí.
               </p>
               {lastRejected && lastRejected.reviewNote ? (
-                <p className="mt-2 text-[12.5px] text-wine-text leading-[1.5]">
+                <p className="mt-2 text-[12.5px] text-ink leading-[1.5]">
                   Tu última solicitud no se aprobó: {lastRejected.reviewNote}
                 </p>
               ) : null}
@@ -235,7 +235,7 @@ export function DataChangeEditor({
               </button>
               <Link
                 href="/portal/soporte?tema=datos"
-                className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep inline-flex items-center gap-1.5 sm:ml-auto"
+                className="text-[12.5px] font-semibold text-accion-text hover:text-accion-hover inline-flex items-center gap-1.5 sm:ml-auto"
               >
                 <ChatIcon size={14} /> Mejor lo hablo por el chat
               </Link>
@@ -318,7 +318,7 @@ function PendingRequest({
           <button
             type="button"
             onClick={() => setConfirmingCancel(true)}
-            className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-wine-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            className="inline-flex items-center min-h-[24px] rounded-[4px] text-[12.5px] font-semibold text-grey-700 hover:text-accion-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Cancelar esta solicitud
           </button>
@@ -383,7 +383,7 @@ function EditField({
         placeholder={placeholder}
         aria-invalid={!!error}
         aria-describedby={error ? `${name}-err` : undefined}
-        className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
+        className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-accion"
       />
       {error ? <PortalFieldError id={`${name}-err`}>{error}</PortalFieldError> : null}
     </label>
