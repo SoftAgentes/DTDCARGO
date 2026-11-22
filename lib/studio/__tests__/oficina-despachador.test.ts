@@ -287,8 +287,8 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(t.estado).toBe("aprobación");
       const [b] = await filas(db, "select tipo, guion, texto from public.office_borradores");
       expect(b).toMatchObject({ tipo: "respuesta", guion: "derivar-equipo" });
-      // SDD-0705: primera respuesta de DTD (solo hay mensajes del cliente) → el aviso va delante, una vez.
-      expect(String(b.texto).startsWith(`${AVISO_CLIENTE}\n\n`)).toBe(true);
+      // SDD-0705 v0.2: primera respuesta de DTD (solo hay mensajes del cliente) → el aviso va al final, una vez.
+      expect(String(b.texto).endsWith(`\n\n${AVISO_CLIENTE}`)).toBe(true);
       expect(String(b.texto).split(AVISO_CLIENTE)).toHaveLength(2);
       const ev = await filas(db, "select tipo, actor, costo_usd::float8 as costo, modelo_usado from public.task_events order by ts, tipo");
       expect(ev.map((e) => e.tipo)).toEqual(expect.arrayContaining(["tarea.creada", "run.iniciada", "conversacion.leida", "modelo.respuesta", "run.terminada"]));
@@ -318,6 +318,23 @@ describe("despachador del cable (Paso 3a, modelo simulado)", () => {
       expect(r).toMatchObject({ estado: "corrida", resultado: { fin: "borrador" } });
       const [b] = await filas(db, "select texto from public.office_borradores");
       expect(String(b.texto)).not.toContain(AVISO_CLIENTE);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("SDD-0705 v0.2: si con el aviso el borrador pasa de 4000 caracteres, escala `borrador_largo` (no `fallo_interno`)", async () => {
+    const db = await base();
+    try {
+      await despausar(db);
+      await eventoEnTriaje(db);
+      const relleno = "Se la paso ya a una persona del equipo de DTD Cargo. ".repeat(80);
+      const texto = `Entiendo tu consulta. ${relleno}`.slice(0, 3950).trim();
+      const largo = JSON.stringify({ respuesta: { acuse: "Entiendo tu consulta.", texto, guion: "derivar-equipo" } });
+      const { d } = deps(db, { contenidos: [largo] });
+      expect(await tick(d)).toMatchObject({ estado: "corrida", resultado: { fin: "escalado", motivo: "borrador_largo" } });
+      const [b] = await filas(db, "select tipo, motivo, texto from public.office_borradores");
+      expect(b).toMatchObject({ tipo: "escalado", motivo: "borrador_largo", texto: null });
     } finally {
       await db.close();
     }
