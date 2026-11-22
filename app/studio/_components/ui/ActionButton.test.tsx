@@ -1,16 +1,6 @@
-/**
- * ActionButton · el temporizador del flash de éxito no sobrevive al desmontaje.
- *
- * En CI salía un error sin capturar («ReferenceError: window is not defined», desde el setTimeout de la línea del
- * flash de éxito) cuando una prueba terminaba antes de los 2,5 s del flash y jsdom ya se había cerrado. El
- * temporizador seguía vivo y llamaba a setSuccess sobre un componente desmontado.
- */
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import { ActionButton } from "./ActionButton";
-
-vi.mock("@/lib/i18n", () => ({ useT: () => (k: string) => k }));
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -21,9 +11,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function clickYResolver() {
+/** Dispara la acción y deja correr las promesas hasta que entra el flash. */
+async function dispararAccion() {
   fireEvent.click(screen.getByRole("button"));
-  // Deja correr la transición y la promesa de onAction.
   await act(async () => {
     await Promise.resolve();
     await Promise.resolve();
@@ -31,31 +21,52 @@ async function clickYResolver() {
 }
 
 describe("ActionButton · temporizador del flash de éxito", () => {
-  it("muestra el éxito y vuelve a idle tras successMs", async () => {
-    render(<ActionButton idleLabel="Enviar" successLabel="Enviado" successMs={1000} onAction={async () => {}} />);
-    await clickYResolver();
-    expect(screen.getByRole("button").textContent).toContain("Enviado");
-    await act(async () => {
+  it("muestra el flash y vuelve a idle pasados successMs", async () => {
+    render(
+      <ActionButton
+        idleLabel="Enviar"
+        successLabel="Enviado"
+        successMs={1000}
+        onAction={async () => {}}
+      />,
+    );
+    await dispararAccion();
+    expect(screen.getByRole("button")).toHaveTextContent("Enviado");
+    expect(screen.getByRole("button")).toBeDisabled();
+
+    act(() => {
       vi.advanceTimersByTime(1000);
     });
-    expect(screen.getByRole("button").textContent).toContain("Enviar");
-    expect(vi.getTimerCount()).toBe(0);
+    expect(screen.getByRole("button")).toHaveTextContent("Enviar");
+    expect(screen.getByRole("button")).not.toBeDisabled();
   });
 
-  it("al desmontar durante el flash, el temporizador se cancela (no queda ninguno pendiente)", async () => {
+  it("al desmontar durante el flash no deja ningún temporizador vivo", async () => {
     const { unmount } = render(
-      <ActionButton idleLabel="Enviar" successLabel="Enviado" successMs={2500} onAction={async () => {}} />,
+      <ActionButton
+        idleLabel="Enviar"
+        successLabel="Enviado"
+        successMs={2500}
+        onAction={async () => {}}
+      />,
     );
-    await clickYResolver();
+    await dispararAccion();
+    expect(screen.getByRole("button")).toHaveTextContent("Enviado");
     expect(vi.getTimerCount()).toBeGreaterThan(0);
+
     unmount();
+    // Sin el cleanup el setTimeout sigue vivo y dispararía setSuccess(false)
+    // sobre un componente desmontado (y sobre un jsdom cerrado en el CI).
     expect(vi.getTimerCount()).toBe(0);
+    expect(() => vi.advanceTimersByTime(5000)).not.toThrow();
   });
 
-  it("si onAction termina después del desmontaje, no se crea ningún temporizador", async () => {
+  it("si onAction termina DESPUÉS del desmontaje, no se crea ningún temporizador", async () => {
     let terminar: () => void = () => {};
     const onAction = () => new Promise<void>((r) => (terminar = r));
-    const { unmount } = render(<ActionButton idleLabel="Enviar" successLabel="Enviado" onAction={onAction} />);
+    const { unmount } = render(
+      <ActionButton idleLabel="Enviar" successLabel="Enviado" onAction={onAction} />,
+    );
     fireEvent.click(screen.getByRole("button"));
     unmount();
     await act(async () => {

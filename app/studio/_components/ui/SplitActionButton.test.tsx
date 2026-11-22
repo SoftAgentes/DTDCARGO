@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -113,5 +113,50 @@ describe("SplitActionButton menu", () => {
     expect(await screen.findByRole("menu")).toHaveStyle({
       bottom: "calc(100% + 6px)",
     });
+  });
+});
+
+describe("SplitActionButton · temporizador del flash de éxito", () => {
+  const conExito = (onAction: SplitAction["onAction"]): SplitAction[] => [
+    { key: "close", idleLabel: "Crear y cerrar", successLabel: "Creado", onAction },
+  ];
+  const principal = () => screen.getByRole("button", { name: /Crear y cerrar|Creado/ });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("al desmontar durante el flash no deja ningún temporizador vivo", async () => {
+    const { unmount } = render(
+      <SplitActionButton memoryKey="test-flash" actions={conExito(async () => {})} />,
+    );
+    fireEvent.click(principal());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(principal()).toHaveTextContent("Creado");
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("si la acción termina DESPUÉS del desmontaje, no se crea ningún temporizador", async () => {
+    let terminar: () => void = () => {};
+    const onAction = () => new Promise<void>((r) => (terminar = r));
+    const { unmount } = render(
+      <SplitActionButton memoryKey="test-flash-async" actions={conExito(onAction)} />,
+    );
+    fireEvent.click(principal());
+    unmount();
+    await act(async () => {
+      terminar();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
