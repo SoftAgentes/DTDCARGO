@@ -465,7 +465,7 @@ Después, recrear **solo** el `web`.
 2. **Crear el webhook en la cuenta de prueba** (no en la cuenta real): URL `https://<dominio del ERP>/api/oficina/webhook-chatwoot`,
    evento `message_created`. Su «secret» va al `.env` como `OFICINA_WEBHOOK_SECRET`, de archivo a archivo.
 3. Crear (o rotar) los dos tokens de los usuarios agentes y copiarlos al `.env` de archivo a archivo.
-4. Despausar la oficina: el superadministrador, con el botón de `/studio/admin/oficina` (§14). Por SQL sigue siendo
+4. Despausar la oficina: el superadministrador, con el botón de `/studio/admin/oficina-virtual` (§15). Por SQL sigue siendo
    `office_cambiar_pausa(false, '<motivo>')`, como platform admin.
 5. **Verificar, después de encender:**
    - un aviso firmado de **otra cuenta** (la del ERP) al webhook del cable responde `{"ok":true,"ignorado":"cuenta"}` y no
@@ -478,7 +478,7 @@ Después, recrear **solo** el `web`.
 
 ### Vuelta atrás y cierre
 
-- **Al instante, sin recrear nada:** el botón «Pausar la oficina» de `/studio/admin/oficina` (§14), o por SQL
+- **Al instante, sin recrear nada:** el botón «Pausar la oficina» de `/studio/admin/oficina-virtual` (§15), o por SQL
   `office_cambiar_pausa(true, '<motivo>')`. El envío la mira antes de cada mensaje y
   dentro de la reserva; el despachador, en cada tanda.
 - **Solo el envío:** `OFICINA_ENVIO_ACTIVO` vacío y recrear el `web`. Lo aprobado queda esperando.
@@ -660,8 +660,10 @@ No tiene variable ni interruptor: está siempre, porque pausar tiene que estar a
 
 - **«No se pudo leer si la oficina está pausada»:** solo ofrece pausar. Si hay que despausar, primero se arregla la
   lectura (o se usa el SQL de arriba).
-- **«La pausó el tope de gasto»:** despausar no dura. El despachador la vuelve a pausar mientras el gasto del mes
-  siga sobre el 80 % de `OFICINA_TOPE_MENSUAL_USD`. Subir el tope es una decisión de Sam.
+- **«La pausó la auto-pausa por tope»:** despausar no dura. Hay dos motivos con el prefijo «Auto-pausa»: el gasto del
+  mes sobre el 80 % de `OFICINA_TOPE_MENSUAL_USD` y, en el plan fijo, las llamadas del mes sobre el umbral de su tope
+  (0570). El despachador la vuelve a pausar mientras el consumo siga sobre el umbral; el motivo de arriba dice cuál
+  fue. Subir el tope es una decisión de Sam.
 
 ### Si el botón falla
 

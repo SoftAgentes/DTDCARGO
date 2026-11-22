@@ -521,7 +521,7 @@ Sam pidió que «la oficina» se llame **Oficina_Virtual** en todos lados: en pa
 **El botón de pausa (§3.1 · SGE-AG-01 §7).** Hasta el 18/11/2026 la oficina solo se pausaba o despausaba con SQL:
 `office_cambiar_pausa` (0541) existía, pero ninguna pantalla la llamaba. La etapa 1 le pide a Sam pausar al terminar
 cada sesión, así que Sam pidió el botón («Sí, haz el botón»). No lleva migración.
-- **Dónde:** arriba en `/studio/admin/oficina` (la revisión, solo `is_platform_admin`). **No depende de
+- **Dónde:** arriba en `/studio/admin/oficina-virtual` (la revisión, solo `is_platform_admin`). **No depende de
   `OFICINA_VISTA_ACTIVA` ni de ningún otro interruptor:** pausar tiene que estar siempre a mano.
 - **Qué muestra:** si la oficina está pausada o despausada, el último cambio (cuándo, quién, motivo) y **un solo
   botón**, el contrario del estado: «Pausar la oficina» o «Despausar la oficina».
@@ -534,8 +534,9 @@ cada sesión, así que Sam pidió el botón («Sí, haz el botón»). No lleva m
   el mismo candado de la mini-vista (el cliente de servicio solo se crea después del «sí» de `is_platform_admin()`) y
   lee una fila, la última. Sin filas, la oficina se trata como pausada. **Si el estado no se pudo leer, la pantalla
   solo ofrece pausar.**
-- **Auto-pausa.** Si la pausó el tope de gasto, la pantalla avisa que despausar no dura: el despachador la vuelve a
-  pausar mientras el gasto del mes siga sobre el 80 % del tope.
+- **Auto-pausa.** Si la pausó la auto-pausa por tope (el gasto del mes sobre el 80 % del tope, o las llamadas del mes
+  del plan fijo sobre su umbral, 0570), la pantalla avisa que despausar no dura: el despachador la vuelve a pausar
+  mientras el consumo siga sobre el umbral. El texto no distingue los dos motivos; el motivo del último cambio, sí.
 
 **Archivos del botón de pausa (allowlist):**
 - `lib/studio/oficina/pausa.ts`, `lib/studio/oficina/mini-vista.ts` (exporta `cambioDePausa`) y

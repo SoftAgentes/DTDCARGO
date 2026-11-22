@@ -64,7 +64,7 @@ export function TarjetaPausa({ pausa, accion }: { pausa: LecturaPausa; accion: (
           ? "Pausar detiene al agente y al envío en el próximo minuto. No borra nada: las tareas y los borradores quedan como están."
           : "Despausar pone al agente a redactar otra vez. Nada se envía sin tu aprobación."}
         {!conocida ? " Como no se pudo leer el estado, aquí solo se puede pausar." : null}
-        {porTope ? " La pausó el tope de gasto: mientras el gasto del mes siga sobre el 80 % del tope, se volverá a pausar sola." : null}
+        {porTope ? " La pausó la auto-pausa por tope (el gasto del mes o las llamadas del plan fijo): mientras el consumo siga sobre el umbral del tope, se volverá a pausar sola." : null}
       </p>
       <form action={accion} style={{ marginTop: "var(--s-3, 12px)" }}>
         <input type="hidden" name="pausar" value={pausar ? "si" : "no"} />

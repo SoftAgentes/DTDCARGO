@@ -52,7 +52,8 @@ El #664 ya está en main. Se hizo `git merge origin/main` (sin rebase ni force) 
   candados (`moduleEditDenial("admin")` y `platformAdminDenial`); la tarjeta no se pinta sin `is_platform_admin`
   (`leerPausa` devuelve `sin_permiso`). Colores solo con variables (`--bg-surface`, `--ink`, `--border`); el botón
   pasó a `studio-btn-primary` (azul de acción). Sin vino.
-- Los candados de rama: `docs:check`, tsc y eslint (ver PR). Vitest pendiente de turno de PC.
+- Los candados de rama: `docs:check`, tsc y eslint (ver PR). Vitest (`pausa`, `oficina-contraste`, `rbac-actions-guard`): 3 archivos y 537 pruebas en verde sobre 6742b42eb (turno de PC dado por Sam).
+- **Auto-pausa:** el texto de la tarjeta, el runbook §15 y la spec ya no dicen solo «tope de gasto»: la 0570 también pausa por las llamadas del plan fijo.
 
 ## Qué se ejecutó y qué no
 

@@ -341,10 +341,10 @@ describe("pausa · la tarjeta", () => {
     expect(html).not.toContain("Despausar la oficina");
   });
 
-  it("pausada por el tope de gasto: avisa que se volverá a pausar sola", () => {
+  it("pausada por la auto-pausa por tope (gasto o llamadas del plan fijo): avisa que se volverá a pausar sola", () => {
     const html = pintar({ ok: true, pausada: true, vigente: vigente(true, "Auto-pausa: el gasto del mes (0.8100 USD) llegó al 80 % del tope (1 USD).") });
-    expect(html).toContain("La pausó el tope de gasto");
-    expect(pintar({ ok: true, pausada: true, vigente: vigente(true) })).not.toContain("La pausó el tope de gasto");
+    expect(html).toContain("La pausó la auto-pausa por tope");
+    expect(pintar({ ok: true, pausada: true, vigente: vigente(true) })).not.toContain("La pausó la auto-pausa por tope");
   });
 
   it("sin permiso no pinta nada; sin la 0541 lo dice y no ofrece ningún botón", () => {
