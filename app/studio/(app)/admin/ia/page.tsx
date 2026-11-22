@@ -15,14 +15,17 @@ import { AVISOS_IA, costoEfectivoOficina, leerPantallaIa, tonoDelAviso } from "@
 import { TOPE_MENSUAL_MAXIMO_USD, configDespachador } from "@/lib/studio/oficina/despachador-config";
 
 import { AvisoResultado } from "../oficina-virtual/_components/AvisoResultado";
+import { AVISOS_FUNCIONES, leerFunciones } from "./funciones";
 import { PestanaCuentas } from "./_components/PestanaCuentas";
+import { PestanaFunciones } from "./_components/PestanaFunciones";
 import { PestanaGasto } from "./_components/PestanaGasto";
 
 export const metadata = { title: "IA" };
 export const dynamic = "force-dynamic";
 
-type Pestana = "gasto" | "cuentas";
+type Pestana = "funciones" | "gasto" | "cuentas";
 const PESTANAS: Array<{ clave: Pestana; etiqueta: string }> = [
+  { clave: "funciones", etiqueta: "Funciones" },
   { clave: "gasto", etiqueta: "Gasto" },
   { clave: "cuentas", etiqueta: "Cuentas y tarifas" },
 ];
@@ -35,10 +38,15 @@ export default async function IaPage({ searchParams }: { searchParams: Promise<R
 
   const sp = await searchParams;
   const uno = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : null);
-  const activa: Pestana = uno("tab") === "cuentas" ? "cuentas" : "gasto";
+  const tab = uno("tab");
+  const activa: Pestana = tab === "cuentas" ? "cuentas" : tab === "gasto" ? "gasto" : "funciones";
   const r = uno("r");
+  const avisos: Readonly<Record<string, string>> = { ...AVISOS_IA, ...AVISOS_FUNCIONES };
 
-  const lectura = await leerPantallaIa(supabase);
+  const [lectura, funciones] = await Promise.all([
+    leerPantallaIa(supabase),
+    activa === "funciones" ? leerFunciones(supabase) : Promise.resolve(null),
+  ]);
   const entorno = configDespachador();
   const costo = lectura.ok
     ? costoEfectivoOficina(lectura.datos, { topeMensualUsd: entorno.topeMensualUsd, precios: entorno.precios, techoUsd: TOPE_MENSUAL_MAXIMO_USD })
@@ -57,12 +65,12 @@ export default async function IaPage({ searchParams }: { searchParams: Promise<R
       </h1>
       <p style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 16px", maxWidth: "76ch" }}>
         Cuánto se gastó este mes, el tope de la Oficina_Virtual y lo que cobra cada cuenta. Las llaves no se ven aquí.
-        Elegir el modelo de cada función llega en la siguiente fase.
+        En «Funciones» eliges el modelo de A1 y A2, con hasta dos de respaldo.
       </p>
 
-      {r && AVISOS_IA[r] ? (
+      {r && avisos[r] ? (
         <AvisoResultado key={uno("n") ?? r} tono={tonoDelAviso(r)}>
-          {AVISOS_IA[r]}
+          {avisos[r]}
         </AvisoResultado>
       ) : null}
 
@@ -80,7 +88,17 @@ export default async function IaPage({ searchParams }: { searchParams: Promise<R
         ))}
       </nav>
 
-      {!lectura.ok ? (
+      {activa === "funciones" ? (
+        funciones?.ok ? (
+          <PestanaFunciones datos={funciones.datos} />
+        ) : (
+          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" }}>
+            {funciones?.motivo === "sin_migracion"
+              ? "Falta aplicar la migración 0571. Mientras tanto, A1 y A2 siguen con su modelo de siempre."
+              : AVISOS_IA.error}
+          </p>
+        )
+      ) : !lectura.ok ? (
         <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)" }}>
           {lectura.motivo === "sin_migracion" ? AVISOS_IA.sin_migracion : AVISOS_IA.error}
         </p>
