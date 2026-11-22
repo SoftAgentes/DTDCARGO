@@ -631,7 +631,9 @@ GoTrue instalado ponga `amr` con método `password` y su hora en el JWT es **NV*
     `lib/studio/__tests__/oficina-despachador-costo.test.ts`. La ruta `app/api/cron/oficina-despachador/route.ts` no
     se toca;
   - `app/studio/(app)/admin/ia/layout.tsx`, `page.tsx`, `actions.ts`, `_components/*.tsx` y `__tests__/*`;
-  - `app/studio/(app)/admin/page.tsx` (solo la tarjeta «IA» en PRO).
+  - `app/studio/(app)/admin/page.tsx` (solo la tarjeta «IA» en PRO);
+  - `lib/studio/rbac-actions-guard.test.ts`, solo los contadores con su comentario de procedencia (superficie 88,
+    exactos 61, inventario 502). Lo sumó Dir_DTD el 2026-11-21.
 - **F1-B (cadena de A1 y A2):**
   - `supabase/migrations/0571_ia_cadenas_y_eventos.sql`, su `.test.sql`, su desarme, `migrations-baseline.json`,
     `pending-migration-symbol-declarations.json` y su prueba en PGlite;
