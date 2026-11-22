@@ -360,6 +360,7 @@ const SECTIONS: AdminSection[] = [
     href: "/studio/admin/agentes",
   },
   { id: "chatwoot-updates", group: "PRO", label: "Actualizaciones de Chatwoot", icon: "refresh", description: "Versión instalada de la Bandeja, la publicada y qué trae cada una. Pedir una actualización la deja registrada; no instala nada.", href: "/studio/admin/actualizaciones", sddRef: "SDD-0588" },
+  { id: "ia", group: "PRO", label: "IA", icon: "spark", description: "Gasto del mes, tope de la Oficina_Virtual y lo que cobra cada cuenta de IA (por token o plan fijo). Solo el superadministrador.", href: "/studio/admin/ia", sddRef: "SDD-0704" },
 ];
 
 const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "MARCA", "INTERMEDIO", "PRO"];
