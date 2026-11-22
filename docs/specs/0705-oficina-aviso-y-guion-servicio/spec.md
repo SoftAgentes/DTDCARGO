@@ -165,6 +165,60 @@ Allowlist de la v0.3: `lib/studio/oficina/aviso-cliente.ts`, `lib/studio/oficina
 comentarios), `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`, `docs/runbooks/oficina-cable.md`, esta
 spec y `.agents/handoffs/2026-11-22-sdd-0705-v03-menores.md`.
 
+## Enmienda v0.4 (22/11/2026): los tres guiones del encargo B
+
+Hermes DIRECTOR redactó cuatro guiones (buzón Kanban t_a5065638, 21/11/2026 23:11Z). Sam aprobó tres con sus
+palabras, el 22/11/2026: «Apruebo 1, 2 y 3». Para `precios-tiempos`, Sam eligió después su propia versión
+(v0.4 en el buzón, 22/11/2026 00:33Z y 00:46Z), con sus palabras al Director DTD: «Guion precios-tiempos: opción B,
+mi v0.4 con Tarifas y 60 a 90 días». Van en `guiones-soporte.ts` v0.4:
+
+| Guion | Cuándo | Límite duro |
+|---|---|---|
+| `precios-tiempos` | Pregunta cuánto cuesta o cuánto tarda | Precios en general: la web, sección Tarifas, sin enlace. Tiempos: solo el rango aproximado «en general estamos entre 60 y 90 días», nunca una fecha. Nunca el precio de una carga en particular ni un monto: portal o asesor |
+| `estado-sin-guia` | Pregunta por su paquete sin dar la guía | No da estado sin guía; pide la guía. Reemplaza a `pedir-guia` |
+| `quejas` | Reclamo o insatisfacción | No promete reembolso ni compensación, no culpa, no minimiza; deriva |
+
+- **El acuse de `precios-tiempos`.** El borrador de Hermes traía «[el costo / los tiempos]» para elegir. Quedó una
+  sola frase, «Entendí que quieres saber el costo o los tiempos de tu envío.», porque un texto entre corchetes en el
+  borrador choca con la regla `marcador` de SDD-0700 y escalaría.
+- **Texto completo de `precios-tiempos`** (la v0.4 de Sam, frase por frase como en el buzón, con el acuse de arriba):
+  «Entendí que quieres saber el costo o los tiempos de tu envío. Los precios los ves en la página web de DTD Cargo, en
+  la sección Tarifas. Los tiempos dependen de cada embarque, pero en general estamos entre 60 y 90 días. Si quieres
+  más detalles, te puedo pasar con un asesor. O si tienes otras preguntas técnicas, aquí estoy para ayudarte.» El
+  límite de la carga propia (portal o asesor, nunca un monto) va en el «cuándo»: el buzón no trae una frase aprobada
+  para eso, y el cierre ya ofrece el asesor.
+- **El 60 y el 90 solo dentro de su frase.** Antes, `revisarRespuesta` dejaba pasar una cifra si aparecía en
+  cualquier parte del guion. Con la v0.4, un «60» inventado en otra frase («tu caja cuesta 60») habría pasado. Ahora
+  `sinFrasesDelGuion` quita del borrador las frases del guion copiadas tal cual, y cualquier cifra, fecha, estado o
+  promesa que quede en el resto escala con `dato_inventado`. Es más estricto para todos los guiones: si el agente
+  parafrasea la lista de `explicar-servicio` o el `control`, ahora escala, que es el lado seguro.
+- **Una pregunta de precio** casi siempre escala antes, por dinero (`tema-dinero.ts`), sin llamar al agente. El
+  guion cubre sobre todo los tiempos.
+- **`derivar-equipo`** ya no cubre los reclamos: van con `quejas`.
+- **`estado-con-guia`**, el cuarto del encargo, queda para el SDD de WhatsApp: hoy el agente no ve el sistema de
+  envíos y solo podría derivar.
+- **Los servicios informan, no venden.** `precios-tiempos` no trae montos, descuentos ni ofertas, ni un llamado a
+  comprar: remite a la sección Tarifas de la web y da un rango informativo («en general»), que no promete una fecha.
+  Si el agente le agrega una cifra, un plazo o una promesa («te garantizo», «gratis», «descuento»), la revisión
+  automática escala con `dato_inventado` (lo cubren las pruebas).
+
+### Allowlist v0.4
+
+- `lib/studio/oficina/guiones-soporte.ts`
+- `lib/studio/oficina/__tests__/aviso-guion-servicio.test.ts`
+- `lib/studio/__tests__/oficina-paso3b.test.ts` (solo cambia `pedir-guia` por `estado-sin-guia`)
+- `lib/studio/oficina/eval-automatico.ts` (exporta normal y PATRONES para las pruebas, y agrega `sinFrasesDelGuion`:
+  una cifra del guion solo vale dentro de su frase)
+- `docs/specs/0705-oficina-aviso-y-guion-servicio/spec.md`
+- `.agents/handoffs/2026-11-22-sdd-0705-v04-guiones.md`
+
+Pruebas: `aviso-guion-servicio.test.ts` (los tres pasan la revisión tal cual; un precio, plazo, estado o promesa
+agregados escalan con `dato_inventado`; no traen cifras, enlaces ni marcadores; `pedir-guia` ya no existe).
+M2 (revisión de la #771): un `toBe` literal fija el texto completo de cada uno de los tres guiones, y otra prueba
+recorre `PATRONES` de `eval-automatico.ts` sobre el texto normalizado (`normal`) de cada uno: solo encuentra el 60 y
+el 90 de `precios-tiempos`. Mutantes: «30 días», otro rango o un monto en la frase escalan; el 60 y el 90 en otra
+frase o con otro guion escalan. `oficina-paso3b.test.ts` usa `estado-sin-guia` donde usaba `pedir-guia`.
+
 ## Vuelta atrás
 
 Revertir el commit. No hay migración ni datos. Los borradores ya guardados con el aviso siguen igual: Sam los aprueba
