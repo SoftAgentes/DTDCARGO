@@ -2,7 +2,7 @@
  * PortalFieldError — el mensaje de error del Portal, en un solo lugar (SDD-0261).
  *
  * POR QUÉ EXISTE. Los ~42 mensajes de error del portal se pintaban con
- * `text-wine`, que mide 3,00:1 sobre la card en el tema oscuro (el default de
+ * el vino como texto, que mide 3,00:1 sobre la card en el tema oscuro (el default de
  * todo cliente). Eso rompía dos políticas aprobadas a la vez:
  *
  *   · BTN-01 §2 — "el vino de marca no sustituye `danger`". El vino es

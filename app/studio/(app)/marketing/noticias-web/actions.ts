@@ -30,8 +30,9 @@
 "use server";
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
+import type { MessageCreateParamsNonStreaming, TextBlock } from "@anthropic-ai/sdk/resources/messages";
 import { createClient } from "@/lib/db/server";
+import { conCadenaAnthropic, fuenteConSesion } from "@/lib/studio/ia/cadena";
 import { tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
   NEWS_CATEGORIES_V4,
@@ -217,7 +218,18 @@ export interface DraftState {
 
 // ── Helpers internos ──────────────────────────────────────────
 
-const MODEL = "claude-sonnet-4-6";
+/**
+ * SDD-0704 F1-B: el modelo sale de la cadena de A1 en la pantalla «IA» (hasta tres, con cambio automático); sin
+ * cadena, o sin la 0571, vale el de siempre (`MODELO_POR_DEFECTO.a1_noticias`). Corre con la sesión de quien redacta.
+ */
+async function crearMensaje(client: Anthropic, params: Omit<MessageCreateParamsNonStreaming, "model">) {
+  const supabase = await createClient();
+  return conCadenaAnthropic({
+    funcion: "a1_noticias",
+    fuente: fuenteConSesion(supabase),
+    llamar: (model) => client.messages.create({ ...params, model }),
+  });
+}
 
 /** Mapeo tono → instrucción para Claude (legacy fallback). */
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
@@ -350,8 +362,7 @@ export async function detectBriefIntent(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     });
@@ -446,8 +457,7 @@ export async function routeIdea(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 900,
       messages: [{ role: "user", content: prompt }],
     });
@@ -592,8 +602,7 @@ export async function detectCategory(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 400,
       messages: [{ role: "user", content: prompt }],
     });
@@ -649,8 +658,7 @@ export async function suggestKeywords(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 800,
       messages: [{ role: "user", content: prompt }],
     });
@@ -738,8 +746,7 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 1500,
       messages: [{ role: "user", content: prompt }],
     });
@@ -795,8 +802,7 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 2000,
       messages: [{ role: "user", content: prompt }],
     });
@@ -857,8 +863,7 @@ export async function generateOutlines(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 3000,
       messages: [{ role: "user", content: prompt }],
     });
@@ -943,8 +948,7 @@ export async function generateArticle(
 
   try {
     const client = getClient();
-    const response = await client.messages.create({
-      model: MODEL,
+    const response = await crearMensaje(client, {
       max_tokens: 4000,
       messages: [{ role: "user", content: prompt }],
     });

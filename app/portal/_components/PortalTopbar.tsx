@@ -201,11 +201,11 @@ function SailingPill({
     };
   }, [open]);
 
-  // <48h al cierre = urgencia en dorado (Norte). Sin dato → tono wine normal.
+  // <48h al cierre = urgencia en dorado (Norte). Sin dato → tinta.
   const urgent = serverDays != null && serverDays <= 2;
   const accent = urgent
     ? "var(--color-status-warning)"
-    : "var(--color-wine-text)";
+    : "var(--color-ink)";
   const days =
     serverDays == null
       ? "—"

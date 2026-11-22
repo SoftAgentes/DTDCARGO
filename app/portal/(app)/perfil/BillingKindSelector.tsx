@@ -89,7 +89,7 @@ export function BillingKindSelector({
       aria-labelledby="facturacion-titulo"
       className="scroll-mt-24 card-shadow bg-white border border-grey-200 rounded-[18px] p-5 sm:p-8"
     >
-      <div className="text-[12px] font-extrabold tracking-[0.14em] uppercase text-wine-text">Facturación</div>
+      <div className="text-[12px] font-extrabold tracking-[0.14em] uppercase text-grey-700">Facturación</div>
       <h2
         id="facturacion-titulo"
         className="mt-2 text-[20px] sm:text-[22px] leading-tight text-ink"
@@ -113,7 +113,7 @@ export function BillingKindSelector({
                 disabled
                   ? undefined
                   : checked
-                    ? { border: "2px solid var(--color-wine)" }
+                    ? { border: "2px solid var(--color-ink)" }
                     : { border: "1px solid var(--color-grey-300)" }
               }
             >
@@ -125,7 +125,7 @@ export function BillingKindSelector({
                 disabled={disabled || pending}
                 onChange={() => choose(option.kind)}
                 className="mt-0.5 h-[22px] w-[22px] flex-shrink-0"
-                style={{ accentColor: "var(--color-wine)" }}
+                style={{ accentColor: "var(--color-accion)" }}
               />
               <span className="flex min-w-0 flex-col gap-1">
                 <span className={`text-[15.5px] font-extrabold ${disabled ? "text-grey-500" : "text-ink"}`}>
