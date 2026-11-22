@@ -162,14 +162,14 @@
           "name": "ia_cadena_de",
           "kind": "function",
           "callSites": [
-            "lib/studio/ia/cadena.ts:177"
+            "lib/studio/ia/cadena.ts:180"
           ]
         },
         {
           "name": "ia_registrar_evento",
           "kind": "function",
           "callSites": [
-            "lib/studio/ia/cadena.ts:181"
+            "lib/studio/ia/cadena.ts:184"
           ]
         },
         {
@@ -177,31 +177,31 @@
           "kind": "table",
           "callSites": [
             "app/studio/(app)/admin/ia/funciones.ts:53",
-            "lib/studio/ia/cadena.ts:201"
+            "lib/studio/ia/cadena.ts:205"
           ]
         },
         {
           "name": "ia_eventos",
           "kind": "table",
           "callSites": [
-            "app/studio/(app)/admin/ia/funciones.ts:56",
-            "lib/studio/ia/cadena.ts:209"
+            "app/studio/(app)/admin/ia/funciones.ts:57",
+            "lib/studio/ia/cadena.ts:213"
           ]
         }
       ],
       "evidence": [
         {
-          "site": "lib/studio/ia/cadena.ts:178",
+          "site": "lib/studio/ia/cadena.ts:181",
           "contains": "return error ? null : puestosDe(data);",
           "degradation": "Sin la 0571 la RPC ia_cadena_de no existe: la lectura da null y A1 usa su modelo por defecto (MODELO_POR_DEFECTO), como antes de la 0704. Anotar el intento falla en silencio y nunca rompe la función."
         },
         {
-          "site": "lib/studio/ia/cadena.ts:206",
+          "site": "lib/studio/ia/cadena.ts:210",
           "contains": "return error ? null : puestosDe(data);",
           "degradation": "Sin la 0571 la tabla ia_cadenas no existe: A2 (cron con la clave de servicio) usa su modelo por defecto; el insert en ia_eventos falla en silencio."
         },
         {
-          "site": "lib/studio/ia/cadena.ts:137",
+          "site": "lib/studio/ia/cadena.ts:140",
           "contains": "leida = null;",
           "degradation": "Si leer la cadena lanza por cualquier motivo, vale el modelo por defecto: la función sigue igual que antes de la 0704."
         }
@@ -222,8 +222,8 @@
       ],
       "evidence": [
         {
-          "site": "app/studio/(app)/admin/ia/funciones.ts:64",
-          "contains": "return { ok: false, motivo: faltaLa0570(cadenas.error) || faltaLa0570(eventos.error) ? \"sin_migracion\" : \"error\" };",
+          "site": "app/studio/(app)/admin/ia/funciones.ts:67",
+          "contains": "return { ok: false, motivo: faltaLa0570(cadenas.error) || faltaLa0570(errorDeSaltos) ? \"sin_migracion\" : \"error\" };",
           "degradation": "Sin la 0571 la pestaña «Funciones» dice que falta la migración y no muestra ni escribe nada; A1 y A2 siguen con su modelo por defecto."
         },
         {

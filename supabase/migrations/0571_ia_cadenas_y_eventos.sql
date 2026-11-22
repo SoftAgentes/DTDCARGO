@@ -29,7 +29,8 @@
 --    la barrera (§8).
 -- 4. ia_cadena_de(función) e ia_registrar_evento(…): para A1, que corre con la
 --    sesión de quien redacta (no tiene por qué ser superadmin). Solo leen la
---    cadena de su tenant y solo anotan eventos de A1. A2 corre en un cron con la
+--    cadena de su tenant y solo anotan eventos de A1; anotar exige lo mismo que
+--    el gate de noticias (admin activo de su tenant, is_tenant_admin()). A2 corre en un cron con la
 --    clave de servicio y lee y escribe directo, con grants mínimos.
 --
 -- ── Qué NO toca ──────────────────────────────────────────────
@@ -61,6 +62,7 @@ begin
         pg_catalog.to_regprocedure('public.ia_contexto_de_escritura(text)') is not null),
       ('function public.is_platform_admin()', pg_catalog.to_regprocedure('public.is_platform_admin()') is not null),
       ('function public.get_user_tenant_id()', pg_catalog.to_regprocedure('public.get_user_tenant_id()') is not null),
+      ('function public.is_tenant_admin() (0271)', pg_catalog.to_regprocedure('public.is_tenant_admin()') is not null),
       ('function public.append_audit_event(…)', pg_catalog.to_regprocedure(
         'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)') is not null),
       ('audit type ia_config (0570)', exists (select 1 from public.audit_entity_types where entity_type = 'ia_config'))
@@ -146,6 +148,8 @@ create table if not exists public.ia_eventos (
   codigo           text,
   tokens_entrada   integer,
   tokens_salida    integer,
+  -- true solo cuando, tras este intento, la cadena pasó al puesto siguiente (un salto real).
+  salto            boolean not null default false,
   constraint ia_eventos_funcion_valida check (funcion in (
     'oficina', 'a1_noticias', 'a2_brief', 'a3_actas', 'a4a_resumen_interno', 'a4b_resumen_portal',
     'a5_documentos', 'a6_agentes', 'a8_analisis_chatwoot')),
@@ -157,6 +161,8 @@ create table if not exists public.ia_eventos (
   constraint ia_eventos_status_valido check (status is null or status between 0 and 999),
   -- Un código, nunca texto: sin espacios y corto.
   constraint ia_eventos_codigo_valido check (codigo is null or codigo ~ '^[a-z0-9_.:-]{1,64}$'),
+  constraint ia_eventos_salto_valido check (not salto or resultado in (
+    'falta_de_pago', 'cuenta_suspendida', 'llave_invalida', 'proveedor_caido')),
   constraint ia_eventos_tokens_validos check (
     (tokens_entrada is null or tokens_entrada between 0 and 10000000)
     and (tokens_salida is null or tokens_salida between 0 and 10000000))
@@ -291,7 +297,8 @@ create or replace function public.ia_registrar_evento(
   p_status integer,
   p_codigo text,
   p_tokens_entrada integer,
-  p_tokens_salida integer
+  p_tokens_salida integer,
+  p_salto boolean
 )
 returns void
 language plpgsql
@@ -311,11 +318,15 @@ begin
   if v_tenant is null then
     raise exception 'ia:sin_tenant' using errcode = '42501';
   end if;
+  -- Solo quien puede disparar A1 (el gate de noticias: admin activo de su tenant) anota sus intentos.
+  if not public.is_tenant_admin() then
+    raise exception 'ia:sin_permiso' using errcode = '42501';
+  end if;
   insert into public.ia_eventos
-    (tenant_id, funcion, puesto, proveedor, modelo, resultado, status, codigo, tokens_entrada, tokens_salida)
+    (tenant_id, funcion, puesto, proveedor, modelo, resultado, status, codigo, tokens_entrada, tokens_salida, salto)
   values
     (v_tenant, p_funcion, p_puesto::smallint, p_proveedor, p_modelo, p_resultado, p_status, p_codigo,
-     p_tokens_entrada, p_tokens_salida);
+     p_tokens_entrada, p_tokens_salida, coalesce(p_salto, false));
 end;
 $function$;
 
@@ -328,7 +339,7 @@ begin
     'public.ia_cadenas_coherente()',
     'public.ia_guardar_cadena(text, text[], text[], text)',
     'public.ia_cadena_de(text)',
-    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer)'
+    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer, boolean)'
   ] loop
     execute pg_catalog.format('alter function %s owner to postgres', v_firma);
     execute pg_catalog.format('revoke all on function %s from public, anon, authenticated, service_role', v_firma);
@@ -336,7 +347,7 @@ begin
   foreach v_firma in array array[
     'public.ia_guardar_cadena(text, text[], text[], text)',
     'public.ia_cadena_de(text)',
-    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer)'
+    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer, boolean)'
   ] loop
     execute pg_catalog.format('grant execute on function %s to authenticated', v_firma);
   end loop;
@@ -348,8 +359,9 @@ comment on function public.ia_guardar_cadena(text, text[], text[], text) is
   'audita el antes y el después. No afloja el freno.';
 comment on function public.ia_cadena_de(text) is
   'SDD-0704 §4: la cadena de A1 para quien redacta, de su tenant. Solo nombres de modelo.';
-comment on function public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer) is
-  'SDD-0704 §4.4: anota un intento de A1 (sin texto). Los CHECK de ia_eventos limitan cada campo.';
+comment on function public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer, boolean) is
+  'SDD-0704 §4.4: anota un intento de A1 (sin texto). Solo admin activo de su tenant (el gate de noticias). '
+  'Los CHECK de ia_eventos limitan cada campo.';
 
 -- ─── 7. Postflight ───────────────────────────────────────────
 do $postflight$
@@ -382,7 +394,7 @@ begin
     'public.ia_cadenas_coherente()',
     'public.ia_guardar_cadena(text, text[], text[], text)',
     'public.ia_cadena_de(text)',
-    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer)'
+    'public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer, boolean)'
   ] loop
     if not exists (select 1 from pg_catalog.pg_proc p
                     where p.oid = pg_catalog.to_regprocedure(v_firma)

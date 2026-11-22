@@ -71,6 +71,13 @@ function mutarLaUltima(buscar: string, poner: string): Transform {
   };
 }
 
+/** La lista fija del disparador (funciones con datos de clientes), sin una de ellas. */
+const LISTA_CON_DATOS =
+  "  new.datos_clientes := new.funcion in (\n    'oficina', 'a3_actas', 'a4a_resumen_interno', 'a4b_resumen_portal', 'a5_documentos', 'a6_agentes');";
+function quitarDeLaListaConDatos(funcion: string): Transform {
+  return mutar(LISTA_CON_DATOS, LISTA_CON_DATOS.replace(`'${funcion}'`, "'quitada'"));
+}
+
 describe("0571 · cadena de modelos y registro de intentos (PGlite)", () => {
   it("el contrato completo pasa con las migraciones reales (como en Postgres 17)", async () => {
     expect(await run(inline())).toBeNull();
@@ -94,6 +101,19 @@ describe("0571 · cadena de modelos y registro de intentos (PGlite)", () => {
     ["la cuenta puede ser de otro tenant", mutar(" or v_cuenta.tenant_id <> new.tenant_id", ""), "CONTRATO 5"],
     ["A1 lee la cadena de otro tenant", mutar("     where c.tenant_id = v_tenant and c.funcion = p_funcion\n     order by c.puesto;", "     where c.funcion = p_funcion\n     order by c.puesto;"), "CONTRATO 6"],
     ["se anotan eventos de cualquier función", mutarLaUltima("p_funcion not in ('a1_noticias')", "p_funcion not in ('a1_noticias', 'a2_brief')"), "CONTRATO 6"],
+    [
+      "cualquiera con tenant anota eventos",
+      mutar("  if not public.is_tenant_admin() then\n    raise exception 'ia:sin_permiso' using errcode = '42501';\n  end if;\n", ""),
+      "CONTRATO 6",
+    ],
+    ["un 429 cuenta como salto", mutar("    'falta_de_pago', 'cuenta_suspendida', 'llave_invalida', 'proveedor_caido')),\n  constraint ia_eventos_tokens_validos", "    'falta_de_pago', 'cuenta_suspendida', 'llave_invalida', 'proveedor_caido', 'limite_de_uso')),\n  constraint ia_eventos_tokens_validos"), "CONTRATO 6"],
+    ...["a4a_resumen_interno", "a4b_resumen_portal", "a6_agentes", "oficina", "a3_actas", "a5_documentos"].map(
+      (f): [string, Transform, string] => [
+        `${f} sale de la lista con datos`,
+        quitarDeLaListaConDatos(f),
+        "CONTRATO 4",
+      ],
+    ),
     ["el código admite texto", mutar("codigo is null or codigo ~ '^[a-z0-9_.:-]{1,64}$'", "true"), "CONTRATO 6"],
     ["authenticated escribe las tablas", mutar("grant select on public.ia_cadenas, public.ia_eventos to authenticated;", "grant select, insert on public.ia_cadenas, public.ia_eventos to authenticated;"), "0571 postflight"],
     ["service_role borra eventos", mutar("grant select, insert on public.ia_eventos to service_role;", "grant all on public.ia_eventos to service_role;"), "0571 postflight"],

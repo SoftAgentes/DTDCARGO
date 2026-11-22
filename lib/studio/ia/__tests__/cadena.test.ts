@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
@@ -61,7 +65,11 @@ describe("conCadenaAnthropic · el cambio automático (§4.1)", () => {
     });
     await expect(conCadenaAnthropic({ funcion: "a1_noticias", fuente, llamar })).resolves.toMatchObject({ texto: "listo" });
     expect(llamar.mock.calls.map((c) => c[0])).toEqual(["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"]);
-    expect(fuente.intentos.map((i) => [i.puesto, i.resultado])).toEqual([[1, "proveedor_caido"], [2, "proveedor_caido"], [3, "ok"]]);
+    expect(fuente.intentos.map((i) => [i.puesto, i.resultado, i.salto])).toEqual([
+      [1, "proveedor_caido", true],
+      [2, "proveedor_caido", true],
+      [3, "ok", false],
+    ]);
     expect(fuente.intentos[2]).toMatchObject({ tokensEntrada: 10, tokensSalida: 20 });
   });
 
@@ -86,6 +94,7 @@ describe("conCadenaAnthropic · el cambio automático (§4.1)", () => {
       await expect(conCadenaAnthropic({ funcion: "a1_noticias", fuente, llamar })).rejects.toBe(err);
       expect(llamar).toHaveBeenCalledTimes(1);
       expect(fuente.intentos).toHaveLength(1);
+      expect(fuente.intentos[0].salto).toBe(false);
     }
   });
 
@@ -108,6 +117,8 @@ describe("conCadenaAnthropic · el cambio automático (§4.1)", () => {
     });
     await expect(conCadenaAnthropic({ funcion: "a1_noticias", fuente, llamar })).rejects.toBe(errores[2]);
     expect(llamar).toHaveBeenCalledTimes(3);
+    // La falla del último puesto no es un salto: no hubo a dónde pasar.
+    expect(fuente.intentos.map((i) => i.salto)).toEqual([true, true, false]);
   });
 
   it("cada llamada nueva empieza por el 1.º (D-2 de Sam)", async () => {
@@ -187,10 +198,10 @@ describe("fuentes", () => {
     const f = fuenteConSesion(supabase);
     expect(await f.leer("a1_noticias")).toEqual([P(1, "claude-haiku-5-5")]);
     await f.registrar("a1_noticias", {
-      puesto: 1, proveedor: "anthropic", modelo: "claude-haiku-5-5", resultado: "ok", status: null, codigo: null, tokensEntrada: 1, tokensSalida: 2,
+      puesto: 1, proveedor: "anthropic", modelo: "claude-haiku-5-5", resultado: "ok", status: null, codigo: null, tokensEntrada: 1, tokensSalida: 2, salto: false,
     });
     expect(llamadas.map((l) => l.fn)).toEqual(["ia_cadena_de", "ia_registrar_evento"]);
-    expect(llamadas[1].args).toMatchObject({ p_funcion: "a1_noticias", p_resultado: "ok", p_tokens_salida: 2 });
+    expect(llamadas[1].args).toMatchObject({ p_funcion: "a1_noticias", p_resultado: "ok", p_tokens_salida: 2, p_salto: false });
   });
 
   it("con sesión: sin la 0571 (error de la base) no hay cadena", async () => {
@@ -223,8 +234,32 @@ describe("fuentes", () => {
     expect(await f.leer("a2_brief")).toEqual([P(1, "claude-sonnet-5-5")]);
     expect(filtros).toEqual([["tenant_id", "00000000-0000-0000-0000-00000000aaaa"], ["funcion", "a2_brief"]]);
     await f.registrar("a2_brief", {
-      puesto: 1, proveedor: "anthropic", modelo: "claude-sonnet-5-5", resultado: "proveedor_caido", status: 529, codigo: "overloaded_error", tokensEntrada: null, tokensSalida: null,
+      puesto: 1, proveedor: "anthropic", modelo: "claude-sonnet-5-5", resultado: "proveedor_caido", status: 529, codigo: "overloaded_error", tokensEntrada: null, tokensSalida: null, salto: true,
     });
-    expect(insertado).toMatchObject({ tabla: "ia_eventos", tenant_id: "00000000-0000-0000-0000-00000000aaaa", funcion: "a2_brief", resultado: "proveedor_caido", status: 529 });
+    expect(insertado).toMatchObject({ tabla: "ia_eventos", tenant_id: "00000000-0000-0000-0000-00000000aaaa", funcion: "a2_brief", resultado: "proveedor_caido", status: 529, salto: true });
+  });
+});
+
+describe("la 0571 y el catálogo en código dicen lo mismo", () => {
+  const sql = readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), "../../../../supabase/migrations/0571_ia_cadenas_y_eventos.sql"),
+    "utf8",
+  );
+  const lista = (texto: string) => [...texto.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]).sort();
+
+  it("la lista fija del disparador es la de las funciones con datos de clientes de catalogo.ts", () => {
+    const m = sql.match(/new\.datos_clientes := new\.funcion in \(([^)]*)\)/);
+    expect(m, "no se encontró la lista del disparador").not.toBeNull();
+    const conDatos = Object.entries(MARCA_DE_LA_FUNCION).filter(([, v]) => v === "con_datos").map(([k]) => k).sort();
+    expect(lista(m![1])).toEqual(conDatos);
+  });
+
+  it("las funciones válidas de ia_cadenas e ia_eventos son las de catalogo.ts", () => {
+    const funciones = Object.keys(MARCA_DE_LA_FUNCION).sort();
+    for (const nombre of ["ia_cadenas_funcion_valida", "ia_eventos_funcion_valida"]) {
+      const m = sql.match(new RegExp(`constraint ${nombre} check \\(funcion in \\(([^)]*)\\)`));
+      expect(m, nombre).not.toBeNull();
+      expect(lista(m![1]), nombre).toEqual(funciones);
+    }
   });
 });

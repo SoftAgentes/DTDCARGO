@@ -178,7 +178,7 @@ hay que hacer la prueba de `amr` (paso 1 de la lista).
 | `tsc --noEmit` | PASÓ |
 | eslint de lo tocado | PASÓ |
 | `check-pending-migration-symbols` | PASÓ: 0 ROJO, 5 AMARILLO declarados (2 de la 0571) |
-| 0571 en PGlite (contrato, control rojo y 18 mutantes) | PASÓ 20/20 (tras quitar el prefijo `pg_catalog` del `unnest` de dos arreglos) |
+| 0571 en PGlite (contrato, control rojo y 26 mutantes) | PASÓ 28/28 (tras quitar el prefijo `pg_catalog` del `unnest` de dos arreglos y sumar los menores de la revisión) |
 | `lib/studio/ia/__tests__`, `admin/ia/__tests__` y `rbac-actions-guard` (503) | PASÓ 609 |
 | Contrato SQL en Postgres 17 con Docker | NO EJECUTADO (lo corre el CI, «Contratos SQL») |
 | `/ui-check` de la pestaña | OK con ajustes menores: sin hex, rgba, vino ni voseo. El `gap` 10 pasó a 12 (escala de 4). Quedan los px fijos, como en las otras pestañas. Sin decisión visual nueva |
@@ -200,6 +200,18 @@ El portón es el CI de GitHub.
 - La revisión previa de la PR (la lanza Dir_DTD).
 - Aplicar la 0571 en producción, después de la 0570, con el OK nominal de Sam.
 - **NV:** los códigos y textos de saldo y suspensión de cada proveedor (catálogo del clasificador).
+- **Reintentos del SDK dentro de la cadena** (nota de la revisión de la #772): el cliente de Anthropic reintenta por su
+  cuenta 2 veces los 5xx, 529 y 429 de cada puesto, así que una caída completa puede sumar hasta 9 llamadas. No lo
+  cambié: poner `maxRetries: 0` también quita el reintento del 429 que hoy tienen A1 y A2, y la spec dice que el
+  límite de uso se reintenta donde la función ya reintenta (§4.1). Queda para decidirlo con su prueba.
+- **Revisión de la #772** (APPROVED con tres menores, ya corregidos):
+  - `ia_registrar_evento` exige `is_tenant_admin()`, el mismo permiso del gate de noticias. Tiene contrato 6 y
+    mutante.
+  - La lista fija del disparador queda atada a `MARCA_DE_LA_FUNCION` con una prueba en `cadena.test.ts`. El contrato
+    4 recorre las seis funciones con datos en los tres puestos y con los dos proveedores chinos. Hay un mutante por
+    cada función que se quite de la lista.
+  - «Último salto» cuenta solo los saltos reales. Para eso `ia_eventos` tiene la columna `salto`, con un CHECK que la
+    ata a las clases que saltan, y se lee con una consulta por función.
 
 ### Lo que no está: en qué fase lo pone la spec
 

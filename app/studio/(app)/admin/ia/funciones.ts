@@ -49,26 +49,29 @@ const vacio = (): DatosFunciones => ({
 
 export async function leerFunciones(supabase: SupabaseClient): Promise<LecturaFunciones> {
   const claves = FUNCIONES_EDITABLES.map((f) => f.clave);
-  const [cadenas, eventos] = await Promise.all([
+  const [cadenas, ...saltos] = await Promise.all([
     supabase.from("ia_cadenas").select("funcion, puesto, proveedor, modelo").in("funcion", claves).order("puesto"),
-    // Un intento que no fue ok es un salto (o el fallo final): el más reciente de cada función.
-    supabase
-      .from("ia_eventos")
-      .select("funcion, ts, puesto, modelo, resultado")
-      .in("funcion", claves)
-      .neq("resultado", "ok")
-      .order("ts", { ascending: false })
-      .limit(50),
+    // Solo los saltos reales (la cadena pasó al puesto siguiente), y el más reciente de CADA función: uno no tapa al otro.
+    ...claves.map((clave) =>
+      supabase
+        .from("ia_eventos")
+        .select("funcion, ts, puesto, modelo, resultado")
+        .eq("funcion", clave)
+        .eq("salto", true)
+        .order("ts", { ascending: false })
+        .limit(1),
+    ),
   ]);
-  if (cadenas.error || eventos.error) {
-    return { ok: false, motivo: faltaLa0570(cadenas.error) || faltaLa0570(eventos.error) ? "sin_migracion" : "error" };
+  const errorDeSaltos = saltos.find((e) => e.error)?.error ?? null;
+  if (cadenas.error || errorDeSaltos) {
+    return { ok: false, motivo: faltaLa0570(cadenas.error) || faltaLa0570(errorDeSaltos) ? "sin_migracion" : "error" };
   }
   const datos = vacio();
   for (const f of (cadenas.data ?? []) as Array<Record<string, unknown>>) {
     if (!esFuncionEditable(f.funcion) || !esProveedor(f.proveedor) || typeof f.modelo !== "string") continue;
     datos.cadenas[f.funcion].push({ puesto: Number(f.puesto), proveedor: f.proveedor, modelo: f.modelo });
   }
-  for (const e of (eventos.data ?? []) as Array<Record<string, unknown>>) {
+  for (const e of saltos.flatMap((q) => (q.data ?? []) as Array<Record<string, unknown>>)) {
     if (!esFuncionEditable(e.funcion) || datos.ultimoSalto[e.funcion]) continue;
     datos.ultimoSalto[e.funcion] = {
       ts: String(e.ts),

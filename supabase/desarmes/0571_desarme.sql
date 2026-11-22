@@ -9,7 +9,7 @@
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
 
-drop function if exists public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer);
+drop function if exists public.ia_registrar_evento(text, integer, text, text, text, integer, text, integer, integer, boolean);
 drop function if exists public.ia_cadena_de(text);
 drop function if exists public.ia_guardar_cadena(text, text[], text[], text);
 

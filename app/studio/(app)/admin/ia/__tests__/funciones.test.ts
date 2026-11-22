@@ -9,7 +9,7 @@ function cliente(respuestas: Record<string, { data: unknown; error: { code?: str
   const cadena = (tabla: string) => {
     const fin = Promise.resolve(respuestas[tabla]);
     const q: Record<string, unknown> = {};
-    for (const k of ["select", "in", "neq", "order", "limit"]) q[k] = () => q;
+    for (const k of ["select", "in", "eq", "neq", "order", "limit"]) q[k] = () => q;
     q.then = fin.then.bind(fin);
     return q;
   };

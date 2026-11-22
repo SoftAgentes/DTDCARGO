@@ -93,7 +93,7 @@ export function PestanaFunciones({ datos }: { datos: DatosFunciones }) {
             <p style={{ ...texto, margin: 0 }}>
               <strong>Último salto:</strong>{" "}
               {salto
-                ? `${fecha(salto.ts)} · el ${ORDINAL[salto.puesto - 1] ?? `${salto.puesto}.º`} (${salto.modelo}) falló: ${descripcionDelResultado(salto.resultado)}.`
+                ? `${fecha(salto.ts)} · del ${ORDINAL[salto.puesto - 1] ?? `${salto.puesto}.º`} (${salto.modelo}) al siguiente: ${descripcionDelResultado(salto.resultado)}.`
                 : "ninguno registrado."}
             </p>
 

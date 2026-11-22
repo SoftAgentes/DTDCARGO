@@ -46,6 +46,8 @@ export interface Intento {
   codigo: string | null;
   tokensEntrada: number | null;
   tokensSalida: number | null;
+  /** true solo si, tras este intento, la cadena pasó al puesto siguiente (un salto real). */
+  salto: boolean;
 }
 
 /** De dónde sale la cadena y dónde se anotan los intentos. */
@@ -99,18 +101,19 @@ export async function recorrerCadena<T>(r: Recorrido<T>): Promise<T> {
       const t = r.tokens?.(respuesta) ?? null;
       await r.registrar?.({
         puesto: p.puesto, proveedor: p.proveedor, modelo: p.modelo, resultado: "ok", status: null, codigo: null,
-        tokensEntrada: t?.entrada ?? null, tokensSalida: t?.salida ?? null,
+        tokensEntrada: t?.entrada ?? null, tokensSalida: t?.salida ?? null, salto: false,
       });
       return respuesta;
     } catch (err) {
       ultimo = err;
       const c = r.clasificar(err);
+      const hayOtro = i < puestos.length - 1;
+      const salto = salta(c.clase) && hayOtro;
       await r.registrar?.({
         puesto: p.puesto, proveedor: p.proveedor, modelo: p.modelo, resultado: c.clase, status: c.status, codigo: c.codigo,
-        tokensEntrada: null, tokensSalida: null,
+        tokensEntrada: null, tokensSalida: null, salto,
       });
-      const hayOtro = i < puestos.length - 1;
-      if (!salta(c.clase) || !hayOtro) throw err;
+      if (!salto) throw err;
     }
   }
   throw ultimo;
@@ -188,6 +191,7 @@ export function fuenteConSesion(supabase: SupabaseClient): FuenteDeCadena {
         p_codigo: i.codigo,
         p_tokens_entrada: i.tokensEntrada,
         p_tokens_salida: i.tokensSalida,
+        p_salto: i.salto,
       });
     },
   };
@@ -217,6 +221,7 @@ export function fuenteDeServicio(admin: SupabaseClient, tenantId: string): Fuent
         codigo: i.codigo,
         tokens_entrada: i.tokensEntrada,
         tokens_salida: i.tokensSalida,
+        salto: i.salto,
       });
     },
   };

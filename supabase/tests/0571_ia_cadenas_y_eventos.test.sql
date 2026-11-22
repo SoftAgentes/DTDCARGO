@@ -12,7 +12,9 @@
 --   4. D-2 en la base: un proveedor chino en una función con datos de clientes falla en los tres puestos, aunque se
 --      escriba directo; la marca de datos sale de la lista fija, no de quien escribe.
 --   5. Un puesto con cuenta: el proveedor es el de la cuenta y la cuenta es del mismo tenant.
---   6. A1 con la sesión de quien redacta: lee la cadena de su tenant y anota intentos (solo códigos, sin texto).
+--   6. A1 con la sesión de quien redacta: lee la cadena de su tenant y anota intentos (solo códigos, sin texto);
+--      anotar exige ser admin activo del tenant (el gate de noticias). La marca de salto solo va con una clase que
+--      salta.
 --   7. Privilegios: anon nada; authenticated no escribe directo y la RLS le muestra solo lo suyo al superadmin;
 --      service_role (A2) lee la cadena y agrega eventos, sin cambiar ni borrar.
 --   8. El desarme deja la base sin la 0571 y la 0570 intacta; repetirlo no falla.
@@ -90,6 +92,13 @@ begin
   return p_entity_id;
 end $$;
 
+-- Doble de is_tenant_admin() (0271): admin activo de su tenant.
+create table public.tenant_admins (user_id uuid primary key);
+create function public.is_tenant_admin()
+  returns boolean language sql security definer stable set search_path = public
+as $$ select exists (select 1 from public.tenant_admins where user_id = (select auth.uid())) $$;
+grant execute on function public.is_tenant_admin() to authenticated;
+
 \ir ../migrations/0541_oficina_cable_tablas.sql
 \ir ../migrations/0570_ia_catalogo_y_costo.sql
 \ir ../migrations/0571_ia_cadenas_y_eventos.sql
@@ -102,6 +111,11 @@ insert into public.tenant_users (user_id, tenant_id) values
   ('00000000-0000-0000-0000-0000000005a1', '00000000-0000-0000-0000-00000000aaaa'),
   ('00000000-0000-0000-0000-0000000000ad', '00000000-0000-0000-0000-00000000aaaa');
 insert into public.platform_admins (user_id) values ('00000000-0000-0000-0000-0000000005a1');
+-- El admin normal (AD) es admin del tenant; el operador (OP) no.
+insert into public.tenant_users (user_id, tenant_id) values
+  ('00000000-0000-0000-0000-0000000000a0', '00000000-0000-0000-0000-00000000aaaa');
+insert into public.tenant_admins (user_id) values
+  ('00000000-0000-0000-0000-0000000005a1'), ('00000000-0000-0000-0000-0000000000ad');
 
 -- Ejecuta p_sql con un rol, una sesión y un nivel de AAL. Devuelve 'ok' o el mensaje del error.
 create function pg_temp.como(p_rol text, p_uid text, p_aal text, p_sql text) returns text
@@ -220,16 +234,21 @@ do $c4$
 declare
   t uuid := '00000000-0000-0000-0000-00000000aaaa';
   p integer;
+  f text;
 begin
-  for p in 1..3 loop
-    perform pg_temp.espera(pg_temp.como(current_user::text, null, 'aal1', pg_catalog.format(
-      $$insert into public.ia_cadenas (tenant_id, funcion, puesto, proveedor, modelo, datos_clientes)
-        values (%L, 'a5_documentos', %s, 'zai', 'glm-5.3', false)$$, t, p)),
-      '%ia_cadenas_datos_no_chino%', pg_catalog.format('CONTRATO 4 chino con datos en el puesto %s', p));
-    perform pg_temp.espera(pg_temp.como(current_user::text, null, 'aal1', pg_catalog.format(
-      $$insert into public.ia_cadenas (tenant_id, funcion, puesto, proveedor, modelo)
-        values (%L, 'oficina', %s, 'deepseek', 'deepseek-chat')$$, t, p)),
-      '%ia_cadenas_datos_no_chino%', pg_catalog.format('CONTRATO 4 DeepSeek en la Oficina, puesto %s', p));
+  -- Todas las funciones con datos de clientes (catalogo.ts › MARCA_DE_LA_FUNCION, «con_datos»), en los tres
+  -- puestos y con los dos proveedores chinos, aunque quien escribe diga datos_clientes = false.
+  foreach f in array array['oficina', 'a3_actas', 'a4a_resumen_interno', 'a4b_resumen_portal', 'a5_documentos', 'a6_agentes'] loop
+    for p in 1..3 loop
+      perform pg_temp.espera(pg_temp.como(current_user::text, null, 'aal1', pg_catalog.format(
+        $$insert into public.ia_cadenas (tenant_id, funcion, puesto, proveedor, modelo, datos_clientes)
+          values (%L, %L, %s, 'zai', 'glm-5.3', false)$$, t, f, p)),
+        '%ia_cadenas_datos_no_chino%', pg_catalog.format('CONTRATO 4 GLM con datos en %s, puesto %s', f, p));
+      perform pg_temp.espera(pg_temp.como(current_user::text, null, 'aal1', pg_catalog.format(
+        $$insert into public.ia_cadenas (tenant_id, funcion, puesto, proveedor, modelo)
+          values (%L, %L, %s, 'deepseek', 'deepseek-chat')$$, t, f, p)),
+        '%ia_cadenas_datos_no_chino%', pg_catalog.format('CONTRATO 4 DeepSeek con datos en %s, puesto %s', f, p));
+    end loop;
   end loop;
   -- Sin datos de clientes, un chino sí entra (la regla es por función).
   perform pg_temp.espera(pg_temp.como(current_user::text, null, 'aal1', pg_catalog.format(
@@ -300,23 +319,31 @@ begin
       end if;
     end $x$ $q$), 'ok', 'CONTRATO 6 cadena del tenant');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'proveedor_caido', 529, 'overloaded_error', null, null)$$),
+    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'proveedor_caido', 529, 'overloaded_error', null, null, true)$$),
     'ok', 'CONTRATO 6 anota un intento');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a1_noticias', 2, 'anthropic', 'claude-sonnet-5-5', 'ok', 200, null, 120, 80)$$),
+    $$select public.ia_registrar_evento('a1_noticias', 2, 'anthropic', 'claude-sonnet-5-5', 'ok', 200, null, 120, 80, false)$$),
     'ok', 'CONTRATO 6 anota el ok');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'se cayó', null, null, null, null)$$),
+    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'se cayó', null, null, null, null, false)$$),
     '%ia_eventos_resultado_valido%', 'CONTRATO 6 resultado fuera de la lista');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'otro', 400, 'texto con espacios', null, null)$$),
+    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'otro', 400, 'texto con espacios', null, null, false)$$),
     '%ia_eventos_codigo_valido%', 'CONTRATO 6 un código no es texto');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a2_brief', 1, 'anthropic', 'claude-haiku-5-5', 'ok', 200, null, null, null)$$),
+    $$select public.ia_registrar_evento('a2_brief', 1, 'anthropic', 'claude-haiku-5-5', 'ok', 200, null, null, null, false)$$),
     '%ia:funcion_no_editable%', 'CONTRATO 6 A2 no anota por sesión');
   perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
-    $$select public.ia_registrar_evento('a1_noticias', 4, 'anthropic', 'claude-haiku-5-5', 'ok', 200, null, null, null)$$),
+    $$select public.ia_registrar_evento('a1_noticias', 4, 'anthropic', 'claude-haiku-5-5', 'ok', 200, null, null, null, false)$$),
     '%ia_eventos_puesto_valido%', 'CONTRATO 6 cuarto puesto');
+  -- Un operador del tenant que no es admin no anota (no puede disparar A1).
+  perform pg_temp.espera(pg_temp.como('authenticated', '00000000-0000-0000-0000-0000000000a0', 'aal1',
+    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'proveedor_caido', 503, null, null, null, true)$$),
+    '%ia:sin_permiso%', 'CONTRATO 6 un operador no anota');
+  -- La marca de salto solo va con una clase que salta.
+  perform pg_temp.espera(pg_temp.como('authenticated', ad, 'aal1',
+    $$select public.ia_registrar_evento('a1_noticias', 1, 'anthropic', 'claude-haiku-5-5', 'limite_de_uso', 429, null, null, null, true)$$),
+    '%ia_eventos_salto_valido%', 'CONTRATO 6 un 429 no es salto');
   if (select pg_catalog.count(*) from public.ia_eventos
        where tenant_id = '00000000-0000-0000-0000-00000000aaaa' and funcion = 'a1_noticias') <> 2 then
     raise exception 'CONTRATO 6: los intentos no quedaron en el tenant de la sesión';
