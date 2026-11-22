@@ -4,7 +4,7 @@ title: "Simetría de pantallas: un encabezado, tres anchos de panel, una escala 
 status: proposed
 author: "Claude Worker (Sam)"
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-22
 supersedes: null
 superseded_by: null
 related: ["0603", "0628", "0678", "0686", "0687"]
@@ -65,12 +65,12 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 | **LOD-01** | Carga, espera y feedback | SDD-0678 trabaja «Guardando…»; no hay esqueletos ni `loading.tsx` |
 | **ERR-01** | El error aparece cerca de su causa; no se depende de un toast que expira | Sin lugar fijo para el aviso del formulario |
 | **FRM-01** | Obligatorio y opcional se comunican igual; cambios sin guardar se conservan o se advierten | Ayudantes de campo solo en un módulo (`tms/_components/TruckDrawer.tsx:187-311`); no hay aviso de cambios sin guardar |
-| **AVS-01** | Avisos y confirmaciones (registro: «verificada») | Su texto normativo no está en `docs/governance/policies/`; se localiza al abrir la fase 1 (**NV**) |
+| **AVS-01** | Avisos y confirmaciones (registro: «verificada») | Su texto canónico es la spec SDD-0165 (no hay `policies/avs-01.md`); la enmienda v1.1 va en su §17 (fase 1) |
 | **CMP-01** | Toda pieza nueva entra como `proposed` y se promueve con evidencia | Aplica a cada pieza de §4 |
 
 ## 3. Reglas nuevas (cambian políticas; aprobadas por Sam el 2026-11-20, §11)
 
-> **Salvedad · regla 4.** Sam aprobó las seis reglas de botones, pero no se le mostró que la 4 contradice `BRAND.md:324`. La regla 4 queda **pendiente de BRAND-CHECK**: no está vigente hasta que Sam confirme la excepción con sus palabras (`BRAND.md:11`). Esa pregunta la hace el Director General. Las reglas 1 a 3, 5 y 6 sí están vigentes.
+> **Salvedad · regla 4.** Sam aprobó las seis reglas de botones, pero no se le mostró que la 4 contradice `BRAND.md:360`. La regla 4 estuvo **pendiente de BRAND-CHECK**. **Cerrado el 2026-11-22:** Sam eligió la opción A dibujada («regla a») y la excepción consta en BD-077 (`BRAND-DECISIONS.md`). Las seis reglas están vigentes.
 
 Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su código y en su documentación pública (ver `docs/design/rebrand-erp/evaluacion-carbon.md` §4). **No se instala ninguna librería.**
 
@@ -79,17 +79,17 @@ Tomadas de la guía de botones y de notificaciones de Carbon, verificadas en su 
 1. Etiqueta de **verbo + sustantivo** («Guardar cambios», «Crear embarque»), salvo los comunes («Guardar», «Cancelar», «Cerrar», «Eliminar»). El verbo sale siempre del vocabulario de BTN-01 §3. La regla no lo cambia: le agrega el objeto cuando sin él la acción queda ambigua. «Guardar» a secas sigue siendo válido en el pie de un formulario de un solo objeto (**I**: así se concilia con `btn-01.md:60`). Lo que Sam vio como «así no» fueron «OK» y «Aceptar».
 2. **Máximo tres acciones visibles por grupo de botones** (encabezado, pie de panel, barra de herramientas); la cuarta va al menú de acciones. **No relaja la fila de tabla:** ahí sigue el máximo de dos acciones de bajo énfasis de BTN-01 §4 (`btn-01.md:92`).
 3. **Un solo tamaño dentro de un grupo** de botones.
-4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo. **Pendiente de BRAND-CHECK** (ver abajo): no está vigente.
+4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo; nunca icono solo. **Vigente** desde el 2026-11-22: el BRAND-CHECK (abajo) se cerró con BD-077.
 5. **Posición fija del icono** respecto del texto. Hoy va a la izquierda (`ActionButton.tsx:213-214`); se fija así.
 6. **La etiqueta no se corta**: si no cabe, baja de línea.
 
 > 🛑 **BRAND-CHECK · regla 4**
 >
 > - **Lo que se pide:** un botón destructivo en tres énfasis (relleno, contorno, texto).
-> - **Regla que toca:** `BRAND.md:324` («6 variantes oficiales… No inventes») y la regla de `BRAND.md:11` de avisar antes de una variante nueva. Hoy existe un solo `danger`, con relleno.
-> - **Estado: abierto.** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca.
+> - **Regla que toca:** `BRAND.md:360` («6 variantes oficiales… No inventes») y la regla de `BRAND.md:11` de avisar antes de una variante nueva. Hoy existe un solo `danger`, con relleno.
+> - **Estado: cerrado el 2026-11-22 (BD-077, «regla a»). Texto original:** Sam aprobó la regla viéndola dibujada («Reglas de botones: aprobadas las seis»), pero no se le mostró como excepción de marca.
 > - **Cómo se cierra:** Sam confirma la excepción con sus palabras. Se lo pregunta el Director General. Si la confirma, se registra en `BRAND-DECISIONS.md`. Si no, la regla 4 se retira o se reduce a variantes que ya existen.
-> - **Mientras tanto:** en BTN-01 v1.3 se escribe como «pendiente de BRAND-CHECK», no como vigente. La pieza de §4 y su parte de la fase 4 no se implementan.
+> - **Resultado:** cerrado con BD-077; la pieza de §4 y la parte de la fase 4 ya pueden implementarse. (Texto previo: en BTN-01 v1.3 se escribe como «pendiente de BRAND-CHECK», no como vigente. La pieza de §4 y su parte de la fase 4 no se implementan.)
 
 **Para los mensajes (enmienda de AVS-01; no contradice ERR-01, que ya pide el error cerca de su causa):**
 
@@ -117,7 +117,7 @@ Cada una entra por CMP-01 como `proposed`, con su ficha en `docs/governance/comp
 | `Ficha` | Pares etiqueta y valor para lo que solo se lee | — |
 | `Campo` | Etiqueta, ayuda, error y marca de obligatorio iguales (FRM-01) | Ayudantes en `tms/_components/TruckDrawer.tsx` (deuda anotada en `app/studio/CLAUDE.md`, «Deuda técnica conocida») |
 | `TableFrame` extendido | Densidad, cifras a la derecha, encabezado fijo, orden anunciado | `ui/DataTable.tsx` |
-| Variante destructiva en tres énfasis (**condicionada al cierre del BRAND-CHECK de la regla 4**) | Regla 4 | `.studio-btn-danger` |
+| Variante destructiva en tres énfasis (BRAND-CHECK de la regla 4 cerrado el 2026-11-22: BD-077) | Regla 4 | `.studio-btn-danger` |
 
 ## 5. Fases
 
@@ -125,10 +125,10 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 
 | Fase | Qué | Tamaño |
 |---|---|---|
-| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entra marcada como «pendiente de BRAND-CHECK», no como vigente | S |
+| **1** | **Reglas:** BTN-01 v1.3, política de mensajes, medidas (§3), con Sam. La regla 4 entró pendiente de BRAND-CHECK y quedó vigente el 2026-11-22 (BD-077) | S |
 | **2** | **Estilos de texto con nombre** y `EncabezadoPagina`; se adopta en lo que se ve siempre y en tres módulos de muestra. Incluye las **tres vistas** (§11.5): Normal, Compacta y Súper compacta, montadas sobre esos estilos | M |
 | **3** | **Paneles:** `tamano` y `DrawerFooter` obligatorio; migración de los 117 paneles por grupos | M-L |
-| **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px y los 11 sin `type`. La variante destructiva en tres énfasis entra **solo si se cerró el BRAND-CHECK de la regla 4**; si no, la fase sigue sin ella | M |
+| **4** | **Botones fuera del sistema:** Noticias Web (23), los 20 bajo 32 px y los 11 sin `type`. La variante destructiva en tres énfasis entra: el BRAND-CHECK de la regla 4 se cerró el 2026-11-22 (BD-077) | M |
 | **5** | **Encabezados:** los 91 títulos, por grupos de módulos | L, varias PR |
 | **6** | **Rastro de fila** (`useRowHighlight`) en todos los listados con acciones | M |
 | **7** | **Tablas:** `TableFrame` extendido y adopción de TBL-01 por módulo | L, varias PR |
@@ -150,8 +150,8 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 ### Fase 1 · allowlist
 
 - `docs/specs/0688-rebrand-simetria-pantallas/spec.md`, `docs/specs/README.md`
-- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (por localizar), `docs/governance/README.md` y `docs/governance/generated/`
-- `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»)
+- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (localizado: `docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md`, §17), `docs/governance/README.md`, `docs/governance/generated/` y las fichas de `docs/governance/components/` que citan la versión de BTN-01 (`action-menu`, `confirm-dialog`, `segmented-control`)
+- `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»), `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-077), `BRAND.md` (solo el puntero a BD-077 en la línea de botones)
 - `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
 ## 6. Aceptación

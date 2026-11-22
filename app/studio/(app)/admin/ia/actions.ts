@@ -22,10 +22,12 @@ import { detectorDelCable } from "@/lib/studio/oficina/cable-textos";
 import { platformAdminDenial } from "@/lib/studio/platform-admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
+import { cadenaDelFormulario, codigoDeErrorDeCadena, esFuncionEditable } from "./funciones";
+
 const RUTA = "/studio/admin/ia";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MODELO = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-type Pestana = "gasto" | "cuentas";
+type Pestana = "funciones" | "gasto" | "cuentas";
 
 function volver(pestana: Pestana, codigo: string): never {
   const q = new URLSearchParams({ tab: pestana, r: codigo, n: Date.now().toString(36) });
@@ -155,4 +157,29 @@ export async function quitarModeloAction(formData: FormData): Promise<void> {
   const motivo = motivoDe(formData, "cuentas");
   const { error } = await supabase.rpc("ia_borrar_modelo", { p_id: id, p_motivo: motivo });
   volver("cuentas", error ? codigoDeError(error) : "ok_modelo_quitado");
+}
+
+/**
+ * SDD-0704 F1-B · Guarda la cadena de A1 o A2 (de 1 a 3 modelos). Cambiar la cadena no afloja el freno: no pide la
+ * contraseña (§8). La lista ofrece solo modelos permitidos; aquí se vuelve a validar (D-2, por si el formulario llega
+ * manipulado) y la base lo corta una tercera vez (0571).
+ */
+export async function guardarCadenaAction(formData: FormData): Promise<void> {
+  const supabase = await candados("funciones", formData);
+  const funcion = formData.get("funcion");
+  if (!esFuncionEditable(funcion)) volver("funciones", "funcion_no_editable");
+  const cadena = cadenaDelFormulario(funcion, [
+    formData.get("puesto_1") as string | null,
+    formData.get("puesto_2") as string | null,
+    formData.get("puesto_3") as string | null,
+  ]);
+  if (!cadena.ok) volver("funciones", cadena.codigo);
+  const motivo = motivoDe(formData, "funciones");
+  const { error } = await supabase.rpc("ia_guardar_cadena", {
+    p_funcion: funcion,
+    p_proveedores: cadena.proveedores,
+    p_modelos: cadena.modelos,
+    p_motivo: motivo,
+  });
+  volver("funciones", codigoDeErrorDeCadena(error));
 }

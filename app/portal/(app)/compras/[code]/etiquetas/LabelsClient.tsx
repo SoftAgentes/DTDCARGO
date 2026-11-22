@@ -12,7 +12,7 @@ import { createDocumentClient,DocumentRequestError,type DocumentClient } from "@
 /**
  * Vista de etiquetas imprimibles de una compra (SDD-0057 · Slice B · V1).
  *
- * Piel del portal (paper/wine), tokens `var(--*)`. Cada etiqueta = el code de la
+ * Piel del portal (paper/tinta), tokens `var(--*)`. Cada etiqueta = el code de la
  * compra + "Caja M/N" + nombre del cliente + QR escaneable. El botón "Descargar /
  * imprimir" usa `window.print()`; el CSS `@media print` oculta todo menos la
  * grilla (`.labels-print-area`), que pasa a una cuadrícula sin sombras lista para
@@ -161,7 +161,7 @@ function LabelsView({
           className="mt-5 rounded-[12px] border-l-[3px] px-4 py-3.5 text-[13px] text-grey-700 leading-[1.5]"
           style={{
             background: "var(--color-paper)",
-            borderColor: "var(--color-wine)",
+            borderColor: "var(--color-ink)",
           }}
         >
           El proveedor pega <strong className="text-ink">una etiqueta en cada

@@ -17,7 +17,7 @@ export function NewPurchaseButton({ href, primary = false }: { href: string; pri
     <>
       <span
         className="grid place-items-center rounded-full flex-shrink-0 text-[15px] font-bold leading-none"
-        style={{ width: 22, height: 22, background: "var(--color-wine)", color: "var(--color-on-accent)" }}
+        style={{ width: 22, height: 22, background: "var(--color-accion)", color: "var(--color-on-accion)" }}
         aria-hidden
       >
         +
@@ -39,7 +39,7 @@ export function NewPurchaseButton({ href, primary = false }: { href: string; pri
   const style = {
     height: primary ? 48 : 40,
     padding: "0 14px",
-    borderColor: "var(--color-wine)",
+    borderColor: "var(--color-accion)",
   } as const;
   const ariaLabel = "Registrar una nueva compra (prealerta)";
 
