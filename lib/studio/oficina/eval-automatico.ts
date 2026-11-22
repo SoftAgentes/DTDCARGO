@@ -23,7 +23,8 @@ import type { SalidaAgente } from "./salida-agente";
 
 export type CodigoEval = "sin_acuse" | "guion_desconocido" | "dato_inventado" | "datos_personales" | "enlace" | "marcador";
 
-function normal(s: string): string {
+/** Exportada solo para las pruebas de los guiones (SDD-0705 v0.4, M2): mismo texto normalizado que usa la revisión. */
+export function normal(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -36,7 +37,7 @@ const MESES = "enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|seti
 const DIAS = "lunes|martes|miercoles|jueves|viernes|sabado|domingo";
 
 /** Lo que solo puede venir del sistema o de un guion. Se busca sobre el texto normalizado (sin tildes). */
-const PATRONES: readonly RegExp[] = [
+export const PATRONES: readonly RegExp[] = [
   /\d+(?:[.,:/-]\d+)*/g, // cifras, montos, fechas, horas, guías
   /(?:us)?\$|\bbs\.?(?=\s|$)|\bbolivares?\b|\bdolares?\b|\busd\b|\beuros?\b|\byuan(?:es)?\b/g, // dinero
   new RegExp(`\\b(?:${MESES}|${DIAS}|manana|pasado manana|esta semana|la proxima semana|el proximo mes|hoy mismo)\\b`, "g"),

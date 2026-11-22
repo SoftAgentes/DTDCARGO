@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { AVISO_CLIENTE, TEXTO_MAXIMO_BORRADOR, cabeEnBorrador, conAvisoAlCliente, esPrimeraRespuesta } from "../aviso-cliente";
 import type { MensajeLeido } from "../chatwoot-lectura";
-import { enlacesAjenos, revisarRespuesta } from "../eval-automatico";
+import { PATRONES, enlacesAjenos, normal, revisarRespuesta } from "../eval-automatico";
 import { GUIONES_SOPORTE, VERSION_GUIONES, guionPorId } from "../guiones-soporte";
 
 const cliente = (texto: string): MensajeLeido => ({ rol: "cliente", texto });
@@ -162,6 +162,27 @@ describe("guiones v0.4 (encargo B de Hermes, aprobados por Sam: «Apruebo 1, 2 y
       expect(/\$|usd|d[oó]lar|bol[ií]var/i.test(g.texto), id).toBe(false);
       expect(enlacesAjenos(g.texto, ""), id).toEqual([]);
       expect(/\[[^\]]+\]/.test(g.texto), id).toBe(false);
+    }
+  });
+
+  it("M2: cada guion es el texto aprobado, palabra por palabra", () => {
+    expect(guionPorId("precios-tiempos")!.texto).toBe(
+      "Entendí que quieres saber el costo o los tiempos de tu envío. Eso depende del paquete y del embarque. Para darte un dato exacto y no inventarte nada, te paso con el equipo, que te da la cotización o la estimación con tu caso.",
+    );
+    expect(guionPorId("estado-sin-guia")!.texto).toBe(
+      "Entendí que quieres saber de tu paquete. Para verlo necesito tu número de guía. ¿Me lo compartes?",
+    );
+    expect(guionPorId("quejas")!.texto).toBe(
+      "Entendí tu molestia, y lo siento. Te paso de inmediato con una persona del equipo para que lo revisen contigo.",
+    );
+  });
+
+  it("M2: ningún patrón de la revisión (PATRONES) aparece en el texto de ninguno de los tres", () => {
+    for (const { id } of casos) {
+      const texto = normal(guionPorId(id)!.texto);
+      for (const patron of PATRONES) {
+        expect([...texto.matchAll(new RegExp(patron.source, patron.flags))].map((m) => m[0]), `${id} · ${patron}`).toEqual([]);
+      }
     }
   });
 
