@@ -65,7 +65,7 @@ No se inventan reglas donde ya hay política aprobada. Esta spec **las lleva al 
 | **LOD-01** | Carga, espera y feedback | SDD-0678 trabaja «Guardando…»; no hay esqueletos ni `loading.tsx` |
 | **ERR-01** | El error aparece cerca de su causa; no se depende de un toast que expira | Sin lugar fijo para el aviso del formulario |
 | **FRM-01** | Obligatorio y opcional se comunican igual; cambios sin guardar se conservan o se advierten | Ayudantes de campo solo en un módulo (`tms/_components/TruckDrawer.tsx:187-311`); no hay aviso de cambios sin guardar |
-| **AVS-01** | Avisos y confirmaciones (registro: «verificada») | Su texto normativo no está en `docs/governance/policies/`; se localiza al abrir la fase 1 (**NV**) |
+| **AVS-01** | Avisos y confirmaciones (registro: «verificada») | Su texto canónico es la spec SDD-0165 (no hay `policies/avs-01.md`); la enmienda v1.1 va en su §17 (fase 1) |
 | **CMP-01** | Toda pieza nueva entra como `proposed` y se promueve con evidencia | Aplica a cada pieza de §4 |
 
 ## 3. Reglas nuevas (cambian políticas; aprobadas por Sam el 2026-11-20, §11)
@@ -150,7 +150,7 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 ### Fase 1 · allowlist
 
 - `docs/specs/0688-rebrand-simetria-pantallas/spec.md`, `docs/specs/README.md`
-- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (por localizar), `docs/governance/README.md` y `docs/governance/generated/`
+- `docs/governance/policies/btn-01.md`, el documento de AVS-01 (localizado: `docs/specs/0165-sistema-gobernanza-experiencia-erp-studio/spec.md`, §17), `docs/governance/README.md` y `docs/governance/generated/`
 - `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»)
 - `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 

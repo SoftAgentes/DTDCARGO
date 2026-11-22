@@ -1,10 +1,11 @@
-# BTN-01 v1.2 — Semántica, jerarquía y contrato de botones
+# BTN-01 v1.3 — Semántica, jerarquía y contrato de botones
 
 | Control | Valor |
 |---|---|
 | Código | BTN-01 |
-| Versión | 1.2 |
-| Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: `primary` se pinta con el azul de acción |
+| Versión | 1.3 |
+| Enmienda | 2026-11-20 · Sam (founder) · BD-076 / SDD-0686: `primary` se pinta con el azul de acción (v1.2) |
+| Enmienda | 2026-11-20 · Sam (founder) · SDD-0688 §3, reglas 1 a 6: «Reglas de botones: aprobadas las seis». La regla 4 queda **pendiente de BRAND-CHECK**, no vigente (v1.3) |
 | Dueño | Sam (founder) |
 | Estado | aprobada |
 | Aprobación | 2026-07-29 · Sam (founder) · REV-SGE-014 |
@@ -55,6 +56,30 @@ Reglas:
   por recibir foco.
 - Un formulario tiene un submit principal inequívoco; Enter no puede disparar
   a la vez guardar, cerrar y otra acción secundaria.
+
+### Reglas de la simetría (v1.3 · SDD-0688)
+
+Alcance: Studio y Portal. En la fase 1 son solo política; el código del Studio
+llega por las fases 3 y 4 de la SDD-0688 y el del Portal por su fase 10.
+Complementan este documento y no cambian el vocabulario de §3 ni el orden de §4.
+
+1. **Verbo + sustantivo.** La etiqueta lleva verbo y objeto («Guardar cambios»,
+   «Crear embarque»), salvo los comunes: «Guardar», «Cancelar», «Cerrar» y
+   «Eliminar». El verbo sale siempre de §3; la regla le agrega el objeto cuando
+   sin él la acción queda ambigua. «Guardar» a secas sigue siendo válido en el
+   pie de un formulario de un solo objeto. No se usan «OK» ni «Aceptar» (§3).
+2. **Máximo tres acciones visibles por grupo** de botones (encabezado, pie de
+   panel, barra de herramientas); la cuarta va al menú de acciones. No relaja
+   la fila de tabla: allí sigue el máximo de dos acciones de bajo énfasis de §4.
+3. **Un solo tamaño dentro de un grupo** de botones.
+4. **Destructivo en tres énfasis** (relleno, contorno, texto) según el riesgo;
+   nunca icono solo. **PENDIENTE DE BRAND-CHECK: no está vigente.** Contradice
+   `BRAND.md:324` («6 variantes oficiales… No inventes»); hoy existe un solo
+   `danger`, con relleno. Se vuelve vigente solo si Sam confirma la excepción con
+   sus palabras y queda en `BRAND-DECISIONS.md`. Si no la confirma, se retira o
+   se reduce a variantes que ya existen. Mientras tanto no se implementa.
+5. **Posición fija del icono** respecto del texto: a la izquierda de la etiqueta.
+6. **La etiqueta no se corta**: si no cabe, baja de línea.
 
 ## 3. Vocabulario oficial
 
