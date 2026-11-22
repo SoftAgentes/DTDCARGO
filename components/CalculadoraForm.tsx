@@ -643,7 +643,7 @@ export function CalculadoraForm({
         // SDD-0684: el código EST identifica el estimado de una persona.
         <div data-clarity-mask="True" className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
-            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
               Estimado guardado ·{" "}
               <span style={{ fontFamily: "var(--font-mono), ui-monospace, monospace" }}>
                 {savedEstimateCode}
@@ -742,7 +742,7 @@ function EntregaIncluida({ ciudades }: { ciudades: Ciudad[] }) {
     >
       <h3
         id="entrega-incluida-titulo"
-        className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text m-0"
+        className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700 m-0"
       >
         Entrega incluida
       </h3>

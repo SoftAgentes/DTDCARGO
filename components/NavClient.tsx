@@ -299,8 +299,8 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                   aria-current={active ? "page" : undefined}
                   className={`text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md transition-colors whitespace-nowrap ${
                     active
-                      ? "text-wine font-bold bg-wine/30"
-                      : "text-ink font-medium hover:text-wine hover:bg-wine/15"
+                      ? "text-ink font-bold bg-ink/10"
+                      : "text-ink font-medium hover:text-accion-text hover:bg-accion-tint"
                   }`}
                 >
                   {l.label}
@@ -317,19 +317,19 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                 conversión que sí importa. */}
             <Link
               href="/contacto"
-              className={`text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap`}
+              className={`text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-accion-text hover:bg-accion-tint transition-colors whitespace-nowrap`}
             >
               Contáctenos
             </Link>
 
             {/* "Ayuda" va AL FINAL de los enlaces, pegada al botón (founder
                 2026-07-31). El indicador era un "▾" gris de 9px que no se leía
-                como "esto se despliega": ahora es un chevron **wine** de 11px
+                como "esto se despliega": ahora es un chevron **azul de acción** de 11px
                 que gira 180° al abrir. <details> nativo da aria-expanded y
                 teclado gratis; Escape y click-fuera se manejan en el useEffect
                 de arriba. */}
             <details ref={recursosRef} className="group relative">
-              <summary className={`list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 group-[[open]]:text-wine [&::-webkit-details-marker]:hidden`}>
+              <summary className={`list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-accion-text hover:bg-accion-tint transition-colors whitespace-nowrap flex items-center gap-1.5 group-[[open]]:text-wine [&::-webkit-details-marker]:hidden`}>
                 Ayuda
                 <svg
                   aria-hidden
@@ -337,7 +337,7 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                   height="11"
                   viewBox="0 0 12 12"
                   fill="none"
-                  stroke="var(--color-wine)"
+                  stroke="var(--color-accion-text)"
                   strokeWidth="2.1"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -367,8 +367,8 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                           aria-current={active ? "page" : undefined}
                           className={`block text-[14px] px-3 py-2.5 rounded-md transition-colors ${
                             active
-                              ? "text-wine font-bold bg-wine/30"
-                              : "text-ink hover:text-wine hover:bg-wine/15"
+                              ? "text-ink font-bold bg-ink/10"
+                              : "text-ink hover:text-accion-text hover:bg-accion-tint"
                           }`}
                         >
                           {r.label}
@@ -486,8 +486,8 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                 aria-current={active ? "page" : undefined}
                 className={`text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 transition-colors ${
                   active
-                    ? "text-wine font-bold bg-wine/30"
-                    : "text-ink font-semibold hover:text-wine hover:bg-wine/15"
+                    ? "text-ink font-bold bg-ink/10"
+                    : "text-ink font-semibold hover:text-accion-text hover:bg-accion-tint"
                 }`}
               >
                 {l.label}
@@ -498,9 +498,9 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
           {/* Recursos — acordeón dentro del drawer (mismo contenido que el
               dropdown desktop). El focus-trap recoge el summary + sus links. */}
           <details className="group">
-            <summary className="list-none cursor-pointer select-none text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors flex items-center justify-between [&::-webkit-details-marker]:hidden">
+            <summary className="list-none cursor-pointer select-none text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-accion-text hover:bg-accion-tint transition-colors flex items-center justify-between [&::-webkit-details-marker]:hidden">
               <span>Ayuda</span>
-              {/* Mismo chevron wine que en escritorio: el gris no se leía como
+              {/* Mismo chevron azul que en escritorio: el gris no se leía como
                   "esto se despliega". */}
               <svg
                 aria-hidden
@@ -508,7 +508,7 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                 height="14"
                 viewBox="0 0 12 12"
                 fill="none"
-                stroke="var(--color-wine)"
+                stroke="var(--color-accion-text)"
                 strokeWidth="2.1"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -527,8 +527,8 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                   aria-current={active ? "page" : undefined}
                   className={`block text-[16px] py-3.5 pl-7 pr-3 -mx-3 border-b border-grey-200 transition-colors ${
                     active
-                      ? "text-wine font-bold bg-wine/30"
-                      : "text-ink hover:text-wine hover:bg-wine/15"
+                      ? "text-ink font-bold bg-ink/10"
+                      : "text-ink hover:text-accion-text hover:bg-accion-tint"
                   }`}
                 >
                   {r.label}
@@ -544,7 +544,7 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
           <Link
             href="/contacto"
             onClick={close}
-            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
+            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-accion-text hover:bg-accion-tint transition-colors"
           >
             Contáctenos
           </Link>

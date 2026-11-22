@@ -1038,6 +1038,56 @@ Con ellos, las clases `bg-wine`, `hover:bg-wine-deep` y los `hover:`, `focus:` y
 - `--surface-sel` en tinta y los tokens web de acción con los valores del Studio.
 - Tres mutantes: un botón y un tono `"wine"` en `app/m`, y una clase `bg-wine` en Noticias web.
 
+### Fase 3b-2b · componentes compartidos de la web (2026-11-22)
+
+Dir_DTD aprobó dividir la 3b-2 (web) en tres tramos y empezar por `components/`: «apruebo los tres tramos […] Empieza por la 3b-2b (components/)». Después vienen la 3b-2a (registro, acceso, verificar, abrir y `p/[token]`; **`app/entrar` queda excluido**, es el inicio de sesión de la fase 4) y la 3b-2c (las páginas restantes y las superficies CSS). Rama `codex/sdd-0686-fase3b2-web`, desde `main` `471ea1d0b`. La PR se abre cuando la #780 (3b-1) esté en `main`.
+
+**Inventario (M):** 217 usos en 33 archivos. Quedan 74 usos en 17 archivos, todos en la lista cerrada del contrato.
+
+| Destino | Qué |
+|---|---|
+| Acción | Anillos y bordes de foco, enlaces, hover del menú y de los botones de copiar, chevrones que despliegan, botón «Copiar dirección» de la guía de Alibaba, zona de soltar del importador, hover de los controles del carrusel y de la grilla de servicios |
+| Tinta (selección) | Ítem activo del menú, chip activo de Preguntas frecuentes, filtros activos de Servicios, tipo de contenedor elegido, pestaña y paso actuales del importador, opción elegida de última milla |
+| Tinta (cifras y Shipping Mark) | Resultado del FCL y del CBM, Shipping Mark de la guía de Alibaba y su tinte, cifra del CBM en la ayuda |
+| Tinta suave | Eyebrows y rótulos en mayúscula |
+| Rojo y verde de estado | Error del estimado y aviso «No se puede calcular» en rojo (regla 2); viñetas «incluye» y el check del cotizador en verde |
+
+**Quedan, con lista cerrada (`color-accion-fase3b-components-contract.test.ts`):**
+- **A/B de Sam · acentos editoriales:** palabra destacada en titulares, comillas y tarjeta insignia (`Philosophy`, `PuertaAPuerta`, `DdpHero`, `ServiciosExplorer`, `Testimonials`, `Timeline`).
+- **A/B de Sam · ilustraciones:** `CicloCliente`, `CicloDTD`, el diagrama de `CbmExplicador` y la línea de `Timeline`.
+- **A/B de Sam · acentos en vino claro sobre navy:** la calculadora (con «DTD», que es identidad), la ayuda del CBM, el clip del proveedor, `Stats` y `YiwuAdvantage`. El foco sobre navy necesita un token de acción claro que la web no tiene todavía.
+- **3b-2c:** `ChipF2` y `hub-fichas`, cuyo color vive en `.f2chip.wine` de `globals.css`.
+- **Identidad:** `BrandMark` (hex del logo).
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/studio/_components/__tests__/color-accion-fase3b-components-contract.test.ts`
+- `components/AlibabaAddressGuide.tsx`
+- `components/CalculadoraForm.tsx`
+- `components/CbmAyuda.tsx`
+- `components/CbmExplicador.tsx`
+- `components/CompanyPhotoCarousel.tsx`
+- `components/CotizadorFletes.tsx`
+- `components/document-import/document-import.module.css`
+- `components/EstimadoModal.tsx`
+- `components/FaqExplorer.tsx`
+- `components/FclCalculator.tsx`
+- `components/GuiaAlibabaCard.tsx`
+- `components/LlenadoCalculator.tsx`
+- `components/marca/ColorSwatch.tsx`
+- `components/NavClient.tsx`
+- `components/NewsDisclaimer.tsx`
+- `components/PuertaAPuerta.tsx`
+- `components/ServicesGrid.tsx`
+- `components/servicios/DdpHero.tsx`
+- `components/servicios/FichaCuerpo.tsx`
+- `components/ServiciosExplorer.tsx`
+- `components/TarifasTabs.tsx`
+- `components/UltimoKmCalculator.tsx`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b-components-contract.test.ts`. Tiene la lista cerrada con su motivo, cuatro mutantes (enlace, hover del menú, selección y error), ninguna letra `--color-on-accent` sobre un relleno de acción, y los errores en rojo.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

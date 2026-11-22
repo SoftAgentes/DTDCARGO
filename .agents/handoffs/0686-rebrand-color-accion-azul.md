@@ -106,6 +106,7 @@ Estado del 2026-11-20, tarde:
    - contrato con mutante.
 
    Sam aprobó sus palabras de estado el 2026-11-21 («Apruebo las palabras de estado de las cifras KPI»). El logo de la barra: opción A (ver arriba).
+13. Fase 3b-2b (components/), en la rama `codex/sdd-0686-fase3b2-web`. Dir_DTD aprobó los tres tramos de la 3b-2. Quedan 74 usos en 17 archivos, en lista cerrada: tres A/B para Sam (editorial, ilustraciones, sobre navy) y las fichas de servicios para la 3b-2c. `app/entrar` va en la fase 4. La PR se abre cuando la #780 esté en main. tsc, eslint y vitest no se corrieron en local (no hay node_modules): los corre el CI.
 4. ~~`Avatar` con tono `wine`~~ Resuelto en el grupo 8: neutral (Sam). En el Studio, «Comentarios» ya no usa `.eyebrow-wine`, pero el portal y la web sí (fase 3).
 5. Fases 3 a 5. Aplicar los correos y Chatwoot necesita un OK de producción aparte (regla 8).
 

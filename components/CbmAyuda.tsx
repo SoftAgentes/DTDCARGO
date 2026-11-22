@@ -282,7 +282,7 @@ export function CbmAyuda() {
           style={{
             fontFamily: FONT_MONO,
             background: "var(--glass-inset)",
-            color: "var(--color-wine)",
+            color: "var(--color-ink)",
           }}
         >
           Largo × Ancho × Alto ÷ 1.000.000
@@ -297,7 +297,7 @@ export function CbmAyuda() {
           target="_blank"
           rel="noopener noreferrer"
           className="self-start border-b pb-px text-[13px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px]"
-          style={{ color: "var(--color-wine)" }}
+          style={{ color: "var(--color-accion-text)" }}
         >
           Ver la explicación completa →
         </a>

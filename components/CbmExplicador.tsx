@@ -300,11 +300,11 @@ export function CbmExplicador() {
           <div
             key={u.t}
             className="flex flex-col gap-1.5 rounded-[10px] border border-grey-200 bg-paper p-3.5"
-            style={{ borderLeft: "3px solid var(--color-wine)" }}
+            style={{ borderLeft: "3px solid var(--color-ink)" }}
           >
             <span className="text-[13.5px] font-bold text-ink">{u.t}</span>
             <span
-              className="text-[12.5px] font-bold tabular-nums text-wine-text"
+              className="text-[12.5px] font-bold tabular-nums text-ink"
               style={{ fontFamily: FONT_MONO }}
             >
               {u.f}
@@ -339,11 +339,11 @@ export function CbmExplicador() {
                   type="button"
                   onClick={() => cambiarUnidad(u.id)}
                   aria-pressed={activa}
-                  className="border-r border-grey-300 px-3 py-1.5 text-[11.5px] font-bold last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+                  className="border-r border-grey-300 px-3 py-1.5 text-[11.5px] font-bold last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
                   style={{
                     fontFamily: FONT_MONO,
                     background: activa
-                      ? "var(--color-wine)"
+                      ? "var(--color-ink)"
                       : "var(--color-white)",
                     color: activa
                       ? "var(--color-on-accent)"
@@ -382,7 +382,7 @@ export function CbmExplicador() {
                 // y UN separador (coma o punto, el que el visitante escriba),
                 // sin borrárselo a mitad de tipeo.
                 onChange={(e) => c.set(sanitizeDecimalText(e.target.value))}
-                className="w-full rounded-[8px] border border-grey-300 bg-white px-3 py-2 text-[15px] font-medium tabular-nums text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+                className="w-full rounded-[8px] border border-grey-300 bg-white px-3 py-2 text-[15px] font-medium tabular-nums text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
                 style={{ fontFamily: FONT_MONO }}
               />
             </div>
@@ -397,7 +397,7 @@ export function CbmExplicador() {
             >
               Volumen total
             </span>
-            <span className="text-[clamp(24px,6vw,32px)] font-extrabold leading-none tabular-nums text-wine-text">
+            <span className="text-[clamp(24px,6vw,32px)] font-extrabold leading-none tabular-nums text-ink">
               {fmt(cbmTotal)}
               <span
                 className="ml-1 text-[14px] font-bold text-grey-500"
@@ -428,7 +428,7 @@ export function CbmExplicador() {
         Venezuela. Con tu volumen ya puedes sacar el estimado en la{" "}
         <a
           href="/tarifas"
-          className="font-semibold text-wine-text underline decoration-1 underline-offset-4"
+          className="font-semibold text-accion-text underline decoration-1 underline-offset-4"
         >
           calculadora
         </a>{" "}
