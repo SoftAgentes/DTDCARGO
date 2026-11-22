@@ -44,8 +44,8 @@ async function candados(pestana: Pestana, formData: FormData) {
  * D-5: con la contraseña, una autenticación nueva para lo que afloja el freno. Sin contraseña no hace nada.
  *
  * La sesión anterior no se cierra a propósito (revisión de la #763, M3). `signInWithPassword` deja la sesión nueva en
- * las cookies de este navegador, y el refresh token viejo queda sin uso: es del mismo usuario, porque el correo sale de
- * `getUser()`, y GoTrue lo vence según su política. La única forma de revocarlo desde aquí es
+ * las cookies, pero el refresh token viejo sigue vivo: sin un límite de sesión configurado, GoTrue no lo vence (es del
+ * mismo usuario, porque el correo sale de `getUser()`). La única forma de revocarlo desde aquí es
  * `signOut({ scope: "others" })`, que además cierra las sesiones del usuario en sus otros equipos (el móvil, otra PC).
  * Eso sería una sorpresa por subir un tope. Si se quiere revocar, la SDD de verificación en dos pasos decide.
  */
