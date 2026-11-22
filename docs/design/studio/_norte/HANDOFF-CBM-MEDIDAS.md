@@ -4,7 +4,7 @@
 > `calc/cbm-variants.jsx` (`window.CalcLCL`, monta en `Calculadora CBM · DTD-Cargo.html`).
 > El sandbox (`calc/cbm-medidas.jsx`, `Calculadora CBM · Prueba medidas.html`) **se borró**
 > al mergear. Este doc queda como **referencia de la lógica** (fórmula, estado, criterios).
-> Para producto real (API), ver `backend/API-CONTRACT.md`.
+> Para producto real (API), ver `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].
 
 ---
 
