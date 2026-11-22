@@ -1,4 +1,4 @@
-﻿---
+---
 sdd: "0685"
 title: Marcar como históricas las referencias al back Norte en el prototipo
 status: in-progress
