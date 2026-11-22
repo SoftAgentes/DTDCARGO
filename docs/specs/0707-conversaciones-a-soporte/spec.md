@@ -5,7 +5,7 @@ status: approved
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-22
 updated: 2026-11-22
-revision: "v0.5 (re-revisión de Dir_DTD: conteos mínimos, firmas de correo, orden de fases, imagen propia)"
+revision: "v0.6 (Sam: D-7 A, actualizar las firmas guardadas, 2026-11-22)"
 supersedes: null
 superseded_by: null
 related: ["0056", "0147", "0583", "0585", "0626", "0655", "0702", "0705"]
@@ -146,7 +146,7 @@ se llamen como el rol es **NV** (la matriz usa ids, `matriz.ts:82`); se mide en 
 va a la columna `role_label` (`SignaturesView.tsx:263`, `mailing/actions.ts:231`) y sale en cada correo que el cliente
 recibe. Además, al crear un usuario se escribe `ROLE_LABELS[input.role]` (`usuarios/actions.ts:253`). Consecuencia:
 cambiar el rótulo en la fase 2 arregla las firmas **nuevas**, pero **las firmas ya guardadas seguirán diciendo
-«Soporte»**. Es la decisión D-7 de §9.
+«Soporte»**. Sam decidió actualizarlas (D-7 A, §9): es el paso 2b de la fase 2.
 
 ## 3. Rutas
 
@@ -292,7 +292,7 @@ pantallas. Siguen diciendo «Soporte» cosas que no son el rol ni la pantalla (m
 | Fase | Contenido | Quién | Requiere |
 |---|---|---|---|
 | **1 · Nombre y ruta** | Clases A y B: etiqueta y `slug` en `modules.ts`, *rewrite* y 308 en `next.config.ts` (carpeta sin mover, §3.1), enlaces de avisos (§3.3), título y guía de las tarjetas de la ficha (D-2 A), rótulos de rutas de alerta, catálogo del asistente, runbooks y marketing vigentes con el nombre de la pantalla. Pruebas del 308, del *rewrite* y del enlace del aviso | Worker de producto | PR con revisión previa (rutas y notificaciones: **no** carril rápido) |
-| **2 · Rol «Atención al cliente»** | §2.2: rótulo, textos, guías del asistente, comentarios, pruebas y documentación vigente. Sin tocar el id `support`. Las firmas ya guardadas, según D-7 (si se migran, es un paso aparte con OK nominal, §9) | Worker de producto | PR con revisión previa (toca archivos de usuarios y permisos; `carril.mjs` decide). Puede ir **en paralelo** con la 1: no comparten archivos |
+| **2 · Rol «Atención al cliente»** | §2.2: rótulo, textos, guías del asistente, comentarios, pruebas y documentación vigente. Sin tocar el id `support`. **Paso 2b (D-7 A):** actualizar una sola vez las firmas guardadas de rol `support` cuyo cargo sea exactamente «Soporte»: conteo previo con su autorización, escritura con OK nominal de Sam y el runbook de producción | Worker de producto | PR con revisión previa (toca archivos de usuarios y permisos; `carril.mjs` decide). Puede ir **en paralelo** con la 1: no comparten archivos |
 | **3 · Barrido de la palabra** | §2.1 en Studio y Portal: `bandeja.ts`, `guide.ts`, pantalla Soporte, ficha, CRM, Bandeja, Oficina virtual, Administración, Portal, guías de agentes (`chatwoot-agentes.md` y las del asistente) y los textos de los avisos `.liquid` **en el repo** (sin aplicarlos). Va **después de la 1 y de la 2**: con la 1 comparte las pantallas y la ficha; con la 2, `clientes/conversaciones-actions.ts` y las guías del asistente. La ayuda `bandeja.ts:266` (clase A′) **no** se toca aquí: espera a la fase 5 | Worker de producto | PR con revisión previa; capturas claro/oscuro de las pantallas con más cambios |
 | **4 · Guiones de la Oficina** | Lo que la Oficina dice al cliente y a Sam (avisos de Discord, guiones de `docs/oficina`), con el criterio de §2.1. La pantalla de la Oficina ya queda en la 3 | Ofi_Hermes (no esta spec) | Su propio encargo |
 | **5 · Chatwoot** | §4 y §4.1, en este orden: (a) inventario en lectura de bandejas, equipos, etiquetas y textos al cliente; (b) cruce de `cargar.sh`/`ensayo-portal.sh` de nombre a ID; (c) renombrar la bandeja «Conversaciones del portal» y cambiar `bandeja.ts:266` en el mismo paso; (d) subir al servidor las plantillas `.liquid` de la fase 3; (e) idioma propio, después de la subida 4.20.1 de la #776; (f) canal de Discord `#conversaciones-portal`, si Sam quiere; (g) plantillas de Meta, si alguna lo dice | Worker de infraestructura | **OK nominal de Sam** por cada escritura en Chatwoot de producción o en el servidor; Meta pide nueva aprobación |
@@ -344,7 +344,8 @@ Lo que fija para el trabajo:
 - **D-5 A:** no se renombra código, carpeta, tablas, id, API ni el canal de Discord.
 - **D-6 B:** el rol pasa a «Atención al cliente» (§2.2, fase 2), con el id `support` igual.
 
-**D-7 · Pendiente (nueva en la v0.5).** ¿Qué pasa con las **firmas de correo ya guardadas** que dicen «Soporte» (§2.2)?
+**D-7 · Resuelta: A.** Sam, en la sesión del Worker, 2026-11-22, textual: «A: actualizarlas». Era la pregunta: ¿qué pasa
+con las **firmas de correo ya guardadas** que dicen «Soporte» (§2.2)?
 - **A (recomendada):** se actualizan una sola vez, y solo las de personas con rol `support` cuyo cargo sea
   **exactamente** «Soporte». Las que alguien escribió a mano («Soporte China», «Coordinadora») no se tocan. Va como
   paso aparte de la fase 2: primero un conteo (con su autorización), después la escritura con **OK nominal de Sam**

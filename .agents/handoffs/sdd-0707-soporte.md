@@ -30,4 +30,7 @@
 - §2.1: conteos marcados como mínimos y completados (Pantalla 10, Oficina 15); pruebas que afirman las cadenas viejas.
 - §2.2: las firmas de correo guardan el rótulo (role_label); nueva D-7 para Sam (A recomendada: actualizar solo las que dicen exactamente «Soporte», con OK nominal).
 - Fases: la 3 va después de la 1 y de la 2; su criterio excluye la clase A′. §4.1: imagen en GHCR privado, etiqueta y digest; enmienda de chatwoot-versiones.md en la fase 5.
-- Pendiente de Sam: D-7.
+- Pendiente de Sam: D-7 (resuelta en la v0.6).
+
+## v0.6
+- Sam (en esta sesión, textual): «A: actualizarlas». D-7 = A, paso 2b de la fase 2 con conteo previo y OK nominal. Sin decisiones pendientes.
