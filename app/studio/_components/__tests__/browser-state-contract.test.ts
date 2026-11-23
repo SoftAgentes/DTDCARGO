@@ -17,7 +17,7 @@ describe("estado derivado del navegador", () => {
   it.each([
     "app/m/cn/login/page.tsx",
     "app/m/erp/bitacora/_components/PushOptInBanner.tsx",
-    "app/studio/(app)/_components/StudioTopbar.tsx",
+    "app/studio/_components/AparienciaUsuario.tsx",
     "app/studio/_components/ui/usePlatformMod.ts",
     "components/CookieConsentBanner.tsx",
     "components/LazyVideo.tsx",

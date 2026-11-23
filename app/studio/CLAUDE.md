@@ -394,8 +394,9 @@ cumplirlas todas.
 - `xs` (32 px) · chips, badges interactivas, micro-acciones en cells.
 - `min-width: max-content` para evitar reflow entre estados.
 - `gap: var(--s-2)` entre icono y label.
-- Vista: el Studio abre en Compacta y oscuro por defecto; el selector «Vista» (Normal,
-  Compacta, Súper compacta; `DensityToggle`) de la barra superior y el del tema cambian la preferencia del usuario.
+- Vista: el Studio abre en Compacta y oscuro por defecto; «Vista» (Normal, Compacta,
+  Súper compacta) y «Tema» (Claro, Oscuro, Automático) viven en el menú del usuario
+  (`AparienciaMenu`) y se guardan en su cuenta (SDD-0714), con respaldo local.
   Nada que se oprima baja de 32 px (SDD-0603).
 
 ### Regla 3 · Estados (anti-doble-submit + feedback)

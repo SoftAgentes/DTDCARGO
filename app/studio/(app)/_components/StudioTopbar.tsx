@@ -6,14 +6,18 @@
  * Topbar sticky con:
  * - Module label dinámico (pathname → label via pathToModuleLabel)
  * - Search button + atajo ⌘K → buscador global permission-aware (SDD-0135)
- * - Theme toggle (sun/moon) persistido en localStorage
  * - Notifications icon (placeholder, 0 notifs)
- * - User menu dropdown con avatar + email + role + Cerrar sesión
+ * - User menu dropdown: nombre y rol, Vista, Tema, opciones de cuenta y Cerrar sesión
+ *
+ * SDD-0714: la vista y el tema salieron de la barra y viven en el menú del
+ * usuario, guardados en su cuenta (`AparienciaMenu`, `AparienciaUsuario`).
+ * Para sumar una opción al menú (por ejemplo, el Modo de prueba de SDD-0713),
+ * agrega una entrada en `opcionesDeCuenta`.
  *
  * Diseño (Norte): docs/design/studio/_norte/erp/shell.jsx (Topbar)
  */
 
-import { useTransition, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useTransition, useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "../../_components/icons";
 import { Avatar } from "../../_components/ui/Avatar";
@@ -25,23 +29,16 @@ import { useIsMac } from "../../_components/ui/usePlatformMod";
 import { GlobalSearchModal } from "../../_components/wiring/GlobalSearchModal";
 import { NotificationBell } from "./NotificationBell";
 import { ConversationsIndicator } from "./ConversationsIndicator";
-import { DensityToggle } from "./DensityToggle";
+import { AparienciaMenu } from "./AparienciaMenu";
 import type { BugNotification } from "@/lib/studio/bug-types";
 import { useT, useLocale } from "@/lib/i18n";
-import {
-  APPEARANCE_EVENT,
-  DEFAULT_THEME,
-  applyTheme,
-  readTheme,
-} from "@/app/studio/_components/appearance-prefs";
-
-function subscribeTheme(onChange: () => void): () => void {
-  window.addEventListener(APPEARANCE_EVENT, onChange);
-  return () => window.removeEventListener(APPEARANCE_EVENT, onChange);
-}
 
 interface StudioTopbarProps {
   userEmail: string;
+  /** Nombre que se muestra en la pastilla y en el menú; sin él, lo de antes de la @. */
+  displayName?: string | null;
+  /** Rol del tenant, ya en palabras («Administrador»). Sin rol no se pinta. */
+  roleLabel?: string | null;
   userId: string;
   initialNotifications: BugNotification[];
   /** Tenant del user, para el filtro Realtime del indicador de Conversaciones. */
@@ -58,6 +55,8 @@ interface StudioTopbarProps {
 
 export function StudioTopbar({
   userEmail,
+  displayName,
+  roleLabel,
   userId,
   initialNotifications,
   conversationsTenantId,
@@ -68,12 +67,14 @@ export function StudioTopbar({
   const locale = useLocale();
   const t = useT();
   const moduleLabel = pathToModuleLabel(pathname, locale);
-  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => DEFAULT_THEME);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   // Modifier según OS: ⌘ en Mac, Ctrl en Windows/Linux (hook compartido).
   const modKey = useIsMac() ? "⌘" : "Ctrl";
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const userButtonRef = useRef<HTMLButtonElement>(null);
+  const userMenuId = useId();
+  const nombre = displayName?.trim() || userEmail.split("@")[0];
 
   // Atajo ⌘K / Ctrl+K
   useEffect(() => {
@@ -84,7 +85,11 @@ export function StudioTopbar({
       }
       if (e.key === "Escape") {
         setSearchOpen(false);
-        setUserMenuOpen(false);
+        setUserMenuOpen((abierto) => {
+          // Al cerrar con Escape, el foco vuelve a la pastilla.
+          if (abierto) userButtonRef.current?.focus();
+          return false;
+        });
       }
     };
     document.addEventListener("keydown", onKey);
@@ -102,11 +107,6 @@ export function StudioTopbar({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [userMenuOpen]);
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    applyTheme(next);
-  };
 
   const initials = userEmail.slice(0, 2).toUpperCase();
 
@@ -198,17 +198,6 @@ export function StudioTopbar({
         <div
           className="studio-topbar__actions"
         >
-          <DensityToggle />
-
-          {/* Theme toggle */}
-          <IconButton
-            onClick={toggleTheme}
-            title={theme === "dark" ? t("chrome.topbar.theme_to_light") : t("chrome.topbar.theme_to_dark")}
-            ariaLabel={t("chrome.topbar.theme_toggle")}
-          >
-            {theme === "dark" ? Icon.sun(16) : Icon.moon(16)}
-          </IconButton>
-
           {/* Conversaciones · badge de mensajes del cliente sin leer (SDD-0148),
               al lado de la campana → siempre visible en cada pantalla. */}
           {showConversations && (
@@ -224,10 +213,13 @@ export function StudioTopbar({
           {/* User menu */}
           <div ref={userMenuRef} className="studio-topbar__user" style={{ position: "relative" }}>
             <button
+              ref={userButtonRef}
+              type="button"
               className="studio-topbar__user-button"
               onClick={() => setUserMenuOpen((v) => !v)}
               aria-label={t("chrome.topbar.user_menu")}
               aria-expanded={userMenuOpen}
+              aria-controls={userMenuOpen ? userMenuId : undefined}
               style={{
                 borderRadius: "var(--r-pill)",
                 background: "var(--bg-surface)",
@@ -248,7 +240,7 @@ export function StudioTopbar({
                 }}
                 title={userEmail}
               >
-                {userEmail.split("@")[0]}
+                {nombre}
               </span>
               <span
                 className="studio-topbar__user-chevron"
@@ -259,7 +251,10 @@ export function StudioTopbar({
             </button>
             {userMenuOpen && (
               <UserMenuDropdown
+                id={userMenuId}
                 email={userEmail}
+                nombre={nombre}
+                roleLabel={roleLabel ?? null}
                 onClose={() => setUserMenuOpen(false)}
               />
             )}
@@ -274,38 +269,26 @@ export function StudioTopbar({
 
 // ── Subcomponentes ──────────────────────────────────────────────
 
-function IconButton({
-  onClick,
-  title,
-  ariaLabel,
-  children,
-}: {
-  onClick: () => void;
-  title: string;
-  ariaLabel: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      aria-label={ariaLabel}
-      className="studio-icono-btn"
-    >
-      {children}
-    </button>
-  );
-}
-
 function UserMenuDropdown({
+  id,
   email,
+  nombre,
+  roleLabel,
   onClose,
 }: {
+  id: string;
   email: string;
+  nombre: string;
+  roleLabel: string | null;
   onClose: () => void;
 }) {
   const t = useT();
   const [isPending, startTransition] = useTransition();
+  const primerFocoRef = useRef<HTMLButtonElement>(null);
+  // Al abrir, el foco entra a la vista marcada (SDD-0714 §4).
+  useEffect(() => {
+    primerFocoRef.current?.focus();
+  }, []);
   const handleSignOut = () => {
     startTransition(() => {
       onClose();
@@ -315,11 +298,20 @@ function UserMenuDropdown({
 
   return (
     <div
+      id={id}
+      role="dialog"
+      aria-label={t("chrome.topbar.user_menu")}
+      onBlur={(e) => {
+        // Si el foco sale del menú con Tab, el menú se cierra.
+        const destino = e.relatedTarget as Node | null;
+        if (destino && !e.currentTarget.parentElement?.contains(destino)) onClose();
+      }}
       style={{
         position: "absolute",
         top: "calc(100% + 8px)",
         right: 0,
-        width: 280,
+        width: 320,
+        maxWidth: "calc(100vw - 16px)",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
@@ -343,7 +335,7 @@ function UserMenuDropdown({
             whiteSpace: "nowrap",
           }}
         >
-          {email.split("@")[0]}
+          {nombre}
         </div>
         <div
           style={{
@@ -357,15 +349,15 @@ function UserMenuDropdown({
         >
           {email}
         </div>
-        <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <Badge tone="neutral" size="sm">
-            Admin
-          </Badge>
-          <Badge tone="neutral" size="sm">
-            DTD
-          </Badge>
-        </div>
+        {roleLabel && (
+          <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <Badge tone="neutral" size="sm">
+              {roleLabel}
+            </Badge>
+          </div>
+        )}
       </div>
+      <AparienciaMenu primerFocoRef={primerFocoRef} />
       <UserMenuItems onClose={onClose} />
       <div
         style={{
@@ -374,6 +366,7 @@ function UserMenuDropdown({
         }}
       >
         <button
+          type="button"
           onClick={handleSignOut}
           disabled={isPending}
           style={{
@@ -402,48 +395,42 @@ function UserMenuDropdown({
   );
 }
 
+/** Una opción del menú: un texto y lo que hace. Cambiar de `grupo` pinta una raya. */
+interface OpcionDeCuenta {
+  key: string;
+  label: string;
+  onSelect: () => void;
+  grupo: "cuenta" | "soporte";
+}
+
 function UserMenuItems({ onClose }: { onClose: () => void }) {
   const t = useT();
   const { openProfileModal, openShortcutsModal, openBugReport } = useDTDWiring();
+  // Para sumar una opción (p. ej. el Modo de prueba de SDD-0713), una entrada más aquí.
+  const opcionesDeCuenta: OpcionDeCuenta[] = [
+    { key: "perfil", grupo: "cuenta", label: t("chrome.topbar.menu_profile"), onSelect: () => openProfileModal({ tab: "profile" }) },
+    { key: "clave", grupo: "cuenta", label: t("chrome.topbar.menu_password"), onSelect: () => openProfileModal({ tab: "password" }) },
+    { key: "atajos", grupo: "cuenta", label: t("chrome.topbar.menu_shortcuts"), onSelect: () => openShortcutsModal() },
+    { key: "preferencias", grupo: "cuenta", label: t("chrome.topbar.menu_preferences"), onSelect: () => openProfileModal({ tab: "prefs" }) },
+    // Soporte · separado de las opciones de cuenta y de «Cerrar sesión».
+    { key: "problema", grupo: "soporte", label: t("chrome.topbar.menu_report_bug"), onSelect: () => openBugReport() },
+  ];
   return (
     <div style={{ padding: 6 }}>
-      <MenuItem
-        label={t("chrome.topbar.menu_profile")}
-        onClick={() => {
-          onClose();
-          openProfileModal({ tab: "profile" });
-        }}
-      />
-      <MenuItem
-        label={t("chrome.topbar.menu_password")}
-        onClick={() => {
-          onClose();
-          openProfileModal({ tab: "password" });
-        }}
-      />
-      <MenuItem
-        label={t("chrome.topbar.menu_shortcuts")}
-        onClick={() => {
-          onClose();
-          openShortcutsModal();
-        }}
-      />
-      <MenuItem
-        label={t("chrome.topbar.menu_preferences")}
-        onClick={() => {
-          onClose();
-          openProfileModal({ tab: "prefs" });
-        }}
-      />
-      {/* Soporte · separado de las opciones de cuenta y de "Cerrar sesión". */}
-      <div style={{ margin: "6px 4px", borderTop: "1px solid var(--border)" }} />
-      <MenuItem
-        label={t("chrome.topbar.menu_report_bug")}
-        onClick={() => {
-          onClose();
-          openBugReport();
-        }}
-      />
+      {opcionesDeCuenta.map((o, i) => (
+        <div key={o.key}>
+          {i > 0 && opcionesDeCuenta[i - 1].grupo !== o.grupo && (
+            <div style={{ margin: "6px 4px", borderTop: "1px solid var(--border)" }} />
+          )}
+          <MenuItem
+            label={o.label}
+            onClick={() => {
+              onClose();
+              o.onSelect();
+            }}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -451,6 +438,7 @@ function UserMenuItems({ onClose }: { onClose: () => void }) {
 function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         width: "100%",
