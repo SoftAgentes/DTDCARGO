@@ -166,7 +166,13 @@ Aprobada por el Director el 2026-11-23. Sin paneles, tablas, botones, Portal ni 
 - **Pruebas ajustadas por consecuencia, fuera de la allowlist aprobada** (la clase `.studio-densidad` ya no existe): `StudioSidebar-tooltip.test.tsx` y `claridad-controles-contract.test.ts`
 - **Documentos:** esta spec y `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
-**Cómo quedó la vista (§11.5):** `data-density` vale `normal` (sin atributo; los valores de `:root`), `compact` (por defecto) o `ultra`. «Amplia» (`spacious`) se retira y lo guardado como `spacious` se lee como Normal. Los once tamaños de texto son variables `--t-*` en `tokens.css`, con valores **provisionales** hasta que Sam los decida viendo.
+**Cómo quedó la vista (§11.5):** `data-density` vale `normal` (sin atributo; los valores de `:root`), `compact` (por defecto) o `ultra`. «Amplia» (`spacious`) se retira y lo guardado como `spacious` se lee como Normal. Los once tamaños de texto son variables `--t-*` en `tokens.css`, con los valores que Sam aprobó el 2026-11-23.
+
+**Decisiones cerradas por Sam el 2026-11-23** (cita textual, que relayó el Director): «0688: la vista Compacta queda por defecto y apruebo los tamaños propuestos». Cubre cuatro puntos:
+- **A · tamaños** de los once roles: los de `tokens.css` (Normal, Compacta y Súper compacta).
+- **B · piso de 12 px**: eyebrow y caption a 12 px en las tres vistas.
+- **C · «Normal» nueva**: 14 px y filas de 44 px, distinta de la «normal» anterior.
+- **D · Súper compacta** comprime espacios y títulos, no el cuerpo; con **Compacta por defecto**.
 
 ## 6. Aceptación
 

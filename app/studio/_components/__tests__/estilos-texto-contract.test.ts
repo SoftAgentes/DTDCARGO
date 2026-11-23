@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 /**
  * SDD-0688 fase 2 · estilos de texto con nombre y tres vistas (VIS-02 §3, spec §11.5).
  *
- * Mide estructura, no valores: los tamaños exactos son provisionales (Sam los decide
- * viendo) y se ajustan en tokens.css sin romper este contrato. Lo que no puede
+ * Mide estructura, no valores: los tamaños exactos los aprobó Sam el 2026-11-23 y
+ * se ajustan en tokens.css sin romper este contrato. Lo que no puede
  * romperse: los once roles existen y leen su token, ninguna vista baja del piso de
  * 12 px en lo que se lee y nada que se oprima mide menos de 32 px.
  */

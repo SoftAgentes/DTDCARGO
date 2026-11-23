@@ -43,8 +43,8 @@ Worker · 2026-11-23 · rama `claude/cool-hamilton-cc627e` · allowlist aprobada
 - `EncabezadoPagina` (`proposed`, ficha CMP-01) adoptado en calendario, tracking, dashboard (tono navy) y el título del login con `.t-pantalla`.
 - Contrato `estilos-texto-contract.test.ts` (estructura, piso de 12 px, objetivos de 32 px, las tres vistas).
 
-## Valores provisionales (A–D, los decide Sam viendo)
-Todos los tamaños están en `tokens.css`; cambiarlos no toca componentes. Eyebrow y caption a 12 px en las tres vistas (decisión B pendiente).
+## Decisiones A–D: cerradas por Sam el 2026-11-23
+Cita textual (relayada por el Director): «0688: la vista Compacta queda por defecto y apruebo los tamaños propuestos». Cubre A (tamaños), B (eyebrow y caption a 12 px, piso 12), C («Normal» nueva de 14 px y filas de 44 px) y D (Súper compacta comprime espacios y títulos); Compacta por defecto. Los tamaños siguen en `tokens.css`, sin cambio de valores; se quitó la palabra «provisional».
 
 ## Comprobaciones
 Con TURNO DE PC (2026-11-23): vitest de `app/studio/_components` y `(app)/_components` PASÓ salvo 2 mutantes de `color-accion-fase2-g8-contract` (Tracking en vivo) que fallan por CRLF del checkout de Windows (`autocrlf`: blob LF, copia de trabajo CRLF, el test busca `

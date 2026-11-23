@@ -188,8 +188,8 @@
   /* ── Estilos de texto con nombre · SDD-0688 fase 2 (VIS-02 §3) ─────────
      Once roles. Los valores de las tres vistas viven SOLO aquí (Normal en
      :root, Compacta y Súper compacta en los bloques [data-density] de abajo).
-     PROVISIONALES: Sam los decide viendo (SDD-0688 §11.5); se ajustan cambiando
-     estos tokens, sin tocar componentes. Piso: 12 px en toda la lectura. */
+     Aprobados por Sam el 2026-11-23 (SDD-0688 §11.5, fase 2); se ajustan
+     cambiando estos tokens, sin tocar componentes. Piso: 12 px en toda la lectura. */
   --t-display: 36px;
   --t-pantalla: 30px;
   --t-seccion: 20px;
