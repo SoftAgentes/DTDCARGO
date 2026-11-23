@@ -7,51 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "0572-fusion-manual-clientes",
-      "migration": "0572_fusion_manual_clientes",
-      "primarySymbol": "merge_clients_manual",
-      "symbols": [
-        {
-          "name": "client_search_for_merge",
-          "kind": "function",
-          "callSites": [
-            "app/studio/(app)/clientes/merge-actions.ts:52"
-          ]
-        },
-        {
-          "name": "client_merge_preview",
-          "kind": "function",
-          "callSites": [
-            "app/studio/(app)/clientes/merge-actions.ts:70"
-          ]
-        },
-        {
-          "name": "merge_clients_manual",
-          "kind": "function",
-          "callSites": [
-            "app/studio/(app)/clientes/merge-actions.ts:113"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/studio/(app)/clientes/merge-actions.ts:55",
-          "contains": "return { hits: [], error: \"No se pudo completar la búsqueda.\" };",
-          "degradation": "Sin la 0572 la RPC de búsqueda no existe: la acción devuelve lista vacía con el aviso y la pestaña «Buscar y fusionar» lo muestra. No escribe nada."
-        },
-        {
-          "site": "app/studio/(app)/clientes/merge-actions.ts:76",
-          "contains": "return { error: \"No se pudo armar la vista previa. Revisa que las dos fichas sigan activas.\" };",
-          "degradation": "Sin la 0572 el panel muestra ese aviso y el botón Fusionar queda deshabilitado: sin vista previa válida no se puede confirmar."
-        },
-        {
-          "site": "app/studio/(app)/clientes/merge-actions.ts:136",
-          "contains": ": \"No se pudo fusionar. Revisa que las dos fichas sigan activas y vuelve a intentar.\",",
-          "degradation": "Sin la 0572 la RPC de fusión no existe: la acción devuelve el aviso genérico y no fusiona ni escribe nada. Por eso la migración va ANTES de publicar."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
