@@ -11,6 +11,10 @@
 # (compose.yml). Reglas de BRAND.md: primary sobre claro, reverse sobre oscuro; no hay
 # variantes nuevas. Con DISPLAY_MANIFEST=false, vueapp.html.erb no pone los favicons de
 # Chatwoot y el ícono de la pestaña sale de LOGO_THUMBNAIL.
+# LOGO_THUMBNAIL (2026-11-23, pedido de Sam): el chat tiene su propio ícono, el de
+# «Conversaciones» que ya usa en Discord (`marca/chat-conversaciones.png`, 512×512, sha256
+# 0de7890d…). Sale en la pestaña y en el logo chico del panel; LOGO y LOGO_DARK siguen con el
+# isólogo de DTD. `apple-touch-icon.png` queda en marca/ para volver atrás.
 # Lo que la edición CE no permite cambiar: el «Powered by Chatwoot» del widget y de los
 # correos (disable_branding es premium).
 
@@ -22,7 +26,7 @@ MARCA = {
   'TERMS_URL' => 'https://dtdcargo.com/terminos',
   'PRIVACY_URL' => 'https://dtdcargo.com/privacidad',
   'DISPLAY_MANIFEST' => false,
-  'LOGO_THUMBNAIL' => '/dtd-marca/apple-touch-icon.png',
+  'LOGO_THUMBNAIL' => '/dtd-marca/chat-conversaciones.png',
   'LOGO' => '/dtd-marca/dtdcargo-isologo-primary.png',
   'LOGO_DARK' => '/dtd-marca/dtdcargo-isologo-reverse.png'
 }.freeze
