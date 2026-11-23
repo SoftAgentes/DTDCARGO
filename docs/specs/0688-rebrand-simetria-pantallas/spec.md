@@ -163,7 +163,7 @@ Aprobada por el Director el 2026-11-23. Sin paneles, tablas, botones, Portal ni 
 - **Tres vistas:** `app/studio/(app)/_components/DensityToggle.tsx` (selector «Vista», con su prueba), `admin/_components/AppearanceSection.tsx` y `apariencia-predeterminada.test.ts`
 - **Lo que se ve siempre:** el título del inicio de sesión (`app/studio/(auth)/login/LoginForm.tsx`). El menú lateral y la barra superior quedan sin migrar a los estilos nombrados: sus tamaños en píxeles (10 a 14) pasarían a seguir la vista y cambiarían la vista por defecto; eso lo decide Sam con los valores a la vista.
 - **Muestras:** `calendario/page.tsx`, `tracking/page.tsx` y `dashboard/page.tsx`
-- **Pruebas ajustadas por consecuencia** (la clase `.studio-densidad` ya no existe): `StudioSidebar-tooltip.test.tsx` y `claridad-controles-contract.test.ts`
+- **Pruebas ajustadas por consecuencia, fuera de la allowlist aprobada** (la clase `.studio-densidad` ya no existe): `StudioSidebar-tooltip.test.tsx` y `claridad-controles-contract.test.ts`
 - **Documentos:** esta spec y `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
 **Cómo quedó la vista (§11.5):** `data-density` vale `normal` (sin atributo; los valores de `:root`), `compact` (por defecto) o `ultra`. «Amplia» (`spacious`) se retira y lo guardado como `spacious` se lee como Normal. Los once tamaños de texto son variables `--t-*` en `tokens.css`, con valores **provisionales** hasta que Sam los decida viendo.
