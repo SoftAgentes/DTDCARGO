@@ -13,8 +13,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { getStudioRole, moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { canAccessModule } from "@/lib/studio/rbac";
+import { getStudioRole, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   confirmacionCoincide,
   errorDeMotivo,
@@ -40,16 +39,15 @@ export type MergeResult = {
   needsReview?: { conversationsArchived: number; changeRequestsLeftBehind: number };
 };
 
-const SIN_PERMISO_VER = "No tienes permiso para ver clientes.";
-
 export async function searchClientsForMergeAction(
   q: string,
 ): Promise<{ hits: MergeSearchHit[]; error?: string }> {
+  const supabase = await createClient();
+  // Solo lee: candado de VISTA al tope (rol, permisos por usuario y alcance).
+  const denial = await moduleViewDenial(supabase, "clients");
+  if (denial) return { hits: [], error: denial };
   const term = (q ?? "").trim();
   if (term.length < 2) return { hits: [] };
-  const supabase = await createClient();
-  const role = await getStudioRole(supabase);
-  if (!canAccessModule(role, "clients")) return { hits: [], error: SIN_PERMISO_VER };
 
   const { data, error } = await supabase.rpc("client_search_for_merge", { p_q: term });
   if (error) {
@@ -63,11 +61,11 @@ export async function previewMergeAction(
   survivorId: string,
   mergedId: string,
 ): Promise<{ preview?: MergePreview; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "clients");
+  if (denial) return { error: denial };
   if (!survivorId || !mergedId) return { error: "Faltan las dos fichas." };
   if (survivorId === mergedId) return { error: "Elige dos fichas distintas." };
-  const supabase = await createClient();
-  const role = await getStudioRole(supabase);
-  if (!canAccessModule(role, "clients")) return { error: SIN_PERMISO_VER };
 
   const { data, error } = await supabase.rpc("client_merge_preview", {
     p_survivor_id: survivorId,
