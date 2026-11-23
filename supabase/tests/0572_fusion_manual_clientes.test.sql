@@ -20,6 +20,11 @@
 --   4. al fusionar deja el motivo humano en la auditoría y restaura el ajuste;
 --   5. anon no puede ejecutar ninguna de las tres.
 
+-- RED: `-v apply_fix=false` no aplica la 0572 y la primera aserción falla.
+\if :{?apply_fix}
+\else
+\set apply_fix true
+\endif
 begin;
 
 do $roles$
