@@ -106,7 +106,7 @@ export function RegistroLinkForm({
 
   return (
     <section className="mx-auto max-w-[620px] px-4 py-10 sm:py-16">
-      <div className="text-[10px] font-bold tracking-[0.16em] uppercase text-wine">
+      <div className="text-[10px] font-bold tracking-[0.16em] uppercase text-grey-700">
         Ya eres cliente de DTD Cargo
       </div>
       <h1
@@ -304,7 +304,7 @@ export function RegistroLinkForm({
         </p>
 
         {state.error && (
-          <p role="alert" className="text-[13px] text-wine leading-[1.5]">
+          <p role="alert" className="text-[13px] text-status-danger leading-[1.5]">
             {state.error}
           </p>
         )}
@@ -313,7 +313,7 @@ export function RegistroLinkForm({
           type="submit"
           disabled={pending}
           aria-busy={pending || undefined}
-          className="h-12 rounded-[10px] bg-wine text-white text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+          className="h-12 rounded-[10px] bg-accion text-on-accion text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-2"
         >
           {pending ? "Guardando tus datos…" : "Guardar y entrar a mi portal"}
         </button>
@@ -350,13 +350,13 @@ function Listo({
         {registroLinkMensajeFinal(markbox)}
       </h1>
       {warning ? (
-        <p role="status" className="mt-4 text-[14px] text-wine leading-[1.6]">
+        <p role="status" className="mt-4 text-[14px] text-ink leading-[1.6]">
           {warning}
         </p>
       ) : portalUrl ? (
         <a
           href={portalUrl}
-          className="mt-8 inline-flex h-12 items-center rounded-[10px] bg-wine px-6 text-white text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+          className="mt-8 inline-flex h-12 items-center rounded-[10px] bg-accion px-6 text-on-accion text-[15px] font-bold focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-2"
         >
           Entrar a mi portal
         </a>

@@ -1164,6 +1164,42 @@ Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del co
 - `#portal-shell .btn-primary` es azul y el de la web sigue en vino.
 - Ningún relleno de acción lleva `--color-on-accent` encima (en oscuro sería blanco sobre azul claro).
 
+### Fase 3b-2a · registro, verificar, abrir y planilla del proveedor (2026-11-23)
+
+Segundo tramo de la web que Dir_DTD aprobó («apruebo los tres tramos»). Cubre `app/registro` (formulario, activar, correo, link), `app/verificar`, `app/abrir` y `app/p/[token]` (la planilla de empaque del proveedor). **`app/entrar` queda fuera**: es el inicio de sesión (fase 4). Rama `codex/sdd-0686-fase3b2a-registro`, desde `main` `eb7f54a65`.
+
+**Inventario (M, con el detector):** 109 usos en 11 archivos. Quedan 3, en la lista cerrada.
+
+| Destino | Qué |
+|---|---|
+| Acción | Anillos y bordes de foco, enlaces («Corregir», «Volver», «Iniciar sesión»), botones con relleno (`bg-accion` + `--color-on-accion`), callouts informativos, la casilla, los controles de la planilla (`.tbtn`, `.addbtn`, `.rowadd`, copiar dirección) |
+| Tinta | Opción elegida (tipo de cliente, formato de la planilla, paso actual), Shipping Mark y sus piezas, círculos numerados de la guía, acentos editoriales de `verificar`, selector de idioma activo, cifras y rótulos de la planilla |
+| Tinta suave | Eyebrows en mayúscula (`text-grey-700`) |
+| Rojo de estado | Errores y avisos de campo, panel de campos pendientes, «Esta cédula ya tiene una cuenta», asteriscos de obligatorio, borrar fila |
+| Navy | Tarjeta del Shipping Mark (fondo `--color-ink`, rótulo `--color-accion-on-dark`) y el paso activo del encabezado (relleno `--color-accion-on-dark` con texto navy) |
+
+**Criterio por analogía (D, a confirmar en la revisión).** Sam decidió la 3b-2b con piezas de `components/`; aquí se aplicó la misma regla a las piezas equivalentes (acento editorial → tinta y negrita; selección y Shipping Mark → tinta; banda navy → crema y azul claro). No hubo una decisión nueva de Sam para esta PR.
+
+**Lista cerrada:** `app/p/[token]/PackingListFormSection.tsx`, 3 usos: la marca de agua (`.pl-wm .d`), el título en chino y el folio. Son la identidad del documento, como el comprobante de pago (`--doc-wine`, fase 5). Si Dir_DTD o Sam deciden otra cosa, se mueven a tinta en esta misma lista.
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/abrir/page.tsx`
+- `app/p/[token]/PackingListFormSection.tsx`
+- `app/p/[token]/PackingListGuidedForm.tsx`
+- `app/p/[token]/PackingListProductsStep.tsx`
+- `app/p/[token]/ProviderShareClient.tsx`
+- `app/registro/RegisterForm.tsx`
+- `app/registro/activar/[token]/page.tsx`
+- `app/registro/correo/[token]/ComprobarCorreoForm.tsx`
+- `app/registro/link/[token]/RegistroLinkForm.tsx`
+- `app/registro/link/[token]/page.tsx`
+- `app/studio/_components/__tests__/color-accion-fase3b2a-registro-contract.test.ts`
+- `app/verificar/page.tsx`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b2a-registro-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes (foco, botón, error, selección, Shipping Mark, acento editorial y un control de la planilla), texto `--color-on-accion` sobre rellenos de acción, errores en rojo, tarjeta navy con rótulo azul claro y la identidad del documento en vino.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):
