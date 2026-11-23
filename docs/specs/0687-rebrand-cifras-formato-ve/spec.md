@@ -1,10 +1,10 @@
 ---
 sdd: "0687"
 title: "Cifras en formato venezolano: punto de miles y coma decimal, al mostrar y al teclear"
-status: proposed
+status: approved
 author: "Claude Worker (Sam)"
 created: 2026-11-20
-updated: 2026-11-22
+updated: 2026-11-23
 supersedes: null
 superseded_by: null
 related: ["0686", "0688", "0629", "0660", "0667", "0704"]
