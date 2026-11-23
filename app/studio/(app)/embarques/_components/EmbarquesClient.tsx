@@ -74,6 +74,7 @@ import { AsistenteBorrado } from "./AsistenteBorrado";
 import { FacturarContenedor, type PreordenDeCliente } from "./FacturarContenedor";
 import type { FacturacionExc0674 } from "@/lib/studio/exc0674";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { motivoCorto } from "./motivo-corto";
 import {
   agruparPorContenedor,
   clienteCoincide,
@@ -1701,13 +1702,14 @@ function GroupedTable({
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
-      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px 92px"
-      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px 92px";
-  // SDD-0522: la fila es [casilla | botón con los datos | «Abrir»]. El botón
-  // usa las mismas columnas sin la primera ni la última, así el encabezado y
-  // las filas no se desalinean (24px + gap + datos + gap + 92px).
-  const columnasDatos = columnas.replace(/^24px /, "").replace(/ 92px$/, "");
-  const anchoMinimo = adjuntos === null ? 926 : 1032;
+      ? "24px 150px minmax(160px, 1fr) 130px 130px 190px 70px 90px"
+      : "24px 150px minmax(160px, 1fr) 130px 130px 190px 70px 96px 90px";
+  // SDD-0522 / SDD-0710: la fila es [casilla | datos]. Los datos usan las
+  // mismas columnas sin la primera, así el encabezado y las filas no se
+  // desalinean. Ya no hay columna de «Abrir»: el código abre el detalle y la
+  // insignia «Rastrear» vive junto a la barra de progreso.
+  const columnasDatos = columnas.replace(/^24px /, "");
+  const anchoMinimo = adjuntos === null ? 914 : 1020;
   return (
     <div
       style={{
@@ -1885,8 +1887,6 @@ function GroupedTable({
                   <span style={{ textAlign: "right" }}>CBM</span>
                   {adjuntos !== null && <span>Adjuntos</span>}
                   <span>Creado</span>
-                  {/* SDD-0603: columna de «Abrir», sin rótulo propio. */}
-                  <span aria-hidden="true" />
                 </div>
                 {group.shipments.map((s) => {
                   const pct = computeProgress(s.status);
@@ -1901,7 +1901,7 @@ function GroupedTable({
                       data-row-id={s.code}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "24px minmax(0, 1fr) 92px",
+                        gridTemplateColumns: "24px minmax(0, 1fr)",
                         columnGap: 10,
                         padding: "var(--s-3) var(--s-5)",
                         background: fondo,
@@ -1936,13 +1936,12 @@ function GroupedTable({
                           />
                         )}
                       </span>
-                      {/* SDD-0603 · tramo 5a: la fila entera sigue abriendo
-                          con el ratón, pero el control de teclado y de lector
-                          es «Abrir». Sale del orden de Tab para que cada fila
-                          siga teniendo una sola parada. */}
-                      <button
-                        type="button"
-                        tabIndex={-1}
+                      {/* SDD-0710: la fila entera sigue abriendo con el ratón, pero
+                          el control de teclado y de lector es el código, que es
+                          un botón con aspecto de enlace. La fila no es parada de
+                          Tab ni lleva rol: no anida controles dentro de otro. */}
+                      <div
+                        data-fila-datos
                         onClick={() => onRowClick(s.id)}
                         style={{
                           width: "100%",
@@ -1950,8 +1949,6 @@ function GroupedTable({
                           gridTemplateColumns: columnasDatos,
                           gap: 10,
                           padding: 0,
-                          background: "transparent",
-                          border: 0,
                           alignItems: "center",
                           textAlign: "left",
                           cursor: "pointer",
@@ -1959,14 +1956,18 @@ function GroupedTable({
                           font: "inherit",
                         }}
                       >
-                      <span
-                        style={{
-                          font: "700 12px/1 var(--f-mono)",
-                          color: "var(--ink)",
-                          letterSpacing: "0.02em",
-                        }}
-                      >
-                        {s.code}
+                      <span>
+                        <button
+                          type="button"
+                          className="studio-emb-codigo"
+                          aria-label={`Abrir embarque ${s.code}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRowClick(s.id);
+                          }}
+                        >
+                          {s.code}
+                        </button>
                       </span>
                       <span
                         style={{
@@ -2011,7 +2012,18 @@ function GroupedTable({
                           {STATUS_LABELS[s.status]}
                         </Badge>
                       </span>
-                      <ProgressBar pct={pct} status={s.status} />
+                      <span className="studio-emb-progreso">
+                        <ProgressBar pct={pct} status={s.status} />
+                        <Link
+                          href={`/studio/tracking/${s.id}`}
+                          className="studio-emb-rastrear"
+                          aria-label={`Rastrear embarque ${s.code}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {Icon.pin(12)}
+                          Rastrear
+                        </Link>
+                      </span>
                       <span
                         style={{
                           font: "600 12px/1 var(--f-mono)",
@@ -2034,17 +2046,7 @@ function GroupedTable({
                       >
                         {formatDate(s.created_at)}
                       </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="studio-btn studio-btn-ghost studio-btn-sm"
-                        aria-label={`Abrir embarque ${s.code}`}
-                        onClick={() => onRowClick(s.id)}
-                        style={{ justifySelf: "end" }}
-                      >
-                        Abrir
-                        {Icon.chevR(14)}
-                      </button>
+                      </div>
                       {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
                           deshabilitada se ve, no depende de enfocarla. */}
                       {motivo !== null && (
@@ -2058,22 +2060,23 @@ function GroupedTable({
                             flexWrap: "wrap",
                           }}
                         >
+                          {/* SDD-0710: una línea con candado. El texto completo
+                              queda para lectores y como ayuda del cursor. */}
                           <p
                             id={motivoId}
-                            style={{
-                              margin: 0,
-                              font: "500 11.5px/1.4 var(--f-sans)",
-                              color: "var(--ink-soft)",
-                            }}
+                            title={motivo}
+                            className="studio-emb-bloqueo"
                           >
-                            {motivo}
+                            {Icon.lock(12)}
+                            <span aria-hidden="true">{motivoCorto(motivo)}</span>
+                            <span className="studio-sr-only">{motivo}</span>
                           </p>
                           {/* SDD-0560: el motivo no deja a Sam trabado; el
                               asistente le dice qué hacer y en qué orden. */}
                           {seleccionable?.guiable(s.id) && (
                             <button
                               type="button"
-                              className="studio-btn studio-btn-ghost studio-btn-sm"
+                              className="studio-emb-pasos"
                               aria-label={`Ver los pasos para eliminar ${s.code}`}
                               onClick={() => seleccionable.onGuiar(s.id, s.code)}
                             >
