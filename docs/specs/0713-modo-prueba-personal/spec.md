@@ -1,7 +1,7 @@
 ---
 sdd: "0713"
 title: "Modo de prueba personal en Studio"
-status: proposed
+status: in-progress
 author: "Codex (Worker)"
 created: 2026-11-23
 updated: 2026-11-23
@@ -15,7 +15,7 @@ confidencialidad: interno
 
 Una persona del equipo abre **Mi perfil → Entrar a modo de prueba** y encuentra una copia personal del Studio con carga y facturas inventadas. Puede equivocarse, ver las consecuencias, salir y volver, o repetir el ejercicio desde el comienzo. La primera entrega al equipo abarca **Facturación, Almacén China, Consolidado, Embarque y Recepción Venezuela**, en ese orden de prioridad.
 
-Las decisiones de experiencia corresponden a la conversación de producto del 23 de noviembre. La arquitectura y las fases se presentan para aprobación. Esta PR entrega la especificación.
+El plan fue aprobado el 23 de noviembre. La [fase 1](fase-1.md) desarrolla la entrada, el aislamiento y la comprobación de la preorden. La apertura al equipo corresponde a la entrega de los cinco módulos.
 
 ## 1. La práctica que recibirá el equipo
 

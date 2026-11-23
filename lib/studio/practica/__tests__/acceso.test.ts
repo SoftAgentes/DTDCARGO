@@ -24,6 +24,7 @@ const resolver = config.configuracionPractica;
 const contexto = new AsyncLocalStorage<{ sitio: string; usuario?: string }>();
 const tenant = randomUUID();
 const usuarios = new Map<string, { role: StudioUserRole; warehouse_scope: string; disabled: boolean }>();
+const extras = new Map<string, { user_id: string; module_id: string; can_view: boolean; can_edit: boolean; expires_at: string }>();
 const dbOrigen = vi.hoisted(() => ({ cliente: vi.fn(), admin: vi.fn(), acceso: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: dbOrigen.cliente }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: dbOrigen.admin }));
@@ -84,7 +85,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           then:(recibir:(v:unknown)=>void) => {
             expect(["studio_role_module_overrides","studio_user_module_grants"]).toContain(tabla);
             expect(filtros.tenant_id).toBe(tenant);
-            recibir({ data:[], error:null });
+            const extra = tabla === "studio_user_module_grants" && extras.get(String(filtros.user_id));
+            recibir({ data:extra ? [extra] : [], error:null });
           },
         };
         return cadena;
@@ -141,10 +143,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     const { vista, sesion } = await entrar(id);
     expect(vista.permisos.map(p => p.id)).toContain("cn");
     expect(vista.permisos.map(p => p.id)).not.toContain("ve");
+    extras.set(id, { user_id:id, module_id:"invoices", can_view:true, can_edit:false, expires_at:new Date(Date.now() + 60000).toISOString() });
+    const soloLectura = await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion});
+    expect((await soloLectura.json()).permisos).toContainEqual({id:"invoices",edicion:false});
+    extras.get(id)!.expires_at = new Date(0).toISOString();
     usuarios.get(id)!.role = "marketing";
     const revisada = await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion});
     expect(revisada.status).toBe(200);
-    expect((await revisada.json()).permisos).not.toContainEqual(expect.objectContaining({id:"cn"}));
+    const { permisos } = await revisada.json();
+    expect(permisos).not.toContainEqual(expect.objectContaining({id:"cn"}));
+    expect(permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
     usuarios.get(id)!.disabled = true;
     expect((await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion})).status).toBe(403);
     expect((await solicitar(real,"emitir",{},{usuario:id})).status).toBe(403);
