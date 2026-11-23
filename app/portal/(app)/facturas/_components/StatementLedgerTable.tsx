@@ -51,8 +51,8 @@ function formatDate(iso: string | null): string {
  * `--color-status-success` mide 4.33:1 sobre papel claro, bajo el umbral de body.
  * Los montos van en `--color-ink` (16.49 claro / 13.08 oscuro) y la distinción
  * cargo↔abono la llevan **el signo `−`, la columna y el ícono**, no el color
- * solo (WCAG 1.4.1). El saldo final usa `--color-wine-text` (BD-026 · 10.13 /
- * 7.93), que es wine COMO TEXTO y no voltea en el portal oscuro.
+ * solo (WCAG 1.4.1). El saldo final va en tinta (SDD-0686, regla 4): una cifra no
+ * se pinta en vino; solo va en rojo si está vencida.
  */
 export function StatementLedgerTable({
   invoices,
@@ -151,7 +151,7 @@ export function StatementLedgerTable({
                   fontFamily: MONO,
                   color:
                     ledger.balance > 0
-                      ? "var(--color-wine-text)"
+                      ? "var(--color-ink)"
                       : "var(--color-ink)",
                 }}
               >
@@ -209,10 +209,10 @@ function LedgerRow({
           className="w-[22px] h-[22px] rounded-[6px] shrink-0 grid place-items-center"
           style={{
             background: esCargo
-              ? "color-mix(in srgb, var(--color-wine) 12%, transparent)"
+              ? "color-mix(in srgb, var(--color-ink) 8%, transparent)"
               : "color-mix(in srgb, var(--color-status-success) 14%, transparent)",
             color: esCargo
-              ? "var(--color-wine-text)"
+              ? "var(--color-ink)"
               : "var(--color-status-success)",
           }}
           aria-hidden="true"

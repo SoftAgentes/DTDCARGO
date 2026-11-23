@@ -415,6 +415,17 @@ PR.
 RLS en todas: Ver con el módulo `ia`; Editar con superadmin o el extra; `anon` sin nada. Contratos `.test.sql` en
 PGlite.
 
+**Aplicadas en producción (2026-11-22)**, en el Supabase propio, con OK nominal de Sam («Hay que aplicar la 0570 y la
+0571. Apruebo la aplicación») y el runbook, desde el paquete de `b0218800c`:
+
+| Migración | COMMIT (UTC) | `version` | md5 | bytes | Evidencia |
+|---|---|---|---|---|---|
+| `0570_ia_catalogo_y_costo` | 2026-11-22 10:20:45 | 20261122102045 | `c3fa477c15ac2d3516b77ebfb448a73d` | 40193 | `/srv/ops/evidencias/apply-0570-dtd-cargo-20261122T102044Z` |
+| `0571_ia_cadenas_y_eventos` | 2026-11-22 10:22:31 | 20261122102231 | `8a627ab294f4347769025660a389670a` | 21368 | `/srv/ops/evidencias/apply-0571-dtd-cargo-20261122T102231Z` |
+
+Las dos pasaron la lectura previa (todas las funciones `nueva`, sin locks esperando), su postflight y la verificación (código 0).
+Quedaron selladas en `supabase/migrations.lock.json` y salieron de `pendingBelowCutoff`.
+
 ## 10. Pruebas previstas
 
 - **Regla D-2 (la que impide el atajo):**
@@ -640,7 +651,9 @@ GoTrue instalado ponga `amr` con método `password` y su hora en el JWT es **NV*
   - `lib/studio/ia/clasificar-error.ts` (0638 §5.1, módulo puro), `lib/studio/ia/cadena.ts` y sus pruebas;
   - `app/studio/(app)/marketing/noticias-web/actions.ts` (solo el `MODEL` de `:220` y su uso) y
     `lib/news/ceo-brief.ts` (solo el `MODEL` de `:53` y su uso), con sus pruebas;
-  - la pestaña «Funciones» en `app/studio/(app)/admin/ia/`.
+  - la pestaña «Funciones» en `app/studio/(app)/admin/ia/` (la lectura y los avisos de la pestaña también van ahí);
+  - `lib/studio/rbac-actions-guard.test.ts`, solo el contador del inventario (502 → 503) y su comentario de
+    procedencia. Lo sumó Dir_DTD el 2026-11-22.
 
 **Fuera de la allowlist, detectado:** `app/studio/(app)/admin/oficina-virtual/vista/page.tsx:84` muestra el tope del
 entorno (`configDespachador().topeMensualUsd`); con la 0570 aplicada puede no coincidir con el de la pantalla. Queda

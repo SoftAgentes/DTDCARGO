@@ -35,7 +35,7 @@ export default async function PortalCoursePage({
       </Link>
 
       <header className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-wine-text">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-grey-700">
           {tierLabel(course.tier)}
         </span>
         <h1 className="text-2xl font-extrabold text-ink leading-tight">{course.title}</h1>
@@ -54,7 +54,7 @@ export default async function PortalCoursePage({
               aria-label={`Progreso del curso: ${pct}%`}
               className="h-2 w-full rounded-full bg-grey-100 overflow-hidden"
             >
-              <div className="h-full rounded-full bg-wine" style={{ width: `${pct}%` }} />
+              <div className="h-full rounded-full bg-ink" style={{ width: `${pct}%` }} />
             </div>
             <span className="text-[11px] font-semibold text-grey-500">
               {progress.done} de {progress.total} lecciones · <span className="text-ink">{pct}%</span>
@@ -130,7 +130,7 @@ function LessonRow({ courseId, lesson }: { courseId: string; lesson: PortalCours
       {/* Cualquier widget (0149 alibaba_address · 0393 alibaba_curso) se anuncia
           igual: al alumno le importa que la lección trae algo con qué trabajar. */}
       {lesson.widget ? (
-        <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-wine-text bg-grey-100 px-1.5 py-0.5 rounded">
+        <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-ink bg-grey-100 px-1.5 py-0.5 rounded">
           Herramienta
         </span>
       ) : null}

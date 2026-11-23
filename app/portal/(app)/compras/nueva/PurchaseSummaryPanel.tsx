@@ -8,8 +8,8 @@
  * de lo que el cliente puede adelantar — sin regaños: lo que falta se ve
  * pendiente, no en rojo, porque nada de eso es obligatorio.
  *
- * Sólo tokens `var(--*)`. Tema oscuro por default: sobre relleno wine va
- * `--color-on-accent`, nunca `text-white`.
+ * Sólo tokens `var(--*)`. Tema oscuro por default: sobre relleno de acción va
+ * `--color-on-accion`, nunca `text-white`.
  */
 
 import { useState } from "react";
@@ -87,19 +87,19 @@ export function PurchaseSummaryPanel({
             aria-expanded={orderOpen}
             className="w-full flex items-center justify-between gap-2 rounded-[14px] px-4 py-3 border text-left"
             style={{
-              borderColor: "var(--color-wine)",
+              borderColor: "var(--color-grey-300)",
               background: "var(--color-paper)",
             }}
           >
             <span
               className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.1em] uppercase"
-              style={{ color: "var(--color-wine-text)" }}
+              style={{ color: "var(--color-grey-700)" }}
             >
               <DocIcon size={13} /> Resumen de tu orden
             </span>
             <span
               className="text-[11px] font-bold flex-shrink-0"
-              style={{ color: "var(--color-wine-text)" }}
+              style={{ color: "var(--color-accion-text)" }}
             >
               {orderOpen ? "Ocultar" : "Revisa aquí"}
             </span>
@@ -109,7 +109,7 @@ export function PurchaseSummaryPanel({
             <div
               className="mt-2 rounded-[14px] p-4 border text-[13px] leading-[1.6] text-ink"
               style={{
-                borderColor: "var(--color-wine)",
+                borderColor: "var(--color-grey-300)",
                 background: "var(--color-paper)",
               }}
             >
