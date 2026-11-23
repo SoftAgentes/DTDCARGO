@@ -33,9 +33,13 @@ afterEach(cleanup);
 describe("EmbarquesClient · código e insignia en la fila (SDD-0710)", () => {
   it("CONTRATO: ninguna fila trae el botón grande «Abrir ›»", () => {
     const { container } = render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
-    for (const b of screen.queryAllByRole("button")) {
-      expect(b.textContent?.trim()).not.toBe("Abrir");
-      expect(b.className).not.toMatch(/studio-btn-ghost/);
+    const filas = container.querySelectorAll("[data-row-id]");
+    expect(filas).toHaveLength(ENVIOS.length);
+    for (const fila of filas) {
+      for (const b of within(fila as HTMLElement).queryAllByRole("button")) {
+        expect(b.textContent?.trim()).not.toBe("Abrir");
+        expect(b.className).not.toMatch(/studio-btn-ghost/);
+      }
     }
     // Ninguna fila acaba en una columna de 92 px reservada al botón.
     const fila = container.querySelector('[data-row-id="S-2026-0001"]') as HTMLElement;
@@ -85,7 +89,7 @@ describe("EmbarquesClient · código e insignia en la fila (SDD-0710)", () => {
     render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     await user.click(screen.getByRole("link", { name: "Rastrear embarque S-2026-0001" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    await user.click(screen.getByText("Yiwu → Valencia", { exact: false }));
+    await user.click(screen.getAllByText("Yiwu → Valencia", { exact: false })[0]);
     expect(screen.getAllByRole("dialog").length).toBe(1);
   });
 

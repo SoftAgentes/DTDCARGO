@@ -11,8 +11,13 @@
 |---|---|
 | Spec con allowlist | hecha |
 | Implementación (`EmbarquesClient.tsx`, `motivo-corto.ts`, `studio.css`) | hecha |
-| Pruebas (contrato sin «Abrir», insignia, motivo corto, borrado ajustado) | escritas |
-| `pnpm install`, vitest, tsc, lint, build | **NO EJECUTADO** (espera turno de PC de Dir_DTD) |
+| Pruebas (contrato sin «Abrir», insignia, motivo corto, borrado y adjuntos ajustados) | hechas |
+| `pnpm install --frozen-lockfile` | PASÓ |
+| vitest `embarques` (16 archivos, 205 pruebas) | PASÓ |
+| vitest `contract` (47 archivos, 697 pruebas) | PASÓ |
+| `tsc --noEmit` | PASÓ |
+| eslint `embarques` | PASÓ |
+| `pnpm verify` completo / build | NO EJECUTADO (lo cubre el CI de la PR) |
 | `docs:check` | PASÓ tras regenerar el índice |
 | Revisión visual claro/oscuro y contraste medido | pendiente (requiere servidor) |
 
