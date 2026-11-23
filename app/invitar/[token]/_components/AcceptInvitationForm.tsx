@@ -172,7 +172,7 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
               background: "transparent",
               border: 0,
               padding: 8,
-              color: showPassword ? "var(--wine, #7F0F1A)" : "var(--ink-soft, #6B6B6B)",
+              color: showPassword ? "var(--color-accion)" : "var(--ink-soft, #6B6B6B)",
               cursor: "pointer",
               display: "grid",
               placeItems: "center",

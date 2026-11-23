@@ -136,7 +136,7 @@ export default function ImportarHubPage() {
                       ? "Entrega incluida: no cobramos el tramo nacional."
                       : "Entrega hasta tu puerta, cobrada por metro cúbico."}
                   </span>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-wine group-hover:text-wine-deep transition-colors">
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-accion-text group-hover:text-accion-hover transition-colors">
                     Ver detalle{" "}
                     <ArrowIcon
                       size={14}

@@ -9,8 +9,8 @@
  *   editoriales en tinta (negrita), comillas en tinta suave y borde insignia en
  *   tinta; ilustraciones en navy con rampa por opacidad; sobre las bandas navy,
  *   cifras y rótulos en crema y lo que se toca en `--color-accion-on-dark`.
- * - Lista cerrada: el «DTD» de la calculadora (identidad) y las fichas de
- *   servicios (3b-2c, `.f2chip` en `globals.css`). Solo baja.
+ * - Lista cerrada: el «DTD» de la calculadora (identidad). Solo baja.
+ *   Las fichas de servicios (`.f2chip`) pasaron a acción en la 3b-2c.
  * - El logo (`BrandMark`) es identidad: sus hex no se cuentan aquí.
  */
 import { readFileSync } from "node:fs";
@@ -20,12 +20,9 @@ import { cuentaVino, fuentesDe, RAIZ, rel } from "./vino-detector";
 
 const leer = (ruta: string) => readFileSync(join(RAIZ, ruta), "utf8");
 
-const FICHAS = "3b-2c: chip `.f2chip.wine`, que vive en globals.css";
 
 const PERMITIDO: Record<string, { cuenta: number; motivo: string }> = {
   "components/CalculadoraForm.tsx": { cuenta: 1, motivo: "«DTD» del encabezado de la calculadora: identidad (Sam, bandas A)" },
-  "components/servicios/ChipF2.tsx": { cuenta: 1, motivo: FICHAS },
-  "components/servicios/hub-fichas.tsx": { cuenta: 15, motivo: FICHAS },
 };
 const esperado = Object.fromEntries(Object.entries(PERMITIDO).map(([f, v]) => [f, v.cuenta]));
 

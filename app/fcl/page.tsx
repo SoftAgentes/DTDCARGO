@@ -68,7 +68,7 @@ export default async function FclCalcPage() {
               >
                 Tu contenedor,
                 <br />
-                <span style={{ color: "var(--color-wine)" }}>China a tu puerto.</span>
+                <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>China a tu puerto.</span>
               </h1>
               <p className="lead mt-6 max-w-[46ch]">
                 Elige una de nuestras rutas de contenedor completo y cuántos vas a
@@ -84,7 +84,7 @@ export default async function FclCalcPage() {
                   <li key={t} className="flex items-start gap-3">
                     <span
                       className="mt-1.5 inline-block w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: "var(--color-wine)" }}
+                      style={{ background: "var(--color-ink)" }}
                       aria-hidden
                     />
                     <span>
@@ -97,11 +97,11 @@ export default async function FclCalcPage() {
                   que no tenían enlaces desde la calculadora. */}
               <p className="mt-6 text-[15px] text-grey-700 max-w-[46ch]">
                 Conoce cómo funciona el{" "}
-                <Link href="/servicios/fcl" className="font-semibold text-wine hover:text-wine-deep">
+                <Link href="/servicios/fcl" className="font-semibold text-accion-text hover:text-accion-hover">
                   servicio de contenedor completo
                 </Link>{" "}
                 o calcula{" "}
-                <Link href="/llenado" className="font-semibold text-wine hover:text-wine-deep">
+                <Link href="/llenado" className="font-semibold text-accion-text hover:text-accion-hover">
                   cuánto contenedor ocupa tu carga
                 </Link>
                 .

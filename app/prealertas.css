@@ -23,7 +23,7 @@
       `.sm-surface` (comparte el MISMO degradado): piso en 66% = 4,9:1
       sobre el peor caso #26406F, BRAND.md regla 6 (≥4,5:1). Los `#fff`
       sueltos sobre wine pasan a `var(--color-on-accent)`. La sombra
-      `rgba(127,15,26,.35)` bajo el bigicon es literalmente `--wine` con
+      sombra bajo el bigicon, antes un rojo con alfa .35, es literalmente `--wine` con
       alfa (127,15,26 = #7F0F1A) → se expresa con `color-mix()` del token
       en vez de repetir el hex.
    2. `--nav-h` (usado por `.pa-cond-head` sticky): el mockup lo asume
@@ -62,7 +62,6 @@
      .home-surface, .sm-surface, .cx-surface, .rp-surface, .pa-surface`):
      cada superficie con banda navy los redeclara (mismo patrón que
      `.sm-surface` / `.home-surface`). */
-  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
   --f-cn: var(--f-cn-ui); /* alias UI: Noto Sans SC para chino mandarín (唛头) */
   --nav-h: 76px; /* altura real de <Nav> — ver adaptación 2 */
   /* Tinta crema sobre `--grad-navy-hero` — MISMO degradado y mismos
@@ -99,12 +98,12 @@
   outline-offset: 2px;
 }
 .pa-surface .btn-primary {
-  background: var(--wine);
-  color: var(--color-on-accent);
+  background: var(--color-accion);
+  color: var(--color-on-accion);
   box-shadow: var(--shadow-sm);
 }
 .pa-surface .btn-primary:hover {
-  background: var(--wine-deep);
+  background: var(--color-accion-hover);
 }
 .pa-surface .btn-ghost {
   background: transparent;
@@ -116,7 +115,7 @@
 }
 .pa-surface .btn-onwine {
   background: var(--color-grey-100);
-  color: var(--wine);
+  color: var(--color-ink);
 }
 .pa-surface .btn-onwine:hover {
   background: var(--color-white);
@@ -152,7 +151,7 @@
   font: 700 12.5px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-5);
   display: flex;
   align-items: center;
@@ -166,21 +165,21 @@
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   margin-bottom: var(--s-4);
 }
 .pa-surface .eyebrow-h .rule,
 .pa-surface .eyebrow-s .rule {
   width: 34px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
 }
 .pa-hero .eyebrow-h {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .pa-hero .eyebrow-h .rule {
-  background: var(--wine-on-dark);
+  background: var(--color-on-accent);
 }
 .pa-surface .h2 {
   font-family: var(--f-brand-display);
@@ -193,7 +192,7 @@
   text-wrap: balance;
 }
 .pa-surface .h2 .accent {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .pa-surface .sec-sub {
   font: 400 17px/1.6 var(--f-brand);
@@ -228,7 +227,7 @@
   text-wrap: balance;
 }
 .pa-h1 .accent {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .pa-lead {
   font: 400 clamp(16px, 1.3vw, 19px)/1.6 var(--f-brand);
@@ -253,7 +252,7 @@
 .pa-hero-note svg {
   width: 15px;
   height: 15px;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   flex: 0 0 auto;
 }
 
@@ -341,7 +340,7 @@
   color: var(--success);
 }
 .pa-cs--now .pa-cs-ic {
-  background: var(--wine);
+  background: var(--color-ink);
   color: var(--color-on-accent);
 }
 .pa-cs--wait .pa-cs-ic {
@@ -393,8 +392,8 @@
 }
 .pa-step-n {
   font: 700 12px/1 var(--f-mono);
-  color: var(--wine);
-  background: var(--wine-tint);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--r-pill);
   padding: 6px 11px;
   align-self: flex-start;
@@ -404,7 +403,7 @@
   height: 48px;
   border-radius: var(--r-md);
   background: var(--bg-elevated);
-  color: var(--wine);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -474,21 +473,21 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 25%, var(--wine-tint), transparent 55%);
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--color-ink) 8%, transparent), transparent 55%);
   pointer-events: none;
 }
 .pa-bigicon {
   width: 128px;
   height: 128px;
   border-radius: var(--r-xl);
-  background: var(--wine);
+  background: var(--color-ink);
   color: var(--color-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Sombra tinte wine — el mockup trae rgba(127,15,26,.35), que es el hex de
+  /* Sombra tinte wine — el mockup traía el hex de
      --wine con alfa (#7F0F1A). Se expresa con el token en vez de repetir el hex. */
-  box-shadow: 0 20px 45px color-mix(in srgb, var(--wine) 35%, transparent);
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--color-ink) 35%, transparent);
   position: relative;
   z-index: 1;
 }
@@ -500,7 +499,7 @@
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-4);
   display: flex;
   align-items: center;
@@ -509,7 +508,7 @@
 .pa-block-txt .pa-b-eyebrow .rule {
   width: 30px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
 }
 .pa-block-txt h2 {
   font-family: var(--f-brand-display);
@@ -632,7 +631,7 @@
   width: 38px;
   height: 38px;
   border-radius: var(--r-pill);
-  background: var(--wine);
+  background: var(--color-ink);
   color: var(--color-on-accent);
   display: flex;
   align-items: center;

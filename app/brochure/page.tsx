@@ -79,7 +79,7 @@ export default function BrochurePage() {
           <div className="wrap max-w-[920px]">
             <span className="eyebrow">Carga China → Venezuela · Desde 2015</span>
             <h1 className="h-display mt-6" style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}>
-              <span style={{ color: "var(--color-wine)" }}>Con Confianza,</span>
+              <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>Con Confianza,</span>
               <br />
               de China a tu puerta.
             </h1>
@@ -125,7 +125,7 @@ export default function BrochurePage() {
                     className="text-[15px] flex-shrink-0 w-[42px]"
                     style={{
                       fontFamily: "var(--font-archivo-black)",
-                      color: "var(--color-wine)",
+                      color: "var(--color-ink)",
                     }}
                   >
                     {t.year}

@@ -80,7 +80,7 @@ export default function InspeccionPage() {
           <div className="wrap">
             <Link
               href="/servicios"
-              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-wine mb-6"
+              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-accion-text mb-6"
             >
               ← Todos los servicios
             </Link>
@@ -89,7 +89,7 @@ export default function InspeccionPage() {
               capa="origen"
               chips={
                 <>
-                  <ChipF2 variant="wine">Se pide aparte — antes del embarque</ChipF2>
+                  <ChipF2 variant="accion">Se pide aparte — antes del embarque</ChipF2>
                   <ChipF2>Activo</ChipF2>
                 </>
               }
