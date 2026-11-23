@@ -27,10 +27,12 @@ import {
 import type { UserActionState } from "@/lib/studio/user-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { EntradaPractica } from "./EntradaPractica";
 
 export type ProfileTab = "profile" | "password" | "prefs";
 
 export interface ProfileModalInitialData {
+  origenPractica?: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
@@ -99,6 +101,7 @@ export function ProfileModal({
           gap: 14,
         }}
       >
+        {tab === "profile" && initialData.origenPractica && <EntradaPractica origen={initialData.origenPractica} />}
         {tab === "profile" && (
           <ProfileTabContent initialData={initialData} onClose={onClose} />
         )}

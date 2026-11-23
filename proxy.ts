@@ -61,10 +61,23 @@ import { NextResponse, type NextRequest } from "next/server";
 import { sessionCookieOptions } from "@/lib/db/session-cookie";
 import { respuestaDeMantenimiento } from "@/lib/runtime/maintenance";
 import { necesitaSesion } from "@/lib/runtime/session-routes";
+import { configuracionPractica, rutaDelReceptor } from "@/lib/studio/practica/config";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function proxy(request: NextRequest) {
+  if (process.env.PRACTICA_MODO === "destino") {
+    const practica = configuracionPractica();
+    if (practica?.modo !== "destino" || request.headers.get("host") !== new URL(practica.prueba).host ||
+        !rutaDelReceptor(request.nextUrl.pathname, request.method, request.headers.has("next-action"))) {
+      return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+    }
+    const permitida = NextResponse.next();
+    permitida.headers.set("Cache-Control", "private, no-store");
+    permitida.headers.set("Referrer-Policy", "no-referrer");
+    permitida.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-src 'none'; frame-ancestors 'none'; form-action 'none'; object-src 'none'; base-uri 'none'");
+    return permitida;
+  }
   // Modo mantenimiento (SDD-0505): antes de cualquier llamada a Supabase.
   const mantenimiento = await respuestaDeMantenimiento(request);
   if (mantenimiento) return mantenimiento;

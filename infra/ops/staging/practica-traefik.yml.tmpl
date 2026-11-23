@@ -1,0 +1,25 @@
+# Plantilla del proveedor de archivo para el proxy de pruebas. Se instala
+# únicamente en el vhost dedicado, después de comprobar la red del receptor.
+http:
+  routers:
+    practica-personal:
+      entryPoints: [websecure]
+      tls: {}
+      rule: >-
+        Host(`{{ env "PRACTICA_HOST" }}`) &&
+        !HeaderRegexp(`Next-Action`, `.+`) &&
+        (((Method(`GET`) || Method(`HEAD`)) &&
+        (Path(`/studio/practica`) || PathPrefix(`/_next/static/`))) ||
+        (Method(`POST`) && PathRegexp(`^/api/practica/(reservar|canjear|estado|salir)$`)))
+      service: practica-personal
+      middlewares: [practica-personal-limites]
+  middlewares:
+    practica-personal-limites:
+      buffering:
+        maxRequestBodyBytes: 2048
+  services:
+    practica-personal:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://practica-personal-web:3000
