@@ -22,6 +22,12 @@
  * La precisión máxima manda: un valor con más decimales que los del modo se
  * rechaza; no se redondea en silencio.
  *
+ * Un campo de dinero que admite tres o más decimales (el precio por ft³ lleva
+ * cuatro) lee «3,498» como decimal, porque la coma siempre es decimal. El punto
+ * no: «3.498» sigue pidiendo aclarar, como en todo el dinero. El valor de
+ * máquina que viaja oculto desde el campo («3.498») se lee con `parseMaquina`,
+ * que no es la regla de lo que teclea una persona.
+ *
  * Lo que devuelve es el valor de máquina (`1234.5`); mostrarlo con formato es
  * trabajo de los formateadores (fase 3). Este módulo vive en `lib/shared/`
  * porque lo usan la web pública, el Portal, el Studio y el móvil.
@@ -181,6 +187,34 @@ export function interpretarLiteral(
   return cerrar(entero, fraccion, modo, decimales);
 }
 
+/**
+ * Lee un decimal de MÁQUINA (`3.498`, `1250`, `-0.5`): el valor que un campo
+ * manda oculto al servidor. No es lo que teclea una persona: el punto aquí es
+ * siempre el decimal, nunca miles, y no se admite coma ni agrupación. Respeta
+ * los decimales y el rango del campo. Úsese solo para valores que salen de
+ * `NumericInput`, nunca para texto escrito a mano.
+ */
+export function parseMaquina(
+  texto: string,
+  modo: ModoNumero,
+  opciones: OpcionesNumero = {},
+): ResultadoNumero {
+  const decimales = decimalesDelCampo(modo, opciones);
+  const limpio = typeof texto === "string" ? texto.trim() : "";
+  if (limpio === "") return rechazo("vacio", "Escribe un número.");
+  if (!/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/.test(limpio)) {
+    return rechazo("formato", "No es un monto válido.");
+  }
+  if (decimalesDe(limpio) > decimales) {
+    return rechazo("decimales", mensajeDecimales(modo, decimales));
+  }
+  const valor = Number(limpio);
+  if (!Number.isFinite(valor)) return rechazo("formato", "Número fuera de rango.");
+  const fueraDeRango = rangoDelModo(modo, valor);
+  if (fueraDeRango) return rechazo("rango", fueraDeRango);
+  return { ok: true, valor: valor === 0 ? 0 : valor, canonico: limpio };
+}
+
 /** Decimales que tiene un decimal de máquina («12.500» → 3). */
 export function decimalesDe(canonico: string): number {
   const punto = canonico.indexOf(".");
@@ -228,10 +262,9 @@ function esAmbiguo(
   if (fraccion.length !== 3) return false;
   // Solo es ambiguo si la parte entera podría ser el primer grupo de miles.
   if (!/^[0-9]{1,3}$/.test(entero) || /^0+$/.test(entero)) return false;
-  // Un campo de dinero que admite tres o más decimales (el precio por ft³ lleva
-  // cuatro) no puede leer tres cifras como miles: es un decimal de ese campo, y
-  // así también se vuelve a leer el valor de máquina que viaja oculto («3.498»).
-  if (modo === "dinero") return decimales < 3;
+  // Con tres o más decimales en el campo (ft³: cuatro) la coma es decimal sin
+  // duda: «3,498». El punto sigue sin adivinarse: «3.498» se pide aclarar.
+  if (modo === "dinero") return decimales < 3 || separador === ".";
   if (modo === "tasa") return separador === ".";
   return false;
 }

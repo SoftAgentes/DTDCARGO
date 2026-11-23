@@ -246,8 +246,19 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     expect(hidden).toHaveValue("3.498");
     fireEvent.blur(input);
     expect(input).toHaveAttribute("aria-invalid", "false");
-    fireEvent.change(input, { target: { value: "3.4985" } });
+    fireEvent.change(input, { target: { value: "3,4985" } });
     expect(hidden).toHaveValue("3.4985");
+  });
+
+  it("precio por ft³: la coma de tres cifras es decimal; el punto pide aclarar (H1 de la #790)", () => {
+    const { input, hidden } = renderCon({ type: "currency", precision: 2, decimales: 4 });
+    fireEvent.change(input, { target: { value: "3,498" } });
+    expect(hidden).toHaveValue("3.498");
+    fireEvent.change(input, { target: { value: "3.498" } });
+    expect(hidden).toHaveValue("");
+    expect(input).toHaveAttribute("data-numeric-status", "invalid");
+    fireEvent.blur(input);
+    expect(screen.getByRole("alert")).toHaveTextContent("se puede leer de dos maneras");
   });
 
   it("el eco no es una región viva mientras se escribe (ERR-01)", () => {

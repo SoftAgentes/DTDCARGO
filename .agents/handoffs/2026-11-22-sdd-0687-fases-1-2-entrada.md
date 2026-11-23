@@ -78,11 +78,12 @@ en `main`; mientras tanto vive en el cuerpo de la PR.
 
 ## Revisión independiente de la #790 (cabeza a6203a551): CHANGES REQUESTED, corregido en esta tanda
 
-- **B1** Precio por ft³ con 3 decimales: `esAmbiguo` ahora recibe los decimales del campo; el dinero con 3 o más
-  decimales lee tres cifras como decimal (`3.498`, `3,498`), también el valor de máquina que viaja oculto. Dinero de
-  2 decimales y tasa no cambian. `validateTariffInput` además avisa un monto escrito pero ilegible (ft³, mínimo,
-  precio por CBM) en vez de dejarlo en null. Pruebas: cifras, `validateTariffInput` con `3.498` y NumericInput con
-  `defaultValue` 3.498 y 4 decimales (no hay prueba que monte `TariffDrawer` completo).
+- **B1** Precio por ft³ con 3 decimales: en dinero con 3 o más decimales la **coma** de tres cifras es decimal
+  (`3,498`); el **punto** sigue pidiendo aclarar (`3.498`, `1.250`), porque el sistema nunca adivina un monto (H1 de
+  la re-revisión: una primera versión leía también el punto y se corrigió). El valor oculto de máquina que viaja al
+  servidor se lee con `parseMaquina` (no es la regla de la persona) y `validateTariffInput` lo usa para ft³.
+  Un monto escrito pero ilegible se avisa (ft³, mínimo, precio por CBM y costo: «No es un monto válido.»). Pruebas:
+  cifras, `parseMaquina`, `validateTariffInput` con `3.498`/`3,498` y NumericInput con `defaultValue` 3.498.
 - **B2** `ShipmentDataPanel` sin `noValidate`: un peso o CBM rechazado deja el formulario inválido y no envía.
   Prueba nueva `shipment-data-panel-cifras.test.tsx` (`1,234.5`, `12,34567`, `1.234.5`).
 - **B3** NUM-01 v1.2 ya no figura aprobada: Aprobación vuelve a 2026-07-30 (v1.1) y el estado dice «v1.2 pendiente de
@@ -93,3 +94,5 @@ en `main`; mientras tanto vive en el cuerpo de la PR.
   archivos PASÓ; vitest 351 archivos / 6.134 pruebas PASÓ; mutantes 12 de 12 rompen pruebas (los 9 anteriores más B1
   en dinero, B1 en servidor y B2 `noValidate`); governance/components check PASÓ. `pnpm verify` y prueba manual: NO
   EJECUTADOS. Falta la revisión independiente de B1-B3 (Dir_DTD).
+- **H1** (re-revisión de b5c9881b7): corregido en un commit posterior (ver B1). tsc, eslint, vitest y mutantes de esa
+  corrección: NO EJECUTADOS todavía (esperan el turno de PC); sin push hasta el verde.

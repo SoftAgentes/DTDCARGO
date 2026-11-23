@@ -3,6 +3,7 @@ import {
   DECIMALES_POR_MODO,
   MENSAJE_FORMATO,
   parseDinero,
+  parseMaquina,
   parseMedida,
   parseNumero,
   parsePorcentaje,
@@ -227,30 +228,70 @@ describe("§2.2 reporte de pago del Portal (lo que hoy entra mil veces menor)", 
   });
 });
 
-describe("dinero con tres o más decimales (precio por ft³, revisión de la #790 B1)", () => {
+describe("dinero con tres o más decimales (precio por ft³; revisión de la #790, H1)", () => {
   it.each([
-    ["3.498", 3.498],
     ["3,498", 3.498],
     ["3,4985", 3.4985],
+    ["1.234,498", 1234.498],
     ["0.125", 0.125],
-  ])("«%s» con decimales 4 → %s (es un decimal, no miles)", (texto, esperado) => {
+  ])("«%s» con decimales 4 → %s (la coma siempre es decimal)", (texto, esperado) => {
     expect(parseDinero(texto, { decimales: 4 })).toMatchObject({ ok: true, valor: esperado });
   });
 
-  it("el valor de máquina que viaja oculto se vuelve a leer igual", () => {
-    for (const oculto of ["3.498", "3.4985", "123.6", "1250"]) {
-      const r = parseDinero(oculto, { decimales: 4 });
-      expect(r.ok && r.canonico).toBe(oculto);
-    }
-  });
+  it.each(["3.498", "1.250", "1.000", "690.505", "36.500"])(
+    "«%s» con decimales 4 sigue pidiendo aclarar: el punto no se adivina",
+    (texto) => {
+      const r = parseDinero(texto, { decimales: 4 });
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.motivo).toBe("ambiguo");
+        expect(r.pedirAclarar).toBe(true);
+      }
+    },
+  );
 
-  it("con 2 decimales (el dinero de siempre) sigue ambiguo", () => {
-    expect(parseDinero("3.498").ok).toBe(false);
+  it("con 2 decimales (el dinero de siempre) la coma de tres cifras sigue ambigua", () => {
+    expect(parseDinero("3,498").ok).toBe(false);
     expect(parseDinero("3,498", { decimales: 2 }).ok).toBe(false);
   });
 
   it("la tasa no cambia: 36.500 sigue pidiéndose aclarar aunque admita 8", () => {
     expect(parseTasa("36.500").ok).toBe(false);
+  });
+});
+
+describe("parseMaquina: el valor oculto que sale del campo (no es lo que teclea una persona)", () => {
+  it.each([
+    ["3.498", 3.498],
+    ["3.4985", 3.4985],
+    ["123.6", 123.6],
+    ["1250", 1250],
+    ["-0.5", -0.5],
+    ["0", 0],
+  ])("«%s» → %s", (texto, esperado) => {
+    expect(parseMaquina(texto, "dinero", { decimales: 4 })).toMatchObject({ ok: true, valor: esperado, canonico: texto });
+  });
+
+  it.each(["", "3,498", "1.234,5", "1,234.50", "abc", "01.5", "3.", ".5", "1e3", "3.49851"])(
+    "«%s» no es un decimal de máquina o excede los 4 decimales",
+    (texto) => {
+      expect(parseMaquina(texto, "dinero", { decimales: 4 }).ok).toBe(false);
+    },
+  );
+
+  it("respeta los decimales del campo y el rango del modo", () => {
+    expect(parseMaquina("3.498", "dinero").ok).toBe(false);
+    expect(parseMaquina("100.5", "porcentaje").ok).toBe(false);
+  });
+
+  it("cualquier valor que el campo deja oculto se vuelve a leer igual", () => {
+    const azar = generador(790);
+    for (let i = 0; i < 1000; i++) {
+      const v = Number((azar() * 10000).toFixed(Math.floor(azar() * 5)));
+      const r = parseMaquina(String(v), "dinero", { decimales: 4 });
+      expect(r.ok, String(v)).toBe(true);
+      if (r.ok) expect(r.valor).toBe(v);
+    }
   });
 });
 

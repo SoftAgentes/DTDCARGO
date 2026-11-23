@@ -270,7 +270,7 @@ Todo sale de leer el código; nada se ejecutó. Los conteos son por texto. El co
 
 ## 12. Enmienda: allowlist exacta de las fases 1 y 2 (PR #790)
 
-La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda no cambia el estado de la spec ni sus decisiones. Archivos de la PR, fijados al revisarla (B1 y B2 de la revisión independiente añadieron `lib/studio/freight-carriers/types.ts`, `ShipmentDataPanel.tsx` y sus pruebas):
+La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda no cambia el estado de la spec ni sus decisiones. Archivos de la PR, fijados al revisarla (la revisión independiente añadió `lib/studio/freight-carriers/types.ts`, `ShipmentDataPanel.tsx` y sus pruebas, esta enmienda y `app/studio/CLAUDE.md`):
 
 - `.agents/handoffs/2026-11-22-sdd-0687-fases-1-2-entrada.md`
 - `__tests__/parse-numeric-expression.test.ts`
@@ -299,6 +299,7 @@ La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda n
 - `docs/governance/generated/component-registry.json`
 - `docs/governance/generated/governance-capsule.json`
 - `docs/governance/policies/num-01.md`
+- `docs/specs/0687-rebrand-cifras-formato-ve/spec.md`
 - `lib/portal/__tests__/cotizacion-request.test.ts`
 - `lib/portal/__tests__/payment-reports.test.ts`
 - `lib/portal/cotizacion-request.ts`
@@ -316,5 +317,7 @@ La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda n
 - `lib/studio/rate-snapshots/__tests__/types.test.ts`
 - `lib/studio/rate-snapshots/types.ts`
 - `lib/studio/util/parse-numeric-expression.ts`
+
+Regla que fija la revisión (H1): en un campo de dinero con tres o más decimales (el precio por ft³ lleva cuatro) la coma de tres cifras es decimal (`3,498`), pero el punto sigue pidiendo aclarar (`3.498`, `1.250`): el sistema nunca adivina un monto. El valor de máquina que el campo manda oculto al servidor se lee con `parseMaquina`, que no es la regla de lo que teclea una persona.
 
 No cambia lo que se muestra en pantallas, PDF ni exportes (fase 3 en adelante) ni el color (SDD-0686). NUM-01 v1.2 queda **pendiente de confirmación de Sam**: no consta su aprobación por escrito.

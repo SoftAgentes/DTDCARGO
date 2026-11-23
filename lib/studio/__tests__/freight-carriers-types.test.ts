@@ -107,6 +107,9 @@ describe("montos escritos como se escriben en Venezuela", () => {
   it("el precio por ft³ admite 4 decimales; el resto, 2", () => {
     expect(parseMonto("3,5125", 4)).toBe(3.5125);
     expect(parseMonto("3,5125")).toBeNull();
+    // El punto no se adivina ni con 4 decimales (H1 de la #790): «3.498» pide aclarar.
+    expect(parseMonto("3.498", 4)).toBeNull();
+    expect(parseMonto("3,498", 4)).toBe(3.498);
   });
 });
 
@@ -157,12 +160,20 @@ describe("validateTariffInput", () => {
   });
 
   // Revisión de la #790 (B1): ft³ lleva 4 decimales; «3.498» es un decimal, no miles.
-  it("el precio por ft³ con tres decimales (3.498 y 3,498) se guarda, no se pierde en silencio", () => {
-    for (const raw of ["3.498", "3,498", "3,4985"]) {
+  it("el precio por ft³ con tres decimales se guarda: el valor oculto «3.498» y lo tecleado «3,498»", () => {
+    for (const raw of ["3.498", "3,498", "3,4985", "3.4985"]) {
       const r = validateTariffInput(fd({ ...base, priceUsdFt3: raw }));
       expect(r.ok, raw).toBe(true);
       if (r.ok) expect(r.value.priceUsdFt3, raw).toBe(Number(raw.replace(",", ".")));
     }
+  });
+
+  it("un costo ilegible dice «No es un monto válido», no «Escribe cuánto…»", () => {
+    const r = validateTariffInput(fd({ ...base, costUsdCbm: "1.250", priceUsdCbm: "100" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.costUsdCbm).toBe("No es un monto válido.");
+    const v = validateTariffInput(fd({ ...base, costUsdCbm: "", priceUsdCbm: "100" }));
+    if (!v.ok) expect(v.errors.costUsdCbm).toMatch(/Escribe cuánto/);
   });
 
   it("un monto escrito pero ilegible se avisa en vez de descartarse", () => {
