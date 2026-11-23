@@ -239,7 +239,7 @@ export function PackingListFormSection({
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
 
   // Autoguardado / historial. `tone`: "steady" para el autoguardado pasivo
-  // (gris, no llama la atención); "pulse" (wine) SOLO para acciones manuales
+  // (gris, no llama la atención); "pulse" (azul de acción) SOLO para acciones manuales
   // ("Versión guardada / restaurada").
   const [saveStatus, setSaveStatus] = useState<{
     text: string;
@@ -677,12 +677,12 @@ export function PackingListFormSection({
           {/* ── Encabezado del documento: identidad CN + teléfonos + folio ── */}
           <header className="pl-head mt-5">
             <div className="pl-phones" style={{ fontFamily: MONO_CJK }}>
-              <span lang="zh-CN" className="text-wine font-bold">
+              <span lang="zh-CN" className="text-ink font-bold">
                 电话
               </span>
               <b>{cn.phoneLandline}</b>
               <b>{cn.phone}</b>
-              <b className="text-wine">{cn.warehouseEmail}</b>
+              <b className="text-ink">{cn.warehouseEmail}</b>
             </div>
             <div className="pl-company">
               <span lang="zh-CN">{cn.companyCjk}</span>
@@ -806,7 +806,7 @@ export function PackingListFormSection({
             <span lang="es">{tr(lang, "Detalle de mercancía", "Goods detail")}</span>
           </div>
           <p className="no-print mt-2 text-sm text-grey-700">不知道 HS 编码时，请说明材质并联系仓库确认，不要猜测。 · Si desconoces el código HS, describe el material y pide confirmación al almacén; no inventes el código.</p>
-          <div role="region" aria-label={uiText("产品表，可左右滚动", "Tabla de productos; desplázate horizontalmente para ver todas las columnas", "Product table; scroll horizontally to see all columns")} tabIndex={0} className="mt-1.5 max-w-full overflow-x-auto rounded-[12px] border border-grey-200 focus-visible:outline-2 focus-visible:outline-wine-text">
+          <div role="region" aria-label={uiText("产品表，可左右滚动", "Tabla de productos; desplázate horizontalmente para ver todas las columnas", "Product table; scroll horizontally to see all columns")} tabIndex={0} className="mt-1.5 max-w-full overflow-x-auto rounded-[12px] border border-grey-200 focus-visible:outline-2 focus-visible:outline-accion">
             <table aria-label={uiText("标准格式产品", "Productos del formato estándar", "Standard format products")} className="relative w-full border-collapse" style={{ minWidth: 1000 }}>
               <thead>
                 <tr>
@@ -1078,7 +1078,7 @@ export function PackingListFormSection({
                 总计 · {tr(lang, "Totales", "Totals")}
               </span>
               <div
-                className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-wine"
+                className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-ink"
                 style={{ fontFamily: MONO_CJK }}
               >
                 <span>{fmtInt(totals.qty)} uds</span>
@@ -1114,7 +1114,7 @@ export function PackingListFormSection({
               rows={2}
               maxLength={2000}
               placeholder="备注… / Observaciones…"
-              className="px-3 py-2 rounded-[8px] bg-white border border-grey-200 outline-none text-[13px] text-ink leading-[1.5] focus:border-wine resize-y"
+              className="px-3 py-2 rounded-[8px] bg-white border border-grey-200 outline-none text-[13px] text-ink leading-[1.5] focus:border-accion resize-y"
             />
           </div>
 
@@ -1229,12 +1229,12 @@ export function PackingListFormSection({
           color: var(--color-grey-700); border-radius: 8px;
           padding: 8px 12px; min-height: 36px;
         }
-        .pl-doc .tbtn:hover { border-color: var(--color-wine); color: var(--color-wine); }
+        .pl-doc .tbtn:hover { border-color: var(--color-accion); color: var(--color-accion-text); }
         .pl-doc .tbtn svg { width: 14px; height: 14px; }
         .pl-doc .tbtn-primary {
-          background: var(--color-wine); border-color: var(--color-wine); color: var(--color-white);
+          background: var(--color-accion); border-color: var(--color-accion); color: var(--color-on-accion);
         }
-        .pl-doc .tbtn-primary:hover { background: var(--color-wine-deep); border-color: var(--color-wine-deep); color: var(--color-white); }
+        .pl-doc .tbtn-primary:hover { background: var(--color-accion-hover); border-color: var(--color-accion-hover); color: var(--color-on-accion); }
         .pl-doc .tbtn-print {
           background: var(--color-ink); border-color: var(--color-ink); color: var(--color-white);
         }
@@ -1249,7 +1249,7 @@ export function PackingListFormSection({
           font: 700 12px/1 var(--font-archivo), system-ui, sans-serif;
           padding: 9px 12px; min-height: 36px;
         }
-        .pl-doc .lang-seg button.on { background: var(--color-wine); color: var(--color-white); }
+        .pl-doc .lang-seg button.on { background: var(--color-ink); color: var(--color-on-accent); }
 
         /* ── Document header ── */
         .pl-head {
@@ -1285,9 +1285,9 @@ export function PackingListFormSection({
         .pl-folio input {
           border: 0; outline: 0; background: transparent;
           font: 600 11px/1 var(--font-jetbrains-mono), ui-monospace, monospace;
-          color: var(--color-wine); width: 130px; text-transform: none; letter-spacing: 0;
+          color: var(--color-ink); width: 130px; text-transform: none; letter-spacing: 0;
         }
-        .pl-folio input:focus { background: rgba(127,15,26,0.06); }
+        .pl-folio input:focus { background: var(--color-accion-tint); }
 
         /* ── SUPPLIER / CLIENT ── */
         .pl-info2 {
@@ -1299,7 +1299,7 @@ export function PackingListFormSection({
         .pl-ighead {
           font: 700 9px/1 var(--font-archivo), system-ui, sans-serif;
           letter-spacing: 0.1em; text-transform: uppercase;
-          color: var(--color-wine); background: var(--color-grey-100);
+          color: var(--color-ink); background: var(--color-grey-100);
           padding: 7px 11px; border-bottom: 1px solid var(--color-grey-200);
         }
         .pl-ighead [lang="zh-CN"] { letter-spacing: 0; }
@@ -1320,7 +1320,7 @@ export function PackingListFormSection({
           color: var(--color-ink); padding: 6px 9px;
           border-left: 1px dotted var(--color-grey-200); min-width: 0;
         }
-        .pl-irow input:focus { background: rgba(127,15,26,0.06); }
+        .pl-irow input:focus { background: var(--color-accion-tint); }
         .pl-irow input::placeholder { color: var(--color-grey-500); }
         .pl-irow-addr .pl-il { flex: 0 0 17%; }
         .pl-irow-addr .pl-il-city { flex: 0 0 auto; padding-left: 6px; padding-right: 3px; }
@@ -1331,7 +1331,7 @@ export function PackingListFormSection({
         }
         .pl-date-cn {
           font: 700 13px/1.2 var(--font-noto-sc), 'Noto Sans SC', sans-serif;
-          color: var(--color-wine); white-space: nowrap;
+          color: var(--color-ink); white-space: nowrap;
         }
         .pl-datebtn {
           appearance: none; border: 0; background: transparent; cursor: pointer;
@@ -1343,7 +1343,7 @@ export function PackingListFormSection({
         /* ── Goods table ── */
         .pl-sect-t {
           font: 700 12px/1 var(--font-archivo), system-ui, sans-serif;
-          color: var(--color-wine); letter-spacing: 0.04em;
+          color: var(--color-ink); letter-spacing: 0.04em;
           display: flex; align-items: baseline; justify-content: center; gap: 8px;
         }
         .pl-sect-t [lang="zh-CN"] { color: var(--color-ink); font-size: 13px; letter-spacing: 0; }
@@ -1372,7 +1372,7 @@ export function PackingListFormSection({
         .pl-doc td.calc {
           text-align: right; padding: 0 7px;
           font: 600 11.5px var(--font-jetbrains-mono), ui-monospace, monospace;
-          color: var(--color-ink); background: rgba(127,15,26,0.06); white-space: nowrap;
+          color: var(--color-ink); background: var(--color-accion-tint); white-space: nowrap;
         }
         .pl-doc td.c-del, .pl-doc td.c-act { width: 64px; text-align: center; white-space: nowrap; }
         .pl-doc .pl-cell {
@@ -1380,7 +1380,7 @@ export function PackingListFormSection({
           font: 500 12px var(--font-archivo), system-ui, sans-serif;
           color: var(--color-ink); padding: 4px 7px;
         }
-        .pl-doc .pl-cell:focus { background: rgba(127,15,26,0.06); }
+        .pl-doc .pl-cell:focus { background: var(--color-accion-tint); }
         .pl-doc .pl-cell.mono { font-family: var(--font-jetbrains-mono), ui-monospace, monospace; }
         .pl-doc .pl-cell.num { text-align: right; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; }
         .pl-doc .pl-cell.zh { font-family: var(--font-noto-sc), 'Noto Sans SC', sans-serif; }
@@ -1392,16 +1392,16 @@ export function PackingListFormSection({
             var(--color-white) 4px, var(--color-white) 8px);
         }
         .pl-doc tr.child > td { background: var(--color-grey-100); }
-        .pl-doc tr.child > td:first-child { border-left: 3px solid var(--color-wine); }
-        .pl-doc td.c-idx .grp { color: var(--color-wine); font-size: 14px; font-weight: 700; line-height: 1; }
+        .pl-doc tr.child > td:first-child { border-left: 3px solid var(--color-ink); }
+        .pl-doc td.c-idx .grp { color: var(--color-ink); font-size: 14px; font-weight: 700; line-height: 1; }
         .pl-doc .grpTog {
           display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;
           appearance: none; border: 0; cursor: pointer;
-          background: rgba(127,15,26,0.06); color: var(--color-wine);
+          background: var(--color-accion-tint); color: var(--color-accion-text);
           font: 700 8.5px/1 var(--font-jetbrains-mono), ui-monospace, monospace;
           border-radius: 999px; padding: 3px 7px; min-height: 0;
         }
-        .pl-doc .grpTog:hover { background: rgba(127,15,26,0.12); }
+        .pl-doc .grpTog:hover { background: rgba(31,79,168,0.14); }
         .pl-doc .grpTog .chev {
           width: 0; height: 0; border-left: 4px solid currentColor;
           border-top: 3px solid transparent; border-bottom: 3px solid transparent;
@@ -1410,18 +1410,18 @@ export function PackingListFormSection({
         .pl-doc .grpTog.open .chev { transform: rotate(90deg); }
         .pl-doc .rowadd {
           appearance: none; cursor: pointer; border: 0; background: transparent;
-          color: var(--color-wine); font: 700 17px/1 var(--font-archivo), system-ui, sans-serif;
+          color: var(--color-accion-text); font: 700 17px/1 var(--font-archivo), system-ui, sans-serif;
           display: inline-grid; place-items: center;
           min-width: 30px; min-height: 32px; border-radius: 8px;
         }
-        .pl-doc .rowadd:hover { background: rgba(127,15,26,0.06); }
+        .pl-doc .rowadd:hover { background: var(--color-accion-tint); }
         .pl-doc .rowdel {
           appearance: none; cursor: pointer; border: 0; background: transparent;
           color: var(--color-grey-500); line-height: 1;
           display: inline-grid; place-items: center;
           min-width: 30px; min-height: 32px; border-radius: 8px;
         }
-        .pl-doc .rowdel:hover { color: var(--color-wine); background: rgba(127,15,26,0.06); }
+        .pl-doc .rowdel:hover { color: var(--color-status-danger); background: color-mix(in srgb, var(--color-status-danger) 8%, transparent); }
         .pl-doc tfoot td {
           border-top: 1px solid var(--color-grey-200);
           font: 700 11.5px var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -1432,7 +1432,7 @@ export function PackingListFormSection({
           font-family: var(--font-archivo), system-ui, sans-serif;
           color: var(--color-ink);
         }
-        .pl-doc tfoot .tfoot-v { text-align: right; color: var(--color-wine); white-space: nowrap; }
+        .pl-doc tfoot .tfoot-v { text-align: right; color: var(--color-ink); white-space: nowrap; }
         .pl-doc .addbtn {
           appearance: none; cursor: pointer;
           display: inline-flex; align-items: center;
@@ -1441,17 +1441,17 @@ export function PackingListFormSection({
           color: var(--color-grey-700); border-radius: 8px;
           padding: 8px 14px; min-height: 36px;
         }
-        .pl-doc .addbtn:hover { border-color: var(--color-wine); color: var(--color-wine); }
+        .pl-doc .addbtn:hover { border-color: var(--color-accion); color: var(--color-accion-text); }
 
         /* ── Warehouse footer ── */
         /* ── Reglas de ingreso a bodega (número único de color, sin el gris del <ol>) ── */
         .pl-rules { border: 1px solid var(--color-grey-200); border-radius: 8px; padding: 13px 15px; }
-        .pl-rules-head { font: 700 11px/1.2 var(--font-archivo); color: var(--color-wine); margin-bottom: 9px; }
+        .pl-rules-head { font: 700 11px/1.2 var(--font-archivo); color: var(--color-ink); margin-bottom: 9px; }
         .pl-rules-head [lang="zh-CN"] { color: var(--color-ink); }
         .pl-rules-list { list-style: none; margin: 0; padding: 0; }
         .pl-rule { display: flex; gap: 7px; margin-bottom: 5px; font: 400 10.5px/1.5 var(--font-archivo); color: var(--color-grey-700); }
         .pl-rule:last-child { margin-bottom: 0; }
-        .pl-rule-n { flex-shrink: 0; font-weight: 700; color: var(--color-wine); }
+        .pl-rule-n { flex-shrink: 0; font-weight: 700; color: var(--color-ink); }
         .pl-rule-zh { font-family: var(--font-noto-sc), var(--font-archivo); }
         .pl-rule-lat { color: var(--color-grey-700); }
         .pl-rule-contact { color: var(--color-ink); }
@@ -1462,20 +1462,20 @@ export function PackingListFormSection({
           background: var(--color-grey-100); padding: 6px 11px;
           border-bottom: 1px solid var(--color-grey-200);
           font: 700 9.5px/1.3 var(--font-archivo), system-ui, sans-serif;
-          letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-wine);
+          letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-ink);
         }
         .pl-wh-head [lang="zh-CN"] { letter-spacing: 0; }
         .pl-wh-copy {
           appearance: none; cursor: pointer;
           display: inline-flex; align-items: center; gap: 5px;
-          border: 1px solid var(--color-wine); background: var(--color-white);
-          color: var(--color-wine);
+          border: 1px solid var(--color-accion); background: var(--color-white);
+          color: var(--color-accion-text);
           font: 700 10px/1 var(--font-archivo), system-ui, sans-serif;
           border-radius: 999px; padding: 5px 10px;
           text-transform: none; letter-spacing: 0;
         }
-        .pl-wh-copy:hover { background: rgba(127,15,26,0.06); }
-        .pl-wh-copy.done { background: var(--color-wine); color: var(--color-white); border-color: var(--color-wine); }
+        .pl-wh-copy:hover { background: var(--color-accion-tint); }
+        .pl-wh-copy.done { background: var(--color-accion); color: var(--color-on-accion); border-color: var(--color-accion); }
         .pl-wh-copy svg { width: 13px; height: 13px; }
         .pl-wh-body {
           margin: 0; padding: 10px 12px;
@@ -1559,7 +1559,7 @@ export function PackingListFormSection({
           .pl-doc tbody td { height: 26px; }
           .pl-doc thead { display: table-header-group; }
           .pl-doc tr { page-break-inside: avoid; }
-          .pl-doc td.calc { background: rgba(127,15,26,0.06) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .pl-doc td.calc { background: var(--color-accion-tint) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .pl-doc .pl-cell, .pl-doc td.calc, .pl-doc tfoot td { font-size: 10px; }
           .pl-date-hidden { display: none !important; }
           .pl-datebtn { display: none !important; }

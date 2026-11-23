@@ -349,7 +349,7 @@ export function RegisterForm({
           </Link>
           <span
             className="text-[10px] font-bold tracking-[0.18em] uppercase"
-            style={{ color: "var(--color-wine-soft)" }}
+            style={{ color: "var(--color-accion-on-dark)" }}
           >
             Registro de cliente
           </span>
@@ -385,9 +385,9 @@ export function RegisterForm({
                       background: isDone
                         ? "var(--color-status-success)"
                         : isOn
-                          ? "var(--color-wine)"
+                          ? "var(--color-accion-on-dark)"
                           : "rgba(255,255,255,0.12)",
-                      color: "#fff",
+                      color: isOn && !isDone ? "var(--color-ink)" : "#fff",
                       fontFamily: "var(--font-archivo-black)",
                     }}
                   >
@@ -420,7 +420,7 @@ export function RegisterForm({
           {!done && est && (
             <div
               className="mb-5 rounded-[10px] bg-paper border-l-[3px] px-4 py-2.5 text-[12.5px] text-grey-700 leading-[1.5]"
-              style={{ borderColor: "var(--color-wine)" }}
+              style={{ borderColor: "var(--color-accion)" }}
             >
               Vamos a vincular tu estimado{" "}
               <strong
@@ -591,7 +591,7 @@ export function RegisterForm({
 function StepHead({ n, eyebrow, title, sub }: { n: number; eyebrow: string; title: string; sub: React.ReactNode }) {
   return (
     <>
-      <div className="text-[10px] font-bold tracking-[0.16em] uppercase text-wine">
+      <div className="text-[10px] font-bold tracking-[0.16em] uppercase text-grey-700">
         Paso {n} de 5 · {eyebrow}
       </div>
       <h2
@@ -866,7 +866,7 @@ function StepPreferencias({
 
       <div
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55]"
-        style={{ borderColor: "var(--color-wine)" }}
+        style={{ borderColor: "var(--color-accion)" }}
       >
         Generamos tu <strong className="text-ink">Shipping Mark</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
@@ -879,8 +879,8 @@ function StepPreferencias({
           type="checkbox"
           checked={data.emailOptin}
           onChange={(e) => patch({ emailOptin: e.target.checked })}
-          className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-          style={{ accentColor: "var(--color-wine)" }}
+          className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
+          style={{ accentColor: "var(--color-accion)" }}
         />
         <span className="text-[12.5px] text-grey-700 leading-[1.5]">
           Quiero recibir novedades, ofertas y guías de importación por email. Puedes
@@ -935,7 +935,7 @@ function StepConfirmar({
       />
 
       <div className="rounded-[14px] border border-grey-200 bg-paper p-5">
-        <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-wine">
+        <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-700">
           {isCompany ? "Empresa" : "Persona natural"}
         </div>
         <div
@@ -989,12 +989,12 @@ function StepConfirmar({
           aria-live="assertive"
           className="rounded-[12px] border px-4 py-3.5"
           style={{
-            borderColor: "var(--color-wine)",
-            background: "color-mix(in srgb, var(--color-wine) 7%, transparent)",
+            borderColor: "var(--color-status-danger)",
+            background: "color-mix(in srgb, var(--color-status-danger) 7%, transparent)",
           }}
         >
           <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 flex-shrink-0 text-wine">
+            <span className="mt-0.5 flex-shrink-0 text-status-danger">
               <WarningIcon size={16} />
             </span>
             <div className="flex-1">
@@ -1015,7 +1015,7 @@ function StepConfirmar({
                     <button
                       type="button"
                       onClick={() => onFix(campo)}
-                      className="text-[12.5px] font-bold text-wine underline underline-offset-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine"
+                      className="text-[12.5px] font-bold text-accion-text underline underline-offset-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accion"
                     >
                       Corregir
                     </button>
@@ -1028,7 +1028,7 @@ function StepConfirmar({
       )}
 
       {error && (
-        <p role="alert" className="text-[13.5px] text-wine leading-[1.45]">
+        <p role="alert" className="text-[13.5px] text-status-danger leading-[1.45]">
           {error}
         </p>
       )}
@@ -1077,14 +1077,14 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
   return (
     <div
       className="-mt-1 rounded-[12px] border px-4 py-3.5"
-      style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+      style={{ borderColor: "var(--color-status-danger)", background: "var(--color-paper)" }}
     >
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex-shrink-0 text-wine">
+        <span className="mt-0.5 flex-shrink-0 text-status-danger">
           <WarningIcon size={16} />
         </span>
         <div className="flex-1">
-          <div className="text-[13px] font-bold text-wine leading-[1.3]">
+          <div className="text-[13px] font-bold text-status-danger leading-[1.3]">
             {isCompany ? "Este RIF" : "Esta cédula"} ya tiene una cuenta en DTD Cargo
           </div>
           <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
@@ -1166,9 +1166,9 @@ export function StepDone({
         className={`markbox-celebrate w-full max-w-[440px] rounded-[16px] px-6 py-7 text-left transition-[opacity,transform] duration-500 ${
           shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
-        style={{ background: "var(--color-wine)", color: "#fff" }}
+        style={{ background: "var(--color-ink)", color: "#fff" }}
       >
-        <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-wine-soft)" }}>
+        <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-accion-on-dark)" }}>
           Tu Shipping Mark · 唛头 — la marca que va en tus cajas
         </div>
         <div
@@ -1213,7 +1213,7 @@ export function StepDone({
         </div>
         {email && (
           <div className="mt-3 flex items-center gap-2.5 rounded-[10px] bg-white border border-grey-200 px-3.5 py-3">
-            <span className="flex-shrink-0 text-wine">
+            <span className="flex-shrink-0 text-accion-text">
               <MailIcon size={18} />
             </span>
             <div className="min-w-0">
@@ -1253,11 +1253,11 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full rounded-[12px] border px-4 py-3.5 flex items-center gap-3 transition-colors"
-        style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+        style={{ borderColor: "var(--color-accion)", background: "var(--color-paper)" }}
         aria-expanded={open}
       >
         <span className="flex-1">
-          <span className="block text-[13px] font-bold text-wine leading-[1.3]">
+          <span className="block text-[13px] font-bold text-accion-text leading-[1.3]">
             Cómo se arma el código de cada compra
           </span>
           <span className="block text-[12px] text-grey-700 leading-[1.45] mt-0.5">
@@ -1265,7 +1265,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
           </span>
         </span>
         <span
-          className="flex-shrink-0 text-wine transition-transform"
+          className="flex-shrink-0 text-accion-text transition-transform"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
         >
           <ChevronDownIcon size={16} />
@@ -1276,7 +1276,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
         <div className="mt-3 rounded-[12px] border border-grey-200 bg-white px-5 py-5">
           <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
             <div className="flex items-start justify-center gap-2">
-              <CodePart code={markbox} label="Tu Shipping Mark" tone="wine" />
+              <CodePart code={markbox} label="Tu Shipping Mark" tone="mark" />
               <span
                 className="text-[18px] font-black text-grey-500 mt-0.5"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
@@ -1296,7 +1296,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
 
           <GuideStep n="1" title="Tu Shipping Mark te identifica">
             <code
-              className="text-[12px] font-bold text-wine px-1.5 py-0.5 rounded"
+              className="text-[12px] font-bold text-ink px-1.5 py-0.5 rounded"
               style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", background: "var(--color-paper)" }}
             >
               {markbox}
@@ -1317,7 +1317,7 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
 
           <div
             className="mt-4 rounded-[10px] border-l-[3px] px-4 py-3 text-[12px] text-grey-700 leading-[1.55]"
-            style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+            style={{ borderColor: "var(--color-accion)", background: "var(--color-paper)" }}
           >
             Cuando registres tu compra en el portal te asignamos el código y las{" "}
             <strong className="text-ink">etiquetas</strong> para que tu proveedor las
@@ -1330,8 +1330,8 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
   );
 }
 
-function CodePart({ code, label, tone }: { code: string; label: string; tone: "wine" | "ink" }) {
-  const color = tone === "wine" ? "var(--color-wine)" : "var(--color-ink)";
+function CodePart({ code, label, tone }: { code: string; label: string; tone: "mark" | "ink" }) {
+  const color = tone === "mark" ? "var(--color-ink)" : "var(--color-ink)";
   return (
     <div className="flex flex-col items-center gap-1">
       <code
@@ -1365,7 +1365,7 @@ function GuideStep({
     <div className={`flex items-start gap-3 pt-4 ${last ? "" : "pb-1"}`}>
       <span
         className="flex-shrink-0 w-6 h-6 rounded-full grid place-items-center text-[12px] font-black"
-        style={{ background: "var(--color-wine)", color: "#fff", fontFamily: "var(--font-archivo-black)" }}
+        style={{ background: "var(--color-ink)", color: "#fff", fontFamily: "var(--font-archivo-black)" }}
       >
         {n}
       </span>
@@ -1388,7 +1388,7 @@ function GuideStep({
  */
 function Obligatorio() {
   return (
-    <span aria-hidden="true" className="text-wine ml-1">
+    <span aria-hidden="true" className="text-status-danger ml-1">
       *
     </span>
   );
@@ -1456,7 +1456,7 @@ export function CiudadEntrega({
             onChange={(e) => elegir(e.target.value)}
             aria-required="true"
             aria-invalid={errorCiudad ? true : undefined}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
             style={{
               appearance: "none",
               WebkitAppearance: "none",
@@ -1474,7 +1474,7 @@ export function CiudadEntrega({
             <option value={OTRA}>Mi ciudad no aparece aquí…</option>
           </select>
           {errorCiudad ? (
-            <span className="text-[12px] text-wine leading-[1.4]">{errorCiudad}</span>
+            <span className="text-[12px] text-status-danger leading-[1.4]">{errorCiudad}</span>
           ) : (
             <span className="text-[11.5px] text-grey-500 leading-[1.4]">
               Aquí es donde vamos a entregar tu mercancía. El estado se completa solo.
@@ -1500,7 +1500,7 @@ export function CiudadEntrega({
                 setLibre(false);
                 onChange({ city: "", state: "" });
               }}
-              className="text-[12px] font-semibold text-wine hover:underline w-fit -mt-3"
+              className="text-[12px] font-semibold text-accion-text hover:underline w-fit -mt-3"
             >
               ‹ Volver a la lista de ciudades
             </button>
@@ -1540,7 +1540,7 @@ export function CiudadEntrega({
 export function LeyendaObligatorio() {
   return (
     <p className="text-[11.5px] text-grey-500 leading-[1.4] -mt-1">
-      Los campos con <span className="text-wine font-semibold">*</span> son obligatorios.
+      Los campos con <span className="text-status-danger font-semibold">*</span> son obligatorios.
     </p>
   );
 }
@@ -1593,7 +1593,7 @@ export function Field({
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errId : hint ? hintId : undefined}
-        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+        className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-1"
         style={mono ? { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" } : undefined}
       />
       {hint && !error && (
@@ -1602,7 +1602,7 @@ export function Field({
         </span>
       )}
       {error && (
-        <span id={errId} className="text-[12px] text-wine leading-[1.4]">
+        <span id={errId} className="text-[12px] text-status-danger leading-[1.4]">
           {error}
         </span>
       )}
@@ -1658,12 +1658,12 @@ export function CedulaInput({
         Cédula
         <Obligatorio />
       </span>
-      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
+      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-accion focus-within:ring-offset-1">
         <select
           value={letter}
           onChange={(e) => onLetter(e.target.value as "V" | "E" | "P")}
           aria-label="Nacionalidad de la cédula"
-          className="bg-grey-200 border-0 outline-none text-[14.5px] font-bold text-wine cursor-pointer"
+          className="bg-grey-200 border-0 outline-none text-[14.5px] font-bold text-accion-text cursor-pointer"
           style={{
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
             appearance: "none",
@@ -1695,7 +1695,7 @@ export function CedulaInput({
           V = venezolano · E = extranjero · P = pasaporte · escribe solo el número, sin puntos. {hint}
         </span>
       )}
-      {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
+      {error && <span className="text-[12px] text-status-danger leading-[1.4]">{error}</span>}
     </label>
   );
 }
@@ -1769,12 +1769,12 @@ export function PhoneInput({
         {label}
         {required && <Obligatorio />}
       </span>
-      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
+      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-accion focus-within:ring-offset-1">
         <select
           value={code}
           onChange={(e) => onCode(e.target.value)}
           aria-label="Código de país"
-          className="bg-grey-200 border-0 outline-none text-[13px] font-bold text-wine cursor-pointer"
+          className="bg-grey-200 border-0 outline-none text-[13px] font-bold text-accion-text cursor-pointer"
           style={{
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
             appearance: "none",
@@ -1804,7 +1804,7 @@ export function PhoneInput({
         />
       </div>
       {hint && !error && <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>}
-      {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
+      {error && <span className="text-[12px] text-status-danger leading-[1.4]">{error}</span>}
     </label>
   );
 }
@@ -1828,14 +1828,14 @@ export function TypeCard({
       onClick={onClick}
       className="text-left p-3.5 rounded-[12px] border transition-colors"
       style={{
-        borderColor: active ? "var(--color-wine)" : "var(--color-grey-200)",
+        borderColor: active ? "var(--color-ink)" : "var(--color-grey-200)",
         background: active ? "var(--color-paper)" : "#fff",
       }}
       aria-pressed={active}
     >
       <div className="flex items-center gap-2">
-        <span style={{ color: active ? "var(--color-wine)" : "var(--color-grey-500)" }}>{icon}</span>
-        <div className="text-[14px] font-bold" style={{ color: active ? "var(--color-wine)" : "var(--color-ink)" }}>
+        <span style={{ color: active ? "var(--color-ink)" : "var(--color-grey-500)" }}>{icon}</span>
+        <div className="text-[14px] font-bold" style={{ color: "var(--color-ink)" }}>
           {label}
         </div>
       </div>
