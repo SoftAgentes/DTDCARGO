@@ -1309,7 +1309,7 @@ Segundo tramo de la web que Dir_DTD aprobó («apruebo los tres tramos»). Cubre
 
 **Criterio por analogía (D, a confirmar en la revisión).** Sam decidió la 3b-2b con piezas de `components/`; aquí se aplicó la misma regla a las piezas equivalentes (acento editorial → tinta y negrita; selección y Shipping Mark → tinta; banda navy → crema y azul claro). No hubo una decisión nueva de Sam para esta PR.
 
-**Lista cerrada:** `app/p/[token]/PackingListFormSection.tsx`, 3 usos: la marca de agua (`.pl-wm .d`), el título en chino y el folio. Son la identidad del documento, como el comprobante de pago (`--doc-wine`, fase 5). **Decisión del Director (2026-11-23), sujeta a confirmación de Sam al ver la captura:** controles, enlaces y foco en azul de acción; rótulos y cifras en tinta; folio, marca de agua y títulos zh-CN del documento imprimible, identidad de documento (`--doc-wine`, fase 5). Si Sam prefiere otra cosa, es un ajuste de tokens y de esta lista.
+**Lista cerrada:** `app/p/[token]/PackingListFormSection.tsx`, 3 usos: la marca de agua (`.pl-wm .d`), el título en chino y el folio. Son la identidad del documento, como el comprobante de pago (`--doc-wine`, fase 5). **Decisión del Director (2026-11-23), sujeta a confirmación de Sam al ver la captura. Sam la confirmó el 2026-11-23 al ver las capturas («La planilla de empaque se ve bien así»); queda cerrada:** controles, enlaces y foco en azul de acción; rótulos y cifras en tinta; folio, marca de agua y títulos zh-CN del documento imprimible, identidad de documento (`--doc-wine`, fase 5). Si Sam prefiere otra cosa, es un ajuste de tokens y de esta lista.
 
 **Allowlist (rutas exactas):**
 - `.agents/handoffs/0686-rebrand-color-accion-azul.md`
