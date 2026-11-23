@@ -846,7 +846,14 @@
   border-radius: var(--r-md);
   background: var(--bg-surface);
   box-shadow: var(--shadow-xs);
-  overflow: hidden;
+  /* Sin overflow: hidden: recortaría el anillo de foco global (outline 2px, offset 3px),
+     WCAG 2.4.7. Las esquinas las redondean el primer y el último botón. */
+}
+.studio-vista__op:first-child {
+  border-radius: calc(var(--r-md) - 1px) 0 0 calc(var(--r-md) - 1px);
+}
+.studio-vista__op:last-child {
+  border-radius: 0 calc(var(--r-md) - 1px) calc(var(--r-md) - 1px) 0;
 }
 .studio-vista__op {
   min-width: var(--objetivo-min);

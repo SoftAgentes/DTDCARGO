@@ -108,7 +108,7 @@ Los drawers viejos que usaban `requestSubmit()` ya fueron migrados
 ## Tokens visuales — cero rgba inline
 
 - Tokens en `app/studio/tokens.css` (light + dark + density modifiers
-  `[data-density="compact|spacious"]`).
+  `[data-density="compact|ultra"]`; Normal es sin atributo, SDD-0688).
 - Acceso siempre con `var(--*)`, nunca hex inventado.
 - Para texto sobre fondo navy (`background: var(--ink)`):
   - `var(--ink-inv)` — texto principal (paper white)
@@ -394,8 +394,8 @@ cumplirlas todas.
 - `xs` (32 px) · chips, badges interactivas, micro-acciones en cells.
 - `min-width: max-content` para evitar reflow entre estados.
 - `gap: var(--s-2)` entre icono y label.
-- Densidad: el Studio abre compacto y oscuro por defecto; el botón «Compacto» de la
-  barra superior (`DensityToggle`) y el del tema cambian la preferencia del usuario.
+- Vista: el Studio abre en Compacta y oscuro por defecto; el selector «Vista» (Normal,
+  Compacta, Súper compacta; `DensityToggle`) de la barra superior y el del tema cambian la preferencia del usuario.
   Nada que se oprima baja de 32 px (SDD-0603).
 
 ### Regla 3 · Estados (anti-doble-submit + feedback)

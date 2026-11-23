@@ -87,6 +87,23 @@ describe("estilos de texto con nombre · SDD-0688 fase 2", () => {
     expect(op).toContain("min-width: var(--objetivo-min)");
   });
 
+  it("el selector de vista no recorta el anillo de foco (WCAG 2.4.7)", () => {
+    // Sin comentarios: el del CSS explica justo esta regla y nombra la propiedad.
+    const cont = regla(".studio-vista").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(cont.length).toBeGreaterThan(0);
+    expect(cont).not.toMatch(/overflow\s*:\s*(hidden|clip)/);
+    // Las esquinas las redondean los botones de los extremos.
+    expect(regla(".studio-vista__op:first-child")).toContain("border-radius");
+    expect(regla(".studio-vista__op:last-child")).toContain("border-radius");
+  });
+
+  it("mutante: devolver overflow: hidden al selector se detecta", () => {
+    const mutado = css.replace(".studio-vista {", ".studio-vista {\n  overflow: hidden;");
+    expect(mutado).not.toBe(css);
+    const cont = mutado.match(/\.studio-vista\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(cont).toMatch(/overflow\s*:\s*(hidden|clip)/);
+  });
+
   it("Amplia ya no existe", () => {
     expect(tokens).not.toContain('[data-density="spacious"]');
   });

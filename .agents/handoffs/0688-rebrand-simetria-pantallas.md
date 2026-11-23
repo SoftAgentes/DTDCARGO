@@ -46,6 +46,12 @@ Worker · 2026-11-23 · rama `claude/cool-hamilton-cc627e` · allowlist aprobada
 ## Decisiones A–D: cerradas por Sam el 2026-11-23
 Cita textual (relayada por el Director): «0688: la vista Compacta queda por defecto y apruebo los tamaños propuestos». Cubre A (tamaños), B (eyebrow y caption a 12 px, piso 12), C («Normal» nueva de 14 px y filas de 44 px) y D (Súper compacta comprime espacios y títulos); Compacta por defecto. Los tamaños siguen en `tokens.css`, sin cambio de valores; se quitó la palabra «provisional».
 
+## Cambios visuales leves para la captura de Sam
+- Subtítulo del dashboard: 14 px → `--t-cuerpo-compacto` (13 en Normal, 12 en Compacta y Súper).
+- Margen bajo el encabezado de tracking: 16 px → `--s-6` (18 en Compacta, 24 en Normal).
+- Título de pantalla en calendario, tracking, dashboard y login: 30 px → `--t-pantalla` (26 en Compacta).
+- Eyebrow del encabezado: 11 → 12 px.
+
 ## Comprobaciones
 Con TURNO DE PC (2026-11-23): vitest de `app/studio/_components` y `(app)/_components` PASÓ salvo 2 mutantes de `color-accion-fase2-g8-contract` (Tracking en vivo) que fallan por CRLF del checkout de Windows (`autocrlf`: blob LF, copia de trabajo CRLF, el test busca `
 `); la fase no toca esas reglas, en CI Linux no aplica. tsc PASÓ. eslint de lo tocado PASÓ. `pnpm components:index` PASÓ (registro regenerado y confirmado con `components:check`). `governance:check` PASÓ. `pnpm build` y `pnpm verify` NO EJECUTADO. Selector medido a 375 px: con nombres completos 172-208 px de ancho (apretaba la barra); ahora en móvil muestra N · C · S, 98×34 px (botones de 32 px).
