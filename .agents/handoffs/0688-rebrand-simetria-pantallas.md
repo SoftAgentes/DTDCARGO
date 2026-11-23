@@ -47,7 +47,8 @@ Worker · 2026-11-23 · rama `claude/cool-hamilton-cc627e` · allowlist aprobada
 Todos los tamaños están en `tokens.css`; cambiarlos no toca componentes. Eyebrow y caption a 12 px en las tres vistas (decisión B pendiente).
 
 ## Comprobaciones
-Sin pruebas pesadas (sin «TURNO DE PC»): vitest, tsc, lint, build, `pnpm components:index` y `pnpm governance:check` NO EJECUTADO. `/ui-check`: ver aviso al Director.
+Con TURNO DE PC (2026-11-23): vitest de `app/studio/_components` y `(app)/_components` PASÓ salvo 2 mutantes de `color-accion-fase2-g8-contract` (Tracking en vivo) que fallan por CRLF del checkout de Windows (`autocrlf`: blob LF, copia de trabajo CRLF, el test busca `
+`); la fase no toca esas reglas, en CI Linux no aplica. tsc PASÓ. eslint de lo tocado PASÓ. `pnpm components:index` PASÓ (registro regenerado y confirmado con `components:check`). `governance:check` PASÓ. `pnpm build` y `pnpm verify` NO EJECUTADO. Selector medido a 375 px: con nombres completos 172-208 px de ancho (apretaba la barra); ahora en móvil muestra N · C · S, 98×34 px (botones de 32 px).
 
 ## Pendientes de esta tarea
 - Correr `pnpm components:index` (regenera `docs/governance/generated/component-registry.json` con la ficha nueva) y las pruebas con turno de PC.

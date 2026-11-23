@@ -865,9 +865,20 @@
   background: var(--ink);
   color: var(--ink-inv);
 }
+.studio-vista__ini {
+  display: none;
+}
+/* En móvil el selector pasa a la inicial (N · C · S): tres botones de 32 px. El nombre
+   completo sigue en aria-label y en el title. Medido a 375 px: 96 px frente a 172-208. */
 @media (max-width: 767px) {
+  .studio-vista__largo {
+    display: none;
+  }
+  .studio-vista__ini {
+    display: inline;
+  }
   .studio-vista__op {
-    padding: 0 var(--s-2);
+    padding: 0;
   }
 }
 

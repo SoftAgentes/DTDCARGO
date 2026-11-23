@@ -45,7 +45,10 @@ export function DensityToggle() {
           title={`Vista ${DENSITY_LABEL[v.value].toLowerCase()}`}
           onClick={() => applyDensity(v.value)}
         >
-          {v.corto}
+          <span className="studio-vista__largo">{v.corto}</span>
+          <span className="studio-vista__ini" aria-hidden="true">
+            {v.corto[0]}
+          </span>
         </button>
       ))}
     </div>
