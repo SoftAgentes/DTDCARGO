@@ -7,8 +7,10 @@
  *   de Studio: el iframe abre el panel directo.
  * - `inicioUrl` ausente → se pide UN enlace de un solo uso al montar. «Abrir de
  *   nuevo» fuerza otro (cuando el panel muestra su pantalla de login o un error).
- * - `allow="microphone"`: las notas de voz. La cabecera de la ruta lo delega al
- *   origen del chat (PoC 2.1: hacen falta el atributo y la cabecera).
+ * - `allow="microphone; autoplay"`: las notas de voz y el sonido de los avisos.
+ *   La cabecera de la ruta delega los dos al origen del chat (PoC 2.1: hacen
+ *   falta el atributo y la cabecera). Sin `autoplay`, el navegador calla la
+ *   alerta de audio de Chatwoot dentro del marco (SDD-0680, adenda 2026-11-23).
  * - Al montar con vínculo, `reconciliarBandeja` corrige el contador con lo que
  *   el agente ve en Chatwoot (un agente que lee sin responder no dispara webhook).
  * - `conversacion`: el SSO lleva la conversación y Chatwoot redirige a ella.
@@ -50,7 +52,8 @@ import type { I18nKey } from "@/lib/i18n/dict";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { origenDe, usePuenteChatwoot } from "@/app/studio/_components/guia/usePuenteChatwoot";
-import { pedirEnlaceSso, reconciliarBandeja, type BandejaErrorCode, type EnlaceSsoResult } from "../actions";
+import type { BandejaErrorCode, EnlaceSsoResult } from "../actions";
+import { pedirEnlaceSso, reconciliarBandeja } from "./pedidos";
 import { PortalChatwoot } from "./PortalChatwoot";
 import type { ResumenPortal } from "@/lib/studio/chatwoot/portal";
 import type { EventoDescartado } from "@/lib/studio/chatwoot/conversations-queries";
@@ -61,9 +64,9 @@ export type BandejaEstado = "sin_configurar" | "sin_vinculo" | "listo";
 export const INTENTOS_ENLACE = 3;
 export const ESPERAS_REINTENTO_MS = [1500, 4000] as const;
 /**
- * SDD-0680: plazo de cada pedido del enlace. Un pedido que no vuelve (el POST de
- * la action abortado o colgado) cuenta como `service` y se reintenta. El servidor
- * corta el suyo a los 10 s (`platform-api.ts`); esto cubre la red y la cola.
+ * SDD-0680: plazo de cada pedido del enlace. Un pedido que no vuelve se corta
+ * (`AbortController`), cuenta como `service` y se reintenta en silencio. El
+ * servidor corta el suyo a los 10 s (`platform-api.ts`); esto cubre la red.
  */
 export const PLAZO_ENLACE_MS = 15_000;
 /** Si el marco no termina de cargar en este tiempo, se ofrece abrirlo de nuevo. */
@@ -154,27 +157,32 @@ function hayCupo(): boolean {
   return marcasVigentes(leerMarcas(), Date.now()).length < SSO_MAX;
 }
 
-/** Resultado del pedido; `vencido` = no volvió a tiempo y sigue en la cola de Next. */
+/** Resultado del pedido; `vencido` = no volvió a tiempo y se cortó. */
 type ResultadoPedido = EnlaceSsoResult & { vencido?: boolean };
 
 /**
- * SDD-0680: pide el enlace sin que nada lo deje colgado. Si la llamada a la
- * action rechaza (`net::ERR_ABORTED`, una respuesta que Next no reconoce tras un
- * despliegue), el resultado es `service`, que se reintenta. Antes de 0680 el
- * rechazo escapaba y la fase quedaba en `pidiendo`.
+ * SDD-0680: pide el enlace sin que nada lo deje colgado. Si el pedido rechaza
+ * (red caída, una respuesta que no es JSON), el resultado es `service`, que se
+ * reintenta.
  *
- * Si no vuelve en `PLAZO_ENLACE_MS`, el resultado es `service` con `vencido`:
- * Next corre las server actions de una en una, así que un POST colgado deja en
- * cola cualquier pedido nuevo. No se reintenta por la action; «Abrir de nuevo»
- * recarga la página (revisión de la #700, M1).
+ * Adenda 2026-11-23: el pedido va por `fetch` a `POST /studio/bandeja/sso`, no
+ * por server action. Next corre las actions de una en una y la reconciliación
+ * (de 16 a 52 s medidos en producción) dejaba al SSO en cola: vencía el plazo y
+ * Sam veía «no respondió a tiempo» con Chatwoot respondiendo en 300 ms. Ahora,
+ * si no vuelve en `PLAZO_ENLACE_MS`, se corta y el resultado es `service` con
+ * `vencido`, que también se reintenta: no queda nada trabado detrás.
  */
 async function pedirConPlazo(conversacion: number | undefined): Promise<ResultadoPedido> {
+  const control = new AbortController();
   let reloj: ReturnType<typeof setTimeout> | undefined;
   const plazo = new Promise<ResultadoPedido>((resolver) => {
-    reloj = setTimeout(() => resolver({ ok: false, error: "service", vencido: true }), PLAZO_ENLACE_MS);
+    reloj = setTimeout(() => {
+      control.abort();
+      resolver({ ok: false, error: "service", vencido: true });
+    }, PLAZO_ENLACE_MS);
   });
   try {
-    const r = await Promise.race([pedirEnlaceSso(conversacion), plazo]);
+    const r = await Promise.race([pedirEnlaceSso(conversacion, control.signal), plazo]);
     return r && typeof r === "object" && "ok" in r ? r : { ok: false, error: "service" };
   } catch {
     return { ok: false, error: "service" };
@@ -182,9 +190,6 @@ async function pedirConPlazo(conversacion: number | undefined): Promise<Resultad
     clearTimeout(reloj);
   }
 }
-
-/** Recargar la página: la única salida cuando la cola de actions quedó trabada. */
-export const recargarPagina = { ahora: () => window.location.reload() };
 
 /** Reserva una apertura si cabe en la ventana; si no, `false` y el enlace no se carga. */
 function reservarApertura(ahora: number): boolean {
@@ -297,8 +302,6 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const zonaRef = useRef<HTMLDivElement | null>(null);
   /** Cada pedido lleva un número; el que llega tarde (otro pedido o desmontado) no pisa el estado. */
   const corrida = useRef(0);
-  /** Un pedido venció el plazo: la cola de actions de Next sigue trabada detrás de él. */
-  const colaTrabada = useRef(false);
   // Guía dentro del panel (SDD-0589, 9.4): el marco es el ancla de respaldo y el
   // puente le pregunta al script del panel dónde está cada ancla de Chatwoot.
   const marcoRef = useRef<HTMLIFrameElement | null>(null);
@@ -315,12 +318,6 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       setFase({ tipo: "pidiendo", intento });
       const r = await pedirConPlazo(conversacion ?? undefined);
       if (mia !== corrida.current) return;
-      if (!r.ok && r.vencido) {
-        // Un reintento por la action esperaría detrás del POST colgado.
-        colaTrabada.current = true;
-        setFase({ tipo: "error", codigo: "service", vencido: true });
-        return;
-      }
       if (r.ok) {
         // SDD-0680: la marca se pone aquí, al cargar el enlace, porque el login lo
         // hace el navegador al cargarlo. Un intento que falló no gastó ningún login
@@ -337,7 +334,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
       }
       // Solo `service` es pasajero; denied/unlinked/unconfigured no cambian por reintentar.
       if (r.error !== "service" || intento === INTENTOS_ENLACE) {
-        setFase({ tipo: "error", codigo: r.error });
+        setFase({ tipo: "error", codigo: r.error, vencido: r.vencido });
         return;
       }
       // Durante la espera ya se anuncia el próximo intento.
@@ -347,15 +344,8 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
     }
   }, [conversacion]);
 
-  /**
-   * «Abrir de nuevo»: un SSO nuevo; el freno lo aplica `pedirConReintentos`. Si
-   * un pedido venció el plazo, la cola de actions sigue trabada: recarga la página.
-   */
+  /** «Abrir de nuevo»: un SSO nuevo; el freno lo aplica `pedirConReintentos`. */
   const abrirDeNuevo = useCallback(() => {
-    if (colaTrabada.current) {
-      recargarPagina.ahora();
-      return;
-    }
     void pedirConReintentos();
   }, [pedirConReintentos]);
 
@@ -368,10 +358,11 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
 
   useEffect(() => {
     // Una reconciliación por montaje; si falla, el contador sigue con el webhook.
-    // SDD-0680: espera a que termine el pedido del enlace. Next pone las server
-    // actions en UNA cola: si la reconciliación (varias llamadas a Chatwoot) sale
-    // primero, el SSO espera detrás de ella con la pantalla en «Abriendo…».
-    if (estado !== "listo" || reconcilio.current || fase.tipo === "pidiendo") return;
+    // Adenda 2026-11-23: sale cuando el marco ya cargó (o no hay marco que
+    // esperar), por su propia ruta y sin bloquear nada: tarda decenas de segundos
+    // y antes, en la cola de server actions, dejaba al SSO esperando.
+    if (estado !== "listo" || reconcilio.current) return;
+    if (fase.tipo === "pidiendo" || fase.tipo === "abriendo") return;
     reconcilio.current = true;
     void Promise.resolve()
       .then(() => reconciliarBandeja())
@@ -399,8 +390,8 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
   const aviso =
     fase.tipo === "error"
       ? fase.vencido
-        ? // SDD-0680: no hubo 3 intentos; hubo uno que no volvió, y la salida es recargar.
-          t("bandeja.recover.timeout")
+        ? // El último intento no volvió a tiempo (se cortó y se reintentó en silencio).
+          t("bandeja.recover.timeout", { total: INTENTOS_ENLACE })
         : fase.codigo === "service"
         ? t("bandeja.recover.service", { total: INTENTOS_ENLACE })
         : t(`bandeja.error.${fase.codigo}` as I18nKey)
@@ -554,7 +545,7 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
                   data-guia="bandeja.marco"
                   src={src}
                   title={t("bandeja.frame.title")}
-                  allow="microphone"
+                  allow="microphone; autoplay"
                   onLoad={() =>
                     setFase((f) => (f.tipo === "abriendo" || f.tipo === "lento" || f.tipo === "freno" ? { tipo: "abierto" } : f))
                   }

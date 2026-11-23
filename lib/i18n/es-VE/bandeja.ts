@@ -31,7 +31,7 @@ export const bandeja = {
   "bandeja.recover.title": "La bandeja no abrió",
   "bandeja.recover.service": "El servidor de mensajes no respondió después de {total} intentos. Ábrela de nuevo en un momento.",
   "bandeja.recover.timeout":
-    "La bandeja no respondió a tiempo. Oprime «Abrir de nuevo»: la página se vuelve a cargar.",
+    "La bandeja no respondió a tiempo después de {total} intentos. Oprime «Abrir de nuevo» para intentarlo otra vez.",
   "bandeja.recover.slow": "La bandeja está tardando más de lo normal en cargar.",
   "bandeja.recover.throttle":
     "Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.",

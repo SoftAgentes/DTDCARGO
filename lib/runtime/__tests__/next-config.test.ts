@@ -183,6 +183,8 @@ describe("SDD-0585 · Bandeja de Chatwoot: frame-src y micrófono solo en su rut
       expect(pp).toHaveLength(1);
       expect(directive(csp[0], "frame-src")).toBe("frame-src https://chat.dtdcargo.com");
       expect(pp[0]).toContain('microphone=(self "https://chat.dtdcargo.com")');
+      // Adenda 2026-11-23: el sonido de los avisos de Chatwoot dentro del marco.
+      expect(pp[0]).toContain('autoplay=(self "https://chat.dtdcargo.com")');
       expect(pp[0]).toContain("camera=()");
       // Studio sigue sin dejarse enmarcar (E2-D3).
       expect(directive(csp[0], "frame-ancestors")).toBe("frame-ancestors 'none'");
