@@ -31,7 +31,7 @@ export const bandeja = {
   "bandeja.recover.title": "La bandeja no abrió",
   "bandeja.recover.service": "El servidor de mensajes no respondió después de {total} intentos. Ábrela de nuevo en un momento.",
   "bandeja.recover.timeout":
-    "La bandeja no respondió a tiempo. Oprime «Abrir de nuevo»: la página se vuelve a cargar.",
+    "La bandeja no respondió a tiempo después de {total} intentos. Oprime «Abrir de nuevo» para intentarlo otra vez.",
   "bandeja.recover.slow": "La bandeja está tardando más de lo normal en cargar.",
   "bandeja.recover.throttle":
     "Chatwoot frena los ingresos repetidos. Espera unos minutos o ábrela en una pestaña aparte.",
@@ -262,12 +262,16 @@ export const bandeja = {
   "bandeja.badge.aria": "{n} sin leer",
   // SDD-0586 (10.5, PR 1b): la ida del chat del portal a Chatwoot, para el admin (§10.5.20).
   "bandeja.error.base": "No se pudo guardar. Vuelve a intentarlo.",
-  "bandeja.portal.title": "Portal → Chatwoot",
-  "bandeja.portal.help": "Los mensajes del chat del portal que van a la bandeja «Conversaciones del portal». Un mensaje atascado detiene su conversación hasta que se reintenta.",
-  "bandeja.portal.off": "Apagado: el chat del portal no va a Chatwoot.",
+  "bandeja.portal.title": "Chat del portal",
+  "bandeja.portal.help":
+    "Lo que los clientes escriben en Soporte del portal entra a esta Bandeja. Si un mensaje se atasca, su chat se detiene hasta que lo reintentes.",
+  "bandeja.portal.off": "Apagado: lo que se escribe en el portal no llega a la Bandeja.",
+  "bandeja.portal.pill.ok": "Chat del portal al día",
+  "bandeja.portal.pill.off": "Chat del portal apagado",
+  "bandeja.portal.pill.sin_llegar": "Chat del portal: {n} sin llegar",
+  "bandeja.portal.pill.atascados": "Chat del portal: {n} atascado(s)",
   "bandeja.portal.sin_llegar": "Sin llegar hace más de 15 min",
   "bandeja.portal.atascados": "Atascados",
-  "bandeja.portal.atascados_estado": "Requiere acción",
   "bandeja.portal.retry": "Reintentar los atascados",
   "bandeja.portal.retrying": "Reintentando…",
   "bandeja.portal.none": "No hay mensajes atascados.",

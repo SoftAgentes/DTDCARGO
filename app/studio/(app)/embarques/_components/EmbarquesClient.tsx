@@ -52,6 +52,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import { ShipmentDetailDrawer } from "./ShipmentDetailDrawer";
+import { estadoDeCajas, type CajasDeEnvio } from "@/lib/studio/cajas-por-proveedor";
 import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
 import {
   FILTRO_ADJUNTOS_OPCIONES,
@@ -150,6 +151,7 @@ export function EmbarquesClient({
   montos,
   facturacion,
   tope,
+  cajasPorEnvio,
   pestanaInicial = PESTANA_POR_DEFECTO,
 }: {
   shipments: ShipmentListRow[];
@@ -179,6 +181,11 @@ export function EmbarquesClient({
   facturacion?: FacturacionExc0674;
   /** SDD-0643: si la lista llegó al tope de lectura, cuál es (se avisa). */
   tope?: number;
+  /**
+   * SDD-0711: cajas y CBM por proveedor de cada embarque, para el panel de detalle.
+   * `null` = no se pudo leer (el panel lo dice); `undefined` = no se pidió.
+   */
+  cajasPorEnvio?: Record<string, CajasDeEnvio> | null;
   /** SDD-0682 §2.5: pestaña con la que abre. La pantalla real abre en «Activos». */
   pestanaInicial?: Tab;
 }) {
@@ -723,6 +730,7 @@ export function EmbarquesClient({
       {selectedShipment && (
         <ShipmentDetailDrawer
           shipment={selectedShipment}
+          cajas={estadoDeCajas(cajasPorEnvio, selectedShipment.id)}
           onClose={() => setDrawerShipmentId(null)}
         />
       )}

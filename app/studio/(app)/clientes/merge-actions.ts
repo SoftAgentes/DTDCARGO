@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * Fusión de dos fichas del mismo cliente (SDD-0246).
+ * Fusión de dos fichas del mismo cliente (SDD-0246) y fusión manual (SDD-0712).
  *
  * Toda la lógica vive en la RPC `merge_clients`, que es ATÓMICA: mueve el
  * acceso y el historial, rellena los huecos del superviviente con los datos
@@ -13,7 +13,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioRole, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
+import {
+  confirmacionCoincide,
+  errorDeMotivo,
+  parsePreview,
+  parseSearchRows,
+  rolPuedeFusionar,
+  type MergePreview,
+  type MergeSearchHit,
+} from "@/lib/studio/client-merge-manual";
 
 export type MergeResult = {
   ok?: boolean;
@@ -30,22 +39,82 @@ export type MergeResult = {
   needsReview?: { conversationsArchived: number; changeRequestsLeftBehind: number };
 };
 
-export async function mergeClientsAction(
+export async function searchClientsForMergeAction(
+  q: string,
+): Promise<{ hits: MergeSearchHit[]; error?: string }> {
+  const supabase = await createClient();
+  // Solo lee: candado de VISTA al tope (rol, permisos por usuario y alcance).
+  const denial = await moduleViewDenial(supabase, "clients");
+  if (denial) return { hits: [], error: denial };
+  const term = (q ?? "").trim();
+  if (term.length < 2) return { hits: [] };
+
+  const { data, error } = await supabase.rpc("client_search_for_merge", { p_q: term });
+  if (error) {
+    console.error("[searchClientsForMergeAction]", error.code ?? "sin código");
+    return { hits: [], error: "No se pudo completar la búsqueda." };
+  }
+  return { hits: parseSearchRows(data) };
+}
+
+export async function previewMergeAction(
   survivorId: string,
   mergedId: string,
-): Promise<MergeResult> {
-  if (!survivorId || !mergedId) {
-    return { error: "Faltan las dos fichas para fusionar." };
+): Promise<{ preview?: MergePreview; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "clients");
+  if (denial) return { error: denial };
+  if (!survivorId || !mergedId) return { error: "Faltan las dos fichas." };
+  if (survivorId === mergedId) return { error: "Elige dos fichas distintas." };
+
+  const { data, error } = await supabase.rpc("client_merge_preview", {
+    p_survivor_id: survivorId,
+    p_merged_id: mergedId,
+  });
+  if (error) {
+    console.error("[previewMergeAction]", error.code ?? "sin código");
+    return { error: "No se pudo armar la vista previa. Revisa que las dos fichas sigan activas." };
+  }
+  const preview = parsePreview(data);
+  if (!preview) return { error: "La vista previa llegó incompleta. Vuelve a intentar." };
+  return { preview };
+}
+
+/**
+ * Fusiona con motivo y confirmación escrita. Sirve para los pares detectados y
+ * para los elegidos a mano: en los dos casos hay que escribir el Shipping Mark
+ * que se anula y dejar el motivo (queda en auditoría).
+ */
+export async function mergeClientsManualAction(input: {
+  survivorId: string;
+  mergedId: string;
+  reason: string;
+  confirmMarkbox: string;
+  /** Shipping Mark que la pantalla mostró como el que se anula (doble comprobación). */
+  retiredMarkbox: string;
+}): Promise<MergeResult> {
+  const { survivorId, mergedId, reason, confirmMarkbox, retiredMarkbox } = input;
+  if (!survivorId || !mergedId) return { error: "Faltan las dos fichas para fusionar." };
+  if (survivorId === mergedId) return { error: "Elige dos fichas distintas." };
+  const motivo = errorDeMotivo(reason);
+  if (motivo) return { error: motivo };
+  if (!confirmacionCoincide(confirmMarkbox, retiredMarkbox)) {
+    return { error: "Escribe el Shipping Mark que se anula para confirmar." };
   }
 
   const supabase = await createClient();
-
   const denial = await moduleEditDenial(supabase, "clients");
   if (denial) return { error: denial };
+  // Sam, 2026-11-23: fusionan Admin, Operaciones y Comercial. La RPC lo exige igual.
+  if (!rolPuedeFusionar(await getStudioRole(supabase))) {
+    return { error: "Solo administración, operaciones y comercial pueden fusionar clientes." };
+  }
 
-  const { data, error } = await supabase.rpc("merge_clients", {
+  const { data, error } = await supabase.rpc("merge_clients_manual", {
     p_survivor_id: survivorId,
     p_merged_id: mergedId,
+    p_reason: reason.trim(),
+    p_confirm_markbox: confirmMarkbox.trim(),
   });
 
   if (error) {
@@ -53,10 +122,14 @@ export async function mergeClientsAction(
     // (violaciones de índice, etc.) no se le muestran crudos al operador.
     const conocido =
       error.message.includes("fusionar") ||
+      error.message.includes("fusionada") ||
       error.message.includes("eliminada") ||
       error.message.includes("eliminado") ||
-      error.message.includes("No existe");
-    console.error("[mergeClientsAction]", error.message);
+      error.message.includes("No existe") ||
+      error.message.includes("aliado") ||
+      error.message.startsWith("audit: reason");
+    // Solo el código: el mensaje de la RPC puede llevar el Shipping Mark.
+    console.error("[mergeClientsManualAction]", error.code ?? "sin código");
     return {
       error: conocido
         ? error.message
