@@ -36,6 +36,7 @@ import {
   leerRecibidasDeContenedores,
 } from "@/lib/studio/embarques-contenedores-queries";
 import type { MontosDeContenedores } from "@/lib/studio/embarques-contenedores";
+import { leerCajasPorProveedor } from "@/lib/studio/cajas-por-proveedor-queries";
 import { rolFacturaExc0674, type FacturacionExc0674 } from "@/lib/studio/exc0674";
 import { leerFacturacionExc0674 } from "@/lib/studio/exc0674-queries";
 import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
@@ -58,8 +59,10 @@ export default async function EmbarquesPage() {
   // la columna diría «Ninguno» en todas las filas sin ser cierto: no se cuenta.
   // SDD-0643: contenedores y adjuntos se leen a la vez. `contenedores` `null` =
   // no se pudo leer; la vista lo dice y agrupa sólo por cliente.
-  const [contenedores, adjuntos] = await Promise.all([
+  // SDD-0711: cajas y CBM por proveedor para el panel de detalle (una lectura, sin migración).
+  const [contenedores, cajasPorEnvio, adjuntos] = await Promise.all([
     leerContenedoresDeEmbarques(supabase, ids),
+    leerCajasPorProveedor(supabase, ids),
     (async () => {
       const veAdjuntos = (await moduleViewDenial(supabase, "tracking")) === null;
       return veAdjuntos ? conteosPorId(await contarAdjuntosDeEmbarques(supabase, ids)) : undefined;
@@ -111,6 +114,7 @@ export default async function EmbarquesPage() {
       adjuntos={adjuntos}
       eliminacion={eliminacion}
       contenedores={contenedores}
+      cajasPorEnvio={cajasPorEnvio}
       {...(montos ? { montos } : {})}
       {...(facturacion ? { facturacion } : {})}
       tope={shipments.length >= TOPE_EMBARQUES ? TOPE_EMBARQUES : undefined}

@@ -10,6 +10,7 @@
  */
 
 import { formatCbm } from "@/lib/shared/cbm";
+import type { EstadoCajas } from "@/lib/studio/cajas-por-proveedor";
 import Link from "next/link";
 import {
   SERVICE_LABELS,
@@ -39,11 +40,22 @@ function formatDate(iso: string): string {
   });
 }
 
+/** SDD-0711: «14 cajas» · «1 caja»; sin recepción, «Sin recepción» (nunca 0). */
+function textoTotalCajas(cajas: EstadoCajas): string {
+  if (cajas.estado === "no_disponible") return "No se pudo leer";
+  if (cajas.estado === "sin_recepcion") return "Sin recepción";
+  const n = cajas.datos.totalCajas;
+  return `${n.toLocaleString("es-VE")} ${n === 1 ? "caja" : "cajas"}`;
+}
+
 export function ShipmentDetailDrawer({
   shipment,
+  cajas,
   onClose,
 }: {
   shipment: ShipmentListRow;
+  /** SDD-0711: cajas y CBM por proveedor (ver `estadoDeCajas`). */
+  cajas: EstadoCajas;
   onClose: () => void;
 }) {
   return (
@@ -141,8 +153,51 @@ export function ShipmentDetailDrawer({
               }
               mono
             />
+            <Field label="Cajas" value={textoTotalCajas(cajas)} mono />
             <Field label="Creado" value={formatDate(shipment.created_at)} mono />
           </div>
+
+          {/* SDD-0711: cajas y CBM de cada proveedor */}
+          {cajas.estado === "listo" && (
+            <section aria-labelledby="det-prov-titulo">
+              <div
+                id="det-prov-titulo"
+                style={{
+                  font: "600 10.5px/1.3 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Por proveedor
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ font: "600 10.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+                    <th scope="col" style={{ textAlign: "left", padding: "4px 0", fontWeight: 600 }}>Proveedor</th>
+                    <th scope="col" style={{ textAlign: "right", padding: "4px 0", fontWeight: 600 }}>Cajas</th>
+                    <th scope="col" style={{ textAlign: "right", padding: "4px 0 4px 16px", fontWeight: 600 }}>CBM</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cajas.datos.proveedores.map((p) => (
+                    <tr key={p.proveedor ?? "__sin_proveedor__"} style={{ borderTop: "1px solid var(--border)" }}>
+                      <td style={{ padding: "7px 0", font: "500 13px/1.4 var(--f-sans)", color: "var(--ink)", wordBreak: "break-word" }}>
+                        {p.proveedor ?? "Sin proveedor"}
+                      </td>
+                      <td style={{ padding: "7px 0", textAlign: "right", font: "600 13px/1.3 var(--f-mono)", color: "var(--ink)", whiteSpace: "nowrap" }}>
+                        {p.cajas.toLocaleString("es-VE")}
+                      </td>
+                      <td style={{ padding: "7px 0 7px 16px", textAlign: "right", font: "600 13px/1.3 var(--f-mono)", color: "var(--ink)", whiteSpace: "nowrap" }}>
+                        {formatCbm(p.cbm, { unit: true })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           {/* Aviso de read-only */}
           <div
