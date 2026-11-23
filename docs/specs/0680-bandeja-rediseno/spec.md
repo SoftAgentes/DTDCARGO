@@ -4,7 +4,7 @@ title: "Bandeja: abre sola al entrar y rediseño de la pantalla"
 status: in-progress
 author: "Claude (Worker)"
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-23
 supersedes: null
 superseded_by: null
 related: ["0585", "0655", "0677", "0679"]
@@ -145,3 +145,20 @@ Maqueta con variantes (Artifact privado de Sam, 2026-11-19): para la Bandeja, A 
 - Lo de adentro del iframe (Chatwoot).
 - La Ficha DTD: si Sam quiere cambiarla, otra SDD.
 - `MAX_USER_SESSIONS`, rack-attack y el aviso `dtd:sin-sesion` del panel (SDD-0677, opciones a y c): config del VPS.
+
+## Adenda 2026-11-23 (b) · el estado del chat del portal sube a la fila
+
+**Pedido de Sam (textual):** «en la bandeja, en la parte de abajo, se ve muy mal. Hay que hacerlo mucho más estético y más informativo… hay que arreglarlo para que se vea bien visualmente y se entienda qué hace ahí. En algún lado en la parte de arriba, analiza cuál sería la mejor opción.» Se le dibujaron tres variantes (A pastilla en la fila, B aviso solo con problema, C mudarlo a Usuarios › Bandeja) y eligió: «Va la A».
+
+**Lo que había:** la tarjeta «Portal → Chatwoot» (SDD-0586, §10.5.20) iba debajo de un panel que ocupa todo el alto de la ventana: para verla había que bajar más allá de Chatwoot. Casi siempre decía «0» y «0» con cifras de 20 px y un botón deshabilitado, y su texto no decía para qué estaba.
+
+**Cambio:**
+1. `PortalChatwoot` pasa de tarjeta a una pastilla en la fila de la Bandeja, junto al estado «Conectada». Muestra cuatro estados, cada uno con icono y texto (nunca solo con color): «Chat del portal al día», «… apagado», «…: N sin llegar» y «…: N atascado(s)».
+2. Con atascados, «Reintentar los atascados» queda en la fila, sin abrir nada.
+3. Al hacer clic, la pastilla abre un detalle (`role="dialog"`, `aria-expanded`). Se cierra con Escape, devolviendo el foco, o con un clic afuera. El detalle dice qué es: lo que los clientes escriben en Soporte del portal entra a esta Bandeja. También trae los dos números en 14 px y el botón. El resultado del reintento abre el detalle y se lleva el foco.
+4. El texto ya no nombra la bandeja «Conversaciones del portal» de Chatwoot. `bandeja.portal.help` deja así de estar atado a ese nombre externo (clase A′ de la SDD-0707), y el renombre de la fase 5 de la 0707 ya no lo arrastra.
+5. Se retira `bandeja.portal.atascados_estado` («Requiere acción»), que ya no se usa: el tono de la pastilla da el estado. La fila de la SDD-0686 que lo nombraba queda histórica.
+
+**Gobernanza:** BTN-01 (máximo tres acciones visibles: estado, reintentar y las de siempre; verbo + sustantivo en «Reintentar los atascados»), cumplimiento. A11Y-01 (estado con texto, disparador con `aria-expanded` y `aria-controls`, Escape), cumplimiento. VIS-01 / BRAND (tokens del Studio, `StatusIcon`, sombra `--shadow-md`, sin colores nuevos), cumplimiento. Datos personales: no aplica, solo números.
+
+**Allowlist de la adenda (b):** `app/studio/(app)/bandeja/_components/PortalChatwoot.tsx`, `app/studio/(app)/bandeja/_components/BandejaClient.tsx` (solo dónde se monta), `app/studio/(app)/bandeja/__tests__/PortalChatwoot.test.tsx`, `app/studio/_components/__tests__/kpi-cifra-en-tinta-contract.test.tsx` (sale el caso de la cifra de 20 px que ya no existe), `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`, esta spec y el handoff `.agents/handoffs/0680-adenda-estado-portal-en-fila.md`.
