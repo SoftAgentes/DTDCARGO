@@ -485,6 +485,9 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
           {estadoFila}
         </span>
       ) : null}
+      {/* SDD-0680, adenda del 2026-11-23 (variante A): el estado del chat del portal va en la
+          fila, junto al de la Bandeja; antes era una tarjeta debajo del panel. */}
+      {admin?.portal ? <PortalChatwoot resumen={admin.portal} /> : null}
       <span style={{ flex: "1 1 auto" }} />
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
         {listo ? <BotonReabrir pidiendo={pidiendo} variante="ghost" onClick={abrirDeNuevo} /> : null}
@@ -557,7 +560,6 @@ export function BandejaClient({ estado, panelUrl, inicioUrl, conversacion = null
         )}
       </section>
 
-      {admin?.portal ? <PortalChatwoot resumen={admin.portal} /> : null}
       {admin?.descartados?.length ? (
         <section
           aria-labelledby="bandeja-descartados"
