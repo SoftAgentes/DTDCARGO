@@ -35,7 +35,7 @@ const NO_APLICA = [
   "Productos restringidos sin permisos",
 ];
 
-type Tone = "wine" | "ink" | "grey";
+type Tone = "ink" | "grey";
 type Marker = "check" | "dot" | "close";
 
 export function PuertaAPuerta() {
@@ -48,7 +48,7 @@ export function PuertaAPuerta() {
           style={{ fontSize: "clamp(28px, 4vw, 46px)" }}
         >
           ¿Qué significa{" "}
-          <span style={{ color: "var(--color-wine)" }}>puerta a puerta?</span>
+          <span className="font-black" style={{ color: "var(--color-ink)" }}>puerta a puerta?</span>
         </h2>
 
         <div className="mt-6 flex flex-col gap-4 max-w-[64ch]">
@@ -73,7 +73,7 @@ export function PuertaAPuerta() {
 
         {/* Tabla de transparencia */}
         <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <TransparencyCol title="Qué incluye" tone="wine" marker="check" items={INCLUYE} />
+          <TransparencyCol title="Qué incluye" tone="ink" marker="check" items={INCLUYE} />
           <TransparencyCol title="Qué puede variar" tone="ink" marker="dot" items={PUEDE_VARIAR} />
           <TransparencyCol title="Qué no aplica" tone="grey" marker="close" items={NO_APLICA} />
         </div>
@@ -98,7 +98,7 @@ function TransparencyCol({
   items: string[];
 }) {
   const headerColor =
-    tone === "wine" ? "text-wine" : tone === "grey" ? "text-grey-500" : "text-ink";
+    tone === "grey" ? "text-grey-500" : "text-ink";
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[14px] p-6">
       <div className={`text-[11px] font-bold tracking-[0.14em] uppercase ${headerColor}`}>
@@ -122,7 +122,7 @@ function TransparencyCol({
 function MarkerIcon({ marker }: { marker: Marker }) {
   if (marker === "check") {
     return (
-      <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-wine/10 text-wine">
+      <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-status-success/10 text-status-success">
         <CheckIcon size={12} />
       </span>
     );

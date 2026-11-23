@@ -35,7 +35,7 @@ export function GuiaAlibabaCard({
     <section
       className={`card-shadow bg-white border border-grey-200 rounded-[18px] p-6 ${className}`}
     >
-      <span className="eyebrow eyebrow-wine">
+      <span className="eyebrow eyebrow-tinta">
         {variante === "portal" ? "Guía paso a paso" : "Gratis"}
       </span>
       <h3 className="mt-3 text-[17px] font-extrabold leading-[1.25] text-ink">

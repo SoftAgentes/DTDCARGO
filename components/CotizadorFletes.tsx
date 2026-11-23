@@ -41,7 +41,7 @@ const CONTAINER_LABELS: Record<string, string> = {
 };
 
 const FIELD =
-  "h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40";
+  "h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-accion/40";
 
 /**
  * ⛔ **RETIRADO el 2026-08-24 (SDD-0292) — sin consumidores.**
@@ -195,8 +195,8 @@ export function CotizadorFletes() {
 
         {status === "done" && priceUsd != null && rate && (
           <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
-            <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] uppercase text-wine">
-              <CheckIcon size={16} className="text-wine" />
+            <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] uppercase text-grey-700">
+              <CheckIcon size={16} className="text-status-success" />
               Flete estimado
             </div>
             <div

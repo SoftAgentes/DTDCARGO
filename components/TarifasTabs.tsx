@@ -306,7 +306,7 @@ function FichaCard({
     <div className="rounded-[14px] border border-grey-200 bg-white px-4 py-3.5">
       <span
         className={`text-[11px] font-bold tracking-[0.12em] uppercase ${
-          tone === "ok" ? "text-wine" : "text-grey-500"
+          tone === "ok" ? "text-ink" : "text-grey-500"
         }`}
       >
         {titulo}

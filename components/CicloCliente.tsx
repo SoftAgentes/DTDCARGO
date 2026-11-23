@@ -48,7 +48,7 @@ type Station = {
   icon: React.ReactNode;
 };
 
-// Íconos outline (stroke 1.7) — heredan el color del dot (grey-100 sobre wine).
+// Íconos outline (stroke 1.7) — heredan el color del dot (grey-100 sobre tinta).
 const ico = {
   fill: "none" as const,
   stroke: "currentColor",
@@ -168,7 +168,7 @@ export function CicloCliente() {
           className="cyc-flow"
           d={TRACK_D}
           fill="none"
-          stroke="var(--color-wine)"
+          stroke="color-mix(in srgb, var(--color-ink) 55%, transparent)"
           strokeWidth={2.5}
           strokeDasharray="6 14"
           strokeLinecap="round"
@@ -182,7 +182,7 @@ export function CicloCliente() {
           transform={motionOk ? undefined : "translate(290 200)"}
           style={{ filter: "drop-shadow(0 4px 8px color-mix(in srgb, var(--color-ink) 30%, transparent))" }}
         >
-          <rect x={-20} y={-11} width={40} height={22} rx={2} fill="var(--color-wine)" stroke="var(--color-grey-100)" strokeWidth={1.4} />
+          <rect x={-20} y={-11} width={40} height={22} rx={2} fill="var(--color-ink)" stroke="var(--color-grey-100)" strokeWidth={1.4} />
           <line x1={-11} y1={-9} x2={-11} y2={9} stroke="var(--color-grey-100)" strokeWidth={1} opacity={0.5} />
           <line x1={-2} y1={-9} x2={-2} y2={9} stroke="var(--color-grey-100)" strokeWidth={1} opacity={0.5} />
           <line x1={7} y1={-9} x2={7} y2={9} stroke="var(--color-grey-100)" strokeWidth={1} opacity={0.5} />
@@ -213,7 +213,7 @@ export function CicloCliente() {
           className="cyc-spin"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="var(--color-wine)"
+          stroke="color-mix(in srgb, var(--color-ink) 70%, transparent)"
           strokeWidth={1.9}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -230,7 +230,7 @@ export function CicloCliente() {
             fontSize: cqClamp(10, 1.875, 12),
             letterSpacing: "0.18em",
             textTransform: "uppercase",
-            color: "var(--color-wine)",
+            color: "var(--color-grey-700)",
           }}
         >
           {CENTER.eyebrow}
@@ -270,13 +270,13 @@ export function CicloCliente() {
               width: DOT,
               height: DOT,
               borderRadius: "999px",
-              background: "var(--color-wine)",
+              background: "var(--color-ink)",
               color: "var(--color-grey-100)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               border: "3px solid var(--color-white)",
-              boxShadow: "0 8px 18px color-mix(in srgb, var(--color-wine) 28%, transparent)",
+              boxShadow: "0 8px 18px color-mix(in srgb, var(--color-ink) 28%, transparent)",
               flex: "0 0 auto",
             }}
           >
@@ -297,7 +297,7 @@ export function CicloCliente() {
                 whiteSpace: "nowrap",
               }}
             >
-              <b style={{ fontWeight: 800, fontSize: cqClamp(10, 1.875, 12), color: "var(--color-wine)" }}>
+              <b style={{ fontWeight: 800, fontSize: cqClamp(10, 1.875, 12), color: "var(--color-ink)" }}>
                 {s.n}
               </b>
               {s.label}

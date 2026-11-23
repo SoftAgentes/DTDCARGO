@@ -61,7 +61,7 @@ export function ColorSwatch({ token, hex, role }: Props) {
           </span>
           <span
             className="text-[11px] font-semibold"
-            style={{ color: copied ? "var(--color-status-success)" : "var(--color-wine)" }}
+            style={{ color: copied ? "var(--color-status-success)" : "var(--color-accion-text)" }}
           >
             {copied ? "Copiado" : "Copiar"}
           </span>

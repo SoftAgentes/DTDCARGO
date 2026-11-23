@@ -88,7 +88,7 @@ export function CicloDTD() {
             width="44"
             height="30"
             rx="2"
-            fill="var(--wine)"
+            fill="var(--ink)"
             stroke="#F2F0EC"
             strokeWidth="1.4"
           />
@@ -113,7 +113,7 @@ export function CicloDTD() {
           <g
             className="cyc-loopicon"
             fill="none"
-            stroke="var(--wine)"
+            stroke="color-mix(in srgb, var(--ink) 70%, transparent)"
             strokeWidth="1.9"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -130,7 +130,7 @@ export function CicloDTD() {
             font: "700 12px var(--f-brand)",
             letterSpacing: "2px",
             textTransform: "uppercase",
-            fill: "var(--wine)",
+            fill: "color-mix(in srgb, var(--ink) 70%, transparent)",
           }}
         >
           Cada envío
@@ -167,7 +167,7 @@ function StationNode({ s }: { s: Station }) {
         cx={s.cx}
         cy={s.cy}
         r="28"
-        fill="var(--wine)"
+        fill="var(--ink)"
         stroke="var(--bg-base)"
         strokeWidth="3"
       />
@@ -191,7 +191,7 @@ function StationNode({ s }: { s: Station }) {
         textAnchor="middle"
         style={{ font: "800 16px var(--f-brand)", letterSpacing: "-0.01em" }}
       >
-        <tspan style={{ fill: "var(--wine)", fontFamily: "var(--f-mono)", fontWeight: 800 }}>
+        <tspan style={{ fill: "var(--ink)", fontFamily: "var(--f-mono)", fontWeight: 800 }}>
           {s.n}
         </tspan>
         <tspan dx="5" style={{ fill: "var(--ink)" }}>
