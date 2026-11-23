@@ -45,10 +45,11 @@ x-logging: &logging
 
 x-imagen: &imagen
   # Fija por etiqueta Y por digest. Subir de versión es la etapa E3: runbook de versiones,
-  # nunca un `pull` suelto. SDD-0679: v4.20.0-ce, digest del índice multiplataforma leído
-  # del registro de Docker Hub el 2026-11-19 (linux/amd64 = sha256:1cf633d4a484…; imagen
-  # creada el 2026-11-18T09:07Z). Antes: v4.19.1-ce@sha256:04895c7bd055… (2026-10-29).
-  image: chatwoot/chatwoot:v4.20.0-ce@sha256:03cc2004299fec8142481a411906947928678fa0e126beb5248962183593f8be
+  # nunca un `pull` suelto. v4.20.1-ce (parche sin migraciones, análisis en
+  # docs/runbooks/chatwoot-analisis-4-20-1.md): digest del índice multiplataforma leído
+  # del registro de Docker Hub el 2026-11-22 (linux/amd64 = sha256:a195245e10aa…).
+  # Antes: v4.20.0-ce@sha256:03cc2004299f… (SDD-0679, 2026-11-19).
+  image: chatwoot/chatwoot:v4.20.1-ce@sha256:5c88eb71134268cb702ae902bb399a239175c4dc24b3f0c6d6b3a2533a377e43
 
 x-entorno: &entorno
   RAILS_ENV: production

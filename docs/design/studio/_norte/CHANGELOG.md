@@ -272,7 +272,7 @@ calculadoras/cotizadores y se dejó asentado el backlog que surgió de comparar 
 - **Verificado** que el cierre Portal→ERP de la sesión previa (v2.3) sigue intacto sobre la base actual
   (v2.5): `portalInbox` + `pushPortalEvent`/`markPortalRead`/`tenantForMarkbox` en `erp/data-bridge.jsx`,
   suscripción + badge numérico + filtro `byTenant` en `DTD Studio · ERP.html` / `erp/shell.jsx`, y los
-  tres emisores (registro web+móvil, cotizador, re-compra). Mapeado a backend en `backend/API-CONTRACT.md §5`.
+  tres emisores (registro web+móvil, cotizador, re-compra). Mapeado a backend en `backend/API-CONTRACT.md §5` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].
 
 ### ⏳ Pendiente / Backlog (priorizar con el usuario)
 
@@ -556,19 +556,19 @@ Resultado: IVA débito en libros = $41.628 y crédito = $1.053, idénticos a los
 - **Brand Book v3.2:** puntero de fuente de verdad actualizado a `Brand Book DTD v3.2.html`
   (todas las refs vivas ya apuntaban ahí: `admin-brand.jsx`, `CLAUDE.md`, `HANDOFF.md`, `Reporte`).
 - **Handoff:** proyecto empaquetado para Claude Code (CLAUDE.md + HANDOFF.md + HANDOFF-MOBILE.md
-  + backend/API-CONTRACT.md + legal/ + CHANGELOG.md como front-door).
+  + backend/API-CONTRACT.md [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] + legal/ + CHANGELOG.md como front-door).
 
 ---
 
 ## 2026-06-02 · 🔌 #5 · Contrato de API para backend real (handoff)
 
-Nueva carpeta `backend/`: `API-CONTRACT.md` mapea **cada seam del prototipo**
+Nueva carpeta `backend/` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]: `API-CONTRACT.md` mapea **cada seam del prototipo**
 (`window.DTDData` stores + funciones, `window.DTDFlags`, `window.LegalData`, auth del
 `Operario · App`) a su endpoint REST: auth+sesión multi-tenant, clientes/Shipping Mark secuencial,
 cotizaciones (cotizador→formal→aceptación, reliquidación CN), **aceptación legal con evidencia
 inmutable (IP+hash+timestamp server-side)**, bandeja del portal, facturación + gate, operación
 CN + **sync offline** (outbox), config/feature-flags a nivel tenant, notificaciones
-(WhatsApp/email/push) + orden de implementación. `backend/README.md` explica el principio
+(WhatsApp/email/push) + orden de implementación. `backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] explica el principio
 "mismas firmas, otra implementación" y lo no negociable (multi-tenant, sesión revocable,
 evidencia inmutable, servidor = frontera de seguridad). Referenciado desde `CLAUDE.md`.
 **No se construye el servidor** (fuera del prototipo HTML); es la spec para que devs/Claude
@@ -1167,14 +1167,14 @@ preocupación #1 del usuario). Auditoría completa → 3 buckets.
 
 **Bucket B · docs consolidados (de 8 dispersos → 2 canónicos + bitácora):**
 - **`HANDOFF.md`** (raíz, reescrito) — documento único de orientación. Absorbe `HANDOFF` v1.x (desactualizado), `PROMPT-proxima-sesion.md`, `nuevo/PROMPT-CLAUDE-CODE.md` y `design_handoff_dtd_cargo/README.md`. Estado v2.4 + arquitectura + mapa de módulos (rutas corregidas a su lugar canónico) + tokens + reglas.
-- **`backend/README.md`** (nuevo) — consolida `BACKEND-BRIEF.md` + `PROMPT-BACKEND.md`. Rutas stale corregidas: `nuevo/api/client.jsx` → `erp/api/client.jsx`. Apunta a `../HANDOFF.md` y `../CHANGELOG.md`.
+- **`backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]** (nuevo) — consolida `BACKEND-BRIEF.md` + `PROMPT-BACKEND.md`. Rutas stale corregidas: `nuevo/api/client.jsx` → `erp/api/client.jsx`. Apunta a `../HANDOFF.md` y `../CHANGELOG.md`.
 - **Bitácora a la raíz:** `nuevo/CHANGELOG.md` → **`CHANGELOG.md`** (raíz). Con esto **desaparece la carpeta `nuevo/`** por completo (su nombre — "lo nuevo" vs "lo viejo" — era en sí el artefacto de fragmentación; la convención se retiró en la primera mitad de v2.4). Se borró también `nuevo/README.md` (convención retirada).
-- **Refs corregidas en archivos conservados:** `backend/API-CONTRACT.md` (`nuevo/api/client.jsx` → `erp/api/client.jsx`) y `backend/prisma/schema.prisma` (`BACKEND-BRIEF.md` → `backend/README.md`).
+- **Refs corregidas en archivos conservados:** `backend/API-CONTRACT.md` (`nuevo/api/client.jsx` → `erp/api/client.jsx`) y `backend/prisma/schema.prisma` (`BACKEND-BRIEF.md` → `backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]).
 
 **Bucket C · mockup superado (archivado):**
 - `Propuesta · Botón Crear.html` → `_archivo/`. Era la propuesta del botón "+ Crear", ya construido y consolidado en el ERP. Se archiva (no se borra) por ser registro de decisión de diseño. `Propuesta · Servicios y Tarifas.html` **NO** se tocó (su jsx sigue vivo, lo consume el ERP embebido).
 
-**Resultado:** la raíz pasa de 6 `.md` sueltos + 3 carpetas de docs/handoff a **4 docs canónicos** (`CLAUDE.md`, `HANDOFF.md`, `CHANGELOG.md`, `BRAND-MIGRATION-2026-05.md`) + `backend/` (`README.md` + `API-CONTRACT.md` + `prisma/`). Cero carpetas `nuevo/` · `handoff/` · `design_handoff_dtd_cargo/`. Verificado: ERP y apps cargan sin 404.
+**Resultado:** la raíz pasa de 6 `.md` sueltos + 3 carpetas de docs/handoff a **4 docs canónicos** (`CLAUDE.md`, `HANDOFF.md`, `CHANGELOG.md`, `BRAND-MIGRATION-2026-05.md`) + `backend/` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] (`README.md` + `API-CONTRACT.md` + `prisma/`). Cero carpetas `nuevo/` · `handoff/` · `design_handoff_dtd_cargo/`. Verificado: ERP y apps cargan sin 404.
 
 ---
 
@@ -1588,13 +1588,13 @@ el contrato y el esquema. NO hay servidor corriendo todavía — eso es la sesi�
 sobre el repo. Acá quedó la base lista para que el backend se enchufe sin tocar la UI.
 
 **Archivos nuevos:**
-- `backend/prisma/schema.prisma` · esquema **multi-tenant** completo derivado 1:1 de los shapes
+- `backend/prisma/schema.prisma` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] · esquema **multi-tenant** completo derivado 1:1 de los shapes
   mock (`window.ERPData`): Tenant, User (tenantId NULL = Plataforma), Client (Shipping Mark único por
   tenant), Supplier, Order (seq por proveedor), Shipment (`DTDU-`), Box (flags), Container,
   WarehouseEvent (fotos S3), Invoice (`F-2026-`, fxRate BCV), Quote, Account (plan jerárquico),
   JournalEntry/Line, ExchangeRate, Comment (threads), ScheduledEmail, TmsIncident, Document, AuditLog.
   Enums de estado por entidad. `tenant.ivaEnabled` OFF por defecto · `markboxSeq` server-side.
-- `backend/API-CONTRACT.md` · contrato REST endpoint→store-mock, con regla de oro (tenantId del JWT),
+- `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] · contrato REST endpoint→store-mock, con regla de oro (tenantId del JWT),
   paginación/filtros estándar y tabla de integraciones externas.
 - `nuevo/api/client.jsx` · **seam único** `window.DTDApi` + `window.DTDAuth`. `window.ERPData` sigue
   siendo LA interfaz; toggle `mode:'mock'|'rest'` (flip de una línea: `DTDApi.config({mode:'rest',baseUrl})`).

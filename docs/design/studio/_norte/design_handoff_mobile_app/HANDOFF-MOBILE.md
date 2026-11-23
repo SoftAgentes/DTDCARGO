@@ -6,7 +6,7 @@
 >
 > **Leé en este orden:** `CLAUDE.md` (guardrails de marca) → `HANDOFF.md` (arquitectura
 > general del ERP) → **este archivo** (todo lo móvil) → `CHANGELOG.md` (bitácora) →
-> `backend/README.md` + `backend/API-CONTRACT.md` (contrato real).
+> `backend/README.md` + `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] (contrato real).
 >
 > **Spec visual de la sesión:** `Login y Sesión · Operario.html` (canvas con los 6
 > estados: login, dispositivo vinculado, PIN, biometría, expirada, reset ERP).
@@ -194,7 +194,7 @@ debe asumir offline como estado normal:
 ## 🔌 Backend que pide el paquete móvil
 
 > El seam ya existe: `window.DTDApi` / `window.DTDAuth` (`erp/api/client.jsx`), `mode:'mock'|'rest'`.
-> **No cambiar la firma del seam** al portar. Detalle del contrato en `backend/API-CONTRACT.md`.
+> **No cambiar la firma del seam** al portar. Detalle del contrato en `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].
 
 | Capacidad | Endpoint conceptual | Devuelve / hace |
 |---|---|---|
