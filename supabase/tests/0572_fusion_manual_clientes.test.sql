@@ -291,6 +291,11 @@ insert into public.clients (id, tenant_id, markbox, name, email, phone, rif, ali
    'Ana Rojas', null, null, null, null, null),
   ('c0000000-0000-0000-0000-00000000a002', '11111111-1111-1111-1111-111111111111', 'DTD-0601',
    'Luis Duarte', null, null, null, null, null),
+  -- La que se queda tiene una fila de portal REVOCADA; la otra, acceso vivo.
+  ('c0000000-0000-0000-0000-00000000e001', '11111111-1111-1111-1111-111111111111', 'DTD-0700',
+   'Carla Soto', null, null, null, null, null),
+  ('c0000000-0000-0000-0000-00000000e002', '11111111-1111-1111-1111-111111111111', 'DTD-0701',
+   'Pedro Lugo', null, null, null, null, null),
   -- Otro tenant, aliado, borrado.
   ('c0000000-0000-0000-0000-0000000000b1', '22222222-2222-2222-2222-222222222222', 'DTD-7000',
    'Jose Otro Tenant', null, null, null, null, null),
@@ -309,6 +314,9 @@ insert into public.invoices (tenant_id, client_markbox) values
 insert into public.client_users (tenant_id, client_id, email, auth_user_id) values
   ('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-00000000a001', 'ana@example.test', 'dddddddd-0000-0000-0000-000000000001'),
   ('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-00000000a002', 'luis@example.test', 'dddddddd-0000-0000-0000-000000000002');
+insert into public.client_users (tenant_id, client_id, email, auth_user_id, status) values
+  ('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-00000000e001', 'carla@example.test', 'dddddddd-0000-0000-0000-000000000003', 'revoked'),
+  ('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-00000000e002', 'pedro@example.test', 'dddddddd-0000-0000-0000-000000000004', 'active');
 
 select pg_temp.como('aaaaaaaa-0000-0000-0000-000000000001');
 
@@ -348,6 +356,11 @@ select pg_temp.ok(
   (select markbox from public.client_search_for_merge('v-19695856')) = 'DTD-9001',
   'el documento debía encontrar');
 select pg_temp.ok(
+  (select markbox from public.client_search_for_merge('dtd9001')) = 'DTD-9001'
+  and (select markbox from public.client_search_for_merge('DTD 9001')) = 'DTD-9001'
+  and (select markbox from public.client_search_for_merge('V19695856')) = 'DTD-9001',
+  'el código y el documento debían encontrarse también sin guiones ni espacios');
+select pg_temp.ok(
   (select count(*) from public.client_search_for_merge('otro tenant')) = 0,
   'otro tenant no debía aparecer');
 select pg_temp.ok(
@@ -386,6 +399,25 @@ select pg_temp.ok(
 select pg_temp.ok(
   (public.client_merge_preview('c0000000-0000-0000-0000-00000000a001', 'c0000000-0000-0000-0000-00000000a002') #>> '{warnings,portalRevoked}')::boolean,
   'dos con acceso al portal: debía avisar que se revoca uno');
+select pg_temp.ok(
+  (public.client_merge_preview('c0000000-0000-0000-0000-000000009001', 'c0000000-0000-0000-0000-000000008221') #>> '{survivor,document}') = 'V-19695856'
+  and (public.client_merge_preview('c0000000-0000-0000-0000-000000009001', 'c0000000-0000-0000-0000-000000008221') #>> '{survivor,email}') = 'josemendezc@msn.com'
+  and (public.client_merge_preview('c0000000-0000-0000-0000-000000009001', 'c0000000-0000-0000-0000-000000008221') #> '{merged,document}') = 'null'::jsonb,
+  'la vista previa debía traer documento y correo de cada ficha para compararlas');
+select pg_temp.ok(
+  (public.client_merge_preview('c0000000-0000-0000-0000-000000009001', 'c0000000-0000-0000-0000-000000008221') #>> '{warnings,nothingInCommon}')::boolean = false
+  and (public.client_merge_preview('c0000000-0000-0000-0000-00000000a001', 'c0000000-0000-0000-0000-00000000a002') #>> '{warnings,nothingInCommon}')::boolean
+  and (public.client_merge_preview('c0000000-0000-0000-0000-00000000a001', 'c0000000-0000-0000-0000-00000000a002') #>> '{warnings,sameNameOnly}')::boolean = false,
+  'dos fichas sin nada en común (los esposos) debían avisarse como tales');
+select pg_temp.ok(
+  (public.client_merge_preview('c0000000-0000-0000-0000-00000000e001', 'c0000000-0000-0000-0000-00000000e002') #>> '{warnings,portalLost}')::boolean
+  and (public.client_merge_preview('c0000000-0000-0000-0000-00000000e001', 'c0000000-0000-0000-0000-00000000e002') #>> '{warnings,portalMoved}')::boolean = false
+  and (public.client_merge_preview('c0000000-0000-0000-0000-00000000e001', 'c0000000-0000-0000-0000-00000000e002') #>> '{warnings,portalRevoked}')::boolean = false,
+  'si la que se queda tiene el acceso revocado y la otra uno vivo, debía avisar que NADIE queda con acceso');
+select pg_temp.ok(
+  (public.client_merge_preview('c0000000-0000-0000-0000-00000000e002', 'c0000000-0000-0000-0000-00000000e001') -> 'warnings'
+     @> '{"portalLost": false, "portalRevoked": false, "portalMoved": false}'::jsonb),
+  'invertido (se queda la del acceso vivo) no debía avisar nada del portal');
 select pg_temp.ok(
   public.client_merge_preview('c0000000-0000-0000-0000-000000009001', 'c0000000-0000-0000-0000-000000008221')::text !~* 'amount|total|monto|balance|saldo',
   'la vista previa no debe llevar montos');
@@ -490,6 +522,15 @@ select pg_temp.ok(
   (select status from public.client_users where client_id = 'c0000000-0000-0000-0000-00000000a002') = 'revoked'
   and (select status from public.client_users where client_id = 'c0000000-0000-0000-0000-00000000a001') = 'active',
   'dos accesos al portal: se queda el de la ficha que sobrevive y el otro se revoca');
+
+-- ── 6b. La vista previa dijo «nadie queda con acceso»: la fusión real lo confirma ──
+select public.merge_clients_manual('c0000000-0000-0000-0000-00000000e001', 'c0000000-0000-0000-0000-00000000e002',
+                                   'Prueba del aviso de portal', 'DTD-0701');
+select pg_temp.ok(
+  (select count(*) from public.client_users
+    where client_id in ('c0000000-0000-0000-0000-00000000e001', 'c0000000-0000-0000-0000-00000000e002')
+      and status <> 'revoked') = 0,
+  'la vista previa (portalLost) debía coincidir con lo que hace merge_clients: ningún acceso vivo');
 
 -- ── 7. anon no ejecuta ───────────────────────────────────────
 select pg_temp.ok(

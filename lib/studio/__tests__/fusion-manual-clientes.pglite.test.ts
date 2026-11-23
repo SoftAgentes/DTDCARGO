@@ -24,7 +24,7 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0572_fusion_manual_clientes.test.
 const M0572 = "0572_fusion_manual_clientes.sql";
 const FILE_0572 = readFileSync(resolve(ROOT, "supabase/migrations", M0572), "utf8").replace(/\r\n/g, "\n");
 const SLOW = 300_000;
-const ASERCIONES = 46;
+const ASERCIONES = 52;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -125,15 +125,24 @@ describe("0572 · búsqueda y fusión manual de clientes (contrato en PGlite)", 
       "perform pg_catalog.set_config('dtd.audit_reason', coalesce(v_reason_prev, ''), true);", "",
       "el ajuste dtd.audit_reason debía quedar como estaba"],
     ["la búsqueda sin el tenant de la sesión",
-      "where c.tenant_id = v_tenant\n     and c.deleted_at is null\n     and c.merged_into_client_id is null\n     and c.aliado_id is null",
-      "where c.deleted_at is null\n     and c.merged_into_client_id is null\n     and c.aliado_id is null",
+      "       where c.tenant_id = v_tenant\n         and c.deleted_at is null",
+      "       where c.deleted_at is null",
       "otro tenant no debía aparecer"],
     ["la búsqueda ofrece aliados",
-      "     and c.aliado_id is null\n     and (", "     and (",
+      "         and c.aliado_id is null\n    ) f", "    ) f",
       "un cliente de aliado no debía aparecer"],
     ["los comodines valen como patrón",
       "pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(\n              v_q, '\\', '\\\\'), '%', '\\%'), '_', '\\_')", "v_q",
       "los comodines del usuario son texto"],
+    ["la vista previa calla que nadie queda con acceso",
+      "'portalLost', v_s_fila and (not v_s_activo) and v_m_activo,", "'portalLost', false,",
+      "debía avisar que NADIE queda con acceso"],
+    ["la vista previa da por «mudado» un acceso que se revoca",
+      "'portalMoved', (not v_s_fila) and v_m_activo,", "'portalMoved', (not v_s_activo) and v_m_activo,",
+      "debía avisar que NADIE queda con acceso"],
+    ["dos fichas sin nada en común pasan sin aviso",
+      "'nothingInCommon', not (v_mismo_nombre or v_mismo_doc or v_mismo_correo or v_mismo_tel)", "'nothingInCommon', false",
+      "dos fichas sin nada en común (los esposos) debían avisarse"],
     ["la fusión manual deja pasar un aliado",
       "if s.aliado_id is not null or m.aliado_id is not null\n     or exists (select 1 from public.aliados a\n                 where a.client_id in (s.id, m.id) and a.deleted_at is null) then\n    raise exception 'Un aliado o un cliente de aliado no se puede fusionar' using errcode = '23514';",
       "if false then\n    raise exception 'x';",

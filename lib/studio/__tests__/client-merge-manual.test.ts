@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   avisosDeFusion,
+  coincidenciasLegibles,
   confirmacionCoincide,
   errorDeMotivo,
   parsePreview,
@@ -19,20 +20,23 @@ const LADO = (id: string, markbox: string) => ({
   id,
   markbox,
   name: "Jose Mendez",
-  hasDocument: true,
-  hasEmail: false,
-  hasPhone: true,
+  document: "V-00000001",
+  email: null,
+  phone: "0424-0000000",
+  createdAt: "2026-06-08T00:00:00Z",
   hasPortal: false,
   counts: { shipments: 2, invoices: 1, addresses: 0, conversations: 3 },
 });
 
 const SIN_AVISOS: MergeWarnings = {
   portalRevoked: false,
+  portalLost: false,
   portalMoved: false,
   documentNotPassed: false,
   emailNotPassed: false,
   phoneNotPassed: false,
   sameNameOnly: false,
+  nothingInCommon: false,
 };
 
 const PREVIEW = {
@@ -40,6 +44,7 @@ const PREVIEW = {
   blockers: [],
   survivor: LADO("a", "DTD-9001"),
   merged: LADO("b", "DTD-8221"),
+  matches: { document: false, email: false, phone: true, name: true },
   warnings: SIN_AVISOS,
 };
 
@@ -62,8 +67,12 @@ describe("parseSearchRows", () => {
 });
 
 describe("parsePreview (falla cerrado)", () => {
-  it("lee una vista previa completa", () => {
-    expect(parsePreview(PREVIEW)?.survivor.markbox).toBe("DTD-9001");
+  it("lee una vista previa completa, con los datos de cada ficha", () => {
+    const p = parsePreview(PREVIEW);
+    expect(p?.survivor.markbox).toBe("DTD-9001");
+    expect(p?.survivor.document).toBe("V-00000001");
+    expect(p?.survivor.email).toBeNull();
+    expect(p?.matches.phone).toBe(true);
   });
   it.each([
     ["sin lado", { ...PREVIEW, merged: undefined }],
@@ -72,6 +81,9 @@ describe("parsePreview (falla cerrado)", () => {
       { ...PREVIEW, merged: { ...LADO("b", "DTD-8221"), counts: { shipments: -1, invoices: 0, addresses: 0, conversations: 0 } } },
     ],
     ["aviso que falta", { ...PREVIEW, warnings: { ...SIN_AVISOS, portalMoved: undefined } }],
+    ["aviso nuevo que falta (portalLost)", { ...PREVIEW, warnings: { ...SIN_AVISOS, portalLost: undefined } }],
+    ["sin coincidencias", { ...PREVIEW, matches: undefined }],
+    ["coincidencia como texto", { ...PREVIEW, matches: { ...PREVIEW.matches, name: "true" } }],
     ["ok no booleano", { ...PREVIEW, ok: "si" }],
     ["bandera como texto", { ...PREVIEW, survivor: { ...LADO("a", "DTD-9001"), hasPortal: "true" } }],
     ["no es objeto", null],
@@ -88,6 +100,24 @@ describe("avisosDeFusion", () => {
     const a = avisosDeFusion({ ...SIN_AVISOS, sameNameOnly: true, portalRevoked: true, emailNotPassed: true });
     expect(a.map((x) => x.tono)).toEqual(["error", "error", "atencion"]);
     expect(a[1].texto).toMatch(/portal/);
+  });
+  it("dos fichas sin nada en común se avisan primero", () => {
+    const a = avisosDeFusion({ ...SIN_AVISOS, nothingInCommon: true, phoneNotPassed: true });
+    expect(a[0]).toMatchObject({ tono: "error" });
+    expect(a[0].texto).toMatch(/personas distintas/);
+  });
+  it("perder el acceso al portal es error y manda a invertir", () => {
+    const a = avisosDeFusion({ ...SIN_AVISOS, portalLost: true });
+    expect(a).toHaveLength(1);
+    expect(a[0].tono).toBe("error");
+    expect(a[0].texto).toMatch(/Invertir/);
+  });
+});
+
+describe("coincidenciasLegibles", () => {
+  it("nombra en qué coinciden, o nada", () => {
+    expect(coincidenciasLegibles(PREVIEW.matches)).toEqual(["teléfono", "nombre"]);
+    expect(coincidenciasLegibles({ document: false, email: false, phone: false, name: false })).toEqual([]);
   });
 });
 

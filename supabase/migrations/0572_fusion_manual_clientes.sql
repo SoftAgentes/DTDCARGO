@@ -13,8 +13,9 @@
 --                                         acentos ni mayúsculas, por Shipping Mark
 --                                         (también los códigos anteriores),
 --                                         nombre, correo, teléfono y documento.
---   2. client_merge_preview(s, m)         vista previa: conteos y avisos de las
---                                         dos fichas. Solo lee. SIN montos.
+--   2. client_merge_preview(s, m)         vista previa: datos de contacto, conteos
+--                                         y avisos de las dos fichas. Solo lee.
+--                                         SIN montos.
 --   3. merge_clients_manual(s, m, motivo, confirmar)
 --                                         exige motivo, exige escribir el Shipping
 --                                         Mark que se anula, fija dtd.audit_reason
@@ -58,7 +59,9 @@ $preflight$;
 
 -- ── 1. Normalizador de búsqueda ──────────────────────────────────────────────
 -- No hay `unaccent` instalada en el proyecto: se baja a minúsculas y se cambian
--- las vocales acentuadas y la ñ. Suficiente para nombres en español.
+-- las vocales acentuadas y la ñ. Suficiente para nombres en español. Las
+-- mayúsculas acentuadas van también en la tabla: `lower()` no las baja si la
+-- base corre con locale C.
 create or replace function public.norm_busqueda(p_text text)
 returns text
 language sql
@@ -66,14 +69,17 @@ immutable
 set search_path = ''
 as $$
   select pg_catalog.translate(pg_catalog.lower(coalesce(p_text, '')),
-                              'áàäâéèëêíìïîóòöôúùüûñ',
-                              'aaaaeeeeiiiioooouuuun');
+                              'áàäâéèëêíìïîóòöôúùüûñÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑ',
+                              'aaaaeeeeiiiioooouuuunaaaaeeeeiiiioooouuuun');
 $$;
 
 revoke all on function public.norm_busqueda(text) from public, anon;
 grant execute on function public.norm_busqueda(text) to authenticated;
 
 -- ── 2. Búsqueda en toda la base del tenant ───────────────────────────────────
+-- Dos formas de comparar: el texto normalizado (nombre, correo) y el texto sin
+-- separadores (`v_alnum`), para que «dtd 9001», «DTD9001» y «V19695856» encuentren
+-- «DTD-9001» y «V-19.695.856».
 create or replace function public.client_search_for_merge(p_q text)
 returns table (
   client_id uuid,
@@ -94,7 +100,10 @@ declare
   v_tenant uuid;
   v_q text := public.norm_busqueda(pg_catalog.btrim(coalesce(p_q, '')));
   v_digits text := pg_catalog.regexp_replace(coalesce(p_q, ''), '[^0-9]', '', 'g');
+  v_alnum text;
   v_like text;
+  v_like_alnum text;
+  v_like_tel text;
 begin
   perform public.assert_studio_role(
     array['admin', 'commercial', 'operations', 'accounting', 'support']
@@ -107,54 +116,66 @@ begin
   -- Los comodines del usuario son texto, no patrón.
   v_like := '%' || pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(
               v_q, '\', '\\'), '%', '\%'), '_', '\_') || '%';
+  -- Sin separadores: solo letras y dígitos, así que no quedan comodines. Menos
+  -- de 3 caracteres no busca por código ni documento (traería media base).
+  v_alnum := pg_catalog.regexp_replace(v_q, '[^a-z0-9]', '', 'g');
+  v_like_alnum := case when pg_catalog.char_length(v_alnum) >= 3 then '%' || v_alnum || '%' end;
+  v_like_tel := case when pg_catalog.char_length(v_digits) >= 4 then '%' || v_digits || '%' end;
 
   return query
-  select c.id, c.markbox, c.name, c.email, c.phone, c.rif, c.created_at,
+  select f.id, f.markbox, f.name, f.email, f.phone, f.rif, f.created_at,
          pg_catalog.array_remove(array[
-           case when public.norm_busqueda(c.markbox) like v_like escape '\'
-                  or exists (select 1 from public.client_markbox_history h
-                              where h.client_id = c.id and h.tenant_id = v_tenant
-                                and public.norm_busqueda(h.markbox) like v_like escape '\')
-                then 'Shipping Mark' end,
-           case when public.norm_busqueda(c.name) like v_like escape '\' then 'nombre' end,
-           case when public.norm_busqueda(c.email) like v_like escape '\' then 'correo' end,
-           case when pg_catalog.char_length(v_digits) >= 4
-                  and pg_catalog.regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g')
-                      like '%' || v_digits || '%' then 'teléfono' end,
-           case when public.norm_busqueda(c.rif) like v_like escape '\' then 'documento' end
+           case when f.por_codigo then 'Shipping Mark' end,
+           case when f.por_nombre then 'nombre' end,
+           case when f.por_correo then 'correo' end,
+           case when f.por_telefono then 'teléfono' end,
+           case when f.por_documento then 'documento' end
          ], null)
-    from public.clients c
-   where c.tenant_id = v_tenant
-     and c.deleted_at is null
-     and c.merged_into_client_id is null
-     and c.aliado_id is null
-     and (
-          public.norm_busqueda(c.markbox) like v_like escape '\'
-       or public.norm_busqueda(c.name) like v_like escape '\'
-       or public.norm_busqueda(c.email) like v_like escape '\'
-       or (pg_catalog.char_length(v_digits) >= 4
-           and pg_catalog.regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g')
-               like '%' || v_digits || '%')
-       or public.norm_busqueda(c.rif) like v_like escape '\'
-       or exists (select 1 from public.client_markbox_history h
-                   where h.client_id = c.id and h.tenant_id = v_tenant
-                     and public.norm_busqueda(h.markbox) like v_like escape '\')
-     )
-   order by (public.norm_busqueda(c.markbox) = v_q) desc,
-            (public.norm_busqueda(c.name) like v_q || '%' escape '\') desc,
-            c.name, c.markbox
+    from (
+      select c.id, c.markbox, c.name, c.email, c.phone, c.rif, c.created_at,
+             (pg_catalog.regexp_replace(public.norm_busqueda(c.markbox), '[^a-z0-9]', '', 'g') like v_like_alnum
+              or exists (select 1 from public.client_markbox_history h
+                          where h.client_id = c.id and h.tenant_id = v_tenant
+                            and pg_catalog.regexp_replace(public.norm_busqueda(h.markbox), '[^a-z0-9]', '', 'g')
+                                like v_like_alnum)) is true                                   as por_codigo,
+             public.norm_busqueda(c.name) like v_like escape '\'                              as por_nombre,
+             public.norm_busqueda(c.email) like v_like escape '\'                             as por_correo,
+             (pg_catalog.regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g') like v_like_tel) is true
+                                                                                              as por_telefono,
+             (pg_catalog.regexp_replace(public.norm_busqueda(c.rif), '[^a-z0-9]', '', 'g') like v_like_alnum) is true
+                                                                                              as por_documento
+        from public.clients c
+       where c.tenant_id = v_tenant
+         and c.deleted_at is null
+         and c.merged_into_client_id is null
+         and c.aliado_id is null
+    ) f
+   where f.por_codigo or f.por_nombre or f.por_correo or f.por_telefono or f.por_documento
+   order by (pg_catalog.regexp_replace(public.norm_busqueda(f.markbox), '[^a-z0-9]', '', 'g') = v_alnum) desc,
+            f.por_codigo desc,
+            (public.norm_busqueda(f.name) like v_q || '%' escape '\') desc,
+            f.name, f.markbox
    limit 25;
 end;
 $$;
 
 comment on function public.client_search_for_merge(text) is
-  'SDD-0712: busca clientes vivos del tenant de la sesión por Shipping Mark (incluye códigos anteriores), nombre, correo, teléfono (>=4 dígitos) y documento, sin acentos ni mayúsculas. Tope 25. Excluye aliados, borrados y fusionados.';
+  'SDD-0712: busca clientes vivos del tenant de la sesión por Shipping Mark (incluye códigos anteriores), nombre, correo, teléfono (>=4 dígitos) y documento, sin acentos, mayúsculas ni separadores. Tope 25. Excluye aliados, borrados y fusionados.';
 
 revoke all on function public.client_search_for_merge(text) from public, anon;
 grant execute on function public.client_search_for_merge(text) to authenticated;
 
 -- ── 3. Vista previa de la fusión ─────────────────────────────────────────────
--- Solo lee. Conteos y banderas, nunca montos ni datos de contacto crudos.
+-- Solo lee. Trae de cada ficha lo que el operador necesita para decidir si son
+-- la misma persona (documento, correo, teléfono: lo mismo que ya ve en el
+-- listado de Clientes), conteos y avisos. Nunca montos.
+--
+-- LOS AVISOS DEL PORTAL CALCAN A `merge_clients` (0361 §5.1), que mira si la
+-- ficha tiene FILA en client_users, esté activa o revocada:
+--   · la que se anula tiene fila y la que se queda NO  → el acceso se muda;
+--   · las dos tienen fila                               → el de la que se anula se
+--     revoca. Si además la fila de la que se queda ya estaba revocada, NADIE queda
+--     con acceso (`portalLost`): conviene invertir cuál se queda.
 create or replace function public.client_merge_preview(p_survivor_id uuid, p_merged_id uuid)
 returns jsonb
 language plpgsql
@@ -170,9 +191,13 @@ declare
   v_sides jsonb := '{}'::jsonb;
   v_side jsonb;
   v_c record;
-  v_key text;
-  v_s_portal boolean;
-  v_m_portal boolean;
+  v_s_fila boolean;
+  v_s_activo boolean;
+  v_m_activo boolean;
+  v_mismo_doc boolean;
+  v_mismo_correo boolean;
+  v_mismo_tel boolean;
+  v_mismo_nombre boolean;
 begin
   perform public.assert_studio_role(
     array['admin', 'commercial', 'operations', 'accounting', 'support']
@@ -203,19 +228,33 @@ begin
     v_blockers := pg_catalog.array_append(v_blockers, 'Un aliado o un cliente de aliado no se puede fusionar.'::text);
   end if;
 
-  v_s_portal := exists (select 1 from public.client_users u
+  v_s_fila := exists (select 1 from public.client_users u where u.client_id = s.id);
+  v_s_activo := exists (select 1 from public.client_users u
                          where u.client_id = s.id and u.status <> 'revoked');
-  v_m_portal := exists (select 1 from public.client_users u
+  v_m_activo := exists (select 1 from public.client_users u
                          where u.client_id = m.id and u.status <> 'revoked');
+
+  -- Qué une a las dos fichas. NULL o vacío nunca cuenta como coincidencia.
+  v_mismo_doc := coalesce(
+    nullif(pg_catalog.upper(pg_catalog.regexp_replace(coalesce(s.rif, ''), '[^A-Za-z0-9]', '', 'g')), '')
+    = nullif(pg_catalog.upper(pg_catalog.regexp_replace(coalesce(m.rif, ''), '[^A-Za-z0-9]', '', 'g')), ''), false);
+  v_mismo_correo := coalesce(
+    nullif(pg_catalog.lower(pg_catalog.btrim(coalesce(s.email, ''))), '')
+    = nullif(pg_catalog.lower(pg_catalog.btrim(coalesce(m.email, ''))), ''), false);
+  v_mismo_tel := coalesce(public.phone_match_key(s.phone) = public.phone_match_key(m.phone), false);
+  v_mismo_nombre := coalesce(
+    nullif(public.norm_busqueda(pg_catalog.btrim(s.name)), '')
+    = nullif(public.norm_busqueda(pg_catalog.btrim(m.name)), ''), false);
 
   for v_c in select * from (values ('survivor', s.id), ('merged', m.id)) t(side, cid) loop
     select pg_catalog.jsonb_build_object(
              'id', c.id,
              'markbox', c.markbox,
              'name', c.name,
-             'hasDocument', pg_catalog.btrim(coalesce(c.rif, '')) <> '',
-             'hasEmail', pg_catalog.btrim(coalesce(c.email, '')) <> '',
-             'hasPhone', pg_catalog.btrim(coalesce(c.phone, '')) <> '',
+             'document', nullif(pg_catalog.btrim(coalesce(c.rif, '')), ''),
+             'email', nullif(pg_catalog.btrim(coalesce(c.email, '')), ''),
+             'phone', nullif(pg_catalog.btrim(coalesce(c.phone, '')), ''),
+             'createdAt', c.created_at,
              'hasPortal', exists (select 1 from public.client_users u
                                    where u.client_id = c.id and u.status <> 'revoked'),
              'counts', pg_catalog.jsonb_build_object(
@@ -241,35 +280,29 @@ begin
     'blockers', pg_catalog.to_jsonb(v_blockers),
     'survivor', v_sides -> 'survivor',
     'merged', v_sides -> 'merged',
+    'matches', pg_catalog.jsonb_build_object(
+      'document', v_mismo_doc, 'email', v_mismo_correo, 'phone', v_mismo_tel, 'name', v_mismo_nombre),
     'warnings', pg_catalog.jsonb_build_object(
-      -- Solo cabe UN acceso por cliente: si los dos tienen, el de la anulada se revoca.
-      'portalRevoked', v_s_portal and v_m_portal,
-      'portalMoved', (not v_s_portal) and v_m_portal,
+      'portalRevoked', v_s_activo and v_m_activo,
+      'portalLost', v_s_fila and (not v_s_activo) and v_m_activo,
+      'portalMoved', (not v_s_fila) and v_m_activo,
       'documentNotPassed', pg_catalog.btrim(coalesce(s.rif, '')) <> ''
-                           and pg_catalog.btrim(coalesce(m.rif, '')) <> ''
-                           and pg_catalog.upper(pg_catalog.regexp_replace(s.rif, '[^A-Za-z0-9]', '', 'g'))
-                               is distinct from
-                               pg_catalog.upper(pg_catalog.regexp_replace(m.rif, '[^A-Za-z0-9]', '', 'g')),
+                           and pg_catalog.btrim(coalesce(m.rif, '')) <> '' and not v_mismo_doc,
       'emailNotPassed', pg_catalog.btrim(coalesce(s.email, '')) <> ''
-                        and pg_catalog.btrim(coalesce(m.email, '')) <> ''
-                        and pg_catalog.lower(pg_catalog.btrim(s.email))
-                            is distinct from pg_catalog.lower(pg_catalog.btrim(m.email)),
+                        and pg_catalog.btrim(coalesce(m.email, '')) <> '' and not v_mismo_correo,
       'phoneNotPassed', pg_catalog.btrim(coalesce(s.phone, '')) <> ''
-                        and pg_catalog.btrim(coalesce(m.phone, '')) <> ''
-                        and public.phone_match_key(s.phone)
-                            is distinct from public.phone_match_key(m.phone),
-      -- Fusión por nombre solamente: nada más une a las dos fichas.
-      'sameNameOnly', public.norm_busqueda(s.name) = public.norm_busqueda(m.name)
-                      and public.phone_match_key(s.phone) is distinct from public.phone_match_key(m.phone)
-                      and pg_catalog.lower(pg_catalog.btrim(coalesce(s.email, '')))
-                          is distinct from pg_catalog.lower(pg_catalog.btrim(coalesce(m.email, '')))
+                        and pg_catalog.btrim(coalesce(m.phone, '')) <> '' and not v_mismo_tel,
+      -- Lo único que las une es el nombre.
+      'sameNameOnly', v_mismo_nombre and not (v_mismo_doc or v_mismo_correo or v_mismo_tel),
+      -- Nada las une: son, hasta donde se ve, dos personas distintas.
+      'nothingInCommon', not (v_mismo_nombre or v_mismo_doc or v_mismo_correo or v_mismo_tel)
     )
   );
 end;
 $$;
 
 comment on function public.client_merge_preview(uuid, uuid) is
-  'SDD-0712: vista previa de fusionar dos fichas (conteos y avisos, sin montos). Solo lee.';
+  'SDD-0712: vista previa de fusionar dos fichas (datos de contacto, conteos y avisos; sin montos). Solo lee.';
 
 revoke all on function public.client_merge_preview(uuid, uuid) from public, anon;
 grant execute on function public.client_merge_preview(uuid, uuid) to authenticated;

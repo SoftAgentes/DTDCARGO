@@ -27,16 +27,26 @@ export type MergeSide = {
   id: string;
   markbox: string;
   name: string;
-  hasDocument: boolean;
-  hasEmail: boolean;
-  hasPhone: boolean;
+  /** Datos para comparar a las dos personas; los mismos del listado de Clientes. */
+  document: string | null;
+  email: string | null;
+  phone: string | null;
+  createdAt: string | null;
   hasPortal: boolean;
   counts: { shipments: number; invoices: number; addresses: number; conversations: number };
 };
 
+/** Qué dato une a las dos fichas. Vacío contra vacío no cuenta. */
+export type MergeMatches = { document: boolean; email: boolean; phone: boolean; name: boolean };
+
 export type MergeWarnings = {
-  /** Las dos personas tienen acceso al portal: el de la ficha que se anula se revoca. */
+  /** Las dos tienen acceso vivo al portal: el de la ficha que se anula se revoca. */
   portalRevoked: boolean;
+  /**
+   * La que se queda tiene el acceso REVOCADO y la otra uno vivo: `merge_clients`
+   * revoca el vivo y nadie queda con acceso. Conviene invertir.
+   */
+  portalLost: boolean;
   /** Solo la que se anula tiene acceso: pasa a la que se queda. */
   portalMoved: boolean;
   documentNotPassed: boolean;
@@ -44,6 +54,8 @@ export type MergeWarnings = {
   phoneNotPassed: boolean;
   /** Las fichas solo coinciden por el nombre: nada más las une. */
   sameNameOnly: boolean;
+  /** No coinciden en nada: a la vista, son dos personas distintas. */
+  nothingInCommon: boolean;
 };
 
 export type MergePreview = {
@@ -51,6 +63,7 @@ export type MergePreview = {
   blockers: string[];
   survivor: MergeSide;
   merged: MergeSide;
+  matches: MergeMatches;
   warnings: MergeWarnings;
 };
 
@@ -67,6 +80,14 @@ function texto(v: unknown): string | null {
 
 function entero(v: unknown): number | null {
   return typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null;
+}
+
+/** `true` si TODAS las claves son booleanas: una que falte invalida el bloque. */
+function sonBooleanos<K extends string>(
+  o: Record<string, unknown>,
+  claves: readonly K[],
+): o is Record<K, boolean> {
+  return claves.every((k) => typeof o[k] === "boolean");
 }
 
 /** Filas de `client_search_for_merge`. Descarta las que no traen id, código y nombre. */
@@ -107,63 +128,96 @@ function parseSide(raw: unknown): MergeSide | null {
   if (shipments === null || invoices === null || addresses === null || conversations === null) {
     return null;
   }
-  const flags = [raw.hasDocument, raw.hasEmail, raw.hasPhone, raw.hasPortal];
-  if (flags.some((f) => typeof f !== "boolean")) return null;
+  if (typeof raw.hasPortal !== "boolean") return null;
   return {
     id,
     markbox,
     name,
-    hasDocument: raw.hasDocument as boolean,
-    hasEmail: raw.hasEmail as boolean,
-    hasPhone: raw.hasPhone as boolean,
-    hasPortal: raw.hasPortal as boolean,
+    document: texto(raw.document),
+    email: texto(raw.email),
+    phone: texto(raw.phone),
+    createdAt: texto(raw.createdAt),
+    hasPortal: raw.hasPortal,
     counts: { shipments, invoices, addresses, conversations },
   };
 }
 
+const CLAVES_AVISOS = [
+  "portalRevoked",
+  "portalLost",
+  "portalMoved",
+  "documentNotPassed",
+  "emailNotPassed",
+  "phoneNotPassed",
+  "sameNameOnly",
+  "nothingInCommon",
+] as const;
+
+const CLAVES_COINCIDENCIAS = ["document", "email", "phone", "name"] as const;
+
 /** Resultado de `client_merge_preview`. `null` si la forma no es la esperada. */
 export function parsePreview(data: unknown): MergePreview | null {
   if (!esObjeto(data) || typeof data.ok !== "boolean") return null;
-  if (!Array.isArray(data.blockers) || !esObjeto(data.warnings)) return null;
+  if (!Array.isArray(data.blockers) || !esObjeto(data.warnings) || !esObjeto(data.matches)) return null;
   const survivor = parseSide(data.survivor);
   const merged = parseSide(data.merged);
   if (!survivor || !merged) return null;
 
   const w = data.warnings;
-  const claves = [
-    "portalRevoked",
-    "portalMoved",
-    "documentNotPassed",
-    "emailNotPassed",
-    "phoneNotPassed",
-    "sameNameOnly",
-  ] as const;
-  if (claves.some((k) => typeof w[k] !== "boolean")) return null;
+  const c = data.matches;
+  if (!sonBooleanos(w, CLAVES_AVISOS) || !sonBooleanos(c, CLAVES_COINCIDENCIAS)) return null;
 
   return {
     ok: data.ok,
     blockers: data.blockers.filter((b): b is string => typeof b === "string"),
     survivor,
     merged,
+    matches: { document: c.document, email: c.email, phone: c.phone, name: c.name },
     warnings: {
-      portalRevoked: w.portalRevoked as boolean,
-      portalMoved: w.portalMoved as boolean,
-      documentNotPassed: w.documentNotPassed as boolean,
-      emailNotPassed: w.emailNotPassed as boolean,
-      phoneNotPassed: w.phoneNotPassed as boolean,
-      sameNameOnly: w.sameNameOnly as boolean,
+      portalRevoked: w.portalRevoked,
+      portalLost: w.portalLost,
+      portalMoved: w.portalMoved,
+      documentNotPassed: w.documentNotPassed,
+      emailNotPassed: w.emailNotPassed,
+      phoneNotPassed: w.phoneNotPassed,
+      sameNameOnly: w.sameNameOnly,
+      nothingInCommon: w.nothingInCommon,
     },
   };
+}
+
+/** «documento», «correo»…: en qué coinciden las dos fichas. Vacío si en nada. */
+export function coincidenciasLegibles(m: MergeMatches): string[] {
+  const r: string[] = [];
+  if (m.document) r.push("documento");
+  if (m.email) r.push("correo");
+  if (m.phone) r.push("teléfono");
+  if (m.name) r.push("nombre");
+  return r;
 }
 
 /** Los avisos que se muestran, ya en español y en orden de gravedad. */
 export function avisosDeFusion(w: MergeWarnings): { tono: AvisoTono; texto: string }[] {
   const avisos: { tono: AvisoTono; texto: string }[] = [];
+  if (w.nothingInCommon) {
+    avisos.push({
+      tono: "error",
+      texto:
+        "No coinciden en ningún dato: a la vista son dos personas distintas. Fusiona solo si de verdad quieren un único código.",
+    });
+  }
   if (w.sameNameOnly) {
     avisos.push({
       tono: "error",
       texto:
         "Solo coinciden por el nombre. Comprueba que sean la misma persona, o que de verdad quieras un solo código para las dos.",
+    });
+  }
+  if (w.portalLost) {
+    avisos.push({
+      tono: "error",
+      texto:
+        "La ficha que se queda tiene el acceso al portal revocado y la otra uno activo: fusionando así, nadie queda con acceso. Usa Invertir para que se quede la del acceso activo.",
     });
   }
   if (w.portalRevoked) {

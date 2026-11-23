@@ -17,6 +17,7 @@ import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { DrawerFooter, DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
   avisosDeFusion,
+  coincidenciasLegibles,
   confirmacionCoincide,
   errorDeMotivo,
   MOTIVO_MAX,
@@ -126,7 +127,7 @@ export function FusionPanel({
             title="Intercambiar cuál se queda"
             style={{ alignSelf: "center" }}
           >
-            ⇄
+            ⇄ Invertir
           </button>
           <Lado rotulo="Se anula" ficha={par.merged} lado={preview?.merged} destacado={false} />
         </div>
@@ -142,6 +143,14 @@ export function FusionPanel({
           <Aviso tono="error" titulo="No se puede fusionar">
             {preview.blockers.join(" ")}
           </Aviso>
+        )}
+
+        {preview && (
+          <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+            {coincidenciasLegibles(preview.matches).length > 0
+              ? `Coinciden en: ${coincidenciasLegibles(preview.matches).join(", ")}.`
+              : "No coinciden en ningún dato."}
+          </p>
         )}
 
         {preview && (
@@ -202,8 +211,17 @@ export function FusionPanel({
               placeholder={par.merged.markbox}
               autoComplete="off"
               disabled={pending}
+              aria-describedby={`${formId}-confirmar-ayuda`}
               style={{ width: "100%", fontFamily: "var(--f-mono)" }}
             />
+            <p
+              id={`${formId}-confirmar-ayuda`}
+              style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "6px 0 0" }}
+            >
+              {confirmar.trim() !== "" && !confirmaOk
+                ? `No coincide: el que se anula es ${par.merged.markbox}.`
+                : `El que se anula es ${par.merged.markbox}. El que se queda no sirve para confirmar.`}
+            </p>
           </div>
           {error && <Aviso tono="error">{error}</Aviso>}
         </form>
@@ -274,20 +292,39 @@ function Lado({
       </div>
       <div style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink)" }}>{ficha.name}</div>
       {lado && (
-        <div style={{ font: "400 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", marginTop: 6 }}>
-          {lado.counts.shipments} embarques · {lado.counts.invoices} facturas
-          <br />
-          {lado.hasPortal ? "Con acceso al portal" : "Sin acceso al portal"}
-          <br />
-          {[
-            lado.hasDocument ? "documento" : null,
-            lado.hasEmail ? "correo" : null,
-            lado.hasPhone ? "teléfono" : null,
-          ]
-            .filter(Boolean)
-            .join(", ") || "Sin datos de contacto"}
-        </div>
+        <dl
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto minmax(0, 1fr)",
+            columnGap: "var(--s-2)",
+            rowGap: 2,
+            margin: "var(--s-2) 0 0",
+            font: "400 12px/1.5 var(--f-sans)",
+          }}
+        >
+          <Dato rotulo="Documento" valor={lado.document} />
+          <Dato rotulo="Correo" valor={lado.email} />
+          <Dato rotulo="Teléfono" valor={lado.phone} />
+          <Dato
+            rotulo="Creada"
+            valor={lado.createdAt ? new Date(lado.createdAt).toLocaleDateString("es-VE") : null}
+          />
+          <Dato rotulo="Portal" valor={lado.hasPortal ? "Con acceso" : "Sin acceso"} />
+          <Dato rotulo="Embarques" valor={String(lado.counts.shipments)} />
+          <Dato rotulo="Facturas" valor={String(lado.counts.invoices)} />
+        </dl>
       )}
     </div>
+  );
+}
+
+function Dato({ rotulo, valor }: { rotulo: string; valor: string | null }) {
+  return (
+    <>
+      <dt style={{ color: "var(--ink-soft)" }}>{rotulo}</dt>
+      <dd style={{ margin: 0, color: valor ? "var(--ink)" : "var(--ink-soft)", overflowWrap: "anywhere" }}>
+        {valor ?? "Sin dato"}
+      </dd>
+    </>
   );
 }

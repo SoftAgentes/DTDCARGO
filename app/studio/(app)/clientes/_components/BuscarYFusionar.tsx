@@ -9,6 +9,8 @@
  */
 
 import { useEffect, useState } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import type { MergeSearchHit } from "@/lib/studio/client-merge-manual";
 import { searchClientsForMergeAction } from "../merge-actions";
@@ -100,9 +102,15 @@ export function BuscarYFusionar({ onElegir }: { onElegir: (par: ParFusion) => vo
         </button>
       </div>
 
-      {error && (
-        <p role="alert" style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
-          {error}
+      {error && <Aviso tono="error">{error}</Aviso>}
+      {buscando && (
+        <p role="status" style={{ font: "400 13px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+          Buscando…
+        </p>
+      )}
+      {hits.length === 25 && (
+        <p style={{ font: "400 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+          Se muestran las primeras 25 coincidencias. Escribe algo más para afinar.
         </p>
       )}
 
@@ -134,23 +142,29 @@ export function BuscarYFusionar({ onElegir }: { onElegir: (par: ParFusion) => vo
                   {h.matchedBy.length > 0 ? ` — coincide por ${h.matchedBy.join(", ")}` : ""}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-ghost studio-btn-sm"
-                  aria-pressed={seQueda?.id === h.id}
-                  onClick={() => elegir(h, "queda")}
-                >
-                  Se queda
-                </button>
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-ghost studio-btn-sm"
-                  aria-pressed={seAnula?.id === h.id}
-                  onClick={() => elegir(h, "anula")}
-                >
-                  Se anula
-                </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {seQueda?.id === h.id ? (
+                  <Badge tone="success">Se queda</Badge>
+                ) : (
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    onClick={() => elegir(h, "queda")}
+                  >
+                    Se queda
+                  </button>
+                )}
+                {seAnula?.id === h.id ? (
+                  <Badge tone="neutral">Se anula</Badge>
+                ) : (
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    onClick={() => elegir(h, "anula")}
+                  >
+                    Se anula
+                  </button>
+                )}
               </div>
             </li>
           ))}

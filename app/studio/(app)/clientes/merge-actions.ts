@@ -119,6 +119,7 @@ export async function mergeClientsManualAction(input: {
     // (violaciones de índice, etc.) no se le muestran crudos al operador.
     const conocido =
       error.message.includes("fusionar") ||
+      error.message.includes("fusionada") ||
       error.message.includes("eliminada") ||
       error.message.includes("eliminado") ||
       error.message.includes("No existe") ||

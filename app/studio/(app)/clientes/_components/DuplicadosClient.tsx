@@ -43,6 +43,9 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
   const [par, setPar] = useState<ParFusion | null>(null);
   const [resultados, setResultados] = useState<Record<string, MergeResult>>({});
   const [ultima, setUltima] = useState<MergeResult | null>(null);
+  // Cada fusión vuelve a montar el buscador: sin esto seguiría ofreciendo la
+  // ficha recién anulada y las dos casillas quedarían llenas.
+  const [fusiones, setFusiones] = useState(0);
 
   // Superviviente propuesto = la ficha VIEJA: carga el historial y es el código
   // que el cliente ya le pasó a su proveedor. El panel permite invertirlo (⇄).
@@ -56,6 +59,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
   function alFusionar(res: MergeResult, p: ParFusion) {
     setResultados((r) => ({ ...r, [p.merged.id]: res, [p.survivor.id]: res }));
     setUltima(res);
+    setFusiones((n) => n + 1);
     setPar(null);
   }
 
@@ -111,6 +115,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
         <div style={{ marginBottom: 16 }}>
           <Aviso tono="exito" titulo="Fusionado">
             El cliente usa {ultima.survivorMarkbox}; {ultima.retiredMarkbox} quedó anulado y sigue resolviendo.
+            {ultima.filled && ultima.filled.length > 0 ? ` Se completó su ${ultima.filled.join(", ")}.` : ""}
             {ultima.access ? ` Acceso: ${ultima.access}.` : ""}
             {ultima.needsReview && ultima.needsReview.changeRequestsLeftBehind > 0
               ? " Quedó una solicitud de cambio sin mover: revísala."
@@ -143,7 +148,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
       </div>
 
       {pestana === "buscar" ? (
-        <BuscarYFusionar onElegir={setPar} />
+        <BuscarYFusionar key={fusiones} onElegir={setPar} />
       ) : candidates.length === 0 ? (
         <EmptyState
           title="Sin duplicados detectados"
