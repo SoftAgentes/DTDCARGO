@@ -154,7 +154,7 @@ Maqueta con variantes (Artifact privado de Sam, 2026-11-19): para la Bandeja, A 
 
 **Límites (NV):** no medido en un navegador real con la sesión de Sam. La reconciliación sigue tardando decenas de segundos en el servidor, aunque ya no bloquea nada. Hacerla en paralelo queda fuera de esta adenda. La alerta de audio depende también del perfil de Chatwoot de cada agente («Alertas de audio»).
 
-**Allowlist de la adenda:** `app/studio/(app)/bandeja/_components/BandejaClient.tsx`, `app/studio/(app)/bandeja/_components/pedidos.ts`, `app/studio/(app)/bandeja/sso/route.ts`, `app/studio/(app)/bandeja/reconciliar/route.ts`, `app/studio/(app)/bandeja/mismo-origen.ts`, `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`, `app/studio/(app)/bandeja/__tests__/rutas-bandeja.test.ts`, `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`, `next.config.ts`, `lib/runtime/__tests__/next-config.test.ts`, esta spec y el handoff `.agents/handoffs/0680-adenda-bandeja-lenta-y-sonido.md`.
+**Allowlist de la adenda:** `app/studio/(app)/bandeja/_components/BandejaClient.tsx`, `app/studio/(app)/bandeja/_components/pedidos.ts`, `app/studio/(app)/bandeja/sso/route.ts`, `app/studio/(app)/bandeja/reconciliar/route.ts`, `app/studio/(app)/bandeja/mismo-origen.ts`, `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`, `app/studio/(app)/bandeja/__tests__/actions.test.ts`, `app/studio/(app)/bandeja/__tests__/rutas-bandeja.test.ts`, `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`, `next.config.ts`, `lib/runtime/__tests__/next-config.test.ts`, esta spec y el handoff `.agents/handoffs/0680-adenda-bandeja-lenta-y-sonido.md`.
 
 ## Fuera de alcance
 

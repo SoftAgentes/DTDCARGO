@@ -44,5 +44,6 @@ Lo detalla la spec (`docs/specs/0680-bandeja-rediseno/spec.md` § Adenda 2026-11
 ## FUERA DE ALCANCE DETECTADO
 
 - **Mejora aparte (pedida por Dir_DTD), sin hacer:** la reconciliación sigue tardando decenas de segundos en el servidor. `reconciliarBandeja` (`actions.ts`, el `for … await aplicarConversacion`) escribe una conversación a la vez, y cada una pasa por la RPC de la 0504 con service_role. Se puede hacer en lotes con tope (por ejemplo `enLotes` de a 5, como `agentesDeCuenta`) o con una RPC que reciba el arreglo. Además, Chatwoot lista cada página en 1-5 s.
+- **Mejora aparte (revisión de Dir_DTD), sin hacer:** si la sesión del Studio vence, el `fetch` de `pedidos.ts` sigue la redirección del proxy al login, recibe HTML y el aviso dice «el servidor no respondió» en vez de «tu sesión venció». Arreglo posible: `redirect: "manual"` o mirar `content-type`/`response.redirected` y mapear a un código propio con su texto.
 - El prefetch masivo del menú del Studio al entrar (GET de 5 a 20 s) recarga el servidor web.
 - Sam pidió aparte cambiar el nombre «Conversaciones del portal» y dar color a los íconos de los canales dentro de Chatwoot. Eso lo atiende la sesión original.
