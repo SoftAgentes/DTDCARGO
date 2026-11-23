@@ -201,7 +201,9 @@ describe("validateBasePerCbm", () => {
   it("lee $1.250,50 y pide aclarar «1.250» (SDD-0687)", () => {
     expect(validateBasePerCbm("$1.250,50")).toEqual({ value: 1250.5 });
     expect(validateBasePerCbm("1.250").error).toMatch(/se puede leer de dos maneras/);
-    expect(validateBasePerCbm("690,505").error).toMatch(/máximo 2 decimales/);
+    expect(validateBasePerCbm("690,5055").error).toMatch(/máximo 2 decimales/);
+    // Tres cifras tras una coma única son ambiguas en dinero: se pide aclarar.
+    expect(validateBasePerCbm("690,505").error).toMatch(/se puede leer de dos maneras/);
   });
 
   it("rechaza el 0, el negativo y el error de tecleo", () => {

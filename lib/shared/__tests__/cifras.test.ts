@@ -275,7 +275,7 @@ describe("propiedad: ida y vuelta en dinero", () => {
     const azar = generador(687);
     for (let i = 0; i < 2000; i++) {
       const centavos = Math.floor(azar() * 10 ** (1 + Math.floor(azar() * 11)));
-      const monto = (azar() < 0.1 ? -centavos : centavos) / 100;
+      const monto = centavos === 0 ? 0 : (azar() < 0.1 ? -centavos : centavos) / 100;
       const mostrado = VE.format(monto);
       const r = parseDinero(mostrado);
       expect(r.ok, `«${mostrado}»`).toBe(true);
