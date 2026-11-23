@@ -9,7 +9,7 @@ name: Imagen publicable
 # servidor no necesita un token de GitHub.
 #
 # Variables del repositorio (opcionales; vacías = apagadas):
-#   PUBLICABLE_CONGELADO=si         no mueve nada (el Director, en un corte o una ventana)
+#   PUBLICABLE_CONGELADO=si         no mueve nada (el Director, en un corte)
 #   PUBLICABLE_SOLO_CI_DE_MAIN=si   sin el atajo de la PR: espera el CI de main (~30 min)
 
 on:

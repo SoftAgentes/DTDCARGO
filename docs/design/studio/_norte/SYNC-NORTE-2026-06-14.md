@@ -94,4 +94,4 @@ Herramientas y colateral de marca — copiar completas, enlazadas en el Brand Hu
 1. Registrar en bitácora de Norte: **"marca sincronizada a Brand Book v4.2 · sync 2026-06-14"**.
 2. Confirmar: book único v4.2 (cero v3.x/v2.x visibles), Brand Hub solo-marca + Launcher solo-producto, cero "MARKBOX" visual, cero voseo.
 3. RIF oficial `J-50648869-8` en todo Norte. Datos: info@dtdcargo.com · +58 241 414 7886 · Av. Bolívar Norte 14, Valencia.
-4. Backend: cada seam nuevo (`dtd-tarifa-cbm`, estimados con contacto, inventario, reclamos) se mapea en `backend/API-CONTRACT.md`.
+4. Backend: cada seam nuevo (`dtd-tarifa-cbm`, estimados con contacto, inventario, reclamos) se mapea en `backend/API-CONTRACT.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].

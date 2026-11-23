@@ -8,7 +8,7 @@
 > [`docs/governance/AGENT-BRIEF.md`](../../../governance/AGENT-BRIEF.md)
 > (comportamiento y componentes) → este archivo (estado + arquitectura) →
 > `CHANGELOG.md` (bitácora detallada,
-> archivo+línea+razón de TODO lo construido) → `backend/README.md` (qué falta para
+> archivo+línea+razón de TODO lo construido) → `backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] (qué falta para
 > producto real).
 >
 > **Paquete móvil (app de teléfono):** ver `HANDOFF-MOBILE.md` — login único, ruteo
@@ -102,7 +102,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
   (`Tarjeta de Presentación.html`), **Brand Book → v3.5**, y un chequeo de links/conflictos
   para este handoff. Detalle completo en `CHANGELOG.md` (entrada 2026-06-07). La versión del
   ERP en el sidebar se alineó a **v2.5** (los módulos de contabilidad/nómina/backend ya lo estaban).
-- **Lo único que falta para lanzar es el backend real** → `backend/README.md`.
+- **Lo único que falta para lanzar es el backend real** → `backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio].
 
 ### Lo que cerró v2.4 (sesión de consolidación)
 1. **Entrypoint único** `DTD Studio · ERP.html` (se eliminó el clon `Nort v2.4`).
@@ -120,7 +120,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
    cliente) montan como **overlay interno** del ERP (`window.__erpOverlay`), ya no con
    `window.open`. Sus datos viven en `erp/data.jsx`.
 6. **Higiene de docs:** handoffs/prompts dispersos consolidados a este archivo +
-   `backend/README.md`; bitácora única en `CHANGELOG.md` (raíz).
+   `backend/README.md` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio]; bitácora única en `CHANGELOG.md` (raíz).
 
 ---
 
@@ -207,7 +207,7 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
 | `BRAND-MIGRATION-2026-05.md` | Spec del sistema de logo (4 variantes, `ERPUI.Lockup`) |
 | `CHANGELOG.md` | Bitácora detallada (archivo+línea+razón) |
-| `backend/README.md` + `backend/API-CONTRACT.md` + `backend/prisma/schema.prisma` | Handoff de backend |
+| `backend/README.md` + `backend/API-CONTRACT.md` + `backend/prisma/schema.prisma` [historico: el backend real es Supabase; ver docs/engineering/project-rules.md seccion Patrones del Studio] | Handoff de backend |
 
 ---
 

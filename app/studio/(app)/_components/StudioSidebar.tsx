@@ -16,6 +16,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -46,6 +47,13 @@ import {
 } from "@/lib/studio/rbac";
 import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
 import { BandejaBadge } from "./BandejaBadge";
+import {
+  GrupoFlotante,
+  type EntradaMenu,
+  type PosicionFlotante,
+  type UnidadMenu,
+} from "./GrupoFlotante";
+import { GROUP_ICONS, MODULO_SUELTO_CERRADO } from "@/lib/studio/sidebar-grupos";
 import { accesoCrm, destinoCrm, esRutaCrm } from "@/lib/studio/crm-acceso";
 import type { ConversacionNoLeida } from "@/lib/studio/chatwoot/conversations-queries";
 
@@ -181,7 +189,22 @@ export function StudioSidebar({
     };
   }, [activeGroup]);
 
+  // SDD-0709: con el menú cerrado, la lista flotante del grupo que se oprimió.
+  const [flotante, setFlotante] = useState<{ group: Group; pos: PosicionFlotante } | null>(null);
+  const cerrarFlotante = useCallback(() => setFlotante(null), []);
+  // Al navegar la lista se cierra (también cuando el clic ya la cerró: es idempotente).
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setFlotante(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
   const toggleCollapsed = () => {
+    setFlotante(null);
     const next = !collapsed;
     setCollapsed(next);
     try {
@@ -448,7 +471,6 @@ export function StudioSidebar({
   // Render de un sub-grupo (cluster): header toggle no-navegable + hijos
   // indentados. Si un hijo está activo, el cluster se fuerza abierto.
   const renderParent = (parent: ParentDef, children: ModuleDef[]) => {
-    if (collapsed) return children.map((c) => renderLeaf(c, 0));
     const pid = parent.id;
     const childActive = children.some((c) => activoEn(c));
     const pOpen = childActive || openParents[pid] === true;
@@ -534,6 +556,37 @@ export function StudioSidebar({
         : isModuleEnabled(m.id, flags) && canAccessModule(role, m.id, overrides, grants)) &&
       (role === "admin" || scopeAllowsModule(warehouseScope, m.id)),
   );
+
+  // SDD-0709 · menú cerrado: los grupos con sus unidades (hoja o subgrupo), sin el
+  // módulo suelto de arriba (Dashboard). Un grupo sin nada más que mostrar se omite.
+  const entradaDe = (m: ModuleDef): EntradaMenu => ({
+    id: m.id,
+    href: hrefDe(m),
+    label: m.labelKey ? t(m.labelKey) : m.label,
+    icon: m.icon,
+    active: activoEn(m),
+    extra:
+      m.id === "kommo" && crm.bandeja && bandeja?.tenantId ? (
+        <BandejaBadge tenantId={bandeja.tenantId} initial={bandeja.initial} />
+      ) : m.id === "expenses" && expenseAlertCount > 0 ? (
+        <span aria-label={`${expenseAlertCount}`} className="studio-sb-flot__cuenta">
+          {expenseAlertCount}
+        </span>
+      ) : undefined,
+  });
+  const unidadesCerrado = (items: ModuleDef[]): UnidadMenu[] =>
+    buildUnits(items.filter((m) => m.id !== MODULO_SUELTO_CERRADO)).map((u) =>
+      u.type === "leaf"
+        ? { tipo: "hoja" as const, entrada: entradaDe(u.mod) }
+        : {
+            tipo: "sub" as const,
+            id: u.parent.id,
+            label: u.parent.labelKey ? t(u.parent.labelKey) : u.parent.label,
+            icon: u.parent.icon,
+            hijos: u.children.map(entradaDe),
+          },
+    );
+  const moduloSuelto = visibleModules.find((m) => m.id === MODULO_SUELTO_CERRADO);
 
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
@@ -652,13 +705,35 @@ export function StudioSidebar({
           gap: 4,
         }}
       >
-        {grouped.map(({ group, items, isOpen }) => {
-          // Cuando sidebar colapsado: ignorar isOpen, mostrar todos los iconos.
-          // Cuando expandido: respetar el acordeón (solo el grupo abierto).
-          const showItems = collapsed || isOpen;
+        {collapsed && moduloSuelto && renderLeaf(moduloSuelto, 0)}
+        {collapsed &&
+          grouped.map(({ group, items }) => {
+            const unidades = unidadesCerrado(items);
+            if (unidades.length === 0) return null;
+            const nombre = GROUP_LABEL_KEYS[group] ? t(GROUP_LABEL_KEYS[group]) : group;
+            return (
+              <GrupoFlotante
+                key={group}
+                id={group}
+                label={nombre}
+                icon={GROUP_ICONS[group]}
+                // El Dashboard va suelto arriba: estar en él no marca a OPERACIÓN.
+                activo={items.some((m) => m.id !== MODULO_SUELTO_CERRADO && activoEn(m))}
+                unidades={unidades}
+                abierto={flotante?.group === group}
+                pos={flotante?.group === group ? flotante.pos : null}
+                onAbrir={(pos) => setFlotante({ group, pos })}
+                onCerrar={cerrarFlotante}
+                onTip={(el, texto) => (el ? mostrarTip(el, texto) : setTip(null))}
+              />
+            );
+          })}
+        {!collapsed && grouped.map(({ group, items, isOpen }) => {
+          // Menú abierto: respeta el acordeón (solo el grupo abierto).
+          const showItems = isOpen;
           // Rastro de "dónde estás" cuando la sección activa está cerrada: sin
           // esto, cerrar el grupo activo borra toda pista del módulo actual.
-          const isActiveClosed = !collapsed && group === activeGroup && !isOpen;
+          const isActiveClosed = group === activeGroup && !isOpen;
           return (
           <div key={group} style={{ marginBottom: 6 }}>
             {!collapsed && (
