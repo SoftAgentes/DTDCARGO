@@ -8,6 +8,8 @@
  * Validación manual, sin Zod — convención del repo.
  */
 
+import { parseDinero, parseMaquina } from "@/lib/shared/cifras";
+
 /** Un transportista terrestre. */
 export type FreightCarrier = {
   id: string;
@@ -193,14 +195,22 @@ export type TariffInput = {
 };
 
 /**
- * Acepta coma o punto decimal: el equipo carga estas tarifas desde una foto que
- * manda el proveedor, y en Venezuela se escribe `123,60`.
+ * Monto en formato 1.234,50: el equipo carga estas tarifas desde una foto que
+ * manda el proveedor, y en Venezuela se escribe `123,60`. «1.250» puede ser
+ * mil doscientos cincuenta o uno con veinticinco: no se adivina y vuelve
+ * `null`, que el formulario muestra como monto no válido (SDD-0687).
  */
-export function parseMonto(raw: string): number | null {
-  const limpio = raw.trim().replace(/\s/g, "").replace(",", ".");
-  if (limpio === "") return null;
-  const n = Number(limpio);
-  return Number.isFinite(n) ? n : null;
+export function parseMonto(raw: string, decimales = 2): number | null {
+  const limpio = raw.trim().replace(/\s/g, "");
+  const leido = parseDinero(limpio, { decimales });
+  return leido.ok ? leido.valor : null;
+}
+
+/** Precio por ft³: valor de máquina del campo, o texto de la persona con coma decimal. */
+function parsePrecioFt3(raw: string): number | null {
+  const maquina = parseMaquina(raw, "dinero", { decimales: 4 });
+  if (maquina.ok) return maquina.valor;
+  return parseMonto(raw, 4);
 }
 
 export function validateTariffInput(
@@ -220,19 +230,30 @@ export function validateTariffInput(
   if (citySlug === "") errors.citySlug = "Escoge la ciudad.";
 
   const costo = parseMonto(str("costUsdCbm"));
-  if (costo == null) errors.costUsdCbm = "Escribe cuánto te cobra el transportista.";
+  if (costo == null) {
+    errors.costUsdCbm =
+      str("costUsdCbm") === "" ? "Escribe cuánto te cobra el transportista." : "No es un monto válido.";
+  }
   else if (costo < 0) errors.costUsdCbm = "No puede ser negativo.";
 
   // El precio de venta se puede cargar en CBM o en pie cúbico: el proveedor
   // cotiza en ft³ y la UI convierte al vuelo. Con que venga uno de los dos basta.
-  const ft3 = parseMonto(str("priceUsdFt3"));
+  // El precio por ft³ se guarda con 4 decimales (cbmAFt3) y llega del campo
+  // numérico como valor de máquina («3.498»): se lee por esa vía, sin adivinar.
+  // Un texto escrito a mano («3,498») sigue la regla de la persona.
+  const ft3 = parsePrecioFt3(str("priceUsdFt3"));
   let venta = parseMonto(str("priceUsdCbm"));
-  if (venta == null && ft3 != null) venta = ft3ACbm(ft3);
-  if (venta == null) errors.priceUsdCbm = "Escribe el precio de venta, por m³ o por pie cúbico.";
+  const ventaIlegible = str("priceUsdCbm") !== "" && venta == null;
+  if (venta == null && ft3 != null && !ventaIlegible) venta = ft3ACbm(ft3);
+  if (ventaIlegible) errors.priceUsdCbm = "No es un monto válido.";
+  else if (venta == null) errors.priceUsdCbm = "Escribe el precio de venta, por m³ o por pie cúbico.";
   else if (venta < 0) errors.priceUsdCbm = "No puede ser negativo.";
   if (ft3 != null && ft3 < 0) errors.priceUsdFt3 = "No puede ser negativo.";
 
+  // Un monto escrito pero ilegible se avisa; no se descarta en silencio (SDD-0687).
+  if (str("priceUsdFt3") !== "" && ft3 == null) errors.priceUsdFt3 = "No es un monto válido.";
   const minimo = parseMonto(str("minChargeUsd"));
+  if (str("minChargeUsd") !== "" && minimo == null) errors.minChargeUsd = "No es un monto válido.";
   if (minimo != null && minimo < 0) errors.minChargeUsd = "No puede ser negativo.";
 
   const diasRaw = str("dispatchFrequencyDays");

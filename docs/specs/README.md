@@ -707,7 +707,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0684 | Microsoft Clarity en el sitio público, fase 1: código apagado | in-progress | publico |
 | 0685 | Marcar como históricas las referencias al back Norte en el pr… | in-progress | interna |
 | 0686 | Color de acción azul en web, Portal y ERP: el rojo queda para… | in-progress | interno |
-| 0687 | Cifras en formato venezolano: punto de miles y coma decimal, … | proposed | interno |
+| 0687 | Cifras en formato venezolano: punto de miles y coma decimal, … | approved | interno |
 | 0688 | Simetría de pantallas: un encabezado, tres anchos de panel, u… | proposed | interno |
 | 0689 | Embarques: peso y «Total sin facturar» en el encabezado, y cl… | in-progress | interno |
 | 0690 | Embarques: «Facturar» emite el borrador con los precios del E… | in-progress | interno |

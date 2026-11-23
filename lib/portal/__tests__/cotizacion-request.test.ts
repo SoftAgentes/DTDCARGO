@@ -60,6 +60,19 @@ describe("validateCotizacionRequest", () => {
     expect(r.input?.boxes).toBe(9); // redondeado
   });
 
+  it("CBM y peso aceptan punto o coma decimal (SDD-0687, decisión 2 A)", () => {
+    const r = validateCotizacionRequest({
+      service: "puerta_a_puerta_DDP",
+      description: "muebles",
+      cbm: "1.234",
+      weightKg: "1.234,5",
+    });
+    expect(r.input?.cbm).toBe(1.234);
+    expect(r.input?.weightKg).toBe(1234.5);
+    expect(validateCotizacionRequest({ service: "consolidado_lcl", description: "x", weightKg: "1,234.5" }).input?.weightKg)
+      .toBeNull();
+  });
+
   it("números inválidos/negativos → null", () => {
     const r = validateCotizacionRequest({
       service: "consolidado_lcl",

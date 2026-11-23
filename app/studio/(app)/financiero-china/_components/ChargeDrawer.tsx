@@ -122,6 +122,7 @@ export function ChargeDrawer({
             <NumericInput
               id="fc-charge-amount"
               type="decimal"
+              modo="dinero"
               value={amount}
               onChange={setAmount}
               min={0}

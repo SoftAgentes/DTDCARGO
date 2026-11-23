@@ -12,6 +12,7 @@
 import type { I18nKey } from "@/lib/i18n";
 import type { ShipmentService } from "../shipment-types";
 import { isShipmentService } from "../shipment-types";
+import { parseDinero } from "@/lib/shared/cifras";
 
 /** De dónde salió el precio congelado (columna `source`). */
 export type RateSnapshotSource = "estimado" | "lista" | "casa" | "manual" | "excel_yiwu";
@@ -136,12 +137,12 @@ export type FreezeFieldErrors = Partial<Record<"source" | "rateId" | "quoteId" |
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FREEZE_SOURCES: readonly FreezeSource[] = ["estimado", "tarifario", "manual", "excel_yiwu"];
 
+/** Monto en formato 1.234,50 (SDD-0687); lo ambiguo o mal escrito es NaN. */
 function numero(raw: unknown): number | null {
   if (raw == null) return null;
-  const s = String(raw).trim().replace(",", ".");
-  if (s === "") return null;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : Number.NaN;
+  const leido = parseDinero(String(raw));
+  if (leido.ok) return leido.valor;
+  return leido.motivo === "vacio" ? null : Number.NaN;
 }
 
 /**

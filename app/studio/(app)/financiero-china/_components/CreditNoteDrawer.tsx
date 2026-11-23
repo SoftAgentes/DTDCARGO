@@ -166,6 +166,7 @@ export function CreditNoteDrawer({
           <NumericInput
             id="fc-credit-amount"
             type="decimal"
+            modo="dinero"
             value={amount}
             onChange={setAmount}
             min={0}
