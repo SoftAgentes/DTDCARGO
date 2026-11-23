@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-11-18T00:00:00.000Z",
-  "sourceCommit": "8c15a4bb0ccf813b6b80b0024da7b7df52b42801",
+  "sourceCommit": "2d7739367a6ec7cb8e1b0defa8a281e54f9443cc",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -22,7 +22,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.2",
+          "version": "1.3",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
@@ -218,7 +218,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.2",
+          "version": "1.3",
           "path": "docs/governance/policies/btn-01.md"
         },
         {
@@ -631,7 +631,7 @@
         },
         {
           "code": "BTN-01",
-          "version": "1.2",
+          "version": "1.3",
           "path": "docs/governance/policies/btn-01.md"
         },
         {

@@ -128,8 +128,8 @@ export function PortalAvisosBell({
             data-testid="avisos-contador"
             className="absolute -right-0.5 -top-0.5 h-4 min-w-4 rounded-full px-1 text-center text-[10px] font-extrabold leading-4"
             style={{
-              background: "var(--color-wine)",
-              color: "var(--color-on-accent)",
+              background: "var(--color-ink)",
+              color: "var(--color-paper)",
               boxShadow: "0 0 0 2px var(--color-white)",
             }}
           >
@@ -165,7 +165,7 @@ export function PortalAvisosBell({
                 Avisos
               </h3>
               {nuevos > 0 && (
-                <span className="text-[11.5px] font-bold text-wine-text">
+                <span className="text-[11.5px] font-bold text-ink">
                   {nuevos === 1 ? "1 nuevo" : `${nuevos} nuevos`}
                 </span>
               )}
@@ -190,8 +190,8 @@ export function PortalAvisosBell({
                     aria-hidden
                     className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-md"
                     style={{
-                      background: "color-mix(in srgb, var(--color-wine) 12%, transparent)",
-                      color: "var(--color-wine-text)",
+                      background: "color-mix(in srgb, var(--color-ink) 8%, transparent)",
+                      color: "var(--color-ink)",
                     }}
                   >
                     <ChatIcon size={15} />
@@ -230,11 +230,11 @@ export function PortalAvisosBell({
                                 {a.title}
                               </span>
                               {nuevo && (
-                                <span className="flex flex-shrink-0 items-center gap-1 text-[11px] font-bold text-wine-text">
+                                <span className="flex flex-shrink-0 items-center gap-1 text-[11px] font-bold text-ink">
                                   <span
                                     aria-hidden
                                     className="h-1.5 w-1.5 rounded-full"
-                                    style={{ background: "var(--color-wine-text)" }}
+                                    style={{ background: "var(--color-ink)" }}
                                   />
                                   Nuevo
                                 </span>

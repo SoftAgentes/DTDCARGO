@@ -409,8 +409,8 @@ export function PortalSidebar({
               justifyContent: showLabels ? "flex-start" : "center",
               borderRadius: showLabels ? 10 : "50%",
               background: createOpen
-                ? "color-mix(in srgb, var(--color-wine) 42%, transparent)"
-                : "color-mix(in srgb, var(--color-wine) 26%, transparent)",
+                ? "color-mix(in srgb, var(--color-accion) 42%, transparent)"
+                : "color-mix(in srgb, var(--color-accion) 26%, transparent)",
               color: "var(--portal-nav-on-active)",
               border: "1px solid color-mix(in srgb, var(--color-status-warning) 40%, transparent)",
               outlineColor: "var(--portal-nav-ink)",
@@ -449,8 +449,8 @@ export function PortalSidebar({
                     <span
                       className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-[8px]"
                       style={{
-                        background: "color-mix(in srgb, var(--color-wine) 12%, transparent)",
-                        color: "var(--color-wine-text)",
+                        background: "var(--color-accion-tint)",
+                        color: "var(--color-accion-text)",
                       }}
                     >
                       <Icon size={16} />

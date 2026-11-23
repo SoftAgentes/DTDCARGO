@@ -184,8 +184,8 @@ Publicar tiene **su propia autorización**, distinta de la de merge. Vale una de
 - el OK nominal de Sam para la migración, si nombra también la publicación (por ejemplo,
   «aplica la 0700 y publica»). Así la web nueva entra enseguida, como pide el
   migrate-first;
-- una ventana de publicación (11:00, 15:00 o 19:00 de Caracas, ver
-  [carriles](codex-engineering.md#carriles-de-integración)). Hasta esa hora, la base nueva
+- que el Director publique cuando hay trabajo listo y nada está ocupado (sin horario fijo, ver
+  [carriles](codex-engineering.md#carriles-de-integración)). Hasta entonces, la base nueva
   convive con la web vieja, así que el paquete tiene que ser compatible con eso.
 
 Publicar `<sha>` publica todo lo que está en `main` hasta ese SHA, no solo el paquete.

@@ -34,9 +34,9 @@ export function PortalPending({
       </p>
 
       <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-7 sm:p-9 max-w-[680px]"
-        style={{ borderLeftColor: "var(--color-wine)" }}
+        style={{ borderLeftColor: "var(--color-ink)" }}
       >
-        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine-text">
+        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
           Cuenta en revisión
         </div>
 

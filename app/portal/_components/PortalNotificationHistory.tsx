@@ -66,7 +66,7 @@ export function PortalNotificationHistory({
           return (
             <li
               key={item.id}
-              className="border-l-2 border-wine/30 pl-4 py-0.5"
+              className="border-l-2 border-grey-300 pl-4 py-0.5"
             >
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-[14.5px] font-semibold text-ink">

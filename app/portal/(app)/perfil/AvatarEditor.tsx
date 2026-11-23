@@ -88,8 +88,8 @@ export function AvatarEditor({
         <span
           className="grid h-full w-full place-items-center overflow-hidden rounded-full text-[38px] lg:text-[44px]"
           style={{
-            background: "var(--color-wine)",
-            color: "var(--color-on-accent)",
+            background: "var(--color-ink)",
+            color: "var(--color-paper)",
             fontFamily: "var(--font-archivo-black)",
           }}
         >
@@ -113,8 +113,8 @@ export function AvatarEditor({
           aria-label="Cambiar foto de perfil"
           className="absolute -bottom-1 -right-1 grid h-11 w-11 place-items-center rounded-full border-[3px] disabled:opacity-60"
           style={{
-            background: "var(--color-wine)",
-            color: "var(--color-on-accent)",
+            background: "var(--color-accion)",
+            color: "var(--color-on-accion)",
             // Anillo del color de la card: se ve igual en claro y en oscuro.
             borderColor: "var(--color-white)",
           }}
@@ -166,7 +166,7 @@ export function AvatarEditor({
           type="button"
           onClick={() => setConfirmRemove(true)}
           disabled={busy}
-          className="min-h-11 px-3 text-[14px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60 rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="min-h-11 px-3 text-[14px] font-semibold text-accion-text hover:text-accion-hover disabled:opacity-60 rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           Quitar foto
         </button>
