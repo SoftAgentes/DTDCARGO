@@ -10,6 +10,7 @@
  */
 
 import { FX_RATE_SANITY_RANGE } from "./expense-types";
+import { parseTasa } from "@/lib/shared/cifras";
 
 /** Pares gestionables (USD no aplica: fx = 1). */
 export const FX_PAIRS = ["CNY/USD", "VES/USD"] as const;
@@ -62,13 +63,17 @@ export function validateExchangeRateInput(fd: FormData): {
     return { error: "Par de moneda inválido." };
   }
   const rateRaw = typeof fd.get("rate") === "string" ? (fd.get("rate") as string).trim() : "";
-  const rate = Number(rateRaw.replace(",", "."));
+  // Modo tasa (SDD-0687): la coma es el decimal («36,500» = 36,5); «36.500»
+  // se pide aclarar. fx_rates.rate es numeric(20,8): la RPC rechaza más
+  // decimales (0495), así que el noveno se rechaza aquí.
+  const leida = parseTasa(rateRaw);
+  if (!leida.ok && leida.motivo === "decimales") {
+    return { error: "La tasa admite hasta 8 decimales." };
+  }
+  if (!leida.ok && leida.motivo !== "vacio") return { error: leida.mensaje };
+  const rate = leida.ok ? leida.valor : Number.NaN;
   if (!Number.isFinite(rate) || rate <= 0) {
     return { error: "La tasa debe ser un número mayor a 0." };
-  }
-  // fx_rates.rate es numeric(20,8): la RPC rechaza más decimales (0495).
-  if (/[.,]\d{9,}$/.test(rateRaw)) {
-    return { error: "La tasa admite hasta 8 decimales." };
   }
   const validOn = typeof fd.get("valid_on") === "string" ? (fd.get("valid_on") as string).trim() : "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(validOn)) {

@@ -130,6 +130,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
             <NumericInput
               id="fc-conv-from-amt"
               type="decimal"
+              modo="dinero"
               value={fromAmount}
               onChange={setFromAmount}
               placeholder="0.00"
@@ -143,6 +144,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
             <NumericInput
               id="fc-conv-to-amt"
               type="decimal"
+              modo="dinero"
               value={toAmount}
               onChange={setToAmount}
               placeholder="0.00"
@@ -159,6 +161,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
             <NumericInput
               id="fc-conv-market"
               type="decimal"
+              modo="tasa"
               value={marketRate}
               onChange={setMarketRate}
               placeholder="0.00"
@@ -172,6 +175,7 @@ export function ConversionDrawer({ onClose }: { onClose: () => void }) {
             <NumericInput
               id="fc-conv-comm"
               type="decimal"
+              modo="dinero"
               value={commission}
               onChange={setCommission}
               placeholder="0.00"

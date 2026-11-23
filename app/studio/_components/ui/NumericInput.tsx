@@ -5,21 +5,28 @@
  * lateral + preview formateado en tiempo real.
  *
  * Casos de uso (Studio):
- *   - PESO (kg): "236" o "233+2" → muestra "= 235 kg" debajo
- *   - CBM (m³): "0.45 + 0.32 + 0.18" → "= 0.95 m³"
- *   - TARIFA (USD): "12323" → "$" izquierda + "= USD 12,323" debajo
- *   - # CAJAS (count): "5+3+7" → "= 15 cajas"
+ *   - PESO (kg): "236" o "233+2" → muestra "= 235,00 kg" debajo
+ *   - CBM (m³): "0,45 + 0,32 + 0,18" → "= 0,95 m³"
+ *   - TARIFA (USD): "12.323,50" → "$" izquierda + "= 12.323,50" debajo
+ *   - # CAJAS (count): "5+3+7" → "= 15"
  *
  * Características:
  *   - Acepta expresiones aritméticas: + − × ÷ ( ) → parsea via
  *     parseNumericExpression (whitelist segura).
- *   - Acepta coma O punto decimal (12.5 o 12,5).
+ *   - Cada campo tiene un modo (SDD-0687 §4.2): dinero, tasa, porcentaje o
+ *     medida. `currency` es dinero; `weight`, `volume` y `count` son medida;
+ *     `decimal` obliga a declarar el modo. En dinero «1.234» y «1,234» se
+ *     rechazan y se pide aclarar; «12.50» se acepta como 12,50 (decisión 6 A).
+ *     En medida el punto o la coma son decimales (decisión 2 A).
  *   - Acepta valores pegados con adornments ($ 1200, 236 kg) · los
  *     limpia automáticamente.
  *   - Adornment lateral fijo (símbolo $ a la izquierda en currency,
  *     unidad "kg" / "m³" a la derecha en weight/volume/count).
- *   - Preview formateado debajo en tiempo real (con separador de miles
- *     · convención US: punto decimal + coma para miles).
+ *   - Debajo, lo que entendió en formato venezolano: punto de miles y coma
+ *     decimal («= 1.234,50»). La tasa se ve con 2 a 4 decimales (decisión 5 B).
+ *   - Un texto rechazado (ambiguo, con formato de EE. UU. o con más decimales
+ *     de los del campo) no deja vivo el valor anterior: emite `null`, para
+ *     que nunca se guarde un monto intermedio mil veces menor.
  *   - Hidden input con el decimal canónico para form submission.
  *   - Una expresión incompleta conserva el último valor válido y solo se
  *     presenta como error al confirmar (blur, Tab, Enter o submit).
@@ -42,6 +49,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { DECIMALES_POR_MODO, type ModoNumero } from "@/lib/shared/cifras";
 import {
   parseNumericExpressionDetailed,
   type DetailedParseResult,
@@ -56,12 +64,7 @@ type NumericType =
 
 type Currency = "USD" | "EUR" | "VES";
 
-interface NumericInputProps {
-  /**
-   * Tipo del input · determina el adornment y el formato del preview.
-   * Default: "decimal".
-   */
-  type?: NumericType;
+interface NumericInputBaseProps {
   /** Solo aplica si type=currency. Default: USD. */
   currency?: Currency;
   /**
@@ -74,6 +77,11 @@ interface NumericInputProps {
   unit?: string;
   /** Cantidad de decimales para el preview. Defaults: 0 (count) / 2 (otros). */
   precision?: number;
+  /**
+   * Decimales máximos que acepta al teclear, si difieren de los del modo
+   * (dinero 2, tasa 8, porcentaje 2, medida 4). Más decimales se rechazan.
+   */
+  decimales?: number;
   /** name del form field · el hidden input lo usa. */
   name?: string;
   /** id HTML del input (el preview se asocia via aria-describedby). */
@@ -97,6 +105,24 @@ interface NumericInputProps {
   /** Una ayuda propia del campo; se suma a la vista previa (SDD-0569). */
   "aria-describedby"?: string;
 }
+
+/**
+ * `type` determina el adornment y el formato del preview (default
+ * "decimal"). Con "decimal" el modo es obligatorio: puede ser una tasa, un
+ * porcentaje, una cantidad o un monto en otra moneda, y no se adivina.
+ */
+type NumericInputProps = NumericInputBaseProps &
+  (
+    | { type?: "decimal"; modo: ModoNumero }
+    | { type: Exclude<NumericType, "decimal">; modo?: ModoNumero }
+  );
+
+const MODO_POR_TYPE: Record<Exclude<NumericType, "decimal">, ModoNumero> = {
+  currency: "dinero",
+  weight: "medida",
+  volume: "medida",
+  count: "medida",
+};
 
 const SYMBOL_BY_CURRENCY: Record<Currency, string> = {
   USD: "$",
@@ -122,9 +148,11 @@ const DEFAULT_PRECISION_BY_TYPE: Record<NumericType, number> = {
 
 export function NumericInput({
   type = "decimal",
+  modo: modoProp,
   currency = "USD",
   unit,
   precision,
+  decimales,
   name,
   id,
   value,
@@ -144,16 +172,17 @@ export function NumericInput({
   const inputId = id ?? `num-${autoId}`;
   const previewId = `${inputId}-preview`;
 
+  const modo: ModoNumero =
+    modoProp ?? (type === "decimal" ? "medida" : MODO_POR_TYPE[type]);
+  const opciones = useMemo(() => ({ decimales }), [decimales]);
   const resolvedUnit = unit ?? DEFAULT_UNIT_BY_TYPE[type];
   const resolvedPrecision = precision ?? DEFAULT_PRECISION_BY_TYPE[type];
   const prefixSymbol = type === "currency" ? SYMBOL_BY_CURRENCY[currency] : "";
   const suffixUnit = resolvedUnit;
 
-  const initial =
-    (isControlled ? value : defaultValue) != null
-      ? String((isControlled ? value : defaultValue) as number)
-      : "";
-  const [rawText, setRawText] = useState<string>(initial);
+  const initialValue = isControlled ? value : defaultValue;
+  const initial = initialValue != null ? canonicalOf(initialValue) : "";
+  const [rawText, setRawText] = useState<string>(toEditableText(initial));
   const [hasValidated, setHasValidated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [lastValid, setLastValid] = useState<{
@@ -171,19 +200,19 @@ export function NumericInput({
   // Si el value controlado cambia desde el padre, sincronizamos.
   useEffect(() => {
     if (!isControlled) return;
-    const incoming = value != null ? String(value) : "";
+    const incoming = value != null ? toEditableText(canonicalOf(value)) : "";
     // Sincronización deliberada del texto de edición con una fuente controlada.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRawText((prev) => {
-      const current = parseNumericExpressionDetailed(prev);
+      const current = parseNumericExpressionDetailed(prev, modo, opciones);
       if (current.value === value || lastValid?.value === value) return prev;
       return incoming;
     });
-  }, [isControlled, lastValid?.value, value]);
+  }, [isControlled, lastValid?.value, modo, opciones, value]);
 
   const parsed = useMemo(
-    () => parseNumericExpressionDetailed(rawText),
-    [rawText],
+    () => parseNumericExpressionDetailed(rawText, modo, opciones),
+    [modo, opciones, rawText],
   );
 
   // Validación contra min/max · solo soft (visual) · el form submit
@@ -216,6 +245,8 @@ export function NumericInput({
     parsed,
     rawText,
     type,
+    modo,
+    maxDecimals: decimales ?? DECIMALES_POR_MODO[modo],
     currency,
     unit: suffixUnit,
     precision: resolvedPrecision,
@@ -242,7 +273,7 @@ export function NumericInput({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
     setRawText(next);
-    const result = parseNumericExpressionDetailed(next);
+    const result = parseNumericExpressionDetailed(next, modo, opciones);
     const nextOutOfRange =
       result.value != null &&
       ((min != null && result.value < min) ||
@@ -251,6 +282,15 @@ export function NumericInput({
     if (result.status === "empty") {
       setLastValid(null);
       onChange?.(null);
+      return;
+    }
+    if (result.status === "invalid") {
+      // SDD-0687: «1.234» en dinero no puede dejar vivo el «1.23» que se
+      // tecleó antes; el campo queda sin valor hasta que se aclare.
+      if (lastValid !== null) {
+        setLastValid(null);
+        onChange?.(null);
+      }
       return;
     }
     if (
@@ -281,7 +321,7 @@ export function NumericInput({
       value: parsed.value,
       canonical: parsed.canonical,
     });
-    setRawText(parsed.canonical);
+    setRawText(toEditableText(parsed.canonical));
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -299,9 +339,11 @@ export function NumericInput({
   const hiddenValue =
     parsed.status === "valid" && !outOfRange
       ? (parsed.canonical ?? "")
-      : isControlled && value != null
-        ? String(value)
-        : (lastValid?.canonical ?? "");
+      : parsed.status === "invalid"
+        ? ""
+        : isControlled && value != null
+          ? canonicalOf(value)
+          : (lastValid?.canonical ?? "");
 
   return (
     <div style={{ position: "relative" }}>
@@ -350,6 +392,7 @@ export function NumericInput({
           aria-describedby={ariaDescribedBy ? `${ariaDescribedBy} ${previewId}` : previewId}
           aria-label={ariaLabel}
           data-numeric-status={parsed.status}
+          data-numeric-modo={modo}
         />
         {suffixUnit && (
           <span
@@ -373,7 +416,6 @@ export function NumericInput({
       <div
         id={previewId}
         role={showLocalError ? "alert" : undefined}
-        aria-live="polite"
         style={{
           minHeight: 18,
           marginTop: 4,
@@ -393,6 +435,8 @@ interface BuildPreviewArgs {
   parsed: DetailedParseResult;
   rawText: string;
   type: NumericType;
+  modo: ModoNumero;
+  maxDecimals: number;
   currency: Currency;
   unit: string;
   precision: number;
@@ -408,7 +452,8 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
     parsed,
     rawText,
     type,
-    currency,
+    modo,
+    maxDecimals,
     unit,
     precision,
     precisionIsDefault,
@@ -435,14 +480,20 @@ function buildPreview(args: BuildPreviewArgs): ReactNode {
     }
   }
 
-  // Formato según type.
+  // Lo entendido, en formato venezolano (SDD-0687).
   // CBM: hasta 4 decimales sin ceros de relleno (lib/shared/cbm).
+  // Tasa: de 2 a 4 decimales (decisión 5 B).
+  // Medida: nunca esconde un decimal tecleado (decisión 2 A: «= 1,234»).
   const formatted =
     type === "volume" && precisionIsDefault
-      ? formatCbm(parsed.value, { locale: "en-US" })
-      : formatNumber(parsed.value, precision);
+      ? formatCbm(parsed.value, { locale: "es-VE" })
+      : modo === "tasa" && precisionIsDefault
+        ? formatNumber(parsed.value, 2, 4)
+        : modo === "medida"
+          ? formatNumber(parsed.value, precision, Math.max(precision, maxDecimals))
+          : formatNumber(parsed.value, precision);
   if (type === "currency") {
-    return `= ${currency} ${formatted}`;
+    return `= ${formatted}`;
   }
   if (unit) {
     return `= ${formatted} ${unit}`;
@@ -460,12 +511,29 @@ function buildRangeError(
   return "Valor fuera de rango.";
 }
 
-function formatNumber(n: number, precision: number): string {
-  // Convención US: punto decimal + coma para miles · pedido del founder
-  // (2026-05-27). El sistema de Preferencias (SDD-0037 futuro) permitirá
-  // override por user.
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: precision,
-    maximumFractionDigits: precision,
-  });
+function formatNumber(n: number, minDecimals: number, maxDecimals = minDecimals): string {
+  // Formato venezolano: punto de miles y coma decimal (Sam, 2026-11-20,
+  // SDD-0687). Fijo, sin depender del idioma del equipo; `useGrouping`
+  // explícito para que 1234 también lleve punto.
+  return new Intl.NumberFormat("es-VE", {
+    minimumFractionDigits: minDecimals,
+    maximumFractionDigits: maxDecimals,
+    useGrouping: "always",
+  }).format(n === 0 ? 0 : n);
+}
+
+/** Decimal de máquina sin exponente: 1e-7 → "0.0000001". */
+function canonicalOf(n: number): string {
+  const text = String(n);
+  if (!/e/i.test(text)) return text;
+  return n.toFixed(20).replace(/\.?0+$/, "");
+}
+
+/**
+ * Texto que se deja en el campo al confirmar o al recibir un valor: el
+ * decimal con coma y sin miles («1234,5»). Así se vuelve a leer igual en
+ * todos los modos: «36.512» en tasa se pediría aclarar; «36,512» no.
+ */
+function toEditableText(canonical: string): string {
+  return canonical.replace(".", ",");
 }

@@ -4,7 +4,25 @@
  * La expresión se tokeniza y evalúa sin `eval`/`Function`. Cada literal se
  * representa como entero escalado (`BigInt`), por lo que sumas como 0.1 + 0.2
  * producen exactamente 0.3. La división usa 30 decimales y redondeo half-up.
+ *
+ * Cada literal se interpreta con `interpretarLiteral` de `lib/shared/cifras`
+ * según el modo del campo (SDD-0687 §4.2): en dinero «1.234» se rechaza y se
+ * pide aclarar; en medida es 1,234. El resultado tampoco puede traer más
+ * decimales que los del campo: no se redondea en silencio.
  */
+
+import {
+  decimalesDe,
+  decimalesDelCampo,
+  interpretarLiteral,
+  mensajeDecimales,
+  rangoDelModo,
+  type ModoNumero,
+  type MotivoRechazo,
+  type OpcionesNumero,
+} from "@/lib/shared/cifras";
+
+export type { ModoNumero } from "@/lib/shared/cifras";
 
 export interface ParseResult {
   value: number | null;
@@ -21,6 +39,8 @@ export interface DetailedParseResult extends ParseResult {
   /** Decimal canónico sin separadores de miles ni exponente. */
   canonical: string | null;
   status: NumericExpressionStatus;
+  /** `true` si un operando se puede leer de dos maneras (SDD-0687). */
+  pedirAclarar?: boolean;
 }
 
 const STRIP_RE = /[$€£¥]|kg|m³|cbm|cajas|usd|eur|ves/gi;
@@ -32,6 +52,15 @@ const DIVISION_SCALE = 30;
 class IncompleteExpressionError extends Error {}
 class InvalidExpressionError extends Error {}
 class InvalidResultError extends Error {}
+class RejectedLiteralError extends Error {
+  constructor(
+    message: string,
+    readonly motivo: MotivoRechazo,
+    readonly pedirAclarar: boolean,
+  ) {
+    super(message);
+  }
+}
 
 class FixedDecimal {
   private constructor(
@@ -177,7 +206,12 @@ class ExpressionParser {
   }
 }
 
-export function parseNumericExpressionDetailed(raw: string): DetailedParseResult {
+export function parseNumericExpressionDetailed(
+  raw: string,
+  modo: ModoNumero,
+  opciones: OpcionesNumero = {},
+): DetailedParseResult {
+  const decimales = decimalesDelCampo(modo, opciones);
   if (typeof raw !== "string") {
     return invalid("Input inválido.");
   }
@@ -195,7 +229,7 @@ export function parseNumericExpressionDetailed(raw: string): DetailedParseResult
   }
 
   try {
-    const tokens = tokenize(stripped);
+    const tokens = tokenize(stripped, modo, decimales);
     if (tokens.length > MAX_TOKENS) {
       return invalid("La operación es demasiado larga.");
     }
@@ -203,6 +237,13 @@ export function parseNumericExpressionDetailed(raw: string): DetailedParseResult
     const canonical = result.toCanonical();
     const value = Number(canonical);
     if (!Number.isFinite(value)) return invalid("Número fuera de rango.");
+    if (decimalesDe(canonical) > decimales) {
+      return invalid(
+        `El resultado tiene más decimales de los que lleva el campo. ${mensajeDecimales(modo, decimales)}`,
+      );
+    }
+    const fueraDeRango = rangoDelModo(modo, value);
+    if (fueraDeRango) return invalid(fueraDeRango);
     return { value, canonical, error: null, status: "valid" };
   } catch (error) {
     if (error instanceof IncompleteExpressionError) {
@@ -216,6 +257,9 @@ export function parseNumericExpressionDetailed(raw: string): DetailedParseResult
     if (error instanceof InvalidResultError) {
       return invalid("Resultado no válido.");
     }
+    if (error instanceof RejectedLiteralError) {
+      return { ...invalid(error.message), pedirAclarar: error.pedirAclarar };
+    }
     return invalid("Expresión inválida.");
   }
 }
@@ -224,8 +268,12 @@ export function parseNumericExpressionDetailed(raw: string): DetailedParseResult
  * API histórica: conserva el shape y el mensaje de sintaxis anterior.
  * <NumericInput> usa la variante detallada para distinguir edición incompleta.
  */
-export function parseNumericExpression(raw: string): ParseResult {
-  const result = parseNumericExpressionDetailed(raw);
+export function parseNumericExpression(
+  raw: string,
+  modo: ModoNumero,
+  opciones: OpcionesNumero = {},
+): ParseResult {
+  const result = parseNumericExpressionDetailed(raw, modo, opciones);
   return {
     value: result.value,
     error:
@@ -233,7 +281,7 @@ export function parseNumericExpression(raw: string): ParseResult {
   };
 }
 
-function tokenize(input: string): Token[] {
+function tokenize(input: string, modo: ModoNumero, decimales: number): Token[] {
   const tokens: Token[] = [];
   let index = 0;
 
@@ -246,8 +294,12 @@ function tokenize(input: string): Token[] {
     if (/[0-9.,]/.test(char)) {
       const start = index;
       while (index < input.length && /[0-9.,]/.test(input[index])) index += 1;
-      const literal = normalizeNumericLiteral(input.slice(start, index));
-      tokens.push({ type: "number", value: FixedDecimal.fromCanonical(literal) });
+      const literal = interpretarLiteral(input.slice(start, index), modo, { decimales });
+      if (!literal.ok) {
+        if (literal.motivo === "incompleto") throw new IncompleteExpressionError();
+        throw new RejectedLiteralError(literal.mensaje, literal.motivo, literal.pedirAclarar);
+      }
+      tokens.push({ type: "number", value: FixedDecimal.fromCanonical(literal.canonico) });
       continue;
     }
     if (char === "+" || char === "-" || char === "*" || char === "/") {
@@ -270,46 +322,6 @@ function tokenize(input: string): Token[] {
   return tokens;
 }
 
-function normalizeNumericLiteral(literal: string): string {
-  if (!/[0-9]/.test(literal)) throw new IncompleteExpressionError();
-
-  const commas = count(literal, ",");
-  const dots = count(literal, ".");
-  if (commas > 0 && dots > 0) {
-    const decimalSeparator =
-      literal.lastIndexOf(",") > literal.lastIndexOf(".") ? "," : ".";
-    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
-    if (count(literal, decimalSeparator) !== 1) {
-      throw new InvalidExpressionError();
-    }
-    const [integerPart, fractionPart] = literal.split(decimalSeparator);
-    if (!fractionPart) throw new IncompleteExpressionError();
-    if (!validThousands(integerPart, thousandsSeparator)) {
-      throw new InvalidExpressionError();
-    }
-    return `${integerPart.replaceAll(thousandsSeparator, "") || "0"}.${fractionPart}`;
-  }
-
-  const separator = commas > 0 ? "," : dots > 0 ? "." : null;
-  if (!separator) return literal;
-  const occurrences = count(literal, separator);
-  if (occurrences === 1) {
-    const [integerPart, fractionPart] = literal.split(separator);
-    if (!fractionPart) throw new IncompleteExpressionError();
-    return `${integerPart || "0"}.${fractionPart}`;
-  }
-  if (!validThousands(literal, separator)) throw new InvalidExpressionError();
-  return literal.replaceAll(separator, "");
-}
-
-function validThousands(value: string, separator: string): boolean {
-  const groups = value.split(separator);
-  return (
-    /^[0-9]{1,3}$/.test(groups[0]) &&
-    groups.slice(1).every((group) => /^[0-9]{3}$/.test(group))
-  );
-}
-
 function empty(): DetailedParseResult {
   return {
     value: null,
@@ -326,10 +338,6 @@ function invalid(error: string): DetailedParseResult {
     error,
     status: "invalid",
   };
-}
-
-function count(value: string, needle: string): number {
-  return value.split(needle).length - 1;
 }
 
 function pow10(exponent: number): bigint {

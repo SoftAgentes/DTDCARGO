@@ -420,6 +420,7 @@ export function InvoiceDrawer({
                   id="ivd-fx"
                   name="fx_rate"
                   type="decimal"
+                  modo="tasa"
                   min={0}
                   placeholder={currency === "VES" ? "36.50" : "7.20"}
                   value={fxRate === "" ? null : Number(fxRate)}

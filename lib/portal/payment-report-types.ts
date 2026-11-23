@@ -10,6 +10,7 @@
  */
 import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import type { InvoiceBadgeTone } from "@/lib/portal/portal-types";
+import { parseDinero } from "@/lib/shared/cifras";
 
 // ── Enums (espejo de los enums SQL de la migr 0195) ──
 export type PaymentReportMethod =
@@ -160,14 +161,17 @@ export function validatePaymentReportInput(
 ): { input?: PaymentReportInput; fieldErrors?: PaymentReportFieldErrors } {
   const fieldErrors: PaymentReportFieldErrors = {};
 
-  // Monto: número > 0, máx 2 decimales, tope sano.
-  const amount = Number(String(raw.amount ?? "").replace(",", "."));
-  if (!Number.isFinite(amount) || amount <= 0) {
+  // Monto: número > 0, máx 2 decimales, tope sano. Se lee en formato
+  // 1.234,50 (SDD-0687): «1.250» o «10.000» se piden aclarar, nunca se
+  // aceptan mil veces menores.
+  const leido = parseDinero(String(raw.amount ?? ""));
+  const amount = leido.ok ? leido.valor : Number.NaN;
+  if (!leido.ok && leido.motivo !== "vacio") {
+    fieldErrors.amount = leido.mensaje;
+  } else if (!Number.isFinite(amount) || amount <= 0) {
     fieldErrors.amount = "Escribe el monto que pagaste (mayor a 0).";
   } else if (amount > 9_999_999.99) {
     fieldErrors.amount = "Ese monto es demasiado alto. Revisa la cifra.";
-  } else if (Number(amount.toFixed(2)) !== amount) {
-    fieldErrors.amount = "El monto puede tener máximo 2 decimales.";
   }
 
   // Método.
