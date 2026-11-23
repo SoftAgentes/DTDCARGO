@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "generatedAt": "2026-11-18T00:00:00.000Z",
-  "sourceCommit": "8a2f18c6682460d2782d7b321bc3920f0264f7f2",
+  "sourceCommit": "a6203a55183bb54e3a1585e907599da93c092841",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -528,7 +528,7 @@
         },
         {
           "code": "NUM-01",
-          "version": "1.1",
+          "version": "1.2",
           "path": "docs/governance/policies/num-01.md"
         },
         {
@@ -544,7 +544,7 @@
       ],
       "api": {
         "contractPath": "docs/specs/0185-num-01-expresiones-decimales/spec.md",
-        "summary": "Campo controlado o no controlado con total directo, expresiones básicas, decimal canónico, límites, unidad y moneda."
+        "summary": "Campo controlado o no controlado con total directo, expresiones básicas, decimal canónico, límites, unidad y moneda. Cada campo tiene modo (dinero, tasa, porcentaje o medida, SDD-0687); `type=decimal` lo exige."
       },
       "tokens": [
         "--danger",
@@ -581,6 +581,11 @@
           "type": "unit",
           "path": "__tests__/parse-numeric-expression.test.ts",
           "case": "Precisión decimal, locale por operando, gramática y errores."
+        },
+        {
+          "type": "unit",
+          "path": "lib/shared/__tests__/cifras.test.ts",
+          "case": "SDD-0687: tabla §2 por modo, ambigüedad de tres cifras, negativos e ida y vuelta con valores generados."
         },
         {
           "type": "accessibility",

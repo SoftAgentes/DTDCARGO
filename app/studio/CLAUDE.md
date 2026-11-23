@@ -568,7 +568,7 @@ type="number">` HTML crudo. Razones:
    unidad (`kg` derecha) queda siempre visible · el operador SABE en qué
    campo está sin leer el label cada vez.
 3. **Preview formateado debajo**: muestra el número parseado con
-   separador de miles (`= USD 12,323.00`, `= 235 kg`, `= 15 cajas`) ·
+   punto de miles y coma decimal (`= 12.323,00`, `= 235,00 kg`, `= 15`) ·
    confirma visualmente el valor sin reformatear el input en vivo (que
    rompería la posición del cursor).
 4. **Form submission limpia**: el hidden input con el value canónico
@@ -576,18 +576,23 @@ type="number">` HTML crudo. Razones:
    `cbm=0.95` aunque el operador escribió `0.45+0.32+0.18`.
 5. **Parser seguro**: whitelist regex de operadores permitidos
    (`+ − × ÷ ( )`) · NO usa `eval()` crudo.
-6. **Acepta coma o punto decimal**: tanto `12.5` como `12,5` son
-   válidos · convención mixta de copy-paste de operadores.
+6. **Entrada en formato 1.234,50 por modo (SDD-0687, fases 1 y 2)**: cada
+   campo tiene un modo (dinero, tasa, porcentaje o medida; `type="decimal"`
+   obliga a declararlo con `modo`). En dinero, `1.234` y `1,234` se rechazan y
+   se pide aclarar; `12.50` se acepta como 12,50. En CBM y peso (medida) el
+   punto o la coma son decimales: `2.500` es 2,5 y `2.500,5` es 2500,5.
+   `1,234.50` se rechaza. Un texto rechazado vacía el valor del campo; no
+   deja vivo el anterior. Reglas en `lib/shared/cifras.ts` y NUM-01 v1.2.
 
 ### Tipos disponibles
 
 | `type` | Adornment | Preview |
 |---|---|---|
-| `currency` | `$` (o `€`/`Bs.`) prefijo | `= USD 12,323.00` |
-| `weight` | `kg` sufijo | `= 235 kg` |
-| `volume` | `m³` sufijo | `= 0.95 m³` |
+| `currency` | `$` (o `€`/`Bs.`) prefijo | `= 12.323,00` |
+| `weight` | `kg` sufijo | `= 235,00 kg` |
+| `volume` | `m³` sufijo | `= 0,95 m³` |
 | `count` | (sin sufijo o custom, ej `cajas`) | `= 15` o `= 15 cajas` |
-| `decimal` | (ninguno) | `= 12,323.50` |
+| `decimal` | (ninguno; exige `modo`) | `= 12.323,50` |
 
 ### Patrón del caller
 

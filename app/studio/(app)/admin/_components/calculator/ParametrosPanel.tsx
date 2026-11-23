@@ -218,6 +218,8 @@ export function ParametrosPanel({
                         id={`calc-${key}`}
                         name={key}
                         type={f.kind}
+                        // Multiplicador, km y CBM son medidas; el resto, dinero (SDD-0687).
+                        modo={f.kind === "currency" ? "dinero" : "medida"}
                         unit={f.unit}
                         precision={f.precision}
                         required

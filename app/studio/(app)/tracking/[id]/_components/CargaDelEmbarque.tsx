@@ -334,6 +334,7 @@ function CamposMedidas({
           type="volume"
           // Regla B de Sam (2026-11-18): se guardan 3 decimales; no se teclea un 4.º que la RPC rechace.
           precision={3}
+          decimales={3}
           min={0}
           value={valor.cbm}
           onChange={(v) => onChange({ ...valor, cbm: v })}

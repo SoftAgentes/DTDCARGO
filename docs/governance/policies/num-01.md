@@ -1,10 +1,10 @@
-# NUM-01 v1.1 — Campos numéricos y financieros
+# NUM-01 v1.2 — Campos numéricos y financieros
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — componente canónico; adopción gradual |
-| Aprobación | 2026-07-30 · Sam (founder) · REV-SGE-020 |
-| Base actual | `NumericInput` canonical |
+| Estado | aprobada — componente canónico; adopción gradual · v1.2 pendiente de confirmación de Sam |
+| Aprobación | 2026-07-30 · Sam (founder) · REV-SGE-020 (v1.1). La v1.2 (SDD-0687 §4.1) **no está aprobada**: espera la confirmación de Sam en la PR #790 |
+| Base actual | `NumericInput` canonical · `parseNumero` en `lib/shared/cifras.ts` |
 
 ## Contrato
 
@@ -12,8 +12,12 @@
 - Vacío, cero y no aplicable son estados distintos.
 - La edición acepta formato humano; el servidor recibe un valor canónico y lo valida de nuevo.
 - Dinero usa precisión decimal del dominio; no se calcula con float binario sin estrategia explícita.
-- Separadores de miles/decimal se muestran según locale sin cambiar el valor almacenado.
-- Los separadores se interpretan por literal, nunca normalizando la expresión completa.
+- Separadores de miles/decimal se muestran con punto de miles y coma decimal (`1.234,50`, SDD-0687) sin cambiar el valor almacenado.
+- Los separadores se interpretan por literal, nunca normalizando la expresión completa. Cada campo declara su modo (dinero, tasa, porcentaje o medida) y su precisión; no hay modo por defecto.
+- En dinero, un separador único (punto o coma) seguido de exactamente tres cifras no se interpreta: se rechaza y se pide aclarar (`1.234`, `1,234`, `10,000`). En tasa, solo el punto (`36.500`); la coma es el decimal. En medida y porcentaje, punto o coma son decimales.
+- El formato de EE. UU. (`1,234.50`) se rechaza en todos los modos con el formato esperado.
+- Un valor con más decimales que los del campo se rechaza; no se redondea en silencio.
+- Un texto rechazado no deja vivo el valor que se tecleó antes (`1.23` → `1.234`): el campo queda sin valor hasta que se aclare.
 - Redondeo declara método, momento y precisión; totales no se obtienen sumando valores ya redondeados sin regla.
 - Negativos, porcentajes, máximos, mínimos y cantidades fraccionarias se habilitan por campo, no globalmente.
 - Un campo acepta un total directo o una expresión con `+`, `-`, `*`, `/` y paréntesis.
@@ -28,4 +32,6 @@
 
 Probar vacío/cero, negativo, máximo, precisión, pegado con distintos separadores,
 locale por operando, operador final, conservación del valor anterior, teclado,
-redondeo, error server-side y monto fuera de rango.
+redondeo, error server-side y monto fuera de rango. La tabla de SDD-0687 §2 se
+prueba en los cuatro modos (dinero, tasa, porcentaje y medida), con mutantes
+para los casos ambiguos (`1.234`, `1,234`, `10,000`, `36.500`, `1,234.50`).

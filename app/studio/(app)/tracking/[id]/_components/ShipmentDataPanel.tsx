@@ -89,7 +89,10 @@ export function ShipmentDataPanel({
 
   return (
     <>
-    <form action={formAction} onChange={checkDirty} noValidate>
+    {/* Sin `noValidate` (SDD-0687): un peso o CBM rechazado por NumericInput (por
+        ejemplo «1,234.5») marca el campo inválido y el navegador bloquea el
+        envío; con `noValidate` el oculto viajaba vacío y la acción guardaba null. */}
+    <form action={formAction} onChange={checkDirty}>
       <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
         Datos del envío
       </div>

@@ -242,6 +242,8 @@ export function FieldText({
           id={`tms-${name}`}
           name={name}
           type={numericType ?? "decimal"}
+          // Peso, volumen, cantidad y el decimal de este formulario son medidas (SDD-0687).
+          modo={numericType === "currency" ? "dinero" : "medida"}
           placeholder={placeholder}
           value={value === "" ? null : Number(value)}
           onChange={(v) => onChange(v != null ? String(v) : "")}

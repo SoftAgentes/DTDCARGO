@@ -313,6 +313,7 @@ export function ExpenseDrawer({
                   id="ex-amount"
                   name="amount"
                   type="decimal"
+                  modo="dinero"
                   required
                   min={0}
                   precision={2}
@@ -371,8 +372,8 @@ export function ExpenseDrawer({
                   id="ex-fx"
                   name="fx_rate_visible"
                   type="decimal"
+                  modo="tasa"
                   min={0}
-                  precision={4}
                   placeholder="7.24"
                   value={fxRate}
                   onChange={setFxRate}
