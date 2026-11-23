@@ -31,6 +31,23 @@ MARCA = {
   'LOGO_DARK' => '/dtd-marca/dtdcargo-isologo-reverse.png'
 }.freeze
 
+# Candado (revisión de la #796): antes de escribir nada, el ícono que va a LOGO_THUMBNAIL tiene
+# que existir en el montaje (/srv/chatwoot/marca → /app/public/dtd-marca) y ser el del repo.
+# Si falta o su sha256 no empieza por 0de7890d, sale con 1 sin cambiar ninguna clave.
+require 'digest'
+ICONO_CHAT = '/app/public/dtd-marca/chat-conversaciones.png'
+ICONO_CHAT_SHA256 = '0de7890d'
+unless File.file?(ICONO_CHAT)
+  puts "OUT ABORTA: falta #{ICONO_CHAT}; no se cambió nada"
+  exit 1
+end
+huella = Digest::SHA256.file(ICONO_CHAT).hexdigest
+unless huella.start_with?(ICONO_CHAT_SHA256)
+  puts "OUT ABORTA: #{ICONO_CHAT} tiene sha256 #{huella[0, 8]}…, se esperaba #{ICONO_CHAT_SHA256}…; no se cambió nada"
+  exit 1
+end
+puts "OUT icono del chat verificado (sha256 #{huella[0, 8]}…)"
+
 MARCA.each do |nombre, valor|
   config = InstallationConfig.find_or_initialize_by(name: nombre)
   antes = config.value
