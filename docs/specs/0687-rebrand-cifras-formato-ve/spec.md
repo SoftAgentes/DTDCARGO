@@ -1,10 +1,10 @@
 ---
 sdd: "0687"
 title: "Cifras en formato venezolano: punto de miles y coma decimal, al mostrar y al teclear"
-status: proposed
+status: approved
 author: "Claude Worker (Sam)"
 created: 2026-11-20
-updated: 2026-11-22
+updated: 2026-11-23
 supersedes: null
 superseded_by: null
 related: ["0686", "0688", "0629", "0660", "0667", "0704"]
@@ -267,3 +267,57 @@ Color (SDD-0686), simetría de pantallas (SDD-0688), fechas (SDD-0660), CBM de c
 ## 11. Límites
 
 Todo sale de leer el código; nada se ejecutó. Los conteos son por texto. El comportamiento de `<input type="number">` por navegador y por idioma del equipo no se midió.
+
+## 12. Enmienda: allowlist exacta de las fases 1 y 2 (PR #790)
+
+La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda no cambia el estado de la spec ni sus decisiones. Archivos de la PR, fijados al revisarla (la revisión independiente añadió `lib/studio/freight-carriers/types.ts`, `ShipmentDataPanel.tsx` y sus pruebas, esta enmienda y `app/studio/CLAUDE.md`):
+
+- `.agents/handoffs/2026-11-22-sdd-0687-fases-1-2-entrada.md`
+- `__tests__/parse-numeric-expression.test.ts`
+- `app/studio/(app)/admin/_components/ExchangeRatesSection.tsx`
+- `app/studio/(app)/admin/_components/calculator/ParametrosPanel.tsx`
+- `app/studio/(app)/admin/_components/calculator/TariffDrawer.tsx`
+- `app/studio/(app)/cobranzas/_components/UnidentifiedPaymentDrawer.tsx`
+- `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ChargeDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ConversionDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/CreditNoteDrawer.tsx`
+- `app/studio/(app)/fiscal/_components/WithholdingDrawer.tsx`
+- `app/studio/(app)/gastos/_components/ExpenseDrawer.tsx`
+- `app/studio/(app)/ordenes-compra/_components/PoDrawer.tsx`
+- `app/studio/(app)/proveedores/actions.ts`
+- `app/studio/(app)/tesoreria/_components/BillDrawer.tsx`
+- `app/studio/(app)/tms/_components/TruckDrawer.tsx`
+- `app/studio/(app)/tracking/[id]/__tests__/shipment-data-panel-cifras.test.tsx`
+- `app/studio/(app)/tracking/[id]/_components/CargaDelEmbarque.tsx`
+- `app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx`
+- `app/studio/CLAUDE.md`
+- `app/studio/_components/ui/NumericInput.test.tsx`
+- `app/studio/_components/ui/NumericInput.tsx`
+- `docs/governance/README.md`
+- `docs/governance/components/numeric-input.json`
+- `docs/governance/generated/component-registry.json`
+- `docs/governance/generated/governance-capsule.json`
+- `docs/governance/policies/num-01.md`
+- `docs/specs/0687-rebrand-cifras-formato-ve/spec.md`
+- `lib/portal/__tests__/cotizacion-request.test.ts`
+- `lib/portal/__tests__/payment-reports.test.ts`
+- `lib/portal/cotizacion-request.ts`
+- `lib/portal/payment-report-types.ts`
+- `lib/shared/__tests__/cifras.test.ts`
+- `lib/shared/cifras.ts`
+- `lib/studio/__tests__/freight-carriers-types.test.ts`
+- `lib/studio/__tests__/fx-rates.test.ts`
+- `lib/studio/__tests__/scorecard-types.test.ts`
+- `lib/studio/exchange-rates-types.ts`
+- `lib/studio/freight-carriers/types.ts`
+- `lib/studio/price-books/__tests__/price-books.test.ts`
+- `lib/studio/price-books/price-book-types.ts`
+- `lib/studio/proveedores/scorecard-types.ts`
+- `lib/studio/rate-snapshots/__tests__/types.test.ts`
+- `lib/studio/rate-snapshots/types.ts`
+- `lib/studio/util/parse-numeric-expression.ts`
+
+Regla que fija la revisión (H1): en un campo de dinero con tres o más decimales (el precio por ft³ lleva cuatro) la coma de tres cifras es decimal (`3,498`), pero el punto sigue pidiendo aclarar (`3.498`, `1.250`): el sistema nunca adivina un monto. El valor de máquina que el campo manda oculto al servidor se lee con `parseMaquina`, que no es la regla de lo que teclea una persona.
+
+No cambia lo que se muestra en pantallas, PDF ni exportes (fase 3 en adelante) ni el color (SDD-0686). NUM-01 v1.2 queda **pendiente de confirmación de Sam**: no consta su aprobación por escrito.

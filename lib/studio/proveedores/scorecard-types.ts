@@ -12,6 +12,7 @@
  */
 
 import type { BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { parseDinero } from "@/lib/shared/cifras";
 
 // ── Reclamo al proveedor · enums ────────────────────────────────
 export const SUPPLIER_CLAIM_KINDS = [
@@ -315,16 +316,19 @@ export function validateSupplierClaimInput(raw: {
     fieldErrors.kind = "Elige el tipo de reclamo.";
   }
 
-  // Monto advisory: ≥ 0, coma o punto decimal, opcional (default 0).
+  // Monto advisory: ≥ 0, en formato 1.234,50, opcional (default 0).
+  // SDD-0687: «1.250» se pide aclarar, no se guarda como 1,25.
   let amountUsd = 0;
   const amtRaw =
     raw.amountUsd == null ? "" : String(raw.amountUsd).trim();
   if (amtRaw) {
-    const n = Number(amtRaw.replace(",", "."));
-    if (!Number.isFinite(n) || n < 0) {
+    const leido = parseDinero(amtRaw);
+    if (!leido.ok) {
+      fieldErrors.amountUsd = leido.mensaje;
+    } else if (leido.valor < 0) {
       fieldErrors.amountUsd = "El monto debe ser un número válido (o vacío).";
     } else {
-      amountUsd = Math.round(n * 100) / 100;
+      amountUsd = leido.valor;
     }
   }
 

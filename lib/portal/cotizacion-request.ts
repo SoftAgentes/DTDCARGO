@@ -22,6 +22,7 @@ import {
   type ShipmentService,
 } from "@/lib/shared/shipment-public";
 import type { QuoteStatus } from "@/lib/studio/quote-types";
+import { parseMedida } from "@/lib/shared/cifras";
 
 /** Los servicios núcleo que el cliente puede pedir cotizar (los 5 del enum). */
 export const COTIZACION_SERVICES: readonly ShipmentService[] = SHIPMENT_SERVICES;
@@ -65,11 +66,12 @@ function trimOrNull(v: unknown): string | null {
   return t.length > 0 ? t : null;
 }
 
+/** CBM, peso y bultos: modo medida, punto o coma decimal (SDD-0687, decisión 2 A). */
 function num(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v >= 0 ? v : null;
   if (typeof v === "string" && v.trim() !== "") {
-    const n = Number(v.trim().replace(",", "."));
-    return Number.isFinite(n) && n >= 0 ? n : null;
+    const leido = parseMedida(v);
+    return leido.ok && leido.valor >= 0 ? leido.valor : null;
   }
   return null;
 }

@@ -208,15 +208,26 @@ describe("máquina de estados del reclamo", () => {
 describe("validateSupplierClaimInput — manual, sin Zod", () => {
   const supplierCnId = "11111111-1111-1111-1111-111111111111";
 
-  it("acepta un reclamo válido y normaliza el monto (coma decimal)", () => {
+  it("acepta el monto en formato 1.234,50 (SDD-0687)", () => {
+    // Antes «1.234,50» se volvía «1.234.50» → NaN → error; ahora es el formato.
     const { input, fieldErrors } = validateSupplierClaimInput({
       supplierCnId,
       kind: "dano",
-      amountUsd: "1.234,50", // no debería colar el separador de miles
+      amountUsd: "1.234,50",
       description: "Caja rota",
     });
-    // "1.234,50".replace(",",".") = "1.234.50" → Number → NaN → error.
-    expect(fieldErrors?.amountUsd).toBeDefined();
+    expect(fieldErrors).toBeUndefined();
+    expect(input?.amountUsd).toBe(1234.5);
+  });
+
+  it.each(["1.250", "10.000", "1,234"])("pide aclarar «%s» en vez de guardarlo mil veces menor", (amountUsd) => {
+    const { input, fieldErrors } = validateSupplierClaimInput({
+      supplierCnId,
+      kind: "dano",
+      amountUsd,
+      description: "Caja rota",
+    });
+    expect(fieldErrors?.amountUsd).toMatch(/se puede leer de dos maneras/);
     expect(input).toBeUndefined();
   });
 

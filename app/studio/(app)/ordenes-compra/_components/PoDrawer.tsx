@@ -729,6 +729,7 @@ export function NewPoDrawer({
                 />
                 <NumericInput
                   type="decimal"
+                  modo="medida"
                   min={0}
                   placeholder="Cant."
                   aria-label={`Cantidad del ítem ${idx + 1}`}

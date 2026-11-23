@@ -144,8 +144,31 @@ describe("validatePaymentReportInput", () => {
   });
 
   it("rechaza más de 2 decimales", () => {
-    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "10.999" }, TODAY);
+    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "10,999" }, TODAY);
     expect(fieldErrors?.amount).toBeTruthy();
+    const otro = validatePaymentReportInput({ ...base, amount: "1250,505" }, TODAY);
+    expect(otro.fieldErrors?.amount).toMatch(/máximo 2 decimales/);
+  });
+
+  // SDD-0687 §2.2: antes «1.250» entraba como 1,25 y «10.000» como 10.
+  it.each(["1.250", "10.000", "1.234", "10.999"])("pide aclarar «%s» y no lo acepta mil veces menor", (amount) => {
+    const { input, fieldErrors } = validatePaymentReportInput({ ...base, amount }, TODAY);
+    expect(input).toBeUndefined();
+    expect(fieldErrors?.amount).toMatch(/se puede leer de dos maneras/);
+  });
+
+  it.each([
+    ["1.250,50", 1250.5],
+    ["1250,50", 1250.5],
+    ["12.50", 12.5],
+  ])("acepta «%s» como %s", (amount, esperado) => {
+    const { input } = validatePaymentReportInput({ ...base, amount }, TODAY);
+    expect(input?.amount).toBe(esperado);
+  });
+
+  it("rechaza el formato de EE. UU. «1,250.50» con el formato esperado", () => {
+    const { fieldErrors } = validatePaymentReportInput({ ...base, amount: "1,250.50" }, TODAY);
+    expect(fieldErrors?.amount).toMatch(/1\.234,50/);
   });
 
   it("rechaza método fuera del enum", () => {
