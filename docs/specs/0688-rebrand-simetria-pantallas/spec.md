@@ -154,6 +154,20 @@ Una fase, una rama, una PR. **Las 55 pantallas no entran juntas.** Cada fase fij
 - `app/studio/CLAUDE.md` (secciones «Estándar de botones» y «Drawers»), `docs/design/studio/_norte/BRAND-DECISIONS.md` (BD-077), `BRAND.md` (solo el puntero a BD-077 en la línea de botones)
 - `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
 
+### Fase 2 · allowlist
+
+Aprobada por el Director el 2026-11-23. Sin paneles, tablas, botones, Portal ni migraciones.
+
+- **Base:** `app/studio/studio.css`, `app/studio/tokens.css`, `app/studio/layout.tsx` (script anti-FOUC), `app/studio/_components/appearance-prefs.ts`
+- **Piezas nuevas:** `app/studio/_components/ui/EncabezadoPagina.tsx` (+ prueba), `docs/governance/components/encabezado-pagina.json` (CMP-01, `proposed`), `app/studio/_components/__tests__/estilos-texto-contract.test.ts`
+- **Tres vistas:** `app/studio/(app)/_components/DensityToggle.tsx` (selector «Vista», con su prueba), `admin/_components/AppearanceSection.tsx` y `apariencia-predeterminada.test.ts`
+- **Lo que se ve siempre:** el título del inicio de sesión (`app/studio/(auth)/login/LoginForm.tsx`). El menú lateral y la barra superior quedan sin migrar a los estilos nombrados: sus tamaños en píxeles (10 a 14) pasarían a seguir la vista y cambiarían la vista por defecto; eso lo decide Sam con los valores a la vista.
+- **Muestras:** `calendario/page.tsx`, `tracking/page.tsx` y `dashboard/page.tsx`
+- **Pruebas ajustadas por consecuencia** (la clase `.studio-densidad` ya no existe): `StudioSidebar-tooltip.test.tsx` y `claridad-controles-contract.test.ts`
+- **Documentos:** esta spec y `.agents/handoffs/0688-rebrand-simetria-pantallas.md`
+
+**Cómo quedó la vista (§11.5):** `data-density` vale `normal` (sin atributo; los valores de `:root`), `compact` (por defecto) o `ultra`. «Amplia» (`spacious`) se retira y lo guardado como `spacious` se lee como Normal. Los once tamaños de texto son variables `--t-*` en `tokens.css`, con valores **provisionales** hasta que Sam los decida viendo.
+
 ## 6. Aceptación
 
 Cada regla se vigila con un contrato que mide comportamiento o estructura, con piso y con mutante (`docs/engineering/project-rules.md`, «Contratos que miden el comportamiento»).

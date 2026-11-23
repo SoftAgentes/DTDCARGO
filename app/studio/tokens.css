@@ -185,6 +185,26 @@
   --sb-item-y: 12px;
   --kpi-fs: 30px;
 
+  /* ── Estilos de texto con nombre · SDD-0688 fase 2 (VIS-02 §3) ─────────
+     Once roles. Los valores de las tres vistas viven SOLO aquí (Normal en
+     :root, Compacta y Súper compacta en los bloques [data-density] de abajo).
+     PROVISIONALES: Sam los decide viendo (SDD-0688 §11.5); se ajustan cambiando
+     estos tokens, sin tocar componentes. Piso: 12 px en toda la lectura. */
+  --t-display: 36px;
+  --t-pantalla: 30px;
+  --t-seccion: 20px;
+  --t-tarjeta: 16px;
+  --t-cuerpo: 14px;
+  --t-cuerpo-compacto: 13px;
+  --t-label: 13px;
+  --t-eyebrow: 12px;
+  --t-caption: 12px;
+  --t-dato: 14px;
+  --t-feedback: 13px;
+  --t-piso: 12px;       /* mínimo de cualquier texto de lectura, en las tres vistas */
+  --fila-h: 44px;       /* alto de fila de lista o tabla */
+  --objetivo-min: 32px; /* nada que se oprima mide menos (SDD-0603) */
+
   /* ── Typography ────────────────────────────────────────── */
   /* SISTEMA (Norte): Nunito Sans (cuerpo) + Sora (títulos). El switch de marca
      vive en `.studio-sys` (app/globals.css), que dentro del Studio redefine
@@ -470,7 +490,10 @@
   }
 }
 
-/* ── Density modifiers ────────────────────────────────────── */
+/* ── Vistas · SDD-0688 fase 2 (§11.5) ─────────────────────────
+   Normal = sin atributo (los valores de :root). Compacta es la de por defecto y
+   Súper compacta baja espacios y títulos; ninguna baja del piso de 12 px ni de
+   32 px en lo que se oprime. */
 [data-density="compact"] {
   --s-3: 8px;
   --s-4: 12px;
@@ -480,14 +503,36 @@
   --topbar-h: 52px;
   --sb-item-y: 8px;
   --kpi-fs: 24px;
+  --t-display: 32px;
+  --t-pantalla: 26px;
+  --t-seccion: 18px;
+  --t-tarjeta: 15px;
+  --t-cuerpo: 13px;
+  --t-cuerpo-compacto: 12px;
+  --t-label: 12px;
+  --t-dato: 13px;
+  --t-feedback: 12px;
+  --fila-h: 36px;
 }
-[data-density="spacious"] {
-  --s-3: 16px;
-  --s-4: 20px;
-  --s-5: 24px;
-  --s-6: 32px;
-  --s-8: 40px;
-  --topbar-h: 68px;
+[data-density="ultra"] {
+  --s-3: 6px;
+  --s-4: 10px;
+  --s-5: 12px;
+  --s-6: 14px;
+  --s-8: 18px;
+  --topbar-h: 44px;
+  --sb-item-y: 6px;
+  --kpi-fs: 20px;
+  --t-display: 29px;
+  --t-pantalla: 24px;
+  --t-seccion: 16px;
+  --t-tarjeta: 14px;
+  --t-cuerpo: 12px;
+  --t-cuerpo-compacto: 12px;
+  --t-label: 12px;
+  --t-dato: 12px;
+  --t-feedback: 12px;
+  --fila-h: 32px;
 }
 
 /* ── Base reset ───────────────────────────────────────────── */

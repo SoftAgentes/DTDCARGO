@@ -12,6 +12,7 @@
  */
 
 import { formatCbm } from "@/lib/shared/cbm";
+import { EncabezadoPagina } from "../../_components/ui/EncabezadoPagina";
 import { createClient } from "@/lib/db/server";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
@@ -328,16 +329,21 @@ export default async function DashboardPage() {
           }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div className="studio-eyebrow" style={{ marginBottom: 10, color: "var(--ink-side)" }}>
-            {`OPERACIÓN · ${eyebrowDateVE(now)}`}
-          </div>
-          <h1 className="studio-display" style={{ fontSize: 30, margin: "0 0 var(--s-2)", color: "var(--ink-side-strong)" }}>
-            {greeting}, {subject}.
-          </h1>
-          <p style={{ font: "400 14px/1.5 var(--f-sans)", color: "var(--ink-side)", margin: 0 }}>
-            Operando como <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
-            {" · "}Moneda base: <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.base_currency ?? "USD"}</strong>.
-          </p>
+          <EncabezadoPagina
+            tono="navy"
+            eyebrow={`OPERACIÓN · ${eyebrowDateVE(now)}`}
+            titulo={
+              <>
+                {greeting}, {subject}.
+              </>
+            }
+            subtitulo={
+              <>
+                Operando como <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.display_name ?? "DTD Cargo"}</strong>
+                {" · "}Moneda base: <strong style={{ color: "var(--ink-side-strong)" }}>{tenant?.base_currency ?? "USD"}</strong>.
+              </>
+            }
+          />
         </div>
       </div>
 

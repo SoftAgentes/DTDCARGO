@@ -184,6 +184,96 @@
   margin: 0;
 }
 
+/* Estilos de texto con nombre · SDD-0688 fase 2 (VIS-02 §3).
+   Once roles; sus tamaños son los --t-* de tokens.css, que cambian con la vista.
+   Un h1 por pantalla: el título de pantalla va en `.t-pantalla`. */
+.t-display {
+  font-family: var(--f-display);
+  font-size: var(--t-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  margin: 0;
+}
+.t-pantalla {
+  font-family: var(--f-display);
+  font-size: var(--t-pantalla);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0;
+}
+.t-seccion {
+  font-family: var(--f-display);
+  font-size: var(--t-seccion);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0;
+}
+.t-tarjeta {
+  font: 700 var(--t-tarjeta) / 1.25 var(--f-sans);
+  margin: 0;
+}
+.t-cuerpo {
+  font: 400 var(--t-cuerpo) / 1.5 var(--f-sans);
+}
+.t-cuerpo-compacto {
+  font: 400 var(--t-cuerpo-compacto) / 1.4 var(--f-sans);
+}
+.t-label {
+  font: 600 var(--t-label) / 1.3 var(--f-sans);
+}
+.t-eyebrow {
+  font: 600 var(--t-eyebrow) / 1 var(--f-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.t-caption {
+  font: 400 var(--t-caption) / 1.35 var(--f-sans);
+  color: var(--ink-soft);
+}
+.t-dato {
+  font: 500 var(--t-dato) / 1.3 var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.t-feedback {
+  font: 600 var(--t-feedback) / 1.35 var(--f-sans);
+}
+
+/* Encabezado de página · SDD-0688 fase 2: un margen, un tamaño. */
+.studio-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+.studio-encabezado[data-tono="navy"] {
+  margin-bottom: 0;
+}
+.studio-encabezado .studio-eyebrow {
+  font-size: var(--t-eyebrow);
+}
+.studio-encabezado__texto {
+  min-width: 0;
+}
+.studio-encabezado__titulo {
+  color: var(--ink);
+  margin: var(--s-2) 0 var(--s-3);
+}
+.studio-encabezado__sub {
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 60ch;
+}
+.studio-encabezado__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
 /* Eyebrow con guión wine-soft a la izquierda (eco del .eyebrow del sitio público) */
 .studio-eyebrow {
   font: 600 var(--studio-fs-caption) / 1 var(--f-sans);
@@ -508,8 +598,7 @@
 /* Controles de icono de la barra superior y cierre de paneles: contorno, como
    cualquier otro control (SDD-0603). */
 .studio-icono-btn,
-.studio-cerrar-panel,
-.studio-densidad {
+.studio-cerrar-panel {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -526,14 +615,11 @@
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.studio-cerrar-panel,
-.studio-densidad {
+.studio-cerrar-panel {
   padding: 0 var(--s-3);
 }
 .studio-icono-btn:hover,
-.studio-cerrar-panel:hover:not(:disabled),
-.studio-densidad:hover,
-.studio-densidad[aria-pressed="true"] {
+.studio-cerrar-panel:hover:not(:disabled) {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--ink-inv);
@@ -752,9 +838,36 @@
     transform: none;
   }
 }
+/* Selector de vista (SDD-0688 fase 2): tres opciones juntas, la elegida rellena. */
+.studio-vista {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--r-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.studio-vista__op {
+  min-width: var(--objetivo-min);
+  height: var(--objetivo-min);
+  padding: 0 var(--s-3);
+  font: 700 var(--t-piso) / 1 var(--f-sans);
+  color: var(--ink);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.studio-vista__op + .studio-vista__op {
+  border-left: 1px solid var(--border);
+}
+.studio-vista__op:hover,
+.studio-vista__op[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--ink-inv);
+}
 @media (max-width: 767px) {
-  .studio-densidad__texto {
-    display: none;
+  .studio-vista__op {
+    padding: 0 var(--s-2);
   }
 }
 
@@ -2534,8 +2647,7 @@ a.studio-tab {
   padding-block: var(--s-2);
 }
 [data-density="compact"] .studio-icono-btn,
-[data-density="compact"] .studio-cerrar-panel,
-[data-density="compact"] .studio-densidad {
+[data-density="compact"] .studio-cerrar-panel {
   min-width: 32px;
   height: 32px;
   font-size: 13px;
