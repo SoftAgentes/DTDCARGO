@@ -51,7 +51,7 @@ export async function searchClientsForMergeAction(
 
   const { data, error } = await supabase.rpc("client_search_for_merge", { p_q: term });
   if (error) {
-    console.error("[searchClientsForMergeAction]", error.message);
+    console.error("[searchClientsForMergeAction]", error.code ?? "sin código");
     return { hits: [], error: "No se pudo completar la búsqueda." };
   }
   return { hits: parseSearchRows(data) };
@@ -72,7 +72,7 @@ export async function previewMergeAction(
     p_merged_id: mergedId,
   });
   if (error) {
-    console.error("[previewMergeAction]", error.message);
+    console.error("[previewMergeAction]", error.code ?? "sin código");
     return { error: "No se pudo armar la vista previa. Revisa que las dos fichas sigan activas." };
   }
   const preview = parsePreview(data);
@@ -128,7 +128,8 @@ export async function mergeClientsManualAction(input: {
       error.message.includes("No existe") ||
       error.message.includes("aliado") ||
       error.message.startsWith("audit: reason");
-    console.error("[mergeClientsManualAction]", error.message);
+    // Solo el código: el mensaje de la RPC puede llevar el Shipping Mark.
+    console.error("[mergeClientsManualAction]", error.code ?? "sin código");
     return {
       error: conocido
         ? error.message

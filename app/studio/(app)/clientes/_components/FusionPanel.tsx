@@ -20,6 +20,7 @@ import {
   coincidenciasLegibles,
   confirmacionCoincide,
   errorDeMotivo,
+  portalLegible,
   MOTIVO_MAX,
   type MergePreview,
   type MergeSide,
@@ -310,7 +311,7 @@ function Lado({
             rotulo="Creada"
             valor={lado.createdAt ? new Date(lado.createdAt).toLocaleDateString("es-VE") : null}
           />
-          <Dato rotulo="Portal" valor={lado.hasPortal ? "Con acceso" : "Sin acceso"} />
+          <Dato rotulo="Portal" valor={portalLegible(lado.portalStatus)} />
           <Dato rotulo="Embarques" valor={String(lado.counts.shipments)} />
           <Dato rotulo="Facturas" valor={String(lado.counts.invoices)} />
         </dl>

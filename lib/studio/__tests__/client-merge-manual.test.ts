@@ -12,6 +12,7 @@ import {
   errorDeMotivo,
   parsePreview,
   parseSearchRows,
+  portalLegible,
   rolPuedeFusionar,
   type MergeWarnings,
 } from "../client-merge-manual";
@@ -26,6 +27,7 @@ const LADO = (id: string, markbox: string) => ({
   phone: "0424-0000000",
   createdAt: "2026-06-08T00:00:00Z",
   hasPortal: false,
+  portalStatus: null,
   counts: { shipments: 2, invoices: 1, addresses: 0, conversations: 3 },
 });
 
@@ -87,6 +89,7 @@ describe("parsePreview (falla cerrado)", () => {
     ["coincidencia como texto", { ...PREVIEW, matches: { ...PREVIEW.matches, name: "true" } }],
     ["ok no booleano", { ...PREVIEW, ok: "si" }],
     ["bandera como texto", { ...PREVIEW, survivor: { ...LADO("a", "DTD-0901"), hasPortal: "true" } }],
+    ["estado de portal desconocido", { ...PREVIEW, survivor: { ...LADO("a", "DTD-0901"), portalStatus: "otro" } }],
     ["no es objeto", null],
   ])("rechaza: %s", (_n, data) => {
     expect(parsePreview(data)).toBeNull();
@@ -150,5 +153,14 @@ describe("rolPuedeFusionar (Sam, 2026-11-23)", () => {
   it("solo admin, operaciones y comercial", () => {
     expect(["admin", "operations", "commercial"].every(rolPuedeFusionar)).toBe(true);
     expect(["accounting", "support", "marketing", "warehouse", "", null, undefined].some(rolPuedeFusionar)).toBe(false);
+  });
+});
+
+describe("portalLegible", () => {
+  it("una invitación sin usar no se dice «Con acceso»", () => {
+    expect(portalLegible("active")).toBe("Con acceso");
+    expect(portalLegible("invited")).toMatch(/Invitado/);
+    expect(portalLegible("revoked")).toMatch(/revocado/);
+    expect(portalLegible(null)).toBe("Sin acceso");
   });
 });

@@ -24,7 +24,7 @@ const CONTRACT = resolve(ROOT, "supabase/tests/0572_fusion_manual_clientes.test.
 const M0572 = "0572_fusion_manual_clientes.sql";
 const FILE_0572 = readFileSync(resolve(ROOT, "supabase/migrations", M0572), "utf8").replace(/\r\n/g, "\n");
 const SLOW = 300_000;
-const ASERCIONES = 55;
+const ASERCIONES = 58;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
 const FALSE = /^(f|false|off|n|no|0)$/i;
@@ -137,7 +137,7 @@ describe("0572 · búsqueda y fusión manual de clientes (contrato en PGlite)", 
     ["la vista previa calla que nadie queda con acceso",
       "'portalLost', v_s_fila and (not v_s_activo) and v_m_activo,", "'portalLost', false,",
       "debía avisar que NADIE queda con acceso"],
-    ["la vista previa da por «mudado» un acceso que se revoca",
+    ["portalMoved mira si el acceso está activo y no si hay fila (se enciende junto con portalLost)",
       "'portalMoved', (not v_s_fila) and v_m_activo,", "'portalMoved', (not v_s_activo) and v_m_activo,",
       "debía avisar que NADIE queda con acceso"],
     ["dos fichas sin nada en común pasan sin aviso",
@@ -147,7 +147,19 @@ describe("0572 · búsqueda y fusión manual de clientes (contrato en PGlite)", 
       "perform public.assert_studio_role(array['admin', 'operations', 'commercial']);",
       "perform public.assert_studio_role(array['admin', 'operations', 'commercial', 'accounting', 'support']);",
       "accounting debía poder buscar pero no fusionar"],
-    ["la búsqueda olvida los códigos de fichas fusionadas",
+    ["comercial se queda sin fusionar",
+      "perform public.assert_studio_role(array['admin', 'operations', 'commercial']);",
+      "perform public.assert_studio_role(array['admin', 'operations']);",
+      "comercial debía poder fusionar"],
+    ["operaciones se queda sin fusionar",
+      "perform public.assert_studio_role(array['admin', 'operations', 'commercial']);",
+      "perform public.assert_studio_role(array['admin', 'commercial']);",
+      "operaciones debía poder fusionar"],
+    ["una invitación sin usar cuenta como acceso",
+      "where u.client_id = c.id and u.status = 'active'),",
+      "where u.client_id = c.id and u.status <> 'revoked'),",
+      "una invitación sin usar no es «con acceso»"],
+    ["la búsqueda solo mira el código vigente (olvida renombrados y fusionados)",
       "from pg_catalog.unnest(public.client_codigos_familia(c.id, v_tenant)) as cod",
       "from pg_catalog.unnest(array[c.markbox]) as cod",
       "un código ANTERIOR debía llevar a la ficha vigente"],

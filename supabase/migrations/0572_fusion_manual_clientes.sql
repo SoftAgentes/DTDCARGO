@@ -308,8 +308,11 @@ begin
              'email', nullif(pg_catalog.btrim(coalesce(c.email, '')), ''),
              'phone', nullif(pg_catalog.btrim(coalesce(c.phone, '')), ''),
              'createdAt', c.created_at,
+             -- 'active' entra al portal; 'invited' todavía no entró; 'revoked' ya no.
+             -- NULL: sin fila. `hasPortal` es solo el acceso que de verdad entra.
+             'portalStatus', (select u.status from public.client_users u where u.client_id = c.id limit 1),
              'hasPortal', exists (select 1 from public.client_users u
-                                   where u.client_id = c.id and u.status <> 'revoked'),
+                                   where u.client_id = c.id and u.status = 'active'),
              'counts', pg_catalog.jsonb_build_object(
                'shipments', (select pg_catalog.count(*) from public.shipments x
                               where x.tenant_id = v_tenant

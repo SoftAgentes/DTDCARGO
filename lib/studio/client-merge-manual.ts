@@ -32,7 +32,10 @@ export type MergeSide = {
   email: string | null;
   phone: string | null;
   createdAt: string | null;
+  /** `true` solo si el acceso está activo: una invitación sin usar no cuenta. */
   hasPortal: boolean;
+  /** Estado de la fila del portal, o `null` si no tiene. */
+  portalStatus: "active" | "invited" | "revoked" | null;
   counts: { shipments: number; invoices: number; addresses: number; conversations: number };
 };
 
@@ -136,6 +139,9 @@ function parseSide(raw: unknown): MergeSide | null {
     return null;
   }
   if (typeof raw.hasPortal !== "boolean") return null;
+  // Un estado que no se conoce invalida la vista previa: no se adivina.
+  const estado = raw.portalStatus ?? null;
+  if (estado !== null && estado !== "active" && estado !== "invited" && estado !== "revoked") return null;
   return {
     id,
     markbox,
@@ -145,6 +151,7 @@ function parseSide(raw: unknown): MergeSide | null {
     phone: texto(raw.phone),
     createdAt: texto(raw.createdAt),
     hasPortal: raw.hasPortal,
+    portalStatus: estado,
     counts: { shipments, invoices, addresses, conversations },
   };
 }
@@ -191,6 +198,14 @@ export function parsePreview(data: unknown): MergePreview | null {
       nothingInCommon: w.nothingInCommon,
     },
   };
+}
+
+/** Cómo se dice el estado del portal de una ficha. */
+export function portalLegible(estado: MergeSide["portalStatus"]): string {
+  if (estado === "active") return "Con acceso";
+  if (estado === "invited") return "Invitado, aún sin entrar";
+  if (estado === "revoked") return "Acceso revocado";
+  return "Sin acceso";
 }
 
 /** «documento», «correo»…: en qué coinciden las dos fichas. Vacío si en nada. */

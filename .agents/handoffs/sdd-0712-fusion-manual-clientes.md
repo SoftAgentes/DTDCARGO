@@ -22,16 +22,25 @@
   (incluyen códigos anteriores) y avisos: nada en común, solo por nombre, acceso al portal que se revoca, se pierde
   o se muda, documento/correo/teléfono que no pasan. ⇄ invierte cuál se queda.
 - Para fusionar: motivo (queda en auditoría) y escribir el Shipping Mark que se anula.
+- El panel dice el estado del portal de cada ficha: con acceso, invitado sin entrar, revocado o sin acceso.
+- Los errores de las RPC se registran solo con su código, sin el mensaje (puede llevar el Shipping Mark).
 - «Códigos anteriores» de la ficha suma los códigos de fichas fusionadas.
 
 ## Evidencia (PASÓ / FALLÓ / NO EJECUTADO)
 
-- Contrato SQL de la 0572 en PGlite (cadena real 0341→0351→0358→0361→0572): PASÓ, 14/14: verde con 55 aserciones,
-  rojo sin la 0572 y 12 mutantes que mueren con su aserción (entre ellos: contabilidad y soporte fusionan, la búsqueda
-  sin tenant, aliados, comodines, el aviso de portal que calla, códigos de fichas fusionadas).
+- Contrato SQL de la 0572 en PGlite (cadena real 0341→0351→0358→0361→0572): PASÓ, 17/17: verde con 58 aserciones,
+  rojo sin la 0572 y 15 mutantes que mueren con su aserción (entre ellos: contabilidad y soporte fusionan, comercial
+  u operaciones dejan de fusionar, una invitación sin usar cuenta como acceso, la búsqueda sin tenant, aliados,
+  comodines, el aviso de portal que calla, códigos renombrados y de fichas fusionadas).
+- El mismo contrato en Postgres real: PASÓ en el CI («Contratos SQL en Postgres desechable») sobre f295f992b.
+- Espera declarada: `supabase/migrations-baseline.json › pendingBelowCutoff` y
+  `supabase/pending-migration-symbol-declarations.json`. Gate de símbolos: 0 ROJO, 1 AMARILLO (las tres RPC de la
+  0572 en `clientes/merge-actions.ts`).
+- `rbac-actions-guard.test.ts`: PASÓ. Inventario 503 → 505; EXCEPCIONES 24 → 26 (búsqueda y vista previa: solo leen,
+  `moduleViewDenial` al tope, RPC `stable`), aceptado por Dir_DTD.
 - `tsc --noEmit`, `eslint` de lo tocado, pruebas puras y estática de la migración, archivos `contract`: PASÓ.
   `pnpm sdd:check`, `pnpm docs:check`: PASÓ.
-- Contrato en Postgres desechable (Docker): NO EJECUTADO en la PC; lo corre el CI («Contratos SQL»).
+- Contrato en Postgres desechable (Docker): NO EJECUTADO en la PC; corre en el CI.
 - `pnpm verify` completo: NO EJECUTADO (el portón es el CI).
 - Interfaz en navegador y pruebas de componente: NO EJECUTADO. Se revisó por lectura con `/ui-check`.
 - Auditoría: leído el contrato real (0267/0294), el evento `client_merge_manual` lo cumple. El contrato usa dobles
