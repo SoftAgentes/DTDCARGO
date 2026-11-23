@@ -89,4 +89,7 @@ en `main`; mientras tanto vive en el cuerpo de la PR.
   confirmación de Sam»; cápsula y registro regenerados.
 - Menores: handoff actualizado; la trampa del peso venezolano (`2.500` = 2,5; `2.500,5` = 2500,5) anotada en la PR y
   en `app/studio/CLAUDE.md`; enmienda con la allowlist en la spec (§12, sin tocar su estado).
-- Validación de esta tanda: tsc, eslint, vitest y mutantes NO EJECUTADOS todavía (esperan el turno de PC de Dir_DTD).
+- Validación de esta tanda (turno de PC, 2026-11-23, cabeza 0129ad7ad con #786 mergeada): tsc PASÓ; eslint de 37
+  archivos PASÓ; vitest 351 archivos / 6.134 pruebas PASÓ; mutantes 12 de 12 rompen pruebas (los 9 anteriores más B1
+  en dinero, B1 en servidor y B2 `noValidate`); governance/components check PASÓ. `pnpm verify` y prueba manual: NO
+  EJECUTADOS. Falta la revisión independiente de B1-B3 (Dir_DTD).
