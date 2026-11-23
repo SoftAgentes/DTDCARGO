@@ -94,5 +94,9 @@ en `main`; mientras tanto vive en el cuerpo de la PR.
   archivos PASÓ; vitest 351 archivos / 6.134 pruebas PASÓ; mutantes 12 de 12 rompen pruebas (los 9 anteriores más B1
   en dinero, B1 en servidor y B2 `noValidate`); governance/components check PASÓ. `pnpm verify` y prueba manual: NO
   EJECUTADOS. Falta la revisión independiente de B1-B3 (Dir_DTD).
-- **H1** (re-revisión de b5c9881b7): corregido en un commit posterior (ver B1). tsc, eslint, vitest y mutantes de esa
-  corrección: NO EJECUTADOS todavía (esperan el turno de PC); sin push hasta el verde.
+- **H1** (re-revisión de b5c9881b7): corregido (ver B1). Validación con turno de PC (2026-11-23, cabeza 86f5beb11,
+  #786, #788 y 0686 fase 3b2a mergeadas): tsc, eslint, governance/components/docs check PASÓ; vitest 351 archivos:
+  348 pasaron y 3 fallaron por tiempo agotado bajo carga (`oficina-paso3b`, `solo-superadmin-crea-admin.migration`,
+  `PermissionsSection`; ajenos a esta PR, pasan solos 76 de 76); 6.153 pruebas PASÓ. Mutantes: los de H1 (relajar el
+  punto; coma ambigua con 4 decimales; servidor sin vía de máquina) rompen pruebas; `parseMaquina` aceptando coma es
+  equivalente (`Number("3,498")` es NaN). `pnpm verify` y prueba manual: NO EJECUTADOS.
