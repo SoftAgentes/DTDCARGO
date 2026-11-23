@@ -20,13 +20,15 @@ describe("CMP-01 component registry", () => {
     // entra con SDD-0263 en estado `proposed` (sin consumidores todavía).
     // `aviso` entra con SDD-0628 en estado `proposed` (consumidor: ErrorAlert).
     // `date-field` entra con SDD-0660 en estado `proposed` (consumidores:
-    // Conversaciones y Nómina).
-    expect(sources).toHaveLength(7);
+    // Conversaciones y Nómina). `encabezado-pagina` entra con SDD-0688 fase 2 en
+    // estado `proposed` (consumidores: calendario, tracking y dashboard).
+    expect(sources).toHaveLength(8);
     expect(sources.map(({ record }) => record.id)).toEqual([
       "action-menu",
       "aviso",
       "confirm-dialog",
       "date-field",
+      "encabezado-pagina",
       "llm-mode-toggle",
       "numeric-input",
       "segmented-control",
