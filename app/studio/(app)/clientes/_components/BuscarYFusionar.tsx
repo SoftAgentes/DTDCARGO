@@ -22,36 +22,35 @@ function aFicha(h: MergeSearchHit): Ficha {
 
 export function BuscarYFusionar({ onElegir }: { onElegir: (par: ParFusion) => void }) {
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<MergeSearchHit[]>([]);
-  const [buscando, setBuscando] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  // La respuesta guarda el término que contestó: `buscando` y los resultados se
+  // derivan de ahí, sin tocar estado de forma síncrona dentro del efecto.
+  const [respuesta, setRespuesta] = useState<{ q: string; hits: MergeSearchHit[]; error?: string }>({
+    q: "",
+    hits: [],
+  });
   const [seQueda, setSeQueda] = useState<Ficha | null>(null);
   const [seAnula, setSeAnula] = useState<Ficha | null>(null);
 
+  const termino = q.trim();
+  const busca = termino.length >= 2;
+  const buscando = busca && respuesta.q !== termino;
+  const hits = busca && respuesta.q === termino ? respuesta.hits : [];
+  const error = busca && respuesta.q === termino ? respuesta.error : undefined;
+
   // Búsqueda mientras escribe, con espera corta; una respuesta vieja no pisa la nueva.
   useEffect(() => {
-    const termino = q.trim();
-    if (termino.length < 2) {
-      setHits([]);
-      setError(undefined);
-      setBuscando(false);
-      return;
-    }
+    if (!busca) return;
     let vigente = true;
-    setBuscando(true);
     const espera = setTimeout(() => {
       searchClientsForMergeAction(termino).then((r) => {
-        if (!vigente) return;
-        setBuscando(false);
-        setHits(r.hits);
-        setError(r.error);
+        if (vigente) setRespuesta({ q: termino, hits: r.hits, error: r.error });
       });
     }, 300);
     return () => {
       vigente = false;
       clearTimeout(espera);
     };
-  }, [q]);
+  }, [busca, termino]);
 
   function elegir(h: MergeSearchHit, lado: "queda" | "anula") {
     const f = aFicha(h);
@@ -107,7 +106,7 @@ export function BuscarYFusionar({ onElegir }: { onElegir: (par: ParFusion) => vo
         </p>
       )}
 
-      {q.trim().length >= 2 && !buscando && !error && hits.length === 0 ? (
+      {busca && !buscando && !error && hits.length === 0 ? (
         <EmptyState title="Sin coincidencias" description="Prueba con otra parte del nombre, el teléfono o el Shipping Mark." />
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }} aria-busy={buscando}>

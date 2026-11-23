@@ -119,12 +119,13 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
         </div>
       )}
 
-      <div role="tablist" aria-label="Duplicados" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div role="tablist" aria-label="Duplicados" className="studio-tabs" style={{ marginBottom: 16 }}>
         <button
           type="button"
           role="tab"
           aria-selected={pestana === "detectados"}
-          className={`studio-btn studio-btn-sm ${pestana === "detectados" ? "studio-btn-primary" : "studio-btn-ghost"}`}
+          data-activa={pestana === "detectados" ? "true" : undefined}
+          className="studio-tab"
           onClick={() => setPestana("detectados")}
         >
           Detectados ({candidates.length})
@@ -133,7 +134,8 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
           type="button"
           role="tab"
           aria-selected={pestana === "buscar"}
-          className={`studio-btn studio-btn-sm ${pestana === "buscar" ? "studio-btn-primary" : "studio-btn-ghost"}`}
+          data-activa={pestana === "buscar" ? "true" : undefined}
+          className="studio-tab"
           onClick={() => setPestana("buscar")}
         >
           Buscar y fusionar
@@ -240,6 +242,7 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
 
       {par && (
         <FusionPanel
+          key={`${par.survivor.id}:${par.merged.id}`}
           par={par}
           onClose={() => setPar(null)}
           onInvertir={() => setPar({ survivor: par.merged, merged: par.survivor })}

@@ -192,15 +192,15 @@ begin
   end if;
 
   if s.deleted_at is not null or m.deleted_at is not null then
-    v_blockers := v_blockers || 'Alguna de las fichas está eliminada.';
+    v_blockers := pg_catalog.array_append(v_blockers, 'Alguna de las fichas está eliminada.'::text);
   end if;
   if s.merged_into_client_id is not null or m.merged_into_client_id is not null then
-    v_blockers := v_blockers || 'Alguna de las fichas ya fue fusionada.';
+    v_blockers := pg_catalog.array_append(v_blockers, 'Alguna de las fichas ya fue fusionada.'::text);
   end if;
   if s.aliado_id is not null or m.aliado_id is not null
      or exists (select 1 from public.aliados a
                  where a.client_id in (s.id, m.id) and a.deleted_at is null) then
-    v_blockers := v_blockers || 'Un aliado o un cliente de aliado no se puede fusionar.';
+    v_blockers := pg_catalog.array_append(v_blockers, 'Un aliado o un cliente de aliado no se puede fusionar.'::text);
   end if;
 
   v_s_portal := exists (select 1 from public.client_users u
@@ -310,12 +310,24 @@ begin
     raise exception 'audit: reason debe tener entre 4 y 1000 caracteres' using errcode = '22023';
   end if;
 
-  select c.id, c.markbox, c.name into s
+  if p_survivor_id = p_merged_id then
+    raise exception 'No se puede fusionar un cliente consigo mismo' using errcode = '22023';
+  end if;
+
+  select c.id, c.markbox, c.name, c.aliado_id into s
     from public.clients c where c.id = p_survivor_id and c.tenant_id = v_tenant;
-  select c.id, c.markbox, c.name into m
+  select c.id, c.markbox, c.name, c.aliado_id into m
     from public.clients c where c.id = p_merged_id and c.tenant_id = v_tenant;
   if s.id is null or m.id is null then
     raise exception 'No existe alguna de las dos fichas' using errcode = 'P0002';
+  end if;
+
+  -- Los aliados no se fusionan. El trigger de la 0362 (§9) ya lo impide; se repite
+  -- aquí para dar el mensaje antes de pedir nada más y no depender de un trigger.
+  if s.aliado_id is not null or m.aliado_id is not null
+     or exists (select 1 from public.aliados a
+                 where a.client_id in (s.id, m.id) and a.deleted_at is null) then
+    raise exception 'Un aliado o un cliente de aliado no se puede fusionar' using errcode = '23514';
   end if;
 
   -- Escribir el Shipping Mark que se anula: confirma que se leyó cuál se pierde.

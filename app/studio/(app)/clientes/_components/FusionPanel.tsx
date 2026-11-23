@@ -55,14 +55,10 @@ export function FusionPanel({
   const [confirmar, setConfirmar] = useState("");
   const [error, setError] = useState<string | undefined>();
 
-  // La vista previa se pide otra vez cada vez que cambia el par (⇄ incluido).
+  // La vista previa se pide al abrir y cada vez que cambia el par (⇄ incluido):
+  // el padre vuelve a montar el panel con `key`, así el estado arranca limpio.
   useEffect(() => {
     let vigente = true;
-    setCargando(true);
-    setPreview(null);
-    setErrorVista(undefined);
-    setConfirmar("");
-    setError(undefined);
     previewMergeAction(par.survivor.id, par.merged.id).then((r) => {
       if (!vigente) return;
       setCargando(false);
