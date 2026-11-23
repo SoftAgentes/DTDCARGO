@@ -45,6 +45,7 @@ describe("SDD-0686 fase 3b-2b · components/ sin vino de acción", () => {
   it.each([
     ["un enlace en vino", "components/FaqExplorer.tsx", "font-bold text-accion-text underline", "font-bold text-wine-text underline"],
     ["un hover del menú en vino", "components/NavClient.tsx", "hover:text-accion-text hover:bg-accion-tint", "hover:text-wine hover:bg-wine/15"],
+    ["un estado abierto en vino con variante de grupo", "components/NavClient.tsx", "group-[[open]]:text-accion-text", "group-[[open]]:text-wine"],
     ["una selección en vino", "components/ServiciosExplorer.tsx", '"bg-ink text-paper border-ink"', '"bg-wine text-white border-wine"'],
     ["un error en vino", "components/EstimadoModal.tsx", "font-medium text-status-danger\">{error}", "font-medium text-wine\">{error}"],
     ["un acento editorial en vino (Sam, 3A)", "components/PuertaAPuerta.tsx", 'className="font-black" style={{ color: "var(--color-ink)" }}>puerta a puerta?', 'style={{ color: "var(--color-wine)" }}>puerta a puerta?'],
