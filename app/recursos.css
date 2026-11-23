@@ -203,7 +203,7 @@
 }
 .rp-surface .btn-primary {
   background: var(--color-accion);
-  color: var(--color-on-accent);
+  color: var(--color-on-accion);
   box-shadow: var(--shadow-sm);
 }
 .rp-surface .btn-primary:hover {

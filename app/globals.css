@@ -627,7 +627,7 @@ html.dtd-cjk-sistema {
      quedaba navy-sobre-wine → 3.00:1, bajo AA. `--color-on-accent` es #ffffff
      en :root y no se remapea nunca, así que en claro y en el sitio público
      esto no cambia absolutamente nada. Medido tras el fix: 4.96:1. */
-  color: var(--color-on-accent);
+  color: var(--color-on-accion);
   box-shadow:
     0 1px 0 rgba(0, 0, 0, 0.04),
     0 8px 24px -8px rgba(127, 15, 26, 0.45);
@@ -1848,7 +1848,7 @@ html.dtd-cjk-sistema {
   width: 100%;
   text-align: left;
   background: var(--color-accion);
-  color: #fff;
+  color: var(--color-on-accion);
   border-radius: 10px;
   padding: 16px 20px;
   box-shadow: 0 8px 24px -8px rgba(127, 15, 26, 0.5);
@@ -3285,7 +3285,7 @@ a.svp-it:hover .nm {
 }
 .home-surface .btn-primary {
   background: var(--color-accion);
-  color: #fff;
+  color: var(--color-on-accion);
   box-shadow: var(--shadow-sm);
 }
 .home-surface .btn-primary:hover {
@@ -4156,7 +4156,7 @@ a.svp-it:hover .nm {
 }
 .sm-surface .btn-primary {
   background: var(--color-accion);
-  color: var(--color-on-accent);
+  color: var(--color-on-accion);
   box-shadow: var(--shadow-sm);
 }
 .sm-surface .btn-primary:hover {
@@ -4976,7 +4976,7 @@ a.svp-it:hover .nm {
   border: 0;
   border-radius: var(--r-lg);
   background: var(--color-accion);
-  color: var(--color-on-accent);
+  color: var(--color-on-accion);
   font: 800 15.5px/1 var(--f-brand);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
