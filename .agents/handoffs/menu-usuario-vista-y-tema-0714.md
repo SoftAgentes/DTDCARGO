@@ -18,15 +18,30 @@ Fecha: 2026-11-23 · Worker: Claude (Opus 5.5) · Rama: `claude/menu-usuario-vis
 
 ## Evidencia
 
-Pendiente de completar con el turno de PC (vitest, tsc, eslint) y con el CI de la PR.
+Turno de PC dado por Dir_DTD el 2026-11-23.
 
 | Comprobación | Estado |
 |---|---|
-| vitest de los archivos tocados | NO EJECUTADO (esperando turno) |
-| tsc / eslint | NO EJECUTADO (esperando turno) |
+| vitest: `StudioTopbar-menu-usuario`, `AparienciaUsuario`, `apariencia-actions`, `apariencia-predeterminada`, `browser-state-contract`, `claridad-t5e-contract`, `estilos-texto-contract` | PASÓ: 7 archivos, 85 pruebas |
+| `tsc --noEmit` | PASÓ (exit 0) |
+| eslint de los 16 archivos tocados | PASÓ (exit 0) |
+| `docs:check` / `sdd:check` | PASÓ |
 | `/ui-check` | PASÓ con 2 ajustes menores, ya aplicados: hover ≠ elegido; Tab fuera cierra el menú |
-| Capturas claro/oscuro × 3 vistas | NO EJECUTADO (esperando turno para `next dev`) |
+| Capturas claro/oscuro × 3 vistas | HECHAS (abajo) |
+| build / `pnpm verify` completo | NO EJECUTADO en local; lo cubre el CI de la PR |
 | `carril.mjs` | revisión previa (server action + «usuario» en la ruta) |
+
+### Capturas
+
+Hechas con `next dev` y Chrome headless a 1280 × 560 y escala 1,5, con datos ficticios («Ana Prueba», `example.test`, rol «Operaciones»). Salen de una página temporal fuera de `/studio` que montaba la `StudioTopbar` real; la página no entró al commit. La «N» de abajo a la izquierda es el indicador de `next dev`.
+
+| Vista | Claro | Oscuro |
+|---|---|---|
+| Normal | ![](menu-usuario-vista-y-tema-0714/menu-light-normal.png) | ![](menu-usuario-vista-y-tema-0714/menu-dark-normal.png) |
+| Compacta | ![](menu-usuario-vista-y-tema-0714/menu-light-compact.png) | ![](menu-usuario-vista-y-tema-0714/menu-dark-compact.png) |
+| Súper compacta | ![](menu-usuario-vista-y-tema-0714/menu-light-ultra.png) | ![](menu-usuario-vista-y-tema-0714/menu-dark-ultra.png) |
+
+Se ve: el orden de la maqueta, el foco en la vista marcada al abrir, y «Súper compacta» que baja de línea sin cortarse (BTN-01 v1.3, regla 6).
 
 ## Impacto documental
 
@@ -35,7 +50,7 @@ Pendiente de completar con el turno de PC (vitest, tsc, eslint) y con el CI de l
 
 ## Pendientes de esta tarea
 
-- Completar la evidencia de arriba y abrir la PR.
+- PR #802 abierta; espera la revisión independiente que lanza Dir_DTD y el CI verde en la cabeza. No se fusiona desde aquí.
 
 ## FUERA DE ALCANCE DETECTADO
 
