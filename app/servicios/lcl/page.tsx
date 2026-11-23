@@ -79,7 +79,7 @@ export default function LclPage() {
           <div className="wrap">
             <Link
               href="/servicios"
-              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-wine mb-6"
+              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-accion-text mb-6"
             >
               ← Todos los servicios
             </Link>
@@ -88,7 +88,7 @@ export default function LclPage() {
               chips={
                 <>
                   <ChipF2>Otros servicios</ChipF2>
-                  <ChipF2 variant="wine">Para empresas</ChipF2>
+                  <ChipF2 variant="accion">Para empresas</ChipF2>
                   <ChipF2 variant="on">Activo</ChipF2>
                 </>
               }

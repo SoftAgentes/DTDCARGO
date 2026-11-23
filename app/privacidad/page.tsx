@@ -448,7 +448,7 @@ export default function PrivacidadPage() {
                 <a
                   href={`mailto:${CONTACT.emailGeneral}`}
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   {CONTACT.emailGeneral}
                 </a>
@@ -484,7 +484,7 @@ export default function PrivacidadPage() {
                 <a
                   href={`mailto:${CONTACT.emailGeneral}`}
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   {CONTACT.emailGeneral}
                 </a>{" "}
@@ -494,7 +494,7 @@ export default function PrivacidadPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   {CONTACT.ve.whatsapp}
                 </a>

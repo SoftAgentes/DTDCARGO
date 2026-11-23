@@ -292,7 +292,7 @@ export default function CookiesPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   su política de privacidad
                 </a>{" "}
@@ -302,7 +302,7 @@ export default function CookiesPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   cómo usa Google las cookies
                 </a>
@@ -331,7 +331,7 @@ export default function CookiesPage() {
               <ul className={UL}>
                 <li>
                   Puedes <strong>cambiar tu decisión</strong> desde{" "}
-                  <CookiePreferencesLink className="underline underline-offset-2 font-semibold text-wine" />{" "}
+                  <CookiePreferencesLink className="underline underline-offset-2 font-semibold text-accion-text" />{" "}
                   (también disponible en el pie de página del sitio).
                 </li>
                 <li>
@@ -364,7 +364,7 @@ export default function CookiesPage() {
                 <a
                   href={`mailto:${CONTACT.emailGeneral}`}
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   {CONTACT.emailGeneral}
                 </a>{" "}
@@ -374,7 +374,7 @@ export default function CookiesPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   {CONTACT.ve.whatsapp}
                 </a>
@@ -382,7 +382,7 @@ export default function CookiesPage() {
                 <Link
                   href="/privacidad"
                   className="underline underline-offset-2"
-                  style={{ color: "var(--color-wine)" }}
+                  style={{ color: "var(--color-accion-text)" }}
                 >
                   Política de Privacidad
                 </Link>
