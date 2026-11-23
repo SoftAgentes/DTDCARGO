@@ -115,11 +115,11 @@ export function ServiciosExplorer({
       {ddp && (
         <div
           id={ddp.slug}
-          className="scroll-mt-28 card-shadow-static bg-white border border-wine rounded-[18px] overflow-hidden"
+          className="scroll-mt-28 card-shadow-static bg-white border border-ink rounded-[18px] overflow-hidden"
         >
           <div className="px-6 pt-5">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-wine text-white">
+              <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-ink text-paper">
                 Servicio principal
               </span>
               <span className="text-[12px] text-grey-500">
@@ -172,7 +172,7 @@ export function ServiciosExplorer({
               onClick={() => setFiltro(n.id)}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full border text-[13px] font-semibold transition-colors ${
                 activo
-                  ? "bg-wine text-white border-wine"
+                  ? "bg-ink text-paper border-ink"
                   : "bg-white text-ink border-grey-200 hover:border-ink"
               }`}
             >
@@ -199,7 +199,7 @@ export function ServiciosExplorer({
           <button
             type="button"
             onClick={() => setFiltro("todo")}
-            className="inline-flex items-center gap-1 font-semibold text-wine hover:text-wine-deep"
+            className="inline-flex items-center gap-1 font-semibold text-accion-text hover:text-accion-hover"
           >
             <CloseIcon size={12} /> Ver todo el viaje
           </button>
@@ -219,11 +219,11 @@ export function ServiciosExplorer({
               className="scroll-mt-28"
             >
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 mt-0.5 w-10 h-10 rounded-full bg-wine/10 text-wine grid place-items-center">
+                <span className="flex-shrink-0 mt-0.5 w-10 h-10 rounded-full bg-ink/10 text-ink grid place-items-center">
                   <Icon size={20} />
                 </span>
                 <div>
-                  <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+                  <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
                     {fase.eyebrow}
                   </span>
                   <h3
@@ -275,7 +275,7 @@ export function ServiciosExplorer({
                       type="button"
                       aria-label={`Quitar ${porSlug.get(slug)?.titulo ?? slug}`}
                       onClick={() => toggle(slug)}
-                      className="text-grey-500 hover:text-wine"
+                      className="text-grey-500 hover:text-accion-text"
                     >
                       <CloseIcon size={12} />
                     </button>
@@ -317,8 +317,8 @@ function BotonAgregar({
       }}
       className={`flex-shrink-0 inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
         activo
-          ? "bg-wine text-white border-wine"
-          : "bg-white text-ink border-grey-300 hover:border-wine hover:text-wine"
+          ? "bg-ink text-paper border-ink"
+          : "bg-white text-ink border-grey-300 hover:border-accion hover:text-accion-text"
       }`}
     >
       {activo ? (
@@ -348,7 +348,7 @@ function Tarjeta({
     <details
       id={service.slug}
       className={`brochure-group group scroll-mt-28 card-shadow bg-white border rounded-[14px] overflow-hidden ${
-        activo ? "border-wine" : "border-grey-200"
+        activo ? "border-ink" : "border-grey-200"
       }`}
     >
       <summary className="cursor-pointer px-6 py-5 flex items-start gap-4 select-none">
@@ -372,7 +372,7 @@ function Tarjeta({
         </span>
         <BotonAgregar activo={activo} onToggle={onToggle} />
         <span
-          className="flex-shrink-0 mt-1 w-6 h-6 grid place-items-center text-grey-500 group-open:text-wine transition-transform group-open:rotate-180"
+          className="flex-shrink-0 mt-1 w-6 h-6 grid place-items-center text-grey-500 group-open:text-accion-text transition-transform group-open:rotate-180"
           aria-hidden
         >
           <ChevronDownIcon size={16} />

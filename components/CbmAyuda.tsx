@@ -222,15 +222,13 @@ export function CbmAyuda() {
         aria-controls={popId}
         aria-label="¿Qué es el CBM?"
         title="¿Qué es el CBM?"
-        // El fallback es #D59FA7 (= --color-wine-on-dark, el token canónico de
-        // wine sobre las bandas navy de la web pública). Antes era #E8748A: un
-        // rosa que no existe en la paleta y que solo se veía si el token no
-        // resolvía.
-        className="relative inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-bold leading-none transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] hover:bg-[var(--wine-on-dark,#D59FA7)] hover:text-[var(--color-ink,#0F1E3D)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        // Lo que se toca sobre navy va en el azul claro de acción
+        // (--color-accion-on-dark; Sam: «Web pública: A en las tres»).
+        className="relative inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-bold leading-none transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-[44px] before:w-[44px] before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] hover:bg-[var(--color-accion-on-dark)] hover:text-[var(--on-warning)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         style={{
           fontFamily: FONT_MONO,
-          borderColor: "var(--wine-on-dark, #D59FA7)",
-          color: "var(--wine-on-dark, #D59FA7)",
+          borderColor: "var(--color-accion-on-dark)",
+          color: "var(--color-accion-on-dark)",
         }}
       >
         ?
@@ -282,7 +280,7 @@ export function CbmAyuda() {
           style={{
             fontFamily: FONT_MONO,
             background: "var(--glass-inset)",
-            color: "var(--color-wine)",
+            color: "var(--color-ink)",
           }}
         >
           Largo × Ancho × Alto ÷ 1.000.000
@@ -297,7 +295,7 @@ export function CbmAyuda() {
           target="_blank"
           rel="noopener noreferrer"
           className="self-start border-b pb-px text-[13px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px]"
-          style={{ color: "var(--color-wine)" }}
+          style={{ color: "var(--color-accion-text)" }}
         >
           Ver la explicación completa →
         </a>

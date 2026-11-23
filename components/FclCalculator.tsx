@@ -77,7 +77,7 @@ export function FclCalculator({ routes }: { routes: PublicFclRoute[] }) {
           id="fcl-route"
           value={idx}
           onChange={(e) => setIdx(Number(e.target.value))}
-          className="w-full rounded-[12px] border border-grey-200 bg-white px-3.5 h-[52px] text-[14px] text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-wine/40"
+          className="w-full rounded-[12px] border border-grey-200 bg-white px-3.5 h-[52px] text-[14px] text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-accion/40"
         >
           {routes.map((r, i) => (
             <option key={`${r.origin}-${r.destination}-${i}`} value={i}>
@@ -99,7 +99,7 @@ export function FclCalculator({ routes }: { routes: PublicFclRoute[] }) {
           onChange={(e) =>
             setContainers(Math.max(1, Math.floor(Number(e.target.value)) || 1))
           }
-          className="w-full rounded-[12px] border border-grey-200 bg-white px-3.5 h-[52px] text-[14px] text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-wine/40"
+          className="w-full rounded-[12px] border border-grey-200 bg-white px-3.5 h-[52px] text-[14px] text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-accion/40"
         />
         <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
           Tarifa por contenedor completo, puerta de origen a puerto de destino. El
@@ -118,7 +118,7 @@ export function FclCalculator({ routes }: { routes: PublicFclRoute[] }) {
           <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
             Total estimado
           </div>
-          <div className="num mt-1.5 text-[44px] lg:text-[48px] leading-none text-wine font-bold">
+          <div className="num mt-1.5 text-[44px] lg:text-[48px] leading-none text-ink font-bold">
             {usd(estimate.total)}
             <span className="text-[16px] text-grey-500"> USD</span>
           </div>

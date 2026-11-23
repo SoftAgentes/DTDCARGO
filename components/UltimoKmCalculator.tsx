@@ -132,7 +132,7 @@ export function UltimoKmCalculator() {
           <select
             value={origen}
             onChange={(e) => setOrigen(e.target.value as Origen)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-accion/40"
           >
             {ORIGENES_DISPONIBLES.map((o) => (
               <option key={o} value={o}>
@@ -150,7 +150,7 @@ export function UltimoKmCalculator() {
           <select
             value={destino}
             onChange={(e) => setDestinoPicked(e.target.value)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-accion/40"
           >
             {destinos.map((d) => (
               <option key={d} value={d}>
@@ -217,14 +217,14 @@ export function UltimoKmCalculator() {
       <div
         className={`mt-5 rounded-[14px] p-5 lg:p-6 border ${
           hayError
-            ? "bg-wine/5 border-wine/30"
+            ? "bg-status-danger/5 border-status-danger/30"
             : "bg-ink text-white border-ink"
         }`}
         style={!hayError ? { background: "var(--color-ink)" } : undefined}
       >
         {hayError ? (
           <div>
-            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-1 flex items-center gap-1.5">
+            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-status-danger mb-1 flex items-center gap-1.5">
               <WarningIcon size={13} /> No se puede calcular
             </div>
             <p className="text-[14px] text-ink/80">{resultado.error}</p>
@@ -359,7 +359,7 @@ function ModoOption({
     <label
       className={`flex flex-col gap-1 rounded-[10px] border p-3 cursor-pointer transition-colors ${
         selected
-          ? "border-wine bg-wine/5"
+          ? "border-ink bg-ink/5"
           : "border-grey-200 bg-white hover:border-grey-500"
       }`}
     >
@@ -372,9 +372,7 @@ function ModoOption({
         className="sr-only"
       />
       <span
-        className={`text-[13px] font-bold leading-[1.2] ${
-          selected ? "text-wine" : "text-ink"
-        }`}
+        className="text-[13px] font-bold leading-[1.2] text-ink"
       >
         {title}
       </span>

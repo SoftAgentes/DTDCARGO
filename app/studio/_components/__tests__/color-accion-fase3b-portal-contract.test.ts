@@ -135,11 +135,12 @@ describe("SDD-0686 fase 3b-1 · Portal sin vino de acción", () => {
     const noche = valor(css, OSCURO, "--color-accion-on-dark");
     expect(claro.toLowerCase()).toBe("#7faaf0");
     // Peor caso: el extremo claro del degradado del héroe en cada tema.
+    for (const v of ["--hero-from", "--hero-to"]) expect(valor(css, OSCURO, v), v).toMatch(/^#[0-9a-f]{6}$/i);
     for (const [acento, fondo] of [
       [claro, valor(css, "[data-portal-theme]", "--hero-from")],
       [claro, valor(css, "[data-portal-theme]", "--hero-to")],
-      [noche, "#1b2e54"],
-      [noche, valor(css, OSCURO, "--hero-to") || "#25406c"],
+      [noche, valor(css, OSCURO, "--hero-from")],
+      [noche, valor(css, OSCURO, "--hero-to")],
     ]) {
       expect(contraste(acento, fondo), `${acento} sobre ${fondo}`).toBeGreaterThanOrEqual(4.5);
     }

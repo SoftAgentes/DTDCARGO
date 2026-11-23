@@ -184,7 +184,7 @@ export function EstimadoModal({
       >
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-grey-200">
           <div>
-            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
               Último paso
             </span>
             <h2
@@ -214,7 +214,7 @@ export function EstimadoModal({
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Nombre y apellido"
-              className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full focus:ring-2 focus:ring-wine/40"
+              className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full focus:ring-2 focus:ring-accion/40"
             />
           </Field>
 
@@ -225,7 +225,7 @@ export function EstimadoModal({
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+58 412 ..."
-              className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full focus:ring-2 focus:ring-wine/40"
+              className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full focus:ring-2 focus:ring-accion/40"
             />
           </Field>
 
@@ -240,7 +240,7 @@ export function EstimadoModal({
               }}
               rows={2}
               placeholder="Ej: tengo la mercancía lista para despachar."
-              className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
+              className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full resize-none focus:ring-2 focus:ring-accion/40 overflow-hidden"
             />
           </Field>
         </div>
@@ -282,7 +282,7 @@ function Field({
       </span>
       {children}
       {error && (
-        <span className="text-[12px] font-medium text-wine">{error}</span>
+        <span className="text-[12px] font-medium text-status-danger">{error}</span>
       )}
     </label>
   );

@@ -364,7 +364,7 @@ export function CalculadoraForm({
             </span>
             <span
               className="text-[11px] font-bold tracking-[0.14em] uppercase"
-              style={{ color: "var(--wine-on-dark, #D59FA7)" }}
+              style={{ color: "var(--color-on-accent)" }}
             >
               {esConsolidado
                 ? "Calculadora LCL consolidado"
@@ -415,7 +415,7 @@ export function CalculadoraForm({
               <span
                 className="text-[9.5px] font-bold tracking-[0.08em] uppercase rounded-[6px] px-2 py-[3px]"
                 style={{
-                  color: "var(--wine-on-dark, #D59FA7)",
+                  color: "var(--color-on-accent)",
                   background: "rgba(255,255,255,0.08)",
                 }}
               >
@@ -610,7 +610,7 @@ export function CalculadoraForm({
         <details className="mt-2.5 group">
           <summary
             className="text-[11.5px] font-semibold cursor-pointer list-none inline-flex items-center gap-1.5 min-h-[44px] transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-on-accent)]"
-            style={{ color: "var(--wine-on-dark, #D59FA7)" }}
+            style={{ color: "var(--color-accion-on-dark)" }}
           >
             <span aria-hidden="true" className="text-[9px] leading-none transition-transform group-open:rotate-90">▶</span>
             ¿Qué incluye tu estimado?
@@ -643,7 +643,7 @@ export function CalculadoraForm({
         // SDD-0684: el código EST identifica el estimado de una persona.
         <div data-clarity-mask="True" className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
-            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
               Estimado guardado ·{" "}
               <span style={{ fontFamily: "var(--font-mono), ui-monospace, monospace" }}>
                 {savedEstimateCode}
@@ -742,7 +742,7 @@ function EntregaIncluida({ ciudades }: { ciudades: Ciudad[] }) {
     >
       <h3
         id="entrega-incluida-titulo"
-        className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text m-0"
+        className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700 m-0"
       >
         Entrega incluida
       </h3>
@@ -858,7 +858,7 @@ function BigInput({
         {tag && (
           <span
             className="text-[9px] font-bold tracking-[0.06em] uppercase rounded-[5px] px-1.5 py-[2px] whitespace-nowrap"
-            style={{ color: "var(--wine-on-dark, #D59FA7)", background: "rgba(255,255,255,0.08)" }}
+            style={{ color: "var(--color-on-accent)", background: "rgba(255,255,255,0.08)" }}
           >
             {tag}
           </span>
@@ -938,7 +938,7 @@ function CbmPorMedidas({
         onClick={() => onToggle(!open)}
         aria-expanded={open}
         className="self-start inline-flex items-center gap-2 text-[13px] font-bold hover:text-[var(--color-on-accent)] transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-on-accent)]"
-        style={{ color: "var(--wine-on-dark, #D59FA7)" }}
+        style={{ color: "var(--color-accion-on-dark)" }}
       >
         <span
           aria-hidden="true"
@@ -1047,12 +1047,12 @@ function SwitchField({
   return (
     <label
       className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-[var(--color-on-accent)] focus-within:outline-offset-2 ${
-        checked ? "border-wine bg-wine/10" : "border-[var(--color-on-accent)]/[0.14] hover:border-[var(--color-on-accent)]/30"
+        checked ? "border-[var(--color-accion-on-dark)] bg-[var(--color-accion-on-dark)]/10" : "border-[var(--color-on-accent)]/[0.14] hover:border-[var(--color-on-accent)]/30"
       }`}
     >
       <span
         className={`relative inline-flex shrink-0 h-[26px] w-[46px] rounded-full transition-colors ${
-          checked ? "bg-wine" : "bg-[var(--color-on-accent)]/20"
+          checked ? "bg-[var(--color-accion-on-dark)]" : "bg-[var(--color-on-accent)]/20"
         }`}
       >
         <input
@@ -1083,7 +1083,7 @@ function SwitchField({
 }
 
 /**
- * Contenedor 40'HC que se LLENA con el CBM. El relleno wine escala con `cbm/max`
+ * Contenedor 40'HC que se LLENA con el CBM. El relleno crema escala con `cbm/max`
  * vía `transform: scaleX()` (no `width %`). Corrugado vertical de fondo, "% LLENO"
  * centrado, y una "puerta" como segmento aparte a la derecha.
  */
@@ -1115,9 +1115,9 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
                 "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(255,255,255,0.05) 13px, rgba(255,255,255,0.05) 14px)",
             }}
           />
-          {/* Relleno wine (scaleX desde la izquierda) */}
+          {/* Relleno crema (scaleX desde la izquierda): es una cifra sobre navy (Sam, bandas A) */}
           <div
-            className="absolute inset-y-0 left-0 w-full bg-wine"
+            className="absolute inset-y-0 left-0 w-full bg-[var(--color-on-accent)]/70"
             style={{
               transformOrigin: "left",
               transform: `scaleX(${ratio})`,
@@ -1428,7 +1428,7 @@ function ResultPanel({
             className="mt-3 rounded-[10px] px-3 py-2.5 text-[12.5px] leading-[1.5]"
             style={{
               background: "rgba(255,255,255,0.08)",
-              border: "1px solid var(--wine-on-dark, #D59FA7)",
+              border: "1px solid color-mix(in srgb, var(--color-on-accent) 40%, transparent)",
               color: "rgba(255,255,255,0.88)",
             }}
           >
@@ -1500,7 +1500,7 @@ function ResultPanel({
                 <span
                   className="num text-[13px] font-bold whitespace-nowrap rounded-[6px] px-2 py-[1px]"
                   style={{
-                    color: "var(--wine-on-dark, #D59FA7)",
+                    color: "var(--color-on-accent)",
                     background: "rgba(255,255,255,0.08)",
                   }}
                   aria-label="pendiente: falta el peso"

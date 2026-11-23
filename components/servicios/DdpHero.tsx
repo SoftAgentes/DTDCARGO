@@ -28,14 +28,14 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
   return (
     <section id={ddp.slug} className="scroll-mt-28 pt-6 lg:pt-10">
       <div className="wrap">
-        <div className="card-shadow-static bg-white border border-wine rounded-[20px] overflow-hidden">
+        <div className="card-shadow-static bg-white border border-ink rounded-[20px] overflow-hidden">
           {/* Cabecera: valor (izq) + tarjeta de acción (der) */}
           <div className="px-6 lg:px-9 pt-7 lg:pt-9 pb-7 lg:pb-8">
             <div className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-12 lg:items-start">
               {/* Izquierda — el valor */}
               <div>
-                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-                  <span className="w-1.5 h-1.5 rounded-full bg-wine" aria-hidden />
+                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase text-grey-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink" aria-hidden />
                   Servicio principal · lo elige 9 de cada 10 clientes
                 </span>
                 <h2
@@ -44,7 +44,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                 >
                   Puerta a puerta.
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>Pagas al llegar.</span>
+                  <span className="font-black" style={{ color: "var(--color-ink)" }}>Pagas al llegar.</span>
                 </h2>
                 <p className="mt-5 text-[15px] lg:text-[16.5px] leading-[1.55] text-grey-700 max-w-[56ch]">
                   {ddp.resumen}
@@ -77,7 +77,7 @@ export function DdpHero({ ddp }: { ddp: ServicioDetalle | null }) {
                   O{" "}
                   <Link
                     href="/registro"
-                    className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2"
+                    className="font-semibold text-accion-text hover:text-accion-hover underline underline-offset-2"
                   >
                     regístrate
                   </Link>{" "}

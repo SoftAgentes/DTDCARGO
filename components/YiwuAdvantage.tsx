@@ -44,7 +44,7 @@ export function YiwuAdvantage() {
               }}
             >
               Nuestra base.{" "}
-              <span style={{ color: "var(--color-wine-soft)" }}>
+              <span className="font-black" style={{ color: "var(--color-on-accent)" }}>
                 Nuestra ventaja.
               </span>
             </p>
@@ -69,14 +69,14 @@ export function YiwuAdvantage() {
                 {adv.definition ? (
                   <button
                     type="button"
-                    className="group relative cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft rounded-md"
+                    className="group relative cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accion-on-dark)] rounded-md"
                     aria-label={`${adv.metric}: ${adv.definition}`}
                   >
                     <span
                       className="block text-[52px] leading-none"
                       style={{
                         fontFamily: "var(--font-archivo-black)",
-                        color: "var(--color-wine-soft)",
+                        color: "var(--color-on-accent)",
                         letterSpacing: "-0.03em",
                       }}
                     >
@@ -98,7 +98,7 @@ export function YiwuAdvantage() {
                     className="text-[52px] leading-none"
                     style={{
                       fontFamily: "var(--font-archivo-black)",
-                      color: "var(--color-wine-soft)",
+                      color: "var(--color-on-accent)",
                       letterSpacing: "-0.03em",
                     }}
                   >
