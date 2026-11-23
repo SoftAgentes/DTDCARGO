@@ -82,7 +82,7 @@ export function ComprobarCorreoForm({
                 type="submit"
                 disabled={isPending}
                 aria-busy={isPending}
-                className="inline-flex h-12 items-center rounded-[10px] bg-wine px-6 text-white text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+                className="inline-flex h-12 items-center rounded-[10px] bg-accion px-6 text-on-accion text-[15px] font-bold disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-2"
               >
                 {isPending ? "Comprobando…" : "Sí, este correo es mío"}
               </button>
@@ -90,7 +90,7 @@ export function ComprobarCorreoForm({
                 type="button"
                 disabled={isPending}
                 onClick={() => setNoEsMio(true)}
-                className="inline-flex h-12 items-center rounded-[10px] border border-grey-300 bg-white px-6 text-ink text-[15px] font-bold hover:bg-grey-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-2"
+                className="inline-flex h-12 items-center rounded-[10px] border border-grey-300 bg-white px-6 text-ink text-[15px] font-bold hover:bg-grey-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accion focus-visible:ring-offset-2"
               >
                 No es mi correo
               </button>
@@ -103,7 +103,7 @@ export function ComprobarCorreoForm({
         </p>
       )}
       {state.error && (
-        <p role="alert" className="mt-4 text-[14px] text-wine leading-[1.6]">
+        <p role="alert" className="mt-4 text-[14px] text-status-danger leading-[1.6]">
           {state.error}
         </p>
       )}
