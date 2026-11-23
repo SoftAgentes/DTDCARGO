@@ -89,7 +89,8 @@ describe("EmbarquesClient · casillas y motivo", () => {
     pintar({ estado: "lista", info: INFO });
     const bloqueada = screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" });
     expect(bloqueada).toBeDisabled();
-    expect(screen.getByText(MOTIVO_S2)).toBeVisible();
+    // SDD-0710: a la vista va la versión de una línea; el texto completo queda para lectores.
+    expect(screen.getByText("No se elimina: tiene 1 factura sin anular (Facturación)")).toBeVisible();
     expect(bloqueada).toHaveAccessibleDescription(MOTIVO_S2);
     expect(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0001" })).toBeEnabled();
   });
@@ -98,7 +99,7 @@ describe("EmbarquesClient · casillas y motivo", () => {
     pintar({ estado: "lista", info: INFO });
     const casilla = screen.getByRole("checkbox", { name: "Seleccionar S-2026-0001" });
     expect(casilla.closest("button")).toBeNull();
-    expect(screen.getByText("S-2026-0001").closest("button")).not.toBeNull();
+    expect(screen.getByText("S-2026-0001").closest("[data-fila-datos]")).not.toBeNull();
   });
 
   it("sin la fila en la lectura, también bloquea", () => {
