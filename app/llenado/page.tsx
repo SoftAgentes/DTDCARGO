@@ -74,7 +74,7 @@ export default function LlenadoPage() {
               El CBM sale de multiplicar largo × ancho × alto de una caja en metros, y
               luego por la cantidad de cajas. Si tienes las medidas en centímetros,
               divide entre un millón. En{" "}
-              <a href="/tarifas" style={{ color: "var(--color-wine)", fontWeight: 700 }}>
+              <a href="/tarifas" style={{ color: "var(--color-accion-text)", fontWeight: 700 }}>
                 nuestra calculadora de tarifas
               </a>{" "}
               lo haces sin sacar la cuenta a mano.

@@ -5,7 +5,7 @@
  *
  * Preferencias por-usuario (localStorage, mismo patrón que el theme existente,
  * sin migración) + material de marca read-only:
- *   1. Preferencias   → Tema (light/dark) + Densidad (compact/normal/spacious).
+ *   1. Preferencias   → Tema (light/dark) + Vista (normal/compacta/súper compacta).
  *   2. Paleta de marca → swatches bloqueados (reglas de marca, ver BRAND.md).
  *   3. Recursos de marca → links al hub interno + Brand Book.
  *   4. Logo & favicon → por implementar (requiere storage + gobernanza de marca).
@@ -88,17 +88,17 @@ export function AppearanceSection() {
           />
         </FieldBlock>
 
-        <FieldBlock label="Densidad" hint="Ajusta el espaciado de tablas y listados.">
+        <FieldBlock label="Vista" hint="Elige cuánto cabe en pantalla. El zoom del navegador no se bloquea.">
           <SegmentedControl<StudioDensity>
             value={density}
             onChange={onDensity}
             variant="cards"
             columns={3}
-            ariaLabel="Densidad de la interfaz"
+            ariaLabel="Vista de la interfaz"
             options={[
-              { value: "compact", label: "Compacta", description: "Más filas visibles" },
-              { value: "normal", label: "Normal", description: "Equilibrada" },
-              { value: "spacious", label: "Amplia", description: "Más aire" },
+              { value: "normal", label: "Normal", description: "Texto de 14 px, filas de 44 px" },
+              { value: "compact", label: "Compacta", description: "Filas de 36 px (la de siempre)" },
+              { value: "ultra", label: "Súper compacta", description: "Lo más chico, filas de 32 px" },
             ]}
           />
         </FieldBlock>

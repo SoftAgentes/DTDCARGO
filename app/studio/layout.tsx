@@ -46,8 +46,8 @@ try {
   if (p.indexOf('/studio/ficha-chat') !== 0 && p.indexOf('/studio/cerrar-chat') !== 0) {
     if (localStorage.getItem('studio_theme') !== 'light') h.setAttribute('data-theme', 'dark');
     var d = localStorage.getItem('studio_density');
-    if (d === 'spacious') h.setAttribute('data-density', 'spacious');
-    else if (d !== 'normal') h.setAttribute('data-density', 'compact');
+    if (d === 'ultra') h.setAttribute('data-density', 'ultra');
+    else if (d !== 'normal' && d !== 'spacious') h.setAttribute('data-density', 'compact');
   }
 } catch (e) {}
 `.trim();

@@ -140,6 +140,22 @@ Maqueta con variantes (Artifact privado de Sam, 2026-11-19): para la Bandeja, A 
 
 `app/studio/(app)/bandeja/_components/BandejaClient.tsx`, `app/studio/(app)/bandeja/page.tsx`, `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`, `app/studio/(app)/crm/_components/CrmPestanas.tsx`, `app/studio/(app)/layout.tsx`, `app/studio/(app)/usuarios/_components/AgentesBandeja.tsx`, `app/studio/(app)/usuarios/_components/UsersClient.tsx`, `app/studio/(app)/usuarios/__tests__/AgentesBandeja.test.tsx`, `lib/studio/chatwoot/agentes-bandeja-admin.ts`, `lib/studio/chatwoot/__tests__/agentes-de-cuenta.test.ts`, `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`, esta spec y el handoff.
 
+## Adenda 2026-11-23 · la Bandeja tarda en abrir y no suena
+
+**Pedido de Sam:** «siempre que entro a la bandeja me demora para entrar… debería que apenas entre a la bandeja me abra enseguida y no me salga el error». Además, dentro del Studio Chatwoot no suena al llegar un mensaje, aunque Windows sí muestra la notificación.
+
+**Evidencia (VPS, solo lectura, 2026-11-23).** Chatwoot 4.20.1 está sano: rails y sidekiq healthy, CPU por debajo del 7 % y host 87 % ocioso. El SSO de plataforma responde entre 27 y 267 ms. En cambio, los POST de server actions en `/studio/bandeja` tardaron 16,2 s, 51,7 s y 42,8 s (log de acceso de Traefik). El POST largo es `reconciliarBandeja`: 4 páginas de conversaciones a Chatwoot, de 1 a 5 s cada una, y después una escritura por conversación. Como Next corre las server actions de una en una (M1), el SSO esperaba detrás de la reconciliación, se vencía `PLAZO_ENLACE_MS` y salía «no respondió a tiempo». El arreglo de M1 (recargar la página) era un parche: la cola se volvía a trabar en la carga siguiente.
+
+**Cambio:**
+1. El SSO y la reconciliación salen de la cola de actions: `POST /studio/bandeja/sso` y `POST /studio/bandeja/reconciliar` (route handlers que llaman a las mismas funciones de `actions.ts`, con candado de origen `mismo-origen.ts` y `Cache-Control: no-store`). El cliente los pide por `fetch` (`_components/pedidos.ts`).
+2. Un pedido que vence el plazo se corta con `AbortController` y se reintenta en silencio, como `service`, hasta 3 veces. Ya no recarga la página (se retiran `recargarPagina` y la cola trabada). Si los 3 vencen: «La bandeja no respondió a tiempo después de 3 intentos. Oprime «Abrir de nuevo» para intentarlo otra vez.»
+3. La reconciliación sale cuando el marco ya cargó, no al terminar el SSO.
+4. Sonido: el marco lleva `allow="microphone; autoplay"` y la Permissions-Policy de `/studio/bandeja` delega `autoplay=(self <chat>)`. Sin eso, el navegador calla la alerta de audio de Chatwoot dentro de un iframe de otro origen.
+
+**Límites (NV):** no medido en un navegador real con la sesión de Sam. La reconciliación sigue tardando decenas de segundos en el servidor, aunque ya no bloquea nada. Hacerla en paralelo queda fuera de esta adenda. La alerta de audio depende también del perfil de Chatwoot de cada agente («Alertas de audio»).
+
+**Allowlist de la adenda:** `app/studio/(app)/bandeja/_components/BandejaClient.tsx`, `app/studio/(app)/bandeja/_components/pedidos.ts`, `app/studio/(app)/bandeja/sso/route.ts`, `app/studio/(app)/bandeja/reconciliar/route.ts`, `app/studio/(app)/bandeja/mismo-origen.ts`, `app/studio/(app)/bandeja/__tests__/BandejaClient.test.tsx`, `app/studio/(app)/bandeja/__tests__/actions.test.ts`, `app/studio/(app)/bandeja/__tests__/rutas-bandeja.test.ts`, `lib/i18n/es-VE/bandeja.ts`, `lib/i18n/zh-CN/bandeja.ts`, `next.config.ts`, `lib/runtime/__tests__/next-config.test.ts`, esta spec y el handoff `.agents/handoffs/0680-adenda-bandeja-lenta-y-sonido.md`.
+
 ## Fuera de alcance
 
 - Lo de adentro del iframe (Chatwoot).

@@ -235,7 +235,7 @@ export default async function ImportarCiudadPage({
             <p className="mt-5">
               <Link
                 href="/importar-de-china"
-                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
+                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accion-text hover:text-accion-hover transition-colors"
               >
                 Ver todas las ciudades que cubrimos{" "}
                 <ArrowIcon size={14} />

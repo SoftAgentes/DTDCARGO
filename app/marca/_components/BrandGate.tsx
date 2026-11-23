@@ -112,7 +112,7 @@ export function BrandGate() {
           ¿Eres del equipo de DTD Cargo?{" "}
           <a
             href="/studio/login?next=/marca"
-            className="font-semibold text-wine underline underline-offset-2"
+            className="font-semibold text-accion-text underline underline-offset-2"
           >
             Entra con tu cuenta
           </a>

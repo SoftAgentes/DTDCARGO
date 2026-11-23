@@ -42,9 +42,8 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
       >
         <span className="studio-eyebrow-dark">DTD Cargo · v0.1</span>
         <h1
-          className="studio-display"
+          className="t-pantalla"
           style={{
-            fontSize: 30,
             color: "#FFFFFF",
             margin: "12px 0 32px",
           }}
