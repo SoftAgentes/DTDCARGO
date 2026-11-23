@@ -10,8 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const pedirEnlaceSso = vi.fn();
 const reconciliar = vi.fn(async () => ({ ok: true, aplicadas: 0 }));
-vi.mock("../actions", () => ({
-  pedirEnlaceSso: (c?: number) => pedirEnlaceSso(c),
+// Adenda 2026-11-23: los pedidos van por `fetch` a rutas propias (`pedidos.ts`), no por server actions.
+vi.mock("../_components/pedidos", () => ({
+  pedirEnlaceSso: (c?: number, signal?: AbortSignal) => pedirEnlaceSso(c, signal),
   reconciliarBandeja: () => reconciliar(),
 }));
 
@@ -37,7 +38,7 @@ describe("BandejaClient (SDD-0585)", () => {
   it("con la marca de este usuario: abre el panel directo, sin pedir SSO", () => {
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
     expect(marco()?.getAttribute("src")).toBe(PANEL);
-    expect(marco()?.getAttribute("allow")).toBe("microphone");
+    expect(marco()?.getAttribute("allow")).toBe("microphone; autoplay");
     expect(marco()?.hasAttribute("sandbox")).toBe(false);
     expect(pedirEnlaceSso).not.toHaveBeenCalled();
   });
@@ -103,8 +104,12 @@ describe("BandejaClient (SDD-0585)", () => {
     expect(titulos.map((h) => h.textContent)).toEqual(["CRM"]);
   });
 
-  it("con vínculo reconcilia UNA vez al montar; sin vínculo no", async () => {
+  it("con vínculo reconcilia UNA vez, cuando el marco ya cargó; sin vínculo no", async () => {
     const { rerender } = render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
+    // Adenda 2026-11-23: no sale mientras el panel abre; tarda decenas de segundos.
+    await act(async () => undefined);
+    expect(reconciliar).not.toHaveBeenCalled();
+    fireEvent.load(marco()!);
     await waitFor(() => expect(reconciliar).toHaveBeenCalledTimes(1));
     rerender(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={PANEL} admin={null} />);
     expect(reconciliar).toHaveBeenCalledTimes(1);
@@ -582,42 +587,56 @@ describe("BandejaClient · abre sola (SDD-0680)", () => {
     expect(marco()?.getAttribute("src")).toBe(SSO);
   });
 
-  it("si la action no vuelve nunca, al vencer el plazo muestra el aviso y «Abrir de nuevo» recarga la página (la cola de Next sigue trabada, M1)", async () => {
-    const { PLAZO_ENLACE_MS, recargarPagina } = await import("../_components/BandejaClient");
-    const recargar = vi.spyOn(recargarPagina, "ahora").mockImplementation(() => undefined);
-    try {
-      pedirEnlaceSso.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValue({ ok: true, url: SSO });
-      render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
-      await drenar(PLAZO_ENLACE_MS - 1);
-      expect(screen.queryByText("La bandeja no abrió")).toBeNull();
-      await drenar(1);
-      expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
-      // Texto propio: no hubo tres intentos, y la salida es recargar.
-      expect(screen.getByText(/no respondió a tiempo/)).toBeTruthy();
-      expect(screen.queryByText(/después de 3 intentos/)).toBeNull();
-      expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
-      // No reintenta por la action: esperaría detrás del POST colgado.
-      await drenar(10_000);
-      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
-      fireEvent.click(reabrirAviso());
-      expect(recargar).toHaveBeenCalledTimes(1);
-      expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
-    } finally {
-      recargar.mockRestore();
-    }
+  it("si el pedido no vuelve, al vencer el plazo lo corta y reintenta en silencio: abre sin aviso (adenda 2026-11-23)", async () => {
+    const { PLAZO_ENLACE_MS } = await import("../_components/BandejaClient");
+    let senal: AbortSignal | undefined;
+    pedirEnlaceSso
+      .mockImplementationOnce((_c?: number, s?: AbortSignal) => {
+        senal = s;
+        return new Promise(() => undefined);
+      })
+      .mockResolvedValue({ ok: true, url: SSO });
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(PLAZO_ENLACE_MS - 1);
+    expect(senal?.aborted).toBe(false);
+    await drenar(1);
+    // El pedido colgado se cortó: no queda nada trabado detrás.
+    expect(senal?.aborted).toBe(true);
+    expect(screen.queryByText("La bandeja no abrió")).toBeNull();
+    await drenar(1500);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(2);
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+    expect(screen.queryByText("La bandeja no abrió")).toBeNull();
   });
 
-  it("una respuesta que llega después del plazo no cambia el marco ni la fase (B2)", async () => {
+  it("si ningún intento vuelve a tiempo, muestra el aviso y «Abrir de nuevo» pide otra vez sin recargar la página", async () => {
     const { PLAZO_ENLACE_MS } = await import("../_components/BandejaClient");
+    pedirEnlaceSso.mockReturnValue(new Promise(() => undefined));
+    render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
+    await drenar(3 * PLAZO_ENLACE_MS + 1500 + 4000);
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(3);
+    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
+    expect(screen.getByText(/no respondió a tiempo después de 3 intentos/)).toBeTruthy();
+    expect(screen.queryByText(/se vuelve a cargar/)).toBeNull();
+    expect(screen.queryByText("Abriendo la bandeja…")).toBeNull();
+    pedirEnlaceSso.mockReset();
+    pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
+    fireEvent.click(reabrirAviso());
+    await drenar();
+    expect(pedirEnlaceSso).toHaveBeenCalledTimes(1);
+    expect(marco()?.getAttribute("src")).toBe(SSO);
+  });
+
+  it("una respuesta que llega después del plazo no pisa el reintento ni gasta el freno (B2)", async () => {
+    const { PLAZO_ENLACE_MS } = await import("../_components/BandejaClient");
+    const OTRO = "https://chat.dtdcargo.com/app/login?email=ana%40example.test&sso_auth_token=tarde";
     let soltar: (v: unknown) => void = () => undefined;
-    pedirEnlaceSso.mockReturnValueOnce(new Promise((r) => (soltar = r)));
+    pedirEnlaceSso.mockReturnValueOnce(new Promise((r) => (soltar = r))).mockReturnValue(new Promise(() => undefined));
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} admin={null} />);
     await drenar(PLAZO_ENLACE_MS);
-    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
-    soltar({ ok: true, url: SSO });
+    soltar({ ok: true, url: OTRO });
     await drenar();
     expect(marco()).toBeNull();
-    expect(screen.getByText("La bandeja no abrió")).toBeTruthy();
     expect(JSON.parse(window.localStorage.getItem("dtd.bandeja.sso") ?? "[]")).toHaveLength(0);
   });
 
@@ -667,6 +686,10 @@ describe("BandejaClient · abre sola (SDD-0680)", () => {
     // primero, el SSO esperaría detrás de ella.
     expect(reconciliar).not.toHaveBeenCalled();
     soltar({ ok: true, url: SSO });
+    await drenar();
+    // Adenda 2026-11-23: tampoco mientras el marco abre; sale al cargar.
+    expect(reconciliar).not.toHaveBeenCalled();
+    fireEvent.load(marco()!);
     await drenar();
     expect(reconciliar).toHaveBeenCalledTimes(1);
   });
