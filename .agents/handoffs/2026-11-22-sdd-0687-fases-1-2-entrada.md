@@ -32,16 +32,25 @@ va en el cuerpo de la PR de esta tarea.
   proveedor, el congelado de tarifa, las tarifas de transportistas (ft³ con 4) y las medidas de la cotización.
 - NUM-01 v1.2, README de gobernanza, `numeric-input.json` y registros generados.
 
-## Validación
+## Validación (con el turno de PC de Dir_DTD, 2026-11-23)
 
-Pendiente: el turno de PC lo asigna Dir_DTD. Sin correr todavía: `pnpm install`, tsc, eslint de los archivos tocados,
-vitest y los mutantes. Lo único que sí corrió: `governance:check` y `components:check` (node puro), ambos OK.
+- Merge de origin/main con regeneración de los dos generados: PASÓ.
+- `pnpm install --frozen-lockfile`: PASÓ.
+- tsc: PASÓ (el único error era `TruckDrawer`, nuevo en main; ya declara modo).
+- eslint de los archivos tocados: PASÓ.
+- vitest de 144 archivos afectados: PASÓ (2.218 pruebas).
+- Mutantes (9 de 9 rompen pruebas): `1.250` como 1,25; `1,234.50`; `1,234` y `10,000`; `36.500` en tasa;
+  redondeo en silencio; ambigüedad relajada; medida rechaza `1.234`; el rechazo no vacía el valor; el Portal
+  vuelve a `replace`.
+- `governance:check` y `components:check`: PASÓ.
+- `pnpm verify` completo y prueba manual de §8: NO EJECUTADOS.
+
+**PR:** #790 · carril: revisión previa.
 
 ## Pendientes de esta tarea
 
-- tsc, eslint y vitest con turno; mutantes de §6 (aceptar `1.250` como 1,25; aceptar `1,234.50`; aceptar `1,234` o
-  `10,000` como decimal en dinero; aceptar `36.500` en tasa).
-- Push, PR con las citas de Sam y la allowlist, y revisión independiente específica (la lanza el DG).
+- Revisión independiente específica de cifras (la lanza Dir_DTD) y CI verde sobre la cabeza exacta.
+- Prueba manual de §8 en la imagen de prueba.
 - Confirmar con Sam la línea de aprobación de NUM-01 v1.2 en la PR.
 
 ## Conversores que NO se tocaron (motivo)
