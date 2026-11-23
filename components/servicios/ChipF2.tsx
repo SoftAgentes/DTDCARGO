@@ -6,16 +6,16 @@ import type { ReactNode } from "react";
  *
  * - default: chip translúcido sobre navy.
  * - `on`: prepende un dot verde (servicio activo).
- * - `wine`: contorno/tinta wine-soft (para "Para empresas", "carga: 2 modalidades", …).
+ * - `accion`: contorno y tinta de acción (para "Para empresas", "carga: 2 modalidades", …).
  */
 export function ChipF2({
   children,
   variant,
 }: {
   children: ReactNode;
-  variant?: "on" | "wine";
+  variant?: "on" | "accion";
 }) {
-  const cls = ["f2chip", variant === "on" && "on", variant === "wine" && "wine"]
+  const cls = ["f2chip", variant === "on" && "on", variant === "accion" && "accion"]
     .filter(Boolean)
     .join(" ");
   return <span className={cls}>{children}</span>;

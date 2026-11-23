@@ -12,7 +12,7 @@
   --color-wine-soft: #c2747f;
   /* Wine como TEXTO (AA en ambos temas) — el --color-wine crudo NO es texto: falla
      AA en el dark del portal (~3-3.7:1). Fill de botones/badges sigue en --color-wine;
-     usar --color-wine-text (clase `text-wine-text`) en labels/links pequeños. Mismo
+     usar --color-wine-text en labels y links pequeños de lo que sea identidad. Mismo
      patrón que `--wine-text` de app/studio/tokens.css. */
   --color-wine-text: #7f0f1a;
   /* Wine como TEXTO SOBRE NAVY (banda navy del Home, hero y CTA de /shipping-mark,
@@ -550,11 +550,6 @@ html.dtd-cjk-sistema {
   height: 2px;
   background: var(--color-wine);
 }
-/* Antes referenciaba `.eyebrow-wine` de app/studio/tokens.css, que el portal no
-   importa — quedaba sin efecto (gris por defecto). Se define acá para el portal. */
-.eyebrow-wine {
-  color: var(--color-wine-text);
-}
 /* SDD-0686 fase 3b · eyebrow del Portal en tinta suave: el guión sigue en vino
    (identidad, `.eyebrow::before`) y el texto deja de serlo. */
 .eyebrow-tinta {
@@ -626,7 +621,7 @@ html.dtd-cjk-sistema {
     box-shadow 0.15s;
 }
 .btn-primary {
-  background: var(--color-wine);
+  background: var(--color-accion);
   /* `--color-on-accent`, NO `--color-white`: bajo [data-portal-theme="dark"]
      `--color-white` vale navy (#16264a), así que TODO CTA primario del portal
      quedaba navy-sobre-wine → 3.00:1, bajo AA. `--color-on-accent` es #ffffff
@@ -638,7 +633,7 @@ html.dtd-cjk-sistema {
     0 8px 24px -8px rgba(127, 15, 26, 0.45);
 }
 .btn-primary:hover {
-  background: var(--color-wine-deep);
+  background: var(--color-accion-hover);
   transform: translateY(-1px);
 }
 /* SDD-0686 fase 3b · en el Portal el botón principal es azul de acción (BD-076).
@@ -976,7 +971,7 @@ html.dtd-cjk-sistema {
 }
 
 .cookie-text a {
-  color: var(--color-wine-text);
+  color: var(--color-accion-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1305,7 +1300,7 @@ html.dtd-cjk-sistema {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--color-wine);
+  background: var(--color-ink);
   border: 2.5px solid var(--color-paper);
   transform: scale(0);
   transition:
@@ -1835,7 +1830,7 @@ html.dtd-cjk-sistema {
 }
 .enlaces-tagline b {
   font-weight: 800;
-  color: var(--color-wine-soft);
+  color: var(--color-on-accent);
 }
 
 /* ── Cuerpo ── */
@@ -1852,7 +1847,7 @@ html.dtd-cjk-sistema {
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: var(--color-wine);
+  background: var(--color-accion);
   color: #fff;
   border-radius: 10px;
   padding: 16px 20px;
@@ -1860,7 +1855,7 @@ html.dtd-cjk-sistema {
   transition: background 0.18s ease, transform 0.12s ease;
 }
 .enlaces-primary:hover {
-  background: var(--color-wine-deep);
+  background: var(--color-accion-hover);
 }
 .enlaces-primary:active {
   transform: translateY(1px);
@@ -1930,8 +1925,8 @@ html.dtd-cjk-sistema {
   color: var(--enl-cream);
 }
 .enlaces-row.is-wine .ic {
-  background: rgba(194, 116, 127, 0.18);
-  color: var(--color-wine-soft);
+  background: rgba(127, 170, 240, 0.18);
+  color: var(--color-on-accent);
 }
 .enlaces-row .tx {
   flex: 1;
@@ -1986,7 +1981,7 @@ html.dtd-cjk-sistema {
 }
 .enlaces-foot .web {
   font: 700 13px/1 var(--font-archivo);
-  color: var(--color-wine-soft);
+  color: var(--color-on-accent);
 }
 .enlaces-foot .legal {
   margin-top: 8px;
@@ -2020,7 +2015,7 @@ html.dtd-cjk-sistema {
    que aliasa esos nombres a los tokens del sitio público (--color-*), más
    la escala de spacing/radios/sombras (geometría) y los gradientes de marca
    del Norte que aún no tienen equivalente --color-*. Cualquier elemento de
-   /servicios cuelga de `.svc-surface`, así los `var(--wine)` etc. resuelven
+   /servicios cuelga de `.svc-surface`, así los `--wine` etc. resuelven
    por herencia. Cero hex de color inventado (los de gradiente vienen del Norte).
    El mismo puente sirve a la home (`.home-surface`), que además añade tokens
    propios (crema, banda navy, wine-on-dark, CJK) más abajo.
@@ -2097,11 +2092,6 @@ html.dtd-cjk-sistema {
   --ink-side: rgba(255, 255, 255, 0.88);
   --ink-side-soft: rgba(255, 255, 255, 0.72);
   /* Wine */
-  --wine: var(--color-wine);
-  --wine-deep: var(--color-wine-deep);
-  --wine-soft: var(--color-wine-soft);
-  --wine-text: var(--color-wine-text);
-  --wine-tint: color-mix(in srgb, var(--color-wine) 8%, transparent);
   /* Estado */
   --success: var(--color-status-success);
   --warning: var(--color-status-warning);
@@ -2114,7 +2104,6 @@ html.dtd-cjk-sistema {
   /* Gradientes de marca (Norte · erp/tokens.css) — navy family = --color-ink #0F1E3D
      al centro; sin equivalente --color-* en el sitio, se portan del Norte. */
   --grad-navy: radial-gradient(120% 125% at 18% -20%, #243c6b, #0f1e3d 52%, #081226);
-  --grad-wine: linear-gradient(135deg, #9e1522 0%, #7f0f1a 52%, #5a0910 100%);
   /* Banda navy de las secciones oscuras del sitio público (hero + CTA final).
      Valor del Norte: web/home.css `.hero-stats`/`.final` y web/shipping-mark.css
      `.sm-hero`/`.sm-final` usan LITERALMENTE este degradado. Vive acá una sola
@@ -2123,7 +2112,6 @@ html.dtd-cjk-sistema {
   /* Panel VINO sólido con volumen (BD-030/022). Valor LITERAL del Norte, tema
      claro: web/tokens-brand.css línea 147 (== erp/tokens.css línea 145).
      Lo usa `.cx-wine-panel` en /contacto. */
-  --grad-wine-panel: radial-gradient(135% 135% at 14% -12%, #9e1522, #7f0f1a 44%, #520810);
   /* Lavado de página (marca de agua ≤0.07 sobre --bg-base). Valor LITERAL del
      Norte, tema claro: web/tokens-brand.css línea 149 (== erp/tokens.css 147).
      `body.home{background:var(--grad-page)}` en el mockup → acá lo aplica la
@@ -2177,7 +2165,7 @@ html.dtd-cjk-sistema {
   height: 24px;
   border-radius: 50%;
   background: var(--color-grey-100);
-  color: var(--color-wine);
+  color: var(--color-ink);
   align-items: center;
   justify-content: center;
   flex: none;
@@ -2202,7 +2190,7 @@ html.dtd-cjk-sistema {
   align-items: center;
   gap: 7px;
   font: 700 13px/1 var(--f-brand);
-  color: var(--wine-soft);
+  color: var(--color-ink);
 }
 .svp-pri .go svg {
   width: 15px;
@@ -2212,7 +2200,7 @@ html.dtd-cjk-sistema {
   color: var(--color-grey-100);
 }
 .svp-pri.star {
-  border-color: var(--wine-soft);
+  border-color: var(--color-ink);
 }
 
 /* ── Portada · momentos del viaje (4 columnas) ── */
@@ -2247,7 +2235,7 @@ html.dtd-cjk-sistema {
 .svp-mom-h .n {
   font: 700 11px/1 var(--f-mono);
   letter-spacing: 0.14em;
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .svp-mom-h .t {
   font: 800 17px/1.2 var(--f-brand);
@@ -2292,11 +2280,11 @@ html.dtd-cjk-sistema {
   font: 700 10px/1 var(--f-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-top: 4px;
 }
 .svp-it .arrow {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   flex: none;
   display: flex;
 }
@@ -2308,7 +2296,7 @@ a.svp-it:hover {
   background: var(--bg-elevated);
 }
 a.svp-it:hover .nm {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 /* Servicio "Próximamente" — deshabilitado, no clicable */
 .svp-it.dis {
@@ -2380,9 +2368,9 @@ a.svp-it:hover .nm {
   border-radius: 50%;
   background: var(--success);
 }
-.f2chip.wine {
-  border-color: var(--wine-soft);
-  color: var(--wine-soft);
+.f2chip.accion {
+  border-color: var(--color-accion);
+  color: var(--color-accion-text);
 }
 .f2-hero .hook {
   font-family: var(--f-brand-display);
@@ -2417,7 +2405,7 @@ a.svp-it:hover .nm {
   width: 104px;
   height: 104px;
   border-radius: 50%;
-  background: var(--grad-wine);
+  background: var(--color-ink);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -2478,7 +2466,7 @@ a.svp-it:hover .nm {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--wine-soft);
+  background: var(--color-ink);
   border: 2.5px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.25);
 }
@@ -2510,7 +2498,7 @@ a.svp-it:hover .nm {
 }
 .f2route .seg.you {
   border-top-style: solid;
-  border-color: var(--wine-soft);
+  border-color: var(--color-ink);
 }
 .f2route .cap {
   margin-top: var(--s-3);
@@ -2524,7 +2512,7 @@ a.svp-it:hover .nm {
   flex-wrap: wrap;
 }
 .f2route .cap b {
-  color: var(--wine-soft);
+  color: var(--color-ink);
 }
 @media (max-width: 640px) {
   .f2route {
@@ -2550,7 +2538,7 @@ a.svp-it:hover .nm {
   font: 800 11.5px/1 var(--f-brand);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin: 0 0 var(--s-4);
 }
 .f2-sec h4::after {
@@ -2585,14 +2573,14 @@ a.svp-it:hover .nm {
   align-items: flex-start;
   padding: var(--s-4) var(--s-5);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--wine);
+  border-left: 3px solid var(--color-ink);
   border-radius: var(--r-md);
   background: var(--bg-elevated);
 }
 .f2xref svg {
   width: 17px;
   height: 17px;
-  color: var(--wine-text);
+  color: var(--color-ink);
   flex: 0 0 auto;
   margin-top: 2px;
 }
@@ -2604,7 +2592,7 @@ a.svp-it:hover .nm {
   color: var(--ink);
 }
 .f2xref .tx a {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -2661,7 +2649,7 @@ a.svp-it:hover .nm {
   font-weight: 700;
 }
 .f2steps .tx .hi {
-  color: var(--wine-text);
+  color: var(--color-ink);
   font-weight: 700;
 }
 /* ── Ficha · dos columnas (modalidades) ── */
@@ -2685,11 +2673,11 @@ a.svp-it:hover .nm {
 }
 .f2col-h .k {
   font: 800 10px/1 var(--f-mono);
-  color: var(--wine-text);
-  border: 1px solid var(--wine);
+  color: var(--color-grey-700);
+  border: 1px solid var(--color-ink);
   border-radius: var(--r-sm);
   padding: 4px 7px;
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 /* ── Ficha · beneficios ── */
 .f2benes {
@@ -2747,7 +2735,7 @@ a.svp-it:hover .nm {
   width: 7px;
   height: 7px;
   border-radius: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   transform: rotate(45deg);
 }
 .f2rules li b {
@@ -2755,7 +2743,7 @@ a.svp-it:hover .nm {
   font-weight: 700;
 }
 .f2rules li a {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -2790,7 +2778,7 @@ a.svp-it:hover .nm {
   height: 44px;
   padding: 0 var(--s-6);
   border-radius: var(--r-md);
-  background: var(--grad-wine);
+  background: var(--color-accion);
   color: #fff;
   font: 700 14px/1 var(--f-brand);
   white-space: nowrap;
@@ -2808,12 +2796,12 @@ a.svp-it:hover .nm {
 }
 .f2cta.ghost {
   background: transparent;
-  border: 1.5px solid var(--wine);
-  color: var(--wine-text);
+  border: 1.5px solid var(--color-accion);
+  color: var(--color-accion-text);
   box-shadow: none;
 }
 .f2cta.ghost:hover {
-  color: var(--wine);
+  color: var(--color-accion-hover);
 }
 .f2cta:focus-visible {
   outline: 3px solid var(--color-ink);
@@ -2838,8 +2826,8 @@ a.svp-it:hover .nm {
   background: var(--bg-surface);
 }
 .vscard.hero {
-  border-color: var(--wine);
-  background: var(--wine-tint);
+  border-color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 .vscard .k {
   display: flex;
@@ -2852,15 +2840,15 @@ a.svp-it:hover .nm {
 .vscard .k svg {
   width: 16px;
   height: 16px;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
 }
 .vscard .k .modtag {
   font: 800 10px/1 var(--f-mono);
-  color: var(--wine-text);
-  border: 1px solid var(--wine);
+  color: var(--color-grey-700);
+  border: 1px solid var(--color-ink);
   border-radius: var(--r-sm);
   padding: 4px 7px;
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 .vscard .d {
   font: 500 12px/1.5 var(--f-brand);
@@ -2907,7 +2895,7 @@ a.svp-it:hover .nm {
 .f2.capa-llegada .f2-hero {
   background: var(--bg-surface);
   color: var(--ink);
-  border-bottom: 3px solid var(--wine);
+  border-bottom: 3px solid var(--color-ink);
 }
 .f2.capa-origen .f2-hero,
 .f2.capa-tramites .f2-hero {
@@ -2942,12 +2930,12 @@ a.svp-it:hover .nm {
   background: var(--bg-elevated);
   color: var(--ink);
 }
-.f2.capa-llegada .f2chip.wine,
-.f2.capa-origen .f2chip.wine,
-.f2.capa-tramites .f2chip.wine {
-  border-color: var(--wine);
-  color: var(--wine-text);
-  background: var(--wine-tint);
+.f2.capa-llegada .f2chip.accion,
+.f2.capa-origen .f2chip.accion,
+.f2.capa-tramites .f2chip.accion {
+  border-color: var(--color-accion);
+  color: var(--color-accion-text);
+  background: var(--color-accion-tint);
 }
 
 /* ── Ficha · 3 actores (pre-alerta) ── */
@@ -2997,7 +2985,7 @@ a.svp-it:hover .nm {
 .actor-arrow {
   display: flex;
   align-items: center;
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 .actor-arrow svg {
   width: 18px;
@@ -3023,9 +3011,9 @@ a.svp-it:hover .nm {
   }
 }
 .optwin .oc {
-  border: 1.5px solid var(--wine);
+  border: 1.5px solid var(--color-ink);
   border-radius: var(--r-md);
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   padding: var(--s-4) var(--s-5);
 }
 .optwin .oc .k {
@@ -3039,14 +3027,14 @@ a.svp-it:hover .nm {
 .optwin .oc .k svg {
   width: 16px;
   height: 16px;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   flex: 0 0 auto;
 }
 .optwin .oc .k .ab {
   font: 800 9.5px/1 var(--f-mono);
   letter-spacing: 0.1em;
-  color: var(--wine-text);
-  border: 1px solid var(--wine);
+  color: var(--color-grey-700);
+  border: 1px solid var(--color-ink);
   border-radius: var(--r-sm);
   padding: 4px 7px;
   background: var(--bg-surface);
@@ -3091,10 +3079,10 @@ a.svp-it:hover .nm {
 .rejoin .p1 svg {
   width: 12px;
   height: 12px;
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .rejoin .arr {
-  color: var(--wine-text);
+  color: var(--color-ink);
   flex: 0 0 auto;
 }
 .rejoin .arr svg {
@@ -3104,7 +3092,7 @@ a.svp-it:hover .nm {
 .rejoin .one {
   flex: 1;
   min-width: 180px;
-  border: 1.5px solid var(--wine);
+  border: 1.5px solid var(--color-ink);
   border-radius: var(--r-md);
   background: var(--bg-surface);
   padding: var(--s-4);
@@ -3115,7 +3103,7 @@ a.svp-it:hover .nm {
 .rejoin .one svg {
   width: 26px;
   height: 26px;
-  color: var(--wine-text);
+  color: var(--color-ink);
   flex: 0 0 auto;
 }
 .rejoin .one .t {
@@ -3127,7 +3115,7 @@ a.svp-it:hover .nm {
   font: 700 9.5px/1.3 var(--f-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-top: 3px;
 }
 
@@ -3137,9 +3125,9 @@ a.svp-it:hover .nm {
   align-items: center;
   gap: 10px;
   margin-top: var(--s-3);
-  border: 1.5px solid var(--wine);
+  border: 1.5px solid var(--color-ink);
   border-radius: var(--r-md);
-  background: var(--wine-tint);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   padding: 10px 14px;
   font: 700 12px/1.4 var(--f-brand);
   color: var(--ink);
@@ -3147,7 +3135,7 @@ a.svp-it:hover .nm {
 .f2incl svg {
   width: 16px;
   height: 16px;
-  color: var(--wine-text);
+  color: var(--color-ink);
   flex: 0 0 auto;
 }
 
@@ -3181,7 +3169,7 @@ a.svp-it:hover .nm {
 }
 .esc-cap {
   font: 700 11.5px/1.4 var(--f-brand);
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-top: 6px;
 }
 
@@ -3237,7 +3225,7 @@ a.svp-it:hover .nm {
 .repmock .score b {
   display: block;
   font: 900 20px/1 var(--f-brand-display);
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 
 /* ── Hub /servicios · back link + contenedor de detalle ── */
@@ -3250,7 +3238,7 @@ a.svp-it:hover .nm {
   margin-bottom: var(--s-5);
 }
 .svc-back:hover {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 .svc-back:focus-visible {
   outline: 3px solid var(--color-ink);
@@ -3267,7 +3255,6 @@ a.svp-it:hover .nm {
 .home-surface {
   /* Tokens propios de la home (del Norte · sin equivalente --color-*) */
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
-  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre navy · 4,57:1 sobre #26406F (AA) */
   --success-on-dark: var(--color-status-success-on-dark); /* éxito sobre navy · 7,69:1 sobre #203760 (AAA) */
   --f-cn: var(--f-cn-ui);
   --nav-h: 76px;
@@ -3297,12 +3284,12 @@ a.svp-it:hover .nm {
   outline-offset: 2px;
 }
 .home-surface .btn-primary {
-  background: var(--wine);
+  background: var(--color-accion);
   color: #fff;
   box-shadow: var(--shadow-sm);
 }
 .home-surface .btn-primary:hover {
-  background: var(--wine-deep);
+  background: var(--color-accion-hover);
 }
 .home-surface .btn-ghost {
   background: transparent;
@@ -3313,17 +3300,17 @@ a.svp-it:hover .nm {
   border-color: var(--ink);
 }
 .home-surface .btn-soft {
-  background: var(--wine-tint);
-  color: var(--wine-text);
-  border: 1px solid var(--wine);
+  background: var(--color-accion-tint);
+  color: var(--color-accion-text);
+  border: 1px solid var(--color-accion);
 }
 .home-surface .btn-soft:hover {
-  background: var(--wine);
+  background: var(--color-accion);
   color: #fff;
 }
 .home-surface .btn-onwine {
   background: #f2f0ec;
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .home-surface .btn-onwine:hover {
   background: #fff;
@@ -3357,7 +3344,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-4);
   display: flex;
   align-items: center;
@@ -3366,7 +3353,7 @@ a.svp-it:hover .nm {
 .home-surface .eyebrow-s .rule {
   width: 34px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
 }
 .home-surface .h2 {
   font-family: var(--f-brand-display);
@@ -3379,7 +3366,7 @@ a.svp-it:hover .nm {
   text-wrap: balance;
 }
 .home-surface .h2 .accent {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .home-surface .sec-sub {
   font: 400 17px/1.6 var(--f-brand);
@@ -3413,7 +3400,7 @@ a.svp-it:hover .nm {
   font: 700 14px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -3422,7 +3409,7 @@ a.svp-it:hover .nm {
 .home-surface .eyebrow-h .rule {
   width: 34px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   display: inline-block;
 }
 .home-surface .h1 {
@@ -3440,7 +3427,7 @@ a.svp-it:hover .nm {
   display: block;
 }
 .home-surface .h1 .l1 .hl {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .home-surface .hero-sub {
   font: 400 clamp(16px, 1.4vw, 19px)/1.6 var(--f-brand);
@@ -3482,7 +3469,7 @@ a.svp-it:hover .nm {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
   margin-top: 6px;
 }
@@ -3567,7 +3554,7 @@ a.svp-it:hover .nm {
   font-weight: 900;
   font-size: 0.4em;
   letter-spacing: 0;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   text-transform: uppercase;
 }
 .home-surface .hstat-lbl {
@@ -3600,7 +3587,7 @@ a.svp-it:hover .nm {
 .home-surface .tl b {
   font-family: var(--f-brand);
   font-weight: 700;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   font-size: 17px;
 }
 .home-surface .tl-dot {
@@ -3642,7 +3629,7 @@ a.svp-it:hover .nm {
 }
 .home-surface .cyc-track-flow {
   fill: none;
-  stroke: var(--wine);
+  stroke: var(--color-ink);
   stroke-width: 2.5;
   stroke-dasharray: 6 14;
   stroke-linecap: round;
@@ -3700,8 +3687,8 @@ a.svp-it:hover .nm {
   width: 52px;
   height: 52px;
   border-radius: var(--r-pill);
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3758,8 +3745,8 @@ a.svp-it:hover .nm {
 }
 .home-surface .jy-num {
   font: 700 12px/1 var(--f-mono);
-  color: var(--wine-text);
-  background: var(--wine-tint);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--r-pill);
   padding: 5px 10px;
 }
@@ -3805,7 +3792,7 @@ a.svp-it:hover .nm {
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
   transform: translateY(-2px);
 }
@@ -3814,11 +3801,11 @@ a.svp-it:hover .nm {
   text-decoration: none;
 }
 .home-surface .jy-card ul li a:hover {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 .home-surface .jy-star {
   grid-column: 1 / -1;
-  background: var(--wine);
+  background: var(--color-ink);
   color: #fff;
   border: 0;
   border-radius: var(--r-lg);
@@ -3996,8 +3983,8 @@ a.svp-it:hover .nm {
   width: 38px;
   height: 38px;
   border-radius: var(--r-md);
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4022,11 +4009,11 @@ a.svp-it:hover .nm {
   margin-top: auto;
   padding-top: var(--s-2);
   font: 700 13px/1 var(--f-brand);
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   text-decoration: none;
 }
 .home-surface .jy-extra-link:hover {
-  color: var(--wine-soft);
+  color: var(--color-accion-hover);
 }
 @media (max-width: 640px) {
   .home-surface .jy-extra-grid {
@@ -4052,7 +4039,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   margin-bottom: var(--s-4);
 }
 .home-surface .final h2 {
@@ -4066,7 +4053,7 @@ a.svp-it:hover .nm {
   text-wrap: balance;
 }
 .home-surface .final h2 .accent {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .home-surface .final p.lead {
   font: 400 17px/1.65 var(--f-brand);
@@ -4086,7 +4073,7 @@ a.svp-it:hover .nm {
   margin-top: var(--s-6);
 }
 .home-surface .final-mark b {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   font-weight: 700;
 }
 .home-surface .final-reassure {
@@ -4130,7 +4117,6 @@ a.svp-it:hover .nm {
 
 /* ── Tokens propios de la página (mismo criterio que `.home-surface`) ── */
 .sm-surface {
-  --wine-on-dark: var(--color-wine-on-dark); /* wine sobre navy (acentos) · 4,57:1 sobre #26406F (AA) */
   /* Tinta CREMA sobre la banda navy. Cloud Design escribe #F2F0EC (idéntico a
      --color-grey-100) con alfas .85 / .82 / .75 / .6 / .5 / .42; acá se expresan
      como color-mix del token y el PISO baja a 66%: medido sobre #26406F (el
@@ -4169,12 +4155,12 @@ a.svp-it:hover .nm {
   outline-offset: 2px;
 }
 .sm-surface .btn-primary {
-  background: var(--wine);
+  background: var(--color-accion);
   color: var(--color-on-accent);
   box-shadow: var(--shadow-sm);
 }
 .sm-surface .btn-primary:hover {
-  background: var(--wine-deep);
+  background: var(--color-accion-hover);
 }
 .sm-surface .btn-ghost {
   background: transparent;
@@ -4186,7 +4172,7 @@ a.svp-it:hover .nm {
 }
 .sm-surface .btn-onwine {
   background: var(--color-grey-100);
-  color: var(--wine);
+  color: var(--color-ink);
 }
 .sm-surface .btn-onwine:hover {
   background: var(--color-white);
@@ -4222,7 +4208,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-4);
   display: flex;
   align-items: center;
@@ -4232,7 +4218,7 @@ a.svp-it:hover .nm {
   font: 700 12.5px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-5);
   display: flex;
   align-items: center;
@@ -4242,7 +4228,7 @@ a.svp-it:hover .nm {
 .sm-surface .eyebrow-h .rule {
   width: 34px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
 }
 .sm-surface .h2 {
@@ -4256,7 +4242,7 @@ a.svp-it:hover .nm {
   text-wrap: balance;
 }
 .sm-surface .h2 .accent {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .sm-surface .sec-sub {
   font: 400 17px/1.6 var(--f-brand);
@@ -4288,10 +4274,10 @@ a.svp-it:hover .nm {
   }
 }
 .sm-hero .eyebrow-h {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .sm-hero .eyebrow-h .rule {
-  background: var(--wine-on-dark);
+  background: var(--color-on-accent);
 }
 .sm-surface .sm-h1 {
   font-family: var(--f-brand-display);
@@ -4304,7 +4290,7 @@ a.svp-it:hover .nm {
   text-wrap: balance;
 }
 .sm-surface .sm-h1 .accent {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .sm-surface .sm-lead {
   font: 400 clamp(16px, 1.3vw, 19px) / 1.6 var(--f-brand);
@@ -4329,7 +4315,7 @@ a.svp-it:hover .nm {
 .sm-hero-note svg {
   width: 15px;
   height: 15px;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   flex: 0 0 auto;
 }
 
@@ -4479,8 +4465,8 @@ a.svp-it:hover .nm {
 }
 .sm-step-n {
   font: 700 12px/1 var(--f-mono);
-  color: var(--wine-text);
-  background: var(--wine-tint);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--r-pill);
   padding: 6px 11px;
   align-self: flex-start;
@@ -4490,7 +4476,7 @@ a.svp-it:hover .nm {
   height: 44px;
   border-radius: var(--r-md);
   background: var(--bg-elevated);
-  color: var(--wine-text);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4608,7 +4594,7 @@ a.svp-it:hover .nm {
 .sm-faq-item > summary .chev {
   width: 20px;
   height: 20px;
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   transition: transform var(--dur) var(--ease);
   flex: 0 0 auto;
 }
@@ -4622,7 +4608,7 @@ a.svp-it:hover .nm {
   text-wrap: pretty;
 }
 .sm-faq-item > p a {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   font-weight: 700;
 }
 .sm-faq-more {
@@ -4630,7 +4616,7 @@ a.svp-it:hover .nm {
 }
 .sm-faq-more a {
   font: 700 14px/1 var(--f-brand);
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   text-decoration: none;
 }
 .sm-faq-more a:hover {
@@ -4654,7 +4640,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   margin-bottom: var(--s-4);
 }
 .sm-final h2 {
@@ -4711,12 +4697,11 @@ a.svp-it:hover .nm {
         (el <main>), no el body: el sitio no tiene clase `home` en <body>.
      2. Las alfas de blanco sobre el panel vino SUBEN de piso donde el mockup
         cae bajo AA. Medido contra #9E1522 (el extremo CLARO de
-        --grad-wine-panel = peor caso): .82 = 5.5:1 OK · .72 = 4.7:1 OK ·
         .65 = 4.0:1 NO → la nota del form pasa a .75 (4.9:1) y el placeholder
         de .5 (2.9:1) a .72. El borde de los campos sube de .28 (1.8:1) a .55
         (3.7:1) para cumplir 1.4.11 (componentes de UI ≥3:1).
      3. Se AGREGA el `:focus-visible` de teclado: el CSS real solo pinta
-        `border-color:var(--wine)` al foco, que sobre el panel vino es
+        `border-color` en vino al foco, que sobre el panel vino es
         invisible. Sin esto la página no es navegable con teclado.
      4. La micro-línea legal NO copia el "RIF J-50648869-8" del mockup: razón
         social y RIF van SOLO en el JSON-LD (regla de marca del founder).
@@ -4726,7 +4711,6 @@ a.svp-it:hover .nm {
 /* ── Tokens propios de la página (mismo criterio que `.home-surface`) ── */
 .cx-surface {
   --crema: #e8dcc8; /* acento tan de marca (assets/container.svg) */
-  --wine-on-dark: var(--color-wine-on-dark); /* wine legible sobre foto oscura · 8,64:1 sobre #060D1C (AA) */
   /* Tinta blanca sobre el panel vino, con piso AA (ver adaptación 2 arriba) */
   --cx-on-wine-soft: rgba(255, 255, 255, 0.82); /* 5.5:1 */
   --cx-on-wine-mute: rgba(255, 255, 255, 0.75); /* 4.9:1 */
@@ -4747,7 +4731,7 @@ a.svp-it:hover .nm {
   font: 700 12.5px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -4756,7 +4740,7 @@ a.svp-it:hover .nm {
 .cx-surface .eyebrow-h .rule {
   width: 34px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   display: inline-block;
 }
 .cx-h1 {
@@ -4770,7 +4754,7 @@ a.svp-it:hover .nm {
   text-wrap: balance;
 }
 .cx-h1 .hl {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .cx-sub {
   font: 400 clamp(15px, 1.3vw, 18px) / 1.6 var(--f-brand);
@@ -4821,7 +4805,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   margin-bottom: var(--s-3);
   display: block;
 }
@@ -4863,8 +4847,8 @@ a.svp-it:hover .nm {
   width: 44px;
   height: 44px;
   border-radius: var(--r-pill);
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4882,7 +4866,7 @@ a.svp-it:hover .nm {
   text-decoration: none;
 }
 .cx-inline-ch a:hover {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 .cx-inline-ch a:focus-visible {
   outline: 3px solid var(--color-ink);
@@ -4899,7 +4883,7 @@ a.svp-it:hover .nm {
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-3);
   display: flex;
   align-items: center;
@@ -4908,7 +4892,7 @@ a.svp-it:hover .nm {
 .cx-panel-eyebrow .rule {
   width: 28px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
 }
 .cx-panel-head h2 {
   font-family: var(--f-brand-display);
@@ -4966,7 +4950,7 @@ a.svp-it:hover .nm {
 .cx-field select:focus,
 .cx-field textarea:focus {
   outline: none;
-  border-color: var(--wine);
+  border-color: var(--color-accion);
 }
 .cx-field input::placeholder,
 .cx-field textarea::placeholder {
@@ -4991,14 +4975,14 @@ a.svp-it:hover .nm {
   height: 54px;
   border: 0;
   border-radius: var(--r-lg);
-  background: var(--wine);
+  background: var(--color-accion);
   color: var(--color-on-accent);
   font: 800 15.5px/1 var(--f-brand);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
 }
 .cx-submit:hover {
-  background: var(--wine-deep);
+  background: var(--color-accion-hover);
 }
 .cx-form-note {
   font: 500 12px/1.5 var(--f-brand);
@@ -5009,7 +4993,7 @@ a.svp-it:hover .nm {
 
 /* ── Panel vino (BD-030/022 · --grad-wine-panel, texto blanco) ── */
 .cx-wine-panel {
-  background: var(--grad-wine-panel);
+  background: radial-gradient(135% 135% at 14% -12%, #243c6b, #0f1e3d 44%, #081226);
   border-radius: var(--r-xl);
   padding: clamp(28px, 4vw, 48px);
   color: var(--color-white);
@@ -5062,7 +5046,7 @@ a.svp-it:hover .nm {
 }
 .cx-wine-panel .cx-submit {
   background: var(--color-white);
-  color: var(--wine-deep);
+  color: var(--color-ink);
 }
 .cx-wine-panel .cx-submit:hover {
   background: var(--crema);
@@ -5094,7 +5078,7 @@ a.svp-it:hover .nm {
    página". Por eso hereda tamaño, peso Y COLOR del texto que lo rodea.
 
    🔴 **`color: inherit` no es pereza — es lo único que no se rompe.** El primer
-   intento usaba `var(--color-wine-text)` (vino oscuro) y quedó ILEGIBLE en el
+   intento usaba el vino de texto (vino oscuro) y quedó ILEGIBLE en el
    primer sitio donde se probó: los heroes de `.rp-hero` son una banda navy
    (`#1f3055 → #0b1428`, en `recursos.css`) con texto crema. Un enlace no sabe
    sobre qué fondo lo van a poner, y este componente se usa en texto corrido de

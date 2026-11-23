@@ -14,7 +14,7 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 type Status = "idle" | "sending" | "ok" | "error";
 
 const INPUT =
-  "w-full h-12 px-4 rounded-[10px] border border-grey-200 bg-white text-[15px] text-ink placeholder:text-grey-500/60 outline-none focus:border-wine focus-visible:ring-2 focus-visible:ring-wine-soft transition-colors";
+  "w-full h-12 px-4 rounded-[10px] border border-grey-200 bg-white text-[15px] text-ink placeholder:text-grey-500/60 outline-none focus:border-accion focus-visible:ring-2 focus-visible:ring-accion-soft transition-colors";
 
 export function AcademiaLeadForm() {
   const [status, setStatus] = useState<Status>("idle");
@@ -137,7 +137,7 @@ export function AcademiaLeadForm() {
       />
 
       {status === "error" && error ? (
-        <p role="alert" className="text-[13.5px] text-wine">
+        <p role="alert" className="text-[13.5px] text-status-danger">
           {error}{" "}
           <a
             href={buildWhatsAppLink("Hola DTD Cargo, quiero info de la Academia DTD.")}

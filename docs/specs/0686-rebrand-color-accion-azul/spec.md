@@ -1231,6 +1231,68 @@ Dir_DTD aprobó dividir la 3b-2 (web) en tres tramos y empezar por `components/`
 - El contraste AA del azul claro y el crema sobre los navy reales.
 - El «DTD» de la calculadora sigue en el vino del logo.
 
+### Fase 3b-2c · páginas restantes y superficies CSS de la web (2026-11-23)
+
+Tercer tramo de la 3b-2. Dir_DTD aprobó aplicar por analogía las reglas de la 3b-2b, incluidos los paneles `--grad-wine` de `globals.css` («Sí, por analogía»). No hubo decisión nueva de Sam. Rama `codex/sdd-0686-fase3b2c-paginas`; **trae la rama de la #787 por merge** (la 3b-2b) porque quita las entradas de las fichas de servicios de su lista cerrada: la #787 entra primero.
+
+**Inventario (M):** páginas de `app/` (academia, brochure, cookies, fcl, importar-de-china, invitar, llenado, marca, nosotros, not-found, privacidad, puerta-a-puerta, servicios), `lib/news`, `lib/cn.ts`, las fichas de servicios (`components/servicios`) y cinco superficies CSS: `globals.css` (140 usos), `recursos.css` (39), `noticias.css` (32), `prealertas.css` (22) y `baja.css` (9). `app/entrar` va en la fase 4; `p`, `registro`, `verificar` y `abrir` son de la 3b-2a.
+
+| Destino | Qué |
+|---|---|
+| Acción | Foco, enlaces y su hover, botones primarios (`--color-on-accion` encima), paginación y consentimiento de Noticias, el chip `.f2chip` (ahora `accion`), la casilla de los activos de `/marca` |
+| Acción sobre navy | Enlaces y hover dentro de las bandas, `--color-accion-on-dark` |
+| Tinta | Cifras, puntos, íconos, acentos editoriales (`.accent`, `.hl`), selección (`is-active`, paginación actual), bordes insignia, sellos |
+| Tinta suave | Eyebrows y rótulos en mayúscula (`grey-700`) |
+| Crema sobre navy | Eyebrows, acentos y cifras dentro de las bandas (`--color-on-accent`) |
+| Navy | Paneles `--grad-wine` y `--grad-wine-panel` (formulario de Contacto, sello y CTA de las fichas) |
+| Rojo de estado | Error del formulario de la Academia y del boletín de Noticias |
+
+**Cambios de estructura.** (1) Se quitan los alias de vino de las superficies (`--wine*`, `--grad-wine*`, `--wine-on-dark`); cada uso apunta al token global. (2) `baja.css` lee el acento de `--baja-ac` y lo cambia en oscuro. (3) `ChipF2` y `.f2chip` pasan de `wine` a `accion`. (4) Se elimina la clase `.eyebrow-wine` de `globals.css`, sin usos en la web (el Studio tiene la suya). Los nombres de clase `cx-wine-panel`, `btn-onwine` e `is-wine` se conservan como nombre: no pintan.
+
+**Lista cerrada (identidad):** el guion `.eyebrow::before` de `globals.css` (3b-1), la tabla de colores de `/marca` (`CatalogClient`) y la página de mantenimiento (`lib/runtime/maintenance.ts`). Quedan los tokens `--color-wine*` de `globals.css`, que el logo y las identidades siguen usando.
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/academia/_components/AcademiaLeadForm.tsx`
+- `app/academia/page.tsx`
+- `app/brochure/page.tsx`
+- `app/cookies/page.tsx`
+- `app/email/baja/baja.css`
+- `app/fcl/page.tsx`
+- `app/globals.css`
+- `app/importar-de-china/[ciudad]/page.tsx`
+- `app/importar-de-china/page.tsx`
+- `app/invitar/[token]/_components/AcceptInvitationForm.tsx`
+- `app/invitar/layout.tsx`
+- `app/llenado/page.tsx`
+- `app/marca/_components/AssetCard.tsx`
+- `app/marca/_components/BrandGate.tsx`
+- `app/marca/_components/CatalogClient.tsx`
+- `app/marca/page.tsx`
+- `app/nosotros/page.tsx`
+- `app/not-found.tsx`
+- `app/noticias/noticias.css`
+- `app/prealertas.css`
+- `app/privacidad/page.tsx`
+- `app/puerta-a-puerta/page.tsx`
+- `app/recursos.css`
+- `app/servicios/fcl/page.tsx`
+- `app/servicios/inspeccion/page.tsx`
+- `app/servicios/lcl/page.tsx`
+- `app/servicios/page.tsx`
+- `app/servicios/puerta-a-puerta/page.tsx`
+- `app/studio/_components/__tests__/color-accion-fase3b-components-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase3b2c-paginas-contract.test.ts`
+- `components/servicios/ChipF2.tsx`
+- `components/servicios/hub-fichas.tsx`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+- `lib/cn.ts`
+- `lib/news/markdown.tsx`
+
+**Contrato nuevo:** `color-accion-fase3b2c-paginas-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes, el texto sobre el botón primario, la ausencia de los alias de vino, `--baja-ac` y la variante `accion`. El contrato de la 3b-2b pierde las entradas de las fichas.
+
+**Pendiente de ver en pantalla (D):** los paneles navy del formulario de Contacto y de las fichas, y las bandas con eyebrows en crema. El contraste AA de crema y azul claro sobre los navy ya está cubierto por el contrato de la 3b-2b.
+
 ### Fases 2 a 5
 
 Sus allowlists se fijan al abrir cada una. Inventario de partida (**M**):

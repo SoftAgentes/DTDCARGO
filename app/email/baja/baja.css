@@ -2,6 +2,8 @@
   min-height: 100dvh;
   background: var(--grad-page);
   color: var(--ink);
+  --baja-ac: var(--color-accion-text);
+  --baja-ac-hover: var(--color-accion-hover);
 }
 
 .email-baja-shell {
@@ -46,13 +48,13 @@
 }
 
 .email-baja-symbol--warning {
-  background: var(--wine-tint);
-  color: var(--wine-text);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
 }
 
 .email-baja-eyebrow {
   margin: var(--s-6) 0 var(--s-3);
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   font: 700 12px/1.2 var(--f-brand);
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -84,7 +86,7 @@
 }
 
 .email-baja-secondary {
-  color: var(--wine-text);
+  color: var(--baja-ac);
   font: 700 14px/1.4 var(--f-brand);
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -92,11 +94,11 @@
 }
 
 .email-baja-secondary:hover {
-  color: var(--wine-deep);
+  color: var(--baja-ac-hover);
 }
 
 .email-baja-surface a:focus-visible {
-  outline: 3px solid var(--wine-text);
+  outline: 3px solid var(--baja-ac);
   outline-offset: 3px;
 }
 
@@ -161,9 +163,8 @@
     --border: color-mix(in srgb, var(--color-paper) 16%, transparent);
     --ink: var(--color-paper);
     --ink-soft: var(--color-grey-300);
-    --wine-text: var(--color-wine-on-dark);
-    --wine-deep: var(--color-wine-on-dark);
-    --wine-tint: color-mix(in srgb, var(--color-wine-on-dark) 12%, transparent);
+    --baja-ac: var(--color-accion-on-dark);
+    --baja-ac-hover: var(--color-accion-on-dark);
     --grad-page: var(--grad-navy);
     color-scheme: dark;
   }

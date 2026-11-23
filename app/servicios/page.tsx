@@ -184,7 +184,7 @@ export default async function ServiciosPage() {
                       style={{ fontSize: "clamp(34px, 5vw, 60px)" }}
                     >
                       Un servicio para cada{" "}
-                      <span style={{ color: "var(--color-wine)" }}>
+                      <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>
                         momento del viaje.
                       </span>
                     </h1>

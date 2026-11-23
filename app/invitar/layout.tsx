@@ -2,7 +2,7 @@
  * Layout del namespace `/invitar/*` · página pública de aceptación de invitación.
  *
  * Importa `studio.css` (incluye tokens.css) para tener acceso a:
- *  - Tokens brand: var(--wine), var(--ink), var(--ink-soft), var(--success), etc.
+ *  - Tokens brand: var(--color-accion), var(--ink), var(--ink-soft), var(--success), etc.
  *  - Clases reutilizables: .studio-btn, .studio-btn-primary, etc.
  *
  * Sin este import, AcceptInvitationForm queda con botones sin estilo y
