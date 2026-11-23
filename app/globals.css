@@ -630,7 +630,7 @@ html.dtd-cjk-sistema {
   color: var(--color-on-accion);
   box-shadow:
     0 1px 0 rgba(0, 0, 0, 0.04),
-    0 8px 24px -8px rgba(127, 15, 26, 0.45);
+    0 8px 24px -8px color-mix(in srgb, var(--color-accion) 45%, transparent);
 }
 .btn-primary:hover {
   background: var(--color-accion-hover);
@@ -1316,11 +1316,11 @@ html.dtd-cjk-sistema {
 @keyframes fab-wa-dot-pulse {
   0%, 60%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(127, 15, 26, 0.55);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ink) 55%, transparent);
   }
   78% {
     transform: scale(1.2);
-    box-shadow: 0 0 0 10px rgba(127, 15, 26, 0);
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-ink) 0%, transparent);
   }
 }
 
@@ -1392,8 +1392,8 @@ html.dtd-cjk-sistema {
   animation: markbox-glow 1.4s ease-in-out 0.25s 2 both;
 }
 @keyframes markbox-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 15, 26, 0); }
-  50%      { box-shadow: 0 0 0 12px rgba(127, 15, 26, 0.18); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ink) 0%, transparent); }
+  50%      { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-ink) 18%, transparent); }
 }
 
 .price-vibrate {
@@ -1851,7 +1851,7 @@ html.dtd-cjk-sistema {
   color: var(--color-on-accion);
   border-radius: 10px;
   padding: 16px 20px;
-  box-shadow: 0 8px 24px -8px rgba(127, 15, 26, 0.5);
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--color-accion) 50%, transparent);
   transition: background 0.18s ease, transform 0.12s ease;
 }
 .enlaces-primary:hover {
@@ -1925,7 +1925,7 @@ html.dtd-cjk-sistema {
   color: var(--enl-cream);
 }
 .enlaces-row.is-wine .ic {
-  background: rgba(127, 170, 240, 0.18);
+  background: color-mix(in srgb, var(--color-accion-on-dark) 18%, transparent);
   color: var(--color-on-accent);
 }
 .enlaces-row .tx {
@@ -2091,7 +2091,6 @@ html.dtd-cjk-sistema {
   /* Tinta sobre navy (mismo patrón AA que --hero-*: .72 verificado AA) */
   --ink-side: rgba(255, 255, 255, 0.88);
   --ink-side-soft: rgba(255, 255, 255, 0.72);
-  /* Wine */
   /* Estado */
   --success: var(--color-status-success);
   --warning: var(--color-status-warning);
@@ -2109,14 +2108,11 @@ html.dtd-cjk-sistema {
      `.sm-hero`/`.sm-final` usan LITERALMENTE este degradado. Vive acá una sola
      vez para no repetir el hex en cada regla de componente. */
   --grad-navy-hero: linear-gradient(135deg, #16274b, #26406f);
-  /* Panel VINO sólido con volumen (BD-030/022). Valor LITERAL del Norte, tema
-     claro: web/tokens-brand.css línea 147 (== erp/tokens.css línea 145).
-     Lo usa `.cx-wine-panel` en /contacto. */
   /* Lavado de página (marca de agua ≤0.07 sobre --bg-base). Valor LITERAL del
      Norte, tema claro: web/tokens-brand.css línea 149 (== erp/tokens.css 147).
      `body.home{background:var(--grad-page)}` en el mockup → acá lo aplica la
      superficie de la página, no el body. */
-  --grad-page: radial-gradient(90% 70% at 100% 0%, rgba(158, 21, 34, 0.06), transparent 55%),
+  --grad-page: radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--color-accion) 6%, transparent), transparent 55%),
     radial-gradient(80% 70% at 0% 100%, rgba(15, 30, 61, 0.05), transparent 55%), var(--bg-base);
 }
 
@@ -2468,7 +2464,7 @@ a.svp-it:hover .nm {
   border-radius: 50%;
   background: var(--color-ink);
   border: 2.5px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.25);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ink) 25%, transparent);
 }
 .f2route .stop.mid .pt {
   width: 9px;
@@ -2779,14 +2775,14 @@ a.svp-it:hover .nm {
   padding: 0 var(--s-6);
   border-radius: var(--r-md);
   background: var(--color-accion);
-  color: #fff;
+  color: var(--color-on-accion);
   font: 700 14px/1 var(--f-brand);
   white-space: nowrap;
   box-shadow: var(--shadow-sm);
   transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
 .f2cta:hover {
-  color: #fff;
+  color: var(--color-on-accion);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -3306,7 +3302,7 @@ a.svp-it:hover .nm {
 }
 .home-surface .btn-soft:hover {
   background: var(--color-accion);
-  color: #fff;
+  color: var(--color-on-accion);
 }
 .home-surface .btn-onwine {
   background: #f2f0ec;
@@ -4695,13 +4691,14 @@ a.svp-it:hover .nm {
    Adaptaciones al repo (el resto es 1:1 con el CSS de Cloud Design):
      1. `body.home{background:var(--grad-page)}` → lo aplica `.cx-surface`
         (el <main>), no el body: el sitio no tiene clase `home` en <body>.
-     2. Las alfas de blanco sobre el panel vino SUBEN de piso donde el mockup
-        cae bajo AA. Medido contra #9E1522 (el extremo CLARO de
-        .65 = 4.0:1 NO → la nota del form pasa a .75 (4.9:1) y el placeholder
-        de .5 (2.9:1) a .72. El borde de los campos sube de .28 (1.8:1) a .55
-        (3.7:1) para cumplir 1.4.11 (componentes de UI ≥3:1).
+     2. Las alfas de blanco sobre el panel SUBEN de piso donde el mockup cae
+        bajo AA: la nota del form pasa a .75 (4.9:1) y el placeholder a .72;
+        el borde de los campos sube de .28 a .55 (3.7:1) para cumplir 1.4.11
+        (componentes de UI ≥3:1). Se midieron contra el panel vino de origen
+        (#9E1522); desde la 3b-2c el panel es navy (#243C6B en su extremo
+        claro) y rinden más, así que el piso se conserva.
      3. Se AGREGA el `:focus-visible` de teclado: el CSS real solo pinta
-        `border-color` en vino al foco, que sobre el panel vino es
+        `border-color` en vino al foco, que sobre el panel oscuro es
         invisible. Sin esto la página no es navegable con teclado.
      4. La micro-línea legal NO copia el "RIF J-50648869-8" del mockup: razón
         social y RIF van SOLO en el JSON-LD (regla de marca del founder).
@@ -4993,7 +4990,7 @@ a.svp-it:hover .nm {
 
 /* ── Panel vino (BD-030/022 · --grad-wine-panel, texto blanco) ── */
 .cx-wine-panel {
-  background: radial-gradient(135% 135% at 14% -12%, #243c6b, #0f1e3d 44%, #081226);
+  background: var(--grad-navy);
   border-radius: var(--r-xl);
   padding: clamp(28px, 4vw, 48px);
   color: var(--color-white);

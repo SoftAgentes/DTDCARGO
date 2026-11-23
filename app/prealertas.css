@@ -23,7 +23,7 @@
       `.sm-surface` (comparte el MISMO degradado): piso en 66% = 4,9:1
       sobre el peor caso #26406F, BRAND.md regla 6 (≥4,5:1). Los `#fff`
       sueltos sobre wine pasan a `var(--color-on-accent)`. La sombra
-      `rgba(127,15,26,.35)` bajo el bigicon es literalmente `--wine` con
+      sombra bajo el bigicon, antes un rojo con alfa .35, es literalmente `--wine` con
       alfa (127,15,26 = #7F0F1A) → se expresa con `color-mix()` del token
       en vez de repetir el hex.
    2. `--nav-h` (usado por `.pa-cond-head` sticky): el mockup lo asume
@@ -485,7 +485,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Sombra tinte wine — el mockup trae rgba(127,15,26,.35), que es el hex de
+  /* Sombra tinte wine — el mockup traía el hex de
      --wine con alfa (#7F0F1A). Se expresa con el token en vez de repetir el hex. */
   box-shadow: 0 20px 45px color-mix(in srgb, var(--color-ink) 35%, transparent);
   position: relative;

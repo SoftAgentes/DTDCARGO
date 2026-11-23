@@ -47,6 +47,28 @@ function cuentas(fuente: (ruta: string) => string): Record<string, number> {
   return out;
 }
 
+const RGBA_VINO = /rgba\(\s*(?:127,\s*15,\s*26|194,\s*116,\s*127|158,\s*21,\s*34)/g;
+
+function rutasWeb(): string[] {
+  return [
+    ...fuentesDe(join(RAIZ, "app"), /\.(tsx?|css)$/),
+    ...fuentesDe(join(RAIZ, "lib", "news"), /\.(tsx?|css)$/),
+    ...fuentesDe(join(RAIZ, "lib", "runtime"), /\.(tsx?|css)$/),
+    ...fuentesDe(join(RAIZ, "components"), /\.(tsx?|css)$/),
+  ].filter((ruta) => !FUERA.test(rel(ruta)) && !/\.test\.tsx?$/.test(rel(ruta)));
+}
+
+const contarRgbaVino = (texto: string): number => texto.split(RGBA_VINO).length - 1;
+
+function rgbaVino(fuente: (ruta: string) => string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const ruta of rutasWeb()) {
+    const n = contarRgbaVino(fuente(ruta));
+    if (n) out[rel(ruta)] = n;
+  }
+  return out;
+}
+
 describe("SDD-0686 fase 3b-2c · páginas y superficies CSS sin vino de acción", () => {
   it("el vino que queda está en la lista cerrada, con su cuenta exacta", () => {
     expect(cuentas((ruta) => readFileSync(ruta, "utf8"))).toEqual(esperado);
@@ -88,5 +110,39 @@ describe("SDD-0686 fase 3b-2c · páginas y superficies CSS sin vino de acción"
   it("el chip de ficha usa la variante `accion`", () => {
     expect(leer("components/servicios/ChipF2.tsx")).toContain('variant?: "on" | "accion"');
     expect(leer("app/globals.css")).toContain(".f2chip.accion {");
+  });
+  it("ningún rgba() de la familia vino queda vivo en la web (el detector no lo ve)", () => {
+    expect(rgbaVino((ruta) => readFileSync(ruta, "utf8"))).toEqual({});
+  });
+
+  it("mutante: un halo en rgba de vino se detecta", () => {
+    const objetivo = "app/globals.css";
+    const original = leer(objetivo);
+    const de = "0 8px 24px -8px color-mix(in srgb, var(--color-accion) 45%, transparent)";
+    expect(original).toContain(de);
+    const mutado = original.replace(de, "0 8px 24px -8px rgba(127, 15, 26, 0.45)");
+    expect(contarRgbaVino(original)).toBe(0);
+    expect(contarRgbaVino(mutado)).toBe(1);
+  });
+
+  it("toda clase *-accion-* que usa la web existe como token en @theme (si no, Tailwind no la genera)", () => {
+    const css = leer("app/globals.css");
+    const tema = css.slice(css.indexOf("@theme {"), css.indexOf("\n}", css.indexOf("@theme {")));
+    const tokens = new Set([...tema.matchAll(/--color-([a-z-]+):/g)].map((m) => m[1]));
+    const CLASE = /(?<=^|[\s"'`:])(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-((?:on-)?accion(?:-[a-z]+)*)(?:\/\d+)?(?![\w-])/gm;
+    const faltan: string[] = [];
+    for (const ruta of rutasWeb().filter((r) => /\.tsx?$/.test(r))) {
+      for (const m of readFileSync(ruta, "utf8").matchAll(CLASE)) {
+        if (!tokens.has(m[1])) faltan.push(`${rel(ruta)}: ${m[0]}`);
+      }
+    }
+    expect(faltan).toEqual([]);
+    expect(tokens.has("accion")).toBe(true);
+  });
+
+  it("mutante: una clase de acción sin token se detecta", () => {
+    const tema = leer("app/globals.css");
+    expect(tema).not.toMatch(/--color-accion-soft:/);
+    expect(leer("app/academia/_components/AcademiaLeadForm.tsx")).not.toContain("accion-soft");
   });
 });

@@ -1282,6 +1282,7 @@ Tercer tramo de la 3b-2. Dir_DTD aprobó aplicar por analogía las reglas de la 
 - `app/servicios/page.tsx`
 - `app/servicios/puerta-a-puerta/page.tsx`
 - `app/studio/_components/__tests__/color-accion-fase3b-components-contract.test.ts`
+- `app/studio/_components/__tests__/color-accion-fase3b-portal-contract.test.ts`
 - `app/studio/_components/__tests__/color-accion-fase3b2c-paginas-contract.test.ts`
 - `components/servicios/ChipF2.tsx`
 - `components/servicios/hub-fichas.tsx`
@@ -1289,7 +1290,7 @@ Tercer tramo de la 3b-2. Dir_DTD aprobó aplicar por analogía las reglas de la 
 - `lib/cn.ts`
 - `lib/news/markdown.tsx`
 
-**Contrato nuevo:** `color-accion-fase3b2c-paginas-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes, el texto sobre el botón primario, la ausencia de los alias de vino, `--baja-ac` y la variante `accion`. El contrato de la 3b-2b pierde las entradas de las fichas.
+**Contrato nuevo:** `color-accion-fase3b2c-paginas-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes, ningún `rgba()` de la familia vino (`127,15,26`, `194,116,127`, `158,21,34`) con su mutante, que toda clase `*-accion-*` de la web exista como token en `@theme` (Tailwind v4 no genera la que no),  el texto sobre el botón primario, la ausencia de los alias de vino, `--baja-ac` y la variante `accion`. El contrato de la 3b-2b pierde las entradas de las fichas.
 
 **Pendiente de ver en pantalla (D):** los paneles navy del formulario de Contacto y de las fichas, y las bandas con eyebrows en crema. El contraste AA de crema y azul claro sobre los navy ya está cubierto por el contrato de la 3b-2b.
 
