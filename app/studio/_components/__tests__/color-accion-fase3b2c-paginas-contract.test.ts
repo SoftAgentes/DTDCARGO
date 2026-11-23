@@ -58,7 +58,25 @@ function rutasWeb(): string[] {
   ].filter((ruta) => !FUERA.test(rel(ruta)) && !/\.test\.tsx?$/.test(rel(ruta)));
 }
 
-const contarRgbaVino = (texto: string): number => texto.split(RGBA_VINO).length - 1;
+/** Tokens `--color-*` declarados en el `@theme` de globals.css (sin el prefijo `--color-`). */
+function tokensDeTema(): Set<string> {
+  const css = leer("app/globals.css");
+  const tema = css.slice(css.indexOf("@theme {"), css.indexOf("\n}", css.indexOf("@theme {")));
+  return new Set([...tema.matchAll(/--color-([a-z-]+):/g)].map((m) => m[1]));
+}
+
+const CLASE_ACCION = /(?<=^|[\s"'`:])(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-((?:on-)?accion(?:-[a-z]+)*)(?:\/\d+)?(?![\w-])/gm;
+const VAR_ACCION = /var\(--color-((?:on-)?accion(?:-[a-z]+)*)\)/g;
+
+/** Clases `*-accion-*` y `var(--color-accion-…)` de un texto cuyo token no existe en `@theme`. */
+function accionSinToken(texto: string, tokens: Set<string>): string[] {
+  const out: string[] = [];
+  for (const m of texto.matchAll(CLASE_ACCION)) if (!tokens.has(m[1])) out.push(m[0]);
+  for (const m of texto.matchAll(VAR_ACCION)) if (!tokens.has(m[1])) out.push(m[0]);
+  return out;
+}
+
+const contarRgbaVino =(texto: string): number => texto.split(RGBA_VINO).length - 1;
 
 function rgbaVino(fuente: (ruta: string) => string): Record<string, number> {
   const out: Record<string, number> = {};
@@ -126,23 +144,20 @@ describe("SDD-0686 fase 3b-2c · páginas y superficies CSS sin vino de acción"
   });
 
   it("toda clase *-accion-* que usa la web existe como token en @theme (si no, Tailwind no la genera)", () => {
-    const css = leer("app/globals.css");
-    const tema = css.slice(css.indexOf("@theme {"), css.indexOf("\n}", css.indexOf("@theme {")));
-    const tokens = new Set([...tema.matchAll(/--color-([a-z-]+):/g)].map((m) => m[1]));
-    const CLASE = /(?<=^|[\s"'`:])(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-((?:on-)?accion(?:-[a-z]+)*)(?:\/\d+)?(?![\w-])/gm;
+    const tokens = tokensDeTema();
     const faltan: string[] = [];
     for (const ruta of rutasWeb().filter((r) => /\.tsx?$/.test(r))) {
-      for (const m of readFileSync(ruta, "utf8").matchAll(CLASE)) {
-        if (!tokens.has(m[1])) faltan.push(`${rel(ruta)}: ${m[0]}`);
-      }
+      for (const f of accionSinToken(readFileSync(ruta, "utf8"), tokens)) faltan.push(`${rel(ruta)}: ${f}`);
     }
     expect(faltan).toEqual([]);
     expect(tokens.has("accion")).toBe(true);
   });
 
-  it("mutante: una clase de acción sin token se detecta", () => {
-    const tema = leer("app/globals.css");
-    expect(tema).not.toMatch(/--color-accion-soft:/);
-    expect(leer("app/academia/_components/AcademiaLeadForm.tsx")).not.toContain("accion-soft");
+  it("mutante: una clase de acción sin token se detecta (y las que sí existen no)", () => {
+    const tokens = tokensDeTema();
+    expect(tokens.has("accion-soft")).toBe(false);
+    expect(accionSinToken('className="focus-visible:ring-accion-soft"', tokens)).toEqual(["ring-accion-soft"]);
+    expect(accionSinToken('className="bg-[var(--color-accion-soft)]"', tokens)).toEqual(["var(--color-accion-soft)"]);
+    expect(accionSinToken('className="hover:text-accion-text bg-accion/40 text-on-accion"', tokens)).toEqual([]);
   });
 });

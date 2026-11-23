@@ -1292,6 +1292,8 @@ Tercer tramo de la 3b-2. Dir_DTD aprobó aplicar por analogía las reglas de la 
 
 **Contrato nuevo:** `color-accion-fase3b2c-paginas-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes, ningún `rgba()` de la familia vino (`127,15,26`, `194,116,127`, `158,21,34`) con su mutante, que toda clase `*-accion-*` de la web exista como token en `@theme` (Tailwind v4 no genera la que no),  el texto sobre el botón primario, la ausencia de los alias de vino, `--baja-ac` y la variante `accion`. El contrato de la 3b-2b pierde las entradas de las fichas.
 
+**Falsos negativos conocidos del contrato de la 3b-2c.** (1) La prueba de clases `*-accion-*` solo mira `.ts` y `.tsx`: no ve `var(--color-accion-…)` escrito en CSS, tokens con dígitos (`accion-2`), un prefijo `!` o `-` (`!bg-accion-x`), `ring-offset-accion-*` ni el valor arbitrario con otra forma que `[var(--color-accion-…)]`. Sí ve `var(--color-accion-…)` en `.tsx`. (2) El contador de `rgba` solo ve `rgba(` con los tres tríos de la familia vino (`127,15,26`, `194,116,127`, `158,21,34`): no ve `rgb(`, la sintaxis con `/` ni con porcentajes, ni un hex escrito a mano (`#7f0f1a`, `#9e1522`); el detector de vino ya declara esto último. El mutante de clases pasa un texto mutado por el mismo helper que usa el contrato.
+
 **Pendiente de ver en pantalla (D):** los paneles navy del formulario de Contacto y de las fichas, y las bandas con eyebrows en crema. El contraste AA de crema y azul claro sobre los navy ya está cubierto por el contrato de la 3b-2b.
 
 ### Fase 3b-2a · registro, verificar, abrir y planilla del proveedor (2026-11-23)
