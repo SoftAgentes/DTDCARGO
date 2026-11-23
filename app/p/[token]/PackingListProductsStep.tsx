@@ -13,8 +13,8 @@ type Props = {
   removeProduct: (index: number) => void; removeGroup: (index: number) => void;
   error?: string;
 };
-const inputClass = "min-h-12 w-full min-w-0 rounded-lg border border-grey-300 bg-white px-3 py-2 text-base text-ink outline-none focus-visible:ring-2 focus-visible:ring-wine-text disabled:opacity-60";
-const actionClass = "min-h-11 min-w-11 rounded px-2 text-sm font-semibold underline underline-offset-4 hover:bg-grey-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine-text disabled:opacity-60";
+const inputClass = "min-h-12 w-full min-w-0 rounded-lg border border-grey-300 bg-white px-3 py-2 text-base text-ink outline-none focus-visible:ring-2 focus-visible:ring-accion disabled:opacity-60";
+const actionClass = "min-h-11 min-w-11 rounded px-2 text-sm font-semibold underline underline-offset-4 hover:bg-grey-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accion disabled:opacity-60";
 const invoiceGrid = "md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-start md:gap-3";
 const hasName = (row: PackingListRowInput) => [row.zh, row.es, row.brand].some(value => value?.trim());
 

@@ -32,7 +32,7 @@ type Props = {
   saveStatus: string; saveFailed: boolean; saveIsManual: boolean; onSave: () => void; history: PacklistHistEntry[]; onRestore: (entry: PacklistHistEntry) => void;
   standardDocument: ReactNode; onCaptureChange: () => void; attachments: ReactNode; attachmentsSummary: ReactNode; delivery: ReactNode; onPrintLabels: () => void; onPreview: () => void; excelHref: string;
 };
-const fieldClass = "min-h-12 w-full rounded-lg border border-grey-300 bg-white px-3 py-2 text-base text-ink outline-none focus-visible:ring-2 focus-visible:ring-wine-text disabled:opacity-60";
+const fieldClass = "min-h-12 w-full rounded-lg border border-grey-300 bg-white px-3 py-2 text-base text-ink outline-none focus-visible:ring-2 focus-visible:ring-accion disabled:opacity-60";
 
 /** Capture UI only: business state, local history and wire payload stay in the owner. */
 export function PackingListGuidedForm(p: Props) {
@@ -99,8 +99,8 @@ export function PackingListGuidedForm(p: Props) {
   return <section className="provider-capture min-w-0 text-ink" lang={p.locale === "zh" ? "zh-CN" : p.locale} aria-label={t("装箱单与发票", "Factura y packing list", "Invoice and packing list")}>
     <div className="no-print mb-3">
       <div role="group" aria-label={t("填写方式", "Forma de llenar el documento", "How to fill the document")} className="grid grid-cols-2 gap-2 sm:inline-flex">
-        <button type="button" disabled={sending} aria-pressed={!standard} className={"min-h-12 rounded-lg border px-3 py-2 text-sm font-semibold " + (!standard ? "border-wine-text bg-wine text-on-accent" : "border-grey-300 bg-white")} onClick={() => changeCapture(false)}>{t("分步填写", "Llenado guiado", "Guided entry")}</button>
-        <button type="button" disabled={sending} aria-pressed={standard} className={"min-h-12 rounded-lg border px-3 py-2 text-sm font-semibold " + (standard ? "border-wine-text bg-wine text-on-accent" : "border-grey-300 bg-white")} onClick={() => changeCapture(true)}>{t("标准表格", "Formato estándar", "Standard format")}</button>
+        <button type="button" disabled={sending} aria-pressed={!standard} className={"min-h-12 rounded-lg border px-3 py-2 text-sm font-semibold " + (!standard ? "border-ink bg-ink text-on-accent" : "border-grey-300 bg-white")} onClick={() => changeCapture(false)}>{t("分步填写", "Llenado guiado", "Guided entry")}</button>
+        <button type="button" disabled={sending} aria-pressed={standard} className={"min-h-12 rounded-lg border px-3 py-2 text-sm font-semibold " + (standard ? "border-ink bg-ink text-on-accent" : "border-grey-300 bg-white")} onClick={() => changeCapture(true)}>{t("标准表格", "Formato estándar", "Standard format")}</button>
       </div>
       <p className="mt-2 text-xs text-grey-700">{t("两种方式使用同一份草稿，随时切换，无需重复填写。", "Ambas opciones usan el mismo borrador. Puedes cambiar sin volver a llenar.", "Both options use the same draft. Switch without entering your data again.")}</p>
     </div>
@@ -132,7 +132,7 @@ export function PackingListGuidedForm(p: Props) {
         <p className="text-grey-700">{mode === "online" ? t("更喜欢 Excel？", "¿Prefieres Excel?", "Prefer Excel?") : t("正在使用 Excel", "Estás usando Excel", "Using Excel")}</p>
         <button type="button" className="min-h-11 rounded px-2 font-semibold underline underline-offset-4" onClick={() => setMode(mode === "online" ? "excel" : "online")} disabled={sending}>{mode === "online" ? t("使用 Excel", "Usar Excel", "Use Excel") : t("返回在线填写", "Volver al formulario", "Back to the form")}</button>
       </div>
-      {!standard && mode === "online" && <nav className="mb-3 sm:mb-4" aria-label={t("填写步骤", "Pasos del documento", "Document steps")}><ol className="grid grid-cols-4 gap-2">{steps.map((label, index) => <li key={index}><button className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border p-1.5 text-left text-sm font-semibold sm:min-h-12 sm:justify-start sm:px-3 ${step === index ? "border-wine-text bg-white text-ink" : "border-grey-200 bg-paper text-grey-700 hover:bg-grey-100"}`} type="button" aria-label={`${index + 1} ${label}`} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} disabled={sending}><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${step === index ? "bg-wine text-on-accent" : "border border-grey-300"}`}>{index + 1}</span><span className="hidden sm:inline">{label}</span></button></li>)}</ol></nav>}
+      {!standard && mode === "online" && <nav className="mb-3 sm:mb-4" aria-label={t("填写步骤", "Pasos del documento", "Document steps")}><ol className="grid grid-cols-4 gap-2">{steps.map((label, index) => <li key={index}><button className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border p-1.5 text-left text-sm font-semibold sm:min-h-12 sm:justify-start sm:px-3 ${step === index ? "border-ink bg-white text-ink" : "border-grey-200 bg-paper text-grey-700 hover:bg-grey-100"}`} type="button" aria-label={`${index + 1} ${label}`} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} disabled={sending}><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${step === index ? "bg-ink text-on-accent" : "border border-grey-300"}`}>{index + 1}</span><span className="hidden sm:inline">{label}</span></button></li>)}</ol></nav>}
     </>}
     <div hidden={!standard || sent || mode !== "online"} className="pl-print-only min-w-0">
       <div className="no-print mb-3">
