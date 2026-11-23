@@ -41,11 +41,11 @@ afterEach(cleanup);
 describe("EmbarquesClient · adjuntos (SDD-0507)", () => {
   it("cada fila dice cuántos tiene, con el desglose en title", () => {
     pintar(CONTEOS);
-    const fila1 = screen.getByText("S-2026-0001").closest("button")!;
+    const fila1 = screen.getByText("S-2026-0001").closest("[data-fila-datos]") as HTMLElement;
     expect(within(fila1).getByTitle("2 adjuntos: 1 interno · 1 lo ve el cliente en el portal").textContent).toBe(
       "2 adjuntos",
     );
-    const fila3 = screen.getByText("S-2026-0003").closest("button")!;
+    const fila3 = screen.getByText("S-2026-0003").closest("[data-fila-datos]") as HTMLElement;
     expect(within(fila3).getByText("Ninguno")).toBeTruthy();
   });
 
