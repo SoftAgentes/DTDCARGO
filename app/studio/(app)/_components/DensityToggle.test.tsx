@@ -3,46 +3,54 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DENSITY_KEY } from "../../_components/appearance-prefs";
 import { DensityToggle } from "./DensityToggle";
 
-describe("DensityToggle · SDD-0603", () => {
+const marcado = (nombre: string) =>
+  screen.getByRole("button", { name: nombre }).getAttribute("aria-pressed");
+
+describe("Selector de vista · SDD-0688 fase 2", () => {
   beforeEach(() => {
     localStorage.removeItem(DENSITY_KEY);
     delete document.documentElement.dataset.density;
   });
   afterEach(cleanup);
 
-  it("sin elección previa, nace marcado: compacto es el predeterminado", () => {
+  it("ofrece las tres vistas", () => {
     render(<DensityToggle />);
-    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("true");
+    for (const n of ["Normal", "Compacta", "Súper compacta"]) {
+      expect(screen.getByRole("button", { name: n })).toBeTruthy();
+    }
   });
 
-  it("al oprimirlo desde normal aplica compacto, lo guarda y se marca", () => {
-    localStorage.setItem(DENSITY_KEY, "normal");
+  it("sin elección previa, Compacta nace marcada", () => {
     render(<DensityToggle />);
-    act(() => {
-      fireEvent.click(screen.getByRole("button", { name: "Compacto" }));
-    });
-    expect(document.documentElement.dataset.density).toBe("compact");
-    expect(localStorage.getItem(DENSITY_KEY)).toBe("compact");
-    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("true");
+    expect(marcado("Compacta")).toBe("true");
+    expect(marcado("Normal")).toBe("false");
+    expect(marcado("Súper compacta")).toBe("false");
   });
 
-  it("al oprimirlo otra vez vuelve a normal", () => {
-    localStorage.setItem(DENSITY_KEY, "compact");
-    document.documentElement.dataset.density = "compact";
+  it("Normal quita el atributo, lo guarda y se marca", () => {
     render(<DensityToggle />);
     act(() => {
-      fireEvent.click(screen.getByRole("button", { name: "Compacto" }));
+      fireEvent.click(screen.getByRole("button", { name: "Normal" }));
     });
     expect(document.documentElement.dataset.density).toBeUndefined();
     expect(localStorage.getItem(DENSITY_KEY)).toBe("normal");
-    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("false");
+    expect(marcado("Normal")).toBe("true");
   });
 
-  it("no pisa la vista espaciosa elegida en Administración hasta que se oprime", () => {
-    localStorage.setItem(DENSITY_KEY, "spacious");
-    document.documentElement.dataset.density = "spacious";
+  it("Súper compacta aplica ultra y lo guarda", () => {
     render(<DensityToggle />);
-    expect(document.documentElement.dataset.density).toBe("spacious");
-    expect(screen.getByRole("button", { name: "Compacto" }).getAttribute("aria-pressed")).toBe("false");
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Súper compacta" }));
+    });
+    expect(document.documentElement.dataset.density).toBe("ultra");
+    expect(localStorage.getItem(DENSITY_KEY)).toBe("ultra");
+    expect(marcado("Súper compacta")).toBe("true");
+    expect(marcado("Compacta")).toBe("false");
+  });
+
+  it("una vista Amplia guardada antes se lee como Normal", () => {
+    localStorage.setItem(DENSITY_KEY, "spacious");
+    render(<DensityToggle />);
+    expect(marcado("Normal")).toBe("true");
   });
 });

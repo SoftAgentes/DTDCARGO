@@ -197,7 +197,7 @@ describe("claridad de controles · SDD-0603", () => {
     });
 
     it("los verbos de botón van en peso 700 o más", () => {
-      const verbo = /^\.studio-(?:btn|icono-btn|cerrar-panel|densidad)(?![\w-]*__)|::file-selector-button/;
+      const verbo = /^\.studio-(?:btn|icono-btn|cerrar-panel|vista__op)(?![\w-]*__)|::file-selector-button/;
       const pesos = reglas
         .filter((r) => r.selectores.some((x) => verbo.test(x)))
         .flatMap((r) => [...r.cuerpo.matchAll(/font(?:-weight)?\s*:\s*(\d{3})\b/g)].map((m) => ({ sel: r.selectores.join(", "), peso: Number(m[1]) })));
@@ -211,8 +211,8 @@ describe("claridad de controles · SDD-0603", () => {
       expect(exito?.cuerpo).toContain("box-shadow: none");
     });
 
-    it("los controles de icono, cierre y densidad reposan en nivel 1", () => {
-      const icono = reglas.find((r) => r.selectores.join(",") === ".studio-icono-btn,.studio-cerrar-panel,.studio-densidad");
+    it("los controles de icono y cierre reposan en nivel 1", () => {
+      const icono = reglas.find((r) => r.selectores.join(",") === ".studio-icono-btn,.studio-cerrar-panel");
       expect(icono?.cuerpo).toContain("box-shadow: var(--shadow-xs)");
     });
   });

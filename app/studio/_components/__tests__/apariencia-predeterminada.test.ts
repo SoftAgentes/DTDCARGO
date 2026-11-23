@@ -56,11 +56,18 @@ describe("apariencia predeterminada del Studio · SDD-0603", () => {
     expect(readDensity()).toBe("normal");
   });
 
-  it("quien eligió espacioso lo conserva", () => {
+  it("quien eligió Amplia (retirada en SDD-0688) pasa a Normal", () => {
     localStorage.setItem(DENSITY_KEY, "spacious");
     correr();
-    expect(html.getAttribute("data-density")).toBe("spacious");
-    expect(readDensity()).toBe("spacious");
+    expect(html.hasAttribute("data-density")).toBe(false);
+    expect(readDensity()).toBe("normal");
+  });
+
+  it("quien eligió Súper compacta la conserva", () => {
+    localStorage.setItem(DENSITY_KEY, "ultra");
+    correr();
+    expect(html.getAttribute("data-density")).toBe("ultra");
+    expect(readDensity()).toBe("ultra");
   });
 
   it.each(["/studio/ficha-chat", "/studio/cerrar-chat"])("%s sigue a Chatwoot: ni tema ni densidad", (ruta) => {
