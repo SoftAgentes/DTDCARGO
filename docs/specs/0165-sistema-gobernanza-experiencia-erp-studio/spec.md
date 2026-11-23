@@ -342,3 +342,21 @@ implementación de la Fase 1 se considera cerrada.
 4. Cargar y validar Noto Serif SC para correos/PDF según VIS-02.
 5. Convertir la gobernanza aprobada en plugin persistente con reglas,
    validadores y recetas de corrección.
+
+## 17. Enmienda v1.1 · tipos y persistencia de los mensajes (SDD-0688)
+
+Aprobada por Sam el 2026-11-20: «Reglas de mensajes: aprobadas las tres».
+Alcance: Studio y Portal. En la fase 1 de la SDD-0688 es solo política; el
+código llega en sus fases 3, 10 y 11 a 18. No contradice ERR-01 (el error
+aparece cerca de su causa).
+
+7. **Cuatro tipos con nombre:** en línea, toast, accionable y llamada.
+8. **Persistencia escrita:**
+   - en línea: se queda hasta cerrarla o resolver la causa;
+   - toast: breve, y su información debe estar disponible en otro lado;
+   - accionable: se queda hasta que la persona actúe o la descarte;
+   - llamada: no se cierra y no es para éxito ni error.
+9. **Lugar fijo del aviso de formulario:** encima de la fila de botones del pie.
+
+Este texto vive aquí porque el documento canónico de AVS-01 es esta spec; no
+existe `docs/governance/policies/avs-01.md`.

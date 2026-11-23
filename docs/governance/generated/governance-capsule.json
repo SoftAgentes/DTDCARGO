@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-11-12T00:00:00.000Z",
-  "sourceCommit": "9519fe06b7c230adbec179e54fbf4bd9b80a4dc5",
+  "sourceCommit": "8c15a4bb0ccf813b6b80b0024da7b7df52b42801",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -34,7 +34,7 @@
     },
     {
       "code": "BTN-01",
-      "version": "1.2",
+      "version": "1.3",
       "state": "aprobada",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/btn-01.md"
