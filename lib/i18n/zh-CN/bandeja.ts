@@ -27,7 +27,7 @@ export const bandeja: BandejaDict = {
   "bandeja.state.retrying": "正在连接收件箱…（第 {n} 次，共 {total} 次）",
   "bandeja.recover.title": "收件箱没有打开",
   "bandeja.recover.service": "消息服务器在 {total} 次尝试后仍未响应。请稍后重新打开。",
-  "bandeja.recover.timeout": "收件箱未能及时响应。请点击「重新打开」：页面将重新加载。",
+  "bandeja.recover.timeout": "收件箱在 {total} 次尝试后仍未及时响应。请点击「重新打开」再试一次。",
   "bandeja.recover.slow": "收件箱加载得比平时慢。",
   "bandeja.recover.throttle": "Chatwoot 会限制频繁登录。请等几分钟，或在新标签页中打开。",
 
