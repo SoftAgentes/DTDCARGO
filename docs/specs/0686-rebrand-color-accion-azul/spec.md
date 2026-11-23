@@ -1167,7 +1167,7 @@ Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del co
 
 Dir_DTD aprobó dividir la 3b-2 (web) en tres tramos y empezar por `components/`: «apruebo los tres tramos […] Empieza por la 3b-2b (components/)». Después vienen la 3b-2a (registro, acceso, verificar, abrir y `p/[token]`; **`app/entrar` queda excluido**, es el inicio de sesión de la fase 4) y la 3b-2c (las páginas restantes y las superficies CSS). Rama `codex/sdd-0686-fase3b2-web`, desde `main` `471ea1d0b`. La PR se abre cuando la #780 (3b-1) esté en `main`.
 
-**Inventario (M):** 217 usos en 33 archivos. Quedan 74 usos en 17 archivos, todos en la lista cerrada del contrato.
+**Inventario (M):** 217 usos en 33 archivos. Quedan 17 usos en 3 archivos, todos en la lista cerrada del contrato.
 
 | Destino | Qué |
 |---|---|
@@ -1225,7 +1225,7 @@ Dir_DTD aprobó dividir la 3b-2 (web) en tres tramos y empezar por `components/`
 
 **Contrato nuevo:** `color-accion-fase3b-components-contract.test.ts`.
 - La lista cerrada, con su motivo.
-- Ocho mutantes: un enlace, el hover del menú, una selección, un error y uno por cada decisión de Sam (un acento editorial, una ilustración, una cifra y un control sobre navy).
+- Nueve mutantes: un enlace, el hover del menú, un estado abierto con variante de grupo (`group-[[open]]:`), una selección, un error y uno por cada decisión de Sam (un acento editorial, una ilustración, una cifra y un control sobre navy).
 - Ningún texto `--color-on-accent` sobre un relleno de acción.
 - Los errores en rojo.
 - El contraste AA del azul claro y el crema sobre los navy reales.

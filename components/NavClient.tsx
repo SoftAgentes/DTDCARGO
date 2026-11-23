@@ -329,7 +329,7 @@ export function NavClient({ cotizador: conCotizador = false }: { cotizador?: boo
                 teclado gratis; Escape y click-fuera se manejan en el useEffect
                 de arriba. */}
             <details ref={recursosRef} className="group relative">
-              <summary className={`list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-accion-text hover:bg-accion-tint transition-colors whitespace-nowrap flex items-center gap-1.5 group-[[open]]:text-wine [&::-webkit-details-marker]:hidden`}>
+              <summary className={`list-none cursor-pointer select-none text-[13.5px] xl:text-[14.5px] ${pad} xl:px-2.5 py-2 rounded-md text-ink font-medium hover:text-accion-text hover:bg-accion-tint transition-colors whitespace-nowrap flex items-center gap-1.5 group-[[open]]:text-accion-text [&::-webkit-details-marker]:hidden`}>
                 Ayuda
                 <svg
                   aria-hidden
