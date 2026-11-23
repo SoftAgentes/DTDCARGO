@@ -116,12 +116,9 @@ describe("SDD-0686 · cifras KPI en tinta (Sam, opción A)", () => {
     expect(cifrasGrandesConEstado((ruta) => readFileSync(ruta, "utf8"))).toEqual([]);
   });
 
+  // SDD-0680 (adenda del 2026-11-23): el estado del chat del portal dejó de tener cifras grandes
+  // (pasó a una pastilla en la fila con un detalle de 14 px); su caso salió de esta lista.
   it.each([
-    [
-      "app/studio/(app)/bandeja/_components/PortalChatwoot.tsx",
-      'font: "800 20px/1.2 var(--f-mono)",\n                  color: "var(--ink)",',
-      'font: "800 20px/1.2 var(--f-mono)",\n                  color: resumen.atascados > 0 ? "var(--danger-text)" : "var(--ink)",',
-    ],
     [
       "app/studio/(app)/facturacion/[code]/page.tsx",
       'font: "900 42px/1 var(--f-display)",\n                color: "var(--ink-side-strong)",\n                letterSpacing: "-0.02em",\n                marginTop: 8,\n              }}\n            >\n              ${fmt(balance)}',
