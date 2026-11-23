@@ -65,3 +65,9 @@ Con TURNO DE PC (2026-11-23): vitest de `app/studio/_components` y `(app)/_compo
 - `body` no lee `--t-cuerpo`: por eso Súper compacta hoy actúa sobre espacios, filas de lo ya tokenizado, títulos y las clases nombradas, no sobre todo el texto de módulos con `fontSize` suelto (fase 9).
 - `app/studio/CLAUDE.md` todavía menciona `compact|spacious` y el botón «Compacto» (no estaba en la allowlist).
 - VIS-02 no se tocó (evita desfasar la cápsula sin poder regenerarla); la correspondencia rol→clase está en `studio.css` y la spec.
+
+## Cierre de la fase 2 (2026-11-23) · corrección de la revisión independiente
+- **Qué cambió (commit `18f71bd0b`, PR #789):** `.studio-vista` sin `overflow: hidden` (recortaba el anillo de foco, WCAG 2.4.7); los botones de los extremos redondean las esquinas. Contrato con la prueba de foco y su mutante. Spec: archivos fuera de la allowlist anotados. `app/studio/CLAUDE.md`: vista en lugar de `compact|spacious`. Cambios visuales leves anotados arriba para la captura de Sam.
+- **PASÓ:** vitest de estilos-texto + claridad-controles + DensityToggle (39/39), `tsc`, eslint del contrato, `components:check`, `governance:check`.
+- **NO EJECUTADO:** `pnpm build`, `pnpm verify`. El anillo de foco se verificó por CSS, no en pantalla.
+- **Falta:** la re-revisión independiente de la corrección y el CI sobre `18f71bd0b`. La PR no se mergea sin ellas. Desde este cierre la sigue Codex como Director.
