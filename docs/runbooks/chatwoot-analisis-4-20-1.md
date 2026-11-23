@@ -1,7 +1,7 @@
 # Análisis · Chatwoot v4.20.0-ce → v4.20.1-ce
 
 **Pedido de Sam (2026-11-22), textual:** «Actualización de Chatwoot: revísame para instalar la actualización de Chatwoot y analiza qué podemos hacer, sus riesgos, cómo mitigar esos riesgos, qué conviene actualizar y por qué».
-**Estado:** análisis escrito el 2026-11-22. **No toca producción ni el VPS y no instala nada.** La subida sigue el [runbook de versiones](chatwoot-versiones.md) (SDD-0588) y su forma corta de la [subida a la 4.20.0](chatwoot-subida-4-20.md) (SDD-0679), con el **OK nominal de Sam**.
+**Estado:** **ejecutado el 2026-11-23** a las 04:15Z. Producción corre `v4.20.1-ce` y el detalle está en el [Registro](chatwoot-versiones.md#registro). Lo de abajo es el análisis y el plan tal como se escribieron el 2026-11-22, antes de la ventana. El análisis no tocó producción ni el VPS. La subida siguió el [runbook de versiones](chatwoot-versiones.md) (SDD-0588) y su forma corta de la [subida a la 4.20.0](chatwoot-subida-4-20.md) (SDD-0679), con el **OK nominal de Sam**.
 **Sin secretos ni datos:** este archivo solo cita código público de `chatwoot/chatwoot` y código de este repo.
 
 ## Etiquetas de evidencia

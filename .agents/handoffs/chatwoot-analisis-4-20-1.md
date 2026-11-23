@@ -22,9 +22,15 @@ Pedido de Sam, textual: «Actualización de Chatwoot: revísame para instalar la
 - Pruebas de producto: NO APLICA (cambio solo de docs).
 - Ensayo de la imagen: va en la PR #779 (rama `codex/chatwoot-v4-20-1`), con turno del Director.
 
+## ESTADO FINAL (2026-11-23)
+
+- La subida a `v4.20.1-ce` **se ejecutó** el 2026-11-23 a las 04:15Z, por el Director, con el OK nominal de Sam. La fila está en el Registro de `docs/runbooks/chatwoot-versiones.md`.
+- PR del análisis: #776. PR de la imagen: #779. Las dos están en `main`.
+- Yo no entré al VPS: no tenía acceso root y no probé llaves ajenas.
+
 ## PENDIENTES DE ESTA TAREA
 
-- Ninguna de decisión: D1–D4 ya están tomadas por Sam el 2026-11-22 (A, A, A y hoy). Quedan el ensayo y la revisión de la #779.
+- Que Sam haga en su navegador S10, S11, M1 y S13, y que se cambie el monitor «Chatwoot · versión» de Uptime Kuma a `4.20.1`.
 
 ## FUERA DE ALCANCE DETECTADO
 
