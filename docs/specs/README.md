@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 692 specs)
+### Índice de specs (generado · 693 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -730,6 +730,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0709 | Studio · Menú lateral cerrado: un icono por grupo y lista flo… | in-progress | interno |
 | 0710 | Studio · Embarques: fila con insignia de rastreo | in-progress | interno |
 | 0711 | Studio · Embarques: cajas y CBM por proveedor en el detalle d… | in-progress | interno |
+| 0712 | Búsqueda amplia y fusión manual de clientes | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0575, 0578, 0670, 0683, 0691, 0692 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
