@@ -47,8 +47,8 @@ export function AssetCard({
     <div
       className="rounded-[16px] border bg-white overflow-hidden flex flex-col transition-colors"
       style={{
-        borderColor: selected ? "var(--color-wine)" : "var(--color-grey-200)",
-        boxShadow: selected ? "0 0 0 1px var(--color-wine)" : undefined,
+        borderColor: selected ? "var(--color-ink)" : "var(--color-grey-200)",
+        boxShadow: selected ? "0 0 0 1px var(--color-ink)" : undefined,
       }}
     >
       <div className="relative">
@@ -123,7 +123,7 @@ export function AssetCard({
             type="checkbox"
             checked={selected}
             onChange={() => onToggle(asset.id)}
-            className="w-4 h-4 accent-[var(--color-wine)] cursor-pointer"
+            className="w-4 h-4 accent-[var(--color-accion)] cursor-pointer"
           />
           <span className="sr-only sm:not-sr-only">{selected ? "Elegido" : "Elegir"}</span>
         </label>

@@ -44,7 +44,6 @@
   --rp-navy-fill: color-mix(in srgb, var(--color-white) 6%, transparent);
   --rp-navy-border: color-mix(in srgb, var(--color-grey-100) 40%, transparent);
   /* wine legible sobre navy (BD-026 / --color-wine-on-dark) */
-  --wine-on-dark: var(--color-wine-on-dark);
   --f-cn: var(--f-cn-ui); /* alias UI: Noto Sans SC para chino mandarín (唛头, 义乌) */
   /* Ancho de lectura por defecto; cada página lo puede pisar inline */
   --rp-w: 900px;
@@ -76,13 +75,13 @@
   font: 700 13px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
   margin: 0 0 var(--s-4);
 }
 .rp-surface .rp-eyebrow .rule {
   width: 32px;
   height: 2px;
-  background: var(--wine-on-dark);
+  background: var(--color-on-accent);
   flex: 0 0 auto;
 }
 
@@ -99,7 +98,7 @@
 }
 .rp-hero-in h1 .accent,
 .rp-h1 .accent {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .rp-hero-in > p,
 .rp-hero-sub {
@@ -149,7 +148,7 @@
   text-wrap: balance;
 }
 .rp-surface .rp-h2 .accent {
-  color: var(--wine-text);
+  color: var(--color-ink);
 }
 .rp-surface .rp-lead {
   font: 500 clamp(14.5px, 1.2vw, 16px) / 1.65 var(--f-brand);
@@ -167,13 +166,13 @@
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin: 0 0 var(--s-4);
 }
 .rp-surface .rp-kicker .rule {
   width: 28px;
   height: 2px;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
 }
 
@@ -203,12 +202,12 @@
   outline-color: var(--rp-on-navy);
 }
 .rp-surface .btn-primary {
-  background: var(--wine);
-  color: var(--color-on-accent);
+  background: var(--color-accion);
+  color: var(--color-on-accion);
   box-shadow: var(--shadow-sm);
 }
 .rp-surface .btn-primary:hover {
-  background: var(--wine-deep);
+  background: var(--color-accion-hover);
 }
 .rp-surface .btn-ghost {
   background: transparent;
@@ -238,7 +237,7 @@
 .rp-surface .faq-a a:not(.btn),
 .rp-surface .nw-empty p a:not(.btn),
 .rp-cta p a:not(.btn) {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -247,12 +246,12 @@
 .rp-surface .faq-a a:not(.btn):hover,
 .rp-surface .nw-empty p a:not(.btn):hover,
 .rp-cta p a:not(.btn):hover {
-  color: var(--wine);
+  color: var(--color-accion-hover);
 }
 /* Enlaces dentro de la banda navy — wine-on-dark (BD-026, 4,57:1 en el peor
    caso del degradado) + subrayado. El wine crudo sobre navy no se lee. */
 .rp-hero a:not(.btn) {
-  color: var(--wine-on-dark);
+  color: var(--color-accion-on-dark);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -260,7 +259,7 @@
   color: var(--rp-on-navy);
 }
 .rp-surface a:focus-visible {
-  outline: 3px solid var(--wine);
+  outline: 3px solid var(--color-accion);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -305,7 +304,7 @@
 .rp-surface .gl-item:target {
   background: var(--bg-surface);
   box-shadow:
-    inset 4px 0 0 0 var(--wine),
+    inset 4px 0 0 0 var(--color-accion),
     var(--shadow-sm);
   border-radius: var(--r-md);
   border-bottom-color: transparent;
@@ -320,8 +319,8 @@
 }
 .rp-surface .gl-term .tag {
   font: 700 11px/1 var(--f-mono);
-  color: var(--wine-text);
-  background: var(--wine-tint);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--r-pill);
   padding: 4px 9px;
   margin-left: 10px;
@@ -350,7 +349,7 @@
   margin: var(--s-4) 0 0;
   padding: var(--s-4) var(--s-5);
   background: var(--bg-elevated);
-  border-left: 3px solid var(--wine);
+  border-left: 3px solid var(--color-ink);
   border-radius: 0 var(--r-md) var(--r-md) 0;
 }
 .rp-surface .gl-analogy .lbl {
@@ -358,7 +357,7 @@
   font: 700 11px/1 var(--f-brand);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: 6px;
 }
 .rp-surface .gl-analogy p {
@@ -377,7 +376,7 @@
   font: 700 12px/1 var(--f-brand);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin: 0 0 var(--s-5);
   padding-bottom: var(--s-3);
   border-bottom: 1px solid var(--border);
@@ -415,7 +414,7 @@
   font: 700 10.5px/1 var(--f-brand);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--wine-text);
+  color: var(--color-grey-700);
   margin-bottom: var(--s-2);
 }
 .rp-toc ul {
@@ -435,7 +434,7 @@
   padding: 2px 0;
 }
 .rp-toc a:hover {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
 }
 
 /* ── Preguntas frecuentes (`Preguntas Frecuentes · DTD-Cargo.html`) ── */
@@ -464,12 +463,12 @@
   display: none;
 }
 .rp-surface .faq-item summary:focus-visible {
-  outline: 3px solid var(--wine);
+  outline: 3px solid var(--color-accion);
   outline-offset: 4px;
   border-radius: 4px;
 }
 .rp-surface .faq-item summary .ic {
-  color: var(--wine-text);
+  color: var(--color-accion-text);
   transition: transform 160ms var(--ease);
   flex: 0 0 auto;
 }
@@ -495,8 +494,8 @@
   width: 56px;
   height: 56px;
   margin: 0 auto var(--s-5);
-  color: var(--wine-text);
-  background: var(--wine-tint);
+  color: var(--color-accion-text);
+  background: var(--color-accion-tint);
   border-radius: var(--r-lg);
   display: flex;
   align-items: center;
@@ -530,7 +529,7 @@
     transform var(--dur-fast) var(--ease);
 }
 .rp-surface .nw-card:hover {
-  border-color: var(--wine);
+  border-color: var(--color-accion);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -546,8 +545,8 @@
   margin-bottom: var(--s-3);
 }
 .rp-surface .nw-card .meta .cat {
-  color: var(--wine-text);
-  background: var(--wine-tint);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
   border-radius: var(--r-pill);
   padding: 4px 9px;
 }
@@ -707,8 +706,8 @@
   box-shadow: var(--shadow-lg);
 }
 .rp-surface .tf-card.feat {
-  border: 1.5px solid var(--wine);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wine) 18%, transparent), var(--shadow-lg);
+  border: 1.5px solid var(--color-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ink) 18%, transparent), var(--shadow-lg);
 }
 .rp-surface .tf-card:nth-child(2) {
   border-color: color-mix(in srgb, var(--warning) 55%, transparent);
@@ -735,7 +734,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--wine);
+  background: var(--color-ink);
   flex: 0 0 auto;
 }
 .rp-surface .tf-badge.b-warning::before {
@@ -760,7 +759,7 @@
   color: var(--rp-on-navy);
 }
 .rp-surface .tf-mod .tf-ac {
-  color: var(--wine-on-dark);
+  color: var(--color-on-accent);
 }
 .rp-surface .tf-pnote {
   font: 500 11.5px/1.4 var(--f-brand);
@@ -862,7 +861,7 @@
   flex-shrink: 0;
 }
 .calc-opt-ic.ddp {
-  background: var(--wine);
+  background: var(--color-accion);
   color: #fff;
 }
 .calc-opt-ic.lcl {
@@ -932,11 +931,11 @@
   display: inline-flex;
 }
 .calc-opt.is-active[data-calc="ddp"] {
-  border-color: var(--wine);
-  background: var(--wine-tint);
+  border-color: var(--color-accion);
+  background: var(--color-accion-tint);
 }
 .calc-opt.is-active[data-calc="ddp"] .calc-opt-flag {
-  background: var(--wine);
+  background: var(--color-accion);
   color: #fff;
 }
 .calc-opt.is-active[data-calc="lcl"] {
@@ -969,8 +968,8 @@
    cliente sepa en qué lado/lógica está parado mientras la calculadora
    (columnas + contenedor que se llena) cambia de lado al cambiar de modo. */
 .tf-frame[data-mode="ddp"] {
-  border-color: var(--wine);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--wine) 18%, transparent), var(--shadow-lg);
+  border-color: var(--color-accion);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-accion) 18%, transparent), var(--shadow-lg);
 }
 .tf-frame[data-mode="lcl"] {
   border-color: var(--warning);
@@ -998,7 +997,7 @@
   padding: 0 var(--s-6);
 }
 .tf-leaf.to-ddp {
-  background: var(--wine);
+  background: var(--color-accion);
 }
 .tf-leaf.to-ddp .tf-leaf-tag {
   color: #fff;

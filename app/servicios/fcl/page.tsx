@@ -109,7 +109,7 @@ export default function FclPage() {
           <div className="wrap">
             <Link
               href="/servicios"
-              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-wine mb-6"
+              className="inline-flex items-center gap-2 text-[13px] font-bold text-grey-500 hover:text-accion-text mb-6"
             >
               ← Todos los servicios
             </Link>
@@ -118,8 +118,8 @@ export default function FclPage() {
               chips={
                 <>
                   <ChipF2>Servicio principal</ChipF2>
-                  <ChipF2 variant="wine">carga: 2 modalidades</ChipF2>
-                  <ChipF2 variant="wine">recepción: puerta o puerto</ChipF2>
+                  <ChipF2 variant="accion">carga: 2 modalidades</ChipF2>
+                  <ChipF2 variant="accion">recepción: puerta o puerto</ChipF2>
                   <ChipF2 variant="on">Activo</ChipF2>
                 </>
               }

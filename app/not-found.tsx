@@ -18,7 +18,7 @@ export default function NotFound() {
             className="text-[120px] leading-none"
             style={{
               fontFamily: "var(--font-archivo-black)",
-              color: "var(--color-wine)",
+              color: "var(--color-ink)",
             }}
           >
             404

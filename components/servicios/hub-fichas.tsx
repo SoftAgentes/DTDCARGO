@@ -97,7 +97,7 @@ function Validacion() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide en tu pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide en tu pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -222,7 +222,7 @@ function InspeccionAlRecibir() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide en tu pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide en tu pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -367,7 +367,7 @@ function EtiquetadoDePiezas() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide en tu pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide en tu pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -509,7 +509,7 @@ function Hold() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide en tu pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide en tu pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -649,7 +649,7 @@ function ReEmpaque() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide en tu pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide en tu pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -799,7 +799,7 @@ function PreAlerta() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Tu orden · no es un servicio</ChipF2>
+          <ChipF2 variant="accion">Tu orden · no es un servicio</ChipF2>
           <ChipF2 variant="on">Activo</ChipF2>
         </>
       }
@@ -979,7 +979,7 @@ function VerificacionDeProveedores() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — antes de comprar</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — antes de comprar</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1127,7 +1127,7 @@ function AuditoriaDeCalidad() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — durante la producción</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — durante la producción</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1276,7 +1276,7 @@ function LabTesting() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — antes del embarque</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — antes del embarque</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1398,7 +1398,7 @@ function CompraAsistida() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — va antes de la carga</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — va antes de la carga</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1560,7 +1560,7 @@ function PagoAsistido() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — antes o fuera de tu carga</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — antes o fuera de tu carga</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1675,7 +1675,7 @@ function CourierDeMuestras() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Se pide aparte — no va en la pre-alerta</ChipF2>
+          <ChipF2 variant="accion">Se pide aparte — no va en la pre-alerta</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1800,7 +1800,7 @@ function TransitoDeAduana() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Add-on · se suma al LCL y al FCL hasta puerto</ChipF2>
+          <ChipF2 variant="accion">Add-on · se suma al LCL y al FCL hasta puerto</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -1964,7 +1964,7 @@ function VisadoDeNegocios() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Independiente — no depende de tu carga</ChipF2>
+          <ChipF2 variant="accion">Independiente — no depende de tu carga</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }
@@ -2090,7 +2090,7 @@ function RegistroDeMarca() {
       hookAs="h2"
       chips={
         <>
-          <ChipF2 variant="wine">Independiente — no depende de tu carga</ChipF2>
+          <ChipF2 variant="accion">Independiente — no depende de tu carga</ChipF2>
           <ChipF2>Activo</ChipF2>
         </>
       }

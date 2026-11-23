@@ -359,3 +359,84 @@ describe("reconciliarBandeja (SDD-0585, 2.3)", () => {
     expect(await reconciliarBandeja()).toEqual({ ok: false, error: "service" });
   });
 });
+
+/**
+ * SDD-0680, adenda 2026-11-23 · las rutas `POST /studio/bandeja/sso` y
+ * `/reconciliar` corren las MISMAS comprobaciones que las actions (sesión,
+ * permiso del módulo, flag, tenant y vínculo propio): aquí van contra las
+ * actions reales, solo con los bordes dobles. Sin permiso no hay enlace ni
+ * reconciliación, y el token del agente no sale ni en la respuesta ni en logs.
+ */
+describe("rutas de la Bandeja con las comprobaciones de las actions (adenda 2026-11-23)", () => {
+  const conv = { id: 12, inboxId: 3, estado: "open", noLeidos: 0, asignadoId: 7, ultimaActividad: null, fuenteActualizada: 5, telefonoUltimos10: null };
+  const pedido = (ruta: string, cuerpo: unknown = {}) =>
+    new Request(`https://studio.ejemplo.test${ruta}`, {
+      method: "POST",
+      headers: { "sec-fetch-site": "same-origin", "content-type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+  let postSso: (r: Request) => Promise<Response>;
+  let postReconciliar: (r: Request) => Promise<Response>;
+
+  beforeEach(async () => {
+    ({ POST: postSso } = await import("../sso/route"));
+    ({ POST: postReconciliar } = await import("../reconciliar/route"));
+    m.sesion = dobleSupabase({ chatwoot_agent_links: [{ tenant_id: T1, user_id: ANA, chatwoot_user_id: 7 }] });
+    m.admin = { fake: "admin" };
+    m.sso.mockResolvedValue({ ok: true, data: SSO });
+    m.tokenAgente.mockResolvedValue({ ok: true, data: "tok-agente" });
+    m.listar.mockResolvedValue({ ok: true, data: [conv] });
+    m.aplicar.mockResolvedValue({ nuevo: true, aplicado: true, clientId: null });
+  });
+
+  it("SSO sin permiso del módulo, con el flag apagado o sin sesión: denied, sin enlace ni marca", async () => {
+    for (const preparar of [
+      () => (m.denial = "No tienes permiso para ver esto."),
+      () => (m.flags = { chatwoot_inbox: false }),
+      () => (m.access = { role: null, tenantId: null, userId: null }),
+    ]) {
+      preparar();
+      const r = await postSso(pedido("/studio/bandeja/sso"));
+      expect(await r.json()).toEqual({ ok: false, error: "denied" });
+      m.denial = null;
+      m.flags = { chatwoot_inbox: true };
+      m.access = { role: "commercial", tenantId: T1, userId: ANA };
+    }
+    expect(m.sso).not.toHaveBeenCalled();
+    expect(m.cookieSet).not.toHaveBeenCalled();
+  });
+
+  it("SSO con el vínculo de otro tenant: unlinked; con el propio: el enlace de SU agente", async () => {
+    m.sesion = dobleSupabase({ chatwoot_agent_links: [{ tenant_id: T2, user_id: ANA, chatwoot_user_id: 99 }] });
+    expect(await (await postSso(pedido("/studio/bandeja/sso"))).json()).toEqual({ ok: false, error: "unlinked" });
+    expect(m.sso).not.toHaveBeenCalled();
+    m.sesion = dobleSupabase({ chatwoot_agent_links: [{ tenant_id: T1, user_id: ANA, chatwoot_user_id: 7 }] });
+    expect(await (await postSso(pedido("/studio/bandeja/sso"))).json()).toEqual({ ok: true, url: SSO });
+    expect(m.sso).toHaveBeenCalledWith(7, CFG);
+    expect(m.cookieSet).toHaveBeenCalledWith("dtd_cw_sso", ANA, expect.anything());
+  });
+
+  it("reconciliar sin permiso o con el flag apagado: denied, sin pedir el token del agente", async () => {
+    m.denial = "No";
+    expect(await (await postReconciliar(pedido("/studio/bandeja/reconciliar"))).json()).toEqual({ ok: false, error: "denied" });
+    m.denial = null;
+    m.flags = { chatwoot_inbox: false };
+    expect(await (await postReconciliar(pedido("/studio/bandeja/reconciliar"))).json()).toEqual({ ok: false, error: "denied" });
+    expect(m.tokenAgente).not.toHaveBeenCalled();
+    expect(m.aplicar).not.toHaveBeenCalled();
+  });
+
+  it("reconciliar con permiso: aplica en SU tenant y el token del agente no sale ni en la respuesta ni en los logs", async () => {
+    const espias = [vi.spyOn(console, "log"), vi.spyOn(console, "warn"), vi.spyOn(console, "error")];
+    try {
+      const r = await postReconciliar(pedido("/studio/bandeja/reconciliar"));
+      const texto = await r.text();
+      expect(JSON.parse(texto)).toEqual({ ok: true, aplicadas: 1 });
+      expect(texto).not.toContain("tok-agente");
+      expect(m.aplicar).toHaveBeenCalledWith({ admin: { fake: "admin" }, tenantId: T1 }, conv, null);
+      for (const e of espias) expect(JSON.stringify(e.mock.calls)).not.toContain("tok-agente");
+    } finally {
+      for (const e of espias) e.mockRestore();
+    }
+  });
+});

@@ -211,7 +211,7 @@ export default async function PuertaAPuertaPage() {
                   <Link
                     key={href}
                     href={href}
-                    className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-accion-text hover:text-accion-hover transition-colors"
                   >
                     {label} <ArrowIcon size={14} />
                   </Link>

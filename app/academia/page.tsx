@@ -68,9 +68,9 @@ export default function AcademiaPage() {
         <section className="pt-12 lg:pt-16">
           <div className="wrap">
             <div className="card-shadow-static bg-white border border-grey-200 rounded-[22px] p-8 lg:p-11">
-              {/* `eyebrow-wine`, no `text-wine-text`: `.eyebrow` vive FUERA de @layer en
+              {/* `eyebrow-tinta`, no `text-grey-700`: `.eyebrow` vive FUERA de @layer en
                   globals.css y le gana a cualquier utilidad de color de Tailwind. */}
-              <span className="eyebrow eyebrow-wine">Gratis · empieza ahora mismo</span>
+              <span className="eyebrow eyebrow-tinta">Gratis · empieza ahora mismo</span>
               <h2
                 className="mt-4 text-[26px] lg:text-[38px] leading-[1.1] tracking-[-0.01em] text-ink max-w-[22ch]"
                 style={{ fontFamily: "var(--font-archivo-black)" }}
@@ -103,7 +103,7 @@ export default function AcademiaPage() {
                 </Link>
                 <Link
                   href="/shipping-mark"
-                  className="self-center font-semibold text-wine-text hover:text-wine-deep underline underline-offset-2"
+                  className="self-center font-semibold text-accion-text hover:text-accion-hover underline underline-offset-2"
                 >
                   ¿Qué es el Shipping Mark?
                 </Link>
@@ -208,7 +208,7 @@ export default function AcademiaPage() {
                   "Sin spam — te escribimos solo por esto",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2.5 text-[15px] text-ink">
-                    <span aria-hidden className="mt-1 text-wine">
+                    <span aria-hidden className="mt-1 text-ink/70">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <path d="m5 13 4 4L19 7" />
                       </svg>
@@ -241,7 +241,7 @@ function CursoCard({ curso }: { curso: AcademiaCurso }) {
           {curso.nivel}
         </span>
         {curso.insignia ? (
-          <span className="text-[11px] font-bold uppercase tracking-wide text-wine">Insignia</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-grey-700">Insignia</span>
         ) : null}
       </div>
       <h3

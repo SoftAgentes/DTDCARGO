@@ -404,7 +404,10 @@ const nextConfig: NextConfig = {
     // PoC 2.1 (I3, M2, M3). Mismo gotcha que Bitácora: la regla queda SOLA para
     // su URL y el catch-all la excluye.
     const chatwootOrigin = chatwootOriginFromEnv();
-    const ppStudioBandeja = `camera=(), microphone=(self "${chatwootOrigin}"), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()`;
+    // Adenda 2026-11-23 (SDD-0680): `autoplay` también va delegado al chat, con
+    // `allow="autoplay"` en el marco; sin las dos, la alerta de audio de Chatwoot
+    // no suena dentro del Studio aunque Windows sí muestre la notificación.
+    const ppStudioBandeja = `camera=(), microphone=(self "${chatwootOrigin}"), autoplay=(self "${chatwootOrigin}"), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()`;
     const bandejaHeaders = securityHeaders.map((h) =>
       h.key === "Content-Security-Policy"
         ? { key: h.key, value: `${cspHeader}; frame-src ${chatwootOrigin}` }
