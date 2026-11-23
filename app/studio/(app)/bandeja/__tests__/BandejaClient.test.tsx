@@ -122,7 +122,7 @@ describe("BandejaClient (SDD-0585)", () => {
   it("con ?c=N pide el SSO de esa conversación", async () => {
     pedirEnlaceSso.mockResolvedValue({ ok: true, url: SSO });
     render(<BandejaClient estado="listo" panelUrl={PANEL} inicioUrl={null} conversacion={12} admin={null} />);
-    await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledWith(12));
+    await waitFor(() => expect(pedirEnlaceSso).toHaveBeenCalledWith(12, expect.any(AbortSignal)));
   });
 
   it("el admin ve los eventos descartados (v3), sin texto de mensajes", () => {
