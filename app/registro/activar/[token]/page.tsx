@@ -89,7 +89,7 @@ export default async function RegistroActivarPage({
               {REGISTRO_AUTOSERVICIO_INVALIDO}
             </p>
             <p className="mt-6 text-[14px] text-grey-700">
-              <Link href="/entrar" className="text-wine font-semibold underline underline-offset-2">
+              <Link href="/entrar" className="text-accion-text font-semibold underline underline-offset-2">
                 Ir a «Entrar»
               </Link>
             </p>
