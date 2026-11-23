@@ -34,10 +34,10 @@ type GuideField = {
 };
 
 const NOTO_SC = 'var(--font-noto-sc), "Noto Sans SC", sans-serif';
-// Tinte wine derivado del token. `--color-white`, NO `#ffffff` literal: en el
+// Tinte de tinta derivado del token (SDD-0686: el Shipping Mark va en tinta). `--color-white`, NO `#ffffff` literal: en el
 // tema oscuro del portal ese token vale navy, y con el blanco fijo el bloque
 // quedaba como un parche claro sobre la tarjeta oscura.
-const MARK_BG = "color-mix(in srgb, var(--color-wine) 8%, var(--color-white))";
+const MARK_BG = "color-mix(in srgb, var(--color-ink) 8%, var(--color-white))";
 
 /**
  * @param markbox Shipping Mark ya conocido (portal autenticado): precarga el
@@ -150,7 +150,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
 
   return (
     <div className="w-full max-w-[600px] card-shadow-static rounded-[18px] border border-grey-200 bg-white p-5 lg:p-6">
-      <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-wine-text">
+      <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-grey-700">
         Datos para web de compra
       </span>
       <p className="mt-2 text-[13.5px] leading-[1.55] text-grey-700">
@@ -170,14 +170,14 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         >
           Tu Shipping Mark · 唛头
           {fixed ? null : (
-            <span style={{ color: "var(--color-wine-text)" }}> · obligatorio</span>
+            <span className="text-ink"> · obligatorio</span>
           )}
         </label>
         <div className="mt-1.5 flex items-center gap-2.5">
           {fixed ? (
             // En el portal el código ya se conoce: mostrarlo, no pedirlo.
             <code
-              className="min-w-0 flex-1 text-[24px] font-extrabold tracking-[0.02em] text-wine-text"
+              className="min-w-0 flex-1 text-[24px] font-extrabold tracking-[0.02em] text-ink"
               style={{ fontFamily: FONT_MONO }}
             >
               {mark}
@@ -191,7 +191,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
               placeholder="DTD-XXXX"
               maxLength={50}
               aria-label="Tu código Shipping Mark"
-              className="min-w-0 flex-1 bg-transparent text-[24px] font-extrabold tracking-[0.02em] text-wine outline-none placeholder:text-wine/35"
+              className="min-w-0 flex-1 bg-transparent text-[24px] font-extrabold tracking-[0.02em] text-ink outline-none placeholder:text-ink/35"
               style={{ fontFamily: FONT_MONO }}
             />
           )}
@@ -199,7 +199,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
             type="button"
             onClick={() => copyValue("mark", markOrPlaceholder)}
             aria-label={hasMark ? "Copiar tu Shipping Mark" : "Escribe tu Shipping Mark primero"}
-            className="flex-shrink-0 h-9 w-9 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+            className="flex-shrink-0 h-9 w-9 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-accion hover:text-accion-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
           >
             {copiedField === "mark" ? <CheckMini /> : <CopyMini />}
           </button>
@@ -215,7 +215,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
             <a
               href="/registro"
               className="font-semibold underline underline-offset-2"
-              style={{ color: "var(--color-wine-text)" }}
+              style={{ color: "var(--color-accion-text)" }}
             >
               ¿No tienes uno? Regístrate →
             </a>
@@ -225,7 +225,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
 
       {/* ── Paso 1: el rellenado automático de Alibaba ─────────────────── */}
       <div className="mt-5 rounded-[12px] border border-grey-200 p-3.5">
-        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-wine-text">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-grey-700">
           Paso 1 · La dirección, de una sola pegada
         </span>
         <p className="mt-1.5 text-[12.5px] leading-[1.5] text-grey-700">
@@ -247,13 +247,12 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         <button
           type="button"
           onClick={() => copyText("autofill", CONTACT.cn.addressAutofillCjk)}
-          className="mt-2.5 inline-flex w-full items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
-          // `--color-on-accent`, NO `text-white`: en el tema oscuro del portal
-          // `--color-white` vale navy, así que `text-white` sobre relleno wine
-          // se vuelve navy-sobre-wine (ilegible). Este token no voltea.
+          className="mt-2.5 inline-flex w-full items-center justify-center gap-2 h-11 px-4 rounded-[10px] text-[13.5px] font-bold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
+          // `--color-on-accion`, NO `text-white`: en el tema oscuro del portal el
+          // relleno de acción es claro y el texto voltea a navy (SDD-0686).
           style={{
-            background: "var(--color-wine)",
-            color: "var(--color-on-accent)",
+            background: "var(--color-accion)",
+            color: "var(--color-on-accion)",
           }}
         >
           {copiedField === "autofill" ? (
@@ -273,10 +272,10 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         className="mt-3 rounded-[12px] p-3.5"
         style={{
           background: "var(--color-paper)",
-          borderLeft: "3px solid var(--color-wine)",
+          borderLeft: "3px solid var(--color-ink)",
         }}
       >
-        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-wine-text">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-grey-700">
           Paso 2 · El destinatario, a mano
         </span>
         <p className="mt-1.5 text-[12.5px] leading-[1.5] text-grey-700">
@@ -302,10 +301,10 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
                 ? "Copiar el destinatario"
                 : "Escribe tu Shipping Mark primero"
             }
-            className="flex-shrink-0 h-10 w-10 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+            className="flex-shrink-0 h-10 w-10 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-accion hover:text-accion-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
           >
             {copiedField === "destinatario-missing" ? (
-              <span className="text-[15px] leading-none text-wine">↑</span>
+              <span className="text-[15px] leading-none text-accion-text">↑</span>
             ) : copiedField === "destinatario" ? (
               <CheckMini />
             ) : (
@@ -321,7 +320,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+          className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-accion hover:text-accion-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
         >
           {expanded ? "Ocultar campos" : "Ver campo por campo"}
           <Chevron open={expanded} />
@@ -329,7 +328,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
         <button
           type="button"
           onClick={copyAll}
-          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+          className="inline-flex flex-1 min-w-[160px] items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-grey-200 bg-white text-[13.5px] font-bold text-ink hover:border-accion hover:text-accion-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
         >
           {copiedField === "all" ? (
             <>
@@ -393,10 +392,10 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
                         ? `${f.label}: copiado`
                         : `Copiar ${f.label}`
                   }
-                  className="flex-shrink-0 h-8 w-8 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-wine hover:text-wine transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+                  className="flex-shrink-0 h-8 w-8 grid place-items-center rounded-[8px] border border-grey-200 bg-white text-grey-700 hover:border-accion hover:text-accion-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion"
                 >
                   {missingMark ? (
-                    <span className="text-[15px] leading-none text-wine">↑</span>
+                    <span className="text-[15px] leading-none text-accion-text">↑</span>
                   ) : copiedField === f.id ? (
                     <CheckMini />
                   ) : (
@@ -412,7 +411,7 @@ export function AlibabaAddressGuide({ markbox }: { markbox?: string } = {}) {
       {/* La distinción clave: formulario vs rótulo físico */}
       <p
         className="mt-4 rounded-[10px] px-3.5 py-3 text-[12.5px] leading-[1.5] text-grey-700"
-        style={{ background: "var(--color-paper)", borderLeft: "3px solid var(--color-wine)" }}
+        style={{ background: "var(--color-paper)", borderLeft: "3px solid var(--color-ink)" }}
       >
         <strong className="text-ink">Importante:</strong> en el formulario el
         nombre lleva «林冠 + tu Shipping Mark», pero en el{" "}

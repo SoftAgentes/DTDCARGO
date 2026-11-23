@@ -107,7 +107,7 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
             onChange={(e) => setTyped(e.target.value.toUpperCase())}
             placeholder={placeholder}
             maxLength={50}
-            className="h-11 px-3.5 rounded-[8px] bg-white/10 border border-white/15 outline-none text-[14px] font-semibold tracking-[0.04em] text-white placeholder:text-white/30 focus:border-wine-soft"
+            className="h-11 px-3.5 rounded-[8px] bg-white/10 border border-white/15 outline-none text-[14px] font-semibold tracking-[0.04em] text-white placeholder:text-white/30 focus:border-[var(--color-accion-on-dark)]"
             style={{ fontFamily: FONT_MONO }}
             aria-label="Código Shipping Mark del cliente"
           />
@@ -146,7 +146,7 @@ export function ChinaSupplierClip({ markbox }: { markbox?: string } = {}) {
             target="_blank"
             rel="noopener noreferrer"
             className="font-semibold underline underline-offset-2 hover:text-white"
-            style={{ color: "var(--color-wine-soft)" }}
+            style={{ color: "var(--color-accion-on-dark)" }}
           >
             Solicítalo por WhatsApp →
           </a>

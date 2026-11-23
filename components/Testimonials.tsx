@@ -27,7 +27,7 @@ export function Testimonials() {
               key={`${t.name}-${i}`}
               className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 flex flex-col"
             >
-              <QuoteIcon className="text-wine/25 flex-shrink-0" size={30} />
+              <QuoteIcon className="text-grey-700/25 flex-shrink-0" size={30} />
               <blockquote className="mt-3 flex-1 text-[15px] leading-[1.6] text-grey-700">
                 {t.quote}
               </blockquote>

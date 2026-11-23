@@ -38,7 +38,7 @@ export function NewsDisclaimer({ tipo, authorName, authorRole }: Props) {
         <div className="flex items-start gap-4">
           <span
             className="flex-shrink-0 w-10 h-10 rounded-full grid place-items-center text-white font-bold text-[14px]"
-            style={{ background: "var(--color-wine, #7F0F1A)" }}
+            style={{ background: "var(--color-ink)" }}
             aria-hidden
           >
             {authorName
@@ -50,7 +50,7 @@ export function NewsDisclaimer({ tipo, authorName, authorRole }: Props) {
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[10.5px] uppercase tracking-[0.14em] font-semibold text-wine">
+              <span className="text-[10.5px] uppercase tracking-[0.14em] font-semibold text-grey-700">
                 {authorRole}
               </span>
               <span

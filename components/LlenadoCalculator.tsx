@@ -112,10 +112,10 @@ export function LlenadoCalculator() {
                 cursor: "pointer",
                 border:
                   tipo === code
-                    ? "2px solid var(--color-wine)"
+                    ? "2px solid var(--color-ink)"
                     : "1px solid var(--border)",
-                background: tipo === code ? "var(--color-wine)" : "transparent",
-                color: tipo === code ? "var(--color-on-accent)" : "inherit",
+                background: tipo === code ? "var(--color-ink)" : "transparent",
+                color: tipo === code ? "var(--color-paper)" : "inherit",
                 font: "700 14px/1.2 inherit",
               }}
             >

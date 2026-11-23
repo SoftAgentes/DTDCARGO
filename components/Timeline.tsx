@@ -160,7 +160,7 @@ export function Timeline() {
             <h2 className="h-section mt-4">
               Desde 2008
               <br />
-              <span style={{ color: "var(--color-wine)" }}>nos respaldan.</span>
+              <span className="font-black" style={{ color: "var(--color-ink)" }}>nos respaldan.</span>
             </h2>
           </div>
           <p className="lead max-w-[40ch]">
@@ -181,7 +181,7 @@ export function Timeline() {
               <div
                 className="absolute left-0 top-1 w-4 h-4 rounded-full"
                 style={{
-                  background: "var(--color-wine)",
+                  background: "var(--color-ink)",
                   boxShadow: "0 0 0 4px var(--color-paper)",
                 }}
               />
@@ -189,7 +189,7 @@ export function Timeline() {
                 className="text-[28px] leading-none mb-2"
                 style={{
                   fontFamily: "var(--font-archivo-black)",
-                  color: "var(--color-wine)",
+                  color: "var(--color-ink)",
                   letterSpacing: "-0.03em",
                 }}
               >
@@ -227,7 +227,7 @@ export function Timeline() {
                   className="text-[42px] leading-none"
                   style={{
                     fontFamily: "var(--font-archivo-black)",
-                    color: "var(--color-wine)",
+                    color: "var(--color-ink)",
                     letterSpacing: "-0.03em",
                   }}
                 >
@@ -237,7 +237,7 @@ export function Timeline() {
                   <div
                     className="w-4 h-4 rounded-full"
                     style={{
-                      background: "var(--color-wine)",
+                      background: "var(--color-ink)",
                       boxShadow: "0 0 0 4px var(--color-paper)",
                     }}
                   />
