@@ -23,6 +23,7 @@ Lo detalla la spec (`docs/specs/0680-bandeja-rediseno/spec.md` § Adenda 2026-11
 
 - `BandejaClient.test.tsx`: mock de `pedidos`; corte y reintento silencioso; los 3 vencidos muestran el aviso y «Abrir de nuevo» vuelve a pedir sin recargar; la reconciliación espera al `load` del marco; `allow` con autoplay.
 - `rutas-bandeja.test.ts` (nuevo): candado de origen, cuerpo y caché de las dos rutas.
+- `actions.test.ts` › «rutas de la Bandeja con las comprobaciones de las actions» corre las rutas contra las actions reales. Sin permiso del módulo, con el flag apagado o sin sesión: `denied`, sin enlace ni marca. Con el vínculo de otro tenant: `unlinked`. La reconciliación sin permiso no pide el token del agente. Con permiso, el token no sale ni en la respuesta ni en `console.*`.
 - `next-config.test.ts`: `autoplay` delegado al chat.
 - **Local: NO EJECUTADO.** El worktree no tiene `node_modules`, e instalar o correr vitest pide turno a Dir_DTD. La validación es el CI de la PR.
 
@@ -42,6 +43,6 @@ Lo detalla la spec (`docs/specs/0680-bandeja-rediseno/spec.md` § Adenda 2026-11
 
 ## FUERA DE ALCANCE DETECTADO
 
-- La reconciliación sigue tardando decenas de segundos en el servidor: escribe una por una y Chatwoot lista las páginas en 1-5 s. Convendría hacerla por lotes o en paralelo.
+- **Mejora aparte (pedida por Dir_DTD), sin hacer:** la reconciliación sigue tardando decenas de segundos en el servidor. `reconciliarBandeja` (`actions.ts`, el `for … await aplicarConversacion`) escribe una conversación a la vez, y cada una pasa por la RPC de la 0504 con service_role. Se puede hacer en lotes con tope (por ejemplo `enLotes` de a 5, como `agentesDeCuenta`) o con una RPC que reciba el arreglo. Además, Chatwoot lista cada página en 1-5 s.
 - El prefetch masivo del menú del Studio al entrar (GET de 5 a 20 s) recarga el servidor web.
 - Sam pidió aparte cambiar el nombre «Conversaciones del portal» y dar color a los íconos de los canales dentro de Chatwoot. Eso lo atiende la sesión original.
