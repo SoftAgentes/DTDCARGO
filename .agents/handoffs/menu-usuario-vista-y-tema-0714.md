@@ -43,6 +43,10 @@ Hechas con `next dev` y Chrome headless a 1280 × 560 y escala 1,5, con datos fi
 
 Se ve: el orden de la maqueta, el foco en la vista marcada al abrir, y «Súper compacta» que baja de línea sin cortarse (BTN-01 v1.3, regla 6).
 
+## Riesgo aceptado
+
+- **Recargar antes de que termine `updateUser`.** Al elegir una vista o un tema, el cambio se aplica y se guarda local al instante, y la escritura a la cuenta sale después. Si la persona recarga antes de que esa escritura termine, el layout lee de la cuenta el valor anterior, `AparienciaUsuario` lo aplica y pisa el local: la elección se pierde y hay que repetirla. La ventana es de una ida y vuelta a Supabase Auth (I: menos de un segundo en condiciones normales). Se acepta porque el daño es solo cosmético y se corrige con un clic. Mitigarlo pediría marcar la escritura pendiente en `localStorage` y preferir lo local mientras siga pendiente. Queda para una adenda si alguien lo reporta.
+
 ## Impacto documental
 
 - `docs/specs/0714-menu-usuario-vista-y-tema/spec.md` (nueva).

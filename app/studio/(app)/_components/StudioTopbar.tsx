@@ -75,6 +75,11 @@ export function StudioTopbar({
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const userMenuId = useId();
   const nombre = displayName?.trim() || userEmail.split("@")[0];
+  // Espejo del estado para el atajo de teclado, que se registra una sola vez.
+  const userMenuOpenRef = useRef(false);
+  useEffect(() => {
+    userMenuOpenRef.current = userMenuOpen;
+  }, [userMenuOpen]);
 
   // Atajo ⌘K / Ctrl+K
   useEffect(() => {
@@ -85,11 +90,9 @@ export function StudioTopbar({
       }
       if (e.key === "Escape") {
         setSearchOpen(false);
-        setUserMenuOpen((abierto) => {
-          // Al cerrar con Escape, el foco vuelve a la pastilla.
-          if (abierto) userButtonRef.current?.focus();
-          return false;
-        });
+        // Al cerrar con Escape, el foco vuelve a la pastilla (fuera del actualizador).
+        if (userMenuOpenRef.current) userButtonRef.current?.focus();
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);

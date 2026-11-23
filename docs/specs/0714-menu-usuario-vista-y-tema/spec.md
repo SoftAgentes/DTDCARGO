@@ -72,13 +72,13 @@ La sección `AppearanceSection` usa el mismo mecanismo: ofrece también Automát
 
 | # | Criterio | Prueba |
 |---|---|---|
-| A1 | La barra no lleva selector de vista ni botón de tema | `StudioTopbar.test.tsx` |
-| A2 | El menú muestra nombre, rol, Vista, Tema, Mi perfil y Cerrar sesión en ese orden | `StudioTopbar.test.tsx` |
-| A3 | Elegir una vista o un tema lo aplica, lo guarda local y llama a la acción con los dos valores | `StudioTopbar.test.tsx` |
-| A4 | Automático sigue a `prefers-color-scheme` en el script y en vivo | `apariencia-predeterminada.test.ts`, `appearance-prefs.test.ts` |
+| A1 | La barra no lleva selector de vista ni botón de tema | `StudioTopbar-menu-usuario.test.tsx` |
+| A2 | El menú muestra nombre, rol, Vista, Tema, Mi perfil y Cerrar sesión en ese orden | `StudioTopbar-menu-usuario.test.tsx` |
+| A3 | Elegir una vista o un tema lo aplica, lo guarda local y llama a la acción con los dos valores | `StudioTopbar-menu-usuario.test.tsx` |
+| A4 | Automático sigue a `prefers-color-scheme` en el script y en vivo | `apariencia-predeterminada.test.ts` (script), `AparienciaUsuario.test.tsx` (en vivo) |
 | A5 | La acción solo acepta valores del catálogo y solo escribe `studio_apariencia` | `apariencia-actions.test.ts` |
 | A6 | Lo guardado en la cuenta gana sobre lo local al cargar; sin nada en la cuenta se sube la elección local | `AparienciaUsuario.test.tsx` |
-| A7 | Escape cierra el menú y devuelve el foco | `StudioTopbar.test.tsx` |
+| A7 | Escape cierra el menú y devuelve el foco | `StudioTopbar-menu-usuario.test.tsx` |
 
 ## 6. Fuera de alcance
 
