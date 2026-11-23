@@ -227,6 +227,33 @@ describe("§2.2 reporte de pago del Portal (lo que hoy entra mil veces menor)", 
   });
 });
 
+describe("dinero con tres o más decimales (precio por ft³, revisión de la #790 B1)", () => {
+  it.each([
+    ["3.498", 3.498],
+    ["3,498", 3.498],
+    ["3,4985", 3.4985],
+    ["0.125", 0.125],
+  ])("«%s» con decimales 4 → %s (es un decimal, no miles)", (texto, esperado) => {
+    expect(parseDinero(texto, { decimales: 4 })).toMatchObject({ ok: true, valor: esperado });
+  });
+
+  it("el valor de máquina que viaja oculto se vuelve a leer igual", () => {
+    for (const oculto of ["3.498", "3.4985", "123.6", "1250"]) {
+      const r = parseDinero(oculto, { decimales: 4 });
+      expect(r.ok && r.canonico).toBe(oculto);
+    }
+  });
+
+  it("con 2 decimales (el dinero de siempre) sigue ambiguo", () => {
+    expect(parseDinero("3.498").ok).toBe(false);
+    expect(parseDinero("3,498", { decimales: 2 }).ok).toBe(false);
+  });
+
+  it("la tasa no cambia: 36.500 sigue pidiéndose aclarar aunque admita 8", () => {
+    expect(parseTasa("36.500").ok).toBe(false);
+  });
+});
+
 describe("el modo es obligatorio (§4.2: sin modo por defecto)", () => {
   it("un modo desconocido es un error de programación", () => {
     expect(() => parseNumero("12", "monto" as ModoNumero)).toThrow(/Modo de cifra desconocido/);

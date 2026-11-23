@@ -5,8 +5,8 @@
 
 **Pedido de Sam, textual:** «Rebrand: arranca las fases 1 y 2 de las cifras 1.234,50 apenas entren mis decisiones».
 **Decisiones que aplican, textual:** «Cifras 2 cbm: A punto o coma · Cifras 5 tasa: B 2 a 4 · Cifras 6 punto: A acepta».
-La spec (`docs/specs/0687-rebrand-cifras-formato-ve/spec.md`) está en la PR #769, todavía sin fusionar: la allowlist
-va en el cuerpo de la PR de esta tarea.
+La spec (`docs/specs/0687-rebrand-cifras-formato-ve/spec.md`) ya está en main (la #769 entró; sigue `proposed`). La
+allowlist exacta está en su §12 (enmienda) y en el cuerpo de la PR #790.
 
 ## Qué cambia
 
@@ -75,3 +75,18 @@ va en el cuerpo de la PR de esta tarea.
 
 NUM-01 sube a v1.2 (§4.1 de la spec). La enmienda de la spec con la allowlist exacta queda para cuando la #769 esté
 en `main`; mientras tanto vive en el cuerpo de la PR.
+
+## Revisión independiente de la #790 (cabeza a6203a551): CHANGES REQUESTED, corregido en esta tanda
+
+- **B1** Precio por ft³ con 3 decimales: `esAmbiguo` ahora recibe los decimales del campo; el dinero con 3 o más
+  decimales lee tres cifras como decimal (`3.498`, `3,498`), también el valor de máquina que viaja oculto. Dinero de
+  2 decimales y tasa no cambian. `validateTariffInput` además avisa un monto escrito pero ilegible (ft³, mínimo,
+  precio por CBM) en vez de dejarlo en null. Pruebas: cifras, `validateTariffInput` con `3.498` y NumericInput con
+  `defaultValue` 3.498 y 4 decimales (no hay prueba que monte `TariffDrawer` completo).
+- **B2** `ShipmentDataPanel` sin `noValidate`: un peso o CBM rechazado deja el formulario inválido y no envía.
+  Prueba nueva `shipment-data-panel-cifras.test.tsx` (`1,234.5`, `12,34567`, `1.234.5`).
+- **B3** NUM-01 v1.2 ya no figura aprobada: Aprobación vuelve a 2026-07-30 (v1.1) y el estado dice «v1.2 pendiente de
+  confirmación de Sam»; cápsula y registro regenerados.
+- Menores: handoff actualizado; la trampa del peso venezolano (`2.500` = 2,5; `2.500,5` = 2500,5) anotada en la PR y
+  en `app/studio/CLAUDE.md`; enmienda con la allowlist en la spec (§12, sin tocar su estado).
+- Validación de esta tanda: tsc, eslint, vitest y mutantes NO EJECUTADOS todavía (esperan el turno de PC de Dir_DTD).

@@ -175,7 +175,7 @@ export function interpretarLiteral(
   const [entero, fraccion] = literal.split(separador);
   if (!fraccion) return rechazo("incompleto", "Completa los decimales.");
 
-  if (esAmbiguo(entero, fraccion, separador, modo)) {
+  if (esAmbiguo(entero, fraccion, separador, modo, decimales)) {
     return rechazo("ambiguo", mensajeAmbiguo(entero, fraccion, separador, modo), true);
   }
   return cerrar(entero, fraccion, modo, decimales);
@@ -223,11 +223,15 @@ function esAmbiguo(
   fraccion: string,
   separador: "," | ".",
   modo: ModoNumero,
+  decimales: number,
 ): boolean {
   if (fraccion.length !== 3) return false;
   // Solo es ambiguo si la parte entera podría ser el primer grupo de miles.
   if (!/^[0-9]{1,3}$/.test(entero) || /^0+$/.test(entero)) return false;
-  if (modo === "dinero") return true;
+  // Un campo de dinero que admite tres o más decimales (el precio por ft³ lleva
+  // cuatro) no puede leer tres cifras como miles: es un decimal de ese campo, y
+  // así también se vuelve a leer el valor de máquina que viaja oculto («3.498»).
+  if (modo === "dinero") return decimales < 3;
   if (modo === "tasa") return separador === ".";
   return false;
 }

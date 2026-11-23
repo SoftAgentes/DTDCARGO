@@ -231,12 +231,17 @@ export function validateTariffInput(
   // El precio por ft³ se guarda con 4 decimales (cbmAFt3).
   const ft3 = parseMonto(str("priceUsdFt3"), 4);
   let venta = parseMonto(str("priceUsdCbm"));
-  if (venta == null && ft3 != null) venta = ft3ACbm(ft3);
-  if (venta == null) errors.priceUsdCbm = "Escribe el precio de venta, por m³ o por pie cúbico.";
+  const ventaIlegible = str("priceUsdCbm") !== "" && venta == null;
+  if (venta == null && ft3 != null && !ventaIlegible) venta = ft3ACbm(ft3);
+  if (ventaIlegible) errors.priceUsdCbm = "No es un monto válido.";
+  else if (venta == null) errors.priceUsdCbm = "Escribe el precio de venta, por m³ o por pie cúbico.";
   else if (venta < 0) errors.priceUsdCbm = "No puede ser negativo.";
   if (ft3 != null && ft3 < 0) errors.priceUsdFt3 = "No puede ser negativo.";
 
+  // Un monto escrito pero ilegible se avisa; no se descarta en silencio (SDD-0687).
+  if (str("priceUsdFt3") !== "" && ft3 == null) errors.priceUsdFt3 = "No es un monto válido.";
   const minimo = parseMonto(str("minChargeUsd"));
+  if (str("minChargeUsd") !== "" && minimo == null) errors.minChargeUsd = "No es un monto válido.";
   if (minimo != null && minimo < 0) errors.minChargeUsd = "No puede ser negativo.";
 
   const diasRaw = str("dispatchFrequencyDays");

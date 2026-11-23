@@ -156,6 +156,27 @@ describe("validateTariffInput", () => {
     }
   });
 
+  // Revisión de la #790 (B1): ft³ lleva 4 decimales; «3.498» es un decimal, no miles.
+  it("el precio por ft³ con tres decimales (3.498 y 3,498) se guarda, no se pierde en silencio", () => {
+    for (const raw of ["3.498", "3,498", "3,4985"]) {
+      const r = validateTariffInput(fd({ ...base, priceUsdFt3: raw }));
+      expect(r.ok, raw).toBe(true);
+      if (r.ok) expect(r.value.priceUsdFt3, raw).toBe(Number(raw.replace(",", ".")));
+    }
+  });
+
+  it("un monto escrito pero ilegible se avisa en vez de descartarse", () => {
+    const r = validateTariffInput(fd({ ...base, priceUsdCbm: "100", priceUsdFt3: "3,498.5", minChargeUsd: "1.250" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.priceUsdFt3).toBe("No es un monto válido.");
+      expect(r.errors.minChargeUsd).toBe("No es un monto válido.");
+    }
+    const c = validateTariffInput(fd({ ...base, priceUsdCbm: "1.250", priceUsdFt3: "3,5" }));
+    expect(c.ok).toBe(false);
+    if (!c.ok) expect(c.errors.priceUsdCbm).toBe("No es un monto válido.");
+  });
+
   it("si viene el precio en CBM, ese manda", () => {
     const r = validateTariffInput(fd({ ...base, priceUsdCbm: "123,60" }));
     expect(r.ok).toBe(true);

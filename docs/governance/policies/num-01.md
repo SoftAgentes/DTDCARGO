@@ -2,8 +2,8 @@
 
 | Control | Valor |
 |---|---|
-| Estado | aprobada — componente canónico; adopción gradual |
-| Aprobación | 2026-11-22 · Sam (founder) · SDD-0687 fases 1 y 2 (v1.2; confirmar en la PR) · v1.1: 2026-07-30 · REV-SGE-020 |
+| Estado | aprobada — componente canónico; adopción gradual · v1.2 pendiente de confirmación de Sam |
+| Aprobación | 2026-07-30 · Sam (founder) · REV-SGE-020 (v1.1). La v1.2 (SDD-0687 §4.1) **no está aprobada**: espera la confirmación de Sam en la PR #790 |
 | Base actual | `NumericInput` canonical · `parseNumero` en `lib/shared/cifras.ts` |
 
 ## Contrato

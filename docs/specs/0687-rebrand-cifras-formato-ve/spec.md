@@ -267,3 +267,54 @@ Color (SDD-0686), simetría de pantallas (SDD-0688), fechas (SDD-0660), CBM de c
 ## 11. Límites
 
 Todo sale de leer el código; nada se ejecutó. Los conteos son por texto. El comportamiento de `<input type="number">` por navegador y por idioma del equipo no se midió.
+
+## 12. Enmienda: allowlist exacta de las fases 1 y 2 (PR #790)
+
+La entrada de datos (§2.1, §2.2 y §4.2) entra por la PR #790. Esta enmienda no cambia el estado de la spec ni sus decisiones. Archivos de la PR, fijados al revisarla (B1 y B2 de la revisión independiente añadieron `lib/studio/freight-carriers/types.ts`, `ShipmentDataPanel.tsx` y sus pruebas):
+
+- `.agents/handoffs/2026-11-22-sdd-0687-fases-1-2-entrada.md`
+- `__tests__/parse-numeric-expression.test.ts`
+- `app/studio/(app)/admin/_components/ExchangeRatesSection.tsx`
+- `app/studio/(app)/admin/_components/calculator/ParametrosPanel.tsx`
+- `app/studio/(app)/admin/_components/calculator/TariffDrawer.tsx`
+- `app/studio/(app)/cobranzas/_components/UnidentifiedPaymentDrawer.tsx`
+- `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ChargeDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/ConversionDrawer.tsx`
+- `app/studio/(app)/financiero-china/_components/CreditNoteDrawer.tsx`
+- `app/studio/(app)/fiscal/_components/WithholdingDrawer.tsx`
+- `app/studio/(app)/gastos/_components/ExpenseDrawer.tsx`
+- `app/studio/(app)/ordenes-compra/_components/PoDrawer.tsx`
+- `app/studio/(app)/proveedores/actions.ts`
+- `app/studio/(app)/tesoreria/_components/BillDrawer.tsx`
+- `app/studio/(app)/tms/_components/TruckDrawer.tsx`
+- `app/studio/(app)/tracking/[id]/__tests__/shipment-data-panel-cifras.test.tsx`
+- `app/studio/(app)/tracking/[id]/_components/CargaDelEmbarque.tsx`
+- `app/studio/(app)/tracking/[id]/_components/ShipmentDataPanel.tsx`
+- `app/studio/CLAUDE.md`
+- `app/studio/_components/ui/NumericInput.test.tsx`
+- `app/studio/_components/ui/NumericInput.tsx`
+- `docs/governance/README.md`
+- `docs/governance/components/numeric-input.json`
+- `docs/governance/generated/component-registry.json`
+- `docs/governance/generated/governance-capsule.json`
+- `docs/governance/policies/num-01.md`
+- `lib/portal/__tests__/cotizacion-request.test.ts`
+- `lib/portal/__tests__/payment-reports.test.ts`
+- `lib/portal/cotizacion-request.ts`
+- `lib/portal/payment-report-types.ts`
+- `lib/shared/__tests__/cifras.test.ts`
+- `lib/shared/cifras.ts`
+- `lib/studio/__tests__/freight-carriers-types.test.ts`
+- `lib/studio/__tests__/fx-rates.test.ts`
+- `lib/studio/__tests__/scorecard-types.test.ts`
+- `lib/studio/exchange-rates-types.ts`
+- `lib/studio/freight-carriers/types.ts`
+- `lib/studio/price-books/__tests__/price-books.test.ts`
+- `lib/studio/price-books/price-book-types.ts`
+- `lib/studio/proveedores/scorecard-types.ts`
+- `lib/studio/rate-snapshots/__tests__/types.test.ts`
+- `lib/studio/rate-snapshots/types.ts`
+- `lib/studio/util/parse-numeric-expression.ts`
+
+No cambia lo que se muestra en pantallas, PDF ni exportes (fase 3 en adelante) ni el color (SDD-0686). NUM-01 v1.2 queda **pendiente de confirmación de Sam**: no consta su aprobación por escrito.

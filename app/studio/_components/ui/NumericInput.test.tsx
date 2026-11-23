@@ -239,6 +239,17 @@ describe("NumericInput · SDD-0687 entrada en formato 1.234,50", () => {
     expect(hidden).toHaveValue("0.123");
   });
 
+  it("precio por ft³ (dinero con 4 decimales): se abre con defaultValue 3.498 y sigue válido (revisión #790 B1)", () => {
+    const { input, hidden } = renderCon({ type: "currency", precision: 2, decimales: 4, defaultValue: 3.498 });
+    expect(input).toHaveValue("3,498");
+    expect(input).toHaveAttribute("data-numeric-status", "valid");
+    expect(hidden).toHaveValue("3.498");
+    fireEvent.blur(input);
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    fireEvent.change(input, { target: { value: "3.4985" } });
+    expect(hidden).toHaveValue("3.4985");
+  });
+
   it("el eco no es una región viva mientras se escribe (ERR-01)", () => {
     const { input, preview } = renderCon({ type: "currency" });
     fireEvent.change(input, { target: { value: "1.234,50" } });
