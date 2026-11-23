@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
-  "generatedAt": "2026-11-18T00:00:00.000Z",
-  "sourceCommit": "8a2f18c6682460d2782d7b321bc3920f0264f7f2",
+  "generatedAt": "2026-11-23T00:00:00.000Z",
+  "sourceCommit": "69b0f6b6ecadf46e59a38d2e99e049ac43a72129",
   "components": [
     {
       "schemaVersion": "1.1",
@@ -431,6 +431,103 @@
         "approvedBy": "Pendiente: Sam (founder) al promover a canonical",
         "lastReviewedAt": "2026-11-18",
         "nextReviewAt": "2027-05-18"
+      }
+    },
+    {
+      "schemaVersion": "1.1",
+      "id": "encabezado-pagina",
+      "name": "EncabezadoPagina",
+      "purpose": "Encabezado único de pantalla del Studio: eyebrow, título (el único h1), subtítulo y acciones, con un solo tamaño y un solo margen que siguen a la vista elegida (Normal, Compacta, Súper compacta).",
+      "owner": "Studio UI",
+      "status": "proposed",
+      "implementation": {
+        "path": "app/studio/_components/ui/EncabezadoPagina.tsx",
+        "exportName": "EncabezadoPagina"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "VIS-02",
+          "version": "1.0",
+          "path": "docs/governance/policies/vis-02.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "VIS-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/vis-01.md"
+        }
+      ],
+      "api": {
+        "contractPath": "docs/specs/0688-rebrand-simetria-pantallas/spec.md",
+        "summary": "Props: eyebrow, titulo, subtitulo y acciones (todas opcionales salvo titulo) y tono claro o navy (solo cambia colores, para la banda navy del dashboard). Renderiza un header con un único h1 con la clase .t-pantalla; el tamaño sale de --t-pantalla. Las acciones van a la derecha y bajan de línea si no caben."
+      },
+      "tokens": [],
+      "accessibility": {
+        "keyboard": "not-applicable",
+        "focus": "not-applicable",
+        "screenReader": "verified",
+        "contrast": "not-applicable",
+        "reducedMotion": "not-applicable",
+        "evidence": [
+          "app/studio/_components/ui/EncabezadoPagina.test.tsx",
+          "app/studio/_components/__tests__/estilos-texto-contract.test.ts"
+        ]
+      },
+      "breakpoints": [
+        "mobile",
+        "tablet",
+        "desktop",
+        "print"
+      ],
+      "examples": {
+        "correct": [
+          "app/studio/(app)/calendario/page.tsx"
+        ],
+        "incorrect": [
+          "app/studio/(app)/clientes/[markbox]/page.tsx"
+        ]
+      },
+      "tests": [
+        {
+          "type": "accessibility",
+          "path": "app/studio/_components/ui/EncabezadoPagina.test.tsx",
+          "case": "Un solo h1 con el título, partes opcionales solo si se pasan, acciones y tono navy sin cambiar la estructura."
+        },
+        {
+          "type": "visual",
+          "path": "app/studio/_components/__tests__/estilos-texto-contract.test.ts",
+          "case": "Los once roles leen su token, ninguna vista baja del piso de 12 px, la fila baja 44, 36 y 32 px y las pantallas de muestra usan el componente."
+        }
+      ],
+      "consumers": [
+        {
+          "path": "app/studio/(app)/calendario/page.tsx",
+          "verifiedAt": "2026-11-23"
+        },
+        {
+          "path": "app/studio/(app)/tracking/page.tsx",
+          "verifiedAt": "2026-11-23"
+        },
+        {
+          "path": "app/studio/(app)/dashboard/page.tsx",
+          "verifiedAt": "2026-11-23"
+        }
+      ],
+      "review": {
+        "reviewPath": "docs/specs/0688-rebrand-simetria-pantallas/spec.md",
+        "reviewer": "Claude (Worker SDD-0688 fase 2)",
+        "approvedBy": "Pendiente: Sam (founder) al promover a canonical",
+        "lastReviewedAt": "2026-11-23",
+        "nextReviewAt": "2027-05-23"
       }
     },
     {
