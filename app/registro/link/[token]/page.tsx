@@ -76,7 +76,7 @@ export default async function RegistroLinkPage({
             <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.6]">{REGISTRO_LINK_INVALIDO}</p>
             <p className="mt-6 text-[14px] text-grey-700">
               ¿Ya tienes tu acceso?{" "}
-              <Link href="/entrar" className="text-wine font-semibold underline underline-offset-2">
+              <Link href="/entrar" className="text-accion-text font-semibold underline underline-offset-2">
                 Entra a tu portal
               </Link>
             </p>

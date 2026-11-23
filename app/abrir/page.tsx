@@ -109,7 +109,7 @@ function Marco({ children }: { children: React.ReactNode }) {
             font: "700 10.5px/1 var(--font-archivo)",
             letterSpacing: "0.09em",
             textTransform: "uppercase",
-            color: "var(--color-wine-text)",
+            color: "var(--color-grey-700)",
             margin: "0 0 14px",
           }}
         >

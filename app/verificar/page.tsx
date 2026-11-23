@@ -263,7 +263,7 @@ export default async function VerificarPage({
                 <h1 className="h-display" style={{ fontSize: H1_SIZE }}>
                   Demasiadas
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>verificaciones.</span>
+                  <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>verificaciones.</span>
                 </h1>
                 <p className="lead mt-6">
                   Recibimos muchas consultas desde tu conexión en poco tiempo.
@@ -279,7 +279,7 @@ export default async function VerificarPage({
                 <div className="flex items-center gap-3">
                   <span
                     className="grid place-items-center rounded-full"
-                    style={{ width: 44, height: 44, background: "var(--color-wine)" }}
+                    style={{ width: 44, height: 44, background: "var(--color-ink)" }}
                   >
                     <CheckIcon />
                   </span>
@@ -320,7 +320,7 @@ export default async function VerificarPage({
                 <h1 className="h-display" style={{ fontSize: H1_SIZE }}>
                   No encontramos este
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>diploma.</span>
+                  <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>diploma.</span>
                 </h1>
                 <p className="lead mt-6">
                   El folio{" "}
@@ -347,7 +347,7 @@ export default async function VerificarPage({
                     style={{
                       width: 44,
                       height: 44,
-                      background: "var(--color-wine)",
+                      background: "var(--color-ink)",
                     }}
                   >
                     <CheckIcon />
@@ -378,7 +378,7 @@ export default async function VerificarPage({
                 >
                   No reconocemos este
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>
+                  <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>
                     Shipping Mark.
                   </span>
                 </h1>
@@ -549,7 +549,7 @@ export default async function VerificarPage({
                 className="verify-back"
                 style={{
                   font: "600 13.5px var(--font-archivo)",
-                  color: "var(--color-wine)",
+                  color: "var(--color-accion-text)",
                 }}
               >
                 ← Volver a dtdcargo.com

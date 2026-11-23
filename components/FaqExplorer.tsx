@@ -123,7 +123,7 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
               placeholder="Buscar: aduana, baterías…"
               aria-label="Buscar en preguntas frecuentes"
               autoComplete="off"
-              className="h-12 w-full rounded-[11px] border border-grey-200 bg-white pl-11 pr-3.5 text-[15px] font-medium text-ink outline-none placeholder:text-grey-700/60 focus:border-wine focus-visible:ring-2 focus-visible:ring-wine-soft"
+              className="h-12 w-full rounded-[11px] border border-grey-200 bg-white pl-11 pr-3.5 text-[15px] font-medium text-ink outline-none placeholder:text-grey-700/60 focus:border-accion focus-visible:ring-2 focus-visible:ring-accion"
             />
           </div>
 
@@ -141,12 +141,12 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setFiltro(c.id)}
-                  className={`inline-flex items-center gap-1.5 h-8 rounded-full border px-3 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft ${
+                  className={`inline-flex items-center gap-1.5 h-8 rounded-full border px-3 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion ${
                     active
-                      ? "border-wine text-white"
-                      : "border-grey-200 bg-white text-grey-700 hover:border-wine hover:text-wine"
+                      ? "border-ink text-paper"
+                      : "border-grey-200 bg-white text-grey-700 hover:border-accion hover:text-accion-text"
                   }`}
-                  style={active ? { background: "var(--color-wine)" } : undefined}
+                  style={active ? { background: "var(--color-ink)" } : undefined}
                 >
                   {c.label}
                   <span
@@ -219,16 +219,16 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                   }}
                   className="group rounded-[14px] border border-grey-200 bg-white px-5 card-shadow scroll-mt-24"
                 >
-                  <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft">
+                  <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accion">
                     <span className="min-w-0">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.1em] text-wine-text mb-1.5">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.1em] text-grey-700 mb-1.5">
                         {catLabel[f.categoria]}
                       </span>
                       <span className="block text-[16px] lg:text-[17px] font-extrabold leading-[1.35] text-ink">
                         {f.pregunta}
                       </span>
                     </span>
-                    <span className="mt-0.5 flex-shrink-0 text-[22px] leading-none text-wine transition-transform duration-200 group-open:rotate-45">
+                    <span className="mt-0.5 flex-shrink-0 text-[22px] leading-none text-accion-text transition-transform duration-200 group-open:rotate-45">
                       +
                     </span>
                   </summary>
@@ -243,7 +243,7 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                           href="/guias/comprar-en-alibaba.html"
                           target="_blank"
                           rel="noopener"
-                          className="font-bold text-wine-text underline underline-offset-2 hover:no-underline"
+                          className="font-bold text-accion-text underline underline-offset-2 hover:no-underline"
                         >
                           Abre la guía interactiva gratis
                         </a>{" "}
@@ -263,7 +263,7 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                                 <span
                                   aria-hidden
                                   className="mt-[8px] h-[5px] w-[5px] flex-shrink-0 rounded-full"
-                                  style={{ background: "var(--color-wine)" }}
+                                  style={{ background: "var(--color-ink)" }}
                                 />
                                 <span>{it}</span>
                               </li>

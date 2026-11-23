@@ -35,7 +35,7 @@ export function Stats() {
                 <span>{i === 0 ? aniosComercioChina() : s.num}</span>
                 <span
                   style={{
-                    color: "var(--color-wine-soft)",
+                    color: "var(--color-on-accent)",
                     fontSize: "0.5em",
                     marginLeft: "0.18em",
                     letterSpacing: "0.01em",
@@ -55,7 +55,7 @@ export function Stats() {
         </div>
 
         {/* Hitos históricos — línea fija, letra chica (founder 2026-06-13).
-            El año en wine-soft (ancla) + la etiqueta en blanco tenue; envuelve
+            El año en crema (ancla) + la etiqueta en blanco tenue; envuelve
             en móvil. Texto real (lo lee el lector de pantalla). */}
         <div className="mt-12 lg:mt-14 pt-6 border-t border-white/10">
           {/* Móvil: apila vertical (lee como secuencia/timeline, no lista suelta).
@@ -66,13 +66,13 @@ export function Stats() {
                 key={h.year}
                 className="inline-flex items-baseline gap-2 text-[12.5px] leading-[1.5]"
               >
-                {/* Año en Archivo regular bold (NO Black): ancla cromática wine-soft
+                {/* Año en Archivo regular bold (NO Black): ancla cromática crema
                     pero subordinado a los KPI, que sí usan Archivo Black. */}
                 <span
                   style={{
                     fontFamily: "var(--font-archivo)",
                     fontWeight: 700,
-                    color: "var(--color-wine-soft)",
+                    color: "var(--color-on-accent)",
                     letterSpacing: "0.02em",
                   }}
                 >

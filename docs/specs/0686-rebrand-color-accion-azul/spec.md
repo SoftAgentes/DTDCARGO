@@ -1163,6 +1163,109 @@ Sam, en el chat de la sesión del Director: «Rebrand: arranca la fase 3b del co
 - Los tokens oscuros de acción del portal coinciden con el Studio.
 - `#portal-shell .btn-primary` es azul y el de la web sigue en vino.
 - Ningún relleno de acción lleva `--color-on-accent` encima (en oscuro sería blanco sobre azul claro).
+### Fase 3b-2b · componentes compartidos de la web (2026-11-22)
+
+Dir_DTD aprobó dividir la 3b-2 (web) en tres tramos y empezar por `components/`: «apruebo los tres tramos […] Empieza por la 3b-2b (components/)». Después vienen la 3b-2a (registro, acceso, verificar, abrir y `p/[token]`; **`app/entrar` queda excluido**, es el inicio de sesión de la fase 4) y la 3b-2c (las páginas restantes y las superficies CSS). Rama `codex/sdd-0686-fase3b2-web`, desde `main` `471ea1d0b`. La PR se abre cuando la #780 (3b-1) esté en `main`.
+
+**Inventario (M):** 217 usos en 33 archivos. Quedan 17 usos en 3 archivos, todos en la lista cerrada del contrato.
+
+| Destino | Qué |
+|---|---|
+| Acción | Anillos y bordes de foco, enlaces, hover del menú y de los botones de copiar, chevrones que despliegan, botón «Copiar dirección» de la guía de Alibaba, zona de soltar del importador, hover de los controles del carrusel y de la grilla de servicios |
+| Tinta (selección) | Ítem activo del menú, chip activo de Preguntas frecuentes, filtros activos de Servicios, tipo de contenedor elegido, pestaña y paso actuales del importador, opción elegida de última milla |
+| Tinta (cifras y Shipping Mark) | Resultado del FCL y del CBM, Shipping Mark de la guía de Alibaba y su tinte, cifra del CBM en la ayuda |
+| Tinta suave | Eyebrows y rótulos en mayúscula |
+| Rojo y verde de estado | Error del estimado y aviso «No se puede calcular» en rojo (regla 2); viñetas «incluye» y el check del cotizador en verde |
+
+**Decididas por Sam el 2026-11-22.** Vio las tres piezas en el chat del Director y respondió «Web pública: A en las tres (acentos 3, ilustraciones 4, bandas 5)»:
+- **Acentos editoriales (3A).** La palabra destacada del titular va en tinta y `font-black` (`Philosophy`, `PuertaAPuerta`, `DdpHero` y `Timeline`). Las comillas y los íconos de cita van en tinta suave (`--color-grey-700`), con la misma opacidad que tenían. El borde de las tarjetas insignia (`DdpHero`, `ServiciosExplorer`) va en tinta.
+- **Ilustraciones (4A).** Navy con rampa por opacidad, sin colores nuevos: puntos, cifras y años al 100 %, íconos al 70 % y flujos al 55 %. Los planos del diagrama de CBM, al 6 % y al 12 %. Cubre `CicloCliente`, `CicloDTD`, `CbmExplicador` y la línea de `Timeline`.
+- **Bandas navy (5A).** Las cifras y los rótulos van en crema (`--color-on-accent`, blanco fijo; `--color-paper` no sirve porque en el portal oscuro se vuelve navy). Lo que se toca (el interruptor y los desplegables de la calculadora, la ayuda «?» del CBM, el enlace y el foco del clip del proveedor, el foco de Yiwu) usa `--color-accion-on-dark`, el token que creó la #780 para «Próximo arribo B», sin duplicarlo. En hover, la ayuda «?» lleva texto navy fijo (`--on-warning`). El «DTD» de la calculadora queda en `--wine-on-dark`: es identidad.
+- **Contraste (M):**
+  - azul claro: 6,62:1 sobre #16233F (calculadora), 5,01:1 sobre #203760 (panel del total), 7,00:1 sobre #0F1E3D y 5,53:1 sobre #1F3055 (héroe del portal);
+  - crema: 11,8:1 o más;
+  - en el extremo claro de las bandas (#26406F) el azul da 4,36:1 y solo pinta el foco de Yiwu (mínimo 3:1).
+
+**Quedan, con lista cerrada (`color-accion-fase3b-components-contract.test.ts`):** el «DTD» de la calculadora (identidad) y `ChipF2` con `hub-fichas`, cuyo color vive en `.f2chip.wine` de `globals.css` y va en la 3b-2c. `BrandMark` es el logo (hex de identidad).
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/studio/_components/__tests__/color-accion-fase3b-components-contract.test.ts`
+- `components/AlibabaAddressGuide.tsx`
+- `components/CalculadoraForm.tsx`
+- `components/CbmAyuda.tsx`
+- `components/CbmExplicador.tsx`
+- `components/ChinaSupplierClip.tsx`
+- `components/CicloCliente.tsx`
+- `components/CicloDTD.tsx`
+- `components/CompanyPhotoCarousel.tsx`
+- `components/CotizadorFletes.tsx`
+- `components/EstimadoModal.tsx`
+- `components/FaqExplorer.tsx`
+- `components/FclCalculator.tsx`
+- `components/GuiaAlibabaCard.tsx`
+- `components/LlenadoCalculator.tsx`
+- `components/NavClient.tsx`
+- `components/NewsDisclaimer.tsx`
+- `components/Philosophy.tsx`
+- `components/PuertaAPuerta.tsx`
+- `components/ServicesGrid.tsx`
+- `components/ServiciosExplorer.tsx`
+- `components/Stats.tsx`
+- `components/TarifasTabs.tsx`
+- `components/Testimonials.tsx`
+- `components/Timeline.tsx`
+- `components/UltimoKmCalculator.tsx`
+- `components/YiwuAdvantage.tsx`
+- `components/document-import/document-import.module.css`
+- `components/marca/ColorSwatch.tsx`
+- `components/servicios/DdpHero.tsx`
+- `components/servicios/FichaCuerpo.tsx`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b-components-contract.test.ts`.
+- La lista cerrada, con su motivo.
+- Nueve mutantes: un enlace, el hover del menú, un estado abierto con variante de grupo (`group-[[open]]:`), una selección, un error y uno por cada decisión de Sam (un acento editorial, una ilustración, una cifra y un control sobre navy).
+- Ningún texto `--color-on-accent` sobre un relleno de acción.
+- Los errores en rojo.
+- El contraste AA del azul claro y el crema sobre los navy reales.
+- El «DTD» de la calculadora sigue en el vino del logo.
+
+### Fase 3b-2a · registro, verificar, abrir y planilla del proveedor (2026-11-23)
+
+Segundo tramo de la web que Dir_DTD aprobó («apruebo los tres tramos»). Cubre `app/registro` (formulario, activar, correo, link), `app/verificar`, `app/abrir` y `app/p/[token]` (la planilla de empaque del proveedor). **`app/entrar` queda fuera**: es el inicio de sesión (fase 4). Rama `codex/sdd-0686-fase3b2a-registro`, desde `main` `eb7f54a65`.
+
+**Inventario (M, con el detector):** 109 usos en 11 archivos. Quedan 3, en la lista cerrada.
+
+| Destino | Qué |
+|---|---|
+| Acción | Anillos y bordes de foco, enlaces («Corregir», «Volver», «Iniciar sesión»), botones con relleno (`bg-accion` + `--color-on-accion`), callouts informativos, la casilla, los controles de la planilla (`.tbtn`, `.addbtn`, `.rowadd`, copiar dirección) |
+| Tinta | Opción elegida (tipo de cliente, formato de la planilla, paso actual), Shipping Mark y sus piezas, círculos numerados de la guía, acentos editoriales de `verificar`, selector de idioma activo, cifras y rótulos de la planilla |
+| Tinta suave | Eyebrows en mayúscula (`text-grey-700`) |
+| Rojo de estado | Errores y avisos de campo, panel de campos pendientes, «Esta cédula ya tiene una cuenta», asteriscos de obligatorio, borrar fila |
+| Navy | Tarjeta del Shipping Mark (fondo `--color-ink`, rótulo `--color-accion-on-dark`) y el paso activo del encabezado (relleno `--color-accion-on-dark` con texto navy) |
+
+**Criterio por analogía (D, a confirmar en la revisión).** Sam decidió la 3b-2b con piezas de `components/`; aquí se aplicó la misma regla a las piezas equivalentes (acento editorial → tinta y negrita; selección y Shipping Mark → tinta; banda navy → crema y azul claro). No hubo una decisión nueva de Sam para esta PR.
+
+**Lista cerrada:** `app/p/[token]/PackingListFormSection.tsx`, 3 usos: la marca de agua (`.pl-wm .d`), el título en chino y el folio. Son la identidad del documento, como el comprobante de pago (`--doc-wine`, fase 5). **Decisión del Director (2026-11-23), sujeta a confirmación de Sam al ver la captura:** controles, enlaces y foco en azul de acción; rótulos y cifras en tinta; folio, marca de agua y títulos zh-CN del documento imprimible, identidad de documento (`--doc-wine`, fase 5). Si Sam prefiere otra cosa, es un ajuste de tokens y de esta lista.
+
+**Allowlist (rutas exactas):**
+- `.agents/handoffs/0686-rebrand-color-accion-azul.md`
+- `app/abrir/page.tsx`
+- `app/p/[token]/PackingListFormSection.tsx`
+- `app/p/[token]/PackingListGuidedForm.tsx`
+- `app/p/[token]/PackingListProductsStep.tsx`
+- `app/p/[token]/ProviderShareClient.tsx`
+- `app/registro/RegisterForm.tsx`
+- `app/registro/activar/[token]/page.tsx`
+- `app/registro/correo/[token]/ComprobarCorreoForm.tsx`
+- `app/registro/link/[token]/RegistroLinkForm.tsx`
+- `app/registro/link/[token]/page.tsx`
+- `app/studio/_components/__tests__/color-accion-fase3b2a-registro-contract.test.ts`
+- `app/verificar/page.tsx`
+- `docs/specs/0686-rebrand-color-accion-azul/spec.md`
+
+**Contrato nuevo:** `color-accion-fase3b2a-registro-contract.test.ts`: lista cerrada con cuenta exacta, siete mutantes (foco, botón, error, selección, Shipping Mark, acento editorial y un control de la planilla), texto `--color-on-accion` sobre rellenos de acción, errores en rojo, tarjeta navy con rótulo azul claro y la identidad del documento en vino.
 
 ### Fases 2 a 5
 

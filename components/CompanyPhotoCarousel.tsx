@@ -14,7 +14,7 @@ const PHOTOS = [
   { src: "dtd-cargo-camion-entrega", caption: "Carga en un camión DTD Cargo", alt: "Personas junto a la parte posterior de un camión con la marca DTD Cargo" },
 ] as const;
 
-const controlClass = "inline-flex items-center justify-center rounded-[var(--r-md)] border border-[var(--color-grey-300)] bg-[var(--color-ink)] text-[var(--color-paper)] hover:bg-[var(--color-wine)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-paper)]";
+const controlClass = "inline-flex items-center justify-center rounded-[var(--r-md)] border border-[var(--color-grey-300)] bg-[var(--color-ink)] text-[var(--color-paper)] hover:bg-[var(--color-accion)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-paper)]";
 
 /* TODO: brand-review — composición nueva con controles nativos y tokens públicos. */
 /** Manual gallery: only the selected large image is mounted; thumbnails use small sources. */

@@ -75,7 +75,7 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
               <ul className="mt-3 flex flex-col gap-2 list-none p-0 m-0">
                 {service.incluye.map((it, i) => (
                   <li key={it} className="flex items-start gap-2.5 text-[14px] leading-[1.45] text-grey-700">
-                    <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-wine/10 text-wine">
+                    <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-status-success/10 text-status-success">
                       <CheckIcon size={12} />
                     </span>
                     <SegmentosGlosario segmentos={incluyeSegs[i]} />
@@ -196,7 +196,7 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
         {service.href && (
           <Link
             href={service.href}
-            className="text-[13.5px] font-semibold text-wine hover:text-wine-deep inline-flex items-center gap-1.5"
+            className="text-[13.5px] font-semibold text-accion-text hover:text-accion-hover inline-flex items-center gap-1.5"
           >
             Ver el detalle completo <ArrowIcon size={14} />
           </Link>
@@ -208,7 +208,7 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-wine">
+    <span className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-grey-700">
       {children}
     </span>
   );

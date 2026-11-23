@@ -2925,3 +2925,79 @@ a.studio-tab {
 .studio-date-field__cell:hover:not([aria-disabled="true"]):not([aria-pressed]) {
   background: var(--accion-tint);
 }
+
+/* ── Embarques · fila con insignia de rastreo (SDD-0710) ─────────────────
+   El código abre el detalle (enlace de acción), «Rastrear» es una píldora
+   junto a la barra de progreso y el bloqueo de borrado cabe en una línea.
+   Solo tokens: color de acción `--accion-text`, sin hex nuevos. Toque ≥ 32 px. */
+.studio-emb-codigo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: 700 12px/1 var(--f-mono);
+  letter-spacing: 0.02em;
+  color: var(--accion-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.studio-emb-codigo:hover {
+  text-decoration-thickness: 2px;
+}
+.studio-emb-codigo:focus-visible,
+.studio-emb-rastrear:focus-visible,
+.studio-emb-pasos:focus-visible {
+  outline: 2px solid var(--accion-text);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.studio-emb-progreso {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.studio-emb-progreso > :first-child {
+  flex: 1 1 auto;
+}
+.studio-emb-rastrear {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: none;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--accion-text);
+  border-radius: var(--r-pill);
+  color: var(--accion-text);
+  font: 600 12px/1 var(--f-sans);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.studio-emb-rastrear:hover {
+  background: color-mix(in srgb, var(--accion-text) 10%, transparent);
+}
+.studio-emb-bloqueo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: 0;
+  font: 500 11.5px/1.4 var(--f-sans);
+  color: var(--ink-soft);
+}
+.studio-emb-pasos {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: 600 11.5px/1.4 var(--f-sans);
+  color: var(--accion-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
