@@ -17,6 +17,7 @@
  */
 
 import Link from "next/link";
+import { EncabezadoPagina } from "../../_components/ui/EncabezadoPagina";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { createClient } from "@/lib/db/server";
 import {
@@ -422,59 +423,36 @@ function TrackingHeader({
   contenedores: number;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        marginBottom: 16,
-        gap: 16,
-        flexWrap: "wrap",
-      }}
-    >
-      <div>
-        <span className="studio-eyebrow">Operación · en vivo</span>
-        <h1
-          className="studio-display"
-          style={{
-            fontSize: 30,
-            margin: "var(--s-2) 0 var(--s-3)",
-            color: "var(--ink)",
-          }}
-        >
-          Tracking en vivo.
-        </h1>
-        <p
-          style={{
-            font: "400 13px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: 0,
-            maxWidth: "60ch",
-          }}
-        >
+    <EncabezadoPagina
+      eyebrow="Operación · en vivo"
+      titulo="Tracking en vivo."
+      subtitulo={
+        <>
           Por contenedor. La posición es la del rastreo de la naviera cuando existe; si
           no, es estimada y así se indica · {contenedores}{" "}
           {contenedores === 1 ? "contenedor" : "contenedores"} · {envios}{" "}
           {envios === 1 ? "envío activo" : "envíos activos"}.
-        </p>
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        {/* SDD-0289 · el CSV trae TODOS los embarques (paginado), no sólo los
-            activos que muestra esta pantalla. */}
-        <a
-          href="/api/studio/operativo/export?tipo=embarques"
-          className="studio-btn studio-btn-ghost"
-          title="Descarga todos los embarques en CSV"
-        >
-          Exportar
-        </a>
-        <Link
-          href="/studio/tracking/nuevo"
-          className="studio-btn studio-btn-primary"
-        >
-          + Envío
-        </Link>
-      </div>
-    </div>
+        </>
+      }
+      acciones={
+        <>
+          {/* SDD-0289 · el CSV trae TODOS los embarques (paginado), no sólo los
+              activos que muestra esta pantalla. */}
+          <a
+            href="/api/studio/operativo/export?tipo=embarques"
+            className="studio-btn studio-btn-ghost"
+            title="Descarga todos los embarques en CSV"
+          >
+            Exportar
+          </a>
+          <Link
+            href="/studio/tracking/nuevo"
+            className="studio-btn studio-btn-primary"
+          >
+            + Envío
+          </Link>
+        </>
+      }
+    />
   );
 }

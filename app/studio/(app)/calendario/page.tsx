@@ -11,6 +11,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { EncabezadoPagina } from "../../_components/ui/EncabezadoPagina";
 import { getUser } from "@/lib/auth/session";
 import {
   buildMonthGrid,
@@ -82,25 +83,10 @@ export default async function CalendarioPage({
 
 function PageHeader() {
   return (
-    <div style={{ marginBottom: "var(--s-6)" }}>
-      <span className="studio-eyebrow">Operación</span>
-      <h1
-        className="studio-display"
-        style={{ fontSize: 30, margin: "8px 0 12px", color: "var(--ink)" }}
-      >
-        Calendario operativo.
-      </h1>
-      <p
-        style={{
-          font: "400 13px/1.4 var(--f-sans)",
-          color: "var(--ink-soft)",
-          margin: 0,
-          maxWidth: "60ch",
-        }}
-      >
-        Zarpes, arribos y entregas de tus embarques, junto a los feriados y
-        ferias de China y Venezuela. Haz clic en un día para ver el detalle.
-      </p>
-    </div>
+    <EncabezadoPagina
+      eyebrow="Operación"
+      titulo="Calendario operativo."
+      subtitulo="Zarpes, arribos y entregas de tus embarques, junto a los feriados y ferias de China y Venezuela. Haz clic en un día para ver el detalle."
+    />
   );
 }

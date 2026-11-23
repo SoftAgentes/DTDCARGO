@@ -22,7 +22,17 @@ export const DENSITY_KEY = "studio_density";
 export const APPEARANCE_EVENT = "studio:appearance";
 
 export type StudioTheme = "light" | "dark";
-export type StudioDensity = "compact" | "normal" | "spacious";
+/**
+ * Las tres vistas (SDD-0688 §11.5): Normal, Compacta (la de por defecto) y Súper
+ * compacta. «Amplia» (`spacious`) se retiró: quien la tenía guardada pasa a Normal.
+ */
+export type StudioDensity = "compact" | "normal" | "ultra";
+
+export const DENSITY_LABEL: Record<StudioDensity, string> = {
+  normal: "Normal",
+  compact: "Compacta",
+  ultra: "Súper compacta",
+};
 
 export const DEFAULT_THEME: StudioTheme = "dark";
 export const DEFAULT_DENSITY: StudioDensity = "compact";
@@ -43,7 +53,9 @@ export function readTheme(): StudioTheme {
 export function readDensity(): StudioDensity {
   try {
     const d = localStorage.getItem(DENSITY_KEY);
-    return d === "normal" || d === "spacious" ? d : DEFAULT_DENSITY;
+    if (d === "ultra") return "ultra";
+    if (d === "normal" || d === "spacious") return "normal";
+    return DEFAULT_DENSITY;
   } catch {
     return DEFAULT_DENSITY;
   }

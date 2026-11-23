@@ -113,7 +113,7 @@ describe("studio.css: tooltip del menú y contador de iconos", () => {
     const bloque = css.match(/\.studio-contador-icono\s*\{[^}]*\}/)?.[0] ?? "";
     expect(bloque).toMatch(/top:\s*-\d+px/);
     expect(bloque).toMatch(/right:\s*-\d+px/);
-    const btn = css.match(/\.studio-icono-btn,\s*\n\.studio-cerrar-panel,\s*\n\.studio-densidad\s*\{[^}]*\}/)?.[0] ?? "";
+    const btn = css.match(/\.studio-icono-btn,\s*\n\.studio-cerrar-panel\s*\{[^}]*\}/)?.[0] ?? "";
     expect(btn).not.toMatch(/overflow:\s*hidden/);
   });
 });
