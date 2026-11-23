@@ -105,7 +105,7 @@ function ColorDoctrine() {
     <div className="flex flex-col gap-9">
       {PALETTE.map((grp) => (
         <div key={grp.group}>
-          <h3 className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-4">
+          <h3 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-700 mb-4">
             {grp.group}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -303,7 +303,7 @@ export function CatalogClient({
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="font-semibold text-wine underline underline-offset-2"
+              className="font-semibold text-accion-text underline underline-offset-2"
             >
               Ver todo
             </button>

@@ -191,7 +191,7 @@ export default function NosotrosPage() {
                 >
                   <div className="eyebrow">{s.country}</div>
                   <div
-                    className="mt-3 text-[24px] lg:text-[26px] leading-[1.12] tracking-[-0.01em] text-ink group-hover:text-wine transition-colors"
+                    className="mt-3 text-[24px] lg:text-[26px] leading-[1.12] tracking-[-0.01em] text-ink group-hover:text-accion-text transition-colors"
                     style={{ fontFamily: "var(--font-archivo-black)" }}
                   >
                     {s.role}
@@ -231,7 +231,7 @@ export default function NosotrosPage() {
                   className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-wine flex-shrink-0">
+                    <span className="text-ink/70 flex-shrink-0">
                       <CheckIcon size={18} />
                     </span>
                     <h3 className="h-card text-[19px]">{v.t}</h3>

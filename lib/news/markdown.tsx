@@ -79,7 +79,7 @@ function inlineFormat(text: string, keyPrefix: string): ReactNode[] {
         <a
           key={k}
           href={url}
-          className="text-wine hover:text-wine-deep underline underline-offset-2"
+          className="text-accion-text hover:text-accion-hover underline underline-offset-2"
           {...(isExternal
             ? { target: "_blank", rel: "noopener noreferrer" }
             : {})}
@@ -308,7 +308,7 @@ export function NewsMarkdown({ source }: { source: string }) {
             return (
               <blockquote
                 key={key}
-                className="border-l-4 border-wine pl-5 italic text-grey-700 my-6"
+                className="border-l-4 border-ink pl-5 italic text-grey-700 my-6"
                 style={{ fontSize: 16, lineHeight: 1.7 }}
               >
                 {inlineFormat(block.content, `${key}-i`)}

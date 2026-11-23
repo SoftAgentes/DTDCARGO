@@ -92,7 +92,7 @@ describe("SDD-0686 fase 3b-1 · Portal sin vino de acción", () => {
     }
   });
 
-  it("el botón principal del portal es azul y la web pública conserva el suyo hasta la 3b-2", () => {
+  it("el botón principal del portal es azul y el de la web pública también (3b-2c)", () => {
     const css = leer("app/globals.css");
     const portal = bloque(css, "#portal-shell .btn-primary");
     expect(portal).toContain("background: var(--color-accion);");
@@ -101,7 +101,8 @@ describe("SDD-0686 fase 3b-1 · Portal sin vino de acción", () => {
     expect(portal).not.toMatch(/rgba\(\s*31,\s*79,\s*168/);
     expect(portal).toContain("color-mix(in srgb, var(--color-accion) 45%, transparent)");
     expect(bloque(css, "#portal-shell .btn-primary:hover")).toContain("var(--color-accion-hover)");
-    expect(bloque(css, ".btn-primary")).toContain("var(--color-wine)");
+    // 3b-2c: el `.btn-primary` de la web pública también pasó a la acción.
+    expect(bloque(css, ".btn-primary")).toContain("background: var(--color-accion);");
   });
 
   it("sobre un relleno de acción el texto es --color-on-accion, no --color-on-accent ni blanco", () => {

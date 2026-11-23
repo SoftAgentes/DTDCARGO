@@ -171,7 +171,7 @@ export default async function MarcaPage() {
       <section className="pt-8 pb-7 lg:pt-11 lg:pb-9">
         <div className="wrap">
           <h1 className="h-display" style={{ fontSize: "clamp(30px, 3.6vw, 44px)" }}>
-            La marca, <span style={{ color: "var(--color-wine)" }}>lista para usar.</span>
+            La marca, <span style={{ color: "var(--color-ink)", fontWeight: 900 }}>lista para usar.</span>
           </h1>
           <p
             className="mt-3 text-[13px] text-grey-700"
@@ -198,7 +198,7 @@ export default async function MarcaPage() {
             <div className="min-w-0">
               <span
                 className="text-[11px] font-bold tracking-[0.14em] uppercase"
-                style={{ color: "var(--color-wine-soft)" }}
+                style={{ color: "var(--color-grey-700)" }}
               >
                 El documento maestro
               </span>
@@ -276,7 +276,7 @@ export default async function MarcaPage() {
             ¿Falta un archivo fuente?{" "}
             <a
               href={`mailto:${CONTACT.ve.email}?subject=${encodeURIComponent("DTD Cargo — archivos fuente de marca")}`}
-              className="font-semibold text-wine underline underline-offset-2"
+              className="font-semibold text-accion-text underline underline-offset-2"
             >
               Pídelo acá
             </a>
