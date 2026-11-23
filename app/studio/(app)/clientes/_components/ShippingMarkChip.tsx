@@ -160,9 +160,11 @@ export function ShippingMarkChip({
                       <span style={{ font: "600 14px/1.3 var(--f-mono)", color: "var(--ink)" }}>
                         {h.markbox}
                       </span>
-                      <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
-                        {new Date(h.retiredAt).toLocaleDateString("es-VE")}
-                      </span>
+                      {h.retiredAt && (
+                        <span style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+                          {new Date(h.retiredAt).toLocaleDateString("es-VE")}
+                        </span>
+                      )}
                     </div>
                     {h.reason && (
                       <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>

@@ -13,16 +13,18 @@
  */
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { Aviso } from "@/app/studio/_components/ui/Aviso";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   candidateConfidence,
   candidateReasons,
   type DuplicateCandidate,
 } from "@/lib/studio/client-merge-queries";
-import { mergeClientsAction, type MergeResult } from "../merge-actions";
+import type { MergeResult } from "../merge-actions";
+import { FusionPanel, type ParFusion } from "./FusionPanel";
+import { BuscarYFusionar } from "./BuscarYFusionar";
 
 const CONF_TONE = {
   alta: "success",
@@ -37,24 +39,24 @@ const CONF_LABEL = {
 } as const;
 
 export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidate[] }) {
-  const [pending, startTransition] = useTransition();
-  const [confirmar, setConfirmar] = useState<DuplicateCandidate | null>(null);
-  const [error, setError] = useState<string | undefined>();
+  const [pestana, setPestana] = useState<"detectados" | "buscar">("detectados");
+  const [par, setPar] = useState<ParFusion | null>(null);
   const [resultados, setResultados] = useState<Record<string, MergeResult>>({});
+  const [ultima, setUltima] = useState<MergeResult | null>(null);
 
-  function fusionar(c: DuplicateCandidate) {
-    setError(undefined);
-    startTransition(async () => {
-      // Superviviente = la ficha VIEJA: carga el historial y es el código que el
-      // cliente ya le pasó a su proveedor.
-      const res = await mergeClientsAction(c.legacyId, c.newId);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setResultados((r) => ({ ...r, [c.newId]: res }));
-      setConfirmar(null);
+  // Superviviente propuesto = la ficha VIEJA: carga el historial y es el código
+  // que el cliente ya le pasó a su proveedor. El panel permite invertirlo (⇄).
+  function abrirPar(c: DuplicateCandidate) {
+    setPar({
+      survivor: { id: c.legacyId, markbox: c.legacyMarkbox ?? "", name: c.legacyName },
+      merged: { id: c.newId, markbox: c.newMarkbox ?? "", name: c.newName },
     });
+  }
+
+  function alFusionar(res: MergeResult, p: ParFusion) {
+    setResultados((r) => ({ ...r, [p.merged.id]: res, [p.survivor.id]: res }));
+    setUltima(res);
+    setPar(null);
   }
 
   return (
@@ -105,7 +107,42 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
         </p>
       </div>
 
-      {candidates.length === 0 ? (
+      {ultima?.ok && (
+        <div style={{ marginBottom: 16 }}>
+          <Aviso tono="exito" titulo="Fusionado">
+            El cliente usa {ultima.survivorMarkbox}; {ultima.retiredMarkbox} quedó anulado y sigue resolviendo.
+            {ultima.access ? ` Acceso: ${ultima.access}.` : ""}
+            {ultima.needsReview && ultima.needsReview.changeRequestsLeftBehind > 0
+              ? " Quedó una solicitud de cambio sin mover: revísala."
+              : ""}
+          </Aviso>
+        </div>
+      )}
+
+      <div role="tablist" aria-label="Duplicados" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pestana === "detectados"}
+          className={`studio-btn studio-btn-sm ${pestana === "detectados" ? "studio-btn-primary" : "studio-btn-ghost"}`}
+          onClick={() => setPestana("detectados")}
+        >
+          Detectados ({candidates.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pestana === "buscar"}
+          className={`studio-btn studio-btn-sm ${pestana === "buscar" ? "studio-btn-primary" : "studio-btn-ghost"}`}
+          onClick={() => setPestana("buscar")}
+        >
+          Buscar y fusionar
+        </button>
+      </div>
+
+      {pestana === "buscar" ? (
+        <BuscarYFusionar onElegir={setPar} />
+      ) : candidates.length === 0 ? (
         <EmptyState
           title="Sin duplicados detectados"
           description="Ningún cliente del registro público coincide con una ficha vieja por documento, correo, teléfono ni nombre."
@@ -189,23 +226,10 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
                     <button
                       type="button"
                       className="studio-btn studio-btn-primary"
-                      disabled={pending}
-                      onClick={() => setConfirmar(c)}
+                      onClick={() => abrirPar(c)}
                     >
-                      Fusionar
+                      Ver fichas y fusionar
                     </button>
-                    <Link
-                      href={`/studio/clientes/${c.legacyMarkbox ?? ""}`}
-                      className="studio-btn studio-btn-ghost"
-                    >
-                      Ver ficha que se queda
-                    </Link>
-                    <Link
-                      href={`/studio/clientes/${c.newMarkbox ?? ""}`}
-                      className="studio-btn studio-btn-ghost"
-                    >
-                      Ver ficha que se anula
-                    </Link>
                   </div>
                 )}
               </article>
@@ -214,32 +238,14 @@ export function DuplicadosClient({ candidates }: { candidates: DuplicateCandidat
         </div>
       )}
 
-      <ConfirmDialog
-        open={!!confirmar}
-        title="Fusionar estas dos fichas"
-        message={
-          confirmar
-            ? `El cliente se queda con ${confirmar.legacyMarkbox} y ${confirmar.newMarkbox} queda anulado. ` +
-              `El acceso, las direcciones y el historial pasan a la ficha que se queda, y los datos que le falten se completan con los del registro. ` +
-              (candidateConfidence(confirmar) === "debil"
-                ? "⚠️ Este par coincide SÓLO por el nombre. Abre las dos fichas y comprueba que sean la misma persona antes de seguir: fusionar a dos personas distintas es peor que dejar el duplicado."
-                : "Esto no se deshace solo.")
-            : ""
-        }
-        confirmLabel="Sí, fusionar"
-        danger
-        pending={pending}
-        // Los pares que sólo coinciden por nombre piden confirmación sostenida:
-        // son los que pueden estar uniendo a dos personas distintas.
-        holdToConfirm={!!confirmar && candidateConfidence(confirmar) === "debil"}
-        holdLabel="Mantén presionado para fusionar"
-        error={error}
-        onCancel={() => {
-          setConfirmar(null);
-          setError(undefined);
-        }}
-        onConfirm={() => confirmar && fusionar(confirmar)}
-      />
+      {par && (
+        <FusionPanel
+          par={par}
+          onClose={() => setPar(null)}
+          onInvertir={() => setPar({ survivor: par.merged, merged: par.survivor })}
+          onFusionado={alFusionar}
+        />
+      )}
     </div>
   );
 }
