@@ -59,3 +59,12 @@ serializada compara revisiones de ambos documentos y reinicia la copia completa.
 Cancelación no envía comandos. La generación y la revisión vencen otras pestañas.
 La referencia de preorden solicita selección explícita en Facturación; si hay
 conceptos sin guardar se usa su confirmación existente antes de cambiar documento.
+
+## Evidencia de cierre local
+La cabeza de producto `1ee827116666f55844536eca388b389bebba8b89` pasó 12/12
+pruebas dirigidas sin omisiones con Chromium a 390/1280 px, claro/oscuro.
+Incluye reinicio operativo cancelado y confirmado, pestaña vencida, otra persona
+intacta (handler/SQL), y selección de preorden con descarte. Capturas y límites
+en `.agents/handoffs/task_0f561f5002cb.md`. Build y suite general están asignados
+a Calidad en GitHub por el Director; no se repiten localmente. La aceptación
+integral y activación siguen pendientes; #812 depende de las correcciones de #811.
