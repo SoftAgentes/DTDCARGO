@@ -34,20 +34,27 @@ export function abrirReferencia(valor: unknown, llave: string, ahora = Date.now(
   }
 }
 
-export function permisosDePractica(rol: StudioUserRole, almacen: WarehouseScope, ajustes: RoleModuleOverrides, extras: UserModuleGrants): PermisoPractica[] {
+export function permisosDePractica(rol: StudioUserRole, almacen: WarehouseScope, ajustes: RoleModuleOverrides, extras: UserModuleGrants, region?: string | null): PermisoPractica[] {
   return MODULOS_PRACTICA.filter(({ id }) =>
     // Detalle financiero interno: 0414/0407 y RPC 0533/0497 exigen estos roles.
     // Un extra de pantalla no amplía las operaciones que la base real permite.
     (id !== "invoices" || rol === "accounting" || rol === "admin") &&
     (rol === "admin" || scopeAllowsModule(almacen, id)) && canAccessModule(rol, id, ajustes, extras)
-  ).map(({ id }) => ({ id, edicion: canEditModule(rol, id, ajustes, extras) }));
+  ).map(({ id }) => {
+    const edicion = canEditModule(rol, id, ajustes, extras);
+    const operativo = rol === "warehouse" || rol === "operations";
+    return { id, edicion,
+      ...(id === "cn" ? {ejercicioCn: edicion && (rol === "admin" || (operativo && region === "cn"))} : {}),
+      ...(id === "ve" || id === "shipments" ? {incidenciaDestino: edicion && (rol === "admin" || (operativo && region === "ve"))} : {}),
+    };
+  });
 }
 
 /** Solo en el Studio de origen. Relee identidad y permisos antes de cada acceso protegido. */
 export async function permisosVigentes(admin: SupabaseClient, sujeto: Sujeto): Promise<PermisoPractica[] | null> {
   const [cuenta, miembro] = await Promise.all([
     admin.auth.admin.getUserById(sujeto.usuario),
-    admin.from("user_tenants").select("role, warehouse_scope").eq("tenant_id", sujeto.tenant)
+    admin.from("user_tenants").select("role, warehouse_scope, region").eq("tenant_id", sujeto.tenant)
       .eq("user_id", sujeto.usuario).is("disabled_at", null).maybeSingle(),
   ]);
   const user = cuenta.data.user;
@@ -61,7 +68,7 @@ export async function permisosVigentes(admin: SupabaseClient, sujeto: Sujeto): P
   if (!user || user.id !== sujeto.usuario || user.is_anonymous || user.deleted_at || (user.banned_until && Date.parse(user.banned_until) > Date.now())) return null;
   if (!miembro.data) return null;
   if (!STUDIO_USER_ROLES.includes(rol) || !["all", "cn", "ve"].includes(scope)) throw new Error("Membresía inválida");
-  if (rol === "admin") return permisosDePractica(rol, scope, {}, {});
+  if (rol === "admin") return permisosDePractica(rol, scope, {}, {}, miembro.data.region);
   const [ajustes, extras] = await Promise.all([
     admin.from("studio_role_module_overrides").select("module_id, can_view, can_edit").eq("tenant_id", sujeto.tenant).eq("role", rol),
     admin.from("studio_user_module_grants").select(DECISION_COLUMNS).eq("tenant_id", sujeto.tenant).eq("user_id", sujeto.usuario),
@@ -69,5 +76,5 @@ export async function permisosVigentes(admin: SupabaseClient, sujeto: Sujeto): P
   if (ajustes.error || !Array.isArray(ajustes.data) || extras.error || !Array.isArray(extras.data)) throw new Error("No se pudieron comprobar los permisos");
   const mapa: Record<string, ModuleAccessOverride> = {};
   for (const fila of ajustes.data) mapa[rol + ":" + fila.module_id] = { view: fila.can_view, edit: fila.can_edit };
-  return permisosDePractica(rol, scope, mapa, grantsFromRows(extras.data));
+  return permisosDePractica(rol, scope, mapa, grantsFromRows(extras.data), miembro.data.region);
 }

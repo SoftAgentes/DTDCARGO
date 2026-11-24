@@ -105,3 +105,16 @@ por consolidado del documento completo; no exige que el motor de China importe
 el motor de destino. Origen y destino conservan la misma revisión CAS: quien
 perdió una carrera no aplica su snapshot anterior. Se ensayarán ambas órdenes
 y el conflicto; un escaneo repetido de A no modifica el avance de B.
+
+Contrato publicado de origen incorporado: #812 `671dc9eca3314bf573394509a6bf462a97b7dcba`.
+Se consumen CONSOLIDADOS_CHINA, proyectarCajasChina y leerCajasChina sin otra
+lectura de membresía. El estado propio `ChinaPractica.destino` se guarda con
+la misma RPC/revisión CAS que el documento completo. POST china con etapa y
+consolidado conserva la lectura publicada; el comando aditivo `destino` opera
+solo con esos IDs y la capacidad vigente. No abre otra ruta del receptor.
+Las respuestas por vista son listas explícitas: ni el viaje de destino ni
+las tareas China se devuelven por accidente al consultar otra superficie.
+
+Allowlist adicional de interfaz e integración:
+- app/studio/practica/DestinoPractica.tsx
+- lib/studio/practica/__tests__/destino-integracion.test.ts

@@ -31,8 +31,13 @@ begin
  perform 1 from practica_privada.espacios where id=eid for update;
  select coalesce((documento->>'generacion')::integer,1) into gen from practica_privada.documentos where espacio=eid;
  gen := coalesce(gen,1);
- insert into practica_privada.cargas(espacio) values(eid) on conflict do nothing;
  select * into fila from practica_privada.cargas where espacio=eid;
+ if fila.espacio is null then
+  if p_documento is null then return jsonb_build_object('revision',0,'documento',null,'generacion',gen); end if;
+  if p_revision is distinct from 0 then return null; end if;
+  insert into practica_privada.cargas(espacio) values(eid);
+  select * into fila from practica_privada.cargas where espacio=eid;
+ end if;
  if p_documento is not null then
   if (p_documento->>'generacion')::integer <> gen or fila.revision<>p_revision then return null; end if;
   update practica_privada.cargas set documento=p_documento,revision=revision+1 where espacio=eid;

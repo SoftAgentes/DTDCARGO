@@ -1,7 +1,9 @@
+import type { EjercicioDestino } from "./destino";
+import { semillaEjercicioChina, type EjercicioChina, type ComandoEjercicioChina } from "./ejercicio-china";
 // Documento operativo sintético; nunca contiene el detalle financiero.
 export type CargaPractica = { envio: string; cajas: string[]; cliente: string | null; preparada: boolean; preorden?: string; estado: "pendiente" | "recibida" | "consolidada" | "embarcada" | "en_aduana" | "recibida_ve"; consolidado?: string };
-export type ChinaPractica = { generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
-export type ComandoChina = { accion: "recibir" | "identificar" | "consolidar" | "embarcar" | "aduana" | "recibir_ve" | "reiniciar"; envio: string };
+export type ChinaPractica = { ejercicio?: EjercicioChina; destino?: EjercicioDestino; generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
+export type ComandoChina = { accion: "ejercicio"; envio: string; operacion: ComandoEjercicioChina } | { accion: "recibir" | "identificar" | "consolidar" | "embarcar" | "aduana" | "recibir_ve" | "reiniciar"; envio: string };
 export function normalizarChina(actual: ChinaPractica): ChinaPractica {
   const copia = structuredClone(actual);
   for (const c of copia.cargas) {
@@ -12,7 +14,7 @@ export function normalizarChina(actual: ChinaPractica): ChinaPractica {
   return copia;
 }
 export function semillaChina(generacion = 1): ChinaPractica {
-  return { generacion, cargas: [
+  return { generacion, ejercicio: semillaEjercicioChina(), cargas: [
     { envio: "PRA-EMB-001", cajas: ["PRA-CAJA-001", "PRA-CAJA-002"], cliente: "DTD-PRA-001", preparada: true, preorden: "PRA-PRE-001", estado: "recibida" },
     { envio: "PRA-EMB-003", cajas: ["PRA-CAJA-003"], cliente: "DTD-PRA-003", preparada: false, estado: "pendiente" },
     { envio: "PRA-EMB-004", cajas: ["PRA-CAJA-004"], cliente: null, preparada: false, estado: "pendiente" },

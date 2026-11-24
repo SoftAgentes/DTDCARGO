@@ -1,4 +1,5 @@
 import { esUuid } from "./contrato";
+import type { CajaChinaLectura, EtapaLecturaChina } from "./ejercicio-china";
 
 // Contrato interno del consumidor. Los identificadores y las cajas deben venir
 // de la proyección de #812, nunca de una suma ni de un cliente enviado por la UI.
@@ -59,6 +60,7 @@ export function aplicarDestino(actual: EjercicioDestino, comando: ComandoDestino
 }): EjercicioDestino {
   if (actual.generacion !== contexto.generacion) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (!comando || !esUuid(comando.id) || !permisoPara(comando.accion, contexto.permisos)) throw new Error("No tienes permiso para esta operación o la solicitud es inválida.");
+  if (comando.motivo !== undefined && typeof comando.motivo !== "string") throw new Error("Escribe un motivo ficticio de 4 a 300 caracteres.");
   validarManifiestosDestino(actual, contexto.viajes);
   // La autorización se revalida incluso al recuperar un resultado ya aplicado.
   const contenido = contenidoComandoDestino(comando);
@@ -112,3 +114,12 @@ export function vistaFisicaDestino(actual: EjercicioDestino) {
   return actual.viajes.map(v => ({ consolidado: v.consolidado, cajas: [...v.cajas], recibidas: [...v.recibidas],
     estado: v.estado, observacionPendiente: v.incidencia?.estado === "pendiente" }));
 }
+export function vistaViajeDestino(actual: EjercicioDestino, consolidado: string, etapa: EtapaLecturaChina, mostrarMotivo: boolean) {
+  const v=actual.viajes.find(v=>v.consolidado===consolidado);
+  if (!v) return null;
+  return {consolidado:v.consolidado,cajas:[...v.cajas],recibidas:[...v.recibidas],estado:v.estado,
+    incidencia:v.incidencia ? {estado:v.incidencia.estado,
+      ...(etapa === "shipments" && mostrarMotivo ? {motivo:v.incidencia.motivo,resolucion:v.incidencia.resolucion} : {})} : undefined};
+}
+export type VistaDestinoPersonal = {revision:number;generacion:number;etapa:EtapaLecturaChina;consolidado:string;
+  cajas:CajaChinaLectura[];incidenciaDestino:boolean;edicion:boolean;viaje:ReturnType<typeof vistaViajeDestino>};

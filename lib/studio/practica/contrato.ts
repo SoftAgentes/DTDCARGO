@@ -11,7 +11,7 @@ export const MODULOS_PRACTICA = [
 ] as const;
 
 export type ModuloPractica = (typeof MODULOS_PRACTICA)[number]["id"];
-export type PermisoPractica = { id: ModuloPractica; edicion: boolean };
+export type PermisoPractica = { id: ModuloPractica; edicion: boolean; ejercicioCn?: boolean; incidenciaDestino?: boolean };
 export type VistaPractica = { espacio: string; permisos: PermisoPractica[] };
 
 export const AVISO_LISTO = "dtd-practica-lista";
@@ -27,7 +27,7 @@ export function esUuid(valor: unknown): valor is string {
 }
 
 export function sonPermisosPractica(valor: unknown): valor is PermisoPractica[] {
-  return Array.isArray(valor) && valor.every(p => p && MODULOS_PRACTICA.some(m => m.id === p.id) && typeof p.edicion === "boolean")
+  return Array.isArray(valor) && valor.every(p => p && MODULOS_PRACTICA.some(m => m.id === p.id) && typeof p.edicion === "boolean" && (p.ejercicioCn === undefined || typeof p.ejercicioCn === "boolean") && (p.incidenciaDestino === undefined || typeof p.incidenciaDestino === "boolean"))
     && new Set(valor.map(p => p.id)).size === valor.length;
 }
 

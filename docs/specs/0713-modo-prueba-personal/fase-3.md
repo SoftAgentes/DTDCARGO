@@ -115,3 +115,36 @@ La salida confirmada de recuperación puede descartar edición financiera oculta
 pero ninguna vía de salida puede interrumpir una petición operativa pendiente.
 La evidencia final se registra en la PR #812 y el recibo Orca sobre el SHA publicado,
 sin añadir después un commit solo documental que cambie la cabeza probada.
+
+## China completa · ampliación autorizada del recorrido
+Contrato aditivo para fase 4: [lectura por caja, consolidado e historial](fase-3-china-contrato.md).
+SDD-0152 es antecedente, sucede SDD-0155 §3/0246; SDD-0154 gobierna recepción
+por compra y segunda llegada. SDD-0673 (partir entre clientes) no es este caso.
+Las seis recepciones ensayadas acreditan llegada física sin preorden automática;
+se conserva el caso avanzado preparado para Facturación. Frágil y la tarea
+Marca sin autorización siguen los efectos y los límites de SDD-0697.
+Allowlist exacta de ampliación:
+- docs/specs/0713-modo-prueba-personal/fase-3.md
+- docs/specs/0713-modo-prueba-personal/spec.md
+- docs/specs/0713-modo-prueba-personal/fase-3-china-contrato.md
+- .agents/handoffs/task_a0bcc3a01712.md
+- lib/studio/practica/ejercicio-china.ts
+- lib/studio/practica/china.ts
+- lib/studio/practica/servidor.ts
+- lib/studio/practica/identidad.ts
+- lib/studio/practica/contrato.ts
+- lib/studio/practica/__tests__/ejercicio-china.test.ts
+- lib/studio/practica/__tests__/acceso.test.ts
+- app/api/practica/[operacion]/route.ts
+- app/studio/practica/ChinaPractica.tsx
+- app/studio/practica/EjercicioChina.tsx
+- package.json
+- pnpm-lock.yaml
+Dependencia de decodificación QR solo para pruebas, si resulta necesaria.
+Sin SQL compartido, apertura, canales reales, cámara obligatoria ni cambios de ERP.
+
+La ampliación incluye `infra/ops/staging/practica-china.sql` para que una lectura
+sin documento devuelva el estado vacío sin insertar una fila; solo la escritura
+inicial crea el documento bajo el bloqueo de espacio. SQL de ensayo local/CI,
+jamás aplicado en servidor compartido. La identidad deriva región de user_tenants.region,
+no de warehouse_scope; datos sin región/capacidad no habilitan las nuevas acciones.
