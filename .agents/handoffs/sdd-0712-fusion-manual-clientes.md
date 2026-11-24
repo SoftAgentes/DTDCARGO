@@ -6,7 +6,7 @@
 - **Reemplaza a la PR #797**, que se cierra sin fusionar. Sus pruebas llevaban datos con pinta de reales; Sam
   decidió (textual, vía Dir_DTD) «Limpiar del todo (Recomendado)». Esta rama se rehízo desde `main` en commits que
   nunca tuvieron esos datos. La purga del historial de la PR vieja en GitHub la pide Sam.
-- **Migración 0572: ESCRITA, NO APLICADA.** Pide el OK nominal de Sam y el runbook de producción.
+- **Migración 0572: APLICADA en producción** (2026-11-23 23:26:31Z, verificación PASÓ). Ver «Aplicación».
 - **🔴 Orden de salida:** aplicar la 0572 ANTES de publicar la web con esta PR. `DuplicadosClient` ya no llama a
   `merge_clients`; sin la 0572, «Posibles duplicados» no busca ni fusiona.
 
@@ -52,9 +52,19 @@
 Con autorización de Sam, Dir_DTD corrió una consulta de solo conteo: la ficha del ejemplo de Sam tiene 1 código
 anterior en `client_markbox_history`. Por tanto ya aparece en «Códigos anteriores» de su ficha. No se leyó el código.
 
+## Aplicación
+
+La migración 0572 se aplicó en producción el 2026-11-23 a las 23:26:31Z, con COMMIT y verificación PASÓ (md5 `2f828c4d65d374d176bcfe53795b75c5`, 23494 bytes, cuerpos vivos iguales al archivo). La aplicó Dir_DTD con el runbook, tras el OK nominal de Sam (textual: «Okay, vamos a la migración 0572, un okay nominal.» y, en el chat del Director, «Sí, aplica la 0572»). Evidencia en el VPS: `/srv/ops/evidencias/apply-0572-dtd-cargo-20261123T232630Z`. La PR #799 se fusionó después como `db535a8d7`.
+
+Rama de cierre `sdd-0712-cierre-0572`: `infra/ops/migraciones/retirar-espera.mjs` quitó la entrada de
+`pendingBelowCutoff`, quitó la declaración de símbolos y selló el archivo en `supabase/migrations.lock.json`
+(sha256 `94ae9472…`, md5 y bytes iguales a los de la evidencia). Gate de símbolos: 0 ROJO, 0 AMARILLO. El md5
+completo lo calculé del archivo en `main`; coincide con el prefijo y los bytes que informó Dir_DTD. No leí la
+evidencia del VPS ni producción.
+
 ## Pendiente de esta tarea
 
-- Aplicar la 0572 en producción (OK nominal de Sam) y después publicar.
+- Publicar la web con `main` (lo hace Dir_DTD): la 0572 ya está aplicada, el orden se cumple.
 - Pasar `status` de la spec a `approved` cuando Sam lo indique.
 
 ## Pendientes para Sam (escritos en la spec, no cambiados)
