@@ -36,6 +36,9 @@ export function abrirReferencia(valor: unknown, llave: string, ahora = Date.now(
 
 export function permisosDePractica(rol: StudioUserRole, almacen: WarehouseScope, ajustes: RoleModuleOverrides, extras: UserModuleGrants): PermisoPractica[] {
   return MODULOS_PRACTICA.filter(({ id }) =>
+    // Detalle financiero interno: 0414/0407 y RPC 0533/0497 exigen estos roles.
+    // Un extra de pantalla no amplía las operaciones que la base real permite.
+    (id !== "invoices" || rol === "accounting" || rol === "admin") &&
     (rol === "admin" || scopeAllowsModule(almacen, id)) && canAccessModule(rol, id, ajustes, extras)
   ).map(({ id }) => ({ id, edicion: canEditModule(rol, id, ajustes, extras) }));
 }

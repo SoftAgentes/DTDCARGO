@@ -32,3 +32,20 @@
   padding: 0.85rem 0;
   border-bottom: 1px solid var(--border);
 }
+.facturacion { display: grid; gap: var(--s-4); min-width: 0; }
+.facturacion label { display: grid; gap: var(--s-1); }
+.facturacion input, .facturacion select { width: 100%; max-width: 100%; min-width: 0; padding: var(--s-2); border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--bg-surface); color: var(--ink); }
+.facturacion button, .facturacion summary { min-height: calc(var(--s-10) + var(--s-1)); padding: var(--s-2) var(--s-3); cursor: pointer; }
+.facturacion button { border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--bg-surface); color: var(--accion-text); font-weight: 700; }
+.facturacion button:hover:not(:disabled) { background: var(--accion-tint); }
+.facturacion :global(.studio-btn-primary) { background: var(--accion); color: var(--on-accion); }
+.facturacion :global(.studio-btn-primary):hover:not(:disabled) { background: var(--accion-hover); }
+.facturacion :global(.studio-btn-dark) { background: var(--ink); color: var(--bg-base); }
+.facturacion :global(.studio-btn-danger) { background: var(--danger); color: var(--ink-inv); }
+.facturacion :is(button, input, select, summary):focus-visible { outline: 2px solid var(--accion); outline-offset: 2px; }
+.facturacion input[aria-invalid="true"] { border-color: var(--danger); }
+.facturacion button:disabled { cursor: default; color: var(--ink-soft); }
+.facturacion fieldset { padding: var(--s-3); border: 1px solid var(--border-strong); border-radius: var(--r-md); }
+.linea { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--s-3); padding-block: var(--s-3); border-bottom: 1px solid var(--border); }
+.acciones { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+@media (max-width: 640px) { .linea { grid-template-columns: 1fr; } .facturacion fieldset { min-width: 0; } }

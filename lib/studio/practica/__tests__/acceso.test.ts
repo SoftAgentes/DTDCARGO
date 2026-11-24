@@ -3,15 +3,23 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
+import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import type { PGlite } from "@electric-sql/pglite";
 import { NextRequest } from "next/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/practica/[operacion]/route";
+import { proxy } from "@/proxy";
 import * as config from "../config";
 import { API_PRACTICA, COOKIE_PRACTICA, type VistaPractica } from "../contrato";
 import { abrirReferencia, referenciaPrivada } from "../identidad";
 import { pgliteLimpio } from "@/vitest/pglite-limpio";
 import type { StudioUserRole } from "@/lib/studio/user-types";
+import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
+import { grantsFromRows } from "@/lib/studio/user-module-grants-queries";
+import { moduleCoverage } from "@/lib/studio/user-module-grants";
+import { permisosDePractica } from "../identidad";
 
 const real = "https://studio.example.test", prueba = "https://practica.example.test", datos = "https://datos.example.test";
 const clave = "a".repeat(64), canal = "b".repeat(64);
@@ -41,6 +49,16 @@ function solicitar(sitio: string, op: string, body: object, opc: { usuario?: str
   return contexto.run({ sitio, usuario: opc.usuario }, () => POST(new NextRequest(sitio + API_PRACTICA + op,
     { method:"POST", headers, body: JSON.stringify(body) }), { params: Promise.resolve({ operacion:op }) }));
 }
+async function frontera(sitio: string, op: string, body: object, sesion: string, origin: string) {
+  const request = new NextRequest(sitio + API_PRACTICA + op, {method:"POST",headers:{Host:new URL(sitio).host,Origin:origin,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const anterior=process.env.PRACTICA_MODO;
+  process.env.PRACTICA_MODO="destino";
+  let paso;
+  try { paso=await contexto.run({sitio},()=>proxy(request)); }
+  finally { if(anterior === undefined) delete process.env.PRACTICA_MODO; else process.env.PRACTICA_MODO=anterior; }
+  if(paso.status !== 200) return paso;
+  return solicitar(sitio,op,body,{sesion,headers:{Origin:origin}});
+}
 async function entrar(id: string) {
   const emision = await solicitar(real, "emitir", {}, { usuario:id });
   expect(emision.status).toBe(200);
@@ -60,6 +78,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     db = await pgliteLimpio();
     await db.exec("set dtd.destino = 'practica-personal-nueva'");
     await db.exec(readFileSync(resolve("infra/ops/staging/practica-personal.sql"), "utf8"));
+    await db.exec(readFileSync(resolve("infra/ops/staging/practica-facturacion.sql"), "utf8"));
     destino.PRACTICA_DATOS_INSTANCIA = (await db.query<{ instancia: string }>("select instancia from practica_privada.destino")).rows[0].instancia as ReturnType<typeof randomUUID>;
     await db.exec("set role practica_personal_web");
     vi.spyOn(config, "configuracionPractica").mockImplementation(() => resolver(contexto.getStore()?.sitio === real ? origen : destino));
@@ -105,9 +124,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           "/rpc/practica_canjear":["practica_canjear",["p_huella","p_sesion"]],
           "/rpc/practica_sesion":["practica_sesion",["p_sesion"]],
           "/rpc/practica_cerrar":["practica_cerrar",["p_sesion"]],
+          "/rpc/practica_facturacion":["practica_facturacion",["p_sesion","p_revision","p_documento"]],
         };
         const [nombre, campos] = funciones[u.pathname];
-        const args = ["p_instancia", ...campos].map(c => body[c]);
+        const args = ["p_instancia", ...campos].map(c => c === "p_documento" && body[c] ? JSON.stringify(body[c]) : body[c] ?? null);
         const marcadores = args.map((_, i) => "$" + (i+1)).join(",");
         const { rows } = await db.query<{ valor:unknown }>("select public." + nombre + "(" + marcadores + ") as valor", args);
         return Response.json(rows[0].valor);
@@ -145,7 +165,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(vista.permisos.map(p => p.id)).not.toContain("ve");
     extras.set(id, { user_id:id, module_id:"invoices", can_view:true, can_edit:false, expires_at:new Date(Date.now() + 60000).toISOString() });
     const soloLectura = await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion});
-    expect((await soloLectura.json()).permisos).toContainEqual({id:"invoices",edicion:false});
+    expect((await soloLectura.json()).permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
+    expect((await solicitar(prueba,"facturacion",{espacio:vista.espacio},{sesion})).status).toBe(403);
     extras.get(id)!.expires_at = new Date(0).toISOString();
     usuarios.get(id)!.role = "marketing";
     const revisada = await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion});
@@ -157,6 +178,195 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await solicitar(prueba,"estado",{espacio:vista.espacio},{sesion})).status).toBe(403);
     expect((await solicitar(real,"emitir",{},{usuario:id})).status).toBe(403);
   });
+
+  it("Facturación por la frontera del receptor: permiso efectivo, doble envío, dos cuentas y reset concurrente", async () => {
+    const id = usuario("warehouse", "cn");
+    extras.set(id, { user_id:id, module_id:"invoices", can_view:true, can_edit:false, expires_at:new Date(Date.now() + 60000).toISOString() });
+    const a = await entrar(id), b = await entrar(usuario("accounting"));
+    const pedir = (s: typeof a, datos: object = {}) => {
+      expect(config.rutaDelReceptor(API_PRACTICA + "facturacion", "POST", false)).toBe(true);
+      return solicitar(prueba, "facturacion", { espacio:s.vista.espacio, ...datos }, { sesion:s.sesion });
+    };
+    expect(a.vista.permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
+    expect(a.vista.permisos).toContainEqual({id:"cn",edicion:true});
+    expect((await pedir(a)).status).toBe(403);
+    extras.get(id)!.can_edit = true;
+    for (const accion of ["guardar","emitir","anular","pagar","reiniciar"]) {
+      expect((await pedir(a, { revision:0, comando:{ accion, codigo:"PRA-PRE-001", motivo:"Caso ficticio" } })).status).toBe(403);
+    }
+    expect((await pedir(b, { espacio:a.vista.espacio })).status).toBe(403);
+    const inicial = await (await pedir(b)).json();
+    const cobrar = { revision:inicial.revision, comando:{ accion:"pagar", codigo:"PRA-FAC-002" } };
+    const pagos = await Promise.all([pedir(b,cobrar),pedir(b,cobrar)]);
+    expect(pagos.map(p => p.status).sort()).toEqual([200,409]);
+    const pagada = await (await pedir(b)).json();
+    expect(pagada.documento.facturas[1].pagado).toBe(30000);
+    expect(pagada.documento.eventos).toHaveLength(1);
+    const reset = { revision:pagada.revision, comando:{ accion:"reiniciar", codigo:"espacio" } };
+    expect((await Promise.all([pedir(b,reset),pedir(b,reset)])).map(p => p.status).sort()).toEqual([200,409]);
+    expect((await (await pedir(b)).json()).documento.generacion).toBe(2);
+    usuarios.get(id)!.role = "accounting";
+    expect((await (await pedir(a)).json()).documento.generacion).toBe(1);
+    expect((await pedir(a, { revision:0, comando:{ accion:"emitir", codigo:"PRA-PRE-001" } })).status).toBe(200);
+    expect((await solicitar(prueba,"salir",{espacio:a.vista.espacio},{sesion:a.sesion})).status).toBe(200);
+    const reanudada = await entrar(id);
+    expect(reanudada.vista.espacio).toBe(a.vista.espacio);
+    expect((await (await pedir(reanudada)).json()).documento.facturas[0].estado).toBe("emitida");
+    usuarios.get(id)!.role = "warehouse";
+    expect((await pedir(reanudada)).status).toBe(403);
+  });
+
+  it("conserva extras cubiertos y consulta sin edición, sin inventar un perfil financiero de lectura", async () => {
+    const extra = grantsFromRows([{user_id:"ficticio",module_id:"clients",can_view:true,can_edit:true,expires_at:null}]);
+    expect(moduleCoverage("clients")).toBe("covered");
+    expect(canAccessModule("warehouse","clients")).toBe(false);
+    expect(canAccessModule("warehouse","clients",{},extra)).toBe(true);
+    expect(canEditModule("warehouse","clients",{},extra)).toBe(true);
+    expect(permisosDePractica("warehouse","cn",{},extra)).toContainEqual({id:"cn",edicion:true});
+    expect(canAccessModule("warehouse","clients",{},extra)).toBe(true);
+    const soporte = await entrar(usuario("support"));
+    expect(soporte.vista.permisos).toContainEqual({id:"cn",edicion:false});
+    expect(soporte.vista.permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
+    expect(moduleCoverage("invoices")).toBe("money_phase");
+    expect(permisosDePractica("accounting","all",{}, {invoices:{view:true,edit:false}})).toContainEqual({id:"invoices",edicion:true});
+  });
+
+  it("aplica restricciones por acción y revocación de membresía financiera", async () => {
+    const id = usuario("accounting"), cuenta = await entrar(id);
+    const pedir = (revision = 0, comando?: object) => solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio,revision,comando},{sesion:cuenta.sesion});
+    expect((await pedir()).status).toBe(200);
+    for (const comando of [
+      {accion:"emitir",codigo:"PRA-FAC-002"},
+      {accion:"pagar",codigo:"PRA-PRE-001"},
+      {accion:"anular",codigo:"PRA-PRE-001",motivo:"Prueba ficticia"},
+      {accion:"anular",codigo:"PRA-FAC-002",motivo:"x"},
+      {accion:"guardar",codigo:"PRA-FAC-002",lineas:[{concepto:"Ficticio",cantidad:1,centavos:1}]},
+      {accion:"guardar",codigo:"PRA-PRE-001",lineas:[{concepto:"Ficticio",cantidad:1,centavos:-1}]},
+    ]) expect((await pedir(0,comando)).status).toBe(409);
+    expect((await (await pedir()).json()).revision).toBe(0);
+    expect((await pedir(0,{accion:"anular",codigo:"PRA-FAC-002",motivo:"Corregir concepto ficticio"})).status).toBe(200);
+    expect((await pedir(1,{accion:"pagar",codigo:"PRA-FAC-002"})).status).toBe(409);
+    expect((await pedir(1,{accion:"emitir",codigo:"PRA-PRE-001"})).status).toBe(200);
+    expect((await pedir(2,{accion:"pagar",codigo:"PRA-PRE-001"})).status).toBe(200);
+    expect((await pedir(3,{accion:"anular",codigo:"PRA-PRE-001",motivo:"No se puede con pago vivo"})).status).toBe(409);
+    usuarios.get(id)!.disabled = true;
+    expect((await pedir()).status).toBe(403);
+    for (const accion of ["guardar","emitir","anular","pagar","reiniciar"]) expect((await pedir(3,{accion,codigo:"PRA-PRE-001"})).status).toBe(403);
+  });
+
+  // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
+  it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
+    const require = createRequire(import.meta.url);
+    const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
+    const { chromium, expect: esperar } = await import("@playwright/test");
+    const paquete = await build({ stdin:{ contents:`import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; createRoot(document.getElementById('app')).render(<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
+    const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
+    const globales = readFileSync("app/globals.css","utf8");
+    const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
+    const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
+    const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
+    const browser = await chromium.launch({ executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(), headless:true });
+    const carpeta = resolve(tmpdir(), "sdd-0713-fase-2"); mkdirSync(carpeta, { recursive:true });
+    try {
+      for (const width of [390,1280]) for (const tema of ["light","dark"]) {
+        const cuentaId = usuario("accounting");
+        const cuenta = await entrar(cuentaId);
+        const sufijo = tema === "light" ? "" : "-dark";
+        const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
+        const inesperadas: string[] = [];
+        await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
+        await contextoBrowser.addInitScript(tema => {
+          const aplicar = () => { document.documentElement.dataset.theme = tema; };
+          if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
+        },tema);
+        await contextoBrowser.route("**/*", async ruta => {
+          const req = ruta.request(), u = new URL(req.url());
+          if (u.origin === prueba && u.pathname === "/app.js") return ruta.fulfill({contentType:"application/javascript",body:js});
+          if (u.origin === prueba && u.pathname === "/app.css") return ruta.fulfill({contentType:"text/css",body:css});
+          if (u.origin === prueba && ["/nunito.woff2","/sora.woff2"].includes(u.pathname)) return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname === "/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
+          if (u.origin === prueba && u.pathname === "/studio/practica" && config.rutaDelReceptor(u.pathname,req.method(),false)) return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
+          if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
+            const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),cuenta.sesion,req.headers().origin);
+            return ruta.fulfill({status:res.status,json:await res.json()});
+          }
+          if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
+          inesperadas.push(req.method()+" "+req.url()); return ruta.abort();
+        });
+        try {
+          const p = await contextoBrowser.newPage();
+          p.on("pageerror", e => console.error("Error de pantalla", e.message));
+          await p.goto(prueba + "/studio/practica");
+          const guardar = p.getByRole("button",{name:"Guardar conceptos",exact:true});
+          await esperar(guardar).toBeEnabled();
+          await p.getByRole("button",{name:"Repartir USD 300 en carga y sobrepeso",exact:true}).click();
+          await guardar.click(); await esperar(guardar).toBeEnabled();
+          await p.reload(); await esperar(p.getByLabel("Concepto 2",{exact:true})).toHaveValue("Sobrepeso");
+          await esperar(p.getByText(/Total guardado:.*300,00/)).toBeVisible();
+          await p.getByRole("button",{name:"Repartir USD 300 en tres conceptos",exact:true}).click();
+          await p.getByLabel("Concepto 3",{exact:true}).fill("Manipulación ficticia");
+          await guardar.click(); await esperar(guardar).toBeEnabled();
+          await p.reload(); await esperar(p.getByLabel("Precio USD 3",{exact:true})).toHaveValue("50");
+          await esperar(p.getByText(/Total guardado:.*300,00/)).toBeVisible();
+          await p.getByRole("button",{name:"Agregar artículo elegido por ti",exact:true}).click();
+          await p.getByLabel("Concepto 4",{exact:true}).fill("Embalaje ficticio");
+          await p.getByLabel("Precio USD 4",{exact:true}).fill("12.34");
+          await guardar.click(); await esperar(guardar).toBeEnabled();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await p.reload();
+          await esperar(p.getByLabel("Concepto 4",{exact:true})).toHaveValue("Embalaje ficticio");
+          await esperar(p.getByText(/Total guardado:.*312,34/)).toBeVisible();
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`conceptos-${width}${sufijo}.png`),fullPage:true});
+          await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).dblclick();
+          await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeDisabled();
+          await p.getByRole("button",{name:"Vista previa de correo",exact:true}).click();
+          await esperar(p.locator('p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");
+          await p.getByRole("button",{name:"Vista previa de WhatsApp",exact:true}).click();
+          await esperar(p.locator('p[role="status"]')).toContainText("Simulado · WhatsApp a Cliente ficticio");
+          await p.getByRole("button",{name:"Anular factura ficticia",exact:true}).click();
+          await p.getByLabel("Motivo ficticio",{exact:true}).fill("Corregir concepto ficticio");
+          await p.getByRole("button",{name:"Confirmar anular",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Pagar saldo ficticio una vez",exact:true})).toBeDisabled();
+          await p.reload(); await esperar(p.getByText(/PRA-PRE-001.*Embarque PRA-EMB-001.*anulada/)).toBeVisible();
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
+          await p.getByRole("button",{name:"Pagar saldo ficticio una vez",exact:true}).dblclick();
+          await esperar(p.getByText(/Recibo ficticio:/)).toBeVisible();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await p.getByRole("button",{name:"Confirmar reiniciar",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Pagar saldo ficticio una vez",exact:true})).toBeEnabled();
+          expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`reiniciada-${width}${sufijo}.png`),fullPage:true});
+          const ayudaEmitir = p.getByLabel("Ayuda: Emitir",{exact:true});
+          await ayudaEmitir.focus(); await ayudaEmitir.press("Enter");
+          await esperar(p.locator('details:has(summary[aria-label="Ayuda: Emitir"])')).toHaveAttribute("open", "");
+          await ayudaEmitir.press("Enter");
+          // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
+          // incluso si quedó un extra de edición inválido para la operación real.
+          usuarios.get(cuentaId)!.role = "warehouse";
+          extras.set(cuentaId,{user_id:cuentaId,module_id:"invoices",can_view:true,can_edit:true,expires_at:new Date(Date.now()+60000).toISOString()});
+          await p.reload();
+          await esperar(p.getByRole("heading",{name:"Permisos de tu práctica"})).toBeVisible();
+          await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByText("Almacén China",{exact:true})).toBeVisible();
+          expect(await p.locator("main").innerText()).not.toContain("PRA-FAC-002");
+          for (const comando of [undefined,{accion:"pagar",codigo:"PRA-FAC-002"},{accion:"anular",codigo:"PRA-FAC-002",motivo:"Ficticio"}]) {
+            const res = await frontera(prueba,"facturacion",{espacio:cuenta.vista.espacio,revision:0,comando},cuenta.sesion,prueba);
+            expect(res.status).toBe(403);
+          }
+          await p.screenshot({path:resolve(carpeta,`warehouse-denegado-${width}${sufijo}.png`),fullPage:true});
+          usuarios.get(cuentaId)!.role = "support";
+          await p.reload();
+          await esperar(p.getByText("Almacén China",{exact:true})).toBeVisible();
+          await esperar(p.getByText("Solo consulta",{exact:true}).first()).toBeVisible();
+          await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          await p.getByRole("button",{name:"Volver al Studio real",exact:true}).click();
+          await esperar(p).toHaveURL(real+"/studio/dashboard");
+          expect(inesperadas).toEqual([]);
+          console.log(`PASÓ pantalla persistida ${width}px ${tema}; membresía financiera revocada y warehouse denegado; support consulta; capturas ${carpeta}; cero peticiones externas`);
+        } finally { await contextoBrowser.close(); }
+      }
+    } finally { await browser.close(); }
+  }, 120000);
 
   it("rechaza acceso anónimo, otro sitio, canal inválido, y fallos de comunicación", async () => {
     expect((await solicitar(real,"emitir",{})).status).toBe(403);
@@ -187,6 +397,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(config.rutaDelReceptor("/studio/practica","POST",true)).toBe(false);
     expect(config.rutaDelReceptor("/studio/practica","GET",false)).toBe(true);
     expect(config.rutaDelReceptor("/api/practica/estado","POST",false)).toBe(true);
+    expect(config.rutaDelReceptor("/api/practica/facturacion","POST",false)).toBe(true);
+    for (const metodo of ["GET", "HEAD", "PUT", "DELETE"]) expect(config.rutaDelReceptor("/api/practica/facturacion",metodo,false)).toBe(false);
+    expect(config.rutaDelReceptor("/api/practica/facturacion","POST",true)).toBe(false);
+    const regla = readFileSync("infra/ops/staging/practica-traefik.yml.tmpl", "utf8");
+    expect(regla).toContain("reservar|canjear|estado|salir|facturacion");
+    expect(regla).toContain("Method(`POST`)");
   });
 
   it("lleva una identidad opaca, acotada por persona, empresa, clave y caducidad", () => {

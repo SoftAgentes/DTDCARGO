@@ -7,6 +7,8 @@ import { configuracionPractica } from "@/lib/studio/practica/config";
 import { COOKIE_PRACTICA, esToken, esUuid } from "@/lib/studio/practica/contrato";
 import { referenciaPrivada, abrirReferencia, permisosVigentes } from "@/lib/studio/practica/identidad";
 import { canalValido, emitirEnDestino, reservar, canjear, consultarPractica, cerrar, espacioDeSesion } from "@/lib/studio/practica/servidor";
+import { facturacionPersonal } from "@/lib/studio/practica/servidor";
+import type { ComandoFactura } from "@/lib/studio/practica/facturacion";
 
 export const runtime = "nodejs";
 const opcionesCookie = { httpOnly: true, secure: true, sameSite: "strict", path: "/" } as const;
@@ -67,6 +69,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
       const salida = json({ ok: true });
       salida.cookies.set(COOKIE_PRACTICA, "", { ...opcionesCookie, maxAge: 0 });
       return salida;
+    }
+    if (operacion === "facturacion") {
+      if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);
+      const { comando, revision } = datos.body;
+      if (comando !== undefined && (!comando || typeof comando !== "object" || !Number.isSafeInteger(revision))) return json(null, 400);
+      try {
+        return json(await facturacionPersonal(cfg, sesion, esperado, revision as number | undefined, comando as ComandoFactura | undefined));
+      } catch (error) {
+        const texto = error instanceof Error ? error.message : "Operación indisponible";
+        const conocido = /^(No tienes|La práctica cambió|Solo se|Revisa conceptos|Documento inexistente|Para anular|Escribe un motivo|El pago ya|Operación desconocida)/.test(texto);
+        return json({ error: conocido ? texto : "Servicio de práctica indisponible." }, conocido ? (texto.startsWith("No tienes") ? 403 : 409) : 503);
+      }
     }
     if (operacion !== "estado") return json(null, 404);
     if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);

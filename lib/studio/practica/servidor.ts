@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { aplicarFactura, semillaFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
 import type { DestinoPractica, OrigenPractica } from "./config";
 import { API_PRACTICA, esToken, esUuid, MODULOS_PRACTICA, type PermisoPractica, type VistaPractica } from "./contrato";
 
@@ -66,4 +67,24 @@ export async function consultarPractica(cfg: DestinoPractica, sesion: string, es
   const vivo = await pedir(cfg.real + API_PRACTICA + "permisos", cfg.canal, { referencia: registro.referencia });
   if (!vivo || typeof vivo !== "object" || !("permisos" in vivo) || !sonPermisos(vivo.permisos)) return null;
   return { espacio: registro.espacio, permisos: vivo.permisos };
+}
+
+export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, espacio: string, revision?: number, comando?: ComandoFactura) {
+  const acceso = await consultarPractica(cfg, sesion, espacio);
+  const permiso = acceso?.permisos.find(p => p.id === "invoices");
+  if (!permiso || (comando && !permiso.edicion)) throw new Error("No tienes permiso para esta operación.");
+  type Registro = { revision: number; documento: FacturacionPractica };
+  const leer = () => rpc(cfg, "facturacion", { p_sesion: huella(sesion) }) as Promise<Registro | null>;
+  let registro = await leer();
+  if (!registro) {
+    registro = await rpc(cfg, "facturacion", { p_sesion: huella(sesion), p_revision: -1, p_documento: semillaFacturacion() }) as Registro | null;
+    if (!registro) registro = await leer();
+  }
+  if (!registro) throw new Error("No se pudo preparar tu práctica.");
+  if (!comando) return { ...registro, edicion: permiso.edicion };
+  if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  const documento = aplicarFactura(registro.documento, comando);
+  const guardado = await rpc(cfg, "facturacion", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento }) as Registro | null;
+  if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  return { ...guardado, edicion: permiso.edicion };
 }
