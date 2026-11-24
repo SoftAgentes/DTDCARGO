@@ -103,6 +103,12 @@ Un id vacío apaga esa parte de la matriz.
    - **Comprobar,** ya con Studio publicado: abrir Studio › Bandeja con `?guia=bandeja` y una conversación de la bandeja de prueba. La tarjeta «Contestar un WhatsApp» tiene que señalar la caja de respuesta del chat, no todo el marco. Salir de Studio tiene que seguir pidiendo login en el chat, igual que con el script de 2.7 solo.
    - **Marcha atrás:** volver a pegar solo `dashboard-scripts.html`. Las tarjetas de Chatwoot pasan a señalar el marco de la Bandeja y el cierre de sesión no cambia.
    - **Sin el script,** la guía de la Bandeja funciona igual, con todas las tarjetas sobre el marco.
+
+   **Íconos de canal con color** (pedido de Sam, 2026-11-23, variante B). Es `infra/chatwoot/panel/canales-color.html`, que solo trae un `<style>`, sin scripts ni datos. Pinta WhatsApp de verde, Messenger de azul e Instagram de rosado, con sus colores oficiales, y deja el ícono de «Conversaciones del portal» (bandeja 10) en el azul de acción de DTD. El «Archivo Kommo» y el correo quedan en gris. Cargarlo es una puerta con OK de Sam:
+   - antes, guardar el valor vivo de `DASHBOARD_SCRIPTS` con su sha256, igual que el 2026-11-03;
+   - el campo queda con el contenido de `dashboard-scripts.html`, como hasta ahora, y **debajo** el de `canales-color.html`, comentario incluido (si la guía ya estuviera cargada, va después de `guia-panel.html`);
+   - **comprobar:** con Ctrl+F5 en `chat.dtdcargo.com`, los íconos del menú Canales salen en claro y en oscuro como en la maqueta, y salir de Studio sigue pidiendo login en el chat;
+   - **marcha atrás:** volver a pegar el valor guardado. Si Chatwoot cambia las clases `i-woot-*` o la ruta `/inbox/<id>`, los íconos vuelven a gris y no se rompe nada. Si la bandeja del portal cambia de número, se actualiza el `10` del archivo.
 5. **Apagar «olvidé mi clave» para los agentes.** CE 4.19.1 no tiene un interruptor por rol. La alternativa es una regla de Traefik que responde 403 a `POST /auth/password` en `chat.dtdcargo.com`. Está escrita como etiquetas de `rails` en `infra/chatwoot/compose.yml` (routers `-clave`, middleware `-nadie`), y `infra/chatwoot/pruebas/prueba-regla-clave.sh` la ensaya contra Rails real, con control de correo:
    - en el VPS se agregaron a mano al compose vivo, con respaldo y sin copiar el del repo, el 2026-11-04: 80 s de corte medidos, evidencia en `/srv/ops/evidencias/chatwoot-rails-20261104T082839Z`;
    - un admin que olvide su clave la cambia desde el superadmin;
