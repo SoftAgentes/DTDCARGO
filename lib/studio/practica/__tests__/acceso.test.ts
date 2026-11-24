@@ -469,12 +469,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     try {
       ajustar(true);
       let v=await (await op()).json();
-      expect(v.permisos).toEqual([{id:modulo,edicion:true}]);
+      expect(v.permisos).toEqual([{id:modulo,edicion:true,incidenciaDestino:false}]);
       const reinicio=await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}});
       expect(reinicio.status).toBe(200); v=await reinicio.json();
       expect(v.generacion).toBe(2);
       ajustar(false);
-      expect((await (await op()).json()).permisos).toEqual([{id:modulo,edicion:false}]);
+      expect((await (await op()).json()).permisos).toEqual([{id:modulo,edicion:false,incidenciaDestino:false}]);
       expect((await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}})).status).toBe(403);
     } finally { ajustesPorRol.delete("operations"); }
   });
@@ -617,6 +617,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         };
         let salidas=0;
         let perderRespuestaEjercicio=false;
+        let perderRespuestaDestino=false;
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
           if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
@@ -655,7 +656,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             }
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesionActual,req.headers().origin);
             if (u.pathname.endsWith("/salir")) salidas++;
-            if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
+            if (demora && (req.postDataJSON()?.comando?.accion ?? req.postDataJSON()?.destino?.accion) === demora.accion) {
               const actual=demora; demora=undefined; actual.avisar(); await actual.esperar;
             }
             if (u.pathname === API_PRACTICA+"estado" && retenerUna) {
@@ -664,6 +665,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             }
             if(u.pathname === API_PRACTICA+"canjear") sesionActual=res.cookies.get(COOKIE_PRACTICA)?.value ?? sesionActual;
             if(perderRespuestaEjercicio && req.postDataJSON()?.comando?.accion==="ejercicio") {perderRespuestaEjercicio=false;return ruta.abort("failed");}
+            if(perderRespuestaDestino && req.postDataJSON()?.destino) {perderRespuestaDestino=false;return ruta.abort("failed");}
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
@@ -744,6 +746,79 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByRole("button",{name:"Resolver tarea documental de práctica",exact:true}).click();
           await esperar(ejercicio.getByText(/Evidencia: PRA-CARTA-001/)).toBeVisible();
           await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
+          // El mismo ejercicio continúa en destino sin copiar cajas ni documentos.
+          usuarios.get(cuentaId)!.role="admin";
+          const finAntesDestino=await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json();
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";usuarios.get(cuentaId)!.warehouse_scope="all";
+          const vistaDestino=p.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true});
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          const etapaDestino=vistaDestino.getByLabel("Vista de destino",{exact:true});
+          const parcialDestino=vistaDestino.getByLabel("Consolidado de destino",{exact:true});
+          const estadoDestino=vistaDestino.getByRole("status",{name:"Estado del viaje",exact:true});
+          await esperar(vistaDestino.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          await esperar(vistaDestino.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(2);
+          await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();
+          await esperar(estadoDestino).toContainText("En tránsito");
+          await etapaDestino.selectOption("ve");
+          await vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          await vistaDestino.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true}).click();
+          await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Observación aduanal de muestra en destino");
+          await p.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();
+          await esperar(vistaDestino.getByText("Observación de destino: pendiente.",{exact:true})).toBeVisible();
+          await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
+          // La carta China ya estaba resuelta; eso no resolvió la observación VE.
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await esperar(vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true})).toHaveCount(0);
+          const denegada=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],revision:0,
+            destino:{id:randomUUID(),accion:"resolver_incidencia",consolidado:CONSOLIDADOS_CHINA[0],motivo:"Intento ficticio sin capacidad"}},{sesion:sesionActual});
+          expect(denegada.status).toBe(403);
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
+          await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión logística inventada completada");
+          await p.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
+          await esperar(vistaDestino.getByText("Observación de destino: resuelta.",{exact:true})).toBeVisible();
+          const leerCajaDestino=async(codigo:string,esperarConfirmacion=true)=>{
+            const input=vistaDestino.getByLabel("Código DTD-B en destino",{exact:true});await input.fill(codigo);await input.press("Enter");
+            if (esperarConfirmacion) await esperar(input).toHaveValue("");
+          };
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          const destinoDemorado=demorar("recibir_caja");
+          await leerCajaDestino(CODIGOS_CHINA[1],false);await destinoDemorado.observada;
+          const salidaDestino=p.getByRole("button",{name:"Volver al Studio real",exact:true});
+          await esperar(salidaDestino).toBeDisabled();await salidaDestino.evaluate((el:HTMLButtonElement)=>el.click());expect(salidas).toBe(0);
+          destinoDemorado.liberar();await esperar(salidaDestino).toBeEnabled();
+          await esperar(estadoDestino).toContainText("Recepción física completa · Recepción física: 2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(vistaDestino.getByRole("heading",{name:`${CONSOLIDADOS_CHINA[1]} · Recepción física VE`,exact:true})).toBeVisible();
+          await esperar(estadoDestino).toHaveCount(0);
+          const cajasB=vistaDestino.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem");
+          await esperar(cajasB).toHaveCount(2);await esperar(cajasB.nth(0)).toContainText(CODIGOS_CHINA[2]);
+          await esperar(cajasB.nth(0)).toContainText("Frágil / 易碎");await esperar(cajasB.nth(1)).not.toContainText("Frágil");
+          const payloadVe=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[1]},{sesion:sesionActual})).json();
+          expect(JSON.stringify(payloadVe)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio|marca_sin_autorizacion/);
+          await p.reload();await etapaDestino.selectOption("ve");
+          await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await etapaDestino.selectOption("shipments");
+          await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();await esperar(estadoDestino).toContainText("En tránsito");
+          await etapaDestino.selectOption("ve");await vistaDestino.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+          await esperar(estadoDestino).toContainText("Llegada física registrada");
+          perderRespuestaDestino=true;
+          await leerCajaDestino(CODIGOS_CHINA[2],false);
+          await vistaDestino.getByRole("button",{name:"Reintentar la misma operación de destino",exact:true}).click();
+          await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[0]);await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
+          await leerCajaDestino(CODIGOS_CHINA[3]);await esperar(estadoDestino).toContainText("Recepción física completa · Recepción física: 2 de 2 cajas");
+          await p.screenshot({path:resolve(carpeta,`destino-parciales-${width}${sufijo}.png`),fullPage:true});
+          usuarios.get(cuentaId)!.role="admin";
+          expect((await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json()).documento).toEqual(finAntesDestino.documento);
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await ejercicio.getByLabel("Recepción para indicadores",{exact:true}).selectOption("PRA-REC-CN-001");
           await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Corrección inventada sin cobro");
           await ejercicio.getByRole("button",{name:"Retirar Frágil de práctica",exact:true}).click();

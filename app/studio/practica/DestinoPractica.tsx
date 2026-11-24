@@ -42,7 +42,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
       if (!destino) setReintento(actual=>actual ? {...actual,revision:resultado.revision} : undefined);
       if (destino) {setReintento(undefined);setConfirmacion(null);setCodigo("");setMensaje("Operación ficticia confirmada. El avance está guardado en tu práctica.");}
     } catch(e) {
-      if (!control.signal.aborted && montado.current) setError(e instanceof Error ? e.message : "Servicio de práctica indisponible.");
+      if (!control.signal.aborted && montado.current) setError(e instanceof TypeError ? "No pudimos comprobar el resultado. Reintenta la misma operación para recuperar su avance." : e instanceof Error ? e.message : "Servicio de práctica indisponible.");
     } finally {
       bloqueo.current=false;
       if (destino) onBloqueoSalida(false);
@@ -87,7 +87,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     {datos && <>
       <h3>{datos.consolidado} · {etapaActiva==="ve" ? "Recepción física VE" : "Embarques"}</h3>
       {!datos.cajas.length && <p>Todavía no hay cajas montadas en este consolidado. Completa la recepción y estiba de esta compra en China.</p>}
-      {datos.viaje && <p aria-label="Estado del viaje">{estados[datos.viaje.estado]} · Recepción física: {datos.viaje.recibidas.length} de {datos.viaje.cajas.length} cajas.</p>}
+      {datos.viaje && <p role="status" aria-label="Estado del viaje">{estados[datos.viaje.estado]} · Recepción física: {datos.viaje.recibidas.length} de {datos.viaje.cajas.length} cajas.</p>}
       {datos.viaje?.incidencia && <p>Observación de destino: {datos.viaje.incidencia.estado}. {datos.viaje.incidencia.motivo} {datos.viaje.incidencia.resolucion}</p>}
       <ul aria-label="Cajas del viaje">{datos.cajas.map(c=><li key={c.codigo}>
         <strong>{c.codigo}</strong> · {datos.viaje?.recibidas.includes(c.codigo) ? "Recibida físicamente" : "Pendiente de recepción física"}
