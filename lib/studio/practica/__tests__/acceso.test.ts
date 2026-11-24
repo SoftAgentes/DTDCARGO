@@ -592,7 +592,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
           await ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true}).click();
           await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 1 disponibles en China · 2 en A · 0 en B");
-          await p.screenshot({path:resolve(carpeta,`china-fragil-parcial-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-fragil-parcial-${width}${sufijo}.png`),fullPage:true});
           const antesRepetirMontada=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json();
           await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
           await entradaCodigo.pressSequentially("DTD-B-99007131");await entradaCodigo.press("Enter");
@@ -626,7 +626,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByLabel("Resolución interna inventada",{exact:true}).fill("Oficina revisó la carta sintética de autorización");
           await ejercicio.getByRole("button",{name:"Resolver tarea documental de práctica",exact:true}).click();
           await esperar(ejercicio.getByText(/Evidencia: PRA-CARTA-001/)).toBeVisible();
-          await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
           await ejercicio.getByLabel("Recepción para indicadores",{exact:true}).selectOption("PRA-REC-CN-001");
           await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Corrección inventada sin cobro");
           await ejercicio.getByRole("button",{name:"Retirar Frágil de práctica",exact:true}).click();
@@ -651,7 +651,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).focus();
           await p.getByLabel("Ayuda: recibir en China",{exact:true}).press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: recibir en China"])')).toHaveAttribute("open", "");
-          await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-almacen-${width}${sufijo}.png`),fullPage:true});
           const otraPestana = await contextoBrowser.newPage();
           await otraPestana.goto(prueba + "/studio/practica");
           await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
@@ -672,7 +672,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await otraPestana.reload();
           await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await otraPestana.close();
-          await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
           usuarios.get(cuentaId)!.role="support";
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
@@ -695,7 +695,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           await esperar(avanzada).toContainText("Estado: consolidada");
-          await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
@@ -870,7 +870,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             const res = await frontera(prueba,"facturacion",{espacio:cuenta.vista.espacio,revision:0,comando},cuenta.sesion,prueba);
             expect(res.status).toBe(403);
           }
-          await p.screenshot({path:resolve(carpeta,`warehouse-denegado-${width}${sufijo}.png`),fullPage:true});
+          await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`warehouse-denegado-${width}${sufijo}.png`),fullPage:true});
           usuarios.get(cuentaId)!.role = "support";
           await p.reload();
           await esperar(p.getByText("Almacén China",{exact:true})).toBeVisible();
