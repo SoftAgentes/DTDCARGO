@@ -1276,21 +1276,21 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
         <div className="mt-3 rounded-[12px] border border-grey-200 bg-white px-5 py-5">
           <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
             <div className="flex items-start justify-center gap-2">
-              <CodePart code={markbox} label="Tu Shipping Mark" tone="mark" />
+              <CodePart code={markbox} label="Tu Shipping Mark" />
               <span
                 className="text-[18px] font-black text-grey-500 mt-0.5"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 -
               </span>
-              <CodePart code="1" label="Proveedor" tone="ink" />
+              <CodePart code="1" label="Proveedor" />
               <span
                 className="text-[18px] font-black text-grey-500 mt-0.5"
                 style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
               >
                 -
               </span>
-              <CodePart code="2" label="Compra" tone="ink" />
+              <CodePart code="2" label="Compra" />
             </div>
           </div>
 
@@ -1330,8 +1330,8 @@ function MarkboxGuide({ markbox }: { markbox: string }) {
   );
 }
 
-function CodePart({ code, label, tone }: { code: string; label: string; tone: "mark" | "ink" }) {
-  const color = tone === "mark" ? "var(--color-ink)" : "var(--color-ink)";
+function CodePart({ code, label }: { code: string; label: string }) {
+  const color = "var(--color-ink)";
   return (
     <div className="flex flex-col items-center gap-1">
       <code
