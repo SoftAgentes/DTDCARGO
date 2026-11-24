@@ -45,6 +45,14 @@ export function PracticaPersonal({ real }: { real: string }) {
   const vistaActual = useRef<VistaPractica | null>(null);
   const focoAnterior = useRef<HTMLElement | null>(null);
   const ultimaConsulta = useRef(0);
+  const restaurarFoco = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const turno = restaurarFoco.current;
+    if (revalidando || turno === null) return;
+    restaurarFoco.current = null;
+    // El DOM ya retiró inert y habilitó el editor; rAF puede adelantarse al commit.
+    if (turno === ultimaConsulta.current && focoAnterior.current?.isConnected && document.visibilityState === "visible") focoAnterior.current.focus({preventScroll:true});
+  }, [revalidando, vista]);
   useLayoutEffect(() => {
     const aviso = document.querySelector<HTMLElement>("[data-entorno-prueba]");
     if (!aviso) return;
@@ -59,6 +67,7 @@ export function PracticaPersonal({ real }: { real: string }) {
   const consultar = useCallback(async (signal: AbortSignal) => {
     if (salidaEnCurso.current) return;
     const turno = ++ultimaConsulta.current;
+    restaurarFoco.current = null;
     consultaActual.current?.abort();
     const consulta = new AbortController(); consultaActual.current = consulta;
     const alCancelar = () => consulta.abort();
@@ -74,12 +83,10 @@ export function PracticaPersonal({ real }: { real: string }) {
         if (datos.espacio !== espacio) throw new AccesoDenegado();
         const anterior = vistaActual.current;
         const mismaVista = anterior !== null && anterior.espacio === datos.espacio && JSON.stringify(anterior.permisos) === JSON.stringify(datos.permisos);
+        restaurarFoco.current = mismaVista ? turno : null;
         vistaActual.current = datos;
         setVista(datos); setMensaje(""); setRevalidando(false);
-        if (mismaVista) requestAnimationFrame(() => {
-          if (turno === ultimaConsulta.current && focoAnterior.current?.isConnected && document.visibilityState === "visible") focoAnterior.current.focus({preventScroll:true});
-        });
-        else focoAnterior.current = null;
+        if (!mismaVista) focoAnterior.current = null;
       }
     } catch (error) {
       if (!consulta.signal.aborted && turno === ultimaConsulta.current) {
@@ -142,6 +149,7 @@ export function PracticaPersonal({ real }: { real: string }) {
     if (bloqueos.current.operativo || saliendo || (!descartar && (bloqueos.current.financiero || revalidando))) return;
     salidaEnCurso.current = true;
     ++ultimaConsulta.current; consultaActual.current?.abort();
+    restaurarFoco.current = null;
     setConfirmarSalida(false);
     setVista(null); vistaActual.current = null; focoAnterior.current = null;
     setSalidaBloqueada(false); setRevalidando(false); setFalloComprobacion(false);

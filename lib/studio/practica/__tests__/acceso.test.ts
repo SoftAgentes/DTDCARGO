@@ -487,6 +487,21 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         let salidas=0;
         let perderRespuestaEjercicio=false;
         await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
+        await contextoBrowser.addInitScript(() => {
+          const estado = window as Window & { __practicaDemorarHost?: boolean };
+          const Canal = window.MessageChannel;
+          window.MessageChannel = class extends Canal {
+            constructor() {
+              super();
+              const enviar = this.port2.postMessage.bind(this.port2);
+              // Demora de cola host real: rAF no implica que React haya hecho commit.
+              this.port2.postMessage = (mensaje: unknown) => {
+                if (estado.__practicaDemorarHost) setTimeout(() => enviar(mensaje), 80);
+                else enviar(mensaje);
+              };
+            }
+          };
+        });
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
           if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
@@ -748,10 +763,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
           await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toBeVisible();
           await esperar(p.getByLabel("Concepto 2",{exact:true})).toBeDisabled();
+          await p.evaluate(() => { (window as Window & { __practicaDemorarHost?: boolean }).__practicaDemorarHost = true; });
           demorarEstado = false; liberarEstados.forEach(liberar => liberar()); liberarEstados = [];
           await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
           await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
           await esperar(conceptoBorrador).toBeFocused();
+          await p.evaluate(() => { (window as Window & { __practicaDemorarHost?: boolean }).__practicaDemorarHost = false; });
           expect(lecturasFactura).toBe(lecturasAntes);
           await esperar(p.getByLabel("Concepto 3",{exact:true})).toHaveCount(1);
           await otra.close();
