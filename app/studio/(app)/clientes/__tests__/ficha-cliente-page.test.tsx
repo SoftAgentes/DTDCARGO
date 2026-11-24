@@ -13,10 +13,11 @@
  *   - la nota y la solicitud de cambio, arriba y fuera de las pestañas;
  *   - un solo bloque de documentos.
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Conversacion = { conversation_id: number; status: string; unread_count: number; last_activity_at: string | null };
+type Envio = { id: string; code: string; client_markbox: string; origin: null; destination: null; shipment_service: "consolidado_lcl"; status: "draft"; created_at: string };
 
 const state = vi.hoisted(() => ({
   nombre: "Cliente sintético" as string | null,
@@ -36,6 +37,13 @@ const state = vi.hoisted(() => ({
   codigosPedidos: [] as string[][],
   pintadas: [] as string[],
   props: {} as Record<string, Record<string, unknown>>,
+  markbox: "DTD-8001",
+  envios: [] as Envio[],
+  trackingDenial: null as string | null,
+  puedeReasignar: false,
+  canalPortal: false,
+  fotoDocumento: false,
+  docKind: null as "persona" | "empresa" | null,
 }));
 
 // Los factories de vi.mock se elevan al tope del archivo: lo que usan tiene que
@@ -78,9 +86,9 @@ vi.mock("@/lib/db/server", () => ({
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/studio/client-queries", () => ({
   getClientByMarkbox: async () => ({
-    id: "c1", tenant_id: "t1", markbox: "DTD-8001", name: state.nombre, doc_kind: null, tier: "nuevo",
+    id: "c1", tenant_id: "t1", markbox: state.markbox, name: state.nombre, doc_kind: state.docKind, tier: "nuevo",
     email: null, phone: null, address: null, rif: state.conDocumento ? "V-00000000" : null, notes: state.notas,
-    advisor_id: "a1", registration_channel: "studio", cedula_photo_path: null, created_at: "2026-10-01T00:00:00Z",
+    advisor_id: "a1", registration_channel: state.canalPortal ? "portal" : "studio", cedula_photo_path: state.fotoDocumento ? "foto-ficticia" : null, created_at: "2026-10-01T00:00:00Z",
   }),
   listCodigosDeLaFicha: async () => {
     if (state.cadenaFalla) throw new Error("sin red");
@@ -88,7 +96,7 @@ vi.mock("@/lib/studio/client-queries", () => ({
   },
   listShipmentsDeLaFicha: async (_s: unknown, _tenant: string, codigos: string[]) => {
     state.codigosPedidos.push([...codigos]);
-    return [];
+    return state.envios;
   },
   getClientPortalAccess: async () => null,
   getClientPortalApprovedAt: async () => null,
@@ -117,10 +125,13 @@ vi.mock("@/lib/studio/price-books/price-book-queries", () => ({ listPriceBooks: 
 vi.mock("@/lib/studio/markbox-history-queries", () => ({ listMarkboxHistory: async () => [] }));
 vi.mock("@/lib/studio/rbac-guard", () => ({
   getStudioAccess: async () => ({ role: state.rol, overrides: {}, grants: [], userId: "u1" }),
+  moduleViewDenial: async () => state.trackingDenial,
 }));
-vi.mock("@/lib/studio/rbac", () => ({
+vi.mock("@/lib/studio/rbac", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/studio/rbac")>()),
   canAccessModule: (_rol: unknown, modulo: string) => state.modulos.includes(modulo),
   canEditModule: () => state.puedeEditar,
+  canSpecial: () => state.puedeReasignar,
 }));
 vi.mock("@/lib/studio/feature-flags-queries", () => ({ listFeatureFlags: async () => [] }));
 vi.mock("@/lib/studio/feature-flags-types", () => ({ isModuleEnabled: () => true }));
@@ -167,8 +178,10 @@ vi.mock("../_components/TodosLosAdjuntos", () => ({ TodosLosAdjuntos: tarjeta("T
 vi.mock("../_components/ChangeRequestCard", () => ({ ChangeRequestCard: tarjeta("ChangeRequestCard") }));
 vi.mock("../_components/ChangeRequestHistory", () => ({ ChangeRequestHistory: tarjeta("ChangeRequestHistory") }));
 vi.mock("@/app/studio/_components/documents/DocsPanel", () => ({ DocsPanel: tarjeta("DocsPanel") }));
+vi.mock("../../tracking/[id]/_components/ReassignClientPanel", () => ({ ReassignClientPanel: tarjeta("ReassignClientPanel") }));
 
 import ClienteDetallePage from "../[markbox]/page";
+import { ClientDetailContent } from "../_components/ClientDetailContent";
 
 const UNA: Conversacion[] = [{ conversation_id: 42, status: "open", unread_count: 0, last_activity_at: null }];
 
@@ -191,12 +204,113 @@ beforeEach(() => {
   state.codigosPedidos = [];
   state.pintadas = [];
   state.props = {};
+  state.markbox = "DTD-8001";
+  state.envios = [];
+  state.trackingDenial = null;
+  state.puedeReasignar = false;
+  state.canalPortal = false;
+  state.fotoDocumento = false;
+  state.docKind = null;
 });
 afterEach(cleanup);
 
 async function montar() {
   render(await ClienteDetallePage({ params: Promise.resolve({ markbox: "DTD-8001" }) }));
 }
+
+const ENVIO_PENDIENTE: Envio = {
+  id: "envio-ficticio", code: "S-FICTICIO", client_markbox: "DTD-0000",
+  origin: null, destination: null, shipment_service: "consolidado_lcl", status: "draft", created_at: "2026-11-24T12:00:00Z",
+};
+
+async function montarPanel() {
+  render(await ClientDetailContent({ markbox: state.markbox, enPanel: true }));
+}
+
+describe("Asignación desde ficha lateral · SDD-0715", () => {
+  it("nota sin embarque y cero actividad no montan una escritura", async () => {
+    state.notas = "Pendiente ficticio; no identifica un embarque";
+    state.puedeReasignar = true;
+    await montarPanel();
+    expect(screen.getByText(state.notas)).toBeInTheDocument();
+    expect(screen.getByText(/se necesita un embarque sin cliente/)).toBeInTheDocument();
+    expect(state.pintadas).not.toContain("ReassignClientPanel");
+  });
+
+  it("un embarque real ya asignado no se trata como pendiente por su nota", async () => {
+    state.notas = "Asignación pendiente ficticia";
+    state.envios = [{ ...ENVIO_PENDIENTE, client_markbox: "DTD-8001" }];
+    state.puedeReasignar = true;
+    await montarPanel();
+    expect(state.pintadas).not.toContain("ReassignClientPanel");
+  });
+
+  it("solo pasa a la acción existente el id real del embarque sin cliente", async () => {
+    state.markbox = "DTD-0000";
+    state.codigos = ["DTD-0000"];
+    state.envios = [ENVIO_PENDIENTE];
+    state.puedeReasignar = true;
+    await montarPanel();
+    expect(state.props.ReassignClientPanel).toMatchObject({
+      shipmentId: "envio-ficticio", shipmentCode: "S-FICTICIO", currentMarkbox: "DTD-0000", sinCliente: true,
+    });
+  });
+
+  it.each(["tracking", "privacidad", "capacidad"])("sin %s no monta el buscador ni la acción", async (limite) => {
+    state.markbox = "DTD-0000";
+    state.codigos = ["DTD-0000"];
+    state.envios = [ENVIO_PENDIENTE];
+    state.puedeReasignar = limite !== "capacidad";
+    state.verNombres = limite !== "privacidad";
+    state.trackingDenial = limite === "tracking" ? "Sin acceso" : null;
+    await montarPanel();
+    expect(state.pintadas).not.toContain("ReassignClientPanel");
+  });
+
+});
+
+describe.each(["completa", "panel"] as const)("Accesos de identidad y asesor · ficha %s · SDD-0715", (modo) => {
+  async function montarModo() {
+    if (modo === "panel") await montarPanel();
+    else await montar();
+  }
+
+  it.each(["documento", "foto", "portal"])("acceso visible de verificación con %s, sin duplicar el formulario", async (condicion) => {
+    state.conDocumento = condicion === "documento";
+    state.fotoDocumento = condicion === "foto";
+    state.canalPortal = condicion === "portal";
+    await montarModo();
+    const acceso = screen.getByRole("region", { name: "Verificación de identidad" });
+    expect(within(acceso).getByRole("link", { name: "Verificar cédula en Configuración" }))
+      .toHaveAttribute("href", "?pestana=configuracion");
+    expect(state.pintadas.filter((nombre) => nombre === "IdentityVerificationCard")).toHaveLength(1);
+    expect(document.querySelector('[data-tarjeta="IdentityVerificationCard"]')?.closest('[role="tabpanel"]')?.id)
+      .toBe("ficha-panel-configuracion");
+    expect(acceso.querySelector("input, select, form")).toBeNull();
+  });
+
+  it("sin documento, foto ni portal no agrega un acceso de verificación", async () => {
+    await montarModo();
+    expect(screen.queryByRole("region", { name: "Verificación de identidad" })).toBeNull();
+    expect(state.pintadas).not.toContain("IdentityVerificationCard");
+  });
+
+  it("empresas reciben el acceso de RIF y el asesor conserva su único formulario", async () => {
+    state.conDocumento = true;
+    state.docKind = "empresa";
+    await montarModo();
+    expect(screen.getByRole("link", { name: "Verificar RIF en Configuración" })).toHaveAttribute("href", "?pestana=configuracion");
+    const asesor = screen.getByRole("region", { name: "Asesor asignado" });
+    expect(within(asesor).getByRole("link", { name: "Asignar asesor en Configuración" })).toHaveAttribute("href", "?pestana=configuracion");
+    expect(asesor).toHaveTextContent("Asesora sintética");
+    expect(asesor.querySelector("input, select, form")).toBeNull();
+    expect(state.pintadas.filter((nombre) => nombre === "AdvisorAssignCard")).toHaveLength(1);
+    const configuracion = document.getElementById("ficha-panel-configuracion")!;
+    const tarjetas = [...configuracion.querySelectorAll("[data-tarjeta]")].map((el) => el.getAttribute("data-tarjeta"));
+    expect(tarjetas.slice(0, 3)).toEqual(["IdentityVerificationCard", "AdvisorAssignCard", "PortalAccessCard"]);
+    expect(tarjetas).toEqual(expect.arrayContaining(["AliadoCard", "DeliveryAddressesCard", "ChangeRequestHistory"]));
+  });
+});
 
 describe("Ficha del cliente · acciones rápidas (SDD-0650 F1)", () => {
   it("«Abrir chat» lleva a la conversación más reciente con Bandeja y una conversación", async () => {
