@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/db/client";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -123,9 +124,9 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                 <div style={{ marginTop: 6 }}>
                   <Aviso tono="atencion" compacto>
                     No hay embarques activos. Crea uno desde{" "}
-                    <a href="/studio/embarques" style={{ color: "var(--accion-text)" }}>
+                    <Link href="/studio/embarques" style={{ color: "var(--accion-text)" }} onNavigate={onClose}>
                       Embarques
-                    </a>{" "}
+                    </Link>{" "}
                     primero.
                   </Aviso>
                 </div>

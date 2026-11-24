@@ -31,6 +31,23 @@ const ENVIOS = [envio(1), envio(2)];
 afterEach(cleanup);
 
 describe("EmbarquesClient · código e insignia en la fila (SDD-0710)", () => {
+  it("el candado acompaña a Rastrear sin alterar el teclado del código", async () => {
+    const user = userEvent.setup();
+    render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined}
+      eliminacion={{ estado: "lista", info: {
+        "s-1": { bloqueos: {}, avisos: {} },
+        "s-2": { bloqueos: { invoices: 1 }, avisos: {} },
+      } }} />);
+    const candado = screen.getByRole("img", { name: "No se puede eliminar" });
+    expect(candado).toHaveAccessibleDescription(/1 factura sin anular/);
+    expect(candado.parentElement).toBe(screen.getByRole("link", { name: "Rastrear embarque S-2026-0002" }).parentElement);
+    expect(screen.queryByRole("button", { name: /Ver los pasos/ })).toBeNull();
+    const codigo = screen.getByRole("button", { name: "Abrir embarque S-2026-0002" });
+    codigo.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog", { name: "Detalle S-2026-0002" })).toBeTruthy();
+  });
+
   it("CONTRATO: ninguna fila trae el botón grande «Abrir ›»", () => {
     const { container } = render(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} />);
     const filas = container.querySelectorAll("[data-row-id]");

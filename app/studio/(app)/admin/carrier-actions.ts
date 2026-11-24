@@ -244,7 +244,8 @@ export async function saveTariffAction(
   const numeros = {
     cost_usd_cbm: v.costUsdCbm,
     price_usd_cbm: v.priceUsdCbm,
-    price_usd_ft3: v.priceUsdFt3,
+    // Al editar sin esta clave se preserva el dato actual, incluso si otra sesión lo cambió.
+    ...(!id || formData.has("priceUsdFt3") ? { price_usd_ft3: v.priceUsdFt3 } : {}),
     min_charge_usd: v.minChargeUsd,
     dispatch_frequency_days: v.dispatchFrequencyDays,
     departure_frequency: v.departureFrequency,

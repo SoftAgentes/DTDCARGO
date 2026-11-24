@@ -33,7 +33,9 @@ export function irAPestana(id: IdPestanaFicha): void {
   const url = new URL(window.location.href);
   if (id === "resumen") url.searchParams.delete("pestana");
   else url.searchParams.set("pestana", id);
-  window.history.replaceState(window.history.state, "", url.toString());
+  // Next copia su árbol interno y notifica useSearchParams al recibir estado externo.
+  // Reenviar __NA/_N hace que lo trate como navegación interna y omita el aviso.
+  window.history.replaceState(null, "", url.toString());
 }
 
 export function FichaPestanas({ pestanas }: { pestanas: PestanaFicha[] }) {
