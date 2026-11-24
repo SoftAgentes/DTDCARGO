@@ -77,10 +77,30 @@ describe("Enlaces de Embarques sobre #809 · SDD-0715", () => {
 
   it("sin ficha vinculada informa y conserva el camino al embarque sin inventar un Shipping Mark", () => {
     render(<EmbarquesClient pestanaInicial="all" shipments={[{ ...ENVIO_DE_FILA, client_markbox: null }]} adjuntos={undefined} />);
-    expect(screen.getByText("Sin ficha vinculada")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^Asignar cliente del embarque/ })).toBeNull();
+    expect(screen.getByText("Sin ficha vinculada. Tracking abre en otra pestaña.")).toBeInTheDocument();
+    const asignar = screen.getByRole("link", { name: "Asignar cliente del embarque S-FICTICIO en Tracking (otra pestaña)" });
+    expect(asignar).toHaveAttribute("href", "/studio/tracking/envio-ficticio");
+    expect(asignar).toHaveAttribute("target", "_blank");
     expect(screen.queryByRole("link", { name: /^Ver ficha de/ })).toBeNull();
     expect(screen.getByRole("link", { name: "Rastrear embarque S-FICTICIO" })).toBeInTheDocument();
+  });
+
+  it.each(["DTD-0000", "", "   "])("dos filas pendientes con marca %j conservan destinos exclusivos", (markbox) => {
+    const filas = [ENVIO_DE_FILA, { ...ENVIO_DE_FILA, id: "segundo-envio-ficticio", code: "S-SEGUNDO" }]
+      .map((fila) => ({ ...fila, client_markbox: markbox }));
+    render(<EmbarquesClient pestanaInicial="all" shipments={filas} adjuntos={undefined} />);
+    const enlaces = screen.getAllByRole("link", { name: /^Asignar cliente del embarque/ });
+    expect(enlaces).toHaveLength(2);
+    for (const [i, enlace] of enlaces.entries()) {
+      expect(enlace).toHaveAttribute("href", markbox.trim()
+        ? `/studio/embarques/ficha-cliente/DTD-0000?embarque=${filas[i].id}`
+        : `/studio/tracking/${filas[i].id}`);
+      if (!markbox.trim()) expect(enlace).toHaveAttribute("target", "_blank");
+      enlace.addEventListener("click", (event) => event.preventDefault());
+      fireEvent.click(enlace);
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(screen.getByRole("button", { name: `Abrir embarque ${filas[i].code}` })).toBeInTheDocument();
+    }
   });
 });
 const props = () => ({ params: Promise.resolve({ markbox: "DTD-8001" }) });

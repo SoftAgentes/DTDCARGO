@@ -32,7 +32,8 @@ UI-CHECK read-only aplicado según .claude/commands/ui-check.md: hallazgo alto d
 ## COMMITS
 - `50c9078fd`: preservó implementación local con validación estática y pruebas pendientes antes del merge.
 - `1a39a12eb`: merge normal de #809, segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`; sin conflictos.
-- Enlaces de Embarques y selección de shipment dentro del panel se preparan en un commit propio posterior. El gate staged detectó líneas vacías al final de archivos nuevos; se corrigieron antes del primer commit.
+- `66291e030`: enlaces de Embarques y selección de shipment dentro del panel, con casos focales y documentación de dependencia.
+- El gate staged detectó líneas vacías al final de archivos nuevos; se corrigieron antes del primer commit.
 
 ## PR / BRANCH
 PR pendiente; publicación de rama propia y draft autorizada por encargo, sin integración ni despliegue.
@@ -43,6 +44,10 @@ Director liberó EmbarquesClient mediante `msg_313ddae0d85c`: #809 con head `5e7
 Director autorizó extracción y rutas exactas de slots, incluyendo page raíz nula en ambos. Esperar turno de PC después de m³ para instalación congelada, suites focales, tipos y routing ficticio. Verificar navegación atrás/adelante/cierre/refresh/volver por enlace, error/404 local y estados en móvil/escritorio. EmbarquesClient ya liberado y conectado al panel solo mediante enlaces/indicador: no se cambiaron los handlers de candado/asistente/selección de #809. La fila DTD-0000 envía el id real, que se contrasta con los embarques autorizados de la ficha; sin marca se informa y se mantiene el acceso a Tracking. Tests escritos en las rutas focales ya aprobadas, sin ejecutar. Publicar PR draft contra rama #809 y registrar head/base. Cierre definitivo pendiente: pruebas, revisión, handoff final y liberación del claim propio. Tarea y claim activos durante espera, sin worker_done.
 
 La ampliación de boundaries fue solicitada mediante `msg_8bd45f20f5e8` y autorizada en la respuesta `msg_9601e31d5319`: implementados error.tsx/not-found.tsx de ambos @ficha, con panel y aviso genéricos, reset solo en error, cierre y origen conservados, sin representar detalle interno ni datos. Casos añadidos en ClientDetailPanel.test.tsx, todavía NO EJECUTADOS. Para los enlaces a Configuración, verificar navegación real con el cambio de FichaPestanas del hijo SDD-0669 cuando Director coordine el traspaso; no copiarlo de forma autónoma.
+
+Ampliación DDP 64 (`msg_024f29816795`): EmbarquesClient usa esSinCliente canónico también para marca vacía/espacios. Cada fila sin ficha tiene atajo al Tracking del id exacto en otra pestaña, declarado en texto accesible/visible para conservar lista/filtros/selección al regresar. DTD-0000 conserva panel con selector exacto contrastado contra las lecturas autorizadas. Dos filas del mismo grupo tienen casos de destino exclusivo en panel-routes; pendientes de ejecución.
+
+Traspaso de turnos (`msg_19c4be2dd2e2`): tomar turno fuerte automáticamente al recibir liberación directa de 0716, sin volver a preguntar. Al liberarlo, avisar al Director y enviar a `dispatch:ctx_74f0cbdf1b68` que puede correr QA visual de #809. La entrega exige PR con checks activos; el borrador preliminar se marcará ready al completar la validación correspondiente. No confundir borrador publicado con entrega terminada.
 
 ## FUERA DE ALCANCE DETECTADO
 Registro derivado del plugin de gobernanza desactualizado frente al repo vigente. No se arregla ni se convierte en política dentro de este encargo. Sin otros arreglos ajenos incluidos.

@@ -52,6 +52,7 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import { ShipmentDetailDrawer } from "./ShipmentDetailDrawer";
+import { esSinCliente } from "../../tracking/[id]/_components/ClienteDelEmbarque";
 import { estadoDeCajas, type CajasDeEnvio } from "@/lib/studio/cajas-por-proveedor";
 import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
 import {
@@ -2028,10 +2029,14 @@ function GroupedTable({
                         >
                           {s.code}
                         </button>
-                        {s.id && s.client_markbox?.trim() === "DTD-0000" && (
-                          <Link href={`/studio/embarques/ficha-cliente/${encodeURIComponent(s.client_markbox)}?embarque=${encodeURIComponent(s.id)}`}
+                        {s.id && esSinCliente(s.client_markbox) && (
+                          <Link href={s.client_markbox?.trim()
+                            ? `/studio/embarques/ficha-cliente/${encodeURIComponent(s.client_markbox.trim())}?embarque=${encodeURIComponent(s.id)}`
+                            : `/studio/tracking/${encodeURIComponent(s.id)}`}
+                            target={s.client_markbox?.trim() ? undefined : "_blank"}
+                            rel={s.client_markbox?.trim() ? undefined : "noopener"}
                             scroll={false} className="studio-emb-rastrear"
-                            aria-label={`Asignar cliente del embarque ${s.code}`}
+                            aria-label={`Asignar cliente del embarque ${s.code}${s.client_markbox?.trim() ? "" : " en Tracking (otra pestaña)"}`}
                             onClick={(event) => {
                               event.stopPropagation();
                               event.currentTarget.focus({ preventScroll: true });
@@ -2039,7 +2044,7 @@ function GroupedTable({
                             Asignar cliente
                           </Link>
                         )}
-                        {!s.client_markbox?.trim() && <span>Sin ficha vinculada</span>}
+                        {!s.client_markbox?.trim() && <span>Sin ficha vinculada. Tracking abre en otra pestaña.</span>}
                       </span>
                       <span
                         style={{
