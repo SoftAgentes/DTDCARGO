@@ -29,6 +29,9 @@ Clientes › Mantenimiento › «Posibles duplicados» (SDD-0246) solo empareja 
 7. **Quién fusiona** (Sam, 2026-11-23, textual: «Admin, Operaciones y Comercial»): `merge_clients_manual` y la acción del servidor rechazan a los demás roles. Buscar y ver la vista previa siguen abiertos a la matriz `clients`.
 8. **Orden de salida**: la 0572 se aplica ANTES de publicar la web con este cambio; sin ella «Posibles duplicados» no busca ni fusiona.
 
+## Aplicación en producción
+La migración 0572 se aplicó en producción el 2026-11-23 a las 23:26:31Z, con COMMIT y verificación PASÓ (md5 `2f828c4d65d374d176bcfe53795b75c5`, 23494 bytes, cuerpos vivos iguales al archivo). La aplicó Dir_DTD con el runbook, tras el OK nominal de Sam (textual: «Okay, vamos a la migración 0572, un okay nominal.» y, en el chat del Director, «Sí, aplica la 0572»). Evidencia en el VPS: `/srv/ops/evidencias/apply-0572-dtd-cargo-20261123T232630Z`. La PR #799 se fusionó después como `db535a8d7`. La espera se retiró y el archivo quedó sellado en `supabase/migrations.lock.json`: ya no se edita.
+
 ## Pendientes para Sam (no se cambian aquí)
 - `merge_clients(uuid, uuid)` sigue ejecutable por `authenticated` con la matriz de cinco roles: por la API se puede fusionar sin motivo ni confirmación, y contabilidad y soporte todavía pueden por esa vía.
 - `merge_clients` (0361 §5.1) revoca un acceso vivo al portal cuando la ficha que se queda tiene una fila revocada: nadie queda con acceso. Aquí solo se avisa (`portalLost`).

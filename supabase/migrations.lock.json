@@ -3672,6 +3672,15 @@
         "fecha": "2026-11-22",
         "forma": "exacta"
       }
+    },
+    "0572_fusion_manual_clientes": {
+      "sha256": "94ae9472ee223f058af7098b93f7f21c511c4528ba2ab360e9cdcba806bc054e",
+      "md5": "2f828c4d65d374d176bcfe53795b75c5",
+      "bytes": 23494,
+      "ledger": {
+        "fecha": "2026-11-23",
+        "forma": "exacta"
+      }
     }
   }
 }
