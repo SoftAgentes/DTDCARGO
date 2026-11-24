@@ -34,13 +34,14 @@ sin excepciones nuevas. Riesgo R2: conservar legacy y validar formulario.
 No se infiere conformidad visual del conteo de scripts.
 
 ## COMMITS
-Pendientes.
+83825bae2 — implementación y pruebas preparadas sobre base de reserva asignada.
 
 ## PR / BRANCH
-PR draft solicitada; rama propia aislada verificada. Consultar Git/PR para SHA actual.
+PR draft https://github.com/SoftAgentes/DTDCARGO/pull/806 hacia main;
+rama propia aislada verificada. Consultar Git/PR para SHA actual.
 
 ## PENDIENTES DE ESTA TAREA
-Instalación, pruebas focales, render sintético claro/oscuro, verify, commit y PR.
+Instalación, pruebas focales, render sintético claro/oscuro y cierre de validación.
 Director asignó turno después de Embarques (msg_e12f9ed11f5e); no iniciar carga
 hasta aviso. Si el cierre completo local resulta desproporcionado, lint global,
 tipos, suite completa, build y gates de `verify` quedan a CI en cabeza exacta;
