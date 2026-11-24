@@ -379,7 +379,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
           await p.getByRole("button",{name:"Repartir USD 300 en tres conceptos",exact:true}).click();
           const conceptoBorrador = p.getByLabel("Concepto 2",{exact:true});
-          await conceptoBorrador.fill("Concepto ficticio sin guardar"); await conceptoBorrador.focus();
+          await conceptoBorrador.fill("Concepto ficticio sin guardar");
+          await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
+          await conceptoBorrador.focus();
           const lecturasAntes = lecturasFactura;
           demorarEstado = true;
           const otra = await contextoBrowser.newPage(); await otra.goto("about:blank"); await otra.bringToFront(); await p.bringToFront();

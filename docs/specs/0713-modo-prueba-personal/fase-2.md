@@ -82,6 +82,10 @@ en el campo inválido que señala HTML, sin trasladarlo luego al aviso general
 e interrumpir el borrado. El aviso conserva role=alert y la descripción de campo.
 La regresión exige foco, vaciar el texto inválido y guardar la corrección exacta;
 no se modifica NumericInput global ni se aumenta el timeout del navegador.
+El formulario marca edición y retira avisos en onInput (burbujeo), después de
+capturar la edición del campo; nunca actualiza el padre en la captura nativa
+antes de onChange de los inputs controlados. Se verifica el texto antes de
+cambiar de pestaña para separar escritura de conservación/revalidación.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.

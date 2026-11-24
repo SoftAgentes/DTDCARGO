@@ -96,7 +96,7 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
       <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · {factura.estado}</p>
       <Ayuda titulo="Revisar el documento">PRA-PRE-001 comienza como preorden pendiente y PRA-FAC-002 comienza emitida. Revisa arriba el estado actual de cada documento. Pertenecen a embarques inventados distintos.</Ayuda>
       {!vista.edicion && <p>Tu permiso actual es de consulta.</p>}
-      <form ref={formulario} onSubmit={e => e.preventDefault()} onInputCapture={() => { setTextoPendiente(true); setError(""); }}>
+      <form ref={formulario} onSubmit={e => e.preventDefault()} onInput={() => { setTextoPendiente(true); setError(""); }}>
       <fieldset disabled={!editable || ocupado || suspendida} aria-describedby="reglas-conceptos"><legend>Conceptos de la factura</legend>
         <p id="reglas-conceptos">Concepto, cantidad y precio son obligatorios. Cantidad entera; precio con hasta dos decimales.</p>
         {lineas.map((l, i) => <div key={identificadores[i]} className={estilos.linea}>
