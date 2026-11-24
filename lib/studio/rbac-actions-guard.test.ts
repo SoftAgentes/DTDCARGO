@@ -100,6 +100,14 @@ type Lista = Record<string, string>;
  * analizador reconozca. No se espera que esta lista se vacíe.
  */
 const EXCEPCIONES: Lista = {
+  // SDD-0712 · Las dos LEEN: `moduleViewDenial(supabase, "clients")` va al tope y domina todo. Lo único que el
+  // analizador cuenta como escritura son las RPC `client_search_for_merge` y `client_merge_preview` (migr 0572),
+  // declaradas `stable`: PostgreSQL no les deja escribir. El contrato las ejercita y la prueba estática comprueba
+  // que la migración no trae INSERT, UPDATE ni DELETE fuera de la fusión. Las dos repiten rol y tenant.
+  "clientes/merge-actions.ts::searchClientsForMergeAction":
+    "SDD-0712: gate de vista `clients` al tope; la única «escritura» es una RPC `stable` de la 0572 que solo busca y repite rol y tenant.",
+  "clientes/merge-actions.ts::previewMergeAction":
+    "SDD-0712: gate de vista `clients` al tope; la única «escritura» es una RPC `stable` de la 0572 que solo arma la vista previa y repite rol y tenant.",
   // SDD-0571 · Las dos LEEN: `moduleViewDenial(supabase, "cn")` va al tope y
   // domina todo. Lo único que el analizador cuenta como escritura es
   // `rpc("congelar_tarifa_recepcion")` con `p_dry_run = true`, que NO escribe:
@@ -455,8 +463,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0704 F1-B sumó `admin/ia/actions.ts::guardarCadenaAction` (502 → 503): los mismos candados al tope
   // (`moduleEditDenial(supabase, "admin")` y `platformAdminDenial`). Escribe SOLO por la RPC `ia_guardar_cadena`
   // (0571, security definer), que repite superadministrador, tenant y motivo, y deja el evento `ia_config`.
+  // SDD-0712 cambió `clientes/merge-actions.ts` (503 → 505): sale `mergeClientsAction` y entran tres.
+  // `searchClientsForMergeAction` y `previewMergeAction` solo leen: `moduleViewDenial(supabase, "clients")` al tope.
+  // `mergeClientsManualAction` escribe: `moduleEditDenial(supabase, "clients")` y además exige admin, operaciones o
+  // comercial (Sam, 2026-11-23). Las tres van por RPC de la 0572 (security definer) que repiten rol y tenant.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(503);
+    expect(reportes.length).toBe(505);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -470,7 +482,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     // SDD-0622 sacó de DEUDA `cotizador::lookupSuggestedRate` (ver Cotizador),
     // `tracking/[id]::lookupRateForNewDestination` (editar Tracking + ver
     // Cotizador) y `tarifas::previewRatesImportAction` (editar Tarifas): 3 → 0.
-    }).toEqual({ excepciones: 24, deuda: 0 });
+    // SDD-0712: EXCEPCIONES 24 → 26. Las dos acciones nuevas de `clientes/merge-actions.ts` solo leen
+    // (búsqueda y vista previa) por RPC `stable` de la 0572, con `moduleViewDenial` al tope; el analizador
+    // cuenta toda RPC como escritura. Defendidas en la PR y en la entrada de cada una.
+    }).toEqual({ excepciones: 26, deuda: 0 });
   });
 
   for (const { rel, r } of reportes) {

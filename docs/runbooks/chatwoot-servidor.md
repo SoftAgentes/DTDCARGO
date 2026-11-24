@@ -275,6 +275,7 @@ Pedido de Sam: «Poner un icono al lado del dominio que aparezca el logo de DTD�
   - `TERMS_URL` = `/terminos` y `PRIVACY_URL` = `/privacidad`, las dos en dtdcargo.com;
   - `DISPLAY_MANIFEST` = false: quita los favicons y el manifest de Chatwoot;
   - `LOGO_THUMBNAIL`, `LOGO` y `LOGO_DARK` apuntan a `/dtd-marca/…`.
+  - **Cambio del 2026-11-23 (pedido de Sam):** el chat tiene su propio ícono, el de «Conversaciones» que ya usa en Discord. `LOGO_THUMBNAIL` pasa de `apple-touch-icon.png` a `chat-conversaciones.png` (512×512, sha256 `0de7890d…`). Ese valor es el ícono de la pestaña y el logo chico del panel; `LOGO` y `LOGO_DARK` no cambian. Aplicarlo lleva OK de Sam: copiar el PNG a `/srv/chatwoot/marca/` (el montaje es de solo lectura, pero el archivo se ve sin recrear el contenedor) y volver a correr `aplicar-marca.rb` como abajo. Antes de escribir, el script comprueba que el PNG exista en el montaje y que su sha256 empiece por `0de7890d`; si no, sale con 1 sin cambiar nada. No reinicia nada. Para volver atrás, `LOGO_THUMBNAIL` = `/dtd-marca/apple-touch-icon.png` y se corre otra vez. El navegador puede guardar el ícono viejo: se ve al recargar con Ctrl+F5.
 
   El idioma ya era `es` (`CHATWOOT_DEFAULT_LOCALE`). `ConfigLoader` corre en cada `prepare` con `reconcile_only_new: true`, así que no vuelve a poner los valores de Chatwoot.
 - **Aplicar o volver a aplicar:**

@@ -62,7 +62,10 @@ import { getAliadoByClientId, listAliadoOptions } from "@/lib/studio/aliados/ali
 import { listPriceBooks } from "@/lib/studio/price-books/price-book-queries";
 import type { PriceBookOption } from "@/lib/studio/price-books/price-book-types";
 import { listMarkboxHistory } from "@/lib/studio/markbox-history-queries";
-import type { MarkboxHistoryEntry } from "@/lib/studio/markbox-history-types";
+import {
+  entradasDeCodigosFusionados,
+  type MarkboxHistoryEntry,
+} from "@/lib/studio/markbox-history-types";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule, canEditModule } from "@/lib/studio/rbac";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
@@ -199,6 +202,11 @@ export default async function ClienteDetallePage({
     () => listCodigosDeLaFicha(supabase, client, markboxHistory.map((h) => h.markbox)),
     client.markbox,
   );
+  // SDD-0712: los códigos de fichas fusionadas en esta, junto al historial.
+  const codigosAnteriores: MarkboxHistoryEntry[] = [
+    ...markboxHistory,
+    ...entradasDeCodigosFusionados(codigosFicha, client.markbox, markboxHistory),
+  ];
   const shipments = (await listShipmentsDeLaFicha(supabase, client.tenant_id, codigosFicha)) as ShipmentRow[];
   const embarquesConCodigoAnterior = shipments.filter((s) => s.client_markbox !== client.markbox).length;
 
@@ -361,7 +369,7 @@ export default async function ClienteDetallePage({
       <ShippingMarkChip
         clientId={client.id}
         markbox={client.markbox}
-        historial={markboxHistory}
+        historial={codigosAnteriores}
         canEdit={puedeEditarClientes}
       />
       <h1

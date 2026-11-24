@@ -15,6 +15,37 @@ export type MarkboxHistoryEntry = {
   retiredAt: string;
 };
 
+/**
+ * SDD-0712 · Los códigos de fichas FUSIONADAS en esta (y sus historiales) también
+ * son «códigos anteriores» del cliente: la ficha los muestra junto al historial
+ * de renombres. `codigosFicha` es la lista de `listCodigosDeLaFicha` (vigente
+ * primero); aquí quedan solo los que no son el vigente ni ya están en el historial.
+ * Sin fecha: la fusión no guarda el código, solo la ficha retirada.
+ */
+export function entradasDeCodigosFusionados(
+  codigosFicha: readonly string[],
+  vigente: string,
+  historial: readonly MarkboxHistoryEntry[],
+): MarkboxHistoryEntry[] {
+  const conocidos = new Set(
+    [vigente, ...historial.map((h) => h.markbox)].map((c) => c.trim().toUpperCase()),
+  );
+  const salida: MarkboxHistoryEntry[] = [];
+  for (const crudo of codigosFicha) {
+    const codigo = crudo.trim();
+    const clave = codigo.toUpperCase();
+    if (!codigo || conocidos.has(clave)) continue;
+    conocidos.add(clave);
+    salida.push({
+      id: `fusion:${clave}`,
+      markbox: codigo,
+      reason: "Ficha fusionada en esta (el código sigue resolviendo)",
+      retiredAt: "",
+    });
+  }
+  return salida;
+}
+
 export type RenameMarkboxActionState = { ok?: boolean; error?: string } | null;
 
 /**
