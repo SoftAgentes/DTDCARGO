@@ -83,3 +83,23 @@ las escrituras siguen requiriendo exactamente el permiso de su operación.
 Recargar sustituye los permisos operativos de la pantalla, conservando las lecturas
 permitidas y retirando las acciones no autorizadas. ERR-01/A11Y-01: pendiente
 visible, control de salida deshabilitado y lectura de solo consulta explícita.
+
+## Unión autorizada con fase 2
+Se incorporó por merge normal `fbc5ca252fee8a5e9700dc16be78f276ea1b2330`
+en `17487914f50ffabe403a9b4a896f6688b0f1986c`, sin reset ni reescritura.
+Se preservaron el editor NumericInput y sus errores, límite financiero de 24 KiB,
+ruta financiera separada de la de acceso/China (2 KiB), y revalidación de identidad
+con editor montado y oculto durante la consulta. La selección de documento,
+reinicio y bloqueos por motivo de fase 3 se conservaron semánticamente.
+La unión autorizada añade a la allowlist los archivos provenientes de #811:
+`app/api/practica/[operacion]/route.ts`, `app/studio/practica/FacturacionPractica.tsx`,
+`infra/ops/staging/practica-traefik.yml.tmpl`, `infra/ops/tests/practica-frontera.mjs`,
+`infra/ops/tests/practica-p2.node.ts`, `lib/studio/practica/cuerpo.ts`,
+`docs/specs/0713-modo-prueba-personal/fase-2.md` y su handoff
+`.agents/handoffs/task_e275a30d5f9a.md` (conservado, sin reescribirlo).
+Cabeza combinada de producto: `e0b8f6ea1ae786e17f5a3b3322a9d85b78dc38f2`.
+Sintaxis de seis archivos y diff check pasaron; nuevas pruebas de navegador,
+API/SQL, Traefik y typecheck aún NO EJECUTADAS en esa cabeza por turno ocupado.
+Los resultados de SHAs anteriores no acreditan esta versión. Suite/build van en CI.
+El defecto de recuperación de conexión de #811 se mantiene fuera de esta corrección;
+su autor lo resolverá y el Director coordina su incorporación posterior.

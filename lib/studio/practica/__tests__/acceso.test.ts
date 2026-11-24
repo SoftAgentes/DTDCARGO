@@ -497,6 +497,12 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(otraPestana.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await otraPestana.close();
           await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
+          usuarios.get(cuentaId)!.role="support";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Identificar con marca ficticia",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           usuarios.get(cuentaId)!.role="admin";
           await p.reload();
           const consolidacionDemorada=demorar("consolidar");
@@ -546,6 +552,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Concepto 1",{exact:true}).fill("Otro cambio pendiente");
           // Una lectura también mantiene el bloqueo mientras el editor está sucio.
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recargar cargas y permisos",exact:true})).toBeEnabled();
           await esperar(salida).toBeDisabled();
           await p.getByRole("button",{name:"Descartar conceptos sin guardar",exact:true}).click();
           await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
