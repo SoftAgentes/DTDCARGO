@@ -1,8 +1,9 @@
 import type { EjercicioDestino } from "./destino";
+import type { CasoDestinoPreparado } from "./semilla-destino";
 import { semillaEjercicioChina, type EjercicioChina, type ComandoEjercicioChina } from "./ejercicio-china";
 // Documento operativo sintético; nunca contiene el detalle financiero.
 export type CargaPractica = { envio: string; cajas: string[]; cliente: string | null; preparada: boolean; preorden?: string; estado: "pendiente" | "recibida" | "consolidada" | "embarcada" | "en_aduana" | "recibida_ve"; consolidado?: string };
-export type ChinaPractica = { ejercicio?: EjercicioChina; destino?: EjercicioDestino; generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
+export type ChinaPractica = { ejercicio?: EjercicioChina; destino?: EjercicioDestino; practicaDestino?: CasoDestinoPreparado; generacion: number; cargas: CargaPractica[]; eventos: { id: string; fecha: string; accion: string; fuente: "practica-personal"; motivo: string; antes: CargaPractica; despues: CargaPractica }[] };
 export type ComandoChina = { accion: "ejercicio"; envio: string; operacion: ComandoEjercicioChina } | { accion: "recibir" | "identificar" | "consolidar" | "embarcar" | "aduana" | "recibir_ve" | "reiniciar"; envio: string };
 export function normalizarChina(actual: ChinaPractica): ChinaPractica {
   const copia = structuredClone(actual);

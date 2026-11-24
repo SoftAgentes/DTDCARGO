@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { API_PRACTICA, type PermisoPractica } from "@/lib/studio/practica/contrato";
 import { CONSOLIDADOS_CHINA, type ConsolidadoEjercicio, type EtapaLecturaChina } from "@/lib/studio/practica/ejercicio-china";
 import { parseScannedLabel } from "@/lib/studio/etiquetas-qr";
-import type { ComandoDestino, VistaDestinoPersonal } from "@/lib/studio/practica/destino";
+import type { CasoDestino, ComandoDestino, VistaDestinoPersonal } from "@/lib/studio/practica/destino";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import estilos from "./practica.module.css";
 
@@ -12,7 +12,8 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
   espacio:string;permisos:PermisoPractica[];suspendida:boolean;
   onBloqueoSalida:(activo:boolean)=>void;onRevalidarPermisos:()=>Promise<boolean>;
 }) {
-  const [etapa,setEtapa]=useState<EtapaLecturaChina>(permisos.some(p=>p.id==="shipments") ? "shipments" : "ve");
+  const [etapa,setEtapa]=useState<EtapaLecturaChina>(permisos.some(p=>p.id==="shipments" && p.edicion) ? "shipments" : permisos.some(p=>p.id==="ve") ? "ve" : "shipments");
+  const [caso,setCaso]=useState<CasoDestino>(permisos.some(p=>p.id==="cn" && p.ejercicioCn) ? "china" : "preparado");
   const etapaActiva:EtapaLecturaChina=permisos.some(p=>p.id===etapa) ? etapa : permisos.some(p=>p.id==="shipments") ? "shipments" : "ve";
   const [consolidado,setConsolidado]=useState<ConsolidadoEjercicio>(CONSOLIDADOS_CHINA[0]);
   const [vista,setVista]=useState<VistaDestinoPersonal>();
@@ -22,7 +23,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
   const [reintento,setReintento]=useState<{comando:ComandoDestino;revision:number}>();
   const bloqueo=useRef(false),montado=useRef(true),lectura=useRef<AbortController|null>(null);
   const aviso=useRef<HTMLParagraphElement>(null);
-  const datos=vista?.consolidado===consolidado && vista.etapa===etapaActiva ? vista : undefined;
+  const datos=vista?.consolidado===consolidado && vista.etapa===etapaActiva && vista.caso===caso ? vista : undefined;
   async function pedir(destino?:ComandoDestino,revision=datos?.revision) {
     if (bloqueo.current || (destino && suspendida)) return;
     bloqueo.current=true;setOcupado(true);setError("");setMensaje("");
@@ -30,7 +31,8 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     const control=new AbortController();if (!destino) lectura.current=control;
     try {
       const res=await fetch(API_PRACTICA+"china",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",redirect:"error",
-        signal:destino ? undefined : control.signal,body:JSON.stringify({espacio,etapa:etapaActiva,consolidado,revision,destino})});
+        signal:destino ? undefined : control.signal,body:JSON.stringify({espacio,etapa:etapaActiva,consolidado,caso,revision,destino})});
+      if(res.status===413){setReintento(undefined);throw new Error("Acorta el motivo inventado y vuelve a confirmar; el avance anterior se conserva.");}
       const resultado=await res.json();
       if (!res.ok) {
         if (res.status===401 || res.status===403) {setVista(undefined);setReintento(undefined);void onRevalidarPermisos();}
@@ -42,7 +44,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
       if (!destino) setReintento(actual=>actual ? {...actual,revision:resultado.revision} : undefined);
       if (destino) {setReintento(undefined);setConfirmacion(null);setCodigo("");setMensaje("Operación ficticia confirmada. El avance está guardado en tu práctica.");}
     } catch(e) {
-      if (!control.signal.aborted && montado.current) setError(e instanceof TypeError ? "No pudimos comprobar el resultado. Reintenta la misma operación para recuperar su avance." : e instanceof Error ? e.message : "Servicio de práctica indisponible.");
+      if (!control.signal.aborted && montado.current) setError(e instanceof TypeError || e instanceof SyntaxError ? "No pudimos comprobar el resultado. Reintenta la misma operación para recuperar su avance." : e instanceof Error ? e.message : "Servicio de práctica indisponible.");
     } finally {
       bloqueo.current=false;
       if (destino) onBloqueoSalida(false);
@@ -53,7 +55,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     montado.current=true;let vigente=true;
     queueMicrotask(()=>{if(vigente)void pedir();});
     return ()=>{vigente=false;montado.current=false;lectura.current?.abort();};
-  },[espacio,etapaActiva,consolidado]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[espacio,etapaActiva,consolidado,caso]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{if(error)aviso.current?.focus();},[error]);
   useEffect(()=>{
     const prevenir=(e:BeforeUnloadEvent)=>{if(bloqueo.current){e.preventDefault();e.returnValue="";}};
@@ -61,13 +63,16 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
   },[]);
   function actuar(accion:ComandoDestino["accion"],extra:Partial<ComandoDestino>={}) {
     if (!datos || reintento) return;
-    void pedir({id:crypto.randomUUID(),accion,consolidado:datos.consolidado,...extra});
+    void pedir({id:crypto.randomUUID(),accion,consolidado:datos.consolidado,caso,...extra});
   }
   const inhabilitado=ocupado || suspendida || !!reintento;
   return <section className={estilos.facturacion} aria-labelledby="titulo-destino">
     <h2 id="titulo-destino">Viajes parciales y recepción física de práctica</h2>
-    <p>Simulación · Datos inventados. Estos dos viajes pertenecen a la compra de China y conservan sus cajas de origen. El caso financiero preparado pertenece a otro embarque: este ejercicio no crea ni emite una preorden.</p>
+    <p>Simulación · Datos inventados. {caso==="preparado" ? "Caso preparado personal: cuatro cajas ya recibidas y estibadas para practicar tu etapa." : "Desde tu recepción en China: los dos viajes conservan sus cajas de origen."} Este ejercicio conserva independiente el caso financiero y no crea ni emite una preorden.</p>
     <div className={estilos.acciones}>
+      <label>Ejercicio de destino <select aria-label="Ejercicio de destino" value={caso} disabled={ocupado || !!reintento} onChange={e=>setCaso(e.target.value as CasoDestino)}>
+        <option value="china">Desde mi recepción en China</option><option value="preparado">Caso preparado para mi etapa</option>
+      </select></label>
       <label>Vista de destino <select aria-label="Vista de destino" value={etapaActiva} disabled={ocupado || !!reintento} onChange={e=>setEtapa(e.target.value as EtapaLecturaChina)}>
         {permisos.some(p=>p.id==="shipments") && <option value="shipments">Embarques de práctica</option>}
         {permisos.some(p=>p.id==="ve") && <option value="ve">Recepción física VE de práctica</option>}
@@ -85,6 +90,8 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     {mensaje && <p role="status">{mensaje}</p>}
     {reintento && !ocupado && <button type="button" disabled={suspendida} onClick={()=>void pedir(reintento.comando,reintento.revision)}>Reintentar la misma operación de destino</button>}
     {datos && <>
+      {datos.caso==="preparado" && <p>Plantilla personal preparada para {datos.preparadoPara==="ve" ? "Recepción física VE, con dos viajes en tránsito" : "Embarques, con dos viajes listos para despachar"}. Tu ejercicio desde cero se conserva por separado.</p>}
+      {!datos.edicion && <p>Solo consulta: puedes revisar las cajas y su estado con tu permiso vigente.</p>}
       <h3>{datos.consolidado} · {etapaActiva==="ve" ? "Recepción física VE" : "Embarques"}</h3>
       {!datos.cajas.length && <p>Todavía no hay cajas montadas en este consolidado. Completa la recepción y estiba de esta compra en China.</p>}
       {datos.viaje && <p role="status" aria-label="Estado del viaje">{estados[datos.viaje.estado]} · Recepción física: {datos.viaje.recibidas.length} de {datos.viaje.cajas.length} cajas.</p>}

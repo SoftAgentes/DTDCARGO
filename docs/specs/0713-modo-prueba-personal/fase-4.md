@@ -118,3 +118,30 @@ las tareas China se devuelven por accidente al consultar otra superficie.
 Allowlist adicional de interfaz e integración:
 - app/studio/practica/DestinoPractica.tsx
 - lib/studio/practica/__tests__/destino-integracion.test.ts
+
+Caso preparado autónomo: `caso=preparado` conserva compra, cajas y estado propios
+en `ChinaPractica.practicaDestino`, separado de `ejercicio/destino` desde cero.
+Usa el catálogo publicado de consolidados, contextualizado por caso, con compra
+PRA-COMPRA-DESTINO-001 y cajas DTD-B-99007141..44. Recepción preparada 1 contiene
+las tres primeras y lleva Frágil; recepción 2 contiene la cuarta y no lo lleva.
+La primera consulta permitida prepara atómicamente solo este caso personal:
+Embarques tiene los dos manifiestos listos para salir; VE, los dos en tránsito.
+Las consultas posteriores recuperan su estado sin sobrescribirlo. La preparación
+no ejecuta acciones CN, no cambia permisos ni crea documentos financieros.
+Cada petición/operación identifica su caso; una referencia de otro caso se rechaza.
+La lectura de consulta también puede preparar la plantilla, sin habilitar botones
+ni escrituras operativas para ese rol. El caso desde cero y otra persona no cambian.
+
+Allowlist adicional:
+- lib/studio/practica/semilla-destino.ts
+- infra/ops/tests/practica-ci.mjs
+
+El gate focal conserva la matriz completa desde China (4 combinaciones) y añade
+un recibo independiente obligatorio de perfiles nuevos preparados (Embarques,
+VE y consulta, en ambos tamaños y temas: 12 combinaciones). Cada uno entra por
+Mi perfil con su rol constante y cuenta testigo; sin precarga de sesión ni
+acciones anteriores de China/admin, sin documentos financieros nuevos.
+
+Los diálogos de reinicio financiero y operativo nombran los cinco pasos y el
+caso preparado de destino. Cancelar no envía comandos ni cambia ningún viaje;
+confirmar restablece ambos casos mediante el reinicio completo ya existente.

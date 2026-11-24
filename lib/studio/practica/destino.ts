@@ -11,7 +11,8 @@ export type PermisosDestino = {
   gestionarIncidencia: boolean;
 };
 export type AccionDestino = "embarcar" | "registrar_llegada" | "recibir_caja" | "abrir_incidencia" | "resolver_incidencia";
-export type ComandoDestino = { id: string; accion: AccionDestino; consolidado: string; caja?: string; motivo?: string };
+export type CasoDestino="china"|"preparado";
+export type ComandoDestino = { id: string; accion: AccionDestino; consolidado: string; caso?:CasoDestino; caja?: string; motivo?: string };
 export type ViajeDestino = {
   consolidado: string;
   cajas: string[];
@@ -31,7 +32,7 @@ export function semillaDestino(generacion: number): EjercicioDestino {
   return { version: "destino-1", generacion, viajes: [], solicitudes: [], eventos: [] };
 }
 export function contenidoComandoDestino(c: ComandoDestino): string {
-  return JSON.stringify({ accion: c.accion, consolidado: c.consolidado, caja: c.caja, motivo: c.motivo?.trim() });
+  return JSON.stringify({ caso:c.caso ?? "china", accion: c.accion, consolidado: c.consolidado, caja: c.caja, motivo: c.motivo?.trim() });
 }
 function permisoPara(accion: AccionDestino, p: PermisosDestino): boolean {
   switch (accion) {
@@ -121,5 +122,5 @@ export function vistaViajeDestino(actual: EjercicioDestino, consolidado: string,
     incidencia:v.incidencia ? {estado:v.incidencia.estado,
       ...(etapa === "shipments" && mostrarMotivo ? {motivo:v.incidencia.motivo,resolucion:v.incidencia.resolucion} : {})} : undefined};
 }
-export type VistaDestinoPersonal = {revision:number;generacion:number;etapa:EtapaLecturaChina;consolidado:string;
+export type VistaDestinoPersonal = {revision:number;generacion:number;etapa:EtapaLecturaChina;consolidado:string;caso:CasoDestino;preparadoPara?:EtapaLecturaChina;
   cajas:CajaChinaLectura[];incidenciaDestino:boolean;edicion:boolean;viaje:ReturnType<typeof vistaViajeDestino>};

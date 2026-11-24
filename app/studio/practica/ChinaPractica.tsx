@@ -79,7 +79,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
     </fieldset>)}
     {vista && !permisos.some(p => p.id === "invoices") && (puede("cn") || puede("naviera") || puede("shipments") || puede("ve")) && <>
       <button type="button" disabled={ocupado || !(puede("cn") || puede("naviera") || puede("shipments") || puede("ve"))} onClick={() => setConfirmar(true)}>Reiniciar mi práctica</button>
-      <ConfirmDialog open={confirmar} title="Reiniciar mi práctica" message="Se restablecerán tus cargas, facturas y pagos inventados. El historial se conserva. La práctica de otras personas no cambia." danger pending={ocupado} error={error} confirmLabel="Confirmar reiniciar" onCancel={() => setConfirmar(false)} onConfirm={() => void pedir({accion:"reiniciar",envio:"espacio"})} />
+      <ConfirmDialog open={confirmar} title="Reiniciar mi práctica" message="Se restablecerán tus facturas, pagos ficticios y el avance de China, Consolidado, Embarques y Recepción Venezuela, incluido el caso preparado de destino. El historial se conserva y la práctica de otras personas no cambia. Cancelar conserva todo el avance actual." danger pending={ocupado} error={error} confirmLabel="Confirmar reiniciar" onCancel={() => setConfirmar(false)} onConfirm={() => void pedir({accion:"reiniciar",envio:"espacio"})} />
     </>}
   </section>;
 }

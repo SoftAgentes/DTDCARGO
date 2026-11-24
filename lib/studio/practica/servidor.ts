@@ -1,5 +1,6 @@
 import { aplicarEjercicioChina, consultarEtiquetaChina, semillaEjercicioChina, proyectarCajasChina, COMPRA_CHINA, CONSOLIDADOS_CHINA, type ConsolidadoEjercicio, type EtapaLecturaChina } from "./ejercicio-china";
-import { aplicarDestino, semillaDestino, validarManifiestosDestino, vistaViajeDestino, type ComandoDestino, type VistaDestinoPersonal } from "./destino";
+import { aplicarDestino, semillaDestino, validarManifiestosDestino, vistaViajeDestino, type CasoDestino, type ComandoDestino, type VistaDestinoPersonal } from "./destino";
+import { semillaDestinoPreparado } from "./semilla-destino";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { aplicarChina, semillaChina, normalizarChina, type ChinaPractica, type ComandoChina } from "./china";
 import { aplicarFactura, semillaFacturacion, normalizarFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
@@ -150,30 +151,48 @@ export async function leerCajasChina(cfg: DestinoPractica, sesion: string, espac
   return {revision:registro.revision,generacion:registro.generacion,etapa,consolidado,cajas:proyectarCajasChina(registro.documento?.ejercicio ?? semillaEjercicioChina(),consolidado,etapa),incidenciaDestino:permiso.incidenciaDestino === true,edicion:permiso.edicion};
 }
 
-function viajesDeOrigen(documento: ChinaPractica) {
-  return CONSOLIDADOS_CHINA.map(consolidado=>({consolidado,cajas:proyectarCajasChina(documento.ejercicio ?? semillaEjercicioChina(),consolidado,"shipments").map(c=>c.codigo)}));
+function viajesDeOrigen(documento: ChinaPractica,caso:CasoDestino="china") {
+  const origen=caso === "preparado" ? documento.practicaDestino?.origen : documento.ejercicio;
+  return CONSOLIDADOS_CHINA.map(consolidado=>({consolidado,cajas:proyectarCajasChina(origen ?? semillaEjercicioChina(),consolidado,"shipments").map(c=>c.codigo)}));
 }
 export async function destinoPersonal(cfg: DestinoPractica, sesion: string, espacio: string, consolidado: ConsolidadoEjercicio,
-  etapa: EtapaLecturaChina, revision?: number, comando?: ComandoDestino, intento=0):Promise<VistaDestinoPersonal> {
+  etapa: EtapaLecturaChina, revision?: number, comando?: ComandoDestino, caso:CasoDestino="china", intento=0):Promise<VistaDestinoPersonal> {
   // El contrato común revalida identidad/capacidad y devuelve solo la vista permitida.
-  const vista=await leerCajasChina(cfg,sesion,espacio,consolidado,etapa);
+  const base=await leerCajasChina(cfg,sesion,espacio,consolidado,etapa);
   type Registro={revision:number;generacion:number;documento:ChinaPractica|null};
-  const registro=await rpc(cfg,"china",{p_sesion:huella(sesion)}) as Registro;
-  if (registro.revision !== vista.revision || registro.generacion !== vista.generacion) throw new Error("La práctica cambió. Recarga antes de continuar.");
-  const actual=registro.documento?.destino ?? semillaDestino(registro.generacion);
+  let registro=await rpc(cfg,"china",{p_sesion:huella(sesion)}) as Registro;
+  if (registro.revision !== base.revision || registro.generacion !== base.generacion) {
+    if(intento<2)return destinoPersonal(cfg,sesion,espacio,consolidado,etapa,revision,comando,caso,intento+1);
+    throw new Error("La práctica cambió. Recarga antes de continuar.");
+  }
+  if(caso === "preparado" && !registro.documento?.practicaDestino) {
+    const documento={...(registro.documento ?? semillaChina(registro.generacion)),practicaDestino:semillaDestinoPreparado(registro.generacion,etapa)};
+    const inicial=await rpc(cfg,"china",{p_sesion:huella(sesion),p_revision:registro.revision,p_documento:documento}) as Registro|null;
+    if(!inicial) {
+      if(intento<2)return destinoPersonal(cfg,sesion,espacio,consolidado,etapa,revision,comando,caso,intento+1);
+      throw new Error("La práctica cambió. Recarga antes de continuar.");
+    }
+    registro=inicial;
+  }
+  const origen=caso === "preparado" ? registro.documento!.practicaDestino!.origen : registro.documento?.ejercicio ?? semillaEjercicioChina();
+  const vista={...base,caso,revision:registro.revision,cajas:proyectarCajasChina(origen,consolidado,etapa),
+    ...(caso === "preparado" ? {preparadoPara:registro.documento!.practicaDestino!.preparadoPara} : {})};
+  const actual=(caso === "preparado" ? registro.documento!.practicaDestino!.destino : registro.documento?.destino) ?? semillaDestino(registro.generacion);
   const presentar=(estado:typeof actual,version=registro.revision):VistaDestinoPersonal=>({...vista,revision:version,
     viaje:vistaViajeDestino(estado,consolidado,etapa,vista.incidenciaDestino)});
   if (!comando) return presentar(actual);
-  if (comando.consolidado !== consolidado) throw new Error("La solicitud corresponde a otro consolidado.");
+  if (comando.consolidado !== consolidado || (comando.caso ?? "china") !== caso) throw new Error("La solicitud corresponde a otro consolidado o caso de práctica.");
+  const otroCaso=caso === "china" ? registro.documento?.practicaDestino?.destino : registro.documento?.destino;
+  if(otroCaso?.solicitudes.some(s=>s.id===comando.id))throw new Error("La referencia de solicitud pertenece a otro caso de práctica.");
   const permisos={embarcar:etapa === "shipments" && vista.edicion,registrarLlegada:etapa === "ve" && vista.edicion,
     recibirCajas:etapa === "ve" && vista.edicion,gestionarIncidencia:vista.edicion && vista.incidenciaDestino};
-  const nuevo=aplicarDestino(actual,comando,{generacion:registro.generacion,viajes:viajesDeOrigen(registro.documento ?? semillaChina(registro.generacion)),permisos,fecha:new Date().toISOString()});
+  const nuevo=aplicarDestino(actual,comando,{generacion:registro.generacion,viajes:viajesDeOrigen(registro.documento ?? semillaChina(registro.generacion),caso),permisos,fecha:new Date().toISOString()});
   if (nuevo === actual) return presentar(actual);
   if (registro.revision !== revision || !registro.documento) throw new Error("La práctica cambió. Recarga antes de continuar.");
-  const documento={...registro.documento,destino:nuevo};
+  const documento=caso === "preparado" ? {...registro.documento,practicaDestino:{...registro.documento.practicaDestino!,destino:nuevo}} : {...registro.documento,destino:nuevo};
   const guardado=await rpc(cfg,"china",{p_sesion:huella(sesion),p_revision:revision,p_documento:documento}) as Registro|null;
   if (!guardado) {
-    if (intento === 0) return destinoPersonal(cfg,sesion,espacio,consolidado,etapa,revision,comando,1);
+    if (intento < 2) return destinoPersonal(cfg,sesion,espacio,consolidado,etapa,revision,comando,caso,intento+1);
     throw new Error("La práctica cambió. Recarga antes de continuar.");
   }
   return presentar(nuevo,guardado.revision);

@@ -24,6 +24,7 @@ import { moduleCoverage } from "@/lib/studio/user-module-grants";
 import { permisosDePractica } from "../identidad";
 import { CODIGOS_CHINA, COMPRA_CHINA, CONSOLIDADOS_CHINA, type ComandoEjercicioChina } from "../ejercicio-china";
 import type { ComandoDestino } from "../destino";
+import { CAJAS_DESTINO_PREPARADO, COMPRA_DESTINO_PREPARADO } from "../semilla-destino";
 
 const real = "https://studio.example.test", prueba = "https://practica.example.test", datos = "https://datos.example.test";
 const clave = "a".repeat(64), canal = "b".repeat(64);
@@ -74,6 +75,18 @@ async function entrar(id: string) {
   expect(cookie).toMatchObject({ httpOnly:true, secure:true, sameSite:"strict", path:"/" });
   expect(cookie.domain).toBeUndefined();
   return { pase, sesion:cookie.value, vista:await canje.json() as VistaPractica };
+}
+
+async function paquetePantallaPractica() {
+    const require = createRequire(import.meta.url);
+    const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
+    const paquete = await build({ stdin:{ contents:`import {useState} from 'react'; import {EntradaPractica} from './app/studio/_components/wiring/EntradaPractica'; import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; function Perfil(){const [abierto,setAbierto]=useState(false);return <><button onClick={()=>setAbierto(true)}>Mi perfil</button>{abierto && <EntradaPractica origen='${prueba}'/>}</>}; createRoot(document.getElementById('app')).render(location.origin==='${real}'?<Perfil/>:<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
+    const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
+    const globales = readFileSync("app/globals.css","utf8");
+    const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
+    const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
+    const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
+    return {js,css};
 }
 
 describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
@@ -218,6 +231,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     usuarios.get(e.id)!.role="admin";
     expect((await (await fin()).json()).documento).toEqual(financiera.documento);
     expect(raw.documento.ejercicio?.compra).toBe(COMPRA_CHINA);
+    const preparado=await solicitar(prueba,"china",{espacio:e.cuenta.vista.espacio,etapa:"shipments",consolidado:a,caso:"preparado"},{sesion:e.cuenta.sesion});
+    const preparadoDatos=await preparado.json();expect(preparado.status).toBe(200);expect(preparadoDatos.viaje).toBeNull();
+    const despuesPreparar=await e.raw();expect(despuesPreparar.documento.ejercicio).toEqual(raw.documento.ejercicio);expect(despuesPreparar.documento.destino).toEqual(raw.documento.destino);
+    expect((await (await fin()).json()).documento).toEqual(financiera.documento);
     const otra=await entrar(usuario("admin"));
     expect((await solicitar(prueba,"china",{espacio:otra.vista.espacio,etapa:"ve",consolidado:a},{sesion:e.cuenta.sesion})).status).toBe(403);
   });
@@ -247,6 +264,51 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     const final=await carrera.raw();
     if (final.documento.destino) expect(final.documento.destino.viajes[0].cajas).toEqual(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a).map(c=>c.codigo));
     else expect(final.documento.ejercicio?.cajas.filter(c=>c.estiba?.consolidado===a)).toHaveLength(3);
+  });
+
+  it.each([
+    {rol:"operations" as const,etapa:"shipments" as const,edicion:true},
+    {rol:"warehouse" as const,etapa:"ve" as const,edicion:true},
+    {rol:"support" as const,etapa:"ve" as const,edicion:false},
+  ])("prepara una copia autónoma para $rol/$etapa sin acciones CN ni facturas",async({rol,etapa,edicion})=>{
+    ajustesPorRol.set(rol,["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id===etapa,can_edit:module_id===etapa && edicion})));
+    try {
+      const id=usuario(rol,"ve","ve"),cuenta=await entrar(id),testigo=await entrar(usuario(rol,"ve","ve")),[a,b]=CONSOLIDADOS_CHINA;
+      const leer=(sesion=cuenta.sesion,consolidado:string=a)=>solicitar(prueba,"china",{espacio:sesion===cuenta.sesion ? cuenta.vista.espacio : testigo.vista.espacio,etapa,consolidado,caso:"preparado"},{sesion});
+      const iniciales=await Promise.all([leer(),leer()]);expect(iniciales.map(r=>r.status)).toEqual([200,200]);
+      let v=await iniciales[0].json();const otra=await iniciales[1].json();expect(v).toEqual(otra);
+      expect(v.caso).toBe("preparado");expect(v.cajas.every((c:{compra:string})=>c.compra===COMPRA_DESTINO_PREPARADO)).toBe(true);
+      expect(v.cajas.map((c:{codigo:string})=>c.codigo)).toEqual(CAJAS_DESTINO_PREPARADO.slice(0,2));
+      expect(v.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],["fragil"]]);
+      const leerB=await (await leer(cuenta.sesion,b)).json();expect(leerB.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],[]]);
+      if(etapa==="ve") expect(v.viaje).toMatchObject({estado:"en_transito",recibidas:[]}); else expect(v.viaje).toBeNull();
+      const comando:ComandoDestino={id:randomUUID(),caso:"preparado",consolidado:a,accion:etapa==="shipments" ? "embarcar" : "registrar_llegada"};
+      const escribir=(destino:ComandoDestino,revision:number)=>solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa,consolidado:a,caso:"preparado",revision,destino},{sesion:cuenta.sesion});
+      const respuesta=await escribir(comando,v.revision);
+      expect(respuesta.status).toBe(edicion ? 200 : 403);
+      if(edicion) {
+        v=await respuesta.json();expect((await escribir(comando,0)).status).toBe(200);
+        if(etapa==="ve") {
+          const recibir:ComandoDestino={id:randomUUID(),caso:"preparado",consolidado:a,accion:"recibir_caja",caja:CAJAS_DESTINO_PREPARADO[0]};
+          const recibida=await escribir(recibir,v.revision);expect(recibida.status).toBe(200);v=await recibida.json();
+          expect(v.viaje.recibidas).toEqual([CAJAS_DESTINO_PREPARADO[0]]);
+        }
+      }
+      expect(await (await leer()).json()).toEqual(v);
+      const sinFuente=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa,consolidado:a,caso:"china"},{sesion:cuenta.sesion});
+      expect((await sinFuente.json()).cajas).toEqual([]);
+      const crudo=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:etapa},{sesion:cuenta.sesion});
+      const texto=JSON.stringify(await crudo.json());for(const privado of ["practicaDestino","ejercicio","tareas","PRA-CARTA-001"])expect(texto).not.toContain(privado);
+      const testigoInicial=await (await leer(testigo.sesion)).json();
+      expect(testigoInicial.viaje).toEqual(etapa==="ve" ? {...v.viaje,estado:"en_transito",recibidas:[]} : null);
+      const finPrivado=await db.query<{valor:unknown}>("select public.practica_facturacion($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);
+      expect(finPrivado.rows[0].valor).toBeNull();
+      const origenPrivado=await db.query<{valor:{documento:import("../china").ChinaPractica}}>("select public.practica_china($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(cuenta.sesion).digest("hex")]);
+      expect(origenPrivado.rows[0].valor.documento.ejercicio?.recepciones).toEqual([]);
+      expect(origenPrivado.rows[0].valor.documento.destino).toBeUndefined();
+      const ajena=await solicitar(prueba,"china",{espacio:testigo.vista.espacio,etapa,consolidado:a,caso:"preparado"},{sesion:cuenta.sesion});expect(ajena.status).toBe(403);
+      expect(usuarios.get(id)).toMatchObject({role:rol,region:"ve",warehouse_scope:"ve"});
+    } finally {ajustesPorRol.delete(rol);}
   });
 
   it("indisponibilidad de origen/base y respuestas inválidas no se convierten en revocación", async () => {
@@ -589,15 +651,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
 
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
   it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
-    const require = createRequire(import.meta.url);
-    const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
     const { chromium, expect: esperar } = await import("@playwright/test");
-    const paquete = await build({ stdin:{ contents:`import {useState} from 'react'; import {EntradaPractica} from './app/studio/_components/wiring/EntradaPractica'; import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; function Perfil(){const [abierto,setAbierto]=useState(false);return <><button onClick={()=>setAbierto(true)}>Mi perfil</button>{abierto && <EntradaPractica origen='${prueba}'/>}</>}; createRoot(document.getElementById('app')).render(location.origin==='${real}'?<Perfil/>:<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
-    const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
-    const globales = readFileSync("app/globals.css","utf8");
-    const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
-    const fuentes = `@font-face {font-family:Nunito;src:url(/nunito.woff2)} @font-face {font-family:Sora;src:url(/sora.woff2)} :root{--font-nunito:Nunito;--font-sora:Sora} *{box-sizing:border-box} body{margin:0} button,input,select{font:inherit}`;
-    const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
+    const {js,css}=await paquetePantallaPractica();
     const browser = await chromium.launch({ executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(), headless:true });
     const carpeta = resolve(tmpdir(), process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-3"); mkdirSync(carpeta, { recursive:true });
     const matriz: string[] = [];
@@ -816,7 +871,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
           await esperar(vistaDestino.getByText("Observación de destino: resuelta.",{exact:true})).toBeVisible();
           const leerCajaDestino=async(codigo:string,esperarConfirmacion=true)=>{
-            const input=vistaDestino.getByLabel("Código DTD-B en destino",{exact:true});await input.fill(codigo);await input.press("Enter");
+            const input=vistaDestino.getByLabel("Código DTD-B en destino",{exact:true});await esperar(input).toHaveValue("");await input.pressSequentially(codigo);await input.press("Enter");
             if (esperarConfirmacion) await esperar(input).toHaveValue("");
           };
           await leerCajaDestino(CODIGOS_CHINA[0]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
@@ -835,7 +890,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(cajasB.nth(0)).toContainText("Frágil / 易碎");await esperar(cajasB.nth(1)).not.toContainText("Frágil");
           const payloadVe=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[1]},{sesion:sesionActual})).json();
           expect(JSON.stringify(payloadVe)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio|marca_sin_autorizacion/);
-          await p.reload();await etapaDestino.selectOption("ve");
+          await p.reload();await vistaDestino.getByLabel("Ejercicio de destino",{exact:true}).selectOption("china");await etapaDestino.selectOption("ve");
           await esperar(estadoDestino).toContainText("2 de 2 cajas");
           await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await etapaDestino.selectOption("shipments");
           await vistaDestino.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();await esperar(estadoDestino).toContainText("En tránsito");
@@ -850,6 +905,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await parcialDestino.selectOption(CONSOLIDADOS_CHINA[1]);await esperar(estadoDestino).toContainText("1 de 2 cajas");
           await leerCajaDestino(CODIGOS_CHINA[3]);await esperar(estadoDestino).toContainText("Recepción física completa · Recepción física: 2 de 2 cajas");
           await p.screenshot({path:resolve(carpeta,`destino-parciales-${width}${sufijo}.png`),fullPage:true});
+          const preparadoAntesCancelar=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"shipments",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toContainText("Embarques y Recepción Venezuela, incluido el caso preparado de destino");
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await esperar(estadoDestino).toContainText("2 de 2 cajas");
+          expect(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"shipments",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json()).toEqual(preparadoAntesCancelar);
           usuarios.get(cuentaId)!.role="admin";
           expect((await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json()).documento).toEqual(finAntesDestino.documento);
           usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";usuarios.get(cuentaId)!.warehouse_scope="cn";
@@ -1063,8 +1125,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Concepto 4",{exact:true}).fill("Embalaje ficticio");
           await p.getByLabel("Precio USD 4",{exact:true}).fill("12.34");
           await guardar.click(); await esperar(guardar).toBeEnabled();
+          let preparadoFin=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json();
+          for(const accion of ["registrar_llegada","recibir_caja"] as const){
+            const r=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado",revision:preparadoFin.revision,
+              destino:{id:randomUUID(),caso:"preparado",consolidado:CONSOLIDADOS_CHINA[0],accion,...(accion==="recibir_caja" ? {caja:CAJAS_DESTINO_PREPARADO[0]} : {})}},{sesion:sesionActual});
+            expect(r.status).toBe(200);preparadoFin=await r.json();
+          }
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toContainText("Embarques y Recepción Venezuela, incluido el caso preparado de destino");
           await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          expect(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:sesionActual})).json()).toEqual(preparadoFin);
           await p.reload();
           await esperar(p.getByLabel("Concepto 4",{exact:true})).toHaveValue("Embalaje ficticio");
           await esperar(p.getByText(/Total guardado:.*312,34/)).toBeVisible();
@@ -1245,7 +1315,111 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
       }
       if (process.env.PRACTICA_RECIBO) writeFileSync(process.env.PRACTICA_RECIBO,JSON.stringify(matriz));
     } finally { await browser.close(); }
-  }, 120000);
+  }, 240000);
+
+  it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("perfiles nuevos practican destino preparado sin acciones previas de China",async()=>{
+    const {chromium,expect:esperar}=await import("@playwright/test");
+    const {js,css}=await paquetePantallaPractica();
+    const browser=await chromium.launch({executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(),headless:true});
+    const carpeta=resolve(tmpdir(),process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-4");mkdirSync(carpeta,{recursive:true});
+    const matriz:string[]=[];
+    const perfiles=[{rol:"operations" as const,etapa:"shipments" as const,edicion:true},{rol:"warehouse" as const,etapa:"ve" as const,edicion:true},{rol:"support" as const,etapa:"ve" as const,edicion:false}];
+    try {
+      for(const perfil of perfiles)for(const width of [390,1280])for(const tema of ["light","dark"]){
+        ajustesPorRol.set(perfil.rol,["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id===perfil.etapa,can_edit:module_id===perfil.etapa && perfil.edicion})));
+        const id=usuario(perfil.rol,"ve","ve"),idTestigo=usuario(perfil.rol,"ve","ve");
+        async function abrirPerfilFijo(sujeto:string){
+          const navegador=await browser.newContext({viewport:{width,height:900},hasTouch:width===390,isMobile:width===390,serviceWorkers:"block"});
+          await navegador.addInitScript(tema=>{const aplicar=()=>{document.documentElement.dataset.theme=tema;};if(document.documentElement)aplicar();else document.addEventListener("DOMContentLoaded",aplicar,{once:true});},tema);
+          let sesion="",comandosCn=0,finanzas=0;
+          const inesperadas:string[]=[];
+          let entregar:(cuenta:Awaited<ReturnType<typeof entrar>>)=>void=()=>{throw new Error("No se preparó el receptor del canje.");};
+          const canje=new Promise<Awaited<ReturnType<typeof entrar>>>(resolver=>{entregar=resolver;});
+          await navegador.route("**/*",async ruta=>{
+            const req=ruta.request(),u=new URL(req.url());
+            if([real,prueba].includes(u.origin) && u.pathname==="/app.js")return ruta.fulfill({contentType:"application/javascript",body:js});
+            if([real,prueba].includes(u.origin) && u.pathname==="/app.css")return ruta.fulfill({contentType:"text/css",body:css});
+            if([real,prueba].includes(u.origin) && ["/nunito.woff2","/sora.woff2"].includes(u.pathname))return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname==="/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
+            if(u.origin===real && u.pathname==="/studio/perfil" || u.origin===prueba && u.pathname==="/studio/practica")return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
+            if(u.origin===real && u.pathname===API_PRACTICA+"emitir"){
+              const r=await solicitar(real,"emitir",{},{usuario:sujeto});return ruta.fulfill({status:r.status,json:await r.json()});
+            }
+            if(u.origin===prueba && u.pathname===API_PRACTICA+"canjear"){
+              const r=await solicitar(prueba,"canjear",req.postDataJSON()),vista=await r.json(),cookie=r.cookies.get(COOKIE_PRACTICA);
+              if(r.status!==200 || !cookie || !vista.espacio)throw new Error("El canje no confirmó la copia personal.");
+              sesion=cookie.value;entregar({pase:req.postDataJSON().pase,sesion,vista});return ruta.fulfill({status:r.status,json:vista});
+            }
+            if(u.origin===prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])){
+              if(req.postDataJSON()?.comando?.accion==="ejercicio")comandosCn++;
+              if(u.pathname===API_PRACTICA+"facturacion")finanzas++;
+              const r=await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesion,req.headers().origin);
+              return ruta.fulfill({status:r.status,json:await r.json()});
+            }
+            inesperadas.push(req.method()+" "+u.href);return ruta.abort();
+          });
+          const origen=await navegador.newPage();await origen.goto(real+"/studio/perfil");await origen.getByRole("button",{name:"Mi perfil",exact:true}).click();
+          const apertura=origen.waitForEvent("popup");await origen.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
+          const pagina=await apertura,cuenta=await canje;
+          const region=pagina.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true});
+          await esperar(region.getByLabel("Ejercicio de destino",{exact:true})).toHaveValue("preparado");
+          await esperar(region.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          return {navegador,pagina,region,cuenta,comprobar:()=>{expect(comandosCn).toBe(0);expect(finanzas).toBe(0);expect(inesperadas).toEqual([]);}};
+        }
+        const propia=await abrirPerfilFijo(id),testigo=await abrirPerfilFijo(idTestigo);
+        try {
+          expect(propia.cuenta.vista.espacio).not.toBe(testigo.cuenta.vista.espacio);
+          const {pagina,region}=propia;
+          await esperar(pagina.getByRole("region",{name:"China de principio a fin",exact:true})).toHaveCount(0);
+          await esperar(region.getByLabel("Vista de destino",{exact:true})).toHaveValue(perfil.etapa);
+          await esperar(region.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(2);
+          const selector=region.getByLabel("Consolidado de destino",{exact:true}),estado=region.getByRole("status",{name:"Estado del viaje",exact:true});
+          await selector.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
+          await esperar(region.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(1);
+          await selector.selectOption(CONSOLIDADOS_CHINA[0]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[0])})).toBeVisible();
+          if(!perfil.edicion){
+            await esperar(region.getByText("Solo consulta: puedes revisar las cajas y su estado con tu permiso vigente.",{exact:true})).toBeVisible();
+            await esperar(region.getByRole("button",{name:/^(Embarcar|Registrar llegada|Recibir caja|Registrar observación|Resolver observación)/})).toHaveCount(0);
+            expect((await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:perfil.etapa,consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado",revision:0,
+              destino:{id:randomUUID(),caso:"preparado",consolidado:CONSOLIDADOS_CHINA[0],accion:"registrar_llegada"}},{sesion:propia.cuenta.sesion})).status).toBe(403);
+          }else if(perfil.etapa==="shipments"){
+            await region.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true}).click();await esperar(estado).toContainText("En tránsito");
+            await esperar(testigo.region.getByRole("button",{name:"Embarcar este parcial de práctica",exact:true})).toBeEnabled();
+            await esperar(region.getByLabel("Vista de destino",{exact:true}).locator("option[value=ve]")).toHaveCount(0);
+          }else{
+            await esperar(estado).toContainText("En tránsito");
+            await region.getByRole("button",{name:"Registrar llegada física de este parcial",exact:true}).click();
+            await esperar(estado).toContainText("Llegada física registrada");
+            await region.getByRole("button",{name:"Registrar observación aduanal ficticia",exact:true}).click();
+            await pagina.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Observación logística preparada de muestra");
+            await pagina.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();
+            await esperar(region.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
+            await region.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
+            await pagina.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión inventada confirmada en destino");
+            await pagina.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
+            const recibir=async(codigo:string)=>{const input=region.getByLabel("Código DTD-B en destino",{exact:true});await esperar(input).toHaveValue("");await input.pressSequentially(codigo);await input.press("Enter");await esperar(input).toHaveValue("");};
+            await recibir(CAJAS_DESTINO_PREPARADO[0]);await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            await recibir(CAJAS_DESTINO_PREPARADO[1]);await esperar(estado).toContainText("Recepción física completa");
+            await esperar(testigo.region.getByRole("status",{name:"Estado del viaje",exact:true})).toContainText("En tránsito");
+          }
+          await pagina.reload();
+          await esperar(region.getByRole("list",{name:"Cajas del viaje",exact:true}).getByRole("listitem")).toHaveCount(2);
+          if(perfil.edicion)await esperar(estado).toContainText(perfil.etapa==="ve" ? "2 de 2 cajas" : "En tránsito");
+          await selector.selectOption(CONSOLIDADOS_CHINA[1]);
+          await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
+          if(perfil.etapa==="ve")await esperar(estado).toContainText("En tránsito · Recepción física: 0 de 2 cajas");else await esperar(estado).toHaveCount(0);
+          await region.screenshot({path:resolve(carpeta,`preparado-${perfil.rol}-${width}-${tema}.png`)});
+          expect(await pagina.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+          const ajena=await solicitar(prueba,"china",{espacio:testigo.cuenta.vista.espacio,etapa:perfil.etapa,consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion});expect(ajena.status).toBe(403);
+          const financieros=await db.query<{valor:unknown}>("select public.practica_facturacion($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(propia.cuenta.sesion).digest("hex")]);expect(financieros.rows[0].valor).toBeNull();
+          propia.comprobar();testigo.comprobar();expect(usuarios.get(id)).toMatchObject({role:perfil.rol,region:"ve",warehouse_scope:"ve"});
+          const recibo=`${perfil.rol}-${perfil.etapa}-${width}-${tema}`;matriz.push(recibo);console.log(`PASÓ perfil preparado ${recibo}: Mi perfil, copia nueva, testigo intacto, sin acciones China ni facturas.`);
+        }finally{await propia.navegador.close();await testigo.navegador.close();ajustesPorRol.delete(perfil.rol);}
+      }
+      if(process.env.PRACTICA_RECIBO)writeFileSync(process.env.PRACTICA_RECIBO+".preparados.json",JSON.stringify(matriz));
+    }finally{await browser.close();}
+  },180000);
 
   it("rechaza acceso anónimo, otro sitio, canal inválido, y fallos de comunicación", async () => {
     expect((await solicitar(real,"emitir",{})).status).toBe(403);

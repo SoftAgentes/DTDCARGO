@@ -11,7 +11,7 @@ import { canalValido, emitirEnDestino, reservar, canjear, consultarPractica, cer
 import { facturacionPersonal } from "@/lib/studio/practica/servidor";
 import type { ComandoFactura } from "@/lib/studio/practica/facturacion";
 import { chinaPersonal, destinoPersonal } from "@/lib/studio/practica/servidor";
-import type { ComandoDestino } from "@/lib/studio/practica/destino";
+import type { CasoDestino, ComandoDestino } from "@/lib/studio/practica/destino";
 import type { ComandoChina } from "@/lib/studio/practica/china";
 import { leerCuerpoFinanciero, MAX_CUERPO_ACCESO } from "@/lib/studio/practica/cuerpo";
 
@@ -82,14 +82,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
     }
     if (operacion === "china") {
       if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);
-      const { comando, revision, modulo, consulta, etapa, consolidado, destino } = datos.body;
+      const { comando, revision, modulo, consulta, etapa, consolidado, destino, caso } = datos.body;
+      if(caso !== undefined && (caso !== "china" && caso !== "preparado" || etapa === undefined)) return json(null,400);
       if (consulta !== undefined && (typeof consulta !== "string" || consulta.length > 512 || comando !== undefined)) return json(null,400);
       if (etapa !== undefined && ((etapa !== "shipments" && etapa !== "ve") || !CONSOLIDADOS_CHINA.includes(consolidado as ConsolidadoEjercicio) || comando !== undefined || consulta !== undefined)) return json(null,400);
       if (etapa === undefined && modulo !== "cn" && modulo !== "naviera" && modulo !== "shipments" && modulo !== "ve") return json(null, 400);
       if (destino !== undefined && (!etapa || !destino || typeof destino !== "object" || Array.isArray(destino) || !Number.isSafeInteger(revision))) return json(null,400);
       if (comando !== undefined && (!comando || typeof comando !== "object" || !Number.isSafeInteger(revision))) return json(null, 400);
       try {
-        if (etapa === "shipments" || etapa === "ve") return json(await destinoPersonal(cfg,sesion,esperado,consolidado as ConsolidadoEjercicio,etapa,revision as number|undefined,destino as ComandoDestino|undefined));
+        if (etapa === "shipments" || etapa === "ve") return json(await destinoPersonal(cfg,sesion,esperado,consolidado as ConsolidadoEjercicio,etapa,revision as number|undefined,destino as ComandoDestino|undefined,caso as CasoDestino|undefined));
         return json(await chinaPersonal(cfg, sesion, esperado, modulo as "cn" | "naviera" | "shipments" | "ve", revision as number | undefined, comando as ComandoChina | undefined, consulta as string | undefined));
       } catch (error) {
         const texto = error instanceof Error ? error.message : "";
