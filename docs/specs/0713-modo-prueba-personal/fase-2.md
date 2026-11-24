@@ -33,19 +33,34 @@ Allowlist exacta:
 - `docs/specs/0713-modo-prueba-personal/fase-2.md`
 - `docs/specs/0713-modo-prueba-personal/spec.md`
 - `.agents/handoffs/task_93d94bbf6612.md`
+- `.agents/handoffs/task_e275a30d5f9a.md`
 - `lib/studio/practica/facturacion.ts`
 - `lib/studio/practica/servidor.ts`
 - `lib/studio/practica/config.ts`
 - `lib/studio/practica/identidad.ts`
+- `lib/studio/practica/cuerpo.ts`
 - `lib/studio/practica/__tests__/acceso.test.ts`
 - `lib/studio/practica/__tests__/facturacion.test.ts`
 - `infra/ops/staging/practica-facturacion.sql`
 - `infra/ops/staging/practica-traefik.yml.tmpl`
 - `infra/ops/tests/practica-frontera.mjs`
+- `infra/ops/tests/practica-p2.node.ts`
 - `app/api/practica/[operacion]/route.ts`
 - `app/studio/practica/PracticaPersonal.tsx`
 - `app/studio/practica/FacturacionPractica.tsx`
 - `app/studio/practica/practica.module.css`
+
+Revisión P2 de #811 sobre `0f9215395`: conservar editor y foco durante
+revalidación de la misma identidad y permisos, sin interacción pendiente;
+descartar el detalle al perder autorización o cambiar identidad/permisos de
+Facturación. El precio usa `NumericInput` canónico, con texto corregible y
+validación nativa antes de guardar o emitir. El cuerpo financiero admite 24 KiB:
+20 conceptos de 100 unidades UTF-16 incluso escapadas (hasta 12000 bytes),
+metadatos de líneas y motivo de 500 unidades escapadas, con margen acotado.
+Se cuentan bytes del stream, aunque Content-Length falte o mienta. Las otras
+operaciones conservan 2048 bytes, también en Traefik. Los tres P2 requieren
+regresiones de API y navegador sobre la nueva cabeza; solo se ejecutan controles
+ligeros en este turno, cedido a fase 3.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.
@@ -55,6 +70,14 @@ SQL exclusivamente para base desechable después del bootstrap; nunca aplicado e
 servidores compartidos. Apertura, integración y despliegue quedan al Director.
 
 ## Evidencia local
+
+Seguimiento de la base `0f9215395`: 22 pruebas focales aprobadas, cero omisiones,
+incluido Chromium a 390/1280 px y temas claro/oscuro (2026-11-24, 14:43 Caracas).
+El canónico de ese seguimiento pasó harness, lint, RSC, tipos y edge-functions;
+se interrumpió durante la suite general al recibirse el dictamen de tres P2,
+para liberar el turno de fase 3. Esto no acredita los cambios posteriores P2.
+Su recibo, las seis pruebas ligeras aprobadas y la validación pendiente de la
+nueva cabeza se separan en [el handoff de correcciones](../../../.agents/handoffs/task_e275a30d5f9a.md).
 
 - `PRACTICA_NAVEGADOR=1 pnpm exec vitest run lib/studio/practica/__tests__ --maxWorkers=1`:
   20 pruebas pasaron, sin omisiones, sobre el árbol sin commit anterior al ajuste

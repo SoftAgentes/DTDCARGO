@@ -35,7 +35,6 @@ export function aplicarFactura(actual: FacturacionPractica, comando: ComandoFact
       break;
     }
     case "emitir":
-      if (f.estado === "emitida" || f.estado === "pagada") return siguiente;
       if (f.estado !== "borrador") throw new Error("Solo se emiten borradores.");
       f.estado = "emitida"; break;
     case "anular":

@@ -22,7 +22,8 @@ describe("misma carga hasta Venezuela", () => {
     const emitida = aplicarFactura(editada,{accion:"emitir",codigo:"PRA-PRE-001"});
     expect(emitida.facturas[0]).toMatchObject({codigo:"PRA-PRE-001",cliente:"DTD-PRA-001",estado:"emitida",lineas});
     expect(emitida.facturas[1]).toEqual(inicial.facturas[1]);
-    expect(aplicarFactura(emitida,{accion:"emitir",codigo:"PRA-PRE-001"})).toEqual(emitida);
+    expect(() => aplicarFactura(emitida,{accion:"emitir",codigo:"PRA-PRE-001"})).toThrow();
+    expect(emitida.facturas).toHaveLength(2);
     expect(() => aplicarFactura(emitida,{accion:"guardar",codigo:"PRA-PRE-001",lineas})).toThrow();
     const pagada = aplicarFactura(emitida,{accion:"pagar",codigo:"PRA-PRE-001"});
     expect(() => aplicarFactura(pagada,{accion:"anular",codigo:"PRA-PRE-001",motivo:"Correcci?n ficticia"})).toThrow();

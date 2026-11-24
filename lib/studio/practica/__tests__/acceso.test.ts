@@ -33,6 +33,7 @@ const contexto = new AsyncLocalStorage<{ sitio: string; usuario?: string }>();
 const tenant = randomUUID();
 const usuarios = new Map<string, { role: StudioUserRole; warehouse_scope: string; disabled: boolean }>();
 const extras = new Map<string, { user_id: string; module_id: string; can_view: boolean; can_edit: boolean; expires_at: string }>();
+const ajustesPorRol = new Map<string, { module_id: string; can_view: boolean; can_edit: boolean }[]>();
 const dbOrigen = vi.hoisted(() => ({ cliente: vi.fn(), admin: vi.fn(), acceso: vi.fn() }));
 vi.mock("@/lib/db/server", () => ({ createClient: dbOrigen.cliente }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: dbOrigen.admin }));
@@ -43,11 +44,11 @@ function usuario(role: StudioUserRole, scope = "all") {
   usuarios.set(id, { role, warehouse_scope: scope, disabled: false });
   return id;
 }
-function solicitar(sitio: string, op: string, body: object, opc: { usuario?: string; sesion?: string; headers?: Record<string,string> } = {}) {
+function solicitar(sitio: string, op: string, body: object, opc: { usuario?: string; sesion?: string; headers?: Record<string,string>; texto?: string } = {}) {
   const headers = { "Content-Type":"application/json", Host: new URL(sitio).host, Origin:sitio,
     ...(opc.sesion ? { Cookie: COOKIE_PRACTICA + "=" + opc.sesion } : {}), ...opc.headers };
   return contexto.run({ sitio, usuario: opc.usuario }, () => POST(new NextRequest(sitio + API_PRACTICA + op,
-    { method:"POST", headers, body: JSON.stringify(body) }), { params: Promise.resolve({ operacion:op }) }));
+    { method:"POST", headers, body: opc.texto ?? JSON.stringify(body) }), { params: Promise.resolve({ operacion:op }) }));
 }
 async function frontera(sitio: string, op: string, body: object, sesion: string, origin: string) {
   const request = new NextRequest(sitio + API_PRACTICA + op, {method:"POST",headers:{Host:new URL(sitio).host,Origin:origin,"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -106,7 +107,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             expect(["studio_role_module_overrides","studio_user_module_grants"]).toContain(tabla);
             expect(filtros.tenant_id).toBe(tenant);
             const extra = tabla === "studio_user_module_grants" && extras.get(String(filtros.user_id));
-            recibir({ data:extra ? [extra] : [], error:null });
+            recibir({ data:tabla === "studio_role_module_overrides" ? (ajustesPorRol.get(String(filtros.role)) ?? []) : extra ? [extra] : [], error:null });
           },
         };
         return cadena;
@@ -334,6 +335,49 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op({modulo:"ve"})).status).toBe(403);
   });
 
+  it("recarga permisos operativos separados y conserva solo las lecturas autorizadas", async () => {
+    const id=usuario("operations"), cuenta=await entrar(id);
+    const op=(body: object={})=>frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",...body},cuenta.sesion,prueba);
+    const ajustes=(cn:boolean, naviera:boolean, verCn=true)=>ajustesPorRol.set("operations",[{module_id:"cn",can_view:verCn,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera}]);
+    try {
+      ajustes(false,true);
+      let v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"cn",edicion:false},{id:"naviera",edicion:true}]);
+      expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(403);
+      const c=await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}});expect(c.status).toBe(200);
+      ajustes(true,false); v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"cn",edicion:true},{id:"naviera",edicion:false}]);
+      expect((await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}})).status).toBe(403);
+      expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(200);
+      ajustes(false,false,false); v=await (await op()).json();
+      expect(v.permisos).toEqual([{id:"naviera",edicion:false}]);
+      expect(v.documento.cargas[1].estado).toBe("recibida");
+      expect((await op({revision:v.revision,comando:{accion:"reiniciar",envio:"espacio"}})).status).toBe(403);
+      usuarios.get(id)!.disabled=true; expect((await op()).status).toBe(403);
+    } finally { ajustesPorRol.delete("operations"); }
+  });
+
+  it("admite 20 conceptos de 100 caracteres con UTF-8 y escapes, y limita bytes reales", async () => {
+    const cuenta = await entrar(usuario("accounting"));
+    let revision = 0;
+    for (const concepto of ["中".repeat(100), "\u0001".repeat(100)]) {
+      const body = {espacio:cuenta.vista.espacio,revision,comando:{accion:"guardar",codigo:"PRA-PRE-001",lineas:Array.from({length:20},()=>({concepto,cantidad:1,centavos:1}))}};
+      const texto = JSON.stringify(body);
+      expect(Buffer.byteLength(texto)).toBeGreaterThan(2048);
+      const res = await solicitar(prueba,"facturacion",body,{sesion:cuenta.sesion,texto,headers:{"Content-Length":"1"}});
+      expect(res.status).toBe(200);
+      const datos = await res.json();
+      expect(datos.documento.facturas[0].lineas).toHaveLength(20);
+      expect(datos.documento.facturas[0].lineas[0].concepto).toBe(concepto);
+      revision = datos.revision;
+    }
+    const grande = JSON.stringify({espacio:cuenta.vista.espacio,relleno:"x".repeat(24576)});
+    const res = await solicitar(prueba,"facturacion",{}, {sesion:cuenta.sesion,texto:grande,headers:{"Content-Length":"1"}});
+    expect(res.status).toBe(413);
+    expect((await res.json()).error).toContain("tus cambios siguen en el editor");
+    expect((await solicitar(prueba,"estado",{}, {sesion:cuenta.sesion,texto:JSON.stringify({relleno:"x".repeat(2048)})})).status).toBe(413);
+  });
+
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
   it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
     const require = createRequire(import.meta.url);
@@ -351,10 +395,22 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
         let cuenta: Awaited<ReturnType<typeof entrar>>;
+        let sesionActual = "";
+        let demorarEstado = false;
+        let liberarEstados: (() => void)[] = [];
+        let lecturasFactura = 0;
+        let escriturasFactura = 0;
         const sufijo = tema === "light" ? "" : "-dark";
         const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
         const inesperadas: string[] = [];
-
+        let demora: {accion:string; avisar:()=>void; esperar:Promise<void>} | undefined;
+        const demorar=(accion:string)=>{
+          let avisar!:()=>void, liberar!:()=>void;
+          const observada=new Promise<void>(r=>{avisar=r;});
+          const esperar=new Promise<void>(r=>{liberar=r;});
+          demora={accion,avisar,esperar}; return {observada,liberar};
+        };
+        let salidas=0;
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
           if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
@@ -373,11 +429,19 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           if (u.origin === prueba && u.pathname === API_PRACTICA + "canjear") {
             const r = await solicitar(prueba,"canjear",req.postDataJSON());
             const vista = await r.json();
-            cuenta = {pase:req.postDataJSON().pase,sesion:r.cookies.get(COOKIE_PRACTICA)!.value,vista};
+            cuenta = {pase:req.postDataJSON().pase,sesion:r.cookies.get(COOKIE_PRACTICA)!.value,vista}; sesionActual = cuenta.sesion;
             return ruta.fulfill({status:r.status,json:vista});
           }
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
-            const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),cuenta.sesion,req.headers().origin);
+            if (u.pathname === API_PRACTICA+"estado" && demorarEstado) await new Promise<void>(resolver => liberarEstados.push(resolver));
+            if (u.pathname === API_PRACTICA+"facturacion") {
+              if (req.postDataJSON().comando) escriturasFactura++; else lecturasFactura++;
+            }
+            const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesionActual,req.headers().origin);
+            if (u.pathname.endsWith("/salir")) salidas++;
+            if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
+              const actual=demora; demora=undefined; actual.avisar(); await actual.esperar;
+            }
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
@@ -394,7 +458,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          const recepcionDemorada=demorar("recibir");
           await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
+          await recepcionDemorada.observada;
+          const salida=p.getByRole("button",{name:"Volver al Studio real",exact:true});
+          await esperar(salida).toBeDisabled();
+          await salida.evaluate((el:HTMLButtonElement)=>el.click());
+          expect(salidas).toBe(0);
+          await esperar(p.getByRole("status").filter({hasText:"Guardando o consultando"})).toBeVisible();
+          recepcionDemorada.liberar();
+          await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.reload();
           const avanzada=p.locator("fieldset").filter({has:p.locator("legend",{hasText:"PRA-EMB-001"})});
@@ -412,7 +485,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          const reinicioDemorado=demorar("reiniciar");
           await p.getByRole("button",{name:"Confirmar reiniciar",exact:true}).click();
+          await reinicioDemorado.observada; await esperar(salida).toBeDisabled();
+          reinicioDemorado.liberar(); await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           // La pestaña anterior conserva su revisión; el servidor rechaza su escritura.
           await otraPestana.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
@@ -423,10 +499,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.screenshot({path:resolve(carpeta,`reinicio-almacen-${width}${sufijo}.png`),fullPage:true});
           usuarios.get(cuentaId)!.role="admin";
           await p.reload();
+          const consolidacionDemorada=demorar("consolidar");
           await p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true}).click();
+          await consolidacionDemorada.observada; await esperar(salida).toBeDisabled();
+          consolidacionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await esperar(avanzada).toContainText("PRA-CON-001");
           await p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
+          const identificacionDemorada=demorar("identificar");
           await p.getByRole("button",{name:"Identificar con marca ficticia",exact:true}).click();
+          await identificacionDemorada.observada; await esperar(salida).toBeDisabled();
+          identificacionDemorada.liberar(); await esperar(salida).toBeEnabled();
           await p.getByRole("button",{name:"Consolidar PRA-EMB-004",exact:true}).click();
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
@@ -452,8 +534,63 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
           await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Carga propuesta");
+          // Dos razones simultáneas: terminar una no libera la otra.
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Cambio pendiente simultáneo");
+          const simultanea=demorar("recibir");
+          await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
+          await simultanea.observada; await esperar(salida).toBeDisabled();
+          await p.getByRole("button",{name:"Descartar conceptos sin guardar",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
+          await esperar(salida).toBeDisabled();
+          simultanea.liberar(); await esperar(salida).toBeEnabled();
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Otro cambio pendiente");
+          // Una lectura también mantiene el bloqueo mientras el editor está sucio.
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(salida).toBeDisabled();
+          await p.getByRole("button",{name:"Descartar conceptos sin guardar",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar conceptos",exact:true}).click();
+          await esperar(salida).toBeEnabled();
           const guardar = p.getByRole("button",{name:"Guardar conceptos",exact:true});
           await esperar(guardar).toBeEnabled();
+          // La selección de una factura distinta tampoco vuelve al valor inicial.
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
+          const estadoSeleccion = p.waitForResponse(r => r.url().endsWith("/api/practica/estado"));
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await estadoSeleccion;
+          await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-FAC-002");
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
+          await p.getByRole("button",{name:"Repartir USD 300 en tres conceptos",exact:true}).click();
+          const conceptoBorrador = p.getByLabel("Concepto 2",{exact:true});
+          await conceptoBorrador.fill("Concepto ficticio sin guardar"); await conceptoBorrador.focus();
+          const lecturasAntes = lecturasFactura;
+          demorarEstado = true;
+          const otra = await contextoBrowser.newPage(); await otra.goto("about:blank"); await otra.bringToFront(); await p.bringToFront();
+          // También fuerza la notificación de retorno en motores headless que no
+          // distinguen visibilidad entre pestañas; la petición real queda retenida.
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 2",{exact:true})).toBeDisabled();
+          demorarEstado = false; liberarEstados.forEach(liberar => liberar()); liberarEstados = [];
+          await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
+          await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
+          await esperar(conceptoBorrador).toBeFocused();
+          expect(lecturasFactura).toBe(lecturasAntes);
+          await esperar(p.getByLabel("Concepto 3",{exact:true})).toHaveCount(1);
+          await otra.close();
+          // El precio inválido se conserva y no sale por la API. El canónico
+          // acepta coma venezolana y devuelve centavos al corregir.
+          const precio = p.getByLabel("Precio USD 1",{exact:true});
+          await precio.fill("12.345"); const escriturasAntes = escriturasFactura;
+          await guardar.click(); await esperar(precio).toHaveValue("12.345");
+          await esperar(precio).toHaveAttribute("aria-invalid","true");
+          expect(escriturasFactura).toBe(escriturasAntes);
+          await precio.fill(""); await esperar(precio).toHaveValue("");
+          await precio.fill("12,"); await guardar.click(); await esperar(precio).toHaveValue("12,");
+          expect(escriturasFactura).toBe(escriturasAntes);
+          await precio.fill("12,34"); await guardar.click(); await esperar(guardar).toBeEnabled();
+          await esperar(p.getByText(/Total guardado:.*112,34/)).toBeVisible();
+          const guardadoPrecio = await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion});
+          expect((await guardadoPrecio.json()).documento.facturas[0].lineas[0].centavos).toBe(1234);
           await p.getByRole("button",{name:"Repartir USD 300 en carga y sobrepeso",exact:true}).click();
           await guardar.click(); await esperar(guardar).toBeEnabled();
           await p.reload(); await esperar(p.getByLabel("Concepto 2",{exact:true})).toHaveValue("Sobrepeso");
@@ -504,6 +641,23 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ayudaEmitir.focus(); await ayudaEmitir.press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: Emitir"])')).toHaveAttribute("open", "");
           await ayudaEmitir.press("Enter");
+          // Recorte sin cerrar sesión, dos módulos con niveles distintos.
+          usuarios.get(cuentaId)!.role="operations";
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
+          ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
           // incluso si quedó un extra de edición inválido para la operación real.
           usuarios.get(cuentaId)!.role = "warehouse";
@@ -523,6 +677,25 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(p.getByText("Almacén China",{exact:true})).toBeVisible();
           await esperar(p.getByText("Solo consulta",{exact:true}).first()).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          // Cambio de cuenta con borrador abierto: el espacio esperado de esta
+          // pestaña deja de coincidir con la cookie de la otra persona.
+          usuarios.get(cuentaId)!.role = "accounting";
+          await p.reload(); await esperar(guardar).toBeEnabled();
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador ficticio revocado");
+          usuarios.get(cuentaId)!.role = "warehouse";
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          expect(await p.locator("main").innerText()).not.toContain("Borrador ficticio revocado");
+          usuarios.get(cuentaId)!.role = "accounting";
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(guardar).toBeEnabled();
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador ficticio de cuenta anterior");
+          const otraCuenta = await entrar(usuario("accounting")); sesionActual = otraCuenta.sesion;
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByText("Para abrir tu práctica, entra desde Mi perfil en el Studio real.",{exact:true})).toBeVisible();
+          expect(await p.locator("main").innerText()).not.toContain("Borrador ficticio de cuenta anterior");
+          expect(await p.locator("main").innerText()).not.toContain("PRA-FAC-002");
           await p.getByRole("button",{name:"Volver al Studio real",exact:true}).click();
           await esperar(p).toHaveURL(real+"/studio/dashboard");
           expect(inesperadas).toEqual([]);
@@ -565,7 +738,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     for (const metodo of ["GET", "HEAD", "PUT", "DELETE"]) expect(config.rutaDelReceptor("/api/practica/facturacion",metodo,false)).toBe(false);
     expect(config.rutaDelReceptor("/api/practica/facturacion","POST",true)).toBe(false);
     const regla = readFileSync("infra/ops/staging/practica-traefik.yml.tmpl", "utf8");
-    expect(regla).toContain("reservar|canjear|estado|salir|facturacion");
+    expect(regla).toContain("reservar|canjear|estado|salir");
+    expect(regla).toContain('Path(`/api/practica/facturacion`)');
+    expect(regla).toContain("maxRequestBodyBytes: 24576");
+    expect(regla).toContain("maxRequestBodyBytes: 2048");
     expect(regla).toContain("Method(`POST`)");
   });
 
