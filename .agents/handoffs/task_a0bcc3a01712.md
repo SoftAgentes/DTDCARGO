@@ -97,3 +97,16 @@ Dominio, API/PGlite y guard de .env.example dirigidos: 22 PASÓ, 1 SKIP de naveg
 por flag apagado. El guard pasa con PRACTICA_EVIDENCIA documentada sin valor
 operativo. El focal siguiente conserva diagnóstico ARIA y captura sintética ante
 fallo; la aceptación de navegador sigue pendiente de su corrida efectiva.
+
+
+## Criterios vigentes y cabeza estable de cierre
+El focal 45480088822 sobre ebd0eccef concluyó SUCCESS: recorrido completo,
+cuatro combinaciones de viewport/tema, QR decodificado desde el SVG renderizado,
+lectores consecutivos, recepción repetida denegada y frontera Traefik aprobada.
+Se alinean ahora §1, tabla fase 3 y checklist §5 de la SDD: llegada física y
+parciales sin preorden automática; el documento preparado pertenece a su propio
+embarque avanzado. Expectativa de preorden inmediata del 23 de noviembre queda
+como antecedente fechado, junto con seis ensayos de cero facturas nuevas.
+La decisión delegada de práctica del 24 de noviembre no cambia el ERP vivo.
+Se añade captura del parcial con Frágil activo. El siguiente SHA se valida como
+cabeza estable; los resultados finales irán a PR/Orca sin otro commit de recibo.
