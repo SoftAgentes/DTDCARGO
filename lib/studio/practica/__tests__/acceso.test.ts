@@ -1392,6 +1392,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(pagina.getByRole("region",{name:"China de principio a fin",exact:true})).toHaveCount(0);
           await esperar(region.getByLabel("Vista de destino",{exact:true})).toHaveValue(perfil.etapa);
           await esperar(region.getByText("Frágil / 易碎 · CN",{exact:true})).toHaveCount(2);
+          for(const funcion of ["Viajes parciales","Recepción física por caja","Observación de destino"]){
+            const ayuda=region.getByLabel(`Ayuda: ${funcion}`,{exact:true});
+            await ayuda.focus();await ayuda.press("Enter");await esperar(ayuda.locator("..")).toHaveAttribute("open","");
+            if(funcion==="Observación de destino")await esperar(region.getByText(/Faro no está disponible/)).toBeVisible();
+            await ayuda.press("Enter");
+            if(width===390){await ayuda.tap();await esperar(ayuda.locator("..")).toHaveAttribute("open","");await ayuda.tap();}
+          }
           const selector=region.getByLabel("Consolidado de destino",{exact:true}),estado=region.getByRole("status",{name:"Estado del viaje",exact:true});
           await selector.selectOption(CONSOLIDADOS_CHINA[1]);
           await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
@@ -1441,7 +1448,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await selector.selectOption(CONSOLIDADOS_CHINA[1]);
           await esperar(region.getByRole("heading",{name:new RegExp(CONSOLIDADOS_CHINA[1])})).toBeVisible();
           if(perfil.etapa==="ve")await esperar(estado).toContainText("En tránsito · Recepción física: 0 de 2 cajas");else await esperar(estado).toHaveCount(0);
-          await region.screenshot({path:resolve(carpeta,`preparado-${perfil.rol}-${width}-${tema}.png`)});
+          // La captura completa conserva la franja en su posición real; recortar
+          // la región desplazaba el sticky sobre el texto del propio recorte.
+          await pagina.evaluate(()=>window.scrollTo(0,0));
+          await pagina.screenshot({path:resolve(carpeta,`preparado-${perfil.rol}-${width}-${tema}.png`),fullPage:true});
           expect(await pagina.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
           const ajena=await solicitar(prueba,"china",{espacio:testigo.cuenta.vista.espacio,etapa:perfil.etapa,consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion});expect(ajena.status).toBe(403);
           const financieros=await db.query<{valor:unknown}>("select public.practica_facturacion($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,createHash("sha256").update(propia.cuenta.sesion).digest("hex")]);expect(financieros.rows[0].valor).toBeNull();
