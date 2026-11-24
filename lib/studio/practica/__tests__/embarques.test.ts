@@ -61,6 +61,6 @@ describe("misma carga hasta Venezuela", () => {
     expect(emitida.facturas).toHaveLength(2);
     expect(() => aplicarFactura(emitida,{accion:"guardar",codigo:"PRA-PRE-001",lineas})).toThrow();
     const pagada = aplicarFactura(emitida,{accion:"pagar",codigo:"PRA-PRE-001"});
-    expect(() => aplicarFactura(pagada,{accion:"anular",codigo:"PRA-PRE-001",motivo:"Correcci?n ficticia"})).toThrow();
+    expect(() => aplicarFactura(pagada,{accion:"anular",codigo:"PRA-PRE-001",motivo:"Corrección ficticia"})).toThrow();
   });
 });
