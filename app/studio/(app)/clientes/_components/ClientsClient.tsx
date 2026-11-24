@@ -5,7 +5,7 @@
  *
  * - Header con CTA "+ Nuevo cliente"
  * - Toolbar con filtros (tier + search), URL state
- * - Tabla con clientes — click en fila → /clientes/[markbox]
+ * - Tabla con clientes — enlace de identidad → ficha en panel derecho
  * - Drawer crear/editar
  */
 
@@ -36,6 +36,9 @@ import { ClientDrawer } from "./ClientDrawer";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
 
+/** El listado recibe presencia de nota; su texto solo se carga en la ficha. */
+export type ClientListRow = Omit<Client, "notes"> & { hasNote: boolean };
+
 export function ClientsClient({
   aliados,
   clients,
@@ -44,8 +47,10 @@ export function ClientsClient({
   limite,
   topeAlcanzado,
   adjuntos,
+  puedeAsignar = false,
 }: {
-  clients: Client[];
+  clients: ClientListRow[];
+  puedeAsignar?: boolean;
   filters: ClientFilters;
   aliados: AliadoOption[];
   /** SDD-0265: cuántos matchean los filtros en total, no cuántos se muestran. */
@@ -299,7 +304,7 @@ export function ClientsClient({
         )
       ) : (
         <>
-          <ClientsTable clients={clients} aliados={aliados} adjuntos={adjuntos} />
+          <ClientsTable clients={clients} aliados={aliados} adjuntos={adjuntos} panelQuery={params.toString()} puedeAsignar={puedeAsignar} />
 
           {/* SDD-0265 · SGE-00.07: el estado tiene que ser visible Y verdadero.
               Antes se mostraban 200 de 451 sin decirlo en ninguna parte. */}
@@ -385,10 +390,14 @@ function ClientsTable({
   clients,
   aliados,
   adjuntos,
+  panelQuery,
+  puedeAsignar,
 }: {
-  clients: Client[];
+  clients: ClientListRow[];
   aliados: AliadoOption[];
   adjuntos: ConteosPorId<ConteoCliente>;
+  panelQuery: string;
+  puedeAsignar: boolean;
 }) {
   // SDD-0507: la columna «Adjuntos» va entre Tier y Contacto, y sólo si se
   // pudo contar.
@@ -446,18 +455,9 @@ function ClientsTable({
       </div>
 
       {clients.map((c, i) => (
-        <Link
+        <div
           key={c.id}
-          href={`/studio/clientes/${c.markbox}`}
           className="studio-tracking-row"
-          /* ⚠️ SALDO DECLARADO: `role="row"` sobre el <a> **sustituye** el rol
-             de enlace, así que el lector ya no dice "enlace". Se compensa con
-             `aria-label`, que nombra a quién lleva la fila. El arreglo COMPLETO
-             es el que prescribe BTN-01 §4 —"la navegación principal suele ser
-             enlace en la identidad de la fila"—: mover el <a> a la celda del
-             Shipping Mark y dejar el clic de fila como afordancia de ratón. Eso
-             cambia cómo se opera el listado y necesita su propio slice; no se
-             cuela acá. Ver §"Fuera de alcance" del SDD-0267. */
           role="row"
           aria-label={`${c.name} · Shipping Mark ${c.markbox}`}
           style={{
@@ -479,7 +479,16 @@ function ClientsTable({
               letterSpacing: "0.02em",
             }}
           >
-            {c.markbox}
+            <Link
+              href={`/studio/clientes/ficha/${encodeURIComponent(c.markbox)}${panelQuery ? `?${panelQuery}` : ""}`}
+              scroll={false}
+              onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
+              aria-label={`${puedeAsignar && c.markbox === "DTD-0000" ? "Asignar cliente · " : ""}Ver ficha de ${c.name} · Shipping Mark ${c.markbox}`}
+              style={{ display: "inline-flex", flexDirection: "column", gap: "var(--s-2)", paddingBlock: "var(--s-2)", color: "var(--accion-text)" }}
+            >
+              {c.markbox}
+              {puedeAsignar && c.markbox === "DTD-0000" && <span>Asignar cliente</span>}
+            </Link>
           </span>
           <span
             role="cell"
@@ -535,7 +544,7 @@ function ClientsTable({
                 </Badge>
               )}
             </span>
-            {c.notes && (
+            {c.hasNote && (
               <div
                 style={{
                   font: "500 11px/1.3 var(--f-sans)",
@@ -546,7 +555,7 @@ function ClientsTable({
                   whiteSpace: "nowrap",
                 }}
               >
-                {c.notes}
+                Nota disponible en la ficha
               </div>
             )}
           </div>
@@ -605,7 +614,7 @@ function ClientsTable({
               year: "numeric",
             })}
           </span>
-        </Link>
+        </div>
       ))}
     </div>
   );
