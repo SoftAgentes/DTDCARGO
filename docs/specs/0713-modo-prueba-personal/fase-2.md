@@ -35,6 +35,7 @@ Allowlist exacta:
 - `.agents/handoffs/task_93d94bbf6612.md`
 - `.agents/handoffs/task_e275a30d5f9a.md`
 - `.agents/handoffs/task_30098bbca469.md`
+- `.agents/handoffs/task_91303c329504.md`
 - `.github/workflows/practica-personal.yml`
 - `infra/ops/tests/practica-ci.mjs`
 - `lib/studio/practica/contrato.ts`
@@ -75,6 +76,12 @@ es indisponibilidad, nunca una revocación inventada ni autorización. El CI foc
 de práctica instala Chromium y exige ejecutar el recorrido DOM (390/1280,
 claro/oscuro), además de API/PGlite y el borde Traefik efímero; corre para PR
 listas, incluso dependientes, al sincronizar cambios de las rutas enumeradas.
+
+Seguimiento CI de `0c0b5a8ed`: la validación de precio debe mantener el foco
+en el campo inválido que señala HTML, sin trasladarlo luego al aviso general
+e interrumpir el borrado. El aviso conserva role=alert y la descripción de campo.
+La regresión exige foco, vaciar el texto inválido y guardar la corrección exacta;
+no se modifica NumericInput global ni se aumenta el timeout del navegador.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.

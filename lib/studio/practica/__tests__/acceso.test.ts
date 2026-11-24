@@ -418,8 +418,14 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await precio.fill("12.345"); const escriturasAntes = escriturasFactura;
           await guardar.click(); await esperar(precio).toHaveValue("12.345");
           await esperar(precio).toHaveAttribute("aria-invalid","true");
+          await esperar(precio).toBeFocused();
           expect(escriturasFactura).toBe(escriturasAntes);
           await precio.fill(""); await esperar(precio).toHaveValue("");
+          // También se borra con teclado, como lo haría una persona.
+          await precio.fill("12.345"); await guardar.click();
+          await esperar(precio).toBeFocused();
+          await precio.press("ControlOrMeta+A"); await precio.press("Backspace");
+          await esperar(precio).toHaveValue("");
           await precio.fill("12,"); await guardar.click(); await esperar(precio).toHaveValue("12,");
           expect(escriturasFactura).toBe(escriturasAntes);
           // El 413 de Traefik puede ser texto plano: el editor debe permitir corregir.

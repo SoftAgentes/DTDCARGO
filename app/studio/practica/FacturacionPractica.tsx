@@ -53,7 +53,13 @@ export function FacturacionPractica({ espacio, suspendida = false, onBloqueoSali
   const editable = !!vista?.edicion && factura?.estado === "borrador";
   const sucio = !!factura && (textoPendiente || JSON.stringify(lineas) !== JSON.stringify(factura.lineas));
   useEffect(() => { onBloqueoSalida(ocupado || sucio); return () => onBloqueoSalida(false); }, [ocupado, sucio, onBloqueoSalida]);
-  useEffect(() => { if (error) avisoError.current?.focus(); }, [error]);
+  useEffect(() => {
+    if (!error) return;
+    const activo = document.activeElement;
+    // reportValidity ya señala y enfoca el campo: no interrumpir su corrección.
+    if (activo instanceof HTMLInputElement && formulario.current?.contains(activo) && !activo.validity.valid) return;
+    avisoError.current?.focus();
+  }, [error]);
   useEffect(() => {
     const avisar = (e: BeforeUnloadEvent) => { if (sucio) { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", avisar);
