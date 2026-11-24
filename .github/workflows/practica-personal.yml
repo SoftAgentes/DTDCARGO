@@ -1,0 +1,61 @@
+name: Práctica personal focal sin secretos
+
+on:
+  pull_request:
+    # Sin filtro de base: incluye PR dependientes, además de las dirigidas a main.
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'app/studio/practica/**'
+      - 'app/api/practica/**'
+      - 'lib/studio/practica/**'
+      - 'infra/ops/staging/practica-*'
+      - 'infra/ops/tests/practica-*'
+      - 'docs/specs/0713-modo-prueba-personal/**'
+      - '.github/workflows/practica-personal.yml'
+      - 'app/studio/_components/ui/NumericInput.tsx'
+      - 'lib/studio/util/parse-numeric-expression*'
+      - 'proxy.ts'
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - 'vitest.config.ts'
+      - 'vitest.setup.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: practica-personal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  practica:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      PRACTICA_NAVEGADOR: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Preparar pnpm y Node como el CI canónico
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          version: 11.28.12
+          runtime: node@24.22.3
+          cache: true
+          install: false
+      - run: pnpm install --frozen-lockfile
+      - name: Instalar Chromium efímero
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Regresiones ligeras de límites y precios
+        run: pnpm exec tsx --test infra/ops/tests/practica-p2.node.ts
+      - name: Comprobar que el gate rechaza omisiones
+        run: node infra/ops/tests/practica-ci.mjs --autoprueba
+      - name: API, PGlite y matriz DOM obligatoria con un worker
+        run: node infra/ops/tests/practica-ci.mjs
+      - name: Frontera Traefik con backend sintético desechable
+        run: node infra/ops/tests/practica-frontera.mjs

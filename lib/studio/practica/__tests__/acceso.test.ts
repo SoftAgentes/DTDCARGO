@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import type { PGlite } from "@electric-sql/pglite";
 import { NextRequest } from "next/server";
@@ -75,6 +75,7 @@ async function entrar(id: string) {
 describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
   let db: PGlite;
   let disponible = true;
+  let falloOrigen: "auth" | "membresia" | "extras" | "invalida" | "503" | null = null;
   beforeAll(async () => {
     db = await pgliteLimpio();
     await db.exec("set dtd.destino = 'practica-personal-nueva'");
@@ -90,7 +91,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
       return { userId, tenantId:tenant, role:miembro && !miembro.disabled ? miembro.role : null };
     });
     dbOrigen.admin.mockReturnValue({
-      auth: { admin:{ getUserById:(id:string) => ({ data:{ user:usuarios.has(id) ? { id } : null }, error:null }) } },
+      auth: { admin:{ getUserById:(id:string) => ({ data:{ user:usuarios.has(id) ? { id } : null }, error:falloOrigen === "auth" ? {status:503} : null }) } },
       from:(tabla:string) => {
         const filtros: Record<string,unknown> = {};
         const cadena = {
@@ -101,13 +102,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             expect(tabla).toBe("user_tenants");
             expect(filtros).toMatchObject({tenant_id:tenant, disabled_at:null});
             const miembro = usuarios.get(String(filtros.user_id));
-            return { data:miembro?.disabled ? null : miembro, error:null };
+            return { data:miembro?.disabled ? null : miembro, error:falloOrigen === "membresia" ? {message:"Base ficticia indisponible"} : null };
           },
           then:(recibir:(v:unknown)=>void) => {
             expect(["studio_role_module_overrides","studio_user_module_grants"]).toContain(tabla);
             expect(filtros.tenant_id).toBe(tenant);
             const extra = tabla === "studio_user_module_grants" && extras.get(String(filtros.user_id));
-            recibir({ data:tabla === "studio_role_module_overrides" ? (ajustesPorRol.get(String(filtros.role)) ?? []) : extra ? [extra] : [], error:null });
+            recibir({ data:tabla === "studio_role_module_overrides" ? (ajustesPorRol.get(String(filtros.role)) ?? []) : extra ? [extra] : [], error:falloOrigen === "extras" ? {message:"Base ficticia indisponible"} : null });
           },
         };
         return cadena;
@@ -137,12 +138,36 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         return Response.json(rows[0].valor);
       }
       if (!disponible) throw new Error("Enlace de prueba interrumpido");
+      if (u.origin === real && falloOrigen === "invalida") return Response.json({permisos:"respuesta ficticia inválida"});
+      if (u.origin === real && falloOrigen === "503") return Response.json(null,{status:503});
       expect([prueba + API_PRACTICA + "reservar", real + API_PRACTICA + "permisos"]).toContain(url);
       expect(headers.Authorization).toBe("Bearer " + canal);
       return solicitar(u.origin, u.pathname.slice(API_PRACTICA.length), body, { headers });
     });
   }, 60000);
   afterAll(async () => { vi.unstubAllGlobals(); vi.restoreAllMocks(); await db?.close(); });
+
+  it("indisponibilidad de origen/base y respuestas inválidas no se convierten en revocación", async () => {
+    const id = usuario("accounting"); const cuenta = await entrar(id);
+    const estado = () => solicitar(prueba,"estado",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion});
+    try {
+      for (const fallo of ["auth","membresia","extras","invalida","503"] as const) {
+        falloOrigen = fallo;
+        expect((await estado()).status).toBe(503);
+        expect((await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion})).status).toBe(503);
+        falloOrigen = null;
+        expect((await estado()).status).toBe(200);
+      }
+      disponible = false; expect((await estado()).status).toBe(503);
+      disponible = true; expect((await estado()).status).toBe(200);
+      usuarios.get(id)!.disabled = true;
+      expect((await estado()).status).toBe(403);
+      usuarios.get(id)!.disabled = false;
+      const otra = await entrar(usuario("accounting"));
+      expect((await solicitar(prueba,"estado",{espacio:cuenta.vista.espacio},{sesion:otra.sesion})).status).toBe(403);
+      expect((await solicitar(prueba,"estado",{espacio:cuenta.vista.espacio})).status).toBe(401);
+    } finally { falloOrigen = null; disponible = true; }
+  });
 
   it("dos personas del mismo rol y una administradora conservan copias independientes", async () => {
     const ana = usuario("operations"), bea = usuario("operations");
@@ -367,6 +392,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     const css = fuentes + tipografia + paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".css")).text;
     const browser = await chromium.launch({ executablePath:process.env.PRACTICA_CHROMIUM || chromium.executablePath(), headless:true });
     const carpeta = resolve(tmpdir(), process.env.PRACTICA_EVIDENCIA || "sdd-0713-fase-3"); mkdirSync(carpeta, { recursive:true });
+    const matriz: string[] = [];
     try {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
@@ -376,6 +402,11 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         let liberarEstados: (() => void)[] = [];
         let lecturasFactura = 0;
         let escriturasFactura = 0;
+        let falloEstado: "503" | "red" | "invalida" | null = null;
+        let falloCierre = false;
+        let rechazarEscritura = false;
+        let retenerUna = false;
+        const pendientesEstado: (() => void)[] = [];
         const sufijo = tema === "light" ? "" : "-dark";
         const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
         const inesperadas: string[] = [];
@@ -399,6 +430,13 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           if (u.origin === prueba && ["/nunito.woff2","/sora.woff2"].includes(u.pathname)) return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname === "/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
           if (u.origin === prueba && u.pathname === "/studio/practica" && config.rutaDelReceptor(u.pathname,req.method(),false)) return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
+            if (u.pathname === API_PRACTICA+"salir" && falloCierre) return ruta.abort("failed");
+            if (u.pathname === API_PRACTICA+"estado") {
+              if (falloEstado === "red") return ruta.abort("failed");
+              if (falloEstado === "503") return ruta.fulfill({status:503,json:null});
+              if (falloEstado === "invalida") return ruta.fulfill({status:200,json:{espacio:cuenta.vista.espacio,permisos:"inválidos"}});
+            }
+            if (u.pathname === API_PRACTICA+"facturacion" && req.postDataJSON().comando && rechazarEscritura) return ruta.fulfill({status:413,contentType:"text/plain",body:"Request Entity Too Large"});
             if (u.pathname === API_PRACTICA+"estado" && demorarEstado) await new Promise<void>(resolver => liberarEstados.push(resolver));
             if (u.pathname === API_PRACTICA+"facturacion") {
               if (req.postDataJSON().comando) escriturasFactura++; else lecturasFactura++;
@@ -407,6 +445,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             if (u.pathname.endsWith("/salir")) salidas++;
             if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
               const actual=demora; demora=undefined; actual.avisar(); await actual.esperar;
+            }
+            if (u.pathname === API_PRACTICA+"estado" && retenerUna) {
+              retenerUna = false;
+              await new Promise<void>(resolver => { pendientesEstado.push(resolver); });
             }
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
@@ -536,6 +578,23 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           expect(lecturasFactura).toBe(lecturasAntes);
           await esperar(p.getByLabel("Concepto 3",{exact:true})).toHaveCount(1);
           await otra.close();
+          for (const fallo of ["503","red","invalida"] as const) {
+            await conceptoBorrador.focus(); falloEstado = fallo;
+            await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+            const reintentar = p.getByRole("button",{name:"Reintentar comprobación",exact:true});
+            await esperar(reintentar).toBeVisible();
+            await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
+            await esperar(conceptoBorrador).not.toBeVisible();
+            await esperar(conceptoBorrador).toBeDisabled();
+            await p.getByRole("button",{name:"Descartar edición y volver al Studio real",exact:true}).click();
+            await p.getByRole("button",{name:"Seguir aquí",exact:true}).click();
+            falloEstado = null; await reintentar.click();
+            await esperar(conceptoBorrador).toBeVisible();
+            await esperar(conceptoBorrador).toBeFocused();
+            await esperar(conceptoBorrador).toHaveValue("Concepto ficticio sin guardar");
+            await esperar(p.getByLabel("Documento",{exact:true})).toHaveValue("PRA-PRE-001");
+            expect(lecturasFactura).toBe(lecturasAntes);
+          }
           // El precio inválido se conserva y no sale por la API. El canónico
           // acepta coma venezolana y devuelve centavos al corregir.
           const precio = p.getByLabel("Precio USD 1",{exact:true});
@@ -546,6 +605,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await precio.fill(""); await esperar(precio).toHaveValue("");
           await precio.fill("12,"); await guardar.click(); await esperar(precio).toHaveValue("12,");
           expect(escriturasFactura).toBe(escriturasAntes);
+          // El 413 de Traefik puede ser texto plano: el editor debe permitir corregir.
+          await precio.fill("12,34"); rechazarEscritura = true; await guardar.click();
+          await esperar(p.getByText(/El contenido supera 24 KiB/)).toBeVisible();
+          await esperar(precio).toHaveValue("12,34"); rechazarEscritura = false;
           await precio.fill("12,34"); await guardar.click(); await esperar(guardar).toBeEnabled();
           await esperar(p.getByText(/Total guardado:.*112,34/)).toBeVisible();
           const guardadoPrecio = await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:cuenta.sesion});
@@ -636,25 +699,52 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload(); await esperar(guardar).toBeEnabled();
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
           await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador ficticio revocado");
+          // Una respuesta válida antigua no revive acceso tras una denegación nueva.
+          retenerUna = true;
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar.poll(() => pendientesEstado.length).toBe(1);
           usuarios.get(cuentaId)!.role = "warehouse";
           await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          pendientesEstado.shift()?.();
           expect(await p.locator("main").innerText()).not.toContain("Borrador ficticio revocado");
+          // Una denegación antigua tampoco descarta la verificación nueva.
+          retenerUna = true;
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar.poll(() => pendientesEstado.length).toBe(1);
           usuarios.get(cuentaId)!.role = "accounting";
           await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
           await esperar(guardar).toBeEnabled();
+          pendientesEstado.shift()?.();
           await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador ficticio de cuenta anterior");
+          await esperar(guardar).toBeEnabled();
           const otraCuenta = await entrar(usuario("accounting")); sesionActual = otraCuenta.sesion;
           await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
           await esperar(p.getByText("Para abrir tu práctica, entra desde Mi perfil en el Studio real.",{exact:true})).toBeVisible();
           expect(await p.locator("main").innerText()).not.toContain("Borrador ficticio de cuenta anterior");
           expect(await p.locator("main").innerText()).not.toContain("PRA-FAC-002");
-          await p.getByRole("button",{name:"Volver al Studio real",exact:true}).click();
+          // Descartar sigue disponible durante la indisponibilidad; si tampoco
+          // puede cerrarse la sesión remota, se advierte y permite salir localmente.
+          sesionActual = cuenta.sesion;
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(guardar).toBeEnabled();
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador ficticio a descartar");
+          falloEstado = "503"; falloCierre = true;
+          await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByRole("button",{name:"Reintentar comprobación",exact:true})).toBeVisible();
+          await p.getByRole("button",{name:"Descartar edición y volver al Studio real",exact:true}).click();
+          await p.getByRole("button",{name:"Descartar y salir",exact:true}).click();
+          await esperar(p.getByText(/No se pudo confirmar el cierre remoto/)).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveCount(0);
+          await p.getByRole("button",{name:"Volver sin confirmar el cierre",exact:true}).click();
           await esperar(p).toHaveURL(real+"/studio/dashboard");
           expect(inesperadas).toEqual([]);
+          matriz.push(`${width}-${tema}`);
           console.log(`PASÓ pantalla persistida ${width}px ${tema}; membresía financiera revocada y warehouse denegado; support consulta; capturas ${carpeta}; cero peticiones externas`);
         } finally { await contextoBrowser.close(); }
       }
+      if (process.env.PRACTICA_RECIBO) writeFileSync(process.env.PRACTICA_RECIBO,JSON.stringify(matriz));
     } finally { await browser.close(); }
   }, 120000);
 

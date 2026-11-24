@@ -34,6 +34,10 @@ Allowlist exacta:
 - `docs/specs/0713-modo-prueba-personal/spec.md`
 - `.agents/handoffs/task_93d94bbf6612.md`
 - `.agents/handoffs/task_e275a30d5f9a.md`
+- `.agents/handoffs/task_30098bbca469.md`
+- `.github/workflows/practica-personal.yml`
+- `infra/ops/tests/practica-ci.mjs`
+- `lib/studio/practica/contrato.ts`
 - `lib/studio/practica/facturacion.ts`
 - `lib/studio/practica/servidor.ts`
 - `lib/studio/practica/config.ts`
@@ -61,6 +65,16 @@ Se cuentan bytes del stream, aunque Content-Length falte o mienta. Las otras
 operaciones conservan 2048 bytes, también en Traefik. Los tres P2 requieren
 regresiones de API y navegador sobre la nueva cabeza; solo se ejecutan controles
 ligeros en este turno, cedido a fase 3.
+
+Seguimiento P2 sobre `fbc5ca252`: una comprobación fallida (red, 503 o respuesta
+inválida) conserva selección, borrador y foco únicamente en memoria, ocultos e
+inertes; ofrece Reintentar y descartar/salir. Solo una validación vigente permite
+restaurarlos. 401/403 confirmado, cambio de espacio o recorte del permiso
+financiero descartan el detalle correspondiente. Un fallo del origen o su base
+es indisponibilidad, nunca una revocación inventada ni autorización. El CI focal
+de práctica instala Chromium y exige ejecutar el recorrido DOM (390/1280,
+claro/oscuro), además de API/PGlite y el borde Traefik efímero; corre para PR
+listas, incluso dependientes, al sincronizar cambios de las rutas enumeradas.
 
 Gobernanza R3: MP-01/AUD-01 conservación e historial, FRM-01/ERR-01 errores
 locales, A11Y-01 controles con etiquetas y ayuda nativa, VIS-01 marca heredada.

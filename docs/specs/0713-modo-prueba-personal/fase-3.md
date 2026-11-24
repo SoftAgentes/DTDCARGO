@@ -103,3 +103,15 @@ API/SQL, Traefik y typecheck aún NO EJECUTADAS en esa cabeza por turno ocupado.
 Los resultados de SHAs anteriores no acreditan esta versión. Suite/build van en CI.
 El defecto de recuperación de conexión de #811 se mantiene fuera de esta corrección;
 su autor lo resolverá y el Director coordina su incorporación posterior.
+
+## Seguimiento CI de la unión con recuperación de identidad
+Unión normal autorizada de #811 exacta `0c0b5a8ed81127cce21e4f9c51c695441720175f`.
+Allowlist de la unión: los archivos del diff de esa cabeza frente a fbc5ca252,
+con resolución propia únicamente en PracticaPersonal.tsx y acceso.test.ts;
+se añade `.agents/handoffs/task_a0bcc3a01712.md`. Se conserva la recuperación
+por red/503/identidad, el gate focal que rechaza submatrices y el recibo Chromium
+por viewport/tema, junto con negativas cn/naviera, selección y reinicio.
+La salida confirmada de recuperación puede descartar edición financiera oculta,
+pero ninguna vía de salida puede interrumpir una petición operativa pendiente.
+La evidencia final se registra en la PR #812 y el recibo Orca sobre el SHA publicado,
+sin añadir después un commit solo documental que cambie la cabeza probada.
