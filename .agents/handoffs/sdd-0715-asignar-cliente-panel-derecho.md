@@ -92,6 +92,14 @@ https://github.com/SoftAgentes/DTDCARGO/pull/810, rama propia; Director retarget
 ## PENDIENTES DE ESTA TAREA
 Quality final, revisión independiente y tren de integración a cargo del Director. SDD permanece in-progress hasta aceptación completa; no se declara CI verde, aprobación humana, merge ni publicación de #810 antes de observarlos. No hay migraciones ni interruptores de producción que activar.
 
+### Seguimiento CI — Task task_fc8b42e00b43 / Dispatch ctx_e6385f81dd31
+
+CI pull_request 45430029027, job 138572459236, falló en no-html-link-for-pages de GenerateBLModal.tsx:126 al reconocer /studio/embarques. Log completo local %TEMP%/dtd-ci-810-138572459236.log. Se retomó la misma rama sobre c2008905699a4da401950229244fb1d22af363fe, base main baeb9000478f33ab8431a9b947e033cf25cdf3a7, y se reclamó el mismo owner antes de editar.
+
+Ampliación nominal: app/studio/_components/wiring/GenerateBLModal.tsx y app/studio/_components/wiring/__tests__/GenerateBLModal.test.tsx. El enlace usa next/link manteniendo href, texto y color. No se encontró contrato de recarga explícita; onNavigate={onClose} conserva el cierre al salir del modal compartido y no lo cierra al abrir con modificador. No se cambian queries, estados de BL, reglas ni configuración.
+
+Suite focal del modal PASÓ: 8 pruebas, 8.52 s; usa Link real con RouterContext, incluida navegación normal y Ctrl+clic. Typecheck PASÓ. pnpm lint global PASÓ con 0 errores y 42 advertencias; no se aplicó --fix ni se tocaron advertencias ajenas. Registrar la nueva cabeza/CI al publicar el arreglo. No se atribuye CI verde a la corrida anterior fallida.
+
 ## FUERA DE ALCANCE DETECTADO
 El registro derivado del plugin de gobernanza instalado está desactualizado; su validador falló, mientras cápsula y políticas del repo están vigentes. No se modificó caché/plugin ni se elevó a regla. Ninguna reparación ajena incluida.
 

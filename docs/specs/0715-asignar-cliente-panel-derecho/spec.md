@@ -57,6 +57,8 @@ Se añaden casos de prueba para ambas entradas (completa/panel): visibilidad en 
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx` (traspaso autorizado tras #809; solo enlaces/indicador 0715)
 - `app/studio/(app)/embarques/_components/__tests__/ShipmentDetailDrawer.test.tsx`
 - `.agents/handoffs/sdd-0715-asignar-cliente-panel-derecho.md`
+- `app/studio/_components/wiring/GenerateBLModal.tsx` (ampliación autorizada tras CI 45430029027)
+- `app/studio/_components/wiring/__tests__/GenerateBLModal.test.tsx` (contrato focal de navegación del modal)
 
 Solo están autorizadas las rutas enumeradas en esta sección y en la lista anterior. El Director autorizó extraer la composición server a `ClientDetailContent.tsx`: se conservaron íntegros consultas, condiciones y componentes; la página directa delega el markbox resuelto. El layout de Clientes conserva su gate de módulo. No se implementará una copia de la ficha usando indiscriminadamente el objeto `Client` del listado.
 
@@ -147,6 +149,14 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 El panel de asignación se reutiliza a través de ClienteDelEmbarque dentro de ClientDetailContent solo para shipments reales sin cliente. Repite gate de Tracking, privacidad CN y canSpecial; las acciones conservan sus verificaciones server, previa, motivo y confirmación. El listado ofrece acceso informativo y no decide elegibilidad por cero ni por notas.
 
 ## Validación y límites
+
+### Seguimiento de CI: enlace interno de Generar BL
+
+La corrida pull_request 45430029027 sobre c2008905699a4da401950229244fb1d22af363fe falló en lint global, job 138572459236: no-html-link-for-pages en GenerateBLModal.tsx. La detección de rutas ahora reconoce /studio/embarques. El Director amplió allowlist al modal y su prueba; la base incorporada sigue siendo main baeb9000478f33ab8431a9b947e033cf25cdf3a7.
+
+Se conserva destino /studio/embarques, texto y color del enlace vacío, sustituyendo a por next/link. No hay contrato de recarga explícita. WiringProvider persiste en el layout, de modo que onNavigate cierra el modal al navegar en la pestaña actual; clics modificados conservan el modal de origen. La prueba usa el Link instalado de Next y RouterContext, sin doblar Link, para verificar destino/estilo y cierre/navegación normal frente a Ctrl+clic. No cambia la consulta, el filtro de embarques, la generación de BL ni las reglas ESLint.
+
+Validación de seguimiento: suite focal PASÓ, 8 pruebas; pnpm typecheck PASÓ. pnpm lint global PASÓ con 0 errores y 42 advertencias; nueva corrida CI pendiente de registrar al subir la cabeza. Esta validación se suma al corte de 163 pruebas anterior, no lo reemplaza por una afirmación de CI verde.
 
 - PASÓ: instalación congelada, guard/owner, diff, índice documental, cápsula de gobernanza de 29 políticas, componentes y numeración sin colisiones nuevas.
 - PASÓ: 10 suites focales y 163 pruebas con maxWorkers=1 sobre el código de 18df4afdf; pnpm typecheck y ESLint del delta. Comandos y rutas reproducibles en el handoff.

@@ -20,7 +20,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { RouterContext } from "next/dist/shared/lib/router-context.shared-runtime";
+import type { NextRouter } from "next/router";
 import { GenerateBLModal } from "../GenerateBLModal";
 
 type Fila = Record<string, unknown>;
@@ -243,5 +245,27 @@ describe("<GenerateBLModal> — selector de embarques (SDD-0510)", () => {
 
     expect(await screen.findByText(/No hay embarques activos/)).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Embarque" })).toBeNull();
+  });
+
+  it.each([false, true])("enlace interno conserva destino y cierre según clic modificado=%s (SDD-0715)", async (modificado) => {
+    const onClose = vi.fn();
+    const push = vi.fn<NextRouter["push"]>(async () => true);
+    const router: NextRouter = {
+      basePath: "", pathname: "/studio/clientes", route: "/studio/clientes", asPath: "/studio/clientes", query: {},
+      push, replace: vi.fn(async () => true), reload: vi.fn(), back: vi.fn(), forward: vi.fn(),
+      prefetch: vi.fn(async () => {}), beforePopState: vi.fn(),
+      events: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
+      isFallback: false, isLocaleDomain: false, isReady: true, isPreview: false,
+    };
+    render(<RouterContext.Provider value={router}><GenerateBLModal onClose={onClose} /></RouterContext.Provider>);
+    const enlace = await screen.findByRole("link", { name: "Embarques" });
+    expect(enlace).toHaveAttribute("href", "/studio/embarques");
+    expect(enlace).toHaveStyle({ color: "var(--accion-text)" });
+    // JSDOM no abre pestañas: cancelar el default tras React evita simularlo.
+    if (modificado) document.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    fireEvent.click(enlace, { ctrlKey: modificado });
+    expect(onClose).toHaveBeenCalledTimes(modificado ? 0 : 1);
+    expect(push).toHaveBeenCalledTimes(modificado ? 0 : 1);
+    if (!modificado) expect(push.mock.calls[0][0]).toBe("/studio/embarques");
   });
 });
