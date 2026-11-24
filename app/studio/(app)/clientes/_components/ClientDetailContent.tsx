@@ -122,7 +122,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export async function ClientDetailContent({ markbox, enPanel = false, shipmentId }: { markbox: string; enPanel?: boolean; shipmentId?: string }) {
+export async function ClientDetailContent({ markbox, enPanel = false }: { markbox: string; enPanel?: boolean }) {
   const supabase = await createClient();
 
   const client = await getClientByMarkbox(supabase, markbox);
@@ -205,8 +205,7 @@ export async function ClientDetailContent({ markbox, enPanel = false, shipmentId
   ];
   const shipments = (await listShipmentsDeLaFicha(supabase, client.tenant_id, codigosFicha)) as ShipmentRow[];
   // Solo relaciones leídas de embarques reales; una nota nunca sirve de enlace.
-  const sinCliente = enPanel ? shipments.filter((s) =>
-    (shipmentId === undefined || s.id === shipmentId) && esSinCliente(s.client_markbox)) : [];
+  const sinCliente = enPanel ? shipments.filter((s) => esSinCliente(s.client_markbox)) : [];
   const puedeAsignarDesdePanel = enPanel && sinCliente.length > 0
     && await moduleViewDenial(supabase, "tracking") === null;
   const puedeVerNombresAsignacion = puedeAsignarDesdePanel

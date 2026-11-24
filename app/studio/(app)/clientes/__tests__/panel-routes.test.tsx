@@ -1,15 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ShipmentListRow } from "@/lib/studio/shipment-queries";
+import type { ReactNode } from "react";
 
-const mocks = vi.hoisted(() => ({ gate: vi.fn(), content: vi.fn(), redirect: vi.fn(), capacidad: true, nombres: true, trackingDenial: null as string | null }));
+const mocks = vi.hoisted(() => ({ gate: vi.fn(), content: vi.fn(), redirect: vi.fn(), shipment: vi.fn(), reassign: vi.fn(), tenant: "tenant-ficticio" as string | null, capacidad: true, nombres: true, trackingDenial: null as string | null }));
 vi.mock("@/lib/studio/rbac-guard", () => ({
   requireModuleView: mocks.gate,
-  getStudioAccess: async () => ({ role: "commercial" }),
+  getStudioAccess: async () => ({ role: "commercial", tenantId: mocks.tenant }),
   moduleViewDenial: async () => mocks.trackingDenial,
 }));
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
-vi.mock("@/lib/studio/rbac", () => ({ canSpecial: () => mocks.capacidad }));
+vi.mock("@/lib/studio/rbac", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/studio/rbac")>()),
+  canSpecial: () => mocks.capacidad,
+}));
+vi.mock("@/lib/studio/shipment-queries", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/studio/shipment-queries")>()),
+  getShipmentById: mocks.shipment,
+}));
+vi.mock("../../tracking/[id]/_components/ReassignClientPanel", () => ({
+  ReassignClientPanel: (props: Record<string, unknown>) => {
+    mocks.reassign(props);
+    return <button>Asignar cliente ficticio</button>;
+  },
+}));
 vi.mock("@/lib/studio/privacidad-cn", () => ({ readCanSeeClientNames: async () => mocks.nombres }));
 vi.mock("@/lib/studio/client-queries", () => ({
   parseClientFiltersFromSearchParams: () => ({ tier: "all" }),
@@ -19,7 +33,7 @@ vi.mock("@/lib/studio/aliados/aliado-queries", () => ({ listAliadoOptions: async
 vi.mock("@/lib/studio/documents/adjuntos-queries", () => ({ contarAdjuntosDeClientes: async () => null }));
 vi.mock("../_components/ClientsClient", () => ({ ClientsClient: () => null }));
 vi.mock("../_components/ClientDetailContent", () => ({ ClientDetailContent: mocks.content }));
-vi.mock("../_components/ClientDetailPanel", () => ({ ClientDetailPanel: () => null }));
+vi.mock("../_components/ClientDetailPanel", () => ({ ClientDetailPanel: ({ children }: { children: ReactNode }) => <section>{children}</section> }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/app/studio/_components/ui/ToastProvider", () => ({
   useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
@@ -45,6 +59,9 @@ afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks(); mocks.gate.mockReset(); mocks.content.mockResolvedValue("Ficha autorizada");
   mocks.capacidad = true; mocks.nombres = true; mocks.trackingDenial = null;
+  mocks.tenant = "tenant-ficticio";
+  mocks.shipment.mockReset();
+  mocks.shipment.mockResolvedValue({ id: "envio-ficticio", tenant_id: "tenant-ficticio", code: "S-FICTICIO", client_markbox: "DTD-0000", deleted_at: null });
 });
 
 const ENVIO_DE_FILA: ShipmentListRow = {
@@ -130,13 +147,18 @@ describe("Rutas de panel SDD-0715", () => {
     expect(mocks.content).toHaveBeenCalledWith({ markbox: "DTD-8001", enPanel: true });
     expect(mocks.gate.mock.invocationCallOrder.at(-1)).toBeLessThan(mocks.content.mock.invocationCallOrder[0]);
   });
-  it("Embarques conserva el id de la fila como selector para resolverlo bajo la ficha", async () => {
-    await Embarques({ ...props(), searchParams: Promise.resolve({ embarque: "envio-ficticio" }) });
-    expect(mocks.content).toHaveBeenCalledWith({ markbox: "DTD-8001", enPanel: true, shipmentId: "envio-ficticio" });
+  it("Embarques resuelve el id de la fila directamente con el contrato de Tracking", async () => {
+    render(await Embarques({ ...props(), searchParams: Promise.resolve({ embarque: "envio-ficticio" }) }));
+    expect(mocks.shipment).toHaveBeenCalledWith({}, "envio-ficticio");
+    expect(mocks.reassign).toHaveBeenCalledWith(expect.objectContaining({ shipmentId: "envio-ficticio", sinCliente: true }));
+    expect(mocks.content).not.toHaveBeenCalled();
+    expect(mocks.gate).toHaveBeenCalledWith("tracking");
   });
   it("un selector ambiguo no se transforma en todos los embarques", async () => {
-    await Embarques({ ...props(), searchParams: Promise.resolve({ embarque: ["uno", "otro"] }) });
-    expect(mocks.content).toHaveBeenCalledWith({ markbox: "DTD-8001", enPanel: true, shipmentId: "" });
+    render(await Embarques({ ...props(), searchParams: Promise.resolve({ embarque: ["uno", "otro"] }) }));
+    expect(mocks.shipment).not.toHaveBeenCalled();
+    expect(mocks.content).not.toHaveBeenCalled();
+    expect(screen.getByText("Embarque no disponible")).toBeInTheDocument();
   });
   it.each([ClientesDirecta, EmbarquesDirecta])("refresh o URL directa resuelve ficha completa", async (Page) => {
     await Page(props());
@@ -159,5 +181,87 @@ describe("Rutas de panel SDD-0715", () => {
     const tree = await Layout({ children: "Lista conservada", ficha: "Panel" });
     expect(tree.props.children).toEqual(["Lista conservada", "Panel"]);
     expect(mocks.gate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Acceso exacto independiente de ficha y tope · SDD-0715", () => {
+  const seleccion = (id: string) => ({ params: Promise.resolve({ markbox: "DTD-0000" }), searchParams: Promise.resolve({ embarque: id }) });
+  const leido = (extra: Record<string, unknown> = {}) => ({
+    id: "envio-ficticio", tenant_id: "tenant-ficticio", code: "S-FICTICIO",
+    client_markbox: "DTD-0000", deleted_at: null, ...extra,
+  });
+
+  it("abre el seleccionado fuera de los primeros 200 aunque no exista ficha comodín", async () => {
+    const primeros200 = Array.from({ length: 200 }, (_, i) => `envio-reciente-${i}`);
+    expect(primeros200).not.toContain("envio-antiguo-201");
+    mocks.content.mockImplementation(() => { throw new Error("No hay ficha comodín visible ni listado disponible"); });
+    mocks.shipment.mockResolvedValue(leido({ id: "envio-antiguo-201", code: "S-ANTIGUO-201", notes: "NOTA_FICTICIA_SOLO_SERVIDOR", client_name: "NOMBRE_FICTICIO_NO_EXHIBIR" }));
+    render(await Embarques(seleccion("envio-antiguo-201")));
+    expect(mocks.shipment).toHaveBeenCalledWith({}, "envio-antiguo-201");
+    expect(mocks.content).not.toHaveBeenCalled();
+    expect(mocks.gate).not.toHaveBeenCalledWith("clients");
+    expect(mocks.reassign).toHaveBeenCalledWith(expect.objectContaining({ shipmentId: "envio-antiguo-201", shipmentCode: "S-ANTIGUO-201" }));
+    expect(mocks.reassign.mock.calls[0][0]).toEqual({ shipmentId: "envio-antiguo-201", shipmentCode: "S-ANTIGUO-201", currentMarkbox: "DTD-0000", sinCliente: true });
+    expect(screen.queryByText(/NOTA_FICTICIA_SOLO_SERVIDOR|NOMBRE_FICTICIO_NO_EXHIBIR/)).toBeNull();
+    expect(screen.getByRole("link", { name: /Abrir este embarque en Tracking/ })).toHaveAttribute("href", "/studio/tracking/envio-antiguo-201");
+  });
+
+  it("deniega Tracking antes de resolver un id o cargar datos de ficha", async () => {
+    mocks.gate.mockImplementation(async (module: string) => { if (module === "tracking") throw new Error("Sin permiso"); });
+    await expect(Embarques(seleccion("envio-ficticio"))).rejects.toThrow("Sin permiso");
+    expect(mocks.shipment).not.toHaveBeenCalled();
+    expect(mocks.content).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { caso: "otro tenant", row: leido({ tenant_id: "tenant-ajeno" }) },
+    { caso: "id no corresponde", row: leido({ id: "otro-id" }) },
+    { caso: "eliminado", row: leido({ deleted_at: "2026-11-24T12:00:00Z" }) },
+    { caso: "no visible o inexistente", row: null },
+  ])("$caso: no expone código ni habilita asignación", async ({ row }) => {
+    mocks.shipment.mockResolvedValue(row);
+    render(await Embarques(seleccion("envio-ficticio")));
+    expect(screen.getByText("Embarque no disponible")).toBeInTheDocument();
+    expect(screen.queryByText("S-FICTICIO")).toBeNull();
+    expect(mocks.reassign).not.toHaveBeenCalled();
+    expect(mocks.content).not.toHaveBeenCalled();
+  });
+
+  it("sin tenant activo no consulta el embarque ni ofrece acción", async () => {
+    mocks.tenant = null;
+    render(await Embarques(seleccion("envio-ficticio")));
+    expect(mocks.shipment).not.toHaveBeenCalled();
+    expect(mocks.reassign).not.toHaveBeenCalled();
+  });
+
+  it.each(["privacidad", "capacidad"])("sin %s conserva el gate existente del formulario", async (limite) => {
+    mocks.capacidad = limite !== "capacidad";
+    mocks.nombres = limite !== "privacidad";
+    render(await Embarques(seleccion("envio-ficticio")));
+    expect(mocks.reassign).not.toHaveBeenCalled();
+  });
+
+  it("relee el cliente actual: una fila desactualizada no permite reasignar al nuevo dueño", async () => {
+    mocks.shipment.mockResolvedValue(leido({ client_markbox: "DTD-8002" }));
+    render(await Embarques(seleccion("envio-ficticio")));
+    expect(screen.getByText(/Este embarque ya tiene cliente asignado/)).toBeInTheDocument();
+    expect(mocks.reassign).not.toHaveBeenCalled();
+  });
+
+  it("dos filas del mismo grupo resuelven solo su propio id", async () => {
+    mocks.shipment.mockImplementation(async (_session: unknown, id: string) => leido({ id, code: `S-${id}` }));
+    for (const id of ["fila-uno", "fila-dos"]) {
+      const view = render(await Embarques(seleccion(id)));
+      expect(mocks.reassign.mock.calls.at(-1)?.[0]).toMatchObject({ shipmentId: id, shipmentCode: `S-${id}` });
+      view.unmount();
+    }
+    expect(mocks.shipment.mock.calls.map((call) => call[1])).toEqual(["fila-uno", "fila-dos"]);
+  });
+
+  it("recargar el panel seleccionado lleva al Tracking exacto, no a la ficha comodín", async () => {
+    await EmbarquesDirecta(seleccion("envio-antiguo-201"));
+    expect(mocks.gate).toHaveBeenCalledWith("tracking");
+    expect(mocks.redirect).toHaveBeenCalledTimes(1);
+    expect(mocks.redirect).toHaveBeenCalledWith("/studio/tracking/envio-antiguo-201");
   });
 });

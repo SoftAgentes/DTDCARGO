@@ -267,25 +267,6 @@ describe("Asignación desde ficha lateral · SDD-0715", () => {
     expect(state.pintadas).not.toContain("ReassignClientPanel");
   });
 
-  it("un id ajeno a los embarques leídos de la ficha no habilita asignación", async () => {
-    state.markbox = "DTD-0000";
-    state.codigos = ["DTD-0000"];
-    state.envios = [ENVIO_PENDIENTE];
-    state.puedeReasignar = true;
-    render(await ClientDetailContent({ markbox: state.markbox, enPanel: true, shipmentId: "id-ficticio-no-resuelto" }));
-    expect(state.pintadas).not.toContain("ReassignClientPanel");
-    expect(screen.getByText(/se necesita un embarque sin cliente/)).toBeInTheDocument();
-  });
-
-  it("la fila seleccionada no habilita asignación sobre otros embarques", async () => {
-    state.markbox = "DTD-0000";
-    state.codigos = ["DTD-0000"];
-    state.envios = [ENVIO_PENDIENTE, { ...ENVIO_PENDIENTE, id: "otro-envio-ficticio", code: "S-OTRO" }];
-    state.puedeReasignar = true;
-    render(await ClientDetailContent({ markbox: state.markbox, enPanel: true, shipmentId: "envio-ficticio" }));
-    expect(state.pintadas.filter((nombre) => nombre === "ReassignClientPanel")).toHaveLength(1);
-    expect(state.props.ReassignClientPanel.shipmentId).toBe("envio-ficticio");
-  });
 });
 
 describe.each(["completa", "panel"] as const)("Accesos de identidad y asesor · ficha %s · SDD-0715", (modo) => {

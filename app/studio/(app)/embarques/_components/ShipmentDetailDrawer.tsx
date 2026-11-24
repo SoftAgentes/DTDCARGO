@@ -20,6 +20,7 @@ import {
 import type { ShipmentListRow } from "@/lib/studio/shipment-queries";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { esSinCliente } from "../../tracking/[id]/_components/ClienteDelEmbarque";
 
 function statusBadgeTone(
   status: ShipmentStatus,
@@ -101,7 +102,7 @@ export function ShipmentDetailDrawer({
               </div>
               {shipment.client_markbox && (
                 <Link
-                  href={`/studio/embarques/ficha-cliente/${encodeURIComponent(shipment.client_markbox)}?embarque=${encodeURIComponent(shipment.id)}`}
+                  href={`/studio/embarques/ficha-cliente/${encodeURIComponent(shipment.client_markbox)}${esSinCliente(shipment.client_markbox) ? `?embarque=${encodeURIComponent(shipment.id)}` : ""}`}
                   scroll={false}
                   onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
                   style={{
