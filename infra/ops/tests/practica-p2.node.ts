@@ -4,6 +4,9 @@ import { test } from "node:test";
 import { leerCuerpoFinanciero, MAX_CUERPO_FACTURACION } from "../../../lib/studio/practica/cuerpo";
 import { parseNumericExpressionDetailed } from "../../../lib/studio/util/parse-numeric-expression";
 import { aplicarFactura, semillaFacturacion, totalPractica } from "../../../lib/studio/practica/facturacion";
+import { esVistaPractica } from "../../../lib/studio/practica/contrato";
+import { permisosVigentes } from "../../../lib/studio/practica/identidad";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const request = (texto: string, headers: Record<string,string> = {}) => new Request("https://practica.example.test/api/practica/facturacion", {method:"POST",headers,body:texto});
 
@@ -50,4 +53,28 @@ test("el parser canónico conserva como no válidos 12.345, vacío y edición in
   assert.equal(centavos,1234);
   const d=aplicarFactura(semillaFacturacion(),{accion:"guardar",codigo:"PRA-PRE-001",lineas:[{concepto:"Carga ficticia",cantidad:2,centavos}]});
   assert.equal(totalPractica(d.facturas[0].lineas),2468);
+});
+
+const sujeto = {usuario:"00000000-0000-4000-8000-000000000713",tenant:"00000000-0000-4000-8000-000000000714"};
+function clienteFicticio(fallo: "auth" | "membresia" | "permisos" | "ausente" | null) {
+  return {
+    auth:{admin:{getUserById:async () => ({data:{user:{id:sujeto.usuario}},error:fallo === "auth" ? {status:503} : null})}},
+    from:() => {
+      const cadena = {
+        select:() => cadena, eq:() => cadena, is:() => cadena,
+        maybeSingle:async () => ({data:fallo === "ausente" ? null : {role:"accounting",warehouse_scope:"all"},error:fallo === "membresia" ? {message:"Error ficticio"} : null}),
+        then:(resolver:(valor:unknown)=>unknown) => Promise.resolve(resolver({data:[],error:fallo === "permisos" ? {message:"Error ficticio"} : null})),
+      };
+      return cadena;
+    },
+  } as unknown as SupabaseClient;
+}
+test("una vista de estado inválida o con permisos duplicados nunca autoriza restaurar", () => {
+  assert.equal(esVistaPractica({espacio:sujeto.usuario,permisos:[{id:"invoices",edicion:true}]}),true);
+  for (const valor of [null,{}, {espacio:sujeto.usuario,permisos:null}, {espacio:sujeto.usuario,permisos:[{id:"invoices",edicion:"sí"}]}, {espacio:sujeto.usuario,permisos:[{id:"invoices",edicion:true},{id:"invoices",edicion:true}]}]) assert.equal(esVistaPractica(valor),false);
+});
+test("errores de identidad, membresía y base de permisos son indisponibilidad; la ausencia confirmada es denegación", async () => {
+  for (const fallo of ["auth","membresia","permisos"] as const) await assert.rejects(permisosVigentes(clienteFicticio(fallo),sujeto));
+  assert.equal(await permisosVigentes(clienteFicticio("ausente"),sujeto),null);
+  assert.ok((await permisosVigentes(clienteFicticio(null),sujeto))?.some(p => p.id === "invoices" && p.edicion));
 });
