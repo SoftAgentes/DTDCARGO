@@ -236,6 +236,27 @@ export function EmbarquesClient({
     [shipments, seleccion, eliminacion],
   );
 
+  // Marcar una bloqueada permite consultar; nunca la vuelve elegible para borrar.
+  const consultados = shipments.filter((s) => seleccion.has(s.id) && seleccionable?.motivo(s.id) != null);
+  const ayuda = consultados.map((s) => {
+    const motivo = seleccionable?.motivo(s.id);
+    if (!motivo) return null;
+    return (
+      <div key={s.id}>
+        <span title={motivo}>{s.code}: {motivoCorto(motivo)}</span>{" "}
+        {seleccionable?.guiable(s.id) && (
+          <button
+            type="button"
+            className="studio-emb-pasos"
+            aria-label={`Ver los pasos para eliminar ${s.code}`}
+            onClick={() => seleccionable.onGuiar(s.id, s.code)}
+          >
+            Ver los pasos
+          </button>
+        )}
+      </div>
+    );
+  });
   const [tab, setTab] = useState<Tab>(pestanaInicial);
   const [q, setQ] = useState("");
   const [qContenedor, setQContenedor] = useState("");
@@ -735,8 +756,10 @@ export function EmbarquesClient({
         />
       )}
 
-      {seleccionable && elegidos.length > 0 && (
+      {seleccionable && (elegidos.length > 0 || consultados.length > 0) && (
         <PanelDeBorrado
+          ayuda={ayuda}
+          cantidadSeleccionada={elegidos.length + consultados.length}
           elegidos={elegidos}
           eliminacion={eliminacion}
           onCancelar={() => setSeleccion(new Set())}
@@ -798,17 +821,21 @@ function AsistenteEnEmbarques({
 }
 
 /**
- * SDD-0522 · Barra + diálogo + aviso. Sólo se monta con selección, así quien no
- * puede borrar no depende del ToastProvider ni de nada de esto. El diálogo va
- * como HERMANO de la barra: la barra tiene transform y backdrop-filter, que la
- * vuelven el contenedor de cualquier hijo `position: fixed`.
+ * SDD-0522/0710 · Barra + diálogo + aviso. Sólo se monta con selección.
+ * La barra ocupa espacio en el flujo, se pega al borde inferior y limita su
+ * altura; varios motivos se recorren sin depender de un colchón fijo.
+ * El diálogo sigue como hermano para conservar su posicionamiento independiente.
  */
 function PanelDeBorrado({
+  ayuda,
+  cantidadSeleccionada,
   elegidos,
   eliminacion,
   onCancelar,
   onBorrado,
 }: {
+  ayuda: ReactNode;
+  cantidadSeleccionada: number;
   elegidos: ShipmentListRow[];
   eliminacion: EliminacionEmbarques | undefined;
   onCancelar: () => void;
@@ -826,7 +853,9 @@ function PanelDeBorrado({
   };
 
   const confirmarBorrado = (motivo: string) => {
-    const ids = elegidos.map((s) => s.id);
+    const ids = eliminacion?.estado === "lista"
+      ? elegidos.filter((s) => shipmentDeleteBlockReason(eliminacion.info[s.id]) === null).map((s) => s.id) : [];
+    if (ids.length === 0 || ids.length > MAX_LOTE_BORRADO) return;
     // Limpiar antes de reintentar: el diálogo reabre su candado cuando cambia
     // `error`, también si la acción repite el mismo mensaje.
     setErrorBorrado(undefined);
@@ -858,10 +887,10 @@ function PanelDeBorrado({
 
   return (
     <>
-      {/* Colchón: la barra es fija y taparía la última fila. */}
-      <div aria-hidden style={{ height: 96 }} />
       <BarraDeSeleccion
-        cantidad={elegidos.length}
+        ayuda={ayuda}
+        cantidad={cantidadSeleccionada}
+        eliminables={elegidos.length}
         pending={borrando}
         onEliminar={() => {
           setErrorBorrado(undefined);
@@ -912,28 +941,35 @@ function mensajeConfirmacion(
 // Mismo panel que la barra masiva del Almacén CN: aparece sólo con selección.
 
 function BarraDeSeleccion({
+  ayuda,
   cantidad,
+  eliminables,
   pending,
   onEliminar,
   onCancelar,
 }: {
+  ayuda: ReactNode;
   cantidad: number;
+  eliminables: number;
   pending: boolean;
   onEliminar: () => void;
   onCancelar: () => void;
 }) {
-  const excede = cantidad > MAX_LOTE_BORRADO;
+  const excede = eliminables > MAX_LOTE_BORRADO;
   return (
     <div
       role="region"
+      tabIndex={0}
       aria-label={`Selección de embarques · ${cantidad}`}
       style={{
-        position: "fixed",
-        bottom: 16,
-        left: "50%",
-        transform: "translateX(-50%)",
+        position: "sticky",
+        bottom: "var(--s-4)",
+        margin: "var(--s-4) auto",
         zIndex: 70,
         maxWidth: "calc(100vw - 32px)",
+        maxHeight: "40dvh",
+        overflowY: "auto",
+        overflowWrap: "anywhere",
         background: "var(--glass-bg)",
         backdropFilter: "var(--glass-blur)",
         WebkitBackdropFilter: "var(--glass-blur)",
@@ -960,19 +996,20 @@ function BarraDeSeleccion({
         >
           Cancelar selección
         </button>
-        <button
+        {eliminables > 0 && <button
           type="button"
           className="studio-btn studio-btn-danger studio-btn-sm"
           onClick={onEliminar}
-          disabled={pending || excede}
+          disabled={pending || excede || eliminables === 0}
           aria-describedby={excede ? "emb-borrado-excede" : undefined}
         >
-          Eliminar…
-        </button>
+          {eliminables < cantidad ? `Eliminar ${eliminables}…` : "Eliminar…"}
+        </button>}
       </div>
+      {ayuda}
       {excede && (
         <p id="emb-borrado-excede" role="status" style={{ margin: 0, font: "600 11.5px/1.3 var(--f-sans)" }}>
-          Elige hasta {MAX_LOTE_BORRADO} por vez: quita {cantidad - MAX_LOTE_BORRADO} de la selección.
+          Elige hasta {MAX_LOTE_BORRADO} por vez: quita {eliminables - MAX_LOTE_BORRADO} de la selección.
         </p>
       )}
     </div>
@@ -1900,7 +1937,7 @@ function GroupedTable({
                   const pct = computeProgress(s.status);
                   const svc = SERVICE_LABELS[s.shipment_service];
                   const motivo = seleccionable ? seleccionable.motivo(s.id) : null;
-                  const elegido = seleccionable?.seleccion.has(s.id) === true && motivo === null;
+                  const elegido = seleccionable?.seleccion.has(s.id) === true;
                   const fondo = elegido ? "color-mix(in srgb, var(--ink) 8%, transparent)" : "transparent";
                   const motivoId = `emb-motivo-${s.id}`;
                   return (
@@ -1931,12 +1968,11 @@ function GroupedTable({
                             type="checkbox"
                             aria-label={`Seleccionar ${s.code}`}
                             checked={elegido}
-                            disabled={motivo !== null}
                             aria-describedby={motivo !== null ? motivoId : undefined}
                             onChange={() => seleccionable.onToggle(s.id)}
                             style={{
                               accentColor: "var(--accion)",
-                              cursor: motivo !== null ? "not-allowed" : "pointer",
+                              cursor: "pointer",
                               width: 16,
                               height: 16,
                               margin: 0,
@@ -2031,6 +2067,9 @@ function GroupedTable({
                           {Icon.pin(12)}
                           Rastrear
                         </Link>
+                        {motivo !== null && <span role="img" aria-label="No se puede eliminar"
+                          aria-describedby={motivoId} title={motivo}
+                          style={{ display: "inline-flex", color: "var(--ink-soft)" }}>{Icon.lock(12)}</span>}
                       </span>
                       <span
                         style={{
@@ -2055,44 +2094,7 @@ function GroupedTable({
                         {formatDate(s.created_at)}
                       </span>
                       </div>
-                      {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
-                          deshabilitada se ve, no depende de enfocarla. */}
-                      {motivo !== null && (
-                        <div
-                          style={{
-                            gridColumn: "2 / -1",
-                            margin: "var(--s-1) 0 0",
-                            display: "flex",
-                            alignItems: "baseline",
-                            gap: "var(--s-2)",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          {/* SDD-0710: una línea con candado. El texto completo
-                              queda para lectores y como ayuda del cursor. */}
-                          <p
-                            id={motivoId}
-                            title={motivo}
-                            className="studio-emb-bloqueo"
-                          >
-                            {Icon.lock(12)}
-                            <span aria-hidden="true">{motivoCorto(motivo)}</span>
-                            <span className="studio-sr-only">{motivo}</span>
-                          </p>
-                          {/* SDD-0560: el motivo no deja a Sam trabado; el
-                              asistente le dice qué hacer y en qué orden. */}
-                          {seleccionable?.guiable(s.id) && (
-                            <button
-                              type="button"
-                              className="studio-emb-pasos"
-                              aria-label={`Ver los pasos para eliminar ${s.code}`}
-                              onClick={() => seleccionable.onGuiar(s.id, s.code)}
-                            >
-                              Ver los pasos
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {motivo !== null && <span id={motivoId} className="studio-sr-only">{motivo}</span>}
                     </div>
                   );
                 })}

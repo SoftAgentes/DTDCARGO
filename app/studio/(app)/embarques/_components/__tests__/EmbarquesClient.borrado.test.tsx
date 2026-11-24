@@ -85,12 +85,12 @@ describe("EmbarquesClient · quién ve el borrado", () => {
 });
 
 describe("EmbarquesClient · casillas y motivo", () => {
-  it("la fila bloqueada tiene la casilla deshabilitada y el motivo a la vista, asociado", () => {
+  it("la fila bloqueada permite consulta y describe el candado y la casilla", () => {
     pintar({ estado: "lista", info: INFO });
     const bloqueada = screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" });
-    expect(bloqueada).toBeDisabled();
-    // SDD-0710: a la vista va la versión de una línea; el texto completo queda para lectores.
-    expect(screen.getByText("No se elimina: tiene 1 factura sin anular (Facturación)")).toBeVisible();
+    expect(bloqueada).toBeEnabled();
+    // SDD-0710: el candado conserva el motivo completo para lectores.
+    expect(screen.getByRole("img", { name: "No se puede eliminar" })).toHaveAccessibleDescription(MOTIVO_S2);
     expect(bloqueada).toHaveAccessibleDescription(MOTIVO_S2);
     expect(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0001" })).toBeEnabled();
   });
@@ -104,7 +104,7 @@ describe("EmbarquesClient · casillas y motivo", () => {
 
   it("sin la fila en la lectura, también bloquea", () => {
     pintar({ estado: "lista", info: { "s-1": INFO["s-1"] } });
-    expect(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0003" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0003" })).toBeEnabled();
     expect(screen.getAllByText("No se pudo comprobar qué depende de este embarque. Recarga la página.")).toHaveLength(2);
   });
 
@@ -228,8 +228,9 @@ describe("EmbarquesClient · barra y diálogo", () => {
 });
 
 describe("EmbarquesClient · «Ver los pasos» (SDD-0560)", () => {
-  it("la fila bloqueada ofrece el asistente, sin tocar la descripción de la casilla", () => {
+  it("la selección bloqueada ofrece el asistente con el motivo asociado", async () => {
     pintar({ estado: "lista", info: INFO });
+    await userEvent.click(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" }));
     const ver = screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" });
     expect(ver.textContent).toBe("Ver los pasos");
     // La descripción de la casilla sigue siendo sólo el motivo.
@@ -250,6 +251,7 @@ describe("EmbarquesClient · «Ver los pasos» (SDD-0560)", () => {
     const user = userEvent.setup();
     mocks.leerPlanDeBorradoAction.mockResolvedValue({ ok: false, error: "No se pudo revisar." });
     pintar({ estado: "lista", info: INFO });
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" }));
     await user.click(screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" }));
     expect(await screen.findByRole("heading", { name: "Eliminar S-2026-0002 paso a paso" })).toBeTruthy();
     expect(mocks.leerPlanDeBorradoAction).toHaveBeenCalledWith("s-2");
@@ -275,6 +277,7 @@ describe("EmbarquesClient · «Ver los pasos» (SDD-0560)", () => {
     });
     mocks.ejecutarPasoDeBorradoAction.mockResolvedValue({ ok: true, hecho, eliminado: true, plan: null });
     pintar({ estado: "lista", info: INFO });
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" }));
     await user.click(screen.getByRole("button", { name: "Ver los pasos para eliminar S-2026-0002" }));
     await user.click(await screen.findByRole("button", { name: "Eliminar embarque…" }));
     const confirmacion = screen.getAllByRole("dialog")[1];
@@ -284,5 +287,64 @@ describe("EmbarquesClient · «Ver los pasos» (SDD-0560)", () => {
     await waitFor(() => expect(screen.queryAllByRole("dialog")).toHaveLength(0));
     expect(mocks.show).toHaveBeenCalledTimes(1);
     expect(mocks.show.mock.calls[0][0]).toMatchObject({ eventKey: "shipments:deleted", tone: "success", message: hecho });
+  });
+});
+
+
+describe("SDD-0710: selección de consulta", () => {
+  it("varias consultas conservan todos los motivos y pasos en una barra acotada", async () => {
+    const user = userEvent.setup();
+    pintar({ estado: "lista", info: {
+      ...INFO, "s-3": { bloqueos: { invoices: 2 }, avisos: {} },
+    } });
+    for (const n of [2, 3]) await user.click(screen.getByRole("checkbox", { name: `Seleccionar S-2026-000${n}` }));
+    const barra = screen.getByRole("region", { name: /Selecci/ });
+    expect(within(barra).getAllByText(/No se elimina/)).toHaveLength(2);
+    expect(within(barra).getAllByRole("button", { name: /Ver los pasos/ })).toHaveLength(2);
+    expect(within(barra).queryByRole("button", { name: /Eliminar/ })).toBeNull();
+    expect(barra).toHaveStyle({ position: "sticky", maxHeight: "40dvh", overflowY: "auto" });
+    barra.focus();
+    expect(barra).toHaveFocus();
+  });
+
+  it("Espacio selecciona el bloqueo; al desmarcar desaparece la ayuda", async () => {
+    const user = userEvent.setup();
+    pintar({ estado: "lista", info: INFO });
+    const casilla = screen.getByRole("checkbox", { name: "Seleccionar S-2026-0002" });
+    expect(screen.queryByRole("button", { name: /Ver los pasos/ })).toBeNull();
+    casilla.focus();
+    await user.keyboard(" ");
+    expect(casilla).toBeChecked();
+    const barra = screen.getByRole("region", { name: /Selecci/ });
+    expect(within(barra).queryByRole("button", { name: /Eliminar/ })).toBeNull();
+    expect(within(barra).getByRole("button", { name: /Ver los pasos/ })).toBeEnabled();
+    expect(within(barra).getByText(/No se elimina/)).toBeVisible();
+    await user.keyboard(" ");
+    expect(screen.queryByRole("region", { name: /Selecci/ })).toBeNull();
+  });
+
+  it("mezclar una bloqueada y una elegible envía solo la elegible", async () => {
+    const user = userEvent.setup();
+    pintar({ estado: "lista", info: INFO });
+    for (const n of [1, 2]) await user.click(screen.getByRole("checkbox", { name: `Seleccionar S-2026-000${n}` }));
+    const barra = screen.getByRole("region", { name: /Selecci/ });
+    expect(barra).toHaveTextContent("2 embarques seleccionados");
+    await user.click(within(barra).getByRole("button", { name: "Eliminar 1…" }));
+    const dialogo = screen.getByRole("dialog");
+    expect(dialogo).toHaveTextContent("Eliminar 1 embarque");
+    await user.type(within(dialogo).getByLabelText(/Motivo/), "Prueba ficticia");
+    await user.click(within(dialogo).getByRole("button", { name: "Eliminar embarque" }));
+    await waitFor(() => expect(mocks.deleteShipmentsAction).toHaveBeenCalledWith(["s-1"], "Prueba ficticia"));
+  });
+
+  it.each([undefined, { estado: "no_disponible" } as const])("perder permiso o lectura desmonta la confirmación", async (estado) => {
+    const user = userEvent.setup();
+    const vista = pintar({ estado: "lista", info: INFO });
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar S-2026-0001" }));
+    await user.click(screen.getByRole("button", { name: /Eliminar/ }));
+    vista.rerender(<EmbarquesClient pestanaInicial="all" shipments={ENVIOS} adjuntos={undefined} eliminacion={estado} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("region", { name: /Selecci/ })).toBeNull();
+    expect(mocks.deleteShipmentsAction).not.toHaveBeenCalled();
   });
 });

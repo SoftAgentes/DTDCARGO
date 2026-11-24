@@ -4,7 +4,7 @@ title: "Studio · Embarques: fila con insignia de rastreo"
 status: in-progress
 author: "Claude (Worker) para Dir_DTD"
 created: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-24
 supersedes: null
 superseded_by: null
 related: ["0603", "0688", "0709", "0522", "0560"]
@@ -80,22 +80,46 @@ botón grande, «Ver los pasos» (**C**). Con ambos, la fila se ve cargada y com
 - **CA-5** Sin migraciones, sin cambios de permisos, datos ni acciones de servidor.
 - **CA-6** `pnpm verify` (o su subconjunto aplicable, anotando SKIPs) en verde.
 
-## 6. Allowlist exacta
+## 6. Allowlist exacta de la enmienda (2026-11-24)
 
 - `app/studio/(app)/embarques/_components/EmbarquesClient.tsx`
-- `app/studio/(app)/embarques/_components/motivo-corto.ts` (nuevo)
+- `app/studio/studio.css` (solo reglas de clases del cambio, si hace falta)
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.abrir.test.tsx`
 - `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.borrado.test.tsx`
-- `app/studio/(app)/embarques/_components/__tests__/motivo-corto.test.ts` (nuevo)
-- `app/studio/studio.css` (bloque `studio-emb-*` al final)
 - `docs/specs/0710-embarques-fila-insignia-rastreo/spec.md`
-- `docs/specs/README.md` o índice de specs, solo si `pnpm docs:check` lo exige
-- `.agents/handoffs/sdd-0710-embarques-insignia-rastreo.md`
+- `.agents/handoffs/sdd-0710-candado-embarques-20261124.md`
 
 ## 7. Carril
 
-Pantalla de lectura/estilos sin escrituras: candidata al carril rápido; `node scripts/carril.mjs` decide.
+La enmienda modifica selección que alimenta una acción destructiva: requiere revisión previa y CI verde en el SHA final; `node scripts/carril.mjs` clasifica el diff.
 
 ## 8. Fuera de alcance
 
-Menú de acciones masivas, filtros, detalle en panel, la pantalla de Tracking, y el resto de listados con «Abrir».
+Filtros, detalle en panel, la pantalla de Tracking y el resto de listados con «Abrir». La barra de selección sí pertenece al alcance de esta enmienda.
+
+
+## Enmienda 2026-11-24: consulta desde la selección (opción A)
+
+Esta enmienda sustituye el punto 2.3, CA-4 y el alcance anterior de casillas/barra.
+El código azul y Rastrear se conservan. La fila bloqueada lleva un candado pequeño
+junto a Rastrear, con nombre accesible `No se puede eliminar` y descripción completa
+procedente de `shipmentDeleteBlockReason`. No muestra motivo visible ni pasos hasta seleccionarla.
+La casilla permite consulta por teclado y ratón; al marcarla, la barra muestra el
+motivo corto mediante `motivoCorto` y `Ver los pasos` abre el asistente SDD-0560 existente
+cuando hay plan consultable. Al desmarcar desaparece la ayuda.
+La selección masiva sigue incluyendo solo elegibles. La selección mixta cuenta todas
+las filas seleccionadas, pero la confirmación y el payload usan exclusivamente las
+elegibles actuales. Sin elegibles no se muestra Eliminar. Perder permiso o lectura
+desmonta barra, confirmación y asistente. El servidor conserva sus verificaciones.
+Sin cambios de datos, permisos, migraciones ni conexión con Faro.
+
+Validación pendiente en el handoff de la enmienda; no implica aceptación visual ni cierre canónico.
+
+### Revisión del Director: barra y varias consultas
+
+Con selección mixta, la acción dice `Eliminar N…`, donde N es el número de elegibles
+de la confirmación y el payload. El conteo general conserva todas las seleccionadas.
+La barra pasa de fija a sticky dentro del flujo y elimina el colchón de 96 px;
+su altura máxima es 40dvh con desplazamiento vertical y foco de teclado. Todos los
+motivos y accesos al asistente se conservan, con texto que puede envolver en móvil.
+La comprobación real del viewport móvil sigue pendiente de turno y arnés.
