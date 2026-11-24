@@ -1009,7 +1009,18 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             const ayuda = p.getByLabel(`Ayuda: ${funcion}`,{exact:true});
             await ayuda.focus(); await ayuda.press("Enter");
             await esperar(ayuda.locator("..")).toHaveAttribute("open", "");
-            if (funcion === "Recepción Venezuela") await esperar(p.getByText(/Faro no está habilitado/)).toBeVisible();
+            if (funcion === "Recepción Venezuela") {
+              await esperar(ayuda.locator("..")).toContainText("el trámite aduanal ya se da por resuelto");
+              await esperar(ayuda.locator("..")).toContainText("no lo tramitas ni confirmas una liberación formal");
+              await esperar(ayuda.locator("..")).toContainText("El conteo físico por caja se practica en «Viajes parciales y recepción física de práctica»");
+              await esperar(p.getByText(/Faro no está habilitado/)).toBeVisible();
+            }
+            if (funcion === "Recibir en Venezuela") {
+              await esperar(ayuda.locator("..")).toContainText("El trámite aduanal ya se da por resuelto");
+              await esperar(ayuda.locator("..")).toContainText("este botón solo cambia el estado a recibido en Venezuela");
+              await esperar(ayuda.locator("..")).toContainText("Para contar cada caja, usa «Viajes parciales y recepción física de práctica»");
+            }
+            if (funcion === "Llegada a aduana") await esperar(ayuda.locator("..")).toContainText("no tramita ni autoriza la liberación aduanal");
             await ayuda.press("Enter");
             if (width === 390) { await ayuda.tap(); await esperar(ayuda.locator("..")).toHaveAttribute("open", ""); await ayuda.tap(); }
           }
@@ -1018,7 +1029,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true}).click();
           await esperar(avanzada).toContainText("Estado: en_aduana");
           const venezuelaDemorada=demorar("recibir_ve");
-          await avanzada.getByRole("button",{name:/Confirmar liberaci/}).click();
+          await esperar(p.getByRole("button",{name:/Confirmar liberación/})).toHaveCount(0);
+          await avanzada.getByRole("button",{name:"Registrar recepción del embarque en Venezuela",exact:true}).click();
           await venezuelaDemorada.observada;
           await esperar(salida).toBeDisabled();
           await salida.evaluate((el:HTMLButtonElement)=>el.click()); expect(salidas).toBe(0);

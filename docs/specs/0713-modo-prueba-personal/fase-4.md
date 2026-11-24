@@ -148,3 +148,9 @@ acciones anteriores de China/admin, sin documentos financieros nuevos.
 Los diálogos de reinicio financiero y operativo nombran los cinco pasos y el
 caso preparado de destino. Cancelar no envía comandos ni cambia ningún viaje;
 confirmar restablece ambos casos mediante el reinicio completo ya existente.
+
+El caso avanzado financiero registra la recepción del embarque en Venezuela
+mediante recibir_ve → recibida_ve. Su trámite aduanal se da por resuelto en la
+plantilla: el botón y las ayudas no instruyen confirmar ni tramitar liberación
+formal. La recepción física individual se practica en Viajes parciales. Esta
+aclaración no cambia permisos, expedientes, transiciones ni el ERP real.
