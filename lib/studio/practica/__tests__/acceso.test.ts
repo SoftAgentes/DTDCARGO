@@ -486,6 +486,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         };
         let salidas=0;
         let perderRespuestaEjercicio=false;
+        let lecturasChina=0, escriturasChina=0;
         await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
         await contextoBrowser.addInitScript(() => {
           const estado = window as Window & { __practicaDemorarHost?: boolean };
@@ -529,6 +530,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             if (u.pathname === API_PRACTICA+"facturacion") {
               if (req.postDataJSON().comando) escriturasFactura++; else lecturasFactura++;
             }
+            if (u.pathname === API_PRACTICA+"china") {
+              if (req.postDataJSON().comando) escriturasChina++; else lecturasChina++;
+            }
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesionActual,req.headers().origin);
             if (u.pathname.endsWith("/salir")) salidas++;
             if (demora && req.postDataJSON()?.comando?.accion === demora.accion) {
@@ -560,6 +564,54 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           const ejercicio=p.getByRole("region",{name:"China de principio a fin",exact:true});
           await esperar(ejercicio).toBeVisible();
           const revisionInicial=(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision;
+          // Volver a la pestaña revalida estado; no recarga China ni borra la consulta.
+          const revalidarEstado=async()=>{
+            const respuesta=p.waitForResponse(r=>r.url()===prueba+API_PRACTICA+"estado");
+            await p.evaluate(()=>document.dispatchEvent(new Event("visibilitychange")));
+            expect((await respuesta).status()).toBe(200);
+            await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
+          };
+          usuarios.get(cuentaId)!.role="operations";
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:true}]);
+          await revalidarEstado();
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true}).fill("DTD-B-99007131");
+          await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("2");
+          await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
+          const lecturasAntesRecorte=lecturasChina, escriturasAntesRecorte=escriturasChina;
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
+          await revalidarEstado();
+          await esperar(p.locator("li").filter({hasText:"Almacén China"})).toContainText("Solo consulta");
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
+          usuarios.get(cuentaId)!.region="ve";
+          await revalidarEstado();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await esperar(ejercicio.getByLabel("Cajas que llegaron",{exact:true})).toHaveValue("2");
+          await esperar(ejercicio.getByLabel("Consolidado de práctica",{exact:true})).toHaveValue("PRA-CON-CN-B");
+          expect(lecturasChina).toBe(lecturasAntesRecorte); expect(escriturasChina).toBe(escriturasAntesRecorte);
+          expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(revisionInicial);
+          usuarios.get(cuentaId)!.region="cn"; usuarios.get(cuentaId)!.role="warehouse";
+          ajustesPorRol.delete("operations"); await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await ejercicio.getByRole("button",{name:"Cancelar consulta sin recibir",exact:true}).click();
           await ejercicio.getByText("Etiqueta de práctica y ayuda para el lector",{exact:true}).click();
           const pngQr=await ejercicio.getByRole("img",{name:"QR de caja inventada",exact:true}).screenshot();
           const rawQr=await sharp(pngQr).ensureAlpha().raw().toBuffer({resolveWithObject:true});
