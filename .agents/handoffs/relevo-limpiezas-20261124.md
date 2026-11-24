@@ -35,7 +35,10 @@ Solo fixtures sint?ticos; sin accesos reales.
 La cabeza exacta se obtiene de la PR; este documento forma parte del commit de entrega.
 
 ## PR / BRANCH
-PR pendiente de creaci?n. Conservar rama y worktree.
+PR: https://github.com/SoftAgentes/DTDCARGO/pull/805 (abierta, hacia main). Conservar rama y worktree.
+Head de implementaci?n: `34d61d1b944b2512b97ab9fbe15744d3a9478e8d`; la cabeza final a?ade solo este cierre documental y se consulta en la PR.
+Carril informativo: `revision`, por rutas Registro y token; clasificaci?n sobre esa cabeza, base `8580490f8d95872a407ab83ab9acb6b1b265a451`. Recalcular antes de integrar la cabeza final.
+CI iniciado: Calidad local sin secretos, corrida `45406162585`, pendiente al corte; check Carril pas?. El push del cierre documental inicia CI para la cabeza final.
 
 ## PENDIENTES DE ESTA TAREA
 CI completo y revisi?n independiente del Director antes de integraci?n.
