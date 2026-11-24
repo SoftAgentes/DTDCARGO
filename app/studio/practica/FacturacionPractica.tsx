@@ -10,7 +10,7 @@ const dinero = (centavos: number) => Number.isSafeInteger(centavos) ? new Intl.N
 function Ayuda({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return <details><summary aria-label={`Ayuda: ${titulo}`}>ⓘ {titulo}</summary><p>{children}</p></details>;
 }
-export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: string; onBloqueoSalida: (bloqueada: boolean) => void }) {
+export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio }: { espacio: string; onBloqueoSalida: (bloqueada: boolean) => void; onReinicio?: () => void }) {
   const [vista, setVista] = useState<Vista>();
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -30,6 +30,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: str
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la práctica.");
       setVista(datos); setPrevia(""); setConfirmacion(null);
+      if (comando?.accion === "reiniciar") onReinicio?.();
       setLineas(datos.documento.facturas.find((f: { codigo: string }) => f.codigo === seleccion)?.lineas ?? []);
     } catch (e) { if (!comando) setVista(undefined); const mensaje = e instanceof Error ? e.message : "Servicio indisponible."; setError(mensaje); return { error: mensaje }; }
     finally { bloqueo.current = false; setOcupado(false); }
@@ -101,7 +102,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida }: { espacio: str
       <button type="button" disabled={!vista.edicion || ocupado} onClick={() => setConfirmacion("reiniciar")}>Reiniciar mi práctica</button>
       <Ayuda titulo="Reanudar y reiniciar">Salir conserva el avance. Reiniciar restablece tus dos ejemplos y conserva el historial de ejercicios; no cambia la copia de otra persona. Cancela para conservar el avance actual.</Ayuda>
       <ConfirmDialog open={!!confirmacion} title={confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
-        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas y pagos ficticios. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
+        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
         danger reason={confirmacion === "anular"} reasonRequired reasonLabel="Motivo ficticio" pending={ocupado} error={error}
         confirmLabel={`Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
         onConfirm={motivo => { if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />

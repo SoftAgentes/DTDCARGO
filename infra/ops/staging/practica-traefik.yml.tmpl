@@ -10,7 +10,7 @@ http:
         !HeaderRegexp(`Next-Action`, `.+`) &&
         (((Method(`GET`) || Method(`HEAD`)) &&
         (Path(`/studio/practica`) || PathPrefix(`/_next/static/`))) ||
-        (Method(`POST`) && PathRegexp(`^/api/practica/(reservar|canjear|estado|salir|facturacion)$`)))
+        (Method(`POST`) && PathRegexp(`^/api/practica/(reservar|canjear|estado|salir|facturacion|china)$`)))
       service: practica-personal
       middlewares: [practica-personal-limites]
   middlewares:

@@ -9,6 +9,8 @@ import { referenciaPrivada, abrirReferencia, permisosVigentes } from "@/lib/stud
 import { canalValido, emitirEnDestino, reservar, canjear, consultarPractica, cerrar, espacioDeSesion } from "@/lib/studio/practica/servidor";
 import { facturacionPersonal } from "@/lib/studio/practica/servidor";
 import type { ComandoFactura } from "@/lib/studio/practica/facturacion";
+import { chinaPersonal } from "@/lib/studio/practica/servidor";
+import type { ComandoChina } from "@/lib/studio/practica/china";
 
 export const runtime = "nodejs";
 const opcionesCookie = { httpOnly: true, secure: true, sameSite: "strict", path: "/" } as const;
@@ -69,6 +71,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
       const salida = json({ ok: true });
       salida.cookies.set(COOKIE_PRACTICA, "", { ...opcionesCookie, maxAge: 0 });
       return salida;
+    }
+    if (operacion === "china") {
+      if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);
+      const { comando, revision, modulo } = datos.body;
+      if (modulo !== "cn" && modulo !== "naviera") return json(null, 400);
+      if (comando !== undefined && (!comando || typeof comando !== "object" || !Number.isSafeInteger(revision))) return json(null, 400);
+      try {
+        return json(await chinaPersonal(cfg, sesion, esperado, modulo, revision as number | undefined, comando as ComandoChina | undefined));
+      } catch (error) {
+        const texto = error instanceof Error ? error.message : "";
+        const conocido = /^(No tienes|La práctica cambió|Carga inexistente|Recibe|Operación desconocida)/.test(texto);
+        return json({ error: conocido ? texto : "Servicio de práctica indisponible." }, conocido ? (texto.startsWith("No tienes") ? 403 : 409) : 503);
+      }
     }
     if (operacion === "facturacion") {
       if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);

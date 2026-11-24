@@ -60,5 +60,5 @@ export function configuracionPractica(env: EnvSource = process.env): OrigenPract
 export function rutaDelReceptor(path: string, metodo: string, accionNext: boolean): boolean {
   if (accionNext) return false;
   if (path === RUTA_PRACTICA) return metodo === "GET" || metodo === "HEAD";
-  return metodo === "POST" && ["reservar", "canjear", "estado", "salir", "facturacion"].some((op) => path === API_PRACTICA + op);
+  return metodo === "POST" && ["reservar", "canjear", "estado", "salir", "facturacion", "china"].some((op) => path === API_PRACTICA + op);
 }

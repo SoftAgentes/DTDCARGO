@@ -24,6 +24,9 @@ try {
   for(let i=0;i<30;i++) { try { if(await pedir("/api/practica/estado")===200) {lista=true;break;} } catch {} await new Promise(r=>setTimeout(r,300)); }
   assert.ok(lista,"Traefik debe cargar la plantilla");
   assert.equal(await pedir("/api/practica/facturacion"),200);
+  assert.equal(await pedir("/api/practica/china"),200);
+  for(const method of ["GET","HEAD","PUT","DELETE"]) assert.equal(await pedir("/api/practica/china",method),404);
+  assert.equal(await pedir("/api/practica/china","POST",{"Next-Action":"inventada"}),404);
   for(const method of ["GET","HEAD","PUT","DELETE"]) assert.equal(await pedir("/api/practica/facturacion",method),404);
   assert.equal(await pedir("/api/practica/facturacion","POST",{"Next-Action":"inventada"}),404);
   assert.equal(await pedir("/api/practica/facturacion","POST",{Host:"otro.example.test"}),404);

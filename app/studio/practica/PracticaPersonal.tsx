@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { API_PRACTICA, AVISO_LISTO, AVISO_PASE, AVISO_ABIERTA, esToken, MODULOS_PRACTICA, type VistaPractica } from "@/lib/studio/practica/contrato";
 import estilos from "./practica.module.css";
 import { FacturacionPractica } from "./FacturacionPractica";
+import { ChinaPractica } from "./ChinaPractica";
 
 const ESPACIO_DE_PESTANA = "dtd-practica-espacio";
 
@@ -21,6 +22,7 @@ export function PracticaPersonal({ real }: { real: string }) {
   const [vista, setVista] = useState<VistaPractica | null>(null);
   const [mensaje, setMensaje] = useState("Comprobando tu acceso…");
   const [saliendo, setSaliendo] = useState(false);
+  const [reinicio, setReinicio] = useState(0);
   const [salidaBloqueada, setSalidaBloqueada] = useState(false);
   const ultimaConsulta = useRef(0);
   useLayoutEffect(() => {
@@ -112,7 +114,8 @@ export function PracticaPersonal({ real }: { real: string }) {
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
         {vista && <>
-          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={setSalidaBloqueada} />}
+          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={setSalidaBloqueada} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
             {vista.permisos.map(p => <li key={p.id}>
