@@ -769,21 +769,56 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ayudaEmitir.focus(); await ayudaEmitir.press("Enter");
           await esperar(p.locator('details:has(summary[aria-label="Ayuda: Emitir"])')).toHaveAttribute("open", "");
           await ayudaEmitir.press("Enter");
-          // Recorte sin cerrar sesión, dos módulos con niveles distintos.
-          usuarios.get(cuentaId)!.role="operations";
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:true}]);
+          // Recargar operación mantiene el borrador con permisos iguales y
+          // conserva el estado oculto ante fallo transitorio, sin otra lectura financiera.
+          await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
+          await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador conservado al consultar permisos");
+          const lecturasAntesRecarga=lecturasFactura;
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
+          falloEstado="red";
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Reintentar comprobación",exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeHidden();
+          falloEstado=null;
+          await p.getByRole("button",{name:"Reintentar comprobación",exact:true}).click();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeVisible();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
+          // Recorte sin recargar página ni cambiar pestaña, cuatro capacidades.
+          const ajustarOperativos=(cn:boolean, naviera:boolean, shipments:boolean, ve:boolean)=>ajustesPorRol.set("operations",[
+            {module_id:"cn",can_view:true,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},
+            {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
+          ]);
+          usuarios.get(cuentaId)!.role="operations";
+          ajustarOperativos(false,true,true,true);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:/^Facturar|^Revisar PRA/})).toHaveCount(0);
+          expect(await p.locator("main").innerText()).not.toContain("Borrador conservado al consultar permisos");
+          expect((await frontera(prueba,"facturacion",{espacio:cuenta.vista.espacio},sesionActual,prueba)).status).toBe(403);
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
-          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición",{exact:true})).toBeVisible();
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:true},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(1);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          ajustarOperativos(true,false,false,true);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
-          ajustesPorRol.set("operations",[{module_id:"cn",can_view:true,can_edit:false},{module_id:"naviera",can_view:true,can_edit:false}]);
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          ajustarOperativos(false,false,false,false);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,

@@ -7,7 +7,7 @@ import estilos from "./practica.module.css";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 
 type Vista = { revision: number; documento: Datos; edicion: boolean; permisos: PermisoPractica[] };
-export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, onBloqueoSalida, documentos = [] }: { documentos?: ResumenDocumentoPractica[]; espacio: string; permisos: PermisoPractica[]; onAbrirFactura: (codigo: string) => void; onReinicio: () => void; onBloqueoSalida: (activo: boolean) => void }) {
+export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, onBloqueoSalida, onRevalidarPermisos, documentos = [] }: { documentos?: ResumenDocumentoPractica[]; espacio: string; permisos: PermisoPractica[]; onAbrirFactura: (codigo: string) => void; onReinicio: () => void; onBloqueoSalida: (activo: boolean) => void; onRevalidarPermisos: () => Promise<boolean> }) {
   const [vista, setVista] = useState<Vista>();
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -39,7 +39,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
   return <section className={estilos.facturacion} aria-labelledby="titulo-china">
     <h2 id="titulo-china">Almacén China y Consolidado de práctica</h2>
     <p>Datos inventados. Cada carga conserva su envío y sus cajas al consolidarse.</p>
-    <button type="button" disabled={ocupado} onClick={() => void pedir()}>Recargar cargas y permisos</button>
+    <button type="button" disabled={ocupado} onClick={async () => { if (await onRevalidarPermisos() && montado.current) await pedir(); }}>Recargar cargas y permisos</button>
     {ocupado && <p role="status">Guardando o consultando tu avance…</p>}
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>

@@ -59,7 +59,7 @@ export function PracticaPersonal({ real }: { real: string }) {
     return () => { observador.disconnect(); window.removeEventListener("resize", reservar); };
   }, []);
   const consultar = useCallback(async (signal: AbortSignal) => {
-    if (salidaEnCurso.current) return;
+    if (salidaEnCurso.current) return false;
     const turno = ++ultimaConsulta.current;
     consultaActual.current?.abort();
     const consulta = new AbortController(); consultaActual.current = consulta;
@@ -77,11 +77,13 @@ export function PracticaPersonal({ real }: { real: string }) {
         const anterior = vistaActual.current;
         const mismaVista = anterior !== null && anterior.espacio === datos.espacio && JSON.stringify(anterior.permisos) === JSON.stringify(datos.permisos);
         vistaActual.current = datos;
+        if (!datos.permisos.some(p => p.id === "invoices")) setDocumentos([]);
         setVista(datos); setMensaje(""); setRevalidando(false);
         if (mismaVista) requestAnimationFrame(() => {
           if (turno === ultimaConsulta.current && focoAnterior.current?.isConnected && document.visibilityState === "visible") focoAnterior.current.focus({preventScroll:true});
         });
         else focoAnterior.current = null;
+        return true;
       }
     } catch (error) {
       if (!consulta.signal.aborted && turno === ultimaConsulta.current) {
@@ -95,6 +97,7 @@ export function PracticaPersonal({ real }: { real: string }) {
         }
       }
     } finally { signal.removeEventListener("abort", alCancelar); }
+    return false;
   }, []);
 
   useEffect(() => {
@@ -187,7 +190,7 @@ export function PracticaPersonal({ real }: { real: string }) {
         </div>}
         {vista && <div ref={editor} inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
           {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onDocumentos={setDocumentos} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
-          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera" || p.id === "shipments" || p.id === "ve") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} documentos={documentos} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera" || p.id === "shipments" || p.id === "ve") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} documentos={documentos} onRevalidarPermisos={() => consultar(AbortSignal.timeout(15000))} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
             {vista.permisos.map(p => <li key={p.id}>

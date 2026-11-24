@@ -32,6 +32,12 @@ A11Y-01 ayuda nativa y ConfirmDialog; VIS-01 tokens y estilos existentes.
 Clasificación pendiente de pruebas, no aceptación anticipada. Sin excepción nueva.
 La operación china existente conserva ambas listas de acceso; no abre otra ruta.
 
+Recargar cargas y permisos revalida primero la proyección completa desde estado.
+Si se retira Facturación, se desmonta su detalle y se vacía el resumen financiero;
+las cuatro capacidades operativas se vuelven a leer por separado. Con permisos
+iguales se conserva el editor montado y el borrador. Un fallo transitorio conserva
+la edición oculta y bloqueada, con el reintento existente, sin tratarlo como baja.
+
 ## Continuidad entre versiones y dependencia Faro
 
 La normalización de identidad sintética se aplica al leer y antes de escribir,
