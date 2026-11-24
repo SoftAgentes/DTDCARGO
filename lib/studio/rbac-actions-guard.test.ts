@@ -167,6 +167,11 @@ const EXCEPCIONES: Lista = {
   "_actions/guia-actions.ts::guardarEstadoGuiaAction":
     "SDD-0589: cada usuario guarda el estado de SU guía (fila `user_guide_prefs`, migr 0517). La RLS exige user_id = auth.uid() y un tenant del usuario con disabled_at null, y `validarEstadoGuia` descarta lo que no esté en el catálogo. No muta datos de negocio ni de otros usuarios.",
 
+  // SDD-0714 · Vista y tema de la propia persona. No es un módulo: cualquier usuario
+  // del Studio elige cómo ve la pantalla, así que un gate de módulo no aplica.
+  "_actions/apariencia-actions.ts::guardarAparienciaAction":
+    "SDD-0714: cada usuario guarda SU vista y SU tema en su propio `user_metadata.studio_apariencia`. El candado es la sesión: `auth.getUser()` válido antes de `auth.updateUser`, que solo escribe el usuario del JWT. `parseAparienciaGuardada` acepta solo valores del catálogo y descarta campos de más. No toca tablas, datos de negocio ni otros usuarios, y nada decide acceso con esa clave.",
+
   "bugs/actions.ts::markBugNotificationsReadAction":
     "Marca leídas las notificaciones PROPIAS: el update lleva `.eq(\"user_id\", userResp.user.id)` sobre la sesión, así que el alcance es el propio usuario.",
   "bugs/actions.ts::advanceBugStateAction":
@@ -270,13 +275,14 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // chat desde la Ficha DTD.
   // SDD-0674 sumó `embarques/facturar-actions.ts` (86 → 87, con prefijo 26 → 27): «Facturar» del contenedor 64.
   // SDD-0704 F1-A sumó `admin/ia/actions.ts` (87 → 88, exactos 60 → 61): la pantalla «IA» del superadministrador.
-  it("la superficie escaneada es la esperada (88 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0714 sumó `_actions/apariencia-actions.ts` (88 → 89, con prefijo 27 → 28): la vista y el tema del usuario.
+  it("la superficie escaneada es la esperada (89 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 88,
+      total: 89,
       exactos: 61,
-      conPrefijo: 27,
+      conPrefijo: 28,
     });
   });
 
@@ -467,8 +473,10 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // `searchClientsForMergeAction` y `previewMergeAction` solo leen: `moduleViewDenial(supabase, "clients")` al tope.
   // `mergeClientsManualAction` escribe: `moduleEditDenial(supabase, "clients")` y además exige admin, operaciones o
   // comercial (Sam, 2026-11-23). Las tres van por RPC de la 0572 (security definer) que repiten rol y tenant.
+  // SDD-0714 sumó `_actions/apariencia-actions.ts::guardarAparienciaAction` (505 → 506), en EXCEPCIONES:
+  // la sesión válida es su candado antes de `updateUser` (ver su entrada).
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(505);
+    expect(reportes.length).toBe(506);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
@@ -485,7 +493,9 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     // SDD-0712: EXCEPCIONES 24 → 26. Las dos acciones nuevas de `clientes/merge-actions.ts` solo leen
     // (búsqueda y vista previa) por RPC `stable` de la 0572, con `moduleViewDenial` al tope; el analizador
     // cuenta toda RPC como escritura. Defendidas en la PR y en la entrada de cada una.
-    }).toEqual({ excepciones: 26, deuda: 0 });
+    // SDD-0714: EXCEPCIONES 26 → 27. `guardarAparienciaAction` escribe solo el metadata propio con sesión
+    // válida; no hay módulo que gatear. Defendida en la PR #802 y en su entrada.
+    }).toEqual({ excepciones: 27, deuda: 0 });
   });
 
   for (const { rel, r } of reportes) {
