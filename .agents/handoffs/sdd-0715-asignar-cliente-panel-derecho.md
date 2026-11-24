@@ -34,6 +34,7 @@ UI-CHECK read-only aplicado según .claude/commands/ui-check.md: hallazgo alto d
 - `1a39a12eb`: merge normal de #809, segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`; sin conflictos.
 - `66291e030`: enlaces de Embarques y selección de shipment dentro del panel, con casos focales y documentación de dependencia.
 - `af120dbfa`: atajo canónico también para marca vacía/espacios, Tracking exacto en otra pestaña y casos de dos filas por grupo. Head de producto al abrir PR: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`.
+- `8254197ed`: merge normal autorizado de #808 al SHA exacto `9e27b63d419450ca3ab93a4138df209de23b5e84`, sin conflictos. Las dos dependencias están incorporadas; Director revisará base final y delta exclusivo después de integrarlas.
 - El gate staged detectó líneas vacías al final de archivos nuevos; se corrigieron antes del primer commit.
 
 ## PR / BRANCH
@@ -49,6 +50,12 @@ La ampliación de boundaries fue solicitada mediante `msg_8bd45f20f5e8` y autori
 Ampliación DDP 64 (`msg_024f29816795`): EmbarquesClient usa esSinCliente canónico también para marca vacía/espacios. Cada fila sin ficha tiene atajo al Tracking del id exacto en otra pestaña, declarado en texto accesible/visible para conservar lista/filtros/selección al regresar. DTD-0000 conserva panel con selector exacto contrastado contra las lecturas autorizadas. Dos filas del mismo grupo tienen casos de destino exclusivo en panel-routes; pendientes de ejecución.
 
 Traspaso de turnos (`msg_19c4be2dd2e2`): tomar turno fuerte automáticamente al recibir liberación directa de 0716, sin volver a preguntar. Al liberarlo, avisar al Director y enviar a `dispatch:ctx_74f0cbdf1b68` que puede correr QA visual de #809. La entrega exige PR con checks activos; el borrador preliminar se marcará ready al completar la validación correspondiente. No confundir borrador publicado con entrega terminada.
+
+Liberación directa recibida de 0716 mediante `msg_8c58f6bfbab3`: turno tomado. Instalación `pnpm install --frozen-lockfile` PASÓ (813 paquetes reutilizados, sin copiar env). Suites focales iniciadas con maxWorkers=1; resultados pendientes de registrar. No se ejecuta instalación en otros hijos ni se toca producción.
+
+Primer corte de validación: 8 suites y 145 pruebas PASARON con maxWorkers=1 (incluye #808, #809 y ReassignClientPanel). Typecheck detectó 4 asignaciones de fixtures antiguos que aún enviaban Client con notes a ClientsClient; se adaptaron ClientsClient.adjuntos.test.tsx y ClientsClient.contador.test.tsx al contrato ClientListRow sin debilitarlo. Typecheck repetido PASÓ, ESLint del delta PASÓ y esas 2 suites adicionales PASARON (8 pruebas). La pasada definitiva seguirá al merge actualizado de #809 f4b7279b00f81c8afe79c97c9ad1f39a652b8373, solicitado por Director.
+
+Arnés Next temporal fuera del repo: `%TEMP%/sdd-0715-routing`, sin env ni DB real, puerto 3175; copia layouts/slots y páginas de routing y reutiliza ClientsClient/EmbarquesClient/DrawerShell/FichaPestanas reales, con cuerpo de ficha y autorización ficticios. No acredita RLS ni toda la ficha visual real. Ya observados: conservar filtros/selección/scroll/foco, atrás/adelante, recarga canónica con pestaña, error/404 local, geometría móvil. Evidencia final pendiente de completar y registrar; servidor temporal aún propio y se detendrá antes de liberar el turno.
 
 ## FUERA DE ALCANCE DETECTADO
 Registro derivado del plugin de gobernanza desactualizado frente al repo vigente. No se arregla ni se convierte en política dentro de este encargo. Sin otros arreglos ajenos incluidos.

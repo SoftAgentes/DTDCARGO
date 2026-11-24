@@ -49,6 +49,8 @@ Se añaden casos de prueba para ambas entradas (completa/panel): visibilidad en 
 - `app/studio/(app)/clientes/_components/ClientDetailContent.tsx` (ampliación autorizada por Director)
 - `app/studio/(app)/clientes/_components/ClientsClient.tsx`
 - `app/studio/(app)/clientes/_components/__tests__/ClientsClient.test.tsx`
+- `app/studio/(app)/clientes/_components/ClientsClient.adjuntos.test.tsx` (fixture focal adaptado a ClientListRow)
+- `app/studio/(app)/clientes/_components/ClientsClient.contador.test.tsx` (fixture focal adaptado a ClientListRow)
 - `app/studio/(app)/clientes/_components/ClientDetailPanel.tsx` (contenedor local que reutiliza el shell canónico)
 - `app/studio/(app)/clientes/_components/__tests__/ClientDetailPanel.test.tsx`
 - `app/studio/(app)/embarques/_components/ShipmentDetailDrawer.tsx`
@@ -114,7 +116,7 @@ Impacto documental: esta spec, índice generado y handoff propio. No se conviert
 - Task: `task_75e843282aed`; Dispatch: `ctx_59ec39c37538`.
 - HEAD inicial verificado igual a base reservada; PR preliminar: https://github.com/SoftAgentes/DTDCARGO/pull/810, en borrador.
 - Implementación preservada en `50c9078fd`; merge normal de #809 en `1a39a12eb`, sin conflictos y con el segundo padre exacto `5e79383bdd972d2863d194df658beffa9cd05281`.
-- Base de PR prevista: `SoftAgentes/sdd-0710-candado-embarques-20261124` (#809 abierta al recuperar Orca). Dependencia #808 verificada en `9e27b63d419450ca3ab93a4138df209de23b5e84`; no incorporada sin coordinación.
+- Base de PR: `SoftAgentes/sdd-0710-candado-embarques-20261124` (#809 abierta al recuperar Orca). Dependencia #808 incorporada con autorización nominal del Director (`msg_cb8011bee2ef`) al SHA exacto `9e27b63d419450ca3ab93a4138df209de23b5e84`, mediante merge normal `8254197ede477aed9e7ae2016b0af94de6f1be94`, sin conflictos. La base final y el delta exclusivo de #810 se revisarán después de integrar primero #808 y #809.
 - Head de producto publicado al abrir #810: `af120dbfa0fede792bc85a52e8ae9c83b8e7a178`, incluye conexión de Embarques en `66291e030` y atajo canónico de marcas vacías en `af120dbfa`. Los checks se activarán al pasar a ready tras la validación; el borrador no constituye entrega terminada.
 
 ### Ampliación exacta aprobada para slots y pruebas

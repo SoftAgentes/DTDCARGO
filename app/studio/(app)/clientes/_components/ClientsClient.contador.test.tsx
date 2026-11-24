@@ -9,8 +9,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ClientsClient } from "./ClientsClient";
-import type { Client } from "@/lib/studio/client-types";
+import { ClientsClient, type ClientListRow } from "./ClientsClient";
 import type { ClientFilters } from "@/lib/studio/client-queries";
 
 const mocks = vi.hoisted(() => ({
@@ -23,7 +22,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => mocks.params,
 }));
 
-function cliente(i: number): Client {
+function cliente(i: number): ClientListRow {
   return {
     id: `c-${i}`,
     tenant_id: "t-1",
@@ -35,7 +34,7 @@ function cliente(i: number): Client {
     rif: null,
     contact_name: null,
     tier: "regular",
-    notes: null,
+    hasNote: false,
     lat: null,
     lng: null,
     registration_channel: "admin",
@@ -51,7 +50,7 @@ function cliente(i: number): Client {
     created_at: "2026-08-01T00:00:00Z",
     updated_at: "2026-08-01T00:00:00Z",
     deleted_at: null,
-  } as unknown as Client;
+  } as ClientListRow;
 }
 
 const FILTROS_VACIOS: ClientFilters = { tier: "all", limite: 200 };
