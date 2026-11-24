@@ -24,6 +24,10 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
   const bloqueo=useRef(false),montado=useRef(true),lectura=useRef<AbortController|null>(null);
   const aviso=useRef<HTMLParagraphElement>(null);
   const datos=vista?.consolidado===consolidado && vista.etapa===etapaActiva && vista.caso===caso ? vista : undefined;
+  // La proyección guardada no conserva una autorización que el padre ya retiró.
+  const permisoVigente=permisos.find(p=>p.id===etapaActiva);
+  const puedeEditar=datos?.edicion===true && permisoVigente?.edicion===true;
+  const puedeGestionarIncidencia=puedeEditar && datos?.incidenciaDestino===true && permisoVigente?.incidenciaDestino===true;
   async function pedir(destino?:ComandoDestino,revision=datos?.revision) {
     if (bloqueo.current || (destino && suspendida)) return;
     bloqueo.current=true;setOcupado(true);setError("");setMensaje("");
@@ -91,23 +95,23 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
     {reintento && !ocupado && <button type="button" disabled={suspendida} onClick={()=>void pedir(reintento.comando,reintento.revision)}>Reintentar la misma operación de destino</button>}
     {datos && <>
       {datos.caso==="preparado" && <p>Plantilla personal preparada para {datos.preparadoPara==="ve" ? "Recepción física VE, con dos viajes en tránsito" : "Embarques, con dos viajes listos para despachar"}. Tu ejercicio desde cero se conserva por separado.</p>}
-      {!datos.edicion && <p>Solo consulta: puedes revisar las cajas y su estado con tu permiso vigente.</p>}
+      {!puedeEditar && <p>Solo consulta: puedes revisar las cajas y su estado con tu permiso vigente.</p>}
       <h3>{datos.consolidado} · {etapaActiva==="ve" ? "Recepción física VE" : "Embarques"}</h3>
       {!datos.cajas.length && <p>Todavía no hay cajas montadas en este consolidado. Completa la recepción y estiba de esta compra en China.</p>}
       {datos.viaje && <p role="status" aria-label="Estado del viaje">{estados[datos.viaje.estado]} · Recepción física: {datos.viaje.recibidas.length} de {datos.viaje.cajas.length} cajas.</p>}
-      {datos.viaje?.incidencia && <p>Observación de destino: {datos.viaje.incidencia.estado}. {datos.viaje.incidencia.motivo} {datos.viaje.incidencia.resolucion}</p>}
+      {datos.viaje?.incidencia && <p>Observación de destino: {datos.viaje.incidencia.estado}. {puedeGestionarIncidencia && <>{datos.viaje.incidencia.motivo} {datos.viaje.incidencia.resolucion}</>}</p>}
       <ul aria-label="Cajas del viaje">{datos.cajas.map(c=><li key={c.codigo}>
         <strong>{c.codigo}</strong> · {datos.viaje?.recibidas.includes(c.codigo) ? "Recibida físicamente" : "Pendiente de recepción física"}
         <p>Compra: {c.compra} · Marca: {c.markbox} · Recepción de origen: {c.recepcion} · Lote: {c.lote} · Orden: {c.orden+1} · Ancho: {c.ancho}</p>
         {c.indicadores.map(i=><p key={i.codigo}>{i.nombre} · {i.origen}</p>)}
       </li>)}</ul>
       <div className={estilos.acciones}>
-        {etapaActiva==="shipments" && datos.edicion && !datos.viaje && <button type="button" disabled={inhabilitado || !datos.cajas.length} onClick={()=>actuar("embarcar")}>Embarcar este parcial de práctica</button>}
-        {etapaActiva==="ve" && datos.edicion && datos.viaje?.estado==="en_transito" && <button type="button" disabled={inhabilitado} onClick={()=>actuar("registrar_llegada")}>Registrar llegada física de este parcial</button>}
-        {datos.edicion && datos.incidenciaDestino && datos.viaje && ["en_destino","recepcion_parcial"].includes(datos.viaje.estado) && !datos.viaje.incidencia && <button type="button" disabled={inhabilitado} onClick={()=>setConfirmacion("abrir_incidencia")}>Registrar observación aduanal ficticia</button>}
-        {datos.edicion && datos.incidenciaDestino && datos.viaje?.incidencia?.estado==="pendiente" && <button type="button" disabled={inhabilitado} onClick={()=>setConfirmacion("resolver_incidencia")}>Resolver observación ficticia de destino</button>}
+        {etapaActiva==="shipments" && puedeEditar && !datos.viaje && <button type="button" disabled={inhabilitado || !datos.cajas.length} onClick={()=>actuar("embarcar")}>Embarcar este parcial de práctica</button>}
+        {etapaActiva==="ve" && puedeEditar && datos.viaje?.estado==="en_transito" && <button type="button" disabled={inhabilitado} onClick={()=>actuar("registrar_llegada")}>Registrar llegada física de este parcial</button>}
+        {puedeGestionarIncidencia && datos.viaje && ["en_destino","recepcion_parcial"].includes(datos.viaje.estado) && !datos.viaje.incidencia && <button type="button" disabled={inhabilitado} onClick={()=>setConfirmacion("abrir_incidencia")}>Registrar observación aduanal ficticia</button>}
+        {puedeGestionarIncidencia && datos.viaje?.incidencia?.estado==="pendiente" && <button type="button" disabled={inhabilitado} onClick={()=>setConfirmacion("resolver_incidencia")}>Resolver observación ficticia de destino</button>}
       </div>
-      {etapaActiva==="ve" && datos.edicion && datos.viaje && datos.viaje.estado!=="en_transito" && <form onSubmit={e=>{
+      {etapaActiva==="ve" && puedeEditar && datos.viaje && datos.viaje.estado!=="en_transito" && <form onSubmit={e=>{
         e.preventDefault();const etiqueta=parseScannedLabel(codigo);
         if(etiqueta.kind!=="box_code"){setError("Usa el código DTD-B de una caja de este parcial; la etiqueta de cliente no recibe cajas.");return;}
         actuar("recibir_caja",{caja:etiqueta.code});
@@ -116,7 +120,7 @@ export function DestinoPractica({espacio,permisos,suspendida,onBloqueoSalida,onR
         <label>Código DTD-B en destino<input aria-label="Código DTD-B en destino" maxLength={512} value={codigo} onChange={e=>setCodigo(e.target.value)} autoComplete="off" /></label>
         <button type="submit">Recibir caja física de práctica</button>
       </fieldset></form>}
-      <ConfirmDialog key={confirmacion ?? "cerrada"} open={!!confirmacion} title={confirmacion==="abrir_incidencia" ? "Observación aduanal ficticia" : "Resolver observación ficticia"}
+      <ConfirmDialog key={confirmacion ?? "cerrada"} open={!!confirmacion && puedeGestionarIncidencia} title={confirmacion==="abrir_incidencia" ? "Observación aduanal ficticia" : "Resolver observación ficticia"}
         message={`Viaje ${datos.consolidado}. ${confirmacion==="abrir_incidencia" ? "Quedará pendiente de revisión y se detendrá su recepción física." : "Se registra la resolución logística y se permite continuar el conteo físico."} No declara liberación formal SENIAT ni modifica facturas.`}
         reason reasonRequired reasonLabel="Motivo ficticio de destino" reasonPlaceholder="Usa solo un motivo inventado" pending={ocupado} error={error}
         confirmLabel={confirmacion==="abrir_incidencia" ? "Confirmar observación ficticia" : "Confirmar resolución ficticia"}

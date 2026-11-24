@@ -874,7 +874,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
           // La carta China ya estaba resuelta; eso no resolvió la observación VE.
           usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";
-          await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          // Revalidar desde otro módulo debe retirar también controles que usan
+          // una proyección de destino ya abierta, sin volver a leer ese detalle.
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true})).toHaveCount(0);
           const denegada=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],revision:0,
             destino:{id:randomUUID(),accion:"resolver_incidencia",consolidado:CONSOLIDADOS_CHINA[0],motivo:"Intento ficticio sin capacidad"}},{sesion:sesionActual});
@@ -1416,8 +1418,20 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             await region.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
             await pagina.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión inventada confirmada en destino");
             await pagina.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
-            const recibir=async(codigo:string)=>{const input=region.getByLabel("Código DTD-B en destino",{exact:true});await esperar(input).toHaveValue("");await input.pressSequentially(codigo);await input.press("Enter");await esperar(input).toHaveValue("");};
-            await recibir(CAJAS_DESTINO_PREPARADO[0]);await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            await esperar(pagina.getByRole("dialog",{name:"Resolver observación ficticia",exact:true})).toHaveCount(0);
+            await esperar(region.getByText("Observación de destino: resuelta.",{exact:true})).toBeVisible();
+            const recibir=async(codigo:string)=>{
+              const input=region.getByLabel("Código DTD-B en destino",{exact:true});
+              await esperar(input).toBeEnabled();await esperar(input).toHaveValue("");
+              await input.pressSequentially(codigo);await esperar(input).toHaveValue(codigo);
+              await input.press("Enter");await esperar(input).toHaveValue("");await esperar(input).toBeEnabled();
+            };
+            await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            const primeraLectura=await (await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion})).json();
+            expect(primeraLectura.viaje.recibidas).toEqual([CAJAS_DESTINO_PREPARADO[0]]);
+            await recibir(CAJAS_DESTINO_PREPARADO[0]);await esperar(estado).toContainText("1 de 2 cajas");
+            const repetida=await (await solicitar(prueba,"china",{espacio:propia.cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],caso:"preparado"},{sesion:propia.cuenta.sesion})).json();
+            expect(repetida).toEqual(primeraLectura);
             await recibir(CAJAS_DESTINO_PREPARADO[1]);await esperar(estado).toContainText("Recepción física completa");
             await esperar(testigo.region.getByRole("status",{name:"Estado del viaje",exact:true})).toContainText("En tránsito");
           }

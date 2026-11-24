@@ -77,8 +77,9 @@ formal SENIAT: la SDD-0228 exige módulo/capacidad, estado pagado, seis document
 fecha, motivo y transacción del trámite; simular esa liberación requeriría ese
 contrato completo. El control de indicadores en el embarque de SDD-0697 exige
 admin o warehouse/operations de región ve; editar el módulo por sí solo no
-demuestra ese permiso. Falta acordar la capacidad derivada que entrega el origen
-y la estructura publicada de los parciales antes de conectar esta parte.
+demuestra ese permiso. El contrato publicado de #812 entrega la capacidad
+explícita incidenciaDestino y la proyección por consolidado/caja; fase 4 las
+consume y revalida en cada comando, sin otra consulta de membresía.
 
 La matriz nueva partirá de Mi perfil y verificará ambos parciales, relectura,
 Frágil visible en destino, retención pendiente, rol denegado, resolución y
@@ -117,7 +118,9 @@ las tareas China se devuelven por accidente al consultar otra superficie.
 
 Allowlist adicional de interfaz e integración:
 - app/studio/practica/DestinoPractica.tsx
-- lib/studio/practica/__tests__/destino-integracion.test.ts
+
+Las integraciones de handler/PGlite y navegador permanecen en
+lib/studio/practica/__tests__/acceso.test.ts, junto al intercambio entre orígenes.
 
 Caso preparado autónomo: `caso=preparado` conserva compra, cajas y estado propios
 en `ChinaPractica.practicaDestino`, separado de `ejercicio/destino` desde cero.
