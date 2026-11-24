@@ -443,7 +443,7 @@ export async function ClientDetailContent({ markbox, enPanel = false, shipmentId
           <p style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
             Consulta el documento y registra su verificación en Configuración.
           </p>
-          <EnlacePestana pestana="configuracion" className="studio-btn studio-btn-ghost">
+          <EnlacePestana pestana="configuracion" className="studio-btn studio-btn-ghost" style={{ minHeight: 44 }}>
             {client.doc_kind === "empresa" ? "Verificar RIF" : "Verificar cédula"} en Configuración
           </EnlacePestana>
         </section>
@@ -453,7 +453,7 @@ export async function ClientDetailContent({ markbox, enPanel = false, shipmentId
         <p style={{ color: "var(--ink-soft)", margin: "0 0 var(--s-3)" }}>
           {asesor ? asesor.name ?? "Sin nombre" : "Sin asignar"}. La asignación se realiza en Configuración.
         </p>
-        <EnlacePestana pestana="configuracion" className="studio-btn studio-btn-ghost">
+        <EnlacePestana pestana="configuracion" className="studio-btn studio-btn-ghost" style={{ minHeight: 44 }}>
           Asignar asesor en Configuración
         </EnlacePestana>
       </section>

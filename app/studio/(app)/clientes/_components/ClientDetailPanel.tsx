@@ -10,7 +10,7 @@ export function ClientDetailPanel({ children, listadoHref = "/studio/clientes" }
   return (
     <DrawerShell title="Ficha del cliente" onClose={() => router.back()} pending={false} width={1100} closeOnBackdrop={false}>
       <div style={{ overflow: "auto", minWidth: 0, padding: "var(--s-5)" }}>
-        <a href={listadoHref} className="studio-btn studio-btn-ghost"
+        <a href={listadoHref} className="studio-btn studio-btn-ghost" style={{ minHeight: 44 }}
           onClick={(event) => {
             if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
             event.preventDefault();

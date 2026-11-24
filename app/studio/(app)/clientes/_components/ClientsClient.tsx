@@ -484,7 +484,7 @@ function ClientsTable({
               scroll={false}
               onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
               aria-label={`${puedeAsignar && c.markbox === "DTD-0000" ? "Asignar cliente · " : ""}Ver ficha de ${c.name} · Shipping Mark ${c.markbox}`}
-              style={{ display: "inline-flex", flexDirection: "column", gap: "var(--s-2)", paddingBlock: "var(--s-2)", color: "var(--accion-text)" }}
+              style={{ display: "inline-flex", flexDirection: "column", justifyContent: "center", minHeight: 44, gap: "var(--s-2)", paddingBlock: "var(--s-2)", color: "var(--accion-text)" }}
             >
               {c.markbox}
               {puedeAsignar && c.markbox === "DTD-0000" && <span>Asignar cliente</span>}

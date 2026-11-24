@@ -1686,6 +1686,7 @@ function DetallePorCliente({
                     scroll={false}
                     onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
                     className="studio-btn studio-btn-ghost"
+                    style={{ minHeight: 44 }}
                     aria-label={`Ver ficha de ${c.clientName} · ${c.clientMarkbox}`}>
                     Ver ficha
                   </Link>
@@ -1899,6 +1900,7 @@ function GroupedTable({
                 scroll={false}
                 onClick={(event) => event.currentTarget.focus({ preventScroll: true })}
                 className="studio-btn studio-btn-ghost"
+                style={{ minHeight: 44 }}
                 aria-label={`Ver ficha de ${group.clientName} · ${group.clientMarkbox}`}>
                 Ver ficha de cliente
               </Link>
@@ -2036,6 +2038,7 @@ function GroupedTable({
                             target={s.client_markbox?.trim() ? undefined : "_blank"}
                             rel={s.client_markbox?.trim() ? undefined : "noopener"}
                             scroll={false} className="studio-emb-rastrear"
+                            style={{ minHeight: 44 }}
                             aria-label={`Asignar cliente del embarque ${s.code}${s.client_markbox?.trim() ? "" : " en Tracking (otra pestaña)"}`}
                             onClick={(event) => {
                               event.stopPropagation();
