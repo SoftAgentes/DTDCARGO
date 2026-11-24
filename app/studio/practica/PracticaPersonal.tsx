@@ -32,6 +32,9 @@ export function PracticaPersonal({ real }: { real: string }) {
   }, []);
   const bloqueoFinanciero = useCallback((activo: boolean) => cambiarBloqueo("financiero", activo), [cambiarBloqueo]);
   const bloqueoOperativo = useCallback((activo: boolean) => cambiarBloqueo("operativo", activo), [cambiarBloqueo]);
+  const [revalidando, setRevalidando] = useState(true);
+  const vistaActual = useRef<VistaPractica | null>(null);
+  const focoAnterior = useRef<HTMLElement | null>(null);
   const ultimaConsulta = useRef(0);
   useLayoutEffect(() => {
     const aviso = document.querySelector<HTMLElement>("[data-entorno-prueba]");
@@ -46,13 +49,24 @@ export function PracticaPersonal({ real }: { real: string }) {
   }, []);
   const consultar = useCallback(async (signal: AbortSignal) => {
     const turno = ++ultimaConsulta.current;
+    if (document.activeElement instanceof HTMLElement && pagina.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
+    setRevalidando(true);
     try {
       const espacio = sessionStorage.getItem(ESPACIO_DE_PESTANA);
       const datos = await operacion("estado", { espacio }, signal);
-      if (!signal.aborted && turno === ultimaConsulta.current) { setVista(datos); setMensaje(""); }
+      if (!signal.aborted && turno === ultimaConsulta.current) {
+        const mismaVista = vistaActual.current?.espacio === datos.espacio && JSON.stringify(vistaActual.current.permisos) === JSON.stringify(datos.permisos);
+        vistaActual.current = datos;
+        setVista(datos); setMensaje(""); setRevalidando(false);
+        if (mismaVista) requestAnimationFrame(() => {
+          if (turno === ultimaConsulta.current && focoAnterior.current?.isConnected && document.visibilityState === "visible") focoAnterior.current.focus({preventScroll:true});
+        });
+        else focoAnterior.current = null;
+      }
     } catch {
       if (!signal.aborted && turno === ultimaConsulta.current) {
         setVista(null);
+        vistaActual.current = null; focoAnterior.current = null; setRevalidando(false);
         setMensaje("Para abrir tu práctica, entra desde Mi perfil en el Studio real.");
       }
     }
@@ -71,18 +85,20 @@ export function PracticaPersonal({ real }: { real: string }) {
         if (control.signal.aborted) return;
         sessionStorage.setItem(ESPACIO_DE_PESTANA, datos.espacio);
         setVista(datos);
+        vistaActual.current = datos; setRevalidando(false);
         setMensaje("");
         origen.postMessage(AVISO_ABIERTA, real);
         window.opener = null;
       } catch {
-        if (!control.signal.aborted) setMensaje("No se pudo validar el acceso. Vuelve al Studio real e inténtalo desde tu perfil.");
+        if (!control.signal.aborted) { setRevalidando(false); setMensaje("No se pudo validar el acceso. Vuelve al Studio real e inténtalo desde tu perfil."); }
       }
     }
     function restaurar(evento: PageTransitionEvent) {
-      if (evento.persisted) { setVista(null); void consultar(control.signal); }
+      if (evento.persisted) void consultar(control.signal);
     }
     function volverAVer() {
-      if (document.visibilityState === "visible" && !window.opener) { setVista(null); void consultar(control.signal); }
+      if (document.visibilityState === "hidden" && document.activeElement instanceof HTMLElement && pagina.current?.contains(document.activeElement)) focoAnterior.current = document.activeElement;
+      if (document.visibilityState === "visible" && !window.opener) void consultar(control.signal);
     }
     document.addEventListener("visibilitychange", volverAVer);
     window.addEventListener("pageshow", restaurar);
@@ -98,7 +114,7 @@ export function PracticaPersonal({ real }: { real: string }) {
   }, [real, consultar]);
 
   async function salir() {
-    if (bloqueos.current.financiero || bloqueos.current.operativo || saliendo) return;
+    if (bloqueos.current.financiero || bloqueos.current.operativo || saliendo || revalidando) return;
     setSaliendo(true);
     try {
       const espacio = sessionStorage.getItem(ESPACIO_DE_PESTANA);
@@ -115,15 +131,16 @@ export function PracticaPersonal({ real }: { real: string }) {
     <main ref={pagina} className={estilos.pagina}>
       <header className={estilos.franja}>
         <strong>Modo de prueba · Datos inventados</strong>
-        <button type="button" className="studio-btn studio-btn-dark" onClick={salir} disabled={saliendo || salidaBloqueada} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
+        <button type="button" className="studio-btn studio-btn-dark" onClick={salir} disabled={saliendo || salidaBloqueada || revalidando} title={salidaBloqueada ? "Espera la operación o guarda o descarta tus conceptos." : undefined}>
           {saliendo ? "Volviendo…" : "Volver al Studio real"}
         </button>
       </header>
       <section className={estilos.contenido} aria-labelledby="titulo-practica">
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
-        {vista && <>
-          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
+        {revalidando && <p role="status">Comprobando identidad y permisos…</p>}
+        {vista && <div inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
+          {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
           {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onBloqueoSalida={bloqueoOperativo} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
@@ -132,7 +149,7 @@ export function PracticaPersonal({ real }: { real: string }) {
               <span>{p.edicion ? "Consulta y edición" : "Solo consulta"}</span>
             </li>)}
           </ul> : <p>Tu rol actual no tiene acceso a los módulos de este recorrido.</p>}
-        </>}
+        </div>}
       </section>
     </main>
   );
