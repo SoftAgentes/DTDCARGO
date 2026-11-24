@@ -3,9 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { API_PRACTICA, type PermisoPractica } from "@/lib/studio/practica/contrato";
 import type { ChinaPractica as Datos, ComandoChina } from "@/lib/studio/practica/china";
 import estilos from "./practica.module.css";
+import { EjercicioChina } from "./EjercicioChina";
+import { COMPRA_CHINA, type ComandoEjercicioChina, type consultarEtiquetaChina } from "@/lib/studio/practica/ejercicio-china";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 
-type Vista = { revision: number; documento: Datos; edicion: boolean; permisos: PermisoPractica[] };
+type Vista = { revision: number; documento: Datos; edicion: boolean; permisos: PermisoPractica[]; consulta?: ReturnType<typeof consultarEtiquetaChina> };
 export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, onBloqueoSalida }: { espacio: string; permisos: PermisoPractica[]; onAbrirFactura: (codigo: string) => void; onReinicio: () => void; onBloqueoSalida: (activo: boolean) => void }) {
   const [vista, setVista] = useState<Vista>();
   const [error, setError] = useState("");
@@ -16,16 +18,20 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
   const [permisosActuales, setPermisosActuales] = useState<PermisoPractica[]>([]);
   const aviso = useRef<HTMLParagraphElement>(null);
   const modulo = permisosActuales.some(p => p.id === "cn") ? "cn" : "naviera";
-  async function pedir(comando?: ComandoChina) {
+  async function pedir(comando?: ComandoChina, consulta?: string) {
     if (bloqueo.current) return;
     bloqueo.current = true; onBloqueoSalida(true); setOcupado(true); setError("");
     try {
-      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisosActuales.find(p => (p.id === "cn" || p.id === "naviera") && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : modulo, revision: vista?.revision, comando }) });
-      const datos = await res.json();
-      if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la carga.");
+      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisosActuales.find(p => (p.id === "cn" || p.id === "naviera") && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : modulo, revision: vista?.revision, comando, consulta }) });
+      const datos: Vista & {error?:string} = await res.json();
+      if (!res.ok) {
+        if(res.status===401 || res.status===403 || (res.status===503 && !comando && consulta===undefined)){setVista(undefined);setPermisosActuales([]);}
+        throw new Error(datos?.error ?? "No se pudo consultar la carga.");
+      }
       setVista(datos); setPermisosActuales(datos.permisos);
       if (comando?.accion === "reiniciar") { setConfirmar(false); onReinicio(); }
-    } catch (e) { setVista(undefined); setPermisosActuales([]); setError(e instanceof Error ? e.message : "Servicio indisponible."); }
+      return datos;
+    } catch (e) { setError(e instanceof Error ? e.message : "Servicio indisponible."); }
     finally { bloqueo.current = false; if (montado.current) { setOcupado(false); onBloqueoSalida(false); } }
   }
   useEffect(() => {
@@ -41,6 +47,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
     <button type="button" disabled={ocupado} onClick={() => void pedir()}>Recargar cargas y permisos</button>
     {ocupado && <p role="status">Guardando o consultando tu avance…</p>}
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
+    {vista?.documento.ejercicio && <EjercicioChina estado={vista.documento.ejercicio} ocupado={ocupado} permitido={permisosActuales.some(p=>p.id==="cn" && p.edicion && p.ejercicioCn===true)} onConsultar={async codigo=>(await pedir(undefined,codigo))?.consulta} onOperacion={async (operacion:ComandoEjercicioChina)=>(await pedir({accion:"ejercicio",envio:COMPRA_CHINA,operacion}))?.documento.ejercicio} />}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>
     <details><summary aria-label="Ayuda: consolidar">ⓘ Consolidar</summary><p>Primero recibe e identifica la carga. Este ejercicio conserva las mismas cajas en PRA-CON-001. En este ejercicio, agregar al consolidado no emite otra factura. En el trabajo real, el paso de China a consolidado puede emitir una factura cuando reúne los requisitos; consulta el estado en Facturación. El caso avanzado ya trae PRA-PRE-001 preparada para practicar Facturación según tus permisos.</p></details>
     {vista && <p>{permisosActuales.map(p => `${p.id === "cn" ? "Almacén China" : "Consolidado"}: ${p.edicion ? "Consulta y edición" : "Solo consulta"}`).join(" · ")}</p>}

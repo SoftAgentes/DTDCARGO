@@ -37,6 +37,7 @@ jobs:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
       PRACTICA_NAVEGADOR: '1'
+      PRACTICA_EVIDENCIA: sdd-0713-ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,3 +60,12 @@ jobs:
         run: node infra/ops/tests/practica-ci.mjs
       - name: Frontera Traefik con backend sintético desechable
         run: node infra/ops/tests/practica-frontera.mjs
+
+      - name: Conservar capturas sintéticas por SHA
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: practica-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/sdd-0713-ci
+          if-no-files-found: ignore
+          retention-days: 7

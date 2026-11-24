@@ -148,3 +148,9 @@ sin documento devuelva el estado vacío sin insertar una fila; solo la escritura
 inicial crea el documento bajo el bloqueo de espacio. SQL de ensayo local/CI,
 jamás aplicado en servidor compartido. La identidad deriva región de user_tenants.region,
 no de warehouse_scope; datos sin región/capacidad no habilitan las nuevas acciones.
+
+La UI aditiva usa `EjercicioChina.tsx` dentro de la entrada existente de China.
+Se añade `.github/workflows/practica-personal.yml` a la allowlist únicamente para
+conservar capturas sintéticas por SHA como artefacto del focal, sin quitar gates.
+El parser y el payload DTD-B siguen siendo los aprobados; la comparación de
+reintentos usa campos canónicos, no el orden de claves JSON/JSONB.
