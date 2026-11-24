@@ -9,6 +9,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CarrierTariff, FreightCarrier } from "@/lib/studio/freight-carriers/types";
+import { validateTariffInput } from "@/lib/studio/freight-carriers/types";
 import { TransportistasPanel } from "../TransportistasPanel";
 
 // El Scheduler de React avanza con `setImmediate` y RTL cierra cada `findBy*` con
@@ -90,14 +91,15 @@ beforeEach(() => {
 });
 
 describe("tarifario del transportista seleccionado", () => {
-  it("muestra las ciudades del predeterminado con costo, venta, margen y su equivalente en ft³", () => {
+  it("muestra costo, venta y margen por m³ sin columna de conversión", () => {
     montar();
     expect(screen.getByRole("heading", { name: "Tarifario de Benito" })).toBeVisible();
     const valencia = fila("Valencia");
     expect(within(valencia).getByText("$70,00")).toBeVisible();
     expect(within(valencia).getByText("$105,94")).toBeVisible();
     expect(within(valencia).getByText("$35,94")).toBeVisible();
-    expect(within(valencia).getByText("$3,00")).toBeVisible();
+    expect(within(valencia).queryByText("$3,00")).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: /ft³/ })).toBeNull();
     expect(within(fila("Mérida")).getByText("cada 15 días", { selector: "span" })).toBeVisible();
     expect(screen.queryByRole("row", { name: /Maturín/ })).toBeNull();
   });
@@ -241,13 +243,24 @@ describe("editar una ciudad", () => {
     await waitFor(() => expect(campo(panel, /^Costo \/m³/)).toHaveFocus());
   });
 
-  it("avisa si la venta en ft³ de referencia quedó desfasada de la venta por m³", () => {
-    montar();
+  it.each([3, 3.4987, null])("conserva la referencia legacy %s al cambiar la venta por m³", async (legacy) => {
+    mocks.save.mockResolvedValue({ ok: true });
+    const tarifas = TARIFAS.map((t, i) => i === 0 ? { ...t, priceUsdFt3: legacy } : t);
+    montar({ tariffs: tarifas });
     fireEvent.click(screen.getByRole("button", { name: "Editar Valencia" }));
     const panel = dialogo("Editar Valencia");
     expect(within(panel).queryByText(/Ya no coincide con la venta por m³/)).toBeNull();
     escribir(campo(panel, /^Venta \/m³/), "130");
-    expect(within(panel).getByText(/Ya no coincide con la venta por m³/)).toBeVisible();
+    expect(panel.textContent).not.toMatch(/ft³|pies cúbicos/);
+    fireEvent.click(within(panel).getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(mocks.save).toHaveBeenCalled());
+    expect(enviado().get("priceUsdFt3")).toBe(legacy == null ? "" : String(legacy));
+    expect(enviado().get("priceUsdCbm")).toBe("130");
+    const validado = validateTariffInput(enviado());
+    expect(validado.ok).toBe(true);
+    if (validado.ok) expect(validado.value.priceUsdFt3).toBe(legacy);
+    expect(tarifas[0].priceUsdFt3).toBe(legacy);
+    expect(TARIFAS[0].priceUsdFt3).toBe(3);
   });
 
   it("cancelar cierra sin llamar a la acción", () => {
@@ -279,6 +292,10 @@ describe("agregar una ciudad", () => {
 
     const data = enviado();
     expect(data.get("id")).toBeNull();
+    expect(data.get("priceUsdFt3")).toBe("");
+    const validado = validateTariffInput(data);
+    expect(validado.ok).toBe(true);
+    if (validado.ok) expect(validado.value.priceUsdFt3).toBeNull();
     expect(Object.fromEntries(data.entries())).toMatchObject({
       carrierId: BENITO,
       citySlug: "coro",

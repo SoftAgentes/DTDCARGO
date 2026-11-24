@@ -15,11 +15,8 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  cbmAFt3,
   margenTone,
-  referenciaFt3Desfasada,
   tardaMasDeLoNormal,
-  usd,
   usdConSigno,
   type CarrierTariff,
   type FreightCarrier,
@@ -63,7 +60,6 @@ export function TariffDrawer({
   const [citySlug, setCitySlug] = useState(tariff?.citySlug ?? "");
   const [costo, setCosto] = useState<number | null>(tariff?.costUsdCbm ?? null);
   const [venta, setVenta] = useState<number | null>(tariff?.priceUsdCbm ?? null);
-  const [ft3, setFt3] = useState<number | null>(tariff?.priceUsdFt3 ?? null);
   const [dias, setDias] = useState<number | null>(tariff?.dispatchFrequencyDays ?? null);
 
   const etiqueta =
@@ -97,7 +93,6 @@ export function TariffDrawer({
 
   const margen = costo != null && venta != null ? Math.round((venta - costo) * 100) / 100 : null;
   const tono = margen == null ? null : margenTone(margen);
-  const desfasada = referenciaFt3Desfasada(venta, ft3);
   const sinCiudades = mode === "create" && availableCities.length === 0;
 
   return (
@@ -128,6 +123,8 @@ export function TariffDrawer({
         }}
       >
         <input type="hidden" name="carrierId" value={carrier.id} />
+        {/* Conserva el valor legacy al editar sin ofrecerlo como unidad de venta. */}
+        <input type="hidden" name="priceUsdFt3" value={tariff?.priceUsdFt3 ?? ""} />
         {mode === "edit" && tariff && <input type="hidden" name="id" value={tariff.id} />}
 
         {/* ── Ciudad ── */}
@@ -239,10 +236,9 @@ export function TariffDrawer({
             >
               {margen == null ? "—" : usdConSigno(margen)}
             </span>
-            {venta != null && (
+            {tono === "negative" && (
               <span style={{ flexBasis: "100%", font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
-                La venta equivale a {usd(cbmAFt3(venta))} por ft³.
-                {tono === "negative" && " La venta queda por debajo del costo: DTD pone la diferencia."}
+                La venta queda por debajo del costo: DTD pone la diferencia.
               </span>
             )}
           </div>
