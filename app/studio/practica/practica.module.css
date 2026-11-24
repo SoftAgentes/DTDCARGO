@@ -1,0 +1,34 @@
+.pagina {
+  min-height: 100dvh;
+  padding-top: var(--practica-aviso-global, 0px);
+  background: var(--bg-base);
+  color: var(--ink);
+}
+.franja {
+  position: sticky;
+  top: var(--practica-aviso-global, 0px);
+  z-index: 100;
+  padding: max(0.65rem, env(safe-area-inset-top)) clamp(1rem, 4vw, 3rem) 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  background: var(--warning);
+  color: var(--on-warning);
+}
+.contenido {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+.contenido h2 { margin-block: 2rem 0.65rem; font-size: 1.1rem; }
+.modulos { list-style: none; margin: 0; padding: 0; }
+.modulos li {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+}

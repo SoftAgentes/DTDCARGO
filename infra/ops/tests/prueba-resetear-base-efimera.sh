@@ -156,5 +156,10 @@ MSYS_NO_PATHCONV=1 docker exec "${AUTH}" rm -f /tmp/entrar.json
 [[ "${sesion}" == *access_token* ]] && ok "el admin sintético entra con su clave por GoTrue" || ko "el admin no pudo entrar por GoTrue: $(tail -n1 "${T}/wget-sesion.err")"
 unset sesion
 
+if [[ "${PRUEBA_RECEPCION_PREORDEN:-0}" == 1 ]]; then
+  docker exec -i "${DB}" psql -U postgres -d postgres -X -q -v ON_ERROR_STOP=1 < "${S}/tests/recepcion-preorden-efimera.sql" \
+    && ok "recepción en China y preorden en los seis casos sintéticos" || ko "caracterización de la recepción y la preorden"
+fi
+
 echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [[ "${fail}" == 0 ]]
