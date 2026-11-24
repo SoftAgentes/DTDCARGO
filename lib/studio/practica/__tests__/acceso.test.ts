@@ -1335,6 +1335,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           // que la última lectura operativa nunca haya obtenido del servidor.
           ajustarOperativos(true,true,true,true);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
           const lecturasAntesRecortesDestino=lecturasChina,escriturasAntesRecortesDestino=escriturasChina;
           ajustarOperativos(false,true,true,true);await revalidarEstado();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
