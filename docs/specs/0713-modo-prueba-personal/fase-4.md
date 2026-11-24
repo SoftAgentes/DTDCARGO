@@ -56,3 +56,31 @@ disponible sin ese servicio. El Director confirmó este límite del encargo.
 Allowlist adicional de fixtures sintéticos recuperados de Git:
 - lib/studio/practica/__tests__/fixtures/fase-2-facturacion.json
 - lib/studio/practica/__tests__/fixtures/fase-3-china.json
+
+## Ampliación del ejercicio · China A-Z (encargo del Director)
+
+Aceptación adicional pendiente: seguir dos parciales de la misma carga, mostrar
+las cajas efectivas de cada consolidado, conservar cliente/código/preorden y
+facturar una sola vez. #812 es dueño de recepción por lector, doble lectura,
+asignación por caja, indicadores y tarea documental de origen; #813 consume su
+contrato publicado por merge normal y no duplica esas funciones.
+
+SDD-0697 §2.5: Embarques ve indicadores con procedencia CN/VE; Recepción VE
+recibe solo manejo físico, incluido Frágil, por origen exacto de sus cajas.
+No se infiere por cliente ni contenedor, ni se heredan indicadores a un envío
+nuevo sin vínculo de origen. La alerta documental de China no es autorización
+aduanal, ni su resolución libera la mercancía o cambia una factura.
+
+Se prepara una incidencia ficticia de destino con motivo, estado pendiente y
+resolución auditada por el rol/región autorizado. No representa liberación
+formal SENIAT: la SDD-0228 exige módulo/capacidad, estado pagado, seis documentos,
+fecha, motivo y transacción del trámite; simular esa liberación requeriría ese
+contrato completo. El control de indicadores en el embarque de SDD-0697 exige
+admin o warehouse/operations de región ve; editar el módulo por sí solo no
+demuestra ese permiso. Falta acordar la capacidad derivada que entrega el origen
+y la estructura publicada de los parciales antes de conectar esta parte.
+
+La matriz nueva partirá de Mi perfil y verificará ambos parciales, relectura,
+Frágil visible en destino, retención pendiente, rol denegado, resolución y
+continuación, en móvil/escritorio y ambos temas. Hasta ejecutar ese recorrido,
+la fase y su aceptación ampliada permanecen abiertas.
