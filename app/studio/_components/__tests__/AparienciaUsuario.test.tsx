@@ -7,6 +7,8 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const guardar = vi.hoisted(() => vi.fn(async () => ({ ok: true }) as { ok: true } | { error: string }));
+const mostrar = vi.hoisted(() => vi.fn());
+vi.mock("../ui/ToastProvider", () => ({ useToast: () => ({ show: mostrar }) }));
 vi.mock("@/app/studio/(app)/_actions/apariencia-actions", () => ({ guardarAparienciaAction: guardar }));
 
 import { AparienciaUsuario } from "../AparienciaUsuario";
@@ -36,6 +38,7 @@ describe("AparienciaUsuario · SDD-0714", () => {
     delete html.dataset.density;
     delete html.dataset.theme;
     guardar.mockClear();
+    mostrar.mockClear();
   });
   afterEach(() => {
     cleanup();
@@ -59,6 +62,33 @@ describe("AparienciaUsuario · SDD-0714", () => {
       render(<AparienciaUsuario guardada={null} />);
     });
     expect(guardar).toHaveBeenCalledWith({ vista: "ultra", tema: "dark" });
+    expect(guardar).toHaveBeenCalledTimes(1);
+    expect(mostrar).not.toHaveBeenCalled();
+  });
+
+  it.each(["error", "rechazo"])("avisa si la hidratación inicial falla por %s sin perder la elección local", async (fallo) => {
+    if (fallo === "error") guardar.mockResolvedValueOnce({ error: "No disponible" });
+    else guardar.mockRejectedValueOnce(new Error("Sin conexión"));
+    localStorage.setItem(DENSITY_KEY, "ultra");
+    localStorage.setItem(THEME_KEY, "light");
+    html.dataset.density = "ultra";
+    html.dataset.theme = "";
+    await act(async () => {
+      render(<AparienciaUsuario guardada={null} />);
+    });
+    expect(guardar).toHaveBeenCalledExactlyOnceWith({ vista: "ultra", tema: "light" });
+    expect(mostrar).toHaveBeenCalledExactlyOnceWith({
+      eventKey: "studio:apariencia-no-guardada",
+      tone: "warning",
+      priority: "normal",
+      scope: "system",
+      dedupeKey: "studio:apariencia-no-guardada",
+      message: "No se pudo guardar en tu usuario. El cambio quedó solo en este equipo.",
+    });
+    expect(localStorage.getItem(DENSITY_KEY)).toBe("ultra");
+    expect(localStorage.getItem(THEME_KEY)).toBe("light");
+    expect(html.dataset.density).toBe("ultra");
+    expect(html.dataset.theme).toBe("");
   });
 
   it("sin nada en ningún lado no escribe nada", async () => {

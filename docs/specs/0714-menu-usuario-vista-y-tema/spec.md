@@ -85,3 +85,40 @@ La sección `AppearanceSection` usa el mismo mecanismo: ofrece también Automát
 - Modo de prueba (SDD-0713, Codex).
 - Portal del cliente (`PortalThemeToggle`), que guarda su vista aparte (0557).
 - Paneles dentro de Chatwoot (`/studio/ficha-chat`, `/studio/cerrar-chat`): siguen sin tema ni densidad propios.
+
+## 7. Allowlist exacta de la PR 802
+
+Base revisada: `a293e978659e6069b41c057951c70c6511c9dd17` (main). Incluye implementaci?n, pruebas, evidencia visual, handoffs e ?ndice generado presentes en el diff; la continuaci?n corrige el aviso inicial de ?3.4 sin ampliar la superficie.
+
+- `.agents/handoffs/2026-11-23-sdd-0714-ci-relevo-802.md`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714.md`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-dark-compact.png`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-dark-normal.png`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-dark-ultra.png`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-light-compact.png`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-light-normal.png`
+- `.agents/handoffs/menu-usuario-vista-y-tema-0714/menu-light-ultra.png`
+- `app/studio/(app)/_actions/apariencia-actions.test.ts`
+- `app/studio/(app)/_actions/apariencia-actions.ts`
+- `app/studio/(app)/_components/AparienciaMenu.tsx`
+- `app/studio/(app)/_components/DensityToggle.test.tsx`
+- `app/studio/(app)/_components/DensityToggle.tsx`
+- `app/studio/(app)/_components/StudioTopbar.tsx`
+- `app/studio/(app)/_components/__tests__/StudioTopbar-menu-usuario.test.tsx`
+- `app/studio/(app)/admin/_components/AppearanceSection.tsx`
+- `app/studio/(app)/layout.tsx`
+- `app/studio/CLAUDE.md`
+- `app/studio/_components/AparienciaUsuario.tsx`
+- `app/studio/_components/__tests__/AparienciaUsuario.test.tsx`
+- `app/studio/_components/__tests__/action-result-contract.test.ts`
+- `app/studio/_components/__tests__/apariencia-predeterminada.test.ts`
+- `app/studio/_components/__tests__/browser-state-contract.test.ts`
+- `app/studio/_components/apariencia-usuario.ts`
+- `app/studio/_components/appearance-prefs.ts`
+- `app/studio/layout.tsx`
+- `app/studio/studio.css`
+- `docs/specs/0714-menu-usuario-vista-y-tema/spec.md`
+- `docs/specs/README.md`
+- `lib/i18n/es-VE/chrome.ts`
+- `lib/i18n/zh-CN/chrome.ts`
+- `lib/studio/rbac-actions-guard.test.ts`

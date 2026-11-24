@@ -53,30 +53,9 @@ function guardarEnCuenta(): Promise<boolean> {
   return siguiente;
 }
 
-export function AparienciaUsuario({ guardada }: { guardada: AparienciaGuardada | null }) {
-  useEffect(() => {
-    if (guardada) {
-      if (guardada.vista !== readDensity()) applyDensity(guardada.vista);
-      if (guardada.tema !== readThemePref()) applyTheme(guardada.tema);
-    } else {
-      const local = hasStoredAppearance();
-      if (local.theme || local.density) void guardarEnCuenta();
-    }
-    // Solo al montar: lo que elija después la propia persona manda.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => followSystemTheme(), []);
-
-  return null;
-}
-
-export function useApariencia() {
+function useAvisoGuardado() {
   const toast = useToast();
-  const vista = useSyncExternalStore<StudioDensity>(suscribir, readDensity, () => DEFAULT_DENSITY);
-  const tema = useSyncExternalStore<StudioThemePref>(suscribir, readThemePref, () => DEFAULT_THEME);
-
-  const avisarSiFalla = useCallback(
+  return useCallback(
     (ok: boolean) => {
       if (ok) return;
       toast.show({
@@ -90,6 +69,33 @@ export function useApariencia() {
     },
     [toast],
   );
+
+}
+
+export function AparienciaUsuario({ guardada }: { guardada: AparienciaGuardada | null }) {
+  const avisarSiFalla = useAvisoGuardado();
+  useEffect(() => {
+    if (guardada) {
+      if (guardada.vista !== readDensity()) applyDensity(guardada.vista);
+      if (guardada.tema !== readThemePref()) applyTheme(guardada.tema);
+    } else {
+      const local = hasStoredAppearance();
+      if (local.theme || local.density) void guardarEnCuenta().then(avisarSiFalla);
+    }
+    // Solo al montar: lo que elija después la propia persona manda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => followSystemTheme(), []);
+
+  return null;
+}
+
+export function useApariencia() {
+  const vista = useSyncExternalStore<StudioDensity>(suscribir, readDensity, () => DEFAULT_DENSITY);
+  const tema = useSyncExternalStore<StudioThemePref>(suscribir, readThemePref, () => DEFAULT_THEME);
+
+  const avisarSiFalla = useAvisoGuardado();
 
   const elegirVista = useCallback(
     (v: StudioDensity) => {
