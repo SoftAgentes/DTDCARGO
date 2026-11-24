@@ -55,16 +55,21 @@ movimiento de datos; fixtures ficticios, sin consultas externas de identidad.
 
 ## COMMITS
 
-Pendiente.
+`73ece07ef` — corrección, regresión y documentación de SDD-0669.
+El commit posterior solo cierra este handoff con PR y pendientes de CI.
 
 ## PR / BRANCH
 
-Pendiente de publicación autorizada después de validación.
+[PR #808](https://github.com/SoftAgentes/DTDCARGO/pull/808), base `main`, rama
+propia publicada. Se marca lista tras publicar este handoff para activar
+Quality en su cabeza final; SHA y corrida exactos se reportan al Director
+mediante el despacho. No se fusiona ni se despliega.
 
 ## PENDIENTES DE ESTA TAREA
 
-Publicar PR y dejar Quality corriendo sobre su cabeza exacta; liberar claim
-al finalizar escritura. PC liberada y avisada al Director mediante
+Quality global queda en CI de #808 para seguimiento del Director; no se declara
+verde antes de su resultado. Claim se libera al finalizar la escritura.
+PC liberada y avisada al Director mediante
 `msg_b6c4d4cbec02`, después de cerrar pruebas y ESLint.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -80,3 +85,6 @@ v1.1 mientras la política normativa del repo es v1.3. Cápsula canónica vigent
 Priorizar cierre y asignar turno. Impacto documental: spec ampliada con alcance
 exacto y contrato de navegación. No se marca completa la SDD original: conserva
 sus criterios y pendientes históricos, separados de esta reparación.
+La corrección focal está validada; la prueba de navegador real permanece
+NO EJECUTADA. Lección del contrato de History registrada en el buzón privado,
+sin trasladar contenido privado al repo público.
