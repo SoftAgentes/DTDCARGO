@@ -42,11 +42,12 @@ Revisión del Director `msg_b03379c0bd84`: se oculta Eliminar con solo bloqueada
 
 ## COMMITS
 
-Pendientes.
+- Producto, pruebas y enmienda: `8c84b7fe86430ca140089b681f730fccda945773`.
+- Cierre documental posterior: consultar HEAD de la rama/PR; conserva el mismo código validado.
 
 ## PR / BRANCH
 
-PR pendiente; conservar rama y worktree.
+[PR #809](https://github.com/SoftAgentes/DTDCARGO/pull/809), abierta hacia main, sin borrador para activar Quality global. Conservar rama y worktree. CI alojado y revisión independiente pendientes al entregar; no equivale a aprobación ni integración.
 
 ## PENDIENTES DE ESTA TAREA
 
