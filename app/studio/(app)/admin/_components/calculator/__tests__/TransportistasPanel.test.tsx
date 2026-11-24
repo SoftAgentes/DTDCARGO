@@ -254,11 +254,10 @@ describe("editar una ciudad", () => {
     expect(panel.textContent).not.toMatch(/ft³|pies cúbicos/);
     fireEvent.click(within(panel).getByRole("button", { name: "Guardar cambios" }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalled());
-    expect(enviado().get("priceUsdFt3")).toBe(legacy == null ? "" : String(legacy));
+    expect(enviado().has("priceUsdFt3")).toBe(false);
     expect(enviado().get("priceUsdCbm")).toBe("130");
     const validado = validateTariffInput(enviado());
     expect(validado.ok).toBe(true);
-    if (validado.ok) expect(validado.value.priceUsdFt3).toBe(legacy);
     expect(tarifas[0].priceUsdFt3).toBe(legacy);
     expect(TARIFAS[0].priceUsdFt3).toBe(3);
   });
@@ -292,7 +291,7 @@ describe("agregar una ciudad", () => {
 
     const data = enviado();
     expect(data.get("id")).toBeNull();
-    expect(data.get("priceUsdFt3")).toBe("");
+    expect(data.has("priceUsdFt3")).toBe(false);
     const validado = validateTariffInput(data);
     expect(validado.ok).toBe(true);
     if (validado.ok) expect(validado.value.priceUsdFt3).toBeNull();

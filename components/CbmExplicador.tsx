@@ -258,6 +258,9 @@ export function CbmExplicador() {
           Las tres medidas en <strong className="text-grey-700">metros</strong>.
           Si las tienes en centímetros o pulgadas, conviértelas primero.
         </p>
+        <p className="m-0 text-center text-[12.5px] text-grey-500">
+          Ejemplo ficticio: 0,6 × 0,4 × 0,5 m × 2 bultos = 0,24 m³.
+        </p>
       </div>
 
       <p className="text-[14.5px] leading-[1.65] text-grey-700">
@@ -410,7 +413,6 @@ export function CbmExplicador() {
             className="text-right text-[12px] tabular-nums text-grey-500"
             style={{ fontFamily: FONT_MONO }}
           >
-            Ejemplo ficticio: 0,6 × 0,4 × 0,5 m × 2 = 0,24 m³.
             {cajas > 1 && (
               <>
                 <br />

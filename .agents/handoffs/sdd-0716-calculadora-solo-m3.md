@@ -14,9 +14,17 @@ Main asignado: 8580490f8d95872a407ab83ab9acb6b1b265a451.
 Autorizados edición, pruebas, commits y PR; merge, deploy y DB fuera del encargo.
 
 ## COMPLETADO
-Cambios acotados a allowlist de spec. Campo oculto conserva legacy; no cambia
+Cambios acotados a allowlist de spec. UPDATE omite legacy si falta la clave; no cambia
 la tarifa por m³ ni funciones de conversión internas. FAQ y widget usan ejemplo
-ficticio en metros y cantidad; pulgadas se conserva como longitud física.
+ficticio en metros y cantidad en el bloque didáctico; pulgadas se conserva como longitud física.
+Corrección focal solicitada por Director (msg_0d0a73956851): bloque residual
+de venta ft³ retirado por completo y campo oculto eliminado. Se amplió allowlist
+solo a carrier-actions.ts y carrier-actions-escrituras.test.ts. Se conserva el
+contrato legacy explícito y el INSERT nulo sin lectura de reconstrucción.
+Consumidores verificados por git grep: únicamente TransportistasPanel importa
+y renderiza TariffDrawer, para create/edit con sus props vigentes.
+Pruebas preparadas del PATCH sin propiedad legacy y filtros existentes, valor
+nulo/cuatro decimales, entrada explícita válida/vacía/inválida y alta por omisión.
 
 ## VALIDACIÓN
 Guard con owner: PASÓ. Pruebas focales preparadas, NO EJECUTADAS (sin dependencias).

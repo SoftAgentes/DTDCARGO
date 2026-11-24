@@ -123,8 +123,6 @@ export function TariffDrawer({
         }}
       >
         <input type="hidden" name="carrierId" value={carrier.id} />
-        {/* Conserva el valor legacy al editar sin ofrecerlo como unidad de venta. */}
-        <input type="hidden" name="priceUsdFt3" value={tariff?.priceUsdFt3 ?? ""} />
         {mode === "edit" && tariff && <input type="hidden" name="id" value={tariff.id} />}
 
         {/* ── Ciudad ── */}
@@ -322,32 +320,6 @@ export function TariffDrawer({
                 aria-invalid={state.fieldErrors?.minChargeUsd ? true : undefined}
               />
               {state.fieldErrors?.minChargeUsd && <FieldError msg={state.fieldErrors.minChargeUsd} />}
-            </div>
-            <div>
-              <label className="studio-label" htmlFor="tariff-ft3">
-                Venta en ft³ (referencia)
-              </label>
-              <NumericInput
-                id="tariff-ft3"
-                name="priceUsdFt3"
-                type="currency"
-                min={0}
-                precision={2}
-                // ft3 se guarda con 4 decimales (cbmAFt3); dinero acepta 2 por defecto.
-                decimales={4}
-                placeholder="3,50"
-                defaultValue={tariff?.priceUsdFt3 ?? null}
-                onChange={setFt3}
-                aria-invalid={state.fieldErrors?.priceUsdFt3 ? true : undefined}
-              />
-              {desfasada ? (
-                <Hint tone="warning">
-                  Ya no coincide con la venta por m³. Actualízala o déjala vacía.
-                </Hint>
-              ) : (
-                <Hint>La oferta original en pie cúbico. No se usa para cobrar.</Hint>
-              )}
-              {state.fieldErrors?.priceUsdFt3 && <FieldError msg={state.fieldErrors.priceUsdFt3} />}
             </div>
           </div>
           <div style={{ marginTop: 12 }}>
