@@ -32,10 +32,12 @@ export function PracticaPersonal({ real }: { real: string }) {
   const [documentos, setDocumentos] = useState<ResumenDocumentoPractica[]>([]);
   const [documentoPedido, setDocumentoPedido] = useState<{codigo: string; id: number}>();
   const [salidaBloqueada, setSalidaBloqueada] = useState(false);
+  const [escrituraPendiente, setEscrituraPendiente] = useState(false);
   const bloqueos = useRef({ financiero: false, operativo: false, destino: false });
   const cambiarBloqueo = useCallback((motivo: "financiero" | "operativo" | "destino", activo: boolean) => {
     bloqueos.current[motivo] = activo;
     setSalidaBloqueada(bloqueos.current.financiero || bloqueos.current.operativo || bloqueos.current.destino);
+    setEscrituraPendiente(bloqueos.current.operativo || bloqueos.current.destino);
   }, []);
   const bloqueoFinanciero = useCallback((activo: boolean) => cambiarBloqueo("financiero", activo), [cambiarBloqueo]);
   const bloqueoOperativo = useCallback((activo: boolean) => cambiarBloqueo("operativo", activo), [cambiarBloqueo]);
@@ -178,7 +180,7 @@ export function PracticaPersonal({ real }: { real: string }) {
       <section className={estilos.contenido} aria-labelledby="titulo-practica">
         <h1 id="titulo-practica">Mi práctica</h1>
         {mensaje && <p role="status">{mensaje}</p>}
-        {cierrePendiente && <button type="button" disabled={(bloqueos.current.operativo || bloqueos.current.destino)} onClick={() => {
+        {cierrePendiente && <button type="button" disabled={escrituraPendiente} onClick={() => {
           if (bloqueos.current.operativo || bloqueos.current.destino) return;
           salidaEnCurso.current = true;
           ++ultimaConsulta.current; consultaActual.current?.abort();
@@ -188,7 +190,7 @@ export function PracticaPersonal({ real }: { real: string }) {
         {revalidando && !falloComprobacion && <p role="status">Comprobando identidad y permisos…</p>}
         {revalidando && <div>
           {falloComprobacion && <button type="button" onClick={() => void consultar(new AbortController().signal)}>Reintentar comprobación</button>}
-          <button type="button" disabled={saliendo || (bloqueos.current.operativo || bloqueos.current.destino)} onClick={() => setConfirmarSalida(true)}>Descartar edición y volver al Studio real</button>
+          <button type="button" disabled={saliendo || escrituraPendiente} onClick={() => setConfirmarSalida(true)}>Descartar edición y volver al Studio real</button>
         </div>}
         {vista && <div ref={editor} inert={revalidando} style={{ visibility: revalidando ? "hidden" : "visible" }}>
           {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={`${vista.espacio}:${vista.permisos.find(p => p.id === "invoices")?.edicion}`} espacio={vista.espacio} suspendida={revalidando} onDocumentos={setDocumentos} onBloqueoSalida={bloqueoFinanciero} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
@@ -203,7 +205,7 @@ export function PracticaPersonal({ real }: { real: string }) {
           </ul> : <p>Tu rol actual no tiene acceso a los módulos de este recorrido.</p>}
         </div>}
       </section>
-      <ConfirmDialog open={confirmarSalida} title="Descartar la edición sin guardar" message="Se eliminarán los cambios que solo están en este editor. El avance ya guardado permanece en tu práctica." confirmLabel="Descartar y salir" cancelLabel="Seguir aquí" danger pending={saliendo || (bloqueos.current.operativo || bloqueos.current.destino)} onConfirm={() => void salir(true)} onCancel={() => setConfirmarSalida(false)} />
+      <ConfirmDialog open={confirmarSalida} title="Descartar la edición sin guardar" message="Se eliminarán los cambios que solo están en este editor. El avance ya guardado permanece en tu práctica." confirmLabel="Descartar y salir" cancelLabel="Seguir aquí" danger pending={saliendo || escrituraPendiente} onConfirm={() => void salir(true)} onCancel={() => setConfirmarSalida(false)} />
     </main>
   );
 }

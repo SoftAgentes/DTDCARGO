@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
+import sharp from "sharp";
+import jsQR from "jsqr";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import type { PGlite } from "@electric-sql/pglite";
@@ -545,6 +547,16 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(vista.documento.cargas).toEqual(legado.cargas);
     const recepcion=vista.documento.ejercicio.recepciones[0].id;
     for(const operacion of [{id:randomUUID(),accion:"fragil",recepcion,activo:true,motivo:"Vidrio ficticio"},{id:randomUUID(),accion:"marca",recepcion,motivo:"Falta carta de muestra"},{id:randomUUID(),accion:"cargar",codigo:"DTD-B-99007131",cantidad:2,consolidado:"PRA-CON-CN-A",ancho:1}]) expect((await ejecutar(operacion)).status).toBe(200);
+    // JSONB puede reordenar claves: un replay semántico no vuelve a mutar.
+    const fragil=vista.documento.ejercicio.eventos.find((e:{comando:{accion:string}})=>e.comando.accion==="fragil").comando;
+    const revisionPersistida=vista.revision;
+    expect((await ejecutar({motivo:fragil.motivo,activo:fragil.activo,recepcion:fragil.recepcion,accion:fragil.accion,id:fragil.id},previa)).status).toBe(200);
+    expect(vista.revision).toBe(revisionPersistida);
+    expect((await ejecutar({...fragil,motivo:"Otro motivo ficticio"},previa)).status).toBe(409);
+    const estiba=vista.documento.ejercicio.eventos.find((e:{comando:{accion:string}})=>e.comando.accion==="cargar").comando;
+    expect((await ejecutar({ancho:estiba.ancho,consolidado:estiba.consolidado,cantidad:estiba.cantidad,codigo:estiba.codigo,accion:estiba.accion,id:estiba.id},previa)).status).toBe(200);
+    expect(vista.revision).toBe(revisionPersistida);
+    expect((await ejecutar({...estiba,cantidad:1},previa)).status).toBe(409);
     usuarios.get(id)!.region="ve";
     const ve=await op({etapa:"ve",consolidado:"PRA-CON-CN-A"});expect(ve.status).toBe(200);
     const vv=await ve.json(); expect(vv.incidenciaDestino).toBe(true);
@@ -604,6 +616,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           demora={accion,avisar,esperar}; return {observada,liberar};
         };
         let salidas=0;
+        let perderRespuestaEjercicio=false;
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
           if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
@@ -649,6 +662,8 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
               retenerUna = false;
               await new Promise<void>(resolver => { pendientesEstado.push(resolver); });
             }
+            if(u.pathname === API_PRACTICA+"canjear") sesionActual=res.cookies.get(COOKIE_PRACTICA)?.value ?? sesionActual;
+            if(perderRespuestaEjercicio && req.postDataJSON()?.comando?.accion==="ejercicio") {perderRespuestaEjercicio=false;return ruta.abort("failed");}
             return ruta.fulfill({status:res.status,json:await res.json()});
           }
           if (u.origin === real && u.pathname === "/studio/dashboard") return ruta.fulfill({contentType:"text/html",body:"<h1>Studio real de muestra</h1>"});
@@ -666,6 +681,75 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
+          const ejercicio=p.getByRole("region",{name:"China de principio a fin",exact:true});
+          await esperar(ejercicio).toBeVisible();
+          const revisionInicial=(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision;
+          await ejercicio.getByText("Etiqueta de práctica y ayuda para el lector",{exact:true}).click();
+          const pngQr=await ejercicio.getByRole("img",{name:"QR de caja inventada",exact:true}).screenshot();
+          const rawQr=await sharp(pngQr).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+          const decodificado=jsQR(new Uint8ClampedArray(rawQr.data),rawQr.info.width,rawQr.info.height);
+          expect(decodificado?.data).toBe("DTD-B-99007131");
+          const entradaCodigo=ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true});
+          await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
+          await entradaCodigo.pressSequentially(decodificado!.data); await entradaCodigo.press("Enter");
+          await esperar(ejercicio.getByText(/4 pendientes de llegada/)).toBeVisible();
+          await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("3");
+          await ejercicio.getByRole("button",{name:"Cancelar consulta sin recibir",exact:true}).click();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("4 por llegar · 0 disponibles");
+          expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(revisionInicial);
+          await entradaCodigo.fill("DTD-B-99999999"); await entradaCodigo.press("Enter");
+          await esperar(p.getByRole("alert")).toContainText("Código desconocido");
+          await entradaCodigo.fill("https://etiqueta.example.test/verificar?c=DTD-PRA-CHINA&n=1/4"); await entradaCodigo.press("Enter");
+          await esperar(p.getByRole("alert")).toContainText("proveedor");
+          // La vía manual consulta el mismo caso y confirma la cantidad rectificada.
+          await entradaCodigo.fill("DTD-B-99007131"); await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
+          await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("3");
+          await ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true}).click();
+          await esperar(ejercicio.getByText(/^Recibo PRA-REC-CN-001: 3 cajas/)).toBeVisible();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 3 disponibles");
+          const consultaRepetida=(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision;
+          await entradaCodigo.press("Enter"); await esperar(ejercicio.getByText(/Esta caja ya fue recibida/)).toBeVisible();
+          expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(consultaRepetida);
+          await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Vidrio inventado en recepción uno");
+          perderRespuestaEjercicio=true;
+          await ejercicio.getByRole("button",{name:"Aplicar Frágil de práctica",exact:true}).click();
+          await ejercicio.getByRole("button",{name:"Reintentar la misma operación",exact:true}).click();
+          await esperar(ejercicio.getByText("Frágil / 易碎 · CN · Sin cobro",{exact:true})).toBeVisible();
+          await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Falta carta inventada de autorización");
+          await ejercicio.getByRole("button",{name:"Registrar Marca sin autorización de práctica",exact:true}).click();
+          await esperar(ejercicio.getByText("Recepción PRA-REC-CN-001 · Estado: pendiente",{exact:true})).toBeVisible();
+          await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
+          await ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true}).click();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 1 disponibles en China · 2 en A · 0 en B");
+          await entradaCodigo.fill("DTD-B-99007134"); await entradaCodigo.press("Enter");
+          await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("1");
+          await ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true}).click();
+          await esperar(ejercicio.getByText(/^Recibo PRA-REC-CN-002: 1 cajas/)).toBeVisible();
+          await entradaCodigo.fill("DTD-B-99007133"); await entradaCodigo.press("Enter");
+          await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
+          await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
+          await ejercicio.getByLabel("Posición al ancho",{exact:true}).selectOption("2");
+          await ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true}).click();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("0 por llegar · 0 disponibles en China · 2 en A · 2 en B");
+          await entradaCodigo.press("Enter");
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true})).toBeDisabled();
+          usuarios.get(cuentaId)!.warehouse_scope="all"; usuarios.get(cuentaId)!.region="ve";
+          const origenB=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:"PRA-CON-CN-B"},{sesion:sesionActual})).json();
+          expect(origenB.cajas.map((c:{recepcion:string;indicadores:unknown[]})=>[c.recepcion,c.indicadores.length])).toEqual([["PRA-REC-CN-001",1],["PRA-REC-CN-002",0]]);
+          expect(JSON.stringify(origenB)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio/);
+          usuarios.get(cuentaId)!.warehouse_scope="cn"; usuarios.get(cuentaId)!.region="cn";
+          await ejercicio.getByRole("button",{name:"Tomar tarea documental de práctica",exact:true}).click();
+          await ejercicio.getByLabel("Evidencia documental de muestra",{exact:true}).selectOption("PRA-CARTA-001");
+          await ejercicio.getByLabel("Resolución interna inventada",{exact:true}).fill("Oficina revisó la carta sintética de autorización");
+          await ejercicio.getByRole("button",{name:"Resolver tarea documental de práctica",exact:true}).click();
+          await esperar(ejercicio.getByText(/Evidencia: PRA-CARTA-001/)).toBeVisible();
+          await p.screenshot({path:resolve(carpeta,`china-completa-${width}${sufijo}.png`),fullPage:true});
+          await ejercicio.getByLabel("Recepción para indicadores",{exact:true}).selectOption("PRA-REC-CN-001");
+          await ejercicio.getByLabel("Motivo inventado del indicador",{exact:true}).fill("Corrección inventada sin cobro");
+          await ejercicio.getByRole("button",{name:"Retirar Frágil de práctica",exact:true}).click();
+          await p.reload();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("0 por llegar · 0 disponibles en China · 2 en A · 2 en B");
+          await esperar(ejercicio.getByText(/Evidencia: PRA-CARTA-001/)).toBeVisible();
           const recepcionDemorada=demorar("recibir");
           await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
           await recepcionDemorada.observada;
@@ -701,6 +785,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await reinicioDemorado.observada; await esperar(salida).toBeDisabled();
           reinicioDemorado.liberar(); await esperar(salida).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("4 por llegar · 0 disponibles");
           // La pestaña anterior conserva su revisión; el servidor rechaza su escritura.
           await otraPestana.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true}).click();
           await esperar(otraPestana.getByRole("alert")).toContainText("La práctica cambió");
@@ -892,9 +977,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           const facturasClientes=(await comprobacionClientes.json()).documento.facturas;
           expect(facturasClientes[1]).toMatchObject({codigo:"PRA-FAC-002",embarque:"PRA-EMB-002",cliente:"DTD-PRA-002",estado:"emitida",pagado:0});
           await p.getByRole("button",{name:"Vista previa de correo",exact:true}).click();
-          await esperar(p.locator('p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");
+          await esperar(p.locator('section[aria-labelledby="titulo-facturacion"] p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");
           await p.getByRole("button",{name:"Vista previa de WhatsApp",exact:true}).click();
-          await esperar(p.locator('p[role="status"]')).toContainText("Simulado · WhatsApp a Cliente ficticio");
+          await esperar(p.locator('section[aria-labelledby="titulo-facturacion"] p[role="status"]')).toContainText("Simulado · WhatsApp a Cliente ficticio");
           await p.getByRole("button",{name:"Anular factura ficticia",exact:true}).click();
           await p.getByLabel("Motivo ficticio",{exact:true}).fill("Corregir concepto ficticio");
           await p.getByRole("button",{name:"Confirmar anular",exact:true}).click();

@@ -38,11 +38,22 @@ const motivoValido = (m: unknown, min=4): m is string => typeof m === "string" &
 function cantidadValida(cantidad: number, disponibles: number) {
   if (!Number.isSafeInteger(cantidad) || cantidad < 1 || cantidad > disponibles) throw new Error("En este ejercicio elige una cantidad entera entre 1 y las cajas disponibles.");
 }
+function firmaComando(c: ComandoEjercicioChina): string {
+  switch(c.accion) {
+    case "recibir": return JSON.stringify([c.id,c.accion,c.codigo,c.cantidad]);
+    case "cargar": return JSON.stringify([c.id,c.accion,c.codigo,c.cantidad,c.consolidado,c.ancho]);
+    case "fragil": return JSON.stringify([c.id,c.accion,c.recepcion,c.activo,c.motivo]);
+    case "marca": return JSON.stringify([c.id,c.accion,c.recepcion,c.motivo]);
+    case "revisar_tarea": return JSON.stringify([c.id,c.accion,c.tarea]);
+    case "resolver_tarea": return JSON.stringify([c.id,c.accion,c.tarea,c.evidencia,c.resolucion]);
+    default: throw new Error("Operación de ejercicio desconocida.");
+  }
+}
 export function aplicarEjercicioChina(actual: EjercicioChina, comando: ComandoEjercicioChina, fecha = new Date().toISOString()): EjercicioChina {
   if (!comando || !esUuid(comando.id)) throw new Error("La operación de práctica necesita una referencia válida.");
   const repetido = actual.eventos.find(e => e.id === comando.id);
   if (repetido) {
-    if (JSON.stringify(repetido.comando) !== JSON.stringify(comando)) throw new Error("La referencia ya se usó para otra operación de práctica.");
+    if (firmaComando(repetido.comando) !== firmaComando(comando)) throw new Error("La referencia ya se usó para otra operación de práctica.");
     return structuredClone(actual);
   }
   const siguiente = structuredClone(actual), antes = foto(actual);

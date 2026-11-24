@@ -64,3 +64,21 @@ instalación congelada prefer-offline PASÓ. La UI y su matriz se entregan despu
 El general anterior 45473465438 terminó FALLÓ por opciones de ensayo ausentes en
 .env.example; la nueva cabeza de #811 b43f9b7901e799eb4a3157b74fb8b199c422761f
 fue asignada para incorporar ese arreglo mediante merge normal.
+
+
+## Componente específico y regresiones A a Z
+EjercicioChina se monta en ChinaPractica con el mismo CAS, permisos y bloqueo de
+salida. Entrada por el componente real EntradaPractica en perfil sintético del
+ensayo; ambas vías (teclado+Enter y manual) hacen el mismo lookup sin escritura.
+QR SVG renderizado se captura y se decodifica con sharp/jsQR; se distingue aparato
+físico NO PROBADO. Recepción parcial 3/4, A=1/2, segunda llegada y B=3/4, origen de
+Frágil por recepción, tarea documental con carta ficticia y retiro auditado.
+Una respuesta perdida después de confirmar Frágil se reintenta con el mismo UUID.
+Regresión PGlite confirma equivalencia de claves JSON reordenadas sin segunda
+mutación, y rechazo de cambios de motivo/cantidad para ese UUID.
+Dirigidas locales de dominio/API/SQL: 20 PASÓ, 1 SKIP de navegador explícito;
+lint dirigido: PASÓ sin errores. El contrato temprano 671dc9eca pasó focal
+45477451268 y TypeScript en Calidad 45477530552; no acredita aún la UI nueva.
+El nuevo focal conservará capturas sintéticas por SHA con acción fijada a commit.
+No se relajan pruebas anteriores ni se cambia configuración, estado o comandos
+de #813: solo el lector tipado y las facultades derivadas comunes.

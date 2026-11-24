@@ -4,9 +4,11 @@ import { API_PRACTICA, MODULOS_PRACTICA, type PermisoPractica } from "@/lib/stud
 import type { ChinaPractica as Datos, ComandoChina } from "@/lib/studio/practica/china";
 import type { ResumenDocumentoPractica } from "@/lib/studio/practica/facturacion";
 import estilos from "./practica.module.css";
+import { EjercicioChina } from "./EjercicioChina";
+import { COMPRA_CHINA, type ComandoEjercicioChina, type consultarEtiquetaChina } from "@/lib/studio/practica/ejercicio-china";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 
-type Vista = { revision: number; documento: Datos; edicion: boolean; permisos: PermisoPractica[] };
+type Vista = { revision: number; documento: Datos; edicion: boolean; permisos: PermisoPractica[]; consulta?: ReturnType<typeof consultarEtiquetaChina> };
 export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, onBloqueoSalida, onRevalidarPermisos, documentos = [] }: { documentos?: ResumenDocumentoPractica[]; espacio: string; permisos: PermisoPractica[]; onAbrirFactura: (codigo: string) => void; onReinicio: () => void; onBloqueoSalida: (activo: boolean) => void; onRevalidarPermisos: () => Promise<boolean> }) {
   const [vista, setVista] = useState<Vista>();
   const [error, setError] = useState("");
@@ -17,16 +19,20 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
   const [permisosActuales, setPermisosActuales] = useState<PermisoPractica[]>([]);
   const aviso = useRef<HTMLParagraphElement>(null);
   const modulo = permisosActuales.find(p => ["cn", "naviera", "shipments", "ve"].includes(p.id))?.id ?? permisos.find(p => ["cn", "naviera", "shipments", "ve"].includes(p.id))!.id;
-  async function pedir(comando?: ComandoChina) {
+  async function pedir(comando?: ComandoChina, consulta?: string) {
     if (bloqueo.current) return;
     bloqueo.current = true; onBloqueoSalida(true); setOcupado(true); setError("");
     try {
-      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisosActuales.find(p => (["cn", "naviera", "shipments", "ve"].includes(p.id)) && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : comando?.accion === "embarcar" ? "shipments" : comando && ["aduana", "recibir_ve"].includes(comando.accion) ? "ve" : modulo, revision: vista?.revision, comando }) });
-      const datos = await res.json();
-      if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la carga.");
+      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisosActuales.find(p => (["cn", "naviera", "shipments", "ve"].includes(p.id)) && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : comando?.accion === "embarcar" ? "shipments" : comando && ["aduana", "recibir_ve"].includes(comando.accion) ? "ve" : modulo, revision: vista?.revision, comando, consulta }) });
+      const datos: Vista & {error?:string} = await res.json();
+      if (!res.ok) {
+        if(res.status===401 || res.status===403 || (res.status===503 && !comando && consulta===undefined)){setVista(undefined);setPermisosActuales([]);}
+        throw new Error(datos?.error ?? "No se pudo consultar la carga.");
+      }
       setVista(datos); setPermisosActuales(datos.permisos);
       if (comando?.accion === "reiniciar") { setConfirmar(false); onReinicio(); }
-    } catch (e) { setVista(undefined); setPermisosActuales([]); setError(e instanceof Error ? e.message : "Servicio indisponible."); }
+      return datos;
+    } catch (e) { setError(e instanceof Error ? e.message : "Servicio indisponible."); }
     finally { bloqueo.current = false; if (montado.current) { setOcupado(false); onBloqueoSalida(false); } }
   }
   useEffect(() => {
@@ -42,6 +48,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
     <button type="button" disabled={ocupado} onClick={async () => { if (await onRevalidarPermisos() && montado.current) await pedir(); }}>Recargar cargas y permisos</button>
     {ocupado && <p role="status">Guardando o consultando tu avance…</p>}
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
+    {vista?.documento.ejercicio && <EjercicioChina estado={vista.documento.ejercicio} ocupado={ocupado} permitido={permisosActuales.some(p=>p.id==="cn" && p.edicion && p.ejercicioCn===true)} onConsultar={async codigo=>(await pedir(undefined,codigo))?.consulta} onOperacion={async (operacion:ComandoEjercicioChina)=>(await pedir({accion:"ejercicio",envio:COMPRA_CHINA,operacion}))?.documento.ejercicio} />}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>
     <details><summary aria-label="Ayuda: consolidar">ⓘ Consolidar</summary><p>Primero recibe e identifica la carga. Este ejercicio conserva las mismas cajas en PRA-CON-001. En este ejercicio, agregar al consolidado no emite otra factura. En el trabajo real, el paso de China a consolidado puede emitir una factura cuando reúne los requisitos; consulta el estado en Facturación. El caso avanzado ya trae PRA-PRE-001 preparada para practicar Facturación según tus permisos.</p></details>
     <h3>Embarques y Recepción Venezuela</h3><details><summary aria-label="Ayuda: Embarques">ⓘ Embarques</summary><p>Conserva las cajas y la preorden de la misma carga. Facturar abre el documento correcto en Facturación para revisarlo; todavía no emite. Guarda allí CBM, sobrepeso y el tercer artículo antes de confirmar. Una emitida conserva su código y sus conceptos; con pagos vivos no se anula.</p></details>
