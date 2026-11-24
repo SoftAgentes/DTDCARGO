@@ -132,3 +132,28 @@ La captura con la ficha comodín (`DTD-0000`) o datos de prueba va a `assets/` a
 
 1. **Pestaña «Conversaciones».** La propuesta de la reunión trae pestaña y además columna a la derecha. Esta SDD deja solo la columna (siempre a la vista, que es lo que pidió Sam en la 0650) y no repite el panel en una pestaña. ¿Se acepta?
 2. **Asesor en la franja.** Solo el nombre; cambiarlo sigue en Configuración. ¿O un menú para cambiarlo desde la franja?
+
+## 9. Reparación de navegación (2026-11-24)
+
+Allowlist exacta de esta reparación:
+
+- `app/studio/(app)/clientes/_components/FichaPestanas.tsx`
+- `app/studio/(app)/clientes/__tests__/ficha-pestanas.test.tsx`
+- `docs/specs/0669-ficha-cliente-reorganizar/spec.md`
+- `.agents/handoffs/sdd-0669-pestanas-ficha-20261124.md`
+
+La API nativa recibe estado externo `null`: Next copia su árbol interno y
+sincroniza `useSearchParams`. Reenviar `history.state` con `__NA` o `_N` evita
+esa sincronización: la URL cambia pero el panel permanece. Referencia:
+[Native History API de Next](https://nextjs.org/docs/app/getting-started/linking-and-navigating#native-history-api).
+
+La regresión usa una suscripción reactiva al contrato de History de Next,
+sin `rerender` manual, y parte de `history.state.__NA=true`. Verifica los cuatro
+paneles, teclado, acceso rápido con foco, parámetros y hash conservados,
+estado de los paneles montados y filtro de permisos. Remontar desde la URL
+comprueba la selección inicial; no representa una recarga observada en navegador.
+
+A11Y-01 y BTN-01: se conservan controles nativos, roles, asociación tab/panel,
+foco y orden de Tab. No cambia el contenido de las tarjetas ni sus permisos.
+La comprobación local es focal con turno; la verificación global se delega
+al CI de la PR por indicación del Director. Evidencia y límites en el handoff.
