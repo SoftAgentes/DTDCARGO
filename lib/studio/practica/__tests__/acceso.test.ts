@@ -839,6 +839,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Volver sin confirmar el cierre",exact:true}).click();
           await esperar(p).toHaveURL(real+"/studio/dashboard");
           expect(inesperadas).toEqual([]);
+          console.log(`PASÓ fase 4 ${width}px ${tema}: entrada desde perfil por canje, carga hasta Venezuela, revisión sin emisión, cancelación, dos confirmaciones, pendientes y otro cliente intacto; Faro local sin servicio.`);
           matriz.push(`${width}-${tema}`);
           console.log(`PASÓ pantalla persistida ${width}px ${tema}; membresía financiera revocada y warehouse denegado; support consulta; capturas ${carpeta}; cero peticiones externas`);
         } finally { await contextoBrowser.close(); }
