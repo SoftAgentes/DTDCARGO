@@ -154,3 +154,9 @@ Se añade `.github/workflows/practica-personal.yml` a la allowlist únicamente p
 conservar capturas sintéticas por SHA como artefacto del focal, sin quitar gates.
 El parser y el payload DTD-B siguen siendo los aprobados; la comparación de
 reintentos usa campos canónicos, no el orden de claves JSON/JSONB.
+
+La allowlist incluye `.env.example` únicamente para documentar PRACTICA_EVIDENCIA
+como opción de ensayo sin valor operativo. Preparar el lector limpia la entrada;
+la consulta previa se conserva aparte y pierde confirmación al cambiar el código.
+Los select tienen nombres accesibles explícitos y el ensayo conserva diagnóstico
+ARIA y captura sintética ante un fallo, sin cambiar los criterios del gate.

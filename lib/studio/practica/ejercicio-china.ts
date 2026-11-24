@@ -60,6 +60,7 @@ export function aplicarEjercicioChina(actual: EjercicioChina, comando: ComandoEj
   switch (comando.accion) {
     case "recibir": {
       const consulta = consultarEtiquetaChina(siguiente, comando.codigo);
+      if(consulta.yaRecibida || consulta.montadaEn) throw new Error("La caja escaneada ya fue recibida. Para otra llegada usa una etiqueta de caja pendiente.");
       const pendientes = siguiente.cajas.filter(c => !c.recepcion);
       cantidadValida(comando.cantidad, pendientes.length);
       const escaneada = pendientes.find(c=>c.codigo===consulta.codigo);

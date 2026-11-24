@@ -51,6 +51,19 @@ describe("China completa por caja",()=>{
     expect(()=>aplicarEjercicioChina(montada,cargar(CODIGOS_CHINA[0],1,CONSOLIDADOS_CHINA[1]))).toThrow(/ya está montada/);
     expect(e.cajas.every(c=>!c.estiba)).toBe(true);
   });
+  it("P0131: una etiqueta recibida o montada no adopta otra caja pendiente",()=>{
+    const comando=recibir();
+    const recibida=aplicarEjercicioChina(semillaEjercicioChina(),comando);
+    const copia=structuredClone(recibida);
+    expect(()=>aplicarEjercicioChina(recibida,recibir(CODIGOS_CHINA[0],1))).toThrow(/ya fue recibida/);
+    expect(recibida).toEqual(copia);
+    const montada=aplicarEjercicioChina(recibida,cargar(CODIGOS_CHINA[0],2));
+    expect(()=>aplicarEjercicioChina(montada,recibir(CODIGOS_CHINA[0],1))).toThrow(/ya fue recibida/);
+    expect(aplicarEjercicioChina(montada,comando)).toEqual(montada);
+    expect(montada.recepciones).toHaveLength(1);
+    expect(montada.cajas[3].recepcion).toBeUndefined();
+    expect(aplicarEjercicioChina(montada,recibir(CODIGOS_CHINA[3],1)).recepciones[1].cajas).toEqual([CODIGOS_CHINA[3]]);
+  });
   it("indicadores por recepción: Frágil llega a VE, tareas y evidencia interna nunca salen en proyección",()=>{
     let e=aplicarEjercicioChina(semillaEjercicioChina(),recibir());
     const recepcion=e.recepciones[0].id;
