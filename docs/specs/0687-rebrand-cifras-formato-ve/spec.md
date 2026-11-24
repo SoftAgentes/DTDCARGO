@@ -374,3 +374,9 @@ Ampliación `msg_c31b38185eb6`: prueba de tracking y adopción normativa aprobad
 La vista previa y regla de NUM-01 fueron aprobadas expresamente por Sam en el
 turno del Director, después de preparar la implementación; no se infiere
 aprobación del resto de decisiones/fases de esta spec.
+
+Ampliación `msg_3a65db49fba6`, tras la anotación de Quality #45412543217:
+
+- `app/studio/(app)/fiscal/_components/WithholdingDrawer.test.tsx`: entrada humana
+  sin miles, rechazo de agrupación por operando y conservación del total canónico
+  y de la salida fiscal existente. No cambia código de producto ni cálculo fiscal.

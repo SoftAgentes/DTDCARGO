@@ -2,6 +2,32 @@
 
 Estado: lista para revisión; regla y vista previa aprobadas por Sam. No integrada ni publicada.
 
+### Corrección fiscal posterior a Quality (2026-11-24)
+
+Quality [45412543217](https://github.com/SoftAgentes/DTDCARGO/actions/runs/45412543217),
+sobre `5500ffffe77ca8716020fa614df0a2e62157aebe`, terminó en FALLÓ: 1 archivo
+fallido, 1381 aprobados y 6 omitidos; 1 prueba fallida, 22378 aprobadas y 44
+omitidas. El único rojo fue `WithholdingDrawer.test.tsx:31`, que aún aceptaba
+la entrada humana agrupada `1.200,50 + 2.300,50`. No se atribuye a flakiness:
+ese fixture contradecía la opción A.
+
+El Director autorizó esa ruta en `msg_3a65db49fba6`. Se volvió a adquirir el
+claim propio, con guard correcto y árbol limpio, para modificar solo la prueba,
+esta evidencia y la allowlist SDD. La suma válida pasa a `1200,50 + 2300.50`;
+se conservan base `3501`, monto canónico `2625.75` y salida fiscal `2,625.75`.
+Cuatro casos nuevos rechazan agrupaciones VE/US en cada operando, conservan
+el texto, vacían los ocultos, invalidan el formulario y muestran el mensaje
+exacto. El caso de porcentaje parcial `75+` permanece intacto.
+
+Validación de este delta: PASÓ Vitest focal (un archivo, seis pruebas,
+`--maxWorkers=1`), ESLint del archivo, `docs:check` y `git diff --check`.
+No hay cambio de producto ni cálculo fiscal; no se repitieron instalación,
+build, verify o suite global local. El turno pesado sigue entregado.
+Se publica la corrección en la misma PR; Quality debe volver a cerrar sobre
+la nueva cabeza. La evidencia de `5500ffffe` que sigue abajo es el corte previo,
+no un verde general de la cabeza corregida. El claim se libera otra vez tras
+el commit de esta corrección, antes de worker_done.
+
 - Owner: `codex-sdd-0687-opcion-a-20261124`.
 - Coordinador: `orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc`.
 - Sesión: `orca_session_id:59009432-ed96-474c-99b1-b22cb2deffaf`.
@@ -12,7 +38,8 @@ Estado: lista para revisión; regla y vista previa aprobadas por Sam. No integra
 - Guard: PASÓ al inicio y antes del commit; claim propio comprobado en metadatos Git.
 - Permisos: edición, pruebas, commits, rama y PR; sin merge, DB real, migraciones ni deploy.
 - Ampliaciones: `msg_29ad984245b7` (expresiones/transportistas), `msg_505aa05df7cb`
-  (seis suites consumidoras) y `msg_c31b38185eb6` (tracking y adopción normativa).
+  (seis suites consumidoras), `msg_c31b38185eb6` (tracking y adopción normativa)
+  y `msg_3a65db49fba6` (prueba fiscal tras Quality).
 - NUM-01: Sam aprobó expresamente regla y vista previa el 2026-11-24, según
   confirmación del Director `msg_c31b38185eb6`. La selección inicial para construir
   y esta aprobación posterior se distinguen. v1.2 conserva la trazabilidad de
@@ -31,7 +58,7 @@ reinterpretar registros, cambiar cálculo de negocio o retirar ft³.
 
 - Analizador compartido sin agrupación humana y sin regla de ambigüedad.
 - NumericInput muestra salida VE y no oculta decimales válidos del resultado.
-- Tabla SDD y once archivos de pruebas propios/consumidores actualizados;
+- Tabla SDD y doce archivos de pruebas propios/consumidores actualizados;
   código consumidor y `parseMaquina` intactos. Se cubren dinero, tasa, medida,
   porcentaje, USD/EUR/VES, unidades, precisión especial, cero/vacío, signo,
   rangos, expresiones por operando, edición parcial, error y recuperación.
@@ -89,8 +116,10 @@ fallos de carga, cero pruebas ni mutantes activos al cerrar.
 
 - `039ecc8f1e29276fa7e248f7a6ce8073e55baf15`: implementación, contratos y adopción
   normativa autorizada.
+- `5500ffffe77ca8716020fa614df0a2e62157aebe`: denominaciones y corte de evidencia
+  previo a Quality; el rojo fiscal de esa cabeza se corrige en el commit actual.
 - Commit que contiene este documento: evidencia final y comprobación explícita
-  de símbolos USD/EUR/VES. SHA final disponible en PR; se evita una cadena de
+  del contrato consumidor fiscal. SHA final disponible en PR; se evita una cadena de
   commits para incluir el hash propio en el documento.
 
 ## PR / BRANCH
