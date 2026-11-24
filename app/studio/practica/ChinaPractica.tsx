@@ -16,20 +16,39 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
   const [confirmar, setConfirmar] = useState(false);
   const bloqueo = useRef(false);
   const montado = useRef(true);
-  const [permisosActuales, setPermisosActuales] = useState<PermisoPractica[]>([]);
+  const [permisosRespuesta, setPermisosRespuesta] = useState<{ permisos: PermisoPractica[]; estado: PermisoPractica[] }>();
+  // Una respuesta China anterior nunca amplía el estado revalidado del padre.
+  const permisosActuales = (permisosRespuesta?.permisos ?? []).flatMap(p => {
+    // Una consulta posterior al último estado sí obtiene facultades frescas del servidor.
+    if (permisosRespuesta?.estado === permisos) return [p];
+    const vigente = permisos.find(actual => actual.id === p.id);
+    return vigente ? [{ ...p, edicion: p.edicion && vigente.edicion,
+      ...(p.id === "cn" ? { ejercicioCn: p.ejercicioCn === true && vigente.ejercicioCn === true } : {}),
+      ...(["shipments","ve"].includes(p.id) ? {incidenciaDestino:p.incidenciaDestino===true && vigente.incidenciaDestino===true} : {}),
+    }] : [];
+  });
+  const puede = (id: string) => permisosActuales.some(p => p.id === id && p.edicion);
+  const ejercicioPermitido = permisosActuales.some(p => p.id === "cn" && p.edicion && p.ejercicioCn === true);
+  const puedeReiniciar = !!vista && !permisos.some(p => p.id === "invoices") && ["cn","naviera","shipments","ve"].some(puede);
   const aviso = useRef<HTMLParagraphElement>(null);
   const modulo = permisosActuales.find(p => ["cn", "naviera", "shipments", "ve"].includes(p.id))?.id ?? permisos.find(p => ["cn", "naviera", "shipments", "ve"].includes(p.id))!.id;
   async function pedir(comando?: ComandoChina, consulta?: string) {
     if (bloqueo.current) return;
+    if (comando && !(comando.accion === "reiniciar" ? puedeReiniciar
+      : comando.accion === "consolidar" ? puede("naviera")
+      : comando.accion === "embarcar" ? puede("shipments")
+      : ["aduana","recibir_ve"].includes(comando.accion) ? puede("ve")
+      : comando.accion === "ejercicio" ? ejercicioPermitido : puede("cn"))) return;
+    const estadoAlPedir = permisos;
     bloqueo.current = true; onBloqueoSalida(true); setOcupado(true); setError("");
     try {
       const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisosActuales.find(p => (["cn", "naviera", "shipments", "ve"].includes(p.id)) && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : comando?.accion === "embarcar" ? "shipments" : comando && ["aduana", "recibir_ve"].includes(comando.accion) ? "ve" : modulo, revision: vista?.revision, comando, consulta }) });
       const datos: Vista & {error?:string} = await res.json();
       if (!res.ok) {
-        if(res.status===401 || res.status===403 || (res.status===503 && !comando && consulta===undefined)){setVista(undefined);setPermisosActuales([]);}
+        if(res.status===401 || res.status===403 || (res.status===503 && !comando && consulta===undefined)){setVista(undefined);setPermisosRespuesta(undefined);}
         throw new Error(datos?.error ?? "No se pudo consultar la carga.");
       }
-      setVista(datos); setPermisosActuales(datos.permisos);
+      setVista(datos); setPermisosRespuesta({permisos:datos.permisos,estado:estadoAlPedir});
       if (comando?.accion === "reiniciar") { setConfirmar(false); onReinicio(); }
       return datos;
     } catch (e) { setError(e instanceof Error ? e.message : "Servicio indisponible."); }
@@ -41,14 +60,17 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
     return () => { vigente = false; montado.current = false; onBloqueoSalida(false); };
   }, [espacio]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (error) aviso.current?.focus(); }, [error]);
-  const puede = (id: string) => permisosActuales.some(p => p.id === id && p.edicion);
+  useEffect(() => {
+    // También descarta la confirmación, para que no reaparezca al recuperar edición.
+    if (!puedeReiniciar) queueMicrotask(() => setConfirmar(false));
+  }, [puedeReiniciar]);
   return <section className={estilos.facturacion} aria-labelledby="titulo-china">
     <h2 id="titulo-china">Almacén China y Consolidado de práctica</h2>
     <p>Datos inventados. Cada carga conserva su envío y sus cajas al consolidarse.</p>
     <button type="button" disabled={ocupado} onClick={async () => { if (await onRevalidarPermisos() && montado.current) await pedir(); }}>Recargar cargas y permisos</button>
     {ocupado && <p role="status">Guardando o consultando tu avance…</p>}
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
-    {vista?.documento.ejercicio && <EjercicioChina estado={vista.documento.ejercicio} ocupado={ocupado} permitido={permisosActuales.some(p=>p.id==="cn" && p.edicion && p.ejercicioCn===true)} onConsultar={async codigo=>(await pedir(undefined,codigo))?.consulta} onOperacion={async (operacion:ComandoEjercicioChina)=>(await pedir({accion:"ejercicio",envio:COMPRA_CHINA,operacion}))?.documento.ejercicio} />}
+    {vista?.documento.ejercicio && permisosActuales.some(p=>p.id==="cn") && <EjercicioChina estado={vista.documento.ejercicio} ocupado={ocupado} permitido={ejercicioPermitido} onConsultar={async codigo=>(await pedir(undefined,codigo))?.consulta} onOperacion={async (operacion:ComandoEjercicioChina)=>(await pedir({accion:"ejercicio",envio:COMPRA_CHINA,operacion}))?.documento.ejercicio} />}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>
     <details><summary aria-label="Ayuda: consolidar">ⓘ Consolidar</summary><p>Primero recibe e identifica la carga. Este ejercicio conserva las mismas cajas en PRA-CON-001. En este ejercicio, agregar al consolidado no emite otra factura. En el trabajo real, el paso de China a consolidado puede emitir una factura cuando reúne los requisitos; consulta el estado en Facturación. El caso avanzado ya trae PRA-PRE-001 preparada para practicar Facturación según tus permisos.</p></details>
     <h3>Embarques y Recepción Venezuela</h3><details><summary aria-label="Ayuda: Embarques">ⓘ Embarques</summary><p>Conserva las cajas y la preorden de la misma carga. Facturar abre el documento correcto en Facturación para revisarlo; todavía no emite. Guarda allí CBM, sobrepeso y el tercer artículo antes de confirmar. Una emitida conserva su código y sus conceptos; con pagos vivos no se anula.</p></details>
@@ -77,8 +99,8 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
         {puede("naviera") && <button type="button" disabled={c.estado !== "recibida" || !c.cliente} onClick={() => void pedir({ accion: "consolidar", envio: c.envio })}>Consolidar {c.envio}</button>}
       </div>
     </fieldset>)}
-    {vista && !permisos.some(p => p.id === "invoices") && (puede("cn") || puede("naviera") || puede("shipments") || puede("ve")) && <>
-      <button type="button" disabled={ocupado || !(puede("cn") || puede("naviera") || puede("shipments") || puede("ve"))} onClick={() => setConfirmar(true)}>Reiniciar mi práctica</button>
+    {puedeReiniciar && <>
+      <button type="button" disabled={ocupado} onClick={() => setConfirmar(true)}>Reiniciar mi práctica</button>
       <ConfirmDialog open={confirmar} title="Reiniciar mi práctica" message="Se restablecerán tus facturas, pagos ficticios y el avance de China, Consolidado, Embarques y Recepción Venezuela, incluido el caso preparado de destino. El historial se conserva y la práctica de otras personas no cambia. Cancelar conserva todo el avance actual." danger pending={ocupado} error={error} confirmLabel="Confirmar reiniciar" onCancel={() => setConfirmar(false)} onConfirm={() => void pedir({accion:"reiniciar",envio:"espacio"})} />
     </>}
   </section>;

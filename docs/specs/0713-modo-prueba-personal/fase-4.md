@@ -154,3 +154,13 @@ mediante recibir_ve → recibida_ve. Su trámite aduanal se da por resuelto en l
 plantilla: el botón y las ayudas no instruyen confirmar ni tramitar liberación
 formal. La recepción física individual se practica en Viajes parciales. Esta
 aclaración no cambia permisos, expedientes, transiciones ni el ERP real.
+
+La revalidación exclusiva del padre se aplica a los cuatro módulos compactos.
+Una respuesta operativa iniciada antes del cambio no amplía los permisos nuevos.
+Al perder edición, se retiran sus acciones sin descartar la consulta; al perder
+consulta CN, se retira también el documento y sus tareas del DOM. La proyección
+de destino oculta motivos y resolución cuando se retira su capacidad o consulta.
+El reinicio personal sigue disponible con alguna edición operativa vigente y se
+retira junto con su confirmación al perder las cuatro. Una escritura ya pendiente
+mantiene bloqueada la salida hasta su respuesta. La edición financiera autorizada
+se conserva, sin remonte ni lectura adicional por revalidar otro módulo.

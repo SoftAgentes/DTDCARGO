@@ -684,6 +684,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
         let salidas=0;
         let perderRespuestaEjercicio=false;
         let perderRespuestaDestino=false;
+        let lecturasChina=0, escriturasChina=0;
         await contextoBrowser.addInitScript(() => {
           const estado = window as Window & { __practicaDemorarHost?: boolean };
           const Canal = window.MessageChannel;
@@ -735,6 +736,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             if (u.pathname === API_PRACTICA+"facturacion") {
               if (req.postDataJSON().comando) escriturasFactura++; else lecturasFactura++;
             }
+            if (u.pathname === API_PRACTICA+"china" && !req.postDataJSON().etapa) {
+              if (req.postDataJSON().comando) escriturasChina++; else lecturasChina++;
+            }
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),sesionActual,req.headers().origin);
             if (u.pathname.endsWith("/salir")) salidas++;
             if (demora && (req.postDataJSON()?.comando?.accion ?? req.postDataJSON()?.destino?.accion) === demora.accion) {
@@ -769,6 +773,80 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           const ejercicio=p.getByRole("region",{name:"China de principio a fin",exact:true});
           await esperar(ejercicio).toBeVisible();
           const revisionInicial=(await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision;
+          // Volver a la pestaña revalida estado; no recarga China ni borra la consulta.
+          const revalidarEstado=async()=>{
+            const respuesta=p.waitForResponse(r=>r.url()===prueba+API_PRACTICA+"estado");
+            await p.evaluate(()=>document.dispatchEvent(new Event("visibilitychange")));
+            expect((await respuesta).status()).toBe(200);
+            await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
+          };
+          const ajustarOperativos=(cn:boolean, naviera:boolean, shipments:boolean, ve:boolean)=>ajustesPorRol.set("operations",[
+            {module_id:"cn",can_view:true,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},
+            {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
+          ]);
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(true,true,false,true);
+          await revalidarEstado();
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await ejercicio.getByLabel("Código de etiqueta de práctica",{exact:true}).fill("DTD-B-99007131");
+          await ejercicio.getByRole("button",{name:"Consultar etiqueta de práctica",exact:true}).click();
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await ejercicio.getByLabel("Cajas que llegaron",{exact:true}).fill("2");
+          await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-B");
+          const lecturasAntesRecorte=lecturasChina, escriturasAntesRecorte=escriturasChina;
+          ajustarOperativos(false,true,false,true);
+          await revalidarEstado();
+          await esperar(p.locator("li").filter({hasText:"Almacén China"})).toContainText("Solo consulta");
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toBeEnabled();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"recibir",envio:"PRA-EMB-003"}},sesionActual,prueba)).status).toBe(403);
+          ajustarOperativos(true,false,false,true);
+          await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeEnabled();
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"naviera",revision:revisionInicial,comando:{accion:"consolidar",envio:"PRA-EMB-001"}},sesionActual,prueba)).status).toBe(403);
+          usuarios.get(cuentaId)!.region="ve";
+          await revalidarEstado();
+          await esperar(ejercicio.getByRole("button",{name:"Confirmar recepción de práctica",exact:true})).toBeDisabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"ejercicio",envio:"PRA-COMPRA-CHINA-001",operacion:{id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007131",cantidad:1}}},sesionActual,prueba)).status).toBe(403);
+          await p.getByRole("button",{name:"Reiniciar mi práctica",exact:true}).click();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
+          // Solo VE conserva edición: el reinicio personal sigue permitido.
+          ajustarOperativos(false,false,false,true);
+          await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Confirmar reiniciar",exact:true})).toBeEnabled();
+          ajustarOperativos(false,false,false,false);
+          await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn",revision:revisionInicial,comando:{accion:"reiniciar",envio:"espacio"}},sesionActual,prueba)).status).toBe(403);
+          await esperar(ejercicio.getByRole("group",{name:"Revisar DTD-B-99007131",exact:true})).toBeVisible();
+          await esperar(ejercicio.getByLabel("Cajas que llegaron",{exact:true})).toHaveValue("2");
+          await esperar(ejercicio.getByLabel("Consolidado de práctica",{exact:true})).toHaveValue("PRA-CON-CN-B");
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
+          await p.evaluate(()=>window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`china-revalidada-${width}${sufijo}.png`),fullPage:true});
+          expect(lecturasChina).toBe(lecturasAntesRecorte); expect(escriturasChina).toBe(escriturasAntesRecorte);
+          expect((await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json()).revision).toBe(revisionInicial);
+          usuarios.get(cuentaId)!.region="cn"; usuarios.get(cuentaId)!.role="warehouse"; usuarios.get(cuentaId)!.warehouse_scope="cn";
+          ajustesPorRol.delete("operations"); await revalidarEstado();
+          await esperar(p.getByRole("dialog",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
+          // El ensayo anterior verificó B conservado; el recorrido canónico empieza en A.
+          await ejercicio.getByLabel("Consolidado de práctica",{exact:true}).selectOption("PRA-CON-CN-A");
+          await ejercicio.getByRole("button",{name:"Cancelar consulta sin recibir",exact:true}).click();
+          // Perder consulta CN retira el documento y sus tareas del DOM; la
+          // consulta de los otros módulos no autoriza ver el documento crudo.
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id!=="cn",can_edit:false})));
+          await revalidarEstado();await esperar(ejercicio).toHaveCount(0);
+          await esperar(p.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true})).toBeVisible();
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          ajustesPorRol.delete("operations");await revalidarEstado();await esperar(ejercicio).toBeVisible();
           await ejercicio.getByText("Etiqueta de práctica y ayuda para el lector",{exact:true}).click();
           const pngQr=await ejercicio.getByRole("img",{name:"QR de caja inventada",exact:true}).screenshot();
           const rawQr=await sharp(pngQr).ensureAlpha().raw().toBuffer({resolveWithObject:true});
@@ -855,6 +933,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           usuarios.get(cuentaId)!.role="admin";
           const finAntesDestino=await (await solicitar(prueba,"facturacion",{espacio:cuenta.vista.espacio},{sesion:sesionActual})).json();
           usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustesPorRol.set("operations",["cn","naviera","shipments","ve"].map(module_id=>({module_id,can_view:module_id!=="cn",can_edit:module_id!=="cn"})));
+          await revalidarEstado();await esperar(ejercicio).toHaveCount(0);
+          await esperar(p.getByText(/Evidencia: PRA-CARTA-001/)).toHaveCount(0);
+          ajustesPorRol.delete("operations");await revalidarEstado();
           const vistaDestino=p.getByRole("region",{name:"Viajes parciales y recepción física de práctica",exact:true});
           await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
           const etapaDestino=vistaDestino.getByLabel("Vista de destino",{exact:true});
@@ -872,17 +954,21 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByRole("button",{name:"Confirmar observación ficticia",exact:true}).click();
           await esperar(vistaDestino.getByText("Observación de destino: pendiente.",{exact:true})).toBeVisible();
           await esperar(vistaDestino.getByLabel("Código DTD-B en destino",{exact:true})).toBeDisabled();
+          await etapaDestino.selectOption("shipments");
+          await esperar(vistaDestino.getByText(/Observación aduanal de muestra en destino/)).toBeVisible();
           // La carta China ya estaba resuelta; eso no resolvió la observación VE.
           usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.region="cn";
           // Revalidar desde otro módulo debe retirar también controles que usan
           // una proyección de destino ya abierta, sin volver a leer ese detalle.
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await revalidarEstado();
           await esperar(vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true})).toHaveCount(0);
+          await esperar(vistaDestino.getByText(/Observación aduanal de muestra en destino/)).toHaveCount(0);
           const denegada=await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,etapa:"ve",consolidado:CONSOLIDADOS_CHINA[0],revision:0,
             destino:{id:randomUUID(),accion:"resolver_incidencia",consolidado:CONSOLIDADOS_CHINA[0],motivo:"Intento ficticio sin capacidad"}},{sesion:sesionActual});
           expect(denegada.status).toBe(403);
           usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.region="ve";
           await vistaDestino.getByRole("button",{name:"Recargar destino y permisos",exact:true}).click();
+          await etapaDestino.selectOption("ve");
           await vistaDestino.getByRole("button",{name:"Resolver observación ficticia de destino",exact:true}).click();
           await p.getByLabel("Motivo ficticio de destino",{exact:true}).fill("Revisión logística inventada completada");
           await p.getByRole("button",{name:"Confirmar resolución ficticia",exact:true}).click();
@@ -948,8 +1034,17 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await salida.evaluate((el:HTMLButtonElement)=>el.click());
           expect(salidas).toBe(0);
           await esperar(p.getByRole("status").filter({hasText:"Guardando o consultando"})).toBeVisible();
+          // La escritura ya se aplicó; una respuesta demorada no puede revivir
+          // edición retirada por una revalidación más reciente del padre.
+          usuarios.get(cuentaId)!.role="operations";usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(false,true,false,true);await revalidarEstado();
+          await esperar(salida).toBeDisabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true})).toHaveCount(0);
           recepcionDemorada.liberar();
           await esperar(salida).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-004",exact:true})).toHaveCount(0);
+          usuarios.get(cuentaId)!.role="warehouse";usuarios.get(cuentaId)!.warehouse_scope="cn";
+          ajustesPorRol.delete("operations");await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeDisabled();
           await p.reload();
           const avanzada=p.locator("fieldset").filter({has:p.locator("legend",{hasText:"PRA-EMB-001"})});
@@ -1215,6 +1310,9 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-PRE-001");
           await p.getByLabel("Concepto 1",{exact:true}).fill("Borrador conservado al consultar permisos");
           const lecturasAntesRecarga=lecturasFactura;
+          await revalidarEstado();
+          await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
+          expect(lecturasFactura).toBe(lecturasAntesRecarga);
           await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toBeVisible();
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
@@ -1230,10 +1328,6 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(p.getByLabel("Concepto 1",{exact:true})).toHaveValue("Borrador conservado al consultar permisos");
           expect(lecturasFactura).toBe(lecturasAntesRecarga);
           // Recorte sin recargar página ni cambiar pestaña, cuatro capacidades.
-          const ajustarOperativos=(cn:boolean, naviera:boolean, shipments:boolean, ve:boolean)=>ajustesPorRol.set("operations",[
-            {module_id:"cn",can_view:true,can_edit:cn},{module_id:"naviera",can_view:true,can_edit:naviera},
-            {module_id:"shipments",can_view:true,can_edit:shipments},{module_id:"ve",can_view:true,can_edit:ve},
-          ]);
           usuarios.get(cuentaId)!.role="operations";
           usuarios.get(cuentaId)!.warehouse_scope="all";
           ajustarOperativos(false,true,true,true);
@@ -1247,25 +1341,28 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(1);
           await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
           await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          const lecturasAntesRecortesDestino=lecturasChina,escriturasAntesRecortesDestino=escriturasChina;
           ajustarOperativos(true,false,false,true);
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
           await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(0);
           await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
           await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toBeEnabled();
           ajustarOperativos(false,false,false,false);
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await revalidarEstado();
           await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
           await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(0);
           await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toHaveCount(0);
           await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Solo consulta",{exact:true})).toBeVisible();
           usuarios.get(cuentaId)!.warehouse_scope="cn";
-          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await revalidarEstado();
           await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Solo consulta · Embarque: Solo consulta",{exact:true})).toBeVisible();
           expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"ve",revision:0,comando:{accion:"recibir_ve",envio:"PRA-EMB-001"}},sesionActual,prueba)).status).toBe(403);
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
+          expect(lecturasChina).toBe(lecturasAntesRecortesDestino);expect(escriturasChina).toBe(escriturasAntesRecortesDestino);
           ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
           // incluso si quedó un extra de edición inválido para la operación real.
