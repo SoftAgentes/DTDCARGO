@@ -164,3 +164,10 @@ El reinicio personal sigue disponible con alguna edición operativa vigente y se
 retira junto con su confirmación al perder las cuatro. Una escritura ya pendiente
 mantiene bloqueada la salida hasta su respuesta. La edición financiera autorizada
 se conserva, sin remonte ni lectura adicional por revalidar otro módulo.
+
+La concesión nueva también debe reflejarse al volver a la pestaña: partiendo de
+una lectura operativa con cn.edicion=false, si estado confirma su otorgamiento
+real para el mismo espacio, Recibir queda disponible sin pulsar Recargar. Se
+ensaya aparte de restaurar una facultad que ya existía en la lectura anterior.
+Si hace falta recuperar un detalle autorizado, puede consultarse automáticamente;
+los recortes que no lo necesitan conservan la prueba sin lecturas adicionales.

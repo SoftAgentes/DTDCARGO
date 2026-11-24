@@ -1369,6 +1369,21 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           expect((await frontera(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"ve",revision:0,comando:{accion:"recibir_ve",envio:"PRA-EMB-001"}},sesionActual,prueba)).status).toBe(403);
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           expect(lecturasChina).toBe(lecturasAntesRecortesDestino);expect(escriturasChina).toBe(escriturasAntesRecortesDestino);
+          // Caso distinto: la última lectura operativa nunca tuvo edición CN.
+          // Estado confirma una concesión nueva al volver; debe estar disponible
+          // sin pulsar Recargar después de concederla (regresión original b8).
+          usuarios.get(cuentaId)!.warehouse_scope="all";
+          ajustarOperativos(false,true,true,true);
+          await p.getByRole("button",{name:"Recargar cargas y permisos",exact:true}).click();
+          await esperar(p.getByText("Almacén China: Solo consulta · Consolidado: Consulta y edición · Embarque: Consulta y edición · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toHaveCount(0);
+          ajustarOperativos(true,false,false,true);await revalidarEstado();
+          await esperar(p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true})).toBeEnabled();
+          await esperar(p.getByRole("button",{name:"Consolidar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true})).toHaveCount(0);
+          await esperar(avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true})).toHaveCount(1);
+          await esperar(p.getByText("Almacén China: Consulta y edición · Consolidado: Solo consulta · Embarque: Solo consulta · Recepción Venezuela: Consulta y edición",{exact:true})).toBeVisible();
+          await esperar(p.getByRole("button",{name:"Reiniciar mi práctica",exact:true})).toBeEnabled();
           ajustesPorRol.delete("operations");
           // Mismo espacio abierto: el cambio de rol retira el detalle financiero,
           // incluso si quedó un extra de edición inválido para la operación real.
