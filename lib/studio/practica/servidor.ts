@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { aplicarChina, semillaChina, type ChinaPractica, type ComandoChina } from "./china";
 import { aplicarFactura, semillaFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
 import type { DestinoPractica, OrigenPractica } from "./config";
-import { API_PRACTICA, esToken, esUuid, sonPermisosPractica, type VistaPractica } from "./contrato";
+import { API_PRACTICA, esToken, esUuid, sonPermisosPractica, type VistaPractica, type PermisoPractica } from "./contrato";
 
 const huella = (valor: string) => createHash("sha256").update(valor).digest("hex");
 const token = () => randomBytes(32).toString("hex");
