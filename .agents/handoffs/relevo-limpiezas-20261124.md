@@ -48,3 +48,18 @@ Ninguna correcci?n adicional incorporada. El comentario hist?rico del detector s
 
 ## HANDOFF AL DIRECTOR
 Cumplimiento SDD-0686: tinta en datos sin destino y token azul en interacci?n; no aplica cambio de comportamiento Studio ni contratos de datos. Impacto documental limitado a este handoff; no requiere modificar spec global ni pol?ticas. Sin merge ni despliegue.
+
+
+## Revisi?n del Director: avance determinista de variantes arbitrarias
+
+- Nuevo Task: `task_48baf0665ade`; Dispatch: `ctx_c9c39a61e0bc`; Run: `run_31c6634809ff`. Mismo owner, sesi?n, rama y PR #805.
+- HEAD al retomar: `3a1ab330c7c0cd8073d28f4b7f5f07020f97fa03`; base de PR conservada: `8580490f8d95872a407ab83ab9acb6b1b265a451`.
+- Claim readquirido y guard --owner comprobado antes de editar. Alcance de este seguimiento: detector, su test focal y este handoff; UI y resto de la PR sin modificaciones.
+- El hallazgo del Director corrige la conclusi?n inicial: incluir `:` en las alternativas no eliminaba las particiones ambiguas de variantes arbitrarias. Esta revisi?n sustituye esa soluci?n por un recorrido de tokens con balance de corchetes. El ?ndice siempre avanza, no reintenta cierres previos y la clase base se comprueba una sola vez por token.
+- Se conservan variantes simples, encadenadas y arbitrarias, incluido el anidado `group-[[open]]:` y `[&[data-open]]:`. No se ampl?an tokens de identidad ni se cambian criterios de datos o UI.
+- Regresor: 64 variantes `[&>svg]:` seguidas de `text-accion`, sin coincidencia, y de `text-wine`, con coincidencia. Corre en proceso Node aislado con timeout de 5 s para terminar un eventual regreso al patr?n exponencial sin bloquear Vitest.
+- PAS?: Vitest focal del detector y del contrato Registro/Planilla: 2 archivos, 15 pruebas, 12,64 s, maxWorkers=1. Log: `%TEMP%/relevo-r2-tests.log`.
+- PAS?: comprobaci?n negativa acotada del instrumento: el detector anterior extra?do de `3a1ab330` sobre ese mismo caso sin coincidencia termina por ETIMEDOUT a los 1.500 ms; el nuevo sale con status 0 y cuenta 0. Proceso anterior terminado por spawnSync y archivo temporal eliminado.
+- PAS?: eslint de los dos archivos tocados y git diff --check.
+- NO EJECUTADO en este seguimiento: verify completo, tipos globales, build y dem?s suites/gates globales; se respeta el turno fuerte de Decimales. CI nuevo y revisi?n independiente sobre la cabeza publicada quedan al Director.
+- Carril informativo de la PR: revisi?n previa por las mismas rutas sensibles; ning?n cambio de rutas de producto en este seguimiento. La cabeza exacta final se consulta en la PR y se reporta en worker_done; este handoff viaja en el mismo commit.

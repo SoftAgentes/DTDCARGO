@@ -16,9 +16,36 @@ export const RAIZ = join(__dirname, "..", "..", "..", "..");
 
 /** Tokens de vino del Studio y de la web, usados como valor. */
 const VINO_TOKEN = /var\(--(?:grad-|color-)?wine[a-z-]*/g;
-/** Clases Tailwind de vino, con o sin variante (`hover:`, `focus-within:`, `group-[[open]]:`…). */
-const VINO_CLASE =
-  /(?<=^|[\s"'`])(?:[a-z-]*\[[^\s"'`]*?\]:|[a-z-]+:)*(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/gm;
+/** La clase base se prueba una sola vez, despu?s de consumir sus variantes. */
+const VINO_CLASE = /^(?:bg|text|border|ring|outline|fill|stroke|from|via|to|accent|decoration|divide|placeholder|caret|shadow)-wine(?:-[a-z]+)?(?![\w-])/;
+
+/**
+ * Cada variante termina en su propio `:`. Los corchetes se balancean para
+ * admitir `group-[[open]]:` y selectores anidados sin reconsiderar particiones
+ * cuando la clase final no usa vino. Cada car?cter se recorre como m?ximo una vez.
+ */
+function clasesVino(texto: string): number {
+  let n = 0;
+  for (const [clase] of texto.matchAll(/[^\s"'`]+/g)) {
+    let inicio = 0;
+    while (inicio < clase.length) {
+      let fin = inicio;
+      while (fin < clase.length && /[a-z-]/.test(clase[fin])) fin++;
+      if (clase[fin] === "[") {
+        let nivel = 1;
+        while (++fin < clase.length && nivel > 0) {
+          if (clase[fin] === "[") nivel++;
+          else if (clase[fin] === "]") nivel--;
+        }
+        if (nivel > 0) break;
+      }
+      if (fin === inicio || clase[fin] !== ":") break;
+      inicio = fin + 1;
+    }
+    if (VINO_CLASE.test(clase.slice(inicio))) n++;
+  }
+  return n;
+}
 
 /**
  * Tonos `"wine"` dados como valor. Se quitan antes las uniones de tipo
@@ -44,7 +71,7 @@ const VINO_DATA_TONO = /data-tono=["'{]*vino["'}]*/g;
 export function cuentaVino(texto: string): number {
   return (
     (texto.match(VINO_TOKEN) ?? []).length +
-    (texto.match(VINO_CLASE) ?? []).length +
+    clasesVino(texto) +
     (texto.match(VINO_EYEBROW) ?? []).length +
     (texto.match(VINO_DATA_TONO) ?? []).length +
     tonosVino(texto)
