@@ -59,7 +59,7 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio, o
       <p>Cajas: {c.cajas.join(", ")}</p>
       {c.consolidado && <p>Consolidado: {c.consolidado}</p>}
       {c.preorden && permisos.some(p => p.id === "invoices") && <button type="button" disabled={ocupado} onClick={() => onAbrirFactura(c.preorden!)}>Revisar {c.preorden} en Facturación</button>}
-      {c.preorden && documentos.some(f => f.codigo === c.preorden && f.embarque === c.envio && f.cliente === c.cliente && f.estado === "borrador") && permisos.some(p => p.id === "invoices") && <button type="button" disabled={ocupado} onClick={() => onAbrirFactura(c.preorden!)}>Facturar · revisar {c.envio} · {c.cliente}</button>}
+      {c.consolidado && c.preorden && documentos.some(f => f.codigo === c.preorden && f.embarque === c.envio && f.cliente === c.cliente && f.estado === "borrador") && permisos.some(p => p.id === "invoices") && <button type="button" disabled={ocupado} onClick={() => onAbrirFactura(c.preorden!)}>Facturar · revisar {c.envio} · {c.cliente}</button>}
       {permisos.some(p => p.id === "invoices") && documentos.filter(f => f.codigo === c.preorden && f.embarque === c.envio && f.estado !== "borrador").map(f => <p key={f.codigo}>Documento ficticio: {f.codigo} - {f.estado}. {f.conPagos ? "Con pagos: no se puede anular." : f.estado === "emitida" ? "Se puede anular con motivo en Facturaci\u00f3n; los conceptos se conservan." : "El original permanece en el historial."}</p>)}
       <div className={estilos.acciones}>
         {puede("shipments") && <button type="button" disabled={c.estado !== "consolidada"} onClick={() => void pedir({accion:"embarcar",envio:c.envio})}>Embarcar {c.envio}</button>}

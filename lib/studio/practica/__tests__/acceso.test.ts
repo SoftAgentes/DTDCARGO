@@ -489,7 +489,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
             if (u.pathname === API_PRACTICA+"estado") {
               if (falloEstado === "red") return ruta.abort("failed");
               if (falloEstado === "503") return ruta.fulfill({status:503,json:null});
-              if (falloEstado === "invalida") return ruta.fulfill({status:200,json:{espacio:cuenta.vista.espacio,permisos:"inválidos"}});
+              if (falloEstado === "invalida") return ruta.fulfill({status:200,json:{espacio:req.postDataJSON().espacio,permisos:"inválidos"}});
             }
             if (u.pathname === API_PRACTICA+"facturacion" && req.postDataJSON().comando && rechazarEscritura) return ruta.fulfill({status:413,contentType:"text/plain",body:"Request Entity Too Large"});
             if (u.pathname === API_PRACTICA+"estado" && demorarEstado) await new Promise<void>(resolver => liberarEstados.push(resolver));
