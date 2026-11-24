@@ -2,7 +2,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,7 +31,7 @@ const destino = { ...comunes, PRACTICA_MODO: "destino", APP_ENV: "staging", APP_
 const resolver = config.configuracionPractica;
 const contexto = new AsyncLocalStorage<{ sitio: string; usuario?: string }>();
 const tenant = randomUUID();
-const usuarios = new Map<string, { role: StudioUserRole; warehouse_scope: string; disabled: boolean }>();
+const usuarios = new Map<string, { role: StudioUserRole; warehouse_scope: string; region?: string; disabled: boolean }>();
 const extras = new Map<string, { user_id: string; module_id: string; can_view: boolean; can_edit: boolean; expires_at: string }>();
 const ajustesPorRol = new Map<string, { module_id: string; can_view: boolean; can_edit: boolean }[]>();
 const dbOrigen = vi.hoisted(() => ({ cliente: vi.fn(), admin: vi.fn(), acceso: vi.fn() }));
@@ -39,9 +39,9 @@ vi.mock("@/lib/db/server", () => ({ createClient: dbOrigen.cliente }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: dbOrigen.admin }));
 vi.mock("@/lib/studio/rbac-guard", () => ({ getStudioAccess: dbOrigen.acceso }));
 
-function usuario(role: StudioUserRole, scope = "all") {
+function usuario(role: StudioUserRole, scope = "all", region = "cn") {
   const id = randomUUID();
-  usuarios.set(id, { role, warehouse_scope: scope, disabled: false });
+  usuarios.set(id, { role, warehouse_scope: scope, region, disabled: false });
   return id;
 }
 function solicitar(sitio: string, op: string, body: object, opc: { usuario?: string; sesion?: string; headers?: Record<string,string>; texto?: string } = {}) {
@@ -217,7 +217,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
       return solicitar(prueba, "facturacion", { espacio:s.vista.espacio, ...datos }, { sesion:s.sesion });
     };
     expect(a.vista.permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
-    expect(a.vista.permisos).toContainEqual({id:"cn",edicion:true});
+    expect(a.vista.permisos).toContainEqual({id:"cn",edicion:true,ejercicioCn:true});
     expect((await pedir(a)).status).toBe(403);
     extras.get(id)!.can_edit = true;
     for (const accion of ["guardar","emitir","anular","pagar","reiniciar"]) {
@@ -251,10 +251,10 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(canAccessModule("warehouse","clients")).toBe(false);
     expect(canAccessModule("warehouse","clients",{},extra)).toBe(true);
     expect(canEditModule("warehouse","clients",{},extra)).toBe(true);
-    expect(permisosDePractica("warehouse","cn",{},extra)).toContainEqual({id:"cn",edicion:true});
+    expect(permisosDePractica("warehouse","cn",{},extra,"cn")).toContainEqual({id:"cn",edicion:true,ejercicioCn:true});
     expect(canAccessModule("warehouse","clients",{},extra)).toBe(true);
     const soporte = await entrar(usuario("support"));
-    expect(soporte.vista.permisos).toContainEqual({id:"cn",edicion:false});
+    expect(soporte.vista.permisos).toContainEqual({id:"cn",edicion:false,ejercicioCn:false});
     expect(soporte.vista.permisos).not.toContainEqual(expect.objectContaining({id:"invoices"}));
     expect(moduleCoverage("invoices")).toBe("money_phase");
     expect(permisosDePractica("accounting","all",{}, {invoices:{view:true,edit:false}})).toContainEqual({id:"invoices",edicion:true});
@@ -343,11 +343,11 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     try {
       ajustes(false,true);
       let v=await (await op()).json();
-      expect(v.permisos).toEqual([{id:"cn",edicion:false},{id:"naviera",edicion:true}]);
+      expect(v.permisos).toEqual([{id:"cn",edicion:false,ejercicioCn:false},{id:"naviera",edicion:true}]);
       expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(403);
       const c=await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}});expect(c.status).toBe(200);
       ajustes(true,false); v=await (await op()).json();
-      expect(v.permisos).toEqual([{id:"cn",edicion:true},{id:"naviera",edicion:false}]);
+      expect(v.permisos).toEqual([{id:"cn",edicion:true,ejercicioCn:true},{id:"naviera",edicion:false}]);
       expect((await op({modulo:"naviera",revision:v.revision,comando:{accion:"consolidar",envio:"PRA-EMB-001"}})).status).toBe(403);
       expect((await op({revision:v.revision,comando:{accion:"recibir",envio:"PRA-EMB-003"}})).status).toBe(200);
       ajustes(false,false,false); v=await (await op()).json();
@@ -377,6 +377,50 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect(res.status).toBe(413);
     expect((await res.json()).error).toContain("tus cambios siguen en el editor");
     expect((await solicitar(prueba,"estado",{}, {sesion:cuenta.sesion,texto:JSON.stringify({relleno:"x".repeat(2048)})})).status).toBe(413);
+  });
+
+  it("ejercicio CN: lookup sin escrituras, compatibilidad histórica, replay CAS y proyección por rol sin datos internos", async()=>{
+    const id=usuario("warehouse","all","cn"), a=await entrar(id);
+    const op=(body:object={})=>frontera(prueba,"china",{espacio:a.vista.espacio,modulo:"cn",...body},a.sesion,prueba);
+    const huella=createHash("sha256").update(a.sesion).digest("hex");
+    const leerSql=async()=> (await db.query<{valor:{revision:number;documento:unknown}}>("select public.practica_china($1,$2) as valor",[destino.PRACTICA_DATOS_INSTANCIA,huella])).rows[0].valor;
+    const consulta=await op({consulta:"DTD-B-99007131"});expect(consulta.status).toBe(200);
+    expect((await leerSql()).documento).toBeNull();
+    let vista=await (await op()).json();
+    // Documento viejo sin campo aditivo: una lectura no modifica su revisión ni su JSON.
+    const legado=structuredClone(vista.documento); delete legado.ejercicio;
+    const legadoGuardado=(await db.query<{valor:{revision:number}}>("select public.practica_china($1,$2,$3,$4::jsonb) as valor",[destino.PRACTICA_DATOS_INSTANCIA,huella,vista.revision,JSON.stringify(legado)])).rows[0].valor;
+    vista=await (await op()).json();expect(vista.revision).toBe(legadoGuardado.revision);
+    expect((await leerSql()).documento).toEqual(legado);
+    const ejecutar=async(operacion:object,revision=vista.revision)=>{
+      const res=await op({revision,comando:{accion:"ejercicio",envio:"PRA-COMPRA-CHINA-001",operacion}});
+      if(res.ok) vista=await res.json(); return res;
+    };
+    const recibir={id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007131",cantidad:3};
+    const previa=vista.revision;expect((await ejecutar(recibir)).status).toBe(200);
+    const eventos=vista.documento.ejercicio.eventos.length;
+    expect((await ejecutar(recibir,previa)).status).toBe(200);
+    expect(vista.documento.ejercicio.eventos).toHaveLength(eventos);
+    expect(vista.documento.cargas).toEqual(legado.cargas);
+    const recepcion=vista.documento.ejercicio.recepciones[0].id;
+    for(const operacion of [{id:randomUUID(),accion:"fragil",recepcion,activo:true,motivo:"Vidrio ficticio"},{id:randomUUID(),accion:"marca",recepcion,motivo:"Falta carta de muestra"},{id:randomUUID(),accion:"cargar",codigo:"DTD-B-99007131",cantidad:2,consolidado:"PRA-CON-CN-A",ancho:1}]) expect((await ejecutar(operacion)).status).toBe(200);
+    usuarios.get(id)!.region="ve";
+    const ve=await op({etapa:"ve",consolidado:"PRA-CON-CN-A"});expect(ve.status).toBe(200);
+    const vv=await ve.json(); expect(vv.incidenciaDestino).toBe(true);
+    expect(vv.cajas.map((c:{indicadores:{codigo:string}[]})=>c.indicadores.map(i=>i.codigo))).toEqual([["fragil"],["fragil"]]);
+    expect(JSON.stringify(vv)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio|marca_sin_autorizacion/);
+    const emb=await (await op({etapa:"shipments",consolidado:"PRA-CON-CN-A"})).json();
+    expect(emb.cajas[0].indicadores.map((i:{codigo:string})=>i.codigo)).toEqual(["fragil","marca_sin_autorizacion"]);
+    expect(JSON.stringify(emb)).not.toMatch(/tareas|evidencia|eventos|resolucion|ejercicio/);
+    expect((await ejecutar({id:randomUUID(),accion:"fragil",recepcion,activo:false,motivo:"Intento desde VE"})).status).toBe(403);
+    delete usuarios.get(id)!.region;
+    expect((await (await op({etapa:"ve",consolidado:"PRA-CON-CN-A"})).json()).incidenciaDestino).toBe(false);
+    expect((await ejecutar({id:randomUUID(),accion:"recibir",codigo:"DTD-B-99007134",cantidad:1})).status).toBe(403);
+    usuarios.get(id)!.role="accounting";
+    expect((await op()).status).toBe(200); // Lectura operativa por naviera; no operaciones CN.
+    expect((await op({etapa:"shipments",consolidado:"PRA-CON-CN-A"})).status).toBe(200);
+    usuarios.get(id)!.disabled=true;
+    expect((await op({etapa:"ve",consolidado:"PRA-CON-CN-A"})).status).toBe(403);
   });
 
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.

@@ -1,4 +1,4 @@
-﻿# Unión y supervisión CI de fase 3
+# Unión y supervisión CI de fase 3
 
 Owner: ee6252bd-3872-4022-aa72-48ebd93b3a09.
 Task: task_a0bcc3a01712; dispatch: ctx_dcc0f96672eb.
@@ -45,3 +45,22 @@ No acceso a datos reales ni SQL compartido. No correcciones divergentes de #811.
 Allowlist ampliada por unión en fase-3.md y evidencia final asociada al SHA de PR.
 Los estados de tareas anteriores conservan su evidencia histórica, sin trasladar
 sus resultados a esta cabeza. La aceptación e integración requieren revisión.
+
+
+## Ampliación autorizada: China completa y contrato temprano
+Mensajes msg_9b6b07676dfb, msg_088600871fd5 y msg_28cb7bd0bbaa.
+Contrato aditivo estable en fase-3-china-contrato.md, tipos de ejercicio-china.ts,
+servicio leerCajasChina y API de lectura por etapa. Regiones desde membresía real;
+facultades ejercicioCn e incidenciaDestino transportadas de forma derivada.
+Documento histórico proyectado en memoria; lookup nunca escribe y el primer CAS
+persiste la ampliación sin tocar el avance anterior. SQL desechable ajusta lectura
+vacía para que tampoco cree una fila; sin SQL en servidores compartidos.
+Prueba dirigida local de contrato: 20 PASÓ, 1 SKIP explícito de navegador, antes
+de montar la UI nueva. Incluye QR PNG realmente decodificado con jsQR, parciales
+4/3/A2/segunda llegada/B2, prioridad de caja escaneada en recepción y estiba,
+indicadores por recepción, idempotencia, roles/región y JSON limitado en servidor.
+jsqr 1.4.0 solo de desarrollo; lockfile conserva versiones preexistentes y la
+instalación congelada prefer-offline PASÓ. La UI y su matriz se entregan después.
+El general anterior 45473465438 terminó FALLÓ por opciones de ensayo ausentes en
+.env.example; la nueva cabeza de #811 b43f9b7901e799eb4a3157b74fb8b199c422761f
+fue asignada para incorporar ese arreglo mediante merge normal.

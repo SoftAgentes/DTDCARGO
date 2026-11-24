@@ -1,3 +1,4 @@
+import { aplicarEjercicioChina, consultarEtiquetaChina, semillaEjercicioChina, proyectarCajasChina, COMPRA_CHINA, type ConsolidadoEjercicio, type EtapaLecturaChina } from "./ejercicio-china";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { aplicarChina, semillaChina, type ChinaPractica, type ComandoChina } from "./china";
 import { aplicarFactura, semillaFacturacion, type FacturacionPractica, type ComandoFactura } from "./facturacion";
@@ -88,26 +89,37 @@ export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, 
   return { ...guardado, edicion: permiso.edicion };
 }
 
-export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean; permisos: PermisoPractica[] }> {
+export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina, consulta?: string): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean; permisos: PermisoPractica[]; consulta?: ReturnType<typeof consultarEtiquetaChina> }> {
   const acceso = await consultarPractica(cfg, sesion, espacio);
   const permisos = acceso?.permisos.filter(p => p.id === "cn" || p.id === "naviera") ?? [];
   const permiso = permisos.find(p => p.id === modulo) ?? (!comando ? permisos[0] : undefined);
   if (!permiso || (comando && (!permiso.edicion || (comando.accion !== "reiniciar" && (comando.accion === "consolidar" ? modulo !== "naviera" : modulo !== "cn"))))) throw new Error("No tienes permiso para esta operación.");
+  if (comando?.accion === "ejercicio" && (modulo !== "cn" || permiso.ejercicioCn !== true)) throw new Error("No tienes permiso para operar este ejercicio de China.");
   type Registro = { revision: number; documento: ChinaPractica | null; generacion: number };
   const leer = () => rpc(cfg, "china", { p_sesion: huella(sesion) }) as Promise<Registro>;
   let registro = await leer();
+  if (consulta !== undefined) {
+    const documento=registro.documento ?? semillaChina(registro.generacion);
+    return {...registro,documento:{...documento,ejercicio:documento.ejercicio ?? semillaEjercicioChina()},edicion:permiso.edicion,permisos,consulta:consultarEtiquetaChina(documento.ejercicio ?? semillaEjercicioChina(),consulta)};
+  }
   if (!registro.documento) {
     const inicial = await rpc(cfg, "china", { p_sesion: huella(sesion), p_revision: registro.revision, p_documento: semillaChina(registro.generacion) }) as Registro | null;
     registro = inicial ?? await leer();
   }
   if (!registro.documento) throw new Error("La práctica cambió. Recarga antes de continuar.");
+  registro.documento={...registro.documento,ejercicio:registro.documento.ejercicio ?? semillaEjercicioChina()};
   if (!comando) return { ...registro, edicion: permiso.edicion, permisos };
+  if (comando.accion === "ejercicio" && registro.documento.ejercicio!.eventos.some(e=>e.id===comando.operacion?.id)) {
+    aplicarEjercicioChina(registro.documento.ejercicio!,comando.operacion);
+    return {...registro,edicion:permiso.edicion,permisos};
+  }
   if (registro.revision !== revision) throw new Error("La práctica cambió. Recarga antes de continuar.");
   if (comando.accion === "reiniciar") {
     await reiniciarDesdeOperacion(cfg, sesion, registro.revision);
     return chinaPersonal(cfg, sesion, espacio, modulo);
   }
-  const documento = aplicarChina(registro.documento, comando);
+  if (comando.accion === "ejercicio" && comando.envio !== COMPRA_CHINA) throw new Error("Ejercicio de práctica desconocido.");
+  const documento = comando.accion === "ejercicio" ? {...registro.documento,ejercicio:aplicarEjercicioChina(registro.documento.ejercicio!,comando.operacion)} : aplicarChina(registro.documento, comando);
   const guardado = await rpc(cfg, "china", { p_sesion: huella(sesion), p_revision: revision, p_documento: documento });
   if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
   return { ...guardado as Registro, edicion: permiso.edicion, permisos };
@@ -118,4 +130,12 @@ export async function reiniciarDesdeOperacion(cfg: DestinoPractica, sesion: stri
   const documento = aplicarFactura(previo?.documento ?? semillaFacturacion(), { accion: "reiniciar", codigo: "espacio" });
   const guardado = await rpc(cfg, "reiniciar", { p_sesion: huella(sesion), p_revision: revision, p_fin_revision: previo?.revision ?? -1, p_documento: documento });
   if (!guardado) throw new Error("La práctica cambió. Recarga antes de continuar.");
+}
+
+export async function leerCajasChina(cfg: DestinoPractica, sesion: string, espacio: string, consolidado: ConsolidadoEjercicio, etapa: EtapaLecturaChina) {
+  const acceso=await consultarPractica(cfg,sesion,espacio);
+  const permiso=acceso?.permisos.find(p=>p.id===etapa);
+  if (!permiso) throw new Error("No tienes permiso para consultar esta etapa.");
+  const registro=await rpc(cfg,"china",{p_sesion:huella(sesion)}) as {revision:number;documento:ChinaPractica|null;generacion:number};
+  return {revision:registro.revision,generacion:registro.generacion,etapa,consolidado,cajas:proyectarCajasChina(registro.documento?.ejercicio ?? semillaEjercicioChina(),consolidado,etapa),incidenciaDestino:permiso.incidenciaDestino === true};
 }

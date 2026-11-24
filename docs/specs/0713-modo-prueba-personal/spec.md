@@ -7,7 +7,7 @@ created: 2026-11-23
 updated: 2026-11-24
 supersedes: null
 superseded_by: null
-related: ["0072", "0540", "0544", "0589", "0635", "0637", "0681", "0690"]
+related: ["0154", "0155", "0697", "0072", "0540", "0544", "0589", "0635", "0637", "0681", "0690"]
 confidencialidad: interno
 ---
 
@@ -95,3 +95,14 @@ Esta fase admite los siguientes tres archivos.
 La lista de archivos de producto se concretará en cada fase sobre su base revisada. La evidencia de esta PR acredita el **cumplimiento documental** de trazabilidad, alcance y criterios de aceptación. La comprobación de comportamiento queda pendiente de implementación. Las migraciones en prueba o producción y la publicación requieren su autorización específica.
 
 Contrato operativo local y límites financieros de China/Consolidado: [fase 3](fase-3.md).
+
+## Recorrido completo de China en la fase 3
+El ejercicio aditivo usa cuatro cajas anunciadas de una compra: tres llegan,
+dos se montan en A, quedan una recibida y una por llegar; tras la segunda llegada,
+las dos restantes se montan en B con la misma identidad. Se distinguen recepción
+parcial (0154) y lote partido de estiba (0155, sucesora de 0152); 0673 es otro caso.
+Incluye consulta por etiqueta DTD-B mediante QR/teclado/entrada manual sin escribir,
+confirmación y recibo, Frágil sin cobro y tarea documental según 0697. Recibir
+enseña la llegada física vigente: los seis ensayos no crearon preorden automática.
+La preorden avanzada sigue preparada para enseñar Facturación. Contrato y
+permisos en [fase-3-china-contrato.md](fase-3-china-contrato.md).
