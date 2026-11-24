@@ -3,39 +3,22 @@
 /**
  * AppearanceSection — sección "Apariencia" del admin (SDD-0120).
  *
- * Preferencias por-usuario (localStorage, mismo patrón que el theme existente,
- * sin migración) + material de marca read-only:
- *   1. Preferencias   → Tema (light/dark) + Vista (normal/compacta/súper compacta).
+ * Preferencias por usuario, guardadas en la cuenta (SDD-0714) con respaldo local,
+ * + material de marca read-only:
+ *   1. Preferencias   → Tema (claro/oscuro/automático) + Vista (normal/compacta/súper compacta).
  *   2. Paleta de marca → swatches bloqueados (reglas de marca, ver BRAND.md).
  *   3. Recursos de marca → links al hub interno + Brand Book.
  *   4. Logo & favicon → por implementar (requiere storage + gobernanza de marca).
  *
- * El tema ya se togglea desde la barra superior (sol/luna); acá se comparte el
- * mismo mecanismo vía `appearance-prefs` (evento `studio:appearance`) para que
- * ambos controles queden sincronizados. La densidad es nueva: el CSS ya trae
- * los modificadores `[data-density]`, faltaba dónde elegirla.
+ * El menú del usuario (barra superior) usa el mismo `useApariencia`, así que los
+ * dos controles quedan sincronizados (evento `studio:appearance`).
  */
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/studio/_components/icons";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
-import {
-  DEFAULT_DENSITY,
-  DEFAULT_THEME,
-  applyDensity,
-  applyTheme,
-  APPEARANCE_EVENT,
-  readDensity,
-  readTheme,
-  type StudioDensity,
-  type StudioTheme,
-} from "@/app/studio/_components/appearance-prefs";
-
-function subscribeAppearance(onChange: () => void): () => void {
-  window.addEventListener(APPEARANCE_EVENT, onChange);
-  return () => window.removeEventListener(APPEARANCE_EVENT, onChange);
-}
+import { useApariencia } from "@/app/studio/_components/AparienciaUsuario";
+import type { StudioDensity, StudioThemePref } from "@/app/studio/_components/appearance-prefs";
 
 const BRAND_COLORS = [
   { name: "Wine", token: "--wine", hex: "#7F0F1A" },
@@ -50,23 +33,8 @@ const BRAND_RESOURCES = [
 ];
 
 export function AppearanceSection() {
-  const theme = useSyncExternalStore<StudioTheme>(
-    subscribeAppearance,
-    readTheme,
-    () => DEFAULT_THEME,
-  );
-  const density = useSyncExternalStore<StudioDensity>(
-    subscribeAppearance,
-    readDensity,
-    () => DEFAULT_DENSITY,
-  );
-
-  const onTheme = (next: StudioTheme) => {
-    applyTheme(next);
-  };
-  const onDensity = (next: StudioDensity) => {
-    applyDensity(next);
-  };
+  // SDD-0714: lo mismo que el menú del usuario; se guarda en la cuenta.
+  const { vista: density, tema: theme, elegirVista: onDensity, elegirTema: onTheme } = useApariencia();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -74,16 +42,17 @@ export function AppearanceSection() {
       <Card>
         <CardEyebrow>Preferencias de esta cuenta</CardEyebrow>
 
-        <FieldBlock label="Tema" hint="También lo puedes cambiar desde el sol/luna de la barra superior.">
-          <SegmentedControl<StudioTheme>
+        <FieldBlock label="Tema" hint="También lo cambias desde el menú de tu usuario, arriba a la derecha. Se guarda en tu cuenta.">
+          <SegmentedControl<StudioThemePref>
             value={theme}
             onChange={onTheme}
             variant="cards"
-            columns={2}
+            columns={3}
             ariaLabel="Tema del Studio"
             options={[
               { value: "light", label: "Claro", description: "Fondo paper", icon: Icon.sun(16) },
               { value: "dark", label: "Oscuro", description: "Fondo navy", icon: Icon.moon(16) },
+              { value: "auto", label: "Automático", description: "Sigue al sistema" },
             ]}
           />
         </FieldBlock>

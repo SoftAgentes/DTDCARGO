@@ -7,7 +7,9 @@
  * Los route groups (auth) y (app) tienen sus propios sub-layouts.
  *
  * Script inline de FOUC: aplica tema y densidad antes del primer paint. Por defecto,
- * oscuro y compacto (BD-037), salvo que la persona haya elegido otra cosa.
+ * oscuro y compacto (BD-037), salvo que la persona haya elegido otra cosa. «Automático»
+ * (SDD-0714) sigue a `prefers-color-scheme`. Esto es el respaldo local: lo guardado en
+ * la cuenta lo aplica `AparienciaUsuario` al montar el Studio.
  *
  * Los paneles que viven dentro de Chatwoot no reciben ni tema ni densidad: siguen a
  * Chatwoot (SDD-0603). Lo impreso pasa a claro por CSS, en `tokens.css`.
@@ -44,7 +46,9 @@ try {
   var h = document.documentElement;
   var p = location.pathname;
   if (p.indexOf('/studio/ficha-chat') !== 0 && p.indexOf('/studio/cerrar-chat') !== 0) {
-    if (localStorage.getItem('studio_theme') !== 'light') h.setAttribute('data-theme', 'dark');
+    var t = localStorage.getItem('studio_theme');
+    var oscuro = t === 'auto' ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) : t !== 'light';
+    if (oscuro) h.setAttribute('data-theme', 'dark');
     var d = localStorage.getItem('studio_density');
     if (d === 'ultra') h.setAttribute('data-density', 'ultra');
     else if (d !== 'normal' && d !== 'spacious') h.setAttribute('data-density', 'compact');

@@ -63,6 +63,28 @@ describe("apariencia predeterminada del Studio · SDD-0603", () => {
     expect(readDensity()).toBe("normal");
   });
 
+  it.each([
+    [true, "dark"],
+    [false, null],
+  ])("Automático (SDD-0714) con sistema oscuro=%s pinta %s, igual que readTheme", (oscuro, esperado) => {
+    localStorage.setItem(THEME_KEY, "auto");
+    const original = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q.includes("dark") && oscuro })) as unknown as typeof window.matchMedia;
+    try {
+      correr();
+      expect(html.getAttribute("data-theme")).toBe(esperado);
+      expect(readTheme()).toBe(oscuro ? "dark" : "light");
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("Automático sin matchMedia no rompe el script", () => {
+    localStorage.setItem(THEME_KEY, "auto");
+    correr();
+    expect(html.getAttribute("data-density")).toBe("compact");
+  });
+
   it("quien eligió Súper compacta la conserva", () => {
     localStorage.setItem(DENSITY_KEY, "ultra");
     correr();

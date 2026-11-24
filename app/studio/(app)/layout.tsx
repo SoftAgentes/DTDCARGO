@@ -24,7 +24,9 @@ import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
-import type { StudioUserRole, WarehouseScope } from "@/lib/studio/user-types";
+import { ROLE_LABELS, type StudioUserRole, type WarehouseScope } from "@/lib/studio/user-types";
+import { AparienciaUsuario } from "../_components/AparienciaUsuario";
+import { aparienciaDeMetadata } from "../_components/apariencia-usuario";
 import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 import { getMyModuleGrants } from "@/lib/studio/user-module-grants-queries";
 import { canAccessModule } from "@/lib/studio/rbac";
@@ -186,6 +188,8 @@ export default async function StudioAppLayout({
     <LocaleProvider locale={locale} region={region}>
       <ToastProvider>
         <WiringProvider profileInitial={profileInitial} buildSha={buildSha}>
+          {/* SDD-0714: vista y tema guardados en la cuenta (user_metadata). */}
+          <AparienciaUsuario guardada={aparienciaDeMetadata(user.user_metadata)} />
           <div
             style={{
               display: "flex",
@@ -216,6 +220,8 @@ export default async function StudioAppLayout({
             >
               <StudioTopbar
                 userEmail={user.email ?? ""}
+                displayName={[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || null}
+                roleLabel={role ? (ROLE_LABELS[role] ?? null) : null}
                 userId={user.id}
                 initialNotifications={initialNotifications}
                 conversationsTenantId={tenantLink?.tenant_id ?? null}
