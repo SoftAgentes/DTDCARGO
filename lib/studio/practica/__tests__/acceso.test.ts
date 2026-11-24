@@ -503,6 +503,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await esperar.poll(() => pendientesEstado.length).toBe(1);
           usuarios.get(cuentaId)!.role = "warehouse";
           await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+          await esperar(p.getByText("Comprobando identidad y permisos…",{exact:true})).toHaveCount(0);
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
           pendientesEstado.shift()?.();
           expect(await p.locator("main").innerText()).not.toContain("Borrador ficticio revocado");
