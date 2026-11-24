@@ -746,6 +746,7 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await ejercicio.getByLabel("Cajas a montar",{exact:true}).fill("2");
           await ejercicio.getByRole("button",{name:"Confirmar carga del lote",exact:true}).click();
           await esperar(ejercicio.getByRole("status",{name:"Resumen de cajas",exact:true})).toContainText("1 por llegar · 1 disponibles en China · 2 en A · 0 en B");
+          await p.screenshot({path:resolve(carpeta,`china-fragil-parcial-${width}${sufijo}.png`),fullPage:true});
           const antesRepetirMontada=await (await solicitar(prueba,"china",{espacio:cuenta.vista.espacio,modulo:"cn"},{sesion:sesionActual})).json();
           await ejercicio.getByRole("button",{name:"Enfocar lector de teclado",exact:true}).click();
           await entradaCodigo.pressSequentially("DTD-B-99007131");await entradaCodigo.press("Enter");

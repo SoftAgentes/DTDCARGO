@@ -2,8 +2,8 @@
 
 Base exacta: `0f9215395c9a2c28df1621a5c50c06a9e3129bd4` (fase 2 sin aceptación).
 Acceso apagado. Solo destino sintético local; no cambia la regla financiera ERP.
-Las seis recepciones de fase 1 produjeron cero facturas nuevas. Preorden inmediata
-sigue siendo criterio pendiente de decisión; el caso avanzado PRA-EMB-001 ya
+Las seis recepciones de fase 1 produjeron cero facturas nuevas. La expectativa de preorden inmediata del 23 de noviembre queda como antecedente;
+la decisión de práctica del 24 de noviembre mantiene la llegada física vigente; el caso avanzado PRA-EMB-001 ya
 trae PRA-PRE-001 preparada por fase 2. Los casos nuevos no crean documentos.
 
 Contrato: documento operativo separado, CAS por espacio, generación financiera
