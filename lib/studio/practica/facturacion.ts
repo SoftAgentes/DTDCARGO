@@ -1,6 +1,6 @@
 // Contrato compartido de ejercicios: revisión CAS y semilla exclusiva del receptor.
 export type LineaPractica = { concepto: string; cantidad: number; centavos: number };
-export type FacturaPractica = { codigo: string; embarque: string; estado: "borrador" | "emitida" | "pagada" | "anulada"; lineas: LineaPractica[]; pagado: number; recibo?: string };
+export type FacturaPractica = { codigo: string; embarque: string; cliente?: string; estado: "borrador" | "emitida" | "pagada" | "anulada"; lineas: LineaPractica[]; pagado: number; recibo?: string };
 export type FacturacionPractica = { semilla: "facturacion-1"; generacion: number; facturas: FacturaPractica[]; eventos: { id: string; accion: string; codigo: string; motivo?: string; fecha: string; antes: FacturaPractica[]; despues: FacturaPractica[]; fuente: "practica-personal" }[] };
 export type ComandoFactura = { accion: "guardar" | "emitir" | "anular" | "pagar" | "reiniciar"; codigo: string; lineas?: LineaPractica[]; motivo?: string };
 export const totalPractica = (lineas: LineaPractica[]) => lineas.reduce((s, l) => s + l.cantidad * l.centavos, 0);
@@ -13,8 +13,8 @@ export function erroresLineaPractica(l: LineaPractica) {
 }
 export function semillaFacturacion(generacion = 1): FacturacionPractica {
   return { semilla: "facturacion-1", generacion, facturas: [
-    { codigo: "PRA-PRE-001", embarque: "PRA-EMB-001", estado: "borrador", lineas: [{ concepto: "Carga propuesta", cantidad: 1, centavos: 30000 }], pagado: 0 },
-    { codigo: "PRA-FAC-002", embarque: "PRA-EMB-002", estado: "emitida", lineas: [{ concepto: "Carga por CBM", cantidad: 1, centavos: 25000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }], pagado: 0 },
+    { codigo: "PRA-PRE-001", cliente: "DTD-PRA-001", embarque: "PRA-EMB-001", estado: "borrador", lineas: [{ concepto: "Carga propuesta", cantidad: 1, centavos: 30000 }], pagado: 0 },
+    { codigo: "PRA-FAC-002", cliente: "DTD-PRA-002", embarque: "PRA-EMB-002", estado: "emitida", lineas: [{ concepto: "Carga por CBM", cantidad: 1, centavos: 25000 }, { concepto: "Sobrepeso", cantidad: 1, centavos: 5000 }], pagado: 0 },
   ], eventos: [] };
 }
 export function aplicarFactura(actual: FacturacionPractica, comando: ComandoFactura): FacturacionPractica {
@@ -35,6 +35,7 @@ export function aplicarFactura(actual: FacturacionPractica, comando: ComandoFact
       break;
     }
     case "emitir":
+      if (f.estado === "emitida" || f.estado === "pagada") return siguiente;
       if (f.estado !== "borrador") throw new Error("Solo se emiten borradores.");
       f.estado = "emitida"; break;
     case "anular":

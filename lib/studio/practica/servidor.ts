@@ -90,10 +90,10 @@ export async function facturacionPersonal(cfg: DestinoPractica, sesion: string, 
   return { ...guardado, edicion: permiso.edicion };
 }
 
-export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean }> {
+export async function chinaPersonal(cfg: DestinoPractica, sesion: string, espacio: string, modulo: "cn" | "naviera" | "shipments" | "ve", revision?: number, comando?: ComandoChina): Promise<{ revision: number; documento: ChinaPractica | null; generacion: number; edicion: boolean }> {
   const acceso = await consultarPractica(cfg, sesion, espacio);
   const permiso = acceso?.permisos.find(p => p.id === modulo);
-  if (!permiso || (comando && (!permiso.edicion || (comando.accion !== "reiniciar" && (comando.accion === "consolidar" ? modulo !== "naviera" : modulo !== "cn"))))) throw new Error("No tienes permiso para esta operación.");
+  if (!permiso || (comando && (!permiso.edicion || (comando.accion !== "reiniciar" && (comando.accion === "consolidar" ? modulo !== "naviera" : comando.accion === "embarcar" ? modulo !== "shipments" : ["aduana", "recibir_ve"].includes(comando.accion) ? modulo !== "ve" : modulo !== "cn"))))) throw new Error("No tienes permiso para esta operación.");
   type Registro = { revision: number; documento: ChinaPractica | null; generacion: number };
   const leer = () => rpc(cfg, "china", { p_sesion: huella(sesion) }) as Promise<Registro>;
   let registro = await leer();

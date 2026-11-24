@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ operac
     if (operacion === "china") {
       if (!esToken(sesion) || !esUuid(esperado)) return json(null, 401);
       const { comando, revision, modulo } = datos.body;
-      if (modulo !== "cn" && modulo !== "naviera") return json(null, 400);
+      if (modulo !== "cn" && modulo !== "naviera" && modulo !== "shipments" && modulo !== "ve") return json(null, 400);
       if (comando !== undefined && (!comando || typeof comando !== "object" || !Number.isSafeInteger(revision))) return json(null, 400);
       try {
         return json(await chinaPersonal(cfg, sesion, esperado, modulo, revision as number | undefined, comando as ComandoChina | undefined));

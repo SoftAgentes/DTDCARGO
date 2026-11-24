@@ -95,3 +95,5 @@ Esta fase admite los siguientes tres archivos.
 La lista de archivos de producto se concretará en cada fase sobre su base revisada. La evidencia de esta PR acredita el **cumplimiento documental** de trazabilidad, alcance y criterios de aceptación. La comprobación de comportamiento queda pendiente de implementación. Las migraciones en prueba o producción y la publicación requieren su autorización específica.
 
 Contrato operativo local y límites financieros de China/Consolidado: [fase 3](fase-3.md).
+
+Contrato de Embarques y Venezuela: [fase 4](fase-4.md).

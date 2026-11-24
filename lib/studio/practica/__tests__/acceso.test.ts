@@ -310,12 +310,36 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     expect((await op(a)).status).toBe(403);
   });
 
+  it("Embarques y VE revalidan cada permiso, revisión y pertenencia al espacio", async () => {
+    const id = usuario("admin");
+    const cuenta = await entrar(id);
+    const otra = await entrar(usuario("admin"));
+    const op = (body: object) => frontera(prueba,"china",{espacio:cuenta.vista.espacio,...body},cuenta.sesion,prueba);
+    let v = await (await op({modulo:"naviera"})).json();
+    const ejecutar = async (modulo: string, accion: string) => {
+      const r = await op({modulo,revision:v.revision,comando:{accion,envio:"PRA-EMB-001"}});
+      expect(r.status).toBe(200); v = await r.json();
+    };
+    await ejecutar("naviera","consolidar");
+    expect((await op({modulo:"ve",revision:v.revision,comando:{accion:"embarcar",envio:"PRA-EMB-001"}})).status).toBe(403);
+    await ejecutar("shipments","embarcar");
+    usuarios.get(id)!.role = "warehouse"; usuarios.get(id)!.warehouse_scope = "cn";
+    expect((await op({modulo:"ve",revision:v.revision,comando:{accion:"aduana",envio:"PRA-EMB-001"}})).status).toBe(403);
+    usuarios.get(id)!.role = "admin";
+    await ejecutar("ve","aduana");
+    await ejecutar("ve","recibir_ve");
+    expect(v.documento.cargas[0]).toMatchObject({estado:"recibida_ve",preorden:"PRA-PRE-001",cliente:"DTD-PRA-001"});
+    expect((await op({modulo:"ve",espacio:otra.vista.espacio})).status).toBe(403);
+    usuarios.get(id)!.disabled = true;
+    expect((await op({modulo:"ve"})).status).toBe(403);
+  });
+
   // Corrida de navegador explícita; CI unitario no instala Chromium. Se reporta el SKIP.
   it.skipIf(process.env.PRACTICA_NAVEGADOR !== "1")("recorrido persistido de pantalla a 390 y 1280 px, sin efectos externos", async () => {
     const require = createRequire(import.meta.url);
     const { build } = createRequire(require.resolve("tsx/package.json"))("esbuild");
     const { chromium, expect: esperar } = await import("@playwright/test");
-    const paquete = await build({ stdin:{ contents:`import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; createRoot(document.getElementById('app')).render(<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
+    const paquete = await build({ stdin:{ contents:`import {useState} from 'react'; import {EntradaPractica} from './app/studio/_components/wiring/EntradaPractica'; import {createRoot} from 'react-dom/client'; import {PracticaPersonal} from './app/studio/practica/PracticaPersonal'; import './app/studio/tokens.css'; import './app/studio/studio.css'; function Perfil(){const [abierto,setAbierto]=useState(false);return <><button onClick={()=>setAbierto(true)}>Mi perfil</button>{abierto && <EntradaPractica origen='${prueba}'/>}</>}; createRoot(document.getElementById('app')).render(location.origin==='${real}'?<Perfil/>:<PracticaPersonal real='${real}'/>);`, loader:"tsx", resolveDir:process.cwd() }, jsx:"automatic", bundle:true, write:false, outdir:"salida", define:{"process.env.NODE_ENV":'"production"',"process.env":'{}'} });
     const js = paquete.outputFiles.find((f: {path:string}) => f.path.endsWith(".js")).text;
     const globales = readFileSync("app/globals.css","utf8");
     const tipografia = globales.slice(globales.indexOf(".portal-sys,"),globales.indexOf("/* Números de la calculadora"));
@@ -326,21 +350,32 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
     try {
       for (const width of [390,1280]) for (const tema of ["light","dark"]) {
         const cuentaId = usuario("warehouse", "cn");
-        const cuenta = await entrar(cuentaId);
+        let cuenta: Awaited<ReturnType<typeof entrar>>;
         const sufijo = tema === "light" ? "" : "-dark";
         const contextoBrowser = await browser.newContext({ viewport:{width,height:900}, serviceWorkers:"block" });
         const inesperadas: string[] = [];
-        await contextoBrowser.addInitScript(({ espacio }) => sessionStorage.setItem("dtd-practica-espacio", espacio), { espacio:cuenta.vista.espacio });
+
         await contextoBrowser.addInitScript(tema => {
           const aplicar = () => { document.documentElement.dataset.theme = tema; };
           if (document.documentElement) aplicar(); else document.addEventListener("DOMContentLoaded",aplicar,{once:true});
         },tema);
         await contextoBrowser.route("**/*", async ruta => {
           const req = ruta.request(), u = new URL(req.url());
-          if (u.origin === prueba && u.pathname === "/app.js") return ruta.fulfill({contentType:"application/javascript",body:js});
-          if (u.origin === prueba && u.pathname === "/app.css") return ruta.fulfill({contentType:"text/css",body:css});
+          if ([real,prueba].includes(u.origin) && u.pathname === "/app.js") return ruta.fulfill({contentType:"application/javascript",body:js});
+          if ([real,prueba].includes(u.origin) && u.pathname === "/app.css") return ruta.fulfill({contentType:"text/css",body:css});
           if (u.origin === prueba && ["/nunito.woff2","/sora.woff2"].includes(u.pathname)) return ruta.fulfill({contentType:"font/woff2",body:readFileSync(u.pathname === "/nunito.woff2" ? "lib/font-files/nunito-sans-latin-wght.woff2" : "lib/font-files/sora-latin-wght.woff2")});
           if (u.origin === prueba && u.pathname === "/studio/practica" && config.rutaDelReceptor(u.pathname,req.method(),false)) return ruta.fulfill({contentType:"text/html",body:'<html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body class="studio-sys"><div id="app"></div><script src="/app.js"></script></body></html>'});
+          if (u.origin === real && u.pathname === "/studio/perfil") return ruta.fulfill({contentType:"text/html",body:'<html><body><div id="app"></div><script src="/app.js"></script></body></html>'});
+          if (u.origin === real && u.pathname === API_PRACTICA + "emitir") {
+            const r = await solicitar(real,"emitir",{}, {usuario:cuentaId});
+            return ruta.fulfill({status:r.status,json:await r.json()});
+          }
+          if (u.origin === prueba && u.pathname === API_PRACTICA + "canjear") {
+            const r = await solicitar(prueba,"canjear",req.postDataJSON());
+            const vista = await r.json();
+            cuenta = {pase:req.postDataJSON().pase,sesion:r.cookies.get(COOKIE_PRACTICA)!.value,vista};
+            return ruta.fulfill({status:r.status,json:vista});
+          }
           if (u.origin === prueba && config.rutaDelReceptor(u.pathname,req.method(),!!req.headers()["next-action"])) {
             const res = await frontera(prueba,u.pathname.slice(API_PRACTICA.length),req.postDataJSON(),cuenta.sesion,req.headers().origin);
             return ruta.fulfill({status:res.status,json:await res.json()});
@@ -349,9 +384,14 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           inesperadas.push(req.method()+" "+req.url()); return ruta.abort();
         });
         try {
-          const p = await contextoBrowser.newPage();
+          const perfil = await contextoBrowser.newPage();
+          await perfil.goto(real + "/studio/perfil");
+          await perfil.getByRole("button",{name:"Mi perfil",exact:true}).click();
+          const apertura = perfil.waitForEvent("popup");
+          await perfil.getByRole("button",{name:"Entrar a modo de prueba",exact:true}).click();
+          const p = await apertura;
           p.on("pageerror", e => console.error("Error de pantalla", e.message));
-          await p.goto(prueba + "/studio/practica");
+          await esperar(p.getByRole("heading",{name:"Permisos de tu pr\u00e1ctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Almacén China y Consolidado de práctica"})).toBeVisible();
           await esperar(p.getByRole("heading",{name:"Facturación de práctica",exact:true})).toHaveCount(0);
           await p.getByRole("button",{name:"Recibir PRA-EMB-003",exact:true}).click();
@@ -391,6 +431,15 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(avanzada).toContainText("PRA-CAJA-001, PRA-CAJA-002");
           await esperar(avanzada).toContainText("Estado: consolidada");
+          await avanzada.getByRole("button",{name:"Embarcar PRA-EMB-001",exact:true}).click();
+          await esperar(avanzada).toContainText("Estado: embarcada");
+          await avanzada.getByRole("button",{name:"Registrar llegada a aduana",exact:true}).click();
+          await esperar(avanzada).toContainText("Estado: en_aduana");
+          await avanzada.getByRole("button",{name:/Confirmar liberaci/}).click();
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
+          await p.reload();
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
+
           await p.screenshot({path:resolve(carpeta,`consolidado-${width}${sufijo}.png`),fullPage:true});
           await p.getByLabel("Documento",{exact:true}).selectOption("PRA-FAC-002");
           await p.getByRole("button",{name:"Revisar PRA-PRE-001 en Facturación",exact:true}).click();
@@ -423,9 +472,15 @@ describe("Fase 1 · acceso entre sitios, sin salida a Internet", () => {
           await p.reload();
           await esperar(p.getByLabel("Concepto 4",{exact:true})).toHaveValue("Embalaje ficticio");
           await esperar(p.getByText(/Total guardado:.*312,34/)).toBeVisible();
-          await esperar(avanzada).toContainText("Estado: consolidada");
+          await esperar(avanzada).toContainText("Estado: recibida_ve");
           await p.evaluate(() => window.scrollTo(0,0)); await p.screenshot({path:resolve(carpeta,`conceptos-${width}${sufijo}.png`),fullPage:true});
           await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).dblclick();
+          await esperar(p.getByRole("dialog")).toContainText("PRA-PRE-001");
+          await p.getByRole("button",{name:"Cancelar",exact:true}).click();
+          await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeEnabled();
+          await p.getByRole("button",{name:"Emitir factura ficticia",exact:true}).click();
+          await p.getByRole("button",{name:/los datos/}).click();
+          await p.getByRole("button",{name:"Confirmar emitir",exact:true}).click();
           await esperar(p.getByRole("button",{name:"Emitir factura ficticia",exact:true})).toBeDisabled();
           await p.getByRole("button",{name:"Vista previa de correo",exact:true}).click();
           await esperar(p.locator('p[role="status"]')).toContainText("Simulado · Correo a cliente@ejemplo.invalid");

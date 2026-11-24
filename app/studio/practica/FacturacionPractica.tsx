@@ -19,7 +19,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio, soli
   const avisoError = useRef<HTMLParagraphElement>(null);
   const [seleccion, setSeleccion] = useState("PRA-PRE-001");
   const [lineas, setLineas] = useState<LineaPractica[]>([]);
-  const [confirmacion, setConfirmacion] = useState<"reiniciar" | "anular" | null>(null);
+  const [confirmacion, setConfirmacion] = useState<"reiniciar" | "anular" | "emitir" | "revisar" | null>(null);
   const [descarte, setDescarte] = useState<string | null>(null);
   const [previa, setPrevia] = useState("");
   const [validar, setValidar] = useState(false);
@@ -74,7 +74,7 @@ export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio, soli
       <label>Documento <select aria-label="Documento" value={seleccion} disabled={ocupado} onChange={e => { if (sucio) setDescarte(e.target.value); else cambiarDocumento(e.target.value); }}>
         {vista.documento.facturas.map(f => <option key={f.codigo}>{f.codigo}</option>)}
       </select></label>
-      <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · {factura.estado}</p>
+      <p><strong>{factura.codigo}</strong> · Embarque {factura.embarque} · Cliente {factura.cliente} · {factura.estado}</p>
       <Ayuda titulo="Revisar el documento">PRA-PRE-001 comienza como preorden pendiente y PRA-FAC-002 comienza emitida. Revisa arriba el estado actual de cada documento. Pertenecen a embarques inventados distintos.</Ayuda>
       {!vista.edicion && <p>Tu permiso actual es de consulta.</p>}
       <fieldset disabled={!editable || ocupado} aria-describedby="reglas-conceptos"><legend>Conceptos de la factura</legend>
@@ -96,26 +96,27 @@ export function FacturacionPractica({ espacio, onBloqueoSalida, onReinicio, soli
       {sucio && <><p>Guarda o descarta los conceptos antes de salir de la práctica.</p><button type="button" disabled={ocupado} onClick={() => setDescarte(seleccion)}>Descartar conceptos sin guardar</button></>}
       <Ayuda titulo="Corregir y agregar">Repartir conserva USD 300: carga por CBM USD 250 y sobrepeso USD 50. Agregar un artículo suma un cobro al total. Guarda los conceptos antes de emitir. Este caso usa cantidades enteras y no incluye impuestos.</Ayuda>
       <p>Total guardado: {dinero(totalPractica(factura.lineas))} · Pago ficticio: {dinero(factura.pagado)} · Saldo: {dinero(factura.estado === "anulada" ? 0 : totalPractica(factura.lineas) - factura.pagado)}</p>
+      {factura.estado !== "borrador" && <p>Documento ficticio resultante: {factura.codigo} · {factura.estado}. Conserva el detalle y sus conceptos arriba. {factura.pagado > 0 ? "Tiene pagos: anulación bloqueada." : factura.estado === "emitida" ? "Puedes anular con motivo; los conceptos ya no se editan." : "El original permanece en el historial."}</p>}
       {factura.recibo && <p>Recibo ficticio: {factura.recibo}</p>}
       <div className={estilos.acciones}>
-        <ActionButton idleLabel="Emitir factura ficticia" loadingLabel="Emitiendo factura…" variant="dark" size="default" disabled={!editable || ocupado || sucio} onAction={() => actuar("emitir")} />
+        <ActionButton idleLabel="Emitir factura ficticia" loadingLabel="Emitiendo factura…" variant="dark" size="default" disabled={!editable || ocupado || sucio} onAction={async () => { setConfirmacion("revisar"); }} />
         <ActionButton idleLabel="Pagar saldo ficticio una vez" loadingLabel="Registrando pago…" variant="dark" size="default" disabled={!vista.edicion || ocupado || factura.estado !== "emitida" || factura.pagado > 0} onAction={() => actuar("pagar")} />
         <button type="button" className="studio-btn studio-btn-danger" disabled={!vista.edicion || ocupado || factura.estado !== "emitida" || factura.pagado > 0} onClick={() => setConfirmacion("anular")}>Anular factura ficticia</button>
       </div>
       <Ayuda titulo="Emitir">La emisión fija conceptos y titular: ya no se editan ni se eliminan. Guarda y revisa los conceptos antes de emitir. La referencia ficticia de la factura queda visible.</Ayuda>
       <Ayuda titulo="Pagar">El pago de muestra crea un recibo y reduce el saldo una sola vez. No se mueve dinero real.</Ayuda>
       <Ayuda titulo="Anular y corregir una emitida">Para corregir, anula con motivo y crea otra factura; conserva la referencia a la anterior. Si hay pagos vivos, primero se anulan los cobros en Cobranzas; esa operación no forma parte de este ejercicio. El ERP también comprueba los antecedentes y el período contable antes del reverso: si lo bloquea, revisa con contabilidad. Esta semilla no tiene bloqueos contables. El original y su historia permanecen.</Ayuda>
-      <button type="button" disabled={ocupado || factura.estado === "borrador"} onClick={() => setPrevia(`Simulado · Correo a cliente@ejemplo.invalid: factura ${factura.codigo}, ${factura.estado}, total ${dinero(totalPractica(factura.lineas))}. Sin envío.`)}>Vista previa de correo</button>
-      <button type="button" disabled={ocupado || factura.estado === "borrador"} onClick={() => setPrevia(`Simulado · WhatsApp a Cliente ficticio de práctica: referencia ${factura.codigo}, saldo ${dinero(factura.estado === "anulada" ? 0 : totalPractica(factura.lineas) - factura.pagado)}. Sin envío.`)}>Vista previa de WhatsApp</button>
+      <button type="button" disabled={ocupado || factura.estado === "borrador"} onClick={() => setPrevia(`Simulado ? Correo a cliente@ejemplo.invalid: factura ${factura.codigo}, ${factura.estado}, total ${dinero(totalPractica(factura.lineas))}. Sin envío.`)}>Vista previa de correo</button>
+      <button type="button" disabled={ocupado || factura.estado === "borrador"} onClick={() => setPrevia(`Simulado ? WhatsApp a Cliente ficticio de práctica: referencia ${factura.codigo}, saldo ${dinero(factura.estado === "anulada" ? 0 : totalPractica(factura.lineas) - factura.pagado)}. Sin envío.`)}>Vista previa de WhatsApp</button>
       {previa && <p role="status">{previa}</p>}
       <Ayuda titulo="Correo y WhatsApp">Estas vistas previas permanecen en la pantalla. No existen colas, proveedores ni botones de envío.</Ayuda>
       <button type="button" disabled={!vista.edicion || ocupado} onClick={() => setConfirmacion("reiniciar")}>Reiniciar mi práctica</button>
       <Ayuda titulo="Reanudar y reiniciar">Salir conserva el avance. Reiniciar restablece tus dos ejemplos y conserva el historial de ejercicios; no cambia la copia de otra persona. Cancela para conservar el avance actual.</Ayuda>
-      <ConfirmDialog open={!!confirmacion} title={confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
-        message={confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
+      <ConfirmDialog open={!!confirmacion} title={confirmacion === "revisar" ? "Revisar datos antes de facturar" : confirmacion === "emitir" ? "Confirmación final de emisión" : confirmacion === "reiniciar" ? "Reiniciar mi práctica" : "Anular factura ficticia"}
+        message={confirmacion === "revisar" || confirmacion === "emitir" ? `${factura.codigo} · ${factura.embarque} · ${factura.cliente} · ${dinero(totalPractica(factura.lineas))}. Se conservarán estos conceptos y este código en tu copia ficticia; no se envía al portal ni a contabilidad real.` : confirmacion === "reiniciar" ? "Se restablecerán tus facturas, pagos ficticios y cargas de China y Consolidado. Tu historial se conserva." : `Se anulará ${factura.codigo}; el original y el motivo se conservarán.`}
         danger reason={confirmacion === "anular"} reasonRequired reasonLabel="Motivo ficticio" pending={ocupado} error={error}
-        confirmLabel={`Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
-        onConfirm={motivo => { if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
+        confirmLabel={confirmacion === "revisar" ? "Sí, los datos están bien" : `Confirmar ${confirmacion}`} onCancel={() => setConfirmacion(null)}
+        onConfirm={motivo => { if (confirmacion === "revisar") setConfirmacion("emitir"); else if (confirmacion) void pedir({accion:confirmacion,codigo:seleccion,motivo}); }} />
       <ConfirmDialog open={!!descarte} title="Descartar conceptos sin guardar" message="Los conceptos sin guardar se perderán; el documento guardado se conserva."
         confirmLabel="Descartar conceptos" pending={ocupado} onCancel={() => setDescarte(null)} onConfirm={() => {
           if (descarte === "recargar") void pedir(); else if (descarte) { cambiarDocumento(descarte); document.getElementById("titulo-facturacion")?.focus(); }

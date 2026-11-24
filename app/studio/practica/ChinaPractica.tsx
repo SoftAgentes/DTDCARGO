@@ -13,12 +13,12 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio }:
   const [confirmar, setConfirmar] = useState(false);
   const bloqueo = useRef(false);
   const aviso = useRef<HTMLParagraphElement>(null);
-  const modulo = permisos.some(p => p.id === "cn") ? "cn" : "naviera";
+  const modulo = permisos.find(p => ["cn", "naviera", "shipments", "ve"].includes(p.id))!.id;
   async function pedir(comando?: ComandoChina) {
     if (bloqueo.current) return;
     bloqueo.current = true; setOcupado(true); setError("");
     try {
-      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisos.find(p => (p.id === "cn" || p.id === "naviera") && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : modulo, revision: vista?.revision, comando }) });
+      const res = await fetch(API_PRACTICA + "china", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", redirect: "error", body: JSON.stringify({ espacio, modulo: comando?.accion === "reiniciar" ? (permisos.find(p => (p.id === "cn" || p.id === "naviera") && p.edicion)?.id ?? modulo) : comando?.accion === "consolidar" ? "naviera" : comando?.accion === "embarcar" ? "shipments" : comando && ["aduana", "recibir_ve"].includes(comando.accion) ? "ve" : modulo, revision: vista?.revision, comando }) });
       const datos = await res.json();
       if (!res.ok) throw new Error(datos?.error ?? "No se pudo consultar la carga.");
       setVista(datos);
@@ -41,15 +41,21 @@ export function ChinaPractica({ espacio, permisos, onAbrirFactura, onReinicio }:
     {error && <p ref={aviso} role="alert" tabIndex={-1}>{error}</p>}
     <details><summary aria-label="Ayuda: recibir en China">ⓘ Recibir en China</summary><p>Recibir registra la llegada de estas cajas. La regla vigente no crea una Pre-orden al recibir: la recepción nueva queda en Almacén China y todavía no tiene un documento para facturar. Identificar una carga huérfana tampoco crea un documento financiero.</p></details>
     <details><summary aria-label="Ayuda: consolidar">ⓘ Consolidar</summary><p>Primero recibe e identifica la carga. Este ejercicio conserva las mismas cajas en PRA-CON-001. En este ejercicio, agregar al consolidado no emite otra factura. En el trabajo real, el paso de China a consolidado puede emitir una factura cuando reúne los requisitos; consulta el estado en Facturación. El caso avanzado ya trae PRA-PRE-001 preparada para practicar Facturación según tus permisos.</p></details>
+    <h3>Embarques y Recepción Venezuela</h3><details><summary aria-label="Ayuda: Embarques">ⓘ Embarques</summary><p>Conserva las cajas y la preorden de la misma carga. Facturar abre el documento correcto en Facturación para revisarlo; todavía no emite. Guarda allí CBM, sobrepeso y el tercer artículo antes de confirmar. Una emitida conserva su código y sus conceptos; con pagos vivos no se anula.</p></details>
+    <details><summary aria-label="Ayuda: Recepción Venezuela">ⓘ Recepción Venezuela</summary><p>Registra primero la llegada a aduana y luego la liberación y recepción en destino. Son transiciones de ejemplo, sin acciones del ERP. Salir conserva este avance. Faro no está habilitado en este destino; esta ayuda local permanece disponible.</p></details>
     {vista && <p>Tu avance está guardado. Reiniciar mi práctica restablece también estas cargas.</p>}
     {vista?.documento.cargas.map(c => <fieldset key={c.envio} disabled={ocupado}>
       <legend>{c.envio}</legend>
-      <p>{c.preparada ? "Recepción avanzada preparada · Pre-orden existente PRA-PRE-001" : "Caso nuevo · Sin preorden creada al recibir"}</p>
+      <p>{c.preparada ? "Caso avanzado preparado · Documento existente" : "Caso nuevo · Sin preorden creada al recibir"}</p>
       <p>Marca de cliente: {c.cliente ?? "Sin identificar (huérfana)"} · Estado: {c.estado}</p>
       <p>Cajas: {c.cajas.join(", ")}</p>
       {c.consolidado && <p>Consolidado: {c.consolidado}</p>}
       {c.preorden && permisos.some(p => p.id === "invoices") && <button type="button" disabled={ocupado} onClick={() => onAbrirFactura(c.preorden!)}>Revisar {c.preorden} en Facturación</button>}
+      {c.preorden && permisos.some(p => p.id === "invoices") && <button type="button" disabled={ocupado} onClick={() => onAbrirFactura(c.preorden!)}>Facturar · revisar {c.envio} · {c.cliente}</button>}
       <div className={estilos.acciones}>
+        <button type="button" disabled={!puede("shipments") || c.estado !== "consolidada"} onClick={() => void pedir({accion:"embarcar",envio:c.envio})}>Embarcar {c.envio}</button>
+        <button type="button" disabled={!puede("ve") || c.estado !== "embarcada"} onClick={() => void pedir({accion:"aduana",envio:c.envio})}>Registrar llegada a aduana</button>
+        <button type="button" disabled={!puede("ve") || c.estado !== "en_aduana"} onClick={() => void pedir({accion:"recibir_ve",envio:c.envio})}>Confirmar liberación y recepción Venezuela</button>
         <button type="button" disabled={!puede("cn") || c.estado !== "pendiente"} onClick={() => void pedir({ accion: "recibir", envio: c.envio })}>Recibir {c.envio}</button>
         {!c.cliente && <button type="button" disabled={!puede("cn") || c.estado !== "recibida"} onClick={() => void pedir({ accion: "identificar", envio: c.envio })}>Identificar con marca ficticia</button>}
         <button type="button" disabled={!puede("naviera") || c.estado !== "recibida" || !c.cliente} onClick={() => void pedir({ accion: "consolidar", envio: c.envio })}>Consolidar {c.envio}</button>

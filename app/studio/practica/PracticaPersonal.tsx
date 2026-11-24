@@ -116,7 +116,7 @@ export function PracticaPersonal({ real }: { real: string }) {
         {mensaje && <p role="status">{mensaje}</p>}
         {vista && <>
           {vista.permisos.some(p => p.id === "invoices") && <FacturacionPractica key={vista.espacio} espacio={vista.espacio} onBloqueoSalida={setSalidaBloqueada} solicitudDocumento={documentoPedido} onReinicio={() => setReinicio(n => n + 1)} />}
-          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
+          {vista.permisos.some(p => p.id === "cn" || p.id === "naviera" || p.id === "shipments" || p.id === "ve") && <ChinaPractica key={`china-${vista.espacio}-${reinicio}`} espacio={vista.espacio} permisos={vista.permisos} onAbrirFactura={codigo => setDocumentoPedido(actual => ({codigo,id:(actual?.id ?? 0)+1}))} onReinicio={() => setReinicio(n => n + 1)} />}
           <h2>Permisos de tu práctica</h2>
           {vista.permisos.length ? <ul className={estilos.modulos}>
             {vista.permisos.map(p => <li key={p.id}>
