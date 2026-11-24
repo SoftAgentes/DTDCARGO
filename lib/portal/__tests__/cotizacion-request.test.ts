@@ -65,10 +65,12 @@ describe("validateCotizacionRequest", () => {
       service: "puerta_a_puerta_DDP",
       description: "muebles",
       cbm: "1.234",
-      weightKg: "1.234,5",
+      weightKg: "1234,5",
     });
     expect(r.input?.cbm).toBe(1.234);
     expect(r.input?.weightKg).toBe(1234.5);
+    expect(validateCotizacionRequest({ service: "consolidado_lcl", description: "x", weightKg: "1.234,5" }).input?.weightKg)
+      .toBeNull();
     expect(validateCotizacionRequest({ service: "consolidado_lcl", description: "x", weightKg: "1,234.5" }).input?.weightKg)
       .toBeNull();
   });
