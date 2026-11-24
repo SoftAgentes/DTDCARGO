@@ -1,7 +1,6 @@
 # SDD-0687 — decimales, opción A
 
-Estado: implementación preparada; validación local y revisión independientes en curso.
-Regla y vista previa de NUM-01 aprobadas expresamente por Sam, confirmadas por Director `msg_c31b38185eb6` el 2026-11-24.
+Estado: lista para revisión; regla y vista previa aprobadas por Sam. No integrada ni publicada.
 
 - Owner: `codex-sdd-0687-opcion-a-20261124`.
 - Coordinador: `orca_session_id:14b98827-b1e5-41f3-aee0-c72c837f96fc`.
@@ -9,77 +8,137 @@ Regla y vista previa de NUM-01 aprobadas expresamente por Sam, confirmadas por D
 - Task: `task_3ad70eb679c6`; Dispatch: `ctx_17e2355591a5`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/Orca/DTDCARGO/sdd-0687-decimales-opcion-a-20261124`.
 - Rama: `SoftAgentes/sdd-0687-decimales-opcion-a-20261124`.
-- Base verificada: `8580490f8d95872a407ab83ab9acb6b1b265a451`.
-- Guard: PASÓ; claim propio comprobado en metadatos Git.
-- Permisos: edición, pruebas y commits; rama y PR draft autorizadas; sin merge ni producción.
-- Turno pesado: entregado por Director `msg_fd890c795b82`; instalación congelada PASÓ.
-- Pruebas focales iniciales: PASÓ, 4 archivos y 342 pruebas.
-- Ampliación de seis pruebas autorizada por `msg_505aa05df7cb`:
-- `lib/portal/__tests__/payment-reports.test.ts`
-- `lib/portal/__tests__/cotizacion-request.test.ts`
-- `lib/studio/__tests__/fx-rates.test.ts`
-- `lib/studio/__tests__/scorecard-types.test.ts`
-- `lib/studio/price-books/__tests__/price-books.test.ts`
-- `lib/studio/rate-snapshots/__tests__/types.test.ts`
-
-- Allowlist inicial del Dispatch, ampliada por respuesta `msg_29ad984245b7` para
-  `__tests__/parse-numeric-expression.test.ts` y `lib/studio/__tests__/freight-carriers-types.test.ts`.
-- Alcance: literales humanos sin miles, separador único decimal, vista inmediata VE;
-  precisión/rangos/signo/unidades/edición parcial conservados; `parseMaquina` intacto.
-- SDD: `docs/specs/0687-rebrand-cifras-formato-ve/spec.md`, conserva aprobación original, sin marcar done.
-- Ampliación `msg_c31b38185eb6`: prueba tracking, NUM-01 y solo su fila del registro,
-  regeneración canónica de cápsula y registro de componentes cuando aplica.
-- Fuente adicional de test: `app/studio/(app)/tracking/[id]/__tests__/shipment-data-panel-cifras.test.tsx`.
-- Política NUM-01: v1.2 opción A aprobada; la propuesta v1.2 previa sin aprobación
-  queda trazada como sustituida. No se creó una v1.3 aprobada ni se promovieron otros componentes.
+- Base: `8580490f8d95872a407ab83ab9acb6b1b265a451`, verificada antes de editar.
+- Guard: PASÓ al inicio y antes del commit; claim propio comprobado en metadatos Git.
+- Permisos: edición, pruebas, commits, rama y PR; sin merge, DB real, migraciones ni deploy.
+- Ampliaciones: `msg_29ad984245b7` (expresiones/transportistas), `msg_505aa05df7cb`
+  (seis suites consumidoras) y `msg_c31b38185eb6` (tracking y adopción normativa).
+- NUM-01: Sam aprobó expresamente regla y vista previa el 2026-11-24, según
+  confirmación del Director `msg_c31b38185eb6`. La selección inicial para construir
+  y esta aprobación posterior se distinguen. v1.2 conserva la trazabilidad de
+  v1.1 y de la propuesta anterior; no se promueven otros componentes.
+- Turno pesado entregado por `msg_fd890c795b82` y devuelto mediante
+  `msg_5a4cb891cfb8`; no quedan corridas pesadas locales activas al cierre.
 
 ## OBJETIVO ORIGINAL
 
-Implementar opción A y presentar demo ficticia antes de integrar, sin retirar ft³,
-reinterpretar registros ni modificar cálculo o redondeos de negocio.
+Opción A: punto o coma únicos son decimales en cada literal humano; agrupaciones
+rechazadas, vista inmediata venezolana y precisión/rango/signo/unidades/edición
+parcial conservados. Presentar demo ficticia y entregar código revisable sin
+reinterpretar registros, cambiar cálculo de negocio o retirar ft³.
 
 ## COMPLETADO
 
-Analizador de opción A y preview VE sin ocultar decimales válidos. Tabla SDD y
-contratos de entrada humana actualizados; fronteras canónicas conservadas.
-Matriz de consumidores, demo real aislada y capturas escritorio/móvil.
-NUM-01 y su fila adoptan la decisión expresa; derivados regenerados con scripts
-canónicos. Guard/claim y base verificados; no hay código consumidor modificado.
+- Analizador compartido sin agrupación humana y sin regla de ambigüedad.
+- NumericInput muestra salida VE y no oculta decimales válidos del resultado.
+- Tabla SDD y once archivos de pruebas propios/consumidores actualizados;
+  código consumidor y `parseMaquina` intactos. Se cubren dinero, tasa, medida,
+  porcentaje, USD/EUR/VES, unidades, precisión especial, cero/vacío, signo,
+  rangos, expresiones por operando, edición parcial, error y recuperación.
+- NUM-01 y solo su fila del registro adoptan la decisión expresa; derivados
+  regenerados canónicamente. El registro de componentes cambia solo sourceCommit.
+- Inventario AST: 41 formularios, 89 campos JSX reales; matriz de wrappers y
+  fronteras abajo. No equivale a aceptación manual de todos los formularios.
+- Demo local del componente real, estado de error y capturas escritorio/móvil.
 
 ## VALIDACIÓN
 
-- Instalación congelada PASÓ, sin copiar .env.
-- Focal inicial PASÓ: 4 archivos / 342 pruebas.
-- Consumidores: 147/148 inicialmente; lista de precios usa su traducción propia
-  de formato. Se conservó esa traducción y su suite volvió a PASÓ (27/27).
-- `pnpm verify` iniciado antes de aprobación documental final: EN CURSO, log
-  `C:/Windows/Temp/sdd0687-verify.log`. Harness PASÓ (392; 5 omitidas), lint PASÓ
-  (0 errores; 42 warnings), RSC PASÓ. No se presenta como cierre de la cabeza final.
-- Sobre documentos finales: `build-governance-capsule.mjs --check` y
-  `validate-component-registry.mjs` PASÓ; 29 políticas y 8 componentes.
-- `parseMaquina` idéntico al bloque de base; código consumidor sin cambios.
-- Mutantes y validación focal final: pendientes de finalizar verify.
+| Comprobación | Estado | Evidencia / límite |
+|---|---|---|
+| `corepack pnpm install --frozen-lockfile` | PASÓ | Dependencias propias; sin copiar .env |
+| Vitest focal final, `--maxWorkers=1` | PASÓ | 12 archivos, 524/524; once suites afectadas y TransportistasPanel en aislamiento |
+| Mutantes | PASÓ | 9/9 muertos; controles previo y posterior 345/345; fuentes restauradas byte a byte |
+| ESLint final | PASÓ | 13 archivos TS/TSX del delta, sin errores ni warnings |
+| `build-docs-index.mjs --check` | PASÓ | Índice sincronizado con 695 specs |
+| `check-numbering.mjs` | PASÓ | Sin colisiones nuevas; excepciones históricas informadas |
+| `build-governance-capsule.mjs --check` | PASÓ | 29 políticas; estado final aprobado de NUM-01 |
+| `validate-component-registry.mjs` | PASÓ | 8 componentes; sin promociones ajenas |
+| `git diff --check` | PASÓ | Sin errores de whitespace |
+| Comparación `parseMaquina` con base | PASÓ | Bloque idéntico, consumidores sin cambios de código |
+| Demo en navegador Orca | PASÓ focal | Ejemplos, hidden canónico, agrupaciones, error al confirmar y corrección; no ERP completo |
+| `pnpm verify` local previo | NO COMPLETADO | Iniciado antes del delta final; interrumpido durante suite general, salida 1 por interrupción; no se declara verde |
+| Build, e2e y gates restantes de ese verify | NO EJECUTADO | El runner no llegó a ellos; Quality final cubre cierre sin secretos, no equivale a pruebas e2e completas |
+| Quality de GitHub | PENDIENTE al cierre de escritura | Se activa sobre la cabeza final de PR #807; consultar checks en esa cabeza exacta |
+
+El verify previo sí completó harness (392 aprobadas, 5 omitidas), lint global
+(0 errores, 42 warnings), frontera RSC, typecheck y las cuatro Edge Functions.
+Esos resultados no se presentan como una corrida canónica completa del delta
+final. Los tres últimos casos de denominación se comprobaron después en focal y
+controles de mutantes; los gates documentales se ejecutaron tras la adopción final.
+
+La suite general interrumpida observó fallos en TransportistasPanel (dos casos),
+supplier-flow, correo-comprobacion y cable-oficina-puente. TransportistasPanel
+pasó 24/24 en el control final aislado. Las otras tres suites no se repararon ni
+se declararon flakiness o fallos de base sin un control que lo demuestre; Quality
+de la cabeza final determina el cierre general.
+
+Comando focal: `node node_modules/vitest/vitest.mjs run` con los once archivos
+de prueba de la allowlist SDD más
+`app/studio/(app)/admin/_components/calculator/__tests__/TransportistasPanel.test.tsx`,
+`--maxWorkers=1`. El wrapper cmd de corepack no preservó inicialmente los paths
+con paréntesis; se invocó el entry Node directamente, sin cambiar la configuración.
+
+Logs locales: `C:/Windows/Temp/sdd0687-verify.log`,
+`C:/Windows/Temp/sdd0687-mutantes/`. El instrumento de mutantes tuvo inicialmente
+un error al imprimir Unicode en CP1252; restauró en finally y conservó los tres
+reportes ya escritos. Se corrigió la impresión, se repitió el control previo,
+se completaron los seis mutantes restantes y el control posterior. No hubo
+fallos de carga, cero pruebas ni mutantes activos al cerrar.
 
 ## COMMITS
 
-Pendientes.
+- `039ecc8f1e29276fa7e248f7a6ce8073e55baf15`: implementación, contratos y adopción
+  normativa autorizada.
+- Commit que contiene este documento: evidencia final y comprobación explícita
+  de símbolos USD/EUR/VES. SHA final disponible en PR; se evita una cadena de
+  commits para incluir el hash propio en el documento.
 
 ## PR / BRANCH
 
-Sin PR aún; rama arriba indicada, base main.
+[PR #807](https://github.com/SoftAgentes/DTDCARGO/pull/807), base `main`, rama
+`SoftAgentes/sdd-0687-decimales-opcion-a-20261124`. Se publica como borrador y
+se abre a revisión para activar Quality tras subir la cabeza final, según
+instrucción del Director de usar CI para el cierre íntegro.
 
 ## PENDIENTES DE ESTA TAREA
 
-Cierre de validación local, mutantes, commits/PR y revisión independiente/CI sobre la cabeza final. Regla/vista y adopción normativa aprobadas; integración y publicación no realizadas.
+- Quality sobre la cabeza final y revisión independiente por impacto en montos.
+- Integración y publicación corresponden al Director; no realizadas aquí.
+- Regla/vista y NUM-01 ya aprobadas; no se solicita esa aprobación otra vez.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Retiro de ft³ y fases de formateadores/salidas futuras.
+- Retiro de ft³, fases futuras y cambio global de formateadores/exportaciones.
+- Traducciones de error y comentarios históricos de consumidores no editados.
+- Las tres suites generales pendientes de diagnóstico indicadas arriba; no se
+  absorben bugs ajenos para presentar un verde local.
+- Cache del plugin de gobernanza desactualizada, detectada antes de la adopción;
+  los gates canónicos del repositorio sí pasaron. No se editó el plugin instalado.
 
 ## HANDOFF AL DIRECTOR
 
-Escritura activa con claim propio. Regla y vista de NUM-01 aprobadas expresamente; integración espera revisión independiente y CI sobre la cabeza exacta.
+Resultado listo para revisión. PC liberada; solo queda el servidor liviano de
+demo para consulta, sin nuevas corridas pesadas. La escritura termina con el
+commit de cierre y después se libera el claim con
+`node scripts/harness-worktree.mjs release --owner codex-sdd-0687-opcion-a-20261124`,
+antes de worker_done; la confirmación de liberación queda también en la entrega
+y PR. No se elimina el worktree ni la rama.
 
+## Matriz de mutantes
+
+| Mutante | Aserciones falladas | Estado |
+|---|---:|---|
+| `aceptar-agrupado-ve` | 30 | muerto por aserciones |
+| `aceptar-agrupado-us` | 32 | muerto por aserciones |
+| `aceptar-miles-repetidos` | 14 | muerto por aserciones |
+| `separador-unico-como-miles` | 47 | muerto por aserciones |
+| `rechazar-punto-tasa` | 4 | muerto por aserciones |
+| `omitir-precision` | 26 | muerto por aserciones |
+| `eco-en-us` | 16 | muerto por aserciones |
+| `ocultar-decimales-tasa` | 1 | muerto por aserciones |
+| `conservar-callback-anterior` | 5 | muerto por aserciones |
+
+Se conserva el código fuente sin mutantes; cada prueba compara comportamiento real.
 
 ## Matriz de consumidores (inventario de código, base 8580490f)
 

@@ -289,6 +289,18 @@ describe("NumericInput · SDD-0687 opción A, entrada sin miles y salida 1.234,5
     expect(input).toHaveValue(texto);
   });
 
+  it.each([
+    ["USD", "$"],
+    ["EUR", "€"],
+    ["VES", "Bs."],
+  ])("conserva la denominación %s y su símbolo %s", (currency, simbolo) => {
+    const { input, hidden, preview } = renderCon({ type: "currency", currency });
+    fireEvent.change(input, { target: { value: "1234.50" } });
+    expect(screen.getByText(simbolo)).toHaveAttribute("aria-hidden", "true");
+    expect(hidden).toHaveValue("1234.5");
+    expect(preview).toHaveTextContent("= 1.234,50");
+  });
+
   it.each(["1.234,50", "1,234.50", "1.234.567", "1,234,567"])("agrupación %s invalida el monto anterior y permite corregir", (texto) => {
     const { input, hidden, preview, onChange } = renderCon({ type: "currency" });
     fireEvent.change(input, { target: { value: "1250" } });
